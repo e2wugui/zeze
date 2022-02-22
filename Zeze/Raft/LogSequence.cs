@@ -1,0 +1,1306 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Threading.Tasks;
+using System.Collections.Concurrent;
+using System.IO;
+using RocksDbSharp;
+using Zeze.Net;
+using Zeze.Serialize;
+using Zeze.Transaction;
+
+namespace Zeze.Raft
+{
+    public sealed class HeartbeatLog : Log
+    {
+        public const int SetLeaderReadyEvent = 1;
+
+        public int Operate { get; private set; }
+        public string Info { get; private set; }
+
+        public HeartbeatLog(int operate = 0, string info = null)
+            : base(null)
+        {
+            Operate = operate;
+            Info = null == info ? string.Empty : info;
+        }
+
+        public override void Apply(RaftLog holder, StateMachine stateMachine)
+        {
+            switch (Operate)
+            {
+                case SetLeaderReadyEvent:
+                    stateMachine.Raft.SetLeaderReady(holder);
+                    break;
+            }
+        }
+
+        public override void Decode(ByteBuffer bb)
+        {
+            base.Decode(bb);
+            Operate = bb.ReadInt();
+            Info = bb.ReadString();
+        }
+
+        public override void Encode(ByteBuffer bb)
+        {
+            base.Encode(bb);
+            bb.WriteInt(Operate);
+            bb.WriteString(Info);
+        }
+
+        public override string ToString()
+        {
+            return $"{base.ToString()} Info={Info}";
+        }
+    }
+
+    public sealed class RaftLog : Serializable
+    {
+        public long Term { get; private set; }
+        public long Index { get; private set; }
+        public Log Log { get; private set; }
+
+        // 不会被系列化。Local Only.
+        public Func<int, Log> LogFactory { get; }
+
+        public override string ToString()
+        {
+            return $"Term={Term} Index={Index} Log={Log}";
+        }
+        public RaftLog(long term, long index, Log log)
+        {
+            Term = term;
+            Index = index;
+            Log = log;
+        }
+
+        public RaftLog(Func<int, Log> logFactory)
+        {
+            LogFactory = logFactory;
+        }
+
+        public void Decode(ByteBuffer bb)
+        {
+            Term = bb.ReadLong();
+            Index = bb.ReadLong();
+            int logTypeId = bb.ReadInt4();
+            Log = LogFactory(logTypeId);
+            Log.Decode(bb);
+        }
+
+        public void Encode(ByteBuffer bb)
+        {
+            bb.WriteLong(Term);
+            bb.WriteLong(Index);
+            bb.WriteInt4(Log.TypeId);
+            Log.Encode(bb);
+        }
+
+        public ByteBuffer Encode()
+        {
+            var bb = ByteBuffer.Allocate();
+            Encode(bb);
+            return bb;
+        }
+
+        public static RaftLog Decode(Binary data, Func<int, Log> logFactory)
+        {
+            var raftLog = new RaftLog(logFactory);
+            data.Decode(raftLog);
+            return raftLog;
+        }
+    }
+
+    public class LogSequence
+    {
+        internal static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
+        public Raft Raft { get; }
+
+        public long Term { get; private set; }
+        public long LastIndex { get; private set; }
+        // 用来处理NextIndex回溯时限制搜索。snapshot需要修订这个值。
+        public long FirstIndex { get; private set; }
+        public long CommitIndex { get; private set; }
+        public long LastApplied { get; private set; }
+
+        // 这个不是日志需要的，因为持久化，所以就定义在这里吧。
+        internal string VoteFor { get; set; }
+
+        // 初始化的时候会加入一条日志(Index=0，不需要真正apply)，
+        // 以后Snapshot时，会保留LastApplied的。
+        // 所以下面方法不会返回空。
+        // 除非什么例外发生。那就抛空指针异常吧。
+        public RaftLog LastAppliedLog()
+        {
+            return ReadLog(LastApplied);
+        }
+
+        private void SaveFirstIndex(long newFirstIndex)
+        {
+            var firstIndexValue = ByteBuffer.Allocate();
+            firstIndexValue.WriteLong(newFirstIndex);
+            Rafts.Put(
+                RaftsFirstIndexKey, RaftsFirstIndexKey.Length,
+                firstIndexValue.Bytes, firstIndexValue.Size,
+                null, WriteOptions
+                );
+            FirstIndex = newFirstIndex;
+        }
+
+        public void CommitSnapshot(string path, long newFirstIndex)
+        {
+            lock (Raft)
+            {
+                File.Move(path, SnapshotFullName, true);
+                SaveFirstIndex(newFirstIndex);
+                StartRemoveLogOnlyBefore(newFirstIndex);
+            }
+        }
+
+        private Iterator NewLogsIterator()
+        {
+            lock (Raft)
+            {
+                return Logs.NewIterator();
+            }
+        }
+
+        internal volatile TaskCompletionSource<bool> RemoveLogBeforeFuture;
+        internal volatile bool LogsAvailable = false;
+
+        private void StartRemoveLogOnlyBefore(long index)
+        {
+            lock (Raft)
+            {
+                if (null != RemoveLogBeforeFuture || false == LogsAvailable || Raft.IsShutdown)
+                    return;
+                RemoveLogBeforeFuture = new TaskCompletionSource<bool>();
+            }
+
+            // 直接对 RocksDb 多线程访问，这里就不做多线程保护了。
+            Util.Task.Run(() =>
+            {
+                try
+                {
+                    using var it = NewLogsIterator();
+                    it.SeekToFirst();
+                    while (LogsAvailable && false == Raft.IsShutdown && it.Valid())
+                    {
+                        var raftLog = RaftLog.Decode(new Binary(it.Value()), Raft.StateMachine.LogFactory);
+                        if (raftLog.Index >= index)
+                        {
+                            RemoveLogBeforeFuture.TrySetResult(true);
+                            return;
+                        }
+
+                        var key = it.Key();
+                        Logs.Remove(key, key.Length, null, WriteOptions);
+
+                        // 删除快照前的日志时，不删除唯一请求存根，否则快照建立时刻前面一点时间的请求无法保证唯一。
+                        // 唯一请求存根自己管理删除，【TODO】
+                        // 【注意】
+                        // 服务器完全奔溃（数据全部丢失）后，重新配置一台新的服务器，仍然又很小的机会存在无法判断唯一。
+                        // 此时比较好的做法时，从工作节点的数据库(uniqe/)复制出一份，作为开始数据。
+                        // 参考 RemoveLogAndCancelStart 
+
+                        //if (raftLog.Log.Unique.RequestId > 0)
+                        //    OpenUniqueRequests(raftLog.Log.CreateTime).Remove(raftLog);
+                        it.Next();
+                    }
+                }
+                finally
+                {
+                    RemoveLogBeforeFuture.TrySetResult(false);
+                    lock (Raft)
+                    {
+                        RemoveLogBeforeFuture = null;
+                    }
+                }
+            }, $"RemoveLogBefore{index}");
+        }
+
+        /*
+        private void RemoveLogReverse(long startIndex, long firstIndex)
+        {
+            if (startIndex >= LastApplied)
+                throw new Exception("Error At Least Retain One Applied Log");
+
+            for (var index = startIndex; index >= firstIndex; --index)
+            {
+                RemoveLog(index);
+            }
+        }
+        */
+
+        // Leader
+        // Follower
+        public long LeaderActiveTime { get; internal set; } = Zeze.Util.Time.NowUnixMillis;
+
+        private RocksDb Logs { get; set; }
+        private RocksDb Rafts { get; set; }
+
+        internal static RocksDb OpenDb(DbOptions options, string path)
+        {
+            Exception laste = null;
+            for (int i = 0; i < 10; ++i)
+            {
+                try
+                {
+                    return RocksDb.Open(options, path);
+                }
+                catch (Exception e)
+                {
+                    logger.Info(e, $"RocksDb.Open {path}");
+                    laste = e;
+                    System.Threading.Thread.Sleep(1000);
+                }
+            }
+            throw laste;
+        }
+
+        internal sealed class UniqueRequestSet
+        {
+            private RocksDb Db { get; set; }
+            public string DbName { get; set; }
+
+            public LogSequence LogSequence { get; set; }
+
+            public UniqueRequestSet(LogSequence lq, string dbName)
+            {
+                LogSequence = lq;
+                DbName = dbName;
+            }
+
+            static ConcurrentDictionary<string, ConcurrentDictionary<long, long>> unique
+                = new ConcurrentDictionary<string, ConcurrentDictionary<long, long>>();
+
+            private void Put(RaftLog log, long value)
+            {
+                var db = OpenDb();
+                var key = ByteBuffer.Allocate(100);
+                log.Log.Unique.Encode(key);
+                if (value > 0 && db.Get(key.Bytes, key.Size) != null)
+                {
+                    throw new RaftRetryException($"Duplicate Request Found = {log.Log.Unique}");
+                }
+                var val = ByteBuffer.Allocate();
+                val.WriteLong(value);
+                db.Put(key.Bytes, key.Size, val.Bytes, val.Size, null, LogSequence.WriteOptions);
+            }
+
+            public void Save(RaftLog log)
+            {
+                Put(log, log.Index);
+            }
+
+            public void Apply(RaftLog log)
+            {
+                Put(log, -log.Index);
+            }
+
+            public void Remove(RaftLog log)
+            {
+                var key = ByteBuffer.Allocate(100);
+                log.Log.Unique.Encode(key);
+                OpenDb().Remove(key.Bytes, key.Size, null, LogSequence.WriteOptions);
+            }
+
+            public long GetRequestState(IRaftRpc iraftrpc)
+            {
+                var key = ByteBuffer.Allocate(100);
+                iraftrpc.Unique.Encode(key);
+                var val = OpenDb().Get(key.Bytes, key.Size);
+                if (null == val)
+                    return 0;
+                var bb = ByteBuffer.Wrap(val);
+                return bb.ReadLong();
+            }
+
+            private RocksDb OpenDb()
+            {
+                lock (this)
+                {
+                    if (null == Db)
+                    {
+                        var dir = Path.Combine(LogSequence.Raft.RaftConfig.DbHome, "unique");
+                        Directory.CreateDirectory(dir);
+                        Db = LogSequence.OpenDb(new DbOptions().SetCreateIfMissing(true), Path.Combine(dir, DbName));
+                    }
+                    return Db;
+                }
+            }
+
+            public void Dispose()
+            {
+                Db?.Dispose();
+            }
+        }
+        private ConcurrentDictionary<string, UniqueRequestSet> UniqueRequestSets { get; }
+            = new ConcurrentDictionary<string, UniqueRequestSet>();
+
+        private void CancelPendingAppendLogFutures()
+        {
+            foreach (var job in WaitApplyFutures)
+            {
+                job.Value.TrySetCanceled();
+                WaitApplyFutures.TryRemove(job.Key, out _);
+            }
+        }
+
+        internal void Close()
+        {
+            // must after set Raft.IsShutdown = false;
+            CancelPendingAppendLogFutures();
+
+            lock (Raft)
+            {
+                SnapshotTimer?.Cancel();
+                Logs?.Dispose();
+                Logs = null;
+                Rafts?.Dispose();
+                Rafts = null;
+                foreach (var db in UniqueRequestSets.Values)
+                {
+                    db.Dispose();
+                }
+                UniqueRequestSets.Clear();
+            }
+        }
+
+        public LogSequence(Raft raft)
+        {
+            Raft = raft;
+            var options = new DbOptions().SetCreateIfMissing(true);
+
+            Rafts = OpenDb(options, Path.Combine(Raft.RaftConfig.DbHome, "rafts"));
+            {
+                // Read Term
+                var termKey = ByteBuffer.Allocate();
+                termKey.WriteInt(0);
+                RaftsTermKey = termKey.Copy();
+                var termValue = Rafts.Get(RaftsTermKey);
+                if (null != termValue)
+                {
+                    var bb = ByteBuffer.Wrap(termValue);
+                    Term = bb.ReadLong();
+                }
+                else
+                {
+                    Term = 0;
+                }
+                // Read VoteFor
+                var voteForKey = ByteBuffer.Allocate();
+                voteForKey.WriteInt(1);
+                RaftsVoteForKey = voteForKey.Copy();
+                var voteForvalue = Rafts.Get(RaftsVoteForKey);
+                if (null != voteForvalue)
+                {
+                    var bb = ByteBuffer.Wrap(voteForvalue);
+                    VoteFor = bb.ReadString();
+                }
+                else
+                {
+                    VoteFor = string.Empty;
+                }
+                // Read FirstIndex 由于snapshot并发，Logs中的第一条记录可能不是FirstIndex了。
+                var firstIndexKey = ByteBuffer.Allocate();
+                firstIndexKey.WriteInt(2);
+                RaftsFirstIndexKey = firstIndexKey.Copy();
+                var firstIndexValue = Rafts.Get(RaftsFirstIndexKey);
+                if (null != firstIndexValue)
+                {
+                    var bb = ByteBuffer.Wrap(firstIndexValue);
+                    FirstIndex = bb.ReadLong();
+                }
+                else
+                {
+                    FirstIndex = -1; // never snapshot. will re-initialize later.
+                }
+            }
+
+
+            Logs = OpenDb(options, Path.Combine(Raft.RaftConfig.DbHome, "logs"));
+            {
+                // Read Last Log Index
+                using var itLast = Logs.NewIterator();
+                itLast.SeekToLast();
+                if (itLast.Valid())
+                {
+                    LastIndex = RaftLog.Decode(
+                        new Binary(itLast.Value()),
+                        Raft.StateMachine.LogFactory
+                        ).Index;
+                }
+                else
+                {
+                    // empty. add one for prev.
+                    SaveLog(new RaftLog(Term, 0, new HeartbeatLog()));
+                    LastIndex = 0;
+                }
+                logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} LastIndex={LastIndex} Count={GetTestStateMachineCount()}");
+
+                // 【注意】snapshot 以后 FirstIndex 会推进，不再是从0开始。
+                if (FirstIndex == -1) // never snapshot
+                {
+                    using var itFirst = Logs.NewIterator();
+                    itFirst.SeekToFirst();
+                    FirstIndex = RaftLog.Decode(new Binary(itFirst.Value()), Raft.StateMachine.LogFactory).Index;
+                }
+                LastApplied = FirstIndex;
+                CommitIndex = FirstIndex;
+            }
+            LogsAvailable = true;
+
+            // 可能有没有被清除的日志存在。启动任务。
+            StartRemoveLogOnlyBefore(FirstIndex);
+        }
+
+        internal long GetRequestState(Protocol p)
+        {
+            var iraftrpc = p as IRaftRpc;
+            if (null == iraftrpc)
+                return 0;
+            return OpenUniqueRequests(iraftrpc.CreateTime).GetRequestState(iraftrpc);
+        }
+
+        private UniqueRequestSet OpenUniqueRequests(long time)
+        {
+            var dateTime = Util.Time.UnixMillisToDateTime(time);
+            var dbName = $"{dateTime.Year}.{dateTime.Month}.{dateTime.Day}";
+            return UniqueRequestSets.GetOrAdd(dbName, (db) => new UniqueRequestSet(this, db));
+        }
+
+        private readonly byte[] RaftsTermKey;
+        private readonly byte[] RaftsVoteForKey;
+        private readonly byte[] RaftsFirstIndexKey;
+
+        public WriteOptions WriteOptions { get; set; } = new WriteOptions().SetSync(true);
+
+        private void SaveLog(RaftLog log)
+        {
+            var key = ByteBuffer.Allocate();
+            key.WriteLong(log.Index);
+            var value = log.Encode();
+            // key,value offset must 0
+            Logs.Put(
+                key.Bytes, key.Size,
+                value.Bytes, value.Size,
+                null, WriteOptions
+                );
+
+            logger.Debug($"{Raft.Name}-{Raft.IsLeader} RequestId={log.Log.Unique.RequestId} Index={log.Index} Count={GetTestStateMachineCount()}");
+        }
+
+        private void SaveLogRaw(long index, byte[] rawValue)
+        {
+            var key = ByteBuffer.Allocate();
+            key.WriteLong(index);
+
+            Logs.Put(
+                key.Bytes, key.Size,
+                rawValue, rawValue.Length,
+                null, WriteOptions
+                );
+
+            logger.Debug($"{Raft.Name}-{Raft.IsLeader} RequestId=? Index={index} Count={GetTestStateMachineCount()}");
+        }
+
+        private RaftLog ReadLog(long index)
+        {
+            var key = ByteBuffer.Allocate();
+            key.WriteLong(index);
+            var value = Logs.Get(key.Bytes, key.Size);
+            if (null == value)
+                return null;
+            return RaftLog.Decode(new Binary(value), Raft.StateMachine.LogFactory);
+        }
+
+        internal enum SetTermResult
+        {
+            Newer,
+            Same,
+            Older
+        }
+
+        // Rules for Servers
+        // All Servers:
+        // If RPC request or response contains term T > currentTerm:
+        // set currentTerm = T, convert to follower(§5.1)
+        internal SetTermResult TrySetTerm(long term)
+        {
+            if (term > Term)
+            {
+                Term = term;
+                var termValue = ByteBuffer.Allocate();
+                termValue.WriteLong(term);
+                Rafts.Put(RaftsTermKey, RaftsTermKey.Length, termValue.Bytes, termValue.Size, null, WriteOptions);
+                Raft.LeaderId = string.Empty;
+                SetVoteFor(string.Empty);
+                return SetTermResult.Newer;
+            }
+            if (term == Term)
+                return SetTermResult.Same;
+            return SetTermResult.Older;
+        }
+
+        internal bool CanVoteFor(string voteFor)
+        {
+            return string.IsNullOrEmpty(VoteFor) || VoteFor.Equals(voteFor);
+        }
+
+        internal void SetVoteFor(string voteFor)
+        {
+            if (false == VoteFor.Equals(voteFor))
+            {
+                VoteFor = voteFor;
+                var voteForValue = ByteBuffer.Allocate();
+                voteForValue.WriteString(voteFor);
+                Rafts.Put(RaftsVoteForKey, RaftsVoteForKey.Length, voteForValue.Bytes, voteForValue.Size, null, WriteOptions);
+            }
+        }
+
+        private void TryCommit(AppendEntries rpc, Server.ConnectorEx connector)
+        {
+            connector.NextIndex = rpc.Argument.LastEntryIndex + 1;
+            connector.MatchIndex = rpc.Argument.LastEntryIndex;
+
+            // 旧的 AppendEntries 的结果，不用继续处理了。
+            // 【注意】这个不是必要的，是一个小优化。
+            if (rpc.Argument.LastEntryIndex <= CommitIndex)
+                return;
+
+            // find MaxMajorityLogIndex
+            // Rules for Servers
+            // If there exists an N such that N > commitIndex, a majority
+            // of matchIndex[i] ≥ N, and log[N].term == currentTerm:
+            // set commitIndex = N(§5.3, §5.4).
+            var followers = new List<Server.ConnectorEx>();
+            Raft.Server.Config.ForEachConnector((c) => followers.Add(c as Server.ConnectorEx));
+            followers.Sort((a, b) => b.MatchIndex.CompareTo(a.MatchIndex));
+            var maxMajorityLogIndex = followers[Raft.RaftConfig.HalfCount - 1].MatchIndex;
+            if (maxMajorityLogIndex > CommitIndex)
+            {
+                var maxMajorityLog = ReadLog(maxMajorityLogIndex);
+                if (maxMajorityLog.Term != Term)
+                {
+                    // 如果是上一个 Term 未提交的日志在这一次形成的多数派，
+                    // 不自动提交。
+                    // 总是等待当前 Term 推进时，顺便提交它。
+                    return;
+                }
+                // 推进！
+                CommitIndex = maxMajorityLogIndex;
+                TryStartApplyTask(maxMajorityLog);
+            }
+        }
+
+        internal volatile TaskCompletionSource<bool> ApplyFuture; // follower background apply task
+
+        // under lock (Raft)
+        private void TryStartApplyTask(RaftLog lastApplyableLog)
+        {
+            if (null == ApplyFuture && false == Raft.IsShutdown)
+            {
+                // 仅在没有 apply 进行中才尝试进行处理。
+                if (CommitIndex - LastApplied < Raft.RaftConfig.BackgroundApplyCount)
+                {
+                    // apply immediately in current thread
+                    TryApply(lastApplyableLog, long.MaxValue);
+                    return;
+                }
+
+                ApplyFuture = new TaskCompletionSource<bool>();
+                Raft.ImportantThreadPool.QueueUserWorkItem(() =>
+                {
+                    try
+                    {
+                        ApplyFuture.SetResult(Util.Task.Call(BackgroundApply, "BackgroundApply") == 0); // 如果有人等待。
+                    }
+                    finally
+                    {
+                        lock (Raft)
+                        {
+                            ApplyFuture = null; // 允许再次启动，不需要等待了。
+                        }
+                    }
+                });
+            }
+        }
+
+        private long BackgroundApply()
+        {
+            while (false == Raft.IsShutdown)
+            {
+                lock (Raft)
+                {
+                    // ReadLog Again，CommitIndex Maybe Grow.
+                    var lastApplyableLog = ReadLog(CommitIndex);
+                    TryApply(lastApplyableLog, Raft.RaftConfig.BackgroundApplyCount);
+                    if (LastApplied == lastApplyableLog.Index)
+                    {
+                        return 0; // 本次Apply结束。
+                    }
+                }
+                System.Threading.Thread.Yield();
+            }
+            return Procedure.CancelException;
+        }
+
+        private void TryApply(RaftLog lastApplyableLog, long count)
+        {
+            if (null == lastApplyableLog)
+            {
+                logger.Error("lastApplyableLog is null.");
+                return;
+            }
+            for (long index = LastApplied + 1;
+                index <= lastApplyableLog.Index && count > 0;
+                --count)
+            {
+                var raftLog = ReadLog(index);
+                if (null == raftLog)
+                {
+                    logger.Warn("What Happened! index={0} lastApplyable={1} LastApplied={2}",
+                        index, lastApplyableLog.Index, LastApplied);
+                    return; // end?
+                }
+
+                index = raftLog.Index + 1;
+                raftLog.Log.Apply(raftLog, Raft.StateMachine);
+                if (raftLog.Log.Unique.RequestId > 0)
+                    OpenUniqueRequests(raftLog.Log.CreateTime).Apply(raftLog);
+                LastApplied = raftLog.Index; // 循环可能退出，在这里修改。
+                                             //*
+                if (LastIndex - LastApplied < 10)
+                    logger.Debug($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={raftLog.Log.Unique.RequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
+                // */
+                if (WaitApplyFutures.TryRemove(raftLog.Index, out var future))
+                    future.SetResult(0);
+            }
+            //logger.Debug($"{Raft.Name}-{Raft.IsLeader} CommitIndex={CommitIndex} RequestId={lastApplyableLog.Log.Unique.RequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
+        }
+
+        internal long GetTestStateMachineCount()
+        {
+            return (Raft.StateMachine as Test.TestStateMachine).Count;
+        }
+
+        internal ConcurrentDictionary<long, TaskCompletionSource<int>> WaitApplyFutures { get; }
+            = new ConcurrentDictionary<long, TaskCompletionSource<int>>();
+
+        internal void SendHearbeatTo(Server.ConnectorEx connector)
+        {
+            lock (Raft)
+            {
+                connector.AppendLogActiveTime = Util.Time.NowUnixMillis;
+
+                if (false == Raft.IsLeader)
+                    return; // skip if is not a leader
+
+                if (connector.Pending != null)
+                    return;
+
+                if (InstallSnapshotting.ContainsKey(connector.Name))
+                    return;
+
+                var socket = connector.TryGetReadySocket();
+                if (null == socket)
+                {
+                    // Hearbeat Will Retry
+                    return;
+                }
+
+                var hearbeat = new AppendEntries();
+                hearbeat.Argument.Term = Term;
+                hearbeat.Argument.LeaderId = Raft.Name;
+                hearbeat.Send(socket, (p) =>
+                {
+                    if (hearbeat.IsTimeout)
+                        return 0; // skip
+
+                    lock (Raft)
+                    {
+                        if (Raft.LogSequence.TrySetTerm(hearbeat.Result.Term) == SetTermResult.Newer)
+                        {
+                            // new term found.
+                            Raft.ConvertStateTo(Raft.RaftState.Follower);
+                            return Procedure.Success;
+                        }
+                    }
+                    return 0;
+                }, Raft.RaftConfig.AppendEntriesTimeout);
+            }
+        }
+
+        internal void AppendLog(Log log, bool WaitApply)
+        {
+            AppendLog(log, WaitApply, out _, out _);
+        }
+
+        internal void AppendLog(Log log, bool WaitApply, out long term, out long index)
+        {
+            term = 0;
+            index = 0;
+
+            TaskCompletionSource<int> future = null;
+            lock (Raft)
+            {
+                if (false == Raft.IsLeader)
+                    throw new RaftRetryException(); // 快速失败
+
+                var raftLog = new RaftLog(Term, LastIndex + 1, log);
+                if (WaitApply)
+                {
+                    future = new TaskCompletionSource<int>();
+                    if (false == WaitApplyFutures.TryAdd(raftLog.Index, future))
+                    {
+                        Raft.FatalKill();
+                        throw new Exception("Impossible");
+                    }
+                }
+                if (raftLog.Log.Unique.RequestId > 0)
+                    OpenUniqueRequests(raftLog.Log.CreateTime).Save(raftLog);
+                SaveLog(raftLog);
+                LastIndex = raftLog.Index;
+                term = Term;
+                index = LastIndex;
+            }
+
+            // 广播给followers并异步等待多数确认
+            Raft.Server.Config.ForEachConnector(
+                (connector) => TrySendAppendEntries(connector as Server.ConnectorEx, null));
+
+            if (WaitApply)
+            {
+                if (false == future.Task.Wait(Raft.RaftConfig.AppendEntriesTimeout * 2 + 1000))
+                {
+                    WaitApplyFutures.TryRemove(index, out _);
+                    throw new RaftRetryException();
+                }
+            }
+        }
+
+        // 是否正在创建Snapshot过程中，用来阻止新的创建请求。
+        private bool Snapshotting { get; set; } = false;
+        // 是否有安装进程正在进行中，用来阻止新的创建请求。
+        internal ConcurrentDictionary<string, Server.ConnectorEx> InstallSnapshotting { get; }
+            = new ConcurrentDictionary<string, Server.ConnectorEx>(); // key is Server.ConnectorEx.Name
+
+        public const string SnapshotFileName = "snapshot.dat";
+        public string SnapshotFullName => Path.Combine(Raft.RaftConfig.DbHome, SnapshotFileName);
+
+        private Util.SchedulerTask SnapshotTimer;
+
+        public void StartSnapshotTimer()
+        {
+            lock (Raft)
+            {
+                SnapshotTimer?.Cancel();
+
+                if (Raft.RaftConfig.SnapshotHourOfDay >= 0 && Raft.RaftConfig.SnapshotHourOfDay < 24)
+                {
+                    // 每天定点执行。
+                    var now = DateTime.Now;
+                    var firstTime = new DateTime(now.Year, now.Month, now.Day,
+                        Raft.RaftConfig.SnapshotHourOfDay, Raft.RaftConfig.SnapshotMinute, 0);
+                    if (firstTime.CompareTo(now) < 0)
+                        firstTime = firstTime.AddDays(1);
+                    var delay = Util.Time.DateTimeToUnixMillis(firstTime) - Util.Time.DateTimeToUnixMillis(now);
+                    SnapshotTimer = Zeze.Util.Scheduler.Instance.Schedule((ThisTask) => Snapshot(false), delay);
+                }
+                else
+                {
+                    // 此时 SnapshotMinute 表示Period。
+                    SnapshotTimer = Zeze.Util.Scheduler.Instance.Schedule(
+                        (ThisTask) => Snapshot(false), Raft.RaftConfig.SnapshotMinute * 60 * 1000);
+                }
+            }
+        }
+
+        public void EndReceiveInstallSnapshot(FileStream s, InstallSnapshot r)
+        {
+            lock (Raft)
+            {
+                LogsAvailable = false; // cancel RemoveLogBefore
+            }
+            RemoveLogBeforeFuture?.Task.Wait();
+            lock (Raft)
+            {
+                try
+                {
+                    // 6. If existing log entry has same index and term as snapshot’s
+                    // last included entry, retain log entries following it and reply
+                    var last = ReadLog(r.Argument.LastIncludedIndex);
+                    if (null != last && last.Term == r.Argument.LastIncludedTerm)
+                    {
+                        // 这里全部保留更简单吧，否则如果没有applied，那不就糟了吗？
+                        // RemoveLogReverse(r.Argument.LastIncludedIndex - 1);
+                        return;
+                    }
+                    // 7. Discard the entire log
+                    // 整个删除，那么下一次AppendEnties又会找不到prev。不就xxx了吗?
+                    // 我的想法是，InstallSnapshot 最后一个 trunk 带上 LastIncludedLog，
+                    // 接收者清除log，并把这条日志插入（这个和系统初始化时插入的Index=0的日志道理差不多）。
+                    // 【除了快照最后包含的日志，其他都删除。】
+                    Logs.Dispose();
+                    Logs = null;
+                    CancelPendingAppendLogFutures();
+                    var logsdir = Path.Combine(Raft.RaftConfig.DbHome, "logs");
+                    Directory.Delete(logsdir, true);
+                    var options = new DbOptions().SetCreateIfMissing(true);
+
+                    Logs = OpenDb(options, logsdir);
+                    var lastIncludedLog = RaftLog.Decode(r.Argument.LastIncludedLog, Raft.StateMachine.LogFactory);
+                    CommitSnapshot(s.Name, lastIncludedLog.Index);
+                    SaveLog(lastIncludedLog);
+
+                    LastIndex = lastIncludedLog.Index;
+                    CommitIndex = FirstIndex;
+                    LastApplied = FirstIndex;
+
+                    // 【关键】记录这个，放弃当前Term的投票。
+                    SetVoteFor(Raft.LeaderId);
+
+                    // 8. Reset state machine using snapshot contents (and load
+                    // snapshot’s cluster configuration)
+                    Raft.StateMachine.LoadSnapshot(SnapshotFullName);
+                    logger.Info($"{Raft.Name} EndReceiveInstallSnapshot Path={s.Name}");
+                }
+                finally
+                {
+                    LogsAvailable = true;
+                }
+            }
+        }
+
+        public void Snapshot(bool NeedNow = false)
+        {
+            lock (Raft)
+            {
+                if (Snapshotting || InstallSnapshotting.Count > 0)
+                {
+                    return;
+                }
+
+                if (LastApplied - FirstIndex < Raft.RaftConfig.SnapshotMinLogCount && false == NeedNow)
+                {
+                    return;
+                }
+
+                Snapshotting = true;
+            }
+            try
+            {
+                long LastIncludedIndex;
+                long LastIncludedTerm;
+                // 忽略Snapshot返回结果。肯定是重复调用导致的。
+                // out 结果这里没有使用，定义在参数里面用来表示这个很重要。
+                var path = Path.Combine(SnapshotFullName + ".tmp");
+                Raft.StateMachine.Snapshot(path, out LastIncludedIndex, out LastIncludedTerm);
+                logger.Info($"{Raft.Name} Snapshot Path={path} LastIndex={LastIncludedIndex} LastTerm={LastIncludedTerm}");
+            }
+            finally
+            {
+                lock (Raft)
+                {
+                    Snapshotting = false;
+                }
+
+                // restart
+                StartSnapshotTimer();
+            }
+        }
+
+        internal void CancelAllInstallSnapshot()
+        {
+            foreach (var installing in InstallSnapshotting.Values)
+            {
+                EndInstallSnapshot(installing);
+            }
+        }
+
+        internal void EndInstallSnapshot(Server.ConnectorEx c)
+        {
+            if (InstallSnapshotting.TryRemove(c.Name, out var cex))
+            {
+                if (cex.InstallSnapshotState.ReuseArgument.Done)
+                {
+                    cex.NextIndex = FirstIndex + 1;
+                    cex.MatchIndex = FirstIndex;
+                }
+                cex.InstallSnapshotState.File.Close();
+                logger.Info($"{Raft.Name} InstallSnapshot Done={cex.InstallSnapshotState.ReuseArgument.Done} c={c.Name}");
+            }
+            c.InstallSnapshotState = null;
+        }
+
+        private void StartInstallSnapshot(Server.ConnectorEx c)
+        {
+            if (InstallSnapshotting.ContainsKey(c.Name))
+            {
+                return;
+            }
+            var path = SnapshotFullName;
+            // 如果 Snapshotting，此时不启动安装。
+            // 以后重试 AppendEntries 时会重新尝试 Install.
+            if (File.Exists(path) && false == Snapshotting)
+            {
+                if (false == InstallSnapshotting.TryAdd(c.Name, c))
+                    throw new Exception("Impossible");
+
+                c.InstallSnapshotState = new InstallSnapshotState();
+                var st = c.InstallSnapshotState;
+                st.File = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read); ;
+                st.FirstLog = ReadLog(FirstIndex);
+                st.ReuseArgument = new InstallSnapshotArgument();
+                st.ReuseArgument.Term = Term;
+                st.ReuseArgument.LeaderId = Raft.Name;
+                st.ReuseArgument.LastIncludedIndex = st.FirstLog.Index;
+                st.ReuseArgument.LastIncludedTerm = st.FirstLog.Term;
+
+                logger.Info($"{Raft.Name} InstallSnapshot Start... Path={path} c={c.Name}");
+                st.TrySend(this, c);
+            }
+            else
+            {
+                // 这一般的情况是snapshot文件被删除了。
+                // 【注意】这种情况也许报错更好？
+                // 内部会判断，不会启动多个snapshot。
+                Snapshot(true);
+            }
+        }
+
+        private long ProcessAppendEntriesResult(Server.ConnectorEx connector, Protocol p)
+        {
+            // 这个rpc处理流程总是返回 Success，需要统计观察不同的分支的发生情况，再来定义不同的返回值。
+
+            var r = p as AppendEntries;
+            bool resend = false;
+            lock (Raft)
+            {
+                resend = r.IsTimeout && Raft.IsLeader;
+            }
+            if (resend)
+            {
+                TrySendAppendEntries(connector, r);  //resend
+                return Procedure.Success;
+            }
+
+            lock (Raft)
+            {
+                if (Raft.LogSequence.TrySetTerm(r.Result.Term) == SetTermResult.Newer)
+                {
+                    // new term found.
+                    Raft.ConvertStateTo(Raft.RaftState.Follower);
+                    // 发现新的 Term，已经不是Leader，不能继续处理了。
+                    // 直接返回。
+                    connector.Pending = null;
+                    return Procedure.Success;
+                }
+
+                if (false == Raft.IsLeader)
+                {
+                    connector.Pending = null;
+                    return Procedure.Success;
+                }
+            }
+
+            if (r.Result.Success)
+            {
+                lock (Raft)
+                {
+                    TryCommit(r, connector);
+                }
+                // TryCommit 推进了NextIndex，
+                // 可能日志没有复制完或者有新的AppendLog。
+                // 尝试继续复制日志。
+                // see TrySendAppendEntries 内的
+                // “限制一次发送的日志数量”
+                TrySendAppendEntries(connector, r);
+                return Procedure.Success;
+            }
+
+            // 日志同步失败，调整NextIndex，再次尝试。
+            lock (Raft)
+            {
+                if (r.Result.NextIndex == 0)
+                {
+                    // 默认的回退模式。
+                    --connector.NextIndex;
+                }
+                else if (r.Result.NextIndex <= FirstIndex)
+                {
+                    // leader snapshot，follower 完全没法匹配了，后续的 TrySendAppendEntries 将启动 InstallSnapshot。
+                    connector.NextIndex = FirstIndex;
+                }
+                else if (r.Result.NextIndex >= LastIndex)
+                {
+                    logger.Fatal("Impossible r.Result.NextIndex >= LastIndex there must be a bug.");
+                    Raft.FatalKill();
+                }
+                else
+                {
+                    // fast locate
+                    connector.NextIndex = r.Result.NextIndex;
+                }
+                TrySendAppendEntries(connector, r);  //resend. use new NextIndex。
+                return Procedure.Success;
+            }
+        }
+
+        internal void TrySendAppendEntries(Server.ConnectorEx connector, AppendEntries pending)
+        {
+            lock (Raft)
+            {
+                // Pending 处理必须完成。
+                connector.AppendLogActiveTime = Util.Time.NowUnixMillis;
+                if (connector.Pending != pending)
+                    return;
+                // 先清除，下面中断(return)不用每次自己清除。
+                connector.Pending = null;
+
+                if (false == Raft.IsLeader)
+                    return; // skip if is not a leader
+
+                // 【注意】
+                // 正在安装Snapshot，此时不复制日志，肯定失败。
+                // 不做这个判断也是可以工作的，算是优化。
+                if (InstallSnapshotting.ContainsKey(connector.Name))
+                    return;
+
+                var socket = connector.TryGetReadySocket();
+                if (null == socket)
+                    return;
+
+                if (connector.NextIndex > LastIndex)
+                    return; // copy end.
+
+                if (connector.NextIndex == FirstIndex)
+                {
+                    // 已经到了日志开头，此时不会有prev-log，无法复制日志了。
+                    // 这一般发生在Leader进行了Snapshot，但是Follower的日志还更老。
+                    // 新起的Follower也一样。
+                    StartInstallSnapshot(connector);
+                    return;
+                }
+
+                var nextLog = ReadLog(connector.NextIndex);
+
+                connector.Pending = new AppendEntries();
+                connector.Pending.Argument.Term = Term;
+                connector.Pending.Argument.LeaderId = Raft.Name;
+                connector.Pending.Argument.LeaderCommit = CommitIndex;
+
+                // 肯定能找到的。
+                var prevLog = ReadLog(nextLog.Index - 1);
+                connector.Pending.Argument.PrevLogIndex = prevLog.Index;
+                connector.Pending.Argument.PrevLogTerm = prevLog.Term;
+
+                // 限制一次发送的日志数量，【注意】这个不是raft要求的。
+                int maxCount = Raft.RaftConfig.MaxAppendEntiresCount;
+                RaftLog lastCopyLog = nextLog;
+                for (var copyLog = nextLog;
+                    maxCount > 0 && null != copyLog && copyLog.Index <= LastIndex;
+                    copyLog = ReadLog(copyLog.Index + 1), --maxCount
+                    )
+                {
+                    lastCopyLog = copyLog;
+                    connector.Pending.Argument.Entries.Add(new Binary(copyLog.Encode()));
+                }
+                connector.Pending.Argument.LastEntryIndex = lastCopyLog.Index;
+                if (false == connector.Pending.Send(socket,
+                    (p) => ProcessAppendEntriesResult(connector, p),
+                    Raft.RaftConfig.AppendEntriesTimeout))
+                {
+                    connector.Pending = null;
+                    // Hearbeat Will Retry
+                }
+            }
+        }
+
+        internal RaftLog LastRaftLog()
+        {
+            return ReadLog(LastIndex);
+        }
+
+        private void RemoveLogAndCancelStart(long startIndex, long endIndex)
+        {
+            for (long index = startIndex; index <= endIndex; ++index)
+            {
+                if (index > LastApplied && WaitApplyFutures.TryRemove(index, out var future))
+                {
+                    // 还没有applied的日志被删除，
+                    // 当发生在重新选举，但是旧的leader上还有一些没有提交的请求时，
+                    // 需要取消。
+                    // 其中判断：index > LastApplied 不是必要的。
+                    // Apply的时候已经TryRemove了，仅会成功一次。
+                    future.TrySetCanceled();
+                }
+                RemoveLog(index);
+            }
+        }
+
+        private void RemoveLog(long index)
+        {
+            var raftLog = ReadLog(index);
+            if (null != raftLog)
+            {
+                var key = ByteBuffer.Allocate();
+                key.WriteLong(index);
+                Logs.Remove(key.Bytes, key.Size, null, WriteOptions);
+                if (raftLog.Log.Unique.RequestId > 0)
+                    OpenUniqueRequests(raftLog.Log.CreateTime).Remove(raftLog);
+            }
+        }
+
+        internal long FollowerOnAppendEntries(AppendEntries r)
+        {
+            LeaderActiveTime = Zeze.Util.Time.NowUnixMillis;
+            r.Result.Term = Term; // maybe rewrite later
+            r.Result.Success = false; // set default false
+
+            if (r.Argument.Term < Term)
+            {
+                // 1. Reply false if term < currentTerm (§5.1)
+                r.SendResult();
+                logger.Info($"this={Raft.Name} Leader={r.Argument.LeaderId} PrevLogIndex={r.Argument.PrevLogIndex} term < currentTerm");
+                return Procedure.Success;
+            }
+
+            switch (TrySetTerm(r.Argument.Term))
+            {
+                case SetTermResult.Newer:
+                    Raft.ConvertStateTo(Raft.RaftState.Follower);
+                    Raft.LeaderId = r.Argument.LeaderId;
+                    r.Result.Term = Term; // new term
+                    break;
+
+                case SetTermResult.Same:
+                    switch (Raft.State)
+                    {
+                        case Raft.RaftState.Candidate:
+                            // see raft.pdf 文档. 仅在 Candidate 才转。【找不到在文档哪里了，需要确认这点】
+                            Raft.ConvertStateTo(Raft.RaftState.Follower);
+                            Raft.LeaderId = r.Argument.LeaderId;
+                            break;
+
+                        case Raft.RaftState.Leader:
+                            logger.Fatal($"Receive AppendEntries from another leader={r.Argument.LeaderId} with same term={Term}, there must be a bug. this={Raft.LeaderId}");
+                            Raft.FatalKill();
+                            return 0;
+                    }
+                    break;
+            }
+
+            // is Hearbeat(KeepAlive)
+            if (r.Argument.Entries.Count == 0)
+            {
+                r.Result.Success = true;
+                r.SendResult();
+                return Procedure.Success;
+            }
+
+            // check and copy log ...
+            var prevLog = ReadLog(r.Argument.PrevLogIndex);
+            if (prevLog == null || prevLog.Term != r.Argument.PrevLogTerm)
+            {
+                // 2. Reply false if log doesn’t contain an entry
+                // at prevLogIndex whose term matches prevLogTerm(§5.3)
+
+
+                // fast locate when mismatch
+                r.Result.NextIndex = r.Argument.PrevLogIndex > LastIndex ? LastIndex + 1 : 0;
+
+                r.SendResult();
+                logger.Debug("this={0} Leader={1} Index={2} prevLog mismatch", Raft.Name, r.Argument.LeaderId, r.Argument.PrevLogIndex);
+                return Procedure.Success;
+            }
+
+            int entryIndex = 0;
+            var copyLogIndex = prevLog.Index + 1;
+            for (; entryIndex < r.Argument.Entries.Count; ++entryIndex, ++copyLogIndex)
+            {
+                var copyLog = RaftLog.Decode(r.Argument.Entries[entryIndex], Raft.StateMachine.LogFactory);
+                if (copyLog.Index != copyLogIndex)
+                {
+                    logger.Fatal($"copyLog.Index != copyLogIndex Leader={r.Argument.LeaderId} this={Raft.Name}");
+                    Raft.FatalKill();
+                }
+                if (copyLog.Index < FirstIndex)
+                    continue; // 快照以前的日志忽略。
+
+                // 本地已经存在日志。
+                if (copyLog.Index <= LastIndex)
+                {
+                    var conflictCheck = ReadLog(copyLog.Index);
+                    if (conflictCheck.Term == copyLog.Term)
+                        continue;
+
+                    // 3. If an existing entry conflicts
+                    // with a new one (same index but different terms),
+                    // delete the existing entry and all that follow it(§5.3)
+                    // raft.pdf 5.3
+                    if (conflictCheck.Index <= CommitIndex)
+                    {
+                        logger.Fatal("truncate committed entries");
+                        Raft.FatalKill();
+                    }
+                    RemoveLogAndCancelStart(conflictCheck.Index, LastIndex);
+                    LastIndex = conflictCheck.Index - 1;
+                }
+                break;
+            }
+            // Append this and all following entries.
+            // 4. Append any new entries not already in the log
+            for (; entryIndex < r.Argument.Entries.Count; ++entryIndex, ++copyLogIndex)
+            {
+                SaveLogRaw(copyLogIndex, r.Argument.Entries[entryIndex].Bytes);
+            }
+
+            copyLogIndex--;
+            // 必须判断，防止本次AppendEntries都是旧的。
+            if (copyLogIndex > LastIndex)
+                LastIndex = copyLogIndex;
+
+            //CheckDump(prevLog.Index, copyLogIndex, r.Argument.Entries);
+
+            // 5. If leaderCommit > commitIndex,
+            // set commitIndex = min(leaderCommit, index of last new entry)
+            if (r.Argument.LeaderCommit > CommitIndex)
+            {
+                CommitIndex = Math.Min(r.Argument.LeaderCommit, LastRaftLog().Index);
+                TryStartApplyTask(ReadLog(CommitIndex));
+            }
+            r.Result.Success = true;
+            logger.Debug("{0}: {1}", Raft.Name, r);
+            r.SendResultCode(0);
+
+            return Procedure.Success;
+        }
+
+        private void CheckDump(long prevLogIndex, long lastIndex, List<Binary> entries)
+        {
+            var logs = new StringBuilder();
+            for (var index = prevLogIndex + 1; index <= lastIndex; ++index)
+            {
+                logs.Append(ReadLog(index).ToString()).Append("\n");
+            }
+            var copies = new StringBuilder();
+            foreach (var entry in entries)
+            {
+                copies.Append(RaftLog.Decode(entry, Raft.StateMachine.LogFactory).ToString()).Append("\n");
+            }
+
+            if (logs.ToString().Equals(copies.ToString()))
+                return;
+
+            logger.Fatal("================= logs ======================");
+            logger.Fatal(logs);
+            logger.Fatal("================= copies ======================");
+            logger.Fatal(copies);
+            Raft.FatalKill();
+        }
+    }
+}
