@@ -911,6 +911,9 @@ namespace Zeze.Raft
                     CommitIndex = FirstIndex;
                     LastApplied = FirstIndex;
 
+                    // 【关键】记录这个，放弃当前Term的投票。
+                    SetVoteFor(Raft.LeaderId);
+
                     // 8. Reset state machine using snapshot contents (and load
                     // snapshot’s cluster configuration)
                     Raft.StateMachine.LoadSnapshot(SnapshotFullName);
