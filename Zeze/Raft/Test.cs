@@ -759,6 +759,7 @@ namespace Zeze.Raft
                     int rc = file.Read(bytes);
                     var bb = ByteBuffer.Wrap(bytes, 0, rc);
                     Count = bb.ReadLong();
+                    logger.Info($"{Raft.Name} LoadSnapshot Count={Count}");
                 }
             }
 
@@ -777,6 +778,7 @@ namespace Zeze.Raft
                         LastIncludedIndex = lastAppliedLog.Index;
                         LastIncludedTerm = lastAppliedLog.Term;
                         var bb = ByteBuffer.Allocate();
+                        logger.Info($"{Raft.Name} Snapshot Count={Count}");
                         bb.WriteLong(Count);
                         file.Write(bb.Bytes, bb.ReadIndex, bb.Size);
                         file.Close();

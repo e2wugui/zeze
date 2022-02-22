@@ -160,21 +160,22 @@ namespace Zeze.Raft
         {
             var r = p as InstallSnapshot;
 
-            r.Result.Term = LogSequence.Term;
-
             lock (this)
             {
-                if (LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer)
-                {
-                    // new term found.
-                    ConvertStateTo(RaftState.Follower);
-                }
                 if (r.Argument.Term < LogSequence.Term)
                 {
                     // 1. Reply immediately if term < currentTerm
                     r.SendResultCode(InstallSnapshot.ResultCodeTermError);
                     return Procedure.LogicError;
                 }
+
+                if (LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer)
+                {
+                    // new term found.
+                    ConvertStateTo(RaftState.Follower);
+                }
+                r.Result.Term = LogSequence.Term;
+
                 LeaderId = r.Argument.LeaderId;
                 LogSequence.LeaderActiveTime = Zeze.Util.Time.NowUnixMillis;
                 // 【关键】记录这个，放弃当前Term的投票。
