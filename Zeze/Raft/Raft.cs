@@ -427,7 +427,7 @@ namespace Zeze.Raft
             // 节点完全毁坏以后，新节点是初始状态。
             // 此时它不能给已经在工作中的节点投同意票，否则有可能会导致不正确的Leader。
             // 但是系统初始化时，全部节点都是初始状态，此时允许正常投票。
-            if (last.Index == 1 && lastIndex > 1)
+            if (last.Index == 0 && lastIndex > 0)
                 return false;
 
             if (lastTerm > last.Term)
