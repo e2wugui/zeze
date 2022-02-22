@@ -895,17 +895,25 @@ namespace Zeze.Raft
                     // 我的想法是，InstallSnapshot 最后一个 trunk 带上 LastIncludedLog，
                     // 接收者清除log，并把这条日志插入（这个和系统初始化时插入的Index=0的日志道理差不多）。
                     // 【除了快照最后包含的日志，其他都删除。】
-                    var lastIncludedLog = RaftLog.Decode(r.Argument.LastIncludedLog, Raft.StateMachine.LogFactory);
-                    CommitSnapshot(s.Name, lastIncludedLog.Index);
-
                     Logs.Dispose();
                     Logs = null;
                     CancelPendingAppendLogFutures();
                     var logsdir = Path.Combine(Raft.RaftConfig.DbHome, "logs");
                     Directory.Delete(logsdir, true);
                     var options = new DbOptions().SetCreateIfMissing(true);
+
                     Logs = OpenDb(options, logsdir);
+                    var lastIncludedLog = RaftLog.Decode(r.Argument.LastIncludedLog, Raft.StateMachine.LogFactory);
+                    CommitSnapshot(s.Name, lastIncludedLog.Index);
                     SaveLog(lastIncludedLog);
+
+                    Term = 0;
+                    TrySetTerm(lastIncludedLog.Term);
+                    // lastIncludedLog是Applied，当时的Leader没有记录，但肯定存在。
+                    // 如果重置状态，没有保存SetVoteFor，可能引起投票混乱。
+                    // 这里把当前InstallSnapshot的LeaderId作为投过的票。
+                    // 【关键】记录这个，放弃当前Term的投票。
+                    SetVoteFor(Raft.LeaderId);
 
                     LastIndex = lastIncludedLog.Index;
                     CommitIndex = FirstIndex;

@@ -56,7 +56,7 @@ namespace Zeze.Raft
             Console.WriteLine("___________________________________________");
             Console.WriteLine("___________________________________________");
             Console.WriteLine("___________________________________________");
-            Console.WriteLine("Press [x] Enter To Exit.");
+            Console.WriteLine("Press [Ctrl+c] Enter To Exit.");
             Console.WriteLine("___________________________________________");
             Console.WriteLine("___________________________________________");
             Console.WriteLine("___________________________________________");

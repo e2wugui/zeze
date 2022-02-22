@@ -166,16 +166,17 @@ namespace Zeze.Raft
             {
                 if (LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer)
                 {
-                    LeaderId = r.Argument.LeaderId;
                     // new term found.
                     ConvertStateTo(RaftState.Follower);
                 }
-            }
-            if (r.Argument.Term < LogSequence.Term)
-            {
-                // 1. Reply immediately if term < currentTerm
-                r.SendResultCode(InstallSnapshot.ResultCodeTermError);
-                return Procedure.LogicError;
+                if (r.Argument.Term < LogSequence.Term)
+                {
+                    // 1. Reply immediately if term < currentTerm
+                    r.SendResultCode(InstallSnapshot.ResultCodeTermError);
+                    return Procedure.LogicError;
+                }
+                LeaderId = r.Argument.LeaderId;
+                LogSequence.LeaderActiveTime = Zeze.Util.Time.NowUnixMillis;
             }
 
             // 2. Create new snapshot file if first chunk(offset is 0)

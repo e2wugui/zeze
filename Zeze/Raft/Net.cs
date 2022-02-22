@@ -88,6 +88,7 @@ namespace Zeze.Raft
 
                     if (ls.TrySetTerm(r.Result.Term) == LogSequence.SetTermResult.Newer)
                     {
+                        ls.EndInstallSnapshot(c);
                         // new term found.
                         ls.Raft.ConvertStateTo(Raft.RaftState.Follower);
                         return 0; // break install
@@ -101,6 +102,7 @@ namespace Zeze.Raft
 
                         default:
                             LogSequence.logger.Warn($"InstallSnapshot Break ResultCode={r.ResultCode}");
+                            ls.EndInstallSnapshot(c);
                             return 0; // break install
                     }
 
@@ -109,6 +111,7 @@ namespace Zeze.Raft
                         if (r.Result.Offset > File.Length)
                         {
                             LogSequence.logger.Error($"InstallSnapshot.Result.Offset Too Big.{r.Result.Offset}/{File.Length}");
+                            ls.EndInstallSnapshot(c);
                             return 0; // 中断安装。
                         }
                         Offset = r.Result.Offset;
