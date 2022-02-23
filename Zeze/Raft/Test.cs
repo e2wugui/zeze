@@ -858,8 +858,13 @@ namespace Zeze.Raft
                         logger.Warn("------------------------------------------------");
                         logger.Warn($"- Reset Log {raftConfig.DbHome} -");
                         logger.Warn("------------------------------------------------");
-                        if (Directory.Exists(raftConfig.DbHome))
-                            Directory.Delete(raftConfig.DbHome, true);
+                        // 只删除日志相关数据库。保留重复请求数据库。
+                        var logsdir = Path.Combine(raftConfig.DbHome, "logs");
+                        if (Directory.Exists(logsdir))
+                            Directory.Delete(logsdir, true);
+                        var raftsdir = Path.Combine(raftConfig.DbHome, "rafts");
+                        if (Directory.Exists(raftsdir))
+                            Directory.Delete(raftsdir, true);
                     }
                     Directory.CreateDirectory(raftConfig.DbHome);
 
