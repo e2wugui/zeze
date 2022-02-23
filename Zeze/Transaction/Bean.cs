@@ -108,18 +108,23 @@ namespace Zeze.Transaction
             uint hash32 = (uint)(hash64 & 0xffffffff) ^ (uint)(hash64 >> 32);
             return (int)hash32;
         }
+
+        public static bool IsEmptyBean(Bean bean)
+        {
+            return bean.TypeId == EmptyBean.TYPEID;
+        }
     }
 
     public class EmptyBean : Bean
     {
         public override void Decode(ByteBuffer bb)
         {
-            bb.ReadInt();
+            bb.ReadByte();
         }
 
         public override void Encode(ByteBuffer bb)
         {
-            bb.WriteInt(0);
+            bb.WriteByte(0);
         }
 
         protected override void InitChildrenRootInfo(Record.RootInfo root)
@@ -139,6 +144,8 @@ namespace Zeze.Transaction
         {
             return "()";
         }
+
+        public readonly static EmptyBean Instance = new EmptyBean();
     }
 
     public interface DynamicBeanReadOnly

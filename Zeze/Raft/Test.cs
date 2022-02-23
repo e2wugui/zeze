@@ -278,7 +278,7 @@ namespace Zeze.Raft
             }
             foreach (var request in requests)
             {
-                //logger.Debug("--------- RESPONSE {0} {1}", stepName, request);
+                logger.Debug("--------- RESPONSE {0} {1}", stepName, request);
                 if (request.IsTimeout)
                 {
                     ErrorsAdd(Procedure.Timeout);
@@ -675,7 +675,7 @@ namespace Zeze.Raft
             return Util.Random.Shuffle(Rafts.Values.ToArray());
         }
 
-        public sealed class AddCount : RaftRpc<EmptyBean, EmptyBean>
+        public sealed class AddCount : RaftRpc<EmptyBean, CountResult>
         {
             public readonly static int ProtocolId_ = Bean.Hash32(typeof(AddCount).FullName);
 
@@ -687,7 +687,7 @@ namespace Zeze.Raft
             }
         }
 
-        public sealed class GetCountResult : Bean
+        public sealed class CountResult : Bean
         {
             public long Count { get; set; }
 
@@ -705,9 +705,14 @@ namespace Zeze.Raft
             {
                 throw new NotImplementedException();
             }
+
+            public override string ToString()
+            {
+                return $"Count={Count}";
+            }
         }
 
-        public sealed class GetCount : RaftRpc<EmptyBean, GetCountResult>
+        public sealed class GetCount : RaftRpc<EmptyBean, CountResult>
         {
             public readonly static int ProtocolId_ = Bean.Hash32(typeof(GetCount).FullName);
 
@@ -723,9 +728,10 @@ namespace Zeze.Raft
         {
             public long Count { get; set; }
 
-            public void AddCountAndWait(IRaftRpc req)
+            public void AddCountAndWait(Test.AddCount req)
             {
-                Raft.AppendLog(new AddCount(req));
+                req.Result.Count = Count;
+                Raft.AppendLog(new AddCount(req), req.Result);
             }
 
             public sealed class AddCount : Log

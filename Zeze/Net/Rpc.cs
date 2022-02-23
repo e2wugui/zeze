@@ -13,6 +13,7 @@ namespace Zeze.Net
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         public TResult Result { get; set; } = new TResult();
+        public Binary ResultEncoded { get; set; } // 如果设置了这个，发送结果的时候，优先使用这个编码过的。
 
         public bool IsTimeout { get; internal set; }
         public long SessionId { get; set; }
@@ -154,7 +155,7 @@ namespace Zeze.Net
 
         private bool SendResultDone = false; // XXX ugly
 
-        public void SendResult()
+        public void SendResult(Binary result = null)
         {
             if (SendResultDone)
             {
@@ -163,6 +164,7 @@ namespace Zeze.Net
             }
             SendResultDone = true;
 
+            ResultEncoded = result;
             IsRequest = false;
             if (false == base.Send(Sender))
             {
@@ -170,12 +172,13 @@ namespace Zeze.Net
             }
         }
 
-        public override void SendResultCode(long code)
+        public override void SendResultCode(long code, Binary result = null)
         {
             if (SendResultDone)
                 return;
             SendResultDone = true;
 
+            ResultEncoded = result;
             ResultCode = code;
             IsRequest = false;
             if (false == base.Send(Sender))
@@ -243,6 +246,10 @@ namespace Zeze.Net
             if (IsRequest)
             {
                 Argument.Encode(bb);
+            }
+            else if (ResultEncoded != null)
+            {
+                bb.Append(ResultEncoded.Bytes, ResultEncoded.Offset, ResultEncoded.Count);
             }
             else
             {

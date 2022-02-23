@@ -19,7 +19,8 @@
 	【左尧完成Java了？】Zezex.ModuleRedirect 增加 TransactionLevel 注解配置。
 	Zezex.ModuleRedirect 去掉依赖Session生成hash模式；RunMyMethod去掉mode；
 	4. Raft.AppendLog Future Add Duplicate Index. Fatal!
-	Raft.LogSequence.FindMaxMajorityLogReverseOrFindBinary 用来初始化的时候用。【张路实现】
+	Raft.UniqueRequest.Expired
+
 	RedoableQueue
 	{
 		1）存储：QueueId。 RocksDb<TaskId, Full_Encoded_Net_Rpc> 持久化的。
@@ -35,6 +36,9 @@
 	Zezex.client: 可靠消息实现的错误检查。
 
 【2022/3/11】
+	Raft.Expired
+	Raft.AppendLog 带上当前Rpc.Result，当发现重复请求的时候返回
+	Raft.LogSequence.FindMaxMajorityLogIndex 新实现，不需要遍历Log。
 	Raft.LogSequence.FindMaxMajorityLog 里面的 ReadLog 优化掉。
 	1. Log.cs: logger.Fatal("truncate committed entries"); Fatal!【选举移动代码的BUG：Term在递增前使用】
 	Raft.Apply 分批进行，让其他操作有运行机会。解决启动时，apply整个日志锁住时间太长的问题。

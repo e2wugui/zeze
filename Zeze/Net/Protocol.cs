@@ -72,7 +72,7 @@ namespace Zeze.Net
 
 		// 用于Rpc自动发送结果。
 		// Rpc会重载实现。
-		public virtual void SendResultCode(long code)
+		public virtual void SendResultCode(long code, Binary result = null)
         {
 			ResultCode = code;
 		}

@@ -1,6 +1,7 @@
 ﻿using Zeze.Serialize;
 using Zeze.Transaction;
 using System;
+using Zeze.Net;
 
 namespace Zeze.Raft
 {
@@ -28,6 +29,7 @@ namespace Zeze.Raft
         // 【注意】应用生成的Id必须大于0；0保留给内部；小于0未使用。
         public UniqueRequestId Unique { get; } = new UniqueRequestId();
         public long CreateTime { get; set; }
+        public Binary RpcResult { get; set; } = Binary.Empty;
 
         public Log(IRaftRpc req)
         {
@@ -49,12 +51,14 @@ namespace Zeze.Raft
         {
             Unique.Decode(bb);
             CreateTime = bb.ReadLong();
+            RpcResult = bb.ReadBinary();
         }
 
         public virtual void Encode(ByteBuffer bb)
         {
             Unique.Encode(bb);
             bb.WriteLong(CreateTime);
+            bb.WriteBinary(RpcResult);
         }
 
         public override string ToString()

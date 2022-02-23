@@ -137,20 +137,22 @@ namespace Zeze.Raft
             {
                 if (Raft.WaitLeaderReady())
                 {
-                    var state = Raft.LogSequence.GetRequestState(p);
-                    if (state > 0)
+                    if (Raft.LogSequence.TryGetRequestState(p, out var state))
                     {
-                        p.SendResultCode(Procedure.DuplicateRequest);
-                        return 0;
+                        if (null != state)
+                        {
+                            if (state.IsApplied)
+                            {
+                                p.SendResultCode(Procedure.RaftApplied, state.RpcResult.Count > 0 ? state.RpcResult : null);
+                                return 0;
+                            }
+                            p.SendResultCode(Procedure.DuplicateRequest);
+                            return 0;
+                        }
+                        return factoryHandle.Handle(p);
                     }
-
-                    if (state < 0)
-                    {
-                        p.SendResultCode(Procedure.RaftApplied);
-                        return 0;
-                    }
-                    
-                    return factoryHandle.Handle(p);
+                    p.SendResultCode(Procedure.RaftExpired);
+                    return 0;
                 }
                 TrySendLeaderIs(p.Sender);
                 return 0;
@@ -276,6 +278,38 @@ namespace Zeze.Raft
         public override string ToString()
         {
             return $"ClientId={ClientId} RequestId={RequestId}";
+        }
+    }
+
+    public class UniqueRequestState : Serializable
+    {
+        public long LogIndex { get; set; }
+        public bool IsApplied { get; set; }
+        public Binary RpcResult { get; set; }
+
+        public UniqueRequestState()
+        { 
+        }
+
+        public UniqueRequestState(RaftLog raftLog, bool isApplied)
+        {
+            LogIndex = raftLog.Index;
+            IsApplied = isApplied;
+            RpcResult = raftLog.Log.RpcResult;
+        }
+
+        public void Decode(ByteBuffer bb)
+        {
+            LogIndex = bb.ReadLong();
+            IsApplied = bb.ReadBool();
+            RpcResult = bb.ReadBinary();
+        }
+
+        public void Encode(ByteBuffer bb)
+        {
+            bb.WriteLong(LogIndex);
+            bb.WriteBool(IsApplied);
+            bb.WriteBinary(RpcResult);
         }
     }
 

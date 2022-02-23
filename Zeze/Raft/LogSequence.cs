@@ -8,6 +8,7 @@ using RocksDbSharp;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Transaction;
+using System.Globalization;
 
 namespace Zeze.Raft
 {
@@ -276,28 +277,30 @@ namespace Zeze.Raft
             static ConcurrentDictionary<string, ConcurrentDictionary<long, long>> unique
                 = new ConcurrentDictionary<string, ConcurrentDictionary<long, long>>();
 
-            private void Put(RaftLog log, long value)
+            private void Put(RaftLog log, bool isApply)
             {
                 var db = OpenDb();
                 var key = ByteBuffer.Allocate(100);
                 log.Log.Unique.Encode(key);
-                if (value > 0 && db.Get(key.Bytes, key.Size) != null)
+
+                if (false == isApply && db.Get(key.Bytes, key.Size) != null)
                 {
                     throw new RaftRetryException($"Duplicate Request Found = {log.Log.Unique}");
                 }
-                var val = ByteBuffer.Allocate();
-                val.WriteLong(value);
-                db.Put(key.Bytes, key.Size, val.Bytes, val.Size, null, LogSequence.WriteOptions);
+
+                var value = ByteBuffer.Allocate(4096);
+                new UniqueRequestState(log, isApply).Encode(value);
+                db.Put(key.Bytes, key.Size, value.Bytes, value.Size, null, LogSequence.WriteOptions);
             }
 
             public void Save(RaftLog log)
             {
-                Put(log, log.Index);
+                Put(log, false);
             }
 
             public void Apply(RaftLog log)
             {
-                Put(log, -log.Index);
+                Put(log, true);
             }
 
             public void Remove(RaftLog log)
@@ -307,15 +310,17 @@ namespace Zeze.Raft
                 OpenDb().Remove(key.Bytes, key.Size, null, LogSequence.WriteOptions);
             }
 
-            public long GetRequestState(IRaftRpc iraftrpc)
+            public UniqueRequestState GetRequestState(IRaftRpc iraftrpc)
             {
                 var key = ByteBuffer.Allocate(100);
                 iraftrpc.Unique.Encode(key);
                 var val = OpenDb().Get(key.Bytes, key.Size);
                 if (null == val)
-                    return 0;
+                    return null;
                 var bb = ByteBuffer.Wrap(val);
-                return bb.ReadLong();
+                var state = new UniqueRequestState();
+                state.Decode(bb);
+                return state;
             }
 
             private RocksDb OpenDb()
@@ -339,6 +344,37 @@ namespace Zeze.Raft
         }
         private ConcurrentDictionary<string, UniqueRequestSet> UniqueRequestSets { get; }
             = new ConcurrentDictionary<string, UniqueRequestSet>();
+
+        internal void RemoveExpiredUniqueRequestSet()
+        {
+            var expired = DateTime.Now;
+            expired.AddDays(-(Raft.RaftConfig.UniqueRequestExpiredDays + 1));
+
+            const string format = "yyyy.M.d";
+            CultureInfo provider = CultureInfo.InvariantCulture;
+            var uniqueHome = Path.Combine(Raft.RaftConfig.DbHome, "unique");
+
+            // try close and delete
+            foreach (var reqsets in UniqueRequestSets)
+            {
+                var db = DateTime.ParseExact(reqsets.Key, format, provider);
+                if (db < expired)
+                {
+                    reqsets.Value.Dispose();
+                    UniqueRequestSets.TryRemove(reqsets.Key, out _);
+                    Directory.Delete(Path.Combine(uniqueHome, reqsets.Key), true);
+                }
+            }
+            // try delete in dirs
+            foreach (var dir in Directory.EnumerateDirectories(uniqueHome))
+            {
+                var db = DateTime.ParseExact(dir, format, provider);
+                if (db < expired)
+                {
+                    Directory.Delete(Path.Combine(uniqueHome, dir), true);
+                }
+            }
+        }
 
         private void CancelPendingAppendLogFutures()
         {
@@ -457,12 +493,19 @@ namespace Zeze.Raft
             StartRemoveLogOnlyBefore(FirstIndex);
         }
 
-        internal long GetRequestState(Protocol p)
+        internal bool TryGetRequestState(Protocol p, out UniqueRequestState state)
         {
             var iraftrpc = p as IRaftRpc;
-            if (null == iraftrpc)
-                return 0;
-            return OpenUniqueRequests(iraftrpc.CreateTime).GetRequestState(iraftrpc);
+
+            state = null;
+
+            var create = Util.Time.UnixMillisToDateTime(iraftrpc.CreateTime);
+            var now = DateTime.Now;
+            if ((now - create).Days >= Raft.RaftConfig.UniqueRequestExpiredDays)
+                return false;
+
+            state = OpenUniqueRequests(iraftrpc.CreateTime).GetRequestState(iraftrpc);
+            return true;
         }
 
         private UniqueRequestSet OpenUniqueRequests(long time)

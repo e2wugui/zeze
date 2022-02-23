@@ -63,6 +63,8 @@ namespace Zeze.Raft
         // 需要的时间应小于LeaderHeartbeatTimer
         public int BackgroundApplyCount { get; set; } = 500;
 
+        public int UniqueRequestExpiredDays { get; set; } = 7;
+
         private RaftConfig(XmlDocument xml, string filename, XmlElement self)
         {
             XmlDocument = xml;
@@ -90,6 +92,8 @@ namespace Zeze.Raft
             if (!string.IsNullOrEmpty(attr)) ElectionRandomMax = int.Parse(attr);
             attr = self.GetAttribute("BackgroundApplyCount");
             if (!string.IsNullOrEmpty(attr)) BackgroundApplyCount = int.Parse(attr);
+            attr = self.GetAttribute("UniqueRequestExpiredDays");
+            if (!string.IsNullOrEmpty(attr)) UniqueRequestExpiredDays = int.Parse(attr);
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)
@@ -125,14 +129,25 @@ namespace Zeze.Raft
 
         internal void Save()
         {
-            Self.SetAttribute("AppendEntriesTimeout", AppendEntriesTimeout.ToString());
-            Self.SetAttribute("LeaderHeartbeatTimer", LeaderHeartbeatTimer.ToString());
-            Self.SetAttribute("ElectionRandomMax", ElectionRandomMax.ToString());
-            Self.SetAttribute("MaxAppendEntiresCount", MaxAppendEntiresCount.ToString());
-            Self.SetAttribute("SnapshotMinLogCount", SnapshotMinLogCount.ToString());
-            Self.SetAttribute("SnapshotHourOfDay", SnapshotHourOfDay.ToString());
-            Self.SetAttribute("SnapshotMinute", SnapshotMinute.ToString());
-            Self.SetAttribute("BackgroundApplyCount", BackgroundApplyCount.ToString());
+            // skip default
+            if (AppendEntriesTimeout != DefaultAppendEntriesTimeout)
+                Self.SetAttribute("AppendEntriesTimeout", AppendEntriesTimeout.ToString());
+            if (LeaderHeartbeatTimer != DefaultLeaderHeartbeatTimer)
+                Self.SetAttribute("LeaderHeartbeatTimer", LeaderHeartbeatTimer.ToString());
+            if (ElectionRandomMax != 300)
+                Self.SetAttribute("ElectionRandomMax", ElectionRandomMax.ToString());
+            if (MaxAppendEntiresCount != 500)
+                Self.SetAttribute("MaxAppendEntiresCount", MaxAppendEntiresCount.ToString());
+            if (SnapshotMinLogCount != 10000)
+                Self.SetAttribute("SnapshotMinLogCount", SnapshotMinLogCount.ToString());
+            if (SnapshotHourOfDay != 6)
+                Self.SetAttribute("SnapshotHourOfDay", SnapshotHourOfDay.ToString());
+            if (SnapshotMinute != 0)
+                Self.SetAttribute("SnapshotMinute", SnapshotMinute.ToString());
+            if (BackgroundApplyCount != 500)
+                Self.SetAttribute("BackgroundApplyCount", BackgroundApplyCount.ToString());
+            if (UniqueRequestExpiredDays != 7)
+                Self.SetAttribute("UniqueRequestExpiredDays", UniqueRequestExpiredDays.ToString());
 
             foreach (var node in Nodes)
             {

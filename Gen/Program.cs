@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading.Tasks;
 
 namespace Gen
@@ -24,7 +25,6 @@ namespace Gen
                 if (args[i].Equals("-c"))
                     command = args[++i];
             }
-
             switch (command)
             {
                 case "gen":

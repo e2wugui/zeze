@@ -24,6 +24,7 @@ namespace Zeze.Transaction
         public const long ErrorSendFail = -14;
         public const long RaftRetry = -15;
         public const long RaftApplied = -16;
+        public const long RaftExpired = -17;
         // >0 用户自定义。
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();

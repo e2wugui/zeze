@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Zeze.Net;
+using Zeze.Serialize;
 using Zeze.Transaction;
 using Zeze.Util;
 
@@ -49,10 +50,16 @@ namespace Zeze.Raft
             System.Diagnostics.Process.GetCurrentProcess().Kill();
         }
 
-        public void AppendLog(Log log)
+        public void AppendLog(Log log, Bean result = null)
         {
             if (null == LogSequence)
                 throw new RaftRetryException("LogSequence is null.");
+            if (result != null)
+            {
+                var bb = ByteBuffer.Allocate(1024);
+                result.Encode(bb);
+                log.RpcResult = new Binary(bb);
+            }
             LogSequence.AppendLog(log, true);
         }
 
@@ -310,37 +317,56 @@ namespace Zeze.Raft
                 if (IsShutdown)
                     return;
 
-                switch (State)
+                try
                 {
-                    case RaftState.Follower:
-                        if (Time.NowUnixMillis - LogSequence.LeaderActiveTime > LeaderLostTimeout)
-                        {
-                            ConvertStateTo(RaftState.Candidate);
-                        }
-                        break;
-
-                    case RaftState.Candidate:
-                        if (Time.NowUnixMillis > NextVoteTime)
-                        {
-                            // vote timeout. restart
-                            ConvertStateTo(RaftState.Candidate);
-                        }
-
-                        break;
-
-                    case RaftState.Leader:
-                        var now = Time.NowUnixMillis;
-                        Server.Config.ForEachConnector(
-                            (c) =>
+                    switch (State)
+                    {
+                        case RaftState.Follower:
+                            if (Time.NowUnixMillis - LogSequence.LeaderActiveTime > LeaderLostTimeout)
                             {
-                                var cex = c as Server.ConnectorEx;
-                                if (now - cex.AppendLogActiveTime > RaftConfig.LeaderHeartbeatTimer)
-                                    LogSequence.SendHearbeatTo(cex);
-                            });
-                        break;
+                                ConvertStateTo(RaftState.Candidate);
+                            }
+                            break;
+
+                        case RaftState.Candidate:
+                            if (Time.NowUnixMillis > NextVoteTime)
+                            {
+                                // vote timeout. restart
+                                ConvertStateTo(RaftState.Candidate);
+                            }
+
+                            break;
+
+                        case RaftState.Leader:
+                            var now = Time.NowUnixMillis;
+                            Server.Config.ForEachConnector(
+                                (c) =>
+                                {
+                                    var cex = c as Server.ConnectorEx;
+                                    if (now - cex.AppendLogActiveTime > RaftConfig.LeaderHeartbeatTimer)
+                                        LogSequence.SendHearbeatTo(cex);
+                                });
+                            break;
+                    }
+                    if (++LowPrecisionTimer > 1000) // 10s
+                    {
+                        LowPrecisionTimer = 0;
+                        OnLowPrecisionTimer();
+                    }
                 }
-                TimerTask = Scheduler.Instance.Schedule(OnTimer, 10);
+                finally
+                {
+                    TimerTask = Scheduler.Instance.Schedule(OnTimer, 10);
+                }
             }
+        }
+
+        private long LowPrecisionTimer;
+
+        private void OnLowPrecisionTimer()
+        {
+            Server.Config.ForEachConnector((c) => c.Start()); // Connector Reconnect Bug?
+            LogSequence.RemoveExpiredUniqueRequestSet();
         }
 
         /// <summary>
