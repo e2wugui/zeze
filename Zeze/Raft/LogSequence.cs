@@ -856,8 +856,7 @@ namespace Zeze.Raft
             }
 
             // 广播给followers并异步等待多数确认
-            Raft.Server.Config.ForEachConnector(
-                (connector) => TrySendAppendEntries(connector as Server.ConnectorEx, null));
+            Raft.Server.Config.ForEachConnector((c) => TrySendAppendEntries(c as Server.ConnectorEx, null));
 
             if (WaitApply)
             {
@@ -922,8 +921,8 @@ namespace Zeze.Raft
                     var last = ReadLog(r.Argument.LastIncludedIndex);
                     if (null != last && last.Term == r.Argument.LastIncludedTerm)
                     {
-                        // 这里全部保留更简单吧，否则如果没有applied，那不就糟了吗？
-                        //RemoveLogReverse(r.Argument.LastIncludedIndex - 1, FirstIndex);
+                        RemoveLogReverse(r.Argument.LastIncludedIndex - 1, FirstIndex);
+                        SaveFirstIndex(r.Argument.LastIncludedIndex);
                         return;
                     }
                     // 7. Discard the entire log

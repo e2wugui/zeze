@@ -399,6 +399,7 @@ namespace Zeze.Raft
         public override int ModuleId => Real.ModuleId;
         public override int ProtocolId => Real.ProtocolId;
     }
+
     public sealed class Agent
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
