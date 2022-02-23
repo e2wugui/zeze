@@ -127,7 +127,9 @@ namespace Zeze.Raft
         public long LastApplied { get; private set; }
 
         // 这个不是日志需要的，因为持久化，所以就定义在这里吧。
-        internal string VoteFor { get; set; }
+        internal string VoteFor { get; private set; }
+        internal bool NodeReady { get; private set; }
+        internal long LastLeaderCommitIndex { get; private set; }
 
         // 初始化的时候会加入一条日志(Index=0，不需要真正apply)，
         // 以后Snapshot时，会保留LastApplied的。
@@ -465,6 +467,22 @@ namespace Zeze.Raft
                 {
                     FirstIndex = -1; // never snapshot. will re-initialize later.
                 }
+                // NodeReady
+                // 节点第一次启动，包括机器毁坏后换了新机器再次启动时为 false。
+                // 当满足以下条件之一：
+                // 1. 成为Leader并且Ready
+                // 2. 成为Follower并在处理AppendEntries时观察到LeaderCommtit发生了变更
+                // 满足条件以后设置 NodeReady 为 true。
+                // 这个条件影响投票逻辑：NodeReady 为 true 以前，只允许给 Candidate.LastIndex == 0 的节点投票。
+                var nodeReadyKey = ByteBuffer.Allocate();
+                nodeReadyKey.WriteInt(3);
+                RaftsNodeReadyKey = nodeReadyKey.Copy();
+                var nodeReadyValue = Rafts.Get(RaftsNodeReadyKey);
+                if (null != nodeReadyValue)
+                {
+                    var bb = ByteBuffer.Wrap(nodeReadyValue);
+                    NodeReady = bb.ReadBool();
+                }
             }
 
 
@@ -504,6 +522,18 @@ namespace Zeze.Raft
             StartRemoveLogOnlyBefore(FirstIndex);
         }
 
+        private void TrySetNodeReady()
+        {
+            if (NodeReady)
+                return;
+
+            NodeReady = true;
+
+            var value = ByteBuffer.Allocate();
+            value.WriteBool(true);
+            Rafts.Put(RaftsNodeReadyKey, RaftsNodeReadyKey.Length, value.Bytes, value.Size, null, WriteOptions);
+        }
+
         internal bool TryGetRequestState(Protocol p, out UniqueRequestState state)
         {
             var iraftrpc = p as IRaftRpc;
@@ -529,6 +559,7 @@ namespace Zeze.Raft
         private readonly byte[] RaftsTermKey;
         private readonly byte[] RaftsVoteForKey;
         private readonly byte[] RaftsFirstIndexKey;
+        private readonly byte[] RaftsNodeReadyKey; // 只会被写一次，所以这个优化可以不做，统一形式吧。
 
         public WriteOptions WriteOptions { get; set; } = new WriteOptions().SetSync(true);
 
@@ -592,6 +623,7 @@ namespace Zeze.Raft
                 Rafts.Put(RaftsTermKey, RaftsTermKey.Length, termValue.Bytes, termValue.Size, null, WriteOptions);
                 Raft.LeaderId = string.Empty;
                 SetVoteFor(string.Empty);
+                LastLeaderCommitIndex = 0;
                 return SetTermResult.Newer;
             }
             if (term == Term)
@@ -646,6 +678,7 @@ namespace Zeze.Raft
                 }
                 // 推进！
                 CommitIndex = maxMajorityLogIndex;
+                TrySetNodeReady();
                 TryStartApplyTask(maxMajorityLog);
             }
         }
@@ -1270,6 +1303,20 @@ namespace Zeze.Raft
                 r.SendResult();
                 logger.Debug("this={0} Leader={1} Index={2} prevLog mismatch", Raft.Name, r.Argument.LeaderId, r.Argument.PrevLogIndex);
                 return Procedure.Success;
+            }
+
+            // NodeReady 严格点，仅在正常复制时才检测。
+            if (LastLeaderCommitIndex == 0)
+            {
+                // Term 增加时会重置为0，see TrySetTerm。严格点？
+                LastLeaderCommitIndex = r.Argument.LeaderCommit;
+            }
+            else if (r.Argument.LeaderCommit > LastLeaderCommitIndex)
+            {
+                // 这里只要LeaderCommit推进就行，不需要自己的CommitIndex变更。
+                // LeaderCommit推进，意味着，已经达成了多数，自己此时可能处于少数派。
+                // 本结点CommitIndex是否还处于更早的时期，是没有关系的。
+                TrySetNodeReady();
             }
 
             int entryIndex = 0;

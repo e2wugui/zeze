@@ -446,23 +446,32 @@ namespace Zeze.Raft
             }
         }
 
-        private bool IsCandidateLastLogUpToDate(long lastTerm, long lastIndex)
+        private bool IsLastLogUpToDate(long candidateLastTerm, long candidateLastIndex)
         {
             var last = LogSequence.LastRaftLog();
-            //logger.Info($"{Name}-{IsLeader} {RaftConfig.DbHome} CTerm={lastTerm} Term={last.Term} LastIndex={last.Index} Count={LogSequence.GetTestStateMachineCount()}");
+            if (false == LogSequence.NodeReady)
+            {
+                if (candidateLastIndex == 0)
+                {
+                    // 整个Raft集群第一次启动时，允许给初始节点投票。此时所有的初始节点形成多数派。任何一个当选都是可以的。
+                    // 以后由于机器更换再次启动而处于初始状态的节点肯定是少数派，即使它们之间互相投票，也不能成功。
+                    // 如果违背了这点，意味着违背了Raft的可用原则，已经不在Raft的处理范围内了。
+                    return IsLastLogUpToDate(last, candidateLastTerm, candidateLastIndex);
+                }
 
-            // 初始状态只允许给初始状态投票。
-            // 节点完全毁坏以后，新节点是初始状态。
-            // 此时它不能给已经在工作中的节点投同意票，否则有可能会导致不正确的Leader。
-            // 但是系统初始化时，全部节点都是初始状态，此时允许正常投票。
-            if (last.Index == 0 && lastIndex > 0)
+                // 拒绝投票直到发现达成多数派。
                 return false;
+            }
+            return IsLastLogUpToDate(last, candidateLastTerm, candidateLastIndex);
+        }
 
-            if (lastTerm > last.Term)
+        private bool IsLastLogUpToDate(RaftLog last, long candidateLastTerm, long candidateLastIndex)
+        {
+            if (candidateLastTerm > last.Term)
                 return true;
-            if (lastTerm < last.Term)
+            if (candidateLastTerm < last.Term)
                 return false;
-            return lastIndex >= last.Index;
+            return candidateLastIndex >= last.Index;
         }
 
         private long ProcessRequestVote(Protocol p)
@@ -490,7 +499,7 @@ namespace Zeze.Raft
                 r.Result.Term = LogSequence.Term;
                 r.Result.VoteGranted = r.Argument.Term == LogSequence.Term
                     && LogSequence.CanVoteFor(r.Argument.CandidateId)
-                    && IsCandidateLastLogUpToDate(r.Argument.LastLogTerm, r.Argument.LastLogIndex);
+                    && IsLastLogUpToDate(r.Argument.LastLogTerm, r.Argument.LastLogIndex);
 
                 if (r.Result.VoteGranted)
                 {
