@@ -686,11 +686,10 @@ namespace Zeze.Raft
                     return false;
                 }
 
-                var newone = _Leader != newLeader || r.Argument.Term > Term;
                 _Leader = newLeader; // change current Leader
                 Term = r.Argument.Term;
                 _Leader?.Start(); // try connect immediately
-                return newone;
+                return true;
             }
         }
 
