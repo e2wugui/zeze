@@ -34,6 +34,7 @@
 	Zezex.client: 可靠消息实现的错误检查。
 
 【2022/3/11】
+	Raft.Test 只删除日志相关数据库。保留重复请求数据库。
 	Raft.UniqueRequestSet.Put 优化：先读取并检查状态，减少写操作。
 	Raft.UniqueRequest.Expired
 	Raft.Expired
