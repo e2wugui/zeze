@@ -348,7 +348,11 @@ namespace Zeze.Raft
 
             public void Dispose()
             {
-                Db?.Dispose();
+                lock (this)
+                {
+                    Db?.Dispose();
+                    Db = null;
+                }
             }
         }
         private ConcurrentDictionary<string, UniqueRequestSet> UniqueRequestSets { get; }
