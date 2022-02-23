@@ -520,6 +520,7 @@ namespace Zeze.Raft
                 {
                     foreach (var test in Rafts.Values)
                     {
+                        test.StopRaft(); // 先停止，这样才能强制启动安装。
                         test.StartRaft(test == InstallSnapshotCleanNode);
                     }
                 }
