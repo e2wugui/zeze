@@ -19,8 +19,6 @@
 	【左尧完成Java了？】Zezex.ModuleRedirect 增加 TransactionLevel 注解配置。
 	Zezex.ModuleRedirect 去掉依赖Session生成hash模式；RunMyMethod去掉mode；
 	4. Raft.AppendLog Future Add Duplicate Index. Fatal!
-	Raft.UniqueRequest.Expired
-
 	RedoableQueue
 	{
 		1）存储：QueueId。 RocksDb<TaskId, Full_Encoded_Net_Rpc> 持久化的。
@@ -36,6 +34,8 @@
 	Zezex.client: 可靠消息实现的错误检查。
 
 【2022/3/11】
+	Raft.UniqueRequestSet.Put 优化：先读取并检查状态，减少写操作。
+	Raft.UniqueRequest.Expired
 	Raft.Expired
 	Raft.AppendLog 带上当前Rpc.Result，当发现重复请求的时候返回
 	Raft.LogSequence.FindMaxMajorityLogIndex 新实现，不需要遍历Log。

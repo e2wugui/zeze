@@ -283,9 +283,18 @@ namespace Zeze.Raft
                 var key = ByteBuffer.Allocate(100);
                 log.Log.Unique.Encode(key);
 
-                if (false == isApply && db.Get(key.Bytes, key.Size) != null)
-                {
+                // 先读取并检查状态，减少写操作。
+
+                var existBytes = db.Get(key.Bytes, key.Size);
+                if (false == isApply && existBytes != null)
                     throw new RaftRetryException($"Duplicate Request Found = {log.Log.Unique}");
+
+                if (existBytes != null)
+                {
+                    var existState = new UniqueRequestState();
+                    existState.Decode(ByteBuffer.Wrap(existBytes));
+                    if (existState.IsApplied)
+                        return;
                 }
 
                 var value = ByteBuffer.Allocate(4096);

@@ -849,6 +849,7 @@ namespace Zeze.Raft
 
                     var raftConfig = RaftConfig.Load(RaftConfigFileName);
                     raftConfig.SnapshotMinLogCount = 10;
+                    raftConfig.UniqueRequestExpiredDays = 1;
                     raftConfig.DbHome = Path.Combine(".", RaftName.Replace(':', '_'));
                     if (resetLog)
                     {
