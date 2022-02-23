@@ -865,6 +865,7 @@ namespace Zeze.Raft
                         var raftsdir = Path.Combine(raftConfig.DbHome, "rafts");
                         if (Directory.Exists(raftsdir))
                             Util.FileSystem.DeleteDirectory(raftsdir);
+                        File.Delete(Path.Combine(raftConfig.DbHome, "snapshot.dat"));
                     }
                     Util.FileSystem.CreateDirectory(raftConfig.DbHome);
 
