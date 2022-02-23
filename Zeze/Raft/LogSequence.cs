@@ -360,8 +360,7 @@ namespace Zeze.Raft
 
         internal void RemoveExpiredUniqueRequestSet()
         {
-            var expired = DateTime.Now;
-            expired.AddDays(-(Raft.RaftConfig.UniqueRequestExpiredDays + 1));
+            var expired = DateTime.Now.AddDays(-(Raft.RaftConfig.UniqueRequestExpiredDays + 1));
 
             const string format = "yyyy.M.d";
             CultureInfo provider = CultureInfo.InvariantCulture;
