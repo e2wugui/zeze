@@ -33,7 +33,7 @@ namespace Zeze.Util
                 if (false == IsDirectory(dst))
                     throw new Exception("Dest directory does not exist");
                 dst = Path.Combine(dst, Path.GetFileName(src));
-                Directory.CreateDirectory(dst);
+                CreateDirectory(dst);
                 CopyDirectory(src, dst, true, copyAction);
             }
             else
@@ -56,7 +56,7 @@ namespace Zeze.Util
                     $"Source directory does not exist or could not be found: {sourceDirName}");
             }
 
-            Directory.CreateDirectory(destDirName);
+            CreateDirectory(destDirName);
             foreach (FileInfo file in dir.GetFiles())
             {
                 copyAction(file, Path.Combine(destDirName, file.Name));
@@ -78,6 +78,28 @@ namespace Zeze.Util
                 {
                     srcFile.CopyTo(dstFileName, overwrite);
                 });
+        }
+
+        public static void CreateDirectory(string path)
+        {
+            Directory.CreateDirectory(path);
+            for (int i = 1; !Directory.Exists(path); i++)
+            {
+                System.Threading.Thread.Sleep(100);
+                if (i % 10 == 0)
+                    Directory.CreateDirectory(path);
+            }
+        }
+
+        public static void DeleteDirectory(string path)
+        {
+            Directory.Delete(path, true);
+            for (int i = 1; Directory.Exists(path); i++)
+            {
+                System.Threading.Thread.Sleep(100);
+                if (i % 10 == 0)
+                    Directory.Delete(path, true);
+            }
         }
     }
 }

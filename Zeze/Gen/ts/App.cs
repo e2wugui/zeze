@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using Zeze.Util;
 
 namespace Zeze.Gen.ts
 {
@@ -100,7 +98,7 @@ namespace Zeze.Gen.ts
 
         public void Make()
         {
-            Zeze.Util.FileChunkGen fcg = new Util.FileChunkGen();
+            FileChunkGen fcg = new FileChunkGen();
             string fullDir = project.Solution.GetFullPath(genDir);
             string fullFileName = System.IO.Path.Combine(fullDir, "App.ts");
             if (fcg.LoadFile(fullFileName))
@@ -109,7 +107,7 @@ namespace Zeze.Gen.ts
                 return;
             }
             // new file
-            System.IO.Directory.CreateDirectory(fullDir);
+            FileSystem.CreateDirectory(fullDir);
             using System.IO.StreamWriter sw = Program.OpenStreamWriter(fullFileName);
             sw.WriteLine();
             sw.WriteLine(fcg.ChunkStartTag + " " + ChunkNameImportGen);

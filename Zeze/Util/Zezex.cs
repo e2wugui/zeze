@@ -116,7 +116,7 @@ namespace Zeze.Util
             // prepare
             try
             {
-                Directory.CreateDirectory(ExportDirectory);
+                FileSystem.CreateDirectory(ExportDirectory);
 
                 // phase 0
                 File.Copy("gitcheckout.bat", "gitcheckout.20210913.tmp.bat", true);
@@ -374,7 +374,7 @@ namespace Zeze.Util
 
             var serverName = GetServerProjectName();
             var serverDir = Path.Combine(ExportDirectory, serverName, InnerSrcDir);
-            Directory.CreateDirectory(serverDir);
+            FileSystem.CreateDirectory(serverDir);
 
             ReplaceAndCopyTo($"server/{InnerSrcDir}Program.{Lang}", serverDir);
             if (Lang == "cs")
@@ -385,7 +385,7 @@ namespace Zeze.Util
             ReplaceAndCopyTo($"server/{InnerSrcDir}Zezex", serverDir);
 
             var moduleBasedir = Path.Combine(serverDir, SolutionName);
-            Directory.CreateDirectory(moduleBasedir);
+            FileSystem.CreateDirectory(moduleBasedir);
 
             ReplaceAndCopyTo($"server/{InnerSrcDir}Game/App.{Lang}", moduleBasedir);
             if (Lang == "cs")
@@ -427,7 +427,7 @@ namespace Zeze.Util
             ReplaceAndCopyTo("solution.linkd.xml", ExportDirectory);
 
             var linkdDir = Path.Combine(ExportDirectory, "linkd", InnerSrcDir);
-            Directory.CreateDirectory(linkdDir);
+            FileSystem.CreateDirectory(linkdDir);
             ReplaceAndCopyTo($"linkd/{InnerSrcDir}Zezex", linkdDir);
             if (Lang == "cs")
             {

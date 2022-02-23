@@ -37,7 +37,7 @@ namespace Zeze.Gen.java
                 return;
             }
             // new file
-            Directory.CreateDirectory(fullDir);
+            FileSystem.CreateDirectory(fullDir);
             using StreamWriter sw = Program.OpenStreamWriter(fullFileName);
             sw.WriteLine("package " + module.Path() + ";");
             sw.WriteLine();

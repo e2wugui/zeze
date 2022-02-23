@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Xml;
+using Zeze.Util;
 
 namespace Zeze.Gen
 {
@@ -230,15 +231,15 @@ namespace Zeze.Gen
             return f;
         }
 
-        public static System.IO.StreamWriter OpenWriterNoPath(string baseDir, string fileName, bool overwrite = true)
+        public static StreamWriter OpenWriterNoPath(string baseDir, string fileName, bool overwrite = true)
         {
-            System.IO.Directory.CreateDirectory(baseDir);
-            string fullFileName = System.IO.Path.Combine(baseDir, fileName);
-            bool exists = System.IO.File.Exists(fullFileName);
+            FileSystem.CreateDirectory(baseDir);
+            string fullFileName = Path.Combine(baseDir, fileName);
+            bool exists = File.Exists(fullFileName);
             if (!exists || overwrite)
             {
                 //Program.Print("file " + (exists ? "overwrite" : "new") + " '" + fullFileName + "'");
-                System.IO.StreamWriter sw = Program.OpenStreamWriter(fullFileName);
+                StreamWriter sw = OpenStreamWriter(fullFileName);
                 return sw;
             }
             //Program.Print("file skip '" + fullFileName + "'");
@@ -262,7 +263,7 @@ namespace Zeze.Gen
         {
             var full = Path.GetFullPath(dir);
             // gen 目录也是源码，都会加入Project，即使完全没有输出，也应该存在。
-            Directory.CreateDirectory(full);
+            FileSystem.CreateDirectory(full);
             if (false == Zeze.Util.FileSystem.IsDirectory(full))
                 throw new Exception($"{dir} Is Not A Directory.");
             GenDirs.Add(full);

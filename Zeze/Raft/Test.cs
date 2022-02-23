@@ -861,12 +861,12 @@ namespace Zeze.Raft
                         // 只删除日志相关数据库。保留重复请求数据库。
                         var logsdir = Path.Combine(raftConfig.DbHome, "logs");
                         if (Directory.Exists(logsdir))
-                            Directory.Delete(logsdir, true);
+                            Util.FileSystem.DeleteDirectory(logsdir);
                         var raftsdir = Path.Combine(raftConfig.DbHome, "rafts");
                         if (Directory.Exists(raftsdir))
-                            Directory.Delete(raftsdir, true);
+                            Util.FileSystem.DeleteDirectory(raftsdir);
                     }
-                    Directory.CreateDirectory(raftConfig.DbHome);
+                    Util.FileSystem.CreateDirectory(raftConfig.DbHome);
 
                     Raft = new Raft(StateMachine, RaftName, raftConfig);
                     Raft.LogSequence.WriteOptions.SetSync(false);

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using Zeze.Util;
 
 namespace Zeze.Gen.lua
 {
@@ -116,7 +117,7 @@ namespace Zeze.Gen.lua
                 fcg.SaveFile(fullFileName, GenChunkByName);
             else
             {
-                Directory.CreateDirectory(fullDir);
+                FileSystem.CreateDirectory(fullDir);
                 using StreamWriter sw = Program.OpenStreamWriter(fullFileName);
 
                 sw.WriteLine($"local {module.Name}Impl = {{}}");

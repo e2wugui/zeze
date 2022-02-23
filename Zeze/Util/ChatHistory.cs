@@ -33,8 +33,8 @@ namespace Zeze.Util
             this.HistoryHome = historyHome;
             this.SessionHome = Path.Combine(historyHome, sessionId.ToString());
             this.ContentHome = Path.Combine(this.SessionHome, "contents");
-            Directory.CreateDirectory(this.SessionHome);
-            Directory.CreateDirectory(this.ContentHome);
+            FileSystem.CreateDirectory(this.SessionHome);
+            FileSystem.CreateDirectory(this.ContentHome);
 
             this.SessionId = sessionId;
             this.MaxSingleDataFileLength = maxSingleDataFileLength;

@@ -334,7 +334,7 @@ namespace Zeze.Raft
                     if (null == Db)
                     {
                         var dir = Path.Combine(LogSequence.Raft.RaftConfig.DbHome, "unique");
-                        Directory.CreateDirectory(dir);
+                        Util.FileSystem.CreateDirectory(dir);
                         Db = LogSequence.OpenDb(new DbOptions().SetCreateIfMissing(true), Path.Combine(dir, DbName));
                     }
                     return Db;
@@ -369,7 +369,7 @@ namespace Zeze.Raft
                 {
                     reqsets.Value.Dispose();
                     UniqueRequestSets.TryRemove(reqsets.Key, out _);
-                    Directory.Delete(Path.Combine(uniqueHome, reqsets.Key), true);
+                    Util.FileSystem.DeleteDirectory(Path.Combine(uniqueHome, reqsets.Key));
                 }
             }
             // try delete in dirs
@@ -381,7 +381,7 @@ namespace Zeze.Raft
                     var db = DateTime.ParseExact(dirname, format, provider);
                     if (db < expired)
                     {
-                        Directory.Delete(Path.Combine(uniqueHome, dir), true);
+                        Util.FileSystem.DeleteDirectory(Path.Combine(uniqueHome, dir));
                     }
                 }
             }
@@ -902,7 +902,7 @@ namespace Zeze.Raft
                     Logs = null;
                     CancelPendingAppendLogFutures();
                     var logsdir = Path.Combine(Raft.RaftConfig.DbHome, "logs");
-                    Directory.Delete(logsdir, true);
+                    Util.FileSystem.DeleteDirectory(logsdir);
                     var options = new DbOptions().SetCreateIfMissing(true);
 
                     Logs = OpenDb(options, logsdir);

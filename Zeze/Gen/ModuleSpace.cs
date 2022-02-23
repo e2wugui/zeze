@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
+using Zeze.Util;
 
 namespace Zeze.Gen
 {
@@ -68,7 +69,7 @@ namespace Zeze.Gen
         {
             string fullDir = GetFullPath(baseDir);
             //Program.Print("CreateDirectory:" + fullDir);
-            Directory.CreateDirectory(fullDir);
+            FileSystem.CreateDirectory(fullDir);
             string fullFileName = System.IO.Path.Combine(fullDir, fileName);
             bool exists = File.Exists(fullFileName);
             if (!exists || overwrite)

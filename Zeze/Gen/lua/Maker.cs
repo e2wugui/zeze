@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using Zeze.Util;
 
 namespace Zeze.Gen.lua
 {
@@ -35,7 +36,7 @@ namespace Zeze.Gen.lua
             foreach (Module mod in Project.AllOrderDefineModules)
                 allRefModules.Add(mod);
 
-            Directory.CreateDirectory(genDir);
+            FileSystem.CreateDirectory(genDir);
 
             string metaFileName = Path.Combine(genDir, "ZezeMeta.lua");
             using StreamWriter swMeta = Program.OpenStreamWriter(metaFileName);

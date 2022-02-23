@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
+﻿using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -119,7 +117,7 @@ namespace Zeze.Gen.luaClient
                         beankeys = beanKeys,
                         protocols
                     });
-                    if (fullDir != null) Directory.CreateDirectory(fullDir);
+                    if (fullDir != null) FileSystem.CreateDirectory(fullDir);
                     using var sw = Program.OpenStreamWriter(fullFileName);
                     sw.Write(luaModule);
                     sw.Close();
@@ -148,7 +146,7 @@ namespace Zeze.Gen.luaClient
                         beankeys = beanKeys,
                         protocols
                     });
-                    if (fullDir != null) Directory.CreateDirectory(fullDir);
+                    if (fullDir != null) FileSystem.CreateDirectory(fullDir);
                     using var sw = Program.OpenStreamWriter(fullFileName);
                     sw.Write(luaModule);
                     sw.Close();
@@ -206,7 +204,7 @@ namespace Zeze.Gen.luaClient
                         {
                             module, protocols
                         });
-                        Directory.CreateDirectory(fullDir);
+                        FileSystem.CreateDirectory(fullDir);
                         using var sw = Program.OpenStreamWriter(fullFileName);
                         sw.Write(luaModule);
                         sw.Close();
