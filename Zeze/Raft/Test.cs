@@ -512,14 +512,15 @@ namespace Zeze.Raft
                     }
                 }
             });
+            var InstallSnapshotCleanNode = Rafts.Values.ElementAt(0); // 记住，否则Release版本，每次返回值可能会变。
             FailActions.Add(new FailAction()
             {
                 Name = "InstallSnapshot Clean One Node Data",
                 Action = () =>
                 {
-                    for (int i = 0; i < Rafts.Count; ++i)
+                    foreach (var test in Rafts.Values)
                     {
-                        Rafts.Values.ElementAt(i).StartRaft(i == 0);
+                        test.StartRaft(test == InstallSnapshotCleanNode);
                     }
                 }
             });

@@ -222,18 +222,13 @@ namespace Zeze.Raft
             }, $"RemoveLogBefore{index}");
         }
 
-        /*
         private void RemoveLogReverse(long startIndex, long firstIndex)
         {
-            if (startIndex >= LastApplied)
-                throw new Exception("Error At Least Retain One Applied Log");
-
             for (var index = startIndex; index >= firstIndex; --index)
             {
                 RemoveLog(index);
             }
         }
-        */
 
         // Leader
         // Follower
@@ -378,12 +373,16 @@ namespace Zeze.Raft
                 }
             }
             // try delete in dirs
-            foreach (var dir in Directory.EnumerateDirectories(uniqueHome))
+            if (Directory.Exists(uniqueHome))
             {
-                var db = DateTime.ParseExact(dir, format, provider);
-                if (db < expired)
+                foreach (var dir in Directory.EnumerateDirectories(uniqueHome))
                 {
-                    Directory.Delete(Path.Combine(uniqueHome, dir), true);
+                    var dirname = Path.GetFileName(dir);
+                    var db = DateTime.ParseExact(dirname, format, provider);
+                    if (db < expired)
+                    {
+                        Directory.Delete(Path.Combine(uniqueHome, dir), true);
+                    }
                 }
             }
         }
@@ -891,7 +890,7 @@ namespace Zeze.Raft
                     if (null != last && last.Term == r.Argument.LastIncludedTerm)
                     {
                         // 这里全部保留更简单吧，否则如果没有applied，那不就糟了吗？
-                        // RemoveLogReverse(r.Argument.LastIncludedIndex - 1);
+                        //RemoveLogReverse(r.Argument.LastIncludedIndex - 1, FirstIndex);
                         return;
                     }
                     // 7. Discard the entire log
@@ -908,8 +907,8 @@ namespace Zeze.Raft
 
                     Logs = OpenDb(options, logsdir);
                     var lastIncludedLog = RaftLog.Decode(r.Argument.LastIncludedLog, Raft.StateMachine.LogFactory);
-                    CommitSnapshot(s.Name, lastIncludedLog.Index);
                     SaveLog(lastIncludedLog);
+                    CommitSnapshot(s.Name, lastIncludedLog.Index);
 
                     LastIndex = lastIncludedLog.Index;
                     CommitIndex = FirstIndex;
