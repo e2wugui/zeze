@@ -171,20 +171,20 @@ namespace Zeze.Raft
 
             lock (this)
             {
+                r.Result.Term = LogSequence.Term;
                 if (r.Argument.Term < LogSequence.Term)
                 {
                     // 1. Reply immediately if term < currentTerm
                     r.SendResultCode(InstallSnapshot.ResultCodeTermError);
-                    return Procedure.LogicError;
+                    return 0;
                 }
 
                 if (LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer)
                 {
+                    r.Result.Term = LogSequence.Term;
                     // new term found.
                     ConvertStateTo(RaftState.Follower);
                 }
-                r.Result.Term = LogSequence.Term;
-
                 LeaderId = r.Argument.LeaderId;
                 LogSequence.LeaderActiveTime = Zeze.Util.Time.NowUnixMillis;
             }
@@ -202,7 +202,7 @@ namespace Zeze.Raft
                 outputFileStream = ReceiveSnapshotting.GetOrAdd(
                     r.Argument.LastIncludedIndex,
                     (_) => new FileStream(path, FileMode.OpenOrCreate));
-                outputFileStream.Seek(0, SeekOrigin.End);
+                outputFileStream.Seek(0, SeekOrigin.Begin);
             }
             else
             {

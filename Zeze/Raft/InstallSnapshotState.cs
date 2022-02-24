@@ -11,7 +11,7 @@ namespace Zeze.Raft
 {
     public class InstallSnapshotState
     {
-        public InstallSnapshotArgument ReuseArgument { get; set; }
+        public InstallSnapshot Pending { get; } = new InstallSnapshot(); // 【注意】重用这个Rpc
         public RaftLog FirstLog { get; set; }
         public FileStream File { get; set; }
         public long Offset { get; set; }
@@ -25,7 +25,7 @@ namespace Zeze.Raft
                     return; // 安装取消了。
                 }
 
-                if (ReuseArgument.Done || ls.Raft.IsShutdown || false == ls.Raft.IsLeader)
+                if (Pending.Argument.Done || ls.Raft.IsShutdown || false == ls.Raft.IsLeader)
                 {
                     ls.EndInstallSnapshot(c);
                     return; // install done
@@ -35,18 +35,18 @@ namespace Zeze.Raft
 
                 var buffer = new byte[32 * 1024];
                 int rc = File.Read(buffer);
-                ReuseArgument.Offset = Offset;
-                ReuseArgument.Data = new Binary(buffer, 0, rc);
-                ReuseArgument.Done = rc < buffer.Length;
+                Pending.Argument.Offset = Offset;
+                Pending.Argument.Data = new Binary(buffer, 0, rc);
+                Pending.Argument.Done = rc < buffer.Length;
                 Offset += rc;
-                if (ReuseArgument.Done)
+                if (Pending.Argument.Done)
                 {
-                    ReuseArgument.LastIncludedLog = new Binary(FirstLog.Encode());
+                    Pending.Argument.LastIncludedLog = new Binary(FirstLog.Encode());
                 }
 
-                var r = new InstallSnapshot() { Argument = ReuseArgument };
                 var timeout = ls.Raft.RaftConfig.AppendEntriesTimeout;
-                if (!r.Send(c.TryGetReadySocket(), (p) => ProcessResult(ls, c, p), timeout))
+                Pending.ResultCode = Procedure.ErrorSendFail;
+                if (!Pending.Send(c.TryGetReadySocket(), (p) => ProcessResult(ls, c, p), timeout))
                 {
                     ls.EndInstallSnapshot(c);
                 }
@@ -85,7 +85,7 @@ namespace Zeze.Raft
                         return 0; // break install
                 }
 
-                if (r.Result.Offset >= 0)
+                if (false == r.Argument.Done && r.Result.Offset >= 0)
                 {
                     if (r.Result.Offset > File.Length)
                     {
@@ -96,8 +96,8 @@ namespace Zeze.Raft
                     Offset = r.Result.Offset;
                     File.Seek(Offset, SeekOrigin.Begin);
                 }
+                TrySend(ls, c);
             }
-            TrySend(ls, c);
             return 0;
         }
     }

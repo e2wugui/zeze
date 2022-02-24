@@ -224,6 +224,7 @@ namespace Zeze.Raft
             }, $"RemoveLogBefore{index}");
         }
 
+        /*
         private void RemoveLogReverse(long startIndex, long firstIndex)
         {
             for (var index = startIndex; index >= firstIndex; --index)
@@ -231,6 +232,7 @@ namespace Zeze.Raft
                 RemoveLog(index);
             }
         }
+        */
 
         // Leader
         // Follower
@@ -921,8 +923,9 @@ namespace Zeze.Raft
                     var last = ReadLog(r.Argument.LastIncludedIndex);
                     if (null != last && last.Term == r.Argument.LastIncludedTerm)
                     {
-                        RemoveLogReverse(r.Argument.LastIncludedIndex - 1, FirstIndex);
-                        SaveFirstIndex(r.Argument.LastIncludedIndex);
+                        // 【注意】没有错误处理：比如LastIncludedIndex是否超过CommitIndex之类的。
+                        logger.Warn($"Exist Local Log. Do It Like A Local Snapshot!");
+                        CommitSnapshot(s.Name, r.Argument.LastIncludedIndex);
                         return;
                     }
                     // 7. Discard the entire log
@@ -1011,13 +1014,14 @@ namespace Zeze.Raft
         {
             if (InstallSnapshotting.TryRemove(c.Name, out var cex))
             {
-                if (cex.InstallSnapshotState.ReuseArgument.Done)
+                var state = cex.InstallSnapshotState;
+                if (state.Pending.Argument.Done && state.Pending.ResultCode == 0)
                 {
-                    cex.NextIndex = FirstIndex + 1;
-                    cex.MatchIndex = FirstIndex;
+                    cex.NextIndex = state.Pending.Argument.LastIncludedIndex + 1;
+                    cex.MatchIndex = state.Pending.Argument.LastIncludedIndex;
                 }
-                cex.InstallSnapshotState.File.Close();
-                logger.Info($"{Raft.Name} InstallSnapshot Done={cex.InstallSnapshotState.ReuseArgument.Done} c={c.Name}");
+                state.File.Close();
+                logger.Info($"{Raft.Name} InstallSnapshot LastIncludedIndex={state.Pending.Argument.LastIncludedIndex} Done={state.Pending.Argument.Done} c={c.Name}");
             }
             c.InstallSnapshotState = null;
 
@@ -1043,11 +1047,10 @@ namespace Zeze.Raft
                 var st = c.InstallSnapshotState;
                 st.File = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read); ;
                 st.FirstLog = ReadLog(FirstIndex);
-                st.ReuseArgument = new InstallSnapshotArgument();
-                st.ReuseArgument.Term = Term;
-                st.ReuseArgument.LeaderId = Raft.Name;
-                st.ReuseArgument.LastIncludedIndex = st.FirstLog.Index;
-                st.ReuseArgument.LastIncludedTerm = st.FirstLog.Term;
+                st.Pending.Argument.Term = Term;
+                st.Pending.Argument.LeaderId = Raft.Name;
+                st.Pending.Argument.LastIncludedIndex = st.FirstLog.Index;
+                st.Pending.Argument.LastIncludedTerm = st.FirstLog.Term;
 
                 logger.Info($"{Raft.Name} InstallSnapshot Start... Path={path} c={c.Name}");
                 st.TrySend(this, c);
@@ -1333,7 +1336,7 @@ namespace Zeze.Raft
                     // raft.pdf 5.3
                     if (conflictCheck.Index <= CommitIndex)
                     {
-                        logger.Fatal("truncate committed entries");
+                        logger.Fatal($"{Raft.Name} truncate committed entries");
                         Raft.FatalKill();
                     }
                     RemoveLogAndCancelStart(conflictCheck.Index, LastIndex);
