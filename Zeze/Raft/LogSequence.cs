@@ -1015,15 +1015,15 @@ namespace Zeze.Raft
             if (InstallSnapshotting.TryRemove(c.Name, out var cex))
             {
                 var state = cex.InstallSnapshotState;
+                logger.Info($"{Raft.Name} InstallSnapshot LastIncludedIndex={state.Pending.Argument.LastIncludedIndex} Done={state.Pending.Argument.Done} c={c.Name}");
+                state.File.Close();
                 if (state.Pending.Argument.Done && state.Pending.ResultCode == 0)
                 {
                     cex.NextIndex = state.Pending.Argument.LastIncludedIndex + 1;
                     cex.MatchIndex = state.Pending.Argument.LastIncludedIndex;
+                    // start log copy
+                    TrySendAppendEntries(c, null);
                 }
-                state.File.Close();
-                logger.Info($"{Raft.Name} InstallSnapshot LastIncludedIndex={state.Pending.Argument.LastIncludedIndex} Done={state.Pending.Argument.Done} c={c.Name}");
-                // start log copy
-                TrySendAppendEntries(c, null);
             }
             c.InstallSnapshotState = null;
         }
