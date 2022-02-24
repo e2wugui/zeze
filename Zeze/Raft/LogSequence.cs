@@ -924,6 +924,7 @@ namespace Zeze.Raft
                     if (null != last && last.Term == r.Argument.LastIncludedTerm)
                     {
                         // 【注意】没有错误处理：比如LastIncludedIndex是否超过CommitIndex之类的。
+                        // 按照现在启动InstallSnapshot的逻辑，不会发生这种情况。
                         logger.Warn($"Exist Local Log. Do It Like A Local Snapshot!");
                         CommitSnapshot(s.Name, r.Argument.LastIncludedIndex);
                         return;
@@ -1020,7 +1021,9 @@ namespace Zeze.Raft
                 if (state.Pending.Argument.Done && state.Pending.ResultCode == 0)
                 {
                     cex.NextIndex = state.Pending.Argument.LastIncludedIndex + 1;
-                    cex.MatchIndex = state.Pending.Argument.LastIncludedIndex;
+                    
+                    if (state.Pending.Argument.LastIncludedIndex > cex.MatchIndex) // see EndReceiveInstallSnapshot 6.
+                        cex.MatchIndex = state.Pending.Argument.LastIncludedIndex;
                     // start log copy
                     TrySendAppendEntries(c, null);
                 }
