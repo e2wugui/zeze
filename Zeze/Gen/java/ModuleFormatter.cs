@@ -260,7 +260,7 @@ namespace Zeze.Gen.java
             }
             if (genTable)
                 sw.WriteLine();
-            sw.WriteLine($"    public {project.Solution.Name}.App App;");
+            sw.WriteLine($"    public final {project.Solution.Name}.App App;");
             sw.WriteLine();
 
             sw.WriteLine($"    public AbstractModule({project.Solution.Name}.App app) {{");
@@ -367,7 +367,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("public abstract class AbstractModule extends Zeze.IModule {");
             sw.WriteLine($"    public String getFullName() {{ return \"{module.Path()}\"; }}");
             sw.WriteLine($"    public String getName() {{ return \"{moduleName}\"; }}");
-            sw.WriteLine($"    public int getId() {{ return {module.Id}; }}");
+            sw.WriteLine($"    public int getId() {{ return ModuleId; }}");
             sw.WriteLine();
             // declare enums
             foreach (Types.Enum e in module.Enums)
