@@ -1022,11 +1022,10 @@ namespace Zeze.Raft
                 }
                 state.File.Close();
                 logger.Info($"{Raft.Name} InstallSnapshot LastIncludedIndex={state.Pending.Argument.LastIncludedIndex} Done={state.Pending.Argument.Done} c={c.Name}");
+                // start log copy
+                TrySendAppendEntries(c, null);
             }
             c.InstallSnapshotState = null;
-
-            // start log copy
-            TrySendAppendEntries(c, null);
         }
 
         private void StartInstallSnapshot(Server.ConnectorEx c)

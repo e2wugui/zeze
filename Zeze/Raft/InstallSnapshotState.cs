@@ -80,7 +80,6 @@ namespace Zeze.Raft
                         break;
 
                     default:
-                        LogSequence.logger.Warn($"InstallSnapshot Break ResultCode={r.ResultCode}");
                         ls.EndInstallSnapshot(c);
                         return 0; // break install
                 }
