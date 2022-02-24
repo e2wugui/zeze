@@ -82,8 +82,13 @@ namespace Zeze.Raft
             {
                 base.OnSocketHandshakeDone(so);
                 var raft = (Service as Server).Raft;
-                raft.ImportantThreadPool.QueueUserWorkItem(
-                    () => Util.Task.Call(() => raft.LogSequence.TrySendAppendEntries(this, null), "TryStartLogCopy"));
+                raft.ImportantThreadPool.QueueUserWorkItem(() => Util.Task.Call(() =>
+                {
+                    lock (raft)
+                    {
+                        raft.LogSequence.TrySendAppendEntries(this, null);
+                    }
+                }, "Start TrySendAppendEntries"));
             }
         }
 
@@ -759,6 +764,7 @@ namespace Zeze.Raft
         public string CandidateId { get; set; }
         public long LastLogIndex { get; set; }
         public long LastLogTerm { get; set; }
+        public bool NodeReady { get; set; }
 
         public override void Decode(ByteBuffer bb)
         {
@@ -766,6 +772,7 @@ namespace Zeze.Raft
             CandidateId = bb.ReadString();
             LastLogIndex = bb.ReadLong();
             LastLogTerm = bb.ReadLong();
+            NodeReady = bb.ReadBool();
         }
 
         public override void Encode(ByteBuffer bb)
@@ -774,6 +781,7 @@ namespace Zeze.Raft
             bb.WriteString(CandidateId);
             bb.WriteLong(LastLogIndex);
             bb.WriteLong(LastLogTerm);
+            bb.WriteBool(NodeReady);
         }
 
         protected override void InitChildrenRootInfo(Record.RootInfo root)

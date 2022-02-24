@@ -853,10 +853,10 @@ namespace Zeze.Raft
                 LastIndex = raftLog.Index;
                 term = Term;
                 index = LastIndex;
-            }
 
-            // 广播给followers并异步等待多数确认
-            Raft.Server.Config.ForEachConnector((c) => TrySendAppendEntries(c as Server.ConnectorEx, null));
+                // 广播给followers并异步等待多数确认
+                Raft.Server.Config.ForEachConnector((c) => TrySendAppendEntries(c as Server.ConnectorEx, null));
+            }
 
             if (WaitApply)
             {
@@ -1020,6 +1020,9 @@ namespace Zeze.Raft
                 logger.Info($"{Raft.Name} InstallSnapshot Done={cex.InstallSnapshotState.ReuseArgument.Done} c={c.Name}");
             }
             c.InstallSnapshotState = null;
+
+            // start log copy
+            TrySendAppendEntries(c, null);
         }
 
         private void StartInstallSnapshot(Server.ConnectorEx c)
@@ -1063,19 +1066,14 @@ namespace Zeze.Raft
             // 这个rpc处理流程总是返回 Success，需要统计观察不同的分支的发生情况，再来定义不同的返回值。
 
             var r = p as AppendEntries;
-            bool resend = false;
             lock (Raft)
             {
-                resend = r.IsTimeout && Raft.IsLeader;
-            }
-            if (resend)
-            {
-                TrySendAppendEntries(connector, r);  //resend
-                return Procedure.Success;
-            }
+                if (r.IsTimeout && Raft.IsLeader)
+                {
+                    TrySendAppendEntries(connector, r);  // timeout and resend
+                    return Procedure.Success;
+                }
 
-            lock (Raft)
-            {
                 if (Raft.LogSequence.TrySetTerm(r.Result.Term) == SetTermResult.Newer)
                 {
                     // new term found.
@@ -1091,26 +1089,20 @@ namespace Zeze.Raft
                     connector.Pending = null;
                     return Procedure.Success;
                 }
-            }
 
-            if (r.Result.Success)
-            {
-                lock (Raft)
+                if (r.Result.Success)
                 {
                     TryCommit(r, connector);
+                    // TryCommit 推进了NextIndex，
+                    // 可能日志没有复制完或者有新的AppendLog。
+                    // 尝试继续复制日志。
+                    // see TrySendAppendEntries 内的
+                    // “限制一次发送的日志数量”
+                    TrySendAppendEntries(connector, r);
+                    return Procedure.Success;
                 }
-                // TryCommit 推进了NextIndex，
-                // 可能日志没有复制完或者有新的AppendLog。
-                // 尝试继续复制日志。
-                // see TrySendAppendEntries 内的
-                // “限制一次发送的日志数量”
-                TrySendAppendEntries(connector, r);
-                return Procedure.Success;
-            }
 
-            // 日志同步失败，调整NextIndex，再次尝试。
-            lock (Raft)
-            {
+                // 日志同步失败，调整NextIndex，再次尝试。
                 if (r.Result.NextIndex == 0)
                 {
                     // 默认的回退模式。
@@ -1138,71 +1130,68 @@ namespace Zeze.Raft
 
         internal void TrySendAppendEntries(Server.ConnectorEx connector, AppendEntries pending)
         {
-            lock (Raft)
+            // Pending 处理必须完成。
+            connector.AppendLogActiveTime = Util.Time.NowUnixMillis;
+            if (connector.Pending != pending)
+                return;
+            // 先清除，下面中断(return)不用每次自己清除。
+            connector.Pending = null;
+
+            if (false == Raft.IsLeader)
+                return; // skip if is not a leader
+
+            // 【注意】
+            // 正在安装Snapshot，此时不复制日志，肯定失败。
+            // 不做这个判断也是可以工作的，算是优化。
+            if (InstallSnapshotting.ContainsKey(connector.Name))
+                return;
+
+            var socket = connector.TryGetReadySocket();
+            if (null == socket)
+                return;
+
+            if (connector.NextIndex > LastIndex)
+                return; // copy end.
+
+            if (connector.NextIndex == FirstIndex)
             {
-                // Pending 处理必须完成。
-                connector.AppendLogActiveTime = Util.Time.NowUnixMillis;
-                if (connector.Pending != pending)
-                    return;
-                // 先清除，下面中断(return)不用每次自己清除。
+                // 已经到了日志开头，此时不会有prev-log，无法复制日志了。
+                // 这一般发生在Leader进行了Snapshot，但是Follower的日志还更老。
+                // 新起的Follower也一样。
+                StartInstallSnapshot(connector);
+                return;
+            }
+
+            var nextLog = ReadLog(connector.NextIndex);
+
+            connector.Pending = new AppendEntries();
+            connector.Pending.Argument.Term = Term;
+            connector.Pending.Argument.LeaderId = Raft.Name;
+            connector.Pending.Argument.LeaderCommit = CommitIndex;
+
+            // 肯定能找到的。
+            var prevLog = ReadLog(nextLog.Index - 1);
+            connector.Pending.Argument.PrevLogIndex = prevLog.Index;
+            connector.Pending.Argument.PrevLogTerm = prevLog.Term;
+
+            // 限制一次发送的日志数量，【注意】这个不是raft要求的。
+            int maxCount = Raft.RaftConfig.MaxAppendEntiresCount;
+            RaftLog lastCopyLog = nextLog;
+            for (var copyLog = nextLog;
+                maxCount > 0 && null != copyLog && copyLog.Index <= LastIndex;
+                copyLog = ReadLog(copyLog.Index + 1), --maxCount
+                )
+            {
+                lastCopyLog = copyLog;
+                connector.Pending.Argument.Entries.Add(new Binary(copyLog.Encode()));
+            }
+            connector.Pending.Argument.LastEntryIndex = lastCopyLog.Index;
+            if (false == connector.Pending.Send(socket,
+                (p) => ProcessAppendEntriesResult(connector, p),
+                Raft.RaftConfig.AppendEntriesTimeout))
+            {
                 connector.Pending = null;
-
-                if (false == Raft.IsLeader)
-                    return; // skip if is not a leader
-
-                // 【注意】
-                // 正在安装Snapshot，此时不复制日志，肯定失败。
-                // 不做这个判断也是可以工作的，算是优化。
-                if (InstallSnapshotting.ContainsKey(connector.Name))
-                    return;
-
-                var socket = connector.TryGetReadySocket();
-                if (null == socket)
-                    return;
-
-                if (connector.NextIndex > LastIndex)
-                    return; // copy end.
-
-                if (connector.NextIndex == FirstIndex)
-                {
-                    // 已经到了日志开头，此时不会有prev-log，无法复制日志了。
-                    // 这一般发生在Leader进行了Snapshot，但是Follower的日志还更老。
-                    // 新起的Follower也一样。
-                    StartInstallSnapshot(connector);
-                    return;
-                }
-
-                var nextLog = ReadLog(connector.NextIndex);
-
-                connector.Pending = new AppendEntries();
-                connector.Pending.Argument.Term = Term;
-                connector.Pending.Argument.LeaderId = Raft.Name;
-                connector.Pending.Argument.LeaderCommit = CommitIndex;
-
-                // 肯定能找到的。
-                var prevLog = ReadLog(nextLog.Index - 1);
-                connector.Pending.Argument.PrevLogIndex = prevLog.Index;
-                connector.Pending.Argument.PrevLogTerm = prevLog.Term;
-
-                // 限制一次发送的日志数量，【注意】这个不是raft要求的。
-                int maxCount = Raft.RaftConfig.MaxAppendEntiresCount;
-                RaftLog lastCopyLog = nextLog;
-                for (var copyLog = nextLog;
-                    maxCount > 0 && null != copyLog && copyLog.Index <= LastIndex;
-                    copyLog = ReadLog(copyLog.Index + 1), --maxCount
-                    )
-                {
-                    lastCopyLog = copyLog;
-                    connector.Pending.Argument.Entries.Add(new Binary(copyLog.Encode()));
-                }
-                connector.Pending.Argument.LastEntryIndex = lastCopyLog.Index;
-                if (false == connector.Pending.Send(socket,
-                    (p) => ProcessAppendEntriesResult(connector, p),
-                    Raft.RaftConfig.AppendEntriesTimeout))
-                {
-                    connector.Pending = null;
-                    // Hearbeat Will Retry
-                }
+                // Hearbeat Will Retry
             }
         }
 

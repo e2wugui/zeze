@@ -446,32 +446,39 @@ namespace Zeze.Raft
             }
         }
 
-        private bool IsLastLogUpToDate(long candidateLastTerm, long candidateLastIndex)
+        private bool IsLastLogUpToDate(RequestVoteArgument candidate)
         {
+            // NodeReady local candidate
+            //           false false       IsLastLogUpToDate * true is ok
+            //           false true        false
+            //           true  false       false
+            //           true  true        IsLastLogUpToDate
             var last = LogSequence.LastRaftLog();
             if (false == LogSequence.NodeReady)
             {
-                if (candidateLastIndex == 0)
+                if (false == candidate.NodeReady)
                 {
                     // 整个Raft集群第一次启动时，允许给初始节点投票。此时所有的初始节点形成多数派。任何一个当选都是可以的。
                     // 以后由于机器更换再次启动而处于初始状态的节点肯定是少数派，即使它们之间互相投票，也不能成功。
                     // 如果违背了这点，意味着违背了Raft的可用原则，已经不在Raft的处理范围内了。
-                    return IsLastLogUpToDate(last, candidateLastTerm, candidateLastIndex);
+                    return IsLastLogUpToDate(last, candidate);
                 }
 
                 // 拒绝投票直到发现达成多数派。
                 return false;
             }
-            return IsLastLogUpToDate(last, candidateLastTerm, candidateLastIndex);
+            if (false == candidate.NodeReady)
+                return false;
+            return IsLastLogUpToDate(last, candidate);
         }
 
-        private bool IsLastLogUpToDate(RaftLog last, long candidateLastTerm, long candidateLastIndex)
+        private bool IsLastLogUpToDate(RaftLog last, RequestVoteArgument candidate)
         {
-            if (candidateLastTerm > last.Term)
+            if (candidate.LastLogTerm > last.Term)
                 return true;
-            if (candidateLastTerm < last.Term)
+            if (candidate.LastLogTerm < last.Term)
                 return false;
-            return candidateLastIndex >= last.Index;
+            return candidate.LastLogIndex >= last.Index;
         }
 
         private long ProcessRequestVote(Protocol p)
@@ -499,7 +506,7 @@ namespace Zeze.Raft
                 r.Result.Term = LogSequence.Term;
                 r.Result.VoteGranted = r.Argument.Term == LogSequence.Term
                     && LogSequence.CanVoteFor(r.Argument.CandidateId)
-                    && IsLastLogUpToDate(r.Argument.LastLogTerm, r.Argument.LastLogIndex);
+                    && IsLastLogUpToDate(r.Argument);
 
                 if (r.Result.VoteGranted)
                 {
@@ -582,6 +589,7 @@ namespace Zeze.Raft
             var log = LogSequence.LastRaftLog();
             arg.LastLogIndex = log.Index;
             arg.LastLogTerm = log.Term;
+            arg.NodeReady = LogSequence.NodeReady;
 
             NextVoteTime = Time.NowUnixMillis + RaftConfig.ElectionTimeout;
             Server.Config.ForEachConnector((c) =>
