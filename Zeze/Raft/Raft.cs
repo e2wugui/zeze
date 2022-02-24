@@ -449,7 +449,7 @@ namespace Zeze.Raft
         private bool IsLastLogUpToDate(RequestVoteArgument candidate)
         {
             // NodeReady local candidate
-            //           false false       IsLastLogUpToDate * true is ok
+            //           false false       IsLastLogUpToDate
             //           false true        false
             //           true  false       false
             //           true  true        IsLastLogUpToDate
