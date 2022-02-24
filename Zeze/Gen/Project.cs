@@ -165,18 +165,18 @@ namespace Zeze.Gen
                 foreach (Module mod in AllOrderDefineModules)
                 {
                     foreach (var b in mod.BeanKeys.Values)
-                        depends.Add(b);
+                        b.Depends(depends);
                     foreach (var b in mod.Beans.Values)
-                        depends.Add(b);
+                        b.Depends(depends);
                 }
                 // 加入额外引用的bean,beankey，一般引入定义在不是本项目模块中的。
                 foreach (string n in Program.Refs(Self, "bean"))
                 {
-                    depends.Add(Program.GetNamedObject<Types.Bean>(n));
+                    Program.GetNamedObject<Types.Bean>(n).Depends(depends);
                 }
                 foreach (string n in Program.Refs(Self, "beankey"))
                 {
-                    depends.Add(Program.GetNamedObject<Types.BeanKey>(n));
+                    Program.GetNamedObject<Types.BeanKey>(n).Depends(depends);
                 }
                 foreach (Types.Type type in depends)
                 {
