@@ -261,8 +261,10 @@ namespace Zeze.Raft
 
             Db = RocksDb.Open(options, dbName, columns);
 
-            // 第一次打开时，Maps是空的；
-            // Restore时需要重置，调用一次GetOrAdd<K, V>
+            // 第一次打开时，Maps是空的；应用调用RocksRaft.GetOrAdd创建Map。
+            // Restore 时需要重置Maps，在重建已经打开的Map；
+            // 执行旧的打开的Map.OpenWithType，它里面调用一次新的Maps.GetOrAdd<K, V>。
+            // 【问题&TODO&BUG】为了减轻使用者负担，RocksRaft.GetOrAdd返回的Map<K,V>实例的引用需要不能改变。
             var openedMaps = Maps;
             Maps = new ConcurrentDictionary<string, Map>();
             foreach (var map in openedMaps)
