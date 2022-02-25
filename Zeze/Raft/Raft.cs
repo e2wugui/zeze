@@ -82,6 +82,7 @@ namespace Zeze.Raft
                 if (IsShutdown)
                     return;
 
+                AppDomain.CurrentDomain.ProcessExit -= ProcessExit;
                 IsShutdown = true;
             }
 
