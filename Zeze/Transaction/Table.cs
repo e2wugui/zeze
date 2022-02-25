@@ -440,6 +440,7 @@ namespace Zeze.Transaction
 
         internal Database.Table OldTable { get; private set; }
         internal Storage<K, V> TStorage { get; private set; }
+        public Database Database { get; private set; }
         public override Storage Storage => TStorage;
 
         internal override Storage Open(Application app, Database database)
@@ -447,6 +448,7 @@ namespace Zeze.Transaction
             if (null != TStorage)
                 throw new Exception("table has opened." + Name);
             Zeze = app;
+            Database = database;
             if (this.IsAutoKey)
                 AutoKey = app.ServiceManagerAgent.GetAutoKey(Name);
 
