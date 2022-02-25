@@ -164,6 +164,7 @@ namespace Zeze.Raft
             finally
             {
                 Agent.Client.Stop();
+                SnapshotTimer?.Cancel();
                 foreach (var raft in Rafts.Values)
                 {
                     raft.StopRaft();
@@ -311,6 +312,23 @@ namespace Zeze.Raft
             CheckCurrentCount(testname);
         }
 
+        Util.SchedulerTask SnapshotTimer;
+
+        private void RandomSnapshotTimer(Util.SchedulerTask ThisTask)
+        {
+            var randindex = Util.Random.Instance.Next(Rafts.Count);
+            var index = 0;
+
+            foreach (var test in Rafts.Values)
+            {
+                if (index++ == randindex)
+                {
+                    test.Raft?.LogSequence.Snapshot(false);
+                    return;
+                }
+            }
+        }
+
         public void RunTrace()
         {
             // 基本测试
@@ -398,6 +416,8 @@ namespace Zeze.Raft
             logger.Fatal(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
             logger.Fatal(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
             logger.Fatal(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
+
+            SnapshotTimer = Util.Scheduler.Instance.Schedule(RandomSnapshotTimer, 1 * 60 * 1000, 1 * 60 * 1000);
 
             SetLogLevel(NLog.LogLevel.Info);
 
@@ -823,8 +843,6 @@ namespace Zeze.Raft
                 Raft?.Server.Start();
             }
 
-            Util.SchedulerTask SnapshotTimer;
-
             public void StopRaft()
             {
                 lock (this)
@@ -897,8 +915,6 @@ namespace Zeze.Raft
                 RaftName = raftName;
                 RaftConfigFileName = raftConfigFileName;
                 StartRaft(true);
-                SnapshotTimer = Util.Scheduler.Instance.Schedule(
-                    (ThisTask) => Raft?.LogSequence?.Snapshot(false), 1 * 60 * 1000, 1 * 60 * 1000);
             }
 
             private long ProcessAddCount(Zeze.Net.Protocol p)

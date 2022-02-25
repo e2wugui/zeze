@@ -298,6 +298,10 @@ namespace Zeze
         {
             lock (this)
             {
+                var domain = AppDomain.CurrentDomain;
+                domain.UnhandledException -= UnhandledExceptionEventHandler;
+                domain.ProcessExit -= ProcessExit;
+
                 GlobalAgent?.Stop(); // 关闭时需要生成新的SessionId，这个现在使用AutoKey，需要事务支持。
 
                 if (false == IsStart)
