@@ -46,6 +46,14 @@ namespace Zeze.Util
             }
         }
 
+        public bool Unschedule(SchedulerTask task)
+        {
+            lock (this)
+            {
+                return scheduled.Remove(task);
+            }
+        }
+
         /// <summary>
         /// 设置停止标志，并等待调度线程结束。不是必须调用。
         /// </summary>
@@ -135,6 +143,7 @@ namespace Zeze.Util
         public void Cancel()
         {
             this.canceled = true;
+            Scheduler.Unschedule(this);
         }
  
         internal void Run()
