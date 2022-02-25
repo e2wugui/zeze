@@ -72,7 +72,8 @@ namespace Zeze.Raft
                     // avoid deadlock: lock(socket), lock (Raft).
                     lock (server.Raft)
                     {
-                        server.Raft.LogSequence.EndInstallSnapshot(this);
+                        if (Socket == closed) // check is owner
+                            server.Raft.LogSequence.EndInstallSnapshot(this);
                     }
                 });
                 base.OnSocketClose(closed, e);

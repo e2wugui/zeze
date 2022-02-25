@@ -632,6 +632,7 @@ namespace Zeze.Raft
                     logger.Info($"RaftState {Name}: Candidate->Follower");
                     LeaderLostTimeout = RaftConfig.ElectionTimeout;
                     State = RaftState.Follower;
+                    RequestVotes.Clear();
                     return;
 
                 case RaftState.Candidate:
@@ -640,6 +641,7 @@ namespace Zeze.Raft
                     return;
 
                 case RaftState.Leader:
+                    RequestVotes.Clear();
                     CancelAllReceiveSnapshotting();
 
                     logger.Info($"RaftState {Name}: Candidate->Leader");
