@@ -699,6 +699,7 @@ namespace Zeze.Raft
 
         private void ReSend(bool immediately = false)
         {
+            _Leader?.Start();
             // ReSendPendingRpc
             var now = Util.Time.NowUnixMillis;
             var leaderSocket = _Leader?.TryGetReadySocket();
