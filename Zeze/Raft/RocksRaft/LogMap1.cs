@@ -8,7 +8,6 @@ using Zeze.Serialize;
 namespace Zeze.Raft.RocksRaft
 {
 	public class LogMap1<K, V> : LogMap
-		where V : Serializable, new()
 	{
 		public Dictionary<K, V> Putted { get; } = new Dictionary<K, V>();
 		public ISet<K> Removed { get; } = new HashSet<K>();
@@ -40,8 +39,7 @@ namespace Zeze.Raft.RocksRaft
 			for (int i = bb.ReadInt(); i >= 0; --i)
 			{
 				var key = SerializeHelper<K>.Decode(bb);
-				var value = new V();
-				value.Decode(bb);
+				var value = SerializeHelper<V>.Decode(bb);
 				Putted.Add(key, value);
 			}
 
@@ -59,7 +57,7 @@ namespace Zeze.Raft.RocksRaft
 			foreach (var p in Putted)
 			{
 				SerializeHelper<K>.Encode(bb, p.Key);
-				p.Value.Encode(bb);
+				SerializeHelper<V>.Encode(bb, p.Value);
 			}
 
 			bb.WriteInt(Removed.Count);

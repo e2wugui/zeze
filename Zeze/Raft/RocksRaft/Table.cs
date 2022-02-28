@@ -9,17 +9,25 @@ namespace Zeze.Raft.RocksRaft
 {
 	public abstract class Table
 	{
-		public abstract void Apply(object key, LogBean log);
+		public abstract string Name { get; }
+		internal abstract void Apply(object key, LogBean log);
 	}
 
-	public class Table<K, V> : Table where V : Bean, new()
+	public abstract class Table<K, V> : Table where V : Bean, new()
 	{
-		ConcurrentDictionary<K, V> table;
+		private ConcurrentDictionary<K, V> table = new ConcurrentDictionary<K, V>(); // TODO change to lru
 
-		public override void Apply(object key, LogBean log)
+		internal override void Apply(object key, LogBean log)
 		{
 			log.Apply(table.GetOrAdd((K)key, (_) => new V()));
 		}
+
+		public V GetOrAdd(K key)
+        {
+			return table.GetOrAdd(key, (_) => new V());
+        }
+
+
 	}
 
 }

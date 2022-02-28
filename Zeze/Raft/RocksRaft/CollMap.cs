@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Zeze.Serialize;
 
 namespace Zeze.Raft.RocksRaft
 {
@@ -22,5 +23,5 @@ namespace Zeze.Raft.RocksRaft
 				return tmp;
 			return default(V);
 		}
-	}
+    }
 }

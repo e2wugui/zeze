@@ -9,7 +9,7 @@ namespace Zeze.Raft.RocksRaft
 {
     public class Rocks
     {
-        ConcurrentDictionary<string, Table> Tables;
+        public ConcurrentDictionary<string, Table> Tables { get; } = new ConcurrentDictionary<string, Table>();
 
         public void Apply(Changes changes)
         {

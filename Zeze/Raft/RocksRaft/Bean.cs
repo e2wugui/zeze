@@ -17,7 +17,7 @@ namespace Zeze.Raft.RocksRaft
 
 		public long ObjectId { get; } = ObjectIdGenerator.AddAndGet(ObjectIdStep);
 		public Bean Parent { get; private set; }
-		public int VariableId { get; private set; }
+		public int VariableId { get; set; }
 
 		public Record.RootInfo RootInfo { get; private set; }
 		public bool IsManaged => RootInfo != null;
@@ -54,38 +54,6 @@ namespace Zeze.Raft.RocksRaft
 		{
 			return new LogBean();
 		}
-
-		int _i;
-		long _l;
-		CollMap<int, int> _map;
-		public Bean _bean;
-
-		public int I
-		{
-			get
-			{
-				if (false == Transaction.Current.LogTryGet(ObjectId + 1, out var log))
-					return _i;
-				return ((Log_i)log).Value;
-			}
-
-			set
-			{
-				Transaction.Current.LogPut(this.ObjectId, new Log_i() { VariableId = 1, Value = value, });
-			}
-		}
-
-		public CollMap<int, int> Map => _map;
-
-		public sealed class Log_i : Log<int>
-        {
-			public override void Apply(Bean holder) { holder._i = Value; }
-        }
-
-		public sealed class Log_bean : LogBean
-        {
-            public override void Apply(Bean holder) { base.Apply(holder._bean); }
-        }
 	}
 
 

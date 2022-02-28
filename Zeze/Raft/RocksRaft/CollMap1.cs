@@ -7,9 +7,7 @@ using Zeze.Serialize;
 
 namespace Zeze.Raft.RocksRaft
 {
-	public abstract class CollMap1<K, V> : CollMap<K, V>
-		where K : Serializable, new()
-		where V : Serializable, new()
+	public class CollMap1<K, V> : CollMap<K, V>
 	{
 		public override V Get(K key)
 		{
@@ -43,6 +41,31 @@ namespace Zeze.Raft.RocksRaft
 		public override LogBean CreateLogBean()
 		{
 			return new LogMap1<K, V>();
+		}
+
+		public override void Decode(ByteBuffer bb)
+		{
+			for (int i = bb.ReadInt(); i >= 0; --i)
+			{
+				var key = SerializeHelper<K>.Decode(bb);
+				var value = SerializeHelper<V>.Decode(bb);
+				Put(key, value);
+			}
+		}
+
+		public override void Encode(ByteBuffer bb)
+		{
+			var tmp = map;
+			bb.WriteInt(tmp.Count);
+			foreach (var e in tmp)
+            {
+				SerializeHelper<K>.Encode(bb, e.Key);
+				SerializeHelper<V>.Encode(bb, e.Value);
+            }
+		}
+
+		protected override void InitChildrenRootInfo(Record.RootInfo root)
+		{ 
 		}
 	}
 }
