@@ -12,6 +12,17 @@ namespace Zeze.Raft.RocksRaft
         public string Name { get; set; }
         public object Key { get; set; }
 
+        public TableKey()
+        {
+
+        }
+
+        public TableKey(string name, object key)
+        {
+            Name = name;
+            Key = key;
+        }
+
         public void Decode(ByteBuffer bb)
         {
             throw new NotImplementedException();

@@ -29,7 +29,7 @@ namespace UnitTest.Zeze.RocksRaft
 
 				set
 				{
-					Transaction.Current.LogPut(this.ObjectId, new Log_i() { Bean = this, VariableId = 1, Value = value, });
+					Transaction.Current.LogPut(new Log_i() { Bean = this, VariableId = 1, Value = value, });
 				}
 			}
 
@@ -43,7 +43,7 @@ namespace UnitTest.Zeze.RocksRaft
 
 				set
 				{
-					Transaction.Current.LogPut(this.ObjectId, new Log_l() { Bean = this, VariableId = 2, Value = value, });
+					Transaction.Current.LogPut(new Log_l() { Bean = this, VariableId = 2, Value = value, });
 				}
 			}
 
@@ -74,7 +74,7 @@ namespace UnitTest.Zeze.RocksRaft
 			public Bean1()
             {
 				_map1 = new CollMap1<int, int>() { VariableId = 3 };
-				_bean2 = new Bean2() {  VariableId = 4 };
+				_bean2 = new Bean2() { VariableId = 4 };
             }
 
 			public override void Decode(ByteBuffer bb)
@@ -115,7 +115,7 @@ namespace UnitTest.Zeze.RocksRaft
 
 				set
 				{
-					Transaction.Current.LogPut(this.ObjectId, new Log_i() { Bean = this, VariableId = 1, Value = value, });
+					Transaction.Current.LogPut(new Log_i() { Bean = this, VariableId = 1, Value = value, });
 				}
 			}
 

@@ -468,17 +468,17 @@ namespace Zeze.Transaction
         }
 
         // Key 都是简单变量，系列化方法都不一样，需要生成。
-        public abstract global::Zeze.Serialize.ByteBuffer EncodeKey(K key);
-        public abstract K DecodeKey(global::Zeze.Serialize.ByteBuffer bb);
+        public abstract ByteBuffer EncodeKey(K key);
+        public abstract K DecodeKey(ByteBuffer bb);
 
         public V NewValue()
         {
             return new V();
         }
 
-        public global::Zeze.Serialize.ByteBuffer EncodeValue(V value)
+        public ByteBuffer EncodeValue(V value)
         {
-            global::Zeze.Serialize.ByteBuffer bb = global::Zeze.Serialize.ByteBuffer.Allocate(value.CapacityHintOfByteBuffer);
+            var bb = ByteBuffer.Allocate(value.CapacityHintOfByteBuffer);
             value.Encode(bb);
             return bb;
         }
@@ -488,7 +488,7 @@ namespace Zeze.Transaction
         /// </summary>
         /// <param name="bb">bean encoded data</param>
         /// <returns></returns>
-        public V DecodeValue(global::Zeze.Serialize.ByteBuffer bb)
+        public V DecodeValue(ByteBuffer bb)
         {
             V value = NewValue();
             value.Decode(bb);

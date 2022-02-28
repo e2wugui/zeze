@@ -15,19 +15,149 @@ namespace Zeze.Raft.RocksRaft
 
 	public abstract class Table<K, V> : Table where V : Bean, new()
 	{
-		private ConcurrentDictionary<K, V> table = new ConcurrentDictionary<K, V>(); // TODO change to lru
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-		internal override void Apply(object key, LogBean log)
+        internal override void Apply(object key, LogBean log)
 		{
-			log.Apply(table.GetOrAdd((K)key, (_) => new V()));
+            var r = GetOrLoad((K)key);
+            if (null == r.Value)
+            {
+                logger.Fatal($"there must be a bug.");
+                //Raft.FatalKill();
+            }
+            log.Apply(r.Value);
 		}
 
 		public V GetOrAdd(K key)
         {
-			return table.GetOrAdd(key, (_) => new V());
+            Transaction currentT = Transaction.Current;
+            TableKey tkey = new TableKey(Name, key);
+
+            Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
+            if (null != cr)
+            {
+                V crv = (V)cr.NewestValue();
+                if (null != crv)
+                {
+                    return crv;
+                }
+                // add
+            }
+            else
+            {
+                Record<K, V> r = GetOrLoad(key);
+                cr = new Transaction.RecordAccessed(r);
+                currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
+
+                if (null != r.Value)
+                    return (V)r.Value;
+                // add
+            }
+
+            V add = new V();
+            add.InitRootInfo(cr.OriginRecord.CreateRootInfoIfNeed(tkey), null);
+            cr.Put(currentT, add);
+            return add;
         }
 
+        public V Get(K key)
+        {
+			Transaction currentT = Transaction.Current;
+			TableKey tkey = new TableKey(Name, key);
 
+			Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
+			if (null != cr)
+			{
+				return (V)cr.NewestValue();
+			}
+
+			Record<K, V> r = GetOrLoad(key);
+			currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), new Transaction.RecordAccessed(r));
+			return (V)r.Value;
+		}
+
+        public bool TryAdd(K key, V value)
+        {
+            if (null != Get(key))
+                return false;
+
+            Transaction currentT = Transaction.Current;
+            TableKey tkey = new TableKey(Name, key);
+            Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
+            value.InitRootInfo(cr.OriginRecord.CreateRootInfoIfNeed(tkey), null);
+            cr.Put(currentT, value);
+            return true;
+        }
+
+        public void Insert(K key, V value)
+        {
+            if (false == TryAdd(key, value))
+                throw new ArgumentException($"table:{GetType().FullName} insert key:{key} exists");
+        }
+
+        public void Put(K key, V value)
+        {
+            Transaction currentT = Transaction.Current;
+            TableKey tkey = new TableKey(Name, key);
+
+            Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
+            if (null != cr)
+            {
+                value.InitRootInfo(cr.OriginRecord.CreateRootInfoIfNeed(tkey), null);
+                cr.Put(currentT, value);
+                return;
+            }
+            Record<K, V> r = GetOrLoad(key);
+            cr = new Transaction.RecordAccessed(r);
+            cr.Put(currentT, value);
+            currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
+        }
+
+        // 几乎和Put一样，还是独立开吧。
+        public void Remove(K key)
+        {
+            Transaction currentT = Transaction.Current;
+            TableKey tkey = new TableKey(Name, key);
+
+            Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
+            if (null != cr)
+            {
+                cr.Put(currentT, null);
+                return;
+            }
+
+            Record<K, V> r = GetOrLoad(key);
+            cr = new Transaction.RecordAccessed(r);
+            cr.Put(currentT, null);
+            currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
+        }
+
+        internal Util.ConcurrentLruLike<K, Record<K, V>> Cache { get; private set; }
+
+        private Record<K, V> GetOrLoad(K key)
+        {
+            TableKey tkey = new TableKey(Name, key);
+            while (true)
+            {
+                var r = Cache.GetOrAdd(key, (_) => new Record<K, V>());
+                lock (r)
+                {
+                    if (r.Removed)
+                        continue;
+                    r.Timestamp = Record.NextTimestamp;
+                    r.Value = Load(key);
+                    if (null != r.Value)
+                    {
+                        r.Value.InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
+                    }
+                    return r;
+                }
+            }
+        }
+
+        private V Load(K key)
+        {
+            return new V();
+        }
 	}
-
 }
