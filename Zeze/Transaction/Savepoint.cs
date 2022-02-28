@@ -45,10 +45,6 @@ namespace Zeze.Transaction
             {
                 sp.Logs[e.Key] = e.Value;
             }
-            foreach (var e in ChangeNotes)
-            {
-                sp.ChangeNotes[e.Key] = e.Value.Duplicate();
-            }
             return sp;
         }
 

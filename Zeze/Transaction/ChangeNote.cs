@@ -10,7 +10,6 @@ namespace Zeze.Transaction
         internal abstract Bean Bean { get; }
 
         internal abstract void Merge(ChangeNote other);
-        internal abstract ChangeNote Duplicate();
 
         internal virtual void SetChangedValue(Util.IdentityHashMap<Bean, Bean> values) // only ChangeNoteMap2 need
         {
@@ -59,20 +58,6 @@ namespace Zeze.Transaction
             // this: replace 1,3 remove 2,4 nest: replace 2 remove 1
             foreach (var e in another.Replaced) LogPut(e.Key, e.Value); // replace 1,2,3 remove 4
             foreach (var e in another.Removed) LogRemove(e); // replace 2,3 remove 1,4
-        }
-
-        internal override ChangeNote Duplicate()
-        {
-            var dup = new ChangeNoteMap1<K, V>(Map);
-            foreach (var e in Replaced)
-            {
-                dup.Replaced.Add(e.Key, e.Value);
-            }
-            foreach (var e in Removed)
-            {
-                dup.Removed.Add(e);
-            }
-            return dup;
         }
     }
 
@@ -144,20 +129,6 @@ namespace Zeze.Transaction
             // this: add 1,3 remove 2,4 nest: add 2 remove 1
             foreach (var e in another.Added) LogAdd(e); // replace 1,2,3 remove 4
             foreach (var e in another.Removed) LogRemove(e); // replace 2,3 remove 1,4
-        }
-
-        internal override ChangeNote Duplicate()
-        {
-            var dup = new ChangeNoteSet<K>(Set);
-            foreach (var e in Added)
-            {
-                dup.Added.Add(e);
-            }
-            foreach (var e in Removed)
-            {
-                dup.Removed.Add(e);
-            }
-            return dup;
         }
     }
 }
