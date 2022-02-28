@@ -86,7 +86,7 @@ namespace Zeze.Transaction
                 int lastIndex = Savepoints.Count - 1;
                 Savepoint last = Savepoints[lastIndex];
                 Savepoints.RemoveAt(lastIndex);
-                Savepoints[Savepoints.Count - 1].Merge(last);
+                Savepoints[Savepoints.Count - 1].MergeFrom(last);
             }
             /*
             else

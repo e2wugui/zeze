@@ -48,7 +48,7 @@ namespace Zeze.Transaction
             return sp;
         }
 
-        public void Merge(Savepoint other)
+        public void MergeFrom(Savepoint other)
         {
             foreach (var e in other.Logs)
             {

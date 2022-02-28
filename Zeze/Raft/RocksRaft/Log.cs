@@ -15,20 +15,15 @@ namespace Zeze.Raft.RocksRaft
 		// Apply通过参数得到日志应用需要的Bean。
 		public Bean Bean { get; set; }
 		public long LogKey => Bean.ObjectId + VariableId;
+
 		public virtual void Collect(Changes changes, Log vlog)
 		{
 			// LogBean LogCollection 需要实现这个方法收集日志.
 		}
 
-		internal virtual void MergeTo(Savepoint currentsp)
-        {
-			currentsp.Logs[LogKey] = this;
-        }
+		internal abstract void EndSavepoint(Savepoint currentsp);
 
-		internal virtual Log Duplicate()
-		{
-			return this;
-		}
+		internal abstract Log BeginSavepoint();
 
 		// 会被系列化，实际上由LogBean管理。
 		private readonly int _TypeId;
@@ -68,6 +63,16 @@ namespace Zeze.Raft.RocksRaft
 		{
 			Value = SerializeHelper<T>.Decode(bb);
 		}
-	}
+
+		internal override void EndSavepoint(Savepoint currentsp)
+		{
+			currentsp.Logs[LogKey] = this;
+		}
+
+		internal override Log BeginSavepoint()
+		{
+			return this;
+		}
+}
 
 }

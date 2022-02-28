@@ -11,7 +11,18 @@ namespace Zeze.Raft.RocksRaft
 	{
 		public Dictionary<int, Log> Variables { get; } = new Dictionary<int, Log>();
 
-		public override void Decode(ByteBuffer bb)
+		// LogBean仅在_final_commit的Collect过程中创建，不会参与Savepoint。
+        internal override Log BeginSavepoint()
+        {
+            throw new NotImplementedException();
+        }
+
+        internal override void EndSavepoint(Savepoint currentsp)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void Decode(ByteBuffer bb)
 		{
 			for (int i = bb.ReadInt(); i >= 0; --i)
 			{

@@ -16,7 +16,7 @@ namespace Zeze.Raft.RocksRaft
 			if (false == Transaction.Current.LogTryGet(Parent.ObjectId + VariableId, out var log))
 				return _Get(key);
 			var maplog = (LogMap2<K, V>)log;
-			return maplog.Get(key, this);
+			return maplog.Get(key);
 		}
 
 		public override void Put(K key, V value)
@@ -34,15 +34,12 @@ namespace Zeze.Raft.RocksRaft
 		public override void Apply(LogMap _log)
 		{
 			var log = (LogMap2<K, V>)_log;
-			var tmp = map;
-			tmp = tmp.RemoveRange(log.Removed);
-			tmp = tmp.AddRange(log.Putted);
-			map = tmp;
+			realmap = log.Value;
 		}
 
 		public override LogBean CreateLogBean()
 		{
-			return new LogMap2<K, V>() { VariableId = VariableId };
+			return new LogMap2<K, V>() { Bean = Parent, VariableId = VariableId, Value = realmap };
 		}
 
 		public override void Decode(ByteBuffer bb)
@@ -57,7 +54,7 @@ namespace Zeze.Raft.RocksRaft
 
 		public override void Encode(ByteBuffer bb)
 		{
-			var tmp = map;
+			var tmp = realmap;
 			bb.WriteInt(tmp.Count);
 			foreach (var e in tmp)
 			{
@@ -68,7 +65,7 @@ namespace Zeze.Raft.RocksRaft
 
 		protected override void InitChildrenRootInfo(Record.RootInfo tableKey)
 		{
-			foreach (var v in map.Values)
+			foreach (var v in realmap.Values)
 			{
 				v.InitRootInfo(RootInfo, Parent);
 			}

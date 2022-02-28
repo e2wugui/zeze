@@ -44,7 +44,7 @@ namespace Zeze.Raft.RocksRaft
 
 		public void Begin()
         {
-			Savepoint sp = Savepoints.Count > 0 ? Savepoints[Savepoints.Count - 1].Duplicate() : new Savepoint();
+			Savepoint sp = Savepoints.Count > 0 ? Savepoints[Savepoints.Count - 1].BeginSavepoint() : new Savepoint();
 			Savepoints.Add(sp);
 		}
 
@@ -56,7 +56,7 @@ namespace Zeze.Raft.RocksRaft
 				int lastIndex = Savepoints.Count - 1;
 				Savepoint last = Savepoints[lastIndex];
 				Savepoints.RemoveAt(lastIndex);
-				Savepoints[Savepoints.Count - 1].Merge(last);
+				Savepoints[Savepoints.Count - 1].CommitTo(last);
 			}
 			/*
             else

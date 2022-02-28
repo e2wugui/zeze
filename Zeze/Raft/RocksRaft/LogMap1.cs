@@ -4,31 +4,34 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Zeze.Serialize;
+using System.Collections.Immutable;
 
 namespace Zeze.Raft.RocksRaft
 {
 	public class LogMap1<K, V> : LogMap
 	{
+		internal ImmutableDictionary<K, V> Value { get; set; }
+
 		public Dictionary<K, V> Putted { get; } = new Dictionary<K, V>();
 		public ISet<K> Removed { get; } = new HashSet<K>();
 
-		public V Get(K key, CollMap<K, V> map)
+		public V Get(K key)
 		{
-			if (Putted.TryGetValue(key, out V value))
-				return value;
-			if (Removed.Contains(key))
-				return default(V);
-			return map._Get(key);
+			if (Value.TryGetValue(key, out V exist))
+				return exist;
+			return default(V);
 		}
 
 		public void Put(K key, V value)
 		{
+			Value = Value.SetItem(key, value);
 			Putted[key] = value;
 			Removed.Remove(key);
 		}
 
 		public void Remove(K key)
 		{
+			Value = Value.Remove(key);
 			Putted.Remove(key);
 			Removed.Add(key);
 		}
@@ -67,11 +70,13 @@ namespace Zeze.Raft.RocksRaft
 			}
 		}
 
-		internal override void MergeTo(Savepoint currentsp)
+		internal override void EndSavepoint(Savepoint currentsp)
 		{
 			if (currentsp.Logs.TryGetValue(LogKey, out var log))
 			{
-				((LogMap1<K, V>)log).Merge(this);
+				var currentLog = (LogMap1<K, V>)log;
+				currentLog.Value = this.Value;
+				currentLog.MergeChangeNote(this);
 			}
 			else
             {
@@ -79,7 +84,7 @@ namespace Zeze.Raft.RocksRaft
 			}
 		}
 
-		private void Merge(LogMap1<K, V> another)
+		private void MergeChangeNote(LogMap1<K, V> another)
         {
 			// Put,Remove 需要确认有没有顺序问题
 			// this: replace 1,3 remove 2,4 nest: replace 2 remove 1
@@ -87,20 +92,12 @@ namespace Zeze.Raft.RocksRaft
 			foreach (var e in another.Removed) Remove(e); // replace 2,3 remove 1,4
 		}
 
-        internal override Log Duplicate()
+        internal override Log BeginSavepoint()
         {
 			var dup = new LogMap1<K, V>();
 			dup.Bean = Bean;
 			dup.VariableId = VariableId;
-
-			foreach (var e in Putted)
-			{
-				dup.Putted.Add(e.Key, e.Value);
-			}
-			foreach (var e in Removed)
-			{
-				dup.Removed.Add(e);
-			}
+			dup.Value = Value;
 			return dup;
 		}
 	}

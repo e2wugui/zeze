@@ -10,7 +10,7 @@ namespace Zeze.Raft.RocksRaft
 {
 	public abstract class CollMap<K, V> : Collection
 	{
-		internal ImmutableDictionary<K, V> map;
+		internal ImmutableDictionary<K, V> realmap;
 
 		public abstract V Get(K key);
 		public abstract void Put(K key, V value);
@@ -19,7 +19,7 @@ namespace Zeze.Raft.RocksRaft
 
 		internal V _Get(K key)
 		{
-			if (map.TryGetValue(key, out var tmp))
+			if (realmap.TryGetValue(key, out var tmp))
 				return tmp;
 			return default(V);
 		}

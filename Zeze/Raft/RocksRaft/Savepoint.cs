@@ -20,21 +20,21 @@ namespace Zeze.Raft.RocksRaft
             return Logs.TryGetValue(logKey, out var log) ? log : null;
         }
 
-        public Savepoint Duplicate()
+        public Savepoint BeginSavepoint()
         {
             Savepoint sp = new Savepoint();
             foreach (var e in Logs)
             {
-                sp.Logs[e.Key] = e.Value.Duplicate();
+                sp.Logs[e.Key] = e.Value.BeginSavepoint();
             }
             return sp;
         }
 
-        public void Merge(Savepoint other)
+        public void CommitTo(Savepoint other)
         {
             foreach (var e in other.Logs)
             {
-                e.Value.MergeTo(this);
+                e.Value.EndSavepoint(this);
             }
         }
 
