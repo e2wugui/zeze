@@ -50,7 +50,7 @@ namespace UnitTest.Zeze.Trans
                 Assert.IsTrue(value.Map15.TryGetValue(1, out var mv1));
                 Assert.AreEqual(1, mv1);
                 return 0;
-            }, "ModifyMapPut1");
+            }, "ModifyMapPut1").Call();
         }
 
         [TestMethod]
@@ -77,7 +77,7 @@ namespace UnitTest.Zeze.Trans
 
                 Assert.IsTrue(value.Set10.Contains(1));
                 return 0;
-            }, "ModifyMapAdd1");
+            }, "ModifySetAdd1").Call();
         }
     }
 }
