@@ -68,9 +68,9 @@ namespace Zeze.Raft.RocksRaft
 
         }
 
-		public Log LogGetOrAdd(long logKey, Func<int, Log> varLogFactory)
+		public Log LogGetOrAdd(long logKey, Func<Log> logFactory)
         {
-			return varLogFactory((int)(logKey & Bean.MaxVariableId));
+			return logFactory();
         }
     }
 
@@ -114,6 +114,11 @@ namespace Zeze.Raft.RocksRaft
 
 		public abstract void Decode(ByteBuffer bb);
 		public abstract void Encode(ByteBuffer bb);
+
+		public virtual LogBean CreateLogBean()
+		{
+			return new LogBean();
+		}
 
 		int _i;
 		long _l;

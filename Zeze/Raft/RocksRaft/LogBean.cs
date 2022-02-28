@@ -43,7 +43,7 @@ namespace Zeze.Raft.RocksRaft
 			if (Variables.TryAdd(vlog.VariableId, vlog))
             {
 				// 向上传递
-				changes.Collect(Bean.Parent, this, () => new LogBean());
+				changes.Collect(Bean.Parent, this);
 			}
 		}
 
@@ -62,19 +62,19 @@ namespace Zeze.Raft.RocksRaft
 		public Dictionary<long, LogBean> Beans { get; } = new Dictionary<long, LogBean>();
 
 		// 收集记录的修改,以后需要系列化传输.
-		public Dictionary<TableKey, Log> Records { get; } = new Dictionary<TableKey, Log>();
+		public Dictionary<TableKey, LogBean> Records { get; } = new Dictionary<TableKey, LogBean>();
 
-		public void Collect(Bean parent, Log log, Func<LogBean> LogBeanFactory)
+		public void Collect(Bean parent, Log log)
         {
 			if (null == parent)
             {
-				Records.TryAdd(log.Bean.TableKey, log);
+				Records.TryAdd(log.Bean.TableKey, (LogBean)log);
 			}
 			else
             {
 				if (false == Beans.TryGetValue(parent.ObjectId, out LogBean logbean))
 				{
-					logbean = LogBeanFactory();
+					logbean = parent.CreateLogBean();
 					Beans.Add(parent.ObjectId, logbean);
 				}
 				logbean.Collect(this, log);

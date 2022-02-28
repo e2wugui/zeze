@@ -27,7 +27,7 @@ namespace Zeze.Raft.RocksRaft
 		{
 			if (Changed.Add((LogBean)vlog))
             {
-				changes.Collect(Bean.Parent, this, () => new LogMap2<K, V>());
+				changes.Collect(Bean.Parent, this);
 			}
 		}
 	}

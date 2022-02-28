@@ -21,13 +21,13 @@ namespace Zeze.Raft.RocksRaft
 
 		public override void Put(K key, V value)
 		{
-			var maplog = (LogMap2<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, MapLogFactory);
+			var maplog = (LogMap2<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
 			maplog.Put(key, value);
 		}
 
 		public override void Remove(K key)
 		{
-			var maplog = (LogMap2<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, MapLogFactory);
+			var maplog = (LogMap2<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
 			maplog.Remove(key);
 		}
 
@@ -40,9 +40,9 @@ namespace Zeze.Raft.RocksRaft
 			map = tmp;
 		}
 
-		private Log MapLogFactory(int varid)
+		public override LogBean CreateLogBean()
 		{
-			return new LogMap2<K, V>() { VariableId = varid, };
+			return new LogMap2<K, V>() { VariableId = VariableId };
 		}
 	}
 }
