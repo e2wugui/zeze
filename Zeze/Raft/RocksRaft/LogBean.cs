@@ -56,29 +56,4 @@ namespace Zeze.Raft.RocksRaft
 		}
 	}
 
-	public class Changes
-    {
-		// 收集日志时,记录所有Bean修改.
-		public Dictionary<long, LogBean> Beans { get; } = new Dictionary<long, LogBean>();
-
-		// 收集记录的修改,以后需要系列化传输.
-		public Dictionary<TableKey, LogBean> Records { get; } = new Dictionary<TableKey, LogBean>();
-
-		public void Collect(Bean parent, Log log)
-        {
-			if (null == parent)
-            {
-				Records.TryAdd(log.Bean.TableKey, (LogBean)log);
-			}
-			else
-            {
-				if (false == Beans.TryGetValue(parent.ObjectId, out LogBean logbean))
-				{
-					logbean = parent.CreateLogBean();
-					Beans.Add(parent.ObjectId, logbean);
-				}
-				logbean.Collect(this, log);
-			}
-		}
-	}
 }

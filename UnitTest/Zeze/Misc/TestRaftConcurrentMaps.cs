@@ -31,7 +31,7 @@ namespace UnitTest.Zeze.Misc
         [TestMethod]
         public void TestRocksDbColumn()
         {
-            var storage = new RocksRaft(".");
+            var storage = new Rocks(".");
             var map = storage.GetOrAdd<int, Value>("int2int");
             map.Update(1, (v) => v.Int = 0);
             Assert.AreEqual(0, map.GetOrAdd(1).Int);

@@ -7,13 +7,13 @@ using RocksDbSharp;
 
 namespace Zeze.Raft.RocksRaft
 {
-    public class RocksRaft
+    public class Rocks
     {
         ConcurrentDictionary<string, Table> Tables;
 
-        public void Apply(RocksLogs rocksLogs)
+        public void Apply(Changes changes)
         {
-            foreach (var r in rocksLogs.Records)
+            foreach (var r in changes.Records)
             {
                 Tables.GetOrAdd(r.Key.Name, (_) => null).Apply(r.Key.Key, r.Value);
             }
@@ -38,7 +38,7 @@ namespace Zeze.Raft.RocksRaft
 
         public class Map<K, V> : Map where V : Serializable, new()
         {
-            public RocksRaft Maps { get; }
+            public Rocks Maps { get; }
             private ConcurrentLruLike<K, Record> Lru { get; set; }
             private ColumnFamilyHandle ColumnFamily { get; }
             public class Record
@@ -50,7 +50,7 @@ namespace Zeze.Raft.RocksRaft
             }
 
             public Map(
-                RocksRaft maps,
+                Rocks maps,
                 string name,
                 int capacity,
                 int initialCapacity,
@@ -244,7 +244,7 @@ namespace Zeze.Raft.RocksRaft
         private ConcurrentDictionary<string, string> Columns = new ConcurrentDictionary<string, string>();
         private WriteOptions WriteOptions;
 
-        public RocksRaft(string dbHome, bool sync = true)
+        public Rocks(string dbHome, bool sync = true)
         {
             DbHome = dbHome;
             Sync = sync;
