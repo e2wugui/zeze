@@ -82,7 +82,7 @@ namespace Zeze.Services
             public int ConcurrencyLevel { get; set; } = 1024;
             // 设置了这么大，开始使用后，大概会占用700M的内存，作为全局服务器，先这么大吧。
             // 尽量不重新调整ConcurrentDictionary。
-            public int InitialCapacity { get; set; } = 100000000;
+            public int InitialCapacity { get; set; } = 10000000;
 
             public void Parse(XmlElement self)
             {
