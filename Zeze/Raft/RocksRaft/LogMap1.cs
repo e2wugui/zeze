@@ -86,5 +86,22 @@ namespace Zeze.Raft.RocksRaft
 			foreach (var e in another.Putted) Put(e.Key, e.Value); // replace 1,2,3 remove 4
 			foreach (var e in another.Removed) Remove(e); // replace 2,3 remove 1,4
 		}
+
+        internal override Log Duplicate()
+        {
+			var dup = new LogMap1<K, V>();
+			dup.Bean = Bean;
+			dup.VariableId = VariableId;
+
+			foreach (var e in Putted)
+			{
+				dup.Putted.Add(e.Key, e.Value);
+			}
+			foreach (var e in Removed)
+			{
+				dup.Removed.Add(e);
+			}
+			return dup;
+		}
 	}
 }

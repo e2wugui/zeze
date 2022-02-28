@@ -25,7 +25,7 @@ namespace Zeze.Raft.RocksRaft
             Savepoint sp = new Savepoint();
             foreach (var e in Logs)
             {
-                sp.Logs[e.Key] = e.Value;
+                sp.Logs[e.Key] = e.Value.Duplicate();
             }
             return sp;
         }

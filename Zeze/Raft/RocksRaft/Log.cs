@@ -25,6 +25,11 @@ namespace Zeze.Raft.RocksRaft
 			currentsp.Logs[LogKey] = this;
         }
 
+		internal virtual Log Duplicate()
+		{
+			return this;
+		}
+
 		// 会被系列化，实际上由LogBean管理。
 		private readonly int _TypeId;
 		public virtual int TypeId => _TypeId;
