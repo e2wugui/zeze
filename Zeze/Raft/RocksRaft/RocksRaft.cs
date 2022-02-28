@@ -5,10 +5,20 @@ using Zeze.Serialize;
 using Zeze.Util;
 using RocksDbSharp;
 
-namespace Zeze.Raft
+namespace Zeze.Raft.RocksRaft
 {
     public class RocksRaft
     {
+        ConcurrentDictionary<string, Table> Tables;
+
+        public void Apply(RocksLogs rocksLogs)
+        {
+            foreach (var r in rocksLogs.Records)
+            {
+                Tables.GetOrAdd(r.Key.Name, (_) => null).Apply(r.Key.Key, r.Value);
+            }
+        }
+
         public abstract class Map
         {
             public string Name { get; }

@@ -9,47 +9,6 @@ using Zeze.Serialize;
 
 namespace Zeze.Raft.RocksRaft
 {
-	/// <summary>
-	/// RocksRaft 先按拥有全部功能来设想，需要分层了再考虑。
-	/// 支持多个Map<K, V>。
-	/// Map<K, V> 数据：LruCache - RocksDb
-	/// 自由记录锁<K, V>
-	/// 简单事务，一次请求（事务）一个Raft.AppendLog。这个的锁管理和自由锁需要分隔好。
-	/// Raft：AppendLog，Snapshot。
-	/// 和zeze事务区别：1. 仅系列化修改日志. 2. 锁和并发由应用可选，开始仅提供自由锁模式。
-	/// </summary>
-	public abstract class Table
-	{
-		public abstract void Commit(object key, BeanLog beanLog);
-	}
-
-	public class Table<K, V> : Table where V : Bean, new()
-	{
-		ConcurrentDictionary<K, V> table;
-
-		public override void Commit(object key, BeanLog beanLog)
-		{ 
-			beanLog.Commit(table.GetOrAdd((K)key, (_) => new V()));
-		}
-	}
-
-	public class Record
-	{
-	}
-
-	public class RocksRaft
-	{
-		ConcurrentDictionary<string, Table> Tables;
-
-		public void Commit(RocksLogs rocksLogs)
-		{
-			foreach (var r in rocksLogs.Records)
-            {
-				Tables.GetOrAdd(r.Key.Name, (_) => null).Commit(r.Key.Key, r.Value);
-            }
-		}
-	}
-
 	public class RocksLogs : Serializable
     {
 		public Dictionary<TableKey, RecordLog> Records { get; } = new Dictionary<TableKey, RecordLog>();
@@ -98,266 +57,100 @@ namespace Zeze.Raft.RocksRaft
     {
 		public static Transaction Current => null;
 
-		public bool LogTryGet(long beanId, int varId, out Log log)
+		public bool LogTryGet(long logKey, out Log log)
 		{
 			log = null;
 			return false;
 		}
 
-		public void LogPut(long beanId, int varId, Log log)
+		public void LogPut(long logKey, Log log)
         {
 
         }
 
-		public Log LogGetOrAdd(long beanId, int varId, Func<int, Log> varLogFactory)
+		public Log LogGetOrAdd(long logKey, Func<int, Log> varLogFactory)
         {
-			return varLogFactory(0);
+			return varLogFactory((int)(logKey & Bean.MaxVariableId));
         }
     }
 
-    public class Bean
+    public abstract class Bean : Serializable
 	{
-		public long ObjectId { get; } = 0;
+		private static Util.AtomicLong ObjectIdGenerator = new Util.AtomicLong();
+		public const int ObjectIdStep = 4096;
+		public const int MaxVariableId = ObjectIdStep - 1;
+
+		public long ObjectId { get; } = ObjectIdGenerator.AddAndGet(ObjectIdStep);
 		public Bean Parent { get; private set; }
 		public int VariableId { get; private set; }
 
+		public Record.RootInfo RootInfo { get; private set; }
+		public bool IsManaged => RootInfo != null;
+
+		public Bean()
+        {
+
+        }
+
+		public Bean(int varid)
+        {
+			VariableId = varid;
+        }
+
+		public void InitRootInfo(Record.RootInfo rootInfo, Bean parent)
+		{
+			if (IsManaged)
+			{
+				throw new Zeze.Transaction.HasManagedException();
+			}
+			this.RootInfo = rootInfo;
+			this.Parent = parent;
+			InitChildrenRootInfo(rootInfo);
+		}
+
+		// 用在第一次加载Bean时，需要初始化它的root
+		protected abstract void InitChildrenRootInfo(Record.RootInfo root);
+
+		public abstract void Decode(ByteBuffer bb);
+		public abstract void Encode(ByteBuffer bb);
+
 		int _i;
 		long _l;
-		Map<int, int> _map;
+		CollMap<int, int> _map;
+		public Bean _bean;
 
 		public int I
 		{
 			get
 			{
-				if (false == Transaction.Current.LogTryGet(this.ObjectId, 1, out var log))
+				if (false == Transaction.Current.LogTryGet(ObjectId + 1, out var log))
 					return _i;
 				return ((Log_i)log).Value;
 			}
 
 			set
 			{
-				Transaction.Current.LogPut(this.ObjectId, 1, new Log_i(value));
+				Transaction.Current.LogPut(this.ObjectId, new Log_i() { VariableId = 1, Value = value, });
 			}
 		}
 
-		public Map<int, int> Map => _map;
+		public CollMap<int, int> Map => _map;
 
-		class Log_i : Log
-		{
-			public int Value { get; private set; }
-			public override int VariableId => 1;
-			public Log_i(int value)
-            {
-				Value = value;
-            }
-			public override void Commit(Bean holder)
-			{
-				holder._i = Value;
-			}
-
-            public override void Encode(ByteBuffer bb)
-            {
-                bb.WriteInt(Value);
-            }
-
-            public override void Decode(ByteBuffer bb)
-            {
-				Value = bb.ReadInt();
-            }
+		public sealed class Log_i : Log<int>
+        {
+			public override void Apply(Bean holder) { holder._i = Value; }
         }
 
-		class Log_l : Log
-		{
-			public long Value { get; private set; }
-			public override int VariableId => 2;
-			public Log_l(long value)
-            {
-				Value = value;
-            }
-			public override void Commit(Bean holder)
-			{
-				holder._l = Value;
-			}
-
-            public override void Encode(ByteBuffer bb)
-            {
-                bb.WriteLong(Value);
-            }
-
-            public override void Decode(ByteBuffer bb)
-            {
-				Value = bb.ReadLong();
-            }
+		public sealed class Log_bean : LogBean
+        {
+            public override void Apply(Bean holder) { base.Apply(holder._bean); }
         }
-
-		class Log_map : MapLog<int, int>
-		{
-			public override int VariableId => 3;
-			public override void Commit(Bean holder)
-			{
-				holder._map.Commit(this);
-			}
-		}
 	}
 
-	public abstract class Log : Serializable
-	{
-		public abstract int VariableId { get; }
-		public abstract void Commit(Bean holder);
 
-		// factory ?????????
-		public abstract void Encode(ByteBuffer bb);
-		public abstract void Decode(ByteBuffer bb);
-	}
-
-	public abstract class BeanLog : Log
-	{
-		public Dictionary<int, Log> Variables { get; } = new Dictionary<int, Log>();
-
-        public override void Commit(Bean holder)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override void Decode(ByteBuffer bb)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override void Encode(ByteBuffer bb)
-        {
-            throw new NotImplementedException();
-        }
-
-		public TLog Get<TLog>(int varid) where TLog : Log
-        {
-			if (Variables.TryGetValue(varid, out var tmp))
-				return (TLog)tmp;
-			return default(TLog);
-        }
-
-		public void Put(int varid, Log log)
-        {
-			Variables[varid] = log;
-		}
-
-		public TLog GetOrAdd<TLog>(int varid) where TLog : Log, new()
-		{
-			if (Variables.TryGetValue(varid, out var tmp))
-				return (TLog)tmp;
-			tmp = new TLog();
-			Variables.Add(varid, tmp);
-			return (TLog)tmp;
-		}
-	}
-
-	public class RecordLog : BeanLog
+	public class RecordLog : LogBean
     {
-        public override int VariableId => throw new NotImplementedException();
     }
 
-	public abstract class Collection : Bean
-    {
 
-    }
-
-	public abstract class Map<K, V> : Collection
-	{
-		protected ImmutableDictionary<K, V> map;
-
-		public abstract V Get(K key);
-		public abstract void Put(K key, V value);
-		public abstract void Remove(K key);
-		public abstract void Commit(MapLog<K, V> log);
-
-		internal V _Get(K key)
-        {
-			if (map.TryGetValue(key, out var tmp))
-				return tmp;
-			return default(V);
-        }
-	}
-
-	public abstract class Map1<K, V> : Map<K, V>
-	{
-
-
-        public override V Get(K key)
-		{
-			if (false == Transaction.Current.LogTryGet(Parent.ObjectId, VariableId, out var log))
-				return _Get(key);
-			var maplog = (MapLog<K, V>)log;
-			return maplog.Get(key, this);
-		}
-
-		public override void Put(K key, V value)
-		{
-			var maplog = (MapLog<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId, VariableId, MapLogFactory);
-			maplog.Put(key, value);
-		}
-
-		public override void Remove(K key)
-        {
-			var maplog = (MapLog<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId, VariableId, MapLogFactory);
-			maplog.Remove(key);
-		}
-
-		public override void Commit(MapLog<K, V> log)
-		{
-			var tmp = map;
-			tmp = tmp.RemoveRange(log.Removed);
-			tmp = tmp.AddRange(log.Putted);
-			map = tmp;
-		}
-
-		private Log MapLogFactory(int _)
-        {
-			return new MapLog<K, V>();
-        }
-	}
-
-	public class MapLog<K, V> : Log
-	{
-		public Dictionary<K, V> Putted;
-		public ISet<K> Removed;
-
-        public override int VariableId => throw new NotImplementedException();
-
-        public override void Commit(Bean holder)
-        {
-			// 在Map1,Map2中处理
-			throw new NotImplementedException();
-		}
-
-		public V Get(K key, Map<K, V> map)
-        {
-			if (Putted.TryGetValue(key, out V value))
-				return value;
-			if (Removed.Contains(key))
-				return default(V);
-			return map._Get(key);
-        }
-
-		public void Put(K key, V value)
-        {
-			Putted[key] = value;
-			Removed.Remove(key);
-        }
-
-		public void Remove(K key)
-        {
-			Putted.Remove(key);
-			Removed.Add(key);
-        }
-
-        public override void Decode(ByteBuffer bb)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override void Encode(ByteBuffer bb)
-        {
-            throw new NotImplementedException();
-        }
-    }
 }

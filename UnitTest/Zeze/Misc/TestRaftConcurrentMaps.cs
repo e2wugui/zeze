@@ -5,8 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Zeze.Raft;
 using Zeze.Serialize;
+using Zeze.Raft.RocksRaft;
 
 namespace UnitTest.Zeze.Misc
 {

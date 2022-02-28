@@ -12,9 +12,7 @@ namespace Zeze.Transaction
         public const int ObjectIdStep = 4096; // 自增长步长。低位保留给Variable.Id。也就是，Variable.Id 最大只能是4095.
         public const int MaxVariableId = ObjectIdStep - 1;
 
-        public static long NextObjectId => _objectIdGen.AddAndGet(ObjectIdStep);
-
-        public long ObjectId { get; } = NextObjectId;
+        public long ObjectId { get; } = _objectIdGen.AddAndGet(ObjectIdStep);
         public Record.RootInfo RootInfo { get; private set; }
         public TableKey TableKey => RootInfo?.TableKey;
         // Parent VariableId 是 ChangeListener 需要的属性。

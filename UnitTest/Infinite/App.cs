@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using Zeze;
 using Zeze.Util;
 
 namespace Infinite
@@ -9,11 +8,11 @@ namespace Infinite
         internal static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         internal demo.App app;
-        Config config;
+        Zeze.Config config;
 
         public App(int serverId)
         {
-            config = Config.Load("zeze.xml");
+            config = Zeze.Config.Load("zeze.xml");
             config.ServerId = serverId;
             config.FastRedoWhenConflict = false;
             config.CheckpointPeriod = 1000;
