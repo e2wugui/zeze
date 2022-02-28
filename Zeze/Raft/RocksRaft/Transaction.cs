@@ -44,18 +44,35 @@ namespace Zeze.Raft.RocksRaft
 
 		public void Begin()
         {
-
-        }
+			Savepoint sp = Savepoints.Count > 0 ? Savepoints[Savepoints.Count - 1].Duplicate() : new Savepoint();
+			Savepoints.Add(sp);
+		}
 
 		public void Commit()
         {
-
-        }
+			if (Savepoints.Count > 1)
+			{
+				// 嵌套事务，把日志合并到上一层。
+				int lastIndex = Savepoints.Count - 1;
+				Savepoint last = Savepoints[lastIndex];
+				Savepoints.RemoveAt(lastIndex);
+				Savepoints[Savepoints.Count - 1].Merge(last);
+			}
+			/*
+            else
+            {
+                // 最外层存储过程提交在 Perform 中处理
+            }
+            */
+		}
 
 		public void Rollback()
         {
-
-        }
+			int lastIndex = Savepoints.Count - 1;
+			Savepoint last = Savepoints[lastIndex];
+			Savepoints.RemoveAt(lastIndex);
+			last.Rollback();
+		}
 
 		internal long Perform(Procedure proc)
         {
