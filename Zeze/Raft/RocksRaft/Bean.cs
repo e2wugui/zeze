@@ -86,6 +86,7 @@ namespace Zeze.Raft.RocksRaft
 
 		public Record.RootInfo RootInfo { get; private set; }
 		public bool IsManaged => RootInfo != null;
+		public TableKey TableKey => RootInfo?.TableKey;
 
 		public Bean()
         {

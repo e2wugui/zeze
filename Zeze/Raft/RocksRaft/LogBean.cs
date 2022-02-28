@@ -7,46 +7,77 @@ using Zeze.Serialize;
 
 namespace Zeze.Raft.RocksRaft
 {
-	public abstract class LogBean : Log
+	public class LogBean : Log
 	{
-		public Dictionary<int, Log> VariableLogs { get; } = new Dictionary<int, Log>();
+		public Dictionary<int, Log> Variables { get; } = new Dictionary<int, Log>();
 
 		public override void Decode(ByteBuffer bb)
 		{
-			throw new NotImplementedException();
+			for (int i = bb.ReadInt(); i >= 0; --i)
+			{
+				var typeId = bb.ReadInt4();
+				var log = Log.Create(typeId);
+
+				var varId = bb.ReadInt();
+				log.VariableId = varId;
+				log.Decode(bb);
+
+				Variables.Add(varId, log);
+			}
 		}
 
 		public override void Encode(ByteBuffer bb)
 		{
-			throw new NotImplementedException();
+			bb.WriteInt(Variables.Count);
+			foreach (var log in Variables.Values)
+			{
+				bb.WriteInt4(log.TypeId);
+				bb.WriteInt(log.VariableId);
+				log.Encode(bb);
+			}
 		}
 
-		public TLog Get<TLog>(int varid) where TLog : Log
-		{
-			if (VariableLogs.TryGetValue(varid, out var tmp))
-				return (TLog)tmp;
-			return default(TLog);
-		}
-
-		public void Put(int varid, Log log)
-		{
-			VariableLogs[varid] = log;
-		}
-
-		public TLog GetOrAdd<TLog>(int varid) where TLog : Log, new()
-		{
-			if (VariableLogs.TryGetValue(varid, out var tmp))
-				return (TLog)tmp;
-			tmp = new TLog();
-			VariableLogs.Add(varid, tmp);
-			return (TLog)tmp;
+		// 仅发生在事务执行期间。Decode-Apply不会执行到这里。
+		public override void Collect(Changes changes, Log vlog)
+        {
+			if (Variables.TryAdd(vlog.VariableId, vlog))
+            {
+				// 向上传递
+				changes.Collect(Bean.Parent, this, () => new LogBean());
+			}
 		}
 
 		public override void Apply(Bean holder)
 		{
-			foreach (var vlog in VariableLogs.Values)
+			foreach (var vlog in Variables.Values)
 			{
 				vlog.Apply(holder);
+			}
+		}
+	}
+
+	public class Changes
+    {
+		// 收集日志时,记录所有Bean修改.
+		public Dictionary<long, LogBean> Beans { get; } = new Dictionary<long, LogBean>();
+
+		// 收集记录的修改,以后需要系列化传输.
+		public Dictionary<TableKey, Log> Records { get; } = new Dictionary<TableKey, Log>();
+
+		public void Collect(Bean parent, Log log, Func<LogBean> LogBeanFactory)
+        {
+			if (null == parent)
+            {
+				Records.TryAdd(log.Bean.TableKey, log);
+			}
+			else
+            {
+				if (false == Beans.TryGetValue(parent.ObjectId, out LogBean logbean))
+				{
+					logbean = LogBeanFactory();
+					Beans.Add(parent.ObjectId, logbean);
+				}
+				logbean.Collect(this, log);
 			}
 		}
 	}

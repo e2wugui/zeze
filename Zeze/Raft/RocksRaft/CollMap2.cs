@@ -7,33 +7,33 @@ using Zeze.Serialize;
 
 namespace Zeze.Raft.RocksRaft
 {
-	public abstract class CollMap1<K, V> : CollMap<K, V>
+	public abstract class CollMap2<K, V> : CollMap<K, V>
 		where K : Serializable, new()
-		where V : Serializable, new()
+		where V : Bean, new()
 	{
 		public override V Get(K key)
 		{
 			if (false == Transaction.Current.LogTryGet(Parent.ObjectId + VariableId, out var log))
 				return _Get(key);
-			var maplog = (LogMap1<K, V>)log;
+			var maplog = (LogMap2<K, V>)log;
 			return maplog.Get(key, this);
 		}
 
 		public override void Put(K key, V value)
 		{
-			var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, MapLogFactory);
+			var maplog = (LogMap2<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, MapLogFactory);
 			maplog.Put(key, value);
 		}
 
 		public override void Remove(K key)
 		{
-			var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, MapLogFactory);
+			var maplog = (LogMap2<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, MapLogFactory);
 			maplog.Remove(key);
 		}
 
 		public override void Apply(LogMap _log)
 		{
-			var log = (LogMap1<K, V>)_log;
+			var log = (LogMap2<K, V>)_log;
 			var tmp = map;
 			tmp = tmp.RemoveRange(log.Removed);
 			tmp = tmp.AddRange(log.Putted);
@@ -42,7 +42,7 @@ namespace Zeze.Raft.RocksRaft
 
 		private Log MapLogFactory(int varid)
 		{
-			return new LogMap1<K, V>() { VariableId = varid, };
+			return new LogMap2<K, V>() { VariableId = varid, };
 		}
 	}
 }

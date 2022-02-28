@@ -7,11 +7,11 @@ using Zeze.Serialize;
 
 namespace Zeze.Raft.RocksRaft
 {
-	public class LogMap1<K, V> : LogBean
+	public class LogMap1<K, V> : LogMap
+		where V : Serializable, new()
 	{
-		public Dictionary<K, V> Putted;
-		public ISet<K> Removed;
-		public Dictionary<K, V> Updated; // Updated
+		public Dictionary<K, V> Putted { get; } = new Dictionary<K, V>();
+		public ISet<K> Removed { get; } = new HashSet<K>();
 
 		public V Get(K key, CollMap<K, V> map)
 		{
@@ -36,12 +36,38 @@ namespace Zeze.Raft.RocksRaft
 
 		public override void Decode(ByteBuffer bb)
 		{
-			throw new NotImplementedException();
+			Putted.Clear();
+			for (int i = bb.ReadInt(); i >= 0; --i)
+			{
+				var key = SerializeHelper<K>.Decode(bb);
+				var value = new V();
+				value.Decode(bb);
+				Putted.Add(key, value);
+			}
+
+			Removed.Clear();
+			for (int i = bb.ReadInt(); i >= 0; --i)
+			{
+				var key = SerializeHelper<K>.Decode(bb);
+				Removed.Add(key);
+			}
 		}
 
 		public override void Encode(ByteBuffer bb)
 		{
-			throw new NotImplementedException();
+			bb.WriteInt(Putted.Count);
+			foreach (var p in Putted)
+			{
+				SerializeHelper<K>.Encode(bb, p.Key);
+				p.Value.Encode(bb);
+			}
+
+			bb.WriteInt(Removed.Count);
+			foreach (var r in Removed)
+			{
+				SerializeHelper<K>.Encode(bb, r);
+			}
 		}
+
 	}
 }
