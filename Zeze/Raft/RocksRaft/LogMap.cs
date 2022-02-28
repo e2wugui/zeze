@@ -7,7 +7,7 @@ using Zeze.Serialize;
 
 namespace Zeze.Raft.RocksRaft
 {
-	public class LogMap : LogBean
+	public abstract class LogMap : LogBean
 	{
 		public override void Collect(Changes changes, Log vlog)
 		{

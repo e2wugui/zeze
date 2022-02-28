@@ -67,5 +67,24 @@ namespace Zeze.Raft.RocksRaft
 			}
 		}
 
+		internal override void MergeTo(Savepoint currentsp)
+		{
+			if (currentsp.Logs.TryGetValue(LogKey, out var log))
+			{
+				((LogMap1<K, V>)log).Merge(this);
+			}
+			else
+            {
+				currentsp.Logs[LogKey] = this;
+			}
+		}
+
+		private void Merge(LogMap1<K, V> another)
+        {
+			// Put,Remove 需要确认有没有顺序问题
+			// this: replace 1,3 remove 2,4 nest: replace 2 remove 1
+			foreach (var e in another.Putted) Put(e.Key, e.Value); // replace 1,2,3 remove 4
+			foreach (var e in another.Removed) Remove(e); // replace 2,3 remove 1,4
+		}
 	}
 }

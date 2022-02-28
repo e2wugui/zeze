@@ -20,6 +20,11 @@ namespace Zeze.Raft.RocksRaft
 			// LogBean LogCollection 需要实现这个方法收集日志.
 		}
 
+		internal virtual void MergeTo(Savepoint currentsp)
+        {
+			currentsp.Logs[LogKey] = this;
+        }
+
 		// 会被系列化，实际上由LogBean管理。
 		private readonly int _TypeId;
 		public virtual int TypeId => _TypeId;
