@@ -58,13 +58,19 @@ namespace Zeze.Raft.RocksRaft
 			}
 		}
 
-		public override void Apply(Bean holder)
+		public override void FollowerApply(Bean parent)
 		{
 			foreach (var vlog in Variables.Values)
 			{
-				vlog.Apply(holder);
+				vlog.FollowerApply(parent);
 			}
 		}
+
+        public override void LeaderApply()
+        {
+			// 不需要。
+			// 每个Log的LeaderApply自己会更新相应变量。
+        }
 
         public override string ToString()
         {

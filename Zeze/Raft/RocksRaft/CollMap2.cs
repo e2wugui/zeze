@@ -66,7 +66,18 @@ namespace Zeze.Raft.RocksRaft
 				map = map.Clear();
 			}
 		}
-		public override void Apply(LogMap _log)
+
+		public void FollowerApply(LogMap _log)
+		{
+			var log = (LogMap2<K, V>)_log;
+			map = map.AddRange(log.Putted);
+			map = map.RemoveRange(log.Removed);
+			//foreach () // update Changed
+			{
+			}
+		}
+
+		public void LeaderApply(LogMap _log)
 		{
 			var log = (LogMap2<K, V>)_log;
 			map = log.Value;

@@ -18,7 +18,7 @@ namespace Zeze.Raft.RocksRaft
             {
                 if (Tables.TryGetValue(r.Key.Name, out var table))
                 {
-                    table.Apply(r.Key.Key, r.Value);
+                    table.FollowerApply(r.Key.Key, r.Value);
                 }
                 else
                 {

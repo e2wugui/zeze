@@ -11,7 +11,7 @@ namespace Zeze.Raft.RocksRaft
 	public abstract class Table
 	{
 		public string Name { get; protected set; }
-		internal abstract void Apply(object key, Changes.Record rlog);
+		internal abstract void FollowerApply(object key, Changes.Record rlog);
         internal abstract void Open();
 	}
 
@@ -19,7 +19,7 @@ namespace Zeze.Raft.RocksRaft
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        internal override void Apply(object key, Changes.Record rlog)
+        internal override void FollowerApply(object key, Changes.Record rlog)
         {
             switch (rlog.State)
             {
@@ -29,7 +29,7 @@ namespace Zeze.Raft.RocksRaft
 
                 case Changes.Record.Put:
                     foreach (var log in rlog.LogBean) // 最多一个。
-                        log.Apply(rlog.PutValue);
+                        log.FollowerApply(rlog.PutValue);
                     //ApplyPut(rlog.PutValue);
                     break;
 
@@ -41,7 +41,7 @@ namespace Zeze.Raft.RocksRaft
                         //Raft.FatalKill();
                     }
                     foreach (var log in rlog.LogBean) // 最多一个。
-                        log.Apply(r.Value);
+                        log.FollowerApply(r.Value);
                     //ApplyPut(r.Value);
                     break;
             }
