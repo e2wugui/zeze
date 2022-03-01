@@ -10,7 +10,7 @@ using Zeze.Serialize;
 namespace UnitTest.Zeze.RocksRaft
 {
     [TestClass]
-    internal class Test1
+    public class Test1
     {
         public sealed class Bean1 : Bean
         {
@@ -18,6 +18,7 @@ namespace UnitTest.Zeze.RocksRaft
 			private long _l;
 			private CollMap1<int, int> _map1;
 			private Bean2 _bean2;
+			private CollMap2<int, Bean1> _map2;
 
 			public int I
 			{
@@ -29,7 +30,7 @@ namespace UnitTest.Zeze.RocksRaft
 
 				set
 				{
-					Transaction.Current.PutLog(new Log_i() { Owner = this, VariableId = 1, Value = value, });
+					Transaction.Current.PutLog(new Log_i() { Parent = this, VariableId = 1, Value = value, });
 				}
 			}
 
@@ -43,11 +44,12 @@ namespace UnitTest.Zeze.RocksRaft
 
 				set
 				{
-					Transaction.Current.PutLog(new Log_l() { Owner = this, VariableId = 2, Value = value, });
+					Transaction.Current.PutLog(new Log_l() { Parent = this, VariableId = 2, Value = value, });
 				}
 			}
 
 			public CollMap1<int, int> Map1 => _map1;
+			public CollMap2<int, Bean1> Map2 => _map2;
 
 			public Bean2 Bean2 => _bean2;
 
@@ -61,7 +63,7 @@ namespace UnitTest.Zeze.RocksRaft
 				public override void Apply(Bean holder) { ((Bean1)holder)._l = Value; }
 			}
 
-			public sealed class Log_map2 : LogMap1<int, int>
+			public sealed class Log_map1 : LogMap1<int, int>
             {
 				public override void Apply(Bean holder) { ((Bean1)holder)._map1.Apply(this); }
 			}
@@ -71,11 +73,17 @@ namespace UnitTest.Zeze.RocksRaft
 				public override void Apply(Bean holder) { base.Apply(((Bean1)holder)._bean2); }
 			}
 
+			public sealed class Log_map2 : LogMap2<int, Bean1>
+			{
+				public override void Apply(Bean holder) { ((Bean1)holder)._map2.Apply(this); }
+			}
+
 			public Bean1()
             {
-				_map1 = new CollMap1<int, int>() { VariableId = 3 };
+				_map1 = new CollMap1<int, int>() { VariableId = 3, LogFactory = () => new Log_map1() };
 				_bean2 = new Bean2() { VariableId = 4 };
-            }
+				_map2 = new CollMap2<int, Bean1>() { VariableId = 5, LogFactory = () => new Log_map2() };
+			}
 
 			public override void Decode(ByteBuffer bb)
 			{
@@ -115,7 +123,7 @@ namespace UnitTest.Zeze.RocksRaft
 
 				set
 				{
-					Transaction.Current.PutLog(new Log_i() { Owner = this, VariableId = 1, Value = value, });
+					Transaction.Current.PutLog(new Log_i() { Parent = this, VariableId = 1, Value = value, });
 				}
 			}
 
@@ -142,7 +150,14 @@ namespace UnitTest.Zeze.RocksRaft
 		[TestMethod]
         public void Test_1()
         {
-
+			var rocks = new Rocks();
+			var table = rocks.OpenTable<int, Bean1>("tRocksRaft");
+			new Procedure(() =>
+			{
+				var value = table.GetOrAdd(1);
+				value.I = 1;
+				return 0;
+			}).Call();
         }
     }
 }

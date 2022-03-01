@@ -68,7 +68,7 @@ namespace Zeze.Raft.RocksRaft
 
             public void Put(Transaction current, Bean value)
             {
-                PutValueLog = new PutLog() { Owner = this, Value = value };
+                PutValueLog = new PutLog() { Parent = this, Value = value };
                 current.PutLog(PutValueLog);
             }
 
@@ -187,12 +187,12 @@ namespace Zeze.Raft.RocksRaft
             foreach (Log log in sp.Logs.Values)
             {
                 // 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
-                if (log.Owner == null)
+                if (log.Parent == null)
                     continue;
 
                 // 当changes.Collect在日志往上一级传递时调用，
                 // 第一个参数Owner为null，表示bean属于record，到达root了。
-                changes.Collect(log);
+                changes.Collect(log.Parent.RootInfo, log);
             }
             foreach (var ar in AccessedRecords.Values)
             {
@@ -200,7 +200,7 @@ namespace Zeze.Raft.RocksRaft
             }
             var sb = new StringBuilder();
             ByteBuffer.BuildString(sb, changes.Records);
-            logger.Fatal(sb.ToString());
+            Console.WriteLine(sb.ToString());
         }
         
         private void _final_rollback_()

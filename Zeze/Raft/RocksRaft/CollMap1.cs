@@ -19,25 +19,31 @@ namespace Zeze.Raft.RocksRaft
 
 		public override void Put(K key, V value)
 		{
-			var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
+			var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, LogFactory);
 			maplog.Put(key, value);
 		}
 
 		public override void Remove(K key)
 		{
-			var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
+			var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, LogFactory);
 			maplog.Remove(key);
 		}
 
-		public override void Apply(LogMap _log)
-		{
+		public Func<LogMap1<K, V>> LogFactory { get; set; }
+
+        public override void Apply(LogMap _log)
+        {
 			var log = (LogMap1<K, V>)_log;
 			realmap = log.Value;
 		}
 
 		public override LogBean CreateLogBean()
 		{
-			return new LogMap1<K, V>() { Owner = Parent, VariableId = VariableId, Value = realmap };
+			var log = LogFactory();
+			log.Parent = Parent;
+			log.VariableId = VariableId;
+			log.Value = realmap;
+			return log;
 		}
 
 		public override void Decode(ByteBuffer bb)

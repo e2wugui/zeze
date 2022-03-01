@@ -8,7 +8,6 @@ using Zeze.Serialize;
 namespace Zeze.Raft.RocksRaft
 {
 	public class CollMap2<K, V> : CollMap<K, V>
-		where K : Serializable, new()
 		where V : Bean, new()
 	{
 		public override V Get(K key)
@@ -37,9 +36,15 @@ namespace Zeze.Raft.RocksRaft
 			realmap = log.Value;
 		}
 
+		public Func<LogMap2<K, V>> LogFactory { get; set; }
+
 		public override LogBean CreateLogBean()
 		{
-			return new LogMap2<K, V>() { Owner = Parent, VariableId = VariableId, Value = realmap };
+			var log = LogFactory();
+			log.Parent = Parent;
+			log.VariableId = VariableId;
+			log.Value = realmap;
+			return log;
 		}
 
 		public override void Decode(ByteBuffer bb)

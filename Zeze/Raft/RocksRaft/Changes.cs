@@ -85,33 +85,45 @@ namespace Zeze.Raft.RocksRaft
 						break;
                 }
             }
-		}
+
+            public override string ToString()
+            {
+				var sb = new StringBuilder();
+
+				sb.Append(" State=").Append(State);
+				sb.Append(" PutValue=").Append(PutValue);
+				sb.Append(" Log=");
+				ByteBuffer.BuildString(sb, LogBean);
+
+				return sb.ToString();
+            }
+        }
 
 		// 收集记录的修改,以后需要系列化传输.
 		public Dictionary<TableKey, Record> Records { get; } = new Dictionary<TableKey, Record>();
 
-		public void Collect(Log log)
+		public void Collect(RocksRaft.Record.RootInfo root, Log log)
 		{
-			if (null == log.Owner.Parent)
-			{
+			if (null == log.Parent)
+            {
 				// 记录可能存在多个修改日志树。收集的时候全部保留，后面会去掉不需要的。see Transaction._final_commit_
-				if (false == Records.TryGetValue(log.Owner.TableKey, out var r))
-                {
-					r = new Record();
-					Records.Add(log.Owner.TableKey, r);
-				}
-				if (false == r.LogBeans.TryAdd(log.Owner, (LogBean)log))
-					throw new Exception("bug!");
-			}
-			else
-			{
-				if (false == Beans.TryGetValue(log.Owner.Parent.ObjectId, out LogBean logbean))
+				if (false == Records.TryGetValue(root.TableKey, out var r))
 				{
-					logbean = log.Owner.Parent.CreateLogBean();
-					Beans.Add(log.Owner.Parent.ObjectId, logbean);
+					r = new Record();
+					Records.Add(root.TableKey, r);
 				}
-				logbean.Collect(this, log);
+				if (false == r.LogBeans.TryAdd(root.Record.Value, (LogBean)log))
+					throw new Exception("bug!");
+
+				return; // root
 			}
+
+			if (false == Beans.TryGetValue(log.Parent.ObjectId, out LogBean logbean))
+			{
+				logbean = log.Parent.CreateLogBean();
+				Beans.Add(log.Parent.ObjectId, logbean);
+			}
+			logbean.Collect(this, root, log);
 		}
 
 		public void CollectRecord(Transaction.RecordAccessed ar)

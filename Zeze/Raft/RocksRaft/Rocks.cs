@@ -34,7 +34,7 @@ namespace Zeze.Raft.RocksRaft
         private Raft Raft;
         public WriteOptions WriteOptions { get; }
 
-        public Rocks(string dbHome, bool sync = false)
+        public Rocks(string dbHome = "./", bool sync = false)
         {
             DbHome = dbHome;
             WriteOptions = new WriteOptions().SetSync(sync);

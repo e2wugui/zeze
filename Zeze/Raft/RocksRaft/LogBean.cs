@@ -49,12 +49,12 @@ namespace Zeze.Raft.RocksRaft
 		}
 
 		// 仅发生在事务执行期间。Decode-Apply不会执行到这里。
-		public override void Collect(Changes changes, Log vlog)
+		public override void Collect(Changes changes, RocksRaft.Record.RootInfo root, Log vlog)
         {
 			if (Variables.TryAdd(vlog.VariableId, vlog))
             {
 				// 向上传递
-				changes.Collect(this);
+				changes.Collect(root, this);
 			}
 		}
 
