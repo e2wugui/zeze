@@ -54,7 +54,7 @@ namespace Zeze.Raft.RocksRaft
 			if (Variables.TryAdd(vlog.VariableId, vlog))
             {
 				// 向上传递
-				changes.Collect(Bean.Parent, this);
+				changes.Collect(this);
 			}
 		}
 
@@ -65,6 +65,13 @@ namespace Zeze.Raft.RocksRaft
 				vlog.Apply(holder);
 			}
 		}
-	}
+
+        public override string ToString()
+        {
+			var sb = new StringBuilder();
+			ByteBuffer.BuildString(sb, Variables.Values);
+            return sb.ToString();
+        }
+    }
 
 }

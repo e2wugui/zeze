@@ -27,8 +27,20 @@ namespace Zeze.Raft.RocksRaft
 		{
 			if (Changed.Add((LogBean)vlog))
             {
-				changes.Collect(Bean.Parent, this);
+				changes.Collect(this);
 			}
+		}
+
+		public override string ToString()
+		{
+			var sb = new StringBuilder();
+			sb.Append("Putted:\n");
+			ByteBuffer.BuildString(sb, Putted);
+			sb.Append("Removed:\n");
+			ByteBuffer.BuildString(sb, Removed);
+			sb.Append("Changed:\n");
+			ByteBuffer.BuildString(sb, Changed);
+			return sb.ToString();
 		}
 	}
 }

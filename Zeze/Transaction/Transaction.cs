@@ -15,7 +15,7 @@ namespace Zeze.Transaction
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        private static System.Threading.ThreadLocal<Transaction> threadLocal = new System.Threading.ThreadLocal<Transaction>();
+        private static ThreadLocal<Transaction> threadLocal = new ThreadLocal<Transaction>();
 
         public static Transaction Current
         {

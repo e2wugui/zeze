@@ -13,7 +13,7 @@ namespace Zeze.Raft.RocksRaft
 	{
 		public override V Get(K key)
 		{
-			if (false == Transaction.Current.LogTryGet(Parent.ObjectId + VariableId, out var log))
+			if (false == Transaction.Current.TryGetLog(Parent.ObjectId + VariableId, out var log))
 				return _Get(key);
 			var maplog = (LogMap2<K, V>)log;
 			return maplog.Get(key);
@@ -39,7 +39,7 @@ namespace Zeze.Raft.RocksRaft
 
 		public override LogBean CreateLogBean()
 		{
-			return new LogMap2<K, V>() { Bean = Parent, VariableId = VariableId, Value = realmap };
+			return new LogMap2<K, V>() { Owner = Parent, VariableId = VariableId, Value = realmap };
 		}
 
 		public override void Decode(ByteBuffer bb)

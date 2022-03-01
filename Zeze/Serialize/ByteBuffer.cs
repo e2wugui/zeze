@@ -928,6 +928,23 @@ namespace Zeze.Serialize
                 throw new Exception($"{bytes.Length},{offset},{length}");
         }
 
+        public void Encode<T>(ICollection<T> c)
+        {
+            WriteInt(c.Count);
+            foreach (var s in c)
+            {
+                SerializeHelper<T>.Encode(this, s);
+            }
+        }
+
+        public void Decode<T>(ICollection<T> c)
+        { 
+            for (int i = ReadInt(); i >= 0; --i)
+            {
+                c.Add(SerializeHelper<T>.Decode(this));
+            }
+        }
+
         public static ByteBuffer Encode(Serializable sa)
         {
             ByteBuffer bb = Allocate();

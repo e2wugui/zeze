@@ -23,13 +23,13 @@ namespace UnitTest.Zeze.RocksRaft
 			{
 				get
 				{
-					if (false == Transaction.Current.LogTryGet(ObjectId + 1, out var log)) return _i;
+					if (false == Transaction.Current.TryGetLog(ObjectId + 1, out var log)) return _i;
 					return ((Log_i)log).Value;
 				}
 
 				set
 				{
-					Transaction.Current.LogPut(new Log_i() { Bean = this, VariableId = 1, Value = value, });
+					Transaction.Current.PutLog(new Log_i() { Owner = this, VariableId = 1, Value = value, });
 				}
 			}
 
@@ -37,13 +37,13 @@ namespace UnitTest.Zeze.RocksRaft
 			{
 				get
 				{
-					if (false == Transaction.Current.LogTryGet(ObjectId + 2, out var log)) return _l;
+					if (false == Transaction.Current.TryGetLog(ObjectId + 2, out var log)) return _l;
 					return ((Log_l)log).Value;
 				}
 
 				set
 				{
-					Transaction.Current.LogPut(new Log_l() { Bean = this, VariableId = 2, Value = value, });
+					Transaction.Current.PutLog(new Log_l() { Owner = this, VariableId = 2, Value = value, });
 				}
 			}
 
@@ -109,13 +109,13 @@ namespace UnitTest.Zeze.RocksRaft
 			{
 				get
 				{
-					if (false == Transaction.Current.LogTryGet(ObjectId + 1, out var log)) return _i;
+					if (false == Transaction.Current.TryGetLog(ObjectId + 1, out var log)) return _i;
 					return ((Log_i)log).Value;
 				}
 
 				set
 				{
-					Transaction.Current.LogPut(new Log_i() { Bean = this, VariableId = 1, Value = value, });
+					Transaction.Current.PutLog(new Log_i() { Owner = this, VariableId = 1, Value = value, });
 				}
 			}
 

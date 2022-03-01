@@ -4,77 +4,72 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Zeze.Serialize;
+using System.Threading;
 
 namespace Zeze.Raft.RocksRaft
 {
-	public class Transaction
+	public sealed class Transaction
 	{
-		public static Transaction Current => threadLocal.Value;
+		public static Transaction Current => threadlocal.Value;
 
-		public bool LogTryGet(long logKey, out Log log)
+		public bool TryGetLog(long logKey, out Log log)
 		{
-			log = null;
-			return false;
+            log = GetLog(logKey);
+            return null != log;
 		}
 
-        public Log LogGet(long logKey)
+        public Log GetLog(long logKey)
         {
-            if (LogTryGet(logKey, out var log))
-                return log;
-            return null;
+            return Savepoints.Count > 0
+                ? Savepoints[Savepoints.Count - 1].GetLog(logKey)
+                : null;
         }
 
-		public void LogPut(Log log)
+		public void PutLog(Log log)
 		{
-
-		}
+            Savepoints[Savepoints.Count - 1].PutLog(log);
+        }
 
 		public Log LogGetOrAdd(long logKey, Func<Log> logFactory)
 		{
-			return logFactory();
+            var log = GetLog(logKey);
+            if (null == log)
+			    log = logFactory();
+            return log;
 		}
 
         public class RecordAccessed : Bean
         {
-            public Record OriginRecord { get; }
+            public Record Origin { get; }
             public long Timestamp { get; }
             public bool Dirty { get; set; }
 
             public Bean NewestValue()
             {
-                PutLog log = (PutLog)Current.LogGet(ObjectId);
-                if (null != log)
-                    return log.Value;
-                return OriginRecord.Value;
+                if (null != PutValueLog)
+                    return PutValueLog.Value;
+                return Origin.Value;
             }
 
-            // Record 修改日志先提交到这里(Savepoint.Commit里面调用）。处理完Savepoint后再处理 Dirty 记录。
-            public PutLog CommittedPutLog { get; private set; }
+            public PutLog PutValueLog { get; private set; }
 
             public class PutLog : Log<Bean>
             {
-                public PutLog(RecordAccessed bean, Bean putValue)
-                {
-                    base.Bean = bean;
-                    base.Value = putValue;
-                }
-
                 public override void Apply(Bean holder)
                 {
-                    RecordAccessed host = (RecordAccessed)Bean;
-                    host.CommittedPutLog = this; // 肯定最多只有一个 PutLog。由 LogKey 保证。
                 }
             }
 
-            public RecordAccessed(Record originRecord)
+            public RecordAccessed(Record origin)
             {
-                OriginRecord = originRecord;
-                Timestamp = originRecord.Timestamp;
+                Origin = origin;
+                Timestamp = origin.Timestamp;
             }
 
-            public void Put(Transaction current, Bean putValue)
+            public void Put(Transaction current, Bean value)
             {
-                current.LogPut(new PutLog(this, putValue));
+                PutValueLog = new PutLog() { Owner = this, Value = value };
+                current.PutLog(PutValueLog);
             }
 
             public void Remove(Transaction current)
@@ -114,19 +109,18 @@ namespace Zeze.Raft.RocksRaft
             return null;
         }
         
-        private static System.Threading.ThreadLocal<Transaction> threadLocal
-            = new System.Threading.ThreadLocal<Transaction>();
+        private static ThreadLocal<Transaction> threadlocal = new ThreadLocal<Transaction>();
 
 		public static Transaction Create()
         {
-			if (null == threadLocal.Value)
-				threadLocal.Value = new Transaction();
-			return threadLocal.Value;
+			if (null == threadlocal.Value)
+				threadlocal.Value = new Transaction();
+			return threadlocal.Value;
         }
 
 		public static void Destory()
         {
-			threadLocal.Value = null;
+			threadlocal.Value = null;
         }
 
 		public void Begin()
@@ -171,24 +165,45 @@ namespace Zeze.Raft.RocksRaft
 				var result = proc.Call();
 				if (0 == result)
 				{
-					_final_commit();
+					_final_commit_();
 					return 0;
 				}
-				_final_rollback();
+				_final_rollback_();
 				return result;
 			}
-			catch (Exception _)
+			catch (Exception)
             {
-				return Zeze.Transaction.Procedure.Exception;
+                _final_rollback_();
+                return Zeze.Transaction.Procedure.Exception;
             }
 		}
 
-		private void _final_commit()
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
+        private void _final_commit_()
         {
+            var changes = new Changes();
+            Savepoint sp = Savepoints[Savepoints.Count - 1];
+            foreach (Log log in sp.Logs.Values)
+            {
+                // 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
+                if (log.Owner == null)
+                    continue;
 
+                // 当changes.Collect在日志往上一级传递时调用，
+                // 第一个参数Owner为null，表示bean属于record，到达root了。
+                changes.Collect(log);
+            }
+            foreach (var ar in AccessedRecords.Values)
+            {
+                changes.CollectRecord(ar);
+            }
+            var sb = new StringBuilder();
+            ByteBuffer.BuildString(sb, changes.Records);
+            logger.Fatal(sb.ToString());
         }
-
-		private void _final_rollback()
+        
+        private void _final_rollback_()
         {
 
         }

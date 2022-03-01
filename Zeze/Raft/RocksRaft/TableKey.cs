@@ -32,5 +32,10 @@ namespace Zeze.Raft.RocksRaft
         {
             throw new NotImplementedException();
         }
+
+        public override string ToString()
+        {
+            return $"({Name},{Key})";
+        }
     }
 }

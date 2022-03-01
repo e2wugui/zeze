@@ -11,7 +11,7 @@ namespace Zeze.Raft.RocksRaft
 	public abstract class Table
 	{
 		public string Name { get; protected set; }
-		internal abstract void Apply(object key, LogBean log);
+		internal abstract void Apply(object key, Changes.Record rlog);
         internal abstract void Open();
 	}
 
@@ -19,15 +19,32 @@ namespace Zeze.Raft.RocksRaft
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        internal override void Apply(object key, LogBean log)
+        internal override void Apply(object key, Changes.Record rlog)
         {
-            var r = GetOrLoad((K)key);
-            if (null == r.Value)
+            switch (rlog.State)
             {
-                logger.Fatal($"there must be a bug.");
-                //Raft.FatalKill();
+                case Changes.Record.Remove:
+                    //ApplyRemove((K)key);
+                    break;
+
+                case Changes.Record.Put:
+                    foreach (var log in rlog.LogBean) // 最多一个。
+                        log.Apply(rlog.PutValue);
+                    //ApplyPut(rlog.PutValue);
+                    break;
+
+                case Changes.Record.Edit:
+                    var r = GetOrLoad((K)key);
+                    if (null == r.Value)
+                    {
+                        logger.Fatal($"there must be a bug.");
+                        //Raft.FatalKill();
+                    }
+                    foreach (var log in rlog.LogBean) // 最多一个。
+                        log.Apply(r.Value);
+                    //ApplyPut(r.Value);
+                    break;
             }
-            log.Apply(r.Value);
         }
 
         public V GetOrAdd(K key)
@@ -57,7 +74,7 @@ namespace Zeze.Raft.RocksRaft
             }
 
             V add = new V();
-            add.InitRootInfo(cr.OriginRecord.CreateRootInfoIfNeed(tkey), null);
+            add.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
             cr.Put(currentT, add);
             return add;
         }
@@ -86,7 +103,7 @@ namespace Zeze.Raft.RocksRaft
             Transaction currentT = Transaction.Current;
             TableKey tkey = new TableKey(Name, key);
             Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
-            value.InitRootInfo(cr.OriginRecord.CreateRootInfoIfNeed(tkey), null);
+            value.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
             cr.Put(currentT, value);
             return true;
         }
@@ -105,7 +122,7 @@ namespace Zeze.Raft.RocksRaft
             Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
             {
-                value.InitRootInfo(cr.OriginRecord.CreateRootInfoIfNeed(tkey), null);
+                value.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
                 cr.Put(currentT, value);
                 return;
             }

@@ -95,10 +95,20 @@ namespace Zeze.Raft.RocksRaft
         internal override Log BeginSavepoint()
         {
 			var dup = new LogMap1<K, V>();
-			dup.Bean = Bean;
+			dup.Owner = Owner;
 			dup.VariableId = VariableId;
 			dup.Value = Value;
 			return dup;
+		}
+
+		public override string ToString()
+		{
+			var sb = new StringBuilder();
+			sb.Append("Putted:\n");
+			ByteBuffer.BuildString(sb, Putted);
+			sb.Append("Removed:\n");
+			ByteBuffer.BuildString(sb, Removed);
+			return sb.ToString();
 		}
 	}
 }
