@@ -7,7 +7,7 @@ using RocksDbSharp;
 
 namespace Zeze.Raft.RocksRaft
 {
-    public class Rocks
+    public class Rocks : IDisposable
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public ConcurrentDictionary<string, Table> Tables { get; } = new ConcurrentDictionary<string, Table>();
@@ -222,6 +222,10 @@ namespace Zeze.Raft.RocksRaft
                         N.rocksdb_options_destroy(options);
                 }
             }
+        }
+
+        public void Dispose()
+        {
         }
     }
 }

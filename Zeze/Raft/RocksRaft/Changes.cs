@@ -93,7 +93,7 @@ namespace Zeze.Raft.RocksRaft
 
 				sb.Append("State=").Append(State);
 				sb.Append(" PutValue=").Append(PutValue);
-				sb.Append(" Log=");
+				sb.Append("\nLog=");
 				ByteBuffer.BuildString(sb, LogBean);
 				sb.Append("\nAllLog=");
 				ByteBuffer.BuildString(sb, LogBeans.Values);

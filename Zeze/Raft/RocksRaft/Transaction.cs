@@ -172,24 +172,95 @@ namespace Zeze.Raft.RocksRaft
 				var result = proc.Call();
 				if (0 == result)
 				{
-					_final_commit_();
-					return 0;
-				}
+                    if (_lock_and_check_(Zeze.Transaction.TransactionLevel.Serializable))
+                    {
+                        _final_commit_(proc);
+                        return 0;
+                    }
+                    // else redo future
+                }
 				_final_rollback_();
 				return result;
 			}
-			catch (Exception)
+			catch (Exception ex)
             {
-                _final_rollback_();
+                if (ex.GetType().Name == "AssertFailedException")
+                {
+                    _final_rollback_();
+                    throw;
+                }
+
+                if (_lock_and_check_(Zeze.Transaction.TransactionLevel.Serializable))
+                {
+                    _final_rollback_();
+                    return Zeze.Transaction.Procedure.Exception;
+                }
                 return Zeze.Transaction.Procedure.Exception;
             }
 		}
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        public Changes Changes { get; private set; } = new Changes();
 
-        private void _final_commit_()
+        private readonly List<Action> CommitActions = new List<Action>();
+
+        public void RunWhileCommit(Action action)
         {
-            var changes = new Changes();
+            CommitActions.Add(action);
+        }
+
+        private void _trigger_commit_actions_(Procedure procedure)
+        {
+            foreach (Action action in CommitActions)
+            {
+                try
+                {
+                    action();
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "Commit Procedure {0} Action {1}", procedure, action.Method.Name);
+                    if (ex.GetType().Name == "AssertFailedException")
+                    {
+                        throw;
+                    }
+                }
+            }
+            CommitActions.Clear();
+        }
+
+        private bool _lock_and_check_(Zeze.Transaction.TransactionLevel level)
+        {
+            bool allRead = true;
+            if (Savepoints.Count > 0)
+            {
+                foreach (var log in Savepoints[Savepoints.Count - 1].Logs.Values)
+                {
+                    // 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
+                    // 现在不会有这种情况，保留给未来扩展需要。
+                    if (log.Parent == null)
+                        continue;
+
+                    TableKey tkey = log.Parent.TableKey;
+                    if (AccessedRecords.TryGetValue(tkey, out var record))
+                    {
+                        record.Dirty = true;
+                        allRead = false;
+                    }
+                    else
+                    {
+                        // 只有测试代码会把非 Managed 的 Bean 的日志加进来。
+                        logger.Fatal("impossible! record not found.");
+                    }
+                }
+            }
+            if (allRead && level == Zeze.Transaction.TransactionLevel.AllowDirtyWhenAllRead)
+                return true; // 使用一个新的enum表示一下？
+            return true;
+        }
+
+        private void _final_commit_(Procedure procedure)
+        {
             Savepoint sp = Savepoints[Savepoints.Count - 1];
             foreach (Log log in sp.Logs.Values)
             {
@@ -199,15 +270,25 @@ namespace Zeze.Raft.RocksRaft
 
                 // 当changes.Collect在日志往上一级传递时调用，
                 // 第一个参数Owner为null，表示bean属于record，到达root了。
-                changes.Collect(log.Parent, log);
+                Changes.Collect(log.Parent, log);
             }
             foreach (var ar in AccessedRecords.Values)
             {
-                changes.CollectRecord(ar);
+                Changes.CollectRecord(ar);
             }
-            var sb = new StringBuilder();
-            ByteBuffer.BuildString(sb, changes.Records);
-            Console.WriteLine(sb.ToString());
+            // Raft.AppendLog
+            foreach (Log log in sp.Logs.Values)
+            {
+                log.LeaderApply();
+            }
+            foreach (var e in AccessedRecords)
+            {
+                if (e.Value.Dirty)
+                {
+                    e.Value.Origin.LeaderCommit(e.Value);
+                }
+            }
+            _trigger_commit_actions_(procedure);
         }
         
         private void _final_rollback_()

@@ -56,6 +56,12 @@ namespace Zeze.Raft.RocksRaft
             catch (Exception ex)
             {
                 currentT.Rollback();
+
+                if (ex.GetType().Name == "AssertFailedException")
+                {
+                    throw;
+                }
+
                 return ex is TaskCanceledException
                     ? Zeze.Transaction.Procedure.CancelException
                     : Zeze.Transaction.Procedure.Exception;

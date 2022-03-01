@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Zeze.Raft.RocksRaft
 {
-	public class Record
+	public abstract class Record
     {
 		public class RootInfo
 		{
@@ -28,16 +28,29 @@ namespace Zeze.Raft.RocksRaft
 			return cur;
 		}
 
-		public Bean Value { get; set; }
+		public const int StateNew = 0;
+		public const int StateLoad = 1;
+
+		public int State { get; internal set; } = StateNew;
+		public Bean Value { get; internal set; }
 		public long Timestamp { get; set; }
 		public bool Removed { get; internal set; }
 
 
 		private static Util.AtomicLong _TimestampGen = new Util.AtomicLong();
 		internal static long NextTimestamp => _TimestampGen.IncrementAndGet();
+		internal abstract void LeaderCommit(Transaction.RecordAccessed accessed);
 	}
 
 	public class Record<K, V> : Record
 	{
+		internal override void LeaderCommit(Transaction.RecordAccessed accessed)
+		{
+			if (null != accessed.PutValueLog)
+			{
+				Value = accessed.PutValueLog.Value;
+			}
+			Timestamp = NextTimestamp; // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
+		}
 	}
 }

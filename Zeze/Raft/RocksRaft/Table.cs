@@ -190,12 +190,18 @@ namespace Zeze.Raft.RocksRaft
                 {
                     if (r.Removed)
                         continue;
-                    r.Timestamp = Record.NextTimestamp;
-                    r.Value = Load(key);
-                    if (null != r.Value)
+
+                    if (r.State == Record.StateNew)
                     {
-                        r.Value.InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
+                        r.Timestamp = Record.NextTimestamp;
+                        r.Value = Load(key);
+                        if (null != r.Value)
+                        {
+                            r.Value.InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
+                        }
+                        r.State = Record.StateLoad;
                     }
+
                     return r;
                 }
             }

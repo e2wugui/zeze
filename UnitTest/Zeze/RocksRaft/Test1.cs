@@ -191,37 +191,112 @@ namespace UnitTest.Zeze.RocksRaft
 			}
 		}
 
-		[TestMethod]
-        public void Test_1()
-        {
-			var rocks = new Rocks();
-			var table = rocks.OpenTable<int, Bean1>("tRocksRaft");
+		private void Remove1(Table<int, Bean1> table)
+		{
 			new Procedure(() =>
 			{
-				var value = table.GetOrAdd(1);
+				table.Remove(1);
 
-				// 本层Bean变量修改日志
-				value.I = 1;
+				Transaction.Current.RunWhileCommit(() =>
+				{
+					var c = Transaction.Current.Changes;
 
-				// 下一层Bean变量修改日志
-				value.Bean2.I = 2;
+					Assert.IsTrue(c.Beans.Count == 1);
 
-				// 本层Bean容器变量修改日志
-				value.Map1.Put(3, 3);
+					Assert.IsTrue(c.Records.Count == 1);
+					Assert.IsTrue(c.Records.TryGetValue(new TableKey(table.Name, 1), out var r));
+					Assert.IsNull(r.PutValue);
+					Assert.AreEqual(Changes.Record.Remove, r.State);
+					Assert.IsTrue(r.LogBeans.Count == 1);
+					Assert.IsTrue(r.LogBean.Count == 0);
+				});
+				return 0;
+			}).Call();
+		}
 
-				// 本层Bean容器变量修改日志2
-				var bean1 = new Bean1();
-				value.Map2.Put(4, bean1);
+		private void Update(Table<int, Bean1> table)
+		{
+			var value = table.GetOrAdd(1);
 
-				// 容器内Bean修改日志。
-				bean1.I = 5;
+			// 本层Bean变量修改日志
+			value.I = 1;
 
+			// 下一层Bean变量修改日志
+			value.Bean2.I = 2;
+
+			// 本层Bean容器变量修改日志
+			value.Map1.Put(3, 3);
+
+			// 本层Bean容器变量修改日志2
+			var bean1 = new Bean1();
+			value.Map2.Put(4, bean1);
+
+			// 容器内Bean修改日志。
+			bean1.I = 5;
+		}
+
+		private void VerifyChanges(string except)
+		{
+			Transaction.Current.RunWhileCommit(() =>
+			{
+				var Changes = Transaction.Current.Changes;
+				var sb = new StringBuilder();
+				ByteBuffer.BuildString(sb, Changes.Records);
+				//Console.WriteLine(sb.ToString());
+				except = except.Replace("\r\n", "\n");
+				Assert.AreEqual(except, sb.ToString());
+			});
+		}
+
+		private void Update1(Table<int, Bean1> table)
+		{
+			new Procedure(() =>
+			{
+				Update(table);
+				VerifyChanges(@"{(tRocksRaft,1):State=1 PutValue=Bean1(I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})
+Log=[{1:Value=1,4:{1:Value=2},3: Putted:{3:3} Removed:[],5: Putted:{4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=5}]}]
+AllLog=[{1:Value=1,4:{1:Value=2},3: Putted:{3:3} Removed:[],5: Putted:{4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=5}]},{0:Value=Bean1(I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})}]}");
+				return 0;
+			}).Call();
+		}
+
+		private void Update2(Table<int, Bean1> table)
+		{
+			new Procedure(() =>
+			{
+				Update(table);
+				VerifyChanges(@"{(tRocksRaft,1):State=2 PutValue=
+Log=[{1:Value=1,4:{1:Value=2},3: Putted:{3:3} Removed:[],5: Putted:{4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=5}]}]
+AllLog=[{1:Value=1,4:{1:Value=2},3: Putted:{3:3} Removed:[],5: Putted:{4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=5}]}]}");
+				return 0;
+			}).Call();
+		}
+
+		private void Update3(Table<int, Bean1> table)
+		{
+			new Procedure(() =>
+			{
+				Update(table);
 				// 重新put，将会让上面的修改树作废。但所有的日志树都可以从All中看到。
 				var bean1put = new Bean1();
 				table.Put(1, bean1put);
-
- 				return 0;
+				VerifyChanges(@"{(tRocksRaft,1):State=1 PutValue=Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})
+Log=[]
+AllLog=[{1:Value=1,4:{1:Value=2},3: Putted:{3:3} Removed:[],5: Putted:{4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=5}]},{0:Value=Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})}]}");
+				return 0;
 			}).Call();
-        }
-    }
+		}
+
+		[TestMethod]
+        public void Test_1()
+        {
+			using var rocks = new Rocks();
+			var table = rocks.OpenTable<int, Bean1>("tRocksRaft");
+
+			Remove1(table);
+			Update1(table);
+			Update2(table);
+			Update3(table);
+		}
+	}
 }

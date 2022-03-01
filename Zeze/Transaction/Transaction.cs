@@ -244,7 +244,7 @@ namespace Zeze.Transaction
                                             throw;
                                         }
 #endif
-                                        checkResult = _lock_and_check_(TransactionLevel.Serializable);
+                                        checkResult = _lock_and_check_(procedure.TransactionLevel);
                                         if (checkResult == CheckResult.Success)
                                         {
                                             _final_rollback_(procedure);
