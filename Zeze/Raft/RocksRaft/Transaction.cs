@@ -192,7 +192,7 @@ namespace Zeze.Raft.RocksRaft
 
                 // 当changes.Collect在日志往上一级传递时调用，
                 // 第一个参数Owner为null，表示bean属于record，到达root了。
-                changes.Collect(log.Parent.RootInfo, log);
+                changes.Collect(log.Parent, log);
             }
             foreach (var ar in AccessedRecords.Values)
             {

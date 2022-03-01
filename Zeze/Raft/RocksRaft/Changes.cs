@@ -77,11 +77,11 @@ namespace Zeze.Raft.RocksRaft
 					case Put:
 						// TODO bean factory
 						PutValue.Decode(bb);
-						bb.Decode<LogBean>(LogBean);
+						bb.Decode(LogBean);
 						break;
 
 					case Edit:
-						bb.Decode<LogBean>(LogBean);
+						bb.Decode(LogBean);
 						break;
                 }
             }
@@ -102,17 +102,17 @@ namespace Zeze.Raft.RocksRaft
 		// 收集记录的修改,以后需要系列化传输.
 		public Dictionary<TableKey, Record> Records { get; } = new Dictionary<TableKey, Record>();
 
-		public void Collect(RocksRaft.Record.RootInfo root, Log log)
+		public void Collect(Bean prevparent, Log log)
 		{
 			if (null == log.Parent)
             {
 				// 记录可能存在多个修改日志树。收集的时候全部保留，后面会去掉不需要的。see Transaction._final_commit_
-				if (false == Records.TryGetValue(root.TableKey, out var r))
+				if (false == Records.TryGetValue(prevparent.TableKey, out var r))
 				{
 					r = new Record();
-					Records.Add(root.TableKey, r);
+					Records.Add(prevparent.TableKey, r);
 				}
-				if (false == r.LogBeans.TryAdd(root.Record.Value, (LogBean)log))
+				if (false == r.LogBeans.TryAdd(prevparent, (LogBean)log))
 					throw new Exception("bug!");
 
 				return; // root
@@ -123,7 +123,7 @@ namespace Zeze.Raft.RocksRaft
 				logbean = log.Parent.CreateLogBean();
 				Beans.Add(log.Parent.ObjectId, logbean);
 			}
-			logbean.Collect(this, root, log);
+			logbean.Collect(this, log.Parent, log);
 		}
 
 		public void CollectRecord(Transaction.RecordAccessed ar)

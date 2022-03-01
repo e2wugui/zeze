@@ -9,7 +9,7 @@ namespace Zeze.Raft.RocksRaft
 {
 	public abstract class LogMap : LogBean
 	{
-		public override void Collect(Changes changes, RocksRaft.Record.RootInfo root, Log vlog)
+		public override void Collect(Changes changes, Bean prevparent, Log vlog)
 		{
 			throw new Exception($"Collect Not Implement.");
 		}

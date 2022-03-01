@@ -203,7 +203,7 @@ namespace Zeze.Raft.RocksRaft
 
         private V Load(K key)
         {
-            return new V();
+            return null;
         }
 	}
 }

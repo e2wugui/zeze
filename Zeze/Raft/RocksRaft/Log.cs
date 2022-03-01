@@ -16,7 +16,7 @@ namespace Zeze.Raft.RocksRaft
 		public Bean Parent { get; set; }
 		public long LogKey => Parent.ObjectId + VariableId;
 
-		public virtual void Collect(Changes changes, RocksRaft.Record.RootInfo root, Log vlog)
+		public virtual void Collect(Changes changes, Bean prevparent, Log vlog)
 		{
 			// LogBean LogCollection 需要实现这个方法收集日志.
 		}
