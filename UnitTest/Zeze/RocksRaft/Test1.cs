@@ -105,11 +105,12 @@ namespace UnitTest.Zeze.RocksRaft
 			{
 				_map1.InitRootInfo(root, this);
 				_bean2.InitRootInfo(root, this);
+				_map2.InitRootInfo(root, this);
 			}
 
 			public override string ToString()
 			{
-				return $"Bean1: I={I} L={L} Map1={Map1} Bean2={Bean2} Map2={Map2}";
+				return $"Bean1(I={I} L={L} Map1={Map1} Bean2={Bean2} Map2={Map2})";
 			}
 		}
 
@@ -152,7 +153,7 @@ namespace UnitTest.Zeze.RocksRaft
 
 			public override string ToString()
 			{
-				return $"Bean2:I={I}";
+				return $"Bean2(I={I})";
 			}
 		}
 
@@ -165,7 +166,14 @@ namespace UnitTest.Zeze.RocksRaft
 			{
 				var value = table.GetOrAdd(1);
 				value.I = 1;
-				return 0;
+				value.Bean2.I = 2;
+				value.Map1.Put(3, 3);
+				var bean1 = new Bean1();
+				value.Map2.Put(4, bean1);
+				bean1.I = 5;
+				var bean1put = new Bean1();
+				table.Put(1, bean1put);
+ 				return 0;
 			}).Call();
         }
     }

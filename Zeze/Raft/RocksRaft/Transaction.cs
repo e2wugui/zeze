@@ -34,7 +34,10 @@ namespace Zeze.Raft.RocksRaft
 		{
             var log = GetLog(logKey);
             if (null == log)
-			    log = logFactory();
+            {
+                log = logFactory();
+                PutLog(log);
+            }
             return log;
 		}
 

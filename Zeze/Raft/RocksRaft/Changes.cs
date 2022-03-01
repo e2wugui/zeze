@@ -114,15 +114,21 @@ namespace Zeze.Raft.RocksRaft
 					r = new Record();
 					Records.Add(prevparent.TableKey, r);
 				}
-				if (false == r.LogBeans.TryAdd(prevparent, (LogBean)log))
-					throw new Exception("bug!");
-
+				r.LogBeans.TryAdd(prevparent, (LogBean)log);
 				return; // root
 			}
 
 			if (false == Beans.TryGetValue(log.Parent.ObjectId, out LogBean logbean))
 			{
-				logbean = log.Parent.CreateLogBean();
+				if (log.Parent is Collection)
+				{
+					// 容器使用共享的日志。需要先去查询，没有的话才创建。
+					logbean = (LogBean)Transaction.Current.GetLog(log.Parent.Parent.ObjectId + log.Parent.VariableId);
+				}
+				if (null == logbean)
+                {
+					logbean = log.Parent.CreateLogBean();
+				}
 				Beans.Add(log.Parent.ObjectId, logbean);
 			}
 			logbean.Collect(this, log.Parent, log);

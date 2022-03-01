@@ -11,22 +11,43 @@ namespace Zeze.Raft.RocksRaft
 	{
 		public override V Get(K key)
 		{
-			if (false == Transaction.Current.TryGetLog(Parent.ObjectId + VariableId, out var log))
+			if (IsManaged)
+            {
+				if (false == Transaction.Current.TryGetLog(Parent.ObjectId + VariableId, out var log))
+					return _Get(key);
+				var maplog = (LogMap1<K, V>)log;
+				return maplog.Get(key);
+			}
+			else
+            {
 				return _Get(key);
-			var maplog = (LogMap1<K, V>)log;
-			return maplog.Get(key);
+            }
 		}
 
 		public override void Put(K key, V value)
 		{
-			var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, LogFactory);
-			maplog.Put(key, value);
+			if (IsManaged)
+            {
+				var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
+				maplog.Put(key, value);
+			}
+			else
+            {
+				map = map.SetItem(key, value);
+            }
 		}
 
 		public override void Remove(K key)
 		{
-			var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, LogFactory);
-			maplog.Remove(key);
+			if (IsManaged)
+			{
+				var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
+				maplog.Remove(key);
+			}
+			else
+			{
+				map = map.Remove(key);
+			}
 		}
 
 		public Func<LogMap1<K, V>> LogFactory { get; set; }

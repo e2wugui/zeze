@@ -7,7 +7,7 @@ using Zeze.Serialize;
 
 namespace Zeze.Raft.RocksRaft
 {
-    public class TableKey : Serializable
+    public class TableKey : IComparable<TableKey>, Serializable
     {
         public string Name { get; set; }
         public object Key { get; set; }
@@ -36,6 +36,37 @@ namespace Zeze.Raft.RocksRaft
         public override string ToString()
         {
             return $"({Name},{Key})";
+        }
+
+        public override int GetHashCode()
+        {
+            const int prime = 31;
+            int result = 17;
+            result = prime * result + Name.GetHashCode();
+            result = prime * result + Key.GetHashCode();
+            return result;
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (this == obj)
+                return true;
+
+            if (obj is TableKey another)
+            {
+                return Name.Equals(another.Name) && Key.Equals(another.Key);
+            }
+            return false;
+        }
+
+        public int CompareTo(TableKey other)
+        {
+            int c = this.Name.CompareTo(other.Name);
+            if (c != 0)
+            {
+                return c;
+            }
+            return Comparer<IComparable>.Default.Compare((IComparable)Key, (IComparable)other.Key);
         }
     }
 }

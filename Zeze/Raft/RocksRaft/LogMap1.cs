@@ -104,9 +104,9 @@ namespace Zeze.Raft.RocksRaft
 		public override string ToString()
 		{
 			var sb = new StringBuilder();
-			sb.Append("Putted:\n");
+			sb.Append(" Putted:");
 			ByteBuffer.BuildString(sb, Putted);
-			sb.Append("Removed:\n");
+			sb.Append(" Removed:");
 			ByteBuffer.BuildString(sb, Removed);
 			return sb.ToString();
 		}
