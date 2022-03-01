@@ -413,7 +413,7 @@ namespace Zeze.Raft
         {
             if (IsLeader)
             {
-                // 是否过期First-Hearbeat。
+                // 是否过期First-Heartbeat。
                 // 使用 LeaderReadyFuture 可以更加精确的识别。
                 // 但是，由于RaftLog不是常驻内存的，保存不了进程级别的变量。
                 if (heart.Term != LeaderWaitReadyTerm || heart.Index != LeaderWaitReadyIndex)
@@ -602,7 +602,7 @@ namespace Zeze.Raft
             });
         }
 
-        private void ConvertStateFromFollwerTo(RaftState newState)
+        private void ConvertStateFromFollowerTo(RaftState newState)
         {
             switch (newState)
             {
@@ -702,7 +702,7 @@ namespace Zeze.Raft
             switch (State)
             {
                 case RaftState.Follower:
-                    ConvertStateFromFollwerTo(newState);
+                    ConvertStateFromFollowerTo(newState);
                     return;
 
                 case RaftState.Candidate:

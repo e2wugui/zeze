@@ -577,10 +577,11 @@ namespace Zeze.Raft
                 if (null == Client)
                     return;
 
+                var zeze = Client.Zeze;
                 Client.Stop();
                 Client = null;
 
-                if (null == Client.Zeze)
+                if (null == zeze)
                     InternalThreadPool.Shutdown();
 
                 _Leader = null;
@@ -712,7 +713,7 @@ namespace Zeze.Raft
                     {
                         iraft.SendTime = now;
                         if (false == rpc.Send(leaderSocket))
-                            logger.Warn("SendRequest faild {0}", rpc);
+                            logger.Warn("SendRequest failed {0}", rpc);
                     }
                 }
             }

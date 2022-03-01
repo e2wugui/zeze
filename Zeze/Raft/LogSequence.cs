@@ -1180,7 +1180,7 @@ namespace Zeze.Raft
             connector.Pending.Argument.PrevLogTerm = prevLog.Term;
 
             // 限制一次发送的日志数量，【注意】这个不是raft要求的。
-            int maxCount = Raft.RaftConfig.MaxAppendEntiresCount;
+            int maxCount = Raft.RaftConfig.MaxAppendEntriesCount;
             RaftLog lastCopyLog = nextLog;
             for (var copyLog = nextLog;
                 maxCount > 0 && null != copyLog && copyLog.Index <= LastIndex;

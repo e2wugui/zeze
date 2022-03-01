@@ -43,7 +43,7 @@ namespace Zeze.Raft
         /// <summary>
         /// 限制每次复制日志时打包的最大数量。
         /// </summary>
-        public int MaxAppendEntiresCount { get; set; } = 500;
+        public int MaxAppendEntriesCount { get; set; } = 500;
 
         /// <summary>
         /// 创建snapshot最小的日志数量。如果少于这个数，不会创建新的snapshot。
@@ -80,8 +80,8 @@ namespace Zeze.Raft
             if (!string.IsNullOrEmpty(attr)) AppendEntriesTimeout = int.Parse(attr);
             attr = self.GetAttribute("LeaderHeartbeatTimer");
             if (!string.IsNullOrEmpty(attr)) LeaderHeartbeatTimer = int.Parse(attr);
-            attr = self.GetAttribute("MaxAppendEntiresCount");
-            if (!string.IsNullOrEmpty(attr)) MaxAppendEntiresCount = int.Parse(attr);
+            attr = self.GetAttribute("MaxAppendEntriesCount");
+            if (!string.IsNullOrEmpty(attr)) MaxAppendEntriesCount = int.Parse(attr);
             attr = self.GetAttribute("SnapshotMinLogCount");
             if (!string.IsNullOrEmpty(attr)) SnapshotMinLogCount = int.Parse(attr);
             attr = self.GetAttribute("SnapshotHourOfDay");
@@ -118,8 +118,8 @@ namespace Zeze.Raft
             if (LeaderHeartbeatTimer < AppendEntriesTimeout + 200)
                 throw new Exception("LeaderHeartbeatTimer < AppendEntriesTimeout + 200");
 
-            if (MaxAppendEntiresCount < 100)
-                MaxAppendEntiresCount = 100;
+            if (MaxAppendEntriesCount < 100)
+                MaxAppendEntriesCount = 100;
 
             if (SnapshotMinute < 0)
                 SnapshotMinute = 0;
@@ -136,8 +136,8 @@ namespace Zeze.Raft
                 Self.SetAttribute("LeaderHeartbeatTimer", LeaderHeartbeatTimer.ToString());
             if (ElectionRandomMax != 300)
                 Self.SetAttribute("ElectionRandomMax", ElectionRandomMax.ToString());
-            if (MaxAppendEntiresCount != 500)
-                Self.SetAttribute("MaxAppendEntiresCount", MaxAppendEntiresCount.ToString());
+            if (MaxAppendEntriesCount != 500)
+                Self.SetAttribute("MaxAppendEntriesCount", MaxAppendEntriesCount.ToString());
             if (SnapshotMinLogCount != 10000)
                 Self.SetAttribute("SnapshotMinLogCount", SnapshotMinLogCount.ToString());
             if (SnapshotHourOfDay != 6)
