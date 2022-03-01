@@ -165,14 +165,27 @@ namespace UnitTest.Zeze.RocksRaft
 			new Procedure(() =>
 			{
 				var value = table.GetOrAdd(1);
+
+				// 本层Bean变量修改日志
 				value.I = 1;
+
+				// 下一层Bean变量修改日志
 				value.Bean2.I = 2;
+
+				// 本层Bean容器变量修改日志
 				value.Map1.Put(3, 3);
+
+				// 本层Bean容器变量修改日志2
 				var bean1 = new Bean1();
 				value.Map2.Put(4, bean1);
+
+				// 容器内Bean修改日志。
 				bean1.I = 5;
+
+				// 重新put，将会让上面的修改树作废。但是可以从All中看到。
 				var bean1put = new Bean1();
 				table.Put(1, bean1put);
+
  				return 0;
 			}).Call();
         }
