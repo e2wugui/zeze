@@ -33,7 +33,7 @@ namespace Zeze.Raft.RocksRaft
 		public override void Apply(LogMap _log)
 		{
 			var log = (LogMap2<K, V>)_log;
-			realmap = log.Value;
+			map = log.Value;
 		}
 
 		public Func<LogMap2<K, V>> LogFactory { get; set; }
@@ -43,7 +43,7 @@ namespace Zeze.Raft.RocksRaft
 			var log = LogFactory();
 			log.Parent = Parent;
 			log.VariableId = VariableId;
-			log.Value = realmap;
+			log.Value = map;
 			return log;
 		}
 
@@ -59,7 +59,7 @@ namespace Zeze.Raft.RocksRaft
 
 		public override void Encode(ByteBuffer bb)
 		{
-			var tmp = realmap;
+			var tmp = map;
 			bb.WriteInt(tmp.Count);
 			foreach (var e in tmp)
 			{
@@ -70,7 +70,7 @@ namespace Zeze.Raft.RocksRaft
 
 		protected override void InitChildrenRootInfo(Record.RootInfo tableKey)
 		{
-			foreach (var v in realmap.Values)
+			foreach (var v in map.Values)
 			{
 				v.InitRootInfo(RootInfo, Parent);
 			}

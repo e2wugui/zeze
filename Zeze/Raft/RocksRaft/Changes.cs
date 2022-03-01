@@ -90,10 +90,12 @@ namespace Zeze.Raft.RocksRaft
             {
 				var sb = new StringBuilder();
 
-				sb.Append(" State=").Append(State);
+				sb.Append("State=").Append(State);
 				sb.Append(" PutValue=").Append(PutValue);
 				sb.Append(" Log=");
 				ByteBuffer.BuildString(sb, LogBean);
+				sb.Append("\nAllLog=");
+				ByteBuffer.BuildString(sb, LogBeans.Values);
 
 				return sb.ToString();
             }

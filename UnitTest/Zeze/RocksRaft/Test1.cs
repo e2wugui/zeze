@@ -107,6 +107,10 @@ namespace UnitTest.Zeze.RocksRaft
 				_bean2.InitRootInfo(root, this);
 			}
 
+			public override string ToString()
+			{
+				return $"Bean1: I={I} L={L} Map1={Map1} Bean2={Bean2} Map2={Map2}";
+			}
 		}
 
 		public sealed class Bean2 : Bean
@@ -144,6 +148,11 @@ namespace UnitTest.Zeze.RocksRaft
 
 			protected override void InitChildrenRootInfo(Record.RootInfo root)
 			{
+			}
+
+			public override string ToString()
+			{
+				return $"Bean2:I={I}";
 			}
 		}
 
