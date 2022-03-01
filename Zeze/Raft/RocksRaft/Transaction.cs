@@ -58,7 +58,11 @@ namespace Zeze.Raft.RocksRaft
 
             public class PutLog : Log<Bean>
             {
-                public override void Apply(Bean holder)
+                public override void FollowerApply(Bean parent)
+                {
+                }
+
+                public override void LeaderApply()
                 {
                 }
             }

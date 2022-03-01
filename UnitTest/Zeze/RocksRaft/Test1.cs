@@ -83,27 +83,32 @@ namespace UnitTest.Zeze.RocksRaft
 
             public sealed class Log_i : Log<int>
 			{
-				public override void Apply(Bean holder) { ((Bean1)holder)._i = Value; }
+				public override void FollowerApply(Bean parent) { ((Bean1)parent)._i = Value; }
+				public override void LeaderApply() { ((Bean1)Parent)._i = Value; }
 			}
 
 			public sealed class Log_l : Log<long>
 			{
-				public override void Apply(Bean holder) { ((Bean1)holder)._l = Value; }
+				public override void FollowerApply(Bean parent) { ((Bean1)parent)._l = Value; }
+				public override void LeaderApply() { ((Bean1)Parent)._l = Value; }
 			}
 
 			public sealed class Log_map1 : LogMap1<int, int>
             {
-				public override void Apply(Bean holder) { ((Bean1)holder)._map1.Apply(this); }
+				public override void FollowerApply(Bean parent) { ((Bean1)parent)._map1.FollowerApply(this); }
+				public override void LeaderApply() { ((Bean1)Parent)._map1.LeaderApply(this); }
 			}
 
 			public sealed class Log_bean2 : LogBean
 			{
-				public override void Apply(Bean holder) { base.Apply(((Bean1)holder)._bean2); }
+				public override void FollowerApply(Bean parent) { base.FollowerApply(((Bean1)parent)._bean2); }
+				public override void LeaderApply() { base.FollowerApply(((Bean1)Parent)._bean2);}
 			}
 
 			public sealed class Log_map2 : LogMap2<int, Bean1>
 			{
-				public override void Apply(Bean holder) { ((Bean1)holder)._map2.Apply(this); }
+				public override void FollowerApply(Bean parent) { ((Bean1)parent)._map2.FollowerApply(this); }
+				public override void LeaderApply() { ((Bean1)Parent)._map2.LeaderApply(this); }
 			}
 
 			public Bean1()
@@ -162,7 +167,8 @@ namespace UnitTest.Zeze.RocksRaft
 
 			public sealed class Log_i : Log<int>
 			{
-				public override void Apply(Bean holder) { ((Bean2)holder)._i = Value; }
+				public override void FollowerApply(Bean holder) { ((Bean2)holder)._i = Value; }
+				public override void LeaderApply() { ((Bean2)Parent)._i = Value; }
 			}
 
 			public override void Decode(ByteBuffer bb)
@@ -210,7 +216,7 @@ namespace UnitTest.Zeze.RocksRaft
 				// 容器内Bean修改日志。
 				bean1.I = 5;
 
-				// 重新put，将会让上面的修改树作废。但是可以从All中看到。
+				// 重新put，将会让上面的修改树作废。但所有的日志树都可以从All中看到。
 				var bean1put = new Bean1();
 				table.Put(1, bean1put);
 

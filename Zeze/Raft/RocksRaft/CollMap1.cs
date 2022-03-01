@@ -65,8 +65,15 @@ namespace Zeze.Raft.RocksRaft
 
 		public Func<LogMap1<K, V>> LogFactory { get; set; }
 
-        public override void Apply(LogMap _log)
+        public void FollowerApply(LogMap _log)
         {
+			var log = (LogMap1<K, V>)_log;
+			map = map.AddRange(log.Putted);
+			map = map.RemoveRange(log.Removed);
+		}
+
+		public void LeaderApply(LogMap _log)
+		{
 			var log = (LogMap1<K, V>)_log;
 			map = log.Value;
 		}

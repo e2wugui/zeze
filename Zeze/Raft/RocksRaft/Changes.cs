@@ -10,6 +10,7 @@ namespace Zeze.Raft.RocksRaft
 	public class Changes : Serializable
 	{
 		// 收集日志时,记录所有Bean修改.
+		// key is Bean.ObjectId
 		public Dictionary<long, LogBean> Beans { get; } = new Dictionary<long, LogBean>();
 
 		public class Record
