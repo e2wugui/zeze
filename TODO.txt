@@ -1,6 +1,5 @@
 【TODO】
 	Zeze 打包和更新工具
-	Zeze GlobalTaskOneByOneByKey？？？
 	Zeze lua beankey 问题。
 	ConfigEditor 自动完成: Foreign
 	ConfigEditor 自动完成：id Load 的时候记录 maxid，以后编辑AddRow都使用这个递增。
@@ -37,6 +36,7 @@
 	Zezex.client: 可靠消息实现的错误检查。
 
 【2022/3/11】
+	RocksRaft 日志收集基本完工。
 	Raft.Test 只删除日志相关数据库。保留重复请求数据库。
 	Raft.UniqueRequestSet.Put 优化：先读取并检查状态，减少写操作。
 	Raft.UniqueRequest.Expired

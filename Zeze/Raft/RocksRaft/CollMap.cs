@@ -16,6 +16,7 @@ namespace Zeze.Raft.RocksRaft
 		public abstract void Put(K key, V value);
 		public abstract void Remove(K key);
 		public abstract void Apply(LogMap log);
+		public abstract void Clear();
 
 		internal V _Get(K key)
 		{

@@ -24,13 +24,27 @@ namespace UnitTest.Zeze.RocksRaft
 			{
 				get
 				{
-					if (false == Transaction.Current.TryGetLog(ObjectId + 1, out var log)) return _i;
-					return ((Log_i)log).Value;
+					if (IsManaged)
+                    {
+						if (false == Transaction.Current.TryGetLog(ObjectId + 1, out var log)) return _i;
+						return ((Log_i)log).Value;
+					}
+                    else
+                    {
+						return _i;
+					}
 				}
 
 				set
 				{
-					Transaction.Current.PutLog(new Log_i() { Parent = this, VariableId = 1, Value = value, });
+					if (IsManaged)
+					{
+						Transaction.Current.PutLog(new Log_i() { Parent = this, VariableId = 1, Value = value, });
+					}
+					else
+					{
+						_i = value;
+					}
 				}
 			}
 
@@ -38,13 +52,27 @@ namespace UnitTest.Zeze.RocksRaft
 			{
 				get
 				{
-					if (false == Transaction.Current.TryGetLog(ObjectId + 2, out var log)) return _l;
-					return ((Log_l)log).Value;
+					if (IsManaged)
+                    {
+						if (false == Transaction.Current.TryGetLog(ObjectId + 2, out var log)) return _l;
+						return ((Log_l)log).Value;
+					}
+					else
+                    {
+						return _l;
+                    }
 				}
 
 				set
 				{
-					Transaction.Current.PutLog(new Log_l() { Parent = this, VariableId = 2, Value = value, });
+					if (IsManaged)
+                    {
+						Transaction.Current.PutLog(new Log_l() { Parent = this, VariableId = 2, Value = value, });
+					}
+					else
+                    {
+						_l = value;
+                    }
 				}
 			}
 

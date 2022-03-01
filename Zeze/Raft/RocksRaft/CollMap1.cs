@@ -50,6 +50,19 @@ namespace Zeze.Raft.RocksRaft
 			}
 		}
 
+		public override void Clear()
+        {
+			if (IsManaged)
+			{
+				var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
+				maplog.Clear();
+			}
+			else
+			{
+				map = map.Clear();
+			}
+		}
+
 		public Func<LogMap1<K, V>> LogFactory { get; set; }
 
         public override void Apply(LogMap _log)
@@ -69,6 +82,7 @@ namespace Zeze.Raft.RocksRaft
 
 		public override void Decode(ByteBuffer bb)
 		{
+			Clear();
 			for (int i = bb.ReadInt(); i >= 0; --i)
 			{
 				var key = SerializeHelper<K>.Decode(bb);

@@ -36,6 +36,15 @@ namespace Zeze.Raft.RocksRaft
 			Removed.Add(key);
 		}
 
+		public void Clear()
+        {
+			foreach (var e in Value)
+			{
+				Remove(e.Key);
+			}
+			Value = ImmutableDictionary<K, V>.Empty;
+        }
+
 		public override void Decode(ByteBuffer bb)
 		{
 			Putted.Clear();
