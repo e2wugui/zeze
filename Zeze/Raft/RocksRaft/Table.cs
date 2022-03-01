@@ -1,4 +1,5 @@
-﻿using System;
+﻿using RocksDbSharp;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,16 +10,17 @@ namespace Zeze.Raft.RocksRaft
 {
 	public abstract class Table
 	{
-		public abstract string Name { get; }
+		public string Name { get; protected set; }
 		internal abstract void Apply(object key, LogBean log);
+        internal abstract void Open();
 	}
 
-	public abstract class Table<K, V> : Table where V : Bean, new()
-	{
+    public class Table<K, V> : Table where V : Bean, new()
+    {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         internal override void Apply(object key, LogBean log)
-		{
+        {
             var r = GetOrLoad((K)key);
             if (null == r.Value)
             {
@@ -26,9 +28,9 @@ namespace Zeze.Raft.RocksRaft
                 //Raft.FatalKill();
             }
             log.Apply(r.Value);
-		}
+        }
 
-		public V GetOrAdd(K key)
+        public V GetOrAdd(K key)
         {
             Transaction currentT = Transaction.Current;
             TableKey tkey = new TableKey(Name, key);
@@ -62,19 +64,19 @@ namespace Zeze.Raft.RocksRaft
 
         public V Get(K key)
         {
-			Transaction currentT = Transaction.Current;
-			TableKey tkey = new TableKey(Name, key);
+            Transaction currentT = Transaction.Current;
+            TableKey tkey = new TableKey(Name, key);
 
-			Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
-			if (null != cr)
-			{
-				return (V)cr.NewestValue();
-			}
+            Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
+            if (null != cr)
+            {
+                return (V)cr.NewestValue();
+            }
 
-			Record<K, V> r = GetOrLoad(key);
-			currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), new Transaction.RecordAccessed(r));
-			return (V)r.Value;
-		}
+            Record<K, V> r = GetOrLoad(key);
+            currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), new Transaction.RecordAccessed(r));
+            return (V)r.Value;
+        }
 
         public bool TryAdd(K key, V value)
         {
@@ -132,14 +134,41 @@ namespace Zeze.Raft.RocksRaft
             currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
         }
 
-        internal Util.ConcurrentLruLike<K, Record<K, V>> Cache { get; private set; }
+        private Util.ConcurrentLruLike<K, Record<K, V>> LruCache;
+        private ColumnFamilyHandle ColumnFamily;
+        public Rocks Rocks { get; }
+        public int Capacity { get; }
+
+        public Table(Rocks rocks, string name, int capacity)
+        {
+            Rocks = rocks;
+            Name = name;
+            Capacity = capacity;
+            Open();
+        }
+
+        internal override void Open()
+        {
+            ColumnFamily = Rocks.OpenFamily(Name);
+            LruCache = new Util.ConcurrentLruLike<K, Record<K, V>>(
+                    Capacity, LruTryRemoveCallback, 200, 2000, 1024, Environment.ProcessorCount);
+        }
+
+        private bool LruTryRemoveCallback(K key, Record<K, V> r)
+        {
+            lock (r)
+            {
+                r.Removed = true;
+                return LruCache.TryRemove(key, out _);
+            }
+        }
 
         private Record<K, V> GetOrLoad(K key)
         {
             TableKey tkey = new TableKey(Name, key);
             while (true)
             {
-                var r = Cache.GetOrAdd(key, (_) => new Record<K, V>());
+                var r = LruCache.GetOrAdd(key, (_) => new Record<K, V>());
                 lock (r)
                 {
                     if (r.Removed)

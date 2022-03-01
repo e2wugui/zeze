@@ -9,246 +9,35 @@ namespace Zeze.Raft.RocksRaft
 {
     public class Rocks
     {
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public ConcurrentDictionary<string, Table> Tables { get; } = new ConcurrentDictionary<string, Table>();
 
         public void Apply(Changes changes)
         {
             foreach (var r in changes.Records)
             {
-                Tables.GetOrAdd(r.Key.Name, (_) => null).Apply(r.Key.Key, r.Value);
-            }
-        }
-
-        public abstract class Map
-        {
-            public string Name { get; }
-            public bool Closed { get; protected set; } = false;
-
-            public Map(string name)
-            {
-                Name = name;
-            }
-
-            internal abstract void OpenWithType();
-            internal virtual void Close()
-            {
-                Closed = true;
-            }
-        }
-
-        public class Map<K, V> : Map where V : Serializable, new()
-        {
-            public Rocks Maps { get; }
-            private ConcurrentLruLike<K, Record> Lru { get; set; }
-            private ColumnFamilyHandle ColumnFamily { get; }
-            public class Record
-            {
-                public byte[] EncodedKey { get; internal set; }
-                public V Value { get; internal set; }
-                public bool Removed { get; internal set; } = false;
-                public bool Loaded { get; internal set; } = false;
-            }
-
-            public Map(
-                Rocks maps,
-                string name,
-                int capacity,
-                int initialCapacity,
-                int concurrencyLevel)
-                : base(name)
-            {
-                Maps = maps;
-                Lru = new ConcurrentLruLike<K, Record>(
-                    capacity, LruTryRemoveCallback, 200, 2000,
-                    initialCapacity, concurrencyLevel);
-                ColumnFamily = Maps.Db.GetColumnFamily(Name);
-            }
-
-            internal override void OpenWithType()
-            {
-                Maps.GetOrAdd<K, V>(Name, Lru.Capacity, Lru.InitialCapacity, Lru.ConcurrencyLevel);
-            }
-
-            public V GetOrAdd(K key)
-            {
-                return GetOrAdd(key, (_) => new V());
-            }
-
-            private void Verify()
-            {
-                if (Closed)
-                    throw new Exception("Map Closed. maybe has a old Map reference.");
-
-            }
-
-            public V GetOrAdd(K key, Func<K, V> factory)
-            {
-                Verify();
-                Maps.rwLock.EnterReadLock();
-                try
+                if (Tables.TryGetValue(r.Key.Name, out var table))
                 {
-                    while (true)
-                    {
-                        var r = Lru.GetOrAdd(key, (_) => new Record());
-                        lock (r)
-                        {
-                            if (r.Removed)
-                                continue;
-                            TryLoad(key, r);
-                            // 新增Record.Value保留初始值，不马上写入Db，
-                            if (r.Value == null)
-                                r.Value = factory(key);
-                            return r.Value;
-                        }
-                    }
+                    table.Apply(r.Key.Key, r.Value);
                 }
-                finally
+                else
                 {
-                    Maps.rwLock.ExitReadLock();
-                }
-            }
-
-            public void Update(K key, Action<V> updator)
-            {
-                Verify();
-                Maps.rwLock.EnterReadLock();
-                try
-                {
-                    while (true)
-                    {
-                        var r = Lru.GetOrAdd(key, (_) => new Record());
-                        lock (r)
-                        {
-                            if (r.Removed)
-                                continue;
-                            TryLoad(key, r);
-                            // 新增Record.Value保留初始值，不马上写入Db，
-                            if (r.Value == null)
-                                r.Value = new V();
-                            updator(r.Value);
-                            var bb = EncodeValue(r.Value);
-                            Maps.Db.Put(r.EncodedKey, r.EncodedKey.Length, bb.Bytes, bb.Size, ColumnFamily, Maps.WriteOptions);
-                            return;
-                        }
-                    }
-                }
-                finally
-                {
-                    Maps.rwLock.ExitReadLock();
-                }
-            }
-
-            public bool Remove(K key)
-            {
-                return Remove(key, (v) => null != v);
-            }
-
-            // checker(value) value maybe null if not exist
-            public bool Remove(K key, Func<V, bool> checker)
-            {
-                Verify();
-                Maps.rwLock.EnterReadLock();
-                try
-                {
-                    while (true)
-                    {
-                        var r = Lru.GetOrAdd(key, (_) => new Record());
-                        lock (r)
-                        {
-                            if (r.Removed)
-                                continue; // 这个是从Cache中删除的标志。
-                            TryLoad(key, r);
-                            if (checker(r.Value))
-                            {
-                                Maps.Db.Remove(r.EncodedKey, ColumnFamily, Maps.WriteOptions);
-                                r.Value = default(V);
-                                r.Removed = true;
-                                Lru.TryRemove(key, out _);
-                                return true;
-                            }
-                            return false;
-                        }
-                    }
-                }
-                finally
-                {
-                    Maps.rwLock.ExitReadLock();
-                }
-            }
-
-            private bool TryLoad(K key, Record r)
-            {
-                if (false == r.Loaded)
-                {
-                    r.EncodedKey = EncodeKey(key).Copy();
-                    var valueBytes = Maps.Db.Get(r.EncodedKey, ColumnFamily);
-                    r.Value = DecodeValue(valueBytes);
-                    r.Loaded = true;
-                    return true;
-                }
-                return false;
-            }
-
-            public ByteBuffer EncodeKey(K key)
-            {
-                var bb = ByteBuffer.Allocate();
-                SerializeHelper<K>.Encode(bb, key);
-                return bb;
-            }
-
-            public ByteBuffer EncodeValue(V v)
-            {
-                var bb = ByteBuffer.Allocate();
-                v.Encode(bb);
-                return bb;
-            }
-
-            public V DecodeValue(byte[] bytes)
-            {
-                if (null == bytes)
-                    return default(V);
-
-                var bb = ByteBuffer.Wrap(bytes);
-                var value = new V();
-                value.Decode(bb);
-                return value;
-            }
-
-            private bool LruTryRemoveCallback(K key, Record r)
-            {
-                Maps.rwLock.EnterReadLock();
-                try
-                {
-                    lock (r)
-                    {
-                        r.Removed = true;
-                        return Lru.TryRemove(key, out _);
-                    }
-                }
-                finally
-                {
-                    Maps.rwLock.ExitReadLock();
+                    logger.Error($"table not found {r.Key.Name}");
                 }
             }
         }
 
         public string DbHome { get; }
-        public bool Sync { get; }
+        internal RocksDb Db;
+        private ConcurrentDictionary<string, ColumnFamilyHandle> Columns
+            = new ConcurrentDictionary<string, ColumnFamilyHandle>();
+        private Raft Raft;
+        public WriteOptions WriteOptions { get; }
 
-        private RocksDb Db;
-        private readonly System.Threading.ReaderWriterLockSlim rwLock
-            = new System.Threading.ReaderWriterLockSlim(
-                System.Threading.LockRecursionPolicy.SupportsRecursion);
-
-        private ConcurrentDictionary<string, Map> Maps = new ConcurrentDictionary<string, Map>();
-        private ConcurrentDictionary<string, string> Columns = new ConcurrentDictionary<string, string>();
-        private WriteOptions WriteOptions;
-
-        public Rocks(string dbHome, bool sync = true)
+        public Rocks(string dbHome, bool sync = false)
         {
             DbHome = dbHome;
-            Sync = sync;
-            WriteOptions = new WriteOptions().SetSync(Sync);
+            WriteOptions = new WriteOptions().SetSync(sync);
 
             OpenDb();
         }
@@ -258,67 +47,78 @@ namespace Zeze.Raft.RocksRaft
             var options = new DbOptions().SetCreateIfMissing(true);
             var dbName = Path.Combine(DbHome, "datas");
 
-            Columns.Clear();
             var columns = new ColumnFamilies();
             if (Directory.Exists(dbName))
             {
                 foreach (var column in RocksDb.ListColumnFamilies(options, dbName))
                 {
                     columns.Add(column, new ColumnFamilyOptions());
-                    Columns[column] = column;
                 }
             }
 
             Db = RocksDb.Open(options, dbName, columns);
-
-            // 第一次打开时，Maps是空的；应用调用RocksRaft.GetOrAdd创建Map。
-            // Restore 时需要重置Maps，在重建已经打开的Map；
-            // 执行旧的打开的Map.OpenWithType，它里面调用一次新的Maps.GetOrAdd<K, V>。
-            // 【问题&TODO&BUG】为了减轻使用者负担，RocksRaft.GetOrAdd返回的Map<K,V>实例的引用需要不能改变。
-            var openedMaps = Maps;
-            Maps = new ConcurrentDictionary<string, Map>();
-            foreach (var map in openedMaps)
+            Columns.Clear();
+            foreach (var col in columns)
             {
-                map.Value.OpenWithType();
+                Columns[col.Name] = Db.GetColumnFamily(col.Name);
+            }
+
+            foreach (var table in Tables.Values)
+            {
+                table.Open();
             }
         }
 
-        public Map<K, V> GetOrAdd<K, V>(
-            string name,
-            // 下面的参数仅在第一次创建Map时才被使用
-            int capacity = 10000_0000,
-            int initialCapacity = 10000_0000,
-            int concurrentcyLevel = 1024
-            )
-            where V : Serializable, new()
+        internal ColumnFamilyHandle OpenFamily(string name)
         {
-            return (Map<K, V>)Maps.GetOrAdd(name, (key) =>
+            return Columns.GetOrAdd(name, (_) =>
             {
-                if (false == Columns.ContainsKey(name))
-                {
-                    var ops = new ColumnFamilyOptions();
-                    Db.CreateColumnFamily(ops, name); // will get in Map constructor.
-                }
-                return new Map<K, V>(this, name, capacity, initialCapacity, concurrentcyLevel);
+                var ops = new ColumnFamilyOptions();
+                return Db.CreateColumnFamily(ops, name);
             });
         }
 
-        public string Checkpoint(Action action = null)
+        public Table<K, V> OpenTable<K, V>(string name, int capacity = 1_0000)
+            where V : Bean, new()
+        {
+            return (Table<K, V>)Tables.GetOrAdd(name, (key) => new Table<K, V>(this, name, capacity));
+        }
+
+        public void Snapshot(string path)
+        {
+            var cphome = Checkpoint(out long lastIncludedIndex, out long lastIncludedTerm);
+            var backupdir = Path.Combine(DbHome, "backup");
+            Backup(cphome, backupdir);
+
+            // 把 backupdir 目录打包到文件 path 中。
+
+            Raft.LogSequence.CommitSnapshot(path, lastIncludedIndex);
+        }
+
+        public void LoadFromSnapshot(string path)
+        {
+            var backupdir = Path.Combine(DbHome, "backup");
+            FileSystem.DeleteDirectory(backupdir);
+
+            // 从文件path解包到目录backupdir。
+
+            Restore(backupdir);
+        }
+
+        public string Checkpoint(out long lastIncludedIndex, out long lastIncludedTerm)
         {
             var checkpintDir = Path.Combine(DbHome, "checkpoint_" + DateTime.Now.Ticks);
 
-            // fast checkpoint, will stop application.
-            rwLock.EnterWriteLock();
-            try
+            // fast checkpoint, will stop application apply.
+            lock (Raft)
             {
+                var lastAppliedLog = Raft.LogSequence.LastAppliedLog();
+                lastIncludedIndex = lastAppliedLog.Index;
+                lastIncludedTerm = lastAppliedLog.Term;
+
                 var cp = Db.Checkpoint();
                 cp.Save(checkpintDir);
                 cp.Dispose();
-                action?.Invoke();
-            }
-            finally
-            {
-                rwLock.ExitWriteLock();
             }
             return checkpintDir;
         }
@@ -384,18 +184,17 @@ namespace Zeze.Raft.RocksRaft
 
         public bool Restore(string backupdir)
         {
-            var Rocks = Native.Instance;
+            var N = Native.Instance;
 
-            rwLock.EnterWriteLock();
-            try
+            lock (Raft)
             {
                 IntPtr backup = IntPtr.Zero;
-                IntPtr options = Rocks.rocksdb_options_create();
-                IntPtr restore_options = Rocks.rocksdb_restore_options_create();
+                IntPtr options = N.rocksdb_options_create();
+                IntPtr restore_options = N.rocksdb_restore_options_create();
                 try
                 {
                     var err = IntPtr.Zero;
-                    backup = Rocks.rocksdb_backup_engine_open(options, backupdir, out err);
+                    backup = N.rocksdb_backup_engine_open(options, backupdir, out err);
                     if (err != IntPtr.Zero)
                         return false;
 
@@ -404,7 +203,7 @@ namespace Zeze.Raft.RocksRaft
 
                     // restore
                     var dbName = Path.Combine(DbHome, "datas");
-                    Rocks.rocksdb_backup_engine_restore_db_from_latest_backup(
+                    N.rocksdb_backup_engine_restore_db_from_latest_backup(
                         backup, dbName, dbName, restore_options, out err);
                     if (err != IntPtr.Zero)
                         return false;
@@ -416,16 +215,12 @@ namespace Zeze.Raft.RocksRaft
                 finally
                 {
                     if (backup != IntPtr.Zero)
-                        Rocks.rocksdb_backup_engine_close(backup);
+                        N.rocksdb_backup_engine_close(backup);
                     if (restore_options != IntPtr.Zero)
-                        Rocks.rocksdb_restore_options_destroy(restore_options);
+                        N.rocksdb_restore_options_destroy(restore_options);
                     if (options != IntPtr.Zero)
-                        Rocks.rocksdb_options_destroy(options);
+                        N.rocksdb_options_destroy(options);
                 }
-            }
-            finally
-            {
-                rwLock.ExitWriteLock();
             }
         }
     }

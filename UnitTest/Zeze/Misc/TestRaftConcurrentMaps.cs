@@ -13,18 +13,22 @@ namespace UnitTest.Zeze.Misc
     [TestClass]
     public class TestRaftConcurrentMaps
     {
-        public class Value : Serializable
+        public class Value : Bean
         {
             public int Int { get; set; }
 
-            public void Decode(ByteBuffer bb)
+            public override void Decode(ByteBuffer bb)
             {
                 Int = bb.ReadInt();
             }
 
-            public void Encode(ByteBuffer bb)
+            public override void Encode(ByteBuffer bb)
             {
                 bb.WriteInt(Int);
+            }
+
+            protected override void InitChildrenRootInfo(Record.RootInfo root)
+            {
             }
         }
 
@@ -32,12 +36,8 @@ namespace UnitTest.Zeze.Misc
         public void TestRocksDbColumn()
         {
             var storage = new Rocks(".");
-            var map = storage.GetOrAdd<int, Value>("int2int");
-            map.Update(1, (v) => v.Int = 0);
-            Assert.AreEqual(0, map.GetOrAdd(1).Int);
-            map.Update(1, (v) => v.Int++);
-            Assert.AreEqual(1, map.GetOrAdd(1).Int);
-            var cpdir = storage.Checkpoint();
+            var map = storage.OpenTable<int, Value>("int2value");
+            var cpdir = storage.Checkpoint(out var index, out var term);
             try
             {
                 Assert.IsTrue(storage.Backup(cpdir, "backup"));
@@ -46,11 +46,6 @@ namespace UnitTest.Zeze.Misc
             {
                 Directory.Delete(cpdir, true);
             }
-            map.Update(1, (v) => v.Int++);
-            Assert.AreEqual(2, map.GetOrAdd(1).Int);
-            Assert.IsTrue(storage.Restore("backup"));
-            map = storage.GetOrAdd<int, Value>("int2int");
-            Assert.AreEqual(1, map.GetOrAdd(1).Int);
         }
 
     }
