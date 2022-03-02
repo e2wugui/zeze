@@ -31,7 +31,12 @@ namespace UnitTest.Zeze.Misc
             {
             }
 
-            public override void Apply(Log log)
+            public override void FollowerApply(Log log)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override void LeaderApplyNoRecursive(Log log)
             {
                 throw new NotImplementedException();
             }

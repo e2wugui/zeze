@@ -14,21 +14,19 @@ namespace Zeze.Raft.RocksRaft
 		{
 			public Record Record { get; }
 			public TableKey TableKey { get; }
-			public Rocks Rocks { get; }
 
-			public RootInfo(Rocks rocks, Record record, TableKey tableKey)
+			public RootInfo(Record record, TableKey tableKey)
 			{
-				Rocks = rocks;
 				Record = record;
 				TableKey = tableKey;
 			}
 		}
 
-		public RootInfo CreateRootInfoIfNeed(Rocks rocks, TableKey tkey)
+		public RootInfo CreateRootInfoIfNeed(TableKey tkey)
 		{
 			var cur = Value?.RootInfo;
 			if (null == cur)
-				cur = new RootInfo(rocks, this, tkey);
+				cur = new RootInfo(this, tkey);
 			return cur;
 		}
 

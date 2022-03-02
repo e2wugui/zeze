@@ -66,21 +66,20 @@ namespace Zeze.Raft.RocksRaft
 			}
 		}
 
-		public override void Apply(Log _log)
+		public override void FollowerApply(Log _log)
 		{
 			var log = (LogMap2<K, V>)_log;
-			if (RootInfo.Rocks.Raft.IsLeader)
-            {
-				map = log.Value;
-            }
-			else
-            {
-				map = map.AddRange(log.Putted);
-				map = map.RemoveRange(log.Removed);
-				//foreach () // update Changed
-				{
-				}
+			map = map.AddRange(log.Putted);
+			map = map.RemoveRange(log.Removed);
+			//foreach () // update Changed
+			{
 			}
+		}
+
+		public override void LeaderApplyNoRecursive(Log _log)
+		{
+			var log = (LogMap2<K, V>)_log;
+			map = log.Value;
 		}
 
 		public void LeaderApply(LogMap _log)

@@ -52,7 +52,7 @@ namespace Zeze.Raft.RocksRaft
                 case Changes.Record.Put:
                     r = GetOrLoad((K)key, rlog.PutValue);
                     foreach (var log in rlog.LogBean)
-                        r.Value.Apply(log); // 最多一个。
+                        r.Value.FollowerApply(log); // 最多一个。
                     break;
 
                 case Changes.Record.Edit:
@@ -63,7 +63,7 @@ namespace Zeze.Raft.RocksRaft
                         Rocks.Raft.FatalKill();
                     }
                     foreach (var log in rlog.LogBean)
-                        r.Value.Apply(log); // 最多一个。
+                        r.Value.FollowerApply(log); // 最多一个。
                     break;
 
                 default:
@@ -93,7 +93,7 @@ namespace Zeze.Raft.RocksRaft
             {
                 Record<K, V> r = GetOrLoad(key);
                 cr = new Transaction.RecordAccessed(r);
-                currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(Rocks, tkey), cr);
+                currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
 
                 if (null != r.Value)
                     return (V)r.Value;
@@ -101,7 +101,7 @@ namespace Zeze.Raft.RocksRaft
             }
 
             V add = new V();
-            add.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(Rocks, tkey), null);
+            add.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
             cr.Put(currentT, add);
             return add;
         }
@@ -118,7 +118,7 @@ namespace Zeze.Raft.RocksRaft
             }
 
             Record<K, V> r = GetOrLoad(key);
-            currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(Rocks, tkey), new Transaction.RecordAccessed(r));
+            currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), new Transaction.RecordAccessed(r));
             return (V)r.Value;
         }
 
@@ -130,7 +130,7 @@ namespace Zeze.Raft.RocksRaft
             Transaction currentT = Transaction.Current;
             TableKey tkey = new TableKey(Name, key);
             Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
-            value.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(Rocks, tkey), null);
+            value.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
             cr.Put(currentT, value);
             return true;
         }
@@ -149,14 +149,14 @@ namespace Zeze.Raft.RocksRaft
             Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
             {
-                value.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(Rocks, tkey), null);
+                value.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
                 cr.Put(currentT, value);
                 return;
             }
             Record<K, V> r = GetOrLoad(key);
             cr = new Transaction.RecordAccessed(r);
             cr.Put(currentT, value);
-            currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(Rocks, tkey), cr);
+            currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
         }
 
         // 几乎和Put一样，还是独立开吧。
@@ -175,7 +175,7 @@ namespace Zeze.Raft.RocksRaft
             Record<K, V> r = GetOrLoad(key);
             cr = new Transaction.RecordAccessed(r);
             cr.Put(currentT, null);
-            currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(Rocks, tkey), cr);
+            currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
         }
 
         private Util.ConcurrentLruLike<K, Record<K, V>> LruCache;
@@ -214,7 +214,7 @@ namespace Zeze.Raft.RocksRaft
                     {
                         // from FollowerApply
                         r.Value = putvalue;
-                        r.Value.InitRootInfo(r.CreateRootInfoIfNeed(Rocks, tkey), null);
+                        r.Value.InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
                         r.Timestamp = Record.NextTimestamp;
                         r.State = Record.StateLoad;
                     }
@@ -222,7 +222,7 @@ namespace Zeze.Raft.RocksRaft
                     {
                         // fresh record
                         r.Value = StorageLoad(key);
-                        r.Value?.InitRootInfo(r.CreateRootInfoIfNeed(Rocks, tkey), null);
+                        r.Value?.InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
                         r.Timestamp = Record.NextTimestamp;
                         r.State = Record.StateLoad;
                     }

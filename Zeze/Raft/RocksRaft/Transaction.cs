@@ -87,7 +87,12 @@ namespace Zeze.Raft.RocksRaft
                 throw new NotImplementedException();
             }
 
-            public override void Apply(Log log)
+            public override void FollowerApply(Log log)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override void LeaderApplyNoRecursive(Log log)
             {
                 throw new NotImplementedException();
             }
@@ -290,7 +295,20 @@ namespace Zeze.Raft.RocksRaft
 
             /////////////////////////////////////////////////////////////////////////
             // Leader
-            procedure.Rocks.Apply(Changes);
+            foreach (Log log in sp.Logs.Values)
+            {
+                log.Bean?.LeaderApplyNoRecursive(log);
+            }
+            var rs = new List<Record>();
+            foreach (var ar in AccessedRecords.Values)
+            {
+                if (ar.Dirty)
+                {
+                    ar.Origin.LeaderApply(ar);
+                    rs.Add(ar.Origin);
+                }
+            }
+            procedure.Rocks.Flush(rs);
             procedure.RequestProtocol?.SendResultCode(procedure.RequestProtocol.ResultCode);
             _trigger_commit_actions_(procedure);
         }
