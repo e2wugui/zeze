@@ -143,7 +143,7 @@ namespace Zeze.Raft.RocksRaft
 				if (log.Bean is Collection)
 				{
 					// 容器使用共享的日志。需要先去查询，没有的话才创建。
-					logbean = (LogBean)Transaction.Current.GetLog(log.Bean.ObjectId);
+					logbean = (LogBean)Transaction.Current.GetLog(log.Bean.Parent.ObjectId + log.Bean.VariableId);
 				}
 				if (null == logbean)
                 {

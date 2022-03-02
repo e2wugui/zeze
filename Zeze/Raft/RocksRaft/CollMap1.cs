@@ -13,7 +13,7 @@ namespace Zeze.Raft.RocksRaft
 		{
 			if (IsManaged)
             {
-				if (false == Transaction.Current.TryGetLog(ObjectId, out var log))
+				if (false == Transaction.Current.TryGetLog(Parent.ObjectId + VariableId, out var log))
 					return _Get(key);
 				var maplog = (LogMap1<K, V>)log;
 				return maplog.Get(key);
@@ -28,7 +28,7 @@ namespace Zeze.Raft.RocksRaft
 		{
 			if (IsManaged)
             {
-				var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(ObjectId, CreateLogBean);
+				var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
 				maplog.Put(key, value);
 			}
 			else
@@ -41,7 +41,7 @@ namespace Zeze.Raft.RocksRaft
 		{
 			if (IsManaged)
 			{
-				var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(ObjectId, CreateLogBean);
+				var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
 				maplog.Remove(key);
 			}
 			else
@@ -54,7 +54,7 @@ namespace Zeze.Raft.RocksRaft
         {
 			if (IsManaged)
 			{
-				var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(ObjectId, CreateLogBean);
+				var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
 				maplog.Clear();
 			}
 			else
@@ -66,7 +66,7 @@ namespace Zeze.Raft.RocksRaft
         public override void FollowerApply(Log _log)
         {
 			var log = (LogMap1<K, V>)_log;
-			map = map.AddRange(log.Putted);
+			map = map.SetItems(log.Putted);
 			map = map.RemoveRange(log.Removed);
 		}
 
