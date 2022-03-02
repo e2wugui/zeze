@@ -345,7 +345,7 @@ namespace Zeze.Raft
                                 {
                                     var cex = c as Server.ConnectorEx;
                                     if (now - cex.AppendLogActiveTime > RaftConfig.LeaderHeartbeatTimer)
-                                        LogSequence.SendHearbeatTo(cex);
+                                        LogSequence.SendHeartbeatTo(cex);
                                 });
                             break;
                     }

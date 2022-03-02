@@ -205,7 +205,7 @@ namespace Zeze.Raft
                         // 唯一请求存根自己管理删除，【TODO】
                         // 【注意】
                         // 服务器完全奔溃（数据全部丢失）后，重新配置一台新的服务器，仍然又很小的机会存在无法判断唯一。
-                        // 此时比较好的做法时，从工作节点的数据库(uniqe/)复制出一份，作为开始数据。
+                        // 此时比较好的做法时，从工作节点的数据库(unique/)复制出一份，作为开始数据。
                         // 参考 RemoveLogAndCancelStart 
 
                         //if (raftLog.Log.Unique.RequestId > 0)
@@ -272,9 +272,6 @@ namespace Zeze.Raft
                 LogSequence = lq;
                 DbName = dbName;
             }
-
-            static ConcurrentDictionary<string, ConcurrentDictionary<long, long>> unique
-                = new ConcurrentDictionary<string, ConcurrentDictionary<long, long>>();
 
             private void Put(RaftLog log, bool isApply)
             {
@@ -473,7 +470,7 @@ namespace Zeze.Raft
                 // 节点第一次启动，包括机器毁坏后换了新机器再次启动时为 false。
                 // 当满足以下条件之一：
                 // 1. 成为Leader并且Ready
-                // 2. 成为Follower并在处理AppendEntries时观察到LeaderCommtit发生了变更
+                // 2. 成为Follower并在处理AppendEntries时观察到LeaderCommit发生了变更
                 // 满足条件以后设置 NodeReady 为 true。
                 // 这个条件影响投票逻辑：NodeReady 为 true 以前，只允许给 Candidate.LastIndex == 0 的节点投票。
                 var nodeReadyKey = ByteBuffer.Allocate();
@@ -779,7 +776,7 @@ namespace Zeze.Raft
         internal ConcurrentDictionary<long, TaskCompletionSource<int>> WaitApplyFutures { get; }
             = new ConcurrentDictionary<long, TaskCompletionSource<int>>();
 
-        internal void SendHearbeatTo(Server.ConnectorEx connector)
+        internal void SendHeartbeatTo(Server.ConnectorEx connector)
         {
             lock (Raft)
             {
@@ -797,21 +794,21 @@ namespace Zeze.Raft
                 var socket = connector.TryGetReadySocket();
                 if (null == socket)
                 {
-                    // Hearbeat Will Retry
+                    // Heartbeat Will Retry
                     return;
                 }
 
-                var hearbeat = new AppendEntries();
-                hearbeat.Argument.Term = Term;
-                hearbeat.Argument.LeaderId = Raft.Name;
-                hearbeat.Send(socket, (p) =>
+                var heartbeat = new AppendEntries();
+                heartbeat.Argument.Term = Term;
+                heartbeat.Argument.LeaderId = Raft.Name;
+                heartbeat.Send(socket, (p) =>
                 {
-                    if (hearbeat.IsTimeout)
+                    if (heartbeat.IsTimeout)
                         return 0; // skip
 
                     lock (Raft)
                     {
-                        if (Raft.LogSequence.TrySetTerm(hearbeat.Result.Term) == SetTermResult.Newer)
+                        if (Raft.LogSequence.TrySetTerm(heartbeat.Result.Term) == SetTermResult.Newer)
                         {
                             // new term found.
                             Raft.ConvertStateTo(Raft.RaftState.Follower);
@@ -930,7 +927,7 @@ namespace Zeze.Raft
                         return;
                     }
                     // 7. Discard the entire log
-                    // 整个删除，那么下一次AppendEnties又会找不到prev。不就xxx了吗?
+                    // 整个删除，那么下一次AppendEntries又会找不到prev。不就xxx了吗?
                     // 我的想法是，InstallSnapshot 最后一个 trunk 带上 LastIncludedLog，
                     // 接收者清除log，并把这条日志插入（这个和系统初始化时插入的Index=0的日志道理差不多）。
                     // 【除了快照最后包含的日志，其他都删除。】
@@ -1196,7 +1193,7 @@ namespace Zeze.Raft
                 Raft.RaftConfig.AppendEntriesTimeout))
             {
                 connector.Pending = null;
-                // Hearbeat Will Retry
+                // Heartbeat Will Retry
             }
         }
 
@@ -1274,7 +1271,7 @@ namespace Zeze.Raft
                     break;
             }
 
-            // is Hearbeat(KeepAlive)
+            // is Heartbeat(KeepAlive)
             if (r.Argument.Entries.Count == 0)
             {
                 r.Result.Success = true;
