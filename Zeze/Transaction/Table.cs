@@ -109,7 +109,8 @@ namespace Zeze.Transaction
                             {
                                 r.Value = DecodeValue(old);
                                 // 从旧表装载时，马上设为脏，使得可以写入新表。
-                                // TODO CheckpointMode.Immediately 需要特殊处理。
+                                // TODO CheckpointMode.Immediately
+                                // 需要马上保存，否则，直到这个记录被访问才有机会保存。
                                 r.SetDirty();
                             }
                         }

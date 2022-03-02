@@ -7,10 +7,10 @@ using Zeze.Serialize;
 
 namespace Zeze.Raft.RocksRaft
 {
-    public class TableKey : IComparable<TableKey>, Serializable
+    public class TableKey : IComparable<TableKey>
     {
-        public string Name { get; set; }
-        public object Key { get; set; }
+        public string Name;
+        public object Key;
 
         public TableKey()
         {
@@ -21,16 +21,6 @@ namespace Zeze.Raft.RocksRaft
         {
             Name = name;
             Key = key;
-        }
-
-        public void Decode(ByteBuffer bb)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void Encode(ByteBuffer bb)
-        {
-            throw new NotImplementedException();
         }
 
         public override string ToString()

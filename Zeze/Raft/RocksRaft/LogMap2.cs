@@ -23,11 +23,11 @@ namespace Zeze.Raft.RocksRaft
             base.Encode(bb);
         }
 
-		public override void Collect(Changes changes, Bean prevparent, Log vlog)
+		public override void Collect(Changes changes, Bean recent, Log vlog)
 		{
 			if (Changed.Add((LogBean)vlog))
             {
-				changes.Collect(prevparent, this);
+				changes.Collect(recent, this);
 			}
 		}
 

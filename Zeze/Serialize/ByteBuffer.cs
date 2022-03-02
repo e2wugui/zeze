@@ -939,7 +939,7 @@ namespace Zeze.Serialize
 
         public void Decode<T>(ICollection<T> c)
         { 
-            for (int i = ReadInt(); i >= 0; --i)
+            for (int i = ReadInt(); i > 0; --i)
             {
                 c.Add(SerializeHelper<T>.Decode(this));
             }

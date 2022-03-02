@@ -5,12 +5,14 @@ using Zeze.Serialize;
 using Zeze.Util;
 using RocksDbSharp;
 using System.IO.Compression;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Zeze.Raft.RocksRaft
 {
     public class Rocks : StateMachine, IDisposable
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        internal static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public ConcurrentDictionary<string, Table> Tables { get; } = new ConcurrentDictionary<string, Table>();
 
         public Procedure NewProcedure(Func<long> func)
@@ -18,19 +20,14 @@ namespace Zeze.Raft.RocksRaft
             return new Procedure(this, func);
         }
 
-        internal void Apply(Changes changes)
+        internal void FollowerApply(Changes changes)
         {
-            foreach (var r in changes.Records)
+            var rs = new List<Record>();
+            foreach (var e in changes.Records)
             {
-                if (Tables.TryGetValue(r.Key.Name, out var table))
-                {
-                    table.FollowerApply(r.Key.Key, r.Value);
-                }
-                else
-                {
-                    logger.Error($"table not found {r.Key.Name}");
-                }
+                rs.Add(e.Value.Table.FollowerApply(e.Key.Key, e.Value));
             }
+            Flush(rs);
         }
 
         public string Home { get; }
@@ -47,11 +44,14 @@ namespace Zeze.Raft.RocksRaft
             Config config = null, // "zeze.xml"
             bool RocksDbWriteOptionSync = false)
         {
+            RegisterLog<LogBean>();
+
             Home = home;
             WriteOptions = new WriteOptions().SetSync(RocksDbWriteOptionSync);
 
             // 这个赋值是不必要的，new Raft(...)内部会赋值。有点奇怪。
             base.Raft = new Raft(this, raftName, raftConfig, config);
+            base.Raft.AtFatalKills += () => Storage?.Dispose();
             base.Raft.LogSequence.WriteOptions.SetSync(RocksDbWriteOptionSync);
 
             // Raft 在有快照的时候，会调用LoadSnapshot-Restore-OpenDb。
@@ -255,17 +255,19 @@ namespace Zeze.Raft.RocksRaft
             Restore(backupdir);
         }
 
-        internal void Flush(Transaction trans)
+        internal void Flush(IEnumerable<Record> rs)
         {
             WriteBatch batch = new WriteBatch();
-            foreach (var ar in trans.AccessedRecords.Values)
+            foreach (var r in rs)
             {
-                if (ar.Dirty)
-                {
-                    ar.Origin.Flush(batch);
-                }
+                r.Flush(batch);
             }
             Storage.Write(batch, WriteOptions);
+        }
+
+        public void RegisterLog<T>() where T : Log, new()
+        {
+            Log.Factorys.TryAdd(new T().TypeId, () => new T());
         }
     }
 }

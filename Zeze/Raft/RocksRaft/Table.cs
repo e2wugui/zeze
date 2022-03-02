@@ -12,40 +12,66 @@ namespace Zeze.Raft.RocksRaft
 	public abstract class Table
 	{
 		public string Name { get; protected set; }
-		internal abstract void FollowerApply(object key, Changes.Record rlog);
+		internal abstract Record FollowerApply(object key, Changes.Record rlog);
         internal abstract void Open();
-	}
+        public abstract Bean NewValue();
+        public abstract void EncodeKey(ByteBuffer bb, object key);
+        public abstract void DecodeKey(ByteBuffer bb, out object key);
+    }
 
     public class Table<K, V> : Table where V : Bean, new()
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        internal override void FollowerApply(object key, Changes.Record rlog)
+        public override void DecodeKey(ByteBuffer bb, out object key)
         {
+            key = SerializeHelper<K>.Decode(bb);
+        }
+
+        public override void EncodeKey(ByteBuffer bb, object key)
+        {
+            SerializeHelper<K>.Encode(bb, (K)key);
+        }
+
+        public override Bean NewValue()
+        {
+            return new V();
+        }
+
+        internal override Record FollowerApply(object key, Changes.Record rlog)
+        {
+            Record<K, V> r = null;
             switch (rlog.State)
             {
                 case Changes.Record.Remove:
-                    //ApplyRemove((K)key);
+                    r = GetOrLoad((K)key);
+                    r.Value = null;
+                    r.Timestamp = Record.NextTimestamp;
                     break;
 
                 case Changes.Record.Put:
+                    r = GetOrLoad((K)key, rlog.PutValue);
                     foreach (var log in rlog.LogBean) // 最多一个。
-                        log.FollowerApply(rlog.PutValue);
-                    //ApplyPut(rlog.PutValue);
+                        log.FollowerApply(r.Value);
                     break;
 
                 case Changes.Record.Edit:
-                    var r = GetOrLoad((K)key);
+                    r = GetOrLoad((K)key);
                     if (null == r.Value)
                     {
-                        logger.Fatal($"there must be a bug.");
-                        //Raft.FatalKill();
+                        logger.Fatal($"editting bug record not exist.");
+                        Rocks.Raft.FatalKill();
                     }
                     foreach (var log in rlog.LogBean) // 最多一个。
                         log.FollowerApply(r.Value);
-                    //ApplyPut(r.Value);
+                    break;
+
+                default:
+                    logger.Fatal($"unknown Changes.Record.State.");
+                    Rocks.Raft.FatalKill();
                     break;
             }
+            return r;
         }
 
         public V GetOrAdd(K key)
@@ -173,7 +199,7 @@ namespace Zeze.Raft.RocksRaft
                     Capacity, LruTryRemoveCallback, 200, 2000, 1024, Environment.ProcessorCount);
         }
 
-        private Record<K, V> GetOrLoad(K key)
+        private Record<K, V> GetOrLoad(K key, Bean putvalue = null)
         {
             TableKey tkey = new TableKey(Name, key);
             while (true)
@@ -184,16 +210,23 @@ namespace Zeze.Raft.RocksRaft
                     if (r.Removed)
                         continue;
 
-                    if (r.State == Record.StateNew)
+                    if (null != putvalue)
                     {
+                        // from FollowerApply
+                        r.Value = putvalue;
+                        r.Value.InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
                         r.Timestamp = Record.NextTimestamp;
-                        r.Value = StorageLoad(key);
-                        if (null != r.Value)
-                        {
-                            r.Value.InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
-                        }
                         r.State = Record.StateLoad;
                     }
+                    else if (r.State == Record.StateNew)
+                    {
+                        // fresh record
+                        r.Value = StorageLoad(key);
+                        r.Value?.InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
+                        r.Timestamp = Record.NextTimestamp;
+                        r.State = Record.StateLoad;
+                    }
+                    // else in cache
 
                     return r;
                 }

@@ -75,7 +75,7 @@ namespace Zeze.Raft.RocksRaft
 
             public void Put(Transaction current, Bean value)
             {
-                PutValueLog = new PutLog() { Parent = this, Value = value };
+                PutValueLog = new PutLog() { Bean = this, Value = value };
                 current.PutLog(PutValueLog);
             }
 
@@ -200,7 +200,7 @@ namespace Zeze.Raft.RocksRaft
 		}
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-        public Changes Changes { get; private set; } = new Changes();
+        public Changes Changes { get; private set; }
 
         private readonly List<Action> CommitActions = new List<Action>();
 
@@ -238,10 +238,10 @@ namespace Zeze.Raft.RocksRaft
                 {
                     // 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
                     // 现在不会有这种情况，保留给未来扩展需要。
-                    if (log.Parent == null)
+                    if (log.Bean == null)
                         continue;
 
-                    TableKey tkey = log.Parent.TableKey;
+                    TableKey tkey = log.Bean.TableKey;
                     if (AccessedRecords.TryGetValue(tkey, out var record))
                     {
                         record.Dirty = true;
@@ -263,15 +263,16 @@ namespace Zeze.Raft.RocksRaft
         {
             // Collect Changes
             Savepoint sp = Savepoints[Savepoints.Count - 1];
+            Changes = new Changes(procedure);
             foreach (Log log in sp.Logs.Values)
             {
                 // 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
-                if (log.Parent == null)
+                if (log.Bean == null)
                     continue;
 
                 // 当changes.Collect在日志往上一级传递时调用，
                 // 第一个参数Owner为null，表示bean属于record，到达root了。
-                Changes.Collect(log.Parent, log);
+                Changes.Collect(log.Bean, log);
             }
             foreach (var ar in AccessedRecords.Values)
             {
@@ -280,13 +281,22 @@ namespace Zeze.Raft.RocksRaft
 
             // Raft
             // procedure.Rocks.Raft.AppendLog(null, procedure.Rpc?.Result);
-
-            // Apply
+            {
+                var bb = ByteBuffer.Allocate(1024);
+                Changes.Encode(bb);
+                var tmp = new Changes(procedure);
+                tmp.Decode(bb);
+                procedure.Rocks.FollowerApply(tmp);
+                procedure.RequestProtocol?.SendResultCode(procedure.RequestProtocol.ResultCode);
+                _trigger_commit_actions_(procedure);
+                return;
+            }
+            /////////////////////////////////////////////////////////////////////////
+            // Leader
             foreach (Log log in sp.Logs.Values)
             {
                 log.LeaderApply();
             }
-
             foreach (var e in AccessedRecords)
             {
                 if (e.Value.Dirty)
@@ -294,13 +304,8 @@ namespace Zeze.Raft.RocksRaft
                     e.Value.Origin.LeaderApply(e.Value);
                 }
             }
-
-            // Flush To Database
-            procedure.Rocks.Flush(this);
-
+            procedure.Rocks.Flush(from ra in AccessedRecords.Values where ra.Dirty select ra.Origin);
             procedure.RequestProtocol?.SendResultCode(procedure.RequestProtocol.ResultCode);
-
-            // Trigger Application Action
             _trigger_commit_actions_(procedure);
         }
         

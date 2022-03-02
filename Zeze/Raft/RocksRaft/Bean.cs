@@ -52,7 +52,7 @@ namespace Zeze.Raft.RocksRaft
 
 		public virtual LogBean CreateLogBean()
 		{
-			return new LogBean() { Parent = Parent, VariableId = VariableId, };
+			return new LogBean() { Bean = Parent, VariableId = VariableId, };
 		}
 	}
 }

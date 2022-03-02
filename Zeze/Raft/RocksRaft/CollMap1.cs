@@ -13,7 +13,7 @@ namespace Zeze.Raft.RocksRaft
 		{
 			if (IsManaged)
             {
-				if (false == Transaction.Current.TryGetLog(Parent.ObjectId + VariableId, out var log))
+				if (false == Transaction.Current.TryGetLog(ObjectId, out var log))
 					return _Get(key);
 				var maplog = (LogMap1<K, V>)log;
 				return maplog.Get(key);
@@ -28,7 +28,7 @@ namespace Zeze.Raft.RocksRaft
 		{
 			if (IsManaged)
             {
-				var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
+				var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(ObjectId, CreateLogBean);
 				maplog.Put(key, value);
 			}
 			else
@@ -41,7 +41,7 @@ namespace Zeze.Raft.RocksRaft
 		{
 			if (IsManaged)
 			{
-				var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
+				var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(ObjectId, CreateLogBean);
 				maplog.Remove(key);
 			}
 			else
@@ -54,7 +54,7 @@ namespace Zeze.Raft.RocksRaft
         {
 			if (IsManaged)
 			{
-				var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
+				var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(ObjectId, CreateLogBean);
 				maplog.Clear();
 			}
 			else
@@ -81,7 +81,7 @@ namespace Zeze.Raft.RocksRaft
 		public override LogBean CreateLogBean()
 		{
 			var log = LogFactory();
-			log.Parent = Parent;
+			log.Bean = Parent;
 			log.VariableId = VariableId;
 			log.Value = map;
 			return log;
@@ -90,7 +90,7 @@ namespace Zeze.Raft.RocksRaft
 		public override void Decode(ByteBuffer bb)
 		{
 			Clear();
-			for (int i = bb.ReadInt(); i >= 0; --i)
+			for (int i = bb.ReadInt(); i > 0; --i)
 			{
 				var key = SerializeHelper<K>.Decode(bb);
 				var value = SerializeHelper<V>.Decode(bb);

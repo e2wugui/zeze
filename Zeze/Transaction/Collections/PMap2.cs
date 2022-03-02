@@ -288,11 +288,11 @@ namespace Zeze.Transaction.Collections
             }
         }
 
-        protected override void InitChildrenRootInfo(Record.RootInfo tableKey)
+        protected override void InitChildrenRootInfo(Record.RootInfo root)
         {
             foreach (var v in map.Values)
             {
-                v.InitRootInfo(RootInfo, Parent);
+                v.InitRootInfo(root, Parent);
             }
         }
     }
