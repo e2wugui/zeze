@@ -49,23 +49,12 @@ namespace Zeze.Raft.RocksRaft
 
             public Bean NewestValue()
             {
-                if (null != PutValueLog)
-                    return PutValueLog.Value;
+                if (null != PutLog)
+                    return PutLog.Value;
                 return Origin.Value;
             }
 
-            public PutLog PutValueLog { get; private set; }
-
-            public class PutLog : Log<Bean>
-            {
-                public override void FollowerApply(Bean parent)
-                {
-                }
-
-                public override void LeaderApply()
-                {
-                }
-            }
+            public Log<Bean> PutLog { get; private set; }
 
             public RecordAccessed(Record origin)
             {
@@ -75,8 +64,8 @@ namespace Zeze.Raft.RocksRaft
 
             public void Put(Transaction current, Bean value)
             {
-                PutValueLog = new PutLog() { Bean = this, Value = value };
-                current.PutLog(PutValueLog);
+                PutLog = new Log<Bean>() { Bean = this, Value = value };
+                current.PutLog(PutLog);
             }
 
             public void Remove(Transaction current)
@@ -90,10 +79,17 @@ namespace Zeze.Raft.RocksRaft
 
             public override void Decode(ByteBuffer bb)
             {
+                throw new NotImplementedException();
             }
 
             public override void Encode(ByteBuffer bb)
             {
+                throw new NotImplementedException();
+            }
+
+            public override void Apply(Log log)
+            {
+                throw new NotImplementedException();
             }
         }
 
@@ -286,25 +282,15 @@ namespace Zeze.Raft.RocksRaft
                 Changes.Encode(bb);
                 var tmp = new Changes(procedure);
                 tmp.Decode(bb);
-                procedure.Rocks.FollowerApply(tmp);
+                procedure.Rocks.Apply(tmp);
                 procedure.RequestProtocol?.SendResultCode(procedure.RequestProtocol.ResultCode);
                 _trigger_commit_actions_(procedure);
                 return;
             }
+
             /////////////////////////////////////////////////////////////////////////
             // Leader
-            foreach (Log log in sp.Logs.Values)
-            {
-                log.LeaderApply();
-            }
-            foreach (var e in AccessedRecords)
-            {
-                if (e.Value.Dirty)
-                {
-                    e.Value.Origin.LeaderApply(e.Value);
-                }
-            }
-            procedure.Rocks.Flush(from ra in AccessedRecords.Values where ra.Dirty select ra.Origin);
+            procedure.Rocks.Apply(Changes);
             procedure.RequestProtocol?.SendResultCode(procedure.RequestProtocol.ResultCode);
             _trigger_commit_actions_(procedure);
         }

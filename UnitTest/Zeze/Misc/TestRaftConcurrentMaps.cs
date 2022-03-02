@@ -30,6 +30,11 @@ namespace UnitTest.Zeze.Misc
             protected override void InitChildrenRootInfo(Record.RootInfo root)
             {
             }
+
+            public override void Apply(Log log)
+            {
+                throw new NotImplementedException();
+            }
         }
 
         [TestMethod]

@@ -20,7 +20,7 @@ namespace Zeze.Raft.RocksRaft
             return new Procedure(this, func);
         }
 
-        internal void FollowerApply(Changes changes)
+        internal void Apply(Changes changes)
         {
             var rs = new List<Record>();
             foreach (var e in changes.Records)
@@ -45,6 +45,8 @@ namespace Zeze.Raft.RocksRaft
             bool RocksDbWriteOptionSync = false)
         {
             RegisterLog<LogBean>();
+            RegisterLog<Log<int>>();
+            RegisterLog<Log<long>>();
 
             Home = home;
             WriteOptions = new WriteOptions().SetSync(RocksDbWriteOptionSync);

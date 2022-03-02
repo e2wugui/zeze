@@ -66,13 +66,20 @@ namespace Zeze.Raft.RocksRaft
 			}
 		}
 
-		public void FollowerApply(LogMap _log)
+		public override void Apply(Log _log)
 		{
 			var log = (LogMap2<K, V>)_log;
-			map = map.AddRange(log.Putted);
-			map = map.RemoveRange(log.Removed);
-			//foreach () // update Changed
-			{
+			if (RootInfo.Rocks.Raft.IsLeader)
+            {
+				map = log.Value;
+            }
+			else
+            {
+				map = map.AddRange(log.Putted);
+				map = map.RemoveRange(log.Removed);
+				//foreach () // update Changed
+				{
+				}
 			}
 		}
 
@@ -82,11 +89,9 @@ namespace Zeze.Raft.RocksRaft
 			map = log.Value;
 		}
 
-		public Func<LogMap2<K, V>> LogFactory { get; set; }
-
 		public override LogBean CreateLogBean()
 		{
-			var log = LogFactory();
+			var log = new LogMap2<K, V>();
 			log.Bean = Parent;
 			log.VariableId = VariableId;
 			log.Value = map;

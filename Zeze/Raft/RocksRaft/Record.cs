@@ -14,19 +14,21 @@ namespace Zeze.Raft.RocksRaft
 		{
 			public Record Record { get; }
 			public TableKey TableKey { get; }
+			public Rocks Rocks { get; }
 
-			public RootInfo(Record record, TableKey tableKey)
+			public RootInfo(Rocks rocks, Record record, TableKey tableKey)
 			{
+				Rocks = rocks;
 				Record = record;
 				TableKey = tableKey;
 			}
 		}
 
-		public RootInfo CreateRootInfoIfNeed(TableKey tkey)
+		public RootInfo CreateRootInfoIfNeed(Rocks rocks, TableKey tkey)
 		{
 			var cur = Value?.RootInfo;
 			if (null == cur)
-				cur = new RootInfo(this, tkey);
+				cur = new RootInfo(rocks, this, tkey);
 			return cur;
 		}
 
@@ -53,9 +55,9 @@ namespace Zeze.Raft.RocksRaft
 
 		internal override void LeaderApply(Transaction.RecordAccessed accessed)
 		{
-			if (null != accessed.PutValueLog)
+			if (null != accessed.PutLog)
 			{
-				Value = accessed.PutValueLog.Value;
+				Value = accessed.PutLog.Value;
 			}
 			Timestamp = NextTimestamp; // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
 		}

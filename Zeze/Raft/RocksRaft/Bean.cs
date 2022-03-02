@@ -54,5 +54,7 @@ namespace Zeze.Raft.RocksRaft
 		{
 			return new LogBean() { Bean = Parent, VariableId = VariableId, };
 		}
+
+		public abstract void Apply(Log log);
 	}
 }

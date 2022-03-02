@@ -27,7 +27,7 @@ namespace UnitTest.Zeze.RocksRaft
 					if (IsManaged)
                     {
 						if (false == Transaction.Current.TryGetLog(ObjectId + 1, out var log)) return _i;
-						return ((Log_i)log).Value;
+						return ((Log<int>)log).Value;
 					}
                     else
                     {
@@ -39,7 +39,7 @@ namespace UnitTest.Zeze.RocksRaft
 				{
 					if (IsManaged)
 					{
-						Transaction.Current.PutLog(new Log_i() { Bean = this, VariableId = 1, Value = value, });
+						Transaction.Current.PutLog(new Log<int>() { Bean = this, VariableId = 1, Value = value, });
 					}
 					else
 					{
@@ -55,7 +55,7 @@ namespace UnitTest.Zeze.RocksRaft
 					if (IsManaged)
                     {
 						if (false == Transaction.Current.TryGetLog(ObjectId + 2, out var log)) return _l;
-						return ((Log_l)log).Value;
+						return ((Log<long>)log).Value;
 					}
 					else
                     {
@@ -67,7 +67,7 @@ namespace UnitTest.Zeze.RocksRaft
 				{
 					if (IsManaged)
                     {
-						Transaction.Current.PutLog(new Log_l() { Bean = this, VariableId = 2, Value = value, });
+						Transaction.Current.PutLog(new Log<long>() { Bean = this, VariableId = 2, Value = value, });
 					}
 					else
                     {
@@ -81,41 +81,27 @@ namespace UnitTest.Zeze.RocksRaft
 
 			public Bean2 Bean2 => _bean2;
 
-            public sealed class Log_i : Log<int>
-			{
-				public override void FollowerApply(Bean parent) { ((Bean1)parent)._i = Value; }
-				public override void LeaderApply() { ((Bean1)Bean)._i = Value; }
-			}
-
-			public sealed class Log_l : Log<long>
-			{
-				public override void FollowerApply(Bean parent) { ((Bean1)parent)._l = Value; }
-				public override void LeaderApply() { ((Bean1)Bean)._l = Value; }
-			}
-
-			public sealed class Log_map1 : LogMap1<int, int>
+            public override void Apply(Log log)
             {
-				public override void FollowerApply(Bean parent) { ((Bean1)parent)._map1.FollowerApply(this); }
-				public override void LeaderApply() { ((Bean1)Bean)._map1.LeaderApply(this); }
+				var blog = (LogBean)log;
+				foreach (var vlog in blog.Variables.Values)
+				{
+					switch (vlog.VariableId)
+					{
+						case 1: _i = ((Log<int>)vlog).Value; break;
+						case 2: _l = ((Log<long>)vlog).Value; break;
+						case 3: _map1.Apply(vlog); break;
+						case 4: _bean2.Apply(vlog); break;
+						case 5: _map2.Apply(vlog); break;
+					}
+				}
 			}
 
-			public sealed class Log_bean2 : LogBean
-			{
-				public override void FollowerApply(Bean parent) { base.FollowerApply(((Bean1)parent)._bean2); }
-				public override void LeaderApply() { base.FollowerApply(((Bean1)Bean)._bean2);}
-			}
-
-			public sealed class Log_map2 : LogMap2<int, Bean1>
-			{
-				public override void FollowerApply(Bean parent) { ((Bean1)parent)._map2.FollowerApply(this); }
-				public override void LeaderApply() { ((Bean1)Bean)._map2.LeaderApply(this); }
-			}
-
-			public Bean1()
+            public Bean1()
             {
-				_map1 = new CollMap1<int, int>() { VariableId = 3, LogFactory = () => new Log_map1() };
+				_map1 = new CollMap1<int, int>() { VariableId = 3 };
 				_bean2 = new Bean2() { VariableId = 4 };
-				_map2 = new CollMap2<int, Bean1>() { VariableId = 5, LogFactory = () => new Log_map2() };
+				_map2 = new CollMap2<int, Bean1>() { VariableId = 5 };
 			}
 
 			public override void Decode(ByteBuffer bb)
@@ -156,19 +142,13 @@ namespace UnitTest.Zeze.RocksRaft
 				get
 				{
 					if (false == Transaction.Current.TryGetLog(ObjectId + 1, out var log)) return _i;
-					return ((Log_i)log).Value;
+					return ((Log<int>)log).Value;
 				}
 
 				set
 				{
-					Transaction.Current.PutLog(new Log_i() { Bean = this, VariableId = 1, Value = value, });
+					Transaction.Current.PutLog(new Log<int>() { Bean = this, VariableId = 1, Value = value, });
 				}
-			}
-
-			public sealed class Log_i : Log<int>
-			{
-				public override void FollowerApply(Bean holder) { ((Bean2)holder)._i = Value; }
-				public override void LeaderApply() { ((Bean2)Bean)._i = Value; }
 			}
 
 			public override void Decode(ByteBuffer bb)
@@ -188,6 +168,18 @@ namespace UnitTest.Zeze.RocksRaft
 			public override string ToString()
 			{
 				return $"Bean2(I={I})";
+			}
+
+            public override void Apply(Log log)
+            {
+				var blog = (LogBean)log;
+				foreach (var vlog in blog.Variables.Values)
+				{
+					switch (vlog.VariableId)
+					{
+						case 1: _i = ((Log<int>)vlog).Value; break;
+					}
+				}
 			}
 		}
 
@@ -308,12 +300,8 @@ AllLog=[{1:Value=1,4:{1:Value=2},3: Putted:{3:3} Removed:[],5: Putted:{4:Bean1(I
         public void Test_1()
         {
 			using var rocks = new Rocks();
-			rocks.RegisterLog<Bean1.Log_i>();
-			rocks.RegisterLog<Bean1.Log_l>();
-			rocks.RegisterLog<Bean1.Log_map1>();
-			rocks.RegisterLog<Bean1.Log_bean2>();
-			rocks.RegisterLog<Bean1.Log_map2>();
-			rocks.RegisterLog<Bean2.Log_i>();
+			rocks.RegisterLog<LogMap1<int, int>>();
+			rocks.RegisterLog<LogMap2<int, Bean1>>();
 
 			Remove1(rocks);
 			Update1(rocks);

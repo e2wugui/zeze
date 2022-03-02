@@ -45,9 +45,9 @@ namespace Zeze.Raft.RocksRaft
 
 			public void Collect(Transaction.RecordAccessed ar)
             {
-				if (null != ar.PutValueLog) // put or remove
+				if (null != ar.PutLog) // put or remove
 				{
-					PutValue = ar.PutValueLog.Value;
+					PutValue = ar.PutLog.Value;
 					if (PutValue == null)
 					{
 						State = Remove;

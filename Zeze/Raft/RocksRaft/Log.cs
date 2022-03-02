@@ -35,13 +35,6 @@ namespace Zeze.Raft.RocksRaft
 			_TypeId = Zeze.Transaction.Bean.Hash32(GetType().FullName);
         }
 
-		// 从网络解析出修改日志树，从根开始遍历日志树并Apply。
-		// 此时日志没有Parent等相关引用。
-		public abstract void FollowerApply(Bean parent);
-
-		// 快速从当前日志保持的Parent引用和最新的数据快速Apply。
-		public abstract void LeaderApply();
-
 		public abstract void Encode(ByteBuffer bb);
 		public abstract void Decode(ByteBuffer bb);
 
@@ -56,7 +49,7 @@ namespace Zeze.Raft.RocksRaft
 	}
 
 	// 简单类型日志辅助。
-	public abstract class Log<T> : Log
+	public class Log<T> : Log
 	{
 		public T Value { get; set; }
 
