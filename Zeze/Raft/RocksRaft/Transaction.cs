@@ -298,8 +298,7 @@ namespace Zeze.Raft.RocksRaft
             // Flush To Database
             procedure.Rocks.Flush(this);
 
-            if (null != procedure.RequestProtocol)
-                procedure.RequestProtocol.SendResultCode(procedure.RequestProtocol.ResultCode);
+            procedure.RequestProtocol?.SendResultCode(procedure.RequestProtocol.ResultCode);
 
             // Trigger Application Action
             _trigger_commit_actions_(procedure);

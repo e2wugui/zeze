@@ -412,8 +412,7 @@ namespace Zeze.Transaction
             State = TransactionState.Completed; // 在Notify之前设置的。
             _notify_listener_(cc);
 
-            if (null != procedure.RequestProtocol)
-                procedure.RequestProtocol.SendResultCode(procedure.RequestProtocol.ResultCode);
+            procedure.RequestProtocol?.SendResultCode(procedure.RequestProtocol.ResultCode);
 
             _trigger_commit_actions_(procedure);
         }
