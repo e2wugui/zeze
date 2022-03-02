@@ -44,6 +44,8 @@ namespace Zeze.Transaction
 
         public object UserState { get; set; }
 
+        public Zeze.Net.Protocol Rpc { get; set; }
+
         public Procedure(Application app, Func<long> action, string actionName, TransactionLevel level, object userState)
         {
             Zeze = app;
