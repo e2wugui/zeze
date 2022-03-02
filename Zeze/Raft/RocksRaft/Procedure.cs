@@ -9,14 +9,16 @@ namespace Zeze.Raft.RocksRaft
     public class Procedure
     {
         public Func<long> Func { get; set; }
+        public Rocks Rocks { get; set; }
 
         public Procedure()
         {
 
         }
 
-        public Procedure(Func<long> func)
+        public Procedure(Rocks rocks, Func<long> func)
         {
+            Rocks = rocks;
             Func = func;
         }
 

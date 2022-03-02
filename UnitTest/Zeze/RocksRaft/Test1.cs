@@ -191,10 +191,11 @@ namespace UnitTest.Zeze.RocksRaft
 			}
 		}
 
-		private void Remove1(Table<int, Bean1> table)
+		private void Remove1(Rocks rocks)
 		{
-			new Procedure(() =>
+			rocks.NewProcedure(() =>
 			{
+				var table = rocks.OpenTable<int, Bean1>("tRocksRaft");
 				table.Remove(1);
 
 				Transaction.Current.RunWhileCommit(() =>
@@ -248,10 +249,11 @@ namespace UnitTest.Zeze.RocksRaft
 			});
 		}
 
-		private void Update1(Table<int, Bean1> table)
+		private void Update1(Rocks rocks)
 		{
-			new Procedure(() =>
+			rocks.NewProcedure(() =>
 			{
+				var table = rocks.OpenTable<int, Bean1>("tRocksRaft");
 				Update(table);
 				VerifyChanges(@"{(tRocksRaft,1):State=1 PutValue=Bean1(I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})
 Log=[{1:Value=1,4:{1:Value=2},3: Putted:{3:3} Removed:[],5: Putted:{4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=5}]}]
@@ -260,10 +262,11 @@ AllLog=[{1:Value=1,4:{1:Value=2},3: Putted:{3:3} Removed:[],5: Putted:{4:Bean1(I
 			}).Call();
 		}
 
-		private void Update2(Table<int, Bean1> table)
+		private void Update2(Rocks rocks)
 		{
-			new Procedure(() =>
+			rocks.NewProcedure(() =>
 			{
+				var table = rocks.OpenTable<int, Bean1>("tRocksRaft");
 				Update(table);
 				VerifyChanges(@"{(tRocksRaft,1):State=2 PutValue=
 Log=[{1:Value=1,4:{1:Value=2},3: Putted:{3:3} Removed:[],5: Putted:{4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=5}]}]
@@ -272,10 +275,11 @@ AllLog=[{1:Value=1,4:{1:Value=2},3: Putted:{3:3} Removed:[],5: Putted:{4:Bean1(I
 			}).Call();
 		}
 
-		private void Update3(Table<int, Bean1> table)
+		private void Update3(Rocks rocks)
 		{
-			new Procedure(() =>
+			rocks.NewProcedure(() =>
 			{
+				var table = rocks.OpenTable<int, Bean1>("tRocksRaft");
 				Update(table);
 				// 重新put，将会让上面的修改树作废。但所有的日志树都可以从All中看到。
 				var bean1put = new Bean1();
@@ -291,12 +295,14 @@ AllLog=[{1:Value=1,4:{1:Value=2},3: Putted:{3:3} Removed:[],5: Putted:{4:Bean1(I
         public void Test_1()
         {
 			using var rocks = new Rocks();
-			var table = rocks.OpenTable<int, Bean1>("tRocksRaft");
 
-			Remove1(table);
-			Update1(table);
-			Update2(table);
-			Update3(table);
+			Remove1(rocks);
+			Update1(rocks);
+			Update2(rocks);
+			Update3(rocks);
+
+			// 再次运行本测试，才会执行到 LoadSnapshot。
+			rocks.Raft.LogSequence.Snapshot(true);
 		}
 	}
 }

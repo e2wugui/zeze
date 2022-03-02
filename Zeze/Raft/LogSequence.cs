@@ -771,9 +771,9 @@ namespace Zeze.Raft
             //logger.Debug($"{Raft.Name}-{Raft.IsLeader} CommitIndex={CommitIndex} RequestId={lastApplyableLog.Log.Unique.RequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
         }
 
-        internal long GetTestStateMachineCount()
+        internal long? GetTestStateMachineCount()
         {
-            return (Raft.StateMachine as Test.TestStateMachine).Count;
+            return (Raft.StateMachine as Test.TestStateMachine)?.Count;
         }
 
         internal ConcurrentDictionary<long, TaskCompletionSource<int>> WaitApplyFutures { get; }

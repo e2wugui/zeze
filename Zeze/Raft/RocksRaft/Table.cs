@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Zeze.Serialize;
 
 namespace Zeze.Raft.RocksRaft
 {
@@ -152,9 +153,10 @@ namespace Zeze.Raft.RocksRaft
         }
 
         private Util.ConcurrentLruLike<K, Record<K, V>> LruCache;
-        private ColumnFamilyHandle ColumnFamily;
+        internal ColumnFamilyHandle ColumnFamily { get; private set; }
         public Rocks Rocks { get; }
         public int Capacity { get; }
+        public Func<K, Record<K, V>, bool> LruTryRemoveCallback { get; set; } = null;
 
         public Table(Rocks rocks, string name, int capacity)
         {
@@ -171,21 +173,12 @@ namespace Zeze.Raft.RocksRaft
                     Capacity, LruTryRemoveCallback, 200, 2000, 1024, Environment.ProcessorCount);
         }
 
-        private bool LruTryRemoveCallback(K key, Record<K, V> r)
-        {
-            lock (r)
-            {
-                r.Removed = true;
-                return LruCache.TryRemove(key, out _);
-            }
-        }
-
         private Record<K, V> GetOrLoad(K key)
         {
             TableKey tkey = new TableKey(Name, key);
             while (true)
             {
-                var r = LruCache.GetOrAdd(key, (_) => new Record<K, V>());
+                var r = LruCache.GetOrAdd(key, (_) => new Record<K, V>() { Table = this });
                 lock (r)
                 {
                     if (r.Removed)
@@ -194,7 +187,7 @@ namespace Zeze.Raft.RocksRaft
                     if (r.State == Record.StateNew)
                     {
                         r.Timestamp = Record.NextTimestamp;
-                        r.Value = Load(key);
+                        r.Value = StorageLoad(key);
                         if (null != r.Value)
                         {
                             r.Value.InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
@@ -207,9 +200,17 @@ namespace Zeze.Raft.RocksRaft
             }
         }
 
-        private V Load(K key)
+        private V StorageLoad(K key)
         {
-            return null;
+            var keybb = ByteBuffer.Allocate();
+            SerializeHelper<K>.Encode(keybb, key);
+            var valuebytes = Rocks.Storage.Get(keybb.Bytes, keybb.Size, ColumnFamily);
+            if (valuebytes == null)
+                return null;
+            var valuebb = ByteBuffer.Wrap(valuebytes);
+            var value = new V();
+            value.Decode(valuebb);
+            return value;
         }
-	}
+    }
 }

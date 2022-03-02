@@ -179,20 +179,20 @@ namespace Zeze.Raft.RocksRaft
                     }
                     // else redo future
                 }
-				_final_rollback_();
+				_final_rollback_(proc);
 				return result;
 			}
 			catch (Exception ex)
             {
                 if (ex.GetType().Name == "AssertFailedException")
                 {
-                    _final_rollback_();
+                    _final_rollback_(proc);
                     throw;
                 }
 
                 if (_lock_and_check_(Zeze.Transaction.TransactionLevel.Serializable))
                 {
-                    _final_rollback_();
+                    _final_rollback_(proc);
                     return Zeze.Transaction.Procedure.Exception;
                 }
                 return Zeze.Transaction.Procedure.Exception;
@@ -261,6 +261,7 @@ namespace Zeze.Raft.RocksRaft
 
         private void _final_commit_(Procedure procedure)
         {
+            // Collect Changes
             Savepoint sp = Savepoints[Savepoints.Count - 1];
             foreach (Log log in sp.Logs.Values)
             {
@@ -276,22 +277,32 @@ namespace Zeze.Raft.RocksRaft
             {
                 Changes.CollectRecord(ar);
             }
-            // Raft.AppendLog
+
+            // Raft
+            // procedure.Rocks.Raft.AppendLog(null, procedure.Rpc?.Result);
+
+            // Apply
             foreach (Log log in sp.Logs.Values)
             {
                 log.LeaderApply();
             }
+
             foreach (var e in AccessedRecords)
             {
                 if (e.Value.Dirty)
                 {
-                    e.Value.Origin.LeaderCommit(e.Value);
+                    e.Value.Origin.LeaderApply(e.Value);
                 }
             }
+
+            // Flush To Database
+            procedure.Rocks.Flush(this);
+
+            // Trigger Application Action
             _trigger_commit_actions_(procedure);
         }
         
-        private void _final_rollback_()
+        private void _final_rollback_(Procedure procedure)
         {
 
         }

@@ -106,7 +106,7 @@ namespace Zeze.Raft
         public static void CreateAcceptor(Service service, RaftConfig raftconf)
         {
             if (false == raftconf.Nodes.TryGetValue(raftconf.Name, out var node))
-                throw new Exception("raft Name Not In Node");
+                throw new Exception($"Raft.Name={raftconf.Name} Not In Node");
             service.Config.AddAcceptor(new Acceptor(node.Port, node.Host));
         }
 

@@ -35,12 +35,13 @@ namespace UnitTest.Zeze.Misc
         [TestMethod]
         public void TestRocksDbColumn()
         {
-            var storage = new Rocks(".");
+            var storage = new Rocks();
             var map = storage.OpenTable<int, Value>("int2value");
             var cpdir = storage.Checkpoint(out var index, out var term);
             try
             {
                 Assert.IsTrue(storage.Backup(cpdir, "backup"));
+                Assert.IsTrue(storage.Restore("backup"));
             }
             finally
             {
