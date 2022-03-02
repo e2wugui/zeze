@@ -12,6 +12,12 @@ namespace Zeze.Raft.RocksRaft
 		// 收集日志时,记录所有Bean修改.
 		// key is Bean.ObjectId
 		public Dictionary<long, LogBean> Beans { get; } = new Dictionary<long, LogBean>();
+		public Procedure Procedure { get; }
+
+		public Changes(Procedure p)
+        {
+			Procedure = p;
+        }
 
 		public class Record
         {
@@ -21,8 +27,21 @@ namespace Zeze.Raft.RocksRaft
 
 			public int State { get; set; }
 			public Bean PutValue { get; set; }
-			public Util.IdentityHashMap<Bean, LogBean> LogBeans { get; } = new Util.IdentityHashMap<Bean, LogBean>();
 			public ISet<LogBean> LogBean { get; } = new HashSet<LogBean>();
+
+			// 所有的日志修改树，key is Record.Value。不会被系列化。
+			public Util.IdentityHashMap<Bean, LogBean> LogBeans { get; } = new Util.IdentityHashMap<Bean, LogBean>();
+
+			public Table Table;
+
+			public void SetTableByName(Changes changes, string name)
+            {
+				if (false == changes.Procedure.Rocks.Tables.TryGetValue(name, out Table))
+				{
+					Rocks.logger.Error($"table not found {name}");
+					changes.Procedure.Rocks.Raft.FatalKill();
+				}
+			}
 
 			public void Collect(Transaction.RecordAccessed ar)
             {
@@ -76,7 +95,7 @@ namespace Zeze.Raft.RocksRaft
 						break;
 
 					case Put:
-						// TODO bean factory
+						PutValue = Table.NewValue();
 						PutValue.Decode(bb);
 						bb.Decode(LogBean);
 						break;
@@ -105,34 +124,34 @@ namespace Zeze.Raft.RocksRaft
 		// 收集记录的修改,以后需要系列化传输.
 		public Dictionary<TableKey, Record> Records { get; } = new Dictionary<TableKey, Record>();
 
-		public void Collect(Bean prevparent, Log log)
+		public void Collect(Bean recent, Log log)
 		{
-			if (null == log.Parent)
+			if (null == log.Bean)
             {
 				// 记录可能存在多个修改日志树。收集的时候全部保留，后面会去掉不需要的。see Transaction._final_commit_
-				if (false == Records.TryGetValue(prevparent.TableKey, out var r))
+				if (false == Records.TryGetValue(recent.TableKey, out var r))
 				{
 					r = new Record();
-					Records.Add(prevparent.TableKey, r);
+					Records.Add(recent.TableKey, r);
 				}
-				r.LogBeans.TryAdd(prevparent, (LogBean)log);
+				r.LogBeans.TryAdd(recent, (LogBean)log);
 				return; // root
 			}
 
-			if (false == Beans.TryGetValue(log.Parent.ObjectId, out LogBean logbean))
+			if (false == Beans.TryGetValue(log.Bean.ObjectId, out LogBean logbean))
 			{
-				if (log.Parent is Collection)
+				if (log.Bean is Collection)
 				{
 					// 容器使用共享的日志。需要先去查询，没有的话才创建。
-					logbean = (LogBean)Transaction.Current.GetLog(log.Parent.Parent.ObjectId + log.Parent.VariableId);
+					logbean = (LogBean)Transaction.Current.GetLog(log.Bean.ObjectId);
 				}
 				if (null == logbean)
                 {
-					logbean = log.Parent.CreateLogBean();
+					logbean = log.Bean.CreateLogBean();
 				}
-				Beans.Add(log.Parent.ObjectId, logbean);
+				Beans.Add(log.Bean.ObjectId, logbean);
 			}
-			logbean.Collect(this, log.Parent, log);
+			logbean.Collect(this, log.Bean, log);
 		}
 
 		public void CollectRecord(Transaction.RecordAccessed ar)
@@ -149,13 +168,15 @@ namespace Zeze.Raft.RocksRaft
 		public void Decode(ByteBuffer bb)
 		{
 			Records.Clear();
-			for (int i = bb.ReadInt(); i >= 0; i--)
+			for (int i = bb.ReadInt(); i > 0; i--)
 			{
 				var tkey = new TableKey();
-				var blog = new Record();
-				tkey.Decode(bb);
-				blog.Decode(bb);
-				Records.Add(tkey, blog);
+				var r = new Record();
+				tkey.Name = bb.ReadString();
+				r.SetTableByName(this, tkey.Name);
+				r.Table.DecodeKey(bb, out tkey.Key);
+				r.Decode(bb);
+				Records.Add(tkey, r);
 			}
 		}
 
@@ -164,7 +185,11 @@ namespace Zeze.Raft.RocksRaft
 			bb.WriteInt(Records.Count);
 			foreach (var r in Records)
 			{
-				r.Key.Encode(bb);
+				// encode TableKey
+				r.Value.SetTableByName(this, r.Key.Name);
+				bb.WriteString(r.Key.Name);
+				r.Value.Table.EncodeKey(bb, r.Key.Key);
+				// encode record
 				r.Value.Encode(bb);
 			}
 		}

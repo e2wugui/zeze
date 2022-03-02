@@ -24,7 +24,7 @@ namespace Zeze.Raft.RocksRaft
 
         public override void Decode(ByteBuffer bb)
 		{
-			for (int i = bb.ReadInt(); i >= 0; --i)
+			for (int i = bb.ReadInt(); i > 0; --i)
 			{
 				var typeId = bb.ReadInt4();
 				var log = Log.Create(typeId);
@@ -49,12 +49,12 @@ namespace Zeze.Raft.RocksRaft
 		}
 
 		// 仅发生在事务执行期间。Decode-Apply不会执行到这里。
-		public override void Collect(Changes changes, Bean prevparent, Log vlog)
+		public override void Collect(Changes changes, Bean recent, Log vlog)
         {
 			if (Variables.TryAdd(vlog.VariableId, vlog))
             {
 				// 向上传递
-				changes.Collect(prevparent, this);
+				changes.Collect(recent, this);
 			}
 		}
 

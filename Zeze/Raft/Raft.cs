@@ -42,9 +42,14 @@ namespace Zeze.Raft
 
         public StateMachine StateMachine { get; }
 
+        public delegate void AtFatalKill();
+
+        public AtFatalKill AtFatalKills { get; set; } = () => { };
+
         public void FatalKill()
         {
             IsShutdown = true;
+            AtFatalKills?.Invoke();
             LogSequence.Close();
             NLog.LogManager.Shutdown();
             System.Diagnostics.Process.GetCurrentProcess().Kill();

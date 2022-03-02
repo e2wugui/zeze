@@ -48,7 +48,7 @@ namespace Zeze.Raft.RocksRaft
 		public override void Decode(ByteBuffer bb)
 		{
 			Putted.Clear();
-			for (int i = bb.ReadInt(); i >= 0; --i)
+			for (int i = bb.ReadInt(); i > 0; --i)
 			{
 				var key = SerializeHelper<K>.Decode(bb);
 				var value = SerializeHelper<V>.Decode(bb);
@@ -56,7 +56,7 @@ namespace Zeze.Raft.RocksRaft
 			}
 
 			Removed.Clear();
-			for (int i = bb.ReadInt(); i >= 0; --i)
+			for (int i = bb.ReadInt(); i > 0; --i)
 			{
 				var key = SerializeHelper<K>.Decode(bb);
 				Removed.Add(key);
@@ -104,7 +104,7 @@ namespace Zeze.Raft.RocksRaft
         internal override Log BeginSavepoint()
         {
 			var dup = new LogMap1<K, V>();
-			dup.Parent = Parent;
+			dup.Bean = Bean;
 			dup.VariableId = VariableId;
 			dup.Value = Value;
 			return dup;
