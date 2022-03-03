@@ -66,7 +66,8 @@ namespace Zeze.Raft.RocksRaft
 		public override LogBean CreateLogBean()
 		{
 			var log = new LogMap1<K, V>();
-			log.Bean = Parent;
+			log.Belong = Parent;
+			log.Owner = this;
 			log.VariableId = VariableId;
 			log.Value = map;
 			return log;

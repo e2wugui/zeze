@@ -13,8 +13,8 @@ namespace Zeze.Raft.RocksRaft
 		// 事务运行时属性，不会被系列化。
 		// 当 Decode，Bean为null。
 		// Apply通过参数得到日志应用需要的Bean。
-		public Bean Bean { get; set; }
-		public long LogKey => Bean.ObjectId + VariableId;
+		public Bean Belong { get; set; }
+		public long LogKey => Belong.ObjectId + VariableId;
 
 		public virtual void Collect(Changes changes, Bean recent, Log vlog)
 		{

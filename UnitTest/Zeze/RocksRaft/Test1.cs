@@ -41,7 +41,7 @@ namespace UnitTest.Zeze.RocksRaft
 				{
 					if (IsManaged)
 					{
-						Transaction.Current.PutLog(new Log<int>() { Bean = this, VariableId = 1, Value = value, });
+						Transaction.Current.PutLog(new Log<int>() { Belong = this, VariableId = 1, Value = value, });
 					}
 					else
 					{
@@ -69,7 +69,7 @@ namespace UnitTest.Zeze.RocksRaft
 				{
 					if (IsManaged)
                     {
-						Transaction.Current.PutLog(new Log<long>() { Bean = this, VariableId = 2, Value = value, });
+						Transaction.Current.PutLog(new Log<long>() { Belong = this, VariableId = 2, Value = value, });
 					}
 					else
                     {
@@ -175,7 +175,7 @@ namespace UnitTest.Zeze.RocksRaft
 				{
 					if (IsManaged)
                     {
-						Transaction.Current.PutLog(new Log<int>() { Bean = this, VariableId = 1, Value = value, });
+						Transaction.Current.PutLog(new Log<int>() { Belong = this, VariableId = 1, Value = value, });
 					}
 					else
                     {

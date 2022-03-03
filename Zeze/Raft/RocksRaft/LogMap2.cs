@@ -26,7 +26,7 @@ namespace Zeze.Raft.RocksRaft
             {
 				if (CollMap2<K, V>.PropertyMapKey != null)
 				{
-					var pkey = (K)CollMap2<K, V>.PropertyMapKey.GetValue(c.Bean);
+					var pkey = (K)CollMap2<K, V>.PropertyMapKey.GetValue(c.Owner);
 					if (false == Putted.ContainsKey(pkey) && false == Removed.Contains(pkey))
 						ChangedWithKey.Add(pkey, c);
 					continue;
@@ -34,7 +34,7 @@ namespace Zeze.Raft.RocksRaft
 				// slow search.
 				foreach (var e in Value)
 				{
-					if (c.Bean == e.Value)
+					if (c.Belong == e.Value)
 					{
 						ChangedWithKey.Add(e.Key, c);
 						break;

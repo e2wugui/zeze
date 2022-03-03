@@ -10,6 +10,7 @@ namespace Zeze.Raft.RocksRaft
 	public class LogBean : Log
 	{
 		public Dictionary<int, Log> Variables { get; } = new Dictionary<int, Log>();
+		public Bean Owner { get; set; }
 
 		// LogBean仅在_final_commit的Collect过程中创建，不会参与Savepoint。
         internal override Log BeginSavepoint()

@@ -125,7 +125,7 @@ namespace Zeze.Raft.RocksRaft
 
 		public void Collect(Bean recent, Log log)
 		{
-			if (null == log.Bean)
+			if (null == log.Belong)
             {
 				// 记录可能存在多个修改日志树。收集的时候全部保留，后面会去掉不需要的。see Transaction._final_commit_
 				if (false == Records.TryGetValue(recent.TableKey, out var r))
@@ -137,20 +137,20 @@ namespace Zeze.Raft.RocksRaft
 				return; // root
 			}
 
-			if (false == Beans.TryGetValue(log.Bean.ObjectId, out LogBean logbean))
+			if (false == Beans.TryGetValue(log.Belong.ObjectId, out LogBean logbean))
 			{
-				if (log.Bean is Collection)
+				if (log.Belong is Collection)
 				{
 					// 容器使用共享的日志。需要先去查询，没有的话才创建。
-					logbean = (LogBean)Transaction.Current.GetLog(log.Bean.Parent.ObjectId + log.Bean.VariableId);
+					logbean = (LogBean)Transaction.Current.GetLog(log.Belong.Parent.ObjectId + log.Belong.VariableId);
 				}
 				if (null == logbean)
                 {
-					logbean = log.Bean.CreateLogBean();
+					logbean = log.Belong.CreateLogBean();
 				}
-				Beans.Add(log.Bean.ObjectId, logbean);
+				Beans.Add(log.Belong.ObjectId, logbean);
 			}
-			logbean.Collect(this, log.Bean, log);
+			logbean.Collect(this, log.Belong, log);
 		}
 
 		public void CollectRecord(Transaction.RecordAccessed ar)

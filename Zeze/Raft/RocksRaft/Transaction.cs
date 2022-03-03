@@ -64,7 +64,7 @@ namespace Zeze.Raft.RocksRaft
 
             public void Put(Transaction current, Bean value)
             {
-                PutLog = new Log<Bean>() { Bean = this, Value = value };
+                PutLog = new Log<Bean>() { Belong = this, Value = value };
                 current.PutLog(PutLog);
             }
 
@@ -240,10 +240,10 @@ namespace Zeze.Raft.RocksRaft
                 {
                     // 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
                     // 现在不会有这种情况，保留给未来扩展需要。
-                    if (log.Bean == null)
+                    if (log.Belong == null)
                         continue;
 
-                    TableKey tkey = log.Bean.TableKey;
+                    TableKey tkey = log.Belong.TableKey;
                     if (AccessedRecords.TryGetValue(tkey, out var record))
                     {
                         record.Dirty = true;
@@ -269,12 +269,12 @@ namespace Zeze.Raft.RocksRaft
             foreach (Log log in sp.Logs.Values)
             {
                 // 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
-                if (log.Bean == null)
+                if (log.Belong == null)
                     continue;
 
                 // 当changes.Collect在日志往上一级传递时调用，
                 // 第一个参数Owner为null，表示bean属于record，到达root了。
-                Changes.Collect(log.Bean, log);
+                Changes.Collect(log.Belong, log);
             }
             foreach (var ar in AccessedRecords.Values)
             {
