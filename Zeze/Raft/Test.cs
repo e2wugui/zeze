@@ -338,6 +338,7 @@ namespace Zeze.Raft
             CheckCurrentCount("TestAddCount");
 
             // 基本并发请求
+            logger.Debug("基本并发请求");
             SetLogLevel(NLog.LogLevel.Info);
             TestConcurrent("TestConcurrent", 200);
 
@@ -808,13 +809,13 @@ namespace Zeze.Raft
                 {
                     if (null != Raft.LogSequence)
                     {
-                        using var file = new FileStream(path, FileMode.Create);
                         var lastAppliedLog = Raft.LogSequence.LastAppliedLog();
                         LastIncludedIndex = lastAppliedLog.Index;
                         LastIncludedTerm = lastAppliedLog.Term;
                         var bb = ByteBuffer.Allocate();
                         logger.Info($"{Raft.Name} Snapshot Count={Count}");
                         bb.WriteLong(Count);
+                        using var file = new FileStream(path, FileMode.Create);
                         file.Write(bb.Bytes, bb.ReadIndex, bb.Size);
                         file.Close();
                         Raft.LogSequence.CommitSnapshot(path, LastIncludedIndex);

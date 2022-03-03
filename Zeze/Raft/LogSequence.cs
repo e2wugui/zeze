@@ -595,7 +595,7 @@ namespace Zeze.Raft
         {
             var key = ByteBuffer.Allocate();
             key.WriteLong(index);
-            var value = Logs.Get(key.Bytes, key.Size);
+            var value = Logs?.Get(key.Bytes, key.Size);
             if (null == value)
                 return null;
             return RaftLog.Decode(new Binary(value), Raft.StateMachine.LogFactory);
@@ -1165,14 +1165,17 @@ namespace Zeze.Raft
             }
 
             var nextLog = ReadLog(connector.NextIndex);
+            if (nextLog == null) // Logs可能已经变成null了, 小概率事件
+                return;
+            var prevLog = ReadLog(nextLog.Index - 1);
+            if (prevLog == null) // Logs可能已经变成null了, 小概率事件
+                return;
 
             connector.Pending = new AppendEntries();
             connector.Pending.Argument.Term = Term;
             connector.Pending.Argument.LeaderId = Raft.Name;
             connector.Pending.Argument.LeaderCommit = CommitIndex;
 
-            // 肯定能找到的。
-            var prevLog = ReadLog(nextLog.Index - 1);
             connector.Pending.Argument.PrevLogIndex = prevLog.Index;
             connector.Pending.Argument.PrevLogTerm = prevLog.Term;
 
