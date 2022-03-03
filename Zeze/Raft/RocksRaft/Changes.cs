@@ -7,17 +7,20 @@ using Zeze.Serialize;
 
 namespace Zeze.Raft.RocksRaft
 {
-	public class Changes : Serializable
+	public class Changes : Zeze.Raft.Log
 	{
 		// 收集日志时,记录所有Bean修改.
 		// key is Bean.ObjectId
 		public Dictionary<long, LogBean> Beans { get; } = new Dictionary<long, LogBean>();
 		public Procedure Procedure { get; }
+		public Transaction Transaction { get; }
 
-		public Changes(Procedure p)
+		public Changes(Procedure p, Transaction trans)
+			: base((IRaftRpc)p.RequestProtocol)
         {
 			Procedure = p;
-        }
+			Transaction = trans;
+		}
 
 		public class Record
         {
@@ -55,8 +58,6 @@ namespace Zeze.Raft.RocksRaft
 					else
 					{
 						State = Put;
-						if (LogBeans.TryGetValue(PutValue, out var logbean))
-							LogBean.Add(logbean); // put and edit
 					}
 				}
 				else
@@ -77,7 +78,6 @@ namespace Zeze.Raft.RocksRaft
 
 					case Put:
 						PutValue.Encode(bb);
-						bb.Encode(LogBean);
 						break;
 
 					case Edit:
@@ -97,7 +97,6 @@ namespace Zeze.Raft.RocksRaft
 					case Put:
 						PutValue = Table.NewValue();
 						PutValue.Decode(bb);
-						bb.Decode(LogBean);
 						break;
 
 					case Edit:
@@ -165,7 +164,7 @@ namespace Zeze.Raft.RocksRaft
 			r.Collect(ar);
         }
 
-		public void Decode(ByteBuffer bb)
+		public override void Decode(ByteBuffer bb)
 		{
 			Records.Clear();
 			for (int i = bb.ReadInt(); i > 0; i--)
@@ -180,7 +179,7 @@ namespace Zeze.Raft.RocksRaft
 			}
 		}
 
-		public void Encode(ByteBuffer bb)
+		public override void Encode(ByteBuffer bb)
 		{
 			bb.WriteInt(Records.Count);
 			foreach (var r in Records)
@@ -200,5 +199,22 @@ namespace Zeze.Raft.RocksRaft
 			ByteBuffer.BuildString(sb, Records);
             return sb.ToString();
         }
-    }
+
+        public override void Apply(RaftLog holder, StateMachine stateMachine)
+        {
+			if (holder.LeaderFuture != null)
+			{
+				LeaderApply();
+			}
+            else
+            {
+				Procedure.Rocks.FollowerApply(this);
+			}
+		}
+
+		private void LeaderApply()
+        {
+
+        }
+	}
 }

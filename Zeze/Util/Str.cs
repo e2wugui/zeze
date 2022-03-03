@@ -3,7 +3,7 @@ namespace Zeze.Util
 {
     public static class Str
     {
-        public const int INDENT_MAX = 32;
+        public const int INDENT_MAX = 128;
         static readonly string[] INDENTS = new string[INDENT_MAX];
 
         static Str()

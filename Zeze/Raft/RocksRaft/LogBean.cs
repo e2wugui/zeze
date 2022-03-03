@@ -61,9 +61,8 @@ namespace Zeze.Raft.RocksRaft
         public override string ToString()
         {
 			var sb = new StringBuilder();
-			ByteBuffer.BuildString(sb, Variables);
+			ByteBuffer.BuildString(sb, Variables, Zeze.Util.ComparerInt.Instance);
             return sb.ToString();
         }
-    }
-
+	}
 }

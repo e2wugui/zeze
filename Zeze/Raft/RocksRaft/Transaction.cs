@@ -89,12 +89,13 @@ namespace Zeze.Raft.RocksRaft
 
             public override void FollowerApply(Log log)
             {
+                // Follower 不会到达这里。
                 throw new NotImplementedException();
             }
 
             public override void LeaderApplyNoRecursive(Log log)
             {
-                throw new NotImplementedException();
+                // 在处理完 Log 以后，专门处理 PutLog 。see _final_commit_ & Record.LeaderApply
             }
         }
 
@@ -264,7 +265,7 @@ namespace Zeze.Raft.RocksRaft
         {
             // Collect Changes
             Savepoint sp = Savepoints[Savepoints.Count - 1];
-            Changes = new Changes(procedure);
+            Changes = new Changes(procedure, this);
             foreach (Log log in sp.Logs.Values)
             {
                 // 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
@@ -282,19 +283,23 @@ namespace Zeze.Raft.RocksRaft
 
             // Raft
             // procedure.Rocks.Raft.AppendLog(null, procedure.Rpc?.Result);
+            
+            //*
             {
+                // test FollowerApply
                 var bb = ByteBuffer.Allocate(1024);
                 Changes.Encode(bb);
-                var tmp = new Changes(procedure);
+                var tmp = new Changes(procedure, this);
                 tmp.Decode(bb);
-                procedure.Rocks.Apply(tmp);
+                procedure.Rocks.FollowerApply(tmp);
                 procedure.RequestProtocol?.SendResultCode(procedure.RequestProtocol.ResultCode);
                 _trigger_commit_actions_(procedure);
                 return;
             }
+            // */
 
-            /////////////////////////////////////////////////////////////////////////
-            // Leader
+            /*
+            // test LeaderApply
             foreach (Log log in sp.Logs.Values)
             {
                 log.Bean?.LeaderApplyNoRecursive(log);
@@ -309,6 +314,7 @@ namespace Zeze.Raft.RocksRaft
                 }
             }
             procedure.Rocks.Flush(rs);
+            // */
             procedure.RequestProtocol?.SendResultCode(procedure.RequestProtocol.ResultCode);
             _trigger_commit_actions_(procedure);
         }

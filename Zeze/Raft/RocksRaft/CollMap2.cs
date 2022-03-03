@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Zeze.Serialize;
@@ -10,20 +11,11 @@ namespace Zeze.Raft.RocksRaft
 	public class CollMap2<K, V> : CollMap<K, V>
 		where V : Bean, new()
 	{
-		public override V Get(K key)
-		{
-			if (IsManaged)
-            {
-				if (false == Transaction.Current.TryGetLog(Parent.ObjectId + VariableId, out var log))
-					return _Get(key);
-				var maplog = (LogMap2<K, V>)log;
-				return maplog.Get(key);
-			}
-			else
-            {
-				return _Get(key);
-            }
+		public static PropertyInfo PropertyMapKey { get; }
 
+		static CollMap2()
+		{
+			PropertyMapKey = typeof(V).GetProperty($"_{typeof(K).Name}MapKey_");
 		}
 
 		public override void Put(K key, V value)
@@ -31,6 +23,8 @@ namespace Zeze.Raft.RocksRaft
 			if (IsManaged)
             {
 				value.InitRootInfo(RootInfo, this);
+				PropertyMapKey?.SetValue(value, key);
+
 				var maplog = (LogMap2<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
 				maplog.Put(key, value);
 			}
@@ -69,20 +63,26 @@ namespace Zeze.Raft.RocksRaft
 		public override void FollowerApply(Log _log)
 		{
 			var log = (LogMap2<K, V>)_log;
-			map = map.SetItems(log.Putted);
-			map = map.RemoveRange(log.Removed);
-			//foreach () // update Changed
+			var tmp = map;
+			tmp = tmp.SetItems(log.Putted);
+			tmp = tmp.RemoveRange(log.Removed);
+
+			// apply changed
+			foreach (var e in log.ChangedWithKey)
 			{
+				if (tmp.TryGetValue(e.Key, out var value))
+				{
+					value.FollowerApply(e.Value);
+				}
+				else
+				{
+					Rocks.logger.Error($"Not Exist! Key={e.Key} Value={e.Value}");
+				}
 			}
+			map = tmp;
 		}
 
 		public override void LeaderApplyNoRecursive(Log _log)
-		{
-			var log = (LogMap2<K, V>)_log;
-			map = log.Value;
-		}
-
-		public void LeaderApply(LogMap _log)
 		{
 			var log = (LogMap2<K, V>)_log;
 			map = log.Value;
@@ -95,28 +95,6 @@ namespace Zeze.Raft.RocksRaft
 			log.VariableId = VariableId;
 			log.Value = map;
 			return log;
-		}
-
-		public override void Decode(ByteBuffer bb)
-		{
-			Clear();
-			for (int i = bb.ReadInt(); i > 0; --i)
-			{
-				var key = SerializeHelper<K>.Decode(bb);
-				var value = SerializeHelper<V>.Decode(bb);
-				Put(key, value);
-			}
-		}
-
-		public override void Encode(ByteBuffer bb)
-		{
-			var tmp = map;
-			bb.WriteInt(tmp.Count);
-			foreach (var e in tmp)
-			{
-				SerializeHelper<K>.Encode(bb, e.Key);
-				SerializeHelper<V>.Encode(bb, e.Value);
-			}
 		}
 
 		protected override void InitChildrenRootInfo(Record.RootInfo root)
