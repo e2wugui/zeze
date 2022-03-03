@@ -384,6 +384,28 @@ AllLog=[{4:{1:Value=3333}}]}");
 			}).Call();
         }
 
+		private void NestProcedureContainer(Rocks rocks)
+        {
+			rocks.NewProcedure(() =>
+			{
+				rocks.NewProcedure(() =>
+				{
+					var table = rocks.OpenTable<int, Bean1>("tRocksRaft");
+					var value = table.Get(1);
+					value.Map2.Put(4444, new Bean1());
+					value.Map1.Put(4444, 4444);
+					value.Map1.Remove(3);
+					value.Map2.Remove(4);
+					return 0;
+				}).Call();
+
+				VerifyChanges(@"{(tRocksRaft,1):State=2 PutValue=
+Log=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(4444 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[4] Changed:[]}]
+AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(4444 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[4] Changed:[]}]}");
+				return 0;
+			}).Call();
+        }
+
 		[TestMethod]
         public void Test_1()
         {
@@ -404,6 +426,9 @@ AllLog=[{4:{1:Value=3333}}]}");
 
 			NestProcedure(rocks);
 			VerifyData(rocks, "Bean1(0 I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=3333) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={})})");
+
+			NestProcedureContainer(rocks);
+			VerifyData(rocks, "Bean1(0 I=11 L=0 Map1={13:13,4444:4444} Bean2=Bean2(I=3333) Map2={14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={}),4444:Bean1(4444 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
 
 			EditAndPut(rocks);
 			VerifyData(rocks, "Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");

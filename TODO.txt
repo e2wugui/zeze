@@ -32,7 +32,8 @@
 	Zezex.client: 可靠消息实现的错误检查。
 
 【2022/3/11】
-	RocksRaft NestProcedure Test
+	RocksRaft NestProcedureContainer Test
+	RocksRaft Simple NestProcedure Test
 	RocksRaft Edit Bean In Container
 	Raft.AppendLog Future Add Duplicate Index. Fatal!【观察不到了！】
 	c# Global 慢？【网络事件也和普通Task共享了一个线程池，造成rpc.result处理也排队的结果，等async解决】

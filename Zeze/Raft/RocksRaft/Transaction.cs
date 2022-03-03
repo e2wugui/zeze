@@ -284,7 +284,7 @@ namespace Zeze.Raft.RocksRaft
             // Raft
             // procedure.Rocks.Raft.AppendLog(null, procedure.Rpc?.Result);
             
-            //*
+            /*
             {
                 // test FollowerApply
                 var bb = ByteBuffer.Allocate(1024);
@@ -298,7 +298,7 @@ namespace Zeze.Raft.RocksRaft
             }
             // */
 
-            /*
+            //*
             // test LeaderApply
             foreach (Log log in sp.Logs.Values)
             {
