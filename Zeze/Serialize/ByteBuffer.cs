@@ -1192,10 +1192,17 @@ namespace Zeze.Serialize
 
         public static void BuildString<T>(StringBuilder sb, IEnumerable<T> c)
         {
+            var liststr = new List<string>();
+            foreach (var e in c)
+                liststr.Add(e.ToString());
+            liststr.Sort(); // 排序，便于测试比较。
+
             sb.Append('[');
             int i = sb.Length;
-            foreach (var e in c)
+            foreach (var e in liststr)
+            {
                 sb.Append(e).Append(',');
+            }
             int j = sb.Length;
             if (i == j)
                 sb.Append(']');
@@ -1203,8 +1210,16 @@ namespace Zeze.Serialize
                 sb[j - 1] = ']';
         }
 
-        public static void BuildString<TK, TV>(StringBuilder sb, IDictionary<TK, TV> dic)
+        public static void BuildString<TK, TV>(StringBuilder sb, IDictionary<TK, TV> dic, IComparer<TK> comparer = null)
         {
+            if (comparer != null)
+            {
+                var srtdict = new SortedDictionary<TK, TV>(comparer);
+                foreach (var kv in dic)
+                    srtdict.Add(kv.Key, kv.Value);
+                dic = srtdict;
+            }
+
             sb.Append('{');
             if (dic.Count == 0)
                 sb.Append('}');

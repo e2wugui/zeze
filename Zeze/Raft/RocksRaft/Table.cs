@@ -51,8 +51,6 @@ namespace Zeze.Raft.RocksRaft
 
                 case Changes.Record.Put:
                     r = GetOrLoad((K)key, rlog.PutValue);
-                    foreach (var log in rlog.LogBean)
-                        r.Value.FollowerApply(log); // 最多一个。
                     break;
 
                 case Changes.Record.Edit:

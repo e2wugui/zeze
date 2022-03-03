@@ -20,6 +20,8 @@ namespace UnitTest.Zeze.RocksRaft
 			private Bean2 _bean2;
 			private CollMap2<int, Bean1> _map2;
 
+			public int _Int32MapKey_ { get; set; }
+
 			public int I
 			{
 				get
@@ -103,6 +105,8 @@ namespace UnitTest.Zeze.RocksRaft
 				{
 					case 1: _i = ((Log<int>)vlog).Value; break;
 					case 2: _l = ((Log<long>)vlog).Value; break;
+					case 3: _map1.LeaderApplyNoRecursive(vlog); break;
+					case 5: _map2.LeaderApplyNoRecursive(vlog); break;
 				}
 			}
 
@@ -115,18 +119,24 @@ namespace UnitTest.Zeze.RocksRaft
 
 			public override void Decode(ByteBuffer bb)
 			{
+				_Int32MapKey_ = bb.ReadInt();
+
 				I = bb.ReadInt();
 				L = bb.ReadLong();
 				Map1.Decode(bb);
 				Bean2.Decode(bb);
+				Map2.Decode(bb);
 			}
 
 			public override void Encode(ByteBuffer bb)
 			{
+				bb.WriteInt(_Int32MapKey_);
+
 				bb.WriteInt(I);
 				bb.WriteLong(L);
 				Map1.Encode(bb);
 				Bean2.Encode(bb);
+				Map2.Encode(bb);
 			}
 
 			protected override void InitChildrenRootInfo(Record.RootInfo root)
@@ -138,7 +148,7 @@ namespace UnitTest.Zeze.RocksRaft
 
 			public override string ToString()
 			{
-				return $"Bean1(I={I} L={L} Map1={Map1} Bean2={Bean2} Map2={Map2})";
+				return $"Bean1({_Int32MapKey_} I={I} L={L} Map1={Map1} Bean2={Bean2} Map2={Map2})";
 			}
 		}
 
@@ -150,13 +160,27 @@ namespace UnitTest.Zeze.RocksRaft
 			{
 				get
 				{
-					if (false == Transaction.Current.TryGetLog(ObjectId + 1, out var log)) return _i;
-					return ((Log<int>)log).Value;
+					if (IsManaged)
+					{
+						if (false == Transaction.Current.TryGetLog(ObjectId + 1, out var log)) return _i;
+						return ((Log<int>)log).Value;
+					}
+					else
+					{
+						return _i;
+					}
 				}
 
 				set
 				{
-					Transaction.Current.PutLog(new Log<int>() { Bean = this, VariableId = 1, Value = value, });
+					if (IsManaged)
+                    {
+						Transaction.Current.PutLog(new Log<int>() { Bean = this, VariableId = 1, Value = value, });
+					}
+					else
+                    {
+						_i = value;
+                    }
 				}
 			}
 
@@ -224,25 +248,25 @@ namespace UnitTest.Zeze.RocksRaft
 			}).Call();
 		}
 
-		private void Update(Table<int, Bean1> table)
+		private void Update(Table<int, Bean1> table, int num)
 		{
 			var value = table.GetOrAdd(1);
 
 			// 本层Bean变量修改日志
-			value.I = 1;
+			value.I = 1 + num;
 
 			// 下一层Bean变量修改日志
-			value.Bean2.I = 2;
+			value.Bean2.I = 2 + num;
 
 			// 本层Bean容器变量修改日志
-			value.Map1.Put(3, 3);
+			value.Map1.Put(3 + num, 3 + num);
 
 			// 本层Bean容器变量修改日志2
 			var bean1 = new Bean1();
-			value.Map2.Put(4, bean1);
+			value.Map2.Put(4 + num, bean1);
 
 			// 容器内Bean修改日志。
-			bean1.I = 5;
+			bean1.I = 5 + num;
 		}
 
 		private void VerifyChanges(string except)
@@ -252,9 +276,9 @@ namespace UnitTest.Zeze.RocksRaft
 				var Changes = Transaction.Current.Changes;
 				var sb = new StringBuilder();
 				ByteBuffer.BuildString(sb, Changes.Records);
-				Console.WriteLine(sb.ToString());
+				//Console.WriteLine(sb.ToString());
 				except = except.Replace("\r\n", "\n");
-				//Assert.AreEqual(except, sb.ToString());
+				Assert.AreEqual(except, sb.ToString());
 			});
 		}
 
@@ -265,8 +289,8 @@ namespace UnitTest.Zeze.RocksRaft
 				var table = rocks.OpenTable<int, Bean1>("tRocksRaft");
 				var value = table.GetOrAdd(1);
 				var current = value.ToString();
-				Console.WriteLine(current);
-				//Assert.AreEqual(except, current);
+				//Console.WriteLine(current);
+				Assert.AreEqual(except, current);
 				return 0;
 			}).Call();
 		}
@@ -276,10 +300,10 @@ namespace UnitTest.Zeze.RocksRaft
 			rocks.NewProcedure(() =>
 			{
 				var table = rocks.OpenTable<int, Bean1>("tRocksRaft");
-				Update(table);
-				VerifyChanges(@"{(tRocksRaft,1):State=1 PutValue=Bean1(I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})
-Log=[{1:Value=1,4:{1:Value=2},3: Putted:{3:3} Removed:[],5: Putted:{4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=5}]}]
-AllLog=[{1:Value=1,4:{1:Value=2},3: Putted:{3:3} Removed:[],5: Putted:{4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=5}]},{0:Value=Bean1(I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})}]}");
+				Update(table, 0);
+				VerifyChanges(@"{(tRocksRaft,1):State=1 PutValue=Bean1(0 I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})
+Log=[]
+AllLog=[{0:Value=Bean1(0 I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})},{1:Value=1,3: Putted:{3:3} Removed:[],4:{1:Value=2},5: Putted:{4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=5}]}]}");
 				return 0;
 			}).Call();
 		}
@@ -289,10 +313,10 @@ AllLog=[{1:Value=1,4:{1:Value=2},3: Putted:{3:3} Removed:[],5: Putted:{4:Bean1(I
 			rocks.NewProcedure(() =>
 			{
 				var table = rocks.OpenTable<int, Bean1>("tRocksRaft");
-				Update(table);
+				Update(table, 10);
 				VerifyChanges(@"{(tRocksRaft,1):State=2 PutValue=
-Log=[{1:Value=1,4:{1:Value=2},3: Putted:{3:3} Removed:[],5: Putted:{4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=5}]}]
-AllLog=[{1:Value=1,4:{1:Value=2},3: Putted:{3:3} Removed:[],5: Putted:{4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=5}]}]}");
+Log=[{1:Value=11,3: Putted:{13:13} Removed:[],4:{1:Value=12},5: Putted:{14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=15}]}]
+AllLog=[{1:Value=11,3: Putted:{13:13} Removed:[],4:{1:Value=12},5: Putted:{14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=15}]}]}");
 				return 0;
 			}).Call();
 		}
@@ -302,13 +326,13 @@ AllLog=[{1:Value=1,4:{1:Value=2},3: Putted:{3:3} Removed:[],5: Putted:{4:Bean1(I
 			rocks.NewProcedure(() =>
 			{
 				var table = rocks.OpenTable<int, Bean1>("tRocksRaft");
-				Update(table);
+				Update(table, 20);
 				// 重新put，将会让上面的修改树作废。但所有的日志树都可以从All中看到。
 				var bean1put = new Bean1();
 				table.Put(1, bean1put);
-				VerifyChanges(@"{(tRocksRaft,1):State=1 PutValue=Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})
+				VerifyChanges(@"{(tRocksRaft,1):State=1 PutValue=Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})
 Log=[]
-AllLog=[{1:Value=1,4:{1:Value=2},3: Putted:{3:3} Removed:[],5: Putted:{4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=5}]},{0:Value=Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})}]}");
+AllLog=[{0:Value=Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})},{1:Value=21,3: Putted:{23:23} Removed:[],4:{1:Value=22},5: Putted:{24:Bean1(24 I=25 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=25}]}]}");
 				return 0;
 			}).Call();
 		}
@@ -322,11 +346,11 @@ AllLog=[{1:Value=1,4:{1:Value=2},3: Putted:{3:3} Removed:[],5: Putted:{4:Bean1(I
 
 			Remove1(rocks);
 			Update1(rocks);
-			VerifyData(rocks, "");
+			VerifyData(rocks, "Bean1(0 I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
 			Update2(rocks);
-			VerifyData(rocks, "");
+			VerifyData(rocks, "Bean1(0 I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=12) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
 			Update3(rocks);
-			VerifyData(rocks, "");
+			VerifyData(rocks, "Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
 
 			// 再次运行本测试，才会执行到 LoadSnapshot。
 			rocks.Raft.LogSequence.Snapshot(true);

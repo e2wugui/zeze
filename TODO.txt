@@ -17,10 +17,9 @@
 	Zeze.Arch 
 	【左尧完成Java了？】Zezex.ModuleRedirect 增加 TransactionLevel 注解配置。
 	Zezex.ModuleRedirect 去掉依赖Session生成hash模式；RunMyMethod去掉mode；
-	Raft.AppendLog Future Add Duplicate Index. Fatal!【观察不到了！】
 	Raft.AppendLog 加一个try catach，所有的内部错误都转换成RaftRetryException，这样就不会把内部异常漏给应用了。
-	c# Global 慢？
-
+	RocksRaft Bean.Variable.TransientAttribute
+	Raft.GlobalCacheManagerWithRaft 关键Transient：CacheState.AcquireStatePending 仅在Leader上使用，不需要同步到Follower。
 	RedoableQueue
 	{
 		1）存储：QueueId。 RocksDb<TaskId, Full_Encoded_Net_Rpc> 持久化的。
@@ -30,12 +29,11 @@
 		2) 功能：每个QueueId，for (LastTaskId, end) { Run(task); zeze.table.LastTaskId = task.Id; }
 		* 特性：允许 Zeze.ServerApp 回档，回档以后，从旧的LastTaskId开始重做任务。
 	}
-	Raft.GlobalCacheManagerWithRaft
-		优化。改成一次AppendLog。
-		关键：CacheState.AcquireStatePending 仅在Leader上使用，不需要同步到Follower。
 	Zezex.client: 可靠消息实现的错误检查。
 
 【2022/3/11】
+	Raft.AppendLog Future Add Duplicate Index. Fatal!【观察不到了！】
+	c# Global 慢？【网络事件也和普通Task共享了一个线程池，造成rpc.result处理也排队的结果，等async解决】
 	RocksRaft 日志收集基本完工。
 	Raft.Test 只删除日志相关数据库。保留重复请求数据库。
 	Raft.UniqueRequestSet.Put 优化：先读取并检查状态，减少写操作。
@@ -89,12 +87,3 @@
 	ServiceManager Simple 模式不通知整个列表！改成OnRegister OnUnRegister。
 	【已确认】checkpointMode.Period 不能用--->在启用Global情况下禁用。
 	【已确认】CheckpointMode.Table 能不能用？--->可以使用。
-
-【2022/1/10】
-	Zezex.Login.Onlines.Transmit 带参数。
-	Zezex.linkd: 达到Provider预期在线量之前，持续分配给它。
-	【放弃，丑就丑点了】RelativeRecordSet._merge_ 第二步合并孤立记录临时补丁：largest原来是孤立记录时，把当前记录加进去。现在的写法有点丑。
-	CheckpointMode.Table 如果当前事务对记录都是只读的，并且读取的记录原来都是孤立的，不要Merge（关联起来）。这个是否正确。
-	Connector WaitReady 重新实现。
-	GlobalAgent 修改成使用新的 Connector.WaitReady。
-	【Global之间的连接关闭状态没有设置成功导致的】UnitTest 失败或者强制中断测试程序，再次运行测试Global.Login Fail。看看有没有什么情况没有处理，还是UnitTest连接没有关闭造成的。

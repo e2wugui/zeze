@@ -1,26 +1,48 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using Zeze.Serialize;
 
 namespace Zeze.Raft.RocksRaft
 {
-    public class LogMap2<K, V> : LogMap1<K, V>
+	public class LogMap2<K, V> : LogMap1<K, V>
 		where V : Bean, new()
 	{
-		// changed V logs
+		// changed V logs. using in collect.
 		public ISet<LogBean> Changed { get; } = new HashSet<LogBean>();
+
+		// changed with key. using in encode/decode FollowerApply
+		public Dictionary<K, LogBean> ChangedWithKey { get; } = new Dictionary<K, LogBean>();
 
         public override void Decode(ByteBuffer bb)
         {
+			bb.Decode(ChangedWithKey);
             base.Decode(bb);
         }
 
         public override void Encode(ByteBuffer bb)
         {
-            base.Encode(bb);
+			foreach (var c in Changed)
+            {
+				if (CollMap2<K, V>.PropertyMapKey != null)
+				{
+					var pkey = (K)CollMap2<K, V>.PropertyMapKey.GetValue(c.Bean);
+					if (false == Putted.ContainsKey(pkey) && false == Removed.Contains(pkey))
+						ChangedWithKey.Add(pkey, c);
+					continue;
+				}
+				// slow search.
+				foreach (var e in Value)
+				{
+					if (c.Bean == e.Value)
+					{
+						ChangedWithKey.Add(e.Key, c);
+						break;
+					}
+				}
+			}
+			bb.Encode(ChangedWithKey);
+			base.Encode(bb);
         }
 
 		public override void Collect(Changes changes, Bean recent, Log vlog)

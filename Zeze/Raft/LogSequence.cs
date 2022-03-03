@@ -64,6 +64,7 @@ namespace Zeze.Raft
 
         // 不会被系列化。Local Only.
         public Func<int, Log> LogFactory { get; }
+        public TaskCompletionSource<int> LeaderFuture { get; internal set; }
 
         public override string ToString()
         {
@@ -390,11 +391,11 @@ namespace Zeze.Raft
 
         private void CancelPendingAppendLogFutures()
         {
-            foreach (var job in WaitApplyFutures)
+            foreach (var job in LeaderAppendLogs.Values)
             {
-                job.Value.TrySetCanceled();
-                WaitApplyFutures.TryRemove(job.Key, out _);
+                job.LeaderFuture.TrySetCanceled();
             }
+            LeaderAppendLogs.Clear();
         }
 
         internal void Close()
@@ -745,7 +746,10 @@ namespace Zeze.Raft
                 index <= lastApplyableLog.Index && count > 0;
                 --count)
             {
-                var raftLog = ReadLog(index);
+                if (false == LeaderAppendLogs.TryRemove(index, out var raftLog))
+                {
+                    raftLog = ReadLog(index);
+                }
                 if (null == raftLog)
                 {
                     logger.Warn("What Happened! index={0} lastApplyable={1} LastApplied={2}",
@@ -758,12 +762,11 @@ namespace Zeze.Raft
                 if (raftLog.Log.Unique.RequestId > 0)
                     OpenUniqueRequests(raftLog.Log.CreateTime).Apply(raftLog);
                 LastApplied = raftLog.Index; // 循环可能退出，在这里修改。
-                                             //*
+                //*
                 if (LastIndex - LastApplied < 10)
                     logger.Debug($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={raftLog.Log.Unique.RequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
                 // */
-                if (WaitApplyFutures.TryRemove(raftLog.Index, out var future))
-                    future.SetResult(0);
+                raftLog.LeaderFuture?.TrySetResult(0);
             }
             //logger.Debug($"{Raft.Name}-{Raft.IsLeader} CommitIndex={CommitIndex} RequestId={lastApplyableLog.Log.Unique.RequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
         }
@@ -773,8 +776,7 @@ namespace Zeze.Raft
             return (Raft.StateMachine as Test.TestStateMachine)?.Count;
         }
 
-        internal ConcurrentDictionary<long, TaskCompletionSource<int>> WaitApplyFutures { get; }
-            = new ConcurrentDictionary<long, TaskCompletionSource<int>>();
+        internal ConcurrentDictionary<long, RaftLog> LeaderAppendLogs { get; } = new ConcurrentDictionary<long, RaftLog>();
 
         internal void SendHeartbeatTo(Server.ConnectorEx connector)
         {
@@ -839,8 +841,8 @@ namespace Zeze.Raft
                 var raftLog = new RaftLog(Term, LastIndex + 1, log);
                 if (WaitApply)
                 {
-                    future = new TaskCompletionSource<int>();
-                    if (false == WaitApplyFutures.TryAdd(raftLog.Index, future))
+                    raftLog.LeaderFuture = new TaskCompletionSource<int>();
+                    if (false == LeaderAppendLogs.TryAdd(raftLog.Index, raftLog))
                     {
                         Raft.FatalKill();
                         throw new Exception("Impossible");
@@ -861,7 +863,7 @@ namespace Zeze.Raft
             {
                 if (false == future.Task.Wait(Raft.RaftConfig.AppendEntriesTimeout * 2 + 1000))
                 {
-                    WaitApplyFutures.TryRemove(index, out _);
+                    LeaderAppendLogs.TryRemove(index, out _);
                     throw new RaftRetryException();
                 }
             }
@@ -1209,14 +1211,14 @@ namespace Zeze.Raft
         {
             for (long index = startIndex; index <= endIndex; ++index)
             {
-                if (index > LastApplied && WaitApplyFutures.TryRemove(index, out var future))
+                if (index > LastApplied && LeaderAppendLogs.TryRemove(index, out var raftlog))
                 {
                     // 还没有applied的日志被删除，
                     // 当发生在重新选举，但是旧的leader上还有一些没有提交的请求时，
                     // 需要取消。
                     // 其中判断：index > LastApplied 不是必要的。
                     // Apply的时候已经TryRemove了，仅会成功一次。
-                    future.TrySetCanceled();
+                    raftlog.LeaderFuture?.TrySetCanceled();
                 }
                 RemoveLog(index);
             }

@@ -20,7 +20,7 @@ namespace Zeze.Raft.RocksRaft
             return new Procedure(this, func);
         }
 
-        internal void Apply(Changes changes)
+        internal void FollowerApply(Changes changes)
         {
             var rs = new List<Record>();
             foreach (var e in changes.Records)
