@@ -20,6 +20,8 @@
 	Raft.AppendLog 加一个try catach，所有的内部错误都转换成RaftRetryException，这样就不会把内部异常漏给应用了。
 	RocksRaft Bean.Variable.TransientAttribute
 	Raft.GlobalCacheManagerWithRaft 关键Transient：CacheState.AcquireStatePending 仅在Leader上使用，不需要同步到Follower。
+	RocksRaft NestProcedure Test
+	RocksRaft Edit Bean In Container
 	RedoableQueue
 	{
 		1）存储：QueueId。 RocksDb<TaskId, Full_Encoded_Net_Rpc> 持久化的。
