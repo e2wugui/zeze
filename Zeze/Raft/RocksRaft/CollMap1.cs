@@ -67,7 +67,7 @@ namespace Zeze.Raft.RocksRaft
 		{
 			var log = new LogMap1<K, V>();
 			log.Belong = Parent;
-			log.Owner = this;
+			log.This = this;
 			log.VariableId = VariableId;
 			log.Value = map;
 			return log;

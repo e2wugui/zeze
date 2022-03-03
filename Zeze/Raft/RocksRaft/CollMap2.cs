@@ -64,6 +64,10 @@ namespace Zeze.Raft.RocksRaft
 		{
 			var log = (LogMap2<K, V>)_log;
 			var tmp = map;
+			foreach (var put in log.Putted)
+            {
+				put.Value.InitRootInfo(RootInfo, this);
+            }
 			tmp = tmp.SetItems(log.Putted);
 			tmp = tmp.RemoveRange(log.Removed);
 
@@ -92,7 +96,7 @@ namespace Zeze.Raft.RocksRaft
 		{
 			var log = new LogMap2<K, V>();
 			log.Belong = Parent;
-			log.Owner = this;
+			log.This = this;
 			log.VariableId = VariableId;
 			log.Value = map;
 			return log;

@@ -302,7 +302,7 @@ namespace Zeze.Raft.RocksRaft
             // test LeaderApply
             foreach (Log log in sp.Logs.Values)
             {
-                log.Bean?.LeaderApplyNoRecursive(log);
+                log.Belong?.LeaderApplyNoRecursive(log);
             }
             var rs = new List<Record>();
             foreach (var ar in AccessedRecords.Values)

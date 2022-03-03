@@ -50,19 +50,17 @@ namespace Zeze.Raft.RocksRaft
 
 		public override void Decode(ByteBuffer bb)
 		{
-			// decode to origin map. 所以! 不能在事务中使用Decode。
-			map = ImmutableDictionary<K, V>.Empty;
+			Clear();
 			for (int i = bb.ReadInt(); i > 0; --i)
 			{
 				var key = SerializeHelper<K>.Decode(bb);
 				var value = SerializeHelper<V>.Decode(bb);
-				map = map.Add(key, value);
+				Put(key, value);
 			}
 		}
 
 		public override void Encode(ByteBuffer bb)
 		{
-			// encode from newest Map. 是否在事务中都可以。
 			var tmp = Map;
 			bb.WriteInt(tmp.Count);
 			foreach (var e in tmp)

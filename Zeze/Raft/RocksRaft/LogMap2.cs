@@ -16,7 +16,13 @@ namespace Zeze.Raft.RocksRaft
 
         public override void Decode(ByteBuffer bb)
         {
-			bb.Decode(ChangedWithKey);
+			ChangedWithKey.Clear();
+			for (int i = bb.ReadInt(); i > 0; --i)
+			{
+				var key = SerializeHelper<K>.Decode(bb);
+				var value = SerializeHelper<LogBean>.Decode(bb);
+				ChangedWithKey.Add(key, value);
+			}
             base.Decode(bb);
         }
 
@@ -26,7 +32,7 @@ namespace Zeze.Raft.RocksRaft
             {
 				if (CollMap2<K, V>.PropertyMapKey != null)
 				{
-					var pkey = (K)CollMap2<K, V>.PropertyMapKey.GetValue(c.Owner);
+					var pkey = (K)CollMap2<K, V>.PropertyMapKey.GetValue(c.This);
 					if (false == Putted.ContainsKey(pkey) && false == Removed.Contains(pkey))
 						ChangedWithKey.Add(pkey, c);
 					continue;
@@ -41,7 +47,12 @@ namespace Zeze.Raft.RocksRaft
 					}
 				}
 			}
-			bb.Encode(ChangedWithKey);
+			bb.WriteInt(ChangedWithKey.Count);
+			foreach (var e in ChangedWithKey)
+            {
+				SerializeHelper<K>.Encode(bb, e.Key);
+				SerializeHelper<LogBean>.Encode(bb, e.Value);
+			}
 			base.Encode(bb);
         }
 
