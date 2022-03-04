@@ -13,7 +13,7 @@ namespace Zeze.Gen.Types
 		public abstract string Name { get; }
 
 		public abstract bool IsImmutable { get; } // most for deep copy.
-		protected string Kind { get; set; } = "";
+		public string Kind { get; protected set; } = "";
 		public bool IsBean => Kind.Equals("bean") || Kind.Equals("beankey");
 		public virtual bool IsKeyable => IsImmutable; // most for table.key, cbean.
 		public bool IsRocks => Kind.Equals("rocks");
