@@ -19,7 +19,6 @@
 	Zezex.ModuleRedirect 去掉依赖Session生成hash模式；RunMyMethod去掉mode；
 	Raft.AppendLog 加一个try catach，所有的内部错误都转换成RaftRetryException，这样就不会把内部异常漏给应用了。
 	RocksRaft Bean.Variable.TransientAttribute
-	RocksRaft Raft.AppendLog
 	Raft.GlobalCacheManagerWithRaft 关键Transient：CacheState.AcquireStatePending 仅在Leader上使用，不需要同步到Follower。
 	RedoableQueue
 	{
@@ -33,6 +32,7 @@
 	Zezex.client: 可靠消息实现的错误检查。
 
 【2022/3/11】
+	RocksRaft Raft.AppendLog
 	RocksRaft NestProcedureContainer Test
 	RocksRaft Simple NestProcedure Test
 	RocksRaft Edit Bean In Container

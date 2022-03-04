@@ -57,5 +57,12 @@ namespace Zeze.Raft.RocksRaft
 
 		public abstract void FollowerApply(Log log);
 		public abstract void LeaderApplyNoRecursive(Log log);
+
+		public virtual long TypeId => Zeze.Transaction.Bean.Hash64(GetType().FullName);
+
+		public virtual void BuildString(System.Text.StringBuilder sb, int level)
+		{
+			sb.Append(new string(' ', level)).Append("{}").Append(System.Environment.NewLine);
+		}
 	}
 }
