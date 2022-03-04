@@ -60,7 +60,6 @@ namespace Zeze.Gen.Types
 
 		public override bool IsImmutable => true;
 		public override bool IsKeyable => true;
-		public override bool IsBean => true;
 		public override string Name => _name;
 		public string NamePinyin => Program.ToPinyin(Name);
 		private string _name;
@@ -89,6 +88,7 @@ namespace Zeze.Gen.Types
 		{
 			Space = space;
 			_name = self.GetAttribute("name").Trim();
+			Kind = "beankey";
 			Program.CheckReserveName(_name);
 			Type.Add(space, this);
 			space.Add(this);

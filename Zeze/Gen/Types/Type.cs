@@ -13,9 +13,11 @@ namespace Zeze.Gen.Types
 		public abstract string Name { get; }
 
 		public abstract bool IsImmutable { get; } // most for deep copy.
-		public virtual bool IsBean => false;
+		protected string Kind { get; set; } = "";
+		public bool IsBean => Kind.Equals("bean") || Kind.Equals("beankey");
 		public virtual bool IsKeyable => IsImmutable; // most for table.key, cbean.
-		public virtual bool IsNormalBean => IsBean && !IsKeyable; // 普通的bean，不是beankey
+		public bool IsRocks => Kind.Equals("rocks");
+		public bool IsNormalBean => Kind.Equals("bean"); // 普通的bean，不是beankey
 		public virtual bool IsCollection => false;
 		public abstract bool IsNeedNegativeCheck { get; }
 		public override string ToString()

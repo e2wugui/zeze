@@ -79,7 +79,6 @@ namespace Zeze.Gen.Types
 		public ModuleSpace Space { get; private set; }
 
 		public override bool IsImmutable => false;
-		public override bool IsBean => true;
 		public override string Name => _name;
 		public string NamePinyin => Program.ToPinyin(Name);
 		private string _name;
@@ -105,6 +104,9 @@ namespace Zeze.Gen.Types
 		{
 			Space = space;
 			_name = self.GetAttribute("name").Trim();
+			Kind = self.GetAttribute("kind").Trim();
+			if (string.IsNullOrEmpty(Kind))
+				Kind = "bean"; // default
 			Program.CheckReserveName(_name);
 			Type.Add(space, this);
 			space.Add(this);

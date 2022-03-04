@@ -9,7 +9,6 @@ namespace Zeze.Gen.Types
         public override string Name => "dynamic";
 
         public override bool IsImmutable => false;
-        public override bool IsBean => false; // 虽然实际上包含其他bean，但自己不是。
         public override bool IsNeedNegativeCheck
         {
             get
@@ -42,6 +41,8 @@ namespace Zeze.Gen.Types
         // 如果指定特别的TypeId，必须全部都指定。虽然部分指定也可以处理，感觉这样不大好。
         private TypeDynamic(ModuleSpace space, string value)
         {
+            Kind = "dynamic";
+
             foreach (var beanWithSpecialTypeId in value.Split(','))
             {
                 if (beanWithSpecialTypeId.Length == 0) // empty
