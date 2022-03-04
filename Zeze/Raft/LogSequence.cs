@@ -842,6 +842,7 @@ namespace Zeze.Raft
                 if (WaitApply)
                 {
                     raftLog.LeaderFuture = new TaskCompletionSource<int>();
+                    future = raftLog.LeaderFuture;
                     if (false == LeaderAppendLogs.TryAdd(raftLog.Index, raftLog))
                     {
                         Raft.FatalKill();

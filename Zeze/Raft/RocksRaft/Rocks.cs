@@ -30,7 +30,9 @@ namespace Zeze.Raft.RocksRaft
             Flush(rs);
         }
 
-        public string Home { get; }
+        public string DbHome => Raft.RaftConfig.DbHome;
+        public bool IsLeader => Raft.IsLeader;
+
         public WriteOptions WriteOptions { get; }
 
         internal RocksDb Storage;
@@ -39,7 +41,6 @@ namespace Zeze.Raft.RocksRaft
 
         public Rocks(
             string raftName = null, // 这个参数会覆盖RaftConfig.Name，这样应用可以共享同一个配置文件。
-            string home = ".",
             RaftConfig raftConfig = null, // "raft.xml"
             Config config = null, // "zeze.xml"
             bool RocksDbWriteOptionSync = false)
@@ -48,9 +49,7 @@ namespace Zeze.Raft.RocksRaft
             RegisterLog<Log<int>>();
             RegisterLog<Log<long>>();
 
-            Home = home;
             WriteOptions = new WriteOptions().SetSync(RocksDbWriteOptionSync);
-
             // 这个赋值是不必要的，new Raft(...)内部会赋值。有点奇怪。
             base.Raft = new Raft(this, raftName, raftConfig, config);
             base.Raft.AtFatalKills += () => Storage?.Dispose();
@@ -67,7 +66,7 @@ namespace Zeze.Raft.RocksRaft
         private void OpenDb()
         {
             var options = new DbOptions().SetCreateIfMissing(true);
-            var dbName = Path.Combine(Home, "rocksraft");
+            var dbName = Path.Combine(DbHome, "rocksraft");
 
             var columns = new ColumnFamilies();
             if (Directory.Exists(dbName))
@@ -108,7 +107,7 @@ namespace Zeze.Raft.RocksRaft
 
         public string Checkpoint(out long lastIncludedIndex, out long lastIncludedTerm)
         {
-            var checkpintDir = Path.Combine(Home, "checkpoint_" + DateTime.Now.Ticks);
+            var checkpintDir = Path.Combine(DbHome, "checkpoint_" + DateTime.Now.Ticks);
 
             // fast checkpoint, will stop application apply.
             lock (Raft)
@@ -203,7 +202,7 @@ namespace Zeze.Raft.RocksRaft
                     Storage?.Dispose();
 
                     // restore
-                    var dbName = Path.Combine(Home, "datas");
+                    var dbName = Path.Combine(DbHome, "statemachine");
                     N.rocksdb_backup_engine_restore_db_from_latest_backup(
                         backup, dbName, dbName, restore_options, out err);
                     if (err != IntPtr.Zero)
@@ -239,8 +238,9 @@ namespace Zeze.Raft.RocksRaft
         public override bool Snapshot(string path, out long lastIncludedIndex, out long lastIncludedTerm)
         {
             var cphome = Checkpoint(out lastIncludedIndex, out lastIncludedTerm);
-            var backupdir = Path.Combine(Home, "backup");
+            var backupdir = Path.Combine(DbHome, "backup");
             Backup(cphome, backupdir);
+            FileSystem.DeleteDirectory(cphome);
             ZipFile.CreateFromDirectory(backupdir, path);
             Raft.LogSequence.CommitSnapshot(path, lastIncludedIndex);
             return true;
@@ -248,7 +248,7 @@ namespace Zeze.Raft.RocksRaft
 
         public override void LoadSnapshot(string path)
         {
-            var backupdir = Path.Combine(Home, "backup");
+            var backupdir = Path.Combine(DbHome, "backup");
             if (File.GetLastWriteTime(path) > Directory.GetLastWriteTime(backupdir))
             {
                 FileSystem.DeleteDirectory(backupdir);

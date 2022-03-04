@@ -16,7 +16,7 @@ namespace Zeze.Raft.RocksRaft
 		public Transaction Transaction { get; }
 
 		public Changes(Procedure p, Transaction trans)
-			: base((IRaftRpc)p.RequestProtocol)
+			: base((IRaftRpc)p.Rpc)
         {
 			Procedure = p;
 			Transaction = trans;
@@ -204,17 +204,12 @@ namespace Zeze.Raft.RocksRaft
         {
 			if (holder.LeaderFuture != null)
 			{
-				LeaderApply();
+				Transaction.LeaderApply(Procedure);
 			}
             else
             {
 				Procedure.Rocks.FollowerApply(this);
 			}
 		}
-
-		private void LeaderApply()
-        {
-
-        }
 	}
 }

@@ -280,26 +280,14 @@ namespace Zeze.Raft.RocksRaft
             {
                 Changes.CollectRecord(ar);
             }
+            procedure.Rocks.Raft.AppendLog(Changes, procedure.Rpc?.ResultBean);
+            _trigger_commit_actions_(procedure);
+            procedure.Rpc?.SendResultCode(procedure.Rpc.ResultCode);
+        }
 
-            // Raft
-            // procedure.Rocks.Raft.AppendLog(null, procedure.Rpc?.Result);
-            
-            /*
-            {
-                // test FollowerApply
-                var bb = ByteBuffer.Allocate(1024);
-                Changes.Encode(bb);
-                var tmp = new Changes(procedure, this);
-                tmp.Decode(bb);
-                procedure.Rocks.FollowerApply(tmp);
-                procedure.RequestProtocol?.SendResultCode(procedure.RequestProtocol.ResultCode);
-                _trigger_commit_actions_(procedure);
-                return;
-            }
-            // */
-
-            //*
-            // test LeaderApply
+        internal void LeaderApply(Procedure procedure)
+        {
+            Savepoint sp = Savepoints[Savepoints.Count - 1];
             foreach (Log log in sp.Logs.Values)
             {
                 log.Belong?.LeaderApplyNoRecursive(log);
@@ -314,11 +302,8 @@ namespace Zeze.Raft.RocksRaft
                 }
             }
             procedure.Rocks.Flush(rs);
-            // */
-            procedure.RequestProtocol?.SendResultCode(procedure.RequestProtocol.ResultCode);
-            _trigger_commit_actions_(procedure);
         }
-        
+
         private void _final_rollback_(Procedure procedure)
         {
 

@@ -23,7 +23,7 @@ namespace Zeze.Raft
         public string Name { get; internal set; }
         // 多数确认时：大于等于这个即可，因为还有自己(Leader)。
         public int HalfCount => Nodes.Count / 2;
-        public string DbHome { get; set; } = "./";
+        public string DbHome { get; set; }
 
         public const int DefaultAppendEntriesTimeout = 2000;
         public const int DefaultLeaderHeartbeatTimer = DefaultAppendEntriesTimeout + 200;
@@ -74,7 +74,7 @@ namespace Zeze.Raft
             Name = self.GetAttribute("Name");
             DbHome = self.GetAttribute("DbHome");
             if (string.IsNullOrEmpty(DbHome))
-                DbHome = ".";
+                DbHome = Name.Replace(":", "_");
 
             var attr = self.GetAttribute("AppendEntriesTimeout");
             if (!string.IsNullOrEmpty(attr)) AppendEntriesTimeout = int.Parse(attr);

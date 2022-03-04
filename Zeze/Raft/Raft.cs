@@ -145,6 +145,8 @@ namespace Zeze.Raft
             Server.CreateAcceptor(Server, raftconf);
             Server.CreateConnector(Server, raftconf);
 
+            Directory.CreateDirectory(RaftConfig.DbHome);
+
             _LogSequence = new LogSequence(this);
 
             RegisterInternalRpc();

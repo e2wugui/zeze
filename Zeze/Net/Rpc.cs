@@ -13,6 +13,8 @@ namespace Zeze.Net
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         public TResult Result { get; set; } = new TResult();
+        public override Bean ResultBean => Result;
+
         public Binary ResultEncoded { get; set; } // 如果设置了这个，发送结果的时候，优先使用这个编码过的。
 
         public bool IsTimeout { get; internal set; }

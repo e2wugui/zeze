@@ -10,6 +10,9 @@ namespace Zeze.Net
 
 		public long TypeId => (long)ModuleId << 32 | (uint)ProtocolId;
 
+		public virtual Zeze.Transaction.Bean ResultBean { get; }
+		public virtual Zeze.Transaction.Bean ArgumentBean { get; }
+
 		public static int GetModuleId(long typeId)
         {
 			return (int)(typeId >> 32);
@@ -175,6 +178,7 @@ namespace Zeze.Net
     public abstract class Protocol<TArgument> : Protocol where TArgument : Transaction.Bean, new()
     {
         public TArgument Argument { get; set; } = new TArgument();
+		public override Zeze.Transaction.Bean ArgumentBean => Argument;
 
 		public override void Decode(ByteBuffer bb)
         {

@@ -10,7 +10,7 @@ namespace Zeze.Raft.RocksRaft
     {
         public Func<long> Func { get; set; }
         public Rocks Rocks { get; set; }
-        public Zeze.Net.Protocol RequestProtocol { get; set; }
+        public Zeze.Net.Protocol Rpc { get; set; }
 
         public Procedure()
         {

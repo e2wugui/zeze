@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Raft.RocksRaft;
 using Zeze.Serialize;
+using Zeze.Util;
 
 namespace UnitTest.Zeze.RocksRaft
 {
@@ -406,13 +408,54 @@ AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(4444 I=0 L=0 Ma
 			}).Call();
         }
 
+		private void Init(Rocks rocks)
+        {
+			rocks.RegisterLog<LogMap1<int, int>>();
+			rocks.RegisterLog<LogMap2<int, Bean1>>();
+		}
+
+		private Rocks GetLeader(List<Rocks> rocks, Rocks skip)
+        {
+			while (true)
+            {
+				foreach (var rock in rocks)
+				{
+					if (rock == skip)
+						continue;
+					if (rock.IsLeader)
+						return rock;
+				}
+				System.Threading.Thread.Sleep(1000);
+			}
+		}
+
 		[TestMethod]
         public void Test_1()
         {
-			using var rocks = new Rocks();
-			rocks.RegisterLog<LogMap1<int, int>>();
-			rocks.RegisterLog<LogMap2<int, Bean1>>();
+			FileSystem.DeleteDirectory("127.0.0.1_6000");
+			FileSystem.DeleteDirectory("127.0.0.1_6001");
+			FileSystem.DeleteDirectory("127.0.0.1_6002");
 
+			using var rocks1 = new Rocks("127.0.0.1:6000");
+			using var rocks2 = new Rocks("127.0.0.1:6001");
+			using var rocks3 = new Rocks("127.0.0.1:6002");
+
+			rocks1.Raft.Server.Start();
+			rocks2.Raft.Server.Start();
+			rocks3.Raft.Server.Start();
+
+			var rockslist = new List<Rocks> { rocks1, rocks2, rocks3 };
+			var leader = GetLeader(rockslist, null);
+			RunLeader(leader);
+			leader.Raft.Server.Stop();
+
+			// 只简单验证一下最新的数据。
+			var newleader = GetLeader(rockslist, leader);
+			VerifyData(newleader, "Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
+		}
+
+		private void RunLeader(Rocks rocks)
+        {
 			Remove1(rocks);
 
 			PutAndEdit(rocks);

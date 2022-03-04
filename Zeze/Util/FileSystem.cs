@@ -93,12 +93,15 @@ namespace Zeze.Util
 
         public static void DeleteDirectory(string path)
         {
-            Directory.Delete(path, true);
-            for (int i = 1; Directory.Exists(path); i++)
+            int times = 0;
+            while (Directory.Exists(path))
             {
-                System.Threading.Thread.Sleep(100);
-                if (i % 10 == 0)
-                    Directory.Delete(path, true);
+                Directory.Delete(path, true);
+                if (times > 10)
+                    break;
+                if (times > 0)
+                    System.Threading.Thread.Sleep(100);
+                ++times;
             }
         }
     }
