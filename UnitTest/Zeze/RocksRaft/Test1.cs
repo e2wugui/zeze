@@ -8,224 +8,13 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Raft.RocksRaft;
 using Zeze.Serialize;
 using Zeze.Util;
+using static Zeze.Raft.RocksRaft.Test;
 
 namespace UnitTest.Zeze.RocksRaft
 {
     [TestClass]
     public class Test1
     {
-        public sealed class Bean1 : Bean
-        {
-			private int _i;
-			private long _l;
-			private CollMap1<int, int> _map1;
-			private Bean2 _bean2;
-			private CollMap2<int, Bean1> _map2;
-
-			public int _Int32MapKey_ { get; set; }
-
-			public int I
-			{
-				get
-				{
-					if (IsManaged)
-                    {
-						if (false == Transaction.Current.TryGetLog(ObjectId + 1, out var log)) return _i;
-						return ((Log<int>)log).Value;
-					}
-                    else
-                    {
-						return _i;
-					}
-				}
-
-				set
-				{
-					if (IsManaged)
-					{
-						Transaction.Current.PutLog(new Log<int>() { Belong = this, VariableId = 1, Value = value, });
-					}
-					else
-					{
-						_i = value;
-					}
-				}
-			}
-
-			public long L
-			{
-				get
-				{
-					if (IsManaged)
-                    {
-						if (false == Transaction.Current.TryGetLog(ObjectId + 2, out var log)) return _l;
-						return ((Log<long>)log).Value;
-					}
-					else
-                    {
-						return _l;
-                    }
-				}
-
-				set
-				{
-					if (IsManaged)
-                    {
-						Transaction.Current.PutLog(new Log<long>() { Belong = this, VariableId = 2, Value = value, });
-					}
-					else
-                    {
-						_l = value;
-                    }
-				}
-			}
-
-			public CollMap1<int, int> Map1 => _map1;
-			public CollMap2<int, Bean1> Map2 => _map2;
-
-			public Bean2 Bean2 => _bean2;
-
-            public override void FollowerApply(Log log)
-            {
-				var blog = (LogBean)log;
-				foreach (var vlog in blog.Variables.Values)
-				{
-					switch (vlog.VariableId)
-					{
-						case 1: _i = ((Log<int>)vlog).Value; break;
-						case 2: _l = ((Log<long>)vlog).Value; break;
-						case 3: _map1.FollowerApply(vlog); break;
-						case 4: _bean2.FollowerApply(vlog); break;
-						case 5: _map2.FollowerApply(vlog); break;
-					}
-				}
-			}
-
-            public override void LeaderApplyNoRecursive(Log vlog)
-            {
-				switch (vlog.VariableId)
-				{
-					case 1: _i = ((Log<int>)vlog).Value; break;
-					case 2: _l = ((Log<long>)vlog).Value; break;
-					case 3: _map1.LeaderApplyNoRecursive(vlog); break;
-					case 5: _map2.LeaderApplyNoRecursive(vlog); break;
-				}
-			}
-
-			public Bean1()
-            {
-				_map1 = new CollMap1<int, int>() { VariableId = 3 };
-				_bean2 = new Bean2() { VariableId = 4 };
-				_map2 = new CollMap2<int, Bean1>() { VariableId = 5 };
-			}
-
-			public override void Decode(ByteBuffer bb)
-			{
-				_Int32MapKey_ = bb.ReadInt();
-
-				I = bb.ReadInt();
-				L = bb.ReadLong();
-				Map1.Decode(bb);
-				Bean2.Decode(bb);
-				Map2.Decode(bb);
-			}
-
-			public override void Encode(ByteBuffer bb)
-			{
-				bb.WriteInt(_Int32MapKey_);
-
-				bb.WriteInt(I);
-				bb.WriteLong(L);
-				Map1.Encode(bb);
-				Bean2.Encode(bb);
-				Map2.Encode(bb);
-			}
-
-			protected override void InitChildrenRootInfo(Record.RootInfo root)
-			{
-				_map1.InitRootInfo(root, this);
-				_bean2.InitRootInfo(root, this);
-				_map2.InitRootInfo(root, this);
-			}
-
-			public override string ToString()
-			{
-				return $"Bean1({_Int32MapKey_} I={I} L={L} Map1={Map1} Bean2={Bean2} Map2={Map2})";
-			}
-		}
-
-		public sealed class Bean2 : Bean
-        {
-			private int _i;
-
-			public int I
-			{
-				get
-				{
-					if (IsManaged)
-					{
-						if (false == Transaction.Current.TryGetLog(ObjectId + 1, out var log)) return _i;
-						return ((Log<int>)log).Value;
-					}
-					else
-					{
-						return _i;
-					}
-				}
-
-				set
-				{
-					if (IsManaged)
-                    {
-						Transaction.Current.PutLog(new Log<int>() { Belong = this, VariableId = 1, Value = value, });
-					}
-					else
-                    {
-						_i = value;
-                    }
-				}
-			}
-
-			public override void Decode(ByteBuffer bb)
-			{
-				I = bb.ReadInt();
-			}
-
-			public override void Encode(ByteBuffer bb)
-			{
-				bb.WriteInt(I);
-			}
-
-			protected override void InitChildrenRootInfo(Record.RootInfo root)
-			{
-			}
-
-			public override string ToString()
-			{
-				return $"Bean2(I={I})";
-			}
-
-            public override void FollowerApply(Log log)
-            {
-				var blog = (LogBean)log;
-				foreach (var vlog in blog.Variables.Values)
-				{
-					switch (vlog.VariableId)
-					{
-						case 1: _i = ((Log<int>)vlog).Value; break;
-					}
-				}
-			}
-
-            public override void LeaderApplyNoRecursive(Log vlog)
-            {
-				switch (vlog.VariableId)
-				{
-					case 1: _i = ((Log<int>)vlog).Value; break;
-				}
-			}
-		}
-
 		private void Remove1(Rocks rocks)
 		{
 			rocks.NewProcedure(() =>
@@ -298,9 +87,13 @@ namespace UnitTest.Zeze.RocksRaft
 				var value = table.GetOrAdd(1);
 				var current = value.ToString();
 				if (string.IsNullOrEmpty(except))
+				{
 					Console.WriteLine(current);
+				}
 				else
+				{
 					Assert.AreEqual(except, current);
+				}
 				return 0;
 			}).Call();
 		}
@@ -408,12 +201,6 @@ AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(4444 I=0 L=0 Ma
 			}).Call();
         }
 
-		private void Init(Rocks rocks)
-        {
-			rocks.RegisterLog<LogMap1<int, int>>();
-			rocks.RegisterLog<LogMap2<int, Bean1>>();
-		}
-
 		private Rocks GetLeader(List<Rocks> rocks, Rocks skip)
         {
 			while (true)
@@ -440,11 +227,20 @@ AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(4444 I=0 L=0 Ma
 			using var rocks2 = new Rocks("127.0.0.1:6001");
 			using var rocks3 = new Rocks("127.0.0.1:6002");
 
+			var rockslist = new List<Rocks> { rocks1, rocks2, rocks3 };
+			foreach (var rr in rockslist)
+            {
+				rr.RegisterLog<LogMap1<int, int>>();
+				rr.RegisterLog<LogMap2<int, Bean1>>();
+				rr.OpenTable<int, Bean1>("tRocksRaft");
+			}
+
+			// start
 			rocks1.Raft.Server.Start();
 			rocks2.Raft.Server.Start();
 			rocks3.Raft.Server.Start();
 
-			var rockslist = new List<Rocks> { rocks1, rocks2, rocks3 };
+			// leader
 			var leader = GetLeader(rockslist, null);
 			RunLeader(leader);
 			leader.Raft.Server.Stop();

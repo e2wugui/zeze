@@ -12,15 +12,21 @@ namespace Zeze.Raft.RocksRaft
 		// 收集日志时,记录所有Bean修改.
 		// key is Bean.ObjectId
 		public Dictionary<long, LogBean> Beans { get; } = new Dictionary<long, LogBean>();
-		public Procedure Procedure { get; }
+		public Rocks Rocks { get; }
 		public Transaction Transaction { get; }
 
-		public Changes(Procedure p, Transaction trans)
-			: base((IRaftRpc)p.Rpc)
+		public Changes(Rocks r, Transaction t, Zeze.Net.Protocol req)
+			: base((IRaftRpc)req)
         {
-			Procedure = p;
-			Transaction = trans;
+			Rocks = r;
+			Transaction = t;
 		}
+
+		internal Changes(Rocks r)
+			: base(null)
+        {
+			Rocks = r;
+        }
 
 		public class Record
         {
@@ -39,10 +45,10 @@ namespace Zeze.Raft.RocksRaft
 
 			public void SetTableByName(Changes changes, string name)
             {
-				if (false == changes.Procedure.Rocks.Tables.TryGetValue(name, out Table))
+				if (false == changes.Rocks.Tables.TryGetValue(name, out Table))
 				{
 					Rocks.logger.Error($"table not found {name}");
-					changes.Procedure.Rocks.Raft.FatalKill();
+					changes.Rocks.Raft.FatalKill();
 				}
 			}
 
@@ -51,21 +57,13 @@ namespace Zeze.Raft.RocksRaft
 				if (null != ar.PutLog) // put or remove
 				{
 					PutValue = ar.PutLog.Value;
-					if (PutValue == null)
-					{
-						State = Remove;
-					}
-					else
-					{
-						State = Put;
-					}
+					State = PutValue == null ? Remove : Put;
+					return;
 				}
-				else
-				{
-					State = Edit;
-					if (LogBeans.TryGetValue(ar.Origin.Value, out var logbean))
-						LogBean.Add(logbean); // edit
-				}
+
+				State = Edit;
+				if (LogBeans.TryGetValue(ar.Origin.Value, out var logbean))
+					LogBean.Add(logbean); // edit
 			}
 
 			public void Encode(ByteBuffer bb)
@@ -156,13 +154,15 @@ namespace Zeze.Raft.RocksRaft
 		public void CollectRecord(Transaction.RecordAccessed ar)
         {
 			var tkey = ar.TableKey;
+
 			if (false == Records.TryGetValue(tkey, out var r))
-			{
-				r = new Record();
+            {
+				r = new Record(); // put record only
 				Records.Add(tkey, r);
 			}
+
 			r.Collect(ar);
-        }
+		}
 
 		public override void Decode(ByteBuffer bb)
 		{
@@ -204,11 +204,13 @@ namespace Zeze.Raft.RocksRaft
         {
 			if (holder.LeaderFuture != null)
 			{
-				Transaction.LeaderApply(Procedure);
+				Rocks.logger.Debug($"{Rocks.Raft.Name} LeaderApply");
+				Transaction.LeaderApply(Rocks);
 			}
             else
             {
-				Procedure.Rocks.FollowerApply(this);
+				Rocks.logger.Debug($"{Rocks.Raft.Name} FollowerApply");
+				Rocks.FollowerApply(this);
 			}
 		}
 	}

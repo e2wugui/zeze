@@ -8,6 +8,8 @@ namespace Zeze.Raft.RocksRaft
 {
     public class Procedure
     {
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
         public Func<long> Func { get; set; }
         public Rocks Rocks { get; set; }
         public Zeze.Net.Protocol Rpc { get; set; }
@@ -56,6 +58,16 @@ namespace Zeze.Raft.RocksRaft
                 currentT.Rollback();
                 return result;
             }
+            catch (ThrowAgainException)
+            {
+                currentT.Rollback();
+                throw;
+            }
+            catch (RaftRetryException)
+            {
+                currentT.Rollback();
+                throw;
+            }
             catch (Exception ex)
             {
                 currentT.Rollback();
@@ -64,6 +76,8 @@ namespace Zeze.Raft.RocksRaft
                 {
                     throw;
                 }
+
+                logger.Error(ex);
 
                 return ex is TaskCanceledException
                     ? Zeze.Transaction.Procedure.CancelException

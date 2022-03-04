@@ -10,7 +10,7 @@ namespace Zeze.Raft.RocksRaft
 {
 	public abstract class CollMap<K, V> : Collection
 	{
-		internal ImmutableDictionary<K, V> map = ImmutableDictionary<K, V>.Empty;
+		internal ImmutableDictionary<K, V> _map = ImmutableDictionary<K, V>.Empty;
 
 		public V Get(K key)
         {
@@ -29,14 +29,15 @@ namespace Zeze.Raft.RocksRaft
             {
 				if (IsManaged)
 				{
+					if (Transaction.Current == null) return _map;
 					if (false == Transaction.Current.TryGetLog(Parent.ObjectId + VariableId, out var log))
-						return map;
+						return _map;
 					var maplog = (LogMap1<K, V>)log;
 					return maplog.Value;
 				}
 				else
 				{
-					return map;
+					return _map;
 				}
 			}
 		}

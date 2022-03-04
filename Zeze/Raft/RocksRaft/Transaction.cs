@@ -184,8 +184,23 @@ namespace Zeze.Raft.RocksRaft
 				_final_rollback_(proc);
 				return result;
 			}
-			catch (Exception ex)
+            catch (ThrowAgainException)
             {
+                _final_rollback_(proc);
+                throw;
+            }
+            catch (RaftRetryException ex1)
+            {
+                logger.Debug(ex1);
+
+                _final_rollback_(proc);
+                proc.Rpc?.SendResultCode(Zeze.Transaction.Procedure.RaftRetry);
+                return Zeze.Transaction.Procedure.RaftRetry;
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex);
+
                 if (ex.GetType().Name == "AssertFailedException")
                 {
                     _final_rollback_(proc);
@@ -265,7 +280,7 @@ namespace Zeze.Raft.RocksRaft
         {
             // Collect Changes
             Savepoint sp = Savepoints[Savepoints.Count - 1];
-            Changes = new Changes(procedure, this);
+            Changes = new Changes(procedure.Rocks, this, procedure.Rpc);
             foreach (Log log in sp.Logs.Values)
             {
                 // 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
@@ -276,16 +291,21 @@ namespace Zeze.Raft.RocksRaft
                 // 第一个参数Owner为null，表示bean属于record，到达root了。
                 Changes.Collect(log.Belong, log);
             }
+
             foreach (var ar in AccessedRecords.Values)
             {
-                Changes.CollectRecord(ar);
+                if (ar.Dirty)
+                    Changes.CollectRecord(ar);
             }
-            procedure.Rocks.Raft.AppendLog(Changes, procedure.Rpc?.ResultBean);
+
+            if (Changes.Records.Count > 0) // has changes
+                procedure.Rocks.Raft.AppendLog(Changes, procedure.Rpc?.ResultBean);
+
             _trigger_commit_actions_(procedure);
             procedure.Rpc?.SendResultCode(procedure.Rpc.ResultCode);
         }
 
-        internal void LeaderApply(Procedure procedure)
+        internal void LeaderApply(Rocks rocks)
         {
             Savepoint sp = Savepoints[Savepoints.Count - 1];
             foreach (Log log in sp.Logs.Values)
@@ -301,7 +321,7 @@ namespace Zeze.Raft.RocksRaft
                     rs.Add(ar.Origin);
                 }
             }
-            procedure.Rocks.Flush(rs);
+            rocks.Flush(rs);
         }
 
         private void _final_rollback_(Procedure procedure)

@@ -36,7 +36,7 @@ namespace Zeze.Raft
             {
                 return factory();
             }
-            logger.Fatal($"Unknown Log{logTypeId}");
+            logger.Fatal($"Unknown Log {logTypeId}");
             Raft.FatalKill();
             return null;
         }

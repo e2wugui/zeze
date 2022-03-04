@@ -18,7 +18,7 @@ namespace Zeze.Raft.RocksRaft
 			}
 			else
             {
-				map = map.SetItem(key, value);
+				_map = _map.SetItem(key, value);
             }
 		}
 
@@ -31,7 +31,7 @@ namespace Zeze.Raft.RocksRaft
 			}
 			else
 			{
-				map = map.Remove(key);
+				_map = _map.Remove(key);
 			}
 		}
 
@@ -44,23 +44,23 @@ namespace Zeze.Raft.RocksRaft
 			}
 			else
 			{
-				map = map.Clear();
+				_map = _map.Clear();
 			}
 		}
 
         public override void FollowerApply(Log _log)
         {
 			var log = (LogMap1<K, V>)_log;
-			var tmp = map;
+			var tmp = _map;
 			tmp = tmp.SetItems(log.Putted);
 			tmp = tmp.RemoveRange(log.Removed);
-			map = tmp;
+			_map = tmp;
 		}
 
 		public override void LeaderApplyNoRecursive(Log _log)
 		{
 			var log = (LogMap1<K, V>)_log;
-			map = log.Value;
+			_map = log.Value;
 		}
 
 		public override LogBean CreateLogBean()
@@ -69,7 +69,7 @@ namespace Zeze.Raft.RocksRaft
 			log.Belong = Parent;
 			log.This = this;
 			log.VariableId = VariableId;
-			log.Value = map;
+			log.Value = _map;
 			return log;
 		}
 

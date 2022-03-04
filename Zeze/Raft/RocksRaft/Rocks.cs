@@ -48,6 +48,7 @@ namespace Zeze.Raft.RocksRaft
             RegisterLog<LogBean>();
             RegisterLog<Log<int>>();
             RegisterLog<Log<long>>();
+            AddFactory(new Changes(this).TypeId, () => new Changes(this));
 
             WriteOptions = new WriteOptions().SetSync(RocksDbWriteOptionSync);
             // 这个赋值是不必要的，new Raft(...)内部会赋值。有点奇怪。
@@ -259,12 +260,13 @@ namespace Zeze.Raft.RocksRaft
 
         internal void Flush(IEnumerable<Record> rs)
         {
-            WriteBatch batch = new WriteBatch();
+            using WriteBatch batch = new WriteBatch();
             foreach (var r in rs)
             {
                 r.Flush(batch);
             }
-            Storage.Write(batch, WriteOptions);
+            if (batch.Count() > 0)
+                Storage.Write(batch, WriteOptions);
         }
 
         public void RegisterLog<T>() where T : Log, new()

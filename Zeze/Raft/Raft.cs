@@ -128,7 +128,13 @@ namespace Zeze.Raft
             StateMachine = sm;
 
             if (false == string.IsNullOrEmpty(RaftName))
+            {
+                // 如果 DbHome 和 Name 相关，一般表示没有特别配置。
+                // 此处特别设置 Raft.Name 时，需要一起更新。
+                if (raftconf.DbHome.Equals(raftconf.Name.Replace(":", "_")))
+                    raftconf.DbHome = RaftName.Replace(":", "_");
                 raftconf.Name = RaftName;
+            }
 
             if (null == config)
                 config = Zeze.Config.Load();
