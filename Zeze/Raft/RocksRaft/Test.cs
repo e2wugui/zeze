@@ -225,25 +225,6 @@ namespace Zeze.Raft.RocksRaft
 			}
 		}
 
-		private void AssertIsTrue(bool c)
-        {
-			if (false == c)
-				throw new ThrowAgainException();
-		}
-
-		private void AssertIsNull(object o)
-		{
-			if (null != o)
-				throw new ThrowAgainException();
-		}
-
-		private void AssertAreEqual(object except, object current)
-		{
-			if (except.Equals(current))
-				return;
-			throw new ThrowAgainException();
-		}
-
 		private void Remove1(Rocks rocks)
 		{
 			rocks.NewProcedure(() =>
@@ -255,14 +236,14 @@ namespace Zeze.Raft.RocksRaft
 				{
 					var c = Transaction.Current.Changes;
 
-					AssertIsTrue(c.Beans.Count == 1);
+					SimpleAssert.IsTrue(c.Beans.Count == 1);
 
-					AssertIsTrue(c.Records.Count == 1);
-					AssertIsTrue(c.Records.TryGetValue(new TableKey(table.Name, 1), out var r));
-					AssertIsNull(r.PutValue);
-					AssertAreEqual(Changes.Record.Remove, r.State);
-					AssertIsTrue(r.LogBeans.Count == 1);
-					AssertIsTrue(r.LogBean.Count == 0);
+					SimpleAssert.IsTrue(c.Records.Count == 1);
+					SimpleAssert.IsTrue(c.Records.TryGetValue(new TableKey(table.Name, 1), out var r));
+					SimpleAssert.IsNull(r.PutValue);
+					SimpleAssert.AreEqual(Changes.Record.Remove, r.State);
+					SimpleAssert.IsTrue(r.LogBeans.Count == 1);
+					SimpleAssert.IsTrue(r.LogBean.Count == 0);
 				});
 				return 0;
 			}).Call();
@@ -303,7 +284,7 @@ namespace Zeze.Raft.RocksRaft
 				else
 				{
 					except = except.Replace("\r\n", "\n");
-					AssertAreEqual(except, sb.ToString());
+					SimpleAssert.AreEqual(except, sb.ToString());
 				}
 			});
 		}
@@ -321,7 +302,7 @@ namespace Zeze.Raft.RocksRaft
 				}
 				else
 				{
-					AssertAreEqual(except, current);
+					SimpleAssert.AreEqual(except, current);
 				}
 				return 0;
 			}).Call();
@@ -397,7 +378,7 @@ AllLog=[{5: Putted:{} Removed:[] Changed:[{4:{1:Value=2222}}]}]}");
 					var table = rocks.OpenTable<int, Bean1>("tRocksRaft");
 					var value = table.Get(1);
 					value.Bean2.I = 4444;
-					AssertAreEqual(4444, value.Bean2.I);
+					SimpleAssert.AreEqual(4444, value.Bean2.I);
 					return -1;
 				}).Call();
 

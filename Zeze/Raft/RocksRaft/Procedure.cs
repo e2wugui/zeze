@@ -58,7 +58,7 @@ namespace Zeze.Raft.RocksRaft
                 currentT.Rollback();
                 return result;
             }
-            catch (ThrowAgainException)
+            catch (Zeze.Util.ThrowAgainException)
             {
                 currentT.Rollback();
                 throw;

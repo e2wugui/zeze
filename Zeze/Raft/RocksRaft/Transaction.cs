@@ -184,7 +184,7 @@ namespace Zeze.Raft.RocksRaft
 				_final_rollback_(proc);
 				return result;
 			}
-            catch (ThrowAgainException)
+            catch (Zeze.Util.ThrowAgainException)
             {
                 _final_rollback_(proc);
                 throw;
