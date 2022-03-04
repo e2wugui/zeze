@@ -22,8 +22,6 @@ namespace Zeze.Gen.rrcs
 
             foreach (Types.Bean bean in Project.AllBeans.Values)
                 new BeanFormatter(bean).Make(genDir);
-            foreach (Types.BeanKey beanKey in Project.AllBeanKeys.Values)
-                new BeanKeyFormatter(beanKey).Make(genDir);
 
             foreach (Protocol protocol in Project.AllProtocols.Values)
             {

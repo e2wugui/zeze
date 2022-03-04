@@ -33,7 +33,7 @@ namespace Zeze.Gen.rrcs
             sw.WriteLine("    {");
             sw.WriteLine("        public static App Instance { get; } = new App();");
             sw.WriteLine();
-            sw.WriteLine("        public Zeze.RaftRocks Rocks { get; set; }");
+            sw.WriteLine("        public Zeze.Raft.RocksRaft.Rocks Rocks { get; set; }");
             sw.WriteLine();
 
             foreach (var table in project.AllTables.Values)
