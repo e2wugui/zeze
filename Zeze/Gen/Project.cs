@@ -237,6 +237,12 @@ namespace Zeze.Gen
                 case "java":
                     new java.Maker(this).Make();
                     break;
+                case "zeze+cs":
+                    new MakerZeze(this).Make();
+                    break;
+                case "zeze+java":
+
+                    break;
                 default:
                     throw new Exception("unsupport platform: " + Platform);
             }

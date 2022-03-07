@@ -206,7 +206,7 @@ namespace Zeze.Services
                 return 0;
             }
 
-            var session = Sessions.GetOrAdd(rpc.Argument.AutoKeyLocalId, (key) => new CacheHolder(Config));
+            var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (key) => new CacheHolder(Config));
             if (session.GlobalCacheManagerHashIndex != rpc.Argument.GlobalCacheManagerHashIndex)
             {
                 // 多点验证
@@ -1091,21 +1091,21 @@ namespace Zeze.Services.GlobalCacheManager
 
     public sealed class AchillesHeel : Bean
     {
-        public int AutoKeyLocalId { get; set; } // 必须的。
+        public int ServerId { get; set; } // 必须的。
 
         public string SecureKey { get; set; } // 安全验证
         public int GlobalCacheManagerHashIndex { get; set; } // 安全验证
 
         public override void Decode(ByteBuffer bb)
         {
-            AutoKeyLocalId = bb.ReadInt();
+            ServerId = bb.ReadInt();
             SecureKey = bb.ReadString();
             GlobalCacheManagerHashIndex = bb.ReadInt();
         }
 
         public override void Encode(ByteBuffer bb)
         {
-            bb.WriteInt(AutoKeyLocalId);
+            bb.WriteInt(ServerId);
             bb.WriteString(SecureKey);
             bb.WriteInt(GlobalCacheManagerHashIndex);
         }

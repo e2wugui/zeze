@@ -19,6 +19,8 @@ namespace Zeze.Gen
         public Types.Type KeyType { get; private set; }
         public Types.Type ValueType { get; private set; }
         public string FullName => Space.Path(".", Name);
+        public string Kind { get; private set; } = "";
+        public bool IsRocks => Kind.Equals("rocks");
 
         public Table(ModuleSpace space, XmlElement self)
         {
@@ -34,6 +36,7 @@ namespace Zeze.Gen
             IsMemory = attr.Length > 0 ? bool.Parse(attr) : false;
             attr = self.GetAttribute("autokey");
             IsAutoKey = attr.Length > 0 ? bool.Parse(attr) : false;
+            Kind = self.GetAttribute("kind");
         }
 
         public void Compile()
