@@ -1,4 +1,4 @@
 
-..\Gen\bin\Debug\net5.0\Gen.exe -c ExportZezex -SolutionName zzuser
+..\Gen\bin\Debug\net6.0\Gen.exe -c ExportZezex -SolutionName zzuser
 
 pause

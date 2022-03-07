@@ -1,4 +1,4 @@
 
 
-.\client\bin\Debug\net5.0\client.exe
+.\client\bin\Debug\net6.0\client.exe
 
