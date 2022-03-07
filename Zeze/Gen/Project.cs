@@ -180,7 +180,7 @@ namespace Zeze.Gen
                 }
                 foreach (Types.Type type in depends)
                 {
-                    if (type.IsBean)
+                    if (type.IsBean || type.IsRocks)
                     {
                         if (type.IsKeyable)
                             _AllBeanKeys.Add(type as Types.BeanKey);

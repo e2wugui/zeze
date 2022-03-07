@@ -88,7 +88,7 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeBinary type)
         {
-            throw new NotImplementedException();
+            text = (isEquals ? "" : "!") + var.NamePrivate + ".Equals(" + another + "." + var.NamePrivate + ")";
         }
 
         public void Visit(TypeString type)

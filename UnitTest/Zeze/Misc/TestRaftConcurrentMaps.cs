@@ -40,6 +40,11 @@ namespace UnitTest.Zeze.Misc
             {
                 throw new NotImplementedException();
             }
+
+            public override Bean CopyBean()
+            {
+                throw new NotImplementedException();
+            }
         }
 
         [TestMethod]

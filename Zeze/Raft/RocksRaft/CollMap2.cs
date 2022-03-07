@@ -109,5 +109,12 @@ namespace Zeze.Raft.RocksRaft
 				v.InitRootInfo(root, this);
 			}
 		}
+
+		public override Bean CopyBean()
+		{
+			var copy = new CollMap2<K, V>();
+			copy._map = _map;
+			return copy;
+		}
 	}
 }

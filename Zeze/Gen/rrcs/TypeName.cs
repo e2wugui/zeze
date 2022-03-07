@@ -69,7 +69,7 @@ namespace Zeze.Gen.rrcs
         public void Visit(TypeSet type)
         {
             string valueName = GetName(type.ValueType);
-            name = "Zeze.Raft.RocksRaft.CollSet<" + valueName + ">";
+            name = "Zeze.Raft.RocksRaft.CollSet1<" + valueName + ">";
             nameCollectionImplement = "System.Collections.Immutable.ImmutableHashSet<" + valueName + ">";
         }
 

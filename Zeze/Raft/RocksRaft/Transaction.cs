@@ -54,6 +54,11 @@ namespace Zeze.Raft.RocksRaft
                 return Origin.Value;
             }
 
+            public override Bean CopyBean()
+            {
+                throw new NotImplementedException();
+            }
+
             public Log<Bean> PutLog { get; private set; }
 
             public RecordAccessed(Record origin)

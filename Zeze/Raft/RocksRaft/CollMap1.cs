@@ -76,5 +76,12 @@ namespace Zeze.Raft.RocksRaft
 		protected override void InitChildrenRootInfo(Record.RootInfo root)
 		{ 
 		}
+
+		public override Bean CopyBean()
+		{
+			var copy = new CollMap1<K, V>();
+			copy._map = _map;
+			return copy;
+		}
 	}
 }

@@ -92,19 +92,19 @@ namespace Zeze.Gen.rrcs
         public void Visit(TypeList type)
         {
             string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(ObjectId + " + variable.Id + ", _v => new Log_" + variable.NamePrivate + "(this, _v));");
+            sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}() {{ VariableId = {variable.Id} }};");
         }
 
         public void Visit(TypeSet type)
         {
             string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(ObjectId + " + variable.Id + ", _v => new Log_" + variable.NamePrivate + "(this, _v));");
+            sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}() {{ VariableId = {variable.Id} }};");
         }
 
         public void Visit(TypeMap type)
         {
             string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(ObjectId + " + variable.Id + ", _v => new Log_" + variable.NamePrivate + "(this, _v));");
+            sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}() {{ VariableId = {variable.Id} }};");
         }
 
         public void Visit(TypeFloat type)

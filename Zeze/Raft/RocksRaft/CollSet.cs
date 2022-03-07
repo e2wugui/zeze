@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -8,7 +9,7 @@ using Zeze.Serialize;
 
 namespace Zeze.Raft.RocksRaft
 {
-	public abstract class CollSet<V> : Collection
+	public abstract class CollSet<V> : Collection, IEnumerable<V>, IEnumerable
 	{
 		internal ImmutableHashSet<V> _set = ImmutableHashSet<V>.Empty;
 
@@ -37,7 +38,18 @@ namespace Zeze.Raft.RocksRaft
 			}
 		}
 
-        public override string ToString()
+		public int Count => Set.Count;
+
+		IEnumerator IEnumerable.GetEnumerator()
+		{
+			return Set.GetEnumerator();
+		}
+		IEnumerator<V> IEnumerable<V>.GetEnumerator()
+		{
+			return Set.GetEnumerator();
+		}
+		
+		public override string ToString()
         {
 			var sb = new StringBuilder();
 			ByteBuffer.BuildString(sb, Set);
@@ -63,5 +75,5 @@ namespace Zeze.Raft.RocksRaft
 				SerializeHelper<V>.Encode(bb, e);
 			}
 		}
-	}
+    }
 }

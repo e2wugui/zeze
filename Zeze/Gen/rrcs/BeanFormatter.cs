@@ -23,7 +23,7 @@ namespace Zeze.Gen.rrcs
             sw.WriteLine();
             sw.WriteLine("namespace " + bean.Space.Path());
             sw.WriteLine("{");
-            sw.WriteLine($"    public sealed class {bean.Name} : Zeze.Transaction.Bean, {bean.Name}ReadOnly");
+            sw.WriteLine($"    public sealed class {bean.Name} : Zeze.Raft.RocksRaft.Bean");
             sw.WriteLine("    {");
             WriteDefine(sw);
             sw.WriteLine("    }");
@@ -87,6 +87,9 @@ namespace Zeze.Gen.rrcs
             Encode.Make(bean, sw, "        ");
             Decode.Make(bean, sw, "        ");
             InitChildrenTableKey.Make(bean, sw, "        ");
+
+            LeaderApplyNoRecursive.Make(bean, sw, "        ");
+            FollowerApply.Make(bean, sw, "        ");
         }
     }
 }

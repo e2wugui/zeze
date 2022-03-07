@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -8,7 +9,7 @@ using Zeze.Serialize;
 
 namespace Zeze.Raft.RocksRaft
 {
-	public abstract class CollMap<K, V> : Collection
+	public abstract class CollMap<K, V> : Collection, IEnumerable<KeyValuePair<K, V>>, IEnumerable
 	{
 		internal ImmutableDictionary<K, V> _map = ImmutableDictionary<K, V>.Empty;
 
@@ -42,7 +43,22 @@ namespace Zeze.Raft.RocksRaft
 			}
 		}
 
-        public override string ToString()
+		IEnumerator IEnumerable.GetEnumerator()
+		{
+			return Map.GetEnumerator();
+		}
+
+		IEnumerator<KeyValuePair<K, V>> IEnumerable<KeyValuePair<K, V>>.GetEnumerator()
+		{
+			return Map.GetEnumerator();
+		}
+
+		public ImmutableDictionary<K, V>.Enumerator GetEnumerator()
+		{
+			return Map.GetEnumerator();
+		}
+		
+		public override string ToString()
         {
 			var sb = new StringBuilder();
 			ByteBuffer.BuildString(sb, Map);

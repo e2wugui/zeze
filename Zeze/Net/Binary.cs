@@ -5,7 +5,7 @@ namespace Zeze.Net
     // Bean 类型 binary 的辅助类。
     // 构造之后就是只读的。
     // byte[] bytes 参数传入以后，就不能再修改了。
-    public sealed class Binary
+    public sealed class Binary : IComparable<Binary>
     {
         private readonly byte[] _Bytes;
 
@@ -101,6 +101,21 @@ namespace Zeze.Net
         public override int GetHashCode()
         {
             return (int)Zeze.Serialize.ByteBuffer.calc_hashnr(_Bytes, Offset, Count);
+        }
+
+        public int CompareTo(Binary other)
+        {
+            int c = Count.CompareTo(other.Count);
+            if (c != 0)
+                return c;
+
+            for (int i = 0, n = this.Count; i < n; ++i)
+            { 
+                c = _Bytes[Offset + i].CompareTo(other._Bytes[Offset + i]);
+                if (c != 0)
+                    return c;
+            }
+            return 0;
         }
     }
 }

@@ -49,6 +49,7 @@ namespace Zeze.Raft.RocksRaft
 
 		public abstract void Decode(ByteBuffer bb);
 		public abstract void Encode(ByteBuffer bb);
+		public abstract Bean CopyBean();
 
 		public virtual LogBean CreateLogBean()
 		{

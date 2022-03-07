@@ -49,7 +49,11 @@ namespace Zeze.Raft.RocksRaft
 				}
 			}
 
-			public long L
+            public override Bean CopyBean()
+            {
+                throw new NotImplementedException();
+            }
+            public long L
 			{
 				get
 				{
@@ -156,7 +160,12 @@ namespace Zeze.Raft.RocksRaft
 		{
 			private int _i;
 
-			public int I
+            public override Bean CopyBean()
+            {
+                throw new NotImplementedException();
+            }
+
+            public int I
 			{
 				get
 				{

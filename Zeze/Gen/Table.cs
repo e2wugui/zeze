@@ -48,8 +48,16 @@ namespace Zeze.Gen
                 throw new Exception("autokey only support key type of long");
 
             ValueType = Types.Type.Compile(Space, Value);
-            if (!ValueType.IsNormalBean) // is normal bean, exclude beankey
-                throw new Exception("table.value need a normal bean : " + Space.Path(".", Name));
+            if (IsRocks)
+            {
+                if (!ValueType.IsRocks)
+                    throw new Exception("rocks table need a rocks bean. table=" + Space.Path(".", Name));
+            }
+            else
+            {
+                if (!ValueType.IsNormalBean) // is normal bean, exclude beankey
+                    throw new Exception("zeze table need a normal bean. table=" + Space.Path(".", Name));
+            }
         }
 
         public void Depends(HashSet<Types.Type> depends)

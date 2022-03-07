@@ -75,7 +75,7 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeBinary type)
         {
-            throw new NotImplementedException();
+            text = variable.NamePrivate + ".CompareTo(" + another + "." + variable.NamePrivate + ")";
         }
 
         public void Visit(TypeString type)
