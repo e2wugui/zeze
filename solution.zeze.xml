@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<solution name="Zeze" ModuleIdAllowRanges="11000-12000">
+	<module name="Services" id="11000">
+		<module name="GlobalCacheManagerWithRaft" id="11001">
+			<!-- table -->
+			<bean name="CacheState" kind="rocks">
+				<variable id="1" name="AcquireStatePending" type="int"/>
+				<variable id="2" name="GlobalSerialId" type="long"/>
+				<variable id="3" name="Modify" type="int"/> ServerId
+				<variable id="4" name="Share" type="set" value="int"/>
+			</bean>
+
+			<!--
+			<bean name="CacheHolder" kind="rocks">
+				<variable id="1" name="SessionId" type="long"/>
+				<variable id="2" name="GlobalCacheManagerHashIndex" type="int"/>
+
+				<variable id="3" name="ServerId" type="int" />
+				<variable id="4" name="Acquired" type="map" key="GlobalTableKey" value="int"/>
+			</bean>
+			-->
+
+			<bean name="AcquiredState" kind="rocks">
+				<variable id="1" name="State" type="int"/>
+			</bean>
+
+			<table name="Global" key="GlobalTableKey" value="CacheState" kind="rocks" />
+			<table name="Session" key="GlobalTableKey" value="AcquiredState" kind="rocks" />
+
+			<!-- rpc -->
+			<beankey name="GlobalTableKey">
+				<variable id="1" name="TableName" type="string"/>
+				<variable id="2" name="Key" type="binary"/>
+			</beankey>
+
+			<bean name="AcquireParam">
+				<variable id="1" name="GlobalTableKey" type="GlobalTableKey"/>
+				<variable id="2" name="State" type="int"/>
+				<variable id="3" name="GlobalSerialId" type="long"/>
+			</bean>
+
+			<bean name="ReduceParam">
+				<variable id="1" name="GlobalTableKey" type="GlobalTableKey"/>
+				<variable id="2" name="State" type="int"/>
+			</bean>
+
+			<bean name="LoginParam">
+				<variable id="1" name="ServerId" type="int"/>
+				<variable id="2" name="GlobalCacheManagerHashIndex" type="int"/>
+			</bean>
+
+			<bean name="AchillesHeel">
+				<variable id="1" name="ServerId" type="int"/>
+				<variable id="2" name="SecureKey" type="string"/>
+				<variable id="3" name="GlobalCacheManagerHashIndex" type="int"/>
+			</bean>
+
+			<rpc name="Acquire" argument="AcquireParam" result="AcquireParam" handle="server" />
+			<rpc name="Reduce" argument="ReduceParam" result="ReduceParam" handle="server" />
+			<rpc name="Login" argument="LoginParam" handle="server" />
+			<rpc name="ReLogin" argument="LoginParam" handle="server" />
+			<rpc name="NormalClose" handle="server" />
+			<rpc name="Cleanup" argument="AchillesHeel" handle="server" />
+			<rpc name="KeepAlive" handle="server" />
+		</module>
+	</module>
+
+	<project name="zeze" gendir=".." platform="zeze+cs" GenTables="">
+		<service name="" handle="server">
+			<module ref="Zeze.Services.GlobalCacheManagerWithRaft"/>
+		</service>
+	</project>
+
+	<project name="zezejava" gendir=".." platform="zeze+java" GenTables="">
+	</project>
+</solution>
