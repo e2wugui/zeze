@@ -8,10 +8,8 @@ using System.Collections.Immutable;
 
 namespace Zeze.Raft.RocksRaft
 {
-	public class LogMap1<K, V> : LogMap
+	public class LogMap1<K, V> : LogMap<K, V>
 	{
-		internal ImmutableDictionary<K, V> Value { get; set; }
-
 		public Dictionary<K, V> Putted { get; } = new Dictionary<K, V>();
 		public ISet<K> Removed { get; } = new HashSet<K>();
 

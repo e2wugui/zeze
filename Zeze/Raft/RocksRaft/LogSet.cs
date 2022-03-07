@@ -8,13 +8,14 @@ using Zeze.Serialize;
 
 namespace Zeze.Raft.RocksRaft
 {
-	public abstract class LogMap<K, V> : LogBean
+	public class LogSet<V> : LogBean
 	{
-		internal ImmutableDictionary<K, V> Value { get; set; }
+		internal ImmutableHashSet<V> Value { get; set; }
 
 		public override void Collect(Changes changes, Bean recent, Log vlog)
 		{
 			throw new Exception($"Collect Not Implement.");
 		}
+
 	}
 }
