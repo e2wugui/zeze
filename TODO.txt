@@ -18,18 +18,11 @@
 	【左尧完成Java了？】Zezex.ModuleRedirect 增加 TransactionLevel 注解配置。
 	Zezex.ModuleRedirect 去掉依赖Session生成hash模式；RunMyMethod去掉mode；
 	Raft.AppendLog 加一个try catach，所有的内部错误都转换成RaftRetryException，这样就不会把内部异常漏给应用了。
-	RocksRaft Gen Bean.Variable.TransientAttribute
-	RocksRaft Collection.Set
 	RocksRaft Collection.List LogList
 		SortedDictionary<int, Log Or Bean> ChangeOrAdd; // 优化。中间的值发生了改变或者在尾巴增加。
 		bool FullCopy; // 当发生中间删除或者插入时。这个有进一步优化空间。
 		或者
 		List<OperateLog> 所有操作记录日志，收到方重做。问题：Get(index).Update，怎么融入。
-
-	RocksRaft Gen
-		. Bean.Kind : "bean" "beankey" "rocks" "dynamic" ""
-		. project platform add type: "internal+cs" "internal+java" 增加属性 IsInternal 仅把原来Gen/下的类生成到src空间下，src下的代码不生成。
-
 	Raft.GlobalCacheManagerWithRaft 关键Transient：CacheState.AcquireStatePending 仅在Leader上使用，不需要同步到Follower。
 	RedoableQueue
 	{
@@ -43,6 +36,11 @@
 	Zezex.client: 可靠消息实现的错误检查。
 
 【2022/3/11】
+	RocksRaft Gen Bean.Variable.Transient Attribute
+	RocksRaft Gen
+		. Bean.Kind : "bean" "beankey" "rocks" "dynamic" ""
+		. project platform add type: "internal+cs" "internal+java" 增加属性 IsInternal 仅把原来Gen/下的类生成到src空间下，src下的代码不生成。
+	RocksRaft Collection.Set
 	RocksRaft Raft.AppendLog
 	RocksRaft NestProcedureContainer Test
 	RocksRaft Simple NestProcedure Test

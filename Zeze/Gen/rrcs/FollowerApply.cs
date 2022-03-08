@@ -23,7 +23,11 @@ namespace Zeze.Gen.rrcs
             sw.WriteLine(prefix + "        switch (vlog.VariableId)");
             sw.WriteLine(prefix + "        {");
             foreach (var v in bean.Variables)
+            {
+                if (v.Transient)
+                    continue;
                 v.VariableType.Accept(new FollowerApply(v, sw, prefix + "        "));
+            }
             sw.WriteLine(prefix + "        }");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");

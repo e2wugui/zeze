@@ -11,29 +11,7 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
         int _Modify; // ServerId
         readonly Zeze.Raft.RocksRaft.CollSet1<int> _Share;
 
-        public int AcquireStatePending
-        {
-            get
-            {
-                if (!IsManaged)
-                    return _AcquireStatePending;
-                var txn = Zeze.Raft.RocksRaft.Transaction.Current;
-                if (txn == null) return _AcquireStatePending;
-                var log = txn.GetLog(ObjectId + 1);
-                return log != null ? ((Zeze.Raft.RocksRaft.Log<int>)log).Value : _AcquireStatePending;
-            }
-            set
-            {
-                if (!IsManaged)
-                {
-                    _AcquireStatePending = value;
-                    return;
-                }
-                var txn = Zeze.Raft.RocksRaft.Transaction.Current;
-                txn.PutLog(new Zeze.Raft.RocksRaft.Log<int>() { Belong = this, VariableId = 1, Value = value, });
-            }
-        }
-
+        public int AcquireStatePending { get { return _AcquireStatePending; } set { _AcquireStatePending = value; } }
         public long GlobalSerialId
         {
             get
@@ -159,14 +137,6 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
         {
             int _i_ = 0;
             {
-                int _x_ = AcquireStatePending;
-                if (_x_ != 0)
-                {
-                    _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
-                    _o_.WriteInt(_x_);
-                }
-            }
-            {
                 long _x_ = GlobalSerialId;
                 if (_x_ != 0)
                 {
@@ -200,9 +170,9 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
         {
             int _t_ = _o_.ReadByte();
             int _i_ = _o_.ReadTagSize(_t_);
-            if (_i_ == 1)
+            while (_t_ != 0 && _i_ < 2)
             {
-                AcquireStatePending = _o_.ReadInt(_t_);
+                _o_.SkipUnknownField(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             if (_i_ == 2)
@@ -244,7 +214,6 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
         {
             switch (vlog.VariableId)
             {
-                case 1: _AcquireStatePending = ((Zeze.Raft.RocksRaft.Log<int>)vlog).Value; break;
                 case 2: _GlobalSerialId = ((Zeze.Raft.RocksRaft.Log<long>)vlog).Value; break;
                 case 3: _Modify = ((Zeze.Raft.RocksRaft.Log<int>)vlog).Value; break;
                 case 4: _Share.LeaderApplyNoRecursive(vlog); break;
@@ -258,7 +227,6 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _AcquireStatePending = ((Zeze.Raft.RocksRaft.Log<int>)vlog).Value; break;
                     case 2: _GlobalSerialId = ((Zeze.Raft.RocksRaft.Log<long>)vlog).Value; break;
                     case 3: _Modify = ((Zeze.Raft.RocksRaft.Log<int>)vlog).Value; break;
                     case 4: _Share.FollowerApply(vlog); break;

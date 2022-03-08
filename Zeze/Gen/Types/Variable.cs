@@ -25,6 +25,7 @@ namespace Zeze.Gen.Types
 		public string Comment { get; private set; }
 		public string Validator { get; private set; }
 		public bool AllowNegative { get; private set; } = false;
+		public bool Transient { get; private set; } = false;
 
 		public string GetBeanFullName()
 		{
@@ -55,6 +56,7 @@ namespace Zeze.Gen.Types
 			string attr = self.GetAttribute("AllowNegative");
 			if (attr.Length > 0)
 				AllowNegative = bool.Parse(attr);
+			Transient = self.GetAttribute("transient").Equals("true");
 
 			Comment = self.GetAttribute("comment");
 			if (Comment.Length == 0)

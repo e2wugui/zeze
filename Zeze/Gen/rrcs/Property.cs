@@ -12,7 +12,14 @@ namespace Zeze.Gen.rrcs
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
             foreach (Variable var in bean.Variables)
+            {
+                if (var.Transient)
+                {
+                    sw.WriteLine($"{prefix}public {TypeName.GetName(var.VariableType)} {var.NameUpper1} {{ get {{ return {var.NamePrivate}; }} set {{ {var.NamePrivate} = value; }} }}");
+                    continue;
+                }
                 var.VariableType.Accept(new Property(sw, var, prefix));
+            }
         }
 
         public Property(StreamWriter sw, Variable var, string prefix)

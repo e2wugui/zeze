@@ -19,6 +19,9 @@ namespace Zeze.Gen.rrcs
             sw.WriteLine(prefix + "    int _i_ = 0;");
             foreach (Variable v in bean.Variables)
             {
+                if (v.Transient)
+                    continue;
+
                 sw.WriteLine(prefix + "    {");
                 v.VariableType.Accept(new Encode(v.NameUpper1, v.Id, "_o_", sw, prefix + "        "));
                 sw.WriteLine(prefix + "    }");
