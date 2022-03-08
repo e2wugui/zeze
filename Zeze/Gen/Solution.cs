@@ -40,6 +40,9 @@ namespace Zeze.Gen
                     case "project":
                         new Project(this, e);
                         break;
+                    case "component":
+                        new Component(this, e);
+                        break;
                     case "beankey":
                         new Types.BeanKey(this, e);
                         break;

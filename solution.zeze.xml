@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <solution name="Zeze" ModuleIdAllowRanges="11000-12000">
-	<module name="Services" id="11000">
+	<module name="Component" id="11000">
 		<module name="GlobalCacheManagerWithRaft" id="11001">
 			<!-- table -->
 			<bean name="CacheState" kind="rocks">
@@ -66,12 +66,18 @@
 		</module>
 	</module>
 
-	<project name="zeze" gendir=".." platform="zeze+cs" GenTables="">
-		<service name="" handle="server">
-			<module ref="Zeze.Services.GlobalCacheManagerWithRaft"/>
+	<component name="GlobalCacheManagerWithRaft" gendir=".." platform="zeze+cs">
+		<service name="_" handle="server">
+			<module ref="Zeze.Component.GlobalCacheManagerWithRaft"/>
 		</service>
-	</project>
+	</component>
 
-	<project name="zezejava" gendir=".." platform="zeze+java" GenTables="">
-	</project>
+	<!--
+	<component name="GlobalCacheManagerWithRaft" gendir=".." platform="zeze+java">
+		<service name="_" handle="server">
+			<module ref="Zeze.Component.GlobalCacheManagerWithRaft"/>
+		</service>
+	</component>
+	-->
+
 </solution>

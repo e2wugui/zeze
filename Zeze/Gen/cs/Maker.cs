@@ -15,21 +15,25 @@ namespace Zeze.Gen.cs
         {
             string projectBasedir = Project.Gendir;
             string projectDir = Path.Combine(projectBasedir, Project.Name);
-            string genDir = Path.Combine(projectDir, "Gen");
-            string srcDir = projectDir;
+            string genDir = Path.Combine(projectDir, Project.GenRelativeDir, "Gen");
+            string genCommonDir = string.IsNullOrEmpty(Project.GenCommonRelativeDir)
+                ? genDir : Path.Combine(projectDir, Project.GenCommonRelativeDir, "Gen");
+
+            string srcDir = Project.ScriptDir.Length > 0
+                ? Path.Combine(projectDir, Project.ScriptDir) : projectDir;
 
             Program.AddGenDir(genDir);
 
             foreach (Types.Bean bean in Project.AllBeans.Values)
-                new BeanFormatter(bean).Make(genDir);
+                new BeanFormatter(bean).Make(genCommonDir);
             foreach (Types.BeanKey beanKey in Project.AllBeanKeys.Values)
-                new BeanKeyFormatter(beanKey).Make(genDir);
+                new BeanKeyFormatter(beanKey).Make(genCommonDir);
             foreach (Protocol protocol in Project.AllProtocols.Values)
             {
                 if (protocol is Rpc rpc)
-                    new RpcFormatter(rpc).Make(genDir);
+                    new RpcFormatter(rpc).Make(genCommonDir);
                 else
-                    new ProtocolFormatter(protocol).Make(genDir);
+                    new ProtocolFormatter(protocol).Make(genCommonDir);
             }
             foreach (Module mod in Project.AllOrderDefineModules)
                 new ModuleFormatter(Project, mod, genDir, srcDir).Make();
@@ -38,7 +42,7 @@ namespace Zeze.Gen.cs
             foreach (Table table in Project.AllTables.Values)
             {
                 if (Project.GenTables.Contains(table.Gen))
-                    new TableFormatter(table, genDir).Make();
+                    new TableFormatter(table, genCommonDir).Make();
             }
             new Schemas(Project, genDir).Make();
 

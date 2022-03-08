@@ -46,7 +46,7 @@ namespace Zeze.Gen.java
             foreach (Table table in Project.AllTables.Values)
             {
                 if (Project.GenTables.Contains(table.Gen))
-                    new TableFormatter(table, genDir).Make();
+                    new TableFormatter(table, genCommonDir).Make();
             }
             new Schemas(Project, genDir).Make();
 

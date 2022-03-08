@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Xml;
-using Zeze.Gen.cs;
 
 namespace Zeze.Gen
 {
@@ -203,6 +202,11 @@ namespace Zeze.Gen
                 service.SetModuleReference();
             }
 
+            MakePlatform();
+        }
+
+        protected virtual void MakePlatform()
+        {
             switch (Platform)
             {
                 case "cs":
@@ -237,14 +241,8 @@ namespace Zeze.Gen
                 case "java":
                     new java.Maker(this).Make();
                     break;
-                case "zeze+cs":
-                    new MakerZeze(this).Make();
-                    break;
-                case "zeze+java":
-
-                    break;
                 default:
-                    throw new Exception("unsupport platform: " + Platform);
+                    throw new Exception("Project: unsupport platform: " + Platform);
             }
             Program.FlushOutputs();
         }
