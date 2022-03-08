@@ -130,8 +130,8 @@ namespace Zeze.Arch.Rpc
                );
 
             Serializer[typeof(uint)] = (
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteUint({varName});"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadUint();"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteUInt({varName});"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadUInt();"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}uint {varName} = 0;"),
                 () => "uint"
                 );
