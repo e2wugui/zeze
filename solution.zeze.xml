@@ -66,8 +66,8 @@
 		</module>
 	</module>
 
-	<component name="GlobalCacheManagerWithRaft" gendir=".." platform="zeze+cs">
-		<service name="_" handle="server">
+	<component name="GlobalCacheManagerWithRaft" platform="zeze+cs">
+		<service name="" handle="server">
 			<module ref="Zeze.Component.GlobalCacheManagerWithRaft"/>
 		</service>
 	</component>
