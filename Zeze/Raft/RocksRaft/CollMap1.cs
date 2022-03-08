@@ -9,6 +9,19 @@ namespace Zeze.Raft.RocksRaft
 {
 	public class CollMap1<K, V> : CollMap<K, V>
 	{
+		public override void Add(K key, V value)
+		{
+			if (IsManaged)
+			{
+				var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
+				maplog.Add(key, value);
+			}
+			else
+			{
+				_map = _map.Add(key, value);
+			}
+		}
+
 		public override void Put(K key, V value)
 		{
 			if (IsManaged)

@@ -124,7 +124,7 @@ namespace Zeze.Gen.rrcs
             sw.WriteLine(prefix + "        var txn = Zeze.Raft.RocksRaft.Transaction.Current;");
             sw.WriteLine(prefix + "        if (txn == null) return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "        var log = txn.GetLog(ObjectId + " + var.Id + ");");
-            sw.WriteLine(prefix + $"        return log != null ? (Zeze.Raft.RocksRaft.Log<{TypeName.GetName(type)}>)log).Value : " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + $"        return log != null ? ((Zeze.Raft.RocksRaft.Log<{TypeName.GetName(type)}>)log).Value : " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    set");
             sw.WriteLine(prefix + "    {");

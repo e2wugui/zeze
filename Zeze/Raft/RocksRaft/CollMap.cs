@@ -20,6 +20,7 @@ namespace Zeze.Raft.RocksRaft
 			return default(V);
 		}
 
+		public abstract void Add(K key, V value);
 		public abstract void Put(K key, V value);
 		public abstract void Remove(K key);
 		public abstract void Clear();
@@ -42,6 +43,8 @@ namespace Zeze.Raft.RocksRaft
 				}
 			}
 		}
+
+		public int Count => Map.Count;
 
 		IEnumerator IEnumerable.GetEnumerator()
 		{

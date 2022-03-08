@@ -18,6 +18,19 @@ namespace Zeze.Raft.RocksRaft
 			PropertyMapKey = typeof(V).GetProperty($"_{typeof(K).Name}MapKey_");
 		}
 
+		public override void Add(K key, V value)
+		{
+			if (IsManaged)
+			{
+				var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
+				maplog.Add(key, value);
+			}
+			else
+			{
+				_map = _map.Add(key, value);
+			}
+		}
+
 		public override void Put(K key, V value)
 		{
 			if (IsManaged)

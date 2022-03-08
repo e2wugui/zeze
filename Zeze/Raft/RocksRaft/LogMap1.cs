@@ -20,6 +20,13 @@ namespace Zeze.Raft.RocksRaft
 			return default(V);
 		}
 
+		public void Add(K key, V value)
+		{ 
+			Value.Add(key, value);
+			Putted[key] = value;
+			Removed.Remove(key);
+		}
+
 		public void Put(K key, V value)
 		{
 			Value = Value.SetItem(key, value);

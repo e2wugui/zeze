@@ -64,11 +64,34 @@
 			<rpc name="Cleanup" argument="AchillesHeel" handle="server" />
 			<rpc name="KeepAlive" handle="server" />
 		</module>
+
+		<module name="TestRocks" id="11002">
+			<bean name="Value" kind="rocks">
+				<variable id="1" name="Int" type="int"/>
+				<variable id="2" name="Bool" type="bool"/>
+				<variable id="3" name="Float" type="float"/>
+				<variable id="4" name="double" type="double"/>
+				<variable id="5" name="String" type="string"/>
+				<variable id="6" name="Binary" type="binary"/>
+				<variable id="7" name="SetInt" type="set" value="int"/>
+				<variable id="8" name="SetBeankey" type="set" value="Zeze.Component.GlobalCacheManagerWithRaft.GlobalTableKey"/>
+				<variable id="9" name="MapInt" type="map" key="int" value="int"/>
+				<variable id="10" name="MapBean" type="map" key="int" value="Value"/>
+			</bean>
+
+			<table name="tRocks" key="int" value="Value" kind="rocks"/>
+		</module>
 	</module>
 
 	<component name="GlobalCacheManagerWithRaft" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.Component.GlobalCacheManagerWithRaft"/>
+		</service>
+	</component>
+
+	<component name="TestRocks" platform="zeze+cs">
+		<service name="" handle="server">
+			<module ref="Zeze.Component.TestRocks"/>
 		</service>
 	</component>
 

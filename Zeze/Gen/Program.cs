@@ -255,7 +255,7 @@ namespace Zeze.Gen
         public static StreamWriter OpenStreamWriter(string file)
         {
             var sw = new StreamWriterOverwriteWhenChange(file);
-            Outputs.Add(sw.FileName, sw);
+            Outputs.TryAdd(sw.FileName, sw);
             return sw;
         }
 
