@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 
 namespace Zeze.Gen.cs
 {
@@ -24,6 +25,28 @@ namespace Zeze.Gen.cs
             MakePartialImplementInGen();
         }
 
+        private string GetCollectionLogTemplateName(Types.Type type)
+        {
+            if (type is Types.TypeList tlist)
+            {
+                string value = rrcs.TypeName.GetName(tlist.ValueType);
+                return "Zeze.Raft.RocksRaft.LogList" + (tlist.ValueType.IsNormalBean ? "2<" : "1<") + value + ">";
+            }
+            else if (type is Types.TypeSet tset)
+            {
+                string value = rrcs.TypeName.GetName(tset.ValueType);
+                return "Zeze.Raft.RocksRaft.LogSet1<" + value + ">";
+            }
+            else if (type is Types.TypeMap tmap)
+            {
+                string key = rrcs.TypeName.GetName(tmap.KeyType);
+                string value = rrcs.TypeName.GetName(tmap.ValueType);
+                var version = tmap.ValueType.IsNormalBean ? "2<" : "1<";
+                return $"Zeze.Raft.RocksRaft.LogMap{version}{key}, {value}>";
+            }
+            throw new System.Exception();
+        }
+
         public void RegisterRocksTables(StreamWriter sw)
         {
             foreach (Table table in module.Tables.Values)
@@ -32,6 +55,20 @@ namespace Zeze.Gen.cs
                 {
                     var key = TypeName.GetName(table.KeyType);
                     var value = TypeName.GetName(table.ValueType);
+                    var depends = new HashSet<Types.Type>();
+                    table.ValueType.Depends(depends);
+                    var tlogs = new HashSet<string>();
+                    foreach (var dep in depends)
+                    {
+                        if (!dep.IsCollection)
+                            continue;
+
+                        tlogs.Add(GetCollectionLogTemplateName(dep));
+                    }
+                    foreach (var tlog in tlogs)
+                    { 
+                        sw.WriteLine($"            rocks.RegisterLog<{tlog}>();");
+                    }
                     sw.WriteLine($"            rocks.OpenTable<{key}, {value}>(\"{table.Name}\", 10000);");
                 }
             }

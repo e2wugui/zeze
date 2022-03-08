@@ -44,13 +44,6 @@ namespace Zeze.Services
 
             foreach (var rocks in RocksList)
             {
-                // TODO RegisterLog 需要生成实现。代码移到 RegisterRocksTables 中。
-
-                rocks.RegisterLog<LogSet1<int>>();
-                rocks.RegisterLog<LogSet1<Zeze.Component.GlobalCacheManagerWithRaft.GlobalTableKey>>();
-                rocks.RegisterLog<LogMap1<int, int>>();
-                rocks.RegisterLog<LogMap2<int, Value>>();
-
                 RegisterRocksTables(rocks);
             }
 
