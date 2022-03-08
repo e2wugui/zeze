@@ -19,7 +19,7 @@ namespace Zeze.Gen
             switch (Platform)
             {
                 case "zeze+cs":
-                    new Zeze.Gen.cs.MakerZeze(this).Make();
+                    new Zeze.Gen.cs.MakerComponent(this).Make();
                     break;
 
                 case "zeze+java":

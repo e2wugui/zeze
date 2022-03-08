@@ -2,7 +2,7 @@
 
 namespace Zeze.Component.GlobalCacheManagerWithRaft
 {
-    public sealed class ReLogin : Zeze.Net.Rpc<Zeze.Component.GlobalCacheManagerWithRaft.LoginParam, Zeze.Transaction.EmptyBean>
+    public sealed class ReLogin : Zeze.Raft.RaftRpc<Zeze.Component.GlobalCacheManagerWithRaft.LoginParam, Zeze.Transaction.EmptyBean>
     {
         public const int ModuleId_ = 11001;
         public const int ProtocolId_ = 699372078;

@@ -100,10 +100,16 @@ namespace Zeze.Raft.RocksRaft
             });
         }
 
-        public Table<K, V> OpenTable<K, V>(string name, int capacity = 1_0000)
+        public Table<K, V> OpenTable<K, V>(string name, int capacity = 10000)
             where V : Bean, new()
         {
-            return (Table<K, V>)Tables.GetOrAdd(name, (key) => new Table<K, V>(this, name, capacity));
+            return OpenTable<K, V>(name, 0, capacity);
+        }
+
+        public Table<K, V> OpenTable<K, V>(string name, int family, int capacity)
+            where V : Bean, new()
+        {
+            return (Table<K, V>)Tables.GetOrAdd(name, (key) => new Table<K, V>(this, $"{name}#{family}", capacity));
         }
 
         public string Checkpoint(out long lastIncludedIndex, out long lastIncludedTerm)

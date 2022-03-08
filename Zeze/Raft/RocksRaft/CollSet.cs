@@ -40,6 +40,11 @@ namespace Zeze.Raft.RocksRaft
 
 		public int Count => Set.Count;
 
+		public bool Contains(V v)
+        {
+			return Set.Contains(v);
+        }
+
 		IEnumerator IEnumerable.GetEnumerator()
 		{
 			return Set.GetEnumerator();

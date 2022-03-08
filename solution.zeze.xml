@@ -56,13 +56,13 @@
 				<variable id="3" name="GlobalCacheManagerHashIndex" type="int"/>
 			</bean>
 
-			<rpc name="Acquire" argument="AcquireParam" result="AcquireParam" handle="server" />
-			<rpc name="Reduce" argument="ReduceParam" result="ReduceParam" handle="server" />
-			<rpc name="Login" argument="LoginParam" handle="server" />
-			<rpc name="ReLogin" argument="LoginParam" handle="server" />
-			<rpc name="NormalClose" handle="server" />
-			<rpc name="Cleanup" argument="AchillesHeel" handle="server" />
-			<rpc name="KeepAlive" handle="server" />
+			<rpc name="Acquire" argument="AcquireParam" result="AcquireParam" base="Zeze.Raft.RaftRpc" handle="server" />
+			<rpc name="Reduce" argument="ReduceParam" result="ReduceParam" base="Zeze.Raft.RaftRpc" handle="server" />
+			<rpc name="Login" argument="LoginParam" base="Zeze.Raft.RaftRpc" handle="server" />
+			<rpc name="ReLogin" argument="LoginParam" base="Zeze.Raft.RaftRpc" handle="server" />
+			<rpc name="NormalClose" handle="server" base="Zeze.Raft.RaftRpc" />
+			<rpc name="Cleanup" argument="AchillesHeel" base="Zeze.Raft.RaftRpc" handle="server" />
+			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" handle="server" />
 		</module>
 
 		<module name="TestRocks" id="11002">

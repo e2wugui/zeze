@@ -2,7 +2,7 @@
 
 namespace Zeze.Component.GlobalCacheManagerWithRaft
 {
-    public sealed class NormalClose : Zeze.Net.Rpc<Zeze.Transaction.EmptyBean, Zeze.Transaction.EmptyBean>
+    public sealed class NormalClose : Zeze.Raft.RaftRpc<Zeze.Transaction.EmptyBean, Zeze.Transaction.EmptyBean>
     {
         public const int ModuleId_ = 11001;
         public const int ProtocolId_ = -1103005940;

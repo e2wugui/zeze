@@ -2,7 +2,7 @@
 
 namespace Zeze.Component.GlobalCacheManagerWithRaft
 {
-    public sealed class Cleanup : Zeze.Net.Rpc<Zeze.Component.GlobalCacheManagerWithRaft.AchillesHeel, Zeze.Transaction.EmptyBean>
+    public sealed class Cleanup : Zeze.Raft.RaftRpc<Zeze.Component.GlobalCacheManagerWithRaft.AchillesHeel, Zeze.Transaction.EmptyBean>
     {
         public const int ModuleId_ = 11001;
         public const int ProtocolId_ = 1480493405;

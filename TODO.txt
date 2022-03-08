@@ -36,6 +36,7 @@
 	Zezex.client: 可靠消息实现的错误检查。
 
 【2022/3/11】
+	RocksRaft & rrcs GenTable OpenTable 提供模板化打开表格能力。
 	RocksRaft Gen Bean.Variable.Transient Attribute
 	RocksRaft Gen
 		. Bean.Kind : "bean" "beankey" "rocks" "dynamic" ""

@@ -3,11 +3,11 @@ using System.IO;
 
 namespace Zeze.Gen.cs
 {
-    public class MakerZeze
+    public class MakerComponent
     {
         public Project Project { get; }
 
-        public MakerZeze(Project project)
+        public MakerComponent(Project project)
         {
             Project = project;
         }
