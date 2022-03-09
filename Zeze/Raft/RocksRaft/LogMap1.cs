@@ -22,7 +22,7 @@ namespace Zeze.Raft.RocksRaft
 
 		public void Add(K key, V value)
 		{ 
-			Value.Add(key, value);
+			Value = Value.Add(key, value);
 			Putted[key] = value;
 			Removed.Remove(key);
 		}

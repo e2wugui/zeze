@@ -29,7 +29,7 @@ namespace Zeze.Services
             rocks.RegisterLog<Zeze.Raft.RocksRaft.LogSet1<Zeze.Component.GlobalCacheManagerWithRaft.GlobalTableKey>>();
             rocks.RegisterLog<Zeze.Raft.RocksRaft.LogMap1<int, int>>();
             rocks.RegisterLog<Zeze.Raft.RocksRaft.LogMap1<int, Zeze.Component.TestRocks.Value>>();
-            rocks.OpenTable<int, Zeze.Component.TestRocks.Value>("tRocks", 10000);
+            rocks.RegisterTableTemplate<int, Zeze.Component.TestRocks.Value>("tRocks");
         }
 
     }

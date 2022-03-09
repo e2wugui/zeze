@@ -34,6 +34,9 @@ namespace Zeze.Raft.RocksRaft
 			public const int Put = 1;
 			public const int Edit = 2;
 
+			public int TableTemplateId { get; set; }
+			public string TableTemplateName { get; set; }
+
 			public int State { get; set; }
 			public Bean PutValue { get; set; }
 			public ISet<LogBean> LogBean { get; } = new HashSet<LogBean>();
@@ -43,13 +46,9 @@ namespace Zeze.Raft.RocksRaft
 
 			public Table Table;
 
-			public void SetTableByName(Changes changes, string name)
+			public void SetTableByName(Changes changes, string templateName)
             {
-				if (false == changes.Rocks.Tables.TryGetValue(name, out Table))
-				{
-					Rocks.logger.Error($"table not found {name}");
-					changes.Rocks.Raft.FatalKill();
-				}
+				Table = changes.Rocks.GetTableTemplate(templateName).OpenTable(TableTemplateId);
 			}
 
 			public void Collect(Transaction.RecordAccessed ar)
@@ -128,7 +127,11 @@ namespace Zeze.Raft.RocksRaft
 				// 记录可能存在多个修改日志树。收集的时候全部保留，后面会去掉不需要的。see Transaction._final_commit_
 				if (false == Records.TryGetValue(recent.TableKey, out var r))
 				{
-					r = new Record();
+					r = new Record()
+					{
+						TableTemplateId = recent.RootInfo.Record.Table.TemplateId,
+						TableTemplateName = recent.RootInfo.Record.Table.TemplateName,
+					};
 					Records.Add(recent.TableKey, r);
 				}
 				r.LogBeans.TryAdd(recent, (LogBean)log);
@@ -157,7 +160,12 @@ namespace Zeze.Raft.RocksRaft
 
 			if (false == Records.TryGetValue(tkey, out var r))
             {
-				r = new Record(); // put record only
+				// put record only
+				r = new Record()
+				{
+					TableTemplateId = ar.Origin.Table.TemplateId,
+					TableTemplateName = ar.Origin.Table.TemplateName,
+				};
 				Records.Add(tkey, r);
 			}
 
@@ -171,10 +179,16 @@ namespace Zeze.Raft.RocksRaft
 			{
 				var tkey = new TableKey();
 				var r = new Record();
+
+				r.TableTemplateId = bb.ReadInt();
+				r.TableTemplateName = bb.ReadString();
+
 				tkey.Name = bb.ReadString();
-				r.SetTableByName(this, tkey.Name);
+				r.SetTableByName(this, r.TableTemplateName);
 				r.Table.DecodeKey(bb, out tkey.Key);
+
 				r.Decode(bb);
+
 				Records.Add(tkey, r);
 			}
 		}
@@ -184,10 +198,15 @@ namespace Zeze.Raft.RocksRaft
 			bb.WriteInt(Records.Count);
 			foreach (var r in Records)
 			{
+				// encode TableTemplate
+				bb.WriteInt(r.Value.TableTemplateId);
+				bb.WriteString(r.Value.TableTemplateName);
+
 				// encode TableKey
-				r.Value.SetTableByName(this, r.Key.Name);
+				r.Value.SetTableByName(this, r.Value.TableTemplateName);
 				bb.WriteString(r.Key.Name);
 				r.Value.Table.EncodeKey(bb, r.Key.Key);
+
 				// encode record
 				r.Value.Encode(bb);
 			}

@@ -25,7 +25,7 @@ namespace Zeze.Services
                 switch (rpc.Argument.State)
                 {
                     case GlobalCacheManagerServer.StateInvalid: // realease
-                        rpc.Result.State = Release(rpc.Sender.UserState as CacheHolder, rpc.Argument.GlobalTableKey, true);
+                        rpc.Result.State = 0; // Release(rpc.Sender.UserState as CacheHolder, rpc.Argument.GlobalTableKey, true);
                         rpc.SendResult();
                         return 0;
 
@@ -111,7 +111,7 @@ namespace Zeze.Services
 
                     cs.AcquireStatePending = GlobalCacheManagerServer.StateShare;
                     cs.GlobalSerialId = SerialIdGenerator.IncrementAndGet();
-                    var Acquired = Rocks.OpenTable<GlobalTableKey, AcquiredState>("Acquired", sender.ServerId, 10000);
+                    var Acquired = Rocks.GetTableTemplate("Acquired").OpenTable<GlobalTableKey, AcquiredState>(sender.ServerId);
                     if (cs.Modify != -1)
                     {
                         if (cs.Modify == sender.ServerId)
@@ -131,7 +131,7 @@ namespace Zeze.Services
                         Zeze.Util.Task.Run(
                             () =>
                             {
-                                reduceRpc = cs.Modify.Reduce(rpc.Argument.GlobalTableKey, GlobalCacheManagerServer.StateShare, cs.GlobalSerialId);
+                                reduceRpc = null;// cs.Modify.Reduce(rpc.Argument.GlobalTableKey, GlobalCacheManagerServer.StateShare, cs.GlobalSerialId);
 
                                 lockey.Enter();
                                 try
@@ -247,7 +247,9 @@ namespace Zeze.Services
         private readonly Util.AtomicLong SerialIdGenerator = new Util.AtomicLong();
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         private readonly Locks Locks = new Locks();
+
         private readonly Table<GlobalTableKey, CacheState> Global;
+        // Sessions 动态从模板创建。
 
         public GlobalCacheManagerWithRaft(string raftName)
         { 
@@ -256,7 +258,7 @@ namespace Zeze.Services
             RegisterRocksTables(Rocks);
             RegisterProtocols(Rocks.Raft.Server);
 
-            Global = Rocks.OpenTable<GlobalTableKey, CacheState>("Global"); // TODO GEN?
+            Global = Rocks.GetTableTemplate("Global").OpenTable<GlobalTableKey, CacheState>(0);
             Rocks.Raft.Server.Start();
         }
 

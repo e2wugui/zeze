@@ -43,12 +43,12 @@ namespace Zeze.Raft.RocksRaft
 		internal static long NextTimestamp => _TimestampGen.IncrementAndGet();
 		internal abstract void LeaderApply(Transaction.RecordAccessed accessed);
 		internal abstract void Flush(WriteBatch batch);
+		public Table Table { get; internal set; }
 	}
 
 	public class Record<K, V> : Record
 		where V : Bean, new()
 	{
-		public Table<K, V> Table { get; internal set; }
 		public K Key { get; internal set; }
 
 		internal override void LeaderApply(Transaction.RecordAccessed accessed)

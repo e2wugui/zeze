@@ -13,11 +13,26 @@ namespace Zeze.Raft.RocksRaft
     public class Rocks : StateMachine, IDisposable
     {
         internal static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
+        public ConcurrentDictionary<string, TableTemplate> TableTemplates { get; } = new ConcurrentDictionary<string, TableTemplate>();  
         public ConcurrentDictionary<string, Table> Tables { get; } = new ConcurrentDictionary<string, Table>();
 
         public Procedure NewProcedure(Func<long> func)
         {
             return new Procedure(this, func);
+        }
+
+        public TableTemplate GetTableTemplate(string tableTemplateName)
+        {
+            if (TableTemplates.TryGetValue(tableTemplateName, out var tpl))
+                return tpl;
+            return null;
+        }
+
+        public void RegisterTableTemplate<K, V>(string tableTemplateName)
+            where V : Bean, new()
+        {
+            TableTemplates.GetOrAdd(tableTemplateName, (key) => new TableTemplate<K, V>(this, key));
         }
 
         internal void FollowerApply(Changes changes)
@@ -98,18 +113,6 @@ namespace Zeze.Raft.RocksRaft
                 var ops = new ColumnFamilyOptions();
                 return Storage.CreateColumnFamily(ops, name);
             });
-        }
-
-        public Table<K, V> OpenTable<K, V>(string name, int capacity = 10000)
-            where V : Bean, new()
-        {
-            return OpenTable<K, V>(name, 0, capacity);
-        }
-
-        public Table<K, V> OpenTable<K, V>(string name, int family, int capacity)
-            where V : Bean, new()
-        {
-            return (Table<K, V>)Tables.GetOrAdd(name, (key) => new Table<K, V>(this, $"{name}#{family}", capacity));
         }
 
         public string Checkpoint(out long lastIncludedIndex, out long lastIncludedTerm)

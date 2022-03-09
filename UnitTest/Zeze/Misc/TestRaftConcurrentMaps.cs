@@ -51,7 +51,10 @@ namespace UnitTest.Zeze.Misc
         public void TestRocksDbColumn()
         {
             var storage = new Rocks();
-            var map = storage.OpenTable<int, Value>("int2value");
+
+            // 数据修改相关测试已经移到 UnitTest/Zeze/RocksRaft/ 下。
+            storage.RegisterTableTemplate<int, Value>("int2value");
+
             var cpdir = storage.Checkpoint(out var index, out var term);
             try
             {

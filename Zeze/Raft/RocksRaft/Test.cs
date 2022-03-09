@@ -234,11 +234,10 @@ namespace Zeze.Raft.RocksRaft
 			}
 		}
 
-		private void Remove1(Rocks rocks)
+		private void Remove1(Rocks rocks, Table<int, Bean1> table)
 		{
 			rocks.NewProcedure(() =>
 			{
-				var table = rocks.OpenTable<int, Bean1>("tRocksRaft");
 				table.Remove(1);
 
 				Transaction.Current.RunWhileCommit(() =>
@@ -298,11 +297,10 @@ namespace Zeze.Raft.RocksRaft
 			});
 		}
 
-		private void VerifyData(Rocks rocks, string except)
+		private void VerifyData(Rocks rocks, Table<int, Bean1> table, string except)
 		{
 			rocks.NewProcedure(() =>
 			{
-				var table = rocks.OpenTable<int, Bean1>("tRocksRaft");
 				var value = table.GetOrAdd(1);
 				var current = value.ToString();
 				if (string.IsNullOrEmpty(except))
@@ -317,11 +315,10 @@ namespace Zeze.Raft.RocksRaft
 			}).Call();
 		}
 
-		private void PutAndEdit(Rocks rocks)
+		private void PutAndEdit(Rocks rocks, Table<int, Bean1> table)
 		{
 			rocks.NewProcedure(() =>
 			{
-				var table = rocks.OpenTable<int, Bean1>("tRocksRaft");
 				Update(table, 0);
 				VerifyChanges(@"{(tRocksRaft,1):State=1 PutValue=Bean1(0 I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})
 Log=[]
@@ -330,11 +327,10 @@ AllLog=[{0:Value=Bean1(0 I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(4 I=5
 			}).Call();
 		}
 
-		private void Edit(Rocks rocks)
+		private void Edit(Rocks rocks, Table<int, Bean1> table)
 		{
 			rocks.NewProcedure(() =>
 			{
-				var table = rocks.OpenTable<int, Bean1>("tRocksRaft");
 				Update(table, 10);
 				VerifyChanges(@"{(tRocksRaft,1):State=2 PutValue=
 Log=[{1:Value=11,3: Putted:{13:13} Removed:[],4:{1:Value=12},5: Putted:{14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=15}]}]
@@ -343,11 +339,10 @@ AllLog=[{1:Value=11,3: Putted:{13:13} Removed:[],4:{1:Value=12},5: Putted:{14:Be
 			}).Call();
 		}
 
-		private void EditAndPut(Rocks rocks)
+		private void EditAndPut(Rocks rocks, Table<int, Bean1> table)
 		{
 			rocks.NewProcedure(() =>
 			{
-				var table = rocks.OpenTable<int, Bean1>("tRocksRaft");
 				Update(table, 20);
 				// 重新put，将会让上面的修改树作废。但所有的日志树都可以从All中看到。
 				var bean1put = new Bean1();
@@ -359,11 +354,10 @@ AllLog=[{0:Value=Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})},{1:Value=21,
 			}).Call();
 		}
 
-		private void EditInContainer(Rocks rocks)
+		private void EditInContainer(Rocks rocks, Table<int, Bean1> table)
 		{
 			rocks.NewProcedure(() =>
 			{
-				var table = rocks.OpenTable<int, Bean1>("tRocksRaft");
 				var value = table.GetOrAdd(1);
 				var edit = value.Map2.Get(14);
 				edit.Bean2.I = 2222;
@@ -374,17 +368,15 @@ AllLog=[{5: Putted:{} Removed:[] Changed:[{4:{1:Value=2222}}]}]}");
 			}).Call();
 		}
 
-		private void NestProcedure(Rocks rocks)
+		private void NestProcedure(Rocks rocks, Table<int, Bean1> table)
 		{
 			rocks.NewProcedure(() =>
 			{
-				var table = rocks.OpenTable<int, Bean1>("tRocksRaft");
 				var value = table.Get(1);
 				value.Bean2.I = 3333;
 
 				rocks.NewProcedure(() =>
 				{
-					var table = rocks.OpenTable<int, Bean1>("tRocksRaft");
 					var value = table.Get(1);
 					value.Bean2.I = 4444;
 					SimpleAssert.AreEqual(4444, value.Bean2.I);
@@ -398,13 +390,12 @@ AllLog=[{4:{1:Value=3333}}]}");
 			}).Call();
 		}
 
-		private void NestProcedureContainer(Rocks rocks)
+		private void NestProcedureContainer(Rocks rocks, Table<int, Bean1> table)
 		{
 			rocks.NewProcedure(() =>
 			{
 				rocks.NewProcedure(() =>
 				{
-					var table = rocks.OpenTable<int, Bean1>("tRocksRaft");
 					var value = table.Get(1);
 					value.Map2.Put(4444, new Bean1());
 					value.Map1.Put(4444, 4444);
@@ -450,7 +441,7 @@ AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(4444 I=0 L=0 Ma
 			{
 				rr.RegisterLog<LogMap1<int, int>>();
 				rr.RegisterLog<LogMap2<int, Bean1>>();
-				rr.OpenTable<int, Bean1>("tRocksRaft");
+				rr.RegisterTableTemplate<int, Bean1>("tRocksRaft");
 			}
 
 			// start
@@ -465,30 +456,31 @@ AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(4444 I=0 L=0 Ma
 
 			// 只简单验证一下最新的数据。
 			var newleader = GetLeader(rockslist, leader);
-			VerifyData(newleader, "Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
+			VerifyData(newleader, newleader.GetTableTemplate("tRocksRaft").OpenTable<int, Bean1>(0), "Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
 		}
 
 		private void RunLeader(Rocks rocks)
 		{
-			Remove1(rocks);
+			var table = rocks.GetTableTemplate("tRocksRaft").OpenTable<int, Bean1>(0);
+			Remove1(rocks, table);
 
-			PutAndEdit(rocks);
-			VerifyData(rocks, "Bean1(0 I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
+			PutAndEdit(rocks, table);
+			VerifyData(rocks, table, "Bean1(0 I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
 
-			Edit(rocks);
-			VerifyData(rocks, "Bean1(0 I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=12) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
+			Edit(rocks, table);
+			VerifyData(rocks, table, "Bean1(0 I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=12) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
 
-			EditInContainer(rocks);
-			VerifyData(rocks, "Bean1(0 I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=12) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={})})");
+			EditInContainer(rocks, table);
+			VerifyData(rocks, table, "Bean1(0 I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=12) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={})})");
 
-			NestProcedure(rocks);
-			VerifyData(rocks, "Bean1(0 I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=3333) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={})})");
+			NestProcedure(rocks, table);
+			VerifyData(rocks, table, "Bean1(0 I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=3333) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={})})");
 
-			NestProcedureContainer(rocks);
-			VerifyData(rocks, "Bean1(0 I=11 L=0 Map1={13:13,4444:4444} Bean2=Bean2(I=3333) Map2={14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={}),4444:Bean1(4444 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
+			NestProcedureContainer(rocks, table);
+			VerifyData(rocks, table, "Bean1(0 I=11 L=0 Map1={13:13,4444:4444} Bean2=Bean2(I=3333) Map2={14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={}),4444:Bean1(4444 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
 
-			EditAndPut(rocks);
-			VerifyData(rocks, "Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
+			EditAndPut(rocks, table);
+			VerifyData(rocks, table, "Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
 
 			// 再次运行本测试，才会执行到 LoadSnapshot。
 			rocks.Raft.LogSequence.Snapshot(true);

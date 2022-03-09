@@ -69,7 +69,7 @@ namespace Zeze.Gen.cs
                     { 
                         sw.WriteLine($"            rocks.RegisterLog<{tlog}>();");
                     }
-                    sw.WriteLine($"            rocks.OpenTable<{key}, {value}>(\"{table.Name}\", 10000);");
+                    sw.WriteLine($"            rocks.RegisterTableTemplate<{key}, {value}>(\"{table.Name}\");");
                 }
             }
         }

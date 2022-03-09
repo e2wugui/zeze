@@ -19,14 +19,14 @@ namespace UnitTest.Zeze.RocksRaft
             var leader = test.GetLeader(null);
             Assert.AreEqual(0, leader.NewProcedure(() =>
             {
-                var table = leader.OpenTable<int, Value>("tRocks");
+                var table = leader.GetTableTemplate("tRocks").OpenTable<int, Value>(0);
                 table.Remove(1);
                 return 0;
             }).Call());
 
             Assert.AreEqual(0, leader.NewProcedure(() =>
             {
-                var table = leader.OpenTable<int, Value>("tRocks");
+                var table = leader.GetTableTemplate("tRocks").OpenTable<int, Value>(0);
                 var value = table.GetOrAdd(1);
                 value.Int = 1;
                 return 0;
@@ -34,7 +34,7 @@ namespace UnitTest.Zeze.RocksRaft
 
             Assert.AreEqual(0, leader.NewProcedure(() =>
             {
-                var table = leader.OpenTable<int, Value>("tRocks");
+                var table = leader.GetTableTemplate("tRocks").OpenTable<int, Value>(0);
                 var value = table.GetOrAdd(1);
                 Assert.AreEqual(1, value.Int);
                 return 0;
@@ -45,7 +45,7 @@ namespace UnitTest.Zeze.RocksRaft
 
             Assert.AreEqual(0, leader.NewProcedure(() =>
             {
-                var table = leader.OpenTable<int, Value>("tRocks");
+                var table = leader.GetTableTemplate("tRocks").OpenTable<int, Value>(0);
                 var value = table.GetOrAdd(1);
                 Assert.AreEqual(1, value.Int);
                 return 0;

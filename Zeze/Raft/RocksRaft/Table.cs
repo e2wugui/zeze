@@ -9,14 +9,56 @@ using Zeze.Serialize;
 
 namespace Zeze.Raft.RocksRaft
 {
-	public abstract class Table
-	{
-		public string Name { get; protected set; }
-		internal abstract Record FollowerApply(object key, Changes.Record rlog);
+    public abstract class Table
+    {
+        public string Name { get; protected set; }
+        public int CacheCapacity { get; set; } = 10000;
+
+        internal abstract Record FollowerApply(object key, Changes.Record rlog);
         internal abstract void Open();
         public abstract Bean NewValue();
         public abstract void EncodeKey(ByteBuffer bb, object key);
         public abstract void DecodeKey(ByteBuffer bb, out object key);
+
+        internal abstract ColumnFamilyHandle ColumnFamily { get; set; }
+
+        public string TemplateName { get; internal set; }
+        public int TemplateId { get; internal set; }
+    }
+
+    public abstract class TableTemplate
+    {
+        public string Name { get; }
+        public Rocks Rocks { get; }
+
+        public TableTemplate(Rocks r, string name)
+        {
+            Rocks = r;
+            Name = name;
+        }
+
+        public abstract Table OpenTable(int templateId);
+
+        public Table<K, V> OpenTable<K, V>(int templateId = 0)
+            where V : Bean, new()
+        {
+            return (Table<K, V>)Rocks.Tables.GetOrAdd($"{Name}#{templateId}", (key) => new Table<K, V>(Rocks, Name, templateId));
+        }
+    }
+
+    public class TableTemplate<K, V> : TableTemplate
+        where V : Bean, new()
+    {
+        public TableTemplate(Rocks r, string name)
+            : base(r, name)
+        {
+
+        }
+
+        public override Table OpenTable(int templateId)
+        {
+            return Rocks.Tables.GetOrAdd($"{Name}#{templateId}", (key) => new Table<K, V>(Rocks, key, templateId));
+        }
     }
 
     public class Table<K, V> : Table where V : Bean, new()
@@ -177,16 +219,22 @@ namespace Zeze.Raft.RocksRaft
         }
 
         private Util.ConcurrentLruLike<K, Record<K, V>> LruCache;
-        internal ColumnFamilyHandle ColumnFamily { get; private set; }
+        internal override ColumnFamilyHandle ColumnFamily { get; set; }
         public Rocks Rocks { get; }
         public int Capacity { get; }
         public Func<K, Record<K, V>, bool> LruTryRemoveCallback { get; set; } = null;
 
-        public Table(Rocks rocks, string name, int capacity)
+        public Table(Rocks rocks, string templateName, int templateId)
         {
             Rocks = rocks;
-            Name = name;
-            Capacity = capacity;
+            TemplateName = templateName;
+            TemplateId = templateId;
+
+            Name = $"{TemplateName}#{TemplateId}";
+
+            if (false == rocks.Tables.TryAdd(Name, this))
+                throw new Exception($"duplicate table={Name}");
+
             Open();
         }
 
@@ -194,7 +242,7 @@ namespace Zeze.Raft.RocksRaft
         {
             ColumnFamily = Rocks.OpenFamily(Name);
             LruCache = new Util.ConcurrentLruLike<K, Record<K, V>>(
-                    Capacity, LruTryRemoveCallback, 200, 2000, 1024, Environment.ProcessorCount);
+                    CacheCapacity, LruTryRemoveCallback, 200, 2000, 1024, Environment.ProcessorCount);
         }
 
         private Record<K, V> GetOrLoad(K key, Bean putvalue = null)
