@@ -354,7 +354,7 @@ namespace Zeze.Services
                             case StateModify:
                                 logger.Debug("Release 0 {} {} {}", sender, gkey, cs);
                                 if (noWait)
-                                    return cs.GetStateBySender(sender);
+                                    return cs.GetSenderCacheState(sender);
                                 break;
                             case StateRemoving:
                                 // release 不会导致死锁，等待即可。
@@ -386,7 +386,7 @@ namespace Zeze.Services
                     }
                     sender.Acquired.TryRemove(gkey, out var _);
                     Monitor.Pulse(cs);
-                    return cs.GetStateBySender(sender);
+                    return cs.GetSenderCacheState(sender);
                 }
             }
         }
@@ -771,7 +771,7 @@ namespace Zeze.Services
                 return $"P{AcquireStatePending} M{Modify} S{sb}";
             }
 
-            public int GetStateBySender(CacheHolder sender)
+            public int GetSenderCacheState(CacheHolder sender)
             {
                 if (Modify == sender)
                     return StateModify;

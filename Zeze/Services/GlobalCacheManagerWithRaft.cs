@@ -58,11 +58,11 @@ namespace Zeze.Services
 
             while (true)
             {
-                CacheState cs = GlobalStates.GetOrAdd(rpc.Argument.GlobalTableKey);
                 var lockey = Locks.Get(rpc.Argument.GlobalTableKey);
                 lockey.Enter();
                 try
                 {
+                    CacheState cs = GlobalStates.GetOrAdd(rpc.Argument.GlobalTableKey);
                     if (cs.AcquireStatePending == GlobalCacheManagerServer.StateRemoved)
                         continue;
 
@@ -204,11 +204,11 @@ namespace Zeze.Services
 
             while (true)
             {
-                CacheState cs = GlobalStates.GetOrAdd(rpc.Argument.GlobalTableKey);
                 var lockey = Locks.Get(rpc.Argument.GlobalTableKey);
                 lockey.Enter();
                 try
                 {
+                    CacheState cs = GlobalStates.GetOrAdd(rpc.Argument.GlobalTableKey);
                     if (cs.AcquireStatePending == GlobalCacheManagerServer.StateRemoved)
                         continue;
 
@@ -441,11 +441,11 @@ namespace Zeze.Services
         {
             while (true)
             {
-                CacheState cs = GlobalStates.GetOrAdd(gkey);
                 var lockey = Locks.Get(gkey);
                 lockey.Enter();
                 try
                 {
+                    CacheState cs = GlobalStates.GetOrAdd(gkey);
                     if (cs.AcquireStatePending == GlobalCacheManagerServer.StateRemoved)
                         continue; // 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
 
@@ -458,7 +458,7 @@ namespace Zeze.Services
                             case GlobalCacheManagerServer.StateModify:
                                 logger.Debug("Release 0 {} {} {}", sender, gkey, cs);
                                 if (noWait)
-                                    return GetStateBySender(cs, sender);
+                                    return GetSenderCacheState(cs, sender);
                                 break;
                             case GlobalCacheManagerServer.StateRemoving:
                                 // release 不会导致死锁，等待即可。
@@ -491,7 +491,7 @@ namespace Zeze.Services
                     var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(sender.ServerId);
                     SenderAcquired.Remove(gkey);
                     lockey.Pulse();
-                    return GetStateBySender(cs, sender);
+                    return GetSenderCacheState(cs, sender);
                 }
                 finally
                 {
@@ -500,7 +500,7 @@ namespace Zeze.Services
             }
         }
 
-        private int GetStateBySender(CacheState cs, CacheHolder sender)
+        private int GetSenderCacheState(CacheState cs, CacheHolder sender)
         {
             if (cs.Modify == sender.ServerId)
                 return GlobalCacheManagerServer.StateModify;
@@ -513,33 +513,43 @@ namespace Zeze.Services
         {
             var rpc = _p as Zeze.Component.GlobalCacheManagerWithRaft.Login;
             var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder() { GlobalInstance = this });
-            if (false == session.TryBindSocket(rpc.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
+
+            lock (session) // 同一个节点互斥。不同节点Bind不需要互斥，Release由Raft-Leader唯一性提供保护。
             {
-                rpc.SendResultCode(GlobalCacheManagerServer.LoginBindSocketFail);
+                if (false == session.TryBindSocket(rpc.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
+                {
+                    rpc.SendResultCode(GlobalCacheManagerServer.LoginBindSocketFail);
+                    return 0;
+                }
+                // new login, 比如逻辑服务器重启。release old acquired.
+                if (Rocks.Raft.IsLeader)
+                {
+                    var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
+                    SenderAcquired.Walk((key, value) =>
+                    {
+                        Release(session, key, false);
+                        return true; // continue walk
+                    });
+                }
+                rpc.SendResultCode(0);
                 return 0;
             }
-            // new login, 比如逻辑服务器重启。release old acquired.
-            var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
-            SenderAcquired.Walk((key, value) =>
-            {
-                Release(session, key, false);
-                return true; // continue walk
-            });
-            rpc.SendResultCode(0);
-            return 0;
         }
 
         protected override long ProcessReLoginRequest(Zeze.Net.Protocol _p)
         {
             var rpc = _p as Zeze.Component.GlobalCacheManagerWithRaft.ReLogin;
             var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder() { GlobalInstance = this });
-            if (false == session.TryBindSocket(rpc.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
+            lock (session) // 同一个节点互斥。
             {
-                rpc.SendResultCode(GlobalCacheManagerServer.ReLoginBindSocketFail);
+                if (false == session.TryBindSocket(rpc.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
+                {
+                    rpc.SendResultCode(GlobalCacheManagerServer.ReLoginBindSocketFail);
+                    return 0;
+                }
+                rpc.SendResultCode(0);
                 return 0;
             }
-            rpc.SendResultCode(0);
-            return 0;
         }
 
         protected override long ProcessNormalCloseRequest(Zeze.Net.Protocol _p)
@@ -550,21 +560,28 @@ namespace Zeze.Services
                 rpc.SendResultCode(GlobalCacheManagerServer.AcquireNotLogin);
                 return 0; // not login
             }
-            if (false == session.TryUnBindSocket(rpc.Sender))
+
+            lock (session) // 同一个节点互斥。不同节点Bind不需要互斥，Release由Raft-Leader唯一性提供保护。
             {
-                rpc.SendResultCode(GlobalCacheManagerServer.NormalCloseUnbindFail);
+                if (false == session.TryUnBindSocket(rpc.Sender))
+                {
+                    rpc.SendResultCode(GlobalCacheManagerServer.NormalCloseUnbindFail);
+                    return 0;
+                }
+                // TODO 确认Walk中删除记录是否有问题。
+                if (Rocks.Raft.IsLeader)
+                {
+                    var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
+                    SenderAcquired.Walk((key, value) =>
+                    {
+                        Release(session, key, false);
+                        return true; // continue walk
+                    });
+                }
+                rpc.SendResultCode(0);
+                logger.Debug("After NormalClose global.");
                 return 0;
             }
-            // TODO 确认Walk中删除记录是否有问题。
-            var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
-            SenderAcquired.Walk((key, value) =>
-            {
-                Release(session, key, false);
-                return true; // continue walk
-            });
-            rpc.SendResultCode(0);
-            logger.Debug("After NormalClose global.");
-            return 0;
         }
 
         protected override long ProcessCleanupRequest(Zeze.Net.Protocol _p)

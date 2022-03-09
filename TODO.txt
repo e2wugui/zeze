@@ -18,6 +18,13 @@
 	【左尧完成Java了？】Zezex.ModuleRedirect 增加 TransactionLevel 注解配置。
 	Zezex.ModuleRedirect 去掉依赖Session生成hash模式；RunMyMethod去掉mode；
 	Raft.AppendLog 加一个try catach，所有的内部错误都转换成RaftRetryException，这样就不会把内部异常漏给应用了。
+
+	Global 流程确认：独占排他性，Raft版本部分操作仅Leader有效?
+	Global NormalClose 需要锁定Session，如果是Leader，释放所有锁，确保释放完之前新的服务器不会登录进来。【raft及非raft版本都需要考虑】
+	Global Cleanup 需要锁定，如果是Leader，释放所有锁，这里无法通过lock(session)保护。
+	Global Login Bind以后，如果是Leader，释放存在的锁，看来没有问题，需要确认。
+	Global ReLogin 不涉及所释放，能Bind成功就表示ReLogin成功，看来没有问题，需要确认。
+
 	RocksRaft Collection.List LogList
 		SortedDictionary<int, Log Or Bean> ChangeOrAdd; // 优化。中间的值发生了改变或者在尾巴增加。
 		bool FullCopy; // 当发生中间删除或者插入时。这个有进一步优化空间。
