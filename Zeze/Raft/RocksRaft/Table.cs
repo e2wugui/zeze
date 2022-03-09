@@ -42,7 +42,7 @@ namespace Zeze.Raft.RocksRaft
         public Table<K, V> OpenTable<K, V>(int templateId = 0)
             where V : Bean, new()
         {
-            return (Table<K, V>)Rocks.Tables.GetOrAdd($"{Name}#{templateId}", (key) => new Table<K, V>(Rocks, Name, templateId));
+            return (Table<K, V>)OpenTable(templateId); // 类型必须匹配。
         }
     }
 
