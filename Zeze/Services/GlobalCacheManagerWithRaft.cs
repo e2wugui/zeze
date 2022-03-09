@@ -685,41 +685,35 @@ namespace Zeze.Services
 
             public bool TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex)
             {
-                lock (this)
-                {
-                    if (newSocket.UserState != null)
-                        return false; // 不允许再次绑定。Login Or ReLogin 只能发一次。
+                if (newSocket.UserState != null)
+                    return false; // 不允许再次绑定。Login Or ReLogin 只能发一次。
 
-                    var socket = GlobalInstance.Rocks.Raft.Server.GetSocket(SessionId);
-                    if (null == socket)
-                    {
-                        // old socket not exist or has lost.
-                        SessionId = newSocket.SessionId;
-                        newSocket.UserState = this;
-                        GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
-                        return true;
-                    }
-                    // 每个ServerId只允许一个实例，已经存在了以后，旧的实例上有状态，阻止新的实例登录成功。
-                    return false;
+                var socket = GlobalInstance.Rocks.Raft.Server.GetSocket(SessionId);
+                if (null == socket)
+                {
+                    // old socket not exist or has lost.
+                    SessionId = newSocket.SessionId;
+                    newSocket.UserState = this;
+                    GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
+                    return true;
                 }
+                // 每个ServerId只允许一个实例，已经存在了以后，旧的实例上有状态，阻止新的实例登录成功。
+                return false;
             }
 
             public bool TryUnBindSocket(AsyncSocket oldSocket)
             {
-                lock (this)
-                {
-                    // 这里检查比较严格，但是这些检查应该都不会出现。
+                // 这里检查比较严格，但是这些检查应该都不会出现。
 
-                    if (oldSocket.UserState != this)
-                        return false; // not bind to this
+                if (oldSocket.UserState != this)
+                    return false; // not bind to this
 
-                    var socket = GlobalInstance.Rocks.Raft.Server.GetSocket(SessionId);
-                    if (socket != oldSocket)
-                        return false; // not same socket
+                var socket = GlobalInstance.Rocks.Raft.Server.GetSocket(SessionId);
+                if (socket != oldSocket)
+                    return false; // not same socket
 
-                    SessionId = 0;
-                    return true;
-                }
+                SessionId = 0;
+                return true;
             }
         }
     }
