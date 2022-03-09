@@ -57,7 +57,7 @@
 			</bean>
 
 			<rpc name="Acquire" argument="AcquireParam" result="AcquireParam" base="Zeze.Raft.RaftRpc" handle="server" />
-			<rpc name="Reduce" argument="ReduceParam" result="ReduceParam" base="Zeze.Raft.RaftRpc" handle="server" />
+			<rpc name="Reduce" argument="ReduceParam" result="ReduceParam" base="Zeze.Raft.RaftRpc" handle="client" />
 			<rpc name="Login" argument="LoginParam" base="Zeze.Raft.RaftRpc" handle="server" />
 			<rpc name="ReLogin" argument="LoginParam" base="Zeze.Raft.RaftRpc" handle="server" />
 			<rpc name="NormalClose" handle="server" base="Zeze.Raft.RaftRpc" />

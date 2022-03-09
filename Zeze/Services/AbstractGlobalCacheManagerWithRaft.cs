@@ -41,7 +41,6 @@ namespace Zeze.Services
             service.AddFactoryHandle(47249266974153, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Component.GlobalCacheManagerWithRaft.Reduce(),
-                Handle = ProcessReduceRequest,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessReduceRequest", Zeze.Transaction.TransactionLevel.Serializable),
             });
             service.AddFactoryHandle(47249634595374, new Zeze.Net.Service.ProtocolFactoryHandle()
@@ -89,8 +88,6 @@ namespace Zeze.Services
         protected abstract long ProcessLoginRequest(Zeze.Net.Protocol p);
 
         protected abstract long ProcessNormalCloseRequest(Zeze.Net.Protocol p);
-
-        protected abstract long ProcessReduceRequest(Zeze.Net.Protocol p);
 
         protected abstract long ProcessReLoginRequest(Zeze.Net.Protocol p);
     }

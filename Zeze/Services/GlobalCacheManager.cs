@@ -338,9 +338,9 @@ namespace Zeze.Services
 
         private int Release(CacheHolder sender, GlobalTableKey gkey, bool noWait)
         {
-            CacheState cs = global.GetOrAdd(gkey, (tabkeKeyNotUsed) => new CacheState());
             while (true)
             {
+                CacheState cs = global.GetOrAdd(gkey, (tabkeKeyNotUsed) => new CacheState());
                 lock (cs)
                 {
                     if (cs.AcquireStatePending == StateRemoved)

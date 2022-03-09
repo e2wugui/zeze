@@ -59,6 +59,11 @@ namespace Zeze.Raft.RocksRaft
         {
             return Rocks.Tables.GetOrAdd($"{Name}#{templateId}", (key) => new Table<K, V>(Rocks, key, templateId));
         }
+
+        public Table<K, V> OpenTableWithType(int templateId)
+        {
+            return OpenTable<K, V>(templateId);
+        }
     }
 
     public class Table<K, V> : Table where V : Bean, new()
@@ -216,6 +221,21 @@ namespace Zeze.Raft.RocksRaft
             cr = new Transaction.RecordAccessed(r);
             cr.Put(currentT, null);
             currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
+        }
+
+        public bool Walk(Func<K, V, bool> callback)
+        {
+            using var it = Rocks.Storage.NewIterator(ColumnFamily);
+            it.SeekToFirst();
+            while (it.Valid())
+            {
+                var key = SerializeHelper<K>.Decode(ByteBuffer.Wrap(it.Key()));
+                var value = SerializeHelper<V>.Decode(ByteBuffer.Wrap(it.Value()));
+                if (false == callback(key, value))
+                    return false;
+                it.Next();
+            }
+            return true;
         }
 
         private Util.ConcurrentLruLike<K, Record<K, V>> LruCache;

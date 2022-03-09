@@ -21,9 +21,7 @@
 	RocksRaft Collection.List LogList
 		SortedDictionary<int, Log Or Bean> ChangeOrAdd; // 优化。中间的值发生了改变或者在尾巴增加。
 		bool FullCopy; // 当发生中间删除或者插入时。这个有进一步优化空间。
-		或者
-		List<OperateLog> 所有操作记录日志，收到方重做。问题：Get(index).Update，怎么融入。
-	Raft.GlobalCacheManagerWithRaft 关键Transient：CacheState.AcquireStatePending 仅在Leader上使用，不需要同步到Follower。
+		OR -> List<OperateLog> 所有操作记录日志，收到方重做。问题：Get(index).Update，怎么融入。
 	RedoableQueue
 	{
 		1）存储：QueueId。 RocksDb<TaskId, Full_Encoded_Net_Rpc> 持久化的。
@@ -36,6 +34,7 @@
 	Zezex.client: 可靠消息实现的错误检查。
 
 【2022/3/11】
+	Raft.GlobalCacheManagerWithRaft 关键Transient：CacheState.AcquireStatePending 仅在Leader上使用，不需要同步到Follower。
 	RocksRaft & rrcs GenTable OpenTable 提供模板化打开表格能力。
 	RocksRaft Gen Bean.Variable.Transient Attribute
 	RocksRaft Gen
