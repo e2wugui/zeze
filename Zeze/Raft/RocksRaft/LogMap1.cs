@@ -21,7 +21,7 @@ namespace Zeze.Raft.RocksRaft
 		}
 
 		public void Add(K key, V value)
-		{ 
+		{
 			Value = Value.Add(key, value);
 			Putted[key] = value;
 			Removed.Remove(key);
@@ -53,7 +53,7 @@ namespace Zeze.Raft.RocksRaft
 		public override void Decode(ByteBuffer bb)
 		{
 			Putted.Clear();
-			for (int i = bb.ReadInt(); i > 0; --i)
+			for (int i = bb.ReadUInt(); i > 0; --i)
 			{
 				var key = SerializeHelper<K>.Decode(bb);
 				var value = SerializeHelper<V>.Decode(bb);
@@ -61,7 +61,7 @@ namespace Zeze.Raft.RocksRaft
 			}
 
 			Removed.Clear();
-			for (int i = bb.ReadInt(); i > 0; --i)
+			for (int i = bb.ReadUInt(); i > 0; --i)
 			{
 				var key = SerializeHelper<K>.Decode(bb);
 				Removed.Add(key);
@@ -70,14 +70,14 @@ namespace Zeze.Raft.RocksRaft
 
 		public override void Encode(ByteBuffer bb)
 		{
-			bb.WriteInt(Putted.Count);
+			bb.WriteUInt(Putted.Count);
 			foreach (var p in Putted)
 			{
 				SerializeHelper<K>.Encode(bb, p.Key);
 				SerializeHelper<V>.Encode(bb, p.Value);
 			}
 
-			bb.WriteInt(Removed.Count);
+			bb.WriteUInt(Removed.Count);
 			foreach (var r in Removed)
 			{
 				SerializeHelper<K>.Encode(bb, r);

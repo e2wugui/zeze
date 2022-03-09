@@ -56,14 +56,14 @@ namespace Zeze.Raft.RocksRaft
 		public override void Decode(ByteBuffer bb)
 		{
 			Added.Clear();
-			for (int i = bb.ReadInt(); i > 0; --i)
+			for (int i = bb.ReadUInt(); i > 0; --i)
 			{
 				var value = SerializeHelper<V>.Decode(bb);
 				Added.Add(value);
 			}
 
 			Removed.Clear();
-			for (int i = bb.ReadInt(); i > 0; --i)
+			for (int i = bb.ReadUInt(); i > 0; --i)
 			{
 				var key = SerializeHelper<V>.Decode(bb);
 				Removed.Add(key);
@@ -72,13 +72,13 @@ namespace Zeze.Raft.RocksRaft
 
 		public override void Encode(ByteBuffer bb)
 		{
-			bb.WriteInt(Added.Count);
+			bb.WriteUInt(Added.Count);
 			foreach (var e in Added)
 			{
 				SerializeHelper<V>.Encode(bb, e);
 			}
 
-			bb.WriteInt(Removed.Count);
+			bb.WriteUInt(Removed.Count);
 			foreach (var e in Removed)
 			{
 				SerializeHelper<V>.Encode(bb, e);

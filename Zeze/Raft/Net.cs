@@ -294,7 +294,7 @@ namespace Zeze.Raft
         public Binary RpcResult { get; set; }
 
         public UniqueRequestState()
-        { 
+        {
         }
 
         public UniqueRequestState(RaftLog raftLog, bool isApplied)
@@ -601,7 +601,7 @@ namespace Zeze.Raft
         }
 
         /// <summary>
-        /// 
+        ///
         /// </summary>
         /// <param name="raftconf"></param>
         /// <param name="config"></param>
@@ -799,7 +799,7 @@ namespace Zeze.Raft
     }
 
     public sealed class RequestVoteResult : Bean
-    { 
+    {
         public long Term { get; set; }
         public bool VoteGranted { get; set; }
 
@@ -856,7 +856,7 @@ namespace Zeze.Raft
             PrevLogTerm = bb.ReadLong();
 
             Entries.Clear();
-            for (int c = bb.ReadInt(); c > 0; --c)
+            for (int c = bb.ReadUInt(); c > 0; --c)
             {
                 Entries.Add(bb.ReadBinary());
             }
@@ -871,7 +871,7 @@ namespace Zeze.Raft
             bb.WriteLong(PrevLogIndex);
             bb.WriteLong(PrevLogTerm);
 
-            bb.WriteInt(Entries.Count);
+            bb.WriteUInt(Entries.Count);
             foreach (var e in Entries)
             {
                 bb.WriteBinary(e);

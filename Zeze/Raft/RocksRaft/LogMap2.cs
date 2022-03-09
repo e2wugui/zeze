@@ -17,7 +17,7 @@ namespace Zeze.Raft.RocksRaft
         public override void Decode(ByteBuffer bb)
         {
 			ChangedWithKey.Clear();
-			for (int i = bb.ReadInt(); i > 0; --i)
+			for (int i = bb.ReadUInt(); i > 0; --i)
 			{
 				var key = SerializeHelper<K>.Decode(bb);
 				var value = SerializeHelper<LogBean>.Decode(bb);
@@ -47,7 +47,7 @@ namespace Zeze.Raft.RocksRaft
 					}
 				}
 			}
-			bb.WriteInt(ChangedWithKey.Count);
+			bb.WriteUInt(ChangedWithKey.Count);
 			foreach (var e in ChangedWithKey)
             {
 				SerializeHelper<K>.Encode(bb, e.Key);

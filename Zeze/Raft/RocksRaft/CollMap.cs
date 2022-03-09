@@ -60,7 +60,7 @@ namespace Zeze.Raft.RocksRaft
 		{
 			return Map.GetEnumerator();
 		}
-		
+
 		public override string ToString()
         {
 			var sb = new StringBuilder();
@@ -71,7 +71,7 @@ namespace Zeze.Raft.RocksRaft
 		public override void Decode(ByteBuffer bb)
 		{
 			Clear();
-			for (int i = bb.ReadInt(); i > 0; --i)
+			for (int i = bb.ReadUInt(); i > 0; --i)
 			{
 				var key = SerializeHelper<K>.Decode(bb);
 				var value = SerializeHelper<V>.Decode(bb);
@@ -82,7 +82,7 @@ namespace Zeze.Raft.RocksRaft
 		public override void Encode(ByteBuffer bb)
 		{
 			var tmp = Map;
-			bb.WriteInt(tmp.Count);
+			bb.WriteUInt(tmp.Count);
 			foreach (var e in tmp)
 			{
 				SerializeHelper<K>.Encode(bb, e.Key);

@@ -25,12 +25,12 @@ namespace Zeze.Raft.RocksRaft
 
         public override void Decode(ByteBuffer bb)
 		{
-			for (int i = bb.ReadInt(); i > 0; --i)
+			for (int i = bb.ReadUInt(); i > 0; --i)
 			{
 				var typeId = bb.ReadInt4();
 				var log = Log.Create(typeId);
 
-				var varId = bb.ReadInt();
+				var varId = bb.ReadUInt();
 				log.VariableId = varId;
 				log.Decode(bb);
 
@@ -40,11 +40,11 @@ namespace Zeze.Raft.RocksRaft
 
 		public override void Encode(ByteBuffer bb)
 		{
-			bb.WriteInt(Variables.Count);
+			bb.WriteUInt(Variables.Count);
 			foreach (var log in Variables.Values)
 			{
 				bb.WriteInt4(log.TypeId);
-				bb.WriteInt(log.VariableId);
+				bb.WriteUInt(log.VariableId);
 				log.Encode(bb);
 			}
 		}

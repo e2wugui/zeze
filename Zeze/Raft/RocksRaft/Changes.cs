@@ -175,12 +175,12 @@ namespace Zeze.Raft.RocksRaft
 		public override void Decode(ByteBuffer bb)
 		{
 			Records.Clear();
-			for (int i = bb.ReadInt(); i > 0; i--)
+			for (int i = bb.ReadUInt(); i > 0; i--)
 			{
 				var tkey = new TableKey();
 				var r = new Record();
 
-				r.TableTemplateId = bb.ReadInt();
+				r.TableTemplateId = bb.ReadUInt();
 				r.TableTemplateName = bb.ReadString();
 
 				tkey.Name = bb.ReadString();
@@ -195,11 +195,11 @@ namespace Zeze.Raft.RocksRaft
 
 		public override void Encode(ByteBuffer bb)
 		{
-			bb.WriteInt(Records.Count);
+			bb.WriteUInt(Records.Count);
 			foreach (var r in Records)
 			{
 				// encode TableTemplate
-				bb.WriteInt(r.Value.TableTemplateId);
+				bb.WriteUInt(r.Value.TableTemplateId);
 				bb.WriteString(r.Value.TableTemplateName);
 
 				// encode TableKey
