@@ -42,9 +42,9 @@ namespace Zeze.Serialize
         {
             return new ByteBuffer(new byte[ToPower2(capacity)]);
         }
-        
+
         public static ByteBuffer Allocate(byte[] initBytes)
-        { 
+        {
             return new ByteBuffer(initBytes);
         }
 
@@ -930,7 +930,7 @@ namespace Zeze.Serialize
 
         public void Encode<T>(ICollection<T> c)
         {
-            WriteInt(c.Count);
+            WriteUInt(c.Count);
             foreach (var s in c)
             {
                 SerializeHelper<T>.Encode(this, s);
@@ -938,8 +938,8 @@ namespace Zeze.Serialize
         }
 
         public void Decode<T>(ICollection<T> c)
-        { 
-            for (int i = ReadInt(); i > 0; --i)
+        {
+            for (int i = ReadUInt(); i > 0; --i)
             {
                 c.Add(SerializeHelper<T>.Decode(this));
             }
