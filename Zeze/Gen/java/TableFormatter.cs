@@ -47,9 +47,9 @@ namespace Zeze.Gen.java
             if (table.IsAutoKey)
             {
                 sw.WriteLine("    public long insert(" + value + " value) {");
-                sw.WriteLine("            long key = getAutoKey().Next();");
-                sw.WriteLine("            insert(key, value);");
-                sw.WriteLine("            return key;");
+                sw.WriteLine("        long key = getAutoKey().Next();");
+                sw.WriteLine("        insert(key, value);");
+                sw.WriteLine("        return key;");
                 sw.WriteLine("    }");
                 sw.WriteLine();
             }
