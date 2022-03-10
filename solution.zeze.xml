@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <solution name="Zeze" ModuleIdAllowRanges="11000-12000">
-	<module name="Component" id="11000">
+	<module name="Beans" id="11000">
 		<module name="GlobalCacheManagerWithRaft" id="11001">
 			<!-- table -->
 			<bean name="CacheState" kind="rocks">
@@ -64,7 +64,7 @@
 				<variable id="5" name="String" type="string"/>
 				<variable id="6" name="Binary" type="binary"/>
 				<variable id="7" name="SetInt" type="set" value="int"/>
-				<variable id="8" name="SetBeankey" type="set" value="Zeze.Component.GlobalCacheManagerWithRaft.GlobalTableKey"/>
+				<variable id="8" name="SetBeankey" type="set" value="Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey"/>
 				<variable id="9" name="MapInt" type="map" key="int" value="int"/>
 				<variable id="10" name="MapBean" type="map" key="int" value="Value"/>
 			</bean>
@@ -73,15 +73,15 @@
 		</module>
 	</module>
 
-	<component name="GlobalCacheManagerWithRaft" platform="zeze+cs">
+	<component name="GlobalCacheManagerWithRaft" genrelativedir="Services" platform="zeze+cs">
 		<service name="" handle="server">
-			<module ref="Zeze.Component.GlobalCacheManagerWithRaft"/>
+			<module ref="Zeze.beans.GlobalCacheManagerWithRaft"/>
 		</service>
 	</component>
 
 	<component name="TestRocks" platform="zeze+cs">
 		<service name="" handle="server">
-			<module ref="Zeze.Component.TestRocks"/>
+			<module ref="Zeze.beans.TestRocks"/>
 		</service>
 	</component>
 

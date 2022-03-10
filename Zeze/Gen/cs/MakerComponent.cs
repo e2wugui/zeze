@@ -16,7 +16,8 @@ namespace Zeze.Gen.cs
         {
             string projectBasedir = Project.Gendir;
             string genDir = projectBasedir; // 公共类（Bean，Protocol，Rpc，Table）生成目录。
-            string srcDir = Path.Combine(projectBasedir, "Zeze", "Services"); // 生成源代码全部放到同一个目录下。
+            var dir2 = string.IsNullOrEmpty(Project.GenRelativeDir) ? "Component" : Project.GenRelativeDir;
+            string srcDir = Path.Combine(projectBasedir, "Zeze", dir2); // 生成源代码全部放到同一个目录下。
 
             foreach (Types.Bean bean in Project.AllBeans.Values)
             {

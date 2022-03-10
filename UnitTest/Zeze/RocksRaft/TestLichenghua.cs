@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Services;
-using Zeze.Component.TestRocks;
+using Zeze.Beans.TestRocks;
 
 namespace UnitTest.Zeze.RocksRaft
 {

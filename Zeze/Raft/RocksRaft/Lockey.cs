@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Runtime.CompilerServices;
-using Zeze.Component.GlobalCacheManagerWithRaft;
+using Zeze.Beans.GlobalCacheManagerWithRaft;
 using System.Threading;
 
 namespace Zeze.Raft.RocksRaft

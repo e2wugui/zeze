@@ -2,7 +2,7 @@
 using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
-namespace Zeze.Component.GlobalCacheManagerWithRaft
+namespace Zeze.Beans.GlobalCacheManagerWithRaft
 {
     public sealed class AcquiredState : Zeze.Raft.RocksRaft.Bean
     {
@@ -68,7 +68,7 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
             return Copy();
         }
 
-        public const long TYPEID = 4862845186722525322;
+        public const long TYPEID = -3725217230826049232;
         public override long TypeId => TYPEID;
 
         public override string ToString()
@@ -81,7 +81,7 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
 
         public override void BuildString(System.Text.StringBuilder sb, int level)
         {
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Component.GlobalCacheManagerWithRaft.AcquiredState: {").Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Beans.GlobalCacheManagerWithRaft.AcquiredState: {").Append(Environment.NewLine);
             level += 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append("State").Append('=').Append(State).Append(Environment.NewLine);
             level -= 4;

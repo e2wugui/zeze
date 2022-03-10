@@ -2,7 +2,7 @@
 using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
-namespace Zeze.Component.TestRocks
+namespace Zeze.Beans.TestRocks
 {
     public sealed class Value : Zeze.Raft.RocksRaft.Bean
     {
@@ -13,9 +13,9 @@ namespace Zeze.Component.TestRocks
         string _String;
         Zeze.Net.Binary _Binary;
         readonly Zeze.Raft.RocksRaft.CollSet1<int> _SetInt;
-        readonly Zeze.Raft.RocksRaft.CollSet1<Zeze.Component.GlobalCacheManagerWithRaft.GlobalTableKey> _SetBeankey;
+        readonly Zeze.Raft.RocksRaft.CollSet1<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey> _SetBeankey;
         readonly Zeze.Raft.RocksRaft.CollMap1<int, int> _MapInt;
-        readonly Zeze.Raft.RocksRaft.CollMap1<int, Zeze.Component.TestRocks.Value> _MapBean;
+        readonly Zeze.Raft.RocksRaft.CollMap1<int, Zeze.Beans.TestRocks.Value> _MapBean;
 
         public int Int
         {
@@ -159,11 +159,11 @@ namespace Zeze.Component.TestRocks
 
         public Zeze.Raft.RocksRaft.CollSet1<int> SetInt => _SetInt;
 
-        public Zeze.Raft.RocksRaft.CollSet1<Zeze.Component.GlobalCacheManagerWithRaft.GlobalTableKey> SetBeankey => _SetBeankey;
+        public Zeze.Raft.RocksRaft.CollSet1<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey> SetBeankey => _SetBeankey;
 
         public Zeze.Raft.RocksRaft.CollMap1<int, int> MapInt => _MapInt;
 
-        public Zeze.Raft.RocksRaft.CollMap1<int, Zeze.Component.TestRocks.Value> MapBean => _MapBean;
+        public Zeze.Raft.RocksRaft.CollMap1<int, Zeze.Beans.TestRocks.Value> MapBean => _MapBean;
 
         public Value() : this(0)
         {
@@ -174,9 +174,9 @@ namespace Zeze.Component.TestRocks
             _String = "";
             _Binary = Zeze.Net.Binary.Empty;
             _SetInt = new Zeze.Raft.RocksRaft.CollSet1<int>() { VariableId = 7 };
-            _SetBeankey = new Zeze.Raft.RocksRaft.CollSet1<Zeze.Component.GlobalCacheManagerWithRaft.GlobalTableKey>() { VariableId = 8 };
+            _SetBeankey = new Zeze.Raft.RocksRaft.CollSet1<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey>() { VariableId = 8 };
             _MapInt = new Zeze.Raft.RocksRaft.CollMap1<int, int>() { VariableId = 9 };
-            _MapBean = new Zeze.Raft.RocksRaft.CollMap1<int, Zeze.Component.TestRocks.Value>() { VariableId = 10 };
+            _MapBean = new Zeze.Raft.RocksRaft.CollMap1<int, Zeze.Beans.TestRocks.Value>() { VariableId = 10 };
         }
 
         public void Assign(Value other)
@@ -225,7 +225,7 @@ namespace Zeze.Component.TestRocks
             return Copy();
         }
 
-        public const long TYPEID = 7837128468351531953;
+        public const long TYPEID = 4775088191372579691;
         public override long TypeId => TYPEID;
 
         public override string ToString()
@@ -238,7 +238,7 @@ namespace Zeze.Component.TestRocks
 
         public override void BuildString(System.Text.StringBuilder sb, int level)
         {
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Component.TestRocks.Value: {").Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Beans.TestRocks.Value: {").Append(Environment.NewLine);
             level += 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Int").Append('=').Append(Int).Append(',').Append(Environment.NewLine);
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Bool").Append('=').Append(Bool).Append(',').Append(Environment.NewLine);
@@ -454,7 +454,7 @@ namespace Zeze.Component.TestRocks
                 if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST)
                 {
                     for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                        _x_.Add(_o_.ReadBean(new Zeze.Component.GlobalCacheManagerWithRaft.GlobalTableKey(), _t_));
+                        _x_.Add(_o_.ReadBean(new Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey(), _t_));
                 }
                 else
                     _o_.SkipUnknownField(_t_);
@@ -488,7 +488,7 @@ namespace Zeze.Component.TestRocks
                     for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--)
                     {
                         var _k_ = _o_.ReadInt(_s_);
-                        var _v_ = _o_.ReadBean(new Zeze.Component.TestRocks.Value(), _t_);
+                        var _v_ = _o_.ReadBean(new Zeze.Beans.TestRocks.Value(), _t_);
                         _x_.Add(_k_, _v_);
                     }
                 }

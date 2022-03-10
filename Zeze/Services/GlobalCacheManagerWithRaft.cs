@@ -1,7 +1,7 @@
 
 using System;
 using Zeze.Raft.RocksRaft;
-using Zeze.Component.GlobalCacheManagerWithRaft;
+using Zeze.Beans.GlobalCacheManagerWithRaft;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using Zeze.Net;
@@ -12,7 +12,7 @@ namespace Zeze.Services
     {
         protected override long ProcessAcquireRequest(Zeze.Net.Protocol _p)
         {
-            var rpc = _p as Zeze.Component.GlobalCacheManagerWithRaft.Acquire;
+            var rpc = _p as Acquire;
             rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
             rpc.Result.State = rpc.Argument.State; // default success
             rpc.ResultCode = 0;
@@ -52,7 +52,7 @@ namespace Zeze.Services
             return 0; // has handle all error.
         }
 
-        private long AcquireShare(Zeze.Component.GlobalCacheManagerWithRaft.Acquire rpc)
+        private long AcquireShare(Acquire rpc)
         {
             CacheHolder sender = (CacheHolder)rpc.Sender.UserState;
 
@@ -198,7 +198,7 @@ namespace Zeze.Services
             }
         }
 
-        private long AcquireModify(Zeze.Component.GlobalCacheManagerWithRaft.Acquire rpc)
+        private long AcquireModify(Acquire rpc)
         {
             CacheHolder sender = (CacheHolder)rpc.Sender.UserState;
 
@@ -523,7 +523,7 @@ namespace Zeze.Services
 
         protected override long ProcessLoginRequest(Zeze.Net.Protocol _p)
         {
-            var rpc = _p as Zeze.Component.GlobalCacheManagerWithRaft.Login;
+            var rpc = _p as Login;
             var session = Sessions.GetOrAdd(rpc.Argument.ServerId,
                 (_) => new CacheHolder() { GlobalInstance = this, ServerId = rpc.Argument.ServerId });
 
@@ -548,7 +548,7 @@ namespace Zeze.Services
 
         protected override long ProcessReLoginRequest(Zeze.Net.Protocol _p)
         {
-            var rpc = _p as Zeze.Component.GlobalCacheManagerWithRaft.ReLogin;
+            var rpc = _p as ReLogin;
             var session = Sessions.GetOrAdd(rpc.Argument.ServerId, 
                 (key) => new CacheHolder() { GlobalInstance = this, ServerId = rpc.Argument.ServerId });
 
@@ -566,7 +566,7 @@ namespace Zeze.Services
 
         protected override long ProcessNormalCloseRequest(Zeze.Net.Protocol _p)
         {
-            var rpc = _p as Zeze.Component.GlobalCacheManagerWithRaft.NormalClose;
+            var rpc = _p as NormalClose;
             if (rpc.Sender.UserState is not CacheHolder session)
             {
                 rpc.SendResultCode(GlobalCacheManagerServer.AcquireNotLogin);
@@ -595,7 +595,7 @@ namespace Zeze.Services
 
         protected override long ProcessCleanupRequest(Zeze.Net.Protocol _p)
         {
-            var rpc = _p as Zeze.Component.GlobalCacheManagerWithRaft.Cleanup;
+            var rpc = _p as Cleanup;
 
             // 安全性以后加强。
             if (false == rpc.Argument.SecureKey.Equals("Ok! verify secure."))
@@ -640,7 +640,7 @@ namespace Zeze.Services
 
         protected override long ProcessKeepAliveRequest(Zeze.Net.Protocol _p)
         {
-            var rpc = _p as Zeze.Component.GlobalCacheManagerWithRaft.KeepAlive;
+            var rpc = _p as KeepAlive;
             rpc.SendResultCode(Zeze.Transaction.Procedure.NotImplement);
             return 0;
         }

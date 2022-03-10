@@ -2,9 +2,9 @@
 using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
-namespace Zeze.Component.GlobalCacheManagerWithRaft
+namespace Zeze.Beans.GlobalCacheManagerWithRaft
 {
-    public interface AchillesHeelReadOnly
+    public interface LoginParamReadOnly
     {
         public long TypeId { get; }
         public void Encode(ByteBuffer _os_);
@@ -12,14 +12,12 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
         public Zeze.Transaction.Bean CopyBean();
 
         public int ServerId { get; }
-        public string SecureKey { get; }
         public int GlobalCacheManagerHashIndex { get; }
     }
 
-    public sealed class AchillesHeel : Zeze.Transaction.Bean, AchillesHeelReadOnly
+    public sealed class LoginParam : Zeze.Transaction.Bean, LoginParamReadOnly
     {
         int _ServerId;
-        string _SecureKey;
         int _GlobalCacheManagerHashIndex;
 
         public int ServerId
@@ -47,32 +45,6 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
             }
         }
 
-        public string SecureKey
-        {
-            get
-            {
-                if (!IsManaged)
-                    return _SecureKey;
-                var txn = Zeze.Transaction.Transaction.Current;
-                if (txn == null) return _SecureKey;
-                txn.VerifyRecordAccessed(this, true);
-                var log = (Log__SecureKey)txn.GetLog(ObjectId + 2);
-                return log != null ? log.Value : _SecureKey;
-            }
-            set
-            {
-                if (value == null) throw new System.ArgumentNullException();
-                if (!IsManaged)
-                {
-                    _SecureKey = value;
-                    return;
-                }
-                var txn = Zeze.Transaction.Transaction.Current;
-                txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__SecureKey(this, value));
-            }
-        }
-
         public int GlobalCacheManagerHashIndex
         {
             get
@@ -82,7 +54,7 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
                 var txn = Zeze.Transaction.Transaction.Current;
                 if (txn == null) return _GlobalCacheManagerHashIndex;
                 txn.VerifyRecordAccessed(this, true);
-                var log = (Log__GlobalCacheManagerHashIndex)txn.GetLog(ObjectId + 3);
+                var log = (Log__GlobalCacheManagerHashIndex)txn.GetLog(ObjectId + 2);
                 return log != null ? log.Value : _GlobalCacheManagerHashIndex;
             }
             set
@@ -98,37 +70,35 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
             }
         }
 
-        public AchillesHeel() : this(0)
+        public LoginParam() : this(0)
         {
         }
 
-        public AchillesHeel(int _varId_) : base(_varId_)
+        public LoginParam(int _varId_) : base(_varId_)
         {
-            _SecureKey = "";
         }
 
-        public void Assign(AchillesHeel other)
+        public void Assign(LoginParam other)
         {
             ServerId = other.ServerId;
-            SecureKey = other.SecureKey;
             GlobalCacheManagerHashIndex = other.GlobalCacheManagerHashIndex;
         }
 
-        public AchillesHeel CopyIfManaged()
+        public LoginParam CopyIfManaged()
         {
             return IsManaged ? Copy() : this;
         }
 
-        public AchillesHeel Copy()
+        public LoginParam Copy()
         {
-            var copy = new AchillesHeel();
+            var copy = new LoginParam();
             copy.Assign(this);
             return copy;
         }
 
-        public static void Swap(AchillesHeel a, AchillesHeel b)
+        public static void Swap(LoginParam a, LoginParam b)
         {
-            AchillesHeel save = a.Copy();
+            LoginParam save = a.Copy();
             a.Assign(b);
             b.Assign(save);
         }
@@ -138,27 +108,20 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
             return Copy();
         }
 
-        public const long TYPEID = 8548896957875701598;
+        public const long TYPEID = 2881471292756569593;
         public override long TypeId => TYPEID;
 
-        sealed class Log__ServerId : Zeze.Transaction.Log<AchillesHeel, int>
+        sealed class Log__ServerId : Zeze.Transaction.Log<LoginParam, int>
         {
-            public Log__ServerId(AchillesHeel self, int value) : base(self, value) {}
+            public Log__ServerId(LoginParam self, int value) : base(self, value) {}
             public override long LogKey => this.Bean.ObjectId + 1;
             public override void Commit() { this.BeanTyped._ServerId = this.Value; }
         }
 
-        sealed class Log__SecureKey : Zeze.Transaction.Log<AchillesHeel, string>
+        sealed class Log__GlobalCacheManagerHashIndex : Zeze.Transaction.Log<LoginParam, int>
         {
-            public Log__SecureKey(AchillesHeel self, string value) : base(self, value) {}
+            public Log__GlobalCacheManagerHashIndex(LoginParam self, int value) : base(self, value) {}
             public override long LogKey => this.Bean.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._SecureKey = this.Value; }
-        }
-
-        sealed class Log__GlobalCacheManagerHashIndex : Zeze.Transaction.Log<AchillesHeel, int>
-        {
-            public Log__GlobalCacheManagerHashIndex(AchillesHeel self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 3;
             public override void Commit() { this.BeanTyped._GlobalCacheManagerHashIndex = this.Value; }
         }
 
@@ -172,10 +135,9 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
 
         public override void BuildString(System.Text.StringBuilder sb, int level)
         {
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Component.GlobalCacheManagerWithRaft.AchillesHeel: {").Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Beans.GlobalCacheManagerWithRaft.LoginParam: {").Append(Environment.NewLine);
             level += 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append("ServerId").Append('=').Append(ServerId).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("SecureKey").Append('=').Append(SecureKey).Append(',').Append(Environment.NewLine);
             sb.Append(Zeze.Util.Str.Indent(level)).Append("GlobalCacheManagerHashIndex").Append('=').Append(GlobalCacheManagerHashIndex).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
@@ -193,18 +155,10 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
                 }
             }
             {
-                string _x_ = SecureKey;
-                if (_x_.Length != 0)
-                {
-                    _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
-                    _o_.WriteString(_x_);
-                }
-            }
-            {
                 int _x_ = GlobalCacheManagerHashIndex;
                 if (_x_ != 0)
                 {
-                    _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                    _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
                     _o_.WriteInt(_x_);
                 }
             }
@@ -221,11 +175,6 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             if (_i_ == 2)
-            {
-                SecureKey = _o_.ReadString(_t_);
-                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-            }
-            if (_i_ == 3)
             {
                 GlobalCacheManagerHashIndex = _o_.ReadInt(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());

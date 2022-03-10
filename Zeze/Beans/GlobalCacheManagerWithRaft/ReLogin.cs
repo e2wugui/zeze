@@ -1,11 +1,11 @@
 // auto-generated
 
-namespace Zeze.Component.GlobalCacheManagerWithRaft
+namespace Zeze.Beans.GlobalCacheManagerWithRaft
 {
-    public sealed class Cleanup : Zeze.Raft.RaftRpc<Zeze.Component.GlobalCacheManagerWithRaft.AchillesHeel, Zeze.Transaction.EmptyBean>
+    public sealed class ReLogin : Zeze.Raft.RaftRpc<Zeze.Beans.GlobalCacheManagerWithRaft.LoginParam, Zeze.Transaction.EmptyBean>
     {
         public const int ModuleId_ = 11001;
-        public const int ProtocolId_ = 1480493405;
+        public const int ProtocolId_ = -1568199819;
         public const long TypeId_ = (long)ModuleId_ << 32 | (ProtocolId_ & 0xffff_ffff);
 
         public override int ModuleId => ModuleId_;

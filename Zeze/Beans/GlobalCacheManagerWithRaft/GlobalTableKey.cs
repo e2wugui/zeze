@@ -2,7 +2,7 @@
 using System;
 using Zeze.Serialize;
 
-namespace Zeze.Component.GlobalCacheManagerWithRaft
+namespace Zeze.Beans.GlobalCacheManagerWithRaft
 {
     public sealed class GlobalTableKey : Serializable, System.IComparable
     {
@@ -33,7 +33,7 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
 
         public void BuildString(System.Text.StringBuilder sb, int level)
         {
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Component.GlobalCacheManagerWithRaft.GlobalTableKey: {").Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey: {").Append(Environment.NewLine);
             level += 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append("TableName").Append('=').Append(TableName).Append(',').Append(Environment.NewLine);
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Key").Append('=').Append(Key).Append(Environment.NewLine);
@@ -117,7 +117,7 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
                 if (_c_ != 0) return _c_;
                 return _c_;
             }
-            throw new Exception("CompareTo: another object is not Zeze.Component.GlobalCacheManagerWithRaft.GlobalTableKey");
+            throw new Exception("CompareTo: another object is not Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey");
         }
 
         public bool NegativeCheck()
