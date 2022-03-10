@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using Zeze.Beans.GlobalCacheManagerWithRaft;
 using System.Threading;
 
-namespace Zeze.Raft.RocksRaft
+namespace Zeze.Services
 {
 
     public sealed class Lockey : System.IComparable<Lockey>
