@@ -27,7 +27,7 @@ namespace Zeze.Gen.java
         }
         public void Make(string baseDir)
         {
-            MakeReadOnly(baseDir);
+            // MakeReadOnly(baseDir);
 
             using StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + ".java");
 
@@ -36,7 +36,8 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             sw.WriteLine("import Zeze.Serialize.ByteBuffer;");
             sw.WriteLine();
-            sw.WriteLine($"public final class {bean.Name} extends Zeze.Transaction.Bean implements {bean.Name}ReadOnly {{");
+            // sw.WriteLine($"public final class {bean.Name} extends Zeze.Transaction.Bean implements {bean.Name}ReadOnly {{");
+            sw.WriteLine($"public final class {bean.Name} extends Zeze.Transaction.Bean {{");
             WriteDefine(sw);
             sw.WriteLine("}");
         }

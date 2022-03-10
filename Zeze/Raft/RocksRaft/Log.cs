@@ -44,7 +44,7 @@ namespace Zeze.Raft.RocksRaft
         {
 			if (Factorys.TryGetValue(typeId, out var factory))
 				return factory();
-			throw new Exception($"unkown log typeid={typeId}");
+			throw new Exception($"unknown log typeId={typeId}");
 		}
 	}
 

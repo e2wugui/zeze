@@ -28,7 +28,7 @@ namespace Zeze.Services
             {
                 switch (rpc.Argument.State)
                 {
-                    case GlobalCacheManagerServer.StateInvalid: // realease
+                    case GlobalCacheManagerServer.StateInvalid: // release
                         rpc.Result.State = Release(rpc.Sender.UserState as CacheHolder, rpc.Argument.GlobalTableKey, true);
                         return 0;
 
@@ -549,7 +549,7 @@ namespace Zeze.Services
         protected override long ProcessReLoginRequest(Zeze.Net.Protocol _p)
         {
             var rpc = _p as ReLogin;
-            var session = Sessions.GetOrAdd(rpc.Argument.ServerId, 
+            var session = Sessions.GetOrAdd(rpc.Argument.ServerId,
                 (key) => new CacheHolder() { GlobalInstance = this, ServerId = rpc.Argument.ServerId });
 
             lock (session) // 同一个节点互斥。
@@ -673,7 +673,7 @@ namespace Zeze.Services
         private readonly ConcurrentDictionary<int, CacheHolder> Sessions = new ConcurrentDictionary<int, CacheHolder>();
 
         public GlobalCacheManagerWithRaft(string raftName)
-        { 
+        {
             Rocks = new Rocks(raftName);
 
             RegisterRocksTables(Rocks);
@@ -727,7 +727,7 @@ namespace Zeze.Services
 
             public static Reduce Reduce(ConcurrentDictionary<int, CacheHolder> sessions, int serverId,
                 GlobalTableKey gkey, int state, long globalSerialId)
-            { 
+            {
                 if (sessions.TryGetValue(serverId, out var session))
                     return session.Reduce(gkey, state, globalSerialId);
 
