@@ -13,12 +13,14 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
 
         public Zeze.Component.GlobalCacheManagerWithRaft.GlobalTableKey GlobalTableKey { get; }
         public int State { get; }
+        public long GlobalSerialId { get; }
     }
 
     public sealed class ReduceParam : Zeze.Transaction.Bean, ReduceParamReadOnly
     {
         Zeze.Component.GlobalCacheManagerWithRaft.GlobalTableKey _GlobalTableKey;
         int _State;
+        long _GlobalSerialId;
 
         public Zeze.Component.GlobalCacheManagerWithRaft.GlobalTableKey GlobalTableKey
         {
@@ -72,6 +74,31 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
             }
         }
 
+        public long GlobalSerialId
+        {
+            get
+            {
+                if (!IsManaged)
+                    return _GlobalSerialId;
+                var txn = Zeze.Transaction.Transaction.Current;
+                if (txn == null) return _GlobalSerialId;
+                txn.VerifyRecordAccessed(this, true);
+                var log = (Log__GlobalSerialId)txn.GetLog(ObjectId + 3);
+                return log != null ? log.Value : _GlobalSerialId;
+            }
+            set
+            {
+                if (!IsManaged)
+                {
+                    _GlobalSerialId = value;
+                    return;
+                }
+                var txn = Zeze.Transaction.Transaction.Current;
+                txn.VerifyRecordAccessed(this);
+                txn.PutLog(new Log__GlobalSerialId(this, value));
+            }
+        }
+
         public ReduceParam() : this(0)
         {
         }
@@ -85,6 +112,7 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
         {
             GlobalTableKey = other.GlobalTableKey;
             State = other.State;
+            GlobalSerialId = other.GlobalSerialId;
         }
 
         public ReduceParam CopyIfManaged()
@@ -128,6 +156,13 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
             public override void Commit() { this.BeanTyped._State = this.Value; }
         }
 
+        sealed class Log__GlobalSerialId : Zeze.Transaction.Log<ReduceParam, long>
+        {
+            public Log__GlobalSerialId(ReduceParam self, long value) : base(self, value) {}
+            public override long LogKey => this.Bean.ObjectId + 3;
+            public override void Commit() { this.BeanTyped._GlobalSerialId = this.Value; }
+        }
+
         public override string ToString()
         {
             System.Text.StringBuilder sb = new System.Text.StringBuilder();
@@ -143,7 +178,8 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
             sb.Append(Zeze.Util.Str.Indent(level)).Append("GlobalTableKey").Append('=').Append(Environment.NewLine);
             GlobalTableKey.BuildString(sb, level + 4);
             sb.Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("State").Append('=').Append(State).Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("State").Append('=').Append(State).Append(',').Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("GlobalSerialId").Append('=').Append(GlobalSerialId).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -169,6 +205,14 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
                     _o_.WriteInt(_x_);
                 }
             }
+            {
+                long _x_ = GlobalSerialId;
+                if (_x_ != 0)
+                {
+                    _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                    _o_.WriteLong(_x_);
+                }
+            }
             _o_.WriteByte(0);
         }
 
@@ -186,6 +230,11 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
                 State = _o_.ReadInt(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
+            if (_i_ == 3)
+            {
+                GlobalSerialId = _o_.ReadLong(_t_);
+                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+            }
             while (_t_ != 0)
             {
                 _o_.SkipUnknownField(_t_);
@@ -200,6 +249,7 @@ namespace Zeze.Component.GlobalCacheManagerWithRaft
         public override bool NegativeCheck()
         {
             if (State < 0) return true;
+            if (GlobalSerialId < 0) return true;
             return false;
         }
     }

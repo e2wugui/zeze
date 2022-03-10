@@ -6,20 +6,10 @@
 			<!-- table -->
 			<bean name="CacheState" kind="rocks">
 				<variable id="1" name="AcquireStatePending" type="int" transient="true"/>
-				<variable id="2" name="GlobalSerialId" type="long"/>
-				<variable id="3" name="Modify" type="int"/> ServerId
+				<variable id="2" name="GlobalSerialId" type="long" transient="true"/>
+				<variable id="3" name="Modify" type="int" default="-1"/> ServerId, default MUST BE -1.
 				<variable id="4" name="Share" type="set" value="int"/>
 			</bean>
-
-			<!--
-			<bean name="CacheHolder" kind="rocks">
-				<variable id="1" name="SessionId" type="long"/>
-				<variable id="2" name="GlobalCacheManagerHashIndex" type="int"/>
-
-				<variable id="3" name="ServerId" type="int" />
-				<variable id="4" name="Acquired" type="map" key="GlobalTableKey" value="int"/>
-			</bean>
-			-->
 
 			<bean name="AcquiredState" kind="rocks">
 				<variable id="1" name="State" type="int"/>
@@ -37,12 +27,12 @@
 			<bean name="AcquireParam">
 				<variable id="1" name="GlobalTableKey" type="GlobalTableKey"/>
 				<variable id="2" name="State" type="int"/>
-				<variable id="3" name="GlobalSerialId" type="long"/>
 			</bean>
 
 			<bean name="ReduceParam">
 				<variable id="1" name="GlobalTableKey" type="GlobalTableKey"/>
 				<variable id="2" name="State" type="int"/>
+				<variable id="3" name="GlobalSerialId" type="long"/>
 			</bean>
 
 			<bean name="LoginParam">
@@ -56,7 +46,7 @@
 				<variable id="3" name="GlobalCacheManagerHashIndex" type="int"/>
 			</bean>
 
-			<rpc name="Acquire" argument="AcquireParam" result="AcquireParam" base="Zeze.Raft.RaftRpc" handle="server" />
+			<rpc name="Acquire" argument="AcquireParam" result="ReduceParam" base="Zeze.Raft.RaftRpc" handle="server" />
 			<rpc name="Reduce" argument="ReduceParam" result="ReduceParam" base="Zeze.Raft.RaftRpc" handle="client" />
 			<rpc name="Login" argument="LoginParam" base="Zeze.Raft.RaftRpc" handle="server" />
 			<rpc name="ReLogin" argument="LoginParam" base="Zeze.Raft.RaftRpc" handle="server" />

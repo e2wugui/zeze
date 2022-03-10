@@ -276,7 +276,7 @@ namespace Zeze.Services
                         Zeze.Util.Task.Run(
                             () =>
                             {
-                                reduceRpc = cs.Modify.Reduce(rpc.Argument.GlobalTableKey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId);
+                                reduceRpc = CacheHolder.Reduce(Sessions, cs.Modify, rpc.Argument.GlobalTableKey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId);
                                 lockey.Enter();
                                 try
                                 {
@@ -334,10 +334,11 @@ namespace Zeze.Services
                             reduceSucceed.Add(sender);
                             continue;
                         }
-                        Reduce reduce = c.ReduceWaitLater(rpc.Argument.GlobalTableKey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId);
+                        Reduce reduce = CacheHolder.ReduceWaitLater(Sessions, c, out var session,
+                            rpc.Argument.GlobalTableKey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId);
                         if (null != reduce)
                         {
-                            reducePending.Add(Util.KV.Create(c, reduce));
+                            reducePending.Add(Util.KV.Create(session, reduce));
                         }
                         else
                         {
@@ -439,6 +440,17 @@ namespace Zeze.Services
 
         private int Release(CacheHolder sender, GlobalTableKey gkey, bool noWait)
         {
+            int result = 0;
+            Rocks.NewProcedure(() =>
+            {
+                result = _Release(sender, gkey, noWait);
+                return 0;
+            }).Call();
+            return result;
+        }
+
+        private int _Release(CacheHolder sender, GlobalTableKey gkey, bool noWait)
+        {
             while (true)
             {
                 var lockey = Locks.Get(gkey);
@@ -512,7 +524,8 @@ namespace Zeze.Services
         protected override long ProcessLoginRequest(Zeze.Net.Protocol _p)
         {
             var rpc = _p as Zeze.Component.GlobalCacheManagerWithRaft.Login;
-            var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder() { GlobalInstance = this });
+            var session = Sessions.GetOrAdd(rpc.Argument.ServerId,
+                (_) => new CacheHolder() { GlobalInstance = this, ServerId = rpc.Argument.ServerId });
 
             lock (session) // 同一个节点互斥。不同节点Bind不需要互斥，Release由Raft-Leader唯一性提供保护。
             {
@@ -522,15 +535,12 @@ namespace Zeze.Services
                     return 0;
                 }
                 // new login, 比如逻辑服务器重启。release old acquired.
-                if (Rocks.Raft.IsLeader)
+                var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
+                SenderAcquired.Walk((key, value) =>
                 {
-                    var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
-                    SenderAcquired.Walk((key, value) =>
-                    {
-                        Release(session, key, false);
-                        return true; // continue walk
-                    });
-                }
+                    Release(session, key, false);
+                    return true; // continue walk
+                });
                 rpc.SendResultCode(0);
                 return 0;
             }
@@ -539,7 +549,9 @@ namespace Zeze.Services
         protected override long ProcessReLoginRequest(Zeze.Net.Protocol _p)
         {
             var rpc = _p as Zeze.Component.GlobalCacheManagerWithRaft.ReLogin;
-            var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder() { GlobalInstance = this });
+            var session = Sessions.GetOrAdd(rpc.Argument.ServerId, 
+                (key) => new CacheHolder() { GlobalInstance = this, ServerId = rpc.Argument.ServerId });
+
             lock (session) // 同一个节点互斥。
             {
                 if (false == session.TryBindSocket(rpc.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
@@ -569,15 +581,12 @@ namespace Zeze.Services
                     return 0;
                 }
                 // TODO 确认Walk中删除记录是否有问题。
-                if (Rocks.Raft.IsLeader)
+                var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
+                SenderAcquired.Walk((key, value) =>
                 {
-                    var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
-                    SenderAcquired.Walk((key, value) =>
-                    {
-                        Release(session, key, false);
-                        return true; // continue walk
-                    });
-                }
+                    Release(session, key, false);
+                    return true; // continue walk
+                });
                 rpc.SendResultCode(0);
                 logger.Debug("After NormalClose global.");
                 return 0;
@@ -680,7 +689,7 @@ namespace Zeze.Services
         {
             public long SessionId { get; private set; }
             public int GlobalCacheManagerHashIndex { get; private set; }
-            public int ServerId { get; private set; }
+            public int ServerId { get; internal set; }
             public GlobalCacheManagerWithRaft GlobalInstance { get; set; }
 
             public bool TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex)
@@ -714,6 +723,107 @@ namespace Zeze.Services
 
                 SessionId = 0;
                 return true;
+            }
+
+            public static Reduce Reduce(ConcurrentDictionary<int, CacheHolder> sessions, int serverId,
+                GlobalTableKey gkey, int state, long globalSerialId)
+            { 
+                if (sessions.TryGetValue(serverId, out var session))
+                    return session.Reduce(gkey, state, globalSerialId);
+
+                var reduce = new Reduce();
+                reduce.Argument.GlobalTableKey = gkey;
+                reduce.Argument.State = state;
+                reduce.Argument.GlobalSerialId = globalSerialId;
+                reduce.Result.State = GlobalCacheManagerServer.StateReduceSessionNotFound;
+
+                return reduce;
+            }
+
+            public static Reduce ReduceWaitLater(ConcurrentDictionary<int, CacheHolder> sessions,
+                int serverId, out CacheHolder session,
+                GlobalTableKey gkey, int state, long globalSerialId)
+            {
+                if (sessions.TryGetValue(serverId, out session))
+                    return session.ReduceWaitLater(gkey, state, globalSerialId);
+
+                return null;
+            }
+
+            public Reduce Reduce(GlobalTableKey gkey, int state, long globalSerialId)
+            {
+                Reduce reduce = ReduceWaitLater(gkey, state, globalSerialId);
+                try
+                {
+                    if (null != reduce)
+                    {
+                        reduce.Future.Task.Wait();
+                        // 如果rpc返回错误的值，外面能处理。
+                        return reduce;
+                    }
+                    reduce.Result.State = GlobalCacheManagerServer.StateReduceNetError;
+                    return reduce;
+                }
+                catch (RpcTimeoutException timeoutex)
+                {
+                    // 等待超时，应该报告错误。
+                    logger.Error(timeoutex, "Reduce RpcTimeoutException {0} target={1} '{2}'", state, SessionId, gkey);
+                    reduce.Result.State = GlobalCacheManagerServer.StateReduceRpcTimeout;
+                    return reduce;
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, "Reduce Exception {0} target={1} '{2}'", state, SessionId, gkey);
+                    reduce.Result.State = GlobalCacheManagerServer.StateReduceException;
+                    return reduce;
+                }
+            }
+
+            public const long ForbidPeriod = 10 * 1000; // 10 seconds
+            private long LastErrorTime = 0;
+
+            public void SetError()
+            {
+                lock (this)
+                {
+                    long now = Util.Time.NowUnixMillis;
+                    if (now - LastErrorTime > ForbidPeriod)
+                        LastErrorTime = now;
+                }
+            }
+            /// <summary>
+            /// 返回null表示发生了网络错误，或者应用服务器已经关闭。
+            /// </summary>
+            /// <param name="gkey"></param>
+            /// <param name="state"></param>
+            /// <returns></returns>
+            public Reduce ReduceWaitLater(GlobalTableKey gkey, int state, long globalSerialId)
+            {
+                try
+                {
+                    lock (this)
+                    {
+                        if (Util.Time.NowUnixMillis - LastErrorTime < ForbidPeriod)
+                            return null;
+                    }
+                    AsyncSocket peer = GlobalCacheManagerServer.Instance.Server.GetSocket(SessionId);
+                    if (null != peer)
+                    {
+                        var reduce = new Reduce();
+                        reduce.Argument.GlobalTableKey = gkey;
+                        reduce.Argument.State = state;
+                        reduce.Argument.GlobalSerialId = globalSerialId;
+                        reduce.SendForWait(peer, 10000);
+                        return reduce;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // 这里的异常只应该是网络发送异常。
+                    logger.Error(ex, "ReduceWaitLater Exception {0}", gkey);
+                }
+                SetError();
+                return null;
             }
         }
     }

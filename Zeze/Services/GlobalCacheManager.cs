@@ -19,38 +19,39 @@ namespace Zeze.Services
         public const int StateModify = 2;
         public const int StateRemoving = 3;
 
-        public const int StateRemoved = -1; // 从容器(Cache或Global)中删除后设置的状态，最后一个状态。
-        public const int StateReduceRpcTimeout = -2; // 用来表示 reduce 超时失败。不是状态。
-        public const int StateReduceException = -3; // 用来表示 reduce 异常失败。不是状态。
-        public const int StateReduceNetError = -4;  // 用来表示 reduce 网络失败。不是状态。
-        public const int StateReduceDuplicate = -5; // 用来表示重复的 reduce。错误报告，不是状态。
+        public const int StateRemoved = 10; // 从容器(Cache或Global)中删除后设置的状态，最后一个状态。
+        public const int StateReduceRpcTimeout = 11; // 用来表示 reduce 超时失败。不是状态。
+        public const int StateReduceException = 12; // 用来表示 reduce 异常失败。不是状态。
+        public const int StateReduceNetError = 13;  // 用来表示 reduce 网络失败。不是状态。
+        public const int StateReduceDuplicate = 14; // 用来表示重复的 reduce。错误报告，不是状态。
+        public const int StateReduceSessionNotFound = 15;
 
-        public const int AcquireShareDeadLockFound = 1;
-        public const int AcquireShareAlreadyIsModify = 2;
-        public const int AcquireModifyDeadLockFound = 3;
-        public const int AcquireErrorState = 4;
-        public const int AcquireModifyAlreadyIsModify = 5;
-        public const int AcquireShareFailed = 6;
-        public const int AcquireModifyFailed = 7;
-        public const int AcquireException = 8;
-        public const int AcquireInvalidFailed = 9;
+        public const int AcquireShareDeadLockFound = 21;
+        public const int AcquireShareAlreadyIsModify = 22;
+        public const int AcquireModifyDeadLockFound = 23;
+        public const int AcquireErrorState = 24;
+        public const int AcquireModifyAlreadyIsModify = 25;
+        public const int AcquireShareFailed = 26;
+        public const int AcquireModifyFailed = 27;
+        public const int AcquireException = 28;
+        public const int AcquireInvalidFailed = 29;
+        public const int AcquireNotLogin = 30;
+        public const int AcquireNotLeader = 31;
 
-        public const int ReduceErrorState = 11;
-        public const int ReduceShareAlreadyIsInvalid = 12;
-        public const int ReduceShareAlreadyIsShare = 13;
-        public const int ReduceInvalidAlreadyIsInvalid = 14;
+        public const int ReduceErrorState = 41;
+        public const int ReduceShareAlreadyIsInvalid = 42;
+        public const int ReduceShareAlreadyIsShare = 43;
+        public const int ReduceInvalidAlreadyIsInvalid = 44;
 
-        public const int AcquireNotLogin = 20;
+        public const int CleanupErrorSecureKey = 60;
+        public const int CleanupErrorGlobalCacheManagerHashIndex = 61;
+        public const int CleanupErrorHasConnection = 62;
 
-        public const int CleanupErrorSecureKey = 30;
-        public const int CleanupErrorGlobalCacheManagerHashIndex = 31;
-        public const int CleanupErrorHasConnection = 32;
+        public const int ReLoginBindSocketFail = 80;
 
-        public const int ReLoginBindSocketFail = 40;
+        public const int NormalCloseUnbindFail = 100;
 
-        public const int NormalCloseUnbindFail = 50;
-
-        public const int LoginBindSocketFail = 60;
+        public const int LoginBindSocketFail = 120;
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public static GlobalCacheManagerServer Instance { get; } = new GlobalCacheManagerServer();

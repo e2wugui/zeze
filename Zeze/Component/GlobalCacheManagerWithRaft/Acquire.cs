@@ -2,7 +2,7 @@
 
 namespace Zeze.Component.GlobalCacheManagerWithRaft
 {
-    public sealed class Acquire : Zeze.Raft.RaftRpc<Zeze.Component.GlobalCacheManagerWithRaft.AcquireParam, Zeze.Component.GlobalCacheManagerWithRaft.AcquireParam>
+    public sealed class Acquire : Zeze.Raft.RaftRpc<Zeze.Component.GlobalCacheManagerWithRaft.AcquireParam, Zeze.Component.GlobalCacheManagerWithRaft.ReduceParam>
     {
         public const int ModuleId_ = 11001;
         public const int ProtocolId_ = 1017741014;
