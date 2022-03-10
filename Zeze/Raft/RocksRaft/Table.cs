@@ -57,7 +57,7 @@ namespace Zeze.Raft.RocksRaft
 
         public override Table OpenTable(int templateId)
         {
-            return Rocks.Tables.GetOrAdd($"{Name}#{templateId}", (key) => new Table<K, V>(Rocks, key, templateId));
+            return Rocks.Tables.GetOrAdd($"{Name}#{templateId}", (key) => new Table<K, V>(Rocks, Name, templateId));
         }
 
         public Table<K, V> OpenTableWithType(int templateId)
