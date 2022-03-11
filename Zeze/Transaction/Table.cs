@@ -497,6 +497,7 @@ namespace Zeze.Transaction
         }
 
         /// <summary>
+        /// 事务外调用
         /// 遍历表格。能看到记录的最新数据。
         /// 【注意】这里看不到新增的但没有提交(checkpoint)的记录。实现这个有点麻烦。
         /// 【并发】每个记录回调时加读锁，回调完成马上释放。
@@ -505,6 +506,10 @@ namespace Zeze.Transaction
         /// <returns></returns>
         public long Walk(Func<K, V, bool> callback)
         {
+            if (Transaction.Current != null)
+            {
+                throw new Exception("must be called without transaction");
+            }
             return TStorage.DatabaseTable.Walk(
                 (key, value) =>
                 {
