@@ -13,6 +13,39 @@ namespace Zeze.Services
             Zeze = zeze;
         }
 
+        public class ReduceBridge : GlobalCacheManager.Reduce
+        {
+            public Reduce Real { get; }
+
+            public ReduceBridge(Reduce real)
+            {
+                Real = real;
+                Argument.GlobalTableKey = new GlobalCacheManager.GlobalTableKey(
+                    real.Argument.GlobalTableKey.TableName,
+                    real.Argument.GlobalTableKey.Key.ToBytes());
+                Argument.State = real.Argument.State;
+                Argument.GlobalSerialId = real.Argument.GlobalSerialId;
+            }
+
+            public override void SendResult(Zeze.Net.Binary result = null)
+            {
+                Real.Result.GlobalTableKey = Real.Argument.GlobalTableKey; // no change
+                Real.Result.GlobalSerialId = Result.GlobalSerialId;
+                Real.Result.State = Result.State;
+
+                Real.SendResult(result);
+            }
+
+            public override void SendResultCode(long code, Zeze.Net.Binary result = null)
+            {
+                Real.Result.GlobalTableKey = Real.Argument.GlobalTableKey; // no change
+                Real.Result.GlobalSerialId = Result.GlobalSerialId;
+                Real.Result.State = Result.State;
+
+                Real.SendResultCode(code, result);
+            }
+        }
+
         protected override long ProcessReduceRequest(Zeze.Net.Protocol _p)
         {
             var rpc = _p as Zeze.Beans.GlobalCacheManagerWithRaft.Reduce;
@@ -30,7 +63,7 @@ namespace Zeze.Services
                             rpc.SendResultCode(0);
                             return 0;
                         }
-                        return 0; // return table.ReduceInvalid(rpc);
+                        return table.ReduceInvalid(new ReduceBridge(rpc));
                     }
 
                 case GlobalCacheManagerServer.StateShare:
@@ -45,7 +78,7 @@ namespace Zeze.Services
                             rpc.SendResultCode(0);
                             return 0;
                         }
-                        return 0; // return table.ReduceShare(rpc);
+                        return table.ReduceShare(new ReduceBridge(rpc));
                     }
 
                 default:

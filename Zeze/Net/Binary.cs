@@ -65,6 +65,12 @@ namespace Zeze.Net
             _s_.Decode(_bb_);
         }
 
+        public byte[] ToBytes()
+        {
+            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_Bytes, Offset, Count);
+            return _bb_.Copy();
+        }
+
         public override string ToString()
         {
             return System.BitConverter.ToString(_Bytes, Offset, Count);
