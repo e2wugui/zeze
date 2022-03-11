@@ -22,32 +22,32 @@ namespace Zeze.Services
             if (rpc.Sender.UserState == null)
             {
                 rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                rpc.SendResultCode(GlobalCacheManagerServer.AcquireNotLogin);
+                // 没有登录重做。登录是Agent自动流程的一部分，应该稍后重试。
+                rpc.SendResultCode(Zeze.Transaction.Procedure.RaftRetry);
                 return 0;
             }
 
-            var proc = Rocks.NewProcedure(() =>
-            {
-                switch (rpc.Argument.State)
+            var result = Rocks.NewProcedure(
+                () =>
                 {
-                    case GlobalCacheManagerServer.StateInvalid: // realease
-                        rpc.Result.State = Release(rpc.Sender.UserState as CacheHolder, rpc.Argument.GlobalTableKey, true);
-                        return 0;
+                    switch (rpc.Argument.State)
+                    {
+                        case GlobalCacheManagerServer.StateInvalid: // realease
+                            rpc.Result.State = Release(rpc.Sender.UserState as CacheHolder, rpc.Argument.GlobalTableKey, true);
+                            return 0;
 
-                    case GlobalCacheManagerServer.StateShare:
-                        return AcquireShare(rpc);
+                        case GlobalCacheManagerServer.StateShare:
+                            return AcquireShare(rpc);
 
-                    case GlobalCacheManagerServer.StateModify:
-                        return AcquireModify(rpc);
+                        case GlobalCacheManagerServer.StateModify:
+                            return AcquireModify(rpc);
 
-                    default:
-                        rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                        return GlobalCacheManagerServer.AcquireErrorState;
-                }
-            });
+                        default:
+                            rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+                            return GlobalCacheManagerServer.AcquireErrorState;
+                    }
+                }, rpc).Call();
 
-            proc.Rpc = rpc; // 设置这个让 RocksRaft.Procedure 成功结束的时候自动发送结果。
-            var result = proc.Call();
             if (0 != result)
                 rpc.SendResultCode(result); // 失败结果从这里发送。
 
@@ -702,11 +702,11 @@ namespace Zeze.Services
 
             public bool TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex)
             {
-                if (newSocket.UserState != null)
-                    return false; // 不允许再次绑定。Login Or ReLogin 只能发一次。
+                if (newSocket.UserState != null && newSocket.UserState != this)
+                    return false; // 允许重复login|relogin，但不允许切换ServerId。
 
                 var socket = GlobalInstance.Rocks.Raft.Server.GetSocket(SessionId);
-                if (null == socket)
+                if (null == socket || socket == newSocket)
                 {
                     // old socket not exist or has lost.
                     SessionId = newSocket.SessionId;

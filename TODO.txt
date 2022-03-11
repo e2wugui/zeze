@@ -33,12 +33,12 @@
 	}
 	Zezex.client: 可靠消息实现的错误检查。
 
-	GlobalRaft GlobalSerialId 问题解决初步想法：由RocksRaft提供AtomicLong实现，每个事务结束，
-	不管是否成功都会同步到其他节点。这个Global拿来区分记录申请次数，需要一直递增，可以跳着分配（浪费）。
-	细节：lock (Raft) { if (atomiclong.get() > lastAppendLog) doAppendLog; }
 	GlobalRaft Agent GetReadySocket() Login ReLogin	
 
 【2022/4/11】
+	GlobalRaft GlobalSerialId 问题解决初步想法：由RocksRaft提供AtomicLong实现，每个事务结束，
+	成功同步到其他节点。这个Global拿来区分记录申请次数，需要一直递增，可以跳着分配（浪费）。
+	细节：lock (Raft) { if (atomiclong.get() > lastAppendLog) doAppendLog; }
 
 【2022/3/11】
 	Global 流程确认：独占排他性，Raft版本部分操作仅Leader有效?

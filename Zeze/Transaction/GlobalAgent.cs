@@ -295,7 +295,7 @@ namespace Zeze.Transaction
         public override void OnHandshakeDone(AsyncSocket so)
         {
             var agent = so.UserState as GlobalAgent.Agent;
-            if (agent.LoginTimes.Get() > 1)
+            if (agent.LoginTimes.Get() > 0)
             {
                 var relogin = new ReLogin();
                 relogin.Argument.ServerId = Zeze.Config.ServerId;

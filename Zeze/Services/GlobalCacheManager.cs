@@ -1008,7 +1008,7 @@ namespace Zeze.Services.GlobalCacheManager
         }
     }
 
-    public sealed class Reduce : Rpc<Param2, Param2>
+    public class Reduce : Rpc<Param2, Param2>
     {
         public readonly static int ProtocolId_ = Bean.Hash32(typeof(Reduce).FullName);
 

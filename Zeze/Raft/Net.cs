@@ -336,6 +336,7 @@ namespace Zeze.Raft
         public long CreateTime { get; set; }
         public UniqueRequestId Unique { get; set; } = new UniqueRequestId();
         public long SendTime { get; set; }
+        public bool Urgent { get; set; } = false;
 
         public override bool Send(AsyncSocket socket)
         {
@@ -420,11 +421,14 @@ namespace Zeze.Raft
 
         public ConnectorEx Leader => _Leader;
         private volatile ConnectorEx _Leader;
+
         private ConcurrentDictionary<long, Protocol> Pending = new ConcurrentDictionary<long, Protocol>();
+        // 加急请求ReSend时优先发送，多个请求不保证顺序。这个应该仅用于Login之类的特殊协议，一般来说只有一个。
+        private ConcurrentDictionary<long, Protocol> UrgentPending = new ConcurrentDictionary<long, Protocol>();
 
         public Util.SimpleThreadPool InternalThreadPool { get; }
 
-        //public Action<Agent> OnLeaderChanged { get; set; }
+        public Action<Agent> OnSetLeader { get; set; }
 
         /// <summary>
         /// 发送Rpc请求。
@@ -436,7 +440,7 @@ namespace Zeze.Raft
         /// <returns></returns>
         public void Send<TArgument, TResult>(
             RaftRpc<TArgument, TResult> rpc,
-            Func<Protocol, long> handle)
+            Func<Protocol, long> handle, bool urgent = false)
             where TArgument : Bean, new()
             where TResult : Bean, new()
         {
@@ -454,8 +458,17 @@ namespace Zeze.Raft
             rpc.SendTime = rpc.CreateTime;
             rpc.Timeout = RaftConfig.AppendEntriesTimeout;
 
-            if (!Pending.TryAdd(rpc.Unique.RequestId, rpc))
-                throw new Exception("duplicate requestid rpc=" + rpc);
+            rpc.Urgent = urgent;
+            if (urgent)
+            {
+                if (!UrgentPending.TryAdd(rpc.Unique.RequestId, rpc))
+                    throw new Exception("duplicate requestid rpc=" + rpc);
+            }
+            else
+            {
+                if (!Pending.TryAdd(rpc.Unique.RequestId, rpc))
+                    throw new Exception("duplicate requestid rpc=" + rpc);
+            }
 
             rpc.ResponseHandle = (p) => SendHandle(p, handle, rpc);
             rpc.Send(_Leader?.TryGetReadySocket());
@@ -472,7 +485,7 @@ namespace Zeze.Raft
                 return 0;
             }
 
-            if (Pending.TryRemove(rpc.Unique.RequestId, out _))
+            if (Pending.TryRemove(rpc.Unique.RequestId, out _) || UrgentPending.TryRemove(rpc.Unique.RequestId, out _))
             {
                 rpc.IsRequest = net.IsRequest;
                 rpc.Result = net.Result;
@@ -516,7 +529,7 @@ namespace Zeze.Raft
                 return Procedure.Success;
             }
 
-            if (Pending.TryRemove(rpc.Unique.RequestId, out _))
+            if (Pending.TryRemove(rpc.Unique.RequestId, out _) || UrgentPending.TryRemove(rpc.Unique.RequestId, out _))
             {
                 rpc.IsRequest = net.IsRequest;
                 rpc.Result = net.Result;
@@ -536,7 +549,7 @@ namespace Zeze.Raft
 
         public TaskCompletionSource<RaftRpc<TArgument, TResult>>
             SendForWait<TArgument, TResult>(
-            RaftRpc<TArgument, TResult> rpc)
+            RaftRpc<TArgument, TResult> rpc, bool urgent = false)
             where TArgument : Bean, new()
             where TResult : Bean, new()
         {
@@ -552,8 +565,18 @@ namespace Zeze.Raft
             rpc.Timeout = RaftConfig.AppendEntriesTimeout;
 
             var future = new TaskCompletionSource<RaftRpc<TArgument, TResult>>();
-            if (!Pending.TryAdd(rpc.Unique.RequestId, rpc))
-                throw new Exception("duplicate requestid rpc=" + rpc);
+
+            rpc.Urgent = urgent;
+            if (urgent)
+            {
+                if (!UrgentPending.TryAdd(rpc.Unique.RequestId, rpc))
+                    throw new Exception("duplicate requestid rpc=" + rpc);
+            }
+            else
+            {
+                if (!Pending.TryAdd(rpc.Unique.RequestId, rpc))
+                    throw new Exception("duplicate requestid rpc=" + rpc);
+            }
 
             rpc.ResponseHandle = (p) => SendForWaitHandle(p, future, rpc);
             rpc.Send(_Leader?.TryGetReadySocket());
@@ -586,6 +609,7 @@ namespace Zeze.Raft
 
                 _Leader = null;
                 Pending.Clear();
+                UrgentPending.Clear();
             }
         }
 
@@ -706,6 +730,17 @@ namespace Zeze.Raft
             var leaderSocket = _Leader?.TryGetReadySocket();
             if (null != leaderSocket)
             {
+                foreach (var rpc in UrgentPending.Values)
+                {
+                    var iraft = rpc as IRaftRpc;
+                    if (immediately || now - iraft.SendTime > RaftConfig.AppendEntriesTimeout + 1000)
+                    {
+                        iraft.SendTime = now;
+                        if (false == rpc.Send(leaderSocket))
+                            logger.Warn("SendRequest failed {0}", rpc);
+                    }
+                }
+
                 foreach (var rpc in Pending.Values)
                 {
                     var iraft = rpc as IRaftRpc;
@@ -730,8 +765,10 @@ namespace Zeze.Raft
                 }
 
                 _Leader = newLeader; // change current Leader
+
                 Term = r.Argument.Term;
                 _Leader?.Start(); // try connect immediately
+                OnSetLeader?.Invoke(this);
                 return true;
             }
         }
