@@ -17,17 +17,17 @@ namespace Zeze.Raft.RocksRaft
         public ConcurrentDictionary<string, Table> Tables { get; } = new ConcurrentDictionary<string, Table>();
         public ConcurrentDictionary<int, AtomicLong> AtomicLongs { get; } = new();
 
-        public long IncrementAndGet(int index = 0)
+        public long AtomicLongIncrementAndGet(int index)
         { 
             return AtomicLongs.GetOrAdd(index, (_) => new AtomicLong()).IncrementAndGet();
         }
 
-        public long Get(int index = 0)
+        public long AtomicLongGet(int index)
         {
             return AtomicLongs.GetOrAdd(index, (_) => new AtomicLong()).Get();
         }
 
-        public void Set(long value, int index = 0)
+        public void AtomicLongSet(int index, long value)
         {
             AtomicLongs.GetOrAdd(index, (_) => new AtomicLong()).GetAndSet(value);
         }
@@ -321,7 +321,7 @@ namespace Zeze.Raft.RocksRaft
                 SerializeHelper<long>.Encode(key, a.Value);
                 batch.Put(key.Bytes, (ulong)key.Size, value.Bytes, (ulong)value.Size, AtomicLongsColumnFamily);
                 if (FollowerApply)
-                    Set(a.Value, a.Key);
+                    AtomicLongSet(a.Key, a.Value);
             }
             if (batch.Count() > 0)
                 Storage.Write(batch, WriteOptions);

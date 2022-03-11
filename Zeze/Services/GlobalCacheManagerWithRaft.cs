@@ -10,6 +10,8 @@ namespace Zeze.Services
 {
     public class GlobalCacheManagerWithRaft : AbstractGlobalCacheManagerWithRaft
     {
+        public const int GlobalSerialIdAtomicLongIndex = 0;
+
         protected override long ProcessAcquireRequest(Zeze.Net.Protocol _p)
         {
             var rpc = _p as Acquire;
@@ -110,7 +112,7 @@ namespace Zeze.Services
                         continue; // concurrent release.
 
                     cs.AcquireStatePending = GlobalCacheManagerServer.StateShare;
-                    cs.GlobalSerialId = SerialIdGenerator.IncrementAndGet();
+                    cs.GlobalSerialId = Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
                     var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(sender.ServerId);
                     if (cs.Modify != -1)
                     {
@@ -259,7 +261,7 @@ namespace Zeze.Services
                         continue; // concurrent release
 
                     cs.AcquireStatePending = GlobalCacheManagerServer.StateModify;
-                    cs.GlobalSerialId = SerialIdGenerator.IncrementAndGet();
+                    cs.GlobalSerialId = Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
                     var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(sender.ServerId);
                     if (cs.Modify != -1)
                     {
@@ -653,7 +655,6 @@ namespace Zeze.Services
         }
 
         private Rocks Rocks { get; }
-        private readonly Util.AtomicLong SerialIdGenerator = new Util.AtomicLong();
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         private readonly Locks Locks = new Locks();
 
