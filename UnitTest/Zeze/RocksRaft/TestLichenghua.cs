@@ -29,6 +29,8 @@ namespace UnitTest.Zeze.RocksRaft
                 var table = leader.GetTableTemplate("tRocks").OpenTable<int, Value>(0);
                 var value = table.GetOrAdd(1);
                 value.Int = 1;
+                leader.IncrementAndGet();
+                leader.IncrementAndGet();
                 return 0;
             }).Call());
 
@@ -37,6 +39,7 @@ namespace UnitTest.Zeze.RocksRaft
                 var table = leader.GetTableTemplate("tRocks").OpenTable<int, Value>(0);
                 var value = table.GetOrAdd(1);
                 Assert.AreEqual(1, value.Int);
+                Assert.AreEqual(2, leader.Get());
                 return 0;
             }).Call());
 
@@ -48,6 +51,7 @@ namespace UnitTest.Zeze.RocksRaft
                 var table = leader.GetTableTemplate("tRocks").OpenTable<int, Value>(0);
                 var value = table.GetOrAdd(1);
                 Assert.AreEqual(1, value.Int);
+                Assert.AreEqual(2, leader.Get());
                 return 0;
             }).Call());
         }

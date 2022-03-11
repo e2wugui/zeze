@@ -175,7 +175,6 @@ namespace Zeze.Raft.RocksRaft
 
 		public override void Decode(ByteBuffer bb)
 		{
-			Records.Clear();
 			for (int i = bb.ReadUInt(); i > 0; i--)
 			{
 				var tkey = new TableKey();
@@ -191,6 +190,13 @@ namespace Zeze.Raft.RocksRaft
 				r.Decode(bb);
 
 				Records.Add(tkey, r);
+			}
+
+			for (int i = bb.ReadUInt(); i > 0; --i)
+			{
+				var index = bb.ReadUInt();
+				var value = bb.ReadLong();
+				AtomicLongs.Add(index, value);
 			}
 		}
 
@@ -211,6 +217,12 @@ namespace Zeze.Raft.RocksRaft
 				// encode record
 				r.Value.Encode(bb);
 			}
+			bb.WriteUInt(AtomicLongs.Count);
+			foreach (var a in AtomicLongs)
+            {
+				bb.WriteUInt(a.Key);
+				bb.WriteLong(a.Value);
+            }
 		}
 
         public override string ToString()

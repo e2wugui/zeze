@@ -22,6 +22,16 @@ namespace Zeze.Raft.RocksRaft
             return AtomicLongs.GetOrAdd(index, (_) => new AtomicLong()).IncrementAndGet();
         }
 
+        public long Get(int index = 0)
+        {
+            return AtomicLongs.GetOrAdd(index, (_) => new AtomicLong()).Get();
+        }
+
+        public void Set(long value, int index = 0)
+        {
+            AtomicLongs.GetOrAdd(index, (_) => new AtomicLong()).GetAndSet(value);
+        }
+
         private Dictionary<int, long> LastUpdated = new Dictionary<int, long>();
         internal void UpdateAtomicLongs(Dictionary<int, long> to)
         {
@@ -67,7 +77,7 @@ namespace Zeze.Raft.RocksRaft
             {
                 rs.Add(e.Value.Table.FollowerApply(e.Key.Key, e.Value));
             }
-            Flush(rs, changes);
+            Flush(rs, changes, true);
         }
 
         public string DbHome => Raft.RaftConfig.DbHome;
@@ -296,7 +306,7 @@ namespace Zeze.Raft.RocksRaft
 
         private ColumnFamilyHandle AtomicLongsColumnFamily;
 
-        internal void Flush(IEnumerable<Record> rs, Changes changes)
+        internal void Flush(IEnumerable<Record> rs, Changes changes, bool FollowerApply = false)
         {
             using WriteBatch batch = new WriteBatch();
             foreach (var r in rs)
@@ -310,6 +320,8 @@ namespace Zeze.Raft.RocksRaft
                 SerializeHelper<int>.Encode(key, a.Key);
                 SerializeHelper<long>.Encode(key, a.Value);
                 batch.Put(key.Bytes, (ulong)key.Size, value.Bytes, (ulong)value.Size, AtomicLongsColumnFamily);
+                if (FollowerApply)
+                    Set(a.Value, a.Key);
             }
             if (batch.Count() > 0)
                 Storage.Write(batch, WriteOptions);
