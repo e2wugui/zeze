@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.IO;
-using Zeze.Serialize;
 using Zeze.Util;
 using RocksDbSharp;
 using System.IO.Compression;
 using System.Collections.Generic;
-using System.Linq;
+using Zeze.Serialize;
 
 namespace Zeze.Raft.RocksRaft
 {
@@ -16,6 +15,32 @@ namespace Zeze.Raft.RocksRaft
 
         public ConcurrentDictionary<string, TableTemplate> TableTemplates { get; } = new ConcurrentDictionary<string, TableTemplate>();  
         public ConcurrentDictionary<string, Table> Tables { get; } = new ConcurrentDictionary<string, Table>();
+        public ConcurrentDictionary<int, AtomicLong> AtomicLongs { get; } = new();
+
+        public long IncrementAndGet(int index = 0)
+        { 
+            return AtomicLongs.GetOrAdd(index, (_) => new AtomicLong()).IncrementAndGet();
+        }
+
+        private Dictionary<int, long> LastUpdated = new Dictionary<int, long>();
+        internal void UpdateAtomicLongs(Dictionary<int, long> to)
+        {
+            lock (Raft)
+            {
+                foreach (var a in AtomicLongs)
+                {
+                    if (false == LastUpdated.TryGetValue(a.Key, out var last))
+                        last = 0;
+
+                    long newest = a.Value.Get();
+                    if (newest > last)
+                    {
+                        LastUpdated[a.Key] = newest;
+                        to.Add(a.Key, newest);
+                    }
+                }
+            }
+        }
 
         public Procedure NewProcedure(Func<long> func)
         {
@@ -42,7 +67,7 @@ namespace Zeze.Raft.RocksRaft
             {
                 rs.Add(e.Value.Table.FollowerApply(e.Key.Key, e.Value));
             }
-            Flush(rs);
+            Flush(rs, changes);
         }
 
         public string DbHome => Raft.RaftConfig.DbHome;
@@ -99,6 +124,8 @@ namespace Zeze.Raft.RocksRaft
             {
                 Columns[col.Name] = Storage.GetColumnFamily(col.Name);
             }
+
+            AtomicLongsColumnFamily = OpenFamily("Zeze.Raft.RocksRaft.AtomicLongs");
 
             foreach (var table in Tables.Values)
             {
@@ -267,12 +294,22 @@ namespace Zeze.Raft.RocksRaft
             Restore(backupdir);
         }
 
-        internal void Flush(IEnumerable<Record> rs)
+        private ColumnFamilyHandle AtomicLongsColumnFamily;
+
+        internal void Flush(IEnumerable<Record> rs, Changes changes)
         {
             using WriteBatch batch = new WriteBatch();
             foreach (var r in rs)
             {
                 r.Flush(batch);
+            }
+            foreach (var a in changes.AtomicLongs)
+            {
+                var key = ByteBuffer.Allocate();
+                var value = ByteBuffer.Allocate();
+                SerializeHelper<int>.Encode(key, a.Key);
+                SerializeHelper<long>.Encode(key, a.Value);
+                batch.Put(key.Bytes, (ulong)key.Size, value.Bytes, (ulong)value.Size, AtomicLongsColumnFamily);
             }
             if (batch.Count() > 0)
                 Storage.Write(batch, WriteOptions);

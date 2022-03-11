@@ -304,13 +304,16 @@ namespace Zeze.Raft.RocksRaft
             }
 
             if (Changes.Records.Count > 0) // has changes
+            {
+                procedure.Rocks.UpdateAtomicLongs(Changes.AtomicLongs);
                 procedure.Rocks.Raft.AppendLog(Changes, procedure.Rpc?.ResultBean);
+            }
 
             _trigger_commit_actions_(procedure);
             procedure.Rpc?.SendResultCode(procedure.Rpc.ResultCode);
         }
 
-        internal void LeaderApply(Rocks rocks)
+        internal void LeaderApply(Changes changes)
         {
             Savepoint sp = Savepoints[Savepoints.Count - 1];
             foreach (Log log in sp.Logs.Values)
@@ -326,7 +329,7 @@ namespace Zeze.Raft.RocksRaft
                     rs.Add(ar.Origin);
                 }
             }
-            rocks.Flush(rs);
+            changes.Rocks.Flush(rs, changes);
         }
 
         private void _final_rollback_(Procedure procedure)

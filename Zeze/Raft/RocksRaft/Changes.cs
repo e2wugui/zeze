@@ -14,6 +14,7 @@ namespace Zeze.Raft.RocksRaft
 		public Dictionary<long, LogBean> Beans { get; } = new Dictionary<long, LogBean>();
 		public Rocks Rocks { get; }
 		public Transaction Transaction { get; }
+		public Dictionary<int, long> AtomicLongs { get; } = new Dictionary<int, long>();
 
 		public Changes(Rocks r, Transaction t, Zeze.Net.Protocol req)
 			: base((IRaftRpc)req)
@@ -224,7 +225,7 @@ namespace Zeze.Raft.RocksRaft
 			if (holder.LeaderFuture != null)
 			{
 				Rocks.logger.Debug($"{Rocks.Raft.Name} LeaderApply");
-				Transaction.LeaderApply(Rocks);
+				Transaction.LeaderApply(this);
 			}
             else
             {
