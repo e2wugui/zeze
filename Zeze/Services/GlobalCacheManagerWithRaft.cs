@@ -126,12 +126,13 @@ namespace Zeze.Services
                             return GlobalCacheManagerServer.AcquireShareAlreadyIsModify;
                         }
 
-                        Reduce reduceRpc = null;
-                        Zeze.Util.Task.Run(
-                            () =>
+                        int reduceResultState = GlobalCacheManagerServer.StateReduceNetError; // 默认网络错误。
+                        if (CacheHolder.Reduce(Sessions, cs.Modify,
+                            rpc.Argument.GlobalTableKey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId,
+                            (p) =>
                             {
-                                reduceRpc = null;// cs.Modify.Reduce(rpc.Argument.GlobalTableKey, GlobalCacheManagerServer.StateShare, cs.GlobalSerialId);
-
+                                var r = p as Reduce;
+                                reduceResultState = r.IsTimeout ? GlobalCacheManagerServer.StateReduceRpcTimeout : r.Result.State;
                                 lockey.Enter();
                                 try
                                 {
@@ -141,13 +142,15 @@ namespace Zeze.Services
                                 {
                                     lockey.Exit();
                                 }
-                            },
-                            "GlobalCacheManager.AcquireShare.Reduce");
-                        logger.Debug("5 {0} {1} {2}", sender, rpc.Argument.State, cs);
-                        lockey.Wait();
+                                return 0;
+                            }))
+                        {
+                            logger.Debug("5 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                            lockey.Wait();
+                        }
 
                         var ModifyAcquired = ServerAcquiredTemplate.OpenTableWithType(cs.Modify);
-                        switch (reduceRpc.Result.State)
+                        switch (reduceResultState)
                         {
                             case GlobalCacheManagerServer.StateShare:
                                 ModifyAcquired.Put(rpc.Argument.GlobalTableKey, new AcquiredState() { State = GlobalCacheManagerServer.StateShare });
@@ -272,11 +275,13 @@ namespace Zeze.Services
                             return GlobalCacheManagerServer.AcquireModifyAlreadyIsModify;
                         }
 
-                        Reduce reduceRpc = null;
-                        Zeze.Util.Task.Run(
-                            () =>
+                        int reduceResultState = GlobalCacheManagerServer.StateReduceNetError; // 默认网络错误。
+                        if (CacheHolder.Reduce(Sessions, cs.Modify,
+                            rpc.Argument.GlobalTableKey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId,
+                            (p) =>
                             {
-                                reduceRpc = CacheHolder.Reduce(Sessions, cs.Modify, rpc.Argument.GlobalTableKey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId);
+                                var r = p as Reduce;
+                                reduceResultState = r.IsTimeout ? GlobalCacheManagerServer.StateReduceRpcTimeout : r.Result.State;
                                 lockey.Enter();
                                 try
                                 {
@@ -286,13 +291,15 @@ namespace Zeze.Services
                                 {
                                     lockey.Exit();
                                 }
-                            },
-                            "GlobalCacheManager.AcquireModify.Reduce");
-                        logger.Debug("5 {0} {1} {2}", sender, rpc.Argument.State, cs);
-                        lockey.Wait();
+                                return 0;
+                            }))
+                        {
+                            logger.Debug("5 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                            lockey.Wait();
+                        }
 
                         var ModifyAcquired = ServerAcquiredTemplate.OpenTableWithType(cs.Modify);
-                        switch (reduceRpc.Result.State)
+                        switch (reduceResultState)
                         {
                             case GlobalCacheManagerServer.StateInvalid:
                                 ModifyAcquired.Remove(rpc.Argument.GlobalTableKey);
@@ -725,19 +732,13 @@ namespace Zeze.Services
                 return true;
             }
 
-            public static Reduce Reduce(ConcurrentDictionary<int, CacheHolder> sessions, int serverId,
-                GlobalTableKey gkey, int state, long globalSerialId)
+            public static bool Reduce(ConcurrentDictionary<int, CacheHolder> sessions, int serverId,
+                GlobalTableKey gkey, int state, long globalSerialId, Func<Protocol, long> response)
             { 
                 if (sessions.TryGetValue(serverId, out var session))
-                    return session.Reduce(gkey, state, globalSerialId);
+                    return session.Reduce(gkey, state, globalSerialId, response);
 
-                var reduce = new Reduce();
-                reduce.Argument.GlobalTableKey = gkey;
-                reduce.Argument.State = state;
-                reduce.Argument.GlobalSerialId = globalSerialId;
-                reduce.Result.State = GlobalCacheManagerServer.StateReduceSessionNotFound;
-
-                return reduce;
+                return false;
             }
 
             public static Reduce ReduceWaitLater(ConcurrentDictionary<int, CacheHolder> sessions,
@@ -750,33 +751,33 @@ namespace Zeze.Services
                 return null;
             }
 
-            public Reduce Reduce(GlobalTableKey gkey, int state, long globalSerialId)
+            public bool Reduce(GlobalTableKey gkey, int state, long globalSerialId, Func<Protocol, long> response)
             {
-                Reduce reduce = ReduceWaitLater(gkey, state, globalSerialId);
                 try
                 {
-                    if (null != reduce)
+                    lock (this)
                     {
-                        reduce.Future.Task.Wait();
-                        // 如果rpc返回错误的值，外面能处理。
-                        return reduce;
+                        if (Util.Time.NowUnixMillis - LastErrorTime < ForbidPeriod)
+                            return false;
                     }
-                    reduce.Result.State = GlobalCacheManagerServer.StateReduceNetError;
-                    return reduce;
-                }
-                catch (RpcTimeoutException timeoutex)
-                {
-                    // 等待超时，应该报告错误。
-                    logger.Error(timeoutex, "Reduce RpcTimeoutException {0} target={1} '{2}'", state, SessionId, gkey);
-                    reduce.Result.State = GlobalCacheManagerServer.StateReduceRpcTimeout;
-                    return reduce;
+                    AsyncSocket peer = GlobalCacheManagerServer.Instance.Server.GetSocket(SessionId);
+                    if (null != peer)
+                    {
+                        var reduce = new Reduce();
+                        reduce.Argument.GlobalTableKey = gkey;
+                        reduce.Argument.State = state;
+                        reduce.Argument.GlobalSerialId = globalSerialId;
+                        if (reduce.Send(peer, response, 10000))
+                            return true;
+                    }
                 }
                 catch (Exception ex)
                 {
-                    logger.Error(ex, "Reduce Exception {0} target={1} '{2}'", state, SessionId, gkey);
-                    reduce.Result.State = GlobalCacheManagerServer.StateReduceException;
-                    return reduce;
+                    // 这里的异常只应该是网络发送异常。
+                    logger.Error(ex, "ReduceWaitLater Exception {0}", gkey);
                 }
+                SetError();
+                return false;
             }
 
             public const long ForbidPeriod = 10 * 1000; // 10 seconds

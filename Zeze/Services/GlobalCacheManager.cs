@@ -36,7 +36,6 @@ namespace Zeze.Services
         public const int AcquireException = 28;
         public const int AcquireInvalidFailed = 29;
         public const int AcquireNotLogin = 30;
-        public const int AcquireNotLeader = 31;
 
         public const int ReduceErrorState = 41;
         public const int ReduceShareAlreadyIsInvalid = 42;
@@ -474,22 +473,24 @@ namespace Zeze.Services
                             return 0;
                         }
 
-                        Reduce reduceRpc = null;
-                        Zeze.Util.Task.Run(
-                            () =>
+                        int reduceResultState = StateReduceNetError; // 默认网络错误。
+                        if (cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid, cs.GlobalSerialId,
+                            (p) =>
                             {
-                                reduceRpc = cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateShare, cs.GlobalSerialId);
-
+                                var r = p as Reduce;
+                                reduceResultState = r.IsTimeout ? StateReduceRpcTimeout : r.Result.State;
                                 lock (cs)
                                 {
                                     Monitor.PulseAll(cs);
                                 }
-                            },
-                            "GlobalCacheManager.AcquireShare.Reduce");
-                        logger.Debug("5 {0} {1} {2}", sender, rpc.Argument.State, cs);
-                        Monitor.Wait(cs);
+                                return 0;
+                            }))
+                        {
+                            logger.Debug("5 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                            Monitor.Wait(cs);
+                        }
 
-                        switch (reduceRpc.Result.State)
+                        switch (reduceResultState)
                         {
                             case StateShare:
                                 cs.Modify.Acquired[rpc.Argument.GlobalTableKey] = StateShare;
@@ -613,21 +614,24 @@ namespace Zeze.Services
                             return 0;
                         }
 
-                        Reduce reduceRpc = null;
-                        Zeze.Util.Task.Run(
-                            () =>
+                        int reduceResultState = StateReduceNetError; // 默认网络错误。
+                        if (cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid, cs.GlobalSerialId,
+                            (p) =>
                             {
-                                reduceRpc = cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid, cs.GlobalSerialId);
+                                var r = p as Reduce;
+                                reduceResultState = r.IsTimeout ? StateReduceRpcTimeout : r.Result.State;
                                 lock (cs)
                                 {
                                     Monitor.PulseAll(cs);
                                 }
-                            },
-                            "GlobalCacheManager.AcquireModify.Reduce");
-                        logger.Debug("5 {0} {1} {2}", sender, rpc.Argument.State, cs);
-                        Monitor.Wait(cs);
+                                return 0;
+                            }))
+                        {
+                            logger.Debug("5 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                            Monitor.Wait(cs);
+                        }
 
-                        switch (reduceRpc.Result.State)
+                        switch (reduceResultState)
                         {
                             case StateInvalid:
                                 cs.Modify.Acquired.TryRemove(rpc.Argument.GlobalTableKey, out _);
@@ -667,6 +671,7 @@ namespace Zeze.Services
                     {
                         if (c == sender)
                         {
+                            // 申请者不需要降级，直接加入成功。
                             senderIsShare = true;
                             reduceSucceed.Add(sender);
                             continue;
@@ -844,33 +849,30 @@ namespace Zeze.Services
                 return "" + SessionId;
             }
 
-            public Reduce Reduce(GlobalTableKey gkey, int state, long globalSerialId)
+            public bool Reduce(GlobalTableKey gkey, int state, long globalSerialId, Func<Protocol, long> response)
             {
-                Reduce reduce = ReduceWaitLater(gkey, state, globalSerialId);
                 try
                 {
-                    if (null != reduce)
+                    lock (this)
                     {
-                        reduce.Future.Task.Wait();
-                        // 如果rpc返回错误的值，外面能处理。
-                        return reduce;
+                        if (global::Zeze.Util.Time.NowUnixMillis - LastErrorTime < ForbidPeriod)
+                            return false;
                     }
-                    reduce.Result.State = StateReduceNetError;
-                    return reduce;
-                }
-                catch (RpcTimeoutException timeoutex)
-                {
-                    // 等待超时，应该报告错误。
-                    logger.Error(timeoutex, "Reduce RpcTimeoutException {0} target={1} '{2}'", state, SessionId, gkey);
-                    reduce.Result.State = StateReduceRpcTimeout;
-                    return reduce;
+                    AsyncSocket peer = GlobalCacheManagerServer.Instance.Server.GetSocket(SessionId);
+                    if (null != peer)
+                    {
+                        Reduce reduce = new(gkey, state, globalSerialId);
+                        if (reduce.Send(peer, response, 10000))
+                            return true;
+                    }
                 }
                 catch (Exception ex)
                 {
-                    logger.Error(ex, "Reduce Exception {0} target={1} '{2}'", state, SessionId, gkey);
-                    reduce.Result.State = StateReduceException;
-                    return reduce;
+                    // 这里的异常只应该是网络发送异常。
+                    logger.Error(ex, "ReduceWaitLater Exception {0}", gkey);
                 }
+                SetError();
+                return false;
             }
 
             public const long ForbidPeriod = 10 * 1000; // 10 seconds
@@ -885,6 +887,7 @@ namespace Zeze.Services
                         LastErrorTime = now;
                 }
             }
+
             /// <summary>
             /// 返回null表示发生了网络错误，或者应用服务器已经关闭。
             /// </summary>
