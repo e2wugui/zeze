@@ -8,9 +8,44 @@ namespace Zeze.Services
         static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public Application Zeze { get; }
 
-        public GlobalCacheManagerWithRaftAgent(Application zeze, Zeze.Raft.RaftConfig raftconf = null)
+        public GlobalCacheManagerWithRaftAgent(Application zeze)
         {
             Zeze = zeze;
+        }
+
+        public void Start(string[] hosts)
+        {
+            lock (this)
+            {
+                if (null != Agents)
+                    return;
+
+                Agents = new RaftAgent[hosts.Length];
+                for (int i = 0; i < hosts.Length; ++i)
+                {
+                    var raftconf = Raft.RaftConfig.Load(hosts[i]);
+                    Agents[i] = new RaftAgent(this, Zeze, i, raftconf);
+                }
+
+                foreach (var agent in Agents)
+                {
+                    agent.RaftClient.Client.Start();
+                }
+            }
+        }
+
+        public void Stop()
+        {
+            lock (this)
+            {
+                if (null == Agents)
+                    return;
+
+                foreach (var agent in Agents)
+                {
+                    agent.Close();
+                }
+            }
         }
 
         public class ReduceBridge : GlobalCacheManager.Reduce
@@ -119,20 +154,6 @@ namespace Zeze.Services
             return result;
         }
 
-        public void Stop()
-        {
-            lock (this)
-            {
-                if (null == Agents)
-                    return;
-
-                foreach (var agent in Agents)
-                {
-                    agent.Close();
-                }
-            }
-        }
-
         // 1. 【Login|ReLogin|NormalClose】会被Raft.Agent重发处理，这要求GlobalRaft能处理重复请求。
         // 2. 【Login|NormalClose】有多个事务处理，这跟rpc.UniqueRequestId唯一性有矛盾。【可行方法：去掉唯一判断，让流程正确处理重复请求。】
         // 3. 【ReLogin】没有数据修改，完全允许重复，并且不判断唯一性。
@@ -153,7 +174,6 @@ namespace Zeze.Services
                 GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
                 RaftClient = new Raft.Agent("Zeze.GlobalRaft.Agent", zeze, raftconf) { OnSetLeader = RaftOnSetLeader };
                 GlobalCacheManagerWithRaftAgent.RegisterProtocols(RaftClient.Client);
-                RaftClient.Client.Start();
             }
 
             public void Close()

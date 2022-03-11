@@ -19,6 +19,7 @@ namespace Zeze
         public bool IsStart { get; private set; }
         public Agent ServiceManagerAgent { get; private set; }
         internal GlobalAgent GlobalAgent { get; }
+        internal Services.GlobalCacheManagerWithRaftAgent GlobalAgentRaft { get; }
 
         // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
         internal Util.SimpleThreadPool InternalThreadPool;
@@ -171,6 +172,7 @@ namespace Zeze
 
             Config.CreateDatabase(this, Databases);
             GlobalAgent = new GlobalAgent(this);
+            GlobalAgentRaft = new Services.GlobalCacheManagerWithRaftAgent(this);
             _checkpoint = new Checkpoint(Config.CheckpointMode, Databases.Values);
             ServiceManagerAgent = new Agent(this);
         }
@@ -254,9 +256,18 @@ namespace Zeze
                     db.Open(this);
                 }
 
-                if (Config.GlobalCacheManagerHostNameOrAddress.Length > 0)
+                var hosts = Config.GlobalCacheManagerHostNameOrAddress.Split(';');
+                if (hosts.Length > 0)
                 {
-                    GlobalAgent.Start(Config.GlobalCacheManagerHostNameOrAddress, Config.GlobalCacheManagerPort);
+                    var israft = hosts[0].EndsWith(".xml");
+                    if (false == israft)
+                    {
+                        GlobalAgent.Start(hosts, Config.GlobalCacheManagerPort);
+                    }
+                    else
+                    {
+                        GlobalAgentRaft.Start(hosts);
+                    }
                 }
 
                 Checkpoint.Start(Config.CheckpointPeriod); // 定时模式可以和其他模式混用。

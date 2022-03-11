@@ -25,7 +25,7 @@ namespace Zeze
             RocksDb,
         }
 
-		public string Name { get; private set; } = "";
+        public string Name { get; private set; } = "";
         public int WorkerThreads { get; set; }
         public int CompletionPortThreads { get; set; }
         public int CheckpointPeriod { get; set; } = 60000; // 60 seconds
@@ -36,6 +36,10 @@ namespace Zeze
         public int InternalThreadPoolWorkerCount { get; set; }
         public int ServerId { get; set; }
         public string GlobalCacheManagerHostNameOrAddress { get; set; }
+        // 分成多行配置，支持多HostNameOrAddress或者多raft.xml。
+        // 多行的时候，所有服务器的顺序必须保持一致。
+        // 为了保持原来接口不变，多行会被编码成一个string保存到GlobalCacheManagerHostNameOrAddress中。
+        public GlobalCacheManagersConf GlobalCacheManagers { get; private set; }
         public int GlobalCacheManagerPort { get; private set; }
         public ConcurrentDictionary<string, TableConf> TableConfMap { get; }
             = new ConcurrentDictionary<string, TableConf>();
@@ -234,6 +238,10 @@ namespace Zeze
                 XmlElement e = (XmlElement)node;
                 switch (e.Name)
                 {
+                    case "GlobalCacheManagersConf":
+                        new GlobalCacheManagersConf(this, e);
+                        break;
+
                     case "TableConf":
                         new TableConf(this, e);
                         break;
@@ -256,6 +264,54 @@ namespace Zeze
                     default:
                         throw new Exception("unknown node name: " + e.Name);
                 }
+            }
+            if (GlobalCacheManagerHostNameOrAddress.Equals("GlobalCacheManagersConf"))
+            {
+                GlobalCacheManagerHostNameOrAddress = GlobalCacheManagers.ToString();
+            }
+        }
+
+        public sealed class GlobalCacheManagersConf
+        {
+            public List<string> Hosts { get; } = new List<string>();
+
+            public GlobalCacheManagersConf(Config conf, XmlElement self)
+            {
+                XmlNodeList childNodes = self.ChildNodes;
+                foreach (XmlNode node in childNodes)
+                {
+                    if (XmlNodeType.Element != node.NodeType)
+                        continue;
+
+                    XmlElement e = (XmlElement)node;
+                    switch (e.Name)
+                    {
+                        case "host":
+                            var attr = e.GetAttribute("name").Trim();
+                            Hosts.Add(attr);
+                            break;
+                        default:
+                            throw new Exception("unknown node name: " + e.Name);
+                    }
+                }
+                if (null != conf.GlobalCacheManagers)
+                    throw new Exception("too many GlobalCacheManagersConf.");
+                conf.GlobalCacheManagers = this;
+            }
+
+            public override string ToString()
+            {
+                var sb = new StringBuilder();
+                bool first = true;
+                foreach (var host in Hosts)
+                {
+                    if (first)
+                        first = false;
+                    else
+                        sb.Append(";");
+                    sb.Append(host);
+                }
+                return sb.ToString();
             }
         }
 

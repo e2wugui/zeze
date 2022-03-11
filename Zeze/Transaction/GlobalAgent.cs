@@ -204,7 +204,7 @@ namespace Zeze.Transaction
             Zeze = app;
         }
 
-        public void Start(string hostNameOrAddress, int port)
+        public void Start(string[] hostNameOrAddress, int port)
         {
             lock (this)
             {
@@ -243,11 +243,10 @@ namespace Zeze.Transaction
                     TransactionLevel = TransactionLevel.None
                 });
 
-                var globals = hostNameOrAddress.Split(';');
-                Agents = new Agent[globals.Length];
-                for (int i = 0; i < globals.Length; ++i)
+                Agents = new Agent[hostNameOrAddress.Length];
+                for (int i = 0; i < hostNameOrAddress.Length; ++i)
                 {
-                    var hp = globals[i].Split(':');
+                    var hp = hostNameOrAddress[i].Split(':');
                     if (hp.Length > 1)
                         Agents[i] = new Agent(Client, hp[0], int.Parse(hp[1]), i);
                     else
