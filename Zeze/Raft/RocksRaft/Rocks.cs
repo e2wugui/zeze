@@ -27,7 +27,8 @@ namespace Zeze.Raft.RocksRaft
             return AtomicLongs.GetOrAdd(index, (_) => new AtomicLong()).Get();
         }
 
-        public void AtomicLongSet(int index, long value)
+        // 应用只能递增，这个方法仅 Follower 用来更新计数器。
+        private void AtomicLongSet(int index, long value)
         {
             AtomicLongs.GetOrAdd(index, (_) => new AtomicLong()).GetAndSet(value);
         }
