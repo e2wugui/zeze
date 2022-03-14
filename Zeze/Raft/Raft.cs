@@ -72,11 +72,11 @@ namespace Zeze.Raft
 
         private void CancelAllReceiveSnapshotting()
         {
-            foreach (var file in ReceiveSnapshotting.Values)
+            foreach (var e in ReceiveSnapshotting)
             {
-                file.Close();
+                if (ReceiveSnapshotting.TryRemove(e.Key, out var _))
+                    e.Value.Close();
             }
-            ReceiveSnapshotting.Clear();
         }
 
         public void Shutdown()
@@ -269,10 +269,12 @@ namespace Zeze.Raft
                 {
                     if (e.Key < r.Argument.LastIncludedIndex)
                     {
-                        e.Value.Close();
-                        var pathDelete = Path.Combine(RaftConfig.DbHome, $"{LogSequence.SnapshotFileName}.installing.{e.Key}");
-                        File.Delete(pathDelete);
-                        ReceiveSnapshotting.TryRemove(e.Key, out var _);
+                        if (ReceiveSnapshotting.TryRemove(e.Key, out var _))
+                        {
+                            e.Value.Close();
+                            var pathDelete = Path.Combine(RaftConfig.DbHome, $"{LogSequence.SnapshotFileName}.installing.{e.Key}");
+                            File.Delete(pathDelete);
+                        }
                     }
                 }
                 // 剩下的处理流程在下面的函数里面。
