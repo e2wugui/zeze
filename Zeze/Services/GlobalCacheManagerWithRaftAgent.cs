@@ -198,11 +198,17 @@ namespace Zeze.Services
                 RaftClient.Client.Stop();
             }
 
+            private Zeze.Net.Protocol LoginPending = null;
+
             private void RaftOnSetLeader(Zeze.Raft.Agent agent)
             {
+                if (LoginPending != null)
+                    return;
+
                 if (LoginTimes.Get() == 0)
                 {
                     var login = new Login();
+                    LoginPending = login;
                     login.Argument.ServerId = agent.Client.Zeze.Config.ServerId;
                     login.Argument.GlobalCacheManagerHashIndex = 0; // agent.GlobalCacheManagerHashIndex;
 
@@ -218,12 +224,14 @@ namespace Zeze.Services
                             {
                                 LoginTimes.IncrementAndGet();
                             }
+                            LoginPending = null;
                             return 0;
                         }, true);
                 }
                 else
                 {
                     var relogin = new ReLogin();
+                    LoginPending = relogin;
                     relogin.Argument.ServerId = agent.Client.Zeze.Config.ServerId;
                     relogin.Argument.GlobalCacheManagerHashIndex = 0; // agent.GlobalCacheManagerHashIndex;
                     agent.Send(relogin,
@@ -238,6 +246,7 @@ namespace Zeze.Services
                             {
                                 LoginTimes.IncrementAndGet();
                             }
+                            LoginPending = null;
                             return 0;
                         }, true);
                 }

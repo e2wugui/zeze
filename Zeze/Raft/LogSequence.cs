@@ -1256,7 +1256,6 @@ namespace Zeze.Raft
             {
                 case SetTermResult.Newer:
                     Raft.ConvertStateTo(Raft.RaftState.Follower);
-                    Raft.LeaderId = r.Argument.LeaderId;
                     r.Result.Term = Term; // new term
                     break;
 
@@ -1266,7 +1265,6 @@ namespace Zeze.Raft
                         case Raft.RaftState.Candidate:
                             // see raft.pdf 文档. 仅在 Candidate 才转。【找不到在文档哪里了，需要确认这点】
                             Raft.ConvertStateTo(Raft.RaftState.Follower);
-                            Raft.LeaderId = r.Argument.LeaderId;
                             break;
 
                         case Raft.RaftState.Leader:
@@ -1276,6 +1274,8 @@ namespace Zeze.Raft
                     }
                     break;
             }
+
+            Raft.LeaderId = r.Argument.LeaderId;
 
             // is Heartbeat(KeepAlive)
             if (r.Argument.Entries.Count == 0)

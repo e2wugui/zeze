@@ -670,7 +670,7 @@ namespace Zeze.Raft
             });
 
             // ugly
-            Util.Scheduler.Instance.Schedule((thisTask) => ReSend(), 1000, 1000);
+            Util.Scheduler.Instance.Schedule((thisTask) => ReSend(), 1000, 60 * 1000);
         }
 
         private Connector GetRandomConnector(Connector except)
@@ -715,7 +715,7 @@ namespace Zeze.Raft
 
             if (SetLeader(r, node as ConnectorEx))
             {
-                ReSend(true);
+                ReSend(false);
             }
             //OnLeaderChanged?.Invoke(this);
             r.SendResultCode(0);
@@ -735,6 +735,8 @@ namespace Zeze.Raft
                     var iraft = rpc as IRaftRpc;
                     if (immediately || now - iraft.SendTime > RaftConfig.AppendEntriesTimeout + 1000)
                     {
+                        logger.Debug(rpc);
+
                         iraft.SendTime = now;
                         if (false == rpc.Send(leaderSocket))
                             logger.Warn("SendRequest failed {0}", rpc);
@@ -746,6 +748,8 @@ namespace Zeze.Raft
                     var iraft = rpc as IRaftRpc;
                     if (immediately || now - iraft.SendTime > RaftConfig.AppendEntriesTimeout + 1000)
                     {
+                        logger.Debug(rpc);
+
                         iraft.SendTime = now;
                         if (false == rpc.Send(leaderSocket))
                             logger.Warn("SendRequest failed {0}", rpc);

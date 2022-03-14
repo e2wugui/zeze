@@ -10,6 +10,10 @@ for (int i = 0; i < args.Length; ++i)
 
 switch (command)
 {
+    case "go":
+        new UnitTest.Zeze.Trans.TestZero().Go();
+        break;
+
     case "BenchOneThread":
         new Benchmark.ABasicSimpleAddOneThread().testBenchmark();
         break;
