@@ -48,3 +48,5 @@
 /Gen/bin/Debug/net6.0/127.0.0.1_*/
 /Gen/bin/Debug/net6.0/*.xml.log
 /*.DotSettings.user
+/TestMain/obj
+/TestMain/bin

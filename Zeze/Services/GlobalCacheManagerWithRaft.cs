@@ -8,7 +8,7 @@ using Zeze.Net;
 
 namespace Zeze.Services
 {
-    public class GlobalCacheManagerWithRaft : AbstractGlobalCacheManagerWithRaft
+    public class GlobalCacheManagerWithRaft : AbstractGlobalCacheManagerWithRaft, IDisposable
     {
         public const int GlobalSerialIdAtomicLongIndex = 0;
 
@@ -680,9 +680,13 @@ namespace Zeze.Services
          */
         private readonly ConcurrentDictionary<int, CacheHolder> Sessions = new ConcurrentDictionary<int, CacheHolder>();
 
-        public GlobalCacheManagerWithRaft(string raftName)
+        public GlobalCacheManagerWithRaft(
+            string raftName,
+            Raft.RaftConfig raftconf = null,
+            Config config = null,
+            bool RocksDbWriteOptionSync = false)
         { 
-            Rocks = new Rocks(raftName);
+            Rocks = new Rocks(raftName, raftconf, config, RocksDbWriteOptionSync);
 
             RegisterRocksTables(Rocks);
             RegisterProtocols(Rocks.Raft.Server);
@@ -691,6 +695,11 @@ namespace Zeze.Services
             ServerAcquiredTemplate = Rocks.GetTableTemplate("Acquired") as TableTemplate<GlobalTableKey, AcquiredState>;
 
             Rocks.Raft.Server.Start();
+        }
+
+        public void Dispose()
+        {
+            Rocks.Raft.Shutdown();
         }
 
         public sealed class CacheHolder

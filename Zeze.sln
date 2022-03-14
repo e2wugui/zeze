@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.30320.27
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32210.238
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Zeze", "Zeze\Zeze.csproj", "{B19CB676-4FA8-4D9D-8CB4-5FCDACD1D602}"
 EndProject
@@ -15,7 +15,9 @@ Project("{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}") = "TypeScript", "TypeScript\Ty
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConfigEditor", "ConfigEditor\ConfigEditor.csproj", "{47A02627-AFEB-4322-B8BD-BF95FE7108C2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceManager", "ServiceManager\ServiceManager.csproj", "{AF87404A-0815-4459-B767-09006029FB23}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceManager", "ServiceManager\ServiceManager.csproj", "{AF87404A-0815-4459-B767-09006029FB23}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestMain", "TestMain\TestMain.csproj", "{9BFEC4FC-040A-4F40-853B-A462A074E86C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -111,6 +113,18 @@ Global
 		{AF87404A-0815-4459-B767-09006029FB23}.Release|x64.Build.0 = Release|Any CPU
 		{AF87404A-0815-4459-B767-09006029FB23}.Release|x86.ActiveCfg = Release|Any CPU
 		{AF87404A-0815-4459-B767-09006029FB23}.Release|x86.Build.0 = Release|Any CPU
+		{9BFEC4FC-040A-4F40-853B-A462A074E86C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9BFEC4FC-040A-4F40-853B-A462A074E86C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9BFEC4FC-040A-4F40-853B-A462A074E86C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9BFEC4FC-040A-4F40-853B-A462A074E86C}.Debug|x64.Build.0 = Debug|Any CPU
+		{9BFEC4FC-040A-4F40-853B-A462A074E86C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9BFEC4FC-040A-4F40-853B-A462A074E86C}.Debug|x86.Build.0 = Debug|Any CPU
+		{9BFEC4FC-040A-4F40-853B-A462A074E86C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9BFEC4FC-040A-4F40-853B-A462A074E86C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9BFEC4FC-040A-4F40-853B-A462A074E86C}.Release|x64.ActiveCfg = Release|Any CPU
+		{9BFEC4FC-040A-4F40-853B-A462A074E86C}.Release|x64.Build.0 = Release|Any CPU
+		{9BFEC4FC-040A-4F40-853B-A462A074E86C}.Release|x86.ActiveCfg = Release|Any CPU
+		{9BFEC4FC-040A-4F40-853B-A462A074E86C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

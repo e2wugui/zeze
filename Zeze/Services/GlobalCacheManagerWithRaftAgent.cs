@@ -45,6 +45,7 @@ namespace Zeze.Services
                 {
                     agent.Close();
                 }
+                Agents = null;
             }
         }
 

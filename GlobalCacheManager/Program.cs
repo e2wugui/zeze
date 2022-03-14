@@ -11,6 +11,7 @@ namespace GlobalCacheManager
         {
             string ip = null;
             int port = 5555;
+            string raftName = null;
 
             int workerThreads, completionPortThreads;
             ThreadPool.GetMinThreads(out workerThreads, out completionPortThreads);
@@ -21,22 +22,35 @@ namespace GlobalCacheManager
                 {
                     case "-ip": ip = args[++i]; break;
                     case "-port": port = int.Parse(args[++i]); break;
+                    case "-raft": raftName = args[++i]; break;
                     case "-threads": ThreadPool.SetMinThreads(int.Parse(args[++i]), completionPortThreads); break;
 
                 }
             }
-            System.Net.IPAddress address =
-                string.IsNullOrEmpty(ip)
-                ? System.Net.IPAddress.Any
-                : System.Net.IPAddress.Parse(ip);
-
-            var GlobalServer = Zeze.Services.GlobalCacheManagerServer.Instance;
-            GlobalServer.Start(address, port);
-            //Console.WriteLine("Ok.");
-            logger.Info($"Started. {GlobalServer.ServerSocket.Socket.LocalEndPoint}");
-            while (true)
+            if (string.IsNullOrEmpty(raftName))
             {
-                Thread.Sleep(10000);
+                System.Net.IPAddress address =
+                    string.IsNullOrEmpty(ip)
+                    ? System.Net.IPAddress.Any
+                    : System.Net.IPAddress.Parse(ip);
+
+                var GlobalServer = Zeze.Services.GlobalCacheManagerServer.Instance;
+                GlobalServer.Start(address, port);
+                //Console.WriteLine("Ok.");
+                logger.Info($"Started. {GlobalServer.ServerSocket.Socket.LocalEndPoint}");
+                while (true)
+                {
+                    Thread.Sleep(10000);
+                }
+            }
+            else
+            {
+                using var GlobalRaft = new Zeze.Services.GlobalCacheManagerWithRaft(raftName);
+                logger.Info($"Started Raft={raftName}");
+                while (true)
+                {
+                    Thread.Sleep(10000);
+                }
             }
         }
     }
