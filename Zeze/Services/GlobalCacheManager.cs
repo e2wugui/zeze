@@ -56,7 +56,7 @@ namespace Zeze.Services
         public static GlobalCacheManagerServer Instance { get; } = new GlobalCacheManagerServer();
         public ServerService Server { get; private set; }
         public AsyncSocket ServerSocket { get; private set; }
-        private ConcurrentDictionary<GlobalTableKey, CacheState> global;
+        private ConcurrentDictionary<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey, CacheState> global;
         private readonly Util.AtomicLong SerialIdGenerator = new();
 
         /*
@@ -118,7 +118,7 @@ namespace Zeze.Services
                     config.LoadAndParse();
                 }
                 Sessions = new ConcurrentDictionary<int, CacheHolder>(Config.ConcurrencyLevel, 4096);
-                global = new ConcurrentDictionary<GlobalTableKey, CacheState>
+                global = new ConcurrentDictionary<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey, CacheState>
                     (Config.ConcurrencyLevel, Config.InitialCapacity);
 
                 Server = new ServerService(config);
@@ -346,7 +346,7 @@ namespace Zeze.Services
             }
         }
 
-        private int Release(CacheHolder sender, GlobalTableKey gkey, bool noWait)
+        private int Release(CacheHolder sender, Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey, bool noWait)
         {
             while (true)
             {
@@ -804,11 +804,11 @@ namespace Zeze.Services
             public long SessionId { get; private set; }
             public int GlobalCacheManagerHashIndex { get; private set; } // UnBind 的时候不会重置，会一直保留到下一次Bind。
 
-            public ConcurrentDictionary<GlobalTableKey, int> Acquired { get; }
+            public ConcurrentDictionary<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey, int> Acquired { get; }
 
             public CacheHolder(GCMConfig config)
             {
-                Acquired = new ConcurrentDictionary<GlobalTableKey, int>(
+                Acquired = new ConcurrentDictionary<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey, int>(
                     config.ConcurrencyLevel, config.InitialCapacity);
             }
 
@@ -849,7 +849,7 @@ namespace Zeze.Services
                 return "" + SessionId;
             }
 
-            public bool Reduce(GlobalTableKey gkey, int state, long globalSerialId, Func<Protocol, long> response)
+            public bool Reduce(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state, long globalSerialId, Func<Protocol, long> response)
             {
                 try
                 {
@@ -894,7 +894,7 @@ namespace Zeze.Services
             /// <param name="gkey"></param>
             /// <param name="state"></param>
             /// <returns></returns>
-            public Reduce ReduceWaitLater(GlobalTableKey gkey, int state, long globalSerialId)
+            public Reduce ReduceWaitLater(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state, long globalSerialId)
             {
                 try
                 {
@@ -927,13 +927,13 @@ namespace Zeze.Services.GlobalCacheManager
 {
     public sealed class Param : Bean
     {
-        public GlobalTableKey GlobalTableKey { get; set; } // 没有初始化，使用时注意
+        public Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey GlobalTableKey { get; set; } // 没有初始化，使用时注意
         public int State { get; set; }
 
         public override void Decode(ByteBuffer bb)
         {
             if (null == GlobalTableKey)
-                GlobalTableKey = new GlobalTableKey();
+                GlobalTableKey = new Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey();
             GlobalTableKey.Decode(bb);
             State = bb.ReadInt();
         }
@@ -957,14 +957,14 @@ namespace Zeze.Services.GlobalCacheManager
 
     public sealed class Param2 : Bean
     {
-        public GlobalTableKey GlobalTableKey { get; set; } // 没有初始化，使用时注意
+        public Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey GlobalTableKey { get; set; } // 没有初始化，使用时注意
         public int State { get; set; }
         public long GlobalSerialId { get; set; }
 
         public override void Decode(ByteBuffer bb)
         {
             if (null == GlobalTableKey)
-                GlobalTableKey = new GlobalTableKey();
+                GlobalTableKey = new Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey();
             GlobalTableKey.Decode(bb);
             State = bb.ReadInt();
 
@@ -1001,7 +1001,7 @@ namespace Zeze.Services.GlobalCacheManager
         {
         }
 
-        public Acquire(GlobalTableKey gkey, int state)
+        public Acquire(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state)
         {
             Argument.GlobalTableKey = gkey;
             Argument.State = state;
@@ -1019,7 +1019,7 @@ namespace Zeze.Services.GlobalCacheManager
         {
         }
 
-        public Reduce(GlobalTableKey gkey, int state, long globalSerialId)
+        public Reduce(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state, long globalSerialId)
         {
             Argument.GlobalTableKey = gkey;
             Argument.State = state;
@@ -1156,6 +1156,7 @@ namespace Zeze.Services.GlobalCacheManager
         }
     }
 
+    /*
     public sealed class GlobalTableKey : IComparable<GlobalTableKey>, Serializable
     {
         public string TableName { get; private set; }
@@ -1221,6 +1222,7 @@ namespace Zeze.Services.GlobalCacheManager
             bb.WriteBytes(Key);
         }
     }
+    */
 
     /// <summary>
     /// AchillesHeel!

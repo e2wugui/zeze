@@ -18,8 +18,7 @@ namespace Zeze
         public Config Config { get; private set; }
         public bool IsStart { get; private set; }
         public Agent ServiceManagerAgent { get; private set; }
-        internal GlobalAgent GlobalAgent { get; }
-        internal Services.GlobalCacheManagerWithRaftAgent GlobalAgentRaft { get; }
+        internal IGlobalAgent GlobalAgent { get; private set; }
 
         // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
         internal Util.SimpleThreadPool InternalThreadPool;
@@ -171,8 +170,6 @@ namespace Zeze
             //ThreadPool.SetMaxThreads(workerMax, ioMax);
 
             Config.CreateDatabase(this, Databases);
-            GlobalAgent = new GlobalAgent(this);
-            GlobalAgentRaft = new Services.GlobalCacheManagerWithRaftAgent(this);
             _checkpoint = new Checkpoint(Config.CheckpointMode, Databases.Values);
             ServiceManagerAgent = new Agent(this);
         }
@@ -262,11 +259,15 @@ namespace Zeze
                     var israft = hosts[0].EndsWith(".xml");
                     if (false == israft)
                     {
-                        GlobalAgent.Start(hosts, Config.GlobalCacheManagerPort);
+                        var impl = new GlobalAgent(this);
+                        impl.Start(hosts, Config.GlobalCacheManagerPort);
+                        GlobalAgent = impl;
                     }
                     else
                     {
-                        GlobalAgentRaft.Start(hosts);
+                        var impl = new Zeze.Services.GlobalCacheManagerWithRaftAgent(this);
+                        impl.Start(hosts);
+                        GlobalAgent = impl;
                     }
                 }
 
@@ -313,7 +314,7 @@ namespace Zeze
                 domain.UnhandledException -= UnhandledExceptionEventHandler;
                 domain.ProcessExit -= ProcessExit;
 
-                GlobalAgent?.Stop(); // 关闭时需要生成新的SessionId，这个现在使用AutoKey，需要事务支持。
+                GlobalAgent?.Dispose(); // 关闭时需要生成新的SessionId，这个现在使用AutoKey，需要事务支持。
 
                 if (false == IsStart)
                     return;

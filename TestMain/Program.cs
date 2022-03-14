@@ -1,15 +1,5 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-//new UnitTest.Zeze.Net.TestSocketBeginXXX().Test();
-//return;
-/*
-new UnitTest.Zeze.Trans.TestGlobal().Test2App();
-return;
-new Benchmark.ABasicSimpleAddOneThread().testBenchmark();
-new Benchmark.BBasicSimpleAddConcurrentWithConflict().testBenchmark();
-new Benchmark.CBasicSimpleAddConcurrent().testBenchmark();
-return;
-// */
 
 string command = "";
 for (int i = 0; i < args.Length; ++i)
@@ -20,6 +10,26 @@ for (int i = 0; i < args.Length; ++i)
 
 switch (command)
 {
+    case "BenchOneThread":
+        new Benchmark.ABasicSimpleAddOneThread().testBenchmark();
+        break;
+
+    case "BenchConflict":
+        new Benchmark.BBasicSimpleAddConcurrentWithConflict().testBenchmark();
+        break;
+
+    case "BenchConcurrent":
+        new Benchmark.CBasicSimpleAddConcurrent().testBenchmark();
+        break;
+
+    case "TestGlobal":
+        new UnitTest.Zeze.Trans.TestGlobal().Test2App();
+        break;
+
+    case "TestSocketBeginXXX":
+        new UnitTest.Zeze.Net.TestSocketBeginXXX().Test();
+        break;
+
     case "TikvTest":
         Zeze.Tikv.Test.Run(args[0]);
         break;

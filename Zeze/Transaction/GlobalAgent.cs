@@ -9,10 +9,22 @@ using Zeze.Services.GlobalCacheManager;
 
 namespace Zeze.Transaction
 {
-    public sealed class GlobalAgent
+    internal interface IGlobalAgent : IDisposable
+    {
+        // (ResultCode, State, GlobalSerialId)
+        public (long, int, long) Acquire(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state);
+        public int GetGlobalCacheManagerHashIndex(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey);
+    }
+
+    public sealed class GlobalAgent : IGlobalAgent
     {
         internal static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public GlobalClient Client { get; private set; } // 未启用cache-sync时为空。
+
+        public void Dispose()
+        {
+            Stop();
+        }
 
         public class Agent
         {
@@ -118,12 +130,12 @@ namespace Zeze.Transaction
 
         internal Agent[] Agents;
 
-        internal int GetGlobalCacheManagerHashIndex(GlobalTableKey gkey)
+        public int GetGlobalCacheManagerHashIndex(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey)
         {
             return gkey.GetHashCode() % Agents.Length;
         }
 
-        internal Acquire Acquire(GlobalTableKey gkey, int state)
+        public (long, int, long) Acquire(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state)
         {
             if (null != Client)
             {
@@ -140,19 +152,23 @@ namespace Zeze.Transaction
                     logger.Warn("Acquire ResultCode={0} {1}", rpc.ResultCode, rpc.Result);
                 }
                 */
+                if (rpc.ResultCode < 0)
+                {
+                    Transaction.Current.ThrowAbort("GlobalAgent.Acquire Failed");
+                    // never got here
+                }
                 switch (rpc.ResultCode)
                 {
                     case GlobalCacheManagerServer.AcquireModifyFailed:
                     case GlobalCacheManagerServer.AcquireShareFailed:
                         Transaction.Current.ThrowAbort("GlobalAgent.Acquire Failed");
+                        // never got here
                         break;
                 }
-                return rpc;
+                return (rpc.ResultCode, rpc.Result.State, rpc.Result.GlobalSerialId);
             }
             logger.Debug("Acquire local ++++++");
-			var result = new Acquire();
-			result.Result.State = state;
-            return result;
+            return (0, state, 0);
         }
 
         public long ProcessReduceRequest(Zeze.Net.Protocol p)

@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <zeze
-	GlobalCacheManagerHostNameOrAddress="127.0.0.1" GlobalCacheManagerPort="5555"
+	GlobalCacheManagerHostNameOrAddress="GlobalCacheManagersConf" GlobalCacheManagerPort="5555"
 	CheckpointPeriod="0" CheckpointMode="Table" ServerId="0"
 	>
+
+	<GlobalCacheManagersConf>
+		<host name="global.raft.xml"/>
+	</GlobalCacheManagersConf>
 
 	<!--
 	数据库配置。默认数据库的名字为空。

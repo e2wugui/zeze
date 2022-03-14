@@ -3,10 +3,15 @@ using Zeze.Beans.GlobalCacheManagerWithRaft;
 
 namespace Zeze.Services
 {
-    public class GlobalCacheManagerWithRaftAgent : AbstractGlobalCacheManagerWithRaftAgent
+    public class GlobalCacheManagerWithRaftAgent : AbstractGlobalCacheManagerWithRaftAgent, Zeze.Transaction.IGlobalAgent
     {
         static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public Application Zeze { get; }
+
+        public void Dispose()
+        {
+            Stop();
+        }
 
         public GlobalCacheManagerWithRaftAgent(Application zeze)
         {
@@ -56,9 +61,7 @@ namespace Zeze.Services
             public ReduceBridge(Reduce real)
             {
                 Real = real;
-                Argument.GlobalTableKey = new GlobalCacheManager.GlobalTableKey(
-                    real.Argument.GlobalTableKey.TableName,
-                    real.Argument.GlobalTableKey.Key.ToBytes());
+                Argument.GlobalTableKey = real.Argument.GlobalTableKey;
                 Argument.State = real.Argument.State;
                 Argument.GlobalSerialId = real.Argument.GlobalSerialId;
             }
@@ -126,12 +129,12 @@ namespace Zeze.Services
 
         internal RaftAgent[] Agents;
 
-        internal int GetGlobalCacheManagerHashIndex(GlobalTableKey gkey)
+        public int GetGlobalCacheManagerHashIndex(GlobalTableKey gkey)
         {
             return gkey.GetHashCode() % Agents.Length;
         }
 
-        internal Acquire Acquire(GlobalTableKey gkey, int state)
+        public (long, int, long) Acquire(GlobalTableKey gkey, int state)
         {
             if (null != Agents)
             {
@@ -140,19 +143,24 @@ namespace Zeze.Services
                 rpc.Argument.GlobalTableKey = gkey;
                 rpc.Argument.State = state;
                 agent.RaftClient.SendForWait(rpc).Task.Wait();
+
+                if (rpc.ResultCode < 0)
+                {
+                    Transaction.Transaction.Current.ThrowAbort("GlobalAgent.Acquire Failed");
+                    // never got here
+                }
                 switch (rpc.ResultCode)
                 {
                     case GlobalCacheManagerServer.AcquireModifyFailed:
                     case GlobalCacheManagerServer.AcquireShareFailed:
                         Transaction.Transaction.Current.ThrowAbort("GlobalAgent.Acquire Failed");
+                        // never got here
                         break;
                 }
-                return rpc;
+                return (rpc.ResultCode, rpc.Result.State, rpc.Result.GlobalSerialId);
             }
             logger.Debug("Acquire local ++++++");
-            var result = new Acquire();
-            result.Result.State = state;
-            return result;
+            return (0, state, 0);
         }
 
         // 1. 【Login|ReLogin|NormalClose】会被Raft.Agent重发处理，这要求GlobalRaft能处理重复请求。

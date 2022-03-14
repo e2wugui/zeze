@@ -30,6 +30,9 @@ namespace Zeze.Services
             var result = Rocks.NewProcedure(
                 () =>
                 {
+                    // 成功结果必须在锁内发送。
+                    Zeze.Raft.RocksRaft.Transaction.Current.RunWhileCommit(() => rpc.SendResultCode(0));
+
                     switch (rpc.Argument.State)
                     {
                         case GlobalCacheManagerServer.StateInvalid: // realease
@@ -46,10 +49,10 @@ namespace Zeze.Services
                             rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                             return GlobalCacheManagerServer.AcquireErrorState;
                     }
-                }, rpc).Call();
+                }).Call();
 
-            if (0 != result)
-                rpc.SendResultCode(result); // 失败结果从这里发送。
+            if (result != 0)
+                rpc.SendResultCode(result); // 错误结果从这里发送。
 
             return 0; // has handle all error.
         }
@@ -551,6 +554,7 @@ namespace Zeze.Services
                     return true; // continue walk
                 });
                 rpc.SendResultCode(0);
+                logger.Info($"Login {Rocks.Raft.Name} {rpc.Sender}.");
                 return 0;
             }
         }
@@ -569,6 +573,7 @@ namespace Zeze.Services
                     return 0;
                 }
                 rpc.SendResultCode(0);
+                logger.Info($"ReLogin {Rocks.Raft.Name} {rpc.Sender}.");
                 return 0;
             }
         }
@@ -597,7 +602,7 @@ namespace Zeze.Services
                     return true; // continue walk
                 });
                 rpc.SendResultCode(0);
-                logger.Debug("After NormalClose global.");
+                logger.Info($"NormalClose {Rocks.Raft.Name} {rpc.Sender}");
                 return 0;
             }
         }
@@ -692,7 +697,7 @@ namespace Zeze.Services
             RegisterProtocols(Rocks.Raft.Server);
 
             GlobalStates = Rocks.GetTableTemplate("Global").OpenTable<GlobalTableKey, CacheState>(0);
-            ServerAcquiredTemplate = Rocks.GetTableTemplate("Acquired") as TableTemplate<GlobalTableKey, AcquiredState>;
+            ServerAcquiredTemplate = Rocks.GetTableTemplate("Session") as TableTemplate<GlobalTableKey, AcquiredState>;
 
             Rocks.Raft.Server.Start();
         }

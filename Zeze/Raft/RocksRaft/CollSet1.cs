@@ -57,6 +57,16 @@ namespace Zeze.Raft.RocksRaft
 			}
 		}
 
+		public override LogBean CreateLogBean()
+		{
+			var log = new LogSet1<V>();
+			log.Belong = Parent;
+			log.This = this;
+			log.VariableId = VariableId;
+			log.Value = _set;
+			return log;
+		}
+
 		public override void FollowerApply(Log _log)
 		{
 			var log = (LogSet1<V>)_log;

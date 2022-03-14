@@ -77,14 +77,14 @@ namespace Zeze.Transaction
                         return r;
                     }
 
-                    var acquire = r.Acquire(GlobalCacheManagerServer.StateShare);
-                    r.State = acquire.Result.State;
+                    var (ResultCode, ResultState, ResultGlobalSerialId) = r.Acquire(GlobalCacheManagerServer.StateShare);
+                    r.State = ResultState;
                     if (r.State == GlobalCacheManagerServer.StateInvalid)
                     {
-                        r.LastErrorGlobalSerialId = acquire.Result.GlobalSerialId; // save
+                        r.LastErrorGlobalSerialId = ResultGlobalSerialId; // save
                         var txn = Transaction.Current;
                         txn.LastTableKeyOfRedoAndRelease = tkey;
-                        txn.LastGlobalSerialIdOfRedoAndRelease = acquire.Result.GlobalSerialId;
+                        txn.LastGlobalSerialIdOfRedoAndRelease = ResultGlobalSerialId;
                         txn.ThrowRedoAndReleaseLock(tkey.ToString() + ":" + r.ToString());
                         //throw new RedoAndReleaseLockException();
                     }
@@ -304,7 +304,7 @@ namespace Zeze.Transaction
         {
             foreach (var e in Cache.DataMap)
             {
-                var gkey = new GlobalTableKey(Name, EncodeKey(e.Key));
+                var gkey = new Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey(Name, new Zeze.Net.Binary(EncodeKey(e.Key)));
                 if (Zeze.GlobalAgent.GetGlobalCacheManagerHashIndex(gkey) != GlobalCacheManagerHashIndex)
                 {
                     // 不是断开连接的GlobalCacheManager。跳过。
