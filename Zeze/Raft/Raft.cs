@@ -264,6 +264,7 @@ namespace Zeze.Raft
             if (r.Argument.Done)
             {
                 // 5. Save snapshot file, discard any existing or partial snapshot with a smaller index
+                ReceiveSnapshotting.TryRemove(r.Argument.LastIncludedIndex, out _);
                 outputFileStream.Close();
                 foreach (var e in ReceiveSnapshotting)
                 {
