@@ -68,7 +68,7 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeBinary type)
         {
-            throw new NotImplementedException();
+            WriteProperty(type);
         }
 
         public void Visit(TypeString type)

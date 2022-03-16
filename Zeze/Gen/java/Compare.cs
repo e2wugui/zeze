@@ -76,7 +76,7 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeBinary type)
         {
-            throw new NotImplementedException();
+            text = variable.NamePrivate + ".compareTo(" + another + "." + variable.NamePrivate + ")";
         }
 
         public void Visit(TypeString type)

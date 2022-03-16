@@ -89,7 +89,7 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeBinary type)
         {
-            throw new NotImplementedException();
+            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
         }
 
         public void Visit(TypeString type)
