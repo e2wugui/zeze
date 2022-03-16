@@ -73,19 +73,19 @@
 		</module>
 	</module>
 
-	<component name="GlobalCacheManagerWithRaft" genrelativedir="Services" platform="zeze+cs">
+	<component name="GlobalCacheManagerWithRaft" genrelativedir="Zeze/Services" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.beans.GlobalCacheManagerWithRaft"/>
 		</service>
 	</component>
 
-	<component name="GlobalCacheManagerWithRaftAgent" genrelativedir="Services" platform="zeze+cs" GenTables="client">
+	<component name="GlobalCacheManagerWithRaftAgent" genrelativedir="Zeze/Services" platform="zeze+cs" GenTables="client">
 		<service name="" handle="client">
 			<module ref="Zeze.beans.GlobalCacheManagerWithRaft"/>
 		</service>
 	</component>
 
-	<component name="TestRocks" platform="zeze+cs">
+	<component name="TestRocks" genrelativedir="Zeze/Services" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.beans.TestRocks"/>
 		</service>
