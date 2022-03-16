@@ -323,7 +323,7 @@ namespace Zeze.Raft.RocksRaft
                 var key = ByteBuffer.Allocate();
                 var value = ByteBuffer.Allocate();
                 SerializeHelper<int>.Encode(key, a.Key);
-                SerializeHelper<long>.Encode(key, a.Value);
+                SerializeHelper<long>.Encode(value, a.Value);
                 batch.Put(key.Bytes, (ulong)key.Size, value.Bytes, (ulong)value.Size, AtomicLongsColumnFamily);
                 if (FollowerApply)
                     AtomicLongSet(a.Key, a.Value);

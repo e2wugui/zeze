@@ -47,6 +47,21 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine();
         }
 
+        public static string GetLogName(Type type)
+        {
+            switch (type.Name)
+            {
+                case "bool": return "Zeze.Raft.RocksRaft.Log1.LogBool";
+                case "byte": return "Zeze.Raft.RocksRaft.Log1.LogByte";
+                case "short": return "Zeze.Raft.RocksRaft.Log1.LogShort";
+                case "int": return "Zeze.Raft.RocksRaft.Log1.LogInt";
+                case "long": return "Zeze.Raft.RocksRaft.Log1.LogLong";
+
+                case "binary": return "Zeze.Raft.RocksRaft.Log1.LogBinary";
+                case "string": return "Zeze.Raft.RocksRaft.Log1.LogString";
+            }
+            return null;
+        }
         void WriteProperty(Type type, bool checkNull = false)
         {
             var typeName = TypeName.GetName(type);
@@ -59,7 +74,7 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + "    var log = txn.GetLog(getObjectId() + " + var.Id + ");");
             sw.WriteLine(prefix + "    if (null == log)");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + $"    return ((Zeze.Raft.RocksRaft.Log<{TypeName.GetName(type)}>)log).getValue();");
+            sw.WriteLine(prefix + $"    return (({GetLogName(type)})log).Value;");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
             sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} value") + "{");
@@ -72,13 +87,9 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + "        " + var.NamePrivate + " = value;");
             sw.WriteLine(prefix + "        return;");
             sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "    var txn = Zeze.Transaction.Transaction.getCurrent();");
+            sw.WriteLine(prefix + "    var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();");
             sw.WriteLine(prefix + "    assert txn != null;");
-            sw.WriteLine(prefix + $"    var log = new Zeze.Raft.RocksRaft.Log<{TypeName.GetName(type)}>();");
-            sw.WriteLine(prefix + "    log.setBelong(this);");
-            sw.WriteLine(prefix + $"    log.setVariableId({var.Id});");
-            sw.WriteLine(prefix + "    log.setValue(value);");
-            sw.WriteLine(prefix + "    txn.PutLog(log);"); // 
+            sw.WriteLine(prefix + $"    txn.PutLog(new {GetLogName(type)}(this, {var.Id}, value));"); // 
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }

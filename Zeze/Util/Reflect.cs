@@ -72,6 +72,7 @@ namespace Zeze.Util
 				throw new Exception($"Unsupported Generic Type {type.FullName}");
 			}
 
+			// 支持的 Zeze/Gen/Types/ 类型。
 			if (type == typeof(bool))
 				return "bool";
 			if (type == typeof(byte))
