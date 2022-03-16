@@ -15,7 +15,7 @@ namespace Zeze.Beans.TestRocks
         readonly Zeze.Raft.RocksRaft.CollSet1<int> _SetInt;
         readonly Zeze.Raft.RocksRaft.CollSet1<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey> _SetBeankey;
         readonly Zeze.Raft.RocksRaft.CollMap1<int, int> _MapInt;
-        readonly Zeze.Raft.RocksRaft.CollMap1<int, Zeze.Beans.TestRocks.Value> _MapBean;
+        readonly Zeze.Raft.RocksRaft.CollMap2<int, Zeze.Beans.TestRocks.Value> _MapBean;
 
         public int Int
         {
@@ -163,7 +163,7 @@ namespace Zeze.Beans.TestRocks
 
         public Zeze.Raft.RocksRaft.CollMap1<int, int> MapInt => _MapInt;
 
-        public Zeze.Raft.RocksRaft.CollMap1<int, Zeze.Beans.TestRocks.Value> MapBean => _MapBean;
+        public Zeze.Raft.RocksRaft.CollMap2<int, Zeze.Beans.TestRocks.Value> MapBean => _MapBean;
 
         public Value() : this(0)
         {
@@ -176,7 +176,7 @@ namespace Zeze.Beans.TestRocks
             _SetInt = new Zeze.Raft.RocksRaft.CollSet1<int>() { VariableId = 7 };
             _SetBeankey = new Zeze.Raft.RocksRaft.CollSet1<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey>() { VariableId = 8 };
             _MapInt = new Zeze.Raft.RocksRaft.CollMap1<int, int>() { VariableId = 9 };
-            _MapBean = new Zeze.Raft.RocksRaft.CollMap1<int, Zeze.Beans.TestRocks.Value>() { VariableId = 10 };
+            _MapBean = new Zeze.Raft.RocksRaft.CollMap2<int, Zeze.Beans.TestRocks.Value>() { VariableId = 10 };
         }
 
         public void Assign(Value other)

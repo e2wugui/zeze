@@ -62,7 +62,7 @@ namespace Zeze.Gen.rrcs
         public void Visit(TypeList type)
         {
             string valueName = GetName(type.ValueType);
-            name = "Zeze.Raft.RocksRaft.CollList" + (type.ValueType.IsNormalBean ? "2<" : "1<")  + valueName + ">";
+            name = "Zeze.Raft.RocksRaft.CollList" + (type.ValueType.IsNormalBeanOrRocks ? "2<" : "1<")  + valueName + ">";
             nameCollectionImplement = "System.Collections.Immutable.ImmutableList<" + valueName + ">";
         }
 
@@ -77,7 +77,7 @@ namespace Zeze.Gen.rrcs
         {
             string key = GetName(type.KeyType);
             string value = GetName(type.ValueType);
-            name = "Zeze.Raft.RocksRaft.CollMap" + (type.ValueType.IsNormalBean ? "2<" : "1<") + key + ", " + value + ">";
+            name = "Zeze.Raft.RocksRaft.CollMap" + (type.ValueType.IsNormalBeanOrRocks ? "2<" : "1<") + key + ", " + value + ">";
             nameCollectionImplement = "System.Collections.Immutable.ImmutableDictionary<" + key + ", " + value + ">";
         }
 

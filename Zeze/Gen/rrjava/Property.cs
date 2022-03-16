@@ -57,6 +57,9 @@ namespace Zeze.Gen.rrjava
                 case "int": return "Zeze.Raft.RocksRaft.Log1.LogInt";
                 case "long": return "Zeze.Raft.RocksRaft.Log1.LogLong";
 
+                case "float": return "Zeze.Raft.RocksRaft.Log1.LogFloat";
+                case "double": return "Zeze.Raft.RocksRaft.Log1.LogDouble";
+
                 case "binary": return "Zeze.Raft.RocksRaft.Log1.LogBinary";
                 case "string": return "Zeze.Raft.RocksRaft.Log1.LogString";
             }

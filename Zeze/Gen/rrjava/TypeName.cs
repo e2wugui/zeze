@@ -72,7 +72,7 @@ namespace Zeze.Gen.rrjava
         {
             string valueName = BoxingName.GetBoxingName(type.ValueType);
             nameRaw = "Zeze.Raft.RocksRaft.CollList";
-            nameOmitted = nameRaw + (type.ValueType.IsNormalBean ? '2' : '1');
+            nameOmitted = nameRaw + (type.ValueType.IsNormalBeanOrRocks ? '2' : '1');
             name = nameOmitted + '<' + valueName + '>';
             nameCollectionImplement = "org.pcollections.PVector<" + valueName + '>';
         }
@@ -91,7 +91,7 @@ namespace Zeze.Gen.rrjava
             string key = BoxingName.GetBoxingName(type.KeyType);
             string value = BoxingName.GetBoxingName(type.ValueType);
             nameRaw = "Zeze.Raft.RocksRaft.CollMap";
-            nameOmitted = nameRaw + (type.ValueType.IsNormalBean ? '2' : '1');
+            nameOmitted = nameRaw + (type.ValueType.IsNormalBeanOrRocks ? '2' : '1');
             name = nameOmitted + '<' + key + ", " + value + '>';
             nameCollectionImplement = "org.pcollections.PMap<" + key + ", " + value + '>';
         }

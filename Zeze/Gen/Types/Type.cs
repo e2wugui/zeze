@@ -18,6 +18,8 @@ namespace Zeze.Gen.Types
 		public virtual bool IsKeyable => IsImmutable; // most for table.key, cbean.
 		public bool IsRocks => Kind.Equals("rocks");
 		public bool IsNormalBean => Kind.Equals("bean"); // 普通的bean，不是beankey
+		public bool IsNormalBeanOrRocks => IsRocks || IsNormalBean;
+
 		public virtual bool IsCollection => false;
 		public abstract bool IsNeedNegativeCheck { get; }
 		public override string ToString()
