@@ -8,7 +8,7 @@ namespace Zeze.Gen.java
     public class ModuleFormatter
     {
         readonly Project project;
-        readonly Module module;
+        public readonly Module module;
         readonly string genDir;
         readonly string srcDir;
         readonly string moduleName;
@@ -23,6 +23,39 @@ namespace Zeze.Gen.java
         }
 
         FileChunkGen FileChunkGen;
+
+        public void GenEmptyProtocolHandles(StreamWriter sw, string namePrefix = "", bool shortIf = true)
+        {
+            if (module.ReferenceService != null)
+            {
+                int serviceHandleFlags = module.ReferenceService.HandleFlags;
+                foreach (Protocol p in module.Protocols.Values)
+                {
+                    if (p is Rpc rpc)
+                    {
+                        if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
+                        {
+                            sw.WriteLine("    @Override");
+                            sw.WriteLine($"    protected long Process{namePrefix}{rpc.Name}Request({rpc.Space.Path(".", rpc.Name)} r) {{");
+                            sw.WriteLine($"        return Zeze.Transaction.Procedure.NotImplement;");
+                            sw.WriteLine("    }");
+                            sw.WriteLine();
+                        }
+                    }
+                    else
+                    {
+                        if ((p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
+                        {
+                            sw.WriteLine("    @Override");
+                            sw.WriteLine($"    protected long Process{namePrefix}{p.Name}({p.Space.Path(".", p.Name)} p) {{");
+                            sw.WriteLine("        return Zeze.Transaction.Procedure.NotImplement;");
+                            sw.WriteLine("    }");
+                            sw.WriteLine();
+                        }
+                    }
+                }
+            }
+        }
 
         public void Make()
         {
@@ -56,35 +89,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("    public void Stop(" + project.Solution.Name + ".App app) throws Throwable {");
             sw.WriteLine("    }");
             sw.WriteLine();
-            if (module.ReferenceService != null)
-            {
-                int serviceHandleFlags = module.ReferenceService.HandleFlags;
-                foreach (Protocol p in module.Protocols.Values)
-                {
-                    if (p is Rpc rpc)
-                    {
-                        if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
-                        {
-                            sw.WriteLine("    @Override");
-                            sw.WriteLine($"    protected long Process{rpc.Name}Request({rpc.Space.Path(".", rpc.Name)} r) {{");
-                            sw.WriteLine($"        return Zeze.Transaction.Procedure.NotImplement;");
-                            sw.WriteLine("    }");
-                            sw.WriteLine();
-                        }
-                    }
-                    else
-                    {
-                        if ((p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
-                        {
-                            sw.WriteLine("    @Override");
-                            sw.WriteLine($"    protected long Process{p.Name}({p.Space.Path(".", p.Name)} p) {{");
-                            sw.WriteLine("        return Zeze.Transaction.Procedure.NotImplement;");
-                            sw.WriteLine("    }");
-                            sw.WriteLine();
-                        }
-                    }
-                }
-            }
+            GenEmptyProtocolHandles(sw);
             sw.WriteLine("    " + FileChunkGen.ChunkStartTag + " " + ChunkNameModuleGen + " @formatter:off");
             ConstructorGen(sw);
             sw.WriteLine("    " + FileChunkGen.ChunkEndTag + " " + ChunkNameModuleGen + " @formatter:on");
@@ -245,30 +250,12 @@ namespace Zeze.Gen.java
             sw.WriteLine("    }");
         }
 
-        void ModuleGen(StreamWriter sw)
+        public void RegisterProtocols(StreamWriter sw, string serviceVarName = null)
         {
-            sw.WriteLine($"    public static final int ModuleId = {module.Id};");
-            sw.WriteLine();
-            bool genTable = false;
-            foreach (Table table in module.Tables.Values)
-            {
-                if (project.GenTables.Contains(table.Gen))
-                {
-                    sw.WriteLine("    protected final " + table.Name + " _" + table.Name + " = new " + table.Name + "();");
-                    genTable = true;
-                }
-            }
-            if (genTable)
-                sw.WriteLine();
-            sw.WriteLine($"    public final {project.Solution.Name}.App App;");
-            sw.WriteLine();
-
-            sw.WriteLine($"    public AbstractModule({project.Solution.Name}.App app) {{");
-            sw.WriteLine("        App = app;");
-            sw.WriteLine("        // register protocol factory and handles");
             Service serv = module.ReferenceService;
             if (serv != null)
             {
+                var serviceVar = string.IsNullOrEmpty(serviceVarName) ? $"App.{serv.Name}" : serviceVarName;
                 bool defReflect = false;
                 int serviceHandleFlags = module.ReferenceService.HandleFlags;
                 foreach (Protocol p in module.Protocols.Values)
@@ -288,7 +275,7 @@ namespace Zeze.Gen.java
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
                             sw.WriteLine($"            factoryHandle.Handle = this::Process{rpc.Name}Request;");
                         sw.WriteLine($"            factoryHandle.Level = _reflect.getTransactionLevel(\"Process{rpc.Name}Request\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel});");
-                        sw.WriteLine($"            App.{serv.Name}.AddFactoryHandle({rpc.TypeId}L, factoryHandle); // {rpc.Space.Id}, {rpc.Id}");
+                        sw.WriteLine($"            {serviceVar}.AddFactoryHandle({rpc.TypeId}L, factoryHandle); // {rpc.Space.Id}, {rpc.Id}");
                         sw.WriteLine("        }");
                         continue;
                     }
@@ -305,42 +292,137 @@ namespace Zeze.Gen.java
                         sw.WriteLine($"            factoryHandle.Factory = {fullName}::new;");
                         sw.WriteLine($"            factoryHandle.Handle = this::Process{p.Name};");
                         sw.WriteLine($"            factoryHandle.Level = _reflect.getTransactionLevel(\"Process{p.Name}\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel});");
-                        sw.WriteLine($"            App.{serv.Name}.AddFactoryHandle({p.TypeId}L, factoryHandle); // {p.Space.Id}, {p.Id}");
-                        sw.WriteLine( "        }");
+                        sw.WriteLine($"            {serviceVar}.AddFactoryHandle({p.TypeId}L, factoryHandle); // {p.Space.Id}, {p.Id}");
+                        sw.WriteLine("        }");
                     }
                 }
             }
-            sw.WriteLine("        // register table");
+        }
+
+        public void RegisterZezeTables(StreamWriter sw, string zeze = null)
+        {
+            var zezeVar = string.IsNullOrEmpty(zeze) ? "App.Zeze" : zeze;
             foreach (Table table in module.Tables.Values)
             {
-                if (project.GenTables.Contains(table.Gen))
-                    sw.WriteLine($"        App.Zeze.AddTable(App.Zeze.getConfig().GetTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
+                if (project.GenTables.Contains(table.Gen) && table.IsRocks == false)
+                    sw.WriteLine($"        {zezeVar}.AddTable(App.Zeze.getConfig().GetTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
             }
-            sw.WriteLine("    }");
-            sw.WriteLine();
-            sw.WriteLine("    public void UnRegister() {");
+        }
+
+        public void UnRegisterProtocols(StreamWriter sw, string serviceVarName = null)
+        {
+            Service serv = module.ReferenceService;
             if (serv != null)
             {
+                var serviceVar = string.IsNullOrEmpty(serviceVarName) ? $"App.{serv.Name}" : serviceVarName;
                 int serviceHandleFlags = module.ReferenceService.HandleFlags;
                 foreach (Protocol p in module.Protocols.Values)
                 {
                     if (p is Rpc rpc)
                     {
                         // rpc 可能作为客户端发送也需要factory，所以总是注册factory。
-                        sw.WriteLine($"        App.{serv.Name}.getFactorys().remove({rpc.TypeId}L);");
+                        sw.WriteLine($"        {serviceVar}.getFactorys().remove({rpc.TypeId}L);");
                         continue;
                     }
                     if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
                     {
-                        sw.WriteLine($"        App.{serv.Name}.getFactorys().remove({p.TypeId}L);");
+                        sw.WriteLine($"        {serviceVar}.getFactorys().remove({p.TypeId}L);");
                     }
                 }
             }
+        }
+
+        public void UnRegisterZezeTables(StreamWriter sw, string zeze = null)
+        {
+            var zezeVar = string.IsNullOrEmpty(zeze) ? "App.Zeze" : zeze;
             foreach (Table table in module.Tables.Values)
             {
-                if (project.GenTables.Contains(table.Gen))
-                    sw.WriteLine($"        App.Zeze.RemoveTable(App.Zeze.getConfig().GetTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
+                if (project.GenTables.Contains(table.Gen) && table.IsRocks == false)
+                    sw.WriteLine($"        {zezeVar}.RemoveTable(App.Zeze.getConfig().GetTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
             }
+        }
+
+        private string GetCollectionLogTemplateName(Types.Type type)
+        {
+            if (type is Types.TypeList tlist)
+            {
+                string value = rrcs.TypeName.GetName(tlist.ValueType);
+                return "Zeze.Raft.RocksRaft.LogList" + (tlist.ValueType.IsNormalBean ? "2<" : "1<") + value + ">";
+            }
+            else if (type is Types.TypeSet tset)
+            {
+                string value = rrcs.TypeName.GetName(tset.ValueType);
+                return "Zeze.Raft.RocksRaft.LogSet1<" + value + ">";
+            }
+            else if (type is Types.TypeMap tmap)
+            {
+                string key = rrcs.TypeName.GetName(tmap.KeyType);
+                string value = rrcs.TypeName.GetName(tmap.ValueType);
+                var version = tmap.ValueType.IsNormalBean ? "2<" : "1<";
+                return $"Zeze.Raft.RocksRaft.LogMap{version}{key}, {value}>";
+            }
+            throw new System.Exception();
+        }
+
+        public void RegisterRocksTables(StreamWriter sw)
+        {
+            foreach (Table table in module.Tables.Values)
+            {
+                if (project.GenTables.Contains(table.Gen) && table.IsRocks)
+                {
+                    var key = TypeName.GetName(table.KeyType);
+                    var value = TypeName.GetName(table.ValueType);
+                    var depends = new HashSet<Types.Type>();
+                    table.ValueType.Depends(depends);
+                    var tlogs = new HashSet<string>();
+                    foreach (var dep in depends)
+                    {
+                        if (!dep.IsCollection)
+                            continue;
+
+                        tlogs.Add(GetCollectionLogTemplateName(dep));
+                    }
+                    foreach (var tlog in tlogs)
+                    {
+                        sw.WriteLine($"            rocks.RegisterLog<{tlog}>();");
+                    }
+                    sw.WriteLine($"            rocks.RegisterTableTemplate<{key}, {value}>(\"{table.Name}\");");
+                }
+            }
+        }
+
+        public void DefineZezeTables(StreamWriter sw)
+        {
+            foreach (Table table in module.Tables.Values)
+            {
+                if (project.GenTables.Contains(table.Gen) && false == table.IsRocks)
+                {
+                    sw.WriteLine("    protected final " + table.Name + " _" + table.Name + " = new " + table.Name + "();");
+                }
+            }
+        }
+
+        void ModuleGen(StreamWriter sw)
+        {
+            sw.WriteLine($"    public static final int ModuleId = {module.Id};");
+            sw.WriteLine();
+
+            DefineZezeTables(sw);
+
+            sw.WriteLine($"    public final {project.Solution.Name}.App App;");
+            sw.WriteLine();
+
+            sw.WriteLine($"    public AbstractModule({project.Solution.Name}.App app) {{");
+            sw.WriteLine("        App = app;");
+            sw.WriteLine("        // register protocol factory and handles");
+            RegisterProtocols(sw);
+            sw.WriteLine("        // register table");
+            RegisterZezeTables(sw);
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine("    public void UnRegister() {");
+            UnRegisterProtocols(sw);
+            UnRegisterZezeTables(sw);
             sw.WriteLine("    }");
         }
 
@@ -357,6 +439,25 @@ namespace Zeze.Gen.java
             sw.WriteLine("}");
         }
 
+        public void GenEnums(StreamWriter sw, string namePrefix = "")
+        {
+            foreach (Types.Enum e in module.Enums)
+                sw.WriteLine("    public static final int " + namePrefix + e.Name + " = " + e.Value + ";" + e.Comment);
+            if (module.Enums.Count > 0)
+                sw.WriteLine();
+        }
+
+        public void GenAbstractProtocolHandles(StreamWriter sw, string namePrefix = "")
+        {
+            foreach (Protocol p in GetProcessProtocols())
+            {
+                if (p is Rpc rpc)
+                    sw.WriteLine($"    protected abstract long Process{namePrefix}{rpc.Name}Request({rpc.Space.Path(".", rpc.Name)} r) throws Throwable;");
+                else
+                    sw.WriteLine($"    protected abstract long Process{namePrefix}{p.Name}({p.Space.Path(".", p.Name)} p) throws Throwable;");
+            }
+        }
+
         public void MakeInterface()
         {
             using StreamWriter sw = module.OpenWriter(genDir, "AbstractModule.java");
@@ -370,18 +471,8 @@ namespace Zeze.Gen.java
             sw.WriteLine($"    public int getId() {{ return ModuleId; }}");
             sw.WriteLine();
             // declare enums
-            foreach (Types.Enum e in module.Enums)
-                sw.WriteLine("    public static final int " + e.Name + " = " + e.Value + ";" + e.Comment);
-            if (module.Enums.Count > 0)
-                sw.WriteLine();
-
-            foreach (Protocol p in GetProcessProtocols())
-            {
-                if (p is Rpc rpc)
-                    sw.WriteLine($"    protected abstract long Process{rpc.Name}Request({rpc.Space.Path(".", rpc.Name)} r) throws Throwable;");
-                else
-                    sw.WriteLine($"    protected abstract long Process{p.Name}({p.Space.Path(".", p.Name)} p) throws Throwable;");
-            }
+            GenEnums(sw);
+            GenAbstractProtocolHandles(sw);
             sw.WriteLine();
             ModuleGen(sw);
             sw.WriteLine("}");

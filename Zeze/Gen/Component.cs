@@ -23,6 +23,7 @@ namespace Zeze.Gen
                     break;
 
                 case "zeze+java":
+                    new Zeze.Gen.java.MakerComponent(this).Make();
                     break;
 
                 default:

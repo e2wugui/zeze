@@ -91,12 +91,4 @@
 		</service>
 	</component>
 
-	<!--
-	<component name="GlobalCacheManagerWithRaft" gendir=".." platform="zeze+java">
-		<service name="_" handle="server">
-			<module ref="Zeze.Component.GlobalCacheManagerWithRaft"/>
-		</service>
-	</component>
-	-->
-
 </solution>

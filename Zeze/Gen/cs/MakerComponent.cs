@@ -16,8 +16,8 @@ namespace Zeze.Gen.cs
         {
             string projectBasedir = Project.Gendir;
             string genDir = projectBasedir; // 公共类（Bean，Protocol，Rpc，Table）生成目录。
-            var dir2 = string.IsNullOrEmpty(Project.GenRelativeDir) ? "Zeze/Component" : Project.GenRelativeDir;
-            string srcDir = Path.Combine(projectBasedir, dir2); // 生成源代码全部放到同一个目录下。
+            var relativeSrcDir = string.IsNullOrEmpty(Project.GenRelativeDir) ? "Zeze/Component" : Project.GenRelativeDir;
+            string srcDir = Path.Combine(projectBasedir, relativeSrcDir); // 生成源代码全部放到同一个目录下。
             Directory.CreateDirectory(srcDir);
             Directory.CreateDirectory(genDir);
             foreach (Types.Bean bean in Project.AllBeans.Values)
@@ -47,6 +47,14 @@ namespace Zeze.Gen.cs
                 }
             }
 
+            var ns = "";
+            foreach (var dir in relativeSrcDir.Split(new char[] { '/', '\\' }))
+            {
+                if (!string.IsNullOrEmpty(ns))
+                    ns += ".";
+                ns += dir;
+            }
+
             var mfs = new List<ModuleFormatter>();
             foreach (Module mod in Project.AllOrderDefineModules)
                 mfs.Add(new ModuleFormatter(Project, mod, genDir, srcDir));
@@ -55,7 +63,7 @@ namespace Zeze.Gen.cs
                 using StreamWriter sw = Program.OpenStreamWriter(baseFileName);
 
                 sw.WriteLine("// auto generate");
-                sw.WriteLine("namespace Zeze.Services");
+                sw.WriteLine($"namespace {ns}");
                 sw.WriteLine("{");
                 sw.WriteLine($"    public abstract class Abstract{Project.Name}");
                 sw.WriteLine("    {");
@@ -105,7 +113,7 @@ namespace Zeze.Gen.cs
             {
                 using StreamWriter sw = Program.OpenStreamWriter(srcFileName);
                 sw.WriteLine();
-                sw.WriteLine($"namespace Zeze.Services");
+                sw.WriteLine($"namespace {ns}");
                 sw.WriteLine($"{{");
                 sw.WriteLine($"    public class {Project.Name} : Abstract{Project.Name}");
                 sw.WriteLine($"    {{");
