@@ -12,9 +12,9 @@ namespace Zeze.Raft.RocksRaft
 
         public Func<long> Func { get; set; }
         public Rocks Rocks { get; set; }
-        public Zeze.Net.Protocol DuplicateRequest { get; set; }
+        public Zeze.Net.Protocol UniqueRequest { get; set; }
         public Zeze.Net.Protocol AutoResponse { get; set; }
-        public long ReturnCode { get; set; }
+        public long ResultCode { get; set; }
 
         public Procedure()
         {

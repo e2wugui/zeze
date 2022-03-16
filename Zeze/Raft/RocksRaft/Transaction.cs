@@ -176,8 +176,8 @@ namespace Zeze.Raft.RocksRaft
         {
             try
             {
-				procedure.ReturnCode = procedure.Call();
-				if (0 == procedure.ReturnCode)
+				procedure.ResultCode = procedure.Call();
+				if (0 == procedure.ResultCode)
 				{
                     if (_lock_and_check_(Zeze.Transaction.TransactionLevel.Serializable))
                     {
@@ -187,24 +187,24 @@ namespace Zeze.Raft.RocksRaft
                     // else redo future
                 }
 				_final_rollback_(procedure);
-				return procedure.ReturnCode;
+				return procedure.ResultCode;
 			}
             catch (Zeze.Util.ThrowAgainException)
             {
-                procedure.ReturnCode = Zeze.Transaction.Procedure.Exception;
+                procedure.ResultCode = Zeze.Transaction.Procedure.Exception;
                 _final_rollback_(procedure);
                 throw;
             }
             catch (RaftRetryException ex1)
             {
                 logger.Debug(ex1);
-                procedure.ReturnCode = Zeze.Transaction.Procedure.RaftRetry;
+                procedure.ResultCode = Zeze.Transaction.Procedure.RaftRetry;
                 _final_rollback_(procedure);
-                return procedure.ReturnCode;
+                return procedure.ResultCode;
             }
             catch (Exception ex)
             {
-                procedure.ReturnCode = Zeze.Transaction.Procedure.Exception;
+                procedure.ResultCode = Zeze.Transaction.Procedure.Exception;
                 logger.Error(ex);
 
                 if (ex.GetType().Name == "AssertFailedException")
@@ -216,9 +216,9 @@ namespace Zeze.Raft.RocksRaft
                 if (_lock_and_check_(Zeze.Transaction.TransactionLevel.Serializable))
                 {
                     _final_rollback_(procedure);
-                    return procedure.ReturnCode;
+                    return procedure.ResultCode;
                 }
-                return procedure.ReturnCode;
+                return procedure.ResultCode;
             }
 		}
 
@@ -286,7 +286,7 @@ namespace Zeze.Raft.RocksRaft
         {
             // Collect Changes
             Savepoint sp = Savepoints[Savepoints.Count - 1];
-            Changes = new Changes(procedure.Rocks, this, procedure.DuplicateRequest);
+            Changes = new Changes(procedure.Rocks, this, procedure.UniqueRequest);
             foreach (Log log in sp.Logs.Values)
             {
                 // 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
@@ -307,11 +307,11 @@ namespace Zeze.Raft.RocksRaft
             if (Changes.Records.Count > 0) // has changes
             {
                 procedure.Rocks.UpdateAtomicLongs(Changes.AtomicLongs);
-                procedure.Rocks.Raft.AppendLog(Changes, procedure.DuplicateRequest?.ResultBean);
+                procedure.Rocks.Raft.AppendLog(Changes, procedure.UniqueRequest?.ResultBean);
             }
 
             _trigger_commit_actions_(procedure);
-            procedure.AutoResponse?.SendResultCode(procedure.AutoResponse.ResultCode);
+            procedure.AutoResponse?.SendResultCode(procedure.ResultCode);
         }
 
         internal void LeaderApply(Changes changes)
@@ -335,7 +335,7 @@ namespace Zeze.Raft.RocksRaft
 
         private void _final_rollback_(Procedure procedure)
         {
-            procedure.AutoResponse?.SendResultCode(procedure.AutoResponse.ResultCode);
+            procedure.AutoResponse?.SendResultCode(procedure.ResultCode);
         }
 
     }
