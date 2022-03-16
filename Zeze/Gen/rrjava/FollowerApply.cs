@@ -15,9 +15,10 @@ namespace Zeze.Gen.rrjava
 
         public static void Make(Types.Bean bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + $"public override void FollowerApply(Zeze.Raft.RocksRaft.Log log) {{");
+            sw.WriteLine(prefix + "@Override");
+            sw.WriteLine(prefix + $"public void FollowerApply(Zeze.Raft.RocksRaft.Log log) {{");
             sw.WriteLine(prefix + "    var blog = (Zeze.Raft.RocksRaft.LogBean)log;");
-            sw.WriteLine(prefix + "    foreach (var vlog in blog.getVariables().values()) {");
+            sw.WriteLine(prefix + "    for (var vlog : blog.getVariables().values()) {");
             sw.WriteLine(prefix + "        switch (vlog.getVariableId()) {");
             foreach (var v in bean.Variables)
             {

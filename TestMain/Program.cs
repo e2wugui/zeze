@@ -1,6 +1,5 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-
 string command = "";
 for (int i = 0; i < args.Length; ++i)
 {

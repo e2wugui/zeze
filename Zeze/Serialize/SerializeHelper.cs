@@ -9,6 +9,12 @@ namespace Zeze.Serialize
         {
             var type = typeof(T);
 
+            if (type == typeof(bool))
+            {
+                return (Func<ByteBuffer, T>)(Delegate)(new Func<ByteBuffer, bool>(
+                    (ByteBuffer bb) => bb.ReadBool()));
+            }
+
             if (type == typeof(byte))
             {
                 return (Func<ByteBuffer, T>)(Delegate)(new Func<ByteBuffer, byte>(
@@ -37,6 +43,18 @@ namespace Zeze.Serialize
             {
                 return (Func<ByteBuffer, T>)(Delegate)(new Func<ByteBuffer, string>(
                     (ByteBuffer bb) => bb.ReadString()));
+            }
+
+            if (type == typeof(double))
+            {
+                return (Func<ByteBuffer, T>)(Delegate)(new Func<ByteBuffer, double>(
+                    (ByteBuffer bb) => bb.ReadDouble()));
+            }
+
+            if (type == typeof(float))
+            {
+                return (Func<ByteBuffer, T>)(Delegate)(new Func<ByteBuffer, float>(
+                    (ByteBuffer bb) => bb.ReadFloat()));
             }
 
             if (type == typeof(Binary))
@@ -69,6 +87,12 @@ namespace Zeze.Serialize
         {
             var type = typeof(T);
 
+            if (type == typeof(bool))
+            {
+                return (Action<ByteBuffer, T>)(Delegate)(new Action<ByteBuffer, bool>(
+                        (ByteBuffer buf, bool x) => buf.WriteBool(x)));
+            }
+
             if (type == typeof(byte))
             {
                 return (Action<ByteBuffer, T>)(Delegate)(new Action<ByteBuffer, byte>(
@@ -97,6 +121,18 @@ namespace Zeze.Serialize
             {
                 return (Action<ByteBuffer, T>)(Delegate)(new Action<ByteBuffer, string>(
                         (ByteBuffer buf, string x) => buf.WriteString(x)));
+            }
+
+            if (type == typeof(double))
+            {
+                return (Action<ByteBuffer, T>)(Delegate)(new Action<ByteBuffer, double>(
+                        (ByteBuffer buf, double x) => buf.WriteDouble(x)));
+            }
+
+            if (type == typeof(float))
+            {
+                return (Action<ByteBuffer, T>)(Delegate)(new Action<ByteBuffer, float>(
+                        (ByteBuffer buf, float x) => buf.WriteFloat(x)));
             }
 
             if (type == typeof(Binary))

@@ -74,11 +74,11 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    var txn = Zeze.Transaction.Transaction.getCurrent();");
             sw.WriteLine(prefix + "    assert txn != null;");
-            sw.WriteLine(prefix + "    var log = new Zeze.Raft.RocksRaft.Log<{TypeName.GetName(type)}>();");
+            sw.WriteLine(prefix + $"    var log = new Zeze.Raft.RocksRaft.Log<{TypeName.GetName(type)}>();");
             sw.WriteLine(prefix + "    log.setBelong(this);");
             sw.WriteLine(prefix + $"    log.setVariableId({var.Id});");
             sw.WriteLine(prefix + "    log.setValue(value);");
-            sw.WriteLine(prefix + "    txn.PutLog(new Log_" + var.NamePrivate + "(this, value));"); // 
+            sw.WriteLine(prefix + "    txn.PutLog(log);"); // 
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }

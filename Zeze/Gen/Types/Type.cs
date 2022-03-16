@@ -66,18 +66,22 @@ namespace Zeze.Gen.Types
 
 		static Type()
 		{
-			new TypeDouble(Types);
-			new TypeBinary(Types);
 			new TypeBool(Types);
 			new TypeByte(Types);
+			new TypeShort(Types);
 			new TypeInt(Types);
 			new TypeLong(Types);
+
+			new TypeFloat(Types);
+			new TypeDouble(Types);
+
+			new TypeBinary(Types);
+			new TypeString(Types);
+
 			new TypeMap(Types);
 			new TypeList(Types);
 			new TypeSet(Types);
-			new TypeString(Types);
-			new TypeFloat(Types);
-			new TypeShort(Types);
+
 			new TypeDynamic(Types);
 		}
 	}

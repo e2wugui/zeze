@@ -270,7 +270,7 @@ namespace Zeze.Raft.RocksRaft
             TableKey tkey = new TableKey(Name, key);
             while (true)
             {
-                var r = LruCache.GetOrAdd(key, (_) => new Record<K, V>() { Table = this });
+                var r = LruCache.GetOrAdd(key, (_) => new Record<K, V>() { Table = this, Key = key });
                 lock (r)
                 {
                     if (r.Removed)

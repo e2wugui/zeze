@@ -15,7 +15,8 @@ namespace Zeze.Gen.rrjava
 
         public static void Make(Types.Bean bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + $"public override void LeaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog)");
+            sw.WriteLine(prefix + "@Override");
+            sw.WriteLine(prefix + $"public void LeaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog)");
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    switch (vlog.getVariableId()) {");
             foreach (var v in bean.Variables)
