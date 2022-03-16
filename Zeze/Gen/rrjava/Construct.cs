@@ -92,21 +92,21 @@ namespace Zeze.Gen.rrjava
         public void Visit(TypeList type)
         {
             string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}();");
+            sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}({BoxingName.GetBoxingName(type.ValueType)}.class);");
             sw.WriteLine(prefix + variable.NamePrivate + $".VariableId = {variable.Id};");
         }
 
         public void Visit(TypeSet type)
         {
             string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}();");
+            sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}({BoxingName.GetBoxingName(type.ValueType)}.class);");
             sw.WriteLine(prefix + variable.NamePrivate + $".VariableId = {variable.Id};");
         }
 
         public void Visit(TypeMap type)
         {
             string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}();");
+            sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}({BoxingName.GetBoxingName(type.KeyType)}.class, {BoxingName.GetBoxingName(type.ValueType)}.class);");
             sw.WriteLine(prefix + variable.NamePrivate + $".VariableId = {variable.Id};");
         }
 

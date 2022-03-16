@@ -85,7 +85,31 @@ namespace Zeze.Gen.rrjava
 
         public void Visit(BeanKey type)
         {
-            WriteProperty(type, true);
+            var typeName = TypeName.GetName(type);
+            sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + "{");
+            sw.WriteLine(prefix + "    if (!isManaged())");
+            sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "    var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();");
+            sw.WriteLine(prefix + "    if (txn == null)");
+            sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "    var log = txn.GetLog(getObjectId() + " + var.Id + ");");
+            sw.WriteLine(prefix + "    if (null == log)");
+            sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + $"    return (({GetLogName(type)})log).Value;");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine();
+            sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} value") + "{");
+            sw.WriteLine(prefix + "    if (value == null)");
+            sw.WriteLine(prefix + "        throw new IllegalArgumentException();");
+            sw.WriteLine(prefix + "    if (!isManaged()) {");
+            sw.WriteLine(prefix + "        " + var.NamePrivate + " = value;");
+            sw.WriteLine(prefix + "        return;");
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "    var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();");
+            sw.WriteLine(prefix + "    assert txn != null;");
+            sw.WriteLine(prefix + $"    txn.PutLog(new {GetLogName(type)}({typeName}.class, this, {var.Id}, value));"); // 
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine();
         }
 
         public void Visit(TypeByte type)

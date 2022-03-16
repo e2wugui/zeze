@@ -57,10 +57,6 @@ namespace Zeze.Raft.RocksRaft
         {
             return new Procedure(this, func);
         }
-        public Procedure NewProcedure(Func<long> func, Zeze.Net.Protocol rpc)
-        {
-            return new Procedure(this, func) { Rpc = rpc };
-        }
 
         public TableTemplate GetTableTemplate(string tableTemplateName)
         {

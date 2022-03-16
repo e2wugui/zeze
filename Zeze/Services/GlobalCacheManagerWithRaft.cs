@@ -27,7 +27,7 @@ namespace Zeze.Services
                 return 0;
             }
 
-            var result = Rocks.NewProcedure(
+            new Procedure(Rocks,
                 () =>
                 {
                     // 成功结果必须在锁内发送。
@@ -49,10 +49,12 @@ namespace Zeze.Services
                             rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                             return GlobalCacheManagerServer.AcquireErrorState;
                     }
-                }).Call();
-
-            if (result != 0)
-                rpc.SendResultCode(result); // 错误结果从这里发送。
+                })
+            {
+                // 启用自动发送rpc结果，但不做唯一检查。
+                AutoResponse = rpc,
+            }
+            .Call();
 
             return 0; // has handle all error.
         }
