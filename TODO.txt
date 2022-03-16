@@ -38,6 +38,8 @@
 	Global.RocksRaft.LruTryRemoveCallback
 
 【2022/4/11】
+	RocksRaft java
+	RocksRaft rrjava
 	GlobalRaft Agent.Initialize & Test
 	GlobalRaft Agent GetReadySocket() Login ReLogin	
 	GlobalRaft GlobalSerialId 问题解决初步想法：由RocksRaft提供AtomicLong实现，每个事务结束，

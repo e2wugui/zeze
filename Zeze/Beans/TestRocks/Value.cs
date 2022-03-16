@@ -16,6 +16,7 @@ namespace Zeze.Beans.TestRocks
         readonly Zeze.Raft.RocksRaft.CollSet1<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey> _SetBeankey;
         readonly Zeze.Raft.RocksRaft.CollMap1<int, int> _MapInt;
         readonly Zeze.Raft.RocksRaft.CollMap2<int, Zeze.Beans.TestRocks.Value> _MapBean;
+        Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey _Beankey;
 
         public int Int
         {
@@ -165,6 +166,31 @@ namespace Zeze.Beans.TestRocks
 
         public Zeze.Raft.RocksRaft.CollMap2<int, Zeze.Beans.TestRocks.Value> MapBean => _MapBean;
 
+        public Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey Beankey
+        {
+            get
+            {
+                if (!IsManaged)
+                    return _Beankey;
+                var txn = Zeze.Raft.RocksRaft.Transaction.Current;
+                if (txn == null) return _Beankey;
+                var log = txn.GetLog(ObjectId + 11);
+                return log != null ? ((Zeze.Raft.RocksRaft.Log<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey>)log).Value : _Beankey;
+            }
+            set
+            {
+                if (value == null)
+                    throw new System.ArgumentNullException();
+                if (!IsManaged)
+                {
+                    _Beankey = value;
+                    return;
+                }
+                var txn = Zeze.Raft.RocksRaft.Transaction.Current;
+                txn.PutLog(new Zeze.Raft.RocksRaft.Log<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey>() { Belong = this, VariableId = 11, Value = value, });
+            }
+        }
+
         public Value() : this(0)
         {
         }
@@ -177,6 +203,7 @@ namespace Zeze.Beans.TestRocks
             _SetBeankey = new Zeze.Raft.RocksRaft.CollSet1<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey>() { VariableId = 8 };
             _MapInt = new Zeze.Raft.RocksRaft.CollMap1<int, int>() { VariableId = 9 };
             _MapBean = new Zeze.Raft.RocksRaft.CollMap2<int, Zeze.Beans.TestRocks.Value>() { VariableId = 10 };
+            _Beankey = new Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey();
         }
 
         public void Assign(Value other)
@@ -199,6 +226,7 @@ namespace Zeze.Beans.TestRocks
             MapBean.Clear();
             foreach (var e in other.MapBean)
                 MapBean.Add(e.Key, e.Value);
+            Beankey = other.Beankey;
         }
 
         public Value CopyIfManaged()
@@ -291,7 +319,10 @@ namespace Zeze.Beans.TestRocks
                 sb.Append(')').Append(Environment.NewLine);
             }
             level -= 4;
-            sb.Append(Zeze.Util.Str.Indent(level)).Append(']').Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append(']').Append(',').Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("Beankey").Append('=').Append(Environment.NewLine);
+            Beankey.BuildString(sb, level + 4);
+            sb.Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -397,6 +428,16 @@ namespace Zeze.Beans.TestRocks
                     }
                 }
             }
+            {
+                int _a_ = _o_.WriteIndex;
+                int _j_ = _o_.WriteTag(_i_, 11, ByteBuffer.BEAN);
+                int _b_ = _o_.WriteIndex;
+                Beankey.Encode(_o_);
+                if (_b_ + 1 == _o_.WriteIndex)
+                    _o_.WriteIndex = _a_;
+                else
+                    _i_ = _j_;
+            }
             _o_.WriteByte(0);
         }
 
@@ -496,6 +537,11 @@ namespace Zeze.Beans.TestRocks
                     _o_.SkipUnknownField(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
+            if (_i_ == 11)
+            {
+                _o_.ReadBean(Beankey, _t_);
+                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+            }
             while (_t_ != 0)
             {
                 _o_.SkipUnknownField(_t_);
@@ -525,6 +571,7 @@ namespace Zeze.Beans.TestRocks
                 case 8: _SetBeankey.LeaderApplyNoRecursive(vlog); break;
                 case 9: _MapInt.LeaderApplyNoRecursive(vlog); break;
                 case 10: _MapBean.LeaderApplyNoRecursive(vlog); break;
+                case 11: _Beankey = ((Zeze.Raft.RocksRaft.Log<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey>)vlog).Value; break;
             }
         }
 
@@ -545,6 +592,7 @@ namespace Zeze.Beans.TestRocks
                     case 8: _SetBeankey.FollowerApply(vlog); break;
                     case 9: _MapInt.FollowerApply(vlog); break;
                     case 10: _MapBean.FollowerApply(vlog); break;
+                    case 11: _Beankey = ((Zeze.Raft.RocksRaft.Log<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey>)vlog).Value; break;
                 }
             }
         }

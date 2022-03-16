@@ -99,7 +99,7 @@ namespace Zeze.Gen.rrjava
 
         public void Visit(Types.BeanKey type)
         {
-            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = ((Zeze.Raft.RocksRaft.Log<{TypeName.GetName(type)}>)vlog).Value; break;");
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).Value; break;");
         }
 
         public void Visit(Types.TypeDynamic type)

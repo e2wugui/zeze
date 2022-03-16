@@ -67,6 +67,7 @@
 				<variable id="8" name="SetBeankey" type="set" value="Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey"/>
 				<variable id="9" name="MapInt" type="map" key="int" value="int"/>
 				<variable id="10" name="MapBean" type="map" key="int" value="Value"/>
+				<variable id="11" name="Beankey" type="Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey"/>
 			</bean>
 
 			<table name="tRocks" key="int" value="Value" kind="rocks"/>

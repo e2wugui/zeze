@@ -346,48 +346,56 @@ namespace Zeze.Gen.java
         {
             if (type is Types.TypeList tlist)
             {
-                string value = rrcs.TypeName.GetName(tlist.ValueType);
-                return "Zeze.Raft.RocksRaft.LogList" + (tlist.ValueType.IsNormalBean ? "2<" : "1<") + value + ">";
+                string value = BoxingName.GetBoxingName(tlist.ValueType);
+                return "() -> new Zeze.Raft.RocksRaft.LogList" + (tlist.ValueType.IsNormalBean ? "2<" : "1<") + value + ">()";
             }
             else if (type is Types.TypeSet tset)
             {
-                string value = rrcs.TypeName.GetName(tset.ValueType);
-                return "Zeze.Raft.RocksRaft.LogSet1<" + value + ">";
+                string value = BoxingName.GetBoxingName(tset.ValueType);
+                return "() -> new Zeze.Raft.RocksRaft.LogSet1<" + value + ">()";
             }
             else if (type is Types.TypeMap tmap)
             {
-                string key = rrcs.TypeName.GetName(tmap.KeyType);
-                string value = rrcs.TypeName.GetName(tmap.ValueType);
+                string key = BoxingName.GetBoxingName(tmap.KeyType);
+                string value = BoxingName.GetBoxingName(tmap.ValueType);
                 var version = tmap.ValueType.IsNormalBean ? "2<" : "1<";
-                return $"Zeze.Raft.RocksRaft.LogMap{version}{key}, {value}>";
+                return $"() -> new Zeze.Raft.RocksRaft.LogMap{version}{key}, {value}>()";
             }
             throw new System.Exception();
         }
 
         public void RegisterRocksTables(StreamWriter sw)
         {
+            var depends = new HashSet<Types.Type>();
             foreach (Table table in module.Tables.Values)
             {
                 if (project.GenTables.Contains(table.Gen) && table.IsRocks)
                 {
                     var key = TypeName.GetName(table.KeyType);
                     var value = TypeName.GetName(table.ValueType);
-                    var depends = new HashSet<Types.Type>();
                     table.ValueType.Depends(depends);
-                    var tlogs = new HashSet<string>();
-                    foreach (var dep in depends)
-                    {
-                        if (!dep.IsCollection)
-                            continue;
-
-                        tlogs.Add(GetCollectionLogTemplateName(dep));
-                    }
-                    foreach (var tlog in tlogs)
-                    {
-                        sw.WriteLine($"            rocks.RegisterLog<{tlog}>();");
-                    }
                     sw.WriteLine($"            rocks.RegisterTableTemplate<{key}, {value}>(\"{table.Name}\");");
                 }
+            }
+            var logfactorys = new HashSet<string>();
+            foreach (var dep in depends)
+            {
+                if (dep.IsBean && dep.IsKeyable) // is beankey
+                {
+                    var depname = TypeName.GetName(dep);
+                    logfactorys.Add($"() -> new Zeze.Raft.RocksRaft.Log1.LogBeanKey<{depname}>(() -> new {depname}())");
+                    continue;
+                }
+                if (dep.IsCollection)
+                {
+                    logfactorys.Add(GetCollectionLogTemplateName(dep));
+                    continue;
+                }
+                // 基本类型 java 全部自动注册。
+            }
+            foreach (var fac in logfactorys)
+            {
+                sw.WriteLine($"            rocks.RegisterLog({fac});");
             }
         }
 

@@ -30,7 +30,7 @@ namespace Zeze.Gen.cs
             if (type is Types.TypeList tlist)
             {
                 string value = rrcs.TypeName.GetName(tlist.ValueType);
-                return "Zeze.Raft.RocksRaft.LogList" + (tlist.ValueType.IsNormalBean ? "2<" : "1<") + value + ">";
+                return "Zeze.Raft.RocksRaft.LogList" + (tlist.ValueType.IsNormalBeanOrRocks ? "2<" : "1<") + value + ">";
             }
             else if (type is Types.TypeSet tset)
             {
@@ -41,7 +41,7 @@ namespace Zeze.Gen.cs
             {
                 string key = rrcs.TypeName.GetName(tmap.KeyType);
                 string value = rrcs.TypeName.GetName(tmap.ValueType);
-                var version = tmap.ValueType.IsNormalBean ? "2<" : "1<";
+                var version = tmap.ValueType.IsNormalBeanOrRocks ? "2<" : "1<";
                 return $"Zeze.Raft.RocksRaft.LogMap{version}{key}, {value}>";
             }
             throw new System.Exception();
@@ -49,28 +49,32 @@ namespace Zeze.Gen.cs
 
         public void RegisterRocksTables(StreamWriter sw)
         {
+            var depends = new HashSet<Types.Type>();
             foreach (Table table in module.Tables.Values)
             {
                 if (project.GenTables.Contains(table.Gen) && table.IsRocks)
                 {
                     var key = TypeName.GetName(table.KeyType);
                     var value = TypeName.GetName(table.ValueType);
-                    var depends = new HashSet<Types.Type>();
                     table.ValueType.Depends(depends);
-                    var tlogs = new HashSet<string>();
-                    foreach (var dep in depends)
-                    {
-                        if (!dep.IsCollection)
-                            continue;
-
-                        tlogs.Add(GetCollectionLogTemplateName(dep));
-                    }
-                    foreach (var tlog in tlogs)
-                    { 
-                        sw.WriteLine($"            rocks.RegisterLog<{tlog}>();");
-                    }
                     sw.WriteLine($"            rocks.RegisterTableTemplate<{key}, {value}>(\"{table.Name}\");");
                 }
+            }
+            var tlogs = new HashSet<string>();
+            foreach (var dep in depends)
+            {
+                if (dep.IsCollection)
+                {
+                    tlogs.Add(GetCollectionLogTemplateName(dep));
+                    continue;
+                }
+                if (dep.IsNormalBeanOrRocks)
+                    continue;
+                tlogs.Add($"Zeze.Raft.RocksRaft.Log<{TypeName.GetName(dep)}>");
+            }
+            foreach (var tlog in tlogs)
+            {
+                sw.WriteLine($"            rocks.RegisterLog<{tlog}>();");
             }
         }
 

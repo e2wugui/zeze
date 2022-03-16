@@ -73,9 +73,11 @@ namespace Zeze.Services
 
         public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks)
         {
-            rocks.RegisterLog<Zeze.Raft.RocksRaft.LogSet1<int>>();
             rocks.RegisterTableTemplate<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey, Zeze.Beans.GlobalCacheManagerWithRaft.CacheState>("Global");
             rocks.RegisterTableTemplate<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey, Zeze.Beans.GlobalCacheManagerWithRaft.AcquiredState>("Session");
+            rocks.RegisterLog<Zeze.Raft.RocksRaft.Log<int>>();
+            rocks.RegisterLog<Zeze.Raft.RocksRaft.Log<long>>();
+            rocks.RegisterLog<Zeze.Raft.RocksRaft.LogSet1<int>>();
         }
 
 
