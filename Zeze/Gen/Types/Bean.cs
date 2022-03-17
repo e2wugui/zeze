@@ -54,6 +54,11 @@ namespace Zeze.Gen.Types
 				}
 		}
 
+		// 当这个Bean作为Map.Value定义时，把Map.KeyType加到这里。
+		// RocksRaft 自动生成改KeyType的属性，用来保存Bean被加入Map时的Key的值。
+		// Map.Value改变时，从Value中读取Key的值，快速找到对应的KV键值。
+		public HashSet<Type> MapKeyTypes { get; } = new HashSet<Type>();
+
 		public void Add(Variable var)
 		{
 			foreach (var vv in Variables)

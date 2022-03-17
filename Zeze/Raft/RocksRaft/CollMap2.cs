@@ -15,7 +15,7 @@ namespace Zeze.Raft.RocksRaft
 
 		static CollMap2()
 		{
-			PropertyMapKey = typeof(V).GetProperty($"_{typeof(K).Name}MapKey_");
+			PropertyMapKey = typeof(V).GetProperty($"_zeze_map_key_{Util.Reflect.GetStableName(typeof(K))}_");
 		}
 
 		public override void Add(K key, V value)

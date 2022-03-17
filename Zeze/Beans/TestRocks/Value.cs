@@ -18,6 +18,8 @@ namespace Zeze.Beans.TestRocks
         readonly Zeze.Raft.RocksRaft.CollMap2<int, Zeze.Beans.TestRocks.Value> _MapBean;
         Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey _Beankey;
 
+        public int _zeze_map_key_int_ { get; set; }
+
         public int Int
         {
             get

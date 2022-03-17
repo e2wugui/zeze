@@ -73,6 +73,7 @@ namespace Zeze.Util
 			}
 
 			// 支持的 Zeze/Gen/Types/ 类型。
+			// 必须是xml中定义Bean.Varialble.Type的名字。
 			if (type == typeof(bool))
 				return "bool";
 			if (type == typeof(byte))
