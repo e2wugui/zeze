@@ -348,19 +348,19 @@ namespace Zeze.Gen.java
             {
                 string value = BoxingName.GetBoxingName(tlist.ValueType);
                 var version = tlist.ValueType.IsNormalBean ? "2" : "1";
-                return $"() -> new Zeze.Raft.RocksRaft.LogList{version}({value}.class)";
+                return $"() -> new Zeze.Raft.RocksRaft.LogList{version}<>({value}.class)";
             }
             else if (type is Types.TypeSet tset)
             {
                 string value = BoxingName.GetBoxingName(tset.ValueType);
-                return $"() -> new Zeze.Raft.RocksRaft.LogSet1({value}.class)";
+                return $"() -> new Zeze.Raft.RocksRaft.LogSet1<>({value}.class)";
             }
             else if (type is Types.TypeMap tmap)
             {
                 string key = BoxingName.GetBoxingName(tmap.KeyType);
                 string value = BoxingName.GetBoxingName(tmap.ValueType);
                 var version = tmap.ValueType.IsNormalBean ? "2" : "1";
-                return $"() -> new Zeze.Raft.RocksRaft.LogMap{version}({key}.class, {value}.class)";
+                return $"() -> new Zeze.Raft.RocksRaft.LogMap{version}<>({key}.class, {value}.class)";
             }
             throw new System.Exception();
         }
@@ -384,7 +384,7 @@ namespace Zeze.Gen.java
                 if (dep.IsBean && dep.IsKeyable) // is beankey
                 {
                     var depname = TypeName.GetName(dep);
-                    logfactorys.Add($"() -> new Zeze.Raft.RocksRaft.Log1.LogBeanKey({depname}.class)");
+                    logfactorys.Add($"() -> new Zeze.Raft.RocksRaft.Log1.LogBeanKey<>({depname}.class)");
                     continue;
                 }
                 if (dep.IsCollection)
@@ -402,13 +402,17 @@ namespace Zeze.Gen.java
 
         public void DefineZezeTables(StreamWriter sw)
         {
+            bool written = false;
             foreach (Table table in module.Tables.Values)
             {
                 if (project.GenTables.Contains(table.Gen) && false == table.IsRocks)
                 {
                     sw.WriteLine("    protected final " + table.Name + " _" + table.Name + " = new " + table.Name + "();");
+                    written = true;
                 }
             }
+            if (written)
+                sw.WriteLine();
         }
 
         void ModuleGen(StreamWriter sw)
@@ -460,6 +464,7 @@ namespace Zeze.Gen.java
         {
             foreach (Protocol p in GetProcessProtocols())
             {
+                sw.WriteLine();
                 if (p is Rpc rpc)
                     sw.WriteLine($"    protected abstract long Process{namePrefix}{rpc.Name}Request({rpc.Space.Path(".", rpc.Name)} r) throws Throwable;");
                 else

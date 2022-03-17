@@ -68,7 +68,6 @@ namespace Zeze.Gen.java
                 sw.WriteLine($"public abstract class Abstract{Project.Name} {{");
                 foreach (var mf in mfs) mf.GenEnums(sw, mfs.Count > 1 ? mf.module.Name : "");
                 foreach (var mf in mfs) mf.DefineZezeTables(sw);
-                sw.WriteLine();
 
                 sw.WriteLine("    public void RegisterProtocols(Zeze.Net.Service service) {");
                 foreach (var mf in mfs) mf.RegisterProtocols(sw, "service");
@@ -93,26 +92,22 @@ namespace Zeze.Gen.java
                 sw.WriteLine("    public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {");
                 foreach (var mf in mfs) mf.RegisterRocksTables(sw);
                 sw.WriteLine("    }");
-                sw.WriteLine();
 
                 // gen abstract protocol handles
                 // 如果模块嵌套，仅传入Module.Name不够。但一般够用了。
                 foreach (var mf in mfs) mf.GenAbstractProtocolHandles(sw, mfs.Count > 1 ? mf.module.Name : "");
 
                 sw.WriteLine("}");
-                sw.WriteLine();
             }
-            var srcFileName = Path.Combine(srcDir, Project.Name + ".cs");
+            var srcFileName = Path.Combine(srcDir, Project.Name + ".java");
             if (!File.Exists(srcFileName))
             {
                 using StreamWriter sw = Program.OpenStreamWriter(srcFileName);
-                sw.WriteLine();
                 sw.WriteLine($"package {ns};");
                 sw.WriteLine();
-                sw.WriteLine($"public class {Project.Name} : Abstract{Project.Name} {{");
+                sw.WriteLine($"public class {Project.Name} extends Abstract{Project.Name} {{");
                 foreach (var mf in mfs) mf.GenEmptyProtocolHandles(sw, mfs.Count > 1 ? mf.module.Name : "", false);
                 sw.WriteLine($"}}");
-                sw.WriteLine();
             }
         }
     }

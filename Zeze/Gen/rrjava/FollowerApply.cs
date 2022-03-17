@@ -15,6 +15,14 @@ namespace Zeze.Gen.rrjava
 
         public static void Make(Types.Bean bean, StreamWriter sw, string prefix)
         {
+            foreach (var v in bean.Variables)
+            {
+                if (!v.Transient && v.VariableType is Types.BeanKey)
+                {
+                    sw.WriteLine(prefix + "@SuppressWarnings(\"unchecked\")");
+                    break;
+                }
+            }
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + $"public void FollowerApply(Zeze.Raft.RocksRaft.Log log) {{");
             sw.WriteLine(prefix + "    var blog = (Zeze.Raft.RocksRaft.LogBean)log;");

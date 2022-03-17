@@ -23,6 +23,13 @@ namespace Zeze.Gen.rrjava
             return visitor.nameOmitted;
         }
 
+        public static string GetSimpleName(Type type)
+        {
+            var visitor = new TypeName();
+            type.Accept(visitor);
+            return visitor.nameOmitted != null ? visitor.nameOmitted + "<>" : visitor.name;
+        }
+
         public virtual void Visit(TypeBool type)
         {
             name = "boolean";

@@ -63,6 +63,12 @@ namespace Zeze.Gen.rrjava
         {
             return LogName.GetName(type);
         }
+
+        static string GetSimpleLogName(Type type)
+        {
+            return type is BeanKey ? "Zeze.Raft.RocksRaft.Log1.LogBeanKey<>" : GetLogName(type);
+        }
+
         void WriteProperty(Type type, bool checkNull = false)
         {
             var typeName = TypeName.GetName(type);
@@ -90,7 +96,7 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();");
             sw.WriteLine(prefix + "    assert txn != null;");
-            sw.WriteLine(prefix + $"    txn.PutLog(new {GetLogName(type)}(this, {var.Id}, value));"); // 
+            sw.WriteLine(prefix + $"    txn.PutLog(new {GetLogName(type)}(this, {var.Id}, value));"); //
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
@@ -98,6 +104,7 @@ namespace Zeze.Gen.rrjava
         public void Visit(BeanKey type)
         {
             var typeName = TypeName.GetName(type);
+            sw.WriteLine(prefix + "@SuppressWarnings(\"unchecked\")");
             sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + "{");
             sw.WriteLine(prefix + "    if (!isManaged())");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
@@ -119,7 +126,7 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();");
             sw.WriteLine(prefix + "    assert txn != null;");
-            sw.WriteLine(prefix + $"    txn.PutLog(new {GetLogName(type)}({typeName}.class, this, {var.Id}, value));"); // 
+            sw.WriteLine(prefix + $"    txn.PutLog(new {GetSimpleLogName(type)}({typeName}.class, this, {var.Id}, value));"); //
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }

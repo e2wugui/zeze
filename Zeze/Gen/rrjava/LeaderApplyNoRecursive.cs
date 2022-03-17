@@ -15,6 +15,14 @@ namespace Zeze.Gen.rrjava
 
         public static void Make(Types.Bean bean, StreamWriter sw, string prefix)
         {
+            foreach (var v in bean.Variables)
+            {
+                if (!v.Transient && v.VariableType is Types.BeanKey)
+                {
+                    sw.WriteLine(prefix + "@SuppressWarnings(\"unchecked\")");
+                    break;
+                }
+            }
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + $"public void LeaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog)");
             sw.WriteLine(prefix + "{");
@@ -92,7 +100,7 @@ namespace Zeze.Gen.rrjava
 
         public void Visit(Types.Bean type)
         {
-            // leader apply not need 
+            // leader apply not need
         }
 
         public void Visit(Types.BeanKey type)
