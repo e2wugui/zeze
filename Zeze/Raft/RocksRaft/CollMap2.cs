@@ -20,8 +20,10 @@ namespace Zeze.Raft.RocksRaft
 
 		public override void Add(K key, V value)
 		{
+			PropertyMapKey?.SetValue(value, key);
 			if (IsManaged)
 			{
+				value.InitRootInfo(RootInfo, this);
 				var maplog = (LogMap1<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
 				maplog.Add(key, value);
 			}
@@ -33,11 +35,10 @@ namespace Zeze.Raft.RocksRaft
 
 		public override void Put(K key, V value)
 		{
+			PropertyMapKey?.SetValue(value, key);
 			if (IsManaged)
             {
 				value.InitRootInfo(RootInfo, this);
-				PropertyMapKey?.SetValue(value, key);
-
 				var maplog = (LogMap2<K, V>)Transaction.Current.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
 				maplog.Put(key, value);
 			}
