@@ -11,6 +11,7 @@ namespace Zeze.Gen.rrjava
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
+            /*
             foreach (var k in bean.MapKeyTypes)
             {
                 // 【注意】{k.Name} see Zeze.Util.Reflect.GetStableName
@@ -22,6 +23,22 @@ namespace Zeze.Gen.rrjava
             }
             if (bean.MapKeyTypes.Count > 0)
                 sw.WriteLine();
+            */
+            if (bean.MapKeyTypes.Count > 0)
+            {
+                sw.WriteLine($"{prefix}private Object __zeze_map_key__;");
+                sw.WriteLine();
+                sw.WriteLine($"{prefix}@Override");
+                sw.WriteLine($"{prefix}public Object getMapKey() {{");
+                sw.WriteLine($"{prefix}    return __zeze_map_key__;");
+                sw.WriteLine($"{prefix}}}");
+                sw.WriteLine();
+                sw.WriteLine($"{prefix}@Override");
+                sw.WriteLine($"{prefix}public void setMapKey(Object value) {{");
+                sw.WriteLine($"{prefix}    __zeze_map_key__ = value;");
+                sw.WriteLine($"{prefix}}}");
+                sw.WriteLine();
+            }
 
             foreach (Variable var in bean.Variables)
             {

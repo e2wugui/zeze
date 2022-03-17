@@ -62,7 +62,7 @@ namespace Zeze.Gen.java
             {
                 using StreamWriter sw = Program.OpenStreamWriter(baseFileName);
 
-                sw.WriteLine("// auto generate");
+                sw.WriteLine("// auto-generated @formatter:off");
                 sw.WriteLine($"package {ns};");
                 sw.WriteLine();
                 sw.WriteLine($"public abstract class Abstract{Project.Name} {{");
