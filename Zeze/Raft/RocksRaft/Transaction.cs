@@ -177,17 +177,16 @@ namespace Zeze.Raft.RocksRaft
             try
             {
 				procedure.ResultCode = procedure.Call();
-				if (0 == procedure.ResultCode)
-				{
-                    if (_lock_and_check_(Zeze.Transaction.TransactionLevel.Serializable))
-                    {
+                if (_lock_and_check_(Zeze.Transaction.TransactionLevel.Serializable))
+                {
+                    if (0 == procedure.ResultCode)
                         _final_commit_(procedure);
-                        return 0;
-                    }
-                    // else redo future
+                    else
+                        _final_rollback_(procedure);
+                    return procedure.ResultCode;
                 }
-				_final_rollback_(procedure);
-				return procedure.ResultCode;
+                _final_rollback_(procedure); // 乐观锁，这里应该redo
+                return procedure.ResultCode;
 			}
             catch (Zeze.Util.ThrowAgainException)
             {
@@ -218,6 +217,7 @@ namespace Zeze.Raft.RocksRaft
                     _final_rollback_(procedure);
                     return procedure.ResultCode;
                 }
+                _final_rollback_(procedure); // 乐观锁，这里应该redo
                 return procedure.ResultCode;
             }
 		}

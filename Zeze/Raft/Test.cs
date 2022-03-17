@@ -127,7 +127,6 @@ namespace Zeze.Raft
                 });
             Agent.Client.Start();
 
-            Util.Task.LogIgnoreExceptionNames.TryAdd(typeof(RaftRetryException).FullName, typeof(RaftRetryException).FullName);
             Util.Task.Run(() =>
             {
                 while (true)

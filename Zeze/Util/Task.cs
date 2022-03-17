@@ -40,7 +40,6 @@ namespace Zeze.Util
         }
 
         public static volatile Action<NLog.LogLevel, Exception, long, string> LogAction = DefaultLogAction;
-        public static ConcurrentDictionary<string, string> LogIgnoreExceptionNames { get; } = new ConcurrentDictionary<string, string>();
 
         public static void LogAndStatistics(Exception ex, long result, Net.Protocol p, bool IsRequestSaved)
         {
@@ -58,9 +57,6 @@ namespace Zeze.Util
 
         public static void DefaultLogAction(NLog.LogLevel level, Exception ex, long result, string message)
         {
-            if (null != ex && LogIgnoreExceptionNames.ContainsKey(ex.GetType().FullName))
-                return;
-
             // exception -> Error
             // 0 != result -> level from parameter
             // others -> Trace

@@ -347,19 +347,20 @@ namespace Zeze.Gen.java
             if (type is Types.TypeList tlist)
             {
                 string value = BoxingName.GetBoxingName(tlist.ValueType);
-                return "() -> new Zeze.Raft.RocksRaft.LogList" + (tlist.ValueType.IsNormalBean ? "2<" : "1<") + value + ">()";
+                var version = tlist.ValueType.IsNormalBean ? "2" : "1";
+                return $"() -> new Zeze.Raft.RocksRaft.LogList{version}({value}.class)";
             }
             else if (type is Types.TypeSet tset)
             {
                 string value = BoxingName.GetBoxingName(tset.ValueType);
-                return "() -> new Zeze.Raft.RocksRaft.LogSet1<" + value + ">()";
+                return $"() -> new Zeze.Raft.RocksRaft.LogSet1({value}.class)";
             }
             else if (type is Types.TypeMap tmap)
             {
                 string key = BoxingName.GetBoxingName(tmap.KeyType);
                 string value = BoxingName.GetBoxingName(tmap.ValueType);
-                var version = tmap.ValueType.IsNormalBean ? "2<" : "1<";
-                return $"() -> new Zeze.Raft.RocksRaft.LogMap{version}{key}, {value}>()";
+                var version = tmap.ValueType.IsNormalBean ? "2" : "1";
+                return $"() -> new Zeze.Raft.RocksRaft.LogMap{version}({key}.class, {value}.class)";
             }
             throw new System.Exception();
         }
@@ -374,7 +375,7 @@ namespace Zeze.Gen.java
                     var key = TypeName.GetName(table.KeyType);
                     var value = TypeName.GetName(table.ValueType);
                     table.ValueType.Depends(depends);
-                    sw.WriteLine($"            rocks.RegisterTableTemplate<{key}, {value}>(\"{table.Name}\");");
+                    sw.WriteLine($"            rocks.RegisterTableTemplate(\"{table.Name}\", {key}.class, {value}.class);");
                 }
             }
             var logfactorys = new HashSet<string>();
@@ -383,7 +384,7 @@ namespace Zeze.Gen.java
                 if (dep.IsBean && dep.IsKeyable) // is beankey
                 {
                     var depname = TypeName.GetName(dep);
-                    logfactorys.Add($"() -> new Zeze.Raft.RocksRaft.Log1.LogBeanKey<{depname}>(() -> new {depname}())");
+                    logfactorys.Add($"() -> new Zeze.Raft.RocksRaft.Log1.LogBeanKey({depname}.class)");
                     continue;
                 }
                 if (dep.IsCollection)
