@@ -12,6 +12,20 @@ namespace Zeze.Raft.RocksRaft
 	{
 		public static Transaction Current => threadlocal.Value;
 
+        public HashSet<PessimismLock> PessimismLocks { get; } = new();
+        public Procedure Procedure { get; private set; }
+
+        public T AddPessimismLock<T>(T plock)
+            where T : PessimismLock
+        {
+            if (Procedure.Rocks.RocksMode != RocksMode.Pessimism)
+                throw new Exception("RocksMode Is Not Pessimism!");
+
+            if (PessimismLocks.Add(plock))
+                plock.Lock();
+            return plock;
+        }
+
 		public bool TryGetLog(long logKey, out Log log)
 		{
             log = GetLog(logKey);
@@ -174,6 +188,8 @@ namespace Zeze.Raft.RocksRaft
 
 		internal long Perform(Procedure procedure)
         {
+            Procedure = procedure;
+
             try
             {
 				procedure.ResultCode = procedure.Call();
@@ -219,6 +235,14 @@ namespace Zeze.Raft.RocksRaft
                 }
                 _final_rollback_(procedure); // 乐观锁，这里应该redo
                 return procedure.ResultCode;
+            }
+            finally
+            {
+                foreach (var plock in PessimismLocks)
+                {
+                    plock.Unlock();
+                }
+                PessimismLocks.Clear();
             }
 		}
 

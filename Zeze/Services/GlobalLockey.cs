@@ -9,7 +9,7 @@ using System.Threading;
 namespace Zeze.Services
 {
 
-    public sealed class GlobalLockey : System.IComparable<GlobalLockey>
+    public sealed class GlobalLockey : System.IComparable<GlobalLockey>, Zeze.Raft.RocksRaft.PessimismLock
     {
 		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 		public GlobalTableKey GlobalTableKey { get; }
@@ -23,6 +23,16 @@ namespace Zeze.Services
 		{
 			GlobalTableKey = key;
 		}
+
+		public void Lock()
+		{
+			Enter();
+		}
+
+		public void Unlock()
+        {
+			Exit();
+        }
 
 		public void Enter()
         {

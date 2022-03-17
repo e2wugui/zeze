@@ -16,6 +16,7 @@ namespace Zeze.Raft.RocksRaft
         public ConcurrentDictionary<string, TableTemplate> TableTemplates { get; } = new ConcurrentDictionary<string, TableTemplate>();  
         public ConcurrentDictionary<string, Table> Tables { get; } = new ConcurrentDictionary<string, Table>();
         public ConcurrentDictionary<int, AtomicLong> AtomicLongs { get; } = new();
+        public RocksMode RocksMode { get; }
 
         public long AtomicLongIncrementAndGet(int index)
         { 
@@ -92,10 +93,16 @@ namespace Zeze.Raft.RocksRaft
 
         public Rocks(
             string raftName = null, // 这个参数会覆盖RaftConfig.Name，这样应用可以共享同一个配置文件。
+            RocksMode mode = RocksMode.Pessimism,
             RaftConfig raftConfig = null, // "raft.xml"
             Config config = null, // "zeze.xml"
             bool RocksDbWriteOptionSync = false)
         {
+            RocksMode = mode;
+
+            if (mode != RocksMode.Pessimism)
+                throw new Exception("Unsupported RocksMode = " + mode);
+
             RegisterLog<LogBean>();
             RegisterLog<Log<int>>();
             RegisterLog<Log<long>>();

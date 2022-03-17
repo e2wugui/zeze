@@ -194,7 +194,8 @@ namespace Zeze.Services
                         return;
                     ActiveClose = true;
                 }
-                RaftClient.SendForWait(new NormalClose()).Task.Wait();
+                if (LoginTimes.Get() > 0)
+                    RaftClient.SendForWait(new NormalClose()).Task.Wait(10 * 1000); // 10s
                 RaftClient.Client.Stop();
             }
 
