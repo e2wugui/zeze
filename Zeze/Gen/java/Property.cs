@@ -25,7 +25,7 @@ namespace Zeze.Gen.java
         void WriteProperty(Type type, bool checkNull = false)
         {
             var typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + "{");
+            sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + " {");
             sw.WriteLine(prefix + "    if (!isManaged())");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "    var txn = Zeze.Transaction.Transaction.getCurrent();");
@@ -36,7 +36,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    return log != null ? log.getValue() : " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
-            sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} value") + "{");
+            sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} value") + " {");
             if (checkNull)
             {
                 sw.WriteLine(prefix + "    if (value == null)");
@@ -49,7 +49,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    var txn = Zeze.Transaction.Transaction.getCurrent();");
             sw.WriteLine(prefix + "    assert txn != null;");
             sw.WriteLine(prefix + "    txn.VerifyRecordAccessed(this);");
-            sw.WriteLine(prefix + "    txn.PutLog(new Log_" + var.NamePrivate + "(this, value));"); // 
+            sw.WriteLine(prefix + "    txn.PutLog(new Log_" + var.NamePrivate + "(this, value));"); //
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
@@ -198,7 +198,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.getCurrent();");
             sw.WriteLine(prefix + "        assert txn != null;");
             sw.WriteLine(prefix + "        txn.VerifyRecordAccessed(this);");
-            sw.WriteLine(prefix + "        txn.PutLog(new Log_" + var.NamePrivate + "(this, value));"); // 
+            sw.WriteLine(prefix + "        txn.PutLog(new Log_" + var.NamePrivate + "(this, value));"); //
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
             */

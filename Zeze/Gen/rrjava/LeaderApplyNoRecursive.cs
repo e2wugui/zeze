@@ -24,8 +24,7 @@ namespace Zeze.Gen.rrjava
                 }
             }
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + $"public void LeaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog)");
-            sw.WriteLine(prefix + "{");
+            sw.WriteLine(prefix + $"public void LeaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog) {{");
             sw.WriteLine(prefix + "    switch (vlog.getVariableId()) {");
             foreach (var v in bean.Variables)
             {

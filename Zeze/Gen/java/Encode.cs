@@ -53,7 +53,7 @@ namespace Zeze.Gen.java
             foreach (Variable v in bean.Variables)
             {
                 sw.WriteLine(prefix + "    {");
-                v.VariableType.Accept(new Encode(v.Getter, v.Id, "_o_", sw, prefix + "    "));
+                v.VariableType.Accept(new Encode(v.Getter, v.Id, "_o_", sw, prefix + "        "));
                 sw.WriteLine(prefix + "    }");
             }
 

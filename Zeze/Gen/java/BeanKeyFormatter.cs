@@ -46,7 +46,6 @@ namespace Zeze.Gen.java
                 sw.WriteLine();
             }
             PropertyBeanKey.Make(beanKey, sw, "    ");
-            sw.WriteLine();
             Tostring.Make(beanKey, sw, "    ");
             Encode.Make(beanKey, sw, "    ");
             Decode.Make(beanKey, sw, "    ");

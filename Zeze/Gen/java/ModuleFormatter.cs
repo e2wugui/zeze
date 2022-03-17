@@ -375,7 +375,7 @@ namespace Zeze.Gen.java
                     var key = TypeName.GetName(table.KeyType);
                     var value = TypeName.GetName(table.ValueType);
                     table.ValueType.Depends(depends);
-                    sw.WriteLine($"            rocks.RegisterTableTemplate(\"{table.Name}\", {key}.class, {value}.class);");
+                    sw.WriteLine($"        rocks.RegisterTableTemplate(\"{table.Name}\", {key}.class, {value}.class);");
                 }
             }
             var logfactorys = new HashSet<string>();
@@ -396,7 +396,7 @@ namespace Zeze.Gen.java
             }
             foreach (var fac in logfactorys)
             {
-                sw.WriteLine($"            rocks.RegisterLog({fac});");
+                sw.WriteLine($"        rocks.RegisterLog({fac});");
             }
         }
 

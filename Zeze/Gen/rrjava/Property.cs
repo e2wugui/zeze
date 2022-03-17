@@ -53,7 +53,7 @@ namespace Zeze.Gen.rrjava
         public void Visit(Bean type)
         {
             var typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + "{");
+            sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + " {");
             sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
@@ -72,19 +72,19 @@ namespace Zeze.Gen.rrjava
         void WriteProperty(Type type, bool checkNull = false)
         {
             var typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + "{");
+            sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + " {");
             sw.WriteLine(prefix + "    if (!isManaged())");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "    var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();");
             sw.WriteLine(prefix + "    if (txn == null)");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "    var log = txn.GetLog(getObjectId() + " + var.Id + ");");
-            sw.WriteLine(prefix + "    if (null == log)");
+            sw.WriteLine(prefix + "    if (log == null)");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + $"    return (({GetLogName(type)})log).Value;");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
-            sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} value") + "{");
+            sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} value") + " {");
             if (checkNull)
             {
                 sw.WriteLine(prefix + "    if (value == null)");
@@ -105,7 +105,7 @@ namespace Zeze.Gen.rrjava
         {
             var typeName = TypeName.GetName(type);
             sw.WriteLine(prefix + "@SuppressWarnings(\"unchecked\")");
-            sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + "{");
+            sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + " {");
             sw.WriteLine(prefix + "    if (!isManaged())");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "    var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();");
@@ -117,7 +117,7 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + $"    return (({GetLogName(type)})log).Value;");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
-            sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} value") + "{");
+            sw.WriteLine(prefix + "public void " + var.Setter($"{typeName} value") + " {");
             sw.WriteLine(prefix + "    if (value == null)");
             sw.WriteLine(prefix + "        throw new IllegalArgumentException();");
             sw.WriteLine(prefix + "    if (!isManaged()) {");
@@ -169,7 +169,7 @@ namespace Zeze.Gen.rrjava
         public void Visit(TypeList type)
         {
             var typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + "{");
+            sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + " {");
             sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
@@ -178,7 +178,7 @@ namespace Zeze.Gen.rrjava
         public void Visit(TypeSet type)
         {
             var typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + "{");
+            sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + " {");
             sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
@@ -187,7 +187,7 @@ namespace Zeze.Gen.rrjava
         public void Visit(TypeMap type)
         {
             var typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + "{");
+            sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + " {");
             sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();

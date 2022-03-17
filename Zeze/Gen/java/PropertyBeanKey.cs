@@ -25,7 +25,7 @@ namespace Zeze.Gen.java
 
         void WriteProperty(Types.Type type)
         {
-            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.Getter + "{");
+            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.Getter + " {");
             sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
