@@ -36,11 +36,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine("    private " + TypeName.GetName(v.VariableType) + " " + v.NamePrivate + ";" + v.Comment);
             sw.WriteLine();
 
-            sw.WriteLine("    // for decode only");
-            sw.WriteLine("    public " + beanKey.Name + "() {");
-            sw.WriteLine("    }");
-            sw.WriteLine();
-
+            Construct.Make(beanKey, sw, "    ");
             // params construct
             {
                 sw.WriteLine("    public " + beanKey.Name + "(" + ParamName.GetParamList(beanKey.Variables) + ") {");

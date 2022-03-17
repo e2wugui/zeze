@@ -251,10 +251,6 @@ namespace Zeze.Raft.RocksRaft
             TemplateId = templateId;
 
             Name = $"{TemplateName}#{TemplateId}";
-
-            if (false == rocks.Tables.TryAdd(Name, this))
-                throw new Exception($"duplicate table={Name}");
-
             Open();
         }
 

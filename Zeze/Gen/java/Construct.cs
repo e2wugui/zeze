@@ -24,6 +24,16 @@ namespace Zeze.Gen.java
             sw.WriteLine();
         }
 
+        public static void Make(BeanKey bean, StreamWriter sw, string prefix)
+        {
+            sw.WriteLine(prefix + "// for decode only");
+            sw.WriteLine(prefix + "public " + bean.Name + "() {");
+            foreach (Variable var in bean.Variables)
+                var.VariableType.Accept(new Construct(sw, var, prefix + "    ", bean.Name));
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine();
+        }
+
         public Construct(StreamWriter sw, Variable variable, string prefix, string beanName)
 		{
 			this.sw = sw;

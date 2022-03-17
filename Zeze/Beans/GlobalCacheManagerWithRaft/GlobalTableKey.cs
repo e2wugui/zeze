@@ -12,6 +12,8 @@ namespace Zeze.Beans.GlobalCacheManagerWithRaft
         // for decode only
         public GlobalTableKey()
         {
+            _TableName = "";
+            _Key = Zeze.Net.Binary.Empty;
         }
 
         public GlobalTableKey(string _TableName_, Zeze.Net.Binary _Key_)
