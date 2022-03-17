@@ -112,6 +112,14 @@ namespace Zeze.Raft
             data.Decode(raftLog);
             return raftLog;
         }
+
+        public static long DecodeIndex(Binary data)
+        {
+            var bb = ByteBuffer.Wrap(data);
+            var term = bb.ReadLong();
+            var index = bb.ReadLong();
+            return index;
+        }
     }
 
     public class LogSequence
@@ -493,10 +501,7 @@ namespace Zeze.Raft
                 itLast.SeekToLast();
                 if (itLast.Valid())
                 {
-                    LastIndex = RaftLog.Decode(
-                        new Binary(itLast.Value()),
-                        Raft.StateMachine.LogFactory
-                        ).Index;
+                    LastIndex = RaftLog.DecodeIndex(new Binary(itLast.Value()));
                 }
                 else
                 {
