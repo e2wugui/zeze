@@ -36,6 +36,7 @@
 		OR -> List<OperateLog> 所有操作记录日志，收到方重做。问题：Get(index).Update，怎么融入。
 	Raft.AppendLog 加一个try catach，所有的内部错误都转换成RaftRetryException，这样就不会把内部异常漏给应用了。
 	Global.RocksRaft.LruTryRemoveCallback
+	Global 异步化：c# async|java TaskOneByOneByKey + Record.AcquireQueue
 
 【2022/4/11】
 	RocksRaft java

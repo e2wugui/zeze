@@ -418,6 +418,7 @@ namespace Zeze.Raft
         public RaftConfig RaftConfig { get; private set; }
         public NetClient Client { get; private set; }
         public string Name => Client.Name;
+        public bool DispatchProtocolToInternalThreadPool { get; set; } = false;
 
         public ConnectorEx Leader => _Leader;
         private volatile ConnectorEx _Leader;
@@ -715,7 +716,7 @@ namespace Zeze.Raft
 
             if (SetLeader(r, node as ConnectorEx))
             {
-                ReSend(false);
+                ReSend(true);
             }
             //OnLeaderChanged?.Invoke(this);
             r.SendResultCode(0);
@@ -735,7 +736,7 @@ namespace Zeze.Raft
                     var iraft = rpc as IRaftRpc;
                     if (immediately || now - iraft.SendTime > RaftConfig.AppendEntriesTimeout + 1000)
                     {
-                        logger.Debug(rpc);
+                        logger.Debug($"{leaderSocket} {rpc}");
 
                         iraft.SendTime = now;
                         if (false == rpc.Send(leaderSocket))
@@ -748,7 +749,7 @@ namespace Zeze.Raft
                     var iraft = rpc as IRaftRpc;
                     if (immediately || now - iraft.SendTime > RaftConfig.AppendEntriesTimeout + 1000)
                     {
-                        logger.Debug(rpc);
+                        logger.Debug($"{leaderSocket} {rpc}");
 
                         iraft.SendTime = now;
                         if (false == rpc.Send(leaderSocket))
@@ -798,6 +799,22 @@ namespace Zeze.Raft
             public override void DispatchRpcResponse(Protocol rpc, Func<Protocol, long> responseHandle, ProtocolFactoryHandle factoryHandle)
             {
                 Agent.InternalThreadPool.QueueUserWorkItem(() => responseHandle(rpc));
+            }
+
+            public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle pfh)
+            {
+                // 防止Client不进入加密，直接发送用户协议。
+                if (false == IsHandshakeProtocol(p.TypeId))
+                    p.Sender.VerifySecurity();
+
+                if (Agent.DispatchProtocolToInternalThreadPool)
+                {
+                    Agent.InternalThreadPool.QueueUserWorkItem(() => Util.Task.Call(() => pfh.Handle(p), "InternalRequest"));
+                }
+                else
+                {
+                    Util.Task.Run(() => pfh.Handle(p), p);
+                }
             }
         }
     }
