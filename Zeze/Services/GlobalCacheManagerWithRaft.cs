@@ -357,18 +357,18 @@ namespace Zeze.Services
                     Zeze.Util.Task.Run(
                     () =>
                     {
-                            // 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
-                            // 应该也会等待所有任务结束（包括错误）。
-                            foreach (var reduce in reducePending)
+                        // 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
+                        // 应该也会等待所有任务结束（包括错误）。
+                        foreach (var reduce in reducePending)
                         {
                             try
                             {
                                 reduce.Value.Future.Task.Wait();
                                 if (reduce.Value.Result.State == GlobalCacheManagerServer.StateInvalid)
                                 {
-                                        // 后面还有个成功的处理循环，但是那里可能包含sender，
-                                        // 在这里更新吧。
-                                        var KeyAcquired = ServerAcquiredTemplate.OpenTableWithType(reduce.Key.ServerId);
+                                    // 后面还有个成功的处理循环，但是那里可能包含sender，
+                                    // 在这里更新吧。
+                                    var KeyAcquired = ServerAcquiredTemplate.OpenTableWithType(reduce.Key.ServerId);
                                     KeyAcquired.Remove(rpc.Argument.GlobalTableKey);
                                     reduceSucceed.Add(reduce.Key);
                                 }
@@ -380,8 +380,8 @@ namespace Zeze.Services
                             catch (Exception ex)
                             {
                                 reduce.Key.SetError();
-                                    // 等待失败不再看作成功。
-                                    logger.Error(ex, "Reduce {0} {1} {2} {3}", sender, rpc.Argument.State, cs, reduce.Value.Argument);
+                                // 等待失败不再看作成功。
+                                logger.Error(ex, "Reduce {0} {1} {2} {3}", sender, rpc.Argument.State, cs, reduce.Value.Argument);
                             }
                         }
                         lockey.Enter();
@@ -818,6 +818,11 @@ namespace Zeze.Services
                 }
                 SetError();
                 return null;
+            }
+
+            public override string ToString()
+            {
+                return $"{SessionId}@{ServerId}";
             }
         }
     }

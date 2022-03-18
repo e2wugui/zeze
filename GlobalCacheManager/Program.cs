@@ -61,10 +61,9 @@ namespace GlobalCacheManager
             }
             else if (raftName.Equals("RunAllNodes"))
             {
-                var rconf = Zeze.Raft.RaftConfig.Load(raftConf);
-                using var GlobalRaft1 = new Zeze.Services.GlobalCacheManagerWithRaft("127.0.0.1:5556", rconf);
-                using var GlobalRaft2 = new Zeze.Services.GlobalCacheManagerWithRaft("127.0.0.1:5557", rconf);
-                using var GlobalRaft3 = new Zeze.Services.GlobalCacheManagerWithRaft("127.0.0.1:5558", rconf);
+                using var GlobalRaft1 = new Zeze.Services.GlobalCacheManagerWithRaft("127.0.0.1:5556", Zeze.Raft.RaftConfig.Load(raftConf));
+                using var GlobalRaft2 = new Zeze.Services.GlobalCacheManagerWithRaft("127.0.0.1:5557", Zeze.Raft.RaftConfig.Load(raftConf));
+                using var GlobalRaft3 = new Zeze.Services.GlobalCacheManagerWithRaft("127.0.0.1:5558", Zeze.Raft.RaftConfig.Load(raftConf));
                 logger.Info($"Started Raft=RunAllNodes");
                 while (true)
                 {
