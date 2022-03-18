@@ -24,8 +24,9 @@ namespace Zeze.Gen.java
 
         FileChunkGen FileChunkGen;
 
-        public void GenEmptyProtocolHandles(StreamWriter sw, string namePrefix = "", bool shortIf = true)
+        public bool GenEmptyProtocolHandles(StreamWriter sw, string namePrefix = "", bool shortIf = true)
         {
+            bool written = false;
             if (module.ReferenceService != null)
             {
                 int serviceHandleFlags = module.ReferenceService.HandleFlags;
@@ -35,26 +36,31 @@ namespace Zeze.Gen.java
                     {
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
                         {
+                            if (written)
+                                sw.WriteLine();
+                            written = true;
                             sw.WriteLine("    @Override");
                             sw.WriteLine($"    protected long Process{namePrefix}{rpc.Name}Request({rpc.Space.Path(".", rpc.Name)} r) {{");
                             sw.WriteLine($"        return Zeze.Transaction.Procedure.NotImplement;");
                             sw.WriteLine("    }");
-                            sw.WriteLine();
                         }
                     }
                     else
                     {
                         if ((p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
                         {
+                            if (written)
+                                sw.WriteLine();
+                            written = true;
                             sw.WriteLine("    @Override");
                             sw.WriteLine($"    protected long Process{namePrefix}{p.Name}({p.Space.Path(".", p.Name)} p) {{");
                             sw.WriteLine("        return Zeze.Transaction.Procedure.NotImplement;");
                             sw.WriteLine("    }");
-                            sw.WriteLine();
                         }
                     }
                 }
             }
+            return written;
         }
 
         public void Make()
@@ -89,7 +95,8 @@ namespace Zeze.Gen.java
             sw.WriteLine("    public void Stop(" + project.Solution.Name + ".App app) throws Throwable {");
             sw.WriteLine("    }");
             sw.WriteLine();
-            GenEmptyProtocolHandles(sw);
+            if (GenEmptyProtocolHandles(sw))
+                sw.WriteLine();
             sw.WriteLine("    " + FileChunkGen.ChunkStartTag + " " + ChunkNameModuleGen + " @formatter:off");
             ConstructorGen(sw);
             sw.WriteLine("    " + FileChunkGen.ChunkEndTag + " " + ChunkNameModuleGen + " @formatter:on");
@@ -396,7 +403,7 @@ namespace Zeze.Gen.java
             }
             foreach (var fac in logfactorys)
             {
-                sw.WriteLine($"        rocks.RegisterLog({fac});");
+                sw.WriteLine($"        Zeze.Raft.RocksRaft.Rocks.RegisterLog({fac});");
             }
         }
 
