@@ -1,5 +1,6 @@
 
 using Zeze.Beans.GlobalCacheManagerWithRaft;
+using System.Threading.Tasks;
 
 namespace Zeze.Services
 {
@@ -139,6 +140,9 @@ namespace Zeze.Services
             if (null != Agents)
             {
                 var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
+
+                agent.WaitLoginSuccess();
+
                 var rpc = new Acquire();
                 rpc.Argument.GlobalTableKey = gkey;
                 rpc.Argument.State = state;
@@ -200,17 +204,42 @@ namespace Zeze.Services
                 RaftClient.Client.Stop();
             }
 
-            private Zeze.Net.Protocol LoginPending = null;
+            private volatile TaskCompletionSource<bool> LoginFuture = new TaskCompletionSource<bool>();
+
+            public void WaitLoginSuccess()
+            {
+                while (true)
+                {
+                    try
+                    {
+                        var volatiletmp = LoginFuture;
+                        if (volatiletmp.Task.IsCompletedSuccessfully && volatiletmp.Task.Result)
+                            return;
+                        volatiletmp.Task.Wait();
+                    }
+                    catch (System.Exception)
+                    {
+                    }
+                }
+            }
+
+            private TaskCompletionSource<bool> StartNewLogin()
+            {
+                lock (this)
+                {
+                    LoginFuture.TrySetCanceled(); // 如果旧的Future上面有人在等，让他们失败。
+                    LoginFuture = new TaskCompletionSource<bool>();
+                    return LoginFuture;
+                }
+            }
 
             private void RaftOnSetLeader(Zeze.Raft.Agent agent)
             {
-                if (LoginPending != null)
-                    return;
+                var future = StartNewLogin();
 
                 if (LoginTimes.Get() == 0)
                 {
                     var login = new Login();
-                    LoginPending = login;
                     login.Argument.ServerId = agent.Client.Zeze.Config.ServerId;
                     login.Argument.GlobalCacheManagerHashIndex = 0; // agent.GlobalCacheManagerHashIndex;
 
@@ -221,19 +250,19 @@ namespace Zeze.Services
                             if (rpc.IsTimeout || rpc.ResultCode != 0)
                             {
                                 logger.Error($"Login Timeout Or ResultCode != 0. Code={rpc.ResultCode}");
+                                // 这里不记录future失败，等待raft通知新的Leader启动新的Login。让外面等待的线程一直等待。
                             }
                             else
                             {
                                 LoginTimes.IncrementAndGet();
+                                future.TrySetResult(true);
                             }
-                            LoginPending = null;
                             return 0;
                         }, true);
                 }
                 else
                 {
                     var relogin = new ReLogin();
-                    LoginPending = relogin;
                     relogin.Argument.ServerId = agent.Client.Zeze.Config.ServerId;
                     relogin.Argument.GlobalCacheManagerHashIndex = 0; // agent.GlobalCacheManagerHashIndex;
                     agent.Send(relogin,
@@ -243,12 +272,13 @@ namespace Zeze.Services
                             if (rpc.IsTimeout || rpc.ResultCode != 0)
                             {
                                 logger.Error($"Login Timeout Or ResultCode != 0. Code={rpc.ResultCode}");
+                                // 这里不记录future失败，等待raft通知新的Leader启动新的Login。让外面等待的线程一直等待。
                             }
                             else
                             {
                                 LoginTimes.IncrementAndGet();
+                                future.TrySetResult(true);
                             }
-                            LoginPending = null;
                             return 0;
                         }, true);
                 }
