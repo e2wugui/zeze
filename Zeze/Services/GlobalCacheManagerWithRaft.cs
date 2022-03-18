@@ -753,7 +753,7 @@ namespace Zeze.Services
                         if (Util.Time.NowUnixMillis - LastErrorTime < ForbidPeriod)
                             return false;
                     }
-                    AsyncSocket peer = GlobalCacheManagerServer.Instance.Server.GetSocket(SessionId);
+                    AsyncSocket peer = GlobalInstance.Rocks.Raft.Server.GetSocket(SessionId);
                     if (null != peer)
                     {
                         var reduce = new Reduce();
@@ -800,7 +800,7 @@ namespace Zeze.Services
                         if (Util.Time.NowUnixMillis - LastErrorTime < ForbidPeriod)
                             return null;
                     }
-                    AsyncSocket peer = GlobalCacheManagerServer.Instance.Server.GetSocket(SessionId);
+                    AsyncSocket peer = GlobalInstance.Rocks.Raft.Server.GetSocket(SessionId);
                     if (null != peer)
                     {
                         var reduce = new Reduce();
