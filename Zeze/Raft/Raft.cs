@@ -27,16 +27,7 @@ namespace Zeze.Raft
         public LogSequence LogSequence { get { return _LogSequence; } }
         public bool IsLeader => this.State == RaftState.Leader;
         public Server Server { get; }
-        public bool IsWorkingLeader
-        {
-            get
-            {
-                lock (this)
-                {
-                    return this.State == RaftState.Leader && false == IsShutdown;
-                }
-            }
-        }
+        public bool IsWorkingLeader => IsLeader && false == IsShutdown;
 
         internal SimpleThreadPool ImportantThreadPool { get; }
 
