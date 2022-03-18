@@ -104,9 +104,9 @@ namespace UnitTest.Zeze.RocksRaft
 			{
 				var table = rocks.GetTableTemplate("tRocksRaft").OpenTable<int, Bean1>(0);
 				Update(table, 0);
-				VerifyChanges(@"{(tRocksRaft#0,1):State=1 PutValue=Bean1(0 I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})
+				VerifyChanges(@"{(tRocksRaft#0,1):State=1 PutValue=Bean1(I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})
 Log=[]
-AllLog=[{0:Value=Bean1(0 I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})},{1:Value=1,3: Putted:{3:3} Removed:[],4:{1:Value=2},5: Putted:{4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=5}]}]}");
+AllLog=[{0:Value=Bean1(I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})},{1:Value=1,3: Putted:{3:3} Removed:[],4:{1:Value=2},5: Putted:{4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=5}]}]}");
 				return 0;
 			}).Call();
 		}
@@ -118,8 +118,8 @@ AllLog=[{0:Value=Bean1(0 I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(4 I=5
 				var table = rocks.GetTableTemplate("tRocksRaft").OpenTable<int, Bean1>(0);
 				Update(table, 10);
 				VerifyChanges(@"{(tRocksRaft#0,1):State=2 PutValue=
-Log=[{1:Value=11,3: Putted:{13:13} Removed:[],4:{1:Value=12},5: Putted:{14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=15}]}]
-AllLog=[{1:Value=11,3: Putted:{13:13} Removed:[],4:{1:Value=12},5: Putted:{14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=15}]}]}");
+Log=[{1:Value=11,3: Putted:{13:13} Removed:[],4:{1:Value=12},5: Putted:{14:Bean1(I=15 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=15}]}]
+AllLog=[{1:Value=11,3: Putted:{13:13} Removed:[],4:{1:Value=12},5: Putted:{14:Bean1(I=15 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=15}]}]}");
 				return 0;
 			}).Call();
 		}
@@ -133,9 +133,9 @@ AllLog=[{1:Value=11,3: Putted:{13:13} Removed:[],4:{1:Value=12},5: Putted:{14:Be
 				// 重新put，将会让上面的修改树作废。但所有的日志树都可以从All中看到。
 				var bean1put = new Bean1();
 				table.Put(1, bean1put);
-				VerifyChanges(@"{(tRocksRaft#0,1):State=1 PutValue=Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})
+				VerifyChanges(@"{(tRocksRaft#0,1):State=1 PutValue=Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})
 Log=[]
-AllLog=[{0:Value=Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})},{1:Value=21,3: Putted:{23:23} Removed:[],4:{1:Value=22},5: Putted:{24:Bean1(24 I=25 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=25}]}]}");
+AllLog=[{0:Value=Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})},{1:Value=21,3: Putted:{23:23} Removed:[],4:{1:Value=22},5: Putted:{24:Bean1(I=25 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=25}]}]}");
 				return 0;
 			}).Call();
 		}
@@ -195,8 +195,8 @@ AllLog=[{4:{1:Value=3333}}]}");
 				}).Call();
 
 				VerifyChanges(@"{(tRocksRaft#0,1):State=2 PutValue=
-Log=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(4444 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[4] Changed:[]}]
-AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(4444 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[4] Changed:[]}]}");
+Log=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[4] Changed:[]}]
+AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[4] Changed:[]}]}");
 				return 0;
 			}).Call();
         }
@@ -247,7 +247,7 @@ AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(4444 I=0 L=0 Ma
 
 			// 只简单验证一下最新的数据。
 			var newleader = GetLeader(rockslist, leader);
-			VerifyData(newleader, "Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
+			VerifyData(newleader, "Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
 		}
 
 		private void RunLeader(Rocks rocks)
@@ -255,22 +255,22 @@ AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(4444 I=0 L=0 Ma
 			Remove1(rocks);
 
 			PutAndEdit(rocks);
-			VerifyData(rocks, "Bean1(0 I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
+			VerifyData(rocks, "Bean1(I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
 
 			Edit(rocks);
-			VerifyData(rocks, "Bean1(0 I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=12) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
+			VerifyData(rocks, "Bean1(I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=12) Map2={4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(I=15 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
 
 			EditInContainer(rocks);
-			VerifyData(rocks, "Bean1(0 I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=12) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={})})");
+			VerifyData(rocks, "Bean1(I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=12) Map2={4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={})})");
 
 			NestProcedure(rocks);
-			VerifyData(rocks, "Bean1(0 I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=3333) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={})})");
+			VerifyData(rocks, "Bean1(I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=3333) Map2={4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={})})");
 
 			NestProcedureContainer(rocks);
-			VerifyData(rocks, "Bean1(0 I=11 L=0 Map1={13:13,4444:4444} Bean2=Bean2(I=3333) Map2={14:Bean1(14 I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={}),4444:Bean1(4444 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
+			VerifyData(rocks, "Bean1(I=11 L=0 Map1={13:13,4444:4444} Bean2=Bean2(I=3333) Map2={14:Bean1(I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={}),4444:Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
 
 			EditAndPut(rocks);
-			VerifyData(rocks, "Bean1(0 I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
+			VerifyData(rocks, "Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
 
 			// 再次运行本测试，才会执行到 LoadSnapshot。
 			rocks.Raft.LogSequence.Snapshot(true);
