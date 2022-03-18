@@ -807,7 +807,7 @@ namespace Zeze.Raft
                 if (false == IsHandshakeProtocol(p.TypeId))
                     p.Sender.VerifySecurity();
 
-                if (Agent.DispatchProtocolToInternalThreadPool)
+                if (p.TypeId == LeaderIs.TypeId_ || Agent.DispatchProtocolToInternalThreadPool)
                 {
                     Agent.InternalThreadPool.QueueUserWorkItem(() => Util.Task.Call(() => pfh.Handle(p), "InternalRequest"));
                 }
