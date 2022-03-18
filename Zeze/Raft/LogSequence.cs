@@ -113,12 +113,12 @@ namespace Zeze.Raft
             return raftLog;
         }
 
-        public static long DecodeIndex(Binary data)
+        public static RaftLog DecodeTermIndex(byte[] data)
         {
             var bb = ByteBuffer.Wrap(data);
             var term = bb.ReadLong();
             var index = bb.ReadLong();
-            return index;
+            return new RaftLog(term, index, null);
         }
     }
 
@@ -501,7 +501,7 @@ namespace Zeze.Raft
                 itLast.SeekToLast();
                 if (itLast.Valid())
                 {
-                    LastIndex = RaftLog.DecodeIndex(new Binary(itLast.Value()));
+                    LastIndex = RaftLog.DecodeTermIndex(itLast.Value()).Index;
                 }
                 else
                 {
@@ -597,11 +597,16 @@ namespace Zeze.Raft
             logger.Debug($"{Raft.Name}-{Raft.IsLeader} RequestId=? Index={index} Count={GetTestStateMachineCount()}");
         }
 
-        private RaftLog ReadLog(long index)
+        private byte[] ReadLogBytes(long index)
         {
             var key = ByteBuffer.Allocate();
             key.WriteLong(index);
-            var value = Logs?.Get(key.Bytes, key.Size);
+            return Logs?.Get(key.Bytes, key.Size);
+        }
+
+        private RaftLog ReadLog(long index)
+        {
+            var value = ReadLogBytes(index);
             if (null == value)
                 return null;
             return RaftLog.Decode(new Binary(value), Raft.StateMachine.LogFactory);
@@ -1208,9 +1213,9 @@ namespace Zeze.Raft
             }
         }
 
-        internal RaftLog LastRaftLog()
+        internal RaftLog LastRaftLogTermIndex()
         {
-            return ReadLog(LastIndex);
+            return RaftLog.DecodeTermIndex(ReadLogBytes(LastIndex));
         }
 
         private void RemoveLogAndCancelStart(long startIndex, long endIndex)
@@ -1372,7 +1377,7 @@ namespace Zeze.Raft
             // set commitIndex = min(leaderCommit, index of last new entry)
             if (r.Argument.LeaderCommit > CommitIndex)
             {
-                CommitIndex = Math.Min(r.Argument.LeaderCommit, LastRaftLog().Index);
+                CommitIndex = Math.Min(r.Argument.LeaderCommit, LastRaftLogTermIndex().Index);
                 TryStartApplyTask(ReadLog(CommitIndex));
             }
             r.Result.Success = true;

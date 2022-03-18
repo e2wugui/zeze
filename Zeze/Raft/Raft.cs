@@ -461,7 +461,7 @@ namespace Zeze.Raft
             //           false true        false
             //           true  false       false
             //           true  true        IsLastLogUpToDate
-            var last = LogSequence.LastRaftLog();
+            var last = LogSequence.LastRaftLogTermIndex();
             if (false == LogSequence.NodeReady)
             {
                 if (false == candidate.NodeReady)
@@ -594,7 +594,7 @@ namespace Zeze.Raft
             var arg = new RequestVoteArgument();
             arg.Term = LogSequence.Term;
             arg.CandidateId = Name;
-            var log = LogSequence.LastRaftLog();
+            var log = LogSequence.LastRaftLogTermIndex();
             arg.LastLogIndex = log.Index;
             arg.LastLogTerm = log.Term;
             arg.NodeReady = LogSequence.NodeReady;

@@ -366,10 +366,6 @@ namespace Zeze.Services
                                 reduce.Value.Future.Task.Wait();
                                 if (reduce.Value.Result.State == GlobalCacheManagerServer.StateInvalid)
                                 {
-                                    // 后面还有个成功的处理循环，但是那里可能包含sender，
-                                    // 在这里更新吧。
-                                    var KeyAcquired = ServerAcquiredTemplate.OpenTableWithType(reduce.Key.ServerId);
-                                    KeyAcquired.Remove(rpc.Argument.GlobalTableKey);
                                     reduceSucceed.Add(reduce.Key);
                                 }
                                 else
@@ -403,6 +399,14 @@ namespace Zeze.Services
                 // 移除成功的。
                 foreach (CacheHolder succeed in reduceSucceed)
                 {
+                    if (succeed.ServerId != sender.ServerId)
+                    {
+                        // sender 不移除：
+                        // 1. 如果申请成功，后面会更新到Modify状态。
+                        // 2. 如果申请不成功，恢复 cs.Share，保持 Acquired 不变。
+                        var KeyAcquired = ServerAcquiredTemplate.OpenTableWithType(succeed.ServerId);
+                        KeyAcquired.Remove(rpc.Argument.GlobalTableKey);
+                    }
                     cs.Share.Remove(succeed.ServerId);
                 }
 
