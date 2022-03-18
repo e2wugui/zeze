@@ -36,7 +36,7 @@ namespace Infinite
             return Apps[Zeze.Util.Random.Instance.Next(max)];
         }
 
-        public const int BatchTaskCount = 50000;
+        public const int BatchTaskCount = 10000;
         public const int CacheCapacity = 1000;
         public const int AccessKeyBound = (int)(CacheCapacity * 1.20f);
 

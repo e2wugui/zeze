@@ -39,6 +39,12 @@
 	Global 异步化：c# async|java Global.TaskOneByOneByKey + Record.AcquireQueue(TaskQueueAsync 任务需要参与到队列的推进)
 
 【2022/4/11】
+	RaftLog.DecodeTermIndex 仅Decode两个内部变量，不包含应用日志。避免初始化循环依赖。
+	GlobalWithRaft c# test 1111
+		CacheHolder 访问 Instance 是旧的代码，引用到旧的static上面了。
+		AcquireModify Reduce Share 的时候，比如返回原来的事务才能修改数据。
+		* 这点非Raft版本Global(c#&java)都改成返回主流程修改状态数据。
+	GloblWithRaftAgent c# WaitLoginSuccess
 	RocksRaft java
 	RocksRaft rrjava
 	GlobalRaft Agent.Initialize & Test
