@@ -22,7 +22,7 @@ namespace Zeze.Services
             if (rpc.Sender.UserState == null)
             {
                 rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                // Ã»ÓĞµÇÂ¼ÖØ×ö¡£µÇÂ¼ÊÇAgent×Ô¶¯Á÷³ÌµÄÒ»²¿·Ö£¬Ó¦¸ÃÉÔºóÖØÊÔ¡£
+                // æ²¡æœ‰ç™»å½•é‡åšã€‚ç™»å½•æ˜¯Agentè‡ªåŠ¨æµç¨‹çš„ä¸€éƒ¨åˆ†ï¼Œåº”è¯¥ç¨åé‡è¯•ã€‚
                 rpc.SendResultCode(Zeze.Transaction.Procedure.RaftRetry);
                 return 0;
             }
@@ -48,7 +48,7 @@ namespace Zeze.Services
                     }
                 })
             {
-                // ÆôÓÃ×Ô¶¯·¢ËÍrpc½á¹û£¬µ«²»×öÎ¨Ò»¼ì²é¡£
+                // å¯ç”¨è‡ªåŠ¨å‘é€rpcç»“æœï¼Œä½†ä¸åšå”¯ä¸€æ£€æŸ¥ã€‚
                 AutoResponse = rpc,
             }
             .Call();
@@ -121,14 +121,14 @@ namespace Zeze.Services
                         cs.AcquireStatePending = GlobalCacheManagerServer.StateInvalid;
                         logger.Debug("4 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         rpc.Result.State = GlobalCacheManagerServer.StateModify;
-                        // ÒÑ¾­ÊÇModifyÓÖÉêÇë£¬¿ÉÄÜÊÇsenderÒì³£¹Ø±Õ£¬
-                        // ÓÖÖØÆôÁ¬ÉÏ¡£¸üĞÂÒ»ÏÂ¡£Ó¦¸ÃÊÇ²»ĞèÒªµÄ¡£
+                        // å·²ç»æ˜¯Modifyåˆç”³è¯·ï¼Œå¯èƒ½æ˜¯senderå¼‚å¸¸å…³é—­ï¼Œ
+                        // åˆé‡å¯è¿ä¸Šã€‚æ›´æ–°ä¸€ä¸‹ã€‚åº”è¯¥æ˜¯ä¸éœ€è¦çš„ã€‚
                         SenderAcquired.Put(rpc.Argument.GlobalTableKey, new AcquiredState() { State = GlobalCacheManagerServer.StateModify });
                         rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                         return GlobalCacheManagerServer.AcquireShareAlreadyIsModify;
                     }
 
-                    int reduceResultState = GlobalCacheManagerServer.StateReduceNetError; // Ä¬ÈÏÍøÂç´íÎó¡£
+                    int reduceResultState = GlobalCacheManagerServer.StateReduceNetError; // é»˜è®¤ç½‘ç»œé”™è¯¯ã€‚
                     if (CacheHolder.Reduce(Sessions, cs.Modify,
                         rpc.Argument.GlobalTableKey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId,
                         (p) =>
@@ -156,16 +156,16 @@ namespace Zeze.Services
                     {
                         case GlobalCacheManagerServer.StateShare:
                             ModifyAcquired.Put(rpc.Argument.GlobalTableKey, new AcquiredState() { State = GlobalCacheManagerServer.StateShare });
-                            cs.Share.Add(cs.Modify); // ½µ¼¶³É¹¦¡£
+                            cs.Share.Add(cs.Modify); // é™çº§æˆåŠŸã€‚
                             break;
 
                         case GlobalCacheManagerServer.StateInvalid:
-                            // ½µµ½ÁË Invalid£¬´ËÊ±¾Í²»ĞèÒª¼ÓÈë Share ÁË¡£
+                            // é™åˆ°äº† Invalidï¼Œæ­¤æ—¶å°±ä¸éœ€è¦åŠ å…¥ Share äº†ã€‚
                             ModifyAcquired.Remove(rpc.Argument.GlobalTableKey);
                             break;
 
                         default:
-                            // °üº¬Ğ­Òé·µ»Ø´íÎóµÄÖµµÄÇé¿ö¡£
+                            // åŒ…å«åè®®è¿”å›é”™è¯¯çš„å€¼çš„æƒ…å†µã€‚
                             // case StateReduceRpcTimeout:
                             // case StateReduceException:
                             // case StateReduceNetError:
@@ -185,7 +185,7 @@ namespace Zeze.Services
                     lockey.Pulse();
                     logger.Debug("6 {0} {1} {2}", sender, rpc.Argument.State, cs);
                     rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                    return 0; // ³É¹¦Ò²»á×Ô¶¯·¢ËÍ½á¹û.
+                    return 0; // æˆåŠŸä¹Ÿä¼šè‡ªåŠ¨å‘é€ç»“æœ.
                 }
 
                 SenderAcquired.Put(rpc.Argument.GlobalTableKey, new AcquiredState() { State = GlobalCacheManagerServer.StateShare });
@@ -194,7 +194,7 @@ namespace Zeze.Services
                 lockey.Pulse();
                 logger.Debug("7 {0} {1} {2}", sender, rpc.Argument.State, cs);
                 rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                return 0; // ³É¹¦Ò²»á×Ô¶¯·¢ËÍ½á¹û.
+                return 0; // æˆåŠŸä¹Ÿä¼šè‡ªåŠ¨å‘é€ç»“æœ.
             }
         }
 
@@ -261,8 +261,8 @@ namespace Zeze.Services
                     if (cs.Modify == sender.ServerId)
                     {
                         logger.Debug("4 {0} {1} {2}", sender, rpc.Argument.State, cs);
-                        // ÒÑ¾­ÊÇModifyÓÖÉêÇë£¬¿ÉÄÜÊÇsenderÒì³£¹Ø±Õ£¬ÓÖÖØÆôÁ¬ÉÏ¡£
-                        // ¸üĞÂÒ»ÏÂ¡£Ó¦¸ÃÊÇ²»ĞèÒªµÄ¡£
+                        // å·²ç»æ˜¯Modifyåˆç”³è¯·ï¼Œå¯èƒ½æ˜¯senderå¼‚å¸¸å…³é—­ï¼Œåˆé‡å¯è¿ä¸Šã€‚
+                        // æ›´æ–°ä¸€ä¸‹ã€‚åº”è¯¥æ˜¯ä¸éœ€è¦çš„ã€‚
                         SenderAcquired.Put(rpc.Argument.GlobalTableKey, new AcquiredState() { State = GlobalCacheManagerServer.StateModify });
                         rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                         cs.AcquireStatePending = GlobalCacheManagerServer.StateInvalid;
@@ -270,7 +270,7 @@ namespace Zeze.Services
                         return GlobalCacheManagerServer.AcquireModifyAlreadyIsModify;
                     }
 
-                    int reduceResultState = GlobalCacheManagerServer.StateReduceNetError; // Ä¬ÈÏÍøÂç´íÎó¡£
+                    int reduceResultState = GlobalCacheManagerServer.StateReduceNetError; // é»˜è®¤ç½‘ç»œé”™è¯¯ã€‚
                     if (CacheHolder.Reduce(Sessions, cs.Modify,
                         rpc.Argument.GlobalTableKey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId,
                         (p) =>
@@ -327,7 +327,7 @@ namespace Zeze.Services
                 List<Util.KV<CacheHolder, Reduce>> reducePending = new();
                 HashSet<CacheHolder> reduceSucceed = new();
                 bool senderIsShare = false;
-                // ÏÈ°Ñ½µ¼¶ÇëÇóÈ«²¿·¢ËÍ¸ø³öÈ¥¡£
+                // å…ˆæŠŠé™çº§è¯·æ±‚å…¨éƒ¨å‘é€ç»™å‡ºå»ã€‚
                 foreach (var c in cs.Share)
                 {
                     if (c == sender.ServerId)
@@ -344,21 +344,21 @@ namespace Zeze.Services
                     }
                     else
                     {
-                        // ÍøÂç´íÎó²»ÔÙÈÏÎª³É¹¦¡£Õû¸ö½µ¼¶Ê§°Ü£¬ÒªÖĞ¶Ï½µ¼¶¡£
-                        // ÒÑ¾­·¢³öÈ¥µÄ½µ¼¶ÇëÇóÒªµÈ´ı²¢´¦Àí½á¹û¡£ºóÃæ´¦Àí¡£
+                        // ç½‘ç»œé”™è¯¯ä¸å†è®¤ä¸ºæˆåŠŸã€‚æ•´ä¸ªé™çº§å¤±è´¥ï¼Œè¦ä¸­æ–­é™çº§ã€‚
+                        // å·²ç»å‘å‡ºå»çš„é™çº§è¯·æ±‚è¦ç­‰å¾…å¹¶å¤„ç†ç»“æœã€‚åé¢å¤„ç†ã€‚
                         break;
                     }
                 }
-                // Á½ÖÖÇé¿ö²»ĞèÒª·¢reduce
-                // 1. shareÊÇ¿ÕµÄ, ¿ÉÒÔÖ±½ÓÉıÎªModify
-                // 2. senderÊÇshare, ¶øÇÒreducePendingµÄsizeÊÇ0
+                // ä¸¤ç§æƒ…å†µä¸éœ€è¦å‘reduce
+                // 1. shareæ˜¯ç©ºçš„, å¯ä»¥ç›´æ¥å‡ä¸ºModify
+                // 2. senderæ˜¯share, è€Œä¸”reducePendingçš„sizeæ˜¯0
                 if (!(cs.Share.Count == 0) && (!senderIsShare || reducePending.Count > 0))
                 {
                     Zeze.Util.Task.Run(
                     () =>
                     {
-                        // Ò»¸ö¸öµÈ´ıÊÇ·ñ³É¹¦¡£WaitAll Åöµ½´íÎó²»ÖªµÀÔõÃ´´¦ÀíµÄ£¬
-                        // Ó¦¸ÃÒ²»áµÈ´ıËùÓĞÈÎÎñ½áÊø£¨°üÀ¨´íÎó£©¡£
+                        // ä¸€ä¸ªä¸ªç­‰å¾…æ˜¯å¦æˆåŠŸã€‚WaitAll ç¢°åˆ°é”™è¯¯ä¸çŸ¥é“æ€ä¹ˆå¤„ç†çš„ï¼Œ
+                        // åº”è¯¥ä¹Ÿä¼šç­‰å¾…æ‰€æœ‰ä»»åŠ¡ç»“æŸï¼ˆåŒ…æ‹¬é”™è¯¯ï¼‰ã€‚
                         foreach (var reduce in reducePending)
                         {
                             try
@@ -376,14 +376,14 @@ namespace Zeze.Services
                             catch (Exception ex)
                             {
                                 reduce.Key.SetError();
-                                // µÈ´ıÊ§°Ü²»ÔÙ¿´×÷³É¹¦¡£
+                                // ç­‰å¾…å¤±è´¥ä¸å†çœ‹ä½œæˆåŠŸã€‚
                                 logger.Error(ex, "Reduce {0} {1} {2} {3}", sender, rpc.Argument.State, cs, reduce.Value.Argument);
                             }
                         }
                         lockey.Enter();
                         try
                         {
-                                // ĞèÒª»½ĞÑµÈ´ıÈÎÎñ½áÊøµÄ£¬µ«Ã»·¨Ö¸¶¨£¬Ö»ÄÜÈ«²¿»½ĞÑ¡£
+                                // éœ€è¦å”¤é†’ç­‰å¾…ä»»åŠ¡ç»“æŸçš„ï¼Œä½†æ²¡æ³•æŒ‡å®šï¼Œåªèƒ½å…¨éƒ¨å”¤é†’ã€‚
                                 lockey.PulseAll();
                         }
                         finally
@@ -396,40 +396,40 @@ namespace Zeze.Services
                     lockey.Wait();
                 }
 
-                // ÒÆ³ı³É¹¦µÄ¡£
+                // ç§»é™¤æˆåŠŸçš„ã€‚
                 foreach (CacheHolder succeed in reduceSucceed)
                 {
                     if (succeed.ServerId != sender.ServerId)
                     {
-                        // sender ²»ÒÆ³ı£º
-                        // 1. Èç¹ûÉêÇë³É¹¦£¬ºóÃæ»á¸üĞÂµ½Modify×´Ì¬¡£
-                        // 2. Èç¹ûÉêÇë²»³É¹¦£¬»Ö¸´ cs.Share£¬±£³Ö Acquired ²»±ä¡£
+                        // sender ä¸ç§»é™¤ï¼š
+                        // 1. å¦‚æœç”³è¯·æˆåŠŸï¼Œåé¢ä¼šæ›´æ–°åˆ°ModifyçŠ¶æ€ã€‚
+                        // 2. å¦‚æœç”³è¯·ä¸æˆåŠŸï¼Œæ¢å¤ cs.Shareï¼Œä¿æŒ Acquired ä¸å˜ã€‚
                         var KeyAcquired = ServerAcquiredTemplate.OpenTableWithType(succeed.ServerId);
                         KeyAcquired.Remove(rpc.Argument.GlobalTableKey);
                     }
                     cs.Share.Remove(succeed.ServerId);
                 }
 
-                // Èç¹ûÇ°Ãæ½µ¼¶·¢ÉúÖĞ¶Ï(break)£¬ÕâÀï¾Í²»»áÎª0¡£
+                // å¦‚æœå‰é¢é™çº§å‘ç”Ÿä¸­æ–­(break)ï¼Œè¿™é‡Œå°±ä¸ä¼šä¸º0ã€‚
                 if (cs.Share.Count == 0)
                 {
                     cs.Modify = sender.ServerId;
                     SenderAcquired.Put(rpc.Argument.GlobalTableKey, new AcquiredState() { State = GlobalCacheManagerServer.StateModify });
                     cs.AcquireStatePending = GlobalCacheManagerServer.StateInvalid;
-                    lockey.Pulse(); // Pending ½áÊø£¬»½ĞÑÒ»¸ö½øÀ´¾Í¿ÉÒÔÁË¡£
+                    lockey.Pulse(); // Pending ç»“æŸï¼Œå”¤é†’ä¸€ä¸ªè¿›æ¥å°±å¯ä»¥äº†ã€‚
 
                     logger.Debug("8 {0} {1} {2}", sender, rpc.Argument.State, cs);
                     rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                     return 0;
                 }
 
-                // senderIsShare ÔÚÊ§°ÜµÄÊ±ºò£¬Acquired Ã»ÓĞ±ä»¯£¬²»ĞèÒª¸üĞÂ¡£
-                // Ê§°ÜÁË£¬Òª°ÑÔ­À´ÊÇshareµÄsender»Ö¸´¡£ÏÈÕâÑù°É¡£
+                // senderIsShare åœ¨å¤±è´¥çš„æ—¶å€™ï¼ŒAcquired æ²¡æœ‰å˜åŒ–ï¼Œä¸éœ€è¦æ›´æ–°ã€‚
+                // å¤±è´¥äº†ï¼Œè¦æŠŠåŸæ¥æ˜¯shareçš„senderæ¢å¤ã€‚å…ˆè¿™æ ·å§ã€‚
                 if (senderIsShare)
                     cs.Share.Add(sender.ServerId);
 
                 cs.AcquireStatePending = GlobalCacheManagerServer.StateInvalid;
-                lockey.Pulse(); // Pending ½áÊø£¬»½ĞÑÒ»¸ö½øÀ´¾Í¿ÉÒÔÁË¡£
+                lockey.Pulse(); // Pending ç»“æŸï¼Œå”¤é†’ä¸€ä¸ªè¿›æ¥å°±å¯ä»¥äº†ã€‚
 
                 logger.Error("XXX 10 {0} {1} {2}", sender, rpc.Argument.State, cs);
 
@@ -458,7 +458,7 @@ namespace Zeze.Services
 
                 CacheState cs = GlobalStates.GetOrAdd(gkey);
                 if (cs.AcquireStatePending == GlobalCacheManagerServer.StateRemoved)
-                    continue; // Õâ¸öÊÇ²»¿ÉÄÜµÄ£¬ÒòÎªÓĞReleaseÇëÇó½øÀ´ÒâÎ¶×Å¿Ï¶¨ÓĞÓµÓĞÕß(share or modify)£¬´ËÊ±²»¿ÉÄÜ½øÈëStateRemoved¡£
+                    continue; // è¿™ä¸ªæ˜¯ä¸å¯èƒ½çš„ï¼Œå› ä¸ºæœ‰Releaseè¯·æ±‚è¿›æ¥æ„å‘³ç€è‚¯å®šæœ‰æ‹¥æœ‰è€…(share or modify)ï¼Œæ­¤æ—¶ä¸å¯èƒ½è¿›å…¥StateRemovedã€‚
 
                 while (cs.AcquireStatePending != GlobalCacheManagerServer.StateInvalid
                     && cs.AcquireStatePending != GlobalCacheManagerServer.StateRemoved)
@@ -472,7 +472,7 @@ namespace Zeze.Services
                                 return GetSenderCacheState(cs, sender);
                             break;
                         case GlobalCacheManagerServer.StateRemoving:
-                            // release ²»»áµ¼ÖÂËÀËø£¬µÈ´ı¼´¿É¡£
+                            // release ä¸ä¼šå¯¼è‡´æ­»é”ï¼Œç­‰å¾…å³å¯ã€‚
                             break;
                     }
                     lockey.Wait();
@@ -491,7 +491,7 @@ namespace Zeze.Services
                     && cs.Share.Count == 0
                     && cs.AcquireStatePending == GlobalCacheManagerServer.StateInvalid)
                 {
-                    // °²È«µÄ´ÓglobalÖĞÉ¾³ı£¬Ã»ÓĞ²¢·¢ÎÊÌâ¡£
+                    // å®‰å…¨çš„ä»globalä¸­åˆ é™¤ï¼Œæ²¡æœ‰å¹¶å‘é—®é¢˜ã€‚
                     cs.AcquireStatePending = GlobalCacheManagerServer.StateRemoved;
                     GlobalStates.Remove(gkey);
                 }
@@ -521,14 +521,14 @@ namespace Zeze.Services
             var session = Sessions.GetOrAdd(rpc.Argument.ServerId,
                 (_) => new CacheHolder() { GlobalInstance = this, ServerId = rpc.Argument.ServerId });
 
-            lock (session) // Í¬Ò»¸ö½Úµã»¥³â¡£²»Í¬½ÚµãBind²»ĞèÒª»¥³â£¬ReleaseÓÉRaft-LeaderÎ¨Ò»ĞÔÌá¹©±£»¤¡£
+            lock (session) // åŒä¸€ä¸ªèŠ‚ç‚¹äº’æ–¥ã€‚ä¸åŒèŠ‚ç‚¹Bindä¸éœ€è¦äº’æ–¥ï¼ŒReleaseç”±Raft-Leaderå”¯ä¸€æ€§æä¾›ä¿æŠ¤ã€‚
             {
                 if (false == session.TryBindSocket(rpc.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
                 {
                     rpc.SendResultCode(GlobalCacheManagerServer.LoginBindSocketFail);
                     return 0;
                 }
-                // new login, ±ÈÈçÂß¼­·şÎñÆ÷ÖØÆô¡£release old acquired.
+                // new login, æ¯”å¦‚é€»è¾‘æœåŠ¡å™¨é‡å¯ã€‚release old acquired.
                 var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
                 SenderAcquired.Walk((key, value) =>
                 {
@@ -547,7 +547,7 @@ namespace Zeze.Services
             var session = Sessions.GetOrAdd(rpc.Argument.ServerId, 
                 (key) => new CacheHolder() { GlobalInstance = this, ServerId = rpc.Argument.ServerId });
 
-            lock (session) // Í¬Ò»¸ö½Úµã»¥³â¡£
+            lock (session) // åŒä¸€ä¸ªèŠ‚ç‚¹äº’æ–¥ã€‚
             {
                 if (false == session.TryBindSocket(rpc.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
                 {
@@ -569,14 +569,14 @@ namespace Zeze.Services
                 return 0; // not login
             }
 
-            lock (session) // Í¬Ò»¸ö½Úµã»¥³â¡£²»Í¬½ÚµãBind²»ĞèÒª»¥³â£¬ReleaseÓÉRaft-LeaderÎ¨Ò»ĞÔÌá¹©±£»¤¡£
+            lock (session) // åŒä¸€ä¸ªèŠ‚ç‚¹äº’æ–¥ã€‚ä¸åŒèŠ‚ç‚¹Bindä¸éœ€è¦äº’æ–¥ï¼ŒReleaseç”±Raft-Leaderå”¯ä¸€æ€§æä¾›ä¿æŠ¤ã€‚
             {
                 if (false == session.TryUnBindSocket(rpc.Sender))
                 {
                     rpc.SendResultCode(GlobalCacheManagerServer.NormalCloseUnbindFail);
                     return 0;
                 }
-                // TODO È·ÈÏWalkÖĞÉ¾³ı¼ÇÂ¼ÊÇ·ñÓĞÎÊÌâ¡£
+                // TODO ç¡®è®¤Walkä¸­åˆ é™¤è®°å½•æ˜¯å¦æœ‰é—®é¢˜ã€‚
                 var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
                 SenderAcquired.Walk((key, value) =>
                 {
@@ -593,7 +593,7 @@ namespace Zeze.Services
         {
             var rpc = _p as Cleanup;
 
-            // °²È«ĞÔÒÔºó¼ÓÇ¿¡£
+            // å®‰å…¨æ€§ä»¥ååŠ å¼ºã€‚
             if (false == rpc.Argument.SecureKey.Equals("Ok! verify secure."))
             {
                 rpc.SendResultCode(GlobalCacheManagerServer.CleanupErrorSecureKey);
@@ -603,19 +603,19 @@ namespace Zeze.Services
             var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (key) => new CacheHolder() { GlobalInstance = this });
             if (session.GlobalCacheManagerHashIndex != rpc.Argument.GlobalCacheManagerHashIndex)
             {
-                // ¶àµãÑéÖ¤
+                // å¤šç‚¹éªŒè¯
                 rpc.SendResultCode(GlobalCacheManagerServer.CleanupErrorGlobalCacheManagerHashIndex);
                 return 0;
             }
 
             if (Rocks.Raft.Server.GetSocket(session.SessionId) != null)
             {
-                // Á¬½Ó´æÔÚ£¬½ûÖ¹cleanup¡£
+                // è¿æ¥å­˜åœ¨ï¼Œç¦æ­¢cleanupã€‚
                 rpc.SendResultCode(GlobalCacheManagerServer.CleanupErrorHasConnection);
                 return 0;
             }
 
-            // »¹ÓĞ¸ü¶àµÄ·ÀÖ¹³ö´íµÄÊÖ¶ÎÂğ£¿
+            // è¿˜æœ‰æ›´å¤šçš„é˜²æ­¢å‡ºé”™çš„æ‰‹æ®µå—ï¼Ÿ
 
             // XXX verify danger
             Zeze.Util.Scheduler.Instance.Schedule(
@@ -646,24 +646,24 @@ namespace Zeze.Services
         private readonly Locks Locks = new Locks();
 
         /// <summary>
-        /// È«¾Ö¼ÇÂ¼·ÖÅä×´Ì¬¡£
+        /// å…¨å±€è®°å½•åˆ†é…çŠ¶æ€ã€‚
         /// </summary>
         private readonly Table<GlobalTableKey, CacheState> GlobalStates;
 
         /// <summary>
-        /// Ã¿¸ö·şÎñÆ÷ÒÑ·ÖÅä¼ÇÂ¼¡£
-        /// ÕâÊÇ¸öTableÄ£°å£¬Ê¹ÓÃµÄÊ±ºò¸ù¾İServerId´ò¿ªÕæÕıµÄ´æ´¢±í¡£
+        /// æ¯ä¸ªæœåŠ¡å™¨å·²åˆ†é…è®°å½•ã€‚
+        /// è¿™æ˜¯ä¸ªTableæ¨¡æ¿ï¼Œä½¿ç”¨çš„æ—¶å€™æ ¹æ®ServerIdæ‰“å¼€çœŸæ­£çš„å­˜å‚¨è¡¨ã€‚
         /// </summary>
         private readonly TableTemplate<GlobalTableKey, AcquiredState> ServerAcquiredTemplate;
 
         /*
-         * »á»°¡£
-         * keyÊÇ LogicServer.Id£¬ÏÖÔÚµÄÊµÏÖ¾ÍÊÇZeze.Config.ServerId¡£
-         * ÔÚÁ¬½Ó½¨Á¢ºóÊÕµ½µÄLogin Or ReLogin ÖĞÉèÖÃ¡£
-         * Ã¿¸ö»á»°»¹ĞèÒª¼ÇÂ¼¸Ã»á»°µÄSocket.SessionId¡£ÔÚÁ¬½ÓÖØĞÂ½¨Á¢Ê±¸üĞÂ¡£
-         * ×ÜÊÇGetOrAdd£¬²»É¾³ı¡£°´ÏÖÔÚµÄcache-syncÉè¼Æ£¬
-         * ServerId ÊÇ¼°ÆäÓĞÏŞµÄ¡£²»»áÒ»Ö±Ôö³¤¡£
-         * ¼ò»¯ÊµÏÖ¡£
+         * ä¼šè¯ã€‚
+         * keyæ˜¯ LogicServer.Idï¼Œç°åœ¨çš„å®ç°å°±æ˜¯Zeze.Config.ServerIdã€‚
+         * åœ¨è¿æ¥å»ºç«‹åæ”¶åˆ°çš„Login Or ReLogin ä¸­è®¾ç½®ã€‚
+         * æ¯ä¸ªä¼šè¯è¿˜éœ€è¦è®°å½•è¯¥ä¼šè¯çš„Socket.SessionIdã€‚åœ¨è¿æ¥é‡æ–°å»ºç«‹æ—¶æ›´æ–°ã€‚
+         * æ€»æ˜¯GetOrAddï¼Œä¸åˆ é™¤ã€‚æŒ‰ç°åœ¨çš„cache-syncè®¾è®¡ï¼Œ
+         * ServerId æ˜¯åŠå…¶æœ‰é™çš„ã€‚ä¸ä¼šä¸€ç›´å¢é•¿ã€‚
+         * ç®€åŒ–å®ç°ã€‚
          */
         private readonly ConcurrentDictionary<int, CacheHolder> Sessions = new ConcurrentDictionary<int, CacheHolder>();
 
@@ -699,7 +699,7 @@ namespace Zeze.Services
             public bool TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex)
             {
                 if (newSocket.UserState != null && newSocket.UserState != this)
-                    return false; // ÔÊĞíÖØ¸´login|relogin£¬µ«²»ÔÊĞíÇĞ»»ServerId¡£
+                    return false; // å…è®¸é‡å¤login|reloginï¼Œä½†ä¸å…è®¸åˆ‡æ¢ServerIdã€‚
 
                 var socket = GlobalInstance.Rocks.Raft.Server.GetSocket(SessionId);
                 if (null == socket || socket == newSocket)
@@ -710,13 +710,13 @@ namespace Zeze.Services
                     GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
                     return true;
                 }
-                // Ã¿¸öServerIdÖ»ÔÊĞíÒ»¸öÊµÀı£¬ÒÑ¾­´æÔÚÁËÒÔºó£¬¾ÉµÄÊµÀıÉÏÓĞ×´Ì¬£¬×èÖ¹ĞÂµÄÊµÀıµÇÂ¼³É¹¦¡£
+                // æ¯ä¸ªServerIdåªå…è®¸ä¸€ä¸ªå®ä¾‹ï¼Œå·²ç»å­˜åœ¨äº†ä»¥åï¼Œæ—§çš„å®ä¾‹ä¸Šæœ‰çŠ¶æ€ï¼Œé˜»æ­¢æ–°çš„å®ä¾‹ç™»å½•æˆåŠŸã€‚
                 return false;
             }
 
             public bool TryUnBindSocket(AsyncSocket oldSocket)
             {
-                // ÕâÀï¼ì²é±È½ÏÑÏ¸ñ£¬µ«ÊÇÕâĞ©¼ì²éÓ¦¸Ã¶¼²»»á³öÏÖ¡£
+                // è¿™é‡Œæ£€æŸ¥æ¯”è¾ƒä¸¥æ ¼ï¼Œä½†æ˜¯è¿™äº›æ£€æŸ¥åº”è¯¥éƒ½ä¸ä¼šå‡ºç°ã€‚
 
                 if (oldSocket.UserState != this)
                     return false; // not bind to this
@@ -770,7 +770,7 @@ namespace Zeze.Services
                 }
                 catch (Exception ex)
                 {
-                    // ÕâÀïµÄÒì³£Ö»Ó¦¸ÃÊÇÍøÂç·¢ËÍÒì³£¡£
+                    // è¿™é‡Œçš„å¼‚å¸¸åªåº”è¯¥æ˜¯ç½‘ç»œå‘é€å¼‚å¸¸ã€‚
                     logger.Error(ex, "ReduceWaitLater Exception {0}", gkey);
                 }
                 SetError();
@@ -790,7 +790,7 @@ namespace Zeze.Services
                 }
             }
             /// <summary>
-            /// ·µ»Ønull±íÊ¾·¢ÉúÁËÍøÂç´íÎó£¬»òÕßÓ¦ÓÃ·şÎñÆ÷ÒÑ¾­¹Ø±Õ¡£
+            /// è¿”å›nullè¡¨ç¤ºå‘ç”Ÿäº†ç½‘ç»œé”™è¯¯ï¼Œæˆ–è€…åº”ç”¨æœåŠ¡å™¨å·²ç»å…³é—­ã€‚
             /// </summary>
             /// <param name="gkey"></param>
             /// <param name="state"></param>
@@ -817,7 +817,7 @@ namespace Zeze.Services
                 }
                 catch (Exception ex)
                 {
-                    // ÕâÀïµÄÒì³£Ö»Ó¦¸ÃÊÇÍøÂç·¢ËÍÒì³£¡£
+                    // è¿™é‡Œçš„å¼‚å¸¸åªåº”è¯¥æ˜¯ç½‘ç»œå‘é€å¼‚å¸¸ã€‚
                     logger.Error(ex, "ReduceWaitLater Exception {0}", gkey);
                 }
                 SetError();

@@ -97,7 +97,7 @@ namespace Zeze.Services
                         if (table == null)
                         {
                             logger.Warn($"ReduceInvalid Table Not Found={rpc.Argument.GlobalTableKey.TableName},ServerId={Zeze.Config.ServerId}");
-                            // ±¾µØÃ»ÓĞÕÒµ½±í¸ñ¿´×÷³É¹¦¡£
+                            // æœ¬åœ°æ²¡æœ‰æ‰¾åˆ°è¡¨æ ¼çœ‹ä½œæˆåŠŸã€‚
                             rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
                             rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                             rpc.SendResultCode(0);
@@ -112,7 +112,7 @@ namespace Zeze.Services
                         if (table == null)
                         {
                             logger.Warn($"ReduceShare Table Not Found={rpc.Argument.GlobalTableKey.TableName},ServerId={Zeze.Config.ServerId}");
-                            // ±¾µØÃ»ÓĞÕÒµ½±í¸ñ¿´×÷³É¹¦¡£
+                            // æœ¬åœ°æ²¡æœ‰æ‰¾åˆ°è¡¨æ ¼çœ‹ä½œæˆåŠŸã€‚
                             rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
                             rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                             rpc.SendResultCode(0);
@@ -167,10 +167,10 @@ namespace Zeze.Services
             return (0, state, 0);
         }
 
-        // 1. ¡¾Login|ReLogin|NormalClose¡¿»á±»Raft.AgentÖØ·¢´¦Àí£¬ÕâÒªÇóGlobalRaftÄÜ´¦ÀíÖØ¸´ÇëÇó¡£
-        // 2. ¡¾Login|NormalClose¡¿ÓĞ¶à¸öÊÂÎñ´¦Àí£¬Õâ¸úrpc.UniqueRequestIdÎ¨Ò»ĞÔÓĞÃ¬¶Ü¡£¡¾¿ÉĞĞ·½·¨£ºÈ¥µôÎ¨Ò»ÅĞ¶Ï£¬ÈÃÁ÷³ÌÕıÈ·´¦ÀíÖØ¸´ÇëÇó¡£¡¿
-        // 3. ¡¾ReLogin¡¿Ã»ÓĞÊı¾İĞŞ¸Ä£¬ÍêÈ«ÔÊĞíÖØ¸´£¬²¢ÇÒ²»ÅĞ¶ÏÎ¨Ò»ĞÔ¡£
-        // 4. Raft ¸ß¿ÉÓÃĞÔ£¬ËùÒÔÈÏÎª·şÎñÆ÷ÓÀÔ¶²»»á¹Ø±Õ£¬¾Í²»ĞèÒª´¦Àí·şÎñÆ÷¹Ø±ÕÊ±ÇåÀí±¾µØ×´Ì¬¡£
+        // 1. ã€Login|ReLogin|NormalCloseã€‘ä¼šè¢«Raft.Agenté‡å‘å¤„ç†ï¼Œè¿™è¦æ±‚GlobalRaftèƒ½å¤„ç†é‡å¤è¯·æ±‚ã€‚
+        // 2. ã€Login|NormalCloseã€‘æœ‰å¤šä¸ªäº‹åŠ¡å¤„ç†ï¼Œè¿™è·Ÿrpc.UniqueRequestIdå”¯ä¸€æ€§æœ‰çŸ›ç›¾ã€‚ã€å¯è¡Œæ–¹æ³•ï¼šå»æ‰å”¯ä¸€åˆ¤æ–­ï¼Œè®©æµç¨‹æ­£ç¡®å¤„ç†é‡å¤è¯·æ±‚ã€‚ã€‘
+        // 3. ã€ReLoginã€‘æ²¡æœ‰æ•°æ®ä¿®æ”¹ï¼Œå®Œå…¨å…è®¸é‡å¤ï¼Œå¹¶ä¸”ä¸åˆ¤æ–­å”¯ä¸€æ€§ã€‚
+        // 4. Raft é«˜å¯ç”¨æ€§ï¼Œæ‰€ä»¥è®¤ä¸ºæœåŠ¡å™¨æ°¸è¿œä¸ä¼šå…³é—­ï¼Œå°±ä¸éœ€è¦å¤„ç†æœåŠ¡å™¨å…³é—­æ—¶æ¸…ç†æœ¬åœ°çŠ¶æ€ã€‚
         public class RaftAgent
         {
             public GlobalCacheManagerWithRaftAgent GlobalCacheManagerWithRaftAgent { get; }
@@ -194,7 +194,7 @@ namespace Zeze.Services
             {
                 lock (this)
                 {
-                    // ¼òµ¥±£»¤Ò»ÏÂ£¬Close Õı³£³ÌĞòÍË³öµÄÊ±ºò²Åµ÷ÓÃÕâ¸ö£¬Ó¦¸Ã²»ÓÃ±£»¤¡£
+                    // ç®€å•ä¿æŠ¤ä¸€ä¸‹ï¼ŒClose æ­£å¸¸ç¨‹åºé€€å‡ºçš„æ—¶å€™æ‰è°ƒç”¨è¿™ä¸ªï¼Œåº”è¯¥ä¸ç”¨ä¿æŠ¤ã€‚
                     if (ActiveClose)
                         return;
                     ActiveClose = true;
@@ -227,7 +227,7 @@ namespace Zeze.Services
             {
                 lock (this)
                 {
-                    LoginFuture.TrySetCanceled(); // Èç¹û¾ÉµÄFutureÉÏÃæÓĞÈËÔÚµÈ£¬ÈÃËûÃÇÊ§°Ü¡£
+                    LoginFuture.TrySetCanceled(); // å¦‚æœæ—§çš„Futureä¸Šé¢æœ‰äººåœ¨ç­‰ï¼Œè®©ä»–ä»¬å¤±è´¥ã€‚
                     LoginFuture = new TaskCompletionSource<bool>();
                     return LoginFuture;
                 }
@@ -250,7 +250,7 @@ namespace Zeze.Services
                             if (rpc.IsTimeout || rpc.ResultCode != 0)
                             {
                                 logger.Error($"Login Timeout Or ResultCode != 0. Code={rpc.ResultCode}");
-                                // ÕâÀï²»¼ÇÂ¼futureÊ§°Ü£¬µÈ´ıraftÍ¨ÖªĞÂµÄLeaderÆô¶¯ĞÂµÄLogin¡£ÈÃÍâÃæµÈ´ıµÄÏß³ÌÒ»Ö±µÈ´ı¡£
+                                // è¿™é‡Œä¸è®°å½•futureå¤±è´¥ï¼Œç­‰å¾…rafté€šçŸ¥æ–°çš„Leaderå¯åŠ¨æ–°çš„Loginã€‚è®©å¤–é¢ç­‰å¾…çš„çº¿ç¨‹ä¸€ç›´ç­‰å¾…ã€‚
                             }
                             else
                             {
@@ -272,7 +272,7 @@ namespace Zeze.Services
                             if (rpc.IsTimeout || rpc.ResultCode != 0)
                             {
                                 logger.Error($"Login Timeout Or ResultCode != 0. Code={rpc.ResultCode}");
-                                // ÕâÀï²»¼ÇÂ¼futureÊ§°Ü£¬µÈ´ıraftÍ¨ÖªĞÂµÄLeaderÆô¶¯ĞÂµÄLogin¡£ÈÃÍâÃæµÈ´ıµÄÏß³ÌÒ»Ö±µÈ´ı¡£
+                                // è¿™é‡Œä¸è®°å½•futureå¤±è´¥ï¼Œç­‰å¾…rafté€šçŸ¥æ–°çš„Leaderå¯åŠ¨æ–°çš„Loginã€‚è®©å¤–é¢ç­‰å¾…çš„çº¿ç¨‹ä¸€ç›´ç­‰å¾…ã€‚
                             }
                             else
                             {
