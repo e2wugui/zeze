@@ -241,7 +241,7 @@ namespace Zeze.Services
                 {
                     var login = new Login();
                     login.Argument.ServerId = agent.Client.Zeze.Config.ServerId;
-                    login.Argument.GlobalCacheManagerHashIndex = 0; // agent.GlobalCacheManagerHashIndex;
+                    login.Argument.GlobalCacheManagerHashIndex = GlobalCacheManagerHashIndex;
 
                     agent.Send(login,
                         (p) =>
@@ -264,7 +264,7 @@ namespace Zeze.Services
                 {
                     var relogin = new ReLogin();
                     relogin.Argument.ServerId = agent.Client.Zeze.Config.ServerId;
-                    relogin.Argument.GlobalCacheManagerHashIndex = 0; // agent.GlobalCacheManagerHashIndex;
+                    relogin.Argument.GlobalCacheManagerHashIndex = GlobalCacheManagerHashIndex;
                     agent.Send(relogin,
                         (p) =>
                         {
