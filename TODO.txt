@@ -14,11 +14,9 @@
 	关联多用户数据的协议处理自动派发到热点所在Server。
 	Global.Release并发问题【再次】确认
 	zeze async await?
-
 	Zeze.Arch 
 	【左尧完成Java了？】Zezex.ModuleRedirect 增加 TransactionLevel 注解配置。
 	Zezex.ModuleRedirect 去掉依赖Session生成hash模式；RunMyMethod去掉mode；
-
 	RedoableQueue
 	{
 		1）存储：QueueId。 RocksDb<TaskId, Full_Encoded_Net_Rpc> 持久化的。
@@ -29,55 +27,24 @@
 		* 特性：允许 Zeze.ServerApp 回档，回档以后，从旧的LastTaskId开始重做任务。
 	}
 	Zezex.client: 可靠消息实现的错误检查。
-
 	RocksRaft Collection.List LogList
 		SortedDictionary<int, Log Or Bean> ChangeOrAdd; // 优化。中间的值发生了改变或者在尾巴增加。
 		bool FullCopy; // 当发生中间删除或者插入时。这个有进一步优化空间。
 		OR -> List<OperateLog> 所有操作记录日志，收到方重做。问题：Get(index).Update，怎么融入。
 	Raft.AppendLog 加一个try catach，所有的内部错误都转换成RaftRetryException，这样就不会把内部异常漏给应用了。
 	Global.RocksRaft.LruTryRemoveCallback
-	Global 异步化：c# async|TaskQueueAsync 任务需要参与到队列的推进
+	Global 异步化：
+	1. c# async
+	2. TaskQueueAsync 任务需要参与到队列的推进。全异步和RocksRaft.Transaction.ThreadLocal问题，需要自己实现一个类似AsyncLocal的机制。
+	Zeze.Component dynamic bean动态增加类型的能力。
 	Global c# 慢的问题。
 	GlobalAgent NormalClose 超时设置。必须加大或者无限等待。
-
-class GlobalQueueAsync
-{
-	public void AddPending(Action piece)
-	{
-		lock (this)
-		{
-			piece();
-			Pending.Add(piece);
-		}
-	}
-
-	public void RunReduce(Action reduce, Func<bool> response)
-	{
-		lock (this)
-		{
-			save response;
-			reduce(); // broadcast reduce
-		}
-	}
-
-	public void CollectReduceResult()
-	{
-		lock (this)
-		{
-			if (response())
-			{
-				// done
-				ClearPending();
-				RunNextPending();
-			}
-		}
-	}
-}
-
 	GlobakWithRaft java test【张路】
 	把 RocksRaft Changes 应用到 Zeze 中，让 Zeze 实现任意Bean任意级别的更新。
+	// 1. 仅支持整个Bean的订阅。2. log factory 问题。3. add listener和notify原子问题。动态订阅。
 
 【2022/4/11】
+	Global PulseAll 必须，需要全部等待在死锁检测的线程全部再来一遍，否则仍有可能死锁。
 	GlobakWithRaft java compile ok!
 	RaftLog.DecodeTermIndex 仅Decode两个内部变量，不包含应用日志。避免初始化循环依赖。
 	GlobalWithRaft c# test 1111
