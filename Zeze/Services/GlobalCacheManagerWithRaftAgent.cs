@@ -37,6 +37,11 @@ namespace Zeze.Services
                 {
                     agent.RaftClient.Client.Start();
                 }
+
+                foreach (var agent in Agents)
+                {
+                    agent.WaitLoginSuccess();
+                }
             }
         }
 
