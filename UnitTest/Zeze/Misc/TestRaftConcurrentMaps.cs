@@ -51,8 +51,18 @@ namespace UnitTest.Zeze.Misc
         [TestMethod]
         public void TestRocksDbColumn()
         {
-            FileSystem.DeleteDirectory("127.0.0.1_6000");
-            var storage = new Rocks("127.0.0.1:6000");
+            FileSystem.DeleteDirectory("127.0.0.1_9091");
+            FileSystem.DeleteDirectory("127.0.0.1_9092");
+            FileSystem.DeleteDirectory("127.0.0.1_9093");
+            var raftConfig = global::Zeze.Raft.RaftConfig.Load();
+            raftConfig.Nodes.Clear();
+            var node1 = new global::Zeze.Raft.RaftConfig.Node("127.0.0.1", 9091);
+            var node2 = new global::Zeze.Raft.RaftConfig.Node("127.0.0.1", 9092);
+            var node3 = new global::Zeze.Raft.RaftConfig.Node("127.0.0.1", 9093);
+            raftConfig.Nodes[node1.Name] = node1;
+            raftConfig.Nodes[node2.Name] = node2;
+            raftConfig.Nodes[node3.Name] = node3;
+            var storage = new Rocks(node1.Name, RocksMode.Pessimism, raftConfig);
 
             // 数据修改相关测试已经移到 UnitTest/Zeze/RocksRaft/ 下。
             storage.RegisterTableTemplate<int, Value>("int2value");

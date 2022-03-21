@@ -16,7 +16,7 @@ namespace Zeze.Raft
         public string XmlFileName { get; }
         private XmlElement Self { get; }
 
-        internal ConcurrentDictionary<string, Node> Nodes { get; }
+        public ConcurrentDictionary<string, Node> Nodes { get; }
             = new ConcurrentDictionary<string, Node>();
 
         // 【这个参数不保存】可以在启动的时候从参数读取并设置。
