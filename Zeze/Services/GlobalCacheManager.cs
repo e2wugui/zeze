@@ -521,7 +521,7 @@ namespace Zeze.Services
                         sender.Acquired[rpc.Argument.GlobalTableKey] = StateShare;
                         cs.Share.Add(sender);
                         cs.AcquireStatePending = StateInvalid;
-                        Monitor.Pulse(cs);
+                        Monitor.PulseAll(cs);
                         logger.Debug("6 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                         rpc.SendResult();
@@ -531,7 +531,7 @@ namespace Zeze.Services
                     sender.Acquired[rpc.Argument.GlobalTableKey] = StateShare;
                     cs.Share.Add(sender);
                     cs.AcquireStatePending = StateInvalid;
-                    Monitor.Pulse(cs);
+                    Monitor.PulseAll(cs);
                     logger.Debug("7 {0} {1} {2}", sender, rpc.Argument.State, cs);
                     rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                     rpc.SendResult();
@@ -610,7 +610,7 @@ namespace Zeze.Services
                             rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                             rpc.SendResultCode(AcquireModifyAlreadyIsModify);
                             cs.AcquireStatePending = StateInvalid;
-                            Monitor.Pulse(cs);
+                            Monitor.PulseAll(cs);
                             return 0;
                         }
 
@@ -655,7 +655,7 @@ namespace Zeze.Services
                         cs.Share.Remove(sender);
                         sender.Acquired[rpc.Argument.GlobalTableKey] = StateModify;
                         cs.AcquireStatePending = StateInvalid;
-                        Monitor.Pulse(cs);
+                        Monitor.PulseAll(cs);
 
                         logger.Debug("6 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         rpc.Result.GlobalSerialId = cs.GlobalSerialId;
@@ -721,7 +721,6 @@ namespace Zeze.Services
                             }
                             lock (cs)
                             {
-                                // 需要唤醒等待任务结束的，但没法指定，只能全部唤醒。
                                 Monitor.PulseAll(cs);
                             }
                         },
@@ -749,7 +748,7 @@ namespace Zeze.Services
                         cs.Modify = sender;
                         sender.Acquired[rpc.Argument.GlobalTableKey] = StateModify;
                         cs.AcquireStatePending = StateInvalid;
-                        Monitor.Pulse(cs); // Pending 结束，唤醒一个进来就可以了。
+                        Monitor.PulseAll(cs);
 
                         logger.Debug("8 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         rpc.Result.GlobalSerialId = cs.GlobalSerialId;

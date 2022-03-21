@@ -37,6 +37,8 @@
 	Raft.AppendLog 加一个try catach，所有的内部错误都转换成RaftRetryException，这样就不会把内部异常漏给应用了。
 	Global.RocksRaft.LruTryRemoveCallback
 	Global 异步化：c# async|TaskQueueAsync 任务需要参与到队列的推进
+	Global c# 慢的问题。
+	GlobalAgent NormalClose 超时设置。必须加大或者无限等待。
 
 class GlobalQueueAsync
 {

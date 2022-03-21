@@ -174,7 +174,7 @@ namespace Zeze.Services
                             logger.Error("XXX 8 {0} {1} {2}", sender, rpc.Argument.State, cs);
                             rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                             rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                            lockey.Pulse();
+                            lockey.PulseAll();
                             return GlobalCacheManagerServer.AcquireShareFailed;
                     }
 
@@ -182,7 +182,7 @@ namespace Zeze.Services
                     SenderAcquired.Put(rpc.Argument.GlobalTableKey, new AcquiredState() { State = GlobalCacheManagerServer.StateShare });
                     cs.Share.Add(sender.ServerId);
                     cs.AcquireStatePending = GlobalCacheManagerServer.StateInvalid;
-                    lockey.Pulse();
+                    lockey.PulseAll();
                     logger.Debug("6 {0} {1} {2}", sender, rpc.Argument.State, cs);
                     rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                     return 0; // 成功也会自动发送结果.
@@ -191,7 +191,7 @@ namespace Zeze.Services
                 SenderAcquired.Put(rpc.Argument.GlobalTableKey, new AcquiredState() { State = GlobalCacheManagerServer.StateShare });
                 cs.Share.Add(sender.ServerId);
                 cs.AcquireStatePending = GlobalCacheManagerServer.StateInvalid;
-                lockey.Pulse();
+                lockey.PulseAll();
                 logger.Debug("7 {0} {1} {2}", sender, rpc.Argument.State, cs);
                 rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                 return 0; // 成功也会自动发送结果.
@@ -266,7 +266,7 @@ namespace Zeze.Services
                         SenderAcquired.Put(rpc.Argument.GlobalTableKey, new AcquiredState() { State = GlobalCacheManagerServer.StateModify });
                         rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                         cs.AcquireStatePending = GlobalCacheManagerServer.StateInvalid;
-                        lockey.Pulse();
+                        lockey.PulseAll();
                         return GlobalCacheManagerServer.AcquireModifyAlreadyIsModify;
                     }
 
@@ -305,7 +305,7 @@ namespace Zeze.Services
                             // case StateReduceException:
                             // case StateReduceNetError:
                             cs.AcquireStatePending = GlobalCacheManagerServer.StateInvalid;
-                            lockey.Pulse();
+                            lockey.PulseAll();
 
                             logger.Error("XXX 9 {0} {1} {2}", sender, rpc.Argument.State, cs);
                             rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
@@ -317,7 +317,7 @@ namespace Zeze.Services
                     cs.Share.Remove(sender.ServerId);
                     SenderAcquired.Put(rpc.Argument.GlobalTableKey, new AcquiredState() { State = GlobalCacheManagerServer.StateModify });
                     cs.AcquireStatePending = GlobalCacheManagerServer.StateInvalid;
-                    lockey.Pulse();
+                    lockey.PulseAll();
 
                     logger.Debug("6 {0} {1} {2}", sender, rpc.Argument.State, cs);
                     rpc.Result.GlobalSerialId = cs.GlobalSerialId;
@@ -383,8 +383,7 @@ namespace Zeze.Services
                         lockey.Enter();
                         try
                         {
-                                // 需要唤醒等待任务结束的，但没法指定，只能全部唤醒。
-                                lockey.PulseAll();
+                            lockey.PulseAll();
                         }
                         finally
                         {
@@ -416,7 +415,7 @@ namespace Zeze.Services
                     cs.Modify = sender.ServerId;
                     SenderAcquired.Put(rpc.Argument.GlobalTableKey, new AcquiredState() { State = GlobalCacheManagerServer.StateModify });
                     cs.AcquireStatePending = GlobalCacheManagerServer.StateInvalid;
-                    lockey.Pulse(); // Pending 结束，唤醒一个进来就可以了。
+                    lockey.PulseAll();
 
                     logger.Debug("8 {0} {1} {2}", sender, rpc.Argument.State, cs);
                     rpc.Result.GlobalSerialId = cs.GlobalSerialId;
@@ -429,7 +428,7 @@ namespace Zeze.Services
                     cs.Share.Add(sender.ServerId);
 
                 cs.AcquireStatePending = GlobalCacheManagerServer.StateInvalid;
-                lockey.Pulse(); // Pending 结束，唤醒一个进来就可以了。
+                lockey.PulseAll();
 
                 logger.Error("XXX 10 {0} {1} {2}", sender, rpc.Argument.State, cs);
 
@@ -502,7 +501,7 @@ namespace Zeze.Services
                 var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(sender.ServerId);
                 SenderAcquired.Remove(gkey);
                 logger.Debug($"Release {gkey.TableName}:{gkey.Key} {cs}");
-                lockey.Pulse();
+                lockey.PulseAll();
                 return GetSenderCacheState(cs, sender);
             }
         }
