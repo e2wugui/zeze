@@ -38,9 +38,8 @@ namespace GlobalCacheManager
                         break;
 
                     case "-threads":
-                        ThreadPool.SetMinThreads(int.Parse(args[++i]), completionPortThreads);
-                        //ThreadPool.GetMinThreads(out workerThreads, out completionPortThreads);
-                        //Console.WriteLine($"workerThreads={workerThreads} completionPortThreads={completionPortThreads}");
+                        workerThreads = int.Parse(args[++i]);
+                        ThreadPool.SetMinThreads(workerThreads, completionPortThreads);
                         break;
 
                 }
