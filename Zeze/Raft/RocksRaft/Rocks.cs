@@ -167,7 +167,7 @@ namespace Zeze.Raft.RocksRaft
             // fast checkpoint, will stop application apply.
             lock (Raft)
             {
-                var lastAppliedLog = Raft.LogSequence.LastAppliedLog();
+                var lastAppliedLog = Raft.LogSequence.LastAppliedLogTermIndex();
                 lastIncludedIndex = lastAppliedLog.Index;
                 lastIncludedTerm = lastAppliedLog.Term;
 

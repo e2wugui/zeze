@@ -808,7 +808,7 @@ namespace Zeze.Raft
                 {
                     if (null != Raft.LogSequence)
                     {
-                        var lastAppliedLog = Raft.LogSequence.LastAppliedLog();
+                        var lastAppliedLog = Raft.LogSequence.LastAppliedLogTermIndex();
                         LastIncludedIndex = lastAppliedLog.Index;
                         LastIncludedTerm = lastAppliedLog.Term;
                         var bb = ByteBuffer.Allocate();

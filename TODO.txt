@@ -36,9 +36,47 @@
 		OR -> List<OperateLog> 所有操作记录日志，收到方重做。问题：Get(index).Update，怎么融入。
 	Raft.AppendLog 加一个try catach，所有的内部错误都转换成RaftRetryException，这样就不会把内部异常漏给应用了。
 	Global.RocksRaft.LruTryRemoveCallback
-	Global 异步化：c# async|java Global.TaskOneByOneByKey + Record.AcquireQueue(TaskQueueAsync 任务需要参与到队列的推进)
+	Global 异步化：c# async|TaskQueueAsync 任务需要参与到队列的推进
+
+class GlobalQueueAsync
+{
+	public void AddPending(Action piece)
+	{
+		lock (this)
+		{
+			piece();
+			Pending.Add(piece);
+		}
+	}
+
+	public void RunReduce(Action reduce, Func<bool> response)
+	{
+		lock (this)
+		{
+			save response;
+			reduce(); // broadcast reduce
+		}
+	}
+
+	public void CollectReduceResult()
+	{
+		lock (this)
+		{
+			if (response())
+			{
+				// done
+				ClearPending();
+				RunNextPending();
+			}
+		}
+	}
+}
+
+	GlobakWithRaft java test【张路】
+	把 RocksRaft Changes 应用到 Zeze 中，让 Zeze 实现任意Bean任意级别的更新。
 
 【2022/4/11】
+	GlobakWithRaft java compile ok!
 	RaftLog.DecodeTermIndex 仅Decode两个内部变量，不包含应用日志。避免初始化循环依赖。
 	GlobalWithRaft c# test 1111
 		CacheHolder 访问 Instance 是旧的代码，引用到旧的static上面了。

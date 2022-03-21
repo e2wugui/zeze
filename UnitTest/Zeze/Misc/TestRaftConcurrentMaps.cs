@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Serialize;
 using Zeze.Raft.RocksRaft;
+using Zeze.Util;
 
 namespace UnitTest.Zeze.Misc
 {
@@ -50,7 +51,8 @@ namespace UnitTest.Zeze.Misc
         [TestMethod]
         public void TestRocksDbColumn()
         {
-            var storage = new Rocks();
+            FileSystem.DeleteDirectory("127.0.0.1_6000");
+            var storage = new Rocks("127.0.0.1:6000");
 
             // 数据修改相关测试已经移到 UnitTest/Zeze/RocksRaft/ 下。
             storage.RegisterTableTemplate<int, Value>("int2value");

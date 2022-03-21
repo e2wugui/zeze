@@ -144,9 +144,9 @@ namespace Zeze.Raft
         // 以后Snapshot时，会保留LastApplied的。
         // 所以下面方法不会返回空。
         // 除非什么例外发生。那就抛空指针异常吧。
-        public RaftLog LastAppliedLog()
+        public RaftLog LastAppliedLogTermIndex()
         {
-            return ReadLog(LastApplied);
+            return RaftLog.DecodeTermIndex(ReadLogBytes(LastApplied));
         }
 
         private void SaveFirstIndex(long newFirstIndex)
