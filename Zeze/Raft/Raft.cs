@@ -295,7 +295,7 @@ namespace Zeze.Raft
         // Leader
         private long LeaderWaitReadyTerm;
         private long LeaderWaitReadyIndex;
-        internal volatile TaskCompletionSource<bool> LeaderReadyFuture = new TaskCompletionSource<bool>();
+        internal volatile TaskCompletionSource<bool> LeaderReadyFuture = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
         // Follower
         private long LeaderLostTimeout;
@@ -412,7 +412,7 @@ namespace Zeze.Raft
         internal void ResetLeaderReadyAfterChangeState()
         {
             LeaderReadyFuture.TrySetResult(false);
-            LeaderReadyFuture = new TaskCompletionSource<bool>(); // prepare for next leader
+            LeaderReadyFuture = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously); // prepare for next leader
             Monitor.PulseAll(this); // has under lock(this)
         }
 

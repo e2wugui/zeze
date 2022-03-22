@@ -10,10 +10,9 @@ namespace Zeze.Util
     /// </summary>
     public class EventDispatcher
     {
-        private ConcurrentDictionary<string, Func<object, EventArgs, int>> Handles { get; }
-            = new ConcurrentDictionary<string, Func<object, EventArgs, int>>();
+        private ConcurrentDictionary<string, Func<object, EventArgs, System.Threading.Tasks.Task<long>>> Handles { get; } = new ();
 
-        public void AddEventHandle(Func<object, EventArgs, int> handle, string name = null)
+        public void AddEventHandle(Func<object, EventArgs, System.Threading.Tasks.Task<long>> handle, string name = null)
         {
             if (null == name)
             {
@@ -23,7 +22,7 @@ namespace Zeze.Util
                 throw new Exception($"Handle for '{name}' exist.");
         }
 
-        public void RemoveEventHandle(Func<object, EventArgs, int> handle, string name = null)
+        public void RemoveEventHandle(Func<object, EventArgs, System.Threading.Tasks.Task<long>> handle, string name = null)
         {
             if (null == name)
             {

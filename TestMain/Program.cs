@@ -4,6 +4,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
+        Zeze.Util.Task.Run(new Zeze.Util.P(() => { System.Threading.Thread.Sleep(1000); return 0; })).Wait();
 
         string command = "";
         for (int i = 0; i < args.Length; ++i)

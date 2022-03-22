@@ -37,7 +37,7 @@ namespace Zeze.Transaction
             throw new NotImplementedException();
         }
 
-        internal virtual void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex)
+        internal virtual int ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex)
         {
             throw new NotImplementedException();
         }
@@ -60,13 +60,14 @@ namespace Zeze.Transaction
 
         protected Zeze.Services.ServiceManager.Agent.AutoKey AutoKey { get; private set;  }
 
-        private Record<K, V> FindInCacheOrStorage(K key)
+        private async Task<Record<K, V>> FindInCacheOrStorage(K key)
         {
             TableKey tkey = new TableKey(Name, key);
             while (true)
             {
                 Record<K, V> r = Cache.GetOrAdd(key, (key) => new Record<K, V>(this, key, null));
-                lock (r) // 对同一个记录，不允许重入。
+                var lockr = await r.Mutex.LockAsync();
+                try
                 {
                     if (r.State == GlobalCacheManagerServer.StateRemoved)
                         continue; // 正在被删除，重新 GetOrAdd 一次。以后 _lock_check_ 里面会再次检查这个状态。
@@ -77,7 +78,7 @@ namespace Zeze.Transaction
                         return r;
                     }
 
-                    var (ResultCode, ResultState, ResultGlobalSerialId) = r.Acquire(GlobalCacheManagerServer.StateShare);
+                    var (ResultCode, ResultState, ResultGlobalSerialId) = await r.Acquire(GlobalCacheManagerServer.StateShare);
                     r.State = ResultState;
                     if (r.State == GlobalCacheManagerServer.StateInvalid)
                     {
@@ -121,6 +122,11 @@ namespace Zeze.Transaction
                     }
                     logger.Debug("FindInCacheOrStorage {0}", r);
                 }
+                finally
+                {
+                    lockr.Dispose();
+                }
+
                 return r;
             }
         }
@@ -140,7 +146,7 @@ namespace Zeze.Transaction
             TableKey tkey = new TableKey(Name, key);
 
             Record<K, V> r = null;
-            Lockey lockey = Zeze.Locks.Get(tkey);
+            var lockey = Zeze.Locks.Get(tkey);
             lockey.EnterWriteLock();
             try
             {
@@ -189,7 +195,7 @@ namespace Zeze.Transaction
             }
             finally
             {
-                lockey.ExitWriteLock();
+                lockey.Release();
             }
             //logger.Warn("ReduceShare checkpoint begin. id={0} {1}", r, tkey);
             rpc.Result.State = GlobalCacheManagerServer.StateShare;
@@ -234,7 +240,7 @@ namespace Zeze.Transaction
 
             TableKey tkey = new TableKey(Name, key);
             Record<K, V> r = null;
-            Lockey lockey = Zeze.Locks.Get(tkey);
+            var lockey = Zeze.Locks.Get(tkey);
             lockey.EnterWriteLock();
             try
             {
@@ -285,7 +291,7 @@ namespace Zeze.Transaction
             }
             finally
             {
-                lockey.ExitWriteLock();
+                lockey.Release();
             }
             //logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", r, tkey);
             rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
@@ -300,7 +306,7 @@ namespace Zeze.Transaction
             return 0;
         }
 
-        internal override void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex)
+        internal override int ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex)
         {
             foreach (var e in Cache.DataMap)
             {
@@ -312,7 +318,7 @@ namespace Zeze.Transaction
                 }
 
                 TableKey tkey = new TableKey(Name, e.Key);
-                Lockey lockey = Zeze.Locks.Get(tkey);
+                var lockey = Zeze.Locks.Get(tkey);
                 lockey.EnterWriteLock();
                 try
                 {
@@ -321,12 +327,13 @@ namespace Zeze.Transaction
                 }
                 finally
                 {
-                    lockey.ExitWriteLock();
+                    lockey.Release();
                 }
             }
+            return 0;
         }
 
-        public V Get(K key)
+        public async Task<V> Get(K key)
         {
             Transaction currentT = Transaction.Current;
             TableKey tkey = new TableKey(Name, key);
@@ -337,12 +344,12 @@ namespace Zeze.Transaction
                 return (V)cr.NewestValue();
             }
 
-            Record<K, V> r = FindInCacheOrStorage(key);
+            Record<K, V> r = await FindInCacheOrStorage(key);
             currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), new Transaction.RecordAccessed(r));
             return r.ValueTyped;
         }
 
-        public V GetOrAdd(K key)
+        public async Task<V> GetOrAdd(K key)
         {
             Transaction currentT = Transaction.Current;
             TableKey tkey = new TableKey(Name, key);
@@ -359,7 +366,7 @@ namespace Zeze.Transaction
             }
             else
             {
-                Record<K, V> r = FindInCacheOrStorage(key);
+                Record<K, V> r = await FindInCacheOrStorage(key);
                 cr = new Transaction.RecordAccessed(r);
                 currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
 
@@ -393,7 +400,7 @@ namespace Zeze.Transaction
                 throw new ArgumentException($"table:{GetType().FullName} insert key:{key} exists");
         }
 
-        public void Put(K key, V value)
+        public async Task Put(K key, V value)
         {
             Transaction currentT = Transaction.Current;
             TableKey tkey = new TableKey(Name, key);
@@ -405,14 +412,14 @@ namespace Zeze.Transaction
                 cr.Put(currentT, value);
                 return;
             }
-            Record<K, V> r = FindInCacheOrStorage(key);
+            Record<K, V> r = await FindInCacheOrStorage(key);
             cr = new Transaction.RecordAccessed(r);
             cr.Put(currentT, value);
             currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
         }
 
         // 几乎和Put一样，还是独立开吧。
-        public void Remove(K key)
+        public async Task Remove(K key)
         {
             Transaction currentT = Transaction.Current;
             TableKey tkey = new TableKey(Name, key);
@@ -424,7 +431,7 @@ namespace Zeze.Transaction
                 return;
             }
 
-            Record<K, V> r = FindInCacheOrStorage(key);
+            Record<K, V> r = await FindInCacheOrStorage(key);
             cr = new Transaction.RecordAccessed(r);
             cr.Put(currentT, null);
             currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
@@ -515,7 +522,7 @@ namespace Zeze.Transaction
                 {
                     K k = DecodeKey(ByteBuffer.Wrap(key));
                     TableKey tkey = new TableKey(Name, k);
-                    Lockey lockey = Zeze.Locks.Get(tkey);
+                    var lockey = Zeze.Locks.Get(tkey);
                     lockey.EnterReadLock();
                     try
                     {
@@ -539,7 +546,7 @@ namespace Zeze.Transaction
                     }
                     finally
                     {
-                        lockey.ExitReadLock();
+                        lockey.Release();
                     }
                 });
         }
@@ -582,7 +589,7 @@ namespace Zeze.Transaction
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        public V SelectCopy(K key)
+        public async Task<V> SelectCopy(K key)
         {
             var tkey = new TableKey(Name, key);
             Transaction currentT = Transaction.Current;
@@ -600,16 +607,16 @@ namespace Zeze.Transaction
             lockey.EnterReadLock();
             try
             {
-                var r = FindInCacheOrStorage(key);
+                var r = await FindInCacheOrStorage(key);
                 return (V)r.Value.CopyBean();
             }
             finally
             {
-                lockey.ExitReadLock();
+                lockey.Release();
             }
         }
 
-        public V SelectDirty(K key)
+        public async Task<V> SelectDirty(K key)
         {
             var tkey = new TableKey(Name, key);
             Transaction currentT = Transaction.Current;
@@ -621,7 +628,7 @@ namespace Zeze.Transaction
                     return (V)cr.NewestValue();
                 }
             }
-            return (V)FindInCacheOrStorage(key).Value;
+            return (V)(await FindInCacheOrStorage(key)).Value;
         }
 
         public override bool IsNew => TStorage == null || TStorage.DatabaseTable.IsNew;

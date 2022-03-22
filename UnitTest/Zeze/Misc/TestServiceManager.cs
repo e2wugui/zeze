@@ -54,7 +54,7 @@ namespace UnitTest.Zeze.Misc
             Sm = new ServiceManagerServer(address, port, global::Zeze.Config.Load(), 0);
             var serviceName = "TestServiceManager";
 
-            future = new TaskCompletionSource<int>();
+            future = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             // for reconnect
             var clientConfig = demo.App.Instance.Zeze.Config;
             var agentConfig = new global::Zeze.Net.ServiceConf();
@@ -73,7 +73,7 @@ namespace UnitTest.Zeze.Misc
             Console.WriteLine("ConnectNow");
             future.Task.Wait();
 
-            future = new TaskCompletionSource<int>();
+            future = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             agent.OnUpdate = (state, info) =>
             {
                 Console.WriteLine("OnUpdate: " + info.ExtraInfo);
@@ -83,14 +83,14 @@ namespace UnitTest.Zeze.Misc
             future.Task.Wait();
 
             Console.WriteLine("RegisterService 2");
-            future = new TaskCompletionSource<int>();
+            future = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             agent.RegisterService(serviceName, "2");
             future.Task.Wait();
 
             // 改变订阅类型
             Console.WriteLine("Change Subscribe type");
             agent.UnSubscribeService(serviceName);
-            future = new TaskCompletionSource<int>();
+            future = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             agent.SubscribeService(serviceName, SubscribeInfo.SubscribeTypeReadyCommit);
             future.Task.Wait();
 
@@ -101,13 +101,13 @@ namespace UnitTest.Zeze.Misc
             state.SetServiceIdentityReadyState("3", anyState);
 
             Console.WriteLine("RegisterService 3");
-            future = new TaskCompletionSource<int>();
+            future = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             agent.RegisterService(serviceName, "3");
             future.Task.Wait();
 
             Console.WriteLine("Test Reconnect");
             Sm.Dispose();
-            future = new TaskCompletionSource<int>();
+            future = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             Sm = new ServiceManagerServer(address, port, global::Zeze.Config.Load(), 0);
             future.Task.Wait();
             Sm?.Dispose();

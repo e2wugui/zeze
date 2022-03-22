@@ -139,7 +139,7 @@ namespace Zeze.Net
 
         public TaskCompletionSource<TResult> SendForWait(AsyncSocket so, int millisecondsTimeout = 5000)
         {
-            Future = new TaskCompletionSource<TResult>();
+            Future = new TaskCompletionSource<TResult>(TaskCreationOptions.RunContinuationsAsynchronously);
             if (false == Send(so, null, millisecondsTimeout))
             {
                 Future.SetException(new Exception("Send Failed."));

@@ -121,7 +121,7 @@ namespace Zeze.Raft
         }
 
         public override void DispatchRpcResponse(Protocol p,
-            Func<Protocol, long> responseHandle,
+            Func<Protocol, Task<long>> responseHandle,
             ProtocolFactoryHandle factoryHandle)
         {
             if (IsImportantProtocol(p.TypeId))
@@ -565,7 +565,7 @@ namespace Zeze.Raft
             rpc.SendTime = rpc.CreateTime;
             rpc.Timeout = RaftConfig.AppendEntriesTimeout;
 
-            var future = new TaskCompletionSource<RaftRpc<TArgument, TResult>>();
+            var future = new TaskCompletionSource<RaftRpc<TArgument, TResult>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             rpc.Urgent = urgent;
             if (urgent)
@@ -796,9 +796,9 @@ namespace Zeze.Raft
                 Agent = agent;
             }
 
-            public override void DispatchRpcResponse(Protocol rpc, Func<Protocol, long> responseHandle, ProtocolFactoryHandle factoryHandle)
+            public override void DispatchRpcResponse(Protocol rpc, Func<Protocol, Task<long>> responseHandle, ProtocolFactoryHandle factoryHandle)
             {
-                Agent.InternalThreadPool.QueueUserWorkItem(() => responseHandle(rpc));
+                Agent.InternalThreadPool.QueueUserWorkItem(() => responseHandle(rpc).Wait());
             }
 
             public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle pfh)
@@ -809,11 +809,12 @@ namespace Zeze.Raft
 
                 if (p.TypeId == LeaderIs.TypeId_ || Agent.DispatchProtocolToInternalThreadPool)
                 {
-                    Agent.InternalThreadPool.QueueUserWorkItem(() => Util.Task.Call(() => pfh.Handle(p), "InternalRequest"));
+                    Agent.InternalThreadPool.QueueUserWorkItem(
+                        () => Util.Task.CallAsync(async () => await pfh.Handle(p), "InternalRequest").Wait());
                 }
                 else
                 {
-                    Util.Task.Run(() => pfh.Handle(p), p);
+                    Util.Task.Run(() => { var t = pfh.Handle(p); t.Wait(); return t.Result; }, p);
                 }
             }
         }

@@ -21,7 +21,7 @@ namespace Zeze.Net
         public bool IsAutoReconnect { get; set; } = true;
         public bool IsConnected { get; private set; } = false;
         public bool IsHandshakeDone => TryGetReadySocket() != null;
-        private volatile TaskCompletionSource<AsyncSocket> FutureSocket = new TaskCompletionSource<AsyncSocket>();
+        private volatile TaskCompletionSource<AsyncSocket> FutureSocket = new TaskCompletionSource<AsyncSocket>(TaskCreationOptions.RunContinuationsAsynchronously);
         public string Name => $"{HostNameOrAddress}:{Port}";
 
         public AsyncSocket Socket { get; private set; }
@@ -195,7 +195,7 @@ namespace Zeze.Net
 
                 IsConnected = false;
                 FutureSocket.TrySetException(e ?? new Exception("Connector Stopped: " + Name));
-                FutureSocket = new TaskCompletionSource<AsyncSocket>();
+                FutureSocket = new TaskCompletionSource<AsyncSocket>(TaskCreationOptions.RunContinuationsAsynchronously);
                 tmp = Socket;
                 Socket = null; // 阻止递归。
             }

@@ -6,13 +6,14 @@ using Zeze.Services;
 using System.Threading.Tasks;
 using NLog;
 using Zeze.Services.GlobalCacheManager;
+using System.Threading.Tasks;
 
 namespace Zeze.Transaction
 {
     internal interface IGlobalAgent : IDisposable
     {
         // (ResultCode, State, GlobalSerialId)
-        public (long, int, long) Acquire(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state);
+        public Task<(long, int, long)> Acquire(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state);
         public int GetGlobalCacheManagerHashIndex(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey);
     }
 
@@ -135,7 +136,7 @@ namespace Zeze.Transaction
             return gkey.GetHashCode() % Agents.Length;
         }
 
-        public (long, int, long) Acquire(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state)
+        public async Task<(long, int, long)> Acquire(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state)
         {
             if (null != Client)
             {
@@ -145,7 +146,7 @@ namespace Zeze.Transaction
                 // 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了），打断外面的事务。
                 // 一个请求异常不关闭连接，尝试继续工作。
                 var rpc = new Acquire(gkey, state);
-                rpc.SendForWait(socket, 12000).Task.Wait();
+                await rpc.SendForWait(socket, 12000).Task;
                 /*
                 if (rpc.ResultCode != 0) // 这个用来跟踪调试，正常流程使用Result.State检查结果。
                 {
@@ -171,7 +172,7 @@ namespace Zeze.Transaction
             return (0, state, 0);
         }
 
-        public long ProcessReduceRequest(Zeze.Net.Protocol p)
+        public async Task<long> ProcessReduceRequest(Zeze.Net.Protocol p)
         {
             var rpc = (Reduce)p;
             switch (rpc.Argument.State)

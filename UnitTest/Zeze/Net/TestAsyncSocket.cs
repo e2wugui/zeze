@@ -16,7 +16,7 @@ namespace UnitTest.Zeze.Net
     {
         public class ServiceClient : Service
         {
-            internal TaskCompletionSource<bool> Future = new TaskCompletionSource<bool>();
+            internal TaskCompletionSource<bool> Future = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             public ServiceClient() : base("TestAsyncSocket.ServiceClient")
             {
 

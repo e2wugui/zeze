@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Transaction;
 
@@ -22,33 +23,34 @@ namespace UnitTest.Zeze.Trans
         }
 
         [TestMethod]
-        public void TestNest()
+        public async void TestNest()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcTableRemove, "ProcTableRemove").Call());
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcTableAdd, "ProcTableAdd").Call());
+            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(ProcTableRemove, "ProcTableRemove").CallAsync());
+            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(ProcTableAdd, "ProcTableAdd").CallAsync());
         }
 
-        long ProcTableRemove()
+        async Task<long> ProcTableRemove()
         {
-            demo.App.Instance.demo_Module1.Table1.Remove(4321);
+            await demo.App.Instance.demo_Module1.Table1.Remove(4321);
             return Procedure.Success;
         }
 
-        long ProcTableAdd()
+        async Task<long> ProcTableAdd()
         {
-            demo.Module1.Value v1 = demo.App.Instance.demo_Module1.Table1.GetOrAdd(4321);
+            demo.Module1.Value v1 = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(4321);
             Assert.IsNotNull(v1);
-            Assert.IsTrue(Procedure.Success != demo.App.Instance.Zeze.NewProcedure(ProcTablePutNestAndRollback, "ProcTablePutNestAndRollback").Call());
-            demo.Module1.Value v2 = demo.App.Instance.demo_Module1.Table1.Get(4321);
+            Assert.IsTrue(Procedure.Success != await demo.App.Instance.Zeze.NewProcedure(
+                ProcTablePutNestAndRollback, "ProcTablePutNestAndRollback").CallAsync());
+            demo.Module1.Value v2 = await demo.App.Instance.demo_Module1.Table1.Get(4321);
             Assert.IsNotNull(v1);
             Assert.IsTrue(v1 == v2);
             return Procedure.Success;
         }
 
-        long ProcTablePutNestAndRollback()
+        async Task<long> ProcTablePutNestAndRollback()
         {
             demo.Module1.Value v = new demo.Module1.Value();
-            demo.App.Instance.demo_Module1.Table1.Put(4321, v);
+            await demo.App.Instance.demo_Module1.Table1.Put(4321, v);
             return Procedure.Unknown;
         }
     }

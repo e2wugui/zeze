@@ -188,7 +188,7 @@ namespace Zeze.Raft
             {
                 if (null != RemoveLogBeforeFuture || false == LogsAvailable || Raft.IsShutdown)
                     return;
-                RemoveLogBeforeFuture = new TaskCompletionSource<bool>();
+                RemoveLogBeforeFuture = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             }
 
             // 直接对 RocksDb 多线程访问，这里就不做多线程保护了。
@@ -708,7 +708,7 @@ namespace Zeze.Raft
                     return;
                 }
 
-                ApplyFuture = new TaskCompletionSource<bool>();
+                ApplyFuture = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
                 Raft.ImportantThreadPool.QueueUserWorkItem(() =>
                 {
                     try
@@ -851,7 +851,7 @@ namespace Zeze.Raft
                 var raftLog = new RaftLog(Term, LastIndex + 1, log);
                 if (WaitApply)
                 {
-                    raftLog.LeaderFuture = new TaskCompletionSource<int>();
+                    raftLog.LeaderFuture = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
                     future = raftLog.LeaderFuture;
                     if (false == LeaderAppendLogs.TryAdd(raftLog.Index, raftLog))
                     {

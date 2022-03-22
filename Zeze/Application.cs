@@ -215,7 +215,7 @@ namespace Zeze
             throw new Exception($"database not exist name={name}");
         }
 
-        public Procedure NewProcedure(Func<long> action, string actionName,
+        public Procedure NewProcedure(Func<Task<long>> action, string actionName,
             TransactionLevel level = TransactionLevel.Serializable,
             object userState = null)
         {
@@ -363,36 +363,5 @@ namespace Zeze
         }
 
         public Zeze.Util.TaskOneByOneByKey TaskOneByOneByKey { get; } = new Zeze.Util.TaskOneByOneByKey();
-
-        public TaskCompletionSource<long> Run(Func<long> func, string actionName, TransactionModes mode, object oneByOneKey = null)
-        {
-            var future = new TaskCompletionSource<long>();
-            switch (mode)
-            {
-                case TransactionModes.ExecuteInTheCallerTransaction:
-                    future.SetResult(func());
-                    break;
-
-                case TransactionModes.ExecuteInNestedCall:
-                    future.SetResult(NewProcedure(func, actionName).Call());
-                    break;
-
-                case TransactionModes.ExecuteInAnotherThread:
-                    if (null != oneByOneKey)
-                    {
-                        TaskOneByOneByKey.Execute(oneByOneKey,
-                            () => future.SetResult(NewProcedure(func, actionName).Call()),
-                            actionName);
-                    }
-                    else
-                    {
-                        Zeze.Util.Task.Run(
-                            () => future.SetResult(NewProcedure(func, actionName).Call()),
-                            actionName);
-                    }
-                    break;
-            }
-            return future;
-        }
     }
 }

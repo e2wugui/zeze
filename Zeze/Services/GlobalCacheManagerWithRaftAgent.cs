@@ -140,7 +140,7 @@ namespace Zeze.Services
             return gkey.GetHashCode() % Agents.Length;
         }
 
-        public (long, int, long) Acquire(GlobalTableKey gkey, int state)
+        public async Task<(long, int, long)> Acquire(GlobalTableKey gkey, int state)
         {
             if (null != Agents)
             {
@@ -151,7 +151,7 @@ namespace Zeze.Services
                 var rpc = new Acquire();
                 rpc.Argument.GlobalTableKey = gkey;
                 rpc.Argument.State = state;
-                agent.RaftClient.SendForWait(rpc).Task.Wait();
+                await agent.RaftClient.SendForWait(rpc).Task;
 
                 if (rpc.ResultCode < 0)
                 {
@@ -216,7 +216,7 @@ namespace Zeze.Services
                 RaftClient.Client.Stop();
             }
 
-            private volatile TaskCompletionSource<bool> LoginFuture = new TaskCompletionSource<bool>();
+            private volatile TaskCompletionSource<bool> LoginFuture = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             public void WaitLoginSuccess()
             {
@@ -240,7 +240,7 @@ namespace Zeze.Services
                 lock (this)
                 {
                     LoginFuture.TrySetCanceled(); // 如果旧的Future上面有人在等，让他们失败。
-                    LoginFuture = new TaskCompletionSource<bool>();
+                    LoginFuture = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
                     return LoginFuture;
                 }
             }

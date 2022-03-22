@@ -5,6 +5,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using Zeze.Services;
+using System.Threading.Tasks;
 
 // MESI？
 namespace Zeze.Transaction
@@ -221,7 +222,9 @@ namespace Zeze.Transaction
 
             if (p.Value.State != GlobalCacheManagerServer.StateInvalid)
             {
-                var (ResultCode, ResultState, ResultGlobalSerialId) = p.Value.Acquire(GlobalCacheManagerServer.StateInvalid);
+                var task = p.Value.Acquire(GlobalCacheManagerServer.StateInvalid);
+                task.Wait();
+                var (ResultCode, ResultState, ResultGlobalSerialId) = task.Result;
                 if (ResultCode != 0 || ResultState != GlobalCacheManagerServer.StateInvalid)
                 {
                     return false;
@@ -234,9 +237,9 @@ namespace Zeze.Transaction
         {
             // lockey 第一优先，和事务并发。
             TableKey tkey = new TableKey(this.Table.Name, p.Key);
-            Lockey lockey = Table.Zeze.Locks.Get(tkey);
+            var lockey = Table.Zeze.Locks.Get(tkey);
 
-            if (false == lockey.TryEnterWriteLock(0))
+            if (false == lockey.TryEnterWriteLock())
                 return false;
             try
             {
@@ -271,7 +274,7 @@ namespace Zeze.Transaction
             }
             finally
             {
-                lockey.ExitWriteLock();
+                lockey.Release();
             }
         }
     }

@@ -159,7 +159,7 @@ namespace Zeze.Transaction
         /// Procedure 第一层入口，总的处理流程，包括重做和所有错误处理。
         /// </summary>
         /// <param name="procedure"></param>
-        internal long Perform(Procedure procedure)
+        internal async Task<long> Perform(Procedure procedure)
         {
             try
             {
@@ -174,7 +174,7 @@ namespace Zeze.Transaction
                             CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
                             try
                             {
-                                var result = procedure.Call();
+                                var result = await procedure.CallAsync();
                                 switch (State)
                                 {
                                     case TransactionState.Running:
@@ -185,7 +185,7 @@ namespace Zeze.Transaction
                                             _final_rollback_(procedure);
                                             return Procedure.ErrorSavepoint;
                                         }
-                                        checkResult = _lock_and_check_(procedure.TransactionLevel);
+                                        checkResult = await _lock_and_check_(procedure.TransactionLevel);
                                         if (checkResult == CheckResult.Success)
                                         {
                                             if (result == Procedure.Success)
@@ -244,7 +244,7 @@ namespace Zeze.Transaction
                                             throw;
                                         }
 #endif
-                                        checkResult = _lock_and_check_(procedure.TransactionLevel);
+                                        checkResult = await _lock_and_check_(procedure.TransactionLevel);
                                         if (checkResult == CheckResult.Success)
                                         {
                                             _final_rollback_(procedure);
@@ -275,7 +275,7 @@ namespace Zeze.Transaction
                                 {
                                     foreach (var holdLock in holdLocks)
                                     {
-                                        holdLock.ExitLock();
+                                        holdLock.Release();
                                     }
                                     holdLocks.Clear();
                                 }
@@ -310,7 +310,7 @@ namespace Zeze.Transaction
             {
                 foreach (var holdLock in holdLocks)
                 {
-                    holdLock.ExitLock();
+                    holdLock.Release();
                 }
                 holdLocks.Clear();
             }
@@ -434,7 +434,7 @@ namespace Zeze.Transaction
             RollbackActions.Clear();
         }
 
-        private readonly List<Lockey> holdLocks = new List<Lockey>(); // 读写锁的话需要一个包装类，用来记录当前维持的是哪个锁。
+        private readonly List<LockAsync> holdLocks = new List<LockAsync>(); // 读写锁的话需要一个包装类，用来记录当前维持的是哪个锁。
 
         public class RecordAccessed : Bean
         {
@@ -552,9 +552,10 @@ namespace Zeze.Transaction
             RedoAndReleaseLock
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private CheckResult _check_(bool writeLock, RecordAccessed e)
+        private async Task<CheckResult> _check_(bool writeLock, RecordAccessed e)
         {
-            lock (e.OriginRecord)
+            var lockr = await e.OriginRecord.Mutex.LockAsync();
+            try
             {
                 if (writeLock)
                 {
@@ -574,7 +575,7 @@ namespace Zeze.Transaction
                         case GlobalCacheManagerServer.StateShare:
                             // 这里可能死锁：另一个先获得提升的请求要求本机Reduce，但是本机Checkpoint无法进行下去，被当前事务挡住了。
                             // 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
-                            var (ResultCode, ResultState, ResultGlobalSerialId) = e.OriginRecord.Acquire(GlobalCacheManagerServer.StateModify);
+                            var (ResultCode, ResultState, ResultGlobalSerialId) = await e.OriginRecord.Acquire(GlobalCacheManagerServer.StateModify);
                             if (ResultState  != GlobalCacheManagerServer.StateModify)
                             {
                                 logger.Warn("Acquire Failed. Maybe DeadLock Found {0}", e.OriginRecord);
@@ -605,19 +606,23 @@ namespace Zeze.Transaction
                         ? CheckResult.Redo : CheckResult.Success;
                 }
             }
+            finally
+            {
+                lockr.Dispose();
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private CheckResult _lock_and_check_(KeyValuePair<TableKey, RecordAccessed> e)
+        private async Task<CheckResult> _lock_and_check_(KeyValuePair<TableKey, RecordAccessed> e)
         {
-            Lockey lockey = Locks.Get(e.Key);
+            var lockey = Locks.Get(e.Key);
             bool writeLock = e.Value.Dirty;
-            lockey.EnterLock(writeLock);
+            await lockey.EnterLockAsync(writeLock);
             holdLocks.Add(lockey);
-            return _check_(writeLock, e.Value);
+            return await _check_(writeLock, e.Value);
         }
 
-        private CheckResult _lock_and_check_(TransactionLevel level)
+        private async Task<CheckResult> _lock_and_check_(TransactionLevel level)
         {
             bool allRead = true;
             if (Savepoints.Count > 0)
@@ -653,7 +658,8 @@ namespace Zeze.Transaction
             {
                 foreach (var e in AccessedRecords)
                 {
-                    switch (_lock_and_check_(e))
+                    var checkResult = await _lock_and_check_(e);
+                    switch (checkResult)
                     {
                         case CheckResult.Success:
                             break;
@@ -679,7 +685,8 @@ namespace Zeze.Transaction
                 // 如果 holdLocks 全部被对比完毕，直接锁定它
                 if (index >= n)
                 {
-                    switch (_lock_and_check_(e))
+                    var checkResult = await _lock_and_check_(e);
+                    switch (checkResult)
                     {
                         case CheckResult.Success:
                             break;
@@ -695,15 +702,15 @@ namespace Zeze.Transaction
                     continue;
                 }
 
-                Lockey curLock = holdLocks[index];
-                int c = curLock.TableKey.CompareTo(e.Key);
+                var curLock = holdLocks[index];
+                int c = curLock.Lockey.TableKey.CompareTo(e.Key);
 
                 // holdlocks a  b  ...
                 // needlocks a  b  ...
                 if (c == 0)
                 {
                     // 这里可能发生读写锁提升
-                    if (e.Value.Dirty && false == curLock.isWriteLockHeld())
+                    if (e.Value.Dirty && 2 != curLock.HoldType)
                     {
                         // 必须先全部释放，再升级当前记录锁，再锁后面的记录。
                         // 直接 unlockRead，lockWrite会死锁。
@@ -724,10 +731,10 @@ namespace Zeze.Transaction
                 {
                     // 释放掉 比当前锁序小的锁，因为当前事务中不再需要这些锁
                     int unlockEndIndex = index;
-                    for (; unlockEndIndex < n && holdLocks[unlockEndIndex].TableKey.CompareTo(e.Key) < 0; ++unlockEndIndex)
+                    for (; unlockEndIndex < n && holdLocks[unlockEndIndex].Lockey.TableKey.CompareTo(e.Key) < 0; ++unlockEndIndex)
                     {
                         var toUnlockLocker = holdLocks[unlockEndIndex];
-                        toUnlockLocker.ExitLock();
+                        toUnlockLocker.Release();
                     }
                     holdLocks.RemoveRange(index, unlockEndIndex - index);
                     n = holdLocks.Count;
@@ -749,7 +756,7 @@ namespace Zeze.Transaction
             for (int i = index; i < nLast; ++i)
             {
                 var toUnlockLocker = holdLocks[i];
-                toUnlockLocker.ExitLock();
+                toUnlockLocker.Release();
             }
             holdLocks.RemoveRange(index, nLast - index);
             return holdLocks.Count;

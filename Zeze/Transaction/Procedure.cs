@@ -31,7 +31,7 @@ namespace Zeze.Transaction
 
         public Application Zeze { get; }
 
-        public Func<long> Action { get; set; }
+        public Func<Task<long>> Action { get; set; }
 
         public string ActionName { get; set; } // 用来统计或者日志
         public TransactionLevel TransactionLevel { get;}
@@ -46,7 +46,7 @@ namespace Zeze.Transaction
 
         public Zeze.Net.Protocol Rpc { get; set; }
 
-        public Procedure(Application app, Func<long> action, string actionName, TransactionLevel level, object userState)
+        public Procedure(Application app, Func<Task<long>> action, string actionName, TransactionLevel level, object userState)
         {
             Zeze = app;
             Action = action;
@@ -78,14 +78,14 @@ namespace Zeze.Transaction
         /// 嵌套 Procedure 实现，
         /// </summary>
         /// <returns></returns>
-        public long Call()
+        public async Task<long> CallAsync()
         {
             if (null == Transaction.Current)
             {
                 try
                 {
                     // 有点奇怪，Perform 里面又会回调这个方法。这是为了把主要流程都写到 Transaction 中。
-                    return Transaction.Create(Zeze.Locks).Perform(this);
+                    return await Transaction.Create(Zeze.Locks).Perform(this);
                 }
                 finally
                 {
@@ -99,7 +99,7 @@ namespace Zeze.Transaction
 
             try
             {
-                long result = Process();
+                long result = await Process();
                 currentT.VerifyRunning(); // 防止应用抓住了异常，通过return方式返回。
 
                 if (Success == result)
@@ -148,11 +148,18 @@ namespace Zeze.Transaction
             }
         }
 
-        protected virtual long Process()
+        protected virtual async Task<long> Process()
         {
             if (null != Action)
-                return Action();
+                return await Action();
             return NotImplement;
+        }
+
+        internal long CallSync()
+        {
+            var atask = CallAsync();
+            atask.Wait();
+            return atask.Result;
         }
 
         public override string ToString()

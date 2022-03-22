@@ -11,16 +11,16 @@ namespace UnitTest.Zeze.Trans
     public class TestZero
     {
         [TestMethod]
-        public void Go()
+        public async void Go()
         {
             demo.App.Instance.Start();
             try
             {
-                demo.App.Instance.Zeze.NewProcedure(() =>
+                await demo.App.Instance.Zeze.NewProcedure(async () =>
                 {
-                    demo.App.Instance.demo_Module1.Table1.Remove(1);
+                    await demo.App.Instance.demo_Module1.Table1.Remove(1);
                     return 0;
-                }, "go").Call();
+                }, "go").CallAsync();
             }
             finally
             {

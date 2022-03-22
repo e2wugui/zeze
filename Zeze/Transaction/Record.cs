@@ -4,7 +4,7 @@ using System.Text;
 using Zeze.Serialize;
 using System.Collections.Concurrent;
 using Zeze.Services;
-using Zeze.Services.GlobalCacheManager;
+using System.Threading.Tasks;
 
 namespace Zeze.Transaction
 {
@@ -86,7 +86,7 @@ namespace Zeze.Transaction
 
         internal abstract void Commit(Transaction.RecordAccessed accessed);
 
-        internal abstract (long, int, long) Acquire(int state);
+        internal abstract Task<(long, int, long)> Acquire(int state);
 
         internal abstract void Encode0();
         internal abstract void Flush(Database.Transaction t);
@@ -95,6 +95,7 @@ namespace Zeze.Transaction
         internal Database.Transaction DatabaseTransactionTmp { get; set; }
         internal abstract void SetDirty();
         internal abstract void SetExistInBackDatabase(long timestamp, bool value);
+        internal Nito.AsyncEx.AsyncLock Mutex = new Nito.AsyncEx.AsyncLock();
     }
 
     public class Record<K, V> : Record where V : Bean, new()
@@ -118,7 +119,7 @@ namespace Zeze.Transaction
             // 记录的log可能在Transaction.AddRecordAccessed之前进行，不能再访问了。
         }
 
-        internal override (long, int, long) Acquire(int state)
+        internal async override Task<(long, int, long)> Acquire(int state)
         {
             if (null == TTable.TStorage)
             {
@@ -145,7 +146,7 @@ namespace Zeze.Transaction
                     break;
             }
 #endif
-            return TTable.Zeze.GlobalAgent.Acquire(gkey, state);
+            return await TTable.Zeze.GlobalAgent.Acquire(gkey, state);
         }
 
         internal long SavedTimestampForCheckpointPeriod { get; set; }
@@ -186,8 +187,8 @@ namespace Zeze.Transaction
             ConcurrentDictionary<K, Record<K, V>> changed,
             ConcurrentDictionary<K, Record<K, V>> encoded)
         {
-            Lockey lockey = TTable.Zeze.Locks.Get(new TableKey(TTable.Name, Key));
-            if (false == lockey.TryEnterReadLock(0))
+            var lockey = TTable.Zeze.Locks.Get(new TableKey(TTable.Name, Key));
+            if (false == lockey.TryEnterReadLock())
                 return false;
             try
             {
@@ -198,7 +199,7 @@ namespace Zeze.Transaction
             }
             finally
             {
-                lockey.ExitReadLock();
+                lockey.Release();
             }
         }
 
@@ -298,7 +299,7 @@ namespace Zeze.Transaction
                 }
                 finally
                 {
-                    lockey.ExitWriteLock();
+                    lockey.Release();
                 }
             }
             // CheckpointMode.Table
@@ -322,7 +323,7 @@ namespace Zeze.Transaction
             }
             finally
             {
-                lockey.ExitWriteLock();
+                lockey.Release();
             }
         }
 

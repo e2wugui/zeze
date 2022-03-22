@@ -92,7 +92,7 @@ namespace Zeze.Transaction
                     break;
 
                 case CheckpointMode.Period:
-                    TaskCompletionSource<int> source = new TaskCompletionSource<int>();
+                    TaskCompletionSource<int> source = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
                     AddActionAndPulse(() => source.SetResult(0));
                     source.Task.Wait();
                     break;

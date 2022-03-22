@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Net.NetworkInformation;
 using Zeze.Transaction;
 using Zeze.Util;
+using System.Threading.Tasks;
 
 namespace Zeze.Net
 {
@@ -247,7 +248,7 @@ namespace Zeze.Net
 
         // 用来派发异步rpc回调。
         public virtual void DispatchRpcResponse(Protocol rpc,
-            Func<Protocol, long> responseHandle,
+            Func<Protocol, Task<long>> responseHandle,
             ProtocolFactoryHandle factoryHandle)
         {
             if (null != Zeze && TransactionLevel.None != factoryHandle.TransactionLevel)
@@ -329,7 +330,7 @@ namespace Zeze.Net
         public class ProtocolFactoryHandle
         { 
             public Func<Protocol> Factory { get; set; }
-            public Func<Protocol, long> Handle { get; set; }
+            public Func<Protocol, Task<long>> Handle { get; set; }
             public TransactionLevel TransactionLevel { get; set; } = TransactionLevel.Serializable;
             public bool NoProcedure => TransactionLevel == TransactionLevel.None;
         }

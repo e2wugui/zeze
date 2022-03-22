@@ -9,15 +9,16 @@ namespace Zeze.Util
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public static void Call(Action action, string actionName)
+        public static async Task<long> CallAsync(Func<Task<long>> afunc, string actionName)
         {
             try
             {
-                action();
+                return await afunc();
             }
             catch (Exception ex)
             {
                 logger.Error(ex, actionName);
+                return Procedure.Exception;
             }
         }
 
@@ -31,6 +32,18 @@ namespace Zeze.Util
             {
                 logger.Error(ex, actionName);
                 return Procedure.Exception;
+            }
+        }
+
+        public static void Call(Action action, string actionName)
+        {
+            try
+            {
+                action();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, actionName);
             }
         }
 
@@ -72,10 +85,18 @@ namespace Zeze.Util
         public static long Call(Func<long> func, Net.Protocol p,
             Action<Net.Protocol, long> actionWhenError = null)
         {
+            var atask = CallAsync(async () => func(), p, actionWhenError);
+            atask.Wait();
+            return atask.Result;
+        }
+
+        public static async Task<long> CallAsync(Func<Task<long>> afunc, Net.Protocol p,
+            Action<Net.Protocol, long> actionWhenError = null)
+        {
             bool IsRequestSaved = p.IsRequest; // 记住这个，以后可能会被改变。
             try
             {
-                long result = func();
+                long result = await afunc();
                 if (result != 0 && IsRequestSaved)
                 {
                     actionWhenError?.Invoke(p, result);
@@ -120,12 +141,22 @@ namespace Zeze.Util
             Net.Protocol from = null,
             Action<Net.Protocol, long> actionWhenError = null)
         {
+            var atask = CallAsync(procedure, from, actionWhenError);
+            atask.Wait();
+            return atask.Result;
+        }
+
+        public static async Task<long> CallAsync(
+            Procedure procedure,
+            Net.Protocol from = null,
+            Action<Net.Protocol, long> actionWhenError = null)
+        {
             bool? isRequestSaved = from?.IsRequest;
             try
             {
                 // 日志在Call里面记录。因为要支持嵌套。
                 // 统计在Call里面实现。
-                long result = procedure.Call();
+                long result = await procedure.CallAsync();
                 if (result != 0 && null != isRequestSaved && isRequestSaved.Value)
                 {
                     actionWhenError?.Invoke(from, result);
