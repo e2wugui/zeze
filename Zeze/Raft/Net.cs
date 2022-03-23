@@ -83,7 +83,7 @@ namespace Zeze.Raft
             {
                 base.OnSocketHandshakeDone(so);
                 var raft = (Service as Server).Raft;
-                raft.ImportantThreadPool.QueueUserWorkItem(() => Util.Task.Call(() =>
+                raft.ImportantThreadPool.QueueUserWorkItem(() => Util.Mission.Call(() =>
                 {
                     lock (raft)
                     {
@@ -124,48 +124,42 @@ namespace Zeze.Raft
             Func<Protocol, Task<long>> responseHandle,
             ProtocolFactoryHandle factoryHandle)
         {
-            if (IsImportantProtocol(p.TypeId))
-            {
-                // 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
-                Raft.ImportantThreadPool.QueueUserWorkItem(
-                    () => Util.Task.Call(() => responseHandle(p), p));
-                return;
-            }
-
-            base.DispatchRpcResponse(p, responseHandle, factoryHandle);
+            // 覆盖基类方法，不支持存储过程。
+            _ = Util.Mission.CallAsync(responseHandle, p, null);
         }
 
         public Util.TaskOneByOneByKey TaskOneByOne { get; } = new Util.TaskOneByOneByKey();
 
         private long ProcessRequest(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
-            return Util.Task.Call(() =>
-            {
-                if (Raft.WaitLeaderReady())
+            return Util.Mission.Call(
+                () =>
                 {
-                    if (Raft.LogSequence.TryGetRequestState(p, out var state))
+                    if (Raft.WaitLeaderReady())
                     {
-                        if (null != state)
+                        if (Raft.LogSequence.TryGetRequestState(p, out var state))
                         {
-                            if (state.IsApplied)
+                            if (null != state)
                             {
-                                p.SendResultCode(Procedure.RaftApplied, state.RpcResult.Count > 0 ? state.RpcResult : null);
+                                if (state.IsApplied)
+                                {
+                                    p.SendResultCode(Procedure.RaftApplied, state.RpcResult.Count > 0 ? state.RpcResult : null);
+                                    return 0;
+                                }
+                                p.SendResultCode(Procedure.DuplicateRequest);
                                 return 0;
                             }
-                            p.SendResultCode(Procedure.DuplicateRequest);
-                            return 0;
+                            return factoryHandle.Handle(p);
                         }
-                        return factoryHandle.Handle(p);
+                        p.SendResultCode(Procedure.RaftExpired);
+                        return 0;
                     }
-                    p.SendResultCode(Procedure.RaftExpired);
+                    TrySendLeaderIs(p.Sender);
                     return 0;
-                }
-                TrySendLeaderIs(p.Sender);
-                return 0;
-            },
-            p,
-            (p, code) => p.SendResultCode(code)
-            );
+                },
+                p,
+                (p, code) => p.SendResultCode(code)
+                );
         }
 
         public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
@@ -176,12 +170,10 @@ namespace Zeze.Raft
 
             if (IsImportantProtocol(p.TypeId))
             {
-                // 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
-                // 内部协议总是使用明确返回值或者超时，不使用框架的错误时自动发送结果。
-                Raft.ImportantThreadPool.QueueUserWorkItem(
-                    () => Util.Task.Call(() => factoryHandle.Handle(p), p, null));
+                _ = Util.Mission.CallAsync(factoryHandle.Handle, p, null);
                 return;
             }
+
             // User Request
             if (Raft.IsWorkingLeader)
             {
@@ -229,7 +221,7 @@ namespace Zeze.Raft
             base.OnHandshakeDone(so);
 
             // 没有判断是否和其他Raft-Node的连接。
-            Util.Task.Run(() =>
+            Task.Run(() =>
             {
                 lock (Raft)
                 {
@@ -242,7 +234,7 @@ namespace Zeze.Raft
                         r.Send(so); // skip result
                     }
                 }
-            }, "Raft.LeaderIs.Me");
+            });
         }
     }
 
@@ -471,7 +463,7 @@ namespace Zeze.Raft
                     throw new Exception("duplicate requestid rpc=" + rpc);
             }
 
-            rpc.ResponseHandle = (p) => SendHandle(p, handle, rpc);
+            rpc.ResponseHandle = async (p) => SendHandle(p, handle, rpc);
             rpc.Send(_Leader?.TryGetReadySocket());
         }
 
@@ -579,7 +571,7 @@ namespace Zeze.Raft
                     throw new Exception("duplicate requestid rpc=" + rpc);
             }
 
-            rpc.ResponseHandle = (p) => SendForWaitHandle(p, future, rpc);
+            rpc.ResponseHandle = async (p) => SendForWaitHandle(p, future, rpc);
             rpc.Send(_Leader?.TryGetReadySocket());
             return future;
         }
@@ -685,7 +677,7 @@ namespace Zeze.Raft
             return null;
         }
 
-        private long ProcessLeaderIs(Protocol p)
+        private async Task<long> ProcessLeaderIs(Protocol p)
         {
             var r = p as LeaderIs;
             logger.Info("=============== LEADERIS Old={0} New={1} From={2}", _Leader?.Name, r.Argument.LeaderId, p.Sender);
@@ -796,26 +788,18 @@ namespace Zeze.Raft
                 Agent = agent;
             }
 
-            public override void DispatchRpcResponse(Protocol rpc, Func<Protocol, Task<long>> responseHandle, ProtocolFactoryHandle factoryHandle)
+            public override async void DispatchRpcResponse(Protocol rpc, Func<Protocol, Task<long>> responseHandle, ProtocolFactoryHandle factoryHandle)
             {
-                Agent.InternalThreadPool.QueueUserWorkItem(() => responseHandle(rpc).Wait());
+                await Util.Mission.CallAsync(responseHandle, rpc, null);
             }
 
-            public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle pfh)
+            public override async void DispatchProtocol(Protocol p, ProtocolFactoryHandle pfh)
             {
                 // 防止Client不进入加密，直接发送用户协议。
                 if (false == IsHandshakeProtocol(p.TypeId))
                     p.Sender.VerifySecurity();
 
-                if (p.TypeId == LeaderIs.TypeId_ || Agent.DispatchProtocolToInternalThreadPool)
-                {
-                    Agent.InternalThreadPool.QueueUserWorkItem(
-                        () => Util.Task.CallAsync(async () => await pfh.Handle(p), "InternalRequest").Wait());
-                }
-                else
-                {
-                    Util.Task.Run(() => { var t = pfh.Handle(p); t.Wait(); return t.Result; }, p);
-                }
+                await Util.Mission.CallAsync(pfh.Handle, p, null);
             }
         }
     }

@@ -127,7 +127,7 @@ namespace Zeze.Raft
                 });
             Agent.Client.Start();
 
-            Util.Task.Run(() =>
+            Util.Mission.Run(() =>
             {
                 while (true)
                 {
@@ -547,7 +547,7 @@ namespace Zeze.Raft
             });
 
             // Start Background FailActions
-            Util.Task.Run(RandomTriggerFailActions, "RandomTriggerFailActions");
+            Util.Mission.Run(RandomTriggerFailActions, "RandomTriggerFailActions");
             var testname = "RealConcurrentDoRequest";
             var lastExpectCount = ExpectCount.Get();
             while (true)

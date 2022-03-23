@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Zeze.Util
 {
@@ -40,33 +41,59 @@ namespace Zeze.Util
 
 		public void Execute(object key, Action action, string actionName = null, Action cancel = null)
         {
-			if (null == action)
-				throw new ArgumentNullException();
-
 			int h = Hash(key.GetHashCode());
 			int index = h & (concurrency.Length - 1);
-			concurrency[index].Execute(action, actionName, cancel);
+
+			concurrency[index].Execute(new JobAction()
+			{
+				Action = action,
+				Name = actionName,
+				Cancel = cancel
+			});
         }
 
-
-		public void Execute(object key, Func<long> action, string actionName = null, Action cancel = null)
+		public void Execute(object key, Func<long> func, string actionName = null, Action cancel = null)
 		{
-			if (null == action)
-				throw new ArgumentNullException();
-
 			int h = Hash(key.GetHashCode());
 			int index = h & (concurrency.Length - 1);
-			concurrency[index].Execute(action, actionName, cancel);
+
+			concurrency[index].Execute(new JobFunc()
+			{
+				Func = func,
+				Name = actionName,
+				Cancel = cancel
+			});
 		}
 
-		public void Execute(object key, Zeze.Transaction.Procedure procedure, Action cancel = null)
+		public void Execute(object key, Func<Net.Protocol, Task<long>> pHandle, Net.Protocol p,
+			Action<Net.Protocol, long> actionWhenError = null, Action cancel = null)
 		{
-			if (null == procedure)
-				throw new ArgumentNullException();
-
 			int h = Hash(key.GetHashCode());
 			int index = h & (concurrency.Length - 1);
-			concurrency[index].Execute(procedure.Call, procedure.ActionName, cancel);
+
+			concurrency[index].Execute(new JobProtocol()
+			{
+				Handle = pHandle,
+				Protocol = p,
+				ActionWhenError = actionWhenError,
+				Cancel = cancel
+			});
+		}
+
+		public void Execute(object key, Zeze.Transaction.Procedure procedure,
+			Net.Protocol from = null, Action<Net.Protocol, long> actionWhenError = null,
+			Action cancel = null)
+		{
+			int h = Hash(key.GetHashCode());
+			int index = h & (concurrency.Length - 1);
+
+			concurrency[index].Execute(new JobProcedure()
+			{
+				Procedure = procedure,
+				From = from,
+				ActionWhenError = actionWhenError,
+				Cancel = cancel
+			});
 		}
 
 		public void Shutdown(bool nowait, Action beforeWait, bool cancel)
@@ -106,24 +133,103 @@ namespace Zeze.Util
 			return (int)(h ^ (h >> 7) ^ (h >> 4));
 		}
 
+		internal abstract class Job
+		{
+			public string Name { get; set; }
+			public Action Cancel { get; set; }
+			public abstract void Process();
+
+			public void DoIt(TaskOneByOne obo)
+			{
+				try
+				{
+					Process();
+				}
+				catch (Exception ex)
+				{
+					logger.Error(ex, "TaskOneByOne.DoIt");
+				}
+				finally
+				{
+					obo.RunNext();
+				}
+			}
+		}
+
+		internal class JobProtocol : Job
+		{
+			public Net.Protocol Protocol { get; set; }
+			public Func<Net.Protocol, Task<long>> Handle { get; set; }
+			public Action<Net.Protocol, long> ActionWhenError { get; set; }
+
+			public JobProtocol()
+			{
+				Name = Protocol.GetType().FullName;
+			}
+
+
+			public override void Process()
+			{
+				Util.Mission.CallAsync(Handle, Protocol, ActionWhenError).Wait();
+			}
+        }
+
+		internal class JobProcedure : Job
+        {
+			public Transaction.Procedure Procedure { get; set; }
+			public Net.Protocol From { get; set; }
+			public Action<Net.Protocol, long> ActionWhenError { get; set; }
+
+			public JobProcedure()
+            {
+				Name = Procedure.ActionName;
+            }
+
+			public override void Process()
+			{
+				Util.Mission.CallAsync(Procedure, From, ActionWhenError).Wait();
+			}
+        }
+
+		internal class JobFunc : Job
+        {
+			public Func<long> Func { get; set; }
+
+			public override void Process()
+			{
+				Func();
+			}
+        }
+
+		internal class JobAction : Job
+		{
+			public Action Action { get; set; }
+
+			public override void Process()
+			{
+				Action();
+			}
+		}
+
 		internal class TaskOneByOne
 		{
-			LinkedList<(Action, string, Action)> queue = new LinkedList<(Action, string, Action)>();
+			LinkedList<Job> queue = new ();
 
 			bool IsShutdown = false;
 
 			internal void Shutdown(bool cancel)
             {
-				LinkedList<(Action, string, Action)> tmp = null;
+				LinkedList<Job> tmp = null;
 				lock (this)
                 {
 					if (IsShutdown)
 						return;
+
 					IsShutdown = true;
 					if (cancel)
                     {
 						tmp = queue;
-						queue = new LinkedList<(Action, string, Action)>(); // clear
+						queue = new (); // clear
 						if (tmp.Count > 0)
 							queue.AddLast(tmp.First.Value); // put back running task back.
 					}
@@ -132,7 +238,7 @@ namespace Zeze.Util
 					return;
 
 				bool first = true;
-				foreach (var e in tmp)
+				foreach (var job in tmp)
                 {
 					if (first) // first is running task
 					{
@@ -141,11 +247,11 @@ namespace Zeze.Util
                     }
                     try
                     {
-						e.Item3?.Invoke();
+						job.Cancel?.Invoke();
                     }
 					catch (Exception ex)
                     {
-						logger.Error(ex, $"CancelAction={e.Item2}");
+						logger.Error(ex, $"CancelAction={job.Cancel}");
                     }
                 }
             }
@@ -166,72 +272,30 @@ namespace Zeze.Util
             {
             }
 
-			internal void Execute(Action action, string actionName, Action cancel)
-            {
-				lock (this)
-                {
-					if (IsShutdown)
-                    {
-						cancel?.Invoke();
-						return;
-					}
-
-					queue.AddLast((() =>
-					{
-						try
-						{
-							action();
-						}
-						finally
-						{
-							RunNext();
-						}
-					}, actionName, cancel));
-
-					if (queue.Count == 1)
-                    {
-						Zeze.Util.Task.Run(queue.First.Value.Item1, queue.First.Value.Item2);
-                    }
-				}
-			}
-
-			internal void Execute(Func<long> action, string actionName, Action cancel)
+			internal void Execute(Job job)
 			{
 				lock (this)
 				{
 					if (IsShutdown)
 					{
-						cancel?.Invoke();
+						job.Cancel?.Invoke();
 						return;
 					}
-
-					queue.AddLast((() =>
-					{
-						try
-						{
-							action();
-						}
-						finally
-						{
-							RunNext();
-						}
-					}, actionName, cancel));
-
+					queue.AddLast(job);
 					if (queue.Count == 1)
 					{
-						Zeze.Util.Task.Run(queue.First.Value.Item1, queue.First.Value.Item2);
+						System.Threading.Tasks.Task.Run(() => queue.First.Value.DoIt(this));
 					}
 				}
 			}
 
-			private void RunNext()
+			internal void RunNext()
 			{
 				lock (this)
 				{
 					if (queue.Count > 0)
 					{
 						queue.RemoveFirst();
-
 						if (IsShutdown && queue.Count == 0)
                         {
 							Monitor.PulseAll(this);
@@ -240,11 +304,10 @@ namespace Zeze.Util
 					}
 					if (queue.Count > 0)
 					{
-						Zeze.Util.Task.Run(queue.First.Value.Item1, queue.First.Value.Item2);
+						System.Threading.Tasks.Task.Run(() => queue.First.Value.DoIt(this));
 					}
 				}
 			}
-
 		}
 	}
 }

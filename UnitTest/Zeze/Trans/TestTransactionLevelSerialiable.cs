@@ -25,14 +25,14 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void Test2()
         {
-            demo.App.Instance.Zeze.NewProcedure(init, "test_init").Call();
-            global::Zeze.Util.Task.Run(Verify_task, "verify_task");
+            demo.App.Instance.Zeze.NewProcedure(init, "test_init").CallAsync().Wait();
+            Task.Run(Verify_task);
             try
             {
                 Task[] tasks = new Task[200000];
                 for (int i = 0; i < tasks.Length; ++i)
                 {
-                    tasks[i] = global::Zeze.Util.Task.Run(demo.App.Instance.Zeze.NewProcedure(trade, "test_trade"), null, null);
+                    tasks[i] = demo.App.Instance.Zeze.NewProcedure(trade, "test_trade").CallAsync();
                 }
                 Task.WaitAll(tasks);
             }
@@ -46,33 +46,33 @@ namespace UnitTest.Zeze.Trans
         {
             while (InTest)
             {
-                demo.App.Instance.Zeze.NewProcedure(verify, "test_verify").Call();
+                demo.App.Instance.Zeze.NewProcedure(verify, "test_verify").CallAsync().Wait();
             }
         }
 
-        private long verify()
+        private async Task<long> verify()
         {
-            var v1 = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1L);
-            var v2 = demo.App.Instance.demo_Module1.Table1.GetOrAdd(2L);
+            var v1 = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1L);
+            var v2 = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(2L);
             var total = v1.Int1 + v2.Int1;
             // 必须在事务成功时verify，执行过程中是可能失败的。
             Transaction.Current.RunWhileCommit(() => { Assert.AreEqual(100_000, total); });
             return 0;
         }
 
-        private long init()
+        private async Task<long> init()
         {
-            var v1 = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1L);
-            var v2 = demo.App.Instance.demo_Module1.Table1.GetOrAdd(2L);
+            var v1 = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1L);
+            var v2 = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(2L);
             v1.Int1 = 100_000;
             v2.Int1 = 0;
             return 0;
         }
 
-        private long trade()
+        private async Task<long> trade()
         {
-            var v1 = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1L);
-            var v2 = demo.App.Instance.demo_Module1.Table1.GetOrAdd(2L);
+            var v1 = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1L);
+            var v2 = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(2L);
             var money = global::Zeze.Util.Random.Instance.Next(1000);
             if (global::Zeze.Util.Random.Instance.Next(100) < 50)
             {

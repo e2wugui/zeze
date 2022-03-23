@@ -737,7 +737,7 @@ namespace Zeze.Services
                 if (null == factoryHandle)
                     return;
 
-                Util.Task.Run(() => factoryHandle.Handle(p), p, (_, code) => p.SendResultCode(code));
+                Util.Mission.Run(() => factoryHandle.Handle(p), p, (_, code) => p.SendResultCode(code));
             }
         }
 
@@ -1379,7 +1379,7 @@ namespace Zeze.Services.ServiceManager
                 if (null == Socket)
                 {
                     Socket = sender;
-                    Util.Task.Run(Agent.OnConnected, "ServiceManager.Agent.OnConnected");
+                    Util.Mission.Run(Agent.OnConnected, "ServiceManager.Agent.OnConnected");
                 }
                 else
                 {
@@ -1400,7 +1400,7 @@ namespace Zeze.Services.ServiceManager
                 if (null != factoryHandle.Handle)
                 {
                     Agent.Zeze.InternalThreadPool.QueueUserWorkItem(
-                        () => Util.Task.Call(() => factoryHandle.Handle(p), p, (_, code) => p.SendResultCode(code)));
+                        () => Util.Mission.Call(() => factoryHandle.Handle(p), p, (_, code) => p.SendResultCode(code)));
                 }
             }
 

@@ -192,7 +192,7 @@ namespace Zeze.Raft
             }
 
             // 直接对 RocksDb 多线程访问，这里就不做多线程保护了。
-            Util.Task.Run(() =>
+            Util.Mission.Run(() =>
             {
                 try
                 {
@@ -713,7 +713,7 @@ namespace Zeze.Raft
                 {
                     try
                     {
-                        ApplyFuture.SetResult(Util.Task.Call(BackgroundApply, "BackgroundApply") == 0); // 如果有人等待。
+                        ApplyFuture.SetResult(Util.Mission.Call(BackgroundApply, "BackgroundApply") == 0); // 如果有人等待。
                     }
                     finally
                     {

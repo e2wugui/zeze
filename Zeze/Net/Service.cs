@@ -253,16 +253,12 @@ namespace Zeze.Net
         {
             if (null != Zeze && TransactionLevel.None != factoryHandle.TransactionLevel)
             {
-                global::Zeze.Util.Task.Run(
-                    Zeze.NewProcedure(
-                        () => responseHandle(rpc),
-                        rpc.GetType().FullName + ":Response",
-                        factoryHandle.TransactionLevel,
-                        rpc.UserState));
+                _ = Mission.CallAsync(Zeze.NewProcedure(async () => await responseHandle(rpc),
+                    rpc.GetType().FullName + ":Response", factoryHandle.TransactionLevel, rpc.UserState), rpc, null);
             }
             else
             {
-                global::Zeze.Util.Task.Run(() => responseHandle(rpc), rpc);
+                _ = Mission.CallAsync(responseHandle, rpc, null);
             }
         }
 
@@ -272,22 +268,15 @@ namespace Zeze.Net
             {
                 if (null != Zeze && TransactionLevel.None != factoryHandle.TransactionLevel)
                 {
-                    Zeze.TaskOneByOneByKey.Execute(key,
-                        () => global::Zeze.Util.Task.Call(Zeze.NewProcedure(
+                    Zeze.TaskOneByOneByKey.Execute(key, Zeze.NewProcedure(
                             () => factoryHandle.Handle(p), p.GetType().FullName,
                             factoryHandle.TransactionLevel, p.UserState),
-                            p,
-                            (p, code) => p.SendResultCode(code))
+                            p, (p, code) => p.SendResultCode(code)
                         );
                 }
                 else
                 {
-                    Zeze.TaskOneByOneByKey.Execute(key,
-                        () => global::Zeze.Util.Task.Call(
-                            () => factoryHandle.Handle(p),
-                            p,
-                            (p, code) => p.SendResultCode(code))
-                        );
+                    Zeze.TaskOneByOneByKey.Execute(key, factoryHandle.Handle, p, (p, code) => p.SendResultCode(code));
                 }
             }
             else
@@ -302,16 +291,16 @@ namespace Zeze.Net
             {
                 if (null != Zeze && TransactionLevel.None != factoryHandle.TransactionLevel)
                 {
-                    global::Zeze.Util.Task.Run(
+                    Task.Run(() => Mission.CallAsync(
                         Zeze.NewProcedure(
                             () => factoryHandle.Handle(p),
                             p.GetType().FullName,
                             factoryHandle.TransactionLevel,
-                            p.UserState), p);
+                            p.UserState), p, null).Wait());
                 }
                 else
                 {
-                    global::Zeze.Util.Task.Run(() => factoryHandle.Handle(p), p);
+                    Task.Run(() => Mission.CallAsync(factoryHandle.Handle, p, null).Wait());
                 }
             }
             else

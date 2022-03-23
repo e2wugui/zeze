@@ -52,7 +52,7 @@ namespace UnitTest.Zeze.Trans
                 Task[] tasks = new Task[1000];
                 for (int i = 0; i < tasks.Length; ++i)
                 {
-                    tasks[i] = global::Zeze.Util.Task.Run(
+                    tasks[i] = global::Zeze.Util.Mission.Run(
                         demo.App.Instance.Zeze.NewProcedure(Add, "TestCheckpointModeTable.Add"));
                 }
                 Task.WaitAll(tasks);
@@ -64,7 +64,7 @@ namespace UnitTest.Zeze.Trans
                 Task[] tasks = new Task[1000];
                 for (int i = 0; i < tasks.Length; ++i)
                 {
-                    tasks[i] = global::Zeze.Util.Task.Run(
+                    tasks[i] = global::Zeze.Util.Mission.Run(
                         demo.App.Instance.Zeze.NewProcedure(Add2, "TestCheckpointModeTable.Add2"));
                 }
                 Task.WaitAll(tasks);

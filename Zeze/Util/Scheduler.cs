@@ -152,7 +152,7 @@ namespace Zeze.Util
                 return;
 
             // 派发出去运行，让系统管理大量任务的线程问题。
-            Task.Run(() => action(this), "SchedulerTask.Run");
+            Mission.Run(() => action(this), "SchedulerTask.Run");
 
             if (this.Period > 0)
             {

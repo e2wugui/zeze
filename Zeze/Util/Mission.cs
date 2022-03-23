@@ -5,22 +5,9 @@ using Zeze.Transaction;
 
 namespace Zeze.Util
 {
-    public class Task
+    public class Mission
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-
-        public static async Task<long> CallAsync(Func<Task<long>> afunc, string actionName)
-        {
-            try
-            {
-                return await afunc();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, actionName);
-                return Procedure.Exception;
-            }
-        }
 
         public static long Call(Func<long> action, string actionName)
         {
@@ -45,11 +32,6 @@ namespace Zeze.Util
             {
                 logger.Error(ex, actionName);
             }
-        }
-
-        public static System.Threading.Tasks.Task Run(Action action, string actionName)
-        {
-            return System.Threading.Tasks.Task.Run(() => Call(action, actionName));
         }
 
         public static volatile Action<NLog.LogLevel, Exception, long, string> LogAction = DefaultLogAction;
@@ -82,21 +64,13 @@ namespace Zeze.Util
             logger.Log(ll, ex, $"Return={result}{module} {message}");
         }
 
-        public static long Call(Func<long> func, Net.Protocol p,
-            Action<Net.Protocol, long> actionWhenError = null)
-        {
-            var atask = CallAsync(async () => func(), p, actionWhenError);
-            atask.Wait();
-            return atask.Result;
-        }
-
-        public static async Task<long> CallAsync(Func<Task<long>> afunc, Net.Protocol p,
+        public static async Task<long> CallAsync(Func<Net.Protocol, Task<long>> phandle, Net.Protocol p,
             Action<Net.Protocol, long> actionWhenError = null)
         {
             bool IsRequestSaved = p.IsRequest; // 记住这个，以后可能会被改变。
             try
             {
-                long result = await afunc();
+                long result = await phandle(p);
                 if (result != 0 && IsRequestSaved)
                 {
                     actionWhenError?.Invoke(p, result);
@@ -128,22 +102,42 @@ namespace Zeze.Util
             }
         }
 
-        public static System.Threading.Tasks.Task Run(
-            Func<long> func,
-            Zeze.Net.Protocol p,
+        public static long Call(Func<long> func, Net.Protocol p,
             Action<Net.Protocol, long> actionWhenError = null)
         {
-            return System.Threading.Tasks.Task.Run(() => Call(func, p, actionWhenError));
-        }
+            bool IsRequestSaved = p.IsRequest; // 记住这个，以后可能会被改变。
+            try
+            {
+                long result = func();
+                if (result != 0 && IsRequestSaved)
+                {
+                    actionWhenError?.Invoke(p, result);
+                }
+                LogAndStatistics(null, result, p, IsRequestSaved);
+                return result;
+            }
+            catch (Exception ex)
+            {
+                while (true)
+                {
+                    var inner = ex.InnerException;
+                    if (null == inner)
+                        break;
+                    ex = inner;
+                }
 
-        public static long Call(
-            Procedure procedure,
-            Net.Protocol from = null,
-            Action<Net.Protocol, long> actionWhenError = null)
-        {
-            var atask = CallAsync(procedure, from, actionWhenError);
-            atask.Wait();
-            return atask.Result;
+                var errorCode = Procedure.Exception;
+                if (ex is TaskCanceledException)
+                    errorCode = Procedure.CancelException;
+                else if (ex is Raft.RaftRetryException)
+                    errorCode = Procedure.RaftRetry;
+
+                if (IsRequestSaved)
+                    actionWhenError?.Invoke(p, errorCode);
+                // use last inner cause
+                LogAndStatistics(ex, errorCode, p, IsRequestSaved);
+                return errorCode;
+            }
         }
 
         public static async Task<long> CallAsync(
@@ -174,28 +168,5 @@ namespace Zeze.Util
                 return Procedure.Exception;
             }
         }
-
-        public static System.Threading.Tasks.Task Run(
-            Procedure procedure,
-            Net.Protocol from = null,
-            Action<Net.Protocol, long> actionWhenError = null)
-        {
-            return System.Threading.Tasks.Task.Run(() => Call(procedure, from, actionWhenError));
-        }
-        /*
-        public static System.Threading.Tasks.Task Create(
-            Procedure p,
-            Net.Protocol from = null,
-            Action<Net.Protocol, int> actionWhenError = null)
-        {
-            return new System.Threading.Tasks.Task(() => Call(p, from, actionWhenError));
-        }
-
-        public static System.Threading.Tasks.Task Run(System.Threading.Tasks.Task task)
-        {
-            task.Start();
-            return task;
-        }
-        */
     }
 }

@@ -84,8 +84,8 @@ namespace UnitTest.Zeze.Trans
                 
                 Task[] task2 = new Task[2];
                 int count = 2000;
-                task2[0] = global::Zeze.Util.Task.Run(() => ConcurrentAdd(app1, count, 1), "TestGlobal.ConcurrentAdd1");
-                task2[1] = global::Zeze.Util.Task.Run(() => ConcurrentAdd(app2, count, 2), "TestGlobal.ConcurrentAdd2");
+                task2[0] = global::Zeze.Util.Mission.Run(() => ConcurrentAdd(app1, count, 1), "TestGlobal.ConcurrentAdd1");
+                task2[1] = global::Zeze.Util.Mission.Run(() => ConcurrentAdd(app2, count, 2), "TestGlobal.ConcurrentAdd2");
                 Task.WaitAll(task2);
                 int countall = count * 2;
 
@@ -121,7 +121,7 @@ namespace UnitTest.Zeze.Trans
             Task[] tasks = new Task[count];
             for (int i = 0; i < tasks.Length; ++i)
             {
-                tasks[i] = global::Zeze.Util.Task.Run(app.Zeze.NewProcedure(()=>
+                tasks[i] = global::Zeze.Util.Mission.Run(app.Zeze.NewProcedure(()=>
                 {
                     demo.Module1.Value b = app.demo_Module1.Table1.GetOrAdd(6785);
                     b.Int1 += 1;

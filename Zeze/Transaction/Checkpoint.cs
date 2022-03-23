@@ -68,7 +68,7 @@ namespace Zeze.Transaction
 
                 IsRunning = true;
                 Period = period;
-                CheckpointThread = new Thread(() => Zeze.Util.Task.Call(Run, "Checkpoint.Run"));
+                CheckpointThread = new Thread(() => Zeze.Util.Mission.Call(Run, "Checkpoint.Run"));
                 CheckpointThread.Name = "CheckpointThread";
                 CheckpointThread.Start();
             }

@@ -20,7 +20,7 @@ namespace Zeze.Net
         public bool IsTimeout { get; internal set; }
         public long SessionId { get; set; }
 
-        public Func<Protocol, long> ResponseHandle { get; set; }
+        public Func<Protocol, Task<long>> ResponseHandle { get; set; }
         public int Timeout { get; set; } = 5000;
 
         public TaskCompletionSource<TResult> Future { get; private set; }
@@ -82,7 +82,7 @@ namespace Zeze.Net
         /// <param name="millisecondsTimeout"></param>
         /// <returns></returns>
         public bool Send(AsyncSocket so,
-            Func<Protocol, long> responseHandle,
+            Func<Protocol, Task<long>> responseHandle,
             int millisecondsTimeout = 5000)
         {
             if (so == null || so.Service == null)
@@ -119,7 +119,7 @@ namespace Zeze.Net
         /// <param name="responseHandle"></param>
         /// <param name="millisecondsTimeout"></param>
         public void SendReturnVoid(Service service, AsyncSocket so,
-            Func<Protocol, long> responseHandle,
+            Func<Protocol, Task<long>> responseHandle,
             int millisecondsTimeout = 5000)
         {
             if (null != so && so.Service != service)

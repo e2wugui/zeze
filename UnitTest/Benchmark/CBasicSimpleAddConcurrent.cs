@@ -24,7 +24,7 @@ namespace Benchmark
                 for (int i = 0; i < AddCount; ++i)
                 {
                     int c = i % ConcurrentLevel;
-                    tasks.Add(Zeze.Util.Task.Run(demo.App.Instance.Zeze.NewProcedure(() => Add(c), "Add")));
+                    tasks.Add(Zeze.Util.Mission.Run(demo.App.Instance.Zeze.NewProcedure(() => Add(c), "Add")));
                 }
                 b.Report(this.GetType().FullName, AddCount);
                 foreach (var task in tasks) {

@@ -18,8 +18,8 @@ namespace UnitTest.Zeze.Util
             var p1 = PersistentAtomicLong.GetOrAdd("TestPersistentAtomicLong", 10);
             var p2 = PersistentAtomicLong.GetOrAdd("TestPersistentAtomicLong", 10);
             var jobs = new System.Threading.Tasks.Task[2];
-            jobs[0] = Task.Run(() => Alloc(p1), "Alloc1");
-            jobs[1] = Task.Run(() => Alloc(p2), "Alloc2");
+            jobs[0] = Mission.Run(() => Alloc(p1), "Alloc1");
+            jobs[1] = Mission.Run(() => Alloc(p2), "Alloc2");
             System.Threading.Tasks.Task.WaitAll(jobs);
         }
 

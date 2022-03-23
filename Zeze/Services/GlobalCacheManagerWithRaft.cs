@@ -354,7 +354,7 @@ namespace Zeze.Services
                 // 2. sender是share, 而且reducePending的size是0
                 if (!(cs.Share.Count == 0) && (!senderIsShare || reducePending.Count > 0))
                 {
-                    Zeze.Util.Task.Run(
+                    Zeze.Util.Mission.Run(
                     () =>
                     {
                         // 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，

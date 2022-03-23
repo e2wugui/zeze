@@ -18,7 +18,7 @@ namespace Benchmark
                 Console.WriteLine("benchmark start...");
                 var b = new Zeze.Util.Benchmark();
                 for (int i = 0; i < AddCount; ++i) {
-                    tasks.Add(Zeze.Util.Task.Run(demo.App.Instance.Zeze.NewProcedure(Add, "Add")));
+                    tasks.Add(Zeze.Util.Mission.Run(demo.App.Instance.Zeze.NewProcedure(Add, "Add")));
                 }
                 b.Report(this.GetType().FullName, AddCount);
                 foreach (var task in tasks) {

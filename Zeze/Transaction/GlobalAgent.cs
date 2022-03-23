@@ -367,7 +367,7 @@ namespace Zeze.Transaction
             if (null != factoryHandle.Handle)
             {
                 Zeze.InternalThreadPool.QueueUserWorkItem(
-                    () => Util.Task.Call(() => factoryHandle.Handle(p), p));
+                    () => Util.Mission.Call(() => factoryHandle.Handle(p), p));
             }
         }
 
