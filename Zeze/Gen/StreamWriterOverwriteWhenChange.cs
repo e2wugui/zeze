@@ -40,7 +40,7 @@ namespace Zeze.Gen
             }
             else
             {
-                Program.Print($"New File: {FileName}");
+                Program.Print($"      New File: {FileName}");
                 File.WriteAllBytes(FileName, Buffered.ToArray());
             }
         }
