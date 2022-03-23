@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Serialize;
 using Zeze.Transaction;
@@ -14,15 +14,15 @@ namespace UnitTest.Zeze.Trans
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         [TestInitialize]
-        public void TestInit()
+        public async void TestInit()
         {
             demo.App.Instance.Start();
-            demo.App.Instance.Zeze.NewProcedure(() =>
+            await demo.App.Instance.Zeze.NewProcedure(async () =>
             {
-                demo.App.Instance.demo_Module1.Table1.Remove(1);
-                demo.App.Instance.demo_Module1.Table2.Remove(new demo.Module1.Key(1));
+                await demo.App.Instance.demo_Module1.Table1.Remove(1);
+                await demo.App.Instance.demo_Module1.Table2.Remove(new demo.Module1.Key(1));
                 return Procedure.Success;
-            }, "RemoveDataFirst").Call();
+            }, "RemoveDataFirst").CallAsync();
         }
 
         [TestCleanup]
@@ -32,16 +32,16 @@ namespace UnitTest.Zeze.Trans
         }
 
         [TestMethod]
-        public void TestUpdate()
+        public async void TestUpdate()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGetOrAdd, "ProcGetOrAdd").Call());
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGetUpdate, "ProcGetUpdate").Call());
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGetUpdateCheckRemove, "ProcGetUpdateCheckRemove").Call());
+            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(ProcGetOrAdd, "ProcGetOrAdd").CallAsync());
+            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(ProcGetUpdate, "ProcGetUpdate").CallAsync());
+            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(ProcGetUpdateCheckRemove, "ProcGetUpdateCheckRemove").CallAsync());
         }
 
-        long ProcGetUpdate()
+        async Task<long> ProcGetUpdate()
         {
-            demo.Module1.Value v = demo.App.Instance.demo_Module1.Table1.Get(1);
+            demo.Module1.Value v = await demo.App.Instance.demo_Module1.Table1.Get(1);
 
             v.Int1 = 11;
             v.Long2 = 22;
@@ -58,9 +58,9 @@ namespace UnitTest.Zeze.Trans
             return Procedure.Success;
         }
 
-        long ProcGetUpdateCheckRemove()
+        async Task<long> ProcGetUpdateCheckRemove()
         {
-            demo.Module1.Value v = demo.App.Instance.demo_Module1.Table1.Get(1);
+            demo.Module1.Value v = await demo.App.Instance.demo_Module1.Table1.Get(1);
 
             Assert.IsTrue(v.Int1 == 11);
             Assert.IsTrue(v.Long2 == 22);
@@ -81,15 +81,15 @@ namespace UnitTest.Zeze.Trans
         }
 
         [TestMethod]
-        public void TestGetOrAdd()
+        public async void TestGetOrAdd()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGetOrAdd, "ProcGetOrAdd").Call());
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGetOrAddCheckAndRemove, "ProcGetOrAddCheckAndRemove").Call());
+            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(ProcGetOrAdd, "ProcGetOrAdd").CallAsync());
+            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(ProcGetOrAddCheckAndRemove, "ProcGetOrAddCheckAndRemove").CallAsync());
         }
 
-        long ProcGetOrAdd()
+        async Task<long> ProcGetOrAdd()
         {
-            demo.Module1.Value v = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
+            demo.Module1.Value v = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
 
             v.Int1 = 1;
             v.Long2 = 2;
@@ -107,9 +107,9 @@ namespace UnitTest.Zeze.Trans
             return Procedure.Success;
         }
 
-        long ProcGetOrAddCheckAndRemove()
+        async Task<long> ProcGetOrAddCheckAndRemove()
         {
-            var v = demo.App.Instance.demo_Module1.Table1.Get(1);
+            var v = await demo.App.Instance.demo_Module1.Table1.Get(1);
             Assert.IsNotNull(v);
 
             Assert.IsTrue(v.Int1 == 1);
@@ -126,30 +126,30 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(v.Bean12.Int1 == 12);
             Assert.IsTrue(v.Byte13 == 13);
 
-            demo.App.Instance.demo_Module1.Table1.Remove(1);
-            Assert.IsNull(demo.App.Instance.demo_Module1.Table1.Get(1));
+            await demo.App.Instance.demo_Module1.Table1.Remove(1);
+            Assert.IsNull(await demo.App.Instance.demo_Module1.Table1.Get(1));
             return Procedure.Success;
         }
 
         [TestMethod]
-        public void Test1TableGetPut()
+        public async void Test1TableGetPut()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGet11, "ProcGet11").Call());
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGet12, "ProcGet12").Call());
+            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(ProcGet11, "ProcGet11").CallAsync());
+            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(ProcGet12, "ProcGet12").CallAsync());
         }
 
         [TestMethod]
-        public void Test2TableGetPut()
+        public async void Test2TableGetPut()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGet21, "ProcGet21").Call());
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGet22, "ProcGet22").Call());
+            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(ProcGet21, "ProcGet21").CallAsync());
+            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(ProcGet22, "ProcGet22").CallAsync());
         }
 
-        long ProcGet21()
+        async Task<long> ProcGet21()
         {
-            ProcGet11();
+            await ProcGet11();
             demo.Module1.Key key = new demo.Module1.Key(1);
-            Assert.IsNull(demo.App.Instance.demo_Module1.Table2.Get(key));
+            Assert.IsNull(await demo.App.Instance.demo_Module1.Table2.Get(key));
             demo.Module1.Value v = new demo.Module1.Value();
 
             v.Int1 = 1;
@@ -165,16 +165,16 @@ namespace UnitTest.Zeze.Trans
             v.Bean12.Int1 = 12;
             v.Byte13 = 13;
 
-            demo.App.Instance.demo_Module1.Table2.Put(key, v);
-            Assert.IsTrue(v == demo.App.Instance.demo_Module1.Table2.Get(key));
+            await demo.App.Instance.demo_Module1.Table2.Put(key, v);
+            Assert.IsTrue(v == await demo.App.Instance.demo_Module1.Table2.Get(key));
             return Procedure.Success;
         }
 
-        long ProcGet22()
+        async Task<long> ProcGet22()
         {
-            ProcGet12();
+            await ProcGet12();
             demo.Module1.Key key = new demo.Module1.Key(1);
-            var v = demo.App.Instance.demo_Module1.Table2.Get(key);
+            var v = await demo.App.Instance.demo_Module1.Table2.Get(key);
             Assert.IsNotNull(v);
 
             Assert.IsTrue(v.Int1 == 1);
@@ -191,14 +191,14 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(v.Bean12.Int1 == 12);
             Assert.IsTrue(v.Byte13 == 13);
 
-            demo.App.Instance.demo_Module1.Table2.Remove(key);
+            await demo.App.Instance.demo_Module1.Table2.Remove(key);
             Assert.IsNull(demo.App.Instance.demo_Module1.Table2.Get(key));
             return Procedure.Success;
         }
 
-        long ProcGet11()
+        async Task<long> ProcGet11()
         {
-            Assert.IsNull(demo.App.Instance.demo_Module1.Table1.Get(1));
+            Assert.IsNull(await demo.App.Instance.demo_Module1.Table1.Get(1));
             demo.Module1.Value v = new demo.Module1.Value();
 
             v.Int1 = 1;
@@ -214,14 +214,14 @@ namespace UnitTest.Zeze.Trans
             v.Bean12.Int1 = 12;
             v.Byte13 = 13;
 
-            demo.App.Instance.demo_Module1.Table1.Put(1, v);
-            Assert.IsTrue(v == demo.App.Instance.demo_Module1.Table1.Get(1));
+            await demo.App.Instance.demo_Module1.Table1.Put(1, v);
+            Assert.IsTrue(v == await demo.App.Instance.demo_Module1.Table1.Get(1));
             return Procedure.Success;
         }
 
-        long ProcGet12()
+        async Task<long> ProcGet12()
         {
-            var v = demo.App.Instance.demo_Module1.Table1.Get(1);
+            var v = await demo.App.Instance.demo_Module1.Table1.Get(1);
             Assert.IsNotNull(v);
 
             Assert.IsTrue(v.Int1 == 1);
@@ -238,7 +238,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(v.Bean12.Int1 == 12);
             Assert.IsTrue(v.Byte13 == 13);
 
-            demo.App.Instance.demo_Module1.Table1.Remove(1);
+            await demo.App.Instance.demo_Module1.Table1.Remove(1);
             Assert.IsNull(demo.App.Instance.demo_Module1.Table1.Get(1));
             return Procedure.Success;
         }

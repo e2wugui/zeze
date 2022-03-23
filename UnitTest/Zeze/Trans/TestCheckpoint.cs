@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Serialize;
 using Zeze.Transaction;
@@ -23,7 +24,7 @@ namespace UnitTest.Zeze.Trans
         }
 
 		[TestMethod]
-		public void TestModeTable()
+		public async Task TestModeTable()
 		{
 			/*
 			Assert.AreTrue(demo.App.Instance.Zeze.NewProcedure(() =>
@@ -40,28 +41,28 @@ namespace UnitTest.Zeze.Trans
 			Console.WriteLine("2");
 			Console.WriteLine(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 			*/
-			Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(() =>
+			Assert.IsTrue(await demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
-				demo.App.Instance.demo_Module1.Table1.Get(1L);
-				demo.App.Instance.demo_Module1.Table1.GetOrAdd(2L).Int1 = 222;
+				await demo.App.Instance.demo_Module1.Table1.Get(1L);
+				(await demo.App.Instance.demo_Module1.Table1.GetOrAdd(2L)).Int1 = 222;
 				return 0L;
-			}, "12").Call() == Procedure.Success);
+			}, "12").CallAsync() == Procedure.Success);
 			//Console.WriteLine("3");
 			//Console.WriteLine(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
-			Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(() =>
+			Assert.IsTrue(await demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
-				demo.App.Instance.demo_Module1.Table1.Get(3L);
-				demo.App.Instance.demo_Module1.Table1.GetOrAdd(4L).Int1 = 444;
+				await demo.App.Instance.demo_Module1.Table1.Get(3L);
+				(await demo.App.Instance.demo_Module1.Table1.GetOrAdd(4L)).Int1 = 444;
 				return 0L;
-			}, "34").Call() == Procedure.Success);
+			}, "34").CallAsync() == Procedure.Success);
 			//Console.WriteLine("4");
 			//Console.WriteLine(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
-			Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(() =>
+			Assert.IsTrue(await demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
-				demo.App.Instance.demo_Module1.Table1.Get(2L);
-				demo.App.Instance.demo_Module1.Table1.GetOrAdd(3L).Int1 = 333;
+				await demo.App.Instance.demo_Module1.Table1.Get(2L);
+				(await demo.App.Instance.demo_Module1.Table1.GetOrAdd(3L)).Int1 = 333;
 				return 0L;
-			}, "23").Call() == Procedure.Success);
+			}, "23").CallAsync() == Procedure.Success);
 			//Console.WriteLine("5");
 			//Console.WriteLine(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 			demo.App.Instance.Zeze.CheckpointRun();
@@ -76,10 +77,10 @@ namespace UnitTest.Zeze.Trans
 		}
 
 		[TestMethod]
-        public void TestCp()
+        public async void TestCp()
         {
-            Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(ProcClear, "ProcClear").Call() == Procedure.Success);
-            Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(ProcChange, "ProcChange").Call() == Procedure.Success);
+            Assert.IsTrue(await demo.App.Instance.Zeze.NewProcedure(ProcClear, "ProcClear").CallAsync() == Procedure.Success);
+            Assert.IsTrue(await demo.App.Instance.Zeze.NewProcedure(ProcChange, "ProcChange").CallAsync() == Procedure.Success);
             demo.App.Instance.Zeze.CheckpointRun();
 			var table = demo.App.Instance.demo_Module1.Table1;
 			var dbtable = table.GetStorageForTestOnly("IKnownWhatIAmDoing").DatabaseTable;
@@ -88,16 +89,16 @@ namespace UnitTest.Zeze.Trans
             Assert.AreEqual(value, bytesInTrans);
         }
 
-        long ProcClear()
+		async Task<long> ProcClear()
         {
-            demo.App.Instance.demo_Module1.Table1.Remove(56);
+            await demo.App.Instance.demo_Module1.Table1.Remove(56);
             return Procedure.Success;
         }
 
         ByteBuffer bytesInTrans;
-        long ProcChange()
+		async Task<long> ProcChange()
         {
-            demo.Module1.Value v = demo.App.Instance.demo_Module1.Table1.GetOrAdd(56);
+            demo.Module1.Value v = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(56);
             v.Int1 = 1;
             bytesInTrans = ByteBuffer.Allocate();
             v.Encode(bytesInTrans);

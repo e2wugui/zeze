@@ -3,6 +3,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Threading.Tasks;
 using Zeze.Transaction;
 using Zeze.Util;
 
@@ -45,9 +46,9 @@ namespace Infinite
                 Simulate.randApp().Run(this);
             }
 
-            public long call()
+            public async Task<long> call()
             {
-                var result = process();
+                var result = await process();
                 if (0L == result)
                 {
                     var txn = Transaction.Current;
@@ -78,7 +79,7 @@ namespace Infinite
                 return Simulate.AccessKeyBound;
             }
 
-            public abstract long process();
+            public abstract Task<long> process();
 
             public virtual bool IsProcedure()
             {
@@ -167,23 +168,23 @@ namespace Infinite
 
         public class Table1Long2Add1 : Task
         {
-            public override long process()
+            public override async Task<long> process()
             {
                 var keyEnum = Keys.GetEnumerator();
                 keyEnum.MoveNext();
-                var value = App.demo_Module1.Table1.GetOrAdd(keyEnum.Current);
+                var value = await App.demo_Module1.Table1.GetOrAdd(keyEnum.Current);
                 value.Long2++;
                 return 0L;
             }
 
-            public static void verify()
+            public static async void verify()
             {
                 // verify 时，所有任务都执行完毕，不需要考虑并发。
                 var name = typeof(Table1Long2Add1).FullName;
                 var app = Simulate.randApp().app; // 任何一个app都能查到相同的结果。
                 var success = getSuccessCounters(name);
                 foreach (var e in getRunCounters(name))
-                    Debug.Assert(app.demo_Module1.Table1.SelectDirty(e.Key).Long2 == success[e.Key].Get());
+                    Debug.Assert((await app.demo_Module1.Table1.SelectDirty(e.Key)).Long2 == success[e.Key].Get());
                 Infinite.App.logger.Debug("Table1Long2Add1.verify Ok.");
             }
 
@@ -191,10 +192,10 @@ namespace Infinite
             {
                 // 所有使用 Table1 的测试都可以依赖这个 prepare，不需要单独写了。
                 var app = Simulate.randApp().app;
-                app.Zeze.NewProcedure(() =>
+                app.Zeze.NewProcedure(async () =>
                 {
                     for (long key = 0; key < Simulate.AccessKeyBound; ++key)
-                        app.demo_Module1.Table1.Remove(key);
+                        await app.demo_Module1.Table1.Remove(key);
                     return 0L;
                 }, "Table1Long2Add1.prepare").Call();
             }
@@ -202,11 +203,11 @@ namespace Infinite
 
         public class Table1List9AddOrRemove : Task
         {
-            public override long process()
+            public override async Task<long> process()
             {
                 var keyEnum = Keys.GetEnumerator();
                 keyEnum.MoveNext();
-                var value = App.demo_Module1.Table1.GetOrAdd(keyEnum.Current);
+                var value = await App.demo_Module1.Table1.GetOrAdd(keyEnum.Current);
                 // 使用 bool4 变量：用来决定添加或者删除。
                 if (value.Bool4)
                 {
@@ -247,15 +248,15 @@ namespace Infinite
                 return KeyBoundTrade;
             }
 
-            public override long process()
+            public override async Task<long> process()
             {
                 var keyEnum = Keys.GetEnumerator();
                 keyEnum.MoveNext();
                 var k1 = keyEnum.Current;
                 keyEnum.MoveNext();
                 var k2 = keyEnum.Current;
-                var v1 = App.demo_Module1.Tflush.GetOrAdd(k1);
-                var v2 = App.demo_Module1.Tflush.GetOrAdd(k2);
+                var v1 = await App.demo_Module1.Tflush.GetOrAdd(k1);
+                var v2 = await App.demo_Module1.Tflush.GetOrAdd(k2);
                 var money = Zeze.Util.Random.Instance.Next(1000);
                 if ((Zeze.Util.Random.Instance.Next() & 1) == 0)
                     (v2, v1) = (v1, v2); // random swap
@@ -264,13 +265,13 @@ namespace Infinite
                 return 0L;
             }
 
-            public static void verify()
+            public static async void verify()
             {
                 var app = Simulate.randApp().app; // 任何一个app都能查到相同的结果。
                 int sum = 0;
                 for (int key = 0; key < KeyBoundTrade; ++key)
                 {
-                    var value = app.demo_Module1.Table1.SelectDirty((long)key);
+                    var value = await app.demo_Module1.Table1.SelectDirty((long)key);
                     if (null != value)
                         sum += value.Int1;
                 }
@@ -290,7 +291,7 @@ namespace Infinite
                 return false;
             }
 
-            public override long process()
+            public override async Task<long> process()
             {
                 var table1 = App.demo_Module1.Tflush;
                 var keys = new HashSet<Zeze.Serialize.ByteBuffer>();

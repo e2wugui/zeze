@@ -25,36 +25,36 @@ namespace UnitTest.Zeze.Trans
         }
 
         [TestMethod]
-        public void TestConflictAdd()
+        public async void TestConflictAdd()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcRemove, "ProcRemove").Call());
+            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(ProcRemove, "ProcRemove").CallAsync());
             Task[] tasks = new Task[2000];
             for (int i = 0; i < tasks.Length; ++i)
             {
-               tasks[i] = global::Zeze.Util.Mission.Run(demo.App.Instance.Zeze.NewProcedure(ProcAdd, "ProcAdd"));
+               tasks[i] = demo.App.Instance.Zeze.NewProcedure(ProcAdd, "ProcAdd").CallAsync();
             }
             Task.WaitAll(tasks);
             sum = tasks.Length;
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcVerify, "ProcVerify").Call());
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcRemove, "ProcRemove").Call());
+            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(ProcVerify, "ProcVerify").CallAsync());
+            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(ProcRemove, "ProcRemove").CallAsync());
         }
 
-        long ProcRemove()
+        async Task<long> ProcRemove()
         {
-            demo.App.Instance.demo_Module1.Table1.Remove(123123);
+            await demo.App.Instance.demo_Module1.Table1.Remove(123123);
             return Procedure.Success;
         }
 
-        long ProcAdd()
+        async Task<long> ProcAdd()
         {
-            demo.Module1.Value v = demo.App.Instance.demo_Module1.Table1.GetOrAdd(123123);
+            demo.Module1.Value v = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(123123);
             v.Int1 += 1;
             return Procedure.Success;
         }
 
-        long ProcVerify()
+        async Task<long> ProcVerify()
         {
-            demo.Module1.Value v = demo.App.Instance.demo_Module1.Table1.GetOrAdd(123123);
+            demo.Module1.Value v = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(123123);
             Assert.IsTrue(v.Int1 == sum);
             return Procedure.Success;
         }

@@ -18,7 +18,7 @@ namespace Benchmark
                 Console.WriteLine("benchmark start...");
                 var b = new Zeze.Util.Benchmark();
                 for (int i = 0; i < AddCount; ++i) {
-                    tasks.Add(Zeze.Util.Mission.Run(demo.App.Instance.Zeze.NewProcedure(Add, "Add")));
+                    tasks.Add(demo.App.Instance.Zeze.NewProcedure(Add, "Add").CallAsync());
                 }
                 b.Report(this.GetType().FullName, AddCount);
                 foreach (var task in tasks) {
@@ -34,21 +34,21 @@ namespace Benchmark
             }
         }
 
-        private long Check() {
-            var r = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1L);
+        private async Task<long> Check() {
+            var r = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1L);
             Assert.AreEqual(r.Long2, AddCount);
             //System.out.println(r.getLong2());
             return 0;
         }
 
-        private long Add() {
-            var r = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1L);
+        private async Task<long> Add() {
+            var r = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1L);
             r.Long2 += 1;
             return 0;
         }
 
-        private long Remove() {
-            demo.App.Instance.demo_Module1.Table1.Remove(1L);
+        private async Task<long> Remove() {
+            await demo.App.Instance.demo_Module1.Table1.Remove(1L);
             return 0;
         }
     }

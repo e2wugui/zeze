@@ -46,7 +46,7 @@ namespace Zeze.Raft
 
                 var timeout = ls.Raft.RaftConfig.AppendEntriesTimeout;
                 Pending.ResultCode = Procedure.ErrorSendFail;
-                if (!Pending.Send(c.TryGetReadySocket(), (p) => ProcessResult(ls, c, p), timeout))
+                if (!Pending.Send(c.TryGetReadySocket(), async (p) => ProcessResult(ls, c, p), timeout))
                 {
                     ls.EndInstallSnapshot(c);
                 }

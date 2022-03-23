@@ -24,7 +24,7 @@ namespace Benchmark
                 for (int i = 0; i < AddCount; ++i)
                 {
                     int c = i % ConcurrentLevel;
-                    tasks.Add(Zeze.Util.Mission.Run(demo.App.Instance.Zeze.NewProcedure(() => Add(c), "Add")));
+                    tasks.Add(demo.App.Instance.Zeze.NewProcedure(() => Add(c), "Add").CallAsync());
                 }
                 b.Report(this.GetType().FullName, AddCount);
                 foreach (var task in tasks) {
@@ -43,25 +43,25 @@ namespace Benchmark
             }
         }
 
-        private long Check() {
+        private async Task<long> Check() {
             long sum = 0;
             for (long i = 0; i < ConcurrentLevel; ++i) {
-                var r = demo.App.Instance.demo_Module1.Table1.GetOrAdd(i);
+                var r = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(i);
                 sum += r.Long2;
             }
             Assert.AreEqual(sum, AddCount);
             return 0;
         }
 
-        private long Add(long key) {
-            var r = demo.App.Instance.demo_Module1.Table1.GetOrAdd(key);
+        private async Task<long> Add(long key) {
+            var r = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(key);
             r.Long2 += 1;
             //System.out.println("Add=" + key);
             return 0;
         }
 
-        private long Remove(long key) {
-            demo.App.Instance.demo_Module1.Table1.Remove(key);
+        private async Task<long> Remove(long key) {
+            await demo.App.Instance.demo_Module1.Table1.Remove(key);
             return 0;
         }
     }

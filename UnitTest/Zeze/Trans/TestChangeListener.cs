@@ -154,9 +154,9 @@ namespace UnitTest.Zeze.Trans
 
             Init();
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
-                () =>
+                async () =>
                 {
-                    demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
+                    demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
                     List<int> Union = new List<int>
                     {
                         123,
@@ -170,9 +170,9 @@ namespace UnitTest.Zeze.Trans
 
             Init();
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
-                () =>
+                async () =>
                 {
-                    demo.App.Instance.demo_Module1.Table1.Put(1, new demo.Module1.Value());
+                    await demo.App.Instance.demo_Module1.Table1.Put(1, new demo.Module1.Value());
                     return Procedure.Success;
                 },
                 "TestChangeListener.PutRecord").Call());
@@ -180,9 +180,9 @@ namespace UnitTest.Zeze.Trans
 
             Init();
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
-                () =>
+                async () =>
                 {
-                    demo.App.Instance.demo_Module1.Table1.Remove(1);
+                    await demo.App.Instance.demo_Module1.Table1.Remove(1);
                     return Procedure.Success;
                 },
                 "TestChangeListener.RemoveRecord").Call());
@@ -194,9 +194,9 @@ namespace UnitTest.Zeze.Trans
         private void Init()
         {
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
-                () =>
+                async () =>
                 {
-                    demo.Module1.Value value = demo.App.Instance.demo_Module1.Table1.Get(1);
+                    demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.Get(1);
                     localValue = value?.Copy();
                     return Procedure.Success;
                 },
@@ -220,16 +220,16 @@ namespace UnitTest.Zeze.Trans
             _CLMap15.Init(localValue);
         }
 
-        private void Verify()
+        private async void Verify()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
-                () =>
+            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(
+                async () =>
                 {
                     demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.Get(1);
                     localValue = value?.Copy();
                     return Procedure.Success;
                 },
-                "TestChangeListener.CopyLocal").Call());
+                "TestChangeListener.CopyLocal").CallAsync());
 
             _CLInt1.Verify(localValue);
             _ClLong2.Verify(localValue);

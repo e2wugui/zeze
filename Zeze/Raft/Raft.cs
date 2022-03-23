@@ -527,7 +527,7 @@ namespace Zeze.Raft
             }
         }
 
-        private long ProcessLeaderIs(Protocol p)
+        private async Task<long> ProcessLeaderIs(Protocol p)
         {
             var r = p as LeaderIs;
 

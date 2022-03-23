@@ -6,7 +6,6 @@ using Zeze.Services;
 using System.Threading.Tasks;
 using NLog;
 using Zeze.Services.GlobalCacheManager;
-using System.Threading.Tasks;
 
 namespace Zeze.Transaction
 {

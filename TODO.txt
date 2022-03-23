@@ -41,6 +41,7 @@
 	Global 异步化： c# async
 	zeze async await? 
 	Global 异步化： TaskQueueAsync 任务需要参与到队列的推进。全异步和RocksRaft.Transaction.ThreadLocal问题，需要自己实现一个类似AsyncLocal的机制。
+	Raft.Shutdown 的时候先关闭网络，有错误也不返回了。
 
 【2022/4/11】
 	TaskOneByOne 重构，新增支持调用异步存储过程和异步协议处理。

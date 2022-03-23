@@ -64,6 +64,19 @@ namespace Zeze.Util
             logger.Log(ll, ex, $"Return={result}{module} {message}");
         }
 
+        public static async Task<long> CallAsync(Func<Task<long>> aa, string actionName)
+        {
+            try
+            {
+                return await aa();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, actionName);
+                return Procedure.Exception;
+            }
+        }
+
         public static async Task<long> CallAsync(Func<Net.Protocol, Task<long>> phandle, Net.Protocol p,
             Action<Net.Protocol, long> actionWhenError = null)
         {

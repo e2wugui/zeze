@@ -41,16 +41,16 @@ namespace Benchmark
             return 0;
         }
 
-        private long Add()
+        private async Task<long> Add()
         {
-            var r = demo.App.Instance.demo_Module1.Table1.GetOrAdd(1L);
+            var r = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1L);
             r.Long2 += 1;
             return 0;
         }
 
-        private long Remove()
+        private async Task<long> Remove()
         {
-            demo.App.Instance.demo_Module1.Table1.Remove(1L);
+            await demo.App.Instance.demo_Module1.Table1.Remove(1L);
             return 0;
         }
     }

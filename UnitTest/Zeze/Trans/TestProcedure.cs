@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Serialize;
 using Zeze.Transaction;
@@ -12,33 +13,33 @@ namespace UnitTest.Zeze.Trans
     {
         TestBegin.MyBean bean = new TestBegin.MyBean();
 
-        public long ProcTrue()
+        public async Task<long> ProcTrue()
         {
             bean.I = 123;
             Assert.AreEqual(bean.I, 123);
             return Procedure.Success;
         }
 
-        public long ProcFalse()
+        public async Task<long> ProcFalse()
         {
             bean.I = 456;
             Assert.AreEqual(bean.I, 456);
             return Procedure.Unknown;
         }
 
-        public long ProcNest()
+        public async Task<long> ProcNest()
         {
             Assert.AreEqual(bean.I, 0);
             bean.I = 1;
             Assert.AreEqual(bean.I, 1);
             {
-                var r = demo.App.Instance.Zeze.NewProcedure(ProcFalse, "ProcFalse").Call();
+                var r = await demo.App.Instance.Zeze.NewProcedure(ProcFalse, "ProcFalse").CallAsync();
                 Assert.IsTrue(r != Procedure.Success);
                 Assert.AreEqual(bean.I, 1);
             }
 
             {
-                var r = demo.App.Instance.Zeze.NewProcedure(ProcTrue, "ProcFalse").Call();
+                var r = await demo.App.Instance.Zeze.NewProcedure(ProcTrue, "ProcFalse").CallAsync();
                 Assert.IsTrue(r == Procedure.Success);
                 Assert.AreEqual(bean.I, 123);
             }
@@ -59,13 +60,13 @@ namespace UnitTest.Zeze.Trans
         }
 
         [TestMethod]
-        public void Test1()
+        public async void Test1()
         {
             TableKey root = new TableKey("1", 1);
             // 特殊测试，拼凑一个record用来提供需要的信息。
             var r = new Record<long, TestBegin.MyBean>(null, 1, bean);
             bean.InitRootInfo(r.CreateRootInfoIfNeed(root), null);
-            var rc = demo.App.Instance.Zeze.NewProcedure(ProcNest, "ProcNest").Call();
+            var rc = await demo.App.Instance.Zeze.NewProcedure(ProcNest, "ProcNest").CallAsync();
             Assert.IsTrue(rc == Procedure.Success);
             // 最后一个 Call，事务外，bean 已经没法访问事务支持的属性了。直接访问内部变量。
             Assert.AreEqual(bean._i, 123);

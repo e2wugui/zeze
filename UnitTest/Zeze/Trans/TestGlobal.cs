@@ -63,7 +63,7 @@ namespace UnitTest.Zeze.Trans
         }
 
         [TestMethod]
-        public void Test2App()
+        public async void Test2App()
         {
             demo.App app1 = demo.App.Instance;
             demo.App app2 = new demo.App();
@@ -76,36 +76,37 @@ namespace UnitTest.Zeze.Trans
             try
             {
                 // 只删除一个app里面的记录就够了。
-                Assert.IsTrue(Procedure.Success == app1.Zeze.NewProcedure(() =>
+                Assert.IsTrue(Procedure.Success == await app1.Zeze.NewProcedure(async () =>
                 {
-                    app1.demo_Module1.Table1.Remove(6785);
+                    await app1.demo_Module1.Table1.Remove(6785);
                     return Procedure.Success;
-                }, "RemoveClean").Call());
+                }, "RemoveClean").CallAsync());
                 
                 Task[] task2 = new Task[2];
                 int count = 2000;
-                task2[0] = global::Zeze.Util.Mission.Run(() => ConcurrentAdd(app1, count, 1), "TestGlobal.ConcurrentAdd1");
-                task2[1] = global::Zeze.Util.Mission.Run(() => ConcurrentAdd(app2, count, 2), "TestGlobal.ConcurrentAdd2");
+                task2[0] = Task.Run(() => ConcurrentAdd(app1, count, 1));
+                task2[1] = Task.Run(() => ConcurrentAdd(app2, count, 2));
                 Task.WaitAll(task2);
                 int countall = count * 2;
 
-                var result1 = app1.Zeze.NewProcedure(() =>
+                var result1 = await app1.Zeze.NewProcedure(async () =>
                 {
-                    int last1 = app1.demo_Module1.Table1.Get(6785).Int1;
+                    int last1 = (await app1.demo_Module1.Table1.Get(6785)).Int1;
                     Assert.AreEqual(countall, last1);
                     //Console.WriteLine("app1 " + last1);
                     return Procedure.Success;
-                }, "CheckResult1").Call();
+                }, "CheckResult1").CallAsync();
                 logger.Warn("result1=" + result1);
                 Assert.IsTrue(Procedure.Success == result1);
 
-                var result2 = app2.Zeze.NewProcedure(() =>
+                var result2 = await app2.Zeze.NewProcedure(async () =>
                 {
-                    int last2 = app2.demo_Module1.Table1.Get(6785).Int1;
+                    var value = await app2.demo_Module1.Table1.Get(6785);
+                    int last2 = value.Int1;
                     Assert.AreEqual(countall, last2);
                     //Console.WriteLine("app1 " + last2);
                     return Procedure.Success;
-                }, "CheckResult2").Call();
+                }, "CheckResult2").CallAsync();
                 logger.Warn("result2=" + result2);
                 Assert.IsTrue(Procedure.Success == result2);
             }
@@ -121,14 +122,14 @@ namespace UnitTest.Zeze.Trans
             Task[] tasks = new Task[count];
             for (int i = 0; i < tasks.Length; ++i)
             {
-                tasks[i] = global::Zeze.Util.Mission.Run(app.Zeze.NewProcedure(()=>
+                tasks[i] = app.Zeze.NewProcedure(async ()=>
                 {
-                    demo.Module1.Value b = app.demo_Module1.Table1.GetOrAdd(6785);
+                    demo.Module1.Value b = await app.demo_Module1.Table1.GetOrAdd(6785);
                     b.Int1 += 1;
                     PrintLog log = new PrintLog(b, b, appId);
                     Transaction.Current.PutLog(log);
                     return Procedure.Success;
-                }, "ConcurrentAdd" + appId));
+                }, "ConcurrentAdd" + appId).CallAsync();
             }
             Task.WaitAll(tasks);
         }
