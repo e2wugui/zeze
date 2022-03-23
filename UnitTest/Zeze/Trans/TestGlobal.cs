@@ -63,7 +63,7 @@ namespace UnitTest.Zeze.Trans
         }
 
         [TestMethod]
-        public async void Test2App()
+        public void Test2App()
         {
             demo.App app1 = demo.App.Instance;
             demo.App app2 = new demo.App();
@@ -76,11 +76,11 @@ namespace UnitTest.Zeze.Trans
             try
             {
                 // 只删除一个app里面的记录就够了。
-                Assert.IsTrue(Procedure.Success == await app1.Zeze.NewProcedure(async () =>
+                Assert.IsTrue(Procedure.Success == app1.Zeze.NewProcedure(async () =>
                 {
                     await app1.demo_Module1.Table1.Remove(6785);
                     return Procedure.Success;
-                }, "RemoveClean").CallAsync());
+                }, "RemoveClean").Call());
                 
                 Task[] task2 = new Task[2];
                 int count = 2000;
@@ -89,24 +89,24 @@ namespace UnitTest.Zeze.Trans
                 Task.WaitAll(task2);
                 int countall = count * 2;
 
-                var result1 = await app1.Zeze.NewProcedure(async () =>
+                var result1 = app1.Zeze.NewProcedure(async () =>
                 {
                     int last1 = (await app1.demo_Module1.Table1.Get(6785)).Int1;
                     Assert.AreEqual(countall, last1);
                     //Console.WriteLine("app1 " + last1);
                     return Procedure.Success;
-                }, "CheckResult1").CallAsync();
+                }, "CheckResult1").Call();
                 logger.Warn("result1=" + result1);
                 Assert.IsTrue(Procedure.Success == result1);
 
-                var result2 = await app2.Zeze.NewProcedure(async () =>
+                var result2 = app2.Zeze.NewProcedure(async () =>
                 {
                     var value = await app2.demo_Module1.Table1.Get(6785);
                     int last2 = value.Int1;
                     Assert.AreEqual(countall, last2);
                     //Console.WriteLine("app1 " + last2);
                     return Procedure.Success;
-                }, "CheckResult2").CallAsync();
+                }, "CheckResult2").Call();
                 logger.Warn("result2=" + result2);
                 Assert.IsTrue(Procedure.Success == result2);
             }

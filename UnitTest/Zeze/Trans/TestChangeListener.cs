@@ -24,17 +24,17 @@ namespace UnitTest.Zeze.Trans
             demo.App.Instance.Stop();
         }
 
-        private async void Prepare()
+        private void Prepare()
         {
-            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     await demo.App.Instance.demo_Module1.Table1.Remove(1);
                     return Procedure.Success;
                 },
-                "TestChangeListener.Remove").CallAsync());
+                "TestChangeListener.Remove").Call());
 
-            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
@@ -55,17 +55,17 @@ namespace UnitTest.Zeze.Trans
                     value.Map15.Add(1, 1); value.Map15.Add(2, 2);
                     return Procedure.Success;
                 },
-                "TestChangeListener.Prepare").CallAsync());
+                "TestChangeListener.Prepare").Call());
         }
 
         [TestMethod]
-        public async void TestAllType()
+        public void TestAllType()
         {
             Prepare();
             AddListener();
 
             Init();
-            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
@@ -86,11 +86,11 @@ namespace UnitTest.Zeze.Trans
                     value.Map15.Add(3, 3); value.Map15.Add(4, 4);
                     return Procedure.Success;
                 },
-                "TestChangeListener.Modify").CallAsync());
+                "TestChangeListener.Modify").Call());
             Verify();
 
             Init();
-            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
@@ -101,11 +101,11 @@ namespace UnitTest.Zeze.Trans
                     value.Map15.Remove(1); value.Map15.Remove(2);
                     return Procedure.Success;
                 },
-                "TestChangeListener.ModifyCollections").CallAsync());
+                "TestChangeListener.ModifyCollections").Call());
             Verify();
 
             Init();
-            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
@@ -117,11 +117,11 @@ namespace UnitTest.Zeze.Trans
                     value.Set10.ExceptWith(except);
                     return Procedure.Success;
                 },
-                "TestChangeListener.ModifySetExcept").CallAsync());
+                "TestChangeListener.ModifySetExcept").Call());
             Verify();
 
             Init();
-            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
@@ -133,11 +133,11 @@ namespace UnitTest.Zeze.Trans
                     value.Set10.IntersectWith(intersect);
                     return Procedure.Success;
                 },
-                "TestChangeListener.ModifySetIntersect").CallAsync());
+                "TestChangeListener.ModifySetIntersect").Call());
             Verify();
 
             Init();
-            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
@@ -149,7 +149,7 @@ namespace UnitTest.Zeze.Trans
                     value.Set10.SymmetricExceptWith(SymmetricExcept);
                     return Procedure.Success;
                 },
-                "TestChangeListener.ModifySetSymmetricExcept").CallAsync());
+                "TestChangeListener.ModifySetSymmetricExcept").Call());
             Verify();
 
             Init();
@@ -220,16 +220,16 @@ namespace UnitTest.Zeze.Trans
             _CLMap15.Init(localValue);
         }
 
-        private async void Verify()
+        private void Verify()
         {
-            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.Get(1);
                     localValue = value?.Copy();
                     return Procedure.Success;
                 },
-                "TestChangeListener.CopyLocal").CallAsync());
+                "TestChangeListener.CopyLocal").Call());
 
             _CLInt1.Verify(localValue);
             _ClLong2.Verify(localValue);

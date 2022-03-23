@@ -10,22 +10,22 @@ namespace Benchmark
         public const int AddCount = 1_000_000;
 
         [TestMethod]
-        public async void testBenchmark()
+        public void testBenchmark()
         {
             demo.App.Instance.Start();
             try
             {
-                await demo.App.Instance.Zeze.NewProcedure(Remove, "remove").CallAsync();
+                demo.App.Instance.Zeze.NewProcedure(Remove, "remove").Call();
                 Console.WriteLine("benchmark start...");
                 var b = new Zeze.Util.Benchmark();
                 var p = demo.App.Instance.Zeze.NewProcedure(Add, "Add");
                 for (int i = 0; i < AddCount; ++i)
                 {
-                    await p.CallAsync();
+                    p.Call();
                 }
                 b.Report(this.GetType().FullName, AddCount);
-                await demo.App.Instance.Zeze.NewProcedure(Check, "check").CallAsync();
-                await demo.App.Instance.Zeze.NewProcedure(Remove, "remove").CallAsync();
+                demo.App.Instance.Zeze.NewProcedure(Check, "check").Call();
+                demo.App.Instance.Zeze.NewProcedure(Remove, "remove").Call();
             }
             finally
             {

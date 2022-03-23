@@ -25,9 +25,9 @@ namespace UnitTest.Zeze.Trans
         }
 
         [TestMethod]
-        public async void TestConflictAdd()
+        public void TestConflictAdd()
         {
-            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(ProcRemove, "ProcRemove").CallAsync());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcRemove, "ProcRemove").Call());
             Task[] tasks = new Task[2000];
             for (int i = 0; i < tasks.Length; ++i)
             {
@@ -35,8 +35,8 @@ namespace UnitTest.Zeze.Trans
             }
             Task.WaitAll(tasks);
             sum = tasks.Length;
-            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(ProcVerify, "ProcVerify").CallAsync());
-            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(ProcRemove, "ProcRemove").CallAsync());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcVerify, "ProcVerify").Call());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcRemove, "ProcRemove").Call());
         }
 
         async Task<long> ProcRemove()

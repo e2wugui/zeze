@@ -15,13 +15,13 @@ namespace Zeze.Transaction
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        private static ThreadLocal<Transaction> threadLocal = new ThreadLocal<Transaction>();
+        private static AsyncLocal<Transaction> asyncLocal = new();
 
         public static Transaction Current
         {
             get
             {
-                var tmp = threadLocal.Value;
+                var tmp = asyncLocal.Value;
                 if (null == tmp)
                     return null;
                 return tmp.Created ? tmp : null;
@@ -51,16 +51,16 @@ namespace Zeze.Transaction
 
         public static Transaction Create(Locks locks)
         {
-            if (null == threadLocal.Value)
+            if (null == asyncLocal.Value)
             {
                 var tmp = new Transaction();
                 tmp.Locks = locks;
-                threadLocal.Value = tmp;
+                asyncLocal.Value = tmp;
                 return tmp;
             }
             else
             {
-                var tmp = threadLocal.Value;
+                var tmp = asyncLocal.Value;
                 tmp.Locks = locks;
                 tmp.Created = true;
                 return tmp;
@@ -69,7 +69,7 @@ namespace Zeze.Transaction
 
         public static void Destroy()
         {
-            threadLocal.Value.ReuseTransaction();
+            asyncLocal.Value.ReuseTransaction();
         }
 
         public void Begin()

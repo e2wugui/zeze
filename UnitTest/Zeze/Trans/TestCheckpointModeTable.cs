@@ -23,29 +23,29 @@ namespace UnitTest.Zeze.Trans
             demo.App.Instance.Stop();
         }
 
-        private async Task Check(int expect)
+        private void Check(int expect)
         {
-            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     var value = await demo.App.Instance.demo_Module1.TableImportant.GetOrAdd(1);
                     return value.Int1 == expect ? Procedure.Success : Procedure.LogicError;
                 },
-                "TestCheckpointModeTable.Check").CallAsync());
+                "TestCheckpointModeTable.Check").Call());
         }
 
         [TestMethod]
-        public async void Test1()
+        public void Test1()
         {
-            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     var value = await demo.App.Instance.demo_Module1.TableImportant.GetOrAdd(1);
                     value.Int1 = 0;
                     return Procedure.Success;
                 },
-                "TestCheckpointModeTable.Init").CallAsync());
-            await Check(0);
+                "TestCheckpointModeTable.Init").Call());
+            Check(0);
 
             int sum = 0;
             {
@@ -56,7 +56,7 @@ namespace UnitTest.Zeze.Trans
                 }
                 Task.WaitAll(tasks);
                 sum += tasks.Length;
-                Check(sum).Wait();
+                Check(sum);
             }
 
             {
@@ -67,7 +67,7 @@ namespace UnitTest.Zeze.Trans
                 }
                 Task.WaitAll(tasks);
                 sum += tasks.Length;
-                Check(sum).Wait();
+                Check(sum);
             }
         }
 
