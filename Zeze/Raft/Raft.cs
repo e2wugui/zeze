@@ -82,6 +82,8 @@ namespace Zeze.Raft
                 IsShutdown = true;
             }
 
+            Server.Stop();
+
             LogSequence.RemoveLogBeforeFuture?.Task.Wait();
             LogSequence.ApplyFuture?.Task.Wait();
 
@@ -93,7 +95,6 @@ namespace Zeze.Raft
                 TimerTask?.Cancel();
                 TimerTask = null;
                 ConvertStateTo(RaftState.Follower);
-                Server.Stop();
                 LogSequence.Close();
             }
             ImportantThreadPool.Shutdown(); // 需要停止线程。
