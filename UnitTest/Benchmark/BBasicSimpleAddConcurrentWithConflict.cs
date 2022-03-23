@@ -35,20 +35,20 @@ namespace Benchmark
         }
 
         private async Task<long> Check() {
-            var r = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1L);
+            var r = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1L);
             Assert.AreEqual(r.Long2, AddCount);
             //System.out.println(r.getLong2());
             return 0;
         }
 
         private async Task<long> Add() {
-            var r = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1L);
+            var r = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1L);
             r.Long2 += 1;
             return 0;
         }
 
         private async Task<long> Remove() {
-            await demo.App.Instance.demo_Module1.Table1.Remove(1L);
+            await demo.App.Instance.demo_Module1.Table1.RemoveAsync(1L);
             return 0;
         }
     }

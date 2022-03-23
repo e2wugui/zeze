@@ -43,24 +43,24 @@ namespace UnitTest.Zeze.Trans
 			*/
 			Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
-				await demo.App.Instance.demo_Module1.Table1.Get(1L);
-				(await demo.App.Instance.demo_Module1.Table1.GetOrAdd(2L)).Int1 = 222;
+				await demo.App.Instance.demo_Module1.Table1.GetAsync(1L);
+				(await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(2L)).Int1 = 222;
 				return 0L;
 			}, "12").Call() == Procedure.Success);
 			//Console.WriteLine("3");
 			//Console.WriteLine(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 			Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
-				await demo.App.Instance.demo_Module1.Table1.Get(3L);
-				(await demo.App.Instance.demo_Module1.Table1.GetOrAdd(4L)).Int1 = 444;
+				await demo.App.Instance.demo_Module1.Table1.GetAsync(3L);
+				(await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(4L)).Int1 = 444;
 				return 0L;
 			}, "34").Call() == Procedure.Success);
 			//Console.WriteLine("4");
 			//Console.WriteLine(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 			Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
-				await demo.App.Instance.demo_Module1.Table1.Get(2L);
-				(await demo.App.Instance.demo_Module1.Table1.GetOrAdd(3L)).Int1 = 333;
+				await demo.App.Instance.demo_Module1.Table1.GetAsync(2L);
+				(await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(3L)).Int1 = 333;
 				return 0L;
 			}, "23").Call() == Procedure.Success);
 			//Console.WriteLine("5");
@@ -91,14 +91,14 @@ namespace UnitTest.Zeze.Trans
 
 		async Task<long> ProcClear()
         {
-            await demo.App.Instance.demo_Module1.Table1.Remove(56);
+            await demo.App.Instance.demo_Module1.Table1.RemoveAsync(56);
             return Procedure.Success;
         }
 
         ByteBuffer bytesInTrans;
 		async Task<long> ProcChange()
         {
-            demo.Module1.Value v = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(56);
+            demo.Module1.Value v = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(56);
             v.Int1 = 1;
             bytesInTrans = ByteBuffer.Allocate();
             v.Encode(bytesInTrans);

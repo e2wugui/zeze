@@ -28,13 +28,13 @@ namespace UnitTest.Zeze.Trans
         {
             demo.App.Instance.Zeze.NewProcedure(async () =>
             {
-                await demo.App.Instance.demo_Module1.Table1.Remove(1);
+                await demo.App.Instance.demo_Module1.Table1.RemoveAsync(1);
                 return 0;
             }, "ModifyMapRemove").CallAsync().Wait();
 
             demo.App.Instance.Zeze.NewProcedure(async () =>
             {
-                var value = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
+                var value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
                 value.Map15[1] = 1;
 
                 await demo.App.Instance.Zeze.NewProcedure(async () =>
@@ -58,13 +58,13 @@ namespace UnitTest.Zeze.Trans
         {
             demo.App.Instance.Zeze.NewProcedure(async () =>
             {
-                await demo.App.Instance.demo_Module1.Table1.Remove(1);
+                await demo.App.Instance.demo_Module1.Table1.RemoveAsync(1);
                 return 0;
             }, "ModifyMapRemove").CallAsync().Wait();
 
             demo.App.Instance.Zeze.NewProcedure(async () =>
             {
-                var value = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
+                var value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
                 value.Set10.Add(1);
 
                 await demo.App.Instance.Zeze.NewProcedure(async () =>

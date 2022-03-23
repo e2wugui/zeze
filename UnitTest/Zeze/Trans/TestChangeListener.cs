@@ -29,7 +29,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
-                    await demo.App.Instance.demo_Module1.Table1.Remove(1);
+                    await demo.App.Instance.demo_Module1.Table1.RemoveAsync(1);
                     return Procedure.Success;
                 },
                 "TestChangeListener.Remove").Call());
@@ -37,7 +37,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
-                    demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
+                    demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
                     value.Int1 = 123;
                     value.Long2 = 123;
                     value.String3 = "123";
@@ -68,7 +68,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
-                    demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
+                    demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
                     value.Int1 = 124;
                     value.Long2 = 124;
                     value.String3 = "124";
@@ -93,7 +93,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
-                    demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
+                    demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
                     value.Set10.Add(127); value.Set10.Remove(124);
                     value.Map11.Add(5, new demo.Module2.Value()); value.Map11.Add(6, new demo.Module2.Value());
                     value.Map11.Remove(1); value.Map11.Remove(2);
@@ -108,7 +108,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
-                    demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
+                    demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
                     List<int> except = new List<int>
                     {
                         1,
@@ -124,7 +124,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
-                    demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
+                    demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
                     List<int> intersect = new List<int>
                     {
                         123,
@@ -140,7 +140,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
-                    demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
+                    demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
                     List<int> SymmetricExcept = new List<int>
                     {
                         123,
@@ -156,7 +156,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
-                    demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
+                    demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
                     List<int> Union = new List<int>
                     {
                         123,
@@ -172,7 +172,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
-                    await demo.App.Instance.demo_Module1.Table1.Put(1, new demo.Module1.Value());
+                    await demo.App.Instance.demo_Module1.Table1.PutAsync(1, new demo.Module1.Value());
                     return Procedure.Success;
                 },
                 "TestChangeListener.PutRecord").Call());
@@ -182,7 +182,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
-                    await demo.App.Instance.demo_Module1.Table1.Remove(1);
+                    await demo.App.Instance.demo_Module1.Table1.RemoveAsync(1);
                     return Procedure.Success;
                 },
                 "TestChangeListener.RemoveRecord").Call());
@@ -196,7 +196,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
-                    demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.Get(1);
+                    demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetAsync(1);
                     localValue = value?.Copy();
                     return Procedure.Success;
                 },
@@ -225,7 +225,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
-                    demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.Get(1);
+                    demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetAsync(1);
                     localValue = value?.Copy();
                     return Procedure.Success;
                 },

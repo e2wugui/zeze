@@ -60,7 +60,7 @@ namespace Zeze.Transaction
 
         protected Zeze.Services.ServiceManager.Agent.AutoKey AutoKey { get; private set;  }
 
-        private async Task<Record<K, V>> FindInCacheOrStorage(K key)
+        private async Task<Record<K, V>> LoadAsync(K key)
         {
             TableKey tkey = new TableKey(Name, key);
             while (true)
@@ -333,7 +333,7 @@ namespace Zeze.Transaction
             return 0;
         }
 
-        public async Task<V> Get(K key)
+        public async Task<V> GetAsync(K key)
         {
             Transaction currentT = Transaction.Current;
             TableKey tkey = new TableKey(Name, key);
@@ -344,12 +344,12 @@ namespace Zeze.Transaction
                 return (V)cr.NewestValue();
             }
 
-            Record<K, V> r = await FindInCacheOrStorage(key);
+            Record<K, V> r = await LoadAsync(key);
             currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), new Transaction.RecordAccessed(r));
             return r.ValueTyped;
         }
 
-        public async Task<V> GetOrAdd(K key)
+        public async Task<V> GetOrAddAsync(K key)
         {
             Transaction currentT = Transaction.Current;
             TableKey tkey = new TableKey(Name, key);
@@ -366,7 +366,7 @@ namespace Zeze.Transaction
             }
             else
             {
-                Record<K, V> r = await FindInCacheOrStorage(key);
+                Record<K, V> r = await LoadAsync(key);
                 cr = new Transaction.RecordAccessed(r);
                 currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
 
@@ -381,9 +381,9 @@ namespace Zeze.Transaction
             return add;
         }
 
-        public bool TryAdd(K key, V value)
+        public async Task<bool> TryAddAsync(K key, V value)
         {
-            if (null != Get(key))
+            if (null != await GetAsync(key))
                 return false;
 
             Transaction currentT = Transaction.Current;
@@ -394,13 +394,13 @@ namespace Zeze.Transaction
             return true;
         }
 
-        public void Insert(K key, V value)
+        public async Task InsertAsync(K key, V value)
         {
-            if (false == TryAdd(key, value))
+            if (false == await TryAddAsync(key, value))
                 throw new ArgumentException($"table:{GetType().FullName} insert key:{key} exists");
         }
 
-        public async Task Put(K key, V value)
+        public async Task PutAsync(K key, V value)
         {
             Transaction currentT = Transaction.Current;
             TableKey tkey = new TableKey(Name, key);
@@ -412,14 +412,14 @@ namespace Zeze.Transaction
                 cr.Put(currentT, value);
                 return;
             }
-            Record<K, V> r = await FindInCacheOrStorage(key);
+            Record<K, V> r = await LoadAsync(key);
             cr = new Transaction.RecordAccessed(r);
             cr.Put(currentT, value);
             currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
         }
 
         // 几乎和Put一样，还是独立开吧。
-        public async Task Remove(K key)
+        public async Task RemoveAsync(K key)
         {
             Transaction currentT = Transaction.Current;
             TableKey tkey = new TableKey(Name, key);
@@ -431,7 +431,7 @@ namespace Zeze.Transaction
                 return;
             }
 
-            Record<K, V> r = await FindInCacheOrStorage(key);
+            Record<K, V> r = await LoadAsync(key);
             cr = new Transaction.RecordAccessed(r);
             cr.Put(currentT, null);
             currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
@@ -607,7 +607,7 @@ namespace Zeze.Transaction
             lockey.EnterReadLock();
             try
             {
-                var r = await FindInCacheOrStorage(key);
+                var r = await LoadAsync(key);
                 return (V)r.Value.CopyBean();
             }
             finally
@@ -628,7 +628,7 @@ namespace Zeze.Transaction
                     return (V)cr.NewestValue();
                 }
             }
-            return (V)(await FindInCacheOrStorage(key)).Value;
+            return (V)(await LoadAsync(key)).Value;
         }
 
         public override bool IsNew => TStorage == null || TStorage.DatabaseTable.IsNew;

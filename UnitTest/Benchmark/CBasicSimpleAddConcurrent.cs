@@ -46,7 +46,7 @@ namespace Benchmark
         private async Task<long> Check() {
             long sum = 0;
             for (long i = 0; i < ConcurrentLevel; ++i) {
-                var r = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(i);
+                var r = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(i);
                 sum += r.Long2;
             }
             Assert.AreEqual(sum, AddCount);
@@ -54,14 +54,14 @@ namespace Benchmark
         }
 
         private async Task<long> Add(long key) {
-            var r = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(key);
+            var r = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(key);
             r.Long2 += 1;
             //System.out.println("Add=" + key);
             return 0;
         }
 
         private async Task<long> Remove(long key) {
-            await demo.App.Instance.demo_Module1.Table1.Remove(key);
+            await demo.App.Instance.demo_Module1.Table1.RemoveAsync(key);
             return 0;
         }
     }

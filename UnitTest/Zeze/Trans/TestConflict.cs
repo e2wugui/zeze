@@ -41,20 +41,20 @@ namespace UnitTest.Zeze.Trans
 
         async Task<long> ProcRemove()
         {
-            await demo.App.Instance.demo_Module1.Table1.Remove(123123);
+            await demo.App.Instance.demo_Module1.Table1.RemoveAsync(123123);
             return Procedure.Success;
         }
 
         async Task<long> ProcAdd()
         {
-            demo.Module1.Value v = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(123123);
+            demo.Module1.Value v = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(123123);
             v.Int1 += 1;
             return Procedure.Success;
         }
 
         async Task<long> ProcVerify()
         {
-            demo.Module1.Value v = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(123123);
+            demo.Module1.Value v = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(123123);
             Assert.IsTrue(v.Int1 == sum);
             return Procedure.Success;
         }

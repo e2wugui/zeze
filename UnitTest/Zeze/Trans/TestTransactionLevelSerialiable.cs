@@ -52,8 +52,8 @@ namespace UnitTest.Zeze.Trans
 
         private async Task<long> verify()
         {
-            var v1 = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1L);
-            var v2 = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(2L);
+            var v1 = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1L);
+            var v2 = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(2L);
             var total = v1.Int1 + v2.Int1;
             // 必须在事务成功时verify，执行过程中是可能失败的。
             Transaction.Current.RunWhileCommit(() => { Assert.AreEqual(100_000, total); });
@@ -62,8 +62,8 @@ namespace UnitTest.Zeze.Trans
 
         private async Task<long> init()
         {
-            var v1 = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1L);
-            var v2 = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(2L);
+            var v1 = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1L);
+            var v2 = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(2L);
             v1.Int1 = 100_000;
             v2.Int1 = 0;
             return 0;
@@ -71,8 +71,8 @@ namespace UnitTest.Zeze.Trans
 
         private async Task<long> trade()
         {
-            var v1 = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1L);
-            var v2 = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(2L);
+            var v1 = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1L);
+            var v2 = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(2L);
             var money = global::Zeze.Util.Random.Instance.Next(1000);
             if (global::Zeze.Util.Random.Instance.Next(100) < 50)
             {

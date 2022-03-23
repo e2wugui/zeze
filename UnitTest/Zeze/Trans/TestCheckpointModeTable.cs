@@ -28,7 +28,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
-                    var value = await demo.App.Instance.demo_Module1.TableImportant.GetOrAdd(1);
+                    var value = await demo.App.Instance.demo_Module1.TableImportant.GetOrAddAsync(1);
                     return value.Int1 == expect ? Procedure.Success : Procedure.LogicError;
                 },
                 "TestCheckpointModeTable.Check").Call());
@@ -40,7 +40,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
-                    var value = await demo.App.Instance.demo_Module1.TableImportant.GetOrAdd(1);
+                    var value = await demo.App.Instance.demo_Module1.TableImportant.GetOrAddAsync(1);
                     value.Int1 = 0;
                     return Procedure.Success;
                 },
@@ -73,16 +73,16 @@ namespace UnitTest.Zeze.Trans
 
         private async Task<long> Add()
         {
-            var value = await demo.App.Instance.demo_Module1.TableImportant.GetOrAdd(1);
+            var value = await demo.App.Instance.demo_Module1.TableImportant.GetOrAddAsync(1);
             value.Int1++;
             return Procedure.Success;
         }
 
         private async Task<long> Add2()
         {
-            var value = await demo.App.Instance.demo_Module1.TableImportant.GetOrAdd(1);
+            var value = await demo.App.Instance.demo_Module1.TableImportant.GetOrAddAsync(1);
             value.Int1++;
-            var value2 = await demo.App.Instance.demo_Module1.Table1.GetOrAdd(1);
+            var value2 = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
             value2.Int1++;
             return Procedure.Success;
         }

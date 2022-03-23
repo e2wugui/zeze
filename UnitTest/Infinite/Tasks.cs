@@ -172,7 +172,7 @@ namespace Infinite
             {
                 var keyEnum = Keys.GetEnumerator();
                 keyEnum.MoveNext();
-                var value = await App.demo_Module1.Table1.GetOrAdd(keyEnum.Current);
+                var value = await App.demo_Module1.Table1.GetOrAddAsync(keyEnum.Current);
                 value.Long2++;
                 return 0L;
             }
@@ -195,7 +195,7 @@ namespace Infinite
                 app.Zeze.NewProcedure(async () =>
                 {
                     for (long key = 0; key < Simulate.AccessKeyBound; ++key)
-                        await app.demo_Module1.Table1.Remove(key);
+                        await app.demo_Module1.Table1.RemoveAsync(key);
                     return 0L;
                 }, "Table1Long2Add1.prepare").Call();
             }
@@ -207,7 +207,7 @@ namespace Infinite
             {
                 var keyEnum = Keys.GetEnumerator();
                 keyEnum.MoveNext();
-                var value = await App.demo_Module1.Table1.GetOrAdd(keyEnum.Current);
+                var value = await App.demo_Module1.Table1.GetOrAddAsync(keyEnum.Current);
                 // 使用 bool4 变量：用来决定添加或者删除。
                 if (value.Bool4)
                 {
@@ -255,8 +255,8 @@ namespace Infinite
                 var k1 = keyEnum.Current;
                 keyEnum.MoveNext();
                 var k2 = keyEnum.Current;
-                var v1 = await App.demo_Module1.Tflush.GetOrAdd(k1);
-                var v2 = await App.demo_Module1.Tflush.GetOrAdd(k2);
+                var v1 = await App.demo_Module1.Tflush.GetOrAddAsync(k1);
+                var v2 = await App.demo_Module1.Tflush.GetOrAddAsync(k2);
                 var money = Zeze.Util.Random.Instance.Next(1000);
                 if ((Zeze.Util.Random.Instance.Next() & 1) == 0)
                     (v2, v1) = (v1, v2); // random swap
