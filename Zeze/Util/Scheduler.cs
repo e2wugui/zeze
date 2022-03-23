@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Zeze.Util
 {
@@ -152,7 +153,7 @@ namespace Zeze.Util
                 return;
 
             // 派发出去运行，让系统管理大量任务的线程问题。
-            Mission.Run(() => action(this), "SchedulerTask.Run");
+            Task.Run(() => action(this));
 
             if (this.Period > 0)
             {

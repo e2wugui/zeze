@@ -5,6 +5,7 @@ using Zeze.Beans.GlobalCacheManagerWithRaft;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using Zeze.Net;
+using System.Threading.Tasks;
 
 namespace Zeze.Services
 {
@@ -12,7 +13,7 @@ namespace Zeze.Services
     {
         public const int GlobalSerialIdAtomicLongIndex = 0;
 
-        protected override long ProcessAcquireRequest(Zeze.Net.Protocol _p)
+        protected override async Task<long> ProcessAcquireRequest(Zeze.Net.Protocol _p)
         {
             var rpc = _p as Acquire;
             rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
@@ -131,7 +132,7 @@ namespace Zeze.Services
                     int reduceResultState = GlobalCacheManagerServer.StateReduceNetError; // 默认网络错误。
                     if (CacheHolder.Reduce(Sessions, cs.Modify,
                         rpc.Argument.GlobalTableKey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId,
-                        (p) =>
+                        async (p) =>
                         {
                             var r = p as Reduce;
                             reduceResultState = r.IsTimeout ? GlobalCacheManagerServer.StateReduceRpcTimeout : r.Result.State;
@@ -273,7 +274,7 @@ namespace Zeze.Services
                     int reduceResultState = GlobalCacheManagerServer.StateReduceNetError; // 默认网络错误。
                     if (CacheHolder.Reduce(Sessions, cs.Modify,
                         rpc.Argument.GlobalTableKey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId,
-                        (p) =>
+                        async (p) =>
                         {
                             var r = p as Reduce;
                             reduceResultState = r.IsTimeout ? GlobalCacheManagerServer.StateReduceRpcTimeout : r.Result.State;
@@ -354,7 +355,7 @@ namespace Zeze.Services
                 // 2. sender是share, 而且reducePending的size是0
                 if (!(cs.Share.Count == 0) && (!senderIsShare || reducePending.Count > 0))
                 {
-                    Zeze.Util.Mission.Run(
+                    Task.Run(
                     () =>
                     {
                         // 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
@@ -389,8 +390,7 @@ namespace Zeze.Services
                         {
                             lockey.Exit();
                         }
-                    },
-                    "GlobalCacheManager.AcquireModify.WaitReduce");
+                    });
                     logger.Debug("7 {0} {1} {2}", sender, rpc.Argument.State, cs);
                     lockey.Wait();
                 }
@@ -515,7 +515,7 @@ namespace Zeze.Services
             return GlobalCacheManagerServer.StateInvalid;
         }
 
-        protected override long ProcessLoginRequest(Zeze.Net.Protocol _p)
+        protected override async Task<long> ProcessLoginRequest(Zeze.Net.Protocol _p)
         {
             var rpc = _p as Login;
             var session = Sessions.GetOrAdd(rpc.Argument.ServerId,
@@ -541,7 +541,7 @@ namespace Zeze.Services
             }
         }
 
-        protected override long ProcessReLoginRequest(Zeze.Net.Protocol _p)
+        protected override async Task<long> ProcessReLoginRequest(Zeze.Net.Protocol _p)
         {
             var rpc = _p as ReLogin;
             var session = Sessions.GetOrAdd(rpc.Argument.ServerId, 
@@ -560,7 +560,7 @@ namespace Zeze.Services
             }
         }
 
-        protected override long ProcessNormalCloseRequest(Zeze.Net.Protocol _p)
+        protected override async Task<long> ProcessNormalCloseRequest(Zeze.Net.Protocol _p)
         {
             var rpc = _p as NormalClose;
             if (rpc.Sender.UserState is not CacheHolder session)
@@ -589,7 +589,7 @@ namespace Zeze.Services
             }
         }
 
-        protected override long ProcessCleanupRequest(Zeze.Net.Protocol _p)
+        protected override async Task<long> ProcessCleanupRequest(Zeze.Net.Protocol _p)
         {
             var rpc = _p as Cleanup;
 
@@ -634,7 +634,7 @@ namespace Zeze.Services
             return 0;
         }
 
-        protected override long ProcessKeepAliveRequest(Zeze.Net.Protocol _p)
+        protected override async Task<long> ProcessKeepAliveRequest(Zeze.Net.Protocol _p)
         {
             var rpc = _p as KeepAlive;
             rpc.SendResultCode(Zeze.Transaction.Procedure.NotImplement);
@@ -730,7 +730,7 @@ namespace Zeze.Services
             }
 
             public static bool Reduce(ConcurrentDictionary<int, CacheHolder> sessions, int serverId,
-                GlobalTableKey gkey, int state, long globalSerialId, Func<Protocol, long> response)
+                GlobalTableKey gkey, int state, long globalSerialId, Func<Protocol, Task<long>> response)
             { 
                 if (sessions.TryGetValue(serverId, out var session))
                     return session.Reduce(gkey, state, globalSerialId, response);
@@ -748,7 +748,7 @@ namespace Zeze.Services
                 return null;
             }
 
-            public bool Reduce(GlobalTableKey gkey, int state, long globalSerialId, Func<Protocol, long> response)
+            public bool Reduce(GlobalTableKey gkey, int state, long globalSerialId, Func<Protocol, Task<long>> response)
             {
                 try
                 {

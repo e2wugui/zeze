@@ -13,6 +13,7 @@ using Zeze.Serialize;
 using Zeze.Transaction;
 using Zeze.Services.ServiceManager;
 using Zeze.Util;
+using System.Threading.Tasks;
 
 namespace Zeze.Services
 {
@@ -391,7 +392,7 @@ namespace Zeze.Services
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        private long ProcessRegister(Protocol p)
+        private async Task<long> ProcessRegister(Protocol p)
         {
             var r = p as Register;
             var session = r.Sender.UserState as Session;
@@ -415,7 +416,7 @@ namespace Zeze.Services
             return Procedure.Success;
         }
 
-        private long ProcessUpdate(Protocol p)
+        private async Task<long> ProcessUpdate(Protocol p)
         {
             var r = p as Update;
             var session = r.Sender.UserState as Session;
@@ -452,7 +453,7 @@ namespace Zeze.Services
             return null;
         }
 
-        private long ProcessUnRegister(Protocol p)
+        private async Task<long> ProcessUnRegister(Protocol p)
         {
             var r = p as UnRegister;
             var session = r.Sender.UserState as Session;
@@ -468,7 +469,7 @@ namespace Zeze.Services
             return Procedure.Success;
         }
 
-        private long ProcessSubscribe(Protocol p)
+        private async Task<long> ProcessSubscribe(Protocol p)
         {
             var r = p as Subscribe;
             var session = r.Sender.UserState as Session;
@@ -497,7 +498,7 @@ namespace Zeze.Services
             return null;
         }
 
-        private long ProcessUnSubscribe(Protocol p)
+        private async Task<long> ProcessUnSubscribe(Protocol p)
         {
             var r = p as UnSubscribe;
             var session = r.Sender.UserState as Session;
@@ -524,7 +525,7 @@ namespace Zeze.Services
             return Procedure.Success;
         }
 
-        private long ProcessReadyServiceList(Protocol p)
+        private async Task<long> ProcessReadyServiceList(Protocol p)
         {
             var r = p as ReadyServiceList;
             var session = r.Sender.UserState as Session;
@@ -670,7 +671,7 @@ namespace Zeze.Services
             }
         }
 
-        private long ProcessAllocateId(Protocol p)
+        private async Task<long> ProcessAllocateId(Protocol p)
         {
             var r = p as AllocateId;
             var n = r.Argument.Name;
@@ -734,10 +735,7 @@ namespace Zeze.Services
 
             public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
             {
-                if (null == factoryHandle)
-                    return;
-
-                Util.Mission.Run(() => factoryHandle.Handle(p), p, (_, code) => p.SendResultCode(code));
+                _ = Mission.CallAsync(factoryHandle.Handle, p, (_, code) => p.SendResultCode(code));
             }
         }
 
@@ -1082,7 +1080,7 @@ namespace Zeze.Services.ServiceManager
             return subState;
         }
 
-        private long ProcessSubscribeFirstCommit(Protocol p)
+        private async Task<long> ProcessSubscribeFirstCommit(Protocol p)
         {
             var r = p as SubscribeFirstCommit;
             if (SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
@@ -1111,7 +1109,7 @@ namespace Zeze.Services.ServiceManager
             }
         }
 
-        private long ProcessUpdate(Protocol p)
+        private async Task<long> ProcessUpdate(Protocol p)
         {
             var r = p as Update;
             if (false == SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
@@ -1122,7 +1120,7 @@ namespace Zeze.Services.ServiceManager
             return 0;
         }
 
-        private long ProcessRegister(Protocol p)
+        private async Task<long> ProcessRegister(Protocol p)
         {
             var r = p as Register;
             if (false == SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
@@ -1133,7 +1131,7 @@ namespace Zeze.Services.ServiceManager
             return 0;
         }
 
-        private long ProcessUnRegister(Protocol p)
+        private async Task<long> ProcessUnRegister(Protocol p)
         {
             var r = p as UnRegister;
             if (false == SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
@@ -1144,7 +1142,7 @@ namespace Zeze.Services.ServiceManager
             return 0;
         }
 
-        private long ProcessNotifyServiceList(Protocol p)
+        private async Task<long> ProcessNotifyServiceList(Protocol p)
         {
             var r = p as NotifyServiceList;
             if (SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
@@ -1158,7 +1156,7 @@ namespace Zeze.Services.ServiceManager
             return Procedure.Success;
         }
 
-        private long ProcessCommitServiceList(Protocol p)
+        private async Task<long> ProcessCommitServiceList(Protocol p)
         {
             var r = p as CommitServiceList;
             if (SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
@@ -1172,7 +1170,7 @@ namespace Zeze.Services.ServiceManager
             return Procedure.Success;
         }
 
-        private long ProcessKeepAlive(Protocol p)
+        private async Task<long> ProcessKeepAlive(Protocol p)
         {
             var r = p as KeepAlive;
             OnKeepAlive?.Invoke();
@@ -1379,7 +1377,7 @@ namespace Zeze.Services.ServiceManager
                 if (null == Socket)
                 {
                     Socket = sender;
-                    Util.Mission.Run(Agent.OnConnected, "ServiceManager.Agent.OnConnected");
+                    Task.Run(Agent.OnConnected);
                 }
                 else
                 {
@@ -1396,12 +1394,7 @@ namespace Zeze.Services.ServiceManager
 
             public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
             {
-                // Reduce 很重要。必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。
-                if (null != factoryHandle.Handle)
-                {
-                    Agent.Zeze.InternalThreadPool.QueueUserWorkItem(
-                        () => Util.Mission.Call(() => factoryHandle.Handle(p), p, (_, code) => p.SendResultCode(code)));
-                }
+                _ = Mission.CallAsync(factoryHandle.Handle, p, (_, code) => p.SendResultCode(code));
             }
 
         }

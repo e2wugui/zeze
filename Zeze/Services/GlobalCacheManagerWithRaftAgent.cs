@@ -91,7 +91,7 @@ namespace Zeze.Services
             }
         }
 
-        protected override long ProcessReduceRequest(Zeze.Net.Protocol _p)
+        protected override async Task<long> ProcessReduceRequest(Zeze.Net.Protocol _p)
         {
             var rpc = _p as Zeze.Beans.GlobalCacheManagerWithRaft.Reduce;
             switch (rpc.Argument.State)

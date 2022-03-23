@@ -1,5 +1,6 @@
 ﻿
 using System;
+using System.Threading.Tasks;
 using Zeze.Net;
 
 namespace demo.Module1
@@ -14,28 +15,28 @@ namespace demo.Module1
         {
         }
 
-        protected override long ProcessProtocol1(Protocol p)
+        protected override async Task<long> ProcessProtocol1(Protocol p)
         {
             var protocol = p as Protocol1;
             protocol.Send(protocol.Sender);
             Console.WriteLine(protocol.Argument);
-            new Rpc2().Send(protocol.Sender, (Protocol) => 0);
+            new Rpc2().Send(protocol.Sender, async (Protocol) => 0);
             return Zeze.Transaction.Procedure.Success;
         }
 
-        protected override long ProcessProtocol3(Protocol p)
+        protected override async Task<long> ProcessProtocol3(Protocol p)
         {
             return Zeze.Transaction.Procedure.NotImplement;
         }
 
-        protected override long ProcessRpc1Request(Protocol p)
+        protected override async Task<long> ProcessRpc1Request(Protocol p)
         {
             var rpc = p as Rpc1;
             rpc.SendResult();
             return Zeze.Transaction.Procedure.Success;
         }
 
-        protected override long ProcessProtocolNoProcedure(Protocol p)
+        protected override async Task<long> ProcessProtocolNoProcedure(Protocol p)
         {
             throw new NotImplementedException();
         }

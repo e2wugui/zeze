@@ -192,7 +192,7 @@ namespace Zeze.Raft
             }
 
             // 直接对 RocksDb 多线程访问，这里就不做多线程保护了。
-            Util.Mission.Run(() =>
+            Task.Run(() =>
             {
                 try
                 {
@@ -230,7 +230,7 @@ namespace Zeze.Raft
                         RemoveLogBeforeFuture = null;
                     }
                 }
-            }, $"RemoveLogBefore{index}");
+            });
         }
 
         /*
@@ -813,7 +813,7 @@ namespace Zeze.Raft
                 var heartbeat = new AppendEntries();
                 heartbeat.Argument.Term = Term;
                 heartbeat.Argument.LeaderId = Raft.Name;
-                heartbeat.Send(socket, (p) =>
+                heartbeat.Send(socket, async (p) =>
                 {
                     if (heartbeat.IsTimeout)
                         return 0; // skip
@@ -1205,7 +1205,7 @@ namespace Zeze.Raft
             }
             connector.Pending.Argument.LastEntryIndex = lastCopyLog.Index;
             if (false == connector.Pending.Send(socket,
-                (p) => ProcessAppendEntriesResult(connector, p),
+                async (p) => ProcessAppendEntriesResult(connector, p),
                 Raft.RaftConfig.AppendEntriesTimeout))
             {
                 connector.Pending = null;

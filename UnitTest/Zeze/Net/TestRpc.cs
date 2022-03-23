@@ -6,6 +6,7 @@ using Zeze.Net;
 using System.Net;
 using Zeze.Transaction;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace UnitTest.Zeze.Net
 {
@@ -44,7 +45,7 @@ namespace UnitTest.Zeze.Net
 
         ManualResetEvent connected = new ManualResetEvent(false);
 
-        public long ProcessFirstRpcRequest(Protocol p)
+        public async Task<long> ProcessFirstRpcRequest(Protocol p)
         {
             var rpc = p as FirstRpc;
             rpc.Result.Assign(rpc.Argument);

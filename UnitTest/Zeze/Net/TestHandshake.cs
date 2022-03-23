@@ -49,7 +49,7 @@ namespace UnitTest.Zeze.Net
             }
         }
 
-        private long ProcessHelloRequest(Protocol p)
+        private async Task<long> ProcessHelloRequest(Protocol p)
         {
             var hello = (Hello)p;
             hello.Result = hello.Argument;

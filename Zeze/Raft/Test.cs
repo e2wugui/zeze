@@ -127,7 +127,7 @@ namespace Zeze.Raft
                 });
             Agent.Client.Start();
 
-            Util.Mission.Run(() =>
+            Task.Run(() =>
             {
                 while (true)
                 {
@@ -155,7 +155,7 @@ namespace Zeze.Raft
                         logger.Error(ex);
                     }
                 }
-            }, "DumpWorker");
+            });
             try
             {
                 RunTrace();
@@ -547,7 +547,7 @@ namespace Zeze.Raft
             });
 
             // Start Background FailActions
-            Util.Mission.Run(RandomTriggerFailActions, "RandomTriggerFailActions");
+            Task.Run(RandomTriggerFailActions);
             var testname = "RealConcurrentDoRequest";
             var lastExpectCount = ExpectCount.Get();
             while (true)
@@ -917,7 +917,7 @@ namespace Zeze.Raft
                 StartRaft(true);
             }
 
-            private long ProcessAddCount(Zeze.Net.Protocol p)
+            private async Task<long> ProcessAddCount(Zeze.Net.Protocol p)
             {
                 if (false == Raft.IsLeader)
                     return Procedure.RaftRetry; // fast fail
@@ -931,7 +931,7 @@ namespace Zeze.Raft
                 return Procedure.Success;
             }
 
-            private long ProcessGetCount(Zeze.Net.Protocol p)
+            private async Task<long> ProcessGetCount(Zeze.Net.Protocol p)
             {
                 var r = p as GetCount;
                 lock (StateMachine)

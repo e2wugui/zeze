@@ -35,7 +35,7 @@ namespace Zeze.Util
         {
             foreach (var e in Handles)
             {
-                Mission.Run(app.NewProcedure(() => e.Value(sender, args), e.Key));
+                _ = app.NewProcedure(() => e.Value(sender, args), e.Key).CallAsync();
             }
         }
     }

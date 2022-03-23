@@ -159,7 +159,7 @@ namespace Zeze.Raft
 
         }
 
-        private long ProcessAppendEntries(Protocol p)
+        private async Task<long> ProcessAppendEntries(Protocol p)
         {
             var r = p as AppendEntries;
             lock (this)
@@ -170,7 +170,7 @@ namespace Zeze.Raft
 
         private ConcurrentDictionary<long, FileStream> ReceiveSnapshotting = new ConcurrentDictionary<long, FileStream>();
 
-        private long ProcessInstallSnapshot(Protocol p)
+        private async Task<long> ProcessInstallSnapshot(Protocol p)
         {
             var r = p as InstallSnapshot;
 
@@ -489,7 +489,7 @@ namespace Zeze.Raft
             return candidate.LastLogIndex >= last.Index;
         }
 
-        private long ProcessRequestVote(Protocol p)
+        private async Task<long> ProcessRequestVote(Protocol p)
         {
             lock (this)
             {
@@ -604,7 +604,7 @@ namespace Zeze.Raft
             {
                 var rpc = new RequestVote() { Argument = arg };
                 RequestVotes.Add(rpc);
-                var sendresult = rpc.Send(c.TryGetReadySocket(), (p) => ProcessRequestVoteResult(rpc, c), RaftConfig.AppendEntriesTimeout - 100);
+                var sendresult = rpc.Send(c.TryGetReadySocket(), async (p) => ProcessRequestVoteResult(rpc, c), RaftConfig.AppendEntriesTimeout - 100);
                 logger.Info("{0}:{1}: SendRequestVote {2}", Name, sendresult, rpc);
             });
         }

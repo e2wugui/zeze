@@ -316,7 +316,7 @@ namespace Zeze.Transaction
                 relogin.Argument.ServerId = Zeze.Config.ServerId;
                 relogin.Argument.GlobalCacheManagerHashIndex = agent.GlobalCacheManagerHashIndex;
                 relogin.Send(so,
-                    (_) =>
+                    async (_) =>
                     {
                         if (relogin.IsTimeout)
                         {
@@ -340,7 +340,7 @@ namespace Zeze.Transaction
                 login.Argument.ServerId = Zeze.Config.ServerId;
                 login.Argument.GlobalCacheManagerHashIndex = agent.GlobalCacheManagerHashIndex;
                 login.Send(so,
-                    (_) =>
+                    async (_) =>
                     {
                         if (login.IsTimeout)
                         {
@@ -362,12 +362,7 @@ namespace Zeze.Transaction
 
         public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
-            // Reduce 很重要。必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。
-            if (null != factoryHandle.Handle)
-            {
-                Zeze.InternalThreadPool.QueueUserWorkItem(
-                    () => Util.Mission.Call(() => factoryHandle.Handle(p), p));
-            }
+            _ = Util.Mission.CallAsync(factoryHandle.Handle, p);
         }
 
         public override void OnSocketClose(AsyncSocket so, Exception e)

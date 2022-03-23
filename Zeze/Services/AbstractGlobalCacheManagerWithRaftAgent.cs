@@ -71,6 +71,6 @@ namespace Zeze.Services
         }
 
 
-        protected abstract long ProcessReduceRequest(Zeze.Net.Protocol p);
+        protected abstract System.Threading.Tasks.Task<long>  ProcessReduceRequest(Zeze.Net.Protocol p);
     }
 }

@@ -81,16 +81,16 @@ namespace Zeze.Services
         }
 
 
-        protected abstract long ProcessAcquireRequest(Zeze.Net.Protocol p);
+        protected abstract System.Threading.Tasks.Task<long>  ProcessAcquireRequest(Zeze.Net.Protocol p);
 
-        protected abstract long ProcessCleanupRequest(Zeze.Net.Protocol p);
+        protected abstract System.Threading.Tasks.Task<long>  ProcessCleanupRequest(Zeze.Net.Protocol p);
 
-        protected abstract long ProcessKeepAliveRequest(Zeze.Net.Protocol p);
+        protected abstract System.Threading.Tasks.Task<long>  ProcessKeepAliveRequest(Zeze.Net.Protocol p);
 
-        protected abstract long ProcessLoginRequest(Zeze.Net.Protocol p);
+        protected abstract System.Threading.Tasks.Task<long>  ProcessLoginRequest(Zeze.Net.Protocol p);
 
-        protected abstract long ProcessNormalCloseRequest(Zeze.Net.Protocol p);
+        protected abstract System.Threading.Tasks.Task<long>  ProcessNormalCloseRequest(Zeze.Net.Protocol p);
 
-        protected abstract long ProcessReLoginRequest(Zeze.Net.Protocol p);
+        protected abstract System.Threading.Tasks.Task<long>  ProcessReLoginRequest(Zeze.Net.Protocol p);
     }
 }

@@ -8,6 +8,7 @@ using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Transaction;
 using System.Collections.Concurrent;
+using System.Threading.Tasks;
 
 /// <summary>
 /// 使用dh算法交换密匙把连接加密。
@@ -101,13 +102,13 @@ namespace Zeze.Services
             }
         }
 
-        private long ProcessCHandshakeDone(Protocol p)
+        private async Task<long> ProcessCHandshakeDone(Protocol p)
         {
             OnHandshakeDone(p.Sender);
             return 0;
         }
 
-        private long ProcessCHandshake(Protocol _p)
+        private async Task<long> ProcessCHandshake(Protocol _p)
         {
             try
             {
@@ -167,7 +168,7 @@ namespace Zeze.Services
             });
         }
 
-        private long ProcessSHandshake(Protocol _p)
+        private async Task<long> ProcessSHandshake(Protocol _p)
         {
             try
             {

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Xml;
 using Zeze.Net;
 using Zeze.Serialize;
@@ -195,7 +196,7 @@ namespace Zeze.Services
         /// </summary>
         /// <param name="p"></param>
         /// <returns></returns>
-        private long ProcessCleanup(Protocol p)
+        private async Task<long> ProcessCleanup(Protocol p)
         {
             var rpc = p as Cleanup;
 
@@ -239,7 +240,7 @@ namespace Zeze.Services
             return 0;
         }
 
-        private long ProcessLogin(Protocol p)
+        private async Task<long> ProcessLogin(Protocol p)
         {
             var rpc = p as Login;
             var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder(Config));
@@ -261,7 +262,7 @@ namespace Zeze.Services
             return 0;
         }
 
-        private long ProcessReLogin(Protocol p)
+        private async Task<long> ProcessReLogin(Protocol p)
         {
             var rpc = p as ReLogin;
             var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder(Config));
@@ -277,7 +278,7 @@ namespace Zeze.Services
             return 0;
         }
         
-        private long ProcessNormalClose(Protocol p)
+        private async Task<long> ProcessNormalClose(Protocol p)
         {
             var rpc = p as NormalClose;
             if (rpc.Sender.UserState is not CacheHolder session)
@@ -304,7 +305,7 @@ namespace Zeze.Services
             return 0;
         }
 
-        private long ProcessAcquireRequest(Protocol p)
+        private async Task<long> ProcessAcquireRequest(Protocol p)
         {
             Acquire rpc = (Acquire)p;
             rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
@@ -475,7 +476,7 @@ namespace Zeze.Services
 
                         int reduceResultState = StateReduceNetError; // 默认网络错误。
                         if (cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid, cs.GlobalSerialId,
-                            (p) =>
+                            async (p) =>
                             {
                                 var r = p as Reduce;
                                 reduceResultState = r.IsTimeout ? StateReduceRpcTimeout : r.Result.State;
@@ -616,7 +617,7 @@ namespace Zeze.Services
 
                         int reduceResultState = StateReduceNetError; // 默认网络错误。
                         if (cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid, cs.GlobalSerialId,
-                            (p) =>
+                            async (p) =>
                             {
                                 var r = p as Reduce;
                                 reduceResultState = r.IsTimeout ? StateReduceRpcTimeout : r.Result.State;
@@ -693,7 +694,7 @@ namespace Zeze.Services
                     // 2. sender是share, 而且reducePending的size是0
                     if (!(cs.Share.Count == 0) && (!senderIsShare || reducePending.Count > 0))
                     {
-                        Zeze.Util.Mission.Run(
+                        Task.Run(
                         () =>
                         {
                             // 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
@@ -723,8 +724,7 @@ namespace Zeze.Services
                             {
                                 Monitor.PulseAll(cs);
                             }
-                        },
-                        "GlobalCacheManager.AcquireModify.WaitReduce");
+                        });
                         logger.Debug("7 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         Monitor.Wait(cs);
                     }
@@ -852,7 +852,8 @@ namespace Zeze.Services
                 return "" + SessionId;
             }
 
-            public bool Reduce(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state, long globalSerialId, Func<Protocol, long> response)
+            public bool Reduce(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey,
+                int state, long globalSerialId, Func<Protocol, Task<long>> response)
             {
                 try
                 {

@@ -130,36 +130,29 @@ namespace Zeze.Raft
 
         public Util.TaskOneByOneByKey TaskOneByOne { get; } = new Util.TaskOneByOneByKey();
 
-        private long ProcessRequest(Protocol p, ProtocolFactoryHandle factoryHandle)
+        public async Task<long> ProcessReqeust(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
-            return Util.Mission.Call(
-                () =>
+            if (Raft.WaitLeaderReady())
+            {
+                if (Raft.LogSequence.TryGetRequestState(p, out var state))
                 {
-                    if (Raft.WaitLeaderReady())
+                    if (null != state)
                     {
-                        if (Raft.LogSequence.TryGetRequestState(p, out var state))
+                        if (state.IsApplied)
                         {
-                            if (null != state)
-                            {
-                                if (state.IsApplied)
-                                {
-                                    p.SendResultCode(Procedure.RaftApplied, state.RpcResult.Count > 0 ? state.RpcResult : null);
-                                    return 0;
-                                }
-                                p.SendResultCode(Procedure.DuplicateRequest);
-                                return 0;
-                            }
-                            return factoryHandle.Handle(p);
+                            p.SendResultCode(Procedure.RaftApplied, state.RpcResult.Count > 0 ? state.RpcResult : null);
+                            return 0;
                         }
-                        p.SendResultCode(Procedure.RaftExpired);
+                        p.SendResultCode(Procedure.DuplicateRequest);
                         return 0;
                     }
-                    TrySendLeaderIs(p.Sender);
-                    return 0;
-                },
-                p,
-                (p, code) => p.SendResultCode(code)
-                );
+                    return await factoryHandle.Handle(p);
+                }
+                p.SendResultCode(Procedure.RaftExpired);
+                return 0;
+            }
+            TrySendLeaderIs(p.Sender);
+            return 0;
         }
 
         public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
@@ -186,11 +179,8 @@ namespace Zeze.Raft
 
                 //【防止重复的请求】
                 // see Log.cs::LogSequence.TryApply
-                TaskOneByOne.Execute(iraftrpc.Unique,
-                    () => ProcessRequest(p, factoryHandle),
-                    p.GetType().FullName,
-                    () => p.SendResultCode(Procedure.RaftRetry)
-                    );
+                TaskOneByOne.Execute(iraftrpc.Unique, async (p) => await ProcessReqeust(p, factoryHandle),
+                    p, (p, code) => p.SendResultCode(code), () => p.SendResultCode(Procedure.RaftRetry));
                 return;
             }
 
