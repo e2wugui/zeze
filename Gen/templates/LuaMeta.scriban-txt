@@ -31,10 +31,10 @@ meta.beans['EmptyBean'] = {
 }
 {{- end}}
 {{ for module in modules }}
-require('{{string.downcase toname(module.full_name)}}').__reg__(meta)
+require('{{toname(module.full_name)}}').__reg__(meta)
 {{- end }}
 {{- for module in modules }}
-package.loaded['{{string.downcase toname(module.full_name)}}'] = nil
+package.loaded['{{toname(module.full_name)}}'] = nil
 {{- end }}
 
 return meta
