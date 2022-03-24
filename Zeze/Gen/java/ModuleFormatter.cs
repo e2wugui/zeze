@@ -467,16 +467,20 @@ namespace Zeze.Gen.java
                 sw.WriteLine();
         }
 
-        public void GenAbstractProtocolHandles(StreamWriter sw, string namePrefix = "")
+        public void GenAbstractProtocolHandles(StreamWriter sw, string namePrefix = "", bool postBlankLine = true)
         {
-            foreach (Protocol p in GetProcessProtocols())
-            {
+            var protocols = GetProcessProtocols();
+            if (!postBlankLine && protocols.Count > 0)
                 sw.WriteLine();
+            foreach (Protocol p in protocols)
+            {
                 if (p is Rpc rpc)
                     sw.WriteLine($"    protected abstract long Process{namePrefix}{rpc.Name}Request({rpc.Space.Path(".", rpc.Name)} r) throws Throwable;");
                 else
                     sw.WriteLine($"    protected abstract long Process{namePrefix}{p.Name}({p.Space.Path(".", p.Name)} p) throws Throwable;");
             }
+            if (postBlankLine && protocols.Count > 0)
+                sw.WriteLine();
         }
 
         public void MakeInterface()
@@ -494,7 +498,6 @@ namespace Zeze.Gen.java
             // declare enums
             GenEnums(sw);
             GenAbstractProtocolHandles(sw);
-            sw.WriteLine();
             ModuleGen(sw);
             sw.WriteLine("}");
         }
