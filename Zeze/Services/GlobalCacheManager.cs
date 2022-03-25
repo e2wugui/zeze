@@ -223,20 +223,14 @@ namespace Zeze.Services
             }
 
             // 还有更多的防止出错的手段吗？
+            await Task.Delay(5 * 60 * 1000); // delay 5 mins
 
-            // XXX verify danger
-            Zeze.Util.Scheduler.Instance.Schedule(
-                (ThisTask) =>
-                {
-                    foreach (var e in session.Acquired)
-                    {
-                        // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-                        Release(session, e.Key, false);
-                    }
-                    rpc.SendResultCode(0);
-                },
-                5 * 60 * 1000); // delay 5 mins
-
+            foreach (var e in session.Acquired)
+            {
+                // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
+                await ReleaseAsync(session, e.Key, false);
+            }
+            rpc.SendResultCode(0);
             return 0;
         }
 
@@ -255,7 +249,7 @@ namespace Zeze.Services
                 foreach (var e in session.Acquired)
                 {
                     // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-                    Release(session, e.Key, false);
+                    ReleaseAsync(session, e.Key, false);
                 }
                 rpc.SendResultCode(0);
             }
@@ -297,7 +291,7 @@ namespace Zeze.Services
                 foreach (var e in session.Acquired)
                 {
                     // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-                    Release(session, e.Key, false);
+                    ReleaseAsync(session, e.Key, false);
                 }
                 rpc.SendResultCode(0);
                 logger.Debug("After NormalClose global.Count={0}", global.Count);
@@ -322,15 +316,15 @@ namespace Zeze.Services
                 switch (rpc.Argument.State)
                 {
                     case StateInvalid: // realease
-                        rpc.Result.State = Release(rpc.Sender.UserState as CacheHolder, rpc.Argument.GlobalTableKey, true);
+                        rpc.Result.State = await ReleaseAsync(rpc.Sender.UserState as CacheHolder, rpc.Argument.GlobalTableKey, true);
                         rpc.SendResult();
                         return 0;
 
                     case StateShare:
-                        return AcquireShare(rpc);
+                        return await AcquireShareAsync(rpc);
 
                     case StateModify:
-                        return AcquireModify(rpc);
+                        return await AcquireModifyAsync(rpc);
 
                     default:
                         rpc.Result.State = StateInvalid;
@@ -347,431 +341,412 @@ namespace Zeze.Services
             }
         }
 
-        private int Release(CacheHolder sender, Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey, bool noWait)
+        private async Task<int> ReleaseAsync(CacheHolder sender, Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey, bool noWait)
         {
             while (true)
             {
                 CacheState cs = global.GetOrAdd(gkey, (tabkeKeyNotUsed) => new CacheState());
-                lock (cs)
+                using var lockcs = await cs.Monitor.EnterAsync();
+
+                if (cs.AcquireStatePending == StateRemoved)
+                    continue; // 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
+
+                while (cs.AcquireStatePending != StateInvalid && cs.AcquireStatePending != StateRemoved)
                 {
-                    if (cs.AcquireStatePending == StateRemoved)
-                        continue; // 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
-
-                    while (cs.AcquireStatePending != StateInvalid && cs.AcquireStatePending != StateRemoved)
+                    switch (cs.AcquireStatePending)
                     {
-                        switch (cs.AcquireStatePending)
-                        {
-                            case StateShare:
-                            case StateModify:
-                                logger.Debug("Release 0 {} {} {}", sender, gkey, cs);
-                                if (noWait)
-                                    return cs.GetSenderCacheState(sender);
-                                break;
-                            case StateRemoving:
-                                // release 不会导致死锁，等待即可。
-                                break;
-                        }
-                        Monitor.Wait(cs);
+                        case StateShare:
+                        case StateModify:
+                            logger.Debug("Release 0 {} {} {}", sender, gkey, cs);
+                            if (noWait)
+                                return cs.GetSenderCacheState(sender);
+                            break;
+                        case StateRemoving:
+                            // release 不会导致死锁，等待即可。
+                            break;
                     }
-                    if (cs.AcquireStatePending == StateRemoved)
-                    {
-                        continue;
-                    }
-                    cs.AcquireStatePending = StateRemoving;
-
-                    if (cs.Modify == sender)
-                        cs.Modify = null;
-                    cs.Share.Remove(sender); // always try remove
-
-                    if (cs.Modify == null && cs.Share.Count == 0)
-                    {
-                        // 安全的从global中删除，没有并发问题。
-                        cs.AcquireStatePending = StateRemoved;
-                        global.TryRemove(gkey, out var _);
-                    }
-                    else
-                    {
-                        cs.AcquireStatePending = StateInvalid;
-                    }
-                    sender.Acquired.TryRemove(gkey, out var _);
-                    Monitor.Pulse(cs);
-                    return cs.GetSenderCacheState(sender);
+                    await cs.Monitor.WaitAsync();
                 }
+                if (cs.AcquireStatePending == StateRemoved)
+                {
+                    continue;
+                }
+                cs.AcquireStatePending = StateRemoving;
+
+                if (cs.Modify == sender)
+                    cs.Modify = null;
+                cs.Share.Remove(sender); // always try remove
+
+                if (cs.Modify == null && cs.Share.Count == 0)
+                {
+                    // 安全的从global中删除，没有并发问题。
+                    cs.AcquireStatePending = StateRemoved;
+                    global.TryRemove(gkey, out var _);
+                }
+                else
+                {
+                    cs.AcquireStatePending = StateInvalid;
+                }
+                sender.Acquired.TryRemove(gkey, out var _);
+                cs.Monitor.PulseAll();
+                return cs.GetSenderCacheState(sender);
             }
         }
 
-        private int AcquireShare(Acquire rpc)
+        private async Task<int> AcquireShareAsync(Acquire rpc)
         {
             CacheHolder sender = (CacheHolder)rpc.Sender.UserState;
 
             while (true)
             {
-                CacheState cs = global.GetOrAdd(rpc.Argument.GlobalTableKey,
-                    (tabkeKeyNotUsed) => new CacheState());
-                lock (cs)
+                CacheState cs = global.GetOrAdd(rpc.Argument.GlobalTableKey, (_) => new CacheState());
+                using var lockcs = await cs.Monitor.EnterAsync();
+
+                if (cs.AcquireStatePending == StateRemoved)
+                    continue;
+
+                if (cs.Modify != null && cs.Share.Count > 0)
+                    throw new Exception("CacheState state error");
+
+                while (cs.AcquireStatePending != StateInvalid && cs.AcquireStatePending != StateRemoved)
                 {
-                    if (cs.AcquireStatePending == StateRemoved)
-                        continue;
-
-                    if (cs.Modify != null && cs.Share.Count > 0)
-                        throw new Exception("CacheState state error");
-
-                    while (cs.AcquireStatePending != StateInvalid && cs.AcquireStatePending != StateRemoved)
+                    switch (cs.AcquireStatePending)
                     {
-                        switch (cs.AcquireStatePending)
-                        {
-                            case StateShare:
-                                if (cs.Modify == null)
-                                    throw new Exception("CacheState state error");
+                        case StateShare:
+                            if (cs.Modify == null)
+                                throw new Exception("CacheState state error");
 
-                                if (cs.Modify == sender)
-                                {
-                                    logger.Debug("1 {0} {1} {2}", sender, rpc.Argument.State, cs);
-                                    rpc.Result.State = StateInvalid;
-                                    rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                                    rpc.SendResultCode(AcquireShareDeadLockFound);
-                                    return 0;
-                                }
-                                break;
-                            case StateModify:
-                                if (cs.Modify == sender || cs.Share.Contains(sender))
-                                {
-                                    logger.Debug("2 {0} {1} {2}", sender, rpc.Argument.State, cs);
-                                    rpc.Result.State = StateInvalid;
-                                    rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                                    rpc.SendResultCode(AcquireShareDeadLockFound);
-                                    return 0;
-                                }
-                                break;
-                            case StateRemoving:
-                                break;
-                        }
-                        logger.Debug("3 {0} {1} {2}", sender, rpc.Argument.State, cs);
-                        Monitor.Wait(cs);
-                        if (cs.Modify != null && cs.Share.Count > 0)
-                            throw new Exception("CacheState state error");
-                    }
-                    if (cs.AcquireStatePending == StateRemoved)
-                        continue; // concurrent release.
-
-                    cs.AcquireStatePending = StateShare;
-                    cs.GlobalSerialId = SerialIdGenerator.IncrementAndGet();
-
-                    if (cs.Modify != null)
-                    {
-                        if (cs.Modify == sender)
-                        {
-                            cs.AcquireStatePending = StateInvalid;
-                            logger.Debug("4 {0} {1} {2}", sender, rpc.Argument.State, cs);
-                            rpc.Result.State = StateModify;
-                            // 已经是Modify又申请，可能是sender异常关闭，
-                            // 又重启连上。更新一下。应该是不需要的。
-                            sender.Acquired[rpc.Argument.GlobalTableKey] = StateModify;
-                            rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                            rpc.SendResultCode(AcquireShareAlreadyIsModify);
-                            return 0;
-                        }
-
-                        int reduceResultState = StateReduceNetError; // 默认网络错误。
-                        if (cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid, cs.GlobalSerialId,
-                            async (p) =>
+                            if (cs.Modify == sender)
                             {
-                                var r = p as Reduce;
-                                reduceResultState = r.IsTimeout ? StateReduceRpcTimeout : r.Result.State;
-                                lock (cs)
-                                {
-                                    Monitor.PulseAll(cs);
-                                }
-                                return 0;
-                            }))
-                        {
-                            logger.Debug("5 {0} {1} {2}", sender, rpc.Argument.State, cs);
-                            Monitor.Wait(cs);
-                        }
-
-                        switch (reduceResultState)
-                        {
-                            case StateShare:
-                                cs.Modify.Acquired[rpc.Argument.GlobalTableKey] = StateShare;
-                                cs.Share.Add(cs.Modify); // 降级成功。
-                                break;
-
-                            case StateInvalid:
-                                // 降到了 Invalid，此时就不需要加入 Share 了。
-                                cs.Modify.Acquired.TryRemove(rpc.Argument.GlobalTableKey, out _);
-                                break;
-
-                            default:
-                                // 包含协议返回错误的值的情况。
-                                // case StateReduceRpcTimeout:
-                                // case StateReduceException:
-                                // case StateReduceNetError:
-                                cs.AcquireStatePending = StateInvalid;
-                                Monitor.Pulse(cs);
-
-                                logger.Error("XXX 8 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                                logger.Debug("1 {0} {1} {2}", sender, rpc.Argument.State, cs);
                                 rpc.Result.State = StateInvalid;
                                 rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                                rpc.SendResultCode(AcquireShareFailed);
+                                rpc.SendResultCode(AcquireShareDeadLockFound);
                                 return 0;
-                        }
+                            }
+                            break;
+                        case StateModify:
+                            if (cs.Modify == sender || cs.Share.Contains(sender))
+                            {
+                                logger.Debug("2 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                                rpc.Result.State = StateInvalid;
+                                rpc.Result.GlobalSerialId = cs.GlobalSerialId;
+                                rpc.SendResultCode(AcquireShareDeadLockFound);
+                                return 0;
+                            }
+                            break;
+                        case StateRemoving:
+                            break;
+                    }
+                    logger.Debug("3 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                    await cs.Monitor.WaitAsync();
+                    if (cs.Modify != null && cs.Share.Count > 0)
+                        throw new Exception("CacheState state error");
+                }
+                if (cs.AcquireStatePending == StateRemoved)
+                    continue; // concurrent release.
 
-                        cs.Modify = null;
-                        sender.Acquired[rpc.Argument.GlobalTableKey] = StateShare;
-                        cs.Share.Add(sender);
+                cs.AcquireStatePending = StateShare;
+                cs.GlobalSerialId = SerialIdGenerator.IncrementAndGet();
+
+                if (cs.Modify != null)
+                {
+                    if (cs.Modify == sender)
+                    {
                         cs.AcquireStatePending = StateInvalid;
-                        Monitor.PulseAll(cs);
-                        logger.Debug("6 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                        logger.Debug("4 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                        rpc.Result.State = StateModify;
+                        // 已经是Modify又申请，可能是sender异常关闭，
+                        // 又重启连上。更新一下。应该是不需要的。
+                        sender.Acquired[rpc.Argument.GlobalTableKey] = StateModify;
                         rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                        rpc.SendResult();
+                        rpc.SendResultCode(AcquireShareAlreadyIsModify);
                         return 0;
                     }
 
+                    int reduceResultState = StateReduceNetError; // 默认网络错误。
+                    if (cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid, cs.GlobalSerialId,
+                        async (p) =>
+                        {
+                            var r = p as Reduce;
+                            reduceResultState = r.IsTimeout ? StateReduceRpcTimeout : r.Result.State;
+                            using var lockcs = await cs.Monitor.EnterAsync();
+                            cs.Monitor.PulseAll();
+                            return 0;
+                        }))
+                    {
+                        logger.Debug("5 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                        await cs.Monitor.WaitAsync();
+                    }
+
+                    switch (reduceResultState)
+                    {
+                        case StateShare:
+                            cs.Modify.Acquired[rpc.Argument.GlobalTableKey] = StateShare;
+                            cs.Share.Add(cs.Modify); // 降级成功。
+                            break;
+
+                        case StateInvalid:
+                            // 降到了 Invalid，此时就不需要加入 Share 了。
+                            cs.Modify.Acquired.TryRemove(rpc.Argument.GlobalTableKey, out _);
+                            break;
+
+                        default:
+                            // 包含协议返回错误的值的情况。
+                            // case StateReduceRpcTimeout:
+                            // case StateReduceException:
+                            // case StateReduceNetError:
+                            cs.AcquireStatePending = StateInvalid;
+                            cs.Monitor.PulseAll();
+
+                            logger.Error("XXX 8 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                            rpc.Result.State = StateInvalid;
+                            rpc.Result.GlobalSerialId = cs.GlobalSerialId;
+                            rpc.SendResultCode(AcquireShareFailed);
+                            return 0;
+                    }
+
+                    cs.Modify = null;
                     sender.Acquired[rpc.Argument.GlobalTableKey] = StateShare;
                     cs.Share.Add(sender);
                     cs.AcquireStatePending = StateInvalid;
-                    Monitor.PulseAll(cs);
-                    logger.Debug("7 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                    cs.Monitor.PulseAll();
+                    logger.Debug("6 {0} {1} {2}", sender, rpc.Argument.State, cs);
                     rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                     rpc.SendResult();
-
                     return 0;
                 }
+
+                sender.Acquired[rpc.Argument.GlobalTableKey] = StateShare;
+                cs.Share.Add(sender);
+                cs.AcquireStatePending = StateInvalid;
+                cs.Monitor.PulseAll();
+                logger.Debug("7 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                rpc.Result.GlobalSerialId = cs.GlobalSerialId;
+                rpc.SendResult();
+
+                return 0;
             }
         }
 
-        private int AcquireModify(Acquire rpc)
+        private async Task<int> AcquireModifyAsync(Acquire rpc)
         {
             CacheHolder sender = (CacheHolder)rpc.Sender.UserState;
             while (true)
             {
                 CacheState cs = global.GetOrAdd(rpc.Argument.GlobalTableKey, (tabkeKeyNotUsed) => new CacheState());
-                lock (cs)
+                using var lockcs = await cs.Monitor.EnterAsync();
+
+                if (cs.AcquireStatePending == StateRemoved)
+                    continue;
+
+                if (cs.Modify != null && cs.Share.Count > 0)
+                    throw new Exception("CacheState state error");
+
+                while (cs.AcquireStatePending != StateInvalid && cs.AcquireStatePending != StateRemoved)
                 {
-                    if (cs.AcquireStatePending == StateRemoved)
-                        continue;
+                    switch (cs.AcquireStatePending)
+                    {
+                        case StateShare:
+                            if (cs.Modify == null)
+                            {
+                                logger.Error("cs state must be modify");
+                                throw new Exception("CacheState state error");
+                            }
+                            if (cs.Modify == sender)
+                            {
+                                logger.Debug("1 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                                rpc.Result.State = StateInvalid;
+                                rpc.Result.GlobalSerialId = cs.GlobalSerialId;
+                                rpc.SendResultCode(AcquireModifyDeadLockFound);
+                                return 0;
+                            }
+                            break;
+                        case StateModify:
+                            if (cs.Modify == sender || cs.Share.Contains(sender))
+                            {
+                                logger.Debug("2 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                                rpc.Result.State = StateInvalid;
+                                rpc.Result.GlobalSerialId = cs.GlobalSerialId;
+                                rpc.SendResultCode(AcquireModifyDeadLockFound);
+                                return 0;
+                            }
+                            break;
+                        case StateRemoving:
+                            break;
+                    }
+                    logger.Debug("3 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                    await cs.Monitor.WaitAsync();
 
                     if (cs.Modify != null && cs.Share.Count > 0)
                         throw new Exception("CacheState state error");
+                }
+                if (cs.AcquireStatePending == StateRemoved)
+                    continue; // concurrent release
 
-                    while (cs.AcquireStatePending != StateInvalid && cs.AcquireStatePending != StateRemoved)
+                cs.AcquireStatePending = StateModify;
+                cs.GlobalSerialId = SerialIdGenerator.IncrementAndGet();
+
+                if (cs.Modify != null)
+                {
+                    if (cs.Modify == sender)
                     {
-                        switch (cs.AcquireStatePending)
-                        {
-                            case StateShare:
-                                if (cs.Modify == null)
-                                {
-                                    logger.Error("cs state must be modify");
-                                    throw new Exception("CacheState state error");
-                                }
-                                if (cs.Modify == sender)
-                                {
-                                    logger.Debug("1 {0} {1} {2}", sender, rpc.Argument.State, cs);
-                                    rpc.Result.State = StateInvalid;
-                                    rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                                    rpc.SendResultCode(AcquireModifyDeadLockFound);
-                                    return 0;
-                                }
-                                break;
-                            case StateModify:
-                                if (cs.Modify == sender || cs.Share.Contains(sender))
-                                {
-                                    logger.Debug("2 {0} {1} {2}", sender, rpc.Argument.State, cs);
-                                    rpc.Result.State = StateInvalid;
-                                    rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                                    rpc.SendResultCode(AcquireModifyDeadLockFound);
-                                    return 0;
-                                }
-                                break;
-                            case StateRemoving:
-                                break;
-                        }
-                        logger.Debug("3 {0} {1} {2}", sender, rpc.Argument.State, cs);
-                        Monitor.Wait(cs);
-
-                        if (cs.Modify != null && cs.Share.Count > 0)
-                            throw new Exception("CacheState state error");
-                    }
-                    if (cs.AcquireStatePending == StateRemoved)
-                        continue; // concurrent release
-
-                    cs.AcquireStatePending = StateModify;
-                    cs.GlobalSerialId = SerialIdGenerator.IncrementAndGet();
-
-                    if (cs.Modify != null)
-                    {
-                        if (cs.Modify == sender)
-                        {
-                            logger.Debug("4 {0} {1} {2}", sender, rpc.Argument.State, cs);
-                            // 已经是Modify又申请，可能是sender异常关闭，又重启连上。
-                            // 更新一下。应该是不需要的。
-                            sender.Acquired[rpc.Argument.GlobalTableKey] = StateModify;
-                            rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                            rpc.SendResultCode(AcquireModifyAlreadyIsModify);
-                            cs.AcquireStatePending = StateInvalid;
-                            Monitor.PulseAll(cs);
-                            return 0;
-                        }
-
-                        int reduceResultState = StateReduceNetError; // 默认网络错误。
-                        if (cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid, cs.GlobalSerialId,
-                            async (p) =>
-                            {
-                                var r = p as Reduce;
-                                reduceResultState = r.IsTimeout ? StateReduceRpcTimeout : r.Result.State;
-                                lock (cs)
-                                {
-                                    Monitor.PulseAll(cs);
-                                }
-                                return 0;
-                            }))
-                        {
-                            logger.Debug("5 {0} {1} {2}", sender, rpc.Argument.State, cs);
-                            Monitor.Wait(cs);
-                        }
-
-                        switch (reduceResultState)
-                        {
-                            case StateInvalid:
-                                cs.Modify.Acquired.TryRemove(rpc.Argument.GlobalTableKey, out _);
-                                break; // reduce success
-
-                            default:
-                                // case StateReduceRpcTimeout:
-                                // case StateReduceException:
-                                // case StateReduceNetError:
-                                cs.AcquireStatePending = StateInvalid;
-                                Monitor.Pulse(cs);
-
-                                logger.Error("XXX 9 {0} {1} {2}", sender, rpc.Argument.State, cs);
-                                rpc.Result.State = StateInvalid;
-                                rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                                rpc.SendResultCode(AcquireModifyFailed);
-                                return 0;
-                        }
-
-                        cs.Modify = sender;
-                        cs.Share.Remove(sender);
+                        logger.Debug("4 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                        // 已经是Modify又申请，可能是sender异常关闭，又重启连上。
+                        // 更新一下。应该是不需要的。
                         sender.Acquired[rpc.Argument.GlobalTableKey] = StateModify;
-                        cs.AcquireStatePending = StateInvalid;
-                        Monitor.PulseAll(cs);
-
-                        logger.Debug("6 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                        rpc.SendResult();
+                        rpc.SendResultCode(AcquireModifyAlreadyIsModify);
+                        cs.AcquireStatePending = StateInvalid;
+                        cs.Monitor.PulseAll();
                         return 0;
                     }
 
-                    List<Util.KV<CacheHolder, Reduce >> reducePending = new();
-                    HashSet<CacheHolder> reduceSucceed = new();
-                    bool senderIsShare = false;
-                    // 先把降级请求全部发送给出去。
-                    foreach (CacheHolder c in cs.Share)
+                    int reduceResultState = StateReduceNetError; // 默认网络错误。
+                    if (cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid, cs.GlobalSerialId,
+                        async (p) =>
+                        {
+                            var r = p as Reduce;
+                            reduceResultState = r.IsTimeout ? StateReduceRpcTimeout : r.Result.State;
+                            using var lockcs = await cs.Monitor.EnterAsync();
+                            cs.Monitor.PulseAll();
+                            return 0;
+                        }))
                     {
-                        if (c == sender)
-                        {
-                            // 申请者不需要降级，直接加入成功。
-                            senderIsShare = true;
-                            reduceSucceed.Add(sender);
-                            continue;
-                        }
-                        Reduce reduce = c.ReduceWaitLater(rpc.Argument.GlobalTableKey, StateInvalid, cs.GlobalSerialId);
-                        if (null != reduce)
-                        {
-                            reducePending.Add(Util.KV.Create(c, reduce));
-                        }
-                        else
-                        {
-                            // 网络错误不再认为成功。整个降级失败，要中断降级。
-                            // 已经发出去的降级请求要等待并处理结果。后面处理。
-                            break;
-                        }
-                    }
-                    // 两种情况不需要发reduce
-                    // 1. share是空的, 可以直接升为Modify
-                    // 2. sender是share, 而且reducePending的size是0
-                    if (!(cs.Share.Count == 0) && (!senderIsShare || reducePending.Count > 0))
-                    {
-                        Task.Run(
-                        () =>
-                        {
-                            // 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
-                            // 应该也会等待所有任务结束（包括错误）。
-                            foreach (var reduce in reducePending)
-                            {
-                                try
-                                {
-                                    reduce.Value.Future.Task.Wait();
-                                    if (reduce.Value.Result.State == StateInvalid)
-                                    {
-                                        reduceSucceed.Add(reduce.Key);
-                                    }
-                                    else
-                                    {
-                                        reduce.Key.SetError();
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    reduce.Key.SetError();
-                                    // 等待失败不再看作成功。
-                                    logger.Error(ex, "Reduce {0} {1} {2} {3}", sender, rpc.Argument.State, cs, reduce.Value.Argument);
-                                }
-                            }
-                            lock (cs)
-                            {
-                                Monitor.PulseAll(cs);
-                            }
-                        });
-                        logger.Debug("7 {0} {1} {2}", sender, rpc.Argument.State, cs);
-                        Monitor.Wait(cs);
+                        logger.Debug("5 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                        await cs.Monitor.WaitAsync();
                     }
 
-                    // 移除成功的。
-                    foreach (CacheHolder succeed in reduceSucceed)
+                    switch (reduceResultState)
                     {
-                        if (succeed != sender)
-                        {
-                            // sender 不移除：
-                            // 1. 如果申请成功，后面会更新到Modify状态。
-                            // 2. 如果申请不成功，恢复 cs.Share，保持 Acquired 不变。
-                            succeed.Acquired.TryRemove(rpc.Argument.GlobalTableKey, out var _);
-                        }
-                        cs.Share.Remove(succeed);
+                        case StateInvalid:
+                            cs.Modify.Acquired.TryRemove(rpc.Argument.GlobalTableKey, out _);
+                            break; // reduce success
+
+                        default:
+                            // case StateReduceRpcTimeout:
+                            // case StateReduceException:
+                            // case StateReduceNetError:
+                            cs.AcquireStatePending = StateInvalid;
+                            cs.Monitor.PulseAll();
+
+                            logger.Error("XXX 9 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                            rpc.Result.State = StateInvalid;
+                            rpc.Result.GlobalSerialId = cs.GlobalSerialId;
+                            rpc.SendResultCode(AcquireModifyFailed);
+                            return 0;
                     }
 
-                    // 如果前面降级发生中断(break)，这里就不会为0。
-                    if (cs.Share.Count == 0)
-                    {
-                        cs.Modify = sender;
-                        sender.Acquired[rpc.Argument.GlobalTableKey] = StateModify;
-                        cs.AcquireStatePending = StateInvalid;
-                        Monitor.PulseAll(cs);
+                    cs.Modify = sender;
+                    cs.Share.Remove(sender);
+                    sender.Acquired[rpc.Argument.GlobalTableKey] = StateModify;
+                    cs.AcquireStatePending = StateInvalid;
+                    cs.Monitor.PulseAll();
 
-                        logger.Debug("8 {0} {1} {2}", sender, rpc.Argument.State, cs);
-                        rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                        rpc.SendResult();
+                    logger.Debug("6 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                    rpc.Result.GlobalSerialId = cs.GlobalSerialId;
+                    rpc.SendResult();
+                    return 0;
+                }
+
+                List<Util.KV<CacheHolder, Reduce>> reducePending = new();
+                HashSet<CacheHolder> reduceSucceed = new();
+                bool senderIsShare = false;
+                // 先把降级请求全部发送给出去。
+                foreach (CacheHolder c in cs.Share)
+                {
+                    if (c == sender)
+                    {
+                        // 申请者不需要降级，直接加入成功。
+                        senderIsShare = true;
+                        reduceSucceed.Add(sender);
+                        continue;
+                    }
+                    Reduce reduce = c.ReduceWaitLater(rpc.Argument.GlobalTableKey, StateInvalid, cs.GlobalSerialId);
+                    if (null != reduce)
+                    {
+                        reducePending.Add(Util.KV.Create(c, reduce));
                     }
                     else
                     {
-                        // senderIsShare 在失败的时候，Acquired 没有变化，不需要更新。
-                        // 失败了，要把原来是share的sender恢复。先这样吧。
-                        if (senderIsShare)
-                            cs.Share.Add(sender);
-
-                        cs.AcquireStatePending = StateInvalid;
-                        Monitor.Pulse(cs); // Pending 结束，唤醒一个进来就可以了。
-
-                        logger.Error("XXX 10 {0} {1} {2}", sender, rpc.Argument.State, cs);
-
-                        rpc.Result.State = StateInvalid;
-                        rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                        rpc.SendResultCode(AcquireModifyFailed);
+                        // 网络错误不再认为成功。整个降级失败，要中断降级。
+                        // 已经发出去的降级请求要等待并处理结果。后面处理。
+                        break;
                     }
-                    // 很好，网络失败不再看成成功，发现除了加break，
-                    // 其他处理已经能包容这个改动，都不用动。
-                    return 0;
                 }
+                // 两种情况不需要发reduce
+                // 1. share是空的, 可以直接升为Modify
+                // 2. sender是share, 而且reducePending的size是0
+                if (!(cs.Share.Count == 0) && (!senderIsShare || reducePending.Count > 0))
+                {
+                    _ = Task.Run(async () =>
+                    {
+                        // 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
+                        // 应该也会等待所有任务结束（包括错误）。
+                        foreach (var reduce in reducePending)
+                        {
+                            try
+                            {
+                                reduce.Value.Future.Task.Wait();
+                                if (reduce.Value.Result.State == StateInvalid)
+                                    reduceSucceed.Add(reduce.Key);
+                                else
+                                    reduce.Key.SetError();
+                            }
+                            catch (Exception ex)
+                            {
+                                reduce.Key.SetError();
+                                // 等待失败不再看作成功。
+                                logger.Error(ex, "Reduce {0} {1} {2} {3}", sender, rpc.Argument.State, cs, reduce.Value.Argument);
+                            }
+                        }
+                        using var lockcs = await cs.Monitor.EnterAsync();
+                        cs.Monitor.PulseAll();
+                    });
+                    logger.Debug("7 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                    await cs.Monitor.WaitAsync();
+                }
+
+                // 移除成功的。
+                foreach (CacheHolder succeed in reduceSucceed)
+                {
+                    if (succeed != sender)
+                    {
+                        // sender 不移除：
+                        // 1. 如果申请成功，后面会更新到Modify状态。
+                        // 2. 如果申请不成功，恢复 cs.Share，保持 Acquired 不变。
+                        succeed.Acquired.TryRemove(rpc.Argument.GlobalTableKey, out var _);
+                    }
+                    cs.Share.Remove(succeed);
+                }
+
+                // 如果前面降级发生中断(break)，这里就不会为0。
+                if (cs.Share.Count == 0)
+                {
+                    cs.Modify = sender;
+                    sender.Acquired[rpc.Argument.GlobalTableKey] = StateModify;
+                    cs.AcquireStatePending = StateInvalid;
+                    cs.Monitor.PulseAll();
+
+                    logger.Debug("8 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                    rpc.Result.GlobalSerialId = cs.GlobalSerialId;
+                    rpc.SendResult();
+                }
+                else
+                {
+                    // senderIsShare 在失败的时候，Acquired 没有变化，不需要更新。
+                    // 失败了，要把原来是share的sender恢复。先这样吧。
+                    if (senderIsShare)
+                        cs.Share.Add(sender);
+
+                    cs.AcquireStatePending = StateInvalid;
+                    cs.Monitor.PulseAll();
+                    logger.Error("XXX 10 {0} {1} {2}", sender, rpc.Argument.State, cs);
+                    rpc.Result.State = StateInvalid;
+                    rpc.Result.GlobalSerialId = cs.GlobalSerialId;
+                    rpc.SendResultCode(AcquireModifyFailed);
+                }
+                return 0;
             }
         }
 
@@ -781,6 +756,8 @@ namespace Zeze.Services
             internal int AcquireStatePending { get; set; } = StateInvalid;
             internal long GlobalSerialId { get; set; }
             internal HashSet<CacheHolder> Share { get; } = new HashSet<CacheHolder>();
+            internal Nito.AsyncEx.AsyncMonitor Monitor { get; } = new Nito.AsyncEx.AsyncMonitor();
+
             public override string ToString()
             {
                 StringBuilder sb = new();
