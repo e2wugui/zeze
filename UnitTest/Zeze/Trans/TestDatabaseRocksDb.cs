@@ -36,7 +36,7 @@ namespace UnitTest.Zeze.Trans
 
             string url = "./rocksdb";
             var db = new DatabaseRocksDb(demo.App.Instance.Zeze, url);
-            Database.Table table = db.OpenTable("test_1");
+            var table = db.OpenTable("test_1");
             {
                 using var trans = db.BeginTransaction();
                 {
@@ -89,7 +89,7 @@ namespace UnitTest.Zeze.Trans
             Assert.AreEqual(2, table.Walk(PrintRecord));
         }
 
-        public bool PrintRecord(byte[] key, byte[] value)
+        public static bool PrintRecord(byte[] key, byte[] value)
         {
             int ikey = ByteBuffer.Wrap(key).ReadInt();
             int ivalue = ByteBuffer.Wrap(value).ReadInt();

@@ -24,11 +24,10 @@ namespace Zeze.Transaction
         // 不为null表示发生了变化，其中 == Deleted 表示被删除（已经Flush了）。
         public RelativeRecordSet MergeTo { get; private set; }
 
-        public readonly static Util.AtomicLong IdGenerator = new Util.AtomicLong();
-        public readonly static RelativeRecordSet Deleted = new RelativeRecordSet();
+        public readonly static AtomicLong IdGenerator = new();
+        public readonly static RelativeRecordSet Deleted = new();
 
-        private readonly static ConcurrentDictionary<RelativeRecordSet, RelativeRecordSet> RelativeRecordSetMap
-            = new ConcurrentDictionary<RelativeRecordSet, RelativeRecordSet>();
+        private readonly static ConcurrentDictionary<RelativeRecordSet, RelativeRecordSet> RelativeRecordSetMap = new();
 
         public RelativeRecordSet()
         {
@@ -88,7 +87,7 @@ namespace Zeze.Transaction
             }
         }
 
-        private Nito.AsyncEx.AsyncLock Mutex = new();
+        private readonly Nito.AsyncEx.AsyncLock Mutex = new();
 
         internal async Task<IDisposable> LockAsync()
         {
@@ -115,8 +114,6 @@ namespace Zeze.Transaction
             return null;
         }
 
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-
         public static async Task TryUpdateAndCheckpoint(
             Transaction trans, Procedure procedure, Action commit)
         {
@@ -124,7 +121,7 @@ namespace Zeze.Transaction
             {
                 case CheckpointMode.Immediately:
                     commit();
-                    await procedure.Zeze.Checkpoint.Flush(trans);
+                    await Checkpoint.Flush(trans);
                     // 这种模式下 RelativeRecordSet 都是空的。
                     return;
 
@@ -166,7 +163,7 @@ namespace Zeze.Transaction
                 // CheckpointMode.Period上面已经处理了，此时不会是它。
                 // 【优化】，事务内访问的所有记录都是Immediately的，马上提交，不需要更新关联记录集合。
                 commit();
-                await procedure.Zeze.Checkpoint.Flush(trans);
+                await Checkpoint.Flush(trans);
                 // 这种情况下 RelativeRecordSet 都是空的。
                 //logger.Debug($"allCheckpointWhenCommit AccessedCount={trans.AccessedRecords.Count}");
                 return;
@@ -175,7 +172,7 @@ namespace Zeze.Transaction
             var locked = new List<(RelativeRecordSet, IDisposable)>();
             try
             {
-                await _lock_(locked, RelativeRecordSets, transAccessRecords);
+                await LockRRS(locked, RelativeRecordSets, transAccessRecords);
                 if (locked.Count > 0)
                 {
                     /*
@@ -209,11 +206,11 @@ namespace Zeze.Transaction
                         return;
                     }
                     */
-                    var mergedSet = _merge_(locked, trans, allRead);
+                    var mergedSet = Merge(locked, trans, allRead);
                     commit(); // 必须在锁获得并且合并完集合以后才提交修改。
                     if (needFlushNow)
                     {
-                        await procedure.Zeze.Checkpoint.Flush(mergedSet);
+                        await Checkpoint.Flush(mergedSet);
                         mergedSet.Delete();
                         //logger.Debug($"needFlushNow AccessedCount={trans.AccessedRecords.Count}");
                     }
@@ -235,7 +232,7 @@ namespace Zeze.Transaction
             }
         }
 
-        private static RelativeRecordSet _merge_(List<(RelativeRecordSet, IDisposable)> locked, Transaction trans, bool allRead)
+        private static RelativeRecordSet Merge(List<(RelativeRecordSet, IDisposable)> locked, Transaction trans, bool allRead)
         {
             // find largest
             var largest = locked[0];
@@ -271,7 +268,7 @@ namespace Zeze.Transaction
             return largest.Item1;
         }
 
-        private static async Task _lock_(List<(RelativeRecordSet, IDisposable)> locked,
+        private static async Task LockRRS(List<(RelativeRecordSet, IDisposable)> locked,
             SortedDictionary<long, RelativeRecordSet> sortedrrs, HashSet<Record> transAccessRecords)
         {
             LabelLockRelativeRecordSets:
@@ -285,7 +282,7 @@ namespace Zeze.Transaction
                     var rrs = itrrs.Current;
                     if (index >= n)
                     {
-                        if (await _lock_and_check_(locked, sortedrrs, rrs, transAccessRecords))
+                        if (await LockAndCheck(locked, sortedrrs, rrs, transAccessRecords))
                         {
                             hasNext = itrrs.MoveNext();
                             continue;
@@ -329,7 +326,7 @@ namespace Zeze.Transaction
             }
         }
 
-        private static async Task<bool> _lock_and_check_(
+        private static async Task<bool> LockAndCheck(
             List<(RelativeRecordSet, IDisposable)> locked,
             SortedDictionary<long, RelativeRecordSet> all,
             RelativeRecordSet rrs,
@@ -365,7 +362,7 @@ namespace Zeze.Transaction
             return true;
         }
 
-        internal static async void FlushWhenCheckpoint(Checkpoint checkpoint)
+        internal static async void FlushWhenCheckpoint()
         {
             foreach (var rrs in RelativeRecordSetMap.Keys)
             {
@@ -376,13 +373,13 @@ namespace Zeze.Transaction
                     continue;
                 }
 
-                await checkpoint.Flush(rrs);
+                await Checkpoint.Flush(rrs);
                 rrs.Delete();
                 RelativeRecordSetMap.TryRemove(rrs, out var _);
             }
         }
 
-        internal static async Task FlushWhenReduce(Record r, Checkpoint checkpoint)
+        internal static async Task FlushWhenReduce(Record r)
         {
             var rrs = r.RelativeRecordSet;
             while (rrs != null)
@@ -392,11 +389,11 @@ namespace Zeze.Transaction
                     if (r.State == Services.GlobalCacheManagerServer.StateRemoved)
                         return;
                 }
-                rrs = await _FlushWhenReduce(rrs, checkpoint);
+                rrs = await FlushWhenReduce(rrs);
             }
         }
 
-        private static async Task<RelativeRecordSet> _FlushWhenReduce(RelativeRecordSet rrs, Checkpoint checkpoint)
+        private static async Task<RelativeRecordSet> FlushWhenReduce(RelativeRecordSet rrs)
         {
             using var lockrrs = await rrs.LockAsync();
 
@@ -404,7 +401,7 @@ namespace Zeze.Transaction
             {
                 if (rrs.RecordSet != null) // 孤立记录不用保存，肯定没有修改。
                 {
-                    await checkpoint.Flush(rrs);
+                    await Checkpoint.Flush(rrs);
                     rrs.Delete();
                 }
                 return null;

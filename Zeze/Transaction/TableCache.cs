@@ -36,7 +36,7 @@ namespace Zeze.Transaction
 
         public Table<K, V> Table { get; }
 
-        public TableCache(Application app, Table<K, V> table)
+        public TableCache(Application _, Table<K, V> table)
         {
             this.Table = table;
             DataMap = new ConcurrentDictionary<K, Record<K, V>>(
@@ -162,7 +162,7 @@ namespace Zeze.Transaction
                             Table.Zeze.CheckpointRun();
                         }
                     }
-                    if (node.Count == 0)
+                    if (node.IsEmpty)
                     {
                         LruQueue.TryDequeue(out var _);
                     }
@@ -224,7 +224,7 @@ namespace Zeze.Transaction
             {
                 var task = p.Value.Acquire(GlobalCacheManagerServer.StateInvalid);
                 task.Wait();
-                var (ResultCode, ResultState, ResultGlobalSerialId) = task.Result;
+                var (ResultCode, ResultState, _) = task.Result;
                 if (ResultCode != 0 || ResultState != GlobalCacheManagerServer.StateInvalid)
                 {
                     return false;
@@ -236,7 +236,7 @@ namespace Zeze.Transaction
         private bool TryRemoveRecord(KeyValuePair<K, Record<K, V>> p)
         {
             // lockey 第一优先，和事务并发。
-            TableKey tkey = new TableKey(this.Table.Name, p.Key);
+            var tkey = new TableKey(this.Table.Name, p.Key);
             var lockey = Table.Zeze.Locks.Get(tkey);
 
             if (false == lockey.TryEnterWriteLock())

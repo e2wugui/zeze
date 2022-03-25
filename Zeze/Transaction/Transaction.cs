@@ -15,7 +15,7 @@ namespace Zeze.Transaction
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        private static AsyncLocal<Transaction> asyncLocal = new();
+        private static readonly AsyncLocal<Transaction> asyncLocal = new();
 
         public static Transaction Current
         {
@@ -30,7 +30,7 @@ namespace Zeze.Transaction
         // 嵌套存储过程栈。
         public List<Procedure> ProcedureStack { get; } = new List<Procedure>();
 
-        public Procedure TopProcedure => ProcedureStack.Count == 0 ? null : ProcedureStack[ProcedureStack.Count - 1];
+        public Procedure TopProcedure => ProcedureStack.Count == 0 ? null : ProcedureStack[^1];
 
         private bool Created = true;
 
@@ -52,8 +52,10 @@ namespace Zeze.Transaction
         {
             if (null == asyncLocal.Value)
             {
-                var tmp = new Transaction();
-                tmp.Locks = locks;
+                var tmp = new Transaction
+                {
+                    Locks = locks
+                };
                 asyncLocal.Value = tmp;
                 return tmp;
             }
@@ -73,7 +75,7 @@ namespace Zeze.Transaction
 
         public void Begin()
         {
-            Savepoint sp = Savepoints.Count > 0 ? Savepoints[Savepoints.Count - 1].Duplicate() : new Savepoint();
+            Savepoint sp = Savepoints.Count > 0 ? Savepoints[^1].Duplicate() : new Savepoint();
             Savepoints.Add(sp);
         }
 
@@ -123,13 +125,13 @@ namespace Zeze.Transaction
         public void PutLog(Log log)
         {
             VerifyRunning();
-            Savepoints[Savepoints.Count - 1].PutLog(log);
+            Savepoints[^1].PutLog(log);
         }
 
         public ChangeNote GetOrAddChangeNote(long key, Func<ChangeNote> factory)
         {
             // 必须存在 Savepoint. 可能是为了修改。
-            return Savepoints[Savepoints.Count - 1].GetOrAddChangeNote(key, factory);
+            return Savepoints[^1].GetOrAddChangeNote(key, factory);
         }
 
         /*
@@ -190,15 +192,15 @@ namespace Zeze.Transaction
                                         {
                                             // 这个错误不应该重做
                                             logger.Fatal("Transaction.Perform:{0}. savepoints.Count != 1.", procedure);
-                                            _final_rollback_(procedure);
+                                            FinalRollback(procedure);
                                             return Procedure.ErrorSavepoint;
                                         }
-                                        checkResult = await _lock_and_check_(procedure.TransactionLevel);
+                                        checkResult = await LockAndCheck(procedure.TransactionLevel);
                                         if (checkResult == CheckResult.Success)
                                         {
                                             if (result == Procedure.Success)
                                             {
-                                                await _final_commit_(procedure);
+                                                await FinalCommit(procedure);
 #if ENABLE_STATISTICS
                                                 if (tryCount > 0)
                                                 {
@@ -209,14 +211,14 @@ namespace Zeze.Transaction
 #endif
                                                 return Procedure.Success;
                                             }
-                                            _final_rollback_(procedure);
+                                            FinalRollback(procedure);
                                             return result;
                                         }
                                         break; // retry
 
                                     case TransactionState.Abort:
                                         logger.Debug("Transaction.Perform: Abort");
-                                        _final_rollback_(procedure);
+                                        FinalRollback(procedure);
                                         return Procedure.AbortException;
 
                                     case TransactionState.Redo:
@@ -241,28 +243,28 @@ namespace Zeze.Transaction
                                         {
                                             // 这个错误不应该重做
                                             logger.Fatal(e, "Transaction.Perform:{0}. exception. savepoints.Count != 0.", procedure);
-                                            _final_rollback_(procedure);
+                                            FinalRollback(procedure);
                                             return Procedure.ErrorSavepoint;
                                         }
 #if DEBUG
                                         // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
                                         if (e.GetType().Name == "AssertFailedException")
                                         {
-                                            _final_rollback_(procedure);
+                                            FinalRollback(procedure);
                                             throw;
                                         }
 #endif
-                                        checkResult = await _lock_and_check_(procedure.TransactionLevel);
+                                        checkResult = await LockAndCheck(procedure.TransactionLevel);
                                         if (checkResult == CheckResult.Success)
                                         {
-                                            _final_rollback_(procedure);
+                                            FinalRollback(procedure);
                                             return Procedure.Exception;
                                         }
                                         break; // retry
 
                                     case TransactionState.Abort:
                                         logger.Debug("Transaction.Perform: Abort");
-                                        _final_rollback_(procedure);
+                                        FinalRollback(procedure);
                                         return Procedure.AbortException;
 
                                     case TransactionState.Redo:
@@ -309,7 +311,7 @@ namespace Zeze.Transaction
                     procedure.Zeze.TryWaitFlushWhenReduce(LastTableKeyOfRedoAndRelease, LastGlobalSerialIdOfRedoAndRelease);
                 }
                 logger.Error("Transaction.Perform:{0}. too many try.", procedure);
-                _final_rollback_(procedure);
+                FinalRollback(procedure);
                 return Procedure.TooManyTry;
             }
             finally
@@ -322,11 +324,11 @@ namespace Zeze.Transaction
             }
         }
 
-        private void _notify_listener_(ChangeCollector cc)
+        private void NotifyListener(ChangeCollector cc)
         {
             try
             {
-                Savepoint sp = Savepoints[Savepoints.Count - 1];
+                Savepoint sp = Savepoints[^1];
                 foreach (Log log in sp.Logs.Values)
                 {
                     if (log.Bean == null)
@@ -369,7 +371,7 @@ namespace Zeze.Transaction
             }
         }
 
-        private void _trigger_commit_actions_(Procedure procedure, Savepoint lastSavepoint)
+        private static void TriggerCommitActions(Procedure procedure, Savepoint lastSavepoint)
         {
             foreach (Action action in lastSavepoint.CommitActions)
             {
@@ -384,11 +386,11 @@ namespace Zeze.Transaction
             }
         }
 
-        private async Task _final_commit_(Procedure procedure)
+        private async Task FinalCommit(Procedure procedure)
         {
             // 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
             // 可以在最终提交里可以实现每事务checkpoint。
-            ChangeCollector cc = new ChangeCollector();
+            var cc = new ChangeCollector();
             var lastsp = Savepoints[0];
             await RelativeRecordSet.TryUpdateAndCheckpoint(this, procedure, () =>
             {
@@ -415,14 +417,14 @@ namespace Zeze.Transaction
             // 禁止在listener回调中访问表格的操作。除了回调参数中给定的记录可以访问。
             // 不再支持在回调中再次执行事务。
             State = TransactionState.Completed; // 在Notify之前设置的。
-            _notify_listener_(cc);
+            NotifyListener(cc);
 
             procedure.Rpc?.SendResultCode(procedure.Rpc.ResultCode);
 
-            _trigger_commit_actions_(procedure, lastsp);
+            TriggerCommitActions(procedure, lastsp);
         }
 
-        private void _final_rollback_(Procedure procedure)
+        private void FinalRollback(Procedure procedure)
         {
             State = TransactionState.Completed;
             foreach (Action action in LastRollbackActions)
@@ -439,7 +441,7 @@ namespace Zeze.Transaction
             LastRollbackActions = null;
         }
 
-        private readonly List<LockAsync> holdLocks = new List<LockAsync>(); // 读写锁的话需要一个包装类，用来记录当前维持的是哪个锁。
+        private readonly List<LockAsync> holdLocks = new(); // 读写锁的话需要一个包装类，用来记录当前维持的是哪个锁。
 
         public class RecordAccessed : Bean
         {
@@ -504,7 +506,7 @@ namespace Zeze.Transaction
 
         internal SortedDictionary<TableKey, RecordAccessed> AccessedRecords { get; }
             = new SortedDictionary<TableKey, RecordAccessed>();
-        private readonly List<Savepoint> Savepoints = new List<Savepoint>();
+        private readonly List<Savepoint> Savepoints = new ();
 
         /// <summary>
         /// 只能添加一次。
@@ -529,10 +531,11 @@ namespace Zeze.Transaction
             return null;
         }
 
-        public void VerifyRecordAccessed(Bean bean, bool IsRead = false)
+        public void VerifyRecordAccessed(Bean bean, bool isRead = false)
         {
-            //if (IsRead)// && App.Config.AllowReadWhenRecordNotAccessed)
-            //    return;
+            if (isRead && TopProcedure.Zeze.Config.AllowReadWhenRecordNotAccessed)
+                return;
+
             if (bean.RootInfo.Record.State == GlobalCacheManagerServer.StateRemoved)
                 throw new Exception($"VerifyRecordAccessed: Record Has Bean Removed From Cache. {bean.TableKey}");
             var ra = GetRecordAccessed(bean.TableKey);
@@ -557,7 +560,7 @@ namespace Zeze.Transaction
             RedoAndReleaseLock
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private async Task<CheckResult> _check_(bool writeLock, RecordAccessed e)
+        private async Task<CheckResult> Check(bool writeLock, RecordAccessed e)
         {
             var lockr = await e.OriginRecord.Mutex.LockAsync();
             try
@@ -580,7 +583,7 @@ namespace Zeze.Transaction
                         case GlobalCacheManagerServer.StateShare:
                             // 这里可能死锁：另一个先获得提升的请求要求本机Reduce，但是本机Checkpoint无法进行下去，被当前事务挡住了。
                             // 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
-                            var (ResultCode, ResultState, ResultGlobalSerialId) = await e.OriginRecord.Acquire(GlobalCacheManagerServer.StateModify);
+                            var (_, ResultState, ResultGlobalSerialId) = await e.OriginRecord.Acquire(GlobalCacheManagerServer.StateModify);
                             if (ResultState  != GlobalCacheManagerServer.StateModify)
                             {
                                 logger.Warn("Acquire Failed. Maybe DeadLock Found {0}", e.OriginRecord);
@@ -618,16 +621,16 @@ namespace Zeze.Transaction
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private async Task<CheckResult> _lock_and_check_(KeyValuePair<TableKey, RecordAccessed> e)
+        private async Task<CheckResult> LockAndCheck(KeyValuePair<TableKey, RecordAccessed> e)
         {
             var lockey = Locks.Get(e.Key);
             bool writeLock = e.Value.Dirty;
             await lockey.EnterLockAsync(writeLock);
             holdLocks.Add(lockey);
-            return await _check_(writeLock, e.Value);
+            return await Check(writeLock, e.Value);
         }
 
-        private async Task<CheckResult> _lock_and_check_(TransactionLevel level)
+        private async Task<CheckResult> LockAndCheck(TransactionLevel level)
         {
             bool allRead = true;
             if (Savepoints.Count == 1)
@@ -663,7 +666,7 @@ namespace Zeze.Transaction
             {
                 foreach (var e in AccessedRecords)
                 {
-                    var checkResult = await _lock_and_check_(e);
+                    var checkResult = await LockAndCheck(e);
                     switch (checkResult)
                     {
                         case CheckResult.Success:
@@ -690,7 +693,7 @@ namespace Zeze.Transaction
                 // 如果 holdLocks 全部被对比完毕，直接锁定它
                 if (index >= n)
                 {
-                    var checkResult = await _lock_and_check_(e);
+                    var checkResult = await LockAndCheck(e);
                     switch (checkResult)
                     {
                         case CheckResult.Success:
@@ -719,7 +722,7 @@ namespace Zeze.Transaction
                     {
                         // 必须先全部释放，再升级当前记录锁，再锁后面的记录。
                         // 直接 unlockRead，lockWrite会死锁。
-                        n = _unlock_start_(index, n);
+                        n = UnlockStart(index, n);
                         // 从当前index之后都是新加锁，并且index和n都不会再发生变化。
                         // 重新从当前 e 继续锁。
                         continue;
@@ -750,13 +753,13 @@ namespace Zeze.Transaction
                 // holdlocks a  c  ...
                 // needlocks a  b  ...
                 // 为了不违背锁序，释放从当前锁开始的所有锁
-                n = _unlock_start_(index, n);
+                n = UnlockStart(index, n);
                 // 重新从当前 e 继续锁。
             }
             return conflict ? CheckResult.Redo : CheckResult.Success;
         }
 
-        private int _unlock_start_(int index, int nLast)
+        private int UnlockStart(int index, int nLast)
         {
             for (int i = index; i < nLast; ++i)
             {

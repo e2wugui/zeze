@@ -89,10 +89,10 @@ namespace Zeze.Transaction
         internal abstract Task<(long, int, long)> Acquire(int state);
 
         internal abstract void Encode0();
-        internal abstract void Flush(Database.Transaction t);
+        internal abstract void Flush(Database.ITransaction t);
         internal abstract Task Cleanup();
 
-        internal Database.Transaction DatabaseTransactionTmp { get; set; }
+        internal Database.ITransaction DatabaseTransactionTmp { get; set; }
         internal abstract void SetDirty();
         internal abstract Task SetExistInBackDatabase(long timestamp, bool value);
         internal Nito.AsyncEx.AsyncLock Mutex = new Nito.AsyncEx.AsyncLock();
@@ -249,7 +249,7 @@ namespace Zeze.Transaction
         }
         */
 
-        internal override void Flush(Database.Transaction t)
+        internal override void Flush(Database.ITransaction t)
         {
             if (false == Dirty)
                 return;

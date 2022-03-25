@@ -1599,33 +1599,33 @@ namespace Zeze.Services.ServiceManager
         // ServiceList maybe empty. need a ServiceName
         public string ServiceName { get; private set; }
         // sorted by ServiceIdentity
-        private List<ServiceInfo> _ServiceInfoListSortedByIdentity { get; } = new List<ServiceInfo>();
-        public IReadOnlyList<ServiceInfo> ServiceInfoListSortedByIdentity => _ServiceInfoListSortedByIdentity;
+        private List<ServiceInfo> ServiceInfoListSortedByIdentity_ { get; } = new List<ServiceInfo>();
+        public IReadOnlyList<ServiceInfo> ServiceInfoListSortedByIdentity => ServiceInfoListSortedByIdentity_;
         public long SerialId { get; set; }
 
         private readonly static ServiceInfoIdentityComparer ServiceInfoIdentityComparer = new();
 
         public ServiceInfo Insert(ServiceInfo info)
         {
-            var i = _ServiceInfoListSortedByIdentity.BinarySearch(info, ServiceInfoIdentityComparer);
+            var i = ServiceInfoListSortedByIdentity_.BinarySearch(info, ServiceInfoIdentityComparer);
             if (i >= 0)
             {
-                _ServiceInfoListSortedByIdentity[i] = info;
+                ServiceInfoListSortedByIdentity_[i] = info;
             }
             else
             {
-                _ServiceInfoListSortedByIdentity.Insert(~i, info);
+                ServiceInfoListSortedByIdentity_.Insert(~i, info);
             }
             return info;
         }
 
         public ServiceInfo Remove(ServiceInfo info)
         {
-            var i = _ServiceInfoListSortedByIdentity.BinarySearch(info, ServiceInfoIdentityComparer);
+            var i = ServiceInfoListSortedByIdentity_.BinarySearch(info, ServiceInfoIdentityComparer);
             if (i >= 0)
             {
-                info = _ServiceInfoListSortedByIdentity[i];
-                _ServiceInfoListSortedByIdentity.RemoveAt(i);
+                info = ServiceInfoListSortedByIdentity_[i];
+                ServiceInfoListSortedByIdentity_.RemoveAt(i);
                 return info;
             }
             return null;
@@ -1633,9 +1633,9 @@ namespace Zeze.Services.ServiceManager
 
         public ServiceInfo FindServiceInfoByIdentity(string identity)
         {
-            var i = _ServiceInfoListSortedByIdentity.BinarySearch(new ServiceInfo(ServiceName, identity), ServiceInfoIdentityComparer);
+            var i = ServiceInfoListSortedByIdentity_.BinarySearch(new ServiceInfo(ServiceName, identity), ServiceInfoIdentityComparer);
             if (i >= 0)
-                return _ServiceInfoListSortedByIdentity[i];
+                return ServiceInfoListSortedByIdentity_[i];
             return null;
         }
 
@@ -1658,7 +1658,7 @@ namespace Zeze.Services.ServiceManager
             ServiceName = serviceName;
             foreach (var e in state.ServiceInfos)
             {
-                _ServiceInfoListSortedByIdentity.Add(e.Value);
+                ServiceInfoListSortedByIdentity_.Add(e.Value);
             }
             SerialId = serialId;
         }
@@ -1666,7 +1666,7 @@ namespace Zeze.Services.ServiceManager
         public bool TryGetServiceInfo(string identity, out ServiceInfo info)
         {
             var cur = new ServiceInfo(ServiceName, identity);
-            int index = _ServiceInfoListSortedByIdentity.BinarySearch(cur, ServiceInfoIdentityComparer);
+            int index = ServiceInfoListSortedByIdentity_.BinarySearch(cur, ServiceInfoIdentityComparer);
             if (index >= 0)
             {
                 info = ServiceInfoListSortedByIdentity[index];
@@ -1678,12 +1678,12 @@ namespace Zeze.Services.ServiceManager
         public override void Decode(ByteBuffer bb)
         {
             ServiceName = bb.ReadString();
-            _ServiceInfoListSortedByIdentity.Clear();
+            ServiceInfoListSortedByIdentity_.Clear();
             for (int c = bb.ReadInt(); c > 0; --c)
             {
                 var service = new ServiceInfo();
                 service.Decode(bb);
-                _ServiceInfoListSortedByIdentity.Add(service);
+                ServiceInfoListSortedByIdentity_.Add(service);
             }
             SerialId = bb.ReadLong();
         }
@@ -1691,8 +1691,8 @@ namespace Zeze.Services.ServiceManager
         public override void Encode(ByteBuffer bb)
         {
             bb.WriteString(ServiceName);
-            bb.WriteInt(_ServiceInfoListSortedByIdentity.Count);
-            foreach (var service in _ServiceInfoListSortedByIdentity)
+            bb.WriteInt(ServiceInfoListSortedByIdentity_.Count);
+            foreach (var service in ServiceInfoListSortedByIdentity_)
             {
                 service.Encode(bb);
             }

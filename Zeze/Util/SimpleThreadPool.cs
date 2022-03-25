@@ -9,8 +9,8 @@ namespace Zeze.Util
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        private readonly BlockingCollection<Action> taskQueue = new BlockingCollection<Action>();
-        private readonly List<Thread> workers = new List<Thread>();
+        private readonly BlockingCollection<Action> taskQueue = new ();
+        private readonly List<Thread> workers = new ();
         public string Name { get; }
 
         public int AliveThreadCount

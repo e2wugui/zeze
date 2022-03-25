@@ -21,7 +21,7 @@ namespace Zeze.Net
         public bool IsAutoReconnect { get; set; } = true;
         public bool IsConnected { get; private set; } = false;
         public bool IsHandshakeDone => TryGetReadySocket() != null;
-        private volatile TaskCompletionSource<AsyncSocket> FutureSocket = new TaskCompletionSource<AsyncSocket>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private volatile TaskCompletionSource<AsyncSocket> FutureSocket = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public string Name => $"{HostNameOrAddress}:{Port}";
 
         public AsyncSocket Socket { get; private set; }

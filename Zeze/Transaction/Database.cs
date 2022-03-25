@@ -20,10 +20,8 @@ namespace Zeze.Transaction
     /// </summary>
     public abstract class Database
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-
-        private ConcurrentDictionary<string, Zeze.Transaction.Table> tables = new ConcurrentDictionary<string, Zeze.Transaction.Table>();
-        internal List<Storage> storages = new List<Storage>();
+        private readonly ConcurrentDictionary<string, Zeze.Transaction.Table> tables = new();
+        internal readonly List<Storage> storages = new();
         internal ICollection<Zeze.Transaction.Table> Tables => tables.Values;
 
         public string DatabaseUrl { get; }
@@ -46,7 +44,7 @@ namespace Zeze.Transaction
 
         public abstract int MaxPoolSize { get; }
 
-        public abstract Transaction BeginTransaction();
+        public abstract ITransaction BeginTransaction();
 
         public void AddTable(Zeze.Transaction.Table table)
         {
@@ -110,7 +108,7 @@ namespace Zeze.Transaction
             //logger.Info("Checkpoint Encode0 And Snapshot countEncode0={0} countSnapshot={1}", countEncode0, countSnapshot);
         }
 
-        internal void Flush(Transaction trans)
+        internal void Flush(ITransaction trans)
         {
             int countFlush = 0;
             foreach (Storage storage in storages)
@@ -128,20 +126,20 @@ namespace Zeze.Transaction
             }
         }
 
-        public abstract Database.Table OpenTable(string name);
+        public abstract Database.ITable OpenTable(string name);
 
-        public interface Transaction : IDisposable
+        public interface ITransaction : IDisposable
         {
             public void Commit();
             public void Rollback();
         }
 
-        public interface Table
+        public interface ITable
         {
             public Database Database { get; }
             public ByteBuffer Find(ByteBuffer key);
-            public void Replace(Transaction t, ByteBuffer key, ByteBuffer value);
-            public void Remove(Transaction t, ByteBuffer key);
+            public void Replace(ITransaction t, ByteBuffer key, ByteBuffer value);
+            public void Remove(ITransaction t, ByteBuffer key);
             /// <summary>
             /// 每一条记录回调。回调返回true继续遍历，false中断遍历。
             /// </summary>
@@ -156,7 +154,7 @@ namespace Zeze.Transaction
         /// 由后台数据库直接支持的存储过程。
         /// 直接操作后台数据库，不经过cache。
         /// </summary>
-        public interface Operates
+        public interface IOperates
         {
             /*
              table zeze_global {string global} 一条记录
@@ -209,7 +207,7 @@ namespace Zeze.Transaction
             public (ByteBuffer, long) GetDataWithVersion(ByteBuffer key);
         }
 
-        public Operates DirectOperates { get; protected set; }
+        public IOperates DirectOperates { get; protected set; }
     }
 
 #if USE_DATABASE
@@ -226,7 +224,7 @@ namespace Zeze.Transaction
 
         public override int MaxPoolSize => (int)MySqlConnectionStringBuilder.MaximumPoolSize;
 
-        public class MySqlTrans : Transaction
+        public class MySqlTrans : ITransaction
         {
             public MySqlConnection Connection { get; }
             public MySqlTransaction Transaction { get; }
@@ -240,6 +238,8 @@ namespace Zeze.Transaction
 
             public void Dispose()
             {
+                GC.SuppressFinalize(this);
+
                 try
                 {
                     Transaction.Dispose();
@@ -269,26 +269,28 @@ namespace Zeze.Transaction
             }
         }
 
-        public override Transaction BeginTransaction()
+        public override ITransaction BeginTransaction()
         {
             return new MySqlTrans(DatabaseUrl);
         }
 
-        public override Database.Table OpenTable(string name)
+        public override Database.ITable OpenTable(string name)
         {
             return new TableMysql(this, name);
         }
 
-        public sealed class OperatesMySql : Operates
+        public sealed class OperatesMySql : IOperates
         {
             public DatabaseMySql Database { get; }
 
             public void SetInUse(int localId, string global)
             {
-                using MySqlConnection connection = new MySqlConnection(Database.DatabaseUrl);
+                using var connection = new MySqlConnection(Database.DatabaseUrl);
                 connection.Open();
-                MySqlCommand cmd = new MySqlCommand("_ZezeSetInUse_", connection);
-                cmd.CommandType = CommandType.StoredProcedure;
+                var cmd = new MySqlCommand("_ZezeSetInUse_", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
                 cmd.Parameters.Add("@in_localid", MySqlDbType.Int32).Value = localId;
                 cmd.Parameters.Add("@in_global", MySqlDbType.VarBinary, int.MaxValue).Value = Encoding.UTF8.GetBytes(global);
                 cmd.Parameters.Add(new MySqlParameter("@ReturnValue", MySqlDbType.Int32)
@@ -321,10 +323,12 @@ namespace Zeze.Transaction
 
             public int ClearInUse(int localId, string global)
             {
-                using MySqlConnection connection = new MySqlConnection(Database.DatabaseUrl);
+                using var connection = new MySqlConnection(Database.DatabaseUrl);
                 connection.Open();
-                MySqlCommand cmd = new MySqlCommand("_ZezeClearInUse_", connection);
-                cmd.CommandType = CommandType.StoredProcedure;
+                var cmd = new MySqlCommand("_ZezeClearInUse_", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
                 cmd.Parameters.Add("@in_localid", MySqlDbType.Int32).Value = localId;
                 cmd.Parameters.Add("@in_global", MySqlDbType.VarBinary, int.MaxValue).Value = Encoding.UTF8.GetBytes(global);
                 cmd.Parameters.Add(new MySqlParameter("@ReturnValue", MySqlDbType.Int32)
@@ -339,25 +343,23 @@ namespace Zeze.Transaction
 
             public (ByteBuffer, long) GetDataWithVersion(ByteBuffer key)
             {
-                using MySqlConnection connection = new MySqlConnection(Database.DatabaseUrl);
+                using var connection = new MySqlConnection(Database.DatabaseUrl);
                 connection.Open();
 
                 string sql = "SELECT data,version FROM _ZezeDataWithVersion_ WHERE id=@id";
 
-                MySqlCommand cmd = new MySqlCommand(sql, connection);
+                var cmd = new MySqlCommand(sql, connection);
                 cmd.Parameters.Add("@id", MySqlDbType.VarBinary, 767).Value = key.Copy();
                 cmd.Prepare();
 
-                using (MySqlDataReader reader = cmd.ExecuteReader())
+                using MySqlDataReader reader = cmd.ExecuteReader();
+                while (reader.Read())
                 {
-                    while (reader.Read())
-                    {
-                        byte[] value = (byte[])reader[0];
-                        long version = reader.GetInt64(1);
-                        return (ByteBuffer.Wrap(value), version);
-                    }
-                    return (null, 0);
+                    byte[] value = (byte[])reader[0];
+                    long version = reader.GetInt64(1);
+                    return (ByteBuffer.Wrap(value), version);
                 }
+                return (null, 0);
             }
 
             public bool SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, ref long version)
@@ -365,10 +367,12 @@ namespace Zeze.Transaction
                 if (key.Size == 0)
                     throw new Exception("key is empty.");
 
-                using MySqlConnection connection = new MySqlConnection(Database.DatabaseUrl);
+                using var connection = new MySqlConnection(Database.DatabaseUrl);
                 connection.Open();
-                MySqlCommand cmd = new MySqlCommand("_ZezeSaveDataWithSameVersion_", connection);
-                cmd.CommandType = CommandType.StoredProcedure;
+                var cmd = new MySqlCommand("_ZezeSaveDataWithSameVersion_", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
                 cmd.Parameters.Add("@in_id", MySqlDbType.VarBinary, 767).Value = key.Copy();
                 cmd.Parameters.Add("@in_data", MySqlDbType.VarBinary, int.MaxValue).Value = data.Copy();
                 cmd.Parameters.Add(new MySqlParameter("@inout_version", MySqlDbType.Int64)
@@ -398,7 +402,7 @@ namespace Zeze.Transaction
             {
                 Database = database;
 
-                using MySqlConnection connection = new MySqlConnection(Database.DatabaseUrl);
+                using var connection = new MySqlConnection(Database.DatabaseUrl);
                 connection.Open();
 
                 string TableDataWithVersion =
@@ -561,12 +565,12 @@ namespace Zeze.Transaction
             }
         }
 
-        public sealed class TableMysql : Database.Table
+        public sealed class TableMysql : Database.ITable
         {
             public DatabaseMySql DatabaseReal { get; }
             public Database Database => DatabaseReal;
             public string Name { get; }
-            private bool isNew;
+            private readonly bool isNew;
             public bool IsNew => isNew;
 
             public TableMysql(DatabaseMySql database, string name)
@@ -581,11 +585,11 @@ namespace Zeze.Transaction
                     isNew = (long)cmd.ExecuteScalar() == 0;
                 }
                 {
-                    using MySqlConnection connection = new MySqlConnection(database.DatabaseUrl);
+                    using var connection = new MySqlConnection(database.DatabaseUrl);
                     connection.Open();
                     string sql = "CREATE TABLE IF NOT EXISTS " + Name
                         + "(id VARBINARY(767) NOT NULL PRIMARY KEY, value MEDIUMBLOB NOT NULL)ENGINE=INNODB";
-                    MySqlCommand cmd = new MySqlCommand(sql, connection);
+                    var cmd = new MySqlCommand(sql, connection);
                     cmd.ExecuteNonQuery();
                 }
             }
@@ -596,41 +600,39 @@ namespace Zeze.Transaction
 
             public ByteBuffer Find(ByteBuffer key)
             {
-                using MySqlConnection connection = new MySqlConnection(DatabaseReal.DatabaseUrl);
+                using var connection = new MySqlConnection(DatabaseReal.DatabaseUrl);
                 connection.Open();
 
                 string sql = "SELECT value FROM " + Name + " WHERE id = @ID";
                 // 是否可以重用 SqlCommand
-                MySqlCommand cmd = new MySqlCommand(sql, connection);
+                var cmd = new MySqlCommand(sql, connection);
                 cmd.Parameters.Add("@ID", MySqlDbType.VarBinary, 767).Value = key.Copy();
                 cmd.Prepare();
 
-                using (MySqlDataReader reader = cmd.ExecuteReader())
+                using MySqlDataReader reader = cmd.ExecuteReader();
+                while (reader.Read())
                 {
-                    while (reader.Read())
-                    {
-                        byte[] value = (byte[])reader[0];
-                        return ByteBuffer.Wrap(value);
-                    }
-                    return null;
+                    byte[] value = (byte[])reader[0];
+                    return ByteBuffer.Wrap(value);
                 }
+                return null;
             }
 
-            public void Remove(Transaction t, ByteBuffer key)
+            public void Remove(ITransaction t, ByteBuffer key)
             {
                 var my = t as MySqlTrans;
                 string sql = "DELETE FROM " + Name + " WHERE id=@ID";
-                MySqlCommand cmd = new MySqlCommand(sql, my.Connection, my.Transaction);
+                var cmd = new MySqlCommand(sql, my.Connection, my.Transaction);
                 cmd.Parameters.Add("@ID", MySqlDbType.VarBinary, 767).Value = key.Copy();
                 cmd.Prepare();
                 cmd.ExecuteNonQuery();
             }
 
-            public void Replace(Transaction t, ByteBuffer key, ByteBuffer value)
+            public void Replace(ITransaction t, ByteBuffer key, ByteBuffer value)
             {
                 var my = t as MySqlTrans;
                 string sql = "REPLACE INTO " + Name + " values(@ID,@VALUE)";
-                MySqlCommand cmd = new MySqlCommand(sql, my.Connection, my.Transaction);
+                var cmd = new MySqlCommand(sql, my.Connection, my.Transaction);
                 cmd.Parameters.Add("@ID", MySqlDbType.VarBinary, 767).Value = key.Copy();
                 cmd.Parameters.Add("@VALUE", MySqlDbType.VarBinary, int.MaxValue).Value = value.Copy();
                 cmd.Prepare();
@@ -639,24 +641,22 @@ namespace Zeze.Transaction
 
             public long Walk(Func<byte[], byte[], bool> callback)
             {
-                using MySqlConnection connection = new MySqlConnection(DatabaseReal.DatabaseUrl);
+                using var connection = new MySqlConnection(DatabaseReal.DatabaseUrl);
                 connection.Open();
 
                 string sql = "SELECT id,value FROM " + Name;
-                MySqlCommand cmd = new MySqlCommand(sql, connection);
+                var cmd = new MySqlCommand(sql, connection);
                 cmd.Prepare();
 
                 long count = 0;
-                using (MySqlDataReader reader = cmd.ExecuteReader())
+                using MySqlDataReader reader = cmd.ExecuteReader();
+                while (reader.Read())
                 {
-                    while (reader.Read())
-                    {
-                        byte[] key = (byte[])reader[0];
-                        byte[] value = (byte[])reader[1];
-                        ++count;
-                        if (false == callback(key, value))
-                            break;
-                    }
+                    byte[] key = (byte[])reader[0];
+                    byte[] value = (byte[])reader[1];
+                    ++count;
+                    if (false == callback(key, value))
+                        break;
                 }
                 return count;
             }
@@ -676,7 +676,7 @@ namespace Zeze.Transaction
 
         public override int MaxPoolSize => SqlConnectionStringBuilder.MaxPoolSize;
 
-        public class SqlTrans : Transaction
+        public class SqlTrans : ITransaction
         {
             public SqlConnection Connection { get; }
             public SqlTransaction Transaction { get; }
@@ -690,6 +690,8 @@ namespace Zeze.Transaction
 
             public void Dispose()
             {
+                GC.SuppressFinalize(this);
+
                 try
                 {
                     Transaction.Dispose();
@@ -719,27 +721,29 @@ namespace Zeze.Transaction
             }
         }
 
-        public override Transaction BeginTransaction()
+        public override ITransaction BeginTransaction()
         {
             return new SqlTrans(DatabaseUrl);
         }
 
-        public override Database.Table OpenTable(string name)
+        public override Database.ITable OpenTable(string name)
         {
             return new TableSqlServer(this, name);
         }
 
-        public sealed class OperatesSqlServer : Operates
+        public sealed class OperatesSqlServer : IOperates
         {
             public DatabaseSqlServer DatabaseReal { get; }
             public Database Database => DatabaseReal;
 
             public void SetInUse(int localId, string global)
             {
-                using SqlConnection connection = new SqlConnection(DatabaseReal.DatabaseUrl);
+                using var connection = new SqlConnection(DatabaseReal.DatabaseUrl);
                 connection.Open();
-                SqlCommand cmd = new SqlCommand("_ZezeSetInUse_", connection);
-                cmd.CommandType = CommandType.StoredProcedure;
+                var cmd = new SqlCommand("_ZezeSetInUse_", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
                 cmd.Parameters.Add("@localid", SqlDbType.Int).Value = localId;
                 cmd.Parameters.Add("@global", SqlDbType.VarBinary, int.MaxValue).Value = Encoding.UTF8.GetBytes(global);
                 cmd.Parameters.Add(new SqlParameter("@ReturnValue", SqlDbType.Int)
@@ -772,10 +776,12 @@ namespace Zeze.Transaction
 
             public int ClearInUse(int localId, string global)
             {
-                using SqlConnection connection = new SqlConnection(DatabaseReal.DatabaseUrl);
+                using var connection = new SqlConnection(DatabaseReal.DatabaseUrl);
                 connection.Open();
-                SqlCommand cmd = new SqlCommand("_ZezeClearInUse_", connection);
-                cmd.CommandType = CommandType.StoredProcedure;
+                var cmd = new SqlCommand("_ZezeClearInUse_", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
                 cmd.Parameters.Add("@localid", SqlDbType.Int).Value = localId;
                 cmd.Parameters.Add("@global", SqlDbType.VarBinary, int.MaxValue).Value = Encoding.UTF8.GetBytes(global);
                 cmd.Parameters.Add(new SqlParameter("@ReturnValue", SqlDbType.Int)
@@ -790,25 +796,23 @@ namespace Zeze.Transaction
 
             public (ByteBuffer, long) GetDataWithVersion(ByteBuffer key)
             {
-                using SqlConnection connection = new SqlConnection(DatabaseReal.DatabaseUrl);
+                using var connection = new SqlConnection(DatabaseReal.DatabaseUrl);
                 connection.Open();
 
                 string sql = "SELECT data,version FROM _ZezeDataWithVersion_ WHERE id=@id";
 
-                SqlCommand cmd = new SqlCommand(sql, connection);
+                var cmd = new SqlCommand(sql, connection);
                 cmd.Parameters.Add("@id", SqlDbType.VarBinary, 767).Value = key.Copy();
                 cmd.Prepare();
 
-                using (SqlDataReader reader = cmd.ExecuteReader())
+                using SqlDataReader reader = cmd.ExecuteReader();
+                while (reader.Read())
                 {
-                    while (reader.Read())
-                    {
-                        byte[] value = (byte[])reader[0];
-                        long version = reader.GetInt64(1);
-                        return (ByteBuffer.Wrap(value), version);
-                    }
-                    return (null, 0);
+                    byte[] value = (byte[])reader[0];
+                    long version = reader.GetInt64(1);
+                    return (ByteBuffer.Wrap(value), version);
                 }
+                return (null, 0);
             }
 
             public bool SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, ref long version)
@@ -816,10 +820,12 @@ namespace Zeze.Transaction
                 if (key.Size == 0)
                     throw new Exception("key is empty.");
 
-                using SqlConnection connection = new SqlConnection(DatabaseReal.DatabaseUrl);
+                using var connection = new SqlConnection(DatabaseReal.DatabaseUrl);
                 connection.Open();
-                SqlCommand cmd = new SqlCommand("_ZezeSaveDataWithSameVersion_", connection);
-                cmd.CommandType = CommandType.StoredProcedure;
+                var cmd = new SqlCommand("_ZezeSaveDataWithSameVersion_", connection)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
                 cmd.Parameters.Add("@id", SqlDbType.VarBinary, 767).Value = key.Copy();
                 cmd.Parameters.Add("@data", SqlDbType.VarBinary, int.MaxValue).Value = data.Copy();
                 cmd.Parameters.Add(new SqlParameter("@version", SqlDbType.BigInt)
@@ -849,7 +855,7 @@ namespace Zeze.Transaction
             {
                 DatabaseReal = database;
 
-                using SqlConnection connection = new SqlConnection(DatabaseReal.DatabaseUrl);
+                using var connection = new SqlConnection(DatabaseReal.DatabaseUrl);
                 connection.Open();
 
                 string TableDataWithVersion
@@ -1009,12 +1015,12 @@ namespace Zeze.Transaction
             }
         }
 
-        public sealed class TableSqlServer : Database.Table
+        public sealed class TableSqlServer : Database.ITable
         {
             public DatabaseSqlServer DatabaseReal { get; }
             public Database Database => DatabaseReal;
             public string Name { get; }
-            private bool isNew;
+            private readonly bool isNew;
             public bool IsNew => isNew;
 
             public TableSqlServer(DatabaseSqlServer database, string name)
@@ -1029,13 +1035,13 @@ namespace Zeze.Transaction
                     isNew = (int)cmd.ExecuteScalar() == 0;
                 }
                 {
-                    using SqlConnection connection = new SqlConnection(DatabaseReal.DatabaseUrl);
+                    using SqlConnection connection = new(DatabaseReal.DatabaseUrl);
                     connection.Open();
 
                     string sql = "if not exists (select * from sysobjects where name='" + Name
                         + "' and xtype='U') CREATE TABLE " + Name
                         + "(id VARBINARY(767) NOT NULL PRIMARY KEY, value VARBINARY(MAX) NOT NULL)";
-                    SqlCommand cmd = new SqlCommand(sql, connection);
+                    var cmd = new SqlCommand(sql, connection);
                     cmd.ExecuteNonQuery();
                 }
             }
@@ -1046,44 +1052,42 @@ namespace Zeze.Transaction
 
             public ByteBuffer Find(ByteBuffer key)
             {
-                using SqlConnection connection = new SqlConnection(DatabaseReal.DatabaseUrl);
+                using var connection = new SqlConnection(DatabaseReal.DatabaseUrl);
                 connection.Open();
 
                 string sql = "SELECT value FROM " + Name + " WHERE id = @ID";
 
                 // 是否可以重用 SqlCommand
-                SqlCommand cmd = new SqlCommand(sql, connection);
+                var cmd = new SqlCommand(sql, connection);
                 cmd.Parameters.Add("@ID", System.Data.SqlDbType.VarBinary, 767).Value = key.Copy();
                 cmd.Prepare();
 
-                using (SqlDataReader reader = cmd.ExecuteReader())
+                using SqlDataReader reader = cmd.ExecuteReader();
+                while (reader.Read())
                 {
-                    while (reader.Read())
-                    {
-                        byte[] value = (byte[])reader[0];
-                        return ByteBuffer.Wrap(value);
-                    }
-                    return null;
+                    byte[] value = (byte[])reader[0];
+                    return ByteBuffer.Wrap(value);
                 }
+                return null;
             }
 
-            public void Remove(Transaction t, ByteBuffer key)
+            public void Remove(ITransaction t, ByteBuffer key)
             {
                 var my = t as SqlTrans;
                 string sql = "DELETE FROM " + Name + " WHERE id=@ID";
-                SqlCommand cmd = new SqlCommand(sql, my.Connection, my.Transaction);
+                var cmd = new SqlCommand(sql, my.Connection, my.Transaction);
                 cmd.Parameters.Add("@ID", System.Data.SqlDbType.VarBinary, 767).Value = key.Copy();
                 cmd.Prepare();
                 cmd.ExecuteNonQuery();
             }
 
-            public void Replace(Transaction t, ByteBuffer key, ByteBuffer value)
+            public void Replace(ITransaction t, ByteBuffer key, ByteBuffer value)
             {
                 var my = t as SqlTrans;
                 string sql = "update " + Name + " set value=@VALUE where id=@ID"
                     + " if @@rowcount = 0 and @@error = 0 insert into " + Name + " values(@ID,@VALUE)";
 
-                SqlCommand cmd = new SqlCommand(sql, my.Connection, my.Transaction);
+                var cmd = new SqlCommand(sql, my.Connection, my.Transaction);
                 cmd.Parameters.Add("@ID", System.Data.SqlDbType.VarBinary, 767).Value = key.Copy();
                 cmd.Parameters.Add("@VALUE", System.Data.SqlDbType.VarBinary, int.MaxValue).Value = value.Copy();
                 cmd.Prepare();
@@ -1092,24 +1096,22 @@ namespace Zeze.Transaction
 
             public long Walk(Func<byte[], byte[], bool> callback)
             {
-                using SqlConnection connection = new SqlConnection(DatabaseReal.DatabaseUrl);
+                using var connection = new SqlConnection(DatabaseReal.DatabaseUrl);
                 connection.Open();
 
                 string sql = "SELECT id,value FROM " + Name;
-                SqlCommand cmd = new SqlCommand(sql, connection);
+                var cmd = new SqlCommand(sql, connection);
                 cmd.Prepare();
 
                 long count = 0;
-                using (SqlDataReader reader = cmd.ExecuteReader())
+                using SqlDataReader reader = cmd.ExecuteReader();
+                while (reader.Read())
                 {
-                    while (reader.Read())
-                    {
-                        byte[] key = (byte[])reader[0];
-                        byte[] value = (byte[])reader[1];
-                        ++count;
-                        if (false == callback(key, value))
-                            break;
-                    }
+                    byte[] key = (byte[])reader[0];
+                    byte[] value = (byte[])reader[1];
+                    ++count;
+                    if (false == callback(key, value))
+                        break;
                 }
                 return count;
             }
@@ -1118,14 +1120,12 @@ namespace Zeze.Transaction
 
     public class DatabaseRocksDb : Database
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-
-        private RocksDb Db;
-        private WriteOptions WriteOptions = new WriteOptions();
-        private ReadOptions ReadOptions = new ReadOptions();
-        private ColumnFamilyOptions CfOptions = new ColumnFamilyOptions();
-        private DbOptions DbOptions = new DbOptions();
-        private ConcurrentDictionary<string, string> ColumnFamilies = new ConcurrentDictionary<string, string>();
+        private readonly RocksDb Db;
+        private readonly WriteOptions WriteOptions = new();
+        private readonly ReadOptions ReadOptions = new();
+        private readonly ColumnFamilyOptions CfOptions = new();
+        private readonly DbOptions DbOptions = new();
+        private readonly ConcurrentDictionary<string, string> ColumnFamilies = new();
 
         public DatabaseRocksDb(Application zeze, string url) : base(zeze, url)
         {
@@ -1153,10 +1153,10 @@ namespace Zeze.Transaction
             Db.Dispose();
         }
 
-        public class RocksDbTrans : Transaction
+        public class RocksDbTrans : ITransaction
         {
-            private DatabaseRocksDb Database;
-            private WriteBatch Batch;
+            private readonly DatabaseRocksDb Database;
+            private readonly WriteBatch Batch;
 
             public RocksDbTrans(DatabaseRocksDb database)
             {
@@ -1166,6 +1166,9 @@ namespace Zeze.Transaction
 
             public void Dispose()
             {
+                GC.SuppressFinalize(this);
+
+                Batch?.Dispose();
             }
 
             internal void Put(byte[] key, int keylen, byte[] value, int valuelen, ColumnFamilyHandle family)
@@ -1188,12 +1191,12 @@ namespace Zeze.Transaction
             }
         }
 
-        public override Transaction BeginTransaction()
+        public override ITransaction BeginTransaction()
         {
             return new RocksDbTrans(this);
         }
 
-        public override Table OpenTable(string name)
+        public override ITable OpenTable(string name)
         {
             bool isNew = false;
             ColumnFamilies.GetOrAdd(name, (key) =>
@@ -1205,13 +1208,13 @@ namespace Zeze.Transaction
             return new TableRocksDb(this, name, isNew);
         }
 
-        public sealed class TableRocksDb : Database.Table
+        public sealed class TableRocksDb : Database.ITable
         {
             public DatabaseRocksDb DatabaseReal { get; }
             public Database Database => DatabaseReal;
             public string Name { get; }
             private ColumnFamilyHandle ColumnFamily { get; }
-            private bool isNew;
+            private readonly bool isNew;
             public bool IsNew => isNew;
 
             public TableRocksDb(DatabaseRocksDb database, string name, bool isNew)
@@ -1226,7 +1229,7 @@ namespace Zeze.Transaction
             {
             }
 
-            private (byte[], int) GetBytes(ByteBuffer bb)
+            private static (byte[], int) GetBytes(ByteBuffer bb)
             {
                 byte[] bytes;
                 int byteslen;
@@ -1252,14 +1255,14 @@ namespace Zeze.Transaction
                 return ByteBuffer.Wrap(value);
             }
 
-            public void Remove(Transaction t, ByteBuffer _key)
+            public void Remove(ITransaction t, ByteBuffer _key)
             {
                 var txn = t as RocksDbTrans;
                 var (key, keylen) = GetBytes(_key);
                 txn.Remove(key, keylen, ColumnFamily);
             }
 
-            public void Replace(Transaction t, ByteBuffer _key, ByteBuffer _value)
+            public void Replace(ITransaction t, ByteBuffer _key, ByteBuffer _value)
             {
                 var txn = t as RocksDbTrans;
                 var (key, keylen) = GetBytes(_key);
@@ -1290,12 +1293,12 @@ namespace Zeze.Transaction
             }
         }
 
-        public sealed class OperatesRocksDb : Operates
+        public sealed class OperatesRocksDb : IOperates
         {
             public DatabaseRocksDb DatabaseReal { get; }
             public Database Database => DatabaseReal;
             public const string ColumnFamilyName = "zeze.OperatesRocksDb.Schemas";
-            private ColumnFamilyHandle ColumnFamily;
+            private readonly ColumnFamilyHandle ColumnFamily;
 
             public OperatesRocksDb(DatabaseRocksDb database)
             {
@@ -1384,7 +1387,7 @@ namespace Zeze.Transaction
     /// </summary>
     public sealed class DatabaseMemory : Database
     {
-        private readonly ProceduresMemory _ProceduresMemory = new ProceduresMemory();
+        private readonly ProceduresMemory _ProceduresMemory = new();
 
         public DatabaseMemory(Application zeze, string url) : base(zeze, url)
         {
@@ -1406,7 +1409,7 @@ namespace Zeze.Transaction
             }
         }
 
-        public class ProceduresMemory : Operates
+        public class ProceduresMemory : IOperates
         {
             public int ClearInUse(int localId, string global)
             {
@@ -1422,7 +1425,7 @@ namespace Zeze.Transaction
                 public long Version { get; set; }
             }
 
-            private Dictionary<byte[], DataWithVersion> DataWithVersions = new Dictionary<byte[], DataWithVersion>(new ByteArrayComparer());
+            private readonly Dictionary<byte[], DataWithVersion> DataWithVersions = new(new ByteArrayComparer());
 
             public (ByteBuffer, long) GetDataWithVersion(ByteBuffer key)
             {
@@ -1461,13 +1464,12 @@ namespace Zeze.Transaction
             }
         }
 
-        internal static byte[] NullBytes = new byte[0];
+        internal static byte[] NullBytes = Array.Empty<byte>();
 
-        public class MemTrans : Transaction
+        public class MemTrans : ITransaction
         {
-            private DatabaseMemory Database;
-            private ConcurrentDictionary<string, ConcurrentDictionary<ByteBuffer, byte[]>> batch
-                = new ConcurrentDictionary<string, ConcurrentDictionary<ByteBuffer, byte[]>>();
+            private readonly DatabaseMemory Database;
+            private readonly ConcurrentDictionary<string, ConcurrentDictionary<ByteBuffer, byte[]>> batch = new();
 
             public MemTrans(DatabaseMemory db)
             {
@@ -1476,7 +1478,7 @@ namespace Zeze.Transaction
 
             public void Dispose()
             {
-
+                GC.SuppressFinalize(this);
             }
 
 
@@ -1564,15 +1566,14 @@ namespace Zeze.Transaction
             }
         }
 
-        public override Transaction BeginTransaction()
+        public override ITransaction BeginTransaction()
         {
             return new MemTrans(this);
         }
 
-        private static ConcurrentDictionary<string, ConcurrentDictionary<string, TableMemory>> databaseTables
-            = new ConcurrentDictionary<string, ConcurrentDictionary<string, TableMemory>>();
+        private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, TableMemory>> databaseTables = new();
   
-        public override Database.Table OpenTable(string name)
+        public override Database.ITable OpenTable(string name)
         {
             var tables = databaseTables.GetOrAdd(DatabaseUrl,
                 (urlnotused) => new ConcurrentDictionary<string, TableMemory>());
@@ -1580,7 +1581,7 @@ namespace Zeze.Transaction
             return tables.GetOrAdd(name, (tablenamenotused) => new TableMemory(this, name));
         }
 
-        public sealed class TableMemory : Database.Table
+        public sealed class TableMemory : Database.ITable
         {
             public DatabaseMemory DatabaseReal { get; }
             public Database Database => DatabaseReal;
@@ -1603,13 +1604,13 @@ namespace Zeze.Transaction
                 return null;
             }
 
-            public void Remove(Transaction t, ByteBuffer key)
+            public void Remove(ITransaction t, ByteBuffer key)
             {
                 var mt = (MemTrans)t;
                 mt.Remove(Name, key);
             }
 
-            public void Replace(Transaction t, ByteBuffer key, ByteBuffer value)
+            public void Replace(ITransaction t, ByteBuffer key, ByteBuffer value)
             {
                 var mt = (MemTrans)t;
                 mt.Replace(Name, key, value);

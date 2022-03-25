@@ -62,7 +62,7 @@ namespace Zeze.Transaction
 
         private async Task<Record<K, V>> LoadAsync(K key)
         {
-            TableKey tkey = new TableKey(Name, key);
+            var tkey = new TableKey(Name, key);
             while (true)
             {
                 Record<K, V> r = Cache.GetOrAdd(key, (key) => new Record<K, V>(this, key, null));
@@ -143,7 +143,7 @@ namespace Zeze.Transaction
 
             //logger.Debug("Reduce NewState={0}", rpc.Argument.State);
 
-            TableKey tkey = new TableKey(Name, key);
+            var tkey = new TableKey(Name, key);
 
             Record<K, V> r = null;
             var lockey = await Zeze.Locks.Get(tkey).WriterLockAsync();
@@ -218,7 +218,7 @@ namespace Zeze.Transaction
                     break;
 
                 case CheckpointMode.Table:
-                    await RelativeRecordSet.FlushWhenReduce(r, Zeze.Checkpoint);
+                    await RelativeRecordSet.FlushWhenReduce(r);
                     break;
             }
         }
@@ -233,7 +233,7 @@ namespace Zeze.Transaction
 
             K key = DecodeKey(ByteBuffer.Wrap(rpc.Argument.GlobalTableKey.Key));
 
-            TableKey tkey = new TableKey(Name, key);
+            var tkey = new TableKey(Name, key);
             Record<K, V> r = null;
             var lockey = await Zeze.Locks.Get(tkey).WriterLockAsync();
             try
@@ -307,7 +307,7 @@ namespace Zeze.Transaction
                     continue;
                 }
 
-                TableKey tkey = new TableKey(Name, e.Key);
+                var tkey = new TableKey(Name, e.Key);
                 var lockey = await Zeze.Locks.Get(tkey).WriterLockAsync();
                 try
                 {
@@ -324,10 +324,10 @@ namespace Zeze.Transaction
 
         public async Task<V> GetAsync(K key)
         {
-            Transaction currentT = Transaction.Current;
-            TableKey tkey = new TableKey(Name, key);
+            var currentT = Transaction.Current;
+            var tkey = new TableKey(Name, key);
 
-            Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
+            var cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
             {
                 return (V)cr.NewestValue();
@@ -340,8 +340,8 @@ namespace Zeze.Transaction
 
         public async Task<V> GetOrAddAsync(K key)
         {
-            Transaction currentT = Transaction.Current;
-            TableKey tkey = new TableKey(Name, key);
+            var currentT = Transaction.Current;
+            var tkey = new TableKey(Name, key);
 
             Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
@@ -375,9 +375,9 @@ namespace Zeze.Transaction
             if (null != await GetAsync(key))
                 return false;
 
-            Transaction currentT = Transaction.Current;
-            TableKey tkey = new TableKey(Name, key);
-            Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
+            var currentT = Transaction.Current;
+            var tkey = new TableKey(Name, key);
+            var cr = currentT.GetRecordAccessed(tkey);
             value.InitRootInfo(cr.OriginRecord.CreateRootInfoIfNeed(tkey), null);
             cr.Put(currentT, value);
             return true;
@@ -391,17 +391,17 @@ namespace Zeze.Transaction
 
         public async Task PutAsync(K key, V value)
         {
-            Transaction currentT = Transaction.Current;
-            TableKey tkey = new TableKey(Name, key);
+            var currentT = Transaction.Current;
+            var tkey = new TableKey(Name, key);
 
-            Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
+            var cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
             {
                 value.InitRootInfo(cr.OriginRecord.CreateRootInfoIfNeed(tkey), null);
                 cr.Put(currentT, value);
                 return;
             }
-            Record<K, V> r = await LoadAsync(key);
+            var r = await LoadAsync(key);
             cr = new Transaction.RecordAccessed(r);
             cr.Put(currentT, value);
             currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
@@ -410,17 +410,17 @@ namespace Zeze.Transaction
         // 几乎和Put一样，还是独立开吧。
         public async Task RemoveAsync(K key)
         {
-            Transaction currentT = Transaction.Current;
-            TableKey tkey = new TableKey(Name, key);
+            var currentT = Transaction.Current;
+            var tkey = new TableKey(Name, key);
 
-            Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
+            var cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
             {
                 cr.Put(currentT, null);
                 return;
             }
 
-            Record<K, V> r = await LoadAsync(key);
+            var r = await LoadAsync(key);
             cr = new Transaction.RecordAccessed(r);
             cr.Put(currentT, null);
             currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
@@ -435,7 +435,7 @@ namespace Zeze.Transaction
             return TStorage;
         }
 
-        internal Database.Table OldTable { get; private set; }
+        internal Database.ITable OldTable { get; private set; }
         internal Storage<K, V> TStorage { get; private set; }
         public Database Database { get; private set; }
         public override Storage Storage => TStorage;
@@ -510,7 +510,7 @@ namespace Zeze.Transaction
                 (key, value) =>
                 {
                     K k = DecodeKey(ByteBuffer.Wrap(key));
-                    TableKey tkey = new TableKey(Name, k);
+                    var tkey = new TableKey(Name, k);
                     var lockey = Zeze.Locks.Get(tkey);
                     lockey.EnterReadLock();
                     try

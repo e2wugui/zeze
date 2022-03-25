@@ -68,7 +68,7 @@ namespace Zeze.Transaction
 
                 IsRunning = true;
                 Period = period;
-                CheckpointThread = new Thread(() => Zeze.Util.Mission.Call(Run, "Checkpoint.Run"));
+                CheckpointThread = new(() => Zeze.Util.Mission.Call(Run, "Checkpoint.Run"));
                 CheckpointThread.Name = "CheckpointThread";
                 CheckpointThread.Start();
             }
@@ -98,7 +98,7 @@ namespace Zeze.Transaction
                     break;
 
                 case CheckpointMode.Table:
-                    RelativeRecordSet.FlushWhenCheckpoint(this);
+                    RelativeRecordSet.FlushWhenCheckpoint();
                     break;
             }
         }
@@ -125,7 +125,7 @@ namespace Zeze.Transaction
                             break;
 
                         case CheckpointMode.Table:
-                            RelativeRecordSet.FlushWhenCheckpoint(this);
+                            RelativeRecordSet.FlushWhenCheckpoint();
                             break;
                     }
                     lock (this)
@@ -146,7 +146,7 @@ namespace Zeze.Transaction
                     break;
 
                 case CheckpointMode.Table:
-                    RelativeRecordSet.FlushWhenCheckpoint(this);
+                    RelativeRecordSet.FlushWhenCheckpoint();
                     break;
             }
             logger.Fatal("final checkpoint end.");
@@ -202,7 +202,7 @@ namespace Zeze.Transaction
                 }
             }
             // flush
-            var dts = new Dictionary<Database, Database.Transaction>();
+            var dts = new Dictionary<Database, Database.ITransaction>();
             try
             {
                 foreach (var db in Databases)
@@ -263,15 +263,15 @@ namespace Zeze.Transaction
             }
         }
 
-        internal async Task Flush(Transaction trans)
+        internal static async Task Flush(Transaction trans)
         {
             await Flush(from ra in trans.AccessedRecords.Values
                   where ra.Dirty select ra.OriginRecord);
         }
 
-        internal async Task Flush(IEnumerable<Record> rs)
+        internal static async Task Flush(IEnumerable<Record> rs)
         {
-            var dts = new Dictionary<Database, Database.Transaction>();
+            var dts = new Dictionary<Database, Database.ITransaction>();
             try
             {
                 // prepare: 编码并且为每一个数据库创建一个数据库事务。
@@ -350,7 +350,7 @@ namespace Zeze.Transaction
         }
 
         // under lock(rs)
-        internal async Task Flush(RelativeRecordSet rs)
+        internal static async Task Flush(RelativeRecordSet rs)
         {
             // rs.MergeTo == null &&  check outside
             if (rs.RecordSet != null)

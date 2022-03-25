@@ -21,7 +21,7 @@ namespace Zeze.Tikv
 
         public override int MaxPoolSize => 100;
 
-        public class TikvTrans : Database.Transaction
+        public class TikvTrans : Database.ITransaction
         {
             public TikvConnection Connection { get; }
             public TikvTransaction Transaction { get; }
@@ -65,17 +65,17 @@ namespace Zeze.Tikv
             }
         }
 
-        public override Transaction BeginTransaction()
+        public override ITransaction BeginTransaction()
         {
             return new TikvTrans(DatabaseUrl);
         }
 
-        public override Table OpenTable(string name)
+        public override ITable OpenTable(string name)
         {
             return new TableTikv(this, name);
         }
 
-        public sealed class OperatesTikv : Operates
+        public sealed class OperatesTikv : IOperates
         {
             public DatabaseTikv Database { get; }
 
@@ -104,7 +104,7 @@ namespace Zeze.Tikv
             }
         }
 
-        public sealed class TableTikv : Database.Table
+        public sealed class TableTikv : Database.ITable
         {
             public DatabaseTikv DatabaseReal { get; }
             public Database Database => DatabaseReal;
@@ -144,13 +144,13 @@ namespace Zeze.Tikv
                 return result;
             }
 
-            public void Remove(Transaction t, ByteBuffer key)
+            public void Remove(ITransaction t, ByteBuffer key)
             {
                 var my = t as TikvTrans;
                 Tikv.Driver.Delete(my.Connection.Transaction.TransactionId, WithKeyspace(key));
             }
 
-            public void Replace(Transaction t, ByteBuffer key, ByteBuffer value)
+            public void Replace(ITransaction t, ByteBuffer key, ByteBuffer value)
             {
                 var my = t as TikvTrans;
                 Tikv.Driver.Put(my.Connection.Transaction.TransactionId, WithKeyspace(key), value);

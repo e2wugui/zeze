@@ -9,7 +9,7 @@ namespace Zeze.Transaction
 {
     public abstract class Storage
     {
-		public Database.Table DatabaseTable { get; protected set; }
+		public Database.ITable DatabaseTable { get; protected set; }
 
         public abstract int EncodeN();
 
@@ -17,7 +17,7 @@ namespace Zeze.Transaction
 
 		public abstract int Snapshot();
 
-		public abstract int Flush(Database.Transaction t);
+		public abstract int Flush(Database.ITransaction t);
 
 		public abstract Task Cleanup();
 
@@ -26,8 +26,6 @@ namespace Zeze.Transaction
 
     public sealed class Storage<K, V> : Storage where V : Bean, new()
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-
         public Table Table { get; }
 
         public Storage(Table<K, V> table, Database database, string tableName)
@@ -36,9 +34,9 @@ namespace Zeze.Transaction
             DatabaseTable = database.OpenTable(tableName);
         }
 
-        private ConcurrentDictionary<K, Record<K, V>> changed = new ConcurrentDictionary<K, Record<K, V>>();
-        private ConcurrentDictionary<K, Record<K, V>> encoded = new ConcurrentDictionary<K, Record<K, V>>();
-        private ConcurrentDictionary<K, Record<K, V>> snapshot = new ConcurrentDictionary<K, Record<K, V>>();
+        private readonly ConcurrentDictionary<K, Record<K, V>> changed = new();
+        private readonly ConcurrentDictionary<K, Record<K, V>> encoded = new();
+        private readonly ConcurrentDictionary<K, Record<K, V>> snapshot = new();
 
         internal void OnRecordChanged(Record<K, V> r)
         {
@@ -110,7 +108,7 @@ namespace Zeze.Transaction
         /// 没有拥有任何锁。
         /// </summary>
         /// <returns></returns>
-        public override int Flush(Database.Transaction t)
+        public override int Flush(Database.ITransaction t)
         {
             foreach (var e in snapshot)
             {

@@ -56,7 +56,7 @@ namespace Zeze.Transaction
 #if ENABLE_STATISTICS
 			TableStatistics.Instance.GetOrAdd(Lockey.TableKey.Name).TryReadLockTimes.IncrementAndGet();
 #endif
-			CancellationTokenSource source = new CancellationTokenSource();
+			var source = new CancellationTokenSource();
 			var context = Lockey.RWlock.ReaderLockAsync(source.Token);
 			if (context.AsTask().Wait(0))
             {
@@ -166,7 +166,6 @@ namespace Zeze.Transaction
 
 	public sealed class Lockey : System.IComparable<Lockey>
     {
-		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 		public TableKey TableKey { get; }
 		internal AsyncReaderWriterLock RWlock;
 
@@ -239,7 +238,7 @@ namespace Zeze.Transaction
 		 * @param lockey the Lockey
 		 * @return the segment
 		 */
-		private Segment segmentFor(Lockey lockey)
+		private Segment SegmentFor(Lockey lockey)
 		{
 			/**
 			 * Applies a supplemental hash function to a given hashCode, which defends
@@ -268,7 +267,7 @@ namespace Zeze.Transaction
 		public Locks(int concurrencyLevel)
 		{
 			if (concurrencyLevel <= 0)
-				throw new ArgumentException();
+				throw new ArgumentException("concurrencyLevel <= 0");
 
 			if (concurrencyLevel > MAX_SEGMENTS)
 				concurrencyLevel = MAX_SEGMENTS;
@@ -291,7 +290,7 @@ namespace Zeze.Transaction
 		/* ------------- 实现 --------------- */
 		sealed class Segment
 		{
-			private readonly global::Zeze.Util.WeakHashSet<Lockey> locks = new global::Zeze.Util.WeakHashSet<Lockey>();
+			private readonly Util.WeakHashSet<Lockey> locks = new();
 
 			public Segment()
 			{
@@ -322,7 +321,7 @@ namespace Zeze.Transaction
 
 		public Lockey Get(Lockey lockey)
 		{
-			return this.segmentFor(lockey).Get(lockey);
+			return this.SegmentFor(lockey).Get(lockey);
 		}
 
 		public LockAsync Get(TableKey tkey)

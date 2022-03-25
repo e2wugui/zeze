@@ -26,8 +26,8 @@ namespace UnitTest.Zeze.Trans
         public void Test1()
         {
             string url = "server=localhost;database=devtest;uid=dev;pwd=devtest12345";
-            DatabaseMySql sqlserver = new DatabaseMySql(demo.App.Instance.Zeze, url);
-            Database.Table table = sqlserver.OpenTable("test_1");
+            var sqlserver = new DatabaseMySql(demo.App.Instance.Zeze, url);
+            var table = sqlserver.OpenTable("test_1");
             {
                 using var trans = sqlserver.BeginTransaction();
                 {
@@ -80,7 +80,7 @@ namespace UnitTest.Zeze.Trans
             Assert.AreEqual(2, table.Walk(PrintRecord));
         }
 
-        public bool PrintRecord(byte[] key, byte[] value)
+        public static bool PrintRecord(byte[] key, byte[] value)
         {
             int ikey = ByteBuffer.Wrap(key).ReadInt();
             int ivalue = ByteBuffer.Wrap(value).ReadInt();

@@ -27,8 +27,8 @@ namespace UnitTest.Zeze.Trans
         public void Test1()
         {
             string url = "Server=(localdb)\\MSSQLLocalDB;Integrated Security=true";
-            DatabaseSqlServer sqlserver = new DatabaseSqlServer(demo.App.Instance.Zeze, url);
-            Database.Table table = sqlserver.OpenTable("test1");
+            var sqlserver = new DatabaseSqlServer(demo.App.Instance.Zeze, url);
+            var table = sqlserver.OpenTable("test1");
             {
                 using var trans = sqlserver.BeginTransaction();
                 {
@@ -81,7 +81,7 @@ namespace UnitTest.Zeze.Trans
             Assert.AreEqual(2, table.Walk(PrintRecord));
         }
 
-        public bool PrintRecord(byte[] key, byte[] value)
+        public static bool PrintRecord(byte[] key, byte[] value)
         {
             int ikey = ByteBuffer.Wrap(key).ReadInt();
             int ivalue = ByteBuffer.Wrap(value).ReadInt();
