@@ -1,4 +1,5 @@
 ﻿
+namespace TestMain;
 
 public class Program
 {
@@ -43,11 +44,11 @@ public class Program
 
             case "RaftTest":
             case "RaftDump":
-                new Zeze.Raft.Test().Run(command, args);
+                new Zeze.Raft.Test().Run(command, args).Wait();
                 break;
 
             case "RocksRaft":
-                new Zeze.Raft.RocksRaft.Test().Test_1();
+                new Zeze.Raft.RocksRaft.Test().Test_1().Wait();
                 break;
         }
     }

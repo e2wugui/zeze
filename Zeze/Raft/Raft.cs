@@ -36,17 +36,18 @@ namespace Zeze.Raft
         public delegate void AtFatalKill();
 
         public AtFatalKill AtFatalKills { get; set; } = () => { };
+        public Nito.AsyncEx.AsyncMonitor Monitor { get; } = new();
 
         public void FatalKill()
         {
             IsShutdown = true;
             AtFatalKills?.Invoke();
-            LogSequence.Close();
+            LogSequence.Close().Wait();
             NLog.LogManager.Shutdown();
             System.Diagnostics.Process.GetCurrentProcess().Kill();
         }
 
-        public void AppendLog(Log log, Bean result = null)
+        public async Task AppendLog(Log log, Bean result = null)
         {
             if (null == LogSequence)
                 throw new RaftRetryException("LogSequence is null.");
@@ -56,7 +57,7 @@ namespace Zeze.Raft
                 result.Encode(bb);
                 log.RpcResult = new Binary(bb);
             }
-            LogSequence.AppendLog(log, true);
+            await LogSequence.AppendLog(log, true);
         }
 
         internal volatile bool IsShutdown = false;
@@ -70,9 +71,9 @@ namespace Zeze.Raft
             }
         }
 
-        public void Shutdown()
+        public async Task Shutdown()
         {
-            lock (this)
+            using (var lockraft = await Monitor.EnterAsync())
             {
                 // shutdown 只做一次。
                 if (IsShutdown)
@@ -87,22 +88,22 @@ namespace Zeze.Raft
             LogSequence.RemoveLogBeforeFuture?.Task.Wait();
             LogSequence.ApplyFuture?.Task.Wait();
 
-            lock (this)
+            using (var lockraft = await Monitor.EnterAsync())
             {
-                LogSequence.CancelAllInstallSnapshot();
+                await LogSequence.CancelAllInstallSnapshot();
                 CancelAllReceiveSnapshotting();
 
                 TimerTask?.Cancel();
                 TimerTask = null;
-                ConvertStateTo(RaftState.Follower);
-                LogSequence.Close();
+                await ConvertStateTo(RaftState.Follower);
+                await LogSequence.Close();
             }
             ImportantThreadPool.Shutdown(); // 需要停止线程。
         }
 
         private void ProcessExit(object sender, EventArgs e)
         {
-            Shutdown();
+            Shutdown().Wait();
         }
 
         public Raft(StateMachine sm,
@@ -163,19 +164,17 @@ namespace Zeze.Raft
         private async Task<long> ProcessAppendEntries(Protocol p)
         {
             var r = p as AppendEntries;
-            lock (this)
-            {
-                return LogSequence.FollowerOnAppendEntries(r);
-            }
+            using var lockraft = await Monitor.EnterAsync();
+            return await LogSequence.FollowerOnAppendEntries(r);
         }
 
-        private ConcurrentDictionary<long, FileStream> ReceiveSnapshotting = new ConcurrentDictionary<long, FileStream>();
+        private readonly ConcurrentDictionary<long, FileStream> ReceiveSnapshotting = new();
 
         private async Task<long> ProcessInstallSnapshot(Protocol p)
         {
             var r = p as InstallSnapshot;
 
-            lock (this)
+            using (var lockraft = await Monitor.EnterAsync())
             {
                 r.Result.Term = LogSequence.Term;
                 if (r.Argument.Term < LogSequence.Term)
@@ -189,7 +188,7 @@ namespace Zeze.Raft
                 {
                     r.Result.Term = LogSequence.Term;
                     // new term found.
-                    ConvertStateTo(RaftState.Follower);
+                    await ConvertStateTo(RaftState.Follower);
                 }
                 LeaderId = r.Argument.LeaderId;
                 LogSequence.LeaderActiveTime = Zeze.Util.Time.NowUnixMillis;
@@ -271,7 +270,7 @@ namespace Zeze.Raft
                     }
                 }
                 // 剩下的处理流程在下面的函数里面。
-                LogSequence.EndReceiveInstallSnapshot(outputFileStream, r);
+                await LogSequence.EndReceiveInstallSnapshot(outputFileStream, r);
             }
             r.SendResultCode(0);
             return Procedure.Success;
@@ -290,13 +289,13 @@ namespace Zeze.Raft
         private SchedulerTask TimerTask;
 
         // Candidate
-        private IdentityHashSet<RequestVote> RequestVotes = new IdentityHashSet<RequestVote>();
+        private readonly IdentityHashSet<RequestVote> RequestVotes = new();
         private long NextVoteTime;       // 等待当前轮选举结果超时；用来启动下一次选举。
 
         // Leader
         private long LeaderWaitReadyTerm;
         private long LeaderWaitReadyIndex;
-        internal volatile TaskCompletionSource<bool> LeaderReadyFuture = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        internal volatile TaskCompletionSource<bool> LeaderReadyFuture = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
         // Follower
         private long LeaderLostTimeout;
@@ -321,52 +320,51 @@ namespace Zeze.Raft
         /// <param name="ThisTask"></param>
         private void OnTimer(SchedulerTask ThisTask)
         {
-            lock (this)
+            using var lockraft = Monitor.Enter();
+
+            if (IsShutdown)
+                return;
+
+            try
             {
-                if (IsShutdown)
-                    return;
-
-                try
+                switch (State)
                 {
-                    switch (State)
-                    {
-                        case RaftState.Follower:
-                            if (Time.NowUnixMillis - LogSequence.LeaderActiveTime > LeaderLostTimeout)
+                    case RaftState.Follower:
+                        if (Time.NowUnixMillis - LogSequence.LeaderActiveTime > LeaderLostTimeout)
+                        {
+                            ConvertStateTo(RaftState.Candidate).Wait();
+                        }
+                        break;
+
+                    case RaftState.Candidate:
+                        if (Time.NowUnixMillis > NextVoteTime)
+                        {
+                            // vote timeout. restart
+                            ConvertStateTo(RaftState.Candidate).Wait();
+                        }
+
+                        break;
+
+                    case RaftState.Leader:
+                        var now = Time.NowUnixMillis;
+                        Server.Config.ForEachConnector(
+                            async (c) =>
                             {
-                                ConvertStateTo(RaftState.Candidate);
-                            }
-                            break;
-
-                        case RaftState.Candidate:
-                            if (Time.NowUnixMillis > NextVoteTime)
-                            {
-                                // vote timeout. restart
-                                ConvertStateTo(RaftState.Candidate);
-                            }
-
-                            break;
-
-                        case RaftState.Leader:
-                            var now = Time.NowUnixMillis;
-                            Server.Config.ForEachConnector(
-                                (c) =>
-                                {
-                                    var cex = c as Server.ConnectorEx;
-                                    if (now - cex.AppendLogActiveTime > RaftConfig.LeaderHeartbeatTimer)
-                                        LogSequence.SendHeartbeatTo(cex);
-                                });
-                            break;
-                    }
-                    if (++LowPrecisionTimer > 1000) // 10s
-                    {
-                        LowPrecisionTimer = 0;
-                        OnLowPrecisionTimer();
-                    }
+                                var cex = c as Server.ConnectorEx;
+                                if (now - cex.AppendLogActiveTime > RaftConfig.LeaderHeartbeatTimer)
+                                    await LogSequence.SendHeartbeatTo(cex);
+                            });
+                        break;
                 }
-                finally
+                if (++LowPrecisionTimer > 1000) // 10s
                 {
-                    TimerTask = Scheduler.Instance.Schedule(OnTimer, 10);
+                    LowPrecisionTimer = 0;
+                    OnLowPrecisionTimer();
                 }
+            }
+            finally
+            {
+                TimerTask = Scheduler.Instance.Schedule(OnTimer, 10);
             }
         }
 
@@ -383,38 +381,35 @@ namespace Zeze.Raft
         /// false, !IsLeader
         /// </summary>
         /// <returns></returns>
-        internal bool WaitLeaderReady()
+        internal async Task<bool> WaitLeaderReady()
         {
-            lock (this)
+            using var lockraft = await Monitor.EnterAsync();
+
+            var volatileTmp = LeaderReadyFuture; // 每次只等待一轮的选举，不考虑中间Leader发生变化。
+            while (IsLeader)
             {
-                var volatileTmp = LeaderReadyFuture; // 每次只等待一轮的选举，不考虑中间Leader发生变化。
-                while (IsLeader)
-                {
-                    if (volatileTmp.Task.Wait(0))
-                        return volatileTmp.Task.Result;
-                    Monitor.Wait(this);
-                }
-                return false;
+                if (volatileTmp.Task.Wait(0))
+                    return volatileTmp.Task.Result;
+                Monitor.Wait();
             }
+            return false;
         }
 
         public bool IsReadyLeader
         {
             get
             {
-                lock (this)
-                {
-                    var volatileTmp = LeaderReadyFuture; // 每次只等待一轮的选举，不考虑中间Leader发生变化。
-                    return IsLeader && volatileTmp.Task.Wait(0) && volatileTmp.Task.Result;
-                }
+                var volatileTmp = LeaderReadyFuture; // 每次只等待一轮的选举，不考虑中间Leader发生变化。
+                return IsLeader && volatileTmp.Task.Wait(0) && volatileTmp.Task.Result;
             }
         }
 
         internal void ResetLeaderReadyAfterChangeState()
         {
             LeaderReadyFuture.TrySetResult(false);
-            LeaderReadyFuture = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously); // prepare for next leader
-            Monitor.PulseAll(this); // has under lock(this)
+            // prepare for next leader
+            LeaderReadyFuture = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            Monitor.PulseAll();
         }
 
         internal void SetLeaderReady(RaftLog heart)
@@ -433,7 +428,7 @@ namespace Zeze.Raft
                 logger.Info($"{Name} {RaftConfig.DbHome} LastIndex={LogSequence.LastIndex} Count={LogSequence.GetTestStateMachineCount()}");
 
                 LeaderReadyFuture.TrySetResult(true);
-                Monitor.PulseAll(this); // has under lock(this)
+                Monitor.PulseAll();
 
                 Server.Foreach(
                     (allsocket) =>
@@ -481,7 +476,7 @@ namespace Zeze.Raft
             return IsLastLogUpToDate(last, candidate);
         }
 
-        private bool IsLastLogUpToDate(RaftLog last, RequestVoteArgument candidate)
+        private static bool IsLastLogUpToDate(RaftLog last, RequestVoteArgument candidate)
         {
             if (candidate.LastLogTerm > last.Term)
                 return true;
@@ -492,40 +487,38 @@ namespace Zeze.Raft
 
         private async Task<long> ProcessRequestVote(Protocol p)
         {
-            lock (this)
+            using var lockraft = await Monitor.EnterAsync();
+            var r = p as RequestVote;
+
+            // 不管任何状态重置下一次时间，使得每个node从大概一个时刻开始。
+            NextVoteTime = Time.NowUnixMillis + RaftConfig.ElectionTimeout;
+
+            if (LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer)
             {
-                var r = p as RequestVote;
-
-                // 不管任何状态重置下一次时间，使得每个node从大概一个时刻开始。
-                NextVoteTime = Time.NowUnixMillis + RaftConfig.ElectionTimeout;
-
-                if (LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer)
-                {
-                    // new term found.
-                    ConvertStateTo(RaftState.Follower);
-                }
-                // else continue process
-                
-                // RequestVote RPC
-                // Receiver implementation:
-                // 1.Reply false if term < currentTerm(§5.1)
-                // 2.If votedFor is null or candidateId, and candidate’s log is at
-                // least as up - to - date as receiver’s log, grant vote(§5.2, §5.4)
-
-                r.Result.Term = LogSequence.Term;
-                r.Result.VoteGranted = r.Argument.Term == LogSequence.Term
-                    && LogSequence.CanVoteFor(r.Argument.CandidateId)
-                    && IsLastLogUpToDate(r.Argument);
-
-                if (r.Result.VoteGranted)
-                {
-                    LogSequence.SetVoteFor(r.Argument.CandidateId);
-                }
-                logger.Info("{0}: VoteFor={1} Rpc={2}", Name, LogSequence.VoteFor, r);
-                r.SendResultCode(0);
-
-                return Procedure.Success;
+                // new term found.
+                await ConvertStateTo(RaftState.Follower);
             }
+            // else continue process
+                
+            // RequestVote RPC
+            // Receiver implementation:
+            // 1.Reply false if term < currentTerm(§5.1)
+            // 2.If votedFor is null or candidateId, and candidate’s log is at
+            // least as up - to - date as receiver’s log, grant vote(§5.2, §5.4)
+
+            r.Result.Term = LogSequence.Term;
+            r.Result.VoteGranted = r.Argument.Term == LogSequence.Term
+                && LogSequence.CanVoteFor(r.Argument.CandidateId)
+                && IsLastLogUpToDate(r.Argument);
+
+            if (r.Result.VoteGranted)
+            {
+                LogSequence.SetVoteFor(r.Argument.CandidateId);
+            }
+            logger.Info("{0}: VoteFor={1} Rpc={2}", Name, LogSequence.VoteFor, r);
+            r.SendResultCode(0);
+
+            return Procedure.Success;
         }
 
         private async Task<long> ProcessLeaderIs(Protocol p)
@@ -540,46 +533,45 @@ namespace Zeze.Raft
             return Procedure.Success;
         }
 
-        private long ProcessRequestVoteResult(RequestVote rpc, Connector c)
+        private async Task<long> ProcessRequestVoteResult(RequestVote rpc)
         {
             if (rpc.IsTimeout || rpc.ResultCode != 0)
                 return 0; // skip error. re-vote later. 
 
-            lock (this)
+            using var lockraft = await Monitor.EnterAsync();
+
+            if (LogSequence.Term != rpc.Argument.Term || State != RaftState.Candidate)
             {
-                if (LogSequence.Term != rpc.Argument.Term || State != RaftState.Candidate)
-                {
-                    // 结果回来时，上下文已经发生变化，忽略这个结果。
-                    logger.Info($"{Name} NotOwner={LogSequence.Term != rpc.Argument.Term} NotCandidate={State != RaftState.Candidate}");
-                    return 0;
-                }
+                // 结果回来时，上下文已经发生变化，忽略这个结果。
+                logger.Info($"{Name} NotOwner={LogSequence.Term != rpc.Argument.Term} NotCandidate={State != RaftState.Candidate}");
+                return 0;
+            }
 
-                if (LogSequence.TrySetTerm(rpc.Result.Term) == LogSequence.SetTermResult.Newer)
-                {
-                    // new term found
-                    ConvertStateTo(RaftState.Follower);
-                    return Procedure.Success;
-                }
+            if (LogSequence.TrySetTerm(rpc.Result.Term) == LogSequence.SetTermResult.Newer)
+            {
+                // new term found
+                await ConvertStateTo(RaftState.Follower);
+                return Procedure.Success;
+            }
 
-                if (RequestVotes.Contains(rpc) && rpc.Result.VoteGranted)
+            if (RequestVotes.Contains(rpc) && rpc.Result.VoteGranted)
+            {
+                int granteds = 0;
+                foreach (var vote in RequestVotes)
                 {
-                    int granteds = 0;
-                    foreach (var vote in RequestVotes)
-                    {
-                        if (vote.Result.VoteGranted)
-                            ++granteds;
-                    }
-                    if (
-                        // 确保当前状态是选举中。没有判断这个，
-                        // 后面 ConvertStateTo 也会忽略不正确的状态转换。
-                        State == RaftState.Candidate
-                        // 加上自己就是多数派了。
-                        && granteds >= RaftConfig.HalfCount
-                        && LogSequence.CanVoteFor(Name))
-                    {
-                        LogSequence.SetVoteFor(Name);
-                        ConvertStateTo(RaftState.Leader);
-                    }
+                    if (vote.Result.VoteGranted)
+                        ++granteds;
+                }
+                if (
+                    // 确保当前状态是选举中。没有判断这个，
+                    // 后面 ConvertStateTo 也会忽略不正确的状态转换。
+                    State == RaftState.Candidate
+                    // 加上自己就是多数派了。
+                    && granteds >= RaftConfig.HalfCount
+                    && LogSequence.CanVoteFor(Name))
+                {
+                    LogSequence.SetVoteFor(Name);
+                    await ConvertStateTo(RaftState.Leader);
                 }
             }
 
@@ -592,9 +584,11 @@ namespace Zeze.Raft
             //LogSequence.SetVoteFor(Name); // 先收集结果，达到 RaftConfig.HalfCount 才判断是否给自己投票。
             LogSequence.TrySetTerm(LogSequence.Term + 1);
 
-            var arg = new RequestVoteArgument();
-            arg.Term = LogSequence.Term;
-            arg.CandidateId = Name;
+            var arg = new RequestVoteArgument
+            {
+                Term = LogSequence.Term,
+                CandidateId = Name
+            };
             var log = LogSequence.LastRaftLogTermIndex();
             arg.LastLogIndex = log.Index;
             arg.LastLogTerm = log.Term;
@@ -605,7 +599,9 @@ namespace Zeze.Raft
             {
                 var rpc = new RequestVote() { Argument = arg };
                 RequestVotes.Add(rpc);
-                var sendresult = rpc.Send(c.TryGetReadySocket(), async (p) => ProcessRequestVoteResult(rpc, c), RaftConfig.AppendEntriesTimeout - 100);
+                var sendresult = rpc.Send(c.TryGetReadySocket(),
+                    async (p) => await ProcessRequestVoteResult(rpc),
+                    RaftConfig.AppendEntriesTimeout - 100);
                 logger.Info("{0}:{1}: SendRequestVote {2}", Name, sendresult, rpc);
             });
         }
@@ -633,7 +629,7 @@ namespace Zeze.Raft
             }
         }
 
-        private void ConvertStateFromCandidateTo(RaftState newState)
+        private async Task ConvertStateFromCandidateTo(RaftState newState)
         {
             switch (newState)
             {
@@ -673,17 +669,18 @@ namespace Zeze.Raft
                     // send initial empty AppendEntries RPCs
                     // (heartbeat)to each server; repeat during
                     // idle periods to prevent election timeouts(§5.2)
-                    LogSequence.AppendLog(new HeartbeatLog(HeartbeatLog.SetLeaderReadyEvent, Name),
-                        false, out LeaderWaitReadyTerm, out LeaderWaitReadyIndex);
+                    var (term, index) = await LogSequence.AppendLog(new HeartbeatLog(HeartbeatLog.SetLeaderReadyEvent, Name), false);
+                    LeaderWaitReadyTerm = term;
+                    LeaderWaitReadyIndex = index; ;
                     return;
             }
         }
 
-        private void ConvertStateFromLeaderTo(RaftState newState)
+        private async Task ConvertStateFromLeaderTo(RaftState newState)
         {
             // 本来 Leader -> Follower 需要，为了健壮性，全部改变都重置。
             ResetLeaderReadyAfterChangeState();
-            LogSequence.CancelAllInstallSnapshot();
+            await LogSequence.CancelAllInstallSnapshot();
 
             switch (newState)
             {
@@ -703,7 +700,7 @@ namespace Zeze.Raft
             }
         }
 
-        internal void ConvertStateTo(RaftState newState)
+        internal async Task ConvertStateTo(RaftState newState)
         {
             ResetTimerTime();
             // 按真值表处理所有情况。
@@ -714,11 +711,11 @@ namespace Zeze.Raft
                     return;
 
                 case RaftState.Candidate:
-                    ConvertStateFromCandidateTo(newState);
+                    await ConvertStateFromCandidateTo(newState);
                     return;
 
                 case RaftState.Leader:
-                    ConvertStateFromLeaderTo(newState);
+                    await ConvertStateFromLeaderTo(newState);
                     return;
             }
         }

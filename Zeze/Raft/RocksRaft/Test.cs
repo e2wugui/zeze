@@ -14,9 +14,9 @@ namespace Zeze.Raft.RocksRaft
 		{
 			private int _i;
 			private long _l;
-			private CollMap1<int, int> _map1;
-			private Bean2 _bean2;
-			private CollMap2<int, Bean1> _map2;
+			private readonly CollMap1<int, int> _map1;
+			private readonly Bean2 _bean2;
+			private readonly CollMap2<int, Bean1> _map2;
 
 			public int I
 			{
@@ -405,7 +405,7 @@ AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(I=0 L=0 Map1={}
 			}).Call();
 		}
 
-		private Rocks GetLeader(List<Rocks> rocks, Rocks skip)
+		private static Rocks GetLeader(List<Rocks> rocks, Rocks skip)
 		{
 			while (true)
 			{
@@ -420,7 +420,7 @@ AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(I=0 L=0 Map1={}
 			}
 		}
 
-		public void Test_1()
+		public async Task Test_1()
 		{
 			FileSystem.DeleteDirectory("127.0.0.1_6000");
 			FileSystem.DeleteDirectory("127.0.0.1_6001");
@@ -433,8 +433,8 @@ AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(I=0 L=0 Map1={}
 			var rockslist = new List<Rocks> { rocks1, rocks2, rocks3 };
 			foreach (var rr in rockslist)
 			{
-				rr.RegisterLog<LogMap1<int, int>>();
-				rr.RegisterLog<LogMap2<int, Bean1>>();
+                Rocks.RegisterLog<LogMap1<int, int>>();
+                Rocks.RegisterLog<LogMap2<int, Bean1>>();
 				rr.RegisterTableTemplate<int, Bean1>("tRocksRaft");
 			}
 
@@ -445,7 +445,7 @@ AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(I=0 L=0 Map1={}
 
 			// leader
 			var leader = GetLeader(rockslist, null);
-			RunLeader(leader);
+			await RunLeader(leader);
 			leader.Raft.Server.Stop();
 
 			// 只简单验证一下最新的数据。
@@ -453,7 +453,7 @@ AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(I=0 L=0 Map1={}
 			VerifyData(newleader, newleader.GetTableTemplate("tRocksRaft").OpenTable<int, Bean1>(0), "Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
 		}
 
-		private void RunLeader(Rocks rocks)
+		private async Task RunLeader(Rocks rocks)
 		{
 			var table = rocks.GetTableTemplate("tRocksRaft").OpenTable<int, Bean1>(0);
 			Remove1(rocks, table);
@@ -477,7 +477,7 @@ AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(I=0 L=0 Map1={}
 			VerifyData(rocks, table, "Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
 
 			// 再次运行本测试，才会执行到 LoadSnapshot。
-			rocks.Raft.LogSequence.Snapshot(true);
+			await rocks.Raft.LogSequence.Snapshot(true);
 		}
 	}
 }

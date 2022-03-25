@@ -67,15 +67,14 @@ namespace Zeze.Raft
             public override void OnSocketClose(AsyncSocket closed, Exception e)
             {
                 var server = closed.Service as Server;
-                server.Raft.ImportantThreadPool.QueueUserWorkItem(() =>
+                _ = Util.Mission.CallAsync(async () =>
                 {
                     // avoid deadlock: lock(socket), lock (Raft).
-                    lock (server.Raft)
-                    {
-                        if (Socket == closed) // check is owner
-                            server.Raft.LogSequence.EndInstallSnapshot(this);
-                    }
-                });
+                    using var lockraft = await server.Raft.Monitor.EnterAsync();
+                    if (Socket == closed) // check is owner
+                        await server.Raft.LogSequence.EndInstallSnapshot(this);
+                    return 0;
+                }, "OnSocketClose.EndInstallSnapshot");
                 base.OnSocketClose(closed, e);
             }
 
@@ -83,13 +82,12 @@ namespace Zeze.Raft
             {
                 base.OnSocketHandshakeDone(so);
                 var raft = (Service as Server).Raft;
-                raft.ImportantThreadPool.QueueUserWorkItem(() => Util.Mission.Call(() =>
+                _ = Util.Mission.CallAsync(async () =>
                 {
-                    lock (raft)
-                    {
-                        raft.LogSequence.TrySendAppendEntries(this, null);
-                    }
-                }, "Start TrySendAppendEntries"));
+                    using var lockraft = await raft.Monitor.EnterAsync();
+                    await raft.LogSequence.TrySendAppendEntries(this, null);
+                    return 0;
+                }, "Start TrySendAppendEntries");
             }
         }
 
@@ -132,7 +130,7 @@ namespace Zeze.Raft
 
         public async Task<long> ProcessReqeust(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
-            if (Raft.WaitLeaderReady())
+            if (await Raft.WaitLeaderReady())
             {
                 if (Raft.LogSequence.TryGetRequestState(p, out var state))
                 {
@@ -211,20 +209,19 @@ namespace Zeze.Raft
             base.OnHandshakeDone(so);
 
             // 没有判断是否和其他Raft-Node的连接。
-            Task.Run(() =>
+            _ = Util.Mission.CallAsync(async () =>
             {
-                lock (Raft)
+                using var lockraft = await Raft.Monitor.EnterAsync();
+                if (Raft.IsReadyLeader)
                 {
-                    if (Raft.IsReadyLeader)
-                    {
-                        var r = new LeaderIs();
-                        r.Argument.Term = Raft.LogSequence.Term;
-                        r.Argument.LeaderId = Raft.LeaderId;
-                        r.Argument.IsLeader = Raft.IsLeader;
-                        r.Send(so); // skip result
-                    }
+                    var r = new LeaderIs();
+                    r.Argument.Term = Raft.LogSequence.Term;
+                    r.Argument.LeaderId = Raft.LeaderId;
+                    r.Argument.IsLeader = Raft.IsLeader;
+                    r.Send(so); // skip result
                 }
-            });
+                return 0;
+            }, "OnHandshakeDone.Send.LeaderIs");
         }
     }
 
@@ -404,9 +401,9 @@ namespace Zeze.Raft
         public ConnectorEx Leader => _Leader;
         private volatile ConnectorEx _Leader;
 
-        private ConcurrentDictionary<long, Protocol> Pending = new ConcurrentDictionary<long, Protocol>();
+        private ConcurrentDictionary<long, Protocol> Pending = new();
         // 加急请求ReSend时优先发送，多个请求不保证顺序。这个应该仅用于Login之类的特殊协议，一般来说只有一个。
-        private ConcurrentDictionary<long, Protocol> UrgentPending = new ConcurrentDictionary<long, Protocol>();
+        private ConcurrentDictionary<long, Protocol> UrgentPending = new();
 
         public Action<Agent> OnSetLeader { get; set; }
 
@@ -483,7 +480,7 @@ namespace Zeze.Raft
             return 0;
         }
 
-        private bool IsRetryError(long error)
+        private static bool IsRetryError(long error)
         {
             switch (error)
             {

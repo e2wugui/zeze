@@ -230,8 +230,8 @@ AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(I=0 L=0 Map1={}
 			var rockslist = new List<Rocks> { rocks1, rocks2, rocks3 };
 			foreach (var rr in rockslist)
             {
-				rr.RegisterLog<LogMap1<int, int>>();
-				rr.RegisterLog<LogMap2<int, Bean1>>();
+                Rocks.RegisterLog<LogMap1<int, int>>();
+                Rocks.RegisterLog<LogMap2<int, Bean1>>();
 				rr.RegisterTableTemplate<int, Bean1>("tRocksRaft");
 			}
 

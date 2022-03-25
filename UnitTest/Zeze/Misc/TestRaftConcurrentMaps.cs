@@ -49,7 +49,7 @@ namespace UnitTest.Zeze.Misc
         }
 
         [TestMethod]
-        public void TestRocksDbColumn()
+        public async Task TestRocksDbColumn()
         {
             FileSystem.DeleteDirectory("127.0.0.1_9091");
             FileSystem.DeleteDirectory("127.0.0.1_9092");
@@ -67,7 +67,7 @@ namespace UnitTest.Zeze.Misc
             // 数据修改相关测试已经移到 UnitTest/Zeze/RocksRaft/ 下。
             storage.RegisterTableTemplate<int, Value>("int2value");
 
-            var cpdir = storage.Checkpoint(out var index, out var term);
+            var (cpdir, term, index) = await storage.Checkpoint();
             try
             {
                 Assert.IsTrue(storage.Backup(cpdir, "backup"));

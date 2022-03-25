@@ -10,7 +10,7 @@ namespace Zeze.Util
     /// </summary>
     public sealed class Scheduler
     {
-        private readonly SortedDictionary<SchedulerTask, SchedulerTask> scheduled = new SortedDictionary<SchedulerTask, SchedulerTask>();
+        private readonly SortedDictionary<SchedulerTask, SchedulerTask> scheduled = new();
         private readonly Thread thread;
         private volatile bool isRunning;
 
@@ -38,9 +38,9 @@ namespace Zeze.Util
             lock (this)
             {
                 if (initialDelay < 0)
-                    throw new ArgumentException();
+                    throw new ArgumentException("initialDelay < 0");
 
-                SchedulerTask t = new SchedulerTask(this, action, initialDelay, period);
+                var t = new SchedulerTask(this, action, initialDelay, period);
                 scheduled.Add(t, t);
                 Monitor.Pulse(this);
                 return t;
@@ -81,7 +81,7 @@ namespace Zeze.Util
         {
             while (isRunning)
             {
-                List<SchedulerTask> willRun = new List<SchedulerTask>(scheduled.Count);
+                var willRun = new List<SchedulerTask>(scheduled.Count);
                 long nextTime = -1;
                 long now = Time.NowUnixMillis;
 
@@ -129,7 +129,7 @@ namespace Zeze.Util
         private volatile bool canceled;
         private readonly Action<SchedulerTask> action;
 
-        private static readonly AtomicLong sequencer = new AtomicLong();
+        private static readonly AtomicLong sequencer = new();
 
         internal SchedulerTask(Scheduler scheduler, Action<SchedulerTask> action, long initialDelay, long period)
         {

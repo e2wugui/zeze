@@ -19,8 +19,7 @@ namespace Zeze.Raft
             AddFactory(new HeartbeatLog().TypeId, () => new HeartbeatLog());
         }
 
-        private ConcurrentDictionary<int, Func<Log>> LogFactorys
-            = new ConcurrentDictionary<int, Func<Log>>();
+        private readonly ConcurrentDictionary<int, Func<Log>> LogFactorys = new();
 
         
         // 建议在继承类的构造里面注册LogFactory。
@@ -78,7 +77,7 @@ namespace Zeze.Raft
         /// 这样在保存数据到文件的过程中，服务可以继续进行。
         /// </summary>
         /// <param name="path"></param>
-        public abstract bool Snapshot(string path, out long LastIncludedIndex, out long LastIncludedTerm);
+        public abstract Task<(bool, long, long)> Snapshot(string path);
 
         /// <summary>
         /// 从上一个快照中重建 StateMachine。

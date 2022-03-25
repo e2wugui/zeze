@@ -35,7 +35,7 @@ namespace Zeze.Raft
             var StateMachine = new TestStateMachine();
             var snapshot = Path.Combine(db, LogSequence.SnapshotFileName);
             if (File.Exists(snapshot))
-                StateMachine._LoadSnapshot(snapshot);
+                StateMachine.LoadSnapshotInternal(snapshot);
             using var dumpFile = new FileStream(db + ".txt", FileMode.Create);
             dumpFile.Write(Encoding.UTF8.GetBytes($"SnapshotCount = {StateMachine.Count}\n"));
             while (it1.Valid())
@@ -47,12 +47,12 @@ namespace Zeze.Raft
             }
         }
 
-        public void Run(string command, string[] args)
+        public async Task Run(string command, string[] args)
         {
             Console.WriteLine(command); // 初始化Console，ReadKey死锁问题？
             try
             {
-                _Run(command, args);
+                await RunPrivate(command, args);
             }
             catch (Exception ex)
             {
@@ -71,16 +71,18 @@ namespace Zeze.Raft
             }
         }
 
-        private void _Run(string command, string[] args)
+        private async Task RunPrivate(string command, string[] args)
         {
             for (int i = 0; i < args.Length; ++i)
             {
                 if (args[i].Equals("-Config"))
                     RaftConfigFileName = args[++i];
             }
-            var logTarget = new NLog.Targets.FileTarget(RaftConfigFileName);
-            logTarget.Layout = "${longdate} ${ threadid} ${callsite} ${level} ${message} ${exception: format=Message,StackTrace}";
-            logTarget.FileName = RaftConfigFileName + ".log";
+            var logTarget = new NLog.Targets.FileTarget(RaftConfigFileName)
+            {
+                Layout = "${longdate} ${ threadid} ${callsite} ${level} ${message} ${exception: format=Message,StackTrace}",
+                FileName = RaftConfigFileName + ".log"
+            };
 
             var loggingRule = new NLog.Config.LoggingRule("*", NLog.LogLevel.Trace, logTarget);
             NLog.LogManager.Configuration.AddTarget("LogFile", logTarget);
@@ -127,7 +129,7 @@ namespace Zeze.Raft
                 });
             Agent.Client.Start();
 
-            Task.Run(() =>
+            _ = Task.Run(() =>
             {
                 while (true)
                 {
@@ -140,12 +142,12 @@ namespace Zeze.Raft
                         {
                             var l = r.Raft?.LogSequence;
                             sb.Append($"{r.RaftName} CommitIndex={l?.CommitIndex} LastApplied={l?.LastApplied} LastIndex={l?.LastIndex} Count={r.StateMachine?.Count}");
-                            sb.Append("\n");
+                            sb.Append('\n');
                         }
                         foreach (var f in FailActions)
                         {
                             sb.Append($"{f.Name} TestCount={f.Count}");
-                            sb.Append("\n");
+                            sb.Append('\n');
                         }
                         sb.Append($"-----------------------------------{raftConfigStart.XmlFileName}------------------------------------\n");
                         Console.WriteLine(sb.ToString());
@@ -158,7 +160,7 @@ namespace Zeze.Raft
             });
             try
             {
-                RunTrace();
+                await RunTrace();
             }
             finally
             {
@@ -190,8 +192,8 @@ namespace Zeze.Raft
             }
         }
 
-        private Util.AtomicLong ExpectCount = new Util.AtomicLong();
-        private Dictionary<long, long> Errors { get; } = new Dictionary<long, long>();
+        private readonly Util.AtomicLong ExpectCount = new();
+        private Dictionary<long, long> Errors { get; } = new();
 
         private void ErrorsAdd(long resultCode)
         {
@@ -291,7 +293,7 @@ namespace Zeze.Raft
             return tasks.Count;
         }
 
-        private void SetLogLevel(NLog.LogLevel level)
+        private static void SetLogLevel(NLog.LogLevel level)
         {
             NLog.LogManager.GlobalThreshold = level;
             /*
@@ -328,7 +330,7 @@ namespace Zeze.Raft
             }
         }
 
-        public void RunTrace()
+        public async Task RunTrace()
         {
             // 基本测试
             logger.Debug("基本测试");
@@ -407,7 +409,7 @@ namespace Zeze.Raft
 
             // Snapshot & Load
             leader = GetLeader();
-            leader.Raft.LogSequence.Snapshot();
+            await leader.Raft.LogSequence.Snapshot();
             leader.StopRaft();
             leader.StartRaft();
 
@@ -547,7 +549,7 @@ namespace Zeze.Raft
             });
 
             // Start Background FailActions
-            Task.Run(RandomTriggerFailActions);
+            _ = Task.Run(RandomTriggerFailActions);
             var testname = "RealConcurrentDoRequest";
             var lastExpectCount = ExpectCount.Get();
             while (true)
@@ -614,7 +616,7 @@ namespace Zeze.Raft
 
         private bool Running { get; set; } = true;
 
-        private void RandomTriggerFailActions()
+        private async Task RandomTriggerFailActions()
         {
             while (Running)
             {
@@ -642,7 +644,7 @@ namespace Zeze.Raft
                             if (raft.Raft != null && raft.Raft.LogSequence != null)
                             {
                                 raft.Raft.IsShutdown = true;
-                                raft.Raft.LogSequence.Close();
+                                await raft.Raft.LogSequence.Close();
                             }
                         }
                         NLog.LogManager.Shutdown();
@@ -750,10 +752,10 @@ namespace Zeze.Raft
         {
             public long Count { get; set; }
 
-            public void AddCountAndWait(Test.AddCount req)
+            public async Task AddCountAndWait(Test.AddCount req)
             {
                 req.Result.Count = Count;
-                Raft.AppendLog(new AddCount(req), req.Result);
+                await Raft.AppendLog(new AddCount(req), req.Result);
             }
 
             public sealed class AddCount : Log
@@ -780,7 +782,7 @@ namespace Zeze.Raft
                 }
             }
 
-            internal void _LoadSnapshot(string path)
+            internal void LoadSnapshotInternal(string path)
             {
                 using var file = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
                 var bytes = new byte[1024];
@@ -793,34 +795,34 @@ namespace Zeze.Raft
             {
                 lock (Raft)
                 {
-                    _LoadSnapshot(path);
+                    LoadSnapshotInternal(path);
                     logger.Info($"{Raft.Name} LoadSnapshot Count={Count}");
                 }
             }
 
             // 这里没有处理重入，调用者需要保证。
-            public override bool Snapshot(string path, out long LastIncludedIndex, out long LastIncludedTerm)
+            public override async Task<(bool, long, long)> Snapshot(string path)
             {
-                LastIncludedIndex = 0;
-                LastIncludedTerm = 0;
+                long LastIncludedTerm = 0;
+                long LastIncludedIndex = 0;
 
-                lock (Raft)
+                using var lockraft = await Raft.Monitor.EnterAsync();
+
+                if (null != Raft.LogSequence)
                 {
-                    if (null != Raft.LogSequence)
-                    {
-                        var lastAppliedLog = Raft.LogSequence.LastAppliedLogTermIndex();
-                        LastIncludedIndex = lastAppliedLog.Index;
-                        LastIncludedTerm = lastAppliedLog.Term;
-                        var bb = ByteBuffer.Allocate();
-                        logger.Info($"{Raft.Name} Snapshot Count={Count}");
-                        bb.WriteLong(Count);
-                        using var file = new FileStream(path, FileMode.Create);
-                        file.Write(bb.Bytes, bb.ReadIndex, bb.Size);
-                        file.Close();
-                        Raft.LogSequence.CommitSnapshot(path, LastIncludedIndex);
-                    }
+                    var lastAppliedLog = Raft.LogSequence.LastAppliedLogTermIndex();
+                    LastIncludedIndex = lastAppliedLog.Index;
+                    LastIncludedTerm = lastAppliedLog.Term;
+                    var bb = ByteBuffer.Allocate();
+                    logger.Info($"{Raft.Name} Snapshot Count={Count}");
+                    bb.WriteLong(Count);
+                    using var file = new FileStream(path, FileMode.Create);
+                    file.Write(bb.Bytes, bb.ReadIndex, bb.Size);
+                    file.Close();
+                    await Raft.LogSequence.CommitSnapshot(path, LastIncludedIndex);
                 }
-                return true;
+
+                return (true, LastIncludedTerm, LastIncludedIndex);
             }
 
             public TestStateMachine()
@@ -923,11 +925,8 @@ namespace Zeze.Raft
                     return Procedure.RaftRetry; // fast fail
 
                 var r = p as AddCount;
-                lock (StateMachine)
-                {
-                    StateMachine.AddCountAndWait(r);
-                    r.SendResultCode(0);
-                }
+                await StateMachine.AddCountAndWait(r);
+                r.SendResultCode(0);
                 return Procedure.Success;
             }
 

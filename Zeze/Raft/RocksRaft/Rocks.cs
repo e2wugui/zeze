@@ -6,6 +6,7 @@ using RocksDbSharp;
 using System.IO.Compression;
 using System.Collections.Generic;
 using Zeze.Serialize;
+using System.Threading.Tasks;
 
 namespace Zeze.Raft.RocksRaft
 {
@@ -34,7 +35,7 @@ namespace Zeze.Raft.RocksRaft
             AtomicLongs.GetOrAdd(index, (_) => new AtomicLong()).GetAndSet(value);
         }
 
-        private Dictionary<int, long> LastUpdated = new Dictionary<int, long>();
+        private readonly Dictionary<int, long> LastUpdated = new();
         internal void UpdateAtomicLongs(Dictionary<int, long> to)
         {
             lock (Raft)
@@ -88,8 +89,7 @@ namespace Zeze.Raft.RocksRaft
         public WriteOptions WriteOptions { get; }
 
         internal RocksDb Storage;
-        private ConcurrentDictionary<string, ColumnFamilyHandle> Columns
-            = new ConcurrentDictionary<string, ColumnFamilyHandle>();
+        private readonly ConcurrentDictionary<string, ColumnFamilyHandle> Columns = new();
 
         public Rocks(
             string raftName = null, // 这个参数会覆盖RaftConfig.Name，这样应用可以共享同一个配置文件。
@@ -160,22 +160,24 @@ namespace Zeze.Raft.RocksRaft
             });
         }
 
-        public string Checkpoint(out long lastIncludedIndex, out long lastIncludedTerm)
+        public async Task<(string, long, long)> Checkpoint()
         {
             var checkpintDir = Path.Combine(DbHome, "checkpoint_" + DateTime.Now.Ticks);
+            long lastIncludedTerm = 0;
+            long lastIncludedIndex = 0;
 
             // fast checkpoint, will stop application apply.
-            lock (Raft)
-            {
-                var lastAppliedLog = Raft.LogSequence.LastAppliedLogTermIndex();
-                lastIncludedIndex = lastAppliedLog.Index;
-                lastIncludedTerm = lastAppliedLog.Term;
+            using var lockraft = await Raft.Monitor.EnterAsync();
 
-                var cp = Storage.Checkpoint();
-                cp.Save(checkpintDir);
-                cp.Dispose();
-            }
-            return checkpintDir;
+            var lastAppliedLog = Raft.LogSequence.LastAppliedLogTermIndex();
+            lastIncludedIndex = lastAppliedLog.Index;
+            lastIncludedTerm = lastAppliedLog.Term;
+
+            var cp = Storage.Checkpoint();
+            cp.Save(checkpintDir);
+            cp.Dispose();
+
+            return (checkpintDir, lastIncludedTerm, lastIncludedIndex);
         }
 
         public bool Backup(string checkpintDir, string backupDir)
@@ -290,15 +292,15 @@ namespace Zeze.Raft.RocksRaft
             }
         }
 
-        public override bool Snapshot(string path, out long lastIncludedIndex, out long lastIncludedTerm)
+        public override async Task<(bool, long, long)> Snapshot(string path)
         {
-            var cphome = Checkpoint(out lastIncludedIndex, out lastIncludedTerm);
+            var (cphome, lastIncludedTerm, lastIncludedIndex) = await Checkpoint();
             var backupdir = Path.Combine(DbHome, "backup");
             Backup(cphome, backupdir);
             FileSystem.DeleteDirectory(cphome);
             ZipFile.CreateFromDirectory(backupdir, path);
-            Raft.LogSequence.CommitSnapshot(path, lastIncludedIndex);
-            return true;
+            await Raft.LogSequence.CommitSnapshot(path, lastIncludedIndex);
+            return (true, lastIncludedTerm, lastIncludedIndex);
         }
 
         public override void LoadSnapshot(string path)
@@ -316,7 +318,7 @@ namespace Zeze.Raft.RocksRaft
 
         internal void Flush(IEnumerable<Record> rs, Changes changes, bool FollowerApply = false)
         {
-            using WriteBatch batch = new WriteBatch();
+            using var batch = new WriteBatch();
             foreach (var r in rs)
             {
                 r.Flush(batch);
@@ -335,7 +337,7 @@ namespace Zeze.Raft.RocksRaft
                 Storage.Write(batch, WriteOptions);
         }
 
-        public void RegisterLog<T>() where T : Log, new()
+        public static void RegisterLog<T>() where T : Log, new()
         {
             Log.Factorys.TryAdd(new T().TypeId, () => new T());
         }

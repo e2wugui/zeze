@@ -34,7 +34,7 @@ namespace Zeze.Services
                     switch (rpc.Argument.State)
                     {
                         case GlobalCacheManagerServer.StateInvalid: // realease
-                            rpc.Result.State = _Release(rpc.Sender.UserState as CacheHolder, rpc.Argument.GlobalTableKey, true);
+                            rpc.Result.State = ReleasePrivate(rpc.Sender.UserState as CacheHolder, rpc.Argument.GlobalTableKey, true);
                             return 0;
 
                         case GlobalCacheManagerServer.StateShare:
@@ -443,13 +443,13 @@ namespace Zeze.Services
             int result = 0;
             Rocks.NewProcedure(() =>
             {
-                result = _Release(sender, gkey, noWait);
+                result = ReleasePrivate(sender, gkey, noWait);
                 return 0;
             }).Call();
             return result;
         }
 
-        private int _Release(CacheHolder sender, GlobalTableKey gkey, bool noWait)
+        private int ReleasePrivate(CacheHolder sender, GlobalTableKey gkey, bool noWait)
         {
             while (true)
             {
@@ -506,7 +506,7 @@ namespace Zeze.Services
             }
         }
 
-        private int GetSenderCacheState(CacheState cs, CacheHolder sender)
+        private static int GetSenderCacheState(CacheState cs, CacheHolder sender)
         {
             if (cs.Modify == sender.ServerId)
                 return GlobalCacheManagerServer.StateModify;
@@ -643,7 +643,7 @@ namespace Zeze.Services
 
         private Rocks Rocks { get; }
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-        private readonly Locks Locks = new Locks();
+        private readonly Locks Locks = new();
 
         /// <summary>
         /// 全局记录分配状态。
@@ -665,7 +665,7 @@ namespace Zeze.Services
          * ServerId 是及其有限的。不会一直增长。
          * 简化实现。
          */
-        private readonly ConcurrentDictionary<int, CacheHolder> Sessions = new ConcurrentDictionary<int, CacheHolder>();
+        private readonly ConcurrentDictionary<int, CacheHolder> Sessions = new();
 
         public GlobalCacheManagerWithRaft(
             string raftName,
@@ -686,7 +686,8 @@ namespace Zeze.Services
 
         public void Dispose()
         {
-            Rocks.Raft.Shutdown();
+            GC.SuppressFinalize(this);
+            Rocks.Raft.Shutdown().Wait();
         }
 
         public sealed class CacheHolder
