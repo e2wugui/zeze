@@ -400,7 +400,6 @@ namespace Zeze.Raft
         public RaftConfig RaftConfig { get; private set; }
         public NetClient Client { get; private set; }
         public string Name => Client.Name;
-        public bool DispatchProtocolToInternalThreadPool { get; set; } = false;
 
         public ConnectorEx Leader => _Leader;
         private volatile ConnectorEx _Leader;
@@ -408,8 +407,6 @@ namespace Zeze.Raft
         private ConcurrentDictionary<long, Protocol> Pending = new ConcurrentDictionary<long, Protocol>();
         // 加急请求ReSend时优先发送，多个请求不保证顺序。这个应该仅用于Login之类的特殊协议，一般来说只有一个。
         private ConcurrentDictionary<long, Protocol> UrgentPending = new ConcurrentDictionary<long, Protocol>();
-
-        public Util.SimpleThreadPool InternalThreadPool { get; }
 
         public Action<Agent> OnSetLeader { get; set; }
 
@@ -587,9 +584,6 @@ namespace Zeze.Raft
                 Client.Stop();
                 Client = null;
 
-                if (null == zeze)
-                    InternalThreadPool.Shutdown();
-
                 _Leader = null;
                 Pending.Clear();
                 UrgentPending.Clear();
@@ -602,7 +596,6 @@ namespace Zeze.Raft
             RaftConfig raftconf = null
             )
         {
-            InternalThreadPool = zeze.InternalThreadPool;
             UniqueRequestIdGenerator = Zeze.Util.PersistentAtomicLong.GetOrAdd($"{name}.{zeze.Config.ServerId}");
             Init(new NetClient(this, name, zeze), raftconf);
         }
@@ -619,7 +612,6 @@ namespace Zeze.Raft
             Zeze.Config config = null
             )
         {
-            InternalThreadPool = new Util.SimpleThreadPool(5, "RaftAgentThreadPool");
             if (null == config)
                 config = Config.Load();
 

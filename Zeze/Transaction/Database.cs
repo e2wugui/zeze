@@ -43,6 +43,8 @@ namespace Zeze.Transaction
             return null;
         }
 
+        public abstract int MaxPoolSize { get; }
+
         public abstract Transaction BeginTransaction();
 
         public void AddTable(Zeze.Transaction.Table table)
@@ -213,11 +215,15 @@ namespace Zeze.Transaction
     public sealed class DatabaseMySql : Database
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        public MySqlConnectionStringBuilder MySqlConnectionStringBuilder { get; }
 
         public DatabaseMySql(Application zeze, string url) : base(zeze, url)
         {
             DirectOperates = new OperatesMySql(this);
+            MySqlConnectionStringBuilder = new MySqlConnectionStringBuilder(url);
         }
+
+        public override int MaxPoolSize => (int)MySqlConnectionStringBuilder.MaximumPoolSize;
 
         public class MySqlTrans : Transaction
         {
@@ -659,11 +665,15 @@ namespace Zeze.Transaction
     public sealed class DatabaseSqlServer : Database
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        public SqlConnectionStringBuilder SqlConnectionStringBuilder { get; }
 
         public DatabaseSqlServer(Application zeze, string url) : base(zeze, url)
         {
             DirectOperates = new OperatesSqlServer(this);
+            SqlConnectionStringBuilder = new SqlConnectionStringBuilder(url);
         }
+
+        public override int MaxPoolSize => SqlConnectionStringBuilder.MaxPoolSize;
 
         public class SqlTrans : Transaction
         {
@@ -1134,6 +1144,8 @@ namespace Zeze.Transaction
             DirectOperates = new OperatesRocksDb(this);
         }
 
+        public override int MaxPoolSize => 100;
+
         public override void Close()
         {
             base.Close();
@@ -1372,10 +1384,13 @@ namespace Zeze.Transaction
     public sealed class DatabaseMemory : Database
     {
         private readonly ProceduresMemory _ProceduresMemory = new ProceduresMemory();
+
         public DatabaseMemory(Application zeze, string url) : base(zeze, url)
         {
             DirectOperates = _ProceduresMemory;
         }
+
+        public override int MaxPoolSize => 100;
 
         public class ByteArrayComparer : IEqualityComparer<byte[]>
         {

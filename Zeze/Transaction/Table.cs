@@ -159,38 +159,36 @@ namespace Zeze.Transaction
                     Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                     return 0;
                 }
-                lock (r)
+                using var lockr = r.Mutex.Lock();
+                r.LastErrorGlobalSerialId = rpc.Argument.GlobalSerialId;
+                switch (r.State)
                 {
-                    r.LastErrorGlobalSerialId = rpc.Argument.GlobalSerialId;
-                    switch (r.State)
-                    {
-                        case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
-                        case GlobalCacheManagerServer.StateInvalid:
-                            rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                            logger.Debug("ReduceShare SendResult 2 {0}", r);
-                            rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
-                            Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
-                            return 0;
+                    case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
+                    case GlobalCacheManagerServer.StateInvalid:
+                        rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+                        logger.Debug("ReduceShare SendResult 2 {0}", r);
+                        rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
+                        Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+                        return 0;
 
-                        case GlobalCacheManagerServer.StateShare:
-                            rpc.Result.State = GlobalCacheManagerServer.StateShare;
-                            rpc.ResultCode = GlobalCacheManagerServer.ReduceShareAlreadyIsShare;
-                            if (r.Dirty)
-                                break;
-                            logger.Debug("ReduceShare SendResult 3 {0}", r);
-                            rpc.SendResult();
-                            Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
-                            return 0;
+                    case GlobalCacheManagerServer.StateShare:
+                        rpc.Result.State = GlobalCacheManagerServer.StateShare;
+                        rpc.ResultCode = GlobalCacheManagerServer.ReduceShareAlreadyIsShare;
+                        if (r.Dirty)
+                            break;
+                        logger.Debug("ReduceShare SendResult 3 {0}", r);
+                        rpc.SendResult();
+                        Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+                        return 0;
 
-                        case GlobalCacheManagerServer.StateModify:
-                            r.State = GlobalCacheManagerServer.StateShare; // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
-                            if (r.Dirty)
-                                break;
-                            logger.Debug("ReduceShare SendResult * {0}", r);
-                            rpc.SendResult();
-                            Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
-                            return 0;
-                    }
+                    case GlobalCacheManagerServer.StateModify:
+                        r.State = GlobalCacheManagerServer.StateShare; // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
+                        if (r.Dirty)
+                            break;
+                        logger.Debug("ReduceShare SendResult * {0}", r);
+                        rpc.SendResult();
+                        Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+                        return 0;
                 }
             }
             finally
@@ -253,40 +251,38 @@ namespace Zeze.Transaction
                     Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                     return 0;
                 }
-                lock (r)
+                using var lockr = r.Mutex.Lock();
+                r.LastErrorGlobalSerialId = rpc.Argument.GlobalSerialId;
+                switch (r.State)
                 {
-                    r.LastErrorGlobalSerialId = rpc.Argument.GlobalSerialId;
-                    switch (r.State)
-                    {
-                        case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
-                        case GlobalCacheManagerServer.StateInvalid:
-                            rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                            rpc.ResultCode = GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid;
-                            if (r.Dirty)
-                                break;
-                            logger.Debug("ReduceInvalid SendResult 2 {0}", r);
-                            rpc.SendResult();
-                            Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
-                            return 0;
+                    case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
+                    case GlobalCacheManagerServer.StateInvalid:
+                        rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+                        rpc.ResultCode = GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid;
+                        if (r.Dirty)
+                            break;
+                        logger.Debug("ReduceInvalid SendResult 2 {0}", r);
+                        rpc.SendResult();
+                        Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+                        return 0;
 
-                        case GlobalCacheManagerServer.StateShare:
-                            r.State = GlobalCacheManagerServer.StateInvalid;
-                            // 不删除记录，让TableCache.CleanNow处理。 
-                            if (r.Dirty)
-                                break;
-                            logger.Debug("ReduceInvalid SendResult 3 {0}", r);
-                            rpc.SendResult();
-                            Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
-                            return 0;
+                    case GlobalCacheManagerServer.StateShare:
+                        r.State = GlobalCacheManagerServer.StateInvalid;
+                        // 不删除记录，让TableCache.CleanNow处理。 
+                        if (r.Dirty)
+                            break;
+                        logger.Debug("ReduceInvalid SendResult 3 {0}", r);
+                        rpc.SendResult();
+                        Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+                        return 0;
 
-                        case GlobalCacheManagerServer.StateModify:
-                            r.State = GlobalCacheManagerServer.StateInvalid;
-                            if (r.Dirty)
-                                break;
-                            rpc.SendResult();
-                            Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
-                            return 0;
-                    }
+                    case GlobalCacheManagerServer.StateModify:
+                        r.State = GlobalCacheManagerServer.StateInvalid;
+                        if (r.Dirty)
+                            break;
+                        rpc.SendResult();
+                        Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+                        return 0;
                 }
             }
             finally

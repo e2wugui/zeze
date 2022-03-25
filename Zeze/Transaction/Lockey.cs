@@ -96,12 +96,20 @@ namespace Zeze.Transaction
 
 		public void EnterReadLock()
         {
-			ReaderLockAsync().Wait();
+			if (HoldType != 0)
+				throw new InvalidOperationException();
+
+			Holder = Lockey.RWlock.ReaderLock();
+			HoldType = 1;
         }
 
 		public void EnterWriteLock()
         {
-			WriterLockAsync().Wait();
+			if (HoldType != 0)
+				throw new InvalidOperationException();
+
+			Holder = Lockey.RWlock.WriterLock();
+			HoldType = 2;
         }
 
 		/// <summary>
@@ -114,9 +122,6 @@ namespace Zeze.Transaction
 		{
 			if (isWrite)
 			{
-				if (HoldType == 1)
-					Transaction.Current.ThrowAbort("Invalid Lock State.");
-
 				return await WriterLockAsync();
 			}
 			return await ReaderLockAsync();

@@ -33,7 +33,6 @@ namespace Zeze
             = Transaction.CheckpointMode.Table;
 
         public NLog.LogLevel ProcessReturnErrorLogLevel { get; set; } = NLog.LogLevel.Info;
-        public int InternalThreadPoolWorkerCount { get; set; }
         public int ServerId { get; set; }
         public string GlobalCacheManagerHostNameOrAddress { get; set; }
         // 分成多行配置，支持多HostNameOrAddress或者多raft.xml。
@@ -198,9 +197,6 @@ namespace Zeze
             attr = self.GetAttribute("ProcessReturnErrorLogLevel");
             if (attr.Length > 0)
                 ProcessReturnErrorLogLevel = NLog.LogLevel.FromString(attr);
-
-            attr = self.GetAttribute("InternalThreadPoolWorkerCount");
-            InternalThreadPoolWorkerCount = attr.Length > 0 ? int.Parse(attr) : 10;
 
             attr = self.GetAttribute("WorkerThreads");
             WorkerThreads = attr.Length > 0 ? int.Parse(attr) : -1;

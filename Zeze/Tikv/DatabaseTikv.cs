@@ -19,6 +19,8 @@ namespace Zeze.Tikv
             DirectOperates = new OperatesTikv(this);
         }
 
+        public override int MaxPoolSize => 100;
+
         public class TikvTrans : Database.Transaction
         {
             public TikvConnection Connection { get; }

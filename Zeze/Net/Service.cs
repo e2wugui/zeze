@@ -291,16 +291,12 @@ namespace Zeze.Net
             {
                 if (null != Zeze && TransactionLevel.None != factoryHandle.TransactionLevel)
                 {
-                    Task.Run(() => Mission.CallAsync(
-                        Zeze.NewProcedure(
-                            () => factoryHandle.Handle(p),
-                            p.GetType().FullName,
-                            factoryHandle.TransactionLevel,
-                            p.UserState), p, null).Wait());
+                    _ = Mission.CallAsync(Zeze.NewProcedure(() => factoryHandle.Handle(p),
+                        p.GetType().FullName, factoryHandle.TransactionLevel, p.UserState), p, null);
                 }
                 else
                 {
-                    Task.Run(() => Mission.CallAsync(factoryHandle.Handle, p, null).Wait());
+                    _ = Mission.CallAsync(factoryHandle.Handle, p, null);
                 }
             }
             else

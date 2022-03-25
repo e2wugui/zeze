@@ -20,8 +20,6 @@ namespace Zeze
         public Agent ServiceManagerAgent { get; private set; }
         internal IGlobalAgent GlobalAgent { get; private set; }
 
-        // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
-        internal Util.SimpleThreadPool InternalThreadPool;
         internal Locks Locks { get; private set; }
 
         private Checkpoint _checkpoint;
@@ -148,8 +146,6 @@ namespace Zeze
             Config = config;
             if (null == Config)
                 Config = Config.Load();
-            InternalThreadPool = new Util.SimpleThreadPool(
-                Config.InternalThreadPoolWorkerCount, "ZezeSpecialThreadPool");
 
             int workerMin, ioMin;
             //int workerMax, ioMax;
@@ -332,7 +328,6 @@ namespace Zeze
                 }
                 Databases.Clear();
                 ServiceManagerAgent.Stop();
-                InternalThreadPool = null;
                 Locks = null;
                 Config = null;
             }
