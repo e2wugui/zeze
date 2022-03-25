@@ -42,7 +42,7 @@ namespace Zeze.Transaction
             //this.holdLocks.Clear(); // 执行完肯定清理了。
             this.State = TransactionState.Running;
             this.ProcedureStack.Clear();
-            this.SavedRollbackActions = null;
+            this.LastRollbackActions = null;
             this.Savepoints.Clear();
         }
 
@@ -109,7 +109,7 @@ namespace Zeze.Transaction
             else
             {
                 // 最后一个Savepoint Rollback的时候需要保存一下，用来触发回调。ugly。
-                SavedRollbackActions = last.RollbackActions;
+                LastRollbackActions = last.RollbackActions;
             }
         }
 
@@ -117,7 +117,7 @@ namespace Zeze.Transaction
         {
             VerifyRunningOrCompleted();
             // 允许没有 savepoint 时返回 null. 就是说允许在保存点不存在时进行读取操作。
-            return Savepoints.Count > 0 ? Savepoints[Savepoints.Count - 1].GetLog(key) : null;
+            return Savepoints.Count > 0 ? Savepoints[^1].GetLog(key) : null;
         }
 
         public void PutLog(Log log)
@@ -139,7 +139,7 @@ namespace Zeze.Transaction
         }
         */
 
-        private List<Action> SavedRollbackActions;
+        private List<Action> LastRollbackActions;
 
         public void RunWhileCommit(Action action)
         {
@@ -425,7 +425,7 @@ namespace Zeze.Transaction
         private void _final_rollback_(Procedure procedure)
         {
             State = TransactionState.Completed;
-            foreach (Action action in SavedRollbackActions)
+            foreach (Action action in LastRollbackActions)
             {
                 try
                 {
@@ -436,7 +436,7 @@ namespace Zeze.Transaction
                     logger.Error(e, "Rollback Procedure {0} Action {1}", procedure, action.Method.Name);
                 }
             }
-            SavedRollbackActions = null;
+            LastRollbackActions = null;
         }
 
         private readonly List<LockAsync> holdLocks = new List<LockAsync>(); // 读写锁的话需要一个包装类，用来记录当前维持的是哪个锁。

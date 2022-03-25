@@ -39,10 +39,11 @@
 	把 RocksRaft Changes 应用到 Zeze 中，让 Zeze 实现任意Bean任意级别的更新。
 	// 1. 仅支持整个Bean的订阅。2. log factory 问题。3. add listener和notify原子问题。动态订阅。
 	Global java 异步化： TaskQueueAsync 任务需要参与到队列的推进。全异步和RocksRaft.Transaction.ThreadLocal问题，需要自己实现一个类似AsyncLocal的机制。
-	Global c# 异步化： c# async
-	zeze async await test。SimpleThreadPool?
+	zeze async await test。remove SimpleThreadPool?
+	RocksRaft async & Global With Raft 异步化： c# async
 
 【2022/4/11】
+	Global c# 异步化： c# async
 	c# zeze 嵌套存储过程RunWhileRollback在外层事务Commit时需要处理的问题。还有按调用顺序回调的问题。
 		Savepoint 成员变量 CommitActions RollbackActions
 		Savepoint.Commit(nest) CommitActions.AddAll(nest.CommitActions);
