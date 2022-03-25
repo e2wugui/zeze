@@ -120,11 +120,11 @@ namespace Zeze.Transaction
             //logger.Info("Checkpoint Flush count={0}", countFlush);
         }
 
-        internal void Cleanup()
+        internal async Task Cleanup()
         {
             foreach (Storage storage in storages)
             {
-                storage.Cleanup();
+                await storage.Cleanup();
             }
         }
 

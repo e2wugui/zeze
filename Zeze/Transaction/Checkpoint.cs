@@ -112,7 +112,7 @@ namespace Zeze.Transaction
                     switch (CheckpointMode)
                     {
                         case CheckpointMode.Period:
-                            CheckpointPeriod();
+                            CheckpointPeriod().Wait();
                             foreach (Action action in actionCurrent)
                             {
                                 action();
@@ -142,7 +142,7 @@ namespace Zeze.Transaction
             switch (CheckpointMode)
             {
                 case CheckpointMode.Period:
-                    CheckpointPeriod();
+                    CheckpointPeriod().Wait();
                     break;
 
                 case CheckpointMode.Table:
@@ -177,7 +177,7 @@ namespace Zeze.Transaction
             }
         }
 
-        private void CheckpointPeriod()
+        private async Task CheckpointPeriod()
         {
             // encodeN
             foreach (var db in Databases)
@@ -222,7 +222,7 @@ namespace Zeze.Transaction
                     // cleanup
                     foreach (var db in Databases)
                     {
-                        db.Cleanup();
+                        await db.Cleanup();
                     }
                 }
                 catch (Exception ex)
@@ -263,13 +263,13 @@ namespace Zeze.Transaction
             }
         }
 
-        internal void Flush(Transaction trans)
+        internal async Task Flush(Transaction trans)
         {
-            Flush(from ra in trans.AccessedRecords.Values
+            await Flush(from ra in trans.AccessedRecords.Values
                   where ra.Dirty select ra.OriginRecord);
         }
 
-        internal void Flush(IEnumerable<Record> rs)
+        internal async Task Flush(IEnumerable<Record> rs)
         {
             var dts = new Dictionary<Database, Database.Transaction>();
             try
@@ -308,7 +308,7 @@ namespace Zeze.Transaction
                     // 清除状态
                     foreach (var r in rs)
                     {
-                        r.Cleanup();
+                        await r.Cleanup();
                     }
                 }
                 catch (Exception ex)
@@ -350,12 +350,12 @@ namespace Zeze.Transaction
         }
 
         // under lock(rs)
-        internal void Flush(RelativeRecordSet rs)
+        internal async Task Flush(RelativeRecordSet rs)
         {
             // rs.MergeTo == null &&  check outside
             if (rs.RecordSet != null)
             {
-                Flush(rs.RecordSet);
+                await Flush(rs.RecordSet);
                 foreach (var r in rs.RecordSet)
                 {
                     r.Dirty = false;

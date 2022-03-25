@@ -85,7 +85,7 @@ namespace Zeze.Transaction
                 int lastIndex = Savepoints.Count - 1;
                 Savepoint last = Savepoints[lastIndex];
                 Savepoints.RemoveAt(lastIndex);
-                Savepoints[Savepoints.Count - 1].MergeFrom(last, true);
+                Savepoints[lastIndex - 1].MergeFrom(last, true);
             }
             /*
             else
@@ -198,7 +198,7 @@ namespace Zeze.Transaction
                                         {
                                             if (result == Procedure.Success)
                                             {
-                                                _final_commit_(procedure);
+                                                await _final_commit_(procedure);
 #if ENABLE_STATISTICS
                                                 if (tryCount > 0)
                                                 {
@@ -384,17 +384,17 @@ namespace Zeze.Transaction
             }
         }
 
-        private void _final_commit_(Procedure procedure)
+        private async Task _final_commit_(Procedure procedure)
         {
             // 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
             // 可以在最终提交里可以实现每事务checkpoint。
             ChangeCollector cc = new ChangeCollector();
-            var lastSavepoint = Savepoints[^1];
-            RelativeRecordSet.TryUpdateAndCheckpoint(this, procedure, () =>
+            var lastsp = Savepoints[0];
+            await RelativeRecordSet.TryUpdateAndCheckpoint(this, procedure, () =>
             {
                 try
                 {
-                    lastSavepoint.Commit();
+                    lastsp.Commit();
                     foreach (var e in AccessedRecords)
                     {
                         if (e.Value.Dirty)
@@ -419,7 +419,7 @@ namespace Zeze.Transaction
 
             procedure.Rpc?.SendResultCode(procedure.Rpc.ResultCode);
 
-            _trigger_commit_actions_(procedure, lastSavepoint);
+            _trigger_commit_actions_(procedure, lastsp);
         }
 
         private void _final_rollback_(Procedure procedure)
@@ -630,11 +630,11 @@ namespace Zeze.Transaction
         private async Task<CheckResult> _lock_and_check_(TransactionLevel level)
         {
             bool allRead = true;
-            if (Savepoints.Count > 0)
+            if (Savepoints.Count == 1)
             {
                 // 全部 Rollback 时 Count 为 0；最后提交时 Count 必须为 1；
                 // 其他情况属于Begin,Commit,Rollback不匹配。外面检查。
-                foreach (var log in Savepoints[Savepoints.Count - 1].Logs.Values)
+                foreach (var log in Savepoints[0].Logs.Values)
                 {
                     // 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
                     // 现在不会有这种情况，保留给未来扩展需要。
@@ -715,7 +715,7 @@ namespace Zeze.Transaction
                 if (c == 0)
                 {
                     // 这里可能发生读写锁提升
-                    if (e.Value.Dirty && 2 != curLock.HoldType)
+                    if (e.Value.Dirty && 2 != curLock.AcquiredType)
                     {
                         // 必须先全部释放，再升级当前记录锁，再锁后面的记录。
                         // 直接 unlockRead，lockWrite会死锁。

@@ -196,31 +196,29 @@ namespace Zeze.Transaction
             }
             //logger.Warn("ReduceShare checkpoint begin. id={0} {1}", r, tkey);
             rpc.Result.State = GlobalCacheManagerServer.StateShare;
-            FlushWhenReduce(r, () =>
-            {
-                logger.Debug("ReduceShare SendResult 4 {0}", r);
-                // Must before SendResult
-                rpc.SendResult();
-                Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
-            });
+            await FlushWhenReduce(r);
+            logger.Debug("ReduceShare SendResult 4 {0}", r);
+            // Must before SendResult
+            rpc.SendResult();
+            Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
             //logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
             return 0;
         }
 
-        private void FlushWhenReduce(Record r, Action after)
+        private async Task FlushWhenReduce(Record r)
         {
             switch (Zeze.Config.CheckpointMode)
             {
                 case CheckpointMode.Period:
-                    Zeze.Checkpoint.AddActionAndPulse(after);
-                    break;
+                    //Zeze.Checkpoint.AddActionAndPulse(after);
+                    //break;
+                    throw new InvalidOperationException("Reduce Can Not Work With CheckpointMode.Period.");
 
                 case CheckpointMode.Immediately:
-                    after();
                     break;
 
                 case CheckpointMode.Table:
-                    RelativeRecordSet.FlushWhenReduce(r, Zeze.Checkpoint, after);
+                    await RelativeRecordSet.FlushWhenReduce(r, Zeze.Checkpoint);
                     break;
             }
         }
@@ -289,13 +287,11 @@ namespace Zeze.Transaction
             }
             //logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", r, tkey);
             rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-            FlushWhenReduce(r, () =>
-            {
-                logger.Debug("ReduceInvalid SendResult 4 {0} ", r);
-                // Must before SendResult
-                rpc.SendResult();
-                Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
-            });
+            await FlushWhenReduce(r);
+            logger.Debug("ReduceInvalid SendResult 4 {0} ", r);
+            // Must before SendResult
+            rpc.SendResult();
+            Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
             //logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
             return 0;
         }

@@ -250,7 +250,8 @@ namespace Zeze.Transaction
                 {
                     // rrs lock
                     var rrs = p.Value.RelativeRecordSet;
-                    if (false == rrs.TryLock())
+                    var lockrrs = rrs.LockTry();
+                    if (null == lockrrs)
                         return false;
                     try
                     {
@@ -264,7 +265,7 @@ namespace Zeze.Transaction
                     }
                     finally
                     {
-                        rrs.UnLock();
+                        lockrrs.Dispose();
                     }
                 }
                 finally

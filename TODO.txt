@@ -40,7 +40,10 @@
 	// 1. 仅支持整个Bean的订阅。2. log factory 问题。3. add listener和notify原子问题。动态订阅。
 	Global java 异步化： TaskQueueAsync 任务需要参与到队列的推进。全异步和RocksRaft.Transaction.ThreadLocal问题，需要自己实现一个类似AsyncLocal的机制。
 	zeze async await test。remove SimpleThreadPool?
+	database，raft，rocksraft还没有异步化
 	RocksRaft async & Global With Raft 异步化： c# async
+	async Connector GetReadySocket WaitReady 
+	async TestCheckpointModeTable 直接运行 Trans 目录会出错，单个或者选择开始的几个运行没问题。
 
 【2022/4/11】
 	Global c# 异步化： c# async

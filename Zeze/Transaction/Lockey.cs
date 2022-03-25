@@ -15,8 +15,8 @@ namespace Zeze.Transaction
 	public sealed class LockAsync : IDisposable
 	{
 		public Lockey Lockey { get; }
-		private IDisposable Holder;
-		public int HoldType { get; private set; } // 0 none, 1 read, 2 write
+		private IDisposable Acquired;
+		public int AcquiredType { get; private set; } // 0 none, 1 read, 2 write
 
 		public LockAsync(Lockey lockey)
         {
@@ -25,82 +25,100 @@ namespace Zeze.Transaction
 
 		public async Task<LockAsync> ReaderLockAsync()
 		{
-			if (HoldType != 0)
+			if (AcquiredType != 0)
 				throw new InvalidOperationException();
 
 #if ENABLE_STATISTICS
 			TableStatistics.Instance.GetOrAdd(Lockey.TableKey.Name).ReadLockTimes.IncrementAndGet();
 #endif
-			Holder = await Lockey.RWlock.ReaderLockAsync();
-			HoldType = 1;
+			Acquired = await Lockey.RWlock.ReaderLockAsync();
+			AcquiredType = 1;
 			return this;
 		}
 
 		public async Task<LockAsync> WriterLockAsync()
 		{
-			if (HoldType != 0)
+			if (AcquiredType != 0)
 				throw new InvalidOperationException();
 #if ENABLE_STATISTICS
 			TableStatistics.Instance.GetOrAdd(Lockey.TableKey.Name).WriteLockTimes.IncrementAndGet();
 #endif
-			Holder = await Lockey.RWlock.WriterLockAsync();
-			HoldType = 2;
+			Acquired = await Lockey.RWlock.WriterLockAsync();
+			AcquiredType = 2;
 			return this;
 		}
 
 		public bool TryEnterReadLock()
 		{
-			if (HoldType != 0)
+			if (AcquiredType != 0)
 				throw new InvalidOperationException();
 
 #if ENABLE_STATISTICS
 			TableStatistics.Instance.GetOrAdd(Lockey.TableKey.Name).TryReadLockTimes.IncrementAndGet();
 #endif
 			CancellationTokenSource source = new CancellationTokenSource();
-			var tmpReleaser = Lockey.RWlock.ReaderLockAsync(source.Token);
-			if (tmpReleaser.AsTask().Wait(0))
+			var context = Lockey.RWlock.ReaderLockAsync(source.Token);
+			if (context.AsTask().Wait(0))
             {
-				Holder = tmpReleaser.AsTask().Result;
-				HoldType = 1;
+				Acquired = context.AsTask().Result;
+				AcquiredType = 1;
 				return true;
 			}
-			else
-            {
-				source.Cancel();
-				return false;
+
+			source.Cancel();
+			try
+			{
+				// Cancel 之后需要等待结果。此时还可能得到锁。
+				context.AsTask().Wait();
+				Acquired = context.AsTask().Result;
+				AcquiredType = 1;
+				return true;
 			}
+			catch (Exception)
+			{
+			}
+			return false;
 		}
 
 		public bool TryEnterWriteLock()
 		{
-			if (HoldType != 0)
+			if (AcquiredType != 0)
 				throw new InvalidOperationException();
 
 #if ENABLE_STATISTICS
 			TableStatistics.Instance.GetOrAdd(Lockey.TableKey.Name).TryWriteLockTimes.IncrementAndGet();
 #endif
-			CancellationTokenSource source = new CancellationTokenSource();
-			var tmpReleaser = Lockey.RWlock.WriterLockAsync(source.Token);
-			if (tmpReleaser.AsTask().Wait(0))
+			var source = new CancellationTokenSource();
+			var context = Lockey.RWlock.WriterLockAsync(source.Token);
+			if (context.AsTask().Wait(0))
 			{
-				Holder = tmpReleaser.AsTask().Result;
-				HoldType = 2;
+				Acquired = context.AsTask().Result;
+				AcquiredType = 2;
 				return true;
 			}
-			else
+
+			source.Cancel();
+			try
 			{
-				source.Cancel();
-				return false;
+				// Cancel 之后需要等待结果。此时还可能得到锁。
+				context.AsTask().Wait();
+				Acquired = context.AsTask().Result;
+				AcquiredType = 2;
+				return true;
 			}
+			catch (Exception)
+			{
+			}
+			return false;
 		}
 
 		public void EnterReadLock()
         {
-			if (HoldType != 0)
+			if (AcquiredType != 0)
 				throw new InvalidOperationException();
 
-			Holder = Lockey.RWlock.ReaderLock();
-			HoldType = 1;
+			Acquired = Lockey.RWlock.ReaderLock();
+			AcquiredType = 1;
         }
 
 		/*
@@ -131,8 +149,8 @@ namespace Zeze.Transaction
 
 		public void Release()
 		{
-			Holder?.Dispose();
-			HoldType = 0;
+			Acquired?.Dispose();
+			AcquiredType = 0;
 		}
 
 		public void Dispose()
@@ -142,7 +160,7 @@ namespace Zeze.Transaction
 
 		public override string ToString()
 		{
-			return $"{Lockey} HoldType={HoldType}";
+			return $"{Lockey} HoldType={AcquiredType}";
 		}
 	}
 

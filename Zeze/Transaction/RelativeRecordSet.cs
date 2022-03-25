@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Zeze.Util;
 
@@ -87,32 +88,43 @@ namespace Zeze.Transaction
             }
         }
 
-        internal void Lock()
+        private Nito.AsyncEx.AsyncLock Mutex = new();
+
+        internal async Task<IDisposable> LockAsync()
         {
-            System.Threading.Monitor.Enter(this);
+            return await Mutex.LockAsync();
         }
 
-        internal bool TryLock()
+        internal IDisposable LockTry()
         {
-            return System.Threading.Monitor.TryEnter(this);
-        }
-
-        // 必须且仅调用一次。
-        internal void UnLock()
-        {
-            System.Threading.Monitor.Exit(this);
+            var source = new CancellationTokenSource();
+            var context = Mutex.LockAsync(source.Token);
+            if (context.AsTask().Wait(0))
+            {
+                return context.AsTask().Result;
+            }
+            source.Cancel();
+            try
+            {
+                context.AsTask().Wait();
+                return context.AsTask().Result;
+            }
+            catch (Exception)
+            {
+            }
+            return null;
         }
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public static void TryUpdateAndCheckpoint(
+        public static async Task TryUpdateAndCheckpoint(
             Transaction trans, Procedure procedure, Action commit)
         {
             switch (procedure.Zeze.Config.CheckpointMode)
             {
                 case CheckpointMode.Immediately:
                     commit();
-                    procedure.Zeze.Checkpoint.Flush(trans);
+                    await procedure.Zeze.Checkpoint.Flush(trans);
                     // 这种模式下 RelativeRecordSet 都是空的。
                     return;
 
@@ -154,17 +166,17 @@ namespace Zeze.Transaction
                 // CheckpointMode.Period上面已经处理了，此时不会是它。
                 // 【优化】，事务内访问的所有记录都是Immediately的，马上提交，不需要更新关联记录集合。
                 commit();
-                procedure.Zeze.Checkpoint.Flush(trans);
+                await procedure.Zeze.Checkpoint.Flush(trans);
                 // 这种情况下 RelativeRecordSet 都是空的。
                 //logger.Debug($"allCheckpointWhenCommit AccessedCount={trans.AccessedRecords.Count}");
                 return;
             }
 
-            var LockedRelativeRecordSets = new List<RelativeRecordSet>();
+            var locked = new List<(RelativeRecordSet, IDisposable)>();
             try
             {
-                _lock_(LockedRelativeRecordSets, RelativeRecordSets, transAccessRecords);
-                if (LockedRelativeRecordSets.Count > 0)
+                await _lock_(locked, RelativeRecordSets, transAccessRecords);
+                if (locked.Count > 0)
                 {
                     /*
                     // 锁住以后重新检查是否可以不用合并，直接提交。
@@ -197,11 +209,11 @@ namespace Zeze.Transaction
                         return;
                     }
                     */
-                    var mergedSet = _merge_(LockedRelativeRecordSets, trans, allRead);
+                    var mergedSet = _merge_(locked, trans, allRead);
                     commit(); // 必须在锁获得并且合并完集合以后才提交修改。
                     if (needFlushNow)
                     {
-                        procedure.Zeze.Checkpoint.Flush(mergedSet);
+                        await procedure.Zeze.Checkpoint.Flush(mergedSet);
                         mergedSet.Delete();
                         //logger.Debug($"needFlushNow AccessedCount={trans.AccessedRecords.Count}");
                     }
@@ -216,74 +228,72 @@ namespace Zeze.Transaction
             }
             finally
             {
-                foreach (var rrs in LockedRelativeRecordSets)
+                foreach (var rrs in locked)
                 {
-                    rrs.UnLock();
+                    rrs.Item2.Dispose();
                 }
             }
         }
 
-        private static RelativeRecordSet _merge_(List<RelativeRecordSet> LockedRelativeRecordSets, Transaction trans, bool allRead)
+        private static RelativeRecordSet _merge_(List<(RelativeRecordSet, IDisposable)> locked, Transaction trans, bool allRead)
         {
             // find largest
-            var largest = LockedRelativeRecordSets[0];
-            for (int index = 1; index < LockedRelativeRecordSets.Count; ++index)
+            var largest = locked[0];
+            for (int index = 1; index < locked.Count; ++index)
             {
-                var r = LockedRelativeRecordSets[index];
-                var cur = largest.RecordSet == null ? 1 : largest.RecordSet.Count;
-                if (r.RecordSet != null && r.RecordSet.Count > cur)
+                var r = locked[index];
+                var cur = largest.Item1.RecordSet == null ? 1 : largest.Item1.RecordSet.Count;
+                if (r.Item1.RecordSet != null && r.Item1.RecordSet.Count > cur)
                 {
                     largest = r;
                 }
             }
             // merge all other set to largest
-            foreach (var r in LockedRelativeRecordSets)
+            foreach (var r in locked)
             {
                 if (r == largest)
                     continue;
-                largest.Merge(r);
+                largest.Item1.Merge(r.Item1);
             }
 
             // 所有的记录都是读，并且所有的记录都是孤立的，此时不需要关联起来。
-            if (largest.RecordSet != null || false == allRead)
+            if (largest.Item1.RecordSet != null || false == allRead)
             {
                 // merge 孤立记录。
                 foreach (var ar in trans.AccessedRecords.Values)
                 {
                     if (ar.OriginRecord.RelativeRecordSet.RecordSet == null
-                        || ar.OriginRecord.RelativeRecordSet == largest // urgly
+                        || ar.OriginRecord.RelativeRecordSet == largest.Item1 // urgly
                         )
-                        largest.Merge(ar.OriginRecord); // 合并孤立记录。这里包含largest是孤立记录的情况。
+                        largest.Item1.Merge(ar.OriginRecord); // 合并孤立记录。这里包含largest是孤立记录的情况。
                 }
             }
-            return largest;
+            return largest.Item1;
         }
 
-        private static void _lock_(
-            List<RelativeRecordSet> LockedRelativeRecordSets,
-            SortedDictionary<long, RelativeRecordSet> RelativeRecordSets,
-            HashSet<Record> transAccessRecords)
+        private static async Task _lock_(List<(RelativeRecordSet, IDisposable)> locked,
+            SortedDictionary<long, RelativeRecordSet> sortedrrs, HashSet<Record> transAccessRecords)
         {
             LabelLockRelativeRecordSets:
             {
                 int index = 0;
-                int n = LockedRelativeRecordSets.Count;
-                var itrrs = RelativeRecordSets.Values.GetEnumerator();
+                int n = locked.Count;
+                var itrrs = sortedrrs.Values.GetEnumerator();
                 bool hasNext = itrrs.MoveNext();
                 while (hasNext)
                 {
                     var rrs = itrrs.Current;
                     if (index >= n)
                     {
-                        if (_lock_and_check_(LockedRelativeRecordSets, RelativeRecordSets, rrs, transAccessRecords))
+                        if (await _lock_and_check_(locked, sortedrrs, rrs, transAccessRecords))
                         {
                             hasNext = itrrs.MoveNext();
                             continue;
                         }
                         goto LabelLockRelativeRecordSets;
                     }
-                    var curset = LockedRelativeRecordSets[index];
-                    int c = curset.Id.CompareTo(rrs.Id);
+                    var curset = locked[index];
+                    int c = curset.Item1.Id.CompareTo(rrs.Id);
                     if (c == 0)
                     {
                         ++index;
@@ -296,13 +306,13 @@ namespace Zeze.Transaction
                         int unlockEndIndex = index;
                         for (;
                             unlockEndIndex < n
-                            && LockedRelativeRecordSets[unlockEndIndex].Id < rrs.Id;
+                            && locked[unlockEndIndex].Item1.Id < rrs.Id;
                             ++unlockEndIndex)
                         {
-                            LockedRelativeRecordSets[unlockEndIndex].UnLock();
+                            locked[unlockEndIndex].Item2.Dispose();
                         }
-                        LockedRelativeRecordSets.RemoveRange(index, unlockEndIndex - index);
-                        n = LockedRelativeRecordSets.Count;
+                        locked.RemoveRange(index, unlockEndIndex - index);
+                        n = locked.Count;
                         // 重新从当前 rrs 继续锁。
                         continue;
                     }
@@ -310,26 +320,26 @@ namespace Zeze.Transaction
                     // 从当前位置释放锁，再次尝试。
                     for (int i = index; i < n; ++i)
                     {
-                        LockedRelativeRecordSets[i].UnLock();
+                        locked[i].Item2.Dispose();
                     }
-                    LockedRelativeRecordSets.RemoveRange(index, n - index);
-                    n = LockedRelativeRecordSets.Count;
+                    locked.RemoveRange(index, n - index);
+                    n = locked.Count;
                     // 重新从当前 rrs 继续锁。
                 }
             }
         }
 
-        private static bool _lock_and_check_(
-            List<RelativeRecordSet> locked,
+        private static async Task<bool> _lock_and_check_(
+            List<(RelativeRecordSet, IDisposable)> locked,
             SortedDictionary<long, RelativeRecordSet> all,
             RelativeRecordSet rrs,
             HashSet<Record> transAccessRecords)
         {
-            rrs.Lock();
+            var lockrrs = await rrs.LockAsync();
             var mergeTo = rrs.MergeTo;
             if (rrs.MergeTo != null)
             {
-                rrs.UnLock();
+                lockrrs.Dispose();
 
                 all.Remove(rrs.Id); // remove merged or deleted rrs
                 if (mergeTo == Deleted)
@@ -351,113 +361,88 @@ namespace Zeze.Transaction
                 all[mergeTo.Id] = mergeTo;
                 return false;
             }
-            locked.Add(rrs);
+            locked.Add((rrs, lockrrs));
             return true;
         }
 
-        internal static void FlushWhenCheckpoint(Checkpoint checkpoint)
+        internal static async void FlushWhenCheckpoint(Checkpoint checkpoint)
         {
             foreach (var rrs in RelativeRecordSetMap.Keys)
             {
-                rrs.Lock();
-                try
+                using var lockrrs = await rrs.LockAsync();
+                if (rrs.MergeTo != null)
                 {
-                    if (rrs.MergeTo != null)
-                    {
-                        RelativeRecordSetMap.TryRemove(rrs, out var _);
-                        continue;
-                    }
-
-                    checkpoint.Flush(rrs);
-                    rrs.Delete();
                     RelativeRecordSetMap.TryRemove(rrs, out var _);
+                    continue;
                 }
-                finally
-                {
-                    rrs.UnLock();
-                }
+
+                await checkpoint.Flush(rrs);
+                rrs.Delete();
+                RelativeRecordSetMap.TryRemove(rrs, out var _);
             }
         }
 
-        internal static void FlushWhenReduce(
-            Record r, Checkpoint checkpoint, Action after)
+        internal static async Task FlushWhenReduce(Record r, Checkpoint checkpoint)
         {
             var rrs = r.RelativeRecordSet;
             while (rrs != null)
             {
-                lock (r)
                 {
+                    using var lockr = await r.Mutex.LockAsync();
                     if (r.State == Services.GlobalCacheManagerServer.StateRemoved)
-                    {
-                        after();
                         return;
-                    }
                 }
-                rrs = _FlushWhenReduce(rrs, checkpoint, after);
+                rrs = await _FlushWhenReduce(rrs, checkpoint);
             }
         }
 
-        private static RelativeRecordSet _FlushWhenReduce(
-            RelativeRecordSet rrs, Checkpoint checkpoint, Action after)
+        private static async Task<RelativeRecordSet> _FlushWhenReduce(RelativeRecordSet rrs, Checkpoint checkpoint)
         {
-            rrs.Lock();
-            try
-            {
-                if (rrs.MergeTo == null)
-                {
-                    if (rrs.RecordSet != null) // 孤立记录不用保存，肯定没有修改。
-                    {
-                        checkpoint.Flush(rrs);
-                        rrs.Delete();
-                    }
-                    after();
-                    return null;
-                }
-                
-                // 这个方法是在 Reduce 获得记录锁，并降级（设置状态）以后才调用。
-                // 已经不会有后续的修改（但可能有读取并且被合并然后又被Flush），
-                // 或者被 Checkpoint Flush。
-                // 此时可以认为直接成功了吧？
-                // 或者不判断这个，总是由上面的步骤中处理。
-                if (rrs.MergeTo == RelativeRecordSet.Deleted)
-                {
-                    // has flush
-                    after();
-                    return null;
-                }
-                // */
+            using var lockrrs = await rrs.LockAsync();
 
-                return rrs.MergeTo; // 返回这个能更快得到新集合的引用。
-            }
-            finally
+            if (rrs.MergeTo == null)
             {
-                rrs.UnLock();
+                if (rrs.RecordSet != null) // 孤立记录不用保存，肯定没有修改。
+                {
+                    await checkpoint.Flush(rrs);
+                    rrs.Delete();
+                }
+                return null;
             }
+                
+            // 这个方法是在 Reduce 获得记录锁，并降级（设置状态）以后才调用。
+            // 已经不会有后续的修改（但可能有读取并且被合并然后又被Flush），
+            // 或者被 Checkpoint Flush。
+            // 此时可以认为直接成功了吧？
+            // 或者不判断这个，总是由上面的步骤中处理。
+            if (rrs.MergeTo == RelativeRecordSet.Deleted)
+            {
+                // has flush
+                return null;
+            }
+            // */
+            return rrs.MergeTo; // 返回这个能更快得到新集合的引用。
         }
 
         public override string ToString()
         {
-            Lock();
-            try
-            {
-                if (MergeTo != null)
-                {
-                    return "[MergeTo-" + MergeTo.Id + "]";
-                }
+            var task = LockAsync();
+            task.Wait();
+            using var lockthis = task.Result;
 
-                if (null == RecordSet)
-                {
-                    return Id + "-[Isolated]";
-                }
-                var sb = new StringBuilder();
-                sb.Append(Id).Append('-');
-                Zeze.Serialize.ByteBuffer.BuildString(sb, RecordSet);
-                return sb.ToString();
-            }
-            finally
+            if (MergeTo != null)
             {
-                UnLock();
+                return "[MergeTo-" + MergeTo.Id + "]";
             }
+
+            if (null == RecordSet)
+            {
+                return Id + "-[Isolated]";
+            }
+            var sb = new StringBuilder();
+            sb.Append(Id).Append('-');
+            Zeze.Serialize.ByteBuffer.BuildString(sb, RecordSet);
+            return sb.ToString();
         }
 
         public static string RelativeRecordSetMapToString()
