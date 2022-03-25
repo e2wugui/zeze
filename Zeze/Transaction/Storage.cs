@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Collections.Concurrent;
 using Zeze.Serialize;
+using System.Threading.Tasks;
 
 namespace Zeze.Transaction
 {
@@ -18,7 +19,7 @@ namespace Zeze.Transaction
 
 		public abstract int Flush(Database.Transaction t);
 
-		public abstract void Cleanup();
+		public abstract Task Cleanup();
 
         public abstract void Close();
 	}
@@ -122,11 +123,11 @@ namespace Zeze.Transaction
         /// 仅在 Checkpoint 中调用。
         /// 没有拥有任何锁。
         /// </summary>
-        public override void Cleanup()
+        public override async Task Cleanup()
         {
             foreach (var e in snapshot)
             {
-                e.Value.Cleanup();
+                await e.Value.Cleanup();
             }
             snapshot.Clear();
         }

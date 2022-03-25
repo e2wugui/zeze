@@ -108,7 +108,7 @@ namespace Zeze.Services
                             rpc.SendResultCode(0);
                             return 0;
                         }
-                        return table.ReduceInvalid(new ReduceBridge(rpc));
+                        return await table.ReduceInvalid(new ReduceBridge(rpc));
                     }
 
                 case GlobalCacheManagerServer.StateShare:
@@ -123,7 +123,7 @@ namespace Zeze.Services
                             rpc.SendResultCode(0);
                             return 0;
                         }
-                        return table.ReduceShare(new ReduceBridge(rpc));
+                        return await table.ReduceShare(new ReduceBridge(rpc));
                     }
 
                 default:

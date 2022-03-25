@@ -228,8 +228,8 @@ namespace Zeze.Services.ToLuaService
             public List<VariableMeta> Variables { get; } = new List<VariableMeta>();
         }
 
-        readonly Dictionary<long, BeanMeta> BeanMetas = new Dictionary<long, BeanMeta>(); // Bean.TypeId -> vars
-        readonly Dictionary<long, ProtocolArgument> ProtocolMetas = new Dictionary<long, ProtocolArgument>(); // protocol.TypeId -> Bean.TypeId
+        readonly Dictionary<long, BeanMeta> BeanMetas = new(); // Bean.TypeId -> vars
+        readonly Dictionary<long, ProtocolArgument> ProtocolMetas = new(); // protocol.TypeId -> Bean.TypeId
 
         public void LoadMeta()
         {
@@ -365,7 +365,7 @@ namespace Zeze.Services.ToLuaService
         static KeraLua.LuaFunction ZezeSendProtocolFunction;
         static KeraLua.LuaFunction ZezeConnectFunction;
 #endif // USE_KERA_LUA
-        static readonly object RegisterCallbackLock = new object();
+        static readonly object RegisterCallbackLock = new ();
 
         internal void RegisterGlobalAndCallback(FromLua callback)
         {
@@ -859,10 +859,10 @@ namespace Zeze.Services.ToLuaService
             }
         }
 
-        Dictionary<long, ByteBuffer> ToLuaBuffer = new Dictionary<long, ByteBuffer>();
-        Dictionary<long, FromLua> ToLuaHandshakeDone = new Dictionary<long, FromLua>();
-        Dictionary<long, FromLua> ToLuaSocketClose = new Dictionary<long, FromLua>();
-        HashSet<long> ToLuaRpcTimeout = new HashSet<long>();
+        Dictionary<long, ByteBuffer> ToLuaBuffer = new();
+        Dictionary<long, FromLua> ToLuaHandshakeDone = new();
+        Dictionary<long, FromLua> ToLuaSocketClose = new();
+        HashSet<long> ToLuaRpcTimeout = new();
 
         internal void SetRpcTimeout(long sid)
         {

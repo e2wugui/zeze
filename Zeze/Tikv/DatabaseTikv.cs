@@ -136,7 +136,7 @@ namespace Zeze.Tikv
 
             public ByteBuffer Find(ByteBuffer key)
             {
-                using TikvConnection connection = new TikvConnection(DatabaseReal.DatabaseUrl);
+                using TikvConnection connection = new(DatabaseReal.DatabaseUrl);
                 connection.Open();
                 using TikvTransaction transaction = connection.BeginTransaction();
                 var result = Tikv.Driver.Get(transaction.TransactionId, WithKeyspace(key));
@@ -158,7 +158,7 @@ namespace Zeze.Tikv
 
             public long Walk(Func<byte[], byte[], bool> callback)
             {
-                using TikvConnection connection = new TikvConnection(DatabaseReal.DatabaseUrl);
+                using TikvConnection connection = new(DatabaseReal.DatabaseUrl);
                 connection.Open();
                 using TikvTransaction transaction = connection.BeginTransaction();
                 long result = Tikv.Driver.Scan(transaction.TransactionId, KeyPrefix, callback);

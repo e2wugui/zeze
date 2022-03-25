@@ -27,17 +27,17 @@ namespace Zeze.Transaction
         internal abstract Storage Open(Application app, Database database);
         internal abstract void Close();
 
-        internal virtual int ReduceShare(Reduce rpc)
+        internal virtual Task<int> ReduceShare(Reduce rpc)
         {
             throw new NotImplementedException();
         }
 
-        internal virtual int ReduceInvalid(Reduce rpc)
+        internal virtual Task<int> ReduceInvalid(Reduce rpc)
         {
             throw new NotImplementedException();
         }
 
-        internal virtual int ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex)
+        internal virtual Task<int> ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex)
         {
             throw new NotImplementedException();
         }
@@ -131,7 +131,7 @@ namespace Zeze.Transaction
             }
         }
 
-        internal override int ReduceShare(Reduce rpc)
+        internal override async Task<int> ReduceShare(Reduce rpc)
         {
             logger.Debug("ReduceShare NewState={0}", rpc.Argument.State);
 
@@ -146,8 +146,7 @@ namespace Zeze.Transaction
             TableKey tkey = new TableKey(Name, key);
 
             Record<K, V> r = null;
-            var lockey = Zeze.Locks.Get(tkey);
-            lockey.EnterWriteLock();
+            var lockey = await Zeze.Locks.Get(tkey).WriterLockAsync();
             try
             {
                 r = Cache.Get(key);
@@ -226,7 +225,7 @@ namespace Zeze.Transaction
             }
         }
 
-        internal override int ReduceInvalid(Reduce rpc)
+        internal override async Task<int> ReduceInvalid(Reduce rpc)
         {
             logger.Debug("ReduceInvalid NewState={0}", rpc.Argument.State);
 
@@ -238,8 +237,7 @@ namespace Zeze.Transaction
 
             TableKey tkey = new TableKey(Name, key);
             Record<K, V> r = null;
-            var lockey = Zeze.Locks.Get(tkey);
-            lockey.EnterWriteLock();
+            var lockey = await Zeze.Locks.Get(tkey).WriterLockAsync();
             try
             {
                 r = Cache.Get(key);
@@ -302,7 +300,7 @@ namespace Zeze.Transaction
             return 0;
         }
 
-        internal override int ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex)
+        internal override async Task<int> ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex)
         {
             foreach (var e in Cache.DataMap)
             {
@@ -314,8 +312,7 @@ namespace Zeze.Transaction
                 }
 
                 TableKey tkey = new TableKey(Name, e.Key);
-                var lockey = Zeze.Locks.Get(tkey);
-                lockey.EnterWriteLock();
+                var lockey = await Zeze.Locks.Get(tkey).WriterLockAsync();
                 try
                 {
                     // 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
@@ -599,8 +596,7 @@ namespace Zeze.Transaction
                 currentT.SetAlwaysReleaseLockWhenRedo();
             }
 
-            var lockey = Zeze.Locks.Get(tkey);
-            lockey.EnterReadLock();
+            var lockey = await Zeze.Locks.Get(tkey).ReaderLockAsync();
             try
             {
                 var r = await LoadAsync(key);

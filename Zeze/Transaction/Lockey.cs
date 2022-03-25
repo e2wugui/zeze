@@ -23,7 +23,7 @@ namespace Zeze.Transaction
 			Lockey = lockey;
         }
 
-		public async Task<int> ReaderLockAsync()
+		public async Task<LockAsync> ReaderLockAsync()
 		{
 			if (HoldType != 0)
 				throw new InvalidOperationException();
@@ -33,10 +33,10 @@ namespace Zeze.Transaction
 #endif
 			Holder = await Lockey.RWlock.ReaderLockAsync();
 			HoldType = 1;
-			return HoldType;
+			return this;
 		}
 
-		public async Task<int> WriterLockAsync()
+		public async Task<LockAsync> WriterLockAsync()
 		{
 			if (HoldType != 0)
 				throw new InvalidOperationException();
@@ -45,7 +45,7 @@ namespace Zeze.Transaction
 #endif
 			Holder = await Lockey.RWlock.WriterLockAsync();
 			HoldType = 2;
-			return HoldType;
+			return this;
 		}
 
 		public bool TryEnterReadLock()
@@ -103,6 +103,7 @@ namespace Zeze.Transaction
 			HoldType = 1;
         }
 
+		/*
 		public void EnterWriteLock()
         {
 			if (HoldType != 0)
@@ -111,6 +112,7 @@ namespace Zeze.Transaction
 			Holder = Lockey.RWlock.WriterLock();
 			HoldType = 2;
         }
+		*/
 
 		/// <summary>
 		/// 根据参数进入读或写锁。
@@ -118,7 +120,7 @@ namespace Zeze.Transaction
 		/// EnterUpgradeableReadLock 看起来不好用，慢慢研究。
 		/// </summary>
 		/// <param name="isWrite"></param>
-		internal async Task<int> EnterLockAsync(bool isWrite)
+		internal async Task<LockAsync> EnterLockAsync(bool isWrite)
 		{
 			if (isWrite)
 			{

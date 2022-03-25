@@ -92,7 +92,7 @@ namespace Zeze.Transaction
                     break;
 
                 case CheckpointMode.Period:
-                    TaskCompletionSource<int> source = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+                    TaskCompletionSource<int> source = new(TaskCreationOptions.RunContinuationsAsynchronously);
                     AddActionAndPulse(() => source.SetResult(0));
                     source.Task.Wait();
                     break;
@@ -153,7 +153,7 @@ namespace Zeze.Transaction
         }
 
         private List<Action> actionCurrent;
-        private volatile List<Action> actionPending = new List<Action>();
+        private volatile List<Action> actionPending = new();
 
         /// <summary>
         /// 增加 checkpoint 完成一次以后执行的动作，每次 FlushReadWriteLock.EnterWriteLock()

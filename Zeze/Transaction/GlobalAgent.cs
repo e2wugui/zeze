@@ -188,7 +188,7 @@ namespace Zeze.Transaction
                             rpc.SendResultCode(0);
                             return 0;
                         }
-                        return table.ReduceInvalid(rpc);
+                        return await table.ReduceInvalid(rpc);
                     }
 
                 case GlobalCacheManagerServer.StateShare:
@@ -203,7 +203,7 @@ namespace Zeze.Transaction
                             rpc.SendResultCode(0);
                             return 0;
                         }
-                        return table.ReduceShare(rpc);
+                        return await table.ReduceShare(rpc);
                     }
 
                 default:

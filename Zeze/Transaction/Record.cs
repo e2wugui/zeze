@@ -90,11 +90,11 @@ namespace Zeze.Transaction
 
         internal abstract void Encode0();
         internal abstract void Flush(Database.Transaction t);
-        internal abstract void Cleanup();
+        internal abstract Task Cleanup();
 
         internal Database.Transaction DatabaseTransactionTmp { get; set; }
         internal abstract void SetDirty();
-        internal abstract void SetExistInBackDatabase(long timestamp, bool value);
+        internal abstract Task SetExistInBackDatabase(long timestamp, bool value);
         internal Nito.AsyncEx.AsyncLock Mutex = new Nito.AsyncEx.AsyncLock();
     }
 
@@ -278,15 +278,14 @@ namespace Zeze.Transaction
             }
         }
 
-        internal override void Cleanup()
+        internal override async Task Cleanup()
         {
             this.DatabaseTransactionTmp = null;
 
             if (TTable.Zeze.Checkpoint.CheckpointMode == CheckpointMode.Period)
             {
                 var tkey = new TableKey(Table.Name, Key);
-                var lockey = TTable.Zeze.Locks.Get(tkey);
-                lockey.EnterWriteLock();
+                var lockey = await TTable.Zeze.Locks.Get(tkey).WriterLockAsync();
                 try
                 {
                     if (SavedTimestampForCheckpointPeriod == base.Timestamp)
@@ -309,11 +308,10 @@ namespace Zeze.Transaction
 
         private long ExistInBackDatabaseModifyTimestamp;
 
-        internal override void SetExistInBackDatabase(long timestamp, bool value)
+        internal override async Task SetExistInBackDatabase(long timestamp, bool value)
         {
             var tkey = new TableKey(Table.Name, Key);
-            var lockey = TTable.Zeze.Locks.Get(tkey);
-            lockey.EnterWriteLock();
+            var lockey = await TTable.Zeze.Locks.Get(tkey).WriterLockAsync();
             try
             {
                 if (timestamp < ExistInBackDatabaseModifyTimestamp)

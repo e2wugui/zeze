@@ -238,7 +238,7 @@ namespace Zeze.Services
         {
             var rpc = p as Login;
             var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder(Config));
-            lock (session)
+            using var lockss = await session.Mutex.LockAsync();
             {
                 if (false == session.TryBindSocket(p.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
                 {
@@ -249,7 +249,7 @@ namespace Zeze.Services
                 foreach (var e in session.Acquired)
                 {
                     // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-                    ReleaseAsync(session, e.Key, false);
+                    await ReleaseAsync(session, e.Key, false);
                 }
                 rpc.SendResultCode(0);
             }
@@ -260,7 +260,7 @@ namespace Zeze.Services
         {
             var rpc = p as ReLogin;
             var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder(Config));
-            lock (session)
+            using var lockss = await session.Mutex.LockAsync();
             {
                 if (false == session.TryBindSocket(p.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
                 {
@@ -281,7 +281,7 @@ namespace Zeze.Services
                 return 0; // not login
             }
 
-            lock (session)
+            using var lockss = await session.Mutex.LockAsync();
             {
                 if (false == session.TryUnBindSocket(p.Sender))
                 {
@@ -291,7 +291,7 @@ namespace Zeze.Services
                 foreach (var e in session.Acquired)
                 {
                     // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-                    ReleaseAsync(session, e.Key, false);
+                    await ReleaseAsync(session, e.Key, false);
                 }
                 rpc.SendResultCode(0);
                 logger.Debug("After NormalClose global.Count={0}", global.Count);
@@ -783,6 +783,7 @@ namespace Zeze.Services
             public int GlobalCacheManagerHashIndex { get; private set; } // UnBind 的时候不会重置，会一直保留到下一次Bind。
 
             public ConcurrentDictionary<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey, int> Acquired { get; }
+            public Nito.AsyncEx.AsyncLock Mutex { get; } = new Nito.AsyncEx.AsyncLock();
 
             public CacheHolder(GCMConfig config)
             {

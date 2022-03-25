@@ -5,7 +5,7 @@ namespace Draft
 {
     public class Program
     {
-        AsyncLocal<int> AsyncLocal = new AsyncLocal<int>();
+        readonly AsyncLocal<int> AsyncLocal = new();
 
         public async Task<int> Start(int i)
         {

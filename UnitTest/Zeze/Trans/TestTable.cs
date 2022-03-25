@@ -192,7 +192,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(v.Byte13 == 13);
 
             await demo.App.Instance.demo_Module1.Table2.RemoveAsync(key);
-            Assert.IsNull(demo.App.Instance.demo_Module1.Table2.GetAsync(key));
+            Assert.IsNull(await demo.App.Instance.demo_Module1.Table2.GetAsync(key));
             return Procedure.Success;
         }
 
@@ -239,7 +239,7 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(v.Byte13 == 13);
 
             await demo.App.Instance.demo_Module1.Table1.RemoveAsync(1);
-            Assert.IsNull(demo.App.Instance.demo_Module1.Table1.GetAsync(1));
+            Assert.IsNull(await demo.App.Instance.demo_Module1.Table1.GetAsync(1));
             return Procedure.Success;
         }
     }

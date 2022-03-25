@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using Zeze.Serialize;
 using System.Collections.Concurrent;
+using System.Threading.Tasks;
 #if USE_DATABASE
 using System.Data.SqlClient;
 using MySql.Data.MySqlClient;
