@@ -39,11 +39,10 @@ namespace Zeze.Transaction
             this.Created = false;
 
             this.AccessedRecords.Clear();
-            this.CommitActions.Clear();
             //this.holdLocks.Clear(); // 执行完肯定清理了。
             this.State = TransactionState.Running;
             this.ProcedureStack.Clear();
-            this.RollbackActions.Clear();
+            this.SavedRollbackActions = null;
             this.Savepoints.Clear();
         }
 
@@ -86,7 +85,7 @@ namespace Zeze.Transaction
                 int lastIndex = Savepoints.Count - 1;
                 Savepoint last = Savepoints[lastIndex];
                 Savepoints.RemoveAt(lastIndex);
-                Savepoints[Savepoints.Count - 1].MergeFrom(last);
+                Savepoints[Savepoints.Count - 1].MergeFrom(last, true);
             }
             /*
             else
@@ -102,6 +101,16 @@ namespace Zeze.Transaction
             Savepoint last = Savepoints[lastIndex];
             Savepoints.RemoveAt(lastIndex);
             last.Rollback();
+
+            if (lastIndex > 0)
+            {
+                Savepoints[lastIndex - 1].MergeFrom(last, false);
+            }
+            else
+            {
+                // 最后一个Savepoint Rollback的时候需要保存一下，用来触发回调。ugly。
+                SavedRollbackActions = last.RollbackActions;
+            }
         }
 
         public Log GetLog(long key)
@@ -130,19 +139,18 @@ namespace Zeze.Transaction
         }
         */
 
-        private readonly List<Action> CommitActions = new List<Action>();
-        private readonly List<Action> RollbackActions = new List<Action>();
+        private List<Action> SavedRollbackActions;
 
         public void RunWhileCommit(Action action)
         {
             VerifyRunning();
-            CommitActions.Add(action);
+            Savepoints[^1].CommitActions.Add(action);
         }
 
         public void RunWhileRollback(Action action)
         {
             VerifyRunning();
-            RollbackActions.Add(action);
+            Savepoints[^1].RollbackActions.Add(action);
         }
 
         internal TableKey LastTableKeyOfRedoAndRelease { get; set; } = null;
@@ -282,8 +290,6 @@ namespace Zeze.Transaction
                                 // retry 可能保持已有的锁，清除记录和保存点。
                                 AccessedRecords.Clear();
                                 Savepoints.Clear();
-                                CommitActions.Clear();
-                                RollbackActions.Clear();
 
                                 State = TransactionState.Running; // prepare to retry
                             }
@@ -363,9 +369,9 @@ namespace Zeze.Transaction
             }
         }
 
-        private void _trigger_commit_actions_(Procedure procedure)
+        private void _trigger_commit_actions_(Procedure procedure, Savepoint lastSavepoint)
         {
-            foreach (Action action in CommitActions)
+            foreach (Action action in lastSavepoint.CommitActions)
             {
                 try
                 {
@@ -376,7 +382,6 @@ namespace Zeze.Transaction
                     logger.Error(e, "Commit Procedure {0} Action {1}", procedure, action.Method.Name);
                 }
             }
-            CommitActions.Clear();
         }
 
         private void _final_commit_(Procedure procedure)
@@ -384,12 +389,12 @@ namespace Zeze.Transaction
             // 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
             // 可以在最终提交里可以实现每事务checkpoint。
             ChangeCollector cc = new ChangeCollector();
-
+            var lastSavepoint = Savepoints[^1];
             RelativeRecordSet.TryUpdateAndCheckpoint(this, procedure, () =>
             {
                 try
                 {
-                    Savepoints[Savepoints.Count - 1].Commit();
+                    lastSavepoint.Commit();
                     foreach (var e in AccessedRecords)
                     {
                         if (e.Value.Dirty)
@@ -414,13 +419,13 @@ namespace Zeze.Transaction
 
             procedure.Rpc?.SendResultCode(procedure.Rpc.ResultCode);
 
-            _trigger_commit_actions_(procedure);
+            _trigger_commit_actions_(procedure, lastSavepoint);
         }
 
         private void _final_rollback_(Procedure procedure)
         {
             State = TransactionState.Completed;
-            foreach (Action action in RollbackActions)
+            foreach (Action action in SavedRollbackActions)
             {
                 try
                 {
@@ -431,7 +436,7 @@ namespace Zeze.Transaction
                     logger.Error(e, "Rollback Procedure {0} Action {1}", procedure, action.Method.Name);
                 }
             }
-            RollbackActions.Clear();
+            SavedRollbackActions = null;
         }
 
         private readonly List<LockAsync> holdLocks = new List<LockAsync>(); // 读写锁的话需要一个包装类，用来记录当前维持的是哪个锁。

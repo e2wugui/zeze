@@ -48,19 +48,31 @@ namespace Zeze.Transaction
             return sp;
         }
 
-        public void MergeFrom(Savepoint other)
-        {
-            foreach (var e in other.Logs)
-            {
-                Logs[e.Key] = e.Value;
-            }
+        internal readonly List<Action> CommitActions = new List<Action>();
+        internal readonly List<Action> RollbackActions = new List<Action>();
 
-            foreach (var e in other.ChangeNotes)
+        public void MergeFrom(Savepoint other, bool isCommit)
+        {
+            if (isCommit)
             {
-                if (this.ChangeNotes.TryGetValue(e.Key, out var cur))
-                    cur.Merge(e.Value);
-                else
-                    this.ChangeNotes.Add(e.Key, e.Value);
+                foreach (var e in other.Logs)
+                {
+                    Logs[e.Key] = e.Value;
+                }
+
+                foreach (var e in other.ChangeNotes)
+                {
+                    if (this.ChangeNotes.TryGetValue(e.Key, out var cur))
+                        cur.Merge(e.Value);
+                    else
+                        this.ChangeNotes.Add(e.Key, e.Value);
+                }
+                CommitActions.AddRange(other.CommitActions);
+            }
+            else
+            {
+                CommitActions.AddRange(other.RollbackActions);
+                RollbackActions.AddRange(other.RollbackActions);
             }
         }
 

@@ -41,14 +41,14 @@
 	Global java 异步化： TaskQueueAsync 任务需要参与到队列的推进。全异步和RocksRaft.Transaction.ThreadLocal问题，需要自己实现一个类似AsyncLocal的机制。
 	Global c# 异步化： c# async
 	zeze async await test。SimpleThreadPool?
+
+【2022/4/11】
 	c# zeze 嵌套存储过程RunWhileRollback在外层事务Commit时需要处理的问题。还有按调用顺序回调的问题。
 		Savepoint 成员变量 CommitActions RollbackActions
 		Savepoint.Commit(nest) CommitActions.AddAll(nest.CommitActions);
 		Savepoint.Rollback(nest) CommitActions.AddAll(nest.RollbackActions); RollbackActions.AddAll(nest.RollbackActions);
-		Transaction.Commit() foreach (var a in LastSavepoint.CommitActions) a.trigger();
-		Transaction.Rollback() foreach (var a in LastSavepoint.RollbackActions) a.trigger();
-
-【2022/4/11】
+		Transaction.FinalCommit() foreach (var a in LastSavepoint.CommitActions) a.trigger();
+		Transaction.FinalRollback() foreach (var a in LastSavepoint.SavedRollbackActions) a.trigger();
 	zeze async await compile ok!
 	Raft.Shutdown 先关闭网络，有错误也不返回了。
 	TaskOneByOne 重构，新增支持调用异步存储过程和异步协议处理。
