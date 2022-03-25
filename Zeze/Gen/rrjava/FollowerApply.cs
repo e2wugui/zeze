@@ -24,9 +24,12 @@ namespace Zeze.Gen.rrjava
                 }
             }
             sw.WriteLine(prefix + "@Override");
-            sw.WriteLine(prefix + $"public void FollowerApply(Zeze.Raft.RocksRaft.Log log) {{");
-            sw.WriteLine(prefix + "    var blog = (Zeze.Raft.RocksRaft.LogBean)log;");
-            sw.WriteLine(prefix + "    for (var vlog : blog.getVariables().values()) {");
+            sw.WriteLine(prefix + "public void FollowerApply(Zeze.Raft.RocksRaft.Log log) {");
+            sw.WriteLine(prefix + "    var vars = ((Zeze.Raft.RocksRaft.LogBean)log).getVariables();");
+            sw.WriteLine(prefix + "    if (vars == null)");
+            sw.WriteLine(prefix + "        return;");
+            sw.WriteLine(prefix + "    for (var it = vars.iterator(); it.moveToNext(); ) {");
+            sw.WriteLine(prefix + "        var vlog = it.value();");
             sw.WriteLine(prefix + "        switch (vlog.getVariableId()) {");
             foreach (var v in bean.Variables)
             {
