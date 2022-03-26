@@ -372,7 +372,7 @@ namespace Zeze.Raft
             logger.Debug("Leader节点重启网络，【选举】");
             var leader = GetLeader();
             leader.Raft.Server.Stop();
-            Util.Scheduler.Instance.Schedule(
+            Util.Scheduler.Schedule(
                 (ThisTask) => leader.Raft.Server.Start(),
                 leader.Raft.RaftConfig.ElectionTimeoutMax);
             TestConcurrent("TestLeaderNodeRestartNet_NewVote", 1);
@@ -404,7 +404,7 @@ namespace Zeze.Raft
             leader = GetLeader();
             var StartDely = leader.Raft.RaftConfig.ElectionTimeoutMax;
             leader.StopRaft();
-            Util.Scheduler.Instance.Schedule((ThisTask) => leader.StartRaft(), StartDely);
+            Util.Scheduler.Schedule((ThisTask) => leader.StartRaft(), StartDely);
             TestConcurrent("TestLeaderNodeRestartRaft", 1);
 
             // Snapshot & Load
@@ -419,7 +419,7 @@ namespace Zeze.Raft
             logger.Fatal(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
             logger.Fatal(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 
-            SnapshotTimer = Util.Scheduler.Instance.Schedule(RandomSnapshotTimer, 1 * 60 * 1000, 1 * 60 * 1000);
+            SnapshotTimer = Util.Scheduler.Schedule(RandomSnapshotTimer, 1 * 60 * 1000, 1 * 60 * 1000);
 
             SetLogLevel(NLog.LogLevel.Info);
 

@@ -167,7 +167,7 @@ namespace Zeze.Services
                     if (!ReadyCommit.IsEmpty)
                     {
                         // 只有两段公告模式需要回应处理。
-                        NotifyTimeoutTask = Scheduler.Instance.Schedule(ThisTask =>
+                        NotifyTimeoutTask = Scheduler.Schedule(ThisTask =>
                             {
                                 if (NotifyTimeoutTask == ThisTask)
                                 {
@@ -343,7 +343,7 @@ namespace Zeze.Services
             {
                 ServiceManager = sm;
                 SessionId = ssid;
-                KeepAliveTimerTask = Util.Scheduler.Instance.Schedule(
+                KeepAliveTimerTask = Scheduler.Schedule(
                     (ThisTask) =>
                     {
                         var s = ServiceManager.Server.GetSocket(SessionId);
@@ -605,8 +605,7 @@ namespace Zeze.Services
 
             if (Config.StartNotifyDelay > 0)
             {
-                StartNotifyDelayTask = Util.Scheduler.Instance.Schedule(
-                    StartNotifyAll, Config.StartNotifyDelay);
+                StartNotifyDelayTask = Scheduler.Schedule(StartNotifyAll, Config.StartNotifyDelay);
             }
 
             var options = new DbOptions().SetCreateIfMissing(true);

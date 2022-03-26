@@ -458,7 +458,7 @@ namespace Zeze.Services.ToLuaService
                 socket.Send(bb);
 
                 if (timeout > 0)
-                    Util.Scheduler.Instance.Schedule((ThisTask) => { SetRpcTimeout(sid); }, timeout);
+                    Util.Scheduler.Schedule((ThisTask) => SetRpcTimeout(sid), timeout);
             }
             else
             {

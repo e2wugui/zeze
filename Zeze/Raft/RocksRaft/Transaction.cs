@@ -186,7 +186,7 @@ namespace Zeze.Raft.RocksRaft
 			last.Rollback();
 		}
 
-		internal long Perform(Procedure procedure)
+		internal async Task<long> Perform(Procedure procedure)
         {
             Procedure = procedure;
 
@@ -196,7 +196,7 @@ namespace Zeze.Raft.RocksRaft
                 if (_lock_and_check_(Zeze.Transaction.TransactionLevel.Serializable))
                 {
                     if (0 == procedure.ResultCode)
-                        _final_commit_(procedure);
+                        await _final_commit_(procedure);
                     else
                         _final_rollback_(procedure);
                     return procedure.ResultCode;
@@ -306,7 +306,7 @@ namespace Zeze.Raft.RocksRaft
             return true;
         }
 
-        private void _final_commit_(Procedure procedure)
+        private async Task _final_commit_(Procedure procedure)
         {
             // Collect Changes
             Savepoint sp = Savepoints[Savepoints.Count - 1];
@@ -331,7 +331,7 @@ namespace Zeze.Raft.RocksRaft
             if (Changes.Records.Count > 0) // has changes
             {
                 procedure.Rocks.UpdateAtomicLongs(Changes.AtomicLongs);
-                procedure.Rocks.Raft.AppendLog(Changes, procedure.UniqueRequest?.ResultBean);
+                await procedure.Rocks.Raft.AppendLog(Changes, procedure.UniqueRequest?.ResultBean);
             }
 
             _trigger_commit_actions_(procedure);

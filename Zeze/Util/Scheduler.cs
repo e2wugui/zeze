@@ -10,11 +10,13 @@ namespace Zeze.Util
     /// </summary>
     public sealed class Scheduler
     {
+        internal static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
         private readonly SortedDictionary<SchedulerTask, SchedulerTask> scheduled = new();
         private readonly Thread thread;
         private volatile bool isRunning;
 
-        public static Scheduler Instance { get; } = new Scheduler();
+        internal static Scheduler Instance { get; } = new Scheduler();
 
         public Scheduler()
         {
@@ -33,26 +35,25 @@ namespace Zeze.Util
         /// <param name="initialDelay">the time to delay first execution. Milliseconds</param>
         /// <param name="period">the period between successive executions. Milliseconds</param>
         /// <returns></returns>
-        public SchedulerTask Schedule(Action<SchedulerTask> action, long initialDelay, long period = -1)
+        public static SchedulerTask Schedule(Action<SchedulerTask> action, long initialDelay, long period = -1)
         {
-            lock (this)
-            {
-                if (initialDelay < 0)
-                    throw new ArgumentException("initialDelay < 0");
+            if (initialDelay < 0)
+                throw new ArgumentException("initialDelay < 0");
 
-                var t = new SchedulerTask(this, action, initialDelay, period);
-                scheduled.Add(t, t);
-                Monitor.Pulse(this);
-                return t;
-            }
+            return Instance.Schedule(new SchedulerTaskAction(action, initialDelay, period));
         }
 
-        public bool Unschedule(SchedulerTask task)
+        public static SchedulerTask ScheduleAsync(Func<SchedulerTask, Task> action, long initialDelay, long period = -1)
         {
-            lock (this)
-            {
-                return scheduled.Remove(task);
-            }
+            if (initialDelay < 0)
+                throw new ArgumentException("initialDelay < 0");
+
+            return Instance.Schedule(new SchedulerTaskAsyncAction(action, initialDelay, period));
+        }
+
+        public static bool Unschedule(SchedulerTask task)
+        {
+            return Instance.UnschedulePrivate(task);
         }
 
         /// <summary>
@@ -68,12 +69,21 @@ namespace Zeze.Util
             thread.Join();
         }
 
-        internal void Scheule(SchedulerTask t)
+        internal SchedulerTask Schedule(SchedulerTask t)
         {
             lock (this)
             {
                 scheduled.Add(t, t);
                 Monitor.Pulse(this);
+                return t;
+            }
+        }
+
+        private bool UnschedulePrivate(SchedulerTask task)
+        {
+            lock (this)
+            {
+                return scheduled.Remove(task);
             }
         }
 
@@ -119,22 +129,67 @@ namespace Zeze.Util
             }
         }
     }
-    public class SchedulerTask : IComparable<SchedulerTask>
+
+    public class SchedulerTaskAction : SchedulerTask
     {
-        public Scheduler Scheduler { get; private set; }
+        public Action<SchedulerTask> Action { get; }
+
+        internal SchedulerTaskAction(Action<SchedulerTask> action, long initialDelay, long period)
+            : base(initialDelay, period)
+        {
+            Action = action;
+        }
+
+        internal override void Dispatch()
+        {
+            // 派发出去运行，让系统管理大量任务的线程问题。
+            Task.Run(() =>
+            {
+                try
+                {
+                    Action(this);
+                }
+                catch (Exception ex)
+                {
+                    Scheduler.logger.Error(ex);
+                }
+            });
+        }
+    }
+
+    public class SchedulerTaskAsyncAction : SchedulerTask
+    {
+        public Func<SchedulerTask, Task> AsyncFunc { get; }
+
+        internal SchedulerTaskAsyncAction(Func<SchedulerTask, Task> asyncFunc, long initialDelay, long period)
+            : base(initialDelay, period)
+        {
+            AsyncFunc = asyncFunc;
+        }
+
+        internal override void Dispatch()
+        {
+            _ = Mission.CallAsync(async () =>
+            {
+                // 为了记录错误日志。
+                await AsyncFunc(this);
+                return 0;
+            }, "SchedulerTaskAsyncAction");
+        }
+    }
+
+    public abstract class SchedulerTask : IComparable<SchedulerTask>
+    {
         public long Time { get; private set; }
         public long Period { get; private set; }
         public long SequenceNumber { get; private set; }
 
         private volatile bool canceled;
-        private readonly Action<SchedulerTask> action;
 
         private static readonly AtomicLong sequencer = new();
 
-        internal SchedulerTask(Scheduler scheduler, Action<SchedulerTask> action, long initialDelay, long period)
+        internal SchedulerTask(long initialDelay, long period)
         {
-            this.Scheduler = scheduler;
-            this.action = action;
             this.Time = Util.Time.NowUnixMillis + initialDelay;
             this.Period = period;
             this.SequenceNumber = sequencer.IncrementAndGet();
@@ -146,19 +201,20 @@ namespace Zeze.Util
             this.canceled = true;
             Scheduler.Unschedule(this);
         }
- 
+
+        internal abstract void Dispatch();
+
         internal void Run()
         {
             if (this.canceled)
                 return;
 
-            // 派发出去运行，让系统管理大量任务的线程问题。
-            Task.Run(() => action(this));
+            Dispatch();
 
             if (this.Period > 0)
             {
                 this.Time += this.Period;
-                this.Scheduler.Scheule(this);
+                Scheduler.Instance.Schedule(this);
             }
         }
 

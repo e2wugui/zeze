@@ -42,7 +42,7 @@ namespace Zeze.Transaction
             DataMap = new ConcurrentDictionary<K, Record<K, V>>(
                 GetCacheConcurrencyLevel(), GetCacheInitialCapacity());
             NewLruHot();
-            Util.Scheduler.Instance.Schedule((task) =>
+            Util.Scheduler.Schedule((task) =>
             {
                 // 访问很少的时候不创建新的热点。这个选项没什么意思。
                 if (LruHot.Count > table.TableConf.CacheNewAccessHotThreshold)
@@ -50,7 +50,7 @@ namespace Zeze.Transaction
                     NewLruHot();
                 }
             }, table.TableConf.CacheNewLruHotPeriod, table.TableConf.CacheNewLruHotPeriod);
-            Util.Scheduler.Instance.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
+            Util.Scheduler.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
         }
 
         private int GetCacheConcurrencyLevel()
@@ -141,7 +141,7 @@ namespace Zeze.Transaction
 
             if (Table.TableConf.CacheCapacity <= 0)
             {
-                Util.Scheduler.Instance.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
+                Util.Scheduler.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
                 return; // 容量不限
             }
             try
@@ -175,7 +175,7 @@ namespace Zeze.Transaction
             }
             finally
             {
-                Util.Scheduler.Instance.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
+                Util.Scheduler.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
             }
         }
 

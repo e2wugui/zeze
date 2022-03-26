@@ -642,7 +642,7 @@ namespace Zeze.Raft
             });
 
             // ugly
-            Util.Scheduler.Instance.Schedule((thisTask) => ReSend(), 1000, 1000);
+            Util.Scheduler.Schedule((thisTask) => ReSend(), 1000, 1000);
         }
 
         private Connector GetRandomConnector(Connector except)

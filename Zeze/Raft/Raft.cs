@@ -157,7 +157,7 @@ namespace Zeze.Raft
             LogSequence.StartSnapshotTimer();
 
             AppDomain.CurrentDomain.ProcessExit += ProcessExit;
-            TimerTask = Scheduler.Instance.Schedule(OnTimer, 10);
+            TimerTask = Scheduler.Schedule(OnTimer, 10);
 
         }
 
@@ -364,7 +364,7 @@ namespace Zeze.Raft
             }
             finally
             {
-                TimerTask = Scheduler.Instance.Schedule(OnTimer, 10);
+                TimerTask = Scheduler.Schedule(OnTimer, 10);
             }
         }
 

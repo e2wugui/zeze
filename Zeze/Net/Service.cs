@@ -426,7 +426,7 @@ namespace Zeze.Net
                 if (ManualContexts.TryAdd(sessionId, context))
                 {
                     context.SessionId = sessionId;
-                    Util.Scheduler.Instance.Schedule(
+                    Util.Scheduler.Schedule(
                         (ThisTask) => TryRemoveManualContext<ManualContext>(sessionId)?.OnTimeout(),
                         timeout);
                     return sessionId;

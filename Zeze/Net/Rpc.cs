@@ -46,7 +46,7 @@ namespace Zeze.Net
 
         private static SchedulerTask Schedule(Service service, long sessionId, int millisecondsTimeout)
         {
-            return Scheduler.Instance.Schedule((ThisTask) =>
+            return Scheduler.Schedule((ThisTask) =>
             {
                 Rpc<TArgument, TResult> context = service.RemoveRpcContext<Rpc<TArgument, TResult>>(sessionId);
                 if (null == context) // 一般来说，此时结果已经返回。

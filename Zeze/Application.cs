@@ -298,7 +298,7 @@ namespace Zeze
                     if (defaultDb.DirectOperates.SaveDataWithSameVersion(keyOfSchemas, newdata, ref version))
                         break;
                 }
-                FlushWhenReduceTimerTask = Util.Scheduler.Instance.Schedule(FlushWhenReduceTimer, 60 * 1000, 60 * 1000);
+                FlushWhenReduceTimerTask = Util.Scheduler.Schedule(FlushWhenReduceTimer, 60 * 1000, 60 * 1000);
             }
         }
 

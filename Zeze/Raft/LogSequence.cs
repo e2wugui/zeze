@@ -888,12 +888,12 @@ namespace Zeze.Raft
                 if (firstTime.CompareTo(now) < 0)
                     firstTime = firstTime.AddDays(1);
                 var delay = Util.Time.DateTimeToUnixMillis(firstTime) - Util.Time.DateTimeToUnixMillis(now);
-                SnapshotTimer = Zeze.Util.Scheduler.Instance.Schedule(async (ThisTask) => await Snapshot(false), delay);
+                SnapshotTimer = Zeze.Util.Scheduler.Schedule(async (ThisTask) => await Snapshot(false), delay);
             }
             else
             {
                 // 此时 SnapshotMinute 表示Period。
-                SnapshotTimer = Zeze.Util.Scheduler.Instance.Schedule(
+                SnapshotTimer = Zeze.Util.Scheduler.Schedule(
                     async (ThisTask) => await Snapshot(false), Raft.RaftConfig.SnapshotMinute * 60 * 1000);
             }
         }
@@ -1046,7 +1046,7 @@ namespace Zeze.Raft
                 st.Pending.Argument.LastIncludedTerm = st.FirstLog.Term;
 
                 logger.Info($"{Raft.Name} InstallSnapshot Start... Path={path} c={c.Name}");
-                st.TrySend(this, c);
+                await st.TrySend(this, c);
             }
             else
             {

@@ -223,7 +223,7 @@ namespace Zeze.Services
                     Config.HandshakeOptions.DhGroup, ctx.DhRandom).ToByteArray();
                 Array.Reverse(response);
                 new Handshake.CHandshake(Config.HandshakeOptions.DhGroup, response).Send(so);
-                ctx.TimeoutTask = Util.Scheduler.Instance.Schedule((thisTask) =>
+                ctx.TimeoutTask = Util.Scheduler.Schedule((thisTask) =>
                 {
                     if (DHContext.TryRemove(so.SessionId, out var ctx))
                     {

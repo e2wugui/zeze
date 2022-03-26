@@ -46,7 +46,7 @@ namespace Zeze.Transaction
             public void Watch(long reachPerSecond, Action handle)
             {
                 var watcher = new Watcher(this, reachPerSecond, handle);
-                Util.Scheduler.Instance.Schedule((thisTask) => watcher.Check(this),
+                Util.Scheduler.Schedule((thisTask) => watcher.Check(this),
                     Watcher.CheckPeriod * 1000, Watcher.CheckPeriod * 1000);
             }
 

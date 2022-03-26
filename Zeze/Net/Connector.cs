@@ -165,7 +165,7 @@ namespace Zeze.Net
                     if (ReConnectDelay > MaxReconnectDelay)
                         ReConnectDelay = MaxReconnectDelay;
                 }
-                ReconnectTask = Util.Scheduler.Instance.Schedule((ThisTask) => Start(), ReConnectDelay); ;
+                ReconnectTask = Util.Scheduler.Schedule((ThisTask) => Start(), ReConnectDelay); ;
             }
         }
 

@@ -61,7 +61,7 @@ namespace Zeze.Util
             DataMap = new ConcurrentDictionary<K, LruItem>(concurrencyLevel, initialCapacity);
             NewLruHot();
 
-            Scheduler.Instance.Schedule((task) =>
+            Scheduler.Schedule((task) =>
             {
                 // 访问很少的时候不创建新的热点。这个选项没什么意思。
                 if (LruHot.Count > GetLruInitialCapacity() / 2)
@@ -69,7 +69,7 @@ namespace Zeze.Util
                     NewLruHot();
                 }
             }, NewLruHotPeriod, NewLruHotPeriod);
-            Util.Scheduler.Instance.Schedule(CleanNow, CleanPeriod);
+            Util.Scheduler.Schedule(CleanNow, CleanPeriod);
         }
 
         public V GetOrAdd(K k, Func<K, V> factory)
@@ -165,7 +165,7 @@ namespace Zeze.Util
 
             if (Capacity <= 0)
             {
-                Scheduler.Instance.Schedule(CleanNow, CleanPeriod);
+                Scheduler.Schedule(CleanNow, CleanPeriod);
                 return; // 容量不限
             }
 
@@ -207,7 +207,7 @@ namespace Zeze.Util
             }
             finally
             {
-                Util.Scheduler.Instance.Schedule(CleanNow, CleanPeriod);
+                Util.Scheduler.Schedule(CleanNow, CleanPeriod);
             }
         }
     }

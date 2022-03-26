@@ -618,7 +618,7 @@ namespace Zeze.Services
             // 还有更多的防止出错的手段吗？
 
             // XXX verify danger
-            Zeze.Util.Scheduler.Instance.Schedule(
+            Util.Scheduler.Schedule(
                 (ThisTask) =>
                 {
                     var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
