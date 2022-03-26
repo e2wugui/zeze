@@ -792,7 +792,7 @@ namespace Zeze.Raft
 
             public override void LoadSnapshot(string path)
             {
-                lock (Raft)
+                using var lockraft = Raft.Monitor.Enter();
                 {
                     LoadSnapshotInternal(path);
                     logger.Info($"{Raft.Name} LoadSnapshot Count={Count}");
@@ -851,7 +851,7 @@ namespace Zeze.Raft
                     logger.Debug("Raft {0} Stop ...", RaftName);
                     // 在同一个进程中，没法模拟进程退出，
                     // 此时RocksDb应该需要关闭，否则重启会失败吧。
-                    Raft?.Shutdown();
+                    Raft?.Shutdown().Wait();
                     Raft = null;
                 }
             }

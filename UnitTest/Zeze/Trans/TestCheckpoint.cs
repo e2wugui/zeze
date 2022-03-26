@@ -70,10 +70,10 @@ namespace UnitTest.Zeze.Trans
 			//Console.WriteLine(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 
 			var table = demo.App.Instance.demo_Module1.Table1;
-			var dbtable = table.GetStorageForTestOnly("IKnownWhatIAmDoing").DatabaseTable;
-			Assert.IsTrue(null != dbtable.Find(table.EncodeKey(2L)));
-			Assert.IsTrue(null != dbtable.Find(table.EncodeKey(4L)));
-			Assert.IsTrue(null != dbtable.Find(table.EncodeKey(3L)));
+			var dbtable = table.GetStorageForTestOnly("IKnownWhatIAmDoing").TableAsync;
+			Assert.IsTrue(null != dbtable.ITable.Find(table.EncodeKey(2L)));
+			Assert.IsTrue(null != dbtable.ITable.Find(table.EncodeKey(4L)));
+			Assert.IsTrue(null != dbtable.ITable.Find(table.EncodeKey(3L)));
 		}
 
 		[TestMethod]
@@ -83,8 +83,8 @@ namespace UnitTest.Zeze.Trans
             Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(ProcChange, "ProcChange").CallSynchronously() == Procedure.Success);
             demo.App.Instance.Zeze.CheckpointRun();
 			var table = demo.App.Instance.demo_Module1.Table1;
-			var dbtable = table.GetStorageForTestOnly("IKnownWhatIAmDoing").DatabaseTable;
-            ByteBuffer value = dbtable.Find(table.EncodeKey(56));
+			var dbtable = table.GetStorageForTestOnly("IKnownWhatIAmDoing").TableAsync;
+            ByteBuffer value = dbtable.ITable.Find(table.EncodeKey(56));
             Assert.IsNotNull(value);
             Assert.AreEqual(value, bytesInTrans);
         }

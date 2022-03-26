@@ -63,12 +63,12 @@ namespace Zeze.Transaction
         internal long LastErrorGlobalSerialId { get; set; }
 
         public abstract Table Table { get; }
-        private volatile RelativeRecordSet _RelativeRecordSet = new RelativeRecordSet();
+        private volatile RelativeRecordSet RelativeRecordSetPrivate = new();
 
         internal RelativeRecordSet RelativeRecordSet
         {
-            get { return _RelativeRecordSet; }
-            set { _RelativeRecordSet = value; }
+            get { return RelativeRecordSetPrivate; }
+            set { RelativeRecordSetPrivate = value; }
         }
 
         public Record(Bean value)
@@ -80,22 +80,22 @@ namespace Zeze.Transaction
 
         // 时戳生成器，运行时状态，需要持久化时，再考虑保存到数据库。
         // 0 保留给不存在记录的的时戳。
-        private static global::Zeze.Util.AtomicLong _TimestampGen = new global::Zeze.Util.AtomicLong();
-        protected static global::Zeze.Util.AtomicLong _ExistInDbGen = new global::Zeze.Util.AtomicLong();
-        internal static long NextTimestamp => _TimestampGen.IncrementAndGet();
+        private static readonly Util.AtomicLong TimestampGen = new();
+        protected static readonly Util.AtomicLong ExistInDbGen = new();
+        internal static long NextTimestamp => TimestampGen.IncrementAndGet();
 
         internal abstract void Commit(Transaction.RecordAccessed accessed);
 
         internal abstract Task<(long, int, long)> Acquire(int state);
 
         internal abstract void Encode0();
-        internal abstract void Flush(Database.ITransaction t);
+        internal abstract Task Flush(Database.ITransaction t);
         internal abstract Task Cleanup();
 
         internal Database.ITransaction DatabaseTransactionTmp { get; set; }
         internal abstract void SetDirty();
         internal abstract Task SetExistInBackDatabase(long timestamp, bool value);
-        internal Nito.AsyncEx.AsyncLock Mutex = new Nito.AsyncEx.AsyncLock();
+        internal Nito.AsyncEx.AsyncLock Mutex = new();
     }
 
     public class Record<K, V> : Record where V : Bean, new()
@@ -249,7 +249,7 @@ namespace Zeze.Transaction
         }
         */
 
-        internal override void Flush(Database.ITransaction t)
+        internal override async Task Flush(Database.ITransaction t)
         {
             if (false == Dirty)
                 return;
@@ -257,13 +257,13 @@ namespace Zeze.Transaction
             if (null != snapshotValue)
             {
                 // changed
-                Table.Storage?.DatabaseTable.Replace(t, snapshotKey, snapshotValue);
+                await Table.Storage?.TableAsync.ReplaceAsync(t, snapshotKey, snapshotValue);
             }
             else
             {
                 // removed
                 if (ExistInBackDatabaseSavedForFlushRemove) // 优化，仅在后台db存在时才去删除。
-                    Table.Storage?.DatabaseTable.Remove(t, snapshotKey);
+                    await Table.Storage?.TableAsync.RemoveAsync(t, snapshotKey);
 
                 // 需要同步删除OldTable，否则下一次查找又会找到。
                 // 这个违背了OldTable不修改的原则，但没办法了。
@@ -272,7 +272,7 @@ namespace Zeze.Transaction
                 if (null != TTable.OldTable)
                 {
                     using var transTmp = TTable.OldTable.Database.BeginTransaction();
-                    TTable.OldTable.Remove(transTmp, snapshotKey);
+                    await TTable.OldTable.RemoveAsync(transTmp, snapshotKey);
                     transTmp.Commit();
                 }
             }

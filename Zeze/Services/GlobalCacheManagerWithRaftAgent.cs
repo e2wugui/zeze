@@ -1,6 +1,7 @@
 
 using Zeze.Beans.GlobalCacheManagerWithRaft;
 using System.Threading.Tasks;
+using System;
 
 namespace Zeze.Services
 {
@@ -11,6 +12,7 @@ namespace Zeze.Services
 
         public void Dispose()
         {
+            GC.SuppressFinalize(this);
             Stop();
         }
 
@@ -215,7 +217,7 @@ namespace Zeze.Services
                 RaftClient.Client.Stop();
             }
 
-            private volatile TaskCompletionSource<bool> LoginFuture = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            private volatile TaskCompletionSource<bool> LoginFuture = new (TaskCreationOptions.RunContinuationsAsynchronously);
 
             public void WaitLoginSuccess()
             {
@@ -255,7 +257,7 @@ namespace Zeze.Services
                     login.Argument.GlobalCacheManagerHashIndex = GlobalCacheManagerHashIndex;
 
                     agent.Send(login,
-                        (p) =>
+                        async (p) =>
                         {
                             var rpc = p as Login;
                             if (rpc.IsTimeout || rpc.ResultCode != 0)
@@ -277,7 +279,7 @@ namespace Zeze.Services
                     relogin.Argument.ServerId = agent.Client.Zeze.Config.ServerId;
                     relogin.Argument.GlobalCacheManagerHashIndex = GlobalCacheManagerHashIndex;
                     agent.Send(relogin,
-                        (p) =>
+                        async (p) =>
                         {
                             var rpc = p as ReLogin;
                             if (rpc.IsTimeout || rpc.ResultCode != 0)

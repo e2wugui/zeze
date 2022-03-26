@@ -9,7 +9,7 @@ namespace Zeze.Transaction
 {
     public abstract class Storage
     {
-		public Database.ITable DatabaseTable { get; protected set; }
+		public Database.TableAsync TableAsync { get; protected set; }
 
         public abstract int EncodeN();
 
@@ -17,7 +17,7 @@ namespace Zeze.Transaction
 
 		public abstract int Snapshot();
 
-		public abstract int Flush(Database.ITransaction t);
+		public abstract Task<int> Flush(Database.ITransaction t);
 
 		public abstract Task Cleanup();
 
@@ -31,7 +31,7 @@ namespace Zeze.Transaction
         public Storage(Table<K, V> table, Database database, string tableName)
         {
             Table = table;
-            DatabaseTable = database.OpenTable(tableName);
+            TableAsync = database.OpenTable(tableName);
         }
 
         private readonly ConcurrentDictionary<K, Record<K, V>> changed = new();
@@ -108,11 +108,11 @@ namespace Zeze.Transaction
         /// 没有拥有任何锁。
         /// </summary>
         /// <returns></returns>
-        public override int Flush(Database.ITransaction t)
+        public override async Task<int> Flush(Database.ITransaction t)
         {
             foreach (var e in snapshot)
             {
-                e.Value.Flush(t);
+                await e.Value.Flush(t);
             }
             return snapshot.Count;
         }
@@ -130,15 +130,15 @@ namespace Zeze.Transaction
             snapshot.Clear();
         }
 
-        public V Find(K key, Table<K, V> table)
+        public async Task<V> FindAsync(K key, Table<K, V> table)
         {
-            ByteBuffer value = DatabaseTable.Find(table.EncodeKey(key));
+            ByteBuffer value = await TableAsync.FindAsync(table.EncodeKey(key));
             return null != value ? table.DecodeValue(value) : null;
         }
 
         public override void Close()
         {
-            DatabaseTable.Close();
+            TableAsync.Close();
         }
     }
 }

@@ -15,7 +15,7 @@ namespace Zeze.Tikv
 
             // for keyprefix
             var tikvDb = new DatabaseTikv(null, url);
-            var table = tikvDb.OpenTable("_testtable_") as DatabaseTikv.TableTikv;
+            var table = tikvDb.OpenTable("_testtable_").ITable as DatabaseTikv.TableTikv;
 
             // prepare data
             var key = Zeze.Serialize.ByteBuffer.Allocate(64);
@@ -23,7 +23,7 @@ namespace Zeze.Tikv
             var value = Zeze.Serialize.ByteBuffer.Allocate(64);
             value.WriteString("value");
             using var trans = tikvDb.BeginTransaction();
-            tikvDb.Flush(trans);
+            tikvDb.Flush(trans).Wait();
             trans.Commit();
             var outvalue = table.Find(key);
             Console.WriteLine("Scan Find1 " + outvalue);
@@ -45,24 +45,24 @@ namespace Zeze.Tikv
             var table = tikvDb.OpenTable("_testtable_");
             var key = Zeze.Serialize.ByteBuffer.Allocate(64);
             key.WriteString("key");
-            var value = Zeze.Serialize.ByteBuffer.Allocate(64);
+            //var value = Zeze.Serialize.ByteBuffer.Allocate(64);
             //value.WriteString("value");
 
-            var outvalue = table.Find(key);
+            var outvalue = table.ITable.Find(key);
             Console.WriteLine("Find1 " + outvalue);
             var trans = tikvDb.BeginTransaction();
-            tikvDb.Flush(trans);
+            tikvDb.Flush(trans).Wait();
             trans.Commit();
             trans.Dispose();
 
-            outvalue = table.Find(key);
+            outvalue = table.ITable.Find(key);
             Console.WriteLine("Find2 " + outvalue);
             trans = tikvDb.BeginTransaction();
-            tikvDb.Flush(trans);
+            tikvDb.Flush(trans).Wait();
             trans.Commit();
             trans.Dispose();
 
-            outvalue = table.Find(key);
+            outvalue = table.ITable.Find(key);
             Console.WriteLine("Find3 " + outvalue);
         }
 

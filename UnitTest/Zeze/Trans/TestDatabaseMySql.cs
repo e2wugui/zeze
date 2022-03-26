@@ -33,16 +33,16 @@ namespace UnitTest.Zeze.Trans
                 {
                     ByteBuffer key = ByteBuffer.Allocate();
                     key.WriteInt(1);
-                    table.Remove(trans, key);
+                    table.ITable.Remove(trans, key);
                 }
                 {
                     ByteBuffer key = ByteBuffer.Allocate();
                     key.WriteInt(2);
-                    table.Remove(trans, key);
+                    table.ITable.Remove(trans, key);
                 }
                 trans.Commit();
             }
-            Assert.AreEqual(0, table.Walk(PrintRecord));
+            Assert.AreEqual(0, table.ITable.Walk(PrintRecord));
             {
                 using var trans = sqlserver.BeginTransaction();
                 {
@@ -50,21 +50,21 @@ namespace UnitTest.Zeze.Trans
                     key.WriteInt(1);
                     ByteBuffer value = ByteBuffer.Allocate();
                     value.WriteInt(1);
-                    table.Replace(trans, key, value);
+                    table.ITable.Replace(trans, key, value);
                 }
                 {
                     ByteBuffer key = ByteBuffer.Allocate();
                     key.WriteInt(2);
                     ByteBuffer value = ByteBuffer.Allocate();
                     value.WriteInt(2);
-                    table.Replace(trans, key, value);
+                    table.ITable.Replace(trans, key, value);
                 }
                 trans.Commit();
             }
             {
                 ByteBuffer key = ByteBuffer.Allocate();
                 key.WriteInt(1);
-                ByteBuffer value = table.Find(key);
+                ByteBuffer value = table.ITable.Find(key);
                 Assert.IsNotNull(value);
                 Assert.AreEqual(1, value.ReadInt());
                 Assert.IsTrue(value.ReadIndex == value.WriteIndex);
@@ -72,12 +72,12 @@ namespace UnitTest.Zeze.Trans
             {
                 ByteBuffer key = ByteBuffer.Allocate();
                 key.WriteInt(2);
-                ByteBuffer value = table.Find(key);
+                ByteBuffer value = table.ITable.Find(key);
                 Assert.IsNotNull(value);
                 Assert.AreEqual(2, value.ReadInt());
                 Assert.IsTrue(value.ReadIndex == value.WriteIndex);
             }
-            Assert.AreEqual(2, table.Walk(PrintRecord));
+            Assert.AreEqual(2, table.ITable.Walk(PrintRecord));
         }
 
         public static bool PrintRecord(byte[] key, byte[] value)

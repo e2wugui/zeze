@@ -97,7 +97,7 @@ namespace Zeze.Transaction
 #if ENABLE_STATISTICS
                         TableStatistics.Instance.GetOrAdd(Name).StorageFindCount.IncrementAndGet();
 #endif
-                        r.Value = TStorage.Find(key, this); // r.Value still maybe null
+                        r.Value = await TStorage.FindAsync(key, this); // r.Value still maybe null
 
                         // 【注意】这个变量不管 OldTable 中是否存在的情况。
                         r.ExistInBackDatabase = null != r.Value;
@@ -105,7 +105,7 @@ namespace Zeze.Transaction
                         // 当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
                         if (null == r.Value && null != OldTable)
                         {
-                            ByteBuffer old = OldTable.Find(EncodeKey(key));
+                            ByteBuffer old = await OldTable.FindAsync(EncodeKey(key));
                             if (null != old)
                             {
                                 r.Value = DecodeValue(old);
@@ -435,7 +435,7 @@ namespace Zeze.Transaction
             return TStorage;
         }
 
-        internal Database.ITable OldTable { get; private set; }
+        internal Database.TableAsync OldTable { get; private set; }
         internal Storage<K, V> TStorage { get; private set; }
         public Database Database { get; private set; }
         public override Storage Storage => TStorage;
@@ -500,13 +500,13 @@ namespace Zeze.Transaction
         /// </summary>
         /// <param name="callback"></param>
         /// <returns></returns>
-        public long Walk(Func<K, V, bool> callback)
+        public async Task<long> Walk(Func<K, V, bool> callback)
         {
             if (Transaction.Current != null)
             {
                 throw new Exception("must be called without transaction");
             }
-            return TStorage.DatabaseTable.Walk(
+            return await TStorage.TableAsync.WalkAsync(
                 (key, value) =>
                 {
                     K k = DecodeKey(ByteBuffer.Wrap(key));
@@ -546,9 +546,9 @@ namespace Zeze.Transaction
         /// </summary>
         /// <param name="callback"></param>
         /// <returns></returns>
-        public long WalkDatabase(Func<byte[], byte[], bool> callback)
+        public async Task<long> WalkDatabase(Func<byte[], byte[], bool> callback)
         {
-            return TStorage.DatabaseTable.Walk(callback);
+            return await TStorage.TableAsync.WalkAsync(callback);
         }
 
         /// <summary>
@@ -557,9 +557,9 @@ namespace Zeze.Transaction
         /// </summary>
         /// <param name="callback"></param>
         /// <returns></returns>
-        public long WalkDatabase(Func<K, V, bool> callback)
+        public async Task<long> WalkDatabase(Func<K, V, bool> callback)
         {
-            return TStorage.DatabaseTable.Walk(
+            return await TStorage.TableAsync.WalkAsync(
                 (key, value) =>
                 {
                     K k = DecodeKey(ByteBuffer.Wrap(key));
@@ -619,6 +619,6 @@ namespace Zeze.Transaction
             return (V)(await LoadAsync(key)).Value;
         }
 
-        public override bool IsNew => TStorage == null || TStorage.DatabaseTable.IsNew;
+        public override bool IsNew => TStorage == null || TStorage.TableAsync.IsNew;
     }
 }

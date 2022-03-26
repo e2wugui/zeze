@@ -211,7 +211,7 @@ namespace Zeze.Transaction
                 }
                 foreach (var e in dts)
                 {
-                    e.Key.Flush(e.Value);
+                    await e.Key.Flush(e.Value);
                 }
                 foreach (var e in dts)
                 {
@@ -280,7 +280,7 @@ namespace Zeze.Transaction
                     if (r.Table.IsMemory)
                         continue;
 
-                    Database database = r.Table.Storage.DatabaseTable.Database;
+                    Database database = r.Table.Storage.TableAsync.Database;
                     if (false == dts.TryGetValue(database, out var t))
                     {
                         t = database.BeginTransaction();
@@ -296,7 +296,7 @@ namespace Zeze.Transaction
                 // 保存到数据库中
                 foreach (var r in rs)
                 {
-                    r.Flush(r.DatabaseTransactionTmp);
+                    await r.Flush(r.DatabaseTransactionTmp);
                 }
                 // 提交。
                 foreach (var t in dts.Values)

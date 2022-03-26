@@ -35,6 +35,7 @@ namespace Zeze.Tikv
 
             public void Dispose()
             {
+                GC.SuppressFinalize(this);
                 try
                 {
                     Transaction.Dispose();
@@ -70,9 +71,9 @@ namespace Zeze.Tikv
             return new TikvTrans(DatabaseUrl);
         }
 
-        public override ITable OpenTable(string name)
+        public override TableAsync OpenTable(string name)
         {
-            return new TableTikv(this, name);
+            return new TableAsync(new TableTikv(this, name));
         }
 
         public sealed class OperatesTikv : IOperates

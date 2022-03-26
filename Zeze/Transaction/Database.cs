@@ -31,6 +31,7 @@ namespace Zeze.Transaction
         {
             Zeze = zeze;
             this.DatabaseUrl = url;
+            Pool = new (this);
         }
 
         public Zeze.Transaction.Table GetTable(string name)
@@ -108,12 +109,12 @@ namespace Zeze.Transaction
             //logger.Info("Checkpoint Encode0 And Snapshot countEncode0={0} countSnapshot={1}", countEncode0, countSnapshot);
         }
 
-        internal void Flush(ITransaction trans)
+        internal async Task Flush(ITransaction trans)
         {
             int countFlush = 0;
             foreach (Storage storage in storages)
             {
-                countFlush += storage.Flush(trans);
+                countFlush += await storage.Flush(trans);
             }
             //logger.Info("Checkpoint Flush count={0}", countFlush);
         }
@@ -126,7 +127,7 @@ namespace Zeze.Transaction
             }
         }
 
-        public abstract Database.ITable OpenTable(string name);
+        public abstract TableAsync OpenTable(string name);
 
         public interface ITransaction : IDisposable
         {
@@ -148,6 +149,117 @@ namespace Zeze.Transaction
             public long Walk(Func<byte[], byte[], bool> callback);
             public void Close();
             public abstract bool IsNew { get; }
+        }
+
+        public class PoolQuery
+        {
+            public Database Database;
+            private BlockingCollection<(TaskCompletionSource<bool>, Action)> TaskQueue { get; } = new();
+            public int MaxPoolSize => Database.MaxPoolSize;
+            public Util.AtomicInteger Pending { get; } = new();
+
+            public PoolQuery(Database database)
+            {
+                Database = database;
+            }
+
+            public void Execute(TaskCompletionSource<bool> source, Action action)
+            {
+                var pending = Pending.IncrementAndGet();
+                if (pending >= MaxPoolSize)
+                {
+                    Pending.AddAndGet(-1); // rollback
+                    TaskQueue.Add((source, action));
+                }
+                else
+                {
+                    Task.Run(() =>
+                    {
+                        try
+                        {
+                            action();
+                        }
+                        catch (Exception ex)
+                        {
+                            source.TrySetException(ex);
+                        }
+                        finally
+                        {
+                            Pending.AddAndGet(-1); // done
+                            if (TaskQueue.TryTake(out var item))
+                                Execute(item.Item1, item.Item2);
+                        }
+                    });
+                }
+            }
+        }
+
+        internal PoolQuery Pool { get; }
+
+        public class TableAsync
+        {
+            public ITable ITable { get; }
+            public Database Database => ITable.Database;
+
+            public bool IsNew => ITable.IsNew;
+
+            public TableAsync(ITable itable)
+            {
+                ITable = itable;
+            }
+
+            public void Close()
+            {
+                ITable.Close();
+            }
+
+            public async Task<ByteBuffer> FindAsync(ByteBuffer key)
+            {
+                var source = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                ByteBuffer value = null;
+                Database.Pool.Execute(source, () =>
+                {
+                    value = ITable.Find(key);
+                    source.TrySetResult(true);
+                });
+                await source.Task;
+                return value;
+            }
+
+            public async Task RemoveAsync(ITransaction t, ByteBuffer key)
+            {
+                var source = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                Database.Pool.Execute(source, () =>
+                {
+                    ITable.Remove(t, key);
+                    source.TrySetResult(true);
+                });
+                await source.Task;
+            }
+
+            public async Task ReplaceAsync(ITransaction t, ByteBuffer key, ByteBuffer value)
+            {
+                var source = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                Database.Pool.Execute(source, () =>
+                {
+                    ITable.Replace(t, key, value);
+                    source.TrySetResult(true);
+                });
+                await source.Task;
+            }
+
+            public async Task<long> WalkAsync(Func<byte[], byte[], bool> callback)
+            {
+                var source = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                long count = 0;
+                Database.Pool.Execute(source, () =>
+                {
+                    count = ITable.Walk(callback);
+                    source.TrySetResult(true);
+                });
+                await source.Task;
+                return count;
+            }
         }
 
         /// <summary>
@@ -274,9 +386,9 @@ namespace Zeze.Transaction
             return new MySqlTrans(DatabaseUrl);
         }
 
-        public override Database.ITable OpenTable(string name)
+        public override TableAsync OpenTable(string name)
         {
-            return new TableMysql(this, name);
+            return new TableAsync(new TableMysql(this, name));
         }
 
         public sealed class OperatesMySql : IOperates
@@ -726,9 +838,9 @@ namespace Zeze.Transaction
             return new SqlTrans(DatabaseUrl);
         }
 
-        public override Database.ITable OpenTable(string name)
+        public override TableAsync OpenTable(string name)
         {
-            return new TableSqlServer(this, name);
+            return new TableAsync(new TableSqlServer(this, name));
         }
 
         public sealed class OperatesSqlServer : IOperates
@@ -1196,7 +1308,7 @@ namespace Zeze.Transaction
             return new RocksDbTrans(this);
         }
 
-        public override ITable OpenTable(string name)
+        public override TableAsync OpenTable(string name)
         {
             bool isNew = false;
             ColumnFamilies.GetOrAdd(name, (key) =>
@@ -1205,7 +1317,7 @@ namespace Zeze.Transaction
                 Db.CreateColumnFamily(CfOptions, key);
                 return key;
             });
-            return new TableRocksDb(this, name, isNew);
+            return new TableAsync(new TableRocksDb(this, name, isNew));
         }
 
         public sealed class TableRocksDb : Database.ITable
@@ -1489,9 +1601,9 @@ namespace Zeze.Transaction
                 {
                     foreach (var e in batch)
                     {
-                        var db = databaseTables.GetOrAdd(Database.DatabaseUrl,
-                            url => new ConcurrentDictionary<string, TableMemory>());
-                        var table = db.GetOrAdd(e.Key, tn => new TableMemory(Database, tn));
+                        var db = databaseTables.GetOrAdd(Database.DatabaseUrl, url => new());
+                        var tableasync = db.GetOrAdd(e.Key, tn => new TableAsync(new TableMemory(Database, tn)));
+                        var table = tableasync.ITable as TableMemory;
                         foreach (var r in e.Value)
                         {
                             if (r.Value == NullBytes)
@@ -1530,14 +1642,13 @@ namespace Zeze.Transaction
                     foreach (var tks in tableKeys)
                     {
                         var tableName = tks.Key;
-                        var db = databaseTables.GetOrAdd(Database.DatabaseUrl,
-                            url => new ConcurrentDictionary<string, TableMemory>());
-                        var table = db.GetOrAdd(tableName, tn => new TableMemory(Database, tn));
+                        var db = databaseTables.GetOrAdd(Database.DatabaseUrl, url => new ());
+                        var table = db.GetOrAdd(tableName, tn => new TableAsync(new TableMemory(Database, tn)));
                         var tableFinds = new Dictionary<ByteBuffer, ByteBuffer>();
                         result.Add(tableName, tableFinds);
                         foreach (var key in tks.Value)
                         {
-                            tableFinds.Add(key, table.Find(key)); // also put null value
+                            tableFinds.Add(key, table.ITable.Find(key)); // also put null value
                         }
                     }
                 }
@@ -1550,12 +1661,11 @@ namespace Zeze.Transaction
                 var result = new Dictionary<ByteBuffer, ByteBuffer>();
                 lock (databaseTables)
                 {
-                    var db = databaseTables.GetOrAdd(Database.DatabaseUrl,
-                        url => new ConcurrentDictionary<string, TableMemory>());
-                    var table = db.GetOrAdd(tableName, tn => new TableMemory(Database, tn));
+                    var db = databaseTables.GetOrAdd(Database.DatabaseUrl, url => new());
+                    var table = db.GetOrAdd(tableName, tn => new TableAsync(new TableMemory(Database, tn)));
                     foreach (var key in keys)
                     {
-                        result.Add(key, table.Find(key)); // also put null value
+                        result.Add(key, table.ITable.Find(key)); // also put null value
                     }
                 }
                 return result;
@@ -1571,14 +1681,12 @@ namespace Zeze.Transaction
             return new MemTrans(this);
         }
 
-        private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, TableMemory>> databaseTables = new();
+        private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, TableAsync>> databaseTables = new();
   
-        public override Database.ITable OpenTable(string name)
+        public override TableAsync OpenTable(string name)
         {
-            var tables = databaseTables.GetOrAdd(DatabaseUrl,
-                (urlnotused) => new ConcurrentDictionary<string, TableMemory>());
-
-            return tables.GetOrAdd(name, (tablenamenotused) => new TableMemory(this, name));
+            var tables = databaseTables.GetOrAdd(DatabaseUrl, (_) => new());
+            return tables.GetOrAdd(name, (tablenamenotused) => new TableAsync(new TableMemory(this, name)));
         }
 
         public sealed class TableMemory : Database.ITable
