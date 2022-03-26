@@ -169,9 +169,9 @@ namespace Zeze
             ServiceManagerAgent = new Agent(this);
         }
 
-        private ConcurrentDictionary<string, Table> Tables = new();
+        private readonly ConcurrentDictionary<string, Table> Tables = new();
 
-        public void AddTable(string dbName, Transaction.Table table)
+        public void AddTable(string dbName, Table table)
         {
             if (Databases.TryGetValue(dbName, out var db))
             {
@@ -183,7 +183,7 @@ namespace Zeze
             throw new Exception($"database not found dbName={dbName}");
         }
 
-        public void RemoveTable(string dbName, Transaction.Table table)
+        public void RemoveTable(string dbName, Table table)
         {
             Tables.TryRemove(table.Name, out _);
             if (Databases.TryGetValue(dbName, out var db))

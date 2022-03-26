@@ -319,12 +319,13 @@ namespace Zeze.Raft
 
         public override bool Send(AsyncSocket socket)
         {
-            var bridge = new RaftRpcBridge<TArgument, TResult>(this);
-
-            bridge.ResponseHandle = this.ResponseHandle;
-            bridge.Argument = this.Argument;
-            bridge.CreateTime = this.CreateTime;
-            bridge.Unique = this.Unique;
+            var bridge = new RaftRpcBridge<TArgument, TResult>(this)
+            {
+                ResponseHandle = this.ResponseHandle,
+                Argument = this.Argument,
+                CreateTime = this.CreateTime,
+                Unique = this.Unique
+            };
 
             return bridge.Send(socket, bridge.ResponseHandle, this.Timeout);
         }

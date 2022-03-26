@@ -13,19 +13,19 @@ namespace Zeze.Util
         internal static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         private readonly SortedDictionary<SchedulerTask, SchedulerTask> scheduled = new();
-        private readonly Thread thread;
-        private volatile bool isRunning;
+        private readonly Thread SchedulerThread;
+        private volatile bool IsRunning;
 
         internal static Scheduler Instance { get; } = new Scheduler();
 
         public Scheduler()
         {
-            isRunning = true;
-            thread = new Thread(ThreadRun)
+            IsRunning = true;
+            SchedulerThread = new Thread(ThreadRun)
             {
                 IsBackground = true
             };
-            thread.Start();
+            SchedulerThread.Start();
         }
 
         /// <summary>
@@ -59,14 +59,14 @@ namespace Zeze.Util
         /// <summary>
         /// 设置停止标志，并等待调度线程结束。不是必须调用。
         /// </summary>
-        public void StopAndJoin()
+        public static void StopAndJoin()
         {
-            isRunning = false;
-            lock (this)
+            Instance.IsRunning = false;
+            lock (Instance)
             {
-                Monitor.Pulse(this);
+                Monitor.Pulse(Instance);
             }
-            thread.Join();
+            Instance.SchedulerThread.Join();
         }
 
         internal SchedulerTask Schedule(SchedulerTask t)
@@ -89,7 +89,7 @@ namespace Zeze.Util
 
         private void ThreadRun()
         {
-            while (isRunning)
+            while (IsRunning)
             {
                 var willRun = new List<SchedulerTask>(scheduled.Count);
                 long nextTime = -1;

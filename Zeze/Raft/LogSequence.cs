@@ -1367,7 +1367,7 @@ namespace Zeze.Raft
             return Procedure.Success;
         }
 
-        private void CheckDump(long prevLogIndex, long lastIndex, List<Binary> entries)
+        internal void CheckDump(long prevLogIndex, long lastIndex, List<Binary> entries)
         {
             var logs = new StringBuilder();
             for (var index = prevLogIndex + 1; index <= lastIndex; ++index)

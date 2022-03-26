@@ -16,18 +16,18 @@ namespace UnitTest.Zeze.Util
         [TestMethod]
         public void Test1()
         {
-            Scheduler s = Scheduler.Instance;
             System.Threading.Thread.Sleep(100);
-            s.Schedule(SchedulerRun1, 100, 100);
+            Scheduler.Schedule(SchedulerRun1, 100, 100);
             System.Threading.Thread.Sleep(100);
-            s.Schedule(SchedulerRun2, 100, -1);
+            Scheduler.Schedule(SchedulerRun2, 100, -1);
             System.Threading.Thread.Sleep(100);
-            s.Schedule(SchedulerRun3, 100, 100);
+            Scheduler.Schedule(SchedulerRun3, 100, 100);
             System.Threading.Thread.Sleep(300);
-            s.StopAndJoin();
+            Scheduler.StopAndJoin();
             Assert.IsTrue(SchedulerRun1Count > 3);
             Assert.IsTrue(SchedulerRun2Count == 1);
             Assert.IsTrue(SchedulerRun1Count > 2);
+            Assert.IsTrue(SchedulerRun3Count > 2);
         }
 
         void SchedulerRun1(SchedulerTask ThisTask)

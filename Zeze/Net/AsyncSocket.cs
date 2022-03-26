@@ -37,15 +37,15 @@ namespace Zeze.Net
         public object UserState { get; set; } 
         public bool IsHandshakeDone { get; set; }
 
-        private static readonly AtomicLong SessionIdGen = new AtomicLong();
-        public static Func<long> SessionIdGenFunc;
+        private static readonly AtomicLong SessionIdGen = new();
+        public static Func<long> SessionIdGenFunc { get; set; }
 
         private readonly SocketAsyncEventArgs eventArgsAccept;
         private SocketAsyncEventArgs eventArgsReceive;
         private SocketAsyncEventArgs eventArgsSend;
 
-        private readonly BufferCodec inputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer
-        private readonly BufferCodec outputCodecBuffer = new BufferCodec(); // 记录这个变量用来操作buffer
+        private readonly BufferCodec inputCodecBuffer = new(); // 记录这个变量用来操作buffer
+        private readonly BufferCodec outputCodecBuffer = new(); // 记录这个变量用来操作buffer
 
         private Codec inputCodecChain;
         private Codec outputCodecChain;
@@ -292,7 +292,7 @@ namespace Zeze.Net
                         ProcessReceive(e);
                         break;
                     default:
-                        throw new ArgumentException();
+                        throw new ArgumentException($"Invalid LastOperation={e.LastOperation}");
                 }
             }
             catch (Exception ex)

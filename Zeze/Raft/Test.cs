@@ -372,9 +372,8 @@ namespace Zeze.Raft
             logger.Debug("Leader节点重启网络，【选举】");
             var leader = GetLeader();
             leader.Raft.Server.Stop();
-            Util.Scheduler.Schedule(
-                (ThisTask) => leader.Raft.Server.Start(),
-                leader.Raft.RaftConfig.ElectionTimeoutMax);
+            await Task.Delay(leader.Raft.RaftConfig.ElectionTimeoutMax);
+            leader.Raft.Server.Start();
             TestConcurrent("TestLeaderNodeRestartNet_NewVote", 1);
 
             // 普通节点重启一。

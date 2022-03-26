@@ -30,21 +30,23 @@ namespace Zeze.Transaction
         {
             public bool ActiveClose { get; private set; } = false;
             public Connector Connector { get; private set; }
-            public Zeze.Util.AtomicLong LoginTimes { get; } = new Util.AtomicLong();
+            public Zeze.Util.AtomicLong LoginTimes { get; } = new();
             public int GlobalCacheManagerHashIndex { get; }
 
-            private Zeze.Util.AtomicLong LastErrorTime = new Zeze.Util.AtomicLong();
+            private readonly Zeze.Util.AtomicLong LastErrorTime = new();
             public const long FastErrorPeriod = 10 * 1000; // 10 seconds
 
-            public Agent(GlobalClient client, string host, int port, int _GlobalCacheManagerHashIndex)
+            public Agent(GlobalClient client, string host, int port, int globalCacheManagerHashIndex)
             {
-                GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
-                this.Connector = new Connector(host, port, true);
-                this.Connector.UserState = this;
+                GlobalCacheManagerHashIndex = globalCacheManagerHashIndex;
+                this.Connector = new Connector(host, port, true)
+                {
+                    UserState = this
+                };
                 client.Config.AddConnector(this.Connector);
             }
 
-            private void ThrowException(string msg, Exception cause = null)
+            private static void ThrowException(string msg, Exception cause = null)
             {
                 var txn = Transaction.Current;
                 if (txn != null)
