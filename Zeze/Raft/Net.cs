@@ -418,7 +418,7 @@ namespace Zeze.Raft
         /// <returns></returns>
         public void Send<TArgument, TResult>(
             RaftRpc<TArgument, TResult> rpc,
-            Func<Protocol, long> handle, bool urgent = false)
+            Func<Protocol, Task<long>> handle, bool urgent = false)
             where TArgument : Bean, new()
             where TResult : Bean, new()
         {
@@ -448,11 +448,11 @@ namespace Zeze.Raft
                     throw new Exception("duplicate requestid rpc=" + rpc);
             }
 
-            rpc.ResponseHandle = async (p) => SendHandle(p, handle, rpc);
+            rpc.ResponseHandle = async (p) => await SendHandle(p, handle, rpc);
             rpc.Send(_Leader?.TryGetReadySocket());
         }
 
-        private long SendHandle<TArgument, TResult>(Protocol p, Func<Protocol, long> userHandle, RaftRpc<TArgument, TResult> rpc)
+        private async Task<long> SendHandle<TArgument, TResult>(Protocol p, Func<Protocol, Task<long>> userHandle, RaftRpc<TArgument, TResult> rpc)
             where TArgument : Bean, new()
             where TResult : Bean, new()
         {
@@ -476,7 +476,7 @@ namespace Zeze.Raft
                     rpc.IsTimeout = false;
                 }
                 logger.Debug($"Agent Rpc={rpc.GetType().Name} RequestId={rpc.Unique.RequestId} ResultCode={rpc.ResultCode} Sender={rpc.Sender}");
-                return userHandle(rpc);
+                return await userHandle(rpc);
             }
             return 0;
         }

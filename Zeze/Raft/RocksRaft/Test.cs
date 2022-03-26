@@ -228,11 +228,11 @@ namespace Zeze.Raft.RocksRaft
 			}
 		}
 
-		private void Remove1(Rocks rocks, Table<int, Bean1> table)
+		private static void Remove1(Rocks rocks, Table<int, Bean1> table)
 		{
-			rocks.NewProcedure(() =>
+			rocks.NewProcedure(async () =>
 			{
-				table.Remove(1);
+				await table.RemoveAsync(1);
 
 				Transaction.Current.RunWhileCommit(() =>
 				{
@@ -251,9 +251,9 @@ namespace Zeze.Raft.RocksRaft
 			}).CallSynchronously();
 		}
 
-		private void Update(Table<int, Bean1> table, int num)
+		private static async Task Update(Table<int, Bean1> table, int num)
 		{
-			var value = table.GetOrAdd(1);
+			var value = await table.GetOrAddAsync(1);
 
 			// 本层Bean变量修改日志
 			value.I = 1 + num;
@@ -272,7 +272,7 @@ namespace Zeze.Raft.RocksRaft
 			bean1.I = 5 + num;
 		}
 
-		private void VerifyChanges(string except)
+		private static void VerifyChanges(string except)
 		{
 			Transaction.Current.RunWhileCommit(() =>
 			{
@@ -291,11 +291,11 @@ namespace Zeze.Raft.RocksRaft
 			});
 		}
 
-		private void VerifyData(Rocks rocks, Table<int, Bean1> table, string except)
+		private static void VerifyData(Rocks rocks, Table<int, Bean1> table, string except)
 		{
-			rocks.NewProcedure(() =>
+			rocks.NewProcedure(async () =>
 			{
-				var value = table.GetOrAdd(1);
+				var value = await table.GetOrAddAsync(1);
 				var current = value.ToString();
 				if (string.IsNullOrEmpty(except))
 				{
@@ -309,96 +309,96 @@ namespace Zeze.Raft.RocksRaft
 			}).CallSynchronously();
 		}
 
-		private void PutAndEdit(Rocks rocks, Table<int, Bean1> table)
+		private static void PutAndEdit(Rocks rocks, Table<int, Bean1> table)
 		{
-			rocks.NewProcedure(() =>
+			rocks.NewProcedure(async () =>
 			{
-				Update(table, 0);
-				VerifyChanges(@"{(tRocksRaft#0,1):State=1 PutValue=Bean1(I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})
+				await Update(table, 0);
+                VerifyChanges(@"{(tRocksRaft#0,1):State=1 PutValue=Bean1(I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})
 Log=[]
 AllLog=[{0:Value=Bean1(I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})},{1:Value=1,3: Putted:{3:3} Removed:[],4:{1:Value=2},5: Putted:{4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=5}]}]}");
 				return 0;
 			}).CallSynchronously();
 		}
 
-		private void Edit(Rocks rocks, Table<int, Bean1> table)
+		private static void Edit(Rocks rocks, Table<int, Bean1> table)
 		{
-			rocks.NewProcedure(() =>
+			rocks.NewProcedure(async () =>
 			{
-				Update(table, 10);
-				VerifyChanges(@"{(tRocksRaft#0,1):State=2 PutValue=
+				await Update(table, 10);
+                VerifyChanges(@"{(tRocksRaft#0,1):State=2 PutValue=
 Log=[{1:Value=11,3: Putted:{13:13} Removed:[],4:{1:Value=12},5: Putted:{14:Bean1(I=15 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=15}]}]
 AllLog=[{1:Value=11,3: Putted:{13:13} Removed:[],4:{1:Value=12},5: Putted:{14:Bean1(I=15 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=15}]}]}");
 				return 0;
 			}).CallSynchronously();
 		}
 
-		private void EditAndPut(Rocks rocks, Table<int, Bean1> table)
+		private static void EditAndPut(Rocks rocks, Table<int, Bean1> table)
 		{
-			rocks.NewProcedure(() =>
+			rocks.NewProcedure(async () =>
 			{
-				Update(table, 20);
+				await Update(table, 20);
 				// 重新put，将会让上面的修改树作废。但所有的日志树都可以从All中看到。
 				var bean1put = new Bean1();
-				table.Put(1, bean1put);
-				VerifyChanges(@"{(tRocksRaft#0,1):State=1 PutValue=Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})
+				await table.PutAsync(1, bean1put);
+                VerifyChanges(@"{(tRocksRaft#0,1):State=1 PutValue=Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})
 Log=[]
 AllLog=[{0:Value=Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})},{1:Value=21,3: Putted:{23:23} Removed:[],4:{1:Value=22},5: Putted:{24:Bean1(I=25 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[] Changed:[{1:Value=25}]}]}");
 				return 0;
 			}).CallSynchronously();
 		}
 
-		private void EditInContainer(Rocks rocks, Table<int, Bean1> table)
+		private static void EditInContainer(Rocks rocks, Table<int, Bean1> table)
 		{
-			rocks.NewProcedure(() =>
+			rocks.NewProcedure(async () =>
 			{
-				var value = table.GetOrAdd(1);
+				var value = await table.GetOrAddAsync(1);
 				var edit = value.Map2.Get(14);
 				edit.Bean2.I = 2222;
-				VerifyChanges(@"{(tRocksRaft#0,1):State=2 PutValue=
+                VerifyChanges(@"{(tRocksRaft#0,1):State=2 PutValue=
 Log=[{5: Putted:{} Removed:[] Changed:[{4:{1:Value=2222}}]}]
 AllLog=[{5: Putted:{} Removed:[] Changed:[{4:{1:Value=2222}}]}]}");
 				return 0;
 			}).CallSynchronously();
 		}
 
-		private void NestProcedure(Rocks rocks, Table<int, Bean1> table)
+		private static void NestProcedure(Rocks rocks, Table<int, Bean1> table)
 		{
-			rocks.NewProcedure(() =>
+			rocks.NewProcedure(async () =>
 			{
-				var value = table.Get(1);
+				var value = await table.GetAsync(1);
 				value.Bean2.I = 3333;
 
-				rocks.NewProcedure(() =>
+				await rocks.NewProcedure(async () =>
 				{
-					var value = table.Get(1);
+					var value = await table.GetAsync(1);
 					value.Bean2.I = 4444;
 					SimpleAssert.AreEqual(4444, value.Bean2.I);
 					return -1;
-				}).CallSynchronously();
+				}).CallAsync();
 
-				VerifyChanges(@"{(tRocksRaft#0,1):State=2 PutValue=
+                VerifyChanges(@"{(tRocksRaft#0,1):State=2 PutValue=
 Log=[{4:{1:Value=3333}}]
 AllLog=[{4:{1:Value=3333}}]}");
 				return 0;
 			}).CallSynchronously();
 		}
 
-		private void NestProcedureContainer(Rocks rocks, Table<int, Bean1> table)
+		private static void NestProcedureContainer(Rocks rocks, Table<int, Bean1> table)
 		{
-			rocks.NewProcedure(() =>
+			rocks.NewProcedure(async () =>
 			{
-				rocks.NewProcedure(() =>
+				await rocks.NewProcedure(async () =>
 				{
-					var value = table.Get(1);
+					var value = await table.GetAsync(1);
 					value.Map2.Put(4444, new Bean1());
 					value.Map1.Put(4444, 4444);
 					value.Map1.Remove(3);
 					value.Map2.Remove(4);
 					return 0;
-				}).CallSynchronously();
+				}).CallAsync();
 
-				VerifyChanges(@"{(tRocksRaft#0,1):State=2 PutValue=
+                VerifyChanges(@"{(tRocksRaft#0,1):State=2 PutValue=
 Log=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[4] Changed:[]}]
 AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})} Removed:[4] Changed:[]}]}");
 				return 0;
@@ -450,31 +450,31 @@ AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(I=0 L=0 Map1={}
 
 			// 只简单验证一下最新的数据。
 			var newleader = GetLeader(rockslist, leader);
-			VerifyData(newleader, newleader.GetTableTemplate("tRocksRaft").OpenTable<int, Bean1>(0), "Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
+            VerifyData(newleader, newleader.GetTableTemplate("tRocksRaft").OpenTable<int, Bean1>(0), "Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
 		}
 
 		private async Task RunLeader(Rocks rocks)
 		{
 			var table = rocks.GetTableTemplate("tRocksRaft").OpenTable<int, Bean1>(0);
-			Remove1(rocks, table);
+            Remove1(rocks, table);
 
-			PutAndEdit(rocks, table);
-			VerifyData(rocks, table, "Bean1(I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
+            PutAndEdit(rocks, table);
+            VerifyData(rocks, table, "Bean1(I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
 
-			Edit(rocks, table);
-			VerifyData(rocks, table, "Bean1(I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=12) Map2={4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(I=15 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
+            Edit(rocks, table);
+            VerifyData(rocks, table, "Bean1(I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=12) Map2={4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(I=15 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
 
-			EditInContainer(rocks, table);
-			VerifyData(rocks, table, "Bean1(I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=12) Map2={4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={})})");
+            EditInContainer(rocks, table);
+            VerifyData(rocks, table, "Bean1(I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=12) Map2={4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={})})");
 
-			NestProcedure(rocks, table);
-			VerifyData(rocks, table, "Bean1(I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=3333) Map2={4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={})})");
+            NestProcedure(rocks, table);
+            VerifyData(rocks, table, "Bean1(I=11 L=0 Map1={3:3,13:13} Bean2=Bean2(I=3333) Map2={4:Bean1(I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={}),14:Bean1(I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={})})");
 
-			NestProcedureContainer(rocks, table);
-			VerifyData(rocks, table, "Bean1(I=11 L=0 Map1={13:13,4444:4444} Bean2=Bean2(I=3333) Map2={14:Bean1(I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={}),4444:Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
+            NestProcedureContainer(rocks, table);
+            VerifyData(rocks, table, "Bean1(I=11 L=0 Map1={13:13,4444:4444} Bean2=Bean2(I=3333) Map2={14:Bean1(I=15 L=0 Map1={} Bean2=Bean2(I=2222) Map2={}),4444:Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})");
 
-			EditAndPut(rocks, table);
-			VerifyData(rocks, table, "Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
+            EditAndPut(rocks, table);
+            VerifyData(rocks, table, "Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
 
 			// 再次运行本测试，才会执行到 LoadSnapshot。
 			await rocks.Raft.LogSequence.Snapshot(true);

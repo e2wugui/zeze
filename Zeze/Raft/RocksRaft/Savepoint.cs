@@ -22,7 +22,7 @@ namespace Zeze.Raft.RocksRaft
 
         public Savepoint BeginSavepoint()
         {
-            Savepoint sp = new Savepoint();
+            var sp = new Savepoint();
             foreach (var e in Logs)
             {
                 sp.Logs[e.Key] = e.Value.BeginSavepoint();
@@ -30,11 +30,23 @@ namespace Zeze.Raft.RocksRaft
             return sp;
         }
 
-        public void CommitTo(Savepoint other)
+        internal readonly List<Action> CommitActions = new();
+        internal readonly List<Action> RollbackActions = new();
+
+        public void EndSavepoint(Savepoint other, bool isCommit)
         {
-            foreach (var e in other.Logs)
+            if (isCommit)
             {
-                e.Value.EndSavepoint(this);
+                foreach (var e in other.Logs)
+                {
+                    e.Value.EndSavepoint(this);
+                }
+                CommitActions.AddRange(other.CommitActions);
+            }
+            else
+            {
+                CommitActions.AddRange(other.RollbackActions);
+                RollbackActions.AddRange(other.RollbackActions);
             }
         }
 

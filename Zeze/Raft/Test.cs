@@ -25,7 +25,7 @@ namespace Zeze.Raft
 
         private Agent Agent { get; set; }
 
-        private void LogDump(string db)
+        public static void LogDump(string db)
         {            
             var options = new DbOptions().SetCreateIfMissing(true);
             using var r1 = RocksDb.Open(options, Path.Combine(db, "logs"));
@@ -765,7 +765,7 @@ namespace Zeze.Raft
 
                 }
 
-                public override void Apply(RaftLog holder, StateMachine stateMachine)
+                public override async Task Apply(RaftLog holder, StateMachine stateMachine)
                 {
                     (stateMachine as TestStateMachine).Count += 1;
                 }
@@ -932,11 +932,10 @@ namespace Zeze.Raft
             private async Task<long> ProcessGetCount(Zeze.Net.Protocol p)
             {
                 var r = p as GetCount;
-                lock (StateMachine)
-                {
-                    r.Result.Count = StateMachine.Count;
-                    r.SendResult();
-                }
+
+                r.Result.Count = StateMachine.Count;
+                r.SendResult();
+
                 return Procedure.Success;
             }
         }

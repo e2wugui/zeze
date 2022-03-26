@@ -178,12 +178,13 @@ namespace Zeze.Raft.RocksRaft
 			for (int i = bb.ReadUInt(); i > 0; i--)
 			{
 				var tkey = new TableKey();
-				var r = new Record();
+                var r = new Record
+                {
+                    TableTemplateId = bb.ReadUInt(),
+                    TableTemplateName = bb.ReadString()
+                };
 
-				r.TableTemplateId = bb.ReadUInt();
-				r.TableTemplateName = bb.ReadString();
-
-				tkey.Name = bb.ReadString();
+                tkey.Name = bb.ReadString();
 				r.SetTableByName(this, r.TableTemplateName);
 				r.Table.DecodeKey(bb, out tkey.Key);
 
@@ -232,7 +233,7 @@ namespace Zeze.Raft.RocksRaft
             return sb.ToString();
         }
 
-        public override void Apply(RaftLog holder, StateMachine stateMachine)
+        public override async Task Apply(RaftLog holder, StateMachine stateMachine)
         {
 			if (holder.LeaderFuture != null)
 			{
@@ -242,7 +243,7 @@ namespace Zeze.Raft.RocksRaft
             else
             {
 				Rocks.logger.Debug($"{Rocks.Raft.Name} FollowerApply");
-				Rocks.FollowerApply(this);
+				await Rocks.FollowerApply(this);
 			}
 		}
 	}

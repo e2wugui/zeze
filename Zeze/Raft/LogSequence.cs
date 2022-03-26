@@ -26,7 +26,7 @@ namespace Zeze.Raft
             Info = info ?? string.Empty;
         }
 
-        public override void Apply(RaftLog holder, StateMachine stateMachine)
+        public override async Task Apply(RaftLog holder, StateMachine stateMachine)
         {
             switch (Operate)
             {

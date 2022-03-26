@@ -39,11 +39,12 @@ namespace Zeze.Raft.RocksRaft
 		public bool Removed { get; set; }
 
 
-		private static Util.AtomicLong _TimestampGen = new Util.AtomicLong();
-		internal static long NextTimestamp => _TimestampGen.IncrementAndGet();
+		private static readonly Util.AtomicLong TimestampGen = new();
+		internal static long NextTimestamp => TimestampGen.IncrementAndGet();
 		internal abstract void LeaderApply(Transaction.RecordAccessed accessed);
 		internal abstract void Flush(WriteBatch batch);
 		public Table Table { get; internal set; }
+		public Nito.AsyncEx.AsyncLock Mutex { get; } = new();
 	}
 
 	public class Record<K, V> : Record

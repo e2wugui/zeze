@@ -40,7 +40,7 @@ namespace Zeze.Transaction
 
         public Savepoint Duplicate()
         {
-            Savepoint sp = new Savepoint();
+            var sp = new Savepoint();
             foreach (var e in Logs)
             {
                 sp.Logs[e.Key] = e.Value;
@@ -48,8 +48,8 @@ namespace Zeze.Transaction
             return sp;
         }
 
-        internal readonly List<Action> CommitActions = new List<Action>();
-        internal readonly List<Action> RollbackActions = new List<Action>();
+        internal readonly List<Action> CommitActions = new();
+        internal readonly List<Action> RollbackActions = new();
 
         public void MergeFrom(Savepoint other, bool isCommit)
         {

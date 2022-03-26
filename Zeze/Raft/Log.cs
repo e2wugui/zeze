@@ -46,7 +46,7 @@ namespace Zeze.Raft
         /// 最主要的实现接口。
         /// </summary>
         /// <param name="stateMachine"></param>
-        public abstract void Apply(RaftLog holder, StateMachine stateMachine);
+        public abstract Task Apply(RaftLog holder, StateMachine stateMachine);
 
         public virtual void Decode(ByteBuffer bb)
         {

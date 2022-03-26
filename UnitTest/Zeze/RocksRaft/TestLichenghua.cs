@@ -17,27 +17,27 @@ namespace UnitTest.Zeze.RocksRaft
         {
             using var test = new TestRocks();
             var leader = test.GetLeader(null);
-            Assert.AreEqual(0, leader.NewProcedure(() =>
+            Assert.AreEqual(0, leader.NewProcedure(async () =>
             {
                 var table = leader.GetTableTemplate("tRocks").OpenTable<int, Value>(0);
-                table.Remove(1);
+                await table.RemoveAsync(1);
                 return 0;
             }).CallSynchronously());
 
-            Assert.AreEqual(0, leader.NewProcedure(() =>
+            Assert.AreEqual(0, leader.NewProcedure(async () =>
             {
                 var table = leader.GetTableTemplate("tRocks").OpenTable<int, Value>(0);
-                var value = table.GetOrAdd(1);
+                var value = await table.GetOrAddAsync(1);
                 value.Int = 1;
                 leader.AtomicLongIncrementAndGet(0);
                 leader.AtomicLongIncrementAndGet(0);
                 return 0;
             }).CallSynchronously());
 
-            Assert.AreEqual(0, leader.NewProcedure(() =>
+            Assert.AreEqual(0, leader.NewProcedure(async () =>
             {
                 var table = leader.GetTableTemplate("tRocks").OpenTable<int, Value>(0);
-                var value = table.GetOrAdd(1);
+                var value = await table.GetOrAddAsync(1);
                 Assert.AreEqual(1, value.Int);
                 Assert.AreEqual(2, leader.AtomicLongGet(0));
                 return 0;
@@ -46,10 +46,10 @@ namespace UnitTest.Zeze.RocksRaft
             leader.Raft.Server.Stop(); // 停止Leader的网络
             leader = test.GetLeader(leader); // 得到新的Leader，传入参数是确保得到新的。
 
-            Assert.AreEqual(0, leader.NewProcedure(() =>
+            Assert.AreEqual(0, leader.NewProcedure(async () =>
             {
                 var table = leader.GetTableTemplate("tRocks").OpenTable<int, Value>(0);
-                var value = table.GetOrAdd(1);
+                var value = await table.GetOrAddAsync(1);
                 Assert.AreEqual(1, value.Int);
                 Assert.AreEqual(2, leader.AtomicLongGet(0));
                 return 0;

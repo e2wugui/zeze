@@ -36,9 +36,10 @@ namespace Zeze.Raft.RocksRaft
         }
 
         private readonly Dictionary<int, long> LastUpdated = new();
-        internal void UpdateAtomicLongs(Dictionary<int, long> to)
+
+        internal async Task UpdateAtomicLongs(Dictionary<int, long> to)
         {
-            lock (Raft)
+            using var lockraft = await Raft.Monitor.EnterAsync();
             {
                 foreach (var a in AtomicLongs)
                 {
@@ -55,7 +56,7 @@ namespace Zeze.Raft.RocksRaft
             }
         }
 
-        public Procedure NewProcedure(Func<long> func)
+        public Procedure NewProcedure(Func<Task<long>> func)
         {
             return new Procedure(this, func);
         }
@@ -73,12 +74,12 @@ namespace Zeze.Raft.RocksRaft
             TableTemplates.GetOrAdd(tableTemplateName, (key) => new TableTemplate<K, V>(this, key));
         }
 
-        internal void FollowerApply(Changes changes)
+        internal async Task FollowerApply(Changes changes)
         {
             var rs = new List<Record>();
             foreach (var e in changes.Records)
             {
-                rs.Add(e.Value.Table.FollowerApply(e.Key.Key, e.Value));
+                rs.Add(await e.Value.Table.FollowerApply(e.Key.Key, e.Value));
             }
             Flush(rs, changes, true);
         }

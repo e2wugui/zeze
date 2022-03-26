@@ -59,12 +59,14 @@ namespace Zeze.Raft.RocksRaft
 
 		public override LogBean CreateLogBean()
 		{
-			var log = new LogSet1<V>();
-			log.Belong = Parent;
-			log.This = this;
-			log.VariableId = VariableId;
-			log.Value = _set;
-			return log;
+            var log = new LogSet1<V>
+            {
+                Belong = Parent,
+                This = this,
+                VariableId = VariableId,
+                Value = _set
+            };
+            return log;
 		}
 
 		public override void FollowerApply(Log _log)
@@ -88,9 +90,11 @@ namespace Zeze.Raft.RocksRaft
 
 		public override Bean CopyBean()
 		{
-			var copy = new CollSet1<V>();
-			copy._set = _set;
-			return copy;
+            var copy = new CollSet1<V>
+            {
+                _set = _set
+            };
+            return copy;
 		}
 	}
 }

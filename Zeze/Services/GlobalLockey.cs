@@ -5,14 +5,63 @@ using System.Text;
 using System.Runtime.CompilerServices;
 using Zeze.Beans.GlobalCacheManagerWithRaft;
 using System.Threading;
+using System.Threading.Tasks;
+using Zeze.Raft.RocksRaft;
 
 namespace Zeze.Services
 {
 
-    public sealed class GlobalLockey : System.IComparable<GlobalLockey>, Zeze.Raft.RocksRaft.PessimismLock
+	public sealed class GlobalLockAsync : IPessimismLock
+	{ 
+		public GlobalLockey GlobalLockey { get; }
+		public GlobalLockAsync(GlobalLockey globalLockey)
+        {
+			GlobalLockey= globalLockey;
+		}
+
+		private IDisposable Acquired;
+
+		public async Task<GlobalLockAsync> EnterAsync()
+		{
+			if (null != Acquired)
+				throw new InvalidOperationException("null != Acquired");
+			Acquired = await GlobalLockey.Monitor.EnterAsync();
+			return this;
+		}
+
+		public void Dispose()
+		{
+			GC.SuppressFinalize(this);
+			Acquired?.Dispose();
+			Acquired = null;
+		}
+
+		public async Task<IPessimismLock> LockAsync()
+		{
+			return await EnterAsync();
+		}
+
+		public async Task WaitAsync()
+		{
+			await GlobalLockey.Monitor.WaitAsync();
+		}
+
+		public void Pulse()
+		{
+			GlobalLockey.Monitor.Pulse();
+		}
+
+		public void PulseAll()
+		{
+			GlobalLockey.Monitor.PulseAll();
+		}
+
+	}
+
+	public sealed class GlobalLockey : System.IComparable<GlobalLockey>
     {
-		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 		public GlobalTableKey GlobalTableKey { get; }
+		internal Nito.AsyncEx.AsyncMonitor Monitor { get; set; } = new();
 
 		/// <summary>
 		/// 相同值的 TableKey 要得到同一个 Lock 引用，必须使用 Locks 查询。
@@ -23,41 +72,6 @@ namespace Zeze.Services
 		{
 			GlobalTableKey = key;
 		}
-
-		public void Lock()
-		{
-			Enter();
-		}
-
-		public void Unlock()
-        {
-			Exit();
-        }
-
-		public void Enter()
-        {
-			Monitor.Enter(this);
-        }
-
-		public void Wait()
-		{ 
-			Monitor.Wait(this);
-		}
-
-		public void Pulse()
-		{
-			Monitor.Pulse(this);
-		}
-
-		public void PulseAll()
-		{
-			Monitor.PulseAll(this);
-		}
-
-		public void Exit()
-        {
-			Monitor.Exit(this);
-        }
 
 		public int CompareTo(GlobalLockey other)
         {
@@ -108,7 +122,7 @@ namespace Zeze.Services
 		 * @param lockey the Lockey
 		 * @return the segment
 		 */
-		private Segment segmentFor(GlobalLockey lockey)
+		private Segment SegmentFor(GlobalLockey lockey)
 		{
 			/**
 			 * Applies a supplemental hash function to a given hashCode, which defends
@@ -160,7 +174,7 @@ namespace Zeze.Services
 		/* ------------- 实现 --------------- */
 		sealed class Segment
 		{
-			private readonly global::Zeze.Util.WeakHashSet<GlobalLockey> locks = new global::Zeze.Util.WeakHashSet<GlobalLockey>();
+			private readonly Util.WeakHashSet<GlobalLockey> locks = new ();
 
 			public Segment()
 			{
@@ -189,24 +203,14 @@ namespace Zeze.Services
 			}
 		}
 
-		public bool Contains(GlobalLockey lockey)
-		{
-			return this.segmentFor(lockey).Contains(lockey);
-		}
-
 		public GlobalLockey Get(GlobalLockey lockey)
 		{
-			return this.segmentFor(lockey).Get(lockey);
+			return SegmentFor(lockey).Get(lockey);
 		}
 
-		public GlobalLockey Get(GlobalTableKey tkey)
+		public GlobalLockAsync Get(GlobalTableKey tkey)
         {
-			return Get(new GlobalLockey(tkey));
-        }
-
-		public bool Contains(GlobalTableKey tkey)
-        {
-			return Contains(new GlobalLockey(tkey));
+			return new GlobalLockAsync(Get(new GlobalLockey(tkey)));
         }
 	}
 

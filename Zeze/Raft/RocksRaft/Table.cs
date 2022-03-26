@@ -14,7 +14,7 @@ namespace Zeze.Raft.RocksRaft
         public string Name { get; protected set; }
         public int CacheCapacity { get; set; } = 10000;
 
-        internal abstract Record FollowerApply(object key, Changes.Record rlog);
+        internal abstract Task<Record> FollowerApply(object key, Changes.Record rlog);
         internal abstract void Open();
         public abstract Bean NewValue();
         public abstract void EncodeKey(ByteBuffer bb, object key);
@@ -85,23 +85,23 @@ namespace Zeze.Raft.RocksRaft
             return new V();
         }
 
-        internal override Record FollowerApply(object key, Changes.Record rlog)
+        internal override async Task<Record> FollowerApply(object key, Changes.Record rlog)
         {
             Record<K, V> r = null;
             switch (rlog.State)
             {
                 case Changes.Record.Remove:
-                    r = GetOrLoad((K)key);
+                    r = await Load((K)key);
                     r.Value = null;
                     r.Timestamp = Record.NextTimestamp;
                     break;
 
                 case Changes.Record.Put:
-                    r = GetOrLoad((K)key, rlog.PutValue);
+                    r = await Load((K)key, rlog.PutValue);
                     break;
 
                 case Changes.Record.Edit:
-                    r = GetOrLoad((K)key);
+                    r = await Load((K)key);
                     if (null == r.Value)
                     {
                         logger.Fatal($"editting bug record not exist.");
@@ -119,12 +119,12 @@ namespace Zeze.Raft.RocksRaft
             return r;
         }
 
-        public V GetOrAdd(K key)
+        public async Task<V> GetOrAddAsync(K key)
         {
-            Transaction currentT = Transaction.Current;
-            TableKey tkey = new TableKey(Name, key);
+            var currentT = Transaction.Current;
+            var tkey = new TableKey(Name, key);
 
-            Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
+            var cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
             {
                 V crv = (V)cr.NewestValue();
@@ -136,7 +136,7 @@ namespace Zeze.Raft.RocksRaft
             }
             else
             {
-                Record<K, V> r = GetOrLoad(key);
+                var r = await Load(key);
                 cr = new Transaction.RecordAccessed(r);
                 currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
 
@@ -145,70 +145,70 @@ namespace Zeze.Raft.RocksRaft
                 // add
             }
 
-            V add = new V();
+            var add = new V();
             add.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
             cr.Put(currentT, add);
             return add;
         }
 
-        public V Get(K key)
+        public async Task<V> GetAsync(K key)
         {
-            Transaction currentT = Transaction.Current;
-            TableKey tkey = new TableKey(Name, key);
+            var currentT = Transaction.Current;
+            var tkey = new TableKey(Name, key);
 
-            Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
+            var cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
             {
                 return (V)cr.NewestValue();
             }
 
-            Record<K, V> r = GetOrLoad(key);
+            Record<K, V> r = await Load(key);
             currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), new Transaction.RecordAccessed(r));
             return (V)r.Value;
         }
 
-        public bool TryAdd(K key, V value)
+        public async Task<bool> TryAddAsync(K key, V value)
         {
-            if (null != Get(key))
+            if (null != await GetAsync(key))
                 return false;
 
-            Transaction currentT = Transaction.Current;
-            TableKey tkey = new TableKey(Name, key);
-            Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
+            var currentT = Transaction.Current;
+            var tkey = new TableKey(Name, key);
+            var cr = currentT.GetRecordAccessed(tkey);
             value.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
             cr.Put(currentT, value);
             return true;
         }
 
-        public void Insert(K key, V value)
+        public async Task InsertAsync(K key, V value)
         {
-            if (false == TryAdd(key, value))
+            if (false == await TryAddAsync(key, value))
                 throw new ArgumentException($"table:{GetType().FullName} insert key:{key} exists");
         }
 
-        public void Put(K key, V value)
+        public async Task PutAsync(K key, V value)
         {
-            Transaction currentT = Transaction.Current;
-            TableKey tkey = new TableKey(Name, key);
+            var currentT = Transaction.Current;
+            var tkey = new TableKey(Name, key);
 
-            Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
+            var cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
             {
                 value.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
                 cr.Put(currentT, value);
                 return;
             }
-            Record<K, V> r = GetOrLoad(key);
+            Record<K, V> r = await Load(key);
             cr = new Transaction.RecordAccessed(r);
             cr.Put(currentT, value);
             currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
         }
 
         // 几乎和Put一样，还是独立开吧。
-        public void Remove(K key)
+        public async Task RemoveAsync(K key)
         {
-            Transaction currentT = Transaction.Current;
-            TableKey tkey = new TableKey(Name, key);
+            var currentT = Transaction.Current;
+            var tkey = new TableKey(Name, key);
 
             Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
@@ -217,7 +217,7 @@ namespace Zeze.Raft.RocksRaft
                 return;
             }
 
-            Record<K, V> r = GetOrLoad(key);
+            Record<K, V> r = await Load(key);
             cr = new Transaction.RecordAccessed(r);
             cr.Put(currentT, null);
             currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
@@ -261,13 +261,13 @@ namespace Zeze.Raft.RocksRaft
                     CacheCapacity, LruTryRemoveCallback, 200, 2000, 1024, Environment.ProcessorCount);
         }
 
-        private Record<K, V> GetOrLoad(K key, Bean putvalue = null)
+        private async Task<Record<K, V>> Load(K key, Bean putvalue = null)
         {
-            TableKey tkey = new TableKey(Name, key);
+            var tkey = new TableKey(Name, key);
             while (true)
             {
                 var r = LruCache.GetOrAdd(key, (_) => new Record<K, V>() { Table = this, Key = key });
-                lock (r)
+                using var lockr = await r.Mutex.LockAsync();
                 {
                     if (r.Removed)
                         continue;
@@ -283,7 +283,7 @@ namespace Zeze.Raft.RocksRaft
                     else if (r.State == Record.StateNew)
                     {
                         // fresh record
-                        r.Value = StorageLoad(key);
+                        r.Value = await StorageLoad(key);
                         r.Value?.InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
                         r.Timestamp = Record.NextTimestamp;
                         r.State = Record.StateLoad;
@@ -295,7 +295,7 @@ namespace Zeze.Raft.RocksRaft
             }
         }
 
-        private V StorageLoad(K key)
+        private async Task<V> StorageLoad(K key)
         {
             var keybb = ByteBuffer.Allocate();
             SerializeHelper<K>.Encode(keybb, key);

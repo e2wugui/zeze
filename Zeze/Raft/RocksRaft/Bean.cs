@@ -11,7 +11,7 @@ namespace Zeze.Raft.RocksRaft
 {
     public abstract class Bean : Serializable
 	{
-		private static Util.AtomicLong ObjectIdGenerator = new Util.AtomicLong();
+		private static readonly Util.AtomicLong ObjectIdGenerator = new();
 		public const int ObjectIdStep = 4096;
 		public const int MaxVariableId = ObjectIdStep - 1;
 

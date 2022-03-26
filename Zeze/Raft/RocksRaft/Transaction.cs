@@ -10,19 +10,19 @@ namespace Zeze.Raft.RocksRaft
 {
 	public sealed class Transaction
 	{
-		public static Transaction Current => threadlocal.Value;
+		public static Transaction Current => asyncLocal.Value;
 
-        public HashSet<PessimismLock> PessimismLocks { get; } = new();
+        public HashSet<IPessimismLock> PessimismLocks { get; } = new();
         public Procedure Procedure { get; private set; }
 
-        public T AddPessimismLock<T>(T plock)
-            where T : PessimismLock
+        public async Task<T> AddPessimismLockAsync<T>(T plock)
+            where T : IPessimismLock
         {
             if (Procedure.Rocks.RocksMode != RocksMode.Pessimism)
                 throw new Exception("RocksMode Is Not Pessimism!");
 
             if (PessimismLocks.Add(plock))
-                plock.Lock();
+                await plock.LockAsync();
             return plock;
         }
 
@@ -34,14 +34,12 @@ namespace Zeze.Raft.RocksRaft
 
         public Log GetLog(long logKey)
         {
-            return Savepoints.Count > 0
-                ? Savepoints[Savepoints.Count - 1].GetLog(logKey)
-                : null;
+            return Savepoints.Count > 0 ? Savepoints[^1].GetLog(logKey) : null;
         }
 
 		public void PutLog(Log log)
 		{
-            Savepoints[Savepoints.Count - 1].PutLog(log);
+            Savepoints[^1].PutLog(log);
         }
 
 		public Log LogGetOrAdd(long logKey, Func<Log> logFactory)
@@ -121,7 +119,7 @@ namespace Zeze.Raft.RocksRaft
         internal SortedDictionary<TableKey, RecordAccessed> AccessedRecords { get; }
             = new SortedDictionary<TableKey, RecordAccessed>();
 
-        private readonly List<Savepoint> Savepoints = new List<Savepoint>();
+        private readonly List<Savepoint> Savepoints = new();
 
         internal void AddRecordAccessed(Record.RootInfo root, RecordAccessed r)
         {
@@ -137,26 +135,23 @@ namespace Zeze.Raft.RocksRaft
             return null;
         }
         
-        private static ThreadLocal<Transaction> threadlocal = new ThreadLocal<Transaction>();
+        private static readonly AsyncLocal<Transaction> asyncLocal = new();
 
 		public static Transaction Create()
         {
-			if (null == threadlocal.Value)
-				threadlocal.Value = new Transaction();
-			return threadlocal.Value;
+			if (null == asyncLocal.Value)
+				asyncLocal.Value = new Transaction();
+			return asyncLocal.Value;
         }
 
 		public static void Destory()
         {
-			threadlocal.Value = null;
+			asyncLocal.Value = null;
         }
 
 		public void Begin()
         {
-			Savepoint sp = Savepoints.Count > 0
-                ? Savepoints[Savepoints.Count - 1].BeginSavepoint()
-                : new Savepoint();
-
+			Savepoint sp = Savepoints.Count > 0 ? Savepoints[^1].BeginSavepoint() : new Savepoint();
 			Savepoints.Add(sp);
 		}
 
@@ -168,7 +163,7 @@ namespace Zeze.Raft.RocksRaft
 				int lastIndex = Savepoints.Count - 1;
 				Savepoint last = Savepoints[lastIndex];
 				Savepoints.RemoveAt(lastIndex);
-				Savepoints[Savepoints.Count - 1].CommitTo(last);
+				Savepoints[^1].EndSavepoint(last, true);
 			}
 			/*
             else
@@ -178,15 +173,27 @@ namespace Zeze.Raft.RocksRaft
             */
 		}
 
-		public void Rollback()
+        private List<Action> LastRollbackActions;
+        
+        public void Rollback()
         {
 			int lastIndex = Savepoints.Count - 1;
 			Savepoint last = Savepoints[lastIndex];
 			Savepoints.RemoveAt(lastIndex);
 			last.Rollback();
-		}
 
-		internal async Task<long> Perform(Procedure procedure)
+            if (lastIndex > 0)
+            {
+                Savepoints[lastIndex - 1].EndSavepoint(last, false);
+            }
+            else
+            {
+                // 最后一个Savepoint Rollback的时候需要保存一下，用来触发回调。ugly。
+                LastRollbackActions = last.RollbackActions;
+            }
+        }
+
+        internal async Task<long> Perform(Procedure procedure)
         {
             Procedure = procedure;
 
@@ -196,25 +203,25 @@ namespace Zeze.Raft.RocksRaft
                 if (LockAndCheck(Zeze.Transaction.TransactionLevel.Serializable))
                 {
                     if (0 == procedure.ResultCode)
-                        await _final_commit_(procedure);
+                        await FinalCommit(procedure);
                     else
-                        _final_rollback_(procedure);
+                        FinalRollback(procedure);
                     return procedure.ResultCode;
                 }
-                _final_rollback_(procedure); // 乐观锁，这里应该redo
+                FinalRollback(procedure); // 乐观锁，这里应该redo
                 return procedure.ResultCode;
 			}
             catch (Zeze.Util.ThrowAgainException)
             {
                 procedure.ResultCode = Zeze.Transaction.Procedure.Exception;
-                _final_rollback_(procedure);
+                FinalRollback(procedure);
                 throw;
             }
             catch (RaftRetryException ex1)
             {
                 logger.Debug(ex1);
                 procedure.ResultCode = Zeze.Transaction.Procedure.RaftRetry;
-                _final_rollback_(procedure);
+                FinalRollback(procedure);
                 return procedure.ResultCode;
             }
             catch (Exception ex)
@@ -224,23 +231,23 @@ namespace Zeze.Raft.RocksRaft
 
                 if (ex.GetType().Name == "AssertFailedException")
                 {
-                    _final_rollback_(procedure);
+                    FinalRollback(procedure);
                     throw;
                 }
 
                 if (LockAndCheck(Zeze.Transaction.TransactionLevel.Serializable))
                 {
-                    _final_rollback_(procedure);
+                    FinalRollback(procedure);
                     return procedure.ResultCode;
                 }
-                _final_rollback_(procedure); // 乐观锁，这里应该redo
+                FinalRollback(procedure); // 乐观锁，这里应该redo
                 return procedure.ResultCode;
             }
             finally
             {
                 foreach (var plock in PessimismLocks)
                 {
-                    plock.Unlock();
+                    plock.Dispose();
                 }
                 PessimismLocks.Clear();
             }
@@ -249,16 +256,20 @@ namespace Zeze.Raft.RocksRaft
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public Changes Changes { get; private set; }
 
-        private readonly List<Action> CommitActions = new List<Action>();
 
         public void RunWhileCommit(Action action)
         {
-            CommitActions.Add(action);
+            Savepoints[^1].CommitActions.Add(action);
         }
 
-        private void TriggerCommitActions(Procedure procedure)
+        public void RunWhileRollback(Action action)
         {
-            foreach (Action action in CommitActions)
+            Savepoints[^1].RollbackActions.Add(action);
+        }
+
+        private static void TriggerCommitActions(Procedure procedure, Savepoint last)
+        {
+            foreach (Action action in last.CommitActions)
             {
                 try
                 {
@@ -273,15 +284,15 @@ namespace Zeze.Raft.RocksRaft
                     }
                 }
             }
-            CommitActions.Clear();
+            last.CommitActions.Clear();
         }
 
         private bool LockAndCheck(Zeze.Transaction.TransactionLevel level)
         {
             bool allRead = true;
-            if (Savepoints.Count > 0)
+            if (Savepoints.Count == 1)
             {
-                foreach (var log in Savepoints[Savepoints.Count - 1].Logs.Values)
+                foreach (var log in Savepoints[0].Logs.Values)
                 {
                     // 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
                     // 现在不会有这种情况，保留给未来扩展需要。
@@ -306,10 +317,10 @@ namespace Zeze.Raft.RocksRaft
             return true;
         }
 
-        private async Task _final_commit_(Procedure procedure)
+        private async Task FinalCommit(Procedure procedure)
         {
             // Collect Changes
-            Savepoint sp = Savepoints[Savepoints.Count - 1];
+            Savepoint sp = Savepoints[^1];
             Changes = new Changes(procedure.Rocks, this, procedure.UniqueRequest);
             foreach (Log log in sp.Logs.Values)
             {
@@ -330,17 +341,17 @@ namespace Zeze.Raft.RocksRaft
 
             if (Changes.Records.Count > 0) // has changes
             {
-                procedure.Rocks.UpdateAtomicLongs(Changes.AtomicLongs);
+                await procedure.Rocks.UpdateAtomicLongs(Changes.AtomicLongs);
                 await procedure.Rocks.Raft.AppendLog(Changes, procedure.UniqueRequest?.ResultBean);
             }
 
-            TriggerCommitActions(procedure);
+            TriggerCommitActions(procedure, sp);
             procedure.AutoResponse?.SendResultCode(procedure.ResultCode);
         }
 
         internal void LeaderApply(Changes changes)
         {
-            Savepoint sp = Savepoints[Savepoints.Count - 1];
+            Savepoint sp = Savepoints[^1];
             foreach (Log log in sp.Logs.Values)
             {
                 log.Belong?.LeaderApplyNoRecursive(log);
@@ -357,8 +368,23 @@ namespace Zeze.Raft.RocksRaft
             changes.Rocks.Flush(rs, changes);
         }
 
-        private void _final_rollback_(Procedure procedure)
+        private void FinalRollback(Procedure procedure)
         {
+            if (null != LastRollbackActions)
+            {
+                foreach (var act in LastRollbackActions)
+                {
+                    try
+                    {
+                        act();
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error(ex);
+                    }
+                }
+                LastRollbackActions = null;
+            }
             procedure.AutoResponse?.SendResultCode(procedure.ResultCode);
         }
 

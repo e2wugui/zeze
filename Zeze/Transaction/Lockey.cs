@@ -10,12 +10,14 @@ using System.Threading.Tasks;
 namespace Zeze.Transaction
 {
 	/// <summary>
-	/// 线程不安全，用来保存真正的锁和分配状态。这个是每个Local，目前用于局部变量和Transaction.HoldLocks，
+	/// 线程不安全，用来保存真正的锁和分配状态。目前用于局部变量和Transaction.HoldLocks，
 	/// </summary>
 	public sealed class LockAsync : IDisposable
 	{
 		public Lockey Lockey { get; }
 		private IDisposable Acquired;
+
+		// 暂时不需要这个状态，考虑删除。相关判断改成使用 null != Acquired。
 		public int AcquiredType { get; private set; } // 0 none, 1 read, 2 write
 
 		public LockAsync(Lockey lockey)

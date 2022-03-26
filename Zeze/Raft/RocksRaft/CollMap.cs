@@ -17,7 +17,7 @@ namespace Zeze.Raft.RocksRaft
         {
 			if (Map.TryGetValue(key, out V v))
 				return v;
-			return default(V);
+			return default;
 		}
 
 		public abstract void Add(K key, V value);

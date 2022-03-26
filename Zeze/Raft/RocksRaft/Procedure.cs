@@ -10,7 +10,7 @@ namespace Zeze.Raft.RocksRaft
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public Func<long> Func { get; set; }
+        public Func<Task<long>> Func { get; set; }
         public Rocks Rocks { get; set; }
         public Zeze.Net.Protocol UniqueRequest { get; set; }
         public Zeze.Net.Protocol AutoResponse { get; set; }
@@ -21,16 +21,16 @@ namespace Zeze.Raft.RocksRaft
 
         }
 
-        public Procedure(Rocks rocks, Func<long> func)
+        public Procedure(Rocks rocks, Func<Task<long>> func)
         {
             Rocks = rocks;
             Func = func;
         }
 
-        protected virtual long Process()
+        protected virtual async Task<long> Process()
         {
             if (null != Func)
-                return Func();
+                return await Func();
             return Zeze.Transaction.Procedure.NotImplement;
         }
 
@@ -58,7 +58,7 @@ namespace Zeze.Raft.RocksRaft
             currentT.Begin();
             try
             {
-                var result = Process();
+                var result = await Process();
                 if (0 == result)
                 {
                     currentT.Commit();

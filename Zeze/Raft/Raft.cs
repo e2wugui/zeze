@@ -389,7 +389,7 @@ namespace Zeze.Raft
             {
                 if (volatileTmp.Task.Wait(0))
                     return volatileTmp.Task.Result;
-                Monitor.Wait();
+                await Monitor.WaitAsync();
             }
             return false;
         }
