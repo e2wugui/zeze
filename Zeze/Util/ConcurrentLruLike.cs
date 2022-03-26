@@ -122,7 +122,7 @@ namespace Zeze.Util
                 value = lruItem.Value;
                 return true;
             }
-            value = default(V);
+            value = default;
             return false;
         }
 
@@ -153,7 +153,7 @@ namespace Zeze.Util
                 value = e.Value;
                 return true;
             }
-            value = default(V);
+            value = default;
             return false;
         }
 

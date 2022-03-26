@@ -521,24 +521,23 @@ namespace Zeze.Services
             var session = Sessions.GetOrAdd(rpc.Argument.ServerId,
                 (_) => new CacheHolder() { GlobalInstance = this, ServerId = rpc.Argument.ServerId });
 
-            lock (session) // 同一个节点互斥。不同节点Bind不需要互斥，Release由Raft-Leader唯一性提供保护。
+            // 同一个节点互斥。不同节点Bind不需要互斥，Release由Raft-Leader唯一性提供保护。
+            using var lockss = await session.Mutex.LockAsync();
+            if (false == session.TryBindSocket(rpc.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
             {
-                if (false == session.TryBindSocket(rpc.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
-                {
-                    rpc.SendResultCode(GlobalCacheManagerServer.LoginBindSocketFail);
-                    return 0;
-                }
-                // new login, 比如逻辑服务器重启。release old acquired.
-                var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
-                SenderAcquired.Walk((key, value) =>
-                {
-                    await Release(session, key, false);
-                    return true; // continue walk
-                });
-                rpc.SendResultCode(0);
-                logger.Info($"Login {Rocks.Raft.Name} {rpc.Sender}.");
+                rpc.SendResultCode(GlobalCacheManagerServer.LoginBindSocketFail);
                 return 0;
             }
+            // new login, 比如逻辑服务器重启。release old acquired.
+            var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
+            SenderAcquired.Walk((key, value) =>
+            {
+                Release(session, key, false).Wait();
+                return true; // continue walk
+            });
+            rpc.SendResultCode(0);
+            logger.Info($"Login {Rocks.Raft.Name} {rpc.Sender}.");
+            return 0;
         }
 
         protected override async Task<long> ProcessReLoginRequest(Zeze.Net.Protocol _p)
@@ -547,17 +546,15 @@ namespace Zeze.Services
             var session = Sessions.GetOrAdd(rpc.Argument.ServerId, 
                 (key) => new CacheHolder() { GlobalInstance = this, ServerId = rpc.Argument.ServerId });
 
-            lock (session) // 同一个节点互斥。
+            using var lockss = await session.Mutex.LockAsync(); // 同一个节点互斥。
+            if (false == session.TryBindSocket(rpc.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
             {
-                if (false == session.TryBindSocket(rpc.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
-                {
-                    rpc.SendResultCode(GlobalCacheManagerServer.ReLoginBindSocketFail);
-                    return 0;
-                }
-                rpc.SendResultCode(0);
-                logger.Info($"ReLogin {Rocks.Raft.Name} {rpc.Sender}.");
+                rpc.SendResultCode(GlobalCacheManagerServer.ReLoginBindSocketFail);
                 return 0;
             }
+            rpc.SendResultCode(0);
+            logger.Info($"ReLogin {Rocks.Raft.Name} {rpc.Sender}.");
+            return 0;
         }
 
         protected override async Task<long> ProcessNormalCloseRequest(Zeze.Net.Protocol _p)
@@ -569,24 +566,23 @@ namespace Zeze.Services
                 return 0; // not login
             }
 
-            lock (session) // 同一个节点互斥。不同节点Bind不需要互斥，Release由Raft-Leader唯一性提供保护。
+            // 同一个节点互斥。不同节点Bind不需要互斥，Release由Raft-Leader唯一性提供保护。
+            using var lockss = await session.Mutex.LockAsync();
+            if (false == session.TryUnBindSocket(rpc.Sender))
             {
-                if (false == session.TryUnBindSocket(rpc.Sender))
-                {
-                    rpc.SendResultCode(GlobalCacheManagerServer.NormalCloseUnbindFail);
-                    return 0;
-                }
-                // TODO 确认Walk中删除记录是否有问题。
-                var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
-                SenderAcquired.Walk((key, value) =>
-                {
-                    await Release(session, key, false);
-                    return true; // continue walk
-                });
-                rpc.SendResultCode(0);
-                logger.Info($"NormalClose {Rocks.Raft.Name} {rpc.Sender}");
+                rpc.SendResultCode(GlobalCacheManagerServer.NormalCloseUnbindFail);
                 return 0;
             }
+            // TODO 确认Walk中删除记录是否有问题。
+            var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
+            SenderAcquired.Walk((key, value) =>
+            {
+                Release(session, key, false).Wait();
+                return true; // continue walk
+            });
+            rpc.SendResultCode(0);
+            logger.Info($"NormalClose {Rocks.Raft.Name} {rpc.Sender}");
+            return 0;
         }
 
         protected override async Task<long> ProcessCleanupRequest(Zeze.Net.Protocol _p)
@@ -618,19 +614,14 @@ namespace Zeze.Services
             // 还有更多的防止出错的手段吗？
 
             // XXX verify danger
-            Util.Scheduler.Schedule(
-                async (ThisTask) =>
-                {
-                    var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
-                    SenderAcquired.Walk((key, value) =>
-                    {
-                        await Release(session, key, false);
-                        return true; // continue release;
-                    });
-                    rpc.SendResultCode(0);
-                },
-                5 * 60 * 1000); // delay 5 mins
-
+            await Task.Delay(5 * 60 * 1000); // delay 5 mins
+            var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
+            SenderAcquired.Walk((key, value) =>
+            {
+                Release(session, key, false).Wait();
+                return true; // continue release;
+            });
+            rpc.SendResultCode(0);
             return 0;
         }
 
@@ -696,6 +687,7 @@ namespace Zeze.Services
             public int GlobalCacheManagerHashIndex { get; private set; }
             public int ServerId { get; internal set; }
             public GlobalCacheManagerWithRaft GlobalInstance { get; set; }
+            public Nito.AsyncEx.AsyncLock Mutex { get; } = new();
 
             public bool TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex)
             {

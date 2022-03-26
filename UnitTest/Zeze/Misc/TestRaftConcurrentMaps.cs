@@ -70,6 +70,7 @@ namespace UnitTest.Zeze.Misc
             var (cpdir, term, index) = await storage.Checkpoint();
             try
             {
+                Console.WriteLine($"Cpdir={cpdir} Term={term} Index={index}");
                 Assert.IsTrue(storage.Backup(cpdir, "backup"));
                 Assert.IsTrue(storage.Restore("backup"));
             }

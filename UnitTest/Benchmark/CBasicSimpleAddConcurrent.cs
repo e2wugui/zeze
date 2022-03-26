@@ -16,7 +16,7 @@ namespace Benchmark
             try {
                 for (int i = 0; i < ConcurrentLevel; ++i) {
                     long k = i;
-                    demo.App.Instance.Zeze.NewProcedure(() => Remove(k), "remove").Call();
+                    demo.App.Instance.Zeze.NewProcedure(() => Remove(k), "remove").CallSynchronously();
                 }
                 var tasks = new List<Task>(AddCount);
                 Console.WriteLine("benchmark start...");
@@ -31,10 +31,10 @@ namespace Benchmark
                     task.Wait();
                 }
                 b.Report(this.GetType().FullName, AddCount);
-                demo.App.Instance.Zeze.NewProcedure(Check, "check").Call();
+                demo.App.Instance.Zeze.NewProcedure(Check, "check").CallSynchronously();
                 for (long i = 0; i < ConcurrentLevel; ++i) {
                     long k = i;
-                    demo.App.Instance.Zeze.NewProcedure(()=>Remove(k), "remove").Call();
+                    demo.App.Instance.Zeze.NewProcedure(()=>Remove(k), "remove").CallSynchronously();
                 }
             }
             finally

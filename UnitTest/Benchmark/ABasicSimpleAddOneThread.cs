@@ -15,17 +15,17 @@ namespace Benchmark
             demo.App.Instance.Start();
             try
             {
-                demo.App.Instance.Zeze.NewProcedure(Remove, "remove").Call();
+                demo.App.Instance.Zeze.NewProcedure(Remove, "remove").CallSynchronously();
                 Console.WriteLine("benchmark start...");
                 var b = new Zeze.Util.Benchmark();
                 var p = demo.App.Instance.Zeze.NewProcedure(Add, "Add");
                 for (int i = 0; i < AddCount; ++i)
                 {
-                    p.Call();
+                    p.CallSynchronously();
                 }
                 b.Report(this.GetType().FullName, AddCount);
-                demo.App.Instance.Zeze.NewProcedure(Check, "check").Call();
-                demo.App.Instance.Zeze.NewProcedure(Remove, "remove").Call();
+                demo.App.Instance.Zeze.NewProcedure(Check, "check").CallSynchronously();
+                demo.App.Instance.Zeze.NewProcedure(Remove, "remove").CallSynchronously();
             }
             finally
             {

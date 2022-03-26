@@ -22,7 +22,7 @@ namespace UnitTest.Zeze.RocksRaft
                 var table = leader.GetTableTemplate("tRocks").OpenTable<int, Value>(0);
                 table.Remove(1);
                 return 0;
-            }).Call());
+            }).CallSynchronously());
 
             Assert.AreEqual(0, leader.NewProcedure(() =>
             {
@@ -32,7 +32,7 @@ namespace UnitTest.Zeze.RocksRaft
                 leader.AtomicLongIncrementAndGet(0);
                 leader.AtomicLongIncrementAndGet(0);
                 return 0;
-            }).Call());
+            }).CallSynchronously());
 
             Assert.AreEqual(0, leader.NewProcedure(() =>
             {
@@ -41,7 +41,7 @@ namespace UnitTest.Zeze.RocksRaft
                 Assert.AreEqual(1, value.Int);
                 Assert.AreEqual(2, leader.AtomicLongGet(0));
                 return 0;
-            }).Call());
+            }).CallSynchronously());
 
             leader.Raft.Server.Stop(); // 停止Leader的网络
             leader = test.GetLeader(leader); // 得到新的Leader，传入参数是确保得到新的。
@@ -53,7 +53,7 @@ namespace UnitTest.Zeze.RocksRaft
                 Assert.AreEqual(1, value.Int);
                 Assert.AreEqual(2, leader.AtomicLongGet(0));
                 return 0;
-            }).Call());
+            }).CallSynchronously());
         }
     }
 }

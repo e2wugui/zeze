@@ -160,19 +160,22 @@ namespace Zeze.Raft.RocksRaft
             });
         }
 
+        /// <summary>
+        /// </summary>
+        /// <returns>(checkpointDir, lastApplied.Term, lastApplied.Index)</returns>
         public async Task<(string, long, long)> Checkpoint()
         {
-            var checkpintDir = Path.Combine(DbHome, "checkpoint_" + DateTime.Now.Ticks);
+            var checkpointDir = Path.Combine(DbHome, "checkpoint_" + DateTime.Now.Ticks);
 
             // fast checkpoint, will stop application apply.
             using var lockraft = await Raft.Monitor.EnterAsync();
 
             var lastAppliedLog = Raft.LogSequence.LastAppliedLogTermIndex();
             var cp = Storage.Checkpoint();
-            cp.Save(checkpintDir);
+            cp.Save(checkpointDir);
             cp.Dispose();
 
-            return (checkpintDir, lastAppliedLog.Term, lastAppliedLog.Index);
+            return (checkpointDir, lastAppliedLog.Term, lastAppliedLog.Index);
         }
 
         public bool Backup(string checkpintDir, string backupDir)

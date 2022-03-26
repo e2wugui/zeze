@@ -25,8 +25,8 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void TestNest()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcTableRemove, "ProcTableRemove").Call());
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcTableAdd, "ProcTableAdd").Call());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcTableRemove, "ProcTableRemove").CallSynchronously());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcTableAdd, "ProcTableAdd").CallSynchronously());
         }
 
         async Task<long> ProcTableRemove()

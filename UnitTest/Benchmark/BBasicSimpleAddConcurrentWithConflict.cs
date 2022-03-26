@@ -13,7 +13,7 @@ namespace Benchmark
         public void testBenchmark() {
             demo.App.Instance.Start();
             try {
-                demo.App.Instance.Zeze.NewProcedure(Remove, "remove").Call();
+                demo.App.Instance.Zeze.NewProcedure(Remove, "remove").CallSynchronously();
                 var tasks = new List<Task>(AddCount);
                 Console.WriteLine("benchmark start...");
                 var b = new Zeze.Util.Benchmark();
@@ -25,8 +25,8 @@ namespace Benchmark
                     task.Wait();
                 }
                 b.Report(this.GetType().FullName, AddCount);
-                demo.App.Instance.Zeze.NewProcedure(Check, "check").Call();
-                demo.App.Instance.Zeze.NewProcedure(Remove, "remove").Call();
+                demo.App.Instance.Zeze.NewProcedure(Check, "check").CallSynchronously();
+                demo.App.Instance.Zeze.NewProcedure(Remove, "remove").CallSynchronously();
             }
             finally
             {

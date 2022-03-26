@@ -46,7 +46,7 @@ namespace UnitTest.Zeze.Trans
 				await demo.App.Instance.demo_Module1.Table1.GetAsync(1L);
 				(await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(2L)).Int1 = 222;
 				return 0L;
-			}, "12").Call() == Procedure.Success);
+			}, "12").CallSynchronously() == Procedure.Success);
 			//Console.WriteLine("3");
 			//Console.WriteLine(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 			Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(async () =>
@@ -54,7 +54,7 @@ namespace UnitTest.Zeze.Trans
 				await demo.App.Instance.demo_Module1.Table1.GetAsync(3L);
 				(await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(4L)).Int1 = 444;
 				return 0L;
-			}, "34").Call() == Procedure.Success);
+			}, "34").CallSynchronously() == Procedure.Success);
 			//Console.WriteLine("4");
 			//Console.WriteLine(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 			Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(async () =>
@@ -62,7 +62,7 @@ namespace UnitTest.Zeze.Trans
 				await demo.App.Instance.demo_Module1.Table1.GetAsync(2L);
 				(await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(3L)).Int1 = 333;
 				return 0L;
-			}, "23").Call() == Procedure.Success);
+			}, "23").CallSynchronously() == Procedure.Success);
 			//Console.WriteLine("5");
 			//Console.WriteLine(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 			demo.App.Instance.Zeze.CheckpointRun();
@@ -79,8 +79,8 @@ namespace UnitTest.Zeze.Trans
 		[TestMethod]
         public void TestCp()
         {
-            Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(ProcClear, "ProcClear").Call() == Procedure.Success);
-            Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(ProcChange, "ProcChange").Call() == Procedure.Success);
+            Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(ProcClear, "ProcClear").CallSynchronously() == Procedure.Success);
+            Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(ProcChange, "ProcChange").CallSynchronously() == Procedure.Success);
             demo.App.Instance.Zeze.CheckpointRun();
 			var table = demo.App.Instance.demo_Module1.Table1;
 			var dbtable = table.GetStorageForTestOnly("IKnownWhatIAmDoing").DatabaseTable;

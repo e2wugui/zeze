@@ -80,7 +80,7 @@ namespace UnitTest.Zeze.Trans
                 {
                     await app1.demo_Module1.Table1.RemoveAsync(6785);
                     return Procedure.Success;
-                }, "RemoveClean").Call());
+                }, "RemoveClean").CallSynchronously());
                 
                 Task[] task2 = new Task[2];
                 int count = 2000;
@@ -95,7 +95,7 @@ namespace UnitTest.Zeze.Trans
                     Assert.AreEqual(countall, last1);
                     //Console.WriteLine("app1 " + last1);
                     return Procedure.Success;
-                }, "CheckResult1").Call();
+                }, "CheckResult1").CallSynchronously();
                 logger.Warn("result1=" + result1);
                 Assert.IsTrue(Procedure.Success == result1);
 
@@ -106,7 +106,7 @@ namespace UnitTest.Zeze.Trans
                     Assert.AreEqual(countall, last2);
                     //Console.WriteLine("app1 " + last2);
                     return Procedure.Success;
-                }, "CheckResult2").Call();
+                }, "CheckResult2").CallSynchronously();
                 logger.Warn("result2=" + result2);
                 Assert.IsTrue(Procedure.Success == result2);
             }

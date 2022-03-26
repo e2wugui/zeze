@@ -20,7 +20,7 @@ namespace UnitTest.Zeze.Trans
                 {
                     await demo.App.Instance.demo_Module1.Table1.RemoveAsync(1);
                     return 0;
-                }, "go").Call();
+                }, "go").CallSynchronously();
             }
             finally
             {

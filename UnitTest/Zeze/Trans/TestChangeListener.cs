@@ -32,7 +32,7 @@ namespace UnitTest.Zeze.Trans
                     await demo.App.Instance.demo_Module1.Table1.RemoveAsync(1);
                     return Procedure.Success;
                 },
-                "TestChangeListener.Remove").Call());
+                "TestChangeListener.Remove").CallSynchronously());
 
             Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
@@ -55,7 +55,7 @@ namespace UnitTest.Zeze.Trans
                     value.Map15.Add(1, 1); value.Map15.Add(2, 2);
                     return Procedure.Success;
                 },
-                "TestChangeListener.Prepare").Call());
+                "TestChangeListener.Prepare").CallSynchronously());
         }
 
         [TestMethod]
@@ -86,7 +86,7 @@ namespace UnitTest.Zeze.Trans
                     value.Map15.Add(3, 3); value.Map15.Add(4, 4);
                     return Procedure.Success;
                 },
-                "TestChangeListener.Modify").Call());
+                "TestChangeListener.Modify").CallSynchronously());
             Verify();
 
             Init();
@@ -101,7 +101,7 @@ namespace UnitTest.Zeze.Trans
                     value.Map15.Remove(1); value.Map15.Remove(2);
                     return Procedure.Success;
                 },
-                "TestChangeListener.ModifyCollections").Call());
+                "TestChangeListener.ModifyCollections").CallSynchronously());
             Verify();
 
             Init();
@@ -117,7 +117,7 @@ namespace UnitTest.Zeze.Trans
                     value.Set10.ExceptWith(except);
                     return Procedure.Success;
                 },
-                "TestChangeListener.ModifySetExcept").Call());
+                "TestChangeListener.ModifySetExcept").CallSynchronously());
             Verify();
 
             Init();
@@ -133,7 +133,7 @@ namespace UnitTest.Zeze.Trans
                     value.Set10.IntersectWith(intersect);
                     return Procedure.Success;
                 },
-                "TestChangeListener.ModifySetIntersect").Call());
+                "TestChangeListener.ModifySetIntersect").CallSynchronously());
             Verify();
 
             Init();
@@ -149,7 +149,7 @@ namespace UnitTest.Zeze.Trans
                     value.Set10.SymmetricExceptWith(SymmetricExcept);
                     return Procedure.Success;
                 },
-                "TestChangeListener.ModifySetSymmetricExcept").Call());
+                "TestChangeListener.ModifySetSymmetricExcept").CallSynchronously());
             Verify();
 
             Init();
@@ -165,7 +165,7 @@ namespace UnitTest.Zeze.Trans
                     value.Set10.UnionWith(Union);
                     return Procedure.Success;
                 },
-                "TestChangeListener.ModifySetUnion").Call());
+                "TestChangeListener.ModifySetUnion").CallSynchronously());
             Verify();
 
             Init();
@@ -175,7 +175,7 @@ namespace UnitTest.Zeze.Trans
                     await demo.App.Instance.demo_Module1.Table1.PutAsync(1, new demo.Module1.Value());
                     return Procedure.Success;
                 },
-                "TestChangeListener.PutRecord").Call());
+                "TestChangeListener.PutRecord").CallSynchronously());
             Verify();
 
             Init();
@@ -185,7 +185,7 @@ namespace UnitTest.Zeze.Trans
                     await demo.App.Instance.demo_Module1.Table1.RemoveAsync(1);
                     return Procedure.Success;
                 },
-                "TestChangeListener.RemoveRecord").Call());
+                "TestChangeListener.RemoveRecord").CallSynchronously());
             Verify();
         }
 
@@ -200,7 +200,7 @@ namespace UnitTest.Zeze.Trans
                     localValue = value?.Copy();
                     return Procedure.Success;
                 },
-                "TestChangeListener.CopyLocal").Call());
+                "TestChangeListener.CopyLocal").CallSynchronously());
 
 
             _CLInt1.Init(localValue);
@@ -229,7 +229,7 @@ namespace UnitTest.Zeze.Trans
                     localValue = value?.Copy();
                     return Procedure.Success;
                 },
-                "TestChangeListener.CopyLocal").Call());
+                "TestChangeListener.CopyLocal").CallSynchronously());
 
             _CLInt1.Verify(localValue);
             _ClLong2.Verify(localValue);

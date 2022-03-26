@@ -34,6 +34,13 @@ namespace Zeze.Raft.RocksRaft
             return Zeze.Transaction.Procedure.NotImplement;
         }
 
+        public long CallSynchronously()
+        {
+            var task = CallAsync();
+            task.Wait();
+            return task.Result;
+        }
+
         public async Task<long> CallAsync()
         {
             if (null == Transaction.Current)

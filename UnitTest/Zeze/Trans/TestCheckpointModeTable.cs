@@ -31,7 +31,7 @@ namespace UnitTest.Zeze.Trans
                     var value = await demo.App.Instance.demo_Module1.TableImportant.GetOrAddAsync(1);
                     return value.Int1 == expect ? Procedure.Success : Procedure.LogicError;
                 },
-                "TestCheckpointModeTable.Check").Call());
+                "TestCheckpointModeTable.Check").CallSynchronously());
         }
 
         [TestMethod]
@@ -44,7 +44,7 @@ namespace UnitTest.Zeze.Trans
                     value.Int1 = 0;
                     return Procedure.Success;
                 },
-                "TestCheckpointModeTable.Init").Call());
+                "TestCheckpointModeTable.Init").CallSynchronously());
             Check(0);
 
             int sum = 0;

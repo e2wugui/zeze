@@ -197,7 +197,7 @@ namespace Infinite
                     for (long key = 0; key < Simulate.AccessKeyBound; ++key)
                         await app.demo_Module1.Table1.RemoveAsync(key);
                     return 0L;
-                }, "Table1Long2Add1.prepare").Call();
+                }, "Table1Long2Add1.prepare").CallSynchronously();
             }
         }
 

@@ -273,7 +273,7 @@ namespace Zeze.Net
             return Send(Encoding.UTF8.GetBytes(str));
         }
 
-        private async void OnAsyncIOCompleted(object sender, SocketAsyncEventArgs e)
+        private void OnAsyncIOCompleted(object sender, SocketAsyncEventArgs e)
         {
             if (Socket == null) // async closed
                 return;
@@ -308,7 +308,7 @@ namespace Zeze.Net
                 ProcessAccept(eventArgsAccept);
         }
 
-        private async void ProcessAccept(SocketAsyncEventArgs e)
+        private void ProcessAccept(SocketAsyncEventArgs e)
         {
             if (e.SocketError == SocketError.Success)
             {

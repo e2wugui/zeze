@@ -318,13 +318,12 @@ namespace Zeze.Raft
         /// 【简化】不同状态下不管维护管理不同的Timer了。
         /// </summary>
         /// <param name="ThisTask"></param>
-        private async Task<long> OnTimer(SchedulerTask ThisTask)
+        private async Task OnTimer(SchedulerTask ThisTask)
         {
-            using var lockraft = await Monitor.EnterAsync();
-
             if (IsShutdown)
-                return 0;
+                return;
 
+            using var lockraft = await Monitor.EnterAsync();
             try
             {
                 switch (State)
@@ -366,7 +365,6 @@ namespace Zeze.Raft
             {
                 TimerTask = Scheduler.Schedule(OnTimer, 10);
             }
-            return 0;
         }
 
         private long LowPrecisionTimer;

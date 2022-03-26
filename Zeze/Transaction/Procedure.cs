@@ -155,7 +155,7 @@ namespace Zeze.Transaction
             return NotImplement;
         }
 
-        public long Call()
+        public long CallSynchronously()
         {
             var atask = CallAsync();
             atask.Wait();
