@@ -71,7 +71,7 @@ namespace UnitTest.Zeze.Misc
             try
             {
                 Console.WriteLine($"Cpdir={cpdir} Term={term} Index={index}");
-                Assert.IsTrue(storage.Backup(cpdir, "backup"));
+                Assert.IsTrue(Rocks.Backup(cpdir, "backup"));
                 Assert.IsTrue(storage.Restore("backup"));
             }
             finally

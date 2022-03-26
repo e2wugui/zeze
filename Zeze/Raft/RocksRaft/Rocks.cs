@@ -178,7 +178,7 @@ namespace Zeze.Raft.RocksRaft
             return (checkpointDir, lastAppliedLog.Term, lastAppliedLog.Index);
         }
 
-        public bool Backup(string checkpintDir, string backupDir)
+        public static bool Backup(string checkpintDir, string backupDir)
         {
             var Rocks = Native.Instance;
 
@@ -187,7 +187,7 @@ namespace Zeze.Raft.RocksRaft
             IntPtr familyOption = Rocks.rocksdb_options_create();
             IntPtr src = IntPtr.Zero;
             IntPtr backup = IntPtr.Zero;
-            IntPtr[] familyHandles = null;
+            IntPtr[] familyHandles;
             try
             {
                 IntPtr err = IntPtr.Zero;
@@ -241,7 +241,7 @@ namespace Zeze.Raft.RocksRaft
         {
             var N = Native.Instance;
 
-            lock (Raft)
+            using var lockraft = Raft.Monitor.Enter();
             {
                 IntPtr backup = IntPtr.Zero;
                 IntPtr options = N.rocksdb_options_create();
@@ -281,13 +281,12 @@ namespace Zeze.Raft.RocksRaft
 
         public void Dispose()
         {
-            lock (this) // 简单保护一下。
-            {
-                Raft?.Shutdown();
-                Raft = null;
-                Storage?.Dispose();
-                Storage = null;
-            }
+            GC.SuppressFinalize(this);
+
+            Raft?.Shutdown().Wait();
+            Raft = null;
+            Storage?.Dispose();
+            Storage = null;
         }
 
         public override async Task<(bool, long, long)> Snapshot(string path)

@@ -328,7 +328,7 @@ namespace Zeze.Services.ToLuaService
             Lua.Call(2, 0);
         }
 
-        int ZezeSendProtocol(IntPtr luaState)
+        public int ZezeSendProtocol(IntPtr luaState)
         {
             //KeraLua.Lua lua = KeraLua.Lua.FromIntPtr(luaState);
             IFromLua callback = Lua.ToObject<IFromLua>(-3);
@@ -340,7 +340,7 @@ namespace Zeze.Services.ToLuaService
             return 0;
         }
 
-        int ZezeUpdate(IntPtr luaState)
+        public int ZezeUpdate(IntPtr luaState)
         {
             //KeraLua.Lua lua = KeraLua.Lua.FromIntPtr(luaState);
             IFromLua callback = Lua.ToObject<IFromLua>(-1);
@@ -348,7 +348,7 @@ namespace Zeze.Services.ToLuaService
             return 0;
         }
 
-        int ZezeConnect(IntPtr luaState)
+        public int ZezeConnect(IntPtr luaState)
         {
             IFromLua service = Lua.ToObject<IFromLua>(-4);
             string host = Lua.ToString(-3);
