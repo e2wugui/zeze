@@ -41,7 +41,7 @@ namespace Zeze.Services
 
         public void AddDhGroup(int group)
         {
-            if (Handshake.Helper.isDHGroupSupported(group))
+            if (Handshake.Helper.IsDHGroupSupported(group))
                 DhGroups.Add(group);
         }
     }
@@ -50,7 +50,7 @@ namespace Zeze.Services
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        private readonly HashSet<long> HandshakeProtocols = new HashSet<long>();
+        private readonly HashSet<long> HandshakeProtocols = new();
 
         class Context
         {
@@ -63,7 +63,7 @@ namespace Zeze.Services
             }
         }
         // For Client Only
-        private readonly ConcurrentDictionary<long, Context> DHContext = new ConcurrentDictionary<long, Context>();
+        private readonly ConcurrentDictionary<long, Context> DHContext = new();
 
         public HandshakeBase(string name, Config config) : base(name, config)
         { 
@@ -120,9 +120,9 @@ namespace Zeze.Services
                     return 0;
                 }
                 Array.Reverse(p.Argument.dh_data);
-                BigInteger data = new BigInteger(p.Argument.dh_data);
-                BigInteger rand = Handshake.Helper.makeDHRandom();
-                byte[] material = Handshake.Helper.computeDHKey(group, data, rand).ToByteArray();
+                var data = new BigInteger(p.Argument.dh_data);
+                var rand = Handshake.Helper.MakeDHRandom();
+                byte[] material = Handshake.Helper.ComputeDHKey(group, data, rand).ToByteArray();
                 Array.Reverse(material);
                 IPAddress ipaddress = ((IPEndPoint)p.Sender.Socket.LocalEndPoint).Address;
                 //logger.Debug(ipaddress);
@@ -132,7 +132,7 @@ namespace Zeze.Services
                 int half = material.Length / 2;
                 byte[] hmacMd5 = Digest.HmacMd5(key, material, 0, half);
                 p.Sender.SetInputSecurityCodec(hmacMd5, Config.HandshakeOptions.C2sNeedCompress);
-                byte[] response = Handshake.Helper.generateDHResponse(group, rand).ToByteArray();
+                byte[] response = Handshake.Helper.GenerateDHResponse(group, rand).ToByteArray();
                 Array.Reverse(response);
                 new Handshake.SHandshake(response,
                     Config.HandshakeOptions.S2cNeedCompress,
@@ -178,7 +178,7 @@ namespace Zeze.Services
                     try
                     {
                         Array.Reverse(p.Argument.dh_data);
-                        byte[] material = Handshake.Helper.computeDHKey(
+                        byte[] material = Handshake.Helper.ComputeDHKey(
                             Config.HandshakeOptions.DhGroup,
                             new BigInteger(p.Argument.dh_data),
                             ctx.DhRandom).ToByteArray();
@@ -216,10 +216,10 @@ namespace Zeze.Services
         {
             try
             {
-                var ctx = new Context(Handshake.Helper.makeDHRandom());
+                var ctx = new Context(Handshake.Helper.MakeDHRandom());
                 if (!DHContext.TryAdd(so.SessionId, ctx))
                     throw new Exception("handshake duplicate context for same session.");
-                byte[] response = Handshake.Helper.generateDHResponse(
+                byte[] response = Handshake.Helper.GenerateDHResponse(
                     Config.HandshakeOptions.DhGroup, ctx.DhRandom).ToByteArray();
                 Array.Reverse(response);
                 new Handshake.CHandshake(Config.HandshakeOptions.DhGroup, response).Send(so);
@@ -343,7 +343,7 @@ namespace Zeze.Services.Handshake
 {
     public static class Helper
     {
-        private static readonly BigInteger dh_g = new BigInteger(2);
+        private static readonly BigInteger dh_g = new (2);
         private static readonly BigInteger[] dh_group = new BigInteger[] {
             BigInteger.Zero,
             BigInteger.Parse(
@@ -383,27 +383,27 @@ namespace Zeze.Services.Handshake
         };
 
         public static readonly RandomNumberGenerator RandomNumberGenerator = RandomNumberGenerator.Create();
-        public static byte[] makeRandValues(int bytes)
+        public static byte[] MakeRandValues(int bytes)
         {
             byte[] v = new byte[bytes];
             RandomNumberGenerator.GetNonZeroBytes(v);
             return v;
         }
-        public static bool isDHGroupSupported(int group)
+        public static bool IsDHGroupSupported(int group)
         {
             return group >= 0 && group < dh_group.Length && !dh_group[group].Equals(BigInteger.Zero);
         }
-        public static BigInteger makeDHRandom()
+        public static BigInteger MakeDHRandom()
         {
-            byte[] r = makeRandValues(17);
+            byte[] r = MakeRandValues(17);
             r[16] = 0;
             return new BigInteger(r);
         }
-        public static BigInteger generateDHResponse(int group, BigInteger rand)
+        public static BigInteger GenerateDHResponse(int group, BigInteger rand)
         {
             return BigInteger.ModPow(dh_g, rand, dh_group[group]);
         }
-        public static BigInteger computeDHKey(int group, BigInteger response, BigInteger rand)
+        public static BigInteger ComputeDHKey(int group, BigInteger response, BigInteger rand)
         {
             return BigInteger.ModPow(response, rand, dh_group[group]);
         }

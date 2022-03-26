@@ -192,8 +192,8 @@ namespace Zeze.Raft.RocksRaft
 
             try
             {
-				procedure.ResultCode = procedure.Call();
-                if (_lock_and_check_(Zeze.Transaction.TransactionLevel.Serializable))
+				procedure.ResultCode = await procedure.CallAsync();
+                if (LockAndCheck(Zeze.Transaction.TransactionLevel.Serializable))
                 {
                     if (0 == procedure.ResultCode)
                         await _final_commit_(procedure);
@@ -228,7 +228,7 @@ namespace Zeze.Raft.RocksRaft
                     throw;
                 }
 
-                if (_lock_and_check_(Zeze.Transaction.TransactionLevel.Serializable))
+                if (LockAndCheck(Zeze.Transaction.TransactionLevel.Serializable))
                 {
                     _final_rollback_(procedure);
                     return procedure.ResultCode;
@@ -256,7 +256,7 @@ namespace Zeze.Raft.RocksRaft
             CommitActions.Add(action);
         }
 
-        private void _trigger_commit_actions_(Procedure procedure)
+        private void TriggerCommitActions(Procedure procedure)
         {
             foreach (Action action in CommitActions)
             {
@@ -276,7 +276,7 @@ namespace Zeze.Raft.RocksRaft
             CommitActions.Clear();
         }
 
-        private bool _lock_and_check_(Zeze.Transaction.TransactionLevel level)
+        private bool LockAndCheck(Zeze.Transaction.TransactionLevel level)
         {
             bool allRead = true;
             if (Savepoints.Count > 0)
@@ -334,7 +334,7 @@ namespace Zeze.Raft.RocksRaft
                 await procedure.Rocks.Raft.AppendLog(Changes, procedure.UniqueRequest?.ResultBean);
             }
 
-            _trigger_commit_actions_(procedure);
+            TriggerCommitActions(procedure);
             procedure.AutoResponse?.SendResultCode(procedure.ResultCode);
         }
 

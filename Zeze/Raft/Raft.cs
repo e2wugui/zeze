@@ -23,8 +23,8 @@ namespace Zeze.Raft
         public string Name => RaftConfig.Name;
         public string LeaderId { get; internal set; }
         public RaftConfig RaftConfig { get; }
-        private volatile LogSequence _LogSequence;
-        public LogSequence LogSequence { get { return _LogSequence; } }
+        private volatile LogSequence LogSequencePrivate;
+        public LogSequence LogSequence { get { return LogSequencePrivate; } }
         public bool IsLeader => this.State == RaftState.Leader;
         public Server Server { get; }
         public bool IsWorkingLeader => IsLeader && false == IsShutdown;
@@ -146,7 +146,7 @@ namespace Zeze.Raft
 
             Directory.CreateDirectory(RaftConfig.DbHome);
 
-            _LogSequence = new LogSequence(this);
+            LogSequencePrivate = new LogSequence(this);
 
             RegisterInternalRpc();
 
@@ -318,12 +318,12 @@ namespace Zeze.Raft
         /// 【简化】不同状态下不管维护管理不同的Timer了。
         /// </summary>
         /// <param name="ThisTask"></param>
-        private void OnTimer(SchedulerTask ThisTask)
+        private async Task<long> OnTimer(SchedulerTask ThisTask)
         {
-            using var lockraft = Monitor.Enter();
+            using var lockraft = await Monitor.EnterAsync();
 
             if (IsShutdown)
-                return;
+                return 0;
 
             try
             {
@@ -332,7 +332,7 @@ namespace Zeze.Raft
                     case RaftState.Follower:
                         if (Time.NowUnixMillis - LogSequence.LeaderActiveTime > LeaderLostTimeout)
                         {
-                            ConvertStateTo(RaftState.Candidate).Wait();
+                            await ConvertStateTo(RaftState.Candidate);
                         }
                         break;
 
@@ -340,7 +340,7 @@ namespace Zeze.Raft
                         if (Time.NowUnixMillis > NextVoteTime)
                         {
                             // vote timeout. restart
-                            ConvertStateTo(RaftState.Candidate).Wait();
+                            await ConvertStateTo(RaftState.Candidate);
                         }
 
                         break;
@@ -366,6 +366,7 @@ namespace Zeze.Raft
             {
                 TimerTask = Scheduler.Schedule(OnTimer, 10);
             }
+            return 0;
         }
 
         private long LowPrecisionTimer;

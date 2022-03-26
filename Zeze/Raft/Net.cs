@@ -401,9 +401,9 @@ namespace Zeze.Raft
         public ConnectorEx Leader => _Leader;
         private volatile ConnectorEx _Leader;
 
-        private ConcurrentDictionary<long, Protocol> Pending = new();
+        private readonly ConcurrentDictionary<long, Protocol> Pending = new();
         // 加急请求ReSend时优先发送，多个请求不保证顺序。这个应该仅用于Login之类的特殊协议，一般来说只有一个。
-        private ConcurrentDictionary<long, Protocol> UrgentPending = new();
+        private readonly ConcurrentDictionary<long, Protocol> UrgentPending = new();
 
         public Action<Agent> OnSetLeader { get; set; }
 
@@ -422,7 +422,7 @@ namespace Zeze.Raft
             where TResult : Bean, new()
         {
             if (null == handle)
-                throw new ArgumentException();
+                throw new ArgumentException("null == handle");
 
             // 由于interface不能把setter弄成保护的，实际上外面可以修改。
             // 简单检查一下吧。
@@ -751,8 +751,6 @@ namespace Zeze.Raft
 
         public sealed class NetClient : Services.HandshakeClient
         {
-            private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-
             public Agent Agent { get; }
 
             public NetClient(Agent agent, string name, Application zeze)

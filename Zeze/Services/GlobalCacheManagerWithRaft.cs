@@ -28,7 +28,7 @@ namespace Zeze.Services
                 return 0;
             }
 
-            new Procedure(Rocks,
+            await new Procedure(Rocks,
                 () =>
                 {
                     switch (rpc.Argument.State)
@@ -52,7 +52,7 @@ namespace Zeze.Services
                 // 启用自动发送rpc结果，但不做唯一检查。
                 AutoResponse = rpc,
             }
-            .Call();
+            .CallAsync();
 
             return 0; // has handle all error.
         }
@@ -438,14 +438,14 @@ namespace Zeze.Services
             }
         }
 
-        private int Release(CacheHolder sender, GlobalTableKey gkey, bool noWait)
+        private async Task<int> Release(CacheHolder sender, GlobalTableKey gkey, bool noWait)
         {
             int result = 0;
-            Rocks.NewProcedure(() =>
+            await Rocks.NewProcedure(() =>
             {
                 result = ReleasePrivate(sender, gkey, noWait);
                 return 0;
-            }).Call();
+            }).CallAsync();
             return result;
         }
 
@@ -532,7 +532,7 @@ namespace Zeze.Services
                 var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
                 SenderAcquired.Walk((key, value) =>
                 {
-                    Release(session, key, false);
+                    await Release(session, key, false);
                     return true; // continue walk
                 });
                 rpc.SendResultCode(0);
@@ -580,7 +580,7 @@ namespace Zeze.Services
                 var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
                 SenderAcquired.Walk((key, value) =>
                 {
-                    Release(session, key, false);
+                    await Release(session, key, false);
                     return true; // continue walk
                 });
                 rpc.SendResultCode(0);
@@ -619,12 +619,12 @@ namespace Zeze.Services
 
             // XXX verify danger
             Util.Scheduler.Schedule(
-                (ThisTask) =>
+                async (ThisTask) =>
                 {
                     var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
                     SenderAcquired.Walk((key, value) =>
                     {
-                        Release(session, key, false);
+                        await Release(session, key, false);
                         return true; // continue release;
                     });
                     rpc.SendResultCode(0);

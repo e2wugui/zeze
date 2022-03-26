@@ -34,13 +34,13 @@ namespace Zeze.Raft.RocksRaft
             return Zeze.Transaction.Procedure.NotImplement;
         }
 
-        public long Call()
+        public async Task<long> CallAsync()
         {
             if (null == Transaction.Current)
             {
                 try
                 {
-                    return Transaction.Create().Perform(this);
+                    return await Transaction.Create().Perform(this);
                 }
                 finally
                 {

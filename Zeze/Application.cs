@@ -147,9 +147,8 @@ namespace Zeze
             if (null == Config)
                 Config = Config.Load();
 
-            int workerMin, ioMin;
             //int workerMax, ioMax;
-            ThreadPool.GetMinThreads(out workerMin, out ioMin);
+            ThreadPool.GetMinThreads(out var workerMin, out var ioMin);
             //ThreadPool.GetMaxThreads(out workerMax, out ioMax);
             //Console.WriteLine($"worker ({workerMin}, {workerMax}) io({ioMin}, {ioMax})");
             if (Config.WorkerThreads > 0)
@@ -170,7 +169,7 @@ namespace Zeze
             ServiceManagerAgent = new Agent(this);
         }
 
-        private ConcurrentDictionary<string, Table> Tables = new ConcurrentDictionary<string, Table>();
+        private ConcurrentDictionary<string, Table> Tables = new();
 
         public void AddTable(string dbName, Transaction.Table table)
         {

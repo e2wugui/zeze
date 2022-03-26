@@ -15,7 +15,7 @@ using Zeze.Transaction;
 /// </summary>
 namespace Zeze.Services
 {
-    interface FromLua
+    interface IFromLua
     {
         public string Name { get; } // Service Name
         public Service Service { get; }
@@ -23,7 +23,7 @@ namespace Zeze.Services
         public ToLuaService.ToLua ToLua { get; }
     }
 
-    public class ToLuaServiceClient : HandshakeClient, FromLua
+    public class ToLuaServiceClient : HandshakeClient, IFromLua
     {
         public ToLuaService.ToLua ToLua { get; private set; } = new ToLuaService.ToLua();
         public Service Service => this;
@@ -63,7 +63,7 @@ namespace Zeze.Services
     }
 
     // 完全 ToLuaServiceClient，由于 c# 无法写 class S<T> : T where T : Service，复制一份.
-    public class ToLuaServiceServer : HandshakeServer, FromLua
+    public class ToLuaServiceServer : HandshakeServer, IFromLua
     {
         public ToLuaService.ToLua ToLua { get; private set; } = new ToLuaService.ToLua();
         public Service Service => this;
@@ -301,7 +301,7 @@ namespace Zeze.Services.ToLuaService
             Lua.Pop(1);
         }
 
-        internal void CallSocketClose(FromLua service, long socketSessionId)
+        internal void CallSocketClose(IFromLua service, long socketSessionId)
         {
             if (Lua.GetGlobal("ZezeSocketClose") != LuaType.Function) // push func onto stack
             {
@@ -314,7 +314,7 @@ namespace Zeze.Services.ToLuaService
             Lua.Call(2, 0);
         }
 
-        internal void CallHandshakeDone(FromLua service, long socketSessionId)
+        internal void CallHandshakeDone(IFromLua service, long socketSessionId)
         {
             // void OnHandshakeDone(service, long sessionId)
             if (Lua.GetGlobal("ZezeHandshakeDone") != LuaType.Function) // push func onto stack
@@ -331,7 +331,7 @@ namespace Zeze.Services.ToLuaService
         int ZezeSendProtocol(IntPtr luaState)
         {
             //KeraLua.Lua lua = KeraLua.Lua.FromIntPtr(luaState);
-            FromLua callback = Lua.ToObject<FromLua>(-3);
+            IFromLua callback = Lua.ToObject<IFromLua>(-3);
             long sessionId = Lua.ToInteger(-2);
             AsyncSocket socket = callback.Service.GetSocket(sessionId);
             if (null == socket)
@@ -343,14 +343,14 @@ namespace Zeze.Services.ToLuaService
         int ZezeUpdate(IntPtr luaState)
         {
             //KeraLua.Lua lua = KeraLua.Lua.FromIntPtr(luaState);
-            FromLua callback = Lua.ToObject<FromLua>(-1);
+            IFromLua callback = Lua.ToObject<IFromLua>(-1);
             callback.ToLua.Update(callback.Service);
             return 0;
         }
 
         int ZezeConnect(IntPtr luaState)
         {
-            FromLua service = Lua.ToObject<FromLua>(-4);
+            IFromLua service = Lua.ToObject<IFromLua>(-4);
             string host = Lua.ToString(-3);
             int port = (int)Lua.ToInteger(-2);
             bool autoReconnect = Lua.ToBoolean(-1);
@@ -367,7 +367,7 @@ namespace Zeze.Services.ToLuaService
 #endif // USE_KERA_LUA
         static readonly object RegisterCallbackLock = new ();
 
-        internal void RegisterGlobalAndCallback(FromLua callback)
+        internal void RegisterGlobalAndCallback(IFromLua callback)
         {
             if (Lua.DoString("return (require 'Zeze')"))
                 throw new Exception("require 'Zeze' failed");
@@ -693,7 +693,7 @@ namespace Zeze.Services.ToLuaService
             // 生成的时候报错。
             Lua.CreateTable(0, 16);
 
-            if (service is FromLua fromLua) // 必须是，不报错了。
+            if (service is IFromLua fromLua) // 必须是，不报错了。
             {
                 Lua.PushString("Service");
                 Lua.PushObject(fromLua);
@@ -860,8 +860,8 @@ namespace Zeze.Services.ToLuaService
         }
 
         Dictionary<long, ByteBuffer> ToLuaBuffer = new();
-        Dictionary<long, FromLua> ToLuaHandshakeDone = new();
-        Dictionary<long, FromLua> ToLuaSocketClose = new();
+        Dictionary<long, IFromLua> ToLuaHandshakeDone = new();
+        Dictionary<long, IFromLua> ToLuaSocketClose = new();
         HashSet<long> ToLuaRpcTimeout = new();
 
         internal void SetRpcTimeout(long sid)
@@ -872,7 +872,7 @@ namespace Zeze.Services.ToLuaService
             }
         }
 
-        internal void SetHandshakeDone(long socketSessionId, FromLua service)
+        internal void SetHandshakeDone(long socketSessionId, IFromLua service)
         {
             lock (this)
             {
@@ -880,7 +880,7 @@ namespace Zeze.Services.ToLuaService
             }
         }
 
-        internal void SetSocketClose(long socketSessionId, FromLua service)
+        internal void SetSocketClose(long socketSessionId, IFromLua service)
         {
             lock (this)
             {
@@ -905,8 +905,8 @@ namespace Zeze.Services.ToLuaService
 
         public void Update(Service service)
         {
-            Dictionary<long, FromLua> handshakeTmp;
-            Dictionary<long, FromLua> socketCloseTmp;
+            Dictionary<long, IFromLua> handshakeTmp;
+            Dictionary<long, IFromLua> socketCloseTmp;
             Dictionary<long, ByteBuffer> inputTmp;
             HashSet<long> rpcTimeout;
             lock (this)
@@ -916,8 +916,8 @@ namespace Zeze.Services.ToLuaService
                 inputTmp = ToLuaBuffer;
                 rpcTimeout = ToLuaRpcTimeout;
                 ToLuaBuffer = new Dictionary<long, ByteBuffer>();
-                ToLuaHandshakeDone = new Dictionary<long, FromLua>();
-                ToLuaSocketClose = new Dictionary<long, FromLua>();
+                ToLuaHandshakeDone = new Dictionary<long, IFromLua>();
+                ToLuaSocketClose = new Dictionary<long, IFromLua>();
                 ToLuaRpcTimeout = new HashSet<long>();
             }
 

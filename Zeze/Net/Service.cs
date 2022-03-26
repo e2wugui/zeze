@@ -364,9 +364,8 @@ namespace Zeze.Net
         private static AtomicLong StaticSessionIdAtomicLong { get; } = new AtomicLong();
         public Func<long> SessionIdGenerator { get; set; }
 
-        private readonly ConcurrentDictionary<long, Protocol> _RpcContexts
-            = new ConcurrentDictionary<long, Protocol>();
-        public IReadOnlyDictionary<long, Protocol> RpcContexts => _RpcContexts;
+        private readonly ConcurrentDictionary<long, Protocol> RpcContextsPrivate = new();
+        public IReadOnlyDictionary<long, Protocol> RpcContexts => RpcContextsPrivate;
 
         public long NextSessionId()
         {
@@ -380,7 +379,7 @@ namespace Zeze.Net
             while (true)
             {
                 long sessionId = NextSessionId();
-                if (_RpcContexts.TryAdd(sessionId, p))
+                if (RpcContextsPrivate.TryAdd(sessionId, p))
                 {
                     return sessionId;
                 }
@@ -389,12 +388,12 @@ namespace Zeze.Net
 
         internal void TryRemoveRpcContext(long sid, Protocol current)
         {
-            _RpcContexts.TryRemove(KeyValuePair.Create(sid, current));
+            RpcContextsPrivate.TryRemove(KeyValuePair.Create(sid, current));
         }
 
         internal T RemoveRpcContext<T>(long sid) where T : Protocol
         {
-            if (_RpcContexts.TryRemove(sid, out var p))
+            if (RpcContextsPrivate.TryRemove(sid, out var p))
             {
                 return (T)p;
             }
@@ -416,7 +415,7 @@ namespace Zeze.Net
             }
         }
 
-        private readonly ConcurrentDictionary<long, ManualContext> ManualContexts = new ConcurrentDictionary<long, ManualContext>();
+        private readonly ConcurrentDictionary<long, ManualContext> ManualContexts = new();
 
         public long AddManualContextWithTimeout(ManualContext context, long timeout = 10*1000)
         {

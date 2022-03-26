@@ -43,7 +43,7 @@ namespace Zeze.Util
             return Instance.Schedule(new SchedulerTaskAction(action, initialDelay, period));
         }
 
-        public static SchedulerTask ScheduleAsync(Func<SchedulerTask, Task> action, long initialDelay, long period = -1)
+        public static SchedulerTask Schedule(Func<SchedulerTask, Task> action, long initialDelay, long period = -1)
         {
             if (initialDelay < 0)
                 throw new ArgumentException("initialDelay < 0");
@@ -169,12 +169,7 @@ namespace Zeze.Util
 
         internal override void Dispatch()
         {
-            _ = Mission.CallAsync(async () =>
-            {
-                // 为了记录错误日志。
-                await AsyncFunc(this);
-                return 0;
-            }, "SchedulerTaskAsyncAction");
+            _ = Mission.CallAsync(async () => { await AsyncFunc(this); return 0; }, "SchedulerTaskAsyncAction");
         }
     }
 
