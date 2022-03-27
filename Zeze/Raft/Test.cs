@@ -382,7 +382,7 @@ namespace Zeze.Raft
             if (NotLeaders.Count > 0)
             {
                 NotLeaders[0].StopRaft();
-                NotLeaders[0].StartRaft();
+                NotLeaders[0].StartRaft().Wait();
             }
             TestConcurrent("TestNormalNodeRestartRaft1", 1);
 
@@ -393,8 +393,8 @@ namespace Zeze.Raft
                 NotLeaders[0].StopRaft();
                 NotLeaders[1].StopRaft();
 
-                NotLeaders[0].StartRaft();
-                NotLeaders[1].StartRaft();
+                NotLeaders[0].StartRaft().Wait();
+                NotLeaders[1].StartRaft().Wait();
             }
             TestConcurrent("TestNormalNodeRestartRaft2", 1);
 
@@ -410,7 +410,7 @@ namespace Zeze.Raft
             leader = GetLeader();
             await leader.Raft.LogSequence.Snapshot();
             leader.StopRaft();
-            leader.StartRaft();
+            leader.StartRaft().Wait();
 
             // InstallSnapshot;
 
@@ -480,7 +480,7 @@ namespace Zeze.Raft
                 {
                     var rafts = ShuffleRafts();
                     rafts[0].StopRaft();
-                    rafts[0].StartRaft();
+                    rafts[0].StartRaft().Wait();
                 }
             });
             FailActions.Add(new FailAction()
@@ -492,8 +492,8 @@ namespace Zeze.Raft
                     rafts[0].StopRaft();
                     rafts[1].StopRaft();
 
-                    rafts[0].StartRaft();
-                    rafts[1].StartRaft();
+                    rafts[0].StartRaft().Wait();
+                    rafts[1].StartRaft().Wait();
                 }
             });
             FailActions.Add(new FailAction()
@@ -506,9 +506,9 @@ namespace Zeze.Raft
                     rafts[1].StopRaft();
                     rafts[2].StopRaft();
 
-                    rafts[0].StartRaft();
-                    rafts[1].StartRaft();
-                    rafts[2].StartRaft();
+                    rafts[0].StartRaft().Wait();
+                    rafts[1].StartRaft().Wait();
+                    rafts[2].StartRaft().Wait();
                 }
             });
             FailActions.Add(new FailAction()
@@ -528,7 +528,7 @@ namespace Zeze.Raft
                         leader.StopRaft();
                         // delay for vote
                         System.Threading.Thread.Sleep(startVoteDelay);
-                        leader.StartRaft();
+                        leader.StartRaft().Wait();
                         break;
                     }
                 }
@@ -542,7 +542,7 @@ namespace Zeze.Raft
                     foreach (var test in Rafts.Values)
                     {
                         test.StopRaft(); // 先停止，这样才能强制启动安装。
-                        test.StartRaft(test == InstallSnapshotCleanNode);
+                        test.StartRaft(test == InstallSnapshotCleanNode).Wait();
                     }
                 }
             });
@@ -790,9 +790,9 @@ namespace Zeze.Raft
                 Count = bb.ReadLong();
             }
 
-            public override void LoadSnapshot(string path)
+            public override async Task LoadSnapshot(string path)
             {
-                using var lockraft = Raft.Monitor.Enter();
+                using var lockraft = await Raft.Monitor.EnterAsync();
                 {
                     LoadSnapshotInternal(path);
                     logger.Info($"{Raft.Name} LoadSnapshot Count={Count}");
@@ -809,7 +809,7 @@ namespace Zeze.Raft
 
                 if (null != Raft.LogSequence)
                 {
-                    var lastAppliedLog = Raft.LogSequence.LastAppliedLogTermIndex();
+                    var lastAppliedLog = await Raft.LogSequence.LastAppliedLogTermIndex();
                     LastIncludedIndex = lastAppliedLog.Index;
                     LastIncludedTerm = lastAppliedLog.Term;
                     var bb = ByteBuffer.Allocate();
@@ -856,59 +856,56 @@ namespace Zeze.Raft
                 }
             }
 
-            public void StartRaft(bool resetLog = false)
+            public async Task StartRaft(bool resetLog = false)
             {
-                lock (this)
+                if (null != Raft)
                 {
-                    if (null != Raft)
-                    {
-                        Raft.Server.Start();
-                        return;
-                    }
-                    logger.Debug("Raft {0} Start ...", RaftName);
-                    StateMachine = new TestStateMachine();
-
-                    var raftConfig = RaftConfig.Load(RaftConfigFileName);
-                    raftConfig.SnapshotMinLogCount = 10;
-                    raftConfig.UniqueRequestExpiredDays = 1;
-                    raftConfig.DbHome = Path.Combine(".", RaftName.Replace(':', '_'));
-                    if (resetLog)
-                    {
-                        logger.Warn("------------------------------------------------");
-                        logger.Warn($"- Reset Log {raftConfig.DbHome} -");
-                        logger.Warn("------------------------------------------------");
-                        // 只删除日志相关数据库。保留重复请求数据库。
-                        var logsdir = Path.Combine(raftConfig.DbHome, "logs");
-                        if (Directory.Exists(logsdir))
-                            Util.FileSystem.DeleteDirectory(logsdir);
-                        var raftsdir = Path.Combine(raftConfig.DbHome, "rafts");
-                        if (Directory.Exists(raftsdir))
-                            Util.FileSystem.DeleteDirectory(raftsdir);
-                        var snapshotFile = Path.Combine(raftConfig.DbHome, "snapshot.dat");
-                        if (File.Exists(snapshotFile))
-                            File.Delete(snapshotFile);
-                    }
-                    Util.FileSystem.CreateDirectory(raftConfig.DbHome);
-
-                    Raft = new Raft(StateMachine, RaftName, raftConfig);
-                    Raft.LogSequence.WriteOptions.SetSync(false);
-                    Raft.Server.AddFactoryHandle(
-                        new AddCount().TypeId,
-                        new Net.Service.ProtocolFactoryHandle()
-                        {
-                            Factory = () => new AddCount(),
-                            Handle = ProcessAddCount,
-                        });
-
-                    Raft.Server.AddFactoryHandle(
-                        new GetCount().TypeId,
-                        new Net.Service.ProtocolFactoryHandle()
-                        {
-                            Factory = () => new GetCount(),
-                            Handle = ProcessGetCount,
-                        });
                     Raft.Server.Start();
+                    return;
                 }
+                logger.Debug("Raft {0} Start ...", RaftName);
+                StateMachine = new TestStateMachine();
+
+                var raftConfig = RaftConfig.Load(RaftConfigFileName);
+                raftConfig.SnapshotMinLogCount = 10;
+                raftConfig.UniqueRequestExpiredDays = 1;
+                raftConfig.DbHome = Path.Combine(".", RaftName.Replace(':', '_'));
+                if (resetLog)
+                {
+                    logger.Warn("------------------------------------------------");
+                    logger.Warn($"- Reset Log {raftConfig.DbHome} -");
+                    logger.Warn("------------------------------------------------");
+                    // 只删除日志相关数据库。保留重复请求数据库。
+                    var logsdir = Path.Combine(raftConfig.DbHome, "logs");
+                    if (Directory.Exists(logsdir))
+                        Util.FileSystem.DeleteDirectory(logsdir);
+                    var raftsdir = Path.Combine(raftConfig.DbHome, "rafts");
+                    if (Directory.Exists(raftsdir))
+                        Util.FileSystem.DeleteDirectory(raftsdir);
+                    var snapshotFile = Path.Combine(raftConfig.DbHome, "snapshot.dat");
+                    if (File.Exists(snapshotFile))
+                        File.Delete(snapshotFile);
+                }
+                Util.FileSystem.CreateDirectory(raftConfig.DbHome);
+
+                Raft = await new Raft(StateMachine).OpenAsync(RaftName, raftConfig);
+                Raft.LogSequence.WriteOptions.SetSync(false);
+                Raft.Server.AddFactoryHandle(
+                    new AddCount().TypeId,
+                    new Net.Service.ProtocolFactoryHandle()
+                    {
+                        Factory = () => new AddCount(),
+                        Handle = ProcessAddCount,
+                    });
+
+                Raft.Server.AddFactoryHandle(
+                    new GetCount().TypeId,
+                    new Net.Service.ProtocolFactoryHandle()
+                    {
+                        Factory = () => new GetCount(),
+                        Handle = ProcessGetCount,
+                    });
+                Raft.Server.Start();
             }
 
             public TestRaft(string raftName, string raftConfigFileName)

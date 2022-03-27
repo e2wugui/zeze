@@ -4,16 +4,17 @@ using Zeze.Util;
 using Zeze.Raft.RocksRaft;
 using System.Collections.Generic;
 using Zeze.Beans.TestRocks;
+using System.Threading.Tasks;
 
 namespace Zeze.Services
 {
     public class TestRocks : AbstractTestRocks, IDisposable
     {
-        public Rocks Rocks1 { get; }
-        public Rocks Rocks2 { get; }
-        public Rocks Rocks3 { get; }
+        public Rocks Rocks1 { get; private set; }
+        public Rocks Rocks2 { get; private set; }
+        public Rocks Rocks3 { get; private set; }
 
-        public List<Rocks> RocksList { get; }
+        public List<Rocks> RocksList { get; private set; }
 
         public Rocks GetLeader(Rocks skipMe)
         {
@@ -31,14 +32,18 @@ namespace Zeze.Services
         }
 
         public TestRocks()
+        { 
+        }
+
+        public async Task<TestRocks> OpenAsync()
         {
             FileSystem.DeleteDirectory("127.0.0.1_6000");
             FileSystem.DeleteDirectory("127.0.0.1_6001");
             FileSystem.DeleteDirectory("127.0.0.1_6002");
 
-            Rocks1 = new Rocks("127.0.0.1:6000");
-            Rocks2 = new Rocks("127.0.0.1:6001");
-            Rocks3 = new Rocks("127.0.0.1:6002");
+            Rocks1 = await new Rocks().OpenAsync("127.0.0.1:6000");
+            Rocks2 = await new Rocks().OpenAsync("127.0.0.1:6001");
+            Rocks3 = await new Rocks().OpenAsync("127.0.0.1:6002");
 
             RocksList = new List<Rocks> { Rocks1, Rocks2, Rocks3 };
 
@@ -51,6 +56,7 @@ namespace Zeze.Services
             {
                 rocks.Raft.Server.Start();
             }
+            return this;
         }
 
         public void Dispose()

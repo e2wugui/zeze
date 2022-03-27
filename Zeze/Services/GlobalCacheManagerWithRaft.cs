@@ -613,20 +613,20 @@ namespace Zeze.Services
             return 0;
         }
 
-        private Rocks Rocks { get; }
+        private Rocks Rocks { get; set; }
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         private readonly Locks Locks = new();
 
         /// <summary>
         /// 全局记录分配状态。
         /// </summary>
-        private readonly Table<GlobalTableKey, CacheState> GlobalStates;
+        private Table<GlobalTableKey, CacheState> GlobalStates;
 
         /// <summary>
         /// 每个服务器已分配记录。
         /// 这是个Table模板，使用的时候根据ServerId打开真正的存储表。
         /// </summary>
-        private readonly TableTemplate<GlobalTableKey, AcquiredState> ServerAcquiredTemplate;
+        private TableTemplate<GlobalTableKey, AcquiredState> ServerAcquiredTemplate;
 
         /*
          * 会话。
@@ -638,14 +638,23 @@ namespace Zeze.Services
          * 简化实现。
          */
         private readonly ConcurrentDictionary<int, CacheHolder> Sessions = new();
+        public bool WriteOptions { get; }
 
-        public GlobalCacheManagerWithRaft(
-            string raftName,
-            Raft.RaftConfig raftconf = null,
-            Config config = null,
-            bool RocksDbWriteOptionSync = false)
-        { 
-            Rocks = new Rocks(raftName, RocksMode.Pessimism, raftconf, config, RocksDbWriteOptionSync);
+        public GlobalCacheManagerWithRaft(bool writeOptions = false)
+        {
+            WriteOptions = writeOptions;
+        }
+
+        public async Task<GlobalCacheManagerWithRaft> OpenAsync(
+            string raftName, Raft.RaftConfig raftconf = null, Config config = null)
+        {
+            lock (this)
+            {
+                if (Rocks != null)
+                    throw new InvalidOperationException();
+                Rocks = new Rocks(RocksMode.Pessimism, WriteOptions);
+            }
+            await Rocks.OpenAsync(raftName, raftconf, config);
 
             RegisterRocksTables(Rocks);
             RegisterProtocols(Rocks.Raft.Server);
@@ -654,6 +663,7 @@ namespace Zeze.Services
             ServerAcquiredTemplate = Rocks.GetTableTemplate("Session") as TableTemplate<GlobalTableKey, AcquiredState>;
 
             Rocks.Raft.Server.Start();
+            return this;
         }
 
         public void Dispose()

@@ -426,9 +426,9 @@ AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(I=0 L=0 Map1={}
 			FileSystem.DeleteDirectory("127.0.0.1_6001");
 			FileSystem.DeleteDirectory("127.0.0.1_6002");
 
-			using var rocks1 = new Rocks("127.0.0.1:6000");
-			using var rocks2 = new Rocks("127.0.0.1:6001");
-			using var rocks3 = new Rocks("127.0.0.1:6002");
+			using var rocks1 = await new Rocks().OpenAsync("127.0.0.1:6000");
+			using var rocks2 = await new Rocks().OpenAsync("127.0.0.1:6001");
+			using var rocks3 = await new Rocks().OpenAsync("127.0.0.1:6002");
 
 			var rockslist = new List<Rocks> { rocks1, rocks2, rocks3 };
 			foreach (var rr in rockslist)

@@ -63,7 +63,7 @@ namespace Zeze.Raft
                 return 0;
             }
 
-            if (ls.TrySetTerm(r.Result.Term) == LogSequence.SetTermResult.Newer)
+            if (await ls.TrySetTerm(r.Result.Term) == LogSequence.SetTermResult.Newer)
             {
                 await ls.EndInstallSnapshot(c);
                 // new term found.

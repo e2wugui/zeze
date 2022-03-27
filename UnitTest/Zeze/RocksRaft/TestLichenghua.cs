@@ -13,9 +13,9 @@ namespace UnitTest.Zeze.RocksRaft
     public class TestLichenghua
     {
         [TestMethod]
-        public void TestGo()
+        public async Task TestGo()
         {
-            using var test = new TestRocks();
+            using var test = await new TestRocks().OpenAsync();
             var leader = test.GetLeader(null);
             Assert.AreEqual(0, leader.NewProcedure(async () =>
             {

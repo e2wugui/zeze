@@ -32,7 +32,7 @@ namespace Zeze.Util
             return new AsyncRocksDb(db);
         }
 
-        public static async Task<AsyncRocksDb> Open(DbOptions options, string path, ColumnFamilies columnFamilies)
+        public static async Task<AsyncRocksDb> OpenAsync(DbOptions options, string path, ColumnFamilies columnFamilies)
         {
             RocksDb db = null;
             await Executor.RunAsync(() => db = RocksDb.Open(options, path, columnFamilies));

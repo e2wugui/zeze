@@ -62,7 +62,7 @@ namespace UnitTest.Zeze.Misc
             raftConfig.Nodes[node1.Name] = node1;
             raftConfig.Nodes[node2.Name] = node2;
             raftConfig.Nodes[node3.Name] = node3;
-            var storage = new Rocks(node1.Name, RocksMode.Pessimism, raftConfig);
+            var storage = await new Rocks().OpenAsync(node1.Name, raftConfig);
 
             // 数据修改相关测试已经移到 UnitTest/Zeze/RocksRaft/ 下。
             storage.RegisterTableTemplate<int, Value>("int2value");

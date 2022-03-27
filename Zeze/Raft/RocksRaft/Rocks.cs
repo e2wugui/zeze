@@ -92,12 +92,7 @@ namespace Zeze.Raft.RocksRaft
         internal RocksDb Storage;
         private readonly ConcurrentDictionary<string, ColumnFamilyHandle> Columns = new();
 
-        public Rocks(
-            string raftName = null, // 这个参数会覆盖RaftConfig.Name，这样应用可以共享同一个配置文件。
-            RocksMode mode = RocksMode.Pessimism,
-            RaftConfig raftConfig = null, // "raft.xml"
-            Config config = null, // "zeze.xml"
-            bool RocksDbWriteOptionSync = false)
+        public Rocks(RocksMode mode = RocksMode.Pessimism, bool RocksDbWriteOptionSync = false)
         {
             RocksMode = mode;
 
@@ -110,10 +105,22 @@ namespace Zeze.Raft.RocksRaft
             AddFactory(new Changes(this).TypeId, () => new Changes(this));
 
             WriteOptions = new WriteOptions().SetSync(RocksDbWriteOptionSync);
+        }
+
+        public async Task<Rocks> OpenAsync(
+            string raftName = null, // 这个参数会覆盖RaftConfig.Name，这样应用可以共享同一个配置文件。
+            RaftConfig raftConfig = null, // "raft.xml"
+            Config config = null // "zeze.xml"
+            )
+        {
+            if (null != base.Raft)
+                throw new InvalidOperationException($"{raftName} Has Opened.");
+
             // 这个赋值是不必要的，new Raft(...)内部会赋值。有点奇怪。
-            base.Raft = new Raft(this, raftName, raftConfig, config);
+            base.Raft = new Raft(this);
+            await base.Raft.OpenAsync(raftName, raftConfig, config);
             base.Raft.AtFatalKills += () => Storage?.Dispose();
-            base.Raft.LogSequence.WriteOptions.SetSync(RocksDbWriteOptionSync);
+            base.Raft.LogSequence.WriteOptions = WriteOptions;
 
             // Raft 在有快照的时候，会调用LoadSnapshot-Restore-OpenDb。
             // 如果Storage没有创建，需要主动打开。
@@ -121,6 +128,7 @@ namespace Zeze.Raft.RocksRaft
             {
                 OpenDb();
             }
+            return this;
         }
 
         private void OpenDb()
@@ -171,7 +179,7 @@ namespace Zeze.Raft.RocksRaft
             // fast checkpoint, will stop application apply.
             using var lockraft = await Raft.Monitor.EnterAsync();
 
-            var lastAppliedLog = Raft.LogSequence.LastAppliedLogTermIndex();
+            var lastAppliedLog = await Raft.LogSequence.LastAppliedLogTermIndex();
             var cp = Storage.Checkpoint();
             cp.Save(checkpointDir);
             cp.Dispose();
@@ -301,7 +309,7 @@ namespace Zeze.Raft.RocksRaft
             return (true, lastIncludedTerm, lastIncludedIndex);
         }
 
-        public override void LoadSnapshot(string path)
+        public override async Task LoadSnapshot(string path)
         {
             var backupdir = Path.Combine(DbHome, "backup");
             if (File.GetLastWriteTime(path) > Directory.GetLastWriteTime(backupdir))
@@ -309,7 +317,7 @@ namespace Zeze.Raft.RocksRaft
                 FileSystem.DeleteDirectory(backupdir);
                 ZipFile.ExtractToDirectory(path, backupdir);
             }
-            Restore(backupdir);
+            await Util.AsyncRocksDb.Executor.RunAsync(() => Restore(backupdir));
         }
 
         private ColumnFamilyHandle AtomicLongsColumnFamily;

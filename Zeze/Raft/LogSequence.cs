@@ -144,9 +144,9 @@ namespace Zeze.Raft
         // 以后Snapshot时，会保留LastApplied的。
         // 所以下面方法不会返回空。
         // 除非什么例外发生。那就抛空指针异常吧。
-        public RaftLog LastAppliedLogTermIndex()
+        public async Task<RaftLog> LastAppliedLogTermIndex()
         {
-            return RaftLog.DecodeTermIndex(ReadLogBytes(LastApplied));
+            return RaftLog.DecodeTermIndex(await ReadLogBytes(LastApplied));
         }
 
         private async Task SaveFirstIndex(long newFirstIndex)
@@ -170,12 +170,6 @@ namespace Zeze.Raft
             await StartRemoveLogOnlyBefore(newFirstIndex);
         }
 
-        private async Task<Iterator> NewLogsIterator()
-        {
-            using var lockraft = await Raft.Monitor.EnterAsync();
-            return await Logs.NewIteratorAsync();
-        }
-
         internal volatile TaskCompletionSource<bool> RemoveLogBeforeFuture;
         internal volatile bool LogsAvailable = false;
 
@@ -193,7 +187,7 @@ namespace Zeze.Raft
             {
                 try
                 {
-                    using var it = await NewLogsIterator();
+                    using var it = Logs.RocksDb.NewIterator();
                     it.SeekToFirst();
                     while (LogsAvailable && false == Raft.IsShutdown && it.Valid())
                     {
@@ -228,16 +222,6 @@ namespace Zeze.Raft
             });
         }
 
-        /*
-        private void RemoveLogReverse(long startIndex, long firstIndex)
-        {
-            for (var index = startIndex; index >= firstIndex; --index)
-            {
-                RemoveLog(index);
-            }
-        }
-        */
-
         // Leader
         // Follower
         public long LeaderActiveTime { get; internal set; } = Zeze.Util.Time.NowUnixMillis;
@@ -247,10 +231,11 @@ namespace Zeze.Raft
 
         internal sealed class UniqueRequestSet
         {
-            private RocksDb Db { get; set; }
+            private Util.AsyncRocksDb Db { get; set; }
             public string DbName { get; set; }
 
             public LogSequence LogSequence { get; set; }
+            public Nito.AsyncEx.AsyncLock Mutex { get; } = new();
 
             public UniqueRequestSet(LogSequence lq, string dbName)
             {
@@ -258,15 +243,15 @@ namespace Zeze.Raft
                 DbName = dbName;
             }
 
-            private void Put(RaftLog log, bool isApply)
+            private async Task Put(RaftLog log, bool isApply)
             {
-                var db = OpenDb();
+                var db = await OpenDb();
                 var key = ByteBuffer.Allocate(100);
                 log.Log.Unique.Encode(key);
 
                 // 先读取并检查状态，减少写操作。
 
-                var existBytes = db.Get(key.Bytes, key.Size);
+                var existBytes = await db.GetAsync(key.Bytes, key.Size);
                 if (false == isApply && existBytes != null)
                     throw new RaftRetryException($"Duplicate Request Found = {log.Log.Unique}");
 
@@ -280,31 +265,31 @@ namespace Zeze.Raft
 
                 var value = ByteBuffer.Allocate(4096);
                 new UniqueRequestState(log, isApply).Encode(value);
-                db.Put(key.Bytes, key.Size, value.Bytes, value.Size, null, LogSequence.WriteOptions);
+                await db.PutAsync(key.Bytes, key.Size, value.Bytes, value.Size, null, LogSequence.WriteOptions);
             }
 
-            public void Save(RaftLog log)
+            public async Task Save(RaftLog log)
             {
-                Put(log, false);
+                await Put(log, false);
             }
 
-            public void Apply(RaftLog log)
+            public async Task Apply(RaftLog log)
             {
-                Put(log, true);
+                await Put(log, true);
             }
 
-            public void Remove(RaftLog log)
+            public async Task Remove(RaftLog log)
             {
                 var key = ByteBuffer.Allocate(100);
                 log.Log.Unique.Encode(key);
-                OpenDb().Remove(key.Bytes, key.Size, null, LogSequence.WriteOptions);
+                await (await OpenDb()).RemoveAsync(key.Bytes, key.Size, null, LogSequence.WriteOptions);
             }
 
-            public UniqueRequestState GetRequestState(IRaftRpc iraftrpc)
+            public async Task<UniqueRequestState> GetRequestState(IRaftRpc iraftrpc)
             {
                 var key = ByteBuffer.Allocate(100);
                 iraftrpc.Unique.Encode(key);
-                var val = OpenDb().Get(key.Bytes, key.Size);
+                var val = await (await OpenDb()).GetAsync(key.Bytes, key.Size);
                 if (null == val)
                     return null;
                 var bb = ByteBuffer.Wrap(val);
@@ -313,33 +298,31 @@ namespace Zeze.Raft
                 return state;
             }
 
-            private RocksDb OpenDb()
+            private async Task<Util.AsyncRocksDb> OpenDb()
             {
-                lock (this)
+                using var lockthis = await Mutex.LockAsync();
                 {
                     if (null == Db)
                     {
                         var dir = Path.Combine(LogSequence.Raft.RaftConfig.DbHome, "unique");
                         Util.FileSystem.CreateDirectory(dir);
-                        Db = LogSequence.OpenDb(new DbOptions().SetCreateIfMissing(true), Path.Combine(dir, DbName));
+                        Db = await Util.AsyncRocksDb.OpenAsync(new DbOptions().SetCreateIfMissing(true), Path.Combine(dir, DbName));
                     }
                     return Db;
                 }
             }
 
-            public void Dispose()
+            public async Task DisposeAsync()
             {
-                lock (this)
-                {
-                    Db?.Dispose();
-                    Db = null;
-                }
+                using var lockthis = await Mutex.LockAsync();
+                await Db?.DisposeAsync();
+                Db = null;
             }
         }
         private ConcurrentDictionary<string, UniqueRequestSet> UniqueRequestSets { get; }
             = new ConcurrentDictionary<string, UniqueRequestSet>();
 
-        internal void RemoveExpiredUniqueRequestSet()
+        internal async Task RemoveExpiredUniqueRequestSet()
         {
             var expired = DateTime.Now.AddDays(-(Raft.RaftConfig.UniqueRequestExpiredDays + 1));
 
@@ -353,7 +336,7 @@ namespace Zeze.Raft
                 var db = DateTime.ParseExact(reqsets.Key, format, provider);
                 if (db < expired)
                 {
-                    reqsets.Value.Dispose();
+                    await reqsets.Value.DisposeAsync();
                     UniqueRequestSets.TryRemove(reqsets.Key, out _);
                     Util.FileSystem.DeleteDirectory(Path.Combine(uniqueHome, reqsets.Key));
                 }
@@ -395,7 +378,7 @@ namespace Zeze.Raft
             Rafts = null;
             foreach (var db in UniqueRequestSets.Values)
             {
-                db.Dispose();
+                await db.DisposeAsync();
             }
             UniqueRequestSets.Clear();
         }
@@ -518,19 +501,16 @@ namespace Zeze.Raft
             await Rafts.PutAsync(RaftsNodeReadyKey, RaftsNodeReadyKey.Length, value.Bytes, value.Size, null, WriteOptions);
         }
 
-        internal bool TryGetRequestState(Protocol p, out UniqueRequestState state)
+        internal async Task<(bool, UniqueRequestState)> TryGetRequestState(Protocol p)
         {
             var iraftrpc = p as IRaftRpc;
-
-            state = null;
 
             var create = Util.Time.UnixMillisToDateTime(iraftrpc.CreateTime);
             var now = DateTime.Now;
             if ((now - create).Days >= Raft.RaftConfig.UniqueRequestExpiredDays)
-                return false;
+                return (false, null);
 
-            state = OpenUniqueRequests(iraftrpc.CreateTime).GetRequestState(iraftrpc);
-            return true;
+            return (true, await OpenUniqueRequests(iraftrpc.CreateTime).GetRequestState(iraftrpc));
         }
 
         private UniqueRequestSet OpenUniqueRequests(long time)
@@ -920,7 +900,7 @@ namespace Zeze.Raft
                     Util.FileSystem.DeleteDirectory(logsdir);
                     var options = new DbOptions().SetCreateIfMissing(true);
 
-                    Logs = OpenDb(options, logsdir);
+                    Logs = await Util.AsyncRocksDb.OpenAsync(options, logsdir);
                     var lastIncludedLog = RaftLog.Decode(r.Argument.LastIncludedLog, Raft.StateMachine.LogFactory);
                     await SaveLog(lastIncludedLog);
                     await CommitSnapshot(s.Name, lastIncludedLog.Index);

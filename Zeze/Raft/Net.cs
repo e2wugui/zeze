@@ -132,22 +132,24 @@ namespace Zeze.Raft
         {
             if (await Raft.WaitLeaderReady())
             {
-                if (Raft.LogSequence.TryGetRequestState(p, out var state))
+                var (expired, state) = await Raft.LogSequence.TryGetRequestState(p);
+                if (expired)
                 {
-                    if (null != state)
+                    p.SendResultCode(Procedure.RaftExpired);
+                    return 0;
+                }
+
+                if (null != state)
+                {
+                    if (state.IsApplied)
                     {
-                        if (state.IsApplied)
-                        {
-                            p.SendResultCode(Procedure.RaftApplied, state.RpcResult.Count > 0 ? state.RpcResult : null);
-                            return 0;
-                        }
-                        p.SendResultCode(Procedure.DuplicateRequest);
+                        p.SendResultCode(Procedure.RaftApplied, state.RpcResult.Count > 0 ? state.RpcResult : null);
                         return 0;
                     }
-                    return await factoryHandle.Handle(p);
+                    p.SendResultCode(Procedure.DuplicateRequest);
+                    return 0;
                 }
-                p.SendResultCode(Procedure.RaftExpired);
-                return 0;
+                return await factoryHandle.Handle(p);
             }
             TrySendLeaderIs(p.Sender);
             return 0;

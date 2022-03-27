@@ -22,11 +22,11 @@ namespace Zeze.Raft
 
         public string Name => RaftConfig.Name;
         public string LeaderId { get; internal set; }
-        public RaftConfig RaftConfig { get; }
+        public RaftConfig RaftConfig { get; private set; }
         private volatile LogSequence LogSequencePrivate;
         public LogSequence LogSequence { get { return LogSequencePrivate; } }
         public bool IsLeader => this.State == RaftState.Leader;
-        public Server Server { get; }
+        public Server Server { get; private set; }
         public bool IsWorkingLeader => IsLeader && false == IsShutdown;
 
         internal SimpleThreadPool ImportantThreadPool { get; }
@@ -106,20 +106,27 @@ namespace Zeze.Raft
             Shutdown().Wait();
         }
 
-        public Raft(StateMachine sm,
+        public Raft(StateMachine sm)
+        {
+            StateMachine = sm;
+            StateMachine.Raft = this;
+        }
+
+        public async Task<Raft> OpenAsync(
             string RaftName = null,
             RaftConfig raftconf = null,
             Zeze.Config config = null,
             string name = "Zeze.Raft.Server")
         {
+            using var lockraft = await Monitor.EnterAsync();
+            if (RaftConfig != null)
+                throw new InvalidOperationException($"{RaftName} Has Opened.");
+
             if (null == raftconf)
                 raftconf = RaftConfig.Load();
             raftconf.Verify();
 
             RaftConfig = raftconf;
-            sm.Raft = this;
-            StateMachine = sm;
-
             if (false == string.IsNullOrEmpty(RaftName))
             {
                 // 如果 DbHome 和 Name 相关，一般表示没有特别配置。
@@ -140,7 +147,6 @@ namespace Zeze.Raft
             if (RaftConfig.Nodes.Count < 3)
                 throw new Exception("Startup Nodes.Count Must >= 3.");
 
-            ImportantThreadPool = new SimpleThreadPool(5, $"Raft.{Name}");
             Server.CreateAcceptor(Server, raftconf);
             Server.CreateConnector(Server, raftconf);
 
@@ -153,13 +159,13 @@ namespace Zeze.Raft
 
             var snapshot = LogSequence.SnapshotFullName;
             if (File.Exists(snapshot))
-                sm.LoadSnapshot(snapshot);
+                await StateMachine.LoadSnapshot(snapshot);
 
             LogSequence.StartSnapshotTimer();
 
             AppDomain.CurrentDomain.ProcessExit += ProcessExit;
             TimerTask = Scheduler.Schedule(OnTimer, 10);
-
+            return this;
         }
 
         private async Task<long> ProcessAppendEntries(Protocol p)
@@ -185,7 +191,7 @@ namespace Zeze.Raft
                     return 0;
                 }
 
-                if (LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer)
+                if (await LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer)
                 {
                     r.Result.Term = LogSequence.Term;
                     // new term found.
@@ -450,14 +456,14 @@ namespace Zeze.Raft
             }
         }
 
-        private bool IsLastLogUpToDate(RequestVoteArgument candidate)
+        private async Task<bool> IsLastLogUpToDate(RequestVoteArgument candidate)
         {
             // NodeReady local candidate
             //           false false       IsLastLogUpToDate
             //           false true        false
             //           true  false       false
             //           true  true        IsLastLogUpToDate
-            var last = LogSequence.LastRaftLogTermIndex();
+            var last = await LogSequence.LastRaftLogTermIndex();
             if (false == LogSequence.NodeReady)
             {
                 if (false == candidate.NodeReady)
@@ -493,7 +499,7 @@ namespace Zeze.Raft
             // 不管任何状态重置下一次时间，使得每个node从大概一个时刻开始。
             NextVoteTime = Time.NowUnixMillis + RaftConfig.ElectionTimeout;
 
-            if (LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer)
+            if (await LogSequence.TrySetTerm(r.Argument.Term) == LogSequence.SetTermResult.Newer)
             {
                 // new term found.
                 await ConvertStateTo(RaftState.Follower);
@@ -509,11 +515,11 @@ namespace Zeze.Raft
             r.Result.Term = LogSequence.Term;
             r.Result.VoteGranted = r.Argument.Term == LogSequence.Term
                 && LogSequence.CanVoteFor(r.Argument.CandidateId)
-                && IsLastLogUpToDate(r.Argument);
+                && await IsLastLogUpToDate(r.Argument);
 
             if (r.Result.VoteGranted)
             {
-                LogSequence.SetVoteFor(r.Argument.CandidateId);
+                await LogSequence.SetVoteFor(r.Argument.CandidateId);
             }
             logger.Info("{0}: VoteFor={1} Rpc={2}", Name, LogSequence.VoteFor, r);
             r.SendResultCode(0);
@@ -547,7 +553,7 @@ namespace Zeze.Raft
                 return 0;
             }
 
-            if (LogSequence.TrySetTerm(rpc.Result.Term) == LogSequence.SetTermResult.Newer)
+            if (await LogSequence.TrySetTerm(rpc.Result.Term) == LogSequence.SetTermResult.Newer)
             {
                 // new term found
                 await ConvertStateTo(RaftState.Follower);
@@ -578,18 +584,18 @@ namespace Zeze.Raft
             return Procedure.Success;
         }
 
-        private void SendRequestVote()
+        private async Task SendRequestVote()
         {
             RequestVotes.Clear(); // 每次选举开始清除。
             //LogSequence.SetVoteFor(Name); // 先收集结果，达到 RaftConfig.HalfCount 才判断是否给自己投票。
-            LogSequence.TrySetTerm(LogSequence.Term + 1);
+            await LogSequence.TrySetTerm(LogSequence.Term + 1);
 
             var arg = new RequestVoteArgument
             {
                 Term = LogSequence.Term,
                 CandidateId = Name
             };
-            var log = LogSequence.LastRaftLogTermIndex();
+            var log = await LogSequence.LastRaftLogTermIndex();
             arg.LastLogIndex = log.Index;
             arg.LastLogTerm = log.Term;
             arg.NodeReady = LogSequence.NodeReady;

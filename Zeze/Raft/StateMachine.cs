@@ -85,6 +85,6 @@ namespace Zeze.Raft
         /// 然后 Raft 会从 LastIncludedIndex 后面开始复制日志。进入正常的模式。
         /// </summary>
         /// <param name="path"></param>
-        public abstract void LoadSnapshot(string path);
+        public abstract Task LoadSnapshot(string path);
     }
 }
