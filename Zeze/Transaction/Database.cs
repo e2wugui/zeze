@@ -31,7 +31,7 @@ namespace Zeze.Transaction
         {
             Zeze = zeze;
             this.DatabaseUrl = url;
-            Pool = new (this);
+            Executor = new (() => MaxPoolSize);
         }
 
         public Zeze.Transaction.Table GetTable(string name)
@@ -151,50 +151,7 @@ namespace Zeze.Transaction
             public abstract bool IsNew { get; }
         }
 
-        public class PoolQuery
-        {
-            public Database Database;
-            private BlockingCollection<(TaskCompletionSource<bool>, Action)> TaskQueue { get; } = new();
-            public int MaxPoolSize => Database.MaxPoolSize;
-            public Util.AtomicInteger Pending { get; } = new();
-
-            public PoolQuery(Database database)
-            {
-                Database = database;
-            }
-
-            public void Execute(TaskCompletionSource<bool> source, Action action)
-            {
-                var pending = Pending.IncrementAndGet();
-                if (pending >= MaxPoolSize)
-                {
-                    Pending.AddAndGet(-1); // rollback
-                    TaskQueue.Add((source, action));
-                }
-                else
-                {
-                    Task.Run(() =>
-                    {
-                        try
-                        {
-                            action();
-                        }
-                        catch (Exception ex)
-                        {
-                            source.TrySetException(ex);
-                        }
-                        finally
-                        {
-                            Pending.AddAndGet(-1); // done
-                            if (TaskQueue.TryTake(out var item))
-                                Execute(item.Item1, item.Item2);
-                        }
-                    });
-                }
-            }
-        }
-
-        internal PoolQuery Pool { get; }
+        public Util.AsyncExecutor Executor { get; }
 
         public class TableAsync
         {
@@ -217,7 +174,7 @@ namespace Zeze.Transaction
             {
                 var source = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
                 ByteBuffer value = null;
-                Database.Pool.Execute(source, () =>
+                Database.Executor.Execute(source, () =>
                 {
                     value = ITable.Find(key);
                     source.TrySetResult(true);
@@ -229,7 +186,7 @@ namespace Zeze.Transaction
             public async Task RemoveAsync(ITransaction t, ByteBuffer key)
             {
                 var source = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-                Database.Pool.Execute(source, () =>
+                Database.Executor.Execute(source, () =>
                 {
                     ITable.Remove(t, key);
                     source.TrySetResult(true);
@@ -240,7 +197,7 @@ namespace Zeze.Transaction
             public async Task ReplaceAsync(ITransaction t, ByteBuffer key, ByteBuffer value)
             {
                 var source = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-                Database.Pool.Execute(source, () =>
+                Database.Executor.Execute(source, () =>
                 {
                     ITable.Replace(t, key, value);
                     source.TrySetResult(true);
@@ -252,7 +209,7 @@ namespace Zeze.Transaction
             {
                 var source = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
                 long count = 0;
-                Database.Pool.Execute(source, () =>
+                Database.Executor.Execute(source, () =>
                 {
                     count = ITable.Walk(callback);
                     source.TrySetResult(true);
