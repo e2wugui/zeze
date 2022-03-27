@@ -4,11 +4,11 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
 using System.IO;
-using RocksDbSharp;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Transaction;
 using System.Globalization;
+using RocksDbSharp;
 
 namespace Zeze.Raft
 {
@@ -149,11 +149,11 @@ namespace Zeze.Raft
             return RaftLog.DecodeTermIndex(ReadLogBytes(LastApplied));
         }
 
-        private void SaveFirstIndex(long newFirstIndex)
+        private async Task SaveFirstIndex(long newFirstIndex)
         {
             var firstIndexValue = ByteBuffer.Allocate();
             firstIndexValue.WriteLong(newFirstIndex);
-            Rafts.Put(
+            await Rafts.PutAsync(
                 RaftsFirstIndexKey, RaftsFirstIndexKey.Length,
                 firstIndexValue.Bytes, firstIndexValue.Size,
                 null, WriteOptions
@@ -166,14 +166,14 @@ namespace Zeze.Raft
             using var lockraft = await Raft.Monitor.EnterAsync();
 
             File.Move(path, SnapshotFullName, true);
-            SaveFirstIndex(newFirstIndex);
+            await SaveFirstIndex(newFirstIndex);
             await StartRemoveLogOnlyBefore(newFirstIndex);
         }
 
         private async Task<Iterator> NewLogsIterator()
         {
             using var lockraft = await Raft.Monitor.EnterAsync();
-            return Logs.NewIterator();
+            return await Logs.NewIteratorAsync();
         }
 
         internal volatile TaskCompletionSource<bool> RemoveLogBeforeFuture;
@@ -205,7 +205,7 @@ namespace Zeze.Raft
                         }
 
                         var key = it.Key();
-                        Logs.Remove(key, key.Length, null, WriteOptions);
+                        await Logs.RemoveAsync(key, key.Length, null, WriteOptions);
 
                         // 删除快照前的日志时，不删除唯一请求存根，否则快照建立时刻前面一点时间的请求无法保证唯一。
                         // 唯一请求存根自己管理删除，
@@ -242,27 +242,8 @@ namespace Zeze.Raft
         // Follower
         public long LeaderActiveTime { get; internal set; } = Zeze.Util.Time.NowUnixMillis;
 
-        private RocksDb Logs { get; set; }
-        private RocksDb Rafts { get; set; }
-
-        internal static RocksDb OpenDb(DbOptions options, string path)
-        {
-            Exception laste = null;
-            for (int i = 0; i < 10; ++i)
-            {
-                try
-                {
-                    return RocksDb.Open(options, path);
-                }
-                catch (Exception e)
-                {
-                    logger.Info(e, $"RocksDb.Open {path}");
-                    laste = e;
-                    System.Threading.Thread.Sleep(1000);
-                }
-            }
-            throw laste;
-        }
+        private Util.AsyncRocksDb Logs { get; set; }
+        private Util.AsyncRocksDb Rafts { get; set; }
 
         internal sealed class UniqueRequestSet
         {
@@ -408,9 +389,9 @@ namespace Zeze.Raft
 
             using var lockraft = await Raft.Monitor.EnterAsync();
             SnapshotTimer?.Cancel();
-            Logs?.Dispose();
+            await Logs?.DisposeAsync();
             Logs = null;
-            Rafts?.Dispose();
+            await Rafts?.DisposeAsync();
             Rafts = null;
             foreach (var db in UniqueRequestSets.Values)
             {
@@ -422,15 +403,19 @@ namespace Zeze.Raft
         public LogSequence(Raft raft)
         {
             Raft = raft;
+        }
+
+        public async Task OpenAsync()
+        {
             var options = new DbOptions().SetCreateIfMissing(true);
 
-            Rafts = OpenDb(options, Path.Combine(Raft.RaftConfig.DbHome, "rafts"));
+            Rafts = await Util.AsyncRocksDb.OpenAsync(options, Path.Combine(Raft.RaftConfig.DbHome, "rafts"));
             {
                 // Read Term
                 var termKey = ByteBuffer.Allocate();
                 termKey.WriteInt(0);
                 RaftsTermKey = termKey.Copy();
-                var termValue = Rafts.Get(RaftsTermKey);
+                var termValue = await Rafts.GetAsync(RaftsTermKey);
                 if (null != termValue)
                 {
                     var bb = ByteBuffer.Wrap(termValue);
@@ -444,7 +429,7 @@ namespace Zeze.Raft
                 var voteForKey = ByteBuffer.Allocate();
                 voteForKey.WriteInt(1);
                 RaftsVoteForKey = voteForKey.Copy();
-                var voteForvalue = Rafts.Get(RaftsVoteForKey);
+                var voteForvalue = await Rafts.GetAsync(RaftsVoteForKey);
                 if (null != voteForvalue)
                 {
                     var bb = ByteBuffer.Wrap(voteForvalue);
@@ -458,7 +443,7 @@ namespace Zeze.Raft
                 var firstIndexKey = ByteBuffer.Allocate();
                 firstIndexKey.WriteInt(2);
                 RaftsFirstIndexKey = firstIndexKey.Copy();
-                var firstIndexValue = Rafts.Get(RaftsFirstIndexKey);
+                var firstIndexValue = await Rafts.GetAsync(RaftsFirstIndexKey);
                 if (null != firstIndexValue)
                 {
                     var bb = ByteBuffer.Wrap(firstIndexValue);
@@ -478,7 +463,7 @@ namespace Zeze.Raft
                 var nodeReadyKey = ByteBuffer.Allocate();
                 nodeReadyKey.WriteInt(3);
                 RaftsNodeReadyKey = nodeReadyKey.Copy();
-                var nodeReadyValue = Rafts.Get(RaftsNodeReadyKey);
+                var nodeReadyValue = await Rafts.GetAsync(RaftsNodeReadyKey);
                 if (null != nodeReadyValue)
                 {
                     var bb = ByteBuffer.Wrap(nodeReadyValue);
@@ -487,10 +472,11 @@ namespace Zeze.Raft
             }
 
 
-            Logs = OpenDb(options, Path.Combine(Raft.RaftConfig.DbHome, "logs"));
+            Logs = await Util.AsyncRocksDb.OpenAsync(options, Path.Combine(Raft.RaftConfig.DbHome, "logs"));
+            await Util.AsyncRocksDb.Executor.RunAsync(() =>
             {
                 // Read Last Log Index
-                using var itLast = Logs.NewIterator();
+                using var itLast = Logs.RocksDb.NewIterator();
                 itLast.SeekToLast();
                 if (itLast.Valid())
                 {
@@ -507,20 +493,20 @@ namespace Zeze.Raft
                 // 【注意】snapshot 以后 FirstIndex 会推进，不再是从0开始。
                 if (FirstIndex == -1) // never snapshot
                 {
-                    using var itFirst = Logs.NewIterator();
+                    using var itFirst = Logs.RocksDb.NewIterator();
                     itFirst.SeekToFirst();
                     FirstIndex = RaftLog.Decode(new Binary(itFirst.Value()), Raft.StateMachine.LogFactory).Index;
                 }
                 LastApplied = FirstIndex;
                 CommitIndex = FirstIndex;
-            }
+            });
             LogsAvailable = true;
 
             // 可能有没有被清除的日志存在。启动任务。
             StartRemoveLogOnlyBefore(FirstIndex).Wait();
         }
 
-        private void TrySetNodeReady()
+        private async Task TrySetNodeReady()
         {
             if (NodeReady)
                 return;
@@ -529,7 +515,7 @@ namespace Zeze.Raft
 
             var value = ByteBuffer.Allocate();
             value.WriteBool(true);
-            Rafts.Put(RaftsNodeReadyKey, RaftsNodeReadyKey.Length, value.Bytes, value.Size, null, WriteOptions);
+            await Rafts.PutAsync(RaftsNodeReadyKey, RaftsNodeReadyKey.Length, value.Bytes, value.Size, null, WriteOptions);
         }
 
         internal bool TryGetRequestState(Protocol p, out UniqueRequestState state)
@@ -554,20 +540,20 @@ namespace Zeze.Raft
             return UniqueRequestSets.GetOrAdd(dbName, (db) => new UniqueRequestSet(this, db));
         }
 
-        private readonly byte[] RaftsTermKey;
-        private readonly byte[] RaftsVoteForKey;
-        private readonly byte[] RaftsFirstIndexKey;
-        private readonly byte[] RaftsNodeReadyKey; // 只会被写一次，所以这个优化可以不做，统一形式吧。
+        private byte[] RaftsTermKey;
+        private byte[] RaftsVoteForKey;
+        private byte[] RaftsFirstIndexKey;
+        private byte[] RaftsNodeReadyKey; // 只会被写一次，所以这个优化可以不做，统一形式吧。
 
         public WriteOptions WriteOptions { get; set; } = new WriteOptions().SetSync(true);
 
-        private void SaveLog(RaftLog log)
+        private async Task SaveLog(RaftLog log)
         {
             var key = ByteBuffer.Allocate();
             key.WriteLong(log.Index);
             var value = log.Encode();
             // key,value offset must 0
-            Logs.Put(
+            await Logs.PutAsync(
                 key.Bytes, key.Size,
                 value.Bytes, value.Size,
                 null, WriteOptions
@@ -576,12 +562,12 @@ namespace Zeze.Raft
             logger.Debug($"{Raft.Name}-{Raft.IsLeader} RequestId={log.Log.Unique.RequestId} Index={log.Index} Count={GetTestStateMachineCount()}");
         }
 
-        private void SaveLogRaw(long index, byte[] rawValue)
+        private async Task SaveLogRaw(long index, byte[] rawValue)
         {
             var key = ByteBuffer.Allocate();
             key.WriteLong(index);
 
-            Logs.Put(
+            await Logs.PutAsync(
                 key.Bytes, key.Size,
                 rawValue, rawValue.Length,
                 null, WriteOptions
@@ -590,16 +576,16 @@ namespace Zeze.Raft
             logger.Debug($"{Raft.Name}-{Raft.IsLeader} RequestId=? Index={index} Count={GetTestStateMachineCount()}");
         }
 
-        private byte[] ReadLogBytes(long index)
+        private async Task<byte[]> ReadLogBytes(long index)
         {
             var key = ByteBuffer.Allocate();
             key.WriteLong(index);
-            return Logs?.Get(key.Bytes, key.Size);
+            return await Logs?.GetAsync(key.Bytes, key.Size);
         }
 
-        private RaftLog ReadLog(long index)
+        private async Task<RaftLog> ReadLog(long index)
         {
-            var value = ReadLogBytes(index);
+            var value = await ReadLogBytes(index);
             if (null == value)
                 return null;
             return RaftLog.Decode(new Binary(value), Raft.StateMachine.LogFactory);
@@ -616,14 +602,14 @@ namespace Zeze.Raft
         // All Servers:
         // If RPC request or response contains term T > currentTerm:
         // set currentTerm = T, convert to follower(§5.1)
-        internal SetTermResult TrySetTerm(long term)
+        internal async Task<SetTermResult> TrySetTerm(long term)
         {
             if (term > Term)
             {
                 Term = term;
                 var termValue = ByteBuffer.Allocate();
                 termValue.WriteLong(term);
-                Rafts.Put(RaftsTermKey, RaftsTermKey.Length, termValue.Bytes, termValue.Size, null, WriteOptions);
+                await Rafts.PutAsync(RaftsTermKey, RaftsTermKey.Length, termValue.Bytes, termValue.Size, null, WriteOptions);
                 Raft.LeaderId = string.Empty;
                 SetVoteFor(string.Empty);
                 LastLeaderCommitIndex = 0;
@@ -639,18 +625,18 @@ namespace Zeze.Raft
             return string.IsNullOrEmpty(VoteFor) || VoteFor.Equals(voteFor);
         }
 
-        internal void SetVoteFor(string voteFor)
+        internal async Task SetVoteFor(string voteFor)
         {
             if (false == VoteFor.Equals(voteFor))
             {
                 VoteFor = voteFor;
                 var voteForValue = ByteBuffer.Allocate();
                 voteForValue.WriteString(voteFor);
-                Rafts.Put(RaftsVoteForKey, RaftsVoteForKey.Length, voteForValue.Bytes, voteForValue.Size, null, WriteOptions);
+                await Rafts.PutAsync(RaftsVoteForKey, RaftsVoteForKey.Length, voteForValue.Bytes, voteForValue.Size, null, WriteOptions);
             }
         }
 
-        private void TryCommit(AppendEntries rpc, Server.ConnectorEx connector)
+        private async Task TryCommit(AppendEntries rpc, Server.ConnectorEx connector)
         {
             connector.NextIndex = rpc.Argument.LastEntryIndex + 1;
             connector.MatchIndex = rpc.Argument.LastEntryIndex;
@@ -671,7 +657,7 @@ namespace Zeze.Raft
             var maxMajorityLogIndex = followers[Raft.RaftConfig.HalfCount - 1].MatchIndex;
             if (maxMajorityLogIndex > CommitIndex)
             {
-                var maxMajorityLog = ReadLog(maxMajorityLogIndex);
+                var maxMajorityLog = await ReadLog(maxMajorityLogIndex);
                 if (maxMajorityLog.Term != Term)
                 {
                     // 如果是上一个 Term 未提交的日志在这一次形成的多数派，
@@ -681,15 +667,15 @@ namespace Zeze.Raft
                 }
                 // 推进！
                 CommitIndex = maxMajorityLogIndex;
-                TrySetNodeReady();
-                TryStartApplyTask(maxMajorityLog);
+                await TrySetNodeReady();
+                await TryStartApplyTask(maxMajorityLog);
             }
         }
 
         internal volatile TaskCompletionSource<bool> ApplyFuture; // follower background apply task
 
         // under lock (Raft)
-        private void TryStartApplyTask(RaftLog lastApplyableLog)
+        private async Task TryStartApplyTask(RaftLog lastApplyableLog)
         {
             if (null == ApplyFuture && false == Raft.IsShutdown)
             {
@@ -697,7 +683,7 @@ namespace Zeze.Raft
                 if (CommitIndex - LastApplied < Raft.RaftConfig.BackgroundApplyCount)
                 {
                     // apply immediately in current thread
-                    TryApply(lastApplyableLog, long.MaxValue);
+                    await TryApply(lastApplyableLog, long.MaxValue);
                     return;
                 }
 
@@ -724,7 +710,7 @@ namespace Zeze.Raft
                 using (var lockraft = await Raft.Monitor.EnterAsync())
                 {
                     // ReadLog Again，CommitIndex Maybe Grow.
-                    var lastApplyableLog = ReadLog(CommitIndex);
+                    var lastApplyableLog = await ReadLog(CommitIndex);
                     TryApply(lastApplyableLog, Raft.RaftConfig.BackgroundApplyCount);
                     if (LastApplied == lastApplyableLog.Index)
                     {
@@ -736,7 +722,7 @@ namespace Zeze.Raft
             return Procedure.CancelException;
         }
 
-        private void TryApply(RaftLog lastApplyableLog, long count)
+        private async Task TryApply(RaftLog lastApplyableLog, long count)
         {
             if (null == lastApplyableLog)
             {
@@ -749,7 +735,7 @@ namespace Zeze.Raft
             {
                 if (false == LeaderAppendLogs.TryRemove(index, out var raftLog))
                 {
-                    raftLog = ReadLog(index);
+                    raftLog = await ReadLog(index);
                 }
                 if (null == raftLog)
                 {
@@ -759,7 +745,7 @@ namespace Zeze.Raft
                 }
 
                 index = raftLog.Index + 1;
-                raftLog.Log.Apply(raftLog, Raft.StateMachine);
+                await raftLog.Log.Apply(raftLog, Raft.StateMachine);
                 if (raftLog.Log.Unique.RequestId > 0)
                     OpenUniqueRequests(raftLog.Log.CreateTime).Apply(raftLog);
                 LastApplied = raftLog.Index; // 循环可能退出，在这里修改。
@@ -810,7 +796,7 @@ namespace Zeze.Raft
                     return 0; // skip
 
                 using var lockraft = await Raft.Monitor.EnterAsync();
-                if (Raft.LogSequence.TrySetTerm(heartbeat.Result.Term) == SetTermResult.Newer)
+                if (await Raft.LogSequence.TrySetTerm(heartbeat.Result.Term) == SetTermResult.Newer)
                 {
                     // new term found.
                     await Raft.ConvertStateTo(Raft.RaftState.Follower);
@@ -913,7 +899,7 @@ namespace Zeze.Raft
                 {
                     // 6. If existing log entry has same index and term as snapshot’s
                     // last included entry, retain log entries following it and reply
-                    var last = ReadLog(r.Argument.LastIncludedIndex);
+                    var last = await ReadLog(r.Argument.LastIncludedIndex);
                     if (null != last && last.Term == r.Argument.LastIncludedTerm)
                     {
                         // 【注意】没有错误处理：比如LastIncludedIndex是否超过CommitIndex之类的。
@@ -927,7 +913,7 @@ namespace Zeze.Raft
                     // 我的想法是，InstallSnapshot 最后一个 trunk 带上 LastIncludedLog，
                     // 接收者清除log，并把这条日志插入（这个和系统初始化时插入的Index=0的日志道理差不多）。
                     // 【除了快照最后包含的日志，其他都删除。】
-                    Logs.Dispose();
+                    await Logs.DisposeAsync();
                     Logs = null;
                     CancelPendingAppendLogFutures();
                     var logsdir = Path.Combine(Raft.RaftConfig.DbHome, "logs");
@@ -936,7 +922,7 @@ namespace Zeze.Raft
 
                     Logs = OpenDb(options, logsdir);
                     var lastIncludedLog = RaftLog.Decode(r.Argument.LastIncludedLog, Raft.StateMachine.LogFactory);
-                    SaveLog(lastIncludedLog);
+                    await SaveLog(lastIncludedLog);
                     await CommitSnapshot(s.Name, lastIncludedLog.Index);
 
                     LastIndex = lastIncludedLog.Index;
@@ -944,7 +930,7 @@ namespace Zeze.Raft
                     LastApplied = FirstIndex;
 
                     // 【关键】记录这个，放弃当前Term的投票。
-                    SetVoteFor(Raft.LeaderId);
+                    await SetVoteFor(Raft.LeaderId);
 
                     // 8. Reset state machine using snapshot contents (and load
                     // snapshot’s cluster configuration)
@@ -1039,7 +1025,7 @@ namespace Zeze.Raft
                 c.InstallSnapshotState = new InstallSnapshotState();
                 var st = c.InstallSnapshotState;
                 st.File = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read); ;
-                st.FirstLog = ReadLog(FirstIndex);
+                st.FirstLog = await ReadLog(FirstIndex);
                 st.Pending.Argument.Term = Term;
                 st.Pending.Argument.LeaderId = Raft.Name;
                 st.Pending.Argument.LastIncludedIndex = st.FirstLog.Index;
@@ -1070,7 +1056,7 @@ namespace Zeze.Raft
                 return Procedure.Success;
             }
 
-            if (Raft.LogSequence.TrySetTerm(r.Result.Term) == SetTermResult.Newer)
+            if (await Raft.LogSequence.TrySetTerm(r.Result.Term) == SetTermResult.Newer)
             {
                 // new term found.
                 await Raft.ConvertStateTo(Raft.RaftState.Follower);
@@ -1157,10 +1143,10 @@ namespace Zeze.Raft
                 return;
             }
 
-            var nextLog = ReadLog(connector.NextIndex);
+            var nextLog = await ReadLog(connector.NextIndex);
             if (nextLog == null) // Logs可能已经变成null了, 小概率事件
                 return;
-            var prevLog = ReadLog(nextLog.Index - 1);
+            var prevLog = await ReadLog(nextLog.Index - 1);
             if (prevLog == null) // Logs可能已经变成null了, 小概率事件
                 return;
 
@@ -1177,7 +1163,7 @@ namespace Zeze.Raft
             RaftLog lastCopyLog = nextLog;
             for (var copyLog = nextLog;
                 maxCount > 0 && null != copyLog && copyLog.Index <= LastIndex;
-                copyLog = ReadLog(copyLog.Index + 1), --maxCount
+                copyLog = await ReadLog(copyLog.Index + 1), --maxCount
                 )
             {
                 lastCopyLog = copyLog;
@@ -1193,9 +1179,9 @@ namespace Zeze.Raft
             }
         }
 
-        internal RaftLog LastRaftLogTermIndex()
+        internal async Task<RaftLog> LastRaftLogTermIndex()
         {
-            return RaftLog.DecodeTermIndex(ReadLogBytes(LastIndex));
+            return RaftLog.DecodeTermIndex(await ReadLogBytes(LastIndex));
         }
 
         private void RemoveLogAndCancelStart(long startIndex, long endIndex)
@@ -1215,14 +1201,14 @@ namespace Zeze.Raft
             }
         }
 
-        private void RemoveLog(long index)
+        private async Task RemoveLog(long index)
         {
-            var raftLog = ReadLog(index);
+            var raftLog = await ReadLog(index);
             if (null != raftLog)
             {
                 var key = ByteBuffer.Allocate();
                 key.WriteLong(index);
-                Logs.Remove(key.Bytes, key.Size, null, WriteOptions);
+                await Logs.RemoveAsync(key.Bytes, key.Size, null, WriteOptions);
                 if (raftLog.Log.Unique.RequestId > 0)
                     OpenUniqueRequests(raftLog.Log.CreateTime).Remove(raftLog);
             }
@@ -1242,7 +1228,7 @@ namespace Zeze.Raft
                 return Procedure.Success;
             }
 
-            switch (TrySetTerm(r.Argument.Term))
+            switch (await TrySetTerm(r.Argument.Term))
             {
                 case SetTermResult.Newer:
                     await Raft.ConvertStateTo(Raft.RaftState.Follower);
@@ -1276,7 +1262,7 @@ namespace Zeze.Raft
             }
 
             // check and copy log ...
-            var prevLog = ReadLog(r.Argument.PrevLogIndex);
+            var prevLog = await ReadLog(r.Argument.PrevLogIndex);
             if (prevLog == null || prevLog.Term != r.Argument.PrevLogTerm)
             {
                 // 2. Reply false if log doesn’t contain an entry
@@ -1321,7 +1307,7 @@ namespace Zeze.Raft
                 // 本地已经存在日志。
                 if (copyLog.Index <= LastIndex)
                 {
-                    var conflictCheck = ReadLog(copyLog.Index);
+                    var conflictCheck = await ReadLog(copyLog.Index);
                     if (conflictCheck.Term == copyLog.Term)
                         continue;
 
@@ -1343,7 +1329,7 @@ namespace Zeze.Raft
             // 4. Append any new entries not already in the log
             for (; entryIndex < r.Argument.Entries.Count; ++entryIndex, ++copyLogIndex)
             {
-                SaveLogRaw(copyLogIndex, r.Argument.Entries[entryIndex].Bytes);
+                await SaveLogRaw(copyLogIndex, r.Argument.Entries[entryIndex].Bytes);
             }
 
             copyLogIndex--;
@@ -1357,8 +1343,8 @@ namespace Zeze.Raft
             // set commitIndex = min(leaderCommit, index of last new entry)
             if (r.Argument.LeaderCommit > CommitIndex)
             {
-                CommitIndex = Math.Min(r.Argument.LeaderCommit, LastRaftLogTermIndex().Index);
-                TryStartApplyTask(ReadLog(CommitIndex));
+                CommitIndex = Math.Min(r.Argument.LeaderCommit, (await LastRaftLogTermIndex()).Index);
+                await TryStartApplyTask(await ReadLog(CommitIndex));
             }
             r.Result.Success = true;
             logger.Debug("{0}: {1}", Raft.Name, r);

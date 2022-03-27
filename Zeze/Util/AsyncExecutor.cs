@@ -9,7 +9,7 @@ namespace Zeze.Util
 {
     public class AsyncExecutor
     {
-        private BlockingCollection<(TaskCompletionSource<bool>, Action)> Queue { get; } = new();
+        private BlockingCollection<(TaskCompletionSource<object>, Action)> Queue { get; } = new();
         public Util.AtomicInteger Pooling { get; } = new();
         public Func<int> MaxPoolSize { get; }
 
@@ -18,7 +18,14 @@ namespace Zeze.Util
             MaxPoolSize = maxPoolSize;
         }
 
-        public void Execute(TaskCompletionSource<bool> source, Action action)
+        public async Task RunAsync(Action action)
+        {
+            var source = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
+            Run(source, action);
+            await source.Task;
+        }
+
+        public void Run(TaskCompletionSource<object> source, Action action)
         {
             var pending = Pooling.IncrementAndGet();
             if (pending >= MaxPoolSize())
@@ -28,11 +35,12 @@ namespace Zeze.Util
             }
             else
             {
-                Task.Run(() =>
+                _ = Task.Run(() =>
                 {
                     try
                     {
                         action();
+                        source.TrySetResult(null);
                     }
                     catch (Exception ex)
                     {
@@ -42,7 +50,7 @@ namespace Zeze.Util
                     {
                         Pooling.AddAndGet(-1); // done
                         if (Queue.TryTake(out var item))
-                            Execute(item.Item1, item.Item2);
+                            Run(item.Item1, item.Item2);
                     }
                 });
             }

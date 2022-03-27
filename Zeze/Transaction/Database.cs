@@ -172,49 +172,25 @@ namespace Zeze.Transaction
 
             public async Task<ByteBuffer> FindAsync(ByteBuffer key)
             {
-                var source = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
                 ByteBuffer value = null;
-                Database.Executor.Execute(source, () =>
-                {
-                    value = ITable.Find(key);
-                    source.TrySetResult(true);
-                });
-                await source.Task;
+                await Database.Executor.RunAsync(() => value = ITable.Find(key));
                 return value;
             }
 
             public async Task RemoveAsync(ITransaction t, ByteBuffer key)
             {
-                var source = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-                Database.Executor.Execute(source, () =>
-                {
-                    ITable.Remove(t, key);
-                    source.TrySetResult(true);
-                });
-                await source.Task;
+                await Database.Executor.RunAsync(() => ITable.Remove(t, key));
             }
 
             public async Task ReplaceAsync(ITransaction t, ByteBuffer key, ByteBuffer value)
             {
-                var source = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-                Database.Executor.Execute(source, () =>
-                {
-                    ITable.Replace(t, key, value);
-                    source.TrySetResult(true);
-                });
-                await source.Task;
+                await Database.Executor.RunAsync(() => ITable.Replace(t, key, value));
             }
 
             public async Task<long> WalkAsync(Func<byte[], byte[], bool> callback)
             {
-                var source = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
                 long count = 0;
-                Database.Executor.Execute(source, () =>
-                {
-                    count = ITable.Walk(callback);
-                    source.TrySetResult(true);
-                });
-                await source.Task;
+                await Database.Executor.RunAsync(() => count = ITable.Walk(callback));
                 return count;
             }
         }

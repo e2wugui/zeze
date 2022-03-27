@@ -147,6 +147,7 @@ namespace Zeze.Raft
             Directory.CreateDirectory(RaftConfig.DbHome);
 
             LogSequencePrivate = new LogSequence(this);
+            await LogSequencePrivate.OpenAsync();
 
             RegisterInternalRpc();
 
