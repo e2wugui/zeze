@@ -48,6 +48,8 @@
 	async TestCheckpointModeTable 直接运行 Trans 目录会出错，单个或者选择开始的几个运行没问题。
 
 【2022/4/11】
+	AsyncRocksDb
+	AsyncExecutor
 	database 异步化 
 	Global With Raft 异步化
 	rocksraft 异步化
