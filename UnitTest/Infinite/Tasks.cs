@@ -11,27 +11,27 @@ namespace Infinite
 {
     public class Tasks
     {
-        static ConcurrentDictionary<string, ConcurrentDictionary<long, AtomicLong>> CounterRun = new();
-        static ConcurrentDictionary<string, ConcurrentDictionary<long, AtomicLong>> CounterSuccess = new();
+        static readonly ConcurrentDictionary<string, ConcurrentDictionary<long, AtomicLong>> CounterRun = new();
+        static readonly ConcurrentDictionary<string, ConcurrentDictionary<long, AtomicLong>> CounterSuccess = new();
 
-        internal static ConcurrentDictionary<long, AtomicLong> getSuccessCounters(string name)
+        internal static ConcurrentDictionary<long, AtomicLong> GetSuccessCounters(string name)
         {
             return CounterSuccess.GetOrAdd(name, _ => new());
         }
 
-        internal static AtomicLong getSuccessCounter(string name, long key)
+        internal static AtomicLong GetSuccessCounter(string name, long key)
         {
-            return getSuccessCounters(name).GetOrAdd(key, _ => new());
+            return GetSuccessCounters(name).GetOrAdd(key, _ => new());
         }
 
-        internal static ConcurrentDictionary<long, AtomicLong> getRunCounters(string name)
+        internal static ConcurrentDictionary<long, AtomicLong> GetRunCounters(string name)
         {
             return CounterRun.GetOrAdd(name, _ => new());
         }
 
-        internal static AtomicLong getRunCounter(string name, long key)
+        internal static AtomicLong GetRunCounter(string name, long key)
         {
-            return getRunCounters(name).GetOrAdd(key, _ => new());
+            return GetRunCounters(name).GetOrAdd(key, _ => new());
         }
 
         // 所有以long为key的记录访问可以使用这个基类。
@@ -46,9 +46,9 @@ namespace Infinite
                 Simulate.randApp().Run(this);
             }
 
-            public async Task<long> call()
+            public async Task<long> Call()
             {
-                var result = await process();
+                var result = await Process();
                 if (0L == result)
                 {
                     var txn = Transaction.Current;
@@ -57,29 +57,29 @@ namespace Infinite
                         txn.RunWhileCommit(() =>
                         {
                             foreach (var key in Keys)
-                                getSuccessCounter(GetType().FullName, key).IncrementAndGet();
+                                GetSuccessCounter(GetType().FullName, key).IncrementAndGet();
                         });
                     }
                     else
                     {
                         foreach (var key in Keys)
-                            getSuccessCounter(GetType().FullName, key).IncrementAndGet();
+                            GetSuccessCounter(GetType().FullName, key).IncrementAndGet();
                     }
                 }
                 return result;
             }
 
-            public virtual int getKeyNumber()
+            public virtual int GetKeyNumber()
             {
                 return 1;
             }
 
-            public virtual int getKeyBound()
+            public virtual int GetKeyBound()
             {
                 return Simulate.AccessKeyBound;
             }
 
-            public abstract Task<long> process();
+            public abstract Task<long> Process();
 
             public virtual bool IsProcedure()
             {
@@ -101,22 +101,22 @@ namespace Infinite
             }
         }
 
-        static List<TaskFactory> taskFactorys = new();
-        static int TotalWeight = 0;
+        static readonly List<TaskFactory> taskFactorys = new();
+        static readonly int TotalWeight = 0;
         static Tasks()
         {
             // 新的操作数据的测试任务在这里注册。weith是权重，see randCreateTask();
             taskFactorys.Add(new TaskFactory(typeof(Table1Long2Add1), () => new Table1Long2Add1(), 100));
             taskFactorys.Add(new TaskFactory(typeof(Table1List9AddOrRemove), () => new Table1List9AddOrRemove(), 100));
-            taskFactorys.Add(new TaskFactory(typeof(tflushInt1Trade), () => new tflushInt1Trade(), 100));
-            taskFactorys.Add(new TaskFactory(typeof(tflushInt1TradeConcurrentVerify), () => new tflushInt1TradeConcurrentVerify(), 100));
+            taskFactorys.Add(new TaskFactory(typeof(TflushInt1Trade), () => new TflushInt1Trade(), 100));
+            taskFactorys.Add(new TaskFactory(typeof(TflushInt1TradeConcurrentVerify), () => new TflushInt1TradeConcurrentVerify(), 100));
 
             taskFactorys.Sort((a, b) => a.Weight - b.Weight);
             foreach (var task in taskFactorys)
                 TotalWeight += task.Weight;
         }
 
-        internal static Task randCreateTask()
+        internal static Task RandCreateTask()
         {
             var rand = Zeze.Util.Random.Instance.Next(TotalWeight);
             foreach (var task in taskFactorys)
@@ -128,7 +128,7 @@ namespace Infinite
             throw new Exception("impossible");
         }
 
-        internal static void prepare()
+        internal static void Prepare()
         {
             foreach (var tf in taskFactorys)
             {
@@ -138,7 +138,7 @@ namespace Infinite
             }
         }
 
-        internal static void verifyBatch()
+        internal static void VerifyBatch()
         {
             foreach (var tf in taskFactorys)
             {
@@ -149,8 +149,8 @@ namespace Infinite
                 {
                     // verify default.
                     var name = tf.Factory.Invoke().GetType().FullName;
-                    var runs = getRunCounters(name);
-                    var success = getSuccessCounters(name);
+                    var runs = GetRunCounters(name);
+                    var success = GetSuccessCounters(name);
                     Debug.Assert(runs.Count == success.Count);
                     foreach (var r in runs)
                     {
@@ -168,7 +168,7 @@ namespace Infinite
 
         public class Table1Long2Add1 : Task
         {
-            public override async Task<long> process()
+            public override async Task<long> Process()
             {
                 var keyEnum = Keys.GetEnumerator();
                 keyEnum.MoveNext();
@@ -177,18 +177,18 @@ namespace Infinite
                 return 0L;
             }
 
-            public static async void verify()
+            public static async void Verify()
             {
                 // verify 时，所有任务都执行完毕，不需要考虑并发。
                 var name = typeof(Table1Long2Add1).FullName;
                 var app = Simulate.randApp().app; // 任何一个app都能查到相同的结果。
-                var success = getSuccessCounters(name);
-                foreach (var e in getRunCounters(name))
+                var success = GetSuccessCounters(name);
+                foreach (var e in GetRunCounters(name))
                     Debug.Assert((await app.demo_Module1.Table1.SelectDirty(e.Key)).Long2 == success[e.Key].Get());
                 Infinite.App.logger.Debug("Table1Long2Add1.verify Ok.");
             }
 
-            public static void prepare()
+            public static void Prepare()
             {
                 // 所有使用 Table1 的测试都可以依赖这个 prepare，不需要单独写了。
                 var app = Simulate.randApp().app;
@@ -203,7 +203,7 @@ namespace Infinite
 
         public class Table1List9AddOrRemove : Task
         {
-            public override async Task<long> process()
+            public override async Task<long> Process()
             {
                 var keyEnum = Keys.GetEnumerator();
                 keyEnum.MoveNext();
@@ -228,9 +228,9 @@ namespace Infinite
         }
 
         // 在随机两个记录内进行交易。
-        public class tflushInt1Trade : Task
+        public class TflushInt1Trade : Task
         {
-            public override int getKeyNumber()
+            public override int GetKeyNumber()
             {
                 return 2;
             }
@@ -243,12 +243,12 @@ namespace Infinite
             public const int KeyBoundTrade = Simulate.AccessKeyBound / 2;
             public const int CacheCapacity = Simulate.CacheCapacity / 2;
 
-            public override int getKeyBound()
+            public override int GetKeyBound()
             {
                 return KeyBoundTrade;
             }
 
-            public override async Task<long> process()
+            public override async Task<long> Process()
             {
                 var keyEnum = Keys.GetEnumerator();
                 keyEnum.MoveNext();
@@ -265,7 +265,7 @@ namespace Infinite
                 return 0L;
             }
 
-            public static async void verify()
+            public static async void Verify()
             {
                 var app = Simulate.randApp().app; // 任何一个app都能查到相同的结果。
                 int sum = 0;
@@ -279,9 +279,9 @@ namespace Infinite
             }
         }
 
-        public class tflushInt1TradeConcurrentVerify : Task
+        public class TflushInt1TradeConcurrentVerify : Task
         {
-            public override int getKeyNumber()
+            public override int GetKeyNumber()
             {
                 return 0;
             }
@@ -291,18 +291,19 @@ namespace Infinite
                 return false;
             }
 
-            public override async Task<long> process()
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+            public override async Task<long> Process()
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
             {
                 var table1 = App.demo_Module1.Tflush;
                 var keys = new HashSet<Zeze.Serialize.ByteBuffer>();
-                for (int key = 0; key < tflushInt1Trade.KeyBoundTrade; ++key)
+                for (int key = 0; key < TflushInt1Trade.KeyBoundTrade; ++key)
                     keys.Add(table1.EncodeKey(key));
                 try
                 {
                     using var t = table1.Database.BeginTransaction();
-                    if (t is DatabaseMemory.MemTrans)
+                    if (t is DatabaseMemory.MemTrans mt)
                     {
-                        var mt = (DatabaseMemory.MemTrans)t;
                         var all = mt.Finds(table1.Name, keys);
                         var values = new List<demo.Module1.Value>();
                         foreach (var valueBytes in all.Values)

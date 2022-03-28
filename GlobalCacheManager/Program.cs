@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Threading;
+using Zeze.Services;
+using Zeze.Raft;
 
 namespace GlobalCacheManager
 {
@@ -14,8 +16,7 @@ namespace GlobalCacheManager
             string raftName = null;
             string raftConf = "global.raft.xml";
 
-            int workerThreads, completionPortThreads;
-            ThreadPool.GetMinThreads(out workerThreads, out completionPortThreads);
+            ThreadPool.GetMinThreads(out var _, out var completionPortThreads);
 
             for (int i = 0; i < args.Length; ++i)
             {
@@ -38,8 +39,7 @@ namespace GlobalCacheManager
                         break;
 
                     case "-threads":
-                        workerThreads = int.Parse(args[++i]);
-                        ThreadPool.SetMinThreads(workerThreads, completionPortThreads);
+                        ThreadPool.SetMinThreads(int.Parse(args[++i]), completionPortThreads);
                         break;
 
                 }
@@ -51,7 +51,7 @@ namespace GlobalCacheManager
                     ? System.Net.IPAddress.Any
                     : System.Net.IPAddress.Parse(ip);
 
-                var GlobalServer = Zeze.Services.GlobalCacheManagerServer.Instance;
+                var GlobalServer = GlobalCacheManagerServer.Instance;
                 GlobalServer.Start(address, port);
                 //Console.WriteLine("Ok.");
                 logger.Info($"Started. {GlobalServer.ServerSocket.Socket.LocalEndPoint}");
@@ -62,13 +62,12 @@ namespace GlobalCacheManager
             }
             else if (raftName.Equals("RunAllNodes"))
             {
-                using var GlobalRaft1 = new Zeze.Services.GlobalCacheManagerWithRaft().OpenAsync("127.0.0.1:5556", Zeze.Raft.RaftConfig.Load(raftConf));
-                using var GlobalRaft2 = new Zeze.Services.GlobalCacheManagerWithRaft().OpenAsync("127.0.0.1:5557", Zeze.Raft.RaftConfig.Load(raftConf));
-                using var GlobalRaft3 = new Zeze.Services.GlobalCacheManagerWithRaft().OpenAsync("127.0.0.1:5558", Zeze.Raft.RaftConfig.Load(raftConf));
-                // 等待启动完成，会报告启动错误结果吧。
-                GlobalRaft1.Wait();
-                GlobalRaft2.Wait();
-                GlobalRaft3.Wait();
+                using var global1 = new GlobalCacheManagerWithRaft();
+                global1.OpenAsync("127.0.0.1:5556", RaftConfig.Load(raftConf)).Wait();
+                using var global2 = new GlobalCacheManagerWithRaft();
+                global2.OpenAsync("127.0.0.1:5557", RaftConfig.Load(raftConf)).Wait();
+                using var global3 = new GlobalCacheManagerWithRaft();
+                global3.OpenAsync("127.0.0.1:5558", RaftConfig.Load(raftConf)).Wait();
                 logger.Info($"Started Raft=RunAllNodes");
                 while (true)
                 {
@@ -77,10 +76,10 @@ namespace GlobalCacheManager
             }
             else
             {
-                var rconf = Zeze.Raft.RaftConfig.Load(raftConf);
-                using var GlobalRaft = new Zeze.Services.GlobalCacheManagerWithRaft().OpenAsync(raftName, rconf);
+                var rconf = RaftConfig.Load(raftConf);
+                using var global1 = new GlobalCacheManagerWithRaft().OpenAsync(raftName, rconf);
                 // 等待启动完成，会报告启动错误结果吧。
-                GlobalRaft.Wait();
+                global1.Wait();
                 logger.Info($"Started Raft={raftName}");
                 while (true)
                 {

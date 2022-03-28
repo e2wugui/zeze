@@ -256,6 +256,7 @@ namespace Zeze.Services
                     login.Argument.ServerId = agent.Client.Zeze.Config.ServerId;
                     login.Argument.GlobalCacheManagerHashIndex = GlobalCacheManagerHashIndex;
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
                     agent.Send(login,
                         async (p) =>
                         {
@@ -272,12 +273,14 @@ namespace Zeze.Services
                             }
                             return 0;
                         }, true);
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
                 }
                 else
                 {
                     var relogin = new ReLogin();
                     relogin.Argument.ServerId = agent.Client.Zeze.Config.ServerId;
                     relogin.Argument.GlobalCacheManagerHashIndex = GlobalCacheManagerHashIndex;
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
                     agent.Send(relogin,
                         async (p) =>
                         {
@@ -294,6 +297,7 @@ namespace Zeze.Services
                             }
                             return 0;
                         }, true);
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
                 }
             }
         }

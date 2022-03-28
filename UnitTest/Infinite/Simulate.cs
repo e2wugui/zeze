@@ -46,15 +46,15 @@ namespace Infinite
         [TestMethod]
         public void testMain()
         {
-            Tasks.prepare();
+            Tasks.Prepare();
             while (true)
             {
                 ++BatchNumber;
                 for (int i = 0; i < BatchTaskCount; ++i)
-                    Tasks.randCreateTask().Run();
+                    Tasks.RandCreateTask().Run();
                 foreach (var app in Apps)
                     app.WaitAllRunningTasksAndClear();
-                Tasks.verifyBatch();
+                Tasks.VerifyBatch();
                 if (!Infinite)
                     break;
             }

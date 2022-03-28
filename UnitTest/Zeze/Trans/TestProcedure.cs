@@ -11,16 +11,20 @@ namespace UnitTest.Zeze.Trans
     [TestClass]
     public class TestProcedure
     {
-        TestBegin.MyBean bean = new TestBegin.MyBean();
+        readonly TestBegin.MyBean bean = new();
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         public async Task<long> ProcTrue()
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             bean.I = 123;
             Assert.AreEqual(bean.I, 123);
             return Procedure.Success;
         }
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         public async Task<long> ProcFalse()
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             bean.I = 456;
             Assert.AreEqual(bean.I, 456);
@@ -62,7 +66,7 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void Test1()
         {
-            TableKey root = new TableKey("1", 1);
+            var root = new TableKey("1", 1);
             // 特殊测试，拼凑一个record用来提供需要的信息。
             var r = new Record<long, TestBegin.MyBean>(null, 1, bean);
             bean.InitRootInfo(r.CreateRootInfoIfNeed(root), null);

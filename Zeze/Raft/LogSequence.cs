@@ -26,7 +26,9 @@ namespace Zeze.Raft
             Info = info ?? string.Empty;
         }
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         public override async Task Apply(RaftLog holder, StateMachine stateMachine)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             switch (Operate)
             {
@@ -468,7 +470,7 @@ namespace Zeze.Raft
                 else
                 {
                     // empty. add one for prev.
-                    SaveLog(new RaftLog(Term, 0, new HeartbeatLog()));
+                    SaveLogSynchronously(new RaftLog(Term, 0, new HeartbeatLog()));
                     LastIndex = 0;
                 }
                 logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} LastIndex={LastIndex} Count={GetTestStateMachineCount()}");
@@ -526,6 +528,21 @@ namespace Zeze.Raft
         private byte[] RaftsNodeReadyKey; // 只会被写一次，所以这个优化可以不做，统一形式吧。
 
         public WriteOptions WriteOptions { get; set; } = new WriteOptions().SetSync(true);
+
+        private void SaveLogSynchronously(RaftLog log)
+        {
+            var key = ByteBuffer.Allocate();
+            key.WriteLong(log.Index);
+            var value = log.Encode();
+            // key,value offset must 0
+            Logs.RocksDb.Put(
+                key.Bytes, key.Size,
+                value.Bytes, value.Size,
+                null, WriteOptions
+                );
+
+            logger.Debug($"{Raft.Name}-{Raft.IsLeader} RequestId={log.Log.Unique.RequestId} Index={log.Index} Count={GetTestStateMachineCount()}");
+        }
 
         private async Task SaveLog(RaftLog log)
         {
@@ -591,7 +608,7 @@ namespace Zeze.Raft
                 termValue.WriteLong(term);
                 await Rafts.PutAsync(RaftsTermKey, RaftsTermKey.Length, termValue.Bytes, termValue.Size, null, WriteOptions);
                 Raft.LeaderId = string.Empty;
-                SetVoteFor(string.Empty);
+                await SetVoteFor(string.Empty);
                 LastLeaderCommitIndex = 0;
                 return SetTermResult.Newer;
             }
@@ -691,7 +708,7 @@ namespace Zeze.Raft
                 {
                     // ReadLog Again，CommitIndex Maybe Grow.
                     var lastApplyableLog = await ReadLog(CommitIndex);
-                    TryApply(lastApplyableLog, Raft.RaftConfig.BackgroundApplyCount);
+                    await TryApply(lastApplyableLog, Raft.RaftConfig.BackgroundApplyCount);
                     if (LastApplied == lastApplyableLog.Index)
                     {
                         return 0; // 本次Apply结束。
@@ -727,7 +744,7 @@ namespace Zeze.Raft
                 index = raftLog.Index + 1;
                 await raftLog.Log.Apply(raftLog, Raft.StateMachine);
                 if (raftLog.Log.Unique.RequestId > 0)
-                    OpenUniqueRequests(raftLog.Log.CreateTime).Apply(raftLog);
+                    await OpenUniqueRequests(raftLog.Log.CreateTime).Apply(raftLog);
                 LastApplied = raftLog.Index; // 循环可能退出，在这里修改。
                 //*
                 if (LastIndex - LastApplied < 10)
@@ -809,8 +826,8 @@ namespace Zeze.Raft
                     }
                 }
                 if (raftLog.Log.Unique.RequestId > 0)
-                    OpenUniqueRequests(raftLog.Log.CreateTime).Save(raftLog);
-                SaveLog(raftLog);
+                    await OpenUniqueRequests(raftLog.Log.CreateTime).Save(raftLog);
+                await SaveLog(raftLog);
                 LastIndex = raftLog.Index;
                 term = Term;
                 index = LastIndex;
@@ -914,7 +931,7 @@ namespace Zeze.Raft
 
                     // 8. Reset state machine using snapshot contents (and load
                     // snapshot’s cluster configuration)
-                    Raft.StateMachine.LoadSnapshot(SnapshotFullName);
+                    await Raft.StateMachine.LoadSnapshot(SnapshotFullName);
                     logger.Info($"{Raft.Name} EndReceiveInstallSnapshot Path={s.Name}");
                 }
                 finally
@@ -1054,7 +1071,7 @@ namespace Zeze.Raft
 
             if (r.Result.Success)
             {
-                TryCommit(r, connector);
+                await TryCommit(r, connector);
                 // TryCommit 推进了NextIndex，
                 // 可能日志没有复制完或者有新的AppendLog。
                 // 尝试继续复制日志。
@@ -1164,7 +1181,7 @@ namespace Zeze.Raft
             return RaftLog.DecodeTermIndex(await ReadLogBytes(LastIndex));
         }
 
-        private void RemoveLogAndCancelStart(long startIndex, long endIndex)
+        private async Task RemoveLogAndCancelStart(long startIndex, long endIndex)
         {
             for (long index = startIndex; index <= endIndex; ++index)
             {
@@ -1177,7 +1194,7 @@ namespace Zeze.Raft
                     // Apply的时候已经TryRemove了，仅会成功一次。
                     raftlog.LeaderFuture?.TrySetCanceled();
                 }
-                RemoveLog(index);
+                await RemoveLog(index);
             }
         }
 
@@ -1190,7 +1207,7 @@ namespace Zeze.Raft
                 key.WriteLong(index);
                 await Logs.RemoveAsync(key.Bytes, key.Size, null, WriteOptions);
                 if (raftLog.Log.Unique.RequestId > 0)
-                    OpenUniqueRequests(raftLog.Log.CreateTime).Remove(raftLog);
+                    await OpenUniqueRequests(raftLog.Log.CreateTime).Remove(raftLog);
             }
         }
 
@@ -1268,7 +1285,7 @@ namespace Zeze.Raft
                 // 这里只要LeaderCommit推进就行，不需要自己的CommitIndex变更。
                 // LeaderCommit推进，意味着，已经达成了多数，自己此时可能处于少数派。
                 // 本结点CommitIndex是否还处于更早的时期，是没有关系的。
-                TrySetNodeReady();
+                await TrySetNodeReady();
             }
 
             int entryIndex = 0;
@@ -1300,7 +1317,7 @@ namespace Zeze.Raft
                         logger.Fatal($"{Raft.Name} truncate committed entries");
                         Raft.FatalKill();
                     }
-                    RemoveLogAndCancelStart(conflictCheck.Index, LastIndex);
+                    await RemoveLogAndCancelStart(conflictCheck.Index, LastIndex);
                     LastIndex = conflictCheck.Index - 1;
                 }
                 break;

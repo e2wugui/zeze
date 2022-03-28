@@ -606,7 +606,9 @@ namespace Zeze.Services
             return 0;
         }
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         protected override async Task<long> ProcessKeepAliveRequest(Zeze.Net.Protocol _p)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             var rpc = _p as KeepAlive;
             rpc.SendResultCode(Zeze.Transaction.Procedure.NotImplement);

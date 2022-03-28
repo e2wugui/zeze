@@ -39,6 +39,7 @@ namespace UnitTest.Zeze.Trans
 
                 await demo.App.Instance.Zeze.NewProcedure(async () =>
                 {
+                    var value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
                     Assert.IsTrue(value.Map15.TryGetValue(1, out var mv1));
                     Assert.AreEqual(1, mv1);
                     value.Map15[1] = 2;
@@ -69,6 +70,7 @@ namespace UnitTest.Zeze.Trans
 
                 await demo.App.Instance.Zeze.NewProcedure(async () =>
                 {
+                    var value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
                     Assert.IsTrue(value.Set10.Contains(1));
                     value.Set10.Remove(1);
                     Assert.IsFalse(value.Set10.Contains(1));

@@ -349,7 +349,7 @@ namespace Zeze.Raft.RocksRaft
             procedure.AutoResponse?.SendResultCode(procedure.ResultCode);
         }
 
-        internal void LeaderApply(Changes changes)
+        internal async Task LeaderApply(Changes changes)
         {
             Savepoint sp = Savepoints[^1];
             foreach (Log log in sp.Logs.Values)
@@ -365,7 +365,7 @@ namespace Zeze.Raft.RocksRaft
                     rs.Add(ar.Origin);
                 }
             }
-            changes.Rocks.Flush(rs, changes);
+            await changes.Rocks.Flush(rs, changes);
         }
 
         private void FinalRollback(Procedure procedure)

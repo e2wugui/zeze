@@ -238,7 +238,7 @@ namespace Zeze.Raft.RocksRaft
 			if (holder.LeaderFuture != null)
 			{
 				Rocks.logger.Debug($"{Rocks.Raft.Name} LeaderApply");
-				Transaction.LeaderApply(this);
+				await Transaction.LeaderApply(this);
 			}
             else
             {

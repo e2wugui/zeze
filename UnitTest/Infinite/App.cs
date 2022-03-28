@@ -31,7 +31,7 @@ namespace Infinite
             // 超出容量时，快速尝试。
             tflush.CacheCleanPeriodWhenExceedCapacity = 0;
             // 减少容量，实际使用记录数要超过一些。让TableCache.Cleanup能并发起来。
-            tflush.CacheCapacity = Tasks.tflushInt1Trade.CacheCapacity;
+            tflush.CacheCapacity = Tasks.TflushInt1Trade.CacheCapacity;
 
             app = new demo.App();
         }
@@ -51,16 +51,16 @@ namespace Infinite
         public void Run(Tasks.Task task)
         {
             task.App = app;
-            int keyNumber = task.getKeyNumber();
-            int keyBound = task.getKeyBound();
+            int keyNumber = task.GetKeyNumber();
+            int keyBound = task.GetKeyBound();
             while (task.Keys.Count < keyNumber)
                 task.Keys.Add(Random.Instance.Next(keyBound));
             foreach (var key in task.Keys)
-                Tasks.getRunCounter(task.GetType().FullName, key).IncrementAndGet();
+                Tasks.GetRunCounter(task.GetType().FullName, key).IncrementAndGet();
             if (task.IsProcedure())
-                RunningTasks.Add(app.Zeze.NewProcedure(task.call, task.GetType().FullName).CallAsync());
+                RunningTasks.Add(app.Zeze.NewProcedure(task.Call, task.GetType().FullName).CallAsync());
             else
-                RunningTasks.Add(Mission.CallAsync(task.call, task.GetType().FullName));
+                RunningTasks.Add(Mission.CallAsync(task.Call, task.GetType().FullName));
         }
 
         public void WaitAllRunningTasksAndClear()

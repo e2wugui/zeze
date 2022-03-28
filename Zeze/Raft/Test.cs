@@ -105,8 +105,13 @@ namespace Zeze.Raft
             {
                 // every node need a private config-file.
                 var confName = System.IO.Path.GetTempFileName() + ".xml";
-                System.IO.File.Copy(raftConfigStart.XmlFileName, confName);
+                File.Copy(raftConfigStart.XmlFileName, confName);
                 Rafts.GetOrAdd(node.Value.Name, (_) => new TestRaft(node.Value.Name, confName));
+            }
+
+            foreach (var raft in Rafts.Values)
+            {
+                await raft.StartRaft(true);
             }
 
             foreach (var raft in Rafts.Values)
@@ -765,7 +770,9 @@ namespace Zeze.Raft
 
                 }
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
                 public override async Task Apply(RaftLog holder, StateMachine stateMachine)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
                 {
                     (stateMachine as TestStateMachine).Count += 1;
                 }
@@ -912,7 +919,6 @@ namespace Zeze.Raft
             {
                 RaftName = raftName;
                 RaftConfigFileName = raftConfigFileName;
-                StartRaft(true);
             }
 
             private async Task<long> ProcessAddCount(Zeze.Net.Protocol p)
@@ -926,7 +932,9 @@ namespace Zeze.Raft
                 return Procedure.Success;
             }
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
             private async Task<long> ProcessGetCount(Zeze.Net.Protocol p)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
             {
                 var r = p as GetCount;
 

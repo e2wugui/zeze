@@ -102,13 +102,17 @@ namespace Zeze.Services
             }
         }
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         private async Task<long> ProcessCHandshakeDone(Protocol p)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             OnHandshakeDone(p.Sender);
             return 0;
         }
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         private async Task<long> ProcessCHandshake(Protocol _p)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             try
             {
@@ -168,7 +172,9 @@ namespace Zeze.Services
             });
         }
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         private async Task<long> ProcessSHandshake(Protocol _p)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             try
             {

@@ -49,7 +49,9 @@ namespace UnitTest.Zeze.Net
             }
         }
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         private async Task<long> ProcessHelloRequest(Protocol p)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             var hello = (Hello)p;
             hello.Result = hello.Argument;

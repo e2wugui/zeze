@@ -81,7 +81,7 @@ namespace Zeze.Raft.RocksRaft
             {
                 rs.Add(await e.Value.Table.FollowerApply(e.Key.Key, e.Value));
             }
-            Flush(rs, changes, true);
+            await Flush(rs, changes, true);
         }
 
         public string DbHome => Raft.RaftConfig.DbHome;
@@ -89,7 +89,7 @@ namespace Zeze.Raft.RocksRaft
 
         public WriteOptions WriteOptions { get; }
 
-        internal RocksDb Storage;
+        internal AsyncRocksDb Storage;
         private readonly ConcurrentDictionary<string, ColumnFamilyHandle> Columns = new();
 
         public Rocks(RocksMode mode = RocksMode.Pessimism, bool RocksDbWriteOptionSync = false)
@@ -119,19 +119,19 @@ namespace Zeze.Raft.RocksRaft
             // 这个赋值是不必要的，new Raft(...)内部会赋值。有点奇怪。
             base.Raft = new Raft(this);
             await base.Raft.OpenAsync(raftName, raftConfig, config);
-            base.Raft.AtFatalKills += () => Storage?.Dispose();
+            base.Raft.AtFatalKills += async () => await Storage?.DisposeAsync();
             base.Raft.LogSequence.WriteOptions = WriteOptions;
 
             // Raft 在有快照的时候，会调用LoadSnapshot-Restore-OpenDb。
             // 如果Storage没有创建，需要主动打开。
             if (Storage == null)
             {
-                OpenDb();
+                await OpenDb();
             }
             return this;
         }
 
-        private void OpenDb()
+        private async Task OpenDb()
         {
             var options = new DbOptions().SetCreateIfMissing(true);
             var dbName = Path.Combine(DbHome, "rocksraft");
@@ -145,11 +145,11 @@ namespace Zeze.Raft.RocksRaft
                 }
             }
 
-            Storage = RocksDb.Open(options, dbName, columns);
+            Storage = await Util.AsyncRocksDb.OpenAsync(options, dbName, columns);
             Columns.Clear();
             foreach (var col in columns)
             {
-                Columns[col.Name] = Storage.GetColumnFamily(col.Name);
+                Columns[col.Name] = Storage.RocksDb.GetColumnFamily(col.Name);
             }
 
             AtomicLongsColumnFamily = OpenFamily("Zeze.Raft.RocksRaft.AtomicLongs");
@@ -165,7 +165,7 @@ namespace Zeze.Raft.RocksRaft
             return Columns.GetOrAdd(name, (_) =>
             {
                 var ops = new ColumnFamilyOptions();
-                return Storage.CreateColumnFamily(ops, name);
+                return Storage.RocksDb.CreateColumnFamily(ops, name);
             });
         }
 
@@ -180,7 +180,7 @@ namespace Zeze.Raft.RocksRaft
             using var lockraft = await Raft.Monitor.EnterAsync();
 
             var lastAppliedLog = await Raft.LogSequence.LastAppliedLogTermIndex();
-            var cp = Storage.Checkpoint();
+            var cp = Storage.RocksDb.Checkpoint();
             cp.Save(checkpointDir);
             cp.Dispose();
 
@@ -246,7 +246,7 @@ namespace Zeze.Raft.RocksRaft
             }
         }
 
-        public bool Restore(string backupdir)
+        public async Task<bool> Restore(string backupdir)
         {
             var N = Native.Instance;
 
@@ -263,7 +263,7 @@ namespace Zeze.Raft.RocksRaft
                         return false;
 
                     // close current
-                    Storage?.Dispose();
+                    await Storage?.DisposeAsync();
 
                     // restore
                     var dbName = Path.Combine(DbHome, "statemachine");
@@ -273,7 +273,7 @@ namespace Zeze.Raft.RocksRaft
                         return false;
 
                     // reopen
-                    OpenDb();
+                    await OpenDb();
                     return true;
                 }
                 finally
@@ -292,9 +292,14 @@ namespace Zeze.Raft.RocksRaft
         {
             GC.SuppressFinalize(this);
 
-            Raft?.Shutdown().Wait();
+            DisposeAsync().Wait();
+        }
+
+        public async Task DisposeAsync()
+        {
+            await Raft?.Shutdown();
             Raft = null;
-            Storage?.Dispose();
+            await Storage?.DisposeAsync();
             Storage = null;
         }
 
@@ -317,12 +322,12 @@ namespace Zeze.Raft.RocksRaft
                 FileSystem.DeleteDirectory(backupdir);
                 ZipFile.ExtractToDirectory(path, backupdir);
             }
-            await Util.AsyncRocksDb.Executor.RunAsync(() => Restore(backupdir));
+            await Restore(backupdir);
         }
 
         private ColumnFamilyHandle AtomicLongsColumnFamily;
 
-        internal void Flush(IEnumerable<Record> rs, Changes changes, bool FollowerApply = false)
+        internal async Task Flush(IEnumerable<Record> rs, Changes changes, bool FollowerApply = false)
         {
             using var batch = new WriteBatch();
             foreach (var r in rs)
@@ -340,7 +345,7 @@ namespace Zeze.Raft.RocksRaft
                     AtomicLongSet(a.Key, a.Value);
             }
             if (batch.Count() > 0)
-                Storage.Write(batch, WriteOptions);
+                await Storage.WriteAsync(batch, WriteOptions);
         }
 
         public static void RegisterLog<T>() where T : Log, new()

@@ -225,7 +225,7 @@ namespace Zeze.Raft.RocksRaft
 
         public bool Walk(Func<K, V, bool> callback)
         {
-            using var it = Rocks.Storage.NewIterator(ColumnFamily);
+            using var it = Rocks.Storage.RocksDb.NewIterator(ColumnFamily);
             it.SeekToFirst();
             while (it.Valid())
             {
@@ -299,7 +299,7 @@ namespace Zeze.Raft.RocksRaft
         {
             var keybb = ByteBuffer.Allocate();
             SerializeHelper<K>.Encode(keybb, key);
-            var valuebytes = Rocks.Storage.Get(keybb.Bytes, keybb.Size, ColumnFamily);
+            var valuebytes = await Rocks.Storage.GetAsync(keybb.Bytes, keybb.Size, ColumnFamily);
             if (valuebytes == null)
                 return null;
             var valuebb = ByteBuffer.Wrap(valuebytes);

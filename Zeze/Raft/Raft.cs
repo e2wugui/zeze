@@ -365,7 +365,7 @@ namespace Zeze.Raft
                 if (++LowPrecisionTimer > 1000) // 10s
                 {
                     LowPrecisionTimer = 0;
-                    OnLowPrecisionTimer();
+                    await OnLowPrecisionTimer();
                 }
             }
             finally
@@ -376,10 +376,10 @@ namespace Zeze.Raft
 
         private long LowPrecisionTimer;
 
-        private void OnLowPrecisionTimer()
+        private async Task OnLowPrecisionTimer()
         {
             Server.Config.ForEachConnector((c) => c.Start()); // Connector Reconnect Bug?
-            LogSequence.RemoveExpiredUniqueRequestSet();
+            await LogSequence.RemoveExpiredUniqueRequestSet();
         }
 
         /// <summary>
@@ -527,7 +527,9 @@ namespace Zeze.Raft
             return Procedure.Success;
         }
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         private async Task<long> ProcessLeaderIs(Protocol p)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             var r = p as LeaderIs;
 
@@ -576,7 +578,7 @@ namespace Zeze.Raft
                     && granteds >= RaftConfig.HalfCount
                     && LogSequence.CanVoteFor(Name))
                 {
-                    LogSequence.SetVoteFor(Name);
+                    await LogSequence.SetVoteFor(Name);
                     await ConvertStateTo(RaftState.Leader);
                 }
             }
@@ -612,7 +614,7 @@ namespace Zeze.Raft
             });
         }
 
-        private void ConvertStateFromFollowerTo(RaftState newState)
+        private async Task ConvertStateFromFollowerTo(RaftState newState)
         {
             switch (newState)
             {
@@ -624,7 +626,7 @@ namespace Zeze.Raft
                 case RaftState.Candidate:
                     logger.Info($"RaftState {Name}: Follower->Candidate");
                     State = RaftState.Candidate;
-                    SendRequestVote();
+                    await SendRequestVote();
                     return;
 
                 case RaftState.Leader:
@@ -648,7 +650,7 @@ namespace Zeze.Raft
 
                 case RaftState.Candidate:
                     logger.Info($"RaftState {Name}: Candidate->Candidate");
-                    SendRequestVote();
+                    await SendRequestVote();
                     return;
 
                 case RaftState.Leader:
@@ -713,7 +715,7 @@ namespace Zeze.Raft
             switch (State)
             {
                 case RaftState.Follower:
-                    ConvertStateFromFollowerTo(newState);
+                    await ConvertStateFromFollowerTo(newState);
                     return;
 
                 case RaftState.Candidate:

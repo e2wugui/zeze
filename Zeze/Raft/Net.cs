@@ -485,14 +485,11 @@ namespace Zeze.Raft
 
         private static bool IsRetryError(long error)
         {
-            switch (error)
+            return error switch
             {
-                case Procedure.CancelException:
-                case Procedure.RaftRetry:
-                case Procedure.DuplicateRequest:
-                    return true;
-            }
-            return false;
+                Procedure.CancelException or Procedure.RaftRetry or Procedure.DuplicateRequest => true,
+                _ => false,
+            };
         }
 
         private long SendForWaitHandle<TArgument, TResult>(
@@ -558,7 +555,9 @@ namespace Zeze.Raft
                     throw new Exception("duplicate requestid rpc=" + rpc);
             }
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
             rpc.ResponseHandle = async (p) => SendForWaitHandle(p, future, rpc);
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
             rpc.Send(_Leader?.TryGetReadySocket());
             return future;
         }
@@ -659,7 +658,9 @@ namespace Zeze.Raft
             return null;
         }
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         private async Task<long> ProcessLeaderIs(Protocol p)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             var r = p as LeaderIs;
             logger.Info("=============== LEADERIS Old={0} New={1} From={2}", _Leader?.Name, r.Argument.LeaderId, p.Sender);

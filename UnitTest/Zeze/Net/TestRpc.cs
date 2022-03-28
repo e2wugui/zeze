@@ -16,26 +16,26 @@ namespace UnitTest.Zeze.Net
         [TestMethod]
         public void TestRpcSimple()
         {
-            Service server = new Service("TestRpc.Server");
+            var server = new Service("TestRpc.Server");
 
-            FirstRpc forid = new FirstRpc();
+            var forid = new FirstRpc();
             server.AddFactoryHandle(forid.TypeId, new Service.ProtocolFactoryHandle()
             {
                 Factory = () => new FirstRpc(),
                 Handle = ProcessFirstRpcRequest,
             });
 
-            AsyncSocket servetrSocket = server.NewServerSocket(IPAddress.Any, 5000, null);
-            Client client = new Client(this);
+            var servetrSocket = server.NewServerSocket(IPAddress.Any, 5000, null);
+            var client = new Client(this);
             client.AddFactoryHandle(forid.TypeId, new Service.ProtocolFactoryHandle()
             {
                 Factory = () => new FirstRpc(),
             });
 
-            AsyncSocket clientSocket = client.NewClientSocket("127.0.0.1", 5000, null, null);
+            var clientSocket = client.NewClientSocket("127.0.0.1", 5000, null, null);
             connected.WaitOne();
 
-            FirstRpc first = new FirstRpc();
+            var first = new FirstRpc();
             first.Argument.Int1 = 1234;
             //Console.WriteLine("SendFirstRpcRequest");
             first.SendForWait(clientSocket).Task.Wait();
@@ -43,9 +43,13 @@ namespace UnitTest.Zeze.Net
             Assert.AreEqual(first.Argument.Int1, first.Result.Int1);
         }
 
-        ManualResetEvent connected = new ManualResetEvent(false);
+        readonly ManualResetEvent connected = new(false);
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+#pragma warning disable CA1822 // Mark members as static
         public async Task<long> ProcessFirstRpcRequest(Protocol p)
+#pragma warning restore CA1822 // Mark members as static
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             var rpc = p as FirstRpc;
             rpc.Result.Assign(rpc.Argument);
@@ -62,7 +66,7 @@ namespace UnitTest.Zeze.Net
         }
         public class Client : Service
         {
-            TestRpc test;
+            readonly TestRpc test;
             public Client(TestRpc test) : base("TestRpc.Client")
             {
                 this.test = test;
