@@ -86,6 +86,7 @@ namespace Zeze.Raft
             await Mission.AwaitNullableTask(LogSequencePrivate.ApplyFuture?.Task);
 
             Server.Stop();
+            AsyncRocksDb.Executor.Shutdown();
 
             using (await Monitor.EnterAsync())
             {
