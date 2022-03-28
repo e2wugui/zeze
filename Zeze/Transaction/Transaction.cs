@@ -537,7 +537,8 @@ namespace Zeze.Transaction
                 return;
 
             if (bean.RootInfo.Record.State == GlobalCacheManagerServer.StateRemoved)
-                throw new Exception($"VerifyRecordAccessed: Record Has Bean Removed From Cache. {bean.TableKey}");
+                ThrowRedo(); // 这个错误需要redo。不是逻辑错误。
+
             var ra = GetRecordAccessed(bean.TableKey);
             if (ra == null)
                 throw new Exception($"VerifyRecordAccessed: Record Not Control Under Current Transaction. {bean.TableKey}");
@@ -570,7 +571,9 @@ namespace Zeze.Transaction
                     switch (e.OriginRecord.State)
                     {
                         case GlobalCacheManagerServer.StateRemoved:
-                        // fall down
+                            // 被从cache中清除，不持有该记录的Global锁，简单重做即可。
+                            return CheckResult.Redo;
+
                         case GlobalCacheManagerServer.StateInvalid:
                             LastTableKeyOfRedoAndRelease = e.TableKey;
                             LastGlobalSerialIdOfRedoAndRelease = e.OriginRecord.LastErrorGlobalSerialId;
@@ -602,13 +605,17 @@ namespace Zeze.Transaction
                 }
                 else
                 {
-                    if (e.OriginRecord.State == GlobalCacheManagerServer.StateInvalid
-                        || e.OriginRecord.State == GlobalCacheManagerServer.StateRemoved)
+                    switch (e.OriginRecord.State)
                     {
-                        // 发现Invalid，肯定有Reduce请求或者被Cache清理，此时保险起见释放锁。
-                        LastTableKeyOfRedoAndRelease = e.TableKey;
-                        LastGlobalSerialIdOfRedoAndRelease = e.OriginRecord.LastErrorGlobalSerialId;
-                        return CheckResult.RedoAndReleaseLock;
+                        case GlobalCacheManagerServer.StateRemoved:
+                            // 被从cache中清除，不持有该记录的Global锁，简单重做即可。
+                            return CheckResult.Redo;
+
+                        case GlobalCacheManagerServer.StateInvalid:
+                            // 发现Invalid，肯定有Reduce请求或者被Cache清理，此时保险起见释放锁。
+                            LastTableKeyOfRedoAndRelease = e.TableKey;
+                            LastGlobalSerialIdOfRedoAndRelease = e.OriginRecord.LastErrorGlobalSerialId;
+                            return CheckResult.RedoAndReleaseLock;
                     }
                     return e.Timestamp != e.OriginRecord.Timestamp
                         ? CheckResult.Redo : CheckResult.Success;
