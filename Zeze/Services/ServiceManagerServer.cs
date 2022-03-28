@@ -988,7 +988,7 @@ namespace Zeze.Services.ServiceManager
         public void WaitConnectorReady()
         {
             // 实际上只有一个连接，这样就不用查找了。
-            Client.Config.ForEachConnector((c) => c.WaitReady());
+            Client.Config.ForEachConnector((c) => c.GetReadySocket());
         }
 
         private ServiceInfo UpdateService(ServiceInfo info)

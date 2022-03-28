@@ -488,7 +488,7 @@ namespace Zeze.Raft
             LogsAvailable = true;
 
             // 可能有没有被清除的日志存在。启动任务。
-            StartRemoveLogOnlyBefore(FirstIndex).Wait();
+            await StartRemoveLogOnlyBefore(FirstIndex);
         }
 
         private async Task TrySetNodeReady()
@@ -888,7 +888,7 @@ namespace Zeze.Raft
                 LogsAvailable = false; // cancel RemoveLogBefore
             }
 
-            RemoveLogBeforeFuture?.Task.Wait();
+            await RemoveLogBeforeFuture?.Task;
 
             using (var lockraft = await Raft.Monitor.EnterAsync())
             {

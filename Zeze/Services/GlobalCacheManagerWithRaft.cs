@@ -349,7 +349,7 @@ namespace Zeze.Services
                         {
                             try
                             {
-                                reduce.Value.Future.Task.Wait();
+                                await reduce.Value.Future.Task;
                                 if (reduce.Value.Result.State == GlobalCacheManagerServer.StateInvalid)
                                 {
                                     reduceSucceed.Add(reduce.Key);
@@ -511,9 +511,9 @@ namespace Zeze.Services
             }
             // new login, 比如逻辑服务器重启。release old acquired.
             var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
-            SenderAcquired.Walk((key, value) =>
+            await SenderAcquired.WalkAsync(async (key, value) =>
             {
-                Release(session, key, false).Wait();
+                await Release(session, key, false);
                 return true; // continue walk
             });
             rpc.SendResultCode(0);
@@ -556,9 +556,9 @@ namespace Zeze.Services
             }
             // TODO 确认Walk中删除记录是否有问题。
             var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
-            SenderAcquired.Walk((key, value) =>
+            await SenderAcquired.WalkAsync(async (key, value) =>
             {
-                Release(session, key, false).Wait();
+                await Release(session, key, false);
                 return true; // continue walk
             });
             rpc.SendResultCode(0);
@@ -597,9 +597,9 @@ namespace Zeze.Services
             // XXX verify danger
             await Task.Delay(5 * 60 * 1000); // delay 5 mins
             var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
-            SenderAcquired.Walk((key, value) =>
+            await SenderAcquired.WalkAsync(async (key, value) =>
             {
-                Release(session, key, false).Wait();
+                await Release(session, key, false);
                 return true; // continue release;
             });
             rpc.SendResultCode(0);

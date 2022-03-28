@@ -155,6 +155,13 @@ namespace Zeze.Net
                 throw new Exception($"Rpc Invalid ResultCode={ResultCode} {this}");
         }
 
+        public async Task SendAndWaitCheckResultCodeAsync(AsyncSocket so, int millisecondsTimeout = 5000)
+        {
+            await SendForWait(so, millisecondsTimeout).Task;
+            if (ResultCode != 0)
+                throw new Exception($"Rpc Invalid ResultCode={ResultCode} {this}");
+        }
+
         private bool SendResultDone = false; // XXX ugly
 
         public virtual void SendResult(Binary result = null)

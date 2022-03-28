@@ -54,7 +54,7 @@ namespace Zeze.Transaction
                 throw new Exception(msg, cause);
             }
 
-            public AsyncSocket Connect()
+            public async Task<AsyncSocket> ConnectAsync()
             {
                 var so = Connector.TryGetReadySocket();
                 if (null != so)
@@ -65,7 +65,7 @@ namespace Zeze.Transaction
 
                 try
                 {
-                    return Connector.GetReadySocket();
+                    return await Connector.GetReadySocketAsync();
                 }
                 catch (Exception e)
                 {
@@ -142,7 +142,7 @@ namespace Zeze.Transaction
             if (null != Client)
             {
                 var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
-                var socket = agent.Connect();
+                var socket = await agent.ConnectAsync();
 
                 // 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了），打断外面的事务。
                 // 一个请求异常不关闭连接，尝试继续工作。
@@ -273,15 +273,7 @@ namespace Zeze.Transaction
                 Client.Start();
                 foreach (var agent in Agents)
                 {
-                    try
-                    {
-                        agent.Connect();
-                    }
-                    catch (Exception ex)
-                    {
-                        // 允许部分GlobalCacheManager连接错误时，继续启动程序，虽然后续相关事务都会失败。
-                        logger.Error(ex, "GlobalAgent.Connect"); 
-                    }
+                    _ = agent.ConnectAsync(); // 异步启动
                 }
             }
         }

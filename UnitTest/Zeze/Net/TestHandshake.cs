@@ -35,7 +35,7 @@ namespace UnitTest.Zeze.Net
 
                 using var serversocket = server.NewServerSocket(System.Net.IPAddress.Any, 7766, null);
                 client.Connect("127.0.0.1", 7766, false);
-                client.Config.FindConnector("127.0.0.1:7766").WaitReady();
+                client.Config.FindConnector("127.0.0.1:7766").GetReadySocket();
                 var clientsocket = client.GetSocket();
                 var hello = new Hello();
                 hello.Argument.Name = "hello";

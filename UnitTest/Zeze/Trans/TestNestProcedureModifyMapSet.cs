@@ -30,7 +30,7 @@ namespace UnitTest.Zeze.Trans
             {
                 await demo.App.Instance.demo_Module1.Table1.RemoveAsync(1);
                 return 0;
-            }, "ModifyMapRemove").CallAsync().Wait();
+            }, "ModifyMapRemove").CallSynchronously();
 
             demo.App.Instance.Zeze.NewProcedure(async () =>
             {
@@ -51,7 +51,7 @@ namespace UnitTest.Zeze.Trans
                 Assert.IsTrue(value.Map15.TryGetValue(1, out var mv1));
                 Assert.AreEqual(1, mv1);
                 return 0;
-            }, "ModifyMapPut1").CallAsync().Wait();
+            }, "ModifyMapPut1").CallSynchronously();
         }
 
         [TestMethod]
@@ -61,7 +61,7 @@ namespace UnitTest.Zeze.Trans
             {
                 await demo.App.Instance.demo_Module1.Table1.RemoveAsync(1);
                 return 0;
-            }, "ModifyMapRemove").CallAsync().Wait();
+            }, "ModifyMapRemove").CallSynchronously();
 
             demo.App.Instance.Zeze.NewProcedure(async () =>
             {
@@ -79,7 +79,7 @@ namespace UnitTest.Zeze.Trans
 
                 Assert.IsTrue(value.Set10.Contains(1));
                 return 0;
-            }, "ModifySetAdd1").CallAsync().Wait();
+            }, "ModifySetAdd1").CallSynchronously();
         }
     }
 }

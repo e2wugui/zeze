@@ -679,6 +679,8 @@ namespace Zeze.Services
                 // 2. sender是share, 而且reducePending的size是0
                 if (!(cs.Share.Count == 0) && (!senderIsShare || reducePending.Count > 0))
                 {
+                    // 必须放到另外的线程执行，后面cs.Monitor.WaitAsync();会释放锁。
+                    // 这是必须的。
                     _ = Task.Run(async () =>
                     {
                         // 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
@@ -687,7 +689,7 @@ namespace Zeze.Services
                         {
                             try
                             {
-                                reduce.Value.Future.Task.Wait();
+                                await reduce.Value.Future.Task;
                                 if (reduce.Value.Result.State == StateInvalid)
                                     reduceSucceed.Add(reduce.Key);
                                 else

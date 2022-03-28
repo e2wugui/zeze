@@ -85,8 +85,8 @@ namespace Zeze.Raft
 
             Server.Stop();
 
-            LogSequence.RemoveLogBeforeFuture?.Task.Wait();
-            LogSequence.ApplyFuture?.Task.Wait();
+            await LogSequence.RemoveLogBeforeFuture?.Task;
+            await LogSequence.ApplyFuture?.Task;
 
             using (var lockraft = await Monitor.EnterAsync())
             {

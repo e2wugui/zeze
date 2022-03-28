@@ -43,7 +43,7 @@
 	rocksraft 异步测试
 	Global With Raft 异步测试
 	database 异步测试
-
+	ServiceManager 异步化
 	TestCheckpoint 整个跑会失败，单独一个一个测试跑成功。
 	async TestCheckpointModeTable 直接运行 Trans 目录会出错，单个或者选择开始的几个运行没问题。
 

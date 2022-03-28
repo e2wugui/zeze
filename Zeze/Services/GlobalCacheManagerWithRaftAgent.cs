@@ -42,7 +42,7 @@ namespace Zeze.Services
 
                 foreach (var agent in Agents)
                 {
-                    agent.WaitLoginSuccess();
+                    agent.WaitLoginSuccess().Wait();
                 }
             }
         }
@@ -148,7 +148,7 @@ namespace Zeze.Services
             {
                 var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
 
-                agent.WaitLoginSuccess();
+                await agent.WaitLoginSuccess();
 
                 var rpc = new Acquire();
                 rpc.Argument.GlobalTableKey = gkey;
@@ -219,7 +219,7 @@ namespace Zeze.Services
 
             private volatile TaskCompletionSource<bool> LoginFuture = new (TaskCreationOptions.RunContinuationsAsynchronously);
 
-            public void WaitLoginSuccess()
+            public async Task WaitLoginSuccess()
             {
                 while (true)
                 {
@@ -228,7 +228,7 @@ namespace Zeze.Services
                         var volatiletmp = LoginFuture;
                         if (volatiletmp.Task.IsCompletedSuccessfully && volatiletmp.Task.Result)
                             return;
-                        volatiletmp.Task.Wait();
+                        await volatiletmp.Task;
                     }
                     catch (System.Exception)
                     {

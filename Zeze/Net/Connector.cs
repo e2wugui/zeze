@@ -84,16 +84,17 @@ namespace Zeze.Net
             }
         }
 
-        // 允许子类重新定义Ready.
-        public virtual AsyncSocket WaitReady()
+        public AsyncSocket GetReadySocket()
         {
-            return GetReadySocket();
+            var task = GetReadySocketAsync();
+            task.Wait();
+            return task.Result;
         }
 
-        public virtual AsyncSocket GetReadySocket()
+        public async Task<AsyncSocket> GetReadySocketAsync()
         {
             var volatileTmp = FutureSocket;
-            volatileTmp.Task.Wait();
+            await volatileTmp.Task;
             return volatileTmp.Task.Result;
         }
 

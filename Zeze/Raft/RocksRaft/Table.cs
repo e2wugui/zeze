@@ -238,6 +238,21 @@ namespace Zeze.Raft.RocksRaft
             return true;
         }
 
+        public async Task<bool> WalkAsync(Func<K, V, Task<bool>> callback)
+        {
+            using var it = Rocks.Storage.RocksDb.NewIterator(ColumnFamily);
+            it.SeekToFirst();
+            while (it.Valid())
+            {
+                var key = SerializeHelper<K>.Decode(ByteBuffer.Wrap(it.Key()));
+                var value = SerializeHelper<V>.Decode(ByteBuffer.Wrap(it.Value()));
+                if (false == await callback(key, value))
+                    return false;
+                it.Next();
+            }
+            return true;
+        }
+
         private Util.ConcurrentLruLike<K, Record<K, V>> LruCache;
         internal override ColumnFamilyHandle ColumnFamily { get; set; }
         public Rocks Rocks { get; }

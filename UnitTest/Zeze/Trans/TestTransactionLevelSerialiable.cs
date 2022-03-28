@@ -25,14 +25,14 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void Test2()
         {
-            demo.App.Instance.Zeze.NewProcedure(init, "test_init").CallAsync().Wait();
+            demo.App.Instance.Zeze.NewProcedure(Init, "test_init").CallSynchronously();
             Task.Run(Verify_task);
             try
             {
                 Task[] tasks = new Task[200000];
                 for (int i = 0; i < tasks.Length; ++i)
                 {
-                    tasks[i] = demo.App.Instance.Zeze.NewProcedure(trade, "test_trade").CallAsync();
+                    tasks[i] = demo.App.Instance.Zeze.NewProcedure(Trade, "test_trade").CallAsync();
                 }
                 Task.WaitAll(tasks);
             }
@@ -46,11 +46,11 @@ namespace UnitTest.Zeze.Trans
         {
             while (InTest)
             {
-                demo.App.Instance.Zeze.NewProcedure(verify, "test_verify").CallAsync().Wait();
+                demo.App.Instance.Zeze.NewProcedure(Verify, "test_verify").CallSynchronously();
             }
         }
 
-        private async Task<long> verify()
+        private async Task<long> Verify()
         {
             var v1 = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1L);
             var v2 = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(2L);
@@ -60,7 +60,7 @@ namespace UnitTest.Zeze.Trans
             return 0;
         }
 
-        private async Task<long> init()
+        private async Task<long> Init()
         {
             var v1 = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1L);
             var v2 = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(2L);
@@ -69,7 +69,7 @@ namespace UnitTest.Zeze.Trans
             return 0;
         }
 
-        private async Task<long> trade()
+        private async Task<long> Trade()
         {
             var v1 = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1L);
             var v2 = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(2L);
@@ -77,9 +77,7 @@ namespace UnitTest.Zeze.Trans
             if (global::Zeze.Util.Random.Instance.Next(100) < 50)
             {
                 // random swap
-                var tmp = v1;
-                v1 = v2;
-                v2 = tmp;
+                (v2, v1) = (v1, v2);
             }
             v1.Int1 -= money;
             v2.Int1 += money;
