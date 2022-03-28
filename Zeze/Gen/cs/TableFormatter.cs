@@ -40,10 +40,10 @@ namespace Zeze.Gen.cs
             sw.WriteLine();
             if (table.IsAutoKey)
             {
-                sw.WriteLine("        public long Insert(" + value + " value)");
+                sw.WriteLine("        public async System.Threading.Tasks.Task<long> InsertAsync(" + value + " value)");
                 sw.WriteLine("        {");
                 sw.WriteLine("            long key = AutoKey.Next();");
-                sw.WriteLine("            Insert(key, value);");
+                sw.WriteLine("            await InsertAsync(key, value);");
                 sw.WriteLine("            return key;");
                 sw.WriteLine("        }");
                 sw.WriteLine();
