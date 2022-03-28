@@ -91,7 +91,7 @@ namespace Zeze.Raft
                         await raft.LogSequence.TrySendAppendEntries(this, null);
                         return 0;
                     }
-                }, "Start TrySendAppendEntries");
+                }, "OnSocketHandshakeDone.TrySendAppendEntries");
             }
         }
 

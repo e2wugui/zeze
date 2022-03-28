@@ -250,41 +250,38 @@ namespace Zeze.Raft.RocksRaft
         {
             var N = Native.Instance;
 
-            using (await Raft.Monitor.EnterAsync())
+            IntPtr backup = IntPtr.Zero;
+            IntPtr options = N.rocksdb_options_create();
+            IntPtr restore_options = N.rocksdb_restore_options_create();
+            try
             {
-                IntPtr backup = IntPtr.Zero;
-                IntPtr options = N.rocksdb_options_create();
-                IntPtr restore_options = N.rocksdb_restore_options_create();
-                try
-                {
-                    var err = IntPtr.Zero;
-                    backup = N.rocksdb_backup_engine_open(options, backupdir, out err);
-                    if (err != IntPtr.Zero)
-                        return false;
+                var err = IntPtr.Zero;
+                backup = N.rocksdb_backup_engine_open(options, backupdir, out err);
+                if (err != IntPtr.Zero)
+                    return false;
 
-                    // close current
-                    await Storage?.DisposeAsync();
+                // close current
+                await Storage?.DisposeAsync();
 
-                    // restore
-                    var dbName = Path.Combine(DbHome, "statemachine");
-                    N.rocksdb_backup_engine_restore_db_from_latest_backup(
-                        backup, dbName, dbName, restore_options, out err);
-                    if (err != IntPtr.Zero)
-                        return false;
+                // restore
+                var dbName = Path.Combine(DbHome, "statemachine");
+                N.rocksdb_backup_engine_restore_db_from_latest_backup(
+                    backup, dbName, dbName, restore_options, out err);
+                if (err != IntPtr.Zero)
+                    return false;
 
-                    // reopen
-                    await OpenDb();
-                    return true;
-                }
-                finally
-                {
-                    if (backup != IntPtr.Zero)
-                        N.rocksdb_backup_engine_close(backup);
-                    if (restore_options != IntPtr.Zero)
-                        N.rocksdb_restore_options_destroy(restore_options);
-                    if (options != IntPtr.Zero)
-                        N.rocksdb_options_destroy(options);
-                }
+                // reopen
+                await OpenDb();
+                return true;
+            }
+            finally
+            {
+                if (backup != IntPtr.Zero)
+                    N.rocksdb_backup_engine_close(backup);
+                if (restore_options != IntPtr.Zero)
+                    N.rocksdb_restore_options_destroy(restore_options);
+                if (options != IntPtr.Zero)
+                    N.rocksdb_options_destroy(options);
             }
         }
 

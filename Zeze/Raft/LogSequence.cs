@@ -180,10 +180,8 @@ namespace Zeze.Raft
         {
             // has under lockraft
             {
-                if (null != RemoveLogBeforeFuture
-                    || false == LogsAvailable
-                    || Raft.IsShutdown
-                    || false == RemoveLogBeforeFuture.Task.IsCompleted)
+                if ((null != RemoveLogBeforeFuture && false == RemoveLogBeforeFuture.Task.IsCompleted)
+                    || false == LogsAvailable || Raft.IsShutdown)
                 {
                     return;
                 }
