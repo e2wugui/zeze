@@ -620,7 +620,7 @@ namespace Zeze.Raft
 
         private bool Running { get; set; } = true;
 
-        private async Task RandomTriggerFailActions()
+        private void RandomTriggerFailActions()
         {
             while (Running)
             {
@@ -648,7 +648,7 @@ namespace Zeze.Raft
                             if (raft.Raft != null && raft.Raft.LogSequence != null)
                             {
                                 raft.Raft.IsShutdown = true;
-                                await raft.Raft.LogSequence.CloseAsync();
+                                raft.Raft.LogSequence.Close();
                             }
                         }
                         NLog.LogManager.Shutdown();

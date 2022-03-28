@@ -3,7 +3,7 @@ namespace TestMain;
 
 public class Program
 {
-    Nito.AsyncEx.AsyncMonitor Monitor = new();
+    readonly Nito.AsyncEx.AsyncMonitor Monitor = new();
 
     public void Test()
     {

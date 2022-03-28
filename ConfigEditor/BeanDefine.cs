@@ -9,11 +9,11 @@ namespace ConfigEditor
     public class BeanDefine
     {
         private string _Name;
-        private Dictionary<string, ReferenceFrom> _ReferenceFroms = new Dictionary<string, ReferenceFrom>();
+        private readonly Dictionary<string, ReferenceFrom> _ReferenceFroms = new Dictionary<string, ReferenceFrom>();
         private bool _Locked = false;
-        private SortedDictionary<string, EnumDefine> _EnumDefines = new SortedDictionary<string, EnumDefine>();
-        private SortedDictionary<string, BeanDefine> _BeanDefines = new SortedDictionary<string, BeanDefine>();
-        private List<VarDefine> _Variables = new List<VarDefine>();
+        private readonly SortedDictionary<string, EnumDefine> _EnumDefines = new SortedDictionary<string, EnumDefine>();
+        private readonly SortedDictionary<string, BeanDefine> _BeanDefines = new SortedDictionary<string, BeanDefine>();
+        private readonly List<VarDefine> _Variables = new List<VarDefine>();
 
         // 此类定义已经没人引用了，但是由于存在嵌套的类，不能删除。
         // 此时 FormDefine 不显示编辑这样的类定义。
@@ -532,7 +532,7 @@ namespace ConfigEditor
         {
             this.Document = doc;
             this.Parent = parent;
-            this._Name = null != name ? name : doc.Name;
+            this._Name = name ?? doc.Name;
             EnumDefines = new ReadOnlyDictionary<string, EnumDefine>(_EnumDefines);
             BeanDefines = new ReadOnlyDictionary<string, BeanDefine>(_BeanDefines);
             Variables = new ReadOnlyCollection<VarDefine>(_Variables);
@@ -591,7 +591,7 @@ namespace ConfigEditor
             if (Name.Length == 0)
                 _Name = doc.Name;
             string tmp = self.GetAttribute("Locked");
-            _Locked = tmp.Length > 0 ? bool.Parse(tmp) : false;
+            _Locked = tmp.Length > 0 && bool.Parse(tmp);
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)

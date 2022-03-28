@@ -40,7 +40,7 @@ namespace Zeze.Raft
         {
             IsShutdown = true;
             AtFatalKills?.Invoke();
-            LogSequence.CloseAsync().Wait();
+            LogSequence.Close();
             NLog.LogManager.Shutdown();
             System.Diagnostics.Process.GetCurrentProcess().Kill();
         }
@@ -94,7 +94,7 @@ namespace Zeze.Raft
                 TimerTask?.Cancel();
                 TimerTask = null;
                 await ConvertStateTo(RaftState.Follower);
-                await LogSequence.CloseAsync();
+                LogSequence.Close();
             }
         }
 

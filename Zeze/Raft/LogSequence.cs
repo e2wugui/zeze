@@ -235,7 +235,7 @@ namespace Zeze.Raft
 
         internal sealed class UniqueRequestSet
         {
-            private Util.AsyncRocksDb Db { get; set; }
+            internal Util.AsyncRocksDb Db { get; set; }
             public string DbName { get; set; }
 
             public LogSequence LogSequence { get; set; }
@@ -369,19 +369,19 @@ namespace Zeze.Raft
             LeaderAppendLogs.Clear();
         }
 
-        internal async Task CloseAsync()
+        internal void Close()
         {
             // must after set Raft.IsShutdown = false;
             CancelPendingAppendLogFutures();
 
             SnapshotTimer?.Cancel();
-            await Logs?.DisposeAsync();
+            Logs?.RocksDb.Dispose();
             Logs = null;
-            await Rafts?.DisposeAsync();
+            Rafts?.RocksDb.Dispose();
             Rafts = null;
-            foreach (var db in UniqueRequestSets.Values)
+            foreach (var uniqreqsets in UniqueRequestSets.Values)
             {
-                await db.DisposeAsync();
+                uniqreqsets.Db?.RocksDb.Dispose();
             }
             UniqueRequestSets.Clear();
         }
