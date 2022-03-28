@@ -167,10 +167,15 @@ namespace Zeze.Raft
         {
             using (await Raft.Monitor.EnterAsync())
             {
-                File.Move(path, SnapshotFullName, true);
-                await SaveFirstIndex(newFirstIndex);
-                StartRemoveLogOnlyBefore(newFirstIndex);
+                await CommitSnapshotNoLock(path, newFirstIndex);
             }
+        }
+
+        private async Task CommitSnapshotNoLock(string path, long newFirstIndex)
+        {
+            File.Move(path, SnapshotFullName, true);
+            await SaveFirstIndex(newFirstIndex);
+            StartRemoveLogOnlyBefore(newFirstIndex);
         }
 
         internal volatile TaskCompletionSource<bool> RemoveLogBeforeFuture;
@@ -911,7 +916,7 @@ namespace Zeze.Raft
                         // 【注意】没有错误处理：比如LastIncludedIndex是否超过CommitIndex之类的。
                         // 按照现在启动InstallSnapshot的逻辑，不会发生这种情况。
                         logger.Warn($"Exist Local Log. Do It Like A Local Snapshot!");
-                        await CommitSnapshot(s.Name, r.Argument.LastIncludedIndex);
+                        await CommitSnapshotNoLock(s.Name, r.Argument.LastIncludedIndex);
                         return;
                     }
                     // 7. Discard the entire log
@@ -929,7 +934,7 @@ namespace Zeze.Raft
                     Logs = await Util.AsyncRocksDb.OpenAsync(options, logsdir);
                     var lastIncludedLog = RaftLog.Decode(r.Argument.LastIncludedLog, Raft.StateMachine.LogFactory);
                     await SaveLog(lastIncludedLog);
-                    await CommitSnapshot(s.Name, lastIncludedLog.Index);
+                    await CommitSnapshotNoLock(s.Name, lastIncludedLog.Index);
 
                     LastIndex = lastIncludedLog.Index;
                     CommitIndex = FirstIndex;

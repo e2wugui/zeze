@@ -61,8 +61,7 @@ namespace Zeze.Util
             // exception -> Error
             // 0 != result -> level from parameter
             // others -> Trace
-            NLog.LogLevel ll = (null != ex) ? NLog.LogLevel.Error
-                : (0 != result) ? level : NLog.LogLevel.Trace;
+            NLog.LogLevel ll = (null != ex) ? NLog.LogLevel.Error : (0 != result) ? level : NLog.LogLevel.Trace;
             var module = "";
             if (result > 0)
                 module = "@" + IModule.GetModuleId(result) + ":" + IModule.GetErrorCode(result);
