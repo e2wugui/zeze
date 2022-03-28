@@ -16,7 +16,7 @@ namespace UnitTest.Zeze.Net
     {
         public class ServiceClient : Service
         {
-            internal TaskCompletionSource<bool> Future = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            internal TaskCompletionSource<bool> Future = new(TaskCreationOptions.RunContinuationsAsynchronously);
             public ServiceClient() : base("TestAsyncSocket.ServiceClient")
             {
 
@@ -42,7 +42,7 @@ namespace UnitTest.Zeze.Net
         [TestMethod]
         public void TestConnect()
         {
-            ServiceClient client = new ServiceClient();
+            var client = new ServiceClient();
             using AsyncSocket so = client.NewClientSocket("www.163.com", 80, null, null);
             client.Future.Task.Wait();
         }

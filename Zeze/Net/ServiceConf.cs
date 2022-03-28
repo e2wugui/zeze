@@ -68,7 +68,7 @@ namespace Zeze.Net
 
             getOrAdd = Connectors.GetOrAdd(name, (_) =>
             {
-                Connector add = new Connector(host, port, autoReconnect);
+                var add = new Connector(host, port, autoReconnect);
                 add.SetService(Service);
                 addNew = true;
                 return add;

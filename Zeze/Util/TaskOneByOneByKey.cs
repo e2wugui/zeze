@@ -125,13 +125,13 @@ namespace Zeze.Util
 		{
 			public string Name { get; set; }
 			public Action Cancel { get; set; }
-			public abstract void Process();
+			public abstract Task ProcessAsync();
 
-			public void DoIt(TaskOneByOne obo)
+			public async Task<long> DoIt(TaskOneByOne obo)
 			{
 				try
 				{
-					Process();
+					await ProcessAsync();
 				}
 				catch (Exception ex)
 				{
@@ -141,6 +141,7 @@ namespace Zeze.Util
 				{
 					obo.RunNext();
 				}
+				return 0;
 			}
 		}
 
@@ -161,9 +162,9 @@ namespace Zeze.Util
 			}
 
 
-			public override void Process()
+			public override async Task ProcessAsync()
 			{
-				_ = Mission.CallAsync(Handle, Protocol, ActionWhenError);
+				await Mission.CallAsync(Handle, Protocol, ActionWhenError);
 			}
         }
 
@@ -183,9 +184,9 @@ namespace Zeze.Util
 				Name = Procedure.ActionName;
             }
 
-			public override void Process()
+			public override async Task ProcessAsync()
 			{
-				Util.Mission.CallAsync(Procedure, From, ActionWhenError).Wait();
+				await Mission.CallAsync(Procedure, From, ActionWhenError);
 			}
         }
 
@@ -193,8 +194,10 @@ namespace Zeze.Util
         {
 			public Func<long> Func { get; set; }
 
-			public override void Process()
-			{
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+            public override async Task ProcessAsync()
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+            {
 				Func();
 			}
         }
@@ -203,8 +206,10 @@ namespace Zeze.Util
 		{
 			public Action Action { get; set; }
 
-			public override void Process()
-			{
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+            public override async Task ProcessAsync()
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+            {
 				Action();
 			}
 		}
@@ -282,7 +287,7 @@ namespace Zeze.Util
 					queue.AddLast(job);
 					if (queue.Count == 1)
 					{
-						System.Threading.Tasks.Task.Run(() => queue.First.Value.DoIt(this));
+						_ = Mission.CallAsync(async () => await queue.First.Value.DoIt(this), "TaskOneByOne.DoIt");
 					}
 				}
 			}

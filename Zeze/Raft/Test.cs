@@ -173,7 +173,7 @@ namespace Zeze.Raft
                 SnapshotTimer?.Cancel();
                 foreach (var raft in Rafts.Values)
                 {
-                    raft.StopRaft();
+                    raft.StopRaft().Wait();
                 }
             }
         }
@@ -386,7 +386,7 @@ namespace Zeze.Raft
             NotLeaders = GetNodeNotLeaders();
             if (NotLeaders.Count > 0)
             {
-                NotLeaders[0].StopRaft();
+                NotLeaders[0].StopRaft().Wait();
                 NotLeaders[0].StartRaft().Wait();
             }
             TestConcurrent("TestNormalNodeRestartRaft1", 1);
@@ -395,8 +395,8 @@ namespace Zeze.Raft
             logger.Debug("普通节点重启二");
             if (NotLeaders.Count > 1)
             {
-                NotLeaders[0].StopRaft();
-                NotLeaders[1].StopRaft();
+                NotLeaders[0].StopRaft().Wait();
+                NotLeaders[1].StopRaft().Wait();
 
                 NotLeaders[0].StartRaft().Wait();
                 NotLeaders[1].StartRaft().Wait();
@@ -407,14 +407,14 @@ namespace Zeze.Raft
             logger.Debug("Leader节点重启");
             leader = GetLeader();
             var StartDely = leader.Raft.RaftConfig.ElectionTimeoutMax;
-            leader.StopRaft();
+            leader.StopRaft().Wait();
             Util.Scheduler.Schedule((ThisTask) => leader.StartRaft(), StartDely);
             TestConcurrent("TestLeaderNodeRestartRaft", 1);
 
             // Snapshot & Load
             leader = GetLeader();
             await leader.Raft.LogSequence.Snapshot();
-            leader.StopRaft();
+            leader.StopRaft().Wait();
             leader.StartRaft().Wait();
 
             // InstallSnapshot;
@@ -484,7 +484,7 @@ namespace Zeze.Raft
                 Action = () =>
                 {
                     var rafts = ShuffleRafts();
-                    rafts[0].StopRaft();
+                    rafts[0].StopRaft().Wait();
                     rafts[0].StartRaft().Wait();
                 }
             });
@@ -494,8 +494,8 @@ namespace Zeze.Raft
                 Action = () =>
                 {
                     var rafts = ShuffleRafts();
-                    rafts[0].StopRaft();
-                    rafts[1].StopRaft();
+                    rafts[0].StopRaft().Wait();
+                    rafts[1].StopRaft().Wait();
 
                     rafts[0].StartRaft().Wait();
                     rafts[1].StartRaft().Wait();
@@ -507,9 +507,9 @@ namespace Zeze.Raft
                 Action = () =>
                 {
                     var rafts = ShuffleRafts();
-                    rafts[0].StopRaft();
-                    rafts[1].StopRaft();
-                    rafts[2].StopRaft();
+                    rafts[0].StopRaft().Wait();
+                    rafts[1].StopRaft().Wait();
+                    rafts[2].StopRaft().Wait();
 
                     rafts[0].StartRaft().Wait();
                     rafts[1].StartRaft().Wait();
@@ -530,7 +530,7 @@ namespace Zeze.Raft
                             continue;
                         }
                         var startVoteDelay = leader.Raft.RaftConfig.ElectionTimeoutMax;
-                        leader.StopRaft();
+                        leader.StopRaft().Wait();
                         // delay for vote
                         System.Threading.Thread.Sleep(startVoteDelay);
                         leader.StartRaft().Wait();
@@ -546,7 +546,7 @@ namespace Zeze.Raft
                 {
                     foreach (var test in Rafts.Values)
                     {
-                        test.StopRaft(); // 先停止，这样才能强制启动安装。
+                        test.StopRaft().Wait(); // 先停止，这样才能强制启动安装。
                         test.StartRaft(test == InstallSnapshotCleanNode).Wait();
                     }
                 }
@@ -848,16 +848,13 @@ namespace Zeze.Raft
                 Raft?.Server.Start();
             }
 
-            public void StopRaft()
+            public async Task StopRaft()
             {
-                lock (this)
-                {
-                    logger.Debug("Raft {0} Stop ...", RaftName);
-                    // 在同一个进程中，没法模拟进程退出，
-                    // 此时RocksDb应该需要关闭，否则重启会失败吧。
-                    Raft?.Shutdown().Wait();
-                    Raft = null;
-                }
+                logger.Debug("Raft {0} Stop ...", RaftName);
+                // 在同一个进程中，没法模拟进程退出，
+                // 此时RocksDb应该需要关闭，否则重启会失败吧。
+                await Util.Mission.AwaitNullableTask(Raft?.Shutdown());
+                Raft = null;
             }
 
             public async Task StartRaft(bool resetLog = false)
