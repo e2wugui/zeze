@@ -70,10 +70,12 @@ namespace Zeze.Raft
                 _ = Util.Mission.CallAsync(async () =>
                 {
                     // avoid deadlock: lock(socket), lock (Raft).
-                    using var lockraft = await server.Raft.Monitor.EnterAsync();
-                    if (Socket == closed) // check is owner
-                        await server.Raft.LogSequence.EndInstallSnapshot(this);
-                    return 0;
+                    using (await server.Raft.Monitor.EnterAsync())
+                    {
+                        if (Socket == closed) // check is owner
+                            await server.Raft.LogSequence.EndInstallSnapshot(this);
+                        return 0;
+                    }
                 }, "OnSocketClose.EndInstallSnapshot");
                 base.OnSocketClose(closed, e);
             }
@@ -84,9 +86,11 @@ namespace Zeze.Raft
                 var raft = (Service as Server).Raft;
                 _ = Util.Mission.CallAsync(async () =>
                 {
-                    using var lockraft = await raft.Monitor.EnterAsync();
-                    await raft.LogSequence.TrySendAppendEntries(this, null);
-                    return 0;
+                    using (await raft.Monitor.EnterAsync())
+                    {
+                        await raft.LogSequence.TrySendAppendEntries(this, null);
+                        return 0;
+                    }
                 }, "Start TrySendAppendEntries");
             }
         }
@@ -213,16 +217,18 @@ namespace Zeze.Raft
             // 没有判断是否和其他Raft-Node的连接。
             _ = Util.Mission.CallAsync(async () =>
             {
-                using var lockraft = await Raft.Monitor.EnterAsync();
-                if (Raft.IsReadyLeader)
+                using (await Raft.Monitor.EnterAsync())
                 {
-                    var r = new LeaderIs();
-                    r.Argument.Term = Raft.LogSequence.Term;
-                    r.Argument.LeaderId = Raft.LeaderId;
-                    r.Argument.IsLeader = Raft.IsLeader;
-                    r.Send(so); // skip result
+                    if (Raft.IsReadyLeader)
+                    {
+                        var r = new LeaderIs();
+                        r.Argument.Term = Raft.LogSequence.Term;
+                        r.Argument.LeaderId = Raft.LeaderId;
+                        r.Argument.IsLeader = Raft.IsLeader;
+                        r.Send(so); // skip result
+                    }
+                    return 0;
                 }
-                return 0;
             }, "OnHandshakeDone.Send.LeaderIs");
         }
     }

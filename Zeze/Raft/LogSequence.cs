@@ -165,27 +165,33 @@ namespace Zeze.Raft
 
         public async Task CommitSnapshot(string path, long newFirstIndex)
         {
-            using var lockraft = await Raft.Monitor.EnterAsync();
-
-            File.Move(path, SnapshotFullName, true);
-            await SaveFirstIndex(newFirstIndex);
-            await StartRemoveLogOnlyBefore(newFirstIndex);
+            using (await Raft.Monitor.EnterAsync())
+            {
+                File.Move(path, SnapshotFullName, true);
+                await SaveFirstIndex(newFirstIndex);
+                StartRemoveLogOnlyBefore(newFirstIndex);
+            }
         }
 
         internal volatile TaskCompletionSource<bool> RemoveLogBeforeFuture;
         internal volatile bool LogsAvailable = false;
 
-        private async Task StartRemoveLogOnlyBefore(long index)
+        private void StartRemoveLogOnlyBefore(long index)
         {
-            using (var lockraft = await Raft.Monitor.EnterAsync())
+            // has under lockraft
             {
-                if (null != RemoveLogBeforeFuture || false == LogsAvailable || Raft.IsShutdown)
+                if (null != RemoveLogBeforeFuture
+                    || false == LogsAvailable
+                    || Raft.IsShutdown
+                    || false == RemoveLogBeforeFuture.Task.IsCompleted)
+                {
                     return;
+                }
                 RemoveLogBeforeFuture = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             }
 
             // 直接对 RocksDb 多线程访问，这里就不做多线程保护了。
-            _ = Task.Run(async () =>
+            _ = Task.Run(() =>
             {
                 try
                 {
@@ -201,7 +207,7 @@ namespace Zeze.Raft
                         }
 
                         var key = it.Key();
-                        await Logs.RemoveAsync(key, key.Length, null, WriteOptions);
+                        Logs.RocksDb.Remove(key, key.Length, null, WriteOptions);
 
                         // 删除快照前的日志时，不删除唯一请求存根，否则快照建立时刻前面一点时间的请求无法保证唯一。
                         // 唯一请求存根自己管理删除，
@@ -218,8 +224,6 @@ namespace Zeze.Raft
                 finally
                 {
                     RemoveLogBeforeFuture.TrySetResult(false);
-                    using var lockraft = await Raft.Monitor.EnterAsync();
-                    RemoveLogBeforeFuture = null;
                 }
             });
         }
@@ -367,12 +371,11 @@ namespace Zeze.Raft
             LeaderAppendLogs.Clear();
         }
 
-        internal async Task Close()
+        internal async Task CloseAsync()
         {
             // must after set Raft.IsShutdown = false;
             CancelPendingAppendLogFutures();
 
-            using var lockraft = await Raft.Monitor.EnterAsync();
             SnapshotTimer?.Cancel();
             await Logs?.DisposeAsync();
             Logs = null;
@@ -488,7 +491,7 @@ namespace Zeze.Raft
             LogsAvailable = true;
 
             // 可能有没有被清除的日志存在。启动任务。
-            await StartRemoveLogOnlyBefore(FirstIndex);
+            StartRemoveLogOnlyBefore(FirstIndex);
         }
 
         private async Task TrySetNodeReady()
@@ -674,7 +677,7 @@ namespace Zeze.Raft
         // under lock (Raft)
         private async Task TryStartApplyTask(RaftLog lastApplyableLog)
         {
-            if (null == ApplyFuture && false == Raft.IsShutdown)
+            if ((null == ApplyFuture || ApplyFuture.Task.IsCompleted) && false == Raft.IsShutdown)
             {
                 // 仅在没有 apply 进行中才尝试进行处理。
                 if (CommitIndex - LastApplied < Raft.RaftConfig.BackgroundApplyCount)
@@ -689,12 +692,12 @@ namespace Zeze.Raft
                 {
                     try
                     {
-                        ApplyFuture.SetResult(await Util.Mission.CallAsync(BackgroundApply, "BackgroundApply") == 0); // 如果有人等待。
+                        // 如果有人等待。
+                        ApplyFuture.SetResult(await Util.Mission.CallAsync(BackgroundApply, "BackgroundApply") == 0);
                     }
                     finally
                     {
-                        using var lockraft = await Raft.Monitor.EnterAsync();
-                        ApplyFuture = null; // 允许再次启动，不需要等待了。
+                        ApplyFuture.TrySetResult(false);
                     }
                 });
             }
@@ -704,7 +707,7 @@ namespace Zeze.Raft
         {
             while (false == Raft.IsShutdown)
             {
-                using (var lockraft = await Raft.Monitor.EnterAsync())
+                using (await Raft.Monitor.EnterAsync())
                 {
                     // ReadLog Again，CommitIndex Maybe Grow.
                     var lastApplyableLog = await ReadLog(CommitIndex);
@@ -762,10 +765,8 @@ namespace Zeze.Raft
 
         internal ConcurrentDictionary<long, RaftLog> LeaderAppendLogs { get; } = new ConcurrentDictionary<long, RaftLog>();
 
-        internal async Task SendHeartbeatTo(Server.ConnectorEx connector)
+        internal void SendHeartbeatTo(Server.ConnectorEx connector)
         {
-            using var lockraft = await Raft.Monitor.EnterAsync();
-
             connector.AppendLogActiveTime = Util.Time.NowUnixMillis;
 
             if (false == Raft.IsLeader)
@@ -792,14 +793,16 @@ namespace Zeze.Raft
                 if (heartbeat.IsTimeout)
                     return 0; // skip
 
-                using var lockraft = await Raft.Monitor.EnterAsync();
-                if (await Raft.LogSequence.TrySetTerm(heartbeat.Result.Term) == SetTermResult.Newer)
+                using (await Raft.Monitor.EnterAsync())
                 {
-                    // new term found.
-                    await Raft.ConvertStateTo(Raft.RaftState.Follower);
-                    return Procedure.Success;
+                    if (await Raft.LogSequence.TrySetTerm(heartbeat.Result.Term) == SetTermResult.Newer)
+                    {
+                        // new term found.
+                        await Raft.ConvertStateTo(Raft.RaftState.Follower);
+                        return Procedure.Success;
+                    }
+                    return 0;
                 }
-                return 0;
             }, Raft.RaftConfig.AppendEntriesTimeout);
         }
 
@@ -809,7 +812,7 @@ namespace Zeze.Raft
             long index = 0;
 
             TaskCompletionSource<int> future = null;
-            using (var lockraft = await Raft.Monitor.EnterAsync())
+            using (await Raft.Monitor.EnterAsync())
             {
                 if (false == Raft.IsLeader)
                     throw new RaftRetryException(); // 快速失败
@@ -883,14 +886,11 @@ namespace Zeze.Raft
 
         public async Task EndReceiveInstallSnapshot(FileStream s, InstallSnapshot r)
         {
-            using (var lockraft = await Raft.Monitor.EnterAsync())
-            {
-                LogsAvailable = false; // cancel RemoveLogBefore
-            }
-
+            // cancel RemoveLogBefore
+            LogsAvailable = false;
             await RemoveLogBeforeFuture?.Task;
 
-            using (var lockraft = await Raft.Monitor.EnterAsync())
+            using (await Raft.Monitor.EnterAsync())
             {
                 try
                 {
@@ -943,20 +943,19 @@ namespace Zeze.Raft
 
         public async Task Snapshot(bool NeedNow = false)
         {
-            using (var lockraft = await Raft.Monitor.EnterAsync())
+            using (await Raft.Monitor.EnterAsync())
             {
                 if (Snapshotting || !InstallSnapshotting.IsEmpty)
                 {
                     return;
                 }
-
                 if (LastApplied - FirstIndex < Raft.RaftConfig.SnapshotMinLogCount && false == NeedNow)
                 {
                     return;
                 }
-
                 Snapshotting = true;
             }
+
             try
             {
                 // 忽略Snapshot返回结果。肯定是重复调用导致的。
@@ -967,13 +966,12 @@ namespace Zeze.Raft
             }
             finally
             {
-                using (var lockraft = await Raft.Monitor.EnterAsync())
+                using (await Raft.Monitor.EnterAsync())
                 {
                     Snapshotting = false;
+                    // restart
+                    StartSnapshotTimer();
                 }
-
-                // restart
-                StartSnapshotTimer();
             }
         }
 
@@ -1033,77 +1031,78 @@ namespace Zeze.Raft
             }
             else
             {
-                // 这一般的情况是snapshot文件被删除了。
-                // 【注意】这种情况也许报错更好？
+                // 这情况一般是snapshot文件被删除了。【注意】这种情况也许报错更好？
                 // 内部会判断，不会启动多个snapshot。
-                await Snapshot(true);
+                // 需要在新的线程启动，原因: 1. 此时在Raft锁内，2. Raft锁现在不能重复。
+                _ = Task.Run(async () => await Snapshot(true));
             }
         }
 
         private async Task<long> ProcessAppendEntriesResult(Server.ConnectorEx connector, Protocol p)
         {
             // 这个rpc处理流程总是返回 Success，需要统计观察不同的分支的发生情况，再来定义不同的返回值。
-
             var r = p as AppendEntries;
-            using (var lockraft = await Raft.Monitor.EnterAsync())
 
-            if (r.IsTimeout && Raft.IsLeader)
+            using (await Raft.Monitor.EnterAsync())
             {
-                await TrySendAppendEntries(connector, r);  // timeout and resend
+                if (r.IsTimeout && Raft.IsLeader)
+                {
+                    await TrySendAppendEntries(connector, r);  // timeout and resend
+                    return Procedure.Success;
+                }
+
+                if (await Raft.LogSequence.TrySetTerm(r.Result.Term) == SetTermResult.Newer)
+                {
+                    // new term found.
+                    await Raft.ConvertStateTo(Raft.RaftState.Follower);
+                    // 发现新的 Term，已经不是Leader，不能继续处理了。
+                    // 直接返回。
+                    connector.Pending = null;
+                    return Procedure.Success;
+                }
+
+                if (false == Raft.IsLeader)
+                {
+                    connector.Pending = null;
+                    return Procedure.Success;
+                }
+
+                if (r.Result.Success)
+                {
+                    await TryCommit(r, connector);
+                    // TryCommit 推进了NextIndex，
+                    // 可能日志没有复制完或者有新的AppendLog。
+                    // 尝试继续复制日志。
+                    // see TrySendAppendEntries 内的
+                    // “限制一次发送的日志数量”
+                    await TrySendAppendEntries(connector, r);
+                    return Procedure.Success;
+                }
+
+                // 日志同步失败，调整NextIndex，再次尝试。
+                if (r.Result.NextIndex == 0)
+                {
+                    // 默认的回退模式。
+                    --connector.NextIndex;
+                }
+                else if (r.Result.NextIndex <= FirstIndex)
+                {
+                    // leader snapshot，follower 完全没法匹配了，后续的 TrySendAppendEntries 将启动 InstallSnapshot。
+                    connector.NextIndex = FirstIndex;
+                }
+                else if (r.Result.NextIndex >= LastIndex)
+                {
+                    logger.Fatal("Impossible r.Result.NextIndex >= LastIndex there must be a bug.");
+                    Raft.FatalKill();
+                }
+                else
+                {
+                    // fast locate
+                    connector.NextIndex = r.Result.NextIndex;
+                }
+                await TrySendAppendEntries(connector, r);  //resend. use new NextIndex。
                 return Procedure.Success;
             }
-
-            if (await Raft.LogSequence.TrySetTerm(r.Result.Term) == SetTermResult.Newer)
-            {
-                // new term found.
-                await Raft.ConvertStateTo(Raft.RaftState.Follower);
-                // 发现新的 Term，已经不是Leader，不能继续处理了。
-                // 直接返回。
-                connector.Pending = null;
-                return Procedure.Success;
-            }
-
-            if (false == Raft.IsLeader)
-            {
-                connector.Pending = null;
-                return Procedure.Success;
-            }
-
-            if (r.Result.Success)
-            {
-                await TryCommit(r, connector);
-                // TryCommit 推进了NextIndex，
-                // 可能日志没有复制完或者有新的AppendLog。
-                // 尝试继续复制日志。
-                // see TrySendAppendEntries 内的
-                // “限制一次发送的日志数量”
-                await TrySendAppendEntries(connector, r);
-                return Procedure.Success;
-            }
-
-            // 日志同步失败，调整NextIndex，再次尝试。
-            if (r.Result.NextIndex == 0)
-            {
-                // 默认的回退模式。
-                --connector.NextIndex;
-            }
-            else if (r.Result.NextIndex <= FirstIndex)
-            {
-                // leader snapshot，follower 完全没法匹配了，后续的 TrySendAppendEntries 将启动 InstallSnapshot。
-                connector.NextIndex = FirstIndex;
-            }
-            else if (r.Result.NextIndex >= LastIndex)
-            {
-                logger.Fatal("Impossible r.Result.NextIndex >= LastIndex there must be a bug.");
-                Raft.FatalKill();
-            }
-            else
-            {
-                // fast locate
-                connector.NextIndex = r.Result.NextIndex;
-            }
-            await TrySendAppendEntries(connector, r);  //resend. use new NextIndex。
-            return Procedure.Success;
         }
 
         internal async Task TrySendAppendEntries(Server.ConnectorEx connector, AppendEntries pending)

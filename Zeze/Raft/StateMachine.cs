@@ -77,6 +77,7 @@ namespace Zeze.Raft
         /// 这样在保存数据到文件的过程中，服务可以继续进行。
         /// </summary>
         /// <param name="path"></param>
+        /// <returns>(bool, term, index)</returns>
         public abstract Task<(bool, long, long)> Snapshot(string path);
 
         /// <summary>

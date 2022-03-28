@@ -648,7 +648,7 @@ namespace Zeze.Raft
                             if (raft.Raft != null && raft.Raft.LogSequence != null)
                             {
                                 raft.Raft.IsShutdown = true;
-                                await raft.Raft.LogSequence.Close();
+                                await raft.Raft.LogSequence.CloseAsync();
                             }
                         }
                         NLog.LogManager.Shutdown();
@@ -797,13 +797,12 @@ namespace Zeze.Raft
                 Count = bb.ReadLong();
             }
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
             public override async Task LoadSnapshot(string path)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
             {
-                using var lockraft = await Raft.Monitor.EnterAsync();
-                {
-                    LoadSnapshotInternal(path);
-                    logger.Info($"{Raft.Name} LoadSnapshot Count={Count}");
-                }
+                LoadSnapshotInternal(path);
+                logger.Info($"{Raft.Name} LoadSnapshot Count={Count}");
             }
 
             // 这里没有处理重入，调用者需要保证。
@@ -811,8 +810,6 @@ namespace Zeze.Raft
             {
                 long LastIncludedTerm = 0;
                 long LastIncludedIndex = 0;
-
-                using var lockraft = await Raft.Monitor.EnterAsync();
 
                 if (null != Raft.LogSequence)
                 {

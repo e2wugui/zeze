@@ -39,7 +39,7 @@ namespace Zeze.Raft.RocksRaft
 
         internal async Task UpdateAtomicLongs(Dictionary<int, long> to)
         {
-            using var lockraft = await Raft.Monitor.EnterAsync();
+            using (await Raft.Monitor.EnterAsync())
             {
                 foreach (var a in AtomicLongs)
                 {
@@ -177,14 +177,14 @@ namespace Zeze.Raft.RocksRaft
             var checkpointDir = Path.Combine(DbHome, "checkpoint_" + DateTime.Now.Ticks);
 
             // fast checkpoint, will stop application apply.
-            using var lockraft = await Raft.Monitor.EnterAsync();
-
-            var lastAppliedLog = await Raft.LogSequence.LastAppliedLogTermIndex();
-            var cp = Storage.RocksDb.Checkpoint();
-            cp.Save(checkpointDir);
-            cp.Dispose();
-
-            return (checkpointDir, lastAppliedLog.Term, lastAppliedLog.Index);
+            using (await Raft.Monitor.EnterAsync())
+            {
+                var lastAppliedLog = await Raft.LogSequence.LastAppliedLogTermIndex();
+                var cp = Storage.RocksDb.Checkpoint();
+                cp.Save(checkpointDir);
+                cp.Dispose();
+                return (checkpointDir, lastAppliedLog.Term, lastAppliedLog.Index);
+            }
         }
 
         public static bool Backup(string checkpintDir, string backupDir)
@@ -250,7 +250,7 @@ namespace Zeze.Raft.RocksRaft
         {
             var N = Native.Instance;
 
-            using var lockraft = Raft.Monitor.Enter();
+            using (await Raft.Monitor.EnterAsync())
             {
                 IntPtr backup = IntPtr.Zero;
                 IntPtr options = N.rocksdb_options_create();
