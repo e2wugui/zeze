@@ -9,6 +9,12 @@ namespace Zeze.Util
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
+        public static async Task AwaitNullableTask(Task task)
+        {
+            if (null != task)
+                await task;
+        }
+
         public static long Call(Func<long> action, string actionName)
         {
             try

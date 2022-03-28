@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Xml;
 using System.Collections.Concurrent;
 using Zeze.Services;
+using System.Threading.Tasks;
 
 namespace Zeze.Net
 {
@@ -86,6 +87,14 @@ namespace Zeze.Net
             foreach (var c in Connectors.Values)
             {
                 action(c);
+            }
+        }
+
+        public async Task ForEachConnectorAsync(Func<Connector, Task> action)
+        {
+            foreach (var c in Connectors.Values)
+            {
+                await action(c);
             }
         }
 

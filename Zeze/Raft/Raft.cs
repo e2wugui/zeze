@@ -49,6 +49,7 @@ namespace Zeze.Raft
         {
             if (null == LogSequence)
                 throw new RaftRetryException("LogSequence is null.");
+
             if (result != null)
             {
                 var bb = ByteBuffer.Allocate(1024);
@@ -81,10 +82,10 @@ namespace Zeze.Raft
                 IsShutdown = true;
             }
 
-            Server.Stop();
+            await Mission.AwaitNullableTask(LogSequencePrivate.RemoveLogBeforeFuture?.Task);
+            await Mission.AwaitNullableTask(LogSequencePrivate.ApplyFuture?.Task);
 
-            await LogSequence.RemoveLogBeforeFuture?.Task;
-            await LogSequence.ApplyFuture?.Task;
+            Server.Stop();
 
             using (await Monitor.EnterAsync())
             {
@@ -94,7 +95,8 @@ namespace Zeze.Raft
                 TimerTask?.Cancel();
                 TimerTask = null;
                 await ConvertStateTo(RaftState.Follower);
-                LogSequence.Close();
+                LogSequencePrivate.Close();
+                LogSequencePrivate = null;
             }
         }
 

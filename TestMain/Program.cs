@@ -3,34 +3,8 @@ namespace TestMain;
 
 public class Program
 {
-    readonly Nito.AsyncEx.AsyncMonitor Monitor = new();
-
-    public void Test()
-    {
-        var tasks = new Task[2];
-        tasks[0] = Zeze.Util.Mission.CallAsync(async () =>
-        {
-            using (await Monitor.EnterAsync())
-            {
-                Console.WriteLine("enter 1");
-                return 0;
-            }
-        }, "");
-        tasks[1] = Zeze.Util.Mission.CallAsync(async () =>
-        {
-            using (await Monitor.EnterAsync())
-            {
-                Console.WriteLine("enter 2");
-                return 0;
-            }
-        }, "");
-        Task.WaitAll(tasks);
-    }
-
     public static void Main(string[] args)
     {
-        new Program().Test();
-
         string command = "";
         for (int i = 0; i < args.Length; ++i)
         {

@@ -318,13 +318,14 @@ namespace Zeze.Raft
 
             public async Task DisposeAsync()
             {
-                using var lockthis = await Mutex.LockAsync();
-                await Db?.DisposeAsync();
-                Db = null;
+                using (await Mutex.LockAsync())
+                {
+                    await Db?.DisposeAsync();
+                    Db = null;
+                }
             }
         }
-        private ConcurrentDictionary<string, UniqueRequestSet> UniqueRequestSets { get; }
-            = new ConcurrentDictionary<string, UniqueRequestSet>();
+        private ConcurrentDictionary<string, UniqueRequestSet> UniqueRequestSets { get; } = new();
 
         internal async Task RemoveExpiredUniqueRequestSet()
         {
@@ -853,7 +854,7 @@ namespace Zeze.Raft
                 index = LastIndex;
 
                 // 广播给followers并异步等待多数确认
-                Raft.Server.Config.ForEachConnector(async (c) => await TrySendAppendEntries(c as Server.ConnectorEx, null));
+                await Raft.Server.Config.ForEachConnectorAsync(async (c) => await TrySendAppendEntries(c as Server.ConnectorEx, null));
             }
             return (term, index, future);
         }
@@ -896,7 +897,7 @@ namespace Zeze.Raft
         {
             // cancel RemoveLogBefore
             LogsAvailable = false;
-            await RemoveLogBeforeFuture?.Task;
+            await Util.Mission.AwaitNullableTask(RemoveLogBeforeFuture?.Task);
 
             using (await Raft.Monitor.EnterAsync())
             {
