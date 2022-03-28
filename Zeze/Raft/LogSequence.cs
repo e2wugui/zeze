@@ -315,7 +315,10 @@ namespace Zeze.Raft
                     {
                         var dir = Path.Combine(LogSequence.Raft.RaftConfig.DbHome, "unique");
                         Util.FileSystem.CreateDirectory(dir);
-                        Db = await Util.AsyncRocksDb.OpenAsync(new DbOptions().SetCreateIfMissing(true), Path.Combine(dir, DbName));
+                        Db = await Util.AsyncRocksDb.OpenAsync(
+                            new DbOptions().SetCreateIfMissing(true),
+                            Path.Combine(dir, DbName),
+                            LogSequence.Raft.AsyncExecutor);
                     }
                     return Db;
                 }
@@ -401,7 +404,8 @@ namespace Zeze.Raft
         {
             var options = new DbOptions().SetCreateIfMissing(true);
 
-            Rafts = await Util.AsyncRocksDb.OpenAsync(options, Path.Combine(Raft.RaftConfig.DbHome, "rafts"));
+            Rafts = await Util.AsyncRocksDb.OpenAsync(options,
+                Path.Combine(Raft.RaftConfig.DbHome, "rafts"), Raft.AsyncExecutor);
             {
                 // Read Term
                 var termKey = ByteBuffer.Allocate();
@@ -464,8 +468,9 @@ namespace Zeze.Raft
             }
 
 
-            Logs = await Util.AsyncRocksDb.OpenAsync(options, Path.Combine(Raft.RaftConfig.DbHome, "logs"));
-            await Util.AsyncRocksDb.Executor.RunAsync(() =>
+            Logs = await Util.AsyncRocksDb.OpenAsync(options,
+                Path.Combine(Raft.RaftConfig.DbHome, "logs"), Raft.AsyncExecutor);
+            await Raft.AsyncExecutor.RunAsync(() =>
             {
                 // Read Last Log Index
                 using var itLast = Logs.RocksDb.NewIterator();
@@ -931,7 +936,7 @@ namespace Zeze.Raft
                     Util.FileSystem.DeleteDirectory(logsdir);
                     var options = new DbOptions().SetCreateIfMissing(true);
 
-                    Logs = await Util.AsyncRocksDb.OpenAsync(options, logsdir);
+                    Logs = await Util.AsyncRocksDb.OpenAsync(options, logsdir, Raft.AsyncExecutor);
                     var lastIncludedLog = RaftLog.Decode(r.Argument.LastIncludedLog, Raft.StateMachine.LogFactory);
                     await SaveLog(lastIncludedLog);
                     await CommitSnapshotNoLock(s.Name, lastIncludedLog.Index);

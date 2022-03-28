@@ -30,6 +30,7 @@ namespace Zeze.Raft
         public bool IsWorkingLeader => IsLeader && false == IsShutdown;
 
         public StateMachine StateMachine { get; }
+        public AsyncExecutor AsyncExecutor { get; }
 
         public delegate void AtFatalKill();
 
@@ -86,7 +87,7 @@ namespace Zeze.Raft
             await Mission.AwaitNullableTask(LogSequencePrivate.ApplyFuture?.Task);
 
             Server.Stop();
-            AsyncRocksDb.Executor.Shutdown();
+            AsyncExecutor.Shutdown();
 
             using (await Monitor.EnterAsync())
             {
@@ -106,10 +107,11 @@ namespace Zeze.Raft
             Shutdown().Wait();
         }
 
-        public Raft(StateMachine sm)
+        public Raft(StateMachine sm, int executorPoolSize = 100)
         {
             StateMachine = sm;
             StateMachine.Raft = this;
+            AsyncExecutor = new (() => executorPoolSize);
         }
 
         public async Task<Raft> OpenAsync(

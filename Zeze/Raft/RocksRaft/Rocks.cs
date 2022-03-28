@@ -145,7 +145,7 @@ namespace Zeze.Raft.RocksRaft
                 }
             }
 
-            Storage = await Util.AsyncRocksDb.OpenAsync(options, dbName, columns);
+            Storage = await Util.AsyncRocksDb.OpenAsync(options, dbName, columns, Raft.AsyncExecutor);
             Columns.Clear();
             foreach (var col in columns)
             {
