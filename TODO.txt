@@ -27,7 +27,6 @@
 		SortedDictionary<int, Log Or Bean> ChangeOrAdd; // 优化。中间的值发生了改变或者在尾巴增加。
 		bool FullCopy; // 当发生中间删除或者插入时。这个有进一步优化空间。
 		OR -> List<OperateLog> 所有操作记录日志，收到方重做。问题：Get(index).Update，怎么融入。
-	Raft.AppendLog 加一个try catach，所有的内部错误都转换成RaftRetryException，这样就不会把内部异常漏给应用了。
 	Global.RocksRaft.LruTryRemoveCallback
 	Zeze.Component dynamic bean动态增加类型的能力。
 	Global c# 慢的问题。
@@ -48,6 +47,7 @@
 	async TestCheckpointModeTable 直接运行 Trans 目录会出错，单个或者选择开始的几个运行没问题。
 
 【2022/4/11】
+	Raft.AppendLog 加一个try catach，所有的内部错误都转换成RaftRetryException，这样就不会把内部异常漏给应用了。
 	AsyncRocksDb
 	AsyncExecutor
 	database 异步化 

@@ -48,16 +48,21 @@ namespace Zeze.Raft
 
         public async Task AppendLog(Log log, Bean result = null)
         {
-            if (null == LogSequence)
-                throw new RaftRetryException("LogSequence is null.");
-
             if (result != null)
             {
                 var bb = ByteBuffer.Allocate(1024);
                 result.Encode(bb);
                 log.RpcResult = new Binary(bb);
             }
-            await LogSequence.AppendLog(log);
+            try
+            {
+                await LogSequence.AppendLog(log);
+            }
+            catch (Exception ex)
+            {
+                // 内部错误通通转化成Retry。
+                throw new RaftRetryException($"Inner Error: {ex}");
+            }
         }
 
         internal volatile bool IsShutdown = false;
