@@ -511,9 +511,9 @@ namespace Zeze.Raft
             var create = Util.Time.UnixMillisToDateTime(iraftrpc.CreateTime);
             var now = DateTime.Now;
             if ((now - create).Days >= Raft.RaftConfig.UniqueRequestExpiredDays)
-                return (false, null);
+                return (true, null);
 
-            return (true, await OpenUniqueRequests(iraftrpc.CreateTime).GetRequestState(iraftrpc));
+            return (false, await OpenUniqueRequests(iraftrpc.CreateTime).GetRequestState(iraftrpc));
         }
 
         private UniqueRequestSet OpenUniqueRequests(long time)
@@ -804,19 +804,38 @@ namespace Zeze.Raft
             }, Raft.RaftConfig.AppendEntriesTimeout);
         }
 
-        internal async Task<(long, long)> AppendLog(Log log, bool WaitApply)
+        internal async Task AppendLog(Log log)
+        {
+            long term;
+            long index;
+            TaskCompletionSource<int> future;
+
+            using (await Raft.Monitor.EnterAsync())
+            {
+                (term, index, future) = await AppendLog(log, true);
+            }
+
+            var any = await Task.WhenAny(future.Task, Task.Delay(Raft.RaftConfig.AppendEntriesTimeout * 2));
+            if (any != future.Task)
+            {
+                LeaderAppendLogs.TryRemove(index, out _);
+                throw new RaftRetryException();
+            }
+        }
+
+        internal async Task<(long, long, TaskCompletionSource<int>)> AppendLog(Log log, bool waitapplied)
         {
             long term = 0;
             long index = 0;
 
             TaskCompletionSource<int> future = null;
-            using (await Raft.Monitor.EnterAsync())
+            // has under lock (Raft)
             {
                 if (false == Raft.IsLeader)
                     throw new RaftRetryException(); // 快速失败
 
                 var raftLog = new RaftLog(Term, LastIndex + 1, log);
-                if (WaitApply)
+                if (waitapplied)
                 {
                     raftLog.LeaderFuture = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
                     future = raftLog.LeaderFuture;
@@ -836,16 +855,7 @@ namespace Zeze.Raft
                 // 广播给followers并异步等待多数确认
                 Raft.Server.Config.ForEachConnector(async (c) => await TrySendAppendEntries(c as Server.ConnectorEx, null));
             }
-
-            if (WaitApply)
-            {
-                if (false == future.Task.Wait(Raft.RaftConfig.AppendEntriesTimeout * 2 + 1000))
-                {
-                    LeaderAppendLogs.TryRemove(index, out _);
-                    throw new RaftRetryException();
-                }
-            }
-            return (term, index);
+            return (term, index, future);
         }
 
         // 是否正在创建Snapshot过程中，用来阻止新的创建请求。

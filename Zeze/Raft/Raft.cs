@@ -55,7 +55,7 @@ namespace Zeze.Raft
                 result.Encode(bb);
                 log.RpcResult = new Binary(bb);
             }
-            await LogSequence.AppendLog(log, true);
+            await LogSequence.AppendLog(log);
         }
 
         internal volatile bool IsShutdown = false;
@@ -618,7 +618,7 @@ namespace Zeze.Raft
                 RequestVotes.Add(rpc);
                 var sendresult = rpc.Send(c.TryGetReadySocket(),
                     async (p) => await ProcessRequestVoteResult(rpc),
-                    RaftConfig.AppendEntriesTimeout - 100);
+                    RaftConfig.AppendEntriesTimeout);
                 logger.Info("{0}:{1}: SendRequestVote {2}", Name, sendresult, rpc);
             });
         }
@@ -686,9 +686,8 @@ namespace Zeze.Raft
                     // send initial empty AppendEntries RPCs
                     // (heartbeat)to each server; repeat during
                     // idle periods to prevent election timeouts(§5.2)
-                    var (term, index) = await LogSequence.AppendLog(new HeartbeatLog(HeartbeatLog.SetLeaderReadyEvent, Name), false);
-                    LeaderWaitReadyTerm = term;
-                    LeaderWaitReadyIndex = index; ;
+                    (LeaderWaitReadyTerm, LeaderWaitReadyIndex, _) = await LogSequence.AppendLog(
+                        new HeartbeatLog(HeartbeatLog.SetLeaderReadyEvent, Name), false);
                     return;
             }
         }

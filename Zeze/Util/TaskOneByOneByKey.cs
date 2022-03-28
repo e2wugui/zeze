@@ -71,13 +71,7 @@ namespace Zeze.Util
 			int h = Hash(key.GetHashCode());
 			int index = h & (concurrency.Length - 1);
 
-			concurrency[index].Execute(new JobProtocol()
-			{
-				Handle = pHandle,
-				Protocol = p,
-				ActionWhenError = actionWhenError,
-				Cancel = cancel
-			});
+			concurrency[index].Execute(new JobProtocol(pHandle, p, actionWhenError, cancel));
 		}
 
 		public void Execute(object key, Zeze.Transaction.Procedure procedure,
@@ -87,13 +81,7 @@ namespace Zeze.Util
 			int h = Hash(key.GetHashCode());
 			int index = h & (concurrency.Length - 1);
 
-			concurrency[index].Execute(new JobProcedure()
-			{
-				Procedure = procedure,
-				From = from,
-				ActionWhenError = actionWhenError,
-				Cancel = cancel
-			});
+			concurrency[index].Execute(new JobProcedure(procedure, from, actionWhenError, cancel));
 		}
 
 		public void Shutdown(bool nowait, Action beforeWait, bool cancel)
@@ -162,15 +150,20 @@ namespace Zeze.Util
 			public Func<Net.Protocol, Task<long>> Handle { get; set; }
 			public Action<Net.Protocol, long> ActionWhenError { get; set; }
 
-			public JobProtocol()
+			public JobProtocol(Func<Net.Protocol, Task<long>> pHandle, Net.Protocol p, Action<Net.Protocol, long> eHandle, Action cancel)
 			{
+				Handle = pHandle;
+				Protocol = p;
+				ActionWhenError = eHandle;
+				Cancel = cancel;
+
 				Name = Protocol.GetType().FullName;
 			}
 
 
 			public override void Process()
 			{
-				Util.Mission.CallAsync(Handle, Protocol, ActionWhenError).Wait();
+				_ = Mission.CallAsync(Handle, Protocol, ActionWhenError);
 			}
         }
 
@@ -180,8 +173,13 @@ namespace Zeze.Util
 			public Net.Protocol From { get; set; }
 			public Action<Net.Protocol, long> ActionWhenError { get; set; }
 
-			public JobProcedure()
+			public JobProcedure(Transaction.Procedure proc, Net.Protocol proto, Action<Net.Protocol, long> eHandle, Action cancel)
             {
+				Procedure = proc;
+				From = proto;
+				ActionWhenError = eHandle;
+				Cancel = cancel;
+
 				Name = Procedure.ActionName;
             }
 
