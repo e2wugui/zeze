@@ -96,6 +96,7 @@ namespace Zeze.Transaction
                 }
                 finally
                 {
+                    // Transaction.AsyncLocal 到达这里肯定是null，作为概念，执行一次Destroy。
                     Transaction.Destroy();
                 }
             }
