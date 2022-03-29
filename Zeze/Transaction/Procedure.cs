@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Zeze.Transaction
@@ -72,6 +73,12 @@ namespace Zeze.Transaction
             logger.Log(ll, ex, $"Procedure={p} Return={result}{module} {message} UserState={p.UserState}");
         }
 
+        public void Execute(Net.Protocol from = null, Action<Net.Protocol, long> actionWhenError = null)
+        {
+            ExecutionContext.SuppressFlow();
+            Task.Run(async () => await Util.Mission.CallAsync(this, from, actionWhenError));
+            ExecutionContext.RestoreFlow();
+        }
 
         /// <summary>
         /// 创建 Savepoint 并执行。

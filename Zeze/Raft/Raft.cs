@@ -399,10 +399,12 @@ namespace Zeze.Raft
 
         private long LowPrecisionTimer;
 
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         private async Task OnLowPrecisionTimer()
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             Server.Config.ForEachConnector((c) => c.Start()); // Connector Reconnect Bug?
-            await LogSequence.RemoveExpiredUniqueRequestSet();
+            LogSequence.RemoveExpiredUniqueRequestSet();
         }
 
         /// <summary>

@@ -23,29 +23,29 @@ namespace UnitTest.Zeze.Trans
             demo.App.Instance.Stop();
         }
 
-        private void Check(int expect)
+        private async Task Check(int expect)
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
+            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     var value = await demo.App.Instance.demo_Module1.TableImportant.GetOrAddAsync(1);
                     return value.Int1 == expect ? Procedure.Success : Procedure.LogicError;
                 },
-                "TestCheckpointModeTable.Check").CallSynchronously());
+                "TestCheckpointModeTable.Check").CallAsync());
         }
 
         [TestMethod]
-        public void Test1()
+        public async Task Test1()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
+            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     var value = await demo.App.Instance.demo_Module1.TableImportant.GetOrAddAsync(1);
                     value.Int1 = 0;
                     return Procedure.Success;
                 },
-                "TestCheckpointModeTable.Init").CallSynchronously());
-            Check(0);
+                "TestCheckpointModeTable.Init").CallAsync());
+            await Check(0);
 
             int sum = 0;
             {
@@ -54,9 +54,9 @@ namespace UnitTest.Zeze.Trans
                 {
                     tasks[i] = demo.App.Instance.Zeze.NewProcedure(Add, "TestCheckpointModeTable.Add").CallAsync();
                 }
-                Task.WaitAll(tasks);
+                await Task.WhenAll(tasks);
                 sum += tasks.Length;
-                Check(sum);
+                await Check(sum);
             }
 
             {
@@ -65,9 +65,9 @@ namespace UnitTest.Zeze.Trans
                 {
                     tasks[i] = demo.App.Instance.Zeze.NewProcedure(Add2, "TestCheckpointModeTable.Add2").CallAsync();
                 }
-                Task.WaitAll(tasks);
+                await Task.WhenAll(tasks);
                 sum += tasks.Length;
-                Check(sum);
+                await Check(sum);
             }
         }
 

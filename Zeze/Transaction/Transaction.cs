@@ -34,6 +34,7 @@ namespace Zeze.Transaction
 
         private bool Created = true;
 
+        /*
         private void ReuseTransaction()
         {
             this.Created = false;
@@ -45,6 +46,7 @@ namespace Zeze.Transaction
             this.LastRollbackActions = null;
             this.Savepoints.Clear();
         }
+        */
 
         private Locks Locks;
 
@@ -59,6 +61,8 @@ namespace Zeze.Transaction
                 asyncLocal.Value = tmp;
                 return tmp;
             }
+            throw new Exception("Transaction Has Created!");
+            /*
             else
             {
                 var tmp = asyncLocal.Value;
@@ -66,11 +70,12 @@ namespace Zeze.Transaction
                 tmp.Created = true;
                 return tmp;
             }
+            */
         }
 
         public static void Destroy()
         {
-            asyncLocal.Value.ReuseTransaction();
+            asyncLocal.Value = null; //.ReuseTransaction();
         }
 
         public void Begin()

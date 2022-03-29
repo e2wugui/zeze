@@ -126,10 +126,5 @@ namespace Zeze.Util
             var source = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
             await AsyncExecutor.RunAsync(() => RocksDb.Write(writeBatch, writeOptions));
         }
-
-        public async Task DisposeAsync()
-        {
-            await AsyncExecutor.RunAsync(() => RocksDb.Dispose());
-        }
     }
 }

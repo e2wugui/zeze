@@ -324,18 +324,15 @@ namespace Zeze.Raft
                 }
             }
 
-            public async Task DisposeAsync()
+            public void Dispose()
             {
-                using (await Mutex.LockAsync())
-                {
-                    await Db?.DisposeAsync();
-                    Db = null;
-                }
+                Db?.RocksDb.Dispose();
+                Db = null;
             }
         }
         private ConcurrentDictionary<string, UniqueRequestSet> UniqueRequestSets { get; } = new();
 
-        internal async Task RemoveExpiredUniqueRequestSet()
+        internal void RemoveExpiredUniqueRequestSet()
         {
             var expired = DateTime.Now.AddDays(-(Raft.RaftConfig.UniqueRequestExpiredDays + 1));
 
@@ -349,7 +346,7 @@ namespace Zeze.Raft
                 var db = DateTime.ParseExact(reqsets.Key, format, provider);
                 if (db < expired)
                 {
-                    await reqsets.Value.DisposeAsync();
+                    reqsets.Value.Dispose();
                     UniqueRequestSets.TryRemove(reqsets.Key, out _);
                     Util.FileSystem.DeleteDirectory(Path.Combine(uniqueHome, reqsets.Key));
                 }
@@ -926,7 +923,7 @@ namespace Zeze.Raft
                     // 我的想法是，InstallSnapshot 最后一个 trunk 带上 LastIncludedLog，
                     // 接收者清除log，并把这条日志插入（这个和系统初始化时插入的Index=0的日志道理差不多）。
                     // 【除了快照最后包含的日志，其他都删除。】
-                    await Logs.DisposeAsync();
+                    Logs.RocksDb.Dispose();
                     Logs = null;
                     CancelPendingAppendLogFutures();
                     var logsdir = Path.Combine(Raft.RaftConfig.DbHome, "logs");

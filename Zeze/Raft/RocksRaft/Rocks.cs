@@ -119,7 +119,7 @@ namespace Zeze.Raft.RocksRaft
             // 这个赋值是不必要的，new Raft(...)内部会赋值。有点奇怪。
             base.Raft = new Raft(this);
             await base.Raft.OpenAsync(raftName, raftConfig, config);
-            base.Raft.AtFatalKills += async () => await Storage?.DisposeAsync();
+            base.Raft.AtFatalKills += () => Storage?.RocksDb.Dispose();
             base.Raft.LogSequence.WriteOptions = WriteOptions;
 
             // Raft 在有快照的时候，会调用LoadSnapshot-Restore-OpenDb。
@@ -261,7 +261,7 @@ namespace Zeze.Raft.RocksRaft
                     return false;
 
                 // close current
-                await Storage?.DisposeAsync();
+                Storage?.RocksDb.Dispose();
 
                 // restore
                 var dbName = Path.Combine(DbHome, "statemachine");
@@ -296,7 +296,7 @@ namespace Zeze.Raft.RocksRaft
         {
             await Raft?.Shutdown();
             Raft = null;
-            await Storage?.DisposeAsync();
+            Storage?.RocksDb.Dispose();
             Storage = null;
         }
 
