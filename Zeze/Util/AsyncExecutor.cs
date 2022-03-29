@@ -13,16 +13,14 @@ namespace Zeze.Util
         private BlockingCollection<(TaskCompletionSource<object>, Action)> Queue { get; } = new();
         public Util.AtomicInteger Running { get; } = new();
         public Func<int> MaxPoolSize { get; }
-        private volatile bool CancelPending = true;
 
         public AsyncExecutor(Func<int> maxPoolSize)
         {
             MaxPoolSize = maxPoolSize;
         }
 
-        public void Shutdown(bool cancelPending = true)
+        public void Shutdown()
         {
-            CancelPending = cancelPending;
             Queue.CompleteAdding();
             lock (this)
             {
@@ -78,13 +76,10 @@ namespace Zeze.Util
             var running = Running.DecrementAndGet();
             if (Queue.IsAddingCompleted)
             {
-                if (CancelPending)
+                // clear queue.
+                while (Queue.TryTake(out var item))
                 {
-                    // clear queue.
-                    while (Queue.TryTake(out var item))
-                    {
-                        item.Item1.TrySetCanceled();
-                    }
+                    item.Item1.TrySetCanceled();
                 }
                 if (0 == running)
                 {
