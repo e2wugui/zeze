@@ -30,23 +30,26 @@
 	Global.RocksRaft.LruTryRemoveCallback
 	Zeze.Component dynamic bean动态增加类型的能力。
 	Global c# 慢的问题。
-	GlobalAgent NormalClose 超时设置。必须加大或者无限等待。
-	GlobakWithRaft java test【张路】
 	把 RocksRaft Changes 应用到 Zeze 中，让 Zeze 实现任意Bean任意级别的更新。
 	// 1. 仅支持整个Bean的订阅。2. log factory 问题。3. add listener和notify原子问题。动态订阅。
-	Global java 异步化： TaskQueueAsync 任务需要参与到队列的推进。全异步和RocksRaft.Transaction.ThreadLocal问题，需要自己实现一个类似AsyncLocal的机制。
-	zeze async await test。remove SimpleThreadPool?
-	async Connector GetReadySocket WaitReady 
+	Global java 异步化： TaskQueueAsync 任务需要参与到队列的推进。
+		全异步和RocksRaft.Transaction.ThreadLocal问题，需要自己实现一个类似AsyncLocal的机制。
 	LockAsync 单元测试。关键：TryEnterXXXLock。
 	raft 异步测试
-	rocksraft 异步测试
 	Global With Raft 异步测试
-	database 异步测试
-	ServiceManager 异步化
-	TestCheckpoint 整个跑会失败，单独一个一个测试跑成功。
-	async TestCheckpointModeTable 直接运行 Trans 目录会出错，单个或者选择开始的几个运行没问题。
+	Test TestGlobal
+	Test Simulate
 
 【2022/4/11】
+	async Connector GetReadySocket WaitReady 
+	GlobakWithRaft java test【张路】【基本可用了】
+	GlobalAgent NormalClose 超时设置。必须加大或者无限等待。
+	zeze async await test。remove SimpleThreadPool!
+	database 异步测试
+	ServiceManager 异步化
+	TestCheckpoint 整个跑会失败，单独一个一个测试跑成功。【加了async，没有await】
+	async TestCheckpointModeTable 直接运行 Trans 目录会出错，单个或者选择开始的几个运行没问题。【AsybcLocal<Transaction>重用有问题，去掉重用】
+	rocksraft 异步测试【raft还有bug，但这个能测试通过】
 	Raft.AppendLog 加一个try catach，所有的内部错误都转换成RaftRetryException，这样就不会把内部异常漏给应用了。
 	AsyncRocksDb
 	AsyncExecutor
