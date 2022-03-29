@@ -38,7 +38,7 @@ namespace UnitTest.Zeze.Net
             var first = new FirstRpc();
             first.Argument.Int1 = 1234;
             //Console.WriteLine("SendFirstRpcRequest");
-            first.SendForWait(clientSocket).Task.Wait();
+            first.SendAsync(clientSocket).Wait();
             //Console.WriteLine("FirstRpc Wait End");
             Assert.AreEqual(first.Argument.Int1, first.Result.Int1);
         }

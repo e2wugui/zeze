@@ -39,7 +39,7 @@ namespace UnitTest.Zeze.Misc
         }
 
         [TestMethod]
-        public void Test1()
+        public async Task Test1()
         {
             string ip = "127.0.0.1";
             int port = 7601;
@@ -63,13 +63,13 @@ namespace UnitTest.Zeze.Misc
             agentConfig.AddConnector(new global::Zeze.Net.Connector(ip, port));
             using var agent = new Agent(demo.App.Instance.Zeze, agentName);
             agent.Client.Start();
-            agent.RegisterService(serviceName, "1");
+            await agent.RegisterService(serviceName, "1");
             agent.OnChanged = (state) =>
             {
                 Console.WriteLine("OnChanged: " + state.ServiceInfos);
                 this.future.SetResult(0);
             };
-            agent.SubscribeService(serviceName, SubscribeInfo.SubscribeTypeSimple);
+            await agent.SubscribeService(serviceName, SubscribeInfo.SubscribeTypeSimple);
             Console.WriteLine("ConnectNow");
             future.Task.Wait();
 
@@ -79,19 +79,19 @@ namespace UnitTest.Zeze.Misc
                 Console.WriteLine("OnUpdate: " + info.ExtraInfo);
                 this.future.SetResult(0);
             };
-            agent.UpdateService(serviceName, "1", "1.1.1.1", 1, "extra info");
+            await agent.UpdateService(serviceName, "1", "1.1.1.1", 1, "extra info");
             future.Task.Wait();
 
             Console.WriteLine("RegisterService 2");
             future = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-            agent.RegisterService(serviceName, "2");
+            await agent.RegisterService(serviceName, "2");
             future.Task.Wait();
 
             // 改变订阅类型
             Console.WriteLine("Change Subscribe type");
-            agent.UnSubscribeService(serviceName);
+            await agent.UnSubscribeService(serviceName);
             future = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-            agent.SubscribeService(serviceName, SubscribeInfo.SubscribeTypeReadyCommit);
+            await agent.SubscribeService(serviceName, SubscribeInfo.SubscribeTypeReadyCommit);
             future.Task.Wait();
 
             agent.SubscribeStates.TryGetValue(serviceName, out var state);
@@ -102,7 +102,7 @@ namespace UnitTest.Zeze.Misc
 
             Console.WriteLine("RegisterService 3");
             future = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
-            agent.RegisterService(serviceName, "3");
+            await agent.RegisterService(serviceName, "3");
             future.Task.Wait();
 
             Console.WriteLine("Test Reconnect");

@@ -221,84 +221,84 @@ namespace Zeze
             throw new Exception("App Not Start");
         }
 
-        public void Start()
+        public async void Start()
         {
             lock (this)
             {
-                Config?.ClearInUseAndIAmSureAppStopped(this, Databases); // XXX REMOVE ME!
-                foreach (var db in Databases.Values)
-                {
-                    db.DirectOperates.SetInUse(Config.ServerId, Config.GlobalCacheManagerHostNameOrAddress);
-                }
-
                 if (IsStart)
                     return;
                 IsStart = true;
-
-                Locks = new Locks();
-
-                var serviceConf = Config.GetServiceConf(Agent.DefaultServiceName);
-                if (null != serviceConf) {
-                    ServiceManagerAgent.Client.Start();
-                    ServiceManagerAgent.WaitConnectorReady();
-                }
-                Database defaultDb = GetDatabase("");
-                foreach (var db in Databases.Values)
-                {
-                    db.Open(this);
-                }
-
-                var hosts = Config.GlobalCacheManagerHostNameOrAddress.Split(';');
-                if (hosts.Length > 0)
-                {
-                    var israft = hosts[0].EndsWith(".xml");
-                    if (false == israft)
-                    {
-                        var impl = new GlobalAgent(this);
-                        impl.Start(hosts, Config.GlobalCacheManagerPort);
-                        GlobalAgent = impl;
-                    }
-                    else
-                    {
-                        var impl = new Zeze.Services.GlobalCacheManagerWithRaftAgent(this);
-                        impl.Start(hosts);
-                        GlobalAgent = impl;
-                    }
-                }
-
-                Checkpoint.Start(Config.CheckpointPeriod); // 定时模式可以和其他模式混用。
-
-                /////////////////////////////////////////////////////
-                /// Schemas Check
-                Schemas.Compile();
-                var keyOfSchemas = Zeze.Serialize.ByteBuffer.Allocate();
-                keyOfSchemas.WriteString("zeze.Schemas." + Config.ServerId);
-                while (true)
-                {
-                    var (data, version) = defaultDb.DirectOperates.GetDataWithVersion(keyOfSchemas);
-                    if (null != data)
-                    {
-                        var SchemasPrevious = new Schemas();
-                        try
-                        {
-                            SchemasPrevious.Decode(data);
-                            SchemasPrevious.Compile();
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.Error(ex);
-                            SchemasPrevious = null;
-                            logger.Error(ex, "Schemas Implement Changed?");
-                        }
-                        Schemas.CheckCompatible(SchemasPrevious, this);
-                    }
-                    var newdata = Serialize.ByteBuffer.Allocate();
-                    Schemas.Encode(newdata);
-                    if (defaultDb.DirectOperates.SaveDataWithSameVersion(keyOfSchemas, newdata, ref version))
-                        break;
-                }
-                FlushWhenReduceTimerTask = Util.Scheduler.Schedule(FlushWhenReduceTimer, 60 * 1000, 60 * 1000);
             }
+
+            Config?.ClearInUseAndIAmSureAppStopped(this, Databases); // XXX REMOVE ME!
+            foreach (var db in Databases.Values)
+            {
+                db.DirectOperates.SetInUse(Config.ServerId, Config.GlobalCacheManagerHostNameOrAddress);
+            }
+
+            Locks = new Locks();
+
+            var serviceConf = Config.GetServiceConf(Agent.DefaultServiceName);
+            if (null != serviceConf) {
+                ServiceManagerAgent.Client.Start();
+                await ServiceManagerAgent.WaitConnectorReady();
+            }
+            Database defaultDb = GetDatabase("");
+            foreach (var db in Databases.Values)
+            {
+                db.Open(this);
+            }
+
+            var hosts = Config.GlobalCacheManagerHostNameOrAddress.Split(';');
+            if (hosts.Length > 0)
+            {
+                var israft = hosts[0].EndsWith(".xml");
+                if (false == israft)
+                {
+                    var impl = new GlobalAgent(this);
+                    impl.Start(hosts, Config.GlobalCacheManagerPort);
+                    GlobalAgent = impl;
+                }
+                else
+                {
+                    var impl = new Zeze.Services.GlobalCacheManagerWithRaftAgent(this);
+                    await impl.Start(hosts);
+                    GlobalAgent = impl;
+                }
+            }
+
+            Checkpoint.Start(Config.CheckpointPeriod); // 定时模式可以和其他模式混用。
+
+            /////////////////////////////////////////////////////
+            /// Schemas Check
+            Schemas.Compile();
+            var keyOfSchemas = Zeze.Serialize.ByteBuffer.Allocate();
+            keyOfSchemas.WriteString("zeze.Schemas." + Config.ServerId);
+            while (true)
+            {
+                var (data, version) = defaultDb.DirectOperates.GetDataWithVersion(keyOfSchemas);
+                if (null != data)
+                {
+                    var SchemasPrevious = new Schemas();
+                    try
+                    {
+                        SchemasPrevious.Decode(data);
+                        SchemasPrevious.Compile();
+                    }
+                    catch (Exception ex)
+                    {
+                        logger.Error(ex);
+                        SchemasPrevious = null;
+                        logger.Error(ex, "Schemas Implement Changed?");
+                    }
+                    Schemas.CheckCompatible(SchemasPrevious, this);
+                }
+                var newdata = Serialize.ByteBuffer.Allocate();
+                Schemas.Encode(newdata);
+                if (defaultDb.DirectOperates.SaveDataWithSameVersion(keyOfSchemas, newdata, ref version))
+                    break;
+            }
+            FlushWhenReduceTimerTask = Util.Scheduler.Schedule(FlushWhenReduceTimer, 60 * 1000, 60 * 1000);
         }
 
         public void Stop()
@@ -313,6 +313,7 @@ namespace Zeze
 
                 if (false == IsStart)
                     return;
+
                 FlushWhenReduceTimerTask?.Cancel();
                 FlushWhenReduceTimerTask = null;
 

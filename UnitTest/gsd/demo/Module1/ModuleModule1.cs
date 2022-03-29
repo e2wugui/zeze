@@ -19,14 +19,12 @@ namespace demo.Module1
         {
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         protected override async Task<long> ProcessProtocol1(Protocol p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             var protocol = p as Protocol1;
             protocol.Send(protocol.Sender);
             Console.WriteLine(protocol.Argument);
-            new Rpc2().SendForWait(protocol.Sender); // not wait
+            await new Rpc2().SendAsync(protocol.Sender); // not wait
             return Zeze.Transaction.Procedure.Success;
         }
 

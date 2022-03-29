@@ -39,7 +39,7 @@ namespace UnitTest.Zeze.Net
                 var clientsocket = client.GetSocket();
                 var hello = new Hello();
                 hello.Argument.Name = "hello";
-                hello.SendForWait(clientsocket).Task.Wait();
+                hello.SendAsync(clientsocket).Wait();
                 Console.WriteLine("done");
             }
             finally

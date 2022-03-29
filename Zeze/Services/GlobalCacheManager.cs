@@ -889,7 +889,7 @@ namespace Zeze.Services
                     if (null != peer)
                     {
                         Reduce reduce = new(gkey, state, globalSerialId);
-                        reduce.SendForWait(peer, 10000);
+                        _ = reduce.SendAsync(peer, 10000);
                         return reduce;
                     }
                 }

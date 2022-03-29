@@ -137,27 +137,19 @@ namespace Zeze.Net
             base.Send(so);
         }
 
-        public TaskCompletionSource<TResult> SendForWait(AsyncSocket so, int millisecondsTimeout = 5000)
+        public async Task SendAsync(AsyncSocket so, int millisecondsTimeout = 5000)
         {
-            Future = new TaskCompletionSource<TResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            Future = new(TaskCreationOptions.RunContinuationsAsynchronously);
             if (false == Send(so, null, millisecondsTimeout))
             {
                 Future.SetException(new Exception("Send Failed."));
             }
-            return Future;
+            await Future.Task;
         }
 
-        // 使用异步方式实现的同步等待版本
-        public void SendAndWaitCheckResultCode(AsyncSocket so, int millisecondsTimeout = 5000)
+        public async Task SendAndCheckResultCodeAsync(AsyncSocket so, int millisecondsTimeout = 5000)
         {
-            SendForWait(so, millisecondsTimeout).Task.Wait();
-            if (ResultCode != 0)
-                throw new Exception($"Rpc Invalid ResultCode={ResultCode} {this}");
-        }
-
-        public async Task SendAndWaitCheckResultCodeAsync(AsyncSocket so, int millisecondsTimeout = 5000)
-        {
-            await SendForWait(so, millisecondsTimeout).Task;
+            await SendAsync(so, millisecondsTimeout);
             if (ResultCode != 0)
                 throw new Exception($"Rpc Invalid ResultCode={ResultCode} {this}");
         }

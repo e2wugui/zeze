@@ -21,45 +21,39 @@ namespace Zeze.Services
             Zeze = zeze;
         }
 
-        public void Start(string[] hosts)
+        public async Task Start(string[] hosts)
         {
-            lock (this)
+            if (null != Agents)
+                return;
+
+            Agents = new RaftAgent[hosts.Length];
+            for (int i = 0; i < hosts.Length; ++i)
             {
-                if (null != Agents)
-                    return;
+                var raftconf = Raft.RaftConfig.Load(hosts[i]);
+                Agents[i] = new RaftAgent(this, Zeze, i, raftconf);
+            }
 
-                Agents = new RaftAgent[hosts.Length];
-                for (int i = 0; i < hosts.Length; ++i)
-                {
-                    var raftconf = Raft.RaftConfig.Load(hosts[i]);
-                    Agents[i] = new RaftAgent(this, Zeze, i, raftconf);
-                }
+            foreach (var agent in Agents)
+            {
+                agent.RaftClient.Client.Start();
+            }
 
-                foreach (var agent in Agents)
-                {
-                    agent.RaftClient.Client.Start();
-                }
-
-                foreach (var agent in Agents)
-                {
-                    agent.WaitLoginSuccess().Wait();
-                }
+            foreach (var agent in Agents)
+            {
+                await agent.WaitLoginSuccess();
             }
         }
 
         public void Stop()
         {
-            lock (this)
-            {
-                if (null == Agents)
-                    return;
+            if (null == Agents)
+                return;
 
-                foreach (var agent in Agents)
-                {
-                    agent.Close();
-                }
-                Agents = null;
+            foreach (var agent in Agents)
+            {
+                agent.Close();
             }
+            Agents = null;
         }
 
         public class ReduceBridge : GlobalCacheManager.Reduce
@@ -153,7 +147,7 @@ namespace Zeze.Services
                 var rpc = new Acquire();
                 rpc.Argument.GlobalTableKey = gkey;
                 rpc.Argument.State = state;
-                await agent.RaftClient.SendForWait(rpc).Task;
+                await agent.RaftClient.SendAsync(rpc);
 
                 if (rpc.ResultCode < 0)
                 {
@@ -182,7 +176,6 @@ namespace Zeze.Services
         {
             public GlobalCacheManagerWithRaftAgent GlobalCacheManagerWithRaftAgent { get; }
             public Zeze.Raft.Agent RaftClient { get; }
-            public bool ActiveClose { get; private set; } = false;
             public Util.AtomicLong LoginTimes { get; } = new Util.AtomicLong();
             public int GlobalCacheManagerHashIndex { get; }
 
@@ -198,16 +191,9 @@ namespace Zeze.Services
 
             public void Close()
             {
-                lock (this)
-                {
-                    // 简单保护一下，Close 正常程序退出的时候才调用这个，应该不用保护。
-                    if (ActiveClose)
-                        return;
-                    ActiveClose = true;
-                }
                 if (LoginTimes.Get() > 0)
                 {
-                    if (false == RaftClient.SendForWait(new NormalClose()).Task.Wait(10 * 1000))
+                    if (false == RaftClient.SendAsync(new NormalClose()).Wait(10 * 1000))
                     {
                         // 10s
                         logger.Warn($"{RaftClient.Name} Leader={RaftClient.Leader} NormalClose Timeout");

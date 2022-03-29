@@ -344,13 +344,13 @@ namespace Zeze.Services
                 ServiceManager = sm;
                 SessionId = ssid;
                 KeepAliveTimerTask = Scheduler.Schedule(
-                    (ThisTask) =>
+                    async (ThisTask) =>
                     {
                         var s = ServiceManager.Server.GetSocket(SessionId);
                         try
                         {
                             var r = new KeepAlive();
-                            r.SendAndWaitCheckResultCode(s);
+                            await r.SendAndCheckResultCodeAsync(s);
                         }
                         catch (Exception ex)
                         {
@@ -970,35 +970,35 @@ namespace Zeze.Services.ServiceManager
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public ServiceInfo RegisterService(
+        public async Task<ServiceInfo> RegisterService(
             string name, string identity,
             string ip = null, int port = 0,
             string extrainfo = null)
         {
-            return RegisterService(new ServiceInfo(name, identity, ip, port, extrainfo));
+            return await RegisterService(new ServiceInfo(name, identity, ip, port, extrainfo));
         }
 
-        public ServiceInfo UpdateService(
+        public async Task<ServiceInfo> UpdateService(
             string name, string identity,
             string ip, int port, string extrainfo)
         {
-            return UpdateService(new ServiceInfo(name, identity, ip, port, extrainfo));
+            return await UpdateService(new ServiceInfo(name, identity, ip, port, extrainfo));
         }
 
-        public void WaitConnectorReady()
+        public async Task WaitConnectorReady()
         {
             // 实际上只有一个连接，这样就不用查找了。
-            Client.Config.ForEachConnector((c) => c.GetReadySocket());
+            await Client.Config.ForEachConnectorAsync(async (c) => await c.GetReadySocketAsync());
         }
 
-        private ServiceInfo UpdateService(ServiceInfo info)
+        private async Task<ServiceInfo> UpdateService(ServiceInfo info)
         {
-            WaitConnectorReady();
+            await WaitConnectorReady();
             if (false == Registers.TryGetValue(info, out var reg))
                 return null;
 
             var r = new Update() { Argument = info };
-            r.SendAndWaitCheckResultCode(Client.Socket);
+            await r.SendAndCheckResultCodeAsync(Client.Socket);
 
             reg.PassiveIp = info.PassiveIp;
             reg.PassivePort = info.PassivePort;
@@ -1007,9 +1007,9 @@ namespace Zeze.Services.ServiceManager
             return reg;
         }
 
-        private ServiceInfo RegisterService(ServiceInfo info)
+        private async Task<ServiceInfo> RegisterService(ServiceInfo info)
         {
-            WaitConnectorReady();
+            await WaitConnectorReady();
 
             bool regNew = false;
             var regServInfo = Registers.GetOrAdd(info,
@@ -1024,7 +1024,7 @@ namespace Zeze.Services.ServiceManager
                 try
                 {
                     var r = new Register() { Argument = info };
-                    r.SendAndWaitCheckResultCode(Client.Socket);
+                    await r.SendAndCheckResultCodeAsync(Client.Socket);
                 }
                 catch (Exception)
                 {
@@ -1035,21 +1035,21 @@ namespace Zeze.Services.ServiceManager
             return regServInfo;
         }
 
-        public void UnRegisterService(string name, string identity)
+        public async Task UnRegisterService(string name, string identity)
         {
-            UnRegisterService(new ServiceInfo(name, identity));
+            await UnRegisterService(new ServiceInfo(name, identity));
         }
 
-        private void UnRegisterService(ServiceInfo info)
+        private async Task UnRegisterService(ServiceInfo info)
         {
-            WaitConnectorReady();
+            await WaitConnectorReady();
 
             if (Registers.TryRemove(info, out var exist))
             {
                 try
                 {
                     var r = new UnRegister() { Argument = info };
-                    r.SendAndWaitCheckResultCode(Client.Socket);
+                    await r.SendAndCheckResultCodeAsync(Client.Socket);
                 }
                 catch (Exception)
                 {
@@ -1059,13 +1059,13 @@ namespace Zeze.Services.ServiceManager
             }
         }
 
-        public SubscribeState SubscribeService(string serviceName, int type, object state = null)
+        public async Task<SubscribeState> SubscribeService(string serviceName, int type, object state = null)
         {
             if (type != SubscribeInfo.SubscribeTypeSimple
                 && type != SubscribeInfo.SubscribeTypeReadyCommit)
                 throw new Exception("Unknown SubscribeType");
 
-            return SubscribeService(new SubscribeInfo()
+            return await SubscribeService(new SubscribeInfo()
             {
                 ServiceName = serviceName,
                 SubscribeType = type,
@@ -1073,9 +1073,9 @@ namespace Zeze.Services.ServiceManager
             });
         }
 
-        private SubscribeState SubscribeService(SubscribeInfo info)
+        private async Task<SubscribeState> SubscribeService(SubscribeInfo info)
         {
-            WaitConnectorReady();
+            await WaitConnectorReady();
 
             bool newAdd = false;
             var subState = SubscribeStates.GetOrAdd(info.ServiceName,
@@ -1088,7 +1088,7 @@ namespace Zeze.Services.ServiceManager
             if (newAdd)
             {
                 var r = new Subscribe() { Argument = info };
-                r.SendAndWaitCheckResultCode(Client.Socket);
+                await r.SendAndCheckResultCodeAsync(Client.Socket);
             }
             return subState;
         }
@@ -1105,16 +1105,16 @@ namespace Zeze.Services.ServiceManager
             return Procedure.Success;
         }
 
-        public void UnSubscribeService(string serviceName)
+        public async Task UnSubscribeService(string serviceName)
         {
-            WaitConnectorReady();
+            await WaitConnectorReady();
 
             if (SubscribeStates.TryRemove(serviceName, out var state))
             {
                 try
                 {
                     var r = new UnSubscribe() { Argument = state.SubscribeInfo };
-                    r.SendAndWaitCheckResultCode(Client.Socket);
+                    await r.SendAndCheckResultCodeAsync(Client.Socket);
                 }
                 catch (Exception)
                 {
@@ -1211,6 +1211,7 @@ namespace Zeze.Services.ServiceManager
             public long Current { get; private set; }
             public int Count { get; private set; }
             public Agent Agent { get; }
+            private Nito.AsyncEx.AsyncLock Mutex { get; } = new();
 
             internal AutoKey(string name, Agent agent)
             {
@@ -1218,12 +1219,12 @@ namespace Zeze.Services.ServiceManager
                 Agent = agent;
             }
 
-            public long Next()
+            public async Task<long> NextAsync()
             {
-                lock (this)
+                using (await Mutex.LockAsync())
                 {
                     if (Count <= 0)
-                        Allocate();
+                        await Allocate();
 
                     if (Count <= 0)
                         throw new Exception($"AllocateId failed for {Name}");
@@ -1235,12 +1236,12 @@ namespace Zeze.Services.ServiceManager
                 }
             }
 
-            private void Allocate()
+            private async Task Allocate()
             {
                 var r = new AllocateId();
                 r.Argument.Name = Name;
                 r.Argument.Count = 1024;
-                r.SendAndWaitCheckResultCode(Agent.Client.Socket);
+                await r.SendAndCheckResultCodeAsync(Agent.Client.Socket);
                 Current = r.Result.StartId;
                 Count = r.Result.Count;
             }
@@ -1265,14 +1266,14 @@ namespace Zeze.Services.ServiceManager
             }
         }
 
-        internal void OnConnected()
+        internal async Task OnConnected()
         {
             foreach (var e in Registers)
             {
                 try
                 {
                     var r = new Register() { Argument = e.Value };
-                    r.SendAndWaitCheckResultCode(Client.Socket);
+                    await r.SendAndCheckResultCodeAsync(Client.Socket);
                 }
                 catch (Exception ex)
                 {
@@ -1285,7 +1286,7 @@ namespace Zeze.Services.ServiceManager
                 {
                     e.Value.Committed = false;
                     var r = new Subscribe() { Argument = e.Value.SubscribeInfo };
-                    r.SendAndWaitCheckResultCode(Client.Socket);
+                    await r.SendAndCheckResultCodeAsync(Client.Socket);
                 }
                 catch (Exception ex)
                 {

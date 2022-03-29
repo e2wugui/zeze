@@ -42,7 +42,7 @@ namespace Zeze.Gen.cs
             {
                 sw.WriteLine("        public async System.Threading.Tasks.Task<long> InsertAsync(" + value + " value)");
                 sw.WriteLine("        {");
-                sw.WriteLine("            long key = AutoKey.Next();");
+                sw.WriteLine("            long key = await AutoKey.NextAsync();");
                 sw.WriteLine("            await InsertAsync(key, value);");
                 sw.WriteLine("            return key;");
                 sw.WriteLine("        }");

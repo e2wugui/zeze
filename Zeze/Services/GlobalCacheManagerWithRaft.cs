@@ -797,7 +797,7 @@ namespace Zeze.Services
                         reduce.Argument.GlobalTableKey = gkey;
                         reduce.Argument.State = state;
                         reduce.Argument.GlobalSerialId = globalSerialId;
-                        reduce.SendForWait(peer, 10000);
+                        _ = reduce.SendAsync(peer, 10000);
                         return reduce;
                     }
                 }

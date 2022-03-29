@@ -58,6 +58,14 @@ namespace Zeze.Raft
             {
                 await LogSequence.AppendLog(log);
             }
+            catch (TaskCanceledException)
+            {
+                throw;
+            }
+            catch (RaftRetryException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
                 // 内部错误通通转化成Retry。

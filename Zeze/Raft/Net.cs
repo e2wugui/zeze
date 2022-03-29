@@ -530,8 +530,8 @@ namespace Zeze.Raft
             return Procedure.Success;
         }
 
-        public TaskCompletionSource<RaftRpc<TArgument, TResult>>
-            SendForWait<TArgument, TResult>(
+        public async Task
+            SendAsync<TArgument, TResult>(
             RaftRpc<TArgument, TResult> rpc, bool urgent = false)
             where TArgument : Bean, new()
             where TResult : Bean, new()
@@ -565,7 +565,7 @@ namespace Zeze.Raft
             rpc.ResponseHandle = async (p) => SendForWaitHandle(p, future, rpc);
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
             rpc.Send(_Leader?.TryGetReadySocket());
-            return future;
+            await future.Task;
         }
 
         public long Term { get; internal set; }

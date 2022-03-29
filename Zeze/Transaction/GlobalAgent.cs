@@ -95,7 +95,7 @@ namespace Zeze.Transaction
                 {
                     var ready = Connector.TryGetReadySocket();
                     if (null != ready)
-                        new NormalClose().SendForWait(ready).Task.Wait();
+                        new NormalClose().SendAsync(ready).Wait();
                 }
                 finally
                 {
@@ -147,7 +147,7 @@ namespace Zeze.Transaction
                 // 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了），打断外面的事务。
                 // 一个请求异常不关闭连接，尝试继续工作。
                 var rpc = new Acquire(gkey, state);
-                await rpc.SendForWait(socket, 12000).Task;
+                await rpc.SendAsync(socket, 12000);
                 /*
                 if (rpc.ResultCode != 0) // 这个用来跟踪调试，正常流程使用Result.State检查结果。
                 {

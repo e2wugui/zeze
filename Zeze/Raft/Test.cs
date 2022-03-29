@@ -187,7 +187,7 @@ namespace Zeze.Raft
                 try
                 {
                     var r = new GetCount();
-                    Agent.SendForWait(r).Task.Wait();
+                    Agent.SendAsync(r).Wait();
                     if (false == r.IsTimeout && r.ResultCode == 0)
                         return r.Result.Count;
                 }
@@ -264,7 +264,7 @@ namespace Zeze.Raft
                 try
                 {
                     var req = new AddCount();
-                    tasks.Add(Agent.SendForWait(req).Task);
+                    tasks.Add(Agent.SendAsync(req));
                     requests.Add(req);
                 }
                 catch (Exception)
@@ -339,7 +339,7 @@ namespace Zeze.Raft
         {
             // 基本测试
             logger.Debug("基本测试");
-            Agent.SendForWait(new AddCount()).Task.Wait();
+            Agent.SendAsync(new AddCount()).Wait();
             ExpectCount.IncrementAndGet();
             CheckCurrentCount("TestAddCount");
 

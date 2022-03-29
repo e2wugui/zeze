@@ -828,8 +828,11 @@ namespace Zeze.Raft
                 (term, index, future) = await AppendLog(log, true);
             }
 
-            var any = await Task.WhenAny(future.Task, Task.Delay(Raft.RaftConfig.AppendEntriesTimeout * 2));
-            if (any != future.Task)
+            try
+            {
+                await future.Task.WaitAsync(new TimeSpan(TimeSpan.TicksPerMillisecond * Raft.RaftConfig.AppendEntriesTimeout * 2));
+            }
+            catch (TimeoutException)
             {
                 LeaderAppendLogs.TryRemove(index, out _);
                 throw new RaftRetryException();
