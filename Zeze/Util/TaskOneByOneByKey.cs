@@ -216,7 +216,7 @@ namespace Zeze.Util
 
 		internal class TaskOneByOne
 		{
-			LinkedList<Job> queue = new ();
+			LinkedList<Job> Queue = new ();
 
 			bool IsShutdown = false;
 
@@ -231,10 +231,10 @@ namespace Zeze.Util
 					IsShutdown = true;
 					if (cancel)
                     {
-						tmp = queue;
-						queue = new (); // clear
+						tmp = Queue;
+						Queue = new (); // clear
 						if (tmp.Count > 0)
-							queue.AddLast(tmp.First.Value); // put back running task back.
+							Queue.AddLast(tmp.First.Value); // put back running task back.
 					}
 				}
 				if (tmp == null)
@@ -264,7 +264,7 @@ namespace Zeze.Util
 				lock (this)
 				{
 					// wait running task.
-					while (queue.Count > 0)
+					while (Queue.Count > 0)
 					{
 						Monitor.Wait(this);
 					}
@@ -284,10 +284,10 @@ namespace Zeze.Util
 						job.Cancel?.Invoke();
 						return;
 					}
-					queue.AddLast(job);
-					if (queue.Count == 1)
+					Queue.AddLast(job);
+					if (Queue.Count == 1)
 					{
-						_ = Mission.CallAsync(async () => await queue.First.Value.DoIt(this), "TaskOneByOne.DoIt");
+						_ = Queue.First.Value.DoIt(this);
 					}
 				}
 			}
@@ -296,18 +296,18 @@ namespace Zeze.Util
 			{
 				lock (this)
 				{
-					if (queue.Count > 0)
+					if (Queue.Count > 0)
 					{
-						queue.RemoveFirst();
-						if (IsShutdown && queue.Count == 0)
+						Queue.RemoveFirst();
+						if (IsShutdown && Queue.Count == 0)
                         {
 							Monitor.PulseAll(this);
 							return;
                         }
 					}
-					if (queue.Count > 0)
+					if (Queue.Count > 0)
 					{
-						System.Threading.Tasks.Task.Run(() => queue.First.Value.DoIt(this));
+						_ = Queue.First.Value.DoIt(this);
 					}
 				}
 			}

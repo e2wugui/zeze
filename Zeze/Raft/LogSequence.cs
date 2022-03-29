@@ -568,7 +568,7 @@ namespace Zeze.Raft
                 null, WriteOptions
                 );
 
-            logger.Debug($"{Raft.Name}-{Raft.IsLeader} RequestId={log.Log.Unique.RequestId} Index={log.Index} Count={GetTestStateMachineCount()}");
+            logger.Info($"{Raft.Name}-{Raft.IsLeader} RequestId={log.Log.Unique.RequestId} Index={log.Index} Count={GetTestStateMachineCount()}");
         }
 
         private async Task SaveLogRaw(long index, byte[] rawValue)
@@ -759,12 +759,11 @@ namespace Zeze.Raft
                     await OpenUniqueRequests(raftLog.Log.CreateTime).Apply(raftLog);
                 LastApplied = raftLog.Index; // 循环可能退出，在这里修改。
                 //*
-                if (LastIndex - LastApplied < 10)
-                    logger.Debug($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={raftLog.Log.Unique.RequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
+                if (LastIndex - LastApplied < 5)
+                    logger.Info($"{Raft.Name}-{Raft.IsLeader} {Raft.RaftConfig.DbHome} RequestId={raftLog.Log.Unique.RequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
                 // */
                 raftLog.LeaderFuture?.TrySetResult(0);
             }
-            //logger.Debug($"{Raft.Name}-{Raft.IsLeader} CommitIndex={CommitIndex} RequestId={lastApplyableLog.Log.Unique.RequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
         }
 
         internal long? GetTestStateMachineCount()
@@ -817,6 +816,9 @@ namespace Zeze.Raft
 
         internal async Task AppendLog(Log log)
         {
+            if (false == Raft.IsLeader)
+                throw new RaftRetryException(); // 快速失败
+
             long term;
             long index;
             TaskCompletionSource<int> future;
@@ -842,9 +844,6 @@ namespace Zeze.Raft
             TaskCompletionSource<int> future = null;
             // has under lock (Raft)
             {
-                if (false == Raft.IsLeader)
-                    throw new RaftRetryException(); // 快速失败
-
                 var raftLog = new RaftLog(Term, LastIndex + 1, log);
                 if (waitapplied)
                 {

@@ -16,6 +16,11 @@ namespace Zeze.Util
             return Interlocked.Increment(ref _value);
         }
 
+        public long DecrementAndGet()
+        { 
+            return Interlocked.Decrement(ref _value);
+        }
+
         public long AddAndGet(long delta)
         {
             return Interlocked.Add(ref _value, delta);

@@ -11,7 +11,7 @@ namespace Zeze.Util
     public class AsyncExecutor
     {
         private BlockingCollection<(TaskCompletionSource<object>, Action)> Queue { get; } = new();
-        public Util.AtomicInteger Pooling { get; } = new();
+        public Util.AtomicInteger Running { get; } = new();
         public Func<int> MaxPoolSize { get; }
         private volatile bool CancelPending = true;
 
@@ -26,7 +26,7 @@ namespace Zeze.Util
             Queue.CompleteAdding();
             lock (this)
             {
-                while (Pooling.Get() > 0)
+                while (Running.Get() > 0)
                 {
                     Monitor.Wait(this);
                 }
@@ -45,10 +45,10 @@ namespace Zeze.Util
             if (Queue.IsAddingCompleted)
                 throw new InvalidOperationException("AsyncExecutor.Queue.IsAddingCompleted");
 
-            var pending = Pooling.IncrementAndGet();
-            if (pending >= MaxPoolSize())
+            var running = Running.IncrementAndGet();
+            if (running >= MaxPoolSize())
             {
-                Pooling.AddAndGet(-1); // rollback
+                Running.DecrementAndGet(); // rollback
                 Queue.Add((source, action));
             }
             else
@@ -75,14 +75,15 @@ namespace Zeze.Util
 
         private void TryRunNext()
         {
-            var running = Pooling.AddAndGet(-1);
+            var running = Running.DecrementAndGet();
             if (Queue.IsAddingCompleted)
             {
                 if (CancelPending)
                 {
-                    while (Queue.TryTake(out _))
+                    // clear queue.
+                    while (Queue.TryTake(out var item))
                     {
-                        // clear queue.
+                        item.Item1.TrySetCanceled();
                     }
                 }
                 if (0 == running)

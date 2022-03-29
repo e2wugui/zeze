@@ -21,6 +21,11 @@ namespace Zeze.Util
             return Interlocked.Add(ref _value, delta);
         }
 
+        public int DecrementAndGet()
+        {
+            return Interlocked.Decrement(ref _value);
+        }
+
         public int CompareAndExchange(int expectedValue, int newValue)
         {
             return Interlocked.CompareExchange(ref _value, newValue, expectedValue);

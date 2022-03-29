@@ -345,7 +345,7 @@ namespace Zeze.Raft
 
             // 基本并发请求
             logger.Debug("基本并发请求");
-            //SetLogLevel(NLog.LogLevel.Info);
+            SetLogLevel(NLog.LogLevel.Info);
             TestConcurrent("TestConcurrent", 200);
 
             SetLogLevel(NLog.LogLevel.Trace);
@@ -425,7 +425,7 @@ namespace Zeze.Raft
 
             SnapshotTimer = Util.Scheduler.Schedule(RandomSnapshotTimer, 1 * 60 * 1000, 1 * 60 * 1000);
 
-            //SetLogLevel(NLog.LogLevel.Info);
+            SetLogLevel(NLog.LogLevel.Info);
 
             FailActions.Add(new FailAction()
             {
