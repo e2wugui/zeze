@@ -34,7 +34,7 @@ namespace Zeze.Transaction
             public int GlobalCacheManagerHashIndex { get; }
 
             private readonly Zeze.Util.AtomicLong LastErrorTime = new();
-            public const long FastErrorPeriod = 10 * 1000; // 10 seconds
+            public const long FastErrorPeriod = 2 * 1000;
 
             public Agent(GlobalClient client, string host, int port, int globalCacheManagerHashIndex)
             {
@@ -271,10 +271,10 @@ namespace Zeze.Transaction
                         Agents[i] = new Agent(Client, hp[0], port, i);
                 }
                 Client.Start();
-                foreach (var agent in Agents)
-                {
-                    _ = agent.ConnectAsync(); // 异步启动
-                }
+            }
+            foreach (var agent in Agents)
+            {
+                agent.ConnectAsync().Wait(3 * 1000);
             }
         }
 

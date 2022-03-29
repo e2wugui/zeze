@@ -28,7 +28,7 @@ namespace UnitTest.Zeze.Trans
         }
 
         [TestMethod]
-        public void Test()
+        public async Task Test()
         {
             // RocksDbSharp 没有Transaction_Families_Open的接口包装，暂不做这个测试了。
             if (demo.App.Instance.Zeze.Config.GlobalCacheManagerHostNameOrAddress.Length == 0)
@@ -42,14 +42,14 @@ namespace UnitTest.Zeze.Trans
                 {
                     ByteBuffer key = ByteBuffer.Allocate();
                     key.WriteInt(1);
-                    table.ITable.Remove(trans, key);
+                    table.ITable.Remove(trans.ITransaction, key);
                 }
                 {
                     ByteBuffer key = ByteBuffer.Allocate();
                     key.WriteInt(2);
-                    table.ITable.Remove(trans, key);
+                    table.ITable.Remove(trans.ITransaction, key);
                 }
-                trans.Commit();
+                await trans.CommitAsync();
             }
             Assert.AreEqual(0, table.ITable.Walk(PrintRecord));
             {
@@ -59,16 +59,16 @@ namespace UnitTest.Zeze.Trans
                     key.WriteInt(1);
                     ByteBuffer value = ByteBuffer.Allocate();
                     value.WriteInt(1);
-                    table.ITable.Replace(trans, key, value);
+                    table.ITable.Replace(trans.ITransaction, key, value);
                 }
                 {
                     ByteBuffer key = ByteBuffer.Allocate();
                     key.WriteInt(2);
                     ByteBuffer value = ByteBuffer.Allocate();
                     value.WriteInt(2);
-                    table.ITable.Replace(trans, key, value);
+                    table.ITable.Replace(trans.ITransaction, key, value);
                 }
-                trans.Commit();
+                await trans.CommitAsync();
             }
             {
                 ByteBuffer key = ByteBuffer.Allocate();

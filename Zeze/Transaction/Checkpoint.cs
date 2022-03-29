@@ -202,7 +202,7 @@ namespace Zeze.Transaction
                 }
             }
             // flush
-            var dts = new Dictionary<Database, Database.ITransaction>();
+            var dts = new Dictionary<Database, Database.TransactionAsync>();
             try
             {
                 foreach (var db in Databases)
@@ -211,11 +211,11 @@ namespace Zeze.Transaction
                 }
                 foreach (var e in dts)
                 {
-                    await e.Key.Flush(e.Value);
+                    await e.Key.Flush(e.Value.ITransaction);
                 }
                 foreach (var e in dts)
                 {
-                    e.Value.Commit();
+                    await e.Value.CommitAsync();
                 }
                 try
                 {
@@ -238,7 +238,7 @@ namespace Zeze.Transaction
                 {
                     try
                     {
-                        t.Rollback();
+                        await t.RollbackAsync();
                     }
                     catch (Exception ex)
                     {
@@ -271,7 +271,7 @@ namespace Zeze.Transaction
 
         internal static async Task Flush(IEnumerable<Record> rs)
         {
-            var dts = new Dictionary<Database, Database.ITransaction>();
+            var dts = new Dictionary<Database, Database.TransactionAsync>();
             try
             {
                 // prepare: 编码并且为每一个数据库创建一个数据库事务。
@@ -286,7 +286,7 @@ namespace Zeze.Transaction
                         t = database.BeginTransaction();
                         dts.Add(database, t);
                     }
-                    r.DatabaseTransactionTmp = t;
+                    r.DatabaseTransactionTmp = t.ITransaction;
                 }
                 // 编码
                 foreach (var r in rs)
@@ -301,7 +301,7 @@ namespace Zeze.Transaction
                 // 提交。
                 foreach (var t in dts.Values)
                 {
-                    t.Commit();
+                    await t.CommitAsync();
                 }
                 try
                 {
@@ -324,7 +324,7 @@ namespace Zeze.Transaction
                 {
                     try
                     {
-                        t.Rollback();
+                        await t.RollbackAsync();
                     }
                     catch (Exception ex)
                     {

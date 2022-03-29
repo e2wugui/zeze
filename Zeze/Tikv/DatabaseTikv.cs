@@ -66,9 +66,9 @@ namespace Zeze.Tikv
             }
         }
 
-        public override ITransaction BeginTransaction()
+        public override TransactionAsync BeginTransaction()
         {
-            return new TikvTrans(DatabaseUrl);
+            return new TransactionAsync(this, new TikvTrans(DatabaseUrl));
         }
 
         public override TableAsync OpenTable(string name)

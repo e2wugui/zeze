@@ -775,18 +775,18 @@ namespace Zeze.Raft
                 Agent = agent;
             }
 
-            public override async void DispatchRpcResponse(Protocol rpc, Func<Protocol, Task<long>> responseHandle, ProtocolFactoryHandle factoryHandle)
+            public override void DispatchRpcResponse(Protocol rpc, Func<Protocol, Task<long>> responseHandle, ProtocolFactoryHandle factoryHandle)
             {
-                await Util.Mission.CallAsync(responseHandle, rpc, null);
+                _ = Util.Mission.CallAsync(responseHandle, rpc, null);
             }
 
-            public override async void DispatchProtocol(Protocol p, ProtocolFactoryHandle pfh)
+            public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle pfh)
             {
                 // 防止Client不进入加密，直接发送用户协议。
                 if (false == IsHandshakeProtocol(p.TypeId))
                     p.Sender.VerifySecurity();
 
-                await Util.Mission.CallAsync(pfh.Handle, p, null);
+                _ = Util.Mission.CallAsync(pfh.Handle, p, null);
             }
         }
     }

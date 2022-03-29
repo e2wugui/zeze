@@ -272,8 +272,8 @@ namespace Zeze.Transaction
                 if (null != TTable.OldTable)
                 {
                     using var transTmp = TTable.OldTable.Database.BeginTransaction();
-                    await TTable.OldTable.RemoveAsync(transTmp, snapshotKey);
-                    transTmp.Commit();
+                    await TTable.OldTable.RemoveAsync(transTmp.ITransaction, snapshotKey);
+                    await transTmp.CommitAsync();
                 }
             }
         }

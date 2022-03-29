@@ -165,7 +165,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        public void Start()");
             sw.WriteLine("        {");
             sw.WriteLine("            Create();");
-            sw.WriteLine("            Zeze.Start(); // 启动数据库");
+            sw.WriteLine("            Zeze.StartAsync().Wait(); // 启动数据库");
             sw.WriteLine("            StartModules(); // 启动模块，装载配置什么的。");
             sw.WriteLine("            StartService(); // 启动网络");
             sw.WriteLine("        }");

@@ -221,7 +221,7 @@ namespace Zeze
             throw new Exception("App Not Start");
         }
 
-        public async void Start()
+        public async Task StartAsync()
         {
             lock (this)
             {
@@ -241,7 +241,7 @@ namespace Zeze
             var serviceConf = Config.GetServiceConf(Agent.DefaultServiceName);
             if (null != serviceConf) {
                 ServiceManagerAgent.Client.Start();
-                await ServiceManagerAgent.WaitConnectorReady();
+                await ServiceManagerAgent.WaitConnectorReadyAsync();
             }
             Database defaultDb = GetDatabase("");
             foreach (var db in Databases.Values)

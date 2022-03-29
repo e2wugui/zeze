@@ -299,10 +299,11 @@ namespace Infinite
                 var keys = new HashSet<Zeze.Serialize.ByteBuffer>();
                 for (int key = 0; key < TflushInt1Trade.KeyBoundTrade; ++key)
                     keys.Add(table1.EncodeKey(key));
+                Database.TransactionAsync t = null;
                 try
                 {
-                    using var t = table1.Database.BeginTransaction();
-                    if (t is DatabaseMemory.MemTrans mt)
+                    t = table1.Database.BeginTransaction();
+                    if (t.ITransaction is DatabaseMemory.MemTrans mt)
                     {
                         var all = mt.Finds(table1.Name, keys);
                         var values = new List<demo.Module1.Value>();
@@ -321,6 +322,10 @@ namespace Infinite
                 {
                     Infinite.App.logger.Error(e, "");
                     Debug.Assert(false);
+                }
+                finally
+                {
+                    t.Dispose();
                 }
                 return 0L;
             }

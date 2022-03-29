@@ -985,7 +985,7 @@ namespace Zeze.Services.ServiceManager
             return await UpdateService(new ServiceInfo(name, identity, ip, port, extrainfo));
         }
 
-        public async Task WaitConnectorReady()
+        public async Task WaitConnectorReadyAsync()
         {
             // 实际上只有一个连接，这样就不用查找了。
             await Client.Config.ForEachConnectorAsync(async (c) => await c.GetReadySocketAsync());
@@ -993,7 +993,7 @@ namespace Zeze.Services.ServiceManager
 
         private async Task<ServiceInfo> UpdateService(ServiceInfo info)
         {
-            await WaitConnectorReady();
+            await WaitConnectorReadyAsync();
             if (false == Registers.TryGetValue(info, out var reg))
                 return null;
 
@@ -1009,7 +1009,7 @@ namespace Zeze.Services.ServiceManager
 
         private async Task<ServiceInfo> RegisterService(ServiceInfo info)
         {
-            await WaitConnectorReady();
+            await WaitConnectorReadyAsync();
 
             bool regNew = false;
             var regServInfo = Registers.GetOrAdd(info,
@@ -1042,7 +1042,7 @@ namespace Zeze.Services.ServiceManager
 
         private async Task UnRegisterService(ServiceInfo info)
         {
-            await WaitConnectorReady();
+            await WaitConnectorReadyAsync();
 
             if (Registers.TryRemove(info, out var exist))
             {
@@ -1075,7 +1075,7 @@ namespace Zeze.Services.ServiceManager
 
         private async Task<SubscribeState> SubscribeService(SubscribeInfo info)
         {
-            await WaitConnectorReady();
+            await WaitConnectorReadyAsync();
 
             bool newAdd = false;
             var subState = SubscribeStates.GetOrAdd(info.ServiceName,
@@ -1107,7 +1107,7 @@ namespace Zeze.Services.ServiceManager
 
         public async Task UnSubscribeService(string serviceName)
         {
-            await WaitConnectorReady();
+            await WaitConnectorReadyAsync();
 
             if (SubscribeStates.TryRemove(serviceName, out var state))
             {

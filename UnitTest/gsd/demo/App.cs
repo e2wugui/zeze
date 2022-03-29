@@ -3,7 +3,7 @@ namespace demo
 {
     public sealed partial class App
     {
-        private void AdjustTableConf(Zeze.Config.TableConf conf)
+        private static void AdjustTableConf(Zeze.Config.TableConf conf)
         {
             if (null != conf)
             {
@@ -24,7 +24,7 @@ namespace demo
 
             Create(config);
             StartModules(); // 启动模块，装载配置什么的。
-            Zeze.Start(); // 启动数据库
+            Zeze.StartAsync().Wait(); // 启动数据库
             StartService(); // 启动网络等等。
         }
 

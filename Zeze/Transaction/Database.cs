@@ -45,7 +45,7 @@ namespace Zeze.Transaction
 
         public abstract int MaxPoolSize { get; }
 
-        public abstract ITransaction BeginTransaction();
+        public abstract TransactionAsync BeginTransaction();
 
         public void AddTable(Zeze.Transaction.Table table)
         {
@@ -152,6 +152,35 @@ namespace Zeze.Transaction
         }
 
         public Util.AsyncExecutor Executor { get; }
+
+        public class TransactionAsync : IDisposable
+        {
+            public Database Database { get; }
+            public ITransaction ITransaction { get; }
+
+            public TransactionAsync(Database d, ITransaction t)
+            {
+                Database = d;
+                ITransaction = t;
+            }
+
+            public async Task CommitAsync()
+            {
+                await Database.Executor.RunAsync(() => ITransaction.Commit());
+            }
+
+            public async Task RollbackAsync()
+            {
+                await Database.Executor.RunAsync(() => ITransaction.Rollback());
+            }
+
+            public void Dispose()
+            {
+                GC.SuppressFinalize(this);
+
+                ITransaction.Dispose();
+            }
+        }
 
         public class TableAsync
         {
@@ -314,9 +343,9 @@ namespace Zeze.Transaction
             }
         }
 
-        public override ITransaction BeginTransaction()
+        public override TransactionAsync BeginTransaction()
         {
-            return new MySqlTrans(DatabaseUrl);
+            return new TransactionAsync(this, new MySqlTrans(DatabaseUrl));
         }
 
         public override TableAsync OpenTable(string name)
@@ -766,9 +795,9 @@ namespace Zeze.Transaction
             }
         }
 
-        public override ITransaction BeginTransaction()
+        public override TransactionAsync BeginTransaction()
         {
-            return new SqlTrans(DatabaseUrl);
+            return new TransactionAsync(this, new SqlTrans(DatabaseUrl));
         }
 
         public override TableAsync OpenTable(string name)
@@ -1236,9 +1265,9 @@ namespace Zeze.Transaction
             }
         }
 
-        public override ITransaction BeginTransaction()
+        public override TransactionAsync BeginTransaction()
         {
-            return new RocksDbTrans(this);
+            return new TransactionAsync(this, new RocksDbTrans(this));
         }
 
         public override TableAsync OpenTable(string name)
@@ -1609,9 +1638,9 @@ namespace Zeze.Transaction
             }
         }
 
-        public override ITransaction BeginTransaction()
+        public override TransactionAsync BeginTransaction()
         {
-            return new MemTrans(this);
+            return new TransactionAsync(this, new MemTrans(this));
         }
 
         private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, TableAsync>> databaseTables = new();

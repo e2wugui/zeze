@@ -8,7 +8,7 @@ namespace Infinite
         internal static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         internal demo.App app;
-        Zeze.Config config;
+        readonly Zeze.Config config;
 
         public App(int serverId)
         {
