@@ -84,7 +84,7 @@ namespace Zeze.Transaction
             CheckpointThread?.Join();
         }
 
-        internal void RunOnce()
+        internal async Task CheckpointNow()
         {
             switch (CheckpointMode)
             {
@@ -94,11 +94,11 @@ namespace Zeze.Transaction
                 case CheckpointMode.Period:
                     TaskCompletionSource<int> source = new(TaskCreationOptions.RunContinuationsAsynchronously);
                     AddActionAndPulse(() => source.SetResult(0));
-                    source.Task.Wait();
+                    await source.Task;
                     break;
 
                 case CheckpointMode.Table:
-                    RelativeRecordSet.FlushWhenCheckpoint();
+                    await RelativeRecordSet.FlushWhenCheckpoint();
                     break;
             }
         }
@@ -125,7 +125,7 @@ namespace Zeze.Transaction
                             break;
 
                         case CheckpointMode.Table:
-                            RelativeRecordSet.FlushWhenCheckpoint();
+                            RelativeRecordSet.FlushWhenCheckpoint().Wait();
                             break;
                     }
                     lock (this)
@@ -146,7 +146,7 @@ namespace Zeze.Transaction
                     break;
 
                 case CheckpointMode.Table:
-                    RelativeRecordSet.FlushWhenCheckpoint();
+                    RelativeRecordSet.FlushWhenCheckpoint().Wait();
                     break;
             }
             logger.Fatal("final checkpoint end.");

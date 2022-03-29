@@ -118,14 +118,17 @@ namespace Zeze.Transaction
 
                 if (Connector.IsHandshakeDone)
                 {
-                    foreach (var database in client.Zeze.Databases.Values)
+                    Task.Run(async () =>
                     {
-                        foreach (var table in database.Tables)
+                        foreach (var database in client.Zeze.Databases.Values)
                         {
-                            table.ReduceInvalidAllLocalOnly(GlobalCacheManagerHashIndex);
+                            foreach (var table in database.Tables)
+                            {
+                                await table.ReduceInvalidAllLocalOnly(GlobalCacheManagerHashIndex);
+                            }
                         }
-                    }
-                    client.Zeze.CheckpointRun();
+                        await client.Zeze.CheckpointNow();
+                    });
                 }
             }
         }

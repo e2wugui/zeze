@@ -362,7 +362,7 @@ namespace Zeze.Transaction
             return true;
         }
 
-        internal static async void FlushWhenCheckpoint()
+        internal static async Task FlushWhenCheckpoint()
         {
             foreach (var rrs in RelativeRecordSetMap.Keys)
             {

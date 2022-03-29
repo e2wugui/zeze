@@ -333,9 +333,9 @@ namespace Zeze
             }
         }
  
-        public void CheckpointRun()
+        public async Task CheckpointNow()
         {
-            _checkpoint.RunOnce();
+            await _checkpoint.CheckpointNow();
         }
 
         public Application()

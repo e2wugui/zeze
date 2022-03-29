@@ -24,7 +24,7 @@ namespace UnitTest.Zeze.Trans
         }
 
 		[TestMethod]
-		public void TestModeTable()
+		public async Task TestModeTable()
 		{
 			/*
 			Assert.AreTrue(demo.App.Instance.Zeze.NewProcedure(() =>
@@ -65,7 +65,7 @@ namespace UnitTest.Zeze.Trans
 			}, "23").CallSynchronously() == Procedure.Success);
 			//Console.WriteLine("5");
 			//Console.WriteLine(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
-			demo.App.Instance.Zeze.CheckpointRun();
+			await demo.App.Instance.Zeze.CheckpointNow();
 			//Console.WriteLine("6");
 			//Console.WriteLine(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 
@@ -77,11 +77,11 @@ namespace UnitTest.Zeze.Trans
 		}
 
 		[TestMethod]
-        public void TestCp()
+        public async Task TestCp()
         {
             Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(ProcClear, "ProcClear").CallSynchronously() == Procedure.Success);
             Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(ProcChange, "ProcChange").CallSynchronously() == Procedure.Success);
-            demo.App.Instance.Zeze.CheckpointRun();
+            await demo.App.Instance.Zeze.CheckpointNow();
 			var table = demo.App.Instance.demo_Module1.Table1;
 			var dbtable = table.GetStorageForTestOnly("IKnownWhatIAmDoing").TableAsync;
             ByteBuffer value = dbtable.ITable.Find(table.EncodeKey(56));

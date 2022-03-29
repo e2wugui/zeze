@@ -159,7 +159,7 @@ namespace Zeze.Transaction
                         if (false == TryRemoveRecord(e))
                         {
                             // 出现回收不了，一般是批量修改数据，此时启动一次Checkpoint。
-                            Table.Zeze.CheckpointRun();
+                            Table.Zeze.CheckpointNow().Wait();
                         }
                     }
                     if (node.IsEmpty)
