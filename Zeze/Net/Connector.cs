@@ -98,12 +98,12 @@ namespace Zeze.Net
             return volatileTmp.Task.Result;
         }
 
-        public virtual AsyncSocket TryGetReadySocket(int timeout = 0)
+        public virtual AsyncSocket TryGetReadySocket()
         {
             var volatileTmp = FutureSocket;
             try
             {
-                if (volatileTmp.Task.Wait(timeout))
+                if (volatileTmp.Task.IsCompletedSuccessfully)
                     return volatileTmp.Task.Result;
             }
             catch (Exception)

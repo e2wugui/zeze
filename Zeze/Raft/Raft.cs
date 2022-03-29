@@ -715,6 +715,7 @@ namespace Zeze.Raft
             // 本来 Leader -> Follower 需要，为了健壮性，全部改变都重置。
             ResetLeaderReadyAfterChangeState();
             await LogSequence.CancelAllInstallSnapshot();
+            LogSequence.CancelPendingAppendLogFutures();
 
             switch (newState)
             {

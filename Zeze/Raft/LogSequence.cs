@@ -369,7 +369,7 @@ namespace Zeze.Raft
             }
         }
 
-        private void CancelPendingAppendLogFutures()
+        internal void CancelPendingAppendLogFutures()
         {
             foreach (var job in LeaderAppendLogs.Values)
             {
@@ -841,9 +841,6 @@ namespace Zeze.Raft
 
         internal async Task<(long, long, TaskCompletionSource<int>)> AppendLog(Log log, bool waitapplied)
         {
-            long term = 0;
-            long index = 0;
-
             TaskCompletionSource<int> future = null;
             // has under lock (Raft)
             {
@@ -854,21 +851,19 @@ namespace Zeze.Raft
                     future = raftLog.LeaderFuture;
                     if (false == LeaderAppendLogs.TryAdd(raftLog.Index, raftLog))
                     {
+                        logger.Fatal($"LeaderAppendLogs.TryAdd Fail. Index={raftLog.Index}");
                         Raft.FatalKill();
-                        throw new Exception("Impossible");
                     }
                 }
                 if (raftLog.Log.Unique.RequestId > 0)
                     await OpenUniqueRequests(raftLog.Log.CreateTime).Save(raftLog);
                 await SaveLog(raftLog);
                 LastIndex = raftLog.Index;
-                term = Term;
-                index = LastIndex;
 
                 // 广播给followers并异步等待多数确认
                 await Raft.Server.Config.ForEachConnectorAsync(async (c) => await TrySendAppendEntries(c as Server.ConnectorEx, null));
             }
-            return (term, index, future);
+            return (Term, LastIndex, future);
         }
 
         // 是否正在创建Snapshot过程中，用来阻止新的创建请求。
