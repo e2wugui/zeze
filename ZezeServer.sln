@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceManager", "ServiceMa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestMain", "TestMain\TestMain.csproj", "{0CC4470A-AE3D-4238-98D0-3E65479271E7}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Draft", "Draft\Draft.csproj", "{DAEA7305-00EE-4B0F-A31C-98C7690EBC94}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -97,6 +99,18 @@ Global
 		{0CC4470A-AE3D-4238-98D0-3E65479271E7}.Release|x64.Build.0 = Release|Any CPU
 		{0CC4470A-AE3D-4238-98D0-3E65479271E7}.Release|x86.ActiveCfg = Release|Any CPU
 		{0CC4470A-AE3D-4238-98D0-3E65479271E7}.Release|x86.Build.0 = Release|Any CPU
+		{DAEA7305-00EE-4B0F-A31C-98C7690EBC94}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DAEA7305-00EE-4B0F-A31C-98C7690EBC94}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DAEA7305-00EE-4B0F-A31C-98C7690EBC94}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{DAEA7305-00EE-4B0F-A31C-98C7690EBC94}.Debug|x64.Build.0 = Debug|Any CPU
+		{DAEA7305-00EE-4B0F-A31C-98C7690EBC94}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{DAEA7305-00EE-4B0F-A31C-98C7690EBC94}.Debug|x86.Build.0 = Debug|Any CPU
+		{DAEA7305-00EE-4B0F-A31C-98C7690EBC94}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DAEA7305-00EE-4B0F-A31C-98C7690EBC94}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DAEA7305-00EE-4B0F-A31C-98C7690EBC94}.Release|x64.ActiveCfg = Release|Any CPU
+		{DAEA7305-00EE-4B0F-A31C-98C7690EBC94}.Release|x64.Build.0 = Release|Any CPU
+		{DAEA7305-00EE-4B0F-A31C-98C7690EBC94}.Release|x86.ActiveCfg = Release|Any CPU
+		{DAEA7305-00EE-4B0F-A31C-98C7690EBC94}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
