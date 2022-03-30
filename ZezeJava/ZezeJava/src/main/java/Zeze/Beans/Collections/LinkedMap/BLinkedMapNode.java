@@ -4,8 +4,8 @@ package Zeze.Beans.Collections.LinkedMap;
 import Zeze.Serialize.ByteBuffer;
 
 public final class BLinkedMapNode extends Zeze.Transaction.Bean {
-    private long _PrevNodeId; // 前一个节点ID. 0表示没有
-    private long _NextNodeId; // 后一个节点ID. 0表示没有. 新增总是从后加入
+    private long _PrevNodeId; // 前一个节点ID. 0表示已到达开头。
+    private long _NextNodeId; // 后一个节点ID. 0表示已到达结尾。
     private final Zeze.Transaction.Collections.PList2<Zeze.Beans.Collections.LinkedMap.BLinkedMapNodeValue> _Values; // 多个KeyValue对,容量由LinkedMap构造时的nodeSize决定
 
     public long getPrevNodeId() {
