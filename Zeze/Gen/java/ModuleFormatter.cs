@@ -312,7 +312,7 @@ namespace Zeze.Gen.java
             foreach (Table table in module.Tables.Values)
             {
                 if (project.GenTables.Contains(table.Gen) && table.IsRocks == false)
-                    sw.WriteLine($"        {zezeVar}.AddTable(App.Zeze.getConfig().GetTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
+                    sw.WriteLine($"        {zezeVar}.AddTable({zezeVar}.getConfig().GetTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
             }
         }
 
@@ -345,7 +345,7 @@ namespace Zeze.Gen.java
             foreach (Table table in module.Tables.Values)
             {
                 if (project.GenTables.Contains(table.Gen) && table.IsRocks == false)
-                    sw.WriteLine($"        {zezeVar}.RemoveTable(App.Zeze.getConfig().GetTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
+                    sw.WriteLine($"        {zezeVar}.RemoveTable({zezeVar}.getConfig().GetTableConf(_{table.Name}.getName()).getDatabaseName(), _{table.Name});");
             }
         }
 
