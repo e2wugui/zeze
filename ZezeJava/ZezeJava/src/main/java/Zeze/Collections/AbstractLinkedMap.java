@@ -1,11 +1,10 @@
 // auto-generated @formatter:off
 package Zeze.Collections;
 
-import Zeze.Beans.Collections.LinkedMap.*;
 public abstract class AbstractLinkedMap {
-    protected final tLinkedMapNodes _tLinkedMapNodes = new tLinkedMapNodes();
-    protected final tLinkedMaps _tLinkedMaps = new tLinkedMaps();
-    protected final tValueIdToNodeId _tValueIdToNodeId = new tValueIdToNodeId();
+    protected final Zeze.Beans.Collections.LinkedMap.tLinkedMapNodes _tLinkedMapNodes = new Zeze.Beans.Collections.LinkedMap.tLinkedMapNodes();
+    protected final Zeze.Beans.Collections.LinkedMap.tLinkedMaps _tLinkedMaps = new Zeze.Beans.Collections.LinkedMap.tLinkedMaps();
+    protected final Zeze.Beans.Collections.LinkedMap.tValueIdToNodeId _tValueIdToNodeId = new Zeze.Beans.Collections.LinkedMap.tValueIdToNodeId();
 
     public void RegisterProtocols(Zeze.Net.Service service) {
     }

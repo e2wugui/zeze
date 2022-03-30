@@ -1,7 +1,6 @@
 // auto-generated @formatter:off
 package Zeze.Services;
 
-import Zeze.Beans.TestRocks.*;
 public abstract class AbstractTestRocks {
     public void RegisterProtocols(Zeze.Net.Service service) {
     }

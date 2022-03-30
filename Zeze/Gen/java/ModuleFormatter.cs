@@ -414,7 +414,7 @@ namespace Zeze.Gen.java
             {
                 if (project.GenTables.Contains(table.Gen) && false == table.IsRocks)
                 {
-                    sw.WriteLine("    protected final " + table.Name + " _" + table.Name + " = new " + table.Name + "();");
+                    sw.WriteLine("    protected final " + table.FullName + " _" + table.Name + " = new " + table.FullName + "();");
                     written = true;
                 }
             }
