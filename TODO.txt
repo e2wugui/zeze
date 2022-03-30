@@ -39,6 +39,8 @@
 	Global With Raft 异步测试
 	Test TestGlobal
 	Test Simulate
+	java 参考 Zeze.Raft.Test.java 写一个 GlobalCacheManagerWithRaft 的测试。模拟Global各种失败，Gs仍然可以正确工作。【肖丽杨】
+	换换脑子，写一个java版基于KV的LinkedList
 
 【2022/4/11】
 	async Connector GetReadySocket WaitReady 

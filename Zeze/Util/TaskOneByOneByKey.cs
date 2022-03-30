@@ -126,23 +126,6 @@ namespace Zeze.Util
 			public string Name { get; set; }
 			public Action Cancel { get; set; }
 			public abstract Task ProcessAsync();
-
-			public async Task<long> DoIt(TaskOneByOne obo)
-			{
-				try
-				{
-					await ProcessAsync();
-				}
-				catch (Exception ex)
-				{
-					logger.Error(ex, "TaskOneByOne.DoIt");
-				}
-				finally
-				{
-					obo.RunNext();
-				}
-				return 0;
-			}
 		}
 
 		internal class JobProtocol : Job
@@ -285,9 +268,12 @@ namespace Zeze.Util
 						return;
 					}
 					Queue.AddLast(job);
+
 					if (Queue.Count == 1)
 					{
-						_ = Queue.First.Value.DoIt(this);
+						ExecutionContext.SuppressFlow();
+						Task.Run(async () => await Queue.First.Value.ProcessAsync());
+						ExecutionContext.RestoreFlow();
 					}
 				}
 			}
@@ -307,7 +293,9 @@ namespace Zeze.Util
 					}
 					if (Queue.Count > 0)
 					{
-						_ = Queue.First.Value.DoIt(this);
+						ExecutionContext.SuppressFlow();
+						Task.Run(async () => await Queue.First.Value.ProcessAsync());
+						ExecutionContext.RestoreFlow();
 					}
 				}
 			}
