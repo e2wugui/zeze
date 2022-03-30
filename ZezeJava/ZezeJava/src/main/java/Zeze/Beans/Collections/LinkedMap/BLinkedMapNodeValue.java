@@ -4,7 +4,7 @@ package Zeze.Beans.Collections.LinkedMap;
 import Zeze.Serialize.ByteBuffer;
 
 public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
-    private String _Id;
+    private String _Id; // LinkedMap的Key转成字符串类型
     private final Zeze.Transaction.DynamicBean _Value;
     private boolean _Pin;
 

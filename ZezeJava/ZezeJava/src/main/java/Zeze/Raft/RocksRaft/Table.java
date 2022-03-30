@@ -38,11 +38,7 @@ public final class Table<K, V extends Bean> {
 		Name = String.format("%s#%d", TemplateName, TemplateId);
 		keyEncodeFunc = SerializeHelper.createEncodeFunc(keyClass);
 		keyDecodeFunc = SerializeHelper.createDecodeFunc(keyClass);
-		try {
-			valueFactory = MethodHandles.lookup().findConstructor(valueClass, MethodType.methodType(void.class));
-		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException(e);
-		}
+		valueFactory = SerializeHelper.getDefaultConstructor(valueClass);
 		Open();
 	}
 

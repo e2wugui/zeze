@@ -1,8 +1,6 @@
 package Zeze.Raft.RocksRaft;
 
 import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
@@ -18,11 +16,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	public LogMap2(Class<K> keyClass, Class<V> valueClass) {
 		super("Zeze.Raft.RocksRaft.LogMap2<" + Reflect.GetStableName(keyClass) + ", "
 				+ Reflect.GetStableName(valueClass) + '>', keyClass, valueClass);
-		try {
-			valueFactory = MethodHandles.lookup().findConstructor(valueClass, MethodType.methodType(void.class));
-		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException(e);
-		}
+		valueFactory = SerializeHelper.getDefaultConstructor(valueClass);
 	}
 
 	LogMap2(int typeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs, MethodHandle valueFactory) {

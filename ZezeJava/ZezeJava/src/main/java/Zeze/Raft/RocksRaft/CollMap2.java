@@ -14,11 +14,7 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 
 	public CollMap2(Class<K> keyClass, Class<V> valueClass) {
 		keyCodecFuncs = SerializeHelper.createCodec(keyClass);
-		try {
-			valueFactory = MethodHandles.lookup().findConstructor(valueClass, MethodType.methodType(void.class));
-		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException(e);
-		}
+		valueFactory = SerializeHelper.getDefaultConstructor(valueClass);
 		logTypeId = Zeze.Transaction.Bean.Hash32("Zeze.Raft.RocksRaft.LogMap2<"
 				+ Reflect.GetStableName(keyClass) + ", " + Reflect.GetStableName(valueClass) + '>');
 	}

@@ -75,7 +75,7 @@
 
 		<module name="AutoKey" id="11003">
 			<bean name="BAutoKey">
-				<variable id="1" name="NextId" type="long"/> 
+				<variable id="1" name="NextId" type="long"/>
 			</bean>
 			<table name="tAutoKeys" key="string" value="BAutoKey" />
 		</module>
@@ -83,24 +83,24 @@
 		<module name="Collections" id="11004">
 			<module name="LinkedMap" id="11005">
 				<bean name="BLinkedMap">
-					<variable id="1" name="HeadNodeId" type="long" />
+					<variable id="1" name="HeadNodeId" type="long" /> 暂时没用(一直是0)
 					<variable id="2" name="TailNodeId" type="long" />
-					<variable id="3" name="LastNotPinNodeId" type="long" />
-					<variable id="4" name="Count" type="long" />
+					<variable id="3" name="LastNotPinNodeId" type="long" /> 非pin value的最后节点ID,其后的节点一定都是全pin value的节点
+					<variable id="4" name="Count" type="long" /> 暂时没用(一直是0)
 				</bean>
-				<table name="tLinkedMaps" key="string" value="BLinkedMap" /> key is Name
+				<table name="tLinkedMaps" key="string" value="BLinkedMap" /> key: LinkedMap的Name
 
 				<beankey name="BLinkedMapKey">
-					<variable id="1" name="Name" type="string" />
-					<variable id="2" name="ValueId" type="string" />
+					<variable id="1" name="Name" type="string" /> LinkedMap的Name
+					<variable id="2" name="ValueId" type="string" /> LinkedMap的Key转成字符串类型
 				</beankey>
 				<bean name="BLinkedMapNodeId">
-					<variable id="1" name="NodeId" type="long" />
+					<variable id="1" name="NodeId" type="long" /> KeyValue对所属的节点ID. 每个节点有多个KeyValue对共享
 				</bean>
 				<table name="tValueIdToNodeId" key="BLinkedMapKey" value="BLinkedMapNodeId" />
 
 				<bean name="BLinkedMapNodeValue">
-					<variable id="1" name="Id" type="string" />
+					<variable id="1" name="Id" type="string" /> LinkedMap的Key转成字符串类型
 					<variable id="2" name="Value" type="dynamic">
 						<GetSpecialTypeIdFromBean value="Zeze.Collections.LinkedMap::GetSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Collections.LinkedMap::CreateBeanFromSpecialTypeId"/>
@@ -108,13 +108,13 @@
 					<variable id="3" name="Pin" type="bool" />
 				</bean>
 				<beankey name="BLinkedMapNodeKey">
-					<variable id="1" name="Name" type="string" />
+					<variable id="1" name="Name" type="string" /> LinkedMap的Name
 					<variable id="2" name="NodeId" type="long" />
 				</beankey>
-				<bean name="BLinkedMapNode">
-					<variable id="1" name="PrevNodeId" type="long" />
-					<variable id="2" name="NextNodeId" type="long" />
-					<variable id="3" name="Values" type="list" value="BLinkedMapNodeValue" />
+				<bean name="BLinkedMapNode"> 一个节点可以存多个KeyValue对
+					<variable id="1" name="PrevNodeId" type="long" /> 前一个节点ID. 0表示没有
+					<variable id="2" name="NextNodeId" type="long" /> 后一个节点ID. 0表示没有. 新增总是从后加入
+					<variable id="3" name="Values" type="list" value="BLinkedMapNodeValue" /> 多个KeyValue对,容量由LinkedMap构造时的nodeSize决定
 				</bean>
 				<table name="tLinkedMapNodes" key="BLinkedMapNodeKey" value="BLinkedMapNode"/>
 			</module>

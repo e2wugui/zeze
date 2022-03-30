@@ -4,7 +4,7 @@ package Zeze.Beans.Collections.LinkedMap;
 import Zeze.Serialize.ByteBuffer;
 
 public final class BLinkedMapNodeId extends Zeze.Transaction.Bean {
-    private long _NodeId;
+    private long _NodeId; // KeyValue对所属的节点ID. 每个节点有多个KeyValue对共享
 
     public long getNodeId() {
         if (!isManaged())

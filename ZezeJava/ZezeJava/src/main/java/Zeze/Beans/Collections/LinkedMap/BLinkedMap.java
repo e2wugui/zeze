@@ -4,10 +4,10 @@ package Zeze.Beans.Collections.LinkedMap;
 import Zeze.Serialize.ByteBuffer;
 
 public final class BLinkedMap extends Zeze.Transaction.Bean {
-    private long _HeadNodeId;
+    private long _HeadNodeId; // 暂时没用(一直是0)
     private long _TailNodeId;
-    private long _LastNotPinNodeId;
-    private long _Count;
+    private long _LastNotPinNodeId; // 非pin value的最后节点ID,其后的节点一定都是全pin value的节点
+    private long _Count; // 暂时没用(一直是0)
 
     public long getHeadNodeId() {
         if (!isManaged())

@@ -5,8 +5,8 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 
 public final class BLinkedMapKey implements Serializable, Comparable<BLinkedMapKey> {
-    private String _Name;
-    private String _ValueId;
+    private String _Name; // LinkedMap的Name
+    private String _ValueId; // LinkedMap的Key转成字符串类型
 
     // for decode only
     public BLinkedMapKey() {

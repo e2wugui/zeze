@@ -1,5 +1,8 @@
 package Zeze.Serialize;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.util.HashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -92,6 +95,14 @@ public final class SerializeHelper {
 					((Serializable)obj).Decode(bb);
 					return obj;
 				});
+	}
+
+	public static MethodHandle getDefaultConstructor(Class<?> cls) {
+		try {
+			return MethodHandles.lookup().findConstructor(cls, MethodType.methodType(void.class));
+		} catch (ReflectiveOperationException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	private SerializeHelper() {

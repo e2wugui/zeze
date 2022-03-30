@@ -1,9 +1,22 @@
 package Zeze.Collections;
 
-import Zeze.Beans.Collections.LinkedMap.*;
+import java.lang.invoke.MethodHandle;
+import Zeze.Beans.Collections.LinkedMap.BLinkedMapKey;
+import Zeze.Beans.Collections.LinkedMap.BLinkedMapNode;
+import Zeze.Beans.Collections.LinkedMap.BLinkedMapNodeId;
+import Zeze.Beans.Collections.LinkedMap.BLinkedMapNodeKey;
+import Zeze.Beans.Collections.LinkedMap.BLinkedMapNodeValue;
+import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
+import Zeze.Util.LongHashMap;
 
 public class LinkedMap<V extends Bean> {
+	private static final Module module = new Module();
+
+	public static Module getModule() {
+		return module;
+	}
+
 	public static long GetSpecialTypeIdFromBean(Bean bean) {
 		return module.GetSpecialTypeIdFromBean(bean);
 	}
@@ -13,7 +26,24 @@ public class LinkedMap<V extends Bean> {
 	}
 
 	public static class Module extends AbstractLinkedMap {
-		private boolean init = false;
+		private static final LongHashMap<MethodHandle> factory = new LongHashMap<>();
+
+		private boolean init;
+
+		public void register(Class<? extends Bean> beanClass) {
+			MethodHandle beanCtor = SerializeHelper.getDefaultConstructor(beanClass);
+			Bean bean;
+			try {
+				bean = (Bean)beanCtor.invoke();
+			} catch (RuntimeException e) {
+				throw e;
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
+			synchronized (factory) {
+				factory.putIfAbsent(bean.getTypeId(), beanCtor);
+			}
+		}
 
 		/**
 		 * 必须在 Zeze.Start 之前调用。比较好的地方放在 App.Create 后面。
@@ -28,17 +58,26 @@ public class LinkedMap<V extends Bean> {
 		}
 
 		public long GetSpecialTypeIdFromBean(Bean bean) {
-			var _typeId_ = bean.getTypeId();
-			if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
-				return Zeze.Transaction.EmptyBean.TYPEID;
-			throw new RuntimeException("Unknown Bean! dynamic@Zeze.Beans.Collections.LinkedMap.BLinkedMapNodeValue:Value");
+			return bean.getTypeId();
 		}
 
 		public Bean CreateBeanFromSpecialTypeId(long typeId) {
-			return null;
+			MethodHandle beanCtor;
+			synchronized (factory) {
+				beanCtor = factory.get(typeId);
+			}
+			if (beanCtor == null)
+				throw new RuntimeException("Unknown Bean TypeId=" + typeId);
+			try {
+				return (Bean)beanCtor.invoke();
+			} catch (RuntimeException e) {
+				throw e;
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 		}
 
-			// 一般不需要调用
+		// 一般不需要调用
 		public void finalize(Zeze.Application zeze) {
 			synchronized (module) {
 				if (!init)
@@ -49,25 +88,21 @@ public class LinkedMap<V extends Bean> {
 		}
 	}
 
-	private final static Module module = new Module();
-
-	public static Module getModule() {
-		return module;
-	}
-
 	private final String name;
 	private final int nodeSize;
-	public String getName() {
-		return name;
+
+	public LinkedMap(String name, Class<V> valueClass) {
+		this(name, 100, valueClass);
 	}
 
-	public LinkedMap(String name) {
-		this(name, 100);
-	}
-
-	public LinkedMap(String name, int nodeSize) {
+	public LinkedMap(String name, int nodeSize, Class<V> valueClass) {
 		this.name = name;
 		this.nodeSize = nodeSize;
+		module.register(valueClass);
+	}
+
+	public String getName() {
+		return name;
 	}
 
 	// LinkedMapNode
