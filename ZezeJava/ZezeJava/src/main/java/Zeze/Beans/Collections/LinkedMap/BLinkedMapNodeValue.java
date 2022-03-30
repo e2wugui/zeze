@@ -6,6 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
     private String _Id;
     private final Zeze.Transaction.DynamicBean _Value;
+    private boolean _Pin;
 
     public String getId() {
         if (!isManaged())
@@ -35,6 +36,28 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
         return _Value;
     }
 
+    public boolean isPin() {
+        if (!isManaged())
+            return _Pin;
+        var txn = Zeze.Transaction.Transaction.getCurrent();
+        if (txn == null)
+            return _Pin;
+        txn.VerifyRecordAccessed(this, true);
+        var log = (Log__Pin)txn.GetLog(this.getObjectId() + 3);
+        return log != null ? log.getValue() : _Pin;
+    }
+
+    public void setPin(boolean value) {
+        if (!isManaged()) {
+            _Pin = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrent();
+        assert txn != null;
+        txn.VerifyRecordAccessed(this);
+        txn.PutLog(new Log__Pin(this, value));
+    }
+
     public BLinkedMapNodeValue() {
          this(0);
     }
@@ -48,6 +71,7 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
     public void Assign(BLinkedMapNodeValue other) {
         setId(other.getId());
         getValue().Assign(other.getValue());
+        setPin(other.isPin());
     }
 
     public BLinkedMapNodeValue CopyIfManaged() {
@@ -98,6 +122,14 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
     }
 
 
+    private static final class Log__Pin extends Zeze.Transaction.Log1<BLinkedMapNodeValue, Boolean> {
+        public Log__Pin(BLinkedMapNodeValue self, Boolean value) { super(self, value); }
+        @Override
+        public long getLogKey() { return this.getBean().getObjectId() + 3; }
+        @Override
+        public void Commit() { this.getBeanTyped()._Pin = this.getValue(); }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -113,7 +145,8 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("Id").append('=').append(getId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
         getValue().getBean().BuildString(sb, level + 4);
-        sb.append(System.lineSeparator());
+        sb.append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Pin").append('=').append(isPin()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -148,6 +181,13 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
                 _x_.Encode(_o_);
             }
         }
+        {
+            boolean _x_ = isPin();
+            if (_x_) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _o_.WriteByte(1);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -162,6 +202,10 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
         }
         if (_i_ == 2) {
             _o_.ReadDynamic(getValue(), _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
+            setPin(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

@@ -6,7 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 public final class BLinkedMap extends Zeze.Transaction.Bean {
     private long _HeadNodeId;
     private long _TailNodeId;
-    private long _FirstNotTopNodeId;
+    private long _LastNotPinNodeId;
     private long _Count;
 
     public long getHeadNodeId() {
@@ -53,26 +53,26 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__TailNodeId(this, value));
     }
 
-    public long getFirstNotTopNodeId() {
+    public long getLastNotPinNodeId() {
         if (!isManaged())
-            return _FirstNotTopNodeId;
+            return _LastNotPinNodeId;
         var txn = Zeze.Transaction.Transaction.getCurrent();
         if (txn == null)
-            return _FirstNotTopNodeId;
+            return _LastNotPinNodeId;
         txn.VerifyRecordAccessed(this, true);
-        var log = (Log__FirstNotTopNodeId)txn.GetLog(this.getObjectId() + 3);
-        return log != null ? log.getValue() : _FirstNotTopNodeId;
+        var log = (Log__LastNotPinNodeId)txn.GetLog(this.getObjectId() + 3);
+        return log != null ? log.getValue() : _LastNotPinNodeId;
     }
 
-    public void setFirstNotTopNodeId(long value) {
+    public void setLastNotPinNodeId(long value) {
         if (!isManaged()) {
-            _FirstNotTopNodeId = value;
+            _LastNotPinNodeId = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__FirstNotTopNodeId(this, value));
+        txn.PutLog(new Log__LastNotPinNodeId(this, value));
     }
 
     public long getCount() {
@@ -108,7 +108,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
     public void Assign(BLinkedMap other) {
         setHeadNodeId(other.getHeadNodeId());
         setTailNodeId(other.getTailNodeId());
-        setFirstNotTopNodeId(other.getFirstNotTopNodeId());
+        setLastNotPinNodeId(other.getLastNotPinNodeId());
         setCount(other.getCount());
     }
 
@@ -156,12 +156,12 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
         public void Commit() { this.getBeanTyped()._TailNodeId = this.getValue(); }
     }
 
-    private static final class Log__FirstNotTopNodeId extends Zeze.Transaction.Log1<BLinkedMap, Long> {
-        public Log__FirstNotTopNodeId(BLinkedMap self, Long value) { super(self, value); }
+    private static final class Log__LastNotPinNodeId extends Zeze.Transaction.Log1<BLinkedMap, Long> {
+        public Log__LastNotPinNodeId(BLinkedMap self, Long value) { super(self, value); }
         @Override
         public long getLogKey() { return this.getBean().getObjectId() + 3; }
         @Override
-        public void Commit() { this.getBeanTyped()._FirstNotTopNodeId = this.getValue(); }
+        public void Commit() { this.getBeanTyped()._LastNotPinNodeId = this.getValue(); }
     }
 
     private static final class Log__Count extends Zeze.Transaction.Log1<BLinkedMap, Long> {
@@ -186,7 +186,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("HeadNodeId").append('=').append(getHeadNodeId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("TailNodeId").append('=').append(getTailNodeId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("FirstNotTopNodeId").append('=').append(getFirstNotTopNodeId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LastNotPinNodeId").append('=').append(getLastNotPinNodeId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Count").append('=').append(getCount()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -223,7 +223,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
             }
         }
         {
-            long _x_ = getFirstNotTopNodeId();
+            long _x_ = getLastNotPinNodeId();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
@@ -253,7 +253,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            setFirstNotTopNodeId(_o_.ReadLong(_t_));
+            setLastNotPinNodeId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 4) {
@@ -277,7 +277,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
             return true;
         if (getTailNodeId() < 0)
             return true;
-        if (getFirstNotTopNodeId() < 0)
+        if (getLastNotPinNodeId() < 0)
             return true;
         if (getCount() < 0)
             return true;

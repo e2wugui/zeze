@@ -81,7 +81,7 @@
 				<bean name="BLinkedMap">
 					<variable id="1" name="HeadNodeId" type="long" />
 					<variable id="2" name="TailNodeId" type="long" />
-					<variable id="3" name="FirstNotTopNodeId" type="long" />
+					<variable id="3" name="LastNotPinNodeId" type="long" />
 					<variable id="4" name="Count" type="long" />
 				</bean>
 				<table name="tLinkedMaps" key="string" value="BLinkedMap" /> key is Name
@@ -98,6 +98,7 @@
 				<bean name="BLinkedMapNodeValue">
 					<variable id="1" name="Id" type="string" />
 					<variable id="2" name="Value" type="dynamic" />
+					<variable id="3" name="Pin" type="bool" />
 				</bean>
 				<beankey name="BLinkedMapNodeKey">
 					<variable id="1" name="Name" type="string" />

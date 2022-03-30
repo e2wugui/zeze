@@ -21,7 +21,7 @@ public final class tLinkedMaps extends Zeze.Transaction.TableX<String, Zeze.Bean
     public static final int VAR_All = 0;
     public static final int VAR_HeadNodeId = 1;
     public static final int VAR_TailNodeId = 2;
-    public static final int VAR_FirstNotTopNodeId = 3;
+    public static final int VAR_LastNotPinNodeId = 3;
     public static final int VAR_Count = 4;
 
     @Override
