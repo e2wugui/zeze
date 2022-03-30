@@ -181,6 +181,10 @@ public final class Application {
 		if (IsStart)
 			return;
 		IsStart = true;
+
+		// 自动初始化的组件。
+		Zeze.Component.AutoKey.getModule().initialize(this);
+
 		Locks = new Locks();
 		Task.tryInitThreadPool(this, null, null);
 

@@ -74,6 +74,10 @@
 		</module>
 
 		<module name="AutoKey" id="11003">
+			<bean name="BAutoKey">
+				<variable id="1" name="NextId" type="long"/> 
+			</bean>
+			<table name="tAutoKeys" key="string" value="BAutoKey" />
 		</module>
 
 		<module name="Collections" id="11004">
@@ -120,6 +124,12 @@
 	<component name="LinkedMap" gendir="src/main/java" genrelativedir="Zeze/Collections" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Beans.Collections.LinkedMap"/>
+		</service>
+	</component>
+
+	<component name="AutoKey" gendir="src/main/java" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Beans.AutoKey"/>
 		</service>
 	</component>
 
