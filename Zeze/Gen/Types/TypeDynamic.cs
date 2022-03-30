@@ -24,6 +24,8 @@ namespace Zeze.Gen.Types
 
         public SortedDictionary<long, Bean> RealBeans { get; } = new SortedDictionary<long, Bean>();
         public int SpecialCount { get; }
+        public string GetSpecialTypeIdFromBean { get; }
+        public string CreateBeanFromSpecialTypeId { get; }
 
         public override void Accept(Visitor visitor)
         {
@@ -42,8 +44,17 @@ namespace Zeze.Gen.Types
         private TypeDynamic(ModuleSpace space, string value)
         {
             Kind = "dynamic";
+            var split2 = value.Split('%');
+            if (split2.Length > 2)
+                throw new Exception($"error dynamic value format:{value}");
 
-            foreach (var beanWithSpecialTypeId in value.Split(','))
+            if (split2.Length > 1)
+            { 
+                var func2 = split2[1].Split(',');
+                GetSpecialTypeIdFromBean = func2[0];
+                CreateBeanFromSpecialTypeId = func2[1];
+            }
+            foreach (var beanWithSpecialTypeId in split2[0].Split(','))
             {
                 if (beanWithSpecialTypeId.Length == 0) // empty
                     continue;

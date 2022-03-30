@@ -39,9 +39,10 @@
 	Global With Raft 异步测试
 	Test TestGlobal
 	Test Simulate
-	换换脑子，写一个java版基于KV的LinkedMap
+	java版基于KV的LinkedMap: AutoKey, Gc, dynamic 动态注册问题。
 
 【2022/4/11】
+	换换脑子，写一个java版基于KV的LinkedMap
 	async Connector GetReadySocket WaitReady 
 	GlobakWithRaft java test【张路】【基本可用了】
 	GlobalAgent NormalClose 超时设置。必须加大或者无限等待。

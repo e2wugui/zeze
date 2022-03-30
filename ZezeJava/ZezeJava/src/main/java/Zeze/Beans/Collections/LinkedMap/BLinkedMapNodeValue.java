@@ -65,7 +65,7 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
     public BLinkedMapNodeValue(int _varId_) {
         super(_varId_);
         _Id = "";
-        _Value = new Zeze.Transaction.DynamicBean(2, BLinkedMapNodeValue::GetSpecialTypeIdFromBean_Value, BLinkedMapNodeValue::CreateBeanFromSpecialTypeId_Value);
+        _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.LinkedMap::GetSpecialTypeIdFromBean, Zeze.Collections.LinkedMap::CreateBeanFromSpecialTypeId);
     }
 
     public void Assign(BLinkedMapNodeValue other) {

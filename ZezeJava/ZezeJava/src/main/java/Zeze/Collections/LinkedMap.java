@@ -4,10 +4,21 @@ import Zeze.Beans.Collections.LinkedMap.*;
 import Zeze.Transaction.Bean;
 
 public class LinkedMap<V extends Bean> {
+	public static long GetSpecialTypeIdFromBean(Bean bean) {
+		return module.GetSpecialTypeIdFromBean(bean);
+	}
+
+	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
+		return module.CreateBeanFromSpecialTypeId(typeId);
+	}
+
 	public static class Module extends AbstractLinkedMap {
 		private boolean init = false;
 
-		public void start(Zeze.Application zeze) {
+		/**
+		 * 必须在 Zeze.Start 之前调用。比较好的地方放在 App.Create 后面。
+		 */
+		public void initialize(Zeze.Application zeze) {
 			synchronized (module) {
 				if (init)
 					return;
@@ -16,9 +27,21 @@ public class LinkedMap<V extends Bean> {
 			}
 		}
 
-		public void stop(Zeze.Application zeze) {
+		public long GetSpecialTypeIdFromBean(Bean bean) {
+			var _typeId_ = bean.getTypeId();
+			if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
+				return Zeze.Transaction.EmptyBean.TYPEID;
+			throw new RuntimeException("Unknown Bean! dynamic@Zeze.Beans.Collections.LinkedMap.BLinkedMapNodeValue:Value");
+		}
+
+		public Bean CreateBeanFromSpecialTypeId(long typeId) {
+			return null;
+		}
+
+			// 一般不需要调用
+		public void finalize(Zeze.Application zeze) {
 			synchronized (module) {
-				if (false == init)
+				if (!init)
 					return;
 				module.UnRegisterZezeTables(zeze);
 				init = false;
@@ -26,14 +49,14 @@ public class LinkedMap<V extends Bean> {
 		}
 	}
 
-	private static Module module = new Module();
+	private final static Module module = new Module();
 
 	public static Module getModule() {
 		return module;
 	}
 
-	private String name;
-	private int nodeSize;
+	private final String name;
+	private final int nodeSize;
 	public String getName() {
 		return name;
 	}
@@ -66,7 +89,7 @@ public class LinkedMap<V extends Bean> {
 	/**
 	 * 把项移到队尾。
 	 * 如果它不是pin的，那么就是pin的之前的第一个。
-	 * @param id
+	 * @param id of value
 	 */
 	public void activate(String id) {
 		var nodeId = module._tValueIdToNodeId.get(new BLinkedMapKey(name, id));
@@ -90,7 +113,7 @@ public class LinkedMap<V extends Bean> {
 				node.getValues().remove(i);
 				nodeId.setNodeId(addUnsafe(e.Copy()));
 				if (node.getValues().isEmpty())
-					removeNodeUnsafe(node);
+					removeNodeUnsafe(nodeId, node);
 				return;
 			}
 		}
@@ -110,7 +133,7 @@ public class LinkedMap<V extends Bean> {
 					node.getValues().remove(i);
 					nodeId.setNodeId(addUnsafe(e.Copy()));
 					if (node.getValues().isEmpty())
-						removeNodeUnsafe(node);
+						removeNodeUnsafe(nodeId, node);
 				}
 				return;
 			}
@@ -177,7 +200,7 @@ public class LinkedMap<V extends Bean> {
 				node.getValues().remove(i);
 				module._tValueIdToNodeId.remove(nodeKey);
 				if (node.getValues().isEmpty())
-					removeNodeUnsafe(node);
+					removeNodeUnsafe(nodeId, node);
 				return (V)e.getValue().getBean();
 			}
 		}
@@ -207,10 +230,9 @@ public class LinkedMap<V extends Bean> {
 		var last = getNode(root.getLastNotPinNodeId());
 		if (last.getValues().size() < nodeSize) {
 			int i = last.getValues().size() - 1;
-			for (; i >= 0; --i) {
-				if (false == last.getValues().get(i).isPin())
+			for (; i >= 0; --i)
+				if (!last.getValues().get(i).isPin())
 					break;
-			}
 			last.getValues().add(++i, nodeValue);
 			return root.getLastNotPinNodeId();
 		}
@@ -225,7 +247,9 @@ public class LinkedMap<V extends Bean> {
 		return newNodeId;
 	}
 
-	private void removeNodeUnsafe(BLinkedMapNode node) {
+	private void removeNodeUnsafe(BLinkedMapNodeId nodeId, BLinkedMapNode node) {
 		// GC TODO
+		// 通用的记录垃圾回收机制，保存 List<(TableName, Key)>。
+		// 比较缓慢的回收。比如：7天前。
 	}
 }

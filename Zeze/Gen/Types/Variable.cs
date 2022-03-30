@@ -74,6 +74,8 @@ namespace Zeze.Gen.Types
 
 			HashSet<string> dynamicValue = new HashSet<string>();
 			XmlNodeList childNodes = self.ChildNodes;
+			string GetSpecialTypeIdFromBean = null;
+			string CreateBeanFromSpecialTypeId = null;
 			foreach (XmlNode node in childNodes)
 			{
 				if (XmlNodeType.Element != node.NodeType)
@@ -86,6 +88,12 @@ namespace Zeze.Gen.Types
 				{
 					case "value":
 						dynamicValue.Add(e.GetAttribute("bean"));
+						break;
+					case "GetSpecialTypeIdFromBean":
+						GetSpecialTypeIdFromBean = e.GetAttribute("value");
+						break;
+					case "CreateBeanFromSpecialTypeId":
+						CreateBeanFromSpecialTypeId = e.GetAttribute("value");
 						break;
 					default:
 						throw new Exception("node=" + nodename);
@@ -104,6 +112,10 @@ namespace Zeze.Gen.Types
 				else
 					valueBuilder.Append(',');
 				valueBuilder.Append(b);
+			}
+			if (!string.IsNullOrEmpty(CreateBeanFromSpecialTypeId) && !string.IsNullOrEmpty(GetSpecialTypeIdFromBean))
+			{
+				valueBuilder.Append("%").Append(GetSpecialTypeIdFromBean).Append(",").Append(CreateBeanFromSpecialTypeId);
 			}
 			Value = valueBuilder.ToString();
 		}

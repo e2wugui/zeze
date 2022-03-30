@@ -97,7 +97,10 @@
 
 				<bean name="BLinkedMapNodeValue">
 					<variable id="1" name="Id" type="string" />
-					<variable id="2" name="Value" type="dynamic" />
+					<variable id="2" name="Value" type="dynamic">
+						<GetSpecialTypeIdFromBean value="Zeze.Collections.LinkedMap::GetSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Collections.LinkedMap::CreateBeanFromSpecialTypeId"/>
+					</variable>
 					<variable id="3" name="Pin" type="bool" />
 				</bean>
 				<beankey name="BLinkedMapNodeKey">

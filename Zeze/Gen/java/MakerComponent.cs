@@ -66,12 +66,6 @@ namespace Zeze.Gen.java
                 sw.WriteLine($"package {ns};");
                 sw.WriteLine();
 
-                // import
-                // foreach (var mf in mfs)
-                //     sw.WriteLine($"import {mf.module.FullName}.*;");
-                // if (mfs.Count > 0)
-                //     sw.WriteLine();
-
                 sw.WriteLine($"public abstract class Abstract{Project.Name} {{");
                 foreach (var mf in mfs) mf.GenEnums(sw, mfs.Count > 1 ? mf.module.Name : "");
                 foreach (var mf in mfs) mf.DefineZezeTables(sw);

@@ -139,9 +139,17 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeDynamic type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + " = new Zeze.Transaction.DynamicBean"
-                + $"({variable.Id}, {beanName}::GetSpecialTypeIdFromBean_{variable.NameUpper1}, "
-                + $"{beanName}::CreateBeanFromSpecialTypeId_{variable.NameUpper1});");
+            if (string.IsNullOrEmpty(type.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
+            {
+                sw.WriteLine(prefix + variable.NamePrivate + " = new Zeze.Transaction.DynamicBean"
+                    + $"({variable.Id}, {beanName}::GetSpecialTypeIdFromBean_{variable.NameUpper1}, "
+                    + $"{beanName}::CreateBeanFromSpecialTypeId_{variable.NameUpper1});");
+            }
+            else
+            {
+                sw.WriteLine(prefix + variable.NamePrivate + " = new Zeze.Transaction.DynamicBean"
+                    + $"({variable.Id}, {type.GetSpecialTypeIdFromBean}, {type.CreateBeanFromSpecialTypeId});");
+            }
         }
     }
 }
