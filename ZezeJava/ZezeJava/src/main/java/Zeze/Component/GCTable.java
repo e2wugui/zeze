@@ -7,8 +7,6 @@ import Zeze.Net.Binary;
 import Zeze.Transaction.TableX;
 
 public class GCTable extends AbstractGCTable {
-	private final static GCTable instance = new GCTable();
-
 	public static <K extends Comparable> void gc(TableX table, K key) {
 		var zz = table.getZeze();
 		var serverId = zz.getConfig().getServerId();
