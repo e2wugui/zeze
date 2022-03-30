@@ -182,7 +182,7 @@ public class LinkedMap<V extends Bean> {
 				var root = getRoot();
 				root.setCount(root.getCount() - 1);
 				if (node.getValues().isEmpty())
-					removeNodeUnsafe(nodeKey, nodeId, node);
+					removeNodeUnsafe(nodeId, node);
 				return (V)e.getValue().getBean();
 			}
 		}
@@ -191,7 +191,7 @@ public class LinkedMap<V extends Bean> {
 
 	// inner
 	private long addUnsafe(BLinkedMapNodeValue nodeValue) {
-		var root = getRoot();
+		var root = module._tLinkedMaps.getOrAdd(name);
 		var tail = getNode(root.getTailNodeId());
 		// tail is null means empty
 		if (null != tail && tail.getValues().size() < nodeSize) {
@@ -216,7 +216,7 @@ public class LinkedMap<V extends Bean> {
 		return newNodeId;
 	}
 
-	private void removeNodeUnsafe(BLinkedMapKey nodeKey, BLinkedMapNodeId nodeId, BLinkedMapNode node) {
+	private void removeNodeUnsafe(BLinkedMapNodeId nodeId, BLinkedMapNode node) {
 		var root = getRoot();
 		if (node.getPrevNodeId() == 0) {
 			// is head
@@ -233,6 +233,7 @@ public class LinkedMap<V extends Bean> {
 			nextNode.setPrevNodeId(node.getPrevNodeId());
 		}
 
-		// GC TODO
+		// 没有马上删除，启动gc延迟删除。
+		module._tLinkedMapNodes.gc(new BLinkedMapNodeKey(name, nodeId.getNodeId()));
 	}
 }

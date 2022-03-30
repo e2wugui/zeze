@@ -1,67 +1,64 @@
 // auto-generated @formatter:off
-package Zeze.Beans.Collections.LinkedMap;
+package Zeze.Beans.Collections.Queue;
 
 import Zeze.Serialize.ByteBuffer;
 
-public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
-    private String _Id; // LinkedMap的Key转成字符串类型
+public final class BQueueNodeValue extends Zeze.Transaction.Bean {
+    private long _Timestamp;
     private final Zeze.Transaction.DynamicBean _Value;
 
-    public String getId() {
+    public long getTimestamp() {
         if (!isManaged())
-            return _Id;
+            return _Timestamp;
         var txn = Zeze.Transaction.Transaction.getCurrent();
         if (txn == null)
-            return _Id;
+            return _Timestamp;
         txn.VerifyRecordAccessed(this, true);
-        var log = (Log__Id)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _Id;
+        var log = (Log__Timestamp)txn.GetLog(this.getObjectId() + 1);
+        return log != null ? log.getValue() : _Timestamp;
     }
 
-    public void setId(String value) {
-        if (value == null)
-            throw new IllegalArgumentException();
+    public void setTimestamp(long value) {
         if (!isManaged()) {
-            _Id = value;
+            _Timestamp = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__Id(this, value));
+        txn.PutLog(new Log__Timestamp(this, value));
     }
 
     public Zeze.Transaction.DynamicBean getValue() {
         return _Value;
     }
 
-    public BLinkedMapNodeValue() {
+    public BQueueNodeValue() {
          this(0);
     }
 
-    public BLinkedMapNodeValue(int _varId_) {
+    public BQueueNodeValue(int _varId_) {
         super(_varId_);
-        _Id = "";
-        _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.LinkedMap::GetSpecialTypeIdFromBean, Zeze.Collections.LinkedMap::CreateBeanFromSpecialTypeId);
+        _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.Queue::GetSpecialTypeIdFromBean, Zeze.Collections.Queue::CreateBeanFromSpecialTypeId);
     }
 
-    public void Assign(BLinkedMapNodeValue other) {
-        setId(other.getId());
+    public void Assign(BQueueNodeValue other) {
+        setTimestamp(other.getTimestamp());
         getValue().Assign(other.getValue());
     }
 
-    public BLinkedMapNodeValue CopyIfManaged() {
+    public BQueueNodeValue CopyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BLinkedMapNodeValue Copy() {
-        var copy = new BLinkedMapNodeValue();
+    public BQueueNodeValue Copy() {
+        var copy = new BQueueNodeValue();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BLinkedMapNodeValue a, BLinkedMapNodeValue b) {
-        BLinkedMapNodeValue save = a.Copy();
+    public static void Swap(BQueueNodeValue a, BQueueNodeValue b) {
+        BQueueNodeValue save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
@@ -71,26 +68,26 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
         return Copy();
     }
 
-    public static final long TYPEID = 8765045186332684704L;
+    public static final long TYPEID = -6161354661761538624L;
 
     @Override
     public long getTypeId() {
         return TYPEID;
     }
 
-    private static final class Log__Id extends Zeze.Transaction.Log1<BLinkedMapNodeValue, String> {
-        public Log__Id(BLinkedMapNodeValue self, String value) { super(self, value); }
+    private static final class Log__Timestamp extends Zeze.Transaction.Log1<BQueueNodeValue, Long> {
+        public Log__Timestamp(BQueueNodeValue self, Long value) { super(self, value); }
         @Override
         public long getLogKey() { return this.getBean().getObjectId() + 1; }
         @Override
-        public void Commit() { this.getBeanTyped()._Id = this.getValue(); }
+        public void Commit() { this.getBeanTyped()._Timestamp = this.getValue(); }
     }
 
     public static long GetSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean) {
         var _typeId_ = bean.getTypeId();
         if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
             return Zeze.Transaction.EmptyBean.TYPEID;
-        throw new RuntimeException("Unknown Bean! dynamic@Zeze.Beans.Collections.LinkedMap.BLinkedMapNodeValue:Value");
+        throw new RuntimeException("Unknown Bean! dynamic@Zeze.Beans.Collections.Queue.BQueueNodeValue:Value");
     }
 
     public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Value(long typeId) {
@@ -108,9 +105,9 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
 
     @Override
     public void BuildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Beans.Collections.LinkedMap.BLinkedMapNodeValue: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Beans.Collections.Queue.BQueueNodeValue: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Id").append('=').append(getId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Timestamp").append('=').append(getTimestamp()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
         getValue().getBean().BuildString(sb, level + 4);
         sb.append(System.lineSeparator());
@@ -135,10 +132,10 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
     public void Encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getId();
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
+            long _x_ = getTimestamp();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
             }
         }
         {
@@ -157,7 +154,7 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setId(_o_.ReadString(_t_));
+            setTimestamp(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
@@ -178,6 +175,8 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
     @SuppressWarnings("RedundantIfStatement")
     @Override
     public boolean NegativeCheck() {
+        if (getTimestamp() < 0)
+            return true;
         return false;
     }
 }

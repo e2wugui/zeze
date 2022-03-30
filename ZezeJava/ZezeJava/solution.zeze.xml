@@ -105,7 +105,6 @@
 						<GetSpecialTypeIdFromBean value="Zeze.Collections.LinkedMap::GetSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Collections.LinkedMap::CreateBeanFromSpecialTypeId"/>
 					</variable>
-					<variable id="3" name="Pin" type="bool" />
 				</bean>
 				<beankey name="BLinkedMapNodeKey">
 					<variable id="1" name="Name" type="string" /> LinkedMap的Name
@@ -118,8 +117,57 @@
 				</bean>
 				<table name="tLinkedMapNodes" key="BLinkedMapNodeKey" value="BLinkedMapNode"/>
 			</module>
+
+			<module name="Queue" id="11006">
+				<!--
+				1. 单向链表。2. Value没有索引。3. 每个Value记录加入的时间。4. 只能从Head提取，从Tail添加。
+				第一个用户是Table.GC，延迟删除记录。
+				-->
+				<bean name="BQueue">
+					<variable id="1" name="HeadNodeId" type="long" />
+					<variable id="2" name="TailNodeId" type="long" />
+					<variable id="3" name="Count" type="long" />
+					<variable id="4" name="LastNodeId" type="long" />
+				</bean>
+				<table name="tQueues" key="string" value="BQueue" /> key: Queue的Name
+
+				<bean name="BQueueNodeValue">
+					<variable id="1" name="Timestamp" type="long" />
+					<variable id="2" name="Value" type="dynamic">
+						<GetSpecialTypeIdFromBean value="Zeze.Collections.Queue::GetSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Collections.Queue::CreateBeanFromSpecialTypeId"/>
+					</variable>
+				</bean>
+				<beankey name="BQueueNodeKey">
+					<variable id="1" name="Name" type="string" /> LinkedMap的Name
+					<variable id="2" name="NodeId" type="long" />
+				</beankey>
+				<bean name="BQueueNode"> 一个节点可以存多个KeyValue对，
+					<variable id="1" name="NextNodeId" type="long" /> 后一个节点ID. 0表示已到达结尾。
+					<variable id="2" name="Values" type="list" value="BQueueNodeValue" />
+				</bean>
+				<table name="tQueueNodes" key="BQueueNodeKey" value="BQueueNode"/>
+			</module>
+		</module>
+		<module name="GCTable" id="11007">
+			<bean name="BTableKey">
+				<variable id="1" name="TableName" type="string" />
+				<variable id="2" name="EncodedKey" type="binary" />
+			</bean>
 		</module>
 	</module>
+
+	<component name="GCTable" gendir="src/main/java" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Beans.GCTable"/>
+		</service>
+	</component>
+
+	<component name="Queue" gendir="src/main/java" genrelativedir="Zeze/Collections" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Beans.Collections.Queue"/>
+		</service>
+	</component>
 
 	<component name="LinkedMap" gendir="src/main/java" genrelativedir="Zeze/Collections" platform="zeze+java">
 		<service name="" handle="server">
