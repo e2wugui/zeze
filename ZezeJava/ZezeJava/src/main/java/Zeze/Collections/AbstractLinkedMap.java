@@ -1,8 +1,6 @@
 // auto-generated @formatter:off
 package Zeze.Collections;
 
-import Zeze.Beans.Collections.LinkedMap.*;
-
 public abstract class AbstractLinkedMap {
     protected final tLinkedMapNodes _tLinkedMapNodes = new tLinkedMapNodes();
     protected final tLinkedMaps _tLinkedMaps = new tLinkedMaps();
