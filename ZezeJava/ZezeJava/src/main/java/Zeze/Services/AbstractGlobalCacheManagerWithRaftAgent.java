@@ -1,6 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Services;
 
+import Zeze.Beans.GlobalCacheManagerWithRaft.*;
 public abstract class AbstractGlobalCacheManagerWithRaftAgent {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(this.getClass());
