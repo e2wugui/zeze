@@ -1,0 +1,8 @@
+/build/
+/dbhome/
+/lib/
+/Gen/
+/log/
+/target/
+
+/*.pal

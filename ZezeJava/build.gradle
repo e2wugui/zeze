@@ -1,0 +1,44 @@
+allprojects {
+    group 'com.zezeno'
+    version '0.9.22-SNAPSHOT'
+    apply plugin: 'java'
+    apply plugin: 'idea'
+
+    repositories {
+        maven { url 'https://maven.aliyun.com/nexus/content/groups/public/' }
+        mavenCentral()
+    }
+
+    idea {
+        module {
+            downloadSources = true
+        }
+    }
+
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(11)
+        }
+    }
+
+    compileJava {
+        options.encoding = 'utf-8'
+        options.release = 11
+        options.incremental = true
+        options.fork = true
+        options.failOnError = true
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
+
+task clearJar(type: Delete) {
+    delete 'lib'
+}
+
+task copyJar(type: Copy) {
+    from configurations.runtimeClasspath
+    into 'lib'
+}

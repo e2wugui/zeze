@@ -1,0 +1,7 @@
+/.gradle/
+/127.0.0.1_*/
+/build/
+
+/log4j2.xml
+/raft.xml
+~$*.*

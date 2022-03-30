@@ -1,0 +1,5 @@
+rootProject.name = 'zeze-java'
+include 'ZezeJava'
+include 'ZezeJavaTest'
+include 'ZezexJava:linkd'
+include 'ZezexJava:server'

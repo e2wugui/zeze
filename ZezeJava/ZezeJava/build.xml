@@ -1,0 +1,34 @@
+<project name="zeze" default="dist">
+    <property name="src"        value="src/main/java"/>
+    <property name="build"      value="dist"/>
+    <property name="lib"        value="lib"/>
+    <property name="output_jar" value="zeze.jar"/>
+
+    <target name="init">
+        <mkdir dir="${build}"/>
+        <delete file="${output_jar}"/>
+    </target>
+
+    <target name="compile" depends="init">
+        <path id="classpath">
+            <fileset dir="${lib}"><!-- gradlew copyJars -->
+                <include name="*.jar"/>
+            </fileset>
+        </path>
+        <javac encoding="utf-8" source="11" target="11" srcdir="${src}" destdir="${build}" includeantruntime="false"
+               classpathref="classpath" debug="true" debuglevel="lines,vars,source">
+            <compilerarg line="-Xlint:unchecked"/>
+        </javac>
+    </target>
+
+    <target name="clean">
+        <delete dir="${build}"/>
+    </target>
+
+    <target name="dist" depends="clean, compile">
+        <jar jarfile="${output_jar}" basedir="${build}">
+            <zipgroupfileset dir="${lib}" includes="*.jar"/>
+        </jar>
+        <delete dir="${build}"/>
+    </target>
+</project>

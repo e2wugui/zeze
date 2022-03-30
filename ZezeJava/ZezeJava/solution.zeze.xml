@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<solution name="Zeze" ModuleIdAllowRanges="11000-12000">
+	<module name="Beans" id="11000">
+		<module name="GlobalCacheManagerWithRaft" id="11001">
+			<!-- table -->
+			<bean name="CacheState" kind="rocks">
+				<variable id="1" name="AcquireStatePending" type="int" transient="true"/>
+				<variable id="2" name="GlobalSerialId" type="long" transient="true"/>
+				<variable id="3" name="Modify" type="int" default="-1"/> ServerId, default MUST BE -1.
+				<variable id="4" name="Share" type="set" value="int"/>
+			</bean>
+
+			<bean name="AcquiredState" kind="rocks">
+				<variable id="1" name="State" type="int"/>
+			</bean>
+
+			<table name="Global" key="GlobalTableKey" value="CacheState" kind="rocks" />
+			<table name="Session" key="GlobalTableKey" value="AcquiredState" kind="rocks" />
+
+			<!-- rpc -->
+			<beankey name="GlobalTableKey">
+				<variable id="1" name="TableName" type="string"/>
+				<variable id="2" name="Key" type="binary"/>
+			</beankey>
+
+			<bean name="AcquireParam">
+				<variable id="1" name="GlobalTableKey" type="GlobalTableKey"/>
+				<variable id="2" name="State" type="int"/>
+			</bean>
+
+			<bean name="ReduceParam">
+				<variable id="1" name="GlobalTableKey" type="GlobalTableKey"/>
+				<variable id="2" name="State" type="int"/>
+				<variable id="3" name="GlobalSerialId" type="long"/>
+			</bean>
+
+			<bean name="LoginParam">
+				<variable id="1" name="ServerId" type="int"/>
+				<variable id="2" name="GlobalCacheManagerHashIndex" type="int"/>
+			</bean>
+
+			<bean name="AchillesHeel">
+				<variable id="1" name="ServerId" type="int"/>
+				<variable id="2" name="SecureKey" type="string"/>
+				<variable id="3" name="GlobalCacheManagerHashIndex" type="int"/>
+			</bean>
+
+			<rpc name="Acquire" argument="AcquireParam" result="ReduceParam" base="Zeze.Raft.RaftRpc" handle="server" />
+			<rpc name="Reduce" argument="ReduceParam" result="ReduceParam" base="Zeze.Raft.RaftRpc" handle="client" />
+			<rpc name="Login" argument="LoginParam" base="Zeze.Raft.RaftRpc" handle="server" />
+			<rpc name="ReLogin" argument="LoginParam" base="Zeze.Raft.RaftRpc" handle="server" />
+			<rpc name="NormalClose" handle="server" base="Zeze.Raft.RaftRpc" />
+			<rpc name="Cleanup" argument="AchillesHeel" base="Zeze.Raft.RaftRpc" handle="server" />
+			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" handle="server" />
+		</module>
+
+		<module name="TestRocks" id="11002">
+			<bean name="Value" kind="rocks">
+				<variable id="1" name="Int" type="int"/>
+				<variable id="2" name="Bool" type="bool"/>
+				<variable id="3" name="Float" type="float"/>
+				<variable id="4" name="double" type="double"/>
+				<variable id="5" name="String" type="string"/>
+				<variable id="6" name="Binary" type="binary"/>
+				<variable id="7" name="SetInt" type="set" value="int"/>
+				<variable id="8" name="SetBeankey" type="set" value="Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey"/>
+				<variable id="9" name="MapInt" type="map" key="int" value="int"/>
+				<variable id="10" name="MapBean" type="map" key="int" value="Value"/>
+				<variable id="11" name="Beankey" type="Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey"/>
+			</bean>
+
+			<table name="tRocks" key="int" value="Value" kind="rocks"/>
+		</module>
+
+		<module name="AutoKey" id="11003">
+		</module>
+
+		<module name="Collections" id="11004">
+			<module name="LinkedMap" id="11005">
+				<bean name="BLinkedMap">
+					<variable id="1" name="HeadNodeId" type="long" />
+					<variable id="2" name="TailNodeId" type="long" />
+					<variable id="3" name="FirstNotTopNodeId" type="long" />
+					<variable id="4" name="Count" type="long" />
+				</bean>
+				<table name="tLinkedMaps" key="string" value="BLinkedMap" /> key is Name
+
+				<beankey name="BLinkedMapKey">
+					<variable id="1" name="Name" type="string" />
+					<variable id="2" name="ValueId" type="string" />
+				</beankey>
+				<bean name="BLinkedMapNodeId">
+					<variable id="1" name="NodeId" type="long" />
+				</bean>
+				<table name="tValueIdToNodeId" key="BLinkedMapKey" value="BLinkedMapNodeId" />
+
+				<bean name="BLinkedMapNodeValue">
+					<variable id="1" name="Id" type="string" />
+					<variable id="2" name="Value" type="dynamic" />
+				</bean>
+				<beankey name="BLinkedMapNodeKey">
+					<variable id="1" name="Name" type="string" />
+					<variable id="2" name="NodeId" type="long" />
+				</beankey>
+				<bean name="BLinkedMapNode">
+					<variable id="1" name="PrevNodeId" type="long" />
+					<variable id="2" name="NextNodeId" type="long" />
+					<variable id="3" name="Values" type="list" value="BLinkedMapNodeValue" />
+				</bean>
+				<table name="tLinkedMapNodes" key="BLinkedMapNodeKey" value="BLinkedMapNode"/>
+			</module>
+		</module>
+	</module>
+
+	<component name="LinkedMap" gendir="src/main/java" genrelativedir="Zeze/Collections" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Beans.Collections.LinkedMap"/>
+		</service>
+	</component>
+
+	<component name="GlobalCacheManagerWithRaft" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Beans.GlobalCacheManagerWithRaft"/>
+		</service>
+	</component>
+
+	<component name="GlobalCacheManagerWithRaftAgent" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java" GenTables="client">
+		<service name="" handle="client">
+			<module ref="Zeze.Beans.GlobalCacheManagerWithRaft"/>
+		</service>
+	</component>
+
+	<component name="TestRocks" gendir="src/main/java" genrelativedir="Zeze/Services" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Beans.TestRocks"/>
+		</service>
+	</component>
+
+</solution>
