@@ -23,6 +23,7 @@ public final class tLinkedMaps extends Zeze.Transaction.TableX<String, Zeze.Bean
     public static final int VAR_TailNodeId = 2;
     public static final int VAR_LastNotPinNodeId = 3;
     public static final int VAR_Count = 4;
+    public static final int VAR_LastNodeId = 5;
 
     @Override
     public String DecodeKey(ByteBuffer _os_) {
@@ -51,6 +52,7 @@ public final class tLinkedMaps extends Zeze.Transaction.TableX<String, Zeze.Bean
             case 2: return new Zeze.Transaction.ChangeVariableCollectorChanged();
             case 3: return new Zeze.Transaction.ChangeVariableCollectorChanged();
             case 4: return new Zeze.Transaction.ChangeVariableCollectorChanged();
+            case 5: return new Zeze.Transaction.ChangeVariableCollectorChanged();
             default: return null;
         }
     }

@@ -110,16 +110,6 @@ public class LinkedMap<V extends Bean> {
 		return module._tLinkedMapNodes.get(new BLinkedMapNodeKey(name, cur));
 	}
 
-	public BLinkedMapNode getNextNode(long cur) {
-		var curNode = getNode(cur);
-		return getNode(curNode.getNextNodeId());
-	}
-
-	public BLinkedMapNode getPrevNode(long cur) {
-		var curNode = getNode(cur);
-		return getNode(curNode.getPrevNodeId());
-	}
-
 	// list order
 	/**
 	 * 把项移到队尾。
@@ -127,7 +117,8 @@ public class LinkedMap<V extends Bean> {
 	 * @param id of value
 	 */
 	public void activate(String id) {
-		var nodeId = module._tValueIdToNodeId.get(new BLinkedMapKey(name, id));
+		var nodeKey = new BLinkedMapKey(name, id);
+		var nodeId = module._tValueIdToNodeId.get(nodeKey);
 		if (null == nodeId)
 			return;
 		var node = getNode(nodeId.getNodeId());
@@ -148,14 +139,15 @@ public class LinkedMap<V extends Bean> {
 				node.getValues().remove(i);
 				nodeId.setNodeId(addUnsafe(e.Copy()));
 				if (node.getValues().isEmpty())
-					removeNodeUnsafe(nodeId, node);
+					removeNodeUnsafe(nodeKey, nodeId, node);
 				return;
 			}
 		}
 	}
 
 	public void pin(String id, boolean value) {
-		var nodeId = module._tValueIdToNodeId.get(new BLinkedMapKey(name, id));
+		var nodeKey = new BLinkedMapKey(name, id);
+		var nodeId = module._tValueIdToNodeId.get(nodeKey);
 		if (null == nodeId)
 			return;
 		var node = getNode(nodeId.getNodeId());
@@ -168,7 +160,7 @@ public class LinkedMap<V extends Bean> {
 					node.getValues().remove(i);
 					nodeId.setNodeId(addUnsafe(e.Copy()));
 					if (node.getValues().isEmpty())
-						removeNodeUnsafe(nodeId, node);
+						removeNodeUnsafe(nodeKey, nodeId, node);
 				}
 				return;
 			}
@@ -187,6 +179,8 @@ public class LinkedMap<V extends Bean> {
 			newNodeValue.setId(id);
 			newNodeValue.getValue().setBean(value);
 			addUnsafe(newNodeValue);
+			var root = module._tLinkedMaps.get(name);
+			root.setCount(root.getCount() + 1);
 			return null;
 		}
 		var node = getNode(nodeId.getNodeId());
@@ -234,8 +228,10 @@ public class LinkedMap<V extends Bean> {
 			if (e.getId().equals(id)) {
 				node.getValues().remove(i);
 				module._tValueIdToNodeId.remove(nodeKey);
+				var root = module._tLinkedMaps.get(name);
+				root.setCount(root.getCount() - 1);
 				if (node.getValues().isEmpty())
-					removeNodeUnsafe(nodeId, node);
+					removeNodeUnsafe(nodeKey, nodeId, node);
 				return (V)e.getValue().getBean();
 			}
 		}
@@ -245,6 +241,8 @@ public class LinkedMap<V extends Bean> {
 	// inner
 	private long addUnsafe(BLinkedMapNodeValue nodeValue) {
 		var root = module._tLinkedMaps.get(name);
+		boolean sameTailAndLastNotPin = root.getTailNodeId() == root.getLastNotPinNodeId();
+
 		if (nodeValue.isPin()) {
 			var tail = getNode(root.getTailNodeId());
 			if (tail.getValues().size() < nodeSize) {
@@ -253,7 +251,8 @@ public class LinkedMap<V extends Bean> {
 			}
 			var newNode = new BLinkedMapNode();
 			newNode.getValues().add(nodeValue);
-			var newNodeId = 0L; // AutoKey
+			root.setLastNodeId(root.getLastNodeId() + 1);
+			var newNodeId = root.getLastNodeId();
 			module._tLinkedMapNodes.insert(new BLinkedMapNodeKey(name, newNodeId), newNode);
 			newNode.setPrevNodeId(root.getTailNodeId());
 			root.setTailNodeId(newNodeId);
@@ -273,7 +272,8 @@ public class LinkedMap<V extends Bean> {
 		}
 		var newNode = new BLinkedMapNode();
 		newNode.getValues().add(nodeValue);
-		var newNodeId = 0L; // AutoKey
+		root.setLastNodeId(root.getLastNodeId() + 1);
+		var newNodeId = root.getLastNodeId();
 		module._tLinkedMapNodes.insert(new BLinkedMapNodeKey(name, newNodeId), newNode);
 		newNode.setPrevNodeId(root.getLastNotPinNodeId());
 		root.setLastNotPinNodeId(newNodeId);
@@ -282,9 +282,23 @@ public class LinkedMap<V extends Bean> {
 		return newNodeId;
 	}
 
-	private void removeNodeUnsafe(BLinkedMapNodeId nodeId, BLinkedMapNode node) {
+	private void removeNodeUnsafe(BLinkedMapKey nodeKey, BLinkedMapNodeId nodeId, BLinkedMapNode node) {
+		var root = module._tLinkedMaps.get(name);
+		if (node.getPrevNodeId() == nodeId.getNodeId() || node.getNextNodeId() == nodeId.getNodeId()) {
+			// single node。
+			root.setHeadNodeId(0);
+			root.setTailNodeId(0);
+			root.setLastNotPinNodeId(0);
+			// GC TODO
+			return;
+		}
+		var prevNode = getNode(node.getPrevNodeId());
+		var nextNode = getNode(node.getNextNodeId());
+		nextNode.setPrevNodeId(node.getPrevNodeId());
+		prevNode.setNextNodeId(node.getNextNodeId());
+		if (nodeId.getNodeId() == root.getTailNodeId()) {
+			root.setTailNodeId(node.getPrevNodeId());
+		}
 		// GC TODO
-		// 通用的记录垃圾回收机制，保存 List<(TableName, Key)>。
-		// 比较缓慢的回收。比如：7天前。
 	}
 }

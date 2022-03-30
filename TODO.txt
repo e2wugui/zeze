@@ -39,9 +39,10 @@
 	Global With Raft 异步测试
 	Test TestGlobal
 	Test Simulate
-	java版基于KV的LinkedMap: AutoKey, Queue, Gc(每个ServerId一个Queue),
+	java版基于KV的LinkedMap: Queue, Gc(每个ServerId一个Queue),
 
 【2022/4/11】
+	Component.AutoKey
 	java LinkedMap dynamic 动态注册问题。
 	换换脑子，写一个java版基于KV的LinkedMap
 	async Connector GetReadySocket WaitReady 
