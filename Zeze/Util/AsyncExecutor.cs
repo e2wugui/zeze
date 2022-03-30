@@ -51,7 +51,8 @@ namespace Zeze.Util
             }
             else
             {
-                _ = Task.Run(() =>
+                ExecutionContext.SuppressFlow();
+                Task.Run(() =>
                 {
                     try
                     {
@@ -68,6 +69,7 @@ namespace Zeze.Util
                         TryRunNext();
                     }
                 });
+                ExecutionContext.RestoreFlow();
             }
         }
 
