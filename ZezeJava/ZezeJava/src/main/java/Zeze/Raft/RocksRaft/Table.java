@@ -1,8 +1,6 @@
 package Zeze.Raft.RocksRaft;
 
 import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
@@ -10,6 +8,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.ConcurrentLruLike;
 import Zeze.Util.Func2;
+import Zeze.Util.Reflect;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.ColumnFamilyHandle;
@@ -38,7 +37,7 @@ public final class Table<K, V extends Bean> {
 		Name = String.format("%s#%d", TemplateName, TemplateId);
 		keyEncodeFunc = SerializeHelper.createEncodeFunc(keyClass);
 		keyDecodeFunc = SerializeHelper.createDecodeFunc(keyClass);
-		valueFactory = SerializeHelper.getDefaultConstructor(valueClass);
+		valueFactory = Reflect.getDefaultConstructor(valueClass);
 		Open();
 	}
 

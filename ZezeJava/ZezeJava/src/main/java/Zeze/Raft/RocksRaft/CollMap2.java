@@ -1,8 +1,6 @@
 package Zeze.Raft.RocksRaft;
 
 import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.Reflect;
@@ -14,7 +12,7 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 
 	public CollMap2(Class<K> keyClass, Class<V> valueClass) {
 		keyCodecFuncs = SerializeHelper.createCodec(keyClass);
-		valueFactory = SerializeHelper.getDefaultConstructor(valueClass);
+		valueFactory = Reflect.getDefaultConstructor(valueClass);
 		logTypeId = Zeze.Transaction.Bean.Hash32("Zeze.Raft.RocksRaft.LogMap2<"
 				+ Reflect.GetStableName(keyClass) + ", " + Reflect.GetStableName(valueClass) + '>');
 	}

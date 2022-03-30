@@ -1,5 +1,8 @@
 package Zeze.Util;
 
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import Zeze.Net.Binary;
@@ -15,6 +18,14 @@ public class Reflect {
 				if (null != Methods.putIfAbsent(method.getName(), method))
 					throw new IllegalStateException("Duplicate Method Name Of Protocol Handle: " + method.getName());
 			}
+		}
+	}
+
+	public static MethodHandle getDefaultConstructor(Class<?> cls) {
+		try {
+			return MethodHandles.lookup().findConstructor(cls, MethodType.methodType(void.class));
+		} catch (ReflectiveOperationException e) {
+			throw new RuntimeException(e);
 		}
 	}
 

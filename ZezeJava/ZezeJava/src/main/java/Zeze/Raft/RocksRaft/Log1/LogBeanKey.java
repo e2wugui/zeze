@@ -5,7 +5,6 @@ import Zeze.Raft.RocksRaft.Bean;
 import Zeze.Raft.RocksRaft.Log;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
-import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.Reflect;
 
 public class LogBeanKey<T extends Serializable> extends Log {
@@ -14,7 +13,7 @@ public class LogBeanKey<T extends Serializable> extends Log {
 
 	public LogBeanKey(Class<T> valueClass) {
 		super("Zeze.Raft.RocksRaft.Log<" + Reflect.GetStableName(valueClass) + '>');
-		valueFactory = SerializeHelper.getDefaultConstructor(valueClass);
+		valueFactory = Reflect.getDefaultConstructor(valueClass);
 	}
 
 	// 事务修改过程中不需要Factory。

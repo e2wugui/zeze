@@ -1014,7 +1014,7 @@ public final class ByteBuffer {
 			return dynBean;
 		}
 		if (type == BEAN) {
-			Bean bean = dynBean.getCreateBeanFromSpecialTypeId().toBean(0);
+			Bean bean = dynBean.getCreateBeanFromSpecialTypeId().apply(0);
 			if (bean != null) {
 				bean.Decode(this);
 				return dynBean;

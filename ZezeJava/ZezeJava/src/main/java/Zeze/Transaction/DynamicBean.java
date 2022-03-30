@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import java.util.function.LongFunction;
+import java.util.function.ToLongFunction;
 import Zeze.Serialize.ByteBuffer;
 
 public class DynamicBean extends Bean implements DynamicBeanReadOnly {
@@ -32,7 +34,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		if (value == null)
 			throw new NullPointerException();
 		if (!isManaged()) {
-			_TypeId = GetSpecialTypeIdFromBean.toId(value);
+			_TypeId = GetSpecialTypeIdFromBean.applyAsLong(value);
 			_Bean = value;
 			return;
 		}
@@ -47,18 +49,18 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	private long _TypeId;
 	private Bean _Bean;
 
-	private final DynamicBeanToId GetSpecialTypeIdFromBean;
-	private final DynamicIdToBean CreateBeanFromSpecialTypeId;
+	private final ToLongFunction<Bean> GetSpecialTypeIdFromBean;
+	private final LongFunction<Bean> CreateBeanFromSpecialTypeId;
 
-	public final DynamicBeanToId getGetSpecialTypeIdFromBean() {
+	public final ToLongFunction<Bean> getGetSpecialTypeIdFromBean() {
 		return GetSpecialTypeIdFromBean;
 	}
 
-	public final DynamicIdToBean getCreateBeanFromSpecialTypeId() {
+	public final LongFunction<Bean> getCreateBeanFromSpecialTypeId() {
 		return CreateBeanFromSpecialTypeId;
 	}
 
-	public DynamicBean(int variableId, DynamicBeanToId get, DynamicIdToBean create) {
+	public DynamicBean(int variableId, ToLongFunction<Bean> get, LongFunction<Bean> create) {
 		super(variableId);
 		_Bean = new EmptyBean();
 		_TypeId = EmptyBean.TYPEID;
@@ -107,7 +109,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		// 由于可能在事务中执行，这里仅修改Bean
 		// TypeId 在 Bean 提交时才修改，但是要在事务中读到最新值，参见 TypeId 的 getter 实现。
 		long typeId = bb.ReadLong();
-		Bean real = CreateBeanFromSpecialTypeId.toBean(typeId);
+		Bean real = CreateBeanFromSpecialTypeId.apply(typeId);
 		if (real != null) {
 			real.Decode(bb);
 			SetBeanWithSpecialTypeId(typeId, real);
@@ -148,7 +150,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		public LogV(DynamicBean self, Bean value) {
 			super(self, value);
 			// 提前转换，如果是本Dynamic中没有配置的Bean，马上抛出异常。
-			SpecialTypeId = self.GetSpecialTypeIdFromBean.toId(value);
+			SpecialTypeId = self.GetSpecialTypeIdFromBean.applyAsLong(value);
 		}
 
 		public LogV(long specialTypeId, DynamicBean self, Bean value) {

@@ -16,7 +16,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	public LogMap2(Class<K> keyClass, Class<V> valueClass) {
 		super("Zeze.Raft.RocksRaft.LogMap2<" + Reflect.GetStableName(keyClass) + ", "
 				+ Reflect.GetStableName(valueClass) + '>', keyClass, valueClass);
-		valueFactory = SerializeHelper.getDefaultConstructor(valueClass);
+		valueFactory = Reflect.getDefaultConstructor(valueClass);
 	}
 
 	LogMap2(int typeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs, MethodHandle valueFactory) {

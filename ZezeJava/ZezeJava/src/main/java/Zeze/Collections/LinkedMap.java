@@ -6,9 +6,9 @@ import Zeze.Beans.Collections.LinkedMap.BLinkedMapNode;
 import Zeze.Beans.Collections.LinkedMap.BLinkedMapNodeId;
 import Zeze.Beans.Collections.LinkedMap.BLinkedMapNodeKey;
 import Zeze.Beans.Collections.LinkedMap.BLinkedMapNodeValue;
-import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
 import Zeze.Util.LongHashMap;
+import Zeze.Util.Reflect;
 
 public class LinkedMap<V extends Bean> {
 	private static final Module module = new Module();
@@ -31,7 +31,7 @@ public class LinkedMap<V extends Bean> {
 		private boolean init;
 
 		public void register(Class<? extends Bean> beanClass) {
-			MethodHandle beanCtor = SerializeHelper.getDefaultConstructor(beanClass);
+			MethodHandle beanCtor = Reflect.getDefaultConstructor(beanClass);
 			Bean bean;
 			try {
 				bean = (Bean)beanCtor.invoke();
