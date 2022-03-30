@@ -271,14 +271,33 @@ namespace Zeze.Util
 
 					if (Queue.Count == 1)
 					{
-						ExecutionContext.SuppressFlow();
-						Task.Run(async () => await Queue.First.Value.ProcessAsync());
-						ExecutionContext.RestoreFlow();
+						Run(Queue.First.Value);
 					}
 				}
 			}
 
-			internal void RunNext()
+			private void Run(Job job)
+			{
+				ExecutionContext.SuppressFlow();
+				Task.Run(async () =>
+				{
+					try
+                    {
+						await job.ProcessAsync();
+					}
+					catch (Exception ex)
+                    {
+						logger.Error(ex);
+                    }
+					finally
+                    {
+						RunNext();
+                    }
+				});
+				ExecutionContext.RestoreFlow();
+			}
+
+			private void RunNext()
 			{
 				lock (this)
 				{
@@ -293,9 +312,7 @@ namespace Zeze.Util
 					}
 					if (Queue.Count > 0)
 					{
-						ExecutionContext.SuppressFlow();
-						Task.Run(async () => await Queue.First.Value.ProcessAsync());
-						ExecutionContext.RestoreFlow();
+						Run(Queue.First.Value);
 					}
 				}
 			}
