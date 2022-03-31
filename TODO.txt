@@ -34,13 +34,13 @@
 	// 1. 仅支持整个Bean的订阅。2. log factory 问题。3. add listener和notify原子问题。动态订阅。
 	Global java 异步化： TaskQueueAsync 任务需要参与到队列的推进。
 		全异步和RocksRaft.Transaction.ThreadLocal问题，需要自己实现一个类似AsyncLocal的机制。
-	LockAsync 单元测试。关键：TryEnterXXXLock。
 	raft 异步测试
 	Global With Raft 异步测试
 	Test TestGlobal
 	Test Simulate
 
 【2022/4/11】
+	LockAsync 单元测试。关键：TryEnterXXXLock。
 	Queue
 	GCTable(每个ServerId一个Queue),
 	Component.AutoKey

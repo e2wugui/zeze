@@ -45,5 +45,10 @@ namespace Zeze.Util
         {
             return Interlocked.Exchange(ref _value, newValue);
         }
+
+        public override string ToString()
+        {
+            return Get().ToString();
+        }
     }
 }

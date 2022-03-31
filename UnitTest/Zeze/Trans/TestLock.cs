@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Transaction;
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 using Zeze.Util;
 using System.Threading;
+using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace UnitTest.Zeze.Trans
 {
@@ -65,25 +65,25 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void Test1()
         {
-            Locks locks = new Locks();
+            var locks = new Locks();
 
-            TableKey tk1 = new TableKey("1", 1);
-            TableKey tk2 = new TableKey("1", 1);
+            var tk1 = new TableKey("1", 1);
+            var tk2 = new TableKey("1", 1);
 
-            Lockey lock1 = new Lockey(tk1);
-            Lockey lock2 = new Lockey(tk2);
+            var lock1 = new Lockey(tk1);
+            var lock2 = new Lockey(tk2);
 
             Assert.AreEqual(lock1, lock2);
 
-            Lockey lock1ref = locks.Get(lock1);
+            var lock1ref = locks.Get(lock1);
             Assert.IsTrue(lock1ref == lock1); // first Get. self
 
-            Lockey lock2ref = locks.Get(lock2);
+            var lock2ref = locks.Get(lock2);
             Assert.IsTrue(lock2ref == lock1); // second Get. the exist
 
-            TableKey tk3 = new TableKey("1", 2);
-            Lockey lock3 = new Lockey(tk3);
-            Lockey lock3ref = locks.Get(lock3);
+            var tk3 = new TableKey("1", 2);
+            var lock3 = new Lockey(tk3);
+            var lock3ref = locks.Get(lock3);
             Assert.IsTrue(lock3ref == lock3);
             Assert.IsFalse(lock3ref == lock1);
         }
@@ -112,6 +112,179 @@ namespace UnitTest.Zeze.Trans
             lockey.ExitWriteLock();
             lockey.ExitReadLock();
             */
+        }
+
+        volatile bool Running = true;
+        readonly ConcurrentDictionary<string, AtomicLong> Counters = new();
+
+        void Increase(string name)
+        {
+            Counters.GetOrAdd(name, (key) => new AtomicLong()).IncrementAndGet();
+        }
+
+        [TestMethod]
+        public void TestTry()
+        {
+            var locks = new Locks();
+            var tkey = new TableKey("1", 1);
+            var tasks = new List<Task>
+            {
+                Task.Run(async () =>
+                {
+                    while (Running)
+                    {
+                        using (await locks.Get(tkey).ReaderLockAsync())
+                        {
+                            Increase("ReaderLockAsync 1");
+                            await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
+                        }
+                        await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
+                    }
+                }),
+
+                Task.Run(async () =>
+                {
+                    while (Running)
+                    {
+                        using (await locks.Get(tkey).ReaderLockAsync())
+                        {
+                            Increase("ReaderLockAsync 2");
+                            await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
+                        }
+                        await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
+                    }
+                }),
+
+                Task.Run(async () =>
+                {
+                    while (Running)
+                    {
+                        using (await locks.Get(tkey).ReaderLockAsync())
+                        {
+                            Increase("ReaderLockAsync 3");
+                            await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
+                        }
+                        await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
+                    }
+                }),
+
+                Task.Run(async () =>
+                {
+                    while (Running)
+                    {
+                        using (await locks.Get(tkey).WriterLockAsync())
+                        {
+                            Increase("WriterLockAsync 1");
+                            await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
+                        }
+                        await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
+                    }
+                }),
+
+                Task.Run(async () =>
+                {
+                    while (Running)
+                    {
+                        using (await locks.Get(tkey).WriterLockAsync())
+                        {
+                            Increase("WriterLockAsync 2");
+                            await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
+                        }
+                        await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
+                    }
+                }),
+
+                Task.Run(() =>
+                {
+                    while (Running)
+                    {
+                        var lockey = locks.Get(tkey);
+                        if (lockey.TryEnterReadLock())
+                        {
+                            try
+                            {
+                                Increase("TryEnterReadLock 1");
+                                Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
+                            }
+                            finally
+                            {
+                                lockey.Release();
+                            }
+                        }
+                        Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
+                    }
+                }),
+
+                Task.Run(() =>
+                {
+                    while (Running)
+                    {
+                        var lockey = locks.Get(tkey);
+                        if (lockey.TryEnterReadLock())
+                        {
+                            try
+                            {
+                                Increase("TryEnterReadLock 2");
+                                Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
+                            }
+                            finally
+                            {
+                                lockey.Release();
+                            }
+                        }
+                        Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
+                    }
+                }),
+
+                Task.Run(() =>
+                {
+                    while (Running)
+                    {
+                        var lockey = locks.Get(tkey);
+                        if (lockey.TryEnterWriteLock())
+                        {
+                            try
+                            {
+                                Increase("TryEnterWriteLock 1");
+                                Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
+                            }
+                            finally
+                            {
+                                lockey.Release();
+                            }
+                        }
+                        Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
+                    }
+                }),
+
+                Task.Run(() =>
+                {
+                    while (Running)
+                    {
+                        var lockey = locks.Get(tkey);
+                        if (lockey.TryEnterWriteLock())
+                        {
+                            try
+                            {
+                                Increase("TryEnterWriteLock 2");
+                                Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
+                            }
+                            finally
+                            {
+                                lockey.Release();
+                            }
+                        }
+                        Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
+                    }
+                })
+            };
+
+            Thread.Sleep(60 * 1000);
+            Running = false;
+            Task.WaitAll(tasks.ToArray());
+            var sb = new StringBuilder();
+            Str.BuildString(sb, Counters, new ComparerString());
+            Console.WriteLine(sb.ToString());
         }
     }
 }
