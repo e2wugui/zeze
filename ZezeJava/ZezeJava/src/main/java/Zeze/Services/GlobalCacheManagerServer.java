@@ -183,6 +183,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	}
 
 	private long ProcessLogin(Login rpc) throws Throwable {
+		logger.debug("ProcessLogin: {}", rpc);
 		var session = Sessions.computeIfAbsent(rpc.Argument.ServerId, __ -> new CacheHolder(Config));
 		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (session) {
@@ -201,6 +202,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	}
 
 	private long ProcessReLogin(ReLogin rpc) {
+		logger.debug("ProcessReLogin: {}", rpc);
 		var session = Sessions.computeIfAbsent(rpc.Argument.ServerId, __ -> new CacheHolder(Config));
 		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (session) {

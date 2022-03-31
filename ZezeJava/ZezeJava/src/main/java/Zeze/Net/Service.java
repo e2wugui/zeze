@@ -26,7 +26,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class Service {
-	private static final Logger logger = LogManager.getLogger(Service.class);
+	protected static final Logger logger = LogManager.getLogger(Service.class);
 	private static final AtomicLong StaticSessionIdAtomicLong = new AtomicLong();
 
 	private final String Name;

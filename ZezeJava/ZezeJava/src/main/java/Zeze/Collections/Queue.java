@@ -17,19 +17,21 @@ public class Queue<V extends Bean> {
 	}
 
 	public static class Module extends AbstractQueue {
+		private final ConcurrentHashMap<String, Queue<?>> Queues = new ConcurrentHashMap<>();
+
 		public Module(Zeze.Application zeze) {
 			RegisterZezeTables(zeze);
 		}
 
+		@SuppressWarnings("unchecked")
 		public <T extends Bean> Queue<T> open(String name, Class<T> valueClass) {
-			return (Queue<T>)Queues.computeIfAbsent(name, (key) -> new Queue<T>(this, name, valueClass, 100));
+			return (Queue<T>)Queues.computeIfAbsent(name, key -> new Queue<>(this, key, valueClass, 100));
 		}
 
+		@SuppressWarnings("unchecked")
 		public <T extends Bean> Queue<T> open(String name, Class<T> valueClass, int nodeSize) {
-			return (Queue<T>)Queues.computeIfAbsent(name, (key) -> new Queue<T>(this, name, valueClass, nodeSize));
+			return (Queue<T>)Queues.computeIfAbsent(name, key -> new Queue<>(this, key, valueClass, nodeSize));
 		}
-
-		private ConcurrentHashMap<String, Queue<?>> Queues = new ConcurrentHashMap<>();
 	}
 
 	private final Module module;

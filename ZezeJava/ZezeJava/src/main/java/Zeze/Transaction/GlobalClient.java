@@ -18,7 +18,10 @@ public final class GlobalClient extends Zeze.Net.Service {
 			var reLogin = new ReLogin();
 			reLogin.Argument.ServerId = getZeze().getConfig().getServerId();
 			reLogin.Argument.GlobalCacheManagerHashIndex = agent.getGlobalCacheManagerHashIndex();
+			logger.debug("GlobalClient Send ReLogin: {}", reLogin.Argument);
 			reLogin.Send(so, (ThisRpc) -> {
+				logger.debug("GlobalClient Recv Login. isTimeout={}, resultCode={}",
+						reLogin.isTimeout(), reLogin.getResultCode());
 				if (reLogin.isTimeout() || reLogin.getResultCode() != 0) {
 					so.close();
 				}
@@ -33,7 +36,10 @@ public final class GlobalClient extends Zeze.Net.Service {
 			var login = new Login();
 			login.Argument.ServerId = getZeze().getConfig().getServerId();
 			login.Argument.GlobalCacheManagerHashIndex = agent.getGlobalCacheManagerHashIndex();
+			logger.debug("GlobalClient Send Login: {}", login.Argument);
 			login.Send(so, (ThisRpc) -> {
+				logger.debug("GlobalClient Recv Login. isTimeout={}, resultCode={}",
+						login.isTimeout(), login.getResultCode());
 				if (login.isTimeout() || login.getResultCode() != 0) {
 					so.close();
 				}

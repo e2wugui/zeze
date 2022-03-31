@@ -16,7 +16,7 @@ public class AutoKey {
 		 * 这个返回值，可以在自己模块内保存下来，效率高一些。
 		 */
 		public AutoKey getOrAdd(String name) {
-			return map.computeIfAbsent(name, __ -> new AutoKey(this, name));
+			return map.computeIfAbsent(name, name2 -> new AutoKey(this, name2));
 		}
 	}
 

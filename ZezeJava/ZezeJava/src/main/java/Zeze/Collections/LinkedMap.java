@@ -60,25 +60,26 @@ public class LinkedMap<V extends Bean> {
 	}
 
 	public static class Module extends AbstractLinkedMap {
+		private final ConcurrentHashMap<String, LinkedMap<?>> LinkedMaps = new ConcurrentHashMap<>();
+
 		public Module(Zeze.Application zeze) {
 			RegisterZezeTables(zeze);
 		}
 
+		@SuppressWarnings("unchecked")
 		public <T extends Bean> LinkedMap<T> open(String name, Class<T> valueClass, int nodeSize) {
-			return (LinkedMap<T>)LinkedMaps.computeIfAbsent(name, (key) -> new LinkedMap<T>(this, name, valueClass, nodeSize));
+			return (LinkedMap<T>)LinkedMaps.computeIfAbsent(name, key -> new LinkedMap<>(this, key, valueClass, nodeSize));
 		}
 
+		@SuppressWarnings("unchecked")
 		public <T extends Bean> LinkedMap<T> open(String name, Class<T> valueClass) {
-			return (LinkedMap<T>)LinkedMaps.computeIfAbsent(name, (key) -> new LinkedMap<T>(this, name, valueClass, 100));
+			return (LinkedMap<T>)LinkedMaps.computeIfAbsent(name, key -> new LinkedMap<>(this, key, valueClass, 100));
 		}
-
-		private ConcurrentHashMap<String, LinkedMap<?>> LinkedMaps = new ConcurrentHashMap<>();
 	}
 
 	private final Module module;
 	private final String name;
 	private final int nodeSize;
-	private boolean init;
 
 	private LinkedMap(Module module, String name, Class<V> valueClass, int nodeSize) {
 		this.module = module;

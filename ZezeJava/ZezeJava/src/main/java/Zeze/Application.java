@@ -194,10 +194,6 @@ public final class Application {
 			return;
 		IsStart = true;
 
-		// 自动初始化的组件。
-		autoKey = new AutoKey.Module(this);
-		queueModule = new Queue.Module(this);
-
 		Locks = new Locks();
 		Task.tryInitThreadPool(this, null, null);
 
@@ -210,6 +206,10 @@ public final class Application {
 		Database defaultDb = GetDatabase(Conf.getDefaultTableConf().getDatabaseName());
 		for (var db : Databases.values())
 			db.Open(this);
+
+		// 自动初始化的组件。
+		autoKey = new AutoKey.Module(this);
+		queueModule = new Queue.Module(this);
 
 		var hosts = Conf.getGlobalCacheManagerHostNameOrAddress().split(";");
 		if (hosts.length > 0) {
@@ -273,12 +273,12 @@ public final class Application {
 
 		if (_checkpoint != null)
 			_checkpoint.StopAndJoin();
+		queueModule.UnRegisterZezeTables(this);
+		autoKey.UnRegisterZezeTables(this);
 		for (var db : Databases.values())
 			db.Close();
 		Databases.clear();
 		ServiceManagerAgent.Stop();
-		queueModule.UnRegisterZezeTables(this);
-		autoKey.UnRegisterZezeTables(this);
 		InternalThreadPool = null;
 		Locks = null;
 		Conf = null;
