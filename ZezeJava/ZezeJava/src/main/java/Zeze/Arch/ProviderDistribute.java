@@ -1,4 +1,4 @@
-package Zeze.Component;
+package Zeze.Arch;
 
 public class ProviderDistribute extends AbstractProviderDistribute {
     @Override
