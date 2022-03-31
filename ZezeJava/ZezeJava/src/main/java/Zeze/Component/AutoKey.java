@@ -8,12 +8,8 @@ public class AutoKey {
 		private final ConcurrentHashMap<String, AutoKey> map = new ConcurrentHashMap<>();
 
 		// 这个组件Zeze.Application会自动初始化，不需要应用初始化。
-		public void initialize(Zeze.Application zeze) {
+		public Module(Zeze.Application zeze) {
 			RegisterZezeTables(zeze);
-		}
-
-		public void finalize(Zeze.Application zeze) {
-			UnRegisterZezeTables(zeze);
 		}
 
 		/**

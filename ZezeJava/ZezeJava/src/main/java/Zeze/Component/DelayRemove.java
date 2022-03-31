@@ -22,7 +22,7 @@ public class DelayRemove extends AbstractDelayRemove {
 
 	private DelayRemove(Zeze.Application zz) {
 		var serverId = zz.getConfig().getServerId();
-		queue = new Queue<>("__GCTableQueue#" + serverId, BTableKey.class);
+		queue = zz.getQueueModule().open("__GCTableQueue#" + serverId, BTableKey.class);
 
 		// TODO start timer to gc. work on queue.pollNode? peekNode? poll? peek?
 	}

@@ -6,6 +6,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import Zeze.Collections.Queue;
 import Zeze.Component.AutoKey;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManagerWithRaftAgent;
@@ -42,7 +43,8 @@ public final class Application {
 	private final TaskOneByOneByKey TaskOneByOneByKey = new TaskOneByOneByKey();
 	private final Checkpoint _checkpoint;
 	private final Agent ServiceManagerAgent;
-	private final AutoKey.Module autoKey = new AutoKey.Module();
+	private AutoKey.Module autoKey;
+	private Zeze.Collections.Queue.Module queueModule;
 	private IGlobalAgent GlobalAgent;
 	private Config Conf;
 	private ThreadPoolExecutor InternalThreadPool; // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
@@ -169,6 +171,10 @@ public final class Application {
 		return autoKey.getOrAdd(name);
 	}
 
+	public Zeze.Collections.Queue.Module getQueueModule() {
+		return queueModule;
+	}
+
 	public Procedure NewProcedure(Func0<Long> action, String actionName) {
 		return NewProcedure(action, actionName, TransactionLevel.Serializable, null);
 	}
@@ -189,7 +195,8 @@ public final class Application {
 		IsStart = true;
 
 		// 自动初始化的组件。
-		autoKey.initialize(this);
+		autoKey = new AutoKey.Module(this);
+		queueModule = new Queue.Module(this);
 
 		Locks = new Locks();
 		Task.tryInitThreadPool(this, null, null);
@@ -270,7 +277,8 @@ public final class Application {
 			db.Close();
 		Databases.clear();
 		ServiceManagerAgent.Stop();
-		autoKey.finalize(this);
+		queueModule.UnRegisterZezeTables(this);
+		autoKey.UnRegisterZezeTables(this);
 		InternalThreadPool = null;
 		Locks = null;
 		Conf = null;

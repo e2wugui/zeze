@@ -1,12 +1,13 @@
 package Zeze.Collections;
 
+import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Beans.Collections.Queue.BQueueNode;
 import Zeze.Beans.Collections.Queue.BQueueNodeKey;
 import Zeze.Beans.Collections.Queue.BQueueNodeValue;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.TableWalkHandle;
 
-public class Queue<V extends Bean> extends AbstractQueue {
+public class Queue<V extends Bean> {
 	public static long GetSpecialTypeIdFromBean(Bean bean) {
 		return LinkedMap.GetSpecialTypeIdFromBean(bean);
 	}
@@ -15,15 +16,28 @@ public class Queue<V extends Bean> extends AbstractQueue {
 		return LinkedMap.CreateBeanFromSpecialTypeId(typeId);
 	}
 
-	private final String name;
-	private final int nodeSize;
-	private boolean init;
+	public static class Module extends AbstractQueue {
+		public Module(Zeze.Application zeze) {
+			RegisterZezeTables(zeze);
+		}
 
-	public Queue(String name, Class<V> valueClass) {
-		this(name, 50, valueClass);
+		public <T extends Bean> Queue<T> open(String name, Class<T> valueClass) {
+			return (Queue<T>)Queues.computeIfAbsent(name, (key) -> new Queue<T>(this, name, valueClass, 100));
+		}
+
+		public <T extends Bean> Queue<T> open(String name, Class<T> valueClass, int nodeSize) {
+			return (Queue<T>)Queues.computeIfAbsent(name, (key) -> new Queue<T>(this, name, valueClass, nodeSize));
+		}
+
+		private ConcurrentHashMap<String, Queue<?>> Queues = new ConcurrentHashMap<>();
 	}
 
-	public Queue(String name, int nodeSize, Class<V> valueClass) {
+	private final Module module;
+	private final String name;
+	private final int nodeSize;
+
+	private Queue(Module module, String name, Class<V> valueClass, int nodeSize) {
+		this.module = module;
 		this.name = name;
 		this.nodeSize = nodeSize;
 		LinkedMap.register(valueClass);
@@ -34,50 +48,32 @@ public class Queue<V extends Bean> extends AbstractQueue {
 	}
 
 	/**
-	 * 必须在 Zeze.Start 之前调用。比较好的地方放在 App.Create 后面。
-	 */
-	public synchronized void initialize(Zeze.Application zeze) {
-		if (init)
-			return;
-		RegisterZezeTables(zeze);
-		init = true;
-	}
-
-	// 一般不需要调用
-	public void finalize(Zeze.Application zeze) {
-		if (!init)
-			return;
-		UnRegisterZezeTables(zeze);
-		init = false;
-	}
-
-	/**
 	 * 提取整个头节点
 	 *
 	 * @return 头节点，null if empty
 	 */
 	public BQueueNode pollNode() {
-		var root = _tQueues.get(name);
+		var root = module._tQueues.get(name);
 		if (null == root)
 			return null;
 
 		var nodeKey = new BQueueNodeKey(name, root.getHeadNodeId());
-		var head = _tQueueNodes.get(nodeKey);
+		var head = module._tQueueNodes.get(nodeKey);
 		if (null == head)
 			return null;
 
 		root.setHeadNodeId(head.getNextNodeId());
-		_tQueueNodes.remove(nodeKey);
+		module._tQueueNodes.remove(nodeKey);
 		return head;
 	}
 
 	public BQueueNode peekNode() {
-		var root = _tQueues.get(name);
+		var root = module._tQueues.get(name);
 		if (null == root)
 			return null;
 
 		var nodeKey = new BQueueNodeKey(name, root.getHeadNodeId());
-		return _tQueueNodes.get(nodeKey); // head
+		return module._tQueueNodes.get(nodeKey); // head
 	}
 
 	/**
@@ -86,12 +82,12 @@ public class Queue<V extends Bean> extends AbstractQueue {
 	 * @return 第一项的值，null if empty
 	 */
 	public V poll() {
-		var root = _tQueues.get(name);
+		var root = module._tQueues.get(name);
 		if (null == root)
 			return null;
 
 		var nodeKey = new BQueueNodeKey(name, root.getHeadNodeId());
-		var head = _tQueueNodes.get(nodeKey);
+		var head = module._tQueueNodes.get(nodeKey);
 		if (null == head)
 			return null;
 
@@ -99,18 +95,18 @@ public class Queue<V extends Bean> extends AbstractQueue {
 		var value = (V)head.getValues().remove(0);
 		if (head.getValues().isEmpty()) {
 			root.setHeadNodeId(head.getNextNodeId());
-			_tQueueNodes.remove(nodeKey);
+			module._tQueueNodes.remove(nodeKey);
 		}
 		return value;
 	}
 
 	public V peek() {
-		var root = _tQueues.get(name);
+		var root = module._tQueues.get(name);
 		if (null == root)
 			return null;
 
 		var nodeKey = new BQueueNodeKey(name, root.getHeadNodeId());
-		var head = _tQueueNodes.get(nodeKey);
+		var head = module._tQueueNodes.get(nodeKey);
 		if (null == head)
 			return null;
 
@@ -125,13 +121,13 @@ public class Queue<V extends Bean> extends AbstractQueue {
 	 * @param value to add
 	 */
 	public void add(V value) {
-		var root = _tQueues.getOrAdd(name);
-		var tail = _tQueueNodes.get(new BQueueNodeKey(name, root.getTailNodeId()));
+		var root = module._tQueues.getOrAdd(name);
+		var tail = module._tQueueNodes.get(new BQueueNodeKey(name, root.getTailNodeId()));
 		if (null == tail || tail.getValues().size() > nodeSize) {
 			var newNode = new BQueueNode();
 			root.setLastNodeId(root.getLastNodeId() + 1);
 			var newNodeId = root.getLastNodeId();
-			_tQueueNodes.insert(new BQueueNodeKey(name, newNodeId), newNode);
+			module._tQueueNodes.insert(new BQueueNodeKey(name, newNodeId), newNode);
 			root.setTailNodeId(newNodeId);
 			if (null != tail)
 				tail.setNextNodeId(newNodeId);
@@ -145,13 +141,13 @@ public class Queue<V extends Bean> extends AbstractQueue {
 
 	// stack
 	public void push(V value) {
-		var root = _tQueues.getOrAdd(name);
-		var head = _tQueueNodes.get(new BQueueNodeKey(name, root.getHeadNodeId()));
+		var root = module._tQueues.getOrAdd(name);
+		var head = module._tQueueNodes.get(new BQueueNodeKey(name, root.getHeadNodeId()));
 		if (null == head || head.getValues().size() > nodeSize) {
 			var newNode = new BQueueNode();
 			root.setLastNodeId(root.getLastNodeId() + 1);
 			var newNodeId = root.getLastNodeId();
-			_tQueueNodes.insert(new BQueueNodeKey(name, newNodeId), newNode);
+			module._tQueueNodes.insert(new BQueueNodeKey(name, newNodeId), newNode);
 			newNode.setNextNodeId(root.getHeadNodeId());
 			root.setHeadNodeId(newNodeId);
 			head = newNode;
@@ -174,7 +170,7 @@ public class Queue<V extends Bean> extends AbstractQueue {
 	 */
 	@SuppressWarnings("unchecked")
 	public void walk(TableWalkHandle<Long, V> func) {
-		_tQueueNodes.Walk((key, node) -> {
+		module._tQueueNodes.Walk((key, node) -> {
 			for (var value : node.getValues()) {
 				if (!func.handle(key.getNodeId(), (V)value.getValue().getBean()))
 					return false;

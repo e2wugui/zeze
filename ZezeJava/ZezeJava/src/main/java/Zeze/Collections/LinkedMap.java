@@ -1,6 +1,7 @@
 package Zeze.Collections;
 
 import java.lang.invoke.MethodHandle;
+import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Beans.Collections.LinkedMap.BLinkedMap;
 import Zeze.Beans.Collections.LinkedMap.BLinkedMapKey;
 import Zeze.Beans.Collections.LinkedMap.BLinkedMapNode;
@@ -13,7 +14,7 @@ import Zeze.Util.FastRWLock;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Reflect;
 
-public class LinkedMap<V extends Bean> extends AbstractLinkedMap {
+public class LinkedMap<V extends Bean> {
 	private static final LongHashMap<MethodHandle> factory = new LongHashMap<>();
 	private static final FastRWLock factoryLock = new FastRWLock();
 
@@ -58,15 +59,29 @@ public class LinkedMap<V extends Bean> extends AbstractLinkedMap {
 		}
 	}
 
+	public static class Module extends AbstractLinkedMap {
+		public Module(Zeze.Application zeze) {
+			RegisterZezeTables(zeze);
+		}
+
+		public <T extends Bean> LinkedMap<T> open(String name, Class<T> valueClass, int nodeSize) {
+			return (LinkedMap<T>)LinkedMaps.computeIfAbsent(name, (key) -> new LinkedMap<T>(this, name, valueClass, nodeSize));
+		}
+
+		public <T extends Bean> LinkedMap<T> open(String name, Class<T> valueClass) {
+			return (LinkedMap<T>)LinkedMaps.computeIfAbsent(name, (key) -> new LinkedMap<T>(this, name, valueClass, 100));
+		}
+
+		private ConcurrentHashMap<String, LinkedMap<?>> LinkedMaps = new ConcurrentHashMap<>();
+	}
+
+	private final Module module;
 	private final String name;
 	private final int nodeSize;
 	private boolean init;
 
-	public LinkedMap(String name, Class<V> valueClass) {
-		this(name, 100, valueClass);
-	}
-
-	public LinkedMap(String name, int nodeSize, Class<V> valueClass) {
+	private LinkedMap(Module module, String name, Class<V> valueClass, int nodeSize) {
+		this.module = module;
 		this.name = name;
 		this.nodeSize = nodeSize;
 		register(valueClass);
@@ -76,31 +91,13 @@ public class LinkedMap<V extends Bean> extends AbstractLinkedMap {
 		return name;
 	}
 
-	/**
-	 * 必须在 Zeze.Start 之前调用。比较好的地方放在 App.Create 后面。
-	 */
-	public synchronized void initialize(Zeze.Application zeze) {
-		if (init)
-			return;
-		RegisterZezeTables(zeze);
-		init = true;
-	}
-
-	// 一般不需要调用
-	public synchronized void finalize(Zeze.Application zeze) {
-		if (!init)
-			return;
-		UnRegisterZezeTables(zeze);
-		init = false;
-	}
-
 	// list
 	public BLinkedMap getRoot() {
-		return _tLinkedMaps.get(name);
+		return module._tLinkedMaps.get(name);
 	}
 
 	public BLinkedMapNode getNode(long cur) {
-		return _tLinkedMapNodes.get(new BLinkedMapNodeKey(name, cur));
+		return module._tLinkedMapNodes.get(new BLinkedMapNodeKey(name, cur));
 	}
 
 	/**
@@ -111,7 +108,7 @@ public class LinkedMap<V extends Bean> extends AbstractLinkedMap {
 	 */
 	public long moveToTail(String id) {
 		var nodeKey = new BLinkedMapKey(name, id);
-		var nodeId = _tValueIdToNodeId.get(nodeKey);
+		var nodeId = module._tValueIdToNodeId.get(nodeKey);
 		if (null == nodeId)
 			return 0;
 		var node = getNode(nodeId.getNodeId());
@@ -139,14 +136,14 @@ public class LinkedMap<V extends Bean> extends AbstractLinkedMap {
 
 	public V put(String id, V value) {
 		var nodeIdKey = new BLinkedMapKey(name, id);
-		var nodeId = _tValueIdToNodeId.get(nodeIdKey);
+		var nodeId = module._tValueIdToNodeId.get(nodeIdKey);
 		if (null == nodeId) {
 			var newNodeValue = new BLinkedMapNodeValue();
 			newNodeValue.setId(id);
 			newNodeValue.getValue().setBean(value);
 			nodeId = new BLinkedMapNodeId();
 			nodeId.setNodeId(addUnsafe(newNodeValue));
-			_tValueIdToNodeId.insert(nodeIdKey, nodeId);
+			module._tValueIdToNodeId.insert(nodeIdKey, nodeId);
 			var root = getRoot();
 			root.setCount(root.getCount() + 1);
 			return null;
@@ -169,7 +166,7 @@ public class LinkedMap<V extends Bean> extends AbstractLinkedMap {
 
 	@SuppressWarnings("unchecked")
 	public V get(String id) {
-		var nodeId = _tValueIdToNodeId.get(new BLinkedMapKey(name, id));
+		var nodeId = module._tValueIdToNodeId.get(new BLinkedMapKey(name, id));
 		if (null == nodeId) {
 			return null;
 		}
@@ -189,7 +186,7 @@ public class LinkedMap<V extends Bean> extends AbstractLinkedMap {
 	@SuppressWarnings("unchecked")
 	public V remove(String id) {
 		var nodeKey = new BLinkedMapKey(name, id);
-		var nodeId = _tValueIdToNodeId.get(nodeKey);
+		var nodeId = module._tValueIdToNodeId.get(nodeKey);
 		if (null == nodeId) {
 			return null;
 		}
@@ -198,7 +195,7 @@ public class LinkedMap<V extends Bean> extends AbstractLinkedMap {
 			var e = node.getValues().get(i);
 			if (e.getId().equals(id)) {
 				node.getValues().remove(i);
-				_tValueIdToNodeId.remove(nodeKey);
+				module._tValueIdToNodeId.remove(nodeKey);
 				var root = getRoot();
 				root.setCount(root.getCount() - 1);
 				if (node.getValues().isEmpty())
@@ -217,7 +214,7 @@ public class LinkedMap<V extends Bean> extends AbstractLinkedMap {
 	 */
 	@SuppressWarnings("unchecked")
 	public void walk(TableWalkHandle<Long, V> func) {
-		_tLinkedMapNodes.Walk((key, node) -> {
+		module._tLinkedMapNodes.Walk((key, node) -> {
 			for (var value : node.getValues()) {
 				if (!func.handle(key.getNodeId(), (V)value.getValue().getBean()))
 					return false;
@@ -228,7 +225,7 @@ public class LinkedMap<V extends Bean> extends AbstractLinkedMap {
 
 	// inner
 	private long addUnsafe(BLinkedMapNodeValue nodeValue) {
-		var root = _tLinkedMaps.getOrAdd(name);
+		var root = module._tLinkedMaps.getOrAdd(name);
 		var tail = getNode(root.getTailNodeId());
 		// tail is null means empty
 		if (null != tail && tail.getValues().size() < nodeSize) {
@@ -239,7 +236,7 @@ public class LinkedMap<V extends Bean> extends AbstractLinkedMap {
 		newNode.getValues().add(nodeValue);
 		root.setLastNodeId(root.getLastNodeId() + 1);
 		var newNodeId = root.getLastNodeId();
-		_tLinkedMapNodes.insert(new BLinkedMapNodeKey(name, newNodeId), newNode);
+		module._tLinkedMapNodes.insert(new BLinkedMapNodeKey(name, newNodeId), newNode);
 		newNode.setPrevNodeId(root.getTailNodeId()); // 这里包含了empty
 		root.setTailNodeId(newNodeId);
 		if (null != tail) {
@@ -271,6 +268,6 @@ public class LinkedMap<V extends Bean> extends AbstractLinkedMap {
 		}
 
 		// 没有马上删除，启动gc延迟删除。
-		_tLinkedMapNodes.delayRemove(new BLinkedMapNodeKey(name, nodeId.getNodeId()));
+		module._tLinkedMapNodes.delayRemove(new BLinkedMapNodeKey(name, nodeId.getNodeId()));
 	}
 }
