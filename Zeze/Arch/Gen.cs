@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Zeze.Arch.Rpc
+namespace Zeze.Arch
 {
     // 系列化代码生成
     public class Gen

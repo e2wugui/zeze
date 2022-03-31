@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Zeze.Arch.Rpc
+namespace Zeze.Arch
 {
     public class GenModule
     {

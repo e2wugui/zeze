@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Transaction;
 using static Zezex.Provider.ModuleProvider;
-using Zeze.Arch.Rpc;
+using Zeze.Arch;
     
 namespace Game.Rank
 {

@@ -1,4 +1,5 @@
 ﻿
+using System.Threading.Tasks;
 using Zeze.Net;
 
 namespace Game.Bag
@@ -28,7 +29,7 @@ namespace Game.Bag
             }
         }
 
-        protected override long ProcessSChanged(Protocol p)
+        protected override async Task<long> ProcessSChanged(Protocol p)
         {
             var protocol = p as SChanged;
             switch (protocol.Argument.ChangeTag)
