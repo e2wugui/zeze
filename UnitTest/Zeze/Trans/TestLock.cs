@@ -136,9 +136,9 @@ namespace UnitTest.Zeze.Trans
                         using (await locks.Get(tkey).ReaderLockAsync())
                         {
                             Increase("ReaderLockAsync 1");
-                            await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
+                            //await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
                         }
-                        await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
+                        //await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
                     }
                 }),
 
@@ -149,9 +149,9 @@ namespace UnitTest.Zeze.Trans
                         using (await locks.Get(tkey).ReaderLockAsync())
                         {
                             Increase("ReaderLockAsync 2");
-                            await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
+                            //await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
                         }
-                        await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
+                        //await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
                     }
                 }),
 
@@ -162,9 +162,9 @@ namespace UnitTest.Zeze.Trans
                         using (await locks.Get(tkey).ReaderLockAsync())
                         {
                             Increase("ReaderLockAsync 3");
-                            await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
+                            //await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
                         }
-                        await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
+                        //await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
                     }
                 }),
 
@@ -175,9 +175,9 @@ namespace UnitTest.Zeze.Trans
                         using (await locks.Get(tkey).WriterLockAsync())
                         {
                             Increase("WriterLockAsync 1");
-                            await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
+                            //await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
                         }
-                        await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
+                        //await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
                     }
                 }),
 
@@ -188,9 +188,9 @@ namespace UnitTest.Zeze.Trans
                         using (await locks.Get(tkey).WriterLockAsync())
                         {
                             Increase("WriterLockAsync 2");
-                            await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
+                            //await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
                         }
-                        await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
+                        //await Task.Delay(global::Zeze.Util.Random.Instance.Next(20));
                     }
                 }),
 
@@ -204,14 +204,14 @@ namespace UnitTest.Zeze.Trans
                             try
                             {
                                 Increase("TryEnterReadLock 1");
-                                Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
+                                //Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
                             }
                             finally
                             {
                                 lockey.Release();
                             }
                         }
-                        Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
+                        //Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
                     }
                 }),
 
@@ -225,14 +225,14 @@ namespace UnitTest.Zeze.Trans
                             try
                             {
                                 Increase("TryEnterReadLock 2");
-                                Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
+                                //Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
                             }
                             finally
                             {
                                 lockey.Release();
                             }
                         }
-                        Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
+                        //Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
                     }
                 }),
 
@@ -246,14 +246,14 @@ namespace UnitTest.Zeze.Trans
                             try
                             {
                                 Increase("TryEnterWriteLock 1");
-                                Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
+                                //Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
                             }
                             finally
                             {
                                 lockey.Release();
                             }
                         }
-                        Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
+                        //Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
                     }
                 }),
 
@@ -267,19 +267,19 @@ namespace UnitTest.Zeze.Trans
                             try
                             {
                                 Increase("TryEnterWriteLock 2");
-                                Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
+                                //Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
                             }
                             finally
                             {
                                 lockey.Release();
                             }
                         }
-                        Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
+                        //Task.Delay(global::Zeze.Util.Random.Instance.Next(20)).Wait();
                     }
                 })
             };
 
-            Thread.Sleep(60 * 1000);
+            Thread.Sleep(5 * 1000);
             Running = false;
             Task.WaitAll(tasks.ToArray());
             var sb = new StringBuilder();

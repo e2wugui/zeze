@@ -28,7 +28,6 @@
 		bool FullCopy; // 当发生中间删除或者插入时。这个有进一步优化空间。
 		OR -> List<OperateLog> 所有操作记录日志，收到方重做。问题：Get(index).Update，怎么融入。
 	Global.RocksRaft.LruTryRemoveCallback
-	Zeze.Component dynamic bean动态增加类型的能力。
 	Global c# 慢的问题。
 	把 RocksRaft Changes 应用到 Zeze 中，让 Zeze 实现任意Bean任意级别的更新。
 	// 1. 仅支持整个Bean的订阅。2. log factory 问题。3. add listener和notify原子问题。动态订阅。
@@ -40,6 +39,7 @@
 	Test Simulate
 
 【2022/4/11】
+	Zeze.Component dynamic bean动态增加类型的能力。
 	LockAsync 单元测试。关键：TryEnterXXXLock。
 	Queue
 	GCTable(每个ServerId一个Queue),
