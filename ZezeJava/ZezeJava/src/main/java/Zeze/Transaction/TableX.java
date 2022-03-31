@@ -413,7 +413,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	@Override
 	Storage Open(Application app, Database database) {
 		if (null != TStorage) {
-			throw new IllegalStateException("table has opened." + getName());
+			throw new IllegalStateException("table has opened: " + getName());
 		}
 		setZeze(app);
 		setDatabase(database);

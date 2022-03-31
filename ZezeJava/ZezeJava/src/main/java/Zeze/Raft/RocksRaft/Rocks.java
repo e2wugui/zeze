@@ -36,7 +36,7 @@ import Zeze.Util.LongConcurrentHashMap;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.BackupEngine;
-import org.rocksdb.BackupableDBOptions;
+import org.rocksdb.BackupEngineOptions;
 import org.rocksdb.Checkpoint;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
@@ -286,7 +286,7 @@ public final class Rocks extends StateMachine implements Closeable {
 	public boolean Backup(String checkpointDir, String backupDir) throws RocksDBException {
 		var outHandles = new ArrayList<ColumnFamilyHandle>();
 		try (var src = RocksDB.open(dbOptions, checkpointDir, getColumnFamilies(checkpointDir), outHandles);
-			 var backupOptions = new BackupableDBOptions(backupDir);
+			 var backupOptions = new BackupEngineOptions(backupDir);
 			 var backup = BackupEngine.open(Env.getDefault(), backupOptions)) {
 			backup.createNewBackup(src, true);
 		}
@@ -302,7 +302,7 @@ public final class Rocks extends StateMachine implements Closeable {
 
 			var dbName = Paths.get(getDbHome(), "statemachine").toString();
 			try (var restoreOptions = new RestoreOptions(false);
-				 var backupOptions = new BackupableDBOptions(backupDir);
+				 var backupOptions = new BackupEngineOptions(backupDir);
 				 var backup = BackupEngine.open(Env.getDefault(), backupOptions)) {
 				backup.restoreDbFromLatestBackup(dbName, dbName, restoreOptions);
 			}
