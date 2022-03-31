@@ -1,5 +1,5 @@
 # TypeScript
 
-ÔËÐÐ ByteBuffer ²âÊÔ
+è¿è¡Œ ByteBuffer æµ‹è¯•
 node app.js
-ÐèÒª°Ñ"."¼Óµ½NODE_PATHÖÐ¡£
+éœ€è¦æŠŠ"."åŠ åˆ°NODE_PATHä¸­ã€‚

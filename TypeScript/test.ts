@@ -1,4 +1,4 @@
-﻿
+
 import { Zeze } from "zeze"
 
 function assert(condition: any, msg: string): asserts condition {

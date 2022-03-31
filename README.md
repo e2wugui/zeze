@@ -1,6 +1,6 @@
 
-What is Zeze��
+What is Zeze？
 
-����һ���Ի���ķֲ�ʽ����Ӧ�ÿ��
+基于一致性缓存的分布式事务应用框架
 
-��� doc/zeze.docx
+详见 doc/zeze.docx
