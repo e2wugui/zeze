@@ -1,5 +1,6 @@
 ﻿
 using Game.Fight;
+using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Transaction;
 
@@ -68,19 +69,19 @@ namespace Game.Equip
         }
         // 装备只有装上取下两个操作，没有公开的需求，先不提供包装类了。
 
-        protected override long ProcessEquipementRequest(Protocol p)
+        protected override async Task<long> ProcessEquipementRequest(Protocol p)
         {
             var rpc = p as Equipement;
             Login.Session session = Login.Session.Get(rpc);
 
-            Bag.Bag bag = App.Instance.Game_Bag.GetBag(session.RoleId.Value);
+            Bag.Bag bag = await App.Instance.Game_Bag.GetBag(session.RoleId.Value);
             if (bag.Items.TryGetValue(rpc.Argument.BagPos, out var bItem))
             {
                 int equipPos = GetEquipPosition(bItem.Id);
                 if (equipPos < 0)
                     return ErrorCode(ResultCodeCannotEquip);
 
-                BEquips equips = _tequip.GetOrAdd(session.RoleId.Value);
+                BEquips equips = await _tequip.GetOrAddAsync(session.RoleId.Value);
                 Game.Bag.BItem bEquipAdd;
                 if (equips.Items.TryGetValue(equipPos, out var eItem))
                 {
@@ -109,16 +110,16 @@ namespace Game.Equip
             return ErrorCode(ResultCodeItemNotFound);
         }
 
-        protected override long ProcessUnequipementRequest(Protocol p)
+        protected override async Task<long> ProcessUnequipementRequest(Protocol p)
         {
             var rpc = p as Unequipement;
             Login.Session session = Login.Session.Get(rpc);
 
-            BEquips equips = _tequip.GetOrAdd(session.RoleId.Value);
+            BEquips equips = await _tequip.GetOrAddAsync(session.RoleId.Value);
             if (equips.Items.TryGetValue(rpc.Argument.EquipPos, out var eItem))
             {
                 equips.Items.Remove(rpc.Argument.EquipPos);
-                Bag.Bag bag = App.Instance.Game_Bag.GetBag(session.RoleId.Value);
+                Bag.Bag bag = await App.Instance.Game_Bag.GetBag(session.RoleId.Value);
                 Bag.BItem bItemAdd = new Bag.BItem() { Id = eItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = (BEquipExtra)eItem.Extra.CopyBean() };
                 if (0 != bag.Add(-1, bItemAdd))
                     return ErrorCode(ResultCodeBagIsFull); // bag is full
@@ -129,9 +130,9 @@ namespace Game.Equip
             return ErrorCode(ResultCodeEquipNotFound);
         }
 
-        public Game.Item.Item GetEquipItem(long roleId, int position)
+        public async Task<Game.Item.Item> GetEquipItem(long roleId, int position)
         {
-            BEquips equips = _tequip.GetOrAdd(roleId);
+            BEquips equips = await _tequip.GetOrAddAsync(roleId);
             return GetEquipItem(equips, position);
         }
 
@@ -150,12 +151,12 @@ namespace Game.Equip
             return null;
         }
 
-        public void CalculateFighter(Game.Fight.Fighter fighter)
+        public async Task CalculateFighter(Game.Fight.Fighter fighter)
         {
             if (fighter.Id.Type != BFighterId.TypeRole)
                 return;
 
-            BEquips equips = _tequip.GetOrAdd(fighter.Id.InstanceId);
+            BEquips equips = await _tequip.GetOrAddAsync(fighter.Id.InstanceId);
             foreach (var pos in equips.Items.Keys)
             {
                 GetEquipItem(equips, pos).CalculateFighter(fighter);

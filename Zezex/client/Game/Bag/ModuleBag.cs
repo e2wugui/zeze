@@ -16,15 +16,15 @@ namespace Game.Bag
         {
         }
 
-        public void OnReliableNotify(Zeze.Net.Protocol p)
+        public async Task OnReliableNotify(Zeze.Net.Protocol p)
         {
             switch (p.TypeId)
             {
                 case SChanged.TypeId_:
-                    ProcessSChanged((SChanged)p);
+                    await ProcessSChanged((SChanged)p);
                     break;
                 case SBag.TypeId_:
-                    ProcessSBag(p as SBag);
+                    await ProcessSBag(p as SBag);
                     break;
             }
         }
@@ -56,7 +56,7 @@ namespace Game.Bag
 
         private BBag bag;
 
-        protected override long ProcessSBag(Protocol p)
+        protected override async Task<long> ProcessSBag(Protocol p)
         {
             var protocol = p as SBag;
             bag = protocol.Argument;

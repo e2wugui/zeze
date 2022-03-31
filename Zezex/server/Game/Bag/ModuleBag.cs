@@ -1,4 +1,5 @@
 ﻿
+using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Transaction;
 
@@ -77,12 +78,12 @@ namespace Game.Bag
         }
 
         // protocol handles
-        protected override long ProcessMoveRequest(Protocol p)
+        protected override async Task<long> ProcessMoveRequest(Protocol p)
         {
             var rpc = p as Move;
             Login.Session session = Login.Session.Get(rpc);
             // throw exception if not login
-            var moduleCode = GetBag(session.RoleId.Value).Move(
+            var moduleCode = (await GetBag(session.RoleId.Value)).Move(
                 rpc.Argument.PositionFrom,
                 rpc.Argument.PositionTo,
                 rpc.Argument.Number);
@@ -92,33 +93,33 @@ namespace Game.Bag
             return 0;
         }
 
-        protected override long ProcessDestroyRequest(Protocol p)
+        protected override async Task<long> ProcessDestroyRequest(Protocol p)
         {
             var rpc = p as Destroy;
             Login.Session session = Login.Session.Get(rpc);
-            var moduleCode = GetBag(session.RoleId.Value).Destory(rpc.Argument.Position);
+            var moduleCode = (await GetBag(session.RoleId.Value)).Destory(rpc.Argument.Position);
             if (0 != moduleCode)
                 return ErrorCode((ushort)moduleCode);
             session.SendResponse(rpc);
             return 0;
         }
 
-        protected override long ProcessSortRequest(Protocol p)
+        protected override async Task<long> ProcessSortRequest(Protocol p)
         {
             var rpc = p as Sort;
             Login.Session session = Login.Session.Get(rpc);
-            Bag bag = GetBag(session.RoleId.Value);
+            Bag bag = await GetBag(session.RoleId.Value);
             bag.Sort();
             session.SendResponse(rpc);
             return Procedure.Success;
         }
 
-        protected override long ProcessGetBagRequest(Protocol p)
+        protected override async Task<long> ProcessGetBagRequest(Protocol p)
         {
             var rpc = p as GetBag;
             Login.Session session = Login.Session.Get(rpc);
 
-            GetBag(session.RoleId.Value).ToProtocol(rpc.Result);
+            (await GetBag(session.RoleId.Value)).ToProtocol(rpc.Result);
             session.SendResponse(rpc);
             Game.App.Instance.Game_Login.Onlines.AddReliableNotifyMark(
                 session.RoleId.Value, BagChangeListener.Name);
@@ -126,16 +127,16 @@ namespace Game.Bag
         }
 
         // for other module
-        public Bag GetBag(long roleid)
+        public async Task<Bag> GetBag(long roleid)
         {
-            return new Bag(roleid, _tbag.GetOrAdd(roleid));
+            return new Bag(roleid, await _tbag.GetOrAddAsync(roleid));
         }
 
-        protected override long ProcessCUse(Protocol p)
+        protected override async Task<long> ProcessCUse(Protocol p)
         {
             var protocol = p as CUse;
             Login.Session session = Login.Session.Get(protocol);
-            Bag bag = GetBag(session.RoleId.Value);
+            Bag bag = await GetBag(session.RoleId.Value);
             Item.Item item = bag.GetItem(protocol.Argument.Position);
             if (null != item && item.Use())
             {

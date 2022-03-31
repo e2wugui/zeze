@@ -1,4 +1,5 @@
 ﻿
+using System.Threading.Tasks;
 using Zeze.Net;
 
 namespace Zezex.Linkd
@@ -13,13 +14,13 @@ namespace Zezex.Linkd
         {
         }
 
-        protected override long ProcessKeepAlive(Protocol _p)
+        protected override async Task<long> ProcessKeepAlive(Protocol _p)
         {
             var p = _p as KeepAlive;
             return Zeze.Transaction.Procedure.NotImplement;
         }
 
-        protected override long ProcessReportError(Protocol _p)
+        protected override async Task<long> ProcessReportError(Protocol _p)
         {
             var p = _p as ReportError;
             return Zeze.Transaction.Procedure.NotImplement;

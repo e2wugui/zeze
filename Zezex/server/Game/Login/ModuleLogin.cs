@@ -1,5 +1,6 @@
 ﻿
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Transaction;
 
@@ -18,7 +19,7 @@ namespace Game.Login
 
         public Onlines Onlines { get; private set; }
 
-        protected override long ProcessCreateRoleRequest(Protocol p)
+        protected override async Task<long> ProcessCreateRoleRequest(Protocol p)
         {
             var rpc = p as CreateRole;
             Session session = Session.Get(rpc);
@@ -27,36 +28,36 @@ namespace Game.Login
              【警告】这里使用了AutoKey，这个是用来给游戏分服运营方式生成服务器之间唯一Id用的。方便未来合服用的。
              如果你的项目没有分服合服这种操作，不建议使用。
              */
-            long roleid = _trole.Insert(new BRoleData()
+            long roleid = await _trole.InsertAsync(new BRoleData()
             {
                 Name = rpc.Argument.Name
             });
 
             // duplicate name check
-            if (false == _trolename.TryAdd(rpc.Argument.Name, new BRoleId() { Id = roleid }))
+            if (false == await _trolename.TryAddAsync(rpc.Argument.Name, new BRoleId() { Id = roleid }))
                 return ErrorCode(ResultCodeCreateRoleDuplicateRoleName);
 
-            var account = _taccount.GetOrAdd(session.Account);
+            var account = await _taccount.GetOrAddAsync(session.Account);
             account.Roles.Add(roleid);
 
             // initialize role data
-            Game.App.Instance.Game_Bag.GetBag(roleid).SetCapacity(50);
+            (await Game.App.Instance.Game_Bag.GetBag(roleid)).SetCapacity(50);
 
             session.SendResponse(rpc);
             return Procedure.Success;
         }
 
-        protected override long ProcessGetRoleListRequest(Protocol p)
+        protected override async Task<long> ProcessGetRoleListRequest(Protocol p)
         {
             var rpc = p as GetRoleList;
             Session session = Session.Get(rpc);
 
-            BAccount account = _taccount.Get(session.Account);
+            BAccount account = await _taccount.GetAsync(session.Account);
             if (null != account)
             {
                 foreach (var roleId in account.Roles)
                 {
-                    BRoleData roleData = _trole.Get(roleId);
+                    BRoleData roleData = await _trole.GetAsync(roleId);
                     if (null != roleData)
                     {
                         rpc.Result.RoleList.Add(new BRole()
@@ -73,21 +74,21 @@ namespace Game.Login
             return Procedure.Success;
         }
 
-        protected override long ProcessLoginRequest(Protocol p)
+        protected override async Task<long> ProcessLoginRequest(Protocol p)
         {
             var rpc = p as Login;
             Session session = Session.Get(rpc);
 
-            BAccount account = _taccount.Get(session.Account);
+            BAccount account = await _taccount.GetAsync(session.Account);
             if (null == account)
                 return ErrorCode(ResultCodeAccountNotExist);
 
             account.LastLoginRoleId = rpc.Argument.RoleId;
-            BRoleData role = _trole.Get(rpc.Argument.RoleId);
+            BRoleData role = await _trole.GetAsync(rpc.Argument.RoleId);
             if (null == role)
                 return ErrorCode(ResultCodeRoleNotExist);
 
-            BOnline online = _tonline.GetOrAdd(rpc.Argument.RoleId);
+            BOnline online = await _tonline.GetOrAddAsync(rpc.Argument.RoleId);
             online.LinkName = session.LinkName;
             online.LinkSid = session.SessionId;
             online.State = BOnline.StateOnline;
@@ -115,23 +116,23 @@ namespace Game.Login
             return Procedure.Success;
         }
 
-        protected override long ProcessReLoginRequest(Protocol p)
+        protected override async Task<long> ProcessReLoginRequest(Protocol p)
         {
             var rpc = p as ReLogin;
             Session session = Session.Get(rpc);
 
-            BAccount account = _taccount.Get(session.Account);
+            BAccount account = await _taccount.GetAsync(session.Account);
             if (null == account)
                 return ErrorCode(ResultCodeAccountNotExist);
 
             if (account.LastLoginRoleId != rpc.Argument.RoleId)
                 return ErrorCode(ResultCodeNotLastLoginRoleId);
 
-            BRoleData role = _trole.Get(rpc.Argument.RoleId);
+            BRoleData role = await _trole.GetAsync(rpc.Argument.RoleId);
             if (null == role)
                 return ErrorCode(ResultCodeRoleNotExist);
 
-            BOnline online = _tonline.Get(rpc.Argument.RoleId);
+            BOnline online = await _tonline.GetAsync(rpc.Argument.RoleId);
             if (null == online)
                 return ErrorCode(ResultCodeOnlineDataNotFound);
 
@@ -185,12 +186,12 @@ namespace Game.Login
             return ResultCodeSuccess;
         }
 
-        protected override long ProcessReliableNotifyConfirmRequest(Protocol p)
+        protected override async Task<long> ProcessReliableNotifyConfirmRequest(Protocol p)
         {
             var rpc = p as ReliableNotifyConfirm;
             Session session = Session.Get(rpc);
 
-            BOnline online = _tonline.Get(session.RoleId.Value);
+            BOnline online = await _tonline.GetAsync(session.RoleId.Value);
             if (null == online || online.State == BOnline.StateOffline)
                 return ErrorCode(ResultCodeOnlineDataNotFound);
 
@@ -207,7 +208,7 @@ namespace Game.Login
             return Procedure.Success;
         }
 
-        protected override long ProcessLogoutRequest(Protocol p)
+        protected override async Task<long> ProcessLogoutRequest(Protocol p)
         {
             var rpc = p as Logout;
             Session session = Session.Get(rpc);
@@ -215,7 +216,7 @@ namespace Game.Login
             if (session.RoleId == null)
                 return ErrorCode(ResultCodeNotLogin);
 
-            _tonline.Remove(session.RoleId.Value);
+            await _tonline.RemoveAsync(session.RoleId.Value);
 
             // 先设置状态，再发送Logout结果。
             Transaction.Current.RunWhileCommit(() =>

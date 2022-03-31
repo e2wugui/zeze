@@ -36,7 +36,7 @@ namespace Game.Rank
         /// <param name="roleId"></param>
         /// <param name="value"></param>
         /// <returns>Procudure.Success...</returns>
-        protected long UpdateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx)
+        protected async Task<long> UpdateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx)
         {
             int concurrentLevel = GetConcurrentLevel(keyHint.RankType);
             int maxCount = GetRankComputeCount(keyHint.RankType);
@@ -45,7 +45,7 @@ namespace Game.Rank
                 keyHint.RankType, hash % concurrentLevel,
                 keyHint.TimeType, keyHint.Year, keyHint.Offset);
 
-            var rank = _trank.GetOrAdd(concurrentKey);
+            var rank = await _trank.GetOrAddAsync(concurrentKey);
             // remove if role exist. 看看有没有更快的算法。
             BRankValue exist = null;
             for (int i = 0; i < rank.RankList.Count; ++i)
@@ -98,6 +98,7 @@ namespace Game.Rank
         {
             public long BuildTime { get; set; }
             public BRankList TableValue { get; set; }
+            public Nito.AsyncEx.AsyncLock Mutex { get; } = new();
         }
 
         ConcurrentDictionary<BConcurrentKey, Rank> Ranks = new ConcurrentDictionary<BConcurrentKey, Rank>();
@@ -141,10 +142,10 @@ namespace Game.Rank
             return result;
         }
 
-        private Rank GetRank(BConcurrentKey keyHint)
+        private async Task<Rank> GetRank(BConcurrentKey keyHint)
         {
             var Rank = Ranks.GetOrAdd(keyHint, (key) => new Rank());
-            lock (Rank)
+            using (await Rank.Mutex.LockAsync())
             {
                 long now = Zeze.Util.Time.NowUnixMillis;
                 if (now - Rank.BuildTime < RebuildTime)
@@ -159,7 +160,7 @@ namespace Game.Rank
                     var concurrentKey = new BConcurrentKey(
                         keyHint.RankType, i,
                         keyHint.TimeType, keyHint.Year, keyHint.Offset);
-                    var rank = _trank.GetOrAdd(concurrentKey);
+                    var rank = await _trank.GetOrAddAsync(concurrentKey);
                     datas.Add(rank);
                 }
                 int countNeed = GetRankCount(keyHint.RankType);
@@ -219,11 +220,11 @@ namespace Game.Rank
         }
 
         // 名字必须和RunUpdateRankWithHash匹配，内部使用一样的实现。
-        protected long UpdateRankWithHash(
+        protected async Task<long> UpdateRankWithHash(
             int hash, BConcurrentKey keyHint,
             long roleId, long value, Zeze.Net.Binary valueEx)
         {
-            return UpdateRank(hash, keyHint, roleId, value, valueEx);
+            return await UpdateRank(hash, keyHint, roleId, value, valueEx);
         }
 
         [RedirectHash()]
@@ -261,7 +262,7 @@ namespace Game.Rank
         ///    c) 第三个参数是returnCode，
         ///    d) 剩下的是自定义参数。
         /// </summary>
-        protected long GetRank(long sessionId, int hash, BConcurrentKey keyHint,
+        protected async Task<long> GetRank(long sessionId, int hash, BConcurrentKey keyHint,
             System.Action<long, int, long, BRankList> onHashResult)
         {
             // 根据hash获取分组rank。
@@ -269,7 +270,7 @@ namespace Game.Rank
             var concurrentKey = new BConcurrentKey(
                 keyHint.RankType, hash % concurrentLevel,
                 keyHint.TimeType, keyHint.Year, keyHint.Offset);
-            onHashResult(sessionId, hash, Procedure.Success, _trank.GetOrAdd(concurrentKey));
+            onHashResult(sessionId, hash, Procedure.Success, await _trank.GetOrAddAsync(concurrentKey));
             return Procedure.Success;
         }
 
@@ -379,19 +380,19 @@ namespace Game.Rank
             };
         }
 
-        public long GetCounter(long roleId, BConcurrentKey keyHint)
+        public async Task<long> GetCounter(long roleId, BConcurrentKey keyHint)
         {
-            var counters = _trankcounters.GetOrAdd(roleId);
+            var counters = await _trankcounters.GetOrAddAsync(roleId);
             if (false == counters.Counters.TryGetValue(keyHint, out var counter))
                 return 0;
 
             return counter.Value;
         }
 
-        public void AddCounterAndUpdateRank(long roleId, int delta,
+        public async Task AddCounterAndUpdateRank(long roleId, int delta,
             BConcurrentKey keyHint, Zeze.Net.Binary valueEx = null)
         {
-            var counters = _trankcounters.GetOrAdd(roleId);
+            var counters = await _trankcounters.GetOrAddAsync(roleId);
             if (false == counters.Counters.TryGetValue(keyHint, out var counter))
             {
                 counter = new BRankCounter();
@@ -405,7 +406,7 @@ namespace Game.Rank
             RunUpdateRank(keyHint, roleId, counter.Value, valueEx);
         }
 
-        protected override long ProcessCGetRankList(Protocol p)
+        protected override async Task<long> ProcessCGetRankList(Protocol p)
         {
             var protocol = p as CGetRankList;
             Login.Session session = Login.Session.Get(protocol);
@@ -426,9 +427,9 @@ namespace Game.Rank
             });
             /*/
             // 同步方式获取rank
-            result.Argument.RankList.AddRange(GetRank(
+            result.Argument.RankList.AddRange((await GetRank(
                 NewRankKey(protocol.Argument.RankType, protocol.Argument.TimeType)
-                ).TableValue.RankList);
+                )).TableValue.RankList);
             session.SendResponse(result);
             // */
             return Procedure.Success;

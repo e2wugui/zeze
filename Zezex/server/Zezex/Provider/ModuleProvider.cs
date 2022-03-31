@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using static Zeze.Net.Service;
 using Zeze.Transaction;
 using Zeze.Net;
+using System.Threading.Tasks;
 
 namespace Zezex.Provider
 {
@@ -28,7 +29,7 @@ namespace Zezex.Provider
             p.Send(sender);
         }
 
-        protected override long ProcessDispatch(Protocol _p)
+        protected override async Task<long> ProcessDispatch(Protocol _p)
         {
             var p = _p as Dispatch;
             try
@@ -56,8 +57,8 @@ namespace Zezex.Provider
                     // 已经在事务中，嵌入执行。此时忽略p2的NoProcedure配置。
                     Transaction.Current.TopProcedure.ActionName = p2.GetType().FullName;
                     Transaction.Current.TopProcedure.UserState = p2.UserState;
-                    return Zeze.Util.Task.Call(
-                        () => factoryHandle.Handle(p2),
+                    return await Zeze.Util.Mission.CallAsync(
+                        factoryHandle.Handle,
                         p2,
                         (p, code) => { p.ResultCode = code; session.SendResponse(p); });
                 }
@@ -65,14 +66,14 @@ namespace Zezex.Provider
                 if (p2.Sender.Service.Zeze == null || factoryHandle.NoProcedure)
                 {
                     // 应用框架不支持事务或者协议配置了“不需要事务”
-                    return Zeze.Util.Task.Call(
-                        () => factoryHandle.Handle(p2),
+                    return await Zeze.Util.Mission.CallAsync(
+                        factoryHandle.Handle,
                         p2,
                         (p, code) => { p.ResultCode = code; session.SendResponse(p); });
                 }
 
                 // 创建存储过程并且在当前线程中调用。
-                return Zeze.Util.Task.Call(
+                return await Zeze.Util.Mission.CallAsync(
                     p2.Sender.Service.Zeze.NewProcedure(
                         () => factoryHandle.Handle(p2),
                         p2.GetType().FullName,
@@ -89,7 +90,7 @@ namespace Zezex.Provider
             }
         }
 
-        protected override long ProcessLinkBroken(Protocol p)
+        protected override async Task<long> ProcessLinkBroken(Protocol p)
         {
             var protocol = p as LinkBroken;
             // 目前仅需设置online状态。
@@ -101,7 +102,7 @@ namespace Zezex.Provider
             return Procedure.Success;
         }
 
-        protected override long ProcessModuleRedirectRequest(Protocol p)
+        protected override async Task<long> ProcessModuleRedirectRequest(Protocol p)
         {
             var rpc = p as ModuleRedirect;
             try
@@ -151,7 +152,7 @@ namespace Zezex.Provider
             }
         }
 
-        protected override long ProcessModuleRedirectAllRequest(Protocol p)
+        protected override async Task<long> ProcessModuleRedirectAllRequest(Protocol p)
         {
             var protocol = p as ModuleRedirectAllRequest;
             var result = new ModuleRedirectAllResult();
@@ -189,12 +190,12 @@ namespace Zezex.Provider
                     // 嵌套存储过程，某个分组处理失败不影响其他分组。
                     var hashResult = new BModuleRedirectAllHash();
                     Zeze.Net.Binary Params = null;
-                    hashResult.ReturnCode = App.Zeze.NewProcedure(() =>
+                    hashResult.ReturnCode = await App.Zeze.NewProcedure(async () =>
                     {
                         var (_ReturnCode, _Params) = handle(protocol.Argument.SessionId, hash, protocol.Argument.Params, hashResult.Actions);
                         Params = _Params;
                         return _ReturnCode;
-                    }, Transaction.Current.TopProcedure.ActionName).Call();
+                    }, Transaction.Current.TopProcedure.ActionName).CallAsync();
 
                     // 单个分组处理失败继续执行。XXX
                     if (hashResult.ReturnCode == Procedure.Success)
@@ -270,20 +271,20 @@ namespace Zezex.Provider
             }
 
             // 这里处理真正redirect发生时，从远程返回的结果。
-            public void ProcessResult(ModuleRedirectAllResult result)
+            public async Task ProcessResult(ModuleRedirectAllResult result)
             {
                 foreach (var h in result.Argument.Hashs)
                 {
                     // 嵌套存储过程，单个分组的结果处理不影响其他分组。
                     // 不判断单个分组的处理结果，错误也继续执行其他分组。XXX
-                    Game.App.Instance.Zeze.NewProcedure(() =>
+                    await Game.App.Instance.Zeze.NewProcedure(() =>
                         ProcessHashResult(h.Key, h.Value.ReturnCode, h.Value.Params, h.Value.Actions),
-                        MethodFullName).Call();
+                        MethodFullName).CallAsync();
                 }
             }
 
             // 生成代码实现。see Game.ModuleRedirect.cs
-            public virtual long ProcessHashResult(
+            public virtual async Task<long> ProcessHashResult(
                 int _hash_,
                 long _returnCode_,
                 Zeze.Net.Binary _params,
@@ -293,7 +294,7 @@ namespace Zezex.Provider
             }
         }
 
-        protected override long ProcessModuleRedirectAllResult(Protocol p)
+        protected override async Task<long> ProcessModuleRedirectAllResult(Protocol p)
         {
             var protocol = p as ModuleRedirectAllResult;
             // replace RootProcedure.ActionName. 为了统计和日志输出。
@@ -303,7 +304,7 @@ namespace Zezex.Provider
             return Procedure.Success;
         }
 
-        protected override long ProcessTransmit(Protocol _p)
+        protected override async Task<long> ProcessTransmit(Protocol _p)
         {
             var p = _p as Transmit;
             Zeze.Serialize.Serializable parameter = null;
@@ -319,7 +320,7 @@ namespace Zezex.Provider
             return Procedure.Success;
         }
 
-        protected override long ProcessAnnounceLinkInfo(Protocol p)
+        protected override async Task<long> ProcessAnnounceLinkInfo(Protocol p)
         {
             var protocol = p as AnnounceLinkInfo;
             var linkSession = protocol.Sender.UserState as Game.Server.LinkSession;
@@ -327,7 +328,7 @@ namespace Zezex.Provider
             return Procedure.Success;
         }
 
-        protected override long ProcessSendConfirm(Protocol p)
+        protected override async Task<long> ProcessSendConfirm(Protocol p)
         {
             var protocol = p as SendConfirm;
             var linkSession = protocol.Sender.UserState as Game.Server.LinkSession;

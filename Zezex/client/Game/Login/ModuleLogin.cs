@@ -1,13 +1,14 @@
 ﻿
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Zeze.Net;
 
 namespace Game.Login
 {
     public interface IReliableNotify
     {
-        public void OnReliableNotify(Zeze.Net.Protocol p);
+        public Task OnReliableNotify(Zeze.Net.Protocol p);
     }
 
     public sealed partial class ModuleLogin : AbstractModule
@@ -30,7 +31,7 @@ namespace Game.Login
                 throw new System.Exception($"Duplicate Protocol({Zeze.Net.Protocol.GetModuleId(protocolTypeId)}, {Zeze.Net.Protocol.GetProtocolId(protocolTypeId)})");
         }
 
-        protected override long ProcessSReliableNotify(Protocol p)
+        protected override async Task<long> ProcessSReliableNotify(Protocol p)
         {
             var protocol = p as SReliableNotify;
             // TODO
@@ -49,7 +50,7 @@ namespace Game.Login
                         var factoryHandle = Game.App.Instance.Client.FindProtocolFactoryHandle(typeId);
                         var pNotify = factoryHandle.Factory();
                         pNotify.Decode(bb);
-                        handle.OnReliableNotify(pNotify);
+                        await handle.OnReliableNotify(pNotify);
                     }
                 }
                 catch (System.Exception )

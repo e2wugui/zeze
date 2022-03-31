@@ -1,5 +1,6 @@
 ﻿
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Services.ServiceManager;
 
@@ -252,7 +253,7 @@ namespace Zezex.Provider
             }
         }
 
-        protected override long ProcessBindRequest(Protocol p)
+        protected override async Task<long> ProcessBindRequest(Protocol p)
         {
             var rpc = p as Bind;
             if (rpc.Argument.LinkSids.Count == 0)
@@ -268,7 +269,7 @@ namespace Zezex.Provider
                     var providerModuleState = new ProviderModuleState(providerSession.SessionId,
                         module.Key, module.Value.ChoiceType, module.Value.ConfigType);
                     var serviceName = MakeServiceName(providerSession.Info.ServiceNamePrefix, module.Key);
-                    var subState = App.ServiceManagerAgent.SubscribeService(serviceName,
+                    var subState = await App.ServiceManagerAgent.SubscribeService(serviceName,
                         SubscribeInfo.SubscribeTypeReadyCommit,
                         providerModuleState);
                     // 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
@@ -293,7 +294,7 @@ namespace Zezex.Provider
             return Zeze.Transaction.Procedure.Success;
         }
 
-        protected override long ProcessSubscribeRequest(Zeze.Net.Protocol _p)
+        protected override async Task<long> ProcessSubscribeRequest(Zeze.Net.Protocol _p)
         {
             var rpc = (Subscribe)_p;
 
@@ -303,7 +304,7 @@ namespace Zezex.Provider
                 var providerModuleState = new ProviderModuleState(providerSession.SessionId,
                         module.Key, module.Value.ChoiceType, module.Value.ConfigType);
                 var serviceName = MakeServiceName(providerSession.Info.ServiceNamePrefix, module.Key);
-                var subState = App.ServiceManagerAgent.SubscribeService(
+                var subState = await App.ServiceManagerAgent.SubscribeService(
                         serviceName, module.Value.SubscribeType, providerModuleState);
                 // 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
                 if (Zeze.Services.ServiceManager.SubscribeInfo.SubscribeTypeReadyCommit == module.Value.SubscribeType)
@@ -332,7 +333,7 @@ namespace Zezex.Provider
                 volatileProviders.SetServiceIdentityReadyState(providerSession.Info.ServiceIndentity, null);
             }
         }
-        protected override long ProcessUnBindRequest(Protocol p)
+        protected override async Task<long> ProcessUnBindRequest(Protocol p)
         {
             var rpc = p as UnBind;
             if (rpc.Argument.LinkSids.Count == 0)
@@ -356,7 +357,7 @@ namespace Zezex.Provider
             return Zeze.Transaction.Procedure.Success;
         }
 
-        protected override long ProcessSend(Protocol p)
+        protected override async Task<long> ProcessSend(Protocol p)
         {
             var protocol = p as Send;
             // 这个是拿来处理乱序问题的：多个逻辑服务器之间，给客户端发送协议排队。
@@ -379,7 +380,7 @@ namespace Zezex.Provider
             return Zeze.Transaction.Procedure.Success;
         }
 
-        protected override long ProcessBroadcast(Protocol p)
+        protected override async Task<long> ProcessBroadcast(Protocol p)
         {
             var protocol = p as Broadcast;
             if (protocol.Argument.ConfirmSerialId != 0)
@@ -405,7 +406,7 @@ namespace Zezex.Provider
             return Zeze.Transaction.Procedure.Success;
         }
 
-        protected override long ProcessKick(Protocol p)
+        protected override async Task<long> ProcessKick(Protocol p)
         {
             var protocol = p as Kick;
             App.Instance.LinkdService.ReportError(
@@ -414,7 +415,7 @@ namespace Zezex.Provider
             return Zeze.Transaction.Procedure.Success;
         }
 
-        protected override long ProcessSetUserState(Protocol p)
+        protected override async Task<long> ProcessSetUserState(Protocol p)
         {
             var protocol = p as SetUserState;
             var socket = App.Instance.LinkdService.GetSocket(protocol.Argument.LinkSid);
@@ -423,7 +424,7 @@ namespace Zezex.Provider
             return Zeze.Transaction.Procedure.Success;
         }
 
-        protected override long ProcessModuleRedirectRequest(Protocol p)
+        protected override async Task<long> ProcessModuleRedirectRequest(Protocol p)
         {
             var rpc = p as ModuleRedirect;
             long SourceProvider = rpc.Sender.SessionId;
@@ -434,7 +435,7 @@ namespace Zezex.Provider
             {
                 if (ChoiceProviderByServerId(rpc.Argument.ServiceNamePrefix, rpc.Argument.ModuleId, rpc.Argument.HashCode, out provider))
                 {
-                    rpc.Send(App.ProviderService.GetSocket(provider), (context) =>
+                    rpc.Send(App.ProviderService.GetSocket(provider), async (context) =>
                     {
                         // process result。context == rpc
                         if (rpc.IsTimeout)
@@ -457,7 +458,7 @@ namespace Zezex.Provider
 
             if (ChoiceProvider(rpc.Argument.ServiceNamePrefix, rpc.Argument.ModuleId, rpc.Argument.HashCode, out provider))
             {
-                rpc.Send(App.ProviderService.GetSocket(provider), (context) =>
+                rpc.Send(App.ProviderService.GetSocket(provider), async (context) =>
                 {
                     // process result。context == rpc
                     if (rpc.IsTimeout)
@@ -478,7 +479,7 @@ namespace Zezex.Provider
             return Zeze.Transaction.Procedure.Success;
         }
 
-        protected override long ProcessModuleRedirectAllRequest(Protocol p)
+        protected override async Task<long> ProcessModuleRedirectAllRequest(Protocol p)
         {
             var protocol = p as ModuleRedirectAllRequest;
             Dictionary<long, ModuleRedirectAllRequest> transmits = new Dictionary<long, ModuleRedirectAllRequest>();
@@ -546,7 +547,7 @@ namespace Zezex.Provider
             return Zeze.Transaction.Procedure.Success;
         }
 
-        protected override long ProcessModuleRedirectAllResult(Protocol p)
+        protected override async Task<long> ProcessModuleRedirectAllResult(Protocol p)
         {
             var protocol = p as ModuleRedirectAllResult;
             var sourcerProvider = App.ProviderService.GetSocket(protocol.Argument.SourceProvider);
@@ -557,7 +558,7 @@ namespace Zezex.Provider
             return Zeze.Transaction.Procedure.Success;
         }
 
-        protected override long ProcessReportLoad(Protocol p)
+        protected override async Task<long> ProcessReportLoad(Protocol p)
         {
             var protocol = p as ReportLoad;
             var providerSession = protocol.Sender.UserState as ProviderSession;
@@ -565,7 +566,7 @@ namespace Zezex.Provider
             return Zeze.Transaction.Procedure.Success;
         }
 
-        protected override long ProcessTransmit(Protocol p)
+        protected override async Task<long> ProcessTransmit(Protocol p)
         {
             var protocol = p as Transmit;
             // 查询 role 所在的 provider 并转发。
@@ -627,7 +628,7 @@ namespace Zezex.Provider
         // 不建议在一个项目里面使用多个Prefix。
         public string ServerServiceNamePrefix { get; private set; } = "";
 
-        protected override long ProcessAnnounceProviderInfo(Protocol p)
+        protected override async Task<long> ProcessAnnounceProviderInfo(Protocol p)
         {
             var protocol = p as AnnounceProviderInfo;
             var session = protocol.Sender.UserState as ProviderSession;

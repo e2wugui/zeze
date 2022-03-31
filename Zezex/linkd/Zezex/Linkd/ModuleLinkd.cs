@@ -1,4 +1,5 @@
 ﻿
+using System.Threading.Tasks;
 using Zeze.Net;
 
 namespace Zezex.Linkd
@@ -13,7 +14,7 @@ namespace Zezex.Linkd
         {
         }
 
-        protected override long ProcessAuthRequest(Protocol p)
+        protected override async Task<long> ProcessAuthRequest(Protocol p)
         {
             var rpc = p as Auth;
             /*
@@ -34,7 +35,7 @@ namespace Zezex.Linkd
             return Zeze.Transaction.Procedure.Success;
         }
 
-        protected override long ProcessKeepAlive(Protocol p)
+        protected override async Task<long> ProcessKeepAlive(Protocol p)
         {
             var protocol = p as KeepAlive;
             var linkSession = protocol.Sender.UserState as LinkSession;

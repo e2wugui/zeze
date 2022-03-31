@@ -1,4 +1,5 @@
 ﻿
+using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Transaction;
 
@@ -14,7 +15,7 @@ namespace Game.Map
         {
         }
 
-        protected override long ProcessCEnterWorld(Protocol p)
+        protected override async Task<long> ProcessCEnterWorld(Protocol p)
         {
             var protocol = p as CEnterWorld;
             Game.Login.Session session = Game.Login.Session.Get(protocol);
@@ -27,7 +28,7 @@ namespace Game.Map
             return Zeze.Transaction.Procedure.NotImplement;
         }
 
-        protected override long ProcessCEnterWorldDone(Protocol _p)
+        protected override async Task<long> ProcessCEnterWorldDone(Protocol _p)
         {
             var p = _p as CEnterWorldDone;
             // TODO map
