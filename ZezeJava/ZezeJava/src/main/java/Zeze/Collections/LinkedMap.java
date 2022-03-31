@@ -13,93 +13,54 @@ import Zeze.Util.FastRWLock;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Reflect;
 
-public class LinkedMap<V extends Bean> {
-	private static final Module module = new Module();
+public class LinkedMap<V extends Bean> extends AbstractLinkedMap {
+	private static final LongHashMap<MethodHandle> factory = new LongHashMap<>();
+	private static final FastRWLock factoryLock = new FastRWLock();
 
-	public static Module getModule() {
-		return module;
+	public static void register(Class<? extends Bean> beanClass) {
+		MethodHandle beanCtor = Reflect.getDefaultConstructor(beanClass);
+		Bean bean;
+		try {
+			bean = (Bean)beanCtor.invoke();
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Throwable e) {
+			throw new RuntimeException(e);
+		}
+		factoryLock.writeLock();
+		try {
+			factory.putIfAbsent(bean.getTypeId(), beanCtor);
+		} finally {
+			factoryLock.writeUnlock();
+		}
 	}
 
 	public static long GetSpecialTypeIdFromBean(Bean bean) {
-		return module.GetSpecialTypeIdFromBean(bean);
+		return bean.getTypeId();
 	}
 
 	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
-		return module.CreateBeanFromSpecialTypeId(typeId);
-	}
-
-	public static class Module extends AbstractLinkedMap {
-		private static final LongHashMap<MethodHandle> factory = new LongHashMap<>();
-		private static final FastRWLock factoryLock = new FastRWLock();
-
-		private boolean init;
-
-		public void register(Class<? extends Bean> beanClass) {
-			MethodHandle beanCtor = Reflect.getDefaultConstructor(beanClass);
-			Bean bean;
-			try {
-				bean = (Bean)beanCtor.invoke();
-			} catch (RuntimeException e) {
-				throw e;
-			} catch (Throwable e) {
-				throw new RuntimeException(e);
-			}
-			factoryLock.writeLock();
-			try {
-				factory.putIfAbsent(bean.getTypeId(), beanCtor);
-			} finally {
-				factoryLock.writeUnlock();
-			}
+		MethodHandle beanCtor;
+		factoryLock.readLock();
+		try {
+			beanCtor = factory.get(typeId);
+		} finally {
+			factoryLock.readUnlock();
 		}
-
-		/**
-		 * 必须在 Zeze.Start 之前调用。比较好的地方放在 App.Create 后面。
-		 */
-		public void initialize(Zeze.Application zeze) {
-			synchronized (module) {
-				if (init)
-					return;
-				module.RegisterZezeTables(zeze);
-				init = true;
-			}
-		}
-
-		public long GetSpecialTypeIdFromBean(Bean bean) {
-			return bean.getTypeId();
-		}
-
-		public Bean CreateBeanFromSpecialTypeId(long typeId) {
-			MethodHandle beanCtor;
-			factoryLock.readLock();
-			try {
-				beanCtor = factory.get(typeId);
-			} finally {
-				factoryLock.readUnlock();
-			}
-			if (beanCtor == null)
-				throw new UnsupportedOperationException("Unknown Bean TypeId=" + typeId);
-			try {
-				return (Bean)beanCtor.invoke();
-			} catch (RuntimeException e) {
-				throw e;
-			} catch (Throwable e) {
-				throw new RuntimeException(e);
-			}
-		}
-
-		// 一般不需要调用
-		public void finalize(Zeze.Application zeze) {
-			synchronized (module) {
-				if (!init)
-					return;
-				module.UnRegisterZezeTables(zeze);
-				init = false;
-			}
+		if (beanCtor == null)
+			throw new UnsupportedOperationException("Unknown Bean TypeId=" + typeId);
+		try {
+			return (Bean)beanCtor.invoke();
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Throwable e) {
+			throw new RuntimeException(e);
 		}
 	}
 
 	private final String name;
 	private final int nodeSize;
+	private boolean init;
 
 	public LinkedMap(String name, Class<V> valueClass) {
 		this(name, 100, valueClass);
@@ -108,20 +69,38 @@ public class LinkedMap<V extends Bean> {
 	public LinkedMap(String name, int nodeSize, Class<V> valueClass) {
 		this.name = name;
 		this.nodeSize = nodeSize;
-		module.register(valueClass);
+		register(valueClass);
 	}
 
 	public String getName() {
 		return name;
 	}
 
+	/**
+	 * 必须在 Zeze.Start 之前调用。比较好的地方放在 App.Create 后面。
+	 */
+	public synchronized void initialize(Zeze.Application zeze) {
+		if (init)
+			return;
+		RegisterZezeTables(zeze);
+		init = true;
+	}
+
+	// 一般不需要调用
+	public synchronized void finalize(Zeze.Application zeze) {
+		if (!init)
+			return;
+		UnRegisterZezeTables(zeze);
+		init = false;
+	}
+
 	// list
 	public BLinkedMap getRoot() {
-		return module._tLinkedMaps.get(name);
+		return _tLinkedMaps.get(name);
 	}
 
 	public BLinkedMapNode getNode(long cur) {
-		return module._tLinkedMapNodes.get(new BLinkedMapNodeKey(name, cur));
+		return _tLinkedMapNodes.get(new BLinkedMapNodeKey(name, cur));
 	}
 
 	/**
@@ -132,7 +111,7 @@ public class LinkedMap<V extends Bean> {
 	 */
 	public long moveToTail(String id) {
 		var nodeKey = new BLinkedMapKey(name, id);
-		var nodeId = module._tValueIdToNodeId.get(nodeKey);
+		var nodeId = _tValueIdToNodeId.get(nodeKey);
 		if (null == nodeId)
 			return 0;
 		var node = getNode(nodeId.getNodeId());
@@ -160,14 +139,14 @@ public class LinkedMap<V extends Bean> {
 
 	public V put(String id, V value) {
 		var nodeIdKey = new BLinkedMapKey(name, id);
-		var nodeId = module._tValueIdToNodeId.get(nodeIdKey);
+		var nodeId = _tValueIdToNodeId.get(nodeIdKey);
 		if (null == nodeId) {
 			var newNodeValue = new BLinkedMapNodeValue();
 			newNodeValue.setId(id);
 			newNodeValue.getValue().setBean(value);
 			nodeId = new BLinkedMapNodeId();
 			nodeId.setNodeId(addUnsafe(newNodeValue));
-			module._tValueIdToNodeId.insert(nodeIdKey, nodeId);
+			_tValueIdToNodeId.insert(nodeIdKey, nodeId);
 			var root = getRoot();
 			root.setCount(root.getCount() + 1);
 			return null;
@@ -190,7 +169,7 @@ public class LinkedMap<V extends Bean> {
 
 	@SuppressWarnings("unchecked")
 	public V get(String id) {
-		var nodeId = module._tValueIdToNodeId.get(new BLinkedMapKey(name, id));
+		var nodeId = _tValueIdToNodeId.get(new BLinkedMapKey(name, id));
 		if (null == nodeId) {
 			return null;
 		}
@@ -210,7 +189,7 @@ public class LinkedMap<V extends Bean> {
 	@SuppressWarnings("unchecked")
 	public V remove(String id) {
 		var nodeKey = new BLinkedMapKey(name, id);
-		var nodeId = module._tValueIdToNodeId.get(nodeKey);
+		var nodeId = _tValueIdToNodeId.get(nodeKey);
 		if (null == nodeId) {
 			return null;
 		}
@@ -219,7 +198,7 @@ public class LinkedMap<V extends Bean> {
 			var e = node.getValues().get(i);
 			if (e.getId().equals(id)) {
 				node.getValues().remove(i);
-				module._tValueIdToNodeId.remove(nodeKey);
+				_tValueIdToNodeId.remove(nodeKey);
 				var root = getRoot();
 				root.setCount(root.getCount() - 1);
 				if (node.getValues().isEmpty())
@@ -238,7 +217,7 @@ public class LinkedMap<V extends Bean> {
 	 */
 	@SuppressWarnings("unchecked")
 	public void walk(TableWalkHandle<Long, V> func) {
-		module._tLinkedMapNodes.Walk((key, node) -> {
+		_tLinkedMapNodes.Walk((key, node) -> {
 			for (var value : node.getValues()) {
 				if (!func.handle(key.getNodeId(), (V)value.getValue().getBean()))
 					return false;
@@ -249,7 +228,7 @@ public class LinkedMap<V extends Bean> {
 
 	// inner
 	private long addUnsafe(BLinkedMapNodeValue nodeValue) {
-		var root = module._tLinkedMaps.getOrAdd(name);
+		var root = _tLinkedMaps.getOrAdd(name);
 		var tail = getNode(root.getTailNodeId());
 		// tail is null means empty
 		if (null != tail && tail.getValues().size() < nodeSize) {
@@ -260,7 +239,7 @@ public class LinkedMap<V extends Bean> {
 		newNode.getValues().add(nodeValue);
 		root.setLastNodeId(root.getLastNodeId() + 1);
 		var newNodeId = root.getLastNodeId();
-		module._tLinkedMapNodes.insert(new BLinkedMapNodeKey(name, newNodeId), newNode);
+		_tLinkedMapNodes.insert(new BLinkedMapNodeKey(name, newNodeId), newNode);
 		newNode.setPrevNodeId(root.getTailNodeId()); // 这里包含了empty
 		root.setTailNodeId(newNodeId);
 		if (null != tail) {
@@ -292,6 +271,6 @@ public class LinkedMap<V extends Bean> {
 		}
 
 		// 没有马上删除，启动gc延迟删除。
-		module._tLinkedMapNodes.delayRemove(new BLinkedMapNodeKey(name, nodeId.getNodeId()));
+		_tLinkedMapNodes.delayRemove(new BLinkedMapNodeKey(name, nodeId.getNodeId()));
 	}
 }

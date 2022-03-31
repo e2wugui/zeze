@@ -4,43 +4,35 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Transaction.Transaction;
 
 public class AutoKey {
-	private final static Module module = new Module();
-	public static Module getModule() {
-		return module;
-	}
-	public static class Module extends  AbstractAutoKey {
-		private Module() {
-
-		}
+	public static class Module extends AbstractAutoKey {
+		private final ConcurrentHashMap<String, AutoKey> map = new ConcurrentHashMap<>();
 
 		// 这个组件Zeze.Application会自动初始化，不需要应用初始化。
 		public void initialize(Zeze.Application zeze) {
 			RegisterZezeTables(zeze);
 		}
 
-		private final ConcurrentHashMap<String, AutoKey> map = new ConcurrentHashMap<>();
-
-		private AutoKey getOrAdd(String name) {
-			return map.computeIfAbsent(name, AutoKey::new);
+		public void finalize(Zeze.Application zeze) {
+			UnRegisterZezeTables(zeze);
 		}
-	}
 
-	/**
-	 * 这个返回值，可以在自己模块内保存下来，效率高一些。
-	 * @param name
-	 * @return
-	 */
-	public static AutoKey getAutoKey(String name) {
-		return module.getOrAdd(name);
+		/**
+		 * 这个返回值，可以在自己模块内保存下来，效率高一些。
+		 */
+		public AutoKey getOrAdd(String name) {
+			return map.computeIfAbsent(name, __ -> new AutoKey(this, name));
+		}
 	}
 
 	private static final int AllocateCount = 500;
 
+	private final Module module;
 	private final String name;
 	private volatile Range range;
-	private long logKey;
+	private final long logKey;
 
-	private AutoKey(String name) {
+	private AutoKey(Module module, String name) {
+		this.module = module;
 		this.name = name;
 		// 详细参考Bean的Log的用法。这里只有一个variable。
 		logKey = Zeze.Transaction.Bean.getNextObjectId();
@@ -54,6 +46,7 @@ public class AutoKey {
 		}
 
 		var txn = Transaction.getCurrent();
+		assert txn != null;
 		var log = (RangeLog)txn.GetLog(logKey);
 		while (true) {
 			if (null == log) {
@@ -80,7 +73,7 @@ public class AutoKey {
 
 	private static class Range {
 		private long nextId;
-		private long max;
+		private final long max;
 
 		public synchronized Long tryNextId() {
 			if (nextId >= max) {
