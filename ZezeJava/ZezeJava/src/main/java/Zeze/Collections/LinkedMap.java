@@ -106,13 +106,41 @@ public class LinkedMap<V extends Bean> {
 		return name;
 	}
 
-	// LinkedMapNode
+	// list
 	public BLinkedMap getRoot() {
 		return module._tLinkedMaps.get(name);
 	}
 
 	public BLinkedMapNode getNode(long cur) {
 		return module._tLinkedMapNodes.get(new BLinkedMapNodeKey(name, cur));
+	}
+
+	/**
+	 * 把项移到队尾。
+	 * @param id of value
+	 * @return node id that contains value
+	 */
+	public long moveToTail(String id) {
+		var nodeKey = new BLinkedMapKey(name, id);
+		var nodeId = module._tValueIdToNodeId.get(nodeKey);
+		if (null == nodeId)
+			return 0;
+		var node = getNode(nodeId.getNodeId());
+		for (int i = 0; i < node.getValues().size(); ++i) {
+			var e = node.getValues().get(i);
+			if (e.getId().equals(id)) {
+				// activate。优化：这个操作比较多，并且很可能都是尾部活跃，需要判断已经是最后一个了，不调整。
+				var root = getRoot();
+				if (root.getTailNodeId() == nodeId.getNodeId() && i == node.getValues().size() - 1)
+					return nodeId.getNodeId(); // TailNode && List.Last
+				node.getValues().remove(i);
+				nodeId.setNodeId(addUnsafe(e.Copy()));
+				if (node.getValues().isEmpty())
+					removeNodeUnsafe(nodeId, node);
+				return nodeId.getNodeId();
+			}
+		}
+		throw new RuntimeException("Node Exist But Value Not Found.");
 	}
 
 	// map
@@ -234,6 +262,6 @@ public class LinkedMap<V extends Bean> {
 		}
 
 		// 没有马上删除，启动gc延迟删除。
-		module._tLinkedMapNodes.gc(new BLinkedMapNodeKey(name, nodeId.getNodeId()));
+		module._tLinkedMapNodes.delayRemove(new BLinkedMapNodeKey(name, nodeId.getNodeId()));
 	}
 }

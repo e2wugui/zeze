@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Component;
 
-public abstract class AbstractGCTable {
+public abstract class AbstractDelayRemove {
     public void RegisterProtocols(Zeze.Net.Service service) {
     }
 

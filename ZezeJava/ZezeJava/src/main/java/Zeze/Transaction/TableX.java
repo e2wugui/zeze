@@ -443,8 +443,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	public abstract ByteBuffer EncodeKey(K key);
 	public abstract K DecodeKey(ByteBuffer bb);
 
-	public void gc(K key) {
-		Zeze.Component.GCTable.gc(this, key);
+	public void delayRemove(K key) {
+		Zeze.Component.DelayRemove.remove(this, key);
 	}
 
 	public abstract V NewValue();

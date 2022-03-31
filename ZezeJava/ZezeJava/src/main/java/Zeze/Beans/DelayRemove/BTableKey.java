@@ -1,5 +1,5 @@
 // auto-generated @formatter:off
-package Zeze.Beans.GCTable;
+package Zeze.Beans.DelayRemove;
 
 import Zeze.Serialize.ByteBuffer;
 
@@ -91,7 +91,7 @@ public final class BTableKey extends Zeze.Transaction.Bean {
         return Copy();
     }
 
-    public static final long TYPEID = -7437107184804849469L;
+    public static final long TYPEID = -6901367835273718674L;
 
     @Override
     public long getTypeId() {
@@ -124,7 +124,7 @@ public final class BTableKey extends Zeze.Transaction.Bean {
 
     @Override
     public void BuildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Beans.GCTable.BTableKey: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Beans.DelayRemove.BTableKey: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("TableName").append('=').append(getTableName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("EncodedKey").append('=').append(getEncodedKey()).append(System.lineSeparator());

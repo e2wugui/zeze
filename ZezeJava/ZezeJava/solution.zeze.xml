@@ -149,7 +149,7 @@
 				<table name="tQueueNodes" key="BQueueNodeKey" value="BQueueNode"/>
 			</module>
 		</module>
-		<module name="GCTable" id="11007">
+		<module name="DelayRemove" id="11007">
 			<bean name="BTableKey">
 				<variable id="1" name="TableName" type="string" />
 				<variable id="2" name="EncodedKey" type="binary" />
@@ -157,9 +157,9 @@
 		</module>
 	</module>
 
-	<component name="GCTable" gendir="src/main/java" platform="zeze+java">
+	<component name="DelayRemove" gendir="src/main/java" platform="zeze+java">
 		<service name="" handle="server">
-			<module ref="Zeze.Beans.GCTable"/>
+			<module ref="Zeze.Beans.DelayRemove"/>
 		</service>
 	</component>
 
