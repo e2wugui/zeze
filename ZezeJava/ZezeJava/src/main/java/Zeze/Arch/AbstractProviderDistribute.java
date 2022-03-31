@@ -1,5 +1,5 @@
 // auto-generated @formatter:off
-package Zeze.Component;
+package Zeze.Arch;
 
 public abstract class AbstractProviderDistribute {
     public static final int ErrorTransmitParameterFactoryNotFound = 1;
