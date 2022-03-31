@@ -9,6 +9,7 @@ import Zeze.Beans.Collections.LinkedMap.BLinkedMapNodeKey;
 import Zeze.Beans.Collections.LinkedMap.BLinkedMapNodeValue;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.TableWalkHandle;
+import Zeze.Util.FastRWLock;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Reflect;
 
@@ -29,6 +30,7 @@ public class LinkedMap<V extends Bean> {
 
 	public static class Module extends AbstractLinkedMap {
 		private static final LongHashMap<MethodHandle> factory = new LongHashMap<>();
+		private static final FastRWLock factoryLock = new FastRWLock();
 
 		private boolean init;
 
@@ -42,8 +44,11 @@ public class LinkedMap<V extends Bean> {
 			} catch (Throwable e) {
 				throw new RuntimeException(e);
 			}
-			synchronized (factory) {
+			factoryLock.writeLock();
+			try {
 				factory.putIfAbsent(bean.getTypeId(), beanCtor);
+			} finally {
+				factoryLock.writeUnlock();
 			}
 		}
 
@@ -65,11 +70,14 @@ public class LinkedMap<V extends Bean> {
 
 		public Bean CreateBeanFromSpecialTypeId(long typeId) {
 			MethodHandle beanCtor;
-			synchronized (factory) {
+			factoryLock.readLock();
+			try {
 				beanCtor = factory.get(typeId);
+			} finally {
+				factoryLock.readUnlock();
 			}
 			if (beanCtor == null)
-				throw new RuntimeException("Unknown Bean TypeId=" + typeId);
+				throw new UnsupportedOperationException("Unknown Bean TypeId=" + typeId);
 			try {
 				return (Bean)beanCtor.invoke();
 			} catch (RuntimeException e) {
@@ -118,6 +126,7 @@ public class LinkedMap<V extends Bean> {
 
 	/**
 	 * 把项移到队尾。
+	 *
 	 * @param id of value
 	 * @return node id that contains value
 	 */
@@ -141,7 +150,7 @@ public class LinkedMap<V extends Bean> {
 				return nodeId.getNodeId();
 			}
 		}
-		throw new RuntimeException("Node Exist But Value Not Found.");
+		throw new IllegalStateException("Node Exist But Value Not Found.");
 	}
 
 	// map
@@ -166,18 +175,20 @@ public class LinkedMap<V extends Bean> {
 		var node = getNode(nodeId.getNodeId());
 		for (var e : node.getValues()) {
 			if (e.getId().equals(id)) {
+				@SuppressWarnings("unchecked")
 				var old = (V)e.getValue().getBean();
 				e.getValue().setBean(value);
 				return old;
 			}
 		}
-		throw new RuntimeException("NodeId Exist. But Value Not Found.");
+		throw new IllegalStateException("NodeId Exist. But Value Not Found.");
 	}
 
 	public V get(long id) {
 		return get(String.valueOf(id));
 	}
 
+	@SuppressWarnings("unchecked")
 	public V get(String id) {
 		var nodeId = module._tValueIdToNodeId.get(new BLinkedMapKey(name, id));
 		if (null == nodeId) {
@@ -196,6 +207,7 @@ public class LinkedMap<V extends Bean> {
 		return remove(String.valueOf(id));
 	}
 
+	@SuppressWarnings("unchecked")
 	public V remove(String id) {
 		var nodeKey = new BLinkedMapKey(name, id);
 		var nodeId = module._tValueIdToNodeId.get(nodeKey);
@@ -215,18 +227,20 @@ public class LinkedMap<V extends Bean> {
 				return (V)e.getValue().getBean();
 			}
 		}
-		throw new RuntimeException("NodeId Exist. But Value Not Found.");
+		throw new IllegalStateException("NodeId Exist. But Value Not Found.");
 	}
 
 	// foreach
+
 	/**
 	 * 必须在事务外。
 	 * func 第一个参数是当前Value所在的Node.Id。
 	 */
+	@SuppressWarnings("unchecked")
 	public void walk(TableWalkHandle<Long, V> func) {
 		module._tLinkedMapNodes.Walk((key, node) -> {
 			for (var value : node.getValues()) {
-				if (false == func.handle(key.getNodeId(), (V)value.getValue().getBean()))
+				if (!func.handle(key.getNodeId(), (V)value.getValue().getBean()))
 					return false;
 			}
 			return true;
