@@ -511,7 +511,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 
 		if (ex != null)
-			logger.log(Service.getSocketOptions().getSocketLogLevel(), "AsyncSocket.Close", ex);
+			logger.log(Service.getSocketOptions().getSocketLogLevel(), "Close " + this, ex);
 		if (Connector != null) {
 			try {
 				Connector.OnSocketClose(this, ex);
@@ -559,7 +559,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public String toString() {
 		SocketAddress localAddress = getLocalAddress();
 		SocketAddress remoteAddress = RemoteAddress;
-		return (localAddress != null ? localAddress : "") + "-" + // 如果有localAddress则表示还没close
-				(remoteAddress != null ? remoteAddress : ""); // 如果有RemoteAddress则表示曾经连接成功过
+		return (localAddress != null ? localAddress : (Acceptor != null ? Acceptor.getName() : "")) + "-" + // 如果有localAddress则表示还没close
+				(remoteAddress != null ? remoteAddress : (Connector != null ? Connector.getName() : "")); // 如果有RemoteAddress则表示曾经连接成功过
 	}
 }

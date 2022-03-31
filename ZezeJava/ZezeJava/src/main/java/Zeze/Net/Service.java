@@ -184,8 +184,6 @@ public class Service {
 	 */
 	public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
 		SocketMap.remove(so.getSessionId(), so);
-		if (e != null)
-			logger.log(getSocketOptions().getSocketLogLevel(), "OnSocketClose", e);
 	}
 
 	/**
@@ -256,7 +254,6 @@ public class Service {
 	@SuppressWarnings("RedundantThrows")
 	public void OnSocketConnectError(AsyncSocket so, Throwable e) throws Throwable {
 		SocketMap.remove(so.getSessionId(), so);
-		logger.log(getSocketOptions().getSocketLogLevel(), "OnSocketConnectError " + so, e);
 	}
 
 	/**

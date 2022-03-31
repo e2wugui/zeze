@@ -36,20 +36,20 @@ public final class Application {
 	private static final long FlushWhenReduceIdleMinutes = 30;
 
 	private final String SolutionName;
+	private final Config Conf;
 	private final HashMap<String, Database> Databases = new HashMap<>();
 	private final ConcurrentHashMap<String, Table> Tables = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<TableKey, LastFlushWhenReduce> FlushWhenReduce = new ConcurrentHashMap<>();
 	private final LongConcurrentHashMap<ConcurrentHashSet<LastFlushWhenReduce>> FlushWhenReduceActives = new LongConcurrentHashMap<>();
 	private final TaskOneByOneByKey TaskOneByOneByKey = new TaskOneByOneByKey();
-	private final Checkpoint _checkpoint;
+	private final Locks Locks = new Locks();
 	private final Agent ServiceManagerAgent;
+	private ThreadPoolExecutor InternalThreadPool; // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
 	private AutoKey.Module autoKey;
 	private Zeze.Collections.Queue.Module queueModule;
 	private IGlobalAgent GlobalAgent;
-	private Config Conf;
-	private ThreadPoolExecutor InternalThreadPool; // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
+	private Checkpoint _checkpoint;
 	private Future<?> FlushWhenReduceTimerTask;
-	private Locks Locks;
 	private Schemas Schemas;
 	private boolean IsStart;
 
@@ -59,24 +59,15 @@ public final class Application {
 
 	public Application(String solutionName, Config config) throws Throwable {
 		SolutionName = solutionName;
-
 		Conf = config != null ? config : Config.Load();
-		int core = Conf.getInternalThreadPoolWorkerCount();
-		core = core > 0 ? core : Runtime.getRuntime().availableProcessors() * 30;
-		String poolName = "ZezeInternalPool-" + Conf.getServerId();
-		InternalThreadPool = new ThreadPoolExecutor(core, core,
-				0, TimeUnit.NANOSECONDS, new LinkedBlockingQueue<>(), new ThreadFactoryWithName(poolName));
-
 		Conf.CreateDatabase(this, Databases);
-		_checkpoint = new Checkpoint(Conf.getCheckpointMode(), Databases.values(), Conf.getServerId());
 		ServiceManagerAgent = new Agent(this);
 	}
 
 	public Application() {
 		SolutionName = "";
-		_checkpoint = null;
+		Conf = null;
 		ServiceManagerAgent = null;
-		GlobalAgent = null;
 		Runtime.getRuntime().addShutdownHook(new Thread("zeze.ShutdownHook") {
 			@Override
 			public void run() {
@@ -186,22 +177,20 @@ public final class Application {
 	}
 
 	public synchronized void Start() throws Throwable {
-		Conf.ClearInUseAndIAmSureAppStopped(this, Databases);
-		for (var db : Databases.values())
-			db.getDirectOperates().SetInUse(Conf.getServerId(), Conf.getGlobalCacheManagerHostNameOrAddress());
-
 		if (IsStart)
 			return;
 		IsStart = true;
 
-		Locks = new Locks();
-		Task.tryInitThreadPool(this, null, null);
+		Task.tryInitThreadPool(this, null, null); // 确保Task线程池已经建立,如需定制,在Start前先手动初始化
 
-		var serviceManagerConf = Conf.GetServiceConf(Agent.DefaultServiceName);
-		if (serviceManagerConf != null) {
-			ServiceManagerAgent.getClient().Start();
-			ServiceManagerAgent.WaitConnectorReady();
-		}
+		int core = Conf.getInternalThreadPoolWorkerCount();
+		core = core > 0 ? core : Runtime.getRuntime().availableProcessors() * 30;
+		InternalThreadPool = new ThreadPoolExecutor(core, core, 0, TimeUnit.SECONDS,
+				new LinkedBlockingQueue<>(), new ThreadFactoryWithName("ZezeInternalPool-" + Conf.getServerId()));
+
+		Conf.ClearInUseAndIAmSureAppStopped(this, Databases);
+		for (var db : Databases.values())
+			db.getDirectOperates().SetInUse(Conf.getServerId(), Conf.getGlobalCacheManagerHostNameOrAddress());
 
 		Database defaultDb = GetDatabase(Conf.getDefaultTableConf().getDatabaseName());
 		for (var db : Databases.values())
@@ -210,6 +199,12 @@ public final class Application {
 		// 自动初始化的组件。
 		autoKey = new AutoKey.Module(this);
 		queueModule = new Queue.Module(this);
+
+		var serviceManagerConf = Conf.GetServiceConf(Agent.DefaultServiceName);
+		if (serviceManagerConf != null && ServiceManagerAgent != null) {
+			ServiceManagerAgent.getClient().Start();
+			ServiceManagerAgent.WaitConnectorReady();
+		}
 
 		var hosts = Conf.getGlobalCacheManagerHostNameOrAddress().split(";");
 		if (hosts.length > 0) {
@@ -225,63 +220,77 @@ public final class Application {
 			}
 		}
 
+		_checkpoint = new Checkpoint(Conf.getCheckpointMode(), Databases.values(), Conf.getServerId());
 		_checkpoint.Start(Conf.getCheckpointPeriod()); // 定时模式可以和其他模式混用。
 
-		/////////////////////////////////////////////////////
-		Schemas.Compile();
-		var keyOfSchemas = ByteBuffer.Allocate(24);
-		keyOfSchemas.WriteString("zeze.Schemas." + Conf.getServerId());
-		while (true) {
-			var dataVersion = defaultDb.getDirectOperates().GetDataWithVersion(keyOfSchemas);
-			long version = 0;
-			if (dataVersion != null && dataVersion.Data != null) {
-				var SchemasPrevious = new Schemas();
-				try {
-					SchemasPrevious.Decode(dataVersion.Data);
-					SchemasPrevious.Compile();
-				} catch (Throwable ex) {
-					SchemasPrevious = null;
-					logger.error("Schemas Implement Changed?", ex);
-				}
-				Schemas.CheckCompatible(SchemasPrevious, this);
-				version = dataVersion.Version;
-			}
-			var newData = ByteBuffer.Allocate(1024);
-			Schemas.Encode(newData);
-			var versionRc = defaultDb.getDirectOperates().SaveDataWithSameVersion(keyOfSchemas, newData, version);
-			if (versionRc.getValue())
-				break;
-		}
 		FlushWhenReduceTimerTask = Task.schedule(60 * 1000, 60 * 1000, this::FlushWhenReduceTimer);
+
+		/////////////////////////////////////////////////////
+		if (Schemas != null) {
+			Schemas.Compile();
+			var keyOfSchemas = ByteBuffer.Allocate(24);
+			keyOfSchemas.WriteString("zeze.Schemas." + Conf.getServerId());
+			while (true) {
+				var dataVersion = defaultDb.getDirectOperates().GetDataWithVersion(keyOfSchemas);
+				long version = 0;
+				if (dataVersion != null && dataVersion.Data != null) {
+					var SchemasPrevious = new Schemas();
+					try {
+						SchemasPrevious.Decode(dataVersion.Data);
+						SchemasPrevious.Compile();
+					} catch (Throwable ex) {
+						SchemasPrevious = null;
+						logger.error("Schemas Implement Changed?", ex);
+					}
+					Schemas.CheckCompatible(SchemasPrevious, this);
+					version = dataVersion.Version;
+				}
+				var newData = ByteBuffer.Allocate(1024);
+				Schemas.Encode(newData);
+				var versionRc = defaultDb.getDirectOperates().SaveDataWithSameVersion(keyOfSchemas, newData, version);
+				if (versionRc.getValue())
+					break;
+			}
+		}
 	}
 
 	public synchronized void Stop() throws Throwable {
-		if (GlobalAgent != null)
-			GlobalAgent.close();
-
 		if (!IsStart)
 			return;
+		IsStart = false;
+
+		if (InternalThreadPool != null) {
+			InternalThreadPool.shutdown();
+			//noinspection ResultOfMethodCallIgnored
+			InternalThreadPool.awaitTermination(3, TimeUnit.SECONDS);
+			InternalThreadPool = null;
+		}
 		if (FlushWhenReduceTimerTask != null) {
 			FlushWhenReduceTimerTask.cancel(false);
 			FlushWhenReduceTimerTask = null;
 		}
-
-		if (Conf != null)
-			Conf.ClearInUseAndIAmSureAppStopped(this, Databases);
-
-		IsStart = false;
-
-		if (_checkpoint != null)
+		if (_checkpoint != null) {
 			_checkpoint.StopAndJoin();
-		queueModule.UnRegisterZezeTables(this);
-		autoKey.UnRegisterZezeTables(this);
+			_checkpoint = null;
+		}
+		if (GlobalAgent != null) {
+			GlobalAgent.close();
+			GlobalAgent = null;
+		}
+		if (ServiceManagerAgent != null)
+			ServiceManagerAgent.Stop();
+		if (queueModule != null) {
+			queueModule.UnRegisterZezeTables(this);
+			queueModule = null;
+		}
+		if (autoKey != null) {
+			autoKey.UnRegisterZezeTables(this);
+			autoKey = null;
+		}
 		for (var db : Databases.values())
 			db.Close();
-		Databases.clear();
-		ServiceManagerAgent.Stop();
-		InternalThreadPool = null;
-		Locks = null;
-		Conf = null;
+		if (Conf != null)
+			Conf.ClearInUseAndIAmSureAppStopped(this, Databases);
 	}
 
 	public void CheckpointRun() {
