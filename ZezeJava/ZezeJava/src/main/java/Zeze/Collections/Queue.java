@@ -5,6 +5,7 @@ import Zeze.Beans.Collections.Queue.BQueueNode;
 import Zeze.Beans.Collections.Queue.BQueueNodeKey;
 import Zeze.Beans.Collections.Queue.BQueueNodeValue;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.TableWalkHandle;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Reflect;
 
@@ -189,5 +190,43 @@ public class Queue<V extends Bean> {
 		nodeValue.setTimestamp(System.currentTimeMillis());
 		nodeValue.getValue().setBean(value);
 		tail.getValues().add(nodeValue);
+	}
+
+	// stack
+	public void push(V value) {
+		var root = module._tQueues.getOrAdd(name);
+		var head = module._tQueueNodes.get(new BQueueNodeKey(name, root.getHeadNodeId()));
+		if (null == head || head.getValues().size() > nodeSize) {
+			var newNode = new BQueueNode();
+			root.setLastNodeId(root.getLastNodeId() + 1);
+			var newNodeId = root.getLastNodeId();
+			module._tQueueNodes.insert(new BQueueNodeKey(name, newNodeId), newNode);
+			newNode.setNextNodeId(root.getHeadNodeId());
+			root.setHeadNodeId(newNodeId);
+			head = newNode;
+		}
+		var nodeValue = new BQueueNodeValue();
+		nodeValue.setTimestamp(System.currentTimeMillis());
+		nodeValue.getValue().setBean(value);
+		head.getValues().add(0, nodeValue);
+	}
+
+	public V pop() {
+		return poll();
+	}
+
+	// foreach
+	/**
+	 * 必须在事务外。
+	 * func 第一个参数是当前Value所在的Node.Id。
+	 */
+	public void walk(TableWalkHandle<Long, V> func) {
+		module._tQueueNodes.Walk((key, node) -> {
+			for (var value : node.getValues()) {
+				if (false == func.handle(key.getNodeId(), (V)value.getValue().getBean()))
+					return false;
+			}
+			return true;
+		});
 	}
 }

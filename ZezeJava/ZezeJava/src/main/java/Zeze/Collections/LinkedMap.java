@@ -8,6 +8,7 @@ import Zeze.Beans.Collections.LinkedMap.BLinkedMapNodeId;
 import Zeze.Beans.Collections.LinkedMap.BLinkedMapNodeKey;
 import Zeze.Beans.Collections.LinkedMap.BLinkedMapNodeValue;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.TableWalkHandle;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Reflect;
 
@@ -215,6 +216,21 @@ public class LinkedMap<V extends Bean> {
 			}
 		}
 		throw new RuntimeException("NodeId Exist. But Value Not Found.");
+	}
+
+	// foreach
+	/**
+	 * 必须在事务外。
+	 * func 第一个参数是当前Value所在的Node.Id。
+	 */
+	public void walk(TableWalkHandle<Long, V> func) {
+		module._tLinkedMapNodes.Walk((key, node) -> {
+			for (var value : node.getValues()) {
+				if (false == func.handle(key.getNodeId(), (V)value.getValue().getBean()))
+					return false;
+			}
+			return true;
+		});
 	}
 
 	// inner
