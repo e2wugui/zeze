@@ -10,9 +10,6 @@
 	DatabaseTikv OperatesTikv
 	关联多用户数据的协议处理自动派发到热点所在Server。
 	Global.Release并发问题【再次】确认
-	Zeze.Arch 
-	【左尧完成Java了？】Zezex.ModuleRedirect 增加 TransactionLevel 注解配置。
-	Zezex.ModuleRedirect 去掉依赖Session生成hash模式；RunMyMethod去掉mode；
 	RedoableQueue
 	{
 		1）存储：QueueId。 RocksDb<TaskId, Full_Encoded_Net_Rpc> 持久化的。
@@ -37,6 +34,11 @@
 	Global With Raft 异步测试
 	Test TestGlobal
 	Test Simulate
+
+	java Arch: ModuleRedirect 重构。
+		【左尧完成Java了？】Zezex.ModuleRedirect 增加 TransactionLevel 注解配置。
+		Zezex.ModuleRedirect 去掉依赖Session生成hash模式；RunMyMethod去掉mode；
+	java Arch: 重构 ProviderDistribute（Provider负载分发，用于linkd和gs）; ProviderServer（用于gs，这个可能不实现，因为预计跟gs关联很紧）;
 
 【2022/4/11】
 	Zeze.Component dynamic bean动态增加类型的能力。

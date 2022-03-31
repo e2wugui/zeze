@@ -457,17 +457,19 @@
 		</module>
 	</module>
 
-	<component name="ProviderClient" gendir="src/main/java" platform="zeze+java">
+	<component name="ProviderDistribute" gendir="src/main/java" platform="zeze+java">
 		<service name="" handle="client">
 			<module ref="Zeze.Beans.Provider"/>
 		</service>
 	</component>
 
+	<!--
 	<component name="ProviderServer" gendir="src/main/java" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Beans.Provider"/>
 		</service>
 	</component>
+	-->
 
 	<component name="DelayRemove" gendir="src/main/java" platform="zeze+java">
 		<service name="" handle="server">
