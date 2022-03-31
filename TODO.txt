@@ -42,7 +42,7 @@
 	Zeze.Component dynamic bean动态增加类型的能力。
 	LockAsync 单元测试。关键：TryEnterXXXLock。
 	Queue
-	GCTable(每个ServerId一个Queue),
+	GCTable(每个ServerId一个Queue), rename to DelayRemove
 	Component.AutoKey
 	java LinkedMap dynamic 动态注册问题。
 	换换脑子，写一个java版基于KV的LinkedMap

@@ -2,6 +2,7 @@
 
 <solution name="Zeze" ModuleIdAllowRanges="11000-12000">
 	<module name="Beans" id="11000">
+		<!-- Global With Raft 模块 -->
 		<module name="GlobalCacheManagerWithRaft" id="11001">
 			<!-- table -->
 			<bean name="CacheState" kind="rocks">
@@ -55,6 +56,7 @@
 			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" handle="server" />
 		</module>
 
+		<!-- Rocks 测试模块 -->
 		<module name="TestRocks" id="11002">
 			<bean name="Value" kind="rocks">
 				<variable id="1" name="Int" type="int"/>
@@ -73,6 +75,7 @@
 			<table name="tRocks" key="int" value="Value" kind="rocks"/>
 		</module>
 
+		<!-- 应用内部唯一ID生成器，仅支持long类型。-->
 		<module name="AutoKey" id="11003">
 			<bean name="BAutoKey">
 				<variable id="1" name="NextId" type="long"/>
@@ -81,6 +84,7 @@
 		</module>
 
 		<module name="Collections" id="11004">
+			<!-- 一个简单的大容量Map，同时所有的分段节点按双向链表组织起来 -->
 			<module name="LinkedMap" id="11005">
 				<bean name="BLinkedMap">
 					<variable id="1" name="HeadNodeId" type="long" />
@@ -118,6 +122,7 @@
 				<table name="tLinkedMapNodes" key="BLinkedMapNodeKey" value="BLinkedMapNode"/>
 			</module>
 
+			<!-- 一个简单的大容量单向链表，可按Stack方式使用 -->
 			<module name="Queue" id="11006">
 				<!--
 				1. 单向链表。2. Value没有索引。3. 每个Value记录加入的时间。4. 只能从Head提取，从Tail添加。
@@ -149,13 +154,320 @@
 				<table name="tQueueNodes" key="BQueueNodeKey" value="BQueueNode"/>
 			</module>
 		</module>
+
+		<!--
+		延迟从Table中删除记录。比如：记录被登记到这个模块7天以后才会被真正删除。
+		-->
 		<module name="DelayRemove" id="11007">
 			<bean name="BTableKey">
 				<variable id="1" name="TableName" type="string" />
 				<variable id="2" name="EncodedKey" type="binary" />
 			</bean>
 		</module>
+
+		<!--
+		Linkd - Server 之间通讯的协议定义。
+		-->
+		<module name="Provider" id="11008">
+			<enum name="ErrorTransmitParameterFactoryNotFound" value="1" />
+
+			<!-- gs to link -->
+			<bean name="BModule">
+				<!-- ChoiceType -->
+				<enum name="ChoiceTypeDefault"     value="0"/> choice by load
+				<enum name="ChoiceTypeHashAccount" value="1"/>
+				<enum name="ChoiceTypeHashRoleId"  value="2"/>
+				<enum name="ChoiceTypeFeedFullOneByOne" value="3"/>
+
+				<variable name="ChoiceType" id="1" type="int"/>
+
+				<!-- ConfigType 目前没有实际逻辑需要这个类型，根据模块绑定配置文件生成类型 -->
+				<enum name="ConfigTypeDefault" value="0"/>
+				<enum name="ConfigTypeSpecial" value="1"/>
+				<enum name="ConfigTypeDynamic" value="2"/>
+
+				<variable name="ConfigType" id="2" type="int"/>
+
+				<!-- SubscribeType
+				定义于： Zeze.Services.ServiceManager.SubscribeInfo.
+				静态绑定忽略这个参数，总是使用Zeze.Services.ServiceManager.SubscribeInfo.SubscribeTypeReadyCommit.
+				-->
+				<variable name="SubscribeType" id="3" type="int"/>
+			</bean>
+
+			<bean name="BBind">
+				<variable name="modules" id="1" type="map" key="int" value="BModule"/> moduleId -> BModule
+				<!--
+				模式一，静态绑定，用于启用cache同步的多个gs（gameserver）。
+				此时 lindSids 为空。同一个moduleId可以绑定多个内部服务。客户端第一次访问时，随便选择一个内部服务，以后都用这个。
+				模式二，动态绑定，用于地图服务器，玩家只能在一个地图服务器上，进入退出地图时绑定。
+				lindSids 指定临时绑定该客户端连接到此服务。这个功能可能不需要，保留。
+				*** 同一个moduleId不能既是静态绑定又是动态绑定。
+				-->
+				<variable name="linkSids" id="2" type="set" value="long"/>
+
+				<enum name="ResultSuccess" value="0"/>
+				<enum name="ResultFaild"   value="1"/>
+			</bean>
+
+			<rpc name="Bind"   argument="BBind" handle="client"/>
+			<rpc name="UnBind" argument="BBind" handle="client"/>
+
+			<bean name="BSubscribe">
+				<variable name="modules" id="1" type="map" key="int" value="BModule"/> moduleId -> BModule
+			</bean>
+
+			<rpc name="Subscribe" argument="BSubscribe" handle="client"/> 通知linkd订阅模块的服务列表。
+
+			<bean name="BKick">
+				<enum name="ErrorProtocolUnkown"    value="1"/>
+				<enum name="ErrorDecode"            value="2"/>
+				<enum name="ErrorProtocolException" value="3"/>
+
+				<variable name="linksid" id="1" type="long"/>
+				<variable name="code"    id="2" type="int"/>
+				<variable name="desc"    id="3" type="string"/> // for debug
+			</bean>
+
+			<protocol name="Kick" argument="BKick" handle="client"/>
+
+			<bean name="BSend">
+				<variable name="linkSids"     id="1" type="set" value="long"/>
+				<variable name="protocolType" id="2" type="long"/>
+				<variable name="protocolWholeData" id="3" type="binary"/> 完整的协议打包，包括了 type, size
+				<variable name="ConfirmSerialId" id="4" type="long"/> 不为0的时候，linkd发送SendConfirm回逻辑服务器
+			</bean>
+
+			<bean name="BSendConfirm">
+				<variable name="ConfirmSerialId" id="1" type="long"/> SendConfirm 参数，即Send.Argument.ConfirmSerialId
+				<variable name="LinkName" id="2" type="string"/>
+			</bean>
+
+			<protocol name="Send" argument="BSend" handle="client"/>
+			<protocol name="SendConfirm" argument="BSendConfirm" handle="server"/>
+
+			<bean name="BBroadcast">
+				<variable name="protocolType" id="1" type="long"/>
+				<variable name="protocolWholeData" id="2" type="binary"/> 完整的协议打包，包括了 type, size
+				<variable name="time"         id="3" type="int"/>
+				<variable name="ConfirmSerialId" id="4" type="long"/> 不为0的时候，linkd发送SendConfirm回逻辑服务器
+			</bean>
+
+			<protocol name="Broadcast" argument="BBroadcast" handle="client"/>
+
+			<bean name="BSetUserState">
+				<variable name="linkSid" id="1" type="long"/>
+				<variable name="states"  id="2" type="list" value="long"/>
+				<variable name="statex"  id="3" type="binary"/>
+			</bean>
+
+			<protocol name="SetUserState" argument="BSetUserState" handle="client"/>
+
+			<bean name="BLoad">
+				<variable name="Online"           id="1" type="int"/> 用户数量
+				<variable name="ProposeMaxOnline" id="2" type="int"/> 建议最大用户数量
+				<variable name="OnlineNew"        id="3" type="int"/> 最近上线用户数量，一般是一秒内的。用来防止短时间内给同一个gs分配太多用户。
+			</bean>
+			<!--
+			gs 定时向所有的 linkd 报告负载。
+			如果启用cahce-sync，可能linkd数量比较多。所以正常情况下，报告间隔应长点。比如10秒。
+			1）一般gs实现：
+			long LoginCount;
+			long LogoutCount;
+
+			long LoginCountLast;
+			int  ReportDelaySeconds;
+			int  TimoutDelaySeconds;
+
+			void StartTimerTask(int delaySeconds = 1)
+			{
+				TimoutDelaySeconds = delaySeconds;
+				Zeze.Util.Scheduler.Instance.Schedule(OnTimerTask, TimoutDelaySeconds * 1000);
+			}
+
+			void OnTimerTask()
+			{
+				int onlineNew = LoginCount - LoginCountLast;
+				LoginCountLast = LoginCount;
+				int onlineNewPerSecond = onlineNew / TimoutDelaySeconds;
+				if (onlineNewPerSecond > Config.MaxOnlineNew)
+				{
+					// 最近上线太多，马上报告负载。linkd不会再分配用户过来。
+					ReportLoadToAllLinkd;
+					StartTimerTask(onlineNewPerSecond / Config.MaxOnlineNew + 1); // new delay for digestion
+					ReportDelaySeconds = Config.ReportDelaySeconds; // 消化完后，下一次强迫报告Load。
+					return;
+				}
+				// slow report
+				ReportDelaySeconds += TimoutDelaySeconds;
+				if (ReportDelaySeconds >= Config.ReportDelaySeconds)
+				{
+					ReportDelaySeconds = 0;
+					ReportLoadToAllLinkd;
+				}
+				StartTimerTask();
+			}
+			Timer: 因为随时调整Timer的时间，所以这里使用 Zeze.Util.Scheduler。当然也可以使用系统的Timer。
+
+			2）一般linkd实现：
+			linkd在负载均衡选择gs时，会忽略掉 (Online > ProposeMaxOnline || OnlineNew > ConfigMaxOnlineNew)的gs。
+			详细实现参见 linkd/Zezex.Provider.ModuleProvider.Providers
+			-->
+			<protocol name="ReportLoad" argument="BLoad" handle="client"/>
+
+			<!-- link to gs -->
+			<bean name="BDispatch">
+				<variable name="linkSid"      id="1" type="long"/>
+				<variable name="account"      id="2" type="string"/>
+				<variable name="protocolType" id="3" type="long"/>
+				<variable name="protocolData" id="4" type="binary"/> 协议打包，不包括 type, size
+				<variable name="states"       id="5" type="list" value="long"/> SetUserState
+				<variable name="statex"       id="6" type="binary"/> SetUserState
+			</bean>
+			<protocol name="Dispatch" argument="BDispatch" handle="server"/>
+
+			<bean name="BLinkBroken">
+				<enum name="REASON_PEERCLOSE" value="0"/>
+
+				<variable name="account"  id="1" type="string"/>
+				<variable name="linkSid" id="2" type="long"/>
+				<variable name="reason"  id="3" type="int"/>
+
+				<variable name="states"  id="5" type="list" value="long"/> SetUserState
+				<variable name="statex"  id="6" type="binary"/> SetUserState
+			</bean>
+
+			<protocol name="LinkBroken" argument="BLinkBroken" handle="server"/>
+
+			<bean name="BAnnounceLinkInfo">
+				<variable name="LinkId" id="1" type="int"/> reserve
+				<variable name="ProviderSessionId" id="2" type="long"/>
+			</bean>
+			<protocol name="AnnounceLinkInfo" NoProcedure="true" argument="BAnnounceLinkInfo" handle="server"/>
+
+			<!-- gs to link -->
+			<bean name="BAnnounceProviderInfo">
+				<variable name="ServiceNamePrefix" id="1" type="string"/>
+				<variable name="ServiceIndentity"  id="2" type="string"/>
+			</bean>
+
+			<protocol name="AnnounceProviderInfo" NoProcedure="true" argument="BAnnounceProviderInfo" handle="client"/>
+
+			<!-- both: link, gs -->
+
+			<bean name="BModuleRedirectArgument">
+				<variable name="ModuleId"     id="1" type="int"/>
+				<variable name="HashCode"     id="2" type="int"/> server 计算。see BBind.ChoiceType。
+				<variable name="RedirectType" id="3" type="int"/> 如果是ToServer，ServerId存在HashCode中。
+
+				<variable name="MethodFullName" id="4" type="string"/> format="ModuleFullName:MethodName"
+				<variable name="Params"         id="5" type="binary"/>
+
+				<variable name="ServiceNamePrefix" id="6" type="string"/>
+			</bean>
+
+			<bean name="BModuleRedirectResult">
+				<variable name="ModuleId" id="1" type="int"/>
+				<variable name="ServerId" id="2" type="int"/> 目标server的id。
+				<!-- 上面两个参数用来调试，不是必要的。 -->
+
+				<!--
+				rpc.ResultCode == ResultCodeSuccess 时，才使用下面两个变量，此时表示rpc调用流程正确了。
+				处理结果是否正确，还需要进一步查看 ReturnCode。
+				-->
+				<variable name="ReturnCode" id="4" type="long"/> 实现函数的返回。
+				<variable name="Params"     id="5" type="binary"/>
+				<variable name="Actions"    id="6" type="list" value="BActionParam"/> 按回调顺序。！不是定义顺序！
+			</bean>
+
+			<bean name="BActionParam">
+				<variable name="Name"   id="1" type="string"/>
+				<variable name="Params" id="2" type="binary"/>
+			</bean>
+
+			<!-- 转发只定义一个rpc，以后可能需要实现server之间的直连，不再通过转发 -->
+			<rpc name="ModuleRedirect" argument="BModuleRedirectArgument" result="BModuleRedirectResult" handle="server,client">
+				<enum name="RedirectTypeWithHash" value="0"/>
+				<enum name="RedirectTypeToServer" value="1"/>
+
+				<enum name="ResultCodeSuccess" value="0"/>
+				<enum name="ResultCodeMethodFullNameNotFound" value="1"/>
+				<enum name="ResultCodeHandleException" value="2"/>
+				<enum name="ResultCodeHandleError" value="3"/>
+
+				<enum name="ResultCodeLinkdTimeout"    value="10"/>
+				<enum name="ResultCodeLinkdNoProvider" value="11"/>
+				<enum name="ResultCodeRequestTimeout"  value="12"/>
+			</rpc>
+
+			<bean name="BModuleRedirectAllRequest">
+				<variable name="ModuleId"                id="1" type="int"/>
+				<variable name="HashCodeConcurrentLevel" id="2" type="int"/> 总的并发分组数量
+				<variable name="HashCodes"               id="3" type="set" value="int"/> 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
+				<variable name="SourceProvider"          id="4" type="long"/> linkd 转发的时候填写本地provider的sessionId。
+				<variable name="SessionId"               id="5" type="long"/> 发起请求者初始化，返回结果时带回。
+
+				<variable name="MethodFullName"          id="6" type="string"/> format="ModuleFullName:MethodName"
+				<variable name="Params"                  id="7" type="binary"/>
+
+				<variable name="ServiceNamePrefix"       id="8" type="string"/>
+			</bean>
+
+			<bean name="BModuleRedirectAllHash">
+				<variable name="ReturnCode" id="4" type="long"/> 实现函数的返回。
+				<variable name="Params"     id="5" type="binary"/> 目前不支持out|ref，这个先保留。
+				<variable name="Actions"    id="6" type="list" value="BActionParam"/> 按回调顺序。！不是定义顺序！
+			</bean>
+
+			<bean name="BModuleRedirectAllResult">
+				<variable name="ModuleId"       id="1" type="int"/>
+				<variable name="ServerId" id="2" type="int"/> 目标server的id。
+				<!-- 上面两个参数用来调试，不是必要的。 -->
+				<variable name="SourceProvider" id="3" type="long"/> 从BModuleRedirectAllRequest里面得到。
+				<variable name="MethodFullName" id="4" type="string"/> format="ModuleFullName:MethodName"
+				<variable name="SessionId"      id="5" type="long"/> 发起请求者初始化，返回结果时带回。
+				<!--
+				ResultCode == ResultCodeSuccess 时，才使用下面变量的Value，此时表示调用流程正确了。
+				处理结果是否正确，还需要进一步查看Value.ReturnCode。
+				-->
+				<variable name="Hashs"          id="6" type="map" key="int" value="BModuleRedirectAllHash"/> 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
+			</bean>
+
+			<!-- 使用protocol而不是rpc，是为了可以按分组返回结果，当然现在定义支持一个结果里面包含多个分组结果 -->
+			<protocol name="ModuleRedirectAllRequest" argument="BModuleRedirectAllRequest" handle="server,client"/> handle在转发时需要client
+			<protocol name="ModuleRedirectAllResult" argument="BModuleRedirectAllResult" handle="server,client"/> handle在转发时需要client
+
+			<bean name="BTransmitContext">
+				<variable name="LinkSid"           id="1" type="long"/>
+				<variable name="ProviderId"        id="2" type="int"/>
+				<variable name="ProviderSessionId" id="3" type="long"/>
+			</bean>
+
+			<bean name="BTransmit">
+				<variable name="ActionName" id="1" type="string"/>
+				<variable name="Roles"      id="2" type="map" key="long" value="BTransmitContext"/> 查询目标角色。
+				<variable name="Sender"     id="3" type="long"/> 结果发送给Sender。
+
+				<variable name="ServiceNamePrefix"  id="4" type="string"/>
+				<variable name="ParameterBeanName"  id="5" type="string"/> fullname
+				<variable name="ParameterBeanValue" id="6" type="binary"/> encoded bean
+			</bean>
+
+			<protocol name="Transmit" argument="BTransmit" NoProcedure="true" handle="server,client"/> 默认不启用事务，由协议实现自己控制。
+		</module>
 	</module>
+
+	<component name="ProviderClient" gendir="src/main/java" platform="zeze+java">
+		<service name="" handle="client">
+			<module ref="Zeze.Beans.Provider"/>
+		</service>
+	</component>
+
+	<component name="ProviderServer" gendir="src/main/java" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Beans.Provider"/>
+		</service>
+	</component>
 
 	<component name="DelayRemove" gendir="src/main/java" platform="zeze+java">
 		<service name="" handle="server">
