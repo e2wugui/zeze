@@ -479,31 +479,31 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			throw new IllegalStateException("must be called without transaction");
 		}
 		return TStorage.getDatabaseTable().Walk((key, value) -> {
-					K k = DecodeKey(ByteBuffer.Wrap(key));
-					TableKey tkey = new TableKey(Name, k);
-					Lockey lockey = getZeze().getLocks().Get(tkey);
-					lockey.EnterReadLock();
-					try {
-						Record1<K, V> r = getCache().Get(k);
-						if (null != r && r.getState() != GlobalCacheManagerServer.StateRemoved) {
-							if (r.getState() == GlobalCacheManagerServer.StateShare
-									|| r.getState() == GlobalCacheManagerServer.StateModify) {
-								// 拥有正确的状态：
-								if (r.getValue() == null) {
-									return true; // 已经被删除，但是还没有checkpoint的记录看不到。
-								}
-								return callback.handle(r.getKey(), r.getValueTyped());
-							}
-							// else GlobalCacheManager.StateInvalid
-							// 继续后面的处理：使用数据库中的数据。
+			K k = DecodeKey(ByteBuffer.Wrap(key));
+			TableKey tkey = new TableKey(Name, k);
+			Lockey lockey = getZeze().getLocks().Get(tkey);
+			lockey.EnterReadLock();
+			try {
+				Record1<K, V> r = getCache().Get(k);
+				if (null != r && r.getState() != GlobalCacheManagerServer.StateRemoved) {
+					if (r.getState() == GlobalCacheManagerServer.StateShare
+							|| r.getState() == GlobalCacheManagerServer.StateModify) {
+						// 拥有正确的状态：
+						if (r.getValue() == null) {
+							return true; // 已经被删除，但是还没有checkpoint的记录看不到。
 						}
-						// 缓存中不存在或者正在被删除，使用数据库中的数据。
-						V v = DecodeValue(ByteBuffer.Wrap(value));
-						return callback.handle(k, v);
+						return callback.handle(r.getKey(), r.getValueTyped());
 					}
-					finally {
-						lockey.ExitReadLock();
-					}
+					// else GlobalCacheManager.StateInvalid
+					// 继续后面的处理：使用数据库中的数据。
+				}
+			}
+			finally {
+				lockey.ExitReadLock();
+			}
+			// 缓存中不存在或者正在被删除，使用数据库中的数据。
+			V v = DecodeValue(ByteBuffer.Wrap(value));
+			return callback.handle(k, v);
 		});
 	}
 
@@ -544,23 +544,21 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 		int count = 0;
 		for (Map.Entry<K, Record1<K, V>> entry : this.getCache().getDataMap().entrySet()) {
-			count++;
 			K k = entry.getKey();
 			Record1<K, V> r = entry.getValue();
 			TableKey tkey = new TableKey(Name, k);
 			Lockey lockey = getZeze().getLocks().Get(tkey);
 			lockey.EnterReadLock();
 			try {
-				if (null != r && r.getState() != GlobalCacheManagerServer.StateRemoved) {
-					if (r.getState() == GlobalCacheManagerServer.StateShare
-							|| r.getState() == GlobalCacheManagerServer.StateModify) {
+				if (r.getState() == GlobalCacheManagerServer.StateShare
+					|| r.getState() == GlobalCacheManagerServer.StateModify) {
 
-						if (r.getValue() == null) {
-							continue;
-						}
-						if (!callback.handle(r.getKey(), r.getValueTyped())) {
-							break;
-						}
+					if (r.getValue() == null) {
+						continue;
+					}
+					count++;
+					if (!callback.handle(r.getKey(), r.getValueTyped())) {
+						break;
 					}
 				}
 			} finally {

@@ -495,7 +495,7 @@ namespace Zeze.Transaction
         /// <summary>
         /// 事务外调用
         /// 遍历表格。能看到记录的最新数据。
-        /// 【注意】这里看不到新增的但没有提交(checkpoint)的记录。实现这个有点麻烦。
+        /// 【注意】这里看不到新增的但没有Checkpoint.Flush的记录。实现这个有点麻烦。
         /// 【并发】每个记录回调时加读锁，回调完成马上释放。
         /// </summary>
         /// <param name="callback"></param>
@@ -515,7 +515,7 @@ namespace Zeze.Transaction
                     lockey.EnterReadLock();
                     try
                     {
-                        Record<K, V> r = Cache.Get(k);
+                        var r = Cache.Get(k);
                         if (null != r && r.State != GlobalCacheManagerServer.StateRemoved)
                         {
                             if (r.State == GlobalCacheManagerServer.StateShare
@@ -529,15 +529,54 @@ namespace Zeze.Transaction
                             // else GlobalCacheManager.StateInvalid
                             // 继续后面的处理：使用数据库中的数据。
                         }
-                        // 缓存中不存在或者正在被删除，使用数据库中的数据。
-                        V v = DecodeValue(ByteBuffer.Wrap(value));
-                        return callback(k, v);
                     }
                     finally
                     {
                         lockey.Release();
                     }
+                    // 缓存中不存在或者正在被删除，使用数据库中的数据。
+                    // 测试不需要锁。提前释放。
+                    V v = DecodeValue(ByteBuffer.Wrap(value));
+                    return callback(k, v);
                 });
+        }
+
+        /**
+         * 事务外调用
+         * 遍历缓存
+         * @return count
+         */
+        public long WalkCache(Func<K, V, bool> callback)
+        {
+            if (Transaction.Current != null)
+            {
+                throw new Exception("must be called without transaction");
+            }
+            long count = 0;
+            foreach (var e in Cache.DataMap)
+            {
+                var tkey = new TableKey(Name, e.Key);
+                var lockey = Zeze.Locks.Get(tkey);
+                lockey.EnterReadLock();
+                try
+                {
+                    var r = e.Value;
+                    if (r.State == GlobalCacheManagerServer.StateShare || r.State == GlobalCacheManagerServer.StateModify)
+                    {
+                        if (r.Value == null)
+                            continue; // deleted
+
+                        count++;
+                        if (false == callback(r.Key, r.ValueTyped))
+                            break; // user break
+                    }
+                }
+                finally
+                {
+                    lockey.Release();
+                }
+            }
+            return count;
         }
 
         /// <summary>
