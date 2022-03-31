@@ -184,6 +184,7 @@ public final class Application {
 
 		// 自动初始化的组件。
 		Zeze.Component.AutoKey.getModule().initialize(this);
+		Zeze.Collections.Queue.getModule().initialize(this);
 
 		Locks = new Locks();
 		Task.tryInitThreadPool(this, null, null);
