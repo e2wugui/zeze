@@ -181,6 +181,10 @@ public final class Application {
 			return;
 		IsStart = true;
 
+		// 自动初始化的组件。
+		autoKey = new AutoKey.Module(this);
+		queueModule = new Queue.Module(this);
+
 		Task.tryInitThreadPool(this, null, null); // 确保Task线程池已经建立,如需定制,在Start前先手动初始化
 
 		int core = Conf.getInternalThreadPoolWorkerCount();
@@ -195,10 +199,6 @@ public final class Application {
 		Database defaultDb = GetDatabase(Conf.getDefaultTableConf().getDatabaseName());
 		for (var db : Databases.values())
 			db.Open(this);
-
-		// 自动初始化的组件。
-		autoKey = new AutoKey.Module(this);
-		queueModule = new Queue.Module(this);
 
 		var serviceManagerConf = Conf.GetServiceConf(Agent.DefaultServiceName);
 		if (serviceManagerConf != null && ServiceManagerAgent != null) {
@@ -279,6 +279,10 @@ public final class Application {
 		}
 		if (ServiceManagerAgent != null)
 			ServiceManagerAgent.Stop();
+		for (var db : Databases.values())
+			db.Close();
+		if (Conf != null)
+			Conf.ClearInUseAndIAmSureAppStopped(this, Databases);
 		if (queueModule != null) {
 			queueModule.UnRegisterZezeTables(this);
 			queueModule = null;
@@ -287,10 +291,6 @@ public final class Application {
 			autoKey.UnRegisterZezeTables(this);
 			autoKey = null;
 		}
-		for (var db : Databases.values())
-			db.Close();
-		if (Conf != null)
-			Conf.ClearInUseAndIAmSureAppStopped(this, Databases);
 	}
 
 	public void CheckpointRun() {
