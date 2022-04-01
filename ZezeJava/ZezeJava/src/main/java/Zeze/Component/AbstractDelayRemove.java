@@ -2,9 +2,9 @@
 package Zeze.Component;
 
 public abstract class AbstractDelayRemove extends Zeze.IModule {
-    @Override public String getFullName() { return "Zeze.Beans.DelayRemove"; }
-    @Override public String getName() { return "DelayRemove"; }
-    @Override public int getId() { return ModuleId; }
+    public String getFullName() { return "Zeze.Beans.DelayRemove"; }
+    public String getName() { return "DelayRemove"; }
+    public int getId() { return ModuleId; }
     public static final int ModuleId = 11007;
 
     public void RegisterProtocols(Zeze.Net.Service service) {

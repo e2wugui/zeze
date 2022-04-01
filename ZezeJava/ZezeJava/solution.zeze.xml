@@ -457,7 +457,33 @@
 
 			<protocol name="Transmit" argument="BTransmit" NoProcedure="true" handle="server"/> 默认不启用事务，由协议实现自己控制。
 		</module>
+
+		<module name="RedoQueue" id="11010">
+			<bean name="BQueueTask">
+				<variable name="QueueName"  id="1" type="string"/> 队列名称。
+				<variable name="TaskType"   id="2" type="int"/> 任务类型。
+				<variable name="TaskId"     id="3" type="long"/> 任务编号，必须递增。
+				<variable name="TaskParam"  id="4" type="binary"/> 任务参数。
+				<variable name="PrevTaskId" id="5" type="long"/> 上一个任务编号，用来发现错误。
+			</bean>
+
+			<rpc name="RunTask" argument="BQueueTask" result="BTaskId" handle="server"/>
+
+			<bean name="BTaskId">
+				<variable name="TaskId" id="1" type="long"/>
+			</bean>
+
+			<table name="tQueueLastTaskId" key="string" value="BTaskId" />
+		</module>
 	</module>
+
+	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+
+	<component name="RedoQueue" gendir="src/main/java" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Beans.RedoQueue"/>
+		</service>
+	</component>
 
 	<!-- Provider之间直连服务 -->
 	<component name="Provider2" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">

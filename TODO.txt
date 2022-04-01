@@ -10,15 +10,7 @@
 	DatabaseTikv OperatesTikv
 	关联多用户数据的协议处理自动派发到热点所在Server。
 	Global.Release并发问题【再次】确认
-	RedoableQueue
-	{
-		1）存储：QueueId。 RocksDb<TaskId, Full_Encoded_Net_Rpc> 持久化的。
-		2）Task.Id long 递增 Rpc
-		Zeze.ServerApp
-		1) zeze.table<QueueId, LastTaskId> 记住已经同步的最后的任务id，
-		2) 功能：每个QueueId，for (LastTaskId, end) { Run(task); zeze.table.LastTaskId = task.Id; }
-		* 特性：允许 Zeze.ServerApp 回档，回档以后，从旧的LastTaskId开始重做任务。
-	}
+	RedoQueue Client
 	Zezex.client: 可靠消息实现的错误检查。
 	RocksRaft Collection.List LogList
 		SortedDictionary<int, Log Or Bean> ChangeOrAdd; // 优化。中间的值发生了改变或者在尾巴增加。
@@ -41,6 +33,15 @@
 	java Arch: 重构 Provider：分为 Provider(linkd-gs),Provider2(gs-gs)。预计负载算法还需要公用。
 
 【2022/4/11】
+	RedoQueue
+	{
+		1）存储：QueueId。 RocksDb<TaskId, Full_Encoded_Net_Rpc> 持久化的。
+		2）Task.Id long 递增 Rpc
+		Zeze.ServerApp
+		1) zeze.table<QueueId, LastTaskId> 记住已经同步的最后的任务id，
+		2) 功能：每个QueueId，for (LastTaskId, end) { Run(task); zeze.table.LastTaskId = task.Id; }
+		* 特性：允许 Zeze.ServerApp 回档，回档以后，从旧的LastTaskId开始重做任务。
+	}
 	Zeze.Component dynamic bean动态增加类型的能力。
 	LockAsync 单元测试。关键：TryEnterXXXLock。
 	Queue
