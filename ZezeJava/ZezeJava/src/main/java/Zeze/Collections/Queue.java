@@ -8,12 +8,14 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.TableWalkHandle;
 
 public class Queue<V extends Bean> {
+	private static final BeanFactory beanFactory = new BeanFactory();
+
 	public static long GetSpecialTypeIdFromBean(Bean bean) {
-		return LinkedMap.GetSpecialTypeIdFromBean(bean);
+		return beanFactory.GetSpecialTypeIdFromBean(bean);
 	}
 
 	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
-		return LinkedMap.CreateBeanFromSpecialTypeId(typeId);
+		return beanFactory.CreateBeanFromSpecialTypeId(typeId);
 	}
 
 	public static class Module extends AbstractQueue {
@@ -42,7 +44,7 @@ public class Queue<V extends Bean> {
 		this.module = module;
 		this.name = name;
 		this.nodeSize = nodeSize;
-		LinkedMap.register(valueClass);
+		beanFactory.register(valueClass);
 	}
 
 	public String getName() {

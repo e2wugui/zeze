@@ -1,6 +1,5 @@
 package Zeze.Collections;
 
-import java.lang.invoke.MethodHandle;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Beans.Collections.LinkedMap.BLinkedMap;
 import Zeze.Beans.Collections.LinkedMap.BLinkedMapKey;
@@ -10,51 +9,16 @@ import Zeze.Beans.Collections.LinkedMap.BLinkedMapNodeKey;
 import Zeze.Beans.Collections.LinkedMap.BLinkedMapNodeValue;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.TableWalkHandle;
-import Zeze.Util.LongHashMap;
-import Zeze.Util.Reflect;
 
 public class LinkedMap<V extends Bean> {
-	private static final LongHashMap<MethodHandle> writingFactory = new LongHashMap<>();
-	private static volatile LongHashMap<MethodHandle> readingFactory;
-
-	public static void register(Class<? extends Bean> beanClass) {
-		MethodHandle beanCtor = Reflect.getDefaultConstructor(beanClass);
-		Bean bean;
-		try {
-			bean = (Bean)beanCtor.invoke();
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Throwable e) {
-			throw new RuntimeException(e);
-		}
-		synchronized (writingFactory) {
-			writingFactory.putIfAbsent(bean.getTypeId(), beanCtor);
-		}
-	}
+	private static final BeanFactory beanFactory = new BeanFactory();
 
 	public static long GetSpecialTypeIdFromBean(Bean bean) {
-		return bean.getTypeId();
+		return beanFactory.GetSpecialTypeIdFromBean(bean);
 	}
 
 	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
-		try {
-			LongHashMap<MethodHandle> factory = readingFactory;
-			if (factory == null) {
-				synchronized (writingFactory) {
-					factory = readingFactory;
-					if (factory == null)
-						readingFactory = factory = writingFactory.clone();
-				}
-			}
-			MethodHandle beanCtor = factory.get(typeId);
-			if (beanCtor == null)
-				throw new UnsupportedOperationException("Unknown Bean TypeId=" + typeId);
-			return (Bean)beanCtor.invoke();
-		} catch (RuntimeException e) {
-			throw e;
-		} catch (Throwable e) {
-			throw new RuntimeException(e);
-		}
+		return beanFactory.CreateBeanFromSpecialTypeId(typeId);
 	}
 
 	public static class Module extends AbstractLinkedMap {
@@ -83,7 +47,7 @@ public class LinkedMap<V extends Bean> {
 		this.module = module;
 		this.name = name;
 		this.nodeSize = nodeSize;
-		register(valueClass);
+		beanFactory.register(valueClass);
 	}
 
 	public String getName() {
@@ -95,8 +59,8 @@ public class LinkedMap<V extends Bean> {
 		return module._tLinkedMaps.get(name);
 	}
 
-	public BLinkedMapNode getNode(long cur) {
-		return module._tLinkedMapNodes.get(new BLinkedMapNodeKey(name, cur));
+	public BLinkedMapNode getNode(long nodeId) {
+		return module._tLinkedMapNodes.get(new BLinkedMapNodeKey(name, nodeId));
 	}
 
 	/**
@@ -106,23 +70,24 @@ public class LinkedMap<V extends Bean> {
 	 * @return node id that contains value
 	 */
 	public long moveToTail(String id) {
-		var nodeKey = new BLinkedMapKey(name, id);
-		var nodeId = module._tValueIdToNodeId.get(nodeKey);
-		if (null == nodeId)
+		var nodeId = module._tValueIdToNodeId.get(new BLinkedMapKey(name, id));
+		if (nodeId == null)
 			return 0;
-		var node = getNode(nodeId.getNodeId());
-		for (int i = 0; i < node.getValues().size(); ++i) {
-			var e = node.getValues().get(i);
+
+		var nodeIdLong = nodeId.getNodeId();
+		var node = getNode(nodeIdLong);
+		var values = node.getValues();
+		int i = values.size() - 1;
+		// activate。优化：这个操作比较多，并且很可能都是尾部活跃，需要判断已经是最后一个了，不调整。
+		if (values.get(i).getId().equals(id) && getRoot().getTailNodeId() == nodeIdLong) // TailNode && List.Last
+			return nodeIdLong;
+		for (; i >= 0; i--) {
+			var e = values.get(i);
 			if (e.getId().equals(id)) {
-				// activate。优化：这个操作比较多，并且很可能都是尾部活跃，需要判断已经是最后一个了，不调整。
-				var root = getRoot();
-				if (root.getTailNodeId() == nodeId.getNodeId() && i == node.getValues().size() - 1)
-					return nodeId.getNodeId(); // TailNode && List.Last
-				node.getValues().remove(i);
-				nodeId.setNodeId(addUnsafe(e.Copy()));
-				if (node.getValues().isEmpty())
+				values.remove(i);
+				if (values.isEmpty())
 					removeNodeUnsafe(nodeId, node);
-				return nodeId.getNodeId();
+				return addUnsafe(e.Copy());
 			}
 		}
 		throw new IllegalStateException("Node Exist But Value Not Found.");
@@ -136,7 +101,7 @@ public class LinkedMap<V extends Bean> {
 	public V put(String id, V value) {
 		var nodeIdKey = new BLinkedMapKey(name, id);
 		var nodeId = module._tValueIdToNodeId.get(nodeIdKey);
-		if (null == nodeId) {
+		if (nodeId == null) {
 			var newNodeValue = new BLinkedMapNodeValue();
 			newNodeValue.setId(id);
 			newNodeValue.getValue().setBean(value);
@@ -163,16 +128,17 @@ public class LinkedMap<V extends Bean> {
 		return get(String.valueOf(id));
 	}
 
-	@SuppressWarnings("unchecked")
 	public V get(String id) {
 		var nodeId = module._tValueIdToNodeId.get(new BLinkedMapKey(name, id));
-		if (null == nodeId) {
+		if (nodeId == null)
 			return null;
-		}
+
 		var node = getNode(nodeId.getNodeId());
 		for (var e : node.getValues()) {
 			if (e.getId().equals(id)) {
-				return (V)e.getValue().getBean();
+				@SuppressWarnings("unchecked")
+				var value = (V)e.getValue().getBean();
+				return value;
 			}
 		}
 		return null;
@@ -186,18 +152,19 @@ public class LinkedMap<V extends Bean> {
 	public V remove(String id) {
 		var nodeKey = new BLinkedMapKey(name, id);
 		var nodeId = module._tValueIdToNodeId.get(nodeKey);
-		if (null == nodeId) {
+		if (nodeId == null)
 			return null;
-		}
+
 		var node = getNode(nodeId.getNodeId());
-		for (int i = 0; i < node.getValues().size(); ++i) {
-			var e = node.getValues().get(i);
+		var values = node.getValues();
+		for (int i = 0, n = values.size(); i < n; i++) {
+			var e = values.get(i);
 			if (e.getId().equals(id)) {
-				node.getValues().remove(i);
+				values.remove(i);
 				module._tValueIdToNodeId.remove(nodeKey);
 				var root = getRoot();
 				root.setCount(root.getCount() - 1);
-				if (node.getValues().isEmpty())
+				if (values.isEmpty())
 					removeNodeUnsafe(nodeId, node);
 				return (V)e.getValue().getBean();
 			}
@@ -225,46 +192,41 @@ public class LinkedMap<V extends Bean> {
 	// inner
 	private long addUnsafe(BLinkedMapNodeValue nodeValue) {
 		var root = module._tLinkedMaps.getOrAdd(name);
-		var tail = getNode(root.getTailNodeId());
-		// tail is null means empty
-		if (null != tail && tail.getValues().size() < nodeSize) {
+		var tailNodeId = root.getTailNodeId();
+		var tail = tailNodeId != 0 ? getNode(tailNodeId) : null;
+		if (tail != null && tail.getValues().size() < nodeSize) { // tail is null means empty
 			tail.getValues().add(nodeValue);
-			return root.getTailNodeId();
+			return tailNodeId;
 		}
 		var newNode = new BLinkedMapNode();
+		if (tailNodeId != 0)
+			newNode.setPrevNodeId(tailNodeId); // 这里包含了empty
 		newNode.getValues().add(nodeValue);
-		root.setLastNodeId(root.getLastNodeId() + 1);
-		var newNodeId = root.getLastNodeId();
-		module._tLinkedMapNodes.insert(new BLinkedMapNodeKey(name, newNodeId), newNode);
-		newNode.setPrevNodeId(root.getTailNodeId()); // 这里包含了empty
+		var newNodeId = root.getLastNodeId() + 1;
+		root.setLastNodeId(newNodeId);
 		root.setTailNodeId(newNodeId);
-		if (null != tail) {
-			newNode.setNextNodeId(tail.getNextNodeId());
+		module._tLinkedMapNodes.insert(new BLinkedMapNodeKey(name, newNodeId), newNode);
+		if (tail != null)
 			tail.setNextNodeId(newNodeId);
-		} else {
-			// isEmpty.
-			newNode.setNextNodeId(root.getHeadNodeId());
+		else // isEmpty.
 			root.setHeadNodeId(newNodeId);
-		}
 		return newNodeId;
 	}
 
 	private void removeNodeUnsafe(BLinkedMapNodeId nodeId, BLinkedMapNode node) {
 		var root = getRoot();
-		if (node.getPrevNodeId() == 0) {
-			// is head
-			root.setHeadNodeId(node.getNextNodeId());
-		} else {
-			var prevNode = getNode(node.getPrevNodeId());
-			prevNode.setNextNodeId(node.getNextNodeId());
-		}
-		if (node.getNextNodeId() == 0) {
-			// is tail
-			root.setTailNodeId(node.getPrevNodeId());
-		} else {
-			var nextNode = getNode(node.getNextNodeId());
-			nextNode.setPrevNodeId(node.getPrevNodeId());
-		}
+		var prevNodeId = node.getPrevNodeId();
+		var nextNodeId = node.getNextNodeId();
+
+		if (prevNodeId == 0) // is head
+			root.setHeadNodeId(nextNodeId);
+		else
+			getNode(prevNodeId).setNextNodeId(nextNodeId);
+
+		if (nextNodeId == 0) // is tail
+			root.setTailNodeId(prevNodeId);
+		else
+			getNode(nextNodeId).setPrevNodeId(prevNodeId);
 
 		// 没有马上删除，启动gc延迟删除。
 		module._tLinkedMapNodes.delayRemove(new BLinkedMapNodeKey(name, nodeId.getNodeId()));
