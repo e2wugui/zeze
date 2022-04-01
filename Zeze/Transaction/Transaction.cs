@@ -426,9 +426,6 @@ namespace Zeze.Transaction
             // 不再支持在回调中再次执行事务。
             State = TransactionState.Completed; // 在Notify之前设置的。
             NotifyListener(cc);
-
-            procedure.Rpc?.SendResultCode(procedure.Rpc.ResultCode);
-
             TriggerCommitActions(procedure, lastsp);
         }
 

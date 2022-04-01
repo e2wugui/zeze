@@ -374,11 +374,6 @@ public final class Transaction {
 		// 在Notify之前设置的。
 		State = TransactionState.Completed;
 		_notify_listener_(cc);
-
-		Protocol<?> rpc = procedure.getRpc();
-		if (rpc != null)
-			rpc.SendResultCode(rpc.getResultCode());
-
 		_trigger_commit_actions_(procedure);
 	}
 

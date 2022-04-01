@@ -44,8 +44,7 @@ namespace Zeze.Transaction
         }
 
         public object UserState { get; set; }
-
-        public Zeze.Net.Protocol Rpc { get; set; }
+        public Action RunWhileCommitAction { get; set; }
 
         public Procedure(Application app, Func<Task<long>> action, string actionName, TransactionLevel level, object userState)
         {
@@ -104,9 +103,10 @@ namespace Zeze.Transaction
             Transaction currentT = Transaction.Current;
             currentT.Begin();
             currentT.ProcedureStack.Add(this);
-
             try
             {
+                if (null != RunWhileCommitAction)
+                    currentT.RunWhileCommit(RunWhileCommitAction);
                 long result = await Process();
                 currentT.VerifyRunning(); // 防止应用抓住了异常，通过return方式返回。
 

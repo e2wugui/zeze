@@ -37,7 +37,6 @@ public class Procedure {
 	private Func0<Long> Action;
 	private String ActionName;
 	private Object UserState;
-	private Protocol<?> Rpc;
 
 	// 用于继承方式实现 Procedure。
 	public Procedure(Application app) {
@@ -94,15 +93,8 @@ public class Procedure {
 		UserState = value;
 	}
 
-	public final Protocol<?> getRpc() {
-		return Rpc;
-	}
-
-	public final void setRpc(Protocol<?> rpc) {
-		Rpc = rpc;
-	}
-
 	public static volatile Action4<Throwable, Long, Procedure, String> LogAction = Procedure::DefaultLogAction;
+    public Runnable RunWhileCommit;
 
 	public static void DefaultLogAction(Throwable ex, Long result, Procedure p, String message) {
 		var ll = ex != null ? org.apache.logging.log4j.Level.ERROR
@@ -132,8 +124,9 @@ public class Procedure {
 
 		currentT.Begin();
 		currentT.getProcedureStack().add(this);
-
 		try {
+			if (null != RunWhileCommit)
+				currentT.RunWhileCommit(RunWhileCommit);
 			long result = Process();
 			currentT.VerifyRunning(); // 防止应用抓住了异常，通过return方式返回。
 

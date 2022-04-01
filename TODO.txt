@@ -8,9 +8,7 @@
 	实际上就是把具体类型的功能尽量放到基类。感觉没必要：应用使用独立进程更加安全灵活些。
 ----------------------------------------------------------------------------------------------------------------------------------
 	DatabaseTikv OperatesTikv
-	关联多用户数据的协议处理自动派发到热点所在Server。
 	Global.Release并发问题【再次】确认
-	RedoQueue Client
 	Zezex.client: 可靠消息实现的错误检查。
 	RocksRaft Collection.List LogList
 		SortedDictionary<int, Log Or Bean> ChangeOrAdd; // 优化。中间的值发生了改变或者在尾巴增加。
@@ -33,6 +31,7 @@
 	java Arch: 重构 Provider：分为 Provider(linkd-gs),Provider2(gs-gs)。预计负载算法还需要公用。
 
 【2022/4/11】
+	RedoQueue Client 【未测试】
 	RedoQueue
 	{
 		1）存储：QueueId。 RocksDb<TaskId, Full_Encoded_Net_Rpc> 持久化的。

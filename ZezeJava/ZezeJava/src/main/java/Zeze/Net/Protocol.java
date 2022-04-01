@@ -11,7 +11,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 	private Object UserState;
 	private long ResultCode;
 	public TArgument Argument;
-
+	public Binary ArgumentEncoded;
 	public AsyncSocket getSender() {
 		return Sender;
 	}

@@ -16,6 +16,8 @@ public class RedoQueue extends AbstractRedoQueue {
 
     public RedoQueue(Zeze.Application zeze, int port) throws Throwable {
         server = new Server(zeze);
+        RegisterProtocols(server);
+        RegisterZezeTables(zeze);
     }
 
     public void Start() throws Throwable {
@@ -26,8 +28,13 @@ public class RedoQueue extends AbstractRedoQueue {
         server.Stop();
     }
 
-    public void registerTaskHandle(int type, Func1<Binary, Boolean> handle) {
-        if (null != taskHandles.putIfAbsent(type, handle))
+    /**
+     * 注册任务，
+     * @param type
+     * @param task
+     */
+    public void register(int type, Func1<Binary, Boolean> task) {
+        if (null != taskHandles.putIfAbsent(type, task))
             throw new RuntimeException("duplicate task type. " + type);
     }
 
@@ -54,9 +61,10 @@ public class RedoQueue extends AbstractRedoQueue {
 
         @Override
         public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) throws Throwable {
-            Task.run(getZeze().NewProcedure(() -> factoryHandle.Handle.handle(p),
-                    p.getClass().getName(), TransactionLevel.Serializable, p.getUserState()),
-                    p, (_p, code) -> _p.SendResultCode(code));
+            var proc = getZeze().NewProcedure(() -> factoryHandle.Handle.handle(p),
+                    p.getClass().getName(), TransactionLevel.Serializable, p.getUserState());
+            proc.RunWhileCommit = () -> p.SendResultCode(p.getResultCode());
+            Task.run(proc, p, (_p, code) -> _p.SendResultCode(code));
         }
     }
 }
