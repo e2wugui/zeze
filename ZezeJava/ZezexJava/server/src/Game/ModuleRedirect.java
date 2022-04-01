@@ -1,6 +1,7 @@
 package Game;
 
 import Zeze.Arch.IModuleRedirect;
+import Zeze.Arch.ProviderSession;
 import Zeze.Net.AsyncSocket;
 import Zeze.Transaction.Transaction;
 
@@ -12,7 +13,7 @@ import Zeze.Transaction.Transaction;
 public class ModuleRedirect extends IModuleRedirect {
 	@Override
 	public int GetChoiceHashCode() {
-		String account = ((Game.Login.Session) Transaction.getCurrent().getTopProcedure().getUserState()).getAccount();
+		String account = ((ProviderSession) Transaction.getCurrent().getTopProcedure().getUserState()).getAccount();
 		return Zeze.Serialize.ByteBuffer.calc_hashnr(account);
 	}
 

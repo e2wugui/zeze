@@ -396,7 +396,7 @@ public class ModuleRank extends AbstractModule {
 
 	@Override
 	protected long ProcessCGetRankList(CGetRankList protocol) throws Throwable {
-		var session = Game.Login.Session.Get(protocol);
+		var session = ProviderSession.Get(protocol);
 
 		var result = new SGetRankList();
 		if (session.getRoleId() == null) {

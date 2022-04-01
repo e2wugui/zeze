@@ -1,5 +1,6 @@
 package Game.Map;
 
+import Zeze.Arch.ProviderSession;
 import Zeze.Transaction.*;
 import Game.*;
 import Zeze.Net.Protocol;
@@ -16,7 +17,7 @@ public final class ModuleMap extends AbstractModule {
 
 	@Override
     protected long ProcessCEnterWorld(CEnterWorld protocol) throws Throwable {
-		Game.Login.Session session = Game.Login.Session.Get(protocol);
+		var session = ProviderSession.Get(protocol);
 		if (session.getRoleId() == null) {
 			return Procedure.LogicError;
 		}

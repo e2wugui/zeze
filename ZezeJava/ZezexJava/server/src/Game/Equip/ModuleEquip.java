@@ -1,6 +1,7 @@
 package Game.Equip;
 
 import Game.Fight.*;
+import Zeze.Arch.ProviderSession;
 import Zeze.Transaction.*;
 import Game.*;
 import Zeze.Net.Protocol;
@@ -70,7 +71,7 @@ public final class ModuleEquip extends AbstractModule {
 
 	@Override
 	protected long ProcessEquipementRequest(Equipement rpc) throws Throwable {
-		var session = Game.Login.Session.Get(rpc);
+		var session = ProviderSession.Get(rpc);
 
 		Game.Bag.Bag bag = App.Game_Bag.GetBag(session.getRoleId().longValue());
 		var bItem = bag.getItems().get(rpc.Argument.getBagPos());
@@ -118,7 +119,7 @@ public final class ModuleEquip extends AbstractModule {
 
 	@Override
 	protected long ProcessUnequipementRequest(Unequipement rpc) throws Throwable {
-		var session = Game.Login.Session.Get(rpc);
+		var session = ProviderSession.Get(rpc);
 
 		BEquips equips = _tequip.getOrAdd(session.getRoleId().longValue());
 		var eItem = equips.getItems().get(rpc.Argument.getEquipPos());
