@@ -1,10 +1,10 @@
 // auto-generated @formatter:off
 package Zeze.Arch;
 
-public abstract class AbstractProviderDistribute extends Zeze.IModule {
-    @Override public String getFullName() { return "Zeze.Beans.Provider"; }
-    @Override public String getName() { return "Provider"; }
-    @Override public int getId() { return ModuleId; }
+public abstract class AbstractProviderLinkd extends Zeze.IModule {
+    public String getFullName() { return "Zeze.Beans.Provider"; }
+    public String getName() { return "Provider"; }
+    public int getId() { return ModuleId; }
     public static final int ModuleId = 11008;
 
     public static final int ErrorTransmitParameterFactoryNotFound = 1;
@@ -38,19 +38,6 @@ public abstract class AbstractProviderDistribute extends Zeze.IModule {
             factoryHandle.Handle = this::ProcessKick;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessKick", Zeze.Transaction.TransactionLevel.Serializable);
             service.AddFactoryHandle(47282516612067L, factoryHandle); // 11008, -778349597
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Beans.Provider.ModuleRedirect>();
-            factoryHandle.Factory = Zeze.Beans.Provider.ModuleRedirect::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessModuleRedirectRequest", Zeze.Transaction.TransactionLevel.Serializable);
-            service.AddFactoryHandle(47282751256958L, factoryHandle); // 11008, -543704706
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Beans.Provider.ModuleRedirectAllResult>();
-            factoryHandle.Factory = Zeze.Beans.Provider.ModuleRedirectAllResult::new;
-            factoryHandle.Handle = this::ProcessModuleRedirectAllResult;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessModuleRedirectAllResult", Zeze.Transaction.TransactionLevel.Serializable);
-            service.AddFactoryHandle(47281313619019L, factoryHandle); // 11008, -1981342645
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Beans.Provider.ReportLoad>();
@@ -94,8 +81,6 @@ public abstract class AbstractProviderDistribute extends Zeze.IModule {
         service.getFactorys().remove(47282301515237L);
         service.getFactorys().remove(47282243906435L);
         service.getFactorys().remove(47282516612067L);
-        service.getFactorys().remove(47282751256958L);
-        service.getFactorys().remove(47281313619019L);
         service.getFactorys().remove(47282765597827L);
         service.getFactorys().remove(47280423652415L);
         service.getFactorys().remove(47281174282091L);
@@ -116,7 +101,6 @@ public abstract class AbstractProviderDistribute extends Zeze.IModule {
     protected abstract long ProcessBindRequest(Zeze.Beans.Provider.Bind r) throws Throwable;
     protected abstract long ProcessBroadcast(Zeze.Beans.Provider.Broadcast p) throws Throwable;
     protected abstract long ProcessKick(Zeze.Beans.Provider.Kick p) throws Throwable;
-    protected abstract long ProcessModuleRedirectAllResult(Zeze.Beans.Provider.ModuleRedirectAllResult p) throws Throwable;
     protected abstract long ProcessReportLoad(Zeze.Beans.Provider.ReportLoad p) throws Throwable;
     protected abstract long ProcessSend(Zeze.Beans.Provider.Send p) throws Throwable;
     protected abstract long ProcessSetUserState(Zeze.Beans.Provider.SetUserState p) throws Throwable;

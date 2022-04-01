@@ -353,9 +353,10 @@
 			</bean>
 
 			<protocol name="AnnounceProviderInfo" NoProcedure="true" argument="BAnnounceProviderInfo" handle="client"/>
+		</module>
 
-			<!-- both: link, gs -->
-
+		<!-- gs 之间直连的服务: 即时客户端也是服务器 -->
+		<module name="Provider2" id="11009">
 			<bean name="BModuleRedirectArgument">
 				<variable name="ModuleId"     id="1" type="int"/>
 				<variable name="HashCode"     id="2" type="int"/> server 计算。see BBind.ChoiceType。
@@ -387,7 +388,7 @@
 			</bean>
 
 			<!-- 转发只定义一个rpc，以后可能需要实现server之间的直连，不再通过转发 -->
-			<rpc name="ModuleRedirect" argument="BModuleRedirectArgument" result="BModuleRedirectResult" handle="server,client">
+			<rpc name="ModuleRedirect" argument="BModuleRedirectArgument" result="BModuleRedirectResult" handle="server">
 				<enum name="RedirectTypeWithHash" value="0"/>
 				<enum name="RedirectTypeToServer" value="1"/>
 
@@ -435,8 +436,8 @@
 			</bean>
 
 			<!-- 使用protocol而不是rpc，是为了可以按分组返回结果，当然现在定义支持一个结果里面包含多个分组结果 -->
-			<protocol name="ModuleRedirectAllRequest" argument="BModuleRedirectAllRequest" handle="server,client"/> handle在转发时需要client
-			<protocol name="ModuleRedirectAllResult" argument="BModuleRedirectAllResult" handle="server,client"/> handle在转发时需要client
+			<protocol name="ModuleRedirectAllRequest" argument="BModuleRedirectAllRequest" handle="server"/>
+			<protocol name="ModuleRedirectAllResult" argument="BModuleRedirectAllResult" handle="server"/>
 
 			<bean name="BTransmitContext">
 				<variable name="LinkSid"           id="1" type="long"/>
@@ -454,16 +455,25 @@
 				<variable name="ParameterBeanValue" id="6" type="binary"/> encoded bean
 			</bean>
 
-			<protocol name="Transmit" argument="BTransmit" NoProcedure="true" handle="server,client"/> 默认不启用事务，由协议实现自己控制。
+			<protocol name="Transmit" argument="BTransmit" NoProcedure="true" handle="server"/> 默认不启用事务，由协议实现自己控制。
 		</module>
 	</module>
 
-	<component name="ProviderDistribute" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">
+	<!-- Provider之间直连服务 -->
+	<component name="Provider2" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Beans.Provider2"/>
+		</service>
+	</component>
+
+	<!-- Provider 在Linkd上的客户端支持组件 -->
+	<component name="ProviderLinkd" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">
 		<service name="" handle="client">
 			<module ref="Zeze.Beans.Provider"/>
 		</service>
 	</component>
 
+	<!-- Provider 为客户端协议服务。协议通过Linkd转发 -->
 	<component name="ProviderImplement" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Beans.Provider"/>

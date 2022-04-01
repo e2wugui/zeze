@@ -1,6 +1,6 @@
 package Zeze.Arch;
 
-public abstract class ProviderDistribute extends AbstractProviderDistribute {
+public class ProviderLinkd extends AbstractProviderLinkd {
     @Override
     protected long ProcessAnnounceProviderInfo(Zeze.Beans.Provider.AnnounceProviderInfo p) {
         return Zeze.Transaction.Procedure.NotImplement;
@@ -18,11 +18,6 @@ public abstract class ProviderDistribute extends AbstractProviderDistribute {
 
     @Override
     protected long ProcessKick(Zeze.Beans.Provider.Kick p) {
-        return Zeze.Transaction.Procedure.NotImplement;
-    }
-
-    @Override
-    protected long ProcessModuleRedirectAllResult(Zeze.Beans.Provider.ModuleRedirectAllResult p) {
         return Zeze.Transaction.Procedure.NotImplement;
     }
 

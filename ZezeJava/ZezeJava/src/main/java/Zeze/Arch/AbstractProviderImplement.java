@@ -39,27 +39,6 @@ public abstract class AbstractProviderImplement extends Zeze.IModule {
             service.AddFactoryHandle(47280680546638L, factoryHandle); // 11008, 1680552270
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Beans.Provider.ModuleRedirect>();
-            factoryHandle.Factory = Zeze.Beans.Provider.ModuleRedirect::new;
-            factoryHandle.Handle = this::ProcessModuleRedirectRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessModuleRedirectRequest", Zeze.Transaction.TransactionLevel.Serializable);
-            service.AddFactoryHandle(47282751256958L, factoryHandle); // 11008, -543704706
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Beans.Provider.ModuleRedirectAllRequest>();
-            factoryHandle.Factory = Zeze.Beans.Provider.ModuleRedirectAllRequest::new;
-            factoryHandle.Handle = this::ProcessModuleRedirectAllRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessModuleRedirectAllRequest", Zeze.Transaction.TransactionLevel.Serializable);
-            service.AddFactoryHandle(47280242920172L, factoryHandle); // 11008, 1242925804
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Beans.Provider.ModuleRedirectAllResult>();
-            factoryHandle.Factory = Zeze.Beans.Provider.ModuleRedirectAllResult::new;
-            factoryHandle.Handle = this::ProcessModuleRedirectAllResult;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessModuleRedirectAllResult", Zeze.Transaction.TransactionLevel.Serializable);
-            service.AddFactoryHandle(47281313619019L, factoryHandle); // 11008, -1981342645
-        }
-        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Beans.Provider.SendConfirm>();
             factoryHandle.Factory = Zeze.Beans.Provider.SendConfirm::new;
             factoryHandle.Handle = this::ProcessSendConfirm;
@@ -71,13 +50,6 @@ public abstract class AbstractProviderImplement extends Zeze.IModule {
             factoryHandle.Factory = Zeze.Beans.Provider.Subscribe::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessSubscribeRequest", Zeze.Transaction.TransactionLevel.Serializable);
             service.AddFactoryHandle(47282665133980L, factoryHandle); // 11008, -629827684
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Beans.Provider.Transmit>();
-            factoryHandle.Factory = Zeze.Beans.Provider.Transmit::new;
-            factoryHandle.Handle = this::ProcessTransmit;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessTransmit", Zeze.Transaction.TransactionLevel.None);
-            service.AddFactoryHandle(47279381054462L, factoryHandle); // 11008, 381060094
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Beans.Provider.UnBind>();
@@ -92,12 +64,8 @@ public abstract class AbstractProviderImplement extends Zeze.IModule {
         service.getFactorys().remove(47282301515237L);
         service.getFactorys().remove(47282067822559L);
         service.getFactorys().remove(47280680546638L);
-        service.getFactorys().remove(47282751256958L);
-        service.getFactorys().remove(47280242920172L);
-        service.getFactorys().remove(47281313619019L);
         service.getFactorys().remove(47281317762384L);
         service.getFactorys().remove(47282665133980L);
-        service.getFactorys().remove(47279381054462L);
         service.getFactorys().remove(47280773808911L);
     }
 
@@ -113,9 +81,5 @@ public abstract class AbstractProviderImplement extends Zeze.IModule {
     protected abstract long ProcessAnnounceLinkInfo(Zeze.Beans.Provider.AnnounceLinkInfo p) throws Throwable;
     protected abstract long ProcessDispatch(Zeze.Beans.Provider.Dispatch p) throws Throwable;
     protected abstract long ProcessLinkBroken(Zeze.Beans.Provider.LinkBroken p) throws Throwable;
-    protected abstract long ProcessModuleRedirectRequest(Zeze.Beans.Provider.ModuleRedirect r) throws Throwable;
-    protected abstract long ProcessModuleRedirectAllRequest(Zeze.Beans.Provider.ModuleRedirectAllRequest p) throws Throwable;
-    protected abstract long ProcessModuleRedirectAllResult(Zeze.Beans.Provider.ModuleRedirectAllResult p) throws Throwable;
     protected abstract long ProcessSendConfirm(Zeze.Beans.Provider.SendConfirm p) throws Throwable;
-    protected abstract long ProcessTransmit(Zeze.Beans.Provider.Transmit p) throws Throwable;
 }
