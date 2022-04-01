@@ -13,7 +13,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import Zeze.Beans.Provider.*;
 
-public class ProviderServer extends Zeze.Services.HandshakeBoth {
+public class ProviderServer extends Zeze.Services.HandshakeClient {
 	private static final Logger logger = LogManager.getLogger(ProviderServer.class);
 
 	/**
@@ -159,28 +159,6 @@ public class ProviderServer extends Zeze.Services.HandshakeBoth {
 		if (!IsHandshakeProtocol(p.getTypeId())) {
 			p.getSender().VerifySecurity();
 		}
-
-		if (p.getTypeId() == ModuleRedirect.TypeId_) {
-			if (null != factoryHandle.Handle) {
-				var moduleRedirect = (ModuleRedirect)p;
-				if (null != getZeze()) {
-					if (factoryHandle.Level != TransactionLevel.None) {
-						getZeze().getTaskOneByOneByKey().Execute(
-								moduleRedirect.Argument.getHashCode(),
-								() -> Zeze.Util.Task.Call(getZeze().NewProcedure(() -> factoryHandle.Handle.handle(p),
-												p.getClass().getName(), factoryHandle.Level, p.getUserState()),
-										p, Protocol::SendResultCode));
-					} else {
-						getZeze().getTaskOneByOneByKey().Execute(moduleRedirect.Argument.getHashCode(),
-								() -> Zeze.Util.Task.Call(() -> factoryHandle.Handle.handle(p), p,
-										Protocol::SendResultCode));
-					}
-				}
-			} else
-				logger.warn("Protocol Handle Not Found: {}", p);
-			return;
-		}
-
 		super.DispatchProtocol(p, factoryHandle);
 	}
 

@@ -402,7 +402,7 @@
 		<module ref="CommonModule"/>
 		-->
 		<!-- service 生成到 solution 名字空间下 -->
-		<service name="Server" handle="server" base="Zeze.Arch.ProviderServer"> provider 生成静态绑定代码。
+		<service name="Server" handle="server" base="Zeze.Arch.ProviderServer">
 			<module ref="Login"/>
 			<module ref="Bag"/>
 			<module ref="Item"/>
@@ -418,6 +418,9 @@
 		</service>
 		<ModuleStartOrder>
 		</ModuleStartOrder>
+
+		<service name="Server2" handle="server,client" base="Zeze.Arch.Provider2Server">
+		</service>
 	</project>
 
 </solution>
