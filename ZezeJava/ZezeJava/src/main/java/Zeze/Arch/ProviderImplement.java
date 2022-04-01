@@ -1,23 +1,23 @@
-package Zezex.Provider;
+package Zeze.Arch;
 
-import java.util.HashSet;
-import java.util.List;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Beans.Provider.*;
 
-//ZEZE_FILE_CHUNK {{{ IMPORT GEN
-//ZEZE_FILE_CHUNK }}} IMPORT GEN
+public abstract class ProviderImplement extends AbstractProviderImplement {
+	//private static final Logger logger = LogManager.getLogger(ProviderImplement.class);
 
-public final class ModuleProvider extends AbstractModule {
-	// private static final Logger logger = LogManager.getLogger(ModuleProvider.class);
-
-	public void Start(Game.App app) {
+	private ProviderServer server;
+	public ProviderServer getServer() {
+		return server;
 	}
 
-	public void Stop(Game.App app) {
+	public void setServer(ProviderServer service) {
+		server = service;
+		RegisterProtocols(service);
 	}
 
 	private void SendKick(AsyncSocket sender, long linkSid, int code, String desc) {
@@ -31,7 +31,7 @@ public final class ModuleProvider extends AbstractModule {
 	@Override
 	protected long ProcessDispatch(Dispatch p) throws Throwable {
 		try {
-			var factoryHandle = App.Server.FindProtocolFactoryHandle(p.Argument.getProtocolType());
+			var factoryHandle = server.FindProtocolFactoryHandle(p.Argument.getProtocolType());
 			if (null == factoryHandle) {
 				SendKick(p.getSender(), p.Argument.getLinkSid(), BKick.ErrorProtocolUnkown, "unknown protocol");
 				return Procedure.LogicError;
@@ -40,7 +40,7 @@ public final class ModuleProvider extends AbstractModule {
 			p2.Decode(Zeze.Serialize.ByteBuffer.Wrap(p.Argument.getProtocolData()));
 			p2.setSender(p.getSender());
 
-			var session = new Game.Login.Session(p.Argument.getAccount(), p.Argument.getStates(), p.getSender(), p.Argument.getLinkSid());
+			var session = new ProviderSession(server, p.Argument.getAccount(), p.Argument.getStates(), p.getSender(), p.Argument.getLinkSid());
 
 			p2.setUserState(session);
 			if (Transaction.getCurrent() != null) {
@@ -75,24 +75,14 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	protected long ProcessLinkBroken(LinkBroken protocol) throws Throwable {
-		// 目前仅需设置online状态。
-		if (false == protocol.Argument.getStates().isEmpty()) {
-			var roleId = protocol.Argument.getStates().get(0);
-			Game.App.getInstance().Game_Login.getOnlines().OnLinkBroken(roleId);
-		}
-		return Procedure.Success;
-	}
-
-	@Override
 	protected long ProcessModuleRedirectRequest(ModuleRedirect rpc) throws Throwable {
 		try {
 			// replace RootProcedure.ActionName. 为了统计和日志输出。
 			Transaction.getCurrent().getTopProcedure().setActionName(rpc.Argument.getMethodFullName());
 
 			rpc.Result.setModuleId(rpc.Argument.getModuleId());
-			rpc.Result.setServerId(App.Zeze.getConfig().getServerId());
-			var handle = App.Zeze.getModuleRedirect().Handles.get(rpc.Argument.getMethodFullName());
+			rpc.Result.setServerId(server.getZeze().getConfig().getServerId());
+			var handle = server.getZeze().getModuleRedirect().Handles.get(rpc.Argument.getMethodFullName());
 			if (null == handle) {
 				rpc.SendResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
 				return Procedure.LogicError;
@@ -137,12 +127,12 @@ public final class ModuleProvider extends AbstractModule {
 
 			// common parameters for result
 			result.Argument.setModuleId(protocol.Argument.getModuleId());
-			result.Argument.setServerId(App.Zeze.getConfig().getServerId());
+			result.Argument.setServerId(server.getZeze().getConfig().getServerId());
 			result.Argument.setSourceProvider(protocol.Argument.getSourceProvider());
 			result.Argument.setSessionId(protocol.Argument.getSessionId());
 			result.Argument.setMethodFullName(protocol.Argument.getMethodFullName());
 
-			var handle = App.Zeze.getModuleRedirect().Handles.get(protocol.Argument.getMethodFullName());
+			var handle = server.getZeze().getModuleRedirect().Handles.get(protocol.Argument.getMethodFullName());
 			if (null == handle) {
 				result.setResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
 				// 失败了，需要把hash返回。此时是没有处理结果的。
@@ -161,7 +151,7 @@ public final class ModuleProvider extends AbstractModule {
 				var hashResult = new BModuleRedirectAllHash();
 				final var Params = new Zeze.Util.OutObject<Binary>();
 				Params.Value = null;
-				hashResult.setReturnCode(App.Zeze.NewProcedure(() -> {
+				hashResult.setReturnCode(server.getZeze().NewProcedure(() -> {
 						var rp = handle.RequestHandle.call(
 								protocol.Argument.getSessionId(), hash,
 								protocol.Argument.getParams(), hashResult.getActions());
@@ -194,7 +184,7 @@ public final class ModuleProvider extends AbstractModule {
 	protected long ProcessModuleRedirectAllResult(ModuleRedirectAllResult protocol) throws Throwable {
 		// replace RootProcedure.ActionName. 为了统计和日志输出。
 		Transaction.getCurrent().getTopProcedure().setActionName(protocol.Argument.getMethodFullName());
-		var ctx = App.Server.<Zeze.Arch.ModuleRedirectAllContext>TryGetManualContext(protocol.Argument.getSessionId());
+		var ctx = server.<ModuleRedirectAllContext>TryGetManualContext(protocol.Argument.getSessionId());
 		if (ctx != null) {
 			ctx.ProcessResult(protocol);
 		}
@@ -202,46 +192,9 @@ public final class ModuleProvider extends AbstractModule {
 	}
 
 	@Override
-	protected long ProcessTransmit(Transmit p) throws Throwable {
-		Zeze.Serialize.Serializable parameter = null;
-		if (false == p.Argument.getParameterBeanName().isEmpty())
-		{
-			var factory = App.Game_Login.getOnlines().getTransmitParameterFactorys().get(p.Argument.getParameterBeanName());
-			if (null == factory)
-				return ErrorCode(ErrorTransmitParameterFactoryNotFound);
-
-			parameter = factory.call(p.Argument.getParameterBeanName());
-		}
-		App.Game_Login.getOnlines().ProcessTransmit(
-				p.Argument.getSender(),
-				p.Argument.getActionName(),
-				p.Argument.getRoles().keySet(),
-				parameter);
-		return Procedure.Success;
-	}
-
-	@Override
 	protected long ProcessAnnounceLinkInfo(AnnounceLinkInfo protocol) throws Throwable {
-		var linkSession = (Game.Server.LinkSession)protocol.getSender().getUserState();
+		var linkSession = (ProviderServer.LinkSession)protocol.getSender().getUserState();
 		linkSession.Setup(protocol.Argument.getLinkId(), protocol.Argument.getProviderSessionId());
 		return Procedure.Success;
 	}
-
-	@Override
-	protected long ProcessSendConfirm(SendConfirm protocol) throws Throwable {
-		var linkSession = (Game.Server.LinkSession)protocol.getSender().getUserState();
-		var ctx = App.Server.<Game.Login.Onlines.ConfirmContext>TryGetManualContext(
-				protocol.Argument.getConfirmSerialId());
-		if (ctx != null) {
-			ctx.ProcessLinkConfirm(linkSession.getName());
-		}
-		// linkName 也可以从 protocol.Sender.Connector.Name 获取。
-		return Procedure.Success;
-	}
-
-	// ZEZE_FILE_CHUNK {{{ GEN MODULE
-    public ModuleProvider(Game.App app) {
-        super(app);
-    }
-	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

@@ -463,13 +463,11 @@
 		</service>
 	</component>
 
-	<!--
-	<component name="ProviderServer" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">
+	<component name="ProviderImplement" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Beans.Provider"/>
 		</service>
 	</component>
-	-->
 
 	<component name="DelayRemove" gendir="src/main/java" platform="zeze+java">
 		<service name="" handle="server">

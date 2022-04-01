@@ -6,6 +6,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import Zeze.Arch.IModuleRedirect;
 import Zeze.Collections.Queue;
 import Zeze.Component.AutoKey;
 import Zeze.Serialize.ByteBuffer;
@@ -52,6 +53,15 @@ public final class Application {
 	private Future<?> FlushWhenReduceTimerTask;
 	private Schemas Schemas;
 	private boolean IsStart;
+	private IModuleRedirect ModuleRedirect;
+
+	public IModuleRedirect getModuleRedirect() {
+		return ModuleRedirect;
+	}
+
+	public void setModuleRedirect(IModuleRedirect mr) {
+		ModuleRedirect = mr;
+	}
 
 	public Application(String solutionName) throws Throwable {
 		this(solutionName, null);

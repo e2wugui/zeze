@@ -424,6 +424,13 @@ public class Service {
 		public void OnRemoved() throws Throwable {
 		}
 
+		private Service service;
+		public Service getService() {
+			return service;
+		}
+		public void setService(Service service) {
+			this.service = service;
+		}
 		// after OnRemoved if Timeout
 		@SuppressWarnings("RedundantThrows")
 		public void OnTimeout() throws Throwable {
@@ -439,6 +446,7 @@ public class Service {
 			long sessionId = NextSessionId();
 			if (ManualContexts.putIfAbsent(sessionId, context) == null) {
 				context.setSessionId(sessionId);
+				context.setService(this);
 				Task.schedule(timeout, () -> {
 					ManualContext ctx = TryRemoveManualContext(sessionId);
 					if (ctx != null)

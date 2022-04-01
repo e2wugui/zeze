@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import javax.xml.parsers.DocumentBuilderFactory;
 import Zeze.Services.ServiceManager.SubscribeInfo;
-import Zezex.Provider.BModule;
+import Zeze.Beans.Provider.BModule;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -18,8 +18,6 @@ public class ProviderModuleBinds {
 		return Load(null);
 	}
 
-//C# TO JAVA CONVERTER NOTE: Java does not support optional parameters. Overloaded method(s) are created above:
-//ORIGINAL LINE: public static ProviderModuleBinds Load(string xmlfile = null)
 	public static ProviderModuleBinds Load(String xmlfile) {
 		if (xmlfile == null) {
 			xmlfile = "provider.module.binds.xml";
@@ -53,10 +51,10 @@ public class ProviderModuleBinds {
 		if (null != m) {
 			return m.ChoiceType;
 		}
-		return Zezex.Provider.BModule.ChoiceTypeDefault;
+		return BModule.ChoiceTypeDefault;
 	}
 
-	public final void BuildDynamicBinds(HashMap<String, Zeze.IModule> AllModules, int serverId, HashMap<Integer, Zezex.Provider.BModule> out) {
+	public final void BuildDynamicBinds(HashMap<String, Zeze.IModule> AllModules, int serverId, HashMap<Integer, BModule> out) {
 		for (var m : AllModules.values()) {
 			var cm = Modules.get(m.getFullName());
 			if (null == cm)
@@ -67,7 +65,7 @@ public class ProviderModuleBinds {
 			if (!cm.Providers.isEmpty() && !cm.Providers.contains(serverId))
 				continue; // dynamic providers. isEmpty means enable in all server.
 
-			var tempVar = new Zezex.Provider.BModule();
+			var tempVar = new BModule();
 			tempVar.setChoiceType(cm.getChoiceType());
 			tempVar.setConfigType(BModule.ConfigTypeDynamic);
 			tempVar.setSubscribeType(cm.getSubscribeType());
@@ -75,13 +73,13 @@ public class ProviderModuleBinds {
 		}
 	}
 
-	public final void BuildStaticBinds(HashMap<String, Zeze.IModule> AllModules, int serverId, HashMap<Integer, Zezex.Provider.BModule> modules) {
+	public final void BuildStaticBinds(HashMap<String, Zeze.IModule> AllModules, int serverId, HashMap<Integer, BModule> modules) {
 		HashMap<String, Integer> binds = new HashMap<String, Integer>();
 
 		// special binds
 		for (var m : getModules().values()) {
 			if (m.getConfigType() == BModule.ConfigTypeSpecial && m.Providers.contains(serverId)) {
-				binds.put(m.FullName, Zezex.Provider.BModule.ConfigTypeSpecial);
+				binds.put(m.FullName, BModule.ConfigTypeSpecial);
 			}
 		}
 
@@ -94,7 +92,7 @@ public class ProviderModuleBinds {
 				if (getModules().containsKey(m.getFullName())) {
 					continue; // 忽略已经有特别配置的模块
 				}
-				binds.put(m.getFullName(), Zezex.Provider.BModule.ConfigTypeDefault);
+				binds.put(m.getFullName(), BModule.ConfigTypeDefault);
 			}
 		}
 
@@ -102,7 +100,7 @@ public class ProviderModuleBinds {
 		for (var bind : binds.entrySet()) {
 			var m = AllModules.get(bind.getKey());
 			if (null != m){
-				Zezex.Provider.BModule tempVar = new Zezex.Provider.BModule();
+				var tempVar = new BModule();
 				tempVar.setChoiceType(GetModuleChoiceType(bind.getKey()));
 				tempVar.setConfigType(bind.getValue());
 				tempVar.setSubscribeType(SubscribeInfo.SubscribeTypeReadyCommit);
@@ -133,13 +131,13 @@ public class ProviderModuleBinds {
 		private int GetChoiceType(Element self) {
 			switch (self.getAttribute("ChoiceType")) {
 				case "ChoiceTypeHashAccount":
-					return Zezex.Provider.BModule.ChoiceTypeHashAccount;
+					return BModule.ChoiceTypeHashAccount;
 
 				case "ChoiceTypeHashRoleId":
-					return Zezex.Provider.BModule.ChoiceTypeHashRoleId;
+					return BModule.ChoiceTypeHashRoleId;
 
 				default:
-					return Zezex.Provider.BModule.ChoiceTypeDefault;
+					return BModule.ChoiceTypeDefault;
 			}
 		}
 

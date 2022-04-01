@@ -81,7 +81,6 @@ public class GenModule {
 		if (overrides.isEmpty()) {
 			return module; // 没有需要重定向的方法。
 		}
-
 		String genClassName = Str.format("_ModuleRedirect_{}_", module.getFullName().replace('.', '_'));
 		try {
 			String code = GenModuleCode(module, genClassName, overrides);
@@ -112,17 +111,6 @@ public class GenModule {
 		compiler = InMemoryJavaCompiler.newInstance();
 		compiler.ignoreWarnings();
 	}
-
-	/**
-	 0) long [in] sessionid
-	 1) int [in] hash
-	 2) Zeze.Net.Binary [in] encoded parameters
-	 3) List<Zezex.Provider.BActionParam> [result] result for callback. avoid copy.
-	 4) Return [return]
-		 Func不能使用ref，而Zeze.Net.Binary是只读的。就这样吧。
-	*/
-	public ConcurrentHashMap<String,
-				Func4<Long, Integer, Binary, List<BActionParam>, Return>> Handles = new ConcurrentHashMap <>();
 
 	private ReturnTypeAndName GetReturnType(Class<?> type)  {
 		if (type == void.class)
@@ -198,7 +186,7 @@ public class GenModule {
 				continue;
 			}
 			var rpcVarName = "tmp" + Gen.Instance.TmpVarNameId.incrementAndGet();
-			sb.AppendLine(Str.format("        var {} = new Zezex.Provider.ModuleRedirect();", rpcVarName));
+			sb.AppendLine(Str.format("        var {} = new Zeze.Beans.Provider.ModuleRedirect();", rpcVarName));
 			sb.AppendLine(Str.format("        {}.Argument.setModuleId({});", rpcVarName, module.getId()));
 			sb.AppendLine(Str.format("        {}.Argument.setRedirectType({});", rpcVarName, methodOverride.getRedirectType()));
 			sb.AppendLine(Str.format("        {}.Argument.setHashCode({});", rpcVarName, methodOverride.GetChoiceHashOrServerCodeSource()));

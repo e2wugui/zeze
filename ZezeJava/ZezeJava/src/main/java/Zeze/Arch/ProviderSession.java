@@ -1,11 +1,13 @@
-package Game.Login;
+package Zeze.Arch;
 
-import Zeze.Net.*;
-import Zeze.Transaction.*;
-import Game.*;
+import Zeze.Net.AsyncSocket;
+import Zeze.Net.Binary;
+import Zeze.Net.Protocol;
 import Zeze.Transaction.Collections.PList1;
+import Zeze.Transaction.Transaction;
+import Zeze.Beans.Provider.*;
 
-public class Session {
+public class ProviderSession {
 	private String Account;
 	public final String getAccount() {
 		return Account;
@@ -32,12 +34,18 @@ public class Session {
 		Link = value;
 	}
 
-	public Session(String account, PList1<Long> states, AsyncSocket link, long linkSid) {
+	private ProviderServer providerServer;
+	public final ProviderServer getProviderServer() {
+		return providerServer;
+	}
+
+	public ProviderSession(ProviderServer server, String account, PList1<Long> states, AsyncSocket link, long linkSid) {
+		providerServer = server;
 		Account = account;
 		RoleId = states.isEmpty() ? null : states.get(0);
 		SessionId = linkSid;
 		setLink(link);
-		LinkName = App.getInstance().Server.GetLinkName(link);
+		LinkName = server.GetLinkName(link);
 	}
 
 	public final void SendResponse(Binary fullEncodedProtocol) {
@@ -45,7 +53,7 @@ public class Session {
 	}
 
 	public final void SendResponse(long typeId, Binary fullEncodedProtocol) {
-		var send = new Zezex.Provider.Send();
+		var send = new Send();
 		send.Argument.getLinkSids().add(getSessionId());
 		send.Argument.setProtocolType(typeId);
 		send.Argument.setProtocolWholeData(fullEncodedProtocol);
@@ -55,7 +63,7 @@ public class Session {
 			return;
 		}
 		// 可能发生了重连，尝试再次查找发送。网络断开以后，已经不可靠了，先这样写着吧。
-		var link = App.getInstance().Server.getLinks().get(getLinkName());
+		var link = providerServer.getLinks().get(getLinkName());
 		if (null != link) {
 			if (link.isHandshakeDone()) {
 				setLink(link.getSocket());
@@ -94,10 +102,10 @@ public class Session {
 		Transaction.getCurrent().RunWhileRollback(() -> SendResponse(p));
 	}
 
-	public static Session Get(Protocol context) {
+	public static ProviderSession Get(Protocol context) {
 		if (null == context.getUserState()) {
 			throw new RuntimeException("not auth");
 		}
-		return (Session)context.getUserState();
+		return (ProviderSession)context.getUserState();
 	}
 }
