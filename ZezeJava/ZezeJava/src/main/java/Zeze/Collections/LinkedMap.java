@@ -63,6 +63,14 @@ public class LinkedMap<V extends Bean> {
 		return module._tLinkedMapNodes.get(new BLinkedMapNodeKey(name, nodeId));
 	}
 
+	public boolean isEmpty() {
+		return size() == 0;
+	}
+
+	public long size() {
+		return getRoot().getCount();
+	}
+
 	/**
 	 * 把项移到队尾。
 	 *

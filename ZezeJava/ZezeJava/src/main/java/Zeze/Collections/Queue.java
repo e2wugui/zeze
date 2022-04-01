@@ -51,6 +51,11 @@ public class Queue<V extends Bean> {
 		return name;
 	}
 
+	public boolean isEmpty() {
+		var root = module._tQueues.get(name);
+		return root == null || root.getHeadNodeId() == 0;
+	}
+
 	/**
 	 * 删除并返回整个头节点
 	 *
