@@ -41,7 +41,9 @@ public final class App extends Zeze.AppBase {
 
 	public void Start() throws Throwable {
 		LoadConfig();
-		Create();
+		CreateZeze();
+		CreateService();
+		CreateModules();
 		StartModules(); // 启动模块，装载配置什么的。
 		Zeze.Start(); // 启动数据库
 
@@ -63,7 +65,9 @@ public final class App extends Zeze.AppBase {
 		StopService(); // 关闭网络
 		Zeze.Stop(); // 关闭数据库
 		StopModules(); // 关闭模块，卸载配置什么的。
-		Destroy();
+		DestroyModules();
+		DestroyServices();
+		DestroyZeze();
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN APP @formatter:off

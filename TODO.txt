@@ -38,7 +38,7 @@
 	java Arch: ModuleRedirect 重构。
 		【左尧完成Java了？】Zezex.ModuleRedirect 增加 TransactionLevel 注解配置。
 		Zezex.ModuleRedirect 去掉依赖Session生成hash模式；RunMyMethod去掉mode；
-	java Arch: 重构 ProviderDistribute（Provider负载分发，用于linkd和gs）; ProviderServer（用于gs，这个可能不实现，因为预计跟gs关联很紧）;
+	java Arch: 重构 Provider：分为 Provider(linkd-gs),Provider2(gs-gs)。预计负载算法还需要公用。
 
 【2022/4/11】
 	Zeze.Component dynamic bean动态增加类型的能力。
