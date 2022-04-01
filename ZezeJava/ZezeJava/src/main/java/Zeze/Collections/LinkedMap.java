@@ -179,14 +179,26 @@ public class LinkedMap<V extends Bean> {
 	 * func 第一个参数是当前Value所在的Node.Id。
 	 */
 	@SuppressWarnings("unchecked")
-	public void walk(TableWalkHandle<Long, V> func) {
-		module._tLinkedMapNodes.Walk((key, node) -> {
+	public long walk(TableWalkHandle<Long, V> func) {
+		long count = 0L;
+		var root = module._tLinkedMaps.selectDirty(name);
+		if (null == root)
+			return count;
+
+		var nodeId = root.getTailNodeId();
+		while (nodeId != 0) {
+			var node = module._tLinkedMapNodes.selectDirty(new BLinkedMapNodeKey(name, nodeId));
+			if (null == node)
+				return count; // error
+
 			for (var value : node.getValues()) {
-				if (!func.handle(key.getNodeId(), (V)value.getValue().getBean()))
-					return false;
+				++count;
+				if (!func.handle(nodeId, (V)value.getValue().getBean()))
+					return count;
 			}
-			return true;
-		});
+			nodeId = node.getPrevNodeId();
+		}
+		return count;
 	}
 
 	// inner

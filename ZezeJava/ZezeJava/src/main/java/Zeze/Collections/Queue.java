@@ -70,7 +70,7 @@ public class Queue<V extends Bean> {
 			return null;
 
 		root.setHeadNodeId(head.getNextNodeId());
-		module._tQueueNodes.remove(nodeKey);
+		module._tQueueNodes.delayRemove(nodeKey);
 		return head;
 	}
 
@@ -199,13 +199,22 @@ public class Queue<V extends Bean> {
 	 * func 第一个参数是当前Value所在的Node.Id。
 	 */
 	@SuppressWarnings("unchecked")
-	public void walk(TableWalkHandle<Long, V> func) {
-		module._tQueueNodes.Walk((key, node) -> {
+	public long walk(TableWalkHandle<Long, V> func) {
+		long count = 0L;
+		var root = module._tQueues.selectDirty(name);
+		if (null == root)
+			return count;
+		var nodeId = root.getHeadNodeId();
+		while (nodeId != 0) {
+			var node = module._tQueueNodes.selectDirty(new BQueueNodeKey(name, nodeId));
+			if (null == node)
+				return count;
 			for (var value : node.getValues()) {
-				if (!func.handle(key.getNodeId(), (V)value.getValue().getBean()))
-					return false;
+				++count;
+				if (!func.handle(nodeId, (V)value.getValue().getBean()))
+					return count;
 			}
-			return true;
-		});
+		}
+		return count;
 	}
 }
