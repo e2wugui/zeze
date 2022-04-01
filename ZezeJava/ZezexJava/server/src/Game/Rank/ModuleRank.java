@@ -4,10 +4,8 @@ import Zeze.Transaction.*;
 import Game.*;
 import Zeze.TransactionModes;
 import Zeze.Util.Str;
-import Zezex.Redirect;
-import Zezex.RedirectAll;
-import Zezex.RedirectToServer;
-import Zezex.RedirectWithHash;
+import Zeze.Arch.*;
+import Zeze.Beans.Provider.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -205,7 +203,7 @@ public class ModuleRank extends AbstractModule {
 	*/
 	@Redirect()
 	public void RunUpdateRank(BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) {
-		int hash = ModuleRedirect.GetChoiceHashCode();
+		int hash = App.Zeze.getModuleRedirect().GetChoiceHashCode();
 		App.Zeze.Run(
 				() -> UpdateRank(hash, keyHint, roleId, value, valueEx),
 				"RunUpdateRank",
@@ -251,7 +249,7 @@ public class ModuleRank extends AbstractModule {
 		d) 剩下的是自定义参数。
 	*/
 	protected final long GetRank(long sessionId, int hash, BConcurrentKey keyHint,
-								Zezex.RedirectAllResultHandle onHashResult) {
+								RedirectAllResultHandle onHashResult) {
 		// 根据hash获取分组rank。
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		var concurrentKey = new BConcurrentKey(keyHint.getRankType(), hash % concurrentLevel, keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
@@ -268,11 +266,11 @@ public class ModuleRank extends AbstractModule {
 	// 需要注意在子类上下文中可以编译通过。可以是常量。
 	@RedirectAll(GetConcurrentLevelSource="GetConcurrentLevel(arg0.getRankType())")
 	public void RunGetRank(BConcurrentKey keyHint,
-						   Zezex.RedirectAllResultHandle onHashResult,
-						   Zezex.RedirectAllDoneHandle onHashEnd) {
+						   RedirectAllResultHandle onHashResult,
+						   RedirectAllDoneHandle onHashEnd) {
 		// 默认实现是本地遍历调用，这里不使用App.Zeze.Run启动任务（这样无法等待），直接调用实现。
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
-		var ctx = new Zezex.Provider.ModuleProvider.ModuleRedirectAllContext(concurrentLevel,
+		var ctx = new ModuleRedirectAllContext(concurrentLevel,
 				Str.format("{}:{}", getFullName(), "RunGetRank"));
 		ctx.setOnHashEnd(onHashEnd);
 		long sessionId = App.Server.AddManualContextWithTimeout(ctx, 10000); // 处理hash分组结果需要一个上下文保存收集的结果。
@@ -303,7 +301,7 @@ public class ModuleRank extends AbstractModule {
 		RunGetRank(keyHint,
 				// Action OnHashResult
 				(sessionId, hash, returnCode, _result) -> {
-					var ctx = App.Server.<Zezex.Provider.ModuleProvider.ModuleRedirectAllContext>TryGetManualContext(sessionId);
+					var ctx = App.Server.<ModuleRedirectAllContext>TryGetManualContext(sessionId);
 					if (ctx == null)
 						return;
 					ctx.ProcessHash(hash, () -> new Rank(), (rank2)-> {
@@ -486,7 +484,7 @@ public class ModuleRank extends AbstractModule {
 	/******************************** ModuleRedirect 测试 *****************************************/
 	@Redirect()
 	public Zeze.Util.TaskCompletionSource<Long> RunTest1(Zeze.TransactionModes mode) {
-		int hash = ModuleRedirect.GetChoiceHashCode();
+		int hash = App.Zeze.getModuleRedirect().GetChoiceHashCode();
 		return App.Zeze.Run(() -> Test1(hash), "Test1", mode, hash);
 	}
 
@@ -496,7 +494,7 @@ public class ModuleRank extends AbstractModule {
 
 	@Redirect()
 	public void RunTest2(int inData, Zeze.Util.RefObject<Integer> refData, Zeze.Util.OutObject<Integer> outData) {
-		int hash = ModuleRedirect.GetChoiceHashCode();
+		int hash = App.Zeze.getModuleRedirect().GetChoiceHashCode();
 		var future = App.Zeze.Run(
 				() -> Test2(hash, inData, refData, outData),
 				"Test2", Zeze.TransactionModes.ExecuteInAnotherThread, hash);
@@ -513,7 +511,7 @@ public class ModuleRank extends AbstractModule {
 						 Zeze.Util.RefObject<Integer> refData,
 						 Zeze.Util.OutObject<Integer> outData,
 						 Zeze.Util.Action1<Integer> resultCallback) {
-		int hash = ModuleRedirect.GetChoiceHashCode();
+		int hash = App.Zeze.getModuleRedirect().GetChoiceHashCode();
 		var future = App.Zeze.Run(
 				() -> Test3(hash, inData, refData, outData, resultCallback),
 				"Test3", Zeze.TransactionModes.ExecuteInAnotherThread, hash);

@@ -7,6 +7,7 @@ import Zeze.Util.TaskCompletionSource;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.*;
 import Zeze.Serialize.Serializable;
+import Zeze.Beans.Provider.*;
 
 public class Onlines {
 	private tonline table;
@@ -169,8 +170,8 @@ public class Onlines {
 		public final void setProviderSessionId(long value) {
 			ProviderSessionId = value;
 		}
-		private HashMap<Long, Zezex.Provider.BTransmitContext> Roles = new HashMap<Long, Zezex.Provider.BTransmitContext> ();
-		public final HashMap<Long, Zezex.Provider.BTransmitContext> getRoles() {
+		private HashMap<Long, BTransmitContext> Roles = new HashMap<>();
+		public final HashMap<Long, BTransmitContext> getRoles() {
 			return Roles;
 		}
 	}
@@ -183,17 +184,17 @@ public class Onlines {
 		for (var roleId : roleIds) {
 			var online = table.get(roleId);
 			if (null == online || online.getState() != BOnline.StateOnline) {
-				groupNotOnline.getRoles().putIfAbsent(roleId, new Zezex.Provider.BTransmitContext());
+				groupNotOnline.getRoles().putIfAbsent(roleId, new BTransmitContext());
 				continue;
 			}
 
 			var connector = App.getInstance().Server.getLinks().get(online.getLinkName());
 			if (null == connector) {
-				groupNotOnline.getRoles().putIfAbsent(roleId, new Zezex.Provider.BTransmitContext());
+				groupNotOnline.getRoles().putIfAbsent(roleId, new BTransmitContext());
 				continue;
 			}
 			if (false == connector.isHandshakeDone()) {
-				groupNotOnline.getRoles().putIfAbsent(roleId, new Zezex.Provider.BTransmitContext());
+				groupNotOnline.getRoles().putIfAbsent(roleId, new BTransmitContext());
 				continue;
 			}
 			// 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
@@ -206,7 +207,7 @@ public class Onlines {
 				group.setProviderSessionId(online.getProviderSessionId());
 				groups.put(group.LinkName, group);
 			}
-			Zezex.Provider.BTransmitContext tempVar = new Zezex.Provider.BTransmitContext(); // 使用 TryAdd，忽略重复的 roleId。
+			BTransmitContext tempVar = new BTransmitContext(); // 使用 TryAdd，忽略重复的 roleId。
 			tempVar.setLinkSid(online.getLinkSid());
 			tempVar.setProviderId(online.getProviderId());
 			tempVar.setProviderSessionId(online.getProviderSessionId());
@@ -238,7 +239,7 @@ public class Onlines {
 				continue; // skip not online
 			}
 
-			var send = new Zezex.Provider.Send();
+			var send = new Send();
 			send.Argument.setProtocolType(typeId);
 			send.Argument.setProtocolWholeData(fullEncodedProtocol);
 			send.Argument.setConfirmSerialId(serialId);
@@ -365,7 +366,7 @@ public class Onlines {
 				ProcessTransmit(sender, actionName, group.getRoles().keySet(), parameter);
 				continue;
 			}
-			var transmit = new Zezex.Provider.Transmit();
+			var transmit = new Transmit();
 			transmit.Argument.setActionName(actionName);
 			transmit.Argument.setSender(sender);
 			transmit.Argument.setServiceNamePrefix(App.ServerServiceNamePrefix);
@@ -485,7 +486,7 @@ public class Onlines {
 			serialId = App.getInstance().Server.AddManualContextWithTimeout(confirmContext, 5000);
 		}
 
-		var broadcast = new Zezex.Provider.Broadcast();
+		var broadcast = new Broadcast();
 		broadcast.Argument.setProtocolType(typeId);
 		broadcast.Argument.setProtocolWholeData(fullEncodedProtocol);
 		broadcast.Argument.setConfirmSerialId(serialId);

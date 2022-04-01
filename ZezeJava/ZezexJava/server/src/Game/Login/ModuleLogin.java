@@ -1,6 +1,7 @@
 package Game.Login;
 
 import Zeze.Net.Protocol;
+import Zeze.Beans.Provider.*;
 import Zeze.Transaction.*;
 import Game.*;
 
@@ -103,7 +104,7 @@ public final class ModuleLogin extends AbstractModule {
 		// see linkd::Zezex.Provider.ModuleProvider。ProcessBroadcast
 		session.SendResponseWhileCommit(rpc);
 		Transaction.getCurrent().RunWhileCommit(() -> {
-				var setUserState = new Zezex.Provider.SetUserState();
+				var setUserState = new SetUserState();
 				setUserState.Argument.setLinkSid(session.getSessionId());
 				setUserState.Argument.getStates().add(rpc.Argument.getRoleId());
 				rpc.getSender().Send(setUserState); // 直接使用link连接。
@@ -143,7 +144,7 @@ public final class ModuleLogin extends AbstractModule {
 		// 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
 		session.SendResponseWhileCommit(rpc);
 		Transaction.getCurrent().RunWhileCommit(() -> {
-				var setUserState = new Zezex.Provider.SetUserState();
+				var setUserState = new SetUserState();
 				setUserState.Argument.setLinkSid(session.getSessionId());
 				setUserState.Argument.getStates().add(rpc.Argument.getRoleId());
 				rpc.getSender().Send(setUserState); // 直接使用link连接。
@@ -219,7 +220,7 @@ public final class ModuleLogin extends AbstractModule {
 
 		// 先设置状态，再发送Logout结果。
 		Transaction.getCurrent().RunWhileCommit(() -> {
-				var setUserState = new Zezex.Provider.SetUserState();
+				var setUserState = new SetUserState();
 				setUserState.Argument.setLinkSid(session.getSessionId());
 				rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
