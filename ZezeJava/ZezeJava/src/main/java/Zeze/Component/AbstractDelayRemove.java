@@ -1,7 +1,12 @@
 // auto-generated @formatter:off
 package Zeze.Component;
 
-public abstract class AbstractDelayRemove {
+public abstract class AbstractDelayRemove extends Zeze.IModule {
+    public String getFullName() { return "Zeze.Beans.DelayRemove"; }
+    public String getName() { return "DelayRemove"; }
+    public int getId() { return ModuleId; }
+    public static final int ModuleId = 11007;
+
     public void RegisterProtocols(Zeze.Net.Service service) {
     }
 

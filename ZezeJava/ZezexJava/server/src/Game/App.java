@@ -2,14 +2,13 @@ package Game;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Services.ServiceManager.SubscribeInfo;
 import Zeze.Util.PersistentAtomicLong;
 import Zeze.Util.Str;
-import Zezex.Provider.BModule;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import Zeze.Arch.ProviderModuleBinds;
 
 public final class App extends Zeze.AppBase {
 	public static App Instance = new App();
@@ -18,30 +17,8 @@ public final class App extends Zeze.AppBase {
 		return Instance;
 	}
 
-	private final HashMap<Integer, BModule> StaticBinds = new HashMap<>();
-
-	public HashMap<Integer, Zezex.Provider.BModule> getStaticBinds() {
-		return StaticBinds;
-	}
-
-	private final HashMap<Integer, Zezex.Provider.BModule> DynamicModules = new HashMap<>();
-
-	public HashMap<Integer, Zezex.Provider.BModule> getDynamicModules() {
-		return DynamicModules;
-	}
-
-	private Zezex.ProviderModuleBinds ProviderModuleBinds;
-
-	public Zezex.ProviderModuleBinds getProviderModuleBinds() {
-		return ProviderModuleBinds;
-	}
-
-	private void setProviderModuleBinds(Zezex.ProviderModuleBinds value) {
-		ProviderModuleBinds = value;
-	}
-
 	public Zeze.IModule ReplaceModuleInstance(Zeze.IModule module) {
-		return Zezex.ModuleRedirect.Instance.ReplaceModuleInstance(module);
+		return Zeze.getModuleRedirect().ReplaceModuleInstance(module);
 	}
 
 	private MyConfig MyConfig;
@@ -71,6 +48,11 @@ public final class App extends Zeze.AppBase {
 		}
 	}
 
+	private Provider provider;
+	public Provider getProvider() {
+		return provider;
+	}
+
 	public void Start(String[] args) throws Throwable {
 		int ServerId = -1;
 		for (int i = 0; i < args.length; ++i) {
@@ -88,14 +70,14 @@ public final class App extends Zeze.AppBase {
 			config.setServerId(ServerId); // replace from args
 		}
 		Create(config);
+		provider = new Provider(this);
 
-		setProviderModuleBinds(Zezex.ProviderModuleBinds.Load());
-		getProviderModuleBinds().BuildStaticBinds(Modules, Zeze.getConfig().getServerId(), StaticBinds);
-		getProviderModuleBinds().BuildDynamicBinds(Modules, Zeze.getConfig().getServerId(), DynamicModules);
-
+		Server.initialize(ServerServiceNamePrefix, ProviderModuleBinds.Load(), Modules);
 		Zeze.getServiceManagerAgent().setOnChanged((subscribeState) -> Server.ApplyLinksChanged(subscribeState.getServiceInfos()));
 
 		Zeze.Start(); // 启动数据库
+
+		provider.Start(this);
 		StartModules(); // 启动模块，装载配置什么的。
 
 		PersistentAtomicLong socketSessionIdGen = PersistentAtomicLong.getOrAdd("Game.Server." + config.getServerId());
@@ -105,7 +87,7 @@ public final class App extends Zeze.AppBase {
 		getLoad().StartTimerTask();
 
 		// 服务准备好以后才注册和订阅。
-		for (var staticBind : getStaticBinds().entrySet()) {
+		for (var staticBind : Server.getStaticBinds().entrySet()) {
 			Zeze.getServiceManagerAgent().RegisterService(
 					Str.format("{}{}", ServerServiceNamePrefix, staticBind.getKey()),
 					String.valueOf(config.getServerId()),
@@ -119,6 +101,7 @@ public final class App extends Zeze.AppBase {
 	public void Stop() throws Throwable {
 		StopService(); // 关闭网络
 		StopModules(); // 关闭模块，卸载配置什么的。
+		provider.Stop(this);
 		Zeze.Stop(); // 关闭数据库
 		Destroy();
 	}
@@ -137,7 +120,6 @@ public final class App extends Zeze.AppBase {
     public Game.Buf.ModuleBuf Game_Buf;
     public Game.Equip.ModuleEquip Game_Equip;
     public Game.Map.ModuleMap Game_Map;
-    public Zezex.Provider.ModuleProvider Zezex_Provider;
     public Game.Rank.ModuleRank Game_Rank;
     public Game.AutoKey.ModuleAutoKey Game_AutoKey;
     public Game.Timer.ModuleTimer Game_Timer;
@@ -203,12 +185,6 @@ public final class App extends Zeze.AppBase {
         if (Modules.put(Game_Map.getFullName(), Game_Map) != null)
             throw new RuntimeException("duplicate module name: Game_Map");
 
-        Zezex_Provider = new Zezex.Provider.ModuleProvider(this);
-        Zezex_Provider.Initialize(this);
-        Zezex_Provider = (Zezex.Provider.ModuleProvider)ReplaceModuleInstance(Zezex_Provider);
-        if (Modules.put(Zezex_Provider.getFullName(), Zezex_Provider) != null)
-            throw new RuntimeException("duplicate module name: Zezex_Provider");
-
         Game_Rank = new Game.Rank.ModuleRank(this);
         Game_Rank.Initialize(this);
         Game_Rank = (Game.Rank.ModuleRank)ReplaceModuleInstance(Game_Rank);
@@ -241,7 +217,6 @@ public final class App extends Zeze.AppBase {
         Game_Timer = null;
         Game_AutoKey = null;
         Game_Rank = null;
-        Zezex_Provider = null;
         Game_Map = null;
         Game_Equip = null;
         Game_Buf = null;
@@ -256,7 +231,6 @@ public final class App extends Zeze.AppBase {
     }
 
     public synchronized void StartModules() throws Throwable {
-        Zezex_Provider.Start(this);
         Game_Login.Start(this);
         Game_Bag.Start(this);
         Game_Item.Start(this);
@@ -296,8 +270,6 @@ public final class App extends Zeze.AppBase {
             Game_Bag.Stop(this);
         if (Game_Login != null)
             Game_Login.Stop(this);
-        if (Zezex_Provider != null)
-            Zezex_Provider.Stop(this);
     }
 
     public synchronized void StartService() throws Throwable {

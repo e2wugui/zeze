@@ -1,8 +1,12 @@
 package Zeze.Arch;
 
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.IModule;
 import org.apache.commons.lang3.NotImplementedException;
 
+/**
+ * 应用需要继承实现必要的方法，创建实例并保存。(Zeze.Application.setModuleRedirect)。
+ */
 public abstract class IModuleRedirect {
 	public ConcurrentHashMap<String, RedirectHandle> Handles = new ConcurrentHashMap <>();
 
@@ -16,5 +20,9 @@ public abstract class IModuleRedirect {
 
 	public void DispatchResponse() {
 
+	}
+
+	public IModule ReplaceModuleInstance(IModule module) {
+		return GenModule.Instance.ReplaceModuleInstance(module);
 	}
 }

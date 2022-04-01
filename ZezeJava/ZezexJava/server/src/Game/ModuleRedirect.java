@@ -1,4 +1,4 @@
-package Zezex;
+package Game;
 
 import Zeze.Arch.IModuleRedirect;
 import Zeze.Net.AsyncSocket;

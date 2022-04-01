@@ -1,7 +1,12 @@
 // auto-generated @formatter:off
 package Zeze.Services;
 
-public abstract class AbstractGlobalCacheManagerWithRaft {
+public abstract class AbstractGlobalCacheManagerWithRaft extends Zeze.IModule {
+    public String getFullName() { return "Zeze.Beans.GlobalCacheManagerWithRaft"; }
+    public String getName() { return "GlobalCacheManagerWithRaft"; }
+    public int getId() { return ModuleId; }
+    public static final int ModuleId = 11001;
+
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(this.getClass());
         {

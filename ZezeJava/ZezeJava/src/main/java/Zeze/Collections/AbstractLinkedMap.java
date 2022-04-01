@@ -1,7 +1,12 @@
 // auto-generated @formatter:off
 package Zeze.Collections;
 
-public abstract class AbstractLinkedMap {
+public abstract class AbstractLinkedMap extends Zeze.IModule {
+    public String getFullName() { return "Zeze.Beans.Collections.LinkedMap"; }
+    public String getName() { return "LinkedMap"; }
+    public int getId() { return ModuleId; }
+    public static final int ModuleId = 11005;
+
     protected final Zeze.Beans.Collections.LinkedMap.tLinkedMapNodes _tLinkedMapNodes = new Zeze.Beans.Collections.LinkedMap.tLinkedMapNodes();
     protected final Zeze.Beans.Collections.LinkedMap.tLinkedMaps _tLinkedMaps = new Zeze.Beans.Collections.LinkedMap.tLinkedMaps();
     protected final Zeze.Beans.Collections.LinkedMap.tValueIdToNodeId _tValueIdToNodeId = new Zeze.Beans.Collections.LinkedMap.tValueIdToNodeId();

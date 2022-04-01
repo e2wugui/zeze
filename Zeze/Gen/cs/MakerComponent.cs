@@ -12,6 +12,24 @@ namespace Zeze.Gen.cs
             Project = project;
         }
 
+        public Module GetPresentModule(List<ModuleFormatter> mfs)
+        {
+            if (string.IsNullOrEmpty(Project.ComponentPresentModuleFullName))
+            {
+                if (mfs.Count > 1)
+                    throw new System.Exception("");
+                return mfs[0].module;
+            }
+            foreach (var mf in mfs)
+            {
+                if (mf.module.FullName.Equals(Project.ComponentPresentModuleFullName))
+                {
+                    return mf.module;
+                }
+            }
+            throw new System.Exception($"{Project.ComponentPresentModuleFullName} Not Found In Depends.");
+        }
+
         public void Make()
         {
             string projectBasedir = Project.Gendir;
@@ -65,8 +83,15 @@ namespace Zeze.Gen.cs
                 sw.WriteLine("// auto generate");
                 sw.WriteLine($"namespace {ns}");
                 sw.WriteLine("{");
-                sw.WriteLine($"    public abstract class Abstract{Project.Name}");
+                sw.WriteLine($"    public abstract class Abstract{Project.Name} : Zeze.IModule ");
                 sw.WriteLine("    {");
+                var presentModule = GetPresentModule(mfs);
+                sw.WriteLine($"    public const int ModuleId = {presentModule.Id};");
+                sw.WriteLine($"    public override string FullName => \"{presentModule.Path()}\";");
+                sw.WriteLine($"    public override string Name => \"{presentModule.Name}\";");
+                sw.WriteLine($"    public override int Id => ModuleId;");
+                sw.WriteLine();
+
                 foreach (var mf in mfs) mf.GenEnums(sw, mfs.Count > 1 ? mf.module.Name : "");
                 foreach (var mf in mfs) mf.DefineZezeTables(sw);
                 sw.WriteLine();

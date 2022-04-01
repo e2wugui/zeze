@@ -23,6 +23,8 @@ namespace Zeze.Gen
         private XmlElement Self;
         private XmlElement ModuleStartSelf;
 
+        public string ComponentPresentModuleFullName { get; private set; }
+
         public List<Module> GetAllDefineOrderModules()
         {
             HashSet<Module> unique = new HashSet<Module>();
@@ -53,6 +55,7 @@ namespace Zeze.Gen
             GenRelativeDir = self.GetAttribute("genrelativedir").Trim();
             GenCommonRelativeDir = self.GetAttribute("GenCommonRelativeDir").Trim();
             ScriptDir = self.GetAttribute("scriptdir").Trim();
+            ComponentPresentModuleFullName = self.GetAttribute("PresentModuleFullName");
 
             foreach (string target in self.GetAttribute("GenTables").Split(','))
                 GenTables.Add(target);

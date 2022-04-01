@@ -1,7 +1,12 @@
 // auto-generated @formatter:off
 package Zeze.Services;
 
-public abstract class AbstractTestRocks {
+public abstract class AbstractTestRocks extends Zeze.IModule {
+    public String getFullName() { return "Zeze.Beans.TestRocks"; }
+    public String getName() { return "TestRocks"; }
+    public int getId() { return ModuleId; }
+    public static final int ModuleId = 11002;
+
     public void RegisterProtocols(Zeze.Net.Service service) {
     }
 

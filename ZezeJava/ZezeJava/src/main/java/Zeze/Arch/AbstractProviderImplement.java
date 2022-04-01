@@ -1,7 +1,12 @@
 // auto-generated @formatter:off
 package Zeze.Arch;
 
-public abstract class AbstractProviderImplement {
+public abstract class AbstractProviderImplement extends Zeze.IModule {
+    public String getFullName() { return "Zeze.Beans.Provider"; }
+    public String getName() { return "Provider"; }
+    public int getId() { return ModuleId; }
+    public static final int ModuleId = 11008;
+
     public static final int ErrorTransmitParameterFactoryNotFound = 1;
 
     public void RegisterProtocols(Zeze.Net.Service service) {

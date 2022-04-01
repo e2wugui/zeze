@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -10,8 +11,9 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import Zeze.Beans.Provider.*;
 
-public final class ProviderServer extends Zeze.Services.HandshakeBoth {
+public class ProviderServer extends Zeze.Services.HandshakeBoth {
 	private static final Logger logger = LogManager.getLogger(ProviderServer.class);
 
 	/**
@@ -131,20 +133,20 @@ public final class ProviderServer extends Zeze.Services.HandshakeBoth {
 		var linkName = GetLinkName(sender);
 		sender.setUserState(new LinkSession(linkName, sender.getSessionId()));
 
-		var announce = new Zezex.Provider.AnnounceProviderInfo();
-		announce.Argument.setServiceNamePrefix(App.ServerServiceNamePrefix);
+		var announce = new AnnounceProviderInfo();
+		announce.Argument.setServiceNamePrefix(ServerServiceNamePrefix);
 		announce.Argument.setServiceIndentity(String.valueOf(getZeze().getConfig().getServerId()));
 		announce.Send(sender);
 
 		// static binds
-		var rpc = new Zezex.Provider.Bind();
-		rpc.Argument.getModules().putAll(Game.App.getInstance().getStaticBinds());
+		var rpc = new Bind();
+		rpc.Argument.getModules().putAll(StaticBinds);
 		rpc.Send(sender, (protocol) -> {
 				ProviderStaticBindCompleted.SetResult(true);
 				return 0;
 		});
-		var sub = new Zezex.Provider.Subscribe();
-		sub.Argument.getModules().putAll(Game.App.getInstance().getDynamicModules());
+		var sub = new Subscribe();
+		sub.Argument.getModules().putAll(DynamicModules);
 		sub.Send(sender, (protocol) -> {
 			ProviderDynamicSubscribeCompleted.SetResult(true);
 			return 0;
@@ -158,18 +160,18 @@ public final class ProviderServer extends Zeze.Services.HandshakeBoth {
 			p.getSender().VerifySecurity();
 		}
 
-		if (p.getTypeId() == Zezex.Provider.ModuleRedirect.TypeId_) {
+		if (p.getTypeId() == ModuleRedirect.TypeId_) {
 			if (null != factoryHandle.Handle) {
-				var modureRecirect = (Zezex.Provider.ModuleRedirect)p;
+				var moduleRedirect = (ModuleRedirect)p;
 				if (null != getZeze()) {
 					if (factoryHandle.Level != TransactionLevel.None) {
 						getZeze().getTaskOneByOneByKey().Execute(
-								modureRecirect.Argument.getHashCode(),
+								moduleRedirect.Argument.getHashCode(),
 								() -> Zeze.Util.Task.Call(getZeze().NewProcedure(() -> factoryHandle.Handle.handle(p),
 												p.getClass().getName(), factoryHandle.Level, p.getUserState()),
 										p, Protocol::SendResultCode));
 					} else {
-						getZeze().getTaskOneByOneByKey().Execute(modureRecirect.Argument.getHashCode(),
+						getZeze().getTaskOneByOneByKey().Execute(moduleRedirect.Argument.getHashCode(),
 								() -> Zeze.Util.Task.Call(() -> factoryHandle.Handle.handle(p), p,
 										Protocol::SendResultCode));
 					}
@@ -183,7 +185,7 @@ public final class ProviderServer extends Zeze.Services.HandshakeBoth {
 	}
 
 	public void ReportLoad(int online, int proposeMaxOnline, int onlineNew) {
-		var report = new Zezex.Provider.ReportLoad();
+		var report = new ReportLoad();
 
 		report.Argument.setOnline(online);
 		report.Argument.setProposeMaxOnline(proposeMaxOnline);
@@ -196,7 +198,30 @@ public final class ProviderServer extends Zeze.Services.HandshakeBoth {
 		}
 	}
 
-	public ProviderServer(Zeze.Application zeze) throws Throwable {
-		super(zeze);
+	public ProviderServer(String name, Zeze.Application zeze) throws Throwable {
+		super(name, zeze);
+	}
+
+	private String ServerServiceNamePrefix;
+	public String getServerServiceNamePrefix() {
+		return ServerServiceNamePrefix;
+	}
+
+	private final HashMap<Integer, BModule> StaticBinds = new HashMap<>();
+
+	public HashMap<Integer, BModule> getStaticBinds() {
+		return StaticBinds;
+	}
+
+	private final HashMap<Integer, BModule> DynamicModules = new HashMap<>();
+
+	public HashMap<Integer, BModule> getDynamicModules() {
+		return DynamicModules;
+	}
+
+	public void initialize(String prefix, ProviderModuleBinds binds, java.util.HashMap<String, Zeze.IModule> modules) {
+		this.ServerServiceNamePrefix = prefix;
+		binds.BuildStaticBinds(modules, getZeze().getConfig().getServerId(), StaticBinds);
+		binds.BuildDynamicBinds(modules, getZeze().getConfig().getServerId(), DynamicModules);
 	}
 }

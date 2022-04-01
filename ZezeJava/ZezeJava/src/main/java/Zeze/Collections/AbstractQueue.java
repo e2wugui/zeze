@@ -1,7 +1,12 @@
 // auto-generated @formatter:off
 package Zeze.Collections;
 
-public abstract class AbstractQueue {
+public abstract class AbstractQueue extends Zeze.IModule {
+    public String getFullName() { return "Zeze.Beans.Collections.Queue"; }
+    public String getName() { return "Queue"; }
+    public int getId() { return ModuleId; }
+    public static final int ModuleId = 11006;
+
     protected final Zeze.Beans.Collections.Queue.tQueueNodes _tQueueNodes = new Zeze.Beans.Collections.Queue.tQueueNodes();
     protected final Zeze.Beans.Collections.Queue.tQueues _tQueues = new Zeze.Beans.Collections.Queue.tQueues();
 
