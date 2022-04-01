@@ -2,6 +2,7 @@ package demo;
 
 import Benchmark.ABasicSimpleAddOneThread;
 import Benchmark.CBasicSimpleAddConcurrent;
+import Zeze.Collections.LinkedMap;
 import Zeze.Config;
 
 public class App extends Zeze.AppBase {
@@ -28,6 +29,8 @@ public class App extends Zeze.AppBase {
 		return Instance;
 	}
 
+	public static LinkedMap.Module LinkedMapModule;
+
 	public void Start() throws Throwable {
 		Start(Config.Load("./zeze.xml"));
 	}
@@ -50,6 +53,7 @@ public class App extends Zeze.AppBase {
 		CreateZeze(config);
 		CreateService();
 		CreateModules();
+		LinkedMapModule = new LinkedMap.Module(Zeze);
 		Zeze.Start(); // 启动数据库
 		StartModules(); // 启动模块，装载配置什么的。
 		StartService(); // 启动网络
@@ -58,8 +62,10 @@ public class App extends Zeze.AppBase {
 	public void Stop() throws Throwable {
 		StopService(); // 关闭网络
 		StopModules(); // 关闭模块，卸载配置什么的。
-		if (Zeze != null)
+		if (Zeze != null) {
 			Zeze.Stop(); // 关闭数据库
+			LinkedMapModule.UnRegisterZezeTables(Zeze);
+		}
 		DestroyModules();
 		DestroyServices();
 		DestroyZeze();

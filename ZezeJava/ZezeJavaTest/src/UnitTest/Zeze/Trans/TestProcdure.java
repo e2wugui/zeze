@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import UnitTest.Zeze.MyBean;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -9,7 +10,7 @@ import Zeze.Transaction.Record1;
 import Zeze.Transaction.TableKey;
 
 public class TestProcdure{
-	private TestBegin.MyBean bean = new TestBegin.MyBean();
+	private MyBean bean = new MyBean();
 
 	public final long ProcTrue() {
 		bean.setI(123);
@@ -55,7 +56,7 @@ public class TestProcdure{
 	public final void test1() throws Throwable {
 		TableKey root = new TableKey("1", 1);
 		// 特殊测试，拼凑一个record用来提供需要的信息。
-		var r = new Record1<Long, TestBegin.MyBean>(null, 1L, bean);
+		var r = new Record1<>(null, 1L, bean);
 		bean.InitRootInfo(r.CreateRootInfoIfNeed(root), null);
 		long rc = demo.App.getInstance().Zeze.NewProcedure(this::ProcNest, "ProcNest").Call();
 		assert rc == Procedure.Success;

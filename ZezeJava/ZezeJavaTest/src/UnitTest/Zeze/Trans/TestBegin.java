@@ -1,55 +1,14 @@
 package UnitTest.Zeze.Trans;
 
-import Zeze.Serialize.*;
-import Zeze.Transaction.*;
-import Zeze.Transaction.Record;
+import UnitTest.Zeze.MyBean;
+import Zeze.Transaction.Locks;
+import Zeze.Transaction.Transaction;
 import junit.framework.TestCase;
 
-public class TestBegin extends TestCase{
-	
-	public static class MyBean extends Bean {
-		@Override
-		public void Decode(ByteBuffer bb) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		public void Encode(ByteBuffer bb) {
-			throw new UnsupportedOperationException();
-		}
-
-		@Override
-		protected void InitChildrenRootInfo(Record.RootInfo root) {
-		}
-
-		public int _i;
-
-		private static class MyLog extends Log1<MyBean, Integer> {
-			public MyLog(MyBean bean, int value) {
-				super(bean, value);
-
-			}
-
-			@Override
-			public long getLogKey() {
-				return getBean().getObjectId() + 0;
-			}
-
-			@Override
-			public void Commit() {
-				((MyBean)getBean())._i = getValue();
-			}
-		}
-		public final int getI() {
-			MyLog log = (MyLog)Transaction.getCurrent().GetLog(this.getObjectId() + 0);
-			return (null != log) ? log.getValue() : _i;
-		}
-		public final void setI(int value) {
-			Transaction.getCurrent().PutLog(new MyLog(this, value));
-		}
-	}
+public class TestBegin extends TestCase {
 
 	private Zeze.Transaction.Locks Locks = new Locks();
+
 	public final void testRollback() {
 		Transaction.Create(Locks);
 		try {
@@ -64,8 +23,7 @@ public class TestBegin extends TestCase{
 
 			Transaction.getCurrent().Rollback();
 			assert bean.getI() == 0;
-		}
-		finally {
+		} finally {
 			Transaction.Destroy();
 		}
 	}
@@ -84,8 +42,7 @@ public class TestBegin extends TestCase{
 
 			Transaction.getCurrent().Commit();
 			assert bean.getI() == 1;
-		}
-		finally {
+		} finally {
 			Transaction.Destroy();
 		}
 	}
@@ -116,8 +73,7 @@ public class TestBegin extends TestCase{
 
 			Transaction.getCurrent().Commit();
 			assert bean.getI() == 1;
-		}
-		finally {
+		} finally {
 			Transaction.Destroy();
 		}
 	}
@@ -148,8 +104,7 @@ public class TestBegin extends TestCase{
 
 			Transaction.getCurrent().Commit();
 			assert bean.getI() == 2;
-		}
-		finally {
+		} finally {
 			Transaction.Destroy();
 		}
 	}
