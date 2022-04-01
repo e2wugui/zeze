@@ -10,13 +10,12 @@ import Zeze.Beans.Collections.LinkedMap.BLinkedMapNodeKey;
 import Zeze.Beans.Collections.LinkedMap.BLinkedMapNodeValue;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.TableWalkHandle;
-import Zeze.Util.FastRWLock;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Reflect;
 
 public class LinkedMap<V extends Bean> {
-	private static final LongHashMap<MethodHandle> factory = new LongHashMap<>();
-	private static final FastRWLock factoryLock = new FastRWLock();
+	private static final LongHashMap<MethodHandle> writingFactory = new LongHashMap<>();
+	private static volatile LongHashMap<MethodHandle> readingFactory;
 
 	public static void register(Class<? extends Bean> beanClass) {
 		MethodHandle beanCtor = Reflect.getDefaultConstructor(beanClass);
@@ -28,11 +27,8 @@ public class LinkedMap<V extends Bean> {
 		} catch (Throwable e) {
 			throw new RuntimeException(e);
 		}
-		factoryLock.writeLock();
-		try {
-			factory.putIfAbsent(bean.getTypeId(), beanCtor);
-		} finally {
-			factoryLock.writeUnlock();
+		synchronized (writingFactory) {
+			writingFactory.putIfAbsent(bean.getTypeId(), beanCtor);
 		}
 	}
 
@@ -41,16 +37,18 @@ public class LinkedMap<V extends Bean> {
 	}
 
 	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
-		MethodHandle beanCtor;
-		factoryLock.readLock();
 		try {
-			beanCtor = factory.get(typeId);
-		} finally {
-			factoryLock.readUnlock();
-		}
-		if (beanCtor == null)
-			throw new UnsupportedOperationException("Unknown Bean TypeId=" + typeId);
-		try {
+			LongHashMap<MethodHandle> factory = readingFactory;
+			if (factory == null) {
+				synchronized (writingFactory) {
+					factory = readingFactory;
+					if (factory == null)
+						readingFactory = factory = writingFactory.clone();
+				}
+			}
+			MethodHandle beanCtor = factory.get(typeId);
+			if (beanCtor == null)
+				throw new UnsupportedOperationException("Unknown Bean TypeId=" + typeId);
 			return (Bean)beanCtor.invoke();
 		} catch (RuntimeException e) {
 			throw e;
