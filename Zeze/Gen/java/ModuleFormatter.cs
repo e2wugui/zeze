@@ -440,6 +440,7 @@ namespace Zeze.Gen.java
             RegisterZezeTables(sw);
             sw.WriteLine("    }");
             sw.WriteLine();
+            sw.WriteLine("    @Override");
             sw.WriteLine("    public void UnRegister() {");
             UnRegisterProtocols(sw);
             UnRegisterZezeTables(sw);
@@ -491,9 +492,9 @@ namespace Zeze.Gen.java
             sw.WriteLine("package " + module.Path() + ";");
             sw.WriteLine();
             sw.WriteLine("public abstract class AbstractModule extends Zeze.IModule {");
-            sw.WriteLine($"    public String getFullName() {{ return \"{module.Path()}\"; }}");
-            sw.WriteLine($"    public String getName() {{ return \"{moduleName}\"; }}");
-            sw.WriteLine($"    public int getId() {{ return ModuleId; }}");
+            sw.WriteLine($"    @Override public String getFullName() {{ return \"{module.Path()}\"; }}");
+            sw.WriteLine($"    @Override public String getName() {{ return \"{moduleName}\"; }}");
+            sw.WriteLine($"    @Override public int getId() {{ return ModuleId; }}");
             sw.WriteLine();
             // declare enums
             GenEnums(sw);
