@@ -214,6 +214,7 @@ public class Queue<V extends Bean> {
 				if (!func.handle(nodeId, (V)value.getValue().getBean()))
 					return count;
 			}
+			nodeId = node.getNextNodeId();
 		}
 		return count;
 	}
