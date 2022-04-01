@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Collections;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import UnitTest.Zeze.MyBean;
 import Zeze.Transaction.Procedure;
 import org.junit.After;
@@ -38,7 +39,21 @@ public class TestQueue {
 	}
 
 	@Test
-	public final void test2_QueuePop() throws Throwable {
+	public final void test2_QueueWalk() throws Throwable {
+		var queueModule = demo.App.getInstance().Zeze.getQueueModule();
+		var queue = queueModule.open("test1", MyBean.class);
+		var i = new AtomicInteger(0);
+		int[] arr = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9};
+		queue.walk(((key, value) -> {
+			assert i.get() < 10;
+			assert value.getI() == arr[i.getAndAdd(1)];
+			return true;
+		}));
+		assert i.get() == 10;
+	}
+
+	@Test
+	public final void test3_QueuePop() throws Throwable {
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
 			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
 			var queue = queueModule.open("test1", MyBean.class);
@@ -46,12 +61,13 @@ public class TestQueue {
 				var bean = queue.pop();
 				assert bean.getI() == i;
 			}
+			assert queue.isEmpty();
 			return Procedure.Success;
 		}, "test2_QueuePop").Call();
 	}
 
 	@Test
-	public final void test3_QueuePush() throws Throwable {
+	public final void test4_QueuePush() throws Throwable {
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
 			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
 			var queue = queueModule.open("test1", MyBean.class);
@@ -67,7 +83,21 @@ public class TestQueue {
 	}
 
 	@Test
-	public final void test4_QueuePop() throws Throwable {
+	public final void test5_QueueWalk() throws Throwable {
+		var queueModule = demo.App.getInstance().Zeze.getQueueModule();
+		var queue = queueModule.open("test1", MyBean.class);
+		var i = new AtomicInteger(0);
+		int[] arr = {9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
+		queue.walk(((key, value) -> {
+			assert i.get() < 10;
+			assert value.getI() == arr[i.getAndAdd(1)];
+			return true;
+		}));
+		assert i.get() == 10;
+	}
+
+	@Test
+	public final void test6_QueuePop() throws Throwable {
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
 			var queueModule = demo.App.getInstance().Zeze.getQueueModule();
 			var queue = queueModule.open("test1", MyBean.class);
@@ -75,6 +105,7 @@ public class TestQueue {
 				var bean = queue.pop();
 				assert bean.getI() == i;
 			}
+			assert queue.isEmpty();
 			return Procedure.Success;
 		}, "test4_QueuePop").Call();
 	}

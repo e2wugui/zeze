@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Collections;
 
+import java.util.concurrent.atomic.AtomicInteger;
 import UnitTest.Zeze.MyBean;
 import Zeze.Transaction.Procedure;
 import org.junit.After;
@@ -49,18 +50,14 @@ public class TestLinkedMap {
 	@Test
 	public final void test3_LinkedMapWalk() throws Throwable {
 		var map = demo.App.LinkedMapModule.open("test1", MyBean.class);
+		var i = new AtomicInteger(0);
+		int[] arr = {100, 101, 102, 103, 104, 105, 106, 107, 108, 109};
 		map.walk(((key, value) -> {
-			// TODO
-//			try {
-//				demo.App.getInstance().Zeze.NewProcedure(() -> {
-//					value.setI(1000000);
-//					return Procedure.Success;
-//				}, "test2_QueuePop").Call();
-//			} catch (Throwable e) {
-//
-//			}
+			assert i.get() < 10;
+			assert value.getI() == arr[i.getAndAdd(1)];
 			return true;
 		}));
+		assert i.get() == 10;
 	}
 
 	@Test
@@ -71,6 +68,7 @@ public class TestLinkedMap {
 				var bean = map.remove(i);
 				assert bean.getI() == i;
 			}
+			assert map.isEmpty();
 			return Procedure.Success;
 		}, "test2_LinkedMapRemove").Call();
 	}
