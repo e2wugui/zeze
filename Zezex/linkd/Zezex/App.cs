@@ -45,9 +45,11 @@ namespace Zezex
         public void Start()
         {
             LoadConfig();
-            Create();
+            CreateZeze();
+            CreateService();
+            CreateModules();
             StartModules(); // 启动模块，装载配置什么的。
-            Zeze.Start(); // 启动数据库
+            Zeze.StartAsync().Wait(); // 启动数据库
 
             var (ip, port) = ProviderService.GetOnePassiveAddress();
             ProviderServicePassiveIp = ip;
@@ -60,7 +62,7 @@ namespace Zezex
             StartService(); // 启动网络
 
             ServiceManagerAgent = new Zeze.Services.ServiceManager.Agent(Zeze);
-            ServiceManagerAgent.RegisterService(LinkdServiceName,
+            _ = ServiceManagerAgent.RegisterService(LinkdServiceName,
                 linkName,
                 ProviderServicePassiveIp, ProviderServicePasivePort);
         }
@@ -70,7 +72,9 @@ namespace Zezex
             StopService(); // 关闭网络
             Zeze.Stop(); // 关闭数据库
             StopModules(); // 关闭模块,，卸载配置什么的。
-            Destroy();
+            DestroyModules();
+            DestroyService();
+            DestroyZeze();
         }
     }
 }

@@ -69,8 +69,11 @@ public final class App extends Zeze.AppBase {
 		if (ServerId != -1) {
 			config.setServerId(ServerId); // replace from args
 		}
-		Create(config);
+		CreateZeze(config);
+		Zeze.setModuleRedirect(new ModuleRedirect());
+		CreateService();
 		provider = new Provider(this);
+		CreateModules();
 
 		Server.initialize(ServerServiceNamePrefix, ProviderModuleBinds.Load(), Modules);
 		Zeze.getServiceManagerAgent().setOnChanged((subscribeState) -> Server.ApplyLinksChanged(subscribeState.getServiceInfos()));
@@ -103,7 +106,9 @@ public final class App extends Zeze.AppBase {
 		StopModules(); // 关闭模块，卸载配置什么的。
 		provider.Stop(this);
 		Zeze.Stop(); // 关闭数据库
-		Destroy();
+		DestroyModules();
+		DestroyServices();
+		DestroyZeze();
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN APP @formatter:off
@@ -125,18 +130,22 @@ public final class App extends Zeze.AppBase {
     public Game.Timer.ModuleTimer Game_Timer;
     public Game.LongSet.ModuleLongSet Game_LongSet;
 
-    public void Create() throws Throwable {
-        Create(null);
+    public void CreateZeze() throws Throwable {
+        CreateZeze(null);
     }
 
-    public synchronized void Create(Zeze.Config config) throws Throwable {
+    public synchronized void CreateZeze(Zeze.Config config) throws Throwable {
         if (Zeze != null)
-            return;
+            throw new RuntimeException("Zeze Has Created!");
 
         Zeze = new Zeze.Application("Game", config);
+    }
+
+    public synchronized void CreateService() throws Throwable {
 
         Server = new Game.Server(Zeze);
-
+    }
+    public synchronized void CreateModules() throws Throwable {
         Game_Login = new Game.Login.ModuleLogin(this);
         Game_Login.Initialize(this);
         Game_Login = (Game.Login.ModuleLogin)ReplaceModuleInstance(Game_Login);
@@ -212,7 +221,7 @@ public final class App extends Zeze.AppBase {
         Zeze.setSchemas(new Game.Schemas());
     }
 
-    public synchronized void Destroy() {
+    public synchronized void DestroyModules() {
         Game_LongSet = null;
         Game_Timer = null;
         Game_AutoKey = null;
@@ -226,7 +235,13 @@ public final class App extends Zeze.AppBase {
         Game_Bag = null;
         Game_Login = null;
         Modules.clear();
+    }
+
+    public synchronized void DestroyServices() {
         Server = null;
+    }
+
+    public synchronized void DestroyZeze() {
         Zeze = null;
     }
 

@@ -53,18 +53,30 @@ namespace Zeze.Gen.cs
                 sw.WriteLine();
             }
 
-            sw.WriteLine("        public void Create(Zeze.Config config = null)");
+            sw.WriteLine("        public void CreateZeze(Zeze.Config config = null)");
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
             sw.WriteLine("                if (Zeze != null)");
-            sw.WriteLine("                    return;");
+            sw.WriteLine("                    throw new System.Exception(\"Zeze Has Created!\");");
             sw.WriteLine();
             sw.WriteLine($"                Zeze = new Zeze.Application(\"{project.Solution.Name}\", config);");
+            sw.WriteLine("            }");
+            sw.WriteLine("        }");
             sw.WriteLine();
+            sw.WriteLine("        public void CreateService()");
+            sw.WriteLine("        {");
+            sw.WriteLine("            lock(this)");
+            sw.WriteLine("            {");
             foreach (Service m in project.Services.Values)
                 sw.WriteLine("                " + m.Name + " = new " + m.FullName + "(Zeze);");
+            sw.WriteLine("            }");
+            sw.WriteLine("        }");
             sw.WriteLine();
+            sw.WriteLine("        public void CreateModules()");
+            sw.WriteLine("        {");
+            sw.WriteLine("            lock(this)");
+            sw.WriteLine("            {");
             foreach (Module m in project.AllOrderDefineModules)
             {
                 var fullname = m.Path("_");
@@ -78,7 +90,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            }");
             sw.WriteLine("        }");
             sw.WriteLine();
-            sw.WriteLine("        public void Destroy()");
+            sw.WriteLine("        public void DestroyModules()");
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
@@ -89,8 +101,22 @@ namespace Zeze.Gen.cs
                 sw.WriteLine("                " + fullname + " = null;");
             }
             sw.WriteLine("                Modules.Clear();");
+            sw.WriteLine("            }");
+            sw.WriteLine("        }");
+            sw.WriteLine();
+            sw.WriteLine("        public void DestroyService()");
+            sw.WriteLine("        {");
+            sw.WriteLine("            lock(this)");
+            sw.WriteLine("            {");
             foreach (Service m in project.Services.Values)
                 sw.WriteLine("                " + m.Name + " = null;");
+            sw.WriteLine("            }");
+            sw.WriteLine("        }");
+            sw.WriteLine();
+            sw.WriteLine("        public void DestroyZeze()");
+            sw.WriteLine("        {");
+            sw.WriteLine("            lock(this)");
+            sw.WriteLine("            {");
             sw.WriteLine("                Zeze = null;");
             sw.WriteLine("            }");
             sw.WriteLine("        }");

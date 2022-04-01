@@ -44,7 +44,9 @@ namespace Zeze.Gen.java
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public void Start() throws Throwable {");
-            sw.WriteLine("        Create();");
+            sw.WriteLine("        CreateZeze();");
+            sw.WriteLine("        CreateService();");
+            sw.WriteLine("        CreateModules();");
             sw.WriteLine("        Zeze.Start(); // 启动数据库");
             sw.WriteLine("        StartModules(); // 启动模块，装载配置什么的。");
             sw.WriteLine("        StartService(); // 启动网络");
@@ -54,7 +56,9 @@ namespace Zeze.Gen.java
             sw.WriteLine("        StopService(); // 关闭网络");
             sw.WriteLine("        StopModules(); // 关闭模块，卸载配置什么的。");
             sw.WriteLine("        Zeze.Stop(); // 关闭数据库");
-            sw.WriteLine("        Destroy();");
+            sw.WriteLine("        DestroyModules();");
+            sw.WriteLine("        DestroyServices();");
+            sw.WriteLine("        DestroyZeze();");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    " + fcg.ChunkStartTag + " " + ChunkNameAppGen + " @formatter:off");
@@ -106,21 +110,24 @@ namespace Zeze.Gen.java
             if (project.AllOrderDefineModules.Count > 0)
                 sw.WriteLine();
 
-            sw.WriteLine("    public void Create() throws Throwable {");
-            sw.WriteLine("        Create(null);");
+            sw.WriteLine("    public void CreateZeze() throws Throwable {");
+            sw.WriteLine("        CreateZeze(null);");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void Create(Zeze.Config config) throws Throwable {");
+            sw.WriteLine("    public synchronized void CreateZeze(Zeze.Config config) throws Throwable {");
             sw.WriteLine("        if (Zeze != null)");
-            sw.WriteLine("            return;");
+            sw.WriteLine("            throw new RuntimeException(\"Zeze Has Created!\");");
             sw.WriteLine();
             sw.WriteLine($"        Zeze = new Zeze.Application(\"{project.Solution.Name}\", config);");
-            sw.WriteLine();
+            sw.WriteLine("    }");
+            sw.WriteLine("");
+            sw.WriteLine("    public synchronized void CreateService() throws Throwable {");
+            sw.WriteLine("");
             foreach (Service m in project.Services.Values)
                 sw.WriteLine("        " + m.Name + " = new " + m.FullName + "(Zeze);");
-            if (project.Services.Count > 0)
-                sw.WriteLine();
+            sw.WriteLine("    }");
 
+            sw.WriteLine("    public synchronized void CreateModules() throws Throwable {");
             foreach (Module m in project.AllOrderDefineModules)
             {
                 string moduleName = string.Concat(m.Name[..1].ToUpper(), m.Name.AsSpan(1));
@@ -135,7 +142,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("        Zeze.setSchemas(new " + project.Solution.Path(".", "Schemas") + "());");
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public synchronized void Destroy() {");
+            sw.WriteLine("    public synchronized void DestroyModules() {");
             for (int i = project.AllOrderDefineModules.Count - 1; i >= 0; --i)
             {
                 var m = project.AllOrderDefineModules[i];
@@ -143,8 +150,14 @@ namespace Zeze.Gen.java
                 sw.WriteLine("        " + fullname + " = null;");
             }
             sw.WriteLine("        Modules.clear();");
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine("    public synchronized void DestroyServices() {");
             foreach (Service m in project.Services.Values)
                 sw.WriteLine("        " + m.Name + " = null;");
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine("    public synchronized void DestroyZeze() {");
             sw.WriteLine("        Zeze = null;");
             sw.WriteLine("    }");
             sw.WriteLine();

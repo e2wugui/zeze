@@ -76,19 +76,23 @@ public final class App extends Zeze.AppBase {
     public Zezex.Linkd.ModuleLinkd Zezex_Linkd;
     public Zezex.Provider.ModuleProvider Zezex_Provider;
 
-    public void Create() throws Throwable {
-        Create(null);
+    public void CreateZeze() throws Throwable {
+        CreateZeze(null);
     }
 
-    public synchronized void Create(Zeze.Config config) throws Throwable {
+    public synchronized void CreateZeze(Zeze.Config config) throws Throwable {
         if (Zeze != null)
-            return;
+            throw new RuntimeException("Zeze Has Created!");
 
         Zeze = new Zeze.Application("Zezex", config);
+    }
+
+    public synchronized void CreateService() throws Throwable {
 
         LinkdService = new Zezex.LinkdService(Zeze);
         ProviderService = new Zezex.ProviderService(Zeze);
-
+    }
+    public synchronized void CreateModules() throws Throwable {
         Zezex_Linkd = new Zezex.Linkd.ModuleLinkd(this);
         Zezex_Linkd.Initialize(this);
         Zezex_Linkd = (Zezex.Linkd.ModuleLinkd)ReplaceModuleInstance(Zezex_Linkd);
@@ -104,12 +108,18 @@ public final class App extends Zeze.AppBase {
         Zeze.setSchemas(new Zezex.Schemas());
     }
 
-    public synchronized void Destroy() {
+    public synchronized void DestroyModules() {
         Zezex_Provider = null;
         Zezex_Linkd = null;
         Modules.clear();
+    }
+
+    public synchronized void DestroyServices() {
         LinkdService = null;
         ProviderService = null;
+    }
+
+    public synchronized void DestroyZeze() {
         Zeze = null;
     }
 

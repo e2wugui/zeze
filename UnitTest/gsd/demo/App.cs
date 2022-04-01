@@ -22,7 +22,9 @@ namespace demo
             AdjustTableConf(config.DefaultTableConf);
             AdjustTableConf(config.GetTableConf("demo_Module1_Table1"));
 
-            Create(config);
+            CreateZeze(config);
+            CreateService();
+            CreateModules();
             StartModules(); // 启动模块，装载配置什么的。
             Zeze.StartAsync().Wait(); // 启动数据库
             StartService(); // 启动网络等等。
@@ -33,7 +35,9 @@ namespace demo
             StopService(); // 关闭网络等等。
             Zeze.Stop(); // 关闭数据库
             StopModules(); // 关闭模块,，卸载配置什么的。
-            Destroy();
+            DestroyModules();
+            DestroyService();
+            DestroyZeze();
         }
     }
 }

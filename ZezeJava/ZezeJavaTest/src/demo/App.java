@@ -47,7 +47,9 @@ public class App extends Zeze.AppBase {
 		adjustTableConf(config.getDefaultTableConf());
 		adjustTableConf(config.getTableConfMap().get("demo_Module1_Table1"));
 
-		Create(config);
+		CreateZeze(config);
+		CreateService();
+		CreateModules();
 		Zeze.Start(); // 启动数据库
 		StartModules(); // 启动模块，装载配置什么的。
 		StartService(); // 启动网络
@@ -58,7 +60,9 @@ public class App extends Zeze.AppBase {
 		StopModules(); // 关闭模块，卸载配置什么的。
 		if (Zeze != null)
 			Zeze.Stop(); // 关闭数据库
-		Destroy();
+		DestroyModules();
+		DestroyServices();
+		DestroyZeze();
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN APP @formatter:off
@@ -70,18 +74,22 @@ public class App extends Zeze.AppBase {
     public demo.Module1.ModuleModule1 demo_Module1;
     public demo.Module1.Module11.ModuleModule11 demo_Module1_Module11;
 
-    public void Create() throws Throwable {
-        Create(null);
+    public void CreateZeze() throws Throwable {
+        CreateZeze(null);
     }
 
-    public synchronized void Create(Zeze.Config config) throws Throwable {
+    public synchronized void CreateZeze(Zeze.Config config) throws Throwable {
         if (Zeze != null)
-            return;
+            throw new RuntimeException("Zeze Has Created!");
 
         Zeze = new Zeze.Application("demo", config);
+    }
+
+    public synchronized void CreateService() throws Throwable {
 
         Server = new demo.Server(Zeze);
-
+    }
+    public synchronized void CreateModules() throws Throwable {
         demo_Module1 = new demo.Module1.ModuleModule1(this);
         demo_Module1.Initialize(this);
         demo_Module1 = (demo.Module1.ModuleModule1)ReplaceModuleInstance(demo_Module1);
@@ -97,11 +105,17 @@ public class App extends Zeze.AppBase {
         Zeze.setSchemas(new demo.Schemas());
     }
 
-    public synchronized void Destroy() {
+    public synchronized void DestroyModules() {
         demo_Module1_Module11 = null;
         demo_Module1 = null;
         Modules.clear();
+    }
+
+    public synchronized void DestroyServices() {
         Server = null;
+    }
+
+    public synchronized void DestroyZeze() {
         Zeze = null;
     }
 
