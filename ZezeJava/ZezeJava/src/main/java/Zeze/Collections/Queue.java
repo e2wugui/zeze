@@ -50,18 +50,21 @@ public class Queue<V extends Bean> {
 	}
 
 	/**
-	 * 提取整个头节点
+	 * 删除并返回整个头节点
 	 *
 	 * @return 头节点，null if empty
 	 */
 	public BQueueNode pollNode() {
 		var root = module._tQueues.get(name);
-		if (null == root)
+		if (root == null)
 			return null;
 
-		var nodeKey = new BQueueNodeKey(name, root.getHeadNodeId());
+		long headNodeId = root.getHeadNodeId();
+		if (headNodeId == 0)
+			return null;
+		var nodeKey = new BQueueNodeKey(name, headNodeId);
 		var head = module._tQueueNodes.get(nodeKey);
-		if (null == head)
+		if (head == null)
 			return null;
 
 		root.setHeadNodeId(head.getNextNodeId());
@@ -69,71 +72,85 @@ public class Queue<V extends Bean> {
 		return head;
 	}
 
+	/**
+	 * @return 头节点，null if empty
+	 */
 	public BQueueNode peekNode() {
 		var root = module._tQueues.get(name);
-		if (null == root)
+		if (root == null)
 			return null;
 
-		var nodeKey = new BQueueNodeKey(name, root.getHeadNodeId());
-		return module._tQueueNodes.get(nodeKey); // head
+		long headNodeId = root.getHeadNodeId();
+		if (headNodeId == 0)
+			return null;
+		return module._tQueueNodes.get(new BQueueNodeKey(name, headNodeId));
 	}
 
 	/**
-	 * 提取队列第一项
+	 * 删除并返回头节点中的首个值
 	 *
-	 * @return 第一项的值，null if empty
+	 * @return 头节点的首个值，null if empty
 	 */
 	public V poll() {
 		var root = module._tQueues.get(name);
-		if (null == root)
+		if (root == null)
 			return null;
 
-		var nodeKey = new BQueueNodeKey(name, root.getHeadNodeId());
+		long headNodeId = root.getHeadNodeId();
+		if (headNodeId == 0)
+			return null;
+		var nodeKey = new BQueueNodeKey(name, headNodeId);
 		var head = module._tQueueNodes.get(nodeKey);
-		if (null == head)
+		if (head == null)
 			return null;
 
-		@SuppressWarnings("unchecked")
-		var value = (V)head.getValues().remove(0);
-		if (head.getValues().isEmpty()) {
+		var nodeValues = head.getValues();
+		var nodeValue = nodeValues.remove(0);
+		if (nodeValues.isEmpty()) {
 			root.setHeadNodeId(head.getNextNodeId());
 			module._tQueueNodes.remove(nodeKey);
 		}
-		return value;
-	}
-
-	public V peek() {
-		var root = module._tQueues.get(name);
-		if (null == root)
-			return null;
-
-		var nodeKey = new BQueueNodeKey(name, root.getHeadNodeId());
-		var head = module._tQueueNodes.get(nodeKey);
-		if (null == head)
-			return null;
-
 		@SuppressWarnings("unchecked")
-		var value = (V)head.getValues().remove(0);
+		var value = (V)nodeValue.getValue().getBean();
 		return value;
 	}
 
 	/**
-	 * 加入值。
-	 *
-	 * @param value to add
+	 * @return 头节点的首个值，null if empty
+	 */
+	public V peek() {
+		var root = module._tQueues.get(name);
+		if (root == null)
+			return null;
+
+		long headNodeId = root.getHeadNodeId();
+		if (headNodeId == 0)
+			return null;
+		var head = module._tQueueNodes.get(new BQueueNodeKey(name, headNodeId));
+		if (head == null)
+			return null;
+
+		@SuppressWarnings("unchecked")
+		var value = (V)head.getValues().get(0).getValue().getBean();
+		return value;
+	}
+
+	/**
+	 * 用作queue, 值追加到尾节点的最后, 满则追加一个尾节点。
 	 */
 	public void add(V value) {
 		var root = module._tQueues.getOrAdd(name);
-		var tail = module._tQueueNodes.get(new BQueueNodeKey(name, root.getTailNodeId()));
-		if (null == tail || tail.getValues().size() > nodeSize) {
-			var newNode = new BQueueNode();
-			root.setLastNodeId(root.getLastNodeId() + 1);
-			var newNodeId = root.getLastNodeId();
-			module._tQueueNodes.insert(new BQueueNodeKey(name, newNodeId), newNode);
+		var tailNodeId = root.getTailNodeId();
+		var tail = tailNodeId != 0 ? module._tQueueNodes.get(new BQueueNodeKey(name, tailNodeId)) : null;
+		if (tail == null || tail.getValues().size() >= nodeSize) {
+			var newNodeId = root.getLastNodeId() + 1;
+			root.setLastNodeId(newNodeId);
 			root.setTailNodeId(newNodeId);
-			if (null != tail)
+			if (root.getHeadNodeId() == 0)
+				root.setHeadNodeId(newNodeId);
+			if (tail != null)
 				tail.setNextNodeId(newNodeId);
-			tail = newNode;
+			module._tQueueNodes.insert(new BQueueNodeKey(name, newNodeId), tail = new BQueueNode());
 		}
 		var nodeValue = new BQueueNodeValue();
 		nodeValue.setTimestamp(System.currentTimeMillis());
@@ -141,18 +158,22 @@ public class Queue<V extends Bean> {
 		tail.getValues().add(nodeValue);
 	}
 
-	// stack
+	/**
+	 * 用作stack, 值追加到头节点的首位, 满则追加一个头节点
+	 */
 	public void push(V value) {
 		var root = module._tQueues.getOrAdd(name);
-		var head = module._tQueueNodes.get(new BQueueNodeKey(name, root.getHeadNodeId()));
-		if (null == head || head.getValues().size() > nodeSize) {
-			var newNode = new BQueueNode();
-			root.setLastNodeId(root.getLastNodeId() + 1);
-			var newNodeId = root.getLastNodeId();
-			module._tQueueNodes.insert(new BQueueNodeKey(name, newNodeId), newNode);
-			newNode.setNextNodeId(root.getHeadNodeId());
+		var headNodeId = root.getHeadNodeId();
+		var head = headNodeId != 0 ? module._tQueueNodes.get(new BQueueNodeKey(name, headNodeId)) : null;
+		if (head == null || head.getValues().size() >= nodeSize) {
+			var newNodeId = root.getLastNodeId() + 1;
+			root.setLastNodeId(newNodeId);
 			root.setHeadNodeId(newNodeId);
-			head = newNode;
+			if (root.getTailNodeId() == 0)
+				root.setTailNodeId(newNodeId);
+			module._tQueueNodes.insert(new BQueueNodeKey(name, newNodeId), head = new BQueueNode());
+			if (headNodeId != 0)
+				head.setNextNodeId(headNodeId);
 		}
 		var nodeValue = new BQueueNodeValue();
 		nodeValue.setTimestamp(System.currentTimeMillis());
@@ -160,6 +181,11 @@ public class Queue<V extends Bean> {
 		head.getValues().add(0, nodeValue);
 	}
 
+	/**
+	 * 删除并返回头节点中的首个值
+	 *
+	 * @return 头节点的首个值，null if empty
+	 */
 	public V pop() {
 		return poll();
 	}

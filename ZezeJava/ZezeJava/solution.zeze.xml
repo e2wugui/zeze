@@ -84,13 +84,13 @@
 		</module>
 
 		<module name="Collections" id="11004">
-			<!-- 一个简单的大容量Map，同时所有的分段节点按双向链表组织起来 -->
+			<!-- 一个简单的大容量Map，同时所有的分段节点按双向链表组织起来。新增节点放到链表尾部 -->
 			<module name="LinkedMap" id="11005">
 				<bean name="BLinkedMap">
 					<variable id="1" name="HeadNodeId" type="long" />
 					<variable id="2" name="TailNodeId" type="long" />
 					<variable id="3" name="Count" type="long" />
-					<variable id="4" name="LastNodeId" type="long" />
+					<variable id="4" name="LastNodeId" type="long" /> 最近分配过的NodeId, 用于下次分配
 				</bean>
 				<table name="tLinkedMaps" key="string" value="BLinkedMap" /> key: LinkedMap的Name
 
@@ -125,14 +125,15 @@
 			<!-- 一个简单的大容量单向链表，可按Stack方式使用 -->
 			<module name="Queue" id="11006">
 				<!--
-				1. 单向链表。2. Value没有索引。3. 每个Value记录加入的时间。4. 只能从Head提取，从Tail添加。
+				1. 单向链表。2. Value没有索引。3. 每个Value记录加入的时间。4. 只能从Head提取，从Tail添加。5. 用作Stack时也可以从Head添加。
+				链表结构: (NewStackNode -＞) Head -＞ ... -＞ Tail (-＞ NewQueueNode)。
 				第一个用户是Table.GC，延迟删除记录。
 				-->
 				<bean name="BQueue">
 					<variable id="1" name="HeadNodeId" type="long" />
 					<variable id="2" name="TailNodeId" type="long" />
-					<variable id="3" name="Count" type="long" />
-					<variable id="4" name="LastNodeId" type="long" />
+					<variable id="3" name="Count" type="long" /> 暂时没用
+					<variable id="4" name="LastNodeId" type="long" /> 最近分配过的NodeId, 用于下次分配
 				</bean>
 				<table name="tQueues" key="string" value="BQueue" /> key: Queue的Name
 

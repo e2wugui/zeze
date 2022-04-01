@@ -7,7 +7,7 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
     private long _HeadNodeId;
     private long _TailNodeId;
     private long _Count;
-    private long _LastNodeId;
+    private long _LastNodeId; // 最近分配过的NodeId, 用于下次分配
 
     public long getHeadNodeId() {
         if (!isManaged())

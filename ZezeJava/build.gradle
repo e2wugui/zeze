@@ -22,8 +22,9 @@ allprojects {
     }
 
     compileJava {
+        sourceCompatibility = 11
+        targetCompatibility = 11
         options.encoding = 'utf-8'
-        options.release = 11
         options.incremental = true
         options.fork = true
         options.failOnError = true
