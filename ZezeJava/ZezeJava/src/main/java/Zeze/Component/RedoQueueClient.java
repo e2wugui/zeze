@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Beans.RedoQueue.BQueueTask;
+import Zeze.Net.AsyncSocket;
 import Zeze.Net.Rpc;
 import Zeze.Transaction.Procedure;
 import org.rocksdb.ColumnFamilyDescriptor;
@@ -134,6 +135,15 @@ public class RedoQueueClient extends Zeze.Services.HandshakeClient {
 		}
 
 		return rpc.getResultCode();
+	}
+
+	@Override
+	public void OnHandshakeDone(AsyncSocket sender) throws Throwable {
+		super.OnHandshakeDone(sender);
+		// TODO 连接zeze这块需要考虑。
+		synchronized (this) {
+			tryStartSendNextTask(null);
+		}
 	}
 
 	private RocksDB Db;
