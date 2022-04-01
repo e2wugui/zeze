@@ -1,5 +1,7 @@
 package Zeze.Component;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Transaction.Transaction;
 
@@ -37,7 +39,7 @@ public class AutoKey {
 	public long nextId() {
 		if (null != range) {
 			var next = range.tryNextId();
-			if (null != next)
+			if (next != 0)
 				return next; // allocate in range success
 		}
 
@@ -52,12 +54,11 @@ public class AutoKey {
 				var end = start + AllocateCount; // AllocateCount == 0 会死循环。
 				key.setNextId(end);
 				// create log，本事务可见，
-				log = new RangeLog();
-				log.range = new Range(start, end);
+				log = new RangeLog(new Range(start, end));
 				txn.PutLog(log);
 			}
 			var tryNext = log.range.tryNextId();
-			if (null != tryNext)
+			if (tryNext != 0)
 				return tryNext;
 
 			// 事务内分配了超出Range范围的id，再次allocate。
@@ -68,14 +69,23 @@ public class AutoKey {
 	}
 
 	private static class Range {
-		private long nextId;
+		private static final VarHandle nextIdHandle;
+
+		static {
+			try {
+				nextIdHandle = MethodHandles.lookup().findVarHandle(Range.class, "nextId", long.class);
+			} catch (ReflectiveOperationException e) {
+				throw new ExceptionInInitializerError(e);
+			}
+		}
+
+		@SuppressWarnings("FieldMayBeFinal")
+		private volatile long nextId;
 		private final long max;
 
-		public synchronized Long tryNextId() {
-			if (nextId >= max) {
-				return null;
-			}
-			return ++nextId;
+		public long tryNextId() {
+			long lastId = (long)nextIdHandle.getAndAdd(this, 1L);
+			return lastId < max ? lastId + 1 : 0;
 		}
 
 		public Range(long start, long end) {
@@ -85,10 +95,11 @@ public class AutoKey {
 	}
 
 	private class RangeLog extends Zeze.Transaction.Log {
-		private Range range;
+		private final Range range;
 
-		public RangeLog() {
+		public RangeLog(Range range) {
 			super(null); // null: 特殊日志，不关联Bean。
+			this.range = range;
 		}
 
 		@Override

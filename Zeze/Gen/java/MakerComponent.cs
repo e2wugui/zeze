@@ -86,9 +86,9 @@ namespace Zeze.Gen.java
 
                 sw.WriteLine($"public abstract class Abstract{Project.Name} extends Zeze.IModule {{");
                 var presentModule = GetPresentModule(mfs);
-                sw.WriteLine($"    public String getFullName() {{ return \"{presentModule.Path()}\"; }}");
-                sw.WriteLine($"    public String getName() {{ return \"{presentModule.Name}\"; }}");
-                sw.WriteLine($"    public int getId() {{ return ModuleId; }}");
+                sw.WriteLine($"    @Override public String getFullName() {{ return \"{presentModule.Path()}\"; }}");
+                sw.WriteLine($"    @Override public String getName() {{ return \"{presentModule.Name}\"; }}");
+                sw.WriteLine($"    @Override public int getId() {{ return ModuleId; }}");
                 sw.WriteLine($"    public static final int ModuleId = {presentModule.Id};");
                 sw.WriteLine();
 
