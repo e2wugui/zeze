@@ -3,7 +3,6 @@ package Zeze.Services;
 import java.io.Closeable;
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.HashMap;
@@ -794,12 +793,11 @@ public final class ServiceManagerServer implements Closeable {
 				break;
 			}
 		}
+		logger.info("Start {}:{}", ip != null ? ip : "any", port);
 
 		Task.tryInitThreadPool(null, null, null);
 
-		InetAddress address = (ip == null || ip.isEmpty()) ?
-				new InetSocketAddress(0).getAddress() : InetAddress.getByName(ip);
-		logger.info("{} started: {}", ServiceManagerServer.class.getSimpleName(), address);
+		InetAddress address = (ip != null && !ip.isBlank()) ? InetAddress.getByName(ip) : null;
 
 		var config = new Zeze.Config();
 		var smConfig = new ServiceManagerServer.Conf();

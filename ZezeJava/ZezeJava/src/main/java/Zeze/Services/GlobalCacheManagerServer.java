@@ -798,27 +798,26 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		}
 
 		if (raftName == null || raftName.isEmpty()) {
-			InetAddress address = (ip == null || ip.isEmpty()) ?
-					new InetSocketAddress(0).getAddress() : InetAddress.getByName(ip);
+			logger.info("Start {}:{}", ip != null ? ip : "any", port);
+			InetAddress address = (ip != null && !ip.isBlank()) ? InetAddress.getByName(ip) : null;
 			Instance.Start(address, port);
-			logger.info("Started: {}", Instance.ServerSocket.getLocalAddress());
 			synchronized (Thread.currentThread()) {
 				Thread.currentThread().wait();
 			}
 		} else if (raftName.equals("RunAllNodes")) {
+			logger.info("Start Raft=RunAllNodes");
 			//noinspection unused
 			try (var GlobalRaft1 = new GlobalCacheManagerWithRaft("127.0.0.1:5556", RaftConfig.Load(raftConf));
 				 var GlobalRaft2 = new GlobalCacheManagerWithRaft("127.0.0.1:5557", RaftConfig.Load(raftConf));
 				 var GlobalRaft3 = new GlobalCacheManagerWithRaft("127.0.0.1:5558", RaftConfig.Load(raftConf))) {
-				logger.info("Started Raft=RunAllNodes");
 				synchronized (Thread.currentThread()) {
 					Thread.currentThread().wait();
 				}
 			}
 		} else {
+			logger.info("Start Raft={},{}", raftName, raftConf);
 			//noinspection unused
 			try (var GlobalRaft = new GlobalCacheManagerWithRaft(raftName, RaftConfig.Load(raftConf))) {
-				logger.info("Started Raft={raftName}");
 				synchronized (Thread.currentThread()) {
 					Thread.currentThread().wait();
 				}

@@ -159,6 +159,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			if (recvBufSize != null)
 				ss.setReceiveBufferSize(recvBufSize);
 			ss.bind(localEP, service.getSocketOptions().getBacklog());
+			logger.info("listen {}", localEP);
 
 			selector = Selectors.getInstance().choice();
 			selectionKey = selector.register(ssc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
