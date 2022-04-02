@@ -6,10 +6,13 @@ import Zeze.Beans.ProviderDirect.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class ProviderDirectServer extends Zeze.Services.HandshakeBoth {
-	private static final Logger logger = LogManager.getLogger(ProviderDirectServer.class);
+/**
+ * Provider之间直连网络管理服务。
+ */
+public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
+	private static final Logger logger = LogManager.getLogger(ProviderDirectService.class);
 
-	public ProviderDirectServer(String name, Zeze.Application zeze) throws Throwable {
+	public ProviderDirectService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);
 	}
 

@@ -6,14 +6,19 @@ import Zeze.Net.Binary;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 
+/**
+ * Provider之间直连服务模块。
+ * 仅包含部分实现，使用的时候需要继承并实现完全。
+ * 需要的时候可以重载重新实现默认实现。
+ */
 public abstract class ProviderDirect extends AbstractProviderDirect {
-    private ProviderDirectServer server;
-    public ProviderDirectServer getServer() {
-        return server;
+    private ProviderDirectService service;
+    public ProviderDirectService getService() {
+        return service;
     }
 
-    public void setServer(ProviderDirectServer service) {
-        server = service;
+    public void setService(ProviderDirectService service) {
+        this.service = service;
         RegisterProtocols(service);
     }
 
@@ -24,8 +29,8 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
             Transaction.getCurrent().getTopProcedure().setActionName(rpc.Argument.getMethodFullName());
 
             rpc.Result.setModuleId(rpc.Argument.getModuleId());
-            rpc.Result.setServerId(server.getZeze().getConfig().getServerId());
-            var handle = server.getZeze().getModuleRedirect().Handles.get(rpc.Argument.getMethodFullName());
+            rpc.Result.setServerId(service.getZeze().getConfig().getServerId());
+            var handle = service.getZeze().getModuleRedirect().Handles.get(rpc.Argument.getMethodFullName());
             if (null == handle) {
                 rpc.SendResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
                 return Procedure.LogicError;
@@ -70,12 +75,12 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 
             // common parameters for result
             result.Argument.setModuleId(protocol.Argument.getModuleId());
-            result.Argument.setServerId(server.getZeze().getConfig().getServerId());
+            result.Argument.setServerId(service.getZeze().getConfig().getServerId());
             result.Argument.setSourceProvider(protocol.Argument.getSourceProvider());
             result.Argument.setSessionId(protocol.Argument.getSessionId());
             result.Argument.setMethodFullName(protocol.Argument.getMethodFullName());
 
-            var handle = server.getZeze().getModuleRedirect().Handles.get(protocol.Argument.getMethodFullName());
+            var handle = service.getZeze().getModuleRedirect().Handles.get(protocol.Argument.getMethodFullName());
             if (null == handle) {
                 result.setResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
                 // 失败了，需要把hash返回。此时是没有处理结果的。
@@ -94,7 +99,7 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
                 var hashResult = new BModuleRedirectAllHash();
                 final var Params = new Zeze.Util.OutObject<Binary>();
                 Params.Value = null;
-                hashResult.setReturnCode(server.getZeze().NewProcedure(() -> {
+                hashResult.setReturnCode(service.getZeze().NewProcedure(() -> {
                     var rp = handle.RequestHandle.call(
                             protocol.Argument.getSessionId(), hash,
                             protocol.Argument.getParams(), hashResult.getActions());
@@ -127,7 +132,7 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
     protected long ProcessModuleRedirectAllResult(ModuleRedirectAllResult protocol) throws Throwable {
         // replace RootProcedure.ActionName. 为了统计和日志输出。
         Transaction.getCurrent().getTopProcedure().setActionName(protocol.Argument.getMethodFullName());
-        var ctx = server.<ModuleRedirectAllContext>TryGetManualContext(protocol.Argument.getSessionId());
+        var ctx = service.<ModuleRedirectAllContext>TryGetManualContext(protocol.Argument.getSessionId());
         if (ctx != null) {
             ctx.ProcessResult(protocol);
         }

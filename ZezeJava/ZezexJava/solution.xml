@@ -402,7 +402,7 @@
 		<module ref="CommonModule"/>
 		-->
 		<!-- service 生成到 solution 名字空间下 -->
-		<service name="Server" handle="server" base="Zeze.Arch.ProviderServer">
+		<service name="Server" handle="server" base="Zeze.Arch.ProviderService">
 			<module ref="Login"/>
 			<module ref="Bag"/>
 			<module ref="Item"/>
@@ -419,7 +419,7 @@
 		<ModuleStartOrder>
 		</ModuleStartOrder>
 
-		<service name="ServerDirect" handle="server,client" base="Zeze.Arch.ProviderDirectServer">
+		<service name="ServerDirect" handle="server,client" base="Zeze.Arch.ProviderDirectService">
 		</service>
 	</project>
 

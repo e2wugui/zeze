@@ -1,7 +1,6 @@
 package Zeze.Arch;
 
 import Zeze.Net.AsyncSocket;
-import Zeze.Net.Binary;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
@@ -10,13 +9,13 @@ import Zeze.Beans.Provider.*;
 public abstract class ProviderImplement extends AbstractProviderImplement {
 	//private static final Logger logger = LogManager.getLogger(ProviderImplement.class);
 
-	private ProviderServer server;
-	public ProviderServer getServer() {
-		return server;
+	private ProviderService service;
+	public ProviderService getService() {
+		return service;
 	}
 
-	public void setServer(ProviderServer service) {
-		server = service;
+	public void setService(ProviderService service) {
+		this.service = service;
 		RegisterProtocols(service);
 	}
 
@@ -31,7 +30,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	@Override
 	protected long ProcessDispatch(Dispatch p) throws Throwable {
 		try {
-			var factoryHandle = server.FindProtocolFactoryHandle(p.Argument.getProtocolType());
+			var factoryHandle = service.FindProtocolFactoryHandle(p.Argument.getProtocolType());
 			if (null == factoryHandle) {
 				SendKick(p.getSender(), p.Argument.getLinkSid(), BKick.ErrorProtocolUnkown, "unknown protocol");
 				return Procedure.LogicError;
@@ -40,7 +39,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			p2.Decode(Zeze.Serialize.ByteBuffer.Wrap(p.Argument.getProtocolData()));
 			p2.setSender(p.getSender());
 
-			var session = new ProviderSession(server, p.Argument.getAccount(), p.Argument.getStates(), p.getSender(), p.Argument.getLinkSid());
+			var session = new ProviderSession(service, p.Argument.getAccount(), p.Argument.getStates(), p.getSender(), p.Argument.getLinkSid());
 
 			p2.setUserState(session);
 			if (Transaction.getCurrent() != null) {
@@ -77,7 +76,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 	@Override
 	protected long ProcessAnnounceLinkInfo(AnnounceLinkInfo protocol) throws Throwable {
-		var linkSession = (ProviderServer.LinkSession)protocol.getSender().getUserState();
+		var linkSession = (ProviderService.LinkSession)protocol.getSender().getUserState();
 		linkSession.Setup(protocol.Argument.getLinkId(), protocol.Argument.getProviderSessionId());
 		return Procedure.Success;
 	}

@@ -13,8 +13,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import Zeze.Beans.Provider.*;
 
-public class ProviderServer extends Zeze.Services.HandshakeClient {
-	private static final Logger logger = LogManager.getLogger(ProviderServer.class);
+public class ProviderService extends Zeze.Services.HandshakeClient {
+	private static final Logger logger = LogManager.getLogger(ProviderService.class);
 
 	/**
 	 不使用 RemoteEndPoint 是怕有些系统返回 ipv6 有些 ipv4，造成不一致。
@@ -176,7 +176,7 @@ public class ProviderServer extends Zeze.Services.HandshakeClient {
 		}
 	}
 
-	public ProviderServer(String name, Zeze.Application zeze) throws Throwable {
+	public ProviderService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);
 	}
 

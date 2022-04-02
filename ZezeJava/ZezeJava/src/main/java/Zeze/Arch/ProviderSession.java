@@ -7,6 +7,10 @@ import Zeze.Transaction.Collections.PList1;
 import Zeze.Transaction.Transaction;
 import Zeze.Beans.Provider.*;
 
+/**
+ * 用户登录会话。
+ * 记录账号，roleId，LinkName，SessionId等信息。
+ */
 public class ProviderSession {
 	private String Account;
 	public final String getAccount() {
@@ -34,18 +38,18 @@ public class ProviderSession {
 		Link = value;
 	}
 
-	private ProviderServer providerServer;
-	public final ProviderServer getProviderServer() {
-		return providerServer;
+	private ProviderService service;
+	public final ProviderService getService() {
+		return service;
 	}
 
-	public ProviderSession(ProviderServer server, String account, PList1<Long> states, AsyncSocket link, long linkSid) {
-		providerServer = server;
+	public ProviderSession(ProviderService service, String account, PList1<Long> states, AsyncSocket link, long linkSid) {
+		this.service = service;
 		Account = account;
 		RoleId = states.isEmpty() ? null : states.get(0);
 		SessionId = linkSid;
 		setLink(link);
-		LinkName = server.GetLinkName(link);
+		LinkName = service.GetLinkName(link);
 	}
 
 	public final void SendResponse(Binary fullEncodedProtocol) {
@@ -63,7 +67,7 @@ public class ProviderSession {
 			return;
 		}
 		// 可能发生了重连，尝试再次查找发送。网络断开以后，已经不可靠了，先这样写着吧。
-		var link = providerServer.getLinks().get(getLinkName());
+		var link = service.getLinks().get(getLinkName());
 		if (null != link) {
 			if (link.isHandshakeDone()) {
 				setLink(link.getSocket());
