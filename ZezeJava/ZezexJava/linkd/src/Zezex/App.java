@@ -29,23 +29,18 @@ public final class App extends Zeze.AppBase {
 
 	public LinkdApp LinkdApp;
 	public void Start() throws Throwable {
-		LoadConfig();
+		// Create
 		CreateZeze();
-		ProviderLinkd = new ProviderLinkd();
 		CreateService();
-		LinkdApp = new LinkdApp(Zeze, ProviderLinkd, ProviderService, LinkdService, LoadConfig());
+		ProviderLinkd = new ProviderLinkd();
+		LinkdApp = new LinkdApp("Game.Linkd", Zeze, ProviderLinkd, ProviderService, LinkdService, LoadConfig());
 		CreateModules();
-
+		// Start
 		Zeze.Start(); // 启动数据库
 		StartModules(); // 启动模块，装载配置什么的。
-
-		var ipp = ProviderService.GetOnePassiveAddress();
-		String psip = ipp.getKey();
-		int psport = ipp.getValue();
-		var linkName = Str.format("{}:{}", psip, psport);
-		AsyncSocket.setSessionIdGenFunc(PersistentAtomicLong.getOrAdd("Game.Linkd." + linkName)::next);
+		AsyncSocket.setSessionIdGenFunc(PersistentAtomicLong.getOrAdd(LinkdApp.GetName())::next);
 		StartService(); // 启动网络. after setSessionIdGenFunc
-		LinkdApp.RegisterService("Game.Linkd", linkName, psip, psport, null);
+		LinkdApp.RegisterService(null);
 	}
 
 	public void Stop() throws Throwable {

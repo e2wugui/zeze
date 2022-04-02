@@ -162,6 +162,7 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 		super.DispatchProtocol(p, factoryHandle);
 	}
 
+	/*
 	public void ReportLoad(int online, int proposeMaxOnline, int onlineNew) {
 		var report = new ReportLoad();
 
@@ -175,6 +176,7 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 			}
 		}
 	}
+	*/
 
 	public ProviderService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);

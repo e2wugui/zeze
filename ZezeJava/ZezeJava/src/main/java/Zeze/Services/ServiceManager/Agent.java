@@ -306,11 +306,11 @@ public final class Agent implements Closeable {
 		return RegisterService(name, identity, null, 0, null);
 	}
 
-	public ServiceInfo RegisterService(String name, String identity, String ip, int port, String extraInfo) throws Throwable {
+	public ServiceInfo RegisterService(String name, String identity, String ip, int port, Zeze.Net.Binary extraInfo) throws Throwable {
 		return RegisterService(new ServiceInfo(name, identity, ip, port, extraInfo));
 	}
 
-	public ServiceInfo UpdateService(String name, String identity, String ip, int port, String extraInfo) throws Throwable {
+	public ServiceInfo UpdateService(String name, String identity, String ip, int port, Zeze.Net.Binary extraInfo) throws Throwable {
 		return UpdateService(new ServiceInfo(name, identity, ip, port, extraInfo));
 	}
 

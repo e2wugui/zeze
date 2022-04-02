@@ -2,6 +2,7 @@ package Zeze.Arch;
 
 import java.util.HashMap;
 import Zeze.Beans.Provider.BModule;
+import Zeze.Net.Binary;
 
 /**
  * 记录实现一个Provider需要的对象，
@@ -17,10 +18,12 @@ public class ProviderApp {
 
 	public ProviderDirect ProviderDirect;
 	public ProviderDirectService ProviderDirectService;
-	public String ProviderDirectPassiveIp;
-	public int ProviderDirectPassivePort;
 
 	public String LinkdServiceName;
+
+	// 现在内部可以自动设置两个参数，但有点不够可靠，生产环境最好手动设置。
+	public String ProviderDirectPassiveIp;
+	public int ProviderDirectPassivePort;
 
 	public ProviderApp(Zeze.Application zeze,
 					   ProviderImplement server,
@@ -28,8 +31,6 @@ public class ProviderApp {
 					   String providerModulePrefixNameOnServiceManager,
 					   ProviderDirect direct,
 					   ProviderDirectService toOtherProviderService,
-					   String ProviderDirectPassiveIp,
-					   int ProviderDirectPassivePort,
 					   String linkdNameOnServiceManager
 					   ) {
 		this.Zeze = zeze;
@@ -45,8 +46,10 @@ public class ProviderApp {
 		this.ProviderDirectService = toOtherProviderService;
 		this.ProviderDirectService.ProviderApp = this;
 
-		this.ProviderDirectPassiveIp = ProviderDirectPassiveIp;
-		this.ProviderDirectPassivePort = ProviderDirectPassivePort;
+		var kv = ProviderDirectService.GetOnePassiveAddress();
+		this.ProviderDirectPassiveIp = kv.getKey();
+		this.ProviderDirectPassivePort = kv.getValue();
+
 		this.LinkdServiceName = linkdNameOnServiceManager;
 
 		this.ProviderImplement.RegisterProtocols(ProviderService);
@@ -69,5 +72,9 @@ public class ProviderApp {
 
 	public void StartLast() throws Throwable {
 		ProviderImplement.RegisterModulesAndSubscribeLinkd();
+	}
+
+	public void UpdateModulesLoad(Binary load) throws Throwable {
+		ProviderImplement.UpdateModulesLoad(load);
 	}
 }

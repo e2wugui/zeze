@@ -2,9 +2,9 @@
 package Zeze.Arch;
 
 public abstract class AbstractProviderDirect extends Zeze.IModule {
-    @Override public String getFullName() { return "Zeze.Beans.ProviderDirect"; }
-    @Override public String getName() { return "ProviderDirect"; }
-    @Override public int getId() { return ModuleId; }
+    public String getFullName() { return "Zeze.Beans.ProviderDirect"; }
+    public String getName() { return "ProviderDirect"; }
+    public int getId() { return ModuleId; }
     public static final int ModuleId = 11009;
 
     public static final int ErrorTransmitParameterFactoryNotFound = 1;

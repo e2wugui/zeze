@@ -266,10 +266,4 @@ public class ProviderLinkd extends AbstractProviderLinkd {
         setServerServiceNamePrefix(protocol.Argument.getServiceNamePrefix());
         return Zeze.Transaction.Procedure.Success;
     }
-
-    @Override
-    protected long ProcessReportLoad(Zeze.Beans.Provider.ReportLoad p) {
-        // 改从ServiceManager中提取Load?
-        return Zeze.Transaction.Procedure.NotImplement;
-    }
 }

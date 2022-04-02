@@ -1,5 +1,6 @@
 package Zeze.Services.ServiceManager;
 
+import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
@@ -47,11 +48,11 @@ public final class ServiceInfo extends Bean implements Comparable<ServiceInfo>{
 	}
 
 	// 服务扩展信息，可选。
-	private String ExtraInfo = "";
-	public String getExtraInfo() {
+	private Binary ExtraInfo = Binary.Empty;
+	public Binary getExtraInfo() {
 		return ExtraInfo;
 	}
-	public void setExtraInfo(String value) {
+	public void setExtraInfo(Binary value) {
 		ExtraInfo = value;
 	}
 
@@ -81,7 +82,7 @@ public final class ServiceInfo extends Bean implements Comparable<ServiceInfo>{
 		this(name, identity, null, 0, null);
 	}
 
-	public ServiceInfo(String name, String identity, String ip, int port, String extraInfo) {
+	public ServiceInfo(String name, String identity, String ip, int port, Binary extraInfo) {
 		setServiceName(name);
 		setServiceIdentity(identity);
 		if (ip != null) {
@@ -99,7 +100,7 @@ public final class ServiceInfo extends Bean implements Comparable<ServiceInfo>{
 		setServiceIdentity(bb.ReadString());
 		setPassiveIp(bb.ReadString());
 		setPassivePort(bb.ReadInt());
-		setExtraInfo(bb.ReadString());
+		setExtraInfo(bb.ReadBinary());
 	}
 
 	@Override
@@ -108,7 +109,7 @@ public final class ServiceInfo extends Bean implements Comparable<ServiceInfo>{
 		bb.WriteString(getServiceIdentity());
 		bb.WriteString(getPassiveIp());
 		bb.WriteInt(getPassivePort());
-		bb.WriteString(getExtraInfo());
+		bb.WriteBinary(getExtraInfo());
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 16;

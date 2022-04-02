@@ -1,6 +1,9 @@
 package Game;
 
 import java.util.concurrent.atomic.AtomicLong;
+import Zeze.Beans.Provider.BLoad;
+import Zeze.Net.Binary;
+import Zeze.Serialize.ByteBuffer;
 
 /**
  定时向所有的 linkd 报告负载。
@@ -40,7 +43,7 @@ public class Load {
 		int onlineNewPerSecond = onlineNew / TimoutDelaySeconds;
 		if (onlineNewPerSecond > App.Instance.getMyConfig().getMaxOnlineNew()) {
 			// 最近上线太多，马上报告负载。linkd不会再分配用户过来。
-			App.getInstance().Server.ReportLoad(online, App.getInstance().getMyConfig().getProposeMaxOnline(), onlineNew);
+			UpdateLoad(online, onlineNew);
 			// new delay for digestion
 			StartTimerTask(onlineNewPerSecond / App.getInstance().getMyConfig().getMaxOnlineNew() + App.getInstance().getMyConfig().getDigestionDelayExSeconds());
 			// 消化完后，下一次强迫报告Load。
@@ -51,8 +54,23 @@ public class Load {
 		ReportDelaySeconds += TimoutDelaySeconds;
 		if (ReportDelaySeconds >= App.getInstance().getMyConfig().getReportDelaySeconds()) {
 			ReportDelaySeconds = 0;
-			App.getInstance().Server.ReportLoad(online, App.getInstance().getMyConfig().getProposeMaxOnline(), onlineNew);
+			UpdateLoad(online, onlineNew);
 		}
 		StartTimerTask();
+	}
+
+	private void UpdateLoad(int online, int onlineNew) {
+		var load = new BLoad();
+		load.setOnline(online);
+		load.setProposeMaxOnline(App.getInstance().getMyConfig().getProposeMaxOnline());
+		load.setOnlineNew(onlineNew);
+		var bb = ByteBuffer.Allocate(256);
+		load.Encode(bb);
+
+		try {
+			App.getInstance().ProviderApp.UpdateModulesLoad(new Binary(bb));
+		} catch (Throwable e) {
+			e.printStackTrace();
+		}
 	}
 }

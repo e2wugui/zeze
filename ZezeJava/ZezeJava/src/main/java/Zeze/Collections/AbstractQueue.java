@@ -2,9 +2,9 @@
 package Zeze.Collections;
 
 public abstract class AbstractQueue extends Zeze.IModule {
-    @Override public String getFullName() { return "Zeze.Beans.Collections.Queue"; }
-    @Override public String getName() { return "Queue"; }
-    @Override public int getId() { return ModuleId; }
+    public String getFullName() { return "Zeze.Beans.Collections.Queue"; }
+    public String getName() { return "Queue"; }
+    public int getId() { return ModuleId; }
     public static final int ModuleId = 11006;
 
     protected final Zeze.Beans.Collections.Queue.tQueueNodes _tQueueNodes = new Zeze.Beans.Collections.Queue.tQueueNodes();

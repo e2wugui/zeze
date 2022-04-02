@@ -2,9 +2,9 @@
 package Zeze.Arch;
 
 public abstract class AbstractProviderImplement extends Zeze.IModule {
-    @Override public String getFullName() { return "Zeze.Beans.Provider"; }
-    @Override public String getName() { return "Provider"; }
-    @Override public int getId() { return ModuleId; }
+    public String getFullName() { return "Zeze.Beans.Provider"; }
+    public String getName() { return "Provider"; }
+    public int getId() { return ModuleId; }
     public static final int ModuleId = 11008;
 
     public void RegisterProtocols(Zeze.Net.Service service) {

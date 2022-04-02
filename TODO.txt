@@ -29,8 +29,10 @@
 		【左尧完成Java了？】Zezex.ModuleRedirect 增加 TransactionLevel 注解配置。
 		Zezex.ModuleRedirect 去掉依赖Session生成hash模式；RunMyMethod去掉mode；
 	java Arch: 重构 Provider：分为 Provider(linkd-gs),Provider2(gs-gs)。预计负载算法还需要公用。
+	Load ServiceManager 新增按按Ip-Port组织的订阅和通告。
 
 【2022/4/11】
+	Load 更新。
 	RedoQueue Client 【未测试】
 	RedoQueue
 	{

@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import Zeze.Beans.ProviderDirect.Transmit;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.Binary;
 import Zeze.Services.ServiceManager.SubscribeInfo;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
@@ -61,6 +62,25 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 		// 订阅linkd发现服务。
 		sm.SubscribeService(ProviderApp.LinkdServiceName, SubscribeInfo.SubscribeTypeSimple, null);
+	}
+
+	// TODO Load ServiceManager 新增按按Ip-Port组织的订阅和通告。
+	void UpdateModulesLoad(Binary load) throws Throwable {
+		var sm = ProviderApp.Zeze.getServiceManagerAgent();
+		// 注册本provider的静态服务
+		for (var s : ProviderApp.StaticBinds.entrySet()) {
+			var name = Str.format("{}{}", ProviderApp.ServerServiceNamePrefix, s.getKey());
+			var identity = String.valueOf(ProviderApp.Zeze.getConfig().getServerId());
+			sm.UpdateService(name, identity, ProviderApp.ProviderDirectPassiveIp,
+					ProviderApp.ProviderDirectPassivePort,load);
+		}
+		// 注册本provider的动态服务
+		for (var d : ProviderApp.DynamicModules.entrySet()) {
+			var name = Str.format("{}{}", ProviderApp.ServerServiceNamePrefix, d.getKey());
+			var identity = String.valueOf(ProviderApp.Zeze.getConfig().getServerId());
+			sm.UpdateService(name, identity, ProviderApp.ProviderDirectPassiveIp,
+					ProviderApp.ProviderDirectPassivePort,load);
+		}
 	}
 
 	private void SendKick(AsyncSocket sender, long linkSid, int code, String desc) {

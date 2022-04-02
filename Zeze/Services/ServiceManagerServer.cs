@@ -973,14 +973,14 @@ namespace Zeze.Services.ServiceManager
         public async Task<ServiceInfo> RegisterService(
             string name, string identity,
             string ip = null, int port = 0,
-            string extrainfo = null)
+            Binary extrainfo = null)
         {
             return await RegisterService(new ServiceInfo(name, identity, ip, port, extrainfo));
         }
 
         public async Task<ServiceInfo> UpdateService(
             string name, string identity,
-            string ip, int port, string extrainfo)
+            string ip, int port, Binary extrainfo)
         {
             return await UpdateService(new ServiceInfo(name, identity, ip, port, extrainfo));
         }
@@ -1448,7 +1448,7 @@ namespace Zeze.Services.ServiceManager
         public int PassivePort { get; internal set; } = 0;
 
         // 服务扩展信息，可选。
-        public string ExtraInfo { get; internal set; } = "";
+        public Binary ExtraInfo { get; internal set; } = Binary.Empty;
 
         // ServiceManager或者ServiceManager.Agent用来保存本地状态，不是协议一部分，不会被系列化。
         // 算是一个简单的策略，不怎么优美。一般仅设置一次，线程保护由使用者自己管理。
@@ -1461,7 +1461,7 @@ namespace Zeze.Services.ServiceManager
         public ServiceInfo(
             string name, string identity,
             string ip = null, int port = 0,
-            string extrainfo = null)
+            Binary extrainfo = null)
         {
             ServiceName = name;
             ServiceIdentity = identity;
@@ -1478,7 +1478,7 @@ namespace Zeze.Services.ServiceManager
             ServiceIdentity = bb.ReadString();
             PassiveIp = bb.ReadString();
             PassivePort = bb.ReadInt();
-            ExtraInfo = bb.ReadString();
+            ExtraInfo = bb.ReadBinary();
         }
 
         public override void Encode(ByteBuffer bb)
@@ -1487,7 +1487,7 @@ namespace Zeze.Services.ServiceManager
             bb.WriteString(ServiceIdentity);
             bb.WriteString(PassiveIp);
             bb.WriteInt(PassivePort);
-            bb.WriteString(ExtraInfo);
+            bb.WriteBinary(ExtraInfo);
         }
 
         protected override void InitChildrenRootInfo(Record.RootInfo root)

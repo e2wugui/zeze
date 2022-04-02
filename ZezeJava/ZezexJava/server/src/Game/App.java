@@ -73,9 +73,9 @@ public final class App extends Zeze.AppBase {
 		CreateService();
 		provider = new Provider(this);
 		ProviderDirectMy = new ProviderDirectMy();
-		var kv = ServerDirect.GetOnePassiveAddress(); // need CreateService
-		ProviderApp = new ProviderApp(Zeze, provider, Server, "Game.Server.Module#",
-				ProviderDirectMy, ServerDirect, kv.getKey(), kv.getValue(), "Game.Linkd");
+		ProviderApp = new ProviderApp(Zeze, provider, Server,
+				"Game.Server.Module#",
+				ProviderDirectMy, ServerDirect, "Game.Linkd");
 		CreateModules();
 		ProviderApp.initialize(ProviderModuleBinds.Load(), Modules); // need Modules
 

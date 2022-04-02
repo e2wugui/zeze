@@ -2,9 +2,9 @@
 package Zeze.Arch;
 
 public abstract class AbstractProviderLinkd extends Zeze.IModule {
-    @Override public String getFullName() { return "Zeze.Beans.Provider"; }
-    @Override public String getName() { return "Provider"; }
-    @Override public int getId() { return ModuleId; }
+    public String getFullName() { return "Zeze.Beans.Provider"; }
+    public String getName() { return "Provider"; }
+    public int getId() { return ModuleId; }
     public static final int ModuleId = 11008;
 
     public void RegisterProtocols(Zeze.Net.Service service) {
@@ -36,13 +36,6 @@ public abstract class AbstractProviderLinkd extends Zeze.IModule {
             factoryHandle.Handle = this::ProcessKick;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessKick", Zeze.Transaction.TransactionLevel.Serializable);
             service.AddFactoryHandle(47282516612067L, factoryHandle); // 11008, -778349597
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Beans.Provider.ReportLoad>();
-            factoryHandle.Factory = Zeze.Beans.Provider.ReportLoad::new;
-            factoryHandle.Handle = this::ProcessReportLoad;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessReportLoad", Zeze.Transaction.TransactionLevel.Serializable);
-            service.AddFactoryHandle(47282765597827L, factoryHandle); // 11008, -529363837
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Beans.Provider.Send>();
@@ -79,7 +72,6 @@ public abstract class AbstractProviderLinkd extends Zeze.IModule {
         service.getFactorys().remove(47282301515237L);
         service.getFactorys().remove(47282243906435L);
         service.getFactorys().remove(47282516612067L);
-        service.getFactorys().remove(47282765597827L);
         service.getFactorys().remove(47280423652415L);
         service.getFactorys().remove(47281174282091L);
         service.getFactorys().remove(47282665133980L);
@@ -99,7 +91,6 @@ public abstract class AbstractProviderLinkd extends Zeze.IModule {
     protected abstract long ProcessBindRequest(Zeze.Beans.Provider.Bind r) throws Throwable;
     protected abstract long ProcessBroadcast(Zeze.Beans.Provider.Broadcast p) throws Throwable;
     protected abstract long ProcessKick(Zeze.Beans.Provider.Kick p) throws Throwable;
-    protected abstract long ProcessReportLoad(Zeze.Beans.Provider.ReportLoad p) throws Throwable;
     protected abstract long ProcessSend(Zeze.Beans.Provider.Send p) throws Throwable;
     protected abstract long ProcessSetUserState(Zeze.Beans.Provider.SetUserState p) throws Throwable;
     protected abstract long ProcessSubscribeRequest(Zeze.Beans.Provider.Subscribe r) throws Throwable;
