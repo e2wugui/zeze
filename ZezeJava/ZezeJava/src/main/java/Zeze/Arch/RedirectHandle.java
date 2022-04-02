@@ -1,7 +1,7 @@
 package Zeze.Arch;
 
 import java.util.List;
-import Zeze.Beans.Provider2.BActionParam;
+import Zeze.Beans.ProviderDirect.BActionParam;
 import Zeze.Net.Binary;
 import Zeze.Util.Func4;
 import Zeze.Transaction.TransactionLevel;
