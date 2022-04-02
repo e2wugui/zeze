@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Net.Connector;
-import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Net.Service.ProtocolFactoryHandle;
 import Zeze.Transaction.Procedure;
@@ -414,8 +413,7 @@ public final class Agent implements Closeable {
 		return subState;
 	}
 
-	private long ProcessSubscribeFirstCommit(Protocol p) throws Throwable {
-		var r = (SubscribeFirstCommit)p;
+	private long ProcessSubscribeFirstCommit(SubscribeFirstCommit r) throws Throwable {
 		var state = getSubscribeStates().get(r.Argument.getServiceName());
 		if (null != state) {
 			state.OnFirstCommit(r.Argument);
@@ -439,8 +437,7 @@ public final class Agent implements Closeable {
 		}
 	}
 
-	private long ProcessUpdate(Protocol p) throws Throwable {
-		var r = (Update)p;
+	private long ProcessUpdate(Update r) throws Throwable {
 		var state = SubscribeStates.get(r.Argument.getServiceName());
 		if (null == state)
 			return Update.ServiceNotSubscribe;
@@ -450,8 +447,7 @@ public final class Agent implements Closeable {
 		return 0;
 	}
 
-	private long ProcessRegister(Protocol p) throws Throwable {
-		var r = (Register)p;
+	private long ProcessRegister(Register r) throws Throwable {
 		var state = SubscribeStates.get(r.Argument.getServiceName());
 		if (null == state)
 			return Update.ServiceNotSubscribe;
@@ -461,8 +457,7 @@ public final class Agent implements Closeable {
 		return 0;
 	}
 
-	private long ProcessUnRegister(Protocol p) throws Throwable {
-		var r = (UnRegister)p;
+	private long ProcessUnRegister(UnRegister r) throws Throwable {
 		var state = SubscribeStates.get(r.Argument.getServiceName());
 		if (null == state)
 			return Update.ServiceNotSubscribe;
@@ -472,8 +467,7 @@ public final class Agent implements Closeable {
 		return 0;
 	}
 
-	private long ProcessNotifyServiceList(Protocol p) throws Throwable {
-		var r = (NotifyServiceList)p;
+	private long ProcessNotifyServiceList(NotifyServiceList r) throws Throwable {
 		var state = getSubscribeStates().get(r.Argument.getServiceName());
 		if (null != state) {
 			state.OnNotify(r.Argument);
@@ -483,8 +477,7 @@ public final class Agent implements Closeable {
 		return Procedure.Success;
 	}
 
-	private long ProcessCommitServiceList(Protocol p) throws Throwable {
-		var r = (CommitServiceList)p;
+	private long ProcessCommitServiceList(CommitServiceList r) throws Throwable {
 		var state = getSubscribeStates().get(r.Argument.getServiceName());
 		if (null != state) {
 			state.OnCommit(r.Argument);
@@ -494,8 +487,7 @@ public final class Agent implements Closeable {
 		return Procedure.Success;
 	}
 
-	private long ProcessKeepAlive(Protocol p) {
-		var r = (KeepAlive)p;
+	private long ProcessKeepAlive(KeepAlive r) {
 		if (getOnKeepAlive() != null) {
 			getOnKeepAlive().run();
 		}
@@ -557,34 +549,34 @@ public final class Agent implements Closeable {
 				? new AgentClient(this, config)
 				: new AgentClient(this, config, netServiceName);
 
-		Client.AddFactoryHandle((new Register()).getTypeId(),
+		Client.AddFactoryHandle(Register.TypeId_,
 				new ProtocolFactoryHandle<>(Register::new, this::ProcessRegister));
 
-		Client.AddFactoryHandle((new UnRegister()).getTypeId(),
+		Client.AddFactoryHandle(UnRegister.TypeId_,
 				new ProtocolFactoryHandle<>(UnRegister::new, this::ProcessUnRegister));
 
-		Client.AddFactoryHandle(new Update().getTypeId(),
+		Client.AddFactoryHandle(Update.TypeId_,
 				new Service.ProtocolFactoryHandle<>(Update::new, this::ProcessUpdate));
 
-		Client.AddFactoryHandle((new Subscribe()).getTypeId(),
+		Client.AddFactoryHandle(Subscribe.TypeId_,
 				new ProtocolFactoryHandle<>(Subscribe::new));
 
-		Client.AddFactoryHandle((new UnSubscribe()).getTypeId(),
+		Client.AddFactoryHandle(UnSubscribe.TypeId_,
 				new ProtocolFactoryHandle<>(UnSubscribe::new));
 
-		Client.AddFactoryHandle((new NotifyServiceList()).getTypeId(),
+		Client.AddFactoryHandle(NotifyServiceList.TypeId_,
 				new ProtocolFactoryHandle<>(NotifyServiceList::new, this::ProcessNotifyServiceList));
 
-		Client.AddFactoryHandle((new CommitServiceList()).getTypeId(),
+		Client.AddFactoryHandle(CommitServiceList.TypeId_,
 				new ProtocolFactoryHandle<>(CommitServiceList::new, this::ProcessCommitServiceList));
 
-		Client.AddFactoryHandle((new KeepAlive()).getTypeId(),
+		Client.AddFactoryHandle(KeepAlive.TypeId_,
 				new ProtocolFactoryHandle<>(KeepAlive::new, this::ProcessKeepAlive));
 
-		Client.AddFactoryHandle((new SubscribeFirstCommit()).getTypeId(), new Service.ProtocolFactoryHandle<>(
-				SubscribeFirstCommit::new, this::ProcessSubscribeFirstCommit));
+		Client.AddFactoryHandle(SubscribeFirstCommit.TypeId_,
+				new Service.ProtocolFactoryHandle<>(SubscribeFirstCommit::new, this::ProcessSubscribeFirstCommit));
 
-		Client.AddFactoryHandle((new AllocateId()).getTypeId(),
+		Client.AddFactoryHandle(AllocateId.TypeId_,
 				new ProtocolFactoryHandle<>(AllocateId::new));
 	}
 

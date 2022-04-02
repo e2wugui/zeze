@@ -259,7 +259,7 @@ public final class Agent {
 		for (var node : RaftConfig.getNodes().values())
 			Client.getConfig().AddConnector(new ConnectorEx(node.getHost(), node.getPort()));
 
-		Client.AddFactoryHandle(new LeaderIs().getTypeId(),
+		Client.AddFactoryHandle(LeaderIs.TypeId_,
 				new Service.ProtocolFactoryHandle<>(LeaderIs::new, this::ProcessLeaderIs));
 
 		// ugly

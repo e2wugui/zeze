@@ -130,8 +130,8 @@ public class Test {
 
 		Agent = new Agent("Zeze.Raft.Agent.Test", raftConfigStart);
 		Zeze.Raft.Agent.NetClient client = Agent.getClient();
-		client.AddFactoryHandle(new AddCount().getTypeId(), new Service.ProtocolFactoryHandle<>(AddCount::new));
-		client.AddFactoryHandle(new GetCount().getTypeId(), new Service.ProtocolFactoryHandle<>(GetCount::new));
+		client.AddFactoryHandle(AddCount.TypeId_, new Service.ProtocolFactoryHandle<>(AddCount::new));
+		client.AddFactoryHandle(GetCount.TypeId_, new Service.ProtocolFactoryHandle<>(GetCount::new));
 		client.Start();
 
 		Task.run(() -> {
@@ -579,6 +579,7 @@ public class Test {
 
 	public static final class AddCount extends RaftRpc<EmptyBean, CountResult> {
 		public static final int ProtocolId_ = Bean.Hash32(AddCount.class.getName());
+		public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
 
 		public AddCount() {
 			Argument = new EmptyBean();
@@ -630,6 +631,7 @@ public class Test {
 
 	public static final class GetCount extends RaftRpc<EmptyBean, CountResult> {
 		public static final int ProtocolId_ = Bean.Hash32(GetCount.class.getName());
+		public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
 
 		public GetCount() {
 			Argument = new EmptyBean();
@@ -836,9 +838,9 @@ public class Test {
 
 				Raft = new Raft(StateMachine, RaftName, raftConfig);
 				Raft.getLogSequence().getWriteOptions().setSync(false);
-				Raft.getServer().AddFactoryHandle(new AddCount().getTypeId(),
+				Raft.getServer().AddFactoryHandle(AddCount.TypeId_,
 						new Service.ProtocolFactoryHandle<>(AddCount::new, this::ProcessAddCount));
-				Raft.getServer().AddFactoryHandle(new GetCount().getTypeId(),
+				Raft.getServer().AddFactoryHandle(GetCount.TypeId_,
 						new Service.ProtocolFactoryHandle<>(GetCount::new, this::ProcessGetCount));
 				Raft.getServer().Start();
 			}

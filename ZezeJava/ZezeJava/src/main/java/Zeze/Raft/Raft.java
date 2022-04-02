@@ -720,13 +720,13 @@ public final class Raft {
 	}
 
 	private void RegisterInternalRpc() {
-		Server.AddFactoryHandle(new RequestVote().getTypeId(),
+		Server.AddFactoryHandle(RequestVote.TypeId_,
 				new Service.ProtocolFactoryHandle<>(RequestVote::new, this::ProcessRequestVote));
-		Server.AddFactoryHandle(new AppendEntries().getTypeId(),
+		Server.AddFactoryHandle(AppendEntries.TypeId_,
 				new Service.ProtocolFactoryHandle<>(AppendEntries::new, this::ProcessAppendEntries));
-		Server.AddFactoryHandle(new InstallSnapshot().getTypeId(),
+		Server.AddFactoryHandle(InstallSnapshot.TypeId_,
 				new Service.ProtocolFactoryHandle<>(InstallSnapshot::new, this::ProcessInstallSnapshot));
-		Server.AddFactoryHandle(new LeaderIs().getTypeId(),
+		Server.AddFactoryHandle(LeaderIs.TypeId_,
 				new Service.ProtocolFactoryHandle<>(LeaderIs::new, this::ProcessLeaderIs));
 	}
 }

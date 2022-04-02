@@ -5,7 +5,8 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 
 public final class KeepAlive extends Rpc<EmptyBean, EmptyBean> {
-	public final static int ProtocolId_ = Bean.Hash32(KeepAlive.class.getName());
+	public static final int ProtocolId_ = Bean.Hash32(KeepAlive.class.getName());
+	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
 
 	public static final int Success = 0;
 
@@ -13,10 +14,12 @@ public final class KeepAlive extends Rpc<EmptyBean, EmptyBean> {
 		Argument = new EmptyBean();
 		Result = new EmptyBean();
 	}
+
 	@Override
 	public int getModuleId() {
 		return 0;
 	}
+
 	@Override
 	public int getProtocolId() {
 		return ProtocolId_;

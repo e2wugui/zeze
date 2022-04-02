@@ -6,7 +6,6 @@ import java.util.concurrent.Future;
 import Zeze.Application;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Digest;
-import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.Handshake.CHandshake;
@@ -49,30 +48,21 @@ public class HandshakeBase extends Service {
 	}
 
 	protected final void AddHandshakeServerFactoryHandle() {
-		{
-			var tmp = new Zeze.Services.Handshake.CHandshake();
-			HandshakeProtocols.add(tmp.getTypeId());
-			AddFactoryHandle(tmp.getTypeId(), new Service.ProtocolFactoryHandle<>(CHandshake::new
-					, this::ProcessCHandshake
-					, TransactionLevel.None));
-		}
-		{
-			var tmp = new Zeze.Services.Handshake.CHandshakeDone();
-			HandshakeProtocols.add(tmp.getTypeId());
-			AddFactoryHandle(tmp.getTypeId(), new Service.ProtocolFactoryHandle<>(CHandshakeDone::new
-					, this::ProcessCHandshakeDone
-					, TransactionLevel.None));
-		}
+		HandshakeProtocols.add(CHandshake.TypeId_);
+		AddFactoryHandle(CHandshake.TypeId_, new Service.ProtocolFactoryHandle<>(
+				CHandshake::new, this::ProcessCHandshake, TransactionLevel.None));
+		HandshakeProtocols.add(CHandshakeDone.TypeId_);
+		AddFactoryHandle(CHandshakeDone.TypeId_, new Service.ProtocolFactoryHandle<>(
+				CHandshakeDone::new, this::ProcessCHandshakeDone, TransactionLevel.None));
 	}
 
-	private int ProcessCHandshakeDone(Protocol p) throws Throwable {
+	private int ProcessCHandshakeDone(CHandshakeDone p) throws Throwable {
 		OnHandshakeDone(p.getSender());
 		return 0;
 	}
 
-	private int ProcessCHandshake(Protocol _p) {
+	private int ProcessCHandshake(CHandshake p) {
 		try {
-			Zeze.Services.Handshake.CHandshake p = (Zeze.Services.Handshake.CHandshake)_p;
 			int group = p.Argument.dh_group;
 			if (!getConfig().getHandshakeOptions().getDhGroups().contains(group)) {
 				p.getSender().Close(new UnsupportedOperationException("dhGroup Not Supported"));
@@ -108,24 +98,22 @@ public class HandshakeBase extends Service {
 
 			return 0;
 		} catch (Throwable ex) {
-			_p.getSender().Close(ex);
+			p.getSender().Close(ex);
 			return 0;
 		}
 	}
 
 	protected final void AddHandshakeClientFactoryHandle() {
-		var tmp = new Zeze.Services.Handshake.SHandshake();
-		HandshakeProtocols.add(tmp.getTypeId());
-		AddFactoryHandle(tmp.getTypeId(), new Service.ProtocolFactoryHandle<>(SHandshake::new
+		HandshakeProtocols.add(SHandshake.TypeId_);
+		AddFactoryHandle(SHandshake.TypeId_, new Service.ProtocolFactoryHandle<>(SHandshake::new
 				, this::ProcessSHandshake, TransactionLevel.None));
 	}
 
-	private int ProcessSHandshake(Protocol _p) {
+	private int ProcessSHandshake(SHandshake p) {
 		Context ctx = null;
 		try {
-			ctx = DHContext.remove(_p.getSender().getSessionId());
+			ctx = DHContext.remove(p.getSender().getSessionId());
 			if (ctx != null) {
-				Zeze.Services.Handshake.SHandshake p = (Zeze.Services.Handshake.SHandshake)_p;
 				byte[] material = Helper.computeDHKey(getConfig().getHandshakeOptions().getDhGroup(),
 						new BigInteger(p.Argument.dh_data), ctx.dhRandom).toByteArray();
 				var remoteAddress = p.getSender().getRemoteInetAddress();
@@ -144,9 +132,9 @@ public class HandshakeBase extends Service {
 				p.getSender().SubmitAction(() -> OnHandshakeDone(p.getSender())); // must after SetInputSecurityCodec and SetOutputSecurityCodec
 				return 0;
 			}
-			_p.getSender().Close(new IllegalStateException("handshake lost context."));
+			p.getSender().Close(new IllegalStateException("handshake lost context."));
 		} catch (Throwable ex) {
-			_p.getSender().Close(ex);
+			p.getSender().Close(ex);
 		} finally {
 			if (null != ctx && null != ctx.timeoutTask)
 				ctx.timeoutTask.cancel(false);

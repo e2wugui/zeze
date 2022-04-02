@@ -5,13 +5,14 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 
 public final class Update extends Rpc<ServiceInfo, EmptyBean> {
-	public final static int ProtocolId_ = Bean.Hash32(Update.class.getName());
+	public static final int ProtocolId_ = Bean.Hash32(Update.class.getName());
+	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
 
-	public final static int Success = 0;
-	public final static int ServiceNotRegister = 1;
-	public final static int ServerStateError = 2;
-	public final static int ServiceIdentityNotExist = 3;
-	public final static int ServiceNotSubscribe = 4;
+	public static final int Success = 0;
+	public static final int ServiceNotRegister = 1;
+	public static final int ServerStateError = 2;
+	public static final int ServiceIdentityNotExist = 3;
+	public static final int ServiceNotSubscribe = 4;
 
 	@Override
 	public int getModuleId() {

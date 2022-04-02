@@ -602,28 +602,28 @@ public final class ServiceManagerServer implements Closeable {
 
 		Server = new NetServer(this, config);
 
-		Server.AddFactoryHandle(new Register().getTypeId(),
+		Server.AddFactoryHandle(Register.TypeId_,
 				new Service.ProtocolFactoryHandle<>(Register::new, this::ProcessRegister));
 
-		Server.AddFactoryHandle(new Update().getTypeId(),
+		Server.AddFactoryHandle(Update.TypeId_,
 				new Service.ProtocolFactoryHandle<>(Update::new, this::ProcessUpdate));
 
-		Server.AddFactoryHandle(new UnRegister().getTypeId(),
+		Server.AddFactoryHandle(UnRegister.TypeId_,
 				new Service.ProtocolFactoryHandle<>(UnRegister::new, this::ProcessUnRegister));
 
-		Server.AddFactoryHandle(new Subscribe().getTypeId(),
+		Server.AddFactoryHandle(Subscribe.TypeId_,
 				new Service.ProtocolFactoryHandle<>(Subscribe::new, this::ProcessSubscribe));
 
-		Server.AddFactoryHandle(new UnSubscribe().getTypeId(),
+		Server.AddFactoryHandle(UnSubscribe.TypeId_,
 				new Service.ProtocolFactoryHandle<>(UnSubscribe::new, this::ProcessUnSubscribe));
 
-		Server.AddFactoryHandle(new ReadyServiceList().getTypeId(),
+		Server.AddFactoryHandle(ReadyServiceList.TypeId_,
 				new Service.ProtocolFactoryHandle<>(ReadyServiceList::new, this::ProcessReadyServiceList));
 
-		Server.AddFactoryHandle(new KeepAlive().getTypeId(),
+		Server.AddFactoryHandle(KeepAlive.TypeId_,
 				new Service.ProtocolFactoryHandle<>(KeepAlive::new));
 
-		Server.AddFactoryHandle(new AllocateId().getTypeId(),
+		Server.AddFactoryHandle(AllocateId.TypeId_,
 				new Service.ProtocolFactoryHandle<>(AllocateId::new, this::ProcessAllocateId));
 
 		if (Config.getStartNotifyDelay() > 0)
@@ -781,7 +781,6 @@ public final class ServiceManagerServer implements Closeable {
 	}
 
 	public static void main(String[] args) throws Throwable {
-		logger.info("start .");
 		String ip = null;
 		int port = 5001;
 
@@ -800,6 +799,7 @@ public final class ServiceManagerServer implements Closeable {
 
 		InetAddress address = (ip == null || ip.isEmpty()) ?
 				new InetSocketAddress(0).getAddress() : InetAddress.getByName(ip);
+		logger.info("{} started: {}", ServiceManagerServer.class.getSimpleName(), address);
 
 		var config = new Zeze.Config();
 		var smConfig = new ServiceManagerServer.Conf();

@@ -113,23 +113,23 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 
 		Server = new ServerService(config);
 
-		Server.AddFactoryHandle((new Acquire()).getTypeId(),
+		Server.AddFactoryHandle(Acquire.TypeId_,
 				new Service.ProtocolFactoryHandle<>(Acquire::new, this::ProcessAcquireRequest));
 
-		Server.AddFactoryHandle((new Reduce()).getTypeId(),
+		Server.AddFactoryHandle(Reduce.TypeId_,
 				new Service.ProtocolFactoryHandle<>(Reduce::new));
 
-		Server.AddFactoryHandle((new Login()).getTypeId(),
+		Server.AddFactoryHandle(Login.TypeId_,
 				new Service.ProtocolFactoryHandle<>(Login::new, this::ProcessLogin));
 
-		Server.AddFactoryHandle((new ReLogin()).getTypeId(),
+		Server.AddFactoryHandle(ReLogin.TypeId_,
 				new Service.ProtocolFactoryHandle<>(ReLogin::new, this::ProcessReLogin));
 
-		Server.AddFactoryHandle((new NormalClose()).getTypeId(),
+		Server.AddFactoryHandle(NormalClose.TypeId_,
 				new Service.ProtocolFactoryHandle<>(NormalClose::new, this::ProcessNormalClose));
 
 		// 临时注册到这里，安全起见应该起一个新的Service，并且仅绑定到 localhost。
-		Server.AddFactoryHandle((new Cleanup()).getTypeId(),
+		Server.AddFactoryHandle(Cleanup.TypeId_,
 				new Service.ProtocolFactoryHandle<>(Cleanup::new, this::ProcessCleanup));
 
 		ServerSocket = Server.NewServerSocket(ipaddress, port, null);
