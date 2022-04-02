@@ -10,6 +10,13 @@ public abstract class AbstractProviderDirect extends Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(this.getClass());
         {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Beans.ProviderDirect.AnnounceProviderInfo>();
+            factoryHandle.Factory = Zeze.Beans.ProviderDirect.AnnounceProviderInfo::new;
+            factoryHandle.Handle = this::ProcessAnnounceProviderInfoRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessAnnounceProviderInfoRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            service.AddFactoryHandle(47283356221296L, factoryHandle); // 11009, 61259632
+        }
+        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Beans.ProviderDirect.ModuleRedirect>();
             factoryHandle.Factory = Zeze.Beans.ProviderDirect.ModuleRedirect::new;
             factoryHandle.Handle = this::ProcessModuleRedirectRequest;
@@ -40,6 +47,7 @@ public abstract class AbstractProviderDirect extends Zeze.IModule {
     }
 
     public void UnRegisterProtocols(Zeze.Net.Service service) {
+        service.getFactorys().remove(47283356221296L);
         service.getFactorys().remove(47286708377899L);
         service.getFactorys().remove(47286357293504L);
         service.getFactorys().remove(47286982651743L);
@@ -55,6 +63,7 @@ public abstract class AbstractProviderDirect extends Zeze.IModule {
     public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
+    protected abstract long ProcessAnnounceProviderInfoRequest(Zeze.Beans.ProviderDirect.AnnounceProviderInfo r) throws Throwable;
     protected abstract long ProcessModuleRedirectRequest(Zeze.Beans.ProviderDirect.ModuleRedirect r) throws Throwable;
     protected abstract long ProcessModuleRedirectAllRequest(Zeze.Beans.ProviderDirect.ModuleRedirectAllRequest p) throws Throwable;
     protected abstract long ProcessModuleRedirectAllResult(Zeze.Beans.ProviderDirect.ModuleRedirectAllResult p) throws Throwable;

@@ -1,22 +1,80 @@
 package Zeze.Arch;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import Zeze.Beans.ProviderDirect.Transmit;
 import Zeze.Net.AsyncSocket;
+import Zeze.Services.ServiceManager.SubscribeInfo;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Beans.Provider.*;
+import Zeze.Util.Str;
 
 public abstract class ProviderImplement extends AbstractProviderImplement {
 	//private static final Logger logger = LogManager.getLogger(ProviderImplement.class);
 
-	private ProviderService service;
-	public ProviderService getService() {
-		return service;
+	public ProviderService providerService;
+	public ProviderDirectService providerDirectService;
+
+	public ProviderImplement(ProviderService providerService, ProviderDirectService directService) {
+		this.providerService = providerService;
+		this.providerDirectService = directService;
+		RegisterProtocols(providerService);
+		providerService.getZeze().getServiceManagerAgent().setOnChanged(
+				(subscribeState) -> ApplyServiceInfos(subscribeState.getServiceInfos()));
 	}
 
-	public void setService(ProviderService service) {
-		this.service = service;
-		RegisterProtocols(service);
+	private void ApplyServiceInfos(Zeze.Services.ServiceManager.ServiceInfos serviceInfos) {
+		if (serviceInfos.getServiceName().equals(providerService.LinkdServiceName)) {
+			this.providerService.Apply(serviceInfos);
+		} else if (serviceInfos.getServiceName().startsWith(this.providerService.ServerServiceNamePrefix)){
+			this.providerDirectService.Apply(serviceInfos);
+		}
+	}
+
+	/**
+	 * 注册所有支持的模块服务。
+	 * 包括静态动态。
+	 * 注册的模块时带上用于Provider之间连接的ip，port。
+	 *
+	 * 订阅Linkd服务。
+	 * Provider主动连接Linkd。
+	 *
+	 * @param ServerServiceNamePrefix
+	 * @param providerDirectIp
+	 * @param providerDirectPort
+	 * @param LinkdServiceName
+	 * @throws Throwable
+	 */
+	public void RegisterModulesAndSubscribeLinkd(String ServerServiceNamePrefix,
+												 String providerDirectIp, int providerDirectPort,
+												 String LinkdServiceName) throws Throwable {
+		providerService.LinkdServiceName = LinkdServiceName;
+		var sm = providerService.getZeze().getServiceManagerAgent();
+		var services = new HashMap<String, BModule>();
+		// 注册本provider的静态服务
+		for (var s : providerService.getStaticBinds().entrySet()) {
+			var name = Str.format("{}{}", ServerServiceNamePrefix, s.getKey());
+			var identity = String.valueOf(providerService.getZeze().getConfig().getServerId());
+			sm.RegisterService(name, identity, providerDirectIp, providerDirectPort,null);
+			services.put(name, s.getValue());
+		}
+		// 注册本provider的动态服务
+		for (var d : providerService.getDynamicModules().entrySet()) {
+			var name = Str.format("{}{}", ServerServiceNamePrefix, d.getKey());
+			var identity = String.valueOf(providerService.getZeze().getConfig().getServerId());
+			sm.RegisterService(name, identity, providerDirectIp, providerDirectPort,null);
+			services.put(name, d.getValue());
+		}
+
+		// 订阅provider直连发现服务
+		for (var e : services.entrySet()) {
+			sm.SubscribeService(e.getKey(), e.getValue().getSubscribeType());
+		}
+
+		// 订阅linkd发现服务。
+		providerService.getZeze().getServiceManagerAgent().SubscribeService(LinkdServiceName, SubscribeInfo.SubscribeTypeSimple, null);
 	}
 
 	private void SendKick(AsyncSocket sender, long linkSid, int code, String desc) {
@@ -30,7 +88,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	@Override
 	protected long ProcessDispatch(Dispatch p) throws Throwable {
 		try {
-			var factoryHandle = service.FindProtocolFactoryHandle(p.Argument.getProtocolType());
+			var factoryHandle = providerService.FindProtocolFactoryHandle(p.Argument.getProtocolType());
 			if (null == factoryHandle) {
 				SendKick(p.getSender(), p.Argument.getLinkSid(), BKick.ErrorProtocolUnkown, "unknown protocol");
 				return Procedure.LogicError;
@@ -39,7 +97,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			p2.Decode(Zeze.Serialize.ByteBuffer.Wrap(p.Argument.getProtocolData()));
 			p2.setSender(p.getSender());
 
-			var session = new ProviderUserSession(service, p.Argument.getAccount(), p.Argument.getStates(), p.getSender(), p.Argument.getLinkSid());
+			var session = new ProviderUserSession(providerService, p.Argument.getAccount(), p.Argument.getStates(), p.getSender(), p.Argument.getLinkSid());
 
 			p2.setUserState(session);
 			if (Transaction.getCurrent() != null) {
@@ -80,4 +138,6 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		linkSession.Setup(protocol.Argument.getLinkId(), protocol.Argument.getProviderSessionId());
 		return Procedure.Success;
 	}
+
+	protected abstract long ProcessTransmit(Transmit p) throws Throwable;
 }

@@ -7,7 +7,7 @@ import org.apache.logging.log4j.Logger;
 import Zeze.Beans.LinkdBase.*;
 import Zeze.Beans.Provider.*;
 
-public final class LinkdService extends Zeze.Services.HandshakeServer {
+public class LinkdService extends Zeze.Services.HandshakeServer {
 	private static final Logger logger = LogManager.getLogger(LinkdService.class);
 
 	public ProviderLinkd ProviderLinkd;

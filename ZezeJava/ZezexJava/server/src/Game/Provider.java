@@ -1,13 +1,17 @@
 package Game;
 
+import Zeze.Arch.*;
 import Zeze.Beans.Provider.*;
+import Zeze.Beans.ProviderDirect.*;
 import Zeze.Transaction.Procedure;
-
 
 public final class Provider extends Zeze.Arch.ProviderImplement {
 
 	public Game.App App;
+
 	public Provider(Game.App app) {
+		super(app.Server, app.ServerDirect);
+
 		App = app;
 	}
 
@@ -47,15 +51,8 @@ public final class Provider extends Zeze.Arch.ProviderImplement {
 	}
 
 	@Override
-	protected long ProcessAnnounceLinkInfo(AnnounceLinkInfo protocol) throws Throwable {
-		var linkSession = (Game.Server.LinkSession)protocol.getSender().getUserState();
-		linkSession.Setup(protocol.Argument.getLinkId(), protocol.Argument.getProviderSessionId());
-		return Procedure.Success;
-	}
-
-	@Override
 	protected long ProcessSendConfirm(SendConfirm protocol) throws Throwable {
-		var linkSession = (Game.Server.LinkSession)protocol.getSender().getUserState();
+		var linkSession = (ProviderService.LinkSession)protocol.getSender().getUserState();
 		var ctx = App.Server.<Game.Login.Onlines.ConfirmContext>TryGetManualContext(
 				protocol.Argument.getConfirmSerialId());
 		if (ctx != null) {

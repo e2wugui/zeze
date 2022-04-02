@@ -4,7 +4,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import Zeze.Beans.Provider.*;
 
-public class LinkdProviderSession {
+public class LinkdProviderSession extends ProviderSession {
 	/** 
 	 维护此Provider上绑定的LinkSession，用来在Provider关闭的时候，进行 UnBind。
 	 moduleId -> LinkSids
@@ -26,37 +26,9 @@ public class LinkdProviderSession {
 	public final java.util.concurrent.ConcurrentHashMap<Integer, Integer> getStaticBinds() {
 		return StaticBinds;
 	}
-	private volatile BLoad Load;
-	private  BAnnounceProviderInfo Info;
-	public final BAnnounceProviderInfo getInfo() {
-		return Info;
-	}
-	public final void setInfo(BAnnounceProviderInfo value) {
-		Info = value;
-	}
-	public final int getProposeMaxOnline() {
-		return Load.getProposeMaxOnline();
-	}
-	public final int getOnline() {
-		return Load.getOnline();
-	}
-	public final int getOnlineNew() {
-		return Load.getOnlineNew();
-	}
-
-	private long SessionId;
-	public final long getSessionId() {
-		return SessionId;
-	}
 
 	public LinkdProviderSession(long ssid) {
-		SessionId = ssid;
-	}
-
-	public final void SetLoad(BLoad load) {
-		synchronized (getLinkSessionIds()) {
-			Load = load.Copy(); // 复制一次吧。
-		}
+		super(ssid);
 	}
 
 	public final void AddLinkSession(int moduleId, long linkSessionId) {

@@ -6,11 +6,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import Zeze.Beans.Provider.*;
 
-public final class LinkdProviderService extends Zeze.Services.HandshakeServer {
+public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 	public ProviderLinkd ProviderLinkd;
 
-	public LinkdProviderService(Zeze.Application zeze) throws Throwable {
-		super("ProviderService", zeze);
+	public LinkdProviderService(String name, Zeze.Application zeze) throws Throwable {
+		super(name, zeze);
 	}
 
 	private static final Logger logger = LogManager.getLogger(LinkdProviderService.class);

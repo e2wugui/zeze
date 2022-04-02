@@ -15,8 +15,8 @@ public final class App extends Zeze.AppBase {
 		return Instance;
 	}
 
-	public static final String LinkdServiceName = "Game.Linkd";
 	public ProviderLinkd ProviderLinkd;
+
 	private LinkdConfig LoadConfig() {
 		try {
 			byte[] bytes = Files.readAllBytes(Paths.get("linkd.json"));
@@ -37,16 +37,15 @@ public final class App extends Zeze.AppBase {
 		Zeze.Start(); // 启动数据库
 
 		var ipp = ProviderService.GetOnePassiveAddress();
-		String ProviderServicePassiveIp = ipp.getKey();
-		int ProviderServicePassivePort = ipp.getValue();
+		String psip = ipp.getKey();
+		int psport = ipp.getValue();
 
-		var linkName = Str.format("{}:{}", ProviderServicePassiveIp, ProviderServicePassivePort);
+		var linkName = Str.format("{}:{}", psip, psport);
 		AsyncSocket.setSessionIdGenFunc(PersistentAtomicLong.getOrAdd("Game.Linkd." + linkName)::next);
 
 		StartService(); // 启动网络. after setSessionIdGenFunc
 
-		Zeze.getServiceManagerAgent().RegisterService(LinkdServiceName,
-				linkName, ProviderServicePassiveIp, ProviderServicePassivePort, null);
+		ProviderLinkd.RegisterService("Game.Linkd", linkName, psip, psport, null);
 	}
 
 	public void Stop() throws Throwable {

@@ -1,8 +1,13 @@
 package Zeze.Arch;
 
+import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Net.AsyncSocket;
+import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Beans.ProviderDirect.*;
+import Zeze.Util.KV;
+import Zeze.Util.OutObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -11,9 +16,56 @@ import org.apache.logging.log4j.Logger;
  */
 public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	private static final Logger logger = LogManager.getLogger(ProviderDirectService.class);
+	public ProviderService providerService;
+	public String PassiveIp;
+	public int PassivePort;
 
 	public ProviderDirectService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);
+	}
+
+	public void Apply(Zeze.Services.ServiceManager.ServiceInfos infos) {
+		for (var pm : infos.getServiceInfoListSortedByIdentity()) {
+			var serverId = Integer.valueOf(pm.getServiceIdentity());
+			if (serverId <= getZeze().getConfig().getServerId())
+				continue;
+			var out = new OutObject<Connector>();
+			if (getConfig().TryGetOrAddConnector(pm.getPassiveIp(), pm.getPassivePort(), true, out)) {
+				// 新建的Connector。开始连接。
+				out.Value.Start();
+			}
+		}
+	}
+
+	@Override
+	public void OnHandshakeDone(AsyncSocket socket) throws Throwable {
+		super.OnHandshakeDone(socket);
+		var c = socket.getConnector();
+		if (c != null) {
+			// 主动连接。
+			updateServiceInfos(c.getHostNameOrAddress(), c.getPort(), socket.getSessionId());
+			var r = new AnnounceProviderInfo();
+			r.Argument.setIp(PassiveIp);
+			r.Argument.setPort(PassivePort);
+		}
+		// 被动连接等待对方报告信息时再处理。
+	}
+
+	void updateServiceInfos(String ip, int port, long sessionId) {
+		// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
+		for (var ss : getZeze().getServiceManagerAgent().getSubscribeStates().values()) {
+			if (ss.getServiceName().startsWith(providerService.ServerServiceNamePrefix)) {
+				var mid = Integer.valueOf(ss.getServiceName().split("#")[1]);
+				var m = providerService.Modules.get(mid);
+				for (var server : ss.getServiceInfos().getServiceInfoListSortedByIdentity()) {
+					// 符合当前连接目标。
+					if (server.getPassiveIp().equals(ip) && server.getPassivePort() == port) {
+						ss.SetServiceIdentityReadyState(server.getServiceIdentity(),
+								new ProviderModuleState(sessionId, mid, m.getChoiceType(), m.getConfigType()));
+					}
+				}
+			}
+		}
 	}
 
 	@Override

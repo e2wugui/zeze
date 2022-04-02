@@ -12,12 +12,9 @@ import Zeze.Transaction.Transaction;
  * 需要的时候可以重载重新实现默认实现。
  */
 public abstract class ProviderDirect extends AbstractProviderDirect {
-    private ProviderDirectService service;
-    public ProviderDirectService getService() {
-        return service;
-    }
+    public ProviderDirectService service;
 
-    public void setService(ProviderDirectService service) {
+    public ProviderDirect(ProviderDirectService service) {
         this.service = service;
         RegisterProtocols(service);
     }
@@ -137,5 +134,11 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
             ctx.ProcessResult(protocol);
         }
         return Procedure.Success;
+    }
+
+    @Override
+    protected long ProcessAnnounceProviderInfoRequest(AnnounceProviderInfo r) {
+        service.updateServiceInfos(r.Argument.getIp(), r.Argument.getPort(), r.getSender().getSessionId());
+        return 0;
     }
 }

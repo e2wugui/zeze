@@ -456,6 +456,13 @@
 			</bean>
 
 			<protocol name="Transmit" argument="BTransmit" NoProcedure="true" handle="server"/> 默认不启用事务，由协议实现自己控制。
+
+			<bean name="BProviderInfo">
+				<variable name="Ip"   id="1" type="string"/>
+				<variable name="Port" id="2" type="int"/>
+			</bean>
+
+			<rpc name="AnnounceProviderInfo" argument="BProviderInfo" handle="server,client"/>
 		</module>
 
 		<module name="RedoQueue" id="11010">

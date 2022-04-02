@@ -1,10 +1,6 @@
 package Zeze.Arch;
 
-import java.util.ArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Net.Protocol;
-import Zeze.Net.Service;
-import Zeze.Services.ServiceManager.Agent;
 import Zeze.Transaction.Procedure;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -19,159 +15,31 @@ public class ProviderLinkd extends AbstractProviderLinkd {
 
     public LinkdProviderService LinkdProviderService;
     public LinkdService LinkdService;
-    public Zeze.Application zz;
-    public LinkdConfig LinkdConfig;
+    public ProviderDistribute Distribute;
 
     public ProviderLinkd(Zeze.Application zz, LinkdConfig linkdConfig, LinkdProviderService service, LinkdService linkdService) {
-        this.zz = zz;
-        LinkdConfig = linkdConfig;
+        Distribute = new ProviderDistribute();
+        Distribute.LinkdConfig = linkdConfig;
+        Distribute.ProviderService = service;
+        Distribute.zeze = zz;
+
         LinkdProviderService = service;
         LinkdProviderService.ProviderLinkd = this;
         LinkdService = linkdService;
         LinkdService.ProviderLinkd = this;
+
         RegisterProtocols(service);
     }
 
-    private String MakeServiceName(String serviceNamePrefix, int moduleId) {
-        return serviceNamePrefix + moduleId;
-    }
-
-    public boolean ChoiceHash(Agent.SubscribeState providers, int hash, Zeze.Util.OutObject<Long> provider) {
-        provider.Value = 0L;
-
-        var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
-        if (list.size() == 0) {
-            return false;
-        }
-
-        Object tempVar = list.get(Integer.remainderUnsigned(hash, list.size())).getLocalState();
-        var providerModuleState = (ProviderModuleState)tempVar;
-        if (null == providerModuleState) {
-            return false;
-        }
-
-        provider.Value = providerModuleState.SessionId;
-        return true;
-    }
-
-    public boolean ChoiceLoad(Agent.SubscribeState providers, Zeze.Util.OutObject<Long> provider) {
-        provider.Value = 0L;
-
-        var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
-        var frees = new ArrayList<LinkdProviderSession>(list.size());
-        var all = new ArrayList<LinkdProviderSession>(list.size());
-        int TotalWeight = 0;
-
-        // 新的provider在后面，从后面开始搜索。后面的可能是新的provider。
-        for (int i = list.size() - 1; i >= 0; --i) {
-            var providerModuleState = (ProviderModuleState)list.get(i).getLocalState();
-            if (null == providerModuleState) {
-                continue;
-            }
-            // Object tempVar2 = App.ProviderService.GetSocket(providerModuleState.getSessionId()).getUserState();
-            var ps = (LinkdProviderSession)LinkdProviderService.GetSocket(providerModuleState.SessionId).getUserState();
-            if (null == ps) {
-                continue; // 这里发现关闭的服务，仅仅忽略.
-            }
-            all.add(ps);
-            if (ps.getOnlineNew() > LinkdConfig.getMaxOnlineNew()) {
-                continue;
-            }
-            int weight = ps.getProposeMaxOnline() - ps.getOnline();
-            if (weight <= 0) {
-                continue;
-            }
-            frees.add(ps);
-            TotalWeight += weight;
-        }
-        if (TotalWeight > 0) {
-            int randweight = Zeze.Util.Random.getInstance().nextInt(TotalWeight);
-            for (var ps : frees) {
-                int weight = ps.getProposeMaxOnline() - ps.getOnline();
-                if (randweight < weight) {
-                    provider.Value = ps.getSessionId();
-                    return true;
-                }
-                randweight -= weight;
-            }
-        }
-        // 选择失败，一般是都满载了，随机选择一个。
-        if (!all.isEmpty()) {
-            provider.Value = all.get(Zeze.Util.Random.getInstance().nextInt(all.size())).getSessionId();
-            return true;
-        }
-        // no providers
-        return false;
-    }
-
-    private final AtomicInteger FeedFullOneByOneIndex = new AtomicInteger();
-
-    public boolean ChoiceFeedFullOneByOne(Agent.SubscribeState providers, Zeze.Util.OutObject<Long> provider) {
-        // 查找时增加索引，和喂饱时增加索引，需要原子化。提高并发以后慢慢想，这里应该足够快了。
-        synchronized (this) {
-            provider.Value = 0L;
-
-            var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
-            // 最多遍历一次。循环里面 continue 时，需要递增索引。
-            for (int i = 0; i < list.size(); ++i, FeedFullOneByOneIndex.incrementAndGet()) {
-                var index = Integer.remainderUnsigned(FeedFullOneByOneIndex.get(), list.size()); // current
-                var serviceinfo = list.get(index);
-                var providerModuleState = (ProviderModuleState)serviceinfo.getLocalState();
-                if (providerModuleState == null)
-                    continue;
-                var providerSocket = LinkdProviderService.GetSocket(providerModuleState.SessionId);
-                if (null == providerSocket)
-                    continue;
-                var ps = (LinkdProviderSession)providerSocket.getUserState();
-                // 这里发现关闭的服务，仅仅忽略.
-                if (null == ps)
-                    continue;
-                // 这个和一个一个喂饱冲突，但是一下子给一个服务分配太多用户，可能超载。如果不想让这个生效，把MaxOnlineNew设置的很大。
-                if (ps.getOnlineNew() > LinkdConfig.getMaxOnlineNew())
-                    continue;
-
-                provider.Value = ps.getSessionId();
-                if (ps.getOnline() >= ps.getProposeMaxOnline())
-                    FeedFullOneByOneIndex.incrementAndGet(); // 已经喂饱了一个，下一个。
-                return true;
-            }
-            return false;
-        }
-    }
-
-    public boolean ChoiceProvider(String serviceNamePrefix, int moduleId, int hash, Zeze.Util.OutObject<Long> provider) {
-        var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
-
-        var volatileProviders = zz.getServiceManagerAgent().getSubscribeStates().get(serviceName);
-        if (null == volatileProviders) {
-            provider.Value = 0L;
-            return false;
-        }
-        return ChoiceHash(volatileProviders, hash, provider);
-    }
-
-    public boolean ChoiceProviderByServerId(String serviceNamePrefix, int moduleId, int serverId, Zeze.Util.OutObject<Long> provider) {
-        var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
-
-        var volatileProviders = zz.getServiceManagerAgent().getSubscribeStates().get(serviceName);
-        if (null == volatileProviders) {
-            provider.Value = 0L;
-            return false;
-        }
-        var si = volatileProviders.getServiceInfos().findServiceInfoByServerId(serverId);
-        if (null != si) {
-            var state = (ProviderModuleState)si.getLocalState();
-            provider.Value = state.SessionId;
-            return true;
-        }
-        return false;
+    public void RegisterService(String name, String identity, String ip, int port, String extra) throws Throwable {
+        Distribute.zeze.getServiceManagerAgent().RegisterService(name, identity, ip, port, extra);
     }
 
     public boolean ChoiceProviderAndBind(int moduleId, Zeze.Net.AsyncSocket link, Zeze.Util.OutObject<Long> provider) {
-        var serviceName = MakeServiceName(getServerServiceNamePrefix(), moduleId);
+        var serviceName = Distribute.MakeServiceName(getServerServiceNamePrefix(), moduleId);
         var linkSession = (LinkdUserSession)link.getUserState();
         provider.Value = 0L;
-        var volatileProviders = zz.getServiceManagerAgent().getSubscribeStates().get(serviceName);
+        var volatileProviders = Distribute.zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
         if (null == volatileProviders)
             return false;
 
@@ -181,21 +49,21 @@ public class ProviderLinkd extends AbstractProviderLinkd {
         var providerModuleState = (ProviderModuleState)volatileProviders.getSubscribeInfo().getLocalState();
         switch (providerModuleState.ChoiceType) {
         case BModule.ChoiceTypeHashAccount:
-            return ChoiceHash(volatileProviders, Zeze.Serialize.ByteBuffer.calc_hashnr(linkSession.getAccount()), provider);
+            return Distribute.ChoiceHash(volatileProviders, Zeze.Serialize.ByteBuffer.calc_hashnr(linkSession.getAccount()), provider);
 
         case BModule.ChoiceTypeHashRoleId:
             if (!linkSession.getUserStates().isEmpty()) {
-                return ChoiceHash(volatileProviders, Zeze.Serialize.ByteBuffer.calc_hashnr(linkSession.getUserStates().get(0)), provider);
+                return Distribute.ChoiceHash(volatileProviders, Zeze.Serialize.ByteBuffer.calc_hashnr(linkSession.getUserStates().get(0)), provider);
             } else {
                 return false;
             }
 
         case BModule.ChoiceTypeFeedFullOneByOne:
-            return ChoiceFeedFullOneByOne(volatileProviders, provider);
+            return Distribute.ChoiceFeedFullOneByOne(volatileProviders, provider);
         }
 
         // default
-        if (ChoiceLoad(volatileProviders, provider)) {
+        if (Distribute.ChoiceLoad(volatileProviders, provider)) {
             // 这里不判断null，如果失败让这次选择失败，否则选中了，又没有Bind以后更不好处理。
             var providerSocket = LinkdProviderService.GetSocket(provider.Value);
             var providerSession = (LinkdProviderSession)providerSocket.getUserState();
@@ -253,8 +121,8 @@ public class ProviderLinkd extends AbstractProviderLinkd {
                 }
                 var providerModuleState = new ProviderModuleState(providerSession.getSessionId(),
                         module.getKey(), module.getValue().getChoiceType(), module.getValue().getConfigType());
-                var serviceName = MakeServiceName(providerSession.getInfo().getServiceNamePrefix(), module.getKey());
-                var subState = zz.getServiceManagerAgent().SubscribeService(
+                var serviceName = Distribute.MakeServiceName(providerSession.getInfo().getServiceNamePrefix(), module.getKey());
+                var subState = Distribute.zeze.getServiceManagerAgent().SubscribeService(
                         serviceName, Zeze.Services.ServiceManager.SubscribeInfo.SubscribeTypeReadyCommit, providerModuleState);
                 // 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
                 subState.SetServiceIdentityReadyState(providerSession.getInfo().getServiceIndentity(), providerModuleState);
@@ -281,8 +149,8 @@ public class ProviderLinkd extends AbstractProviderLinkd {
         for (var module : rpc.Argument.getModules().entrySet()) {
             var providerModuleState = new ProviderModuleState(providerSession.getSessionId(),
                     module.getKey(), module.getValue().getChoiceType(), module.getValue().getConfigType());
-            var serviceName = MakeServiceName(providerSession.getInfo().getServiceNamePrefix(), module.getKey());
-            var subState = zz.getServiceManagerAgent().SubscribeService(
+            var serviceName = Distribute.MakeServiceName(providerSession.getInfo().getServiceNamePrefix(), module.getKey());
+            var subState = Distribute.zeze.getServiceManagerAgent().SubscribeService(
                     serviceName, module.getValue().getSubscribeType(), providerModuleState);
             // 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
             if (Zeze.Services.ServiceManager.SubscribeInfo.SubscribeTypeReadyCommit == module.getValue().getSubscribeType())
@@ -303,8 +171,8 @@ public class ProviderLinkd extends AbstractProviderLinkd {
             if (!isOnProviderClose) {
                 providerSession.getStaticBinds().remove(moduleId);
             }
-            var serviceName = MakeServiceName(providerSession.getInfo().getServiceNamePrefix(), moduleId);
-            var volatileProviders = zz.getServiceManagerAgent().getSubscribeStates().get(serviceName);
+            var serviceName = Distribute.MakeServiceName(providerSession.getInfo().getServiceNamePrefix(), moduleId);
+            var volatileProviders = Distribute.zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
             if (null == volatileProviders)
                 continue;
             // UnBind 不删除provider-list，这个总是通过ServiceManager通告更新。

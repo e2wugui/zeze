@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.*;
 import Zeze.Serialize.Serializable;
 import Zeze.Beans.Provider.*;
+import Zeze.Beans.ProviderDirect.*;
 
 public class Onlines {
 	private tonline table;

@@ -7,7 +7,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
-import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -36,7 +35,7 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 		super.Start();
 	}
 
-	public void ApplyLinksChanged(Zeze.Services.ServiceManager.ServiceInfos serviceInfos) {
+	public void Apply(Zeze.Services.ServiceManager.ServiceInfos serviceInfos) {
 		HashSet<String> current = new HashSet<>();
 		for (var link : serviceInfos.getServiceInfoListSortedByIdentity()) {
 			var linkName = GetLinkName(link);
@@ -180,10 +179,8 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 		super(name, zeze);
 	}
 
-	private String ServerServiceNamePrefix;
-	public String getServerServiceNamePrefix() {
-		return ServerServiceNamePrefix;
-	}
+	public String ServerServiceNamePrefix;
+	public String LinkdServiceName;
 
 	private final HashMap<Integer, BModule> StaticBinds = new HashMap<>();
 
@@ -197,9 +194,12 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 		return DynamicModules;
 	}
 
+	public java.util.HashMap<Integer, BModule> Modules;
 	public void initialize(String prefix, ProviderModuleBinds binds, java.util.HashMap<String, Zeze.IModule> modules) {
 		this.ServerServiceNamePrefix = prefix;
 		binds.BuildStaticBinds(modules, getZeze().getConfig().getServerId(), StaticBinds);
 		binds.BuildDynamicBinds(modules, getZeze().getConfig().getServerId(), DynamicModules);
+		Modules.putAll(StaticBinds);
+		Modules.putAll(DynamicModules);
 	}
 }

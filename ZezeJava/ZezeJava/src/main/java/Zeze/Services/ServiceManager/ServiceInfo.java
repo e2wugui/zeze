@@ -17,7 +17,7 @@ public final class ServiceInfo extends Bean implements Comparable<ServiceInfo>{
 	}
 
 	/**
-	 服务id，对于 Zeze.Application，一般就是 Config.AutoKeyLocalId.
+	 服务id，对于 Zeze.Application，一般就是 Config.ServerId.
 	 这里使用类型 string 是为了更好的支持扩展。
 	*/
 	private String ServiceIdentity;

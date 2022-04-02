@@ -4,9 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
-import Zeze.Services.ServiceManager.SubscribeInfo;
 import Zeze.Util.PersistentAtomicLong;
-import Zeze.Util.Str;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import Zeze.Arch.ProviderModuleBinds;
 
@@ -77,29 +75,22 @@ public final class App extends Zeze.AppBase {
 		CreateModules();
 
 		Server.initialize(ServerServiceNamePrefix, ProviderModuleBinds.Load(), Modules);
-		Zeze.getServiceManagerAgent().setOnChanged((subscribeState) -> Server.ApplyLinksChanged(subscribeState.getServiceInfos()));
+		ServerDirect.providerService = Server; // ugly
+		var kv = ServerDirect.GetOnePassiveAddress();
+		ServerDirect.PassiveIp = kv.getKey();
+		ServerDirect.PassivePort = kv.getValue();
 
 		Zeze.Start(); // 启动数据库
-
 		provider.Start(this);
 		StartModules(); // 启动模块，装载配置什么的。
 
 		PersistentAtomicLong socketSessionIdGen = PersistentAtomicLong.getOrAdd("Game.Server." + config.getServerId());
 		AsyncSocket.setSessionIdGenFunc(socketSessionIdGen::next);
-
 		StartService(); // 启动网络
 		getLoad().StartTimerTask();
-
 		// 服务准备好以后才注册和订阅。
-		for (var staticBind : Server.getStaticBinds().entrySet()) {
-			Zeze.getServiceManagerAgent().RegisterService(
-					Str.format("{}{}", ServerServiceNamePrefix, staticBind.getKey()),
-					String.valueOf(config.getServerId()),
-					null,
-					0,
-					null);
-		}
-		Zeze.getServiceManagerAgent().SubscribeService(LinkdServiceName, SubscribeInfo.SubscribeTypeSimple, null);
+		provider.RegisterModulesAndSubscribeLinkd(ServerServiceNamePrefix,
+				ServerDirect.PassiveIp, ServerDirect.PassivePort, LinkdServiceName);
 	}
 
 	public void Stop() throws Throwable {
