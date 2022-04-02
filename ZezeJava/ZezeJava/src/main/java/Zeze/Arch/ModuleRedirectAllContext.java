@@ -3,7 +3,7 @@ package Zeze.Arch;
 import java.util.HashSet;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Procedure;
-import Zeze.Beans.Provider2.*;
+import Zeze.Beans.ProviderDirect.*;
 import java.util.List;
 
 public class ModuleRedirectAllContext extends Zeze.Net.Service.ManualContext {
