@@ -1,41 +1,108 @@
 package Zeze.Util;
 
-import java.util.concurrent.Callable;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.FutureTask;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public class TaskCompletionSource<T> extends FutureTask<T> {
-	private static final Callable<?> nullCallable = () -> null;
+public class TaskCompletionSource<T> implements Future<T> {
+	private static final VarHandle RESULT;
 
-	public TaskCompletionSource(Callable<T> callable) {
-		super(callable);
+	@SuppressWarnings("unused")
+	private volatile Object result;
+
+	static {
+		try {
+			RESULT = MethodHandles.lookup().findVarHandle(TaskCompletionSource.class, "result", Object.class);
+		} catch (ReflectiveOperationException e) {
+			throw new ExceptionInInitializerError(e);
+		}
 	}
 
-	@SuppressWarnings("unchecked")
-	public TaskCompletionSource() {
-		super((Callable<T>)nullCallable);
+	private boolean setResult(Object r) {
+		if (r == null)
+			r = RESULT;
+		if (RESULT.compareAndSet(this, null, r)) {
+			synchronized (this) {
+				notifyAll();
+			}
+			return true;
+		}
+		return false;
 	}
 
-	public boolean TrySetException(Throwable ex) {
-		super.setException(ex);
-		return true;
+	public boolean SetResult(T t) {
+		return setResult(t);
 	}
 
-	public boolean SetException(Throwable ex) {
-		super.setException(ex);
-		return true;
+	public boolean TrySetException(Throwable e) {
+		return setResult(new ExecutionException(e));
 	}
 
-	public void SetResult(T t) {
-		super.set(t);
+	public boolean SetException(Throwable e) {
+		return setResult(new ExecutionException(e));
+	}
+
+	@Override
+	public boolean cancel(boolean mayInterruptIfRunning) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public boolean isCancelled() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public boolean isDone() {
+		return result != null;
+	}
+
+	@Override
+	public T get() throws InterruptedException, ExecutionException {
+		Object r = result;
+		if (r == null) {
+			synchronized (this) {
+				while ((r = result) == null)
+					wait();
+			}
+		}
+		if (r instanceof ExecutionException)
+			throw (ExecutionException)r;
+		if (r == RESULT)
+			r = null;
+		@SuppressWarnings("unchecked")
+		T t = (T)r;
+		return t;
+	}
+
+	@Override
+	public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+		Object r = result;
+		if (r == null) {
+			synchronized (this) {
+				if ((r = result) == null) {
+					wait((unit.toNanos(timeout) + 999_999) / 1_000_000);
+					if ((r = result) == null)
+						throw new TimeoutException();
+				}
+			}
+		}
+		if (r instanceof ExecutionException)
+			throw (ExecutionException)r;
+		if (r == RESULT)
+			r = null;
+		@SuppressWarnings("unchecked")
+		T t = (T)r;
+		return t;
 	}
 
 	public void Wait() {
 		try {
-			super.get();
+			get();
 		} catch (InterruptedException | ExecutionException e) {
 			throw new RuntimeException(e);
 		}
@@ -43,7 +110,7 @@ public class TaskCompletionSource<T> extends FutureTask<T> {
 
 	public boolean Wait(long timeout) {
 		try {
-			super.get(timeout, TimeUnit.MILLISECONDS);
+			get(timeout, TimeUnit.MILLISECONDS);
 			return true;
 		} catch (TimeoutException | CancellationException e) {
 			return false;
