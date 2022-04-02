@@ -1,5 +1,5 @@
 // auto-generated @formatter:off
-package Zeze.Beans.Provider2;
+package Zeze.Beans.ProviderDirect;
 
 import Zeze.Serialize.ByteBuffer;
 
@@ -91,7 +91,7 @@ public final class BActionParam extends Zeze.Transaction.Bean {
         return Copy();
     }
 
-    public static final long TYPEID = 551096725401045412L;
+    public static final long TYPEID = 3361592599775821105L;
 
     @Override
     public long getTypeId() {
@@ -124,7 +124,7 @@ public final class BActionParam extends Zeze.Transaction.Bean {
 
     @Override
     public void BuildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Beans.Provider2.BActionParam: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Beans.ProviderDirect.BActionParam: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Name").append('=').append(getName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Params").append('=').append(getParams()).append(System.lineSeparator());

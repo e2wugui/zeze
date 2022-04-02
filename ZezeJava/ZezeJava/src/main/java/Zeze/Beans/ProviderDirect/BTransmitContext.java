@@ -1,5 +1,5 @@
 // auto-generated @formatter:off
-package Zeze.Beans.Provider2;
+package Zeze.Beans.ProviderDirect;
 
 import Zeze.Serialize.ByteBuffer;
 
@@ -109,7 +109,7 @@ public final class BTransmitContext extends Zeze.Transaction.Bean {
         return Copy();
     }
 
-    public static final long TYPEID = -199025888869567268L;
+    public static final long TYPEID = 3228790106052223913L;
 
     @Override
     public long getTypeId() {
@@ -150,7 +150,7 @@ public final class BTransmitContext extends Zeze.Transaction.Bean {
 
     @Override
     public void BuildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Beans.Provider2.BTransmitContext: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Beans.ProviderDirect.BTransmitContext: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("LinkSid").append('=').append(getLinkSid()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ProviderId").append('=').append(getProviderId()).append(',').append(System.lineSeparator());

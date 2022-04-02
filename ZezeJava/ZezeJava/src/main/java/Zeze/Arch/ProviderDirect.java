@@ -1,12 +1,12 @@
 package Zeze.Arch;
 
-import Zeze.Beans.Provider2.*;
+import Zeze.Beans.ProviderDirect.*;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 
-public abstract class Provider2 extends AbstractProvider2 {
+public abstract class ProviderDirect extends AbstractProviderDirect {
     private Provider2Server server;
     public Provider2Server getServer() {
         return server;

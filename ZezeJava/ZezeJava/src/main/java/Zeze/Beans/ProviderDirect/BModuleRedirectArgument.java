@@ -1,5 +1,5 @@
 // auto-generated @formatter:off
-package Zeze.Beans.Provider2;
+package Zeze.Beans.ProviderDirect;
 
 import Zeze.Serialize.ByteBuffer;
 
@@ -190,7 +190,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean {
         return Copy();
     }
 
-    public static final long TYPEID = 4310056222124983648L;
+    public static final long TYPEID = -6999279897017654685L;
 
     @Override
     public long getTypeId() {
@@ -255,7 +255,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean {
 
     @Override
     public void BuildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Beans.Provider2.BModuleRedirectArgument: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Beans.ProviderDirect.BModuleRedirectArgument: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ModuleId").append('=').append(getModuleId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("HashCode").append('=').append(getHashCode()).append(',').append(System.lineSeparator());

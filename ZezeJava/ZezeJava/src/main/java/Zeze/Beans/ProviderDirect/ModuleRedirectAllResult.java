@@ -1,9 +1,9 @@
 // auto-generated @formatter:off
-package Zeze.Beans.Provider2;
+package Zeze.Beans.ProviderDirect;
 
-public class Transmit extends Zeze.Net.Protocol1<Zeze.Beans.Provider2.BTransmit> {
+public class ModuleRedirectAllResult extends Zeze.Net.Protocol1<Zeze.Beans.ProviderDirect.BModuleRedirectAllResult> {
     public static final int ModuleId_ = 11009;
-    public static final int ProtocolId_ = -1028521699;
+    public static final int ProtocolId_ = -607277217;
     public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_);
 
     @Override
@@ -16,7 +16,7 @@ public class Transmit extends Zeze.Net.Protocol1<Zeze.Beans.Provider2.BTransmit>
         return ProtocolId_;
     }
 
-    public Transmit() {
-        Argument = new Zeze.Beans.Provider2.BTransmit();
+    public ModuleRedirectAllResult() {
+        Argument = new Zeze.Beans.ProviderDirect.BModuleRedirectAllResult();
     }
 }

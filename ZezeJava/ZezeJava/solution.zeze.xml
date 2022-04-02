@@ -356,7 +356,7 @@
 		</module>
 
 		<!-- gs 之间直连的服务: 即时客户端也是服务器 -->
-		<module name="Provider2" id="11009">
+		<module name="ProviderDirect" id="11009">
 			<bean name="BModuleRedirectArgument">
 				<variable name="ModuleId"     id="1" type="int"/>
 				<variable name="HashCode"     id="2" type="int"/> server 计算。see BBind.ChoiceType。
@@ -486,9 +486,9 @@
 	</component>
 
 	<!-- Provider之间直连服务 -->
-	<component name="Provider2" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">
+	<component name="ProviderDirect" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">
 		<service name="" handle="server">
-			<module ref="Zeze.Beans.Provider2"/>
+			<module ref="Zeze.Beans.ProviderDirect"/>
 		</service>
 	</component>
 

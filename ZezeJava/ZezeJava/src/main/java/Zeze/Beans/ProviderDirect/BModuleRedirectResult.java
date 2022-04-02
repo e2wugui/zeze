@@ -1,5 +1,5 @@
 // auto-generated @formatter:off
-package Zeze.Beans.Provider2;
+package Zeze.Beans.ProviderDirect;
 
 import Zeze.Serialize.ByteBuffer;
 
@@ -8,7 +8,7 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean {
     private int _ServerId; // 目标server的id。
     private long _ReturnCode; // 实现函数的返回。
     private Zeze.Net.Binary _Params;
-    private final Zeze.Transaction.Collections.PList2<Zeze.Beans.Provider2.BActionParam> _Actions; // 按回调顺序。！不是定义顺序！
+    private final Zeze.Transaction.Collections.PList2<Zeze.Beans.ProviderDirect.BActionParam> _Actions; // 按回调顺序。！不是定义顺序！
 
     public int getModuleId() {
         if (!isManaged())
@@ -100,7 +100,7 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__Params(this, value));
     }
 
-    public Zeze.Transaction.Collections.PList2<Zeze.Beans.Provider2.BActionParam> getActions() {
+    public Zeze.Transaction.Collections.PList2<Zeze.Beans.ProviderDirect.BActionParam> getActions() {
         return _Actions;
     }
 
@@ -145,7 +145,7 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean {
         return Copy();
     }
 
-    public static final long TYPEID = 8251968729079483296L;
+    public static final long TYPEID = -7733542558551497149L;
 
     @Override
     public long getTypeId() {
@@ -184,8 +184,8 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean {
         public void Commit() { this.getBeanTyped()._Params = this.getValue(); }
     }
 
-    private static final class Log__Actions extends Zeze.Transaction.Collections.PList.LogV<Zeze.Beans.Provider2.BActionParam> {
-        public Log__Actions(BModuleRedirectResult host, org.pcollections.PVector<Zeze.Beans.Provider2.BActionParam> value) { super(host, value); }
+    private static final class Log__Actions extends Zeze.Transaction.Collections.PList.LogV<Zeze.Beans.ProviderDirect.BActionParam> {
+        public Log__Actions(BModuleRedirectResult host, org.pcollections.PVector<Zeze.Beans.ProviderDirect.BActionParam> value) { super(host, value); }
         @Override
         public long getLogKey() { return getBean().getObjectId() + 6; }
         public BModuleRedirectResult getBeanTyped() { return (BModuleRedirectResult)getBean(); }
@@ -203,7 +203,7 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean {
 
     @Override
     public void BuildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Beans.Provider2.BModuleRedirectResult: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Beans.ProviderDirect.BModuleRedirectResult: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ModuleId").append('=').append(getModuleId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ServerId").append('=').append(getServerId()).append(',').append(System.lineSeparator());
@@ -309,7 +309,7 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean {
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadBean(new Zeze.Beans.Provider2.BActionParam(), _t_));
+                    _x_.add(_o_.ReadBean(new Zeze.Beans.ProviderDirect.BActionParam(), _t_));
             } else
                 _o_.SkipUnknownField(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());

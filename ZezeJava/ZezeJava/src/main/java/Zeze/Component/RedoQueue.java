@@ -19,6 +19,12 @@ import org.rocksdb.WriteOptions;
 import Zeze.Serialize.*;
 import Zeze.Beans.RedoQueue.*;
 
+/**
+ * 连接：
+ * 1.每个队列一个连接服务。
+ * 2.可以从可用的zeze-server中选择部分，配置到zeze.xml中。
+ * 3.【可选】使用ServiceManager动态发现zeze-server。感觉没有必要。
+ */
 public class RedoQueue extends Zeze.Services.HandshakeClient {
 	public RedoQueue(String name, Zeze.Config config) throws Throwable {
 		super(name, config);
@@ -77,6 +83,8 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 			key.WriteLong(LastTaskId);
 
 			var task = new BQueueTask();
+			task.setQueueName(getName());
+			task.setPrevTaskId(LastTaskId - 1);
 			task.setTaskId(LastTaskId);
 			task.setTaskType(taskType);
 			var value = ByteBuffer.Allocate(1024 + 16);

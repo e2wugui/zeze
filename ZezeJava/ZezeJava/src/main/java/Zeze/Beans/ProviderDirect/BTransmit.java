@@ -1,11 +1,11 @@
 // auto-generated @formatter:off
-package Zeze.Beans.Provider2;
+package Zeze.Beans.ProviderDirect;
 
 import Zeze.Serialize.ByteBuffer;
 
 public final class BTransmit extends Zeze.Transaction.Bean {
     private String _ActionName;
-    private final Zeze.Transaction.Collections.PMap2<Long, Zeze.Beans.Provider2.BTransmitContext> _Roles; // 查询目标角色。
+    private final Zeze.Transaction.Collections.PMap2<Long, Zeze.Beans.ProviderDirect.BTransmitContext> _Roles; // 查询目标角色。
     private long _Sender; // 结果发送给Sender。
     private String _ServiceNamePrefix;
     private String _ParameterBeanName; // fullname
@@ -35,7 +35,7 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__ActionName(this, value));
     }
 
-    public Zeze.Transaction.Collections.PMap2<Long, Zeze.Beans.Provider2.BTransmitContext> getRoles() {
+    public Zeze.Transaction.Collections.PMap2<Long, Zeze.Beans.ProviderDirect.BTransmitContext> getRoles() {
         return _Roles;
     }
 
@@ -178,7 +178,7 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         return Copy();
     }
 
-    public static final long TYPEID = 945069410197099269L;
+    public static final long TYPEID = -5782855291832116376L;
 
     @Override
     public long getTypeId() {
@@ -193,8 +193,8 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         public void Commit() { this.getBeanTyped()._ActionName = this.getValue(); }
     }
 
-    private static final class Log__Roles extends Zeze.Transaction.Collections.PMap.LogV<Long, Zeze.Beans.Provider2.BTransmitContext> {
-        public Log__Roles(BTransmit host, org.pcollections.PMap<Long, Zeze.Beans.Provider2.BTransmitContext> value) { super(host, value); }
+    private static final class Log__Roles extends Zeze.Transaction.Collections.PMap.LogV<Long, Zeze.Beans.ProviderDirect.BTransmitContext> {
+        public Log__Roles(BTransmit host, org.pcollections.PMap<Long, Zeze.Beans.ProviderDirect.BTransmitContext> value) { super(host, value); }
         @Override
         public long getLogKey() { return getBean().getObjectId() + 2; }
         public BTransmit getBeanTyped() { return (BTransmit)getBean(); }
@@ -244,7 +244,7 @@ public final class BTransmit extends Zeze.Transaction.Bean {
 
     @Override
     public void BuildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Beans.Provider2.BTransmit: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Beans.ProviderDirect.BTransmit: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ActionName").append('=').append(getActionName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Roles").append("=[").append(System.lineSeparator());
@@ -349,7 +349,7 @@ public final class BTransmit extends Zeze.Transaction.Bean {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
                     var _k_ = _o_.ReadLong(_s_);
-                    var _v_ = _o_.ReadBean(new Zeze.Beans.Provider2.BTransmitContext(), _t_);
+                    var _v_ = _o_.ReadBean(new Zeze.Beans.ProviderDirect.BTransmitContext(), _t_);
                     _x_.put(_k_, _v_);
                 }
             } else

@@ -1,9 +1,9 @@
 // auto-generated @formatter:off
-package Zeze.Beans.Provider2;
+package Zeze.Beans.ProviderDirect;
 
-public class ModuleRedirect extends Zeze.Net.Rpc<Zeze.Beans.Provider2.BModuleRedirectArgument, Zeze.Beans.Provider2.BModuleRedirectResult> {
+public class ModuleRedirect extends Zeze.Net.Rpc<Zeze.Beans.ProviderDirect.BModuleRedirectArgument, Zeze.Beans.ProviderDirect.BModuleRedirectResult> {
     public static final int ModuleId_ = 11009;
-    public static final int ProtocolId_ = -115463147;
+    public static final int ProtocolId_ = -881551061;
     public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_);
 
     @Override
@@ -27,7 +27,7 @@ public class ModuleRedirect extends Zeze.Net.Rpc<Zeze.Beans.Provider2.BModuleRed
     public static final int ResultCodeRequestTimeout = 12;
 
     public ModuleRedirect() {
-        Argument = new Zeze.Beans.Provider2.BModuleRedirectArgument();
-        Result = new Zeze.Beans.Provider2.BModuleRedirectResult();
+        Argument = new Zeze.Beans.ProviderDirect.BModuleRedirectArgument();
+        Result = new Zeze.Beans.ProviderDirect.BModuleRedirectResult();
     }
 }
