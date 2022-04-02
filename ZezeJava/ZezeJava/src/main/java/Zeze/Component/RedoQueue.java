@@ -1,70 +1,187 @@
 package Zeze.Component;
 
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Application;
-import Zeze.Net.Binary;
-import Zeze.Net.Protocol;
-import Zeze.Net.ProtocolHandle;
+import Zeze.Beans.RedoQueue.BQueueTask;
+import Zeze.Net.AsyncSocket;
+import Zeze.Net.Rpc;
 import Zeze.Transaction.Procedure;
-import Zeze.Transaction.TransactionLevel;
-import Zeze.Util.Func1;
-import Zeze.Util.Task;
+import org.rocksdb.ColumnFamilyDescriptor;
+import org.rocksdb.ColumnFamilyHandle;
+import org.rocksdb.ColumnFamilyOptions;
+import org.rocksdb.DBOptions;
+import org.rocksdb.Options;
+import org.rocksdb.ReadOptions;
+import org.rocksdb.RocksDB;
+import org.rocksdb.RocksDBException;
+import org.rocksdb.WriteOptions;
+import Zeze.Serialize.*;
+import Zeze.Beans.RedoQueue.*;
 
-public class RedoQueue extends AbstractRedoQueue {
-    private ConcurrentHashMap<Integer, Func1<Binary, Boolean>> taskHandles = new ConcurrentHashMap<>();
-    private Server server;
+public class RedoQueue extends Zeze.Services.HandshakeClient {
+	public RedoQueue(String name, Zeze.Config config) throws Throwable {
+		super(name, config);
+	}
 
-    public RedoQueue(Zeze.Application zeze, int port) throws Throwable {
-        server = new Server(zeze);
-        RegisterProtocols(server);
-        RegisterZezeTables(zeze);
-    }
+	@Override
+	public synchronized void Start() throws Throwable {
+		if (null != Db)
+			return;
 
-    public void Start() throws Throwable {
-        server.Start();
-    }
+		DBOptions dbOptions = new DBOptions();
+		dbOptions.setCreateIfMissing(true);
+		var dbHome = super.getName();
+		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
+		org.rocksdb.Options options = new Options();
+		for (var cf : RocksDB.listColumnFamilies(options, dbHome)) {
+			columnFamilies.add(new ColumnFamilyDescriptor(cf, CfOptions));
+		}
+		if (columnFamilies.isEmpty()) {
+			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(), CfOptions));
+		}
+		var outHandles = new ArrayList<ColumnFamilyHandle>();
+		Db = RocksDB.open(dbOptions, dbHome, columnFamilies, outHandles);
+		for (int i = 0; i< columnFamilies.size(); ++i){
+			var cf = columnFamilies.get(i);
+			var str = new String(cf.getName(), StandardCharsets.UTF_8);
+			Families.put(str, outHandles.get(i));
+		}
+		FamilyLastDoneTaskId = getOrAddFamily("FamilyLastDoneTaskId");
+		FamilyTaskQueue = getOrAddFamily("FamilyTaskQueue");
+		try (var qit = Db.newIterator(FamilyTaskQueue)) {
+			qit.seekToLast();
+			if (qit.isValid()) {
+				var last = ByteBuffer.Wrap(qit.key());
+				LastTaskId = last.ReadLong();
+			}
+		}
+		var done = Db.get(FamilyLastDoneTaskId, LastDoneTaskIdKey);
+		if (done != null) {
+			LastDoneTaskId = ByteBuffer.Wrap(done).ReadLong();
+		}
+		super.Start();
+	}
 
-    public void Stop() throws Throwable {
-        server.Stop();
-    }
+	@Override
+	public synchronized void Stop() throws Throwable {
+		super.Stop();
+		Db.close();
+		Db = null;
+	}
 
-    /**
-     * 注册任务，
-     * @param type
-     * @param task
-     */
-    public void register(int type, Func1<Binary, Boolean> task) {
-        if (null != taskHandles.putIfAbsent(type, task))
-            throw new RuntimeException("duplicate task type. " + type);
-    }
+	public synchronized void add(int taskType, Zeze.Serialize.Serializable taskParam) {
+		try {
+			var key = ByteBuffer.Allocate(16);
+			++LastTaskId;
+			key.WriteLong(LastTaskId);
 
-    @Override
-    protected long ProcessRunTaskRequest(Zeze.Beans.RedoQueue.RunTask r) throws Throwable {
-        var last = _tQueueLastTaskId.getOrAdd(r.Argument.getQueueName());
-        r.Result.setTaskId(last.getTaskId());
-        if (r.Argument.getPrevTaskId() != last.getTaskId())
-            return Procedure.ErrorRequestId;
-        var handle = taskHandles.get(r.Argument.getTaskType());
-        if (null == handle)
-            return Procedure.NotImplement;
-        if (!handle.call(r.Argument.getTaskParam()))
-            return Procedure.LogicError;
-        last.setTaskId(r.Argument.getTaskId());
-        r.Result.setTaskId(last.getTaskId());
-        return Procedure.Success;
-    }
+			var task = new BQueueTask();
+			task.setTaskId(LastTaskId);
+			task.setTaskType(taskType);
+			var value = ByteBuffer.Allocate(1024 + 16);
+			task.Encode(value);
+			var valueBytes = value.Copy();
 
-    public static class Server extends Zeze.Services.HandshakeServer {
-        public Server(Zeze.Application zeze) throws Throwable {
-            super("RedoQueueServer", zeze);
-        }
+			// 保存完整的rpc请求，重新发送的时候不用再次打包。
+			Db.put(FamilyTaskQueue, WriteOptions, key.Copy(), valueBytes);
+			tryStartSendNextTask(task, null);
+		} catch (RocksDBException ex) {
+			throw new RuntimeException(ex);
+		}
+	}
 
-        @Override
-        public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) throws Throwable {
-            var proc = getZeze().NewProcedure(() -> factoryHandle.Handle.handle(p),
-                    p.getClass().getName(), TransactionLevel.Serializable, p.getUserState());
-            proc.RunWhileCommit = () -> p.SendResultCode(p.getResultCode());
-            Task.run(proc, p, (_p, code) -> _p.SendResultCode(code));
-        }
-    }
+	private RunTask Pending;
+	private AsyncSocket Socket;
+
+	private void tryStartSendNextTask(BQueueTask add, AsyncSocket socket) throws RocksDBException {
+		if (null != Pending)
+			return;
+
+		if (LastDoneTaskId < LastTaskId) {
+			var taskId = LastDoneTaskId + 1;
+			var rpc = new RunTask();
+			if (add != null && taskId == add.getTaskId()) {
+				rpc.Argument = add; // 最近加入的就是要发送的。优化！
+			} else {
+				// 最近加入的不是要发送的，从Db中读取。
+				var key = ByteBuffer.Allocate(16);
+				key.WriteLong(taskId);
+				var value = Db.get(FamilyTaskQueue, ReadOptions, key.Copy());
+				if (null == value)
+					return; // error
+				rpc.Argument.Decode(ByteBuffer.Wrap(value));
+			}
+			if (null == Socket) {
+				Socket = socket;
+				if (null == Socket) {
+					Socket = GetSocket();
+					if (null == Socket)
+						return;
+				}
+			}
+			if (rpc.Send(Socket, this::ProcessRunTaskResult))
+				Pending = rpc;
+		}
+	}
+
+	private synchronized long ProcessRunTaskResult(Rpc<BQueueTask, BTaskId> rpc) throws Throwable {
+		if (Pending != rpc)
+			return Procedure.LogicError;
+
+		Pending = null;
+		if (rpc.getResultCode() == 0L || rpc.getResultCode() == Procedure.ErrorRequestId) {
+			LastDoneTaskId = rpc.Result.getTaskId();
+			var value = ByteBuffer.Allocate(16);
+			value.WriteLong(LastDoneTaskId);
+			Db.put(FamilyLastDoneTaskId, WriteOptions, LastDoneTaskIdKey, value.Copy());
+			tryStartSendNextTask(null, rpc.getSender());
+			return 0L;
+		}
+
+		return rpc.getResultCode();
+	}
+
+	@Override
+	public void OnHandshakeDone(AsyncSocket sender) throws Throwable {
+		super.OnHandshakeDone(sender);
+		synchronized (this) {
+			tryStartSendNextTask(null, sender);
+		}
+	}
+
+	@Override
+	public void OnSocketClose(AsyncSocket socket, Throwable ex) throws Throwable {
+		super.OnSocketClose(socket, ex);
+		synchronized (this) {
+			if (Socket == socket) {
+				Socket = null;
+			}
+		}
+	}
+
+	private RocksDB Db;
+	private final ColumnFamilyOptions CfOptions = new ColumnFamilyOptions();
+	public WriteOptions WriteOptions = new WriteOptions();
+	public ReadOptions ReadOptions = new ReadOptions();
+	private final ConcurrentHashMap<String, ColumnFamilyHandle> Families = new ConcurrentHashMap<>();
+	private ColumnFamilyHandle FamilyLastDoneTaskId;
+	private ColumnFamilyHandle FamilyTaskQueue;
+	private long LastTaskId;
+	private long LastDoneTaskId;
+	private byte[] LastDoneTaskIdKey = "LastDoneTaskId".getBytes(StandardCharsets.UTF_8);
+
+	ColumnFamilyHandle getOrAddFamily(String name) {
+		return Families.computeIfAbsent(name, (key) -> {
+			try {
+				return Db.createColumnFamily(new ColumnFamilyDescriptor(key.getBytes(StandardCharsets.UTF_8), CfOptions));
+			} catch (RocksDBException e) {
+				throw new RuntimeException(e);
+			}
+		});
+	}
+
+	static{
+		RocksDB.loadLibrary();
+	}
 }

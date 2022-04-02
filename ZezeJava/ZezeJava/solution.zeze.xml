@@ -479,7 +479,7 @@
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
 
-	<component name="RedoQueue" gendir="src/main/java" platform="zeze+java">
+	<component name="RedoQueueServer" gendir="src/main/java" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Beans.RedoQueue"/>
 		</service>
