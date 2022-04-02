@@ -10,7 +10,7 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Func1;
 import Zeze.Util.Task;
 
-public class RedoQueueServer extends AbstractRedoQueue {
+public class RedoQueueServer extends AbstractRedoQueueServer {
     private ConcurrentHashMap<String, ConcurrentHashMap<Integer, Func1<Binary, Boolean>>> handles = new ConcurrentHashMap<>();
     private Server server;
 
