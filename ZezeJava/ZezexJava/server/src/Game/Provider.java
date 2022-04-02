@@ -10,8 +10,6 @@ public final class Provider extends Zeze.Arch.ProviderImplement {
 	public Game.App App;
 
 	public Provider(Game.App app) {
-		super(app.Server, app.ServerDirect);
-
 		App = app;
 	}
 
@@ -28,25 +26,6 @@ public final class Provider extends Zeze.Arch.ProviderImplement {
 			var roleId = protocol.Argument.getStates().get(0);
 			Game.App.getInstance().Game_Login.getOnlines().OnLinkBroken(roleId);
 		}
-		return Procedure.Success;
-	}
-
-	@Override
-	protected long ProcessTransmit(Transmit p) throws Throwable {
-		Zeze.Serialize.Serializable parameter = null;
-		if (false == p.Argument.getParameterBeanName().isEmpty())
-		{
-			var factory = App.Game_Login.getOnlines().getTransmitParameterFactorys().get(p.Argument.getParameterBeanName());
-			if (null == factory)
-				return ErrorCode(ErrorTransmitParameterFactoryNotFound);
-
-			parameter = factory.call(p.Argument.getParameterBeanName());
-		}
-		App.Game_Login.getOnlines().ProcessTransmit(
-				p.Argument.getSender(),
-				p.Argument.getActionName(),
-				p.Argument.getRoles().keySet(),
-				parameter);
 		return Procedure.Success;
 	}
 

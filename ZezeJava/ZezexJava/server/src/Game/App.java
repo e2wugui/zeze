@@ -6,7 +6,7 @@ import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.PersistentAtomicLong;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import Zeze.Arch.ProviderModuleBinds;
+import Zeze.Arch.*;
 
 public final class App extends Zeze.AppBase {
 	public static App Instance = new App();
@@ -32,9 +32,6 @@ public final class App extends Zeze.AppBase {
 		return Load;
 	}
 
-	public static final String ServerServiceNamePrefix = "Game.Server.Module#";
-	public static final String LinkdServiceName = "Game.Linkd";
-
 	private void LoadConfig() {
 		try {
 			byte[] bytes = Files.readAllBytes(Paths.get("Game.json"));
@@ -51,7 +48,8 @@ public final class App extends Zeze.AppBase {
 	public Provider getProvider() {
 		return provider;
 	}
-
+	public ProviderApp ProviderApp;
+	public ProviderDirectMy ProviderDirectMy;
 	public void Start(String[] args) throws Throwable {
 		int ServerId = -1;
 		for (int i = 0; i < args.length; ++i) {
@@ -68,29 +66,30 @@ public final class App extends Zeze.AppBase {
 		if (ServerId != -1) {
 			config.setServerId(ServerId); // replace from args
 		}
+
+		// create
 		CreateZeze(config);
 		Zeze.setModuleRedirect(new ModuleRedirect());
 		CreateService();
 		provider = new Provider(this);
+		ProviderDirectMy = new ProviderDirectMy();
+		var kv = ServerDirect.GetOnePassiveAddress(); // need CreateService
+		ProviderApp = new ProviderApp(Zeze, provider, Server, "Game.Server.Module#",
+				ProviderDirectMy, ServerDirect, kv.getKey(), kv.getValue(), "Game.Linkd");
 		CreateModules();
+		ProviderApp.initialize(ProviderModuleBinds.Load(), Modules); // need Modules
 
-		Server.initialize(ServerServiceNamePrefix, ProviderModuleBinds.Load(), Modules);
-		ServerDirect.providerService = Server; // ugly
-		var kv = ServerDirect.GetOnePassiveAddress();
-		ServerDirect.PassiveIp = kv.getKey();
-		ServerDirect.PassivePort = kv.getValue();
-
+		// start
 		Zeze.Start(); // 启动数据库
 		provider.Start(this);
 		StartModules(); // 启动模块，装载配置什么的。
-
 		PersistentAtomicLong socketSessionIdGen = PersistentAtomicLong.getOrAdd("Game.Server." + config.getServerId());
 		AsyncSocket.setSessionIdGenFunc(socketSessionIdGen::next);
 		StartService(); // 启动网络
 		getLoad().StartTimerTask();
+
 		// 服务准备好以后才注册和订阅。
-		provider.RegisterModulesAndSubscribeLinkd(ServerServiceNamePrefix,
-				ServerDirect.PassiveIp, ServerDirect.PassivePort, LinkdServiceName);
+		ProviderApp.StartLast();
 	}
 
 	public void Stop() throws Throwable {

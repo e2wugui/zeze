@@ -16,9 +16,7 @@ import org.apache.logging.log4j.Logger;
  */
 public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	private static final Logger logger = LogManager.getLogger(ProviderDirectService.class);
-	public ProviderService providerService;
-	public String PassiveIp;
-	public int PassivePort;
+	public ProviderApp ProviderApp;
 
 	public ProviderDirectService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);
@@ -45,8 +43,9 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			// 主动连接。
 			updateServiceInfos(c.getHostNameOrAddress(), c.getPort(), socket.getSessionId());
 			var r = new AnnounceProviderInfo();
-			r.Argument.setIp(PassiveIp);
-			r.Argument.setPort(PassivePort);
+			r.Argument.setIp(ProviderApp.ProviderDirectPassiveIp);
+			r.Argument.setPort(ProviderApp.ProviderDirectPassivePort);
+			r.Send(socket, (_r) -> 0L); // skip result
 		}
 		// 被动连接等待对方报告信息时再处理。
 	}
@@ -54,9 +53,9 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	void updateServiceInfos(String ip, int port, long sessionId) {
 		// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
 		for (var ss : getZeze().getServiceManagerAgent().getSubscribeStates().values()) {
-			if (ss.getServiceName().startsWith(providerService.ServerServiceNamePrefix)) {
+			if (ss.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)) {
 				var mid = Integer.valueOf(ss.getServiceName().split("#")[1]);
-				var m = providerService.Modules.get(mid);
+				var m = ProviderApp.Modules.get(mid);
 				for (var server : ss.getServiceInfos().getServiceInfoListSortedByIdentity()) {
 					// 符合当前连接目标。
 					if (server.getPassiveIp().equals(ip) && server.getPassivePort() == port) {

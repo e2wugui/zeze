@@ -14,22 +14,13 @@ import Zeze.Util.Str;
 public abstract class ProviderImplement extends AbstractProviderImplement {
 	//private static final Logger logger = LogManager.getLogger(ProviderImplement.class);
 
-	public ProviderService providerService;
-	public ProviderDirectService providerDirectService;
+	public ProviderApp ProviderApp;
 
-	public ProviderImplement(ProviderService providerService, ProviderDirectService directService) {
-		this.providerService = providerService;
-		this.providerDirectService = directService;
-		RegisterProtocols(providerService);
-		providerService.getZeze().getServiceManagerAgent().setOnChanged(
-				(subscribeState) -> ApplyServiceInfos(subscribeState.getServiceInfos()));
-	}
-
-	private void ApplyServiceInfos(Zeze.Services.ServiceManager.ServiceInfos serviceInfos) {
-		if (serviceInfos.getServiceName().equals(providerService.LinkdServiceName)) {
-			this.providerService.Apply(serviceInfos);
-		} else if (serviceInfos.getServiceName().startsWith(this.providerService.ServerServiceNamePrefix)){
-			this.providerDirectService.Apply(serviceInfos);
+	void ApplyServiceInfos(Zeze.Services.ServiceManager.ServiceInfos serviceInfos) {
+		if (serviceInfos.getServiceName().equals(ProviderApp.LinkdServiceName)) {
+			this.ProviderApp.ProviderService.Apply(serviceInfos);
+		} else if (serviceInfos.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)){
+			this.ProviderApp.ProviderDirectService.Apply(serviceInfos);
 		}
 	}
 
@@ -41,30 +32,25 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	 * 订阅Linkd服务。
 	 * Provider主动连接Linkd。
 	 *
-	 * @param ServerServiceNamePrefix
-	 * @param providerDirectIp
-	 * @param providerDirectPort
-	 * @param LinkdServiceName
 	 * @throws Throwable
 	 */
-	public void RegisterModulesAndSubscribeLinkd(String ServerServiceNamePrefix,
-												 String providerDirectIp, int providerDirectPort,
-												 String LinkdServiceName) throws Throwable {
-		providerService.LinkdServiceName = LinkdServiceName;
-		var sm = providerService.getZeze().getServiceManagerAgent();
+	public void RegisterModulesAndSubscribeLinkd() throws Throwable {
+		var sm = ProviderApp.Zeze.getServiceManagerAgent();
 		var services = new HashMap<String, BModule>();
 		// 注册本provider的静态服务
-		for (var s : providerService.getStaticBinds().entrySet()) {
-			var name = Str.format("{}{}", ServerServiceNamePrefix, s.getKey());
-			var identity = String.valueOf(providerService.getZeze().getConfig().getServerId());
-			sm.RegisterService(name, identity, providerDirectIp, providerDirectPort,null);
+		for (var s : ProviderApp.StaticBinds.entrySet()) {
+			var name = Str.format("{}{}", ProviderApp.ServerServiceNamePrefix, s.getKey());
+			var identity = String.valueOf(ProviderApp.Zeze.getConfig().getServerId());
+			sm.RegisterService(name, identity, ProviderApp.ProviderDirectPassiveIp,
+					ProviderApp.ProviderDirectPassivePort,null);
 			services.put(name, s.getValue());
 		}
 		// 注册本provider的动态服务
-		for (var d : providerService.getDynamicModules().entrySet()) {
-			var name = Str.format("{}{}", ServerServiceNamePrefix, d.getKey());
-			var identity = String.valueOf(providerService.getZeze().getConfig().getServerId());
-			sm.RegisterService(name, identity, providerDirectIp, providerDirectPort,null);
+		for (var d : ProviderApp.DynamicModules.entrySet()) {
+			var name = Str.format("{}{}", ProviderApp.ServerServiceNamePrefix, d.getKey());
+			var identity = String.valueOf(ProviderApp.Zeze.getConfig().getServerId());
+			sm.RegisterService(name, identity, ProviderApp.ProviderDirectPassiveIp,
+					ProviderApp.ProviderDirectPassivePort,null);
 			services.put(name, d.getValue());
 		}
 
@@ -74,7 +60,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		}
 
 		// 订阅linkd发现服务。
-		providerService.getZeze().getServiceManagerAgent().SubscribeService(LinkdServiceName, SubscribeInfo.SubscribeTypeSimple, null);
+		sm.SubscribeService(ProviderApp.LinkdServiceName, SubscribeInfo.SubscribeTypeSimple, null);
 	}
 
 	private void SendKick(AsyncSocket sender, long linkSid, int code, String desc) {
@@ -88,7 +74,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	@Override
 	protected long ProcessDispatch(Dispatch p) throws Throwable {
 		try {
-			var factoryHandle = providerService.FindProtocolFactoryHandle(p.Argument.getProtocolType());
+			var factoryHandle = ProviderApp.ProviderService.FindProtocolFactoryHandle(p.Argument.getProtocolType());
 			if (null == factoryHandle) {
 				SendKick(p.getSender(), p.Argument.getLinkSid(), BKick.ErrorProtocolUnkown, "unknown protocol");
 				return Procedure.LogicError;
@@ -97,7 +83,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			p2.Decode(Zeze.Serialize.ByteBuffer.Wrap(p.Argument.getProtocolData()));
 			p2.setSender(p.getSender());
 
-			var session = new ProviderUserSession(providerService, p.Argument.getAccount(), p.Argument.getStates(), p.getSender(), p.Argument.getLinkSid());
+			var session = new ProviderUserSession(ProviderApp.ProviderService, p.Argument.getAccount(), p.Argument.getStates(), p.getSender(), p.Argument.getLinkSid());
 
 			p2.setUserState(session);
 			if (Transaction.getCurrent() != null) {
@@ -138,6 +124,4 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		linkSession.Setup(protocol.Argument.getLinkId(), protocol.Argument.getProviderSessionId());
 		return Procedure.Success;
 	}
-
-	protected abstract long ProcessTransmit(Transmit p) throws Throwable;
 }

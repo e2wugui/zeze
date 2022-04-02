@@ -370,7 +370,7 @@ public class Onlines {
 			var transmit = new Transmit();
 			transmit.Argument.setActionName(actionName);
 			transmit.Argument.setSender(sender);
-			transmit.Argument.setServiceNamePrefix(App.ServerServiceNamePrefix);
+			transmit.Argument.setServiceNamePrefix(App.Instance.ProviderApp.ServerServiceNamePrefix);
 			transmit.Argument.getRoles().putAll(group.getRoles());
 			if (null != parameter)
 			{

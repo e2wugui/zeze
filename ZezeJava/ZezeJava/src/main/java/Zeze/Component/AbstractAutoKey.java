@@ -2,9 +2,9 @@
 package Zeze.Component;
 
 public abstract class AbstractAutoKey extends Zeze.IModule {
-    @Override public String getFullName() { return "Zeze.Beans.AutoKey"; }
-    @Override public String getName() { return "AutoKey"; }
-    @Override public int getId() { return ModuleId; }
+    public String getFullName() { return "Zeze.Beans.AutoKey"; }
+    public String getName() { return "AutoKey"; }
+    public int getId() { return ModuleId; }
     public static final int ModuleId = 11003;
 
     protected final Zeze.Beans.AutoKey.tAutoKeys _tAutoKeys = new Zeze.Beans.AutoKey.tAutoKeys();

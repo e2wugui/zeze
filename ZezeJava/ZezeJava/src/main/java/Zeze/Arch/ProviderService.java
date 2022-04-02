@@ -15,6 +15,7 @@ import Zeze.Beans.Provider.*;
 public class ProviderService extends Zeze.Services.HandshakeClient {
 	private static final Logger logger = LogManager.getLogger(ProviderService.class);
 
+	public ProviderApp ProviderApp;
 	/**
 	 不使用 RemoteEndPoint 是怕有些系统返回 ipv6 有些 ipv4，造成不一致。
 	 这里要求 linkName 在所有 provider 中都一样。
@@ -133,19 +134,19 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 		sender.setUserState(new LinkSession(linkName, sender.getSessionId()));
 
 		var announce = new AnnounceProviderInfo();
-		announce.Argument.setServiceNamePrefix(ServerServiceNamePrefix);
+		announce.Argument.setServiceNamePrefix(ProviderApp.ServerServiceNamePrefix);
 		announce.Argument.setServiceIndentity(String.valueOf(getZeze().getConfig().getServerId()));
 		announce.Send(sender);
 
 		// static binds
 		var rpc = new Bind();
-		rpc.Argument.getModules().putAll(StaticBinds);
+		rpc.Argument.getModules().putAll(ProviderApp.StaticBinds);
 		rpc.Send(sender, (protocol) -> {
 				ProviderStaticBindCompleted.SetResult(true);
 				return 0;
 		});
 		var sub = new Subscribe();
-		sub.Argument.getModules().putAll(DynamicModules);
+		sub.Argument.getModules().putAll(ProviderApp.DynamicModules);
 		sub.Send(sender, (protocol) -> {
 			ProviderDynamicSubscribeCompleted.SetResult(true);
 			return 0;
@@ -177,29 +178,5 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 
 	public ProviderService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);
-	}
-
-	public String ServerServiceNamePrefix;
-	public String LinkdServiceName;
-
-	private final HashMap<Integer, BModule> StaticBinds = new HashMap<>();
-
-	public HashMap<Integer, BModule> getStaticBinds() {
-		return StaticBinds;
-	}
-
-	private final HashMap<Integer, BModule> DynamicModules = new HashMap<>();
-
-	public HashMap<Integer, BModule> getDynamicModules() {
-		return DynamicModules;
-	}
-
-	public java.util.HashMap<Integer, BModule> Modules;
-	public void initialize(String prefix, ProviderModuleBinds binds, java.util.HashMap<String, Zeze.IModule> modules) {
-		this.ServerServiceNamePrefix = prefix;
-		binds.BuildStaticBinds(modules, getZeze().getConfig().getServerId(), StaticBinds);
-		binds.BuildDynamicBinds(modules, getZeze().getConfig().getServerId(), DynamicModules);
-		Modules.putAll(StaticBinds);
-		Modules.putAll(DynamicModules);
 	}
 }

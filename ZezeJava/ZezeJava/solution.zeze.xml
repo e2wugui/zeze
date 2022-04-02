@@ -170,8 +170,6 @@
 		Linkd - Server 之间通讯的协议定义。
 		-->
 		<module name="Provider" id="11008">
-			<enum name="ErrorTransmitParameterFactoryNotFound" value="1" />
-
 			<!-- gs to link -->
 			<bean name="BModule">
 				<!-- ChoiceType -->
@@ -357,6 +355,8 @@
 
 		<!-- gs 之间直连的服务: 即时客户端也是服务器 -->
 		<module name="ProviderDirect" id="11009">
+			<enum name="ErrorTransmitParameterFactoryNotFound" value="1" />
+
 			<bean name="BModuleRedirectArgument">
 				<variable name="ModuleId"     id="1" type="int"/>
 				<variable name="HashCode"     id="2" type="int"/> server 计算。see BBind.ChoiceType。

@@ -12,12 +12,7 @@ import Zeze.Transaction.Transaction;
  * 需要的时候可以重载重新实现默认实现。
  */
 public abstract class ProviderDirect extends AbstractProviderDirect {
-    public ProviderDirectService service;
-
-    public ProviderDirect(ProviderDirectService service) {
-        this.service = service;
-        RegisterProtocols(service);
-    }
+    public ProviderApp ProviderApp;
 
     @Override
     protected long ProcessModuleRedirectRequest(ModuleRedirect rpc) throws Throwable {
@@ -26,8 +21,8 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
             Transaction.getCurrent().getTopProcedure().setActionName(rpc.Argument.getMethodFullName());
 
             rpc.Result.setModuleId(rpc.Argument.getModuleId());
-            rpc.Result.setServerId(service.getZeze().getConfig().getServerId());
-            var handle = service.getZeze().getModuleRedirect().Handles.get(rpc.Argument.getMethodFullName());
+            rpc.Result.setServerId(ProviderApp.Zeze.getConfig().getServerId());
+            var handle = ProviderApp.Zeze.getModuleRedirect().Handles.get(rpc.Argument.getMethodFullName());
             if (null == handle) {
                 rpc.SendResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
                 return Procedure.LogicError;
@@ -72,12 +67,12 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 
             // common parameters for result
             result.Argument.setModuleId(protocol.Argument.getModuleId());
-            result.Argument.setServerId(service.getZeze().getConfig().getServerId());
+            result.Argument.setServerId(ProviderApp.Zeze.getConfig().getServerId());
             result.Argument.setSourceProvider(protocol.Argument.getSourceProvider());
             result.Argument.setSessionId(protocol.Argument.getSessionId());
             result.Argument.setMethodFullName(protocol.Argument.getMethodFullName());
 
-            var handle = service.getZeze().getModuleRedirect().Handles.get(protocol.Argument.getMethodFullName());
+            var handle = ProviderApp.Zeze.getModuleRedirect().Handles.get(protocol.Argument.getMethodFullName());
             if (null == handle) {
                 result.setResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
                 // 失败了，需要把hash返回。此时是没有处理结果的。
@@ -96,7 +91,7 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
                 var hashResult = new BModuleRedirectAllHash();
                 final var Params = new Zeze.Util.OutObject<Binary>();
                 Params.Value = null;
-                hashResult.setReturnCode(service.getZeze().NewProcedure(() -> {
+                hashResult.setReturnCode(ProviderApp.Zeze.NewProcedure(() -> {
                     var rp = handle.RequestHandle.call(
                             protocol.Argument.getSessionId(), hash,
                             protocol.Argument.getParams(), hashResult.getActions());
@@ -129,7 +124,7 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
     protected long ProcessModuleRedirectAllResult(ModuleRedirectAllResult protocol) throws Throwable {
         // replace RootProcedure.ActionName. 为了统计和日志输出。
         Transaction.getCurrent().getTopProcedure().setActionName(protocol.Argument.getMethodFullName());
-        var ctx = service.<ModuleRedirectAllContext>TryGetManualContext(protocol.Argument.getSessionId());
+        var ctx = ProviderApp.ProviderDirectService.<ModuleRedirectAllContext>TryGetManualContext(protocol.Argument.getSessionId());
         if (ctx != null) {
             ctx.ProcessResult(protocol);
         }
@@ -138,7 +133,7 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 
     @Override
     protected long ProcessAnnounceProviderInfoRequest(AnnounceProviderInfo r) {
-        service.updateServiceInfos(r.Argument.getIp(), r.Argument.getPort(), r.getSender().getSessionId());
+        ProviderApp.ProviderDirectService.updateServiceInfos(r.Argument.getIp(), r.Argument.getPort(), r.getSender().getSessionId());
         return 0;
     }
 }
