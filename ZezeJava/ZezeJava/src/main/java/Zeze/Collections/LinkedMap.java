@@ -30,12 +30,12 @@ public class LinkedMap<V extends Bean> {
 
 		@SuppressWarnings("unchecked")
 		public <T extends Bean> LinkedMap<T> open(String name, Class<T> valueClass, int nodeSize) {
-			return (LinkedMap<T>)LinkedMaps.computeIfAbsent(name, key -> new LinkedMap<>(this, key, valueClass, nodeSize));
+			return (LinkedMap<T>)LinkedMaps.computeIfAbsent(name, k -> new LinkedMap<>(this, k, valueClass, nodeSize));
 		}
 
 		@SuppressWarnings("unchecked")
 		public <T extends Bean> LinkedMap<T> open(String name, Class<T> valueClass) {
-			return (LinkedMap<T>)LinkedMaps.computeIfAbsent(name, key -> new LinkedMap<>(this, key, valueClass, 100));
+			return (LinkedMap<T>)LinkedMaps.computeIfAbsent(name, k -> new LinkedMap<>(this, k, valueClass, 100));
 		}
 	}
 

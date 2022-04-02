@@ -29,7 +29,7 @@ public class App extends Zeze.AppBase {
 		return Instance;
 	}
 
-	public static LinkedMap.Module LinkedMapModule;
+	public LinkedMap.Module LinkedMapModule;
 
 	public void Start() throws Throwable {
 		Start(Config.Load("./zeze.xml"));
@@ -64,7 +64,10 @@ public class App extends Zeze.AppBase {
 		StopModules(); // 关闭模块，卸载配置什么的。
 		if (Zeze != null) {
 			Zeze.Stop(); // 关闭数据库
-			LinkedMapModule.UnRegisterZezeTables(Zeze);
+			if (LinkedMapModule != null) {
+				LinkedMapModule.UnRegisterZezeTables(Zeze);
+				LinkedMapModule = null;
+			}
 		}
 		DestroyModules();
 		DestroyServices();
@@ -95,7 +98,7 @@ public class App extends Zeze.AppBase {
 
         Server = new demo.Server(Zeze);
     }
-    public synchronized void CreateModules() throws Throwable {
+    public synchronized void CreateModules() {
         demo_Module1 = new demo.Module1.ModuleModule1(this);
         demo_Module1.Initialize(this);
         demo_Module1 = (demo.Module1.ModuleModule1)ReplaceModuleInstance(demo_Module1);

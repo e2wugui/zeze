@@ -11,7 +11,6 @@ import org.junit.runners.MethodSorters;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class TestLinkedMap {
-
 	@Before
 	public final void testInit() throws Throwable {
 		demo.App.getInstance().Start();
@@ -25,7 +24,7 @@ public class TestLinkedMap {
 	@Test
 	public final void test1_LinkedMapPut() throws Throwable {
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
-			var map = demo.App.LinkedMapModule.open("test1", MyBean.class);
+			var map = demo.App.getInstance().LinkedMapModule.open("test1", MyBean.class);
 			for (int i = 100; i < 110; i++) {
 				var bean = new MyBean();
 				bean.setI(i);
@@ -38,7 +37,7 @@ public class TestLinkedMap {
 	@Test
 	public final void test2_LinkedMapGet() throws Throwable {
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
-			var map = demo.App.LinkedMapModule.open("test1", MyBean.class);
+			var map = demo.App.getInstance().LinkedMapModule.open("test1", MyBean.class);
 			for (int i = 100; i < 110; i++) {
 				var bean = map.get(i);
 				assert bean.getI() == i;
@@ -48,8 +47,8 @@ public class TestLinkedMap {
 	}
 
 	@Test
-	public final void test3_LinkedMapWalk() throws Throwable {
-		var map = demo.App.LinkedMapModule.open("test1", MyBean.class);
+	public final void test3_LinkedMapWalk() {
+		var map = demo.App.getInstance().LinkedMapModule.open("test1", MyBean.class);
 		var i = new AtomicInteger(0);
 		int[] arr = {100, 101, 102, 103, 104, 105, 106, 107, 108, 109};
 		map.walk(((key, value) -> {
@@ -63,7 +62,7 @@ public class TestLinkedMap {
 	@Test
 	public final void test4_LinkedMapRemove() throws Throwable {
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
-			var map = demo.App.LinkedMapModule.open("test1", MyBean.class);
+			var map = demo.App.getInstance().LinkedMapModule.open("test1", MyBean.class);
 			for (int i = 100; i < 110; i++) {
 				var bean = map.remove(i);
 				assert bean.getI() == i;

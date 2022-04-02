@@ -83,7 +83,7 @@ public final class App extends Zeze.AppBase {
         LinkdService = new Zezex.LinkdService(Zeze);
         ProviderService = new Zezex.ProviderService(Zeze);
     }
-    public synchronized void CreateModules() throws Throwable {
+    public synchronized void CreateModules() {
         Zezex_Linkd = new Zezex.Linkd.ModuleLinkd(this);
         Zezex_Linkd.Initialize(this);
         Zezex_Linkd = (Zezex.Linkd.ModuleLinkd)ReplaceModuleInstance(Zezex_Linkd);

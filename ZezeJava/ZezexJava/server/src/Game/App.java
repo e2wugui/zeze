@@ -17,6 +17,7 @@ public final class App extends Zeze.AppBase {
 		return Instance;
 	}
 
+	@Override
 	public Zeze.IModule ReplaceModuleInstance(Zeze.IModule module) {
 		return Zeze.getModuleRedirect().ReplaceModuleInstance(module);
 	}
@@ -147,7 +148,7 @@ public final class App extends Zeze.AppBase {
         Server = new Game.Server(Zeze);
         ServerDirect = new Game.ServerDirect(Zeze);
     }
-    public synchronized void CreateModules() throws Throwable {
+    public synchronized void CreateModules() {
         Game_Login = new Game.Login.ModuleLogin(this);
         Game_Login.Initialize(this);
         Game_Login = (Game.Login.ModuleLogin)ReplaceModuleInstance(Game_Login);

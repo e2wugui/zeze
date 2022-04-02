@@ -153,7 +153,7 @@ public final class DatabaseMemory extends Database {
 		var tables = databaseTables.computeIfAbsent(getDatabaseUrl(),
 				(urlNotUsed) -> new java.util.concurrent.ConcurrentHashMap<>());
 
-		return tables.computeIfAbsent(name, (tableNameNotUsed) -> new TableMemory(this, name));
+		return tables.computeIfAbsent(name, tableName -> new TableMemory(this, tableName));
 	}
 
 	public final static class TableMemory implements Database.Table {

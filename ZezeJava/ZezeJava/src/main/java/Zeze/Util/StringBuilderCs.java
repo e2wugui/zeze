@@ -1,7 +1,7 @@
 package Zeze.Util;
 
 public class StringBuilderCs {
-	public final StringBuilder sb = new StringBuilder();
+	private final StringBuilder sb = new StringBuilder();
 
 	public StringBuilderCs AppendLine(String line) {
 		sb.append(line).append('\n');

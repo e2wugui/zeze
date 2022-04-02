@@ -344,7 +344,7 @@ public final class Agent implements Closeable {
 		regNew.Value = false;
 		var regServInfo = getRegisters().computeIfAbsent(info, (key) -> {
 			regNew.Value = true;
-			return info;
+			return key;
 		});
 
 		if (regNew.Value) {

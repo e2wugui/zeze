@@ -85,7 +85,7 @@ public class PersistentAtomicLong {
 	private static RandomAccessFile open(String fileName) {
 		return AllocFiles.computeIfAbsent(fileName, (k) -> {
 			try {
-				return new RandomAccessFile(fileName, "rw");
+				return new RandomAccessFile(k, "rw");
 			} catch (FileNotFoundException e) {
 				throw new RuntimeException(e);
 			}

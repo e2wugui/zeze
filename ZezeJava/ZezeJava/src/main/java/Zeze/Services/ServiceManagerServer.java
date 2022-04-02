@@ -720,7 +720,7 @@ public final class ServiceManagerServer implements Closeable {
 	private long ProcessAllocateId(AllocateId r) {
 		var n = r.Argument.getName();
 		r.Result.setName(n);
-		AutoKeys.computeIfAbsent(n, key -> new AutoKey(n, this)).Allocate(r);
+		AutoKeys.computeIfAbsent(n, key -> new AutoKey(key, this)).Allocate(r);
 		r.SendResult();
 		return 0;
 	}

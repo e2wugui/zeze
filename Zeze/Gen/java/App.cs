@@ -127,7 +127,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine("        " + m.Name + " = new " + m.FullName + "(Zeze);");
             sw.WriteLine("    }");
 
-            sw.WriteLine("    public synchronized void CreateModules() throws Throwable {");
+            sw.WriteLine("    public synchronized void CreateModules() {");
             foreach (Module m in project.AllOrderDefineModules)
             {
                 string moduleName = string.Concat(m.Name[..1].ToUpper(), m.Name.AsSpan(1));

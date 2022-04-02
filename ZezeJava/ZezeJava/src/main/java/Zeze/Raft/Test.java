@@ -122,7 +122,7 @@ public class Test {
 			// every node need a private config-file.
 			var confPath = Files.createTempFile("", ".xml");
 			Files.copy(Paths.get(raftConfigStart.getXmlFileName()), confPath, StandardCopyOption.REPLACE_EXISTING);
-			Rafts.computeIfAbsent(node.getName(), __ -> new TestRaft(node.getName(), confPath.toString()));
+			Rafts.computeIfAbsent(node.getName(), nodeName-> new TestRaft(nodeName, confPath.toString()));
 		}
 
 		for (var raft : Rafts.values())

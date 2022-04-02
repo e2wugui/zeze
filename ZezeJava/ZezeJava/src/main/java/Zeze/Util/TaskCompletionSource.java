@@ -9,6 +9,9 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+/**
+ * @param <T> 为了性能优化考虑,T不能是ExecutionException,也不能是CancellationException
+ */
 public class TaskCompletionSource<T> implements Future<T> {
 	private static final VarHandle RESULT;
 	private static final Exception NULL_RESULT = new LambdaConversionException(null, null, false, false);
@@ -55,7 +58,8 @@ public class TaskCompletionSource<T> implements Future<T> {
 
 	@Override
 	public boolean isCancelled() {
-		return result instanceof CancellationException;
+		Object r = result;
+		return r != null && r.getClass() == CancellationException.class;
 	}
 
 	@Override
@@ -73,9 +77,10 @@ public class TaskCompletionSource<T> implements Future<T> {
 			}
 		}
 		if (r instanceof Exception) {
-			if (r instanceof ExecutionException)
+			Class<?> cls = r.getClass();
+			if (cls == ExecutionException.class)
 				throw (ExecutionException)r;
-			if (r instanceof CancellationException)
+			if (cls == CancellationException.class)
 				throw (CancellationException)r;
 			if (r == NULL_RESULT)
 				r = null;
@@ -98,9 +103,10 @@ public class TaskCompletionSource<T> implements Future<T> {
 			}
 		}
 		if (r instanceof Exception) {
-			if (r instanceof ExecutionException)
+			Class<?> cls = r.getClass();
+			if (cls == ExecutionException.class)
 				throw (ExecutionException)r;
-			if (r instanceof CancellationException)
+			if (cls == CancellationException.class)
 				throw (CancellationException)r;
 			if (r == NULL_RESULT)
 				r = null;
