@@ -10,7 +10,7 @@ import Zeze.Beans.Provider.*;
 public class LinkdService extends Zeze.Services.HandshakeServer {
 	private static final Logger logger = LogManager.getLogger(LinkdService.class);
 
-	public ProviderLinkd ProviderLinkd;
+	public LinkdApp LinkdApp;
 
 	public LinkdService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);
@@ -65,7 +65,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 
 		var provider = new Zeze.Util.OutObject<Long>();
 		if (linkSession.TryGetProvider(moduleId, provider)) {
-			var socket = ProviderLinkd.LinkdProviderService.GetSocket(provider.Value);
+			var socket = LinkdApp.LinkdProviderService.GetSocket(provider.Value);
 			if (null != socket) {
 				socket.Send(dispatch);
 				return;
@@ -75,8 +75,8 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 			//linkSession.UnBind(so, moduleId, null);
 		}
 
-		if (ProviderLinkd.ChoiceProviderAndBind(moduleId, so, provider)) {
-			var providerSocket = ProviderLinkd.LinkdProviderService.GetSocket(provider.Value);
+		if (LinkdApp.ProviderLinkd.ChoiceProviderAndBind(moduleId, so, provider)) {
+			var providerSocket = LinkdApp.LinkdProviderService.GetSocket(provider.Value);
 			if (null != providerSocket) {
 				// ChoiceProviderAndBind 内部已经处理了绑定。这里只需要发送。
 				providerSocket.Send(dispatch);
@@ -114,7 +114,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	public void OnSocketClose(Zeze.Net.AsyncSocket so, Throwable e) throws Throwable {
 		super.OnSocketClose(so, e);
 		if (so.getUserState() != null) {
-			((LinkdUserSession)so.getUserState()).OnClose(ProviderLinkd.LinkdProviderService);
+			((LinkdUserSession)so.getUserState()).OnClose(LinkdApp.LinkdProviderService);
 		}
 	}
 }

@@ -1,6 +1,6 @@
 package Zeze.Arch;
 
-public class LinkdConfig {
+public class LoadConfig {
 	private int MaxOnlineNew = 30;
 	private int ApproximatelyLinkdCount = 4; // 大致的Linkd数量。在Provider报告期间，用来估算负载均衡。
 

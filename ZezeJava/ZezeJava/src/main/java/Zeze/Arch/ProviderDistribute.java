@@ -3,10 +3,16 @@ package Zeze.Arch;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Services.ServiceManager.Agent;
+import Zeze.Util.Random;
 
+/**
+ * Provider负载分发算法。
+ * Linkd,Provider都需要使用。这里原则上必须是抽象的。
+ * 目前LoadConfig仅用于Linkd。Provider可以传null，并不使用相关算法(ChoiceLoad)。
+ */
 public class ProviderDistribute {
-	public Zeze.Application zeze;
-	public LinkdConfig LinkdConfig;
+	public Zeze.Application Zeze;
+	public LoadConfig LoadConfig;
 	public Zeze.Net.Service ProviderService;
 
 	public String MakeServiceName(String serviceNamePrefix, int moduleId) {
@@ -51,7 +57,7 @@ public class ProviderDistribute {
 				continue; // 这里发现关闭的服务，仅仅忽略.
 			}
 			all.add(ps);
-			if (ps.getOnlineNew() > LinkdConfig.getMaxOnlineNew()) {
+			if (ps.getOnlineNew() > LoadConfig.getMaxOnlineNew()) {
 				continue;
 			}
 			int weight = ps.getProposeMaxOnline() - ps.getOnline();
@@ -62,7 +68,7 @@ public class ProviderDistribute {
 			TotalWeight += weight;
 		}
 		if (TotalWeight > 0) {
-			int randweight = Zeze.Util.Random.getInstance().nextInt(TotalWeight);
+			int randweight = Random.getInstance().nextInt(TotalWeight);
 			for (var ps : frees) {
 				int weight = ps.getProposeMaxOnline() - ps.getOnline();
 				if (randweight < weight) {
@@ -74,7 +80,7 @@ public class ProviderDistribute {
 		}
 		// 选择失败，一般是都满载了，随机选择一个。
 		if (!all.isEmpty()) {
-			provider.Value = all.get(Zeze.Util.Random.getInstance().nextInt(all.size())).getSessionId();
+			provider.Value = all.get(Random.getInstance().nextInt(all.size())).getSessionId();
 			return true;
 		}
 		// no providers
@@ -104,7 +110,7 @@ public class ProviderDistribute {
 				if (null == ps)
 					continue;
 				// 这个和一个一个喂饱冲突，但是一下子给一个服务分配太多用户，可能超载。如果不想让这个生效，把MaxOnlineNew设置的很大。
-				if (ps.getOnlineNew() > LinkdConfig.getMaxOnlineNew())
+				if (ps.getOnlineNew() > LoadConfig.getMaxOnlineNew())
 					continue;
 
 				provider.Value = ps.getSessionId();
@@ -119,7 +125,7 @@ public class ProviderDistribute {
 	public boolean ChoiceProvider(String serviceNamePrefix, int moduleId, int hash, Zeze.Util.OutObject<Long> provider) {
 		var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
 
-		var volatileProviders = zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
+		var volatileProviders = Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
 		if (null == volatileProviders) {
 			provider.Value = 0L;
 			return false;
@@ -130,7 +136,7 @@ public class ProviderDistribute {
 	public boolean ChoiceProviderByServerId(String serviceNamePrefix, int moduleId, int serverId, Zeze.Util.OutObject<Long> provider) {
 		var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
 
-		var volatileProviders = zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
+		var volatileProviders = Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
 		if (null == volatileProviders) {
 			provider.Value = 0L;
 			return false;

@@ -7,7 +7,7 @@ import org.apache.logging.log4j.Logger;
 import Zeze.Beans.Provider.*;
 
 public class LinkdProviderService extends Zeze.Services.HandshakeServer {
-	public ProviderLinkd ProviderLinkd;
+	public LinkdApp LinkdApp;
 
 	public LinkdProviderService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);
@@ -53,7 +53,7 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 	@Override
 	public void OnSocketClose(Zeze.Net.AsyncSocket so, Throwable e) throws Throwable {
 		// 先unbind。这样避免有时间窗口。
-		ProviderLinkd.OnProviderClose(so);
+		LinkdApp.ProviderLinkd.OnProviderClose(so);
 		super.OnSocketClose(so, e);
 	}
 }

@@ -17,35 +17,35 @@ public final class App extends Zeze.AppBase {
 
 	public ProviderLinkd ProviderLinkd;
 
-	private LinkdConfig LoadConfig() {
+	private LoadConfig LoadConfig() {
 		try {
 			byte[] bytes = Files.readAllBytes(Paths.get("linkd.json"));
-			return new ObjectMapper().readValue(bytes, LinkdConfig.class);
+			return new ObjectMapper().readValue(bytes, LoadConfig.class);
 		} catch (Exception e) {
 			// e.printStackTrace();
 		}
-		return new LinkdConfig();
+		return new LoadConfig();
 	}
 
+	public LinkdApp LinkdApp;
 	public void Start() throws Throwable {
 		LoadConfig();
 		CreateZeze();
-		ProviderLinkd = new ProviderLinkd(Zeze, LoadConfig(), ProviderService, LinkdService);
+		ProviderLinkd = new ProviderLinkd();
 		CreateService();
+		LinkdApp = new LinkdApp(Zeze, ProviderLinkd, ProviderService, LinkdService, LoadConfig());
 		CreateModules();
-		StartModules(); // 启动模块，装载配置什么的。
+
 		Zeze.Start(); // 启动数据库
+		StartModules(); // 启动模块，装载配置什么的。
 
 		var ipp = ProviderService.GetOnePassiveAddress();
 		String psip = ipp.getKey();
 		int psport = ipp.getValue();
-
 		var linkName = Str.format("{}:{}", psip, psport);
 		AsyncSocket.setSessionIdGenFunc(PersistentAtomicLong.getOrAdd("Game.Linkd." + linkName)::next);
-
 		StartService(); // 启动网络. after setSessionIdGenFunc
-
-		ProviderLinkd.RegisterService("Game.Linkd", linkName, psip, psport, null);
+		LinkdApp.RegisterService("Game.Linkd", linkName, psip, psport, null);
 	}
 
 	public void Stop() throws Throwable {
