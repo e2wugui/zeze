@@ -126,8 +126,8 @@ public class Connector {
 
 	public final AsyncSocket TryGetReadySocket() {
 		try {
-			return FutureSocket.get(0, TimeUnit.MILLISECONDS);
-		} catch (TimeoutException | InterruptedException | ExecutionException e) {
+			return FutureSocket.getNow();
+		} catch (ExecutionException e) {
 			return null;
 		}
 	}

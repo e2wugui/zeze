@@ -4,6 +4,7 @@ import java.lang.invoke.LambdaConversionException;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -51,6 +52,11 @@ public class TaskCompletionSource<T> implements Future<T> {
 		return setResult(new ExecutionException(e));
 	}
 
+	public boolean isCompletedExceptionally() {
+		Object r = result;
+		return r != null && r.getClass() == ExecutionException.class;
+	}
+
 	@Override
 	public boolean cancel(boolean mayInterruptIfRunning) {
 		return setResult(new CancellationException());
@@ -76,32 +82,28 @@ public class TaskCompletionSource<T> implements Future<T> {
 					wait();
 			}
 		}
-		if (r instanceof Exception) {
-			Class<?> cls = r.getClass();
-			if (cls == ExecutionException.class)
-				throw (ExecutionException)r;
-			if (cls == CancellationException.class)
-				throw (CancellationException)r;
-			if (r == NULL_RESULT)
-				r = null;
-		}
-		@SuppressWarnings("unchecked")
-		T t = (T)r;
-		return t;
+		return toResult(r);
 	}
 
 	@Override
 	public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
 		Object r = result;
 		if (r == null) {
+			timeout = (unit.toNanos(timeout) + 999_999) / 1_000_000; // to milliseconds
+			if (timeout <= 0)
+				throw new TimeoutException();
 			synchronized (this) {
 				if ((r = result) == null) {
-					wait((unit.toNanos(timeout) + 999_999) / 1_000_000);
+					wait(timeout);
 					if ((r = result) == null)
 						throw new TimeoutException();
 				}
 			}
 		}
+		return toResult(r);
+	}
+
+	private T toResult(Object r) throws ExecutionException {
 		if (r instanceof Exception) {
 			Class<?> cls = r.getClass();
 			if (cls == ExecutionException.class)
@@ -116,11 +118,29 @@ public class TaskCompletionSource<T> implements Future<T> {
 		return t;
 	}
 
+	public T getNow() throws ExecutionException {
+		Object r = result;
+		return r != null ? toResult(r) : null;
+	}
+
+	public T getNow(T valueIfAbsent) throws ExecutionException {
+		Object r = result;
+		return r != null ? toResult(r) : valueIfAbsent;
+	}
+
+	public T join() {
+		try {
+			return get();
+		} catch (InterruptedException | ExecutionException e) {
+			throw new CompletionException(e);
+		}
+	}
+
 	public void Wait() {
 		try {
 			get();
 		} catch (InterruptedException | ExecutionException e) {
-			throw new RuntimeException(e);
+			throw new CompletionException(e);
 		}
 	}
 
@@ -131,7 +151,7 @@ public class TaskCompletionSource<T> implements Future<T> {
 		} catch (TimeoutException | CancellationException e) {
 			return false;
 		} catch (InterruptedException | ExecutionException e) {
-			throw new RuntimeException(e);
+			throw new CompletionException(e);
 		}
 	}
 }
