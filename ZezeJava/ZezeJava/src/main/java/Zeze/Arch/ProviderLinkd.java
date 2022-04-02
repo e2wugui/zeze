@@ -417,6 +417,7 @@ public class ProviderLinkd extends AbstractProviderLinkd {
 
     @Override
     protected long ProcessReportLoad(Zeze.Beans.Provider.ReportLoad p) {
+        // 改从ServiceManager中提取Load?
         return Zeze.Transaction.Procedure.NotImplement;
     }
 }
