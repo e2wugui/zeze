@@ -131,7 +131,7 @@ public class LinkdUserSession {
 	// 仅在网络线程中回调，并且一个时候，只会有一个回调，不线程保护了。
 	private Future<?> KeepAliveTask;
 
-	public final void StartKeepAlive(Zeze.Net.Service linkdService) {
+	public final void KeepAlive(Zeze.Net.Service linkdService) {
 		if (KeepAliveTask != null) {
 			KeepAliveTask.cancel(false);
 		}

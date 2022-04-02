@@ -6,6 +6,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Util.PersistentAtomicLong;
 import Zeze.Util.Str;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import Zeze.Arch.*;
 
 public final class App extends Zeze.AppBase {
 	public static App Instance = new App();
@@ -15,38 +16,27 @@ public final class App extends Zeze.AppBase {
 	}
 
 	public static final String LinkdServiceName = "Game.Linkd";
-
-	private LinkConfig LinkConfig;
-	private Zeze.Services.ServiceManager.Agent ServiceManagerAgent;
-
-	public LinkConfig getLinkConfig() {
-		return LinkConfig;
-	}
-
-	public Zeze.Services.ServiceManager.Agent getServiceManagerAgent() {
-		return ServiceManagerAgent;
-	}
-
-	private void LoadConfig() {
+	public ProviderLinkd ProviderLinkd;
+	private LinkdConfig LoadConfig() {
 		try {
 			byte[] bytes = Files.readAllBytes(Paths.get("linkd.json"));
-			LinkConfig = new ObjectMapper().readValue(bytes, LinkConfig.class);
+			return new ObjectMapper().readValue(bytes, LinkdConfig.class);
 		} catch (Exception e) {
 			// e.printStackTrace();
 		}
-		if (LinkConfig == null)
-			LinkConfig = new LinkConfig();
+		return new LinkdConfig();
 	}
 
 	public void Start() throws Throwable {
 		LoadConfig();
 		CreateZeze();
+		ProviderLinkd = new ProviderLinkd(Zeze, LoadConfig(), ProviderService, LinkdService);
 		CreateService();
 		CreateModules();
 		StartModules(); // 启动模块，装载配置什么的。
 		Zeze.Start(); // 启动数据库
 
-		var ipp = LinkdProviderService.GetOnePassiveAddress();
+		var ipp = ProviderService.GetOnePassiveAddress();
 		String ProviderServicePassiveIp = ipp.getKey();
 		int ProviderServicePassivePort = ipp.getValue();
 
@@ -55,8 +45,7 @@ public final class App extends Zeze.AppBase {
 
 		StartService(); // 启动网络. after setSessionIdGenFunc
 
-		ServiceManagerAgent = new Zeze.Services.ServiceManager.Agent(Zeze);
-		getServiceManagerAgent().RegisterService(LinkdServiceName,
+		Zeze.getServiceManagerAgent().RegisterService(LinkdServiceName,
 				linkName, ProviderServicePassiveIp, ProviderServicePassivePort, null);
 	}
 
@@ -74,10 +63,9 @@ public final class App extends Zeze.AppBase {
     public final java.util.HashMap<String, Zeze.IModule> Modules = new java.util.HashMap<>();
 
     public Zezex.LinkdService LinkdService;
-    public LinkdProviderService LinkdProviderService;
+    public Zezex.ProviderService ProviderService;
 
     public Zezex.Linkd.ModuleLinkd Zezex_Linkd;
-    public Zezex.Provider.ModuleProvider Zezex_Provider;
 
     public void CreateZeze() throws Throwable {
         CreateZeze(null);
@@ -93,7 +81,7 @@ public final class App extends Zeze.AppBase {
     public synchronized void CreateService() throws Throwable {
 
         LinkdService = new Zezex.LinkdService(Zeze);
-        LinkdProviderService = new LinkdProviderService(Zeze);
+        ProviderService = new Zezex.ProviderService(Zeze);
     }
     public synchronized void CreateModules() throws Throwable {
         Zezex_Linkd = new Zezex.Linkd.ModuleLinkd(this);
@@ -102,24 +90,17 @@ public final class App extends Zeze.AppBase {
         if (Modules.put(Zezex_Linkd.getFullName(), Zezex_Linkd) != null)
             throw new RuntimeException("duplicate module name: Zezex_Linkd");
 
-        Zezex_Provider = new Zezex.Provider.ModuleProvider(this);
-        Zezex_Provider.Initialize(this);
-        Zezex_Provider = (Zezex.Provider.ModuleProvider)ReplaceModuleInstance(Zezex_Provider);
-        if (Modules.put(Zezex_Provider.getFullName(), Zezex_Provider) != null)
-            throw new RuntimeException("duplicate module name: Zezex_Provider");
-
         Zeze.setSchemas(new Zezex.Schemas());
     }
 
     public synchronized void DestroyModules() {
-        Zezex_Provider = null;
         Zezex_Linkd = null;
         Modules.clear();
     }
 
     public synchronized void DestroyServices() {
         LinkdService = null;
-        LinkdProviderService = null;
+        ProviderService = null;
     }
 
     public synchronized void DestroyZeze() {
@@ -128,26 +109,23 @@ public final class App extends Zeze.AppBase {
 
     public synchronized void StartModules() throws Throwable {
         Zezex_Linkd.Start(this);
-        Zezex_Provider.Start(this);
     }
 
     public synchronized void StopModules() throws Throwable {
-        if (Zezex_Provider != null)
-            Zezex_Provider.Stop(this);
         if (Zezex_Linkd != null)
             Zezex_Linkd.Stop(this);
     }
 
     public synchronized void StartService() throws Throwable {
         LinkdService.Start();
-        LinkdProviderService.Start();
+        ProviderService.Start();
     }
 
     public synchronized void StopService() throws Throwable {
         if (LinkdService != null)
             LinkdService.Stop();
-        if (LinkdProviderService != null)
-            LinkdProviderService.Stop();
+        if (ProviderService != null)
+            ProviderService.Stop();
     }
     // ZEZE_FILE_CHUNK }}} GEN APP @formatter:on
 }

@@ -1,6 +1,6 @@
 package Zezex.Linkd;
 
-import Zezex.LinkSession;
+import Zeze.Arch.*;
 
 public final class ModuleLinkd extends AbstractModule {
 	@SuppressWarnings("RedundantThrows")
@@ -24,7 +24,7 @@ public final class ModuleLinkd extends AbstractModule {
 		Game.App.Instance.LinkdService.GetSocket(account.SocketSessionId)?.Dispose(); // kick, 最好发个协议再踢。如果允许多个连接，去掉这行。
 		account.SocketSessionId = protocol.Sender.SessionId;
 		*/
-		var linkSession = (LinkSession)rpc.getSender().getUserState();
+		var linkSession = (LinkdUserSession)rpc.getSender().getUserState();
 		linkSession.setAccount(rpc.Argument.getAccount());
 		rpc.SendResultCode(Auth.Success);
 
@@ -33,13 +33,13 @@ public final class ModuleLinkd extends AbstractModule {
 
 	@Override
 	protected long ProcessKeepAlive(KeepAlive protocol) {
-		var linkSession = (LinkSession)protocol.getSender().getUserState();
+		var linkSession = (LinkdUserSession)protocol.getSender().getUserState();
 		if (null == linkSession) {
 			// handshake 完成之前不可能回收得到 keepalive，先这样处理吧。
 			protocol.getSender().Close(null);
 			return Zeze.Transaction.Procedure.LogicError;
 		}
-		linkSession.KeepAlive();
+		linkSession.KeepAlive(App.LinkdService);
 		protocol.getSender().Send(protocol); // send back;
 		return Zeze.Transaction.Procedure.Success;
 	}
