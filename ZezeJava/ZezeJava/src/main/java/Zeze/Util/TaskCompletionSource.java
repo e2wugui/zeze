@@ -1,5 +1,6 @@
 package Zeze.Util;
 
+import java.lang.invoke.LambdaConversionException;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.concurrent.CancellationException;
@@ -10,6 +11,7 @@ import java.util.concurrent.TimeoutException;
 
 public class TaskCompletionSource<T> implements Future<T> {
 	private static final VarHandle RESULT;
+	private static final Exception NULL_RESULT = new LambdaConversionException(null, null, false, false);
 
 	@SuppressWarnings("unused")
 	private volatile Object result;
@@ -24,7 +26,7 @@ public class TaskCompletionSource<T> implements Future<T> {
 
 	private boolean setResult(Object r) {
 		if (r == null)
-			r = RESULT;
+			r = NULL_RESULT;
 		if (RESULT.compareAndSet(this, null, r)) {
 			synchronized (this) {
 				notifyAll();
@@ -48,12 +50,12 @@ public class TaskCompletionSource<T> implements Future<T> {
 
 	@Override
 	public boolean cancel(boolean mayInterruptIfRunning) {
-		throw new UnsupportedOperationException();
+		return setResult(new CancellationException());
 	}
 
 	@Override
 	public boolean isCancelled() {
-		throw new UnsupportedOperationException();
+		return result instanceof CancellationException;
 	}
 
 	@Override
@@ -70,10 +72,14 @@ public class TaskCompletionSource<T> implements Future<T> {
 					wait();
 			}
 		}
-		if (r instanceof ExecutionException)
-			throw (ExecutionException)r;
-		if (r == RESULT)
-			r = null;
+		if (r instanceof Exception) {
+			if (r instanceof ExecutionException)
+				throw (ExecutionException)r;
+			if (r instanceof CancellationException)
+				throw (CancellationException)r;
+			if (r == NULL_RESULT)
+				r = null;
+		}
 		@SuppressWarnings("unchecked")
 		T t = (T)r;
 		return t;
@@ -91,10 +97,14 @@ public class TaskCompletionSource<T> implements Future<T> {
 				}
 			}
 		}
-		if (r instanceof ExecutionException)
-			throw (ExecutionException)r;
-		if (r == RESULT)
-			r = null;
+		if (r instanceof Exception) {
+			if (r instanceof ExecutionException)
+				throw (ExecutionException)r;
+			if (r instanceof CancellationException)
+				throw (CancellationException)r;
+			if (r == NULL_RESULT)
+				r = null;
+		}
 		@SuppressWarnings("unchecked")
 		T t = (T)r;
 		return t;
