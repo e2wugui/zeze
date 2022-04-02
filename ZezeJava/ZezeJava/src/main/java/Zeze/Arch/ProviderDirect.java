@@ -7,12 +7,12 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 
 public abstract class ProviderDirect extends AbstractProviderDirect {
-    private Provider2Server server;
-    public Provider2Server getServer() {
+    private ProviderDirectServer server;
+    public ProviderDirectServer getServer() {
         return server;
     }
 
-    public void setServer(Provider2Server service) {
+    public void setServer(ProviderDirectServer service) {
         server = service;
         RegisterProtocols(service);
     }

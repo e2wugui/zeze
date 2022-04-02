@@ -2,14 +2,14 @@ package Zeze.Arch;
 
 import Zeze.Net.Protocol;
 import Zeze.Transaction.TransactionLevel;
-import Zeze.Beans.Provider2.*;
+import Zeze.Beans.ProviderDirect.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class Provider2Server extends Zeze.Services.HandshakeBoth {
-	private static final Logger logger = LogManager.getLogger(Provider2Server.class);
+public class ProviderDirectServer extends Zeze.Services.HandshakeBoth {
+	private static final Logger logger = LogManager.getLogger(ProviderDirectServer.class);
 
-	public Provider2Server(String name, Zeze.Application zeze) throws Throwable {
+	public ProviderDirectServer(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);
 	}
 

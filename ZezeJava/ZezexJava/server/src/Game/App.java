@@ -116,7 +116,7 @@ public final class App extends Zeze.AppBase {
     public final java.util.HashMap<String, Zeze.IModule> Modules = new java.util.HashMap<>();
 
     public Game.Server Server;
-    public Game.Server2 Server2;
+    public Game.ServerDirect ServerDirect;
 
     public Game.Login.ModuleLogin Game_Login;
     public Game.Bag.ModuleBag Game_Bag;
@@ -145,7 +145,7 @@ public final class App extends Zeze.AppBase {
     public synchronized void CreateService() throws Throwable {
 
         Server = new Game.Server(Zeze);
-        Server2 = new Game.Server2(Zeze);
+        ServerDirect = new Game.ServerDirect(Zeze);
     }
     public synchronized void CreateModules() throws Throwable {
         Game_Login = new Game.Login.ModuleLogin(this);
@@ -241,7 +241,7 @@ public final class App extends Zeze.AppBase {
 
     public synchronized void DestroyServices() {
         Server = null;
-        Server2 = null;
+        ServerDirect = null;
     }
 
     public synchronized void DestroyZeze() {
@@ -292,14 +292,14 @@ public final class App extends Zeze.AppBase {
 
     public synchronized void StartService() throws Throwable {
         Server.Start();
-        Server2.Start();
+        ServerDirect.Start();
     }
 
     public synchronized void StopService() throws Throwable {
         if (Server != null)
             Server.Stop();
-        if (Server2 != null)
-            Server2.Stop();
+        if (ServerDirect != null)
+            ServerDirect.Stop();
     }
     // ZEZE_FILE_CHUNK }}} GEN APP @formatter:on
 }

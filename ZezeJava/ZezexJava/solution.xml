@@ -419,7 +419,7 @@
 		<ModuleStartOrder>
 		</ModuleStartOrder>
 
-		<service name="Server2" handle="server,client" base="Zeze.Arch.Provider2Server">
+		<service name="ServerDirect" handle="server,client" base="Zeze.Arch.ProviderDirectServer">
 		</service>
 	</project>
 
