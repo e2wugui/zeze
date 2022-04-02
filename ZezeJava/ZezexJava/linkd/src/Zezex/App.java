@@ -5,7 +5,6 @@ import java.nio.file.Paths;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.PersistentAtomicLong;
 import Zeze.Util.Str;
-import java.util.HashMap;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public final class App extends Zeze.AppBase {
@@ -47,7 +46,7 @@ public final class App extends Zeze.AppBase {
 		StartModules(); // 启动模块，装载配置什么的。
 		Zeze.Start(); // 启动数据库
 
-		var ipp = ProviderService.GetOnePassiveAddress();
+		var ipp = LinkdProviderService.GetOnePassiveAddress();
 		String ProviderServicePassiveIp = ipp.getKey();
 		int ProviderServicePassivePort = ipp.getValue();
 
@@ -75,7 +74,7 @@ public final class App extends Zeze.AppBase {
     public final java.util.HashMap<String, Zeze.IModule> Modules = new java.util.HashMap<>();
 
     public Zezex.LinkdService LinkdService;
-    public Zezex.ProviderService ProviderService;
+    public LinkdProviderService LinkdProviderService;
 
     public Zezex.Linkd.ModuleLinkd Zezex_Linkd;
     public Zezex.Provider.ModuleProvider Zezex_Provider;
@@ -94,7 +93,7 @@ public final class App extends Zeze.AppBase {
     public synchronized void CreateService() throws Throwable {
 
         LinkdService = new Zezex.LinkdService(Zeze);
-        ProviderService = new Zezex.ProviderService(Zeze);
+        LinkdProviderService = new LinkdProviderService(Zeze);
     }
     public synchronized void CreateModules() throws Throwable {
         Zezex_Linkd = new Zezex.Linkd.ModuleLinkd(this);
@@ -120,7 +119,7 @@ public final class App extends Zeze.AppBase {
 
     public synchronized void DestroyServices() {
         LinkdService = null;
-        ProviderService = null;
+        LinkdProviderService = null;
     }
 
     public synchronized void DestroyZeze() {
@@ -141,14 +140,14 @@ public final class App extends Zeze.AppBase {
 
     public synchronized void StartService() throws Throwable {
         LinkdService.Start();
-        ProviderService.Start();
+        LinkdProviderService.Start();
     }
 
     public synchronized void StopService() throws Throwable {
         if (LinkdService != null)
             LinkdService.Stop();
-        if (ProviderService != null)
-            ProviderService.Stop();
+        if (LinkdProviderService != null)
+            LinkdProviderService.Stop();
     }
     // ZEZE_FILE_CHUNK }}} GEN APP @formatter:on
 }

@@ -57,7 +57,7 @@ public final class ModuleProvider extends AbstractModule {
 				continue;
 			}
 			// Object tempVar2 = App.ProviderService.GetSocket(providerModuleState.getSessionId()).getUserState();
-			var ps = (Zezex.ProviderSession)App.ProviderService.GetSocket(providerModuleState.getSessionId()).getUserState();
+			var ps = (Zezex.ProviderSession)App.LinkdProviderService.GetSocket(providerModuleState.getSessionId()).getUserState();
 			if (null == ps) {
 				continue; // 这里发现关闭的服务，仅仅忽略.
 			}
@@ -107,7 +107,7 @@ public final class ModuleProvider extends AbstractModule {
 				var providerModuleState = (ProviderModuleState)serviceinfo.getLocalState();
 				if (providerModuleState == null)
 					continue;
-				var providerSocket = Zezex.App.Instance.ProviderService.GetSocket(providerModuleState.SessionId);
+				var providerSocket = Zezex.App.Instance.LinkdProviderService.GetSocket(providerModuleState.SessionId);
 				if (null == providerSocket)
 					continue;
 				var ps = (Zezex.ProviderSession)providerSocket.getUserState();
@@ -185,7 +185,7 @@ public final class ModuleProvider extends AbstractModule {
 		// default
 		if (ChoiceLoad(volatileProviders, provider)) {
 			// 这里不判断null，如果失败让这次选择失败，否则选中了，又没有Bind以后更不好处理。
-			var providerSocket = App.ProviderService.GetSocket(provider.Value);
+			var providerSocket = App.LinkdProviderService.GetSocket(provider.Value);
 			var providerSession = (Zezex.ProviderSession)providerSocket.getUserState();
 			linkSession.Bind(link, providerSession.getStaticBinds().keySet(), providerSocket);
 			return true;
@@ -424,13 +424,13 @@ public final class ModuleProvider extends AbstractModule {
 		if (rpc.Argument.getRedirectType() == ModuleRedirect.RedirectTypeToServer) {
 			if (ChoiceProviderByServerId(rpc.Argument.getServiceNamePrefix(), rpc.Argument.getModuleId(),
 					rpc.Argument.getHashCode(), provider)) {
-				rpc.Send(App.ProviderService.GetSocket(provider.Value), (context) -> {
+				rpc.Send(App.LinkdProviderService.GetSocket(provider.Value), (context) -> {
 					// process result。context == rpc
 					if (rpc.isTimeout()) {
 						rpc.setResultCode(ModuleRedirect.ResultCodeLinkdTimeout);
 					}
 					// send back to src provider
-					rpc.setSender(App.ProviderService.GetSocket(SourceProvider));
+					rpc.setSender(App.LinkdProviderService.GetSocket(SourceProvider));
 					rpc.setSessionId(SourceRpcSessionId);
 					rpc.SendResult();
 					return Zeze.Transaction.Procedure.Success;
@@ -444,14 +444,14 @@ public final class ModuleProvider extends AbstractModule {
 		// ModuleRedirect Or ModuleRedirectWithHash
 		if (ChoiceProvider(rpc.Argument.getServiceNamePrefix(), rpc.Argument.getModuleId(),
 				rpc.Argument.getHashCode(), provider)) {
-			rpc.Send(App.ProviderService.GetSocket(provider.Value), (context) -> {
+			rpc.Send(App.LinkdProviderService.GetSocket(provider.Value), (context) -> {
 				// process result。context == rpc
 				if (rpc.isTimeout()) {
 					rpc.setResultCode(ModuleRedirect.ResultCodeLinkdTimeout);
 				}
 
 				// send back to src provider
-				rpc.setSender(App.ProviderService.GetSocket(SourceProvider));
+				rpc.setSender(App.LinkdProviderService.GetSocket(SourceProvider));
 				rpc.setSessionId(SourceRpcSessionId);
 				rpc.SendResult();
 				return Zeze.Transaction.Procedure.Success;
@@ -500,7 +500,7 @@ public final class ModuleProvider extends AbstractModule {
 
 		// 转发给provider
 		for (var transmit : transmits.entrySet()) {
-			var socket = App.ProviderService.GetSocket(transmit.getKey());
+			var socket = App.LinkdProviderService.GetSocket(transmit.getKey());
 			if (null != socket) {
 				transmit.getValue().Send(socket);
 			} else {
@@ -521,7 +521,7 @@ public final class ModuleProvider extends AbstractModule {
 
 	@Override
 	protected long ProcessModuleRedirectAllResult(ModuleRedirectAllResult protocol) {
-		var sourcerProvider = App.ProviderService.GetSocket(protocol.Argument.getSourceProvider());
+		var sourcerProvider = App.LinkdProviderService.GetSocket(protocol.Argument.getSourceProvider());
 		if (null != sourcerProvider) {
 			protocol.Send(sourcerProvider);
 		}
@@ -545,7 +545,7 @@ public final class ModuleProvider extends AbstractModule {
 		var transmitsHash = new HashMap<Integer, Transmit>();
 
 		for (var target : protocol.Argument.getRoles().entrySet()) {
-			var provider = App.ProviderService.GetSocket(target.getValue().getProviderSessionId());
+			var provider = App.LinkdProviderService.GetSocket(target.getValue().getProviderSessionId());
 			if (null == provider) {
 				var hash = target.getKey().hashCode();
 				var transmitHash = transmitsHash.get(hash);
@@ -572,7 +572,7 @@ public final class ModuleProvider extends AbstractModule {
 
 		// 已经绑定的会话，查找连接并转发，忽略连接查找错误。
 		for (var transmit : transmits.entrySet()) {
-			var tsocket = App.ProviderService.GetSocket(transmit.getKey());
+			var tsocket = App.LinkdProviderService.GetSocket(transmit.getKey());
 			if (tsocket != null) {
 				tsocket.Send(transmit.getValue());
 			}
@@ -585,7 +585,7 @@ public final class ModuleProvider extends AbstractModule {
 					protocol.Argument.getServiceNamePrefix(),
 					getFirstModuleWithConfigTypeDefault(),
 					transmitHash.getKey(), provider)) {
-				var tsocket = App.ProviderService.GetSocket(provider.Value);
+				var tsocket = App.LinkdProviderService.GetSocket(provider.Value);
 				if (tsocket != null) {
 					tsocket.Send(transmitHash.getValue());
 				}

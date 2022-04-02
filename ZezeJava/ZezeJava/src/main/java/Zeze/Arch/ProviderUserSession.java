@@ -11,7 +11,7 @@ import Zeze.Beans.Provider.*;
  * 用户登录会话。
  * 记录账号，roleId，LinkName，SessionId等信息。
  */
-public class ProviderSession {
+public class ProviderUserSession {
 	private String Account;
 	public final String getAccount() {
 		return Account;
@@ -43,7 +43,7 @@ public class ProviderSession {
 		return service;
 	}
 
-	public ProviderSession(ProviderService service, String account, PList1<Long> states, AsyncSocket link, long linkSid) {
+	public ProviderUserSession(ProviderService service, String account, PList1<Long> states, AsyncSocket link, long linkSid) {
 		this.service = service;
 		Account = account;
 		RoleId = states.isEmpty() ? null : states.get(0);
@@ -106,10 +106,10 @@ public class ProviderSession {
 		Transaction.getCurrent().RunWhileRollback(() -> SendResponse(p));
 	}
 
-	public static ProviderSession Get(Protocol context) {
+	public static ProviderUserSession Get(Protocol context) {
 		if (null == context.getUserState()) {
 			throw new RuntimeException("not auth");
 		}
-		return (ProviderSession)context.getUserState();
+		return (ProviderUserSession)context.getUserState();
 	}
 }

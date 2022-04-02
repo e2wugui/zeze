@@ -5,7 +5,6 @@ import Game.*;
 import Zeze.TransactionModes;
 import Zeze.Util.Str;
 import Zeze.Arch.*;
-import Zeze.Beans.Provider.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -396,7 +395,7 @@ public class ModuleRank extends AbstractModule {
 
 	@Override
 	protected long ProcessCGetRankList(CGetRankList protocol) throws Throwable {
-		var session = ProviderSession.Get(protocol);
+		var session = ProviderUserSession.Get(protocol);
 
 		var result = new SGetRankList();
 		if (session.getRoleId() == null) {

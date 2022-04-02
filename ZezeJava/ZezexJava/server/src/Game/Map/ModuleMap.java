@@ -1,9 +1,8 @@
 package Game.Map;
 
-import Zeze.Arch.ProviderSession;
+import Zeze.Arch.ProviderUserSession;
 import Zeze.Transaction.*;
 import Game.*;
-import Zeze.Net.Protocol;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
@@ -17,7 +16,7 @@ public final class ModuleMap extends AbstractModule {
 
 	@Override
     protected long ProcessCEnterWorld(CEnterWorld protocol) throws Throwable {
-		var session = ProviderSession.Get(protocol);
+		var session = ProviderUserSession.Get(protocol);
 		if (session.getRoleId() == null) {
 			return Procedure.LogicError;
 		}

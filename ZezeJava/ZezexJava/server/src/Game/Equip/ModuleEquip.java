@@ -1,10 +1,9 @@
 package Game.Equip;
 
 import Game.Fight.*;
-import Zeze.Arch.ProviderSession;
+import Zeze.Arch.ProviderUserSession;
 import Zeze.Transaction.*;
 import Game.*;
-import Zeze.Net.Protocol;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
@@ -71,7 +70,7 @@ public final class ModuleEquip extends AbstractModule {
 
 	@Override
 	protected long ProcessEquipementRequest(Equipement rpc) throws Throwable {
-		var session = ProviderSession.Get(rpc);
+		var session = ProviderUserSession.Get(rpc);
 
 		Game.Bag.Bag bag = App.Game_Bag.GetBag(session.getRoleId().longValue());
 		var bItem = bag.getItems().get(rpc.Argument.getBagPos());
@@ -119,7 +118,7 @@ public final class ModuleEquip extends AbstractModule {
 
 	@Override
 	protected long ProcessUnequipementRequest(Unequipement rpc) throws Throwable {
-		var session = ProviderSession.Get(rpc);
+		var session = ProviderUserSession.Get(rpc);
 
 		BEquips equips = _tequip.getOrAdd(session.getRoleId().longValue());
 		var eItem = equips.getItems().get(rpc.Argument.getEquipPos());

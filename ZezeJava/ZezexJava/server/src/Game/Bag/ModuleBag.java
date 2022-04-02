@@ -1,10 +1,8 @@
 package Game.Bag;
 
-import Zeze.Arch.ProviderSession;
-import Zeze.Net.Protocol;
+import Zeze.Arch.ProviderUserSession;
 import Zeze.Transaction.*;
 import Game.*;
-import Zeze.Util.Reflect;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
@@ -79,7 +77,7 @@ public final class ModuleBag extends AbstractModule {
 	// protocol handles
 	@Override
 	protected long ProcessMoveRequest(Move rpc) throws Throwable {
-		var session = ProviderSession.Get(rpc);
+		var session = ProviderUserSession.Get(rpc);
 		// throw exception if not login
 		var moduleCode = GetBag(session.getRoleId().longValue()).Move(
 				rpc.Argument.getPositionFrom(), rpc.Argument.getPositionTo(), rpc.Argument.getNumber());
@@ -92,7 +90,7 @@ public final class ModuleBag extends AbstractModule {
 
 	@Override
 	protected long ProcessDestroyRequest(Destroy rpc) throws Throwable {
-		var session = ProviderSession.Get(rpc);
+		var session = ProviderUserSession.Get(rpc);
 		var moduleCode = GetBag(session.getRoleId().longValue()).Destory(rpc.Argument.getPosition());
 		if (0 != moduleCode) {
 			return ErrorCode(moduleCode);
@@ -103,7 +101,7 @@ public final class ModuleBag extends AbstractModule {
 
 	@Override
 	protected long ProcessSortRequest(Sort rpc) throws Throwable {
-		var session = ProviderSession.Get(rpc);
+		var session = ProviderUserSession.Get(rpc);
 		Bag bag = GetBag(session.getRoleId().longValue());
 		bag.Sort(null);
 		session.SendResponse(rpc);
@@ -112,7 +110,7 @@ public final class ModuleBag extends AbstractModule {
 
 	@Override
 	protected long ProcessGetBagRequest(GetBag rpc) throws Throwable {
-		var session = ProviderSession.Get(rpc);
+		var session = ProviderUserSession.Get(rpc);
 
 		GetBag(session.getRoleId().longValue()).ToProtocol(rpc.Result);
 		session.SendResponse(rpc);
@@ -127,7 +125,7 @@ public final class ModuleBag extends AbstractModule {
 
 	@Override
 	protected long ProcessCUse(CUse protocol) throws Throwable {
-		var session = ProviderSession.Get(protocol);
+		var session = ProviderUserSession.Get(protocol);
 		Bag bag = GetBag(session.getRoleId().longValue());
 		var item = bag.GetItem(protocol.Argument.getPosition());
 		if (null != item && item.Use()) {

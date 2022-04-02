@@ -1,36 +1,41 @@
-package Zezex;
+package Zeze.Arch;
 
 import Zeze.Net.Protocol;
+import Zeze.Net.Service;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import Zeze.Beans.LinkdBase.*;
+import Zeze.Beans.Provider.*;
 
-public final class LinkdService extends LinkdServiceBase {
+public final class LinkdService extends Zeze.Services.HandshakeServer {
 	private static final Logger logger = LogManager.getLogger(LinkdService.class);
 
-	public LinkdService(Zeze.Application zeze) throws Throwable {
-		super(zeze);
+	public ProviderLinkd ProviderLinkd;
+
+	public LinkdService(String name, Zeze.Application zeze) throws Throwable {
+		super(name, zeze);
 	}
 
 	public void ReportError(long linkSid, int from, int code, String desc) {
 		var link = this.GetSocket(linkSid);
 		if (null != link) {
-			var error = new Zezex.Linkd.ReportError();
+			var error = new ReportError();
 			error.Argument.setFrom(from);
 			error.Argument.setCode(code);
 			error.Argument.setDesc(desc);
 			error.Send(link);
 
 			switch (from) {
-				case Zezex.Linkd.BReportError.FromLink:
+				case BReportError.FromLink:
 					//noinspection SwitchStatementWithTooFewBranches
 					switch (code) {
-						case Zezex.Linkd.BReportError.CodeNoProvider:
+						case BReportError.CodeNoProvider:
 							// 没有服务时，不断开连接，允许客户端重试。
 							return;
 					}
 					break;
 
-				case Zezex.Linkd.BReportError.FromProvider:
+				case BReportError.FromProvider:
 					break;
 			}
 			// 延迟关闭。等待客户端收到错误以后主动关闭，或者超时。
@@ -44,18 +49,13 @@ public final class LinkdService extends LinkdServiceBase {
 
 	@Override
 	public void DispatchUnknownProtocol(Zeze.Net.AsyncSocket so, int moduleId, int protocolId, Zeze.Serialize.ByteBuffer data) {
-		var linkSession = (LinkSession)so.getUserState();
+		var linkSession = (LinkdUserSession)so.getUserState();
 		if (null == linkSession || linkSession.getAccount().isEmpty()) {
-			ReportError(
-					so.getSessionId(),
-					Zezex.Linkd.BReportError.FromLink,
-					Zezex.Linkd.BReportError.CodeNotAuthed,
-					"not authed."
-					);
+			ReportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNotAuthed, "not authed.");
 			return;
 		}
 
-		var dispatch = new Zezex.Provider.Dispatch();
+		var dispatch = new Dispatch();
 		dispatch.Argument.setLinkSid(so.getSessionId());
 		dispatch.Argument.setAccount(linkSession.getAccount());
 		dispatch.Argument.setProtocolType(Protocol.MakeTypeId(moduleId, protocolId));
@@ -65,7 +65,7 @@ public final class LinkdService extends LinkdServiceBase {
 
 		var provider = new Zeze.Util.OutObject<Long>();
 		if (linkSession.TryGetProvider(moduleId, provider)) {
-			var socket = App.getInstance().LinkdProviderService.GetSocket(provider.Value);
+			var socket = ProviderLinkd.LinkdProviderService.GetSocket(provider.Value);
 			if (null != socket) {
 				socket.Send(dispatch);
 				return;
@@ -75,8 +75,8 @@ public final class LinkdService extends LinkdServiceBase {
 			//linkSession.UnBind(so, moduleId, null);
 		}
 
-		if (App.getInstance().Zezex_Provider.ChoiceProviderAndBind(moduleId, so, provider)) {
-			var providerSocket = App.getInstance().LinkdProviderService.GetSocket(provider.Value);
+		if (ProviderLinkd.ChoiceProviderAndBind(moduleId, so, provider)) {
+			var providerSocket = ProviderLinkd.LinkdProviderService.GetSocket(provider.Value);
 			if (null != providerSocket) {
 				// ChoiceProviderAndBind 内部已经处理了绑定。这里只需要发送。
 				providerSocket.Send(dispatch);
@@ -84,11 +84,11 @@ public final class LinkdService extends LinkdServiceBase {
 			}
 			// 找到provider但是发送之前连接关闭，当作没有找到处理。这个窗口很小，再次查找意义不大。
 		}
-		ReportError(so.getSessionId(), Zezex.Linkd.BReportError.FromLink, Zezex.Linkd.BReportError.CodeNoProvider, "no provider.");
+		ReportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider, "no provider.");
 	}
 
 	@Override
-	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
+	public <P extends Protocol<?>> void DispatchProtocol(P p, Service.ProtocolFactoryHandle<P> factoryHandle) {
 		if (null != factoryHandle.Handle) {
 			try {
 				var isRequestSaved = p.isRequest();
@@ -106,7 +106,7 @@ public final class LinkdService extends LinkdServiceBase {
 
 	@Override
 	public void OnHandshakeDone(Zeze.Net.AsyncSocket sender) throws Throwable {
-		sender.setUserState(new LinkSession(sender.getSessionId()));
+		sender.setUserState(new LinkdUserSession(sender.getSessionId()));
 		super.OnHandshakeDone(sender);
 	}
 
@@ -114,7 +114,7 @@ public final class LinkdService extends LinkdServiceBase {
 	public void OnSocketClose(Zeze.Net.AsyncSocket so, Throwable e) throws Throwable {
 		super.OnSocketClose(so, e);
 		if (so.getUserState() != null) {
-			((Zezex.LinkSession)so.getUserState()).OnClose();
+			((LinkdUserSession)so.getUserState()).OnClose(ProviderLinkd.LinkdProviderService);
 		}
 	}
 }

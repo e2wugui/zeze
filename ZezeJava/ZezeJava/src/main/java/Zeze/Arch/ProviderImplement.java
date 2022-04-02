@@ -39,7 +39,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			p2.Decode(Zeze.Serialize.ByteBuffer.Wrap(p.Argument.getProtocolData()));
 			p2.setSender(p.getSender());
 
-			var session = new ProviderSession(service, p.Argument.getAccount(), p.Argument.getStates(), p.getSender(), p.Argument.getLinkSid());
+			var session = new ProviderUserSession(service, p.Argument.getAccount(), p.Argument.getStates(), p.getSender(), p.Argument.getLinkSid());
 
 			p2.setUserState(session);
 			if (Transaction.getCurrent() != null) {

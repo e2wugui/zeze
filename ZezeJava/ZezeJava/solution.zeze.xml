@@ -165,7 +165,7 @@
 				<variable id="2" name="EncodedKey" type="binary" />
 			</bean>
 		</module>
-
+		
 		<!--
 		Linkd - Server 之间通讯的协议定义。
 		-->
@@ -475,9 +475,33 @@
 
 			<table name="tQueueLastTaskId" key="string" value="BTaskId" />
 		</module>
+
+		<module name="LinkdBase" id="11011">
+			<!-- linkd to client -->
+			<bean name="BReportError">
+				<enum name="FromLink"     value="0"/>
+				<enum name="FromProvider" value="1"/>
+
+				<enum name="CodeNotAuthed"  value="1"/>
+				<enum name="CodeNoProvider" value="2"/>
+
+				<variable id="1" name="from" type="int"/>
+				<variable id="2" name="code" type="int"/>
+				<variable id="3" name="desc" type="string"/>
+			</bean>
+
+			<protocol name="ReportError" argument="BReportError" handle="client"/>
+		</module>
 	</module>
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+
+	<!-- Linkd 服务模块基类，仅用来生成代码 -->
+	<component name="LinkdBase" gendir="src/main/java" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Beans.LinkdBase"/>
+		</service>
+	</component>
 
 	<component name="RedoQueueServer" gendir="src/main/java" platform="zeze+java">
 		<service name="" handle="server">

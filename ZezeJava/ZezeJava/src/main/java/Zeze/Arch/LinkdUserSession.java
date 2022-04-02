@@ -1,12 +1,16 @@
-package Zezex;
+package Zeze.Arch;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.concurrent.Future;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import java.util.*;
-import java.util.concurrent.Future;
+import Zeze.Beans.Provider.*;
 
-public class LinkSession {
-	private static final Logger logger = LogManager.getLogger(LinkSession.class);
+public class LinkdUserSession {
+	private static final Logger logger = LogManager.getLogger(LinkdUserSession.class);
 
 	private String Account;
 	public final String getAccount() {
@@ -35,12 +39,11 @@ public class LinkSession {
 		Binds = value;
 	}
 
-	private final long SessionId;
+	private final long SessionId; // Linkd.SessionId
 	public final long getSessionId() {
 		return SessionId;
 	}
-
-	public LinkSession(long sessionId) {
+	public LinkdUserSession(long sessionId) {
 		SessionId = sessionId;
 	}
 
@@ -64,17 +67,18 @@ public class LinkSession {
 		}
 	}
 
-	public final void Bind(Zeze.Net.AsyncSocket link, java.lang.Iterable<Integer> moduleIds, Zeze.Net.AsyncSocket provider) {
+	public final void Bind(LinkdProviderService linkdProviderService, Zeze.Net.AsyncSocket link,
+						   Iterable<Integer> moduleIds, Zeze.Net.AsyncSocket provider) {
 		synchronized (this) {
 			for (var moduleId : moduleIds) {
 				var exist = Binds.get(moduleId);
 				if (null != exist) {
-					var oldSocket = App.getInstance().LinkdProviderService.GetSocket(exist);
+					var oldSocket = linkdProviderService.GetSocket(exist);
 					logger.warn("LinkSession.Bind replace provider {} {} {}",
 							moduleId, oldSocket.getRemoteAddress(), provider.getRemoteAddress());
 				}
 				getBinds().put(moduleId, provider.getSessionId());
-				var ps = (ProviderSession)provider.getUserState();
+				var ps = (LinkdProviderSession)provider.getUserState();
 				if (null != ps)
 					ps.AddLinkSession(moduleId, link.getSessionId());
 			}
@@ -82,22 +86,26 @@ public class LinkSession {
 	}
 
 
-	public final void UnBind(Zeze.Net.AsyncSocket link, int moduleId, Zeze.Net.AsyncSocket provider) {
-		UnBind(link, moduleId, provider, false);
+	public final void UnBind(LinkdProviderService linkdProviderService, Zeze.Net.AsyncSocket link,
+							 int moduleId, Zeze.Net.AsyncSocket provider) {
+		UnBind(linkdProviderService, link, moduleId, provider, false);
 	}
 
-	public final void UnBind(Zeze.Net.AsyncSocket link, int moduleId, Zeze.Net.AsyncSocket provider, boolean isOnProviderClose) {
+	public final void UnBind(LinkdProviderService linkdProviderService, Zeze.Net.AsyncSocket link,
+							 int moduleId, Zeze.Net.AsyncSocket provider, boolean isOnProviderClose) {
 		var moduleIds = new HashSet<Integer>();
 		moduleIds.add(moduleId);
-		UnBind(link, moduleIds, provider, isOnProviderClose);
+		UnBind(linkdProviderService, link, moduleIds, provider, isOnProviderClose);
 	}
 
 
-	public final void UnBind(Zeze.Net.AsyncSocket link, java.lang.Iterable<Integer> moduleIds, Zeze.Net.AsyncSocket provider) {
-		UnBind(link, moduleIds, provider, false);
+	public final void UnBind(LinkdProviderService linkdProviderService, Zeze.Net.AsyncSocket link,
+							 Iterable<Integer> moduleIds, Zeze.Net.AsyncSocket provider) {
+		UnBind(linkdProviderService, link, moduleIds, provider, false);
 	}
 
-	public final void UnBind(Zeze.Net.AsyncSocket link, java.lang.Iterable<Integer> moduleIds, Zeze.Net.AsyncSocket provider, boolean isOnProviderClose) {
+	public final void UnBind(LinkdProviderService linkdProviderService, Zeze.Net.AsyncSocket link,
+							 Iterable<Integer> moduleIds, Zeze.Net.AsyncSocket provider, boolean isOnProviderClose) {
 		synchronized (this) {
 			for (var moduleId : moduleIds) {
 				var exist = Binds.get(moduleId);
@@ -105,13 +113,13 @@ public class LinkSession {
 					if (exist == provider.getSessionId()) { // check owner? 也许不做这个检测更好？
 						getBinds().remove(moduleId);
 						if (!isOnProviderClose) {
-							var ps = (ProviderSession)provider.getUserState();
+							var ps = (LinkdProviderSession)provider.getUserState();
 							if (null != ps)
 								ps.RemoveLinkSession(moduleId, link.getSessionId());
 						}
 					}
 					else {
-						var oldSocket = App.getInstance().LinkdProviderService.GetSocket(exist);
+						var oldSocket = linkdProviderService.GetSocket(exist);
 						logger.warn("LinkSession.UnBind not owner {} {} {}",
 								moduleId, oldSocket.getRemoteAddress(), provider.getRemoteAddress());
 					}
@@ -123,19 +131,19 @@ public class LinkSession {
 	// 仅在网络线程中回调，并且一个时候，只会有一个回调，不线程保护了。
 	private Future<?> KeepAliveTask;
 
-	public final void KeepAlive() {
+	public final void StartKeepAlive(Zeze.Net.Service linkdService) {
 		if (KeepAliveTask != null) {
 			KeepAliveTask.cancel(false);
 		}
 		KeepAliveTask = Zeze.Util.Task.schedule(3000000, () -> {
-			var link = App.getInstance().LinkdService.GetSocket(getSessionId());
+			var link = linkdService.GetSocket(getSessionId());
 				if (link != null) {
 					link.Close(null);
 				}
 		});
 	}
 
-	public final void OnClose() {
+	public final void OnClose(LinkdProviderService linkdProviderService) {
 		if (KeepAliveTask != null) {
 			KeepAliveTask.cancel(false);
 		}
@@ -151,21 +159,21 @@ public class LinkSession {
 			setBinds(new HashMap<>());
 		}
 
-		var linkBroken = new Zezex.Provider.LinkBroken();
+		var linkBroken = new LinkBroken();
 		linkBroken.Argument.setAccount(Account);
 		linkBroken.Argument.setLinkSid(SessionId);
 		linkBroken.Argument.getStates().addAll(getUserStates());
 		linkBroken.Argument.setStatex(UserStatex);
-		linkBroken.Argument.setReason(Zezex.Provider.BLinkBroken.REASON_PEERCLOSE); // 这个保留吧。现在没什么用。
+		linkBroken.Argument.setReason(BLinkBroken.REASON_PEERCLOSE); // 这个保留吧。现在没什么用。
 
 		// 需要在锁外执行，因为如果 ProviderSocket 和 LinkdSocket 同时关闭。都需要去清理自己和对方，可能导致死锁。
 		HashSet<Zeze.Net.AsyncSocket> bindProviders = new HashSet<>();
 		for (var e : bindsSwap.entrySet()) {
-			var provider = App.getInstance().LinkdProviderService.GetSocket(e.getValue());
+			var provider = linkdProviderService.GetSocket(e.getValue());
 			if (null == provider) {
 				continue;
 			}
-			var providerSession = (ProviderSession)provider.getUserState();
+			var providerSession = (LinkdProviderSession)provider.getUserState();
 			if (null == providerSession) {
 				continue;
 			}

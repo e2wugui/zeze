@@ -26,7 +26,7 @@ public final class ModuleLogin extends AbstractModule {
 
 	@Override
 	protected long ProcessCreateRoleRequest(CreateRole rpc) throws Throwable {
-		var session = ProviderSession.Get(rpc);
+		var session = ProviderUserSession.Get(rpc);
 
 		BRoleData tempVar = new BRoleData();
 		tempVar.setName(rpc.Argument.getName());
@@ -51,7 +51,7 @@ public final class ModuleLogin extends AbstractModule {
 
 	@Override
 	protected long ProcessGetRoleListRequest(GetRoleList rpc) throws Throwable {
-		var session = ProviderSession.Get(rpc);
+		var session = ProviderUserSession.Get(rpc);
 
 		BAccount account = _taccount.get(session.getAccount());
 		if (null != account) {
@@ -73,7 +73,7 @@ public final class ModuleLogin extends AbstractModule {
 
 	@Override
 	protected long ProcessLoginRequest(Login rpc) throws Throwable {
-		var session = ProviderSession.Get(rpc);
+		var session = ProviderUserSession.Get(rpc);
 
 		BAccount account = _taccount.get(session.getAccount());
 		if (null == account) {
@@ -115,7 +115,7 @@ public final class ModuleLogin extends AbstractModule {
 
 	@Override
 	protected long ProcessReLoginRequest(ReLogin rpc) throws Throwable {
-		var session = ProviderSession.Get(rpc);
+		var session = ProviderUserSession.Get(rpc);
 
 		BAccount account = _taccount.get(session.getAccount());
 		if (null == account) {
@@ -161,11 +161,11 @@ public final class ModuleLogin extends AbstractModule {
 	}
 
 
-	private int ReliableNotifySync(ProviderSession session, long ReliableNotifyConfirmCount, BOnline online) {
+	private int ReliableNotifySync(ProviderUserSession session, long ReliableNotifyConfirmCount, BOnline online) {
 		return ReliableNotifySync(session, ReliableNotifyConfirmCount, online, true);
 	}
 
-	private int ReliableNotifySync(ProviderSession session, long ReliableNotifyConfirmCount, BOnline online, boolean sync) {
+	private int ReliableNotifySync(ProviderUserSession session, long ReliableNotifyConfirmCount, BOnline online, boolean sync) {
 		if (ReliableNotifyConfirmCount < online.getReliableNotifyConfirmCount()
 				|| ReliableNotifyConfirmCount > online.getReliableNotifyTotalCount()
 				|| ReliableNotifyConfirmCount - online.getReliableNotifyConfirmCount() > online.getReliableNotifyQueue().size()) {
@@ -191,7 +191,7 @@ public final class ModuleLogin extends AbstractModule {
 
 	@Override
 	protected long ProcessReliableNotifyConfirmRequest(ReliableNotifyConfirm rpc) throws Throwable {
-		var session = ProviderSession.Get(rpc);
+		var session = ProviderUserSession.Get(rpc);
 
 		BOnline online = _tonline.get(session.getRoleId().longValue());
 		if (null == online || online.getState() == BOnline.StateOffline) {
@@ -210,7 +210,7 @@ public final class ModuleLogin extends AbstractModule {
 
 	@Override
 	protected long ProcessLogoutRequest(Logout rpc) throws Throwable {
-		var session = ProviderSession.Get(rpc);
+		var session = ProviderUserSession.Get(rpc);
 
 		if (session.getRoleId() == null) {
 			return ErrorCode(ResultCodeNotLogin);
