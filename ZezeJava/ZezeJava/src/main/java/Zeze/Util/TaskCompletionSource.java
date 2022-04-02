@@ -89,8 +89,8 @@ public class TaskCompletionSource<T> implements Future<T> {
 	public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
 		Object r = result;
 		if (r == null) {
-			timeout = (unit.toNanos(timeout) + 999_999) / 1_000_000; // to milliseconds
-			if (timeout <= 0)
+			timeout = unit.toMillis(timeout);
+			if (timeout <= 0) // wait(0) == wait(), but get(0) != get()
 				throw new TimeoutException();
 			synchronized (this) {
 				if ((r = result) == null) {
