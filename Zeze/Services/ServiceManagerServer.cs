@@ -66,6 +66,50 @@ namespace Zeze.Services
 
         // ServiceInfo.Name -> ServiceState
         private readonly ConcurrentDictionary<string, ServerState> ServerStates = new();
+
+        // 简单负载广播，
+        // 在RegisterService/UpdateService时自动订阅，会话关闭的时候删除。
+        // ProcessSetLoad时广播，本来不需要记录负载数据的，但为了以后可能的查询，保存一份。
+        private readonly ConcurrentDictionary<string, LoadObservers> Loads = new();
+
+        public class LoadObservers
+        {
+            public ServiceManagerServer ServiceManager;
+            public Load Load;
+            public IdentityHashSet<long> Observers = new();
+
+            public LoadObservers(ServiceManagerServer m)
+            {
+                ServiceManager = m;
+            }
+
+            public void SetLoad(Load load)
+            {
+                // synchronized big?
+                lock (this)
+                {
+                    Load = load;
+                    var set = new SetLoad();
+                    set.Argument = load;
+                    foreach (var e in Observers)
+                    {
+                        try
+                        {
+                            // skip rpc result
+                            if (set.Send(ServiceManager.Server.GetSocket(e)))
+                                continue;
+                        }
+                        catch (Exception)
+                        {
+                            // skip error
+                        }
+                        Observers.Remove(e); // remove in loop?
+                    }
+                }
+            }
+        }
+
+
         public NetServer Server { get; private set; }
         private AsyncSocket ServerSocket;
         private volatile SchedulerTask StartNotifyDelayTask;
@@ -108,6 +152,23 @@ namespace Zeze.Services
         /// 需要从配置文件中读取，把这个引用加入： Zeze.Config.AddCustomize
         /// </summary>
         public Conf Config { get; } = new Conf();
+
+        private void AddLoadObserver(string ip, int port, AsyncSocket sender)
+        {
+            if (ip.Length == 0 || port == 0)
+                return;
+            var host = ip + ":" + port;
+            Loads.GetOrAdd(host, (key) => new LoadObservers(this)).Observers.Add(sender.SessionId);
+        }
+
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+        private async Task<long> ProcessSetLoad(Protocol _p)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        {
+            var p = _p as SetLoad;
+            Loads.GetOrAdd(p.Argument.Name, (key) => new LoadObservers(this)).SetLoad(p.Argument);
+            return 0;
+        }
 
         public sealed class ServerState
         {
@@ -278,6 +339,10 @@ namespace Zeze.Services
                             return Procedure.LogicError;
                     }
                     r.SendResultCode(Subscribe.Success);
+                    foreach (var info in ServiceInfos.Values)
+                    {
+                        ServiceManager.AddLoadObserver(info.PassiveIp, info.PassivePort, r.Sender);
+                    }
                     if (null == ServiceManager.StartNotifyDelayTask)
                     {
                         var arg = new ServiceInfos(ServiceName, this, ++SerialId);
@@ -613,6 +678,12 @@ namespace Zeze.Services
             {
                 Factory = () => new AllocateId(),
                 Handle = ProcessAllocateId,
+            });
+
+            Server.AddFactoryHandle(new SetLoad().TypeId, new Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new SetLoad(),
+                Handle = ProcessSetLoad,
             });
 
             if (Config.StartNotifyDelay > 0)
@@ -1365,6 +1436,30 @@ namespace Zeze.Services.ServiceManager
             {
                 Factory = () => new AllocateId(),
             });
+
+            Client.AddFactoryHandle(new SetLoad().TypeId, new Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new SetLoad(),
+                Handle = ProcessSetLoad,
+            });
+        }
+
+        public readonly ConcurrentDictionary<string, Load> Loads = new();
+
+#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
+        private async Task<long> ProcessSetLoad(Protocol _p)
+#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        {
+            var p = _p as SetLoad;
+            Loads[p.Argument.Name] = p.Argument;
+            return Procedure.Success;
+        }
+
+        public bool SetLoad(Load load)
+        {
+            var p = new SetLoad();
+            p.Argument = load;
+            return p.Send(Client.GetSocket());
         }
 
         public void Dispose()
@@ -1425,6 +1520,34 @@ namespace Zeze.Services.ServiceManager
                 _ = Mission.CallAsync(factoryHandle.Handle, p, (_, code) => p.SendResultCode(code));
             }
 
+        }
+    }
+
+    public sealed class Load : Bean
+    {
+        public string Ip { get; set; }
+        public int Port { get; set; }
+        public Binary Param { get; set; }
+
+        public string Name => Ip + ":" + Port;
+
+        public override void Decode(ByteBuffer bb)
+        {
+            Ip = bb.ReadString();
+            Port = bb.ReadUInt();
+            Param = new Binary(bb);
+        }
+
+        public override void Encode(ByteBuffer bb)
+        {
+            bb.WriteString(Ip);
+            bb.WriteInt(Port);
+            bb.WriteBinary(Param);
+        }
+
+        protected override void InitChildrenRootInfo(Record.RootInfo root)
+        {
+            throw new NotImplementedException();
         }
     }
 
@@ -1806,6 +1929,14 @@ namespace Zeze.Services.ServiceManager
     public sealed class SubscribeFirstCommit : Protocol<ServiceInfos>
     {
         public readonly static int ProtocolId_ = Bean.Hash32(typeof(SubscribeFirstCommit).FullName);
+
+        public override int ModuleId => 0;
+        public override int ProtocolId => ProtocolId_;
+    }
+
+    public sealed class SetLoad : Protocol<Load>
+    {
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(SetLoad).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;

@@ -2,6 +2,8 @@ package Zeze.Arch;
 
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
+import Zeze.Beans.Provider.BLoad;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Util.Random;
 
@@ -47,7 +49,8 @@ public class ProviderDistribute {
 
 		// 新的provider在后面，从后面开始搜索。后面的可能是新的provider。
 		for (int i = list.size() - 1; i >= 0; --i) {
-			var providerModuleState = (ProviderModuleState)list.get(i).getLocalState();
+			var serviceInfo = list.get(i);
+			var providerModuleState = (ProviderModuleState)serviceInfo.getLocalState();
 			if (null == providerModuleState) {
 				continue;
 			}
@@ -57,10 +60,21 @@ public class ProviderDistribute {
 				continue; // 这里发现关闭的服务，仅仅忽略.
 			}
 			all.add(ps);
-			if (ps.getOnlineNew() > LoadConfig.getMaxOnlineNew()) {
+
+			// 查询负载。TODO 优化查询。Decode 已经优化。
+			var host = serviceInfo.getPassiveIp() + ":" + serviceInfo.getPassivePort();
+			var loadbean = Zeze.getServiceManagerAgent().Loads.get(host);
+			ps.Load = loadbean.get((param) -> {
+				var bb = ByteBuffer.Wrap(param);
+				var l = new BLoad();
+				l.Decode(bb);
+				return l;
+			});
+
+			if (ps.Load.getOnlineNew() > LoadConfig.getMaxOnlineNew()) {
 				continue;
 			}
-			int weight = ps.getProposeMaxOnline() - ps.getOnline();
+			int weight = ps.Load.getProposeMaxOnline() - ps.Load.getOnline();
 			if (weight <= 0) {
 				continue;
 			}
@@ -70,7 +84,7 @@ public class ProviderDistribute {
 		if (TotalWeight > 0) {
 			int randweight = Random.getInstance().nextInt(TotalWeight);
 			for (var ps : frees) {
-				int weight = ps.getProposeMaxOnline() - ps.getOnline();
+				int weight = ps.Load.getProposeMaxOnline() - ps.Load.getOnline();
 				if (randweight < weight) {
 					provider.Value = ps.getSessionId();
 					return true;
@@ -98,8 +112,8 @@ public class ProviderDistribute {
 			// 最多遍历一次。循环里面 continue 时，需要递增索引。
 			for (int i = 0; i < list.size(); ++i, FeedFullOneByOneIndex.incrementAndGet()) {
 				var index = Integer.remainderUnsigned(FeedFullOneByOneIndex.get(), list.size()); // current
-				var serviceinfo = list.get(index);
-				var providerModuleState = (ProviderModuleState)serviceinfo.getLocalState();
+				var serviceInfo = list.get(index);
+				var providerModuleState = (ProviderModuleState)serviceInfo.getLocalState();
 				if (providerModuleState == null)
 					continue;
 				var providerSocket = ProviderService.GetSocket(providerModuleState.SessionId);
@@ -109,12 +123,23 @@ public class ProviderDistribute {
 				// 这里发现关闭的服务，仅仅忽略.
 				if (null == ps)
 					continue;
+
+				// 查询负载。TODO 优化查询。Decode 已经优化。
+				var host = serviceInfo.getPassiveIp() + ":" + serviceInfo.getPassivePort();
+				var loadbean = Zeze.getServiceManagerAgent().Loads.get(host);
+				ps.Load = loadbean.get((param) -> {
+					var bb = ByteBuffer.Wrap(param);
+					var l = new BLoad();
+					l.Decode(bb);
+					return l;
+				});
+
 				// 这个和一个一个喂饱冲突，但是一下子给一个服务分配太多用户，可能超载。如果不想让这个生效，把MaxOnlineNew设置的很大。
-				if (ps.getOnlineNew() > LoadConfig.getMaxOnlineNew())
+				if (ps.Load.getOnlineNew() > LoadConfig.getMaxOnlineNew())
 					continue;
 
 				provider.Value = ps.getSessionId();
-				if (ps.getOnline() >= ps.getProposeMaxOnline())
+				if (ps.Load.getOnline() >= ps.Load.getProposeMaxOnline())
 					FeedFullOneByOneIndex.incrementAndGet(); // 已经喂饱了一个，下一个。
 				return true;
 			}

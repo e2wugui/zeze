@@ -8,6 +8,7 @@ import Zeze.Net.Connector;
 import Zeze.Net.Service;
 import Zeze.Net.Service.ProtocolFactoryHandle;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.Action1;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -43,6 +44,8 @@ public final class Agent implements Closeable {
 	public ConcurrentHashMap<String, SubscribeState> getSubscribeStates() {
 		return SubscribeStates;
 	}
+
+	public ConcurrentHashMap<String, Load> Loads = new ConcurrentHashMap<>();
 
 	public AgentClient getClient() {
 		return Client;
@@ -413,6 +416,13 @@ public final class Agent implements Closeable {
 		return subState;
 	}
 
+	public boolean SetLoad(Load load) {
+		var p = new SetLoad();
+		p.Argument = load;
+		return p.Send(getClient().getSocket());
+	}
+
+
 	private long ProcessSubscribeFirstCommit(SubscribeFirstCommit r) throws Throwable {
 		var state = getSubscribeStates().get(r.Argument.getServiceName());
 		if (null != state) {
@@ -492,6 +502,11 @@ public final class Agent implements Closeable {
 			getOnKeepAlive().run();
 		}
 		r.SendResultCode(KeepAlive.Success);
+		return Procedure.Success;
+	}
+
+	private long ProcessSetLoad(SetLoad setLoad) throws Throwable {
+		Loads.put(setLoad.Argument.getName(), setLoad.Argument);
 		return Procedure.Success;
 	}
 
@@ -578,6 +593,9 @@ public final class Agent implements Closeable {
 
 		Client.AddFactoryHandle(AllocateId.TypeId_,
 				new ProtocolFactoryHandle<>(AllocateId::new));
+
+		Client.AddFactoryHandle(SetLoad.TypeId_,
+				new ProtocolFactoryHandle<>(SetLoad::new, this::ProcessSetLoad));
 	}
 
 	@Override

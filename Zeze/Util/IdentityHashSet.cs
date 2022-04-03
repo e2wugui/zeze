@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Zeze.Util
 {
-    internal class IdentityHashSet<E> : IEnumerable<E>
+    public class IdentityHashSet<E> : IEnumerable<E>
     {
         private readonly IdentityHashMap<E, E> Impl = new IdentityHashMap<E, E>();
 

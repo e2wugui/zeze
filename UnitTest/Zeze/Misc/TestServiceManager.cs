@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Services.ServiceManager;
 using Zeze.Services;
+using Zeze.Net;
 
 namespace UnitTest.Zeze.Misc
 {
@@ -79,7 +80,7 @@ namespace UnitTest.Zeze.Misc
                 Console.WriteLine("OnUpdate: " + info.ExtraInfo);
                 this.future.SetResult(0);
             };
-            await agent.UpdateService(serviceName, "1", "1.1.1.1", 1, "extra info");
+            await agent.UpdateService(serviceName, "1", "1.1.1.1", 1, new Binary(Encoding.UTF8.GetBytes("extra info")));
             future.Task.Wait();
 
             Console.WriteLine("RegisterService 2");

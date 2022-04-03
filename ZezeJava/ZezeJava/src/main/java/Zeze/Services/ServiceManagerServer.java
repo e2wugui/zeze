@@ -6,9 +6,11 @@ import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import Zeze.Beans.Provider.BLoad;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
@@ -16,11 +18,13 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.AllocateId;
 import Zeze.Services.ServiceManager.CommitServiceList;
 import Zeze.Services.ServiceManager.KeepAlive;
+import Zeze.Services.ServiceManager.Load;
 import Zeze.Services.ServiceManager.NotifyServiceList;
 import Zeze.Services.ServiceManager.ReadyServiceList;
 import Zeze.Services.ServiceManager.Register;
 import Zeze.Services.ServiceManager.ServiceInfo;
 import Zeze.Services.ServiceManager.ServiceInfos;
+import Zeze.Services.ServiceManager.SetLoad;
 import Zeze.Services.ServiceManager.Subscribe;
 import Zeze.Services.ServiceManager.SubscribeFirstCommit;
 import Zeze.Services.ServiceManager.SubscribeInfo;
@@ -28,6 +32,7 @@ import Zeze.Services.ServiceManager.UnRegister;
 import Zeze.Services.ServiceManager.UnSubscribe;
 import Zeze.Services.ServiceManager.Update;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.IdentityHashSet;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
@@ -89,6 +94,39 @@ public final class ServiceManagerServer implements Closeable {
 
 	// ServiceInfo.Name -> ServiceState
 	private final ConcurrentHashMap<String, ServerState> ServerStates = new ConcurrentHashMap<>();
+
+	// 简单负载广播，
+	// 在RegisterService/UpdateService时自动订阅，会话关闭的时候删除。
+	// ProcessSetLoad时广播，本来不需要记录负载数据的，但为了以后可能的查询，保存一份。
+	private final ConcurrentHashMap<String, LoadObservers> Loads = new ConcurrentHashMap<>();
+
+	public static class LoadObservers {
+		public ServiceManagerServer ServiceManager;
+		public Zeze.Services.ServiceManager.Load Load;
+		public final IdentityHashSet<Long> Observers = new IdentityHashSet<>();
+
+		public LoadObservers(ServiceManagerServer m) {
+			ServiceManager = m;
+		}
+
+		// synchronized big?
+		public synchronized void SetLoad(Zeze.Services.ServiceManager.Load load) {
+			Load = load;
+			var set = new SetLoad();
+			set.Argument = load;
+			for (var e : Observers) {
+				try {
+					// skip rpc result
+					if (set.Send(ServiceManager.Server.GetSocket(e)))
+						continue;
+				} catch (Throwable ex) {
+					// skip error
+				}
+				Observers.Remove(e); // remove in loop?
+			}
+		}
+	}
+
 	private NetServer Server;
 	private AsyncSocket ServerSocket;
 	private volatile Future<?> StartNotifyDelayTask;
@@ -321,6 +359,9 @@ public final class ServiceManagerServer implements Closeable {
 				r.SendResult();
 				return Procedure.LogicError;
 			}
+			for (var info : ServiceInfos.values()) {
+				ServiceManager.AddLoadObserver(info.getPassiveIp(), info.getPassivePort(), r.getSender());
+			}
 			r.SendResultCode(Subscribe.Success);
 			if (ServiceManager.StartNotifyDelayTask == null) {
 				var arg = new ServiceInfos(ServiceName, this, ++SerialId);
@@ -453,6 +494,13 @@ public final class ServiceManagerServer implements Closeable {
 		System.setProperty("log4j.configurationFile", "log4j2.xml");
 	}
 
+	private void AddLoadObserver(String ip, int port, AsyncSocket sender) {
+		if (ip.isEmpty() || port == 0)
+			return;
+		var host = ip + ":" + port;
+		Loads.computeIfAbsent(host, (key) -> new LoadObservers(this)).Observers.Add(sender.getSessionId());
+	}
+
 	private long ProcessRegister(Register r) {
 		var session = (Session)r.getSender().getUserState();
 
@@ -580,6 +628,11 @@ public final class ServiceManagerServer implements Closeable {
 		return Procedure.Success;
 	}
 
+	private long ProcessSetLoad(SetLoad setLoad) {
+		Loads.computeIfAbsent(setLoad.Argument.getName(), (key) -> new LoadObservers(this)).SetLoad(setLoad.Argument);
+		return 0;
+	}
+
 	@Override
 	public void close() throws IOException {
 		try {
@@ -624,6 +677,9 @@ public final class ServiceManagerServer implements Closeable {
 
 		Server.AddFactoryHandle(AllocateId.TypeId_,
 				new Service.ProtocolFactoryHandle<>(AllocateId::new, this::ProcessAllocateId));
+
+		Server.AddFactoryHandle(SetLoad.TypeId_,
+				new Service.ProtocolFactoryHandle<>(SetLoad::new, this::ProcessSetLoad));
 
 		if (Config.getStartNotifyDelay() > 0)
 			StartNotifyDelayTask = Task.schedule(Config.getStartNotifyDelay(), this::StartNotifyAll);
