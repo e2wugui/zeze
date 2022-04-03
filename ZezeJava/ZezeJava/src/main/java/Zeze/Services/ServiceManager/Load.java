@@ -9,7 +9,7 @@ import Zeze.Util.Func1;
 public final class Load extends Bean {
 	public String Ip;
 	public int Port;
-	public Binary Param;
+	public Binary Param = Binary.Empty;
 
 	public volatile Object ObjectParam; // Decoded Param. 不会系列化。
 

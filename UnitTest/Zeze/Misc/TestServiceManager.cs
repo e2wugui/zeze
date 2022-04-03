@@ -58,19 +58,25 @@ namespace UnitTest.Zeze.Misc
             future = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             // for reconnect
             var clientConfig = demo.App.Instance.Zeze.Config;
-            var agentConfig = new global::Zeze.Net.ServiceConf();
+            var agentConfig = new ServiceConf();
             var agentName = "Zeze.Services.ServiceManager.Agent.Test";
             clientConfig.ServiceConfMap.TryAdd(agentName, agentConfig);
-            agentConfig.AddConnector(new global::Zeze.Net.Connector(ip, port));
+            agentConfig.AddConnector(new Connector(ip, port));
             using var agent = new Agent(demo.App.Instance.Zeze, agentName);
             agent.Client.Start();
-            await agent.RegisterService(serviceName, "1");
+            await agent.RegisterService(serviceName, "1", "127.0.0.1", 1234);
             agent.OnChanged = (state) =>
             {
                 Console.WriteLine("OnChanged: " + state.ServiceInfos);
                 this.future.SetResult(0);
             };
             await agent.SubscribeService(serviceName, SubscribeInfo.SubscribeTypeSimple);
+            var load = new Load()
+            {
+                Ip = "127.0.0.1",
+                Port = 1234,
+            };
+            agent.SetLoad(load);
             Console.WriteLine("ConnectNow");
             future.Task.Wait();
 

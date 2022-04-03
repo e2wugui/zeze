@@ -167,6 +167,7 @@ namespace Zeze.Services
         {
             var p = _p as SetLoad;
             Loads.GetOrAdd(p.Argument.Name, (key) => new LoadObservers(this)).SetLoad(p.Argument);
+            Console.WriteLine(p.Argument);
             return 0;
         }
 
@@ -1527,15 +1528,15 @@ namespace Zeze.Services.ServiceManager
     {
         public string Ip { get; set; }
         public int Port { get; set; }
-        public Binary Param { get; set; }
+        public Binary Param { get; set; } = Binary.Empty;
 
         public string Name => Ip + ":" + Port;
 
         public override void Decode(ByteBuffer bb)
         {
             Ip = bb.ReadString();
-            Port = bb.ReadUInt();
-            Param = new Binary(bb);
+            Port = bb.ReadInt();
+            Param = bb.ReadBinary();
         }
 
         public override void Encode(ByteBuffer bb)
@@ -1548,6 +1549,11 @@ namespace Zeze.Services.ServiceManager
         protected override void InitChildrenRootInfo(Record.RootInfo root)
         {
             throw new NotImplementedException();
+        }
+
+        public override string ToString()
+        {
+            return $"Ip={Ip} Port={Port} Param={BitConverter.ToString(Param.Bytes, Param.Offset, Param.Count)}";
         }
     }
 
