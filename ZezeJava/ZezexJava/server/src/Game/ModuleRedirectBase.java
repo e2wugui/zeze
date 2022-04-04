@@ -1,6 +1,5 @@
 package Game;
 
-import Zeze.Arch.IModuleRedirect;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Net.AsyncSocket;
 import Zeze.Transaction.Transaction;
@@ -10,7 +9,7 @@ import Zeze.Transaction.Transaction;
  * 需要在App.Start的最开头初始化，需要在Create之前。
  * Zeze.Application.setModuleRedirect(new ModuleRedirect());
  */
-public class ModuleRedirect extends IModuleRedirect {
+public class ModuleRedirectBase extends Zeze.Arch.ModuleRedirectBase {
 	@Override
 	public int GetChoiceHashCode() {
 		String account = ((ProviderUserSession) Transaction.getCurrent().getTopProcedure().getUserState()).getAccount();

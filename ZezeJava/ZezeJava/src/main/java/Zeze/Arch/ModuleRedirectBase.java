@@ -7,7 +7,7 @@ import org.apache.commons.lang3.NotImplementedException;
 /**
  * 应用需要继承实现必要的方法，创建实例并保存。(Zeze.Application.setModuleRedirect)。
  */
-public abstract class IModuleRedirect {
+public abstract class ModuleRedirectBase {
 	public ConcurrentHashMap<String, RedirectHandle> Handles = new ConcurrentHashMap <>();
 
 	public int GetDefaultChoiceType() {
