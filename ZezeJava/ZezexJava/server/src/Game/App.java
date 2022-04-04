@@ -50,6 +50,17 @@ public final class App extends Zeze.AppBase {
 	}
 	public ProviderApp ProviderApp;
 	public ProviderDirectMy ProviderDirectMy;
+
+	private LoadConfig LoadLoadConfig() {
+		try {
+			byte[] bytes = Files.readAllBytes(Paths.get("linkd.json"));
+			return new ObjectMapper().readValue(bytes, LoadConfig.class);
+		} catch (Exception e) {
+			// e.printStackTrace();
+		}
+		return new LoadConfig();
+	}
+
 	public void Start(String[] args) throws Throwable {
 		int ServerId = -1;
 		for (int i = 0; i < args.length; ++i) {
@@ -74,7 +85,7 @@ public final class App extends Zeze.AppBase {
 		ProviderDirectMy = new ProviderDirectMy();
 		ProviderApp = new ProviderApp(Zeze, provider, Server,
 				"Game.Server.Module#",
-				ProviderDirectMy, ServerDirect, "Game.Linkd");
+				ProviderDirectMy, ServerDirect, "Game.Linkd", LoadLoadConfig());
 		Zeze.setRedirect(new ModuleRedirect(ProviderApp));
 		CreateModules();
 		ProviderApp.initialize(ProviderModuleBinds.Load(), Modules); // need Modules
