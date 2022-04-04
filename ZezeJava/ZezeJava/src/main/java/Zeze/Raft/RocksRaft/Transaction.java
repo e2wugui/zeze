@@ -2,6 +2,7 @@ package Zeze.Raft.RocksRaft;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.TreeMap;
 import Zeze.Net.Protocol;
 import Zeze.Raft.RaftRetryException;
@@ -110,7 +111,6 @@ public final class Transaction {
 
 	private final TreeMap<TableKey, RecordAccessed> AccessedRecords = new TreeMap<>();
 	private final ArrayList<Savepoint> Savepoints = new ArrayList<>();
-	private final ArrayList<Action0> CommitActions = new ArrayList<>();
 	private final HashSet<PessimismLock> PessimismLocks = new HashSet<>();
 	private Changes Changes;
 
@@ -164,16 +164,28 @@ public final class Transaction {
 			int lastIndex = Savepoints.size() - 1;
 			Savepoint last = Savepoints.get(lastIndex);
 			Savepoints.remove(lastIndex);
-			Savepoints.get(Savepoints.size() - 1).CommitTo(last);
+			Savepoints.get(Savepoints.size() - 1).MergeFrom(last, true);
 		}
 		// else // 最外层存储过程提交在 Perform 中处理
 	}
+
+	private List<Action0> LastRollbackActions;
 
 	public void Rollback() {
 		int lastIndex = Savepoints.size() - 1;
 		Savepoint last = Savepoints.get(lastIndex);
 		Savepoints.remove(lastIndex);
 		last.Rollback();
+
+		if (lastIndex > 0)
+		{
+			Savepoints.get(lastIndex - 1).MergeFrom(last, false);
+		}
+		else
+		{
+			// 最后一个Savepoint Rollback的时候需要保存一下，用来触发回调。ugly。
+			LastRollbackActions = last.RollbackActions;
+		}
 	}
 
 	public long Perform(Procedure procedure) throws Throwable {
@@ -235,7 +247,11 @@ public final class Transaction {
 	}
 
 	public void RunWhileCommit(Action0 action) {
-		CommitActions.add(action);
+		Savepoints.get(Savepoints.size() - 1).CommitActions.add(action);
+	}
+
+	public void RunWhileRollback(Action0 action) {
+		Savepoints.get(Savepoints.size() - 1).RollbackActions.add(action);
 	}
 
 	private boolean _lock_and_check_(@SuppressWarnings("SameParameterValue") TransactionLevel level) {
@@ -289,25 +305,35 @@ public final class Transaction {
 			procedure.getRocks().getRaft().AppendLog(Changes, resultBean);
 		}
 
-		_trigger_commit_actions_(procedure);
+		_trigger_commit_actions_(procedure, sp);
 
 		Protocol<?> autoResponse = procedure.AutoResponse;
 		if (autoResponse != null)
 			autoResponse.SendResultCode(procedure.ResultCode);
 	}
 
-	private void _trigger_commit_actions_(Procedure procedure) {
-		for (var action : CommitActions) {
+	private void _trigger_commit_actions_(Procedure procedure, Savepoint last) {
+		for (var action : last.CommitActions) {
 			try {
 				action.run();
 			} catch (Throwable ex) {
 				logger.error(() -> "Commit Procedure " + procedure + " Action " + action.getClass().getName(), ex);
 			}
 		}
-		CommitActions.clear();
+		last.CommitActions.clear();
 	}
 
 	private void _final_rollback_(Procedure procedure) {
+		if (null != LastRollbackActions) {
+			for (var action : LastRollbackActions) {
+				try {
+					action.run();
+				} catch (Throwable ex) {
+					logger.error(() -> "Commit Procedure " + procedure + " Action " + action.getClass().getName(), ex);
+				}
+			}
+			LastRollbackActions = null;
+		}
 		Protocol<?> autoResponse = procedure.AutoResponse;
 		if (autoResponse != null)
 			autoResponse.SendResultCode(procedure.ResultCode);

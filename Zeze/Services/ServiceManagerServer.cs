@@ -167,7 +167,7 @@ namespace Zeze.Services
         {
             var p = _p as SetLoad;
             Loads.GetOrAdd(p.Argument.Name, (key) => new LoadObservers(this)).SetLoad(p.Argument);
-            Console.WriteLine(p.Argument);
+            //Console.WriteLine(p.Argument);
             return 0;
         }
 

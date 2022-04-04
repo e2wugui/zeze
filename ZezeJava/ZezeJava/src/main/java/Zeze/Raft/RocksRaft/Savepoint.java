@@ -1,5 +1,8 @@
 package Zeze.Raft.RocksRaft;
 
+import java.util.ArrayList;
+import java.util.List;
+import Zeze.Util.Action0;
 import Zeze.Util.LongHashMap;
 
 public final class Savepoint {
@@ -26,9 +29,18 @@ public final class Savepoint {
 		return sp;
 	}
 
-	public void CommitTo(Savepoint other) {
-		for (var it = other.Logs.iterator(); it.moveToNext(); )
-			it.value().EndSavepoint(this);
+	List<Action0> CommitActions = new ArrayList<>();
+	List<Action0> RollbackActions = new ArrayList<>();
+
+	public void MergeFrom(Savepoint other, boolean isCommit) {
+		if (isCommit) {
+			for (var it = other.Logs.iterator(); it.moveToNext(); )
+				it.value().EndSavepoint(this);
+			CommitActions.addAll(other.CommitActions);
+		} else {
+			CommitActions.addAll(other.RollbackActions);
+			RollbackActions.addAll(other.RollbackActions);
+		}
 	}
 
 	public void Rollback() {

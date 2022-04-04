@@ -163,7 +163,7 @@ namespace Zeze.Raft.RocksRaft
 				int lastIndex = Savepoints.Count - 1;
 				Savepoint last = Savepoints[lastIndex];
 				Savepoints.RemoveAt(lastIndex);
-				Savepoints[^1].EndSavepoint(last, true);
+				Savepoints[^1].MergeFrom(last, true);
 			}
 			/*
             else
@@ -184,7 +184,7 @@ namespace Zeze.Raft.RocksRaft
 
             if (lastIndex > 0)
             {
-                Savepoints[lastIndex - 1].EndSavepoint(last, false);
+                Savepoints[lastIndex - 1].MergeFrom(last, false);
             }
             else
             {

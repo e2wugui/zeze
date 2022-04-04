@@ -33,7 +33,7 @@ namespace Zeze.Raft.RocksRaft
         internal readonly List<Action> CommitActions = new();
         internal readonly List<Action> RollbackActions = new();
 
-        public void EndSavepoint(Savepoint other, bool isCommit)
+        public void MergeFrom(Savepoint other, bool isCommit)
         {
             if (isCommit)
             {
