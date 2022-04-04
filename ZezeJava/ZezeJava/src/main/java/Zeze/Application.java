@@ -6,7 +6,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import Zeze.Arch.ModuleRedirectBase;
+import Zeze.Arch.RedirectBase;
 import Zeze.Collections.Queue;
 import Zeze.Component.AutoKey;
 import Zeze.Serialize.ByteBuffer;
@@ -53,14 +53,14 @@ public final class Application {
 	private Future<?> FlushWhenReduceTimerTask;
 	private Schemas Schemas;
 	private boolean IsStart;
-	private ModuleRedirectBase ModuleRedirect;
+	private RedirectBase Redirect;
 
-	public ModuleRedirectBase getModuleRedirect() {
-		return ModuleRedirect;
+	public RedirectBase getRedirect() {
+		return Redirect;
 	}
 
-	public void setModuleRedirect(ModuleRedirectBase mr) {
-		ModuleRedirect = mr;
+	public void setRedirect(RedirectBase mr) {
+		Redirect = mr;
 	}
 
 	public Application(String solutionName) throws Throwable {

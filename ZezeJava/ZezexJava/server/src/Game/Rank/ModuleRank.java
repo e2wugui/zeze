@@ -202,7 +202,7 @@ public class ModuleRank extends AbstractModule {
 	*/
 	@Redirect()
 	public void RunUpdateRank(BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) {
-		int hash = App.Zeze.getModuleRedirect().GetChoiceHashCode();
+		int hash = App.Zeze.getRedirect().GetChoiceHashCode();
 		App.Zeze.Run(
 				() -> UpdateRank(hash, keyHint, roleId, value, valueEx),
 				"RunUpdateRank",
@@ -483,7 +483,7 @@ public class ModuleRank extends AbstractModule {
 	/******************************** ModuleRedirect 测试 *****************************************/
 	@Redirect()
 	public Zeze.Util.TaskCompletionSource<Long> RunTest1(Zeze.TransactionModes mode) {
-		int hash = App.Zeze.getModuleRedirect().GetChoiceHashCode();
+		int hash = App.Zeze.getRedirect().GetChoiceHashCode();
 		return App.Zeze.Run(() -> Test1(hash), "Test1", mode, hash);
 	}
 
@@ -493,7 +493,7 @@ public class ModuleRank extends AbstractModule {
 
 	@Redirect()
 	public void RunTest2(int inData, Zeze.Util.RefObject<Integer> refData, Zeze.Util.OutObject<Integer> outData) {
-		int hash = App.Zeze.getModuleRedirect().GetChoiceHashCode();
+		int hash = App.Zeze.getRedirect().GetChoiceHashCode();
 		var future = App.Zeze.Run(
 				() -> Test2(hash, inData, refData, outData),
 				"Test2", Zeze.TransactionModes.ExecuteInAnotherThread, hash);
@@ -510,7 +510,7 @@ public class ModuleRank extends AbstractModule {
 						 Zeze.Util.RefObject<Integer> refData,
 						 Zeze.Util.OutObject<Integer> outData,
 						 Zeze.Util.Action1<Integer> resultCallback) {
-		int hash = App.Zeze.getModuleRedirect().GetChoiceHashCode();
+		int hash = App.Zeze.getRedirect().GetChoiceHashCode();
 		var future = App.Zeze.Run(
 				() -> Test3(hash, inData, refData, outData, resultCallback),
 				"Test3", Zeze.TransactionModes.ExecuteInAnotherThread, hash);

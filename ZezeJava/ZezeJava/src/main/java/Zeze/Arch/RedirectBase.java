@@ -2,13 +2,12 @@ package Zeze.Arch;
 
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.IModule;
-import Zeze.Services.ServiceManager.Load;
 import org.apache.commons.lang3.NotImplementedException;
 
 /**
  * 应用需要继承实现必要的方法，创建实例并保存。(Zeze.Application.setModuleRedirect)。
  */
-public abstract class ModuleRedirectBase {
+public abstract class RedirectBase {
 	public ConcurrentHashMap<String, RedirectHandle> Handles = new ConcurrentHashMap <>();
 
 	public int GetDefaultChoiceType() {
@@ -29,7 +28,7 @@ public abstract class ModuleRedirectBase {
 
 	public ProviderApp ProviderApp;
 
-	public ModuleRedirectBase(ProviderApp app) {
+	public RedirectBase(ProviderApp app) {
 		ProviderApp = app;
 	}
 }
