@@ -25,13 +25,16 @@ public class ProviderApp {
 	public String ProviderDirectPassiveIp;
 	public int ProviderDirectPassivePort;
 
+	public ProviderDistribute Distribute;
+
 	public ProviderApp(Zeze.Application zeze,
 					   ProviderImplement server,
 					   ProviderService toLinkdService,
 					   String providerModulePrefixNameOnServiceManager,
 					   ProviderDirect direct,
 					   ProviderDirectService toOtherProviderService,
-					   String linkdNameOnServiceManager
+					   String linkdNameOnServiceManager,
+					   LoadConfig loadConfig
 					   ) {
 		this.Zeze = zeze;
 
@@ -53,8 +56,14 @@ public class ProviderApp {
 		this.LinkdServiceName = linkdNameOnServiceManager;
 
 		this.ProviderImplement.RegisterProtocols(ProviderService);
+
 		this.Zeze.getServiceManagerAgent().setOnChanged(
 				(subscribeState) -> ProviderImplement.ApplyServiceInfos(subscribeState.getServiceInfos()));
+
+		this.Distribute = new ProviderDistribute();
+		this.Distribute.LoadConfig = loadConfig;
+		this.Distribute.Zeze = this.Zeze;
+		this.Distribute.ProviderService = ProviderService;
 
 		this.ProviderDirect.RegisterProtocols(ProviderDirectService);
 	}

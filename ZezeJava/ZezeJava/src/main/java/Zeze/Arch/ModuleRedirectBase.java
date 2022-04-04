@@ -2,6 +2,7 @@ package Zeze.Arch;
 
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.IModule;
+import Zeze.Services.ServiceManager.Load;
 import org.apache.commons.lang3.NotImplementedException;
 
 /**
@@ -24,5 +25,11 @@ public abstract class ModuleRedirectBase {
 
 	public IModule ReplaceModuleInstance(IModule module) {
 		return GenModule.Instance.ReplaceModuleInstance(module);
+	}
+
+	public ProviderApp ProviderApp;
+
+	public ModuleRedirectBase(ProviderApp app) {
+		ProviderApp = app;
 	}
 }

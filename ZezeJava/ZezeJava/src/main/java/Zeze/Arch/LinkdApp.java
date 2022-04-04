@@ -21,7 +21,7 @@ public class LinkdApp {
 		ProviderLinkd = providerLinkd;
 		ProviderLinkd.LinkdApp = this;
 		LinkdProviderService = linkdProviderService;
-		LinkdProviderService.LinkdApp =this;
+		LinkdProviderService.LinkdApp = this;
 		LinkdService = linkdService;
 		LinkdService.LinkdApp = this;
 

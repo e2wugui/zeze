@@ -69,13 +69,13 @@ public final class App extends Zeze.AppBase {
 
 		// create
 		CreateZeze(config);
-		Zeze.setModuleRedirect(new ModuleRedirect());
 		CreateService();
 		provider = new Provider(this);
 		ProviderDirectMy = new ProviderDirectMy();
 		ProviderApp = new ProviderApp(Zeze, provider, Server,
 				"Game.Server.Module#",
 				ProviderDirectMy, ServerDirect, "Game.Linkd");
+		Zeze.setModuleRedirect(new ModuleRedirect(ProviderApp));
 		CreateModules();
 		ProviderApp.initialize(ProviderModuleBinds.Load(), Modules); // need Modules
 
