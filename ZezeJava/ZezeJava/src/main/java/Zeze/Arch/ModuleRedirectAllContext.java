@@ -65,18 +65,18 @@ public class ModuleRedirectAllContext extends Zeze.Net.Service.ManualContext {
 	}
 
 	// 这里处理真正redirect发生时，从远程返回的结果。
-	public final void ProcessResult(ModuleRedirectAllResult result) throws Throwable {
+	public final void ProcessResult(Zeze.Application zeze, ModuleRedirectAllResult result) throws Throwable {
 		for (var h : result.Argument.getHashs().entrySet()) {
 			// 嵌套存储过程，单个分组的结果处理不影响其他分组。
 			// 不判断单个分组的处理结果，错误也继续执行其他分组。XXX
 			getService().getZeze().NewProcedure(() -> ProcessHashResult(
-					h.getKey(), h.getValue().getParams()),
+					zeze, h.getKey(), h.getValue().getParams()),
 					getMethodFullName()).Call();
 		}
 	}
 
 	// 生成代码实现。see Zezex.ModuleRedirect.cs
-	public long ProcessHashResult(int _hash_, Binary _params) throws Throwable {
+	public long ProcessHashResult(Zeze.Application zeze, int _hash_, Binary _params) throws Throwable {
 		return Procedure.NotImplement;
 	}
 }

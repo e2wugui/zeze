@@ -4,11 +4,8 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import Zeze.Arch.RedirectHash;
 import Zeze.Arch.RedirectAll;
 import Zeze.Arch.RedirectAllDoneHandle;
-import Zeze.Arch.RedirectAllResultHandle;
-import Zeze.Arch.RedirectResultHandle;
 import Zeze.Util.Str;
 
 public class MethodOverride {
@@ -29,8 +26,6 @@ public class MethodOverride {
 	public ArrayList<Parameter> ParametersNormal = new ArrayList<> ();
 	public java.lang.reflect.Parameter[] ParametersAll;
 	public GenAction ResultHandle;
-	public java.lang.reflect.Parameter ParameterRedirectResultHandle;
-	public java.lang.reflect.Parameter ParameterRedirectAllResultHandle;
 	public java.lang.reflect.Parameter ParameterRedirectAllDoneHandle;
 
 	public String getThrows() {
@@ -67,15 +62,30 @@ public class MethodOverride {
 			var handle = GenAction.CreateIf(p);
 			if (ResultHandle != null && handle != null)
 				throw new RuntimeException("Too Many Result Handle. " + method.getDeclaringClass().getName() + "::" + method.getName());
-			ResultHandle = handle;
+			if (handle != null)
+				ResultHandle = handle;
 
 			if (p.getType() == RedirectAllDoneHandle.class)
-				ParameterRedirectAllDoneHandle = p;
-			else if (p.getType() == RedirectAllResultHandle.class)
-				ParameterRedirectAllResultHandle = p;
-			else if (p.getType() == RedirectResultHandle.class)
-				ParameterRedirectResultHandle = p;
+				ParameterRedirectAllDoneHandle = p; // 需要传递给处理流程。
 		}
+	}
+
+	public String GetDefineString() throws Throwable {
+		var sb = new Zeze.Util.StringBuilderCs();
+		boolean first = true;
+		for (var p : ParametersAll) {
+			if (first)
+				first = false;
+			else
+				sb.Append(", ");
+			if (null != ResultHandle && p == ResultHandle.Parameter)
+				sb.Append(ResultHandle.GetDefineName());
+			else
+				sb.Append(Gen.Instance.GetTypeName(p.getType()));
+			sb.Append(" ");
+			sb.Append(p.getName());
+		}
+		return sb.toString();
 	}
 
 	public final String GetNarmalCallString() throws Throwable {

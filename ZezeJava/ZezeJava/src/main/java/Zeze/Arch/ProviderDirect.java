@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import java.security.Provider;
 import Zeze.Beans.ProviderDirect.*;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
@@ -131,7 +132,7 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
         Transaction.getCurrent().getTopProcedure().setActionName(protocol.Argument.getMethodFullName());
         var ctx = ProviderApp.ProviderDirectService.<ModuleRedirectAllContext>TryGetManualContext(protocol.Argument.getSessionId());
         if (ctx != null) {
-            ctx.ProcessResult(protocol);
+            ctx.ProcessResult(ProviderApp.Zeze, protocol);
         }
         return Procedure.Success;
     }

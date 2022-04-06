@@ -210,12 +210,12 @@ public class ModuleRank extends AbstractModule {
 		d) 剩下的是自定义参数。
 	*/
 	protected final long GetRank(long sessionId, int hash, BConcurrentKey keyHint,
-								RedirectAllResultHandle onHashResult) {
+								Zeze.Util.Action3<Long, Integer, BRankList> onHashResult) {
 		// 根据hash获取分组rank。
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		var concurrentKey = new BConcurrentKey(keyHint.getRankType(), hash % concurrentLevel, keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
 		try {
-			onHashResult.handle(sessionId, hash, _trank.getOrAdd(concurrentKey));
+			onHashResult.run(sessionId, hash, _trank.getOrAdd(concurrentKey));
 			return Procedure.Success;
 		} catch (Throwable e) {
 			logger.error("", e);
@@ -226,7 +226,7 @@ public class ModuleRank extends AbstractModule {
 	// 属性参数是获取总的并发分组数量的代码，直接复制到生成代码中。
 	// 需要注意在子类上下文中可以编译通过。可以是常量。
 	@RedirectAll(GetConcurrentLevelSource="GetConcurrentLevel(arg0.getRankType())")
-	public void GetRank(BConcurrentKey keyHint, RedirectAllResultHandle onHashResult, RedirectAllDoneHandle onHashEnd) {
+	public void GetRank(BConcurrentKey keyHint, Zeze.Util.Action3<Long, Integer, BRankList> onHashResult, RedirectAllDoneHandle onHashEnd) {
 		// 默认实现是本地遍历调用，这里不使用App.Zeze.Run启动任务（这样无法等待），直接调用实现。
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		var ctx = new ModuleRedirectAllContext(concurrentLevel,
