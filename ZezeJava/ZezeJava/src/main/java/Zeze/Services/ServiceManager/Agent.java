@@ -8,7 +8,6 @@ import Zeze.Net.Connector;
 import Zeze.Net.Service;
 import Zeze.Net.Service.ProtocolFactoryHandle;
 import Zeze.Transaction.Procedure;
-import Zeze.Util.Action1;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -505,7 +504,7 @@ public final class Agent implements Closeable {
 		return Procedure.Success;
 	}
 
-	private long ProcessSetLoad(SetLoad setLoad) throws Throwable {
+	private long ProcessSetLoad(SetLoad setLoad) {
 		Loads.put(setLoad.Argument.getName(), setLoad.Argument);
 		return Procedure.Success;
 	}

@@ -25,7 +25,6 @@ import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.Func0;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.Task;
-import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskOneByOneByKey;
 import Zeze.Util.ThreadFactoryWithName;
 import org.apache.logging.log4j.LogManager;
@@ -332,19 +331,18 @@ public final class Application {
 			var last = FlushWhenReduce.computeIfAbsent(tkey, LastFlushWhenReduce::new);
 			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (last) {
-				if (!last.Removed) {
-					while (last.LastGlobalSerialId < hope) {
-						// 超时的时候，马上返回。
-						// 这个机制的是为了防止忙等。
-						// 所以不需要严格等待成功。
-						try {
-							last.wait(5000);
-						} catch (InterruptedException skip) {
-							logger.error(skip);
-							return false;
-						}
+				while (!last.Removed) {
+					if (last.LastGlobalSerialId >= hope)
+						return true;
+					// 超时的时候，马上返回。
+					// 这个机制的是为了防止忙等。
+					// 所以不需要严格等待成功。
+					try {
+						last.wait(5000);
+					} catch (InterruptedException skip) {
+						logger.error(skip);
+						return false;
 					}
-					return true;
 				}
 			}
 		}

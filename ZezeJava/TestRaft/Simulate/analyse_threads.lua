@@ -100,7 +100,7 @@ local knowns = {
 	{ "在ReduceInvalid等待Record1锁",                  ".ReduceInvalid(TableX.java:204)" },
 	{ "在TableCache.CleanNow等待Acquire(Invalid)回复", ".Acquire(GlobalCacheManagerWithRaftAgent.java:165)", ".TryRemoveRecordUnderLocks(TableCache.java:214)" },
 	{ "在TableCache.CleanNow里等待下次循环",           ".CleanNow(TableCache.java:166)" },
-	{ "在__TryWaitFlushWhenReduce里等待sleep",         ".__TryWaitFlushWhenReduce(Application.java:349)" },
+	{ "在__TryWaitFlushWhenReduce里等待sleep",         ".__TryWaitFlushWhenReduce(Application.java:341)" },
 	{ "在Checkpoint线程等待定时器",                    ".Checkpoint.Run(Checkpoint.java:141)" },
 	{ "在Selector等待NIO事件",                         ".Selector.run(Selector.java:67)" },
 	{ "等待所有任务完成(主线程)",                      ".WaitAllRunningTasksAndClear(App.java:64)" },
