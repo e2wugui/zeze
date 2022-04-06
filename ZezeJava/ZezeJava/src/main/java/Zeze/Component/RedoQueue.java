@@ -177,7 +177,7 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 	private ColumnFamilyHandle FamilyTaskQueue;
 	private long LastTaskId;
 	private long LastDoneTaskId;
-	private byte[] LastDoneTaskIdKey = "LastDoneTaskId".getBytes(StandardCharsets.UTF_8);
+	private final byte[] LastDoneTaskIdKey = "LastDoneTaskId".getBytes(StandardCharsets.UTF_8);
 
 	ColumnFamilyHandle getOrAddFamily(String name) {
 		return Families.computeIfAbsent(name, (key) -> {

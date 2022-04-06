@@ -39,39 +39,103 @@ public final class TaskOneByOneByKey {
 	}
 
 	public void Execute(Object key, Action0 action) {
-		Execute(key, action, null, null);
+		Execute(key.hashCode(), action);
 	}
 
 	public void Execute(Object key, Action0 action, String name) {
-		Execute(key, action, name, null);
+		Execute(key.hashCode(), action, name);
 	}
 
 	public void Execute(Object key, Action0 action, String name, Action0 cancel) {
-		if (action == null)
-			throw new NullPointerException();
-		concurrency[Hash(key.hashCode()) & hashMask].Execute(action, name, cancel);
+		Execute(key.hashCode(), action, name, cancel);
 	}
 
 	public void Execute(Object key, Func0<?> func) {
-		Execute(key, func, null, null);
+		Execute(key.hashCode(), func);
 	}
 
 	public void Execute(Object key, Func0<?> func, String name) {
-		Execute(key, func, name, null);
+		Execute(key.hashCode(), func, name);
 	}
 
 	public void Execute(Object key, Func0<?> func, String name, Action0 cancel) {
-		if (func == null)
-			throw new NullPointerException();
-		concurrency[Hash(key.hashCode()) & hashMask].Execute(func, name, cancel);
+		Execute(key.hashCode(), func, name, cancel);
 	}
 
 	public void Execute(Object key, Procedure procedure) {
-		Execute(key, procedure, null);
+		Execute(key.hashCode(), procedure);
 	}
 
 	public void Execute(Object key, Procedure procedure, Action0 cancel) {
-		concurrency[Hash(key.hashCode()) & hashMask].Execute(procedure::Call, procedure.getActionName(), cancel);
+		Execute(key.hashCode(), procedure, cancel);
+	}
+
+	public void Execute(int key, Action0 action) {
+		Execute(key, action, null, null);
+	}
+
+	public void Execute(int key, Action0 action, String name) {
+		Execute(key, action, name, null);
+	}
+
+	public void Execute(int key, Action0 action, String name, Action0 cancel) {
+		if (action == null)
+			throw new NullPointerException();
+		concurrency[Hash(key) & hashMask].Execute(action, name, cancel);
+	}
+
+	public void Execute(int key, Func0<?> func) {
+		Execute(key, func, null, null);
+	}
+
+	public void Execute(int key, Func0<?> func, String name) {
+		Execute(key, func, name, null);
+	}
+
+	public void Execute(int key, Func0<?> func, String name, Action0 cancel) {
+		if (func == null)
+			throw new NullPointerException();
+		concurrency[Hash(key) & hashMask].Execute(func, name, cancel);
+	}
+
+	public void Execute(int key, Procedure procedure) {
+		Execute(key, procedure, null);
+	}
+
+	public void Execute(int key, Procedure procedure, Action0 cancel) {
+		concurrency[Hash(key) & hashMask].Execute(procedure::Call, procedure.getActionName(), cancel);
+	}
+
+	public void Execute(long key, Action0 action) {
+		Execute(Long.hashCode(key), action);
+	}
+
+	public void Execute(long key, Action0 action, String name) {
+		Execute(Long.hashCode(key), action, name);
+	}
+
+	public void Execute(long key, Action0 action, String name, Action0 cancel) {
+		Execute(Long.hashCode(key), action, name, cancel);
+	}
+
+	public void Execute(long key, Func0<?> func) {
+		Execute(Long.hashCode(key), func);
+	}
+
+	public void Execute(long key, Func0<?> func, String name) {
+		Execute(Long.hashCode(key), func, name);
+	}
+
+	public void Execute(long key, Func0<?> func, String name, Action0 cancel) {
+		Execute(Long.hashCode(key), func, name, cancel);
+	}
+
+	public void Execute(long key, Procedure procedure) {
+		Execute(Long.hashCode(key), procedure);
+	}
+
+	public void Execute(long key, Procedure procedure, Action0 cancel) {
+		Execute(Long.hashCode(key), procedure, cancel);
 	}
 
 	public void Shutdown() {
@@ -168,18 +232,18 @@ public final class TaskOneByOneByKey {
 		}
 
 		private void Execute(Task task) {
+			boolean submit = false;
 			synchronized (this) {
-				block:
-				{
-					if (IsShutdown)
-						break block;
+				if (!IsShutdown) {
 					queue.addLast(task);
-					if (queue.size() == 1)
-						Zeze.Util.Task.getThreadPool().submit(queue.peekFirst());
-					return;
+					if (queue.size() != 1)
+						return;
+					submit = true;
 				}
 			}
-			if (task.cancel != null) {
+			if (submit)
+				Zeze.Util.Task.getThreadPool().submit(task);
+			else if (task.cancel != null) {
 				try {
 					task.cancel.run();
 				} catch (Throwable e) {
@@ -188,12 +252,18 @@ public final class TaskOneByOneByKey {
 			}
 		}
 
-		private synchronized void RunNext() {
-			queue.removeFirst();
-			if (!queue.isEmpty())
-				Zeze.Util.Task.getThreadPool().submit(queue.peekFirst());
-			else if (IsShutdown)
-				notify();
+		private void RunNext() {
+			Task task;
+			synchronized (this) {
+				queue.removeFirst();
+				if (queue.isEmpty()) {
+					if (IsShutdown)
+						notifyAll();
+					return;
+				}
+				task = queue.peekFirst();
+			}
+			Zeze.Util.Task.getThreadPool().submit(task);
 		}
 
 		void Shutdown(boolean cancel) {

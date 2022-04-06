@@ -18,17 +18,17 @@ public class ProviderModuleBinds {
 		return Load(null);
 	}
 
-	public static ProviderModuleBinds Load(String xmlfile) {
-		if (xmlfile == null) {
-			xmlfile = "provider.module.binds.xml";
+	public static ProviderModuleBinds Load(String xmlFile) {
+		if (xmlFile == null) {
+			xmlFile = "provider.module.binds.xml";
 		}
 
-		if (Files.isRegularFile(Paths.get(xmlfile))) {
+		if (Files.isRegularFile(Paths.get(xmlFile))) {
 			DocumentBuilderFactory db = DocumentBuilderFactory.newInstance();
 			db.setXIncludeAware(true);
 			db.setNamespaceAware(true);
 			try {
-				Document doc = db.newDocumentBuilder().parse(xmlfile);
+				Document doc = db.newDocumentBuilder().parse(xmlFile);
 				return new ProviderModuleBinds(doc.getDocumentElement());
 			}
 			catch (Exception ex) {
@@ -74,7 +74,7 @@ public class ProviderModuleBinds {
 	}
 
 	public final void BuildStaticBinds(HashMap<String, Zeze.IModule> AllModules, int serverId, HashMap<Integer, BModule> modules) {
-		HashMap<String, Integer> binds = new HashMap<String, Integer>();
+		HashMap<String, Integer> binds = new HashMap<>();
 
 		// special binds
 		for (var m : getModules().values()) {
@@ -84,7 +84,7 @@ public class ProviderModuleBinds {
 		}
 
 		// default binds
-		if (false == getProviderNoDefaultModule().contains(serverId)) {
+		if (!getProviderNoDefaultModule().contains(serverId)) {
 			for (var m : AllModules.values()) {
 				if (IsDynamicModule(m.getFullName())) {
 					continue; // 忽略动态注册的模块。
@@ -110,20 +110,20 @@ public class ProviderModuleBinds {
 	}
 
 	public static class Module {
-		private String FullName;
+		private final String FullName;
 		public final String getFullName() {
 			return FullName;
 		}
-		private int ChoiceType;
+		private final int ChoiceType;
 		public final int getChoiceType() {
 			return ChoiceType;
 		}
-		private int SubscribeType;
+		private final int SubscribeType;
 		public final int getSubscribeType() { return SubscribeType; }
-		private int ConfigType; // 为了兼容，没有配置的话，从其他条件推导出来。
+		private final int ConfigType; // 为了兼容，没有配置的话，从其他条件推导出来。
 		public final int getConfigType() { return ConfigType; }
 
-		private HashSet<Integer> Providers = new HashSet<Integer> ();
+		private final HashSet<Integer> Providers = new HashSet<>();
 		public final HashSet<Integer> getProviders() {
 			return Providers;
 		}
@@ -143,6 +143,7 @@ public class ProviderModuleBinds {
 
 		// 这个订阅类型目前用于动态绑定的模块，所以默认为SubscribeTypeSimple。
 		private int GetSubscribeType(Element self) {
+			//noinspection SwitchStatementWithTooFewBranches
 			switch (self.getAttribute("SubscribeType")) {
 				case "SubscribeTypeReadyCommit":
 					return SubscribeInfo.SubscribeTypeReadyCommit;
@@ -185,11 +186,11 @@ public class ProviderModuleBinds {
 		}
 	}
 
-	private HashMap<String, Module> Modules = new HashMap<String, Module> ();
+	private final HashMap<String, Module> Modules = new HashMap<>();
 	public final HashMap<String, Module> getModules() {
 		return Modules;
 	}
-	private HashSet<Integer> ProviderNoDefaultModule = new HashSet<Integer> ();
+	private final HashSet<Integer> ProviderNoDefaultModule = new HashSet<>();
 	public final HashSet<Integer> getProviderNoDefaultModule() {
 		return ProviderNoDefaultModule;
 	}
@@ -198,13 +199,13 @@ public class ProviderModuleBinds {
 	}
 
 	private ProviderModuleBinds(Element self) {
-		if (false == self.getNodeName().equals("ProviderModuleBinds")) {
+		if (!self.getNodeName().equals("ProviderModuleBinds")) {
 			throw new RuntimeException("is it a ProviderModuleBinds config.");
 		}
 
-		NodeList childnodes = self.getChildNodes();
-		for (int i = 0; i < childnodes.getLength(); ++i) {
-			Node node = childnodes.item(i);
+		NodeList childNodes = self.getChildNodes();
+		for (int i = 0; i < childNodes.getLength(); ++i) {
+			Node node = childNodes.item(i);
 			if (Node.ELEMENT_NODE != node.getNodeType()) {
 				continue;
 			}

@@ -6,11 +6,9 @@ import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
-import Zeze.Beans.Provider.BLoad;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
@@ -18,7 +16,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.AllocateId;
 import Zeze.Services.ServiceManager.CommitServiceList;
 import Zeze.Services.ServiceManager.KeepAlive;
-import Zeze.Services.ServiceManager.Load;
 import Zeze.Services.ServiceManager.NotifyServiceList;
 import Zeze.Services.ServiceManager.ReadyServiceList;
 import Zeze.Services.ServiceManager.Register;
@@ -32,10 +29,12 @@ import Zeze.Services.ServiceManager.UnRegister;
 import Zeze.Services.ServiceManager.UnSubscribe;
 import Zeze.Services.ServiceManager.Update;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
+import Zeze.Util.TaskOneByOneByKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.Options;
@@ -127,18 +126,20 @@ public final class ServiceManagerServer implements Closeable {
 		}
 	}
 
-	private NetServer Server;
-	private AsyncSocket ServerSocket;
-	private volatile Future<?> StartNotifyDelayTask;
-
 	/**
 	 * 需要从配置文件中读取，把这个引用加入： Zeze.Config.AddCustomize
 	 */
 	private final Conf Config;
-
+	private NetServer Server;
+	private final AsyncSocket ServerSocket;
 	private final RocksDB AutoKeysDb;
 	private final WriteOptions WriteOptions;
 	private final ConcurrentHashMap<String, AutoKey> AutoKeys = new ConcurrentHashMap<>();
+	private volatile Future<?> StartNotifyDelayTask;
+
+	public Conf getConfig() {
+		return Config;
+	}
 
 	public NetServer getServer() {
 		return Server;
@@ -204,10 +205,6 @@ public final class ServiceManagerServer implements Closeable {
 			if (DbHome.isEmpty())
 				DbHome = ".";
 		}
-	}
-
-	public Conf getConfig() {
-		return Config;
 	}
 
 	public static final class ServerState {
@@ -425,7 +422,7 @@ public final class ServiceManagerServer implements Closeable {
 	public static final class Session {
 		private final ServiceManagerServer ServiceManager;
 		private final long SessionId;
-		private final ConcurrentHashMap<ServiceInfo, ServiceInfo> Registers = new ConcurrentHashMap<>();
+		private final ConcurrentHashSet<ServiceInfo> Registers = new ConcurrentHashSet<>();
 		// key is ServiceName: 会话订阅
 		private final ConcurrentHashMap<String, SubscribeInfo> Subscribes = new ConcurrentHashMap<>();
 		private Future<?> KeepAliveTimerTask;
@@ -438,7 +435,7 @@ public final class ServiceManagerServer implements Closeable {
 			return SessionId;
 		}
 
-		public ConcurrentHashMap<ServiceInfo, ServiceInfo> getRegisters() {
+		public ConcurrentHashSet<ServiceInfo> getRegisters() {
 			return Registers;
 		}
 
@@ -479,7 +476,7 @@ public final class ServiceManagerServer implements Closeable {
 
 			HashMap<String, ServerState> changed = new HashMap<>(Registers.size());
 
-			for (var info : Registers.values()) {
+			for (var info : Registers) {
 				var state = ServiceManager.UnRegisterNow(getSessionId(), info);
 				if (state != null)
 					changed.putIfAbsent(state.getServiceName(), state);
@@ -505,9 +502,11 @@ public final class ServiceManagerServer implements Closeable {
 		var session = (Session)r.getSender().getUserState();
 
 		// 允许重复登录，断线重连Agent不好原子实现重发。
-		session.getRegisters().putIfAbsent(r.Argument, r.Argument);
-		var state = ServerStates.computeIfAbsent(r.Argument.getServiceName(),
-				name -> new ServerState(this, name));
+		if (session.getRegisters().add(r.Argument))
+			logger.info("Register {}, {}", r.Argument.getServiceName(), r.Argument.getServiceIdentity());
+		else
+			logger.info("already Registered {}, {}", r.Argument.getServiceName(), r.Argument.getServiceIdentity());
+		var state = ServerStates.computeIfAbsent(r.Argument.getServiceName(), name -> new ServerState(this, name));
 
 		// 【警告】
 		// 为了简单，这里没有创建新的对象，直接修改并引用了r.Argument。
@@ -550,9 +549,10 @@ public final class ServiceManagerServer implements Closeable {
 				Long existSessionId = (Long)exist.getLocalState();
 				if (existSessionId == null || sessionId == existSessionId) {
 					// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
-					state.ServiceInfos.remove(info.getServiceIdentity());
-					state.NotifySimpleOnUnRegister(exist);
-					return state;
+					if (state.ServiceInfos.remove(info.getServiceIdentity(), exist)) {
+						state.NotifySimpleOnUnRegister(exist);
+						return state;
+					}
 				}
 			}
 		}
@@ -560,9 +560,9 @@ public final class ServiceManagerServer implements Closeable {
 	}
 
 	private long ProcessUnRegister(UnRegister r) {
-		var session = (Session)r.getSender().getUserState();
 		if (UnRegisterNow(r.getSender().getSessionId(), r.Argument) != null) {
 			// ignore TryRemove failed.
+			var session = (Session)r.getSender().getUserState();
 			session.getRegisters().remove(r.Argument);
 			//r.SendResultCode(UnRegister.Success);
 			//return Procedure.Success;
@@ -622,8 +622,7 @@ public final class ServiceManagerServer implements Closeable {
 
 	private long ProcessReadyServiceList(ReadyServiceList r) {
 		var session = (Session)r.getSender().getUserState();
-		var state = ServerStates.computeIfAbsent(
-				r.Argument.getServiceName(), name -> new ServerState(this, name));
+		var state = ServerStates.computeIfAbsent(r.Argument.getServiceName(), name -> new ServerState(this, name));
 		state.SetReady(r, session);
 		return Procedure.Success;
 	}
@@ -789,10 +788,10 @@ public final class ServiceManagerServer implements Closeable {
 	public synchronized void Stop() throws Throwable {
 		if (Server == null)
 			return;
-		if (StartNotifyDelayTask != null)
-			StartNotifyDelayTask.cancel(false);
+		Future<?> startNotifyDelayTask = StartNotifyDelayTask;
+		if (startNotifyDelayTask != null)
+			startNotifyDelayTask.cancel(false);
 		ServerSocket.Close(null);
-		ServerSocket = null;
 		Server.Stop();
 		Server = null;
 
@@ -804,6 +803,7 @@ public final class ServiceManagerServer implements Closeable {
 
 	public static final class NetServer extends HandshakeServer {
 		private final ServiceManagerServer ServiceManager;
+		private final TaskOneByOneByKey oneByOneByKey = new TaskOneByOneByKey();
 
 		public ServiceManagerServer getServiceManager() {
 			return ServiceManager;
@@ -830,8 +830,10 @@ public final class ServiceManagerServer implements Closeable {
 
 		@Override
 		public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
-			if (factoryHandle != null)
-				Task.run(() -> factoryHandle.Handle.handle(p), p, (_p, code) -> p.SendResultCode(code));
+			if (factoryHandle.Handle != null) {
+				oneByOneByKey.Execute(p.getSender(),
+						() -> Task.Call(() -> factoryHandle.Handle.handle(p), p, Protocol::SendResultCode));
+			}
 		}
 	}
 
@@ -855,10 +857,7 @@ public final class ServiceManagerServer implements Closeable {
 
 		InetAddress address = (ip != null && !ip.isBlank()) ? InetAddress.getByName(ip) : null;
 
-		var config = new Zeze.Config();
-		var smConfig = new ServiceManagerServer.Conf();
-		config.AddCustomize(smConfig);
-		config.LoadAndParse();
+		var config = new Zeze.Config().AddCustomize(new ServiceManagerServer.Conf()).LoadAndParse();
 
 		try (var ignored = new ServiceManagerServer(address, port, config)) {
 			synchronized (Thread.currentThread()) {

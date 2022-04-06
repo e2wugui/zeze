@@ -12,20 +12,20 @@ import Zeze.Beans.Provider.*;
  * 记录账号，roleId，LinkName，SessionId等信息。
  */
 public class ProviderUserSession {
-	private String Account;
+	private final String Account;
 	public final String getAccount() {
 		return Account;
 	}
-	private Long RoleId = null;
+	private final Long RoleId;
 	public final Long getRoleId() {
 		return RoleId;
 	}
 
-	private String LinkName;
+	private final String LinkName;
 	public final String getLinkName() {
 		return LinkName;
 	}
-	private long SessionId;
+	private final long SessionId;
 	public final long getSessionId() {
 		return SessionId;
 	}
@@ -38,7 +38,7 @@ public class ProviderUserSession {
 		Link = value;
 	}
 
-	private ProviderService service;
+	private final ProviderService service;
 	public final ProviderService getService() {
 		return service;
 	}
@@ -76,37 +76,43 @@ public class ProviderUserSession {
 		}
 	}
 
-	public final void SendResponse(Protocol p) {
+	public final void SendResponse(Protocol<?> p) {
 		p.setRequest(false);
 		SendResponse(p.getTypeId(), new Binary(p.Encode()));
 	}
 
+	@SuppressWarnings("ConstantConditions")
 	public final void SendResponseWhileCommit(int typeId, Binary fullEncodedProtocol) {
 		Transaction.getCurrent().RunWhileCommit(() -> SendResponse(typeId, fullEncodedProtocol));
 	}
 
+	@SuppressWarnings("ConstantConditions")
 	public final void SendResponseWhileCommit(Binary fullEncodedProtocol) {
 		Transaction.getCurrent().RunWhileCommit(() -> SendResponse(fullEncodedProtocol));
 	}
 
-	public final void SendResponseWhileCommit(Protocol p) {
+	@SuppressWarnings("ConstantConditions")
+	public final void SendResponseWhileCommit(Protocol<?> p) {
 		Transaction.getCurrent().RunWhileCommit(() -> SendResponse(p));
 	}
 
 	// 这个方法用来优化广播协议。不能用于Rpc，先隐藏。
+	@SuppressWarnings({"ConstantConditions", "unused"})
 	private void SendResponseWhileRollback(int typeId, Binary fullEncodedProtocol) {
 		Transaction.getCurrent().RunWhileRollback(() -> SendResponse(typeId, fullEncodedProtocol));
 	}
 
+	@SuppressWarnings({"ConstantConditions", "unused"})
 	private void SendResponseWhileRollback(Binary fullEncodedProtocol) {
 		Transaction.getCurrent().RunWhileRollback(() -> SendResponse(fullEncodedProtocol));
 	}
 
-	public final void SendResponseWhileRollback(Protocol p) {
+	@SuppressWarnings("ConstantConditions")
+	public final void SendResponseWhileRollback(Protocol<?> p) {
 		Transaction.getCurrent().RunWhileRollback(() -> SendResponse(p));
 	}
 
-	public static ProviderUserSession Get(Protocol context) {
+	public static ProviderUserSession Get(Protocol<?> context) {
 		if (null == context.getUserState()) {
 			throw new RuntimeException("not auth");
 		}

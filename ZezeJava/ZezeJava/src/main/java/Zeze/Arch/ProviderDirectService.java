@@ -1,12 +1,11 @@
 package Zeze.Arch;
 
-import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Beans.ProviderDirect.AnnounceProviderInfo;
+import Zeze.Beans.ProviderDirect.ModuleRedirect;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
 import Zeze.Transaction.TransactionLevel;
-import Zeze.Beans.ProviderDirect.*;
-import Zeze.Util.KV;
 import Zeze.Util.OutObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -24,7 +23,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 
 	public void Apply(Zeze.Services.ServiceManager.ServiceInfos infos) {
 		for (var pm : infos.getServiceInfoListSortedByIdentity()) {
-			var serverId = Integer.valueOf(pm.getServiceIdentity());
+			var serverId = Integer.parseInt(pm.getServiceIdentity());
 			if (serverId <= getZeze().getConfig().getServerId())
 				continue;
 			var out = new OutObject<Connector>();
@@ -54,7 +53,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
 		for (var ss : getZeze().getServiceManagerAgent().getSubscribeStates().values()) {
 			if (ss.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)) {
-				var mid = Integer.valueOf(ss.getServiceName().split("#")[1]);
+				var mid = Integer.parseInt(ss.getServiceName().split("#")[1]);
 				var m = ProviderApp.Modules.get(mid);
 				for (var server : ss.getServiceInfos().getServiceInfoListSortedByIdentity()) {
 					// 符合当前连接目标。

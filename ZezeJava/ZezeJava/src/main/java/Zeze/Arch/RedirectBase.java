@@ -33,7 +33,7 @@ public abstract class RedirectBase {
 	public AsyncSocket ChoiceServer(IModule module, int serverId) {
 		if (serverId == ProviderApp.Zeze.getConfig().getServerId())
 			return null; // is Local
-		var subs = ProviderApp.Zeze.getServiceManagerAgent().getSubscribeStates();
+		// var subs = ProviderApp.Zeze.getServiceManagerAgent().getSubscribeStates();
 		var out = new OutObject<Long>();
 		if (ProviderApp.Distribute.ChoiceProviderByServerId(ProviderApp.ServerServiceNamePrefix, module.getId(), serverId, out))
 			return ProviderApp.ProviderService.GetSocket(out.Value);

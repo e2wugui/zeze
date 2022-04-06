@@ -1,7 +1,5 @@
 package Zeze.Arch;
 
-import Zeze.Util.Str;
-
 public class LinkdApp {
 	public String LinkdServiceName;
 	public Zeze.Application Zeze;

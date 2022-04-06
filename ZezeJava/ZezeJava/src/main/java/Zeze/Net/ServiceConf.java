@@ -2,6 +2,7 @@ package Zeze.Net;
 
 import java.net.InetAddress;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import Zeze.Config;
 import Zeze.Services.HandshakeOptions;
@@ -108,6 +109,11 @@ public final class ServiceConf {
 		}
 	}
 
+	public void forEachConnector(Consumer<Connector> action) {
+		for (var a : Connectors.values())
+			action.accept(a);
+	}
+
 	public int ConnectorCount() {
 		return Connectors.size();
 	}
@@ -136,6 +142,11 @@ public final class ServiceConf {
 		for (var a : Acceptors.values()) {
 			action.run(a);
 		}
+	}
+
+	public void forEachAcceptor(Consumer<Acceptor> action) {
+		for (var a : Acceptors.values())
+			action.accept(a);
 	}
 
 	public boolean ForEachAcceptor2(Function<Acceptor, Boolean> func) {
@@ -257,17 +268,17 @@ public final class ServiceConf {
 		}
 	}
 
-	public void Start() throws Throwable {
-		ForEachAcceptor(Acceptor::Start);
-		ForEachConnector(Connector::Start);
+	public void Start() {
+		forEachAcceptor(Acceptor::Start);
+		forEachConnector(Connector::Start);
 	}
 
-	public void Stop() throws Throwable {
-		ForEachAcceptor(Acceptor::Stop);
-		ForEachConnector(Connector::Stop);
+	public void Stop() {
+		forEachAcceptor(Acceptor::Stop);
+		forEachConnector(Connector::Stop);
 	}
 
-	public void StopListen() throws Throwable {
-		ForEachAcceptor(Acceptor::Stop);
+	public void StopListen() {
+		forEachAcceptor(Acceptor::Stop);
 	}
 }

@@ -200,9 +200,10 @@ public final class Config {
 		return (T)exist;
 	}
 
-	public void AddCustomize(ICustomize c) {
+	public Config AddCustomize(ICustomize c) {
 		if (getCustomize().putIfAbsent(c.getName(), c) != null)
 			throw new IllegalStateException("Duplicate Customize Config '" + c.getName() + "'");
+		return this;
 	}
 
 	public TableConf GetTableConf(String name) {

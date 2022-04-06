@@ -1,7 +1,6 @@
 package Zeze.Services;
 
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -103,11 +102,9 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		if (Server != null)
 			return;
 
-		if (config == null) {
-			config = new Zeze.Config();
-			config.AddCustomize(Config);
-			config.LoadAndParse();
-		}
+		if (config == null)
+			config = new Zeze.Config().AddCustomize(Config).LoadAndParse();
+
 		Sessions = new LongConcurrentHashMap<>(4096, 0.75f, Config.getConcurrencyLevel());
 		global = new ConcurrentHashMap<>(Config.getInitialCapacity(), 0.75f, Config.getConcurrencyLevel());
 
