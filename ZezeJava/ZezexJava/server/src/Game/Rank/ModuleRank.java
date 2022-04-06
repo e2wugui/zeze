@@ -447,6 +447,10 @@ public class ModuleRank extends AbstractModule {
 	public void Test2(int hash, int inData) {
 	}
 
+	@RedirectHash()
+	public void Test3(int hash, int inData, Zeze.Util.Action2<Integer, Zeze.Transaction.EmptyBean> result) {
+	}
+
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE
     public ModuleRank(Game.App app) {
         super(app);

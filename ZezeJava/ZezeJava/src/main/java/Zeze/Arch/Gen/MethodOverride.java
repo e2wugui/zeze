@@ -28,6 +28,7 @@ public class MethodOverride {
 	public java.lang.reflect.Parameter ParameterHashOrServer;
 	public ArrayList<Parameter> ParametersNormal = new ArrayList<> ();
 	public java.lang.reflect.Parameter[] ParametersAll;
+	public GenAction ResultHandle;
 	public java.lang.reflect.Parameter ParameterRedirectResultHandle;
 	public java.lang.reflect.Parameter ParameterRedirectAllResultHandle;
 	public java.lang.reflect.Parameter ParameterRedirectAllDoneHandle;
@@ -63,6 +64,11 @@ public class MethodOverride {
 		}
 
 		for (var p : ParametersAll) {
+			var handle = GenAction.CreateIf(p);
+			if (ResultHandle != null && handle != null)
+				throw new RuntimeException("Too Many Result Handle. " + method.getDeclaringClass().getName() + "::" + method.getName());
+			ResultHandle = handle;
+
 			if (p.getType() == RedirectAllDoneHandle.class)
 				ParameterRedirectAllDoneHandle = p;
 			else if (p.getType() == RedirectAllResultHandle.class)
