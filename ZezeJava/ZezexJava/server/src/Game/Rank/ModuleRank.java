@@ -43,7 +43,7 @@ public class ModuleRank extends AbstractModule {
 	 @param value
 	*/
 	@RedirectHash
-	protected final void UpdateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) {
+	protected void UpdateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) {
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		int maxCount = GetRankComputeCount(keyHint.getRankType());
 
@@ -194,7 +194,7 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	@RedirectToServer()
-	protected final TaskCompletionSource<Long> TestToServer(int serverId) {
+	protected TaskCompletionSource<Long> TestToServer(int serverId) {
 		return null;
 	}
 
@@ -215,7 +215,7 @@ public class ModuleRank extends AbstractModule {
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		var concurrentKey = new BConcurrentKey(keyHint.getRankType(), hash % concurrentLevel, keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
 		try {
-			onHashResult.handle(sessionId, hash, Procedure.Success, _trank.getOrAdd(concurrentKey));
+			onHashResult.handle(sessionId, hash, _trank.getOrAdd(concurrentKey));
 			return Procedure.Success;
 		} catch (Throwable e) {
 			logger.error("", e);
@@ -259,14 +259,11 @@ public class ModuleRank extends AbstractModule {
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		GetRank(keyHint,
 				// Action OnHashResult
-				(sessionId, hash, returnCode, _result) -> {
+				(sessionId, hash, _result) -> {
 					var ctx = App.Server.<ModuleRedirectAllContext>TryGetManualContext(sessionId);
 					if (ctx == null)
 						return;
 					ctx.ProcessHash(hash, () -> new Rank(), (rank2)-> {
-						if (returnCode != Procedure.Success) {
-							return returnCode;
-						}
 						var result = (BRankList)_result;
 						if (rank2.TableValue == null) {
 							rank2.TableValue = result.CopyIfManaged();

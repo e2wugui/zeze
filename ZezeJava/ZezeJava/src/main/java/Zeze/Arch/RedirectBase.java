@@ -2,6 +2,7 @@ package Zeze.Arch;
 
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Arch.Gen.GenModule;
+import Zeze.Beans.ProviderDirect.ModuleRedirectAllRequest;
 import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.Action0;
@@ -43,7 +44,7 @@ public abstract class RedirectBase {
 		return null;
 	}
 
-	public void DirectAllBroadcast(IModule module) {
+	public void RedirectAll(IModule module, ModuleRedirectAllRequest req) {
 
 	}
 
