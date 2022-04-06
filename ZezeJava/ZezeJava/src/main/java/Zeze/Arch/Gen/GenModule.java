@@ -238,7 +238,7 @@ public class GenModule {
 				Gen.Instance.GenDecode(sb, "                ", redirectResultBBVarName, resultClass, redirectResultVarName);
 				switch (methodOverride.TransactionLevel) {
 				case Serializable: case AllowDirtyWhenAllRead:
-					sb.AppendLine(Str.format("                App.Zeze.NewProcedure(() -> { {}.handle({}); return 0L; }, \"ModuleRedirectResponse Procedure\").call();", methodOverride.ParameterRedirectResultHandle.getName(), redirectResultVarName));
+					sb.AppendLine(Str.format("                App.Zeze.NewProcedure(() -> { {}.handle({}); return 0L; }, \"ModuleRedirectResponse Procedure\").Call();", methodOverride.ParameterRedirectResultHandle.getName(), redirectResultVarName));
 					break;
 
 				default:
@@ -435,7 +435,7 @@ public class GenModule {
 		sb.AppendLine(Str.format("    public static class Context{} extends Zeze.Arch.ModuleRedirectAllContext", m.method.getName()));
 		sb.AppendLine(Str.format("    {"));
 		if (null != m.ParameterRedirectAllResultHandle)
-			sb.AppendLine(Str.format("        private Zeze.Arch.RedirectAllResultHandle redirectAllResultHandle;"));
+			sb.AppendLine(Str.format("        private Zeze.Arch.RedirectAllResultHandle _rrh_;"));
 		sb.AppendLine(Str.format(""));
 		if (null != m.ParameterRedirectAllResultHandle)
 			sb.AppendLine(Str.format("        public Context{}(int _c_, String _n_, Zeze.Arch.RedirectAllResultHandle _r_) {", m.method.getName()));
@@ -444,7 +444,7 @@ public class GenModule {
 
 		sb.AppendLine(Str.format("        	super(_c_, _n_);"));
 		if (null != m.ParameterRedirectAllResultHandle)
-			sb.AppendLine("            this.redirectAllResultHandle = _r_;");
+			sb.AppendLine("            this._rrh_ = _r_;");
 		sb.AppendLine("        }");
 		sb.AppendLine("");
 		sb.AppendLine("        @Override");
@@ -457,7 +457,15 @@ public class GenModule {
 			var resultClass = Zeze.Transaction.EmptyBean.class;
 			Gen.Instance.GenLocalVariable(sb, "            ", resultClass, "_result_bean_");
 			Gen.Instance.GenDecode(sb, "            ", allHashResultBBName, resultClass, "_result_bean_");
-			sb.AppendLine(Str.format("            redirectAllResultHandle.handle(super.getSessionId(), _hash_, _result_bean_);"));
+			switch (m.TransactionLevel) {
+			case Serializable: case AllowDirtyWhenAllRead:
+				sb.AppendLine(Str.format("            getService().getZeze().NewProcedure(() -> { _rrh_.handle(super.getSessionId(), _hash_, _result_bean_); return 0L; }, \"ProcessHashResult Procedure\").Call();"));
+				break;
+
+			default:
+				sb.AppendLine(Str.format("            _rrh_.handle(super.getSessionId(), _hash_, _result_bean_);"));
+				break;
+			}
 		}
 		sb.AppendLine("            return Zeze.Transaction.Procedure.Success;");
 		sb.AppendLine("        }");
