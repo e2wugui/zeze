@@ -1,4 +1,4 @@
-package Zeze.Arch;
+package Zeze.Arch.Gen;
 
 public enum OverrideType {
 	Redirect,

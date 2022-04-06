@@ -1,4 +1,4 @@
-package Zeze.Arch;
+package Zeze.Arch.Gen;
 
 public class KnownSerializer {
 	public Zeze.Util.Action4<Zeze.Util.StringBuilderCs, String, String, String> Encoder;

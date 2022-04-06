@@ -90,16 +90,17 @@ public class ModuleTimer extends AbstractModule {
         Cancel(serverId, timerId);
     }
 
-    protected void Cancel(int serverId, long timerId) {
+    protected long Cancel(int serverId, long timerId) {
         // 尽可能的执行取消操作，不做严格判断。
         var index = _tIndexs.get(timerId);
         if (null == index) {
             CancelTimerLocal(serverId, timerId, 0,null);
-            return;
+            return 0;
         }
         if (index.getServerId() != App.Zeze.getConfig().getServerId())
             logger.error("Cancel@RedirectToServer Not Local.");
         CancelTimerLocal(serverId, timerId, index.getNodeId(), _tNodes.get(index.getNodeId()));
+        return 0;
     }
 
     private final ConcurrentHashMap<Long, Future<?>> TimersLocal = new ConcurrentHashMap<>();

@@ -1,17 +1,16 @@
-package Zeze.Arch;
+package Zeze.Arch.Gen;
 
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
+import Zeze.Arch.Redirect;
+import Zeze.Arch.RedirectAll;
+import Zeze.Arch.RedirectAllDoneHandle;
+import Zeze.Arch.RedirectToServer;
+import Zeze.Arch.RedirectWithHash;
 import Zeze.Net.AsyncSocket;
-import Zeze.Net.Binary;
-import Zeze.Transaction.Transaction;
-import Zeze.Util.Func4;
 import Zeze.Util.Str;
 import Zeze.Beans.Provider.*;
 import org.mdkt.compiler.InMemoryJavaCompiler;

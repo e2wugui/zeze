@@ -53,15 +53,7 @@ public final class Application {
 	private Future<?> FlushWhenReduceTimerTask;
 	private Schemas Schemas;
 	private boolean IsStart;
-	private RedirectBase Redirect;
-
-	public RedirectBase getRedirect() {
-		return Redirect;
-	}
-
-	public void setRedirect(RedirectBase mr) {
-		Redirect = mr;
-	}
+	public RedirectBase Redirect;
 
 	public Application(String solutionName) throws Throwable {
 		this(solutionName, null);

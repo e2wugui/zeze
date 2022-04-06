@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Zeze.Arch
+namespace Zeze.Arch.Gen
 {
     public enum ReturnType
     {

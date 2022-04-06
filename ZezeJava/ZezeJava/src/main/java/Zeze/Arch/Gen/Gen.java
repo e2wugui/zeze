@@ -1,12 +1,14 @@
-package Zeze.Arch;
+package Zeze.Arch.Gen;
 
 import java.lang.reflect.Parameter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+import Zeze.Arch.RedirectAllDoneHandle;
+import Zeze.Arch.RedirectAllResultHandle;
+import Zeze.Arch.RedirectResultHandle;
 import Zeze.Net.Binary;
 import Zeze.Util.Str;
-import org.mdkt.compiler.InMemoryJavaCompiler;
 
 public class Gen {
 	private HashMap<Class, KnownSerializer> Serializer = new HashMap<>();

@@ -1,4 +1,4 @@
-package Zeze.Arch;
+package Zeze.Arch.Gen;
 
 public class ReturnTypeAndName {
 	public ReturnType ReturnType;

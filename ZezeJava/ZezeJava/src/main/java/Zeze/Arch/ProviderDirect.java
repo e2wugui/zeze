@@ -22,7 +22,7 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 
             rpc.Result.setModuleId(rpc.Argument.getModuleId());
             rpc.Result.setServerId(ProviderApp.Zeze.getConfig().getServerId());
-            var handle = ProviderApp.Zeze.getRedirect().Handles.get(rpc.Argument.getMethodFullName());
+            var handle = ProviderApp.Zeze.Redirect.Handles.get(rpc.Argument.getMethodFullName());
             if (null == handle) {
                 rpc.SendResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
                 return Procedure.LogicError;
@@ -72,7 +72,7 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
             result.Argument.setSessionId(protocol.Argument.getSessionId());
             result.Argument.setMethodFullName(protocol.Argument.getMethodFullName());
 
-            var handle = ProviderApp.Zeze.getRedirect().Handles.get(protocol.Argument.getMethodFullName());
+            var handle = ProviderApp.Zeze.Redirect.Handles.get(protocol.Argument.getMethodFullName());
             if (null == handle) {
                 result.setResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
                 // 失败了，需要把hash返回。此时是没有处理结果的。

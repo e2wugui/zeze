@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Zeze.Arch
+namespace Zeze.Arch.Gen
 {
     public class GenModule
     {

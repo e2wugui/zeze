@@ -1,7 +1,10 @@
 package Zeze.Arch;
 
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Arch.Gen.GenModule;
 import Zeze.IModule;
+import Zeze.Net.AsyncSocket;
+import Zeze.Util.OutObject;
 import org.apache.commons.lang3.NotImplementedException;
 
 /**
@@ -30,5 +33,15 @@ public abstract class RedirectBase {
 
 	public RedirectBase(ProviderApp app) {
 		ProviderApp = app;
+	}
+
+	public AsyncSocket ChoiceServer(IModule module, int serverId) {
+		if (serverId == ProviderApp.Zeze.getConfig().getServerId())
+			return null; // is Local
+		var subs = ProviderApp.Zeze.getServiceManagerAgent().getSubscribeStates();
+		var out = new OutObject<Long>();
+		if (ProviderApp.Distribute.ChoiceProviderByServerId(ProviderApp.ServerServiceNamePrefix, module.getId(), serverId, out))
+			return ProviderApp.ProviderService.GetSocket(out.Value);
+		return null;
 	}
 }

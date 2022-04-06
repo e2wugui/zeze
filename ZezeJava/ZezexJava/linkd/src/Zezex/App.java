@@ -7,6 +7,7 @@ import Zeze.Util.PersistentAtomicLong;
 import Zeze.Util.Str;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import Zeze.Arch.*;
+import Zeze.Config;
 
 public final class App extends Zeze.AppBase {
 	public static App Instance = new App();
@@ -30,7 +31,7 @@ public final class App extends Zeze.AppBase {
 	public LinkdApp LinkdApp;
 	public void Start() throws Throwable {
 		// Create
-		CreateZeze();
+		CreateZeze(Config.Load("linkd.xml"));
 		CreateService();
 		ProviderLinkd = new ProviderLinkd();
 		LinkdApp = new LinkdApp("Game.Linkd", Zeze, ProviderLinkd, ProviderService, LinkdService, LoadConfig());

@@ -1,13 +1,14 @@
 package Zeze.Arch;
 
 import java.util.List;
+import Zeze.Arch.Gen.Return;
 import Zeze.Beans.ProviderDirect.BActionParam;
 import Zeze.Net.Binary;
 import Zeze.Util.Func4;
 import Zeze.Transaction.TransactionLevel;
 
 public class RedirectHandle {
-	public TransactionLevel RequestTransactionLevel;
+	public TransactionLevel RequestTransactionLevel = TransactionLevel.Serializable;
 
 	/**
 	 0) long [in] sessionid
@@ -19,6 +20,7 @@ public class RedirectHandle {
 	 */
 	public Func4<Long, Integer, Binary, List<BActionParam>, Return> RequestHandle;
 
-	public TransactionLevel ResponseTransactionLevel;
+	public TransactionLevel ResponseTransactionLevel = TransactionLevel.Serializable;
 	public int ResponseHandle;
+
 }

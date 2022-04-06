@@ -17,7 +17,7 @@ public final class App extends Zeze.AppBase {
 
 	@Override
 	public Zeze.IModule ReplaceModuleInstance(Zeze.IModule module) {
-		return Zeze.getRedirect().ReplaceModuleInstance(module);
+		return Zeze.Redirect.ReplaceModuleInstance(module);
 	}
 
 	private MyConfig MyConfig;
@@ -73,7 +73,7 @@ public final class App extends Zeze.AppBase {
 		}
 
 		LoadConfig();
-		var config = Config.Load("zeze.xml");
+		var config = Config.Load("server.xml");
 		if (ServerId != -1) {
 			config.setServerId(ServerId); // replace from args
 		}
@@ -86,7 +86,7 @@ public final class App extends Zeze.AppBase {
 		ProviderApp = new ProviderApp(Zeze, provider, Server,
 				"Game.Server.Module#",
 				ProviderDirectMy, ServerDirect, "Game.Linkd", LoadLoadConfig());
-		Zeze.setRedirect(new ModuleRedirect(ProviderApp));
+		Zeze.Redirect = new ModuleRedirect(ProviderApp);
 		CreateModules();
 		ProviderApp.initialize(ProviderModuleBinds.Load(), Modules); // need Modules
 
