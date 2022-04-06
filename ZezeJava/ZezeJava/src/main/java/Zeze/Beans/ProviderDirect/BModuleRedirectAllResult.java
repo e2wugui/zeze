@@ -385,10 +385,6 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
             return true;
         if (getSessionId() < 0)
             return true;
-        for (var _v_ : getHashs().values()) {
-            if (_v_.NegativeCheck())
-                return true;
-        }
         return false;
     }
 }

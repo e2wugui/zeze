@@ -70,14 +70,13 @@ public class ModuleRedirectAllContext extends Zeze.Net.Service.ManualContext {
 			// 嵌套存储过程，单个分组的结果处理不影响其他分组。
 			// 不判断单个分组的处理结果，错误也继续执行其他分组。XXX
 			getService().getZeze().NewProcedure(() -> ProcessHashResult(
-					h.getKey(), h.getValue().getReturnCode(),
-					h.getValue().getParams(), h.getValue().getActions()),
+					h.getKey(), h.getValue().getParams()),
 					getMethodFullName()).Call();
 		}
 	}
 
 	// 生成代码实现。see Zezex.ModuleRedirect.cs
-	public long ProcessHashResult(int _hash_, long _returnCode_, Binary _params, List<BActionParam> _actions_) throws Throwable {
+	public long ProcessHashResult(int _hash_, Binary _params) throws Throwable {
 		return Procedure.NotImplement;
 	}
 }

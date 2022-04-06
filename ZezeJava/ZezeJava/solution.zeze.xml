@@ -377,14 +377,7 @@
 				rpc.ResultCode == ResultCodeSuccess 时，才使用下面两个变量，此时表示rpc调用流程正确了。
 				处理结果是否正确，还需要进一步查看 ReturnCode。
 				-->
-				<variable name="ReturnCode" id="4" type="long"/> 实现函数的返回。
-				<variable name="Params"     id="5" type="binary"/>
-				<variable name="Actions"    id="6" type="list" value="BActionParam"/> 按回调顺序。！不是定义顺序！
-			</bean>
-
-			<bean name="BActionParam">
-				<variable name="Name"   id="1" type="string"/>
-				<variable name="Params" id="2" type="binary"/>
+				<variable name="Params"     id="3" type="binary"/>
 			</bean>
 
 			<!-- 转发只定义一个rpc，以后可能需要实现server之间的直连，不再通过转发 -->
@@ -416,14 +409,12 @@
 			</bean>
 
 			<bean name="BModuleRedirectAllHash">
-				<variable name="ReturnCode" id="4" type="long"/> 实现函数的返回。
-				<variable name="Params"     id="5" type="binary"/> 目前不支持out|ref，这个先保留。
-				<variable name="Actions"    id="6" type="list" value="BActionParam"/> 按回调顺序。！不是定义顺序！
+				<variable name="Params" id="1" type="binary"/>
 			</bean>
 
 			<bean name="BModuleRedirectAllResult">
 				<variable name="ModuleId"       id="1" type="int"/>
-				<variable name="ServerId" id="2" type="int"/> 目标server的id。
+				<variable name="ServerId"       id="2" type="int"/> 目标server的id。
 				<!-- 上面两个参数用来调试，不是必要的。 -->
 				<variable name="SourceProvider" id="3" type="long"/> 从BModuleRedirectAllRequest里面得到。
 				<variable name="MethodFullName" id="4" type="string"/> format="ModuleFullName:MethodName"

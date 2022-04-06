@@ -1,8 +1,7 @@
 package Zeze.Arch.Gen;
 
 public enum OverrideType {
-	Redirect,
-	RedirectWithHash,
+	RedirectHash,
 	RedirectAll,
 	RedirectToServer,
 }

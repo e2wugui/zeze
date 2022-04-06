@@ -2,6 +2,7 @@ package Game;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import Zeze.Arch.Gen.GenModule;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.PersistentAtomicLong;
@@ -17,7 +18,7 @@ public final class App extends Zeze.AppBase {
 
 	@Override
 	public Zeze.IModule ReplaceModuleInstance(Zeze.IModule module) {
-		return Zeze.Redirect.ReplaceModuleInstance(module);
+		return Zeze.Redirect.ReplaceModuleInstance(this, module);
 	}
 
 	private MyConfig MyConfig;
@@ -86,8 +87,13 @@ public final class App extends Zeze.AppBase {
 		ProviderApp = new ProviderApp(Zeze, provider, Server,
 				"Game.Server.Module#",
 				ProviderDirectMy, ServerDirect, "Game.Linkd", LoadLoadConfig());
-		Zeze.Redirect = new ModuleRedirect(ProviderApp);
+		Zeze.Redirect = new ModuleRedirect(ProviderApp); // MUST before CreateModules
+
+		GenModule.Instance.GenFileSrcRoot = "ZezexJava\\server\\src";
 		CreateModules();
+		if (GenModule.Instance.GenFileSrcRoot != null)
+			throw new RuntimeException("New Source File Has Generate. Re-Compile Need.");
+
 		ProviderApp.initialize(ProviderModuleBinds.Load(), Modules); // need Modules
 
 		// start

@@ -1,18 +1,16 @@
 package Zeze.Arch.Gen;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
-import Zeze.Arch.Redirect;
 import Zeze.Arch.RedirectAll;
 import Zeze.Arch.RedirectAllDoneHandle;
 import Zeze.Arch.RedirectToServer;
-import Zeze.Arch.RedirectWithHash;
-import Zeze.Net.AsyncSocket;
 import Zeze.Util.Str;
-import Zeze.Beans.Provider.*;
+import Zeze.Util.StringBuilderCs;
 import org.mdkt.compiler.InMemoryJavaCompiler;
 
 /** 
@@ -29,76 +27,109 @@ import org.mdkt.compiler.InMemoryJavaCompiler;
  可以提供和原来模块一致的接口。
 */
 public class GenModule {
-	// 本应用：hash分组的一些配置。
-	public static final int ChoiceType = BModule.ChoiceTypeHashAccount;
-	public static int GetChoiceHashCode() {
-		return 0;
-		//String account = ((Game.Login.Session) Transaction.getCurrent().getTopProcedure().getUserState()).getAccount();
-		//return Zeze.Serialize.ByteBuffer.calc_hashnr(account);
-	}
-
-	public static AsyncSocket RandomLink() {
-		return null;
-		//return Game.App.Instance.Server.RandomLink();
-	}
-
 	public static GenModule Instance = new GenModule();
 
+	/**
+	 * 源代码跟目录。
+	 * 指定的时候，生成到文件，总是覆盖。
+	 * 没有指定的时候，先查看目标类是否存在，存在则直接class.forName装载，否则生成到内存并动态编译。
+	 */
+	public String GenFileSrcRoot = null;
+
 	private void tryCollectMethod(ArrayList<MethodOverride> result, OverrideType type, Method method) {
+		var tLevelAnn = method.getAnnotation(Zeze.Util.TransactionLevel.class);
+		var tLevel = Zeze.Transaction.TransactionLevel.Serializable;
+		if (null != tLevelAnn)
+			tLevel = Zeze.Transaction.TransactionLevel.valueOf(tLevelAnn.Level());
 		switch (type) {
-			case Redirect:
-				var annotation1 = method.getAnnotation(Redirect.class);
-				if (null != annotation1)
-					result.add(new MethodOverride(method, OverrideType.Redirect, annotation1));
-				break;
 			case RedirectAll:
 				var annotation2 = method.getAnnotation(RedirectAll.class);
 				if (null != annotation2)
-					result.add(new MethodOverride(method, OverrideType.RedirectAll, annotation2));
+					result.add(new MethodOverride(tLevel, method, OverrideType.RedirectAll, annotation2));
 				break;
-			case RedirectWithHash:
-				var annotation3 = method.getAnnotation(RedirectWithHash.class);
+			case RedirectHash:
+				var annotation3 = method.getAnnotation(Zeze.Arch.RedirectHash.class);
 				if (null != annotation3)
-					result.add(new MethodOverride(method, OverrideType.RedirectWithHash, annotation3));
+					result.add(new MethodOverride(tLevel, method, OverrideType.RedirectHash, annotation3));
 				break;
 			case RedirectToServer:
 				var annotation4 = method.getAnnotation(RedirectToServer.class);
 				if (null != annotation4)
-					result.add(new MethodOverride(method, OverrideType.RedirectToServer, annotation4));
+					result.add(new MethodOverride(tLevel, method, OverrideType.RedirectToServer, annotation4));
 				break;
 		}
 	}
-	public final Zeze.IModule ReplaceModuleInstance(Zeze.IModule module) {
+
+	public String getNamespace(String fullClassName) {
+		var names = fullClassName.split("\\.");
+		var ns = new StringBuilder();
+		for (int i = 0; i < names.length; ++i) {
+			if (i > 0)
+				ns.append(".");
+			ns.append(names[i]);
+		}
+		return ns.toString();
+	}
+
+	public File getNamespaceFilePath(String fullClassName) {
+		var ns = fullClassName.split("\\.");
+		var path = new File(GenFileSrcRoot);
+		for (int i = 0; i < ns.length; ++i) {
+			path = new File(path, ns[i]);
+		}
+		return path;
+	}
+
+	public final <T extends Zeze.AppBase> Zeze.IModule ReplaceModuleInstance(T userApp, Zeze.IModule module) {
 		var overrides = new ArrayList<MethodOverride>();
 		var methods = module.getClass().getDeclaredMethods();
 		for (var method : methods) {
-			tryCollectMethod(overrides, OverrideType.Redirect, method);
-			tryCollectMethod(overrides, OverrideType.RedirectWithHash, method);
+			tryCollectMethod(overrides, OverrideType.RedirectHash, method);
 			tryCollectMethod(overrides, OverrideType.RedirectAll, method);
 			tryCollectMethod(overrides, OverrideType.RedirectToServer, method);
 		}
 		if (overrides.isEmpty()) {
 			return module; // 没有需要重定向的方法。
 		}
-		String genClassName = Str.format("_ModuleRedirect_{}_", module.getFullName().replace('.', '_'));
+		String genClassName = module.getFullName().replace('.', '_') + "_Redirect";
+		String namespace = getNamespace(module.getFullName());
 		try {
-			String code = GenModuleCode(module, genClassName, overrides);
-			//*
-			try {
-				var tmp = new FileWriter(genClassName + ".java", java.nio.charset.StandardCharsets.UTF_8);
-				tmp.write(code);
-				tmp.close();
-			} catch (IOException e) {
-				e.printStackTrace();
+			if (GenFileSrcRoot == null) {
+				// 不需要生成到文件的时候，尝试装载已经存在的生成模块子类。
+				try {
+					Class <?> moduleClass = Class.forName(namespace + "." + genClassName);
+					module.UnRegister();
+					var newModuleInstance = (Zeze.IModule) moduleClass.getDeclaredConstructor(new Class[0]).newInstance();
+					newModuleInstance.Initialize(userApp);
+					return newModuleInstance;
+				} catch (Throwable ex) {
+					// skip try load error
+					// continue gen if error
+				}
 			}
-			return module;
-			/*/
-			module.UnRegister();
+
+			String code = GenModuleCode(
+					// 生成文件的时候，生成package.
+					(GenFileSrcRoot != null ? "package " + namespace + ";" : ""),
+					module, genClassName, overrides);
+
+			if (GenFileSrcRoot != null) {
+				var file = new File(getNamespaceFilePath(module.getFullName()), genClassName + ".java");
+				try {
+					var tmp = new FileWriter(file, java.nio.charset.StandardCharsets.UTF_8);
+					tmp.write(code);
+					tmp.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				// 生成带File需要再次编译，所以这里返回原来的module。
+				return module;
+			}
 			Class<?> moduleClass = compiler.compile(genClassName, code);
+			module.UnRegister();
 			var newModuleInstance = (Zeze.IModule) moduleClass.getDeclaredConstructor(new Class[0]).newInstance();
-			newModuleInstance.Initialize(Game.App.Instance);
+			newModuleInstance.Initialize(userApp);
 			return newModuleInstance;
-			// */
 		} catch (Throwable e) {
 			throw new RuntimeException(e);
 		}
@@ -121,12 +152,6 @@ public class GenModule {
 		throw new RuntimeException("ReturnType Must Be void Or TaskCompletionSource<Long>");
 	}
 
-	private String GetMethodNameWithHash(String name) {
-		if (!name.startsWith("Run"))
-			throw new RuntimeException("Method Name Need StartsWith 'Run'.");
-		return name.substring(3);
-	}
-
 	private void Verify(MethodOverride method) {
 		switch (method.overrideType) {
 			case RedirectAll:
@@ -138,12 +163,12 @@ public class GenModule {
 		}
 	}
 
-	private String GenModuleCode(Zeze.IModule module, String genClassName, List<MethodOverride> overrides) throws Throwable {
+	private String GenModuleCode(String pkg, Zeze.IModule module, String genClassName, List<MethodOverride> overrides) throws Throwable {
 		var sb = new Zeze.Util.StringBuilderCs();
+		sb.AppendLine(pkg);
 		sb.AppendLine("");
-		sb.AppendLine("import java.util.List;");
 		sb.AppendLine("import Zeze.Net.Binary;");
-		sb.AppendLine("import Zezex.Provider.BActionParam;");
+		sb.AppendLine("import Zeze.Beans.ProviderDirect.*;");
 		sb.AppendLine("");
 		sb.AppendLine(Str.format("public class {} extends {}.Module{}", genClassName, module.getFullName(), module.getName()));
 		sb.AppendLine("{");
@@ -154,7 +179,7 @@ public class GenModule {
 		for  (var methodOverride : overrides)  {
 			methodOverride.PrepareParameters();
 			var parametersDefine = Gen.Instance.ToDefineString(methodOverride.ParametersAll);
-			var methodNameWithHash = GetMethodNameWithHash(methodOverride.method.getName());
+			var methodNameWithHash = methodOverride.method.getName();
 			var rtn = GetReturnType(methodOverride.method.getReturnType());
 			Verify(methodOverride);
 
@@ -162,35 +187,22 @@ public class GenModule {
 			sb.AppendLine(Str.format("    public {} {} ({}){}",
 					rtn.ReturnTypeName, methodOverride.method.getName(), parametersDefine, methodOverride.getThrows()));
 			sb.AppendLine("    {");
-			sb.AppendLine(Str.format("        if (Zezex.ModuleRedirect.Instance.IsLocalServer(\"{}\"))", module.getFullName()));
-			sb.AppendLine("        {");
-			switch (rtn.ReturnType)
-			{
-				case Void:
-					sb.AppendLine(Str.format("            super.{}({});",
-							methodOverride.method.getName(), methodOverride.GetBaseCallString()));
-					sb.AppendLine(Str.format("            return;"));
-					break;
-				case TaskCompletionSource:
-					sb.AppendLine(Str.format("            return super.{}({});",
-							methodOverride.method.getName(), methodOverride.GetBaseCallString()));
-					break;
-			}
-			sb.AppendLine("        }");
-			sb.AppendLine("");
+
+			ChoiceTargetRunLoopback(sb, methodOverride, rtn);
 
 			if (methodOverride.overrideType == OverrideType.RedirectAll) {
 				GenRedirectAllContext(sbContexts, module, methodOverride);
 				GenRedirectAll(sb, sbHandles, module, methodOverride);
 				continue;
 			}
+
 			var rpcVarName = "tmp" + Gen.Instance.TmpVarNameId.incrementAndGet();
-			sb.AppendLine(Str.format("        var {} = new Zeze.Beans.Provider.ModuleRedirect();", rpcVarName));
+			sb.AppendLine(Str.format("        var {} = new ModuleRedirect();", rpcVarName));
 			sb.AppendLine(Str.format("        {}.Argument.setModuleId({});", rpcVarName, module.getId()));
 			sb.AppendLine(Str.format("        {}.Argument.setRedirectType({});", rpcVarName, methodOverride.getRedirectType()));
 			sb.AppendLine(Str.format("        {}.Argument.setHashCode({});", rpcVarName, methodOverride.GetChoiceHashOrServerCodeSource()));
 			sb.AppendLine(Str.format("        {}.Argument.setMethodFullName(\"{}:{}\");", rpcVarName, module.getFullName(), methodOverride.method.getName()));
-			sb.AppendLine(Str.format("        {}.Argument.setServiceNamePrefix(Game.App.ServerServiceNamePrefix);", rpcVarName));
+			sb.AppendLine(Str.format("        {}.Argument.setServiceNamePrefix(App.ProviderApp.ServerServiceNamePrefix);", rpcVarName));
 			if (methodOverride.ParametersNormal.size() > 0) {
 				// normal 包括了 out 参数，这个不需要 encode，所以下面可能仍然是空的，先这样了。
 				sb.AppendLine(Str.format("        {"));
@@ -203,13 +215,13 @@ public class GenModule {
 			String futureVarName = "tmp" + Gen.Instance.TmpVarNameId.incrementAndGet();
 			sb.AppendLine(Str.format("        var {} = new Zeze.Util.TaskCompletionSource<Long>();", futureVarName));
 			sb.AppendLine(Str.format(""));
-			sb.AppendLine(Str.format("        {}.Send(RandomLink(), (thisRpc) ->", rpcVarName));
+			sb.AppendLine(Str.format("        {}.Send(_target_, (thisRpc) ->", rpcVarName));
 			sb.AppendLine(Str.format("        {"));
 			sb.AppendLine(Str.format("            if ({}.isTimeout())", rpcVarName));
 			sb.AppendLine(Str.format("            {"));
 			sb.AppendLine(Str.format("                {}.SetException(new RuntimeException(\"{}:{} Rpc Timeout.\"));", futureVarName, module.getFullName(), methodOverride.method.getName()));
 			sb.AppendLine(Str.format("            }"));
-			sb.AppendLine(Str.format("            else if (Zezex.Provider.ModuleRedirect.ResultCodeSuccess != {}.getResultCode())", rpcVarName));
+			sb.AppendLine(Str.format("            else if (ModuleRedirect.ResultCodeSuccess != {}.getResultCode())", rpcVarName));
 			sb.AppendLine(Str.format("            {"));
 			sb.AppendLine(Str.format("                {}.SetException(new RuntimeException(\"{}:{} Rpc Error=\" + {}.getResultCode()));", futureVarName, module.getFullName(), methodOverride.method.getName(), rpcVarName));
 			sb.AppendLine(Str.format("            }"));
@@ -219,13 +231,21 @@ public class GenModule {
 				// decode and run if has result
 				String redirectResultVarName = "tmp" + Gen.Instance.TmpVarNameId.incrementAndGet();
 				String redirectResultBBVarName = "tmp" + Gen.Instance.TmpVarNameId.incrementAndGet();
-				sb.AppendLine(Str.format("                var {} = Zeze.Serialize.ByteBuffer.Wrap({}.Result.getActions().get(0));", redirectResultBBVarName, rpcVarName));
+				sb.AppendLine(Str.format("                var {} = Zeze.Serialize.ByteBuffer.Wrap({}.Result.getParams());", redirectResultBBVarName, rpcVarName));
 				var resultClass = module.getClassByMethodName(methodOverride.method.getName());
 				Gen.Instance.GenLocalVariable(sb, "                ", resultClass, redirectResultVarName);
 				Gen.Instance.GenDecode(sb, "                ", redirectResultBBVarName, resultClass, redirectResultVarName);
-				sb.AppendLine(Str.format("                {}.handle({});", methodOverride.ParameterRedirectResultHandle.getName(), redirectResultVarName));
+				switch (methodOverride.TransactionLevel) {
+				case Serializable: case AllowDirtyWhenAllRead:
+					sb.AppendLine(Str.format("                App.Zeze.NewProcedure(() -> { {}.handle({}); return 0L; }, \"ModuleRedirectResponse Procedure\").call();", methodOverride.ParameterRedirectResultHandle.getName(), redirectResultVarName));
+					break;
+
+				default:
+					sb.AppendLine(Str.format("                {}.handle({});", methodOverride.ParameterRedirectResultHandle.getName(), redirectResultVarName));
+					break;
+				}
 			}
-			sb.AppendLine(Str.format("                {}.SetResult({}.Result.getReturnCode());", futureVarName, rpcVarName));
+			sb.AppendLine(Str.format("                {}.SetResult(0L);", futureVarName));
 			sb.AppendLine(Str.format("            }"));
 			sb.AppendLine(Str.format("            return Zeze.Transaction.Procedure.Success;"));
 			sb.AppendLine(Str.format("        });"));
@@ -238,7 +258,10 @@ public class GenModule {
 			sb.AppendLine(Str.format(""));
 
 			// Handles
-			sbHandles.AppendLine(Str.format("        Zezex.ModuleRedirect.Instance.Handles.put(\"{}:{}\", (Long _sessionid_, Integer _hash_, Binary _params_, List<BActionParam> _actions_) ->", module.getFullName(), methodOverride.method.getName()));
+			var tmpHandleName = "tmp" + Gen.Instance.TmpVarNameId.incrementAndGet();
+			sbHandles.AppendLine(Str.format("        var {} = new Zeze.Arch.RedirectHandle();", tmpHandleName));
+			sbHandles.AppendLine(Str.format("        {}.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.{};", tmpHandleName, methodOverride.TransactionLevel));
+			sbHandles.AppendLine(Str.format("        {}.RequestHandle = (Long _sessionid_, Integer _hash_, Binary _params_) ->", tmpHandleName));
 			sbHandles.AppendLine(Str.format("        {"));
 			var rbbVarName = "tmp" + Gen.Instance.TmpVarNameId.incrementAndGet();
 			sbHandles.AppendLine(Str.format("            var {} = Zeze.Serialize.ByteBuffer.Wrap(_params_);", rbbVarName));
@@ -251,31 +274,28 @@ public class GenModule {
 			}
 			Gen.Instance.GenDecode(sbHandles, "            ", rbbVarName, methodOverride.ParametersNormal);
 
+			var callResultParamName = "tmp" + Gen.Instance.TmpVarNameId.incrementAndGet();
+			sbHandles.AppendLine(Str.format("            var {} = new Zeze.Util.OutObject<Binary>();", callResultParamName));
+			sbHandles.AppendLine(Str.format("            {}.Value = Binary.Empty;", callResultParamName));
 			if (null != methodOverride.ParameterRedirectResultHandle) {
 				var actionVarName = "tmp" + Gen.Instance.TmpVarNameId.incrementAndGet();
 				var resultVarName = "tmp" + Gen.Instance.TmpVarNameId.incrementAndGet();
 				var reqBBVarName = "tmp" + Gen.Instance.TmpVarNameId.incrementAndGet();
-				sbHandles.AppendLine(Str.format("{}Zezex.RedirectResultHandle {} = ({}) -> {", "    ", actionVarName, resultVarName));
+				sbHandles.AppendLine(Str.format("{}Zeze.Arch.RedirectResultHandle {} = ({}) -> {", "    ", actionVarName, resultVarName));
 				sbHandles.AppendLine(Str.format("        var {} = Zeze.Serialize.ByteBuffer.Allocate();", reqBBVarName));
 				var resultClass = module.getClassByMethodName(methodOverride.method.getName());
 				Gen.Instance.GenEncode(sbHandles, "        ", reqBBVarName, resultClass, resultVarName);
-				var paramVarName = "tmp" + Gen.Instance.TmpVarNameId.incrementAndGet();
-				sbHandles.AppendLine("        var " + paramVarName + " = new BActionParam();");
-				sbHandles.AppendLine("        " + paramVarName + ".setName(\"" + methodOverride.ParameterRedirectResultHandle.getName() + "\");");
-				sbHandles.AppendLine(Str.format("        " + paramVarName + ".setParams(new Binary({}));", reqBBVarName));
-				sbHandles.AppendLine("        _actions_.add(" + paramVarName + ");");
+				sbHandles.AppendLine(Str.format("        {}.Value = new Binary({}));", callResultParamName, reqBBVarName));
 				sbHandles.AppendLine(Str.format("		}"));
 				// action.GenActionEncode(sbHandles, "            ");
 			}
 			String normalcall = methodOverride.GetNarmalCallString();
 			String sep = normalcall.isEmpty() ? "" : ", ";
-			var returnCodeVarName = "tmp" + Gen.Instance.TmpVarNameId.incrementAndGet();
-			var returnParamsVarName = "tmp" + Gen.Instance.TmpVarNameId.incrementAndGet();
-			sbHandles.AppendLine(Str.format("            var {} = super.{}(_hash_{}{});", returnCodeVarName, methodNameWithHash, sep, normalcall));
-			sbHandles.AppendLine(Str.format("            var {} = Binary.Empty;", returnParamsVarName));
-			sbHandles.AppendLine(Str.format("            return new Zezex.ModuleRedirect.Return({}, {});", returnCodeVarName, returnParamsVarName));
-			sbHandles.AppendLine(Str.format("        });"));
+			sbHandles.AppendLine(Str.format("            super.{}(_hash_{}{});", methodNameWithHash, sep, normalcall));
+			sbHandles.AppendLine(Str.format("            return {}.Value;", callResultParamName));
+			sbHandles.AppendLine(Str.format("        };"));
 			sbHandles.AppendLine(Str.format(""));
+			sbHandles.AppendLine(Str.format("        App.Zeze.Redirect.Handles.put(\"{}:{}\", {});", module.getFullName(), methodOverride.method.getName(), tmpHandleName));
 		}
 		sb.AppendLine(Str.format("    public {}() ", genClassName));
 		sb.AppendLine(Str.format("    {"));
@@ -286,6 +306,45 @@ public class GenModule {
 		sb.Append(sbContexts.toString());
 		sb.AppendLine(Str.format("}"));
 		return sb.toString();
+	}
+
+	// 根据转发类型选择目标服务器，如果目标服务器是自己，直接调用基类方法完成工作。
+	void ChoiceTargetRunLoopback(StringBuilderCs sb, MethodOverride methodOverride, ReturnTypeAndName rtn) throws Throwable {
+		switch (methodOverride.overrideType) {
+		case RedirectHash:
+			sb.AppendLine("        // RedirectWithHash");
+			sb.AppendLine(Str.format("        var _target_ = App.Zeze.Redirect.ChoiceHash(this, {});",
+					methodOverride.ParameterHashOrServer.getName()));
+			break;
+		case RedirectToServer:
+			sb.AppendLine("        // RedirectToServer");
+			sb.AppendLine(Str.format("        var _target_ = App.Zeze.Redirect.ChoiceServer(this, {});",
+					methodOverride.ParameterHashOrServer.getName()));
+			break;
+		case RedirectAll:
+			sb.AppendLine("        // RedirectAll");
+			// RedirectAll 不在这里选择目标服务器。后面发送的时候直接查找所有可用服务器并进行广播。
+			return;
+		}
+
+		sb.AppendLine("        if (_target_ == null)");
+		sb.AppendLine("        {");
+		sb.AppendLine("            // local: loop-back");
+		switch (rtn.ReturnType)
+		{
+		case Void:
+			sb.AppendLine(Str.format("            App.Zeze.Redirect.RunVoid(() -> super.{}({}));",
+					methodOverride.method.getName(), methodOverride.GetBaseCallString()));
+			sb.AppendLine(Str.format("            return;"));
+			break;
+
+		case TaskCompletionSource:
+			sb.AppendLine(Str.format("            return App.Zeze.Redirect.RunFuture(() -> super.{}({}));",
+					methodOverride.method.getName(), methodOverride.GetBaseCallString()));
+			break;
+		}
+		sb.AppendLine("        }");
+		sb.AppendLine("");
 	}
 
 	void GenRedirectAll(Zeze.Util.StringBuilderCs sb, Zeze.Util.StringBuilderCs sbHandles,
@@ -360,7 +419,7 @@ public class GenModule {
 		String sep = normalcall.isEmpty() ? "" : ", ";
 		var returnCodeVarName = "tmp" + Gen.Instance.TmpVarNameId.incrementAndGet();
 		sbHandles.AppendLine(Str.format("            var {} = super.{}(_sessionid_, _hash_{}{});",
-				returnCodeVarName, GetMethodNameWithHash(m.method.getName()), sep, normalcall));
+				returnCodeVarName, m.method.getName(), sep, normalcall));
 		sbHandles.AppendLine(Str.format("            return new Zezex.ModuleRedirect.Return({}, Binary.Empty);", returnCodeVarName));
 		sbHandles.AppendLine(Str.format("        });"));
 		sbHandles.AppendLine(Str.format(""));

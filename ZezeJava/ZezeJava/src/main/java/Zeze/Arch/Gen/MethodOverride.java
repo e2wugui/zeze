@@ -4,7 +4,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import Zeze.Arch.Redirect;
+import Zeze.Arch.RedirectHash;
 import Zeze.Arch.RedirectAll;
 import Zeze.Arch.RedirectAllDoneHandle;
 import Zeze.Arch.RedirectAllResultHandle;
@@ -15,8 +15,11 @@ public class MethodOverride {
 	public java.lang.reflect.Method method;
 	public OverrideType overrideType;
 	public Annotation attribute;
+	public Zeze.Transaction.TransactionLevel TransactionLevel;
 
-	public MethodOverride(java.lang.reflect.Method method, OverrideType type, Annotation attribute) {
+	public MethodOverride(Zeze.Transaction.TransactionLevel tLevel,
+						  java.lang.reflect.Method method, OverrideType type, Annotation attribute) {
+		TransactionLevel = tLevel;
 		this.method = method;
 		overrideType = type;
 		this.attribute = attribute;
@@ -24,7 +27,6 @@ public class MethodOverride {
 
 	public java.lang.reflect.Parameter ParameterHashOrServer;
 	public ArrayList<Parameter> ParametersNormal = new ArrayList<> ();
-	public java.lang.reflect.Parameter ParameterLastWithMode;
 	public java.lang.reflect.Parameter[] ParametersAll;
 	public java.lang.reflect.Parameter ParameterRedirectResultHandle;
 	public java.lang.reflect.Parameter ParameterRedirectAllResultHandle;
@@ -48,7 +50,7 @@ public class MethodOverride {
 		ParametersAll = method.getParameters();
 		ParametersNormal.addAll(Arrays.asList(ParametersAll));
 
-		if (overrideType == overrideType.RedirectToServer || overrideType == overrideType.RedirectWithHash) {
+		if (overrideType == overrideType.RedirectToServer || overrideType == overrideType.RedirectHash) {
 			ParameterHashOrServer = ParametersAll[0];
 			if (ParameterHashOrServer.getType() != int.class) {
 				throw new RuntimeException("ModuleRedirectWithHash: type of first parameter must be 'int'");
@@ -58,12 +60,6 @@ public class MethodOverride {
 			//	throw new RuntimeException("ModuleRedirectWithHash: name of first parameter must be 'hash'");
 			//}
 			ParametersNormal.remove(0);
-		}
-
-		if (!ParametersNormal.isEmpty()
-				&& ParametersNormal.get(ParametersNormal.size() - 1).getType() == Zeze.TransactionModes.class) {
-			ParameterLastWithMode = ParametersNormal.get(ParametersNormal.size() - 1);
-			ParametersNormal.remove(ParametersNormal.size() - 1);
 		}
 
 		for (var p : ParametersAll) {
@@ -99,16 +95,6 @@ public class MethodOverride {
 		return sb.toString();
 	}
 
-	public final String GetModeCallString() {
-		if (ParameterLastWithMode == null) {
-			return "";
-		}
-		if (ParametersAll.length == 1) { // 除了mode，没有其他参数。
-			return ParameterLastWithMode.getName();
-		}
-		return Str.format(", {}", ParameterLastWithMode.getName());
-	}
-
 	public final String GetHashOrServerCallString() {
 		if (ParameterHashOrServer == null) {
 			return "";
@@ -120,17 +106,16 @@ public class MethodOverride {
 	}
 
 	public final String GetBaseCallString() throws Throwable {
-		return Str.format("{}{}{}", GetHashOrServerCallString(), GetNarmalCallString(), GetModeCallString());
+		return Str.format("{}{}", GetHashOrServerCallString(), GetNarmalCallString());
 	}
 
 	public final String getRedirectType() {
 		switch (overrideType) {
-		case Redirect: // fall down
-		case RedirectWithHash:
-			return "Zezex.Provider.ModuleRedirect.RedirectTypeWithHash";
+		case RedirectHash: // fall down
+			return "ModuleRedirect.RedirectTypeWithHash";
 
 		case RedirectToServer:
-			return "Zezex.Provider.ModuleRedirect.RedirectTypeToServer";
+			return "ModuleRedirect.RedirectTypeToServer";
 		default:
 			throw new RuntimeException("unkown OverrideType");
 		}
@@ -139,14 +124,8 @@ public class MethodOverride {
 	public final String GetChoiceHashOrServerCodeSource() {
 		switch (overrideType) {
 		case RedirectToServer:
-		case RedirectWithHash:
+		case RedirectHash:
 			return ParameterHashOrServer.getName(); // parameter name
-
-		case Redirect:
-			var attr = (Redirect)attribute;
-			if (attr.ChoiceHashCodeSource().isEmpty())
-				return "Zezex.ModuleRedirect.GetChoiceHashCode()";
-			return attr.ChoiceHashCodeSource();
 
 		default:
 			throw new RuntimeException("error state");

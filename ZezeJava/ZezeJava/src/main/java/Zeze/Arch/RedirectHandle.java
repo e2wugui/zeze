@@ -1,15 +1,11 @@
 package Zeze.Arch;
 
-import java.util.List;
-import Zeze.Arch.Gen.Return;
-import Zeze.Beans.ProviderDirect.BActionParam;
 import Zeze.Net.Binary;
-import Zeze.Util.Func4;
+import Zeze.Util.Func3;
 import Zeze.Transaction.TransactionLevel;
 
 public class RedirectHandle {
 	public TransactionLevel RequestTransactionLevel = TransactionLevel.Serializable;
-
 	/**
 	 0) long [in] sessionid
 	 1) int [in] hash
@@ -18,9 +14,5 @@ public class RedirectHandle {
 	 4) Return [return]
 	 Func不能使用ref，而Zeze.Net.Binary是只读的。就这样吧。
 	 */
-	public Func4<Long, Integer, Binary, List<BActionParam>, Return> RequestHandle;
-
-	public TransactionLevel ResponseTransactionLevel = TransactionLevel.Serializable;
-	public int ResponseHandle;
-
+	public Func3<Long, Integer, Binary, Binary> RequestHandle;
 }

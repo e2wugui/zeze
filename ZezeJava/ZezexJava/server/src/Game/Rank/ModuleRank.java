@@ -2,9 +2,10 @@ package Game.Rank;
 
 import Zeze.Transaction.*;
 import Game.*;
-import Zeze.TransactionModes;
+import Zeze.Util.Action1;
 import Zeze.Util.Str;
 import Zeze.Arch.*;
+import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -40,9 +41,9 @@ public class ModuleRank extends AbstractModule {
 	 @param hash
 	 @param roleId
 	 @param value
-	 @return Procudure.Success...
 	*/
-	protected final long UpdateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) {
+	@RedirectHash
+	protected final void UpdateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) {
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		int maxCount = GetRankComputeCount(keyHint.getRankType());
 
@@ -73,7 +74,7 @@ public class ModuleRank extends AbstractModule {
 				if (rank.getRankList().size() > maxCount) {
 					rank.getRankList().remove(rank.getRankList().size() - 1);
 				}
-				return Procedure.Success;
+				return;
 			}
 		}
 		// A: 如果排行的Value可能减少，那么当它原来存在，但现在处于队尾时，不要再进榜。
@@ -87,7 +88,7 @@ public class ModuleRank extends AbstractModule {
 			tempVar2.setValueEx(valueEx);
 			rank.getRankList().add(tempVar2);
 		}
-		return Procedure.Success;
+		return;
 	}
 
 	public static class Rank {
@@ -192,50 +193,11 @@ public class ModuleRank extends AbstractModule {
 		return Rank;
 	}
 
-	/**
-	 相关数据变化时，更新排行榜。
-	 最好在事务成功结束或者处理快完的时候或者ChangeListener中调用这个方法更新排行榜。
-	 比如使用 Transaction.Current.RunWhileCommit(() => RunUpdateRank(...));
-	 @param roleId
-	 @param value
-	 @param valueEx 只保存，不参与比较。如果需要参与比较，需要另行实现自己的Update和Get。
-	*/
-	@Redirect()
-	public void RunUpdateRank(BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) {
-		int hash = App.Zeze.Redirect.GetChoiceHashCode();
-		App.Zeze.Run(
-				() -> UpdateRank(hash, keyHint, roleId, value, valueEx),
-				"RunUpdateRank",
-				Zeze.TransactionModes.ExecuteInAnotherThread,
-				hash);
-	}
-
-	// 名字必须和RunUpdateRankWithHash匹配，内部使用一样的实现。
-	protected final long UpdateRankWithHash(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) {
-		return UpdateRank(hash, keyHint, roleId, value, valueEx);
-	}
-
-	@RedirectWithHash()
-	public void RunUpdateRankWithHash(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) {
-		App.Zeze.Run(
-				() -> UpdateRankWithHash(hash, keyHint, roleId, value, valueEx),
-				"RunUpdateRankWithHash",
-				Zeze.TransactionModes.ExecuteInAnotherThread,
-				hash);
-	}
-
 	@RedirectToServer()
-	public void RunTestToServer(int serverId) {
-		App.Zeze.Run(
-				() -> TestToServer(serverId),
-				"RunTestToServer",
-				TransactionModes.ExecuteInAnotherThread,
-				serverId);
+	protected final TaskCompletionSource<Long> TestToServer(int serverId) {
+		return null;
 	}
 
-	protected final long TestToServer(int serverId) {
-		return 0L;
-	}
 	/**
 	 ModuleRedirectAll 实现要求：
 	 1）第一个参数是调用会话id；
@@ -264,9 +226,7 @@ public class ModuleRank extends AbstractModule {
 	// 属性参数是获取总的并发分组数量的代码，直接复制到生成代码中。
 	// 需要注意在子类上下文中可以编译通过。可以是常量。
 	@RedirectAll(GetConcurrentLevelSource="GetConcurrentLevel(arg0.getRankType())")
-	public void RunGetRank(BConcurrentKey keyHint,
-						   RedirectAllResultHandle onHashResult,
-						   RedirectAllDoneHandle onHashEnd) {
+	public void GetRank(BConcurrentKey keyHint, RedirectAllResultHandle onHashResult, RedirectAllDoneHandle onHashEnd) {
 		// 默认实现是本地遍历调用，这里不使用App.Zeze.Run启动任务（这样无法等待），直接调用实现。
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		var ctx = new ModuleRedirectAllContext(concurrentLevel,
@@ -279,8 +239,8 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	// 使用异步方案构建rank。
-	private void GetRankAsync(BConcurrentKey keyHint,
-							  Zeze.Util.Action1<Rank> callback) {
+	public void GetRankAsync(BConcurrentKey keyHint,
+							  Action1<Rank> callback) {
 		var rank = Ranks.get(keyHint);
 		if (null != rank) {
 			long now = System.currentTimeMillis();
@@ -297,7 +257,7 @@ public class ModuleRank extends AbstractModule {
 		// 异步方式没法锁住Rank，所以并发的情况下，可能多次去获取数据，多次构建，多次覆盖Ranks的cache。
 		int countNeed = GetRankCount(keyHint.getRankType());
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
-		RunGetRank(keyHint,
+		GetRank(keyHint,
 				// Action OnHashResult
 				(sessionId, hash, returnCode, _result) -> {
 					var ctx = App.Server.<ModuleRedirectAllContext>TryGetManualContext(sessionId);
@@ -390,7 +350,7 @@ public class ModuleRank extends AbstractModule {
 			valueEx = Zeze.Net.Binary.Empty;
 		}
 
-		RunUpdateRank(keyHint, roleId, counter.getValue(), valueEx);
+		UpdateRank(App.Zeze.Redirect.GetChoiceHashCode(), keyHint, roleId, counter.getValue(), valueEx);
 	}
 
 	@Override
@@ -481,63 +441,13 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	/******************************** ModuleRedirect 测试 *****************************************/
-	@Redirect()
-	public Zeze.Util.TaskCompletionSource<Long> RunTest1(Zeze.TransactionModes mode) {
-		int hash = App.Zeze.Redirect.GetChoiceHashCode();
-		return App.Zeze.Run(() -> Test1(hash), "Test1", mode, hash);
+	@RedirectHash()
+	public Zeze.Util.TaskCompletionSource<Long> Test1(int hash) {
+		return null;
 	}
 
-	protected final long Test1(int hash) {
-		return Procedure.Success;
-	}
-
-	@Redirect()
-	public void RunTest2(int inData, Zeze.Util.RefObject<Integer> refData, Zeze.Util.OutObject<Integer> outData) {
-		int hash = App.Zeze.Redirect.GetChoiceHashCode();
-		var future = App.Zeze.Run(
-				() -> Test2(hash, inData, refData, outData),
-				"Test2", Zeze.TransactionModes.ExecuteInAnotherThread, hash);
-		future.Wait();
-	}
-
-	protected final long Test2(int hash, int inData, Zeze.Util.RefObject<Integer> refData, Zeze.Util.OutObject<Integer> outData) {
-		outData.Value = 1;
-		++refData.Value;
-		return Procedure.Success;
-	}
-
-	public void RunTest3(int inData,
-						 Zeze.Util.RefObject<Integer> refData,
-						 Zeze.Util.OutObject<Integer> outData,
-						 Zeze.Util.Action1<Integer> resultCallback) {
-		int hash = App.Zeze.Redirect.GetChoiceHashCode();
-		var future = App.Zeze.Run(
-				() -> Test3(hash, inData, refData, outData, resultCallback),
-				"Test3", Zeze.TransactionModes.ExecuteInAnotherThread, hash);
-		future.Wait();
-	}
-
-	/*
-	 * 一般来说 ref|out 和 Action 回调方式不该一起用。存粹为了测试。
-	 * 如果混用，首先 Action 回调先发生，然后 ref|out 的变量才会被赋值。这个当然吧。
-	 *
-	 * 可以包含多个 Action。纯粹为了...可以用 Empty 表示 null，嗯，总算找到理由了。
-	 * 如果包含多个，按照真正的实现的回调顺序回调，不是定义顺序。这个也当然吧。
-	 *
-	 * ref|out 方式需要同步等待，【不建议使用这种方式】【不建议使用这种方式】【不建议使用这种方式】
-	 */
-	protected final long Test3(int hash,
-							  int inData, Zeze.Util.RefObject<Integer> refData, Zeze.Util.OutObject<Integer> outData,
-							  Zeze.Util.Action1<Integer> resultCallback) {
-		outData.Value = 1;
-		++refData.Value;
-		try {
-			resultCallback.run(1);
-			return Procedure.Success;
-		} catch (Throwable e) {
-			logger.error("", e);
-			return Procedure.Exception;
-		}
+	@RedirectHash()
+	public void Test2(int hash, int inData) {
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE

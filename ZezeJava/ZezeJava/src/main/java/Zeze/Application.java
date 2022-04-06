@@ -374,34 +374,4 @@ public final class Application {
 	public TaskOneByOneByKey getTaskOneByOneByKey() {
 		return TaskOneByOneByKey;
 	}
-
-	public TaskCompletionSource<Long> Run(Func0<Long> func, String actionName, TransactionModes mode) {
-		return Run(func, actionName, mode, null);
-	}
-
-	public TaskCompletionSource<Long> Run(Func0<Long> func, String actionName, TransactionModes mode, Object oneByOneKey) {
-		final var future = new TaskCompletionSource<Long>();
-		try {
-			switch (mode) {
-			case ExecuteInTheCallerTransaction:
-				future.SetResult(func.call());
-				break;
-
-			case ExecuteInNestedCall:
-				future.SetResult(NewProcedure(func, actionName).Call());
-				break;
-
-			case ExecuteInAnotherThread:
-				if (oneByOneKey != null) {
-					getTaskOneByOneByKey().Execute(oneByOneKey,
-							() -> future.SetResult(NewProcedure(func, actionName).Call()), actionName);
-				} else
-					Task.run(() -> future.SetResult(NewProcedure(func, actionName).Call()), actionName);
-				break;
-			}
-		} catch (Throwable e) {
-			future.SetException(e);
-		}
-		return future;
-	}
 }

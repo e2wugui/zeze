@@ -4,8 +4,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
+import Zeze.Util.Action0;
 import Zeze.Util.OutObject;
-import org.apache.commons.lang3.NotImplementedException;
+import Zeze.Util.Task;
+import Zeze.Util.TaskCompletionSource;
 
 /**
  * 应用需要继承实现必要的方法，创建实例并保存。(Zeze.Application.setModuleRedirect)。
@@ -13,20 +15,12 @@ import org.apache.commons.lang3.NotImplementedException;
 public abstract class RedirectBase {
 	public ConcurrentHashMap<String, RedirectHandle> Handles = new ConcurrentHashMap <>();
 
-	public int GetDefaultChoiceType() {
-		return Zeze.Beans.Provider.BModule.ChoiceTypeHashAccount;
+	public <T extends Zeze.AppBase> IModule ReplaceModuleInstance(T userApp, IModule module) {
+		return GenModule.Instance.ReplaceModuleInstance(userApp, module);
 	}
 
 	public int GetChoiceHashCode() {
-		throw new NotImplementedException("GetChoiceHashCode By Context");
-	}
-
-	public void DispatchResponse() {
-
-	}
-
-	public IModule ReplaceModuleInstance(IModule module) {
-		return GenModule.Instance.ReplaceModuleInstance(module);
+		throw new UnsupportedOperationException();
 	}
 
 	public ProviderApp ProviderApp;
@@ -43,5 +37,30 @@ public abstract class RedirectBase {
 		if (ProviderApp.Distribute.ChoiceProviderByServerId(ProviderApp.ServerServiceNamePrefix, module.getId(), serverId, out))
 			return ProviderApp.ProviderService.GetSocket(out.Value);
 		return null;
+	}
+
+	public AsyncSocket ChoiceHash(IModule module, int hash) {
+		return null;
+	}
+
+	public void DirectAllBroadcast(IModule module) {
+
+	}
+
+	public TaskCompletionSource<Long> RunFuture(Action0 action) {
+		var future = new TaskCompletionSource<Long>();
+		Task.run(() -> {
+			try {
+				action.run();
+				future.SetResult(0L);
+			} catch (Throwable ex) {
+				future.SetException(ex);
+			}
+		}, "Redirect Loop Back Future");
+		return future;
+	}
+
+	public void RunVoid(Action0 action) {
+		Task.run(action, "Redirect Loop Back Async");
 	}
 }
