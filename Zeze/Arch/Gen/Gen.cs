@@ -54,21 +54,21 @@ namespace Zeze.Arch.Gen
             Serializer[typeof(Zeze.Net.Binary)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteBinary({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadBinary();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}Zeze.Net.Binary {varName} = null;"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}Zeze.Net.Binary {varName};"),
                 () => "Zeze.Net.Binary"
                 );
 
             Serializer[typeof(bool)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteBool({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadBool();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}bool {varName} = false;"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}bool {varName};"),
                 () => "bool"
                 );
 
             Serializer[typeof(byte)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteByte({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadByte();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}byte {varName} = 0;"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}byte {varName};"),
                 () => "byte"
                 );
 
@@ -76,70 +76,70 @@ namespace Zeze.Arch.Gen
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteByteBuffer({varName});"),
                 // 这里不用ReadByteBuffer，这个方法和原来的buffer共享内存，除了编解码时用用，开放给应用不大好。
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = Zeze.Serialize.ByteBuffer.Wrap(_bb_.ReadBytes());"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}Zeze.Serialize.ByteBuffer {varName} = null;"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}Zeze.Serialize.ByteBuffer {varName};"),
                 () => "Zeze.Serialize.ByteBuffer"
                 );
 
             Serializer[typeof(byte[])] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteBytes({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadBytes();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}byte[] {varName} = null;"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}byte[] {varName};"),
                 () => "byte[]"
                 );
 
             Serializer[typeof(double)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteDouble({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadDouble();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}double {varName} = 0.0;"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}double {varName};"),
                 () => "double"
                 );
 
             Serializer[typeof(float)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteFloat({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadFloat();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}float {varName} = 0.0;"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}float {varName};"),
                 () => "float"
                 );
 
             Serializer[typeof(int)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteInt({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadInt();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}int {varName} = 0;"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}int {varName};"),
                 () => "int"
                 );
 
             Serializer[typeof(long)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteLong({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadLong();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}long {varName} = 0;"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}long {varName};"),
                 () => "long"
                 );
 
             Serializer[typeof(short)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteShort({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadShort();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}short {varName} = 0;"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}short {varName};"),
                 () => "short"
                 );
 
             Serializer[typeof(string)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteString({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadString();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}string {varName} = null;"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}string {varName};"),
                 () => "string"
                );
 
             Serializer[typeof(uint)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteUInt({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadUInt();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}uint {varName} = 0;"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}uint {varName};"),
                 () => "uint"
                 );
 
             Serializer[typeof(ulong)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteUlong({varName});"),
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}{varName} = _bb_.ReadUlong();"),
-                (sb, prefix, varName) => sb.AppendLine($"{prefix}ulong {varName} = 0;"),
+                (sb, prefix, varName) => sb.AppendLine($"{prefix}ulong {varName};"),
                 () => "ulong"
                 );
 
