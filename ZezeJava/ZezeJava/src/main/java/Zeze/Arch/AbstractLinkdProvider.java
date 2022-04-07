@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Arch;
 
-public abstract class AbstractProviderLinkd extends Zeze.IModule {
+public abstract class AbstractLinkdProvider extends Zeze.IModule {
     @Override public String getFullName() { return "Zeze.Beans.Provider"; }
     @Override public String getName() { return "Provider"; }
     @Override public int getId() { return ModuleId; }

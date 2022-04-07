@@ -10,7 +10,7 @@ import Zeze.Beans.LinkdBase.*;
 /**
  * Linkd上处理Provider协议的模块。
  */
-public class LinkdProvider extends AbstractProviderLinkd {
+public class LinkdProvider extends AbstractLinkdProvider {
     private static final Logger logger = LogManager.getLogger(LinkdProvider.class);
 
     public LinkdApp LinkdApp;

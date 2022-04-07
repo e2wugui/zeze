@@ -377,7 +377,7 @@
 				rpc.ResultCode == ResultCodeSuccess 时，才使用下面两个变量，此时表示rpc调用流程正确了。
 				处理结果是否正确，还需要进一步查看 ReturnCode。
 				-->
-				<variable name="Params"     id="3" type="binary"/>
+				<variable name="Params" id="3" type="binary"/>
 			</bean>
 
 			<!-- 转发只定义一个rpc，以后可能需要实现server之间的直连，不再通过转发 -->
@@ -516,7 +516,7 @@
 	</component>
 
 	<!-- Provider 在Linkd上的客户端支持组件 -->
-	<component name="ProviderLinkd" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">
+	<component name="LinkdProvider" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">
 		<service name="" handle="client">
 			<module ref="Zeze.Beans.Provider"/>
 		</service>
