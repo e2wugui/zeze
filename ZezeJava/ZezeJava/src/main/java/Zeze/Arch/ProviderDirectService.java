@@ -6,7 +6,7 @@ import Zeze.Beans.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
-import Zeze.Transaction.TransactionLevel;
+import Zeze.Net.ProtocolHandle;
 import Zeze.Util.OutObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -95,5 +95,20 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		}
 
 		super.DispatchProtocol(p, factoryHandle);
+	}
+
+	@Override
+	public <P extends Protocol<?>> void DispatchRpcResponse(
+			P rpc, ProtocolHandle<P> responseHandle, ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
+
+		if (rpc.getTypeId() == ModuleRedirect.TypeId_) {
+			var redirect = (ModuleRedirect)rpc;
+			// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
+			getZeze().getTaskOneByOneByKey().Execute(redirect.Argument.getHashCode(),
+					() -> Zeze.Util.Task.Call(() -> responseHandle.handle(rpc), rpc));
+			return;
+		}
+
+		super.DispatchRpcResponse(rpc, responseHandle, factoryHandle);
 	}
 }
