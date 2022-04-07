@@ -36,6 +36,7 @@ message.{{solution.name}} = {}
         continue
     else}}
 message.{{name_space}} = {}
+{{-_set = array.add _set name_space }}
     {{-end}}
 {{-end}}
 message.{{module_name}} = require "{{toname module_name}}"
