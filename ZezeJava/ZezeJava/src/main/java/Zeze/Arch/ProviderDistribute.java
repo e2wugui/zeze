@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Beans.Provider.BLoad;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.Agent;
+import Zeze.Services.ServiceManager.ServiceInfo;
 import Zeze.Util.Random;
 
 /**
@@ -21,16 +22,21 @@ public class ProviderDistribute {
 		return serviceNamePrefix + moduleId;
 	}
 
-	public boolean ChoiceHash(Agent.SubscribeState providers, int hash, Zeze.Util.OutObject<Long> provider) {
-		provider.Value = 0L;
-
+	public ServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash) {
 		var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
 		if (list.size() == 0) {
-			return false;
+			return null;
 		}
+		return list.get(Integer.remainderUnsigned(hash, list.size()));
+	}
 
-		Object tempVar = list.get(Integer.remainderUnsigned(hash, list.size())).getLocalState();
-		var providerModuleState = (ProviderModuleState)tempVar;
+	public boolean ChoiceHash(Agent.SubscribeState providers, int hash, Zeze.Util.OutObject<Long> provider) {
+		provider.Value = 0L;
+		var serviceInfo = ChoiceHash(providers, hash);
+		if (null == serviceInfo)
+			return false;
+
+		var providerModuleState = (ProviderModuleState)serviceInfo.getLocalState();
 		if (null == providerModuleState) {
 			return false;
 		}

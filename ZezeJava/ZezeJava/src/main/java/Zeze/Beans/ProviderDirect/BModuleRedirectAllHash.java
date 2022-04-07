@@ -4,7 +4,30 @@ package Zeze.Beans.ProviderDirect;
 import Zeze.Serialize.ByteBuffer;
 
 public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
+    private long _ReturnCode;
     private Zeze.Net.Binary _Params;
+
+    public long getReturnCode() {
+        if (!isManaged())
+            return _ReturnCode;
+        var txn = Zeze.Transaction.Transaction.getCurrent();
+        if (txn == null)
+            return _ReturnCode;
+        txn.VerifyRecordAccessed(this, true);
+        var log = (Log__ReturnCode)txn.GetLog(this.getObjectId() + 1);
+        return log != null ? log.getValue() : _ReturnCode;
+    }
+
+    public void setReturnCode(long value) {
+        if (!isManaged()) {
+            _ReturnCode = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrent();
+        assert txn != null;
+        txn.VerifyRecordAccessed(this);
+        txn.PutLog(new Log__ReturnCode(this, value));
+    }
 
     public Zeze.Net.Binary getParams() {
         if (!isManaged())
@@ -13,7 +36,7 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
         if (txn == null)
             return _Params;
         txn.VerifyRecordAccessed(this, true);
-        var log = (Log__Params)txn.GetLog(this.getObjectId() + 1);
+        var log = (Log__Params)txn.GetLog(this.getObjectId() + 2);
         return log != null ? log.getValue() : _Params;
     }
 
@@ -40,6 +63,7 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
     }
 
     public void Assign(BModuleRedirectAllHash other) {
+        setReturnCode(other.getReturnCode());
         setParams(other.getParams());
     }
 
@@ -71,10 +95,18 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
+    private static final class Log__ReturnCode extends Zeze.Transaction.Log1<BModuleRedirectAllHash, Long> {
+        public Log__ReturnCode(BModuleRedirectAllHash self, Long value) { super(self, value); }
+        @Override
+        public long getLogKey() { return this.getBean().getObjectId() + 1; }
+        @Override
+        public void Commit() { this.getBeanTyped()._ReturnCode = this.getValue(); }
+    }
+
     private static final class Log__Params extends Zeze.Transaction.Log1<BModuleRedirectAllHash, Zeze.Net.Binary> {
         public Log__Params(BModuleRedirectAllHash self, Zeze.Net.Binary value) { super(self, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
+        public long getLogKey() { return this.getBean().getObjectId() + 2; }
         @Override
         public void Commit() { this.getBeanTyped()._Params = this.getValue(); }
     }
@@ -91,6 +123,7 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
     public void BuildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Beans.ProviderDirect.BModuleRedirectAllHash: {").append(System.lineSeparator());
         level += 4;
+        sb.append(Zeze.Util.Str.indent(level)).append("ReturnCode").append('=').append(getReturnCode()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Params").append('=').append(getParams()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -113,9 +146,16 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
     public void Encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
+            long _x_ = getReturnCode();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
+        {
             var _x_ = getParams();
             if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
             }
         }
@@ -128,6 +168,10 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
+            setReturnCode(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 2) {
             setParams(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
@@ -144,6 +188,8 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
     @SuppressWarnings("RedundantIfStatement")
     @Override
     public boolean NegativeCheck() {
+        if (getReturnCode() < 0)
+            return true;
         return false;
     }
 }

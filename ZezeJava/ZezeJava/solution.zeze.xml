@@ -409,7 +409,8 @@
 			</bean>
 
 			<bean name="BModuleRedirectAllHash">
-				<variable name="Params" id="1" type="binary"/>
+				<variable name="ReturnCode" id="1" type="long"/>
+				<variable name="Params"     id="2" type="binary"/>
 			</bean>
 
 			<bean name="BModuleRedirectAllResult">

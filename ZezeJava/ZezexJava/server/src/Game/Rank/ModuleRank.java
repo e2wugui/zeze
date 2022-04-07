@@ -193,11 +193,6 @@ public class ModuleRank extends AbstractModule {
 		return Rank;
 	}
 
-	@RedirectToServer()
-	protected TaskCompletionSource<Long> TestToServer(int serverId) {
-		return null;
-	}
-
 	/**
 	 ModuleRedirectAll 实现要求：
 	 1）第一个参数是调用会话id；
@@ -438,6 +433,11 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	/******************************** ModuleRedirect 测试 *****************************************/
+	@RedirectToServer()
+	protected TaskCompletionSource<Long> TestToServer(int serverId) {
+		return null;
+	}
+
 	@RedirectHash()
 	public Zeze.Util.TaskCompletionSource<Long> Test1(int hash) {
 		return null;
@@ -448,7 +448,8 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	@RedirectHash()
-	public void Test3(int hash, int inData, Zeze.Util.Action2<Integer, Zeze.Transaction.EmptyBean> result) {
+	public void Test3(int hash, int inData, Zeze.Util.Action2<Integer, Zeze.Transaction.EmptyBean> result) throws Throwable {
+		result.run(inData, new EmptyBean());
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE
