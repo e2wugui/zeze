@@ -106,10 +106,10 @@ public abstract class RedirectBase {
 			if (null != socket) {
 				transmit.getValue().Send(socket);
 			} else {
-				for (var hashindex : transmit.getValue().Argument.getHashCodes()) {
+				for (var hashIndex : transmit.getValue().Argument.getHashCodes()) {
 					BModuleRedirectAllHash tempVar2 = new BModuleRedirectAllHash();
 					tempVar2.setReturnCode(Zeze.Transaction.Procedure.ProviderNotExist);
-					miss.Argument.getHashs().put(hashindex, tempVar2);
+					miss.Argument.getHashs().put(hashIndex, tempVar2);
 				}
 			}
 		}

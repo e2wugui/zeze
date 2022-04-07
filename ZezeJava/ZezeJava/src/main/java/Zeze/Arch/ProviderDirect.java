@@ -1,7 +1,10 @@
 package Zeze.Arch;
 
-import java.security.Provider;
-import Zeze.Beans.ProviderDirect.*;
+import Zeze.Beans.ProviderDirect.AnnounceProviderInfo;
+import Zeze.Beans.ProviderDirect.BModuleRedirectAllHash;
+import Zeze.Beans.ProviderDirect.ModuleRedirect;
+import Zeze.Beans.ProviderDirect.ModuleRedirectAllRequest;
+import Zeze.Beans.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Procedure;
@@ -19,7 +22,11 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
     @Override
     protected long ProcessModuleRedirectRequest(ModuleRedirect rpc) throws Throwable {
         // replace RootProcedure.ActionName. 为了统计和日志输出。
-        Transaction.getCurrent().getTopProcedure().setActionName(rpc.Argument.getMethodFullName());
+        Transaction txn = Transaction.getCurrent();
+        assert txn != null;
+        Procedure proc = txn.getTopProcedure();
+        assert proc != null;
+        proc.setActionName(rpc.Argument.getMethodFullName());
 
         rpc.Result.setModuleId(rpc.Argument.getModuleId());
         rpc.Result.setServerId(ProviderApp.Zeze.getConfig().getServerId());
@@ -55,6 +62,7 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
         for (var hashResult : result.Argument.getHashs().values()) {
             size += hashResult.getParams().size();
         }
+        //noinspection PointlessArithmeticExpression
         if (size > 1 * 1024 * 1024) { // 1M
             result.Send(sender);
             result.Argument.getHashs().clear();
@@ -127,7 +135,11 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
     @Override
     protected long ProcessModuleRedirectAllResult(ModuleRedirectAllResult protocol) throws Throwable {
         // replace RootProcedure.ActionName. 为了统计和日志输出。
-        Transaction.getCurrent().getTopProcedure().setActionName(protocol.Argument.getMethodFullName());
+        Transaction txn = Transaction.getCurrent();
+        assert txn != null;
+        Procedure proc = txn.getTopProcedure();
+        assert proc != null;
+        proc.setActionName(protocol.Argument.getMethodFullName());
         var ctx = ProviderApp.ProviderDirectService.<ModuleRedirectAllContext>TryGetManualContext(protocol.Argument.getSessionId());
         if (ctx != null) {
             ctx.ProcessResult(ProviderApp.Zeze, protocol);

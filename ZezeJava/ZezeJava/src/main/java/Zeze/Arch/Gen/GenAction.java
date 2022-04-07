@@ -87,8 +87,6 @@ public class GenAction {
 	public void Verify(MethodOverride m) {
 		switch (m.overrideType) {
 		case RedirectHash:
-			break;
-
 		case RedirectToServer:
 			break;
 

@@ -1,15 +1,17 @@
 package Zeze.Arch;
 
 import java.util.HashMap;
-import java.util.HashSet;
-import Zeze.Beans.ProviderDirect.Transmit;
+import Zeze.Beans.Provider.AnnounceLinkInfo;
+import Zeze.Beans.Provider.BKick;
+import Zeze.Beans.Provider.BModule;
+import Zeze.Beans.Provider.Dispatch;
+import Zeze.Beans.Provider.Kick;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Services.ServiceManager.SubscribeInfo;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
-import Zeze.Beans.Provider.*;
 import Zeze.Util.Str;
 
 public abstract class ProviderImplement extends AbstractProviderImplement {
@@ -32,8 +34,6 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	 *
 	 * 订阅Linkd服务。
 	 * Provider主动连接Linkd。
-	 *
-	 * @throws Throwable
 	 */
 	public void RegisterModulesAndSubscribeLinkd() throws Throwable {
 		var sm = ProviderApp.Zeze.getServiceManagerAgent();
@@ -92,7 +92,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	}
 
 	@Override
-	protected long ProcessDispatch(Dispatch p) throws Throwable {
+	protected long ProcessDispatch(Dispatch p) {
 		try {
 			var factoryHandle = ProviderApp.ProviderService.FindProtocolFactoryHandle(p.Argument.getProtocolType());
 			if (null == factoryHandle) {
@@ -106,10 +106,13 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			var session = new ProviderUserSession(ProviderApp.ProviderService, p.Argument.getAccount(), p.Argument.getStates(), p.getSender(), p.Argument.getLinkSid());
 
 			p2.setUserState(session);
-			if (Transaction.getCurrent() != null) {
+			Transaction txn = Transaction.getCurrent();
+			if (txn != null) {
 				// 已经在事务中，嵌入执行。此时忽略p2的NoProcedure配置。
-				Transaction.getCurrent().getTopProcedure().setActionName(p2.getClass().getName());
-				Transaction.getCurrent().getTopProcedure().setUserState(p2.getUserState());
+				Procedure proc = txn.getTopProcedure();
+				assert proc != null;
+				proc.setActionName(p2.getClass().getName());
+				proc.setUserState(p2.getUserState());
 				return Zeze.Util.Task.Call(() -> factoryHandle.Handle.handleProtocol(p2), p2, (p3, code) -> {
 						p3.setResultCode(code);
 						session.SendResponse(p3);
@@ -137,9 +140,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		}
 	}
 
-
 	@Override
-	protected long ProcessAnnounceLinkInfo(AnnounceLinkInfo protocol) throws Throwable {
+	protected long ProcessAnnounceLinkInfo(AnnounceLinkInfo protocol) {
 		var linkSession = (ProviderService.LinkSession)protocol.getSender().getUserState();
 		linkSession.Setup(protocol.Argument.getLinkId(), protocol.Argument.getProviderSessionId());
 		return Procedure.Success;

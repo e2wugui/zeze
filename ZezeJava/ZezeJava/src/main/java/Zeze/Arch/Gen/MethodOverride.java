@@ -29,15 +29,15 @@ public class MethodOverride {
 	public java.lang.reflect.Parameter ParameterRedirectAllDoneHandle;
 
 	public String getThrows() {
-		var throwsexp = method.getGenericExceptionTypes();
-		if (throwsexp.length == 0)
+		var throwTypes = method.getGenericExceptionTypes();
+		if (throwTypes.length == 0)
 			return "";
 		var sb = new StringBuilder();
 		sb.append(" throws ");
-		for (int i = 0; i < throwsexp.length; ++i) {
+		for (int i = 0; i < throwTypes.length; ++i) {
 			if (i > 0)
 				sb.append(", ");
-			sb.append(throwsexp[i].getTypeName());
+			sb.append(throwTypes[i].getTypeName());
 		}
 		return sb.toString();
 	}
@@ -46,7 +46,7 @@ public class MethodOverride {
 		ParametersAll = method.getParameters();
 		ParametersNormal.addAll(Arrays.asList(ParametersAll));
 
-		if (overrideType == overrideType.RedirectToServer || overrideType == overrideType.RedirectHash) {
+		if (overrideType == OverrideType.RedirectToServer || overrideType == OverrideType.RedirectHash) {
 			ParameterHashOrServer = ParametersAll[0];
 			if (ParameterHashOrServer.getType() != int.class) {
 				throw new RuntimeException("ModuleRedirectWithHash: type of first parameter must be 'int'");
@@ -88,22 +88,20 @@ public class MethodOverride {
 		return sb.toString();
 	}
 
-	public final String GetNarmalCallString() throws Throwable {
-		return GetNarmalCallString(null);
+	public final String GetNormalCallString() throws Throwable {
+		return GetNormalCallString(null);
 	}
 
-	public final String GetNarmalCallString(Zeze.Util.Func1<java.lang.reflect.Parameter, Boolean> skip) throws Throwable {
+	public final String GetNormalCallString(Zeze.Util.Func1<java.lang.reflect.Parameter, Boolean> skip) throws Throwable {
 		StringBuilder sb = new StringBuilder();
 		boolean first = true;
-		for (int i = 0; i < ParametersNormal.size(); ++i) {
-			var p = ParametersNormal.get(i);
+		for (Parameter p : ParametersNormal) {
 			if (null != skip && skip.call(p)) {
 				continue;
 			}
 			if (first) {
 				first = false;
-			}
-			else {
+			} else {
 				sb.append(", ");
 			}
 			sb.append(p.getName());
@@ -122,7 +120,7 @@ public class MethodOverride {
 	}
 
 	public final String GetBaseCallString() throws Throwable {
-		return Str.format("{}{}", GetHashOrServerCallString(), GetNarmalCallString());
+		return Str.format("{}{}", GetHashOrServerCallString(), GetNormalCallString());
 	}
 
 	public final String getRedirectType() {
@@ -133,7 +131,7 @@ public class MethodOverride {
 		case RedirectToServer:
 			return "ModuleRedirect.RedirectTypeToServer";
 		default:
-			throw new RuntimeException("unkown OverrideType");
+			throw new RuntimeException("unknown OverrideType");
 		}
 	}
 
@@ -149,7 +147,7 @@ public class MethodOverride {
 	}
 
 	public final String GetConcurrentLevelSource() {
-		if (overrideType != overrideType.RedirectAll) {
+		if (overrideType != OverrideType.RedirectAll) {
 			throw new RuntimeException("is not RedirectAll");
 		}
 		var attr = (RedirectAll)attribute;

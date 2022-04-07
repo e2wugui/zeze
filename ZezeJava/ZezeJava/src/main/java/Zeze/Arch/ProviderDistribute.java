@@ -69,8 +69,8 @@ public class ProviderDistribute {
 
 			// 查询负载。TODO 优化查询。Decode 已经优化。
 			var host = serviceInfo.getPassiveIp() + ":" + serviceInfo.getPassivePort();
-			var loadbean = Zeze.getServiceManagerAgent().Loads.get(host);
-			ps.Load = loadbean.get((param) -> {
+			var loadBean = Zeze.getServiceManagerAgent().Loads.get(host);
+			ps.Load = loadBean.get((param) -> {
 				var bb = ByteBuffer.Wrap(param);
 				var l = new BLoad();
 				l.Decode(bb);
@@ -88,14 +88,14 @@ public class ProviderDistribute {
 			TotalWeight += weight;
 		}
 		if (TotalWeight > 0) {
-			int randweight = Random.getInstance().nextInt(TotalWeight);
+			int randWeight = Random.getInstance().nextInt(TotalWeight);
 			for (var ps : frees) {
 				int weight = ps.Load.getProposeMaxOnline() - ps.Load.getOnline();
-				if (randweight < weight) {
+				if (randWeight < weight) {
 					provider.Value = ps.getSessionId();
 					return true;
 				}
-				randweight -= weight;
+				randWeight -= weight;
 			}
 		}
 		// 选择失败，一般是都满载了，随机选择一个。
@@ -132,8 +132,8 @@ public class ProviderDistribute {
 
 				// 查询负载。TODO 优化查询。Decode 已经优化。
 				var host = serviceInfo.getPassiveIp() + ":" + serviceInfo.getPassivePort();
-				var loadbean = Zeze.getServiceManagerAgent().Loads.get(host);
-				ps.Load = loadbean.get((param) -> {
+				var loadBean = Zeze.getServiceManagerAgent().Loads.get(host);
+				ps.Load = loadBean.get((param) -> {
 					var bb = ByteBuffer.Wrap(param);
 					var l = new BLoad();
 					l.Decode(bb);

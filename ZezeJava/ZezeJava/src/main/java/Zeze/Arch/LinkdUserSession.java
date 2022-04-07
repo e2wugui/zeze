@@ -57,9 +57,9 @@ public class LinkdUserSession {
 
 	public final boolean TryGetProvider(int moduleId, Zeze.Util.OutObject<Long> provider) {
 		synchronized (this) {
-			var binded = Binds.get(moduleId);
-			if (null != binded) {
-				provider.Value = binded;
+			var bound = Binds.get(moduleId);
+			if (null != bound) {
+				provider.Value = bound;
 				return true;
 			}
 			provider.Value = 0L;

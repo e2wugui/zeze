@@ -1,17 +1,16 @@
 package Zeze.Arch;
 
 import java.util.HashSet;
+import Zeze.Beans.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Procedure;
-import Zeze.Beans.ProviderDirect.*;
-import java.util.List;
 
 public class ModuleRedirectAllContext extends Zeze.Net.Service.ManualContext {
-	private String MethodFullName;
+	private final String MethodFullName;
 	public final String getMethodFullName() {
 		return MethodFullName;
 	}
-	private HashSet<Integer> HashCodes = new HashSet<Integer> ();
+	private final HashSet<Integer> HashCodes = new HashSet<>();
 	public final HashSet<Integer> getHashCodes() {
 		return HashCodes;
 	}

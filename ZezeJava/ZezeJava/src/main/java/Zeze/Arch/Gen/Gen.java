@@ -4,12 +4,11 @@ import java.lang.reflect.Parameter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
-import Zeze.Arch.RedirectAllDoneHandle;
 import Zeze.Net.Binary;
 import Zeze.Util.Str;
 
 public class Gen {
-	private HashMap<Class, KnownSerializer> Serializer = new HashMap<>();
+	private final HashMap<Class<?>, KnownSerializer> Serializer = new HashMap<>();
 	public AtomicLong TmpVarNameId = new AtomicLong();
 
 	public static Gen Instance = new Gen();
@@ -130,8 +129,8 @@ public class Gen {
 		if (null != kn)
 			return kn.TypeName.call();
 
-		if (Zeze.Serialize.Serializable.class.isAssignableFrom(type))
-			return type.getTypeName();
+//		if (Zeze.Serialize.Serializable.class.isAssignableFrom(type))
+//			return type.getTypeName();
 
 		return type.getTypeName();
 	}
@@ -191,28 +190,28 @@ public class Gen {
 		//String tmp3 = "tmp" + TmpVarNameId.incrementAndGet();
 		sb.AppendLine(Str.format("{}try {", prefix));
 		sb.AppendLine(Str.format("{}    var {} = {}.ReadByteBuffer();", prefix, tmp1, bbName));
-		sb.AppendLine(Str.format("{}    try (var {} = new java.io.ByteArrayInputStream({}.Bytes, {}.ReadIndex, {}.Size()); var objinput = new java.io.ObjectInputStream({})) {",
+		sb.AppendLine(Str.format("{}    try (var {} = new java.io.ByteArrayInputStream({}.Bytes, {}.ReadIndex, {}.Size()); var objInput = new java.io.ObjectInputStream({})) {",
 				prefix, tmp2, tmp1, tmp1, tmp1, tmp2));
-		sb.AppendLine(Str.format("{}        {} = ({})objinput.readObject();", prefix, varName, GetTypeName(type)));
+		sb.AppendLine(Str.format("{}        {} = ({})objInput.readObject();", prefix, varName, GetTypeName(type)));
 		sb.AppendLine(Str.format("{}    }", prefix));
 		sb.AppendLine(Str.format("{}} catch (Throwable e) {", prefix));
 		sb.AppendLine(Str.format("{}    throw new RuntimeException(e);", prefix));
 		sb.AppendLine(Str.format("{}}", prefix));
 	}
 
-	private boolean IsOut(Class<?> type) {
+	private boolean IsOut(@SuppressWarnings("unused") Class<?> type) {
 		return false;
 		// return type == Zeze.Util.OutObject.class;
 	}
 
+	@SuppressWarnings("unused")
 	private boolean IsRef(Class<?> type) {
 		return false;
 		//return type == Zeze.Util.RefObject.class;
 	}
 
 	public void GenEncode(Zeze.Util.StringBuilderCs sb, String prefix, String bbName, List<Parameter> parameters) throws Throwable {
-		for (int i = 0; i < parameters.size(); ++i)  {
-			var p = parameters.get(i);
+		for (Parameter p : parameters) {
 			if (IsOut(p.getType()))
 				continue;
 			if (IsKnownDelegate(p.getType()))
@@ -233,8 +232,7 @@ public class Gen {
 	}
 
 	public void GenDecode(Zeze.Util.StringBuilderCs sb, String prefix, String bbName, List<java.lang.reflect.Parameter> parameters) throws Throwable {
-		for (int i = 0; i < parameters.size(); ++i) {
-			var p = parameters.get(i);
+		for (Parameter p : parameters) {
 			if (IsOut(p.getType()))
 				continue;
 			if (IsKnownDelegate(p.getType()))

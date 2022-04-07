@@ -1,7 +1,5 @@
 package Zeze;
 
-import java.util.concurrent.ConcurrentHashMap;
-
 public abstract class IModule {
 	public abstract String getFullName();
 

@@ -5,6 +5,13 @@ import Zeze.Beans.Provider.BLoad;
 
 public class ProviderSession {
 	private BAnnounceProviderInfo Info;
+	public volatile BLoad Load;
+	private final long SessionId;
+
+	public ProviderSession(long ssid) {
+		SessionId = ssid;
+	}
+
 	public final BAnnounceProviderInfo getInfo() {
 		return Info;
 	}
@@ -13,14 +20,7 @@ public class ProviderSession {
 		Info = value;
 	}
 
-	public volatile BLoad Load;
-
-	private long SessionId;
 	public final long getSessionId() {
 		return SessionId;
-	}
-
-	public ProviderSession(long ssid) {
-		SessionId = ssid;
 	}
 }

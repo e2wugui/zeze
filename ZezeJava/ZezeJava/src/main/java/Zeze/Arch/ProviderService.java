@@ -1,16 +1,18 @@
 package Zeze.Arch;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import Zeze.Beans.Provider.AnnounceProviderInfo;
+import Zeze.Beans.Provider.Bind;
+import Zeze.Beans.Provider.Subscribe;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
+import Zeze.Util.OutObject;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import Zeze.Beans.Provider.*;
 
 public class ProviderService extends Zeze.Services.HandshakeClient {
 	private static final Logger logger = LogManager.getLogger(ProviderService.class);
@@ -40,18 +42,20 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 		HashSet<String> current = new HashSet<>();
 		for (var link : serviceInfos.getServiceInfoListSortedByIdentity()) {
 			var linkName = GetLinkName(link);
-			current.add(getLinks().computeIfAbsent(linkName, (key) -> {
-				var outc = new Zeze.Util.OutObject<Connector>();
-					if (getConfig().TryGetOrAddConnector(link.getPassiveIp(), link.getPassivePort(), true, outc)) {
-						try {
-							outc.Value.Start();
-						} catch (Throwable e) {
-							logger.error("", e);
-							return null;
-						}
+			var connector = getLinks().computeIfAbsent(linkName, (key) -> {
+				var outC = new OutObject<Connector>();
+				if (getConfig().TryGetOrAddConnector(link.getPassiveIp(), link.getPassivePort(), true, outC)) {
+					try {
+						outC.Value.Start();
+					} catch (Throwable e) {
+						logger.error("", e);
+						return null;
 					}
-					return outc.Value;
-			}).getName());
+				}
+				return outC.Value;
+			});
+			if (connector != null)
+				current.add(connector.getName());
 		}
 		// 删除多余的连接器。
 		for (var linkName : getLinks().keySet()) {
