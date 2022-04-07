@@ -18,19 +18,6 @@ public abstract class IModule {
 		return Zeze.Net.Protocol.MakeTypeId(getId(), code);
 	}
 
-	private final ConcurrentHashMap<String, Class<?>> ClassMap = new ConcurrentHashMap<>();
-
-	public Class<?> getClassByMethodName(String name) {
-		var cls = ClassMap.get(name);
-		if (cls == null)
-			throw new IllegalArgumentException("Class For Method " + name + " Not Found.");
-		return cls;
-	}
-
-	public void putClassForMethod(String methodName, Class<?> cls) {
-		ClassMap.put(methodName, cls);
-	}
-
 	public void Initialize(Zeze.AppBase app) {
 
 	}

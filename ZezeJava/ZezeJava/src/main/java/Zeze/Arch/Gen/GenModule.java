@@ -108,8 +108,8 @@ public class GenModule {
 				// 不需要生成到文件的时候，尝试装载已经存在的生成模块子类。
 				try {
 					Class <?> moduleClass = Class.forName(namespace + "." + genClassName);
-					module.UnRegister();
-					var newModuleInstance = (Zeze.IModule) moduleClass.getDeclaredConstructor(new Class[0]).newInstance();
+ 					module.UnRegister();
+					var newModuleInstance = (Zeze.IModule) moduleClass.getDeclaredConstructor(userApp.getClass()).newInstance(userApp);
 					newModuleInstance.Initialize(userApp);
 					return newModuleInstance;
 				} catch (Throwable ex) {
@@ -121,7 +121,7 @@ public class GenModule {
 			String code = GenModuleCode(
 					// 生成文件的时候，生成package.
 					(GenFileSrcRoot != null ? "package " + namespace + ";" : ""),
-					module, genClassName, overrides);
+					module, genClassName, overrides, userApp.getClass().getName());
 
 			if (GenFileSrcRoot != null) {
 				var file = new File(getNamespaceFilePath(module.getFullName()), genClassName + ".java");
@@ -137,7 +137,7 @@ public class GenModule {
 			}
 			Class<?> moduleClass = compiler.compile(genClassName, code);
 			module.UnRegister();
-			var newModuleInstance = (Zeze.IModule) moduleClass.getDeclaredConstructor(new Class[0]).newInstance();
+			var newModuleInstance = (Zeze.IModule) moduleClass.getDeclaredConstructor(userApp.getClass()).newInstance(userApp);
 			newModuleInstance.Initialize(userApp);
 			return newModuleInstance;
 		} catch (Throwable e) {
@@ -173,7 +173,7 @@ public class GenModule {
 		}
 	}
 
-	private String GenModuleCode(String pkg, Zeze.IModule module, String genClassName, List<MethodOverride> overrides) throws Throwable {
+	private String GenModuleCode(String pkg, Zeze.IModule module, String genClassName, List<MethodOverride> overrides, String userAppName) throws Throwable {
 		var sb = new Zeze.Util.StringBuilderCs();
 		sb.AppendLine(pkg);
 		sb.AppendLine("");
@@ -300,9 +300,10 @@ public class GenModule {
 			sbHandles.AppendLine(Str.format(""));
 			sbHandles.AppendLine(Str.format("        App.Zeze.Redirect.Handles.put(\"{}:{}\", {});", module.getFullName(), m.method.getName(), tmpHandleName));
 		}
-		sb.AppendLine(Str.format("    public {}() ", genClassName));
+		sb.AppendLine(Str.format("    public {}({} app) ", genClassName, userAppName));
 		sb.AppendLine(Str.format("    {"));
-		sb.AppendLine("        super(Game.App.Instance);");
+		sb.AppendLine("        super(app);");
+		sb.AppendLine("");
 		sb.Append(sbHandles.toString());
 		sb.AppendLine(Str.format("    }"));
 		sb.AppendLine(Str.format(""));

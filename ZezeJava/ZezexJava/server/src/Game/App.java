@@ -64,11 +64,19 @@ public final class App extends Zeze.AppBase {
 
 	public void Start(String[] args) throws Throwable {
 		int ServerId = -1;
+		String GenFileSrcRoot = null;
+		int ProviderDirectPort = -1;
 		for (int i = 0; i < args.length; ++i) {
 			//noinspection SwitchStatementWithTooFewBranches
 			switch (args[i]) {
 			case "-ServerId":
 				ServerId = Integer.parseInt(args[++i]);
+				break;
+			case "-GenFileSrcRoot":
+				GenFileSrcRoot = args[++i];
+				break;
+			case "-ProviderDirectPort":
+				ProviderDirectPort = Integer.parseInt(args[++i]);
 				break;
 			}
 		}
@@ -78,7 +86,10 @@ public final class App extends Zeze.AppBase {
 		if (ServerId != -1) {
 			config.setServerId(ServerId); // replace from args
 		}
-
+		if (ProviderDirectPort != -1) {
+			final int port = ProviderDirectPort;
+			config.getServiceConfMap().get("ServerDirect").ForEachAcceptor((a) -> a.setPort(port));
+		}
 		// create
 		CreateZeze(config);
 		CreateService();
@@ -89,7 +100,7 @@ public final class App extends Zeze.AppBase {
 				ProviderDirectMy, ServerDirect, "Game.Linkd", LoadLoadConfig());
 		Zeze.Redirect = new ModuleRedirect(ProviderApp); // MUST before CreateModules
 
-		GenModule.Instance.GenFileSrcRoot = "ZezexJava\\server\\src";
+		GenModule.Instance.GenFileSrcRoot = GenFileSrcRoot;
 		CreateModules();
 		if (GenModule.Instance.GenFileSrcRoot != null)
 			throw new RuntimeException("New Source File Has Generate. Re-Compile Need.");

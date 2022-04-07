@@ -24,11 +24,6 @@ public class ModuleRank extends AbstractModule {
 
 	private static final Logger logger = LogManager.getLogger(ModuleRank.class);
 
-	@Override
-	public void Initialize(Zeze.AppBase app) {
-		super.putClassForMethod("RunGetRank", BRankList.class);
-	}
-
 	public final void Start(App app) {
 	}
 

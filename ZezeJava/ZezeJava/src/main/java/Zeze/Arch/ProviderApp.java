@@ -70,7 +70,7 @@ public class ProviderApp {
 
 	public final HashMap<Integer, BModule> StaticBinds = new HashMap<>();
 	public final HashMap<Integer, BModule> DynamicModules = new HashMap<>();
-	public java.util.HashMap<Integer, BModule> Modules;
+	public java.util.HashMap<Integer, BModule> Modules = new HashMap<>();
 
 	public void initialize(ProviderModuleBinds binds, java.util.HashMap<String, Zeze.IModule> modules) {
 		binds.BuildStaticBinds(modules, Zeze.getConfig().getServerId(), StaticBinds);

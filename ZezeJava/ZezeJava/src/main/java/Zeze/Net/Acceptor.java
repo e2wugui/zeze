@@ -5,12 +5,16 @@ import org.w3c.dom.Element;
 
 public class Acceptor {
 	private final String Ip;
-	private final int Port;
+	private int Port;
 	private Service Service;
 	private AsyncSocket Socket;
 
 	public Acceptor(int port, String ip) {
 		Ip = ip != null ? ip : "";
+		Port = port;
+	}
+
+	public void setPort(int port) {
 		Port = port;
 	}
 
