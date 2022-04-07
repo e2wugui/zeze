@@ -22,9 +22,9 @@
 	Global With Raft 异步测试
 	Test TestGlobal Simulate 异步测试
 	c# Arch & Test
-	Java Arch Test
+	Java Arch Callback在不同Redirect模式下的限定和检查 & Test
 	Zezex Onlines TransmitInProcedure 需要重写。
-
+	
 【2022/4/11】
 	java Arch: ModuleRedirect 重构。
 		【左尧完成Java了？】Zezex.ModuleRedirect 增加 TransactionLevel 注解配置。
