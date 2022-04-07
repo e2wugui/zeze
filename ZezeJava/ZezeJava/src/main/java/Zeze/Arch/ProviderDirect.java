@@ -69,7 +69,8 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
         var result = new ModuleRedirectAllResult();
         try {
             // replace RootProcedure.ActionName. 为了统计和日志输出。
-            Transaction.getCurrent().getTopProcedure().setActionName(p.Argument.getMethodFullName());
+            // 现在这个协议处理不在存储过程中，在外面DispatchProtocol的时候设置名字。
+            //Transaction.getCurrent().getTopProcedure().setActionName(p.Argument.getMethodFullName());
 
             // common parameters for result
             result.Argument.setModuleId(p.Argument.getModuleId());

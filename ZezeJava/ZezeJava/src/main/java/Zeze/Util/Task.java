@@ -225,7 +225,11 @@ public class Task implements Future<Long> {
 	}
 
 	public static void LogAndStatistics(Throwable ex, long result, Protocol<?> p, boolean IsRequestSaved) {
-		final var actionName = IsRequestSaved ? p.getClass().getName() : p.getClass().getName() + ":Response";
+		LogAndStatistics(ex, result, p, IsRequestSaved, null);
+	}
+
+	public static void LogAndStatistics(Throwable ex, long result, Protocol<?> p, boolean IsRequestSaved, String aName) {
+		final var actionName = null != aName ? aName : IsRequestSaved ? p.getClass().getName() : p.getClass().getName() + ":Response";
 		var logLevel = p.getService() != null && p.getService().getZeze() != null
 				? p.getService().getZeze().getConfig().getProcessReturnErrorLogLevel()
 				: Level.TRACE;
@@ -245,12 +249,16 @@ public class Task implements Future<Long> {
 	}
 
 	public static long Call(Func0<Long> func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
+		return Call(func, p, actionWhenError, null);
+	}
+
+	public static long Call(Func0<Long> func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String aName) {
 		boolean IsRequestSaved = p.isRequest(); // 记住这个，以后可能会被改变。
 		try {
 			var result = func.call();
 			if (result != 0 && IsRequestSaved && actionWhenError != null)
 				actionWhenError.handle(p, result);
-			LogAndStatistics(null, result, p, IsRequestSaved);
+			LogAndStatistics(null, result, p, IsRequestSaved, aName);
 			return result;
 		} catch (Throwable ex) {
 			long errorCode;
@@ -273,7 +281,7 @@ public class Task implements Future<Long> {
 					logger.error(e);
 				}
 			}
-			LogAndStatistics(ex, errorCode, p, IsRequestSaved);
+			LogAndStatistics(ex, errorCode, p, IsRequestSaved, aName);
 			return errorCode;
 		}
 	}

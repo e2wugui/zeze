@@ -2,6 +2,7 @@ package Zeze.Arch;
 
 import Zeze.Beans.ProviderDirect.AnnounceProviderInfo;
 import Zeze.Beans.ProviderDirect.ModuleRedirect;
+import Zeze.Beans.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
@@ -75,20 +76,19 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 
 		if (p.getTypeId() == ModuleRedirect.TypeId_) {
 			if (null != factoryHandle.Handle) {
-				var moduleRedirect = (ModuleRedirect)p;
-				if (null != getZeze()) {
-					if (factoryHandle.Level != TransactionLevel.None) {
-						getZeze().getTaskOneByOneByKey().Execute(
-								moduleRedirect.Argument.getHashCode(),
-								() -> Zeze.Util.Task.Call(getZeze().NewProcedure(() -> factoryHandle.Handle.handle(p),
-												p.getClass().getName(), factoryHandle.Level, p.getUserState()),
-										p, Protocol::SendResultCode));
-					} else {
-						getZeze().getTaskOneByOneByKey().Execute(moduleRedirect.Argument.getHashCode(),
-								() -> Zeze.Util.Task.Call(() -> factoryHandle.Handle.handle(p), p,
-										Protocol::SendResultCode));
-					}
-				}
+				var redirect = (ModuleRedirect)p;
+				// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
+				getZeze().getTaskOneByOneByKey().Execute(redirect.Argument.getHashCode(),
+						() -> Zeze.Util.Task.Call(() -> factoryHandle.Handle.handle(p), p, Protocol::SendResultCode));
+			} else
+				logger.warn("Protocol Handle Not Found: {}", p);
+			return;
+		}
+		if (p.getTypeId() == ModuleRedirectAllResult.TypeId_) {
+			if (null != factoryHandle.Handle) {
+				var r = (ModuleRedirectAllResult)p;
+				// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
+				Zeze.Util.Task.Call(() -> factoryHandle.Handle.handle(p), p, Protocol::SendResultCode, r.Argument.getMethodFullName());
 			} else
 				logger.warn("Protocol Handle Not Found: {}", p);
 			return;
