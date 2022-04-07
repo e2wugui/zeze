@@ -75,7 +75,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 			//linkSession.UnBind(so, moduleId, null);
 		}
 
-		if (LinkdApp.ProviderLinkd.ChoiceProviderAndBind(moduleId, so, provider)) {
+		if (LinkdApp.LinkdProvider.ChoiceProviderAndBind(moduleId, so, provider)) {
 			var providerSocket = LinkdApp.LinkdProviderService.GetSocket(provider.Value);
 			if (null != providerSocket) {
 				// ChoiceProviderAndBind 内部已经处理了绑定。这里只需要发送。

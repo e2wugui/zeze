@@ -10,13 +10,13 @@ import Zeze.Beans.LinkdBase.*;
 /**
  * Linkd上处理Provider协议的模块。
  */
-public class ProviderLinkd extends AbstractProviderLinkd {
-    private static final Logger logger = LogManager.getLogger(ProviderLinkd.class);
+public class LinkdProvider extends AbstractProviderLinkd {
+    private static final Logger logger = LogManager.getLogger(LinkdProvider.class);
 
     public LinkdApp LinkdApp;
     public ProviderDistribute Distribute;
 
-    public ProviderLinkd() {
+    public LinkdProvider() {
     }
 
     public boolean ChoiceProviderAndBind(int moduleId, Zeze.Net.AsyncSocket link, Zeze.Util.OutObject<Long> provider) {

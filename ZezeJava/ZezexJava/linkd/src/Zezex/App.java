@@ -4,7 +4,6 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.PersistentAtomicLong;
-import Zeze.Util.Str;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import Zeze.Arch.*;
 import Zeze.Config;
@@ -16,7 +15,7 @@ public final class App extends Zeze.AppBase {
 		return Instance;
 	}
 
-	public ProviderLinkd ProviderLinkd;
+	public LinkdProvider LinkdProvider;
 
 	private LoadConfig LoadConfig() {
 		try {
@@ -33,8 +32,8 @@ public final class App extends Zeze.AppBase {
 		// Create
 		CreateZeze(Config.Load("linkd.xml"));
 		CreateService();
-		ProviderLinkd = new ProviderLinkd();
-		LinkdApp = new LinkdApp("Game.Linkd", Zeze, ProviderLinkd, ProviderService, LinkdService, LoadConfig());
+		LinkdProvider = new LinkdProvider();
+		LinkdApp = new LinkdApp("Game.Linkd", Zeze, LinkdProvider, ProviderService, LinkdService, LoadConfig());
 		CreateModules();
 		// Start
 		Zeze.Start(); // 启动数据库

@@ -3,7 +3,7 @@ package Zeze.Arch;
 public class LinkdApp {
 	public String LinkdServiceName;
 	public Zeze.Application Zeze;
-	public ProviderLinkd ProviderLinkd;
+	public LinkdProvider LinkdProvider;
 	public LinkdProviderService LinkdProviderService;
 	public LinkdService LinkdService;
 	// 现在内部可以自动设置两个参数，但有点不够可靠，生产环境最好手动设置。
@@ -11,24 +11,24 @@ public class LinkdApp {
 	public int ProviderPassivePort;
 
 	public LinkdApp(String linkdServiceName,
-					Zeze.Application zeze, ProviderLinkd providerLinkd,
+					Zeze.Application zeze, LinkdProvider linkdProvider,
 					LinkdProviderService linkdProviderService, LinkdService linkdService,
 					LoadConfig LoadConfig) {
 		LinkdServiceName = linkdServiceName;
 		Zeze = zeze;
-		ProviderLinkd = providerLinkd;
-		ProviderLinkd.LinkdApp = this;
+		LinkdProvider = linkdProvider;
+		LinkdProvider.LinkdApp = this;
 		LinkdProviderService = linkdProviderService;
 		LinkdProviderService.LinkdApp = this;
 		LinkdService = linkdService;
 		LinkdService.LinkdApp = this;
 
-		ProviderLinkd.Distribute = new ProviderDistribute();
-		ProviderLinkd.Distribute.ProviderService = LinkdProviderService;
-		ProviderLinkd.Distribute.Zeze = Zeze;
-		ProviderLinkd.Distribute.LoadConfig = LoadConfig;
+		LinkdProvider.Distribute = new ProviderDistribute();
+		LinkdProvider.Distribute.ProviderService = LinkdProviderService;
+		LinkdProvider.Distribute.Zeze = Zeze;
+		LinkdProvider.Distribute.LoadConfig = LoadConfig;
 
-		ProviderLinkd.RegisterProtocols(LinkdProviderService);
+		LinkdProvider.RegisterProtocols(LinkdProviderService);
 
 		var kv = LinkdProviderService.GetOnePassiveAddress();
 		ProviderPassiveIp = kv.getKey();

@@ -53,7 +53,7 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 	@Override
 	public void OnSocketClose(Zeze.Net.AsyncSocket so, Throwable e) throws Throwable {
 		// 先unbind。这样避免有时间窗口。
-		LinkdApp.ProviderLinkd.OnProviderClose(so);
+		LinkdApp.LinkdProvider.OnProviderClose(so);
 		super.OnSocketClose(so, e);
 	}
 }
