@@ -24,6 +24,7 @@
 	c# Arch & Test
 	Java Arch Callback在不同Redirect模式下的限定和检查 & Test
 	Zezex Onlines TransmitInProcedure 需要重写。
+	问题：Java Arch ServiceManager ReadyCommit 依赖Provider之间的连接，但是连接又依赖Indentity-List-Ready。【使用Load信息建立连接？】
 	
 【2022/4/11】
 	java Arch: ModuleRedirect 重构。

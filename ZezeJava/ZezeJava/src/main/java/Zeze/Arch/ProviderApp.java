@@ -82,8 +82,4 @@ public class ProviderApp {
 	public void StartLast() throws Throwable {
 		ProviderImplement.RegisterModulesAndSubscribeLinkd();
 	}
-
-	public void UpdateModulesLoad(Binary load) throws Throwable {
-		ProviderImplement.UpdateModulesLoad(load);
-	}
 }

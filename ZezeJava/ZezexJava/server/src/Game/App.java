@@ -27,9 +27,9 @@ public final class App extends Zeze.AppBase {
 		return MyConfig;
 	}
 
-	private final Load Load = new Load();
+	private final Game.Load Load = new Load();
 
-	public Load getLoad() {
+	public Game.Load getLoad() {
 		return Load;
 	}
 

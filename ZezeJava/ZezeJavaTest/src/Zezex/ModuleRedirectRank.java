@@ -11,7 +11,11 @@ public class ModuleRedirectRank extends TestCase {
 		app1.Start(new String[]{ "-ServerId", "0" });
 		app2.Start(new String[]{ "-ServerId", "1", "-ProviderDirectPort", "20002" });
 
-		Thread.sleep(5000); // wait connected
+		// 主动调用一次更新Load，provider之间的连接依赖这个信息。
+		app1.getLoad().Report(0, 0);
+		app2.getLoad().Report(0, 0);
+
+		Thread.sleep(1000); // wait connected
 
 		try {
 			app1.Game_Rank.TestToServer(0, 12345, result -> { assert result == 12345; });
