@@ -11,8 +11,10 @@ public class ModuleRedirectRank extends TestCase {
 		app1.Start(new String[]{ "-ServerId", "0" });
 		app2.Start(new String[]{ "-ServerId", "1" });
 
-		try {
+		Thread.sleep(1000); // wait connected
 
+		try {
+			app1.Game_Rank.TestToServer(0, 12345, result -> { assert result == 12345; });
 		} finally {
 			app1.Stop();
 			app2.Stop();

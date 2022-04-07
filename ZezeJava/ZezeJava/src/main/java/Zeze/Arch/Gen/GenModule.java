@@ -194,6 +194,8 @@ public class GenModule {
 			var methodNameHash = m.method.getName();
 			var rtn = GetReturnType(m.method.getReturnType());
 			Verify(m);
+			if (null != m.ResultHandle)
+				m.ResultHandle.Verify(m);
 
 			sb.AppendLine("    @Override");
 			sb.AppendLine(Str.format("    public {} {}({}){}",

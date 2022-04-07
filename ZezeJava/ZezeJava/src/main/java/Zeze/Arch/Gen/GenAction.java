@@ -83,4 +83,23 @@ public class GenAction {
 		sb.append(">");
 		return sb.toString();
 	}
+
+	public void Verify(MethodOverride m) {
+		switch (m.overrideType) {
+		case RedirectHash:
+			break;
+
+		case RedirectToServer:
+			break;
+
+		case RedirectAll:
+			if (GenericArguments.length < 2)
+				throw new RuntimeException("RedirectAll Result Handle Miss Parameters.");
+			if (GenericArguments[0] != Long.class)
+				throw new RuntimeException("RedirectAll Result Handle First Parameter Type Must Be Long. That Is A SessionId.");
+			if (GenericArguments[1] != Integer.class)
+				throw new RuntimeException("RedirectAll Result Handle Second Parameter Type Must Be Integer. That Is A Hash.");
+			break;
+		}
+	}
 }
