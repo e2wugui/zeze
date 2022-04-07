@@ -36,7 +36,7 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
                 ProviderApp.Zeze.NewProcedure(() -> {
                     out.Value = handle.RequestHandle.call(rpc.SessionId, rpc.Argument.getHashCode(), rpc.Argument.getParams());
                     return 0L;
-                }, "ProcessModuleRedirectRequest");
+                }, "ProcessModuleRedirectRequest").Call();
                 break;
             default:
                 out.Value = handle.RequestHandle.call(rpc.SessionId, rpc.Argument.getHashCode(), rpc.Argument.getParams());
