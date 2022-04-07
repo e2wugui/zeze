@@ -72,13 +72,20 @@ public class GenAction {
 		return sb.toString();
 	}
 
+	private static String toShortTypeName(String typeName) {
+		if (!typeName.startsWith("java.lang."))
+			return typeName;
+		String shortTypeName = typeName.substring(10);
+		return shortTypeName.indexOf('.') < 0 ? shortTypeName : typeName;
+	}
+
 	public String GetDefineName() {
 		var sb = new StringBuilder();
 		sb.append(Name).append("<");
 		for (int i = 0; i < GenericArguments.length; ++i) {
 			if (i > 0)
 				sb.append(", ");
-			sb.append(GenericArguments[i].getTypeName());
+			sb.append(toShortTypeName(GenericArguments[i].getTypeName()));
 		}
 		sb.append(">");
 		return sb.toString();

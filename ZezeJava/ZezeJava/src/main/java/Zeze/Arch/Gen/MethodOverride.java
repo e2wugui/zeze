@@ -126,10 +126,10 @@ public class MethodOverride {
 	public final String getRedirectType() {
 		switch (overrideType) {
 		case RedirectHash: // fall down
-			return "ModuleRedirect.RedirectTypeWithHash";
+			return "Zeze.Beans.ProviderDirect.ModuleRedirect.RedirectTypeWithHash";
 
 		case RedirectToServer:
-			return "ModuleRedirect.RedirectTypeToServer";
+			return "Zeze.Beans.ProviderDirect.ModuleRedirect.RedirectTypeToServer";
 		default:
 			throw new RuntimeException("unknown OverrideType");
 		}
