@@ -18,39 +18,36 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 
     @Override
     protected long ProcessModuleRedirectRequest(ModuleRedirect rpc) throws Throwable {
-        try {
-            // replace RootProcedure.ActionName. 为了统计和日志输出。
-            Transaction.getCurrent().getTopProcedure().setActionName(rpc.Argument.getMethodFullName());
+        // replace RootProcedure.ActionName. 为了统计和日志输出。
+        Transaction.getCurrent().getTopProcedure().setActionName(rpc.Argument.getMethodFullName());
 
-            rpc.Result.setModuleId(rpc.Argument.getModuleId());
-            rpc.Result.setServerId(ProviderApp.Zeze.getConfig().getServerId());
-            var handle = ProviderApp.Zeze.Redirect.Handles.get(rpc.Argument.getMethodFullName());
-            if (null == handle) {
-                rpc.SendResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
-                return Procedure.LogicError;
-            }
+        rpc.Result.setModuleId(rpc.Argument.getModuleId());
+        rpc.Result.setServerId(ProviderApp.Zeze.getConfig().getServerId());
+        var handle = ProviderApp.Zeze.Redirect.Handles.get(rpc.Argument.getMethodFullName());
+        if (null == handle) {
+            rpc.SendResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
+            return Procedure.LogicError;
+        }
 
-            var out = new OutObject<Binary>();
-            switch (handle.RequestTransactionLevel) {
-            case Serializable: case AllowDirtyWhenAllRead:
-                ProviderApp.Zeze.NewProcedure(() -> {
-                    out.Value = handle.RequestHandle.call(rpc.SessionId, rpc.Argument.getHashCode(), rpc.Argument.getParams());
-                    return 0L;
-                }, "ProcessModuleRedirectRequest").Call();
-                break;
-            default:
+        var out = new OutObject<Binary>();
+        switch (handle.RequestTransactionLevel) {
+        case Serializable: case AllowDirtyWhenAllRead:
+            var rc = ProviderApp.Zeze.NewProcedure(() -> {
                 out.Value = handle.RequestHandle.call(rpc.SessionId, rpc.Argument.getHashCode(), rpc.Argument.getParams());
-                break;
+                return 0L;
+            }, "ProcessModuleRedirectRequest").Call();
+            if (0L != rc) {
+                rpc.SendResultCode(rc);
             }
-            rpc.Result.setParams(out.Value);
-            // rpc 成功了，具体handle结果还需要看ReturnCode。
-            rpc.SendResultCode(ModuleRedirect.ResultCodeSuccess);
-            return 0L;
+            break;
+        default:
+            out.Value = handle.RequestHandle.call(rpc.SessionId, rpc.Argument.getHashCode(), rpc.Argument.getParams());
+            break;
         }
-        catch (Throwable e) {
-            rpc.SendResultCode(ModuleRedirect.ResultCodeHandleException);
-            throw e;
-        }
+        rpc.Result.setParams(out.Value);
+        // rpc 成功了，具体handle结果还需要看ReturnCode。
+        rpc.SendResultCode(Procedure.Success);
+        return 0L;
     }
 
     private void SendResultIfSizeExceed(AsyncSocket sender, ModuleRedirectAllResult result) {
