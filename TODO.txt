@@ -24,10 +24,10 @@
 	c# Arch & Test
 	Java Arch Callback在不同Redirect模式下的限定和检查 & Test
 	Zezex Onlines TransmitInProcedure 需要重写。
-	CommitServiceList,ReadyServiceList 不发送整个列表，仅发送系列号。
 	Load 移到 Zeze.Arch 里面，里面使用的MyConfig相关配置移到LoadConfig中。
 	
 【2022/4/11】
+	CommitServiceList,ReadyServiceList 不发送整个列表，仅发送系列号。
 	问题：Java Arch ServiceManager ReadyCommit 依赖Provider之间的连接，但是连接又依赖Indentity-List-Ready。【暴露Pending状态的列表】
 	ProviderSession 增加 Set(ServiceName,Identity) OnSocketClose 时 foreach (var (s,i)) SetServiceIdentityReadyState(s, i, null);
 	SetServiceIdentityReadyState(+ServiceName, identity, state);【误会，这个定义在SubscribeState里面的，不需要ServiceName了】

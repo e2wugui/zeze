@@ -167,7 +167,8 @@ public final class Agent implements Closeable {
 				}
 			}
 			var r = new ReadyServiceList();
-			r.Argument = getServiceInfosPending();
+			r.Argument.ServiceName = ServiceInfosPending.getServiceName();
+			r.Argument.SerialId = ServiceInfosPending.getSerialId();
 			if (getAgent().getClient().getSocket() != null) {
 				getAgent().getClient().getSocket().Send(r);
 			}
@@ -269,14 +270,12 @@ public final class Agent implements Closeable {
 			return true;
 		}
 
-		public synchronized void OnCommit(ServiceInfos infos) throws Throwable {
-			// ServiceInfosPending 和 Commit.infos 应该一样，否则肯定哪里出错了。
-			// 这里总是使用最新的 Commit.infos，检查记录日志。
-			if (!SequenceEqual(infos.getServiceInfoListSortedByIdentity(),
-					getServiceInfosPending().getServiceInfoListSortedByIdentity())) {
-				Agent.logger.warn("OnCommit: ServiceInfosPending Miss Match.");
+		public synchronized void OnCommit(CommitServiceList r) throws Throwable {
+			if (r.Argument.SerialId != ServiceInfosPending.getSerialId())
+			{
+				logger.warn("OnCommit " + getServiceName() + " " + r.Argument.SerialId + " != " + ServiceInfosPending.getSerialId());
 			}
-			setServiceInfos(infos);
+			setServiceInfos(ServiceInfosPending);
 			ServiceInfosPending = null;
 			setCommitted(true);
 			PrepareAndTriggerOnChanged();
@@ -484,9 +483,9 @@ public final class Agent implements Closeable {
 	}
 
 	private long ProcessCommitServiceList(CommitServiceList r) throws Throwable {
-		var state = getSubscribeStates().get(r.Argument.getServiceName());
+		var state = getSubscribeStates().get(r.Argument.ServiceName);
 		if (null != state) {
-			state.OnCommit(r.Argument);
+			state.OnCommit(r);
 		} else {
 			Agent.logger.warn("CommitServiceList But SubscribeState Not Found.");
 		}

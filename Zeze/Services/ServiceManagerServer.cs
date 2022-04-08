@@ -304,10 +304,9 @@ namespace Zeze.Services
                             return;
                         }
                     }
-                    var commit = new CommitServiceList()
-                    {
-                        Argument = new ServiceInfos(ServiceName, this, 0),
-                    };
+                    var commit = new CommitServiceList();
+                    commit.Argument.ServiceName = ServiceName;
+                    commit.Argument.SerialId = SerialId;
                     foreach (var e in ReadyCommit)
                     {
                         ServiceManager.Server.GetSocket(e.Key)?.Send(commit);
@@ -362,19 +361,6 @@ namespace Zeze.Services
                         logger.Debug("Skip Ready: SerialId Not Equal.");
                         return;
                     }
-                    var ordered = new ServiceInfos(ServiceName, this, 0);
-
-                    // 忽略旧的Ready。
-                    if (!Enumerable.SequenceEqual(ordered.ServiceInfoListSortedByIdentity, p.Argument.ServiceInfoListSortedByIdentity))
-                    {
-                        var sb = new StringBuilder();
-                        sb.Append("SequenceNotEqual:");
-                        sb.Append(" Current=").Append(ordered);
-                        sb.Append(" Ready=").Append(p.Argument);
-                        logger.Debug(sb.ToString());
-                        return;
-                    }
-
                     if (!ReadyCommit.TryGetValue(session.SessionId, out var subscribeState))
                         return;
 
@@ -898,7 +884,9 @@ namespace Zeze.Services.ServiceManager
                     if (!ServiceIdentityReadyStates.ContainsKey(pending.ServiceIdentity))
                         return false;
                 }
-                var r = new ReadyServiceList() { Argument = ServiceInfosPending };
+                var r = new ReadyServiceList();
+                r.Argument.ServiceName = ServiceInfosPending.ServiceName;
+                r.Argument.SerialId = ServiceInfosPending.SerialId;
                 Agent.Client.Socket?.Send(r);
                 return true;
             }
@@ -1011,17 +999,14 @@ namespace Zeze.Services.ServiceManager
                 }
             }
 
-            internal void OnCommit(ServiceInfos infos)
+            internal void OnCommit(CommitServiceList r)
             {
                 lock (this)
                 {
-                    // ServiceInfosPending 和 Commit.infos 应该一样，否则肯定哪里出错了。
-                    // 这里总是使用最新的 Commit.infos，检查记录日志。
-                    if (!Enumerable.SequenceEqual(infos.ServiceInfoListSortedByIdentity, ServiceInfosPending.ServiceInfoListSortedByIdentity))
-                    {
-                        Agent.logger.Warn("OnCommit: ServiceInfosPending Miss Match.");
-                    }
-                    ServiceInfos = infos;
+                    if (r.Argument.SerialId != ServiceInfosPending.SerialId)
+                        Agent.logger.Warn($"OnCommit {ServiceName} {r.Argument.SerialId} != {ServiceInfosPending.SerialId}");
+
+                    ServiceInfos = ServiceInfosPending;
                     ServiceInfosPending = null;
                     Committed = true;
                     PrepareAndTriggerOnChanged();
@@ -1260,7 +1245,7 @@ namespace Zeze.Services.ServiceManager
             var r = p as CommitServiceList;
             if (SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
             {
-                state.OnCommit(r.Argument);
+                state.OnCommit(r);
             }
             else
             {
@@ -1886,7 +1871,29 @@ namespace Zeze.Services.ServiceManager
         public override int ProtocolId => ProtocolId_;
     }
 
-    public sealed class ReadyServiceList : Protocol<ServiceInfos>
+    public sealed class ServiceListVersion: Bean
+    {
+        public string ServiceName { get; set; }
+        public long SerialId { get; set; }
+
+        public override void Decode(ByteBuffer bb)
+        {
+            ServiceName = bb.ReadString();
+            SerialId = bb.ReadLong();
+        }
+
+        public override void Encode(ByteBuffer bb)
+        {
+            bb.WriteString(ServiceName);
+            bb.WriteLong(SerialId);
+        }
+
+        protected override void InitChildrenRootInfo(Record.RootInfo root)
+        {
+            throw new NotImplementedException();
+        }
+    }
+    public sealed class ReadyServiceList : Protocol<ServiceListVersion>
     {
         public readonly static int ProtocolId_ = Bean.Hash32(typeof(ReadyServiceList).FullName);
 
@@ -1894,7 +1901,7 @@ namespace Zeze.Services.ServiceManager
         public override int ProtocolId => ProtocolId_;
     }
 
-    public sealed class CommitServiceList : Protocol<ServiceInfos>
+    public sealed class CommitServiceList : Protocol<ServiceListVersion>
     {
         public readonly static int ProtocolId_ = Bean.Hash32(typeof(CommitServiceList).FullName);
 

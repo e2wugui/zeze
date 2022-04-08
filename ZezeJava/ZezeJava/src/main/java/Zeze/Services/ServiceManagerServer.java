@@ -326,7 +326,8 @@ public final class ServiceManagerServer implements Closeable {
 					return;
 			}
 			var commit = new CommitServiceList();
-			commit.Argument = new ServiceInfos(ServiceName, this, 0);
+			commit.Argument.ServiceName = ServiceName;
+			commit.Argument.SerialId = SerialId;
 			for (var it = ReadyCommit.keyIterator(); it.hasNext(); ) {
 				var so = ServiceManager.Server.GetSocket(it.next());
 				if (so != null)
@@ -381,19 +382,10 @@ public final class ServiceManagerServer implements Closeable {
 		}
 
 		public synchronized void SetReady(ReadyServiceList p, Session session) {
-			if (p.Argument.getSerialId() != SerialId) {
+			if (p.Argument.SerialId != SerialId) {
 				logger.debug("Skip Ready: SerialId Not Equal.");
 				return;
 			}
-			var ordered = new ServiceInfos(ServiceName, this, 0);
-
-			// 忽略旧的Ready。
-			if (!SequenceEqual(ordered.getServiceInfoListSortedByIdentity(), p.Argument.getServiceInfoListSortedByIdentity())) {
-				String sb = "SequenceNotEqual:" + " Current=" + ordered + " Ready=" + p.Argument;
-				logger.debug(sb);
-				return;
-			}
-
 			var subscribeState = ReadyCommit.get(session.getSessionId());
 			if (subscribeState == null)
 				return;
@@ -622,7 +614,7 @@ public final class ServiceManagerServer implements Closeable {
 
 	private long ProcessReadyServiceList(ReadyServiceList r) {
 		var session = (Session)r.getSender().getUserState();
-		var state = ServerStates.computeIfAbsent(r.Argument.getServiceName(), name -> new ServerState(this, name));
+		var state = ServerStates.computeIfAbsent(r.Argument.ServiceName, name -> new ServerState(this, name));
 		state.SetReady(r, session);
 		return Procedure.Success;
 	}
