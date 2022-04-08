@@ -264,6 +264,10 @@ public class LinkdProvider extends AbstractLinkdProvider {
         var session = (LinkdProviderSession)protocol.getSender().getUserState();
         session.setInfo(protocol.Argument);
         setServerServiceNamePrefix(protocol.Argument.getServiceNamePrefix());
+        session.ServerLoadIp = protocol.Argument.getProviderDirectIp();
+        session.ServerLoadPort = protocol.Argument.getProviderDirectPort();
+        LinkdApp.LinkdProviderService.ProviderSessions.put(session.getServerLoadName(), session);
+
         return Zeze.Transaction.Procedure.Success;
     }
 }

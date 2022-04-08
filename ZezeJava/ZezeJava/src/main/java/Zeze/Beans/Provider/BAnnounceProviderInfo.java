@@ -6,6 +6,8 @@ import Zeze.Serialize.ByteBuffer;
 public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
     private String _ServiceNamePrefix;
     private String _ServiceIndentity;
+    private String _ProviderDirectIp;
+    private int _ProviderDirectPort;
 
     public String getServiceNamePrefix() {
         if (!isManaged())
@@ -55,6 +57,52 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__ServiceIndentity(this, value));
     }
 
+    public String getProviderDirectIp() {
+        if (!isManaged())
+            return _ProviderDirectIp;
+        var txn = Zeze.Transaction.Transaction.getCurrent();
+        if (txn == null)
+            return _ProviderDirectIp;
+        txn.VerifyRecordAccessed(this, true);
+        var log = (Log__ProviderDirectIp)txn.GetLog(this.getObjectId() + 3);
+        return log != null ? log.getValue() : _ProviderDirectIp;
+    }
+
+    public void setProviderDirectIp(String value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _ProviderDirectIp = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrent();
+        assert txn != null;
+        txn.VerifyRecordAccessed(this);
+        txn.PutLog(new Log__ProviderDirectIp(this, value));
+    }
+
+    public int getProviderDirectPort() {
+        if (!isManaged())
+            return _ProviderDirectPort;
+        var txn = Zeze.Transaction.Transaction.getCurrent();
+        if (txn == null)
+            return _ProviderDirectPort;
+        txn.VerifyRecordAccessed(this, true);
+        var log = (Log__ProviderDirectPort)txn.GetLog(this.getObjectId() + 4);
+        return log != null ? log.getValue() : _ProviderDirectPort;
+    }
+
+    public void setProviderDirectPort(int value) {
+        if (!isManaged()) {
+            _ProviderDirectPort = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrent();
+        assert txn != null;
+        txn.VerifyRecordAccessed(this);
+        txn.PutLog(new Log__ProviderDirectPort(this, value));
+    }
+
     public BAnnounceProviderInfo() {
          this(0);
     }
@@ -63,11 +111,14 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
         super(_varId_);
         _ServiceNamePrefix = "";
         _ServiceIndentity = "";
+        _ProviderDirectIp = "";
     }
 
     public void Assign(BAnnounceProviderInfo other) {
         setServiceNamePrefix(other.getServiceNamePrefix());
         setServiceIndentity(other.getServiceIndentity());
+        setProviderDirectIp(other.getProviderDirectIp());
+        setProviderDirectPort(other.getProviderDirectPort());
     }
 
     public BAnnounceProviderInfo CopyIfManaged() {
@@ -114,6 +165,22 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
         public void Commit() { this.getBeanTyped()._ServiceIndentity = this.getValue(); }
     }
 
+    private static final class Log__ProviderDirectIp extends Zeze.Transaction.Log1<BAnnounceProviderInfo, String> {
+        public Log__ProviderDirectIp(BAnnounceProviderInfo self, String value) { super(self, value); }
+        @Override
+        public long getLogKey() { return this.getBean().getObjectId() + 3; }
+        @Override
+        public void Commit() { this.getBeanTyped()._ProviderDirectIp = this.getValue(); }
+    }
+
+    private static final class Log__ProviderDirectPort extends Zeze.Transaction.Log1<BAnnounceProviderInfo, Integer> {
+        public Log__ProviderDirectPort(BAnnounceProviderInfo self, Integer value) { super(self, value); }
+        @Override
+        public long getLogKey() { return this.getBean().getObjectId() + 4; }
+        @Override
+        public void Commit() { this.getBeanTyped()._ProviderDirectPort = this.getValue(); }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -127,7 +194,9 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Beans.Provider.BAnnounceProviderInfo: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ServiceNamePrefix").append('=').append(getServiceNamePrefix()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceIndentity").append('=').append(getServiceIndentity()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ServiceIndentity").append('=').append(getServiceIndentity()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ProviderDirectIp").append('=').append(getProviderDirectIp()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ProviderDirectPort").append('=').append(getProviderDirectPort()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -162,6 +231,20 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
                 _o_.WriteString(_x_);
             }
         }
+        {
+            String _x_ = getProviderDirectIp();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
+            }
+        }
+        {
+            int _x_ = getProviderDirectPort();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -178,6 +261,14 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
             setServiceIndentity(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 3) {
+            setProviderDirectIp(_o_.ReadString(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 4) {
+            setProviderDirectPort(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -191,6 +282,8 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
     @SuppressWarnings("RedundantIfStatement")
     @Override
     public boolean NegativeCheck() {
+        if (getProviderDirectPort() < 0)
+            return true;
         return false;
     }
 }

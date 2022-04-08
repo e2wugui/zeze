@@ -21,7 +21,7 @@ import Zeze.Services.ServiceManager.ReadyServiceList;
 import Zeze.Services.ServiceManager.Register;
 import Zeze.Services.ServiceManager.ServiceInfo;
 import Zeze.Services.ServiceManager.ServiceInfos;
-import Zeze.Services.ServiceManager.SetLoad;
+import Zeze.Services.ServiceManager.SetServerLoad;
 import Zeze.Services.ServiceManager.Subscribe;
 import Zeze.Services.ServiceManager.SubscribeFirstCommit;
 import Zeze.Services.ServiceManager.SubscribeInfo;
@@ -101,7 +101,7 @@ public final class ServiceManagerServer implements Closeable {
 
 	public static class LoadObservers {
 		public ServiceManagerServer ServiceManager;
-		public Zeze.Services.ServiceManager.Load Load;
+		public Zeze.Services.ServiceManager.ServerLoad Load;
 		public final IdentityHashSet<Long> Observers = new IdentityHashSet<>();
 
 		public LoadObservers(ServiceManagerServer m) {
@@ -109,9 +109,9 @@ public final class ServiceManagerServer implements Closeable {
 		}
 
 		// synchronized big?
-		public synchronized void SetLoad(Zeze.Services.ServiceManager.Load load) {
+		public synchronized void SetLoad(Zeze.Services.ServiceManager.ServerLoad load) {
 			Load = load;
-			var set = new SetLoad();
+			var set = new SetServerLoad();
 			set.Argument = load;
 			for (var e : Observers) {
 				try {
@@ -619,8 +619,8 @@ public final class ServiceManagerServer implements Closeable {
 		return Procedure.Success;
 	}
 
-	private long ProcessSetLoad(SetLoad setLoad) {
-		Loads.computeIfAbsent(setLoad.Argument.getName(), (key) -> new LoadObservers(this)).SetLoad(setLoad.Argument);
+	private long ProcessSetLoad(SetServerLoad setServerLoad) {
+		Loads.computeIfAbsent(setServerLoad.Argument.getName(), (key) -> new LoadObservers(this)).SetLoad(setServerLoad.Argument);
 		return 0;
 	}
 
@@ -669,8 +669,8 @@ public final class ServiceManagerServer implements Closeable {
 		Server.AddFactoryHandle(AllocateId.TypeId_,
 				new Service.ProtocolFactoryHandle<>(AllocateId::new, this::ProcessAllocateId));
 
-		Server.AddFactoryHandle(SetLoad.TypeId_,
-				new Service.ProtocolFactoryHandle<>(SetLoad::new, this::ProcessSetLoad));
+		Server.AddFactoryHandle(SetServerLoad.TypeId_,
+				new Service.ProtocolFactoryHandle<>(SetServerLoad::new, this::ProcessSetLoad));
 
 		if (Config.getStartNotifyDelay() > 0)
 			StartNotifyDelayTask = Task.schedule(Config.getStartNotifyDelay(), this::StartNotifyAll);

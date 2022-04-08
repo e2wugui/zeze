@@ -140,6 +140,8 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 		var announce = new AnnounceProviderInfo();
 		announce.Argument.setServiceNamePrefix(ProviderApp.ServerServiceNamePrefix);
 		announce.Argument.setServiceIndentity(String.valueOf(getZeze().getConfig().getServerId()));
+		announce.Argument.setProviderDirectIp(ProviderApp.ProviderDirectPassiveIp);
+		announce.Argument.setProviderDirectPort(ProviderApp.ProviderDirectPassivePort);
 		announce.Send(sender);
 
 		// static binds

@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Beans.ProviderDirect.AnnounceProviderInfo;
 import Zeze.Beans.ProviderDirect.ModuleRedirect;
 import Zeze.Beans.ProviderDirect.ModuleRedirectAllResult;
@@ -53,7 +54,13 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		super.OnHandshakeDone(socket);
 	}
 
+	public ConcurrentHashMap<String, ProviderSession> ProviderSessions = new ConcurrentHashMap<>();
+
 	void SetRelativeServiceReady(ProviderSession ps, String ip, int port) {
+		ps.ServerLoadIp = ip;
+		ps.ServerLoadPort = port;
+		ProviderSessions.put(ps.getServerLoadName(), ps);
+
 		// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
 		for (var ss : getZeze().getServiceManagerAgent().getSubscribeStates().values()) {
 			if (ss.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)) {
@@ -82,6 +89,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 				}
 			}
 		}
+		ProviderSessions.remove(ps.getServerLoadName());
 		super.OnSocketClose(socket, ex);
 	}
 

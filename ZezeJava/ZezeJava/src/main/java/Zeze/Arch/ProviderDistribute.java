@@ -67,16 +67,6 @@ public class ProviderDistribute {
 			}
 			all.add(ps);
 
-			// 查询负载。TODO 优化查询。Decode 已经优化。
-			var host = serviceInfo.getPassiveIp() + ":" + serviceInfo.getPassivePort();
-			var loadBean = Zeze.getServiceManagerAgent().Loads.get(host);
-			ps.Load = loadBean.get((param) -> {
-				var bb = ByteBuffer.Wrap(param);
-				var l = new BLoad();
-				l.Decode(bb);
-				return l;
-			});
-
 			if (ps.Load.getOnlineNew() > LoadConfig.getMaxOnlineNew()) {
 				continue;
 			}
@@ -129,16 +119,6 @@ public class ProviderDistribute {
 				// 这里发现关闭的服务，仅仅忽略.
 				if (null == ps)
 					continue;
-
-				// 查询负载。TODO 优化查询。Decode 已经优化。
-				var host = serviceInfo.getPassiveIp() + ":" + serviceInfo.getPassivePort();
-				var loadBean = Zeze.getServiceManagerAgent().Loads.get(host);
-				ps.Load = loadBean.get((param) -> {
-					var bb = ByteBuffer.Wrap(param);
-					var l = new BLoad();
-					l.Decode(bb);
-					return l;
-				});
 
 				// 这个和一个一个喂饱冲突，但是一下子给一个服务分配太多用户，可能超载。如果不想让这个生效，把MaxOnlineNew设置的很大。
 				if (ps.Load.getOnlineNew() > LoadConfig.getMaxOnlineNew())

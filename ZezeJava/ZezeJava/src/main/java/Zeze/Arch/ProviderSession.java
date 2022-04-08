@@ -1,24 +1,20 @@
 package Zeze.Arch;
 
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Beans.Provider.BAnnounceProviderInfo;
 import Zeze.Beans.Provider.BLoad;
 
 public class ProviderSession {
-	private BAnnounceProviderInfo Info;
-	public volatile BLoad Load;
+	public volatile BLoad Load = new BLoad();
 	private final long SessionId;
+	public String ServerLoadIp = "";
+	public int ServerLoadPort;
+
+	public String getServerLoadName() {
+		return ServerLoadIp + ":" + ServerLoadPort;
+	}
 
 	public ProviderSession(long ssid) {
 		SessionId = ssid;
-	}
-
-	public final BAnnounceProviderInfo getInfo() {
-		return Info;
-	}
-
-	public final void setInfo(BAnnounceProviderInfo value) {
-		Info = value;
 	}
 
 	public final long getSessionId() {

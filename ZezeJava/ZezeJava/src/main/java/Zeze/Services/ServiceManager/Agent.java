@@ -27,6 +27,7 @@ public final class Agent implements Closeable {
 	private Zeze.Util.Action2<SubscribeState, ServiceInfo> OnUpdate;
 	private Zeze.Util.Action2<SubscribeState, ServiceInfo> OnRemove;
 	private Zeze.Util.Action1<SubscribeState> OnPrepare; // ReadyCommit 的第一步回调。
+	private Zeze.Util.Action1<ServerLoad> OnSetServerLoad;
 
 	// 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
 	// ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
@@ -45,7 +46,7 @@ public final class Agent implements Closeable {
 		return SubscribeStates;
 	}
 
-	public ConcurrentHashMap<String, Load> Loads = new ConcurrentHashMap<>();
+	public ConcurrentHashMap<String, ServerLoad> Loads = new ConcurrentHashMap<>();
 
 	public AgentClient getClient() {
 		return Client;
@@ -62,6 +63,7 @@ public final class Agent implements Closeable {
 	public void setOnChanged(Zeze.Util.Action1<SubscribeState> value) {
 		OnChanged = value;
 	}
+	public void setOnSetServerLoad(Zeze.Util.Action1<ServerLoad> value) { OnSetServerLoad = value; }
 
 	public void setOnPrepare(Zeze.Util.Action1<SubscribeState> value) { OnPrepare = value; }
 
@@ -411,8 +413,8 @@ public final class Agent implements Closeable {
 		return subState;
 	}
 
-	public boolean SetLoad(Load load) {
-		var p = new SetLoad();
+	public boolean SetServerLoad(ServerLoad load) {
+		var p = new SetServerLoad();
 		p.Argument = load;
 		return p.Send(getClient().getSocket());
 	}
@@ -500,8 +502,10 @@ public final class Agent implements Closeable {
 		return Procedure.Success;
 	}
 
-	private long ProcessSetLoad(SetLoad setLoad) {
-		Loads.put(setLoad.Argument.getName(), setLoad.Argument);
+	private long ProcessSetServerLoad(SetServerLoad setServerLoad) throws Throwable {
+		Loads.put(setServerLoad.Argument.getName(), setServerLoad.Argument);
+		if (null != OnSetServerLoad)
+			OnSetServerLoad.run(setServerLoad.Argument);
 		return Procedure.Success;
 	}
 
@@ -589,8 +593,8 @@ public final class Agent implements Closeable {
 		Client.AddFactoryHandle(AllocateId.TypeId_,
 				new ProtocolFactoryHandle<>(AllocateId::new));
 
-		Client.AddFactoryHandle(SetLoad.TypeId_,
-				new ProtocolFactoryHandle<>(SetLoad::new, this::ProcessSetLoad));
+		Client.AddFactoryHandle(SetServerLoad.TypeId_,
+				new ProtocolFactoryHandle<>(SetServerLoad::new, this::ProcessSetServerLoad));
 	}
 
 	@Override

@@ -6,24 +6,10 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 import Zeze.Util.Func1;
 
-public final class Load extends Bean {
+public final class ServerLoad extends Bean {
 	public String Ip;
 	public int Port;
 	public Binary Param = Binary.Empty;
-
-	public volatile Object ObjectParam; // Decoded Param. 不会系列化。
-
-	public <T> T get(Func1<Binary, T> decoder) {
-		if (ObjectParam == null) {
-			try {
-				// decoder 必须允许重复执行，这里没有保证仅调用一次。
-				ObjectParam = decoder.call(Param);
-			} catch (Throwable e) {
-				throw new RuntimeException(e);
-			}
-		}
-		return (T)ObjectParam;
-	}
 
 	public String getName() {
 		return Ip + ":" + Port;

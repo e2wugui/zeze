@@ -3,8 +3,18 @@ package Zeze.Arch;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Beans.Provider.BAnnounceProviderInfo;
 
 public class LinkdProviderSession extends ProviderSession {
+	private BAnnounceProviderInfo Info;
+	public final BAnnounceProviderInfo getInfo() {
+		return Info;
+	}
+
+	public final void setInfo(BAnnounceProviderInfo value) {
+		Info = value;
+	}
+
 	/**
 	 维护此Provider上绑定的LinkSession，用来在Provider关闭的时候，进行 UnBind。
 	 moduleId -> LinkSids

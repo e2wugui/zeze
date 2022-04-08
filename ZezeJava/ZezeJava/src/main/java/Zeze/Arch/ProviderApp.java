@@ -1,8 +1,10 @@
 package Zeze.Arch;
 
 import java.util.HashMap;
+import Zeze.Beans.Provider.BLoad;
 import Zeze.Beans.Provider.BModule;
 import Zeze.Net.Binary;
+import Zeze.Serialize.ByteBuffer;
 
 /**
  * 记录实现一个Provider需要的对象，
@@ -62,6 +64,15 @@ public class ProviderApp {
 		this.Zeze.getServiceManagerAgent().setOnPrepare(
 				(subscribeState) -> ProviderImplement.ApplyPrepareServiceInfos(subscribeState.getServiceInfosPending()));
 
+		this.Zeze.getServiceManagerAgent().setOnSetServerLoad((serverLoad) -> {
+			var ps = this.ProviderDirectService.ProviderSessions.get(serverLoad.getName());
+			if (null != ps) {
+				var bb = ByteBuffer.Wrap(serverLoad.Param);
+				var load = new BLoad();
+				load.Decode(bb);
+				ps.Load = load;
+			}
+		});
 		this.Distribute = new ProviderDistribute();
 		this.Distribute.LoadConfig = loadConfig;
 		this.Distribute.Zeze = this.Zeze;

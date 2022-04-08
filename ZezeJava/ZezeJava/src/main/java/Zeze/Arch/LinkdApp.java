@@ -1,5 +1,8 @@
 package Zeze.Arch;
 
+import Zeze.Beans.Provider.BLoad;
+import Zeze.Serialize.ByteBuffer;
+
 public class LinkdApp {
 	public String LinkdServiceName;
 	public Zeze.Application Zeze;
@@ -29,6 +32,16 @@ public class LinkdApp {
 		LinkdProvider.Distribute.LoadConfig = LoadConfig;
 
 		LinkdProvider.RegisterProtocols(LinkdProviderService);
+
+		this.Zeze.getServiceManagerAgent().setOnSetServerLoad((serverLoad) -> {
+			var ps = this.LinkdProviderService.ProviderSessions.get(serverLoad.getName());
+			if (null != ps) {
+				var bb = ByteBuffer.Wrap(serverLoad.Param);
+				var load = new BLoad();
+				load.Decode(bb);
+				ps.Load = load;
+			}
+		});
 
 		var kv = LinkdProviderService.GetOnePassiveAddress();
 		ProviderPassiveIp = kv.getKey();

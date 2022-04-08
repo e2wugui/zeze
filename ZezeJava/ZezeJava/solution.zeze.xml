@@ -346,8 +346,10 @@
 
 			<!-- gs to link -->
 			<bean name="BAnnounceProviderInfo">
-				<variable name="ServiceNamePrefix" id="1" type="string"/>
-				<variable name="ServiceIndentity"  id="2" type="string"/>
+				<variable name="ServiceNamePrefix"  id="1" type="string"/>
+				<variable name="ServiceIndentity"   id="2" type="string"/>
+				<variable name="ProviderDirectIp"   id="3" type="string"/>
+				<variable name="ProviderDirectPort" id="4" type="int"/>
 			</bean>
 
 			<protocol name="AnnounceProviderInfo" NoProcedure="true" argument="BAnnounceProviderInfo" handle="client"/>

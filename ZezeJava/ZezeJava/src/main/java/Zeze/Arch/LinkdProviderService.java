@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import org.apache.logging.log4j.LogManager;
@@ -8,6 +9,7 @@ import Zeze.Beans.Provider.*;
 
 public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 	public LinkdApp LinkdApp;
+	public ConcurrentHashMap<String, ProviderSession> ProviderSessions = new ConcurrentHashMap<>();
 
 	public LinkdProviderService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);

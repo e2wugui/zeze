@@ -70,13 +70,13 @@ public class Load {
 		var bb = ByteBuffer.Allocate(256);
 		load.Encode(bb);
 
-		var loadServer = new Zeze.Services.ServiceManager.Load();
+		var loadServer = new Zeze.Services.ServiceManager.ServerLoad();
 		loadServer.Ip = App.getInstance().ProviderApp.ProviderDirectPassiveIp;
 		loadServer.Port = App.getInstance().ProviderApp.ProviderDirectPassivePort;
 		loadServer.Param = new Binary(bb);
 
 		try {
-			App.getInstance().ProviderApp.Zeze.getServiceManagerAgent().SetLoad(loadServer);
+			App.getInstance().ProviderApp.Zeze.getServiceManagerAgent().SetServerLoad(loadServer);
 		} catch (Throwable e) {
 			e.printStackTrace();
 		}
