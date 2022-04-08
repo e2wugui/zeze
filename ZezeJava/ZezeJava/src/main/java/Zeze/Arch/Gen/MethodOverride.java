@@ -4,6 +4,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.function.Predicate;
 import Zeze.Arch.RedirectAll;
 import Zeze.Arch.RedirectAllDoneHandle;
 import Zeze.Util.Str;
@@ -23,7 +24,7 @@ public class MethodOverride {
 	}
 
 	public java.lang.reflect.Parameter ParameterHashOrServer;
-	public ArrayList<Parameter> ParametersNormal = new ArrayList<> ();
+	public ArrayList<Parameter> ParametersNormal = new ArrayList<>();
 	public java.lang.reflect.Parameter[] ParametersAll;
 	public GenAction ResultHandle;
 	public java.lang.reflect.Parameter ParameterRedirectAllDoneHandle;
@@ -88,15 +89,15 @@ public class MethodOverride {
 		return sb.toString();
 	}
 
-	public final String GetNormalCallString() throws Throwable {
+	public final String GetNormalCallString() {
 		return GetNormalCallString(null);
 	}
 
-	public final String GetNormalCallString(Zeze.Util.Func1<java.lang.reflect.Parameter, Boolean> skip) throws Throwable {
+	public final String GetNormalCallString(Predicate<java.lang.reflect.Parameter> skip) {
 		StringBuilder sb = new StringBuilder();
 		boolean first = true;
 		for (Parameter p : ParametersNormal) {
-			if (null != skip && skip.call(p)) {
+			if (null != skip && skip.test(p)) {
 				continue;
 			}
 			if (first) {
@@ -119,7 +120,7 @@ public class MethodOverride {
 		return Str.format("{}, ", ParameterHashOrServer.getName());
 	}
 
-	public final String GetBaseCallString() throws Throwable {
+	public final String GetBaseCallString() {
 		return Str.format("{}{}", GetHashOrServerCallString(), GetNormalCallString());
 	}
 
@@ -127,7 +128,6 @@ public class MethodOverride {
 		switch (overrideType) {
 		case RedirectHash: // fall down
 			return "Zeze.Beans.ProviderDirect.ModuleRedirect.RedirectTypeWithHash";
-
 		case RedirectToServer:
 			return "Zeze.Beans.ProviderDirect.ModuleRedirect.RedirectTypeToServer";
 		default:

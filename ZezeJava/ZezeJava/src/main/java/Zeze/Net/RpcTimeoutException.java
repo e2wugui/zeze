@@ -12,4 +12,8 @@ public final class RpcTimeoutException extends RuntimeException {
 	private RpcTimeoutException() {
 		super(null, null, false, false);
 	}
+
+	public RpcTimeoutException(String message) {
+		super(message);
+	}
 }

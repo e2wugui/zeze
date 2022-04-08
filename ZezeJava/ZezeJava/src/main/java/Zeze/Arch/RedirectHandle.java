@@ -2,17 +2,22 @@ package Zeze.Arch;
 
 import Zeze.Net.Binary;
 import Zeze.Transaction.TransactionLevel;
-import Zeze.Util.Func3;
 
 public class RedirectHandle {
-	public TransactionLevel RequestTransactionLevel = TransactionLevel.Serializable;
-	/**
-	 * 0) long [in] sessionId
-	 * 1) int [in] hash
-	 * 2) Zeze.Net.Binary [in] encoded parameters
-	 * 3) List<Zeze.Beans.Provider.BActionParam> [result] result for callback. avoid copy.
-	 * 4) Return [return]
-	 * Func不能使用ref，而Zeze.Net.Binary是只读的。就这样吧。
-	 */
-	public Func3<Long, Integer, Binary, Binary> RequestHandle;
+	public interface IRequestHandle {
+		Binary call(long sessionId, int hash, Binary encodedParams) throws Throwable;
+	}
+
+	public final TransactionLevel RequestTransactionLevel;
+	public final IRequestHandle RequestHandle;
+
+	public RedirectHandle(IRequestHandle requestHandle) {
+		RequestTransactionLevel = TransactionLevel.Serializable;
+		RequestHandle = requestHandle;
+	}
+
+	public RedirectHandle(TransactionLevel requestTransactionLevel, IRequestHandle requestHandle) {
+		RequestTransactionLevel = requestTransactionLevel;
+		RequestHandle = requestHandle;
+	}
 }
