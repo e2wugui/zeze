@@ -49,16 +49,14 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		for (var it = ProviderApp.StaticBinds.iterator(); it.moveToNext(); ) {
 			var name = Str.format("{}{}", ProviderApp.ServerServiceNamePrefix, it.key());
 			var identity = String.valueOf(ProviderApp.Zeze.getConfig().getServerId());
-			sm.RegisterService(name, identity, ProviderApp.DirectIp,
-					ProviderApp.DirectPort,null);
-			services.put(name, s.getValue());
+			sm.RegisterService(name, identity, ProviderApp.DirectIp, ProviderApp.DirectPort,null);
+			services.put(name, it.value());
 		}
 		// 注册本provider的动态服务
 		for (var it = ProviderApp.DynamicModules.iterator(); it.moveToNext(); ) {
 			var name = Str.format("{}{}", ProviderApp.ServerServiceNamePrefix, it.key());
 			var identity = String.valueOf(ProviderApp.Zeze.getConfig().getServerId());
-			sm.RegisterService(name, identity, ProviderApp.ProviderDirectPassiveIp,
-					ProviderApp.ProviderDirectPassivePort, null);
+			sm.RegisterService(name, identity, ProviderApp.DirectIp, ProviderApp.DirectPort, null);
 			services.put(name, it.value());
 		}
 
