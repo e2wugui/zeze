@@ -67,7 +67,6 @@ public final class App extends Zeze.AppBase {
 		String GenFileSrcRoot = null;
 		int ProviderDirectPort = -1;
 		for (int i = 0; i < args.length; ++i) {
-			//noinspection SwitchStatementWithTooFewBranches
 			switch (args[i]) {
 			case "-ServerId":
 				ServerId = Integer.parseInt(args[++i]);
@@ -102,8 +101,10 @@ public final class App extends Zeze.AppBase {
 
 		GenModule.Instance.GenFileSrcRoot = GenFileSrcRoot;
 		CreateModules();
-		if (GenModule.Instance.GenFileSrcRoot != null)
+		if (GenModule.Instance.GenFileSrcRoot != null) {
+			System.out.println("---------------");
 			throw new RuntimeException("New Source File Has Generate. Re-Compile Need.");
+		}
 
 		ProviderApp.initialize(ProviderModuleBinds.Load(), Modules); // need Modules
 

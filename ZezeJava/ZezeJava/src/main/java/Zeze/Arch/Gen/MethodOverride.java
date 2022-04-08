@@ -49,7 +49,7 @@ public class MethodOverride {
 		if (overrideType == OverrideType.RedirectToServer || overrideType == OverrideType.RedirectHash) {
 			ParameterHashOrServer = ParametersAll[0];
 			if (ParameterHashOrServer.getType() != int.class) {
-				throw new RuntimeException("ModuleRedirectWithHash: type of first parameter must be 'int'");
+				throw new RuntimeException("ModuleRedirectWithHash: type of first parameter must be 'int', method:" + method.getName());
 			}
 			//System.out.println(ParameterFirstWithHash.getName() + "<-----");
 			//if (false == ParameterFirstWithHash.getName().equals("hash")) {

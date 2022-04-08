@@ -1,10 +1,14 @@
 package Zeze.Arch.Gen;
 
 import java.io.File;
-import java.io.FileWriter;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import Zeze.Arch.RedirectAll;
@@ -15,27 +19,27 @@ import Zeze.Util.StringBuilderCs;
 import org.mdkt.compiler.InMemoryJavaCompiler;
 
 /**
- 把模块的方法调用发送到其他服务器实例上执行。
- 被重定向的方法用注解标明。
- 被重定向的方法需要是virtual的。
- 实现方案：
- Game.App创建Module的时候调用回调。
- 在回调中判断是否存在需要拦截的方法。
- 如果需要就动态生成子类实现代码并编译并返回新的实例。
-
- 注意：
- 使用 virtual override 的方式可以选择拦截部分方法。
- 可以提供和原来模块一致的接口。
-*/
+ * 把模块的方法调用发送到其他服务器实例上执行。
+ * 被重定向的方法用注解标明。
+ * 被重定向的方法需要是virtual的。
+ * 实现方案：
+ * Game.App创建Module的时候调用回调。
+ * 在回调中判断是否存在需要拦截的方法。
+ * 如果需要就动态生成子类实现代码并编译并返回新的实例。
+ * <p>
+ * 注意：
+ * 使用 virtual override 的方式可以选择拦截部分方法。
+ * 可以提供和原来模块一致的接口。
+ */
 public class GenModule {
-	public static GenModule Instance = new GenModule();
+	public static final GenModule Instance = new GenModule();
 
 	/**
 	 * 源代码跟目录。
 	 * 指定的时候，生成到文件，总是覆盖。
 	 * 没有指定的时候，先查看目标类是否存在，存在则直接class.forName装载，否则生成到内存并动态编译。
 	 */
-	public String GenFileSrcRoot = null;
+	public String GenFileSrcRoot;
 
 	private void tryCollectMethod(ArrayList<MethodOverride> result, OverrideType type, Method method) {
 		var tLevelAnn = method.getAnnotation(Zeze.Util.TransactionLevel.class);
@@ -43,21 +47,21 @@ public class GenModule {
 		if (null != tLevelAnn)
 			tLevel = Zeze.Transaction.TransactionLevel.valueOf(tLevelAnn.Level());
 		switch (type) {
-			case RedirectAll:
-				var annotation2 = method.getAnnotation(RedirectAll.class);
-				if (null != annotation2)
-					result.add(new MethodOverride(tLevel, method, OverrideType.RedirectAll, annotation2));
-				break;
-			case RedirectHash:
-				var annotation3 = method.getAnnotation(Zeze.Arch.RedirectHash.class);
-				if (null != annotation3)
-					result.add(new MethodOverride(tLevel, method, OverrideType.RedirectHash, annotation3));
-				break;
-			case RedirectToServer:
-				var annotation4 = method.getAnnotation(RedirectToServer.class);
-				if (null != annotation4)
-					result.add(new MethodOverride(tLevel, method, OverrideType.RedirectToServer, annotation4));
-				break;
+		case RedirectAll:
+			var annotation2 = method.getAnnotation(RedirectAll.class);
+			if (null != annotation2)
+				result.add(new MethodOverride(tLevel, method, OverrideType.RedirectAll, annotation2));
+			break;
+		case RedirectHash:
+			var annotation3 = method.getAnnotation(Zeze.Arch.RedirectHash.class);
+			if (null != annotation3)
+				result.add(new MethodOverride(tLevel, method, OverrideType.RedirectHash, annotation3));
+			break;
+		case RedirectToServer:
+			var annotation4 = method.getAnnotation(RedirectToServer.class);
+			if (null != annotation4)
+				result.add(new MethodOverride(tLevel, method, OverrideType.RedirectToServer, annotation4));
+			break;
 		}
 	}
 
@@ -74,11 +78,7 @@ public class GenModule {
 
 	public File getNamespaceFilePath(String fullClassName) {
 		var ns = fullClassName.split("\\.");
-		var path = new File(GenFileSrcRoot);
-		for (String n : ns) {
-			path = new File(path, n);
-		}
-		return path;
+		return Paths.get(GenFileSrcRoot, ns).toFile();
 	}
 
 	public final <T extends Zeze.AppBase> Zeze.IModule ReplaceModuleInstance(T userApp, Zeze.IModule module) {
@@ -102,9 +102,9 @@ public class GenModule {
 			if (GenFileSrcRoot == null) {
 				// 不需要生成到文件的时候，尝试装载已经存在的生成模块子类。
 				try {
-					Class <?> moduleClass = Class.forName(namespace + "." + genClassName);
- 					module.UnRegister();
-					var newModuleInstance = (Zeze.IModule) moduleClass.getDeclaredConstructor(userApp.getClass()).newInstance(userApp);
+					Class<?> moduleClass = Class.forName(namespace + "." + genClassName);
+					module.UnRegister();
+					var newModuleInstance = (Zeze.IModule)moduleClass.getDeclaredConstructor(userApp.getClass()).newInstance(userApp);
 					newModuleInstance.Initialize(userApp);
 					return newModuleInstance;
 				} catch (Throwable ex) {
@@ -119,20 +119,32 @@ public class GenModule {
 					module, genClassName, overrides, userApp.getClass().getName());
 
 			if (GenFileSrcRoot != null) {
+				byte[] newBytes = code.getBytes(StandardCharsets.UTF_8);
 				var file = new File(getNamespaceFilePath(module.getFullName()), genClassName + ".java");
-				try {
-					var tmp = new FileWriter(file, java.nio.charset.StandardCharsets.UTF_8);
-					tmp.write(code);
-					tmp.close();
-				} catch (IOException e) {
-					e.printStackTrace();
+				byte[] oldBytes = null;
+				if (file.exists()) {
+					oldBytes = Files.readAllBytes(file.toPath());
+					if (Arrays.equals(oldBytes, newBytes))
+						System.out.println("    Exist File: " + file.getAbsolutePath());
+					else {
+						System.out.println("Overwrite File: " + file.getAbsolutePath());
+						oldBytes = null;
+					}
+				} else
+					System.out.println("      New File: " + file.getAbsolutePath());
+				if (oldBytes == null) {
+					try (var fos = new FileOutputStream(file)) {
+						fos.write(newBytes);
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
 				}
 				// 生成带File需要再次编译，所以这里返回原来的module。
 				return module;
 			}
 			Class<?> moduleClass = compiler.compile(genClassName, code);
 			module.UnRegister();
-			var newModuleInstance = (Zeze.IModule) moduleClass.getDeclaredConstructor(userApp.getClass()).newInstance(userApp);
+			var newModuleInstance = (Zeze.IModule)moduleClass.getDeclaredConstructor(userApp.getClass()).newInstance(userApp);
 			newModuleInstance.Initialize(userApp);
 			return newModuleInstance;
 		} catch (Throwable e) {
@@ -147,7 +159,7 @@ public class GenModule {
 		compiler.ignoreWarnings();
 	}
 
-	private ReturnTypeAndName GetReturnType(Class<?> type)  {
+	private ReturnTypeAndName GetReturnType(Class<?> type) {
 		if (type == void.class)
 			return new ReturnTypeAndName(ReturnType.Void, "void");
 		if (type == Zeze.Util.TaskCompletionSource.class) {
@@ -160,12 +172,12 @@ public class GenModule {
 	private void Verify(MethodOverride method) {
 		//noinspection SwitchStatementWithTooFewBranches
 		switch (method.overrideType) {
-			case RedirectAll:
-				if (method.method.getReturnType() != void.class)
-					throw new RuntimeException("RedirectAll ReturnType Must Be void");
-				if (method.ParameterRedirectAllDoneHandle != null && method.ResultHandle == null)
-					throw new RuntimeException("RedirectAll Has RedirectAllDoneHandle But Miss ResultHandle.");
-				break;
+		case RedirectAll:
+			if (method.method.getReturnType() != void.class)
+				throw new RuntimeException("RedirectAll ReturnType Must Be void");
+			if (method.ParameterRedirectAllDoneHandle != null && method.ResultHandle == null)
+				throw new RuntimeException("RedirectAll Has RedirectAllDoneHandle But Miss ResultHandle.");
+			break;
 		}
 	}
 
