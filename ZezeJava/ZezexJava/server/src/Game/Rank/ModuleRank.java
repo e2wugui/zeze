@@ -21,9 +21,6 @@ import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-//ZEZE_FILE_CHUNK {{{ IMPORT GEN
-//ZEZE_FILE_CHUNK }}} IMPORT GEN
-
 /**
  * 基本排行榜，实现了按long value从大到小进榜。
  * 增加排行被类型。在 solution.xml::beankey::BConcurrentKey中增加类型定义。
@@ -464,9 +461,9 @@ public class ModuleRank extends AbstractModule {
 		result.run(inData, new EmptyBean());
 	}
 
-	// ZEZE_FILE_CHUNK {{{ GEN MODULE
-	public ModuleRank(Game.App app) {
-		super(app);
-	}
-	// ZEZE_FILE_CHUNK }}} GEN MODULE
+	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
+    public ModuleRank(Game.App app) {
+        super(app);
+    }
+	// ZEZE_FILE_CHUNK }}} GEN MODULE @formatter:on
 }
