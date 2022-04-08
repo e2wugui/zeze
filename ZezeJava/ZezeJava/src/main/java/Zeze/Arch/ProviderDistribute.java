@@ -2,10 +2,10 @@ package Zeze.Arch;
 
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicInteger;
-import Zeze.Beans.Provider.BLoad;
-import Zeze.Serialize.ByteBuffer;
+import Zeze.Net.Service;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.ServiceInfo;
+import Zeze.Util.OutLong;
 import Zeze.Util.Random;
 
 /**
@@ -16,7 +16,8 @@ import Zeze.Util.Random;
 public class ProviderDistribute {
 	public Zeze.Application Zeze;
 	public LoadConfig LoadConfig;
-	public Zeze.Net.Service ProviderService;
+	public Service ProviderService;
+	private final AtomicInteger FeedFullOneByOneIndex = new AtomicInteger();
 
 	public String MakeServiceName(String serviceNamePrefix, int moduleId) {
 		return serviceNamePrefix + moduleId;
@@ -24,28 +25,27 @@ public class ProviderDistribute {
 
 	public ServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash) {
 		var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
-		if (list.size() == 0) {
+		if (list.isEmpty()) {
 			return null;
 		}
 		return list.get(Integer.remainderUnsigned(hash, list.size()));
 	}
 
-	public boolean ChoiceHash(Agent.SubscribeState providers, int hash, Zeze.Util.OutLong provider) {
+	public boolean ChoiceHash(Agent.SubscribeState providers, int hash, OutLong provider) {
 		provider.Value = 0L;
 		var serviceInfo = ChoiceHash(providers, hash);
-		if (null == serviceInfo)
+		if (serviceInfo == null)
 			return false;
 
 		var providerModuleState = (ProviderModuleState)serviceInfo.getLocalState();
-		if (null == providerModuleState) {
+		if (providerModuleState == null)
 			return false;
-		}
 
 		provider.Value = providerModuleState.SessionId;
 		return true;
 	}
 
-	public boolean ChoiceLoad(Agent.SubscribeState providers, Zeze.Util.OutLong provider) {
+	public boolean ChoiceLoad(Agent.SubscribeState providers, OutLong provider) {
 		provider.Value = 0L;
 
 		var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
@@ -57,12 +57,12 @@ public class ProviderDistribute {
 		for (int i = list.size() - 1; i >= 0; --i) {
 			var serviceInfo = list.get(i);
 			var providerModuleState = (ProviderModuleState)serviceInfo.getLocalState();
-			if (null == providerModuleState) {
+			if (providerModuleState == null) {
 				continue;
 			}
 			// Object tempVar2 = App.ProviderService.GetSocket(providerModuleState.getSessionId()).getUserState();
 			var ps = (ProviderSession)ProviderService.GetSocket(providerModuleState.SessionId).getUserState();
-			if (null == ps) {
+			if (ps == null) {
 				continue; // 这里发现关闭的服务，仅仅忽略.
 			}
 			all.add(ps);
@@ -97,9 +97,7 @@ public class ProviderDistribute {
 		return false;
 	}
 
-	private final AtomicInteger FeedFullOneByOneIndex = new AtomicInteger();
-
-	public boolean ChoiceFeedFullOneByOne(Agent.SubscribeState providers, Zeze.Util.OutLong provider) {
+	public boolean ChoiceFeedFullOneByOne(Agent.SubscribeState providers, OutLong provider) {
 		// 查找时增加索引，和喂饱时增加索引，需要原子化。提高并发以后慢慢想，这里应该足够快了。
 		synchronized (this) {
 			provider.Value = 0L;
@@ -113,11 +111,11 @@ public class ProviderDistribute {
 				if (providerModuleState == null)
 					continue;
 				var providerSocket = ProviderService.GetSocket(providerModuleState.SessionId);
-				if (null == providerSocket)
+				if (providerSocket == null)
 					continue;
 				var ps = (LinkdProviderSession)providerSocket.getUserState();
 				// 这里发现关闭的服务，仅仅忽略.
-				if (null == ps)
+				if (ps == null)
 					continue;
 
 				// 这个和一个一个喂饱冲突，但是一下子给一个服务分配太多用户，可能超载。如果不想让这个生效，把MaxOnlineNew设置的很大。
@@ -133,7 +131,7 @@ public class ProviderDistribute {
 		}
 	}
 
-	public boolean ChoiceProvider(String serviceNamePrefix, int moduleId, int hash, Zeze.Util.OutLong provider) {
+	public boolean ChoiceProvider(String serviceNamePrefix, int moduleId, int hash, OutLong provider) {
 		var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
 
 		var volatileProviders = Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
@@ -144,21 +142,20 @@ public class ProviderDistribute {
 		return ChoiceHash(volatileProviders, hash, provider);
 	}
 
-	public boolean ChoiceProviderByServerId(String serviceNamePrefix, int moduleId, int serverId, Zeze.Util.OutLong provider) {
+	public boolean ChoiceProviderByServerId(String serviceNamePrefix, int moduleId, int serverId, OutLong provider) {
 		var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
 
 		var volatileProviders = Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
-		if (null == volatileProviders) {
+		if (volatileProviders == null) {
 			provider.Value = 0L;
 			return false;
 		}
 		var si = volatileProviders.getServiceInfos().findServiceInfoByServerId(serverId);
-		if (null != si) {
+		if (si != null) {
 			var state = (ProviderModuleState)si.getLocalState();
 			provider.Value = state.SessionId;
 			return true;
 		}
 		return false;
 	}
-
 }

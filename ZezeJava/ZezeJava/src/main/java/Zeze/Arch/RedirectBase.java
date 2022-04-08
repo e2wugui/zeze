@@ -1,6 +1,5 @@
 package Zeze.Arch;
 
-import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Beans.ProviderDirect.BModuleRedirectAllHash;
@@ -10,6 +9,7 @@ import Zeze.Beans.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.Action0;
+import Zeze.Util.LongHashMap;
 import Zeze.Util.OutLong;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
@@ -21,7 +21,13 @@ import org.apache.logging.log4j.Logger;
  */
 public abstract class RedirectBase {
 	private static final Logger logger = LogManager.getLogger(RedirectBase.class);
-	public ConcurrentHashMap<String, RedirectHandle> Handles = new ConcurrentHashMap <>();
+
+	public final ConcurrentHashMap<String, RedirectHandle> Handles = new ConcurrentHashMap<>();
+	public final ProviderApp ProviderApp;
+
+	public RedirectBase(ProviderApp app) {
+		ProviderApp = app;
+	}
 
 	public <T extends Zeze.AppBase> IModule ReplaceModuleInstance(T userApp, IModule module) {
 		return GenModule.Instance.ReplaceModuleInstance(userApp, module);
@@ -29,12 +35,6 @@ public abstract class RedirectBase {
 
 	public int GetChoiceHashCode() {
 		throw new UnsupportedOperationException();
-	}
-
-	public ProviderApp ProviderApp;
-
-	public RedirectBase(ProviderApp app) {
-		ProviderApp = app;
 	}
 
 	public AsyncSocket ChoiceServer(IModule module, int serverId) {
@@ -51,23 +51,22 @@ public abstract class RedirectBase {
 		var serviceName = ProviderApp.Distribute.MakeServiceName(ProviderApp.ServerServiceNamePrefix, module.getId());
 
 		var servers = subscribes.get(serviceName);
-		if (null == servers)
+		if (servers == null)
 			return null;
 
 		var serviceInfo = ProviderApp.Distribute.ChoiceHash(servers, hash);
-		if (null == serviceInfo || serviceInfo.getServiceIdentity().equals(String.valueOf(ProviderApp.Zeze.getConfig().getServerId())))
+		if (serviceInfo == null || serviceInfo.getServiceIdentity().equals(String.valueOf(ProviderApp.Zeze.getConfig().getServerId())))
 			return null;
 
 		var providerModuleState = (ProviderModuleState)serviceInfo.getLocalState();
-		if (null == providerModuleState) {
+		if (providerModuleState == null)
 			return null;
-		}
 
 		return ProviderApp.ProviderService.GetSocket(providerModuleState.SessionId);
 	}
 
 	public void RedirectAll(IModule module, ModuleRedirectAllRequest req) {
-		HashMap<Long, ModuleRedirectAllRequest> transmits = new HashMap<>();
+		LongHashMap<ModuleRedirectAllRequest> transmits = new LongHashMap<>();
 
 		var miss = new ModuleRedirectAllResult();
 		miss.Argument.setModuleId(req.Argument.getModuleId());
@@ -82,7 +81,7 @@ public abstract class RedirectBase {
 			if (ProviderApp.Distribute.ChoiceProvider(req.Argument.getServiceNamePrefix(),
 					req.Argument.getModuleId(), i, provider)) {
 				var exist = transmits.get(provider.Value);
-				if (null == exist) {
+				if (exist == null) {
 					exist = new ModuleRedirectAllRequest();
 					exist.Argument.setModuleId(req.Argument.getModuleId());
 					exist.Argument.setHashCodeConcurrentLevel(req.Argument.getHashCodeConcurrentLevel());
@@ -101,12 +100,12 @@ public abstract class RedirectBase {
 		}
 
 		// 转发给provider
-		for (var transmit : transmits.entrySet()) {
-			var socket = ProviderApp.ProviderDirectService.GetSocket(transmit.getKey());
-			if (null != socket) {
-				transmit.getValue().Send(socket);
+		for (var it = transmits.iterator(); it.moveToNext(); ) {
+			var socket = ProviderApp.ProviderDirectService.GetSocket(it.key());
+			if (socket != null) {
+				it.value().Send(socket);
 			} else {
-				for (var hashIndex : transmit.getValue().Argument.getHashCodes()) {
+				for (var hashIndex : it.value().Argument.getHashCodes()) {
 					BModuleRedirectAllHash tempVar2 = new BModuleRedirectAllHash();
 					tempVar2.setReturnCode(Zeze.Transaction.Procedure.ProviderNotExist);
 					miss.Argument.getHashs().put(hashIndex, tempVar2);

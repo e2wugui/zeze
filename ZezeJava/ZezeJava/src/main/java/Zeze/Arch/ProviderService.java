@@ -9,6 +9,8 @@ import Zeze.Beans.Provider.Subscribe;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
+import Zeze.Services.ServiceManager.ServiceInfo;
+import Zeze.Services.ServiceManager.ServiceInfos;
 import Zeze.Util.OutObject;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
@@ -18,16 +20,28 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 	private static final Logger logger = LogManager.getLogger(ProviderService.class);
 
 	public ProviderApp ProviderApp;
+	private final ConcurrentHashMap<String, Connector> Links = new ConcurrentHashMap<>();
+	private volatile Connector[] LinkConnectors = Links.values().toArray(new Connector[Links.size()]);
+	private final AtomicInteger LinkRandomIndex = new AtomicInteger();
+
+	// 用来同步等待Provider的静态绑定完成。
+	public final TaskCompletionSource<Boolean> ProviderStaticBindCompleted = new TaskCompletionSource<>();
+	public final TaskCompletionSource<Boolean> ProviderDynamicSubscribeCompleted = new TaskCompletionSource<>();
+
+	public ProviderService(String name, Zeze.Application zeze) throws Throwable {
+		super(name, zeze);
+	}
+
 	/**
-	 不使用 RemoteEndPoint 是怕有些系统返回 ipv6 有些 ipv4，造成不一致。
-	 这里要求 linkName 在所有 provider 中都一样。
-	 使用 Connector 配置得到名字，只要保证配置一样。
-	*/
+	 * 不使用 RemoteEndPoint 是怕有些系统返回 ipv6 有些 ipv4，造成不一致。
+	 * 这里要求 linkName 在所有 provider 中都一样。
+	 * 使用 Connector 配置得到名字，只要保证配置一样。
+	 */
 	public String GetLinkName(AsyncSocket sender) {
 		return sender.getConnector().getName();
 	}
 
-	public String GetLinkName(Zeze.Services.ServiceManager.ServiceInfo serviceInfo) {
+	public String GetLinkName(ServiceInfo serviceInfo) {
 		return serviceInfo.getPassiveIp() + ":" + serviceInfo.getPassivePort();
 	}
 
@@ -38,7 +52,7 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 		super.Start();
 	}
 
-	public void Apply(Zeze.Services.ServiceManager.ServiceInfos serviceInfos) {
+	public void Apply(ServiceInfos serviceInfos) {
 		HashSet<String> current = new HashSet<>();
 		for (var link : serviceInfos.getServiceInfoListSortedByIdentity()) {
 			var linkName = GetLinkName(link);
@@ -73,33 +87,37 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 
 	public static class LinkSession {
 		private final String Name;
-		public final String getName() {
-			return Name;
-		}
 		private final long SessionId;
-		public final long getSessionId() {
-			return SessionId;
-		}
-
-		// 在和linkd连接建立完成以后，由linkd发送通告协议时保存。
-		private int LinkId;
-		public final int getLinkId() {
-			return LinkId;
-		}
-		private void setLinkId(int value) {
-			LinkId = value;
-		}
+		private int LinkId; // 在和linkd连接建立完成以后，由linkd发送通告协议时保存。
 		private long ProviderSessionId;
-		public final long getProviderSessionId() {
-			return ProviderSessionId;
-		}
-		private void setProviderSessionId(long value) {
-			ProviderSessionId = value;
-		}
 
 		public LinkSession(String name, long sid) {
 			Name = name;
 			SessionId = sid;
+		}
+
+		public final String getName() {
+			return Name;
+		}
+
+		public final long getSessionId() {
+			return SessionId;
+		}
+
+		public final int getLinkId() {
+			return LinkId;
+		}
+
+		private void setLinkId(int value) {
+			LinkId = value;
+		}
+
+		public final long getProviderSessionId() {
+			return ProviderSessionId;
+		}
+
+		private void setProviderSessionId(long value) {
+			ProviderSessionId = value;
 		}
 
 		public final void Setup(int linkId, long providerSessionId) {
@@ -108,9 +126,6 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 		}
 	}
 
-	private final ConcurrentHashMap<String, Connector> Links = new ConcurrentHashMap<>();
-	private volatile Connector[] LinkConnectors = Links.values().toArray(new Connector[Links.size()]);
-	private final AtomicInteger LinkRandomIndex = new AtomicInteger();
 	public ConcurrentHashMap<String, Connector> getLinks() {
 		return Links;
 	}
@@ -127,10 +142,6 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 		return connector.GetReadySocket();
 	}
 
-	// 用来同步等待Provider的静态绑定完成。
-	public TaskCompletionSource<Boolean> ProviderStaticBindCompleted = new TaskCompletionSource<>();
-	public TaskCompletionSource<Boolean> ProviderDynamicSubscribeCompleted = new TaskCompletionSource<>();
-
 	@Override
 	public void OnHandshakeDone(AsyncSocket sender) throws Throwable {
 		super.OnHandshakeDone(sender);
@@ -146,13 +157,13 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 
 		// static binds
 		var rpc = new Bind();
-		rpc.Argument.getModules().putAll(ProviderApp.StaticBinds);
+		ProviderApp.StaticBinds.foreach(rpc.Argument.getModules()::put);
 		rpc.Send(sender, (protocol) -> {
-				ProviderStaticBindCompleted.SetResult(true);
-				return 0;
+			ProviderStaticBindCompleted.SetResult(true);
+			return 0;
 		});
 		var sub = new Subscribe();
-		sub.Argument.getModules().putAll(ProviderApp.DynamicModules);
+		ProviderApp.DynamicModules.foreach(sub.Argument.getModules()::put);
 		sub.Send(sender, (protocol) -> {
 			ProviderDynamicSubscribeCompleted.SetResult(true);
 			return 0;
@@ -183,8 +194,4 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 		}
 	}
 	*/
-
-	public ProviderService(String name, Zeze.Application zeze) throws Throwable {
-		super(name, zeze);
-	}
 }

@@ -1,59 +1,64 @@
 package Zeze.Arch;
 
+import Zeze.Beans.Provider.Send;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Collections.PList1;
 import Zeze.Transaction.Transaction;
-import Zeze.Beans.Provider.*;
 
 /**
  * 用户登录会话。
  * 记录账号，roleId，LinkName，SessionId等信息。
  */
 public class ProviderUserSession {
-	private final String Account;
-	public final String getAccount() {
-		return Account;
-	}
-	private final Long RoleId;
-	public final Long getRoleId() {
-		return RoleId;
-	}
-
-	private final String LinkName;
-	public final String getLinkName() {
-		return LinkName;
-	}
-	private final long SessionId;
-	public final long getSessionId() {
-		return SessionId;
-	}
-
-	private AsyncSocket Link;
-	public final AsyncSocket getLink() {
-		return Link;
-	}
-	public final void setLink(AsyncSocket value) {
-		Link = value;
-	}
-
 	private final ProviderService service;
-	public final ProviderService getService() {
-		return service;
-	}
+	private final String Account;
+	private final Long RoleId;
+	private final long SessionId;
+	private final String LinkName;
+	private AsyncSocket Link;
 
 	public ProviderUserSession(ProviderService service, String account, PList1<Long> states, AsyncSocket link, long linkSid) {
 		this.service = service;
 		Account = account;
 		RoleId = states.isEmpty() ? null : states.get(0);
 		SessionId = linkSid;
-		setLink(link);
 		LinkName = service.GetLinkName(link);
+		Link = link;
+	}
+
+	public final ProviderService getService() {
+		return service;
+	}
+
+	public final String getAccount() {
+		return Account;
+	}
+
+	public final Long getRoleId() {
+		return RoleId;
+	}
+
+	public final long getSessionId() {
+		return SessionId;
+	}
+
+	public final String getLinkName() {
+		return LinkName;
+	}
+
+	public final AsyncSocket getLink() {
+		return Link;
+	}
+
+	public final void setLink(AsyncSocket value) {
+		Link = value;
 	}
 
 	public final void SendResponse(Binary fullEncodedProtocol) {
-		SendResponse(Zeze.Serialize.ByteBuffer.Wrap(fullEncodedProtocol).ReadInt4(), fullEncodedProtocol);
+		SendResponse(ByteBuffer.Wrap(fullEncodedProtocol).ReadInt4(), fullEncodedProtocol);
 	}
 
 	public final void SendResponse(long typeId, Binary fullEncodedProtocol) {

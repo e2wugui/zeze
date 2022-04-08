@@ -3,8 +3,8 @@ package Zeze.Arch;
 import java.util.HashMap;
 import Zeze.Beans.Provider.BLoad;
 import Zeze.Beans.Provider.BModule;
-import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.IntHashMap;
 
 /**
  * 记录实现一个Provider需要的对象，
@@ -81,11 +81,11 @@ public class ProviderApp {
 		this.ProviderDirect.RegisterProtocols(ProviderDirectService);
 	}
 
-	public final HashMap<Integer, BModule> StaticBinds = new HashMap<>();
-	public final HashMap<Integer, BModule> DynamicModules = new HashMap<>();
-	public java.util.HashMap<Integer, BModule> Modules = new HashMap<>();
+	public final IntHashMap<BModule> StaticBinds = new IntHashMap<>();
+	public final IntHashMap<BModule> DynamicModules = new IntHashMap<>();
+	public final IntHashMap<BModule> Modules = new IntHashMap<>();
 
-	public void initialize(ProviderModuleBinds binds, java.util.HashMap<String, Zeze.IModule> modules) {
+	public void initialize(ProviderModuleBinds binds, HashMap<String, Zeze.IModule> modules) {
 		binds.BuildStaticBinds(modules, Zeze.getConfig().getServerId(), StaticBinds);
 		binds.BuildDynamicBinds(modules, Zeze.getConfig().getServerId(), DynamicModules);
 		Modules.putAll(StaticBinds);

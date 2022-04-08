@@ -7,7 +7,7 @@ import Zeze.Beans.Provider.BModule;
 import Zeze.Beans.Provider.Dispatch;
 import Zeze.Beans.Provider.Kick;
 import Zeze.Net.AsyncSocket;
-import Zeze.Net.Binary;
+import Zeze.Services.ServiceManager.ServiceInfos;
 import Zeze.Services.ServiceManager.SubscribeInfo;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
@@ -19,7 +19,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 	public ProviderApp ProviderApp;
 
-	void ApplyServiceInfos(Zeze.Services.ServiceManager.ServiceInfos serviceInfos) {
+	void ApplyServiceInfos(ServiceInfos serviceInfos) {
 		if (serviceInfos.getServiceName().equals(ProviderApp.LinkdServiceName)) {
 			this.ProviderApp.ProviderService.Apply(serviceInfos);
 		} /* 模块服务改变不需要处理。ProviderDistribute直接使用即可。
@@ -28,8 +28,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		} */
 	}
 
-	void ApplyPrepareServiceInfos(Zeze.Services.ServiceManager.ServiceInfos serviceInfos) {
-		if (serviceInfos.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)){
+	void ApplyPrepareServiceInfos(ServiceInfos serviceInfos) {
+		if (serviceInfos.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)) {
 			this.ProviderApp.ProviderDirectService.TryConnectTo(serviceInfos);
 		}
 	}
@@ -38,7 +38,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	 * 注册所有支持的模块服务。
 	 * 包括静态动态。
 	 * 注册的模块时带上用于Provider之间连接的ip，port。
-	 *
+	 * <p>
 	 * 订阅Linkd服务。
 	 * Provider主动连接Linkd。
 	 */
@@ -46,20 +46,20 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		var sm = ProviderApp.Zeze.getServiceManagerAgent();
 		var services = new HashMap<String, BModule>();
 		// 注册本provider的静态服务
-		for (var s : ProviderApp.StaticBinds.entrySet()) {
-			var name = Str.format("{}{}", ProviderApp.ServerServiceNamePrefix, s.getKey());
+		for (var it = ProviderApp.StaticBinds.iterator(); it.moveToNext(); ) {
+			var name = Str.format("{}{}", ProviderApp.ServerServiceNamePrefix, it.key());
 			var identity = String.valueOf(ProviderApp.Zeze.getConfig().getServerId());
 			sm.RegisterService(name, identity, ProviderApp.ProviderDirectPassiveIp,
-					ProviderApp.ProviderDirectPassivePort,null);
-			services.put(name, s.getValue());
+					ProviderApp.ProviderDirectPassivePort, null);
+			services.put(name, it.value());
 		}
 		// 注册本provider的动态服务
-		for (var d : ProviderApp.DynamicModules.entrySet()) {
-			var name = Str.format("{}{}", ProviderApp.ServerServiceNamePrefix, d.getKey());
+		for (var it = ProviderApp.DynamicModules.iterator(); it.moveToNext(); ) {
+			var name = Str.format("{}{}", ProviderApp.ServerServiceNamePrefix, it.key());
 			var identity = String.valueOf(ProviderApp.Zeze.getConfig().getServerId());
 			sm.RegisterService(name, identity, ProviderApp.ProviderDirectPassiveIp,
-					ProviderApp.ProviderDirectPassivePort,null);
-			services.put(name, d.getValue());
+					ProviderApp.ProviderDirectPassivePort, null);
+			services.put(name, it.value());
 		}
 
 		// 订阅provider直连发现服务
@@ -83,7 +83,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	protected long ProcessDispatch(Dispatch p) {
 		try {
 			var factoryHandle = ProviderApp.ProviderService.FindProtocolFactoryHandle(p.Argument.getProtocolType());
-			if (null == factoryHandle) {
+			if (factoryHandle == null) {
 				SendKick(p.getSender(), p.Argument.getLinkSid(), BKick.ErrorProtocolUnkown, "unknown protocol");
 				return Procedure.LogicError;
 			}
@@ -91,7 +91,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			p2.Decode(Zeze.Serialize.ByteBuffer.Wrap(p.Argument.getProtocolData()));
 			p2.setSender(p.getSender());
 
-			var session = new ProviderUserSession(ProviderApp.ProviderService, p.Argument.getAccount(), p.Argument.getStates(), p.getSender(), p.Argument.getLinkSid());
+			var session = new ProviderUserSession(ProviderApp.ProviderService, p.Argument.getAccount(),
+					p.Argument.getStates(), p.getSender(), p.Argument.getLinkSid());
 
 			p2.setUserState(session);
 			Transaction txn = Transaction.getCurrent();
@@ -102,27 +103,28 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				proc.setActionName(p2.getClass().getName());
 				proc.setUserState(p2.getUserState());
 				return Zeze.Util.Task.Call(() -> factoryHandle.Handle.handleProtocol(p2), p2, (p3, code) -> {
-						p3.setResultCode(code);
-						session.SendResponse(p3);
+					p3.setResultCode(code);
+					session.SendResponse(p3);
 				});
 			}
 
 			if (p2.getSender().getService().getZeze() == null || factoryHandle.Level == TransactionLevel.None) {
 				// 应用框架不支持事务或者协议配置了"不需要事务”
 				return Zeze.Util.Task.Call(() -> factoryHandle.Handle.handleProtocol(p2), p2, (p3, code) -> {
-						p3.setResultCode(code);
-						session.SendResponse(p3);
+					p3.setResultCode(code);
+					session.SendResponse(p3);
 				});
 			}
 
 			// 创建存储过程并且在当前线程中调用。
 			return Zeze.Util.Task.Call(
-					p2.getSender().getService().getZeze().NewProcedure(
-							() -> factoryHandle.Handle.handleProtocol(p2), p2.getClass().getName(), factoryHandle.Level, p2.getUserState()),
-					p2, (p3, code) -> { p3.setResultCode(code); session.SendResponse(p3);
+					p2.getSender().getService().getZeze().NewProcedure(() -> factoryHandle.Handle.handleProtocol(p2),
+							p2.getClass().getName(), factoryHandle.Level, p2.getUserState()),
+					p2, (p3, code) -> {
+						p3.setResultCode(code);
+						session.SendResponse(p3);
 					});
-		}
-		catch (Throwable ex) {
+		} catch (Throwable ex) {
 			SendKick(p.getSender(), p.Argument.getLinkSid(), BKick.ErrorProtocolException, ex.toString());
 			throw ex;
 		}

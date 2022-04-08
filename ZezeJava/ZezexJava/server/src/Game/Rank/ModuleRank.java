@@ -1,28 +1,37 @@
 package Game.Rank;
 
-import Zeze.Transaction.*;
-import Game.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.concurrent.ConcurrentHashMap;
+import Game.App;
+import Zeze.Arch.ModuleRedirectAllContext;
+import Zeze.Arch.ProviderUserSession;
+import Zeze.Arch.RedirectAll;
+import Zeze.Arch.RedirectAllDoneHandle;
+import Zeze.Arch.RedirectHash;
+import Zeze.Arch.RedirectToServer;
+import Zeze.Net.Binary;
+import Zeze.Transaction.EmptyBean;
+import Zeze.Transaction.Procedure;
 import Zeze.Util.Action1;
+import Zeze.Util.Action2;
+import Zeze.Util.Action3;
 import Zeze.Util.Str;
-import Zeze.Arch.*;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 /**
- 基本排行榜，实现了按long value从大到小进榜。
- 增加排行被类型。在 solution.xml::beankey::BConcurrentKey中增加类型定义。
- 然后在数据变化时调用 RunUpdateRank 方法更行排行榜。
-*/
+ * 基本排行榜，实现了按long value从大到小进榜。
+ * 增加排行被类型。在 solution.xml::beankey::BConcurrentKey中增加类型定义。
+ * 然后在数据变化时调用 RunUpdateRank 方法更行排行榜。
+ */
 public class ModuleRank extends AbstractModule {
-
 	private static final Logger logger = LogManager.getLogger(ModuleRank.class);
+	public static final long RebuildTime = 5 * 60 * 1000; // 5 min
 
 	public final void Start(App app) {
 	}
@@ -31,14 +40,10 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	/**
-	 根据 value 设置到排行榜中
-
-	 @param hash
-	 @param roleId
-	 @param value
-	*/
+	 * 根据 value 设置到排行榜中
+	 */
 	@RedirectHash
-	protected void UpdateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx) {
+	protected void UpdateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Binary valueEx) {
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		int maxCount = GetRankComputeCount(keyHint.getRankType());
 
@@ -64,7 +69,7 @@ public class ModuleRank extends AbstractModule {
 				tempVar.setRoleId(roleId);
 				tempVar.setValue(value);
 				tempVar.setValueEx(valueEx);
-				tempVar.setAwardTaken(null == exist ? false : exist.isAwardTaken());
+				tempVar.setAwardTaken(exist != null && exist.isAwardTaken());
 				rank.getRankList().add(i, tempVar);
 				if (rank.getRankList().size() > maxCount) {
 					rank.getRankList().remove(rank.getRankList().size() - 1);
@@ -83,28 +88,31 @@ public class ModuleRank extends AbstractModule {
 			tempVar2.setValueEx(valueEx);
 			rank.getRankList().add(tempVar2);
 		}
-		return;
 	}
 
 	public static class Rank {
 		private long BuildTime;
+
 		public final long getBuildTime() {
 			return BuildTime;
 		}
+
 		public final void setBuildTime(long value) {
 			BuildTime = value;
 		}
+
 		private BRankList TableValue;
+
 		public final BRankList getTableValue() {
 			return TableValue;
 		}
+
 		public final void setTableValue(BRankList value) {
 			TableValue = value;
 		}
 	}
 
-	private ConcurrentHashMap<BConcurrentKey, Rank> Ranks = new ConcurrentHashMap<BConcurrentKey, Rank>();
-	public static final long RebuildTime = 5 * 60 * 1000; // 5 min
+	private final ConcurrentHashMap<BConcurrentKey, Rank> Ranks = new ConcurrentHashMap<>();
 
 	private BRankList Merge(BRankList left, BRankList right) {
 		BRankList result = new BRankList();
@@ -114,8 +122,7 @@ public class ModuleRank extends AbstractModule {
 			if (left.getRankList().get(indexLeft).getValue() >= right.getRankList().get(indexRight).getValue()) {
 				result.getRankList().add(left.getRankList().get(indexLeft));
 				++indexLeft;
-			}
-			else {
+			} else {
 				result.getRankList().add(right.getRankList().get(indexRight));
 				++indexRight;
 			}
@@ -126,8 +133,7 @@ public class ModuleRank extends AbstractModule {
 				result.getRankList().add(left.getRankList().get(indexLeft));
 				++indexLeft;
 			}
-		}
-		else if (indexRight < right.getRankList().size()) {
+		} else if (indexRight < right.getRankList().size()) {
 			while (indexRight < right.getRankList().size()) {
 				result.getRankList().add(right.getRankList().get(indexRight));
 				++indexRight;
@@ -137,49 +143,52 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	private Rank GetRank(BConcurrentKey keyHint) {
-		var Rank = Ranks.computeIfAbsent(keyHint, (key) -> new Rank());
+		var Rank = Ranks.computeIfAbsent(keyHint, __ -> new Rank());
+		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (Rank) {
 			long now = System.currentTimeMillis();
 			if (now - Rank.BuildTime < RebuildTime) {
 				return Rank;
 			}
 			// rebuild
-			ArrayList<BRankList> datas = new ArrayList<BRankList>();
-			int cocurrentLevel = GetConcurrentLevel(keyHint.getRankType());
-			for (int i = 0; i < cocurrentLevel; ++i) {
+			ArrayList<BRankList> datas = new ArrayList<>();
+			int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
+			for (int i = 0; i < concurrentLevel; ++i) {
 				var concurrentKey = new BConcurrentKey(keyHint.getRankType(), i, keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
 				var rank = _trank.getOrAdd(concurrentKey);
 				datas.add(rank);
 			}
 			int countNeed = GetRankCount(keyHint.getRankType());
 			switch (datas.size()) {
-				case 0:
-					Rank.TableValue = new BRankList();
-					break;
+			case 0:
+				Rank.TableValue = new BRankList();
+				break;
 
-				case 1:
-					Rank.TableValue = datas.get(0).Copy();
-					break;
+			case 1:
+				Rank.TableValue = datas.get(0).Copy();
+				break;
 
-				default:
-					// 合并过程中，结果是新的 BRankList，List中的 BRankValue 引用到表中。
-					// 最后 Copy 一次。
-					BRankList current = datas.get(0);
-					for (int i = 1; i < datas.size(); ++i) {
-						current = Merge(current, datas.get(i));
-						if (current.getRankList().size() > countNeed) {
-							// 合并中间结果超过需要的数量可以先删除。
-							// 第一个current直接引用table.data，不能删除。
-							for (int ir = current.getRankList().size() - 1; ir >= countNeed; --ir)
-								current.getRankList().remove(ir);
-							//current.getRankList().RemoveRange(countNeed, current.getRankList().Count - countNeed);
-						}
+			default:
+				// 合并过程中，结果是新的 BRankList，List中的 BRankValue 引用到表中。
+				// 最后 Copy 一次。
+				BRankList current = datas.get(0);
+				for (int i = 1; i < datas.size(); ++i) {
+					current = Merge(current, datas.get(i));
+					if (current.getRankList().size() > countNeed) {
+						// 合并中间结果超过需要的数量可以先删除。
+						// 第一个current直接引用table.data，不能删除。
+						//noinspection ListRemoveInLoop
+						for (int ir = current.getRankList().size() - 1; ir >= countNeed; --ir)
+							current.getRankList().remove(ir);
+						//current.getRankList().RemoveRange(countNeed, current.getRankList().Count - countNeed);
 					}
-					Rank.TableValue = current.Copy(); // current 可能还直接引用第一个，虽然逻辑上不大可能。先Copy。
-					break;
+				}
+				Rank.TableValue = current.Copy(); // current 可能还直接引用第一个，虽然逻辑上不大可能。先Copy。
+				break;
 			}
 			Rank.BuildTime = now;
 			if (Rank.TableValue.getRankList().size() > countNeed) { // 再次删除多余的结果。
+				//noinspection ListRemoveInLoop
 				for (int ir = Rank.TableValue.getRankList().size() - 1; ir >= countNeed; --ir)
 					Rank.TableValue.getRankList().remove(ir);
 				//Rank.TableValue.getRankList().RemoveRange(countNeed, Rank.TableValue.RankList.Count - countNeed);
@@ -189,21 +198,22 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	/**
-	 ModuleRedirectAll 实现要求：
-	 1）第一个参数是调用会话id；
-	 2）第二个参数是hash-index；
-	 3）然后是实现自定义输入参数；
-	 4）最后是结果回调,
-		a) 第一参数是会话id，
-		b) 第二参数hash-index，
-		c) 第三个参数是returnCode，
-		d) 剩下的是自定义参数。
-	*/
+	 * ModuleRedirectAll 实现要求：
+	 * 1）第一个参数是调用会话id；
+	 * 2）第二个参数是hash-index；
+	 * 3）然后是实现自定义输入参数；
+	 * 4）最后是结果回调,
+	 * a) 第一参数是会话id，
+	 * b) 第二参数hash-index，
+	 * c) 第三个参数是returnCode，
+	 * d) 剩下的是自定义参数。
+	 */
 	protected final long GetRank(long sessionId, int hash, BConcurrentKey keyHint,
-								Zeze.Util.Action3<Long, Integer, BRankList> onHashResult) {
+								 Action3<Long, Integer, BRankList> onHashResult) {
 		// 根据hash获取分组rank。
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
-		var concurrentKey = new BConcurrentKey(keyHint.getRankType(), hash % concurrentLevel, keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
+		var concurrentKey = new BConcurrentKey(keyHint.getRankType(), hash % concurrentLevel,
+				keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
 		try {
 			onHashResult.run(sessionId, hash, _trank.getOrAdd(concurrentKey));
 			return Procedure.Success;
@@ -215,8 +225,8 @@ public class ModuleRank extends AbstractModule {
 
 	// 属性参数是获取总的并发分组数量的代码，直接复制到生成代码中。
 	// 需要注意在子类上下文中可以编译通过。可以是常量。
-	@RedirectAll(GetConcurrentLevelSource="GetConcurrentLevel(arg0.getRankType())")
-	public void GetRank(BConcurrentKey keyHint, Zeze.Util.Action3<Long, Integer, BRankList> onHashResult, RedirectAllDoneHandle onHashEnd) {
+	@RedirectAll(GetConcurrentLevelSource = "GetConcurrentLevel(arg0.getRankType())")
+	public void GetRank(BConcurrentKey keyHint, Action3<Long, Integer, BRankList> onHashResult, RedirectAllDoneHandle onHashEnd) {
 		// 默认实现是本地遍历调用，这里不使用App.Zeze.Run启动任务（这样无法等待），直接调用实现。
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		var ctx = new ModuleRedirectAllContext(concurrentLevel,
@@ -230,7 +240,7 @@ public class ModuleRank extends AbstractModule {
 
 	// 使用异步方案构建rank。
 	public void GetRankAsync(BConcurrentKey keyHint,
-							  Action1<Rank> callback) {
+							 Action1<Rank> callback) {
 		var rank = Ranks.get(keyHint);
 		if (null != rank) {
 			long now = System.currentTimeMillis();
@@ -246,37 +256,37 @@ public class ModuleRank extends AbstractModule {
 
 		// 异步方式没法锁住Rank，所以并发的情况下，可能多次去获取数据，多次构建，多次覆盖Ranks的cache。
 		int countNeed = GetRankCount(keyHint.getRankType());
-		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
+		// int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		GetRank(keyHint,
 				// Action OnHashResult
-				(sessionId, hash, _result) -> {
+				(sessionId, hash, result) -> {
 					var ctx = App.Server.<ModuleRedirectAllContext>TryGetManualContext(sessionId);
 					if (ctx == null)
 						return;
-					ctx.ProcessHash(hash, () -> new Rank(), (rank2)-> {
-						var result = (BRankList)_result;
+					ctx.ProcessHash(hash, Rank::new, (rank2) -> {
 						if (rank2.TableValue == null) {
 							rank2.TableValue = result.CopyIfManaged();
-						}
-						else {
+						} else {
 							rank2.TableValue = Merge(rank2.TableValue, result);
 						}
 						if (rank2.TableValue.getRankList().size() > countNeed) {
+							//noinspection ListRemoveInLoop
 							for (int ir = rank2.TableValue.getRankList().size() - 1; ir >= countNeed; --ir)
 								rank2.TableValue.getRankList().remove(ir);
 							//rank.TableValue.RankList.RemoveRange(countNeed, rank.TableValue.RankList.Count - countNeed);
 						}
-						return (long)Procedure.Success;
+						return Procedure.Success;
 					});
 				},
 				// Action OnHashEnd
 				(context) -> {
-					if (context.getHashCodes().size() > 0) {
+					if (!context.getHashCodes().isEmpty()) {
 						// 一般是超时发生时还有未返回结果的hash分组。
-						logger.warn("OnHashEnd: timeout with hashs: {}", context.getHashCodes());
+						logger.warn("OnHashEnd: timeout with hashes: {}", context.getHashCodes());
 					}
 
 					var rank2 = (Rank)context.getUserState();
+					assert rank != null;
 					rank.setBuildTime(System.currentTimeMillis());
 					Ranks.put(keyHint, rank2); // 覆盖最新的数据到缓存里面。
 					callback.run(rank2);
@@ -284,31 +294,38 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	/**
-	 为排行榜设置最大并发级别。【有默认值】
-	 【这个参数非常重要】【这个参数非常重要】【这个参数非常重要】【这个参数非常重要】
-	 决定了最大的并发度，改变的时候，旧数据全部失效，需要清除，重建。
-	 一般选择一个足够大，但是又不能太大的数据。
-	*/
+	 * 为排行榜设置最大并发级别。【有默认值】
+	 * 【这个参数非常重要】【这个参数非常重要】【这个参数非常重要】【这个参数非常重要】
+	 * 决定了最大的并发度，改变的时候，旧数据全部失效，需要清除，重建。
+	 * 一般选择一个足够大，但是又不能太大的数据。
+	 */
 	public final int GetConcurrentLevel(int rankType) {
+		//noinspection SwitchStatementWithTooFewBranches
 		switch (rankType) {
-			case BConcurrentKey.RankTypeGold: return 128;
-			default: return 128; // default
+		case BConcurrentKey.RankTypeGold:
+		default:
+			return 128; // default
 		}
 	}
 
 	// 为排行榜设置需要的数量。【有默认值】
 	public final int GetRankCount(int rankType) {
+		//noinspection SwitchStatementWithTooFewBranches
 		switch (rankType) {
-			case BConcurrentKey.RankTypeGold: return 100;
-			default: return 100;
+		case BConcurrentKey.RankTypeGold:
+		default:
+			return 100;
 		}
 	}
 
 	// 排行榜中间数据的数量。【有默认值】
 	public final int GetRankComputeCount(int rankType) {
+		//noinspection SwitchStatementWithTooFewBranches
 		switch (rankType) {
-			case BConcurrentKey.RankTypeGold: return 500;
-			default: return GetRankCount(rankType) * 5;
+		case BConcurrentKey.RankTypeGold:
+			return 500;
+		default:
+			return GetRankCount(rankType) * 5;
 		}
 	}
 
@@ -324,7 +341,7 @@ public class ModuleRank extends AbstractModule {
 		AddCounterAndUpdateRank(roleId, delta, keyHint, null);
 	}
 
-	public final void AddCounterAndUpdateRank(long roleId, int delta, BConcurrentKey keyHint, Zeze.Net.Binary valueEx) {
+	public final void AddCounterAndUpdateRank(long roleId, int delta, BConcurrentKey keyHint, Binary valueEx) {
 		var counters = _trankcounters.getOrAdd(roleId);
 		var counter = counters.getCounters().get(keyHint);
 		if (null == counter) {
@@ -334,14 +351,14 @@ public class ModuleRank extends AbstractModule {
 		counter.setValue(counter.getValue() + delta);
 
 		if (null == valueEx) {
-			valueEx = Zeze.Net.Binary.Empty;
+			valueEx = Binary.Empty;
 		}
 
 		UpdateRank(App.Zeze.Redirect.GetChoiceHashCode(), keyHint, roleId, counter.getValue(), valueEx);
 	}
 
 	@Override
-	protected long ProcessCGetRankList(CGetRankList protocol) throws Throwable {
+	protected long ProcessCGetRankList(CGetRankList protocol) {
 		var session = ProviderUserSession.Get(protocol);
 
 		var result = new SGetRankList();
@@ -379,46 +396,45 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	public final BConcurrentKey NewRankKey(long time, int rankType, int timeType, long customizeId) {
-		var c = java.util.Calendar.getInstance();
+		var c = Calendar.getInstance();
 		c.setTimeInMillis(time);
-		var year = c.get(java.util.Calendar.YEAR); // 后面根据TimeType可能覆盖这个值。
+		var year = c.get(Calendar.YEAR); // 后面根据TimeType可能覆盖这个值。
 		long offset;
 
 		switch (timeType) {
-			case BConcurrentKey.TimeTypeTotal:
-				year = 0;
-				offset = 0;
-				break;
+		case BConcurrentKey.TimeTypeTotal:
+			year = 0;
+			offset = 0;
+			break;
 
-			case BConcurrentKey.TimeTypeDay:
-				offset = c.get(java.util.Calendar.DAY_OF_YEAR);
-				break;
+		case BConcurrentKey.TimeTypeDay:
+			offset = c.get(Calendar.DAY_OF_YEAR);
+			break;
 
-			case BConcurrentKey.TimeTypeWeek:
-				offset = c.get(Calendar.WEEK_OF_YEAR);
-				break;
+		case BConcurrentKey.TimeTypeWeek:
+			offset = c.get(Calendar.WEEK_OF_YEAR);
+			break;
 
-			case BConcurrentKey.TimeTypeSeason:
-				offset = GetSimpleChineseSeason(c);
-				break;
+		case BConcurrentKey.TimeTypeSeason:
+			offset = GetSimpleChineseSeason(c);
+			break;
 
-			case BConcurrentKey.TimeTypeYear:
-				offset = 0;
-				break;
+		case BConcurrentKey.TimeTypeYear:
+			offset = 0;
+			break;
 
-			case BConcurrentKey.TimeTypeCustomize:
-				year = 0;
-				offset = customizeId;
-				break;
+		case BConcurrentKey.TimeTypeCustomize:
+			year = 0;
+			offset = customizeId;
+			break;
 
-			default:
-				throw new RuntimeException("Unsupport TimeType=" + timeType);
+		default:
+			throw new RuntimeException("Unsupported TimeType=" + timeType);
 		}
 		return new BConcurrentKey(rankType, 0, timeType, year, offset);
 	}
 
-	public int GetSimpleChineseSeason(java.util.Calendar c)
-	{
+	public int GetSimpleChineseSeason(Calendar c) {
 		var month = c.get(Calendar.MONTH);
 		if (month < 3) return 4; // 12,1,2
 		if (month < 6) return 1; // 3,4,5
@@ -429,13 +445,13 @@ public class ModuleRank extends AbstractModule {
 
 	/******************************** ModuleRedirect 测试 *****************************************/
 	@RedirectToServer()
-	public TaskCompletionSource<Long> TestToServer(int serverId, int in, Zeze.Util.Action1<Integer> result) throws Throwable {
+	public TaskCompletionSource<Long> TestToServer(int serverId, int in, Action1<Integer> result) throws Throwable {
 		result.run(in);
 		return null;
 	}
 
 	@RedirectHash()
-	public Zeze.Util.TaskCompletionSource<Long> Test1(int hash) {
+	public TaskCompletionSource<Long> Test1(int hash) {
 		return null;
 	}
 
@@ -444,13 +460,13 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	@RedirectHash()
-	public void Test3(int hash, int inData, Zeze.Util.Action2<Integer, Zeze.Transaction.EmptyBean> result) throws Throwable {
+	public void Test3(int hash, int inData, Action2<Integer, EmptyBean> result) throws Throwable {
 		result.run(inData, new EmptyBean());
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE
-    public ModuleRank(Game.App app) {
-        super(app);
-    }
+	public ModuleRank(Game.App app) {
+		super(app);
+	}
 	// ZEZE_FILE_CHUNK }}} GEN MODULE
 }

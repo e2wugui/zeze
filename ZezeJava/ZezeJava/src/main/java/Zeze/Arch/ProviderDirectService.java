@@ -81,15 +81,15 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	@Override
 	public void OnSocketClose(AsyncSocket socket, Throwable ex) throws Throwable {
 		var ps = (ProviderSession)socket.getUserState();
-		if (null != ps) {
+		if (ps != null) {
 			for (var service : ps.ServiceReadyStates.entrySet()) {
 				var subs = getZeze().getServiceManagerAgent().getSubscribeStates().get(service.getKey());
 				for (var identity : service.getValue().keySet()) {
 					subs.SetServiceIdentityReadyState(identity, null);
 				}
 			}
+			ProviderSessions.remove(ps.getServerLoadName());
 		}
-		ProviderSessions.remove(ps.getServerLoadName());
 		super.OnSocketClose(socket, ex);
 	}
 

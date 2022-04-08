@@ -107,7 +107,7 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 				switch (handle.RequestTransactionLevel) {
 				case Serializable:
 				case AllowDirtyWhenAllRead:
-					var out = new Zeze.Util.OutObject<Binary>();
+					var out = new OutObject<Binary>();
 					ProviderApp.Zeze.NewProcedure(() -> {
 						out.Value = handle.RequestHandle.call(p.Argument.getSessionId(), hash, p.Argument.getParams());
 						return 0L;

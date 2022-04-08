@@ -2,52 +2,66 @@ package Zeze.Arch;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.Future;
+import Zeze.Beans.Provider.BLinkBroken;
+import Zeze.Beans.Provider.LinkBroken;
+import Zeze.Net.AsyncSocket;
+import Zeze.Net.Binary;
+import Zeze.Net.Service;
+import Zeze.Util.IntHashMap;
+import Zeze.Util.OutLong;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import Zeze.Beans.Provider.*;
 
 public class LinkdUserSession {
 	private static final Logger logger = LogManager.getLogger(LinkdUserSession.class);
 
 	private String Account;
+	private final ArrayList<Long> UserStates = new ArrayList<>();
+	private Binary UserStatex = Binary.Empty;
+	private IntHashMap<Long> Binds = new IntHashMap<>();
+	private final long SessionId; // Linkd.SessionId
+	private Future<?> KeepAliveTask; // 仅在网络线程中回调，并且一个时候，只会有一个回调，不线程保护了。
+
 	public final String getAccount() {
 		return Account;
 	}
+
 	public final void setAccount(String value) {
 		Account = value;
 	}
-	private final ArrayList<Long> UserStates = new ArrayList<>();
+
 	public final ArrayList<Long> getUserStates() {
 		return UserStates;
 	}
-	private Zeze.Net.Binary UserStatex = Zeze.Net.Binary.Empty;
-	public final Zeze.Net.Binary getUserStatex() {
+
+	public final Binary getUserStatex() {
 		return UserStatex;
 	}
-	private void setUserStatex(Zeze.Net.Binary value) {
+
+	private void setUserStatex(Binary value) {
 		UserStatex = value;
 	}
 
-	private HashMap<Integer, Long> Binds = new HashMap<>();
-	private HashMap<Integer, Long> getBinds() {
+	private IntHashMap<Long> getBinds() {
 		return Binds;
 	}
-	private void setBinds(HashMap<Integer, Long> value) {
+
+	private void setBinds(IntHashMap<Long> value) {
 		Binds = value;
 	}
 
-	private final long SessionId; // Linkd.SessionId
 	public final long getSessionId() {
 		return SessionId;
 	}
+
 	public LinkdUserSession(long sessionId) {
 		SessionId = sessionId;
 	}
 
-	public final void SetUserState(Collection<Long> states, Zeze.Net.Binary statex) {
+	public final void SetUserState(Collection<Long> states, Binary statex) {
 		synchronized (this) { // 简单使用一下这个锁。
 			getUserStates().clear();
 			getUserStates().addAll(states);
@@ -55,10 +69,10 @@ public class LinkdUserSession {
 		}
 	}
 
-	public final boolean TryGetProvider(int moduleId, Zeze.Util.OutLong provider) {
+	public final boolean TryGetProvider(int moduleId, OutLong provider) {
 		synchronized (this) {
 			var bound = Binds.get(moduleId);
-			if (null != bound) {
+			if (bound != null) {
 				provider.Value = bound;
 				return true;
 			}
@@ -67,58 +81,55 @@ public class LinkdUserSession {
 		}
 	}
 
-	public final void Bind(LinkdProviderService linkdProviderService, Zeze.Net.AsyncSocket link,
-						   Iterable<Integer> moduleIds, Zeze.Net.AsyncSocket provider) {
+	public final void Bind(LinkdProviderService linkdProviderService, AsyncSocket link,
+						   Iterable<Integer> moduleIds, AsyncSocket provider) {
 		synchronized (this) {
 			for (var moduleId : moduleIds) {
 				var exist = Binds.get(moduleId);
-				if (null != exist) {
+				if (exist != null) {
 					var oldSocket = linkdProviderService.GetSocket(exist);
 					logger.warn("LinkSession.Bind replace provider {} {} {}",
 							moduleId, oldSocket.getRemoteAddress(), provider.getRemoteAddress());
 				}
 				getBinds().put(moduleId, provider.getSessionId());
 				var ps = (LinkdProviderSession)provider.getUserState();
-				if (null != ps)
+				if (ps != null)
 					ps.AddLinkSession(moduleId, link.getSessionId());
 			}
 		}
 	}
 
-
-	public final void UnBind(LinkdProviderService linkdProviderService, Zeze.Net.AsyncSocket link,
-							 int moduleId, Zeze.Net.AsyncSocket provider) {
+	public final void UnBind(LinkdProviderService linkdProviderService, AsyncSocket link,
+							 int moduleId, AsyncSocket provider) {
 		UnBind(linkdProviderService, link, moduleId, provider, false);
 	}
 
-	public final void UnBind(LinkdProviderService linkdProviderService, Zeze.Net.AsyncSocket link,
-							 int moduleId, Zeze.Net.AsyncSocket provider, boolean isOnProviderClose) {
+	public final void UnBind(LinkdProviderService linkdProviderService, AsyncSocket link,
+							 int moduleId, AsyncSocket provider, boolean isOnProviderClose) {
 		var moduleIds = new HashSet<Integer>();
 		moduleIds.add(moduleId);
 		UnBind(linkdProviderService, link, moduleIds, provider, isOnProviderClose);
 	}
 
-
-	public final void UnBind(LinkdProviderService linkdProviderService, Zeze.Net.AsyncSocket link,
-							 Iterable<Integer> moduleIds, Zeze.Net.AsyncSocket provider) {
+	public final void UnBind(LinkdProviderService linkdProviderService, AsyncSocket link,
+							 Iterable<Integer> moduleIds, AsyncSocket provider) {
 		UnBind(linkdProviderService, link, moduleIds, provider, false);
 	}
 
-	public final void UnBind(LinkdProviderService linkdProviderService, Zeze.Net.AsyncSocket link,
-							 Iterable<Integer> moduleIds, Zeze.Net.AsyncSocket provider, boolean isOnProviderClose) {
+	public final void UnBind(LinkdProviderService linkdProviderService, AsyncSocket link,
+							 Iterable<Integer> moduleIds, AsyncSocket provider, boolean isOnProviderClose) {
 		synchronized (this) {
 			for (var moduleId : moduleIds) {
 				var exist = Binds.get(moduleId);
-				if (null != exist) {
+				if (exist != null) {
 					if (exist == provider.getSessionId()) { // check owner? 也许不做这个检测更好？
 						getBinds().remove(moduleId);
 						if (!isOnProviderClose) {
 							var ps = (LinkdProviderSession)provider.getUserState();
-							if (null != ps)
+							if (ps != null)
 								ps.RemoveLinkSession(moduleId, link.getSessionId());
 						}
-					}
-					else {
+					} else {
 						var oldSocket = linkdProviderService.GetSocket(exist);
 						logger.warn("LinkSession.UnBind not owner {} {} {}",
 								moduleId, oldSocket.getRemoteAddress(), provider.getRemoteAddress());
@@ -128,18 +139,14 @@ public class LinkdUserSession {
 		}
 	}
 
-	// 仅在网络线程中回调，并且一个时候，只会有一个回调，不线程保护了。
-	private Future<?> KeepAliveTask;
-
-	public final void KeepAlive(Zeze.Net.Service linkdService) {
+	public final void KeepAlive(Service linkdService) {
 		if (KeepAliveTask != null) {
 			KeepAliveTask.cancel(false);
 		}
-		KeepAliveTask = Zeze.Util.Task.schedule(3000000, () -> {
+		KeepAliveTask = Task.schedule(3000_000, () -> {
 			var link = linkdService.GetSocket(getSessionId());
-				if (link != null) {
-					link.Close(null);
-				}
+			if (link != null)
+				link.Close(null);
 		});
 	}
 
@@ -153,10 +160,10 @@ public class LinkdUserSession {
 			return;
 		}
 
-		HashMap<Integer, Long> bindsSwap;
+		IntHashMap<Long> bindsSwap;
 		synchronized (this) {
 			bindsSwap = getBinds();
-			setBinds(new HashMap<>());
+			setBinds(new IntHashMap<>());
 		}
 
 		var linkBroken = new LinkBroken();
@@ -167,17 +174,17 @@ public class LinkdUserSession {
 		linkBroken.Argument.setReason(BLinkBroken.REASON_PEERCLOSE); // 这个保留吧。现在没什么用。
 
 		// 需要在锁外执行，因为如果 ProviderSocket 和 LinkdSocket 同时关闭。都需要去清理自己和对方，可能导致死锁。
-		HashSet<Zeze.Net.AsyncSocket> bindProviders = new HashSet<>();
-		for (var e : bindsSwap.entrySet()) {
-			var provider = linkdProviderService.GetSocket(e.getValue());
-			if (null == provider) {
+		HashSet<AsyncSocket> bindProviders = new HashSet<>();
+		for (var it = bindsSwap.iterator(); it.moveToNext(); ) {
+			var provider = linkdProviderService.GetSocket(it.value());
+			if (provider == null) {
 				continue;
 			}
 			var providerSession = (LinkdProviderSession)provider.getUserState();
-			if (null == providerSession) {
+			if (providerSession == null) {
 				continue;
 			}
-			providerSession.RemoveLinkSession(e.getKey(), getSessionId());
+			providerSession.RemoveLinkSession(it.key(), getSessionId());
 			bindProviders.add(provider); // 先收集， 去重。
 		}
 		for (var provider : bindProviders) {
