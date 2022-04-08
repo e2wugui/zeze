@@ -3,13 +3,13 @@ package UnitTest.Zeze.Trans;
 import java.util.Objects;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
-import Zeze.Util.OutObject;
+import Zeze.Util.OutInt;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 public class TestTableNestAction {
-	
+
 	@Before
 	public final void testInit() throws Throwable {
 		demo.App.getInstance().Start();
@@ -24,8 +24,8 @@ public class TestTableNestAction {
 	@Test
 	public final void testNestProcedure() throws Throwable{
 
-		OutObject<Integer> value1 = new OutObject<>(0);
-		OutObject<Integer> value2 = new OutObject<>(0);
+		var value1 = new OutInt();
+		var value2 = new OutInt();
 		demo.App.getInstance().Zeze.NewProcedure( () -> {
 
 			Transaction.getCurrent().RunWhileCommit(() -> {

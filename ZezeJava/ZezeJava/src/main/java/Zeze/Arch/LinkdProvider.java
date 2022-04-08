@@ -19,7 +19,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
     public LinkdProvider() {
     }
 
-    public boolean ChoiceProviderAndBind(int moduleId, Zeze.Net.AsyncSocket link, Zeze.Util.OutObject<Long> provider) {
+    public boolean ChoiceProviderAndBind(int moduleId, Zeze.Net.AsyncSocket link, Zeze.Util.OutLong provider) {
         var serviceName = Distribute.MakeServiceName(getServerServiceNamePrefix(), moduleId);
         var linkSession = (LinkdUserSession)link.getUserState();
         provider.Value = 0L;

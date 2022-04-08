@@ -63,7 +63,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		dispatch.Argument.getStates().addAll(linkSession.getUserStates());
 		dispatch.Argument.setStatex(linkSession.getUserStatex());
 
-		var provider = new Zeze.Util.OutObject<Long>();
+		var provider = new Zeze.Util.OutLong();
 		if (linkSession.TryGetProvider(moduleId, provider)) {
 			var socket = LinkdApp.LinkdProviderService.GetSocket(provider.Value);
 			if (null != socket) {

@@ -2,10 +2,9 @@ package UnitTest.Zeze.Trans;
 
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
-import Zeze.Util.OutObject;
+import Zeze.Util.OutLong;
 import Zeze.Util.Task;
 import demo.App;
-import demo.Module1.Simple;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,7 +37,7 @@ public class TestProcedureRedo {
 
         }, "TestProcedureRedoFirst").Call();
 
-        OutObject<Long> outLong2 = new OutObject<>();
+        var outLong2 = new OutLong();
         var ftask1 = Task.run(App.getInstance().Zeze.NewProcedure(()  -> {
 
             var v = App.getInstance().demo_Module1.getTable1().getOrAdd(6785L);

@@ -6,6 +6,7 @@ package Game.Timer;
 import Game.AutoKey.ModuleAutoKey;
 import Game.LongSet.NameValue;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -254,8 +255,8 @@ public class ModuleTimer extends AbstractModule {
         if (serverId == App.Zeze.getConfig().getServerId())
             throw new IllegalArgumentException();
 
-        final var first = new OutObject<Long>();
-        final var last = new OutObject<Long>();
+        final var first = new OutLong();
+        final var last = new OutLong();
 
         var result = Zeze.Util.Task.Call(App.Zeze.NewProcedure(() ->
         {

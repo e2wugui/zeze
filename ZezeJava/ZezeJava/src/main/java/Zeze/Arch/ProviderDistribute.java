@@ -30,7 +30,7 @@ public class ProviderDistribute {
 		return list.get(Integer.remainderUnsigned(hash, list.size()));
 	}
 
-	public boolean ChoiceHash(Agent.SubscribeState providers, int hash, Zeze.Util.OutObject<Long> provider) {
+	public boolean ChoiceHash(Agent.SubscribeState providers, int hash, Zeze.Util.OutLong provider) {
 		provider.Value = 0L;
 		var serviceInfo = ChoiceHash(providers, hash);
 		if (null == serviceInfo)
@@ -45,7 +45,7 @@ public class ProviderDistribute {
 		return true;
 	}
 
-	public boolean ChoiceLoad(Agent.SubscribeState providers, Zeze.Util.OutObject<Long> provider) {
+	public boolean ChoiceLoad(Agent.SubscribeState providers, Zeze.Util.OutLong provider) {
 		provider.Value = 0L;
 
 		var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
@@ -109,7 +109,7 @@ public class ProviderDistribute {
 
 	private final AtomicInteger FeedFullOneByOneIndex = new AtomicInteger();
 
-	public boolean ChoiceFeedFullOneByOne(Agent.SubscribeState providers, Zeze.Util.OutObject<Long> provider) {
+	public boolean ChoiceFeedFullOneByOne(Agent.SubscribeState providers, Zeze.Util.OutLong provider) {
 		// 查找时增加索引，和喂饱时增加索引，需要原子化。提高并发以后慢慢想，这里应该足够快了。
 		synchronized (this) {
 			provider.Value = 0L;
@@ -153,7 +153,7 @@ public class ProviderDistribute {
 		}
 	}
 
-	public boolean ChoiceProvider(String serviceNamePrefix, int moduleId, int hash, Zeze.Util.OutObject<Long> provider) {
+	public boolean ChoiceProvider(String serviceNamePrefix, int moduleId, int hash, Zeze.Util.OutLong provider) {
 		var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
 
 		var volatileProviders = Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
@@ -164,7 +164,7 @@ public class ProviderDistribute {
 		return ChoiceHash(volatileProviders, hash, provider);
 	}
 
-	public boolean ChoiceProviderByServerId(String serviceNamePrefix, int moduleId, int serverId, Zeze.Util.OutObject<Long> provider) {
+	public boolean ChoiceProviderByServerId(String serviceNamePrefix, int moduleId, int serverId, Zeze.Util.OutLong provider) {
 		var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
 
 		var volatileProviders = Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);

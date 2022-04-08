@@ -10,7 +10,7 @@ import Zeze.Beans.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.Action0;
-import Zeze.Util.OutObject;
+import Zeze.Util.OutLong;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
@@ -40,7 +40,7 @@ public abstract class RedirectBase {
 	public AsyncSocket ChoiceServer(IModule module, int serverId) {
 		if (serverId == ProviderApp.Zeze.getConfig().getServerId())
 			return null; // is Local
-		var out = new OutObject<Long>();
+		var out = new OutLong();
 		if (ProviderApp.Distribute.ChoiceProviderByServerId(ProviderApp.ServerServiceNamePrefix, module.getId(), serverId, out))
 			return ProviderApp.ProviderService.GetSocket(out.Value);
 		return null;
@@ -78,7 +78,7 @@ public abstract class RedirectBase {
 		miss.setResultCode(ModuleRedirect.ResultCodeLinkdNoProvider);
 
 		for (int i = 0; i < req.Argument.getHashCodeConcurrentLevel(); ++i) {
-			var provider = new Zeze.Util.OutObject<Long>();
+			var provider = new Zeze.Util.OutLong();
 			if (ProviderApp.Distribute.ChoiceProvider(req.Argument.getServiceNamePrefix(),
 					req.Argument.getModuleId(), i, provider)) {
 				var exist = transmits.get(provider.Value);

@@ -21,7 +21,7 @@ import Zeze.Services.GlobalCacheManager.ReLogin;
 import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
-import Zeze.Util.OutObject;
+import Zeze.Util.OutInt;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -375,7 +375,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						return 0;
 					}
 
-					OutObject<Integer> reduceResultState = new OutObject<>(StateReduceNetError); // 默认网络错误。
+					var reduceResultState = new OutInt(StateReduceNetError); // 默认网络错误。
 					if (cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid, cs.GlobalSerialId, p -> {
 						var r = (Reduce)p;
 						reduceResultState.Value = r.isTimeout() ? StateReduceRpcTimeout : r.Result.State;
@@ -496,7 +496,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						return 0;
 					}
 
-					OutObject<Integer> reduceResultState = new OutObject<>(StateReduceNetError); // 默认网络错误。
+					var reduceResultState = new OutInt(StateReduceNetError); // 默认网络错误。
 					if (cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid, cs.GlobalSerialId, p -> {
 						var r = (Reduce)p;
 						reduceResultState.Value = r.isTimeout() ? StateReduceRpcTimeout : r.Result.State;
