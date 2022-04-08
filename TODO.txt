@@ -1,173 +1,154 @@
 【TODO】
-	Zeze 打包和更新工具
-	Zeze lua beankey 问题。
-	ConfigEditor 自动完成: Foreign；自动id，Load 的时候记录maxid，以后编辑AddRow都使用这个递增；
-	ConfigEditor 更多自动完成？普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。
-	ConfigEditor enum 现在不支持引用在其他文档定义的，有需要了再来加。
-	war？一个module集合。定义export？private？App.Instance？生成代码使用基类，不再使用具体类型，
-	实际上就是把具体类型的功能尽量放到基类。感觉没必要：应用使用独立进程更加安全灵活些。
+Zeze 打包和更新工具
+Zeze lua beankey 问题。
+ConfigEditor 自动完成: Foreign；自动id，Load 的时候记录maxid，以后编辑AddRow都使用这个递增；
+ConfigEditor 更多自动完成？普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。
+ConfigEditor enum 现在不支持引用在其他文档定义的，有需要了再来加。
+war？一个module集合。定义export？private？App.Instance？生成代码使用基类，不再使用具体类型，
+实际上就是把具体类型的功能尽量放到基类。感觉没必要：应用使用独立进程更加安全灵活些。
 ----------------------------------------------------------------------------------------------------------------------------------
-	DatabaseTikv OperatesTikv
-	Global.Release并发问题【再次】确认
-	Zezex.client: 可靠消息实现的错误检查。
-	RocksRaft Collection.List LogList
-		SortedDictionary<int, Log Or Bean> ChangeOrAdd; // 优化。中间的值发生了改变或者在尾巴增加。
-		bool FullCopy; // 当发生中间删除或者插入时。这个有进一步优化空间。
-		OR -> List<OperateLog> 所有操作记录日志，收到方重做。问题：Get(index).Update，怎么融入。
-	Global.RocksRaft.LruTryRemoveCallback
-	Global c# 慢的问题。
-	把 RocksRaft Changes 应用到 Zeze 中，让 Zeze 实现任意Bean任意级别的更新。// 1. 仅支持整个Bean的订阅。2. log factory 问题。3. 动态订阅。add listener和notify原子问题。
-	Global java 异步化： TaskQueueAsync 任务需要参与到队列的推进。全异步和RocksRaft.Transaction.ThreadLocal问题，需要自己实现一个类似AsyncLocal的机制。
-	raft 异步测试
-	Global With Raft 异步测试
-	Test TestGlobal Simulate 异步测试
-	c# Arch & Test
-	Java Arch Test
-	Zezex Onlines TransmitInProcedure 需要重写。
-	Load 移到 Zeze.Arch 里面，里面使用的MyConfig相关配置移到LoadConfig中。
-	
+DatabaseTikv OperatesTikv
+Global.Release并发问题【再次】确认
+Zezex.client: 可靠消息实现的错误检查。
+RocksRaft Collection.List LogList
+	SortedDictionary<int, Log Or Bean> ChangeOrAdd; // 优化。中间的值发生了改变或者在尾巴增加。
+	bool FullCopy; // 当发生中间删除或者插入时。这个有进一步优化空间。
+	OR -> List<OperateLog> 所有操作记录日志，收到方重做。问题：Get(index).Update，怎么融入。
+Global.RocksRaft.LruTryRemoveCallback
+Global c# 慢的问题。
+把 RocksRaft Changes 应用到 Zeze 中，让 Zeze 实现任意Bean任意级别的更新。// 1. 仅支持整个Bean的订阅。2. log factory 问题。3. 动态订阅。add listener和notify原子问题。
+Global java 异步化： TaskQueueAsync 任务需要参与到队列的推进。全异步和RocksRaft.Transaction.ThreadLocal问题，需要自己实现一个类似AsyncLocal的机制。
+raft 异步测试
+Global With Raft 异步测试
+Test TestGlobal Simulate 异步测试
+c# Arch & Test
+Java Arch Test
+Zezex Onlines TransmitInProcedure 需要重写。
+
+【2022/5/11】
+
+
+
 【2022/4/11】
-	Java Arch Callback在不同Redirect模式下的限定和检查
-	CommitServiceList,ReadyServiceList 不发送整个列表，仅发送系列号。
-	问题：Java Arch ServiceManager ReadyCommit 依赖Provider之间的连接，但是连接又依赖Indentity-List-Ready。【暴露Pending状态的列表】
-	ProviderSession 增加 Set(ServiceName,Identity) OnSocketClose 时 foreach (var (s,i)) SetServiceIdentityReadyState(s, i, null);
-	SetServiceIdentityReadyState(+ServiceName, identity, state);【误会，这个定义在SubscribeState里面的，不需要ServiceName了】
-	Linkd-Provider之间的连接建立比Provider-List通告早，需要查询得到。【没问题，异步问题已经处理。当连接任何时候准备好，调用SetServiceIdentityReadyState设置进去】
-	java Arch: ModuleRedirect 重构。
-		【左尧完成Java了？】Zezex.ModuleRedirect 增加 TransactionLevel 注解配置。
-		Zezex.ModuleRedirect 去掉依赖Session生成hash模式；RunMyMethod去掉mode；
-	java Arch: 重构 Provider：分为 Provider(linkd-gs),Provider2(gs-gs)。预计负载算法还需要公用。
-	Load ServiceManager 新增按按Ip-Port组织的订阅和通告。
-	Load 更新。
-	RedoQueue Client 【未测试】
-	RedoQueue
-	{
-		1）存储：QueueId。 RocksDb<TaskId, Full_Encoded_Net_Rpc> 持久化的。
-		2）Task.Id long 递增 Rpc
-		Zeze.ServerApp
-		1) zeze.table<QueueId, LastTaskId> 记住已经同步的最后的任务id，
-		2) 功能：每个QueueId，for (LastTaskId, end) { Run(task); zeze.table.LastTaskId = task.Id; }
-		* 特性：允许 Zeze.ServerApp 回档，回档以后，从旧的LastTaskId开始重做任务。
-	}
-	Zeze.Component dynamic bean动态增加类型的能力。
-	LockAsync 单元测试。关键：TryEnterXXXLock。
-	Queue
-	GCTable(每个ServerId一个Queue), rename to DelayRemove
-	Component.AutoKey
-	java LinkedMap dynamic 动态注册问题。
-	换换脑子，写一个java版基于KV的LinkedMap
-	async Connector GetReadySocket WaitReady 
-	GlobakWithRaft java test【张路】【基本可用了】
-	GlobalAgent NormalClose 超时设置。必须加大或者无限等待。
-	zeze async await test。remove SimpleThreadPool!
-	database 异步测试
-	ServiceManager 异步化
-	TestCheckpoint 整个跑会失败，单独一个一个测试跑成功。【加了async，没有await】
-	async TestCheckpointModeTable 直接运行 Trans 目录会出错，单个或者选择开始的几个运行没问题。【AsybcLocal<Transaction>重用有问题，去掉重用】
-	rocksraft 异步测试【raft还有bug，但这个能测试通过】
-	Raft.AppendLog 加一个try catach，所有的内部错误都转换成RaftRetryException，这样就不会把内部异常漏给应用了。
-	AsyncRocksDb
-	AsyncExecutor
-	database 异步化 
-	Global With Raft 异步化
-	rocksraft 异步化
-	raft 异步化
-	Global 异步化
-	c# zeze 嵌套存储过程RunWhileRollback在外层事务Commit时需要处理的问题。还有按调用顺序回调的问题。
-		Savepoint 成员变量 CommitActions RollbackActions
-		Savepoint.Commit(nest) CommitActions.AddAll(nest.CommitActions);
-		Savepoint.Rollback(nest) CommitActions.AddAll(nest.RollbackActions); RollbackActions.AddAll(nest.RollbackActions);
-		Transaction.FinalCommit() foreach (var a in LastSavepoint.CommitActions) a.trigger();
-		Transaction.FinalRollback() foreach (var a in LastSavepoint.SavedRollbackActions) a.trigger();
-	zeze async await compile ok!
-	Raft.Shutdown 先关闭网络，有错误也不返回了。
-	TaskOneByOne 重构，新增支持调用异步存储过程和异步协议处理。
-	Global PulseAll 必须，需要全部等待在死锁检测的线程全部再来一遍，否则仍有可能死锁。
-	GlobakWithRaft java compile ok!
-	RaftLog.DecodeTermIndex 仅Decode两个内部变量，不包含应用日志。避免初始化循环依赖。
-	GlobalWithRaft c# test 1111
-		CacheHolder 访问 Instance 是旧的代码，引用到旧的static上面了。
-		AcquireModify Reduce Share 的时候，比如返回原来的事务才能修改数据。
-		* 这点非Raft版本Global(c#&java)都改成返回主流程修改状态数据。
-	GloblWithRaftAgent c# WaitLoginSuccess
-	RocksRaft java
-	RocksRaft rrjava
-	GlobalRaft Agent.Initialize & Test
-	GlobalRaft Agent GetReadySocket() Login ReLogin	
-	GlobalRaft GlobalSerialId 问题解决初步想法：由RocksRaft提供AtomicLong实现，每个事务结束，
-	成功同步到其他节点。这个Global拿来区分记录申请次数，需要一直递增，可以跳着分配（浪费）。
-	细节：lock (Raft) { if (atomiclong.get() > lastAppendLog) doAppendLog; }
+
+Load 移到 Zeze.Arch 里面，里面使用的MyConfig相关配置移到LoadConfig中。【使用OnSetServerLoad，Game.Load复用暂不考虑了】
+Java Arch Callback在不同Redirect模式下的限定和检查
+CommitServiceList,ReadyServiceList 不发送整个列表，仅发送系列号。
+问题：Java Arch ServiceManager ReadyCommit 依赖Provider之间的连接，但是连接又依赖Indentity-List-Ready。【暴露Pending状态的列表】
+ProviderSession 增加 Set(ServiceName,Identity) OnSocketClose 时 foreach (var (s,i)) SetServiceIdentityReadyState(s, i, null);
+SetServiceIdentityReadyState(+ServiceName, identity, state);【误会，这个定义在SubscribeState里面的，不需要ServiceName了】
+Linkd-Provider之间的连接建立比Provider-List通告早，需要查询得到。【没问题，异步问题已经处理。当连接任何时候准备好，调用SetServiceIdentityReadyState设置进去】
+java Arch: ModuleRedirect 重构。
+	【左尧完成Java了？】Zezex.ModuleRedirect 增加 TransactionLevel 注解配置。
+	Zezex.ModuleRedirect 去掉依赖Session生成hash模式；RunMyMethod去掉mode；
+java Arch: 重构 Provider：分为 Provider(linkd-gs),Provider2(gs-gs)。预计负载算法还需要公用。
+Load ServiceManager 新增按按Ip-Port组织的订阅和通告。
+Load 更新。
+RedoQueue Client 【未测试】
+RedoQueue
+{
+	1）存储：QueueId。 RocksDb<TaskId, Full_Encoded_Net_Rpc> 持久化的。
+	2）Task.Id long 递增 Rpc
+	Zeze.ServerApp
+	1) zeze.table<QueueId, LastTaskId> 记住已经同步的最后的任务id，
+	2) 功能：每个QueueId，for (LastTaskId, end) { Run(task); zeze.table.LastTaskId = task.Id; }
+	* 特性：允许 Zeze.ServerApp 回档，回档以后，从旧的LastTaskId开始重做任务。
+}
+Zeze.Component dynamic bean动态增加类型的能力。
+LockAsync 单元测试。关键：TryEnterXXXLock。
+Queue
+GCTable(每个ServerId一个Queue), rename to DelayRemove
+Component.AutoKey
+java LinkedMap dynamic 动态注册问题。
+换换脑子，写一个java版基于KV的LinkedMap
+async Connector GetReadySocket WaitReady 
+GlobakWithRaft java test【张路】【基本可用了】
+GlobalAgent NormalClose 超时设置。必须加大或者无限等待。
+zeze async await test。remove SimpleThreadPool!
+database 异步测试
+ServiceManager 异步化
+TestCheckpoint 整个跑会失败，单独一个一个测试跑成功。【加了async，没有await】
+async TestCheckpointModeTable 直接运行 Trans 目录会出错，单个或者选择开始的几个运行没问题。【AsybcLocal<Transaction>重用有问题，去掉重用】
+rocksraft 异步测试【raft还有bug，但这个能测试通过】
+Raft.AppendLog 加一个try catach，所有的内部错误都转换成RaftRetryException，这样就不会把内部异常漏给应用了。
+AsyncRocksDb
+AsyncExecutor
+database 异步化 
+Global With Raft 异步化
+rocksraft 异步化
+raft 异步化
+Global 异步化
+c# zeze 嵌套存储过程RunWhileRollback在外层事务Commit时需要处理的问题。还有按调用顺序回调的问题。
+	Savepoint 成员变量 CommitActions RollbackActions
+	Savepoint.Commit(nest) CommitActions.AddAll(nest.CommitActions);
+	Savepoint.Rollback(nest) CommitActions.AddAll(nest.RollbackActions); RollbackActions.AddAll(nest.RollbackActions);
+	Transaction.FinalCommit() foreach (var a in LastSavepoint.CommitActions) a.trigger();
+	Transaction.FinalRollback() foreach (var a in LastSavepoint.SavedRollbackActions) a.trigger();
+zeze async await compile ok!
+Raft.Shutdown 先关闭网络，有错误也不返回了。
+TaskOneByOne 重构，新增支持调用异步存储过程和异步协议处理。
+Global PulseAll 必须，需要全部等待在死锁检测的线程全部再来一遍，否则仍有可能死锁。
+GlobakWithRaft java compile ok!
+RaftLog.DecodeTermIndex 仅Decode两个内部变量，不包含应用日志。避免初始化循环依赖。
+GlobalWithRaft c# test 1111
+	CacheHolder 访问 Instance 是旧的代码，引用到旧的static上面了。
+	AcquireModify Reduce Share 的时候，比如返回原来的事务才能修改数据。
+	* 这点非Raft版本Global(c#&java)都改成返回主流程修改状态数据。
+GloblWithRaftAgent c# WaitLoginSuccess
+RocksRaft java
+RocksRaft rrjava
+GlobalRaft Agent.Initialize & Test
+GlobalRaft Agent GetReadySocket() Login ReLogin	
+GlobalRaft GlobalSerialId 问题解决初步想法：由RocksRaft提供AtomicLong实现，每个事务结束，
+成功同步到其他节点。这个Global拿来区分记录申请次数，需要一直递增，可以跳着分配（浪费）。
+细节：lock (Raft) { if (atomiclong.get() > lastAppendLog) doAppendLog; }
 
 【2022/3/11】
-	Global 流程确认：独占排他性，Raft版本部分操作仅Leader有效?
-	Global NormalClose 需要锁定Session，释放所有锁，确保释放完之前新的服务器不会登录进来。【raft及非raft版本都需要考虑】
-	Global Cleanup 需要锁定，释放所有锁，这里无法通过lock(session)保护。
-	Global Login Bind以后，释放存在的锁，看来没有问题，需要确认。
-	Global ReLogin 不涉及所释放，能Bind成功就表示ReLogin成功，看来没有问题，需要确认。
 
-	GlobalCacheManagerWithRaft 关键Transient：CacheState.AcquireStatePending 仅在Leader上使用，不需要同步到Follower。
-	RocksRaft & rrcs GenTable OpenTable 提供模板化打开表格能力。
-	RocksRaft Gen Bean.Variable.Transient Attribute
-	RocksRaft Gen
-		. Bean.Kind : "bean" "beankey" "rocks" "dynamic" ""
-		. project platform add type: "internal+cs" "internal+java" 增加属性 IsInternal 仅把原来Gen/下的类生成到src空间下，src下的代码不生成。
-	RocksRaft Collection.Set
-	RocksRaft Raft.AppendLog
-	RocksRaft NestProcedureContainer Test
-	RocksRaft Simple NestProcedure Test
-	RocksRaft Edit Bean In Container
-	Raft.AppendLog Future Add Duplicate Index. Fatal!【观察不到了！】
-	c# Global 慢？【网络事件也和普通Task共享了一个线程池，造成rpc.result处理也排队的结果，等async解决】
-	RocksRaft 日志收集基本完工。
-	Raft.Test 只删除日志相关数据库。保留重复请求数据库。
-	Raft.UniqueRequestSet.Put 优化：先读取并检查状态，减少写操作。
-	Raft.UniqueRequest.Expired
-	Raft.Expired
-	Raft.AppendLog 带上当前Rpc.Result，当发现重复请求的时候返回
-	Raft.LogSequence.FindMaxMajorityLogIndex 新实现，不需要遍历Log。
-	Raft.LogSequence.FindMaxMajorityLog 里面的 ReadLog 优化掉。
-	1. Log.cs: logger.Fatal("truncate committed entries"); Fatal!【选举移动代码的BUG：Term在递增前使用】
-	Raft.Apply 分批进行，让其他操作有运行机会。解决启动时，apply整个日志锁住时间太长的问题。
-	Raft.State.Timeout 恢复状态模式。【不恢复，就轮询了】
-	RaftLog.ToString More Detail
-	Raft.Agent TryGetReadySocket 总是 null。【没有发现问题】
-	Net.Connector.OnSocketHandshakeDone Fail 原因。【没有发现问题】
-	Raft.Shutdown 的时候快速失败-Cancel在Future上等待的任务。【有时shutdown会很慢】
-	2. Raft.Vote Leader 第一个Hearbeat被拒绝;  导致不停的选举。
-	   SaveLog.RocksDb.Put 卡住导致超时？
-	3. Raft.Count 错误处理问题？请求已经被处理，但是结果丢失，重发请求发生了不会重做的异常，这会导致Count统计不正确。【Raft.AppendLog 检查LogSequence是否null】
-	Raft.Vote 优先级++++++++++++++++++++++++++ 初步考虑仅使用不同的延迟。RandomDelay + DelayPriority;
-	Raft.Agent 客户端卡住了? 【锁内 Env.Exit卡住了，导致OnTimer任务不停积累，最终线程数量巨大】
-	Raft.RocksDb.Open Try N Times
-	Raft.Vote 投票后推迟自己再次选举的时间，免得浪费。【现在代码注释掉了】
-	Raft.Log.FollowerOnAppendEntries 优化。
-	Raft.Log.Index 必须递增，去掉原来支持跳着分配的代码，并且在需要的地方增加错误检查。
-	Raft.Agent ActiveTime 重连功能删除，
-	Net.Connector 轮询重连，【恢复回状态检查实现，轮询改为10分钟的错误处理】
-	Net.Connector 轮询重连？以后恢复成连接断开才启动timer？先轮询，等raft稳定了再考虑。
-	Raft.Test 关闭2节点后，一直没有重启。【测试程序出错了】
+Global 流程确认：独占排他性，Raft版本部分操作仅Leader有效?
+Global NormalClose 需要锁定Session，释放所有锁，确保释放完之前新的服务器不会登录进来。【raft及非raft版本都需要考虑】
+Global Cleanup 需要锁定，释放所有锁，这里无法通过lock(session)保护。
+Global Login Bind以后，释放存在的锁，看来没有问题，需要确认。
+Global ReLogin 不涉及所释放，能Bind成功就表示ReLogin成功，看来没有问题，需要确认。
 
-【2022/2/10】
-	【应该是请求量加多了，出现Leader出错时一起返回的结果】一堆的ProcessLeaderIs
-	Raft.Test Procedure.RaftApplied 错误怎么跑出去的。
-	RealConcurrentDoRequest,Expect=23368,Now=23370,Errors={-1:2}
-		-- 应该是服务器重复请求的地方失败了。
-		-- 造成执行了多次。
-		【rpc不能重复发送多次，否则有多线程问题】
-
-	Raft Vote 机制需要重新考虑。【恢复旧版的随机延迟】
-	Raft TaskOneByOneByKey Key=Unique=(ClientId, UniqueRequestId)
-	Raft 统一Timer，根据State处理不同的分支。
-	【Rpc会有并发访问（违背了rpc单线程使用原则，需要修改）】Raft.Agent.Test 有错误返回。怎么回事？
-	--- 【Net.Service.TryRemoveRpcContext 发送前总是尝试删除旧的上下文】
-	Raft.LeaderReadyFuture
-
-【2022/1/21】
-	Raft.Agent Resend 简化模型。
-	Raft BUG Follower 复制日志时，如果冲突，没有把当前冲突的日志写入，造成丢失。
-	Handshake 没有错误处理。Timeout Remove Context.
-	PersistentAtomicLong 使用文件锁，处理多进程（在同一个目录执行多份实例）。
-	Raft AppendLogActiveTime 移到 Connector 中，每个Connector判断自己的超时，并Heartbeat。
-	ServiceManager Simple 模式不通知整个列表！改成OnRegister OnUnRegister。
-	【已确认】checkpointMode.Period 不能用--->在启用Global情况下禁用。
-	【已确认】CheckpointMode.Table 能不能用？--->可以使用。
+GlobalCacheManagerWithRaft 关键Transient：CacheState.AcquireStatePending 仅在Leader上使用，不需要同步到Follower。
+RocksRaft & rrcs GenTable OpenTable 提供模板化打开表格能力。
+RocksRaft Gen Bean.Variable.Transient Attribute
+RocksRaft Gen
+	. Bean.Kind : "bean" "beankey" "rocks" "dynamic" ""
+	. project platform add type: "internal+cs" "internal+java" 增加属性 IsInternal 仅把原来Gen/下的类生成到src空间下，src下的代码不生成。
+RocksRaft Collection.Set
+RocksRaft Raft.AppendLog
+RocksRaft NestProcedureContainer Test
+RocksRaft Simple NestProcedure Test
+RocksRaft Edit Bean In Container
+Raft.AppendLog Future Add Duplicate Index. Fatal!【观察不到了！】
+c# Global 慢？【网络事件也和普通Task共享了一个线程池，造成rpc.result处理也排队的结果，等async解决】
+RocksRaft 日志收集基本完工。
+Raft.Test 只删除日志相关数据库。保留重复请求数据库。
+Raft.UniqueRequestSet.Put 优化：先读取并检查状态，减少写操作。
+Raft.UniqueRequest.Expired
+Raft.Expired
+Raft.AppendLog 带上当前Rpc.Result，当发现重复请求的时候返回
+Raft.LogSequence.FindMaxMajorityLogIndex 新实现，不需要遍历Log。
+Raft.LogSequence.FindMaxMajorityLog 里面的 ReadLog 优化掉。
+1. Log.cs: logger.Fatal("truncate committed entries"); Fatal!【选举移动代码的BUG：Term在递增前使用】
+Raft.Apply 分批进行，让其他操作有运行机会。解决启动时，apply整个日志锁住时间太长的问题。
+Raft.State.Timeout 恢复状态模式。【不恢复，就轮询了】
+RaftLog.ToString More Detail
+Raft.Agent TryGetReadySocket 总是 null。【没有发现问题】
+Net.Connector.OnSocketHandshakeDone Fail 原因。【没有发现问题】
+Raft.Shutdown 的时候快速失败-Cancel在Future上等待的任务。【有时shutdown会很慢】
+2. Raft.Vote Leader 第一个Hearbeat被拒绝;  导致不停的选举。
+   SaveLog.RocksDb.Put 卡住导致超时？
+3. Raft.Count 错误处理问题？请求已经被处理，但是结果丢失，重发请求发生了不会重做的异常，这会导致Count统计不正确。【Raft.AppendLog 检查LogSequence是否null】
+Raft.Vote 优先级++++++++++++++++++++++++++ 初步考虑仅使用不同的延迟。RandomDelay + DelayPriority;
+Raft.Agent 客户端卡住了? 【锁内 Env.Exit卡住了，导致OnTimer任务不停积累，最终线程数量巨大】
+Raft.RocksDb.Open Try N Times
+Raft.Vote 投票后推迟自己再次选举的时间，免得浪费。【现在代码注释掉了】
+Raft.Log.FollowerOnAppendEntries 优化。
+Raft.Log.Index 必须递增，去掉原来支持跳着分配的代码，并且在需要的地方增加错误检查。
+Raft.Agent ActiveTime 重连功能删除，
+Net.Connector 轮询重连，【恢复回状态检查实现，轮询改为10分钟的错误处理】
+Net.Connector 轮询重连？以后恢复成连接断开才启动timer？先轮询，等raft稳定了再考虑。
+Raft.Test 关闭2节点后，一直没有重启。【测试程序出错了】

@@ -24,8 +24,8 @@ public class ProviderApp {
 	public String LinkdServiceName;
 
 	// 现在内部可以自动设置两个参数，但有点不够可靠，生产环境最好手动设置。
-	public String ProviderDirectPassiveIp;
-	public int ProviderDirectPassivePort;
+	public String DirectIp;
+	public int DirectPort;
 
 	public ProviderDistribute Distribute;
 
@@ -52,8 +52,8 @@ public class ProviderApp {
 		this.ProviderDirectService.ProviderApp = this;
 
 		var kv = ProviderDirectService.GetOnePassiveAddress();
-		this.ProviderDirectPassiveIp = kv.getKey();
-		this.ProviderDirectPassivePort = kv.getValue();
+		this.DirectIp = kv.getKey();
+		this.DirectPort = kv.getValue();
 
 		this.LinkdServiceName = linkdNameOnServiceManager;
 

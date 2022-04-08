@@ -26,8 +26,12 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	public void TryConnectTo(Zeze.Services.ServiceManager.ServiceInfos infos) {
 		for (var pm : infos.getServiceInfoListSortedByIdentity()) {
 			var serverId = Integer.parseInt(pm.getServiceIdentity());
-			if (serverId <= getZeze().getConfig().getServerId())
+			if (serverId < getZeze().getConfig().getServerId())
 				continue;
+			if (serverId == getZeze().getConfig().getServerId()) {
+				SetRelativeServiceReady(new ProviderSession(0), ProviderApp.DirectIp, ProviderApp.DirectPort);
+				continue;
+			}
 			var out = new OutObject<Connector>();
 			if (getConfig().TryGetOrAddConnector(pm.getPassiveIp(), pm.getPassivePort(), true, out)) {
 				// 新建的Connector。开始连接。
@@ -45,8 +49,8 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			// 主动连接。
 			SetRelativeServiceReady(ps, c.getHostNameOrAddress(), c.getPort());
 			var r = new AnnounceProviderInfo();
-			r.Argument.setIp(ProviderApp.ProviderDirectPassiveIp);
-			r.Argument.setPort(ProviderApp.ProviderDirectPassivePort);
+			r.Argument.setIp(ProviderApp.DirectIp);
+			r.Argument.setPort(ProviderApp.DirectPort);
 			r.Send(socket, (_r) -> 0L); // skip result
 		}
 		// 被动连接等待对方报告信息时再处理。
@@ -59,7 +63,8 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	void SetRelativeServiceReady(ProviderSession ps, String ip, int port) {
 		ps.ServerLoadIp = ip;
 		ps.ServerLoadPort = port;
-		ProviderSessions.put(ps.getServerLoadName(), ps);
+		if (null != ProviderSessions.putIfAbsent(ps.getServerLoadName(), ps))
+			return; // 忽略重复的设置。为了设置本机Ready的假会话会重复设置。
 
 		// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
 		for (var ss : getZeze().getServiceManagerAgent().getSubscribeStates().values()) {

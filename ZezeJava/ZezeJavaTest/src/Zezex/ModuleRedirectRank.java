@@ -15,7 +15,7 @@ public class ModuleRedirectRank extends TestCase {
 		app1.getLoad().Report(0, 0);
 		app2.getLoad().Report(0, 0);
 
-		Thread.sleep(1000); // wait connected
+		Thread.sleep(2000); // wait connected
 
 		try {
 			app1.Game_Rank.TestToServer(0, 12345, result -> { assert result == 12345; });

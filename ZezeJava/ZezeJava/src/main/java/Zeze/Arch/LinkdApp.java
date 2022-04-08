@@ -10,8 +10,8 @@ public class LinkdApp {
 	public LinkdProviderService LinkdProviderService;
 	public LinkdService LinkdService;
 	// 现在内部可以自动设置两个参数，但有点不够可靠，生产环境最好手动设置。
-	public String ProviderPassiveIp;
-	public int ProviderPassivePort;
+	public String ProviderIp;
+	public int ProviderPort;
 
 	public LinkdApp(String linkdServiceName,
 					Zeze.Application zeze, LinkdProvider linkdProvider,
@@ -44,17 +44,17 @@ public class LinkdApp {
 		});
 
 		var kv = LinkdProviderService.GetOnePassiveAddress();
-		ProviderPassiveIp = kv.getKey();
-		ProviderPassivePort = kv.getValue();
+		ProviderIp = kv.getKey();
+		ProviderPort = kv.getValue();
 	}
 
 	public String GetName() {
-		return LinkdServiceName + "." + ProviderPassiveIp + ":" + ProviderPassivePort;
+		return LinkdServiceName + "." + ProviderIp + ":" + ProviderPort;
 	}
 
 	public void RegisterService(Zeze.Net.Binary extra) throws Throwable {
-		var identity = ProviderPassiveIp + ":" + ProviderPassivePort;
+		var identity = ProviderIp + ":" + ProviderPort;
 		Zeze.getServiceManagerAgent().RegisterService(LinkdServiceName, identity,
-				ProviderPassiveIp, ProviderPassivePort, extra);
+				ProviderIp, ProviderPort, extra);
 	}
 }

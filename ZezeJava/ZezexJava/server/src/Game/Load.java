@@ -71,8 +71,8 @@ public class Load {
 		load.Encode(bb);
 
 		var loadServer = new Zeze.Services.ServiceManager.ServerLoad();
-		loadServer.Ip = App.getInstance().ProviderApp.ProviderDirectPassiveIp;
-		loadServer.Port = App.getInstance().ProviderApp.ProviderDirectPassivePort;
+		loadServer.Ip = App.getInstance().ProviderApp.DirectIp;
+		loadServer.Port = App.getInstance().ProviderApp.DirectPort;
 		loadServer.Param = new Binary(bb);
 
 		try {
