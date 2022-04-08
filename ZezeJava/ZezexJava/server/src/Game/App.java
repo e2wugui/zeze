@@ -116,7 +116,6 @@ public final class App extends Zeze.AppBase {
 		AsyncSocket.setSessionIdGenFunc(socketSessionIdGen::next);
 		StartService(); // 启动网络
 		getLoad().StartTimerTask();
-		getLoad().Report(0, 0); // 马上报告一次负载，通告自己的存在。Provider之间互联依赖这个信息。
 
 		// 服务准备好以后才注册和订阅。
 		ProviderApp.StartLast();

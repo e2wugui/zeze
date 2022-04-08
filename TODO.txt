@@ -24,9 +24,14 @@
 	c# Arch & Test
 	Java Arch Callback在不同Redirect模式下的限定和检查 & Test
 	Zezex Onlines TransmitInProcedure 需要重写。
-	问题：Java Arch ServiceManager ReadyCommit 依赖Provider之间的连接，但是连接又依赖Indentity-List-Ready。【使用Load信息建立连接？】
+	CommitServiceList,ReadyServiceList 不发送整个列表，仅发送系列号。
+	Load 移到 Zeze.Arch 里面，里面使用的MyConfig相关配置移到LoadConfig中。
 	
 【2022/4/11】
+	问题：Java Arch ServiceManager ReadyCommit 依赖Provider之间的连接，但是连接又依赖Indentity-List-Ready。【暴露Pending状态的列表】
+	ProviderSession 增加 Set(ServiceName,Identity) OnSocketClose 时 foreach (var (s,i)) SetServiceIdentityReadyState(s, i, null);
+	SetServiceIdentityReadyState(+ServiceName, identity, state);【误会，这个定义在SubscribeState里面的，不需要ServiceName了】
+	Linkd-Provider之间的连接建立比Provider-List通告早，需要查询得到。【没问题，异步问题已经处理。当连接任何时候准备好，调用SetServiceIdentityReadyState设置进去】
 	java Arch: ModuleRedirect 重构。
 		【左尧完成Java了？】Zezex.ModuleRedirect 增加 TransactionLevel 注解配置。
 		Zezex.ModuleRedirect 去掉依赖Session生成hash模式；RunMyMethod去掉mode；

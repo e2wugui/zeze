@@ -22,7 +22,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		super(name, zeze);
 	}
 
-	public void Apply(Zeze.Services.ServiceManager.ServiceInfos infos) {
+	public void TryConnectTo(Zeze.Services.ServiceManager.ServiceInfos infos) {
 		for (var pm : infos.getServiceInfoListSortedByIdentity()) {
 			var serverId = Integer.parseInt(pm.getServiceIdentity());
 			if (serverId <= getZeze().getConfig().getServerId())
@@ -37,34 +37,52 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 
 	@Override
 	public void OnHandshakeDone(AsyncSocket socket) throws Throwable {
-		super.OnHandshakeDone(socket);
+		var ps = new ProviderSession(socket.getSessionId());
+		socket.setUserState(ps);
 		var c = socket.getConnector();
 		if (c != null) {
 			// 主动连接。
-			updateServiceInfos(c.getHostNameOrAddress(), c.getPort(), socket.getSessionId());
+			SetRelativeServiceReady(ps, c.getHostNameOrAddress(), c.getPort());
 			var r = new AnnounceProviderInfo();
 			r.Argument.setIp(ProviderApp.ProviderDirectPassiveIp);
 			r.Argument.setPort(ProviderApp.ProviderDirectPassivePort);
 			r.Send(socket, (_r) -> 0L); // skip result
 		}
 		// 被动连接等待对方报告信息时再处理。
+		// call base
+		super.OnHandshakeDone(socket);
 	}
 
-	void updateServiceInfos(String ip, int port, long sessionId) {
+	void SetRelativeServiceReady(ProviderSession ps, String ip, int port) {
 		// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
 		for (var ss : getZeze().getServiceManagerAgent().getSubscribeStates().values()) {
 			if (ss.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)) {
 				var mid = Integer.parseInt(ss.getServiceName().split("#")[1]);
 				var m = ProviderApp.Modules.get(mid);
 				for (var server : ss.getServiceInfos().getServiceInfoListSortedByIdentity()) {
-					// 符合当前连接目标。
+					// 符合当前连接目标。每个Identity标识的服务的(ip,port)必须不一样。
 					if (server.getPassiveIp().equals(ip) && server.getPassivePort() == port) {
-						ss.SetServiceIdentityReadyState(server.getServiceIdentity(),
-								new ProviderModuleState(sessionId, mid, m.getChoiceType(), m.getConfigType()));
+						var pms = new ProviderModuleState(ps.getSessionId(), mid, m.getChoiceType(), m.getConfigType());
+						ps.GetOrAddServiceReadyState(ss.getServiceName()).put(server.getServiceIdentity(), pms);
+						ss.SetServiceIdentityReadyState(server.getServiceIdentity(), pms);
 					}
 				}
 			}
 		}
+	}
+
+	@Override
+	public void OnSocketClose(AsyncSocket socket, Throwable ex) throws Throwable {
+		var ps = (ProviderSession)socket.getUserState();
+		if (null != ps) {
+			for (var service : ps.ServiceReadyStates.entrySet()) {
+				var subs = getZeze().getServiceManagerAgent().getSubscribeStates().get(service.getKey());
+				for (var identity : service.getValue().keySet()) {
+					subs.SetServiceIdentityReadyState(identity, null);
+				}
+			}
+		}
+		super.OnSocketClose(socket, ex);
 	}
 
 	@Override

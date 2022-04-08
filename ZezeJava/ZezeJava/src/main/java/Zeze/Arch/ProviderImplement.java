@@ -22,8 +22,15 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	void ApplyServiceInfos(Zeze.Services.ServiceManager.ServiceInfos serviceInfos) {
 		if (serviceInfos.getServiceName().equals(ProviderApp.LinkdServiceName)) {
 			this.ProviderApp.ProviderService.Apply(serviceInfos);
-		} else if (serviceInfos.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)){
-			this.ProviderApp.ProviderDirectService.Apply(serviceInfos);
+		} /* 模块服务改变不需要处理。ProviderDistribute直接使用即可。
+		 else if (serviceInfos.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)){
+			this.ProviderApp.ProviderDirectService.TryConnectTo(serviceInfos);
+		} */
+	}
+
+	void ApplyPrepareServiceInfos(Zeze.Services.ServiceManager.ServiceInfos serviceInfos) {
+		if (serviceInfos.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)){
+			this.ProviderApp.ProviderDirectService.TryConnectTo(serviceInfos);
 		}
 	}
 

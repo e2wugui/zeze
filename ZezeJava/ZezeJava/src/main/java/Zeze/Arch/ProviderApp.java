@@ -59,6 +59,8 @@ public class ProviderApp {
 
 		this.Zeze.getServiceManagerAgent().setOnChanged(
 				(subscribeState) -> ProviderImplement.ApplyServiceInfos(subscribeState.getServiceInfos()));
+		this.Zeze.getServiceManagerAgent().setOnPrepare(
+				(subscribeState) -> ProviderImplement.ApplyPrepareServiceInfos(subscribeState.getServiceInfosPending()));
 
 		this.Distribute = new ProviderDistribute();
 		this.Distribute.LoadConfig = loadConfig;

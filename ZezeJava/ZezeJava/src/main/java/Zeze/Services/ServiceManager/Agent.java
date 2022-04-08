@@ -26,6 +26,7 @@ public final class Agent implements Closeable {
 	private Zeze.Util.Action1<SubscribeState> OnChanged;
 	private Zeze.Util.Action2<SubscribeState, ServiceInfo> OnUpdate;
 	private Zeze.Util.Action2<SubscribeState, ServiceInfo> OnRemove;
+	private Zeze.Util.Action1<SubscribeState> OnPrepare; // ReadyCommit 的第一步回调。
 
 	// 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
 	// ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
@@ -61,6 +62,8 @@ public final class Agent implements Closeable {
 	public void setOnChanged(Zeze.Util.Action1<SubscribeState> value) {
 		OnChanged = value;
 	}
+
+	public void setOnPrepare(Zeze.Util.Action1<SubscribeState> value) { OnPrepare = value; }
 
 	public Zeze.Util.Action2<SubscribeState, ServiceInfo> getOnRemoved() {
 		return OnRemove;
@@ -129,10 +132,6 @@ public final class Agent implements Closeable {
 			return ServiceInfosPending;
 		}
 
-		private void setServiceInfosPending(ServiceInfos value) {
-			ServiceInfosPending = value;
-		}
-
 		/**
 		 * 刚初始化时为false，任何修改ServiceInfos都会设置成true。 用来处理Subscribe返回的第一份数据和Commit可能乱序的问题。
 		 * 目前的实现不会发生乱序。
@@ -150,10 +149,6 @@ public final class Agent implements Closeable {
 		// 服务准备好。
 		private final ConcurrentHashMap<String, Object> ServiceIdentityReadyStates = new ConcurrentHashMap<>();
 
-		public ConcurrentHashMap<String, Object> getServiceIdentityReadyStates() {
-			return ServiceIdentityReadyStates;
-		}
-
 		public SubscribeState(SubscribeInfo info) {
 			subscribeInfo = info;
 			setServiceInfos(new ServiceInfos(info.getServiceName()));
@@ -167,7 +162,7 @@ public final class Agent implements Closeable {
 			}
 
 			for (var pending : getServiceInfosPending().getServiceInfoListSortedByIdentity()) {
-				if (!getServiceIdentityReadyStates().containsKey(pending.getServiceIdentity())) {
+				if (!ServiceIdentityReadyStates.containsKey(pending.getServiceIdentity())) {
 					return false;
 				}
 			}
@@ -183,7 +178,7 @@ public final class Agent implements Closeable {
 			if (null == state) {
 				ServiceIdentityReadyStates.remove(identity);
 			} else {
-				getServiceIdentityReadyStates().put(identity, state);
+				ServiceIdentityReadyStates.put(identity, state);
 			}
 
 			synchronized (this) {
@@ -200,7 +195,7 @@ public final class Agent implements Closeable {
 
 		private void PrepareAndTriggerOnChanged() throws Throwable {
 			for (var info : getServiceInfos().getServiceInfoListSortedByIdentity()) {
-				var state = getServiceIdentityReadyStates().get(info.getServiceIdentity());
+				var state = ServiceIdentityReadyStates.get(info.getServiceIdentity());
 				if (null != state) // 需要确认里面会不会存null。
 					info.setLocalState(state);
 			}
@@ -254,7 +249,9 @@ public final class Agent implements Closeable {
 			case SubscribeInfo.SubscribeTypeReadyCommit:
 				if (null == getServiceInfosPending()
 						|| infos.getSerialId() > getServiceInfosPending().getSerialId()) {
-					setServiceInfosPending(infos);
+					ServiceInfosPending = infos;
+					if (null != OnPrepare)
+						OnPrepare.run(this);
 					TrySendReadyServiceList();
 				}
 				break;
@@ -280,7 +277,7 @@ public final class Agent implements Closeable {
 				Agent.logger.warn("OnCommit: ServiceInfosPending Miss Match.");
 			}
 			setServiceInfos(infos);
-			setServiceInfosPending(null);
+			ServiceInfosPending = null;
 			setCommitted(true);
 			PrepareAndTriggerOnChanged();
 		}
@@ -291,7 +288,7 @@ public final class Agent implements Closeable {
 			}
 			setCommitted(true);
 			setServiceInfos(infos);
-			setServiceInfosPending(null);
+			ServiceInfosPending = null;
 			PrepareAndTriggerOnChanged();
 		}
 	}
