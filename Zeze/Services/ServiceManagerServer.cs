@@ -845,6 +845,7 @@ namespace Zeze.Services.ServiceManager
         public Action<SubscribeState> OnChanged { get; set; }
         public Action<SubscribeState, ServiceInfo> OnUpdate { get; set; }
         public Action<SubscribeState, ServiceInfo> OnRemove { get; set; }
+        public Action<SubscribeState> OnPrepare { get; set; }
 
         // 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
         // ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
@@ -1002,6 +1003,7 @@ namespace Zeze.Services.ServiceManager
                                 )
                             {
                                 ServiceInfosPending = infos;
+                                Agent.OnPrepare?.Invoke(this);
                                 TrySendReadyServiceList();
                             }
                             break;

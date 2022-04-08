@@ -1,172 +1,172 @@
-¡¾TODO¡¿
-	Zeze ´ò°üºÍ¸üĞÂ¹¤¾ß
-	Zeze lua beankey ÎÊÌâ¡£
-	ConfigEditor ×Ô¶¯Íê³É: Foreign£»×Ô¶¯id£¬Load µÄÊ±ºò¼ÇÂ¼maxid£¬ÒÔºó±à¼­AddRow¶¼Ê¹ÓÃÕâ¸öµİÔö£»
-	ConfigEditor ¸ü¶à×Ô¶¯Íê³É£¿ÆÕÍ¨µÄÁĞÄ¬ÈÏ×î½üÊ¹ÓÃµÄn¸öÖµ£¬¸ù¾İÊäÈëÔÚÁĞÖĞ²éÕÒ×îÆ¥ÅäµÄ¡£
-	ConfigEditor enum ÏÖÔÚ²»Ö§³ÖÒıÓÃÔÚÆäËûÎÄµµ¶¨ÒåµÄ£¬ÓĞĞèÒªÁËÔÙÀ´¼Ó¡£
-	war£¿Ò»¸ömodule¼¯ºÏ¡£¶¨Òåexport£¿private£¿App.Instance£¿Éú³É´úÂëÊ¹ÓÃ»ùÀà£¬²»ÔÙÊ¹ÓÃ¾ßÌåÀàĞÍ£¬
-	Êµ¼ÊÉÏ¾ÍÊÇ°Ñ¾ßÌåÀàĞÍµÄ¹¦ÄÜ¾¡Á¿·Åµ½»ùÀà¡£¸Ğ¾õÃ»±ØÒª£ºÓ¦ÓÃÊ¹ÓÃ¶ÀÁ¢½ø³Ì¸ü¼Ó°²È«Áé»îĞ©¡£
+ã€TODOã€‘
+	Zeze æ‰“åŒ…å’Œæ›´æ–°å·¥å…·
+	Zeze lua beankey é—®é¢˜ã€‚
+	ConfigEditor è‡ªåŠ¨å®Œæˆ: Foreignï¼›è‡ªåŠ¨idï¼ŒLoad çš„æ—¶å€™è®°å½•maxidï¼Œä»¥åç¼–è¾‘AddRowéƒ½ä½¿ç”¨è¿™ä¸ªé€’å¢ï¼›
+	ConfigEditor æ›´å¤šè‡ªåŠ¨å®Œæˆï¼Ÿæ™®é€šçš„åˆ—é»˜è®¤æœ€è¿‘ä½¿ç”¨çš„nä¸ªå€¼ï¼Œæ ¹æ®è¾“å…¥åœ¨åˆ—ä¸­æŸ¥æ‰¾æœ€åŒ¹é…çš„ã€‚
+	ConfigEditor enum ç°åœ¨ä¸æ”¯æŒå¼•ç”¨åœ¨å…¶ä»–æ–‡æ¡£å®šä¹‰çš„ï¼Œæœ‰éœ€è¦äº†å†æ¥åŠ ã€‚
+	warï¼Ÿä¸€ä¸ªmoduleé›†åˆã€‚å®šä¹‰exportï¼Ÿprivateï¼ŸApp.Instanceï¼Ÿç”Ÿæˆä»£ç ä½¿ç”¨åŸºç±»ï¼Œä¸å†ä½¿ç”¨å…·ä½“ç±»å‹ï¼Œ
+	å®é™…ä¸Šå°±æ˜¯æŠŠå…·ä½“ç±»å‹çš„åŠŸèƒ½å°½é‡æ”¾åˆ°åŸºç±»ã€‚æ„Ÿè§‰æ²¡å¿…è¦ï¼šåº”ç”¨ä½¿ç”¨ç‹¬ç«‹è¿›ç¨‹æ›´åŠ å®‰å…¨çµæ´»äº›ã€‚
 ----------------------------------------------------------------------------------------------------------------------------------
 	DatabaseTikv OperatesTikv
-	Global.Release²¢·¢ÎÊÌâ¡¾ÔÙ´Î¡¿È·ÈÏ
-	Zezex.client: ¿É¿¿ÏûÏ¢ÊµÏÖµÄ´íÎó¼ì²é¡£
+	Global.Releaseå¹¶å‘é—®é¢˜ã€å†æ¬¡ã€‘ç¡®è®¤
+	Zezex.client: å¯é æ¶ˆæ¯å®ç°çš„é”™è¯¯æ£€æŸ¥ã€‚
 	RocksRaft Collection.List LogList
-		SortedDictionary<int, Log Or Bean> ChangeOrAdd; // ÓÅ»¯¡£ÖĞ¼äµÄÖµ·¢ÉúÁË¸Ä±ä»òÕßÔÚÎ²°ÍÔö¼Ó¡£
-		bool FullCopy; // µ±·¢ÉúÖĞ¼äÉ¾³ı»òÕß²åÈëÊ±¡£Õâ¸öÓĞ½øÒ»²½ÓÅ»¯¿Õ¼ä¡£
-		OR -> List<OperateLog> ËùÓĞ²Ù×÷¼ÇÂ¼ÈÕÖ¾£¬ÊÕµ½·½ÖØ×ö¡£ÎÊÌâ£ºGet(index).Update£¬ÔõÃ´ÈÚÈë¡£
+		SortedDictionary<int, Log Or Bean> ChangeOrAdd; // ä¼˜åŒ–ã€‚ä¸­é—´çš„å€¼å‘ç”Ÿäº†æ”¹å˜æˆ–è€…åœ¨å°¾å·´å¢åŠ ã€‚
+		bool FullCopy; // å½“å‘ç”Ÿä¸­é—´åˆ é™¤æˆ–è€…æ’å…¥æ—¶ã€‚è¿™ä¸ªæœ‰è¿›ä¸€æ­¥ä¼˜åŒ–ç©ºé—´ã€‚
+		OR -> List<OperateLog> æ‰€æœ‰æ“ä½œè®°å½•æ—¥å¿—ï¼Œæ”¶åˆ°æ–¹é‡åšã€‚é—®é¢˜ï¼šGet(index).Updateï¼Œæ€ä¹ˆèå…¥ã€‚
 	Global.RocksRaft.LruTryRemoveCallback
-	Global c# ÂıµÄÎÊÌâ¡£
-	°Ñ RocksRaft Changes Ó¦ÓÃµ½ Zeze ÖĞ£¬ÈÃ Zeze ÊµÏÖÈÎÒâBeanÈÎÒâ¼¶±ğµÄ¸üĞÂ¡£// 1. ½öÖ§³ÖÕû¸öBeanµÄ¶©ÔÄ¡£2. log factory ÎÊÌâ¡£3. ¶¯Ì¬¶©ÔÄ¡£add listenerºÍnotifyÔ­×ÓÎÊÌâ¡£
-	Global java Òì²½»¯£º TaskQueueAsync ÈÎÎñĞèÒª²ÎÓëµ½¶ÓÁĞµÄÍÆ½ø¡£È«Òì²½ºÍRocksRaft.Transaction.ThreadLocalÎÊÌâ£¬ĞèÒª×Ô¼ºÊµÏÖÒ»¸öÀàËÆAsyncLocalµÄ»úÖÆ¡£
-	raft Òì²½²âÊÔ
-	Global With Raft Òì²½²âÊÔ
-	Test TestGlobal Simulate Òì²½²âÊÔ
+	Global c# æ…¢çš„é—®é¢˜ã€‚
+	æŠŠ RocksRaft Changes åº”ç”¨åˆ° Zeze ä¸­ï¼Œè®© Zeze å®ç°ä»»æ„Beanä»»æ„çº§åˆ«çš„æ›´æ–°ã€‚// 1. ä»…æ”¯æŒæ•´ä¸ªBeançš„è®¢é˜…ã€‚2. log factory é—®é¢˜ã€‚3. åŠ¨æ€è®¢é˜…ã€‚add listenerå’ŒnotifyåŸå­é—®é¢˜ã€‚
+	Global java å¼‚æ­¥åŒ–ï¼š TaskQueueAsync ä»»åŠ¡éœ€è¦å‚ä¸åˆ°é˜Ÿåˆ—çš„æ¨è¿›ã€‚å…¨å¼‚æ­¥å’ŒRocksRaft.Transaction.ThreadLocalé—®é¢˜ï¼Œéœ€è¦è‡ªå·±å®ç°ä¸€ä¸ªç±»ä¼¼AsyncLocalçš„æœºåˆ¶ã€‚
+	raft å¼‚æ­¥æµ‹è¯•
+	Global With Raft å¼‚æ­¥æµ‹è¯•
+	Test TestGlobal Simulate å¼‚æ­¥æµ‹è¯•
 	c# Arch & Test
-	Java Arch CallbackÔÚ²»Í¬RedirectÄ£Ê½ÏÂµÄÏŞ¶¨ºÍ¼ì²é & Test
-	Zezex Onlines TransmitInProcedure ĞèÒªÖØĞ´¡£
-	CommitServiceList,ReadyServiceList ²»·¢ËÍÕû¸öÁĞ±í£¬½ö·¢ËÍÏµÁĞºÅ¡£
-	Load ÒÆµ½ Zeze.Arch ÀïÃæ£¬ÀïÃæÊ¹ÓÃµÄMyConfigÏà¹ØÅäÖÃÒÆµ½LoadConfigÖĞ¡£
+	Java Arch Callbackåœ¨ä¸åŒRedirectæ¨¡å¼ä¸‹çš„é™å®šå’Œæ£€æŸ¥ & Test
+	Zezex Onlines TransmitInProcedure éœ€è¦é‡å†™ã€‚
+	CommitServiceList,ReadyServiceList ä¸å‘é€æ•´ä¸ªåˆ—è¡¨ï¼Œä»…å‘é€ç³»åˆ—å·ã€‚
+	Load ç§»åˆ° Zeze.Arch é‡Œé¢ï¼Œé‡Œé¢ä½¿ç”¨çš„MyConfigç›¸å…³é…ç½®ç§»åˆ°LoadConfigä¸­ã€‚
 	
-¡¾2022/4/11¡¿
-	ÎÊÌâ£ºJava Arch ServiceManager ReadyCommit ÒÀÀµProviderÖ®¼äµÄÁ¬½Ó£¬µ«ÊÇÁ¬½ÓÓÖÒÀÀµIndentity-List-Ready¡£¡¾±©Â¶Pending×´Ì¬µÄÁĞ±í¡¿
-	ProviderSession Ôö¼Ó Set(ServiceName,Identity) OnSocketClose Ê± foreach (var (s,i)) SetServiceIdentityReadyState(s, i, null);
-	SetServiceIdentityReadyState(+ServiceName, identity, state);¡¾Îó»á£¬Õâ¸ö¶¨ÒåÔÚSubscribeStateÀïÃæµÄ£¬²»ĞèÒªServiceNameÁË¡¿
-	Linkd-ProviderÖ®¼äµÄÁ¬½Ó½¨Á¢±ÈProvider-ListÍ¨¸æÔç£¬ĞèÒª²éÑ¯µÃµ½¡£¡¾Ã»ÎÊÌâ£¬Òì²½ÎÊÌâÒÑ¾­´¦Àí¡£µ±Á¬½ÓÈÎºÎÊ±ºò×¼±¸ºÃ£¬µ÷ÓÃSetServiceIdentityReadyStateÉèÖÃ½øÈ¥¡¿
-	java Arch: ModuleRedirect ÖØ¹¹¡£
-		¡¾×óÒ¢Íê³ÉJavaÁË£¿¡¿Zezex.ModuleRedirect Ôö¼Ó TransactionLevel ×¢½âÅäÖÃ¡£
-		Zezex.ModuleRedirect È¥µôÒÀÀµSessionÉú³ÉhashÄ£Ê½£»RunMyMethodÈ¥µômode£»
-	java Arch: ÖØ¹¹ Provider£º·ÖÎª Provider(linkd-gs),Provider2(gs-gs)¡£Ô¤¼Æ¸ºÔØËã·¨»¹ĞèÒª¹«ÓÃ¡£
-	Load ServiceManager ĞÂÔö°´°´Ip-Port×éÖ¯µÄ¶©ÔÄºÍÍ¨¸æ¡£
-	Load ¸üĞÂ¡£
-	RedoQueue Client ¡¾Î´²âÊÔ¡¿
+ã€2022/4/11ã€‘
+	é—®é¢˜ï¼šJava Arch ServiceManager ReadyCommit ä¾èµ–Providerä¹‹é—´çš„è¿æ¥ï¼Œä½†æ˜¯è¿æ¥åˆä¾èµ–Indentity-List-Readyã€‚ã€æš´éœ²PendingçŠ¶æ€çš„åˆ—è¡¨ã€‘
+	ProviderSession å¢åŠ  Set(ServiceName,Identity) OnSocketClose æ—¶ foreach (var (s,i)) SetServiceIdentityReadyState(s, i, null);
+	SetServiceIdentityReadyState(+ServiceName, identity, state);ã€è¯¯ä¼šï¼Œè¿™ä¸ªå®šä¹‰åœ¨SubscribeStateé‡Œé¢çš„ï¼Œä¸éœ€è¦ServiceNameäº†ã€‘
+	Linkd-Providerä¹‹é—´çš„è¿æ¥å»ºç«‹æ¯”Provider-Listé€šå‘Šæ—©ï¼Œéœ€è¦æŸ¥è¯¢å¾—åˆ°ã€‚ã€æ²¡é—®é¢˜ï¼Œå¼‚æ­¥é—®é¢˜å·²ç»å¤„ç†ã€‚å½“è¿æ¥ä»»ä½•æ—¶å€™å‡†å¤‡å¥½ï¼Œè°ƒç”¨SetServiceIdentityReadyStateè®¾ç½®è¿›å»ã€‘
+	java Arch: ModuleRedirect é‡æ„ã€‚
+		ã€å·¦å°§å®ŒæˆJavaäº†ï¼Ÿã€‘Zezex.ModuleRedirect å¢åŠ  TransactionLevel æ³¨è§£é…ç½®ã€‚
+		Zezex.ModuleRedirect å»æ‰ä¾èµ–Sessionç”Ÿæˆhashæ¨¡å¼ï¼›RunMyMethodå»æ‰modeï¼›
+	java Arch: é‡æ„ Providerï¼šåˆ†ä¸º Provider(linkd-gs),Provider2(gs-gs)ã€‚é¢„è®¡è´Ÿè½½ç®—æ³•è¿˜éœ€è¦å…¬ç”¨ã€‚
+	Load ServiceManager æ–°å¢æŒ‰æŒ‰Ip-Portç»„ç»‡çš„è®¢é˜…å’Œé€šå‘Šã€‚
+	Load æ›´æ–°ã€‚
+	RedoQueue Client ã€æœªæµ‹è¯•ã€‘
 	RedoQueue
 	{
-		1£©´æ´¢£ºQueueId¡£ RocksDb<TaskId, Full_Encoded_Net_Rpc> ³Ö¾Ã»¯µÄ¡£
-		2£©Task.Id long µİÔö Rpc
+		1ï¼‰å­˜å‚¨ï¼šQueueIdã€‚ RocksDb<TaskId, Full_Encoded_Net_Rpc> æŒä¹…åŒ–çš„ã€‚
+		2ï¼‰Task.Id long é€’å¢ Rpc
 		Zeze.ServerApp
-		1) zeze.table<QueueId, LastTaskId> ¼Ç×¡ÒÑ¾­Í¬²½µÄ×îºóµÄÈÎÎñid£¬
-		2) ¹¦ÄÜ£ºÃ¿¸öQueueId£¬for (LastTaskId, end) { Run(task); zeze.table.LastTaskId = task.Id; }
-		* ÌØĞÔ£ºÔÊĞí Zeze.ServerApp »Øµµ£¬»ØµµÒÔºó£¬´Ó¾ÉµÄLastTaskId¿ªÊ¼ÖØ×öÈÎÎñ¡£
+		1) zeze.table<QueueId, LastTaskId> è®°ä½å·²ç»åŒæ­¥çš„æœ€åçš„ä»»åŠ¡idï¼Œ
+		2) åŠŸèƒ½ï¼šæ¯ä¸ªQueueIdï¼Œfor (LastTaskId, end) { Run(task); zeze.table.LastTaskId = task.Id; }
+		* ç‰¹æ€§ï¼šå…è®¸ Zeze.ServerApp å›æ¡£ï¼Œå›æ¡£ä»¥åï¼Œä»æ—§çš„LastTaskIdå¼€å§‹é‡åšä»»åŠ¡ã€‚
 	}
-	Zeze.Component dynamic bean¶¯Ì¬Ôö¼ÓÀàĞÍµÄÄÜÁ¦¡£
-	LockAsync µ¥Ôª²âÊÔ¡£¹Ø¼ü£ºTryEnterXXXLock¡£
+	Zeze.Component dynamic beanåŠ¨æ€å¢åŠ ç±»å‹çš„èƒ½åŠ›ã€‚
+	LockAsync å•å…ƒæµ‹è¯•ã€‚å…³é”®ï¼šTryEnterXXXLockã€‚
 	Queue
-	GCTable(Ã¿¸öServerIdÒ»¸öQueue), rename to DelayRemove
+	GCTable(æ¯ä¸ªServerIdä¸€ä¸ªQueue), rename to DelayRemove
 	Component.AutoKey
-	java LinkedMap dynamic ¶¯Ì¬×¢²áÎÊÌâ¡£
-	»»»»ÄÔ×Ó£¬Ğ´Ò»¸öjava°æ»ùÓÚKVµÄLinkedMap
+	java LinkedMap dynamic åŠ¨æ€æ³¨å†Œé—®é¢˜ã€‚
+	æ¢æ¢è„‘å­ï¼Œå†™ä¸€ä¸ªjavaç‰ˆåŸºäºKVçš„LinkedMap
 	async Connector GetReadySocket WaitReady 
-	GlobakWithRaft java test¡¾ÕÅÂ·¡¿¡¾»ù±¾¿ÉÓÃÁË¡¿
-	GlobalAgent NormalClose ³¬Ê±ÉèÖÃ¡£±ØĞë¼Ó´ó»òÕßÎŞÏŞµÈ´ı¡£
-	zeze async await test¡£remove SimpleThreadPool!
-	database Òì²½²âÊÔ
-	ServiceManager Òì²½»¯
-	TestCheckpoint Õû¸öÅÜ»áÊ§°Ü£¬µ¥¶ÀÒ»¸öÒ»¸ö²âÊÔÅÜ³É¹¦¡£¡¾¼ÓÁËasync£¬Ã»ÓĞawait¡¿
-	async TestCheckpointModeTable Ö±½ÓÔËĞĞ Trans Ä¿Â¼»á³ö´í£¬µ¥¸ö»òÕßÑ¡Ôñ¿ªÊ¼µÄ¼¸¸öÔËĞĞÃ»ÎÊÌâ¡£¡¾AsybcLocal<Transaction>ÖØÓÃÓĞÎÊÌâ£¬È¥µôÖØÓÃ¡¿
-	rocksraft Òì²½²âÊÔ¡¾raft»¹ÓĞbug£¬µ«Õâ¸öÄÜ²âÊÔÍ¨¹ı¡¿
-	Raft.AppendLog ¼ÓÒ»¸ötry catach£¬ËùÓĞµÄÄÚ²¿´íÎó¶¼×ª»»³ÉRaftRetryException£¬ÕâÑù¾Í²»»á°ÑÄÚ²¿Òì³£Â©¸øÓ¦ÓÃÁË¡£
+	GlobakWithRaft java testã€å¼ è·¯ã€‘ã€åŸºæœ¬å¯ç”¨äº†ã€‘
+	GlobalAgent NormalClose è¶…æ—¶è®¾ç½®ã€‚å¿…é¡»åŠ å¤§æˆ–è€…æ— é™ç­‰å¾…ã€‚
+	zeze async await testã€‚remove SimpleThreadPool!
+	database å¼‚æ­¥æµ‹è¯•
+	ServiceManager å¼‚æ­¥åŒ–
+	TestCheckpoint æ•´ä¸ªè·‘ä¼šå¤±è´¥ï¼Œå•ç‹¬ä¸€ä¸ªä¸€ä¸ªæµ‹è¯•è·‘æˆåŠŸã€‚ã€åŠ äº†asyncï¼Œæ²¡æœ‰awaitã€‘
+	async TestCheckpointModeTable ç›´æ¥è¿è¡Œ Trans ç›®å½•ä¼šå‡ºé”™ï¼Œå•ä¸ªæˆ–è€…é€‰æ‹©å¼€å§‹çš„å‡ ä¸ªè¿è¡Œæ²¡é—®é¢˜ã€‚ã€AsybcLocal<Transaction>é‡ç”¨æœ‰é—®é¢˜ï¼Œå»æ‰é‡ç”¨ã€‘
+	rocksraft å¼‚æ­¥æµ‹è¯•ã€raftè¿˜æœ‰bugï¼Œä½†è¿™ä¸ªèƒ½æµ‹è¯•é€šè¿‡ã€‘
+	Raft.AppendLog åŠ ä¸€ä¸ªtry catachï¼Œæ‰€æœ‰çš„å†…éƒ¨é”™è¯¯éƒ½è½¬æ¢æˆRaftRetryExceptionï¼Œè¿™æ ·å°±ä¸ä¼šæŠŠå†…éƒ¨å¼‚å¸¸æ¼ç»™åº”ç”¨äº†ã€‚
 	AsyncRocksDb
 	AsyncExecutor
-	database Òì²½»¯ 
-	Global With Raft Òì²½»¯
-	rocksraft Òì²½»¯
-	raft Òì²½»¯
-	Global Òì²½»¯
-	c# zeze Ç¶Ì×´æ´¢¹ı³ÌRunWhileRollbackÔÚÍâ²ãÊÂÎñCommitÊ±ĞèÒª´¦ÀíµÄÎÊÌâ¡£»¹ÓĞ°´µ÷ÓÃË³Ğò»Øµ÷µÄÎÊÌâ¡£
-		Savepoint ³ÉÔ±±äÁ¿ CommitActions RollbackActions
+	database å¼‚æ­¥åŒ– 
+	Global With Raft å¼‚æ­¥åŒ–
+	rocksraft å¼‚æ­¥åŒ–
+	raft å¼‚æ­¥åŒ–
+	Global å¼‚æ­¥åŒ–
+	c# zeze åµŒå¥—å­˜å‚¨è¿‡ç¨‹RunWhileRollbackåœ¨å¤–å±‚äº‹åŠ¡Commitæ—¶éœ€è¦å¤„ç†çš„é—®é¢˜ã€‚è¿˜æœ‰æŒ‰è°ƒç”¨é¡ºåºå›è°ƒçš„é—®é¢˜ã€‚
+		Savepoint æˆå‘˜å˜é‡ CommitActions RollbackActions
 		Savepoint.Commit(nest) CommitActions.AddAll(nest.CommitActions);
 		Savepoint.Rollback(nest) CommitActions.AddAll(nest.RollbackActions); RollbackActions.AddAll(nest.RollbackActions);
 		Transaction.FinalCommit() foreach (var a in LastSavepoint.CommitActions) a.trigger();
 		Transaction.FinalRollback() foreach (var a in LastSavepoint.SavedRollbackActions) a.trigger();
 	zeze async await compile ok!
-	Raft.Shutdown ÏÈ¹Ø±ÕÍøÂç£¬ÓĞ´íÎóÒ²²»·µ»ØÁË¡£
-	TaskOneByOne ÖØ¹¹£¬ĞÂÔöÖ§³Öµ÷ÓÃÒì²½´æ´¢¹ı³ÌºÍÒì²½Ğ­Òé´¦Àí¡£
-	Global PulseAll ±ØĞë£¬ĞèÒªÈ«²¿µÈ´ıÔÚËÀËø¼ì²âµÄÏß³ÌÈ«²¿ÔÙÀ´Ò»±é£¬·ñÔòÈÔÓĞ¿ÉÄÜËÀËø¡£
+	Raft.Shutdown å…ˆå…³é—­ç½‘ç»œï¼Œæœ‰é”™è¯¯ä¹Ÿä¸è¿”å›äº†ã€‚
+	TaskOneByOne é‡æ„ï¼Œæ–°å¢æ”¯æŒè°ƒç”¨å¼‚æ­¥å­˜å‚¨è¿‡ç¨‹å’Œå¼‚æ­¥åè®®å¤„ç†ã€‚
+	Global PulseAll å¿…é¡»ï¼Œéœ€è¦å…¨éƒ¨ç­‰å¾…åœ¨æ­»é”æ£€æµ‹çš„çº¿ç¨‹å…¨éƒ¨å†æ¥ä¸€éï¼Œå¦åˆ™ä»æœ‰å¯èƒ½æ­»é”ã€‚
 	GlobakWithRaft java compile ok!
-	RaftLog.DecodeTermIndex ½öDecodeÁ½¸öÄÚ²¿±äÁ¿£¬²»°üº¬Ó¦ÓÃÈÕÖ¾¡£±ÜÃâ³õÊ¼»¯Ñ­»·ÒÀÀµ¡£
+	RaftLog.DecodeTermIndex ä»…Decodeä¸¤ä¸ªå†…éƒ¨å˜é‡ï¼Œä¸åŒ…å«åº”ç”¨æ—¥å¿—ã€‚é¿å…åˆå§‹åŒ–å¾ªç¯ä¾èµ–ã€‚
 	GlobalWithRaft c# test 1111
-		CacheHolder ·ÃÎÊ Instance ÊÇ¾ÉµÄ´úÂë£¬ÒıÓÃµ½¾ÉµÄstaticÉÏÃæÁË¡£
-		AcquireModify Reduce Share µÄÊ±ºò£¬±ÈÈç·µ»ØÔ­À´µÄÊÂÎñ²ÅÄÜĞŞ¸ÄÊı¾İ¡£
-		* Õâµã·ÇRaft°æ±¾Global(c#&java)¶¼¸Ä³É·µ»ØÖ÷Á÷³ÌĞŞ¸Ä×´Ì¬Êı¾İ¡£
+		CacheHolder è®¿é—® Instance æ˜¯æ—§çš„ä»£ç ï¼Œå¼•ç”¨åˆ°æ—§çš„staticä¸Šé¢äº†ã€‚
+		AcquireModify Reduce Share çš„æ—¶å€™ï¼Œæ¯”å¦‚è¿”å›åŸæ¥çš„äº‹åŠ¡æ‰èƒ½ä¿®æ”¹æ•°æ®ã€‚
+		* è¿™ç‚¹éRaftç‰ˆæœ¬Global(c#&java)éƒ½æ”¹æˆè¿”å›ä¸»æµç¨‹ä¿®æ”¹çŠ¶æ€æ•°æ®ã€‚
 	GloblWithRaftAgent c# WaitLoginSuccess
 	RocksRaft java
 	RocksRaft rrjava
 	GlobalRaft Agent.Initialize & Test
 	GlobalRaft Agent GetReadySocket() Login ReLogin	
-	GlobalRaft GlobalSerialId ÎÊÌâ½â¾ö³õ²½Ïë·¨£ºÓÉRocksRaftÌá¹©AtomicLongÊµÏÖ£¬Ã¿¸öÊÂÎñ½áÊø£¬
-	³É¹¦Í¬²½µ½ÆäËû½Úµã¡£Õâ¸öGlobalÄÃÀ´Çø·Ö¼ÇÂ¼ÉêÇë´ÎÊı£¬ĞèÒªÒ»Ö±µİÔö£¬¿ÉÒÔÌø×Å·ÖÅä£¨ÀË·Ñ£©¡£
-	Ï¸½Ú£ºlock (Raft) { if (atomiclong.get() > lastAppendLog) doAppendLog; }
+	GlobalRaft GlobalSerialId é—®é¢˜è§£å†³åˆæ­¥æƒ³æ³•ï¼šç”±RocksRaftæä¾›AtomicLongå®ç°ï¼Œæ¯ä¸ªäº‹åŠ¡ç»“æŸï¼Œ
+	æˆåŠŸåŒæ­¥åˆ°å…¶ä»–èŠ‚ç‚¹ã€‚è¿™ä¸ªGlobalæ‹¿æ¥åŒºåˆ†è®°å½•ç”³è¯·æ¬¡æ•°ï¼Œéœ€è¦ä¸€ç›´é€’å¢ï¼Œå¯ä»¥è·³ç€åˆ†é…ï¼ˆæµªè´¹ï¼‰ã€‚
+	ç»†èŠ‚ï¼šlock (Raft) { if (atomiclong.get() > lastAppendLog) doAppendLog; }
 
-¡¾2022/3/11¡¿
-	Global Á÷³ÌÈ·ÈÏ£º¶ÀÕ¼ÅÅËûĞÔ£¬Raft°æ±¾²¿·Ö²Ù×÷½öLeaderÓĞĞ§?
-	Global NormalClose ĞèÒªËø¶¨Session£¬ÊÍ·ÅËùÓĞËø£¬È·±£ÊÍ·ÅÍêÖ®Ç°ĞÂµÄ·şÎñÆ÷²»»áµÇÂ¼½øÀ´¡£¡¾raft¼°·Çraft°æ±¾¶¼ĞèÒª¿¼ÂÇ¡¿
-	Global Cleanup ĞèÒªËø¶¨£¬ÊÍ·ÅËùÓĞËø£¬ÕâÀïÎŞ·¨Í¨¹ılock(session)±£»¤¡£
-	Global Login BindÒÔºó£¬ÊÍ·Å´æÔÚµÄËø£¬¿´À´Ã»ÓĞÎÊÌâ£¬ĞèÒªÈ·ÈÏ¡£
-	Global ReLogin ²»Éæ¼°ËùÊÍ·Å£¬ÄÜBind³É¹¦¾Í±íÊ¾ReLogin³É¹¦£¬¿´À´Ã»ÓĞÎÊÌâ£¬ĞèÒªÈ·ÈÏ¡£
+ã€2022/3/11ã€‘
+	Global æµç¨‹ç¡®è®¤ï¼šç‹¬å æ’ä»–æ€§ï¼ŒRaftç‰ˆæœ¬éƒ¨åˆ†æ“ä½œä»…Leaderæœ‰æ•ˆ?
+	Global NormalClose éœ€è¦é”å®šSessionï¼Œé‡Šæ”¾æ‰€æœ‰é”ï¼Œç¡®ä¿é‡Šæ”¾å®Œä¹‹å‰æ–°çš„æœåŠ¡å™¨ä¸ä¼šç™»å½•è¿›æ¥ã€‚ã€raftåŠéraftç‰ˆæœ¬éƒ½éœ€è¦è€ƒè™‘ã€‘
+	Global Cleanup éœ€è¦é”å®šï¼Œé‡Šæ”¾æ‰€æœ‰é”ï¼Œè¿™é‡Œæ— æ³•é€šè¿‡lock(session)ä¿æŠ¤ã€‚
+	Global Login Bindä»¥åï¼Œé‡Šæ”¾å­˜åœ¨çš„é”ï¼Œçœ‹æ¥æ²¡æœ‰é—®é¢˜ï¼Œéœ€è¦ç¡®è®¤ã€‚
+	Global ReLogin ä¸æ¶‰åŠæ‰€é‡Šæ”¾ï¼Œèƒ½BindæˆåŠŸå°±è¡¨ç¤ºReLoginæˆåŠŸï¼Œçœ‹æ¥æ²¡æœ‰é—®é¢˜ï¼Œéœ€è¦ç¡®è®¤ã€‚
 
-	GlobalCacheManagerWithRaft ¹Ø¼üTransient£ºCacheState.AcquireStatePending ½öÔÚLeaderÉÏÊ¹ÓÃ£¬²»ĞèÒªÍ¬²½µ½Follower¡£
-	RocksRaft & rrcs GenTable OpenTable Ìá¹©Ä£°å»¯´ò¿ª±í¸ñÄÜÁ¦¡£
+	GlobalCacheManagerWithRaft å…³é”®Transientï¼šCacheState.AcquireStatePending ä»…åœ¨Leaderä¸Šä½¿ç”¨ï¼Œä¸éœ€è¦åŒæ­¥åˆ°Followerã€‚
+	RocksRaft & rrcs GenTable OpenTable æä¾›æ¨¡æ¿åŒ–æ‰“å¼€è¡¨æ ¼èƒ½åŠ›ã€‚
 	RocksRaft Gen Bean.Variable.Transient Attribute
 	RocksRaft Gen
 		. Bean.Kind : "bean" "beankey" "rocks" "dynamic" ""
-		. project platform add type: "internal+cs" "internal+java" Ôö¼ÓÊôĞÔ IsInternal ½ö°ÑÔ­À´Gen/ÏÂµÄÀàÉú³Éµ½src¿Õ¼äÏÂ£¬srcÏÂµÄ´úÂë²»Éú³É¡£
+		. project platform add type: "internal+cs" "internal+java" å¢åŠ å±æ€§ IsInternal ä»…æŠŠåŸæ¥Gen/ä¸‹çš„ç±»ç”Ÿæˆåˆ°srcç©ºé—´ä¸‹ï¼Œsrcä¸‹çš„ä»£ç ä¸ç”Ÿæˆã€‚
 	RocksRaft Collection.Set
 	RocksRaft Raft.AppendLog
 	RocksRaft NestProcedureContainer Test
 	RocksRaft Simple NestProcedure Test
 	RocksRaft Edit Bean In Container
-	Raft.AppendLog Future Add Duplicate Index. Fatal!¡¾¹Û²ì²»µ½ÁË£¡¡¿
-	c# Global Âı£¿¡¾ÍøÂçÊÂ¼şÒ²ºÍÆÕÍ¨Task¹²ÏíÁËÒ»¸öÏß³Ì³Ø£¬Ôì³Érpc.result´¦ÀíÒ²ÅÅ¶ÓµÄ½á¹û£¬µÈasync½â¾ö¡¿
-	RocksRaft ÈÕÖ¾ÊÕ¼¯»ù±¾Íê¹¤¡£
-	Raft.Test Ö»É¾³ıÈÕÖ¾Ïà¹ØÊı¾İ¿â¡£±£ÁôÖØ¸´ÇëÇóÊı¾İ¿â¡£
-	Raft.UniqueRequestSet.Put ÓÅ»¯£ºÏÈ¶ÁÈ¡²¢¼ì²é×´Ì¬£¬¼õÉÙĞ´²Ù×÷¡£
+	Raft.AppendLog Future Add Duplicate Index. Fatal!ã€è§‚å¯Ÿä¸åˆ°äº†ï¼ã€‘
+	c# Global æ…¢ï¼Ÿã€ç½‘ç»œäº‹ä»¶ä¹Ÿå’Œæ™®é€šTaskå…±äº«äº†ä¸€ä¸ªçº¿ç¨‹æ± ï¼Œé€ æˆrpc.resultå¤„ç†ä¹Ÿæ’é˜Ÿçš„ç»“æœï¼Œç­‰asyncè§£å†³ã€‘
+	RocksRaft æ—¥å¿—æ”¶é›†åŸºæœ¬å®Œå·¥ã€‚
+	Raft.Test åªåˆ é™¤æ—¥å¿—ç›¸å…³æ•°æ®åº“ã€‚ä¿ç•™é‡å¤è¯·æ±‚æ•°æ®åº“ã€‚
+	Raft.UniqueRequestSet.Put ä¼˜åŒ–ï¼šå…ˆè¯»å–å¹¶æ£€æŸ¥çŠ¶æ€ï¼Œå‡å°‘å†™æ“ä½œã€‚
 	Raft.UniqueRequest.Expired
 	Raft.Expired
-	Raft.AppendLog ´øÉÏµ±Ç°Rpc.Result£¬µ±·¢ÏÖÖØ¸´ÇëÇóµÄÊ±ºò·µ»Ø
-	Raft.LogSequence.FindMaxMajorityLogIndex ĞÂÊµÏÖ£¬²»ĞèÒª±éÀúLog¡£
-	Raft.LogSequence.FindMaxMajorityLog ÀïÃæµÄ ReadLog ÓÅ»¯µô¡£
-	1. Log.cs: logger.Fatal("truncate committed entries"); Fatal!¡¾Ñ¡¾ÙÒÆ¶¯´úÂëµÄBUG£ºTermÔÚµİÔöÇ°Ê¹ÓÃ¡¿
-	Raft.Apply ·ÖÅú½øĞĞ£¬ÈÃÆäËû²Ù×÷ÓĞÔËĞĞ»ú»á¡£½â¾öÆô¶¯Ê±£¬applyÕû¸öÈÕÖ¾Ëø×¡Ê±¼äÌ«³¤µÄÎÊÌâ¡£
-	Raft.State.Timeout »Ö¸´×´Ì¬Ä£Ê½¡£¡¾²»»Ö¸´£¬¾ÍÂÖÑ¯ÁË¡¿
+	Raft.AppendLog å¸¦ä¸Šå½“å‰Rpc.Resultï¼Œå½“å‘ç°é‡å¤è¯·æ±‚çš„æ—¶å€™è¿”å›
+	Raft.LogSequence.FindMaxMajorityLogIndex æ–°å®ç°ï¼Œä¸éœ€è¦éå†Logã€‚
+	Raft.LogSequence.FindMaxMajorityLog é‡Œé¢çš„ ReadLog ä¼˜åŒ–æ‰ã€‚
+	1. Log.cs: logger.Fatal("truncate committed entries"); Fatal!ã€é€‰ä¸¾ç§»åŠ¨ä»£ç çš„BUGï¼šTermåœ¨é€’å¢å‰ä½¿ç”¨ã€‘
+	Raft.Apply åˆ†æ‰¹è¿›è¡Œï¼Œè®©å…¶ä»–æ“ä½œæœ‰è¿è¡Œæœºä¼šã€‚è§£å†³å¯åŠ¨æ—¶ï¼Œapplyæ•´ä¸ªæ—¥å¿—é”ä½æ—¶é—´å¤ªé•¿çš„é—®é¢˜ã€‚
+	Raft.State.Timeout æ¢å¤çŠ¶æ€æ¨¡å¼ã€‚ã€ä¸æ¢å¤ï¼Œå°±è½®è¯¢äº†ã€‘
 	RaftLog.ToString More Detail
-	Raft.Agent TryGetReadySocket ×ÜÊÇ null¡£¡¾Ã»ÓĞ·¢ÏÖÎÊÌâ¡¿
-	Net.Connector.OnSocketHandshakeDone Fail Ô­Òò¡£¡¾Ã»ÓĞ·¢ÏÖÎÊÌâ¡¿
-	Raft.Shutdown µÄÊ±ºò¿ìËÙÊ§°Ü-CancelÔÚFutureÉÏµÈ´ıµÄÈÎÎñ¡£¡¾ÓĞÊ±shutdown»áºÜÂı¡¿
-	2. Raft.Vote Leader µÚÒ»¸öHearbeat±»¾Ü¾ø;  µ¼ÖÂ²»Í£µÄÑ¡¾Ù¡£
-	   SaveLog.RocksDb.Put ¿¨×¡µ¼ÖÂ³¬Ê±£¿
-	3. Raft.Count ´íÎó´¦ÀíÎÊÌâ£¿ÇëÇóÒÑ¾­±»´¦Àí£¬µ«ÊÇ½á¹û¶ªÊ§£¬ÖØ·¢ÇëÇó·¢ÉúÁË²»»áÖØ×öµÄÒì³££¬Õâ»áµ¼ÖÂCountÍ³¼Æ²»ÕıÈ·¡£¡¾Raft.AppendLog ¼ì²éLogSequenceÊÇ·ñnull¡¿
-	Raft.Vote ÓÅÏÈ¼¶++++++++++++++++++++++++++ ³õ²½¿¼ÂÇ½öÊ¹ÓÃ²»Í¬µÄÑÓ³Ù¡£RandomDelay + DelayPriority;
-	Raft.Agent ¿Í»§¶Ë¿¨×¡ÁË? ¡¾ËøÄÚ Env.Exit¿¨×¡ÁË£¬µ¼ÖÂOnTimerÈÎÎñ²»Í£»ıÀÛ£¬×îÖÕÏß³ÌÊıÁ¿¾Ş´ó¡¿
+	Raft.Agent TryGetReadySocket æ€»æ˜¯ nullã€‚ã€æ²¡æœ‰å‘ç°é—®é¢˜ã€‘
+	Net.Connector.OnSocketHandshakeDone Fail åŸå› ã€‚ã€æ²¡æœ‰å‘ç°é—®é¢˜ã€‘
+	Raft.Shutdown çš„æ—¶å€™å¿«é€Ÿå¤±è´¥-Cancelåœ¨Futureä¸Šç­‰å¾…çš„ä»»åŠ¡ã€‚ã€æœ‰æ—¶shutdownä¼šå¾ˆæ…¢ã€‘
+	2. Raft.Vote Leader ç¬¬ä¸€ä¸ªHearbeatè¢«æ‹’ç»;  å¯¼è‡´ä¸åœçš„é€‰ä¸¾ã€‚
+	   SaveLog.RocksDb.Put å¡ä½å¯¼è‡´è¶…æ—¶ï¼Ÿ
+	3. Raft.Count é”™è¯¯å¤„ç†é—®é¢˜ï¼Ÿè¯·æ±‚å·²ç»è¢«å¤„ç†ï¼Œä½†æ˜¯ç»“æœä¸¢å¤±ï¼Œé‡å‘è¯·æ±‚å‘ç”Ÿäº†ä¸ä¼šé‡åšçš„å¼‚å¸¸ï¼Œè¿™ä¼šå¯¼è‡´Countç»Ÿè®¡ä¸æ­£ç¡®ã€‚ã€Raft.AppendLog æ£€æŸ¥LogSequenceæ˜¯å¦nullã€‘
+	Raft.Vote ä¼˜å…ˆçº§++++++++++++++++++++++++++ åˆæ­¥è€ƒè™‘ä»…ä½¿ç”¨ä¸åŒçš„å»¶è¿Ÿã€‚RandomDelay + DelayPriority;
+	Raft.Agent å®¢æˆ·ç«¯å¡ä½äº†? ã€é”å†… Env.Exitå¡ä½äº†ï¼Œå¯¼è‡´OnTimerä»»åŠ¡ä¸åœç§¯ç´¯ï¼Œæœ€ç»ˆçº¿ç¨‹æ•°é‡å·¨å¤§ã€‘
 	Raft.RocksDb.Open Try N Times
-	Raft.Vote Í¶Æ±ºóÍÆ³Ù×Ô¼ºÔÙ´ÎÑ¡¾ÙµÄÊ±¼ä£¬ÃâµÃÀË·Ñ¡£¡¾ÏÖÔÚ´úÂë×¢ÊÍµôÁË¡¿
-	Raft.Log.FollowerOnAppendEntries ÓÅ»¯¡£
-	Raft.Log.Index ±ØĞëµİÔö£¬È¥µôÔ­À´Ö§³ÖÌø×Å·ÖÅäµÄ´úÂë£¬²¢ÇÒÔÚĞèÒªµÄµØ·½Ôö¼Ó´íÎó¼ì²é¡£
-	Raft.Agent ActiveTime ÖØÁ¬¹¦ÄÜÉ¾³ı£¬
-	Net.Connector ÂÖÑ¯ÖØÁ¬£¬¡¾»Ö¸´»Ø×´Ì¬¼ì²éÊµÏÖ£¬ÂÖÑ¯¸ÄÎª10·ÖÖÓµÄ´íÎó´¦Àí¡¿
-	Net.Connector ÂÖÑ¯ÖØÁ¬£¿ÒÔºó»Ö¸´³ÉÁ¬½Ó¶Ï¿ª²ÅÆô¶¯timer£¿ÏÈÂÖÑ¯£¬µÈraftÎÈ¶¨ÁËÔÙ¿¼ÂÇ¡£
-	Raft.Test ¹Ø±Õ2½Úµãºó£¬Ò»Ö±Ã»ÓĞÖØÆô¡£¡¾²âÊÔ³ÌĞò³ö´íÁË¡¿
+	Raft.Vote æŠ•ç¥¨åæ¨è¿Ÿè‡ªå·±å†æ¬¡é€‰ä¸¾çš„æ—¶é—´ï¼Œå…å¾—æµªè´¹ã€‚ã€ç°åœ¨ä»£ç æ³¨é‡Šæ‰äº†ã€‘
+	Raft.Log.FollowerOnAppendEntries ä¼˜åŒ–ã€‚
+	Raft.Log.Index å¿…é¡»é€’å¢ï¼Œå»æ‰åŸæ¥æ”¯æŒè·³ç€åˆ†é…çš„ä»£ç ï¼Œå¹¶ä¸”åœ¨éœ€è¦çš„åœ°æ–¹å¢åŠ é”™è¯¯æ£€æŸ¥ã€‚
+	Raft.Agent ActiveTime é‡è¿åŠŸèƒ½åˆ é™¤ï¼Œ
+	Net.Connector è½®è¯¢é‡è¿ï¼Œã€æ¢å¤å›çŠ¶æ€æ£€æŸ¥å®ç°ï¼Œè½®è¯¢æ”¹ä¸º10åˆ†é’Ÿçš„é”™è¯¯å¤„ç†ã€‘
+	Net.Connector è½®è¯¢é‡è¿ï¼Ÿä»¥åæ¢å¤æˆè¿æ¥æ–­å¼€æ‰å¯åŠ¨timerï¼Ÿå…ˆè½®è¯¢ï¼Œç­‰raftç¨³å®šäº†å†è€ƒè™‘ã€‚
+	Raft.Test å…³é—­2èŠ‚ç‚¹åï¼Œä¸€ç›´æ²¡æœ‰é‡å¯ã€‚ã€æµ‹è¯•ç¨‹åºå‡ºé”™äº†ã€‘
 
-¡¾2022/2/10¡¿
-	¡¾Ó¦¸ÃÊÇÇëÇóÁ¿¼Ó¶àÁË£¬³öÏÖLeader³ö´íÊ±Ò»Æğ·µ»ØµÄ½á¹û¡¿Ò»¶ÑµÄProcessLeaderIs
-	Raft.Test Procedure.RaftApplied ´íÎóÔõÃ´ÅÜ³öÈ¥µÄ¡£
+ã€2022/2/10ã€‘
+	ã€åº”è¯¥æ˜¯è¯·æ±‚é‡åŠ å¤šäº†ï¼Œå‡ºç°Leaderå‡ºé”™æ—¶ä¸€èµ·è¿”å›çš„ç»“æœã€‘ä¸€å †çš„ProcessLeaderIs
+	Raft.Test Procedure.RaftApplied é”™è¯¯æ€ä¹ˆè·‘å‡ºå»çš„ã€‚
 	RealConcurrentDoRequest,Expect=23368,Now=23370,Errors={-1:2}
-		-- Ó¦¸ÃÊÇ·şÎñÆ÷ÖØ¸´ÇëÇóµÄµØ·½Ê§°ÜÁË¡£
-		-- Ôì³ÉÖ´ĞĞÁË¶à´Î¡£
-		¡¾rpc²»ÄÜÖØ¸´·¢ËÍ¶à´Î£¬·ñÔòÓĞ¶àÏß³ÌÎÊÌâ¡¿
+		-- åº”è¯¥æ˜¯æœåŠ¡å™¨é‡å¤è¯·æ±‚çš„åœ°æ–¹å¤±è´¥äº†ã€‚
+		-- é€ æˆæ‰§è¡Œäº†å¤šæ¬¡ã€‚
+		ã€rpcä¸èƒ½é‡å¤å‘é€å¤šæ¬¡ï¼Œå¦åˆ™æœ‰å¤šçº¿ç¨‹é—®é¢˜ã€‘
 
-	Raft Vote »úÖÆĞèÒªÖØĞÂ¿¼ÂÇ¡£¡¾»Ö¸´¾É°æµÄËæ»úÑÓ³Ù¡¿
+	Raft Vote æœºåˆ¶éœ€è¦é‡æ–°è€ƒè™‘ã€‚ã€æ¢å¤æ—§ç‰ˆçš„éšæœºå»¶è¿Ÿã€‘
 	Raft TaskOneByOneByKey Key=Unique=(ClientId, UniqueRequestId)
-	Raft Í³Ò»Timer£¬¸ù¾İState´¦Àí²»Í¬µÄ·ÖÖ§¡£
-	¡¾Rpc»áÓĞ²¢·¢·ÃÎÊ£¨Î¥±³ÁËrpcµ¥Ïß³ÌÊ¹ÓÃÔ­Ôò£¬ĞèÒªĞŞ¸Ä£©¡¿Raft.Agent.Test ÓĞ´íÎó·µ»Ø¡£ÔõÃ´»ØÊÂ£¿
-	--- ¡¾Net.Service.TryRemoveRpcContext ·¢ËÍÇ°×ÜÊÇ³¢ÊÔÉ¾³ı¾ÉµÄÉÏÏÂÎÄ¡¿
+	Raft ç»Ÿä¸€Timerï¼Œæ ¹æ®Stateå¤„ç†ä¸åŒçš„åˆ†æ”¯ã€‚
+	ã€Rpcä¼šæœ‰å¹¶å‘è®¿é—®ï¼ˆè¿èƒŒäº†rpcå•çº¿ç¨‹ä½¿ç”¨åŸåˆ™ï¼Œéœ€è¦ä¿®æ”¹ï¼‰ã€‘Raft.Agent.Test æœ‰é”™è¯¯è¿”å›ã€‚æ€ä¹ˆå›äº‹ï¼Ÿ
+	--- ã€Net.Service.TryRemoveRpcContext å‘é€å‰æ€»æ˜¯å°è¯•åˆ é™¤æ—§çš„ä¸Šä¸‹æ–‡ã€‘
 	Raft.LeaderReadyFuture
 
-¡¾2022/1/21¡¿
-	Raft.Agent Resend ¼ò»¯Ä£ĞÍ¡£
-	Raft BUG Follower ¸´ÖÆÈÕÖ¾Ê±£¬Èç¹û³åÍ»£¬Ã»ÓĞ°Ñµ±Ç°³åÍ»µÄÈÕÖ¾Ğ´Èë£¬Ôì³É¶ªÊ§¡£
-	Handshake Ã»ÓĞ´íÎó´¦Àí¡£Timeout Remove Context.
-	PersistentAtomicLong Ê¹ÓÃÎÄ¼şËø£¬´¦Àí¶à½ø³Ì£¨ÔÚÍ¬Ò»¸öÄ¿Â¼Ö´ĞĞ¶à·İÊµÀı£©¡£
-	Raft AppendLogActiveTime ÒÆµ½ Connector ÖĞ£¬Ã¿¸öConnectorÅĞ¶Ï×Ô¼ºµÄ³¬Ê±£¬²¢Heartbeat¡£
-	ServiceManager Simple Ä£Ê½²»Í¨ÖªÕû¸öÁĞ±í£¡¸Ä³ÉOnRegister OnUnRegister¡£
-	¡¾ÒÑÈ·ÈÏ¡¿checkpointMode.Period ²»ÄÜÓÃ--->ÔÚÆôÓÃGlobalÇé¿öÏÂ½ûÓÃ¡£
-	¡¾ÒÑÈ·ÈÏ¡¿CheckpointMode.Table ÄÜ²»ÄÜÓÃ£¿--->¿ÉÒÔÊ¹ÓÃ¡£
+ã€2022/1/21ã€‘
+	Raft.Agent Resend ç®€åŒ–æ¨¡å‹ã€‚
+	Raft BUG Follower å¤åˆ¶æ—¥å¿—æ—¶ï¼Œå¦‚æœå†²çªï¼Œæ²¡æœ‰æŠŠå½“å‰å†²çªçš„æ—¥å¿—å†™å…¥ï¼Œé€ æˆä¸¢å¤±ã€‚
+	Handshake æ²¡æœ‰é”™è¯¯å¤„ç†ã€‚Timeout Remove Context.
+	PersistentAtomicLong ä½¿ç”¨æ–‡ä»¶é”ï¼Œå¤„ç†å¤šè¿›ç¨‹ï¼ˆåœ¨åŒä¸€ä¸ªç›®å½•æ‰§è¡Œå¤šä»½å®ä¾‹ï¼‰ã€‚
+	Raft AppendLogActiveTime ç§»åˆ° Connector ä¸­ï¼Œæ¯ä¸ªConnectoråˆ¤æ–­è‡ªå·±çš„è¶…æ—¶ï¼Œå¹¶Heartbeatã€‚
+	ServiceManager Simple æ¨¡å¼ä¸é€šçŸ¥æ•´ä¸ªåˆ—è¡¨ï¼æ”¹æˆOnRegister OnUnRegisterã€‚
+	ã€å·²ç¡®è®¤ã€‘checkpointMode.Period ä¸èƒ½ç”¨--->åœ¨å¯ç”¨Globalæƒ…å†µä¸‹ç¦ç”¨ã€‚
+	ã€å·²ç¡®è®¤ã€‘CheckpointMode.Table èƒ½ä¸èƒ½ç”¨ï¼Ÿ--->å¯ä»¥ä½¿ç”¨ã€‚
