@@ -4,6 +4,7 @@ import java.net.InetAddress;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import Zeze.Config;
 import Zeze.Services.HandshakeOptions;
 import Zeze.Util.Action1;
@@ -118,9 +119,9 @@ public final class ServiceConf {
 		return Connectors.size();
 	}
 
-	public boolean ForEachConnector2(Func1<Connector, Boolean> func) throws Throwable {
+	public boolean ForEachConnector2(Predicate<Connector> func) {
 		for (var c : Connectors.values()) {
-			if (!func.call(c)) {
+			if (!func.test(c)) {
 				return false;
 			}
 		}

@@ -30,7 +30,7 @@ import Zeze.Raft.RocksRaft.Log1.LogShort;
 import Zeze.Raft.RocksRaft.Log1.LogString;
 import Zeze.Raft.StateMachine;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Util.Func0;
+import Zeze.Util.FuncLong;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongConcurrentHashMap;
 import org.apache.logging.log4j.LogManager;
@@ -229,7 +229,7 @@ public final class Rocks extends StateMachine implements Closeable {
 		}
 	}
 
-	public Procedure NewProcedure(Func0<Long> func) {
+	public Procedure NewProcedure(FuncLong func) {
 		return new Procedure(this, func);
 	}
 

@@ -1,6 +1,7 @@
 package Zeze.Arch;
 
 import java.util.HashSet;
+import java.util.function.ToLongFunction;
 import Zeze.Beans.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Procedure;
@@ -46,13 +47,13 @@ public class ModuleRedirectAllContext extends Zeze.Net.Service.ManualContext {
 	 3) 处理完成时删除Context
 	 */
 	@SuppressWarnings("unchecked")
-	public final <T> long ProcessHash(int hash, Zeze.Util.Factory<T> factory, Zeze.Util.Func1<T, Long> action) throws Throwable {
+	public final <T> long ProcessHash(int hash, Zeze.Util.Factory<T> factory, ToLongFunction<T> action) {
 		synchronized (this) {
 			try {
 				if (null == getUserState()) {
 					setUserState(factory.create());
 				}
-				return action.call((T)getUserState());
+				return action.applyAsLong((T)getUserState());
 			}
 			finally {
 				HashCodes.remove(hash); // 如果不允许一个hash分组处理措辞，把这个移到开头并判断结果。

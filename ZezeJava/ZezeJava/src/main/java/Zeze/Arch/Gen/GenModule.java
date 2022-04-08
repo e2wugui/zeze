@@ -189,7 +189,7 @@ public class GenModule {
 		sb.AppendLine("import Zeze.Net.Binary;");
 		sb.AppendLine("");
 
-		sb.AppendLine(Str.format("public class {} extends {}.Module{} {", genClassName, module.getFullName(), module.getName()));
+		sb.AppendLine(Str.format("public final class {} extends {}.Module{} {", genClassName, module.getFullName(), module.getName()));
 
 		// TaskCompletionSource<int> void
 		var sbHandles = new Zeze.Util.StringBuilderCs();
@@ -422,7 +422,7 @@ public class GenModule {
 
 	void GenRedirectAllContext(Zeze.Util.StringBuilderCs sb, MethodOverride m) throws Throwable {
 		sb.AppendLine("");
-		sb.AppendLine(Str.format("    public static class Context{} extends Zeze.Arch.ModuleRedirectAllContext {", m.method.getName()));
+		sb.AppendLine(Str.format("    public static final class Context{} extends Zeze.Arch.ModuleRedirectAllContext {", m.method.getName()));
 		if (null != m.ResultHandle)
 			sb.AppendLine(Str.format("        private final {} _rrh_;", m.ResultHandle.GetDefineName()));
 		sb.AppendLine(Str.format(""));

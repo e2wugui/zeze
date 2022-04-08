@@ -12,7 +12,7 @@ import Zeze.Transaction.DatabaseMemory;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.ProcedureStatistics;
 import Zeze.Transaction.Transaction;
-import Zeze.Util.Func0;
+import Zeze.Util.FuncLong;
 import Zeze.Util.Random;
 
 public final class Tasks {
@@ -37,7 +37,7 @@ public final class Tasks {
 
 	// 所有以long为key的记录访问可以使用这个基类。
 	// 其他类型的key需要再定义新的基类。
-	static abstract class Task implements Func0<Long> {
+	static abstract class Task implements FuncLong {
 		final Set<Long> Keys = new HashSet<>();
 		demo.App App;
 
@@ -80,7 +80,7 @@ public final class Tasks {
 		}
 
 		@Override
-		public Long call() {
+		public long call() {
 			var result = process();
 			if (result == 0) {
 				var txn = Transaction.getCurrent();

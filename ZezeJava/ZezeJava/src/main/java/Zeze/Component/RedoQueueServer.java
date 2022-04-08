@@ -1,15 +1,15 @@
 package Zeze.Component;
 
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
-import Zeze.Util.Func1;
 import Zeze.Util.Task;
 
 public class RedoQueueServer extends AbstractRedoQueueServer {
-	private final ConcurrentHashMap<String, ConcurrentHashMap<Integer, Func1<Binary, Boolean>>> handles = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, ConcurrentHashMap<Integer, Predicate<Binary>>> handles = new ConcurrentHashMap<>();
 	private final Server server;
 
 	public RedoQueueServer(Zeze.Application zeze) throws Throwable {
@@ -29,13 +29,13 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 	/**
 	 * 注册任务，
 	 */
-	public void register(String queue, int type, Func1<Binary, Boolean> task) {
+	public void register(String queue, int type, Predicate<Binary> task) {
 		if (null != handles.computeIfAbsent(queue, (key) -> new ConcurrentHashMap<>()).putIfAbsent(type, task))
 			throw new RuntimeException("duplicate task type. " + type);
 	}
 
 	@Override
-	protected long ProcessRunTaskRequest(Zeze.Beans.RedoQueue.RunTask r) throws Throwable {
+	protected long ProcessRunTaskRequest(Zeze.Beans.RedoQueue.RunTask r) {
 		var last = _tQueueLastTaskId.getOrAdd(r.Argument.getQueueName());
 		r.Result.setTaskId(last.getTaskId());
 		if (r.Argument.getPrevTaskId() != last.getTaskId())
@@ -46,7 +46,7 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 		var handle = queue.get(r.Argument.getTaskType());
 		if (null == handle)
 			return Procedure.NotImplement;
-		if (!handle.call(r.Argument.getTaskParam()))
+		if (!handle.test(r.Argument.getTaskParam()))
 			return Procedure.LogicError;
 		last.setTaskId(r.Argument.getTaskId());
 		r.Result.setTaskId(last.getTaskId());

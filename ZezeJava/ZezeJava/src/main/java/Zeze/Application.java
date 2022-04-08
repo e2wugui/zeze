@@ -23,6 +23,7 @@ import Zeze.Transaction.TableKey;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.Func0;
+import Zeze.Util.FuncLong;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
@@ -167,11 +168,11 @@ public final class Application {
 		return queueModule;
 	}
 
-	public Procedure NewProcedure(Func0<Long> action, String actionName) {
+	public Procedure NewProcedure(FuncLong action, String actionName) {
 		return NewProcedure(action, actionName, TransactionLevel.Serializable, null);
 	}
 
-	public Procedure NewProcedure(Func0<Long> action, String actionName, TransactionLevel level, Object userState) {
+	public Procedure NewProcedure(FuncLong action, String actionName, TransactionLevel level, Object userState) {
 		if (!IsStart)
 			throw new IllegalStateException("App Not Start");
 		return new Procedure(this, action, actionName, level, userState);

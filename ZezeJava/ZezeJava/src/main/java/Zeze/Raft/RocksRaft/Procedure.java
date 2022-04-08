@@ -2,7 +2,7 @@ package Zeze.Raft.RocksRaft;
 
 import Zeze.Net.Protocol;
 import Zeze.Raft.RaftRetryException;
-import Zeze.Util.Func0;
+import Zeze.Util.FuncLong;
 import Zeze.Util.TaskCanceledException;
 import Zeze.Util.ThrowAgainException;
 import org.apache.logging.log4j.LogManager;
@@ -12,7 +12,7 @@ public class Procedure {
 	private static final Logger logger = LogManager.getLogger(Table.class);
 
 	private Rocks Rocks;
-	private Func0<Long> Func;
+	private FuncLong Func;
 
 	public Protocol<?> UniqueRequest;
 	public Protocol<?> AutoResponse;
@@ -21,7 +21,7 @@ public class Procedure {
 	public Procedure() {
 	}
 
-	public Procedure(Rocks rocks, Func0<Long> func) {
+	public Procedure(Rocks rocks, FuncLong func) {
 		Rocks = rocks;
 		Func = func;
 	}
@@ -34,16 +34,16 @@ public class Procedure {
 		Rocks = value;
 	}
 
-	public final Func0<Long> getFunc() {
+	public final FuncLong getFunc() {
 		return Func;
 	}
 
-	public final void setFunc(Func0<Long> value) {
+	public final void setFunc(FuncLong value) {
 		Func = value;
 	}
 
 	protected long Process() throws Throwable {
-		Func0<Long> func = Func;
+		var func = Func;
 		if (func != null)
 			return func.call();
 		return Zeze.Transaction.Procedure.NotImplement;

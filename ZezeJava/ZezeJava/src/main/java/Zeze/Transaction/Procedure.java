@@ -2,9 +2,8 @@ package Zeze.Transaction;
 
 import Zeze.Application;
 import Zeze.IModule;
-import Zeze.Net.Protocol;
 import Zeze.Util.Action4;
-import Zeze.Util.Func0;
+import Zeze.Util.FuncLong;
 import Zeze.Util.TaskCanceledException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -34,7 +33,7 @@ public class Procedure {
 
 	private final Application Zeze;
 	private final TransactionLevel Level;
-	private Func0<Long> Action;
+	private FuncLong Action;
 	private String ActionName;
 	private Object UserState;
 
@@ -44,7 +43,7 @@ public class Procedure {
 		Level = null;
 	}
 
-	public Procedure(Application app, Func0<Long> action, String actionName, TransactionLevel level, Object userState) {
+	public Procedure(Application app, FuncLong action, String actionName, TransactionLevel level, Object userState) {
 		Zeze = app;
 		Level = level;
 		Action = action;
@@ -69,11 +68,11 @@ public class Procedure {
 		return Level;
 	}
 
-	public final Func0<Long> getAction() {
+	public final FuncLong getAction() {
 		return Action;
 	}
 
-	public final void setAction(Func0<Long> value) {
+	public final void setAction(FuncLong value) {
 		Action = value;
 	}
 

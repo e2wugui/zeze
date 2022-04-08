@@ -77,7 +77,7 @@ public class Task implements Future<Long> {
 		}
 	}
 
-	public static long Call(Func0<Long> func, String name) {
+	public static long Call(FuncLong func, String name) {
 		try {
 			return func.call();
 		} catch (Throwable ex) {
@@ -244,15 +244,15 @@ public class Task implements Future<Long> {
 		ProcedureStatistics.getInstance().GetOrAdd(actionName).GetOrAdd(result).incrementAndGet();
 	}
 
-	public static long Call(Func0<Long> func, Protocol<?> p) {
+	public static long Call(FuncLong func, Protocol<?> p) {
 		return Call(func, p, null);
 	}
 
-	public static long Call(Func0<Long> func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
+	public static long Call(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
 		return Call(func, p, actionWhenError, null);
 	}
 
-	public static long Call(Func0<Long> func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String aName) {
+	public static long Call(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String aName) {
 		boolean IsRequestSaved = p.isRequest(); // 记住这个，以后可能会被改变。
 		try {
 			var result = func.call();
@@ -286,21 +286,21 @@ public class Task implements Future<Long> {
 		}
 	}
 
-	public static Future<Long> run(Func0<Long> func, Protocol<?> p) {
+	public static Future<Long> run(FuncLong func, Protocol<?> p) {
 		return threadPoolDefault.submit(() -> Call(func, p, null));
 	}
 
-	public static Future<Long> run(Func0<Long> func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
+	public static Future<Long> run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
 		return threadPoolDefault.submit(() -> Call(func, p, actionWhenError));
 	}
 
 	@Deprecated
-	public static Task Run(Func0<Long> func, Protocol<?> p) {
+	public static Task Run(FuncLong func, Protocol<?> p) {
 		return new Task(threadPoolDefault.submit(() -> Call(func, p, null)));
 	}
 
 	@Deprecated
-	public static Task Run(Func0<Long> func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
+	public static Task Run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
 		return new Task(threadPoolDefault.submit(() -> Call(func, p, actionWhenError)));
 	}
 
@@ -351,7 +351,7 @@ public class Task implements Future<Long> {
 		return threadPoolDefault.submit(() -> Call(procedure, null, null)); // rpcResponseThreadPool
 	}
 
-	public static Future<Long> runRpcResponse(Func0<Long> func, Protocol<?> p) {
+	public static Future<Long> runRpcResponse(FuncLong func, Protocol<?> p) {
 		return threadPoolDefault.submit(() -> Call(func, p, null)); // rpcResponseThreadPool
 	}
 

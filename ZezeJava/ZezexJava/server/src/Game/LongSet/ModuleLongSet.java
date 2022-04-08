@@ -9,6 +9,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Map;
+import java.util.function.Predicate;
 
 public class ModuleLongSet extends AbstractModule {
     private static final Logger logger = LogManager.getLogger(ModuleLongSet.class);
@@ -35,7 +36,7 @@ public class ModuleLongSet extends AbstractModule {
         Game.App.Instance.Game_LongSet._clear(name);
     }
 
-    public static void foreach(String name, Zeze.Util.Func1<Map.Entry<NameValue, Timestamp>, Boolean> func1) throws Throwable {
+    public static void foreach(String name, Predicate<Map.Entry<NameValue, Timestamp>> func1) throws Throwable {
         Game.App.Instance.Game_LongSet._foreach(name, func1);
     }
 
@@ -128,7 +129,7 @@ public class ModuleLongSet extends AbstractModule {
         }
     }
 
-    private void _foreach(String name, Zeze.Util.Func1<Map.Entry<NameValue, Timestamp>, Boolean> func1) throws Throwable {
+    private void _foreach(String name, Predicate<Map.Entry<NameValue, Timestamp>> func1) throws Throwable {
         var root = _tNodeRoot.get(name);
         if (null == root)
             return;
@@ -136,7 +137,7 @@ public class ModuleLongSet extends AbstractModule {
         _foreach(root.getHeadNodeId(), root.getHeadNodeId(), func1);
     }
 
-    private void _foreach(long first, long last, Zeze.Util.Func1<Map.Entry<NameValue, Timestamp>, Boolean> func1) throws Throwable {
+    private void _foreach(long first, long last, Predicate<Map.Entry<NameValue, Timestamp>> func1) throws Throwable {
         while (true) {
             var node = _tNodes.selectDirty(first);
             if (null == node)
@@ -148,7 +149,7 @@ public class ModuleLongSet extends AbstractModule {
 
                 if (0L != Zeze.Util.Task.Call(App.Zeze.NewProcedure(() ->
                         {
-                            breakNow.Value = func1.call(e);
+                            breakNow.Value = func1.test(e);
                             return 0L;
                         }, "_foreach.callback")))
                     break;
