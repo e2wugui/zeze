@@ -923,7 +923,7 @@ namespace Zeze.Services.ServiceManager
                         info.LocalState = state;
                     }
                 }
-                Agent.OnChanged?.Invoke(this);
+                Task.Run(() => Agent.OnChanged?.Invoke(this));
             }
 
             internal void OnUpdate(ServiceInfo info)
@@ -939,9 +939,9 @@ namespace Zeze.Services.ServiceManager
                     exist.ExtraInfo = info.ExtraInfo;
 
                     if (Agent.OnUpdate != null)
-                        Agent.OnUpdate.Invoke(this, exist);
+                        Task.Run(() => Agent.OnUpdate.Invoke(this, exist));
                     else
-                        Agent.OnChanged?.Invoke(this); // 兼容
+                        Task.Run(() => Agent.OnChanged?.Invoke(this)); // 兼容
                 }
             }
 
@@ -951,9 +951,9 @@ namespace Zeze.Services.ServiceManager
                 {
                     info = ServiceInfos.Insert(info);
                     if (Agent.OnUpdate != null)
-                        Agent.OnUpdate.Invoke(this, info);
+                        Task.Run(() => Agent.OnUpdate.Invoke(this, info));
                     else
-                        Agent.OnChanged?.Invoke(this); // 兼容
+                        Task.Run(() => Agent.OnChanged?.Invoke(this)); // 兼容
                 }
             }
 
@@ -965,9 +965,9 @@ namespace Zeze.Services.ServiceManager
                     if (null != info)
                     {
                         if (null != Agent.OnRemove)
-                            Agent.OnRemove.Invoke(this, info);
+                            Task.Run(() => Agent.OnRemove.Invoke(this, info));
                         else
-                            Agent.OnChanged?.Invoke(this); // 兼容
+                            Task.Run(() => Agent.OnChanged?.Invoke(this)); // 兼容
                     }
                 }
             }
@@ -991,7 +991,7 @@ namespace Zeze.Services.ServiceManager
                                 )
                             {
                                 ServiceInfosPending = infos;
-                                Agent.OnPrepare?.Invoke(this);
+                                Task.Run(() => Agent.OnPrepare?.Invoke(this));
                                 TrySendReadyServiceList();
                             }
                             break;

@@ -35,6 +35,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			var out = new OutObject<Connector>();
 			if (getConfig().TryGetOrAddConnector(pm.getPassiveIp(), pm.getPassivePort(), true, out)) {
 				// 新建的Connector。开始连接。
+				System.out.println("Connect To " + out.Value.getName());
 				out.Value.Start();
 			}
 		}
@@ -42,6 +43,8 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 
 	@Override
 	public void OnHandshakeDone(AsyncSocket socket) throws Throwable {
+		super.OnHandshakeDone(socket);
+
 		var ps = new ProviderSession(socket.getSessionId());
 		socket.setUserState(ps);
 		var c = socket.getConnector();
@@ -55,27 +58,29 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		}
 		// 被动连接等待对方报告信息时再处理。
 		// call base
-		super.OnHandshakeDone(socket);
 	}
 
 	public ConcurrentHashMap<String, ProviderSession> ProviderSessions = new ConcurrentHashMap<>();
 
-	void SetRelativeServiceReady(ProviderSession ps, String ip, int port) {
-		ps.ServerLoadIp = ip;
-		ps.ServerLoadPort = port;
-		if (null != ProviderSessions.putIfAbsent(ps.getServerLoadName(), ps))
-			return; // 忽略重复的设置。为了设置本机Ready的假会话会重复设置。
+	void SetRelativeServiceReady(ProviderSession _ps, String ip, int port) {
+		_ps.ServerLoadIp = ip;
+		_ps.ServerLoadPort = port;
+		// 本机的连接可能设置多次。此时使用已经存在的，忽略后面的。
+		var ps = ProviderSessions.computeIfAbsent(_ps.getServerLoadName(), key -> _ps);
 
 		// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
 		for (var ss : getZeze().getServiceManagerAgent().getSubscribeStates().values()) {
 			if (ss.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)) {
 				var mid = Integer.parseInt(ss.getServiceName().split("#")[1]);
 				var m = ProviderApp.Modules.get(mid);
-				for (var server : ss.getServiceInfos().getServiceInfoListSortedByIdentity()) {
+				if (null == ss.getServiceInfosPending())
+					continue;
+				for (var server : ss.getServiceInfosPending().getServiceInfoListSortedByIdentity()) {
 					// 符合当前连接目标。每个Identity标识的服务的(ip,port)必须不一样。
 					if (server.getPassiveIp().equals(ip) && server.getPassivePort() == port) {
 						var pms = new ProviderModuleState(ps.getSessionId(), mid, m.getChoiceType(), m.getConfigType());
 						ps.GetOrAddServiceReadyState(ss.getServiceName()).put(server.getServiceIdentity(), pms);
+						System.out.println("SetReady " + getZeze().getConfig().getServerId() + " " + ss.getServiceName() + ":" + server.getServiceIdentity());
 						ss.SetServiceIdentityReadyState(server.getServiceIdentity(), pms);
 					}
 				}
@@ -124,8 +129,9 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 				logger.warn("Protocol Handle Not Found: {}", p);
 			return;
 		}
-
-		super.DispatchProtocol(p, factoryHandle);
+		// 所有的Direct都不启用存储过程。
+		Zeze.Util.Task.Call(() -> factoryHandle.Handle.handle(p), p, Protocol::SendResultCode);
+		//super.DispatchProtocol(p, factoryHandle);
 	}
 
 	@Override
@@ -140,6 +146,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			return;
 		}
 
-		super.DispatchRpcResponse(rpc, responseHandle, factoryHandle);
+		Zeze.Util.Task.Call(() -> responseHandle.handle(rpc), rpc);
+		//super.DispatchRpcResponse(rpc, responseHandle, factoryHandle);
 	}
 }

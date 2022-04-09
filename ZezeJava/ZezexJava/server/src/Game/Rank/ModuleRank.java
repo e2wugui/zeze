@@ -442,8 +442,8 @@ public class ModuleRank extends AbstractModule {
 
 	/******************************** ModuleRedirect 测试 *****************************************/
 	@RedirectToServer()
-	public TaskCompletionSource<Long> TestToServer(int serverId, int in, Action1<Integer> result) throws Throwable {
-		result.run(in);
+	public TaskCompletionSource<Long> TestToServer(int serverId, int in, Action2<Integer, Integer> result) throws Throwable {
+		result.run(in, App.Zeze.getConfig().getServerId());
 		return null;
 	}
 

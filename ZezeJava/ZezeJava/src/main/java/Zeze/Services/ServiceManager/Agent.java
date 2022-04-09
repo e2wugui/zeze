@@ -203,7 +203,7 @@ public final class Agent implements Closeable {
 					info.setLocalState(state);
 			}
 			if (Agent.this.OnChanged != null) {
-				Agent.this.OnChanged.run(this);
+				Zeze.Util.Task.Run(() -> Agent.this.OnChanged.run(this), "ServiceManager.Agent.OnChanged");
 			}
 		}
 
@@ -217,27 +217,27 @@ public final class Agent implements Closeable {
 			exist.setExtraInfo(info.getExtraInfo());
 
 			if (Agent.this.OnUpdate != null)
-				Agent.this.OnUpdate.run(this, exist);
+				Zeze.Util.Task.Run(() -> Agent.this.OnUpdate.run(this, exist), "ServiceManager.Agent.OnUpdate");
 			else if (null != Agent.this.OnChanged)
-				Agent.this.OnChanged.run(this);
+				Zeze.Util.Task.Run(() -> Agent.this.OnChanged.run(this), "ServiceManager.Agent.OnUpdate.OnChanged");
 		}
 
 		synchronized void OnRegister(ServiceInfo info) throws Throwable {
 			//noinspection ConstantConditions
-			info = ServiceInfos.Insert(info);
+			var info2 = ServiceInfos.Insert(info);
 			if (Agent.this.OnUpdate != null)
-				Agent.this.OnUpdate.run(this, info);
+				Zeze.Util.Task.Run(() -> Agent.this.OnUpdate.run(this, info2), "ServiceManager.Agent.OnUpdate");
 			else if (null != Agent.this.OnChanged)
-				Agent.this.OnChanged.run(this);
+				Zeze.Util.Task.Run(() -> Agent.this.OnChanged.run(this), "ServiceManager.Agent.OnUpdate.OnChanged");
 		}
 
 		synchronized void OnUnRegister(ServiceInfo info) throws Throwable {
-			info = ServiceInfos.Remove(info);
-			if (null != info) {
+			var info2 = ServiceInfos.Remove(info);
+			if (null != info2) {
 				if (Agent.this.OnRemove != null)
-					Agent.this.OnRemove.run(this, info);
+					Zeze.Util.Task.Run(() -> Agent.this.OnRemove.run(this, info2), "ServiceManager.Agent.OnRemove");
 				else if (Agent.this.OnChanged != null)
-					Agent.this.OnChanged.run(this);
+					Zeze.Util.Task.Run(() -> Agent.this.OnChanged.run(this), "ServiceManager.Agent.OnRemove.OnChanged");
 			}
 		}
 
@@ -254,7 +254,7 @@ public final class Agent implements Closeable {
 						|| infos.getSerialId() > getServiceInfosPending().getSerialId()) {
 					ServiceInfosPending = infos;
 					if (null != OnPrepare)
-						OnPrepare.run(this);
+						Zeze.Util.Task.Run(() -> OnPrepare.run(this), "ServiceManager.Agent.OnPrepare");
 					TrySendReadyServiceList();
 				}
 				break;
@@ -414,6 +414,11 @@ public final class Agent implements Closeable {
 	}
 
 	public boolean SetServerLoad(ServerLoad load) {
+		try {
+			WaitConnectorReady();
+		} catch (Throwable e) {
+			return false;
+		}
 		var p = new SetServerLoad();
 		p.Argument = load;
 		return p.Send(getClient().getSocket());

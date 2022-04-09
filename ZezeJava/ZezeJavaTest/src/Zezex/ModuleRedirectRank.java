@@ -11,15 +11,18 @@ public class ModuleRedirectRank extends TestCase {
 		app1.Start(new String[]{ "-ServerId", "0" });
 		app2.Start(new String[]{ "-ServerId", "1", "-ProviderDirectPort", "20002" });
 
-		// 主动调用一次更新Load，provider之间的连接依赖这个信息。
-		app1.getLoad().Report(0, 0);
-		app2.getLoad().Report(0, 0);
-
-		Thread.sleep(2000); // wait connected
+		Thread.sleep(5000); // wait connected
 
 		try {
-			app1.Game_Rank.TestToServer(0, 12345, result -> { assert result == 12345; });
-			app1.Game_Rank.TestToServer(1, 12345, result -> { assert result == 12345; });
+			var in = new Zeze.Util.OutInt();
+			var serverId = new Zeze.Util.OutInt();
+			app1.Game_Rank.TestToServer(0, 12345, (i, s) -> { in.Value = i; serverId.Value = s; }).Wait();
+			assert in.Value == 12345;
+			assert serverId.Value == 0;
+
+			app1.Game_Rank.TestToServer(1, 12345, (i, s) -> { in.Value = i; serverId.Value = s; }).Wait();
+			assert in.Value == 12345;
+			assert serverId.Value == 1;
 		} finally {
 			app1.Stop();
 			app2.Stop();
