@@ -153,9 +153,17 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 
 	@Override
 	protected long ProcessAnnounceProviderInfoRequest(AnnounceProviderInfo r) {
+		System.out.println("ProcessAnnounceProviderInfoRequest "
+				+ r.Argument.getIp() + ":" + r.Argument.getPort()
+				+ " serverId=" + ProviderApp.Zeze.getConfig().getServerId()
+				+ ProviderApp.ProviderDirectService.ProviderSessions);
 		ProviderApp.ProviderDirectService.SetRelativeServiceReady(
 				(ProviderSession)r.getSender().getUserState(),
 				r.Argument.getIp(), r.Argument.getPort());
+		System.out.println("ProcessAnnounceProviderInfoRequest +++++ "
+				+ r.Argument.getIp() + ":" + r.Argument.getPort()
+				+ " serverId=" + ProviderApp.Zeze.getConfig().getServerId()
+				+ ProviderApp.ProviderDirectService.ProviderSessions);
 		return 0;
 	}
 }

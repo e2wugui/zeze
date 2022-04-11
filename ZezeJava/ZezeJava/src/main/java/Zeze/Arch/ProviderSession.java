@@ -13,6 +13,11 @@ public class ProviderSession {
 		return ServerLoadIp + ":" + ServerLoadPort;
 	}
 
+	@Override
+	public String toString() {
+		return getServerLoadName() + "@" + SessionId;
+	}
+
 	public ProviderSession(long ssid) {
 		SessionId = ssid;
 	}

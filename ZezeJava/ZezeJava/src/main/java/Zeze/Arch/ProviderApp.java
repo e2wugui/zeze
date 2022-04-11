@@ -62,7 +62,7 @@ public class ProviderApp {
 		this.Zeze.getServiceManagerAgent().setOnChanged(
 				(subscribeState) -> ProviderImplement.ApplyServiceInfos(subscribeState.getServiceInfos()));
 		this.Zeze.getServiceManagerAgent().setOnPrepare(
-				(subscribeState) -> ProviderImplement.ApplyPrepareServiceInfos(subscribeState.getServiceInfosPending()));
+				(subscribeState) -> ProviderImplement.ApplyPrepareServiceInfos(subscribeState));
 
 		this.Zeze.getServiceManagerAgent().setOnSetServerLoad((serverLoad) -> {
 			var ps = this.ProviderDirectService.ProviderSessions.get(serverLoad.getName());

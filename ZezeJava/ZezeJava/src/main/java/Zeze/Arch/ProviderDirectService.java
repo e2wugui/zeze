@@ -1,14 +1,19 @@
 package Zeze.Arch;
 
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Beans.Provider.BModule;
 import Zeze.Beans.ProviderDirect.AnnounceProviderInfo;
 import Zeze.Beans.ProviderDirect.ModuleRedirect;
 import Zeze.Beans.ProviderDirect.ModuleRedirectAllResult;
+import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
+import Zeze.Services.ServiceManager.Agent;
+import Zeze.Services.ServiceManager.ServiceInfo;
 import Zeze.Util.OutObject;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -23,8 +28,22 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		super(name, zeze);
 	}
 
-	public void TryConnectTo(Zeze.Services.ServiceManager.ServiceInfos infos) {
+	public synchronized void TryConnectAndSetReady(Agent.SubscribeState ss) {
+		var infos = ss.getServiceInfosPending();
+		if (null == infos)
+			return;
+
 		for (var pm : infos.getServiceInfoListSortedByIdentity()) {
+			var connName = pm.getPassiveIp() + ":" + pm.getPassivePort();
+			var ps = ProviderSessions.get(connName);
+			if (null != ps) {
+				// connection has ready.
+				System.out.println("TryConnectAndSetReady " + getZeze().getConfig().getServerId() + " identity=" + pm.getServiceIdentity());
+				var mid = Integer.parseInt(infos.getServiceName().split("#")[1]);
+				var m = ProviderApp.Modules.get(mid);
+				SetReady(ss, pm, ps, mid, m);
+				continue;
+			}
 			var serverId = Integer.parseInt(pm.getServiceIdentity());
 			if (serverId < getZeze().getConfig().getServerId())
 				continue;
@@ -50,7 +69,11 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		var c = socket.getConnector();
 		if (c != null) {
 			// 主动连接。
+			System.out.println("OnHandshakeDone " + c.getName() + " serverId=" + getZeze().getConfig().getServerId()
+				+ " ss=" + ProviderSessions);
 			SetRelativeServiceReady(ps, c.getHostNameOrAddress(), c.getPort());
+			System.out.println("OnHandshakeDone ++++ " + c.getName() + " serverId=" + getZeze().getConfig().getServerId()
+					+ " ss=" + ProviderSessions);
 			var r = new AnnounceProviderInfo();
 			r.Argument.setIp(ProviderApp.DirectIp);
 			r.Argument.setPort(ProviderApp.DirectPort);
@@ -62,30 +85,36 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 
 	public ConcurrentHashMap<String, ProviderSession> ProviderSessions = new ConcurrentHashMap<>();
 
-	void SetRelativeServiceReady(ProviderSession _ps, String ip, int port) {
-		_ps.ServerLoadIp = ip;
-		_ps.ServerLoadPort = port;
+	synchronized void SetRelativeServiceReady(ProviderSession ps, String ip, int port) {
+		ps.ServerLoadIp = ip;
+		ps.ServerLoadPort = port;
 		// 本机的连接可能设置多次。此时使用已经存在的，忽略后面的。
-		var ps = ProviderSessions.computeIfAbsent(_ps.getServerLoadName(), key -> _ps);
+		if (null != ProviderSessions.putIfAbsent(ps.getServerLoadName(), ps))
+			return;
 
 		// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
 		for (var ss : getZeze().getServiceManagerAgent().getSubscribeStates().values()) {
 			if (ss.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)) {
+				var infos = ss.getServiceInfosPending();
+				if (null == infos)
+					continue;
 				var mid = Integer.parseInt(ss.getServiceName().split("#")[1]);
 				var m = ProviderApp.Modules.get(mid);
-				if (null == ss.getServiceInfosPending())
-					continue;
-				for (var server : ss.getServiceInfosPending().getServiceInfoListSortedByIdentity()) {
+				for (var server : infos.getServiceInfoListSortedByIdentity()) {
 					// 符合当前连接目标。每个Identity标识的服务的(ip,port)必须不一样。
 					if (server.getPassiveIp().equals(ip) && server.getPassivePort() == port) {
-						var pms = new ProviderModuleState(ps.getSessionId(), mid, m.getChoiceType(), m.getConfigType());
-						ps.GetOrAddServiceReadyState(ss.getServiceName()).put(server.getServiceIdentity(), pms);
-						System.out.println("SetReady " + getZeze().getConfig().getServerId() + " " + ss.getServiceName() + ":" + server.getServiceIdentity());
-						ss.SetServiceIdentityReadyState(server.getServiceIdentity(), pms);
+						SetReady(ss, server, ps, mid, m);
 					}
 				}
 			}
 		}
+	}
+
+	private void SetReady(Agent.SubscribeState ss, ServiceInfo server, ProviderSession ps, int mid, BModule m) {
+		var pms = new ProviderModuleState(ps.getSessionId(), mid, m.getChoiceType(), m.getConfigType());
+		ps.GetOrAddServiceReadyState(ss.getServiceName()).put(server.getServiceIdentity(), pms);
+		System.out.println("SetReady " + getZeze().getConfig().getServerId() + " " + ss.getServiceName() + ":" + server.getServiceIdentity());
+		ss.SetServiceIdentityReadyState(server.getServiceIdentity(), pms);
 	}
 
 	@Override
@@ -146,7 +175,8 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			return;
 		}
 
-		Zeze.Util.Task.Call(() -> responseHandle.handle(rpc), rpc);
+		// no procedure.
+		Task.run(() -> Task.Call(() -> responseHandle.handle(rpc), rpc), "ProviderDirectService.DispatchRpcResponse");
 		//super.DispatchRpcResponse(rpc, responseHandle, factoryHandle);
 	}
 }

@@ -8,6 +8,7 @@ import Zeze.Net.Connector;
 import Zeze.Net.Service;
 import Zeze.Net.Service.ProtocolFactoryHandle;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -128,7 +129,7 @@ public final class Agent implements Closeable {
 			ServiceInfos = value;
 		}
 
-		private ServiceInfos ServiceInfosPending;
+		private volatile ServiceInfos ServiceInfosPending;
 
 		public ServiceInfos getServiceInfosPending() {
 			return ServiceInfosPending;
@@ -500,8 +501,8 @@ public final class Agent implements Closeable {
 	}
 
 	private long ProcessKeepAlive(KeepAlive r) {
-		if (getOnKeepAlive() != null) {
-			getOnKeepAlive().run();
+		if (OnKeepAlive != null) {
+			Task.Run(OnKeepAlive::run, "OnKeepAlive");
 		}
 		r.SendResultCode(KeepAlive.Success);
 		return Procedure.Success;
@@ -510,7 +511,7 @@ public final class Agent implements Closeable {
 	private long ProcessSetServerLoad(SetServerLoad setServerLoad) throws Throwable {
 		Loads.put(setServerLoad.Argument.getName(), setServerLoad.Argument);
 		if (null != OnSetServerLoad)
-			OnSetServerLoad.run(setServerLoad.Argument);
+			Task.Run(() -> OnSetServerLoad.run(setServerLoad.Argument), "OnSetServerLoad");
 		return Procedure.Success;
 	}
 

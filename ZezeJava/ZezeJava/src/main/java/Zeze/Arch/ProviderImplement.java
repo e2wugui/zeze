@@ -7,6 +7,7 @@ import Zeze.Beans.Provider.BModule;
 import Zeze.Beans.Provider.Dispatch;
 import Zeze.Beans.Provider.Kick;
 import Zeze.Net.AsyncSocket;
+import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.ServiceInfos;
 import Zeze.Services.ServiceManager.SubscribeInfo;
 import Zeze.Transaction.Procedure;
@@ -28,9 +29,13 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		} */
 	}
 
-	void ApplyPrepareServiceInfos(ServiceInfos serviceInfos) {
-		if (serviceInfos.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)) {
-			this.ProviderApp.ProviderDirectService.TryConnectTo(serviceInfos);
+	void ApplyPrepareServiceInfos(Agent.SubscribeState subState) {
+		if (subState.getServiceInfosPending().getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)) {
+			System.out.println("ApplyPrepareServiceInfos " + ProviderApp.Zeze.getConfig().getServerId()
+					+ " ss=" + this.ProviderApp.ProviderDirectService.ProviderSessions);
+			this.ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState);
+			System.out.println("ApplyPrepareServiceInfos ++++ " + ProviderApp.Zeze.getConfig().getServerId()
+					+ " ss=" + this.ProviderApp.ProviderDirectService.ProviderSessions);
 		}
 	}
 

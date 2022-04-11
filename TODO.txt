@@ -26,7 +26,7 @@ Java Arch Test
 Zezex Onlines TransmitInProcedure 需要重写。
 
 【2022/5/11】
-
+ServiceManager: Provider之间连接成功的时候，Pending还没到达。
 
 
 【2022/4/11】

@@ -50,10 +50,7 @@ public final class AgentClient extends Zeze.Services.HandshakeClient {
 
 	@Override
 	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
-		// Reduce 很重要。必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。
-		if (factoryHandle.Handle != null) {
-			agent.getZeze().__GetInternalThreadPoolUnsafe().execute(
-					() -> Task.Call(() -> factoryHandle.Handle.handle(p), p, (_p, code) -> p.SendResultCode(code)));
-		}
+		// ServiceManager的协议处理直接在网络线程中执行。
+		Task.Call(() -> factoryHandle.Handle.handle(p), p, (_p, code) -> p.SendResultCode(code));
 	}
 }
