@@ -160,18 +160,21 @@ public final class Agent implements Closeable {
 		// NOT UNDER LOCK
 		@SuppressWarnings("UnusedReturnValue")
 		private boolean TrySendReadyServiceList() {
-			if (null == getServiceInfosPending()) {
+			var pending = ServiceInfosPending;
+			if (null == pending) {
 				return false;
 			}
 
-			for (var pending : getServiceInfosPending().getServiceInfoListSortedByIdentity()) {
-				if (!ServiceIdentityReadyStates.containsKey(pending.getServiceIdentity())) {
+			System.out.println("ServerId=" + Agent.this.getZeze().getConfig().getServerId() + "Pending=" + pending + " Readys=" + ServiceIdentityReadyStates.keys());
+
+			for (var p : pending.getServiceInfoListSortedByIdentity()) {
+				if (!ServiceIdentityReadyStates.containsKey(p.getServiceIdentity())) {
 					return false;
 				}
 			}
 			var r = new ReadyServiceList();
-			r.Argument.ServiceName = ServiceInfosPending.getServiceName();
-			r.Argument.SerialId = ServiceInfosPending.getSerialId();
+			r.Argument.ServiceName = pending.getServiceName();
+			r.Argument.SerialId = pending.getSerialId();
 			if (getAgent().getClient().getSocket() != null) {
 				getAgent().getClient().getSocket().Send(r);
 			}

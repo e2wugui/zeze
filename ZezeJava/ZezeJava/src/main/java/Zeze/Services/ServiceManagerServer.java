@@ -363,7 +363,7 @@ public final class ServiceManagerServer implements Closeable {
 			}
 			r.SendResultCode(Subscribe.Success);
 			if (ServiceManager.StartNotifyDelayTask == null) {
-				var arg = new ServiceInfos(ServiceName, this, ++SerialId);
+				var arg = new ServiceInfos(ServiceName, this, SerialId);
 				SubscribeFirstCommit tempVar = new SubscribeFirstCommit();
 				tempVar.Argument = arg;
 				tempVar.Send(r.getSender());
@@ -387,7 +387,7 @@ public final class ServiceManagerServer implements Closeable {
 				logger.debug("Ready Skip: SerialId Not Equal." + p.Argument.SerialId + " Now=" + SerialId);
 				return;
 			}
-			logger.debug("Ready:" + p.Argument.SerialId + " Now=" + SerialId);
+			//logger.debug("Ready:" + p.Argument.SerialId + " Now=" + SerialId);
 			var subscribeState = ReadyCommit.get(session.getSessionId());
 			if (subscribeState == null)
 				return;

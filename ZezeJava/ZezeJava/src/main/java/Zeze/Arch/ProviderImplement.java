@@ -20,20 +20,23 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 	public ProviderApp ProviderApp;
 
-	void ApplyServiceInfos(ServiceInfos serviceInfos) {
-		if (serviceInfos.getServiceName().equals(ProviderApp.LinkdServiceName)) {
-			this.ProviderApp.ProviderService.Apply(serviceInfos);
-		} /* 模块服务改变不需要处理。ProviderDistribute直接使用即可。
-		 else if (serviceInfos.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)){
-			this.ProviderApp.ProviderDirectService.TryConnectTo(serviceInfos);
-		} */
+	void ApplyOnChanged(Agent.SubscribeState subState) {
+		if (subState.getServiceName().equals(ProviderApp.LinkdServiceName)) {
+			this.ProviderApp.ProviderService.Apply(subState.getServiceInfos());
+		} else if (subState.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)){
+			this.ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, subState.getServiceInfos());
+		}
 	}
 
-	void ApplyPrepareServiceInfos(Agent.SubscribeState subState) {
-		if (subState.getServiceInfosPending().getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)) {
+	void ApplyOnPrepare(Agent.SubscribeState subState) {
+		var pending = subState.getServiceInfosPending();
+		if (null == pending)
+			return;
+
+		if (pending.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)) {
 			System.out.println("ApplyPrepareServiceInfos " + ProviderApp.Zeze.getConfig().getServerId()
 					+ " ss=" + this.ProviderApp.ProviderDirectService.ProviderSessions);
-			this.ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState);
+			this.ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, pending);
 			System.out.println("ApplyPrepareServiceInfos ++++ " + ProviderApp.Zeze.getConfig().getServerId()
 					+ " ss=" + this.ProviderApp.ProviderDirectService.ProviderSessions);
 		}

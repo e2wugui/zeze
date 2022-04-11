@@ -345,7 +345,7 @@ namespace Zeze.Services
                     }
                     if (null == ServiceManager.StartNotifyDelayTask)
                     {
-                        var arg = new ServiceInfos(ServiceName, this, ++SerialId);
+                        var arg = new ServiceInfos(ServiceName, this, SerialId);
                         new SubscribeFirstCommit() { Argument = arg }.Send(r.Sender);
                     }
                     return Procedure.Success;
@@ -876,17 +876,18 @@ namespace Zeze.Services.ServiceManager
             // NOT UNDER LOCK
             private bool TrySendReadyServiceList()
             {
-                if (null == ServiceInfosPending)
+                var p = ServiceInfosPending;
+                if (null == p)
                     return false;
 
-                foreach (var pending in ServiceInfosPending.ServiceInfoListSortedByIdentity)
+                foreach (var pending in p.ServiceInfoListSortedByIdentity)
                 {
                     if (!ServiceIdentityReadyStates.ContainsKey(pending.ServiceIdentity))
                         return false;
                 }
                 var r = new ReadyServiceList();
-                r.Argument.ServiceName = ServiceInfosPending.ServiceName;
-                r.Argument.SerialId = ServiceInfosPending.SerialId;
+                r.Argument.ServiceName = p.ServiceName;
+                r.Argument.SerialId = p.SerialId;
                 Agent.Client.Socket?.Send(r);
                 return true;
             }
