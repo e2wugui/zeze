@@ -5,7 +5,6 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-import Zeze.Util.Str;
 import Zeze.Util.StringBuilderCs;
 
 public class GenAction {
@@ -42,15 +41,14 @@ public class GenAction {
 			Gen.Instance.GenDecode(sb, prefix, bb, rClass, resultVarNames.get(i));
 		}
 		switch (m.TransactionLevel) {
-		case Serializable: case AllowDirtyWhenAllRead:
-			sb.AppendLine(Str.format(
-					"{}{}.NewProcedure(() -> { {}.run({}); return 0L; }, \"ModuleRedirectResponse Procedure\").Call();",
-					prefix, zzName, actName, GetCallString(resultVarNames)));
+		case Serializable:
+		case AllowDirtyWhenAllRead:
+			sb.AppendLine("{}{}.NewProcedure(() -> { {}.run({}); return 0L; }, \"ModuleRedirectResponse Procedure\").Call();",
+					prefix, zzName, actName, GetCallString(resultVarNames));
 			break;
 
 		default:
-			sb.AppendLine(Str.format("{}{}.run({});",
-					prefix, actName, GetCallString(resultVarNames)));
+			sb.AppendLine("{}{}.run({});", prefix, actName, GetCallString(resultVarNames));
 			break;
 		}
 	}
