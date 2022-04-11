@@ -61,9 +61,9 @@ public class ProviderApp {
 		this.ProviderImplement.RegisterProtocols(ProviderService);
 
 		this.Zeze.getServiceManagerAgent().setOnChanged(
-				(subscribeState) -> ProviderImplement.ApplyServiceInfos(subscribeState.getServiceInfos()));
+				(subscribeState) -> ProviderImplement.ApplyOnChanged(subscribeState));
 		this.Zeze.getServiceManagerAgent().setOnPrepare(
-				(subscribeState) -> ProviderImplement.ApplyPrepareServiceInfos(subscribeState));
+				(subscribeState) -> ProviderImplement.ApplyOnPrepare(subscribeState));
 
 		this.Zeze.getServiceManagerAgent().setOnSetServerLoad((serverLoad) -> {
 			var ps = this.ProviderDirectService.ProviderSessions.get(serverLoad.getName());

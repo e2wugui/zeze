@@ -126,7 +126,7 @@ public final class ServiceInfos extends Bean {
 	@Override
 	public String toString() {
 		var sb = new StringBuilder();
-		sb.append(getServiceName()).append("=");
+		sb.append(getServiceName()).append("=").append(" SerialId=").append(SerialId);
 		sb.append("[");
 		for (var e : getServiceInfoListSortedByIdentity()) {
 			sb.append(e.getServiceIdentity());

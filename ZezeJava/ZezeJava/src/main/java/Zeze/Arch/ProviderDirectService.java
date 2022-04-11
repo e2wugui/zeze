@@ -12,6 +12,7 @@ import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.ServiceInfo;
+import Zeze.Services.ServiceManager.ServiceInfos;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -28,11 +29,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		super(name, zeze);
 	}
 
-	public synchronized void TryConnectAndSetReady(Agent.SubscribeState ss) {
-		var infos = ss.getServiceInfosPending();
-		if (null == infos)
-			return;
-
+	public synchronized void TryConnectAndSetReady(Agent.SubscribeState ss, ServiceInfos infos) {
 		for (var pm : infos.getServiceInfoListSortedByIdentity()) {
 			var connName = pm.getPassiveIp() + ":" + pm.getPassivePort();
 			var ps = ProviderSessions.get(connName);
