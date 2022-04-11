@@ -97,7 +97,6 @@ public final class App extends Zeze.AppBase {
 		ProviderApp = new ProviderApp(Zeze, provider, Server,
 				"Game.Server.Module#",
 				ProviderDirectMy, ServerDirect, "Game.Linkd", LoadLoadConfig());
-		Zeze.Redirect = new ModuleRedirect(ProviderApp); // MUST before CreateModules
 
 		GenModule.Instance.GenFileSrcRoot = GenFileSrcRoot;
 		CreateModules();

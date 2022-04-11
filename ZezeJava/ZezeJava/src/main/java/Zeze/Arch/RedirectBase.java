@@ -19,7 +19,7 @@ import org.apache.logging.log4j.Logger;
 /**
  * 应用需要继承实现必要的方法，创建实例并保存。(Zeze.Application.setModuleRedirect)。
  */
-public abstract class RedirectBase {
+public class RedirectBase {
 	private static final Logger logger = LogManager.getLogger(RedirectBase.class);
 
 	public final ConcurrentHashMap<String, RedirectHandle> Handles = new ConcurrentHashMap<>();
@@ -31,10 +31,6 @@ public abstract class RedirectBase {
 
 	public <T extends Zeze.AppBase> IModule ReplaceModuleInstance(T userApp, IModule module) {
 		return GenModule.Instance.ReplaceModuleInstance(userApp, module);
-	}
-
-	public int GetChoiceHashCode() {
-		throw new UnsupportedOperationException();
 	}
 
 	public AsyncSocket ChoiceServer(IModule module, int serverId) {

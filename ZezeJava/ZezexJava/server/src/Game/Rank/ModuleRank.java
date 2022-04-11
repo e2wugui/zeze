@@ -13,6 +13,7 @@ import Zeze.Arch.RedirectToServer;
 import Zeze.Net.Binary;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
+import Zeze.Transaction.Transaction;
 import Zeze.Util.Action1;
 import Zeze.Util.Action2;
 import Zeze.Util.Action3;
@@ -351,7 +352,12 @@ public class ModuleRank extends AbstractModule {
 			valueEx = Binary.Empty;
 		}
 
-		UpdateRank(App.Zeze.Redirect.GetChoiceHashCode(), keyHint, roleId, counter.getValue(), valueEx);
+		UpdateRank(GetChoiceHashCode(), keyHint, roleId, counter.getValue(), valueEx);
+	}
+
+	public static int GetChoiceHashCode() {
+		String account = ((ProviderUserSession) Transaction.getCurrent().getTopProcedure().getUserState()).getAccount();
+		return Zeze.Serialize.ByteBuffer.calc_hashnr(account);
 	}
 
 	@Override

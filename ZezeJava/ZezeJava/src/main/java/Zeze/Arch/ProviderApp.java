@@ -39,6 +39,7 @@ public class ProviderApp {
 					   LoadConfig loadConfig
 					   ) {
 		this.Zeze = zeze;
+		this.Zeze.Redirect = new RedirectBase(this);
 
 		this.ProviderImplement = server;
 		this.ProviderImplement.ProviderApp = this;
