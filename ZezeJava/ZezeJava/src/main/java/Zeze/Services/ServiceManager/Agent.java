@@ -119,7 +119,7 @@ public final class Agent implements Closeable {
 			return getSubscribeInfo().getServiceName();
 		}
 
-		private ServiceInfos ServiceInfos;
+		private volatile ServiceInfos ServiceInfos;
 
 		public ServiceInfos getServiceInfos() {
 			return ServiceInfos;

@@ -268,7 +268,7 @@ public final class ServiceManagerServer implements Closeable {
 				// 只有两段公告模式需要回应处理。
 				if (NotifyTimeoutTask != null)
 					NotifyTimeoutTask.cancel(false);
-				NotifyTimeoutTask = Task.schedule(ServiceManager.Config.getRetryNotifyDelayWhenNotAllReady(),
+					NotifyTimeoutTask = Task.schedule(ServiceManager.Config.getRetryNotifyDelayWhenNotAllReady(),
 						() -> {
 							// NotifyTimeoutTask 会在下面两种情况下被修改：
 							// 1. 在 Notify.ReadyCommit 完成以后会被清空。
@@ -325,6 +325,7 @@ public final class ServiceManagerServer implements Closeable {
 				if (!e.Ready)
 					return;
 			}
+			logger.debug("Ready Broadcast.");
 			var commit = new CommitServiceList();
 			commit.Argument.ServiceName = ServiceName;
 			commit.Argument.SerialId = SerialId;
@@ -383,9 +384,10 @@ public final class ServiceManagerServer implements Closeable {
 
 		public synchronized void SetReady(ReadyServiceList p, Session session) {
 			if (p.Argument.SerialId != SerialId) {
-				logger.debug("Skip Ready: SerialId Not Equal.");
+				logger.debug("Ready Skip: SerialId Not Equal." + p.Argument.SerialId + " Now=" + SerialId);
 				return;
 			}
+			logger.debug("Ready:" + p.Argument.SerialId + " Now=" + SerialId);
 			var subscribeState = ReadyCommit.get(session.getSessionId());
 			if (subscribeState == null)
 				return;
