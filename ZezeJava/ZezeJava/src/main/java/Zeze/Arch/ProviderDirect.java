@@ -10,6 +10,8 @@ import Zeze.Net.Binary;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.OutObject;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Provider之间直连服务模块。
@@ -17,6 +19,8 @@ import Zeze.Util.OutObject;
  * 需要的时候可以重载重新实现默认实现。
  */
 public abstract class ProviderDirect extends AbstractProviderDirect {
+	private static final Logger logger = LogManager.getLogger(RedirectBase.class);
+
 	public ProviderApp ProviderApp;
 
 	@Override
@@ -96,11 +100,11 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 				switch (handle.RequestTransactionLevel) {
 				case Serializable:
 				case AllowDirtyWhenAllRead:
-					var out = new OutObject<Binary>();
-					ProviderApp.Zeze.NewProcedure(() -> {
+					var out = new OutObject<>(Binary.Empty);
+					hashResult.setReturnCode(ProviderApp.Zeze.NewProcedure(() -> {
 						out.Value = handle.RequestHandle.call(p.Argument.getSessionId(), hash, p.Argument.getParams());
 						return 0L;
-					}, "ProcessModuleRedirectAllRequest").Call();
+					}, "ProcessModuleRedirectAllRequest").Call());
 					params = out.Value;
 					break;
 				default:
@@ -115,7 +119,17 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 
 			// send remain
 			if (result.Argument.getHashs().size() > 0) {
-				result.Send(p.getSender());
+				var sender = p.getSender();
+				if (sender != null)
+					result.Send(sender);
+				else { // loop-back
+					try {
+						var service = ProviderApp.ProviderDirectService;
+						result.Dispatch(service, service.FindProtocolFactoryHandle(result.getTypeId()));
+					} catch (Throwable e) {
+						logger.error("", e);
+					}
+				}
 			}
 			return Procedure.Success;
 		} catch (Throwable e) {
@@ -129,10 +143,11 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 	protected long ProcessModuleRedirectAllResult(ModuleRedirectAllResult protocol) throws Throwable {
 		// replace RootProcedure.ActionName. 为了统计和日志输出。
 		Transaction txn = Transaction.getCurrent();
-		assert txn != null;
-		Procedure proc = txn.getTopProcedure();
-		assert proc != null;
-		proc.setActionName(protocol.Argument.getMethodFullName());
+		if (txn != null) {
+			Procedure proc = txn.getTopProcedure();
+			assert proc != null;
+			proc.setActionName(protocol.Argument.getMethodFullName());
+		}
 		var ctx = ProviderApp.ProviderDirectService.<ModuleRedirectAllContext>TryGetManualContext(protocol.Argument.getSessionId());
 		if (ctx != null) {
 			ctx.ProcessResult(ProviderApp.Zeze, protocol);

@@ -22,7 +22,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 	}
 
 	public Service getService() {
-		return Sender.getService();
+		return Sender != null ? Sender.getService() : null;
 	}
 
 	public Object getUserState() {

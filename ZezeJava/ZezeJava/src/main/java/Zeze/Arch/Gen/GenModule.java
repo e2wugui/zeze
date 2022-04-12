@@ -13,6 +13,7 @@ import java.util.Comparator;
 import java.util.List;
 import Zeze.Arch.RedirectAll;
 import Zeze.Arch.RedirectAllDoneHandle;
+import Zeze.Arch.RedirectHash;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Util.StringBuilderCs;
 import org.mdkt.compiler.InMemoryJavaCompiler;
@@ -48,17 +49,17 @@ public class GenModule {
 		switch (type) {
 		case RedirectAll:
 			var annotation2 = method.getAnnotation(RedirectAll.class);
-			if (null != annotation2)
+			if (annotation2 != null)
 				result.add(new MethodOverride(tLevel, method, OverrideType.RedirectAll, annotation2));
 			break;
 		case RedirectHash:
-			var annotation3 = method.getAnnotation(Zeze.Arch.RedirectHash.class);
-			if (null != annotation3)
+			var annotation3 = method.getAnnotation(RedirectHash.class);
+			if (annotation3 != null)
 				result.add(new MethodOverride(tLevel, method, OverrideType.RedirectHash, annotation3));
 			break;
 		case RedirectToServer:
 			var annotation4 = method.getAnnotation(RedirectToServer.class);
-			if (null != annotation4)
+			if (annotation4 != null)
 				result.add(new MethodOverride(tLevel, method, OverrideType.RedirectToServer, annotation4));
 			break;
 		}
@@ -354,7 +355,8 @@ public class GenModule {
 		String contextVarName = "tmp" + Gen.Instance.TmpVarNameId.incrementAndGet();
 		sb.AppendLine("        var {} = new Context{}({}.Argument.getHashCodeConcurrentLevel(), {}.Argument.getMethodFullName(){});",
 				contextVarName, m.method.getName(), reqVarName, reqVarName, initOnHashEnd);
-		sb.AppendLine("        {}.Argument.setSessionId(App.Server.AddManualContextWithTimeout({}));", reqVarName, contextVarName);
+		sb.AppendLine("        {}.setOnHashEnd({});", contextVarName, m.ParameterRedirectAllDoneHandle.getName());
+		sb.AppendLine("        {}.Argument.setSessionId(App.ServerDirect.AddManualContextWithTimeout({}));", reqVarName, contextVarName);
 		if (m.ParametersNormal.size() > 0)
 		{
 			// normal 包括了 out 参数，这个不需要 encode，所以下面可能仍然是空的，先这样了。

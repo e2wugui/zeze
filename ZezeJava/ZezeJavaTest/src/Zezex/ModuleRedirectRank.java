@@ -1,8 +1,12 @@
 package Zezex;
 
 import Game.App;
+import Zeze.Transaction.Procedure;
+import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.TaskCompletionSource;
 import junit.framework.TestCase;
 
+@SuppressWarnings("NewClassNamingConvention")
 public class ModuleRedirectRank extends TestCase {
 	public void testRedirect() throws Throwable {
 		var app1 = App.Instance;
@@ -59,6 +63,30 @@ public class ModuleRedirectRank extends TestCase {
 			assert in.Value == 12345;
 			assert serverId.Value == 1;
 
+			// RedirectAll
+			var future = new TaskCompletionSource<Boolean>();
+			var hashes = new ConcurrentHashSet<Integer>();
+			app1.Game_Rank.TestToAll(12345, (sid, h, out) -> {
+				System.out.println("TestToAll onHashResult: " + sid + ", " + h + ", " + out);
+				assertTrue(h >= 0 && h < 5);
+				assertTrue(hashes.add(h));
+				assertEquals(12345, out.intValue());
+			}, ctx -> {
+				try {
+					System.out.println("TestToAll onHashEnd: HashResults=" + ctx.getHashResults());
+					assertEquals(5, ctx.getHashResults().size());
+					assertEquals(Procedure.Success, ctx.getHashResults().get(0).longValue());
+					assertEquals(Procedure.Success, ctx.getHashResults().get(1).longValue());
+					assertEquals(Procedure.Success, ctx.getHashResults().get(2).longValue());
+					assertEquals(Procedure.Exception, ctx.getHashResults().get(3).longValue());
+					assertEquals(Procedure.Success, ctx.getHashResults().get(4).longValue());
+				} finally {
+					future.SetResult(true);
+				}
+			});
+			assertTrue(future.get());
+			assertEquals(4, hashes.size()); // 还有1个因异常没有结果
+			assertFalse(hashes.contains(3));
 		} finally {
 			app1.Stop();
 			app2.Stop();

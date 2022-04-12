@@ -4,26 +4,29 @@ import java.util.function.ToLongFunction;
 import Zeze.Beans.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Procedure;
-import Zeze.Util.IntHashSet;
+import Zeze.Util.Factory;
+import Zeze.Util.IntHashMap;
 
 public class ModuleRedirectAllContext extends Zeze.Net.Service.ManualContext {
 	private final String MethodFullName;
-	private final IntHashSet HashCodes = new IntHashSet();
+	private final IntHashMap<Long> HashResults = new IntHashMap<>(); // <hash, resultCode>
+	private int leftResultCount;
 	private RedirectAllDoneHandle OnHashEnd;
 
 	public ModuleRedirectAllContext(int concurrentLevel, String methodFullName) {
-		for (int hash = 0; hash < concurrentLevel; ++hash) {
-			getHashCodes().add(hash);
-		}
 		MethodFullName = methodFullName;
+		for (int hash = 0; hash < concurrentLevel; ++hash) {
+			HashResults.put(hash, null);
+		}
+		leftResultCount = concurrentLevel;
 	}
 
 	public final String getMethodFullName() {
 		return MethodFullName;
 	}
 
-	public final IntHashSet getHashCodes() {
-		return HashCodes;
+	public final IntHashMap<Long> getHashResults() {
+		return HashResults;
 	}
 
 	public final RedirectAllDoneHandle getOnHashEnd() {
@@ -35,12 +38,12 @@ public class ModuleRedirectAllContext extends Zeze.Net.Service.ManualContext {
 	}
 
 	@Override
-	public void OnRemoved() throws Throwable {
-		synchronized (this) {
-			if (OnHashEnd != null) {
-				OnHashEnd.handle(this);
-				OnHashEnd = null;
-			}
+	public synchronized void OnRemoved() throws Throwable {
+		var onHashEnd = OnHashEnd;
+		if (onHashEnd != null) {
+			OnHashEnd = null;
+			HashResults.foreachUpdate((k, v) -> v != null ? v : Procedure.Timeout); // 没结果的当成超时
+			onHashEnd.handle(this);
 		}
 	}
 
@@ -51,18 +54,16 @@ public class ModuleRedirectAllContext extends Zeze.Net.Service.ManualContext {
 	 * 3) 处理完成时删除Context
 	 */
 	@SuppressWarnings("unchecked")
-	public final <T> long ProcessHash(int hash, Zeze.Util.Factory<T> factory, ToLongFunction<T> action) {
-		synchronized (this) {
-			try {
-				if (getUserState() == null) {
-					setUserState(factory.create());
-				}
-				return action.applyAsLong((T)getUserState());
-			} finally {
-				HashCodes.remove(hash); // 如果不允许一个hash分组处理措辞，把这个移到开头并判断结果。
-				if (HashCodes.isEmpty()) {
-					getService().TryRemoveManualContext(getSessionId());
-				}
+	public final synchronized <T> long ProcessHash(int hash, Factory<T> factory, ToLongFunction<T> action) {
+		try {
+			if (getUserState() == null) {
+				setUserState(factory.create());
+			}
+			return action.applyAsLong((T)getUserState());
+		} finally {
+			HashResults.remove(hash); // 如果不允许一个hash分组处理措辞，把这个移到开头并判断结果。
+			if (HashResults.isEmpty()) {
+				getService().TryRemoveManualContext(getSessionId());
 			}
 		}
 	}
@@ -70,11 +71,27 @@ public class ModuleRedirectAllContext extends Zeze.Net.Service.ManualContext {
 	// 这里处理真正redirect发生时，从远程返回的结果。
 	public final void ProcessResult(Zeze.Application zeze, ModuleRedirectAllResult result) throws Throwable {
 		for (var h : result.Argument.getHashs().entrySet()) {
-			// 嵌套存储过程，单个分组的结果处理不影响其他分组。
-			// 不判断单个分组的处理结果，错误也继续执行其他分组。XXX
-			getService().getZeze().NewProcedure(() -> ProcessHashResult(
-							zeze, h.getKey(), h.getValue().getParams()),
-					getMethodFullName()).Call();
+			long resultCode = h.getValue().getReturnCode();
+			final RedirectAllDoneHandle onHashEnd;
+			synchronized (this) {
+				if (HashResults.put(h.getKey(), resultCode) == null)
+					onHashEnd = --leftResultCount == 0 ? OnHashEnd : null;
+				else
+					onHashEnd = null;
+			}
+			if (resultCode == Procedure.Success) {
+				// 嵌套存储过程，单个分组的结果处理不影响其他分组。
+				// 不判断单个分组的处理结果，错误也继续执行其他分组。XXX
+				getService().getZeze().NewProcedure(() -> ProcessHashResult(
+						zeze, h.getKey(), h.getValue().getParams()), MethodFullName).Call();
+			}
+			if (onHashEnd != null) {
+				OnHashEnd = null;
+				getService().getZeze().NewProcedure(() -> {
+					onHashEnd.handle(this);
+					return Procedure.Success;
+				}, MethodFullName).Call();
+			}
 		}
 	}
 

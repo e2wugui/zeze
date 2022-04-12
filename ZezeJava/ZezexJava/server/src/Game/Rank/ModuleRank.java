@@ -278,9 +278,9 @@ public class ModuleRank extends AbstractModule {
 				},
 				// Action OnHashEnd
 				(context) -> {
-					if (!context.getHashCodes().isEmpty()) {
+					if (!context.getHashResults().isEmpty()) {
 						// 一般是超时发生时还有未返回结果的hash分组。
-						logger.warn("OnHashEnd: timeout with hashes: {}", context.getHashCodes());
+						logger.warn("OnHashEnd: timeout with hashes: {}", context.getHashResults());
 					}
 
 					var rank2 = (Rank)context.getUserState();
@@ -356,7 +356,7 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	public static int GetChoiceHashCode() {
-		String account = ((ProviderUserSession) Transaction.getCurrent().getTopProcedure().getUserState()).getAccount();
+		String account = ((ProviderUserSession)Transaction.getCurrent().getTopProcedure().getUserState()).getAccount();
 		return Zeze.Serialize.ByteBuffer.calc_hashnr(account);
 	}
 
@@ -467,6 +467,18 @@ public class ModuleRank extends AbstractModule {
 	@RedirectHash()
 	public void Test3(int hash, int inData, Action2<Integer, EmptyBean> result) throws Throwable {
 		result.run(inData, new EmptyBean());
+	}
+
+	protected final void TestToAll(long sessionId, int hash, int in, Action3<Long, Integer, Integer> onHashResult) throws Throwable {
+		System.out.println("TestToAll sid=" + sessionId + ", hash=" + hash + ", in=" + in);
+		if (hash == 3)
+			throw new Exception("not bug, only for test");
+		onHashResult.run(sessionId, hash, in);
+	}
+
+	@RedirectAll(GetConcurrentLevelSource = "5")
+	public void TestToAll(int in, Action3<Long, Integer, Integer> onHashResult, RedirectAllDoneHandle onHashEnd) {
+		System.out.println("TestToAll in=" + in); // RedirectAll时不可能调用到这里,应该在上面的TestToAll方法处理
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
