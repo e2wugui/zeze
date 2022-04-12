@@ -22,12 +22,12 @@ raft 异步测试
 Global With Raft 异步测试
 Test TestGlobal Simulate 异步测试
 c# Arch & Test
-Java Arch Test
 Zezex Onlines TransmitInProcedure 需要重写。
-ServiceManager.Agent lock 模式：改成全局锁Agent。单线程化。回调也在锁内执行。
 
 【2022/5/11】
 
+Java Arch Test：RedirectToServer,RedirectHash Done
+ServiceManager.Agent lock 模式：改成全局锁Agent。单线程化。回调也在锁内执行。【放弃，锁内回调风险太高】
 ServiceManager: Provider之间连接成功的时候，Pending还没到达。
 ServiceManager.ReadyCommit模式时，订阅启动全新广播。
 
