@@ -52,7 +52,7 @@ public class LinkdApp {
 		return LinkdServiceName + "." + ProviderIp + ":" + ProviderPort;
 	}
 
-	public void RegisterService(Zeze.Net.Binary extra) throws Throwable {
+	public void RegisterService(Zeze.Net.Binary extra) {
 		var identity = ProviderIp + ":" + ProviderPort;
 		Zeze.getServiceManagerAgent().RegisterService(LinkdServiceName, identity,
 				ProviderIp, ProviderPort, extra);

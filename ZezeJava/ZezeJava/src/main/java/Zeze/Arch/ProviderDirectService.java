@@ -5,7 +5,6 @@ import Zeze.Beans.Provider.BModule;
 import Zeze.Beans.ProviderDirect.AnnounceProviderInfo;
 import Zeze.Beans.ProviderDirect.ModuleRedirect;
 import Zeze.Beans.ProviderDirect.ModuleRedirectAllResult;
-import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
@@ -23,7 +22,9 @@ import org.apache.logging.log4j.Logger;
  */
 public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	private static final Logger logger = LogManager.getLogger(ProviderDirectService.class);
+
 	public ProviderApp ProviderApp;
+	public final ConcurrentHashMap<String, ProviderSession> ProviderSessions = new ConcurrentHashMap<>();
 
 	public ProviderDirectService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);
@@ -73,8 +74,6 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		// 被动连接等待对方报告信息时再处理。
 		// call base
 	}
-
-	public ConcurrentHashMap<String, ProviderSession> ProviderSessions = new ConcurrentHashMap<>();
 
 	synchronized void SetRelativeServiceReady(ProviderSession ps, String ip, int port) {
 		ps.ServerLoadIp = ip;
@@ -155,7 +154,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 
 	@Override
 	public <P extends Protocol<?>> void DispatchRpcResponse(
-			P rpc, ProtocolHandle<P> responseHandle, ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
+			P rpc, ProtocolHandle<P> responseHandle, ProtocolFactoryHandle<?> factoryHandle) {
 
 		if (rpc.getTypeId() == ModuleRedirect.TypeId_) {
 			var redirect = (ModuleRedirect)rpc;

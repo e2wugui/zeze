@@ -70,19 +70,19 @@ public class ProviderModuleBinds {
 		HashMap<String, Integer> binds = new HashMap<>();
 
 		// special binds
-		for (var m : getModules().values()) {
+		for (var m : Modules.values()) {
 			if (m.getConfigType() == BModule.ConfigTypeSpecial && m.Providers.contains(serverId)) {
 				binds.put(m.FullName, BModule.ConfigTypeSpecial);
 			}
 		}
 
 		// default binds
-		if (!getProviderNoDefaultModule().contains(serverId)) {
+		if (!ProviderNoDefaultModule.contains(serverId)) {
 			for (var m : AllModules.values()) {
 				if (IsDynamicModule(m.getFullName())) {
 					continue; // 忽略动态注册的模块。
 				}
-				if (getModules().containsKey(m.getFullName())) {
+				if (Modules.containsKey(m.getFullName())) {
 					continue; // 忽略已经有特别配置的模块
 				}
 				binds.put(m.getFullName(), BModule.ConfigTypeDefault);
