@@ -7,13 +7,12 @@ using Zeze.Services.ServiceManager;
 
 namespace Zeze.Arch
 {
-    public class LoadDistribute
+    public class ProviderDistribute
     {
-        /*
         public Application Application { get; }
         public int MaxOnlineNew { get; set; } = 30;
 
-        public LoadDistribute(Application zeze)
+        public ProviderDistribute(Application zeze)
         {
             Application = zeze;
         }
@@ -157,6 +156,5 @@ namespace Zeze.Arch
         {
             return $"{serviceNamePrefix}{moduleId}";
         }
-        */
     }
 }

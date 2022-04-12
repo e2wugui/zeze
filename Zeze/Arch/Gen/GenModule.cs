@@ -134,11 +134,10 @@ namespace Zeze.Arch.Gen
             {
                 methodOverride.PrepareParameters();
                 var parametersDefine = Gen.Instance.ToDefineString(methodOverride.ParametersAll);
-                var parametersOutOrRef = GetOutOrRef(methodOverride.ParametersNormal);
                 var methodNameWithHash = GetMethodNameWithHash(methodOverride.Method.Name);
                 var (returnType, returnTypeName) = GetReturnType(methodOverride.Method.ReturnParameter.ParameterType);
                 var actions = GenAction.GetActions(methodOverride.ParametersNormal);
-                Verify(methodOverride, parametersOutOrRef, actions);
+                Verify(methodOverride, actions);
 
                 sb.AppendLine($"    public override {returnTypeName} {methodOverride.Method.Name}({parametersDefine})");
                 sb.AppendLine($"    {{");
@@ -183,12 +182,6 @@ namespace Zeze.Arch.Gen
                 string futureVarName = "tmp" + Gen.Instance.TmpVarNameId.IncrementAndGet();
                 sb.AppendLine($"        var {futureVarName} = new System.Threading.Tasks.TaskCompletionSource<long>();");
                 sb.AppendLine($"");
-                foreach (var outOrRef in parametersOutOrRef)
-                {
-                    Gen.Instance.GenLocalVariable(sb, "        ", outOrRef.ParameterType, "_" + outOrRef.Name + "_");
-                    if (!outOrRef.IsOut && outOrRef.ParameterType.IsByRef)
-                        sb.AppendLine($"        _{outOrRef.Name}_ = {outOrRef.Name};");
-                }
                 sb.AppendLine($"        {rpcVarName}.Send(Zezex.ModuleRedirect.RandomLink(), (_) =>");
                 sb.AppendLine($"        {{");
                 sb.AppendLine($"            if ({rpcVarName}.IsTimeout)");
@@ -219,29 +212,11 @@ namespace Zeze.Arch.Gen
                     sb.AppendLine($"                    }}");
                     sb.AppendLine($"                }}");
                 }
-                if (parametersOutOrRef.Count > 0)
-                {
-                    sb.AppendLine($"                {{");
-                    sb.AppendLine($"                    var _bb_ = Zeze.Serialize.ByteBuffer.Wrap({rpcVarName}.Result.Params);");
-                    foreach (var outOrRef in parametersOutOrRef)
-                    {
-                        Gen.Instance.GenDecode(sb, "                    ", outOrRef.ParameterType, "_" + outOrRef.Name + "_");
-                    }
-                    sb.AppendLine($"                }}");
-                }
                 sb.AppendLine($"                {futureVarName}.SetResult({rpcVarName}.Result.ReturnCode);");
                 sb.AppendLine($"            }}");
                 sb.AppendLine($"            return Zeze.Transaction.Procedure.Success;");
                 sb.AppendLine($"        }});");
                 sb.AppendLine($"");
-                if (parametersOutOrRef.Count > 0)
-                {
-                    sb.AppendLine($"        {futureVarName}.Task.Wait();");
-                    foreach (var outOrRef in parametersOutOrRef)
-                    {
-                        sb.AppendLine($"        {outOrRef.Name} = _{outOrRef.Name}_;");
-                    }
-                }
                 if (returnType == ReturnType.TaskCompletionSource)
                 {
                     sb.AppendLine($"        return {futureVarName};");
@@ -274,15 +249,6 @@ namespace Zeze.Arch.Gen
                 var returnParamsVarName = "tmp" + Gen.Instance.TmpVarNameId.IncrementAndGet();
                 sbHandles.AppendLine($"            var {returnCodeVarName} = base.{methodNameWithHash}(_hash_{sep}{normalcall});");
                 sbHandles.AppendLine($"            var {returnParamsVarName} = Zeze.Net.Binary.Empty;");
-                if (parametersOutOrRef.Count > 0)
-                {
-                    sbHandles.AppendLine($"            _bb_ = Zeze.Serialize.ByteBuffer.Allocate(); // reuse _bb_");
-                    foreach (var outOrRef in parametersOutOrRef)
-                    {
-                        Gen.Instance.GenEncode(sbHandles, "            ", outOrRef.ParameterType, outOrRef.Name);
-                    }
-                    sbHandles.AppendLine($"            {returnParamsVarName} = new Zeze.Net.Binary(_bb_);");
-                }
                 sbHandles.AppendLine($"            return ({returnCodeVarName},{returnParamsVarName});");
                 sbHandles.AppendLine($"        }});");
                 sbHandles.AppendLine($"");
@@ -389,27 +355,11 @@ namespace Zeze.Arch.Gen
             return name.Substring(3);
         }
 
-        private List<ParameterInfo> GetOutOrRef(List<ParameterInfo> parameters)
-        {
-            var result = new List<ParameterInfo>();
-            for (int i = 0; i < parameters.Count; ++i)
-            {
-                var p = parameters[i];
-                if (p.IsOut)
-                    result.Add(p);
-                else if (p.ParameterType.IsByRef)
-                    result.Add(p);
-            }
-            return result;
-        }
-
-        private void Verify(MethodOverride method, List<ParameterInfo> outRefParams, List<GenAction> actions)
+        private void Verify(MethodOverride method, List<GenAction> actions)
         {
             switch (method.OverrideType)
             {
                 case OverrideType.RedirectAll:
-                    if (outRefParams.Count > 0)
-                        throw new Exception("RedirectAll Not Support out|ref.");
                     if (method.Method.ReturnType != typeof(void))
                         throw new Exception("RedirectAll ReturnType Must Be void");
 

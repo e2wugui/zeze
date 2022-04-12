@@ -620,10 +620,9 @@ namespace Zeze.Arch.Gen
                 else
                     sb.Append(", ");
                 string prefix = "";
-                if (p.IsOut)
-                    prefix = "out ";
-                else if (p.ParameterType.IsByRef)
-                    prefix = "ref ";
+                if (p.IsOut || p.ParameterType.IsByRef)
+                    throw new Exception("Redirect Not Support out | ref");
+
                 sb.Append(prefix).Append(GetTypeName(p.ParameterType)).Append(" ").Append(p.Name);
             }
             return sb.ToString();
