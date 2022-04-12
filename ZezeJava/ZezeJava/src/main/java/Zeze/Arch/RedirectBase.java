@@ -37,9 +37,12 @@ public class RedirectBase {
 		if (serverId == ProviderApp.Zeze.getConfig().getServerId())
 			return null; // is Local
 		var out = new OutLong();
-		if (ProviderApp.Distribute.ChoiceProviderByServerId(ProviderApp.ServerServiceNamePrefix, module.getId(), serverId, out))
-			return ProviderApp.ProviderDirectService.GetSocket(out.Value);
-		return null;
+		if (!ProviderApp.Distribute.ChoiceProviderByServerId(ProviderApp.ServerServiceNamePrefix, module.getId(), serverId, out))
+			throw new RuntimeException("Server Not Found. ServerId=" + serverId);
+		var socket = ProviderApp.ProviderDirectService.GetSocket(out.Value);
+		if (null == socket)
+			throw new RuntimeException("Server Socket Not Found. ServerId=" + serverId);
+		return socket;
 	}
 
 	public AsyncSocket ChoiceHash(IModule module, int hash) {
