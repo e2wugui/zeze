@@ -23,6 +23,7 @@ Global With Raft 异步测试
 Test TestGlobal Simulate 异步测试
 c# Arch & Test
 Zezex Onlines TransmitInProcedure 需要重写。
+c# RedirectAll 错误处理。
 
 【2022/5/11】
 
