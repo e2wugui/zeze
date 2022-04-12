@@ -113,15 +113,16 @@ public final class ServiceManagerServer implements Closeable {
 			Load = load;
 			var set = new SetServerLoad();
 			set.Argument = load;
-			for (var e : Observers) {
+			for (var it = Observers.iterator(); it.hasNext(); ) {
+				Long observer = it.next();
 				try {
 					// skip rpc result
-					if (set.Send(ServiceManager.Server.GetSocket(e)))
+					if (set.Send(ServiceManager.Server.GetSocket(observer)))
 						continue;
 				} catch (Throwable ex) {
 					// skip error
 				}
-				Observers.Remove(e); // remove in loop?
+				it.remove();
 			}
 		}
 	}
@@ -212,9 +213,9 @@ public final class ServiceManagerServer implements Closeable {
 		private final String ServiceName;
 		// identity ->
 		// 记录一下SessionId，方便以后找到服务所在的连接。
-		private final ConcurrentHashMap<String, ServiceInfo> ServiceInfos = new ConcurrentHashMap<>();
-		private final LongConcurrentHashMap<SubscribeState> Simple = new LongConcurrentHashMap<>();
-		private final LongConcurrentHashMap<SubscribeState> ReadyCommit = new LongConcurrentHashMap<>();
+		private final ConcurrentHashMap<String, ServiceInfo> ServiceInfos = new ConcurrentHashMap<>(); // key:serverId
+		private final LongConcurrentHashMap<SubscribeState> Simple = new LongConcurrentHashMap<>(); // key:sessionId
+		private final LongConcurrentHashMap<SubscribeState> ReadyCommit = new LongConcurrentHashMap<>(); // key:sessionId
 		private Future<?> NotifyTimeoutTask;
 		private long SerialId;
 
@@ -268,7 +269,7 @@ public final class ServiceManagerServer implements Closeable {
 				// 只有两段公告模式需要回应处理。
 				if (NotifyTimeoutTask != null)
 					NotifyTimeoutTask.cancel(false);
-					NotifyTimeoutTask = Task.schedule(ServiceManager.Config.getRetryNotifyDelayWhenNotAllReady(),
+				NotifyTimeoutTask = Task.schedule(ServiceManager.Config.getRetryNotifyDelayWhenNotAllReady(),
 						() -> {
 							// NotifyTimeoutTask 会在下面两种情况下被修改：
 							// 1. 在 Notify.ReadyCommit 完成以后会被清空。
@@ -361,8 +362,7 @@ public final class ServiceManagerServer implements Closeable {
 				StartReadyCommitNotify();
 				break;
 			default:
-				r.setResultCode(Subscribe.UnknownSubscribeType);
-				r.SendResult();
+				r.SendResultCode(Subscribe.UnknownSubscribeType);
 				return Procedure.LogicError;
 			}
 			for (var info : ServiceInfos.values()) {
@@ -372,6 +372,7 @@ public final class ServiceManagerServer implements Closeable {
 			return Procedure.Success;
 		}
 
+		@SuppressWarnings("unused")
 		<T> boolean SequenceEqual(List<T> a, List<T> b) {
 			int size = a.size();
 			if (size != b.size())

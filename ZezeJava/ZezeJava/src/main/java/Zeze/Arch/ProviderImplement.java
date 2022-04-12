@@ -8,7 +8,6 @@ import Zeze.Beans.Provider.Dispatch;
 import Zeze.Beans.Provider.Kick;
 import Zeze.Net.AsyncSocket;
 import Zeze.Services.ServiceManager.Agent;
-import Zeze.Services.ServiceManager.ServiceInfos;
 import Zeze.Services.ServiceManager.SubscribeInfo;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
@@ -22,11 +21,10 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 	void ApplyOnChanged(Agent.SubscribeState subState) {
 		if (subState.getServiceName().equals(ProviderApp.LinkdServiceName)) {
-			this.ProviderApp.ProviderService.Apply(subState.getServiceInfos());
-			return;
+			ProviderApp.ProviderService.Apply(subState.getServiceInfos());
 		}
 		/*
-		if (subState.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)){
+		else if (subState.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)){
 			System.out.println("ServerId=" + ProviderApp.Zeze.getConfig().getServerId()
 			+ " OnChanged=" + subState.getServiceInfos());
 			//this.ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, subState.getServiceInfos());
@@ -36,7 +34,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 	void ApplyOnPrepare(Agent.SubscribeState subState) {
 		var pending = subState.getServiceInfosPending();
-		if (null == pending)
+		if (pending == null)
 			return;
 
 		if (pending.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)) {
@@ -52,21 +50,21 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	 * 订阅Linkd服务。
 	 * Provider主动连接Linkd。
 	 */
-	public void RegisterModulesAndSubscribeLinkd() throws Throwable {
+	public void RegisterModulesAndSubscribeLinkd() {
 		var sm = ProviderApp.Zeze.getServiceManagerAgent();
 		var services = new HashMap<String, BModule>();
 		// 注册本provider的静态服务
 		for (var it = ProviderApp.StaticBinds.iterator(); it.moveToNext(); ) {
 			var name = Str.format("{}{}", ProviderApp.ServerServiceNamePrefix, it.key());
 			var identity = String.valueOf(ProviderApp.Zeze.getConfig().getServerId());
-			sm.RegisterService(name, identity, ProviderApp.DirectIp, ProviderApp.DirectPort,null);
+			sm.RegisterService(name, identity, ProviderApp.DirectIp, ProviderApp.DirectPort);
 			services.put(name, it.value());
 		}
 		// 注册本provider的动态服务
 		for (var it = ProviderApp.DynamicModules.iterator(); it.moveToNext(); ) {
 			var name = Str.format("{}{}", ProviderApp.ServerServiceNamePrefix, it.key());
 			var identity = String.valueOf(ProviderApp.Zeze.getConfig().getServerId());
-			sm.RegisterService(name, identity, ProviderApp.DirectIp, ProviderApp.DirectPort, null);
+			sm.RegisterService(name, identity, ProviderApp.DirectIp, ProviderApp.DirectPort);
 			services.put(name, it.value());
 		}
 
@@ -76,7 +74,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		}
 
 		// 订阅linkd发现服务。
-		sm.SubscribeService(ProviderApp.LinkdServiceName, SubscribeInfo.SubscribeTypeSimple, null);
+		sm.SubscribeService(ProviderApp.LinkdServiceName, SubscribeInfo.SubscribeTypeSimple);
 	}
 
 	private void SendKick(AsyncSocket sender, long linkSid, int code, String desc) {

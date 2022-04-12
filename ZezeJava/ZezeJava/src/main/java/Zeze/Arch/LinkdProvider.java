@@ -123,7 +123,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	}
 
 	@Override
-	public long ProcessBindRequest(Bind rpc) throws Throwable {
+	public long ProcessBindRequest(Bind rpc) {
 		if (rpc.Argument.getLinkSids().isEmpty()) {
 			var providerSession = (LinkdProviderSession)rpc.getSender().getUserState();
 			for (var module : rpc.Argument.getModules().entrySet()) {
@@ -154,8 +154,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	}
 
 	@Override
-	protected long ProcessSubscribeRequest(Subscribe rpc) throws Throwable {
-
+	protected long ProcessSubscribeRequest(Subscribe rpc) {
 		var providerSession = (LinkdProviderSession)rpc.getSender().getUserState();
 		for (var module : rpc.Argument.getModules().entrySet()) {
 			var providerModuleState = new ProviderModuleState(providerSession.getSessionId(),

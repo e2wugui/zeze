@@ -5,70 +5,81 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
-public final class ServiceInfo extends Bean implements Comparable<ServiceInfo>{
+public final class ServiceInfo extends Bean implements Comparable<ServiceInfo> {
 	/**
-	 服务名，比如"GameServer"
-	*/
+	 * 服务名，比如"GameServer"
+	 */
 	private String ServiceName;
-	public String getServiceName() {
-		return ServiceName;
-	}
-	private void setServiceName(String value) {
-		ServiceName = value;
-	}
 
 	/**
-	 服务id，对于 Zeze.Application，一般就是 Config.ServerId.
-	 这里使用类型 string 是为了更好的支持扩展。
-	*/
+	 * 服务id，对于 Zeze.Application，一般就是 Config.ServerId.
+	 * 这里使用类型 string 是为了更好的支持扩展。
+	 */
 	private String ServiceIdentity;
-	public String getServiceIdentity() {
-		return ServiceIdentity;
-	}
-	private void setServiceIdentity(String value) {
-		ServiceIdentity = value;
-	}
 
 	/**
-	 服务ip-port，如果没有，保持空和0.
-	*/
+	 * 服务ip-port，如果没有，保持空和0.
+	 */
 	private String PassiveIp = "";
-	public String getPassiveIp() {
-		return PassiveIp;
-	}
-	public void setPassiveIp(String value) {
-		PassiveIp = value;
-	}
 	private int PassivePort = 0;
-	public int getPassivePort() {
-		return PassivePort;
-	}
-	public void setPassivePort(int value) {
-		PassivePort = value;
-	}
 
 	// 服务扩展信息，可选。
 	private Binary ExtraInfo = Binary.Empty;
-	public Binary getExtraInfo() {
-		return ExtraInfo;
-	}
-	public void setExtraInfo(Binary value) {
-		ExtraInfo = value;
-	}
 
 	// ServiceManager或者ServiceManager.Agent用来保存本地状态，不是协议一部分，不会被系列化。
 	// 算是一个简单的策略，不怎么优美。一般仅设置一次，线程保护由使用者自己管理。
 	private Object LocalState;
+
+	public String getServiceName() {
+		return ServiceName;
+	}
+
+	private void setServiceName(String value) {
+		ServiceName = value;
+	}
+
+	public String getServiceIdentity() {
+		return ServiceIdentity;
+	}
+
+	private void setServiceIdentity(String value) {
+		ServiceIdentity = value;
+	}
+
+	public String getPassiveIp() {
+		return PassiveIp;
+	}
+
+	public void setPassiveIp(String value) {
+		PassiveIp = value;
+	}
+
+	public int getPassivePort() {
+		return PassivePort;
+	}
+
+	public void setPassivePort(int value) {
+		PassivePort = value;
+	}
+
+	public Binary getExtraInfo() {
+		return ExtraInfo;
+	}
+
+	public void setExtraInfo(Binary value) {
+		ExtraInfo = value;
+	}
+
 	public Object getLocalState() {
 		return LocalState;
 	}
+
 	public void setLocalState(Object value) {
 		LocalState = value;
 	}
 
 	public ServiceInfo() {
 	}
-
 
 	public ServiceInfo(String name, String identity, String ip, int port) {
 		this(name, identity, ip, port, null);
@@ -151,6 +162,7 @@ public final class ServiceInfo extends Bean implements Comparable<ServiceInfo>{
 		}
 		return false;
 	}
+
 	@Override
 	public int compareTo(ServiceInfo o) {
 		int c = ServiceName.compareTo(o.ServiceName);
@@ -158,5 +170,11 @@ public final class ServiceInfo extends Bean implements Comparable<ServiceInfo>{
 			return c;
 
 		return ServiceIdentity.compareTo(o.ServiceIdentity);
+	}
+
+	@Override
+	public String toString() {
+		return "ServiceInfo{" + "ServiceName='" + ServiceName + '\'' + ", ServiceIdentity='" + ServiceIdentity + '\'' +
+				", PassiveIp='" + PassiveIp + '\'' + ", PassivePort=" + PassivePort + '}';
 	}
 }

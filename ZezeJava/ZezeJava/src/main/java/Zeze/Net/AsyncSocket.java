@@ -23,7 +23,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public final class AsyncSocket implements SelectorHandle, Closeable {
-	private static final Logger logger = LogManager.getLogger(AsyncSocket.class);
+	static final Logger logger = LogManager.getLogger(AsyncSocket.class);
+	static final boolean ENABLE_PROTOCOL_LOG = false; // 仅自己调试时临时打开
 	private static final AtomicLong SessionIdGen = new AtomicLong();
 	private static LongSupplier SessionIdGenFunc;
 
@@ -189,8 +190,11 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			SocketChannel sc = null;
 			try {
 				sc = ((ServerSocketChannel)channel).accept();
-				if (sc != null)
+				if (sc != null) {
+					if (ENABLE_PROTOCOL_LOG)
+						logger.trace("OPEN({}): accepted", SessionId);
 					Service.OnSocketAccept(new AsyncSocket(Service, sc, Acceptor));
+				}
 			} catch (Throwable e) {
 				if (sc != null)
 					sc.close();
@@ -201,6 +205,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			try {
 				SocketChannel sc = (SocketChannel)channel;
 				if (sc.finishConnect()) {
+					if (ENABLE_PROTOCOL_LOG)
+						logger.trace("OPEN({}): connected", SessionId);
 					// 先修改事件，防止doConnectSuccess发送数据注册了新的事件导致OP_CONNECT重新触发。
 					// 虽然实际上在回调中应该不会唤醒Selector重入。
 					doConnectSuccess(sc);
@@ -400,6 +406,17 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	public boolean Send(Protocol<?> protocol) {
+		if (ENABLE_PROTOCOL_LOG) {
+			if (protocol.isRequest()) {
+				if (protocol instanceof Rpc)
+					logger.trace("SEND({}) {}({}): {}", SessionId, protocol.getClass().getSimpleName(),
+							((Rpc<?, ?>)protocol).getSessionId(), protocol.Argument);
+				else
+					logger.trace("SEND({}) {}: {}", SessionId, protocol.getClass().getSimpleName(), protocol.Argument);
+			} else
+				logger.trace("SEND({}) {}({})> {}", SessionId, protocol.getClass().getSimpleName(),
+						((Rpc<?, ?>)protocol).getSessionId(), protocol.getResultBean());
+		}
 		return Send(protocol.Encode());
 	}
 
@@ -511,6 +528,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			closed = true; // 阻止递归关闭
 		}
 
+		if (ENABLE_PROTOCOL_LOG)
+			logger.trace("CLOSE({}): {}", SessionId, ex);
 		if (ex != null)
 			logger.log(Service.getSocketOptions().getSocketLogLevel(), "Close " + this, ex);
 		if (Connector != null) {

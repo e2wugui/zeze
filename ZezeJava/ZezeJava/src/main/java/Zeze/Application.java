@@ -22,7 +22,6 @@ import Zeze.Transaction.Table;
 import Zeze.Transaction.TableKey;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
-import Zeze.Util.Func0;
 import Zeze.Util.FuncLong;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.Task;
