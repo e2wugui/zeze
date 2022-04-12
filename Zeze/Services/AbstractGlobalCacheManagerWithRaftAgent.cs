@@ -1,8 +1,13 @@
 // auto generate
 namespace Zeze.Services
 {
-    public abstract class AbstractGlobalCacheManagerWithRaftAgent
+    public abstract class AbstractGlobalCacheManagerWithRaftAgent : Zeze.IModule 
     {
+    public const int ModuleId = 11001;
+    public override string FullName => "Zeze.Beans.GlobalCacheManagerWithRaft";
+    public override string Name => "GlobalCacheManagerWithRaft";
+    public override int Id => ModuleId;
+
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {

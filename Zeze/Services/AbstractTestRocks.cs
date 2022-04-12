@@ -1,8 +1,13 @@
 // auto generate
 namespace Zeze.Services
 {
-    public abstract class AbstractTestRocks
+    public abstract class AbstractTestRocks : Zeze.IModule 
     {
+    public const int ModuleId = 11002;
+    public override string FullName => "Zeze.Beans.TestRocks";
+    public override string Name => "TestRocks";
+    public override int Id => ModuleId;
+
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {
@@ -26,17 +31,17 @@ namespace Zeze.Services
         public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks)
         {
             rocks.RegisterTableTemplate<int, Zeze.Beans.TestRocks.Value>("tRocks");
-            Raft.RocksRaft.Rocks.RegisterLog<Raft.RocksRaft.Log<int>>();
-            Raft.RocksRaft.Rocks.RegisterLog<Raft.RocksRaft.Log<bool>>();
-            Raft.RocksRaft.Rocks.RegisterLog<Raft.RocksRaft.Log<float>>();
-            Raft.RocksRaft.Rocks.RegisterLog<Raft.RocksRaft.Log<double>>();
-            Raft.RocksRaft.Rocks.RegisterLog<Raft.RocksRaft.Log<string>>();
-            Raft.RocksRaft.Rocks.RegisterLog<Raft.RocksRaft.Log<Net.Binary>>();
-            Raft.RocksRaft.Rocks.RegisterLog<Raft.RocksRaft.LogSet1<int>>();
-            Raft.RocksRaft.Rocks.RegisterLog<Raft.RocksRaft.LogSet1<Beans.GlobalCacheManagerWithRaft.GlobalTableKey>>();
-            Raft.RocksRaft.Rocks.RegisterLog<Raft.RocksRaft.Log<Beans.GlobalCacheManagerWithRaft.GlobalTableKey>>();
-            Raft.RocksRaft.Rocks.RegisterLog<Raft.RocksRaft.LogMap1<int, int>>();
-            Raft.RocksRaft.Rocks.RegisterLog<Raft.RocksRaft.LogMap2<int, Beans.TestRocks.Value>>();
+            rocks.RegisterLog<Zeze.Raft.RocksRaft.Log<int>>();
+            rocks.RegisterLog<Zeze.Raft.RocksRaft.Log<bool>>();
+            rocks.RegisterLog<Zeze.Raft.RocksRaft.Log<float>>();
+            rocks.RegisterLog<Zeze.Raft.RocksRaft.Log<double>>();
+            rocks.RegisterLog<Zeze.Raft.RocksRaft.Log<string>>();
+            rocks.RegisterLog<Zeze.Raft.RocksRaft.Log<Zeze.Net.Binary>>();
+            rocks.RegisterLog<Zeze.Raft.RocksRaft.LogSet1<int>>();
+            rocks.RegisterLog<Zeze.Raft.RocksRaft.LogSet1<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey>>();
+            rocks.RegisterLog<Zeze.Raft.RocksRaft.Log<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey>>();
+            rocks.RegisterLog<Zeze.Raft.RocksRaft.LogMap1<int, int>>();
+            rocks.RegisterLog<Zeze.Raft.RocksRaft.LogMap2<int, Zeze.Beans.TestRocks.Value>>();
         }
 
     }

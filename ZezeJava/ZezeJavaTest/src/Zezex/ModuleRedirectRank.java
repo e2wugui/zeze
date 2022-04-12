@@ -13,7 +13,8 @@ public class ModuleRedirectRank extends TestCase {
 
 		System.out.println("Begin Thread.sleep");
 		Thread.sleep(2000); // wait connected
-		System.out.println("End Thread.sleep");
+		System.out.println("End Thread.sleep app1 " + app1.Zeze.getServiceManagerAgent().getSubscribeStates().values());
+		System.out.println("End Thread.sleep app2 " + app1.Zeze.getServiceManagerAgent().getSubscribeStates().values());
 
 		try {
 			var in = new Zeze.Util.OutInt();

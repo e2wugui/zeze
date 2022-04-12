@@ -112,6 +112,11 @@ public final class Agent implements Closeable {
 		private final SubscribeInfo subscribeInfo;
 		private volatile ServiceInfos ServiceInfos;
 		private volatile ServiceInfos ServiceInfosPending;
+
+		@Override
+		public String toString() {
+			return subscribeInfo.getSubscribeType() + " " + ServiceInfos;
+		}
 		/**
 		 * 刚初始化时为false，任何修改ServiceInfos都会设置成true。 用来处理Subscribe返回的第一份数据和Commit可能乱序的问题。
 		 * 目前的实现不会发生乱序。
