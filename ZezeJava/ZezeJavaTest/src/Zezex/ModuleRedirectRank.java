@@ -64,7 +64,8 @@ public class ModuleRedirectRank extends TestCase {
 			assert serverId.Value == 1;
 
 			// RedirectAll
-			var future = new TaskCompletionSource<Boolean>();
+			app1.Game_Rank.TestToAllConcLevel = 5;
+			var future1 = new TaskCompletionSource<Boolean>();
 			var hashes = new ConcurrentHashSet<Integer>();
 			app1.Game_Rank.TestToAll(12345, (sid, h, out) -> {
 				System.out.println("TestToAll onHashResult: " + sid + ", " + h + ", " + out);
@@ -81,12 +82,21 @@ public class ModuleRedirectRank extends TestCase {
 					assertEquals(Procedure.Exception, ctx.getHashResults().get(3).longValue());
 					assertEquals(Procedure.Success, ctx.getHashResults().get(4).longValue());
 				} finally {
-					future.SetResult(true);
+					future1.SetResult(true);
 				}
 			});
-			assertTrue(future.get());
+			assertTrue(future1.get());
 			assertEquals(4, hashes.size()); // 还有1个因异常没有结果
 			assertFalse(hashes.contains(3));
+
+			var future2 = new TaskCompletionSource<Boolean>();
+			app2.Game_Rank.TestToAllConcLevel = 0;
+			app2.Game_Rank.TestToAll(12345, (sid, h, out) -> fail(), ctx -> {
+				System.out.println("TestToAll onHashEnd: HashResults=" + ctx.getHashResults());
+				assertEquals(0, ctx.getHashResults().size());
+				future2.SetResult(true);
+			});
+			assertTrue(future2.get());
 		} finally {
 			app1.Stop();
 			app2.Stop();

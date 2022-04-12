@@ -65,6 +65,11 @@ public class RedirectBase {
 	}
 
 	public void RedirectAll(IModule module, ModuleRedirectAllRequest req) {
+		if (req.Argument.getHashCodeConcurrentLevel() <= 0) {
+			ProviderApp.ProviderService.TryRemoveManualContext(req.Argument.getSessionId());
+			return;
+		}
+
 		LongHashMap<ModuleRedirectAllRequest> transmits = new LongHashMap<>(); // <sessionId, request>
 
 		var miss = new ModuleRedirectAllResult();
@@ -75,8 +80,8 @@ public class RedirectBase {
 		miss.Argument.setServerId(0); // 在这里没法知道逻辑服务器id，错误报告就不提供这个了。
 		miss.setResultCode(ModuleRedirect.ResultCodeLinkdNoProvider);
 
+		var provider = new OutLong();
 		for (int i = 0; i < req.Argument.getHashCodeConcurrentLevel(); ++i) {
-			var provider = new OutLong();
 			if (ProviderApp.Distribute.ChoiceProvider(req.Argument.getServiceNamePrefix(),
 					req.Argument.getModuleId(), i, provider)) {
 				var exist = transmits.get(provider.Value);

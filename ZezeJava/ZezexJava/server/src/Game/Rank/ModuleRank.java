@@ -476,7 +476,9 @@ public class ModuleRank extends AbstractModule {
 		onHashResult.run(sessionId, hash, in);
 	}
 
-	@RedirectAll(GetConcurrentLevelSource = "5")
+	public int TestToAllConcLevel;
+
+	@RedirectAll(GetConcurrentLevelSource = "TestToAllConcLevel")
 	public void TestToAll(int in, Action3<Long, Integer, Integer> onHashResult, RedirectAllDoneHandle onHashEnd) {
 		System.out.println("TestToAll in=" + in); // RedirectAll时不可能调用到这里,应该在上面的TestToAll方法处理
 	}
