@@ -165,8 +165,6 @@ public final class Agent implements Closeable {
 				return false;
 			}
 
-			System.out.println("ServerId=" + Agent.this.getZeze().getConfig().getServerId() + "Pending=" + pending + " Readys=" + ServiceIdentityReadyStates.keySet());
-
 			for (var p : pending.getServiceInfoListSortedByIdentity()) {
 				if (!ServiceIdentityReadyStates.containsKey(p.getServiceIdentity())) {
 					return false;

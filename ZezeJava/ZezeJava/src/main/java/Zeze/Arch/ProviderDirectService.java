@@ -35,7 +35,6 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			var ps = ProviderSessions.get(connName);
 			if (null != ps) {
 				// connection has ready.
-				System.out.println("TryConnectAndSetReady " + getZeze().getConfig().getServerId() + " identity=" + pm.getServiceIdentity());
 				var mid = Integer.parseInt(infos.getServiceName().split("#")[1]);
 				var m = ProviderApp.Modules.get(mid);
 				SetReady(ss, pm, ps, mid, m);
@@ -51,7 +50,6 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			var out = new OutObject<Connector>();
 			if (getConfig().TryGetOrAddConnector(pm.getPassiveIp(), pm.getPassivePort(), true, out)) {
 				// 新建的Connector。开始连接。
-				System.out.println("Connect To " + out.Value.getName());
 				out.Value.Start();
 			}
 		}
@@ -66,11 +64,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		var c = socket.getConnector();
 		if (c != null) {
 			// 主动连接。
-			System.out.println("OnHandshakeDone " + c.getName() + " serverId=" + getZeze().getConfig().getServerId()
-				+ " ss=" + ProviderSessions);
 			SetRelativeServiceReady(ps, c.getHostNameOrAddress(), c.getPort());
-			System.out.println("OnHandshakeDone ++++ " + c.getName() + " serverId=" + getZeze().getConfig().getServerId()
-					+ " ss=" + ProviderSessions);
 			var r = new AnnounceProviderInfo();
 			r.Argument.setIp(ProviderApp.DirectIp);
 			r.Argument.setPort(ProviderApp.DirectPort);
@@ -110,7 +104,6 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	private void SetReady(Agent.SubscribeState ss, ServiceInfo server, ProviderSession ps, int mid, BModule m) {
 		var pms = new ProviderModuleState(ps.getSessionId(), mid, m.getChoiceType(), m.getConfigType());
 		ps.GetOrAddServiceReadyState(ss.getServiceName()).put(server.getServiceIdentity(), pms);
-		System.out.println("SetReady " + getZeze().getConfig().getServerId() + " " + ss.getServiceName() + ":" + server.getServiceIdentity());
 		ss.SetServiceIdentityReadyState(server.getServiceIdentity(), pms);
 	}
 

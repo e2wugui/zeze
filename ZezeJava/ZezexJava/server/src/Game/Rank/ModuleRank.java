@@ -459,7 +459,9 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	@RedirectHash()
-	public void Test2(int hash, int inData) {
+	public TaskCompletionSource<Long> TestHash(int hash, int inData, Action3<Integer, Integer, Integer> result) throws Throwable {
+		result.run(hash, inData, App.Zeze.getConfig().getServerId());
+		return null;
 	}
 
 	@RedirectHash()

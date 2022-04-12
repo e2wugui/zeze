@@ -40,11 +40,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			return;
 
 		if (pending.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)) {
-			System.out.println("ApplyPrepareServiceInfos " + ProviderApp.Zeze.getConfig().getServerId()
-					+ " ss=" + this.ProviderApp.ProviderDirectService.ProviderSessions);
 			this.ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, pending);
-			System.out.println("ApplyPrepareServiceInfos ++++ " + ProviderApp.Zeze.getConfig().getServerId()
-					+ " ss=" + this.ProviderApp.ProviderDirectService.ProviderSessions);
 		}
 	}
 
