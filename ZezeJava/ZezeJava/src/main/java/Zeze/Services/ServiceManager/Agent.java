@@ -264,7 +264,7 @@ public final class Agent implements Closeable {
 				break;
 			}
 		}
-
+		/*
 		private boolean SequenceEqual(ArrayList<ServiceInfo> l1, ArrayList<ServiceInfo> l2) {
 			if (l1.size() != l2.size())
 				return false;
@@ -275,6 +275,7 @@ public final class Agent implements Closeable {
 			}
 			return true;
 		}
+		*/
 
 		public synchronized void OnCommit(CommitServiceList r) throws Throwable {
 			if (r.Argument.SerialId != ServiceInfosPending.getSerialId())
@@ -289,6 +290,10 @@ public final class Agent implements Closeable {
 
 		public synchronized void OnFirstCommit(ServiceInfos infos) throws Throwable {
 			if (getCommitted()) {
+				return;
+			}
+			if (subscribeInfo.getSubscribeType() == SubscribeInfo.SubscribeTypeReadyCommit) {
+				// ReadyCommit 模式不会走到这里。OnNotify(infos);
 				return;
 			}
 			setCommitted(true);
@@ -459,7 +464,7 @@ public final class Agent implements Closeable {
 			return Update.ServiceNotSubscribe;
 
 		state.OnUpdate(r.Argument);
-
+		r.SendResult();
 		return 0;
 	}
 
@@ -469,7 +474,7 @@ public final class Agent implements Closeable {
 			return Update.ServiceNotSubscribe;
 
 		state.OnRegister(r.Argument);
-
+		r.SendResult();
 		return 0;
 	}
 
@@ -479,7 +484,7 @@ public final class Agent implements Closeable {
 			return Update.ServiceNotSubscribe;
 
 		state.OnUnRegister(r.Argument);
-
+		r.SendResult();
 		return 0;
 	}
 

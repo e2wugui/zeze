@@ -24,6 +24,7 @@ Test TestGlobal Simulate 异步测试
 c# Arch & Test
 Java Arch Test
 Zezex Onlines TransmitInProcedure 需要重写。
+ServiceManager.Agent lock 模式：改成全局锁Agent。单线程化。回调也在锁内执行。
 
 【2022/5/11】
 ServiceManager: Provider之间连接成功的时候，Pending还没到达。

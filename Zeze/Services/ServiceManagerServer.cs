@@ -329,9 +329,15 @@ namespace Zeze.Services
                     {
                         case SubscribeInfo.SubscribeTypeSimple:
                             Simple.TryAdd(session.SessionId, new SubscribeState(session.SessionId));
+                            if (null == ServiceManager.StartNotifyDelayTask)
+                            {
+                                var arg = new ServiceInfos(ServiceName, this, SerialId);
+                                new SubscribeFirstCommit() { Argument = arg }.Send(r.Sender);
+                            }
                             break;
                         case SubscribeInfo.SubscribeTypeReadyCommit:
                             ReadyCommit.TryAdd(session.SessionId, new SubscribeState(session.SessionId));
+                            StartReadyCommitNotify();
                             break;
                         default:
                             r.ResultCode = Subscribe.UnknownSubscribeType;
@@ -342,11 +348,6 @@ namespace Zeze.Services
                     foreach (var info in ServiceInfos.Values)
                     {
                         ServiceManager.AddLoadObserver(info.PassiveIp, info.PassivePort, r.Sender);
-                    }
-                    if (null == ServiceManager.StartNotifyDelayTask)
-                    {
-                        var arg = new ServiceInfos(ServiceName, this, SerialId);
-                        new SubscribeFirstCommit() { Argument = arg }.Send(r.Sender);
                     }
                     return Procedure.Success;
                 }
@@ -1193,7 +1194,7 @@ namespace Zeze.Services.ServiceManager
                 return Update.ServiceNotSubscribe;
 
             state.OnUpdate(r.Argument);
-
+            r.SendResult();
             return 0;
         }
 
@@ -1206,7 +1207,7 @@ namespace Zeze.Services.ServiceManager
                 return Update.ServiceNotSubscribe;
 
             state.OnRegister(r.Argument);
-
+            r.SendResult();
             return 0;
         }
 
@@ -1219,7 +1220,7 @@ namespace Zeze.Services.ServiceManager
                 return Update.ServiceNotSubscribe;
 
             state.OnUnRegister(r.Argument);
-
+            r.SendResult();
             return 0;
         }
 

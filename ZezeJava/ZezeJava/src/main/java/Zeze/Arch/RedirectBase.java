@@ -38,7 +38,7 @@ public class RedirectBase {
 			return null; // is Local
 		var out = new OutLong();
 		if (ProviderApp.Distribute.ChoiceProviderByServerId(ProviderApp.ServerServiceNamePrefix, module.getId(), serverId, out))
-			return ProviderApp.ProviderService.GetSocket(out.Value);
+			return ProviderApp.ProviderDirectService.GetSocket(out.Value);
 		return null;
 	}
 
@@ -58,7 +58,7 @@ public class RedirectBase {
 		if (providerModuleState == null)
 			return null;
 
-		return ProviderApp.ProviderService.GetSocket(providerModuleState.SessionId);
+		return ProviderApp.ProviderDirectService.GetSocket(providerModuleState.SessionId);
 	}
 
 	public void RedirectAll(IModule module, ModuleRedirectAllRequest req) {

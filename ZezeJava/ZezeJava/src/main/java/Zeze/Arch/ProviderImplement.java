@@ -23,9 +23,15 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	void ApplyOnChanged(Agent.SubscribeState subState) {
 		if (subState.getServiceName().equals(ProviderApp.LinkdServiceName)) {
 			this.ProviderApp.ProviderService.Apply(subState.getServiceInfos());
-		} else if (subState.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)){
-			this.ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, subState.getServiceInfos());
+			return;
 		}
+		/*
+		if (subState.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)){
+			System.out.println("ServerId=" + ProviderApp.Zeze.getConfig().getServerId()
+			+ " OnChanged=" + subState.getServiceInfos());
+			//this.ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, subState.getServiceInfos());
+		}
+		*/
 	}
 
 	void ApplyOnPrepare(Agent.SubscribeState subState) {

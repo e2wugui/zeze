@@ -349,9 +349,16 @@ public final class ServiceManagerServer implements Closeable {
 			switch (r.Argument.getSubscribeType()) {
 			case SubscribeInfo.SubscribeTypeSimple:
 				Simple.putIfAbsent(session.getSessionId(), new SubscribeState(session.getSessionId()));
+				if (ServiceManager.StartNotifyDelayTask == null) {
+					var arg = new ServiceInfos(ServiceName, this, SerialId);
+					SubscribeFirstCommit tempVar = new SubscribeFirstCommit();
+					tempVar.Argument = arg;
+					tempVar.Send(r.getSender());
+				}
 				break;
 			case SubscribeInfo.SubscribeTypeReadyCommit:
 				ReadyCommit.putIfAbsent(session.getSessionId(), new SubscribeState(session.getSessionId()));
+				StartReadyCommitNotify();
 				break;
 			default:
 				r.setResultCode(Subscribe.UnknownSubscribeType);
@@ -362,12 +369,6 @@ public final class ServiceManagerServer implements Closeable {
 				ServiceManager.AddLoadObserver(info.getPassiveIp(), info.getPassivePort(), r.getSender());
 			}
 			r.SendResultCode(Subscribe.Success);
-			if (ServiceManager.StartNotifyDelayTask == null) {
-				var arg = new ServiceInfos(ServiceName, this, SerialId);
-				SubscribeFirstCommit tempVar = new SubscribeFirstCommit();
-				tempVar.Argument = arg;
-				tempVar.Send(r.getSender());
-			}
 			return Procedure.Success;
 		}
 

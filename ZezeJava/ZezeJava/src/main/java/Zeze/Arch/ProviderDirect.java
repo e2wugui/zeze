@@ -21,13 +21,6 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 
 	@Override
 	protected long ProcessModuleRedirectRequest(ModuleRedirect rpc) throws Throwable {
-		// replace RootProcedure.ActionName. 为了统计和日志输出。
-		Transaction txn = Transaction.getCurrent();
-		assert txn != null;
-		Procedure proc = txn.getTopProcedure();
-		assert proc != null;
-		proc.setActionName(rpc.Argument.getMethodFullName());
-
 		rpc.Result.setModuleId(rpc.Argument.getModuleId());
 		rpc.Result.setServerId(ProviderApp.Zeze.getConfig().getServerId());
 		var handle = ProviderApp.Zeze.Redirect.Handles.get(rpc.Argument.getMethodFullName());
@@ -76,10 +69,6 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 	protected long ProcessModuleRedirectAllRequest(ModuleRedirectAllRequest p) throws Throwable {
 		var result = new ModuleRedirectAllResult();
 		try {
-			// replace RootProcedure.ActionName. 为了统计和日志输出。
-			// 现在这个协议处理不在存储过程中，在外面DispatchProtocol的时候设置名字。
-			//Transaction.getCurrent().getTopProcedure().setActionName(p.Argument.getMethodFullName());
-
 			// common parameters for result
 			result.Argument.setModuleId(p.Argument.getModuleId());
 			result.Argument.setServerId(ProviderApp.Zeze.getConfig().getServerId());

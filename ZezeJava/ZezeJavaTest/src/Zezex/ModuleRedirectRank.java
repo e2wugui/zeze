@@ -11,7 +11,9 @@ public class ModuleRedirectRank extends TestCase {
 		app1.Start(new String[]{ "-ServerId", "0" });
 		app2.Start(new String[]{ "-ServerId", "1", "-ProviderDirectPort", "20002" });
 
+		System.out.println("Begin Thread.sleep");
 		Thread.sleep(5000); // wait connected
+		System.out.println("End Thread.sleep");
 
 		try {
 			var in = new Zeze.Util.OutInt();
