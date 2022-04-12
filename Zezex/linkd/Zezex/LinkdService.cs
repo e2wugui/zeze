@@ -1,6 +1,7 @@
 ﻿
 using System.Collections.Generic;
 using Zeze.Net;
+using Zeze.Util;
 
 namespace Zezex
 {
@@ -34,7 +35,7 @@ namespace Zezex
                         break;
                 }
                 // 延迟关闭。等待客户端收到错误以后主动关闭，或者超时。
-                global::Zeze.Util.Scheduler.Instance.Schedule((ThisTask) => this.GetSocket(linkSid)?.Dispose(), 2000);
+                Scheduler.Schedule((ThisTask) => this.GetSocket(linkSid)?.Dispose(), 2000);
             }
         }
 
@@ -94,8 +95,10 @@ namespace Zezex
                 try
                 {
                     var isRequestSaved = p.IsRequest;
-                    var result = factoryHandle.Handle(p); // 不启用新的Task，直接在io-thread里面执行。
-                    global::Zeze.Util.Task.LogAndStatistics(null, result, p, isRequestSaved);
+                    var task = factoryHandle.Handle(p);
+                    task.Wait();
+                    var result = task.Result; // 不启用新的Task，直接在io-thread里面执行。
+                    Mission.LogAndStatistics(null, result, p, isRequestSaved);
                 }
                 catch (System.Exception ex)
                 {
@@ -212,7 +215,7 @@ namespace Zezex
         public void KeepAlive()
         {
             KeepAliveTask?.Cancel();
-            KeepAliveTask = global::Zeze.Util.Scheduler.Instance.Schedule((ThisTask) =>
+            KeepAliveTask = Scheduler.Schedule((ThisTask) =>
             {
                 App.Instance.LinkdService.GetSocket(SessionId)?.Close(null);
             }, 300000);

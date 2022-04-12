@@ -22,7 +22,7 @@ namespace Game
 		public void StartTimerTask(int delaySeconds = 1)
 		{
 			TimoutDelaySeconds = delaySeconds;
-			Zeze.Util.Scheduler.Instance.Schedule(OnTimerTask, TimoutDelaySeconds * 1000);
+			Zeze.Util.Scheduler.Schedule(OnTimerTask, TimoutDelaySeconds * 1000);
 		}
 
 		private void OnTimerTask(Zeze.Util.SchedulerTask ThisTask)

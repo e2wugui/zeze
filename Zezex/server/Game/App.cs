@@ -60,7 +60,9 @@ namespace Game
             var config = global::Zeze.Config.Load();
             if (ServerId != -1)
                 config.ServerId = ServerId; // replace from args
-            Create(config);
+            CreateZeze(config);
+            CreateService();
+            CreateModules();
 
             ProviderModuleBinds = Zezex.ProviderModuleBinds.Load();
             ProviderModuleBinds.BuildStaticBinds(Modules, Zeze.Config.ServerId, StaticBinds);
@@ -71,7 +73,7 @@ namespace Game
                 Server.ApplyLinksChanged(subscribeState.ServiceInfos);
             };
 
-            Zeze.Start(); // 启动数据库
+            Zeze.StartAsync().Wait(); // 启动数据库
             StartModules(); // 启动模块，装载配置什么的。
 
             AsyncSocketSessionIdGen = PersistentAtomicLong.GetOrAdd("Server." + config.ServerId);
@@ -83,10 +85,10 @@ namespace Game
             // 服务准备好以后才注册和订阅。
             foreach (var staticBind in StaticBinds)
             {
-                Zeze.ServiceManagerAgent.RegisterService($"{ServerServiceNamePrefix}{staticBind.Key}",
+                _ = Zeze.ServiceManagerAgent.RegisterService($"{ServerServiceNamePrefix}{staticBind.Key}",
                     config.ServerId.ToString());
             }
-            Zeze.ServiceManagerAgent.SubscribeService(LinkdServiceName,
+            _ = Zeze.ServiceManagerAgent.SubscribeService(LinkdServiceName,
                 global::Zeze.Services.ServiceManager.SubscribeInfo.SubscribeTypeSimple);
         }
 
@@ -95,7 +97,9 @@ namespace Game
             StopService(); // 关闭网络
             StopModules(); // 关闭模块,，卸载配置什么的。
             Zeze.Stop(); // 关闭数据库
-            Destroy();
+            DestroyModules();
+            DestroyService();
+            DestroyZeze();
         }
     }
 }

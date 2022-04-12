@@ -18,41 +18,41 @@ namespace Game.Login
             this.table = table;
         }
 
-        public void OnLinkBroken(long roleId)
+        public async Task OnLinkBroken(long roleId)
         {
-            var online = table.Get(roleId);
+            var online = await table.GetAsync(roleId);
             if (null != online)
                 online.State = BOnline.StateNetBroken;
 
-            global::Zeze.Util.Scheduler.Instance.Schedule((ThisTask) =>
-            {
-                App.Instance.Zeze.NewProcedure(() =>
-                {
-                    // 网络断开后延迟删除在线状态。这里简单判断一下是否StateNetBroken。
-                    // 由于CLogin,CReLogin的时候没有取消Timeout，所以有可能再次登录断线后，会被上一次断线的Timeout删除。
-                    // 造成延迟时间不准确。管理Timeout有点烦，先这样吧。
-                    var online = table.Get(roleId);
-                    if (null != online && online.State == BOnline.StateNetBroken)
-                        table.Remove(roleId);
-                    App.Instance.Load.LogoutCount.IncrementAndGet();
+            await Task.Delay(10 * 60 * 1000);
 
-                    return Procedure.Success;
-                }, "Onlines.OnLinkBroken").Call();
-            }, 10 * 60 * 1000); // 10 minuts for relogin
+            App.Instance.Zeze.NewProcedure(async () =>
+            {
+                // 网络断开后延迟删除在线状态。这里简单判断一下是否StateNetBroken。
+                // 由于CLogin,CReLogin的时候没有取消Timeout，所以有可能再次登录断线后，会被上一次断线的Timeout删除。
+                // 造成延迟时间不准确。管理Timeout有点烦，先这样吧。
+                var online = await table.GetAsync(roleId);
+                if (null != online && online.State == BOnline.StateNetBroken)
+                {
+                    await table.RemoveAsync(roleId);
+                    App.Instance.Load.LogoutCount.IncrementAndGet();
+                }
+                return Procedure.Success;
+            }, "Onlines.OnLinkBroken").Execute();
         }
 
-        public void AddReliableNotifyMark(long roleId, string listenerName)
+        public async Task AddReliableNotifyMark(long roleId, string listenerName)
         {
-            var online = table.Get(roleId);
+            var online = await table.GetAsync(roleId);
             if (null == online || online.State != BOnline.StateOnline)
                 throw new Exception("Not Online. AddReliableNotifyMark: " + listenerName);
             online.ReliableNotifyMark.Add(listenerName);
         }
 
-        public void RemoveReliableNotifyMark(long roleId, string listenerName)
+        public async Task RemoveReliableNotifyMark(long roleId, string listenerName)
         {
             // 移除尽量通过，不做任何判断。
-            table.Get(roleId)?.ReliableNotifyMark.Remove(listenerName);
+           (await table.GetAsync(roleId))?.ReliableNotifyMark.Remove(listenerName);
         }
 
         public void SendReliableNotifyWhileCommit(
@@ -112,9 +112,9 @@ namespace Game.Login
 
             App.Instance.Zeze.TaskOneByOneByKey.Execute(
                 listenerName,
-                App.Instance.Zeze.NewProcedure(() =>
+                App.Instance.Zeze.NewProcedure(async () =>
                 {
-                    BOnline online = table.Get(roleId);
+                    BOnline online = await table.GetAsync(roleId);
                     if (null == online || online.State == BOnline.StateOffline)
                     {
                         return Procedure.Success;
@@ -133,7 +133,7 @@ namespace Game.Login
                         notify.Argument.ReliableNotifyTotalCountStart = online.ReliableNotifyTotalCount;
                         notify.Argument.Notifies.Add(fullEncodedProtocol);
 
-                        SendInProcedure(roleId, notify.TypeId, new Binary(notify.Encode()), future);
+                        await SendInProcedure(roleId, notify.TypeId, new Binary(notify.Encode()), future);
                     }
                     online.ReliableNotifyTotalCount += 1; // 后加，start 是 Queue.Add 之前的。
                     return Procedure.Success;
@@ -154,7 +154,7 @@ namespace Game.Login
                 = new Dictionary<long, Zezex.Provider.BTransmitContext>();
         }
 
-        public ICollection<RoleOnLink> GroupByLink(ICollection<long> roleIds)
+        public async Task<ICollection<RoleOnLink>> GroupByLink(ICollection<long> roleIds)
         {
             var groups = new Dictionary<string, RoleOnLink>();
             var groupNotOnline = new RoleOnLink(); // LinkName is Empty And Socket is null.
@@ -162,7 +162,7 @@ namespace Game.Login
 
             foreach (var roleId in roleIds)
             {
-                var online = table.Get(roleId);
+                var online = await table.GetAsync(roleId);
                 if (null == online || online.State != BOnline.StateOnline)
                 {
                     groupNotOnline.Roles.TryAdd(roleId, new Zezex.Provider.BTransmitContext());
@@ -202,12 +202,12 @@ namespace Game.Login
             return groups.Values;
         }
 
-        private void SendInProcedure(
+        private async Task SendInProcedure(
             long roleId, long typeId, Binary fullEncodedProtocol,
             TaskCompletionSource<long> future)
         {
             // 发送消息为了用上TaskOneByOne，只能一个一个发送，为了少改代码，先使用旧的GroupByLink接口。
-            var groups = GroupByLink(new List<long> { roleId });
+            var groups = await GroupByLink(new List<long> { roleId });
             long serialId = 0;
             if (null != future)
             {
@@ -253,11 +253,11 @@ namespace Game.Login
 
             // 发送协议请求在另外的事务中执行。
             Game.App.Instance.Zeze.TaskOneByOneByKey.Execute(roleId, () =>
-                Zeze.Util.Task.Call(Game.App.Instance.Zeze.NewProcedure(() =>
+                Game.App.Instance.Zeze.NewProcedure(async () =>
                 {
-                    SendInProcedure(roleId, typeId, fullEncodedProtocol, future);
+                    await SendInProcedure(roleId, typeId, fullEncodedProtocol, future);
                     return Procedure.Success;
-                }, "Onlines.Send")));
+                }, "Onlines.Send"));
 
             future?.Task.Wait();
         }
@@ -299,11 +299,9 @@ namespace Game.Login
         /// target: 查询目标角色。
         /// result: 返回值，int，按普通事务处理过程返回值处理。
         /// </summary>
-        public ConcurrentDictionary<string, Func<long, long, Serializable, long>> TransmitActions { get; }
-            = new ConcurrentDictionary<string, Func<long, long, Serializable, long>>();
+        public ConcurrentDictionary<string, Func<long, long, Serializable, Task<long>>> TransmitActions { get; } = new();
 
-        public ConcurrentDictionary<string, Func<string, Serializable>> TransmitParameterFactorys { get; }
-            = new ConcurrentDictionary<string, Func<string, Serializable>>();
+        public ConcurrentDictionary<string, Func<string, Serializable>> TransmitParameterFactorys { get; } = new();
 
         /// <summary>
         /// 转发查询请求给RoleId。
@@ -322,13 +320,12 @@ namespace Game.Login
             {
                 foreach (var target in roleIds)
                 {
-                    Zeze.Util.Task.Run(App.Instance.Zeze.NewProcedure(
-                        () => handle(sender, target, parameter), "Game.Online.Transmit:" + actionName));
+                    App.Instance.Zeze.NewProcedure(async () => await handle(sender, target, parameter), "Game.Online.Transmit:" + actionName).Execute();
                 }
             }
         }
 
-        private void TransmitInProcedure(long sender, string actionName, ICollection<long> roleIds, Serializable parameter)
+        private async Task TransmitInProcedure(long sender, string actionName, ICollection<long> roleIds, Serializable parameter)
         {
             if (App.Instance.Zeze.Config.GlobalCacheManagerHostNameOrAddress.Length == 0)
             {
@@ -337,7 +334,7 @@ namespace Game.Login
                 return;
             }
 
-            var groups = GroupByLink(roleIds);
+            var groups = await GroupByLink(roleIds);
             foreach (var group in groups)
             {
                 if (group.ProviderId == App.Instance.Zeze.Config.ServerId
@@ -372,11 +369,11 @@ namespace Game.Login
                 throw new Exception("Unkown Action Name: " + actionName);
 
             // 发送协议请求在另外的事务中执行。
-            Zeze.Util.Task.Run(Game.App.Instance.Zeze.NewProcedure(() =>
+            _ = Game.App.Instance.Zeze.NewProcedure(async () =>
             {
-                TransmitInProcedure(sender, actionName, roleIds, parameter);
+                await TransmitInProcedure(sender, actionName, roleIds, parameter);
                 return Procedure.Success;
-            }, "Onlines.Transmit"));
+            }, "Onlines.Transmit").CallAsync();
         }
 
         public void TransmitWhileCommit(long sender, string actionName, long roleId, Serializable parameter = null)

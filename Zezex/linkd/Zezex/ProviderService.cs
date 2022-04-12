@@ -2,6 +2,7 @@
 
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using Zeze.Util;
 
 namespace Zezex
 {
@@ -18,7 +19,7 @@ namespace Zezex
                 {
                     // Bind 的处理需要同步等待ServiceManager的订阅成功，时间比较长，
                     // 不要直接在io-thread里面执行。
-                    global::Zeze.Util.Task.Run(() => factoryHandle.Handle(p), p);
+                    _ = Mission.CallAsync(factoryHandle.Handle, p);
                 }
                 else
                 {
@@ -27,8 +28,10 @@ namespace Zezex
                     try
                     {
                         var isReqeustSaved = p.IsRequest;
-                        var result = factoryHandle.Handle(p); 
-                        global::Zeze.Util.Task.LogAndStatistics(null, result, p, isReqeustSaved);
+                        var task = factoryHandle.Handle(p);
+                        task.Wait();
+                        var result = task.Result; 
+                        Mission.LogAndStatistics(null, result, p, isReqeustSaved);
                     }
                     catch (System.Exception ex)
                     {

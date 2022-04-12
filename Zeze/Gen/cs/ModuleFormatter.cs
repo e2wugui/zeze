@@ -74,7 +74,7 @@ namespace Zeze.Gen.cs
             }
             foreach (var tlog in tlogs)
             {
-                sw.WriteLine($"            rocks.RegisterLog<{tlog}>();");
+                sw.WriteLine($"            Zeze.Raft.RocksRaft.Rocks.RegisterLog<{tlog}>();");
             }
         }
 

@@ -215,8 +215,7 @@ namespace Game.Rank
             long roleId, long value, Zeze.Net.Binary valueEx)
         {
             int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
-            App.Zeze.Run(() => UpdateRank(hash, keyHint, roleId, value, valueEx),
-                nameof(RunUpdateRank), Zeze.TransactionModes.ExecuteInAnotherThread, hash);
+            UpdateRank(hash, keyHint, roleId, value, valueEx);
         }
 
         // 名字必须和RunUpdateRankWithHash匹配，内部使用一样的实现。
@@ -232,18 +231,13 @@ namespace Game.Rank
             int hash, BConcurrentKey keyHint,
             long roleId, long value, Zeze.Net.Binary valueEx)
         {
-            App.Zeze.Run(() => UpdateRankWithHash(
-                hash, keyHint, roleId, value, valueEx),
-                nameof(RunUpdateRankWithHash),
-                Zeze.TransactionModes.ExecuteInAnotherThread, hash);
+            UpdateRankWithHash(hash, keyHint, roleId, value, valueEx);
         }
 
         [RedirectToServer()]
         public virtual void RunTestToServer(int serverId)
         {
-            App.Zeze.Run(() => TestToServer(serverId),
-                nameof(RunTestToServer),
-                Zeze.TransactionModes.ExecuteInAnotherThread, serverId);
+            TestToServer(serverId);
         }
 
         protected long TestToServer(int serverId)
@@ -484,7 +478,8 @@ namespace Game.Rank
         public virtual TaskCompletionSource<long> RunTest1(Zeze.TransactionModes mode)
         {
             int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
-            return App.Zeze.Run(() => Test1(hash), nameof(Test1), mode, hash);
+            Test1(hash);
+            return null;
         }
 
         protected long Test1(int hash)
@@ -498,8 +493,7 @@ namespace Game.Rank
             int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
             int outDataTmp = 0;
             int refDataTmp = refData;
-            var future = App.Zeze.Run(() => Test2(hash, inData, ref refDataTmp, out outDataTmp), nameof(Test2), Zeze.TransactionModes.ExecuteInAnotherThread, hash);
-            future.Task.Wait();
+            Test2(hash, inData, ref refDataTmp, out outDataTmp);
             refData = refDataTmp;
             outData = outDataTmp;
         }
@@ -517,8 +511,7 @@ namespace Game.Rank
             int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
             int outDataTmp = 0;
             int refDataTmp = refData;
-            var future = App.Zeze.Run(() => Test3(hash, inData, ref refDataTmp, out outDataTmp, resultCallback), nameof(Test3), Zeze.TransactionModes.ExecuteInAnotherThread, hash);
-            future.Task.Wait();
+            Test3(hash, inData, ref refDataTmp, out outDataTmp, resultCallback);
             refData = refDataTmp;
             outData = outDataTmp;
         }

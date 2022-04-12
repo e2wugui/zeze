@@ -121,10 +121,10 @@ namespace Game
             // static binds
             var rpc = new Zezex.Provider.Bind();
             rpc.Argument.Modules.AddRange(Game.App.Instance.StaticBinds);
-            rpc.Send(sender, (protocol) => { ProviderStaticBindCompleted.SetResult(true); return 0; });
+            rpc.Send(sender, async (protocol) => { ProviderStaticBindCompleted.SetResult(true); return 0; });
             var sub = new Zezex.Provider.Subscribe();
             sub.Argument.Modules.AddRange(Game.App.Instance.DynamicModules);
-            sub.Send(sender, (protocol)=> { ProviderDynamicSubscribeCompleted.SetResult(true); return 0; });
+            sub.Send(sender, async (protocol) => { ProviderDynamicSubscribeCompleted.SetResult(true); return 0; });
         }
 
         public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
@@ -140,28 +140,15 @@ namespace Game
                     var modureRecirect = p as Zezex.Provider.ModuleRedirect;
                     if (null != Zeze && false == factoryHandle.NoProcedure)
                     {
-                        Zeze.TaskOneByOneByKey.Execute(
-                            modureRecirect.Argument.HashCode,
-                            () => global::Zeze.Util.Task.Call(
-                                Zeze.NewProcedure(
-                                    () => factoryHandle.Handle(p),
-                                    p.GetType().FullName,
-                                    factoryHandle.TransactionLevel,
-                                    p.UserState),
-                                p,
-                                (p, code) => p.SendResultCode(code)
-                                )
-                            );
+                        Zeze.TaskOneByOneByKey.Execute(modureRecirect.Argument.HashCode,
+                                Zeze.NewProcedure(async () => await factoryHandle.Handle(p),
+                                    p.GetType().FullName, factoryHandle.TransactionLevel, p.UserState),
+                                p, (p, code) => p.SendResultCode(code));
                     }
                     else
                     {
                         Zeze.TaskOneByOneByKey.Execute(modureRecirect.Argument.HashCode,
-                            () => global::Zeze.Util.Task.Call(
-                                () => factoryHandle.Handle(p),
-                                p,
-                                (p, code) => p.SendResultCode(code)
-                                )
-                            );
+                            factoryHandle.Handle, p, (p, code) => p.SendResultCode(code));
                     }
                 }
                 else
