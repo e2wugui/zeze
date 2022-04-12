@@ -496,58 +496,58 @@
 	</module>
 
 	<!-- Linkd 服务模块基类，仅用来生成代码 -->
-	<component name="LinkdBase" platform="zeze+java">
+	<component name="LinkdBase" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.Beans.LinkdBase"/>
 		</service>
 	</component>
 
-	<component name="RedoQueueServer" platform="zeze+java">
+	<component name="RedoQueueServer" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.Beans.RedoQueue"/>
 		</service>
 	</component>
 
 	<!-- Provider之间直连服务 -->
-	<component name="ProviderDirect" genrelativedir="Zeze/Arch" platform="zeze+java">
+	<component name="ProviderDirect" genrelativedir="Zeze/Arch" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.Beans.ProviderDirect"/>
 		</service>
 	</component>
 
 	<!-- Provider 在Linkd上的客户端支持组件 -->
-	<component name="LinkdProvider" genrelativedir="Zeze/Arch" platform="zeze+java">
+	<component name="LinkdProvider" genrelativedir="Zeze/Arch" platform="zeze+cs">
 		<service name="" handle="client">
 			<module ref="Zeze.Beans.Provider"/>
 		</service>
 	</component>
 
 	<!-- Provider 为客户端协议服务。协议通过Linkd转发 -->
-	<component name="ProviderImplement" genrelativedir="Zeze/Arch" platform="zeze+java">
+	<component name="ProviderImplement" genrelativedir="Zeze/Arch" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.Beans.Provider"/>
 		</service>
 	</component>
 
-	<component name="DelayRemove" platform="zeze+java">
+	<component name="DelayRemove" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.Beans.DelayRemove"/>
 		</service>
 	</component>
 
-	<component name="Queue" genrelativedir="Zeze/Collections" platform="zeze+java">
+	<component name="Queue" genrelativedir="Zeze/Collections" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.Beans.Collections.Queue"/>
 		</service>
 	</component>
 
-	<component name="LinkedMap" genrelativedir="Zeze/Collections" platform="zeze+java">
+	<component name="LinkedMap" genrelativedir="Zeze/Collections" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.Beans.Collections.LinkedMap"/>
 		</service>
 	</component>
 
-	<component name="AutoKey" platform="zeze+java">
+	<component name="AutoKey" platform="zeze+cs">
 		<service name="" handle="server">
 			<module ref="Zeze.Beans.AutoKey"/>
 		</service>
