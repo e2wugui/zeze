@@ -1,6 +1,6 @@
 package Zeze.Arch;
 
 @FunctionalInterface
-public interface RedirectAllDoneHandle {
-    void handle(ModuleRedirectAllContext ctx) throws Throwable;
+public interface RedirectAllDoneHandle<T extends RedirectResult> {
+	void handle(ModuleRedirectAllContext<T> ctx) throws Throwable;
 }

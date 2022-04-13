@@ -4,10 +4,10 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.concurrent.ConcurrentHashMap;
 import Game.App;
-import Zeze.Arch.ModuleRedirectAllContext;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Arch.RedirectAll;
 import Zeze.Arch.RedirectAllDoneHandle;
+import Zeze.Arch.RedirectResult;
 import Zeze.Arch.RedirectHash;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Net.Binary;
@@ -17,7 +17,6 @@ import Zeze.Transaction.Transaction;
 import Zeze.Util.Action1;
 import Zeze.Util.Action2;
 import Zeze.Util.Action3;
-import Zeze.Util.Str;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -197,23 +196,17 @@ public class ModuleRank extends AbstractModule {
 
 	/**
 	 * ModuleRedirectAll 实现要求：
-	 * 1）第一个参数是调用会话id；
-	 * 2）第二个参数是hash-index；
-	 * 3）然后是实现自定义输入参数；
-	 * 4）最后是结果回调,
-	 * a) 第一参数是会话id，
-	 * b) 第二参数hash-index，
-	 * c) 第三个参数是returnCode，
-	 * d) 剩下的是自定义参数。
+	 * 1）最后一个参数是输出结果和上下文(会话ID和hash)
+	 * 2）前面的其它参数都是自定义的输入参数
+	 * 3）返回值没有意义,可以为void
 	 */
-	protected final long GetRank(long sessionId, int hash, BConcurrentKey keyHint,
-								 Action3<Long, Integer, BRankList> onHashResult) {
+	protected final long GetRank(BConcurrentKey keyHint, RRankList result) {
 		// 根据hash获取分组rank。
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
-		var concurrentKey = new BConcurrentKey(keyHint.getRankType(), hash % concurrentLevel,
+		var concurrentKey = new BConcurrentKey(keyHint.getRankType(), result.getHash() % concurrentLevel,
 				keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
 		try {
-			onHashResult.run(sessionId, hash, _trank.getOrAdd(concurrentKey));
+			result.rankList = _trank.getOrAdd(concurrentKey);
 			return Procedure.Success;
 		} catch (Throwable e) {
 			logger.error("", e);
@@ -221,10 +214,15 @@ public class ModuleRank extends AbstractModule {
 		}
 	}
 
+	public static class RRankList extends RedirectResult {
+		public BRankList rankList = new BRankList(); // 目前要求输出结构的所有字段都不能为null,需要构造时创建
+	}
+
 	// 属性参数是获取总的并发分组数量的代码，直接复制到生成代码中。
 	// 需要注意在子类上下文中可以编译通过。可以是常量。
 	@RedirectAll(GetConcurrentLevelSource = "GetConcurrentLevel(arg0.getRankType())")
-	public void GetRank(BConcurrentKey keyHint, Action3<Long, Integer, BRankList> onHashResult, RedirectAllDoneHandle onHashEnd) {
+	public void GetRank(BConcurrentKey keyHint, Action1<RRankList> onHashResult, RedirectAllDoneHandle<RRankList> onHashEnd) {
+/*
 		// 默认实现是本地遍历调用，这里不使用App.Zeze.Run启动任务（这样无法等待），直接调用实现。
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		var ctx = new ModuleRedirectAllContext(concurrentLevel,
@@ -234,8 +232,10 @@ public class ModuleRank extends AbstractModule {
 		for (int i = 0; i < concurrentLevel; ++i) {
 			GetRank(sessionId, i, keyHint, onHashResult);
 		}
+*/
 	}
 
+/*
 	// 使用异步方案构建rank。
 	public void GetRankAsync(BConcurrentKey keyHint,
 							 Action1<Rank> callback) {
@@ -290,6 +290,7 @@ public class ModuleRank extends AbstractModule {
 					callback.run(rank2);
 				});
 	}
+*/
 
 	/**
 	 * 为排行榜设置最大并发级别。【有默认值】
@@ -438,12 +439,14 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	public int GetSimpleChineseSeason(Calendar c) {
+		//@formatter:off
 		var month = c.get(Calendar.MONTH);
 		if (month < 3) return 4; // 12,1,2
 		if (month < 6) return 1; // 3,4,5
 		if (month < 9) return 2; // 6,7,8
 		if (month < 12) return 3; // 9,10,11
-		return 4; // 12,1,2
+			return 4; // 12,1,2
+		//@formatter:on
 	}
 
 	/******************************** ModuleRedirect 测试 *****************************************/
@@ -469,17 +472,26 @@ public class ModuleRank extends AbstractModule {
 		result.run(inData, new EmptyBean());
 	}
 
-	protected final void TestToAll(long sessionId, int hash, int in, Action3<Long, Integer, Integer> onHashResult) throws Throwable {
-		System.out.println("TestToAll sid=" + sessionId + ", hash=" + hash + ", in=" + in);
-		if (hash == 3)
+	public static class TestToAllResult extends RedirectResult {
+		public int out;
+
+		@Override
+		public String toString() {
+			return "{r:" + getResultCode() + ",out:" + out + '}';
+		}
+	}
+
+	protected final void TestToAll(int in, TestToAllResult result) throws Throwable {
+		System.out.println("TestToAll sid=" + result.getSessionId() + ", hash=" + result.getHash() + ", in=" + in);
+		if (result.getHash() == 3)
 			throw new Exception("not bug, only for test");
-		onHashResult.run(sessionId, hash, in);
+		result.out = in;
 	}
 
 	public int TestToAllConcLevel;
 
 	@RedirectAll(GetConcurrentLevelSource = "TestToAllConcLevel")
-	public void TestToAll(int in, Action3<Long, Integer, Integer> onHashResult, RedirectAllDoneHandle onHashEnd) {
+	public void TestToAll(int in, Action1<TestToAllResult> onHashResult, RedirectAllDoneHandle<TestToAllResult> onHashEnd) {
 		System.out.println("TestToAll in=" + in); // RedirectAll时不可能调用到这里,应该在上面的TestToAll方法处理
 	}
 

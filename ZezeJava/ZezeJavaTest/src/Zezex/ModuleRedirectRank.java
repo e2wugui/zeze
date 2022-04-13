@@ -69,31 +69,33 @@ public class ModuleRedirectRank extends TestCase {
 			app1.Game_Rank.TestToAllConcLevel = 5;
 			var future1 = new TaskCompletionSource<Boolean>();
 			var hashes = new ConcurrentHashSet<Integer>();
-			app1.Game_Rank.TestToAll(12345, (sid, h, out) -> {
-				System.out.println("TestToAll onHashResult: " + sid + ", " + h + ", " + out);
+			app1.Game_Rank.TestToAll(12345, (hashResult) -> {
+				var h = hashResult.getHash();
+				var out = hashResult.out;
+				System.out.println("TestToAll onHashResult: " + hashResult.getSessionId() + ", " + h + ", " + out);
 				assertTrue(h >= 0 && h < 5);
 				assertTrue(hashes.add(h));
-				assertEquals(12345, out.intValue());
+				if (hashResult.getResultCode() == Procedure.Success)
+					assertEquals(12345, out);
 			}, ctx -> {
 				try {
 					System.out.println("TestToAll onHashEnd: HashResults=" + ctx.getHashResults());
 					assertEquals(5, ctx.getHashResults().size());
-					assertEquals(Procedure.Success, ctx.getHashResults().get(0).longValue());
-					assertEquals(Procedure.Success, ctx.getHashResults().get(1).longValue());
-					assertEquals(Procedure.Success, ctx.getHashResults().get(2).longValue());
-					assertEquals(Procedure.Exception, ctx.getHashResults().get(3).longValue());
-					assertEquals(Procedure.Success, ctx.getHashResults().get(4).longValue());
+					assertEquals(Procedure.Success, ctx.getHashResults().get(0).getResultCode());
+					assertEquals(Procedure.Success, ctx.getHashResults().get(1).getResultCode());
+					assertEquals(Procedure.Success, ctx.getHashResults().get(2).getResultCode());
+					assertEquals(Procedure.Exception, ctx.getHashResults().get(3).getResultCode());
+					assertEquals(Procedure.Success, ctx.getHashResults().get(4).getResultCode());
 				} finally {
 					future1.SetResult(true);
 				}
 			});
 			assertTrue(future1.get());
-			assertEquals(4, hashes.size()); // 还有1个因异常没有结果
-			assertFalse(hashes.contains(3));
+			assertEquals(5, hashes.size());
 
 			var future2 = new TaskCompletionSource<Boolean>();
 			app2.Game_Rank.TestToAllConcLevel = 0;
-			app2.Game_Rank.TestToAll(12345, (sid, h, out) -> fail(), ctx -> {
+			app2.Game_Rank.TestToAll(12345, __ -> fail(), ctx -> {
 				System.out.println("TestToAll onHashEnd: HashResults=" + ctx.getHashResults());
 				assertEquals(0, ctx.getHashResults().size());
 				future2.SetResult(true);

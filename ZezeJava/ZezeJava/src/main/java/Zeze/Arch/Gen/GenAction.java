@@ -5,6 +5,7 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import Zeze.Arch.RedirectResult;
 import Zeze.Util.StringBuilderCs;
 
 public class GenAction {
@@ -83,7 +84,7 @@ public class GenAction {
 		for (int i = 0; i < GenericArguments.length; ++i) {
 			if (i > 0)
 				sb.append(", ");
-			sb.append(toShortTypeName(GenericArguments[i].getTypeName()));
+			sb.append(toShortTypeName(GenericArguments[i].getTypeName().replace('$', '.')));
 		}
 		sb.append(">");
 		return sb.toString();
@@ -96,12 +97,10 @@ public class GenAction {
 			break;
 
 		case RedirectAll:
-			if (GenericArguments.length < 2)
-				throw new RuntimeException(m.method.getName() + ": RedirectAll Result Handle Miss Parameters.");
-			if (GenericArguments[0] != Long.class)
-				throw new RuntimeException(m.method.getName() + ": RedirectAll Result Handle First Parameter Type Must Be Long. That Is A SessionId.");
-			if (GenericArguments[1] != Integer.class)
-				throw new RuntimeException(m.method.getName() + ": RedirectAll Result Handle Second Parameter Type Must Be Integer. That Is A Hash.");
+			if (GenericArguments.length != 1)
+				throw new RuntimeException(m.method.getName() + ": RedirectAll Result Handle Too Many Parameters.");
+			if (!RedirectResult.class.isAssignableFrom((Class<?>)GenericArguments[0]))
+				throw new RuntimeException(m.method.getName() + ": RedirectAll Result Type Must Extend RedirectContext");
 			break;
 		}
 	}

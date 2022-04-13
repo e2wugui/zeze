@@ -1,93 +1,68 @@
 package Zeze.Arch;
 
-import java.util.function.ToLongFunction;
+import java.util.function.Function;
 import Zeze.Beans.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Procedure;
-import Zeze.Util.Factory;
+import Zeze.Util.Action1;
 import Zeze.Util.IntHashMap;
 
-public class ModuleRedirectAllContext extends Zeze.Net.Service.ManualContext {
-	private final String MethodFullName;
-	private final IntHashMap<Long> HashResults = new IntHashMap<>(); // <hash, resultCode>
-	private int leftResultCount;
-	private RedirectAllDoneHandle OnHashEnd;
+public class ModuleRedirectAllContext<R extends RedirectResult> extends Zeze.Net.Service.ManualContext {
+	private final int concurrentLevel;
+	private final IntHashMap<R> hashResults = new IntHashMap<>(); // <hash, result>
+	private final Function<Binary, R> decodeResult;
+	private final Action1<R> onHashResult;
+	private final RedirectAllDoneHandle<R> onHashEnd;
 
-	public ModuleRedirectAllContext(int concurrentLevel, String methodFullName) {
-		MethodFullName = methodFullName;
-		for (int hash = 0; hash < concurrentLevel; ++hash) {
-			HashResults.put(hash, null);
-		}
-		leftResultCount = concurrentLevel;
+	public ModuleRedirectAllContext(int concurrentLevel, Function<Binary, R> decodeResult) {
+		this(concurrentLevel, decodeResult, null, null);
 	}
 
-	public final String getMethodFullName() {
-		return MethodFullName;
+	public ModuleRedirectAllContext(int concurrentLevel, Function<Binary, R> decodeResult, Action1<R> onHashResult) {
+		this(concurrentLevel, decodeResult, onHashResult, null);
 	}
 
-	public final IntHashMap<Long> getHashResults() {
-		return HashResults;
+	public ModuleRedirectAllContext(int concurrentLevel, Function<Binary, R> decodeResult, Action1<R> onHashResult,
+									RedirectAllDoneHandle<R> onHashEnd) {
+		this.concurrentLevel = concurrentLevel;
+		this.decodeResult = decodeResult;
+		this.onHashResult = onHashResult;
+		this.onHashEnd = onHashEnd;
 	}
 
-	public final RedirectAllDoneHandle getOnHashEnd() {
-		return OnHashEnd;
-	}
-
-	public final void setOnHashEnd(RedirectAllDoneHandle value) {
-		OnHashEnd = value;
+	// 只用于AllDone时获取所有结果, 此时不会再修改hashResults所以没有并发问题
+	public final IntHashMap<R> getHashResults() {
+		return hashResults;
 	}
 
 	@Override
-	public synchronized void OnRemoved() throws Throwable {
-		var onHashEnd = OnHashEnd;
-		if (onHashEnd != null) {
-			OnHashEnd = null;
-			HashResults.foreachUpdate((k, v) -> v != null ? v : Procedure.Timeout); // 没结果的当成超时
+	public void OnRemoved() throws Throwable {
+		if (onHashEnd != null)
 			onHashEnd.handle(this);
-		}
-	}
-
-	/**
-	 * 调用这个方法处理hash分组结果，真正的处理代码在action中实现。
-	 * 1) 在锁内执行；
-	 * 2) 需要时初始化UserState并传给action；
-	 * 3) 处理完成时删除Context
-	 */
-	@SuppressWarnings("unchecked")
-	public final synchronized <T> long ProcessHash(int hash, Factory<T> factory, ToLongFunction<T> action) {
-		try {
-			if (getUserState() == null) {
-				setUserState(factory.create());
-			}
-			return action.applyAsLong((T)getUserState());
-		} finally {
-			HashResults.remove(hash); // 如果不允许一个hash分组处理措辞，把这个移到开头并判断结果。
-			if (HashResults.isEmpty()) {
-				getService().TryRemoveManualContext(getSessionId());
-			}
-		}
 	}
 
 	// 这里处理真正redirect发生时，从远程返回的结果。
+	@SuppressWarnings("deprecation")
 	public final void ProcessResult(Zeze.Application zeze, ModuleRedirectAllResult result) throws Throwable {
 		for (var h : result.Argument.getHashs().entrySet()) {
-			long resultCode = h.getValue().getReturnCode();
+			var resultCode = h.getValue().getReturnCode();
+			R resultBean = decodeResult.apply(resultCode == Procedure.Success ? h.getValue().getParams() : null);
+			resultBean.setSessionId(getSessionId());
+			resultBean.setHash(h.getKey());
+			resultBean.setResultCode(resultCode);
+			if (onHashResult != null) {
+				zeze.NewProcedure(() -> {
+					onHashResult.run(resultBean);
+					return 0L;
+				}, "ModuleRedirectResponse Procedure").Call();
+			}
 			boolean allDone;
 			synchronized (this) {
-				allDone = HashResults.put(h.getKey(), resultCode) == null && --leftResultCount == 0;
-			}
-			if (resultCode == Procedure.Success) {
-				// 不判断单个分组的处理结果，错误也继续执行其他分组。XXX
-				getService().getZeze().NewProcedure(() -> ProcessHashResult(
-						zeze, h.getKey(), h.getValue().getParams()), MethodFullName).Call();
+				hashResults.put(h.getKey(), resultBean);
+				allDone = hashResults.size() == concurrentLevel;
 			}
 			if (allDone)
-				getService().TryRemoveManualContext(result.Argument.getSessionId());
+				getService().TryRemoveManualContext(getSessionId());
 		}
-	}
-
-	// 生成代码实现。see Zezex.ModuleRedirect.cs
-	public long ProcessHashResult(Zeze.Application zeze, int _hash_, Binary _params) throws Throwable {
-		return Procedure.NotImplement;
 	}
 }

@@ -131,7 +131,7 @@ public class Gen {
 //		if (Zeze.Serialize.Serializable.class.isAssignableFrom(type))
 //			return type.getTypeName();
 
-		return type.getTypeName();
+		return type.getTypeName().replace('$', '.');
 	}
 
 	public void GenLocalVariable(Zeze.Util.StringBuilderCs sb, String prefix, Class<?> type, String varName) throws Throwable {
