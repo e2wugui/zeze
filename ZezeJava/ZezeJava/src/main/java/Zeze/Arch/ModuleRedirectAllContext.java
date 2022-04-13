@@ -72,18 +72,17 @@ public class ModuleRedirectAllContext extends Zeze.Net.Service.ManualContext {
 	public final void ProcessResult(Zeze.Application zeze, ModuleRedirectAllResult result) throws Throwable {
 		for (var h : result.Argument.getHashs().entrySet()) {
 			long resultCode = h.getValue().getReturnCode();
-			final RedirectAllDoneHandle onHashEnd;
+			boolean allDone;
 			synchronized (this) {
-				if (HashResults.put(h.getKey(), resultCode) == null)
-					onHashEnd = --leftResultCount == 0 ? OnHashEnd : null;
-				else
-					onHashEnd = null;
+				allDone = HashResults.put(h.getKey(), resultCode) == null && --leftResultCount == 0;
 			}
 			if (resultCode == Procedure.Success) {
 				// 不判断单个分组的处理结果，错误也继续执行其他分组。XXX
 				getService().getZeze().NewProcedure(() -> ProcessHashResult(
 						zeze, h.getKey(), h.getValue().getParams()), MethodFullName).Call();
 			}
+			if (allDone)
+				getService().TryRemoveManualContext(result.Argument.getSessionId());
 		}
 	}
 
