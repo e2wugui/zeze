@@ -80,17 +80,9 @@ public class ModuleRedirectAllContext extends Zeze.Net.Service.ManualContext {
 					onHashEnd = null;
 			}
 			if (resultCode == Procedure.Success) {
-				// 嵌套存储过程，单个分组的结果处理不影响其他分组。
 				// 不判断单个分组的处理结果，错误也继续执行其他分组。XXX
 				getService().getZeze().NewProcedure(() -> ProcessHashResult(
 						zeze, h.getKey(), h.getValue().getParams()), MethodFullName).Call();
-			}
-			if (onHashEnd != null) {
-				OnHashEnd = null;
-				getService().getZeze().NewProcedure(() -> {
-					onHashEnd.handle(this);
-					return Procedure.Success;
-				}, MethodFullName).Call();
 			}
 		}
 	}
