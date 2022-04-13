@@ -66,7 +66,7 @@ public class RedirectBase {
 
 	public void RedirectAll(IModule module, ModuleRedirectAllRequest req) {
 		if (req.Argument.getHashCodeConcurrentLevel() <= 0) {
-			ProviderApp.ProviderService.TryRemoveManualContext(req.Argument.getSessionId());
+			ProviderApp.ProviderDirectService.TryRemoveManualContext(req.Argument.getSessionId());
 			return;
 		}
 

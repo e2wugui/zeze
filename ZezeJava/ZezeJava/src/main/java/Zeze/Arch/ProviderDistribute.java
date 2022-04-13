@@ -135,11 +135,24 @@ public class ProviderDistribute {
 		var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
 
 		var volatileProviders = Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
-		if (null == volatileProviders) {
-			provider.Value = 0L;
+		if (volatileProviders == null)
+			return false;
+
+		var serviceInfo = ChoiceHash(volatileProviders, hash);
+		if (serviceInfo == null)
+			return false;
+
+		var providerModuleState = (ProviderModuleState)serviceInfo.getLocalState();
+		if (providerModuleState == null) {
+			if (String.valueOf(Zeze.getConfig().getServerId()).equals(serviceInfo.getServiceIdentity())) {
+				provider.Value = 0;
+				return true;
+			}
 			return false;
 		}
-		return ChoiceHash(volatileProviders, hash, provider);
+
+		provider.Value = providerModuleState.SessionId;
+		return true;
 	}
 
 	public boolean ChoiceProviderByServerId(String serviceNamePrefix, int moduleId, int serverId, OutLong provider) {

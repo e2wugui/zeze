@@ -12,8 +12,8 @@ public class ModuleRedirectRank extends TestCase {
 		var app1 = App.Instance;
 		var app2 = new App();
 
-		app1.Start(new String[]{ "-ServerId", "0" });
-		app2.Start(new String[]{ "-ServerId", "1", "-ProviderDirectPort", "20002" });
+		app1.Start(new String[]{"-ServerId", "0"});
+		app2.Start(new String[]{"-ServerId", "1", "-ProviderDirectPort", "20002"});
 
 		System.out.println("Begin Thread.sleep");
 		Thread.sleep(2000); // wait connected
@@ -24,6 +24,7 @@ public class ModuleRedirectRank extends TestCase {
 			var in = new Zeze.Util.OutInt();
 			var serverId = new Zeze.Util.OutInt();
 
+			// @formatter:off
 			// RedirectToServer
 			app1.Game_Rank.TestToServer(0, 12345, (i, s) -> { in.Value = i; serverId.Value = s; }).Wait();
 			assert in.Value == 12345;
@@ -62,6 +63,7 @@ public class ModuleRedirectRank extends TestCase {
 			assert hash.Value == 1;
 			assert in.Value == 12345;
 			assert serverId.Value == 1;
+			// @formatter:on
 
 			// RedirectAll
 			app1.Game_Rank.TestToAllConcLevel = 5;
@@ -98,8 +100,10 @@ public class ModuleRedirectRank extends TestCase {
 			});
 			assertTrue(future2.get());
 		} finally {
+			System.out.println("Begin Stop");
 			app1.Stop();
 			app2.Stop();
+			System.out.println("End Stop");
 		}
 	}
 }
