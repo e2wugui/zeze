@@ -1,6 +1,7 @@
 
 using System.Collections.Generic;
 using Zeze.Beans.Provider;
+using Zeze.Serialize;
 
 namespace Zeze.Arch
 {
@@ -54,9 +55,7 @@ namespace Zeze.Arch
 			this.ProviderDirectService = toOtherProviderService;
 			this.ProviderDirectService.ProviderApp = this;
 
-			var kv = ProviderDirectService.GetOnePassiveAddress();
-			this.DirectIp = kv.getKey();
-			this.DirectPort = kv.getValue();
+			(DirectIp, DirectPort) = ProviderDirectService.GetOnePassiveAddress();
 
 			this.LinkdServiceName = linkdNameOnServiceManager;
 
@@ -69,14 +68,15 @@ namespace Zeze.Arch
 				var ps = ProviderDirectService.ProviderSessions.get(serverLoad.Name);
 				if (ps != null) {
 					var load = new BLoad();
-					load.Decode(serverLoad.Param.Wrap());
+					var bb = ByteBuffer.Wrap(serverLoad.Param);
+					load.Decode(bb);
 					ps.Load = load;
 				}
 			});
 			this.Distribute = new ProviderDistribute();
 			this.Distribute.LoadConfig = loadConfig;
 			this.Distribute.Zeze = Zeze;
-			this.Distribute.ProviderService = ProviderService;
+			this.Distribute.ProviderService = ProviderDirectService;
 
 			this.ProviderDirect.RegisterProtocols(ProviderDirectService);
 		}

@@ -39,7 +39,8 @@ namespace Zeze.Arch.Gen
             return false;
         }
 
-        public Zeze.IModule ReplaceModuleInstance(Zeze.IModule module)
+        public Zeze.IModule ReplaceModuleInstance<T>(T userApp, Zeze.IModule module)
+            where T : AppBase
         {
             List<MethodOverride> overrides = new List<MethodOverride>();
             var methods = module.GetType().GetMethods();

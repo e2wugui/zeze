@@ -77,7 +77,7 @@ public class ProviderApp {
 		this.Distribute = new ProviderDistribute();
 		this.Distribute.LoadConfig = loadConfig;
 		this.Distribute.Zeze = Zeze;
-		this.Distribute.ProviderService = ProviderService;
+		this.Distribute.ProviderService = ProviderDirectService;
 
 		this.ProviderDirect.RegisterProtocols(ProviderDirectService);
 	}

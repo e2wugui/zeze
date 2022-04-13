@@ -128,7 +128,7 @@ namespace Zeze.Arch
 						subs.SetServiceIdentityReadyState(identity, null);
 					}
 				}
-				ProviderSessions.remove(ps.getServerLoadName());
+				ProviderSessions.Remove(ps.getServerLoadName());
 			}
 			base.OnSocketClose(socket, ex);
 		}
@@ -137,37 +137,30 @@ namespace Zeze.Arch
 		{
 			// 防止Client不进入加密，直接发送用户协议。
 			if (!IsHandshakeProtocol(p.TypeId)) {
-				var sender = p.Sender;
-				if (sender != null)
-					sender.VerifySecurity();
+				p.Sender?.VerifySecurity();
 			}
 
 			if (p.TypeId == ModuleRedirect.TypeId_)
 			{
-				if (null != factoryHandle.Handle)
-				{
-					var r = (ModuleRedirect)p;
-					// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-					Zeze.TaskOneByOneByKey.Execute(r.Argument.HashCode, factoryHandle.Handle, p, Protocol.SendResultCode, r.Argument.MethodFullName));
-				}
-				else
-					logger.Warn("Protocol Handle Not Found: {}", p);
+				var r = (ModuleRedirect)p;
+				// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
+				Zeze.TaskOneByOneByKey.Execute(
+					r.Argument.HashCode, factoryHandle.Handle, p, r.Argument.MethodFullName,
+					(p, code) => p.SendResultCode(code));
+
 				return;
 			}
+
 			if (p.TypeId == ModuleRedirectAllResult.TypeId_)
 			{
-				if (null != factoryHandle.Handle)
-				{
-					var r = (ModuleRedirectAllResult)p;
-					// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-					Zeze.Util.Task.Call(()->factoryHandle.Handle.handle(p), p, Protocol::SendResultCode, r.Argument.MethodFullName);
-				}
-				else
-					logger.Warn("Protocol Handle Not Found: {}", p);
+				var r = (ModuleRedirectAllResult)p;
+				// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
+				_ = Mission.CallAsync(factoryHandle.Handle, p, (p, code) => p.SendResultCode(code), r.Argument.MethodFullName);
+
 				return;
 			}
-			// 所有的Direct都不启用存储过程。
-			_ = Mission.CallAsync(factoryHandle.Handle, p, Protocol::SendResultCode);
+			// 所有的ProviderDirectService都不启用存储过程。
+			_ = Mission.CallAsync(factoryHandle.Handle, p, (p, code) => p.SendResultCode(code));
 		}
 
 		public override void DispatchRpcResponse(Protocol rpc, Func<Protocol, Task<long>> responseHandle, ProtocolFactoryHandle factoryHandle)
@@ -176,8 +169,7 @@ namespace Zeze.Arch
 			{
 				var redirect = (ModuleRedirect)rpc;
 				// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-				Zeze.TaskOneByOneByKey.Execute(redirect.Argument.HashCode,
-						responseHandle, rpc);
+				Zeze.TaskOneByOneByKey.Execute(redirect.Argument.HashCode, responseHandle, rpc);
 				return;
 			}
 

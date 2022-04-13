@@ -65,6 +65,15 @@ namespace Zeze.Util
 			});
 		}
 
+		public void Execute(object key, Func<Net.Protocol, Task<long>> pHandle, Net.Protocol p, string name,
+			Action<Net.Protocol, long> actionWhenError = null, Action cancel = null)
+		{
+			int h = Hash(key.GetHashCode());
+			int index = h & (concurrency.Length - 1);
+
+			concurrency[index].Execute(new JobProtocol(pHandle, p, actionWhenError, cancel, name));
+		}
+
 		public void Execute(object key, Func<Net.Protocol, Task<long>> pHandle, Net.Protocol p,
 			Action<Net.Protocol, long> actionWhenError = null, Action cancel = null)
 		{
@@ -134,13 +143,22 @@ namespace Zeze.Util
 			public Func<Net.Protocol, Task<long>> Handle { get; set; }
 			public Action<Net.Protocol, long> ActionWhenError { get; set; }
 
+			public JobProtocol(Func<Net.Protocol, Task<long>> pHandle, Net.Protocol p,
+				Action<Net.Protocol, long> eHandle, Action cancel, string name)
+            {
+				Handle = pHandle;
+				Protocol = p;
+				ActionWhenError = eHandle;
+				Cancel = cancel;
+				Name = name;
+			}
+
 			public JobProtocol(Func<Net.Protocol, Task<long>> pHandle, Net.Protocol p, Action<Net.Protocol, long> eHandle, Action cancel)
 			{
 				Handle = pHandle;
 				Protocol = p;
 				ActionWhenError = eHandle;
 				Cancel = cancel;
-
 				Name = Protocol.GetType().FullName;
 			}
 

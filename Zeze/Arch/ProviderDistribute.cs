@@ -9,26 +9,34 @@ namespace Zeze.Arch
 {
     public class ProviderDistribute
     {
-        public Application Application { get; }
+        public Application Zeze { get; set; }
+        public LoadConfig LoadConfig { get; set; }
+        public Zeze.Net.Service ProviderService { get; set; }
+
         public int MaxOnlineNew { get; set; } = 30;
 
-        public ProviderDistribute(Application zeze)
+        public string MakeServiceName(string prefix, int moduleId)
         {
-            Application = zeze;
+            return $"{prefix}{moduleId}";
+        }
+
+        public ServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash)
+        {
+            var list = providers.ServiceInfos.ServiceInfoListSortedByIdentity;
+            if (list.Count == 0)
+                return null;
+            return list[hash % list.Count];
         }
 
         public bool ChoiceHash(Agent.SubscribeState providers, int hash, out long provider)
         {
             provider = 0;
-
-            var list = providers.ServiceInfos.ServiceInfoListSortedByIdentity;
-            if (list.Count == 0)
+            var serviceInfo = ChoiceHash(providers, hash);
+            if (null == serviceInfo)
                 return false;
-
-            var providerModuleState = list[hash % list.Count].LocalState as ProviderModuleState;
+            var providerModuleState = serviceInfo.LocalState as ProviderModuleState;
             if (null == providerModuleState)
                 return false;
-
             provider = providerModuleState.SessionId;
             return true;
         }
@@ -48,13 +56,13 @@ namespace Zeze.Arch
                 var providerModuleState = list[i].LocalState as ProviderModuleState;
                 if (null == providerModuleState)
                     continue;
-                var ps = App.Instance.ProviderService.GetSocket(providerModuleState.SessionId)?.UserState as ProviderSession;
+                var ps = ProviderService.GetSocket(providerModuleState.SessionId)?.UserState as ProviderSession;
                 if (null == ps)
                     continue; // 这里发现关闭的服务，仅仅忽略.
                 all.Add(ps);
-                if (ps.OnlineNew > MaxOnlineNew)
+                if (ps.Load.OnlineNew > MaxOnlineNew)
                     continue;
-                int weight = ps.ProposeMaxOnline - ps.Online;
+                int weight = ps.Load.ProposeMaxOnline - ps.Load.Online;
                 if (weight <= 0)
                     continue;
                 frees.Add(ps);
@@ -62,10 +70,10 @@ namespace Zeze.Arch
             }
             if (TotalWeight > 0)
             {
-                int randweight = Zeze.Util.Random.Instance.Next(TotalWeight);
+                int randweight = global::Zeze.Util.Random.Instance.Next(TotalWeight);
                 foreach (var ps in frees)
                 {
-                    int weight = ps.ProposeMaxOnline - ps.Online;
+                    int weight = ps.Load.ProposeMaxOnline - ps.Load.Online;
                     if (randweight < weight)
                     {
                         provider = ps.SessionId;
@@ -77,7 +85,7 @@ namespace Zeze.Arch
             // 选择失败，一般是都满载了，随机选择一个。
             if (all.Count > 0)
             {
-                provider = all[Zeze.Util.Random.Instance.Next(all.Count)].SessionId;
+                provider = all[global::Zeze.Util.Random.Instance.Next(all.Count)].SessionId;
                 return true;
             }
             // no providers
@@ -102,16 +110,16 @@ namespace Zeze.Arch
                     var providerModuleState = serviceinfo.LocalState as ProviderModuleState;
                     if (providerModuleState == null)
                         continue;
-                    var ps = App.Instance.ProviderService.GetSocket(providerModuleState.SessionId)?.UserState as ProviderSession;
+                    var ps = ProviderService.GetSocket(providerModuleState.SessionId)?.UserState as ProviderSession;
                     // 这里发现关闭的服务，仅仅忽略.
                     if (null == ps)
                         continue;
                     // 这个和一个一个喂饱冲突，但是一下子给一个服务分配太多用户，可能超载。如果不想让这个生效，把MaxOnlineNew设置的很大。
-                    if (ps.OnlineNew > App.Instance.Config.MaxOnlineNew)
+                    if (ps.Load.OnlineNew > LoadConfig.MaxOnlineNew)
                         continue;
 
                     provider = ps.SessionId;
-                    if (ps.Online >= ps.ProposeMaxOnline)
+                    if (ps.Load.Online >= ps.Load.ProposeMaxOnline)
                         FeedFullOneByOneIndex.IncrementAndGet(); // 已经喂饱了一个，下一个。
 
                     return true;
@@ -120,22 +128,32 @@ namespace Zeze.Arch
             }
         }
 
-        public bool ChoiceProvider(string serviceNamePrefix, int moduleId, int hash, out long provider)
+        public ServiceInfo ChoiceProvider(string prefix, int moduleId, int hash)
         {
-            var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
-            if (false == Application.ServiceManagerAgent.SubscribeStates.TryGetValue(
-                serviceName, out var volatileProviders))
-            {
-                provider = 0;
+            var serviceName = MakeServiceName(prefix, moduleId);
+            if (false == Zeze.ServiceManagerAgent.SubscribeStates.TryGetValue(serviceName, out var volatileProviders))
+                return null;
+            return ChoiceHash(volatileProviders, hash);
+        }
+
+        public bool ChoiceProvider(string prefix, int moduleId, int hash, out long provider)
+        {
+            provider = 0;
+            var serviceInfo = ChoiceProvider(prefix, moduleId, hash);
+            if (null == serviceInfo)
                 return false;
-            }
-            return ChoiceHash(volatileProviders, hash, out provider);
+
+            var providerModuleState = (ProviderModuleState)serviceInfo.LocalState;
+            if (providerModuleState == null)
+                return false;
+            provider = providerModuleState.SessionId;
+            return true;
         }
 
         public bool ChoiceProviderByServerId(string serviceNamePrefix, int moduleId, int hash, out long provider)
         {
             var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
-            if (false == Application.ServiceManagerAgent.SubscribeStates.TryGetValue(
+            if (false == Zeze.ServiceManagerAgent.SubscribeStates.TryGetValue(
                 serviceName, out var volatileProviders))
             {
                 provider = 0;
@@ -150,11 +168,6 @@ namespace Zeze.Arch
             }
             provider = 0;
             return false;
-        }
-
-        private string MakeServiceName(string serviceNamePrefix, int moduleId)
-        {
-            return $"{serviceNamePrefix}{moduleId}";
         }
     }
 }
