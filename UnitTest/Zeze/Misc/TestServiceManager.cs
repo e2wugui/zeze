@@ -71,7 +71,7 @@ namespace UnitTest.Zeze.Misc
                 this.future.SetResult(0);
             };
             await agent.SubscribeService(serviceName, SubscribeInfo.SubscribeTypeSimple);
-            var load = new Load()
+            var load = new ServerLoad()
             {
                 Ip = "127.0.0.1",
                 Port = 1234,

@@ -3,10 +3,10 @@ namespace Zeze.Services
 {
     public abstract class AbstractTestRocks : Zeze.IModule 
     {
-    public const int ModuleId = 11002;
-    public override string FullName => "Zeze.Beans.TestRocks";
-    public override string Name => "TestRocks";
-    public override int Id => ModuleId;
+        public const int ModuleId = 11002;
+        public override string FullName => "Zeze.Beans.TestRocks";
+        public override string Name => "TestRocks";
+        public override int Id => ModuleId;
 
 
         public void RegisterProtocols(Zeze.Net.Service service)

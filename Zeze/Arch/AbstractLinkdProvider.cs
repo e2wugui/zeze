@@ -3,10 +3,10 @@ namespace Zeze.Arch
 {
     public abstract class AbstractLinkdProvider : Zeze.IModule 
     {
-    public const int ModuleId = 11008;
-    public override string FullName => "Zeze.Beans.Provider";
-    public override string Name => "Provider";
-    public override int Id => ModuleId;
+        public const int ModuleId = 11008;
+        public override string FullName => "Zeze.Beans.Provider";
+        public override string Name => "Provider";
+        public override int Id => ModuleId;
 
 
         public void RegisterProtocols(Zeze.Net.Service service)

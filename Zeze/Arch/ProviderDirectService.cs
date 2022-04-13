@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Zeze.Beans.Provider;
 using Zeze.Beans.ProviderDirect;
 using Zeze.Net;
 using Zeze.Services.ServiceManager;
@@ -34,7 +33,7 @@ namespace Zeze.Arch
 					{
 						// connection has ready.
 						var mid = int.Parse(infos.ServiceName.Split('#')[1]);
-						if (!ProviderApp.Modules.TryGetValue(mid, out var m))
+						if (false == ProviderApp.Modules.TryGetValue(mid, out var m))
 							throw new Exception($"Module Not Found {mid}");
 						SetReady(ss, pm, ps, mid, m);
 						continue;
@@ -69,7 +68,7 @@ namespace Zeze.Arch
 				var r = new AnnounceProviderInfo();
 				r.Argument.Ip = ProviderApp.DirectIp;
 				r.Argument.Port = ProviderApp.DirectPort;
-				r.Send(socket, async(_r)-> 0L); // skip result
+				r.Send(socket, async (_r) => 0); // skip result
 			}
 			// 被动连接等待对方报告信息时再处理。
 			// call base
@@ -109,26 +108,30 @@ namespace Zeze.Arch
 			}
 		}
 
-		private void SetReady(Agent.SubscribeState ss, ServiceInfo server, ProviderSession ps, int mid, BModule m)
+		private void SetReady(Agent.SubscribeState ss, ServiceInfo server, ProviderSession ps,
+			int mid, Zeze.Beans.Provider.BModule m)
 		{
-			var pms = new ProviderModuleState(ps.getSessionId(), mid, m.ChoiceType, m.ConfigType);
-			ps.GetOrAddServiceReadyState(ss.ServiceName).put(server.ServiceIdentity, pms);
+			var pms = new ProviderModuleState(ps.SessionId, mid, m.ChoiceType, m.ConfigType);
+			ps.GetOrAddServiceReadyState(ss.ServiceName).TryAdd(server.ServiceIdentity, pms);
 			ss.SetServiceIdentityReadyState(server.ServiceIdentity, pms);
 		}
 
 		public override void OnSocketClose(AsyncSocket socket, Exception ex)
 		{
 			var ps = (ProviderSession)socket.UserState;
-			if (ps != null) {
+			if (ps != null)
+			{
 				foreach (var service in ps.ServiceReadyStates)
 				{
-					var subs = Zeze.ServiceManagerAgent.SubscribeStates.get(service.Key);
-					foreach (var identity in service.Value().keySet())
-					{
-						subs.SetServiceIdentityReadyState(identity, null);
+					if (Zeze.ServiceManagerAgent.SubscribeStates.TryGetValue(service.Key, out var subs))
+                    {
+						foreach (var identity in service.Value.Keys)
+						{
+							subs.SetServiceIdentityReadyState(identity, null);
+						}
 					}
 				}
-				ProviderSessions.Remove(ps.getServerLoadName());
+				ProviderSessions.TryRemove(ps.ServerLoadName, out _);
 			}
 			base.OnSocketClose(socket, ex);
 		}

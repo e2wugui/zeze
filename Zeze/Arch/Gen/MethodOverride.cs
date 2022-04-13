@@ -139,12 +139,6 @@ namespace Zeze.Arch.Gen
                 case OverrideType.RedirectWithHash:
                     return "hash"; // parameter name
 
-                case OverrideType.Redirect:
-                    var attr = Attribute as RedirectAttribute;
-                    if (string.IsNullOrEmpty(attr.ChoiceHashCodeSource))
-                        return "Zezex.ModuleRedirect.GetChoiceHashCode()"; // Interface TODO
-                    return attr.ChoiceHashCodeSource;
-
                 default:
                     throw new Exception("error state");
             }

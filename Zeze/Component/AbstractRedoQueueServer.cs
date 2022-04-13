@@ -3,12 +3,12 @@ namespace Zeze.Component
 {
     public abstract class AbstractRedoQueueServer : Zeze.IModule 
     {
-    public const int ModuleId = 11010;
-    public override string FullName => "Zeze.Beans.RedoQueue";
-    public override string Name => "RedoQueue";
-    public override int Id => ModuleId;
+        public const int ModuleId = 11010;
+        public override string FullName => "Zeze.Beans.RedoQueue";
+        public override string Name => "RedoQueue";
+        public override int Id => ModuleId;
 
-        tQueueLastTaskId _tQueueLastTaskId = new tQueueLastTaskId();
+        Zeze.Beans.RedoQueue.tQueueLastTaskId _tQueueLastTaskId = new Zeze.Beans.RedoQueue.tQueueLastTaskId();
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {

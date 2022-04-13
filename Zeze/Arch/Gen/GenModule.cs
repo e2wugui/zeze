@@ -46,8 +46,6 @@ namespace Zeze.Arch.Gen
             var methods = module.GetType().GetMethods();
             foreach (var method in methods)
             {
-                if (CheckAddMethod(method, OverrideType.Redirect, method.GetCustomAttributes(typeof(RedirectAttribute), false), overrides))
-                    continue;
                 if (CheckAddMethod(method, OverrideType.RedirectWithHash, method.GetCustomAttributes(typeof(RedirectHashAttribute), false), overrides))
                     continue;
                 if (CheckAddMethod(method, OverrideType.RedirectAll, method.GetCustomAttributes(typeof(RedirectAllHashAttribute), false), overrides))

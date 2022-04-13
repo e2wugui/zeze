@@ -3,10 +3,10 @@ namespace Zeze.Arch
 {
     public abstract class AbstractProviderDirect : Zeze.IModule 
     {
-    public const int ModuleId = 11009;
-    public override string FullName => "Zeze.Beans.ProviderDirect";
-    public override string Name => "ProviderDirect";
-    public override int Id => ModuleId;
+        public const int ModuleId = 11009;
+        public override string FullName => "Zeze.Beans.ProviderDirect";
+        public override string Name => "ProviderDirect";
+        public override int Id => ModuleId;
 
 
         public const int ErrorTransmitParameterFactoryNotFound = 1;

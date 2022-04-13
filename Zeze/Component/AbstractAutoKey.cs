@@ -3,12 +3,12 @@ namespace Zeze.Component
 {
     public abstract class AbstractAutoKey : Zeze.IModule 
     {
-    public const int ModuleId = 11003;
-    public override string FullName => "Zeze.Beans.AutoKey";
-    public override string Name => "AutoKey";
-    public override int Id => ModuleId;
+        public const int ModuleId = 11003;
+        public override string FullName => "Zeze.Beans.AutoKey";
+        public override string Name => "AutoKey";
+        public override int Id => ModuleId;
 
-        tAutoKeys _tAutoKeys = new tAutoKeys();
+        Zeze.Beans.AutoKey.tAutoKeys _tAutoKeys = new Zeze.Beans.AutoKey.tAutoKeys();
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {

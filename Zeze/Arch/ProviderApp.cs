@@ -1,5 +1,6 @@
 
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Zeze.Beans.Provider;
 using Zeze.Serialize;
 
@@ -64,15 +65,16 @@ namespace Zeze.Arch
 			this.Zeze.ServiceManagerAgent.OnChanged = ProviderImplement.ApplyOnChanged;
 			this.Zeze.ServiceManagerAgent.OnPrepare = ProviderImplement.ApplyOnPrepare;
 
-			this.Zeze.ServiceManagerAgent.OnSetServerLoad = (serverLoad)-> {
-				var ps = ProviderDirectService.ProviderSessions.get(serverLoad.Name);
-				if (ps != null) {
+			this.Zeze.ServiceManagerAgent.OnSetServerLoad = (serverLoad) =>
+			{
+				if (ProviderDirectService.ProviderSessions.TryGetValue(serverLoad.Name, out var ps))
+				{
 					var load = new BLoad();
 					var bb = ByteBuffer.Wrap(serverLoad.Param);
 					load.Decode(bb);
 					ps.Load = load;
 				}
-			});
+			};
 			this.Distribute = new ProviderDistribute();
 			this.Distribute.LoadConfig = loadConfig;
 			this.Distribute.Zeze = Zeze;
@@ -90,8 +92,8 @@ namespace Zeze.Arch
 				Modules.Add(e.Key, e.Value);
 		}
 
-		public void StartLast() {
-			ProviderImplement.RegisterModulesAndSubscribeLinkd();
+		public async Task StartLast() {
+			await ProviderImplement.RegisterModulesAndSubscribeLinkd();
 		}
 	}
 }

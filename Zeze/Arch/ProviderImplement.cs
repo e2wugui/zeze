@@ -13,11 +13,11 @@ namespace Zeze.Arch
     {
         public ProviderApp ProviderApp { get; set; }
 
-        void ApplyOnChanged(Agent.SubscribeState subState)
+        internal void ApplyOnChanged(Agent.SubscribeState subState)
         {
             if (subState.ServiceName.Equals(ProviderApp.LinkdServiceName))
             {
-                ProviderApp.ProviderService.Apply(subState.ServiceInfos);
+                ProviderApp.ProviderService.ApplyLinksChanged(subState.ServiceInfos);
             }
             /*
             else if (subState.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)){
@@ -28,7 +28,7 @@ namespace Zeze.Arch
             */
         }
 
-        void ApplyOnPrepare(Agent.SubscribeState subState)
+        internal void ApplyOnPrepare(Agent.SubscribeState subState)
         {
             var pending = subState.ServiceInfosPending;
             if (pending == null)
@@ -107,6 +107,7 @@ namespace Zeze.Arch
                 p2.Sender = p.Sender;
 
                 var session = new ProviderUserSession(
+                    ProviderApp.ProviderService,
                     p.Argument.Account,
                     p.Argument.States,
                     p.Sender,
@@ -151,29 +152,12 @@ namespace Zeze.Arch
             }
         }
 
-        protected override System.Threading.Tasks.Task<long> ProcessAnnounceLinkInfo(Zeze.Net.Protocol _p)
+        protected override async Task<long> ProcessAnnounceLinkInfo(Zeze.Net.Protocol _p)
         {
-            var p = _p as Zeze.Beans.Provider.AnnounceLinkInfo;
-            return Zeze.Transaction.Procedure.NotImplement;
+            var protocol = _p as AnnounceLinkInfo;
+            var linkSession = protocol.Sender.UserState as ProviderService.LinkSession;
+            linkSession.Setup(protocol.Argument.LinkId, protocol.Argument.ProviderSessionId);
+            return Procedure.Success;
         }
-
-        protected override System.Threading.Tasks.Task<long> ProcessDispatch(Zeze.Net.Protocol _p)
-        {
-            var p = _p as Zeze.Beans.Provider.Dispatch;
-            return Zeze.Transaction.Procedure.NotImplement;
-        }
-
-        protected override System.Threading.Tasks.Task<long> ProcessLinkBroken(Zeze.Net.Protocol _p)
-        {
-            var p = _p as Zeze.Beans.Provider.LinkBroken;
-            return Zeze.Transaction.Procedure.NotImplement;
-        }
-
-        protected override System.Threading.Tasks.Task<long> ProcessSendConfirm(Zeze.Net.Protocol _p)
-        {
-            var p = _p as Zeze.Beans.Provider.SendConfirm;
-            return Zeze.Transaction.Procedure.NotImplement;
-        }
-
     }
 }

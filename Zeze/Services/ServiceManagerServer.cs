@@ -75,7 +75,7 @@ namespace Zeze.Services
         public class LoadObservers
         {
             public ServiceManagerServer ServiceManager;
-            public Load Load;
+            public ServerLoad Load;
             public IdentityHashSet<long> Observers = new();
 
             public LoadObservers(ServiceManagerServer m)
@@ -83,13 +83,13 @@ namespace Zeze.Services
                 ServiceManager = m;
             }
 
-            public void SetLoad(Load load)
+            public void SetServerLoad(ServerLoad load)
             {
                 // synchronized big?
                 lock (this)
                 {
                     Load = load;
-                    var set = new SetLoad();
+                    var set = new SetServerLoad();
                     set.Argument = load;
                     foreach (var e in Observers)
                     {
@@ -162,12 +162,11 @@ namespace Zeze.Services
         }
 
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task<long> ProcessSetLoad(Protocol _p)
+        private async Task<long> ProcessSetServerLoad(Protocol _p)
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
-            var p = _p as SetLoad;
-            Loads.GetOrAdd(p.Argument.Name, (key) => new LoadObservers(this)).SetLoad(p.Argument);
-            //Console.WriteLine(p.Argument);
+            var p = _p as SetServerLoad;
+            Loads.GetOrAdd(p.Argument.Name, (key) => new LoadObservers(this)).SetServerLoad(p.Argument);            
             return 0;
         }
 
@@ -668,10 +667,10 @@ namespace Zeze.Services
                 Handle = ProcessAllocateId,
             });
 
-            Server.AddFactoryHandle(new SetLoad().TypeId, new Service.ProtocolFactoryHandle()
+            Server.AddFactoryHandle(new SetServerLoad().TypeId, new Service.ProtocolFactoryHandle()
             {
-                Factory = () => new SetLoad(),
-                Handle = ProcessSetLoad,
+                Factory = () => new SetServerLoad(),
+                Handle = ProcessSetServerLoad,
             });
 
             if (Config.StartNotifyDelay > 0)
@@ -833,6 +832,7 @@ namespace Zeze.Services.ServiceManager
         public Action<SubscribeState, ServiceInfo> OnUpdate { get; set; }
         public Action<SubscribeState, ServiceInfo> OnRemove { get; set; }
         public Action<SubscribeState> OnPrepare { get; set; }
+        public Action<ServerLoad> OnSetServerLoad { get; set; }
 
         // 应用可以在这个Action内起一个测试事务并执行一次。也可以实现其他检测。
         // ServiceManager 定时发送KeepAlive给Agent，并等待结果。超时则认为服务失效。
@@ -1427,27 +1427,28 @@ namespace Zeze.Services.ServiceManager
                 Factory = () => new AllocateId(),
             });
 
-            Client.AddFactoryHandle(new SetLoad().TypeId, new Service.ProtocolFactoryHandle()
+            Client.AddFactoryHandle(new SetServerLoad().TypeId, new Service.ProtocolFactoryHandle()
             {
-                Factory = () => new SetLoad(),
-                Handle = ProcessSetLoad,
+                Factory = () => new SetServerLoad(),
+                Handle = ProcessSetServerLoad,
             });
         }
 
-        public readonly ConcurrentDictionary<string, Load> Loads = new();
+        public readonly ConcurrentDictionary<string, ServerLoad> Loads = new();
 
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task<long> ProcessSetLoad(Protocol _p)
+        private async Task<long> ProcessSetServerLoad(Protocol _p)
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
-            var p = _p as SetLoad;
+            var p = _p as SetServerLoad;
             Loads[p.Argument.Name] = p.Argument;
+            OnSetServerLoad?.Invoke(p.Argument);
             return Procedure.Success;
         }
 
-        public bool SetLoad(Load load)
+        public bool SetLoad(ServerLoad load)
         {
-            var p = new SetLoad();
+            var p = new SetServerLoad();
             p.Argument = load;
             return p.Send(Client.GetSocket());
         }
@@ -1513,7 +1514,7 @@ namespace Zeze.Services.ServiceManager
         }
     }
 
-    public sealed class Load : Bean
+    public sealed class ServerLoad : Bean
     {
         public string Ip { get; set; }
         public int Port { get; set; }
@@ -1951,9 +1952,9 @@ namespace Zeze.Services.ServiceManager
         public override int ProtocolId => ProtocolId_;
     }
 
-    public sealed class SetLoad : Protocol<Load>
+    public sealed class SetServerLoad : Protocol<ServerLoad>
     {
-        public readonly static int ProtocolId_ = Bean.Hash32(typeof(SetLoad).FullName);
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(SetServerLoad).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;

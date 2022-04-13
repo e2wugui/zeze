@@ -35,9 +35,10 @@ namespace Zeze.Arch
 
 			LinkdProvider.RegisterProtocols(LinkdProviderService);
 
-			this.Zeze.ServiceManagerAgent.OnSetServerLoad = (serverLoad)-> {
-				var ps = this.LinkdProviderService.ProviderSessions.get(serverLoad.Name);
-				if (null != ps) {
+			this.Zeze.ServiceManagerAgent.OnSetServerLoad = (serverLoad) =>
+			{
+				if (this.LinkdProviderService.ProviderSessions.TryGetValue(serverLoad.Name, out var ps))
+				{ 
 					var bb = ByteBuffer.Wrap(serverLoad.Param);
 					var load = new BLoad();
 					load.Decode(bb);
@@ -45,9 +46,7 @@ namespace Zeze.Arch
 				}
 			};
 
-			var kv = LinkdProviderService.GetOnePassiveAddress();
-			ProviderIp = kv.getKey();
-			ProviderPort = kv.getValue();
+			(ProviderIp, ProviderPort) = LinkdProviderService.GetOnePassiveAddress();
 		}
 
 		public string GetName() {
