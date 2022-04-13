@@ -310,9 +310,11 @@ namespace Zezex.Provider
             Zeze.Serialize.Serializable parameter = null;
             if (p.Argument.ParameterBeanName.Length > 0)
             {
-                if (false == App.Game_Login.Onlines.TransmitParameterFactorys.TryGetValue(p.Argument.ParameterBeanName, out var factory))
+                if (false == App.Game_Login.Onlines.TransmitParameterFactorys.TryGetValue(
+                    p.Argument.ParameterBeanName, out var factory))
+                {
                     return ErrorCode(ErrorTransmitParameterFactoryNotFound);
-
+                }
                 parameter = factory(p.Argument.ParameterBeanName);
             }
             App.Game_Login.Onlines.ProcessTransmit(p.Argument.Sender,

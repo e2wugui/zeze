@@ -75,14 +75,14 @@ namespace Zeze.Arch
 			// call base
 		}
 
-		void SetRelativeServiceReady(ProviderSession ps, String ip, int port)
+		internal void SetRelativeServiceReady(ProviderSession ps, String ip, int port)
 		{
 			lock (this)
 			{
 				ps.ServerLoadIp = ip;
 				ps.ServerLoadPort = port;
 				// 本机的连接可能设置多次。此时使用已经存在的，忽略后面的。
-				if (false == ProviderSessions.TryAdd(ps.getServerLoadName(), ps))
+				if (false == ProviderSessions.TryAdd(ps.ServerLoadName, ps))
 					return;
 
 				// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
@@ -99,7 +99,7 @@ namespace Zeze.Arch
 						foreach (var server in infos.ServiceInfoListSortedByIdentity)
 						{
 							// 符合当前连接目标。每个Identity标识的服务的(ip,port)必须不一样。
-							if (server.getPassiveIp().equals(ip) && server.getPassivePort() == port)
+							if (server.PassiveIp.Equals(ip) && server.PassivePort == port)
 							{
 								SetReady(ss, server, ps, mid, m);
 							}
