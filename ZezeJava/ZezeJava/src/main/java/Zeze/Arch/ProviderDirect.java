@@ -8,10 +8,10 @@ import Zeze.Beans.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Procedure;
-import Zeze.Transaction.Transaction;
 import Zeze.Util.OutObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import Zeze.Transaction.Bean;
 
 /**
  * Provider之间直连服务模块。
@@ -23,13 +23,31 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 
 	public ProviderApp ProviderApp;
 
+	private <A extends Bean, R extends Bean> void SendResultCode(Zeze.Net.Rpc<A, R> rpc, long rc) throws Throwable {
+		rpc.setResultCode(rc);
+		SendResult(rpc);
+	}
+
+	private <A extends Bean, R extends Bean> void SendResult(Zeze.Net.Rpc<A, R> rpc) throws Throwable {
+		rpc.setRequest(false);
+		Send(rpc.getSender(), rpc);
+	}
+
+	private void Send(AsyncSocket sender, Zeze.Net.Protocol rpc) throws Throwable {
+		if (sender == null) {
+			var service = ProviderApp.ProviderDirectService;
+			rpc.Dispatch(service, service.FindProtocolFactoryHandle(rpc.getTypeId()));
+		}
+		rpc.Send(sender);
+	}
+
 	@Override
 	protected long ProcessModuleRedirectRequest(ModuleRedirect rpc) throws Throwable {
 		rpc.Result.setModuleId(rpc.Argument.getModuleId());
 		rpc.Result.setServerId(ProviderApp.Zeze.getConfig().getServerId());
 		var handle = ProviderApp.Zeze.Redirect.Handles.get(rpc.Argument.getMethodFullName());
 		if (null == handle) {
-			rpc.SendResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
+			SendResultCode(rpc, ModuleRedirect.ResultCodeMethodFullNameNotFound);
 			return Procedure.LogicError;
 		}
 
@@ -43,7 +61,7 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 				return 0L;
 			}, "ProcessModuleRedirectRequest").Call();
 			if (0L != rc) {
-				rpc.SendResultCode(rc);
+				SendResultCode(rpc, rc);
 			}
 			resultBinary = out.Value;
 			break;
@@ -53,18 +71,18 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 		}
 		rpc.Result.setParams(resultBinary);
 		// rpc 成功了，具体handle结果还需要看ReturnCode。
-		rpc.SendResultCode(Procedure.Success);
+		SendResultCode(rpc, Procedure.Success);
 		return 0L;
 	}
 
-	private void SendResultIfSizeExceed(AsyncSocket sender, ModuleRedirectAllResult result) {
+	private void SendResultIfSizeExceed(AsyncSocket sender, ModuleRedirectAllResult result) throws Throwable {
 		int size = 0;
 		for (var hashResult : result.Argument.getHashs().values()) {
 			size += hashResult.getParams().size();
 		}
 		//noinspection PointlessArithmeticExpression
 		if (size > 1 * 1024 * 1024) { // 1M
-			result.Send(sender);
+			Send(sender, result);
 			result.Argument.getHashs().clear();
 		}
 	}
@@ -72,83 +90,61 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 	@Override
 	protected long ProcessModuleRedirectAllRequest(ModuleRedirectAllRequest p) throws Throwable {
 		var result = new ModuleRedirectAllResult();
-		try {
-			// common parameters for result
-			result.Argument.setModuleId(p.Argument.getModuleId());
-			result.Argument.setServerId(ProviderApp.Zeze.getConfig().getServerId());
-			result.Argument.setSourceProvider(p.Argument.getSourceProvider());
-			result.Argument.setSessionId(p.Argument.getSessionId());
-			result.Argument.setMethodFullName(p.Argument.getMethodFullName());
+		// common parameters for result
+		result.Argument.setModuleId(p.Argument.getModuleId());
+		result.Argument.setServerId(ProviderApp.Zeze.getConfig().getServerId());
+		result.Argument.setSourceProvider(p.Argument.getSourceProvider());
+		result.Argument.setSessionId(p.Argument.getSessionId());
+		result.Argument.setMethodFullName(p.Argument.getMethodFullName());
 
-			var handle = ProviderApp.Zeze.Redirect.Handles.get(p.Argument.getMethodFullName());
-			if (null == handle) {
-				result.setResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
-				// 失败了，需要把hash返回。此时是没有处理结果的。
-				for (var hash : p.Argument.getHashCodes()) {
-					BModuleRedirectAllHash tempVar = new BModuleRedirectAllHash();
-					result.Argument.getHashs().put(hash, tempVar);
-				}
-				result.Send(p.getSender());
-				return Procedure.LogicError;
-			}
-			result.setResultCode(ModuleRedirect.ResultCodeSuccess);
-
+		var handle = ProviderApp.Zeze.Redirect.Handles.get(p.Argument.getMethodFullName());
+		if (null == handle) {
+			result.setResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
+			// 失败了，需要把hash返回。此时是没有处理结果的。
 			for (var hash : p.Argument.getHashCodes()) {
-				// 嵌套存储过程，某个分组处理失败不影响其他分组。
-				var hashResult = new BModuleRedirectAllHash();
-				Binary params;
-				switch (handle.RequestTransactionLevel) {
-				case Serializable:
-				case AllowDirtyWhenAllRead:
-					var out = new OutObject<>(Binary.Empty);
-					hashResult.setReturnCode(ProviderApp.Zeze.NewProcedure(() -> {
-						out.Value = handle.RequestHandle.call(p.Argument.getSessionId(), hash, p.Argument.getParams());
-						return 0L;
-					}, "ProcessModuleRedirectAllRequest").Call());
-					params = out.Value;
-					break;
-				default:
-					params = handle.RequestHandle.call(p.Argument.getSessionId(), hash, p.Argument.getParams());
-					break;
-				}
-				// 单个分组处理失败继续执行。XXX
-				hashResult.setParams(params);
-				result.Argument.getHashs().put(hash, hashResult);
-				SendResultIfSizeExceed(p.getSender(), result);
+				BModuleRedirectAllHash tempVar = new BModuleRedirectAllHash();
+				result.Argument.getHashs().put(hash, tempVar);
 			}
-
-			// send remain
-			if (result.Argument.getHashs().size() > 0) {
-				var sender = p.getSender();
-				if (sender != null)
-					result.Send(sender);
-				else { // loop-back
-					try {
-						var service = ProviderApp.ProviderDirectService;
-						result.Dispatch(service, service.FindProtocolFactoryHandle(result.getTypeId()));
-					} catch (Throwable e) {
-						logger.error("", e);
-					}
-				}
-			}
-			return Procedure.Success;
-		} catch (Throwable e) {
-			result.setResultCode(ModuleRedirect.ResultCodeHandleException);
-			result.Send(p.getSender());
-			throw e;
+			Send(p.getSender(), result);
+			return Procedure.LogicError;
 		}
+		result.setResultCode(ModuleRedirect.ResultCodeSuccess);
+
+		for (var hash : p.Argument.getHashCodes()) {
+			// 嵌套存储过程，某个分组处理失败不影响其他分组。
+			var hashResult = new BModuleRedirectAllHash();
+			Binary params;
+			switch (handle.RequestTransactionLevel) {
+			case Serializable:
+			case AllowDirtyWhenAllRead:
+				var out = new OutObject<>(Binary.Empty);
+				hashResult.setReturnCode(ProviderApp.Zeze.NewProcedure(() -> {
+					out.Value = handle.RequestHandle.call(p.Argument.getSessionId(), hash, p.Argument.getParams());
+					return 0L;
+				}, "ProcessModuleRedirectAllRequest").Call());
+				params = out.Value;
+				break;
+			default:
+				params = handle.RequestHandle.call(p.Argument.getSessionId(), hash, p.Argument.getParams());
+				break;
+			}
+			// 单个分组处理失败继续执行。XXX
+			hashResult.setParams(params);
+			result.Argument.getHashs().put(hash, hashResult);
+			SendResultIfSizeExceed(p.getSender(), result);
+		}
+
+		// send remain
+		if (result.Argument.getHashs().size() > 0) {
+			Send(p.getSender(), result);
+		}
+		return Procedure.Success;
 	}
 
 	@Override
 	protected long ProcessModuleRedirectAllResult(ModuleRedirectAllResult protocol) throws Throwable {
-		// replace RootProcedure.ActionName. 为了统计和日志输出。
-		Transaction txn = Transaction.getCurrent();
-		if (txn != null) {
-			Procedure proc = txn.getTopProcedure();
-			assert proc != null;
-			proc.setActionName(protocol.Argument.getMethodFullName());
-		}
-		var ctx = ProviderApp.ProviderDirectService.<ModuleRedirectAllContext>TryGetManualContext(protocol.Argument.getSessionId());
+		var ctx = ProviderApp.ProviderDirectService.
+				<ModuleRedirectAllContext>TryGetManualContext(protocol.Argument.getSessionId());
 		if (ctx != null) {
 			ctx.ProcessResult(ProviderApp.Zeze, protocol);
 		}

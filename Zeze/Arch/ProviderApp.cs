@@ -11,7 +11,8 @@ namespace Zeze.Arch
 	 * 设置相关对象之间的引用，
 	 * 初始化。
 	 */
-	public class ProviderApp {
+	public class ProviderApp
+	{
 		public Zeze.Application Zeze;
 
 		public ProviderImplement ProviderImplement;
@@ -41,7 +42,8 @@ namespace Zeze.Arch
 						   ProviderDirectService toOtherProviderService,
 						   string linkdNameOnServiceManager,
 						   LoadConfig loadConfig
-						   ) {
+						   )
+		{
 			this.Zeze = zeze;
 			this.Zeze.Redirect = new RedirectBase(this);
 
@@ -83,7 +85,8 @@ namespace Zeze.Arch
 			this.ProviderDirect.RegisterProtocols(ProviderDirectService);
 		}
 
-		public void initialize(ProviderModuleBinds binds, Dictionary<string, Zeze.IModule> modules) {
+		public void initialize(ProviderModuleBinds binds, Dictionary<string, Zeze.IModule> modules)
+		{
 			binds.BuildStaticBinds(modules, Zeze.Config.ServerId, StaticBinds);
 			binds.BuildDynamicBinds(modules, Zeze.Config.ServerId, DynamicModules);
 			foreach (var e in StaticBinds)
@@ -92,7 +95,8 @@ namespace Zeze.Arch
 				Modules.Add(e.Key, e.Value);
 		}
 
-		public async Task StartLast() {
+		public async Task StartLast()
+		{
 			await ProviderImplement.RegisterModulesAndSubscribeLinkd();
 		}
 	}

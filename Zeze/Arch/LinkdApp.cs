@@ -5,7 +5,8 @@ using Zeze.Serialize;
 
 namespace Zeze.Arch
 {
-	public class LinkdApp {
+	public class LinkdApp
+	{
 		public string LinkdServiceName;
 		public Zeze.Application Zeze;
 		public LinkdProvider LinkdProvider;
@@ -18,7 +19,8 @@ namespace Zeze.Arch
 		public LinkdApp(string linkdServiceName,
 						Zeze.Application zeze, LinkdProvider linkdProvider,
 						LinkdProviderService linkdProviderService, LinkdService linkdService,
-						LoadConfig LoadConfig) {
+						LoadConfig LoadConfig)
+		{
 			LinkdServiceName = linkdServiceName;
 			Zeze = zeze;
 			LinkdProvider = linkdProvider;
@@ -49,11 +51,13 @@ namespace Zeze.Arch
 			(ProviderIp, ProviderPort) = LinkdProviderService.GetOnePassiveAddress();
 		}
 
-		public string GetName() {
+		public string GetName()
+		{
 			return LinkdServiceName + "." + ProviderIp + ":" + ProviderPort;
 		}
 
-		public async Task RegisterService(Zeze.Net.Binary extra) {
+		public async Task RegisterService(Zeze.Net.Binary extra)
+		{
 			var identity = ProviderIp + ":" + ProviderPort;
 			await Zeze.ServiceManagerAgent.RegisterService(LinkdServiceName, identity, ProviderIp, ProviderPort, extra);
 		}
