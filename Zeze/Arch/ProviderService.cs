@@ -48,7 +48,7 @@ namespace Zeze.Arch
 
         public void ApplyLinksChanged(Zeze.Services.ServiceManager.ServiceInfos serviceInfos)
         {
-            HashSet<string> current = new HashSet<string>();
+            var current = new HashSet<string>();
             foreach (var link in serviceInfos.ServiceInfoListSortedByIdentity)
             {
                 var linkName = GetLinkName(link);
@@ -100,7 +100,7 @@ namespace Zeze.Arch
         public ConcurrentDictionary<string, Connector> Links { get; }
             = new ConcurrentDictionary<string, Connector>();
         private volatile KeyValuePair<string, Connector>[] LinkConnectors;
-        private Zeze.Util.AtomicInteger LinkRandomIndex = new Zeze.Util.AtomicInteger();
+        private readonly Zeze.Util.AtomicInteger LinkRandomIndex = new();
         public AsyncSocket RandomLink()
         {
             var volatileTmp = LinkConnectors;
@@ -114,8 +114,8 @@ namespace Zeze.Arch
         }
 
         // 用来同步等待Provider的静态绑定完成。
-        public TaskCompletionSource<bool> ProviderStaticBindCompleted = new TaskCompletionSource<bool>();
-        public TaskCompletionSource<bool> ProviderDynamicSubscribeCompleted = new TaskCompletionSource<bool>();
+        public TaskCompletionSource<bool> ProviderStaticBindCompleted = new();
+        public TaskCompletionSource<bool> ProviderDynamicSubscribeCompleted = new();
 
         public override void OnHandshakeDone(AsyncSocket sender)
         {

@@ -6,7 +6,7 @@ namespace Zeze.Net
     public class Acceptor
     {
         public Service Service { get; private set; }
-        public int Port { get; } = 0;
+        public int Port { get; set; } = 0;
         public string Ip { get; } = string.Empty;
         public AsyncSocket Socket { get; private set; }
         public string Name => $"{Ip}:{Port}";

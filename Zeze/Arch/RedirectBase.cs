@@ -146,7 +146,7 @@ namespace Zeze.Arch
 				else
 				{
 					foreach (var hashIndex in request.Argument.HashCodes) {
-						BModuleRedirectAllHash tempVar2 = new BModuleRedirectAllHash();
+						var tempVar2 = new BModuleRedirectAllHash();
 						tempVar2.ReturnCode = Zeze.Transaction.Procedure.ProviderNotExist;
 						miss.Argument.Hashs.Add(hashIndex, tempVar2);
 					}

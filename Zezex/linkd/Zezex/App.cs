@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using Zeze.Util;
 using Zeze.Net;
+using Zeze.Arch;
 
 namespace Zezex
 {
@@ -18,53 +19,26 @@ namespace Zezex
         }
 
 
-        public Config Config { get; private set; }
-        public Zeze.Services.ServiceManager.Agent ServiceManagerAgent { get; private set; }
-        public const string ServerServiceNamePrefix = "Game.Server.Module#";
-        public const string LinkdServiceName = "Game.Linkd";
         private PersistentAtomicLong AsyncSocketSessionIdGen;
-
-        private void LoadConfig()
-        {
-            try
-            {
-                string json = Encoding.UTF8.GetString(System.IO.File.ReadAllBytes("linkd.json"));
-                Config = JsonSerializer.Deserialize<Config>(json);
-            }
-            catch (Exception)
-            {
-                //MessageBox.Show(ex.ToString());
-            }
-            if (null == Config)
-                Config = new Config();
-        }
+        public LinkdProvider LinkdProvider { get; set; }
+        public LinkdApp LinkdApp { get; set; }
 
         public string ProviderServicePassiveIp { get; private set; }
         public int ProviderServicePasivePort { get; private set; }
 
         public void Start()
         {
-            LoadConfig();
             CreateZeze();
             CreateService();
+            LinkdProvider = new LinkdProvider();
+            LinkdApp = new LinkdApp("Game.Linkd", Zeze, LinkdProvider, ProviderService, LinkdService, LoadConfig.Load("load.json"));
             CreateModules();
             StartModules(); // 启动模块，装载配置什么的。
             Zeze.StartAsync().Wait(); // 启动数据库
-
-            var (ip, port) = ProviderService.GetOnePassiveAddress();
-            ProviderServicePassiveIp = ip;
-            ProviderServicePasivePort = port;
-
-            var linkName = $"{ProviderServicePassiveIp}:{ProviderServicePasivePort}";
-            AsyncSocketSessionIdGen = PersistentAtomicLong.GetOrAdd("Linkd." + linkName);
+            AsyncSocketSessionIdGen = PersistentAtomicLong.GetOrAdd(LinkdApp.GetName());
             AsyncSocket.SessionIdGenFunc = AsyncSocketSessionIdGen.Next;
-
             StartService(); // 启动网络
-
-            ServiceManagerAgent = new Zeze.Services.ServiceManager.Agent(Zeze);
-            _ = ServiceManagerAgent.RegisterService(LinkdServiceName,
-                linkName,
-                ProviderServicePassiveIp, ProviderServicePasivePort);
+            LinkdApp.RegisterService(null).Wait();
         }
 
         public void Stop()

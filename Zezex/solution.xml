@@ -337,7 +337,7 @@
 		<module ref="CommonModule"/>
 		-->
 		<!-- service 生成到 solution 名字空间下 -->
-		<service name="Server" handle="server" provider="true" base="Zeze.Services.HandshakeClient"> provider 生成静态绑定代码。
+		<service name="Server" handle="server" base="Zeze.Arch.ProviderService"> provider 生成静态绑定代码。
 			<module ref="Login"/>
 			<module ref="Bag"/>
 			<module ref="Item"/>
@@ -346,8 +346,10 @@
 			<module ref="Buf"/>
 			<module ref="Equip"/>
 			<module ref="Map" dynamic="true"/> 地图模块动态绑定。
-			<module ref="Zezex.Provider" dynamic="true"/>
 			<module ref="Rank"/>
+		</service>
+
+		<service name="ServerDirect" handle="server,client" base="Zeze.Arch.ProviderDirectService">
 		</service>
 	</project>
 

@@ -6,7 +6,6 @@ using System.Globalization;
 using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Transaction;
-using static Zezex.Provider.ModuleProvider;
 using Zeze.Arch;
     
 namespace Game.Rank
@@ -101,12 +100,12 @@ namespace Game.Rank
             public Nito.AsyncEx.AsyncLock Mutex { get; } = new();
         }
 
-        ConcurrentDictionary<BConcurrentKey, Rank> Ranks = new ConcurrentDictionary<BConcurrentKey, Rank>();
+        readonly ConcurrentDictionary<BConcurrentKey, Rank> Ranks = new();
         public const long RebuildTime = 5 * 60 * 1000; // 5 min
 
         private BRankList Merge(BRankList left, BRankList right)
         {
-            BRankList result = new BRankList();
+            var result = new BRankList();
             int indexLeft = 0;
             int indexRight = 0;
             while (indexLeft < left.RankList.Count && indexRight < right.RankList.Count)
@@ -153,7 +152,7 @@ namespace Game.Rank
                     return Rank;
                 }
                 // rebuild
-                List<BRankList> datas = new List<BRankList>();
+                var datas = new List<BRankList>();
                 int cocurrentLevel = GetConcurrentLevel(keyHint.RankType);
                 for (int i = 0; i < cocurrentLevel; ++i)
                 {
@@ -209,12 +208,12 @@ namespace Game.Rank
         /// <param name="roleId"></param>
         /// <param name="value"></param>
         /// <param name="valueEx">只保存，不参与比较。如果需要参与比较，需要另行实现自己的Update和Get。</param>
-        [Redirect()]
+        [RedirectHash()]
         public virtual void RunUpdateRank(
+            int hash,
             BConcurrentKey keyHint,
             long roleId, long value, Zeze.Net.Binary valueEx)
         {
-            int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
             UpdateRank(hash, keyHint, roleId, value, valueEx);
         }
 
@@ -397,7 +396,7 @@ namespace Game.Rank
             if (null == valueEx)
                 valueEx = Zeze.Net.Binary.Empty;
 
-            RunUpdateRank(keyHint, roleId, counter.Value, valueEx);
+            RunUpdateRank(0, keyHint, roleId, counter.Value, valueEx);
         }
 
         protected override async Task<long> ProcessCGetRankList(Protocol p)
@@ -474,10 +473,9 @@ namespace Game.Rank
         }
 
         /******************************** ModuleRedirect 测试 *****************************************/
-        [Redirect()]
-        public virtual TaskCompletionSource<long> RunTest1(Zeze.TransactionModes mode)
+        [RedirectHash()]
+        public virtual TaskCompletionSource<long> RunTest1(int hash, Zeze.TransactionModes mode)
         {
-            int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
             Test1(hash);
             return null;
         }
@@ -487,10 +485,9 @@ namespace Game.Rank
             return Procedure.Success;
         }
 
-        [Redirect()]
-        public virtual void RunTest2(int inData, ref int refData, out int outData)
+        [RedirectHash()]
+        public virtual void RunTest2(int hash, int inData, ref int refData, out int outData)
         {
-            int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
             int outDataTmp = 0;
             int refDataTmp = refData;
             Test2(hash, inData, ref refDataTmp, out outDataTmp);
@@ -503,17 +500,6 @@ namespace Game.Rank
             outData = 1;
             ++refData;
             return Procedure.Success;
-        }
-
-        [Redirect()]
-        public virtual void RunTest3(int inData, ref int refData, out int outData, System.Action<int> resultCallback)
-        {
-            int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
-            int outDataTmp = 0;
-            int refDataTmp = refData;
-            Test3(hash, inData, ref refDataTmp, out outDataTmp, resultCallback);
-            refData = refDataTmp;
-            outData = outDataTmp;
         }
 
         /*

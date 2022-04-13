@@ -10,18 +10,17 @@ namespace Game
 {
     public sealed partial class App
     {
-        public Dictionary<int, Zezex.Provider.BModule> StaticBinds { get; } = new Dictionary<int, Zezex.Provider.BModule>();
-        public Dictionary<int, Zezex.Provider.BModule> DynamicModules { get; } = new Dictionary<int,Zezex.Provider.BModule>();
-
-        public Zezex.ProviderModuleBinds ProviderModuleBinds { get; private set; }
-
         public override Zeze.IModule ReplaceModuleInstance(Zeze.IModule module)
         {
-            return module; //TODO Zezex.ModuleRedirect.Instance.ReplaceModuleInstance(module);
+            return Zeze.Redirect.ReplaceModuleInstance(this, module);
         }
 
         public Config Config { get; private set; }
         public Load Load { get; } = new Load();
+
+        public ProviderImplement ProviderImplement { get; set; }
+        public ProviderDirect ProviderDirect { get; set; }
+        public Zeze.Arch.ProviderApp ProviderApp { get; set; }
 
         public const string ServerServiceNamePrefix = "Game.Server.Module#";
         public const string LinkdServiceName = "Game.Linkd";
@@ -46,6 +45,7 @@ namespace Game
         public void Start(string[] args)
         {
             int ServerId = -1;
+            int ProviderDirectPort = -1;
             for (int i = 0; i < args.Length; ++i)
             {
                 switch (args[i])
@@ -53,25 +53,33 @@ namespace Game
                     case "-ServerId":
                         ServerId = int.Parse(args[++i]);
                         break;
+                    case "-ProviderDirectPort":
+                        ProviderDirectPort = int.Parse(args[++i]);
+                        break;
                 }
             }
 
             LoadConfig();
             var config = global::Zeze.Config.Load();
             if (ServerId != -1)
+            {
                 config.ServerId = ServerId; // replace from args
+            }
+            if (ProviderDirectPort != -1)
+            {
+                if (config.ServiceConfMap.TryGetValue("ServerDirect", out var direct))
+                    direct.ForEachAcceptor((a) => a.Port = ProviderDirectPort);
+            }
             CreateZeze(config);
             CreateService();
+            ProviderImplement = new ProviderImplement();
+            ProviderDirect = new ProviderDirect();
+            ProviderApp = new Zeze.Arch.ProviderApp(Zeze, ProviderImplement, Server, "Game.Server.Module#",
+                ProviderDirect, ServerDirect, "Game.Linkd", global::Zeze.Arch.LoadConfig.Load("load.json"));
+
             CreateModules();
 
-            ProviderModuleBinds = Zezex.ProviderModuleBinds.Load();
-            ProviderModuleBinds.BuildStaticBinds(Modules, Zeze.Config.ServerId, StaticBinds);
-            ProviderModuleBinds.BuildDynamicBinds(Modules, Zeze.Config.ServerId, DynamicModules);
-
-            Zeze.ServiceManagerAgent.OnChanged = (subscribeState) =>
-            {
-                Server.ApplyLinksChanged(subscribeState.ServiceInfos);
-            };
+            ProviderApp.initialize(global::Zeze.Arch.ProviderModuleBinds.Load(), Modules); // need Modules
 
             Zeze.StartAsync().Wait(); // 启动数据库
             StartModules(); // 启动模块，装载配置什么的。
@@ -83,13 +91,7 @@ namespace Game
             Load.StartTimerTask();
 
             // 服务准备好以后才注册和订阅。
-            foreach (var staticBind in StaticBinds)
-            {
-                _ = Zeze.ServiceManagerAgent.RegisterService($"{ServerServiceNamePrefix}{staticBind.Key}",
-                    config.ServerId.ToString());
-            }
-            _ = Zeze.ServiceManagerAgent.SubscribeService(LinkdServiceName,
-                global::Zeze.Services.ServiceManager.SubscribeInfo.SubscribeTypeSimple);
+            ProviderApp.StartLast();
         }
 
         public void Stop()

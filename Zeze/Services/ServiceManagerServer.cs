@@ -1154,6 +1154,14 @@ namespace Zeze.Services.ServiceManager
             return subState;
         }
 
+        public async Task<bool> SetServerLoad(ServerLoad load)
+        {
+            await WaitConnectorReadyAsync();
+            var p = new SetServerLoad();
+            p.Argument = load;
+            return p.Send(Client.Socket);
+        }
+
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
         private async Task<long> ProcessSubscribeFirstCommit(Protocol p)
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously

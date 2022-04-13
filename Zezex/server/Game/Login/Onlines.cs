@@ -6,12 +6,14 @@ using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Transaction;
 using Zeze.Serialize;
+using Zeze.Beans.ProviderDirect;
+using Zeze.Beans.Provider;
 
 namespace Game.Login
 {
     public class Onlines
     {
-        private tonline table;
+        private readonly tonline table;
 
         public Onlines(tonline table)
         {
@@ -150,8 +152,8 @@ namespace Game.Login
             public AsyncSocket LinkSocket { get; set; } // null if not online
             public int ProviderId { get; set; } = -1;
             public long ProviderSessionId { get; set; }
-            public Dictionary<long, Zezex.Provider.BTransmitContext> Roles { get; }
-                = new Dictionary<long, Zezex.Provider.BTransmitContext>();
+            public Dictionary<long, BTransmitContext> Roles { get; }
+                = new Dictionary<long, BTransmitContext>();
         }
 
         public async Task<ICollection<RoleOnLink>> GroupByLink(ICollection<long> roleIds)
@@ -165,19 +167,19 @@ namespace Game.Login
                 var online = await table.GetAsync(roleId);
                 if (null == online || online.State != BOnline.StateOnline)
                 {
-                    groupNotOnline.Roles.TryAdd(roleId, new Zezex.Provider.BTransmitContext());
+                    groupNotOnline.Roles.TryAdd(roleId, new BTransmitContext());
                     continue;
                 }
 
                 if (false == Game.App.Instance.Server.Links.TryGetValue(online.LinkName, out var connector))
                 {
-                    groupNotOnline.Roles.TryAdd(roleId, new Zezex.Provider.BTransmitContext());
+                    groupNotOnline.Roles.TryAdd(roleId, new BTransmitContext());
                     continue;
                 }
 
                 if (false == connector.IsHandshakeDone)
                 {
-                    groupNotOnline.Roles.TryAdd(roleId, new Zezex.Provider.BTransmitContext());
+                    groupNotOnline.Roles.TryAdd(roleId, new BTransmitContext());
                     continue;
                 }
                 // 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
@@ -192,7 +194,7 @@ namespace Game.Login
                     };
                     groups.Add(group.LinkName, group);
                 }
-                group.Roles.TryAdd(roleId, new Zezex.Provider.BTransmitContext()
+                group.Roles.TryAdd(roleId, new BTransmitContext()
                 {
                     LinkSid = online.LinkSid,
                     ProviderId = online.ProviderId,
@@ -229,7 +231,7 @@ namespace Game.Login
                 if (group.LinkSocket == null)
                     continue; // skip not online
 
-                var send = new Zezex.Provider.Send();
+                var send = new Send();
                 send.Argument.ProtocolType = typeId;
                 send.Argument.ProtocolWholeData = fullEncodedProtocol;
                 send.Argument.ConfirmSerialId = serialId;
@@ -346,7 +348,7 @@ namespace Game.Login
                     continue;
                 }
 
-                var transmit = new Zezex.Provider.Transmit();
+                var transmit = new Transmit();
 
                 transmit.Argument.ActionName = actionName;
                 transmit.Argument.Sender = sender;
@@ -452,7 +454,7 @@ namespace Game.Login
                 serialId = App.Instance.Server.AddManualContextWithTimeout(confirmContext, 5000);
             }
 
-            var broadcast = new Zezex.Provider.Broadcast();
+            var broadcast = new Broadcast();
             broadcast.Argument.ProtocolType = typeId;
             broadcast.Argument.ProtocolWholeData = fullEncodedProtocol;
             broadcast.Argument.ConfirmSerialId = serialId;

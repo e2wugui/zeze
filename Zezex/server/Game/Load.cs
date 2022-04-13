@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Zeze.Beans.Provider;
+using Zeze.Net;
+using Zeze.Serialize;
 
 namespace Game
 {
@@ -37,7 +40,7 @@ namespace Game
 			if (onlineNewPerSecond > App.Instance.Config.MaxOnlineNew)
 			{
 				// 最近上线太多，马上报告负载。linkd不会再分配用户过来。
-				App.Instance.Server.ReportLoad(online, App.Instance.Config.ProposeMaxOnline, onlineNew);
+				Report(online, onlineNew);
 				// new delay for digestion
 				StartTimerTask(onlineNewPerSecond / App.Instance.Config.MaxOnlineNew + App.Instance.Config.DigestionDelayExSeconds);
 				// 消化完后，下一次强迫报告Load。
@@ -49,9 +52,26 @@ namespace Game
 			if (ReportDelaySeconds >= App.Instance.Config.ReportDelaySeconds)
 			{
 				ReportDelaySeconds = 0;
-				App.Instance.Server.ReportLoad(online, App.Instance.Config.ProposeMaxOnline, onlineNew);
+				Report(online, onlineNew);
 			}
 			StartTimerTask();
+		}
+
+		public void Report(int online, int onlineNew)
+		{
+			var load = new BLoad();
+			load.Online = online;
+			load.ProposeMaxOnline = App.Instance.Config.ProposeMaxOnline;
+			load.OnlineNew = onlineNew;
+			var bb = ByteBuffer.Allocate(256);
+			load.Encode(bb);
+
+			var loadServer = new Zeze.Services.ServiceManager.ServerLoad();
+			loadServer.Ip = App.Instance.ProviderApp.DirectIp;
+			loadServer.Port = App.Instance.ProviderApp.DirectPort;
+			loadServer.Param = new Binary(bb);
+
+			App.Instance.ProviderApp.Zeze.ServiceManagerAgent.SetServerLoad(loadServer).Wait();
 		}
 	}
 }

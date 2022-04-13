@@ -15,8 +15,16 @@ namespace Zeze.Arch
 
         public static LoadConfig Load(string jsonFile = "load.json")
         {
-            string json = Encoding.UTF8.GetString(System.IO.File.ReadAllBytes(jsonFile));
-            return JsonSerializer.Deserialize<LoadConfig>(json);
+            try
+            {
+                string json = Encoding.UTF8.GetString(System.IO.File.ReadAllBytes(jsonFile));
+                return JsonSerializer.Deserialize<LoadConfig>(json);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                return new LoadConfig();
+            }
         }
     }
 }
