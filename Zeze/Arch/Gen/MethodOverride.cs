@@ -13,9 +13,14 @@ namespace Zeze.Arch.Gen
         public OverrideType OverrideType { get; }
         public Attribute Attribute { get; }
         public GenAction ResultHandle { get; private set; }
+        public Zeze.Transaction.TransactionLevel TransactionLevel = Transaction.TransactionLevel.Serializable;
 
         public MethodOverride(MethodInfo method, OverrideType type, Attribute attribute)
         {
+            var tLevelAnn = method.GetCustomAttribute(typeof(Zeze.Util.TransactionLevelAttribute));
+            if (tLevelAnn != null)
+                Enum.TryParse((tLevelAnn as Zeze.Util.TransactionLevelAttribute).Level, out TransactionLevel);
+
             if (false == method.IsVirtual)
                 throw new Exception("ModuleRedirect Need Virtual。");
             Method = method;
@@ -55,7 +60,7 @@ namespace Zeze.Arch.Gen
             }
         }
 
-        public string GetNarmalCallString(Func<ParameterInfo, bool> skip = null)
+        public string GetNormalCallString(Func<ParameterInfo, bool> skip = null)
         {
             StringBuilder sb = new StringBuilder();
             bool first = true;
@@ -102,7 +107,7 @@ namespace Zeze.Arch.Gen
 
         public string GetBaseCallString()
         {
-            return $"{GetHashOrServerCallString()}{GetNarmalCallString()}";
+            return $"{GetHashOrServerCallString()}{GetNormalCallString()}";
         }
 
         public string GetRedirectType()

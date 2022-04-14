@@ -96,89 +96,53 @@ namespace Zeze.Arch.Gen
             }
         }
 
-        public void GenDecodeAndCallback(string prefix, StringBuilder sb, MethodOverride m, string bb)
+        public string GetCallString(List<string> vars)
         {
-            GenDecodeAndCallback("App.Zz", prefix, sb, m.ResultHandle.Parameter.getName(), m, bb);
+            var sb = new StringBuilder();
+            for (int i = 0; i < vars.Count; ++i)
+            {
+                if (i > 0)
+                    sb.Append(", ");
+                sb.Append(vars[i]);
+            }
+            return sb.ToString();
         }
 
-        public void GenDecodeAndCallback(String zzName, String prefix, StringBuilder sb, String actName, MethodOverride m, String bb)
+        public void GenDecodeAndCallback(string prefix, StringBuilder sb, MethodOverride m)
         {
-            var resultVarNames = new ArrayList<String>();
-            for (int i = 0; i < m.ResultHandle.GenericArguments.length; ++i) {
-                resultVarNames.add("tmp" + Gen.Instance.TmpVarNameId.incrementAndGet());
-                var rClass = (Class <?>)m.ResultHandle.GenericArguments[i];
-                Gen.Instance.GenLocalVariable(sb, prefix, rClass, resultVarNames.get(i));
-                Gen.Instance.GenDecode(sb, prefix, bb, rClass, resultVarNames.get(i));
+            GenDecodeAndCallback("App.Zz", prefix, sb, m.ResultHandle.ActionType.Name, m);
+        }
+
+        public void GenDecodeAndCallback(string zzName, string prefix, StringBuilder sb, string actName, MethodOverride m)
+        {
+            var resultVarNames = new List<string>();
+            for (int i = 0; i < m.ResultHandle.GenericArguments.Length; ++i) {
+                resultVarNames.Add("tmp" + Gen.Instance.TmpVarNameId.IncrementAndGet());
+                var rClass = m.ResultHandle.GenericArguments[i];
+                Gen.Instance.GenLocalVariable(sb, prefix, rClass, resultVarNames[i]);
+                Gen.Instance.GenDecode(sb, prefix, rClass, resultVarNames[i]);
             }
             switch (m.TransactionLevel)
             {
-                case Serializable:
-                case AllowDirtyWhenAllRead:
-                    sb.AppendLine("{}{}.NewProcedure(() -> { {}.run({}); return 0L; }, \"ModuleRedirectResponse Procedure\").Call();",
-                            prefix, zzName, actName, GetCallString(resultVarNames));
+                case Zeze.Transaction.TransactionLevel.Serializable:
+                case Zeze.Transaction.TransactionLevel.AllowDirtyWhenAllRead:
+                    sb.AppendLine($"{prefix}{zzName}.NewProcedure(async () => {{ {actName}({GetCallString(resultVarNames)}); return 0L; }}, \"ModuleRedirectResponse Procedure\").CallAsync();");
                     break;
 
                 default:
-                    sb.AppendLine("{}{}.run({});", prefix, actName, GetCallString(resultVarNames));
+                    sb.AppendLine($"{prefix}{actName}({GetCallString(resultVarNames)});");
                     break;
             }
         }
 
-	public void GenEncode(List<String> resultVarNames, String prefix, StringBuilderCs sb, MethodOverride m, String bb) throws Throwable
-{
-		for (int i = 0; i < m.ResultHandle.GenericArguments.length; ++i) {
-        var rClass = (Class <?>)m.ResultHandle.GenericArguments[i];
-        Gen.Instance.GenEncode(sb, prefix, bb, rClass, resultVarNames.get(i));
-    }
-}
-
-        public void GenActionEncode(StringBuilder sb, string prefix)
+        public void GenEncode(List<string> resultVarNames, string prefix, StringBuilder sb, MethodOverride m)
         {
-            sb.AppendLine($"{prefix}System.Action{GetGenericArgumentsDefine()} {VarName} = ({GetGenericArgumentVarNamesDefine()}) =>");
-            sb.AppendLine($"{prefix}{{");
-            if (GenericArguments.Length > 0)
+            for (int i = 0; i < m.ResultHandle.GenericArguments.Length; ++i)
             {
-                sb.AppendLine($"{prefix}    var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();");
-                GenEncode(sb, prefix + "    ");
-                sb.AppendLine($"{prefix}    _actions_.Add(new Zezex.Provider.BActionParam() {{ Name = \"{VarName}\", Params = new Zeze.Net.Binary(_bb_) }});");
-            }
-            sb.AppendLine($"{prefix}}};");
-        }
-
-        public void GenActionDecode(StringBuilder sb, string prefix, string callcontext = "", int offset = 0)
-        {
-            sb.AppendLine($"{prefix}System.Action<Zeze.Net.Binary> _{VarName}_ = (_params_) =>");
-            sb.AppendLine($"{prefix}{{");
-            if (GenericArguments.Length > 0)
-            {
-                sb.AppendLine($"{prefix}    var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);");
-                GenDecode(sb, prefix + "    ", offset);
-                string sep = string.IsNullOrEmpty(callcontext) ? "" : ", ";
-                sb.AppendLine($"{prefix}    {VarName}({callcontext}{sep}{GetGenericArgumentVarNamesDefine(offset)});");
-            }
-            sb.AppendLine($"{prefix}}};");
-        }
-
-        private void GenEncode(StringBuilder sb, string prefix)
-        {
-            for (int i = 0; i < GenericArguments.Length; ++i)
-            {
-                var type = GenericArguments[i];
-                Gen.Instance.GenEncode(sb, prefix, type, GenericArgumentVarNames[i]);
+                var rClass = m.ResultHandle.GenericArguments[i];
+                Gen.Instance.GenEncode(sb, prefix, rClass, resultVarNames[i]);
             }
         }
-
-        private void GenDecode(StringBuilder sb, string prefix, int offset = 0)
-        {
-            for (int i = offset; i < GenericArguments.Length; ++i)
-            {
-                var type = GenericArguments[i];
-                Gen.Instance.GenLocalVariable(sb, prefix, type, GenericArgumentVarNames[i]);
-                Gen.Instance.GenDecode(sb, prefix, type, GenericArgumentVarNames[i]);
-            }
-        }
-
-        public bool IsOnHashEnd => Gen.IsOnHashEnd(GenericArguments);
 
         public static List<GenAction> GetActions(List<ParameterInfo> parameters)
         {

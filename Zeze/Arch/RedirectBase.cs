@@ -160,7 +160,7 @@ namespace Zeze.Arch
 			}
 		}
 
-		public async Task RunAsync(Action action) {
+		public TaskCompletionSource<long> RunFuture(Action action) {
 			var future = new TaskCompletionSource<long>();
 			ExecutionContext.SuppressFlow();
 			_ = Task.Run(() =>
@@ -176,7 +176,7 @@ namespace Zeze.Arch
 				}
 			});
 			ExecutionContext.RestoreFlow();
-			await future.Task;
+			return future;
 		}
 
 		public void RunVoid(Action action) {
@@ -203,13 +203,6 @@ namespace Zeze.Arch
 			});
 			ExecutionContext.RestoreFlow();
 			await future.Task;
-		}
-
-		public void RunVoid(Func<Task> action)
-		{
-			ExecutionContext.SuppressFlow();
-			Task.Run(action);
-			ExecutionContext.RestoreFlow();
 		}
 	}
 }

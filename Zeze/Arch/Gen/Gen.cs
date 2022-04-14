@@ -578,22 +578,6 @@ namespace Zeze.Arch.Gen
             }
         }
 
-        public static bool IsOnHashEnd(ParameterInfo pInfo)
-        {
-            var pType = pInfo.ParameterType;
-            if (!IsActionDelegate(pType))
-                return false;
-            return IsOnHashEnd(pType.GetGenericArguments());
-        }
-
-        public static bool IsOnHashEnd(Type[] GenericArguments)
-        {
-            if (GenericArguments.Length != 1)
-                return false;
-            /*if (GenericArguments[0] != typeof(Zezex.Provider.ModuleProvider.ModuleRedirectAllContext))
-                return false;
-            TODO*/return true;
-        }
         public static bool IsDelegate(Type type)
         {
             if (type.IsByRef)
