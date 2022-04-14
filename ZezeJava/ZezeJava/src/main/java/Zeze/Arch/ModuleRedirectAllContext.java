@@ -11,57 +11,82 @@ public class ModuleRedirectAllContext<R extends RedirectResult> extends Zeze.Net
 	private final int concurrentLevel;
 	private final IntHashMap<R> hashResults = new IntHashMap<>(); // <hash, result>
 	private final Function<Binary, R> decodeResult;
-	private final Action1<R> onHashResult;
-	private final RedirectAllDoneHandle<R> onHashEnd;
+	private Action1<ModuleRedirectAllContext<R>> onHashResult;
+	private int lastResultHash = -1; // 最近收到结果的hash
+	private boolean timeout;
 
 	public ModuleRedirectAllContext(int concurrentLevel, Function<Binary, R> decodeResult) {
-		this(concurrentLevel, decodeResult, null, null);
+		this(concurrentLevel, decodeResult, null);
 	}
 
-	public ModuleRedirectAllContext(int concurrentLevel, Function<Binary, R> decodeResult, Action1<R> onHashResult) {
-		this(concurrentLevel, decodeResult, onHashResult, null);
-	}
-
-	public ModuleRedirectAllContext(int concurrentLevel, Function<Binary, R> decodeResult, Action1<R> onHashResult,
-									RedirectAllDoneHandle<R> onHashEnd) {
+	public ModuleRedirectAllContext(int concurrentLevel, Function<Binary, R> decodeResult,
+									Action1<ModuleRedirectAllContext<R>> onHashResult) {
 		this.concurrentLevel = concurrentLevel;
 		this.decodeResult = decodeResult;
 		this.onHashResult = onHashResult;
-		this.onHashEnd = onHashEnd;
+	}
+
+	public final boolean isCompleted() {
+		return hashResults.size() >= concurrentLevel || timeout;
+	}
+
+	public final boolean isTimeout() {
+		return timeout;
+	}
+
+	public final R getLastResult() {
+		return hashResults.get(lastResultHash);
 	}
 
 	// 只用于AllDone时获取所有结果, 此时不会再修改hashResults所以没有并发问题
-	public final IntHashMap<R> getHashResults() {
+	public final IntHashMap<R> getAllResults() {
 		return hashResults;
 	}
 
 	@Override
-	public void OnRemoved() throws Throwable {
-		if (onHashEnd != null)
-			onHashEnd.handle(this);
+	public synchronized void OnTimeout() {
+		if (hashResults.size() < concurrentLevel) {
+			timeout = true;
+			getService().TryRemoveManualContext(getSessionId());
+		}
+	}
+
+	@Override
+	public synchronized void OnRemoved() throws Throwable {
+		var onHashResult0 = onHashResult;
+		if (onHashResult0 != null) {
+			onHashResult = null;
+			getService().getZeze().NewProcedure(() -> {
+				onHashResult0.run(this);
+				return 0L;
+			}, "ModuleRedirectAllResponse last Procedure").Call();
+		}
 	}
 
 	// 这里处理真正redirect发生时，从远程返回的结果。
 	@SuppressWarnings("deprecation")
-	public final void ProcessResult(Zeze.Application zeze, ModuleRedirectAllResult result) throws Throwable {
-		for (var h : result.Argument.getHashs().entrySet()) {
-			var resultCode = h.getValue().getReturnCode();
-			R resultBean = decodeResult.apply(resultCode == Procedure.Success ? h.getValue().getParams() : null);
+	public final synchronized void ProcessResult(Zeze.Application zeze, ModuleRedirectAllResult allResult) throws Throwable {
+		if (timeout)
+			return; // 如果恰好刚处理了超时,那就只能忽略后续的结果了
+		for (var e : allResult.Argument.getHashs().entrySet()) {
+			int hash = e.getKey();
+			var result = e.getValue();
+			var resultCode = result.getReturnCode();
+			R resultBean = decodeResult.apply(resultCode == Procedure.Success ? result.getParams() : null);
 			resultBean.setSessionId(getSessionId());
-			resultBean.setHash(h.getKey());
+			resultBean.setHash(hash);
 			resultBean.setResultCode(resultCode);
-			if (onHashResult != null) {
-				zeze.NewProcedure(() -> {
-					onHashResult.run(resultBean);
-					return 0L;
-				}, "ModuleRedirectResponse Procedure").Call();
-			}
-			boolean allDone;
-			synchronized (this) {
-				hashResults.put(h.getKey(), resultBean);
-				allDone = hashResults.size() == concurrentLevel;
-			}
-			if (allDone)
+			if (hashResults.putIfAbsent(hash, resultBean) != null)
+				continue; // 不可能回复相同hash的多个结果,忽略掉后面的好了
+			lastResultHash = hash;
+			if (hashResults.size() < concurrentLevel) {
+				if (onHashResult != null) {
+					zeze.NewProcedure(() -> {
+						onHashResult.run(this);
+						return 0L;
+					}, "ModuleRedirectAllResponse Procedure").Call();
+				}
+			} else
 				getService().TryRemoveManualContext(getSessionId());
 		}
 	}

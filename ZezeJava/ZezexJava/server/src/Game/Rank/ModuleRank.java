@@ -4,9 +4,9 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.concurrent.ConcurrentHashMap;
 import Game.App;
+import Zeze.Arch.ModuleRedirectAllContext;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Arch.RedirectAll;
-import Zeze.Arch.RedirectAllDoneHandle;
 import Zeze.Arch.RedirectResult;
 import Zeze.Arch.RedirectHash;
 import Zeze.Arch.RedirectToServer;
@@ -221,7 +221,7 @@ public class ModuleRank extends AbstractModule {
 	// 属性参数是获取总的并发分组数量的代码，直接复制到生成代码中。
 	// 需要注意在子类上下文中可以编译通过。可以是常量。
 	@RedirectAll(GetConcurrentLevelSource = "GetConcurrentLevel(arg0.getRankType())")
-	public void GetRank(BConcurrentKey keyHint, Action1<RRankList> onHashResult, RedirectAllDoneHandle<RRankList> onHashEnd) {
+	public void GetRank(BConcurrentKey keyHint, Action1<ModuleRedirectAllContext<RRankList>> onResult) {
 /*
 		// 默认实现是本地遍历调用，这里不使用App.Zeze.Run启动任务（这样无法等待），直接调用实现。
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
@@ -491,7 +491,7 @@ public class ModuleRank extends AbstractModule {
 	public int TestToAllConcLevel;
 
 	@RedirectAll(GetConcurrentLevelSource = "TestToAllConcLevel")
-	public void TestToAll(int in, Action1<TestToAllResult> onHashResult, RedirectAllDoneHandle<TestToAllResult> onHashEnd) {
+	public void TestToAll(int in, Action1<ModuleRedirectAllContext<TestToAllResult>> onResult) {
 		System.out.println("TestToAll in=" + in); // RedirectAll时不可能调用到这里,应该在上面的TestToAll方法处理
 	}
 

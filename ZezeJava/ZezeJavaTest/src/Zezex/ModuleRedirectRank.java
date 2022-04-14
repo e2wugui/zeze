@@ -69,25 +69,27 @@ public class ModuleRedirectRank extends TestCase {
 			app1.Game_Rank.TestToAllConcLevel = 5;
 			var future1 = new TaskCompletionSource<Boolean>();
 			var hashes = new ConcurrentHashSet<Integer>();
-			app1.Game_Rank.TestToAll(12345, (hashResult) -> {
-				var h = hashResult.getHash();
-				var out = hashResult.out;
-				System.out.println("TestToAll onHashResult: " + hashResult.getSessionId() + ", " + h + ", " + out);
+			app1.Game_Rank.TestToAll(12345, ctx -> {
+				var lastResult = ctx.getLastResult();
+				var h = lastResult.getHash();
+				var out = lastResult.out;
+				System.out.println("TestToAll onResult: " + lastResult.getSessionId() + ", " + h + ", " + out);
 				assertTrue(h >= 0 && h < 5);
 				assertTrue(hashes.add(h));
-				if (hashResult.getResultCode() == Procedure.Success)
+				if (lastResult.getResultCode() == Procedure.Success)
 					assertEquals(12345, out);
-			}, ctx -> {
-				try {
-					System.out.println("TestToAll onHashEnd: HashResults=" + ctx.getHashResults());
-					assertEquals(5, ctx.getHashResults().size());
-					assertEquals(Procedure.Success, ctx.getHashResults().get(0).getResultCode());
-					assertEquals(Procedure.Success, ctx.getHashResults().get(1).getResultCode());
-					assertEquals(Procedure.Success, ctx.getHashResults().get(2).getResultCode());
-					assertEquals(Procedure.Exception, ctx.getHashResults().get(3).getResultCode());
-					assertEquals(Procedure.Success, ctx.getHashResults().get(4).getResultCode());
-				} finally {
-					future1.SetResult(true);
+				if (ctx.isCompleted()) {
+					try {
+						System.out.println("TestToAll onHashEnd: HashResults=" + ctx.getAllResults());
+						assertEquals(5, ctx.getAllResults().size());
+						assertEquals(Procedure.Success, ctx.getAllResults().get(0).getResultCode());
+						assertEquals(Procedure.Success, ctx.getAllResults().get(1).getResultCode());
+						assertEquals(Procedure.Success, ctx.getAllResults().get(2).getResultCode());
+						assertEquals(Procedure.Exception, ctx.getAllResults().get(3).getResultCode());
+						assertEquals(Procedure.Success, ctx.getAllResults().get(4).getResultCode());
+					} finally {
+						future1.SetResult(true);
+					}
 				}
 			});
 			assertTrue(future1.get());
@@ -95,10 +97,12 @@ public class ModuleRedirectRank extends TestCase {
 
 			var future2 = new TaskCompletionSource<Boolean>();
 			app2.Game_Rank.TestToAllConcLevel = 0;
-			app2.Game_Rank.TestToAll(12345, __ -> fail(), ctx -> {
-				System.out.println("TestToAll onHashEnd: HashResults=" + ctx.getHashResults());
-				assertEquals(0, ctx.getHashResults().size());
-				future2.SetResult(true);
+			app2.Game_Rank.TestToAll(12345, ctx -> {
+				if (ctx.isCompleted()) {
+					System.out.println("TestToAll onHashEnd: HashResults=" + ctx.getAllResults());
+					assertEquals(0, ctx.getAllResults().size());
+					future2.SetResult(true);
+				}
 			});
 			assertTrue(future2.get());
 		} finally {

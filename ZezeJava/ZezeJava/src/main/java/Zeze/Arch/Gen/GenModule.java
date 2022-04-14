@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import Zeze.Arch.RedirectAll;
-import Zeze.Arch.RedirectAllDoneHandle;
 import Zeze.Arch.RedirectHash;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Util.StringBuilderCs;
@@ -175,8 +174,6 @@ public class GenModule {
 		case RedirectAll:
 			if (method.method.getReturnType() != void.class)
 				throw new RuntimeException("RedirectAll ReturnType Must Be void");
-			if (method.ParameterRedirectAllDoneHandle != null && method.ResultHandle == null)
-				throw new RuntimeException("RedirectAll Has RedirectAllDoneHandle But Miss ResultHandle.");
 			break;
 		}
 	}
@@ -363,8 +360,7 @@ public class GenModule {
 		}
 		sb.AppendLine("                    }");
 		sb.AppendLine("                    return _result_;");
-		sb.AppendLine("                }{}{})));", m.ResultHandle != null ? ", " + m.ResultHandle.Parameter.getName() : "",
-				m.ParameterRedirectAllDoneHandle != null ? ", " + m.ParameterRedirectAllDoneHandle.getName() : "");
+		sb.AppendLine("                }{})));", m.ResultHandle != null ? ", " + m.ResultHandle.Parameter.getName() : "");
 		if (m.ParametersNormal.size() > 0)
 		{
 			// normal 包括了 out 参数，这个不需要 encode，所以下面可能仍然是空的，先这样了。
@@ -398,7 +394,7 @@ public class GenModule {
 			sbHandles.AppendLine("                var _result_ = new {}();", m.ResultType.getName().replace('$', '.'));
 			sbHandles.AppendLine("                _result_.setSessionId(_sessionId_);");
 			sbHandles.AppendLine("                _result_.setHash(_hash_);");
-			String normalCall = m.GetNormalCallString(pInfo -> pInfo.getType() == RedirectAllDoneHandle.class || pInfo == m.ResultHandle.Parameter);
+			String normalCall = m.GetNormalCallString(pInfo -> pInfo == m.ResultHandle.Parameter);
 			String sep = normalCall.isEmpty() ? "" : ", ";
 			var bb1 = "tmp" + Gen.Instance.TmpVarNameId.incrementAndGet();
 			sbHandles.AppendLine("                super.{}({}{}_result_);", m.method.getName(), normalCall, sep);
@@ -407,7 +403,7 @@ public class GenModule {
 				Gen.Instance.GenEncode(sbHandles, "                ", bb1, typeName.getKey(), "_result_." + typeName.getValue());
 			sbHandles.AppendLine("                return new Binary({});", bb1);
 		} else {
-			String normalCall = m.GetNormalCallString(pInfo -> pInfo.getType() == RedirectAllDoneHandle.class);
+			String normalCall = m.GetNormalCallString();
 			String sep = normalCall.isEmpty() ? "" : ", ";
 			sbHandles.AppendLine("                super.{}(_sessionId_, _hash_{}{});", m.method.getName(), sep, normalCall);
 			sbHandles.AppendLine("                return Binary.Empty;");

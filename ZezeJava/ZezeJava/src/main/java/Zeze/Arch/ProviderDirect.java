@@ -7,11 +7,9 @@ import Zeze.Beans.ProviderDirect.ModuleRedirectAllRequest;
 import Zeze.Beans.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutObject;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import Zeze.Transaction.Bean;
 
 /**
  * Provider之间直连服务模块。
@@ -19,7 +17,7 @@ import Zeze.Transaction.Bean;
  * 需要的时候可以重载重新实现默认实现。
  */
 public abstract class ProviderDirect extends AbstractProviderDirect {
-	private static final Logger logger = LogManager.getLogger(RedirectBase.class);
+	// private static final Logger logger = LogManager.getLogger(RedirectBase.class);
 
 	public ProviderApp ProviderApp;
 
@@ -30,15 +28,23 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 
 	private <A extends Bean, R extends Bean> void SendResult(Zeze.Net.Rpc<A, R> rpc) throws Throwable {
 		rpc.setRequest(false);
-		Send(rpc.getSender(), rpc);
+		SendResult(rpc.getSender(), rpc);
 	}
 
-	private void Send(AsyncSocket sender, Zeze.Net.Protocol rpc) throws Throwable {
+	private void SendResult(AsyncSocket sender, Zeze.Net.Rpc<?, ?> rpc) throws Throwable {
 		if (sender == null) {
 			var service = ProviderApp.ProviderDirectService;
 			rpc.Dispatch(service, service.FindProtocolFactoryHandle(rpc.getTypeId()));
 		}
-		rpc.Send(sender);
+		rpc.SendResult();
+	}
+
+	private void SendResult(AsyncSocket sender, Zeze.Net.Protocol<?> p) throws Throwable {
+		if (sender == null) {
+			var service = ProviderApp.ProviderDirectService;
+			p.Dispatch(service, service.FindProtocolFactoryHandle(p.getTypeId()));
+		}
+		p.Send(sender);
 	}
 
 	@Override
@@ -82,7 +88,7 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 		}
 		//noinspection PointlessArithmeticExpression
 		if (size > 1 * 1024 * 1024) { // 1M
-			Send(sender, result);
+			SendResult(sender, result);
 			result.Argument.getHashs().clear();
 		}
 	}
@@ -105,7 +111,7 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 				BModuleRedirectAllHash tempVar = new BModuleRedirectAllHash();
 				result.Argument.getHashs().put(hash, tempVar);
 			}
-			Send(p.getSender(), result);
+			SendResult(p.getSender(), result);
 			return Procedure.LogicError;
 		}
 		result.setResultCode(ModuleRedirect.ResultCodeSuccess);
@@ -136,7 +142,7 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 
 		// send remain
 		if (result.Argument.getHashs().size() > 0) {
-			Send(p.getSender(), result);
+			SendResult(p.getSender(), result);
 		}
 		return Procedure.Success;
 	}
@@ -144,7 +150,7 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 	@Override
 	protected long ProcessModuleRedirectAllResult(ModuleRedirectAllResult protocol) throws Throwable {
 		var ctx = ProviderApp.ProviderDirectService.
-				<ModuleRedirectAllContext>TryGetManualContext(protocol.Argument.getSessionId());
+				<ModuleRedirectAllContext<?>>TryGetManualContext(protocol.Argument.getSessionId());
 		if (ctx != null) {
 			ctx.ProcessResult(ProviderApp.Zeze, protocol);
 		}

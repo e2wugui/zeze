@@ -99,7 +99,7 @@ public class GenAction {
 		case RedirectAll:
 			if (GenericArguments.length != 1)
 				throw new RuntimeException(m.method.getName() + ": RedirectAll Result Handle Too Many Parameters.");
-			if (!RedirectResult.class.isAssignableFrom((Class<?>)GenericArguments[0]))
+			if (!RedirectResult.class.isAssignableFrom(m.ResultType))
 				throw new RuntimeException(m.method.getName() + ": RedirectAll Result Type Must Extend RedirectContext");
 			break;
 		}

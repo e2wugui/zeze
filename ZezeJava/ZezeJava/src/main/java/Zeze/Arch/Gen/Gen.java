@@ -216,8 +216,6 @@ public class Gen {
 		if (type.getAnnotation(FunctionalInterface.class) != null) {
 			if (type.getName().startsWith("Zeze.Util.Action"))
 				return true;
-			if (type == Zeze.Arch.RedirectAllDoneHandle.class)
-				return true;
 			throw new RuntimeException("ModuleRedirect Callback Only Support Zeze.Util.ActionN");
 		}
 		return false;
