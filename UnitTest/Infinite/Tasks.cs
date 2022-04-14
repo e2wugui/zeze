@@ -192,7 +192,7 @@ namespace Infinite
             {
                 // 所有使用 Table1 的测试都可以依赖这个 prepare，不需要单独写了。
                 var app = Simulate.randApp().app;
-                app.Zeze.NewProcedure(async () =>
+                app.Zz.NewProcedure(async () =>
                 {
                     for (long key = 0; key < Simulate.AccessKeyBound; ++key)
                         await app.demo_Module1.Table1.RemoveAsync(key);

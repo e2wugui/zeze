@@ -9,7 +9,7 @@ namespace Zeze.Arch
 {
     public class ProviderDistribute
     {
-        public Application Zeze { get; set; }
+        public Application Zz { get; set; }
         public LoadConfig LoadConfig { get; set; }
         public Zeze.Net.Service ProviderService { get; set; }
 
@@ -131,7 +131,7 @@ namespace Zeze.Arch
         public ServiceInfo ChoiceProvider(string prefix, int moduleId, int hash)
         {
             var serviceName = MakeServiceName(prefix, moduleId);
-            if (false == Zeze.ServiceManagerAgent.SubscribeStates.TryGetValue(serviceName, out var volatileProviders))
+            if (false == Zz.ServiceManagerAgent.SubscribeStates.TryGetValue(serviceName, out var volatileProviders))
                 return null;
             return ChoiceHash(volatileProviders, hash);
         }
@@ -153,7 +153,7 @@ namespace Zeze.Arch
         public bool ChoiceProviderByServerId(string serviceNamePrefix, int moduleId, int hash, out long provider)
         {
             var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
-            if (false == Zeze.ServiceManagerAgent.SubscribeStates.TryGetValue(
+            if (false == Zz.ServiceManagerAgent.SubscribeStates.TryGetValue(
                 serviceName, out var volatileProviders))
             {
                 provider = 0;

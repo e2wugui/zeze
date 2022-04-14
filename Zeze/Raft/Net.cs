@@ -585,7 +585,7 @@ namespace Zeze.Raft
                 if (null == Client)
                     return;
 
-                var zeze = Client.Zeze;
+                var zeze = Client.Zz;
                 Client.Stop();
                 Client = null;
 

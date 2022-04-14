@@ -48,7 +48,7 @@ namespace Zeze.Util
             if (IsRequestSaved == false)
                 actionName += ":Response";
 
-            var ll = (null != p.Service.Zeze) ? p.Service.Zeze.Config.ProcessReturnErrorLogLevel : NLog.LogLevel.Trace;
+            var ll = (null != p.Service.Zz) ? p.Service.Zz.Config.ProcessReturnErrorLogLevel : NLog.LogLevel.Trace;
             LogAction?.Invoke(ll, ex, result, $"Action={actionName} {p}");
 
 #if ENABLE_STATISTICS

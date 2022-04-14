@@ -35,6 +35,7 @@ namespace Game.Rank
         /// <param name="roleId"></param>
         /// <param name="value"></param>
         /// <returns>Procudure.Success...</returns>
+        [RedirectHash()]
         protected async Task<long> UpdateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx)
         {
             int concurrentLevel = GetConcurrentLevel(keyHint.RankType);
@@ -200,51 +201,6 @@ namespace Game.Rank
         }
 
         /// <summary>
-        /// 相关数据变化时，更新排行榜。
-        /// 最好在事务成功结束或者处理快完的时候或者ChangeListener中调用这个方法更新排行榜。
-        /// 比如使用 Transaction.Current.RunWhileCommit(() => RunUpdateRank(...));
-        /// </summary>
-        /// <param name="rankType"></param>
-        /// <param name="roleId"></param>
-        /// <param name="value"></param>
-        /// <param name="valueEx">只保存，不参与比较。如果需要参与比较，需要另行实现自己的Update和Get。</param>
-        [RedirectHash()]
-        public virtual void RunUpdateRank(
-            int hash,
-            BConcurrentKey keyHint,
-            long roleId, long value, Zeze.Net.Binary valueEx)
-        {
-            UpdateRank(hash, keyHint, roleId, value, valueEx);
-        }
-
-        // 名字必须和RunUpdateRankWithHash匹配，内部使用一样的实现。
-        protected async Task<long> UpdateRankWithHash(
-            int hash, BConcurrentKey keyHint,
-            long roleId, long value, Zeze.Net.Binary valueEx)
-        {
-            return await UpdateRank(hash, keyHint, roleId, value, valueEx);
-        }
-
-        [RedirectHash()]
-        public virtual void RunUpdateRankWithHash(
-            int hash, BConcurrentKey keyHint,
-            long roleId, long value, Zeze.Net.Binary valueEx)
-        {
-            UpdateRankWithHash(hash, keyHint, roleId, value, valueEx);
-        }
-
-        [RedirectToServer()]
-        public virtual void RunTestToServer(int serverId)
-        {
-            TestToServer(serverId);
-        }
-
-        protected long TestToServer(int serverId)
-        {
-            return 0;
-        }
-
-        /// <summary>
         /// ModuleRedirectAll 实现要求：
         /// 1）第一个参数是调用会话id；
         /// 2）第二个参数是hash-index；
@@ -275,7 +231,7 @@ namespace Game.Rank
             Action<ModuleRedirectAllContext> onHashEnd
             )
         {
-            // 默认实现是本地遍历调用，这里不使用App.Zeze.Run启动任务（这样无法等待），直接调用实现。
+            // 默认实现是本地遍历调用，这里不使用App.Zz.Run启动任务（这样无法等待），直接调用实现。
             int concurrentLevel = GetConcurrentLevel(keyHint.RankType);
             var ctx = new ModuleRedirectAllContext(concurrentLevel, $"{FullName}:{nameof(RunGetRank)}")
             {
@@ -373,32 +329,6 @@ namespace Game.Rank
             };
         }
 
-        public async Task<long> GetCounter(long roleId, BConcurrentKey keyHint)
-        {
-            var counters = await _trankcounters.GetOrAddAsync(roleId);
-            if (false == counters.Counters.TryGetValue(keyHint, out var counter))
-                return 0;
-
-            return counter.Value;
-        }
-
-        public async Task AddCounterAndUpdateRank(long roleId, int delta,
-            BConcurrentKey keyHint, Zeze.Net.Binary valueEx = null)
-        {
-            var counters = await _trankcounters.GetOrAddAsync(roleId);
-            if (false == counters.Counters.TryGetValue(keyHint, out var counter))
-            {
-                counter = new BRankCounter();
-                counters.Counters.Add(keyHint, counter);
-            }
-            counter.Value += delta;
-
-            if (null == valueEx)
-                valueEx = Zeze.Net.Binary.Empty;
-
-            RunUpdateRank(0, keyHint, roleId, counter.Value, valueEx);
-        }
-
         protected override async Task<long> ProcessCGetRankList(Protocol p)
         {
             var protocol = p as CGetRankList;
@@ -473,50 +403,30 @@ namespace Game.Rank
         }
 
         /******************************** ModuleRedirect 测试 *****************************************/
-        [RedirectHash()]
-        public virtual TaskCompletionSource<long> RunTest1(int hash, Zeze.TransactionModes mode)
+        [RedirectToServer()]
+        public virtual TaskCompletionSource<long> TestToServer(int serverId, int param, Action<int, int> result)
         {
-            Test1(hash);
+            result(param, App.Zz.Config.ServerId);
             return null;
         }
 
-        protected long Test1(int hash)
+        [RedirectHash()]
+        public virtual TaskCompletionSource<long> TestHash(int hash, int param, Action<int, int> result)
         {
-            return Procedure.Success;
+            result(param, App.Zz.Config.ServerId);
+            return null;
+        }
+
+        [RedirectToServer()]
+        public virtual void TestToServerNoWait(int serverId, int param, Action<int, int> result)
+        {
+            result(param, App.Zz.Config.ServerId);
         }
 
         [RedirectHash()]
-        public virtual void RunTest2(int hash, int inData, ref int refData, out int outData)
+        public virtual void TestHashNoWait(int hash, int param, Action<int, int> result)
         {
-            int outDataTmp = 0;
-            int refDataTmp = refData;
-            Test2(hash, inData, ref refDataTmp, out outDataTmp);
-            refData = refDataTmp;
-            outData = outDataTmp;
-        }
-
-        protected long Test2(int hash, int inData, ref int refData, out int outData)
-        {
-            outData = 1;
-            ++refData;
-            return Procedure.Success;
-        }
-
-        /*
-         * 一般来说 ref|out 和 Action 回调方式不该一起用。存粹为了测试。
-         * 如果混用，首先 Action 回调先发生，然后 ref|out 的变量才会被赋值。这个当然吧。
-         * 
-         * 可以包含多个 Action。纯粹为了...可以用 Empty 表示 null，嗯，总算找到理由了。
-         * 如果包含多个，按照真正的实现的回调顺序回调，不是定义顺序。这个也当然吧。
-         * 
-         * ref|out 方式需要同步等待，【不建议使用这种方式】【不建议使用这种方式】【不建议使用这种方式】
-         */
-        protected long Test3(int hash, int inData, ref int refData, out int outData, System.Action<int> resultCallback)
-        {
-            outData = 1;
-            ++refData;
-            resultCallback(1);
-            return Procedure.Success;
+            result(param, App.Zz.Config.ServerId);
         }
     }
 }

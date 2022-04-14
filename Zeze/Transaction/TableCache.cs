@@ -159,7 +159,7 @@ namespace Zeze.Transaction
                         if (false == TryRemoveRecord(e))
                         {
                             // 出现回收不了，一般是批量修改数据，此时启动一次Checkpoint。
-                            Table.Zeze.CheckpointNow().Wait();
+                            Table.Zz.CheckpointNow().Wait();
                         }
                     }
                     if (node.IsEmpty)
@@ -237,7 +237,7 @@ namespace Zeze.Transaction
         {
             // lockey 第一优先，和事务并发。
             var tkey = new TableKey(this.Table.Name, p.Key);
-            var lockey = Table.Zeze.Locks.Get(tkey);
+            var lockey = Table.Zz.Locks.Get(tkey);
 
             if (false == lockey.TryEnterWriteLock())
                 return false;

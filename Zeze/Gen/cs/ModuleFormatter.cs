@@ -80,7 +80,7 @@ namespace Zeze.Gen.cs
 
         public void RegisterZezeTables(StreamWriter sw, string zeze = null)
         {
-            var zezeVar = string.IsNullOrEmpty(zeze) ? "App.Zeze" : zeze;
+            var zezeVar = string.IsNullOrEmpty(zeze) ? "App.Zz" : zeze;
             sw.WriteLine("            // register table");
             foreach (Table table in module.Tables.Values)
             {
@@ -91,7 +91,7 @@ namespace Zeze.Gen.cs
 
         public void UnRegisterZezeTables(StreamWriter sw, string zeze = null)
         {
-            var zezeVar = string.IsNullOrEmpty(zeze) ? "App.Zeze" : zeze;
+            var zezeVar = string.IsNullOrEmpty(zeze) ? "App.Zz" : zeze;
             foreach (Table table in module.Tables.Values)
             {
                 if (project.GenTables.Contains(table.Gen) && table.IsRocks == false)

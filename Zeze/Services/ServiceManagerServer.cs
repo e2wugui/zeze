@@ -822,7 +822,7 @@ namespace Zeze.Services.ServiceManager
         public ConcurrentDictionary<string, SubscribeState> SubscribeStates { get; }
             = new ConcurrentDictionary<string, SubscribeState>();
         public NetClient Client { get; private set; }
-        public Application Zeze { get; }
+        public Application Zz { get; }
 
         /// <summary>
         /// 订阅服务状态发生变化时回调。
@@ -1154,9 +1154,8 @@ namespace Zeze.Services.ServiceManager
             return subState;
         }
 
-        public async Task<bool> SetServerLoad(ServerLoad load)
+        public bool SetServerLoad(ServerLoad load)
         {
-            await WaitConnectorReadyAsync();
             var p = new SetServerLoad();
             p.Argument = load;
             return p.Send(Client.Socket);
@@ -1370,7 +1369,7 @@ namespace Zeze.Services.ServiceManager
         /// </summary>
         public Agent(Application zeze, string netServiceName = null)
         {
-            Zeze = zeze;
+            Zz = zeze;
             var config = zeze.Config;
             if (null == config)
                 throw new Exception("Config is null");

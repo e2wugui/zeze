@@ -8,7 +8,7 @@ namespace Zeze.Services
     public class GlobalCacheManagerWithRaftAgent : AbstractGlobalCacheManagerWithRaftAgent, Zeze.Transaction.IGlobalAgent
     {
         static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-        public Application Zeze { get; }
+        public Application Zz { get; }
 
         public void Dispose()
         {
@@ -18,7 +18,7 @@ namespace Zeze.Services
 
         public GlobalCacheManagerWithRaftAgent(Application zeze)
         {
-            Zeze = zeze;
+            Zz = zeze;
         }
 
         public async Task Start(string[] hosts)
@@ -30,7 +30,7 @@ namespace Zeze.Services
             for (int i = 0; i < hosts.Length; ++i)
             {
                 var raftconf = Raft.RaftConfig.Load(hosts[i]);
-                Agents[i] = new RaftAgent(this, Zeze, i, raftconf);
+                Agents[i] = new RaftAgent(this, Zz, i, raftconf);
             }
 
             foreach (var agent in Agents)
@@ -94,10 +94,10 @@ namespace Zeze.Services
             {
                 case GlobalCacheManagerServer.StateInvalid:
                     {
-                        var table = Zeze.GetTable(rpc.Argument.GlobalTableKey.TableName);
+                        var table = Zz.GetTable(rpc.Argument.GlobalTableKey.TableName);
                         if (table == null)
                         {
-                            logger.Warn($"ReduceInvalid Table Not Found={rpc.Argument.GlobalTableKey.TableName},ServerId={Zeze.Config.ServerId}");
+                            logger.Warn($"ReduceInvalid Table Not Found={rpc.Argument.GlobalTableKey.TableName},ServerId={Zz.Config.ServerId}");
                             // 本地没有找到表格看作成功。
                             rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
                             rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
@@ -109,10 +109,10 @@ namespace Zeze.Services
 
                 case GlobalCacheManagerServer.StateShare:
                     {
-                        var table = Zeze.GetTable(rpc.Argument.GlobalTableKey.TableName);
+                        var table = Zz.GetTable(rpc.Argument.GlobalTableKey.TableName);
                         if (table == null)
                         {
-                            logger.Warn($"ReduceShare Table Not Found={rpc.Argument.GlobalTableKey.TableName},ServerId={Zeze.Config.ServerId}");
+                            logger.Warn($"ReduceShare Table Not Found={rpc.Argument.GlobalTableKey.TableName},ServerId={Zz.Config.ServerId}");
                             // 本地没有找到表格看作成功。
                             rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
                             rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
@@ -239,7 +239,7 @@ namespace Zeze.Services
                 if (LoginTimes.Get() == 0)
                 {
                     var login = new Login();
-                    login.Argument.ServerId = agent.Client.Zeze.Config.ServerId;
+                    login.Argument.ServerId = agent.Client.Zz.Config.ServerId;
                     login.Argument.GlobalCacheManagerHashIndex = GlobalCacheManagerHashIndex;
 
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
@@ -264,7 +264,7 @@ namespace Zeze.Services
                 else
                 {
                     var relogin = new ReLogin();
-                    relogin.Argument.ServerId = agent.Client.Zeze.Config.ServerId;
+                    relogin.Argument.ServerId = agent.Client.Zz.Config.ServerId;
                     relogin.Argument.GlobalCacheManagerHashIndex = GlobalCacheManagerHashIndex;
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
                     agent.Send(relogin,

@@ -38,7 +38,7 @@ namespace Game.Fight
         public void StartCalculateFighter(long roleId)
         {
             BFighterId fighterId = new BFighterId(BFighterId.TypeRole, roleId);
-            Game.App.Instance.Zeze.NewProcedure(async () => await CalculateFighter(fighterId), "CalculateFighter").Execute();
+            Game.App.Instance.Zz.NewProcedure(async () => await CalculateFighter(fighterId), "CalculateFighter").Execute();
         }
     }
 }

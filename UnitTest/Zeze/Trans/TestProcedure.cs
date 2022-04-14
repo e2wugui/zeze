@@ -37,13 +37,13 @@ namespace UnitTest.Zeze.Trans
             bean.I = 1;
             Assert.AreEqual(bean.I, 1);
             {
-                var r = await demo.App.Instance.Zeze.NewProcedure(ProcFalse, "ProcFalse").CallAsync();
+                var r = await demo.App.Instance.Zz.NewProcedure(ProcFalse, "ProcFalse").CallAsync();
                 Assert.IsTrue(r != Procedure.Success);
                 Assert.AreEqual(bean.I, 1);
             }
 
             {
-                var r = await demo.App.Instance.Zeze.NewProcedure(ProcTrue, "ProcFalse").CallAsync();
+                var r = await demo.App.Instance.Zz.NewProcedure(ProcTrue, "ProcFalse").CallAsync();
                 Assert.IsTrue(r == Procedure.Success);
                 Assert.AreEqual(bean.I, 123);
             }
@@ -70,7 +70,7 @@ namespace UnitTest.Zeze.Trans
             // 特殊测试，拼凑一个record用来提供需要的信息。
             var r = new Record<long, TestBegin.MyBean>(null, 1, bean);
             bean.InitRootInfo(r.CreateRootInfoIfNeed(root), null);
-            var rc = demo.App.Instance.Zeze.NewProcedure(ProcNest, "ProcNest").CallSynchronously();
+            var rc = demo.App.Instance.Zz.NewProcedure(ProcNest, "ProcNest").CallSynchronously();
             Assert.IsTrue(rc == Procedure.Success);
             // 最后一个 Call，事务外，bean 已经没法访问事务支持的属性了。直接访问内部变量。
             Assert.AreEqual(bean._i, 123);

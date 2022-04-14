@@ -20,7 +20,7 @@ namespace Zeze.Net
         /// </summary>
         public SocketOptions SocketOptions { get; private set; } = new SocketOptions();
         public ServiceConf Config { get; private set; }
-        public Application Zeze { get; }
+        public Application Zz { get; }
         public string Name { get; }
 
         protected ConcurrentDictionary<long, AsyncSocket> SocketMap { get; }
@@ -55,7 +55,7 @@ namespace Zeze.Net
         public Service(string name, Application app)
         {
             Name = name;
-            Zeze = app;
+            Zz = app;
             InitConfig(app?.Config);
         }
 
@@ -251,9 +251,9 @@ namespace Zeze.Net
             Func<Protocol, Task<long>> responseHandle,
             ProtocolFactoryHandle factoryHandle)
         {
-            if (null != Zeze && TransactionLevel.None != factoryHandle.TransactionLevel)
+            if (null != Zz && TransactionLevel.None != factoryHandle.TransactionLevel)
             {
-                _ = Mission.CallAsync(Zeze.NewProcedure(async () => await responseHandle(rpc),
+                _ = Mission.CallAsync(Zz.NewProcedure(async () => await responseHandle(rpc),
                     rpc.GetType().FullName + ":Response", factoryHandle.TransactionLevel, rpc.UserState), rpc, null);
             }
             else
@@ -266,9 +266,9 @@ namespace Zeze.Net
         {
             if (null != factoryHandle.Handle)
             {
-                if (null != Zeze && TransactionLevel.None != factoryHandle.TransactionLevel)
+                if (null != Zz && TransactionLevel.None != factoryHandle.TransactionLevel)
                 {
-                    Zeze.TaskOneByOneByKey.Execute(key, Zeze.NewProcedure(
+                    Zz.TaskOneByOneByKey.Execute(key, Zz.NewProcedure(
                             () => factoryHandle.Handle(p), p.GetType().FullName,
                             factoryHandle.TransactionLevel, p.UserState),
                             p, (p, code) => p.SendResultCode(code)
@@ -276,7 +276,7 @@ namespace Zeze.Net
                 }
                 else
                 {
-                    Zeze.TaskOneByOneByKey.Execute(key, factoryHandle.Handle, p, (p, code) => p.SendResultCode(code));
+                    Zz.TaskOneByOneByKey.Execute(key, factoryHandle.Handle, p, (p, code) => p.SendResultCode(code));
                 }
             }
             else
@@ -289,9 +289,9 @@ namespace Zeze.Net
         {
             if (null != factoryHandle.Handle)
             {
-                if (null != Zeze && TransactionLevel.None != factoryHandle.TransactionLevel)
+                if (null != Zz && TransactionLevel.None != factoryHandle.TransactionLevel)
                 {
-                    _ = Mission.CallAsync(Zeze.NewProcedure(() => factoryHandle.Handle(p),
+                    _ = Mission.CallAsync(Zz.NewProcedure(() => factoryHandle.Handle(p),
                         p.GetType().FullName, factoryHandle.TransactionLevel, p.UserState), p, null);
                 }
                 else

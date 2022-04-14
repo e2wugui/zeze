@@ -31,10 +31,10 @@ namespace Zezex
             CreateZeze();
             CreateService();
             LinkdProvider = new LinkdProvider();
-            LinkdApp = new LinkdApp("Game.Linkd", Zeze, LinkdProvider, ProviderService, LinkdService, LoadConfig.Load("load.json"));
+            LinkdApp = new LinkdApp("Game.Linkd", Zz, LinkdProvider, ProviderService, LinkdService, LoadConfig.Load("load.json"));
             CreateModules();
             StartModules(); // 启动模块，装载配置什么的。
-            Zeze.StartAsync().Wait(); // 启动数据库
+            Zz.StartAsync().Wait(); // 启动数据库
             AsyncSocketSessionIdGen = PersistentAtomicLong.GetOrAdd(LinkdApp.GetName());
             AsyncSocket.SessionIdGenFunc = AsyncSocketSessionIdGen.Next;
             StartService(); // 启动网络
@@ -44,7 +44,7 @@ namespace Zezex
         public void Stop()
         {
             StopService(); // 关闭网络
-            Zeze.Stop(); // 关闭数据库
+            Zz.Stop(); // 关闭数据库
             StopModules(); // 关闭模块,，卸载配置什么的。
             DestroyModules();
             DestroyService();

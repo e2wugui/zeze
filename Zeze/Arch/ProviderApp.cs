@@ -13,7 +13,7 @@ namespace Zeze.Arch
 	 */
 	public class ProviderApp
 	{
-		public Zeze.Application Zeze;
+		public Zeze.Application Zz;
 
 		public ProviderImplement ProviderImplement;
 		public ProviderService ProviderService;
@@ -34,7 +34,7 @@ namespace Zeze.Arch
 		public Dictionary<int, BModule> DynamicModules = new();
 		public Dictionary<int, BModule> Modules = new();
 
-		public ProviderApp(Zeze.Application zeze,
+		public ProviderApp(Zeze.Application zz,
 						   ProviderImplement server,
 						   ProviderService toLinkdService,
 						   string providerModulePrefixNameOnServiceManager,
@@ -44,8 +44,8 @@ namespace Zeze.Arch
 						   LoadConfig loadConfig
 						   )
 		{
-			this.Zeze = zeze;
-			this.Zeze.Redirect = new RedirectBase(this);
+			this.Zz = zz;
+			this.Zz.Redirect = new RedirectBase(this);
 
 			this.ProviderImplement = server;
 			this.ProviderImplement.ProviderApp = this;
@@ -64,10 +64,10 @@ namespace Zeze.Arch
 
 			this.ProviderImplement.RegisterProtocols(ProviderService);
 
-			this.Zeze.ServiceManagerAgent.OnChanged = ProviderImplement.ApplyOnChanged;
-			this.Zeze.ServiceManagerAgent.OnPrepare = ProviderImplement.ApplyOnPrepare;
+			this.Zz.ServiceManagerAgent.OnChanged = ProviderImplement.ApplyOnChanged;
+			this.Zz.ServiceManagerAgent.OnPrepare = ProviderImplement.ApplyOnPrepare;
 
-			this.Zeze.ServiceManagerAgent.OnSetServerLoad = (serverLoad) =>
+			this.Zz.ServiceManagerAgent.OnSetServerLoad = (serverLoad) =>
 			{
 				if (ProviderDirectService.ProviderSessions.TryGetValue(serverLoad.Name, out var ps))
 				{
@@ -79,7 +79,7 @@ namespace Zeze.Arch
 			};
 			this.Distribute = new ProviderDistribute();
 			this.Distribute.LoadConfig = loadConfig;
-			this.Distribute.Zeze = Zeze;
+			this.Distribute.Zz = Zz;
 			this.Distribute.ProviderService = ProviderDirectService;
 
 			this.ProviderDirect.RegisterProtocols(ProviderDirectService);
@@ -87,8 +87,8 @@ namespace Zeze.Arch
 
 		public void initialize(ProviderModuleBinds binds, Dictionary<string, Zeze.IModule> modules)
 		{
-			binds.BuildStaticBinds(modules, Zeze.Config.ServerId, StaticBinds);
-			binds.BuildDynamicBinds(modules, Zeze.Config.ServerId, DynamicModules);
+			binds.BuildStaticBinds(modules, Zz.Config.ServerId, StaticBinds);
+			binds.BuildDynamicBinds(modules, Zz.Config.ServerId, DynamicModules);
 			foreach (var e in StaticBinds)
 				Modules.Add(e.Key, e.Value);
 			foreach (var e in DynamicModules)

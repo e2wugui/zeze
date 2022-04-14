@@ -26,18 +26,18 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void TestNestModifyMap()
         {
-            demo.App.Instance.Zeze.NewProcedure(async () =>
+            demo.App.Instance.Zz.NewProcedure(async () =>
             {
                 await demo.App.Instance.demo_Module1.Table1.RemoveAsync(1);
                 return 0;
             }, "ModifyMapRemove").CallSynchronously();
 
-            demo.App.Instance.Zeze.NewProcedure(async () =>
+            demo.App.Instance.Zz.NewProcedure(async () =>
             {
                 var value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
                 value.Map15[1] = 1;
 
-                await demo.App.Instance.Zeze.NewProcedure(async () =>
+                await demo.App.Instance.Zz.NewProcedure(async () =>
                 {
                     var value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
                     Assert.IsTrue(value.Map15.TryGetValue(1, out var mv1));
@@ -57,18 +57,18 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void TestNestModifySet()
         {
-            demo.App.Instance.Zeze.NewProcedure(async () =>
+            demo.App.Instance.Zz.NewProcedure(async () =>
             {
                 await demo.App.Instance.demo_Module1.Table1.RemoveAsync(1);
                 return 0;
             }, "ModifyMapRemove").CallSynchronously();
 
-            demo.App.Instance.Zeze.NewProcedure(async () =>
+            demo.App.Instance.Zz.NewProcedure(async () =>
             {
                 var value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
                 value.Set10.Add(1);
 
-                await demo.App.Instance.Zeze.NewProcedure(async () =>
+                await demo.App.Instance.Zz.NewProcedure(async () =>
                 {
                     var value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
                     Assert.IsTrue(value.Set10.Contains(1));

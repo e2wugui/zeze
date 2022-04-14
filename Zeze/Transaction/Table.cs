@@ -17,7 +17,7 @@ namespace Zeze.Transaction
         }
 
         public string Name { get; }
-        public Application Zeze { get; protected set; }
+        public Application Zz { get; protected set; }
 
         public virtual bool IsMemory => true;
         public virtual bool IsAutoKey => false;
@@ -146,7 +146,7 @@ namespace Zeze.Transaction
             var tkey = new TableKey(Name, key);
 
             Record<K, V> r = null;
-            var lockey = await Zeze.Locks.Get(tkey).WriterLockAsync();
+            var lockey = await Zz.Locks.Get(tkey).WriterLockAsync();
             try
             {
                 r = Cache.Get(key);
@@ -155,7 +155,7 @@ namespace Zeze.Transaction
                     rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                     logger.Debug("ReduceShare SendResult 1 {0}", r);
                     rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
-                    Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+                    Zz.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                     return 0;
                 }
                 using var lockr = r.Mutex.Lock();
@@ -167,7 +167,7 @@ namespace Zeze.Transaction
                         rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                         logger.Debug("ReduceShare SendResult 2 {0}", r);
                         rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
-                        Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+                        Zz.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                         return 0;
 
                     case GlobalCacheManagerServer.StateShare:
@@ -177,7 +177,7 @@ namespace Zeze.Transaction
                             break;
                         logger.Debug("ReduceShare SendResult 3 {0}", r);
                         rpc.SendResult();
-                        Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+                        Zz.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                         return 0;
 
                     case GlobalCacheManagerServer.StateModify:
@@ -186,7 +186,7 @@ namespace Zeze.Transaction
                             break;
                         logger.Debug("ReduceShare SendResult * {0}", r);
                         rpc.SendResult();
-                        Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+                        Zz.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                         return 0;
                 }
             }
@@ -200,14 +200,14 @@ namespace Zeze.Transaction
             logger.Debug("ReduceShare SendResult 4 {0}", r);
             // Must before SendResult
             rpc.SendResult();
-            Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+            Zz.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
             //logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
             return 0;
         }
 
         private async Task FlushWhenReduce(Record r)
         {
-            switch (Zeze.Config.CheckpointMode)
+            switch (Zz.Config.CheckpointMode)
             {
                 case CheckpointMode.Period:
                     //Zeze.Checkpoint.AddActionAndPulse(after);
@@ -235,7 +235,7 @@ namespace Zeze.Transaction
 
             var tkey = new TableKey(Name, key);
             Record<K, V> r = null;
-            var lockey = await Zeze.Locks.Get(tkey).WriterLockAsync();
+            var lockey = await Zz.Locks.Get(tkey).WriterLockAsync();
             try
             {
                 r = Cache.Get(key);
@@ -244,7 +244,7 @@ namespace Zeze.Transaction
                     rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                     logger.Debug("ReduceInvalid SendResult 1 {0}", r);
                     rpc.SendResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
-                    Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+                    Zz.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                     return 0;
                 }
                 using var lockr = r.Mutex.Lock();
@@ -259,7 +259,7 @@ namespace Zeze.Transaction
                             break;
                         logger.Debug("ReduceInvalid SendResult 2 {0}", r);
                         rpc.SendResult();
-                        Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+                        Zz.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                         return 0;
 
                     case GlobalCacheManagerServer.StateShare:
@@ -269,7 +269,7 @@ namespace Zeze.Transaction
                             break;
                         logger.Debug("ReduceInvalid SendResult 3 {0}", r);
                         rpc.SendResult();
-                        Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+                        Zz.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                         return 0;
 
                     case GlobalCacheManagerServer.StateModify:
@@ -277,7 +277,7 @@ namespace Zeze.Transaction
                         if (r.Dirty)
                             break;
                         rpc.SendResult();
-                        Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+                        Zz.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                         return 0;
                 }
             }
@@ -291,7 +291,7 @@ namespace Zeze.Transaction
             logger.Debug("ReduceInvalid SendResult 4 {0} ", r);
             // Must before SendResult
             rpc.SendResult();
-            Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+            Zz.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
             //logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
             return 0;
         }
@@ -301,14 +301,14 @@ namespace Zeze.Transaction
             foreach (var e in Cache.DataMap)
             {
                 var gkey = new Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey(Name, new Zeze.Net.Binary(EncodeKey(e.Key)));
-                if (Zeze.GlobalAgent.GetGlobalCacheManagerHashIndex(gkey) != GlobalCacheManagerHashIndex)
+                if (Zz.GlobalAgent.GetGlobalCacheManagerHashIndex(gkey) != GlobalCacheManagerHashIndex)
                 {
                     // 不是断开连接的GlobalCacheManager。跳过。
                     continue;
                 }
 
                 var tkey = new TableKey(Name, e.Key);
-                var lockey = await Zeze.Locks.Get(tkey).WriterLockAsync();
+                var lockey = await Zz.Locks.Get(tkey).WriterLockAsync();
                 try
                 {
                     // 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
@@ -444,7 +444,7 @@ namespace Zeze.Transaction
         {
             if (null != TStorage)
                 throw new Exception("table has opened." + Name);
-            Zeze = app;
+            Zz = app;
             Database = database;
             if (this.IsAutoKey)
                 AutoKey = app.ServiceManagerAgent.GetAutoKey(Name);
@@ -511,7 +511,7 @@ namespace Zeze.Transaction
                 {
                     K k = DecodeKey(ByteBuffer.Wrap(key));
                     var tkey = new TableKey(Name, k);
-                    var lockey = Zeze.Locks.Get(tkey);
+                    var lockey = Zz.Locks.Get(tkey);
                     lockey.EnterReadLock();
                     try
                     {
@@ -556,7 +556,7 @@ namespace Zeze.Transaction
             foreach (var e in Cache.DataMap)
             {
                 var tkey = new TableKey(Name, e.Key);
-                var lockey = Zeze.Locks.Get(tkey);
+                var lockey = Zz.Locks.Get(tkey);
                 lockey.EnterReadLock();
                 try
                 {
@@ -631,7 +631,7 @@ namespace Zeze.Transaction
                 currentT.SetAlwaysReleaseLockWhenRedo();
             }
 
-            var lockey = await Zeze.Locks.Get(tkey).ReaderLockAsync();
+            var lockey = await Zz.Locks.Get(tkey).ReaderLockAsync();
             try
             {
                 var r = await LoadAsync(key);

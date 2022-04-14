@@ -37,8 +37,8 @@ namespace Zeze.Arch
         {
             var rpc = p as ModuleRedirect;
             rpc.Result.ModuleId = rpc.Argument.ModuleId;
-            rpc.Result.ServerId = ProviderApp.Zeze.Config.ServerId;
-            if (false == ProviderApp.Zeze.Redirect.Handles.TryGetValue(rpc.Argument.MethodFullName, out var handle))
+            rpc.Result.ServerId = ProviderApp.Zz.Config.ServerId;
+            if (false == ProviderApp.Zz.Redirect.Handles.TryGetValue(rpc.Argument.MethodFullName, out var handle))
             {
                 SendResultCode(rpc, ModuleRedirect.ResultCodeMethodFullNameNotFound);
                 return Procedure.LogicError;
@@ -48,7 +48,7 @@ namespace Zeze.Arch
             {
                 case TransactionLevel.Serializable:
                 case TransactionLevel.AllowDirtyWhenAllRead:
-                    await ProviderApp.Zeze.NewProcedure(async () =>
+                    await ProviderApp.Zz.NewProcedure(async () =>
                     {
                         Params = handle.RequestHandle(rpc.SessionId, rpc.Argument.HashCode, rpc.Argument.Params);
                         return 0;
@@ -85,12 +85,12 @@ namespace Zeze.Arch
             var result = new ModuleRedirectAllResult();
             // common parameters for result
             result.Argument.ModuleId = r.Argument.ModuleId;
-            result.Argument.ServerId = ProviderApp.Zeze.Config.ServerId;
+            result.Argument.ServerId = ProviderApp.Zz.Config.ServerId;
             result.Argument.SourceProvider = r.Argument.SourceProvider;
             result.Argument.SessionId = r.Argument.SessionId;
             result.Argument.MethodFullName = r.Argument.MethodFullName;
 
-            if (false == ProviderApp.Zeze.Redirect.Handles.TryGetValue(
+            if (false == ProviderApp.Zz.Redirect.Handles.TryGetValue(
                 r.Argument.MethodFullName, out var handle))
             {
                 result.ResultCode = ModuleRedirect.ResultCodeMethodFullNameNotFound;
@@ -116,7 +116,7 @@ namespace Zeze.Arch
                 {
                     case TransactionLevel.Serializable:
                     case TransactionLevel.AllowDirtyWhenAllRead:
-                        await ProviderApp.Zeze.NewProcedure(async () =>
+                        await ProviderApp.Zz.NewProcedure(async () =>
                         {
                             Params = handle.RequestHandle(r.Argument.SessionId, hash, r.Argument.Params);
                             return 0;
@@ -155,7 +155,7 @@ namespace Zeze.Arch
         {
             var protocol = p as ModuleRedirectAllResult;
             await ProviderApp.ProviderDirectService.TryGetManualContext<ModuleRedirectAllContext>(
-                protocol.Argument.SessionId)?.ProcessResult(ProviderApp.Zeze, protocol);
+                protocol.Argument.SessionId)?.ProcessResult(ProviderApp.Zz, protocol);
             return Procedure.Success;
         }
     }

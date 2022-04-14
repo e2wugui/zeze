@@ -25,11 +25,11 @@ namespace Zeze.Transaction
         internal ICollection<Zeze.Transaction.Table> Tables => tables.Values;
 
         public string DatabaseUrl { get; }
-        public Application Zeze { get; }
+        public Application Zz { get; }
 
         public Database(Application zeze, string url)
         {
-            Zeze = zeze;
+            Zz = zeze;
             this.DatabaseUrl = url;
             Executor = new (() => MaxPoolSize);
         }

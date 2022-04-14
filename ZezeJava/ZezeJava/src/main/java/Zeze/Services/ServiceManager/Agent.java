@@ -428,11 +428,6 @@ public final class Agent implements Closeable {
 	}
 
 	public boolean SetServerLoad(ServerLoad load) {
-		try {
-			WaitConnectorReady();
-		} catch (Throwable e) {
-			return false;
-		}
 		var p = new SetServerLoad();
 		p.Argument = load;
 		return p.Send(Client.getSocket());

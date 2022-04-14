@@ -302,16 +302,6 @@
 
 		<table name="trank" key="BConcurrentKey" value="BRankList"/>
 
-		<bean name="BRankCounter">
-			<variable id="1" name="Value" type="long"/>
-		</bean>
-
-		<bean name="BRankCounters">
-			<variable id="1" name="Counters" type="map" key="BConcurrentKey" value="BRankCounter"/>
-		</bean>
-
-		<table name="trankcounters" key="long" value="BRankCounters"/> roleId to counters
-
 		<bean name="BGetRankList">
 			<variable id="1" name="RankType" type="int"/> BConcurrentKey.RankTypeXXX
 			<variable id="2" name="TimeType" type="int"/> BConcurrentKey.TimeTypeXXX

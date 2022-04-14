@@ -16,7 +16,7 @@ namespace Benchmark
             try {
                 for (int i = 0; i < ConcurrentLevel; ++i) {
                     long k = i;
-                    demo.App.Instance.Zeze.NewProcedure(() => Remove(k), "remove").CallSynchronously();
+                    demo.App.Instance.Zz.NewProcedure(() => Remove(k), "remove").CallSynchronously();
                 }
                 var tasks = new List<Task>(AddCount);
                 Console.WriteLine("benchmark start...");
@@ -24,17 +24,17 @@ namespace Benchmark
                 for (int i = 0; i < AddCount; ++i)
                 {
                     int c = i % ConcurrentLevel;
-                    tasks.Add(demo.App.Instance.Zeze.NewProcedure(() => Add(c), "Add").CallAsync());
+                    tasks.Add(demo.App.Instance.Zz.NewProcedure(() => Add(c), "Add").CallAsync());
                 }
                 b.Report(this.GetType().FullName, AddCount);
                 foreach (var task in tasks) {
                     task.Wait();
                 }
                 b.Report(this.GetType().FullName, AddCount);
-                demo.App.Instance.Zeze.NewProcedure(Check, "check").CallSynchronously();
+                demo.App.Instance.Zz.NewProcedure(Check, "check").CallSynchronously();
                 for (long i = 0; i < ConcurrentLevel; ++i) {
                     long k = i;
-                    demo.App.Instance.Zeze.NewProcedure(()=>Remove(k), "remove").CallSynchronously();
+                    demo.App.Instance.Zz.NewProcedure(()=>Remove(k), "remove").CallSynchronously();
                 }
             }
             finally

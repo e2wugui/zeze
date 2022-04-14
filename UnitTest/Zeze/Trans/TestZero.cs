@@ -16,7 +16,7 @@ namespace UnitTest.Zeze.Trans
             demo.App.Instance.Start();
             try
             {
-                demo.App.Instance.Zeze.NewProcedure(async () =>
+                demo.App.Instance.Zz.NewProcedure(async () =>
                 {
                     await demo.App.Instance.demo_Module1.Table1.RemoveAsync(1);
                     return 0;

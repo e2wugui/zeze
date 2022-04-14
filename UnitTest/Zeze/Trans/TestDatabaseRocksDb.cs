@@ -31,11 +31,11 @@ namespace UnitTest.Zeze.Trans
         public async Task Test()
         {
             // RocksDbSharp 没有Transaction_Families_Open的接口包装，暂不做这个测试了。
-            if (demo.App.Instance.Zeze.Config.GlobalCacheManagerHostNameOrAddress.Length == 0)
+            if (demo.App.Instance.Zz.Config.GlobalCacheManagerHostNameOrAddress.Length == 0)
                 return;
 
             string url = "./rocksdb";
-            var db = new DatabaseRocksDb(demo.App.Instance.Zeze, url);
+            var db = new DatabaseRocksDb(demo.App.Instance.Zz, url);
             var table = db.OpenTable("test_1");
             {
                 using var trans = db.BeginTransaction();

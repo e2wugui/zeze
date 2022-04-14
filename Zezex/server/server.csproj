@@ -9,8 +9,10 @@
     <ProjectReference Include="..\..\Zeze\Zeze.csproj" />
   </ItemGroup>
 
+  <!--
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">
     <Exec Command="$(OutDir)\$(TargetName) -srcDirWhenPostBuild $(ProjectDir)" />
   </Target>
+  -->
 
 </Project>

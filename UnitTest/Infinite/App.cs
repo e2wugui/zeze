@@ -58,7 +58,7 @@ namespace Infinite
             foreach (var key in task.Keys)
                 Tasks.GetRunCounter(task.GetType().FullName, key).IncrementAndGet();
             if (task.IsProcedure())
-                RunningTasks.Add(app.Zeze.NewProcedure(task.Call, task.GetType().FullName).CallAsync());
+                RunningTasks.Add(app.Zz.NewProcedure(task.Call, task.GetType().FullName).CallAsync());
             else
                 RunningTasks.Add(Mission.CallAsync(task.Call, task.GetType().FullName));
         }

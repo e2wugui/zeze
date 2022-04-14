@@ -39,9 +39,9 @@ namespace Zeze.Arch
 						continue;
 					}
 					var serverId = int.Parse(pm.ServiceIdentity);
-					if (serverId < Zeze.Config.ServerId)
+					if (serverId < Zz.Config.ServerId)
 						continue;
-					if (serverId == Zeze.Config.ServerId)
+					if (serverId == Zz.Config.ServerId)
 					{
 						SetRelativeServiceReady(new ProviderSession(0), ProviderApp.DirectIp, ProviderApp.DirectPort);
 						continue;
@@ -85,7 +85,7 @@ namespace Zeze.Arch
 					return;
 
 				// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
-				foreach (var ss in Zeze.ServiceManagerAgent.SubscribeStates.Values)
+				foreach (var ss in Zz.ServiceManagerAgent.SubscribeStates.Values)
 				{
 					if (ss.ServiceName.StartsWith(ProviderApp.ServerServiceNamePrefix))
 					{
@@ -123,7 +123,7 @@ namespace Zeze.Arch
 			{
 				foreach (var service in ps.ServiceReadyStates)
 				{
-					if (Zeze.ServiceManagerAgent.SubscribeStates.TryGetValue(service.Key, out var subs))
+					if (Zz.ServiceManagerAgent.SubscribeStates.TryGetValue(service.Key, out var subs))
                     {
 						foreach (var identity in service.Value.Keys)
 						{
@@ -147,7 +147,7 @@ namespace Zeze.Arch
 			{
 				var r = (ModuleRedirect)p;
 				// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-				Zeze.TaskOneByOneByKey.Execute(
+				Zz.TaskOneByOneByKey.Execute(
 					r.Argument.HashCode, factoryHandle.Handle, p, r.Argument.MethodFullName,
 					(p, code) => p.SendResultCode(code));
 
@@ -172,7 +172,7 @@ namespace Zeze.Arch
 			{
 				var redirect = (ModuleRedirect)rpc;
 				// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-				Zeze.TaskOneByOneByKey.Execute(redirect.Argument.HashCode, responseHandle, rpc);
+				Zz.TaskOneByOneByKey.Execute(redirect.Argument.HashCode, responseHandle, rpc);
 				return;
 			}
 

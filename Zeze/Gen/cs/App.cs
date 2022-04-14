@@ -35,7 +35,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("    {");
             sw.WriteLine("        public static App Instance { get; } = new App();");
             sw.WriteLine();
-            sw.WriteLine("        public Zeze.Application Zeze { get; set; }");
+            sw.WriteLine("        public Zeze.Application Zz { get; set; }");
             sw.WriteLine();
             sw.WriteLine("        public Dictionary<string, Zeze.IModule> Modules { get; } = new Dictionary<string, Zeze.IModule>();");
             sw.WriteLine();
@@ -57,10 +57,10 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
-            sw.WriteLine("                if (Zeze != null)");
-            sw.WriteLine("                    throw new System.Exception(\"Zeze Has Created!\");");
+            sw.WriteLine("                if (Zz != null)");
+            sw.WriteLine("                    throw new System.Exception(\"Zz Has Created!\");");
             sw.WriteLine();
-            sw.WriteLine($"                Zeze = new Zeze.Application(\"{project.Solution.Name}\", config);");
+            sw.WriteLine($"                Zz = new Zeze.Application(\"{project.Solution.Name}\", config);");
             sw.WriteLine("            }");
             sw.WriteLine("        }");
             sw.WriteLine();
@@ -69,7 +69,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
             foreach (Service m in project.Services.Values)
-                sw.WriteLine("                " + m.Name + " = new " + m.FullName + "(Zeze);");
+                sw.WriteLine("                " + m.Name + " = new " + m.FullName + "(Zz);");
             sw.WriteLine("            }");
             sw.WriteLine("        }");
             sw.WriteLine();
@@ -86,7 +86,7 @@ namespace Zeze.Gen.cs
                 sw.WriteLine($"                Modules.Add({fullname}.FullName, {fullname});");
             }
             sw.WriteLine();
-            sw.WriteLine("                Zeze.Schemas = new " + project.Solution.Path(".", "Schemas") + "();");
+            sw.WriteLine("                Zz.Schemas = new " + project.Solution.Path(".", "Schemas") + "();");
             sw.WriteLine("            }");
             sw.WriteLine("        }");
             sw.WriteLine();
@@ -117,7 +117,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        {");
             sw.WriteLine("            lock(this)");
             sw.WriteLine("            {");
-            sw.WriteLine("                Zeze = null;");
+            sw.WriteLine("                Zz = null;");
             sw.WriteLine("            }");
             sw.WriteLine("        }");
             sw.WriteLine();

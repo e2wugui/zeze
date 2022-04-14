@@ -100,7 +100,7 @@ namespace Game.Login
             online.ReliableNotifyQueue.Clear();
 
             var linkSession = session.Link.UserState as Game.Server.LinkSession;
-            online.ProviderId = App.Zeze.Config.ServerId;
+            online.ProviderId = App.Zz.Config.ServerId;
             online.ProviderSessionId = linkSession.ProviderSessionId;
 
             // 先提交结果再设置状态。

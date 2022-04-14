@@ -28,7 +28,7 @@ namespace Game.Login
 
             await Task.Delay(10 * 60 * 1000);
 
-            App.Instance.Zeze.NewProcedure(async () =>
+            App.Instance.Zz.NewProcedure(async () =>
             {
                 // 网络断开后延迟删除在线状态。这里简单判断一下是否StateNetBroken。
                 // 由于CLogin,CReLogin的时候没有取消Timeout，所以有可能再次登录断线后，会被上一次断线的Timeout删除。
@@ -112,9 +112,9 @@ namespace Game.Login
             if (WaitConfirm)
                 future = new TaskCompletionSource<long>();
 
-            App.Instance.Zeze.TaskOneByOneByKey.Execute(
+            App.Instance.Zz.TaskOneByOneByKey.Execute(
                 listenerName,
-                App.Instance.Zeze.NewProcedure(async () =>
+                App.Instance.Zz.NewProcedure(async () =>
                 {
                     BOnline online = await table.GetAsync(roleId);
                     if (null == online || online.State == BOnline.StateOffline)
@@ -254,8 +254,8 @@ namespace Game.Login
                 future = new TaskCompletionSource<long>();
 
             // 发送协议请求在另外的事务中执行。
-            Game.App.Instance.Zeze.TaskOneByOneByKey.Execute(roleId, () =>
-                Game.App.Instance.Zeze.NewProcedure(async () =>
+            Game.App.Instance.Zz.TaskOneByOneByKey.Execute(roleId, () =>
+                Game.App.Instance.Zz.NewProcedure(async () =>
                 {
                     await SendInProcedure(roleId, typeId, fullEncodedProtocol, future);
                     return Procedure.Success;
@@ -322,14 +322,14 @@ namespace Game.Login
             {
                 foreach (var target in roleIds)
                 {
-                    App.Instance.Zeze.NewProcedure(async () => await handle(sender, target, parameter), "Game.Online.Transmit:" + actionName).Execute();
+                    App.Instance.Zz.NewProcedure(async () => await handle(sender, target, parameter), "Game.Online.Transmit:" + actionName).Execute();
                 }
             }
         }
 
         private async Task TransmitInProcedure(long sender, string actionName, ICollection<long> roleIds, Serializable parameter)
         {
-            if (App.Instance.Zeze.Config.GlobalCacheManagerHostNameOrAddress.Length == 0)
+            if (App.Instance.Zz.Config.GlobalCacheManagerHostNameOrAddress.Length == 0)
             {
                 // 没有启用cache-sync，马上触发本地任务。
                 ProcessTransmit(sender, actionName, roleIds, parameter);
@@ -339,7 +339,7 @@ namespace Game.Login
             var groups = await GroupByLink(roleIds);
             foreach (var group in groups)
             {
-                if (group.ProviderId == App.Instance.Zeze.Config.ServerId
+                if (group.ProviderId == App.Instance.Zz.Config.ServerId
                     || null == group.LinkSocket // 对于不在线的角色，直接在本机运行。
                     )
                 {
@@ -371,7 +371,7 @@ namespace Game.Login
                 throw new Exception("Unkown Action Name: " + actionName);
 
             // 发送协议请求在另外的事务中执行。
-            _ = Game.App.Instance.Zeze.NewProcedure(async () =>
+            _ = Game.App.Instance.Zz.NewProcedure(async () =>
             {
                 await TransmitInProcedure(sender, actionName, roleIds, parameter);
                 return Procedure.Success;
