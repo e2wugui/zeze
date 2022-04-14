@@ -226,14 +226,14 @@ namespace Game.Rank
         // 属性参数是获取总的并发分组数量的代码，直接复制到生成代码中。
         // 需要注意在子类上下文中可以编译通过。可以是常量。
         [RedirectAllHash("GetConcurrentLevel(keyHint.RankType)")]
-        public virtual void RunGetRank(BConcurrentKey keyHint,
+        public virtual void GetRank(BConcurrentKey keyHint,
             System.Action<long, int, long, BRankList> onHashResult,
             Action<ModuleRedirectAllContext> onHashEnd
             )
         {
             // 默认实现是本地遍历调用，这里不使用App.Zz.Run启动任务（这样无法等待），直接调用实现。
             int concurrentLevel = GetConcurrentLevel(keyHint.RankType);
-            var ctx = new ModuleRedirectAllContext(concurrentLevel, $"{FullName}:{nameof(RunGetRank)}")
+            var ctx = new ModuleRedirectAllContext(concurrentLevel, $"{FullName}:{nameof(GetRank)}")
             {
                 OnHashEnd = onHashEnd,
             };
@@ -259,7 +259,7 @@ namespace Game.Rank
             // 异步方式没法锁住Rank，所以并发的情况下，可能多次去获取数据，多次构建，多次覆盖Ranks的cache。
             int countNeed = GetRankCount(keyHint.RankType);
             int concurrentLevel = GetConcurrentLevel(keyHint.RankType);
-            RunGetRank(keyHint,
+            GetRank(keyHint,
                 // Action OnHashResult
                 (sessionId, hash, returnCode, BRankList) =>
                 {

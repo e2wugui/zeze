@@ -45,7 +45,7 @@ namespace Game
         public void Start(string[] args)
         {
             string srcDirWhenPostBuild = null;
-            srcDirWhenPostBuild = "C:\\Users\\86139\\Desktop\\code\\zeze\\Zezex\\server";
+            srcDirWhenPostBuild = "C:\\Users\\10501\\Desktop\\code\\zeze\\Zezex\\server";
             int ServerId = -1;
             int ProviderDirectPort = -1;
             for (int i = 0; i < args.Length; ++i)
@@ -100,7 +100,7 @@ namespace Game
             Load.StartTimerTask();
 
             // 服务准备好以后才注册和订阅。
-            ProviderApp.StartLast();
+            _ = ProviderApp.StartLast();
         }
 
         public void Stop()
