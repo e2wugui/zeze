@@ -257,7 +257,7 @@ public class GenModule {
 			// Handles
 			sbHandles.AppendLine();
 			sbHandles.AppendLine("        App.Zeze.Redirect.Handles.put(\"{}:{}\", new Zeze.Arch.RedirectHandle(", module.getFullName(), m.method.getName());
-			sbHandles.AppendLine("            Zeze.Transaction.TransactionLevel.{}, (_sessionId_, _hash_, _params_) -> {", m.TransactionLevel);
+			sbHandles.AppendLine("            Zeze.Transaction.TransactionLevel.{}, null, (_sessionId_, _hash_, _params_, __) -> {", m.TransactionLevel);
 			var rbbVarName = "tmp" + Gen.Instance.TmpVarNameId.incrementAndGet();
 			boolean genLocal = false;
 			for (int i = 0; i < m.ParametersNormal.size(); ++i)
@@ -275,7 +275,6 @@ public class GenModule {
 			if (null != m.ResultHandle) {
 				var callResultParamName = "tmp" + Gen.Instance.TmpVarNameId.incrementAndGet();
 				sbHandles.AppendLine("                var {} = new Zeze.Util.OutObject<>(Binary.Empty);", callResultParamName);
-				var reqBBVarName = "tmp" + Gen.Instance.TmpVarNameId.incrementAndGet();
 				var resultVarNames = new ArrayList<String>();
 				for (int i = 0; i < m.ResultHandle.GenericArguments.length; ++i)
 					resultVarNames.add("tmp" + Gen.Instance.TmpVarNameId.incrementAndGet());
@@ -283,9 +282,9 @@ public class GenModule {
 				String normalCall = m.GetNormalCallString(p -> p == m.ResultHandle.Parameter);
 				String sep = normalCall.isEmpty() ? "" : ", ";
 				sbHandles.AppendLine("                super.{}(_hash_{}{}, ({}) -> {", methodNameHash, sep, normalCall, m.ResultHandle.GetCallString(resultVarNames));
-				sbHandles.AppendLine("                    var {} = Zeze.Serialize.ByteBuffer.Allocate();", reqBBVarName);
-				m.ResultHandle.GenEncode(resultVarNames, "                    ", sbHandles, m, reqBBVarName);
-				sbHandles.AppendLine("                    {}.Value = new Binary({});", callResultParamName, reqBBVarName);
+				sbHandles.AppendLine("                    var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();");
+				m.ResultHandle.GenEncode(resultVarNames, "                    ", sbHandles, m, "_bb_");
+				sbHandles.AppendLine("                    {}.Value = new Binary(_bb_);", callResultParamName);
 				sbHandles.AppendLine("                });");
 				sbHandles.AppendLine("                return {}.Value;", callResultParamName);
 			} else {
@@ -365,10 +364,9 @@ public class GenModule {
 		{
 			// normal 包括了 out 参数，这个不需要 encode，所以下面可能仍然是空的，先这样了。
 			sb.AppendLine("        {");
-			String bbVarName = "tmp" + Gen.Instance.TmpVarNameId.incrementAndGet();
-			sb.AppendLine("            var {} = Zeze.Serialize.ByteBuffer.Allocate();", bbVarName);
-			Gen.Instance.GenEncode(sb, "            ", bbVarName, m.ParametersNormal);
-			sb.AppendLine("            {}.setParams(new Binary({}));", argVarName, bbVarName);
+			sb.AppendLine("            var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();");
+			Gen.Instance.GenEncode(sb, "            ", "_bb_", m.ParametersNormal);
+			sb.AppendLine("            {}.setParams(new Binary(_bb_));", argVarName);
 			sb.AppendLine("        }");
 		}
 		sb.AppendLine("        App.Zeze.Redirect.RedirectAll(this, {});", reqVarName);
@@ -378,7 +376,16 @@ public class GenModule {
 		// handles
 		sbHandles.AppendLine();
 		sbHandles.AppendLine("        App.Zeze.Redirect.Handles.put(\"{}:{}\", new Zeze.Arch.RedirectHandle(", module.getFullName(), m.method.getName());
-		sbHandles.AppendLine("            Zeze.Transaction.TransactionLevel.{}, (_sessionId_, _hash_, _params_) -> {", m.TransactionLevel);
+		sbHandles.AppendLine("            Zeze.Transaction.TransactionLevel.{}, _result_ -> {", m.TransactionLevel);
+		sbHandles.AppendLine("                var _result1_ = ({})_result_;", m.ResultType.getName().replace('$', '.'));
+		if (m.ResultHandle != null) {
+			sbHandles.AppendLine("                var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();");
+			for (var typeName : m.ResultTypeNames)
+				Gen.Instance.GenEncode(sbHandles, "                ", "_bb_", typeName.getKey(), "_result1_." + typeName.getValue());
+			sbHandles.AppendLine("                return new Binary(_bb_);");
+		} else
+			sbHandles.AppendLine("                return Binary.Empty;");
+		sbHandles.AppendLine("            }, (_sessionId_, _hash_, _params_, _asyncCtx_) -> {");
 		var handleBBName = "tmp" + Gen.Instance.TmpVarNameId.incrementAndGet();
 		sbHandles.AppendLine("                var {} = _params_.Wrap();", handleBBName);
 		for (int i = 0; i < m.ParametersNormal.size(); ++i)
@@ -394,14 +401,16 @@ public class GenModule {
 			sbHandles.AppendLine("                var _result_ = new {}();", m.ResultType.getName().replace('$', '.'));
 			sbHandles.AppendLine("                _result_.setSessionId(_sessionId_);");
 			sbHandles.AppendLine("                _result_.setHash(_hash_);");
+			sbHandles.AppendLine("                _result_.setAsyncContext(_asyncCtx_);");
 			String normalCall = m.GetNormalCallString(pInfo -> pInfo == m.ResultHandle.Parameter);
 			String sep = normalCall.isEmpty() ? "" : ", ";
-			var bb1 = "tmp" + Gen.Instance.TmpVarNameId.incrementAndGet();
 			sbHandles.AppendLine("                super.{}({}{}_result_);", m.method.getName(), normalCall, sep);
-			sbHandles.AppendLine("                var {} = Zeze.Serialize.ByteBuffer.Allocate();", bb1);
+			sbHandles.AppendLine("                if (_result_.isAsync())");
+			sbHandles.AppendLine("                    return Zeze.Arch.RedirectHandle.ASYNC_RESULT;");
+			sbHandles.AppendLine("                var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();");
 			for (var typeName : m.ResultTypeNames)
-				Gen.Instance.GenEncode(sbHandles, "                ", bb1, typeName.getKey(), "_result_." + typeName.getValue());
-			sbHandles.AppendLine("                return new Binary({});", bb1);
+				Gen.Instance.GenEncode(sbHandles, "                ", "_bb_", typeName.getKey(), "_result_." + typeName.getValue());
+			sbHandles.AppendLine("                return new Binary(_bb_);");
 		} else {
 			String normalCall = m.GetNormalCallString();
 			String sep = normalCall.isEmpty() ? "" : ", ";

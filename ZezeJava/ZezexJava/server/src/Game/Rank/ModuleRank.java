@@ -7,8 +7,8 @@ import Game.App;
 import Zeze.Arch.ModuleRedirectAllContext;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Arch.RedirectAll;
-import Zeze.Arch.RedirectResult;
 import Zeze.Arch.RedirectHash;
+import Zeze.Arch.RedirectResult;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Net.Binary;
 import Zeze.Transaction.EmptyBean;
@@ -17,6 +17,7 @@ import Zeze.Transaction.Transaction;
 import Zeze.Util.Action1;
 import Zeze.Util.Action2;
 import Zeze.Util.Action3;
+import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -483,9 +484,23 @@ public class ModuleRank extends AbstractModule {
 
 	protected final void TestToAll(int in, TestToAllResult result) throws Throwable {
 		System.out.println("TestToAll sid=" + result.getSessionId() + ", hash=" + result.getHash() + ", in=" + in);
-		if (result.getHash() == 3)
+		switch (result.getHash()) {
+		case 0: // local sync
+		case 1: // remote sync
+			result.out = in;
+			return;
+		case 2: // local exception
+		case 3: // remote exception
 			throw new Exception("not bug, only for test");
-		result.out = in;
+		case 4: // local async
+		case 5: // remote async
+			result.async();
+			Task.run(App.Zeze.NewProcedure(() -> {
+				result.out = in;
+				result.send();
+				return Procedure.Success;
+			}, "TestToAllAsync"));
+		}
 	}
 
 	public int TestToAllConcLevel;
