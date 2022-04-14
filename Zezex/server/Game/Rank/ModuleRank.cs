@@ -418,15 +418,14 @@ namespace Game.Rank
         }
 
         [RedirectToServer()]
-        public virtual void TestToServerNoWait(int serverId, int param, Action<int, int> result)
+        public virtual void TestToServerNoWait(int serverId, Action<int, int> result, int param)
         {
             result(param, App.Zz.Config.ServerId);
         }
 
         [RedirectHash()]
-        public virtual void TestHashNoWait(int hash, int param, Action<int, int> result)
+        public virtual void TestHashNoWait(int hash, int param)
         {
-            result(param, App.Zz.Config.ServerId);
         }
     }
 }

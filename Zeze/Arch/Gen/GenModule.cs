@@ -241,8 +241,8 @@ namespace Zeze.Arch.Gen
                 // Handles
                 var hName = "hName" + Gen.Instance.TmpVarNameId.IncrementAndGet();
                 sbHandles.AppendLine($"        var {hName} = new Zeze.Arch.RedirectHandle();");
-                sbHandles.AppendLine($"        {hName}.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.{m.TransactionLevel}");
-                sbHandles.AppendLine($"        {hName}.RequestHandle = (_sessionId_, _hash_, _params_) =>");
+                sbHandles.AppendLine($"        {hName}.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.{m.TransactionLevel};");
+                sbHandles.AppendLine($"        {hName}.RequestHandle = (_sessionId_, _HashOrServerId_, _params_) =>");
                 sbHandles.AppendLine($"        {{");
                 sbHandles.AppendLine($"            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);");
                 for (int i = 0; i < m.ParametersNormal.Count; ++i)
@@ -257,27 +257,31 @@ namespace Zeze.Arch.Gen
                 if (null != m.ResultHandle)
                 {
                     var callResultParamName = "tmp" + Gen.Instance.TmpVarNameId.IncrementAndGet();
-                    sbHandles.AppendLine($"                var {callResultParamName} = Zeze.Net.Binary.Empty;");
+                    sbHandles.AppendLine($"            var {callResultParamName} = Zeze.Net.Binary.Empty;");
                     var resultVarNames = new List<string>();
                     for (int i = 0; i < m.ResultHandle.GenericArguments.Length; ++i)
                         resultVarNames.Add("tmp" + Gen.Instance.TmpVarNameId.IncrementAndGet());
-
-                    var bcall = m.GetBaseCallString();
-                    sbHandles.AppendLine($"                base.{m.Method.Name}(_hash_{(bcall.Length == 0 ? "" : ", ")}{bcall}, ({m.ResultHandle.GetCallString(resultVarNames)}) =>");
-                    sbHandles.AppendLine($"                {{;");
-                    sbHandles.AppendLine($"                    var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();");
-                    m.ResultHandle.GenEncode(resultVarNames, "                    ", sbHandles, m);
-                    sbHandles.AppendLine($"                    {callResultParamName} = new Binary(_bb_);");
-                    sbHandles.AppendLine($"                }};");
-                    sbHandles.AppendLine($"                return {callResultParamName}");
+                    var actionName = Gen.Instance.GetTypeName(m.ResultHandle.Parameter.ParameterType);
+                    var actionCall = m.ResultHandle.GetCallString(resultVarNames);
+                    sbHandles.AppendLine($"            {actionName} {m.ResultHandle.Parameter.Name} = ({actionCall}) =>");
+                    sbHandles.AppendLine($"            {{");
+                    sbHandles.AppendLine($"                var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();");
+                    m.ResultHandle.GenEncode(resultVarNames, "                ", sbHandles, m);
+                    sbHandles.AppendLine($"                {callResultParamName} = new Zeze.Net.Binary(_bb_);");
+                    sbHandles.AppendLine($"            }};");
+                    var bcall = m.GetNormalCallString();
+                    sbHandles.AppendLine($"            base.{m.Method.Name}(_HashOrServerId_, {bcall});");
+                    sbHandles.AppendLine($"            return {callResultParamName};");
                 }
                 else
                 {
-                    string bcall = m.GetBaseCallString();
-                    sbHandles.AppendLine($"                base.{m.Method.Name}(_hash_{(bcall.Length == 0 ? "" : ", ")}{bcall});");
-                    sbHandles.AppendLine($"                return Binary.Empty;");
+                    var bcall = m.GetNormalCallString();
+                    var sep = bcall.Length == 0 ? "" : ", "; 
+                    sbHandles.AppendLine($"            base.{m.Method.Name}(_HashOrServerId_{sep}{bcall});");
+                    sbHandles.AppendLine($"            return Zeze.Net.Binary.Empty;");
                 }
-                sbHandles.AppendLine($"        App.Zz.Redirect.Handles.Add(\"{module.FullName}:{m.Method.Name}\", {hName});");
+                sbHandles.AppendLine($"        }};");
+                sbHandles.AppendLine($"        App.Zz.Redirect.Handles.TryAdd(\"{module.FullName}:{m.Method.Name}\", {hName});");
             }
 
             sb.AppendLine($"    public {genClassName}({userAppName} app) : base(app)");

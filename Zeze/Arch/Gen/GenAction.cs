@@ -9,21 +9,19 @@ namespace Zeze.Arch.Gen
 {
     public class GenAction
     {
-        public Type ActionType { get; }
+        public ParameterInfo Parameter { get; }
 
         public Type[] GenericArguments { get; }
         public string[] GenericArgumentVarNames { get; }
-        public string VarName { get; }
 
-        public GenAction(Type actionType, string varName)
+        public GenAction(ParameterInfo p)
         {
-            if (false == Gen.IsActionDelegate(actionType))
+            if (false == Gen.IsActionDelegate(p.ParameterType))
                 throw new Exception("Need A Action Callback.");
 
-            ActionType = actionType;
-            VarName = varName;
+            Parameter = p;
 
-            GenericArguments = ActionType.GetGenericArguments();
+            GenericArguments = Parameter.ParameterType.GetGenericArguments();
             GenericArgumentVarNames = new string[GenericArguments.Length];
             for (int i = 0; i < GenericArguments.Length; ++i)
             {
@@ -42,9 +40,8 @@ namespace Zeze.Arch.Gen
 
         public string GetGenericArgumentsDefine()
         {
-            if (GenericArguments.Length == 0)
-                return string.Empty;
-
+            return Gen.Instance.GetTypeName(Parameter.ParameterType);
+            /*
             StringBuilder sb = new StringBuilder();
             sb.Append("<");
             for (int i = 0; i < GenericArguments.Length; ++i)
@@ -57,6 +54,7 @@ namespace Zeze.Arch.Gen
             sb.Append(">");
 
             return sb.ToString();
+            */
         }
 
         private string GetGenericArgumentVarNamesDefine(int offset = 0)
@@ -75,7 +73,7 @@ namespace Zeze.Arch.Gen
         {
             var ParameterType = p.ParameterType;
             if (Gen.IsDelegate(ParameterType))
-                return new GenAction(ParameterType, p.Name);
+                return new GenAction(p);
             return null;
         }
 
@@ -110,7 +108,7 @@ namespace Zeze.Arch.Gen
 
         public void GenDecodeAndCallback(string prefix, StringBuilder sb, MethodOverride m)
         {
-            GenDecodeAndCallback("App.Zz", prefix, sb, VarName, m);
+            GenDecodeAndCallback("App.Zz", prefix, sb, Parameter.Name, m);
         }
 
         public void GenDecodeAndCallback(string zzName, string prefix, StringBuilder sb, string actName, MethodOverride m)
@@ -143,20 +141,5 @@ namespace Zeze.Arch.Gen
                 Gen.Instance.GenEncode(sb, prefix, rClass, resultVarNames[i]);
             }
         }
-
-        public static List<GenAction> GetActions(List<ParameterInfo> parameters)
-        {
-            var result = new List<GenAction>();
-            for (int i = 0; i < parameters.Count; ++i)
-            {
-                var p = parameters[i];
-                if (Gen.IsDelegate(p.ParameterType))
-                {
-                    result.Add(new GenAction(p.ParameterType, p.Name));
-                }
-            }
-            return result;
-        }
-
     }
 }
