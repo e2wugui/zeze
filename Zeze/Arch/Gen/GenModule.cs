@@ -46,7 +46,7 @@ namespace Zeze.Arch.Gen
             var methods = module.GetType().GetMethods();
             foreach (var method in methods)
             {
-                if (CheckAddMethod(method, OverrideType.RedirectWithHash, method.GetCustomAttributes(typeof(RedirectHashAttribute), false), overrides))
+                if (CheckAddMethod(method, OverrideType.RedirectHash, method.GetCustomAttributes(typeof(RedirectHashAttribute), false), overrides))
                     continue;
                 if (CheckAddMethod(method, OverrideType.RedirectAll, method.GetCustomAttributes(typeof(RedirectAllHashAttribute), false), overrides))
                     continue;
@@ -130,51 +130,52 @@ namespace Zeze.Arch.Gen
             // TaskCompletionSource<long> void
             StringBuilder sbHandles = new StringBuilder();
             StringBuilder sbContexts = new StringBuilder();
-            foreach (var methodOverride in overrides)
+            foreach (var m in overrides)
             {
-                methodOverride.PrepareParameters();
-                var parametersDefine = Gen.Instance.ToDefineString(methodOverride.ParametersAll);
-                var methodNameWithHash = methodOverride.Method.Name;
-                var (returnType, returnTypeName) = GetReturnType(methodOverride.Method.ReturnParameter.ParameterType);
-                var actions = GenAction.GetActions(methodOverride.ParametersNormal);
-                Verify(methodOverride, actions);
+                m.PrepareParameters();
+                var parametersDefine = Gen.Instance.ToDefineString(m.ParametersAll);
+                var methodNameWithHash = m.Method.Name;
+                var (returnType, returnTypeName) = GetReturnType(m.Method.ReturnParameter.ParameterType);
+                Verify(m);
+                if (null != m.ResultHandle)
+                    m.ResultHandle.Verify(m);
 
-                sb.AppendLine($"    public override {returnTypeName} {methodOverride.Method.Name}({parametersDefine})");
+                sb.AppendLine($"    public override {returnTypeName} {m.Method.Name}({parametersDefine})");
                 sb.AppendLine($"    {{");
                 sb.AppendLine($"        if (Zezex.ModuleRedirect.Instance.IsLocalServer(\"{module.FullName}\"))");
                 sb.AppendLine($"        {{");
                 switch (returnType)
                 {
                     case ReturnType.Void:
-                        sb.AppendLine($"            base.{methodOverride.Method.Name}({methodOverride.GetBaseCallString()});");
+                        sb.AppendLine($"            base.{m.Method.Name}({m.GetBaseCallString()});");
                         sb.AppendLine($"            return;");
                         break;
                     case ReturnType.TaskCompletionSource:
-                        sb.AppendLine($"            return base.{methodOverride.Method.Name}({methodOverride.GetBaseCallString()});");
+                        sb.AppendLine($"            return base.{m.Method.Name}({m.GetBaseCallString()});");
                         break;
                 }
                 sb.AppendLine($"        }}");
                 sb.AppendLine($"");
 
-                if (methodOverride.OverrideType == OverrideType.RedirectAll)
+                if (m.OverrideType == OverrideType.RedirectAll)
                 {
-                    GenRedirectAllContext(sbContexts, methodOverride, actions);
-                    GenRedirectAll(sb, sbHandles, module, methodOverride, actions);
+                    GenRedirectAllContext(sbContexts, m, actions);
+                    GenRedirectAll(sb, sbHandles, module, m, actions);
                     continue;
                 }
                 string rpcVarName = "tmp" + Gen.Instance.TmpVarNameId.IncrementAndGet();
                 sb.AppendLine($"        var {rpcVarName} = new Zezex.Provider.ModuleRedirect();");
                 sb.AppendLine($"        {rpcVarName}.Argument.ModuleId = {module.Id};");
-                sb.AppendLine($"        {rpcVarName}.Argument.RedirectType = {methodOverride.GetRedirectType()};");
-                sb.AppendLine($"        {rpcVarName}.Argument.HashCode = {methodOverride.GetChoiceHashOrServerCodeSource()};");
-                sb.AppendLine($"        {rpcVarName}.Argument.MethodFullName = \"{module.FullName}:{methodOverride.Method.Name}\";");
+                sb.AppendLine($"        {rpcVarName}.Argument.RedirectType = {m.GetRedirectType()};");
+                sb.AppendLine($"        {rpcVarName}.Argument.HashCode = {m.GetChoiceHashOrServerCodeSource()};");
+                sb.AppendLine($"        {rpcVarName}.Argument.MethodFullName = \"{module.FullName}:{m.Method.Name}\";");
                 sb.AppendLine($"        {rpcVarName}.Argument.ServiceNamePrefix = Game.App.ServerServiceNamePrefix;");
-                if (methodOverride.ParametersNormal.Count > 0)
+                if (m.ParametersNormal.Count > 0)
                 {
                     // normal 包括了 out 参数，这个不需要 encode，所以下面可能仍然是空的，先这样了。
                     sb.AppendLine($"        {{");
                     sb.AppendLine($"            var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();");
-                    Gen.Instance.GenEncode(sb, "            ", methodOverride.ParametersNormal);
+                    Gen.Instance.GenEncode(sb, "            ", m.ParametersNormal);
                     sb.AppendLine($"            {rpcVarName}.Argument.Params = new Zeze.Net.Binary(_bb_);");
                     sb.AppendLine($"        }}");
                 }
@@ -186,11 +187,11 @@ namespace Zeze.Arch.Gen
                 sb.AppendLine($"        {{");
                 sb.AppendLine($"            if ({rpcVarName}.IsTimeout)");
                 sb.AppendLine($"            {{");
-                sb.AppendLine($"                {futureVarName}.SetException(new System.Exception(\"{module.FullName}:{methodOverride.Method.Name} Rpc Timeout.\"));");
+                sb.AppendLine($"                {futureVarName}.SetException(new System.Exception(\"{module.FullName}:{m.Method.Name} Rpc Timeout.\"));");
                 sb.AppendLine($"            }}");
                 sb.AppendLine($"            else if (Zezex.Provider.ModuleRedirect.ResultCodeSuccess != {rpcVarName}.ResultCode)");
                 sb.AppendLine($"            {{");
-                sb.AppendLine($"                {futureVarName}.SetException(new System.Exception($\"{module.FullName}:{methodOverride.Method.Name} Rpc Error {{{rpcVarName}.ResultCode}}.\"));");
+                sb.AppendLine($"                {futureVarName}.SetException(new System.Exception($\"{module.FullName}:{m.Method.Name} Rpc Error {{{rpcVarName}.ResultCode}}.\"));");
                 sb.AppendLine($"            }}");
                 sb.AppendLine($"            else");
                 sb.AppendLine($"            {{");
@@ -224,17 +225,17 @@ namespace Zeze.Arch.Gen
                 sb.AppendLine($"    }}");
                 sb.AppendLine($"");
 
-                sbHandles.AppendLine($"        Zezex.ModuleRedirect.Instance.Handles.Add(\"{module.FullName}:{methodOverride.Method.Name}\", (long _sessionid_, int _hash_, Zeze.Net.Binary _params_, System.Collections.Generic.IList<Zezex.Provider.BActionParam> _actions_) =>");
+                sbHandles.AppendLine($"        Zezex.ModuleRedirect.Instance.Handles.Add(\"{module.FullName}:{m.Method.Name}\", (long _sessionid_, int _hash_, Zeze.Net.Binary _params_, System.Collections.Generic.IList<Zezex.Provider.BActionParam> _actions_) =>");
                 sbHandles.AppendLine($"        {{");
                 sbHandles.AppendLine($"            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);");
-                for (int i = 0; i < methodOverride.ParametersNormal.Count; ++i)
+                for (int i = 0; i < m.ParametersNormal.Count; ++i)
                 {
-                    var p = methodOverride.ParametersNormal[i];
+                    var p = m.ParametersNormal[i];
                     if (Gen.IsDelegate(p.ParameterType))
                         continue; // define later.
                     Gen.Instance.GenLocalVariable(sbHandles, "            ", p.ParameterType, p.Name);
                 }
-                Gen.Instance.GenDecode(sbHandles, "            ", methodOverride.ParametersNormal);
+                Gen.Instance.GenDecode(sbHandles, "            ", m.ParametersNormal);
 
                 if (actions.Count > 0)
                 {
@@ -243,7 +244,7 @@ namespace Zeze.Arch.Gen
                         action.GenActionEncode(sbHandles, "            ");
                     }
                 }
-                string normalcall = methodOverride.GetNarmalCallString();
+                string normalcall = m.GetNarmalCallString();
                 string sep = string.IsNullOrEmpty(normalcall) ? "" : ", ";
                 var returnCodeVarName = "tmp" + Gen.Instance.TmpVarNameId.IncrementAndGet();
                 var returnParamsVarName = "tmp" + Gen.Instance.TmpVarNameId.IncrementAndGet();
@@ -263,7 +264,7 @@ namespace Zeze.Arch.Gen
             return sb.ToString();
         }
 
-        void GenRedirectAll(StringBuilder sb, StringBuilder sbHandles, Zeze.IModule module, MethodOverride m, List<GenAction> actions)
+        void GenRedirectAll(StringBuilder sb, StringBuilder sbHandles, Zeze.IModule module, MethodOverride m)
         {
             string reqVarName = "tmp" + Gen.Instance.TmpVarNameId.IncrementAndGet();
             sb.AppendLine($"        var {reqVarName} = new Zezex.Provider.ModuleRedirectAllRequest();");
@@ -348,64 +349,21 @@ namespace Zeze.Arch.Gen
             throw new Exception("ReturnType Must Be void Or TaskCompletionSource<long>");
         }
 
-        private void Verify(MethodOverride method, List<GenAction> actions)
+        private void Verify(MethodOverride method)
         {
             switch (method.OverrideType)
             {
                 case OverrideType.RedirectAll:
                     if (method.Method.ReturnType != typeof(void))
                         throw new Exception("RedirectAll ReturnType Must Be void");
-
-                    // 如果每个hash分组处理需要多个回调，把这个检查去掉。
-                    if (actions.Count > 2)
-                        throw new Exception("RedirectAll (actions.Count > 2)");
-
-                    int end = 0;
-                    foreach (var action in actions)
-                    {
-                        if (action.IsOnHashEnd)
-                        {
-                            end++;
-                            continue;
-                        }
-
-                        if (action.GenericArguments.Length < 3)
-                            throw new Exception("RedirectAll callback must have parameters: long,int");
-                        if (action.GenericArguments[0] != typeof(long))
-                            throw new Exception("RedirectAll callback first parameter muse be long(sessionId)");
-                        if (action.GenericArguments[1] != typeof(int))
-                            throw new Exception("RedirectAll callback second parameter muse be int(hash-index)");
-                        if (action.GenericArguments[2] != typeof(long))
-                            throw new Exception("RedirectAll callback thrid parameter muse be int(return-code)");
-                    }
-                    if (end > 1)
-                        throw new Exception("RedirectAll Too Many OnHashEnd.");
                     break;
             }
         }
 
-        private int GetActionCountSkipOnHashEnd(List<GenAction> actions)
-        {
-            int count = 0;
-            foreach (var action in actions)
-            {
-                if (action.IsOnHashEnd)
-                    continue;
-                ++count;
-            }
-            return count;
-        }
-
-        void GenRedirectAllContext(StringBuilder sb, MethodOverride methodOverride, List<GenAction> actions)
+        void GenRedirectAllContext(StringBuilder sb, MethodOverride methodOverride)
         {
             sb.AppendLine($"    public class Context{methodOverride.Method.Name} : Zezex.Provider.ModuleProvider.ModuleRedirectAllContext");
             sb.AppendLine($"    {{");
-            foreach (var action in actions)
-            {
-                if (action.IsOnHashEnd)
-                    continue;
-                sb.AppendLine($"        private System.Action{action.GetGenericArgumentsDefine()} {action.VarName};");
-            }
             sb.AppendLine($"");
             StringBuilder actionVarNames = new StringBuilder();
             bool first = true;

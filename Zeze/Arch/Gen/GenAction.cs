@@ -71,6 +71,67 @@ namespace Zeze.Arch.Gen
             return sb.ToString();
         }
 
+        public static GenAction CreateIf(ParameterInfo p)
+        {
+            var ParameterType = p.ParameterType;
+            if (Gen.IsDelegate(ParameterType))
+                return new GenAction(ParameterType, p.Name);
+            return null;
+        }
+
+        public void Verify(MethodOverride m)
+        {
+            switch (m.OverrideType)
+            {
+                case OverrideType.RedirectHash:
+                case OverrideType.RedirectToServer:
+                    break;
+
+                case OverrideType.RedirectAll:
+                    if (GenericArguments.Length != 1)
+                        throw new Exception(m.Method.Name + ": RedirectAll Result Handle Too Many Parameters.");
+                    //if (!RedirectResult.isAssignableFrom(m.ResultType))
+                    //    throw new Exception(m.method.getName() + ": RedirectAll Result Type Must Extend RedirectContext");
+                    break;
+            }
+        }
+
+        public void GenDecodeAndCallback(string prefix, StringBuilder sb, MethodOverride m, string bb)
+        {
+            GenDecodeAndCallback("App.Zz", prefix, sb, m.ResultHandle.Parameter.getName(), m, bb);
+        }
+
+        public void GenDecodeAndCallback(String zzName, String prefix, StringBuilder sb, String actName, MethodOverride m, String bb)
+        {
+            var resultVarNames = new ArrayList<String>();
+            for (int i = 0; i < m.ResultHandle.GenericArguments.length; ++i) {
+                resultVarNames.add("tmp" + Gen.Instance.TmpVarNameId.incrementAndGet());
+                var rClass = (Class <?>)m.ResultHandle.GenericArguments[i];
+                Gen.Instance.GenLocalVariable(sb, prefix, rClass, resultVarNames.get(i));
+                Gen.Instance.GenDecode(sb, prefix, bb, rClass, resultVarNames.get(i));
+            }
+            switch (m.TransactionLevel)
+            {
+                case Serializable:
+                case AllowDirtyWhenAllRead:
+                    sb.AppendLine("{}{}.NewProcedure(() -> { {}.run({}); return 0L; }, \"ModuleRedirectResponse Procedure\").Call();",
+                            prefix, zzName, actName, GetCallString(resultVarNames));
+                    break;
+
+                default:
+                    sb.AppendLine("{}{}.run({});", prefix, actName, GetCallString(resultVarNames));
+                    break;
+            }
+        }
+
+	public void GenEncode(List<String> resultVarNames, String prefix, StringBuilderCs sb, MethodOverride m, String bb) throws Throwable
+{
+		for (int i = 0; i < m.ResultHandle.GenericArguments.length; ++i) {
+        var rClass = (Class <?>)m.ResultHandle.GenericArguments[i];
+        Gen.Instance.GenEncode(sb, prefix, bb, rClass, resultVarNames.get(i));
+    }
+}
+
         public void GenActionEncode(StringBuilder sb, string prefix)
         {
             sb.AppendLine($"{prefix}System.Action{GetGenericArgumentsDefine()} {VarName} = ({GetGenericArgumentVarNamesDefine()}) =>");

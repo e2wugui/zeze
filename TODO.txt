@@ -33,7 +33,6 @@ ServiceManager.Agent lock 模式：改成全局锁Agent。单线程化。回调�
 ServiceManager: Provider之间连接成功的时候，Pending还没到达。
 ServiceManager.ReadyCommit模式时，订阅启动全新广播。
 
-
 【2022/4/11】
 
 Load 移到 Zeze.Arch 里面，里面使用的MyConfig相关配置移到LoadConfig中。【使用OnSetServerLoad，Game.Load复用暂不考虑了】

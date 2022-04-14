@@ -12,6 +12,7 @@ namespace Zeze.Arch.Gen
         public MethodInfo Method { get; }
         public OverrideType OverrideType { get; }
         public Attribute Attribute { get; }
+        public GenAction ResultHandle { get; private set; }
 
         public MethodOverride(MethodInfo method, OverrideType type, Attribute attribute)
         {
@@ -22,9 +23,8 @@ namespace Zeze.Arch.Gen
             Attribute = attribute;
         }
 
-        public ParameterInfo ParameterHashOrServer { get; private set; } // only setup when OverrideType.RedirectWithHash
+        public ParameterInfo ParameterHashOrServer { get; private set; } // When RedirectHash RedirectToServer
         public List<ParameterInfo> ParametersNormal { get; } = new List<ParameterInfo>();
-        public ParameterInfo ParameterLastWithMode { get; private set; } // maybe null
 
         public ParameterInfo[] ParametersAll { get; private set; }
 
@@ -33,23 +33,25 @@ namespace Zeze.Arch.Gen
             ParametersAll = Method.GetParameters();
             ParametersNormal.AddRange(ParametersAll);
 
-            if (OverrideType == OverrideType.RedirectToServer || OverrideType == OverrideType.RedirectWithHash)
+            if (OverrideType == OverrideType.RedirectToServer || OverrideType == OverrideType.RedirectHash)
             {
                 ParameterHashOrServer = ParametersAll[0];
                 if (ParameterHashOrServer.ParameterType != typeof(int))
                     throw new Exception("ModuleRedirectWithHash|ModuleRedirectToServer: type of first parameter must be 'int'");
-                if (OverrideType == OverrideType.RedirectWithHash && false == ParameterHashOrServer.Name.Equals("hash"))
+                if (OverrideType == OverrideType.RedirectHash && false == ParameterHashOrServer.Name.Equals("hash"))
                     throw new Exception("ModuleRedirectWithHash: name of first parameter must be 'hash'");
                 if (OverrideType == OverrideType.RedirectToServer && false == ParameterHashOrServer.Name.Equals("serverId"))
                     throw new Exception("ModuleRedirectToServer: name of first parameter must be 'serverId'");
                 ParametersNormal.RemoveAt(0);
             }
 
-            if (ParametersNormal.Count > 0
-                && ParametersNormal[ParametersNormal.Count - 1].ParameterType == typeof(Zeze.TransactionModes))
+            foreach (var p in ParametersNormal)
             {
-                ParameterLastWithMode = ParametersNormal[ParametersNormal.Count - 1];
-                ParametersNormal.RemoveAt(ParametersNormal.Count - 1);
+                var handle = GenAction.CreateIf(p);
+                if (ResultHandle != null && handle != null)
+                    throw new Exception("Too Many Result Handle. " + Method.DeclaringType.Name + "::" + Method.Name);
+                if (handle != null)
+                    ResultHandle = handle;
             }
         }
 
@@ -80,20 +82,11 @@ namespace Zeze.Arch.Gen
             return sb.ToString();
         }
 
-        public string GetModeCallString()
-        {
-            if (ParameterLastWithMode == null)
-                return "";
-            if (ParametersAll.Length == 1) // 除了mode，没有其他参数。
-                return ParameterLastWithMode.Name;
-            return $", {ParameterLastWithMode.Name}";
-        }
-
         private string GetHashOrServerParameterName()
         {
             switch (OverrideType)
             {
-                case OverrideType.RedirectWithHash: return "hash";
+                case OverrideType.RedirectHash: return "hash";
                 case OverrideType.RedirectToServer: return "serverId";
                 default: throw new Exception("error override type");
             }
@@ -109,15 +102,14 @@ namespace Zeze.Arch.Gen
 
         public string GetBaseCallString()
         {
-            return $"{GetHashOrServerCallString()}{GetNarmalCallString()}{GetModeCallString()}";
+            return $"{GetHashOrServerCallString()}{GetNarmalCallString()}";
         }
 
         public string GetRedirectType()
         {
             switch (OverrideType)
             {
-                case OverrideType.Redirect: // fall down
-                case OverrideType.RedirectWithHash:
+                case OverrideType.RedirectHash:
                     return "Zezex.Provider.ModuleRedirect.RedirectTypeWithHash";
 
                 case OverrideType.RedirectToServer:
@@ -136,7 +128,7 @@ namespace Zeze.Arch.Gen
                 case OverrideType.RedirectToServer:
                     return "serverId";
 
-                case OverrideType.RedirectWithHash:
+                case OverrideType.RedirectHash:
                     return "hash"; // parameter name
 
                 default:
