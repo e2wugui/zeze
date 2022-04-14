@@ -110,7 +110,7 @@ namespace Zeze.Arch.Gen
 
         public void GenDecodeAndCallback(string prefix, StringBuilder sb, MethodOverride m)
         {
-            GenDecodeAndCallback("App.Zz", prefix, sb, m.ResultHandle.ActionType.Name, m);
+            GenDecodeAndCallback("App.Zz", prefix, sb, VarName, m);
         }
 
         public void GenDecodeAndCallback(string zzName, string prefix, StringBuilder sb, string actName, MethodOverride m)
@@ -126,7 +126,7 @@ namespace Zeze.Arch.Gen
             {
                 case Zeze.Transaction.TransactionLevel.Serializable:
                 case Zeze.Transaction.TransactionLevel.AllowDirtyWhenAllRead:
-                    sb.AppendLine($"{prefix}{zzName}.NewProcedure(async () => {{ {actName}({GetCallString(resultVarNames)}); return 0L; }}, \"ModuleRedirectResponse Procedure\").CallAsync();");
+                    sb.AppendLine($"{prefix}await {zzName}.NewProcedure(async () => {{ {actName}({GetCallString(resultVarNames)}); return 0L; }}, \"ModuleRedirectResponse Procedure\").CallAsync();");
                     break;
 
                 default:

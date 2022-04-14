@@ -145,14 +145,14 @@ namespace Zeze.Arch.Gen
             switch (rType)
             {
                 case ReturnType.Void:
-                    sb.AppendLine($"            App.Zeze.Redirect.RunVoid(() -> base.{m.Method.Name}({m.GetBaseCallString()}));");
+                    sb.AppendLine($"            App.Zz.Redirect.RunVoid(() => base.{m.Method.Name}({m.GetBaseCallString()}));");
                     sb.AppendLine($"            return;");
                     break;
                 case ReturnType.TaskCompletionSource:
-                    sb.AppendLine($"            return App.Zeze.Redirect.RunFuture(() -> base.{m.Method.Name}({m.GetBaseCallString()}));");
+                    sb.AppendLine($"            return App.Zz.Redirect.RunFuture(() => base.{m.Method.Name}({m.GetBaseCallString()}));");
                     break;
                 case ReturnType.Async:
-                    sb.AppendLine($"            await App.Zeze.Redirect.RunAsync(async () -> await base.{m.Method.Name}({m.GetBaseCallString()}));");
+                    sb.AppendLine($"            await App.Zz.Redirect.RunAsync(async () => await base.{m.Method.Name}({m.GetBaseCallString()}));");
                     break;
             }
             sb.AppendLine("        }");
@@ -208,7 +208,7 @@ namespace Zeze.Arch.Gen
                 string futureVarName = "tmp" + Gen.Instance.TmpVarNameId.IncrementAndGet();
                 sb.AppendLine($"        var {futureVarName} = new System.Threading.Tasks.TaskCompletionSource<long>();");
                 sb.AppendLine($"");
-                sb.AppendLine($"        {rpcVarName}.Send(Zezex.ModuleRedirect.RandomLink(), (_) =>");
+                sb.AppendLine($"        {rpcVarName}.Send(_target_, async (_) =>");
                 sb.AppendLine($"        {{");
                 sb.AppendLine($"            if ({rpcVarName}.IsTimeout)");
                 sb.AppendLine($"            {{");
@@ -223,10 +223,10 @@ namespace Zeze.Arch.Gen
                 if (null != m.ResultHandle)
                 {
                     // decode and run if has result
-                    sb.AppendLine($"                var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_rpc_.Result.Params);");
+                    sb.AppendLine($"                var _bb_ = Zeze.Serialize.ByteBuffer.Wrap({rpcVarName}.Result.Params);");
                     m.ResultHandle.GenDecodeAndCallback("                ", sb, m);
                 }
-                sb.AppendLine($"                {futureVarName}.TrySetResult({rpcVarName}.Result.ReturnCode);");
+                sb.AppendLine($"                {futureVarName}.TrySetResult(0);");
                 sb.AppendLine($"            }}");
                 sb.AppendLine($"            return Zeze.Transaction.Procedure.Success;");
                 sb.AppendLine($"        }});");

@@ -115,10 +115,10 @@ namespace Zeze.Arch.Gen
             switch (OverrideType)
             {
                 case OverrideType.RedirectHash:
-                    return "Zezex.Provider.ModuleRedirect.RedirectTypeWithHash";
+                    return "Zeze.Beans.ProviderDirect.ModuleRedirect.RedirectTypeWithHash";
 
                 case OverrideType.RedirectToServer:
-                    return "Zezex.Provider.ModuleRedirect.RedirectTypeToServer";
+                    return "Zeze.Beans.ProviderDirect.ModuleRedirect.RedirectTypeToServer";
 
                 default:
                     throw new Exception("unkown OverrideType");

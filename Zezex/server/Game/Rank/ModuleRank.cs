@@ -225,7 +225,7 @@ namespace Game.Rank
 
         // 属性参数是获取总的并发分组数量的代码，直接复制到生成代码中。
         // 需要注意在子类上下文中可以编译通过。可以是常量。
-        [RedirectAllHash("GetConcurrentLevel(keyHint.RankType)")]
+        //[RedirectAllHash("GetConcurrentLevel(keyHint.RankType)")]
         public virtual void GetRank(BConcurrentKey keyHint,
             System.Action<long, int, long, BRankList> onHashResult,
             Action<ModuleRedirectAllContext> onHashEnd
