@@ -1,10 +1,8 @@
 package Zezex;
 
 import Game.App;
-import Game.Rank.ModuleRank;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.ConcurrentHashSet;
-import Zeze.Util.IntHashMap;
 import Zeze.Util.TaskCompletionSource;
 import junit.framework.TestCase;
 
@@ -28,40 +26,40 @@ public class ModuleRedirectRank extends TestCase {
 
 			// @formatter:off
 			// RedirectToServer
-			app1.Game_Rank.TestToServer(0, 12345, (i, s) -> { in.Value = i; serverId.Value = s; }).Wait();
+			app1.Game_Rank.TestToServer(0, 12345).then(result -> { in.Value = result.out; serverId.Value = result.serverId; }).Wait();
 			assert in.Value == 12345;
 			assert serverId.Value == 0;
 
-			app1.Game_Rank.TestToServer(1, 12345, (i, s) -> { in.Value = i; serverId.Value = s; }).Wait();
+			app1.Game_Rank.TestToServer(1, 12345).then(result -> { in.Value = result.out; serverId.Value = result.serverId; }).Wait();
 			assert in.Value == 12345;
 			assert serverId.Value == 1;
 
-			app2.Game_Rank.TestToServer(0, 12345, (i, s) -> { in.Value = i; serverId.Value = s; }).Wait();
+			app2.Game_Rank.TestToServer(0, 12345).then(result -> { in.Value = result.out; serverId.Value = result.serverId; }).Wait();
 			assert in.Value == 12345;
 			assert serverId.Value == 0;
 
-			app2.Game_Rank.TestToServer(1, 12345, (i, s) -> { in.Value = i; serverId.Value = s; }).Wait();
+			app2.Game_Rank.TestToServer(1, 12345).then(result -> { in.Value = result.out; serverId.Value = result.serverId; }).Wait();
 			assert in.Value == 12345;
 			assert serverId.Value == 1;
 
 			// RedirectHash
 			var hash = new Zeze.Util.OutInt();
-			app1.Game_Rank.TestHash(0, 12345, (h, i, s) -> { hash.Value = h; in.Value = i; serverId.Value = s;}).Wait();
+			app1.Game_Rank.TestHash(0, 12345).then(result -> { hash.Value = result.hash; in.Value = result.out; serverId.Value = result.serverId;}).Wait();
 			assert hash.Value == 0;
 			assert in.Value == 12345;
 			assert serverId.Value == 0;
 
-			app1.Game_Rank.TestHash(1, 12345, (h, i, s) -> { hash.Value = h; in.Value = i; serverId.Value = s;}).Wait();
+			app1.Game_Rank.TestHash(1, 12345).then(result -> { hash.Value = result.hash; in.Value = result.out; serverId.Value = result.serverId;}).Wait();
 			assert hash.Value == 1;
 			assert in.Value == 12345;
 			assert serverId.Value == 1;
 
-			app2.Game_Rank.TestHash(0, 12345, (h, i, s) -> { hash.Value = h; in.Value = i; serverId.Value = s;}).Wait();
+			app2.Game_Rank.TestHash(0, 12345).then(result -> { hash.Value = result.hash; in.Value = result.out; serverId.Value = result.serverId;}).Wait();
 			assert hash.Value == 0;
 			assert in.Value == 12345;
 			assert serverId.Value == 0;
 
-			app2.Game_Rank.TestHash(1, 12345, (h, i, s) -> { hash.Value = h; in.Value = i; serverId.Value = s;}).Wait();
+			app2.Game_Rank.TestHash(1, 12345).then(result -> { hash.Value = result.hash; in.Value = result.out; serverId.Value = result.serverId;}).Wait();
 			assert hash.Value == 1;
 			assert in.Value == 12345;
 			assert serverId.Value == 1;

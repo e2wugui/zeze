@@ -7,18 +7,18 @@ import Zeze.Transaction.TransactionLevel;
 
 public class RedirectHandle {
 	public interface IRequestHandle {
-		Binary call(long sessionId, int hash, Binary encodedParams, Object asyncContext) throws Throwable;
+		Object call(long sessionId, int hash, Binary encodedParams, Object asyncContext) throws Throwable;
 	}
 
 	public static final Binary ASYNC_RESULT = new Binary(ByteBuffer.Empty);
 
 	public final TransactionLevel RequestTransactionLevel;
-	public final Function<RedirectResult, Binary> ResultEncoder;
 	public final IRequestHandle RequestHandle;
+	public final Function<Object, Binary> ResultEncoder;
 
 	public RedirectHandle(TransactionLevel requestTransactionLevel,
-						  Function<RedirectResult, Binary> resultEncoder,
-						  IRequestHandle requestHandle) {
+						  IRequestHandle requestHandle,
+						  Function<Object, Binary> resultEncoder) {
 		RequestTransactionLevel = requestTransactionLevel;
 		RequestHandle = requestHandle;
 		ResultEncoder = resultEncoder;

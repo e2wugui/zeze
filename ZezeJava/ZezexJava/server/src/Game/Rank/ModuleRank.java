@@ -7,6 +7,7 @@ import Game.App;
 import Zeze.Arch.ModuleRedirectAllContext;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Arch.RedirectAll;
+import Zeze.Arch.RedirectFuture;
 import Zeze.Arch.RedirectHash;
 import Zeze.Arch.RedirectResult;
 import Zeze.Arch.RedirectToServer;
@@ -15,10 +16,7 @@ import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Action1;
-import Zeze.Util.Action2;
-import Zeze.Util.Action3;
 import Zeze.Util.Task;
-import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -358,6 +356,7 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	public static int GetChoiceHashCode() {
+		//noinspection ConstantConditions
 		String account = ((ProviderUserSession)Transaction.getCurrent().getTopProcedure().getUserState()).getAccount();
 		return Zeze.Serialize.ByteBuffer.calc_hashnr(account);
 	}
@@ -451,26 +450,51 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	/******************************** ModuleRedirect 测试 *****************************************/
+	public static class TestToServerResult {
+		public long resultCode; // 特殊字段,可以没有
+		public int out;
+		public int serverId;
+	}
+
+	// 第一个参数serverId是固定的特殊参数
 	@RedirectToServer()
-	public TaskCompletionSource<Long> TestToServer(int serverId, int in, Action2<Integer, Integer> result) throws Throwable {
-		result.run(in, App.Zeze.getConfig().getServerId());
+	public RedirectFuture<TestToServerResult> TestToServer(int serverId, int in) {
+		TestToServerResult result = new TestToServerResult();
+		result.out = in;
+		result.serverId = App.Zeze.getConfig().getServerId();
+		return RedirectFuture.finish(result); // 同步完成
+	}
+
+	public static class TestHashResult {
+		public int hash;
+		public int out;
+		public int serverId;
+		public EmptyBean bean = new EmptyBean();
+	}
+
+	// 第一个参数hash是固定的特殊参数
+	@RedirectHash()
+	public RedirectFuture<TestHashResult> TestHash(int hash, int in) {
+		var f = new RedirectFuture<TestHashResult>();
+		Task.run(App.Zeze.NewProcedure(() -> {
+			TestHashResult result = new TestHashResult();
+			result.hash = hash;
+			result.out = in;
+			result.serverId = App.Zeze.getConfig().getServerId();
+			f.SetResult(result); // 异步完成
+			return Procedure.Success;
+		}, "TestHashAsync"));
+		return f;
+	}
+
+	@RedirectToServer()
+	public RedirectFuture<Long> TestToServerNoResult(int serverId) {
 		return null;
 	}
 
 	@RedirectHash()
-	public TaskCompletionSource<Long> Test1(int hash) {
+	public RedirectFuture<Long> TestHashNoResult(int hash) {
 		return null;
-	}
-
-	@RedirectHash()
-	public TaskCompletionSource<Long> TestHash(int hash, int inData, Action3<Integer, Integer, Integer> result) throws Throwable {
-		result.run(hash, inData, App.Zeze.getConfig().getServerId());
-		return null;
-	}
-
-	@RedirectHash()
-	public void Test3(int hash, int inData, Action2<Integer, EmptyBean> result) throws Throwable {
-		result.run(inData, new EmptyBean());
 	}
 
 	public static class TestToAllResult extends RedirectResult {
@@ -507,7 +531,7 @@ public class ModuleRank extends AbstractModule {
 
 	@RedirectAll(GetConcurrentLevelSource = "TestToAllConcLevel")
 	public void TestToAll(int in, Action1<ModuleRedirectAllContext<TestToAllResult>> onResult) {
-		System.out.println("TestToAll in=" + in); // RedirectAll时不可能调用到这里,应该在上面的TestToAll方法处理
+		throw new UnsupportedOperationException(); // RedirectAll时不可能调用到这里,应该在上面的TestToAll方法处理
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
