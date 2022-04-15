@@ -1,11 +1,9 @@
 【TODO】
 Zeze 打包和更新工具
-Zeze lua beankey 问题。
 ConfigEditor 自动完成: Foreign；自动id，Load 的时候记录maxid，以后编辑AddRow都使用这个递增；
 ConfigEditor 更多自动完成？普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。
 ConfigEditor enum 现在不支持引用在其他文档定义的，有需要了再来加。
-war？一个module集合。定义export？private？App.Instance？生成代码使用基类，不再使用具体类型，
-实际上就是把具体类型的功能尽量放到基类。感觉没必要：应用使用独立进程更加安全灵活些。
+war？一个module集合。定义export？private？App.Instance？生成代码使用基类，不再使用具体类型，感觉没必要：应用使用独立进程更加安全灵活些。
 ----------------------------------------------------------------------------------------------------------------------------------
 DatabaseTikv OperatesTikv
 Global.Release并发问题【再次】确认
