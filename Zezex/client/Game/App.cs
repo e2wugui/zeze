@@ -14,7 +14,7 @@ namespace Game
             CreateService();
             CreateModules();
             StartModules(); // 启动模块，装载配置什么的。
-            Zz.StartAsync().Wait(); // 启动数据库
+            Zeze.StartAsync().Wait(); // 启动数据库
             StartModules();
             StartService(); // 启动网络
         }
@@ -22,7 +22,7 @@ namespace Game
         public void Stop()
         {
             StopService(); // 关闭网络等等。
-            Zz.Stop(); // 关闭数据库
+            Zeze.Stop(); // 关闭数据库
             StopModules(); // 关闭模块,，卸载配置什么的。
             DestroyModules();
             DestroyService();

@@ -125,7 +125,7 @@ namespace Zeze.Arch
 
             var announce = new Zeze.Beans.Provider.AnnounceProviderInfo();
             announce.Argument.ServiceNamePrefix = ProviderApp.ServerServiceNamePrefix;
-            announce.Argument.ServiceIndentity = Zz.Config.ServerId.ToString();
+            announce.Argument.ServiceIndentity = Zeze.Config.ServerId.ToString();
             announce.Send(sender);
 
             // static binds

@@ -231,7 +231,7 @@ namespace Game.Rank
             Action<ModuleRedirectAllContext> onHashEnd
             )
         {
-            // 默认实现是本地遍历调用，这里不使用App.Zz.Run启动任务（这样无法等待），直接调用实现。
+            // 默认实现是本地遍历调用，这里不使用App.Zeze.Run启动任务（这样无法等待），直接调用实现。
             int concurrentLevel = GetConcurrentLevel(keyHint.RankType);
             var ctx = new ModuleRedirectAllContext(concurrentLevel, $"{FullName}:{nameof(GetRank)}")
             {
@@ -406,21 +406,21 @@ namespace Game.Rank
         [RedirectToServer()]
         public virtual TaskCompletionSource<long> TestToServer(int serverId, int param, Action<int, int> result)
         {
-            result(param, App.Zz.Config.ServerId);
+            result(param, App.Zeze.Config.ServerId);
             return null;
         }
 
         [RedirectHash()]
         public virtual TaskCompletionSource<long> TestHash(int hash, int param, Action<int, int> result)
         {
-            result(param, App.Zz.Config.ServerId);
+            result(param, App.Zeze.Config.ServerId);
             return null;
         }
 
         [RedirectToServer()]
         public virtual void TestToServerNoWait(int serverId, Action<int, int> result, int param)
         {
-            result(param, App.Zz.Config.ServerId);
+            result(param, App.Zeze.Config.ServerId);
         }
 
         [RedirectHash()]

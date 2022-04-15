@@ -31,7 +31,7 @@ namespace Zeze.Arch
 
 		public AsyncSocket ChoiceServer(IModule module, int serverId)
 		{
-			if (serverId == ProviderApp.Zz.Config.ServerId)
+			if (serverId == ProviderApp.Zeze.Config.ServerId)
 				return null; // is Local
 
 			if (!ProviderApp.Distribute.ChoiceProviderByServerId(ProviderApp.ServerServiceNamePrefix, module.Id, serverId, out var provider))
@@ -44,14 +44,14 @@ namespace Zeze.Arch
 
 		public AsyncSocket ChoiceHash(IModule module, int hash)
 		{
-			var subscribes = ProviderApp.Zz.ServiceManagerAgent.SubscribeStates;
+			var subscribes = ProviderApp.Zeze.ServiceManagerAgent.SubscribeStates;
 			var serviceName = ProviderApp.Distribute.MakeServiceName(ProviderApp.ServerServiceNamePrefix, module.Id);
 
 			if (!subscribes.TryGetValue(serviceName, out var servers))
 				return null;
 
 			var serviceInfo = ProviderApp.Distribute.ChoiceHash(servers, hash);
-			if (serviceInfo == null || serviceInfo.ServiceIdentity.Equals(ProviderApp.Zz.Config.ServerId.ToString()))
+			if (serviceInfo == null || serviceInfo.ServiceIdentity.Equals(ProviderApp.Zeze.Config.ServerId.ToString()))
 				return null;
 
 			var providerModuleState = (ProviderModuleState)serviceInfo.LocalState;
@@ -111,7 +111,7 @@ namespace Zeze.Arch
 					AddMiss(miss, i, Zeze.Transaction.Procedure.ProviderNotExist);
 					continue; // miss
 				}
-				if (target.ServiceIdentity.Equals(ProviderApp.Zz.Config.ServerId.ToString()))
+				if (target.ServiceIdentity.Equals(ProviderApp.Zeze.Config.ServerId.ToString()))
 				{
 					AddTransmits(transmits, 0, i, req);
 					continue; // loop-back

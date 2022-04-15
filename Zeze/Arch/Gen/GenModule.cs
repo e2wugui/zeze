@@ -128,11 +128,11 @@ namespace Zeze.Arch.Gen
             {
                 case OverrideType.RedirectHash:
                     sb.AppendLine($"        // RedirectHash");
-                    sb.AppendLine($"        var _target_ = App.Zz.Redirect.ChoiceHash(this, {m.ParameterHashOrServer.Name});");
+                    sb.AppendLine($"        var _target_ = App.Zeze.Redirect.ChoiceHash(this, {m.ParameterHashOrServer.Name});");
                     break;
                 case OverrideType.RedirectToServer:
                     sb.AppendLine($"        // RedirectToServer");
-                    sb.AppendLine($"        var _target_ = App.Zz.Redirect.ChoiceServer(this, {m.ParameterHashOrServer.Name});");
+                    sb.AppendLine($"        var _target_ = App.Zeze.Redirect.ChoiceServer(this, {m.ParameterHashOrServer.Name});");
                     break;
                 case OverrideType.RedirectAll:
                     sb.AppendLine("        // RedirectAll");
@@ -145,14 +145,14 @@ namespace Zeze.Arch.Gen
             switch (rType)
             {
                 case ReturnType.Void:
-                    sb.AppendLine($"            App.Zz.Redirect.RunVoid(() => base.{m.Method.Name}({m.GetBaseCallString()}));");
+                    sb.AppendLine($"            App.Zeze.Redirect.RunVoid(() => base.{m.Method.Name}({m.GetBaseCallString()}));");
                     sb.AppendLine($"            return;");
                     break;
                 case ReturnType.TaskCompletionSource:
-                    sb.AppendLine($"            return App.Zz.Redirect.RunFuture(() => base.{m.Method.Name}({m.GetBaseCallString()}));");
+                    sb.AppendLine($"            return App.Zeze.Redirect.RunFuture(() => base.{m.Method.Name}({m.GetBaseCallString()}));");
                     break;
                 case ReturnType.Async:
-                    sb.AppendLine($"            await App.Zz.Redirect.RunAsync(async () => await base.{m.Method.Name}({m.GetBaseCallString()}));");
+                    sb.AppendLine($"            await App.Zeze.Redirect.RunAsync(async () => await base.{m.Method.Name}({m.GetBaseCallString()}));");
                     break;
             }
             sb.AppendLine("        }");
@@ -281,7 +281,7 @@ namespace Zeze.Arch.Gen
                     sbHandles.AppendLine($"            return Zeze.Net.Binary.Empty;");
                 }
                 sbHandles.AppendLine($"        }};");
-                sbHandles.AppendLine($"        App.Zz.Redirect.Handles.TryAdd(\"{module.FullName}:{m.Method.Name}\", {hName});");
+                sbHandles.AppendLine($"        App.Zeze.Redirect.Handles.TryAdd(\"{module.FullName}:{m.Method.Name}\", {hName});");
             }
 
             sb.AppendLine($"    public {genClassName}({userAppName} app) : base(app)");
@@ -317,7 +317,7 @@ namespace Zeze.Arch.Gen
                 sb.AppendLine($"        }}");
             }
             sb.AppendLine($"");
-            sb.AppendLine($"        App.Zz.Redirect.RedirectAll({reqVarName});");
+            sb.AppendLine($"        App.Zeze.Redirect.RedirectAll({reqVarName});");
             sb.AppendLine($"    }}");
             sb.AppendLine($"");
 
@@ -361,7 +361,7 @@ namespace Zeze.Arch.Gen
             }
             sbHandles.AppendLine($"        }});");
 
-            sbHandles.AppendLine($"        App.Zz.Redirect.Handles.Add(\"{module.FullName}:{m.Method.Name}\", {hName});");
+            sbHandles.AppendLine($"        App.Zeze.Redirect.Handles.Add(\"{module.FullName}:{m.Method.Name}\", {hName});");
             sbHandles.AppendLine($"");
         }
 

@@ -146,7 +146,7 @@ namespace Zeze.Transaction
                     break;
             }
 #endif
-            return await TTable.Zz.GlobalAgent.Acquire(gkey, state);
+            return await TTable.Zeze.GlobalAgent.Acquire(gkey, state);
         }
 
         internal long SavedTimestampForCheckpointPeriod { get; set; }
@@ -165,7 +165,7 @@ namespace Zeze.Transaction
 
         internal override void SetDirty()
         {
-            switch (TTable.Zz.Checkpoint.CheckpointMode)
+            switch (TTable.Zeze.Checkpoint.CheckpointMode)
             {
                 case CheckpointMode.Period:
                     Dirty = true;
@@ -187,7 +187,7 @@ namespace Zeze.Transaction
             ConcurrentDictionary<K, Record<K, V>> changed,
             ConcurrentDictionary<K, Record<K, V>> encoded)
         {
-            var lockey = TTable.Zz.Locks.Get(new TableKey(TTable.Name, Key));
+            var lockey = TTable.Zeze.Locks.Get(new TableKey(TTable.Name, Key));
             if (false == lockey.TryEnterReadLock())
                 return false;
             try
@@ -282,10 +282,10 @@ namespace Zeze.Transaction
         {
             this.DatabaseTransactionTmp = null;
 
-            if (TTable.Zz.Checkpoint.CheckpointMode == CheckpointMode.Period)
+            if (TTable.Zeze.Checkpoint.CheckpointMode == CheckpointMode.Period)
             {
                 var tkey = new TableKey(Table.Name, Key);
-                var lockey = await TTable.Zz.Locks.Get(tkey).WriterLockAsync();
+                var lockey = await TTable.Zeze.Locks.Get(tkey).WriterLockAsync();
                 try
                 {
                     if (SavedTimestampForCheckpointPeriod == base.Timestamp)
@@ -311,7 +311,7 @@ namespace Zeze.Transaction
         internal override async Task SetExistInBackDatabase(long timestamp, bool value)
         {
             var tkey = new TableKey(Table.Name, Key);
-            var lockey = await TTable.Zz.Locks.Get(tkey).WriterLockAsync();
+            var lockey = await TTable.Zeze.Locks.Get(tkey).WriterLockAsync();
             try
             {
                 if (timestamp < ExistInBackDatabaseModifyTimestamp)

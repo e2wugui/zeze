@@ -76,7 +76,7 @@ namespace UnitTest.Zeze.Trans
             try
             {
                 // 只删除一个app里面的记录就够了。
-                Assert.IsTrue(Procedure.Success == app1.Zz.NewProcedure(async () =>
+                Assert.IsTrue(Procedure.Success == app1.Zeze.NewProcedure(async () =>
                 {
                     await app1.demo_Module1.Table1.RemoveAsync(6785);
                     return Procedure.Success;
@@ -89,7 +89,7 @@ namespace UnitTest.Zeze.Trans
                 Task.WaitAll(task2);
                 int countall = count * 2;
 
-                var result1 = app1.Zz.NewProcedure(async () =>
+                var result1 = app1.Zeze.NewProcedure(async () =>
                 {
                     int last1 = (await app1.demo_Module1.Table1.GetAsync(6785)).Int1;
                     Assert.AreEqual(countall, last1);
@@ -99,7 +99,7 @@ namespace UnitTest.Zeze.Trans
                 logger.Warn("result1=" + result1);
                 Assert.IsTrue(Procedure.Success == result1);
 
-                var result2 = app2.Zz.NewProcedure(async () =>
+                var result2 = app2.Zeze.NewProcedure(async () =>
                 {
                     var value = await app2.demo_Module1.Table1.GetAsync(6785);
                     int last2 = value.Int1;
@@ -122,7 +122,7 @@ namespace UnitTest.Zeze.Trans
             Task[] tasks = new Task[count];
             for (int i = 0; i < tasks.Length; ++i)
             {
-                tasks[i] = app.Zz.NewProcedure(async ()=>
+                tasks[i] = app.Zeze.NewProcedure(async ()=>
                 {
                     demo.Module1.Value b = await app.demo_Module1.Table1.GetOrAddAsync(6785);
                     b.Int1 += 1;

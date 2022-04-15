@@ -26,7 +26,7 @@ namespace UnitTest.Zeze.Trans
 
         private void Prepare()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zz.NewProcedure(
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     await demo.App.Instance.demo_Module1.Table1.RemoveAsync(1);
@@ -34,7 +34,7 @@ namespace UnitTest.Zeze.Trans
                 },
                 "TestChangeListener.Remove").CallSynchronously());
 
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zz.NewProcedure(
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
@@ -65,7 +65,7 @@ namespace UnitTest.Zeze.Trans
             AddListener();
 
             Init();
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zz.NewProcedure(
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
@@ -90,7 +90,7 @@ namespace UnitTest.Zeze.Trans
             Verify();
 
             Init();
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zz.NewProcedure(
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
@@ -105,7 +105,7 @@ namespace UnitTest.Zeze.Trans
             Verify();
 
             Init();
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zz.NewProcedure(
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
@@ -121,7 +121,7 @@ namespace UnitTest.Zeze.Trans
             Verify();
 
             Init();
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zz.NewProcedure(
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
@@ -137,7 +137,7 @@ namespace UnitTest.Zeze.Trans
             Verify();
 
             Init();
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zz.NewProcedure(
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
@@ -153,7 +153,7 @@ namespace UnitTest.Zeze.Trans
             Verify();
 
             Init();
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zz.NewProcedure(
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
@@ -169,7 +169,7 @@ namespace UnitTest.Zeze.Trans
             Verify();
 
             Init();
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zz.NewProcedure(
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     await demo.App.Instance.demo_Module1.Table1.PutAsync(1, new demo.Module1.Value());
@@ -179,7 +179,7 @@ namespace UnitTest.Zeze.Trans
             Verify();
 
             Init();
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zz.NewProcedure(
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     await demo.App.Instance.demo_Module1.Table1.RemoveAsync(1);
@@ -193,7 +193,7 @@ namespace UnitTest.Zeze.Trans
 
         private void Init()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zz.NewProcedure(
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetAsync(1);
@@ -222,7 +222,7 @@ namespace UnitTest.Zeze.Trans
 
         private void Verify()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zz.NewProcedure(
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetAsync(1);

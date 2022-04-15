@@ -25,7 +25,7 @@ namespace UnitTest.Zeze.Trans
 
         private async Task Check(int expect)
         {
-            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zz.NewProcedure(
+            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     var value = await demo.App.Instance.demo_Module1.TableImportant.GetOrAddAsync(1);
@@ -37,7 +37,7 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public async Task Test1()
         {
-            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zz.NewProcedure(
+            Assert.IsTrue(Procedure.Success == await demo.App.Instance.Zeze.NewProcedure(
                 async () =>
                 {
                     var value = await demo.App.Instance.demo_Module1.TableImportant.GetOrAddAsync(1);
@@ -52,7 +52,7 @@ namespace UnitTest.Zeze.Trans
                 Task[] tasks = new Task[1000];
                 for (int i = 0; i < tasks.Length; ++i)
                 {
-                    tasks[i] = demo.App.Instance.Zz.NewProcedure(Add, "TestCheckpointModeTable.Add").CallAsync();
+                    tasks[i] = demo.App.Instance.Zeze.NewProcedure(Add, "TestCheckpointModeTable.Add").CallAsync();
                 }
                 await Task.WhenAll(tasks);
                 sum += tasks.Length;
@@ -63,7 +63,7 @@ namespace UnitTest.Zeze.Trans
                 Task[] tasks = new Task[1000];
                 for (int i = 0; i < tasks.Length; ++i)
                 {
-                    tasks[i] = demo.App.Instance.Zz.NewProcedure(Add2, "TestCheckpointModeTable.Add2").CallAsync();
+                    tasks[i] = demo.App.Instance.Zeze.NewProcedure(Add2, "TestCheckpointModeTable.Add2").CallAsync();
                 }
                 await Task.WhenAll(tasks);
                 sum += tasks.Length;

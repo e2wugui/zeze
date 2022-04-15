@@ -178,13 +178,13 @@ namespace Zeze.Transaction
         /// <param name="procedure"></param>
         internal async Task<long> Perform(Procedure procedure)
         {
-            RecentPerformZeze = procedure.Zz;
+            RecentPerformZeze = procedure.Zeze;
             try
             {
                 for (int tryCount = 0; tryCount < 256; ++tryCount) // 最多尝试次数
                 {
                     // 默认在锁内重复尝试，除非CheckResult.RedoAndReleaseLock，否则由于CheckResult.Redo保持锁会导致死锁。
-                    procedure.Zz.Checkpoint.EnterFlushReadLock();
+                    procedure.Zeze.Checkpoint.EnterFlushReadLock();
                     try
                     {
                         for (/* out loop */; tryCount < 256; ++tryCount) // 最多尝试次数
@@ -313,10 +313,10 @@ namespace Zeze.Transaction
                     }
                     finally
                     {
-                        procedure.Zz.Checkpoint.ExitFlushReadLock();
+                        procedure.Zeze.Checkpoint.ExitFlushReadLock();
                     }
                     //logger.Debug("Checkpoint.WaitRun {0}", procedure);
-                    procedure.Zz.TryWaitFlushWhenReduce(LastTableKeyOfRedoAndRelease, LastGlobalSerialIdOfRedoAndRelease);
+                    procedure.Zeze.TryWaitFlushWhenReduce(LastTableKeyOfRedoAndRelease, LastGlobalSerialIdOfRedoAndRelease);
                 }
                 logger.Error("Transaction.Perform:{0}. too many try.", procedure);
                 FinalRollback(procedure);
@@ -410,7 +410,7 @@ namespace Zeze.Transaction
                         if (e.Value.Dirty)
                         {
                             e.Value.OriginRecord.Commit(e.Value);
-                            cc.BuildCollect(procedure.Zz, e.Key, e.Value); // 首先对脏记录创建Table,Record相关Collector。
+                            cc.BuildCollect(procedure.Zeze, e.Key, e.Value); // 首先对脏记录创建Table,Record相关Collector。
                         }
                     }
                 }
@@ -552,7 +552,7 @@ namespace Zeze.Transaction
             // 事务结束后可能会触发Listener，此时Commit已经完成，Timestamp已经改变，
             // 这种情况下不做RedoCheck，当然Listener的访问数据是只读的。
             // 【注意】这个提前检测更容易忙等，因为都没去尝试锁（这会阻塞）。
-            if (ra.OriginRecord.Table.Zz.Config.FastRedoWhenConflict
+            if (ra.OriginRecord.Table.Zeze.Config.FastRedoWhenConflict
                 && State != TransactionState.Completed && ra.OriginRecord.Timestamp != ra.Timestamp)
             {
                 ThrowRedo();

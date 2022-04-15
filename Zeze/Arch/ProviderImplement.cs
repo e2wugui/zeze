@@ -21,7 +21,7 @@ namespace Zeze.Arch
             }
             /*
             else if (subState.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)){
-                System.out.println("ServerId=" + ProviderApp.Zz.getConfig().getServerId()
+                System.out.println("ServerId=" + ProviderApp.Zeze.getConfig().getServerId()
                 + " OnChanged=" + subState.getServiceInfos());
                 //this.ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, subState.getServiceInfos());
             }
@@ -50,14 +50,14 @@ namespace Zeze.Arch
          */
         public async Task RegisterModulesAndSubscribeLinkd()
         {
-            var sm = ProviderApp.Zz.ServiceManagerAgent;
+            var sm = ProviderApp.Zeze.ServiceManagerAgent;
             var services = new Dictionary<string, BModule>();
 
             // 注册本provider的静态服务
             foreach (var it in ProviderApp.StaticBinds)
             {
                 var name = $"{ProviderApp.ServerServiceNamePrefix}{it.Key}";
-                var identity = ProviderApp.Zz.Config.ServerId.ToString();
+                var identity = ProviderApp.Zeze.Config.ServerId.ToString();
                 await sm.RegisterService(name, identity, ProviderApp.DirectIp, ProviderApp.DirectPort);
                 services.Add(name, it.Value);
             }
@@ -65,7 +65,7 @@ namespace Zeze.Arch
             foreach (var it in ProviderApp.DynamicModules)
             {
                 var name = $"{ProviderApp.ServerServiceNamePrefix}{it.Key}";
-                var identity = ProviderApp.Zz.Config.ServerId.ToString();
+                var identity = ProviderApp.Zeze.Config.ServerId.ToString();
                 await sm.RegisterService(name, identity, ProviderApp.DirectIp, ProviderApp.DirectPort);
                 services.Add(name, it.Value);
             }
@@ -125,7 +125,7 @@ namespace Zeze.Arch
                         (p, code) => { p.ResultCode = code; session.SendResponse(p); });
                 }
 
-                if (p2.Sender.Service.Zz == null || factoryHandle.NoProcedure)
+                if (p2.Sender.Service.Zeze == null || factoryHandle.NoProcedure)
                 {
                     // 应用框架不支持事务或者协议配置了“不需要事务”
                     return await Zeze.Util.Mission.CallAsync(
@@ -136,7 +136,7 @@ namespace Zeze.Arch
 
                 // 创建存储过程并且在当前线程中调用。
                 return await Zeze.Util.Mission.CallAsync(
-                    p2.Sender.Service.Zz.NewProcedure(
+                    p2.Sender.Service.Zeze.NewProcedure(
                         () => factoryHandle.Handle(p2),
                         p2.GetType().FullName,
                         factoryHandle.TransactionLevel,

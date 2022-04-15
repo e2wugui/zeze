@@ -108,7 +108,7 @@ namespace Zeze.Arch.Gen
 
         public void GenDecodeAndCallback(string prefix, StringBuilder sb, MethodOverride m)
         {
-            GenDecodeAndCallback("App.Zz", prefix, sb, Parameter.Name, m);
+            GenDecodeAndCallback("App.Zeze", prefix, sb, Parameter.Name, m);
         }
 
         public void GenDecodeAndCallback(string zzName, string prefix, StringBuilder sb, string actName, MethodOverride m)

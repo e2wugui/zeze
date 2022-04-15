@@ -71,7 +71,7 @@ namespace Game
 			loadServer.Port = App.Instance.ProviderApp.DirectPort;
 			loadServer.Param = new Binary(bb);
 
-			App.Instance.ProviderApp.Zz.ServiceManagerAgent.SetServerLoad(loadServer);
+			App.Instance.ProviderApp.Zeze.ServiceManagerAgent.SetServerLoad(loadServer);
 		}
 	}
 }

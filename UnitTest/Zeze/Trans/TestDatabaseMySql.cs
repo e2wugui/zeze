@@ -27,7 +27,7 @@ namespace UnitTest.Zeze.Trans
         public async Task Test1()
         {
             string url = "server=localhost;database=devtest;uid=dev;pwd=devtest12345";
-            var sqlserver = new DatabaseMySql(demo.App.Instance.Zz, url);
+            var sqlserver = new DatabaseMySql(demo.App.Instance.Zeze, url);
             var table = sqlserver.OpenTable("test_1");
             {
                 using var trans = sqlserver.BeginTransaction();

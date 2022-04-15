@@ -57,12 +57,12 @@ namespace UnitTest.Zeze.Misc
 
             future = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
             // for reconnect
-            var clientConfig = demo.App.Instance.Zz.Config;
+            var clientConfig = demo.App.Instance.Zeze.Config;
             var agentConfig = new ServiceConf();
             var agentName = "Zeze.Services.ServiceManager.Agent.Test";
             clientConfig.ServiceConfMap.TryAdd(agentName, agentConfig);
             agentConfig.AddConnector(new Connector(ip, port));
-            using var agent = new Agent(demo.App.Instance.Zz, agentName);
+            using var agent = new Agent(demo.App.Instance.Zeze, agentName);
             agent.Client.Start();
             await agent.RegisterService(serviceName, "1", "127.0.0.1", 1234);
             agent.OnChanged = (state) =>

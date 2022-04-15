@@ -12,7 +12,7 @@ namespace Game
     {
         public override Zeze.IModule ReplaceModuleInstance(Zeze.IModule module)
         {
-            return Zz.Redirect.ReplaceModuleInstance(this, module);
+            return Zeze.Redirect.ReplaceModuleInstance(this, module);
         }
 
         public Config Config { get; private set; }
@@ -80,17 +80,17 @@ namespace Game
 
             ProviderImplement = new ProviderImplement();
             ProviderDirect = new ProviderDirect();
-            ProviderApp = new Zeze.Arch.ProviderApp(Zz, ProviderImplement, Server, "Game.Server.Module#",
+            ProviderApp = new Zeze.Arch.ProviderApp(Zeze, ProviderImplement, Server, "Game.Server.Module#",
                 ProviderDirect, ServerDirect, "Game.Linkd", global::Zeze.Arch.LoadConfig.Load("load.json"));
 
-            Zeze.Arch.Gen.GenModule.Instance.SrcDirWhenPostBuild = srcDirWhenPostBuild;
+            global::Zeze.Arch.Gen.GenModule.Instance.SrcDirWhenPostBuild = srcDirWhenPostBuild;
             CreateModules();
-            if (Zeze.Arch.Gen.GenModule.Instance.HasNewGen)
+            if (global::Zeze.Arch.Gen.GenModule.Instance.HasNewGen)
                 throw new Exception("ModuleRedirect HasNewGen. Please Rebuild Now.");
 
             ProviderApp.initialize(global::Zeze.Arch.ProviderModuleBinds.Load(), Modules); // need Modules
 
-            Zz.StartAsync().Wait(); // 启动数据库
+            Zeze.StartAsync().Wait(); // 启动数据库
             StartModules(); // 启动模块，装载配置什么的。
 
             AsyncSocketSessionIdGen = PersistentAtomicLong.GetOrAdd("Server." + config.ServerId);
@@ -107,7 +107,7 @@ namespace Game
         {
             StopService(); // 关闭网络
             StopModules(); // 关闭模块,，卸载配置什么的。
-            Zz.Stop(); // 关闭数据库
+            Zeze.Stop(); // 关闭数据库
             DestroyModules();
             DestroyService();
             DestroyZeze();

@@ -28,7 +28,7 @@ namespace UnitTest.Zeze.Trans
         public async Task Test1()
         {
             string url = "Server=(localdb)\\MSSQLLocalDB;Integrated Security=true";
-            var sqlserver = new DatabaseSqlServer(demo.App.Instance.Zz, url);
+            var sqlserver = new DatabaseSqlServer(demo.App.Instance.Zeze, url);
             var table = sqlserver.OpenTable("test1");
             {
                 var trans = sqlserver.BeginTransaction();

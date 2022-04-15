@@ -117,7 +117,7 @@ namespace Zeze.Transaction
         public static async Task TryUpdateAndCheckpoint(
             Transaction trans, Procedure procedure, Action commit)
         {
-            switch (procedure.Zz.Config.CheckpointMode)
+            switch (procedure.Zeze.Config.CheckpointMode)
             {
                 case CheckpointMode.Immediately:
                     commit();

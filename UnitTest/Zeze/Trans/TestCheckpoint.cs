@@ -41,7 +41,7 @@ namespace UnitTest.Zeze.Trans
 			Console.WriteLine("2");
 			Console.WriteLine(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 			*/
-			Assert.IsTrue(demo.App.Instance.Zz.NewProcedure(async () =>
+			Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
 				await demo.App.Instance.demo_Module1.Table1.GetAsync(1L);
 				(await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(2L)).Int1 = 222;
@@ -49,7 +49,7 @@ namespace UnitTest.Zeze.Trans
 			}, "12").CallSynchronously() == Procedure.Success);
 			//Console.WriteLine("3");
 			//Console.WriteLine(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
-			Assert.IsTrue(demo.App.Instance.Zz.NewProcedure(async () =>
+			Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
 				await demo.App.Instance.demo_Module1.Table1.GetAsync(3L);
 				(await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(4L)).Int1 = 444;
@@ -57,7 +57,7 @@ namespace UnitTest.Zeze.Trans
 			}, "34").CallSynchronously() == Procedure.Success);
 			//Console.WriteLine("4");
 			//Console.WriteLine(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
-			Assert.IsTrue(demo.App.Instance.Zz.NewProcedure(async () =>
+			Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(async () =>
 			{
 				await demo.App.Instance.demo_Module1.Table1.GetAsync(2L);
 				(await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(3L)).Int1 = 333;
@@ -65,7 +65,7 @@ namespace UnitTest.Zeze.Trans
 			}, "23").CallSynchronously() == Procedure.Success);
 			//Console.WriteLine("5");
 			//Console.WriteLine(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
-			await demo.App.Instance.Zz.CheckpointNow();
+			await demo.App.Instance.Zeze.CheckpointNow();
 			//Console.WriteLine("6");
 			//Console.WriteLine(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 
@@ -79,9 +79,9 @@ namespace UnitTest.Zeze.Trans
 		[TestMethod]
         public async Task TestCp()
         {
-            Assert.IsTrue(demo.App.Instance.Zz.NewProcedure(ProcClear, "ProcClear").CallSynchronously() == Procedure.Success);
-            Assert.IsTrue(demo.App.Instance.Zz.NewProcedure(ProcChange, "ProcChange").CallSynchronously() == Procedure.Success);
-            await demo.App.Instance.Zz.CheckpointNow();
+            Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(ProcClear, "ProcClear").CallSynchronously() == Procedure.Success);
+            Assert.IsTrue(demo.App.Instance.Zeze.NewProcedure(ProcChange, "ProcChange").CallSynchronously() == Procedure.Success);
+            await demo.App.Instance.Zeze.CheckpointNow();
 			var table = demo.App.Instance.demo_Module1.Table1;
 			var dbtable = table.GetStorageForTestOnly("IKnownWhatIAmDoing").TableAsync;
             ByteBuffer value = dbtable.ITable.Find(table.EncodeKey(56));

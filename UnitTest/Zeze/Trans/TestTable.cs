@@ -17,7 +17,7 @@ namespace UnitTest.Zeze.Trans
         public void TestInit()
         {
             demo.App.Instance.Start();
-            demo.App.Instance.Zz.NewProcedure(async () =>
+            demo.App.Instance.Zeze.NewProcedure(async () =>
             {
                 await demo.App.Instance.demo_Module1.Table1.RemoveAsync(1);
                 await demo.App.Instance.demo_Module1.Table2.RemoveAsync(new demo.Module1.Key(1));
@@ -34,9 +34,9 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void TestUpdate()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zz.NewProcedure(ProcGetOrAdd, "ProcGetOrAdd").CallSynchronously());
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zz.NewProcedure(ProcGetUpdate, "ProcGetUpdate").CallSynchronously());
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zz.NewProcedure(ProcGetUpdateCheckRemove, "ProcGetUpdateCheckRemove").CallSynchronously());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGetOrAdd, "ProcGetOrAdd").CallSynchronously());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGetUpdate, "ProcGetUpdate").CallSynchronously());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGetUpdateCheckRemove, "ProcGetUpdateCheckRemove").CallSynchronously());
         }
 
         async Task<long> ProcGetUpdate()
@@ -83,8 +83,8 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void TestGetOrAdd()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zz.NewProcedure(ProcGetOrAdd, "ProcGetOrAdd").CallSynchronously());
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zz.NewProcedure(ProcGetOrAddCheckAndRemove, "ProcGetOrAddCheckAndRemove").CallSynchronously());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGetOrAdd, "ProcGetOrAdd").CallSynchronously());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGetOrAddCheckAndRemove, "ProcGetOrAddCheckAndRemove").CallSynchronously());
         }
 
         async Task<long> ProcGetOrAdd()
@@ -134,15 +134,15 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void Test1TableGetPut()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zz.NewProcedure(ProcGet11, "ProcGet11").CallSynchronously());
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zz.NewProcedure(ProcGet12, "ProcGet12").CallSynchronously());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGet11, "ProcGet11").CallSynchronously());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGet12, "ProcGet12").CallSynchronously());
         }
 
         [TestMethod]
         public void Test2TableGetPut()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zz.NewProcedure(ProcGet21, "ProcGet21").CallSynchronously());
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zz.NewProcedure(ProcGet22, "ProcGet22").CallSynchronously());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGet21, "ProcGet21").CallSynchronously());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcGet22, "ProcGet22").CallSynchronously());
         }
 
         async Task<long> ProcGet21()

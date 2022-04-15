@@ -120,14 +120,14 @@ namespace Zeze.Transaction
                 {
                     Task.Run(async () =>
                     {
-                        foreach (var database in client.Zz.Databases.Values)
+                        foreach (var database in client.Zeze.Databases.Values)
                         {
                             foreach (var table in database.Tables)
                             {
                                 await table.ReduceInvalidAllLocalOnly(GlobalCacheManagerHashIndex);
                             }
                         }
-                        await client.Zz.CheckpointNow();
+                        await client.Zeze.CheckpointNow();
                     });
                 }
             }
@@ -183,10 +183,10 @@ namespace Zeze.Transaction
             {
                 case GlobalCacheManagerServer.StateInvalid:
                     {
-                        var table = Zz.GetTable(rpc.Argument.GlobalTableKey.TableName);
+                        var table = Zeze.GetTable(rpc.Argument.GlobalTableKey.TableName);
                         if (table == null)
                         {
-                            logger.Warn($"ReduceInvalid Table Not Found={rpc.Argument.GlobalTableKey.TableName},ServerId={Zz.Config.ServerId}");
+                            logger.Warn($"ReduceInvalid Table Not Found={rpc.Argument.GlobalTableKey.TableName},ServerId={Zeze.Config.ServerId}");
                             // 本地没有找到表格看作成功。
                             rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
                             rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
@@ -198,10 +198,10 @@ namespace Zeze.Transaction
 
                 case GlobalCacheManagerServer.StateShare:
                     {
-                        var table = Zz.GetTable(rpc.Argument.GlobalTableKey.TableName);
+                        var table = Zeze.GetTable(rpc.Argument.GlobalTableKey.TableName);
                         if (table == null)
                         {
-                            logger.Warn($"ReduceShare Table Not Found={rpc.Argument.GlobalTableKey.TableName},ServerId={Zz.Config.ServerId}");
+                            logger.Warn($"ReduceShare Table Not Found={rpc.Argument.GlobalTableKey.TableName},ServerId={Zeze.Config.ServerId}");
                             // 本地没有找到表格看作成功。
                             rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
                             rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
@@ -218,11 +218,11 @@ namespace Zeze.Transaction
             }
         }
 
-        public Zeze.Application Zz { get;  }
+        public Zeze.Application Zeze { get;  }
 
         public GlobalAgent(Zeze.Application app)
         {
-            Zz = app;
+            Zeze = app;
         }
 
         public void Start(string[] hostNameOrAddress, int port)
@@ -232,7 +232,7 @@ namespace Zeze.Transaction
                 if (null != Client)
                     return;
 
-                Client = new GlobalClient(this, Zz);
+                Client = new GlobalClient(this, Zeze);
                 // Raft Need. Zeze-App 自动启用持久化的全局唯一的Rpc.SessionId生成器。
                 //Client.SessionIdGenerator = Zeze.ServiceManagerAgent.GetAutoKey(Client.Name).Next;
 
@@ -300,7 +300,7 @@ namespace Zeze.Transaction
     public sealed class GlobalClient : Zeze.Net.Service
     {
         public GlobalClient(GlobalAgent agent, Application zeze)
-            : base($"{agent.Zz.SolutionName}.GlobalClient", zeze)
+            : base($"{agent.Zeze.SolutionName}.GlobalClient", zeze)
         {
         }
 
@@ -310,7 +310,7 @@ namespace Zeze.Transaction
             if (agent.LoginTimes.Get() > 0)
             {
                 var relogin = new ReLogin();
-                relogin.Argument.ServerId = Zz.Config.ServerId;
+                relogin.Argument.ServerId = Zeze.Config.ServerId;
                 relogin.Argument.GlobalCacheManagerHashIndex = agent.GlobalCacheManagerHashIndex;
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
                 relogin.Send(so,
@@ -336,7 +336,7 @@ namespace Zeze.Transaction
             else
             {
                 var login = new Login();
-                login.Argument.ServerId = Zz.Config.ServerId;
+                login.Argument.ServerId = Zeze.Config.ServerId;
                 login.Argument.GlobalCacheManagerHashIndex = agent.GlobalCacheManagerHashIndex;
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
                 login.Send(so,

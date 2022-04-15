@@ -25,8 +25,8 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void TestNest()
         {
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zz.NewProcedure(ProcTableRemove, "ProcTableRemove").CallSynchronously());
-            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zz.NewProcedure(ProcTableAdd, "ProcTableAdd").CallSynchronously());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcTableRemove, "ProcTableRemove").CallSynchronously());
+            Assert.IsTrue(Procedure.Success == demo.App.Instance.Zeze.NewProcedure(ProcTableAdd, "ProcTableAdd").CallSynchronously());
         }
 
         async Task<long> ProcTableRemove()
@@ -39,7 +39,7 @@ namespace UnitTest.Zeze.Trans
         {
             demo.Module1.Value v1 = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(4321);
             Assert.IsNotNull(v1);
-            Assert.IsTrue(Procedure.Success != await demo.App.Instance.Zz.NewProcedure(
+            Assert.IsTrue(Procedure.Success != await demo.App.Instance.Zeze.NewProcedure(
                 ProcTablePutNestAndRollback, "ProcTablePutNestAndRollback").CallAsync());
             demo.Module1.Value v2 = await demo.App.Instance.demo_Module1.Table1.GetAsync(4321);
             Assert.IsNotNull(v1);

@@ -46,7 +46,7 @@ namespace Zeze.Arch
                     var providerModuleState = new ProviderModuleState(providerSession.SessionId,
                         module.Key, module.Value.ChoiceType, module.Value.ConfigType);
                     var serviceName = LinkdApp.LinkdProvider.Distribute.MakeServiceName(providerSession.Info.ServiceNamePrefix, module.Key);
-                    var subState = await LinkdApp.Zz.ServiceManagerAgent.SubscribeService(serviceName,
+                    var subState = await LinkdApp.Zeze.ServiceManagerAgent.SubscribeService(serviceName,
                         SubscribeInfo.SubscribeTypeReadyCommit,
                         providerModuleState);
                     // 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
@@ -148,7 +148,7 @@ namespace Zeze.Arch
                 var providerModuleState = new ProviderModuleState(ps.SessionId,
                         module.Key, module.Value.ChoiceType, module.Value.ConfigType);
                 var serviceName = LinkdApp.LinkdProvider.Distribute.MakeServiceName(ps.Info.ServiceNamePrefix, module.Key);
-                var subState = await LinkdApp.Zz.ServiceManagerAgent.SubscribeService(
+                var subState = await LinkdApp.Zeze.ServiceManagerAgent.SubscribeService(
                         serviceName, module.Value.SubscribeType, providerModuleState);
                 // 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
                 if (SubscribeInfo.SubscribeTypeReadyCommit == module.Value.SubscribeType)
@@ -167,7 +167,7 @@ namespace Zeze.Arch
                 if (false == isOnProviderClose)
                     ps.StaticBinds.TryRemove(moduleId, out var _);
                 var serviceName = LinkdApp.LinkdProvider.Distribute.MakeServiceName(ps.Info.ServiceNamePrefix, moduleId);
-                if (false == LinkdApp.Zz.ServiceManagerAgent.SubscribeStates.TryGetValue(
+                if (false == LinkdApp.Zeze.ServiceManagerAgent.SubscribeStates.TryGetValue(
                     serviceName, out var volatileProviders))
                 {
                     continue;
@@ -208,7 +208,7 @@ namespace Zeze.Arch
             var linkSession = link.UserState as LinkdUserSession;
 
             provider = 0;
-            if (false == LinkdApp.Zz.ServiceManagerAgent.SubscribeStates.TryGetValue(
+            if (false == LinkdApp.Zeze.ServiceManagerAgent.SubscribeStates.TryGetValue(
                 serviceName, out var volatileProviders))
                 return false;
 

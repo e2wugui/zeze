@@ -25,14 +25,14 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void Test2()
         {
-            demo.App.Instance.Zz.NewProcedure(Init, "test_init").CallSynchronously();
+            demo.App.Instance.Zeze.NewProcedure(Init, "test_init").CallSynchronously();
             Task.Run(Verify_task);
             try
             {
                 Task[] tasks = new Task[200000];
                 for (int i = 0; i < tasks.Length; ++i)
                 {
-                    tasks[i] = demo.App.Instance.Zz.NewProcedure(Trade, "test_trade").CallAsync();
+                    tasks[i] = demo.App.Instance.Zeze.NewProcedure(Trade, "test_trade").CallAsync();
                 }
                 Task.WaitAll(tasks);
             }
@@ -46,7 +46,7 @@ namespace UnitTest.Zeze.Trans
         {
             while (InTest)
             {
-                demo.App.Instance.Zz.NewProcedure(Verify, "test_verify").CallSynchronously();
+                demo.App.Instance.Zeze.NewProcedure(Verify, "test_verify").CallSynchronously();
             }
         }
 

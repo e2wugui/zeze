@@ -30,7 +30,7 @@ namespace Zeze.Transaction
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        public Application Zz { get; }
+        public Application Zeze { get; }
 
         public Func<Task<long>> Action { get; set; }
 
@@ -40,7 +40,7 @@ namespace Zeze.Transaction
         // 用于继承方式实现 Procedure。
         public Procedure(Application app)
         {
-            Zz = app;
+            Zeze = app;
         }
 
         public object UserState { get; set; }
@@ -48,7 +48,7 @@ namespace Zeze.Transaction
 
         public Procedure(Application app, Func<Task<long>> action, string actionName, TransactionLevel level, object userState)
         {
-            Zz = app;
+            Zeze = app;
             Action = action;
             ActionName = actionName;
             TransactionLevel = level;
@@ -62,7 +62,7 @@ namespace Zeze.Transaction
         public static void DefaultLogAction(Exception ex, long result, Procedure p, string message)
         {
             NLog.LogLevel ll = (null != ex) ? NLog.LogLevel.Error
-                : (0 != result) ? p.Zz.Config.ProcessReturnErrorLogLevel
+                : (0 != result) ? p.Zeze.Config.ProcessReturnErrorLogLevel
                 : NLog.LogLevel.Trace;
 
             var module = "";
@@ -91,7 +91,7 @@ namespace Zeze.Transaction
                 try
                 {
                     // 有点奇怪，Perform 里面又会回调这个方法。这是为了把主要流程都写到 Transaction 中。
-                    return await Transaction.Create(Zz.Locks).Perform(this);
+                    return await Transaction.Create(Zeze.Locks).Perform(this);
                 }
                 finally
                 {
