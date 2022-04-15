@@ -2,6 +2,7 @@ package Zeze.Arch;
 
 import Zeze.Beans.ProviderDirect.ModuleRedirectAllRequest;
 
+// 目前只用于RedirectAll
 public class RedirectResult {
 	private long sessionId;
 	private int hash;
