@@ -21,49 +21,51 @@ public class ModuleRedirectRank extends TestCase {
 		System.out.println("End Thread.sleep app2 " + app1.Zeze.getServiceManagerAgent().getSubscribeStates().values());
 
 		try {
-			var in = new Zeze.Util.OutInt();
-			var serverId = new Zeze.Util.OutInt();
-
-			// @formatter:off
 			// RedirectToServer
-			app1.Game_Rank.TestToServer(0, 12345).then(result -> { in.Value = result.out; serverId.Value = result.serverId; }).Wait();
-			assert in.Value == 12345;
-			assert serverId.Value == 0;
+			app1.Game_Rank.TestToServer(0, 111).then(result -> {
+				assertEquals(111, result.out);
+				assertEquals(0, result.serverId);
+			}).Wait();
 
-			app1.Game_Rank.TestToServer(1, 12345).then(result -> { in.Value = result.out; serverId.Value = result.serverId; }).Wait();
-			assert in.Value == 12345;
-			assert serverId.Value == 1;
+			app1.Game_Rank.TestToServer(1, 222).then(result -> {
+				assertEquals(222, result.out);
+				assertEquals(1, result.serverId);
+			}).Wait();
 
-			app2.Game_Rank.TestToServer(0, 12345).then(result -> { in.Value = result.out; serverId.Value = result.serverId; }).Wait();
-			assert in.Value == 12345;
-			assert serverId.Value == 0;
+			app2.Game_Rank.TestToServer(0, 333).then(result -> {
+				assertEquals(333, result.out);
+				assertEquals(0, result.serverId);
+			}).Wait();
 
-			app2.Game_Rank.TestToServer(1, 12345).then(result -> { in.Value = result.out; serverId.Value = result.serverId; }).Wait();
-			assert in.Value == 12345;
-			assert serverId.Value == 1;
+			app2.Game_Rank.TestToServer(1, 444).then(result -> {
+				assertEquals(444, result.out);
+				assertEquals(1, result.serverId);
+			}).Wait();
 
 			// RedirectHash
-			var hash = new Zeze.Util.OutInt();
-			app1.Game_Rank.TestHash(0, 12345).then(result -> { hash.Value = result.hash; in.Value = result.out; serverId.Value = result.serverId;}).Wait();
-			assert hash.Value == 0;
-			assert in.Value == 12345;
-			assert serverId.Value == 0;
+			app1.Game_Rank.TestHash(0, 555).then(result -> {
+				assertEquals(0, result.hash);
+				assertEquals(555, result.out);
+				assertEquals(0, result.serverId);
+			}).Wait();
 
-			app1.Game_Rank.TestHash(1, 12345).then(result -> { hash.Value = result.hash; in.Value = result.out; serverId.Value = result.serverId;}).Wait();
-			assert hash.Value == 1;
-			assert in.Value == 12345;
-			assert serverId.Value == 1;
+			app1.Game_Rank.TestHash(1, 666).then(result -> {
+				assertEquals(1, result.hash);
+				assertEquals(666, result.out);
+				assertEquals(1, result.serverId);
+			}).Wait();
 
-			app2.Game_Rank.TestHash(0, 12345).then(result -> { hash.Value = result.hash; in.Value = result.out; serverId.Value = result.serverId;}).Wait();
-			assert hash.Value == 0;
-			assert in.Value == 12345;
-			assert serverId.Value == 0;
+			app2.Game_Rank.TestHash(0, 777).then(result -> {
+				assertEquals(0, result.hash);
+				assertEquals(777, result.out);
+				assertEquals(0, result.serverId);
+			}).Wait();
 
-			app2.Game_Rank.TestHash(1, 12345).then(result -> { hash.Value = result.hash; in.Value = result.out; serverId.Value = result.serverId;}).Wait();
-			assert hash.Value == 1;
-			assert in.Value == 12345;
-			assert serverId.Value == 1;
-			// @formatter:on
+			app2.Game_Rank.TestHash(1, 888).then(result -> {
+				assertEquals(1, result.hash);
+				assertEquals(888, result.out);
+				assertEquals(1, result.serverId);
+			}).Wait();
 
 			// RedirectAll
 			app1.Game_Rank.TestToAllConcLevel = 6;

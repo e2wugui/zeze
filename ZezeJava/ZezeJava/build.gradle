@@ -11,14 +11,6 @@ dependencies {
     implementation 'mysql:mysql-connector-java:8.0.28'
 }
 
-sourceSets {
-    main {
-        java {
-            srcDir "src"
-        }
-    }
-}
-
 task startServiceManager(type: JavaExec) {
     classpath = configurations.runtimeClasspath
     classpath += sourceSets.main.runtimeClasspath

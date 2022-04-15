@@ -6,61 +6,64 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.function.Predicate;
 import Zeze.Arch.ModuleRedirectAllContext;
 import Zeze.Arch.RedirectAll;
 import Zeze.Arch.RedirectFuture;
 import Zeze.Arch.RedirectResult;
+import Zeze.Arch.RedirectToServer;
 import Zeze.Util.Action1;
 import Zeze.Util.KV;
-import Zeze.Util.Str;
+import Zeze.Util.StringBuilderCs;
 
 class MethodOverride {
-	Method method;
-	OverrideType overrideType;
-	Annotation attribute;
-	Zeze.Transaction.TransactionLevel TransactionLevel;
-
-	Parameter[] allParameters;
-	Parameter hashOrServerIdParameter;
-	ArrayList<Parameter> inputParameters = new ArrayList<>();
-	GenAction resultAction;
+	final Method method;
+	final Annotation annotation;
+	final Zeze.Transaction.TransactionLevel TransactionLevel;
+	final Parameter[] allParameters;
+	final Parameter hashOrServerIdParameter;
+	final ArrayList<Parameter> inputParameters = new ArrayList<>();
+	final String resultTypeName;
+	final ArrayList<KV<Class<?>, String>> resultTypeNames;
+	Parameter resultActionParameter;
+	Type resultActionInnerType;
 	Class<?> resultType;
-	String resultTypeName;
-	ArrayList<KV<Class<?>, String>> resultTypeNames;
 	boolean returnTypeHasResultCode;
 
-	MethodOverride(Zeze.Transaction.TransactionLevel tLevel, Method method, OverrideType type, Annotation attribute) {
-		TransactionLevel = tLevel;
+	MethodOverride(Method method, Annotation annotation) {
 		this.method = method;
-		overrideType = type;
-		this.attribute = attribute;
+		this.annotation = annotation;
+
+		var tLevelAnn = method.getAnnotation(Zeze.Util.TransactionLevel.class);
+		TransactionLevel = tLevelAnn != null
+				? Zeze.Transaction.TransactionLevel.valueOf(tLevelAnn.Level())
+				: Zeze.Transaction.TransactionLevel.Serializable;
 
 		allParameters = method.getParameters();
 		inputParameters.addAll(Arrays.asList(allParameters));
 
-		if (type == OverrideType.RedirectAll) {
+		if (annotation instanceof RedirectAll) {
+			hashOrServerIdParameter = null;
 			for (var p : allParameters) {
 				if (p.getType() != Action1.class)
 					continue;
-				var action = new GenAction(p);
 				inputParameters.remove(p);
-				if (resultAction != null) {
+				if (resultActionParameter != null) {
 					throw new RuntimeException("Too Many Result Action: "
 							+ method.getDeclaringClass().getName() + "::" + method.getName());
 				}
-				resultAction = action;
-				var genType = resultAction.GenericArgument;
-				if (genType instanceof ParameterizedType) {
-					var paramType = (ParameterizedType)genType;
+				resultActionParameter = p;
+				resultActionInnerType = ((ParameterizedType)p.getParameterizedType()).getActualTypeArguments()[0];
+				if (resultActionInnerType instanceof ParameterizedType) {
+					var paramType = (ParameterizedType)resultActionInnerType;
 					if (paramType.getRawType() != ModuleRedirectAllContext.class) {
 						throw new RuntimeException("not Action1<ModuleRedirectAllContext<...>>: "
 								+ method.getDeclaringClass().getName() + "::" + method.getName());
 					}
-					resultType = (Class<?>)((ParameterizedType)genType).getActualTypeArguments()[0];
+					resultType = (Class<?>)((ParameterizedType)resultActionInnerType).getActualTypeArguments()[0];
 					if (!RedirectResult.class.isAssignableFrom(resultType)) {
 						throw new RuntimeException("RedirectAll Result Type Must Extend RedirectContext: "
 								+ method.getDeclaringClass().getName() + "::" + method.getName());
@@ -77,19 +80,18 @@ class MethodOverride {
 			var rType = method.getGenericReturnType();
 			if (rType instanceof ParameterizedType) {
 				var rpType = (ParameterizedType)rType;
-				if (rpType.getRawType() == RedirectFuture.class) {
+				if (rpType.getRawType() == RedirectFuture.class)
 					resultType = (Class<?>)rpType.getActualTypeArguments()[0];
-				}
 			}
 		}
 
 		if (resultType == null)
 			resultType = Long.class;
-		resultTypeName = GenAction.toShortTypeName(resultType.getName()).replace('$', '.');
-		Field[] fields = resultType.getFields();
+		resultTypeName = toShort(resultType.getName()).replace('$', '.');
+		var fields = resultType.getFields();
 		Arrays.sort(fields, Comparator.comparing(Field::getName));
 		resultTypeNames = new ArrayList<>();
-		for (Field field : fields) {
+		for (var field : fields) {
 			if ((field.getModifiers() & ~Modifier.VOLATILE) == Modifier.PUBLIC) {
 				if (field.getName().equals("resultCode") && field.getType() == long.class)
 					returnTypeHasResultCode = true;
@@ -99,16 +101,22 @@ class MethodOverride {
 		}
 	}
 
+	private static String toShort(String typeName) {
+		if (!typeName.startsWith("java.lang."))
+			return typeName;
+		String shortTypeName = typeName.substring(10);
+		return shortTypeName.indexOf('.') < 0 ? shortTypeName : typeName;
+	}
+
 	String GetDefineString() throws Throwable {
-		var sb = new Zeze.Util.StringBuilderCs();
-		boolean first = true;
+		var sb = new StringBuilderCs();
+		var first = true;
 		for (var p : allParameters) {
-			if (first)
-				first = false;
-			else
+			if (!first)
 				sb.Append(", ");
-			if (null != resultAction && p == resultAction.Parameter)
-				sb.Append(resultAction.GetDefineName());
+			first = false;
+			if (p == resultActionParameter)
+				sb.Append("Zeze.Util.Action1<" + toShort(resultActionInnerType.getTypeName()).replace('$', '.') + '>');
 			else
 				sb.Append(Gen.Instance.GetTypeName(p.getType()));
 			sb.Append(" ");
@@ -118,67 +126,26 @@ class MethodOverride {
 	}
 
 	final String GetNormalCallString() {
-		return GetNormalCallString(null);
-	}
-
-	final String GetNormalCallString(Predicate<Parameter> skip) {
-		StringBuilder sb = new StringBuilder();
-		boolean first = true;
-		for (Parameter p : inputParameters) {
-			if (null != skip && skip.test(p)) {
-				continue;
-			}
-			if (first) {
-				first = false;
-			} else {
+		var sb = new StringBuilder();
+		var first = true;
+		for (var p : inputParameters) {
+			if (!first)
 				sb.append(", ");
-			}
+			first = false;
 			sb.append(p.getName());
 		}
 		return sb.toString();
 	}
 
-	final String GetHashOrServerCallString() {
-		if (hashOrServerIdParameter == null) {
-			return "";
-		}
-		if (allParameters.length == 1) { // 除了hash，没有其他参数。
-			return hashOrServerIdParameter.getName();
-		}
-		return Str.format("{}, ", hashOrServerIdParameter.getName());
-	}
-
 	final String GetBaseCallString() {
-		return Str.format("{}{}", GetHashOrServerCallString(), GetNormalCallString());
+		if (inputParameters.isEmpty()) // 除了hash，没有其他参数。
+			return hashOrServerIdParameter.getName();
+		return hashOrServerIdParameter.getName() + ", " + GetNormalCallString();
 	}
 
 	final String getRedirectType() {
-		switch (overrideType) {
-		case RedirectHash: // fall down
-			return "Zeze.Beans.ProviderDirect.ModuleRedirect.RedirectTypeWithHash";
-		case RedirectToServer:
+		if (annotation instanceof RedirectToServer)
 			return "Zeze.Beans.ProviderDirect.ModuleRedirect.RedirectTypeToServer";
-		default:
-			throw new RuntimeException("unknown OverrideType");
-		}
-	}
-
-	final String GetChoiceHashOrServerCodeSource() {
-		switch (overrideType) {
-		case RedirectToServer:
-		case RedirectHash:
-			return hashOrServerIdParameter.getName(); // parameter name
-
-		default:
-			throw new RuntimeException("error state");
-		}
-	}
-
-	final String GetConcurrentLevelSource() {
-		if (overrideType != OverrideType.RedirectAll) {
-			throw new RuntimeException("is not RedirectAll");
-		}
-		var attr = (RedirectAll)attribute;
-		return attr.GetConcurrentLevelSource();
+		return "Zeze.Beans.ProviderDirect.ModuleRedirect.RedirectTypeWithHash";
 	}
 }
