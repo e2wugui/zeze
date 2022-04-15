@@ -39,9 +39,8 @@ public class RedirectFuture<T> extends TaskCompletionSource<T> {
 	private void tryOnResult(T t) throws Throwable {
 		@SuppressWarnings("unchecked")
 		var onR = (Action1<T>)ON_RESULT.getAndSet(this, null);
-		if (onR != null) {
+		if (onR != null)
 			onR.run(t);
-		}
 	}
 
 	// 不支持同时叠多个onResult,否则可能覆盖之前没执行过的

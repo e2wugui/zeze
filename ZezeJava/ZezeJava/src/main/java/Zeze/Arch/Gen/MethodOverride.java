@@ -27,7 +27,7 @@ class MethodOverride {
 	final Parameter hashOrServerIdParameter;
 	final ArrayList<Parameter> inputParameters = new ArrayList<>();
 	final String resultTypeName;
-	final ArrayList<KV<Class<?>, String>> resultTypeNames;
+	final ArrayList<KV<Class<?>, String>> resultTypeNames = new ArrayList<>();
 	Parameter resultActionParameter;
 	Type resultActionInnerType;
 	Class<?> resultType;
@@ -37,9 +37,9 @@ class MethodOverride {
 		this.method = method;
 		this.annotation = annotation;
 
-		var tLevelAnn = method.getAnnotation(Zeze.Util.TransactionLevel.class);
-		TransactionLevel = tLevelAnn != null
-				? Zeze.Transaction.TransactionLevel.valueOf(tLevelAnn.Level())
+		var levelAnn = method.getAnnotation(Zeze.Util.TransactionLevel.class);
+		TransactionLevel = levelAnn != null
+				? Zeze.Transaction.TransactionLevel.valueOf(levelAnn.Level())
 				: Zeze.Transaction.TransactionLevel.Serializable;
 
 		allParameters = method.getParameters();
@@ -90,9 +90,8 @@ class MethodOverride {
 		resultTypeName = toShort(resultType.getName()).replace('$', '.');
 		var fields = resultType.getFields();
 		Arrays.sort(fields, Comparator.comparing(Field::getName));
-		resultTypeNames = new ArrayList<>();
 		for (var field : fields) {
-			if ((field.getModifiers() & ~Modifier.VOLATILE) == Modifier.PUBLIC) {
+			if ((field.getModifiers() & ~Modifier.VOLATILE) == Modifier.PUBLIC) { // 只允许public和可选的volatile
 				if (field.getName().equals("resultCode") && field.getType() == long.class)
 					returnTypeHasResultCode = true;
 				else
@@ -125,7 +124,7 @@ class MethodOverride {
 		return sb.toString();
 	}
 
-	final String GetNormalCallString() {
+	String GetNormalCallString() {
 		var sb = new StringBuilder();
 		var first = true;
 		for (var p : inputParameters) {
@@ -137,15 +136,15 @@ class MethodOverride {
 		return sb.toString();
 	}
 
-	final String GetBaseCallString() {
-		if (inputParameters.isEmpty()) // 除了hash，没有其他参数。
-			return hashOrServerIdParameter.getName();
-		return hashOrServerIdParameter.getName() + ", " + GetNormalCallString();
+	String GetBaseCallString() {
+		return inputParameters.isEmpty()
+				? hashOrServerIdParameter.getName() // 除了serverId或hash,没有其他参数
+				: hashOrServerIdParameter.getName() + ", " + GetNormalCallString();
 	}
 
-	final String getRedirectType() {
-		if (annotation instanceof RedirectToServer)
-			return "Zeze.Beans.ProviderDirect.ModuleRedirect.RedirectTypeToServer";
-		return "Zeze.Beans.ProviderDirect.ModuleRedirect.RedirectTypeWithHash";
+	String getRedirectType() {
+		return annotation instanceof RedirectToServer
+				? "Zeze.Beans.ProviderDirect.ModuleRedirect.RedirectTypeToServer"
+				: "Zeze.Beans.ProviderDirect.ModuleRedirect.RedirectTypeWithHash";
 	}
 }

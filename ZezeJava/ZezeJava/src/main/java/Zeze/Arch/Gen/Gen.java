@@ -175,7 +175,7 @@ class Gen {
 		sb.AppendLine("{}     var _os_ = new java.io.ObjectOutputStream(_bs_)) {", prefix);
 		sb.AppendLine("{}    _os_.writeObject({});", prefix, varName);
 		sb.AppendLine("{}    {}.WriteBytes(_bs_.toByteArray());", prefix, bbName);
-		sb.AppendLine("{}} catch (IOException _e_) {", prefix);
+		sb.AppendLine("{}} catch (java.io.IOException _e_) {", prefix);
 		sb.AppendLine("{}    throw new RuntimeException(_e_);", prefix);
 		sb.AppendLine("{}}", prefix);
 	}
@@ -196,7 +196,7 @@ class Gen {
 		sb.AppendLine("{}    try (var _bs_ = new java.io.ByteArrayInputStream(_bo_.Bytes, _bo_.ReadIndex, _bo_.Size());", prefix);
 		sb.AppendLine("{}         var _os_ = new java.io.ObjectInputStream(_bs_)) {", prefix);
 		sb.AppendLine("{}        {} = ({})_os_.readObject();", prefix, varName, GetTypeName(type));
-		sb.AppendLine("{}    } catch (IOException _e_) {", prefix);
+		sb.AppendLine("{}    } catch (java.io.IOException _e_) {", prefix);
 		sb.AppendLine("{}        throw new RuntimeException(_e_);", prefix);
 		sb.AppendLine("{}    }", prefix);
 		sb.AppendLine("{}}", prefix);
