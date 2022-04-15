@@ -18,6 +18,7 @@ namespace Zeze
         public Config Config { get; private set; }
         public bool IsStart { get; private set; }
         public Agent ServiceManagerAgent { get; private set; }
+        public Zeze.Arch.RedirectBase Redirect { get; set; }
         internal IGlobalAgent GlobalAgent { get; private set; }
 
         internal Locks Locks { get; private set; }

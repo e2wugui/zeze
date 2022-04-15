@@ -12,6 +12,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 	private long ResultCode;
 	public TArgument Argument;
 	public Binary ArgumentEncoded;
+
 	public AsyncSocket getSender() {
 		return Sender;
 	}
@@ -21,7 +22,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 	}
 
 	public Service getService() {
-		return Sender.getService();
+		return Sender != null ? Sender.getService() : null;
 	}
 
 	public Object getUserState() {
@@ -117,7 +118,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 		if (so == null)
 			return false;
 		Sender = so;
-		return so.Send(Encode());
+		return so.Send(this);
 	}
 
 	public boolean Send(Service service) {
@@ -184,6 +185,18 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 									bb.ReadIndex - beginReadIndex - HEADER_SIZE, size));
 				p.Sender = so;
 				p.UserState = so.getUserState();
+				if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
+					if (p.isRequest()) {
+						if (p instanceof Rpc)
+							AsyncSocket.logger.trace("RECV({}) {}({}): {}", so.getSessionId(),
+									p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.Argument);
+						else
+							AsyncSocket.logger.trace("RECV({}) {}: {}", so.getSessionId(),
+									p.getClass().getSimpleName(), p.Argument);
+					} else
+						AsyncSocket.logger.trace("RECV({}) {}({})> {}", so.getSessionId(),
+								p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.getResultBean());
+				}
 				p.Dispatch(service, factoryHandle);
 			} else {
 				int savedWriteIndex = bb.WriteIndex;

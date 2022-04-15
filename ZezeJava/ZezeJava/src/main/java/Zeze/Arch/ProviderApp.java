@@ -3,7 +3,6 @@ package Zeze.Arch;
 import java.util.HashMap;
 import Zeze.Beans.Provider.BLoad;
 import Zeze.Beans.Provider.BModule;
-import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.IntHashMap;
 
 /**
@@ -28,6 +27,10 @@ public class ProviderApp {
 	public int DirectPort;
 
 	public ProviderDistribute Distribute;
+
+	public final IntHashMap<BModule> StaticBinds = new IntHashMap<>();
+	public final IntHashMap<BModule> DynamicModules = new IntHashMap<>();
+	public final IntHashMap<BModule> Modules = new IntHashMap<>();
 
 	public ProviderApp(Zeze.Application zeze,
 					   ProviderImplement server,
@@ -60,31 +63,24 @@ public class ProviderApp {
 
 		this.ProviderImplement.RegisterProtocols(ProviderService);
 
-		this.Zeze.getServiceManagerAgent().setOnChanged(
-				(subscribeState) -> ProviderImplement.ApplyOnChanged(subscribeState));
-		this.Zeze.getServiceManagerAgent().setOnPrepare(
-				(subscribeState) -> ProviderImplement.ApplyOnPrepare(subscribeState));
+		this.Zeze.getServiceManagerAgent().setOnChanged(ProviderImplement::ApplyOnChanged);
+		this.Zeze.getServiceManagerAgent().setOnPrepare(ProviderImplement::ApplyOnPrepare);
 
 		this.Zeze.getServiceManagerAgent().setOnSetServerLoad((serverLoad) -> {
-			var ps = this.ProviderDirectService.ProviderSessions.get(serverLoad.getName());
-			if (null != ps) {
-				var bb = ByteBuffer.Wrap(serverLoad.Param);
+			var ps = ProviderDirectService.ProviderSessions.get(serverLoad.getName());
+			if (ps != null) {
 				var load = new BLoad();
-				load.Decode(bb);
+				load.Decode(serverLoad.Param.Wrap());
 				ps.Load = load;
 			}
 		});
 		this.Distribute = new ProviderDistribute();
 		this.Distribute.LoadConfig = loadConfig;
-		this.Distribute.Zeze = this.Zeze;
-		this.Distribute.ProviderService = ProviderService;
+		this.Distribute.Zeze = Zeze;
+		this.Distribute.ProviderService = ProviderDirectService;
 
 		this.ProviderDirect.RegisterProtocols(ProviderDirectService);
 	}
-
-	public final IntHashMap<BModule> StaticBinds = new IntHashMap<>();
-	public final IntHashMap<BModule> DynamicModules = new IntHashMap<>();
-	public final IntHashMap<BModule> Modules = new IntHashMap<>();
 
 	public void initialize(ProviderModuleBinds binds, HashMap<String, Zeze.IModule> modules) {
 		binds.BuildStaticBinds(modules, Zeze.getConfig().getServerId(), StaticBinds);
@@ -93,7 +89,7 @@ public class ProviderApp {
 		Modules.putAll(DynamicModules);
 	}
 
-	public void StartLast() throws Throwable {
+	public void StartLast() {
 		ProviderImplement.RegisterModulesAndSubscribeLinkd();
 	}
 }

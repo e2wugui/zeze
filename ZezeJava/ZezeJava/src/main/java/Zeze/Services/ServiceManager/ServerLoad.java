@@ -4,7 +4,6 @@ import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
-import Zeze.Util.Func1;
 
 public final class ServerLoad extends Bean {
 	public String Ip;

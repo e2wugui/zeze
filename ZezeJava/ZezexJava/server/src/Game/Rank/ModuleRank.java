@@ -2,23 +2,22 @@ package Game.Rank;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import Game.App;
 import Zeze.Arch.ModuleRedirectAllContext;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Arch.RedirectAll;
-import Zeze.Arch.RedirectAllDoneHandle;
+import Zeze.Arch.RedirectFuture;
 import Zeze.Arch.RedirectHash;
+import Zeze.Arch.RedirectResult;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Net.Binary;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Action1;
-import Zeze.Util.Action2;
-import Zeze.Util.Action3;
-import Zeze.Util.Str;
-import Zeze.Util.TaskCompletionSource;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -197,23 +196,17 @@ public class ModuleRank extends AbstractModule {
 
 	/**
 	 * ModuleRedirectAll 实现要求：
-	 * 1）第一个参数是调用会话id；
-	 * 2）第二个参数是hash-index；
-	 * 3）然后是实现自定义输入参数；
-	 * 4）最后是结果回调,
-	 * a) 第一参数是会话id，
-	 * b) 第二参数hash-index，
-	 * c) 第三个参数是returnCode，
-	 * d) 剩下的是自定义参数。
+	 * 1）最后一个参数是输出结果和上下文(会话ID和hash)
+	 * 2）前面的其它参数都是自定义的输入参数
+	 * 3）返回值没有意义,可以为void
 	 */
-	protected final long GetRank(long sessionId, int hash, BConcurrentKey keyHint,
-								 Action3<Long, Integer, BRankList> onHashResult) {
+	protected final long GetRank(BConcurrentKey keyHint, RRankList result) {
 		// 根据hash获取分组rank。
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
-		var concurrentKey = new BConcurrentKey(keyHint.getRankType(), hash % concurrentLevel,
+		var concurrentKey = new BConcurrentKey(keyHint.getRankType(), result.getHash() % concurrentLevel,
 				keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
 		try {
-			onHashResult.run(sessionId, hash, _trank.getOrAdd(concurrentKey));
+			result.rankList = _trank.getOrAdd(concurrentKey);
 			return Procedure.Success;
 		} catch (Throwable e) {
 			logger.error("", e);
@@ -221,10 +214,15 @@ public class ModuleRank extends AbstractModule {
 		}
 	}
 
+	public static class RRankList extends RedirectResult {
+		public BRankList rankList = new BRankList(); // 目前要求输出结构的所有字段都不能为null,需要构造时创建
+	}
+
 	// 属性参数是获取总的并发分组数量的代码，直接复制到生成代码中。
 	// 需要注意在子类上下文中可以编译通过。可以是常量。
 	@RedirectAll(GetConcurrentLevelSource = "GetConcurrentLevel(arg0.getRankType())")
-	public void GetRank(BConcurrentKey keyHint, Action3<Long, Integer, BRankList> onHashResult, RedirectAllDoneHandle onHashEnd) {
+	public void GetRank(BConcurrentKey keyHint, Action1<ModuleRedirectAllContext<RRankList>> onResult) {
+/*
 		// 默认实现是本地遍历调用，这里不使用App.Zeze.Run启动任务（这样无法等待），直接调用实现。
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		var ctx = new ModuleRedirectAllContext(concurrentLevel,
@@ -234,8 +232,10 @@ public class ModuleRank extends AbstractModule {
 		for (int i = 0; i < concurrentLevel; ++i) {
 			GetRank(sessionId, i, keyHint, onHashResult);
 		}
+*/
 	}
 
+/*
 	// 使用异步方案构建rank。
 	public void GetRankAsync(BConcurrentKey keyHint,
 							 Action1<Rank> callback) {
@@ -278,9 +278,9 @@ public class ModuleRank extends AbstractModule {
 				},
 				// Action OnHashEnd
 				(context) -> {
-					if (!context.getHashCodes().isEmpty()) {
+					if (!context.getHashResults().isEmpty()) {
 						// 一般是超时发生时还有未返回结果的hash分组。
-						logger.warn("OnHashEnd: timeout with hashes: {}", context.getHashCodes());
+						logger.warn("OnHashEnd: timeout with hashes: {}", context.getHashResults());
 					}
 
 					var rank2 = (Rank)context.getUserState();
@@ -290,6 +290,7 @@ public class ModuleRank extends AbstractModule {
 					callback.run(rank2);
 				});
 	}
+*/
 
 	/**
 	 * 为排行榜设置最大并发级别。【有默认值】
@@ -356,7 +357,8 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	public static int GetChoiceHashCode() {
-		String account = ((ProviderUserSession) Transaction.getCurrent().getTopProcedure().getUserState()).getAccount();
+		//noinspection ConstantConditions
+		String account = ((ProviderUserSession)Transaction.getCurrent().getTopProcedure().getUserState()).getAccount();
 		return Zeze.Serialize.ByteBuffer.calc_hashnr(account);
 	}
 
@@ -438,33 +440,110 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	public int GetSimpleChineseSeason(Calendar c) {
+		//@formatter:off
 		var month = c.get(Calendar.MONTH);
 		if (month < 3) return 4; // 12,1,2
 		if (month < 6) return 1; // 3,4,5
 		if (month < 9) return 2; // 6,7,8
 		if (month < 12) return 3; // 9,10,11
-		return 4; // 12,1,2
+			return 4; // 12,1,2
+		//@formatter:on
 	}
 
 	/******************************** ModuleRedirect 测试 *****************************************/
-	@RedirectToServer()
-	public TaskCompletionSource<Long> TestToServer(int serverId, int in, Action2<Integer, Integer> result) throws Throwable {
-		result.run(in, App.Zeze.getConfig().getServerId());
-		return null;
+	public static class TestToServerResult { // 必须是public的,内部类必须声明static,有public的默认构造方法
+		public long resultCode; // 类型是long,名字是resultCode是特殊字段,表示远程执行的结果,0表示正常,如果是超时或异常则可能得不到正确的其它字段值. 此字段是可选的
+		public int out; // 以下是其它的自定义字段,支持所有基本类型,String,Binary,Bean及JDK可序列化类型. 序列化时会按字段名排序
+		public int serverId;
 	}
 
-	@RedirectHash()
-	public TaskCompletionSource<Long> Test1(int hash) {
-		return null;
+	@RedirectToServer // 单发给某个serverId执行,可以是本服. 返回类型可以是void或RedirectFuture<自定义结果类型或Long(resultCode)>
+	public RedirectFuture<TestToServerResult> TestToServer(int serverId, int in) { // 首个参数serverId是固定必要的特殊参数,后面是自定义输入参数
+		TestToServerResult result = new TestToServerResult();
+		result.out = in;
+		result.serverId = App.Zeze.getConfig().getServerId();
+		return RedirectFuture.finish(result); // 同步完成则先finish再返回,异步则可在返回后在其它位置调用finish完成
 	}
 
-	@RedirectHash()
-	public void Test2(int hash, int inData) {
+	public static class TestHashResult { // 同ToServer的要求
+		public int hash;
+		public int out;
+		public int serverId;
+		public EmptyBean bean = new EmptyBean(); // 使用Bean自己的序列化
+		public Date date = new Date(); // 使用JDK自带的序列化
+		public transient String str; // 不会序列化transient
+		protected Object obj; // 不会序列化非public
 	}
 
-	@RedirectHash()
-	public void Test3(int hash, int inData, Action2<Integer, EmptyBean> result) throws Throwable {
-		result.run(inData, new EmptyBean());
+	// 第一个参数hash是固定的特殊参数
+	@RedirectHash // 单发给某个hash值指定的server执行,可以是本服. 返回类型同ToServer
+	public RedirectFuture<TestHashResult> TestHash(int hash, int in) { // 首个参数hash是固定必要的特殊参数,后面是自定义输入参数
+		var f = new RedirectFuture<TestHashResult>();
+		Task.run(App.Zeze.NewProcedure(() -> {
+			TestHashResult result = new TestHashResult();
+			result.hash = hash;
+			result.out = in;
+			result.serverId = App.Zeze.getConfig().getServerId();
+			f.SetResult(result); // 异步完成
+			return Procedure.Success;
+		}, "TestHashAsync"));
+		return f;
+	}
+
+	@RedirectToServer // 返回结果可以是Long类型,表示只有resultCode值
+	public RedirectFuture<Long> TestToServerLongResult(int serverId) { // 可以没有自定义输入参数,但必须至少有serverId参数
+		return RedirectFuture.finish(Procedure.Success);
+	}
+
+	@RedirectHash
+	public RedirectFuture<Long> TestHashLongResult(int hash) { // 可以没有自定义输入参数,但必须至少有hash参数
+		return RedirectFuture.finish(Procedure.Success);
+	}
+
+	@RedirectToServer
+	public void TestToServerNoResult(int serverId) {
+	}
+
+	@RedirectHash
+	public void TestHashNoResult(int hash) {
+	}
+
+	public static class TestToAllResult extends RedirectResult { // RedirectAll的结果类型必须继承RedirectResult(其中包含resultCode),其它同ToServer
+		public int out;
+
+		@Override
+		public String toString() {
+			return "{r:" + getResultCode() + ",out:" + out + '}';
+		}
+	}
+
+	// RedirectAll的目标执行方法,推荐声明为protected,不能是private
+	protected final void TestToAll(int in, TestToAllResult result) throws Throwable { // 参数列表为自定义参数列表+一个结果类型
+		System.out.println("TestToAll sid=" + result.getSessionId() + ", hash=" + result.getHash() + ", in=" + in);
+		switch (result.getHash()) {
+		case 0: // local sync
+		case 1: // remote sync
+			result.out = in;
+			return;
+		case 2: // local exception
+		case 3: // remote exception
+			throw new Exception("not bug, only for test");
+		case 4: // local async
+		case 5: // remote async
+			result.async(); // 启用异步方式,之后在result.send()时回复结果,如果不调用async()则默认在方法返回时自动同步回复结果
+			Task.run(App.Zeze.NewProcedure(() -> {
+				result.out = in;
+				result.send();
+				return Procedure.Success;
+			}, "TestToAllAsync"));
+		}
+	}
+
+	public int TestToAllConcLevel;
+
+	@RedirectAll(GetConcurrentLevelSource = "TestToAllConcLevel") // 广播请求并获取所有回复结果,需要GetConcurrentLevelSource指定广播数量
+	public void TestToAll(int in, Action1<ModuleRedirectAllContext<TestToAllResult>> onResult) { // 参数列表为自定义参数列表+一个结果类型
+		throw new UnsupportedOperationException(); // 这个方法内不应该被调用,实际会在目标App(可以是本机)上执行上面的TestToAll
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off

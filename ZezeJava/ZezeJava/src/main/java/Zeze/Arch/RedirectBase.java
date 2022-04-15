@@ -37,9 +37,12 @@ public class RedirectBase {
 		if (serverId == ProviderApp.Zeze.getConfig().getServerId())
 			return null; // is Local
 		var out = new OutLong();
-		if (ProviderApp.Distribute.ChoiceProviderByServerId(ProviderApp.ServerServiceNamePrefix, module.getId(), serverId, out))
-			return ProviderApp.ProviderService.GetSocket(out.Value);
-		return null;
+		if (!ProviderApp.Distribute.ChoiceProviderByServerId(ProviderApp.ServerServiceNamePrefix, module.getId(), serverId, out))
+			throw new RuntimeException("Server Not Found. ServerId=" + serverId);
+		var socket = ProviderApp.ProviderDirectService.GetSocket(out.Value);
+		if (null == socket)
+			throw new RuntimeException("Server Socket Not Found. ServerId=" + serverId);
+		return socket;
 	}
 
 	public AsyncSocket ChoiceHash(IModule module, int hash) {
@@ -58,22 +61,27 @@ public class RedirectBase {
 		if (providerModuleState == null)
 			return null;
 
-		return ProviderApp.ProviderService.GetSocket(providerModuleState.SessionId);
+		return ProviderApp.ProviderDirectService.GetSocket(providerModuleState.SessionId);
 	}
 
 	public void RedirectAll(IModule module, ModuleRedirectAllRequest req) {
-		LongHashMap<ModuleRedirectAllRequest> transmits = new LongHashMap<>();
+		if (req.Argument.getHashCodeConcurrentLevel() <= 0) {
+			ProviderApp.ProviderDirectService.TryRemoveManualContext(req.Argument.getSessionId());
+			return;
+		}
+
+		LongHashMap<ModuleRedirectAllRequest> transmits = new LongHashMap<>(); // <sessionId, request>
 
 		var miss = new ModuleRedirectAllResult();
 		miss.Argument.setModuleId(req.Argument.getModuleId());
 		miss.Argument.setMethodFullName(req.Argument.getMethodFullName());
-		miss.Argument.setSourceProvider(req.getSender().getSessionId()); // not used
+		miss.Argument.setSourceProvider(req.Argument.getSourceProvider()); // not used
 		miss.Argument.setSessionId(req.Argument.getSessionId());
 		miss.Argument.setServerId(0); // 在这里没法知道逻辑服务器id，错误报告就不提供这个了。
 		miss.setResultCode(ModuleRedirect.ResultCodeLinkdNoProvider);
 
+		var provider = new OutLong();
 		for (int i = 0; i < req.Argument.getHashCodeConcurrentLevel(); ++i) {
-			var provider = new Zeze.Util.OutLong();
 			if (ProviderApp.Distribute.ChoiceProvider(req.Argument.getServiceNamePrefix(),
 					req.Argument.getModuleId(), i, provider)) {
 				var exist = transmits.get(provider.Value);
@@ -82,7 +90,7 @@ public class RedirectBase {
 					exist.Argument.setModuleId(req.Argument.getModuleId());
 					exist.Argument.setHashCodeConcurrentLevel(req.Argument.getHashCodeConcurrentLevel());
 					exist.Argument.setMethodFullName(req.Argument.getMethodFullName());
-					exist.Argument.setSourceProvider(req.getSender().getSessionId());
+					exist.Argument.setSourceProvider(req.Argument.getSourceProvider());
 					exist.Argument.setSessionId(req.Argument.getSessionId());
 					exist.Argument.setParams(req.Argument.getParams());
 					transmits.put(provider.Value, exist);
@@ -97,11 +105,20 @@ public class RedirectBase {
 
 		// 转发给provider
 		for (var it = transmits.iterator(); it.moveToNext(); ) {
-			var socket = ProviderApp.ProviderDirectService.GetSocket(it.key());
+			long sessionId = it.key();
+			var request = it.value();
+			var socket = ProviderApp.ProviderDirectService.GetSocket(sessionId);
 			if (socket != null) {
-				it.value().Send(socket);
+				request.Send(socket);
+			} else if (sessionId == 0) { // loop-back. sessionId=0应该不可能是有效的socket session,代表自己
+				try {
+					var service = ProviderApp.ProviderDirectService;
+					request.Dispatch(service, service.FindProtocolFactoryHandle(request.getTypeId()));
+				} catch (Throwable e) {
+					logger.error("", e);
+				}
 			} else {
-				for (var hashIndex : it.value().Argument.getHashCodes()) {
+				for (var hashIndex : request.Argument.getHashCodes()) {
 					BModuleRedirectAllHash tempVar2 = new BModuleRedirectAllHash();
 					tempVar2.setReturnCode(Zeze.Transaction.Procedure.ProviderNotExist);
 					miss.Argument.getHashs().put(hashIndex, tempVar2);
@@ -115,7 +132,7 @@ public class RedirectBase {
 				var service = ProviderApp.ProviderDirectService;
 				miss.Dispatch(service, service.FindProtocolFactoryHandle(miss.getTypeId()));
 			} catch (Throwable e) {
-				logger.error(e);
+				logger.error("", e);
 			}
 		}
 	}

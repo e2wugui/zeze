@@ -16,18 +16,22 @@ RocksRaft Collection.List LogList
 	OR -> List<OperateLog> 所有操作记录日志，收到方重做。问题：Get(index).Update，怎么融入。
 Global.RocksRaft.LruTryRemoveCallback
 Global c# 慢的问题。
-把 RocksRaft Changes 应用到 Zeze 中，让 Zeze 实现任意Bean任意级别的更新。// 1. 仅支持整个Bean的订阅。2. log factory 问题。3. 动态订阅。add listener和notify原子问题。
+把 RocksRaft Changes 应用到 Zeze 中，让 Zeze 实现Bean任意级别的更新。// 1. 仅支持整个Bean的订阅。2. log factory 问题。3. 动态订阅。add listener和notify原子问题。
 Global java 异步化： TaskQueueAsync 任务需要参与到队列的推进。全异步和RocksRaft.Transaction.ThreadLocal问题，需要自己实现一个类似AsyncLocal的机制。
 raft 异步测试
 Global With Raft 异步测试
 Test TestGlobal Simulate 异步测试
+Arch Onlines 两个版本 Role|Account 这个关键问题是Login需要纳入。做成两个组件？
 c# Arch & Test
-Java Arch Test
+Redirect 支持异步实现。【Java张路】 c# RedirectAll 错误处理。
 Zezex Onlines TransmitInProcedure 需要重写。
 
 【2022/5/11】
-ServiceManager: Provider之间连接成功的时候，Pending还没到达。
 
+Java Arch Test：RedirectToServer,RedirectHash Done
+ServiceManager.Agent lock 模式：改成全局锁Agent。单线程化。回调也在锁内执行。【放弃，锁内回调风险太高】
+ServiceManager: Provider之间连接成功的时候，Pending还没到达。
+ServiceManager.ReadyCommit模式时，订阅启动全新广播。
 
 【2022/4/11】
 

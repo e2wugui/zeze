@@ -14,12 +14,12 @@ namespace Game.Fight
         {
         }
 
-        public Fighter GetFighter(BFighterId fighterId)
+        public async Task<Fighter> GetFighter(BFighterId fighterId)
         {
-            return new Fighter(fighterId, _tfighters.GetOrAdd(fighterId));
+            return new Fighter(fighterId, await _tfighters.GetOrAddAsync(fighterId));
         }
 
-        public long CalculateFighter(BFighterId fighterId)
+        public async Task<long> CalculateFighter(BFighterId fighterId)
         {
             // fighter 计算属性现在不主动通知客户端，需要客户端需要的时候来读取。
 
@@ -27,18 +27,18 @@ namespace Game.Fight
             switch (fighterId.Type)
             {
                 case BFighterId.TypeRole:
-                    Game.App.Instance.Game_Buf.GetBufs(fighterId.InstanceId).CalculateFighter(fighter);
-                    Game.App.Instance.Game_Equip.CalculateFighter(fighter);
+                    (await Game.App.Instance.Game_Buf.GetBufs(fighterId.InstanceId)).CalculateFighter(fighter);
+                    await Game.App.Instance.Game_Equip.CalculateFighter(fighter);
                     break;
             }
-            _tfighters.GetOrAdd(fighterId).Assign(fighter.Bean);
+            (await _tfighters.GetOrAddAsync(fighterId)).Assign(fighter.Bean);
             return Procedure.Success;
         }
 
         public void StartCalculateFighter(long roleId)
         {
             BFighterId fighterId = new BFighterId(BFighterId.TypeRole, roleId);
-            Task.Run(Game.App.Instance.Zeze.NewProcedure(() => CalculateFighter(fighterId), "CalculateFighter").Call);
+            Game.App.Instance.Zeze.NewProcedure(async () => await CalculateFighter(fighterId), "CalculateFighter").Execute();
         }
     }
 }

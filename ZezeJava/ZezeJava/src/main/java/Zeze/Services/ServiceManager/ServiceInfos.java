@@ -9,29 +9,41 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
 public final class ServiceInfos extends Bean {
+	private static final Comparator<ServiceInfo> ServiceInfoIdentityComparer = Comparator.comparing(ServiceInfo::getServiceIdentity);
+
 	// ServiceList maybe empty. need a ServiceName
 	private String ServiceName;
+	// sorted by ServiceIdentity
+	private final ArrayList<ServiceInfo> _ServiceInfoListSortedByIdentity = new ArrayList<>();
+	private long SerialId;
+
+	public ServiceInfos() {
+	}
+
+	public ServiceInfos(String serviceName) {
+		ServiceName = serviceName;
+	}
+
+	public ServiceInfos(String serviceName, ServiceManagerServer.ServerState state, long serialId) {
+		ServiceName = serviceName;
+		_ServiceInfoListSortedByIdentity.addAll(state.getServiceInfos().values());
+		_ServiceInfoListSortedByIdentity.sort(ServiceInfoIdentityComparer);
+		SerialId = serialId;
+	}
+
 	public String getServiceName() {
 		return ServiceName;
 	}
-	private void setServiceName(String value) {
-		ServiceName = value;
-	}
-	// sorted by ServiceIdentity
-	private final ArrayList<ServiceInfo> _ServiceInfoListSortedByIdentity = new ArrayList<> ();
+
 	public ArrayList<ServiceInfo> getServiceInfoListSortedByIdentity() {
 		return _ServiceInfoListSortedByIdentity;
 	}
-	private long SerialId;
+
 	public long getSerialId() {
 		return SerialId;
 	}
-	public void setSerialId(long value) {
-		SerialId = value;
-	}
 
-	public ServiceInfo Insert(ServiceInfo info)
-	{
+	public ServiceInfo Insert(ServiceInfo info) {
 		int index = Collections.binarySearch(_ServiceInfoListSortedByIdentity, info, ServiceInfoIdentityComparer);
 		if (index >= 0)
 			_ServiceInfoListSortedByIdentity.set(index, info);
@@ -40,8 +52,7 @@ public final class ServiceInfos extends Bean {
 		return info;
 	}
 
-	public ServiceInfo Remove(ServiceInfo info)
-	{
+	public ServiceInfo Remove(ServiceInfo info) {
 		int index = Collections.binarySearch(_ServiceInfoListSortedByIdentity, info, ServiceInfoIdentityComparer);
 		if (index >= 0) {
 			info = _ServiceInfoListSortedByIdentity.get(index);
@@ -51,24 +62,8 @@ public final class ServiceInfos extends Bean {
 		return null;
 	}
 
-	public ServiceInfo findServiceInfoByIdentity(String identity) {
-		return get(identity);
-	}
-	public ServiceInfo findServiceInfoByServerId(int serverId) {
-		return findServiceInfoByIdentity(String.valueOf(serverId));
-	}
-
-	public ServiceInfos() {
-	}
-
-	public ServiceInfos(String serviceName) {
-		setServiceName(serviceName);
-	}
-
-	private static final Comparator<ServiceInfo> ServiceInfoIdentityComparer = Comparator.comparing(ServiceInfo::getServiceIdentity);
-
 	public ServiceInfo get(String identity) {
-		var cur = new ServiceInfo(getServiceName(), identity);
+		var cur = new ServiceInfo(ServiceName, identity);
 		int index = Collections.binarySearch(_ServiceInfoListSortedByIdentity, cur, ServiceInfoIdentityComparer);
 		if (index >= 0) {
 			return _ServiceInfoListSortedByIdentity.get(index);
@@ -76,34 +71,34 @@ public final class ServiceInfos extends Bean {
 		return null;
 	}
 
-	public ServiceInfos(String serviceName, ServiceManagerServer.ServerState state, long serialId) {
-		ServiceName = serviceName;
-		for (var e : state.getServiceInfos().entrySet()) {
-			_ServiceInfoListSortedByIdentity.add(e.getValue());
-		}
-		SerialId = serialId;
+	public ServiceInfo findServiceInfoByIdentity(String identity) {
+		return get(identity);
+	}
+
+	public ServiceInfo findServiceInfoByServerId(int serverId) {
+		return findServiceInfoByIdentity(String.valueOf(serverId));
 	}
 
 	@Override
 	public void Decode(ByteBuffer bb) {
-		setServiceName(bb.ReadString());
-		getServiceInfoListSortedByIdentity().clear();
+		ServiceName = bb.ReadString();
+		_ServiceInfoListSortedByIdentity.clear();
 		for (int c = bb.ReadInt(); c > 0; --c) {
 			var service = new ServiceInfo();
 			service.Decode(bb);
-			getServiceInfoListSortedByIdentity().add(service);
+			_ServiceInfoListSortedByIdentity.add(service);
 		}
-		setSerialId(bb.ReadLong());
+		SerialId = bb.ReadLong();
 	}
 
 	@Override
 	public void Encode(ByteBuffer bb) {
-		bb.WriteString(getServiceName());
-		bb.WriteInt(getServiceInfoListSortedByIdentity().size());
-		for (var service : getServiceInfoListSortedByIdentity()) {
+		bb.WriteString(ServiceName);
+		bb.WriteInt(_ServiceInfoListSortedByIdentity.size());
+		for (var service : _ServiceInfoListSortedByIdentity) {
 			service.Encode(bb);
 		}
-		bb.WriteLong(getSerialId());
+		bb.WriteLong(SerialId);
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 16;
@@ -126,9 +121,9 @@ public final class ServiceInfos extends Bean {
 	@Override
 	public String toString() {
 		var sb = new StringBuilder();
-		sb.append(getServiceName()).append("=").append(" SerialId=").append(SerialId);
+		sb.append(ServiceName).append(" Version=").append(SerialId);
 		sb.append("[");
-		for (var e : getServiceInfoListSortedByIdentity()) {
+		for (var e : _ServiceInfoListSortedByIdentity) {
 			sb.append(e.getServiceIdentity());
 			sb.append(",");
 		}

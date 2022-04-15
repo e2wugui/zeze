@@ -5,7 +5,6 @@ import Zeze.Beans.Provider.BModule;
 import Zeze.Beans.ProviderDirect.AnnounceProviderInfo;
 import Zeze.Beans.ProviderDirect.ModuleRedirect;
 import Zeze.Beans.ProviderDirect.ModuleRedirectAllResult;
-import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;
@@ -23,7 +22,9 @@ import org.apache.logging.log4j.Logger;
  */
 public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	private static final Logger logger = LogManager.getLogger(ProviderDirectService.class);
+
 	public ProviderApp ProviderApp;
+	public final ConcurrentHashMap<String, ProviderSession> ProviderSessions = new ConcurrentHashMap<>();
 
 	public ProviderDirectService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);
@@ -35,7 +36,6 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			var ps = ProviderSessions.get(connName);
 			if (null != ps) {
 				// connection has ready.
-				System.out.println("TryConnectAndSetReady " + getZeze().getConfig().getServerId() + " identity=" + pm.getServiceIdentity());
 				var mid = Integer.parseInt(infos.getServiceName().split("#")[1]);
 				var m = ProviderApp.Modules.get(mid);
 				SetReady(ss, pm, ps, mid, m);
@@ -51,7 +51,6 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			var out = new OutObject<Connector>();
 			if (getConfig().TryGetOrAddConnector(pm.getPassiveIp(), pm.getPassivePort(), true, out)) {
 				// 新建的Connector。开始连接。
-				System.out.println("Connect To " + out.Value.getName());
 				out.Value.Start();
 			}
 		}
@@ -66,11 +65,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		var c = socket.getConnector();
 		if (c != null) {
 			// 主动连接。
-			System.out.println("OnHandshakeDone " + c.getName() + " serverId=" + getZeze().getConfig().getServerId()
-				+ " ss=" + ProviderSessions);
 			SetRelativeServiceReady(ps, c.getHostNameOrAddress(), c.getPort());
-			System.out.println("OnHandshakeDone ++++ " + c.getName() + " serverId=" + getZeze().getConfig().getServerId()
-					+ " ss=" + ProviderSessions);
 			var r = new AnnounceProviderInfo();
 			r.Argument.setIp(ProviderApp.DirectIp);
 			r.Argument.setPort(ProviderApp.DirectPort);
@@ -79,8 +74,6 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		// 被动连接等待对方报告信息时再处理。
 		// call base
 	}
-
-	public ConcurrentHashMap<String, ProviderSession> ProviderSessions = new ConcurrentHashMap<>();
 
 	synchronized void SetRelativeServiceReady(ProviderSession ps, String ip, int port) {
 		ps.ServerLoadIp = ip;
@@ -110,7 +103,6 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	private void SetReady(Agent.SubscribeState ss, ServiceInfo server, ProviderSession ps, int mid, BModule m) {
 		var pms = new ProviderModuleState(ps.getSessionId(), mid, m.getChoiceType(), m.getConfigType());
 		ps.GetOrAddServiceReadyState(ss.getServiceName()).put(server.getServiceIdentity(), pms);
-		System.out.println("SetReady " + getZeze().getConfig().getServerId() + " " + ss.getServiceName() + ":" + server.getServiceIdentity());
 		ss.SetServiceIdentityReadyState(server.getServiceIdentity(), pms);
 	}
 
@@ -133,15 +125,17 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) throws Throwable {
 		// 防止Client不进入加密，直接发送用户协议。
 		if (!IsHandshakeProtocol(p.getTypeId())) {
-			p.getSender().VerifySecurity();
+			var sender = p.getSender();
+			if (sender != null)
+				sender.VerifySecurity();
 		}
 
 		if (p.getTypeId() == ModuleRedirect.TypeId_) {
 			if (null != factoryHandle.Handle) {
-				var redirect = (ModuleRedirect)p;
+				var r = (ModuleRedirect)p;
 				// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-				getZeze().getTaskOneByOneByKey().Execute(redirect.Argument.getHashCode(),
-						() -> Zeze.Util.Task.Call(() -> factoryHandle.Handle.handle(p), p, Protocol::SendResultCode));
+				getZeze().getTaskOneByOneByKey().Execute(r.Argument.getHashCode(), () -> Zeze.Util.Task.Call(
+						() -> factoryHandle.Handle.handle(p), p, Protocol::SendResultCode, r.Argument.getMethodFullName()));
 			} else
 				logger.warn("Protocol Handle Not Found: {}", p);
 			return;
@@ -162,7 +156,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 
 	@Override
 	public <P extends Protocol<?>> void DispatchRpcResponse(
-			P rpc, ProtocolHandle<P> responseHandle, ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
+			P rpc, ProtocolHandle<P> responseHandle, ProtocolFactoryHandle<?> factoryHandle) {
 
 		if (rpc.getTypeId() == ModuleRedirect.TypeId_) {
 			var redirect = (ModuleRedirect)rpc;

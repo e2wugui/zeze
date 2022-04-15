@@ -10,5 +10,6 @@ namespace Zeze.Arch.Gen
     {
         Void,
         TaskCompletionSource,
+        Async
     }
 }

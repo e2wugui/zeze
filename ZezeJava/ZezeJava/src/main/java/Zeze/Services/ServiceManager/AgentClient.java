@@ -51,6 +51,6 @@ public final class AgentClient extends Zeze.Services.HandshakeClient {
 	@Override
 	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
 		// ServiceManager的协议处理直接在网络线程中执行。
-		Task.Call(() -> factoryHandle.Handle.handle(p), p, (_p, code) -> p.SendResultCode(code));
+		Task.Call(() -> factoryHandle.Handle.handle(p), p, Protocol::SendResultCode);
 	}
 }

@@ -74,7 +74,7 @@ namespace Zeze.Gen.cs
             }
             foreach (var tlog in tlogs)
             {
-                sw.WriteLine($"            rocks.RegisterLog<{tlog}>();");
+                sw.WriteLine($"            Zeze.Raft.RocksRaft.Rocks.RegisterLog<{tlog}>();");
             }
         }
 
@@ -164,7 +164,7 @@ namespace Zeze.Gen.cs
             {
                 if (project.GenTables.Contains(table.Gen) && table.IsRocks == false)
                 {
-                    sw.WriteLine($"        {table.Name} _{table.Name} = new {table.Name}();");
+                    sw.WriteLine($"        {table.FullName} _{table.Name} = new {table.FullName}();");
                 }
             }
         }
@@ -212,7 +212,7 @@ namespace Zeze.Gen.cs
                     {
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
                         {
-                            sw.WriteLine($"        protected override System.Threading.Tasks.Task<long> Process{namePrefix}" + rpc.Name + "Request(Zeze.Net.Protocol _p)");
+                            sw.WriteLine($"        protected override async System.Threading.Tasks.Task<long> Process{namePrefix}" + rpc.Name + "Request(Zeze.Net.Protocol _p)");
                             sw.WriteLine("        {");
                             sw.WriteLine($"            var p = _p as {(shortIf ? rpc.ShortNameIf(module) : rpc.FullName)};");
                             sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
@@ -223,7 +223,7 @@ namespace Zeze.Gen.cs
                     }
                     if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
                     {
-                        sw.WriteLine($"        protected override System.Threading.Tasks.Task<long> Process{namePrefix}" + p.Name + "(Zeze.Net.Protocol _p)");
+                        sw.WriteLine($"        protected override async System.Threading.Tasks.Task<long> Process{namePrefix}" + p.Name + "(Zeze.Net.Protocol _p)");
                         sw.WriteLine("        {");
                         sw.WriteLine($"            var p = _p as {(shortIf ? p.ShortNameIf(module) : p.FullName)};");
                         sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");

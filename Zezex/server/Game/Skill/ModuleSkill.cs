@@ -1,4 +1,6 @@
 ﻿
+using System.Threading.Tasks;
+
 namespace Game.Skill
 {
     public sealed partial class ModuleSkill : AbstractModule
@@ -11,9 +13,9 @@ namespace Game.Skill
         {
         }
 
-        public Skills GetSkills(long roleId)
+        public async Task<Skills> GetSkills(long roleId)
         {
-            return new Skills(roleId, _tskills.GetOrAdd(roleId));
+            return new Skills(roleId, await _tskills.GetOrAddAsync(roleId));
         }
     }
 }

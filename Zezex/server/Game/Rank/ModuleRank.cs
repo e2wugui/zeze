@@ -6,7 +6,6 @@ using System.Globalization;
 using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Transaction;
-using static Zezex.Provider.ModuleProvider;
 using Zeze.Arch;
     
 namespace Game.Rank
@@ -36,6 +35,7 @@ namespace Game.Rank
         /// <param name="roleId"></param>
         /// <param name="value"></param>
         /// <returns>Procudure.Success...</returns>
+        [RedirectHash()]
         protected async Task<long> UpdateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx)
         {
             int concurrentLevel = GetConcurrentLevel(keyHint.RankType);
@@ -101,12 +101,12 @@ namespace Game.Rank
             public Nito.AsyncEx.AsyncLock Mutex { get; } = new();
         }
 
-        ConcurrentDictionary<BConcurrentKey, Rank> Ranks = new ConcurrentDictionary<BConcurrentKey, Rank>();
+        readonly ConcurrentDictionary<BConcurrentKey, Rank> Ranks = new();
         public const long RebuildTime = 5 * 60 * 1000; // 5 min
 
         private BRankList Merge(BRankList left, BRankList right)
         {
-            BRankList result = new BRankList();
+            var result = new BRankList();
             int indexLeft = 0;
             int indexRight = 0;
             while (indexLeft < left.RankList.Count && indexRight < right.RankList.Count)
@@ -153,7 +153,7 @@ namespace Game.Rank
                     return Rank;
                 }
                 // rebuild
-                List<BRankList> datas = new List<BRankList>();
+                var datas = new List<BRankList>();
                 int cocurrentLevel = GetConcurrentLevel(keyHint.RankType);
                 for (int i = 0; i < cocurrentLevel; ++i)
                 {
@@ -201,57 +201,6 @@ namespace Game.Rank
         }
 
         /// <summary>
-        /// 相关数据变化时，更新排行榜。
-        /// 最好在事务成功结束或者处理快完的时候或者ChangeListener中调用这个方法更新排行榜。
-        /// 比如使用 Transaction.Current.RunWhileCommit(() => RunUpdateRank(...));
-        /// </summary>
-        /// <param name="rankType"></param>
-        /// <param name="roleId"></param>
-        /// <param name="value"></param>
-        /// <param name="valueEx">只保存，不参与比较。如果需要参与比较，需要另行实现自己的Update和Get。</param>
-        [Redirect()]
-        public virtual void RunUpdateRank(
-            BConcurrentKey keyHint,
-            long roleId, long value, Zeze.Net.Binary valueEx)
-        {
-            int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
-            App.Zeze.Run(() => UpdateRank(hash, keyHint, roleId, value, valueEx),
-                nameof(RunUpdateRank), Zeze.TransactionModes.ExecuteInAnotherThread, hash);
-        }
-
-        // 名字必须和RunUpdateRankWithHash匹配，内部使用一样的实现。
-        protected async Task<long> UpdateRankWithHash(
-            int hash, BConcurrentKey keyHint,
-            long roleId, long value, Zeze.Net.Binary valueEx)
-        {
-            return await UpdateRank(hash, keyHint, roleId, value, valueEx);
-        }
-
-        [RedirectHash()]
-        public virtual void RunUpdateRankWithHash(
-            int hash, BConcurrentKey keyHint,
-            long roleId, long value, Zeze.Net.Binary valueEx)
-        {
-            App.Zeze.Run(() => UpdateRankWithHash(
-                hash, keyHint, roleId, value, valueEx),
-                nameof(RunUpdateRankWithHash),
-                Zeze.TransactionModes.ExecuteInAnotherThread, hash);
-        }
-
-        [RedirectToServer()]
-        public virtual void RunTestToServer(int serverId)
-        {
-            App.Zeze.Run(() => TestToServer(serverId),
-                nameof(RunTestToServer),
-                Zeze.TransactionModes.ExecuteInAnotherThread, serverId);
-        }
-
-        protected long TestToServer(int serverId)
-        {
-            return 0;
-        }
-
-        /// <summary>
         /// ModuleRedirectAll 实现要求：
         /// 1）第一个参数是调用会话id；
         /// 2）第二个参数是hash-index；
@@ -276,15 +225,15 @@ namespace Game.Rank
 
         // 属性参数是获取总的并发分组数量的代码，直接复制到生成代码中。
         // 需要注意在子类上下文中可以编译通过。可以是常量。
-        [RedirectAllHash("GetConcurrentLevel(keyHint.RankType)")]
-        public virtual void RunGetRank(BConcurrentKey keyHint,
+        //[RedirectAllHash("GetConcurrentLevel(keyHint.RankType)")]
+        public virtual void GetRank(BConcurrentKey keyHint,
             System.Action<long, int, long, BRankList> onHashResult,
             Action<ModuleRedirectAllContext> onHashEnd
             )
         {
             // 默认实现是本地遍历调用，这里不使用App.Zeze.Run启动任务（这样无法等待），直接调用实现。
             int concurrentLevel = GetConcurrentLevel(keyHint.RankType);
-            var ctx = new ModuleRedirectAllContext(concurrentLevel, $"{FullName}:{nameof(RunGetRank)}")
+            var ctx = new ModuleRedirectAllContext(concurrentLevel, $"{FullName}:{nameof(GetRank)}")
             {
                 OnHashEnd = onHashEnd,
             };
@@ -310,7 +259,7 @@ namespace Game.Rank
             // 异步方式没法锁住Rank，所以并发的情况下，可能多次去获取数据，多次构建，多次覆盖Ranks的cache。
             int countNeed = GetRankCount(keyHint.RankType);
             int concurrentLevel = GetConcurrentLevel(keyHint.RankType);
-            RunGetRank(keyHint,
+            GetRank(keyHint,
                 // Action OnHashResult
                 (sessionId, hash, returnCode, BRankList) =>
                 {
@@ -378,32 +327,6 @@ namespace Game.Rank
                 BConcurrentKey.RankTypeGold => 500,
                 _ => GetRankCount(rankType) * 5,
             };
-        }
-
-        public async Task<long> GetCounter(long roleId, BConcurrentKey keyHint)
-        {
-            var counters = await _trankcounters.GetOrAddAsync(roleId);
-            if (false == counters.Counters.TryGetValue(keyHint, out var counter))
-                return 0;
-
-            return counter.Value;
-        }
-
-        public async Task AddCounterAndUpdateRank(long roleId, int delta,
-            BConcurrentKey keyHint, Zeze.Net.Binary valueEx = null)
-        {
-            var counters = await _trankcounters.GetOrAddAsync(roleId);
-            if (false == counters.Counters.TryGetValue(keyHint, out var counter))
-            {
-                counter = new BRankCounter();
-                counters.Counters.Add(keyHint, counter);
-            }
-            counter.Value += delta;
-
-            if (null == valueEx)
-                valueEx = Zeze.Net.Binary.Empty;
-
-            RunUpdateRank(keyHint, roleId, counter.Value, valueEx);
         }
 
         protected override async Task<long> ProcessCGetRankList(Protocol p)
@@ -480,64 +403,29 @@ namespace Game.Rank
         }
 
         /******************************** ModuleRedirect 测试 *****************************************/
-        [Redirect()]
-        public virtual TaskCompletionSource<long> RunTest1(Zeze.TransactionModes mode)
+        [RedirectToServer()]
+        public virtual TaskCompletionSource<long> TestToServer(int serverId, int param, Action<int, int> result)
         {
-            int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
-            return App.Zeze.Run(() => Test1(hash), nameof(Test1), mode, hash);
+            result(param, App.Zeze.Config.ServerId);
+            return null;
         }
 
-        protected long Test1(int hash)
+        [RedirectHash()]
+        public virtual TaskCompletionSource<long> TestHash(int hash, int param, Action<int, int> result)
         {
-            return Procedure.Success;
+            result(param, App.Zeze.Config.ServerId);
+            return null;
         }
 
-        [Redirect()]
-        public virtual void RunTest2(int inData, ref int refData, out int outData)
+        [RedirectToServer()]
+        public virtual void TestToServerNoWait(int serverId, Action<int, int> result, int param)
         {
-            int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
-            int outDataTmp = 0;
-            int refDataTmp = refData;
-            var future = App.Zeze.Run(() => Test2(hash, inData, ref refDataTmp, out outDataTmp), nameof(Test2), Zeze.TransactionModes.ExecuteInAnotherThread, hash);
-            future.Task.Wait();
-            refData = refDataTmp;
-            outData = outDataTmp;
+            result(param, App.Zeze.Config.ServerId);
         }
 
-        protected long Test2(int hash, int inData, ref int refData, out int outData)
+        [RedirectHash()]
+        public virtual void TestHashNoWait(int hash, int param)
         {
-            outData = 1;
-            ++refData;
-            return Procedure.Success;
-        }
-
-        [Redirect()]
-        public virtual void RunTest3(int inData, ref int refData, out int outData, System.Action<int> resultCallback)
-        {
-            int hash = Zezex.ModuleRedirect.GetChoiceHashCode();
-            int outDataTmp = 0;
-            int refDataTmp = refData;
-            var future = App.Zeze.Run(() => Test3(hash, inData, ref refDataTmp, out outDataTmp, resultCallback), nameof(Test3), Zeze.TransactionModes.ExecuteInAnotherThread, hash);
-            future.Task.Wait();
-            refData = refDataTmp;
-            outData = outDataTmp;
-        }
-
-        /*
-         * 一般来说 ref|out 和 Action 回调方式不该一起用。存粹为了测试。
-         * 如果混用，首先 Action 回调先发生，然后 ref|out 的变量才会被赋值。这个当然吧。
-         * 
-         * 可以包含多个 Action。纯粹为了...可以用 Empty 表示 null，嗯，总算找到理由了。
-         * 如果包含多个，按照真正的实现的回调顺序回调，不是定义顺序。这个也当然吧。
-         * 
-         * ref|out 方式需要同步等待，【不建议使用这种方式】【不建议使用这种方式】【不建议使用这种方式】
-         */
-        protected long Test3(int hash, int inData, ref int refData, out int outData, System.Action<int> resultCallback)
-        {
-            outData = 1;
-            ++refData;
-            resultCallback(1);
-            return Procedure.Success;
         }
     }
 }

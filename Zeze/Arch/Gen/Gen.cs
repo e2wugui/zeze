@@ -578,22 +578,6 @@ namespace Zeze.Arch.Gen
             }
         }
 
-        public static bool IsOnHashEnd(ParameterInfo pInfo)
-        {
-            var pType = pInfo.ParameterType;
-            if (!IsActionDelegate(pType))
-                return false;
-            return IsOnHashEnd(pType.GetGenericArguments());
-        }
-
-        public static bool IsOnHashEnd(Type[] GenericArguments)
-        {
-            if (GenericArguments.Length != 1)
-                return false;
-            /*if (GenericArguments[0] != typeof(Zezex.Provider.ModuleProvider.ModuleRedirectAllContext))
-                return false;
-            TODO*/return true;
-        }
         public static bool IsDelegate(Type type)
         {
             if (type.IsByRef)
@@ -620,10 +604,9 @@ namespace Zeze.Arch.Gen
                 else
                     sb.Append(", ");
                 string prefix = "";
-                if (p.IsOut)
-                    prefix = "out ";
-                else if (p.ParameterType.IsByRef)
-                    prefix = "ref ";
+                if (p.IsOut || p.ParameterType.IsByRef)
+                    throw new Exception("Redirect Not Support out | ref");
+
                 sb.Append(prefix).Append(GetTypeName(p.ParameterType)).Append(" ").Append(p.Name);
             }
             return sb.ToString();

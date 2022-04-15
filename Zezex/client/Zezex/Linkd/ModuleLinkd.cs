@@ -19,11 +19,5 @@ namespace Zezex.Linkd
             var p = _p as KeepAlive;
             return Zeze.Transaction.Procedure.NotImplement;
         }
-
-        protected override async Task<long> ProcessReportError(Protocol _p)
-        {
-            var p = _p as ReportError;
-            return Zeze.Transaction.Procedure.NotImplement;
-        }
     }
 }

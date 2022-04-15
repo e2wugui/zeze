@@ -1,5 +1,6 @@
 ﻿
 using System.Threading.Tasks;
+using Zeze.Arch;
 using Zeze.Net;
 
 namespace Zezex.Linkd
@@ -28,7 +29,7 @@ namespace Zezex.Linkd
             Game.App.Instance.LinkdService.GetSocket(account.SocketSessionId)?.Dispose(); // kick, 最好发个协议再踢。如果允许多个连接，去掉这行。
             account.SocketSessionId = protocol.Sender.SessionId;
             */
-            var linkSession = rpc.Sender.UserState as LinkSession;
+            var linkSession = rpc.Sender.UserState as LinkdUserSession;
             linkSession.Account = rpc.Argument.Account;
             rpc.SendResultCode(Auth.Success);
 
@@ -38,14 +39,14 @@ namespace Zezex.Linkd
         protected override async Task<long> ProcessKeepAlive(Protocol p)
         {
             var protocol = p as KeepAlive;
-            var linkSession = protocol.Sender.UserState as LinkSession;
+            var linkSession = protocol.Sender.UserState as LinkdUserSession;
             if (null == linkSession)
             {
                 // handshake 完成之前不可能回收得到 keepalive，先这样处理吧。
                 protocol.Sender.Close(null);
                 return Zeze.Transaction.Procedure.LogicError;
             }
-            linkSession.KeepAlive();
+            linkSession.KeepAlive(App.Instance.LinkdService);
             protocol.Sender.Send(protocol); // send back;
             return Zeze.Transaction.Procedure.Success;
         }

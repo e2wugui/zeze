@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Zeze.Beans.Provider;
 using Zeze.Net;
 using Zeze.Transaction;
 
@@ -32,7 +33,7 @@ namespace Game.Login
 
         public void SendResponse(long typeId, Zeze.Net.Binary fullEncodedProtocol)
         {
-            var send = new Zezex.Provider.Send();
+            var send = new Send();
             send.Argument.LinkSids.Add(SessionId);
             send.Argument.ProtocolType = typeId;
             send.Argument.ProtocolWholeData = fullEncodedProtocol;

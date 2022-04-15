@@ -267,6 +267,7 @@ public class IntHashSet implements Cloneable {
 		return set;
 	}
 
+	@Override
 	public String toString() {
 		if (size == 0)
 			return "{}";

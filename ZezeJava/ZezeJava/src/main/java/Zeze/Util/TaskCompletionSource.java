@@ -28,6 +28,10 @@ public class TaskCompletionSource<T> implements Future<T> {
 		}
 	}
 
+	protected Object getRawResult() {
+		return result;
+	}
+
 	private boolean setResult(Object r) {
 		if (r == null)
 			r = NULL_RESULT;
@@ -103,7 +107,7 @@ public class TaskCompletionSource<T> implements Future<T> {
 		return toResult(r);
 	}
 
-	private T toResult(Object r) throws ExecutionException {
+	protected T toResult(Object r) throws ExecutionException {
 		if (r instanceof Exception) {
 			Class<?> cls = r.getClass();
 			if (cls == ExecutionException.class)

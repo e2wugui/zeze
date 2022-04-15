@@ -42,9 +42,9 @@ namespace Zeze.Util
 
         public static volatile Action<NLog.LogLevel, Exception, long, string> LogAction = DefaultLogAction;
 
-        public static void LogAndStatistics(Exception ex, long result, Net.Protocol p, bool IsRequestSaved)
+        public static void LogAndStatistics(Exception ex, long result, Net.Protocol p, bool IsRequestSaved, string aName = null)
         {
-            var actionName = p.GetType().FullName;
+            var actionName = aName == null ? p.GetType().FullName : aName;
             if (IsRequestSaved == false)
                 actionName += ":Response";
 
@@ -83,7 +83,7 @@ namespace Zeze.Util
         }
 
         public static async Task<long> CallAsync(Func<Net.Protocol, Task<long>> phandle, Net.Protocol p,
-            Action<Net.Protocol, long> actionWhenError = null)
+            Action<Net.Protocol, long> actionWhenError = null, string name = null)
         {
             bool IsRequestSaved = p.IsRequest; // 记住这个，以后可能会被改变。
             try
@@ -93,7 +93,7 @@ namespace Zeze.Util
                 {
                     actionWhenError?.Invoke(p, result);
                 }
-                LogAndStatistics(null, result, p, IsRequestSaved);
+                LogAndStatistics(null, result, p, IsRequestSaved, name);
                 return result;
             }
             catch (Exception ex)
@@ -115,7 +115,7 @@ namespace Zeze.Util
                 if (IsRequestSaved)
                     actionWhenError?.Invoke(p, errorCode);
                 // use last inner cause
-                LogAndStatistics(ex, errorCode, p, IsRequestSaved);
+                LogAndStatistics(ex, errorCode, p, IsRequestSaved, name);
                 return errorCode;
             }
         }
