@@ -8,8 +8,8 @@ namespace Zeze.Collections
         public override string Name => "Queue";
         public override int Id => ModuleId;
 
-        Zeze.Beans.Collections.Queue.tQueueNodes _tQueueNodes = new Zeze.Beans.Collections.Queue.tQueueNodes();
-        Zeze.Beans.Collections.Queue.tQueues _tQueues = new Zeze.Beans.Collections.Queue.tQueues();
+        internal Zeze.Beans.Collections.Queue.tQueueNodes _tQueueNodes = new Zeze.Beans.Collections.Queue.tQueueNodes();
+        internal Zeze.Beans.Collections.Queue.tQueues _tQueues = new Zeze.Beans.Collections.Queue.tQueues();
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {

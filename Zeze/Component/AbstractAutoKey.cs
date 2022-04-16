@@ -8,7 +8,7 @@ namespace Zeze.Component
         public override string Name => "AutoKey";
         public override int Id => ModuleId;
 
-        Zeze.Beans.AutoKey.tAutoKeys _tAutoKeys = new Zeze.Beans.AutoKey.tAutoKeys();
+        internal Zeze.Beans.AutoKey.tAutoKeys _tAutoKeys = new Zeze.Beans.AutoKey.tAutoKeys();
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {

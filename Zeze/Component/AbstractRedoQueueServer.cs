@@ -8,7 +8,7 @@ namespace Zeze.Component
         public override string Name => "RedoQueue";
         public override int Id => ModuleId;
 
-        Zeze.Beans.RedoQueue.tQueueLastTaskId _tQueueLastTaskId = new Zeze.Beans.RedoQueue.tQueueLastTaskId();
+        internal Zeze.Beans.RedoQueue.tQueueLastTaskId _tQueueLastTaskId = new Zeze.Beans.RedoQueue.tQueueLastTaskId();
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {

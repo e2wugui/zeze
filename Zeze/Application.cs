@@ -20,8 +20,14 @@ namespace Zeze
         public Agent ServiceManagerAgent { get; private set; }
         public Zeze.Arch.RedirectBase Redirect { get; set; }
         internal IGlobalAgent GlobalAgent { get; private set; }
+        private Component.AutoKey.Module AutoKeys { get; set; }
 
         internal Locks Locks { get; private set; }
+
+        public Component.AutoKey GetAutoKey(string name)
+        {
+            return AutoKeys.GetOrAdd(name);
+        }
 
         private Checkpoint _checkpoint;
         public Checkpoint Checkpoint
@@ -244,6 +250,8 @@ namespace Zeze
                 ServiceManagerAgent.Client.Start();
                 await ServiceManagerAgent.WaitConnectorReadyAsync();
             }
+            AutoKeys = new(this);
+
             Database defaultDb = GetDatabase("");
             foreach (var db in Databases.Values)
             {

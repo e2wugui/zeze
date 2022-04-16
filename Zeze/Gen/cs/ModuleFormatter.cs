@@ -164,7 +164,7 @@ namespace Zeze.Gen.cs
             {
                 if (project.GenTables.Contains(table.Gen) && table.IsRocks == false)
                 {
-                    sw.WriteLine($"        {table.FullName} _{table.Name} = new {table.FullName}();");
+                    sw.WriteLine($"        internal {table.FullName} _{table.Name} = new {table.FullName}();");
                 }
             }
         }
