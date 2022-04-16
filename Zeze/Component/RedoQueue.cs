@@ -27,8 +27,6 @@ namespace Zeze.Component
 		{
 		}
 
-		static AsyncExecutor AsyncExecutor = new(() => 100);
-
 		public override async void Start()
 		{
 			using (Mutex.Lock())
@@ -44,7 +42,7 @@ namespace Zeze.Component
 					columnFamilies.Add(cf, CfOptions);
 				}
 				// DirectOperates 依赖 Db，所以只能在这里打开。要不然，放在Open里面更加合理。
-				Db = await AsyncRocksDb.OpenAsync(dbOptions, dbHome, columnFamilies, AsyncExecutor);
+				Db = await AsyncRocksDb.OpenAsync(dbOptions, dbHome, columnFamilies, AsyncExecutor.Instance);
 				foreach (var f in columnFamilies)
 				{
 					Families[f.Name] = new(Db.RocksDb.GetColumnFamily(f.Name));

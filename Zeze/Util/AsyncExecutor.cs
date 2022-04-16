@@ -10,6 +10,8 @@ namespace Zeze.Util
 {
     public class AsyncExecutor
     {
+        public static AsyncExecutor Instance { get; } = new(() => 100);
+
         private BlockingCollection<(TaskCompletionSource<object>, Action)> Queue { get; } = new();
         public Util.AtomicInteger Running { get; } = new();
         public Func<int> MaxPoolSize { get; }
