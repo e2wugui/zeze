@@ -184,7 +184,7 @@ namespace Infinite
                 var app = Simulate.randApp().app; // 任何一个app都能查到相同的结果。
                 var success = GetSuccessCounters(name);
                 foreach (var e in GetRunCounters(name))
-                    Debug.Assert((await app.demo_Module1.Table1.SelectDirty(e.Key)).Long2 == success[e.Key].Get());
+                    Debug.Assert((await app.demo_Module1.Table1.SelectDirtyAsync(e.Key)).Long2 == success[e.Key].Get());
                 Infinite.App.logger.Debug("Table1Long2Add1.verify Ok.");
             }
 
@@ -271,7 +271,7 @@ namespace Infinite
                 int sum = 0;
                 for (int key = 0; key < KeyBoundTrade; ++key)
                 {
-                    var value = await app.demo_Module1.Table1.SelectDirty((long)key);
+                    var value = await app.demo_Module1.Table1.SelectDirtyAsync((long)key);
                     if (null != value)
                         sum += value.Int1;
                 }

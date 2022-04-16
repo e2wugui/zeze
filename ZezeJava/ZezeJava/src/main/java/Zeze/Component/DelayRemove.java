@@ -14,7 +14,11 @@ public class DelayRemove extends AbstractDelayRemove {
 	public static <K extends Comparable<K>> void remove(TableX<K, ?> table, K key) {
 		var zz = table.getZeze();
 		var serverId = zz.getConfig().getServerId();
-		delays.computeIfAbsent(serverId, (_key_) -> new DelayRemove(zz))._remove(table, key);
+		var delay = delays.computeIfAbsent(serverId, (_key_) -> new DelayRemove(zz));
+		var value = new BTableKey();
+		value.setTableName(table.getName());
+		value.setEncodedKey(new Binary(table.EncodeKey(key)));
+		delay.queue.add(value);
 	}
 
 	private final Zeze.Collections.Queue<BTableKey> queue;
@@ -24,12 +28,5 @@ public class DelayRemove extends AbstractDelayRemove {
 		queue = zz.getQueueModule().open("__GCTableQueue#" + serverId, BTableKey.class);
 
 		// TODO start timer to gc. work on queue.pollNode? peekNode? poll? peek?
-	}
-
-	private <K extends Comparable<K>> void _remove(TableX<K, ?> table, K key) {
-		var value = new BTableKey();
-		value.setTableName(table.getName());
-		value.setEncodedKey(new Binary(table.EncodeKey(key)));
-		queue.add(value);
 	}
 }

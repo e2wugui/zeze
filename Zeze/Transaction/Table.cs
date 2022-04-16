@@ -49,6 +49,7 @@ namespace Zeze.Transaction
         public abstract Storage Storage { get; }
 
         public abstract bool IsNew { get; }
+        public abstract ByteBuffer EncodeKey(object key);
     }
 
     public abstract class Table<K, V> : Table where V : Bean, new()
@@ -468,6 +469,16 @@ namespace Zeze.Transaction
         public abstract ByteBuffer EncodeKey(K key);
         public abstract K DecodeKey(ByteBuffer bb);
 
+        public async Task DelayRemoveAsync(K key)
+        {
+            await Component.DelayRemove.RemoveAsync(this, key);
+        }
+
+        public override ByteBuffer EncodeKey(object key)
+        { 
+            return EncodeKey((K)key);
+        }
+
         public V NewValue()
         {
             return new V();
@@ -500,7 +511,7 @@ namespace Zeze.Transaction
         /// </summary>
         /// <param name="callback"></param>
         /// <returns></returns>
-        public async Task<long> Walk(Func<K, V, bool> callback)
+        public async Task<long> WalkAsync(Func<K, V, bool> callback)
         {
             if (Transaction.Current != null)
             {
@@ -585,7 +596,7 @@ namespace Zeze.Transaction
         /// </summary>
         /// <param name="callback"></param>
         /// <returns></returns>
-        public async Task<long> WalkDatabase(Func<byte[], byte[], bool> callback)
+        public async Task<long> WalkDatabaseAsync(Func<byte[], byte[], bool> callback)
         {
             return await TStorage.TableAsync.WalkAsync(callback);
         }
@@ -596,7 +607,7 @@ namespace Zeze.Transaction
         /// </summary>
         /// <param name="callback"></param>
         /// <returns></returns>
-        public async Task<long> WalkDatabase(Func<K, V, bool> callback)
+        public async Task<long> WalkDatabaseAsync(Func<K, V, bool> callback)
         {
             return await TStorage.TableAsync.WalkAsync(
                 (key, value) =>
@@ -617,7 +628,7 @@ namespace Zeze.Transaction
         /// </summary>
         /// <param name="key"></param>
         /// <returns></returns>
-        public async Task<V> SelectCopy(K key)
+        public async Task<V> SelectCopyAsync(K key)
         {
             var tkey = new TableKey(Name, key);
             Transaction currentT = Transaction.Current;
@@ -643,7 +654,7 @@ namespace Zeze.Transaction
             }
         }
 
-        public async Task<V> SelectDirty(K key)
+        public async Task<V> SelectDirtyAsync(K key)
         {
             var tkey = new TableKey(Name, key);
             Transaction currentT = Transaction.Current;

@@ -55,7 +55,7 @@ namespace Zeze.Beans.Collections.Queue
 
         public BQueueNodeValue(int _varId_) : base(_varId_)
         {
-            _Value = new Zeze.Transaction.DynamicBean(2, GetSpecialTypeIdFromBean_Value, CreateBeanFromSpecialTypeId_Value);
+            _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.Queue.GetSpecialTypeIdFromBean, Zeze.Collections.Queue.CreateBeanFromSpecialTypeId);
         }
 
         public void Assign(BQueueNodeValue other)

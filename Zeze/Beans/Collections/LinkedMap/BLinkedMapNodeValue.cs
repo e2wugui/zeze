@@ -57,7 +57,7 @@ namespace Zeze.Beans.Collections.LinkedMap
         public BLinkedMapNodeValue(int _varId_) : base(_varId_)
         {
             _Id = "";
-            _Value = new Zeze.Transaction.DynamicBean(2, GetSpecialTypeIdFromBean_Value, CreateBeanFromSpecialTypeId_Value);
+            _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.LinkedMap.GetSpecialTypeIdFromBean, Zeze.Collections.LinkedMap.CreateBeanFromSpecialTypeId);
         }
 
         public void Assign(BLinkedMapNodeValue other)

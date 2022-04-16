@@ -20,7 +20,9 @@ namespace Zeze
         public Agent ServiceManagerAgent { get; private set; }
         public Zeze.Arch.RedirectBase Redirect { get; set; }
         internal IGlobalAgent GlobalAgent { get; private set; }
-        private Component.AutoKey.Module AutoKeys { get; set; }
+
+        public Component.AutoKey.Module AutoKeys { get; private set; }
+        public Collections.Queue.Module Queues { get; private set; }
 
         internal Locks Locks { get; private set; }
 
@@ -251,6 +253,7 @@ namespace Zeze
                 await ServiceManagerAgent.WaitConnectorReadyAsync();
             }
             AutoKeys = new(this);
+            Queues = new(this);
 
             Database defaultDb = GetDatabase("");
             foreach (var db in Databases.Values)
