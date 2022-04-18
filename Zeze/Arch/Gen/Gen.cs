@@ -488,6 +488,13 @@ namespace Zeze.Arch.Gen
                 // fall down
             }
 
+            /*
+            if (typeof(Zeze.Arch.RedirectParam).IsAssignableFrom(type))
+            { 
+
+            }
+            */
+
             // Utf8Json https://aloiskraus.wordpress.com/2019/09/29/net-serialization-benchmark-2019-roundup/
             sb.AppendLine($"{prefix}_bb_.WriteBytes(System.Text.Json.JsonSerializer.SerializeToUtf8Bytes({varName}, typeof({GetTypeName(type)})));");
         }

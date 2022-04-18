@@ -20,12 +20,12 @@ raft 异步测试
 Global With Raft 异步测试
 Test TestGlobal Simulate 异步测试
 Arch Onlines 两个版本 Role|Account 这个关键问题是Login需要纳入。做成两个组件？
-Redirect 支持异步实现。【Java张路】 c# RedirectAll 错误处理。
 Zezex Onlines TransmitInProcedure 需要重写。
 c# Arch RedirectAll & Test
 
 【2022/5/11】
 
+Redirect 支持异步实现。【Java张路】 c# RedirectAll 错误处理。
 c# Arch : edirect Hash & Server Test Ok
 c# Arch Redirect Hash & Server async ready.
 c# Collections Queue LinkedMap
