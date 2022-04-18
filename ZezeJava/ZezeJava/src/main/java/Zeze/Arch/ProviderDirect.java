@@ -2,11 +2,11 @@ package Zeze.Arch;
 
 import Zeze.Beans.ProviderDirect.AnnounceProviderInfo;
 import Zeze.Beans.ProviderDirect.BModuleRedirectAllHash;
+import Zeze.Beans.ProviderDirect.BModuleRedirectAllRequest;
 import Zeze.Beans.ProviderDirect.ModuleRedirect;
 import Zeze.Beans.ProviderDirect.ModuleRedirectAllRequest;
 import Zeze.Beans.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.Net.AsyncSocket;
-import Zeze.Net.Binary;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutObject;
@@ -49,7 +49,7 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 		case AllowDirtyWhenAllRead:
 			var out = new OutObject<>();
 			var rc = ProviderApp.Zeze.NewProcedure(() -> {
-				out.Value = handle.RequestHandle.call(rpc.SessionId, rpc.Argument.getHashCode(), rpc.Argument.getParams(), null);
+				out.Value = handle.RequestHandle.call(rpc.Argument.getHashCode(), rpc.Argument.getParams());
 				return Procedure.Success;
 			}, "ProcessModuleRedirectRequest").Call();
 			if (rc != Procedure.Success) {
@@ -60,7 +60,7 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 			break;
 		default:
 			try {
-				result = handle.RequestHandle.call(rpc.SessionId, rpc.Argument.getHashCode(), rpc.Argument.getParams(), null);
+				result = handle.RequestHandle.call(rpc.Argument.getHashCode(), rpc.Argument.getParams());
 			} catch (Throwable e) {
 				logger.error("call exception:", e);
 				SendResultCode(rpc, Procedure.Exception);
@@ -97,7 +97,7 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 		}
 	}
 
-	void SendResultForAsync(ModuleRedirectAllRequest p, RedirectResult result) throws Throwable {
+	private void SendResultForAsync(ModuleRedirectAllRequest p, int hash, RedirectResult result) throws Throwable {
 		var allResult = new ModuleRedirectAllResult();
 		allResult.setResultCode(ModuleRedirect.ResultCodeSuccess);
 
@@ -111,65 +111,65 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 		var handle = ProviderApp.Zeze.Redirect.Handles.get(p.Argument.getMethodFullName());
 		var hashResult = new BModuleRedirectAllHash();
 		hashResult.setParams(handle.ResultEncoder.apply(result));
-		resArg.getHashs().put(result.getHash(), hashResult);
+		resArg.getHashs().put(hash, hashResult);
 		SendResult(p.getSender(), allResult);
 	}
 
 	@Override
 	protected long ProcessModuleRedirectAllRequest(ModuleRedirectAllRequest p) throws Throwable {
+		var pa = p.Argument;
 		var result = new ModuleRedirectAllResult();
 		var resArg = result.Argument;
-		resArg.setModuleId(p.Argument.getModuleId());
+		resArg.setModuleId(pa.getModuleId());
 		resArg.setServerId(ProviderApp.Zeze.getConfig().getServerId());
-		resArg.setSourceProvider(p.Argument.getSourceProvider());
-		resArg.setSessionId(p.Argument.getSessionId());
-		resArg.setMethodFullName(p.Argument.getMethodFullName());
+		resArg.setSourceProvider(pa.getSourceProvider());
+		resArg.setSessionId(pa.getSessionId());
+		resArg.setMethodFullName(pa.getMethodFullName());
 
-		var handle = ProviderApp.Zeze.Redirect.Handles.get(p.Argument.getMethodFullName());
+		var handle = ProviderApp.Zeze.Redirect.Handles.get(pa.getMethodFullName());
 		if (handle == null) {
 			result.setResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
 			// 失败了，需要把hash返回。此时是没有处理结果的。
-			for (var hash : p.Argument.getHashCodes()) {
-				BModuleRedirectAllHash tempVar = new BModuleRedirectAllHash();
-				resArg.getHashs().put(hash, tempVar);
-			}
+			for (var hash : pa.getHashCodes())
+				resArg.getHashs().put(hash, new BModuleRedirectAllHash());
 			SendResult(p.getSender(), result);
 			return Procedure.LogicError;
 		}
 		result.setResultCode(ModuleRedirect.ResultCodeSuccess);
-		p.setUserState(this); // for async send result
 
-		for (var hash : p.Argument.getHashCodes()) {
+		for (var hash : pa.getHashCodes()) {
 			// 嵌套存储过程，某个分组处理失败不影响其他分组。
 			var hashResult = new BModuleRedirectAllHash();
-			Binary resultBinary;
+			RedirectAllFuture<?> future;
 			switch (handle.RequestTransactionLevel) {
 			case Serializable:
 			case AllowDirtyWhenAllRead:
-				var out = new OutObject<Binary>();
+				var out = new OutObject<>();
 				hashResult.setReturnCode(ProviderApp.Zeze.NewProcedure(() -> {
-					out.Value = (Binary)handle.RequestHandle.call(p.Argument.getSessionId(), hash, p.Argument.getParams(), p);
+					out.Value = handle.RequestHandle.call(hash, pa.getParams());
 					return Procedure.Success;
 				}, "ProcessModuleRedirectAllRequest").Call());
-				resultBinary = out.Value;
+				future = (RedirectAllFuture<?>)out.Value;
 				break;
 			default:
 				try {
-					resultBinary = (Binary)handle.RequestHandle.call(p.Argument.getSessionId(), hash, p.Argument.getParams(), p);
+					future = (RedirectAllFuture<?>)handle.RequestHandle.call(hash, pa.getParams());
 				} catch (Throwable e) {
-					logger.error("call exception:", e);
+					logger.error("RequestHandle.call exception:", e);
 					hashResult.setReturnCode(Procedure.Exception);
-					resultBinary = null;
+					future = null;
 				}
 				break;
 			}
 			// 单个分组处理失败继续执行。XXX
-			if (resultBinary != null)
-				hashResult.setParams(resultBinary);
-			if (resultBinary != RedirectHandle.ASYNC_RESULT) {
+			if (future == null)
+				resArg.getHashs().put(hash, hashResult);
+			else if (future.getClass() == RedirectAllFutureFinished.class) {
+				hashResult.setParams(handle.ResultEncoder.apply(((RedirectAllFutureFinished<?>)future).getResult()));
 				resArg.getHashs().put(hash, hashResult);
 				SendResultIfSizeExceed(p.getSender(), result);
-			}
+			} else
+				((RedirectAllFutureAsync<?>)future).onResult(r -> SendResultForAsync(p, hash, r));
 		}
 
 		// send remain

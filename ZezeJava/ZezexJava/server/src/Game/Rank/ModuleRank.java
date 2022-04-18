@@ -5,9 +5,9 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
 import Game.App;
-import Zeze.Arch.ModuleRedirectAllContext;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Arch.RedirectAll;
+import Zeze.Arch.RedirectAllFuture;
 import Zeze.Arch.RedirectFuture;
 import Zeze.Arch.RedirectHash;
 import Zeze.Arch.RedirectResult;
@@ -16,7 +16,6 @@ import Zeze.Net.Binary;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
-import Zeze.Util.Action1;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -194,34 +193,25 @@ public class ModuleRank extends AbstractModule {
 		return Rank;
 	}
 
-	/**
-	 * ModuleRedirectAll 实现要求：
-	 * 1）最后一个参数是输出结果和上下文(会话ID和hash)
-	 * 2）前面的其它参数都是自定义的输入参数
-	 * 3）返回值没有意义,可以为void
-	 */
-	protected final long GetRank(BConcurrentKey keyHint, RRankList result) {
-		// 根据hash获取分组rank。
-		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
-		var concurrentKey = new BConcurrentKey(keyHint.getRankType(), result.getHash() % concurrentLevel,
-				keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
-		try {
-			result.rankList = _trank.getOrAdd(concurrentKey);
-			return Procedure.Success;
-		} catch (Throwable e) {
-			logger.error("", e);
-			return Procedure.Exception;
-		}
-	}
-
 	public static class RRankList extends RedirectResult {
 		public BRankList rankList = new BRankList(); // 目前要求输出结构的所有字段都不能为null,需要构造时创建
 	}
 
 	// 属性参数是获取总的并发分组数量的代码，直接复制到生成代码中。
 	// 需要注意在子类上下文中可以编译通过。可以是常量。
-	@RedirectAll(GetConcurrentLevelSource = "GetConcurrentLevel(arg0.getRankType())")
-	public void GetRank(BConcurrentKey keyHint, Action1<ModuleRedirectAllContext<RRankList>> onResult) {
+	@RedirectAll
+	public RedirectAllFuture<RRankList> GetRank(int hash, BConcurrentKey keyHint) {
+		// 根据hash获取分组rank。
+		var result = new RRankList();
+		try {
+			int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
+			var concurrentKey = new BConcurrentKey(keyHint.getRankType(), hash % concurrentLevel,
+					keyHint.getTimeType(), keyHint.getYear(), keyHint.getOffset());
+			result.rankList = _trank.getOrAdd(concurrentKey);
+		} catch (Throwable e) {
+			logger.error("", e);
+		}
+		return RedirectAllFuture.result(result);
 /*
 		// 默认实现是本地遍历调用，这里不使用App.Zeze.Run启动任务（这样无法等待），直接调用实现。
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
@@ -511,39 +501,39 @@ public class ModuleRank extends AbstractModule {
 	public static class TestToAllResult extends RedirectResult { // RedirectAll的结果类型必须继承RedirectResult(其中包含resultCode),其它同ToServer
 		public int out;
 
+		public TestToAllResult() {
+		}
+
+		public TestToAllResult(int out) {
+			this.out = out;
+		}
+
 		@Override
 		public String toString() {
 			return "{r:" + getResultCode() + ",out:" + out + '}';
 		}
 	}
 
-	// RedirectAll的目标执行方法,推荐声明为protected,不能是private
-	protected final void TestToAll(int in, TestToAllResult result) throws Throwable { // 参数列表为自定义参数列表+一个结果类型
-		System.out.println("TestToAll sid=" + result.getSessionId() + ", hash=" + result.getHash() + ", in=" + in);
-		switch (result.getHash()) {
+	@RedirectAll // 广播请求并获取所有回复结果
+	public RedirectAllFuture<TestToAllResult> TestToAll(int hash, int in) throws Throwable { // 首个参数hash在发起方是hash总数,处理方是当前hash,后面是自定义参数列表
+		System.out.println("TestToAll hash=" + hash + ", in=" + in);
+		switch (hash) {
 		case 0: // local sync
 		case 1: // remote sync
-			result.out = in;
-			return;
+			return RedirectAllFuture.result(new TestToAllResult(in));
 		case 2: // local exception
 		case 3: // remote exception
 			throw new Exception("not bug, only for test");
 		case 4: // local async
 		case 5: // remote async
-			result.async(); // 启用异步方式,之后在result.send()时回复结果,如果不调用async()则默认在方法返回时自动同步回复结果
+			var future = RedirectAllFuture.<TestToAllResult>async(); // 启用异步方式,之后在result.send()时回复结果,如果不调用async()则默认在方法返回时自动同步回复结果
 			Task.run(App.Zeze.NewProcedure(() -> {
-				result.out = in;
-				result.send();
+				future.asyncResult(new TestToAllResult(in));
 				return Procedure.Success;
 			}, "TestToAllAsync"));
+			return future;
 		}
-	}
-
-	public int TestToAllConcLevel;
-
-	@RedirectAll(GetConcurrentLevelSource = "TestToAllConcLevel") // 广播请求并获取所有回复结果,需要GetConcurrentLevelSource指定广播数量
-	public void TestToAll(int in, Action1<ModuleRedirectAllContext<TestToAllResult>> onResult) { // 参数列表为自定义参数列表+一个结果类型
-		throw new UnsupportedOperationException(); // 这个方法内不应该被调用,实际会在目标App(可以是本机)上执行上面的TestToAll
+		throw new UnsupportedOperationException();
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off

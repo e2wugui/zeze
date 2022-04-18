@@ -24,7 +24,7 @@ public final class Changes extends Zeze.Raft.Log {
 		rocks = r;
 	}
 
-	public Changes(Rocks r, Transaction t, Protocol req) {
+	public Changes(Rocks r, Transaction t, Protocol<?> req) {
 		super((IRaftRpc)req);
 		rocks = r;
 		transaction = t;

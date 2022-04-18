@@ -113,7 +113,7 @@ public abstract class Record {
 
 	public abstract void Commit(Zeze.Transaction.RecordAccessed accessed);
 
-	public abstract IGlobalAgent.AcquireResult Acquire(int state) throws Throwable;
+	public abstract IGlobalAgent.AcquireResult Acquire(int state);
 
 	public abstract void Encode0();
 	public abstract void Flush(Database.Transaction t);

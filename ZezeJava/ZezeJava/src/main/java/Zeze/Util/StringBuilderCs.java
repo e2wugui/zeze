@@ -28,6 +28,11 @@ public class StringBuilderCs {
 		return this;
 	}
 
+	public StringBuilderCs Append(char c) {
+		sb.append(c);
+		return this;
+	}
+
 	public StringBuilderCs Append(int i) {
 		sb.append(i);
 		return this;

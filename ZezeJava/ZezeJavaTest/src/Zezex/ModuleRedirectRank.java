@@ -2,7 +2,7 @@ package Zezex;
 
 import Game.App;
 import Zeze.Transaction.Procedure;
-import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.IntHashSet;
 import Zeze.Util.TaskCompletionSource;
 import junit.framework.TestCase;
 
@@ -68,50 +68,43 @@ public class ModuleRedirectRank extends TestCase {
 			}).Wait();
 
 			// RedirectAll
-			app1.Game_Rank.TestToAllConcLevel = 6;
+			final int CONCURRENT_LEVEL = 6;
 			var future1 = new TaskCompletionSource<Boolean>();
-			var hashes = new ConcurrentHashSet<Integer>();
-			app1.Game_Rank.TestToAll(12345, ctx -> {
-				assertFalse(ctx.isTimeout());
-				var lastResult = ctx.getLastResult();
-				var h = lastResult.getHash();
-				var out = lastResult.out;
-				System.out.println("TestToAll onResult: " + lastResult.getSessionId() + ", " + h + ", " + out);
-				assertTrue(h >= 0 && h < app1.Game_Rank.TestToAllConcLevel);
+			var hashes = new IntHashSet();
+			app1.Game_Rank.TestToAll(CONCURRENT_LEVEL, 12345).onResult(r -> {
+				var h = r.getHash();
+				System.out.println("TestToAll onResult: hash=" + h + ", out=" + r.out);
+				assertTrue(h >= 0 && h < CONCURRENT_LEVEL);
 				assertTrue(hashes.add(h));
-				if (lastResult.getResultCode() == Procedure.Success)
-					assertEquals(12345, out);
-				else if (lastResult.getResultCode() == Procedure.Exception)
-					assertEquals(0, out);
-				if (ctx.isCompleted()) {
-					try {
-						var allResults = ctx.getAllResults();
-						System.out.println("TestToAll onHashEnd: HashResults=" + allResults);
-						assertEquals(app1.Game_Rank.TestToAllConcLevel, allResults.size());
-						assertEquals(Procedure.Success, allResults.get(0).getResultCode()); // local
-						assertEquals(Procedure.Success, allResults.get(1).getResultCode()); // remote
-						assertEquals(Procedure.Exception, allResults.get(2).getResultCode()); // local exception
-						assertEquals(Procedure.Exception, allResults.get(3).getResultCode()); // remote exception
-						assertEquals(Procedure.Success, allResults.get(4).getResultCode()); // local async
-						assertEquals(Procedure.Success, allResults.get(4).getResultCode()); // remote async
-					} finally {
-						future1.SetResult(true);
-					}
+				if (r.getResultCode() == Procedure.Success)
+					assertEquals(12345, r.out);
+				else if (r.getResultCode() == Procedure.Exception)
+					assertEquals(0, r.out);
+			}).onAllDone(ctx -> {
+				assertFalse(ctx.isTimeout());
+				try {
+					var allResults = ctx.getAllResults();
+					System.out.println("TestToAll onAllDone: allResults=" + allResults);
+					assertEquals(CONCURRENT_LEVEL, allResults.size());
+					assertEquals(Procedure.Success, allResults.get(0).getResultCode()); // local
+					assertEquals(Procedure.Success, allResults.get(1).getResultCode()); // remote
+					assertEquals(Procedure.Exception, allResults.get(2).getResultCode()); // local exception
+					assertEquals(Procedure.Exception, allResults.get(3).getResultCode()); // remote exception
+					assertEquals(Procedure.Success, allResults.get(4).getResultCode()); // local async
+					assertEquals(Procedure.Success, allResults.get(4).getResultCode()); // remote async
+				} finally {
+					future1.SetResult(true);
 				}
 			});
 			assertTrue(future1.get());
-			assertEquals(app1.Game_Rank.TestToAllConcLevel, hashes.size());
+			assertEquals(CONCURRENT_LEVEL, hashes.size());
 
-			var future2 = new TaskCompletionSource<Boolean>();
-			app2.Game_Rank.TestToAllConcLevel = 0;
-			app2.Game_Rank.TestToAll(12345, ctx -> {
+			app2.Game_Rank.TestToAll(0, 12345).Wait().onAllDone(ctx -> {
 				if (ctx.isCompleted()) {
-					System.out.println("TestToAll onHashEnd: HashResults=" + ctx.getAllResults());
+					System.out.println("TestToAll(0) onAllDone: allResults=" + ctx.getAllResults());
 					assertEquals(0, ctx.getAllResults().size());
-					future2.SetResult(true);
 				}
 			});
-			assertTrue(future2.get());
 		} finally {
 			System.out.println("Begin Stop");
 			app1.Stop();

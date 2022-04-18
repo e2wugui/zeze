@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import Zeze.Net.Protocol;
 import Zeze.Services.GlobalCacheManagerServer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -144,7 +143,7 @@ public final class Transaction {
 
 	 @param procedure first procedure
 	*/
-	public long Perform(Procedure procedure) throws Throwable {
+	public long Perform(Procedure procedure) {
 		try {
 			for (int tryCount = 0; tryCount < 256; ++tryCount) { // 最多尝试次数
 				// 默认在锁内重复尝试，除非CheckResult.RedoAndReleaseLock，否则由于CheckResult.Redo保持锁会导致死锁。
@@ -210,7 +209,7 @@ public final class Transaction {
 									// 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
 									if (e instanceof AssertionError) {
 										_final_rollback_(procedure);
-										throw e;
+										throw (AssertionError)e;
 									}
 									checkResult = _lock_and_check_(procedure.getTransactionLevel());
 									if (checkResult == CheckResult.Success) {
@@ -448,7 +447,7 @@ public final class Transaction {
 		RedoAndReleaseLock
 	}
 
-	private CheckResult _check_(boolean writeLock, RecordAccessed e) throws Throwable {
+	private CheckResult _check_(boolean writeLock, RecordAccessed e) {
 		e.OriginRecord.EnterFairLock();
 		try {
 			//noinspection IfStatementWithIdenticalBranches
@@ -501,7 +500,7 @@ public final class Transaction {
 		}
 	}
 
-	private CheckResult _lock_and_check_(Map.Entry<TableKey, RecordAccessed> e) throws Throwable {
+	private CheckResult _lock_and_check_(Map.Entry<TableKey, RecordAccessed> e) {
 		Lockey lockey = Locks.Get(e.getKey());
 		boolean writeLock = e.getValue().Dirty;
 		lockey.EnterLock(writeLock);
@@ -509,7 +508,7 @@ public final class Transaction {
 		return _check_(writeLock, e.getValue());
 	}
 
-	private CheckResult _lock_and_check_(TransactionLevel level) throws Throwable {
+	private CheckResult _lock_and_check_(TransactionLevel level) {
 		boolean allRead = true;
 		if (!Savepoints.isEmpty()) {
 			// 全部 Rollback 时 Count 为 0；最后提交时 Count 必须为 1；
