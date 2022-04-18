@@ -863,6 +863,11 @@ namespace Zeze.Services.ServiceManager
             /// </summary>
             public bool Committed { get; internal set; } = false;
 
+            public override string ToString()
+            {
+                return ServiceInfos.ToString();
+            }
+
             // 服务准备好。
             public ConcurrentDictionary<string, object> ServiceIdentityReadyStates { get; }
                 = new ConcurrentDictionary<string, object>();

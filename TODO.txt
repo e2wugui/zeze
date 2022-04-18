@@ -26,7 +26,7 @@ Zezex Onlines TransmitInProcedure 需要重写。
 
 【2022/5/11】
 
-
+c# Arch Redirect Hash & Server async ready.
 c# Collections Queue LinkedMap
 c# Component DelayRemove AutoKey RedoQueue RedoQueueServer
 Java Arch Test：RedirectToServer,RedirectHash Done

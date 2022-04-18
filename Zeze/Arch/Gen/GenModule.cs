@@ -59,21 +59,35 @@ namespace Zeze.Arch.Gen
             overrides.Sort((a, b) => a.Method.Name.CompareTo(b.Method.Name));
 
             string genClassName = $"Redirect_{module.FullName.Replace('.', '_')}";
-            if (null == SrcDirWhenPostBuild)
+            if (null == GenRedirect)
             {
                 module.UnRegister();
                 //Console.WriteLine($"'{module.FullName}' Replaced.");
                 // from Game.App.Start. try load new module instance.
-                var newModule = (Zeze.IModule)Activator.CreateInstance(Type.GetType(genClassName));
-                /*TODO newModule.Initialize(Game.App.Instance);*/
-                return newModule;
+                foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    Type replaceModuleType = null;
+                    try
+                    {
+                        replaceModuleType = assembly.GetType(genClassName);
+                    }
+                    catch (Exception)
+                    {
+                        continue;
+                    }
+                    if (null == replaceModuleType)
+                        continue;
+                    var newModule = (Zeze.IModule)Activator.CreateInstance(replaceModuleType, userApp);
+                    newModule.Initialize(userApp);
+                    return newModule;
+                }
             }
 
-            string srcFileName = System.IO.Path.Combine(SrcDirWhenPostBuild,
+            string srcFileName = System.IO.Path.Combine(GenRedirect,
                 module.FullName.Replace('.', System.IO.Path.DirectorySeparatorChar), $"Module{module.Name}.cs");
 
             long srcLastWriteTimeTicks = System.IO.File.GetLastWriteTime(srcFileName).Ticks;
-            string genFileName = System.IO.Path.Combine(SrcDirWhenPostBuild, "Gen", genClassName + ".cs");
+            string genFileName = System.IO.Path.Combine(GenRedirect, "Gen", genClassName + ".cs");
 
             if (false == System.IO.File.Exists(genFileName)
                 || System.IO.File.GetLastWriteTime(genFileName).Ticks != srcLastWriteTimeTicks)
@@ -118,7 +132,7 @@ namespace Zeze.Arch.Gen
         }
         // */
 
-        public string SrcDirWhenPostBuild { get; set; } // ugly
+        public string GenRedirect { get; set; } // ugly
         public bool HasNewGen { get; private set; } = false;
 
         // 根据转发类型选择目标服务器，如果目标服务器是自己，直接调用基类方法完成工作。

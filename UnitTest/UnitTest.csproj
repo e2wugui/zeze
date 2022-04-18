@@ -41,6 +41,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Zezex\linkd\linkd.csproj" />
+    <ProjectReference Include="..\Zezex\server\server.csproj" />
     <ProjectReference Include="..\Zeze\Zeze.csproj" />
   </ItemGroup>
 

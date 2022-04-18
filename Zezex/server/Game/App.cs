@@ -44,8 +44,8 @@ namespace Game
 
         public void Start(string[] args)
         {
-            string srcDirWhenPostBuild = null;
-            srcDirWhenPostBuild = "C:\\Users\\10501\\Desktop\\code\\zeze\\Zezex\\server";
+            string GenRedirect = null;
+            //GenRedirect = "C:\\Users\\10501\\Desktop\\code\\zeze\\Zezex\\server";
             int ServerId = -1;
             int ProviderDirectPort = -1;
             for (int i = 0; i < args.Length; ++i)
@@ -58,14 +58,14 @@ namespace Game
                     case "-ProviderDirectPort":
                         ProviderDirectPort = int.Parse(args[++i]);
                         break;
-                    case "-srcDirWhenPostBuild":
-                        srcDirWhenPostBuild = args[++i];
+                    case "-GenRedirect":
+                        GenRedirect = args[++i];
                         break;
                 }
             }
 
             LoadConfig();
-            var config = global::Zeze.Config.Load();
+            var config = global::Zeze.Config.Load("server.xml");
             if (ServerId != -1)
             {
                 config.ServerId = ServerId; // replace from args
@@ -83,9 +83,9 @@ namespace Game
             ProviderApp = new Zeze.Arch.ProviderApp(Zeze, ProviderImplement, Server, "Game.Server.Module#",
                 ProviderDirect, ServerDirect, "Game.Linkd", global::Zeze.Arch.LoadConfig.Load("load.json"));
 
-            global::Zeze.Arch.Gen.GenModule.Instance.SrcDirWhenPostBuild = srcDirWhenPostBuild;
+            global::Zeze.Arch.Gen.GenModule.Instance.GenRedirect = GenRedirect;
             CreateModules();
-            if (global::Zeze.Arch.Gen.GenModule.Instance.HasNewGen)
+            if (global::Zeze.Arch.Gen.GenModule.Instance.GenRedirect != null)
                 throw new Exception("ModuleRedirect HasNewGen. Please Rebuild Now.");
 
             ProviderApp.initialize(global::Zeze.Arch.ProviderModuleBinds.Load(), Modules); // need Modules
