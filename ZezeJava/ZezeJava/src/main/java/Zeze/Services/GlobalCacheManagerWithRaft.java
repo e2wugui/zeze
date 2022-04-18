@@ -633,7 +633,7 @@ public class GlobalCacheManagerWithRaft
 	@Override
 	public void close() throws IOException {
 		try {
-			Rocks.getRaft().Shutdown();
+			Rocks.close();
 		} catch (Throwable e) {
 			throw new RuntimeException(e);
 		}
