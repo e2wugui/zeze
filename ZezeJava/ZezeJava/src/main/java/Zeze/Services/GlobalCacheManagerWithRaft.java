@@ -85,7 +85,7 @@ public class GlobalCacheManagerWithRaft
 		Rocks.getRaft().getServer().Start();
 	}
 
-	private Rocks getRocks() {
+	public Rocks getRocks() {
 		return Rocks;
 	}
 
