@@ -14,7 +14,6 @@ import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManagerWithRaft;
 import Zeze.Services.ServiceManagerServer;
-import Zeze.Transaction.Log1;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
 import Zeze.Util.LongHashMap;
@@ -22,7 +21,6 @@ import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.ThreadFactoryWithName;
 import demo.App;
-import demo.Module1.Value;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -86,9 +84,6 @@ public class TestGlobalCacheMgrWithRaft {
 
 		String ip = null;
 		int port = 5001;
-
-//		InetAddress address = (ip == null || ip.isEmpty()) ?
-//				new InetSocketAddress(0).getAddress() : InetAddress.getByName(ip);
 
 		InetAddress address = (ip != null && !ip.isBlank()) ? InetAddress.getByName(ip) : null;
 
@@ -197,7 +192,7 @@ public class TestGlobalCacheMgrWithRaft {
 			globalRafts[1].RestartNet();
 		}));
 
-		FailActions.add(new FailAction("RestartNet2", () ->
+		FailActions.add(new FailAction("RestartNet3", () ->
 		{
 			TestGlobalRaft[] globalRafts = ShuffleGlobalRaft();
 			globalRafts[0].RestartNet();
@@ -237,8 +232,8 @@ public class TestGlobalCacheMgrWithRaft {
 		var testName = "RealConcurrentDoRequest";
 		var lastExpectCount = ExpectCount.get();
 		while (true) {
-			ExpectCount.addAndGet(ConcurrentAddCount(testName, 20));
-			if (ExpectCount.get() - lastExpectCount > 20 * 2 * 5) {
+			ExpectCount.addAndGet(ConcurrentAddCount(testName, 10));
+			if (ExpectCount.get() - lastExpectCount > 10 * 2 * 5) {
 				lastExpectCount = ExpectCount.get();
 				if (!Check(testName))
 					break;
@@ -415,7 +410,6 @@ public class TestGlobalCacheMgrWithRaft {
 				logger.debug("GlobalCacheManagerWithRaft {} Stop ...", RaftName);
 				if (GlobalCacheManagerWithRaft != null) {
 					GlobalCacheManagerWithRaft.close();
-					GlobalCacheManagerWithRaft.getRocks().close();
 					GlobalCacheManagerWithRaft = null;
 				}
 			}
