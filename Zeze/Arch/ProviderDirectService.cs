@@ -111,6 +111,7 @@ namespace Zeze.Arch
 		private void SetReady(Agent.SubscribeState ss, ServiceInfo server, ProviderSession ps,
 			int mid, Zeze.Beans.Provider.BModule m)
 		{
+			Console.WriteLine($"SetReady Server={Zeze.Config.ServerId} {ss.ServiceName} {server.ServiceIdentity}");
 			var pms = new ProviderModuleState(ps.SessionId, mid, m.ChoiceType, m.ConfigType);
 			ps.GetOrAddServiceReadyState(ss.ServiceName).TryAdd(server.ServiceIdentity, pms);
 			ss.SetServiceIdentityReadyState(server.ServiceIdentity, pms);

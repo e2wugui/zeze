@@ -11,26 +11,14 @@ namespace Zeze.Arch
     {
         public ProviderApp ProviderApp { get; set; }
 
-        private void SendResultCode(Protocol rpc, long rc)
+        private void SendProtocol(AsyncSocket target, Protocol p)
         {
-            rpc.ResultCode = rc;
-            SendResult(rpc);
-        }
-
-        private void SendResult(Protocol rpc)
-        {
-            rpc.IsRequest = false;
-            Send(rpc.Sender, rpc);
-        }
-
-        private void Send(AsyncSocket sender, Protocol rpc)
-        {
-            if (sender == null)
+            if (target == null)
             {
                 var service = ProviderApp.ProviderDirectService;
-                rpc.Dispatch(service, service.FindProtocolFactoryHandle(rpc.TypeId));
+                p.Dispatch(service, service.FindProtocolFactoryHandle(p.TypeId));
             }
-            rpc.Send(sender);
+            p.Send(target);
         }
 
         protected override async Task<long> ProcessModuleRedirectRequest(Protocol p)
@@ -40,7 +28,7 @@ namespace Zeze.Arch
             rpc.Result.ServerId = ProviderApp.Zeze.Config.ServerId;
             if (false == ProviderApp.Zeze.Redirect.Handles.TryGetValue(rpc.Argument.MethodFullName, out var handle))
             {
-                SendResultCode(rpc, ModuleRedirect.ResultCodeMethodFullNameNotFound);
+                rpc.SendResultCode(ModuleRedirect.ResultCodeMethodFullNameNotFound);
                 return Procedure.LogicError;
             }
             Binary Params = Binary.Empty;
@@ -61,7 +49,7 @@ namespace Zeze.Arch
             rpc.Result.Params = Params;
 
             // rpc 成功了，具体handle结果还需要看ReturnCode。
-            SendResultCode(rpc, ModuleRedirect.ResultCodeSuccess);
+            rpc.SendResultCode(0);
             return 0;
         }
 
@@ -74,7 +62,7 @@ namespace Zeze.Arch
             }
             if (size > 2 * 1024 * 1024) // 2M
             {
-                Send(sender, result);
+                SendProtocol(sender, result);
                 result.Argument.Hashs.Clear();
             }
         }
@@ -102,7 +90,7 @@ namespace Zeze.Arch
                         ReturnCode = Procedure.NotImplement
                     });
                 }
-                Send(p.Sender, result);
+                SendProtocol(p.Sender, result);
                 return Procedure.LogicError;
             }
             result.ResultCode = ModuleRedirect.ResultCodeSuccess;
@@ -138,7 +126,7 @@ namespace Zeze.Arch
             // send remain
             if (result.Argument.Hashs.Count > 0)
             {
-                Send(p.Sender, result);
+                SendProtocol(p.Sender, result);
             }
             return Procedure.Success;
         }
