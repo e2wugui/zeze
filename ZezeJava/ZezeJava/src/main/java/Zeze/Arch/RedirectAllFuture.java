@@ -7,51 +7,51 @@ import Zeze.Transaction.Procedure;
 import Zeze.Util.Action1;
 import Zeze.Util.IntHashSet;
 
-public interface RedirectAllFuture<T extends RedirectResult> {
+public interface RedirectAllFuture<R extends RedirectResult> {
 	// 返回的future不能调用下面的接口方法,只用于给框架提供结果
-	public static <T extends RedirectResult> RedirectAllFuture<T> result(T t) {
-		return new RedirectAllFutureFinished<>(t);
+	public static <R extends RedirectResult> RedirectAllFuture<R> result(R r) {
+		return new RedirectAllFutureFinished<>(r);
 	}
 
 	// 返回的future只能调用下面的asyncResult方法
-	public static <T extends RedirectResult> RedirectAllFuture<T> async() {
+	public static <R extends RedirectResult> RedirectAllFuture<R> async() {
 		return new RedirectAllFutureAsync<>();
 	}
 
 	// 只有通过async得到的future才能调用这个方法
-	default void asyncResult(T t) {
+	default void asyncResult(R r) {
 		throw new IllegalStateException();
 	}
 
 	// 只用于RedirectAll方法返回的future, 同一future的情况下,此方法不会跟其它的onResult和onAllDone并发,每个结果回调一次
-	default RedirectAllFuture<T> onResult(Action1<T> onResult) throws Throwable {
+	default RedirectAllFuture<R> onResult(Action1<R> onResult) throws Throwable {
 		throw new IllegalStateException();
 	}
 
 	// 只用于RedirectAll方法返回的future. 同一future的情况下,此方法不会跟onResult并发,只会回调一次
-	default RedirectAllFuture<T> onAllDone(Action1<ModuleRedirectAllContext<T>> onAllDone) throws Throwable {
+	default RedirectAllFuture<R> onAllDone(Action1<ModuleRedirectAllContext<R>> onAllDone) throws Throwable {
 		throw new IllegalStateException();
 	}
 
 	// 只用于RedirectAll方法返回的future
-	default RedirectAllFuture<T> Wait() {
+	default RedirectAllFuture<R> Wait() {
 		throw new IllegalStateException();
 	}
 }
 
-final class RedirectAllFutureFinished<T extends RedirectResult> implements RedirectAllFuture<T> {
-	private final T result;
+final class RedirectAllFutureFinished<R extends RedirectResult> implements RedirectAllFuture<R> {
+	private final R result;
 
-	RedirectAllFutureFinished(T result) {
+	RedirectAllFutureFinished(R result) {
 		this.result = result;
 	}
 
-	T getResult() {
+	R getResult() {
 		return result;
 	}
 }
 
-final class RedirectAllFutureAsync<T extends RedirectResult> implements RedirectAllFuture<T> {
+final class RedirectAllFutureAsync<R extends RedirectResult> implements RedirectAllFuture<R> {
 	private static final VarHandle RESULT;
 
 	static {
@@ -67,13 +67,13 @@ final class RedirectAllFutureAsync<T extends RedirectResult> implements Redirect
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void asyncResult(T t) {
-		Object a = RESULT.getAndSet(this, t);
+	public void asyncResult(R r) {
+		Object a = RESULT.getAndSet(this, r);
 		if (a != null) {
 			if (a instanceof RedirectResult)
 				throw new IllegalStateException();
 			try {
-				((Action1<T>)a).run(t);
+				((Action1<R>)a).run(r);
 			} catch (Throwable e) {
 				throw new RuntimeException(e);
 			}
@@ -82,11 +82,11 @@ final class RedirectAllFutureAsync<T extends RedirectResult> implements Redirect
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public RedirectAllFuture<T> onResult(Action1<T> onResult) throws Throwable {
+	public RedirectAllFuture<R> onResult(Action1<R> onResult) throws Throwable {
 		Object r = RESULT.getAndSet(this, onResult);
 		if (r != null) {
 			if (r instanceof RedirectResult)
-				onResult.run((T)r);
+				onResult.run((R)r);
 			else
 				throw new IllegalStateException();
 		}
@@ -94,7 +94,7 @@ final class RedirectAllFutureAsync<T extends RedirectResult> implements Redirect
 	}
 }
 
-final class RedirectAllFutureImpl<T extends RedirectResult> implements RedirectAllFuture<T> {
+final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectAllFuture<R> {
 	private static final VarHandle ON_ALL_DONE;
 
 	static {
@@ -105,10 +105,9 @@ final class RedirectAllFutureImpl<T extends RedirectResult> implements RedirectA
 		}
 	}
 
-	private volatile Action1<T> onResult;
-	private volatile Action1<ModuleRedirectAllContext<T>> onAllDone;
-	private volatile ModuleRedirectAllContext<T> ctx;
-	private Zeze.Application zeze;
+	private volatile Action1<R> onResult;
+	private volatile Action1<ModuleRedirectAllContext<R>> onAllDone;
+	private volatile ModuleRedirectAllContext<R> ctx;
 	private IntHashSet finishedHashes; // lazy-init
 
 	private IntHashSet getFinishedHashes() {
@@ -124,11 +123,9 @@ final class RedirectAllFutureImpl<T extends RedirectResult> implements RedirectA
 		return hashes;
 	}
 
-	void result(Zeze.Application zeze, ModuleRedirectAllContext<T> ctx, T result) throws Throwable {
-		if (this.ctx == null) {
-			this.zeze = zeze;
+	void result(ModuleRedirectAllContext<R> ctx, R result) throws Throwable {
+		if (this.ctx == null)
 			this.ctx = ctx;
-		}
 		if (onResult == null)
 			return; // 等设置了onResult再处理
 		var hashes = getFinishedHashes();
@@ -137,24 +134,25 @@ final class RedirectAllFutureImpl<T extends RedirectResult> implements RedirectA
 			if (!hashes.add(result.getHash()))
 				return;
 		}
-		zeze.NewProcedure(() -> {
+		ctx.getService().getZeze().NewProcedure(() -> {
 			onResult.run(result);
 			return Procedure.Success;
 		}, "RedirectAllFutureImpl.result").Call();
 	}
 
 	@Override
-	public RedirectAllFuture<T> onResult(Action1<T> onResult) throws Throwable {
+	public RedirectAllFuture<R> onResult(Action1<R> onResult) throws Throwable {
 		if (onResult == null)
 			throw new NullPointerException();
 		this.onResult = onResult;
-		if (ctx == null)
+		var c = ctx;
+		if (c == null)
 			return this;
 		var hashes = getFinishedHashes();
-		ArrayList<T> readyOnResults;
-		//noinspection SynchronizeOnNonFinalField
-		synchronized (ctx) {
-			var results = ctx.getAllResults();
+		ArrayList<R> readyOnResults;
+		//noinspection SynchronizationOnLocalVariableOrMethodParameter
+		synchronized (c) {
+			var results = c.getAllResults();
 			if (results.isEmpty())
 				return this;
 			readyOnResults = new ArrayList<>();
@@ -166,8 +164,8 @@ final class RedirectAllFutureImpl<T extends RedirectResult> implements RedirectA
 				}
 			}
 		}
-		for (T needOnResult : readyOnResults) {
-			zeze.NewProcedure(() -> {
+		for (R needOnResult : readyOnResults) {
+			c.getService().getZeze().NewProcedure(() -> {
 				onResult.run(needOnResult);
 				return Procedure.Success;
 			}, "RedirectAllFutureImpl.onResult").Call();
@@ -175,17 +173,15 @@ final class RedirectAllFutureImpl<T extends RedirectResult> implements RedirectA
 		return this;
 	}
 
-	void allDone(Zeze.Application zeze, ModuleRedirectAllContext<T> ctx) throws Throwable {
+	void allDone(ModuleRedirectAllContext<R> ctx) throws Throwable {
 		if (ctx == null)
 			throw new NullPointerException();
-		if (this.ctx == null) {
-			this.zeze = zeze;
+		if (this.ctx == null)
 			this.ctx = ctx;
-		}
 		@SuppressWarnings("unchecked")
-		var onA = (Action1<ModuleRedirectAllContext<T>>)ON_ALL_DONE.getAndSet(this, null);
+		var onA = (Action1<ModuleRedirectAllContext<R>>)ON_ALL_DONE.getAndSet(this, null);
 		if (onA != null) {
-			zeze.NewProcedure(() -> {
+			ctx.getService().getZeze().NewProcedure(() -> {
 				onA.run(ctx);
 				return Procedure.Success;
 			}, "RedirectAllFutureImpl.allDone").Call();
@@ -196,21 +192,24 @@ final class RedirectAllFutureImpl<T extends RedirectResult> implements RedirectA
 	}
 
 	@Override
-	public RedirectAllFuture<T> onAllDone(Action1<ModuleRedirectAllContext<T>> onAllDone) throws Throwable {
+	public RedirectAllFuture<R> onAllDone(Action1<ModuleRedirectAllContext<R>> onAllDone) throws Throwable {
 		if (onAllDone == null)
 			throw new NullPointerException();
-		if (ctx == null || !ctx.isCompleted()) {
+		var c = ctx;
+		if (c == null || !c.isCompleted()) {
 			this.onAllDone = onAllDone;
-			if (ctx == null || !ctx.isCompleted()) // 再次确认,避免并发窗口问题
+			c = ctx;
+			if (c == null || !c.isCompleted()) // 再次确认,避免并发窗口问题
 				return this;
 			@SuppressWarnings("unchecked")
-			var onA = (Action1<ModuleRedirectAllContext<T>>)ON_ALL_DONE.getAndSet(this, null);
+			var onA = (Action1<ModuleRedirectAllContext<R>>)ON_ALL_DONE.getAndSet(this, null);
 			onAllDone = onA;
 		}
 		if (onAllDone != null) {
 			var onA = onAllDone;
-			zeze.NewProcedure(() -> {
-				onA.run(ctx);
+			var c1 = c;
+			c.getService().getZeze().NewProcedure(() -> {
+				onA.run(c1);
 				return Procedure.Success;
 			}, "RedirectAllFutureImpl.onAllDone").Call();
 		}
@@ -218,10 +217,12 @@ final class RedirectAllFutureImpl<T extends RedirectResult> implements RedirectA
 	}
 
 	@Override
-	public RedirectAllFuture<T> Wait() {
-		if (ctx == null || !ctx.isCompleted()) {
+	public RedirectAllFuture<R> Wait() {
+		var c = ctx;
+		if (c == null || !c.isCompleted()) {
 			synchronized (this) {
-				while (ctx != null && ctx.isCompleted()) {
+				c = ctx;
+				while (c != null && c.isCompleted()) {
 					try {
 						wait();
 					} catch (InterruptedException e) {

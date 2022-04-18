@@ -15,7 +15,6 @@ import Zeze.Util.Func0;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.OutLong;
 import Zeze.Util.Task;
-import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -94,9 +93,9 @@ public class RedirectBase {
 				}
 				exist.Argument.getHashCodes().add(i);
 			} else {
-				var tempVar = new BModuleRedirectAllHash();
-				tempVar.setReturnCode(Zeze.Transaction.Procedure.ProviderNotExist);
-				miss.Argument.getHashs().put(i, tempVar);
+				var hashResult = new BModuleRedirectAllHash();
+				hashResult.setReturnCode(Zeze.Transaction.Procedure.ProviderNotExist);
+				miss.Argument.getHashs().put(i, hashResult);
 			}
 		}
 
@@ -116,9 +115,9 @@ public class RedirectBase {
 				}
 			} else {
 				for (var hashIndex : request.Argument.getHashCodes()) {
-					BModuleRedirectAllHash allHash = new BModuleRedirectAllHash();
-					allHash.setReturnCode(Zeze.Transaction.Procedure.ProviderNotExist);
-					miss.Argument.getHashs().put(hashIndex, allHash);
+					BModuleRedirectAllHash hashResult = new BModuleRedirectAllHash();
+					hashResult.setReturnCode(Zeze.Transaction.Procedure.ProviderNotExist);
+					miss.Argument.getHashs().put(hashIndex, hashResult);
 				}
 			}
 		}

@@ -2,7 +2,6 @@ package Zeze.Arch;
 
 import java.util.function.Function;
 import Zeze.Net.Binary;
-import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TransactionLevel;
 
 public class RedirectHandle {
@@ -10,12 +9,10 @@ public class RedirectHandle {
 		/**
 		 * @param hash          serverId或hash
 		 * @param encodedParams 输入参数的序列化
-		 * @return RedirectFuture(用于非All模式); RedirectAllFuture(用于All模式); null(用于非All模式没有返回值)
+		 * @return RedirectFuture(用于非All模式); RedirectAllFuture(用于All模式); null(用于没有结果返回或异常)
 		 */
 		Object call(int hash, Binary encodedParams) throws Throwable;
 	}
-
-	public static final Binary ASYNC_RESULT = new Binary(ByteBuffer.Empty);
 
 	public final TransactionLevel RequestTransactionLevel;
 	public final IRequestHandle RequestHandle;

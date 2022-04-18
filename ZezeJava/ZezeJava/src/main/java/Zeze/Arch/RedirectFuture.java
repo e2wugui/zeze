@@ -5,7 +5,7 @@ import java.lang.invoke.VarHandle;
 import Zeze.Util.Action1;
 import Zeze.Util.TaskCompletionSource;
 
-public class RedirectFuture<T> extends TaskCompletionSource<T> {
+public class RedirectFuture<R> extends TaskCompletionSource<R> {
 	private static final VarHandle ON_RESULT;
 
 	static {
@@ -16,35 +16,35 @@ public class RedirectFuture<T> extends TaskCompletionSource<T> {
 		}
 	}
 
-	public static <T> RedirectFuture<T> finish(T t) {
-		var f = new RedirectFuture<T>();
-		f.SetResult(t);
+	public static <R> RedirectFuture<R> finish(R r) {
+		var f = new RedirectFuture<R>();
+		f.SetResult(r);
 		return f;
 	}
 
-	private volatile Action1<T> onResult;
+	private volatile Action1<R> onResult;
 
 	@Override
-	public boolean SetResult(T t) {
-		if (!super.SetResult(t))
+	public boolean SetResult(R r) {
+		if (!super.SetResult(r))
 			return false;
 		try {
-			tryOnResult(t);
+			tryOnResult(r);
 		} catch (Throwable e) {
 			throw new RuntimeException(e);
 		}
 		return true;
 	}
 
-	private void tryOnResult(T t) throws Throwable {
+	private void tryOnResult(R r) throws Throwable {
 		@SuppressWarnings("unchecked")
-		var onR = (Action1<T>)ON_RESULT.getAndSet(this, null);
+		var onR = (Action1<R>)ON_RESULT.getAndSet(this, null);
 		if (onR != null)
-			onR.run(t);
+			onR.run(r);
 	}
 
 	// 不支持同时叠多个onResult,否则可能覆盖之前没执行过的
-	public RedirectFuture<T> then(Action1<T> onResult) throws Throwable {
+	public RedirectFuture<R> then(Action1<R> onResult) throws Throwable {
 		Object result = getRawResult();
 		if (result != null)
 			onResult.run(toResult(result));

@@ -490,14 +490,6 @@ public class ModuleRank extends AbstractModule {
 		return RedirectFuture.finish(Procedure.Success);
 	}
 
-	@RedirectToServer
-	public void TestToServerNoResult(int serverId) {
-	}
-
-	@RedirectHash
-	public void TestHashNoResult(int hash) {
-	}
-
 	public static class TestToAllResult extends RedirectResult { // RedirectAll的结果类型必须继承RedirectResult(其中包含resultCode),其它同ToServer
 		public int out;
 
@@ -534,6 +526,18 @@ public class ModuleRank extends AbstractModule {
 			return future;
 		}
 		throw new UnsupportedOperationException();
+	}
+
+	@RedirectToServer
+	public void TestToServerNoResult(int serverId) {
+	}
+
+	@RedirectHash
+	public void TestHashNoResult(int hash) {
+	}
+
+	@RedirectAll
+	public void TestAllNoResult(int hash) {
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off

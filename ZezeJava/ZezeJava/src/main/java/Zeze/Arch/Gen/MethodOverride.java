@@ -62,8 +62,13 @@ class MethodOverride {
 				resultType = (Class<?>)rpType.getActualTypeArguments()[0];
 		}
 
-		if (resultType == null)
+		if (resultType == null) {
+			if (annotation instanceof RedirectAll) {
+				resultTypeName = null;
+				return;
+			}
 			resultType = Long.class;
+		}
 		resultTypeName = toShort(resultType.getName()).replace('$', '.');
 		var fields = resultType.getFields();
 		Arrays.sort(fields, Comparator.comparing(Field::getName));

@@ -10,11 +10,13 @@ public final class ModuleRedirectAllContext<R extends RedirectResult> extends Ze
 	private final int concurrentLevel;
 	private final IntHashMap<R> hashResults = new IntHashMap<>(); // <hash, result>
 	private final Function<Binary, R> resultDecoder;
-	private final RedirectAllFutureImpl<R> future = new RedirectAllFutureImpl<>();
+	private final RedirectAllFutureImpl<R> future;
+	private boolean timeout;
 
 	public ModuleRedirectAllContext(int concurrentLevel, Function<Binary, R> resultDecoder) {
 		this.concurrentLevel = concurrentLevel;
 		this.resultDecoder = resultDecoder;
+		future = resultDecoder != null ? new RedirectAllFutureImpl<>() : null;
 	}
 
 	public RedirectAllFutureImpl<R> getFuture() {
@@ -22,11 +24,11 @@ public final class ModuleRedirectAllContext<R extends RedirectResult> extends Ze
 	}
 
 	public boolean isCompleted() {
-		return hashResults.size() >= concurrentLevel || isTimeout();
+		return hashResults.size() >= concurrentLevel || timeout;
 	}
 
 	public boolean isTimeout() {
-		return getUserState() != null;
+		return timeout;
 	}
 
 	// 只用于AllDone时获取所有结果, 此时不会再修改hashResults所以没有并发问题
@@ -36,22 +38,22 @@ public final class ModuleRedirectAllContext<R extends RedirectResult> extends Ze
 
 	@Override
 	public synchronized void OnTimeout() throws Throwable {
-		if (hashResults.size() < concurrentLevel && getUserState() == null) {
-			setUserState(Boolean.TRUE);
-			var zeze = getService().getZeze();
-			zeze.NewProcedure(() -> {
-				future.allDone(zeze, this);
-				return Procedure.Success;
-			}, "ModuleRedirectAllResponse timeout Procedure").Call();
+		if (hashResults.size() < concurrentLevel && !timeout) {
+			timeout = true;
+			if (future != null) {
+				getService().getZeze().NewProcedure(() -> {
+					future.allDone(this);
+					return Procedure.Success;
+				}, "ModuleRedirectAllResponse timeout Procedure").Call();
+			}
 		}
 	}
 
 	@Override
 	public void OnRemoved() throws Throwable {
-		if (hashResults.size() >= concurrentLevel) {
-			var zeze = getService().getZeze();
-			zeze.NewProcedure(() -> {
-				future.allDone(zeze, this);
+		if (hashResults.size() >= concurrentLevel && future != null) {
+			getService().getZeze().NewProcedure(() -> {
+				future.allDone(this);
 				return Procedure.Success;
 			}, "ModuleRedirectAllResponse no-result Procedure").Call();
 		}
@@ -66,15 +68,18 @@ public final class ModuleRedirectAllContext<R extends RedirectResult> extends Ze
 			int hash = e.getKey();
 			var result = e.getValue();
 			var resultCode = result.getReturnCode();
-			R resultBean = resultDecoder.apply(resultCode == Procedure.Success ? result.getParams() : null);
-			resultBean.setHash(hash);
-			resultBean.setResultCode(resultCode);
-			if (hashResults.putIfAbsent(hash, resultBean) == null) { // 不可能回复相同hash的多个结果,忽略掉后面的好了
-				zeze.NewProcedure(() -> {
-					future.result(zeze, this, resultBean);
-					return Procedure.Success;
-				}, "ModuleRedirectAllResponse Procedure").Call();
-			}
+			if (resultDecoder != null) {
+				R resultBean = resultDecoder.apply(resultCode == Procedure.Success ? result.getParams() : null);
+				resultBean.setHash(hash);
+				resultBean.setResultCode(resultCode);
+				if (hashResults.putIfAbsent(hash, resultBean) == null) { // 不可能回复相同hash的多个结果,忽略掉后面的好了
+					zeze.NewProcedure(() -> {
+						future.result(this, resultBean);
+						return Procedure.Success;
+					}, "ModuleRedirectAllResponse Procedure").Call();
+				}
+			} else
+				hashResults.put(hash, null);
 		}
 		if (hashResults.size() >= concurrentLevel)
 			getService().TryRemoveManualContext(getSessionId());
