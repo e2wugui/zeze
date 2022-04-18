@@ -404,17 +404,29 @@ namespace Game.Rank
 
         /******************************** ModuleRedirect 测试 *****************************************/
         [RedirectToServer()]
-        public virtual TaskCompletionSource<long> TestToServer(int serverId, int param, Action<int, int> result)
+        public virtual async Task TestToServer(int serverId, int param, Action<int, int> result)
         {
             result(param, App.Zeze.Config.ServerId);
-            return null;
         }
 
         [RedirectHash()]
-        public virtual TaskCompletionSource<long> TestHash(int hash, int param, Action<int, int> result)
+        public virtual async Task TestHash(int hash, int param, Action<int, int> result)
         {
             result(param, App.Zeze.Config.ServerId);
-            return null;
+        }
+
+        [RedirectToServer()]
+        public virtual async Task<long> TestToServerResult(int serverId, int param, Action<int, int> result)
+        {
+            result(param, App.Zeze.Config.ServerId);
+            return 12345;
+        }
+
+        [RedirectHash()]
+        public virtual async Task<long> TestHashResult(int hash, int param, Action<int, int> result)
+        {
+            result(param, App.Zeze.Config.ServerId);
+            return 12345;
         }
 
         [RedirectToServer()]

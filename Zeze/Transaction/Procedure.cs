@@ -72,6 +72,15 @@ namespace Zeze.Transaction
             logger.Log(ll, ex, $"Procedure={p} Return={result}{module} {message} UserState={p.UserState}");
         }
 
+        public async Task<long> ExecuteAsync(Net.Protocol from = null, Action<Net.Protocol, long> actionWhenError = null)
+        {
+            var future = new TaskCompletionSource<long>();
+            ExecutionContext.SuppressFlow();
+            _ = Task.Run(async () => future.TrySetResult(await Util.Mission.CallAsync(this, from, actionWhenError)));
+            ExecutionContext.RestoreFlow();
+            return await future.Task;
+        }
+
         public void Execute(Net.Protocol from = null, Action<Net.Protocol, long> actionWhenError = null)
         {
             ExecutionContext.SuppressFlow();

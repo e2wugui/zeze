@@ -122,7 +122,7 @@ namespace Zeze.Arch.Gen
         public bool HasNewGen { get; private set; } = false;
 
         // 根据转发类型选择目标服务器，如果目标服务器是自己，直接调用基类方法完成工作。
-        void ChoiceTargetRunLoopback(StringBuilder sb, MethodOverride m, ReturnType rType, string rName)
+        void ChoiceTargetRunLoopback(IModule module, StringBuilder sb, MethodOverride m)
         {
             switch (m.OverrideType)
             {
@@ -142,17 +142,52 @@ namespace Zeze.Arch.Gen
 
             sb.AppendLine("        if (_target_ == null) {");
             sb.AppendLine("            // local: loop-back");
-            switch (rType)
+            var callstr = $"base.{m.Method.Name}({m.GetBaseCallString()})";
+            switch (m.TransactionLevel)
             {
-                case ReturnType.Void:
-                    sb.AppendLine($"            App.Zeze.Redirect.RunVoid(() => base.{m.Method.Name}({m.GetBaseCallString()}));");
-                    sb.AppendLine($"            return;");
+                case Zeze.Transaction.TransactionLevel.Serializable:
+                case Zeze.Transaction.TransactionLevel.AllowDirtyWhenAllRead:
+                    var procName = $"\"{module.FullName}:{m.Method.Name}\"";
+                    if (m.MethodMode.IsAsync)
+                    {
+                        if (m.MethodMode.HasResult)
+                        {
+                            var returnResult = "returnResult" + Gen.Instance.TmpVarNameId.IncrementAndGet();
+                            sb.AppendLine($"            var {returnResult} = default({Gen.Instance.GetTypeName(m.MethodMode.ResultType)});");
+                            sb.AppendLine($"            await App.Zeze.NewProcedure(async () => {{ {returnResult} = await {callstr}; return 0; }}, {procName}).ExecuteAsync();");
+                            sb.AppendLine($"            return {returnResult};");
+                        }
+                        else
+                        {
+                            sb.AppendLine($"            await App.Zeze.NewProcedure(async () => {{ await {callstr}; return 0; }}, {procName}).ExecuteAsync();");
+                            sb.AppendLine($"            return;");
+                        }
+                    }
+                    else
+                    {
+                        sb.AppendLine($"            App.Zeze.NewProcedure(async () => {{ {callstr}; return 0; }}, {procName}).Execute();");
+                        sb.AppendLine($"            return;");
+                    }
                     break;
-                case ReturnType.TaskCompletionSource:
-                    sb.AppendLine($"            return App.Zeze.Redirect.RunFuture(() => base.{m.Method.Name}({m.GetBaseCallString()}));");
-                    break;
-                case ReturnType.Async:
-                    sb.AppendLine($"            await App.Zeze.Redirect.RunAsync(async () => await base.{m.Method.Name}({m.GetBaseCallString()}));");
+
+                default:
+                    if (m.MethodMode.IsAsync)
+                    {
+                        if (m.MethodMode.HasResult)
+                        {
+                            sb.AppendLine($"            return await App.Zeze.Redirect.RunResultAsync(async () => await {callstr});");
+                        }
+                        else
+                        {
+                            sb.AppendLine($"            await App.Zeze.Redirect.RunAsync(async () => await {callstr});");
+                            sb.AppendLine($"            return;");
+                        }
+                    }
+                    else
+                    {
+                        sb.AppendLine($"            App.Zeze.Redirect.RunVoid(() => {callstr});");
+                        sb.AppendLine($"            return;");
+                    }
                     break;
             }
             sb.AppendLine("        }");
@@ -172,13 +207,12 @@ namespace Zeze.Arch.Gen
             {
                 m.PrepareParameters();
                 var pdefine = Gen.Instance.ToDefineString(m.ParametersAll);
-                var (returnType, returnTypeName) = GetReturnType(m.Method.ReturnParameter.ParameterType);
                 m.ResultHandle?.Verify(m);
 
-                sb.AppendLine($"    public override {returnTypeName} {m.Method.Name}({pdefine})");
+                sb.AppendLine($"    public override {m.MethodMode.GetCallReturnName()} {m.Method.Name}({pdefine})");
                 sb.AppendLine($"    {{");
 
-                ChoiceTargetRunLoopback(sb, m, returnType, returnTypeName);
+                ChoiceTargetRunLoopback(module, sb, m);
 
                 if (m.OverrideType == OverrideType.RedirectAll)
                 {
@@ -187,7 +221,7 @@ namespace Zeze.Arch.Gen
                     continue;
                 }
 
-                string rpcVarName = "tmp" + Gen.Instance.TmpVarNameId.IncrementAndGet();
+                string rpcVarName = "rpc" + Gen.Instance.TmpVarNameId.IncrementAndGet();
                 sb.AppendLine($"        var {rpcVarName} = new Zeze.Beans.ProviderDirect.ModuleRedirect();");
                 sb.AppendLine($"        {rpcVarName}.Argument.ModuleId = {module.Id};");
                 sb.AppendLine($"        {rpcVarName}.Argument.RedirectType = {m.GetRedirectType()};");
@@ -205,8 +239,8 @@ namespace Zeze.Arch.Gen
                 }
                 sb.AppendLine($"");
 
-                string futureVarName = "tmp" + Gen.Instance.TmpVarNameId.IncrementAndGet();
-                sb.AppendLine($"        var {futureVarName} = new System.Threading.Tasks.TaskCompletionSource<long>();");
+                string futureVarName = "future" + Gen.Instance.TmpVarNameId.IncrementAndGet();
+                sb.AppendLine($"        var {futureVarName} = new System.Threading.Tasks.TaskCompletionSource{m.MethodMode.GetFutureDefine()}();");
                 sb.AppendLine($"");
                 sb.AppendLine($"        {rpcVarName}.Send(_target_, async (_) =>");
                 sb.AppendLine($"        {{");
@@ -226,14 +260,21 @@ namespace Zeze.Arch.Gen
                     sb.AppendLine($"                var _bb_ = Zeze.Serialize.ByteBuffer.Wrap({rpcVarName}.Result.Params);");
                     m.ResultHandle.GenDecodeAndCallback("                ", sb, m);
                 }
-                sb.AppendLine($"                {futureVarName}.TrySetResult(0);");
+                m.MethodMode.GenFutureDecodeAndSet("                ", sb, futureVarName);
                 sb.AppendLine($"            }}");
                 sb.AppendLine($"            return Zeze.Transaction.Procedure.Success;");
                 sb.AppendLine($"        }});");
                 sb.AppendLine($"");
-                if (returnType == ReturnType.TaskCompletionSource)
+                if (m.MethodMode.IsAsync)
                 {
-                    sb.AppendLine($"        return {futureVarName};");
+                    if (m.MethodMode.HasResult)
+                    {
+                        sb.AppendLine($"        return await {futureVarName}.Task;");
+                    }
+                    else
+                    {
+                        sb.AppendLine($"        await {futureVarName}.Task;");
+                    }
                 }
                 sb.AppendLine($"    }}");
                 sb.AppendLine($"");
@@ -242,7 +283,7 @@ namespace Zeze.Arch.Gen
                 var hName = "hName" + Gen.Instance.TmpVarNameId.IncrementAndGet();
                 sbHandles.AppendLine($"        var {hName} = new Zeze.Arch.RedirectHandle();");
                 sbHandles.AppendLine($"        {hName}.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.{m.TransactionLevel};");
-                sbHandles.AppendLine($"        {hName}.RequestHandle = (_sessionId_, _HashOrServerId_, _params_) =>");
+                sbHandles.AppendLine($"        {hName}.RequestHandle = async (_sessionId_, _HashOrServerId_, _params_) =>");
                 sbHandles.AppendLine($"        {{");
                 sbHandles.AppendLine($"            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);");
                 for (int i = 0; i < m.ParametersNormal.Count; ++i)
@@ -256,8 +297,8 @@ namespace Zeze.Arch.Gen
 
                 if (null != m.ResultHandle)
                 {
-                    var callResultParamName = "tmp" + Gen.Instance.TmpVarNameId.IncrementAndGet();
-                    sbHandles.AppendLine($"            var {callResultParamName} = Zeze.Net.Binary.Empty;");
+                    sbHandles.AppendLine($"            // WARNING reuse var _bb_ to encode result.");
+                    sbHandles.AppendLine($"            _bb_ = Zeze.Serialize.ByteBuffer.Allocate(1024);");
                     var resultVarNames = new List<string>();
                     for (int i = 0; i < m.ResultHandle.GenericArguments.Length; ++i)
                         resultVarNames.Add("tmp" + Gen.Instance.TmpVarNameId.IncrementAndGet());
@@ -265,13 +306,11 @@ namespace Zeze.Arch.Gen
                     var actionCall = m.ResultHandle.GetCallString(resultVarNames);
                     sbHandles.AppendLine($"            {actionName} {m.ResultHandle.Parameter.Name} = ({actionCall}) =>");
                     sbHandles.AppendLine($"            {{");
-                    sbHandles.AppendLine($"                var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();");
                     m.ResultHandle.GenEncode(resultVarNames, "                ", sbHandles, m);
-                    sbHandles.AppendLine($"                {callResultParamName} = new Zeze.Net.Binary(_bb_);");
                     sbHandles.AppendLine($"            }};");
                     var bcall = m.GetNormalCallString();
-                    sbHandles.AppendLine($"            base.{m.Method.Name}(_HashOrServerId_, {bcall});");
-                    sbHandles.AppendLine($"            return {callResultParamName};");
+                    m.MethodMode.GenCallAndEncode("            ", sbHandles, $"base.{m.Method.Name}(_HashOrServerId_, {bcall})");
+                    sbHandles.AppendLine($"            return new Zeze.Net.Binary(_bb_);");
                 }
                 else
                 {
@@ -363,17 +402,6 @@ namespace Zeze.Arch.Gen
 
             sbHandles.AppendLine($"        App.Zeze.Redirect.Handles.Add(\"{module.FullName}:{m.Method.Name}\", {hName});");
             sbHandles.AppendLine($"");
-        }
-
-        private (ReturnType, string) GetReturnType(Type type)
-        {
-            if (type == typeof(void))
-                return (ReturnType.Void, "void");
-            if (type == typeof(TaskCompletionSource<long>))
-                return (ReturnType.TaskCompletionSource, "System.Threading.Tasks.TaskCompletionSource<long>");
-            if (type == typeof(Task))
-                return (ReturnType.Async, "System.Threading.Tasks.Task");
-            throw new Exception("ReturnType Must Be void Or TaskCompletionSource<long>");
         }
 
         void GenRedirectAllContext(StringBuilder sb, MethodOverride methodOverride)

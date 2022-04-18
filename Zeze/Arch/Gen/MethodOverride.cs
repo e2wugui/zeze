@@ -13,6 +13,8 @@ namespace Zeze.Arch.Gen
         public OverrideType OverrideType { get; }
         public Attribute Attribute { get; }
         public GenAction ResultHandle { get; private set; }
+        public MethodMode MethodMode { get; }
+
         public Zeze.Transaction.TransactionLevel TransactionLevel = Transaction.TransactionLevel.Serializable;
 
         public MethodOverride(MethodInfo method, OverrideType type, Attribute attribute)
@@ -26,6 +28,7 @@ namespace Zeze.Arch.Gen
             Method = method;
             OverrideType = type;
             Attribute = attribute;
+            MethodMode = new(method.ReturnParameter);
         }
 
         public ParameterInfo ParameterHashOrServer { get; private set; } // When RedirectHash RedirectToServer

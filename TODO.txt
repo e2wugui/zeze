@@ -26,6 +26,9 @@ Zezex Onlines TransmitInProcedure 需要重写。
 
 【2022/5/11】
 
+
+c# Collections Queue LinkedMap
+c# Component DelayRemove AutoKey RedoQueue RedoQueueServer
 Java Arch Test：RedirectToServer,RedirectHash Done
 ServiceManager.Agent lock 模式：改成全局锁Agent。单线程化。回调也在锁内执行。【放弃，锁内回调风险太高】
 ServiceManager: Provider之间连接成功的时候，Pending还没到达。

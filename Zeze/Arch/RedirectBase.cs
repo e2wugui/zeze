@@ -160,49 +160,21 @@ namespace Zeze.Arch
 			}
 		}
 
-		public TaskCompletionSource<long> RunFuture(Action action) {
-			var future = new TaskCompletionSource<long>();
-			ExecutionContext.SuppressFlow();
-			_ = Task.Run(() =>
-			{
-				try
-				{
-					action.Invoke();
-					future.SetResult(0L);
-				}
-				catch (Exception ex)
-				{
-					future.SetException(ex);
-				}
-			});
-			ExecutionContext.RestoreFlow();
-			return future;
-		}
-
 		public void RunVoid(Action action) {
 			ExecutionContext.SuppressFlow();
 			Task.Run(action);
 			ExecutionContext.RestoreFlow();
 		}
 
+		// 下面这两种方式可能使用独立上下文更好。
 		public async Task RunAsync(Func<Task> action)
 		{
-			var future = new TaskCompletionSource<long>();
-			ExecutionContext.SuppressFlow();
-			_ = Task.Run(async () =>
-			{
-				try
-				{
-					await action.Invoke();
-					future.SetResult(0L);
-				}
-				catch (Exception ex)
-				{
-					future.SetException(ex);
-				}
-			});
-			ExecutionContext.RestoreFlow();
-			await future.Task;
+			await action();
+		}
+
+		public async Task<T> RunResultAsync<T>(Func<Task<T>> action)
+		{
+			return await action();
 		}
 	}
 }

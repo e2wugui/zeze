@@ -50,12 +50,12 @@ namespace Zeze.Arch
                 case TransactionLevel.AllowDirtyWhenAllRead:
                     await ProviderApp.Zeze.NewProcedure(async () =>
                     {
-                        Params = handle.RequestHandle(rpc.SessionId, rpc.Argument.HashCode, rpc.Argument.Params);
+                        Params = await handle.RequestHandle(rpc.SessionId, rpc.Argument.HashCode, rpc.Argument.Params);
                         return 0;
                     }, "ProcessModuleRedirectRequest").CallAsync();
                     break;
                 default:
-                    Params = handle.RequestHandle(rpc.SessionId, rpc.Argument.HashCode, rpc.Argument.Params);
+                    Params = await handle.RequestHandle(rpc.SessionId, rpc.Argument.HashCode, rpc.Argument.Params);
                     break;
             }
             rpc.Result.Params = Params;
@@ -118,13 +118,13 @@ namespace Zeze.Arch
                     case TransactionLevel.AllowDirtyWhenAllRead:
                         await ProviderApp.Zeze.NewProcedure(async () =>
                         {
-                            Params = handle.RequestHandle(r.Argument.SessionId, hash, r.Argument.Params);
+                            Params = await handle.RequestHandle(r.Argument.SessionId, hash, r.Argument.Params);
                             return 0;
                         }, "ProcessModuleRedirectAllRequest").CallAsync();
                         break;
 
                     default:
-                        Params = handle.RequestHandle(r.Argument.SessionId, hash, r.Argument.Params);
+                        Params = await handle.RequestHandle(r.Argument.SessionId, hash, r.Argument.Params);
                         break;
                 }
 

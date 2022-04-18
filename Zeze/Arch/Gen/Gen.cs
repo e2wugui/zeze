@@ -42,14 +42,12 @@ namespace Zeze.Arch.Gen
 
         private Gen()
         {
-            /*
             Serializer[typeof(void)] = (
                 (sb, prefix, varName) => { },
                 (sb, prefix, varName) => { },
                 (sb, prefix, varName) => { },
                 () => "void"
                 );
-            */
 
             Serializer[typeof(Zeze.Net.Binary)] = (
                 (sb, prefix, varName) => sb.AppendLine($"{prefix}_bb_.WriteBinary({varName});"),
