@@ -16,18 +16,20 @@ public final class App extends Zeze.AppBase {
 		return Instance;
 	}
 
+	private MyConfig MyConfig;
+	private final Game.Load Load = new Load();
+	private Provider provider;
+	public ProviderApp ProviderApp;
+	public ProviderDirectMy ProviderDirectMy;
+
 	@Override
 	public Zeze.IModule ReplaceModuleInstance(Zeze.IModule module) {
 		return Zeze.Redirect.ReplaceModuleInstance(this, module);
 	}
 
-	private MyConfig MyConfig;
-
 	public MyConfig getMyConfig() {
 		return MyConfig;
 	}
-
-	private final Game.Load Load = new Load();
 
 	public Game.Load getLoad() {
 		return Load;
@@ -40,17 +42,14 @@ public final class App extends Zeze.AppBase {
 		} catch (Exception e) {
 			//MessageBox.Show(ex.ToString());
 		}
-		if (null == MyConfig) {
+		if (MyConfig == null) {
 			MyConfig = new MyConfig();
 		}
 	}
 
-	private Provider provider;
 	public Provider getProvider() {
 		return provider;
 	}
-	public ProviderApp ProviderApp;
-	public ProviderDirectMy ProviderDirectMy;
 
 	private LoadConfig LoadLoadConfig() {
 		try {

@@ -1,17 +1,27 @@
 package Game.Login;
 
-import Zeze.Net.*;
-import Zeze.Transaction.*;
-import Game.*;
-import Zeze.Util.TaskCompletionSource;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.*;
+import Game.App;
+import Zeze.Beans.Provider.Broadcast;
+import Zeze.Beans.Provider.Send;
+import Zeze.Beans.ProviderDirect.BTransmitContext;
+import Zeze.Beans.ProviderDirect.Transmit;
+import Zeze.Net.AsyncSocket;
+import Zeze.Net.Binary;
+import Zeze.Net.Protocol;
+import Zeze.Net.Service;
 import Zeze.Serialize.Serializable;
-import Zeze.Beans.Provider.*;
-import Zeze.Beans.ProviderDirect.*;
+import Zeze.Transaction.Procedure;
+import Zeze.Transaction.Transaction;
+import Zeze.Util.Func3;
+import Zeze.Util.TaskCompletionSource;
 
 public class Onlines {
-	private tonline table;
+	private final tonline table;
 
 	public Onlines(tonline table) {
 		this.table = table;
@@ -19,29 +29,29 @@ public class Onlines {
 
 	public final void OnLinkBroken(long roleId) {
 		var online = table.get(roleId);
-		if (null != online) {
+		if (online != null) {
 			online.setState(BOnline.StateNetBroken);
 		}
 
-		Zeze.Util.Task.schedule(10 * 60 * 1000, () -> { // 10 minuts for relogin
-				App.getInstance().Zeze.NewProcedure(() -> {
-					// 网络断开后延迟删除在线状态。这里简单判断一下是否StateNetBroken。
-					// 由于CLogin,CReLogin的时候没有取消Timeout，所以有可能再次登录断线后，会被上一次断线的Timeout删除。
-					// 造成延迟时间不准确。管理Timeout有点烦，先这样吧。
-					var online2 = table.get(roleId);
-					if (null != online2 && online2.getState() == BOnline.StateNetBroken) {
-						table.remove(roleId);
-					}
-					App.getInstance().getLoad().getLogoutCount().incrementAndGet();
+		Zeze.Util.Task.schedule(10 * 60 * 1000, () -> { // 10 minutes for relogin
+			App.getInstance().Zeze.NewProcedure(() -> {
+				// 网络断开后延迟删除在线状态。这里简单判断一下是否StateNetBroken。
+				// 由于CLogin,CReLogin的时候没有取消Timeout，所以有可能再次登录断线后，会被上一次断线的Timeout删除。
+				// 造成延迟时间不准确。管理Timeout有点烦，先这样吧。
+				var online2 = table.get(roleId);
+				if (online2 != null && online2.getState() == BOnline.StateNetBroken) {
+					table.remove(roleId);
+				}
+				App.getInstance().getLoad().getLogoutCount().incrementAndGet();
 
-					return (long)Procedure.Success;
-				}, "Onlines.OnLinkBroken").Call();
+				return Procedure.Success;
+			}, "Onlines.OnLinkBroken").Call();
 		});
 	}
 
 	public final void AddReliableNotifyMark(long roleId, String listenerName) {
 		var online = table.get(roleId);
-		if (null == online || online.getState() != BOnline.StateOnline) {
+		if (online == null || online.getState() != BOnline.StateOnline) {
 			throw new RuntimeException("Not Online. AddReliableNotifyMark: " + listenerName);
 		}
 		online.getReliableNotifyMark().add(listenerName);
@@ -54,73 +64,71 @@ public class Onlines {
 		}
 	}
 
-
-	public final void SendReliableNotifyWhileCommit(long roleId, String listenerName, Protocol p) {
+	public final void SendReliableNotifyWhileCommit(long roleId, String listenerName, Protocol<?> p) {
 		SendReliableNotifyWhileCommit(roleId, listenerName, p, false);
 	}
 
-	public final void SendReliableNotifyWhileCommit(long roleId, String listenerName, Protocol p, boolean WaitConfirm) {
+	public final void SendReliableNotifyWhileCommit(long roleId, String listenerName, Protocol<?> p, boolean WaitConfirm) {
+		//noinspection ConstantConditions
 		Transaction.getCurrent().RunWhileCommit(() -> SendReliableNotify(roleId, listenerName, p, WaitConfirm));
 	}
-
 
 	public final void SendReliableNotifyWhileCommit(long roleId, String listenerName, int typeId, Binary fullEncodedProtocol) {
 		SendReliableNotifyWhileCommit(roleId, listenerName, typeId, fullEncodedProtocol, false);
 	}
 
 	public final void SendReliableNotifyWhileCommit(long roleId, String listenerName, int typeId, Binary fullEncodedProtocol, boolean WaitConfirm) {
+		//noinspection ConstantConditions
 		Transaction.getCurrent().RunWhileCommit(() -> SendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol, WaitConfirm));
 	}
 
-	public final void SendReliableNotifyWhileRollback(long roleId, String listenerName, Protocol p) {
+	public final void SendReliableNotifyWhileRollback(long roleId, String listenerName, Protocol<?> p) {
 		SendReliableNotifyWhileRollback(roleId, listenerName, p, false);
 	}
 
-	public final void SendReliableNotifyWhileRollback(long roleId, String listenerName, Protocol p, boolean WaitConfirm) {
+	public final void SendReliableNotifyWhileRollback(long roleId, String listenerName, Protocol<?> p, boolean WaitConfirm) {
+		//noinspection ConstantConditions
 		Transaction.getCurrent().RunWhileRollback(() -> SendReliableNotify(roleId, listenerName, p, WaitConfirm));
 	}
-
 
 	public final void SendReliableNotifyWhileRollback(long roleId, String listenerName, int typeId, Binary fullEncodedProtocol) {
 		SendReliableNotifyWhileRollback(roleId, listenerName, typeId, fullEncodedProtocol, false);
 	}
 
 	public final void SendReliableNotifyWhileRollback(long roleId, String listenerName, int typeId, Binary fullEncodedProtocol, boolean WaitConfirm) {
+		//noinspection ConstantConditions
 		Transaction.getCurrent().RunWhileRollback(() -> SendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol, WaitConfirm));
 	}
 
-
-	public final void SendReliableNotify(long roleId, String listenerName, Protocol p) {
+	public final void SendReliableNotify(long roleId, String listenerName, Protocol<?> p) {
 		SendReliableNotify(roleId, listenerName, p, false);
 	}
 
-	public final void SendReliableNotify(long roleId, String listenerName, Protocol p, boolean WaitConfirm) {
+	public final void SendReliableNotify(long roleId, String listenerName, Protocol<?> p, boolean WaitConfirm) {
 		SendReliableNotify(roleId, listenerName, p.getTypeId(), new Binary(p.Encode()), WaitConfirm);
 	}
 
 	/**
-	 发送在线可靠协议，如果不在线等，仍然不会发送哦。
-
-	 @param roleId
-	 @param listenerName
-	 @param fullEncodedProtocol 协议必须先编码，因为会跨事务。
-	*/
+	 * 发送在线可靠协议，如果不在线等，仍然不会发送哦。
+	 *
+	 * @param fullEncodedProtocol 协议必须先编码，因为会跨事务。
+	 */
 
 	public final void SendReliableNotify(long roleId, String listenerName, int typeId, Binary fullEncodedProtocol) {
 		SendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol, false);
 	}
 
 	public final void SendReliableNotify(long roleId, String listenerName, long typeId, Binary fullEncodedProtocol, boolean WaitConfirm) {
-		final TaskCompletionSource<Long> future = WaitConfirm ? new TaskCompletionSource<Long>() : null;
+		final TaskCompletionSource<Long> future = WaitConfirm ? new TaskCompletionSource<>() : null;
 
 		App.getInstance().Zeze.getTaskOneByOneByKey().Execute(listenerName,
 				App.getInstance().Zeze.NewProcedure(() -> {
 					BOnline online = table.get(roleId);
-					if (null == online || online.getState() == BOnline.StateOffline) {
-						return (long)Procedure.Success;
+					if (online == null || online.getState() == BOnline.StateOffline) {
+						return Procedure.Success;
 					}
-					if (false == online.getReliableNotifyMark().contains(listenerName)) {
-						return (long)Procedure.Success; // 相关数据装载的时候要同步设置这个。
+					if (!online.getReliableNotifyMark().contains(listenerName)) {
+						return Procedure.Success; // 相关数据装载的时候要同步设置这个。
 					}
 
 					// 先保存在再发送，然后客户端还会确认。
@@ -134,8 +142,8 @@ public class Onlines {
 						SendInProcedure(roleId, notify.getTypeId(), new Binary(notify.Encode()), future);
 					}
 					online.setReliableNotifyTotalCount(online.getReliableNotifyConfirmCount() + 1); // 后加，start 是 Queue.Add 之前的。
-					return (long)Procedure.Success;
-		}, "SendReliableNotify." + listenerName), null);
+					return Procedure.Success;
+				}, "SendReliableNotify." + listenerName), null);
 
 		if (future != null) {
 			future.await();
@@ -144,34 +152,43 @@ public class Onlines {
 
 	public static class RoleOnLink {
 		private String LinkName = "";
+		private AsyncSocket LinkSocket;
+		private int ProviderId = -1;
+		private long ProviderSessionId;
+		private final HashMap<Long, BTransmitContext> Roles = new HashMap<>();
+
 		public final String getLinkName() {
 			return LinkName;
 		}
+
 		public final void setLinkName(String value) {
 			LinkName = value;
 		}
-		private AsyncSocket LinkSocket;
+
 		public final AsyncSocket getLinkSocket() {
 			return LinkSocket;
 		}
+
 		public final void setLinkSocket(AsyncSocket value) {
 			LinkSocket = value;
 		}
-		private int ProviderId = -1;
+
 		public final int getProviderId() {
 			return ProviderId;
 		}
+
 		public final void setProviderId(int value) {
 			ProviderId = value;
 		}
-		private long ProviderSessionId;
+
 		public final long getProviderSessionId() {
 			return ProviderSessionId;
 		}
+
 		public final void setProviderSessionId(long value) {
 			ProviderSessionId = value;
 		}
-		private HashMap<Long, BTransmitContext> Roles = new HashMap<>();
+
 		public final HashMap<Long, BTransmitContext> getRoles() {
 			return Roles;
 		}
@@ -184,23 +201,23 @@ public class Onlines {
 
 		for (var roleId : roleIds) {
 			var online = table.get(roleId);
-			if (null == online || online.getState() != BOnline.StateOnline) {
+			if (online == null || online.getState() != BOnline.StateOnline) {
 				groupNotOnline.getRoles().putIfAbsent(roleId, new BTransmitContext());
 				continue;
 			}
 
 			var connector = App.getInstance().Server.getLinks().get(online.getLinkName());
-			if (null == connector) {
+			if (connector == null) {
 				groupNotOnline.getRoles().putIfAbsent(roleId, new BTransmitContext());
 				continue;
 			}
-			if (false == connector.isHandshakeDone()) {
+			if (!connector.isHandshakeDone()) {
 				groupNotOnline.getRoles().putIfAbsent(roleId, new BTransmitContext());
 				continue;
 			}
 			// 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
 			var group = groups.get(online.getLinkName());
-			if (null == group) {
+			if (group == null) {
 				group = new RoleOnLink();
 				group.setLinkName(online.getLinkName());
 				group.setLinkSocket(connector.getSocket());
@@ -219,10 +236,10 @@ public class Onlines {
 
 	private void SendInProcedure(Long roleId, long typeId, Binary fullEncodedProtocol, TaskCompletionSource<Long> future) {
 		// 发送消息为了用上TaskOneByOne，只能一个一个发送，为了少改代码，先使用旧的GroupByLink接口。
-		var groups = GroupByLink(Arrays.asList(roleId));
+		var groups = GroupByLink(List.of(roleId));
 		long serialId = 0;
-		if (null != future) {
-			var confrmContext = new ConfirmContext(future);
+		if (future != null) {
+			var confirmContext = new ConfirmContext(future);
 			// 必须在真正发送前全部加入，否则要是发生结果很快返回，
 			// 导致异步问题：错误的认为所有 Confirm 都收到。
 			for (var group : groups) {
@@ -230,9 +247,9 @@ public class Onlines {
 					continue; // skip not online
 				}
 
-				confrmContext.getLinkNames().add(group.getLinkName());
+				confirmContext.getLinkNames().add(group.getLinkName());
 			}
-			serialId = App.getInstance().Server.AddManualContextWithTimeout(confrmContext, 5000);
+			serialId = App.getInstance().Server.AddManualContextWithTimeout(confirmContext, 5000);
 		}
 
 		for (var group : groups) {
@@ -253,86 +270,88 @@ public class Onlines {
 	}
 
 	private void Send(Long roleId, long typeId, Binary fullEncodedProtocol, boolean WaitConfirm) {
-		final TaskCompletionSource<Long> future = WaitConfirm ? new TaskCompletionSource<Long>() : null;
+		final TaskCompletionSource<Long> future = WaitConfirm ? new TaskCompletionSource<>() : null;
 
 		// 发送协议请求在另外的事务中执行。
 		App.Instance.Zeze.getTaskOneByOneByKey().Execute(roleId, () ->
-			Zeze.Util.Task.Call(App.Instance.Zeze.NewProcedure(() -> {
+				Zeze.Util.Task.Call(App.Instance.Zeze.NewProcedure(() -> {
 					SendInProcedure(roleId, typeId, fullEncodedProtocol, future);
-					return (long)Procedure.Success;
-			}, "Onlines.Send"), null, null));
+					return Procedure.Success;
+				}, "Onlines.Send"), null, null));
 
 		if (future != null) {
 			future.await();
 		}
 	}
 
-
-	public final void Send(long roleId, Protocol p) {
+	public final void Send(long roleId, Protocol<?> p) {
 		Send(roleId, p, false);
 	}
 
-	public final void Send(long roleId, Protocol p, boolean WaitConfirm) {
+	public final void Send(long roleId, Protocol<?> p, boolean WaitConfirm) {
 		Send(roleId, p.getTypeId(), new Binary(p.Encode()), WaitConfirm);
 	}
 
 	// 广播不支持 WaitConfirm
-	public final void Send(Collection<Long> roleIds, Protocol p) {
+	public final void Send(Collection<Long> roleIds, Protocol<?> p) {
 		for (var roleId : roleIds)
 			Send(roleId, p.getTypeId(), new Binary(p.Encode()), false);
 	}
 
-
-	public final void SendWhileCommit(long roleId, Protocol p) {
+	public final void SendWhileCommit(long roleId, Protocol<?> p) {
 		SendWhileCommit(roleId, p, false);
 	}
 
-	public final void SendWhileCommit(long roleId, Protocol p, boolean WaitConfirm) {
+	public final void SendWhileCommit(long roleId, Protocol<?> p, boolean WaitConfirm) {
+		//noinspection ConstantConditions
 		Transaction.getCurrent().RunWhileCommit(() -> Send(roleId, p, WaitConfirm));
 	}
 
-	public final void SendWhileCommit(Collection<Long> roleIds, Protocol p) {
+	public final void SendWhileCommit(Collection<Long> roleIds, Protocol<?> p) {
+		//noinspection ConstantConditions
 		Transaction.getCurrent().RunWhileCommit(() -> Send(roleIds, p));
 	}
 
-
-	public final void SendWhileRollback(long roleId, Protocol p) {
+	public final void SendWhileRollback(long roleId, Protocol<?> p) {
 		SendWhileRollback(roleId, p, false);
 	}
 
-	public final void SendWhileRollback(long roleId, Protocol p, boolean WaitConfirm) {
+	public final void SendWhileRollback(long roleId, Protocol<?> p, boolean WaitConfirm) {
+		//noinspection ConstantConditions
 		Transaction.getCurrent().RunWhileRollback(() -> Send(roleId, p, WaitConfirm));
 	}
 
-	public final void SendWhileRollback(Collection<Long> roleIds, Protocol p) {
+	public final void SendWhileRollback(Collection<Long> roleIds, Protocol<?> p) {
+		//noinspection ConstantConditions
 		Transaction.getCurrent().RunWhileRollback(() -> Send(roleIds, p));
 	}
 
 	/**
-	 Func<sender, target, result>
-	 sender: 查询发起者，结果发送给他。
-	 target: 查询目标角色。
-	 result: 返回值，int，按普通事务处理过程返回值处理。
-	*/
-	private ConcurrentHashMap<String, Zeze.Util.Func3<Long, Long, Serializable, Long>> TransmitActions = new ConcurrentHashMap<> ();
+	 * Func<sender, target, result>
+	 * sender: 查询发起者，结果发送给他。
+	 * target: 查询目标角色。
+	 * result: 返回值，int，按普通事务处理过程返回值处理。
+	 */
+	private final ConcurrentHashMap<String, Func3<Long, Long, Serializable, Long>> TransmitActions = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, Zeze.Util.Func1<String, Serializable>> transmitParameterFactorys = new ConcurrentHashMap<>();
+
 	public final ConcurrentHashMap<String, Zeze.Util.Func3<Long, Long, Serializable, Long>> getTransmitActions() {
 		return TransmitActions;
 	}
 
-	private final ConcurrentHashMap<String, Zeze.Util.Func1<String, Serializable>> transmitParameterFactorys = new ConcurrentHashMap<>();
 	public final ConcurrentHashMap<String, Zeze.Util.Func1<String, Serializable>> getTransmitParameterFactorys() {
 		return transmitParameterFactorys;
 	}
 
 	/**
-	 转发查询请求给RoleId。
-
-	 @param sender 查询发起者，结果发送给他。
-	 @param actionName 查询处理的实现
-	 @param roleId 目标角色
-	*/
+	 * 转发查询请求给RoleId。
+	 *
+	 * @param sender     查询发起者，结果发送给他。
+	 * @param actionName 查询处理的实现
+	 * @param roleId     目标角色
+	 */
 	public final void Transmit(long sender, String actionName, long roleId, Serializable parameter) {
-		Transmit(sender, actionName, Arrays.asList(roleId), parameter);
+		Transmit(sender, actionName, List.of(roleId), parameter);
 	}
 
 	public final void Transmit(long sender, String actionName, long roleId) {
@@ -341,7 +360,7 @@ public class Onlines {
 
 	public final void ProcessTransmit(long sender, String actionName, java.lang.Iterable<Long> roleIds, Serializable parameter) {
 		var handle = getTransmitActions().get(actionName);
-		if (null != handle) {
+		if (handle != null) {
 			for (var target : roleIds) {
 				Zeze.Util.Task.run(
 						App.Instance.Zeze.NewProcedure(
@@ -362,8 +381,7 @@ public class Onlines {
 		var groups = GroupByLink(roleIds);
 		for (var group : groups) {
 			if (group.getProviderId() == App.getInstance().Zeze.getConfig().getServerId() // loopback 就是当前gs.
-					|| null == group.getLinkSocket() // 对于不在线的角色，本机处理。
-			) {
+					|| group.getLinkSocket() == null) { // 对于不在线的角色，本机处理。
 				ProcessTransmit(sender, actionName, group.getRoles().keySet(), parameter);
 				continue;
 			}
@@ -372,8 +390,7 @@ public class Onlines {
 			transmit.Argument.setSender(sender);
 			transmit.Argument.setServiceNamePrefix(App.Instance.ProviderApp.ServerServiceNamePrefix);
 			transmit.Argument.getRoles().putAll(group.getRoles());
-			if (null != parameter)
-			{
+			if (parameter != null) {
 				transmit.Argument.setParameterBeanName(parameter.getClass().getName());
 				transmit.Argument.setParameterBeanValue(new Binary(Zeze.Serialize.ByteBuffer.Encode(parameter)));
 			}
@@ -386,14 +403,14 @@ public class Onlines {
 	}
 
 	public final void Transmit(long sender, String actionName, Collection<Long> roleIds, Serializable parameter) {
-		if (false == getTransmitActions().containsKey(actionName)) {
-			throw new RuntimeException("Unkown Action Name: " + actionName);
+		if (!getTransmitActions().containsKey(actionName)) {
+			throw new RuntimeException("Unknown Action Name: " + actionName);
 		}
 
 		// 发送协议请求在另外的事务中执行。
 		Zeze.Util.Task.run(App.getInstance().Zeze.NewProcedure(() -> {
-				TransmitInProcedure(sender, actionName, roleIds, parameter);
-				return (long)Procedure.Success;
+			TransmitInProcedure(sender, actionName, roleIds, parameter);
+			return Procedure.Success;
 		}, "Onlines.Transmit"), null, null);
 	}
 
@@ -402,9 +419,10 @@ public class Onlines {
 	}
 
 	public final void TransmitWhileCommit(long sender, String actionName, long roleId, Serializable parameter) {
-		if (false == getTransmitActions().containsKey(actionName)) {
-			throw new RuntimeException("Unkown Action Name: " + actionName);
+		if (!getTransmitActions().containsKey(actionName)) {
+			throw new RuntimeException("Unknown Action Name: " + actionName);
 		}
+		//noinspection ConstantConditions
 		Transaction.getCurrent().RunWhileCommit(() -> Transmit(sender, actionName, roleId, parameter));
 	}
 
@@ -413,9 +431,10 @@ public class Onlines {
 	}
 
 	public final void TransmitWhileCommit(long sender, String actionName, Collection<Long> roleIds, Serializable parameter) {
-		if (false == getTransmitActions().containsKey(actionName)) {
-			throw new RuntimeException("Unkown Action Name: " + actionName);
+		if (!getTransmitActions().containsKey(actionName)) {
+			throw new RuntimeException("Unknown Action Name: " + actionName);
 		}
+		//noinspection ConstantConditions
 		Transaction.getCurrent().RunWhileCommit(() -> Transmit(sender, actionName, roleIds, parameter));
 	}
 
@@ -424,9 +443,10 @@ public class Onlines {
 	}
 
 	public final void TransmitWhileRollback(long sender, String actionName, long roleId, Serializable parameter) {
-		if (false == getTransmitActions().containsKey(actionName)) {
-			throw new RuntimeException("Unkown Action Name: " + actionName);
+		if (!getTransmitActions().containsKey(actionName)) {
+			throw new RuntimeException("Unknown Action Name: " + actionName);
 		}
+		//noinspection ConstantConditions
 		Transaction.getCurrent().RunWhileRollback(() -> Transmit(sender, actionName, roleId, parameter));
 	}
 
@@ -435,18 +455,22 @@ public class Onlines {
 	}
 
 	public final void TransmitWhileRollback(long sender, String actionName, Collection<Long> roleIds, Serializable parameter) {
-		if (false == getTransmitActions().containsKey(actionName)) {
-			throw new RuntimeException("Unkown Action Name: " + actionName);
+		if (!getTransmitActions().containsKey(actionName)) {
+			throw new RuntimeException("Unknown Action Name: " + actionName);
 		}
+		//noinspection ConstantConditions
 		Transaction.getCurrent().RunWhileRollback(() -> Transmit(sender, actionName, roleIds, parameter));
 	}
 
 	public static class ConfirmContext extends Service.ManualContext {
-		private HashSet<String> LinkNames = new HashSet<String> ();
+		private final HashSet<String> LinkNames = new HashSet<>();
+
 		public final HashSet<String> getLinkNames() {
 			return LinkNames;
 		}
-		private TaskCompletionSource<Long> Future;
+
+		private final TaskCompletionSource<Long> Future;
+
 		public final TaskCompletionSource<Long> getFuture() {
 			return Future;
 		}
@@ -462,7 +486,7 @@ public class Onlines {
 			}
 		}
 
-		public final long ProcessLinkConfirm(String linkName) throws Throwable {
+		public final long ProcessLinkConfirm(String linkName) {
 			synchronized (this) {
 				getLinkNames().remove(linkName);
 				if (getLinkNames().isEmpty()) {
@@ -477,7 +501,7 @@ public class Onlines {
 		TaskCompletionSource<Long> future = null;
 		long serialId = 0;
 		if (WaitConfirm) {
-			future = new TaskCompletionSource<Long>();
+			future = new TaskCompletionSource<>();
 			var confirmContext = new ConfirmContext(future);
 			for (var link : App.getInstance().Server.getLinks().values()) {
 				if (link.getSocket() != null) {
@@ -504,16 +528,15 @@ public class Onlines {
 		}
 	}
 
-
-	public final void Broadcast(Protocol p, int time) {
+	public final void Broadcast(Protocol<?> p, int time) {
 		Broadcast(p, time, false);
 	}
 
-	public final void Broadcast(Protocol p) {
+	public final void Broadcast(Protocol<?> p) {
 		Broadcast(p, 60 * 1000, false);
 	}
 
-	public final void Broadcast(Protocol p, int time, boolean WaitConfirm) {
+	public final void Broadcast(Protocol<?> p, int time, boolean WaitConfirm) {
 		Broadcast(p.getTypeId(), new Binary(p.Encode()), time, WaitConfirm);
 	}
 }

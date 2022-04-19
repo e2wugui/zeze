@@ -1,12 +1,11 @@
 package Game;
 
-import Zeze.Arch.*;
-import Zeze.Beans.Provider.*;
-import Zeze.Beans.ProviderDirect.*;
+import Zeze.Arch.ProviderService;
+import Zeze.Beans.Provider.LinkBroken;
+import Zeze.Beans.Provider.SendConfirm;
 import Zeze.Transaction.Procedure;
 
 public final class Provider extends Zeze.Arch.ProviderImplement {
-
 	public Game.App App;
 
 	public Provider(Game.App app) {
@@ -20,9 +19,9 @@ public final class Provider extends Zeze.Arch.ProviderImplement {
 	}
 
 	@Override
-	protected long ProcessLinkBroken(LinkBroken protocol) throws Throwable {
+	protected long ProcessLinkBroken(LinkBroken protocol) {
 		// 目前仅需设置online状态。
-		if (false == protocol.Argument.getStates().isEmpty()) {
+		if (!protocol.Argument.getStates().isEmpty()) {
 			var roleId = protocol.Argument.getStates().get(0);
 			Game.App.getInstance().Game_Login.getOnlines().OnLinkBroken(roleId);
 		}
@@ -30,7 +29,7 @@ public final class Provider extends Zeze.Arch.ProviderImplement {
 	}
 
 	@Override
-	protected long ProcessSendConfirm(SendConfirm protocol) throws Throwable {
+	protected long ProcessSendConfirm(SendConfirm protocol) {
 		var linkSession = (ProviderService.LinkSession)protocol.getSender().getUserState();
 		var ctx = App.Server.<Game.Login.Onlines.ConfirmContext>TryGetManualContext(
 				protocol.Argument.getConfirmSerialId());

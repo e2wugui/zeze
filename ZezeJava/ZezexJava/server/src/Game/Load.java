@@ -22,7 +22,7 @@ public class Load {
 
 	private long LoginCountLast;
 	private int ReportDelaySeconds;
-	private int TimoutDelaySeconds;
+	private int TimeoutDelaySeconds;
 	private Future<?> TimerTask;
 
 	public final void StartTimerTask() {
@@ -30,10 +30,10 @@ public class Load {
 	}
 
 	public final void StartTimerTask(int delaySeconds) {
-		TimoutDelaySeconds = delaySeconds;
+		TimeoutDelaySeconds = delaySeconds;
 		if (null != TimerTask)
 			TimerTask.cancel(false);
-		TimerTask = Zeze.Util.Task.schedule(TimoutDelaySeconds * 1000L, this::OnTimerTask);
+		TimerTask = Zeze.Util.Task.schedule(TimeoutDelaySeconds * 1000L, this::OnTimerTask);
 	}
 
 	private void OnTimerTask() {
@@ -43,7 +43,7 @@ public class Load {
 		int onlineNew = (int)(login - LoginCountLast);
 		LoginCountLast = login;
 
-		int onlineNewPerSecond = onlineNew / TimoutDelaySeconds;
+		int onlineNewPerSecond = onlineNew / TimeoutDelaySeconds;
 		if (onlineNewPerSecond > App.Instance.getMyConfig().getMaxOnlineNew()) {
 			// 最近上线太多，马上报告负载。linkd不会再分配用户过来。
 			Report(online, onlineNew);
@@ -54,7 +54,7 @@ public class Load {
 			return;
 		}
 		// slow report
-		ReportDelaySeconds += TimoutDelaySeconds;
+		ReportDelaySeconds += TimeoutDelaySeconds;
 		if (ReportDelaySeconds >= App.getInstance().getMyConfig().getReportDelaySeconds()) {
 			ReportDelaySeconds = 0;
 			Report(online, onlineNew);
