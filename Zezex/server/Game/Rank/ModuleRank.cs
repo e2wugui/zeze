@@ -36,7 +36,7 @@ namespace Game.Rank
         /// <param name="value"></param>
         /// <returns>Procudure.Success...</returns>
         [RedirectHash()]
-        protected async Task<long> UpdateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx)
+        protected virtual async Task<long> UpdateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx)
         {
             int concurrentLevel = GetConcurrentLevel(keyHint.RankType);
             int maxCount = GetRankComputeCount(keyHint.RankType);

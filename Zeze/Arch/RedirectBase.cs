@@ -134,6 +134,9 @@ namespace Zeze.Arch
 				{
 					// loop-back. see above!
 					var service = ProviderApp.ProviderDirectService;
+					// 可以用来获取一些配置什么的。
+					request.Service = service;
+					// 本地转发的请求Sender是null：ProviderDirect.ProcessModuleRedirectAllRequest 会处理这种情况。
 					request.Dispatch(service, service.FindProtocolFactoryHandle(request.TypeId));
 					continue;
 				}
@@ -156,6 +159,9 @@ namespace Zeze.Arch
 			// 没有转发成功的provider的hash分组，马上报告结果。
 			if (miss.Argument.Hashs.Count > 0) {
 				var service = ProviderApp.ProviderDirectService;
+				// 可以用来获取一些配置什么的。
+				miss.Service = service;
+				// Sender Is Null. miss 是结果协议，不会访问这个了。
 				miss.Dispatch(service, service.FindProtocolFactoryHandle(miss.TypeId));
 			}
 		}

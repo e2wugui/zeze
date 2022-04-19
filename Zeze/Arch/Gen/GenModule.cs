@@ -43,7 +43,7 @@ namespace Zeze.Arch.Gen
             where T : AppBase
         {
             List<MethodOverride> overrides = new List<MethodOverride>();
-            var methods = module.GetType().GetMethods();
+            var methods = module.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
             foreach (var method in methods)
             {
                 if (CheckAddMethod(method, OverrideType.RedirectHash, method.GetCustomAttributes(typeof(RedirectHashAttribute), false), overrides))
@@ -222,8 +222,8 @@ namespace Zeze.Arch.Gen
                 m.PrepareParameters();
                 var pdefine = Gen.Instance.ToDefineString(m.ParametersAll);
                 m.ResultHandle?.Verify(m);
-
-                sb.AppendLine($"    public override {m.MethodMode.GetCallReturnName()} {m.Method.Name}({pdefine})");
+                var publicOrProtected = m.Method.IsPublic ? "public" : "protected";
+                sb.AppendLine($"    {publicOrProtected} override {m.MethodMode.GetCallReturnName()} {m.Method.Name}({pdefine})");
                 sb.AppendLine($"    {{");
 
                 ChoiceTargetRunLoopback(module, sb, m);
@@ -268,10 +268,10 @@ namespace Zeze.Arch.Gen
                 sb.AppendLine($"            }}");
                 sb.AppendLine($"            else");
                 sb.AppendLine($"            {{");
+                sb.AppendLine($"                var _bb_ = Zeze.Serialize.ByteBuffer.Wrap({rpcVarName}.Result.Params);");
                 if (null != m.ResultHandle)
                 {
                     // decode and run if has result
-                    sb.AppendLine($"                var _bb_ = Zeze.Serialize.ByteBuffer.Wrap({rpcVarName}.Result.Params);");
                     m.ResultHandle.GenDecodeAndCallback("                ", sb, m);
                 }
                 m.MethodMode.GenFutureDecodeAndSet("                ", sb, futureVarName);

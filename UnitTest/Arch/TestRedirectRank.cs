@@ -89,7 +89,7 @@ namespace Arch
 				Assert.IsTrue(outParam == 444);
 				Assert.IsTrue(outServerId == 1);
 
-				// RedirectHash
+				// RedirectHashResult
 				result = await app1.Game_Rank.TestHashResult(0, 555, (i, s) => { outParam = i; outServerId = s; });
 				Assert.AreEqual(12345, result);
 				Assert.IsTrue(outParam == 555);
