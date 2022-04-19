@@ -3,24 +3,25 @@ package Zeze.Arch.Gen;
 import java.lang.reflect.Parameter;
 import java.util.HashMap;
 import java.util.List;
+import java.util.function.Supplier;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.StringBuilderCs;
 
-class Gen {
+final class Gen {
 	static final Gen Instance = new Gen();
 
 	private static class KnownSerializer {
 		final Zeze.Util.Action4<Zeze.Util.StringBuilderCs, String, String, String> Encoder;
 		final Zeze.Util.Action4<Zeze.Util.StringBuilderCs, String, String, String> Decoder;
 		final Zeze.Util.Action3<Zeze.Util.StringBuilderCs, String, String> Define;
-		final Zeze.Util.Func0<String> TypeName;
+		final Supplier<String> TypeName;
 
 		KnownSerializer(Zeze.Util.Action4<Zeze.Util.StringBuilderCs, String, String, String> enc,
 						Zeze.Util.Action4<Zeze.Util.StringBuilderCs, String, String, String> dec,
 						Zeze.Util.Action3<Zeze.Util.StringBuilderCs, String, String> def,
-						Zeze.Util.Func0<String> typeName) {
+						Supplier<String> typeName) {
 			Encoder = enc;
 			Decoder = dec;
 			Define = def;
@@ -141,11 +142,9 @@ class Gen {
 		);
 	}
 
-	String GetTypeName(Class<?> type) throws Throwable {
+	String GetTypeName(Class<?> type) {
 		var kn = Serializer.get(type);
-		if (kn != null)
-			return kn.TypeName.call();
-		return type.getTypeName().replace('$', '.');
+		return kn != null ? kn.TypeName.get() : type.getTypeName().replace('$', '.');
 	}
 
 	@SuppressWarnings("SameParameterValue")

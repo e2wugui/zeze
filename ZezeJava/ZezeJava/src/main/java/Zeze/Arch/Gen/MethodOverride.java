@@ -15,9 +15,8 @@ import Zeze.Arch.RedirectFuture;
 import Zeze.Arch.RedirectResult;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Util.KV;
-import Zeze.Util.StringBuilderCs;
 
-class MethodOverride {
+final class MethodOverride {
 	final Method method;
 	final Annotation annotation;
 	final Zeze.Transaction.TransactionLevel TransactionLevel;
@@ -83,20 +82,17 @@ class MethodOverride {
 	}
 
 	private static String toShort(String typeName) {
-		if (!typeName.startsWith("java.lang."))
-			return typeName;
-		String shortTypeName = typeName.substring(10);
-		return shortTypeName.indexOf('.') < 0 ? shortTypeName : typeName;
+		return typeName.startsWith("java.lang.") && typeName.indexOf('.', 10) < 0 ? typeName.substring(10) : typeName;
 	}
 
-	String GetDefineString() throws Throwable {
-		var sb = new StringBuilderCs();
+	String GetDefineString() {
+		var sb = new StringBuilder();
 		var first = true;
 		for (var p : allParameters) {
 			if (!first)
-				sb.Append(", ");
+				sb.append(", ");
 			first = false;
-			sb.Append(Gen.Instance.GetTypeName(p.getType())).Append(' ').Append(p.getName());
+			sb.append(Gen.Instance.GetTypeName(p.getType())).append(' ').append(p.getName());
 		}
 		return sb.toString();
 	}
