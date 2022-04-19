@@ -11,22 +11,22 @@ import Zeze.Util.IntHashMap;
  * 初始化。
  */
 public class ProviderApp {
-	public Zeze.Application Zeze;
+	public final Zeze.Application Zeze;
 
-	public ProviderImplement ProviderImplement;
-	public ProviderService ProviderService;
-	public String ServerServiceNamePrefix;
+	public final ProviderImplement ProviderImplement;
+	public final ProviderService ProviderService;
+	public final String ServerServiceNamePrefix;
 
-	public ProviderDirect ProviderDirect;
-	public ProviderDirectService ProviderDirectService;
+	public final ProviderDirect ProviderDirect;
+	public final ProviderDirectService ProviderDirectService;
 
-	public String LinkdServiceName;
+	public final String LinkdServiceName;
 
 	// 现在内部可以自动设置两个参数，但有点不够可靠，生产环境最好手动设置。
-	public String DirectIp;
-	public int DirectPort;
+	public final String DirectIp;
+	public final int DirectPort;
 
-	public ProviderDistribute Distribute;
+	public final ProviderDistribute Distribute;
 
 	public final IntHashMap<BModule> StaticBinds = new IntHashMap<>();
 	public final IntHashMap<BModule> DynamicModules = new IntHashMap<>();

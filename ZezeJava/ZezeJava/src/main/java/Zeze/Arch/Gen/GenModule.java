@@ -3,6 +3,7 @@ package Zeze.Arch.Gen;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -161,9 +162,17 @@ public class GenModule {
 				returnName = "Zeze.Arch.RedirectAllFuture<" + m.resultTypeName + '>';
 			else
 				throw new RuntimeException("ReturnType Must Be void Or RedirectFuture<...> Or RedirectAllFuture<...>");
+			String modifier;
+			int flags = m.method.getModifiers();
+			if ((flags & Modifier.PUBLIC) != 0)
+				modifier = "public ";
+			else if ((flags & Modifier.PROTECTED) != 0)
+				modifier = "protected ";
+			else
+				modifier = "";
 
 			sb.AppendLine("    @Override");
-			sb.AppendLine("    public {} {}({}) {", returnName, m.method.getName(), parametersDefine); // m.getThrows() // 继承方法允许不标throws
+			sb.AppendLine("    {}{} {}({}) {", modifier, returnName, m.method.getName(), parametersDefine); // m.getThrows() // 继承方法允许不标throws
 
 			ChoiceTargetRunLoopback(sb, m, returnName);
 

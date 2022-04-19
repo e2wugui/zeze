@@ -68,7 +68,7 @@ class InstallSnapshotState {
 	}
 
 	@SuppressWarnings("SameReturnValue")
-	private long ProcessResult(LogSequence ls, Server.ConnectorEx c, Protocol p) throws Throwable {
+	private long ProcessResult(LogSequence ls, Server.ConnectorEx c, Protocol<?> p) throws Throwable {
 		var r = (InstallSnapshot)p;
 
 		synchronized (ls.getRaft()) {

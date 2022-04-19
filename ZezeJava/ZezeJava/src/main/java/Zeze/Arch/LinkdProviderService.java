@@ -14,7 +14,7 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 	private static final Logger logger = LogManager.getLogger(LinkdProviderService.class);
 
 	public LinkdApp LinkdApp;
-	public ConcurrentHashMap<String, ProviderSession> ProviderSessions = new ConcurrentHashMap<>();
+	public final ConcurrentHashMap<String, ProviderSession> ProviderSessions = new ConcurrentHashMap<>();
 
 	public LinkdProviderService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);

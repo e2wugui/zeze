@@ -170,8 +170,8 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 
 	private RocksDB Db;
 	private final ColumnFamilyOptions CfOptions = new ColumnFamilyOptions();
-	public WriteOptions WriteOptions = new WriteOptions();
-	public ReadOptions ReadOptions = new ReadOptions();
+	public final WriteOptions WriteOptions = new WriteOptions();
+	public final ReadOptions ReadOptions = new ReadOptions();
 	private final ConcurrentHashMap<String, ColumnFamilyHandle> Families = new ConcurrentHashMap<>();
 	private ColumnFamilyHandle FamilyLastDoneTaskId;
 	private ColumnFamilyHandle FamilyTaskQueue;

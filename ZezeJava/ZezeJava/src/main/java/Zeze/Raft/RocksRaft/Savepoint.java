@@ -29,8 +29,8 @@ public final class Savepoint {
 		return sp;
 	}
 
-	List<Action0> CommitActions = new ArrayList<>();
-	List<Action0> RollbackActions = new ArrayList<>();
+	final List<Action0> CommitActions = new ArrayList<>();
+	final List<Action0> RollbackActions = new ArrayList<>();
 
 	public void MergeFrom(Savepoint other, boolean isCommit) {
 		if (isCommit) {

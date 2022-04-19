@@ -100,7 +100,7 @@ public final class ServiceManagerServer implements Closeable {
 	private final ConcurrentHashMap<String, LoadObservers> Loads = new ConcurrentHashMap<>();
 
 	public static class LoadObservers {
-		public ServiceManagerServer ServiceManager;
+		public final ServiceManagerServer ServiceManager;
 		public Zeze.Services.ServiceManager.ServerLoad Load;
 		public final IdentityHashSet<Long> Observers = new IdentityHashSet<>();
 

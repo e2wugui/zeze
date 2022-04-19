@@ -138,7 +138,7 @@ public class ModuleRank extends AbstractModule {
 		return result;
 	}
 
-	private Rank GetRank(BConcurrentKey keyHint) {
+	private Rank GetRankSync(BConcurrentKey keyHint) {
 		var Rank = Ranks.computeIfAbsent(keyHint, __ -> new Rank());
 		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (Rank) {
@@ -197,10 +197,14 @@ public class ModuleRank extends AbstractModule {
 		public BRankList rankList = new BRankList(); // 目前要求输出结构的所有字段都不能为null,需要构造时创建
 	}
 
+	public RedirectAllFuture<RRankList> GetRank(BConcurrentKey keyHint) {
+		return GetRank(GetConcurrentLevel(keyHint.getRankType()), keyHint);
+	}
+
 	// 属性参数是获取总的并发分组数量的代码，直接复制到生成代码中。
-	// 需要注意在子类上下文中可以编译通过。可以是常量。
+	// 最好改成protected并新增一个隐藏hash参数的public方法调用这里
 	@RedirectAll
-	public RedirectAllFuture<RRankList> GetRank(int hash, BConcurrentKey keyHint) {
+	protected RedirectAllFuture<RRankList> GetRank(int hash, BConcurrentKey keyHint) {
 		// 根据hash获取分组rank。
 		var result = new RRankList();
 		try {
@@ -372,7 +376,7 @@ public class ModuleRank extends AbstractModule {
 		/*/
 		// 同步方式获取rank
 		var rankKey = NewRankKey(protocol.Argument.getRankType(), protocol.Argument.getTimeType());
-		result.Argument.getRankList().addAll(GetRank(rankKey).getTableValue().getRankList());
+		result.Argument.getRankList().addAll(GetRankSync(rankKey).getTableValue().getRankList());
 		session.SendResponse(result);
 		// */
 		return Procedure.Success;
@@ -459,7 +463,7 @@ public class ModuleRank extends AbstractModule {
 		public int hash;
 		public int out;
 		public int serverId;
-		public EmptyBean bean = new EmptyBean(); // 使用Bean自己的序列化
+		public EmptyBean bean = new EmptyBean(); // 使用Bean自己的序列化,需要序列化的引用类型成员在构造后不能为null
 		public Date date = new Date(); // 使用JDK自带的序列化
 		public transient String str; // 不会序列化transient
 		protected Object obj; // 不会序列化非public
@@ -478,16 +482,6 @@ public class ModuleRank extends AbstractModule {
 			return Procedure.Success;
 		}, "TestHashAsync"));
 		return f;
-	}
-
-	@RedirectToServer // 返回结果可以是Long类型,表示只有resultCode值
-	public RedirectFuture<Long> TestToServerLongResult(int serverId) { // 可以没有自定义输入参数,但必须至少有serverId参数
-		return RedirectFuture.finish(Procedure.Success);
-	}
-
-	@RedirectHash
-	public RedirectFuture<Long> TestHashLongResult(int hash) { // 可以没有自定义输入参数,但必须至少有hash参数
-		return RedirectFuture.finish(Procedure.Success);
 	}
 
 	public static class TestToAllResult extends RedirectResult { // RedirectAll的结果类型必须继承RedirectResult(其中包含resultCode),其它同ToServer
@@ -528,16 +522,26 @@ public class ModuleRank extends AbstractModule {
 		throw new UnsupportedOperationException();
 	}
 
-	@RedirectToServer
-	public void TestToServerNoResult(int serverId) {
+	@RedirectToServer // 返回结果可以是Long类型,表示只有resultCode值
+	public RedirectFuture<Long> TestToServerLongResult(int serverId) { // 可以没有自定义输入参数,但必须至少有serverId参数
+		return RedirectFuture.finish(Procedure.Success);
 	}
 
 	@RedirectHash
-	public void TestHashNoResult(int hash) {
+	public RedirectFuture<Long> TestHashLongResult(int hash) { // 可以没有自定义输入参数,但必须至少有hash参数
+		return RedirectFuture.finish(Procedure.Success);
+	}
+
+	@RedirectToServer
+	void TestToServerNoResult(int serverId) {
+	}
+
+	@RedirectHash
+	void TestHashNoResult(int hash) {
 	}
 
 	@RedirectAll
-	public void TestAllNoResult(int hash) {
+	void TestAllNoResult(int hash) {
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
