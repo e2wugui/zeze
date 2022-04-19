@@ -162,7 +162,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			var rpc = new Acquire();
 			rpc.Argument.setGlobalTableKey(gkey);
 			rpc.Argument.setState(state);
-			agent.RaftClient.SendForWait(rpc).Wait();
+			agent.RaftClient.SendForWait(rpc).await();
 
 			if (rpc.getResultCode() < 0) {
 				Transaction trans = Transaction.getCurrent();
@@ -241,7 +241,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 				ActiveClose = true;
 			}
 			if (LoginTimes.get() > 0)
-				RaftClient.SendForWait(new NormalClose()).Wait(10 * 1000); // 10s
+				RaftClient.SendForWait(new NormalClose()).await(10 * 1000); // 10s
 			RaftClient.getClient().Stop();
 		}
 
@@ -251,7 +251,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 					var volatileTmp = LoginFuture;
 					if (volatileTmp.isDone() && volatileTmp.get())
 						return;
-					volatileTmp.Wait();
+					volatileTmp.await();
 				} catch (RuntimeException ignored) {
 				}
 			}

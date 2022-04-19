@@ -106,7 +106,7 @@ public class InMemoryJavaCompiler {
 		return classLoader.findClass(className);
 	}
 
-	static final class SourceCode extends SimpleJavaFileObject {
+	private static final class SourceCode extends SimpleJavaFileObject {
 		private final String contents;
 
 		SourceCode(String className, String contents) {
@@ -120,7 +120,7 @@ public class InMemoryJavaCompiler {
 		}
 	}
 
-	static final class CompiledCode extends SimpleJavaFileObject {
+	private static final class CompiledCode extends SimpleJavaFileObject {
 		private final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 
 		CompiledCode(String className) throws URISyntaxException {
@@ -137,7 +137,7 @@ public class InMemoryJavaCompiler {
 		}
 	}
 
-	static final class DynamicClassLoader extends ClassLoader {
+	private static final class DynamicClassLoader extends ClassLoader {
 		private final HashMap<String, CompiledCode> customCompiledCode = new HashMap<>();
 
 		DynamicClassLoader(ClassLoader parent) {
@@ -158,7 +158,7 @@ public class InMemoryJavaCompiler {
 		}
 	}
 
-	static final class ExtendedJavaFileManager extends ForwardingJavaFileManager<JavaFileManager> {
+	private static final class ExtendedJavaFileManager extends ForwardingJavaFileManager<JavaFileManager> {
 		private final DynamicClassLoader cl;
 
 		/**

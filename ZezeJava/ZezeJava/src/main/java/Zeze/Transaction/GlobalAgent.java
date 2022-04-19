@@ -84,7 +84,7 @@ public final class GlobalAgent implements IGlobalAgent {
 				}
 				var ready = connector.TryGetReadySocket();
 				if (ready != null)
-					new NormalClose().SendForWait(ready).Wait();
+					new NormalClose().SendForWait(ready).await();
 			} finally {
 				connector.Stop(); // 正常关闭，先设置这个，以后 OnSocketClose 的时候判断做不同的处理。
 			}

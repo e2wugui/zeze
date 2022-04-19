@@ -743,7 +743,7 @@ public class LogSequence {
 			Raft.getServer().getConfig().ForEachConnector(c -> TrySendAppendEntries((Server.ConnectorEx)c, null));
 		}
 
-		if (WaitApply && !future.Wait(Raft.getRaftConfig().getAppendEntriesTimeout() * 2L + 1000)) {
+		if (WaitApply && !future.await(Raft.getRaftConfig().getAppendEntriesTimeout() * 2L + 1000)) {
 			getLeaderAppendLogs().remove(LastIndex);
 			throw new RaftRetryException("timeout or canceled");
 		}
@@ -793,7 +793,7 @@ public class LogSequence {
 		LogsAvailable = false; // cancel RemoveLogBefore
 		var removeLogBeforeFuture = RemoveLogBeforeFuture;
 		if (removeLogBeforeFuture != null)
-			removeLogBeforeFuture.Wait();
+			removeLogBeforeFuture.await();
 		synchronized (Raft) {
 			try {
 				// 6. If existing log entry has same index and term as snapshot's

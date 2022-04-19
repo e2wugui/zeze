@@ -568,7 +568,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						// 应该也会等待所有任务结束（包括错误）。
 						for (var reduce : reducePending) {
 							try {
-								reduce.getValue().getFuture().Wait();
+								reduce.getValue().getFuture().await();
 								if (reduce.getValue().Result.State == StateInvalid)
 									reduceSucceed.add(reduce.getKey());
 								else

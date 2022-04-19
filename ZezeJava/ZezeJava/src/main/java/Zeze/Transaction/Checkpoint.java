@@ -105,7 +105,7 @@ public final class Checkpoint {
 			case Period:
 				final TaskCompletionSource<Integer> source = new TaskCompletionSource<>();
 				AddActionAndPulse(() -> source.SetResult(0));
-				source.Wait();
+				source.await();
 				break;
 
 			case Table:

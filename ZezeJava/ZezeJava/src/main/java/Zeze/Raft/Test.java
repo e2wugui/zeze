@@ -176,7 +176,7 @@ public class Test {
 		while (true) {
 			try {
 				var r = new GetCount();
-				Agent.SendForWait(r).Wait();
+				Agent.SendForWait(r).await();
 				if (!r.isTimeout() && r.getResultCode() == 0)
 					return r.Result.Count;
 			} catch (Exception ignored) {
@@ -251,7 +251,7 @@ public class Test {
 		// int i = 0;
 		for (TaskCompletionSource<?> task : tasks) {
 			// logger.debug("+++++++ {} wait", i++);
-			task.Wait();
+			task.await();
 		}
 		// logger.debug("+++++++ finish");
 		for (var request : requests) {
@@ -298,7 +298,7 @@ public class Test {
 	public void RunTrace() throws Throwable {
 		// 基本测试
 		logger.debug("基本测试");
-		Agent.SendForWait(new AddCount()).Wait();
+		Agent.SendForWait(new AddCount()).await();
 		ExpectCount.incrementAndGet();
 		CheckCurrentCount("TestAddCount");
 
@@ -846,7 +846,7 @@ public class Test {
 			}
 		}
 
-		private long ProcessAddCount(AddCount r) throws Throwable {
+		private long ProcessAddCount(AddCount r) {
 			if (!Raft.isLeader())
 				return Procedure.RaftRetry; // fast fail
 

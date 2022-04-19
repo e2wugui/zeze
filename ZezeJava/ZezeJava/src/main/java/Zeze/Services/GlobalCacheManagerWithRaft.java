@@ -391,7 +391,7 @@ public class GlobalCacheManagerWithRaft
 						CacheHolder session = kv.getKey();
 						Reduce reduce = kv.getValue();
 						try {
-							reduce.getFuture().Wait();
+							reduce.getFuture().await();
 							if (reduce.Result.getState() == StateInvalid)
 								reduceSucceed.add(session);
 							else {

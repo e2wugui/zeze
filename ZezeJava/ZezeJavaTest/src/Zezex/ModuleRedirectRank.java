@@ -25,47 +25,47 @@ public class ModuleRedirectRank extends TestCase {
 			app1.Game_Rank.TestToServer(0, 111).then(result -> {
 				assertEquals(111, result.out);
 				assertEquals(0, result.serverId);
-			}).Wait();
+			}).await();
 
 			app1.Game_Rank.TestToServer(1, 222).then(result -> {
 				assertEquals(222, result.out);
 				assertEquals(1, result.serverId);
-			}).Wait();
+			}).await();
 
 			app2.Game_Rank.TestToServer(0, 333).then(result -> {
 				assertEquals(333, result.out);
 				assertEquals(0, result.serverId);
-			}).Wait();
+			}).await();
 
 			app2.Game_Rank.TestToServer(1, 444).then(result -> {
 				assertEquals(444, result.out);
 				assertEquals(1, result.serverId);
-			}).Wait();
+			}).await();
 
 			// RedirectHash
 			app1.Game_Rank.TestHash(0, 555).then(result -> {
 				assertEquals(0, result.hash);
 				assertEquals(555, result.out);
 				assertEquals(0, result.serverId);
-			}).Wait();
+			}).await();
 
 			app1.Game_Rank.TestHash(1, 666).then(result -> {
 				assertEquals(1, result.hash);
 				assertEquals(666, result.out);
 				assertEquals(1, result.serverId);
-			}).Wait();
+			}).await();
 
 			app2.Game_Rank.TestHash(0, 777).then(result -> {
 				assertEquals(0, result.hash);
 				assertEquals(777, result.out);
 				assertEquals(0, result.serverId);
-			}).Wait();
+			}).await();
 
 			app2.Game_Rank.TestHash(1, 888).then(result -> {
 				assertEquals(1, result.hash);
 				assertEquals(888, result.out);
 				assertEquals(1, result.serverId);
-			}).Wait();
+			}).await();
 
 			// RedirectAll
 			final int CONCURRENT_LEVEL = 6;
@@ -100,7 +100,7 @@ public class ModuleRedirectRank extends TestCase {
 			assertTrue(future1.get());
 			assertEquals(CONCURRENT_LEVEL, hashes.size());
 
-			app2.Game_Rank.TestToAll(0, 12345).Wait().onAllDone(ctx -> {
+			app2.Game_Rank.TestToAll(0, 12345).await().onAllDone(ctx -> {
 				if (ctx.isCompleted()) {
 					System.out.println("TestToAll(0) onAllDone: allResults=" + ctx.getAllResults());
 					assertEquals(0, ctx.getAllResults().size());

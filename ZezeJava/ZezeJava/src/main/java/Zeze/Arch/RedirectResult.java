@@ -9,9 +9,7 @@ public class RedirectResult {
 		return hash;
 	}
 
-	// 只让生成代码修改,别手动修改
-	@Deprecated
-	public void setHash(int hash) {
+	void setHash(int hash) {
 		this.hash = hash;
 	}
 
@@ -19,8 +17,6 @@ public class RedirectResult {
 		return resultCode;
 	}
 
-	// 只让生成代码修改,别手动修改
-	@Deprecated
 	void setResultCode(long resultCode) {
 		this.resultCode = resultCode;
 	}

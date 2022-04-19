@@ -31,7 +31,7 @@ public class TestAsyncSocket extends TestCase {
 		}
 
 		@Override
-		public void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) throws Throwable {
+		public void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input) {
 			System.out.println("input size=" + input.Size());
 			System.out.println(input.ReadString());
 			input.ReadIndex = input.WriteIndex;
@@ -39,10 +39,10 @@ public class TestAsyncSocket extends TestCase {
 		}
 	}
 
-	public final void testConnect() throws Throwable {
+	public final void testConnect() {
 		ServiceClient client = new ServiceClient();
-		try (AsyncSocket so = client.NewClientSocket("www.163.com", 80, null, null)) {
-			client.Future.Wait();
+		try (AsyncSocket ignored = client.NewClientSocket("www.163.com", 80, null, null)) {
+			client.Future.await();
 		}
 	}
 }

@@ -29,7 +29,7 @@ public class TestRpc extends TestCase {
 		first = new FirstRpc();
 		first.Argument.setInt1(1234);
 		//Console.WriteLine("SendFirstRpcRequest");
-		first.SendForWait(clientSocket).Wait();
+		first.SendForWait(clientSocket).await();
 		//Console.WriteLine("FirstRpc Wait End");
 		assert first.Argument.getInt1() == first.Result.getInt1();
 	}

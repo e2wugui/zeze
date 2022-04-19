@@ -40,27 +40,18 @@ public final class ModuleRedirectAllContext<R extends RedirectResult> extends Ze
 	public synchronized void OnTimeout() throws Throwable { // 在OnRemoved之后触发
 		if (hashResults.size() < concurrentLevel && !timeout) {
 			timeout = true;
-			if (future != null) {
-				getService().getZeze().NewProcedure(() -> {
-					future.allDone(this);
-					return Procedure.Success;
-				}, "ModuleRedirectAllContext.OnTimeout").Call();
-			}
+			if (future != null)
+				future.allDone(this);
 		}
 	}
 
 	@Override
 	public synchronized void OnRemoved() throws Throwable {
-		if (hashResults.size() >= concurrentLevel && future != null) {
-			getService().getZeze().NewProcedure(() -> {
-				future.allDone(this);
-				return Procedure.Success;
-			}, "ModuleRedirectAllContext.OnRemoved").Call();
-		}
+		if (hashResults.size() >= concurrentLevel && future != null)
+			future.allDone(this);
 	}
 
 	// 这里处理真正redirect发生时，从远程返回的结果。
-	@SuppressWarnings("deprecation")
 	public synchronized void ProcessResult(Zeze.Application zeze, ModuleRedirectAllResult res) throws Throwable {
 		if (isCompleted())
 			return; // 如果已经超时,那就只能忽略后续的结果了

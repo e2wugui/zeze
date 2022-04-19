@@ -34,7 +34,7 @@ public interface RedirectAllFuture<R extends RedirectResult> {
 	}
 
 	// 只用于RedirectAll方法返回的future
-	default RedirectAllFuture<R> Wait() {
+	default RedirectAllFuture<R> await() {
 		throw new IllegalStateException();
 	}
 }
@@ -115,8 +115,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 		if (hashes == null) {
 			var newHashes = new IntHashSet();
 			synchronized (this) {
-				hashes = finishedHashes;
-				if (hashes == null)
+				if ((hashes = finishedHashes) == null)
 					finishedHashes = hashes = newHashes;
 			}
 		}
@@ -204,7 +203,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 	}
 
 	@Override
-	public RedirectAllFuture<R> Wait() {
+	public RedirectAllFuture<R> await() {
 		var c = ctx;
 		if (c == null || !c.isCompleted()) {
 			synchronized (this) {

@@ -7,20 +7,22 @@ import java.util.function.Supplier;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Util.Action3;
+import Zeze.Util.Action4;
 import Zeze.Util.StringBuilderCs;
 
 final class Gen {
 	static final Gen Instance = new Gen();
 
-	private static class KnownSerializer {
-		final Zeze.Util.Action4<Zeze.Util.StringBuilderCs, String, String, String> Encoder;
-		final Zeze.Util.Action4<Zeze.Util.StringBuilderCs, String, String, String> Decoder;
-		final Zeze.Util.Action3<Zeze.Util.StringBuilderCs, String, String> Define;
+	private static final class KnownSerializer {
+		final Action4<StringBuilderCs, String, String, String> Encoder;
+		final Action4<StringBuilderCs, String, String, String> Decoder;
+		final Action3<StringBuilderCs, String, String> Define;
 		final Supplier<String> TypeName;
 
-		KnownSerializer(Zeze.Util.Action4<Zeze.Util.StringBuilderCs, String, String, String> enc,
-						Zeze.Util.Action4<Zeze.Util.StringBuilderCs, String, String, String> dec,
-						Zeze.Util.Action3<Zeze.Util.StringBuilderCs, String, String> def,
+		KnownSerializer(Action4<StringBuilderCs, String, String, String> enc,
+						Action4<StringBuilderCs, String, String, String> dec,
+						Action3<StringBuilderCs, String, String> def,
 						Supplier<String> typeName) {
 			Encoder = enc;
 			Decoder = dec;
@@ -160,69 +162,49 @@ final class Gen {
 
 	void GenEncode(StringBuilderCs sb, String prefix, String bbName, Class<?> type, String varName) throws Throwable {
 		var kn = Serializer.get(type);
-		if (kn != null) {
+		if (kn != null)
 			kn.Encoder.run(sb, prefix, varName, bbName);
-			return;
-		}
-
-		if (Serializable.class.isAssignableFrom(type)) {
+		else if (Serializable.class.isAssignableFrom(type))
 			sb.AppendLine("{}{}.Encode({});", prefix, varName, bbName);
-			return;
+		else {
+			sb.AppendLine("{}try (var _bs_ = new java.io.ByteArrayOutputStream();", prefix);
+			sb.AppendLine("{}     var _os_ = new java.io.ObjectOutputStream(_bs_)) {", prefix);
+			sb.AppendLine("{}    _os_.writeObject({});", prefix, varName);
+			sb.AppendLine("{}    {}.WriteBytes(_bs_.toByteArray());", prefix, bbName);
+			sb.AppendLine("{}} catch (java.io.IOException _e_) {", prefix);
+			sb.AppendLine("{}    throw new RuntimeException(_e_);", prefix);
+			sb.AppendLine("{}}", prefix);
 		}
-
-		sb.AppendLine("{}try (var _bs_ = new java.io.ByteArrayOutputStream();", prefix);
-		sb.AppendLine("{}     var _os_ = new java.io.ObjectOutputStream(_bs_)) {", prefix);
-		sb.AppendLine("{}    _os_.writeObject({});", prefix, varName);
-		sb.AppendLine("{}    {}.WriteBytes(_bs_.toByteArray());", prefix, bbName);
-		sb.AppendLine("{}} catch (java.io.IOException _e_) {", prefix);
-		sb.AppendLine("{}    throw new RuntimeException(_e_);", prefix);
-		sb.AppendLine("{}}", prefix);
 	}
 
 	void GenDecode(StringBuilderCs sb, String prefix, String bbName, Class<?> type, String varName) throws Throwable {
 		var kn = Serializer.get(type);
-		if (kn != null) {
+		if (kn != null)
 			kn.Decoder.run(sb, prefix, varName, bbName);
-			return;
-		}
-
-		if (Serializable.class.isAssignableFrom(type)) {
+		else if (Serializable.class.isAssignableFrom(type))
 			sb.AppendLine("{}{}.Decode({});", prefix, varName, bbName);
-			return;
+		else {
+			sb.AppendLine("{}{", prefix);
+			sb.AppendLine("{}    var _bo_ = {}.ReadByteBuffer();", prefix, bbName);
+			sb.AppendLine("{}    try (var _bs_ = new java.io.ByteArrayInputStream(_bo_.Bytes, _bo_.ReadIndex, _bo_.Size());", prefix);
+			sb.AppendLine("{}         var _os_ = new java.io.ObjectInputStream(_bs_)) {", prefix);
+			sb.AppendLine("{}        {} = ({})_os_.readObject();", prefix, varName, GetTypeName(type));
+			sb.AppendLine("{}    } catch (java.io.IOException _e_) {", prefix);
+			sb.AppendLine("{}        throw new RuntimeException(_e_);", prefix);
+			sb.AppendLine("{}    }", prefix);
+			sb.AppendLine("{}}", prefix);
 		}
-		sb.AppendLine("{}{", prefix);
-		sb.AppendLine("{}    var _bo_ = {}.ReadByteBuffer();", prefix, bbName);
-		sb.AppendLine("{}    try (var _bs_ = new java.io.ByteArrayInputStream(_bo_.Bytes, _bo_.ReadIndex, _bo_.Size());", prefix);
-		sb.AppendLine("{}         var _os_ = new java.io.ObjectInputStream(_bs_)) {", prefix);
-		sb.AppendLine("{}        {} = ({})_os_.readObject();", prefix, varName, GetTypeName(type));
-		sb.AppendLine("{}    } catch (java.io.IOException _e_) {", prefix);
-		sb.AppendLine("{}        throw new RuntimeException(_e_);", prefix);
-		sb.AppendLine("{}    }", prefix);
-		sb.AppendLine("{}}", prefix);
-	}
-
-	static boolean IsKnownDelegate(Class<?> type) {
-		if (type.getAnnotation(FunctionalInterface.class) != null) {
-			if (type.getName().startsWith("Zeze.Util.Action"))
-				return true;
-			throw new RuntimeException("ModuleRedirect Callback Only Support Zeze.Util.ActionN");
-		}
-		return false;
 	}
 
 	@SuppressWarnings("SameParameterValue")
 	void GenEncode(StringBuilderCs sb, String prefix, String bbName, List<Parameter> parameters) throws Throwable {
-		for (Parameter p : parameters) {
-			if (!IsKnownDelegate(p.getType()))
-				GenEncode(sb, prefix, bbName, p.getType(), p.getName());
-		}
+		for (Parameter p : parameters)
+			GenEncode(sb, prefix, bbName, p.getType(), p.getName());
 	}
 
 	@SuppressWarnings("SameParameterValue")
 	void GenDecode(StringBuilderCs sb, String prefix, String bbName, List<Parameter> parameters) throws Throwable {
-		for (Parameter p : parameters) {
-			if (!IsKnownDelegate(p.getType()))
-				GenDecode(sb, prefix, bbName, p.getType(), p.getName());
-		}
+		for (Parameter p : parameters)
+			GenDecode(sb, prefix, bbName, p.getType(), p.getName());
 	}
 }

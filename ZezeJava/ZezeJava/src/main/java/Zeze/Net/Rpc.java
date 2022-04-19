@@ -189,7 +189,7 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 	}
 
 	public final void SendAndWaitCheckResultCode(AsyncSocket so, int millisecondsTimeout) {
-		SendForWait(so, millisecondsTimeout).Wait();
+		SendForWait(so, millisecondsTimeout).await();
 		if (getResultCode() != 0)
 			throw new IllegalStateException(String.format("Rpc Invalid ResultCode=%d %s", getResultCode(), this));
 	}

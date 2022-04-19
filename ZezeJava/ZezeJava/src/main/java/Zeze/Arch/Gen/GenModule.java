@@ -21,15 +21,13 @@ import Zeze.Util.InMemoryJavaCompiler;
 
 /**
  * 把模块的方法调用发送到其他服务器实例上执行。
- * 被重定向的方法用注解标明。
- * 被重定向的方法需要是virtual的。
+ * 被重定向的方法用注解标明(RedirectToServer,RedirectHash,RedirectAll)。
+ * 被重定向的方法需要是virtual的(非private非final非static的)。
+ * <p>
  * 实现方案：
  * Game.App创建Module的时候调用回调。
  * 在回调中判断是否存在需要拦截的方法。
  * 如果需要就动态生成子类实现代码并编译并返回新的实例。
- * <p>
- * 注意：
- * 使用 virtual override 的方式可以选择拦截部分方法。
  * 可以提供和原来模块一致的接口。
  */
 public final class GenModule {
@@ -138,7 +136,7 @@ public final class GenModule {
 
 	private String GenModuleCode(String pkg, Zeze.IModule module, String genClassName, List<MethodOverride> overrides,
 								 String userAppName) throws Throwable {
-		var sb = new Zeze.Util.StringBuilderCs();
+		var sb = new StringBuilderCs();
 		sb.AppendLine("// auto-generated @" + "formatter:off");
 		if (pkg != null && !pkg.isEmpty()) {
 			sb.AppendLine("package {};", pkg);
@@ -147,7 +145,7 @@ public final class GenModule {
 		sb.AppendLine("public final class {} extends {}.Module{} {", genClassName, module.getFullName(), module.getName());
 
 		// TaskCompletionSource<int> void
-		var sbHandles = new Zeze.Util.StringBuilderCs();
+		var sbHandles = new StringBuilderCs();
 		for (var m : overrides) {
 			var parametersDefine = m.GetDefineString();
 			var methodNameHash = m.method.getName();
@@ -229,8 +227,6 @@ public final class GenModule {
 			boolean genLocal = false;
 			for (int i = 0; i < m.inputParameters.size(); ++i) {
 				var p = m.inputParameters.get(i);
-				if (Gen.IsKnownDelegate(p.getType()))
-					continue; // define later.
 				Gen.Instance.GenLocalVariable(sbHandles, "                ", p.getType(), p.getName());
 				genLocal = true;
 			}
@@ -290,7 +286,7 @@ public final class GenModule {
 		sb.AppendLine();
 	}
 
-	private void GenRedirectAll(Zeze.Util.StringBuilderCs sb, Zeze.Util.StringBuilderCs sbHandles,
+	private void GenRedirectAll(StringBuilderCs sb, StringBuilderCs sbHandles,
 								Zeze.IModule module, MethodOverride m) throws Throwable {
 		sb.Append("        var _c_ = new Zeze.Arch.ModuleRedirectAllContext<>({}, ", m.hashOrServerIdParameter.getName());
 		if (m.resultTypeName != null) {
@@ -332,8 +328,6 @@ public final class GenModule {
 			sbHandles.AppendLine("                var _b_ = _params_.Wrap();");
 			for (int i = 0; i < m.inputParameters.size(); ++i) {
 				var p = m.inputParameters.get(i);
-				if (Gen.IsKnownDelegate(p.getType()))
-					continue; // define later.
 				Gen.Instance.GenLocalVariable(sbHandles, "                ", p.getType(), p.getName());
 			}
 			Gen.Instance.GenDecode(sbHandles, "                ", "_b_", m.inputParameters);

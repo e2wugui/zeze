@@ -170,10 +170,10 @@ public final class Raft {
 
 		var removeLogBeforeFuture = _LogSequence.RemoveLogBeforeFuture;
 		if (removeLogBeforeFuture != null)
-			removeLogBeforeFuture.Wait();
+			removeLogBeforeFuture.await();
 		var applyFuture = _LogSequence.ApplyFuture;
 		if (applyFuture != null)
-			applyFuture.Wait();
+			applyFuture.await();
 
 		synchronized (this) {
 			_LogSequence.CancelAllInstallSnapshot();

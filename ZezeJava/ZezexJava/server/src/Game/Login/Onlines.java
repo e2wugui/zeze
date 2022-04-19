@@ -138,7 +138,7 @@ public class Onlines {
 		}, "SendReliableNotify." + listenerName), null);
 
 		if (future != null) {
-			future.Wait();
+			future.await();
 		}
 	}
 
@@ -263,7 +263,7 @@ public class Onlines {
 			}, "Onlines.Send"), null, null));
 
 		if (future != null) {
-			future.Wait();
+			future.await();
 		}
 	}
 
@@ -500,7 +500,7 @@ public class Onlines {
 		}
 
 		if (future != null) {
-			future.Wait();
+			future.await();
 		}
 	}
 
