@@ -10,15 +10,15 @@ using static Zeze.Net.Service;
 
 namespace Zeze.Arch
 {
-    public class ModuleRedirectAllContext : Zeze.Net.Service.ManualContext
+    public class RedirectAllContext : Zeze.Net.Service.ManualContext
     {
         public string MethodFullName { get; }
         public HashSet<int> HashCodes { get; } = new();
         public ConcurrentDictionary<int, long> HashErrors { get; } = new();
-        public Action<ModuleRedirectAllContext> OnHashEnd { get; set; }
+        public Action<RedirectAllContext> OnHashEnd { get; set; }
         public Zeze.Net.Service Service { get; set; } // setup when add 
 
-        public ModuleRedirectAllContext(int concurrentLevel, string methodFullName)
+        public RedirectAllContext(int concurrentLevel, string methodFullName)
         {
             for (int hash = 0; hash < concurrentLevel; ++hash)
                 HashCodes.Add(hash);

@@ -309,10 +309,10 @@ namespace Zeze.Arch.Gen
                 }
                 Gen.Instance.GenDecode(sbHandles, "            ", m.ParametersNormal);
 
+                sbHandles.AppendLine($"            // WARNING reuse var _bb_ to encode result.");
+                sbHandles.AppendLine($"            _bb_ = Zeze.Serialize.ByteBuffer.Allocate(1024);");
                 if (null != m.ResultHandle)
                 {
-                    sbHandles.AppendLine($"            // WARNING reuse var _bb_ to encode result.");
-                    sbHandles.AppendLine($"            _bb_ = Zeze.Serialize.ByteBuffer.Allocate(1024);");
                     var resultVarNames = new List<string>();
                     for (int i = 0; i < m.ResultHandle.GenericArguments.Length; ++i)
                         resultVarNames.Add("tmp" + Gen.Instance.TmpVarNameId.IncrementAndGet());
@@ -322,6 +322,10 @@ namespace Zeze.Arch.Gen
                     sbHandles.AppendLine($"            {{");
                     m.ResultHandle.GenEncode(resultVarNames, "                ", sbHandles, m);
                     sbHandles.AppendLine($"            }};");
+                }
+                if (m.MethodMode.IsAsync) 
+                {
+                    // 是否有结果都在这个分支处理。
                     var bcall = m.GetNormalCallString();
                     m.MethodMode.GenCallAndEncode("            ", sbHandles, $"base.{m.Method.Name}(_HashOrServerId_, {bcall})");
                     sbHandles.AppendLine($"            return new Zeze.Net.Binary(_bb_);");
@@ -349,7 +353,7 @@ namespace Zeze.Arch.Gen
 
         void GenRedirectAll(StringBuilder sb, StringBuilder sbHandles, Zeze.IModule module, MethodOverride m)
         {
-            string reqVarName = "tmp" + Gen.Instance.TmpVarNameId.IncrementAndGet();
+            string reqVarName = "reqall" + Gen.Instance.TmpVarNameId.IncrementAndGet();
             sb.AppendLine($"        var {reqVarName} = new Zeze.Beans.ProviderDirect.ModuleRedirectAllRequest();");
             sb.AppendLine($"        {reqVarName}.Argument.ModuleId = {module.Id};");
             sb.AppendLine($"        {reqVarName}.Argument.HashCodeConcurrentLevel = {m.GetConcurrentLevelSource()};");
@@ -357,7 +361,7 @@ namespace Zeze.Arch.Gen
             sb.AppendLine($"        {reqVarName}.Argument.MethodFullName = \"{module.FullName}:{m.Method.Name}\";");
             sb.AppendLine($"        {reqVarName}.Argument.ServiceNamePrefix = App.ProviderApp.ServerServiceNamePrefix;");
 
-            string contextVarName = "tmp" + Gen.Instance.TmpVarNameId.IncrementAndGet();
+            string contextVarName = "ctxall" + Gen.Instance.TmpVarNameId.IncrementAndGet();
             sb.AppendLine($"        var {contextVarName} = new Context{m.Method.Name}({reqVarName}.Argument.HashCodeConcurrentLevel, {reqVarName}.Argument.MethodFullName);");
             sb.AppendLine($"        {reqVarName}.Argument.SessionId = App.ProviderApp.ProviderDirectService.AddManualContextWithTimeout({contextVarName});");
             if (m.ParametersNormal.Count > 0)
@@ -420,7 +424,7 @@ namespace Zeze.Arch.Gen
 
         void GenRedirectAllContext(StringBuilder sb, MethodOverride methodOverride)
         {
-            sb.AppendLine($"    public class Context{methodOverride.Method.Name} : Zeze.Arch.ModuleRedirectAllContext");
+            sb.AppendLine($"    public class Context{methodOverride.Method.Name} : Zeze.Arch.RedirectAllContext");
             sb.AppendLine($"    {{");
             sb.AppendLine($"");
             sb.AppendLine($"        public Context{methodOverride.Method.Name}(int _c_, string _n_) : base(_c_, _n_)");

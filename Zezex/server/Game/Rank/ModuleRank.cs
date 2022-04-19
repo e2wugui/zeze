@@ -228,12 +228,12 @@ namespace Game.Rank
         //[RedirectAllHash("GetConcurrentLevel(keyHint.RankType)")]
         public virtual void GetRank(BConcurrentKey keyHint,
             System.Action<long, int, long, BRankList> onHashResult,
-            Action<ModuleRedirectAllContext> onHashEnd
+            Action<RedirectAllContext> onHashEnd
             )
         {
             // 默认实现是本地遍历调用，这里不使用App.Zeze.Run启动任务（这样无法等待），直接调用实现。
             int concurrentLevel = GetConcurrentLevel(keyHint.RankType);
-            var ctx = new ModuleRedirectAllContext(concurrentLevel, $"{FullName}:{nameof(GetRank)}")
+            var ctx = new RedirectAllContext(concurrentLevel, $"{FullName}:{nameof(GetRank)}")
             {
                 OnHashEnd = onHashEnd,
             };
@@ -263,7 +263,7 @@ namespace Game.Rank
                 // Action OnHashResult
                 (sessionId, hash, returnCode, BRankList) =>
                 {
-                    App.Server.TryGetManualContext<ModuleRedirectAllContext>(sessionId)
+                    App.Server.TryGetManualContext<RedirectAllContext>(sessionId)
                         ?.ProcessHash(hash, () => new Rank(), (rank) =>
                         {
                             if (returnCode != Procedure.Success) // 只有处理成功的结果才是有效的。
@@ -439,5 +439,51 @@ namespace Game.Rank
         public virtual void TestHashNoWait(int hash, int param)
         {
         }
+
+        // broardcast awaitable?, collect awaitable!
+        /*
+        [RedirectAllHash("")]
+        [Zeze.Util.TransactionLevel(Level = "None")]
+        protected virtual void TestAllHashBroadcast(int hash, int param)
+        {
+        }
+
+        public void TestAllHashBroadcast(int param)
+        {
+            TestAllHashBroadcast(100, param);
+        }
+
+        [RedirectAllHash("")]
+        protected async Task TestAllHashBroadcastAwaitable(int hash, int param)
+        {
+        }
+
+        public async Task TestAllHashBroadcastAwaitable(int param)
+        {
+            await TestAllHashBroadcastAwaitable(100, param);
+        }
+
+        [RedirectAllHash()]
+        protected RedirectAllResult TestAllHashCollect(int hash, int param)
+        {
+
+        }
+
+        protected RedirectAllResult TestAllHashCollect(int hash, int param)
+        {
+
+        }
+
+        [RedirectAllHash()]
+        protected async Task<RedirectAllResult> TestAllHashCollectAwaitable(int hash, int param)
+        {
+            return 0;
+        }
+
+        public async Task<long> TestAllHashCollectAwaitable(int param)
+        {
+            return await TestAllHashCollectAwaitable(100, param);
+        }
+        */
     }
 }
