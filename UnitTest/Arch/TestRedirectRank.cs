@@ -32,9 +32,10 @@ namespace Arch
 
 			try
 			{
-				// RedirectToServer
 				int outParam = 0;
 				int outServerId = 0;
+
+				// RedirectToServer
 				await app1.Game_Rank.TestToServer(0, 111, (i, s) => { outParam = i; outServerId = s; });
 				Assert.IsTrue(outParam == 111);
 				Assert.IsTrue(outServerId == 0);
@@ -64,6 +65,48 @@ namespace Arch
 				Assert.IsTrue(outServerId == 0);
 
 				await app2.Game_Rank.TestHash(1, 888, (i, s) => { outParam = i; outServerId = s; });
+				Assert.IsTrue(outParam == 888);
+				Assert.IsTrue(outServerId == 1);
+
+				// RedirectToServerResult
+				long result = 0;
+				result = await app1.Game_Rank.TestToServerResult(0, 111, (i, s) => { outParam = i; outServerId = s; });
+				Assert.AreEqual(12345, result);
+				Assert.IsTrue(outParam == 111);
+				Assert.IsTrue(outServerId == 0);
+				result = await app1.Game_Rank.TestToServerResult(1, 222, (i, s) => { outParam = i; outServerId = s; });
+				Assert.AreEqual(12345, result);
+				Assert.IsTrue(outParam == 222);
+				Assert.IsTrue(outServerId == 1);
+
+				result = await app2.Game_Rank.TestToServerResult(0, 333, (i, s) => { outParam = i; outServerId = s; });
+				Assert.AreEqual(12345, result);
+				Assert.IsTrue(outParam == 333);
+				Assert.IsTrue(outServerId == 0);
+
+				result = await app2.Game_Rank.TestToServerResult(1, 444, (i, s) => { outParam = i; outServerId = s; });
+				Assert.AreEqual(12345, result);
+				Assert.IsTrue(outParam == 444);
+				Assert.IsTrue(outServerId == 1);
+
+				// RedirectHash
+				result = await app1.Game_Rank.TestHashResult(0, 555, (i, s) => { outParam = i; outServerId = s; });
+				Assert.AreEqual(12345, result);
+				Assert.IsTrue(outParam == 555);
+				Assert.IsTrue(outServerId == 0);
+
+				result = await app1.Game_Rank.TestHashResult(1, 666, (i, s) => { outParam = i; outServerId = s; });
+				Assert.AreEqual(12345, result);
+				Assert.IsTrue(outParam == 666);
+				Assert.IsTrue(outServerId == 1);
+
+				result = await app2.Game_Rank.TestHashResult(0, 777, (i, s) => { outParam = i; outServerId = s; });
+				Assert.AreEqual(12345, result);
+				Assert.IsTrue(outParam == 777);
+				Assert.IsTrue(outServerId == 0);
+
+				result = await app2.Game_Rank.TestHashResult(1, 888, (i, s) => { outParam = i; outServerId = s; });
+				Assert.AreEqual(12345, result);
 				Assert.IsTrue(outParam == 888);
 				Assert.IsTrue(outServerId == 1);
 
