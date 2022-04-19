@@ -463,7 +463,7 @@ namespace Game.Rank
             await TestAllHashBroadcastAwaitable(100, param);
         }
 
-        class RedirectAllResult
+        public class RedirectAllResult
         { 
         }
 
