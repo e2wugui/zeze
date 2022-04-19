@@ -131,7 +131,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 		var hashes = getFinishedHashes();
 		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (hashes) {
-			if (!hashes.add(result.getHash()))
+			if (!hashes.add(result.getHash())) // 跟onResult并发时有可能失败,谁加成功谁执行回调
 				return;
 		}
 		ctx.getService().getZeze().NewProcedure(() -> {
@@ -147,26 +147,22 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 		this.onResult = onResult;
 		var c = ctx;
 		if (c == null)
-			return this;
+			return this; // 等有了result再处理
 		var hashes = getFinishedHashes();
-		ArrayList<R> readyOnResults;
+		var readyResults = new ArrayList<R>();
 		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		synchronized (c) {
-			var results = c.getAllResults();
-			if (results.isEmpty())
-				return this;
-			readyOnResults = new ArrayList<>();
-			for (var it = results.iterator(); it.moveToNext(); ) {
+			for (var it = c.getAllResults().iterator(); it.moveToNext(); ) {
 				//noinspection SynchronizationOnLocalVariableOrMethodParameter
 				synchronized (hashes) {
-					if (hashes.add(it.key()))
-						readyOnResults.add(it.value());
+					if (hashes.add(it.key())) // 跟onResult并发时有可能失败,谁加成功谁执行回调
+						readyResults.add(it.value());
 				}
 			}
 		}
-		for (R needOnResult : readyOnResults) {
+		for (R result : readyResults) {
 			c.getService().getZeze().NewProcedure(() -> {
-				onResult.run(needOnResult);
+				onResult.run(result);
 				return Procedure.Success;
 			}, "RedirectAllFutureImpl.onResult").Call();
 		}
@@ -174,8 +170,6 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 	}
 
 	void allDone(ModuleRedirectAllContext<R> ctx) throws Throwable {
-		if (ctx == null)
-			throw new NullPointerException();
 		if (this.ctx == null)
 			this.ctx = ctx;
 		@SuppressWarnings("unchecked")
@@ -198,21 +192,14 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 		var c = ctx;
 		if (c == null || !c.isCompleted()) {
 			this.onAllDone = onAllDone;
-			c = ctx;
-			if (c == null || !c.isCompleted()) // 再次确认,避免并发窗口问题
+			if ((c = ctx) == null || !c.isCompleted() || ON_ALL_DONE.getAndSet(this, null) != onAllDone) // 再次确认,避免并发窗口问题
 				return this;
-			@SuppressWarnings("unchecked")
-			var onA = (Action1<ModuleRedirectAllContext<R>>)ON_ALL_DONE.getAndSet(this, null);
-			onAllDone = onA;
 		}
-		if (onAllDone != null) {
-			var onA = onAllDone;
-			var c1 = c;
-			c.getService().getZeze().NewProcedure(() -> {
-				onA.run(c1);
-				return Procedure.Success;
-			}, "RedirectAllFutureImpl.onAllDone").Call();
-		}
+		var c1 = c;
+		c.getService().getZeze().NewProcedure(() -> {
+			onAllDone.run(c1);
+			return Procedure.Success;
+		}, "RedirectAllFutureImpl.onAllDone").Call();
 		return this;
 	}
 
@@ -221,13 +208,11 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 		var c = ctx;
 		if (c == null || !c.isCompleted()) {
 			synchronized (this) {
-				c = ctx;
-				while (c != null && c.isCompleted()) {
-					try {
+				try {
+					while ((c = ctx) != null && c.isCompleted())
 						wait();
-					} catch (InterruptedException e) {
-						throw new RuntimeException(e);
-					}
+				} catch (InterruptedException e) {
+					throw new RuntimeException(e);
 				}
 			}
 		}

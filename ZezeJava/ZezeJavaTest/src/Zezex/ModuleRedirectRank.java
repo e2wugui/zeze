@@ -73,12 +73,13 @@ public class ModuleRedirectRank extends TestCase {
 			var hashes = new IntHashSet();
 			app1.Game_Rank.TestToAll(CONCURRENT_LEVEL, 12345).onResult(r -> {
 				var h = r.getHash();
-				System.out.println("TestToAll onResult: hash=" + h + ", out=" + r.out);
+				var rc = r.getResultCode();
+				System.out.println("TestToAll onResult: hash=" + h + ", resultCode=" + rc + ", out=" + r.out);
 				assertTrue(h >= 0 && h < CONCURRENT_LEVEL);
 				assertTrue(hashes.add(h));
-				if (r.getResultCode() == Procedure.Success)
+				if (rc == Procedure.Success)
 					assertEquals(12345, r.out);
-				else if (r.getResultCode() == Procedure.Exception)
+				else if (rc == Procedure.Exception)
 					assertEquals(0, r.out);
 			}).onAllDone(ctx -> {
 				assertFalse(ctx.isTimeout());

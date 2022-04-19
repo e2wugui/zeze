@@ -4,8 +4,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Locale;
 import javax.tools.Diagnostic;
@@ -19,14 +19,14 @@ import javax.tools.SimpleJavaFileObject;
 import javax.tools.ToolProvider;
 
 /**
- * Compile Java sources in-memory
+ * Compile Java sources in-memory (not thread safe for one instance)
  * from https://github.com/trung/InMemoryJavaCompiler
  */
 public class InMemoryJavaCompiler {
 	private final JavaCompiler javac;
 	private DynamicClassLoader classLoader;
 	private Iterable<String> options;
-	private final HashMap<String, SourceCode> sourceCodes = new HashMap<>();
+	private final ArrayList<SourceCode> sourceCodes = new ArrayList<>();
 	private boolean ignoreWarnings;
 
 	public InMemoryJavaCompiler() {
@@ -62,19 +62,24 @@ public class InMemoryJavaCompiler {
 		return this;
 	}
 
-	public synchronized HashMap<String, Class<?>> compileAll() throws ClassNotFoundException {
-		if (sourceCodes.isEmpty())
-			return new HashMap<>();
+	public InMemoryJavaCompiler addSource(String className, String sourceCode) {
+		sourceCodes.add(new SourceCode(className, sourceCode));
+		return this;
+	}
 
+	/**
+	 * @return warning/error message or null for compiling success
+	 */
+	public String compileAll() {
+		if (sourceCodes.isEmpty())
+			return null;
 		DiagnosticCollector<JavaFileObject> collector = new DiagnosticCollector<>();
-		Collection<SourceCode> compilationUnits = sourceCodes.values();
-		JavaCompiler.CompilationTask task = javac.getTask(null,
-				new ExtendedStandardJavaFileManager(javac.getStandardFileManager(null, null, null), classLoader),
-				collector, options, null, compilationUnits);
-		if (!task.call() || collector.getDiagnostics().size() > 0) {
+		javac.getTask(null, new ExtendedJavaFileManager(javac.getStandardFileManager(null, null, null), classLoader),
+				collector, options, null, sourceCodes).call();
+		if (!collector.getDiagnostics().isEmpty()) {
 			StringBuilder exceptionMsg = new StringBuilder("Unable to compile the source");
 			boolean hasWarnings = false, hasErrors = false;
-			for (Diagnostic<? extends JavaFileObject> d : collector.getDiagnostics()) {
+			for (Diagnostic<?> d : collector.getDiagnostics()) {
 				switch (d.getKind()) {
 				case NOTE:
 				case MANDATORY_WARNING:
@@ -90,22 +95,15 @@ public class InMemoryJavaCompiler {
 				exceptionMsg.append(", ").append("message=").append(d.getMessage(Locale.US)).append(']');
 			}
 			if (hasWarnings && !ignoreWarnings || hasErrors)
-				throw new RuntimeException(exceptionMsg.toString());
+				return exceptionMsg.toString();
 		}
-
-		HashMap<String, Class<?>> classes = new HashMap<>();
-		for (String className : sourceCodes.keySet())
-			classes.put(className, classLoader.loadClass(className));
-		return classes;
+		return null;
 	}
 
-	public synchronized Class<?> compile(String className, String sourceCode) throws ClassNotFoundException {
-		return addSource(className, sourceCode).compileAll().get(className);
-	}
-
-	public synchronized InMemoryJavaCompiler addSource(String className, String sourceCode) {
-		sourceCodes.put(className, new SourceCode(className, sourceCode));
-		return this;
+	public Class<?> compile(String className, String sourceCode) throws ClassNotFoundException {
+		sourceCodes.clear();
+		addSource(className, sourceCode).compileAll();
+		return classLoader.findClass(className);
 	}
 
 	static final class SourceCode extends SimpleJavaFileObject {
@@ -160,13 +158,13 @@ public class InMemoryJavaCompiler {
 		}
 	}
 
-	static final class ExtendedStandardJavaFileManager extends ForwardingJavaFileManager<JavaFileManager> {
+	static final class ExtendedJavaFileManager extends ForwardingJavaFileManager<JavaFileManager> {
 		private final DynamicClassLoader cl;
 
 		/**
 		 * @param fileManager delegate to this file manager
 		 */
-		ExtendedStandardJavaFileManager(JavaFileManager fileManager, DynamicClassLoader cl) {
+		ExtendedJavaFileManager(JavaFileManager fileManager, DynamicClassLoader cl) {
 			super(fileManager);
 			this.cl = cl;
 		}

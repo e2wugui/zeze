@@ -37,33 +37,33 @@ public final class ModuleRedirectAllContext<R extends RedirectResult> extends Ze
 	}
 
 	@Override
-	public synchronized void OnTimeout() throws Throwable {
+	public synchronized void OnTimeout() throws Throwable { // 在OnRemoved之后触发
 		if (hashResults.size() < concurrentLevel && !timeout) {
 			timeout = true;
 			if (future != null) {
 				getService().getZeze().NewProcedure(() -> {
 					future.allDone(this);
 					return Procedure.Success;
-				}, "ModuleRedirectAllResponse timeout Procedure").Call();
+				}, "ModuleRedirectAllContext.OnTimeout").Call();
 			}
 		}
 	}
 
 	@Override
-	public void OnRemoved() throws Throwable {
+	public synchronized void OnRemoved() throws Throwable {
 		if (hashResults.size() >= concurrentLevel && future != null) {
 			getService().getZeze().NewProcedure(() -> {
 				future.allDone(this);
 				return Procedure.Success;
-			}, "ModuleRedirectAllResponse no-result Procedure").Call();
+			}, "ModuleRedirectAllContext.OnRemoved").Call();
 		}
 	}
 
 	// 这里处理真正redirect发生时，从远程返回的结果。
 	@SuppressWarnings("deprecation")
 	public synchronized void ProcessResult(Zeze.Application zeze, ModuleRedirectAllResult res) throws Throwable {
-		if (isTimeout())
-			return; // 如果恰好刚处理了超时,那就只能忽略后续的结果了
+		if (isCompleted())
+			return; // 如果已经超时,那就只能忽略后续的结果了
 		for (var e : res.Argument.getHashs().entrySet()) {
 			int hash = e.getKey();
 			var result = e.getValue();
@@ -72,12 +72,8 @@ public final class ModuleRedirectAllContext<R extends RedirectResult> extends Ze
 				R resultBean = resultDecoder.apply(resultCode == Procedure.Success ? result.getParams() : null);
 				resultBean.setHash(hash);
 				resultBean.setResultCode(resultCode);
-				if (hashResults.putIfAbsent(hash, resultBean) == null) { // 不可能回复相同hash的多个结果,忽略掉后面的好了
-					zeze.NewProcedure(() -> {
-						future.result(this, resultBean);
-						return Procedure.Success;
-					}, "ModuleRedirectAllResponse Procedure").Call();
-				}
+				if (hashResults.putIfAbsent(hash, resultBean) == null) // 不可能回复相同hash的多个结果,忽略掉后面的好了
+					future.result(this, resultBean);
 			} else
 				hashResults.put(hash, null);
 		}
