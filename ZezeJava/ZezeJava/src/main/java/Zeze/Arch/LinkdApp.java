@@ -4,14 +4,14 @@ import Zeze.Beans.Provider.BLoad;
 import Zeze.Serialize.ByteBuffer;
 
 public class LinkdApp {
-	public String LinkdServiceName;
-	public Zeze.Application Zeze;
-	public LinkdProvider LinkdProvider;
-	public LinkdProviderService LinkdProviderService;
-	public LinkdService LinkdService;
+	public final String LinkdServiceName;
+	public final Zeze.Application Zeze;
+	public final LinkdProvider LinkdProvider;
+	public final LinkdProviderService LinkdProviderService;
+	public final LinkdService LinkdService;
 	// 现在内部可以自动设置两个参数，但有点不够可靠，生产环境最好手动设置。
-	public String ProviderIp;
-	public int ProviderPort;
+	public final String ProviderIp;
+	public final int ProviderPort;
 
 	public LinkdApp(String linkdServiceName,
 					Zeze.Application zeze, LinkdProvider linkdProvider,

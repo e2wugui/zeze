@@ -64,7 +64,6 @@ public final class App extends Zeze.AppBase {
 
 	public void Start(String[] args) throws Throwable {
 		int ServerId = -1;
-		String GenFileSrcRoot = null;
 		int ProviderDirectPort = -1;
 		for (int i = 0; i < args.length; ++i) {
 			switch (args[i]) {
@@ -72,7 +71,7 @@ public final class App extends Zeze.AppBase {
 				ServerId = Integer.parseInt(args[++i]);
 				break;
 			case "-GenFileSrcRoot":
-				GenFileSrcRoot = args[++i];
+				GenModule.Instance.GenFileSrcRoot = args[++i];
 				break;
 			case "-ProviderDirectPort":
 				ProviderDirectPort = Integer.parseInt(args[++i]);
@@ -98,7 +97,6 @@ public final class App extends Zeze.AppBase {
 				"Game.Server.Module#",
 				ProviderDirectMy, ServerDirect, "Game.Linkd", LoadLoadConfig());
 
-		GenModule.Instance.GenFileSrcRoot = GenFileSrcRoot;
 		CreateModules();
 		if (GenModule.Instance.GenFileSrcRoot != null) {
 			System.out.println("---------------");

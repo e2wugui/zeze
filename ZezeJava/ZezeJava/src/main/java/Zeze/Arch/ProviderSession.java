@@ -30,7 +30,7 @@ public class ProviderSession {
 	 * 下面维护和本Session相关的订阅Ready状态。在Session关闭时需要取消Ready状态。
 	 * 【仅用于ProviderApp】
 	 */
-	public ConcurrentHashMap<String, ConcurrentHashMap<String, ProviderModuleState>> ServiceReadyStates = new ConcurrentHashMap<>();
+	public final ConcurrentHashMap<String, ConcurrentHashMap<String, ProviderModuleState>> ServiceReadyStates = new ConcurrentHashMap<>();
 
 	public ConcurrentHashMap<String, ProviderModuleState> GetOrAddServiceReadyState(String serviceName) {
 		return ServiceReadyStates.computeIfAbsent(serviceName, (key) -> new ConcurrentHashMap<>());

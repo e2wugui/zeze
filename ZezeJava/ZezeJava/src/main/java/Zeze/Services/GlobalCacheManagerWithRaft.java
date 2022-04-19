@@ -123,7 +123,7 @@ public class GlobalCacheManagerWithRaft
 
 			default:
 				rpc.Result.setState(StateInvalid);
-				return (long)AcquireErrorState;
+				return AcquireErrorState;
 			}
 		});
 		proc.AutoResponse = rpc; // 启用自动发送rpc结果，但不做唯一检查。

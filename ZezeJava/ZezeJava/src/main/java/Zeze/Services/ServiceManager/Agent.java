@@ -50,7 +50,7 @@ public final class Agent implements Closeable {
 		return SubscribeStates;
 	}
 
-	public ConcurrentHashMap<String, ServerLoad> Loads = new ConcurrentHashMap<>();
+	public final ConcurrentHashMap<String, ServerLoad> Loads = new ConcurrentHashMap<>();
 
 	public AgentClient getClient() {
 		return Client;

@@ -3,6 +3,7 @@ package Zeze.Arch.Gen;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -16,7 +17,7 @@ import Zeze.Arch.RedirectFuture;
 import Zeze.Arch.RedirectHash;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Util.StringBuilderCs;
-import org.mdkt.compiler.InMemoryJavaCompiler;
+import Zeze.Util.InMemoryJavaCompiler;
 
 /**
  * 把模块的方法调用发送到其他服务器实例上执行。
@@ -31,7 +32,7 @@ import org.mdkt.compiler.InMemoryJavaCompiler;
  * 使用 virtual override 的方式可以选择拦截部分方法。
  * 可以提供和原来模块一致的接口。
  */
-public class GenModule {
+public final class GenModule {
 	public static final GenModule Instance = new GenModule();
 
 	/**
@@ -39,11 +40,10 @@ public class GenModule {
 	 * 指定的时候，生成到文件，总是覆盖。
 	 * 没有指定的时候，先查看目标类是否存在，存在则直接class.forName装载，否则生成到内存并动态编译。
 	 */
-	public String GenFileSrcRoot;
-	private final InMemoryJavaCompiler compiler;
+	public String GenFileSrcRoot = System.getProperty("GenFileSrcRoot"); // 支持通过给JVM传递-DGenFileSrcRoot=xxx参数指定
+	private final InMemoryJavaCompiler compiler = new InMemoryJavaCompiler();
 
 	private GenModule() {
-		compiler = InMemoryJavaCompiler.newInstance();
 		compiler.ignoreWarnings();
 	}
 
@@ -161,9 +161,17 @@ public class GenModule {
 				returnName = "Zeze.Arch.RedirectAllFuture<" + m.resultTypeName + '>';
 			else
 				throw new RuntimeException("ReturnType Must Be void Or RedirectFuture<...> Or RedirectAllFuture<...>");
+			String modifier;
+			int flags = m.method.getModifiers();
+			if ((flags & Modifier.PUBLIC) != 0)
+				modifier = "public ";
+			else if ((flags & Modifier.PROTECTED) != 0)
+				modifier = "protected ";
+			else
+				modifier = "";
 
 			sb.AppendLine("    @Override");
-			sb.AppendLine("    public {} {}({}) {", returnName, m.method.getName(), parametersDefine); // m.getThrows() // 继承方法允许不标throws
+			sb.AppendLine("    {}{} {}({}) {", modifier, returnName, m.method.getName(), parametersDefine); // m.getThrows() // 继承方法允许不标throws
 
 			ChoiceTargetRunLoopback(sb, m, returnName);
 

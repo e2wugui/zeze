@@ -21,7 +21,7 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 
 	public ProviderApp ProviderApp;
 	private final ConcurrentHashMap<String, Connector> Links = new ConcurrentHashMap<>();
-	private volatile Connector[] LinkConnectors = Links.values().toArray(new Connector[Links.size()]);
+	private volatile Connector[] LinkConnectors = new Connector[0];
 	private final AtomicInteger LinkRandomIndex = new AtomicInteger();
 
 	// 用来同步等待Provider的静态绑定完成。

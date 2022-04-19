@@ -8,7 +8,6 @@ import java.util.function.Predicate;
 import Zeze.Config;
 import Zeze.Services.HandshakeOptions;
 import Zeze.Util.Action1;
-import Zeze.Util.Func1;
 import Zeze.Util.IntHashSet;
 import Zeze.Util.OutObject;
 import org.apache.logging.log4j.Level;

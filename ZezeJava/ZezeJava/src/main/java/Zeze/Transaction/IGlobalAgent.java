@@ -4,9 +4,9 @@ import java.io.Closeable;
 
 public interface IGlobalAgent extends Closeable {
 	class AcquireResult {
-		public long ResultCode;
-		public int ResultState;
-		public long ResultGlobalSerialId;
+		public final long ResultCode;
+		public final int ResultState;
+		public final long ResultGlobalSerialId;
 
 		public AcquireResult(long code, int state, long serial) {
 			ResultCode = code;

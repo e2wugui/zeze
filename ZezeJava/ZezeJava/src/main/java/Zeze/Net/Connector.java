@@ -2,8 +2,6 @@ package Zeze.Net;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import Zeze.Util.TaskCompletionSource;
 import org.w3c.dom.Element;
 
