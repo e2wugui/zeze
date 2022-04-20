@@ -5,10 +5,8 @@ import java.net.BindException;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
@@ -19,7 +17,6 @@ import Zeze.Util.Action0;
 import Zeze.Util.LongHashMap;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
-import Zeze.Util.ThreadFactoryWithName;
 import demo.App;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -78,9 +75,9 @@ public class TestGlobalCacheMgrWithRaft {
 			}
 		});
 
-//		Task.tryInitThreadPool(null, null, null);
-		Task.initThreadPool((ThreadPoolExecutor)Executors.newFixedThreadPool(10, new ThreadFactoryWithName("globalRaftTest")),
-				(ScheduledThreadPoolExecutor)Executors.newScheduledThreadPool(3, new ThreadFactoryWithName("globalRaftTest-sch")));
+		Task.tryInitThreadPool(null, null, null);
+//		Task.initThreadPool((ThreadPoolExecutor)Executors.newFixedThreadPool(10, new ThreadFactoryWithName("globalRaftTest")),
+//				(ScheduledThreadPoolExecutor)Executors.newScheduledThreadPool(3, new ThreadFactoryWithName("globalRaftTest-sch")));
 
 		String ip = null;
 		int port = 5001;
@@ -244,8 +241,8 @@ public class TestGlobalCacheMgrWithRaft {
 		CheckCurrentCount("GlobalRaft Final Check!!!");
 	}
 
-	private boolean Check(String testName) throws InterruptedException {
-		int tryCount = 2;
+	private boolean Check(String testName) throws Throwable {
+		int tryCount = 3;
 		for (int i = 0; i < tryCount; i++) {
 			boolean check = CheckCurrentCount(testName, false);
 			logger.info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++");
@@ -275,46 +272,90 @@ public class TestGlobalCacheMgrWithRaft {
 		return sb.toString();
 	}
 
-	private void TestConcurrent(String testName, int count) {
+	private void TestConcurrent(String testName, int count) throws Throwable {
 		ExpectCount.addAndGet(ConcurrentAddCount(testName, count));
 		CheckCurrentCount(testName);
 	}
 
-	private int ConcurrentAddCount(String testName, int count) {
+	private long ConcurrentAddCount(String testName, int count) throws Throwable {
 		Future<?>[] task2 = new Future[2];
 
-		task2[0] = Zeze.Util.Task.run(() -> TestConcurrency(App1, count, 1), testName);
-		task2[1] = Zeze.Util.Task.run(() -> TestConcurrency(App2, count, 2), testName);
+		AtomicInteger finalCount1 = new AtomicInteger();
+		AtomicInteger finalCount2 = new AtomicInteger();
+
+		task2[0] = Zeze.Util.Task.run(App1.Zeze.NewProcedure(() -> {
+					finalCount1.set(TestConcurrency(App1, count, 1));
+					return Procedure.Success;
+				}, testName), null, null);
+
+		task2[1] = Zeze.Util.Task.run(App2.Zeze.NewProcedure(() -> {
+				finalCount2.set(TestConcurrency(App2, count, 2));
+				return Procedure.Success;
+			}, testName), null, null);
+
 		try {
 			task2[0].get();
 			task2[1].get();
+			System.out.println(String.format("ConcurrentAddCount task1 count %s task2 count %s", finalCount1.get(), finalCount2.get()));
 		} catch (Exception e) {
+			var currentCount = GetCurrentCount();
+			var expectCount = this.ExpectCount.get();
+			logger.error("ConcurrentAddCount count {} currentCount {} expectCount {}", count, currentCount, expectCount);
 			e.printStackTrace();
 		}
 
-		return count * 2;
+		return finalCount1.get() + finalCount2.get();
 	}
 
-	private void TestConcurrency(App app, int count, int appId) throws Throwable {
-		for (int i = 0; i < count; i++) {
-			app.Zeze.NewProcedure(() -> {
+	private int TestConcurrency(App app, int count, int appId) {
+		Future<?>[] tasks = new Future[count];
+		for (int i = 0; i < tasks.length; i++) {
+			tasks[i] = Zeze.Util.Task.run(app.Zeze.NewProcedure(() -> {
 				var v = app.demo_Module1.getTable1().getOrAdd(99L);
 				v.setInt1(v.getInt1() + 1);
-				System.out.println(String.format("appId %d value %d", appId, v.getInt1()));
+
+				System.out.println(String.format("appId %d value %d timestamp %s", appId, v.getInt1(), System.currentTimeMillis()));
 				return Procedure.Success;
-			}, "doConcurrency" + appId).Call();
+			}, "doConcurrency" + appId), null, null);
+
+//			app.Zeze.NewProcedure(() -> {
+//				var v = app.demo_Module1.getTable1().getOrAdd(99L);
+//				v.setInt1(v.getInt1() + 1);
+//				System.out.println(String.format("appId %d value %d timestamp %s", appId, v.getInt1(), System.currentTimeMillis()));
+//				return Procedure.Success;
+//			}, "doConcurrency" + appId).Call();
 		}
+
+		int finalCount = count;
+		for (int i = 0; i < tasks.length; i++) {
+			try {
+				var result = tasks[i].get();
+				if (result.equals(Procedure.AbortException))
+					finalCount--;
+
+				if (!result.equals(Procedure.Success))
+					System.out.println(String.format("TestConcurrency exception %s", result));
+			} catch (Exception e) {
+				logger.warn("TestConcurrency count {} appId {} index {} fail.", count, appId, i);
+				e.printStackTrace();
+			}
+		}
+		System.out.println(String.format("TestConcurrency finalCount %s", finalCount));
+		return finalCount;
 	}
 
-	private long GetCurrentCount() {
+	private long GetCurrentCount() throws Throwable {
 		AtomicLong count = new AtomicLong();
-		try {
-			App1.Zeze.NewProcedure(() -> {
+		int tryCount = 30;
+		for (int i = 0; i < tryCount; i++) {
+			var result = App1.Zeze.NewProcedure(() -> {
+				if (0 == App1.demo_Module1.getTable1().getOrAdd(99L).getInt1() && 0 != this.ExpectCount.get())
+					return Procedure.LogicError;
 				count.set(App1.demo_Module1.getTable1().getOrAdd(99L).getInt1());
 				return Procedure.Success;
 			}, "GetCurrentCount").Call();
-		} catch (Throwable e) {
-			e.printStackTrace();
+			if (result == Procedure.Success)
+				break;
 		}
 		return count.get();
 	}
@@ -333,11 +374,11 @@ public class TestGlobalCacheMgrWithRaft {
 		}
 	}
 
-	private boolean CheckCurrentCount(String testName) {
+	private boolean CheckCurrentCount(String testName) throws Throwable {
 		return CheckCurrentCount(testName, true);
 	}
 
-	private boolean CheckCurrentCount(String testName, boolean resetFlag) {
+	private boolean CheckCurrentCount(String testName, boolean resetFlag) throws Throwable {
 		var currentCount = GetCurrentCount();
 		var expectCount = this.ExpectCount.get();
 		if (currentCount != expectCount) {
@@ -361,7 +402,7 @@ public class TestGlobalCacheMgrWithRaft {
 		return Random.Shuffle(GlobalRafts.values().toArray(new TestGlobalRaft[GlobalRafts.size()]));
 	}
 
-	private void RandomTriggerFailActions() throws IOException {
+	private void RandomTriggerFailActions() throws InterruptedException {
 		while (Running) {
 			FailAction fa = FailActions.get(Random.getInstance().nextInt(FailActions.size()));
 			logger.fatal("___________________________ {} _____________________________", fa.Name);
@@ -381,10 +422,21 @@ public class TestGlobalCacheMgrWithRaft {
 				LogManager.shutdown();
 				System.exit(-1);
 			}
+			// 等待失败的节点恢复正常
+			WaitExceptCountGrow(120);
 		}
 		var sb = new StringBuilder();
 		ByteBuffer.BuildString(sb, FailActions);
 		logger.fatal("{}", sb.toString());
+	}
+
+	private void WaitExceptCountGrow(@SuppressWarnings("SameParameterValue") long growCount) throws InterruptedException {
+		long oldExpectCount = this.ExpectCount.get();
+		while (true) {
+			Thread.sleep(10);
+			if (this.ExpectCount.get() - oldExpectCount > growCount)
+				break;
+		}
 	}
 
 	public static class TestGlobalRaft extends StateMachine {
@@ -432,8 +484,7 @@ public class TestGlobalCacheMgrWithRaft {
 						}  catch (BindException | RuntimeException be) {
 							if (!(be instanceof BindException) && !(be.getCause() instanceof BindException) || ++i > 30)
 								throw be;
-							//noinspection BusyWait
-							Thread.sleep(100); // 稍等一小会,上个ServerSocket还没真正关闭
+							Thread.sleep(100);
 						}
 					}
 				}
