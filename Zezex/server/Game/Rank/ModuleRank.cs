@@ -481,10 +481,10 @@ namespace Game.Rank
         [RedirectAllHash("")]
         protected async Task<RedirectAllResult> TestAllHashCollectAwaitable(int hash, int param)
         {
-            return 0;
+            return new RedirectAllResult();
         }
 
-        public async Task<long> TestAllHashCollectAwaitable(int param)
+        public async Task<RedirectAllResult> TestAllHashCollectAwaitable(int param)
         {
             return await TestAllHashCollectAwaitable(100, param);
         }
