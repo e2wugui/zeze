@@ -496,6 +496,12 @@
 
 		<module name="Game" id="11012">
 			<module name="Online" id="11013">
+				<enum name="RAlreadyExistRoleId"   value="1"/>
+				<enum name="RNotExistAccount"      value="2"/>
+				<enum name="RNotExistRoleId"       value="3"/>
+				<enum name="RNotLogin"             value="4"/>
+				<enum name="RNotLastLoginRoleId"   value="5"/>
+
 				<!-- protocols -->
 				<bean name="BLogin">
 					<variable id="1" name="RoleId" type="long"/>
@@ -543,11 +549,7 @@
 					<variable id="2" name="Roles" type="list" value="long"/> roleid list
 					<variable id="3" name="LastLoginRoleId" type="long"/>
 				</bean>
-				<bean name="BRoleId">
-					<variable id="1" name="Id" type="long"/>
-				</bean>
 				<table name="taccount"  key="string" value="BAccount"/>
-				<table name="trolename" key="string" value="BRoleId"/> rolename to roleid. duplicate name check
 				<table name="tonline"   key="long"   value="BOnline"/>
 
 				<!-- interface -->
@@ -557,8 +559,8 @@
 				. ReLogin Events
 				. Logout Events
 				* 数据修改
-				. AddRole(account?, roleId, roleName)
-				. RemoveRole(account?, roleId)
+				. AddRole(account, roleId)
+				. RemoveRole(account, roleId)
 				. SetLastLoginRoleId?
 				* 协议发送
 				. SendXXX To Role
@@ -704,6 +706,12 @@
 	<component name="ProviderImplement" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Beans.Provider"/>
+		</service>
+	</component>
+
+	<component name="Online" gendir="src/main/java" genrelativedir="Zeze/Game" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Beans.Game.Online"/>
 		</service>
 	</component>
 
