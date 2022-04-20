@@ -278,7 +278,7 @@ namespace Game.Bag
             return 0;
         }
 
-        public int Destory(int from)
+        public int Destroy(int from)
         {
             bag.Items.Remove(from);
             return 0;

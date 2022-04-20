@@ -9,7 +9,27 @@ namespace Zeze.Util
     {
         public Dictionary<string, MethodInfo> Methods { get; } = new Dictionary<string, MethodInfo>();
 
-        public Reflect(Type type)
+		public static Type GetType(string className)
+        {
+			foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+			{
+				Type type = null;
+				try
+				{
+					type = assembly.GetType(className);
+				}
+				catch (Exception)
+				{
+					continue;
+				}
+				if (null == type)
+					continue;
+				return type;
+			}
+			throw new Exception($"{className} Not Found.");
+		}
+
+		public Reflect(Type type)
         {
             foreach (var method in type.GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
             {

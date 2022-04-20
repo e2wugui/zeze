@@ -5,6 +5,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Beans.Game.Bag.BBag;
 import Zeze.Beans.Game.Bag.BItem;
@@ -15,6 +16,9 @@ import Zeze.Transaction.Collections.PMap2;
 import Zeze.Transaction.Procedure;
 
 public class Bag {
+    // 根据物品Id查询物品堆叠数量。不设置这个方法，全部max==1，都不能堆叠。
+    public static volatile Function<Integer, Integer> funcItemPileMax;
+
     // 物品加入包裹时，自动注册；
     // 注册的Bean.ClassName会被持久化保存下来。
     // Module.Start的时候自动装载注册的ClassName。
@@ -47,6 +51,7 @@ public class Bag {
         return bean;
     }
 
+    public int getCapacity() { return bean.getCapacity(); }
     public void setCapacity(int capacity) {
         bean.setCapacity(capacity);
     }
@@ -204,7 +209,10 @@ public class Bag {
     }
 
     private int GetItemPileMax(int itemId) {
-        return 99; // TODO load from config
+        var tmp = funcItemPileMax;
+        if (null == tmp)
+            return 1;
+        return tmp.apply(itemId);
     }
 
     /**

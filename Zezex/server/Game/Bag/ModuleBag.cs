@@ -97,7 +97,7 @@ namespace Game.Bag
         {
             var rpc = p as Destroy;
             Login.Session session = Login.Session.Get(rpc);
-            var moduleCode = (await GetBag(session.RoleId.Value)).Destory(rpc.Argument.Position);
+            var moduleCode = (await GetBag(session.RoleId.Value)).Destroy(rpc.Argument.Position);
             if (0 != moduleCode)
                 return ErrorCode((ushort)moduleCode);
             session.SendResponse(rpc);
