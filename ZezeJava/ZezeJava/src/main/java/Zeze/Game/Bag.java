@@ -296,7 +296,7 @@ public class Bag {
     public static class Module extends AbstractBag {
         private ConcurrentHashMap<String, Bag> Bags = new ConcurrentHashMap<>();
 
-        public tbag getTables() {
+        public tbag getTable() {
             return _tbag;
         }
 

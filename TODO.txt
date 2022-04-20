@@ -15,6 +15,7 @@ RocksRaft Collection.List LogList
 Global.RocksRaft.LruTryRemoveCallback
 Global c# 慢的问题。
 把 RocksRaft Changes 应用到 Zeze 中，让 Zeze 实现Bean任意级别的更新。// 1. 仅支持整个Bean的订阅。2. log factory 问题。3. 动态订阅。add listener和notify原子问题。
+	Java Game.Bag Listener
 Global java 异步化： TaskQueueAsync 任务需要参与到队列的推进。全异步和RocksRaft.Transaction.ThreadLocal问题，需要自己实现一个类似AsyncLocal的机制。
 raft 异步测试
 Global With Raft 异步测试
@@ -25,6 +26,7 @@ c# Arch RedirectAll & Test
 
 【2022/5/11】
 
+Java Game.Bag
 Redirect 支持异步实现。【Java张路】 c# RedirectAll 错误处理。
 c# Arch : edirect Hash & Server Test Ok
 c# Arch Redirect Hash & Server async ready.
