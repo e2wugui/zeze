@@ -496,11 +496,14 @@
 
 		<module name="Game" id="11012">
 			<module name="Online" id="11013">
-				<enum name="RAlreadyExistRoleId"   value="1"/>
-				<enum name="RNotExistAccount"      value="2"/>
-				<enum name="RNotExistRoleId"       value="3"/>
-				<enum name="RNotLogin"             value="4"/>
-				<enum name="RNotLastLoginRoleId"   value="5"/>
+				<enum value="0" name="ResultCodeSuccess"/>
+				<enum value="1" name="ResultCodeCreateRoleDuplicateRoleName"/>
+				<enum value="2" name="ResultCodeAccountNotExist"/>
+				<enum value="3" name="ResultCodeRoleNotExist"/>
+				<enum value="4" name="ResultCodeNotLastLoginRoleId"/>
+				<enum value="5" name="ResultCodeOnlineDataNotFound"/>
+				<enum value="6" name="ResultCodeReliableNotifyConfirmCountOutOfRange"/>
+				<enum value="7" name="ResultCodeNotLogin"/>
 
 				<!-- protocols -->
 				<bean name="BLogin">
@@ -626,7 +629,7 @@
 					<variable id="1" name="ItemClasses" type="set" value="string"/>
 				</bean>
 
-				<table name="tbag" key="string" value="BBag"/> key is bag name 
+				<table name="tbag" key="string" value="BBag"/> key is bag name
 				<table name="tItemClasses" key="int" value="BItemClasses"/> key is 1, only one record
 			</module>
 

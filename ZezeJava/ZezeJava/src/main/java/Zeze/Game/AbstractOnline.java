@@ -7,11 +7,14 @@ public abstract class AbstractOnline extends Zeze.IModule {
     @Override public int getId() { return ModuleId; }
     public static final int ModuleId = 11013;
 
-    public static final int RAlreadyExistRoleId = 1;
-    public static final int RNotExistAccount = 2;
-    public static final int RNotExistRoleId = 3;
-    public static final int RNotLogin = 4;
-    public static final int RNotLastLoginRoleId = 5;
+    public static final int ResultCodeSuccess = 0;
+    public static final int ResultCodeCreateRoleDuplicateRoleName = 1;
+    public static final int ResultCodeAccountNotExist = 2;
+    public static final int ResultCodeRoleNotExist = 3;
+    public static final int ResultCodeNotLastLoginRoleId = 4;
+    public static final int ResultCodeOnlineDataNotFound = 5;
+    public static final int ResultCodeReliableNotifyConfirmCountOutOfRange = 6;
+    public static final int ResultCodeNotLogin = 7;
 
     protected final Zeze.Beans.Game.Online.taccount _taccount = new Zeze.Beans.Game.Online.taccount();
     protected final Zeze.Beans.Game.Online.tonline _tonline = new Zeze.Beans.Game.Online.tonline();

@@ -61,7 +61,7 @@ public final class GenModule {
 		return Paths.get(GenFileSrcRoot, ns).toFile();
 	}
 
-	public <T extends Zeze.AppBase> Zeze.IModule ReplaceModuleInstance(T userApp, Zeze.IModule module) {
+	public Zeze.IModule ReplaceModuleInstance(Zeze.AppBase userApp, Zeze.IModule module) {
 		var overrides = new ArrayList<MethodOverride>();
 		for (var method : module.getClass().getDeclaredMethods()) {
 			var a1 = method.getAnnotation(RedirectToServer.class);
