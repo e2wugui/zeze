@@ -577,53 +577,56 @@
 			<module name="Bag" id="11014">
 				<enum name="ResultCodeFromInvalid"  value="1"/>
 				<enum name="ResultCodeToInvalid"    value="2"/>
-				<enum name="ResultCodeFromNotExsit" value="3"/>
-
-				<enum name="ResultCodeTrySplitButTargetExsitDifferenceItem" value="4"/>
+				<enum name="ResultCodeFromNotExist" value="3"/>
+				<enum name="ResultCodeTrySplitButTargetExistDifferenceItem" value="4"/>
 
 				<bean name="BMove">
-					<variable id="1" name="PositionFrom" type="int"/>
-					<variable id="2" name="PositionTo" type="int"/>
-					<variable id="3" name="number" type="int"/> -1 表示全部
+					<variable id="1" name="BagName" type="string"/>
+					<variable id="2" name="PositionFrom" type="int"/>
+					<variable id="3" name="PositionTo" type="int"/>
+					<variable id="4" name="number" type="int"/> -1 表示全部
 				</bean>
 				<bean name="BDestroy">
-					<variable id="1" name="Position" type="int"/>
+					<variable id="1" name="BagName" type="string"/>
+					<variable id="2" name="Position" type="int"/>
 				</bean>
-				<bean name="BChangedResult">
-					<enum name="ChangeTagNormalChanged" value="0"/> 普通增量修改。
-					<enum name="ChangeTagRecordIsRemoved" value="1"/> 整个记录删除了。
-					<enum name="ChangeTagRecordChanged" value="2"/> 整个记录发生了变更，需要先清除本地数据，再替换进去。
+				<bean name="BChanged">
+					<enum name="TagIncrementChange" value="0"/> 增量修改。
+					<enum name="TagRecordRemoved"   value="1"/> 整个记录删除了。
+					<enum name="TagRecordReplace"   value="2"/> 整个记录发生了变更，需要先清除本地数据，再替换进去。
 
-					<variable id="1" name="ItemsReplace" type="map" key="int" value="BItem"/> key is position
-					<variable id="2" name="ItemsRemove" type="set" value="int"/> key is position
-					<variable id="3" name="ChangeTag" type="int"/>
-				</bean>
-				<bean name="BUse">
-					<variable id="1" name="Position" type="int"/>
+					<variable id="1" name="BagName" type="string"/>
+					<variable id="2" name="Tag" type="int"/> 处理方式
+					<variable id="3" name="Replaced" type="map" key="int" value="BItem"/> key is position
+					<variable id="4" name="Removed" type="set" value="int"/> key is position
 				</bean>
 
 				<rpc name="Move" argument="BMove" handle="server"/>
 				<rpc name="Destroy" argument="BDestroy" handle="server"/>
-				<rpc name="Sort" handle="server"/>
-				<rpc name="GetBag" result="BBag" handle="server"/>
 
-				<protocol name="SChanged" argument="BChangedResult" handle="client"/> 所有的包裹改变都通过这个协议发送。
-				<protocol name="SBag" argument="BBag" handle="client"/> 包裹全部改变时发送这个协议。在可靠消息框架内使用。不直接处理。
-
-				<protocol name="CUse" argument="BUse" handle="server"/> 没有结果，bag变更自动发送，使用效果在具体的物品使用时设置和发送结果（如果需要）
+				<protocol name="NotifyChanged" argument="BChanged" handle="client"/> 所有的包裹改变都通过这个协议发送。
+				<protocol name="NotifyBag" argument="BBag" handle="client"/> 包裹全部改变时发送这个协议。在可靠消息框架内使用。不直接处理。
 
 				<bean name="BItem">
 					<variable id="1" name="Id" type="int"/>
 					<variable id="2" name="Number" type="int"/>
+					<variable id="3" name="Item" type="dynamic">
+						<GetSpecialTypeIdFromBean value="Zeze.Game.Bag::GetSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.Bag::CreateBeanFromSpecialTypeId"/>
+					</variable>
 				</bean>
 
 				<bean name="BBag">
-					<variable id="1" name="Money" type="long"/>
-					<variable id="2" name="Capacity" type="int"/>
-					<variable id="3" name="Items" type="map" key="int" value="BItem"/> key is bag position
+					<variable id="1" name="Capacity" type="int"/>
+					<variable id="2" name="Items" type="map" key="int" value="BItem"/> key is bag position
 				</bean>
 
-				<table name="tbag" key="long" value="BBag"/>
+				<bean name="BItemClasses">
+					<variable id="1" name="ItemClasses" type="set" value="string"/>
+				</bean>
+
+				<table name="tbag" key="string" value="BBag"/> key is bag name 
+				<table name="tItemClasses" key="int" value="BItemClasses"/> key is 1, only one record
 			</module>
 
 			<module name="Rank" id="11015">
@@ -674,6 +677,12 @@
 	</module>
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+
+	<component name="Bag" gendir="src/main/java" genrelativedir="Zeze/Game" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Beans.Game.Bag"/>
+		</service>
+	</component>
 
 	<!-- Linkd 服务模块基类，仅用来生成代码 -->
 	<component name="LinkdBase" gendir="src/main/java" platform="zeze+java">
