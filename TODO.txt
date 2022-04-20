@@ -5,30 +5,37 @@ ConfigEditor 更多自动完成？普通的列默认最近使用的n个值，根
 ConfigEditor enum 现在不支持引用在其他文档定义的，有需要了再来加。
 war？一个module集合。定义export？private？App.Instance？生成代码使用基类，不再使用具体类型，感觉没必要：应用使用独立进程更加安全灵活些。
 ----------------------------------------------------------------------------------------------------------------------------------
+Global java 异步化： TaskQueueAsync 任务需要参与到队列的推进。全异步和RocksRaft.Transaction.ThreadLocal问题，需要自己实现一个类似AsyncLocal的机制。
 DatabaseTikv OperatesTikv
 Global.Release并发问题【再次】确认
 Zezex.client: 可靠消息实现的错误检查。
-RocksRaft Collection.List LogList
-	SortedDictionary<int, Log Or Bean> ChangeOrAdd; // 优化。中间的值发生了改变或者在尾巴增加。
-	bool FullCopy; // 当发生中间删除或者插入时。这个有进一步优化空间。
-	OR -> List<OperateLog> 所有操作记录日志，收到方重做。问题：Get(index).Update，怎么融入。
 Global.RocksRaft.LruTryRemoveCallback
 Global c# 慢的问题。
-把 RocksRaft Changes 应用到 Zeze 中，让 Zeze 实现Bean任意级别的更新。// 1. 仅支持整个Bean的订阅。2. log factory 问题。3. 动态订阅。add listener和notify原子问题。
-	Java Game.Bag Listener
-Global java 异步化： TaskQueueAsync 任务需要参与到队列的推进。全异步和RocksRaft.Transaction.ThreadLocal问题，需要自己实现一个类似AsyncLocal的机制。
-raft 异步测试
-Global With Raft 异步测试
-Test TestGlobal Simulate 异步测试
-Arch Onlines 两个版本 Role|Account 这个关键问题是Login需要纳入。做成两个组件？
+
+1. 把 RocksRaft Changes 应用到 Zeze 中，让 Zeze 实现Bean任意级别的更新。// 1. 仅支持整个Bean的订阅。2. log factory 问题。3. 动态订阅。add listener和notify原子问题。
+   RocksRaft Collection.List LogList
+   SortedDictionary<int, Log Or Bean> ChangeOrAdd; // 优化。中间的值发生了改变或者在尾巴增加。
+   bool FullCopy; // 当发生中间删除或者插入时。这个有进一步优化空间。
+   OR -> List<OperateLog> 所有操作记录日志，收到方重做。问题：Get(index).Update，怎么融入。
+2. Game.Bag Listener
+
+1. raft 异步测试
+2. Global With Raft 异步测试
+3. Test TestGlobal Simulate 异步测试
+
+Online Account
 Zezex Onlines TransmitInProcedure 需要重写。
 c# Arch RedirectAll & Test
 
 【2022/5/11】
 
-Java Game.Bag
+Java Zeze.Game.Rank Test【张路】
+Java Zeze.Game.Bag Test【王鹏安排】
+Java Zeze.Game.Online 【张路】
+Java Zeze.Game.Bag
+Java Zeze.Game.Rank
 Redirect 支持异步实现。【Java张路】 c# RedirectAll 错误处理。
-c# Arch : edirect Hash & Server Test Ok
+c# Arch : redirect Hash & Server Test Ok
 c# Arch Redirect Hash & Server async ready.
 c# Collections Queue LinkedMap
 c# Component DelayRemove AutoKey RedoQueue RedoQueueServer
