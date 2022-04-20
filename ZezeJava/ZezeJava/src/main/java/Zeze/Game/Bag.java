@@ -247,11 +247,14 @@ public class Bag {
             int numberToWill = itemTo.getNumber() + number;
             if (numberToWill > pileMax) {
                 itemTo.setNumber(pileMax);
-                itemFrom.setNumber(numberToWill - pileMax);
-            }
-            else {
+                itemFrom.setNumber(itemFrom.getNumber() - (numberToWill - pileMax));
+            } else {
                 itemTo.setNumber(numberToWill);
-                bean.getItems().remove(from);
+                var remainNum = itemFrom.getNumber() - number;
+                if(remainNum > 0)
+                    itemFrom.setNumber(remainNum);
+                else
+                    bean.getItems().remove(from);
             }
             return 0;
         }
@@ -295,6 +298,10 @@ public class Bag {
 
     public static class Module extends AbstractBag {
         private ConcurrentHashMap<String, Bag> Bags = new ConcurrentHashMap<>();
+
+        public Module(Zeze.Application zeze) {
+            RegisterZezeTables(zeze);
+        }
 
         public tbag getTable() {
             return _tbag;
