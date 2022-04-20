@@ -102,7 +102,9 @@ public class InMemoryJavaCompiler {
 
 	public Class<?> compile(String className, String sourceCode) throws ClassNotFoundException {
 		sourceCodes.clear();
-		addSource(className, sourceCode).compileAll();
+		String exMsg = addSource(className, sourceCode).compileAll();
+		if (exMsg != null)
+			throw new RuntimeException(exMsg);
 		return classLoader.findClass(className);
 	}
 

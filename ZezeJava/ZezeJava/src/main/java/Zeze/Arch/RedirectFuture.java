@@ -50,8 +50,7 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 			onResult.run(toResult(result));
 		else {
 			this.onResult = onResult;
-			result = getRawResult(); // 再次确认,避免并发窗口问题
-			if (result != null)
+			if ((result = getRawResult()) != null) // 再次确认,避免并发窗口问题
 				tryOnResult(toResult(result));
 		}
 		return this;

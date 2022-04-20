@@ -76,24 +76,19 @@ public final class GenModule {
 		}
 		if (overrides.isEmpty())
 			return module; // 没有需要重定向的方法。
-
-		// 按方法名排序，避免每次生成结果发生变化。
-		overrides.sort(Comparator.comparing(o -> o.method.getName()));
+		overrides.sort(Comparator.comparing(o -> o.method.getName())); // 按方法名排序，避免每次生成结果发生变化。
 
 		String genClassName = module.getFullName().replace('.', '_') + "_Redirect";
 		String namespace = getNamespace(module.getFullName());
 		try {
-			if (GenFileSrcRoot == null) {
-				// 不需要生成到文件的时候，尝试装载已经存在的生成模块子类。
+			if (GenFileSrcRoot == null) { // 不需要生成到文件的时候，尝试装载已经存在的生成模块子类。
 				try {
 					Class<?> moduleClass = Class.forName(namespace + "." + genClassName);
 					module.UnRegister();
 					var newModule = (Zeze.IModule)moduleClass.getConstructor(userApp.getClass()).newInstance(userApp);
 					newModule.Initialize(userApp);
 					return newModule;
-				} catch (Throwable ex) {
-					// skip try load error
-					// continue gen if error
+				} catch (ClassNotFoundException ignored) {
 				}
 			}
 
@@ -121,14 +116,15 @@ public final class GenModule {
 						e.printStackTrace();
 					}
 				}
-				// 生成带File需要再次编译，所以这里返回原来的module。
-				return module;
+				return module; // 生成带File需要再次编译，所以这里返回原来的module。
 			}
 			Class<?> moduleClass = compiler.compile(genClassName, code);
 			module.UnRegister();
 			var newModule = (Zeze.IModule)moduleClass.getConstructor(userApp.getClass()).newInstance(userApp);
 			newModule.Initialize(userApp);
 			return newModule;
+		} catch (RuntimeException | Error e) {
+			throw e;
 		} catch (Throwable e) {
 			throw new RuntimeException(e);
 		}
@@ -144,7 +140,6 @@ public final class GenModule {
 		}
 		sb.AppendLine("public final class {} extends {}.Module{} {", genClassName, module.getFullName(), module.getName());
 
-		// TaskCompletionSource<int> void
 		var sbHandles = new StringBuilderCs();
 		for (var m : overrides) {
 			var parametersDefine = m.GetDefineString();
@@ -186,7 +181,6 @@ public final class GenModule {
 			sb.AppendLine("        _a_.setMethodFullName(\"{}:{}\");", module.getFullName(), m.method.getName());
 			sb.AppendLine("        _a_.setServiceNamePrefix(App.ProviderApp.ServerServiceNamePrefix);");
 			if (m.inputParameters.size() > 0) {
-				// normal 包括了 out 参数，这个不需要 encode，所以下面可能仍然是空的，先这样了。
 				sb.AppendLine("        var _b_ = Zeze.Serialize.ByteBuffer.Allocate();");
 				Gen.Instance.GenEncode(sb, "        ", "_b_", m.inputParameters);
 				sb.AppendLine("        _a_.setParams(new Zeze.Net.Binary(_b_));");
