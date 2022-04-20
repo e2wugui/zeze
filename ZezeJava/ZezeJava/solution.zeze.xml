@@ -632,8 +632,6 @@
 
 			<module name="Rank" id="11015">
 				<beankey name="BConcurrentKey">
-					<enum name="RankTypeGold" value="1"/>
-
 					<enum name="TimeTypeTotal"     value="0"/> 所有时间
 					<enum name="TimeTypeDay"       value="1"/> 每天：Year为当前时间的年份，Offset为天
 					<enum name="TimeTypeWeek"      value="2"/> 每周：Year为当前时间的年份，Offset为周
@@ -651,8 +649,7 @@
 				<bean name="BRankValue">
 					<variable id="1" name="RoleId"     type="long"/>
 					<variable id="2" name="Value"      type="long"/> 含义由 BConcurrentKey.RankType 决定
-					<variable id="3" name="ValueEx"    type="binary"/> 排名更多自定义数据。
-					<variable id="4" name="AwardTaken" type="bool"/> 奖励已经获取。当开始领奖时，榜单不能再更新。这个变量可用于有时效的排行榜。
+					<variable id="3" name="ValueEx"    type="binary"/> 自定义数据。
 				</bean>
 
 				<bean name="BRankList">
@@ -660,24 +657,18 @@
 				</bean>
 
 				<table name="trank" key="BConcurrentKey" value="BRankList"/>
-
-				<bean name="BGetRankList">
-					<variable id="1" name="RankType" type="int"/> BConcurrentKey.RankTypeXXX
-					<variable id="2" name="TimeType" type="int"/> BConcurrentKey.TimeTypeXXX
-				</bean>
-
-				<bean name="BRankListResult">
-					<variable id="1" name="RankType"  type="int"/>
-					<variable id="2" name="RankList"  type="list" value="BRankValue"/>
-				</bean>
-
-				<rpc name="GetRankList" argument="BGetRankList" result="BRankListResult" handle="server"/>
 			</module>
 		</module>
 
 	</module>
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+
+	<component name="Rank" gendir="src/main/java" genrelativedir="Zeze/Game" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Beans.Game.Rank"/>
+		</service>
+	</component>
 
 	<component name="Bag" gendir="src/main/java" genrelativedir="Zeze/Game" platform="zeze+java">
 		<service name="" handle="server">
