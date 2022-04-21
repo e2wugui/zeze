@@ -2,7 +2,7 @@ package Game;
 
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
-import Zeze.Beans.Provider.BLoad;
+import Zeze.Builtin.Provider.BLoad;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 

@@ -1,8 +1,8 @@
 package Game;
 
 import Zeze.Arch.ProviderService;
-import Zeze.Beans.Provider.LinkBroken;
-import Zeze.Beans.Provider.SendConfirm;
+import Zeze.Builtin.Provider.LinkBroken;
+import Zeze.Builtin.Provider.SendConfirm;
 import Zeze.Transaction.Procedure;
 
 public final class Provider extends Zeze.Arch.ProviderImplement {

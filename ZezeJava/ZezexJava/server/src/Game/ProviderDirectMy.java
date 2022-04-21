@@ -1,6 +1,6 @@
 package Game;
 
-import Zeze.Beans.ProviderDirect.Transmit;
+import Zeze.Builtin.ProviderDirect.Transmit;
 import Zeze.Transaction.Procedure;
 
 public class ProviderDirectMy extends Zeze.Arch.ProviderDirect {

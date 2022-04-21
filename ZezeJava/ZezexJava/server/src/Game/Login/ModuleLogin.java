@@ -3,7 +3,7 @@ package Game.Login;
 import Game.App;
 import Game.Server;
 import Zeze.Arch.ProviderUserSession;
-import Zeze.Beans.Provider.SetUserState;
+import Zeze.Builtin.Provider.SetUserState;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 
