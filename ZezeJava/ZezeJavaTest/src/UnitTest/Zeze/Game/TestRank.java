@@ -89,6 +89,8 @@ public class TestRank extends TestCase {
 		}
 
 		void stop() throws Throwable {
+			providerApp.ProviderDirectService.Stop();
+			providerApp.ProviderService.Stop();
 			zeze.Stop();
 			if (rank != null) {
 				rank.UnRegisterZezeTables(zeze);
