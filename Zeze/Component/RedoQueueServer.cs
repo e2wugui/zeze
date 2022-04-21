@@ -40,6 +40,12 @@ namespace Zeze.Component
 			RegisterZezeTables(zeze);
 		}
 
+		public override void UnRegister()
+		{
+			UnRegisterProtocols(server);
+			UnRegisterZezeTables(server.Zeze);
+		}
+
 		public void Start()
 		{
 			server.Start();

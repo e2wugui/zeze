@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import Zeze.Application;
 import Zeze.Arch.ProviderService;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Builtin.Game.Bag.BBag;
@@ -307,15 +308,30 @@ public class Bag {
 
     public static class Module extends AbstractBag {
         private ConcurrentHashMap<String, Bag> Bags = new ConcurrentHashMap<>();
+        public ProviderService Service;
+        public Application Zeze;
 
         // 用于UserApp服务，可以处理客户端发送的协议。
         public Module(ProviderService ps) {
+            Service = ps;
+            Zeze = ps.getZeze();
             RegisterProtocols(ps);
             RegisterZezeTables(ps.getZeze());
         }
 
+        @Override
+        public void UnRegister() {
+            if (null != Service) {
+                UnRegisterProtocols(Service);
+            }
+            if (null != Zeze) {
+                UnRegisterZezeTables(Zeze);
+            }
+        }
+
         // 用于数据测试，测试不支持协议。
         public Module(Zeze.Application zeze) {
+            Zeze = zeze;
             RegisterZezeTables(zeze);
         }
 

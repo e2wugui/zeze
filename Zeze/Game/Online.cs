@@ -26,6 +26,12 @@ namespace Zeze.Game
             RegisterZezeTables(app.Zeze);
         }
 
+        public override void UnRegister()
+        {
+            UnRegisterZezeTables(App.Zeze);
+            UnRegisterProtocols(App.ProviderService);
+        }
+
         public async Task<bool> AddRole(string account, long roleId)
         {
             BAccount bAccount = await _taccount.GetOrAddAsync(account);

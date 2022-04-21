@@ -51,6 +51,12 @@ public class Online extends AbstractOnline {
 		RegisterZezeTables(service.getZeze());
 	}
 
+	@Override
+	public void UnRegister() {
+		UnRegisterProtocols(service);
+		UnRegisterZezeTables(service.getZeze());
+	}
+
 	public final ConcurrentHashMap<String, TransmitAction> getTransmitActions() {
 		return transmitActions;
 	}

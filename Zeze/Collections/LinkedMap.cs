@@ -25,13 +25,20 @@ namespace Zeze.Collections
 		public class Module : AbstractLinkedMap
 		{
 			private readonly ConcurrentDictionary<string, LinkedMap> LinkedMaps = new();
+			public Zeze.Application Zeze { get; }
 
 			public Module(Zeze.Application zeze)
 			{
+				Zeze = zeze;
 				RegisterZezeTables(zeze);
 			}
 
-			public LinkedMap<V> Open<V>(string name, int nodeCapacity = 100)
+            public override void UnRegister()
+            {
+				UnRegisterZezeTables(Zeze);
+            }
+
+            public LinkedMap<V> Open<V>(string name, int nodeCapacity = 100)
 				where V : Bean, new()
 			{
 				return (LinkedMap<V>)LinkedMaps.GetOrAdd(name, k => new LinkedMap<V>(this, k, nodeCapacity));

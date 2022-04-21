@@ -10,11 +10,18 @@ namespace Zeze.Component
 		public class Module : AbstractAutoKey
 		{
 			private ConcurrentDictionary<string, AutoKey> map = new();
+			public Application Zeze { get; }
 
 			// 这个组件Zeze.Application会自动初始化，不需要应用初始化。
 			public Module(Zeze.Application zeze)
 			{
+				Zeze = zeze;
 				RegisterZezeTables(zeze);
+			}
+
+			public override void UnRegister()
+			{
+				UnRegisterZezeTables(Zeze);
 			}
 
 			/**

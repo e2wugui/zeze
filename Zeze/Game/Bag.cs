@@ -323,10 +323,35 @@ namespace Zeze.Game
         public class Module : AbstractBag
         {
             private ConcurrentDictionary<string, Bag> Bags = new();
+            public ProviderService ProviderService { get; }
+            public Application Zeze { get; }
 
             public tbag getTable()
             {
                 return _tbag;
+            }
+
+            public Module(ProviderService service)
+            {
+                ProviderService = service;
+                Zeze = service.Zeze;
+                RegisterProtocols(service);
+                RegisterZezeTables(Zeze);
+            }
+
+            public Module(Application zeze)
+            {
+                ProviderService = null;
+                Zeze = zeze;
+                RegisterZezeTables(Zeze);
+            }
+
+            public override void UnRegister()
+            {
+                if (null != ProviderService)
+                    UnRegisterProtocols(ProviderService);
+                if (null != Zeze)
+                    UnRegisterZezeTables(Zeze);
             }
 
             // 需要在事务内使用。

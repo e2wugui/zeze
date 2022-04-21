@@ -24,10 +24,17 @@ namespace Zeze.Collections
 		public class Module : AbstractQueue
 		{
 			private readonly ConcurrentDictionary<string, Queue> Queues = new();
+			public Zeze.Application Zeze { get; }
 
 			public Module(Zeze.Application zeze)
 			{
+				Zeze = zeze;
 				RegisterZezeTables(zeze);
+			}
+
+			public override void UnRegister()
+			{
+				UnRegisterZezeTables(Zeze);
 			}
 
 			public Queue<T> Open<T>(string name, int nodeCapacity = 100)

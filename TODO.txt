@@ -24,11 +24,17 @@ Global c# 慢的问题。
 3. Test TestGlobal Simulate 异步测试
 
 Online Account
-Zezex Onlines TransmitInProcedure 需要重写。
+Zezex Onlines TransmitInProcedure 需要重写。需要改成使用ProviderDirect。
 c# Arch RedirectAll & Test
+
+Online 1) Count Stat. 2) Logout Check Not Owner.
 
 【2022/5/11】
 
+Builtin Module UnRegister 实现。
+c# Zeze.Game.Bag
+c# Zeze.Game.Rank
+c# Zeze.Game.Online
 Java Zeze.Game.Rank Test【张路】
 Java Zeze.Game.Bag Test【王鹏安排】
 Java Zeze.Game.Online 【张路】

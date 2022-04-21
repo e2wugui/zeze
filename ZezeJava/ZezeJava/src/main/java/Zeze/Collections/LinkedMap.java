@@ -23,9 +23,16 @@ public class LinkedMap<V extends Bean> {
 
 	public static class Module extends AbstractLinkedMap {
 		private final ConcurrentHashMap<String, LinkedMap<?>> LinkedMaps = new ConcurrentHashMap<>();
+		public Zeze.Application Zeze;
 
 		public Module(Zeze.Application zeze) {
+			Zeze = zeze;
 			RegisterZezeTables(zeze);
+		}
+
+		@Override
+		public void UnRegister() {
+			UnRegisterZezeTables(Zeze);
 		}
 
 		@SuppressWarnings("unchecked")

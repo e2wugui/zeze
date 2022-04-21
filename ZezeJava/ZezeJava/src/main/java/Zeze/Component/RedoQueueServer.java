@@ -18,6 +18,13 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 		RegisterZezeTables(zeze);
 	}
 
+	@Override
+	public void UnRegister()
+	{
+		UnRegisterProtocols(server);
+		UnRegisterZezeTables(server.getZeze());
+	}
+
 	public void Start() throws Throwable {
 		server.Start();
 	}
