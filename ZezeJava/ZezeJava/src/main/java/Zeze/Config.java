@@ -137,7 +137,7 @@ public final class Config {
 		return GlobalCacheManagerPort;
 	}
 
-	private void setGlobalCacheManagerPort(int value) {
+	public void setGlobalCacheManagerPort(int value) {
 		GlobalCacheManagerPort = value;
 	}
 

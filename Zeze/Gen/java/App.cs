@@ -110,6 +110,11 @@ namespace Zeze.Gen.java
             if (project.AllOrderDefineModules.Count > 0)
                 sw.WriteLine();
 
+            sw.WriteLine("    @Override");
+            sw.WriteLine("    public Zeze.Application getZeze() {");
+            sw.WriteLine("        return Zeze;");
+            sw.WriteLine("    }");
+            sw.WriteLine();
             sw.WriteLine("    public void CreateZeze() throws Throwable {");
             sw.WriteLine("        CreateZeze(null);");
             sw.WriteLine("    }");

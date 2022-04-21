@@ -1,8 +1,10 @@
 package UnitTest.Zeze.Game;
 
+import Zeze.Game.Bag;
 import Zeze.Transaction.Procedure;
 import demo.App;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -13,6 +15,8 @@ public class TestBag {
 	@Before
 	public final void testInit() throws Throwable {
 		demo.App.getInstance().Start();
+		// 设置下可堆叠个数
+		Bag.funcItemPileMax = itemId -> 99;
 	}
 
 	@After
@@ -33,6 +37,7 @@ public class TestBag {
 			var items = bag.getBean().getItems();
 			// 总共占用20个格子
 			assert items.size() == 20;
+			Assert.assertEquals(20, items.size());
 			return Procedure.Success;
 		}, "test1_Add").Call();
 	}

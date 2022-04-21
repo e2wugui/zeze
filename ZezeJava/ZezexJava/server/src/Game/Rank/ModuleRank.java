@@ -13,6 +13,7 @@ import Zeze.Arch.RedirectHash;
 import Zeze.Arch.RedirectResult;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Net.Binary;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
@@ -463,6 +464,15 @@ public class ModuleRank extends AbstractModule {
 		public int hash;
 		public int out;
 		public int serverId;
+		public boolean _boolean;
+		public byte _byte;
+		public short _short;
+		public long _long;
+		public float _float;
+		public double _double;
+		public String _string = "";
+		public byte[] _bytes = ByteBuffer.Empty;
+		public Binary _binary = Binary.Empty;
 		public EmptyBean bean = new EmptyBean(); // 使用Bean自己的序列化,需要序列化的引用类型成员在构造后不能为null
 		public Date date = new Date(); // 使用JDK自带的序列化
 		public transient String str; // 不会序列化transient
@@ -533,15 +543,15 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	@RedirectToServer
-	void TestToServerNoResult(int serverId) {
+	public void TestToServerNoResult(int serverId) {
 	}
 
 	@RedirectHash
-	void TestHashNoResult(int hash) {
+	public void TestHashNoResult(int hash) {
 	}
 
 	@RedirectAll
-	void TestAllNoResult(int hash) {
+	public void TestAllNoResult(int hash) {
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off

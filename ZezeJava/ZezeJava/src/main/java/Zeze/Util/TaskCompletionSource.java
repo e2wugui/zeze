@@ -11,9 +11,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 /**
- * @param <T> 为了性能优化考虑,T不能是ExecutionException,也不能是CancellationException
+ * @param <R> 为了性能优化考虑,R不能是ExecutionException,也不能是CancellationException
  */
-public class TaskCompletionSource<T> implements Future<T> {
+public class TaskCompletionSource<R> implements Future<R> {
 	private static final VarHandle RESULT;
 	private static final Exception NULL_RESULT = new LambdaConversionException(null, null, false, false);
 
@@ -44,8 +44,8 @@ public class TaskCompletionSource<T> implements Future<T> {
 		return false;
 	}
 
-	public boolean SetResult(T t) {
-		return setResult(t);
+	public boolean SetResult(R r) {
+		return setResult(r);
 	}
 
 	public boolean TrySetException(Throwable e) {
@@ -78,7 +78,7 @@ public class TaskCompletionSource<T> implements Future<T> {
 	}
 
 	@Override
-	public T get() throws InterruptedException, ExecutionException {
+	public R get() throws InterruptedException, ExecutionException {
 		Object r = result;
 		if (r == null) {
 			synchronized (this) {
@@ -90,7 +90,7 @@ public class TaskCompletionSource<T> implements Future<T> {
 	}
 
 	@Override
-	public T get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+	public R get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
 		Object r = result;
 		if (r == null) {
 			timeout = unit.toMillis(timeout);
@@ -107,32 +107,32 @@ public class TaskCompletionSource<T> implements Future<T> {
 		return toResult(r);
 	}
 
-	protected T toResult(Object r) throws ExecutionException {
-		if (r instanceof Exception) {
-			Class<?> cls = r.getClass();
+	protected R toResult(Object o) throws ExecutionException {
+		if (o instanceof Exception) {
+			Class<?> cls = o.getClass();
 			if (cls == ExecutionException.class)
-				throw (ExecutionException)r;
+				throw (ExecutionException)o;
 			if (cls == CancellationException.class)
-				throw (CancellationException)r;
-			if (r == NULL_RESULT)
-				r = null;
+				throw (CancellationException)o;
+			if (o == NULL_RESULT)
+				o = null;
 		}
 		@SuppressWarnings("unchecked")
-		T t = (T)r;
-		return t;
+		R r = (R)o;
+		return r;
 	}
 
-	public T getNow() throws ExecutionException {
+	public R getNow() throws ExecutionException {
 		Object r = result;
 		return r != null ? toResult(r) : null;
 	}
 
-	public T getNow(T valueIfAbsent) throws ExecutionException {
+	public R getNow(R valueIfAbsent) throws ExecutionException {
 		Object r = result;
 		return r != null ? toResult(r) : valueIfAbsent;
 	}
 
-	public T join() {
+	public R join() {
 		try {
 			return get();
 		} catch (InterruptedException | ExecutionException e) {
@@ -140,12 +140,13 @@ public class TaskCompletionSource<T> implements Future<T> {
 		}
 	}
 
-	public void await() {
+	public TaskCompletionSource<R> await() {
 		try {
 			get();
 		} catch (InterruptedException | ExecutionException e) {
 			throw new CompletionException(e);
 		}
+		return this;
 	}
 
 	public boolean await(long timeout) {

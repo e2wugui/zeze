@@ -31,7 +31,7 @@ public class RedirectBase {
 		ProviderApp = app;
 	}
 
-	public <T extends Zeze.AppBase> IModule ReplaceModuleInstance(T userApp, IModule module) {
+	public IModule ReplaceModuleInstance(Zeze.AppBase userApp, IModule module) {
 		return GenModule.Instance.ReplaceModuleInstance(userApp, module);
 	}
 

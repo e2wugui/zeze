@@ -19,6 +19,15 @@ public final class ModuleRedirectAllContext<R extends RedirectResult> extends Ze
 		future = resultDecoder != null ? new RedirectAllFutureImpl<>() : null;
 	}
 
+	public int getConcurrentLevel() {
+		return concurrentLevel;
+	}
+
+	// 只用于AllDone时获取所有结果, 此时不会再修改hashResults所以没有并发问题
+	public IntHashMap<R> getAllResults() {
+		return hashResults;
+	}
+
 	public RedirectAllFutureImpl<R> getFuture() {
 		return future;
 	}
@@ -29,11 +38,6 @@ public final class ModuleRedirectAllContext<R extends RedirectResult> extends Ze
 
 	public boolean isTimeout() {
 		return timeout;
-	}
-
-	// 只用于AllDone时获取所有结果, 此时不会再修改hashResults所以没有并发问题
-	public IntHashMap<R> getAllResults() {
-		return hashResults;
 	}
 
 	@Override

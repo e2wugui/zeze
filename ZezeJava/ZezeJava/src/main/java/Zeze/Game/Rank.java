@@ -3,19 +3,41 @@ package Zeze.Game;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.function.Function;
+import java.util.function.IntUnaryOperator;
 import Zeze.Arch.ProviderService;
+import Zeze.AppBase;
 import Zeze.Arch.RedirectAll;
 import Zeze.Arch.RedirectAllFuture;
+import Zeze.Arch.RedirectFuture;
 import Zeze.Arch.RedirectHash;
 import Zeze.Arch.RedirectResult;
-import Zeze.Builtin.Game.Rank.*;
+import Zeze.Builtin.Game.Rank.BConcurrentKey;
+import Zeze.Builtin.Game.Rank.BRankList;
+import Zeze.Builtin.Game.Rank.BRankValue;
 import Zeze.Net.Binary;
 
 public class Rank extends AbstractRank {
-	public volatile Function<Integer, Integer> funcRankSize;
-	public volatile Function<Integer, Integer> funcConcurrentLevel;
+	protected AppBase App;
+
+	public volatile IntUnaryOperator funcRankSize;
+	public volatile IntUnaryOperator funcConcurrentLevel;
 	public volatile float ComputeFactor = 2.5f;
+
+	public Rank(AppBase app) {
+		App = app;
+	}
+
+	// 用于UserApp，可支持客户端发送协议。
+	// 注意：目前Rank模块没有定义处理客户端发送的协议，但可能添加。
+	public Rank(ProviderService ps) {
+		RegisterProtocols(ps);
+		RegisterZezeTables(ps.getZeze());
+	}
+
+	// 用于数据测试，内部转发测试。
+	public Rank(Zeze.Application zeze) {
+		RegisterZezeTables(zeze);
+	}
 
 	public final BConcurrentKey newRankKey(int rankType, int timeType) {
 		return newRankKey(System.currentTimeMillis(), rankType, timeType, 0);
@@ -81,11 +103,11 @@ public class Rank extends AbstractRank {
 
 	/**
 	 * 为排行榜设置需要的数量。【有默认值】
- 	 */
+	 */
 	public final int getRankSize(int rankType) {
-		var volatiletmp = funcRankSize;
-		if (null != volatiletmp)
-			return volatiletmp.apply(rankType);
+		var volatileTmp = funcRankSize;
+		if (null != volatileTmp)
+			return volatileTmp.applyAsInt(rankType);
 		return 100;
 	}
 
@@ -96,15 +118,15 @@ public class Rank extends AbstractRank {
 	 * 一般选择一个足够大，但是又不能太大的数据。
 	 */
 	public final int getConcurrentLevel(int rankType) {
-		var volatiletmp = funcConcurrentLevel;
-		if (null != volatiletmp)
-			return volatiletmp.apply(rankType);
+		var volatileTmp = funcConcurrentLevel;
+		if (null != volatileTmp)
+			return volatileTmp.applyAsInt(rankType);
 		return 128; // default
 	}
 
 	/**
 	 * 排行榜中间数据的数量。【有默认值】
- 	 */
+	 */
 	public final int getComputeCount(int rankType) {
 		var factor = ComputeFactor;
 		if (factor < 2)
@@ -112,23 +134,11 @@ public class Rank extends AbstractRank {
 		return (int)(getConcurrentLevel(rankType) * factor);
 	}
 
-	// 用于UserApp，可支持客户端发送协议。
-	// 注意：目前Rank模块没有定义处理客户端发送的协议，但可能添加。
-	public Rank(ProviderService ps) {
-		RegisterProtocols(ps);
-		RegisterZezeTables(ps.getZeze());
-	}
-
-	// 用于数据测试，内部转发测试。
-	public Rank(Zeze.Application zeze) {
-		RegisterZezeTables(zeze);
-	}
-
 	/**
 	 * 根据 value 设置到排行榜中
 	 */
 	@RedirectHash
-	public void updateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Binary valueEx) {
+	public RedirectFuture<Long> updateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Binary valueEx) {
 		int concurrentLevel = getConcurrentLevel(keyHint.getRankType());
 		int maxCount = getComputeCount(keyHint.getRankType());
 
@@ -158,7 +168,7 @@ public class Rank extends AbstractRank {
 				if (rank.getRankList().size() > maxCount) {
 					rank.getRankList().remove(rank.getRankList().size() - 1);
 				}
-				return;
+				return RedirectFuture.finish(0L);
 			}
 		}
 		// A: 如果排行的Value可能减少，那么当它原来存在，但现在处于队尾时，不要再进榜。
@@ -172,6 +182,7 @@ public class Rank extends AbstractRank {
 			tempVar2.setValueEx(valueEx);
 			rank.getRankList().add(tempVar2);
 		}
+		return RedirectFuture.finish(0L);
 	}
 
 	private BRankList merge(BRankList left, BRankList right) {
@@ -208,8 +219,6 @@ public class Rank extends AbstractRank {
 
 	/**
 	 * 分别去hash分组所在的服务器上查询，并得到所有的hash分组。
-	 * @param keyHint
-	 * @return
 	 */
 	public RedirectAllFuture<RRankList> getRankAll(BConcurrentKey keyHint) {
 		return getRankAll(getConcurrentLevel(keyHint.getRankType()), keyHint);
@@ -230,8 +239,6 @@ public class Rank extends AbstractRank {
 
 	/**
 	 * 直接查询数据库并合并分组数据。
-	 * @param keyHint
-	 * @return rank list
 	 */
 	public BRankList getRankDirect(BConcurrentKey keyHint) {
 		return getRankDirect(keyHint, getRankSize(keyHint.getRankType()));
@@ -255,7 +262,7 @@ public class Rank extends AbstractRank {
 		if (1 == size)
 			return datas.iterator().next().Copy(); // only one item
 
-		BRankList rank = null;
+		BRankList rank;
 		// 合并过程中，结果是新的 BRankList，List中的 BRankValue 引用到表中。
 		// 最后 Copy 一次。
 		var it = datas.iterator();

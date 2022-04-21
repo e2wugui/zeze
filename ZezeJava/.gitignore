@@ -4,4 +4,6 @@
 
 /log4j2.xml
 /raft.xml
+
 ~$*.*
+*_Redirect.java

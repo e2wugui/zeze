@@ -208,7 +208,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 		if (c == null || !c.isCompleted()) {
 			synchronized (this) {
 				try {
-					while ((c = ctx) != null && c.isCompleted())
+					while ((c = ctx) == null || !c.isCompleted())
 						wait();
 				} catch (InterruptedException e) {
 					throw new RuntimeException(e);

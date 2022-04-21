@@ -55,4 +55,10 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 		}
 		return this;
 	}
+
+	@Override
+	public RedirectFuture<R> await() {
+		super.await();
+		return this;
+	}
 }

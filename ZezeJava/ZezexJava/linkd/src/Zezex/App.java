@@ -61,6 +61,11 @@ public final class App extends Zeze.AppBase {
 
     public Zezex.Linkd.ModuleLinkd Zezex_Linkd;
 
+    @Override
+    public Zeze.Application getZeze() {
+        return Zeze;
+    }
+
     public void CreateZeze() throws Throwable {
         CreateZeze(null);
     }

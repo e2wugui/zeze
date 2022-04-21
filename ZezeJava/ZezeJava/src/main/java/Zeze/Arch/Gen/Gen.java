@@ -37,13 +37,13 @@ final class Gen {
 		Serializer.put(Boolean.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteBool({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = {}.ReadBool();", prefix, varName, bbName),
-				(sb, prefix, varName) -> sb.AppendLine("{}bool {};", prefix, varName),
+				(sb, prefix, varName) -> sb.AppendLine("{}boolean {};", prefix, varName),
 				() -> "boolean")
 		);
 		Serializer.put(boolean.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteBool({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = {}.ReadBool();", prefix, varName, bbName),
-				(sb, prefix, varName) -> sb.AppendLine("{}bool {};", prefix, varName),
+				(sb, prefix, varName) -> sb.AppendLine("{}boolean {};", prefix, varName),
 				() -> "boolean")
 		);
 		Serializer.put(Byte.class, new KnownSerializer(

@@ -3,11 +3,13 @@ package Game;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import Zeze.Arch.Gen.GenModule;
+import Zeze.Arch.LoadConfig;
+import Zeze.Arch.ProviderApp;
+import Zeze.Arch.ProviderModuleBinds;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.PersistentAtomicLong;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import Zeze.Arch.*;
 
 public final class App extends Zeze.AppBase {
 	public static App Instance = new App();
@@ -146,6 +148,11 @@ public final class App extends Zeze.AppBase {
     public Game.AutoKey.ModuleAutoKey Game_AutoKey;
     public Game.Timer.ModuleTimer Game_Timer;
     public Game.LongSet.ModuleLongSet Game_LongSet;
+
+    @Override
+    public Zeze.Application getZeze() {
+        return Zeze;
+    }
 
     public void CreateZeze() throws Throwable {
         CreateZeze(null);
