@@ -4,6 +4,7 @@ namespace demo
     public sealed partial class App
     {
         public Zeze.Collections.LinkedMap.Module LinkedMapModule;
+        public Zeze.Game.Bag.Module BagModule;
 
         private static void AdjustTableConf(Zeze.Config.TableConf conf)
         {
@@ -28,6 +29,7 @@ namespace demo
             CreateService();
             CreateModules();
             LinkedMapModule = new(Zeze);
+            BagModule = new(Zeze);
             StartModules(); // 启动模块，装载配置什么的。
             Zeze.StartAsync().Wait(); // 启动数据库
             StartService(); // 启动网络等等。
@@ -39,6 +41,7 @@ namespace demo
             Zeze.Stop(); // 关闭数据库
             StopModules(); // 关闭模块,，卸载配置什么的。
             LinkedMapModule = null;
+            BagModule = null;
             DestroyModules();
             DestroyService();
             DestroyZeze();
