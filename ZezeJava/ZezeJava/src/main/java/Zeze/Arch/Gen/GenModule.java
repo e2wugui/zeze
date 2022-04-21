@@ -47,9 +47,10 @@ public final class GenModule {
 		compiler.ignoreWarnings();
 	}
 
-	public static Constructor<?> getCtor(Class<? extends IModule> cls, AppBase app) throws ReflectiveOperationException {
+	public static <T extends IModule> Constructor<T> getCtor(Class<?> cls, AppBase app) throws ReflectiveOperationException {
 		var appClass = app.getClass();
-		var ctors = cls.getConstructors();
+		@SuppressWarnings("unchecked")
+		var ctors = (Constructor<T>[])cls.getConstructors();
 		for (var ctor : ctors) {
 			if (ctor.getParameterCount() == 1 && ctor.getParameters()[0].getType().isAssignableFrom(appClass))
 				return ctor;
@@ -61,25 +62,24 @@ public final class GenModule {
 		throw new NoSuchMethodException("No suitable constructor for redirect module: " + cls.getName());
 	}
 
-	public static IModule newModule(Class<? extends IModule> cls, AppBase app) throws ReflectiveOperationException {
-		var ctor = getCtor(cls, app);
+	public static <T extends IModule> T newModule(Class<?> cls, AppBase app) throws ReflectiveOperationException {
+		@SuppressWarnings("unchecked")
+		var ctor = (Constructor<T>)getCtor(cls, app);
 		if (ctor.getParameterCount() != 1)
 			throw new NoSuchMethodException("No suitable constructor for redirect module: " + cls.getName());
-		return (IModule)ctor.newInstance(app);
+		return ctor.newInstance(app);
 	}
 
-	public IModule ReplaceModuleInstance(AppBase userApp, IModule module) {
+	public <T extends IModule> T ReplaceModuleInstance(AppBase userApp, T module) {
 		var overrides = new ArrayList<MethodOverride>();
 		for (var method : module.getClass().getDeclaredMethods()) {
-			var a1 = method.getAnnotation(RedirectToServer.class);
-			if (a1 != null)
-				overrides.add(new MethodOverride(method, a1));
-			var a2 = method.getAnnotation(RedirectHash.class);
-			if (a2 != null)
-				overrides.add(new MethodOverride(method, a2));
-			var a3 = method.getAnnotation(RedirectAll.class);
-			if (a3 != null)
-				overrides.add(new MethodOverride(method, a3));
+			for (var anno : method.getAnnotations()) {
+				var type = anno.annotationType();
+				if (type == RedirectToServer.class || type == RedirectHash.class || type == RedirectAll.class) {
+					overrides.add(new MethodOverride(method, anno));
+					break;
+				}
+			}
 		}
 		if (overrides.isEmpty())
 			return module; // 没有需要重定向的方法。
@@ -89,12 +89,9 @@ public final class GenModule {
 		try {
 			if (GenFileSrcRoot == null) { // 不需要生成到文件的时候，尝试装载已经存在的生成模块子类。
 				try {
-					@SuppressWarnings("unchecked")
-					var moduleClass = (Class<? extends IModule>)Class.forName(genClassName);
+					var genClass = Class.forName(genClassName);
 					module.UnRegister();
-					var newModule = newModule(moduleClass, userApp);
-					newModule.Initialize(userApp);
-					return newModule;
+					return newModule(genClass, userApp);
 				} catch (ClassNotFoundException ignored) {
 				}
 			}
@@ -124,12 +121,8 @@ public final class GenModule {
 				}
 				return module; // 生成带File需要再次编译，所以这里返回原来的module。
 			}
-			@SuppressWarnings("unchecked")
-			var moduleClass = (Class<? extends IModule>)compiler.compile(genClassName, code);
 			module.UnRegister();
-			var newModule = newModule(moduleClass, userApp);
-			newModule.Initialize(userApp);
-			return newModule;
+			return newModule(compiler.compile(genClassName, code), userApp);
 		} catch (RuntimeException | Error e) {
 			throw e;
 		} catch (Throwable e) {
@@ -137,8 +130,7 @@ public final class GenModule {
 		}
 	}
 
-	private String GenModuleCode(String genClassName, IModule module, List<MethodOverride> overrides, AppBase userApp)
-			throws Throwable {
+	private String GenModuleCode(String genClassName, IModule module, List<MethodOverride> overrides, AppBase userApp) throws Throwable {
 		var sb = new StringBuilderCs();
 		sb.AppendLine("// auto-generated @" + "formatter:off");
 		sb.AppendLine("public final class {} extends {} {", genClassName, module.getClass().getName());

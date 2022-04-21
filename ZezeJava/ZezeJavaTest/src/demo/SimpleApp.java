@@ -68,17 +68,20 @@ public class SimpleApp extends AppBase {
 		return zeze;
 	}
 
+	@Override
+	public <T extends IModule> T ReplaceModuleInstance(T in) {
+		return zeze.Redirect.ReplaceModuleInstance(this, in);
+	}
+
 	public void start() throws Throwable {
 		var modules = new HashMap<String, IModule>();
 
-		bag = new Bag.Module(zeze);
+		bag = ReplaceModuleInstance(new Bag.Module(zeze));
 		bag.Initialize(this);
-		bag = (Bag.Module)zeze.Redirect.ReplaceModuleInstance(this, bag);
 		modules.put(bag.getFullName(), bag);
 
-		rank = new Rank();
+		rank = ReplaceModuleInstance(new Rank());
 		rank.Initialize(this);
-		rank = (Rank)zeze.Redirect.ReplaceModuleInstance(this, rank);
 		modules.put(rank.getFullName(), rank);
 
 		if (GenModule.Instance.GenFileSrcRoot != null) {

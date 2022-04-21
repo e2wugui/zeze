@@ -31,8 +31,10 @@ public class Rank extends AbstractRank {
 
 	@Override
 	public void UnRegister() {
-		UnRegisterProtocols(app.getZeze().Redirect.ProviderApp.ProviderService);
-		UnRegisterZezeTables(app.getZeze());
+		if (app != null) {
+			UnRegisterProtocols(app.getZeze().Redirect.ProviderApp.ProviderService);
+			UnRegisterZezeTables(app.getZeze());
+		}
 	}
 
 	public final BConcurrentKey newRankKey(int rankType, int timeType) {
