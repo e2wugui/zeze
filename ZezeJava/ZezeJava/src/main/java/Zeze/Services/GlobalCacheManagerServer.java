@@ -183,18 +183,16 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		logger.debug("ProcessLogin: {}", rpc);
 		var session = Sessions.computeIfAbsent(rpc.Argument.ServerId, __ -> new CacheHolder(Config));
 		//noinspection SynchronizationOnLocalVariableOrMethodParameter
-		synchronized (session) {
-			if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.GlobalCacheManagerHashIndex)) {
-				rpc.SendResultCode(LoginBindSocketFail);
-				return 0;
-			}
-			// new login, 比如逻辑服务器重启。release old acquired.
-			for (var e : session.Acquired.entrySet()) {
-				// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-				Release(session, e.getKey(), false);
-			}
-			rpc.SendResultCode(0);
+		if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.GlobalCacheManagerHashIndex)) {
+			rpc.SendResultCode(LoginBindSocketFail);
+			return 0;
 		}
+		// new login, 比如逻辑服务器重启。release old acquired.
+		for (var e : session.Acquired.entrySet()) {
+			// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
+			Release(session, e.getKey(), false);
+		}
+		rpc.SendResultCode(0);
 		return 0;
 	}
 
@@ -202,13 +200,11 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		logger.debug("ProcessReLogin: {}", rpc);
 		var session = Sessions.computeIfAbsent(rpc.Argument.ServerId, __ -> new CacheHolder(Config));
 		//noinspection SynchronizationOnLocalVariableOrMethodParameter
-		synchronized (session) {
-			if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.GlobalCacheManagerHashIndex)) {
-				rpc.SendResultCode(ReLoginBindSocketFail);
-				return 0;
-			}
-			rpc.SendResultCode(0);
+		if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.GlobalCacheManagerHashIndex)) {
+			rpc.SendResultCode(ReLoginBindSocketFail);
+			return 0;
 		}
+		rpc.SendResultCode(0);
 		return 0;
 	}
 
@@ -219,18 +215,16 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			return 0; // not login
 		}
 		//noinspection SynchronizationOnLocalVariableOrMethodParameter
-		synchronized (session) {
-			if (!session.TryUnBindSocket(rpc.getSender())) {
-				rpc.SendResultCode(NormalCloseUnbindFail);
-				return 0;
-			}
-			for (var e : session.Acquired.entrySet()) {
-				// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-				Release(session, e.getKey(), false);
-			}
-			rpc.SendResultCode(0);
-			logger.debug("After NormalClose global.Count={}", global.size());
+		if (!session.TryUnBindSocket(rpc.getSender())) {
+			rpc.SendResultCode(NormalCloseUnbindFail);
+			return 0;
 		}
+		for (var e : session.Acquired.entrySet()) {
+			// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
+			Release(session, e.getKey(), false);
+		}
+		rpc.SendResultCode(0);
+		logger.debug("After NormalClose global.Count={}", global.size());
 		return 0;
 	}
 
@@ -661,7 +655,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			Acquired = new ConcurrentHashMap<>(config.getInitialCapacity(), 0.75f, config.getConcurrencyLevel());
 		}
 
-		boolean TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex) {
+		synchronized boolean TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex) {
 			if (newSocket.getUserState() != null)
 				return false; // 不允许再次绑定。Login Or ReLogin 只能发一次。
 
@@ -677,13 +671,14 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			return false;
 		}
 
-		boolean TryUnBindSocket(AsyncSocket oldSocket) {
+		synchronized boolean TryUnBindSocket(AsyncSocket oldSocket) {
 			// 这里检查比较严格，但是这些检查应该都不会出现。
 
 			if (oldSocket.getUserState() != this)
 				return false; // not bind to this
 
-			if (Instance.Server.GetSocket(SessionId) != oldSocket)
+			var current = Instance.Server.GetSocket(SessionId);
+			if (current != null && current != oldSocket)
 				return false; // not same socket
 
 			SessionId = 0;

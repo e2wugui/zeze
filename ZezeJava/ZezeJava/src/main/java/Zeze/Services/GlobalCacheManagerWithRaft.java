@@ -521,21 +521,19 @@ public class GlobalCacheManagerWithRaft
 			return tempVar;
 		});
 
-		synchronized (session) { // 同一个节点互斥。不同节点Bind不需要互斥，Release由Raft-Leader唯一性提供保护。
-			if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.getGlobalCacheManagerHashIndex())) {
-				rpc.SendResultCode(LoginBindSocketFail);
-				return 0;
-			}
-			// new login, 比如逻辑服务器重启。release old acquired.
-			var SenderAcquired = ServerAcquiredTemplate.OpenTable(session.ServerId);
-			SenderAcquired.Walk((key, value) -> {
-				Release(session, key);
-				return true; // continue walk
-			});
-			rpc.SendResultCode(0);
-			logger.info("Login {} {}.", Rocks.getRaft().getName(), rpc.getSender());
+		if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.getGlobalCacheManagerHashIndex())) {
+			rpc.SendResultCode(LoginBindSocketFail);
 			return 0;
 		}
+		// new login, 比如逻辑服务器重启。release old acquired.
+		var SenderAcquired = ServerAcquiredTemplate.OpenTable(session.ServerId);
+		SenderAcquired.Walk((key, value) -> {
+			Release(session, key);
+			return true; // continue walk
+		});
+		rpc.SendResultCode(0);
+		logger.info("Login {} {}.", Rocks.getRaft().getName(), rpc.getSender());
+		return 0;
 	}
 
 	@Override
@@ -548,15 +546,13 @@ public class GlobalCacheManagerWithRaft
 		});
 
 		//noinspection SynchronizationOnLocalVariableOrMethodParameter
-		synchronized (session) { // 同一个节点互斥。
-			if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.getGlobalCacheManagerHashIndex())) {
-				rpc.SendResultCode(ReLoginBindSocketFail);
-				return 0;
-			}
-			rpc.SendResultCode(0);
-			logger.info("ReLogin {} {}.", Rocks.getRaft().getName(), rpc.getSender());
+		if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.getGlobalCacheManagerHashIndex())) {
+			rpc.SendResultCode(ReLoginBindSocketFail);
 			return 0;
 		}
+		rpc.SendResultCode(0);
+		logger.info("ReLogin {} {}.", Rocks.getRaft().getName(), rpc.getSender());
+		return 0;
 	}
 
 	@Override
@@ -567,21 +563,19 @@ public class GlobalCacheManagerWithRaft
 			return 0; // not login
 		}
 		CacheHolder session = (CacheHolder)userState;
-		synchronized (session) { // 同一个节点互斥。不同节点Bind不需要互斥，Release由Raft-Leader唯一性提供保护。
-			if (!session.TryUnBindSocket(rpc.getSender())) {
-				rpc.SendResultCode(NormalCloseUnbindFail);
-				return 0;
-			}
-			// TODO 确认Walk中删除记录是否有问题。
-			var SenderAcquired = ServerAcquiredTemplate.OpenTable(session.ServerId);
-			SenderAcquired.Walk((key, value) -> {
-				Release(session, key);
-				return true; // continue walk
-			});
-			rpc.SendResultCode(0);
-			logger.info("NormalClose {} {}", Rocks.getRaft().getName(), rpc.getSender());
+		if (!session.TryUnBindSocket(rpc.getSender())) {
+			rpc.SendResultCode(NormalCloseUnbindFail);
 			return 0;
 		}
+		// TODO 确认Walk中删除记录是否有问题。
+		var SenderAcquired = ServerAcquiredTemplate.OpenTable(session.ServerId);
+		SenderAcquired.Walk((key, value) -> {
+			Release(session, key);
+			return true; // continue walk
+		});
+		rpc.SendResultCode(0);
+		logger.info("NormalClose {} {}", Rocks.getRaft().getName(), rpc.getSender());
+		return 0;
 	}
 
 	@Override
@@ -660,7 +654,7 @@ public class GlobalCacheManagerWithRaft
 			GlobalInstance = value;
 		}
 
-		boolean TryBindSocket(AsyncSocket newSocket, int globalCacheManagerHashIndex) {
+		synchronized boolean TryBindSocket(AsyncSocket newSocket, int globalCacheManagerHashIndex) {
 			if (newSocket.getUserState() != null && newSocket.getUserState() != this)
 				return false; // 允许重复login|relogin，但不允许切换ServerId。
 
@@ -676,14 +670,14 @@ public class GlobalCacheManagerWithRaft
 			return false;
 		}
 
-		boolean TryUnBindSocket(AsyncSocket oldSocket) {
+		synchronized boolean TryUnBindSocket(AsyncSocket oldSocket) {
 			// 这里检查比较严格，但是这些检查应该都不会出现。
 
 			if (oldSocket.getUserState() != this)
 				return false; // not bind to this
 
 			var socket = GlobalInstance.getRocks().getRaft().getServer().GetSocket(SessionId);
-			if (socket != oldSocket)
+			if (socket != null && socket != oldSocket)
 				return false; // not same socket
 
 			SessionId = 0;

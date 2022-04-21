@@ -31,6 +31,7 @@ Online 1) Count Stat. 2) Logout Check Not Owner.
 
 【2022/5/11】
 
+Global 死锁. lock(CacheState) lock(CacheHolder)之间互相依赖。
 Builtin Module UnRegister 实现。
 c# Zeze.Game.Bag
 c# Zeze.Game.Rank

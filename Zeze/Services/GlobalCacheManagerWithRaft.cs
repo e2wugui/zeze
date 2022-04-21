@@ -503,8 +503,7 @@ namespace Zeze.Services
                 (_) => new CacheHolder() { GlobalInstance = this, ServerId = rpc.Argument.ServerId });
 
             // 同一个节点互斥。不同节点Bind不需要互斥，Release由Raft-Leader唯一性提供保护。
-            using var lockss = await session.Mutex.LockAsync();
-            if (false == session.TryBindSocket(rpc.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
+            if (false == await session.TryBindSocket(rpc.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
             {
                 rpc.SendResultCode(GlobalCacheManagerServer.LoginBindSocketFail);
                 return 0;
@@ -527,8 +526,7 @@ namespace Zeze.Services
             var session = Sessions.GetOrAdd(rpc.Argument.ServerId, 
                 (key) => new CacheHolder() { GlobalInstance = this, ServerId = rpc.Argument.ServerId });
 
-            using var lockss = await session.Mutex.LockAsync(); // 同一个节点互斥。
-            if (false == session.TryBindSocket(rpc.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
+            if (false == await session.TryBindSocket(rpc.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
             {
                 rpc.SendResultCode(GlobalCacheManagerServer.ReLoginBindSocketFail);
                 return 0;
@@ -548,8 +546,7 @@ namespace Zeze.Services
             }
 
             // 同一个节点互斥。不同节点Bind不需要互斥，Release由Raft-Leader唯一性提供保护。
-            using var lockss = await session.Mutex.LockAsync();
-            if (false == session.TryUnBindSocket(rpc.Sender))
+            if (false == await session.TryUnBindSocket(rpc.Sender))
             {
                 rpc.SendResultCode(GlobalCacheManagerServer.NormalCloseUnbindFail);
                 return 0;
@@ -680,39 +677,45 @@ namespace Zeze.Services
             public int GlobalCacheManagerHashIndex { get; private set; }
             public int ServerId { get; internal set; }
             public GlobalCacheManagerWithRaft GlobalInstance { get; set; }
-            public Nito.AsyncEx.AsyncLock Mutex { get; } = new();
+            private Nito.AsyncEx.AsyncLock Mutex { get; } = new();
 
-            public bool TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex)
+            public async Task<bool> TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex)
             {
-                if (newSocket.UserState != null && newSocket.UserState != this)
-                    return false; // 允许重复login|relogin，但不允许切换ServerId。
-
-                var socket = GlobalInstance.Rocks.Raft.Server.GetSocket(SessionId);
-                if (null == socket || socket == newSocket)
+                using (await Mutex.LockAsync())
                 {
-                    // old socket not exist or has lost.
-                    SessionId = newSocket.SessionId;
-                    newSocket.UserState = this;
-                    GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
-                    return true;
+                    if (newSocket.UserState != null && newSocket.UserState != this)
+                        return false; // 允许重复login|relogin，但不允许切换ServerId。
+
+                    var socket = GlobalInstance.Rocks.Raft.Server.GetSocket(SessionId);
+                    if (null == socket || socket == newSocket)
+                    {
+                        // old socket not exist or has lost or is same.
+                        SessionId = newSocket.SessionId;
+                        newSocket.UserState = this;
+                        GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
+                        return true;
+                    }
+                    // 每个ServerId只允许一个实例，已经存在了以后，旧的实例上有状态，阻止新的实例登录成功。
+                    return false;
                 }
-                // 每个ServerId只允许一个实例，已经存在了以后，旧的实例上有状态，阻止新的实例登录成功。
-                return false;
             }
 
-            public bool TryUnBindSocket(AsyncSocket oldSocket)
+            public async Task<bool> TryUnBindSocket(AsyncSocket oldSocket)
             {
-                // 这里检查比较严格，但是这些检查应该都不会出现。
+                using (await Mutex.LockAsync())
+                {
+                    // 这里检查比较严格，但是这些检查应该都不会出现。
 
-                if (oldSocket.UserState != this)
-                    return false; // not bind to this
+                    if (oldSocket.UserState != this)
+                        return false; // not bind to this
 
-                var socket = GlobalInstance.Rocks.Raft.Server.GetSocket(SessionId);
-                if (socket != oldSocket)
-                    return false; // not same socket
+                    var socket = GlobalInstance.Rocks.Raft.Server.GetSocket(SessionId);
+                    if (socket != null && socket != oldSocket)
+                        return false; // not same socket: socket is null 意味着当前绑定的已经关闭，此时也允许解除绑定。
 
-                SessionId = 0;
-                return true;
+                    SessionId = 0;
+                    return true;
+                }
             }
 
             public static bool Reduce(ConcurrentDictionary<int, CacheHolder> sessions, int serverId,

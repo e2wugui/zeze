@@ -238,21 +238,21 @@ namespace Zeze.Services
         {
             var rpc = p as Login;
             var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder(Config));
-            using var lockss = await session.Mutex.LockAsync();
+
+            if (false == await session.TryBindSocket(p.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
             {
-                if (false == session.TryBindSocket(p.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
-                {
-                    rpc.SendResultCode(LoginBindSocketFail);
-                    return 0;
-                }
-                // new login, 比如逻辑服务器重启。release old acquired.
-                foreach (var e in session.Acquired)
-                {
-                    // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-                    await ReleaseAsync(session, e.Key, false);
-                }
-                rpc.SendResultCode(0);
+                rpc.SendResultCode(LoginBindSocketFail);
+                return 0;
             }
+
+            // 只会有一个会话成功绑定并继续到达这里。
+            // new login, 比如逻辑服务器重启。release old acquired.
+            foreach (var e in session.Acquired)
+            {
+                // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
+                await ReleaseAsync(session, e.Key, false);
+            }
+            rpc.SendResultCode(0);
             return 0;
         }
 
@@ -260,15 +260,12 @@ namespace Zeze.Services
         {
             var rpc = p as ReLogin;
             var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder(Config));
-            using var lockss = await session.Mutex.LockAsync();
+            if (false == await session.TryBindSocket(p.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
             {
-                if (false == session.TryBindSocket(p.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
-                {
-                    rpc.SendResultCode(ReLoginBindSocketFail);
-                    return 0;
-                }
-                rpc.SendResultCode(0);
+                rpc.SendResultCode(ReLoginBindSocketFail);
+                return 0;
             }
+            rpc.SendResultCode(0);
             return 0;
         }
         
@@ -281,21 +278,18 @@ namespace Zeze.Services
                 return 0; // not login
             }
 
-            using var lockss = await session.Mutex.LockAsync();
+            if (false == await session.TryUnBindSocket(p.Sender))
             {
-                if (false == session.TryUnBindSocket(p.Sender))
-                {
-                    rpc.SendResultCode(NormalCloseUnbindFail);
-                    return 0;
-                }
-                foreach (var e in session.Acquired)
-                {
-                    // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-                    await ReleaseAsync(session, e.Key, false);
-                }
-                rpc.SendResultCode(0);
-                logger.Debug("After NormalClose global.Count={0}", global.Count);
+                rpc.SendResultCode(NormalCloseUnbindFail);
+                return 0;
             }
+            foreach (var e in session.Acquired)
+            {
+                // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
+                await ReleaseAsync(session, e.Key, false);
+            }
+            rpc.SendResultCode(0);
+            logger.Debug("After NormalClose global.Count={0}", global.Count);
             return 0;
         }
 
@@ -785,7 +779,7 @@ namespace Zeze.Services
             public int GlobalCacheManagerHashIndex { get; private set; } // UnBind 的时候不会重置，会一直保留到下一次Bind。
 
             public ConcurrentDictionary<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey, int> Acquired { get; }
-            public Nito.AsyncEx.AsyncLock Mutex { get; } = new Nito.AsyncEx.AsyncLock();
+            private Nito.AsyncEx.AsyncLock Mutex { get; } = new Nito.AsyncEx.AsyncLock();
 
             public CacheHolder(GCMConfig config)
             {
@@ -793,37 +787,42 @@ namespace Zeze.Services
                     config.ConcurrencyLevel, config.InitialCapacity);
             }
 
-            public bool TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex)
+            public async Task<bool> TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex)
             {
-                if (newSocket.UserState != null)
-                    return false; // 不允许再次绑定。Login Or ReLogin 只能发一次。
-
-                var socket = GlobalCacheManagerServer.Instance.Server.GetSocket(SessionId);
-                if (null == socket)
+                using (await Mutex.LockAsync())
                 {
-                    // old socket not exist or has lost.
-                    SessionId = newSocket.SessionId;
-                    newSocket.UserState = this;
-                    GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
-                    return true;
+                    if (newSocket.UserState != null)
+                        return false; // 不允许再次绑定。Login Or ReLogin 只能发一次。
+
+                    var socket = GlobalCacheManagerServer.Instance.Server.GetSocket(SessionId);
+                    if (null == socket)
+                    {
+                        // old socket not exist or has lost.
+                        SessionId = newSocket.SessionId;
+                        newSocket.UserState = this;
+                        GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
+                        return true;
+                    }
+                    // 每个AutoKeyLocalId只允许一个实例，已经存在了以后，旧的实例上有状态，阻止新的实例登录成功。
+                    return false;
                 }
-                // 每个AutoKeyLocalId只允许一个实例，已经存在了以后，旧的实例上有状态，阻止新的实例登录成功。
-                return false;
             }
 
-            public bool TryUnBindSocket(AsyncSocket oldSocket)
+            public async Task<bool> TryUnBindSocket(AsyncSocket oldSocket)
             {
                 // 这里检查比较严格，但是这些检查应该都不会出现。
+                using (await Mutex.LockAsync())
+                {
+                    if (oldSocket.UserState != this)
+                        return false; // not bind to this
 
-                if (oldSocket.UserState != this)
-                    return false; // not bind to this
+                    var socket = GlobalCacheManagerServer.Instance.Server.GetSocket(SessionId);
+                    if (socket != null && socket != oldSocket)
+                        return false; // not same socket: socket is null 意味着当前绑定的已经关闭，此时也允许解除绑定。
 
-                var socket = GlobalCacheManagerServer.Instance.Server.GetSocket(SessionId);
-                if (socket != oldSocket)
-                    return false; // not same socket
-
-                SessionId = 0;
-                return true;
+                    SessionId = 0;
+                    return true;
+                }
             }
             public override string ToString()
             {
@@ -1126,14 +1125,11 @@ namespace Zeze.Services.GlobalCacheManager
             base.OnSocketAccept(so);
         }
 
-        public override void OnSocketClose(AsyncSocket so, Exception e)
+        public override async void OnSocketClose(AsyncSocket so, Exception e)
         {
             var session = (GlobalCacheManagerServer.CacheHolder)so.UserState;
-            if (null == session)
-            {
-                // unbind when login
-                session.TryUnBindSocket(so);
-            }
+            // unbind when login
+            await session?.TryUnBindSocket(so);
             base.OnSocketClose(so, e);
         }
     }
