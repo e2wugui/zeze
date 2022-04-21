@@ -26,7 +26,7 @@ public class TestBag {
 
 	@Test
 	public final void test1_Add() throws Throwable {
-		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+		var ret = demo.App.getInstance().Zeze.NewProcedure(() -> {
 			var bag = App.getInstance().BagModule.open("test1");
 			bag.setCapacity(100);
 			for (int i = 100; i < 110; i++) {
@@ -36,61 +36,64 @@ public class TestBag {
 			}
 			var items = bag.getBean().getItems();
 			// 总共占用20个格子
-			assert items.size() == 20;
 			Assert.assertEquals(20, items.size());
 			return Procedure.Success;
 		}, "test1_Add").Call();
+		Assert.assertEquals(ret, Procedure.Success);
 	}
 
 	@Test
 	public final void test2_Move() throws Throwable {
-		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+		var ret = demo.App.getInstance().Zeze.NewProcedure(() -> {
 			var bag = demo.App.getInstance().BagModule.open("test1");
 			var items = bag.getBean().getItems();
-			assert items.size() == 20;
+			Assert.assertEquals(items.size(), 20);
 			for (int i = 0; i < 20; i += 2) {
 				bag.move(i, i + 1, 49);
-				assert items.get(i).getNumber() == 50;
-				assert items.get(i + 1).getNumber() == 50;
+				Assert.assertEquals(items.get(i).getNumber(), 50);
+				Assert.assertEquals(items.get(i + 1).getNumber(), 50);
 			}
 			return Procedure.Success;
 		}, "test2_Move").Call();
+		Assert.assertEquals(ret, Procedure.Success);
 	}
 
 	@Test
 	public final void test3_Remove() throws Throwable {
-		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+		var ret = demo.App.getInstance().Zeze.NewProcedure(() -> {
 			var bag = demo.App.getInstance().BagModule.open("test1");
 			var items = bag.getBean().getItems();
-			assert items.size() == 20;
+			Assert.assertEquals(items.size(), 20);
 			for (int i = 100; i < 110; i++) {
 				bag.remove(i, 50);
 			}
-			assert items.size() == 10;
+			Assert.assertEquals(items.size(), 10);
 			for (int i = 100; i < 110; i++) {
 				bag.remove(i, 10);
 			}
 			for (int i = 1; i < 20; i += 2) {
-				assert items.get(i).getNumber() == 40;
+				Assert.assertEquals(items.get(i).getNumber(), 40);
 			}
 			return Procedure.Success;
 		}, "test3_Remove").Call();
+		Assert.assertEquals(ret, Procedure.Success);
 	}
 
 	@Test
 	public final void test4_Move() throws Throwable {
-		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+		var ret = demo.App.getInstance().Zeze.NewProcedure(() -> {
 			var bag = demo.App.getInstance().BagModule.open("test1");
 			var items = bag.getBean().getItems();
-			assert items.size() == 10;
+			Assert.assertEquals(items.size(), 10);
 			// 移动物品到空格子
 			for (int i = 0; i < 20; i += 2) {
 				bag.move(i + 1, i, 20);
-				assert items.get(i).getNumber() == 20;
-				assert items.get(i + 1).getNumber() == 20;
+				Assert.assertEquals(items.get(i).getNumber(), 20);
+				Assert.assertEquals(items.get(i + 1).getNumber(), 20);
 			}
-			assert items.size() == 20;
+			Assert.assertEquals(items.size(), 20);
 			return Procedure.Success;
-		}, "test2_Move").Call();
+		}, "test4_Move").Call();
+		Assert.assertEquals(ret, Procedure.Success);
 	}
 }

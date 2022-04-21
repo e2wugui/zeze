@@ -5,6 +5,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log1;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
+import org.junit.Assert;
 
 public class MyBean extends Bean {
 	@Override
@@ -42,7 +43,7 @@ public class MyBean extends Bean {
 
 	public final int getI() {
 		var txn = Transaction.getCurrent();
-		if(null == txn)
+		if (null == txn)
 			return _i;
 		MyBean.MyLog log = (MyBean.MyLog)txn.GetLog(this.getObjectId() + 0);
 		return (null != log) ? log.getValue() : _i;
@@ -50,7 +51,7 @@ public class MyBean extends Bean {
 
 	public final void setI(int value) {
 		var txn = Transaction.getCurrent();
-		assert null != txn;
+		Assert.assertNotNull(txn);
 		txn.PutLog(new MyBean.MyLog(this, value));
 	}
 }

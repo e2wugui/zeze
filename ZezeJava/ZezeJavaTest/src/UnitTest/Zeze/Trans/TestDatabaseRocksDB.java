@@ -8,13 +8,12 @@ import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseMySql;
 import Zeze.Transaction.DatabaseRocksDb;
 import junit.framework.TestCase;
+import org.junit.Assert;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-public class TestDatabaseRocksDB extends TestCase{
-
-
+public class TestDatabaseRocksDB extends TestCase {
 
 	public final void test1() throws UnknownHostException {
 		DatabaseRocksDb db = getDatabaseRocksDb();
@@ -34,7 +33,7 @@ public class TestDatabaseRocksDB extends TestCase{
 				}
 				trans.Commit();
 			}
-			assert 0 == table.Walk(this::PrintRecord);
+			Assert.assertEquals(0, table.Walk(this::PrintRecord));
 			{
 				var trans = db.BeginTransaction();
 				{
@@ -57,19 +56,19 @@ public class TestDatabaseRocksDB extends TestCase{
 				ByteBuffer key = ByteBuffer.Allocate();
 				key.WriteInt(1);
 				ByteBuffer value = table.Find(key);
-				assert value != null;
-				assert 1 == value.ReadInt();
-				assert value.ReadIndex == value.WriteIndex;
+				Assert.assertNotNull(value);
+				Assert.assertEquals(1, value.ReadInt());
+				Assert.assertEquals(value.ReadIndex, value.WriteIndex);
 			}
 			{
 				ByteBuffer key = ByteBuffer.Allocate();
 				key.WriteInt(2);
 				ByteBuffer value = table.Find(key);
-				assert value != null;
-				assert 2 == value.ReadInt();
-				assert value.ReadIndex == value.WriteIndex;
+				Assert.assertNotNull(value);
+				Assert.assertEquals(2, value.ReadInt());
+				Assert.assertEquals(value.ReadIndex, value.WriteIndex);
 			}
-			assert 2 == table.Walk(this::PrintRecord);
+			Assert.assertEquals(2, table.Walk(this::PrintRecord));
 		} finally {
 			db.Close();
 		}
@@ -78,11 +77,11 @@ public class TestDatabaseRocksDB extends TestCase{
 	/**
 	 * 执行test1插入数据后 ,再次启动db查看数据是否依然存在
 	 */
-	public final void test2(){
+	public final void test2() {
 		DatabaseRocksDb db = getDatabaseRocksDb();
 		try {
 			Database.Table table = db.OpenTable("test_1");
-			assert 2 == table.Walk(this::PrintRecord);
+			Assert.assertEquals(2, table.Walk(this::PrintRecord));
 		} finally {
 			db.Close();
 		}

@@ -2,6 +2,7 @@ package UnitTest.Zeze.Component;
 
 import Zeze.Transaction.Procedure;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
 import org.junit.Test;
@@ -28,13 +29,13 @@ public class TestAutoKey {
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
 			var autoKey = demo.App.getInstance().Zeze.GetAutoKey("test1");
 			var id = autoKey.nextId();
-			assert id == 1;
+			Assert.assertEquals(id, 1);
 			return Procedure.Success;
 		}, "test1_AutoKey").Call();
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
 			var autoKey = demo.App.getInstance().Zeze.GetAutoKey("test1");
 			var id = autoKey.nextId();
-			assert id == 2;
+			Assert.assertEquals(id, 2);
 			return Procedure.Success;
 		}, "test1_AutoKey").Call();
 	}
@@ -45,13 +46,13 @@ public class TestAutoKey {
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
 			var autoKey = demo.App.getInstance().Zeze.GetAutoKey("test1");
 			var id = autoKey.nextId();
-			assert id == 501;
+			Assert.assertEquals(id, 501);
 			return Procedure.Success;
 		}, "test2_AutoKey").Call();
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
 			var autoKey = demo.App.getInstance().Zeze.GetAutoKey("test1");
 			var id = autoKey.nextId();
-			assert id == 502;
+			Assert.assertEquals(id, 502);
 			return Procedure.Success;
 		}, "test2_AutoKey").Call();
 	}
@@ -62,13 +63,13 @@ public class TestAutoKey {
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
 			var autoKey = demo.App.getInstance().Zeze.GetAutoKey("test1");
 			var id = autoKey.nextId();
-			assert id == 1001;
+			Assert.assertEquals(id, 1001);
 			return Procedure.Success;
 		}, "test3_AutoKey").Call();
 		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
 			var autoKey = demo.App.getInstance().Zeze.GetAutoKey("test1");
 			var id = autoKey.nextId();
-			assert id == 1002;
+			Assert.assertEquals(id, 1002);
 			return Procedure.Success;
 		}, "test3_AutoKey").Call();
 	}

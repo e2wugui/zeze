@@ -6,6 +6,7 @@ import Zeze.Util.OutLong;
 import Zeze.Util.Task;
 import demo.App;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -78,6 +79,6 @@ public class TestProcedureRedo {
 
         ftask2.get();
         ftask1.get();
-        assert outLong2.Value == 200;
+        Assert.assertEquals(outLong2.Value, 200);
     }
 }

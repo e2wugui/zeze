@@ -7,12 +7,13 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseMySql;
 import junit.framework.TestCase;
+import org.junit.Assert;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Properties;
 
-public class TestDatabaseMySql extends TestCase{
+public class TestDatabaseMySql extends TestCase {
 
 	public static boolean checkDriverClassExist(String driverClassName) {
 		try {
@@ -28,11 +29,11 @@ public class TestDatabaseMySql extends TestCase{
 		var hostName = InetAddress.getLocalHost().getHostName();
 		System.out.println("hostName=" + hostName);
 		switch (hostName) {
-			case "DESKTOP-DVFC8AI": // lichenghua's computer
-				return "jdbc:mysql://localhost/devtest?user=dev&password=devtest12345&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
+		case "DESKTOP-DVFC8AI": // lichenghua's computer
+			return "jdbc:mysql://localhost/devtest?user=dev&password=devtest12345&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
 
-			default:
-				return "jdbc:mysql://localhost:3306/mysql?user=root&password=123&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
+		default:
+			return "jdbc:mysql://localhost:3306/mysql?user=root&password=123&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
 		}
 	}
 
@@ -48,26 +49,32 @@ public class TestDatabaseMySql extends TestCase{
 		databaseConf.setDbcpConf(new Config.DbcpConf());
 
 		DatabaseMySql sqlserver = new DatabaseMySql(databaseConf);
-		Database.Table table = sqlserver.OpenTable("test_1"); {
-			var trans = sqlserver.BeginTransaction(); {
+		Database.Table table = sqlserver.OpenTable("test_1");
+		{
+			var trans = sqlserver.BeginTransaction();
+			{
 				ByteBuffer key = ByteBuffer.Allocate();
 				key.WriteInt(1);
 				table.Remove(trans, key);
-			} {
+			}
+			{
 				ByteBuffer key = ByteBuffer.Allocate();
 				key.WriteInt(2);
 				table.Remove(trans, key);
 			}
 			trans.Commit();
 		}
-		assert 0 == table.Walk(this::PrintRecord); {
-			var trans = sqlserver.BeginTransaction(); {
+		Assert.assertEquals(0, table.Walk(this::PrintRecord));
+		{
+			var trans = sqlserver.BeginTransaction();
+			{
 				ByteBuffer key = ByteBuffer.Allocate();
 				key.WriteInt(1);
 				ByteBuffer value = ByteBuffer.Allocate();
 				value.WriteInt(1);
 				table.Replace(trans, key, value);
-			} {
+			}
+			{
 				ByteBuffer key = ByteBuffer.Allocate();
 				key.WriteInt(2);
 				ByteBuffer value = ByteBuffer.Allocate();
@@ -75,22 +82,24 @@ public class TestDatabaseMySql extends TestCase{
 				table.Replace(trans, key, value);
 			}
 			trans.Commit();
-		} {
+		}
+		{
 			ByteBuffer key = ByteBuffer.Allocate();
 			key.WriteInt(1);
 			ByteBuffer value = table.Find(key);
-			assert value != null;
-			assert 1 == value.ReadInt();
-			assert value.ReadIndex == value.WriteIndex;
-		} {
+			Assert.assertNotNull(value);
+			Assert.assertEquals(1, value.ReadInt());
+			Assert.assertEquals(value.ReadIndex, value.WriteIndex);
+		}
+		{
 			ByteBuffer key = ByteBuffer.Allocate();
 			key.WriteInt(2);
 			ByteBuffer value = table.Find(key);
-			assert value != null;
-			assert 2 == value.ReadInt();
-			assert value.ReadIndex == value.WriteIndex;
+			Assert.assertNotNull(value);
+			Assert.assertEquals(2, value.ReadInt());
+			Assert.assertEquals(value.ReadIndex, value.WriteIndex);
 		}
-		assert 2 == table.Walk(this::PrintRecord);
+		Assert.assertEquals(2, table.Walk(this::PrintRecord));
 	}
 
 	public final boolean PrintRecord(byte[] key, byte[] value) {

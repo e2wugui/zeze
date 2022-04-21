@@ -5,6 +5,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.OutInt;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -20,13 +21,12 @@ public class TestTableNestAction {
 		demo.App.getInstance().Stop();
 	}
 
-
 	@Test
-	public final void testNestProcedure() throws Throwable{
+	public final void testNestProcedure() throws Throwable {
 
 		var value1 = new OutInt();
 		var value2 = new OutInt();
-		demo.App.getInstance().Zeze.NewProcedure( () -> {
+		demo.App.getInstance().Zeze.NewProcedure(() -> {
 
 			Transaction.getCurrent().RunWhileCommit(() -> {
 				value1.Value++; //1
@@ -40,7 +40,7 @@ public class TestTableNestAction {
 				});
 
 				Transaction.getCurrent().RunWhileRollback(() -> {
-					assert value1.Value == value2.Value + 1;
+					Assert.assertEquals(value1.Value, value2.Value + 1);
 					value2.Value++; // 1
 					System.out.println(value1.Value);
 					System.out.println(value2.Value);
@@ -51,10 +51,9 @@ public class TestTableNestAction {
 			demo.App.getInstance().Zeze.NewProcedure(() -> {
 
 				Transaction.getCurrent().RunWhileCommit(() -> {
-					assert Objects.equals(value1.Value, value2.Value);
+					Assert.assertEquals(value1.Value, value2.Value);
 					value1.Value++; // 2
 				});
-
 
 				demo.App.getInstance().Zeze.NewProcedure(() -> {
 
@@ -63,7 +62,7 @@ public class TestTableNestAction {
 					});
 
 					Transaction.getCurrent().RunWhileRollback(() -> {
-						assert value1.Value == value2.Value + 1;
+						Assert.assertEquals(value1.Value, value2.Value + 1);
 						value2.Value++; // 2
 						System.out.println(value1.Value);
 						System.out.println(value2.Value);
@@ -74,16 +73,15 @@ public class TestTableNestAction {
 				return Procedure.Success;
 			}, "nest procedure2").Call();
 
-
 			Transaction.getCurrent().RunWhileCommit(() -> {
-				assert value1.Value == value2.Value;
+				Assert.assertEquals(value1.Value, value2.Value);
 				value1.Value++; // 3
 			});
 			return Procedure.Success;
 		}, "out").Call();
 
-		assert value1.Value == 3;
-		assert value2.Value == 2;
+		Assert.assertEquals(value1.Value, 3);
+		Assert.assertEquals(value2.Value, 2);
 
 	}
 }

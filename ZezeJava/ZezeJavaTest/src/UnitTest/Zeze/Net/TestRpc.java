@@ -7,6 +7,7 @@ import Zeze.Net.Service;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Factory;
 import junit.framework.TestCase;
+import org.junit.Assert;
 
 public class TestRpc extends TestCase {
 	Zeze.Util.TaskCompletionSource<AsyncSocket> connected = new Zeze.Util.TaskCompletionSource<>();
@@ -31,7 +32,7 @@ public class TestRpc extends TestCase {
 		//Console.WriteLine("SendFirstRpcRequest");
 		first.SendForWait(clientSocket).await();
 		//Console.WriteLine("FirstRpc Wait End");
-		assert first.Argument.getInt1() == first.Result.getInt1();
+		Assert.assertEquals(first.Argument.getInt1(), first.Result.getInt1());
 	}
 
 	public final long ProcessFirstRpcRequest(Protocol<?> p) {

@@ -1,13 +1,14 @@
 package UnitTest.Zeze.Trans;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import Zeze.Transaction.*;
 
-public class TestTableNest{
-	
+public class TestTableNest {
+
 	@Before
 	public final void testInit() throws Throwable {
 		demo.App.getInstance().Start();
@@ -20,8 +21,8 @@ public class TestTableNest{
 
 	@Test
 	public final void testNest() throws Throwable {
-		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(this::ProcTableRemove, "ProcTableRemove").Call();
-		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(this::ProcTableAdd, "ProcTableAdd").Call();
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(this::ProcTableRemove, "ProcTableRemove").Call());
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(this::ProcTableAdd, "ProcTableAdd").Call());
 	}
 
 	private long ProcTableRemove() {
@@ -31,11 +32,11 @@ public class TestTableNest{
 
 	private long ProcTableAdd() throws Throwable {
 		demo.Module1.Value v1 = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(4321L);
-		assert v1 != null;
-		assert Procedure.Success != demo.App.getInstance().Zeze.NewProcedure(this::ProcTablePutNestAndRollback, "ProcTablePutNestAndRollback").Call();
+		Assert.assertNotNull(v1);
+		Assert.assertNotEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(this::ProcTablePutNestAndRollback, "ProcTablePutNestAndRollback").Call());
 		demo.Module1.Value v2 = demo.App.getInstance().demo_Module1.getTable1().get(4321L);
-		assert v1 != null;
-		assert v1.equals(v2);
+		Assert.assertNotNull(v1);
+		Assert.assertEquals(v1, v2);
 		return Procedure.Success;
 	}
 

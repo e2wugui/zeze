@@ -9,9 +9,10 @@ import Zeze.Transaction.TableKey;
 import Zeze.Util.OutObject;
 import Zeze.Util.WeakHashSet;
 import junit.framework.TestCase;
+import org.junit.Assert;
 
-public class TestLock extends TestCase{
-	
+public class TestLock extends TestCase {
+
 	public final void test() {
 		// DEBUG 下垃圾回收策略导致 WeakReference 不回收。
 //#if RELEASE
@@ -19,16 +20,16 @@ public class TestLock extends TestCase{
 		demo.Module1.Key key1 = new demo.Module1.Key((short)1);
 		demo.Module1.Key key2 = new demo.Module1.Key((short)1);
 
-		assert null == keys.get(key1);
+		Assert.assertEquals(null, keys.get(key1));
 		keys.add(key1);
 
 		demo.Module1.Key exist1 = keys.get(key1);
-		assert null != exist1;
-		assert exist1 == key1;
+		Assert.assertNotNull(exist1);
+		Assert.assertEquals(exist1, key1);
 
 		demo.Module1.Key exist2 = keys.get(key2);
-		assert null != exist2;
-		assert exist2.equals(key1);
+		Assert.assertNotNull(exist2);
+		Assert.assertEquals(exist2, key1);
 
 		key1 = null;
 		key2 = null;
@@ -51,15 +52,16 @@ public class TestLock extends TestCase{
 				break;
 		}
 
-		assert null == wref.get();
+		Assert.assertEquals(null, wref.get());
 
 		demo.Module1.Key key3 = new demo.Module1.Key((short)1);
 		System.out.println("test: is null.");
-		assert null == keys.get(key3);
+		Assert.assertEquals(null, keys.get(key3));
 //#endif
 	}
 
 	private Zeze.Transaction.Locks Locks = new Zeze.Transaction.Locks();
+
 	public final void test1() {
 		Locks locks = Locks;
 
@@ -69,19 +71,19 @@ public class TestLock extends TestCase{
 		Lockey lock1 = new Lockey(tk1);
 		Lockey lock2 = new Lockey(tk2);
 
-		assert lock1.equals(lock2);
+		Assert.assertEquals(lock1, lock2);
 
 		Lockey lock1ref = locks.Get(lock1);
-		assert lock1ref.equals(lock1); // first Get. self
+		Assert.assertEquals(lock1ref, lock1); // first Get. self
 
 		Lockey lock2ref = locks.Get(lock2);
-		assert lock2ref.equals(lock1); // second Get. the exist
+		Assert.assertEquals(lock2ref, lock1); // second Get. the exist
 
 		TableKey tk3 = new TableKey("1", 2);
 		Lockey lock3 = new Lockey(tk3);
 		Lockey lock3ref = locks.Get(lock3);
-		assert lock3ref.equals(lock3);
-		assert !(lock3ref.equals(lock1));
+		Assert.assertEquals(lock3ref, lock3);
+		Assert.assertNotEquals(lock3ref, lock1);
 	}
 
 	public final void testRecursion1() {
@@ -108,7 +110,8 @@ public class TestLock extends TestCase{
 
 	public final void testRwlock() {
 		var rw = new ReentrantReadWriteLock();
-		rw.readLock().lock();;
+		rw.readLock().lock();
+		;
 		//rw.writeLock().lock(); // 会死锁。java没有对这种情况报错。
 		//rw.writeLock().unlock();
 		rw.readLock().unlock();

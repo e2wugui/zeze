@@ -2,6 +2,7 @@ package UnitTest.Zeze.Trans;
 
 import demo.App;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -63,20 +64,20 @@ public class TestCheckpoint{
 
 		var table = demo.App.getInstance().demo_Module1.getTable1();
 		var dbtable = table.InternalGetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable();
-		assert null != dbtable.Find(table.EncodeKey(2L));
-		assert null != dbtable.Find(table.EncodeKey(4L));
-		assert null != dbtable.Find(table.EncodeKey(3L));
+		Assert.assertNotNull(dbtable.Find(table.EncodeKey(2L)));
+		Assert.assertNotNull(dbtable.Find(table.EncodeKey(4L)));
+		Assert.assertNotNull(dbtable.Find(table.EncodeKey(3L)));
 	}
 
 	@Test
 	public final void testCp() throws Throwable {
-		assert demo.App.getInstance().Zeze.NewProcedure(this::ProcClear, "ProcClear").Call() == Procedure.Success;
-		assert demo.App.getInstance().Zeze.NewProcedure(this::ProcChange, "ProcChange").Call() == Procedure.Success;
+		Assert.assertEquals(demo.App.getInstance().Zeze.NewProcedure(this::ProcClear, "ProcClear").Call(), Procedure.Success);
+		Assert.assertEquals(demo.App.getInstance().Zeze.NewProcedure(this::ProcChange, "ProcChange").Call(), Procedure.Success);
 		demo.App.getInstance().Zeze.CheckpointRun();
 		demo.Module1.Table1 table = demo.App.getInstance().demo_Module1.getTable1();
 		ByteBuffer value = table.InternalGetStorageForTestOnly("IKnownWhatIAmDoing").getDatabaseTable().Find(table.EncodeKey(56L));
-		assert value != null;
-		assert value.equals(bytesInTrans);
+		Assert.assertNotNull(value);
+		Assert.assertEquals(value, bytesInTrans);
 	}
 
 	private long ProcClear() {

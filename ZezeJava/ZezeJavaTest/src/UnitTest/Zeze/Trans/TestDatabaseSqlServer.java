@@ -7,6 +7,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseSqlServer;
 import junit.framework.TestCase;
+import org.junit.Assert;
 
 public class TestDatabaseSqlServer extends TestCase {
 
@@ -24,26 +25,32 @@ public class TestDatabaseSqlServer extends TestCase {
 		databaseConf.setDbcpConf(new Config.DbcpConf());
 
 		DatabaseSqlServer sqlserver = new DatabaseSqlServer(databaseConf);
-		Database.Table table = sqlserver.OpenTable("test1"); {
-			var trans = sqlserver.BeginTransaction(); {
+		Database.Table table = sqlserver.OpenTable("test1");
+		{
+			var trans = sqlserver.BeginTransaction();
+			{
 				ByteBuffer key = ByteBuffer.Allocate();
 				key.WriteInt(1);
 				table.Remove(trans, key);
-			} {
+			}
+			{
 				ByteBuffer key = ByteBuffer.Allocate();
 				key.WriteInt(2);
 				table.Remove(trans, key);
 			}
 			trans.Commit();
 		}
-		assert 0 == table.Walk(this::PrintRecord); {
-			var trans = sqlserver.BeginTransaction(); {
+		Assert.assertEquals(0, table.Walk(this::PrintRecord));
+		{
+			var trans = sqlserver.BeginTransaction();
+			{
 				ByteBuffer key = ByteBuffer.Allocate();
 				key.WriteInt(1);
 				ByteBuffer value = ByteBuffer.Allocate();
 				value.WriteInt(1);
 				table.Replace(trans, key, value);
-			} {
+			}
+			{
 				ByteBuffer key = ByteBuffer.Allocate();
 				key.WriteInt(2);
 				ByteBuffer value = ByteBuffer.Allocate();
@@ -51,22 +58,24 @@ public class TestDatabaseSqlServer extends TestCase {
 				table.Replace(trans, key, value);
 			}
 			trans.Commit();
-		} {
+		}
+		{
 			ByteBuffer key = ByteBuffer.Allocate();
 			key.WriteInt(1);
 			ByteBuffer value = table.Find(key);
-			assert value != null;
-			assert 1 == value.ReadInt();
-			assert value.ReadIndex == value.WriteIndex;
-		} {
+			Assert.assertNotNull(value);
+			Assert.assertEquals(1, value.ReadInt());
+			Assert.assertEquals(value.ReadIndex, value.WriteIndex);
+		}
+		{
 			ByteBuffer key = ByteBuffer.Allocate();
 			key.WriteInt(2);
 			ByteBuffer value = table.Find(key);
-			assert value != null;
-			assert 2 == value.ReadInt();
-			assert value.ReadIndex == value.WriteIndex;
+			Assert.assertNotNull(value);
+			Assert.assertEquals(2, value.ReadInt());
+			Assert.assertEquals(value.ReadIndex, value.WriteIndex);
 		}
-		assert 2 == table.Walk(this::PrintRecord);
+		Assert.assertEquals(2, table.Walk(this::PrintRecord));
 	}
 
 	public final boolean PrintRecord(byte[] key, byte[] value) {

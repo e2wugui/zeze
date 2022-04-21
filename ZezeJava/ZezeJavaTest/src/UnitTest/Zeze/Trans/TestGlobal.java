@@ -11,8 +11,9 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Task;
 import junit.framework.TestCase;
+import org.junit.Assert;
 
-public class TestGlobal extends TestCase{
+public class TestGlobal extends TestCase {
 	public static class PrintLog extends Log1<demo.Module1.Value, demo.Module1.Value> {
 		private static final Logger logger = LogManager.getLogger(TestGlobal.class);
 
@@ -20,6 +21,7 @@ public class TestGlobal extends TestCase{
 		private int oldInt;
 		private int appId;
 		private boolean eq = false;
+
 		public PrintLog(Bean bean, demo.Module1.Value value, int appId) {
 			super(bean, value);
 			int last = lastInt;
@@ -59,15 +61,15 @@ public class TestGlobal extends TestCase{
 		demo.App app2 = new demo.App();
 		var config1 = Config.Load("zeze.xml");
 		var config2 = Config.Load("zeze.xml");
-		config2.setServerId( config1.getServerId() + 1);
+		config2.setServerId(config1.getServerId() + 1);
 
 		app1.Start(config1);
 		app2.Start(config2);
 		try {
 			// 只删除一个app里面的记录就够了。
 			assert Procedure.Success == app1.Zeze.NewProcedure(() -> {
-					app1.demo_Module1.getTable1().remove(6785L);
-					return Procedure.Success;
+				app1.demo_Module1.getTable1().remove(6785L);
+				return Procedure.Success;
 			}, "RemoveClean").Call();
 
 			Future<?>[] task2 = new Future[2];
@@ -82,19 +84,18 @@ public class TestGlobal extends TestCase{
 			}
 			int countall = count * 2;
 			assert Procedure.Success == app1.Zeze.NewProcedure(() -> {
-					int last1 = app1.demo_Module1.getTable1().get(6785L).getInt1();
-					System.out.println("app1 " + last1);
-					assert countall == last1;
-					return Procedure.Success;
+				int last1 = app1.demo_Module1.getTable1().get(6785L).getInt1();
+				System.out.println("app1 " + last1);
+				Assert.assertEquals(countall, last1);
+				return Procedure.Success;
 			}, "CheckResult1").Call();
 			assert Procedure.Success == app2.Zeze.NewProcedure(() -> {
-					int last2 = app2.demo_Module1.getTable1().get(6785L).getInt1();
+				int last2 = app2.demo_Module1.getTable1().get(6785L).getInt1();
 				System.out.println("app2 " + last2);
-					assert countall == last2;
-					return Procedure.Success;
+				Assert.assertEquals(countall, last2);
+				return Procedure.Success;
 			}, "CheckResult2").Call();
-		}
-		finally {
+		} finally {
 			app1.Stop();
 			app2.Stop();
 		}
@@ -103,12 +104,12 @@ public class TestGlobal extends TestCase{
 	private void ConcurrentAdd(demo.App app, int count, int appId) {
 		Future<?>[] tasks = new Future[count];
 		for (int i = 0; i < tasks.length; ++i) {
-			tasks[i] = Zeze.Util.Task.run(app.Zeze.NewProcedure(()-> {
-					demo.Module1.Value b = app.demo_Module1.getTable1().getOrAdd(6785l);
-					b.setInt1(b.getInt1()+1);
-					PrintLog log = new PrintLog(b, b, appId);
-					Transaction.getCurrent().PutLog(log);
-					return Procedure.Success;
+			tasks[i] = Zeze.Util.Task.run(app.Zeze.NewProcedure(() -> {
+				demo.Module1.Value b = app.demo_Module1.getTable1().getOrAdd(6785l);
+				b.setInt1(b.getInt1() + 1);
+				PrintLog log = new PrintLog(b, b, appId);
+				Transaction.getCurrent().PutLog(log);
+				return Procedure.Success;
 			}, "ConcurrentAdd" + appId), null, null);
 		}
 		for (int i = 0; i < tasks.length; ++i) {
