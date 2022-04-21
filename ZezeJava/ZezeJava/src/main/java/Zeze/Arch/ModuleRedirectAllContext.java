@@ -1,7 +1,7 @@
 package Zeze.Arch;
 
 import java.util.function.Function;
-import Zeze.Beans.ProviderDirect.ModuleRedirectAllResult;
+import Zeze.Builtin.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.IntHashMap;

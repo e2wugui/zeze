@@ -1,7 +1,7 @@
 package Zeze.Transaction;
 
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManagerServer;

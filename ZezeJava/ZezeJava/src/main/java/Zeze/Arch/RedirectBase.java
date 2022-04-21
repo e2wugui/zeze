@@ -2,10 +2,10 @@ package Zeze.Arch;
 
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Arch.Gen.GenModule;
-import Zeze.Beans.ProviderDirect.BModuleRedirectAllHash;
-import Zeze.Beans.ProviderDirect.ModuleRedirect;
-import Zeze.Beans.ProviderDirect.ModuleRedirectAllRequest;
-import Zeze.Beans.ProviderDirect.ModuleRedirectAllResult;
+import Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash;
+import Zeze.Builtin.ProviderDirect.ModuleRedirect;
+import Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest;
+import Zeze.Builtin.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Transaction.Procedure;

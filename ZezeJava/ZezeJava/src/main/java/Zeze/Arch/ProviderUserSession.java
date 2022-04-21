@@ -1,6 +1,6 @@
 package Zeze.Arch;
 
-import Zeze.Beans.Provider.Send;
+import Zeze.Builtin.Provider.Send;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;

@@ -1,11 +1,11 @@
 package Zeze.Arch;
 
 import java.util.HashMap;
-import Zeze.Beans.Provider.AnnounceLinkInfo;
-import Zeze.Beans.Provider.BKick;
-import Zeze.Beans.Provider.BModule;
-import Zeze.Beans.Provider.Dispatch;
-import Zeze.Beans.Provider.Kick;
+import Zeze.Builtin.Provider.AnnounceLinkInfo;
+import Zeze.Builtin.Provider.BKick;
+import Zeze.Builtin.Provider.BModule;
+import Zeze.Builtin.Provider.Dispatch;
+import Zeze.Builtin.Provider.Kick;
 import Zeze.Net.AsyncSocket;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.SubscribeInfo;

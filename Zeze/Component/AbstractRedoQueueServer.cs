@@ -4,19 +4,19 @@ namespace Zeze.Component
     public abstract class AbstractRedoQueueServer : Zeze.IModule 
     {
         public const int ModuleId = 11010;
-        public override string FullName => "Zeze.Beans.RedoQueue";
+        public override string FullName => "Zeze.Builtin.RedoQueue";
         public override string Name => "RedoQueue";
         public override int Id => ModuleId;
 
-        internal Zeze.Beans.RedoQueue.tQueueLastTaskId _tQueueLastTaskId = new Zeze.Beans.RedoQueue.tQueueLastTaskId();
+        internal Zeze.Builtin.RedoQueue.tQueueLastTaskId _tQueueLastTaskId = new Zeze.Builtin.RedoQueue.tQueueLastTaskId();
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {
             // register protocol factory and handles
             var _reflect = new Zeze.Util.Reflect(this.GetType());
-            service.AddFactoryHandle(47289196145593, new Zeze.Net.Service.ProtocolFactoryHandle()
+            service.AddFactoryHandle(47289120801215, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
-                Factory = () => new Zeze.Beans.RedoQueue.RunTask(),
+                Factory = () => new Zeze.Builtin.RedoQueue.RunTask(),
                 Handle = ProcessRunTaskRequest,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessRunTaskRequest", Zeze.Transaction.TransactionLevel.Serializable),
             });
@@ -24,7 +24,7 @@ namespace Zeze.Component
 
         public void UnRegisterProtocols(Zeze.Net.Service service)
         {
-            service.Factorys.TryRemove(47289196145593, out var _);
+            service.Factorys.TryRemove(47289120801215, out var _);
         }
 
         public void RegisterZezeTables(Zeze.Application zeze)

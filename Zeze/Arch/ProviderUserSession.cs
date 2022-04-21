@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Zeze.Beans.Provider;
+using Zeze.Builtin.Provider;
 using Zeze.Net;
 
 namespace Zeze.Arch

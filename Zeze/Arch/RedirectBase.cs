@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using Zeze.Net;
 using System;
-using Zeze.Beans.ProviderDirect;
+using Zeze.Builtin.ProviderDirect;
 using static Zeze.Net.Service;
 using System.Collections.Generic;
 using System.Threading.Tasks;

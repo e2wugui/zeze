@@ -3,7 +3,7 @@ package Zeze.Services.GlobalCacheManager;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
-import Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey;
 
 public class Param2 extends Bean {
     public GlobalTableKey GlobalTableKey; // 没有初始化，使用时注意

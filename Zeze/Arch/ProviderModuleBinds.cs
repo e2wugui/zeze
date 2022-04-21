@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
-using Zeze.Beans.Provider;
+using Zeze.Builtin.Provider;
 using Zeze.Services.ServiceManager;
 
 namespace Zeze.Arch

@@ -1,17 +1,7 @@
 package Zeze.Arch;
 
-import Zeze.Beans.LinkdBase.BReportError;
-import Zeze.Beans.Provider.AnnounceProviderInfo;
-import Zeze.Beans.Provider.BBind;
-import Zeze.Beans.Provider.BModule;
-import Zeze.Beans.Provider.Bind;
-import Zeze.Beans.Provider.Broadcast;
-import Zeze.Beans.Provider.Kick;
-import Zeze.Beans.Provider.Send;
-import Zeze.Beans.Provider.SendConfirm;
-import Zeze.Beans.Provider.SetUserState;
-import Zeze.Beans.Provider.Subscribe;
-import Zeze.Beans.Provider.UnBind;
+import Zeze.Builtin.LinkdBase.BReportError;
+import Zeze.Builtin.Provider.*;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;

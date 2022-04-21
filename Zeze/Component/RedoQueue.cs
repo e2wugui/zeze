@@ -3,7 +3,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Text;
 using System.Threading.Tasks;
-using Zeze.Beans.RedoQueue;
+using Zeze.Builtin.RedoQueue;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Transaction;

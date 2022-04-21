@@ -4,11 +4,11 @@ namespace Zeze.Game
     public abstract class AbstractRank : Zeze.IModule 
     {
         public const int ModuleId = 11015;
-        public override string FullName => "Zeze.Beans.Game.Rank";
+        public override string FullName => "Zeze.Builtin.Game.Rank";
         public override string Name => "Rank";
         public override int Id => ModuleId;
 
-        internal Zeze.Beans.Game.Rank.trank _trank = new Zeze.Beans.Game.Rank.trank();
+        internal Zeze.Builtin.Game.Rank.trank _trank = new Zeze.Builtin.Game.Rank.trank();
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {

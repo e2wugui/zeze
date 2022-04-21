@@ -6,10 +6,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import Zeze.Arch.ProviderService;
 import Zeze.Arch.ProviderUserSession;
-import Zeze.Beans.Game.Bag.BBag;
-import Zeze.Beans.Game.Bag.BItem;
-import Zeze.Beans.Game.Bag.tbag;
+import Zeze.Builtin.Game.Bag.BBag;
+import Zeze.Builtin.Game.Bag.BItem;
+import Zeze.Builtin.Game.Bag.tbag;
 import Zeze.Collections.BeanFactory;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Collections.PMap2;
@@ -307,6 +308,13 @@ public class Bag {
     public static class Module extends AbstractBag {
         private ConcurrentHashMap<String, Bag> Bags = new ConcurrentHashMap<>();
 
+        // 用于UserApp服务，可以处理客户端发送的协议。
+        public Module(ProviderService ps) {
+            RegisterProtocols(ps);
+            RegisterZezeTables(ps.getZeze());
+        }
+
+        // 用于数据测试，测试不支持协议。
         public Module(Zeze.Application zeze) {
             RegisterZezeTables(zeze);
         }
@@ -343,7 +351,7 @@ public class Bag {
         }
 
         @Override
-        protected long ProcessDestroyRequest (Zeze.Beans.Game.Bag.Destroy r){
+        protected long ProcessDestroyRequest (Zeze.Builtin.Game.Bag.Destroy r){
             var session = ProviderUserSession.Get(r);
             var moduleCode = open(r.Argument.getBagName()).destory(r.Argument.getPosition());
             if (0 != moduleCode) {
@@ -354,7 +362,7 @@ public class Bag {
         }
 
         @Override
-        protected long ProcessMoveRequest (Zeze.Beans.Game.Bag.Move r){
+        protected long ProcessMoveRequest (Zeze.Builtin.Game.Bag.Move r){
             var session = ProviderUserSession.Get(r);
             // throw exception if not login
             var moduleCode = open(r.Argument.getBagName()).move(

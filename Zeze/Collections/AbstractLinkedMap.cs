@@ -4,13 +4,13 @@ namespace Zeze.Collections
     public abstract class AbstractLinkedMap : Zeze.IModule 
     {
         public const int ModuleId = 11005;
-        public override string FullName => "Zeze.Beans.Collections.LinkedMap";
+        public override string FullName => "Zeze.Builtin.Collections.LinkedMap";
         public override string Name => "LinkedMap";
         public override int Id => ModuleId;
 
-        internal Zeze.Beans.Collections.LinkedMap.tLinkedMapNodes _tLinkedMapNodes = new Zeze.Beans.Collections.LinkedMap.tLinkedMapNodes();
-        internal Zeze.Beans.Collections.LinkedMap.tLinkedMaps _tLinkedMaps = new Zeze.Beans.Collections.LinkedMap.tLinkedMaps();
-        internal Zeze.Beans.Collections.LinkedMap.tValueIdToNodeId _tValueIdToNodeId = new Zeze.Beans.Collections.LinkedMap.tValueIdToNodeId();
+        internal Zeze.Builtin.Collections.LinkedMap.tLinkedMapNodes _tLinkedMapNodes = new Zeze.Builtin.Collections.LinkedMap.tLinkedMapNodes();
+        internal Zeze.Builtin.Collections.LinkedMap.tLinkedMaps _tLinkedMaps = new Zeze.Builtin.Collections.LinkedMap.tLinkedMaps();
+        internal Zeze.Builtin.Collections.LinkedMap.tValueIdToNodeId _tValueIdToNodeId = new Zeze.Builtin.Collections.LinkedMap.tValueIdToNodeId();
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {

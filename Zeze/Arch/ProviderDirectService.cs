@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Zeze.Beans.ProviderDirect;
+using Zeze.Builtin.ProviderDirect;
 using Zeze.Net;
 using Zeze.Services.ServiceManager;
 using Zeze.Util;
@@ -109,7 +109,7 @@ namespace Zeze.Arch
 		}
 
 		private void SetReady(Agent.SubscribeState ss, ServiceInfo server, ProviderSession ps,
-			int mid, Zeze.Beans.Provider.BModule m)
+			int mid, Zeze.Builtin.Provider.BModule m)
 		{
 			Console.WriteLine($"SetReady Server={Zeze.Config.ServerId} {ss.ServiceName} {server.ServiceIdentity}");
 			var pms = new ProviderModuleState(ps.SessionId, mid, m.ChoiceType, m.ConfigType);

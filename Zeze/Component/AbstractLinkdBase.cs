@@ -4,7 +4,7 @@ namespace Zeze.Component
     public abstract class AbstractLinkdBase : Zeze.IModule 
     {
         public const int ModuleId = 11011;
-        public override string FullName => "Zeze.Beans.LinkdBase";
+        public override string FullName => "Zeze.Builtin.LinkdBase";
         public override string Name => "LinkdBase";
         public override int Id => ModuleId;
 

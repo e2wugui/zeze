@@ -4,7 +4,7 @@ namespace Zeze.Game
     public abstract class AbstractOnline : Zeze.IModule 
     {
         public const int ModuleId = 11013;
-        public override string FullName => "Zeze.Beans.Game.Online";
+        public override string FullName => "Zeze.Builtin.Game.Online";
         public override string Name => "Online";
         public override int Id => ModuleId;
 
@@ -17,34 +17,34 @@ namespace Zeze.Game
         public const int ResultCodeOnlineDataNotFound = 5;
         public const int ResultCodeReliableNotifyConfirmCountOutOfRange = 6;
         public const int ResultCodeNotLogin = 7;
-        internal Zeze.Beans.Game.Online.taccount _taccount = new Zeze.Beans.Game.Online.taccount();
-        internal Zeze.Beans.Game.Online.tonline _tonline = new Zeze.Beans.Game.Online.tonline();
+        internal Zeze.Builtin.Game.Online.taccount _taccount = new Zeze.Builtin.Game.Online.taccount();
+        internal Zeze.Builtin.Game.Online.tonline _tonline = new Zeze.Builtin.Game.Online.tonline();
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {
             // register protocol factory and handles
             var _reflect = new Zeze.Util.Reflect(this.GetType());
-            service.AddFactoryHandle(47300786201153, new Zeze.Net.Service.ProtocolFactoryHandle()
+            service.AddFactoryHandle(47303980222879, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
-                Factory = () => new Zeze.Beans.Game.Online.Login(),
+                Factory = () => new Zeze.Builtin.Game.Online.Login(),
                 Handle = ProcessLoginRequest,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessLoginRequest", Zeze.Transaction.TransactionLevel.Serializable),
             });
-            service.AddFactoryHandle(47302265853187, new Zeze.Net.Service.ProtocolFactoryHandle()
+            service.AddFactoryHandle(47304205955457, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
-                Factory = () => new Zeze.Beans.Game.Online.Logout(),
+                Factory = () => new Zeze.Builtin.Game.Online.Logout(),
                 Handle = ProcessLogoutRequest,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessLogoutRequest", Zeze.Transaction.TransactionLevel.Serializable),
             });
-            service.AddFactoryHandle(47303314651541, new Zeze.Net.Service.ProtocolFactoryHandle()
+            service.AddFactoryHandle(47304349755660, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
-                Factory = () => new Zeze.Beans.Game.Online.ReliableNotifyConfirm(),
+                Factory = () => new Zeze.Builtin.Game.Online.ReliableNotifyConfirm(),
                 Handle = ProcessReliableNotifyConfirmRequest,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessReliableNotifyConfirmRequest", Zeze.Transaction.TransactionLevel.Serializable),
             });
-            service.AddFactoryHandle(47304366001837, new Zeze.Net.Service.ProtocolFactoryHandle()
+            service.AddFactoryHandle(47304551116333, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
-                Factory = () => new Zeze.Beans.Game.Online.ReLogin(),
+                Factory = () => new Zeze.Builtin.Game.Online.ReLogin(),
                 Handle = ProcessReLoginRequest,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessReLoginRequest", Zeze.Transaction.TransactionLevel.Serializable),
             });
@@ -52,10 +52,10 @@ namespace Zeze.Game
 
         public void UnRegisterProtocols(Zeze.Net.Service service)
         {
-            service.Factorys.TryRemove(47300786201153, out var _);
-            service.Factorys.TryRemove(47302265853187, out var _);
-            service.Factorys.TryRemove(47303314651541, out var _);
-            service.Factorys.TryRemove(47304366001837, out var _);
+            service.Factorys.TryRemove(47303980222879, out var _);
+            service.Factorys.TryRemove(47304205955457, out var _);
+            service.Factorys.TryRemove(47304349755660, out var _);
+            service.Factorys.TryRemove(47304551116333, out var _);
         }
 
         public void RegisterZezeTables(Zeze.Application zeze)

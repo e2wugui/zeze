@@ -301,7 +301,7 @@ namespace Zeze.Transaction
         {
             foreach (var e in Cache.DataMap)
             {
-                var gkey = new Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey(Name, new Zeze.Net.Binary(EncodeKey(e.Key)));
+                var gkey = new Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey(Name, new Zeze.Net.Binary(EncodeKey(e.Key)));
                 if (Zeze.GlobalAgent.GetGlobalCacheManagerHashIndex(gkey) != GlobalCacheManagerHashIndex)
                 {
                     // 不是断开连接的GlobalCacheManager。跳过。

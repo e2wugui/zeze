@@ -4,8 +4,8 @@ import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import Zeze.Beans.LinkdBase.*;
-import Zeze.Beans.Provider.*;
+import Zeze.Builtin.LinkdBase.*;
+import Zeze.Builtin.Provider.*;
 
 public class LinkdService extends Zeze.Services.HandshakeServer {
 	private static final Logger logger = LogManager.getLogger(LinkdService.class);

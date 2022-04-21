@@ -1,7 +1,7 @@
 package Zeze.Component;
 
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Beans.DelayRemove.BTableKey;
+import Zeze.Builtin.DelayRemove.BTableKey;
 import Zeze.Net.Binary;
 import Zeze.Transaction.TableX;
 

@@ -1,5 +1,5 @@
 
-using Zeze.Beans.GlobalCacheManagerWithRaft;
+using Zeze.Builtin.GlobalCacheManagerWithRaft;
 using System.Threading.Tasks;
 using System;
 
@@ -89,7 +89,7 @@ namespace Zeze.Services
 
         protected override async Task<long> ProcessReduceRequest(Zeze.Net.Protocol _p)
         {
-            var rpc = _p as Zeze.Beans.GlobalCacheManagerWithRaft.Reduce;
+            var rpc = _p as Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce;
             switch (rpc.Argument.State)
             {
                 case GlobalCacheManagerServer.StateInvalid:

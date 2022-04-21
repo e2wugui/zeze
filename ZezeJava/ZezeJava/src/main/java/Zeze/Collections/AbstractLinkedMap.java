@@ -2,14 +2,14 @@
 package Zeze.Collections;
 
 public abstract class AbstractLinkedMap extends Zeze.IModule {
-    @Override public String getFullName() { return "Zeze.Beans.Collections.LinkedMap"; }
+    @Override public String getFullName() { return "Zeze.Builtin.Collections.LinkedMap"; }
     @Override public String getName() { return "LinkedMap"; }
     @Override public int getId() { return ModuleId; }
     public static final int ModuleId = 11005;
 
-    protected final Zeze.Beans.Collections.LinkedMap.tLinkedMapNodes _tLinkedMapNodes = new Zeze.Beans.Collections.LinkedMap.tLinkedMapNodes();
-    protected final Zeze.Beans.Collections.LinkedMap.tLinkedMaps _tLinkedMaps = new Zeze.Beans.Collections.LinkedMap.tLinkedMaps();
-    protected final Zeze.Beans.Collections.LinkedMap.tValueIdToNodeId _tValueIdToNodeId = new Zeze.Beans.Collections.LinkedMap.tValueIdToNodeId();
+    protected final Zeze.Builtin.Collections.LinkedMap.tLinkedMapNodes _tLinkedMapNodes = new Zeze.Builtin.Collections.LinkedMap.tLinkedMapNodes();
+    protected final Zeze.Builtin.Collections.LinkedMap.tLinkedMaps _tLinkedMaps = new Zeze.Builtin.Collections.LinkedMap.tLinkedMaps();
+    protected final Zeze.Builtin.Collections.LinkedMap.tValueIdToNodeId _tValueIdToNodeId = new Zeze.Builtin.Collections.LinkedMap.tValueIdToNodeId();
 
     public void RegisterProtocols(Zeze.Net.Service service) {
     }

@@ -4,7 +4,7 @@ namespace Zeze.Arch
     public abstract class AbstractProviderImplement : Zeze.IModule 
     {
         public const int ModuleId = 11008;
-        public override string FullName => "Zeze.Beans.Provider";
+        public override string FullName => "Zeze.Builtin.Provider";
         public override string Name => "Provider";
         public override int Id => ModuleId;
 
@@ -13,56 +13,56 @@ namespace Zeze.Arch
         {
             // register protocol factory and handles
             var _reflect = new Zeze.Util.Reflect(this.GetType());
-            service.AddFactoryHandle(47282968534786, new Zeze.Net.Service.ProtocolFactoryHandle()
+            service.AddFactoryHandle(47281374674071, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
-                Factory = () => new Zeze.Beans.Provider.AnnounceLinkInfo(),
+                Factory = () => new Zeze.Builtin.Provider.AnnounceLinkInfo(),
                 Handle = ProcessAnnounceLinkInfo,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessAnnounceLinkInfop", Zeze.Transaction.TransactionLevel.None),
             });
-            service.AddFactoryHandle(47282301515237, new Zeze.Net.Service.ProtocolFactoryHandle()
+            service.AddFactoryHandle(47279114253990, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
-                Factory = () => new Zeze.Beans.Provider.Bind(),
+                Factory = () => new Zeze.Builtin.Provider.Bind(),
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessBindRequest", Zeze.Transaction.TransactionLevel.Serializable),
             });
-            service.AddFactoryHandle(47282067822559, new Zeze.Net.Service.ProtocolFactoryHandle()
+            service.AddFactoryHandle(47280285301785, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
-                Factory = () => new Zeze.Beans.Provider.Dispatch(),
+                Factory = () => new Zeze.Builtin.Provider.Dispatch(),
                 Handle = ProcessDispatch,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessDispatchp", Zeze.Transaction.TransactionLevel.Serializable),
             });
-            service.AddFactoryHandle(47280680546638, new Zeze.Net.Service.ProtocolFactoryHandle()
+            service.AddFactoryHandle(47281652939086, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
-                Factory = () => new Zeze.Beans.Provider.LinkBroken(),
+                Factory = () => new Zeze.Builtin.Provider.LinkBroken(),
                 Handle = ProcessLinkBroken,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessLinkBrokenp", Zeze.Transaction.TransactionLevel.Serializable),
             });
-            service.AddFactoryHandle(47281317762384, new Zeze.Net.Service.ProtocolFactoryHandle()
+            service.AddFactoryHandle(47282983499888, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
-                Factory = () => new Zeze.Beans.Provider.SendConfirm(),
+                Factory = () => new Zeze.Builtin.Provider.SendConfirm(),
                 Handle = ProcessSendConfirm,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessSendConfirmp", Zeze.Transaction.TransactionLevel.Serializable),
             });
-            service.AddFactoryHandle(47282665133980, new Zeze.Net.Service.ProtocolFactoryHandle()
+            service.AddFactoryHandle(47280110454586, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
-                Factory = () => new Zeze.Beans.Provider.Subscribe(),
+                Factory = () => new Zeze.Builtin.Provider.Subscribe(),
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessSubscribeRequest", Zeze.Transaction.TransactionLevel.Serializable),
             });
-            service.AddFactoryHandle(47280773808911, new Zeze.Net.Service.ProtocolFactoryHandle()
+            service.AddFactoryHandle(47281107578964, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
-                Factory = () => new Zeze.Beans.Provider.UnBind(),
+                Factory = () => new Zeze.Builtin.Provider.UnBind(),
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessUnBindRequest", Zeze.Transaction.TransactionLevel.Serializable),
             });
         }
 
         public void UnRegisterProtocols(Zeze.Net.Service service)
         {
-            service.Factorys.TryRemove(47282968534786, out var _);
-            service.Factorys.TryRemove(47282301515237, out var _);
-            service.Factorys.TryRemove(47282067822559, out var _);
-            service.Factorys.TryRemove(47280680546638, out var _);
-            service.Factorys.TryRemove(47281317762384, out var _);
-            service.Factorys.TryRemove(47282665133980, out var _);
-            service.Factorys.TryRemove(47280773808911, out var _);
+            service.Factorys.TryRemove(47281374674071, out var _);
+            service.Factorys.TryRemove(47279114253990, out var _);
+            service.Factorys.TryRemove(47280285301785, out var _);
+            service.Factorys.TryRemove(47281652939086, out var _);
+            service.Factorys.TryRemove(47282983499888, out var _);
+            service.Factorys.TryRemove(47280110454586, out var _);
+            service.Factorys.TryRemove(47281107578964, out var _);
         }
 
         public void RegisterZezeTables(Zeze.Application zeze)

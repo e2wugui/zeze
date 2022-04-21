@@ -2,13 +2,13 @@
 package Zeze.Collections;
 
 public abstract class AbstractQueue extends Zeze.IModule {
-    @Override public String getFullName() { return "Zeze.Beans.Collections.Queue"; }
+    @Override public String getFullName() { return "Zeze.Builtin.Collections.Queue"; }
     @Override public String getName() { return "Queue"; }
     @Override public int getId() { return ModuleId; }
     public static final int ModuleId = 11006;
 
-    protected final Zeze.Beans.Collections.Queue.tQueueNodes _tQueueNodes = new Zeze.Beans.Collections.Queue.tQueueNodes();
-    protected final Zeze.Beans.Collections.Queue.tQueues _tQueues = new Zeze.Beans.Collections.Queue.tQueues();
+    protected final Zeze.Builtin.Collections.Queue.tQueueNodes _tQueueNodes = new Zeze.Builtin.Collections.Queue.tQueueNodes();
+    protected final Zeze.Builtin.Collections.Queue.tQueues _tQueues = new Zeze.Builtin.Collections.Queue.tQueues();
 
     public void RegisterProtocols(Zeze.Net.Service service) {
     }

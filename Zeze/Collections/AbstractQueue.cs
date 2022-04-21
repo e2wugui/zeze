@@ -4,12 +4,12 @@ namespace Zeze.Collections
     public abstract class AbstractQueue : Zeze.IModule 
     {
         public const int ModuleId = 11006;
-        public override string FullName => "Zeze.Beans.Collections.Queue";
+        public override string FullName => "Zeze.Builtin.Collections.Queue";
         public override string Name => "Queue";
         public override int Id => ModuleId;
 
-        internal Zeze.Beans.Collections.Queue.tQueueNodes _tQueueNodes = new Zeze.Beans.Collections.Queue.tQueueNodes();
-        internal Zeze.Beans.Collections.Queue.tQueues _tQueues = new Zeze.Beans.Collections.Queue.tQueues();
+        internal Zeze.Builtin.Collections.Queue.tQueueNodes _tQueueNodes = new Zeze.Builtin.Collections.Queue.tQueueNodes();
+        internal Zeze.Builtin.Collections.Queue.tQueues _tQueues = new Zeze.Builtin.Collections.Queue.tQueues();
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {

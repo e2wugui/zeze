@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <solution name="Zeze" ModuleIdAllowRanges="11000-12000">
-	<module name="Beans" id="11000">
+	<module name="Builtin" id="11000">
 		<!-- Global With Raft 模块 -->
 		<module name="GlobalCacheManagerWithRaft" id="11001">
 			<!-- table -->
@@ -66,10 +66,10 @@
 				<variable id="5" name="String" type="string"/>
 				<variable id="6" name="Binary" type="binary"/>
 				<variable id="7" name="SetInt" type="set" value="int"/>
-				<variable id="8" name="SetBeankey" type="set" value="Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey"/>
+				<variable id="8" name="SetBeankey" type="set" value="Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey"/>
 				<variable id="9" name="MapInt" type="map" key="int" value="int"/>
 				<variable id="10" name="MapBean" type="map" key="int" value="Value"/>
-				<variable id="11" name="Beankey" type="Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey"/>
+				<variable id="11" name="Beankey" type="Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey"/>
 			</bean>
 
 			<table name="tRocks" key="int" value="Value" kind="rocks"/>
@@ -669,94 +669,94 @@
 
 	<component name="Online" genrelativedir="Zeze/Game" platform="zeze+cs">
 		<service name="" handle="server">
-			<module ref="Zeze.Beans.Game.Online"/>
+			<module ref="Zeze.Builtin.Game.Online"/>
 		</service>
 	</component>
 
 	<component name="Rank" genrelativedir="Zeze/Game" platform="zeze+cs">
 		<service name="" handle="server">
-			<module ref="Zeze.Beans.Game.Rank"/>
+			<module ref="Zeze.Builtin.Game.Rank"/>
 		</service>
 	</component>
 
 	<component name="Bag" genrelativedir="Zeze/Game" platform="zeze+cs">
 		<service name="" handle="server">
-			<module ref="Zeze.Beans.Game.Bag"/>
+			<module ref="Zeze.Builtin.Game.Bag"/>
 		</service>
 	</component>
 
 	<component name="LinkdBase" platform="zeze+cs">
 		<service name="" handle="server">
-			<module ref="Zeze.Beans.LinkdBase"/>
+			<module ref="Zeze.Builtin.LinkdBase"/>
 		</service>
 	</component>
 
 	<component name="RedoQueueServer" platform="zeze+cs">
 		<service name="" handle="server">
-			<module ref="Zeze.Beans.RedoQueue"/>
+			<module ref="Zeze.Builtin.RedoQueue"/>
 		</service>
 	</component>
 
 	<!-- Provider之间直连服务 -->
 	<component name="ProviderDirect" genrelativedir="Zeze/Arch" platform="zeze+cs">
 		<service name="" handle="server">
-			<module ref="Zeze.Beans.ProviderDirect"/>
+			<module ref="Zeze.Builtin.ProviderDirect"/>
 		</service>
 	</component>
 
 	<!-- Provider 在Linkd上的客户端支持组件 -->
 	<component name="LinkdProvider" genrelativedir="Zeze/Arch" platform="zeze+cs">
 		<service name="" handle="client">
-			<module ref="Zeze.Beans.Provider"/>
+			<module ref="Zeze.Builtin.Provider"/>
 		</service>
 	</component>
 
 	<!-- Provider 为客户端协议服务。协议通过Linkd转发 -->
 	<component name="ProviderImplement" genrelativedir="Zeze/Arch" platform="zeze+cs">
 		<service name="" handle="server">
-			<module ref="Zeze.Beans.Provider"/>
+			<module ref="Zeze.Builtin.Provider"/>
 		</service>
 	</component>
 
 	<component name="DelayRemove" platform="zeze+cs">
 		<service name="" handle="server">
-			<module ref="Zeze.Beans.DelayRemove"/>
+			<module ref="Zeze.Builtin.DelayRemove"/>
 		</service>
 	</component>
 
 	<component name="Queue" genrelativedir="Zeze/Collections" platform="zeze+cs">
 		<service name="" handle="server">
-			<module ref="Zeze.Beans.Collections.Queue"/>
+			<module ref="Zeze.Builtin.Collections.Queue"/>
 		</service>
 	</component>
 
 	<component name="LinkedMap" genrelativedir="Zeze/Collections" platform="zeze+cs">
 		<service name="" handle="server">
-			<module ref="Zeze.Beans.Collections.LinkedMap"/>
+			<module ref="Zeze.Builtin.Collections.LinkedMap"/>
 		</service>
 	</component>
 
 	<component name="AutoKey" platform="zeze+cs">
 		<service name="" handle="server">
-			<module ref="Zeze.Beans.AutoKey"/>
+			<module ref="Zeze.Builtin.AutoKey"/>
 		</service>
 	</component>
 
 	<component name="GlobalCacheManagerWithRaft" genrelativedir="Zeze/Services" platform="zeze+cs">
 		<service name="" handle="server">
-			<module ref="Zeze.beans.GlobalCacheManagerWithRaft"/>
+			<module ref="Zeze.Builtin.GlobalCacheManagerWithRaft"/>
 		</service>
 	</component>
 
 	<component name="GlobalCacheManagerWithRaftAgent" genrelativedir="Zeze/Services" platform="zeze+cs" GenTables="client">
 		<service name="" handle="client">
-			<module ref="Zeze.beans.GlobalCacheManagerWithRaft"/>
+			<module ref="Zeze.Builtin.GlobalCacheManagerWithRaft"/>
 		</service>
 	</component>
 
 	<component name="TestRocks" genrelativedir="Zeze/Services" platform="zeze+cs">
 		<service name="" handle="server">
-			<module ref="Zeze.beans.TestRocks"/>
+			<module ref="Zeze.Builtin.TestRocks"/>
 		</service>
 	</component>
 

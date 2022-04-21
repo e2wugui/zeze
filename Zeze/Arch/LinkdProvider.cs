@@ -1,8 +1,8 @@
 
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Zeze.Beans.LinkdBase;
-using Zeze.Beans.Provider;
+using Zeze.Builtin.LinkdBase;
+using Zeze.Builtin.Provider;
 using Zeze.Services.ServiceManager;
 
 namespace Zeze.Arch
@@ -140,7 +140,7 @@ namespace Zeze.Arch
 
         protected override async Task<long> ProcessSubscribeRequest(Zeze.Net.Protocol _p)
         {
-            var rpc = (Beans.Provider.Subscribe)_p;
+            var rpc = (Zeze.Builtin.Provider.Subscribe)_p;
 
             var ps = (LinkdProviderSession)rpc.Sender.UserState;
             foreach (var module in rpc.Argument.Modules)

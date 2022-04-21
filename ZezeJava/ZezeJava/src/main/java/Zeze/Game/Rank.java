@@ -4,11 +4,12 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.function.Function;
+import Zeze.Arch.ProviderService;
 import Zeze.Arch.RedirectAll;
 import Zeze.Arch.RedirectAllFuture;
 import Zeze.Arch.RedirectHash;
 import Zeze.Arch.RedirectResult;
-import Zeze.Beans.Game.Rank.*;
+import Zeze.Builtin.Game.Rank.*;
 import Zeze.Net.Binary;
 
 public class Rank extends AbstractRank {
@@ -111,10 +112,17 @@ public class Rank extends AbstractRank {
 		return (int)(getConcurrentLevel(rankType) * factor);
 	}
 
-	public Rank() {
-
+	// 用于UserApp，可支持客户端发送协议。
+	// 注意：目前Rank模块没有定义处理客户端发送的协议，但可能添加。
+	public Rank(ProviderService ps) {
+		RegisterProtocols(ps);
+		RegisterZezeTables(ps.getZeze());
 	}
 
+	// 用于数据测试，内部转发测试。
+	public Rank(Zeze.Application zeze) {
+		RegisterZezeTables(zeze);
+	}
 
 	/**
 	 * 根据 value 设置到排行榜中

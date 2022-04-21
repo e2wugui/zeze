@@ -1,8 +1,8 @@
 package Zeze.Arch;
 
 import java.util.HashMap;
-import Zeze.Beans.Provider.BLoad;
-import Zeze.Beans.Provider.BModule;
+import Zeze.Builtin.Provider.BLoad;
+import Zeze.Builtin.Provider.BModule;
 import Zeze.Util.IntHashMap;
 
 /**

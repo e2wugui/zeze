@@ -12,8 +12,8 @@ namespace Zeze.Transaction
     internal interface IGlobalAgent : IDisposable
     {
         // (ResultCode, State, GlobalSerialId)
-        public Task<(long, int, long)> Acquire(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state);
-        public int GetGlobalCacheManagerHashIndex(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey);
+        public Task<(long, int, long)> Acquire(Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state);
+        public int GetGlobalCacheManagerHashIndex(Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey gkey);
     }
 
     public sealed class GlobalAgent : IGlobalAgent
@@ -135,12 +135,12 @@ namespace Zeze.Transaction
 
         internal Agent[] Agents;
 
-        public int GetGlobalCacheManagerHashIndex(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey)
+        public int GetGlobalCacheManagerHashIndex(Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey gkey)
         {
             return gkey.GetHashCode() % Agents.Length;
         }
 
-        public async Task<(long, int, long)> Acquire(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state)
+        public async Task<(long, int, long)> Acquire(Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state)
         {
             if (null != Client)
             {

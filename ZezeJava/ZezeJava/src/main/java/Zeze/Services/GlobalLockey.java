@@ -3,7 +3,7 @@ package Zeze.Services;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey;
 import Zeze.Raft.RocksRaft.PessimismLock;
 
 public final class GlobalLockey implements Comparable<GlobalLockey>, PessimismLock {

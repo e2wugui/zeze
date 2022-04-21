@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Transaction;
 using Zeze.Serialize;
-using Zeze.Beans.ProviderDirect;
-using Zeze.Beans.Provider;
+using Zeze.Builtin.ProviderDirect;
+using Zeze.Builtin.Provider;
 
 namespace Game.Login
 {

@@ -2,7 +2,7 @@ package Zeze.Transaction;
 
 import java.util.Map;
 import Zeze.Application;
-import Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Services.GlobalCacheManagerServer;

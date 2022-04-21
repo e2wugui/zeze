@@ -3,7 +3,7 @@ package Zeze.Transaction;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Application;
-import Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Service;

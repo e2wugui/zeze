@@ -8,14 +8,14 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Arch.ProviderService;
 import Zeze.Arch.ProviderUserSession;
-import Zeze.Beans.Game.Online.BAccount;
-import Zeze.Beans.Game.Online.BOnline;
-import Zeze.Beans.Game.Online.SReliableNotify;
-import Zeze.Beans.Provider.Broadcast;
-import Zeze.Beans.Provider.Send;
-import Zeze.Beans.Provider.SetUserState;
-import Zeze.Beans.ProviderDirect.BTransmitContext;
-import Zeze.Beans.ProviderDirect.Transmit;
+import Zeze.Builtin.Game.Online.BAccount;
+import Zeze.Builtin.Game.Online.BOnline;
+import Zeze.Builtin.Game.Online.SReliableNotify;
+import Zeze.Builtin.Provider.Broadcast;
+import Zeze.Builtin.Provider.Send;
+import Zeze.Builtin.Provider.SetUserState;
+import Zeze.Builtin.ProviderDirect.BTransmitContext;
+import Zeze.Builtin.ProviderDirect.Transmit;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
@@ -523,7 +523,7 @@ public class Online extends AbstractOnline {
 	}
 
 	@Override
-	protected long ProcessLoginRequest(Zeze.Beans.Game.Online.Login rpc) {
+	protected long ProcessLoginRequest(Zeze.Builtin.Game.Online.Login rpc) {
 		var session = ProviderUserSession.Get(rpc);
 
 		BAccount account = _taccount.get(session.getAccount());
@@ -559,7 +559,7 @@ public class Online extends AbstractOnline {
 	}
 
 	@Override
-	protected long ProcessReLoginRequest(Zeze.Beans.Game.Online.ReLogin rpc) {
+	protected long ProcessReLoginRequest(Zeze.Builtin.Game.Online.ReLogin rpc) {
 		var session = ProviderUserSession.Get(rpc);
 
 		BAccount account = _taccount.get(session.getAccount());
@@ -622,7 +622,7 @@ public class Online extends AbstractOnline {
 	}
 
 	@Override
-	protected long ProcessLogoutRequest(Zeze.Beans.Game.Online.Logout rpc) {
+	protected long ProcessLogoutRequest(Zeze.Builtin.Game.Online.Logout rpc) {
 		var session = ProviderUserSession.Get(rpc);
 		if (session.getRoleId() == null)
 			return ErrorCode(ResultCodeNotLogin);
@@ -643,7 +643,7 @@ public class Online extends AbstractOnline {
 	}
 
 	@Override
-	protected long ProcessReliableNotifyConfirmRequest(Zeze.Beans.Game.Online.ReliableNotifyConfirm rpc) {
+	protected long ProcessReliableNotifyConfirmRequest(Zeze.Builtin.Game.Online.ReliableNotifyConfirm rpc) {
 		var session = ProviderUserSession.Get(rpc);
 
 		BOnline online = _tonline.get(session.getRoleId());

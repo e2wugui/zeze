@@ -1,10 +1,10 @@
 package Zeze.Arch;
 
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Beans.Provider.BModule;
-import Zeze.Beans.ProviderDirect.AnnounceProviderInfo;
-import Zeze.Beans.ProviderDirect.ModuleRedirect;
-import Zeze.Beans.ProviderDirect.ModuleRedirectAllResult;
+import Zeze.Builtin.Provider.BModule;
+import Zeze.Builtin.ProviderDirect.AnnounceProviderInfo;
+import Zeze.Builtin.ProviderDirect.ModuleRedirect;
+import Zeze.Builtin.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
 import Zeze.Net.Protocol;

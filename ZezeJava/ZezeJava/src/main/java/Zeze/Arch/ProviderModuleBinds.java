@@ -4,7 +4,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import javax.xml.parsers.DocumentBuilderFactory;
-import Zeze.Beans.Provider.BModule;
+import Zeze.Builtin.Provider.BModule;
 import Zeze.Services.ServiceManager.SubscribeInfo;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.IntHashSet;

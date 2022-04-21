@@ -57,7 +57,7 @@ namespace Zeze.Services
         public static GlobalCacheManagerServer Instance { get; } = new GlobalCacheManagerServer();
         public ServerService Server { get; private set; }
         public AsyncSocket ServerSocket { get; private set; }
-        private ConcurrentDictionary<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey, CacheState> global;
+        private ConcurrentDictionary<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey, CacheState> global;
         private readonly Util.AtomicLong SerialIdGenerator = new();
 
         /*
@@ -119,7 +119,7 @@ namespace Zeze.Services
                     config.LoadAndParse();
                 }
                 Sessions = new ConcurrentDictionary<int, CacheHolder>(Config.ConcurrencyLevel, 4096);
-                global = new ConcurrentDictionary<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey, CacheState>
+                global = new ConcurrentDictionary<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey, CacheState>
                     (Config.ConcurrencyLevel, Config.InitialCapacity);
 
                 Server = new ServerService(config);
@@ -341,7 +341,7 @@ namespace Zeze.Services
             }
         }
 
-        private async Task<int> ReleaseAsync(CacheHolder sender, Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey, bool noWait)
+        private async Task<int> ReleaseAsync(CacheHolder sender, Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey gkey, bool noWait)
         {
             while (true)
             {
@@ -784,12 +784,12 @@ namespace Zeze.Services
             public long SessionId { get; private set; }
             public int GlobalCacheManagerHashIndex { get; private set; } // UnBind 的时候不会重置，会一直保留到下一次Bind。
 
-            public ConcurrentDictionary<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey, int> Acquired { get; }
+            public ConcurrentDictionary<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey, int> Acquired { get; }
             public Nito.AsyncEx.AsyncLock Mutex { get; } = new Nito.AsyncEx.AsyncLock();
 
             public CacheHolder(GCMConfig config)
             {
-                Acquired = new ConcurrentDictionary<Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey, int>(
+                Acquired = new ConcurrentDictionary<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey, int>(
                     config.ConcurrencyLevel, config.InitialCapacity);
             }
 
@@ -830,7 +830,7 @@ namespace Zeze.Services
                 return "" + SessionId;
             }
 
-            public bool Reduce(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey,
+            public bool Reduce(Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey gkey,
                 int state, long globalSerialId, Func<Protocol, Task<long>> response)
             {
                 try
@@ -876,7 +876,7 @@ namespace Zeze.Services
             /// <param name="gkey"></param>
             /// <param name="state"></param>
             /// <returns></returns>
-            public Reduce ReduceWaitLater(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state, long globalSerialId)
+            public Reduce ReduceWaitLater(Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state, long globalSerialId)
             {
                 try
                 {
@@ -909,13 +909,13 @@ namespace Zeze.Services.GlobalCacheManager
 {
     public sealed class Param : Bean
     {
-        public Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey GlobalTableKey { get; set; } // 没有初始化，使用时注意
+        public Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey GlobalTableKey { get; set; } // 没有初始化，使用时注意
         public int State { get; set; }
 
         public override void Decode(ByteBuffer bb)
         {
             if (null == GlobalTableKey)
-                GlobalTableKey = new Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey();
+                GlobalTableKey = new Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey();
             GlobalTableKey.Decode(bb);
             State = bb.ReadInt();
         }
@@ -939,14 +939,14 @@ namespace Zeze.Services.GlobalCacheManager
 
     public sealed class Param2 : Bean
     {
-        public Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey GlobalTableKey { get; set; } // 没有初始化，使用时注意
+        public Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey GlobalTableKey { get; set; } // 没有初始化，使用时注意
         public int State { get; set; }
         public long GlobalSerialId { get; set; }
 
         public override void Decode(ByteBuffer bb)
         {
             if (null == GlobalTableKey)
-                GlobalTableKey = new Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey();
+                GlobalTableKey = new Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey();
             GlobalTableKey.Decode(bb);
             State = bb.ReadInt();
 
@@ -983,7 +983,7 @@ namespace Zeze.Services.GlobalCacheManager
         {
         }
 
-        public Acquire(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state)
+        public Acquire(Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state)
         {
             Argument.GlobalTableKey = gkey;
             Argument.State = state;
@@ -1001,7 +1001,7 @@ namespace Zeze.Services.GlobalCacheManager
         {
         }
 
-        public Reduce(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state, long globalSerialId)
+        public Reduce(Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state, long globalSerialId)
         {
             Argument.GlobalTableKey = gkey;
             Argument.State = state;

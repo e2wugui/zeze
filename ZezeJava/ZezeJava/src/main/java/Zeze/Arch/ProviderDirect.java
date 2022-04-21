@@ -1,10 +1,10 @@
 package Zeze.Arch;
 
-import Zeze.Beans.ProviderDirect.AnnounceProviderInfo;
-import Zeze.Beans.ProviderDirect.BModuleRedirectAllHash;
-import Zeze.Beans.ProviderDirect.ModuleRedirect;
-import Zeze.Beans.ProviderDirect.ModuleRedirectAllRequest;
-import Zeze.Beans.ProviderDirect.ModuleRedirectAllResult;
+import Zeze.Builtin.ProviderDirect.AnnounceProviderInfo;
+import Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash;
+import Zeze.Builtin.ProviderDirect.ModuleRedirect;
+import Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest;
+import Zeze.Builtin.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.Net.AsyncSocket;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutObject;

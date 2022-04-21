@@ -1,7 +1,7 @@
 package Zeze.Arch;
 
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Beans.Provider.BAnnounceProviderInfo;
+import Zeze.Builtin.Provider.BAnnounceProviderInfo;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashSet;
 

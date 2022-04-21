@@ -15,7 +15,7 @@ public interface IGlobalAgent extends Closeable {
 		}
 	}
 
-	AcquireResult Acquire(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state);
+	AcquireResult Acquire(Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state);
 
-	int GetGlobalCacheManagerHashIndex(Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey gkey);
+	int GetGlobalCacheManagerHashIndex(Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey gkey);
 }

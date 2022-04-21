@@ -113,7 +113,7 @@ final class MethodOverride {
 
 	String getRedirectType() {
 		return annotation instanceof RedirectToServer
-				? "Zeze.Beans.ProviderDirect.ModuleRedirect.RedirectTypeToServer"
-				: "Zeze.Beans.ProviderDirect.ModuleRedirect.RedirectTypeWithHash";
+				? "Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeToServer"
+				: "Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeWithHash";
 	}
 }

@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Zeze.Beans.LinkdBase;
-using Zeze.Beans.Provider;
+using Zeze.Builtin.LinkdBase;
+using Zeze.Builtin.Provider;
 using Zeze.Net;
 using Zeze.Util;
 

@@ -1,7 +1,7 @@
 package Zeze.Arch;
 
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Beans.Provider.BLoad;
+import Zeze.Builtin.Provider.BLoad;
 
 public class ProviderSession {
 	public volatile BLoad Load = new BLoad();

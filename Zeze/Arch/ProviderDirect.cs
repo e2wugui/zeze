@@ -1,7 +1,7 @@
 
 using System;
 using System.Threading.Tasks;
-using Zeze.Beans.ProviderDirect;
+using Zeze.Builtin.ProviderDirect;
 using Zeze.Net;
 using Zeze.Transaction;
 

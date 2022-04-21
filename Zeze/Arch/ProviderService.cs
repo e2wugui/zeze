@@ -5,8 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Zeze.Net;
-using Zeze.Beans.Provider;
-using Zeze.Beans.ProviderDirect;
+using Zeze.Builtin.Provider;
+using Zeze.Builtin.ProviderDirect;
 
 namespace Zeze.Arch
 {
@@ -123,7 +123,7 @@ namespace Zeze.Arch
             var linkName = GetLinkName(sender);
             sender.UserState = new LinkSession(linkName, sender.SessionId);
 
-            var announce = new Zeze.Beans.Provider.AnnounceProviderInfo();
+            var announce = new Zeze.Builtin.Provider.AnnounceProviderInfo();
             announce.Argument.ServiceNamePrefix = ProviderApp.ServerServiceNamePrefix;
             announce.Argument.ServiceIndentity = Zeze.Config.ServerId.ToString();
             announce.Send(sender);

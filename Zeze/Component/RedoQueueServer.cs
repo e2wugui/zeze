@@ -1,7 +1,7 @@
 
 using System;
 using System.Collections.Concurrent;
-using Zeze.Beans.RedoQueue;
+using Zeze.Builtin.RedoQueue;
 using Zeze.Net;
 using Zeze.Transaction;
 using Zeze.Util;

@@ -1,6 +1,6 @@
 package Zeze.Services;
 
-import Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey;
 import Zeze.Util.WeakHashSet;
 
 /**

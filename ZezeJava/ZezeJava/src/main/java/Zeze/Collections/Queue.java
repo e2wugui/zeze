@@ -1,9 +1,9 @@
 package Zeze.Collections;
 
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Beans.Collections.Queue.BQueueNode;
-import Zeze.Beans.Collections.Queue.BQueueNodeKey;
-import Zeze.Beans.Collections.Queue.BQueueNodeValue;
+import Zeze.Builtin.Collections.Queue.BQueueNode;
+import Zeze.Builtin.Collections.Queue.BQueueNodeKey;
+import Zeze.Builtin.Collections.Queue.BQueueNodeValue;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.TableWalkHandle;
 

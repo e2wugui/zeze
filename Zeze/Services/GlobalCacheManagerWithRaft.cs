@@ -1,7 +1,7 @@
 
 using System;
 using Zeze.Raft.RocksRaft;
-using Zeze.Beans.GlobalCacheManagerWithRaft;
+using Zeze.Builtin.GlobalCacheManagerWithRaft;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
 using Zeze.Net;

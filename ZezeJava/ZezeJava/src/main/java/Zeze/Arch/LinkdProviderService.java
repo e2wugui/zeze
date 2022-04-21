@@ -1,8 +1,8 @@
 package Zeze.Arch;
 
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Beans.Provider.AnnounceLinkInfo;
-import Zeze.Beans.Provider.Bind;
+import Zeze.Builtin.Provider.AnnounceLinkInfo;
+import Zeze.Builtin.Provider.Bind;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;

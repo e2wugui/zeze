@@ -4,7 +4,7 @@ namespace Zeze.Game
     public abstract class AbstractBag : Zeze.IModule 
     {
         public const int ModuleId = 11014;
-        public override string FullName => "Zeze.Beans.Game.Bag";
+        public override string FullName => "Zeze.Builtin.Game.Bag";
         public override string Name => "Bag";
         public override int Id => ModuleId;
 
@@ -13,22 +13,22 @@ namespace Zeze.Game
         public const int ResultCodeToInvalid = 2;
         public const int ResultCodeFromNotExist = 3;
         public const int ResultCodeTrySplitButTargetExistDifferenceItem = 4;
-        internal Zeze.Beans.Game.Bag.tbag _tbag = new Zeze.Beans.Game.Bag.tbag();
-        internal Zeze.Beans.Game.Bag.tItemClasses _tItemClasses = new Zeze.Beans.Game.Bag.tItemClasses();
+        internal Zeze.Builtin.Game.Bag.tbag _tbag = new Zeze.Builtin.Game.Bag.tbag();
+        internal Zeze.Builtin.Game.Bag.tItemClasses _tItemClasses = new Zeze.Builtin.Game.Bag.tItemClasses();
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {
             // register protocol factory and handles
             var _reflect = new Zeze.Util.Reflect(this.GetType());
-            service.AddFactoryHandle(47305007008671, new Zeze.Net.Service.ProtocolFactoryHandle()
+            service.AddFactoryHandle(47307869964755, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
-                Factory = () => new Zeze.Beans.Game.Bag.Destroy(),
+                Factory = () => new Zeze.Builtin.Game.Bag.Destroy(),
                 Handle = ProcessDestroyRequest,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessDestroyRequest", Zeze.Transaction.TransactionLevel.Serializable),
             });
-            service.AddFactoryHandle(47307875157850, new Zeze.Net.Service.ProtocolFactoryHandle()
+            service.AddFactoryHandle(47308274693689, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
-                Factory = () => new Zeze.Beans.Game.Bag.Move(),
+                Factory = () => new Zeze.Builtin.Game.Bag.Move(),
                 Handle = ProcessMoveRequest,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessMoveRequest", Zeze.Transaction.TransactionLevel.Serializable),
             });
@@ -36,8 +36,8 @@ namespace Zeze.Game
 
         public void UnRegisterProtocols(Zeze.Net.Service service)
         {
-            service.Factorys.TryRemove(47305007008671, out var _);
-            service.Factorys.TryRemove(47307875157850, out var _);
+            service.Factorys.TryRemove(47307869964755, out var _);
+            service.Factorys.TryRemove(47308274693689, out var _);
         }
 
         public void RegisterZezeTables(Zeze.Application zeze)

@@ -1,12 +1,12 @@
 package Zeze.Collections;
 
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Beans.Collections.LinkedMap.BLinkedMap;
-import Zeze.Beans.Collections.LinkedMap.BLinkedMapKey;
-import Zeze.Beans.Collections.LinkedMap.BLinkedMapNode;
-import Zeze.Beans.Collections.LinkedMap.BLinkedMapNodeId;
-import Zeze.Beans.Collections.LinkedMap.BLinkedMapNodeKey;
-import Zeze.Beans.Collections.LinkedMap.BLinkedMapNodeValue;
+import Zeze.Builtin.Collections.LinkedMap.BLinkedMap;
+import Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey;
+import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode;
+import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeId;
+import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey;
+import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.TableWalkHandle;
 

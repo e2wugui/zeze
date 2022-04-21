@@ -236,7 +236,7 @@ namespace Zeze.Arch.Gen
                 }
 
                 string rpcVarName = "rpc" + Gen.Instance.TmpVarNameId.IncrementAndGet();
-                sb.AppendLine($"        var {rpcVarName} = new Zeze.Beans.ProviderDirect.ModuleRedirect();");
+                sb.AppendLine($"        var {rpcVarName} = new Zeze.Builtin.ProviderDirect.ModuleRedirect();");
                 sb.AppendLine($"        {rpcVarName}.Argument.ModuleId = {module.Id};");
                 sb.AppendLine($"        {rpcVarName}.Argument.RedirectType = {m.GetRedirectType()};");
                 sb.AppendLine($"        {rpcVarName}.Argument.HashCode = {m.GetChoiceHashOrServerCodeSource()};");
@@ -354,7 +354,7 @@ namespace Zeze.Arch.Gen
         void GenRedirectAll(StringBuilder sb, StringBuilder sbHandles, Zeze.IModule module, MethodOverride m)
         {
             string reqVarName = "reqall" + Gen.Instance.TmpVarNameId.IncrementAndGet();
-            sb.AppendLine($"        var {reqVarName} = new Zeze.Beans.ProviderDirect.ModuleRedirectAllRequest();");
+            sb.AppendLine($"        var {reqVarName} = new Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest();");
             sb.AppendLine($"        {reqVarName}.Argument.ModuleId = {module.Id};");
             sb.AppendLine($"        {reqVarName}.Argument.HashCodeConcurrentLevel = {m.GetConcurrentLevelSource()};");
             sb.AppendLine($"        // {reqVarName}.Argument.HashCodes = // setup in linkd;");

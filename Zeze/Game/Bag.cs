@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Zeze.Arch;
-using Zeze.Beans.Game.Bag;
+using Zeze.Builtin.Game.Bag;
 using Zeze.Net;
 using Zeze.Transaction;
 

@@ -1,6 +1,6 @@
 package Zeze.Arch;
 
-import Zeze.Beans.Provider.BLoad;
+import Zeze.Builtin.Provider.BLoad;
 import Zeze.Serialize.ByteBuffer;
 
 public class LinkdApp {

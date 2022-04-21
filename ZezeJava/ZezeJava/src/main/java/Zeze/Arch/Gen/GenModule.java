@@ -173,7 +173,7 @@ public final class GenModule {
 				continue;
 			}
 
-			sb.AppendLine("        var _p_ = new Zeze.Beans.ProviderDirect.ModuleRedirect();");
+			sb.AppendLine("        var _p_ = new Zeze.Builtin.ProviderDirect.ModuleRedirect();");
 			sb.AppendLine("        var _a_ = _p_.Argument;");
 			sb.AppendLine("        _a_.setModuleId({});", module.getId());
 			sb.AppendLine("        _a_.setRedirectType({});", m.getRedirectType());
@@ -295,7 +295,7 @@ public final class GenModule {
 			sb.AppendLine("        });");
 		} else
 			sb.AppendLine("null);");
-		sb.AppendLine("        var _p_ = new Zeze.Beans.ProviderDirect.ModuleRedirectAllRequest();");
+		sb.AppendLine("        var _p_ = new Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest();");
 		sb.AppendLine("        var _a_ = _p_.Argument;");
 		sb.AppendLine("        _a_.setModuleId({});", module.getId());
 		sb.AppendLine("        _a_.setHashCodeConcurrentLevel({});", m.hashOrServerIdParameter.getName());

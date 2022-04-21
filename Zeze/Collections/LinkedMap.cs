@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
-using Zeze.Beans.Collections.LinkedMap;
+using Zeze.Builtin.Collections.LinkedMap;
 using Zeze.Transaction;
 
 namespace Zeze.Collections

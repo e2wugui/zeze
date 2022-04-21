@@ -3,7 +3,7 @@ using System;
 using Zeze.Util;
 using Zeze.Raft.RocksRaft;
 using System.Collections.Generic;
-using Zeze.Beans.TestRocks;
+using Zeze.Builtin.TestRocks;
 using System.Threading.Tasks;
 
 namespace Zeze.Services

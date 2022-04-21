@@ -1,6 +1,6 @@
 package Zeze.Services.GlobalCacheManager;
 
-import Zeze.Beans.GlobalCacheManagerWithRaft.GlobalTableKey;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey;
 
 public class Reduce extends Zeze.Net.Rpc<Param2, Param2> {
 	public static final int ProtocolId_ = Zeze.Transaction.Bean.Hash32(Reduce.class.getName());

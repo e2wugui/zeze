@@ -1,7 +1,7 @@
 
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
-using Zeze.Beans.Collections.Queue;
+using Zeze.Builtin.Collections.Queue;
 using Zeze.Transaction;
 using System;
 

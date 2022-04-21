@@ -3,7 +3,7 @@ package Zeze.Component;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Beans.RedoQueue.BQueueTask;
+import Zeze.Builtin.RedoQueue.BQueueTask;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Rpc;
 import Zeze.Transaction.Procedure;
@@ -17,7 +17,7 @@ import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteOptions;
 import Zeze.Serialize.*;
-import Zeze.Beans.RedoQueue.*;
+import Zeze.Builtin.RedoQueue.*;
 
 /**
  * 连接：
