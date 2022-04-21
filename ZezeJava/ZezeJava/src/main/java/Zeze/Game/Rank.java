@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.function.IntUnaryOperator;
-import Zeze.Arch.ProviderService;
 import Zeze.AppBase;
 import Zeze.Arch.RedirectAll;
 import Zeze.Arch.RedirectAllFuture;
@@ -25,18 +24,14 @@ public class Rank extends AbstractRank {
 
 	public Rank(AppBase app) {
 		App = app;
+		RegisterZezeTables(App.getZeze());
+		RegisterProtocols(App.getZeze().Redirect.ProviderApp.ProviderService);
 	}
 
-	// 用于UserApp，可支持客户端发送协议。
-	// 注意：目前Rank模块没有定义处理客户端发送的协议，但可能添加。
-	public Rank(ProviderService ps) {
-		RegisterProtocols(ps);
-		RegisterZezeTables(ps.getZeze());
-	}
-
-	// 用于数据测试，内部转发测试。
-	public Rank(Zeze.Application zeze) {
-		RegisterZezeTables(zeze);
+	@Override
+	public void UnRegister() {
+		UnRegisterProtocols(App.getZeze().Redirect.ProviderApp.ProviderService);
+		UnRegisterZezeTables(App.getZeze());
 	}
 
 	public final BConcurrentKey newRankKey(int rankType, int timeType) {

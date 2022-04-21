@@ -1,6 +1,7 @@
 package UnitTest.Zeze.Game;
 
 import java.util.HashMap;
+import java.util.function.LongUnaryOperator;
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Arch.Gen.GenModule;
@@ -23,6 +24,7 @@ import Zeze.Net.Acceptor;
 import Zeze.Net.Binary;
 import Zeze.Net.Connector;
 import Zeze.Net.ServiceConf;
+import Zeze.Transaction.Procedure;
 import Zeze.Util.ConcurrentHashSet;
 import junit.framework.TestCase;
 
@@ -44,7 +46,7 @@ public class TestRank extends TestCase {
 			config.setGlobalCacheManagerPort(5555);
 			config.getDatabaseConfMap().put("", new Config.DatabaseConf()); // 默认内存数据库配置
 			config.setDefaultTableConf(new Config.TableConf()); // 默认的Table配置
-			config.setServerId(serverId); // 设置服务器ID
+			config.setServerId(serverId); // 设置Provider服务器ID
 			zeze = new Application("TestRank", config);
 
 			providerApp = new ProviderApp(zeze, new ProviderImplement() {
@@ -72,9 +74,8 @@ public class TestRank extends TestCase {
 
 		void start() throws Throwable {
 			rank = new Rank(this);
-			rank = (Rank)zeze.Redirect.ReplaceModuleInstance(this, rank);
-			rank.RegisterZezeTables(zeze);
 			rank.Initialize(this);
+			rank = (Rank)zeze.Redirect.ReplaceModuleInstance(this, rank);
 			if (GenModule.Instance.GenFileSrcRoot != null) {
 				System.out.println("---------------");
 				throw new RuntimeException("New Source File Has Generate. Re-Compile Need.");
@@ -105,6 +106,9 @@ public class TestRank extends TestCase {
 
 	private static final int CONC_LEVEL = 100;
 	private static final int APP_COUNT = 3;
+	private static final int ROLE_ID_BEGIN = 1000;
+	private static final int SERVER_ID_BEGIN = 1;
+	private static final int RANK_TYPE = 1;
 
 	private final App[] apps = new App[APP_COUNT];
 
@@ -113,7 +117,7 @@ public class TestRank extends TestCase {
 		System.out.println("------ setUp begin");
 		try {
 			for (int i = 0; i < APP_COUNT; i++)
-				apps[i] = new App(1 + i);
+				apps[i] = new App(SERVER_ID_BEGIN + i);
 			for (int i = 0; i < APP_COUNT; i++)
 				apps[i].start();
 
@@ -121,7 +125,7 @@ public class TestRank extends TestCase {
 			Thread.sleep(2000); // wait connected
 			for (int i = 0; i < APP_COUNT; i++) {
 				System.out.format("End Thread.sleep app%d %s%n",
-						1 + i, apps[i].getZeze().getServiceManagerAgent().getSubscribeStates().values());
+						SERVER_ID_BEGIN + i, apps[i].getZeze().getServiceManagerAgent().getSubscribeStates().values());
 			}
 		} catch (Throwable e) {
 			throw new RuntimeException(e);
@@ -148,18 +152,19 @@ public class TestRank extends TestCase {
 			App app = apps[0]; // 可以随便取一个, 不过都是对称的, 应该不用都测
 
 			app.rank.funcConcurrentLevel = rankType -> CONC_LEVEL;
-			int concLevel = app.rank.getConcurrentLevel(1);
-			var rankKey = app.rank.newRankKey(1, BConcurrentKey.TimeTypeTotal);
+			int concLevel = app.rank.getConcurrentLevel(RANK_TYPE);
+			var rankKey = app.rank.newRankKey(RANK_TYPE, BConcurrentKey.TimeTypeTotal);
+			LongUnaryOperator roleId2Value = roleId -> roleId * 10;
 
 			for (int hash = 0; hash < concLevel; hash++) {
 				int h = hash;
-				long roleId = 1000 + h;
+				long roleId = ROLE_ID_BEGIN + h;
 				app.zeze.NewProcedure(() -> {
-					app.rank.updateRank(h, rankKey, roleId, roleId * 10, Binary.Empty).await().then(r -> {
+					app.rank.updateRank(h, rankKey, roleId, roleId2Value.applyAsLong(roleId), Binary.Empty).await().then(r -> {
 						assertNotNull(r);
-						assertEquals(0L, r.longValue());
+						assertEquals(Procedure.Success, r.longValue());
 					});
-					return 0;
+					return Procedure.Success;
 				}, "updateRank").Call();
 			}
 
@@ -170,10 +175,10 @@ public class TestRank extends TestCase {
 //						concLevel, result.getRankList().size(), result);
 				assertEquals(concLevel, result.getRankList().size());
 				for (BRankValue rank : result.getRankList()) {
-					assertTrue(rank.getRoleId() >= 1000 && rank.getRoleId() < 1000 + concLevel);
-					assertEquals(rank.getRoleId() * 10, rank.getValue());
+					assertTrue(rank.getRoleId() >= ROLE_ID_BEGIN && rank.getRoleId() < ROLE_ID_BEGIN + concLevel);
+					assertEquals(roleId2Value.applyAsLong(rank.getRoleId()), rank.getValue());
 				}
-				return 0;
+				return Procedure.Success;
 			}, "getRankDirect").Call();
 
 			var hashSet1 = new ConcurrentHashSet<Integer>();
@@ -188,8 +193,8 @@ public class TestRank extends TestCase {
 					assertEquals(0, r.getResultCode());
 					assertEquals(1, r.rankList.getRankList().size());
 					var rank = r.rankList.getRankList().get(0);
-					assertTrue(rank.getRoleId() >= 1000 && rank.getRoleId() < 1000 + concLevel);
-					assertEquals(rank.getRoleId() * 10, rank.getValue());
+					assertTrue(rank.getRoleId() >= ROLE_ID_BEGIN && rank.getRoleId() < ROLE_ID_BEGIN + concLevel);
+					assertEquals(roleId2Value.applyAsLong(rank.getRoleId()), rank.getValue());
 				}).onAllDone(ctx -> {
 					assertNotNull(ctx);
 					var results = ctx.getAllResults();
@@ -206,11 +211,11 @@ public class TestRank extends TestCase {
 						assertEquals(0, r.getResultCode());
 						assertEquals(1, r.rankList.getRankList().size());
 						var rank = r.rankList.getRankList().get(0);
-						assertTrue(rank.getRoleId() >= 1000 && rank.getRoleId() < 1000 + concLevel);
-						assertEquals(rank.getRoleId() * 10, rank.getValue());
+						assertTrue(rank.getRoleId() >= ROLE_ID_BEGIN && rank.getRoleId() < ROLE_ID_BEGIN + concLevel);
+						assertEquals(roleId2Value.applyAsLong(rank.getRoleId()), rank.getValue());
 					});
 				}).await();
-				return 0;
+				return Procedure.Success;
 			}, "getRankAll").Call();
 			assertEquals(concLevel, hashSet1.size());
 			assertEquals(concLevel, hashSet2.size());
