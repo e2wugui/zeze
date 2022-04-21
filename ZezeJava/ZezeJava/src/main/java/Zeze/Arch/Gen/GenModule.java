@@ -63,9 +63,9 @@ public final class GenModule {
 
 	public static IModule newModule(Class<? extends IModule> cls, AppBase app) throws ReflectiveOperationException {
 		var ctor = getCtor(cls, app);
-		if (ctor.getParameterCount() == 1)
-			return (IModule)ctor.newInstance(app);
-		return (IModule)ctor.newInstance();
+		if (ctor.getParameterCount() != 1)
+			throw new NoSuchMethodException("No suitable constructor for redirect module: " + cls.getName());
+		return (IModule)ctor.newInstance(app);
 	}
 
 	public IModule ReplaceModuleInstance(AppBase userApp, IModule module) {
@@ -222,7 +222,7 @@ public final class GenModule {
 			sb.AppendLine();
 
 			// Handles
-			sbHandles.AppendLine("        App.getZeze().Redirect.Handles.put(\"{}:{}\", new Zeze.Arch.RedirectHandle(", module.getFullName(), m.method.getName());
+			sbHandles.AppendLine("        _app_.getZeze().Redirect.Handles.put(\"{}:{}\", new Zeze.Arch.RedirectHandle(", module.getFullName(), m.method.getName());
 			sbHandles.AppendLine("            Zeze.Transaction.TransactionLevel.{}, (_hash_, _params_) -> {", m.TransactionLevel);
 			boolean genLocal = false;
 			for (int i = 0; i < m.inputParameters.size(); ++i) {
@@ -263,7 +263,7 @@ public final class GenModule {
 			sb.AppendLine("        super(_app_);");
 			sb.AppendLine();
 		} else
-			sb.AppendLine("    public {}() {", genClassName);
+			sb.AppendLine("    public {}(Zeze.AppBase _app_) {", genClassName);
 		sb.Append(sbHandles.toString());
 		sb.AppendLine("    }");
 		sb.AppendLine("}");
@@ -327,7 +327,7 @@ public final class GenModule {
 		sb.AppendLine();
 
 		// handles
-		sbHandles.AppendLine("        App.getZeze().Redirect.Handles.put(\"{}:{}\", new Zeze.Arch.RedirectHandle(", module.getFullName(), m.method.getName());
+		sbHandles.AppendLine("        _app_.getZeze().Redirect.Handles.put(\"{}:{}\", new Zeze.Arch.RedirectHandle(", module.getFullName(), m.method.getName());
 		sbHandles.AppendLine("            Zeze.Transaction.TransactionLevel.{}, (_hash_, _params_) -> {", m.TransactionLevel);
 		if (!m.inputParameters.isEmpty()) {
 			sbHandles.AppendLine("                var _b_ = _params_.Wrap();");
