@@ -22,10 +22,11 @@ public class Rank extends AbstractRank {
 	public volatile IntUnaryOperator funcConcurrentLevel;
 	public volatile float ComputeFactor = 2.5f;
 
-	public Rank(AppBase app) {
+	@Override
+	public void Initialize(AppBase app) {
 		App = app;
-		RegisterZezeTables(App.getZeze());
-		RegisterProtocols(App.getZeze().Redirect.ProviderApp.ProviderService);
+		RegisterZezeTables(app.getZeze());
+		RegisterProtocols(app.getZeze().Redirect.ProviderApp.ProviderService);
 	}
 
 	@Override

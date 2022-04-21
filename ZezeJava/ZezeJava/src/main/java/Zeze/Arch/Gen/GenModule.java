@@ -3,6 +3,7 @@ package Zeze.Arch.Gen;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -10,11 +11,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import Zeze.AppBase;
 import Zeze.Arch.RedirectAll;
 import Zeze.Arch.RedirectAllFuture;
 import Zeze.Arch.RedirectFuture;
 import Zeze.Arch.RedirectHash;
 import Zeze.Arch.RedirectToServer;
+import Zeze.IModule;
 import Zeze.Util.InMemoryJavaCompiler;
 import Zeze.Util.StringBuilderCs;
 
@@ -44,7 +47,28 @@ public final class GenModule {
 		compiler.ignoreWarnings();
 	}
 
-	public Zeze.IModule ReplaceModuleInstance(Zeze.AppBase userApp, Zeze.IModule module) {
+	public static Constructor<?> getCtor(Class<? extends IModule> cls, AppBase app) throws ReflectiveOperationException {
+		var appClass = app.getClass();
+		var ctors = cls.getConstructors();
+		for (var ctor : ctors) {
+			if (ctor.getParameterCount() == 1 && ctor.getParameters()[0].getType().isAssignableFrom(appClass))
+				return ctor;
+		}
+		for (var ctor : ctors) {
+			if (ctor.getParameterCount() == 0)
+				return ctor;
+		}
+		throw new NoSuchMethodException("No suitable constructor for redirect module: " + cls.getName());
+	}
+
+	public static IModule newModule(Class<? extends IModule> cls, AppBase app) throws ReflectiveOperationException {
+		var ctor = getCtor(cls, app);
+		if (ctor.getParameterCount() == 1)
+			return (IModule)ctor.newInstance(app);
+		return (IModule)ctor.newInstance();
+	}
+
+	public IModule ReplaceModuleInstance(AppBase userApp, IModule module) {
 		var overrides = new ArrayList<MethodOverride>();
 		for (var method : module.getClass().getDeclaredMethods()) {
 			var a1 = method.getAnnotation(RedirectToServer.class);
@@ -65,16 +89,17 @@ public final class GenModule {
 		try {
 			if (GenFileSrcRoot == null) { // 不需要生成到文件的时候，尝试装载已经存在的生成模块子类。
 				try {
-					Class<?> moduleClass = Class.forName(genClassName);
+					@SuppressWarnings("unchecked")
+					var moduleClass = (Class<? extends IModule>)Class.forName(genClassName);
 					module.UnRegister();
-					var newModule = (Zeze.IModule)moduleClass.getConstructor(userApp.getClass()).newInstance(userApp);
+					var newModule = newModule(moduleClass, userApp);
 					newModule.Initialize(userApp);
 					return newModule;
 				} catch (ClassNotFoundException ignored) {
 				}
 			}
 
-			String code = GenModuleCode(genClassName, module, overrides, userApp.getClass().getName().replace('$', '.'));
+			var code = GenModuleCode(genClassName, module, overrides, userApp);
 
 			if (GenFileSrcRoot != null) {
 				byte[] oldBytes = null;
@@ -99,9 +124,10 @@ public final class GenModule {
 				}
 				return module; // 生成带File需要再次编译，所以这里返回原来的module。
 			}
-			Class<?> moduleClass = compiler.compile(genClassName, code);
+			@SuppressWarnings("unchecked")
+			var moduleClass = (Class<? extends IModule>)compiler.compile(genClassName, code);
 			module.UnRegister();
-			var newModule = (Zeze.IModule)moduleClass.getConstructor(userApp.getClass()).newInstance(userApp);
+			var newModule = newModule(moduleClass, userApp);
 			newModule.Initialize(userApp);
 			return newModule;
 		} catch (RuntimeException | Error e) {
@@ -111,8 +137,8 @@ public final class GenModule {
 		}
 	}
 
-	private String GenModuleCode(String genClassName, Zeze.IModule module, List<MethodOverride> overrides,
-								 String userAppName) throws Throwable {
+	private String GenModuleCode(String genClassName, IModule module, List<MethodOverride> overrides, AppBase userApp)
+			throws Throwable {
 		var sb = new StringBuilderCs();
 		sb.AppendLine("// auto-generated @" + "formatter:off");
 		sb.AppendLine("public final class {} extends {} {", genClassName, module.getClass().getName());
@@ -196,7 +222,6 @@ public final class GenModule {
 			sb.AppendLine();
 
 			// Handles
-			sbHandles.AppendLine();
 			sbHandles.AppendLine("        App.getZeze().Redirect.Handles.put(\"{}:{}\", new Zeze.Arch.RedirectHandle(", module.getFullName(), m.method.getName());
 			sbHandles.AppendLine("            Zeze.Transaction.TransactionLevel.{}, (_hash_, _params_) -> {", m.TransactionLevel);
 			boolean genLocal = false;
@@ -231,8 +256,14 @@ public final class GenModule {
 				sbHandles.Append("Zeze.Net.Binary.Empty");
 			sbHandles.AppendLine("));");
 		}
-		sb.AppendLine("    public {}({} _app_) {", genClassName, userAppName);
-		sb.AppendLine("        super(_app_);");
+
+		var ctor = getCtor(module.getClass(), userApp);
+		if (ctor.getParameterCount() == 1) {
+			sb.AppendLine("    public {}({} _app_) {", genClassName, ctor.getParameters()[0].getType().getName().replace('$', '.'));
+			sb.AppendLine("        super(_app_);");
+			sb.AppendLine();
+		} else
+			sb.AppendLine("    public {}() {", genClassName);
 		sb.Append(sbHandles.toString());
 		sb.AppendLine("    }");
 		sb.AppendLine("}");
@@ -262,7 +293,7 @@ public final class GenModule {
 	}
 
 	private void GenRedirectAll(StringBuilderCs sb, StringBuilderCs sbHandles,
-								Zeze.IModule module, MethodOverride m) throws Throwable {
+								IModule module, MethodOverride m) throws Throwable {
 		sb.Append("        var _c_ = new Zeze.Arch.ModuleRedirectAllContext<>({}, ", m.hashOrServerIdParameter.getName());
 		if (m.resultTypeName != null) {
 			sb.AppendLine("_params_ -> {");
@@ -296,7 +327,6 @@ public final class GenModule {
 		sb.AppendLine();
 
 		// handles
-		sbHandles.AppendLine();
 		sbHandles.AppendLine("        App.getZeze().Redirect.Handles.put(\"{}:{}\", new Zeze.Arch.RedirectHandle(", module.getFullName(), m.method.getName());
 		sbHandles.AppendLine("            Zeze.Transaction.TransactionLevel.{}, (_hash_, _params_) -> {", m.TransactionLevel);
 		if (!m.inputParameters.isEmpty()) {

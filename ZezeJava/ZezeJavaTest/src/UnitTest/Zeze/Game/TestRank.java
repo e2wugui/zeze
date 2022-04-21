@@ -1,105 +1,15 @@
 package UnitTest.Zeze.Game;
 
-import java.util.HashMap;
 import java.util.function.LongUnaryOperator;
-import Zeze.AppBase;
-import Zeze.Application;
-import Zeze.Arch.Gen.GenModule;
-import Zeze.Arch.LoadConfig;
-import Zeze.Arch.ProviderApp;
-import Zeze.Arch.ProviderDirect;
-import Zeze.Arch.ProviderDirectService;
-import Zeze.Arch.ProviderImplement;
-import Zeze.Arch.ProviderModuleBinds;
-import Zeze.Arch.ProviderService;
 import Zeze.Builtin.Game.Rank.BConcurrentKey;
 import Zeze.Builtin.Game.Rank.BRankValue;
-import Zeze.Builtin.Provider.LinkBroken;
-import Zeze.Builtin.Provider.SendConfirm;
-import Zeze.Builtin.ProviderDirect.Transmit;
-import Zeze.Config;
-import Zeze.Game.Rank;
-import Zeze.IModule;
-import Zeze.Net.Acceptor;
 import Zeze.Net.Binary;
-import Zeze.Net.Connector;
-import Zeze.Net.ServiceConf;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.ConcurrentHashSet;
+import demo.SimpleApp;
 import junit.framework.TestCase;
 
 public class TestRank extends TestCase {
-	public static final class App extends AppBase { // 简单的无需读配置文件的App
-		final Application zeze;
-		final ProviderApp providerApp;
-		Rank rank;
-
-		App(int serverId) throws Throwable {
-			var config = new Config();
-			var serviceConf = new ServiceConf();
-			serviceConf.AddConnector(new Connector("127.0.0.1", 5001)); // 连接本地ServiceManager
-			config.getServiceConfMap().put("Zeze.Services.ServiceManager.Agent", serviceConf);
-			serviceConf = new ServiceConf();
-			serviceConf.AddAcceptor(new Acceptor(20000 + serverId, null));
-			config.getServiceConfMap().put("ProviderDirectService", serviceConf); // 提供Provider之间直连服务
-			config.setGlobalCacheManagerHostNameOrAddress("127.0.0.1"); // 连接本地GlobalServer
-			config.setGlobalCacheManagerPort(5555);
-			config.getDatabaseConfMap().put("", new Config.DatabaseConf()); // 默认内存数据库配置
-			config.setDefaultTableConf(new Config.TableConf()); // 默认的Table配置
-			config.setServerId(serverId); // 设置Provider服务器ID
-			zeze = new Application("TestRank", config);
-
-			providerApp = new ProviderApp(zeze, new ProviderImplement() {
-				@Override
-				protected long ProcessLinkBroken(LinkBroken p) {
-					return 0;
-				}
-
-				@Override
-				protected long ProcessSendConfirm(SendConfirm p) {
-					return 0;
-				}
-			}, new ProviderService("ProviderService", zeze), "TestRank#", new ProviderDirect() {
-				@Override
-				protected long ProcessTransmit(Transmit p) {
-					return 0;
-				}
-			}, new ProviderDirectService("ProviderDirectService", zeze), "Game.Linkd", new LoadConfig());
-		}
-
-		@Override
-		public Application getZeze() {
-			return zeze;
-		}
-
-		void start() throws Throwable {
-			rank = new Rank(this);
-			rank.Initialize(this);
-			rank = (Rank)zeze.Redirect.ReplaceModuleInstance(this, rank);
-			if (GenModule.Instance.GenFileSrcRoot != null) {
-				System.out.println("---------------");
-				throw new RuntimeException("New Source File Has Generate. Re-Compile Need.");
-			}
-			var modules = new HashMap<String, IModule>();
-			modules.put(rank.getFullName(), rank);
-			providerApp.initialize(ProviderModuleBinds.Load(""), modules);
-			zeze.Start();
-			providerApp.ProviderService.Start();
-			providerApp.ProviderDirectService.Start();
-			providerApp.StartLast();
-		}
-
-		void stop() throws Throwable {
-			providerApp.ProviderDirectService.Stop();
-			providerApp.ProviderService.Stop();
-			zeze.Stop();
-			if (rank != null) {
-				rank.UnRegisterZezeTables(zeze);
-				rank = null;
-			}
-		}
-	}
-
 	static {
 		System.setProperty("log4j.configurationFile", "log4j2.xml");
 	}
@@ -110,14 +20,14 @@ public class TestRank extends TestCase {
 	private static final int SERVER_ID_BEGIN = 1;
 	private static final int RANK_TYPE = 1;
 
-	private final App[] apps = new App[APP_COUNT];
+	private final SimpleApp[] apps = new SimpleApp[APP_COUNT];
 
 	@Override
 	protected void setUp() {
 		System.out.println("------ setUp begin");
 		try {
 			for (int i = 0; i < APP_COUNT; i++)
-				apps[i] = new App(SERVER_ID_BEGIN + i);
+				apps[i] = new SimpleApp(SERVER_ID_BEGIN + i);
 			for (int i = 0; i < APP_COUNT; i++)
 				apps[i].start();
 
@@ -149,7 +59,7 @@ public class TestRank extends TestCase {
 	public void testRank() throws Throwable {
 		try {
 			System.out.println("------ testRank begin");
-			App app = apps[0]; // 可以随便取一个, 不过都是对称的, 应该不用都测
+			SimpleApp app = apps[0]; // 可以随便取一个, 不过都是对称的, 应该不用都测
 
 			app.rank.funcConcurrentLevel = rankType -> CONC_LEVEL;
 			int concLevel = app.rank.getConcurrentLevel(RANK_TYPE);
@@ -159,7 +69,7 @@ public class TestRank extends TestCase {
 			for (int hash = 0; hash < concLevel; hash++) {
 				int h = hash;
 				long roleId = ROLE_ID_BEGIN + h;
-				app.zeze.NewProcedure(() -> {
+				app.getZeze().NewProcedure(() -> {
 					app.rank.updateRank(h, rankKey, roleId, roleId2Value.applyAsLong(roleId), Binary.Empty).await().then(r -> {
 						assertNotNull(r);
 						assertEquals(Procedure.Success, r.longValue());
@@ -168,7 +78,7 @@ public class TestRank extends TestCase {
 				}, "updateRank").Call();
 			}
 
-			app.zeze.NewProcedure(() -> {
+			app.getZeze().NewProcedure(() -> {
 				// 直接从数据库读取并合并
 				var result = app.rank.getRankDirect(rankKey);
 //				System.out.format("--- getRankDirect: concurrent=%d, rankList=[%d]:%s%n",
@@ -183,7 +93,7 @@ public class TestRank extends TestCase {
 
 			var hashSet1 = new ConcurrentHashSet<Integer>();
 			var hashSet2 = new ConcurrentHashSet<Integer>();
-			app.zeze.NewProcedure(() -> {
+			app.getZeze().NewProcedure(() -> {
 				app.rank.getRankAll(rankKey).onResult(r -> {
 					assertNotNull(r);
 //					System.out.format("--- getRankAll onResult: hash=%d, resultCode=%d, rankList=%s%n",
