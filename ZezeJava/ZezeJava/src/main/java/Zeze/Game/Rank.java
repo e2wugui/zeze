@@ -16,7 +16,7 @@ import Zeze.Builtin.Game.Rank.BRankValue;
 import Zeze.Net.Binary;
 
 public class Rank extends AbstractRank {
-	protected AppBase App;
+	private AppBase app;
 
 	public volatile IntUnaryOperator funcRankSize;
 	public volatile IntUnaryOperator funcConcurrentLevel;
@@ -24,15 +24,15 @@ public class Rank extends AbstractRank {
 
 	@Override
 	public void Initialize(AppBase app) {
-		App = app;
+		this.app = app;
 		RegisterZezeTables(app.getZeze());
 		RegisterProtocols(app.getZeze().Redirect.ProviderApp.ProviderService);
 	}
 
 	@Override
 	public void UnRegister() {
-		UnRegisterProtocols(App.getZeze().Redirect.ProviderApp.ProviderService);
-		UnRegisterZezeTables(App.getZeze());
+		UnRegisterProtocols(app.getZeze().Redirect.ProviderApp.ProviderService);
+		UnRegisterZezeTables(app.getZeze());
 	}
 
 	public final BConcurrentKey newRankKey(int rankType, int timeType) {

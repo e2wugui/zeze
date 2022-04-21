@@ -142,6 +142,8 @@ public final class GenModule {
 		var sb = new StringBuilderCs();
 		sb.AppendLine("// auto-generated @" + "formatter:off");
 		sb.AppendLine("public final class {} extends {} {", genClassName, module.getClass().getName());
+		sb.AppendLine("    private final Zeze.Arch.RedirectBase _redirect_;");
+		sb.AppendLine();
 
 		var sbHandles = new StringBuilderCs();
 		for (var m : overrides) {
@@ -186,7 +188,7 @@ public final class GenModule {
 			sb.AppendLine("        _a_.setRedirectType({});", m.getRedirectType());
 			sb.AppendLine("        _a_.setHashCode({});", m.hashOrServerIdParameter.getName());
 			sb.AppendLine("        _a_.setMethodFullName(\"{}:{}\");", module.getFullName(), m.method.getName());
-			sb.AppendLine("        _a_.setServiceNamePrefix(App.getZeze().Redirect.ProviderApp.ServerServiceNamePrefix);");
+			sb.AppendLine("        _a_.setServiceNamePrefix(_redirect_.ProviderApp.ServerServiceNamePrefix);");
 			if (m.inputParameters.size() > 0) {
 				sb.AppendLine("        var _b_ = Zeze.Serialize.ByteBuffer.Allocate();");
 				Gen.Instance.GenEncode(sb, "        ", "_b_", m.inputParameters);
@@ -261,9 +263,10 @@ public final class GenModule {
 		if (ctor.getParameterCount() == 1) {
 			sb.AppendLine("    public {}({} _app_) {", genClassName, ctor.getParameters()[0].getType().getName().replace('$', '.'));
 			sb.AppendLine("        super(_app_);");
-			sb.AppendLine();
 		} else
 			sb.AppendLine("    public {}(Zeze.AppBase _app_) {", genClassName);
+		sb.AppendLine("        _redirect_ = _app_.getZeze().Redirect;");
+		sb.AppendLine();
 		sb.Append(sbHandles.toString());
 		sb.AppendLine("    }");
 		sb.AppendLine("}");
@@ -273,19 +276,19 @@ public final class GenModule {
 	// 根据转发类型选择目标服务器，如果目标服务器是自己，直接调用基类方法完成工作。
 	private void ChoiceTargetRunLoopback(StringBuilderCs sb, MethodOverride methodOverride, String returnName) {
 		if (methodOverride.annotation instanceof RedirectHash)
-			sb.AppendLine("        var _t_ = App.getZeze().Redirect.ChoiceHash(this, {});", methodOverride.hashOrServerIdParameter.getName());
+			sb.AppendLine("        var _t_ = _redirect_.ChoiceHash(this, {});", methodOverride.hashOrServerIdParameter.getName());
 		else if (methodOverride.annotation instanceof RedirectToServer)
-			sb.AppendLine("        var _t_ = App.getZeze().Redirect.ChoiceServer(this, {});", methodOverride.hashOrServerIdParameter.getName());
+			sb.AppendLine("        var _t_ = _redirect_.ChoiceServer(this, {});", methodOverride.hashOrServerIdParameter.getName());
 		else if (methodOverride.annotation instanceof RedirectAll)
 			return; // RedirectAll 不在这里选择目标服务器。后面发送的时候直接查找所有可用服务器并进行广播。
 
 		sb.AppendLine("        if (_t_ == null) { // local: loop-back");
 		if (returnName.equals("void")) {
-			sb.AppendLine("            App.getZeze().Redirect.RunVoid(Zeze.Transaction.TransactionLevel.{},", methodOverride.TransactionLevel);
+			sb.AppendLine("            _redirect_.RunVoid(Zeze.Transaction.TransactionLevel.{},", methodOverride.TransactionLevel);
 			sb.AppendLine("                () -> super.{}({}));", methodOverride.method.getName(), methodOverride.GetBaseCallString());
 			sb.AppendLine("            return;");
 		} else {
-			sb.AppendLine("            return App.getZeze().Redirect.RunFuture(Zeze.Transaction.TransactionLevel.{},", methodOverride.TransactionLevel);
+			sb.AppendLine("            return _redirect_.RunFuture(Zeze.Transaction.TransactionLevel.{},", methodOverride.TransactionLevel);
 			sb.AppendLine("                () -> super.{}({}));", methodOverride.method.getName(), methodOverride.GetBaseCallString());
 		}
 		sb.AppendLine("        }");
@@ -312,17 +315,17 @@ public final class GenModule {
 		sb.AppendLine("        _a_.setModuleId({});", module.getId());
 		sb.AppendLine("        _a_.setHashCodeConcurrentLevel({});", m.hashOrServerIdParameter.getName());
 		sb.AppendLine("        _a_.setMethodFullName(\"{}:{}\");", module.getFullName(), m.method.getName());
-		sb.AppendLine("        _a_.setServiceNamePrefix(App.getZeze().Redirect.ProviderApp.ServerServiceNamePrefix);");
-		sb.AppendLine("        _a_.setSessionId(App.getZeze().Redirect.ProviderApp.ProviderDirectService.AddManualContextWithTimeout(_c_));");
+		sb.AppendLine("        _a_.setServiceNamePrefix(_redirect_.ProviderApp.ServerServiceNamePrefix);");
+		sb.AppendLine("        _a_.setSessionId(_redirect_.ProviderApp.ProviderDirectService.AddManualContextWithTimeout(_c_));");
 		if (m.inputParameters.size() > 0) {
 			sb.AppendLine("        var _b_ = Zeze.Serialize.ByteBuffer.Allocate();");
 			Gen.Instance.GenEncode(sb, "        ", "_b_", m.inputParameters);
 			sb.AppendLine("        _a_.setParams(new Zeze.Net.Binary(_b_));");
 		}
 		if (m.resultType != null)
-			sb.AppendLine("        return App.getZeze().Redirect.RedirectAll(this, _p_, _c_);");
+			sb.AppendLine("        return _redirect_.RedirectAll(this, _p_, _c_);");
 		else
-			sb.AppendLine("        App.getZeze().Redirect.RedirectAll(this, _p_, _c_);");
+			sb.AppendLine("        _redirect_.RedirectAll(this, _p_, _c_);");
 		sb.AppendLine("    }");
 		sb.AppendLine();
 
