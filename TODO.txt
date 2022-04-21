@@ -26,12 +26,16 @@ Global c# 慢的问题。
 Online Account
 Zezex Onlines TransmitInProcedure 需要重写。需要改成使用ProviderDirect。
 c# Arch RedirectAll & Test
+c# Game.Rank Test
 
 Online 1) Count Stat. 2) Logout Check Not Owner.
 
 【2022/5/11】
 
 Global 死锁. lock(CacheState) lock(CacheHolder)之间互相依赖。
+	3月份调整代码，试图对同一个session(每个serverId对应一个，即CacheHolder)进行互斥同步时的改动引进的bug。
+	去掉了 lock(session)，恢复成原来的 tryBind，tryUnbind里面lock，不持有。仔细想了一下。
+	互斥由tryBind,tryUnbind的逻辑保证，只允许一个serverid的实例的session前进到下一步，其他都失败。
 Builtin Module UnRegister 实现。
 c# Zeze.Game.Bag
 c# Zeze.Game.Rank
