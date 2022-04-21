@@ -31,7 +31,7 @@ public class ModuleBuf extends AbstractModule {
 			changed.Argument.setChangeTag(BBufChanged.ChangeTagRecordChanged);
 			changed.Argument.getReplace().putAll(record.getBufs());
 
-			Game.App.Instance.Game_Login.getOnlines().SendReliableNotify((Long)key, getName(), changed);
+			Game.App.Instance.getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
 		}
 
 		public final void OnChanged(Object key, Bean value, ChangeNote note) {
@@ -48,13 +48,13 @@ public class ModuleBuf extends AbstractModule {
 				changed.Argument.getRemove().add(p);
 			}
 
-			Game.App.getInstance().Game_Login.getOnlines().SendReliableNotify((Long)key, getName(), changed);
+			Game.App.getInstance().getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
 		}
 
 		public final void OnRemoved(Object key) {
 			SChanged changed = new SChanged();
 			changed.Argument.setChangeTag(BBufChanged.ChangeTagRecordIsRemoved);
-			Game.App.getInstance().Game_Login.getOnlines().SendReliableNotify((Long)key, getName(), changed);
+			Game.App.getInstance().getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
 		}
 	}
 

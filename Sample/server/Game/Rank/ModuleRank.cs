@@ -439,8 +439,9 @@ namespace Game.Rank
         {
         }
 
+
         // broardcast awaitable?, collect awaitable!
-        //*
+        /*
         [RedirectAllHash("")]
         [Zeze.Util.TransactionLevel(Level = "None")]
         protected virtual void TestAllHashBroadcast(int hash, int param)
@@ -453,7 +454,7 @@ namespace Game.Rank
         }
 
         [RedirectAllHash("")]
-        protected async Task TestAllHashBroadcastAwaitable(int hash, int param)
+        protected virtual async Task TestAllHashBroadcastAwaitable(int hash, int param)
         {
         }
 
@@ -467,7 +468,7 @@ namespace Game.Rank
         }
 
         [RedirectAllHash("")]
-        protected RedirectAllResult TestAllHashCollect(int hash, int param)
+        protected virtual RedirectAllResult TestAllHashCollect(int hash, int param)
         {
             return null;
         }
@@ -478,12 +479,12 @@ namespace Game.Rank
         }
 
         [RedirectAllHash("")]
-        protected async Task<RedirectAllResult> TestAllHashCollectAwaitable(int hash, int param)
+        protected virtual async Task<RedirectAllResult> TestAllHashCollectAwaitable(int hash, int param)
         {
             return new RedirectAllResult();
         }
 
-        public async Task<RedirectAllResult> TestAllHashCollectAwaitable(int param)
+        public virtual async Task<RedirectAllResult> TestAllHashCollectAwaitable(int param)
         {
             return await TestAllHashCollectAwaitable(100, param);
         }

@@ -31,7 +31,7 @@ public final class ModuleEquip extends AbstractModule {
 			changed.Argument.setChangeTag(Game.Bag.BChangedResult.ChangeTagRecordChanged);
 			changed.Argument.getItemsReplace().putAll(bequips.getItems());
 
-			Game.App.Instance.Game_Login.getOnlines().SendReliableNotify((Long)key, getName(), changed);
+			Game.App.Instance.getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
 		}
 
 		public final void OnChanged(Object key, Bean value, ChangeNote note) {
@@ -49,13 +49,13 @@ public final class ModuleEquip extends AbstractModule {
 				changed.Argument.getItemsRemove().add(p);
 			}
 
-			Game.App.Instance.Game_Login.getOnlines().SendReliableNotify((Long)key, getName(), changed);
+			Game.App.Instance.getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
 		}
 
 		public final void OnRemoved(Object key) {
 			SEquipement changed = new SEquipement();
 			changed.Argument.setChangeTag(Game.Bag.BChangedResult.ChangeTagRecordIsRemoved);
-			Game.App.Instance.Game_Login.getOnlines().SendReliableNotify((Long)key, getName(), changed);
+			Game.App.Instance.getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
 		}
 	}
 

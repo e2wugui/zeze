@@ -5,16 +5,7 @@
 	<import file="../solution.zeze.xml"/>
 
 	<module name="Login" id="1">
-		<enum name="ResultCodeSuccess" value="0"/>
-
 		<enum name="ResultCodeCreateRoleDuplicateRoleName" value="1"/>
-
-		<enum name="ResultCodeAccountNotExist"    value="2"/>
-		<enum name="ResultCodeRoleNotExist"       value="3"/>
-		<enum name="ResultCodeNotLastLoginRoleId" value="4"/>
-		<enum name="ResultCodeOnlineDataNotFound" value="5"/>
-		<enum name="ResultCodeReliableNotifyConfirmCountOutOfRange" value="6"/>
-		<enum name="ResultCodeNotLogin"           value="7"/>
 
 		<bean name="BRole">
 			<variable id="1" name="Id" type="long"/>

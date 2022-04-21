@@ -7,6 +7,9 @@ import Zeze.Arch.LoadConfig;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderModuleBinds;
 import Zeze.Config;
+import Zeze.Game.Online;
+import Zeze.Game.ProviderDirectWithTransmit;
+import Zeze.Game.ProviderImplementWithOnline;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.PersistentAtomicLong;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,9 +23,9 @@ public final class App extends Zeze.AppBase {
 
 	private MyConfig MyConfig;
 	private final Game.Load Load = new Load();
-	private Provider provider;
+	private ProviderImplementWithOnline provider;
 	public ProviderApp ProviderApp;
-	public ProviderDirectMy ProviderDirectMy;
+	public ProviderDirectWithTransmit ProviderDirect;
 
 	@Override
 	public Zeze.IModule ReplaceModuleInstance(Zeze.IModule module) {
@@ -49,7 +52,7 @@ public final class App extends Zeze.AppBase {
 		}
 	}
 
-	public Provider getProvider() {
+	public ProviderImplementWithOnline getProvider() {
 		return provider;
 	}
 
@@ -92,11 +95,12 @@ public final class App extends Zeze.AppBase {
 		// create
 		CreateZeze(config);
 		CreateService();
-		provider = new Provider(this);
-		ProviderDirectMy = new ProviderDirectMy();
+		provider = new ProviderImplementWithOnline();
+		ProviderDirect = new ProviderDirectWithTransmit();
 		ProviderApp = new ProviderApp(Zeze, provider, Server,
 				"Game.Server.Module#",
-				ProviderDirectMy, ServerDirect, "Game.Linkd", LoadLoadConfig());
+				ProviderDirect, ServerDirect, "Game.Linkd", LoadLoadConfig());
+		provider.Online = new Online(ProviderApp.ProviderService);
 
 		CreateModules();
 		if (GenModule.Instance.GenFileSrcRoot != null) {
@@ -108,7 +112,6 @@ public final class App extends Zeze.AppBase {
 
 		// start
 		Zeze.Start(); // 启动数据库
-		provider.Start(this);
 		StartModules(); // 启动模块，装载配置什么的。
 		PersistentAtomicLong socketSessionIdGen = PersistentAtomicLong.getOrAdd("Game.Server." + config.getServerId());
 		AsyncSocket.setSessionIdGenFunc(socketSessionIdGen::next);
@@ -122,7 +125,6 @@ public final class App extends Zeze.AppBase {
 	public void Stop() throws Throwable {
 		StopService(); // 关闭网络
 		StopModules(); // 关闭模块，卸载配置什么的。
-		provider.Stop(this);
 		Zeze.Stop(); // 关闭数据库
 		DestroyModules();
 		DestroyServices();

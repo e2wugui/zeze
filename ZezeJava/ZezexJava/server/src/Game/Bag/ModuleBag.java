@@ -28,7 +28,7 @@ public final class ModuleBag extends AbstractModule {
 			var sbag = new SBag();
 			Bag.ToProtocol(bbag, sbag.Argument);
 
-			Game.App.getInstance().Game_Login.getOnlines().SendReliableNotify((Long)key, getName(), sbag);
+			Game.App.getInstance().getProvider().Online.sendReliableNotify((Long)key, getName(), sbag);
 		}
 
 		public final void OnChanged(Object key, Bean value, ChangeNote note) {
@@ -39,7 +39,7 @@ public final class ModuleBag extends AbstractModule {
 		public final void OnRemoved(Object key) {
 			SChanged changed = new SChanged();
 			changed.Argument.setChangeTag(BChangedResult.ChangeTagRecordIsRemoved);
-			Game.App.getInstance().Game_Login.getOnlines().SendReliableNotify((Long)key, getName(), changed);
+			Game.App.getInstance().getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
 		}
 	}
 
@@ -66,7 +66,7 @@ public final class ModuleBag extends AbstractModule {
 				changed.Argument.getItemsRemove().add(p);
 			}
 
-			Game.App.getInstance().Game_Login.getOnlines().SendReliableNotify((Long)key, getName(), changed);
+			Game.App.getInstance().getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
 		}
 
 		public final void OnRemoved(Object key) {
@@ -114,7 +114,7 @@ public final class ModuleBag extends AbstractModule {
 
 		GetBag(session.getRoleId().longValue()).ToProtocol(rpc.Result);
 		session.SendResponse(rpc);
-		App.getInstance().Game_Login.getOnlines().AddReliableNotifyMark(session.getRoleId().longValue(), BagChangeListener.getName());
+		App.getInstance().getProvider().Online.addReliableNotifyMark(session.getRoleId().longValue(), BagChangeListener.getName());
 		return Procedure.Success;
 	}
 

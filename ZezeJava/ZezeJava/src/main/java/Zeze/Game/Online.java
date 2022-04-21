@@ -11,6 +11,8 @@ import Zeze.Arch.ProviderUserSession;
 import Zeze.Builtin.Game.Online.BAccount;
 import Zeze.Builtin.Game.Online.BOnline;
 import Zeze.Builtin.Game.Online.SReliableNotify;
+import Zeze.Builtin.Game.Online.taccount;
+import Zeze.Builtin.Provider.BLinkBroken;
 import Zeze.Builtin.Provider.Broadcast;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Builtin.Provider.SetUserState;
@@ -35,6 +37,10 @@ public class Online extends AbstractOnline {
 
 	public interface TransmitAction {
 		long call(long sender, long target, Serializable parameter);
+	}
+
+	public taccount getTableAccount() {
+		return _taccount;
 	}
 
 	/**
@@ -89,10 +95,13 @@ public class Online extends AbstractOnline {
 		return Procedure.Success;
 	}
 
-	public final void onLinkBroken(long roleId) {
+	public final void onLinkBroken(long roleId, BLinkBroken arg) {
 		var online = _tonline.get(roleId);
-		if (online != null)
-			online.setState(BOnline.StateNetBroken);
+		if (online == null || online.getLinkSid() != arg.getLinkSid())
+			return; // skip not owner
+
+		// 设置状态，延迟以后，准备删除记录。
+		online.setState(BOnline.StateNetBroken);
 
 		Task.schedule(10 * 60 * 1000, () -> { // 10 minutes for relogin
 			service.getZeze().NewProcedure(() -> {
@@ -100,7 +109,10 @@ public class Online extends AbstractOnline {
 				// 由于CLogin,CReLogin的时候没有取消Timeout，所以有可能再次登录断线后，会被上一次断线的Timeout删除。
 				// 造成延迟时间不准确。管理Timeout有点烦，先这样吧。
 				var online2 = _tonline.get(roleId);
-				if (online2 != null && online2.getState() == BOnline.StateNetBroken)
+				// 删除前检查：
+				// 1）State是网络断开（StateNetBroken），因为Delay期间可能重新连接并登录（ReLogin）；
+				// 2）Owner：当前LinkSid是关闭连接，理由同上。
+				if (online2 != null && online2.getState() == BOnline.StateNetBroken && online2.getLinkSid() == arg.getLinkSid())
 					_tonline.remove(roleId);
 				return Procedure.Success;
 			}, "Game.Online.onLinkBroken").Call();
@@ -255,7 +267,7 @@ public class Online extends AbstractOnline {
 		return groups.values();
 	}
 
-	private final class ConfirmContext extends Service.ManualContext {
+	public final class ConfirmContext extends Service.ManualContext {
 		final HashSet<String> linkNames = new HashSet<>();
 		final TaskCompletionSource<Long> future;
 
