@@ -22,6 +22,8 @@ namespace Zeze.Gen
 
         private XmlElement Self;
         private XmlElement ModuleStartSelf;
+        public string BuiltinNG { get; set; }
+        public bool BuiltinNotGen => BuiltinNG.Equals("true");
 
         public string ComponentPresentModuleFullName { get; private set; }
 
@@ -56,7 +58,7 @@ namespace Zeze.Gen
             GenCommonRelativeDir = self.GetAttribute("GenCommonRelativeDir").Trim();
             ScriptDir = self.GetAttribute("scriptdir").Trim();
             ComponentPresentModuleFullName = self.GetAttribute("PresentModuleFullName");
-
+            BuiltinNG = self.GetAttribute("BuiltinNG");
             foreach (string target in self.GetAttribute("GenTables").Split(','))
                 GenTables.Add(target);
 
@@ -138,6 +140,8 @@ namespace Zeze.Gen
             var _AllProtocols = new HashSet<Protocol>();
             foreach (Module mod in AllOrderDefineModules) // 这里本不该用 AllModules。只要第一层的即可，里面会递归。
             {
+                if (mod.FullName.StartsWith("Zeze.Builtin.") && BuiltinNotGen)
+                    continue;
                 mod.Depends(_AllProtocols);
             }
             foreach (var p in _AllProtocols)
@@ -146,6 +150,8 @@ namespace Zeze.Gen
             var _AllTables = new HashSet<Table>();
             foreach (Module mod in AllOrderDefineModules) // 这里本不该用 AllModules。只要第一层的即可，里面会递归。
             {
+                if (mod.FullName.StartsWith("Zeze.Builtin.") && BuiltinNotGen)
+                    continue;
                 mod.Depends(_AllTables);
             }
             foreach (var t in _AllTables)
@@ -166,6 +172,8 @@ namespace Zeze.Gen
                 // 加入模块中定义的所有bean和beankey。
                 foreach (Module mod in AllOrderDefineModules)
                 {
+                    if (mod.FullName.StartsWith("Zeze.Builtin.") && BuiltinNotGen)
+                        continue;
                     foreach (var b in mod.BeanKeys.Values)
                         b.Depends(depends);
                     foreach (var b in mod.Beans.Values)

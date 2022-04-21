@@ -329,16 +329,15 @@ namespace Game.Rank
             };
         }
 
-        protected override async Task<long> ProcessCGetRankList(Protocol p)
+        protected override async Task<long> ProcessGetRankListRequest(Protocol p)
         {
-            var protocol = p as CGetRankList;
-            Login.Session session = Login.Session.Get(protocol);
+            var r = p as GetRankList;
+            var session = ProviderUserSession.Get(r);
 
-            var result = new SGetRankList();
             if (null == session.RoleId)
             {
-                result.ResultCode = -1;
-                session.SendResponse(result);
+                r.ResultCode = -1;
+                session.SendResponse(r);
                 return Procedure.LogicError;
             }
             /* 
@@ -350,10 +349,10 @@ namespace Game.Rank
             });
             /*/
             // 同步方式获取rank
-            result.Argument.RankList.AddRange((await GetRank(
-                NewRankKey(protocol.Argument.RankType, protocol.Argument.TimeType)
+            r.Result.RankList.AddRange((await GetRank(
+                NewRankKey(r.Argument.RankType, r.Argument.TimeType)
                 )).TableValue.RankList);
-            session.SendResponse(result);
+            session.SendResponse(r);
             // */
             return Procedure.Success;
         }

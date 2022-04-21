@@ -1,6 +1,7 @@
 ﻿
 using Game.Fight;
 using System.Threading.Tasks;
+using Zeze.Arch;
 using Zeze.Net;
 using Zeze.Transaction;
 
@@ -31,7 +32,7 @@ namespace Game.Equip
                 changed.Argument.ChangeTag = Game.Bag.BChangedResult.ChangeTagRecordChanged;
                 changed.Argument.ItemsReplace.AddRange(bequips.Items);
 
-                Game.App.Instance.Game_Login.Onlines.SendReliableNotify((long)key, Name, changed);
+                Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
             }
 
             void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
@@ -48,14 +49,14 @@ namespace Game.Equip
                 foreach (var p in notemap2.Removed)
                     changed.Argument.ItemsRemove.Add(p);
 
-                Game.App.Instance.Game_Login.Onlines.SendReliableNotify((long)key, Name, changed);
+                Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
             }
 
             void ChangeListener.OnRemoved(object key)
             {
                 SEquipement changed = new SEquipement();
                 changed.Argument.ChangeTag = Game.Bag.BChangedResult.ChangeTagRecordIsRemoved;
-                Game.App.Instance.Game_Login.Onlines.SendReliableNotify((long)key, Name, changed);
+                Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
             }
         }
 
@@ -72,7 +73,7 @@ namespace Game.Equip
         protected override async Task<long> ProcessEquipementRequest(Protocol p)
         {
             var rpc = p as Equipement;
-            Login.Session session = Login.Session.Get(rpc);
+            var session = ProviderUserSession.Get(rpc);
 
             Bag.Bag bag = await App.Instance.Game_Bag.GetBag(session.RoleId.Value);
             if (bag.Items.TryGetValue(rpc.Argument.BagPos, out var bItem))
@@ -113,7 +114,7 @@ namespace Game.Equip
         protected override async Task<long> ProcessUnequipementRequest(Protocol p)
         {
             var rpc = p as Unequipement;
-            Login.Session session = Login.Session.Get(rpc);
+            var session = ProviderUserSession.Get(rpc);
 
             BEquips equips = await _tequip.GetOrAddAsync(session.RoleId.Value);
             if (equips.Items.TryGetValue(rpc.Argument.EquipPos, out var eItem))

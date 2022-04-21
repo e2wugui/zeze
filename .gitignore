@@ -54,3 +54,14 @@
 /Draft/obj
 ~$*
 /ZezeJava/autokeys
+/Sample/client/bin
+/Sample/client/Gen
+/Sample/client/obj
+/Sample/linkd/bin
+/Sample/linkd/Gen
+/Sample/linkd/obj
+/Sample/server/bin
+/Sample/server/Gen
+/Sample/server/obj
+/Sample/server/Properties
+/TestMain/Properties

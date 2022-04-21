@@ -183,9 +183,9 @@ namespace Zeze.Gen.cs
             sw.WriteLine();
             DefineZezeTables(sw);
             sw.WriteLine();
-            sw.WriteLine($"        public {project.Solution.Name}.App App {{ get; }}");
+            sw.WriteLine($"        public global::{project.Solution.Name}.App App {{ get; }}");
             sw.WriteLine();
-            sw.WriteLine($"        public Module{module.Name}({project.Solution.Name}.App app)");
+            sw.WriteLine($"        public Module{module.Name}(global::{project.Solution.Name}.App app)");
             sw.WriteLine("        {");
             sw.WriteLine("            App = app;");
             RegisterProtocols(sw);
@@ -245,11 +245,11 @@ namespace Zeze.Gen.cs
             sw.WriteLine("{");
             sw.WriteLine($"    public partial class Module{module.Name} : AbstractModule");
             sw.WriteLine("    {");
-            sw.WriteLine("        public void Start(" + project.Solution.Name + ".App app)");
+            sw.WriteLine("        public void Start(global::" + project.Solution.Name + ".App app)");
             sw.WriteLine("        {");
             sw.WriteLine("        }");
             sw.WriteLine();
-            sw.WriteLine("        public void Stop(" + project.Solution.Name + ".App app)");
+            sw.WriteLine("        public void Stop(global::" + project.Solution.Name + ".App app)");
             sw.WriteLine("        {");
             sw.WriteLine("        }");
             sw.WriteLine();

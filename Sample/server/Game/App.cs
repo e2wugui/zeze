@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using Zeze.Util;
 using Zeze.Net;
+using Zeze.Game;
 
 namespace Game
 {
@@ -18,12 +19,9 @@ namespace Game
         public Config Config { get; private set; }
         public Load Load { get; } = new Load();
 
-        public ProviderImplement ProviderImplement { get; set; }
-        public ProviderDirect ProviderDirect { get; set; }
+        public ProviderImplementWithOnline ProviderImplementWithOnline { get; set; }
+        public ProviderDirectWithTransmit ProviderDirectWithTransmit { get; set; }
         public Zeze.Arch.ProviderApp ProviderApp { get; set; }
-
-        public const string ServerServiceNamePrefix = "Game.Server.Module#";
-        public const string LinkdServiceName = "Game.Linkd";
 
         private void LoadConfig()
         {
@@ -78,10 +76,10 @@ namespace Game
             CreateZeze(config);
             CreateService();
 
-            ProviderImplement = new ProviderImplement();
-            ProviderDirect = new ProviderDirect();
-            ProviderApp = new Zeze.Arch.ProviderApp(Zeze, ProviderImplement, Server, "Game.Server.Module#",
-                ProviderDirect, ServerDirect, "Game.Linkd", global::Zeze.Arch.LoadConfig.Load("load.json"));
+            ProviderImplementWithOnline = new ProviderImplementWithOnline();
+            ProviderDirectWithTransmit = new ProviderDirectWithTransmit();
+            ProviderApp = new Zeze.Arch.ProviderApp(Zeze, ProviderImplementWithOnline, Server, "Game.Server.Module#",
+                ProviderDirectWithTransmit, ServerDirect, "Game.Linkd", global::Zeze.Arch.LoadConfig.Load("load.json"));
 
             global::Zeze.Arch.Gen.GenModule.Instance.GenRedirect = GenRedirect;
             CreateModules();

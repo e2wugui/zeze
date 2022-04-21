@@ -7,18 +7,19 @@ using Zeze.Builtin.Provider;
 using Zeze.Net;
 using Zeze.Transaction;
 
-namespace Game
+namespace Zeze.Game
 {
-    public class ProviderImplement : Zeze.Arch.ProviderImplement
+    public class ProviderImplementWithOnline : Zeze.Arch.ProviderImplement
     {
+        public Online Online { get; set; }
         protected override async Task<long> ProcessLinkBroken(Protocol _p)
         {
             var p = _p as LinkBroken;
             // 目前仅需设置online状态。
-            if (0 == p.Argument.States.Count)
+            if (p.Argument.States.Count > 0)
             {
                 var roleId = p.Argument.States[0];
-                await Game.App.Instance.Game_Login.Onlines.OnLinkBroken(roleId);
+                await Online.OnLinkBroken(roleId, p.Argument);
             }
             return Procedure.Success;
         }
@@ -27,7 +28,7 @@ namespace Game
         {
             var p = _p as SendConfirm;
             var linkSession = (Zeze.Arch.ProviderService.LinkSession)p.Sender.UserState;
-            var ctx = App.Instance.Server.TryGetManualContext<Game.Login.Onlines.ConfirmContext>(p.Argument.ConfirmSerialId);
+            var ctx = ProviderApp.ProviderService.TryGetManualContext<Online.ConfirmContext>(p.Argument.ConfirmSerialId);
             if (ctx != null)
             {
                 ctx.ProcessLinkConfirm(linkSession.Name);

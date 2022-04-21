@@ -33,7 +33,7 @@ namespace Game.Buf
                 changed.Argument.ChangeTag = BBufChanged.ChangeTagRecordChanged;
                 changed.Argument.Replace.AddRange(record.Bufs);
 
-                Game.App.Instance.Game_Login.Onlines.SendReliableNotify((long)key, Name, changed);
+                Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
             }
 
             void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
@@ -50,14 +50,14 @@ namespace Game.Buf
                 foreach (var p in notemap2.Removed)
                     changed.Argument.Remove.Add(p);
 
-                Game.App.Instance.Game_Login.Onlines.SendReliableNotify((long)key, Name, changed);
+                Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
             }
 
             void ChangeListener.OnRemoved(object key)
             {
                 SChanged changed = new SChanged();
                 changed.Argument.ChangeTag = BBufChanged.ChangeTagRecordIsRemoved;
-                Game.App.Instance.Game_Login.Onlines.SendReliableNotify((long)key, Name, changed);
+                Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
             }
         }
 

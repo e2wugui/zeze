@@ -4,12 +4,12 @@ using Zeze.Net;
 
 namespace Game.Bag
 {
-    public sealed partial class ModuleBag : AbstractModule, Login.IReliableNotify
+    public sealed partial class ModuleBag : AbstractModule, Zeze.Builtin.Game.Online.IReliableNotify
     {
         public void Start(Game.App app)
         {
-            Game.App.Instance.Game_Login.RegisterReliableNotify(SChanged.TypeId_, this);
-            Game.App.Instance.Game_Login.RegisterReliableNotify(SBag.TypeId_, this); // 记录整个变更用这个通告
+            Game.App.Instance.Zeze_Builtin_Game_Online.RegisterReliableNotify(SChanged.TypeId_, this);
+            Game.App.Instance.Zeze_Builtin_Game_Online.RegisterReliableNotify(SBag.TypeId_, this); // 记录整个变更用这个通告
         }
 
         public void Stop(Game.App app)

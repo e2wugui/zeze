@@ -1,5 +1,6 @@
 ﻿
 using System.Threading.Tasks;
+using Zeze.Arch;
 using Zeze.Net;
 using Zeze.Transaction;
 
@@ -18,7 +19,7 @@ namespace Game.Map
         protected override async Task<long> ProcessCEnterWorld(Protocol p)
         {
             var protocol = p as CEnterWorld;
-            Game.Login.Session session = Game.Login.Session.Get(protocol);
+            var session = ProviderUserSession.Get(protocol);
             if (null == session.RoleId)
             {
                 return Procedure.LogicError;

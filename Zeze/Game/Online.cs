@@ -18,6 +18,8 @@ namespace Zeze.Game
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public ProviderApp App { get; }
 
+        public taccount TableAccount => _taccount;
+
         public Online(ProviderApp app)
         {
             this.App = app;
@@ -60,27 +62,34 @@ namespace Zeze.Game
             return true;
         }
 
-        public async Task OnLinkBroken(long roleId)
+        public async Task OnLinkBroken(long roleId, BLinkBroken arg)
         {
             var online = await _tonline.GetAsync(roleId);
-            if (null != online)
-                online.State = BOnline.StateNetBroken;
+            if (null == online || online.LinkSid != arg.LinkSid)
+                return; // skip now owner
 
+            // 设置状态，延迟以后，准备删除记录。
+            online.State = BOnline.StateNetBroken;
             await Task.Delay(10 * 60 * 1000);
 
-            App.Zeze.NewProcedure(async () =>
+            // TryRemove
+            await App.Zeze.NewProcedure(async () =>
             {
                 // 网络断开后延迟删除在线状态。这里简单判断一下是否StateNetBroken。
                 // 由于CLogin,CReLogin的时候没有取消Timeout，所以有可能再次登录断线后，会被上一次断线的Timeout删除。
                 // 造成延迟时间不准确。管理Timeout有点烦，先这样吧。
                 var online = await _tonline.GetAsync(roleId);
-                if (null != online && online.State == BOnline.StateNetBroken)
+
+                // 删除前检查：
+                // 1）State是网络断开（StateNetBroken），因为Delay期间可能重新连接并登录（ReLogin）；
+                // 2）Owner：当前LinkSid是关闭连接，理由同上。
+                if (null != online && online.State == BOnline.StateNetBroken && online.LinkSid == arg.LinkSid)
                 {
                     await _tonline.RemoveAsync(roleId);
                     //App.Instance.Load.LogoutCount.IncrementAndGet();
                 }
                 return Procedure.Success;
-            }, "Onlines.OnLinkBroken").Execute();
+            }, "Onlines.OnLinkBroken").CallAsync();
         }
 
         public async Task AddReliableNotifyMark(long roleId, string listenerName)

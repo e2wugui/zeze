@@ -2,6 +2,7 @@
 
 <solution name="Game" ModuleIdAllowRanges="1-1000">
 	<import file="solution.linkd.xml"/>
+	<import file="../solution.zeze.xml"/>
 
 	<module name="Login" id="1">
 		<enum name="ResultCodeSuccess" value="0"/>
@@ -24,33 +25,8 @@
 			<variable id="2" name="LastLoginRoleId" type="long"/>
 		</bean>
 
-		<bean name="BLogin">
-			<variable id="1" name="RoleId" type="long"/>
-		</bean>
-
-		<bean name="BReLogin">
-			<variable id="1" name="RoleId" type="long"/>
-			<variable id="2" name="ReliableNotifyConfirmCount" type="long"/>
-		</bean>
-
-		<bean name="BReliableNotifyConfirm">
-			<variable id="1" name="ReliableNotifyConfirmCount" type="long"/>
-		</bean>
-
 		<rpc name="CreateRole" argument="BRole" handle="server"/>
 		<rpc name="GetRoleList" result="BRoles" handle="server"/>
-		<rpc name="Login"   argument="BLogin"   handle="server"/> 登录角色
-		<rpc name="ReLogin" argument="BReLogin" handle="server"/> 网络断开重新登录（数据无法同步时会失败，此时客户端应该重新走完整的登录流程-装载数据。）
-
-		<rpc name="Logout" handle="server"/> 登出
-		<rpc name="ReliableNotifyConfirm" argument="BReliableNotifyConfirm" handle="server"/>
-
-		<bean name="BReliableNotify">
-			<variable id="1" name="Notifies" type="list" value="binary"/> full encoded protocol list
-			<variable id="2" name="ReliableNotifyTotalCountStart" type="long"/> Notify的计数开始。客户端收到的总计数为：start + Notifies.Count
-		</bean>
-
-		<protocol name="SReliableNotify" argument="BReliableNotify" handle="client"/>
 
 		<bean name="BRoleData">
 			<variable id="1" name="Name" type="string"/>
@@ -59,36 +35,8 @@
 			<variable id="1" name="Id" type="long"/>
 		</bean>
 
-		<bean name="BOnline">
-			<enum name="StateOffline"   value="0"/>
-			<!--enum name="StateLoading"   value="1"/>--> 装载数据还有 StateEnterWorld 不放到这里吧，这里只处理数据安全同步问题。
-			<enum name="StateOnline"    value="2"/>
-			<enum name="StateNetBroken" value="3"/> 客户端连接断开时，一定时间内可以重连。超时会删除 Online-Record。
-
-			<variable id="1" name="LinkName"    type="string"/>
-			<variable id="2" name="LinkSid"     type="long"/>
-			<variable id="3" name="State"       type="int" default="StateOffline"/>
-
-			<!-- 下面的定义用来实现可靠的协议通告。 -->
-			<variable id="4" name="ReliableNotifyMark"         type="set" value="string"/>
-			<variable id="5" name="ReliableNotifyQueue"        type="list" value="binary"/> full encoded protocol list
-			<variable id="6" name="ReliableNotifyConfirmCount" type="long"/>
-			<variable id="7" name="ReliableNotifyTotalCount"   type="long"/>
-
-			<variable id="8" name="ProviderId" type="int"/> Config.AutoKeyLocalId
-			<variable id="9" name="ProviderSessionId" type="long"/> 登录所在Linkd与当前Provider的连接在Linkd方的SessionId
-		</bean>
-
-		<bean name="BAccount">
-			<variable id="1" name="Name"  type="string"/>
-			<variable id="2" name="Roles" type="list" value="long"/> roleid list
-			<variable id="3" name="LastLoginRoleId" type="long"/>
-		</bean>
-
-		<table name="taccount" key="string" value="BAccount"/>
 		<table name="trole" key="long" value="BRoleData" autokey="true"/>
 		<table name="trolename" key="string" value="BRoleId"/> rolename to roleid. duplicate name check
-		<table name="tonline" key="long" value="BOnline"/>
 	</module>
 
 	<module name="Bag" id="2">
@@ -342,9 +290,10 @@
 		</service>
 	</project>
 
-	<project name="client" gendir="." platform="cs" GenTables="client">
+	<project name="client" gendir="." platform="cs" GenTables="client" BuiltinNG="true">
 		<service name="Client" handle="client" base="Zeze.Services.HandshakeClient">
 			<module ref="Login"/>
+			<module ref="Zeze.Builtin.Game.Online"/>
 			<module ref="Bag"/>
 			<module ref="Zezex.Linkd"/>
 		</service>
