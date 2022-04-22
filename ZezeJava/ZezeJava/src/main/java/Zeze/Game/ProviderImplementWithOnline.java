@@ -10,7 +10,7 @@ public class ProviderImplementWithOnline extends ProviderImplement {
 	public Online Online; // 需要外面初始化。App.Start.
 
 	@Override
-	protected long ProcessLinkBroken(LinkBroken p) throws Throwable {
+	protected long ProcessLinkBroken(LinkBroken p) {
 		// 目前仅需设置online状态。
 		if (!p.Argument.getStates().isEmpty()) {
 			var roleId = p.Argument.getStates().get(0);
@@ -20,7 +20,7 @@ public class ProviderImplementWithOnline extends ProviderImplement {
 	}
 
 	@Override
-	protected long ProcessSendConfirm(SendConfirm p) throws Throwable {
+	protected long ProcessSendConfirm(SendConfirm p) {
 		var linkSession = (ProviderService.LinkSession)p.getSender().getUserState();
 		var ctx = ProviderApp.ProviderService.<Online.ConfirmContext>TryGetManualContext(
 				p.Argument.getConfirmSerialId());
