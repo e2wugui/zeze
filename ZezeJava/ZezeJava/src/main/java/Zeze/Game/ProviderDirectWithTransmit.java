@@ -18,6 +18,7 @@ public class ProviderDirectWithTransmit extends ProviderDirect {
 
 	private final ConcurrentHashMap<String, MethodHandle> objectFactory = new ConcurrentHashMap<>();
 
+	/*
 	private Serializable createObject(String className) {
 		try {
 			return (Serializable)objectFactory.computeIfAbsent(className, cn -> {
@@ -35,19 +36,13 @@ public class ProviderDirectWithTransmit extends ProviderDirect {
 			return null;
 		}
 	}
+	*/
 
 	@Override
 	protected long ProcessTransmit(Transmit p) {
-		Serializable parameter = null;
-		if (!p.Argument.getParameterBeanName().isEmpty()) {
-			parameter = createObject(p.Argument.getParameterBeanName());
-			if (parameter == null)
-				return ErrorCode(ErrorTransmitParameterFactoryNotFound);
-			parameter.Decode(p.Argument.getParameterBeanValue().Wrap());
-		}
-
 		((ProviderImplementWithOnline)ProviderApp.ProviderImplement).Online.processTransmit(
-				p.Argument.getSender(), p.Argument.getActionName(), p.Argument.getRoles().keySet(), parameter);
+				p.Argument.getSender(), p.Argument.getActionName(),
+				p.Argument.getRoles().keySet(), p.Argument.getParameterBeanValue());
 		return Procedure.Success;
 	}
 }

@@ -22,6 +22,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
@@ -35,8 +36,9 @@ public class Online extends AbstractOnline {
 
 	private final ProviderService service;
 
+	@FunctionalInterface
 	public interface TransmitAction {
-		long call(long sender, long target, Serializable parameter);
+		long call(long sender, long target, Binary parameter);
 	}
 
 	public taccount getTableAccount() {
@@ -444,7 +446,7 @@ public class Online extends AbstractOnline {
 		transmit(sender, actionName, roleId, null);
 	}
 
-	public final void processTransmit(long sender, String actionName, Iterable<Long> roleIds, Serializable parameter) {
+	public final void processTransmit(long sender, String actionName, Iterable<Long> roleIds, Binary parameter) {
 		var handle = transmitActions.get(actionName);
 		if (handle != null) {
 			for (var target : roleIds) {
@@ -454,7 +456,7 @@ public class Online extends AbstractOnline {
 		}
 	}
 
-	private void transmitInProcedure(long sender, String actionName, Iterable<Long> roleIds, Serializable parameter) {
+	private void transmitInProcedure(long sender, String actionName, Iterable<Long> roleIds, Binary parameter) {
 		if (service.getZeze().getConfig().getGlobalCacheManagerHostNameOrAddress().isEmpty()) {
 			// 没有启用cache-sync，马上触发本地任务。
 			processTransmit(sender, actionName, roleIds, parameter);
@@ -475,7 +477,7 @@ public class Online extends AbstractOnline {
 			transmit.Argument.getRoles().putAll(group.roles);
 			if (parameter != null) {
 				transmit.Argument.setParameterBeanName(parameter.getClass().getName());
-				transmit.Argument.setParameterBeanValue(new Binary(Zeze.Serialize.ByteBuffer.Encode(parameter)));
+				transmit.Argument.setParameterBeanValue(parameter);
 			}
 			group.linkSocket.Send(transmit);
 		}
@@ -488,10 +490,11 @@ public class Online extends AbstractOnline {
 	public final void transmit(long sender, String actionName, Iterable<Long> roleIds, Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new RuntimeException("Unknown Action Name: " + actionName);
-
+		var bb = ByteBuffer.Allocate(1024);
+		parameter.Encode(bb);
 		// 发送协议请求在另外的事务中执行。
 		Task.run(service.getZeze().NewProcedure(() -> {
-			transmitInProcedure(sender, actionName, roleIds, parameter);
+			transmitInProcedure(sender, actionName, roleIds, new Binary(bb));
 			return Procedure.Success;
 		}, "Game.Online.transmit"), null, null);
 	}

@@ -15,16 +15,9 @@ namespace Zeze.Game
         protected override async Task<long> ProcessTransmit(Protocol _p)
         {
 			var p = _p as Transmit;
-			Zeze.Serialize.Serializable parameter = null;
 			var provider = ProviderApp.ProviderImplement as ProviderImplementWithOnline;
-			if (0 == p.Argument.ParameterBeanName.Length)
-			{
-				if (!provider.Online.TransmitParameterFactorys.TryGetValue(p.Argument.ParameterBeanName, out var factory))
-					return ErrorCode(ErrorTransmitParameterFactoryNotFound);
-
-				parameter = factory(p.Argument.ParameterBeanName);
-			}
-			provider.Online.ProcessTransmit(p.Argument.Sender, p.Argument.ActionName, p.Argument.Roles.Keys, parameter);
+			provider.Online.ProcessTransmit(p.Argument.Sender, p.Argument.ActionName,
+				p.Argument.Roles.Keys, p.Argument.ParameterBeanValue);
 			return Procedure.Success;
 		}
 	}

@@ -350,9 +350,7 @@ namespace Zeze.Game
         /// target: 查询目标角色。
         /// result: 返回值，int，按普通事务处理过程返回值处理。
         /// </summary>
-        public ConcurrentDictionary<string, Func<long, long, Serializable, Task<long>>> TransmitActions { get; } = new();
-
-        public ConcurrentDictionary<string, Func<string, Serializable>> TransmitParameterFactorys { get; } = new();
+        public ConcurrentDictionary<string, Func<long, long, Binary, Task<long>>> TransmitActions { get; } = new();
 
         /// <summary>
         /// 转发查询请求给RoleId。
@@ -365,7 +363,7 @@ namespace Zeze.Game
             Transmit(sender, actionName, new List<long>() { roleId }, parameter);
         }
 
-        public void ProcessTransmit(long sender, string actionName, IEnumerable<long> roleIds, Serializable parameter)
+        public void ProcessTransmit(long sender, string actionName, IEnumerable<long> roleIds, Binary parameter)
         {
             if (TransmitActions.TryGetValue(actionName, out var handle))
             {
@@ -376,7 +374,7 @@ namespace Zeze.Game
             }
         }
 
-        private async Task TransmitInProcedure(long sender, string actionName, ICollection<long> roleIds, Serializable parameter)
+        private async Task TransmitInProcedure(long sender, string actionName, ICollection<long> roleIds, Binary parameter)
         {
             if (App.Zeze.Config.GlobalCacheManagerHostNameOrAddress.Length == 0)
             {
@@ -407,7 +405,7 @@ namespace Zeze.Game
                 if (null != parameter)
                 {
                     transmit.Argument.ParameterBeanName = parameter.GetType().FullName;
-                    transmit.Argument.ParameterBeanValue = new Binary(Zeze.Serialize.ByteBuffer.Encode(parameter));
+                    transmit.Argument.ParameterBeanValue = parameter;
                 }
 
                 group.LinkSocket.Send(transmit);
@@ -419,10 +417,11 @@ namespace Zeze.Game
             if (false == TransmitActions.ContainsKey(actionName))
                 throw new Exception("Unkown Action Name: " + actionName);
 
+            var binaryParam = parameter == null ? Binary.Empty : new Binary(ByteBuffer.Encode(parameter));
             // 发送协议请求在另外的事务中执行。
             _ = App.Zeze.NewProcedure(async () =>
             {
-                await TransmitInProcedure(sender, actionName, roleIds, parameter);
+                await TransmitInProcedure(sender, actionName, roleIds, binaryParam);
                 return Procedure.Success;
             }, "Onlines.Transmit").CallAsync();
         }
