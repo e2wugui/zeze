@@ -309,7 +309,7 @@ public class Bag {
 	public static class Module extends AbstractBag {
 		private final ConcurrentHashMap<String, Bag> Bags = new ConcurrentHashMap<>();
 		public ProviderService Service;
-		public Application Zeze;
+		public final Application Zeze;
 
 		// 用于UserApp服务，可以处理客户端发送的协议。
 		public Module(ProviderService ps) {

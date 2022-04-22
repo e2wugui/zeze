@@ -20,7 +20,7 @@ public class Queue<V extends Bean> {
 
 	public static class Module extends AbstractQueue {
 		private final ConcurrentHashMap<String, Queue<?>> Queues = new ConcurrentHashMap<>();
-		public Zeze.Application Zeze;
+		public final Zeze.Application Zeze;
 
 		public Module(Zeze.Application zeze) {
 			Zeze = zeze;

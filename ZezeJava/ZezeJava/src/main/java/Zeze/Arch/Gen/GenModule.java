@@ -17,7 +17,6 @@ import Zeze.Arch.RedirectAllFuture;
 import Zeze.Arch.RedirectFuture;
 import Zeze.Arch.RedirectHash;
 import Zeze.Arch.RedirectToServer;
-import Zeze.Game.Rank;
 import Zeze.IModule;
 import Zeze.Util.InMemoryJavaCompiler;
 import Zeze.Util.StringBuilderCs;

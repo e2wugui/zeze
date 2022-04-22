@@ -3,19 +3,15 @@ package demo;
 import java.util.HashMap;
 import Zeze.AppBase;
 import Zeze.Application;
-import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.LoadConfig;
 import Zeze.Arch.ProviderApp;
-import Zeze.Arch.ProviderDirect;
 import Zeze.Arch.ProviderDirectService;
-import Zeze.Arch.ProviderImplement;
 import Zeze.Arch.ProviderModuleBinds;
 import Zeze.Arch.ProviderService;
-import Zeze.Builtin.Provider.LinkBroken;
-import Zeze.Builtin.Provider.SendConfirm;
-import Zeze.Builtin.ProviderDirect.Transmit;
 import Zeze.Config;
 import Zeze.Game.Bag;
+import Zeze.Game.ProviderDirectWithTransmit;
+import Zeze.Game.ProviderImplementWithOnline;
 import Zeze.Game.Rank;
 import Zeze.IModule;
 import Zeze.Net.Acceptor;
@@ -45,22 +41,9 @@ public class SimpleApp extends AppBase {
 		config.setServerId(serverId); // 设置Provider服务器ID
 		zeze = new Application("SimpleApp", config);
 
-		providerApp = new ProviderApp(zeze, new ProviderImplement() {
-			@Override
-			protected long ProcessLinkBroken(LinkBroken p) {
-				return 0;
-			}
-
-			@Override
-			protected long ProcessSendConfirm(SendConfirm p) {
-				return 0;
-			}
-		}, new ProviderService("ProviderService", zeze), "SimpleApp#", new ProviderDirect() {
-			@Override
-			protected long ProcessTransmit(Transmit p) {
-				return 0;
-			}
-		}, new ProviderDirectService("ProviderDirectService", zeze), "Game.Linkd", new LoadConfig());
+		providerApp = new ProviderApp(zeze, new ProviderImplementWithOnline(),
+				new ProviderService("ProviderService", zeze), "SimpleApp#", new ProviderDirectWithTransmit(),
+				new ProviderDirectService("ProviderDirectService", zeze), "Game.Linkd", new LoadConfig());
 	}
 
 	@Override
@@ -84,11 +67,11 @@ public class SimpleApp extends AppBase {
 		rank.Initialize(this);
 		modules.put(rank.getFullName(), rank);
 
-		if (GenModule.Instance.GenFileSrcRoot != null) {
-			System.out.println("---------------");
-			System.out.println("New Source File Has Generate. Re-Compile Need.");
-			System.exit(0);
-		}
+//		if (GenModule.Instance.GenFileSrcRoot != null) {
+//			System.out.println("---------------");
+//			System.out.println("New Source File Has Generate. Re-Compile Need.");
+//			System.exit(0);
+//		}
 
 		providerApp.initialize(ProviderModuleBinds.Load(""), modules);
 		zeze.Start();

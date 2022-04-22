@@ -23,7 +23,7 @@ public class LinkedMap<V extends Bean> {
 
 	public static class Module extends AbstractLinkedMap {
 		private final ConcurrentHashMap<String, LinkedMap<?>> LinkedMaps = new ConcurrentHashMap<>();
-		public Zeze.Application Zeze;
+		public final Zeze.Application Zeze;
 
 		public Module(Zeze.Application zeze) {
 			Zeze = zeze;

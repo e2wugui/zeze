@@ -8,7 +8,7 @@ import Zeze.Transaction.Transaction;
 public class AutoKey {
 	public static class Module extends AbstractAutoKey {
 		private final ConcurrentHashMap<String, AutoKey> map = new ConcurrentHashMap<>();
-		public Zeze.Application Zeze;
+		public final Zeze.Application Zeze;
 
 		// 这个组件Zeze.Application会自动初始化，不需要应用初始化。
 		public Module(Zeze.Application zeze) {
