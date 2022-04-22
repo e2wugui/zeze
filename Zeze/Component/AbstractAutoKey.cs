@@ -4,9 +4,10 @@ namespace Zeze.Component
     public abstract class AbstractAutoKey : Zeze.IModule 
     {
         public const int ModuleId = 11003;
-        public override string FullName => "Zeze.Builtin.AutoKey";
+        public override string FullName => "Zeze.Component.AutoKey";
         public override string Name => "AutoKey";
         public override int Id => ModuleId;
+        public override bool IsBuiltin => true;
 
         internal Zeze.Builtin.AutoKey.tAutoKeys _tAutoKeys = new Zeze.Builtin.AutoKey.tAutoKeys();
 

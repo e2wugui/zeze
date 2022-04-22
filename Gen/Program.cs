@@ -21,6 +21,10 @@ namespace Gen
                     Zeze.Gen.Program.Main(args);
                     break;
 
+                case "genr":
+                    Zeze.Builtin.RedirectGenMain.Main(args);
+                    break;
+
                 case "ExportZezex":
                     Zeze.Util.Zezex.Main(args);
                     break;

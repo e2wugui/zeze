@@ -4,9 +4,10 @@ namespace Zeze.Services
     public abstract class AbstractTestRocks : Zeze.IModule 
     {
         public const int ModuleId = 11002;
-        public override string FullName => "Zeze.Builtin.TestRocks";
+        public override string FullName => "Zeze.Services.TestRocks";
         public override string Name => "TestRocks";
         public override int Id => ModuleId;
+        public override bool IsBuiltin => true;
 
 
         public void RegisterProtocols(Zeze.Net.Service service)

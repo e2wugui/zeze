@@ -4,9 +4,10 @@ namespace Zeze.Component
     public abstract class AbstractLinkdBase : Zeze.IModule 
     {
         public const int ModuleId = 11011;
-        public override string FullName => "Zeze.Builtin.LinkdBase";
+        public override string FullName => "Zeze.Component.LinkdBase";
         public override string Name => "LinkdBase";
         public override int Id => ModuleId;
+        public override bool IsBuiltin => true;
 
 
         public void RegisterProtocols(Zeze.Net.Service service)

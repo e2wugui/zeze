@@ -28,11 +28,14 @@ Zezex Onlines TransmitInProcedure 需要重写。需要改成使用ProviderDirec
 c# Arch RedirectAll & Test
 c# Game.Rank Test
 
+Online Memory Table 可以存储在线相关数据。
 c# 1) Count Stat. 
 java 1) Count Stat. 
 
 【2022/5/11】
 
+c# RedirectGenMain 内建模块Redirect生成。
+Java RedirectGenMain 内建模块Redirect生成。
 Java 2) Online Logout Check Not Owner.
 Java 3) ProviderImplementWithOnline
 Java 4) ProviderDirectWithTransmit

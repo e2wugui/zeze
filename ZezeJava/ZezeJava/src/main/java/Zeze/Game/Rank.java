@@ -280,7 +280,6 @@ public class Rank extends AbstractRank {
 		if (1 == size)
 			return datas.iterator().next().Copy(); // only one item
 
-		BRankList rank;
 		// 合并过程中，结果是新的 BRankList，List中的 BRankValue 引用到表中。
 		// 最后 Copy 一次。
 		var it = datas.iterator();
@@ -295,12 +294,12 @@ public class Rank extends AbstractRank {
 					current.getRankList().remove(ir);
 			}
 		}
-		rank = current.Copy(); // current 可能还直接引用第一个，虽然逻辑上不大可能。先Copy。
-		if (rank.getRankList().size() > countNeed) { // 再次删除多余的结果。
+		// current = current.Copy(); // current 可能还直接引用第一个，虽然逻辑上不大可能。先Copy。
+		if (current.getRankList().size() > countNeed) { // 再次删除多余的结果。
 			//noinspection ListRemoveInLoop
-			for (int ir = rank.getRankList().size() - 1; ir >= countNeed; --ir)
-				rank.getRankList().remove(ir);
+			for (int ir = current.getRankList().size() - 1; ir >= countNeed; --ir)
+				current.getRankList().remove(ir);
 		}
-		return rank;
+		return current;
 	}
 }

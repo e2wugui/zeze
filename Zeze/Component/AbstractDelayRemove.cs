@@ -4,9 +4,10 @@ namespace Zeze.Component
     public abstract class AbstractDelayRemove : Zeze.IModule 
     {
         public const int ModuleId = 11007;
-        public override string FullName => "Zeze.Builtin.DelayRemove";
+        public override string FullName => "Zeze.Component.DelayRemove";
         public override string Name => "DelayRemove";
         public override int Id => ModuleId;
+        public override bool IsBuiltin => true;
 
 
         public void RegisterProtocols(Zeze.Net.Service service)

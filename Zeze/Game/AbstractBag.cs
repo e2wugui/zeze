@@ -4,9 +4,10 @@ namespace Zeze.Game
     public abstract class AbstractBag : Zeze.IModule 
     {
         public const int ModuleId = 11014;
-        public override string FullName => "Zeze.Builtin.Game.Bag";
+        public override string FullName => "Zeze.Game.Bag";
         public override string Name => "Bag";
         public override int Id => ModuleId;
+        public override bool IsBuiltin => true;
 
 
         public const int ResultCodeFromInvalid = 1;

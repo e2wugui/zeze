@@ -4,9 +4,10 @@ namespace Zeze.Component
     public abstract class AbstractRedoQueueServer : Zeze.IModule 
     {
         public const int ModuleId = 11010;
-        public override string FullName => "Zeze.Builtin.RedoQueue";
-        public override string Name => "RedoQueue";
+        public override string FullName => "Zeze.Component.RedoQueueServer";
+        public override string Name => "RedoQueueServer";
         public override int Id => ModuleId;
+        public override bool IsBuiltin => true;
 
         internal Zeze.Builtin.RedoQueue.tQueueLastTaskId _tQueueLastTaskId = new Zeze.Builtin.RedoQueue.tQueueLastTaskId();
 

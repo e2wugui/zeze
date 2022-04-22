@@ -87,9 +87,10 @@ namespace Zeze.Gen.cs
                 sw.WriteLine("    {");
                 var presentModule = GetPresentModule(mfs);
                 sw.WriteLine($"        public const int ModuleId = {presentModule.Id};");
-                sw.WriteLine($"        public override string FullName => \"{presentModule.Path()}\";");
-                sw.WriteLine($"        public override string Name => \"{presentModule.Name}\";");
+                sw.WriteLine($"        public override string FullName => \"{ns + "." + Project.Name}\";");
+                sw.WriteLine($"        public override string Name => \"{Project.Name}\";");
                 sw.WriteLine($"        public override int Id => ModuleId;");
+                sw.WriteLine($"        public override bool IsBuiltin => true;");
                 sw.WriteLine();
 
                 foreach (var mf in mfs) mf.GenEnums(sw, mfs.Count > 1 ? mf.module.Name : "");

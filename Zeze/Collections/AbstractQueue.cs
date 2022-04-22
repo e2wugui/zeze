@@ -4,9 +4,10 @@ namespace Zeze.Collections
     public abstract class AbstractQueue : Zeze.IModule 
     {
         public const int ModuleId = 11006;
-        public override string FullName => "Zeze.Builtin.Collections.Queue";
+        public override string FullName => "Zeze.Collections.Queue";
         public override string Name => "Queue";
         public override int Id => ModuleId;
+        public override bool IsBuiltin => true;
 
         internal Zeze.Builtin.Collections.Queue.tQueueNodes _tQueueNodes = new Zeze.Builtin.Collections.Queue.tQueueNodes();
         internal Zeze.Builtin.Collections.Queue.tQueues _tQueues = new Zeze.Builtin.Collections.Queue.tQueues();

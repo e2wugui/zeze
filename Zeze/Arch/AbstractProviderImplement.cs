@@ -4,9 +4,10 @@ namespace Zeze.Arch
     public abstract class AbstractProviderImplement : Zeze.IModule 
     {
         public const int ModuleId = 11008;
-        public override string FullName => "Zeze.Builtin.Provider";
-        public override string Name => "Provider";
+        public override string FullName => "Zeze.Arch.ProviderImplement";
+        public override string Name => "ProviderImplement";
         public override int Id => ModuleId;
+        public override bool IsBuiltin => true;
 
 
         public void RegisterProtocols(Zeze.Net.Service service)

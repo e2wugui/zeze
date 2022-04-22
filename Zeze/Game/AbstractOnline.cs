@@ -4,9 +4,10 @@ namespace Zeze.Game
     public abstract class AbstractOnline : Zeze.IModule 
     {
         public const int ModuleId = 11013;
-        public override string FullName => "Zeze.Builtin.Game.Online";
+        public override string FullName => "Zeze.Game.Online";
         public override string Name => "Online";
         public override int Id => ModuleId;
+        public override bool IsBuiltin => true;
 
 
         public const int ResultCodeSuccess = 0;

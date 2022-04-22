@@ -8,6 +8,8 @@ namespace Zeze
 {
     public abstract class AppBase
     {
+        public virtual Application Zeze { get; set; }
+
         public virtual Zeze.IModule ReplaceModuleInstance(Zeze.IModule input)
         {
             return input;

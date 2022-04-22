@@ -35,7 +35,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("    {");
             sw.WriteLine("        public static App Instance { get; } = new App();");
             sw.WriteLine();
-            sw.WriteLine("        public Zeze.Application Zeze { get; set; }");
+            sw.WriteLine("        public override Zeze.Application Zeze { get; set; }");
             sw.WriteLine();
             sw.WriteLine("        public Dictionary<string, Zeze.IModule> Modules { get; } = new Dictionary<string, Zeze.IModule>();");
             sw.WriteLine();

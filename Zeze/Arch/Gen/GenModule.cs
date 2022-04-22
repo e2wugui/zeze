@@ -87,14 +87,15 @@ namespace Zeze.Arch.Gen
                 module.FullName.Replace('.', System.IO.Path.DirectorySeparatorChar), $"Module{module.Name}.cs");
 
             long srcLastWriteTimeTicks = System.IO.File.GetLastWriteTime(srcFileName).Ticks;
-            string genFileName = System.IO.Path.Combine(GenRedirect, "Gen", genClassName + ".cs");
+            string genFileName = System.IO.Path.Combine(GenRedirect, genClassName + ".cs");
 
             if (false == System.IO.File.Exists(genFileName)
                 || System.IO.File.GetLastWriteTime(genFileName).Ticks != srcLastWriteTimeTicks)
             {
                 Console.WriteLine("ModuleRedirect '" + module.FullName + "' Gen Now ...");
                 HasNewGen = true;
-                string code = GenModuleCode(module, genClassName, overrides, userApp.GetType().FullName);
+                var userAppName = module.IsBuiltin ? "Zeze.AppBase" : userApp.GetType().FullName;
+                string code = GenModuleCode(module, genClassName, overrides, userAppName);
                 //*
                 //System.IO.File.Delete(genFileName); // 如果被vs占用，删除也没用。
                 System.IO.StreamWriter sw = new System.IO.StreamWriter(genFileName, false, Encoding.UTF8);
@@ -211,7 +212,8 @@ namespace Zeze.Arch.Gen
         private string GenModuleCode(Zeze.IModule module, string genClassName, List<MethodOverride> overrides, string userAppName)
         {
             StringBuilder sb = new StringBuilder();
-            sb.AppendLine($"public class {genClassName} : {module.FullName}.Module{module.Name}");
+            var clsName = module.IsBuiltin ? "" : $".Module{module.Name}";
+            sb.AppendLine($"public class {genClassName} : {module.FullName}{clsName}");
             sb.AppendLine($"{{");
 
             // TaskCompletionSource<long> void
@@ -241,7 +243,7 @@ namespace Zeze.Arch.Gen
                 sb.AppendLine($"        {rpcVarName}.Argument.RedirectType = {m.GetRedirectType()};");
                 sb.AppendLine($"        {rpcVarName}.Argument.HashCode = {m.GetChoiceHashOrServerCodeSource()};");
                 sb.AppendLine($"        {rpcVarName}.Argument.MethodFullName = \"{module.FullName}:{m.Method.Name}\";");
-                sb.AppendLine($"        {rpcVarName}.Argument.ServiceNamePrefix = App.ProviderApp.ServerServiceNamePrefix;");
+                sb.AppendLine($"        {rpcVarName}.Argument.ServiceNamePrefix = App.Zeze.Redirect.ProviderApp.ServerServiceNamePrefix;");
                 if (m.ParametersNormal.Count > 0)
                 {
                     // normal 包括了 out 参数，这个不需要 encode，所以下面可能仍然是空的，先这样了。
