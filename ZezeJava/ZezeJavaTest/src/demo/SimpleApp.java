@@ -76,17 +76,18 @@ public class SimpleApp extends AppBase {
 	public void start() throws Throwable {
 		var modules = new HashMap<String, IModule>();
 
-		bag = ReplaceModuleInstance(new Bag.Module(zeze));
+		bag = new Bag.Module(zeze);
 		bag.Initialize(this);
 		modules.put(bag.getFullName(), bag);
 
-		rank = ReplaceModuleInstance(new Rank());
+		rank = Rank.create(this);
 		rank.Initialize(this);
 		modules.put(rank.getFullName(), rank);
 
 		if (GenModule.Instance.GenFileSrcRoot != null) {
 			System.out.println("---------------");
-			throw new RuntimeException("New Source File Has Generate. Re-Compile Need.");
+			System.out.println("New Source File Has Generate. Re-Compile Need.");
+			System.exit(0);
 		}
 
 		providerApp.initialize(ProviderModuleBinds.Load(""), modules);

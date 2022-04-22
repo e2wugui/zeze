@@ -17,6 +17,7 @@ import Zeze.Arch.RedirectAllFuture;
 import Zeze.Arch.RedirectFuture;
 import Zeze.Arch.RedirectHash;
 import Zeze.Arch.RedirectToServer;
+import Zeze.Game.Rank;
 import Zeze.IModule;
 import Zeze.Util.InMemoryJavaCompiler;
 import Zeze.Util.StringBuilderCs;
@@ -33,6 +34,7 @@ import Zeze.Util.StringBuilderCs;
  * 可以提供和原来模块一致的接口。
  */
 public final class GenModule {
+	private static final String REDIRECT_PREFIX = "Redirect_";
 	public static final GenModule Instance = new GenModule();
 
 	/**
@@ -50,13 +52,14 @@ public final class GenModule {
 	public static <T extends IModule> Constructor<T> getCtor(Class<?> cls, AppBase app) throws ReflectiveOperationException {
 		var appClass = app.getClass();
 		@SuppressWarnings("unchecked")
-		var ctors = (Constructor<T>[])cls.getConstructors();
+		var ctors = (Constructor<T>[])cls.getDeclaredConstructors();
 		for (var ctor : ctors) {
-			if (ctor.getParameterCount() == 1 && ctor.getParameters()[0].getType().isAssignableFrom(appClass))
+			if ((ctor.getModifiers() & (Modifier.PUBLIC | Modifier.PROTECTED)) != 0 &&
+					ctor.getParameterCount() == 1 && ctor.getParameters()[0].getType().isAssignableFrom(appClass))
 				return ctor;
 		}
 		for (var ctor : ctors) {
-			if (ctor.getParameterCount() == 0)
+			if ((ctor.getModifiers() & (Modifier.PUBLIC | Modifier.PROTECTED)) != 0 && ctor.getParameterCount() == 0)
 				return ctor;
 		}
 		throw new NoSuchMethodException("No suitable constructor for redirect module: " + cls.getName());
@@ -70,7 +73,23 @@ public final class GenModule {
 		return ctor.newInstance(app);
 	}
 
+	private static String getRedirectClassName(Class<? extends IModule> moduleClass) {
+		String className = moduleClass.getName();
+		return className.startsWith(REDIRECT_PREFIX) ? className : REDIRECT_PREFIX + className.replace('.', '_');
+	}
+
+	public static <T extends IModule> T createRedirectModule(Class<T> moduleClass, AppBase app) {
+		try {
+			return newModule(Class.forName(GenModule.getRedirectClassName(moduleClass)), app);
+		} catch (ReflectiveOperationException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	public <T extends IModule> T ReplaceModuleInstance(AppBase userApp, T module) {
+		if (module.getClass().getName().startsWith(REDIRECT_PREFIX)) // 预防二次replace
+			return module;
+
 		var overrides = new ArrayList<MethodOverride>();
 		for (var method : module.getClass().getDeclaredMethods()) {
 			for (var anno : method.getAnnotations()) {
@@ -85,7 +104,7 @@ public final class GenModule {
 			return module; // 没有需要重定向的方法。
 		overrides.sort(Comparator.comparing(o -> o.method.getName())); // 按方法名排序，避免每次生成结果发生变化。
 
-		String genClassName = module.getClass().getName().replace('.', '_') + "_Redirect";
+		String genClassName = getRedirectClassName(module.getClass());
 		try {
 			if (GenFileSrcRoot == null) { // 不需要生成到文件的时候，尝试装载已经存在的生成模块子类。
 				try {

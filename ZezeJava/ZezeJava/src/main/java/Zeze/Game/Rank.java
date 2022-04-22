@@ -5,6 +5,7 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.function.IntUnaryOperator;
 import Zeze.AppBase;
+import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.RedirectAll;
 import Zeze.Arch.RedirectAllFuture;
 import Zeze.Arch.RedirectFuture;
@@ -13,18 +14,37 @@ import Zeze.Arch.RedirectResult;
 import Zeze.Builtin.Game.Rank.BConcurrentKey;
 import Zeze.Builtin.Game.Rank.BRankList;
 import Zeze.Builtin.Game.Rank.BRankValue;
+import Zeze.Builtin.RedirectGenMain;
 import Zeze.Net.Binary;
 
 public class Rank extends AbstractRank {
-	private AppBase app;
+	private final AppBase app;
 
 	public volatile IntUnaryOperator funcRankSize;
 	public volatile IntUnaryOperator funcConcurrentLevel;
 	public volatile float ComputeFactor = 2.5f;
 
+	public static Rank create(AppBase app) {
+		return GenModule.createRedirectModule(Rank.class, app);
+	}
+
+	@Deprecated // 仅供内部使用, 正常创建应该调用 Rank.create(app)
+	public Rank() {
+		if (StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass() != RedirectGenMain.class)
+			throw new IllegalCallerException();
+		app = null;
+	}
+
+	protected Rank(AppBase app) {
+		if (app == null)
+			throw new NullPointerException();
+		this.app = app;
+	}
+
 	@Override
 	public void Initialize(AppBase app) {
-		this.app = app;
+		if (app != this.app)
+			throw new IllegalArgumentException();
 		RegisterZezeTables(app.getZeze());
 		RegisterProtocols(app.getZeze().Redirect.ProviderApp.ProviderService);
 	}

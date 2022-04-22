@@ -5,3 +5,5 @@
 /server/build/
 /server/Gen/
 /server/target/
+
+Redirect_*.java

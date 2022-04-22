@@ -105,7 +105,8 @@ public final class App extends Zeze.AppBase {
 		CreateModules();
 		if (GenModule.Instance.GenFileSrcRoot != null) {
 			System.out.println("---------------");
-			throw new RuntimeException("New Source File Has Generate. Re-Compile Need.");
+			System.out.println("New Source File Has Generate. Re-Compile Need.");
+			System.exit(0);
 		}
 
 		ProviderApp.initialize(ProviderModuleBinds.Load(), Modules); // need Modules

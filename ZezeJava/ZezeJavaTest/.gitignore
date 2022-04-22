@@ -6,3 +6,5 @@
 /target/
 
 /*.pal
+
+Redirect_*.java
