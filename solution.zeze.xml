@@ -555,6 +555,19 @@
 				<table name="taccount"  key="string" value="BAccount"/>
 				<table name="tonline"   key="long"   value="BOnline"/>
 
+				<bean name="BAny">
+					<variable id="1" name="Any" type="dynamic">
+						<GetSpecialTypeIdFromBean value="Zeze.Game.Online.GetSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Game.Online.CreateBeanFromSpecialTypeId"/>
+					</variable>
+				</bean>
+
+				<bean name="BLocal">
+					<variable id="1" name="Datas" type="map" key="int" value="BAny"/> 
+				</bean>
+
+				<table name="tlocal" key="long" memory="true" value="BLocal"/>
+
 				<!-- interface -->
 				<!--
 				* 事件

@@ -19,6 +19,7 @@ namespace Zeze.Game
         public const int ResultCodeReliableNotifyConfirmCountOutOfRange = 6;
         public const int ResultCodeNotLogin = 7;
         internal Zeze.Builtin.Game.Online.taccount _taccount = new Zeze.Builtin.Game.Online.taccount();
+        internal Zeze.Builtin.Game.Online.tlocal _tlocal = new Zeze.Builtin.Game.Online.tlocal();
         internal Zeze.Builtin.Game.Online.tonline _tonline = new Zeze.Builtin.Game.Online.tonline();
 
         public void RegisterProtocols(Zeze.Net.Service service)
@@ -63,12 +64,14 @@ namespace Zeze.Game
         {
             // register table
             zeze.AddTable(zeze.Config.GetTableConf(_taccount.Name).DatabaseName, _taccount);
+            zeze.AddTable(zeze.Config.GetTableConf(_tlocal.Name).DatabaseName, _tlocal);
             zeze.AddTable(zeze.Config.GetTableConf(_tonline.Name).DatabaseName, _tonline);
         }
 
         public void UnRegisterZezeTables(Zeze.Application zeze)
         {
             zeze.RemoveTable(zeze.Config.GetTableConf(_taccount.Name).DatabaseName, _taccount);
+            zeze.RemoveTable(zeze.Config.GetTableConf(_tlocal.Name).DatabaseName, _tlocal);
             zeze.RemoveTable(zeze.Config.GetTableConf(_tonline.Name).DatabaseName, _tonline);
         }
 

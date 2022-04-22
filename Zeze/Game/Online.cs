@@ -15,6 +15,16 @@ namespace Zeze.Game
 {
     public class Online : AbstractOnline
     {
+        public static long GetSpecialTypeIdFromBean(Bean bean)
+        {
+            return bean.TypeId;
+        }
+
+        public static Bean CreateBeanFromSpecialTypeId(long typeId)
+        {
+            throw new InvalidOperationException("Online Memory Table Dynamic Only.");
+        }
+
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public ProviderApp App { get; }
 

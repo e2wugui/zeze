@@ -24,6 +24,7 @@ import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Task;
@@ -32,6 +33,14 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class Online extends AbstractOnline {
+	public static long GetSpecialTypeIdFromBean(Bean bean) {
+		return bean.getTypeId();
+	}
+
+	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
+		throw new UnsupportedOperationException("Online Memory Table Dynamic Only.");
+	}
+
 	protected static final Logger logger = LogManager.getLogger(Online.class);
 
 	private final ProviderService service;
