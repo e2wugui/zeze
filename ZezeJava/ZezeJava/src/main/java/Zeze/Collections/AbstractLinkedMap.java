@@ -2,10 +2,11 @@
 package Zeze.Collections;
 
 public abstract class AbstractLinkedMap extends Zeze.IModule {
-    @Override public String getFullName() { return "Zeze.Builtin.Collections.LinkedMap"; }
+    public static final int ModuleId = 11005;
+    @Override public String getFullName() { return "Zeze.Collections.LinkedMap"; }
     @Override public String getName() { return "LinkedMap"; }
     @Override public int getId() { return ModuleId; }
-    public static final int ModuleId = 11005;
+    @Override public boolean isBuiltin() { return true; }
 
     protected final Zeze.Builtin.Collections.LinkedMap.tLinkedMapNodes _tLinkedMapNodes = new Zeze.Builtin.Collections.LinkedMap.tLinkedMapNodes();
     protected final Zeze.Builtin.Collections.LinkedMap.tLinkedMaps _tLinkedMaps = new Zeze.Builtin.Collections.LinkedMap.tLinkedMaps();

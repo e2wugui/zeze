@@ -86,10 +86,11 @@ namespace Zeze.Gen.java
 
                 sw.WriteLine($"public abstract class Abstract{Project.Name} extends Zeze.IModule {{");
                 var presentModule = GetPresentModule(mfs);
-                sw.WriteLine($"    @Override public String getFullName() {{ return \"{presentModule.Path()}\"; }}");
-                sw.WriteLine($"    @Override public String getName() {{ return \"{presentModule.Name}\"; }}");
-                sw.WriteLine($"    @Override public int getId() {{ return ModuleId; }}");
                 sw.WriteLine($"    public static final int ModuleId = {presentModule.Id};");
+                sw.WriteLine($"    @Override public String getFullName() {{ return \"{ns + "." + Project.Name}\"; }}");
+                sw.WriteLine($"    @Override public String getName() {{ return \"{Project.Name}\"; }}");
+                sw.WriteLine($"    @Override public int getId() {{ return ModuleId; }}");
+                sw.WriteLine($"    @Override public boolean isBuiltin() {{ return true; }}");
                 sw.WriteLine();
 
                 foreach (var mf in mfs) mf.GenEnums(sw, mfs.Count > 1 ? mf.module.Name : "");

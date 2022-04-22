@@ -2,10 +2,11 @@
 package Zeze.Services;
 
 public abstract class AbstractGlobalCacheManagerWithRaft extends Zeze.IModule {
-    @Override public String getFullName() { return "Zeze.Builtin.GlobalCacheManagerWithRaft"; }
+    public static final int ModuleId = 11001;
+    @Override public String getFullName() { return "Zeze.Services.GlobalCacheManagerWithRaft"; }
     @Override public String getName() { return "GlobalCacheManagerWithRaft"; }
     @Override public int getId() { return ModuleId; }
-    public static final int ModuleId = 11001;
+    @Override public boolean isBuiltin() { return true; }
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(this.getClass());

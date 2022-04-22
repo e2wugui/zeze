@@ -2,10 +2,11 @@
 package Zeze.Component;
 
 public abstract class AbstractRedoQueueServer extends Zeze.IModule {
-    @Override public String getFullName() { return "Zeze.Builtin.RedoQueue"; }
-    @Override public String getName() { return "RedoQueue"; }
-    @Override public int getId() { return ModuleId; }
     public static final int ModuleId = 11010;
+    @Override public String getFullName() { return "Zeze.Component.RedoQueueServer"; }
+    @Override public String getName() { return "RedoQueueServer"; }
+    @Override public int getId() { return ModuleId; }
+    @Override public boolean isBuiltin() { return true; }
 
     protected final Zeze.Builtin.RedoQueue.tQueueLastTaskId _tQueueLastTaskId = new Zeze.Builtin.RedoQueue.tQueueLastTaskId();
 

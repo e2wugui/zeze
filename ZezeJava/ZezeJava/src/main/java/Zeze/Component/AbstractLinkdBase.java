@@ -2,10 +2,11 @@
 package Zeze.Component;
 
 public abstract class AbstractLinkdBase extends Zeze.IModule {
-    @Override public String getFullName() { return "Zeze.Builtin.LinkdBase"; }
+    public static final int ModuleId = 11011;
+    @Override public String getFullName() { return "Zeze.Component.LinkdBase"; }
     @Override public String getName() { return "LinkdBase"; }
     @Override public int getId() { return ModuleId; }
-    public static final int ModuleId = 11011;
+    @Override public boolean isBuiltin() { return true; }
 
     public void RegisterProtocols(Zeze.Net.Service service) {
     }

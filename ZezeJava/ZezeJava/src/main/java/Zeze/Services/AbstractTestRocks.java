@@ -2,10 +2,11 @@
 package Zeze.Services;
 
 public abstract class AbstractTestRocks extends Zeze.IModule {
-    @Override public String getFullName() { return "Zeze.Builtin.TestRocks"; }
+    public static final int ModuleId = 11002;
+    @Override public String getFullName() { return "Zeze.Services.TestRocks"; }
     @Override public String getName() { return "TestRocks"; }
     @Override public int getId() { return ModuleId; }
-    public static final int ModuleId = 11002;
+    @Override public boolean isBuiltin() { return true; }
 
     public void RegisterProtocols(Zeze.Net.Service service) {
     }

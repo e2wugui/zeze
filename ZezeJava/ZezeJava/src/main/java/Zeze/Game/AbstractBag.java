@@ -2,10 +2,11 @@
 package Zeze.Game;
 
 public abstract class AbstractBag extends Zeze.IModule {
-    @Override public String getFullName() { return "Zeze.Builtin.Game.Bag"; }
+    public static final int ModuleId = 11014;
+    @Override public String getFullName() { return "Zeze.Game.Bag"; }
     @Override public String getName() { return "Bag"; }
     @Override public int getId() { return ModuleId; }
-    public static final int ModuleId = 11014;
+    @Override public boolean isBuiltin() { return true; }
 
     public static final int ResultCodeFromInvalid = 1;
     public static final int ResultCodeToInvalid = 2;

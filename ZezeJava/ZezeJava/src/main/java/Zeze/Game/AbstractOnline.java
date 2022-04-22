@@ -2,10 +2,11 @@
 package Zeze.Game;
 
 public abstract class AbstractOnline extends Zeze.IModule {
-    @Override public String getFullName() { return "Zeze.Builtin.Game.Online"; }
+    public static final int ModuleId = 11013;
+    @Override public String getFullName() { return "Zeze.Game.Online"; }
     @Override public String getName() { return "Online"; }
     @Override public int getId() { return ModuleId; }
-    public static final int ModuleId = 11013;
+    @Override public boolean isBuiltin() { return true; }
 
     public static final int ResultCodeSuccess = 0;
     public static final int ResultCodeCreateRoleDuplicateRoleName = 1;

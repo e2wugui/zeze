@@ -2,10 +2,11 @@
 package Zeze.Arch;
 
 public abstract class AbstractProviderImplement extends Zeze.IModule {
-    @Override public String getFullName() { return "Zeze.Builtin.Provider"; }
-    @Override public String getName() { return "Provider"; }
-    @Override public int getId() { return ModuleId; }
     public static final int ModuleId = 11008;
+    @Override public String getFullName() { return "Zeze.Arch.ProviderImplement"; }
+    @Override public String getName() { return "ProviderImplement"; }
+    @Override public int getId() { return ModuleId; }
+    @Override public boolean isBuiltin() { return true; }
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(this.getClass());

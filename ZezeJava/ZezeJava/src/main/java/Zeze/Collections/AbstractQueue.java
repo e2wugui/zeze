@@ -2,10 +2,11 @@
 package Zeze.Collections;
 
 public abstract class AbstractQueue extends Zeze.IModule {
-    @Override public String getFullName() { return "Zeze.Builtin.Collections.Queue"; }
+    public static final int ModuleId = 11006;
+    @Override public String getFullName() { return "Zeze.Collections.Queue"; }
     @Override public String getName() { return "Queue"; }
     @Override public int getId() { return ModuleId; }
-    public static final int ModuleId = 11006;
+    @Override public boolean isBuiltin() { return true; }
 
     protected final Zeze.Builtin.Collections.Queue.tQueueNodes _tQueueNodes = new Zeze.Builtin.Collections.Queue.tQueueNodes();
     protected final Zeze.Builtin.Collections.Queue.tQueues _tQueues = new Zeze.Builtin.Collections.Queue.tQueues();

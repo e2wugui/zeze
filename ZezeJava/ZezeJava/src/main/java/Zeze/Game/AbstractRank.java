@@ -2,10 +2,11 @@
 package Zeze.Game;
 
 public abstract class AbstractRank extends Zeze.IModule {
-    @Override public String getFullName() { return "Zeze.Builtin.Game.Rank"; }
+    public static final int ModuleId = 11015;
+    @Override public String getFullName() { return "Zeze.Game.Rank"; }
     @Override public String getName() { return "Rank"; }
     @Override public int getId() { return ModuleId; }
-    public static final int ModuleId = 11015;
+    @Override public boolean isBuiltin() { return true; }
 
     protected final Zeze.Builtin.Game.Rank.trank _trank = new Zeze.Builtin.Game.Rank.trank();
 
