@@ -499,11 +499,18 @@ public class Online extends AbstractOnline {
 	public final void transmit(long sender, String actionName, Iterable<Long> roleIds, Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new RuntimeException("Unknown Action Name: " + actionName);
-		var bb = ByteBuffer.Allocate(1024);
-		parameter.Encode(bb);
+		ByteBuffer bb;
+		if (parameter != null) {
+			int preSize = parameter.getPreAllocSize();
+			bb = ByteBuffer.Allocate(preSize);
+			parameter.Encode(bb);
+			if (bb.WriteIndex > preSize)
+				parameter.setPreAllocSize(bb.WriteIndex);
+		} else
+			bb = null;
 		// 发送协议请求在另外的事务中执行。
 		Task.run(service.getZeze().NewProcedure(() -> {
-			transmitInProcedure(sender, actionName, roleIds, new Binary(bb));
+			transmitInProcedure(sender, actionName, roleIds, bb != null ? new Binary(bb) : null);
 			return Procedure.Success;
 		}, "Game.Online.transmit"), null, null);
 	}

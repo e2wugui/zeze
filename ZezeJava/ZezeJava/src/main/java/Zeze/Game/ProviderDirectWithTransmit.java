@@ -1,24 +1,17 @@
 package Zeze.Game;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodType;
-import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Arch.ProviderDirect;
 import Zeze.Builtin.ProviderDirect.Transmit;
-import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Procedure;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class ProviderDirectWithTransmit extends ProviderDirect {
+	/*
 	private static final Logger logger = LogManager.getLogger(ProviderDirectWithTransmit.class);
 	private static final MethodHandles.Lookup lookup = MethodHandles.lookup();
 	private static final MethodType voidType = MethodType.methodType(void.class);
 
 	private final ConcurrentHashMap<String, MethodHandle> objectFactory = new ConcurrentHashMap<>();
 
-	/*
 	private Serializable createObject(String className) {
 		try {
 			return (Serializable)objectFactory.computeIfAbsent(className, cn -> {
