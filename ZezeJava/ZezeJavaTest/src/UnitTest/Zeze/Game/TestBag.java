@@ -12,11 +12,18 @@ import org.junit.runners.MethodSorters;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class TestBag {
+	public static final int ADD_NUM = 100;          // add item num
+	public static final int ADD_PILE_NUM = 10;      // 添加的格子数量
+	public static final int MIN_ITEM_ID = 100;      // item编号起始值
+	public static final int MAX_GRID_CAPACITY = 99; // 每个格子堆叠上限
+	public static final int SECOND_REMOVE_NUM = 10; // 第二次删除的item数量 应小于ADD_NUM/2
+	public static final int MAX_BAG_CAPACITY = 100; // 背包容量
+
 	@Before
 	public final void testInit() throws Throwable {
 		demo.App.getInstance().Start();
 		// 设置下可堆叠个数
-		Bag.funcItemPileMax = itemId -> 99;
+		Bag.funcItemPileMax = itemId -> MAX_GRID_CAPACITY;
 	}
 
 	@After
@@ -28,15 +35,15 @@ public class TestBag {
 	public final void test1_Add() throws Throwable {
 		var ret = demo.App.getInstance().Zeze.NewProcedure(() -> {
 			var bag = App.getInstance().BagModule.open("test1");
-			bag.setCapacity(100);
-			for (int i = 100; i < 110; i++) {
+			bag.setCapacity(MAX_BAG_CAPACITY);
+			for (int i = MIN_ITEM_ID; i < MIN_ITEM_ID + ADD_PILE_NUM; i++) {
 				// bag.GetItemPileMax() TODO阶段，默认99
 				// 占用两个格子，第1个99个，第二个1个
-				bag.add(i, 100);
+				var code = bag.add(i, ADD_NUM);
+				Assert.assertEquals(code, 0);
 			}
-			var items = bag.getBean().getItems();
 			// 总共占用20个格子
-			Assert.assertEquals(20, items.size());
+			Assert.assertEquals(ADD_PILE_NUM * 2, bag.getBean().getItems().size());
 			return Procedure.Success;
 		}, "test1_Add").Call();
 		Assert.assertEquals(ret, Procedure.Success);
@@ -46,12 +53,13 @@ public class TestBag {
 	public final void test2_Move() throws Throwable {
 		var ret = demo.App.getInstance().Zeze.NewProcedure(() -> {
 			var bag = demo.App.getInstance().BagModule.open("test1");
-			var items = bag.getBean().getItems();
-			Assert.assertEquals(items.size(), 20);
-			for (int i = 0; i < 20; i += 2) {
-				bag.move(i, i + 1, 49);
-				Assert.assertEquals(items.get(i).getNumber(), 50);
-				Assert.assertEquals(items.get(i + 1).getNumber(), 50);
+			Assert.assertEquals(bag.getBean().getItems().size(), ADD_PILE_NUM * 2);
+			int moveNum = MAX_GRID_CAPACITY - (ADD_NUM / 2);
+			for (int i = 0; i < ADD_PILE_NUM * 2; i += 2) {
+				int code = bag.move(i, i + 1, moveNum);
+				Assert.assertEquals(code, 0);
+				Assert.assertEquals(bag.getBean().getItems().get(i).getNumber(), ADD_NUM / 2);
+				Assert.assertEquals(bag.getBean().getItems().get(i + 1).getNumber(), ADD_NUM / 2);
 			}
 			return Procedure.Success;
 		}, "test2_Move").Call();
@@ -62,17 +70,18 @@ public class TestBag {
 	public final void test3_Remove() throws Throwable {
 		var ret = demo.App.getInstance().Zeze.NewProcedure(() -> {
 			var bag = demo.App.getInstance().BagModule.open("test1");
-			var items = bag.getBean().getItems();
-			Assert.assertEquals(items.size(), 20);
-			for (int i = 100; i < 110; i++) {
-				bag.remove(i, 50);
+			Assert.assertEquals(bag.getBean().getItems().size(), ADD_PILE_NUM * 2);
+			for (int i = MIN_ITEM_ID; i < MIN_ITEM_ID + ADD_PILE_NUM; i++) {
+				var code = bag.remove(i, ADD_NUM / 2);
+				Assert.assertEquals(code, true);
 			}
-			Assert.assertEquals(items.size(), 10);
-			for (int i = 100; i < 110; i++) {
-				bag.remove(i, 10);
+			Assert.assertEquals(bag.getBean().getItems().size(), ADD_PILE_NUM);
+			for (int i = MIN_ITEM_ID; i < MIN_ITEM_ID + ADD_PILE_NUM; i++) {
+				var code = bag.remove(i, SECOND_REMOVE_NUM);
+				Assert.assertEquals(code, true);
 			}
-			for (int i = 1; i < 20; i += 2) {
-				Assert.assertEquals(items.get(i).getNumber(), 40);
+			for (int i = 1; i < ADD_PILE_NUM * 2; i += 2) {
+				Assert.assertEquals(bag.getBean().getItems().get(i).getNumber(), ADD_NUM / 2 - SECOND_REMOVE_NUM);
 			}
 			return Procedure.Success;
 		}, "test3_Remove").Call();
@@ -83,15 +92,16 @@ public class TestBag {
 	public final void test4_Move() throws Throwable {
 		var ret = demo.App.getInstance().Zeze.NewProcedure(() -> {
 			var bag = demo.App.getInstance().BagModule.open("test1");
-			var items = bag.getBean().getItems();
-			Assert.assertEquals(items.size(), 10);
+			Assert.assertEquals(bag.getBean().getItems().size(), ADD_PILE_NUM);
 			// 移动物品到空格子
-			for (int i = 0; i < 20; i += 2) {
-				bag.move(i + 1, i, 20);
-				Assert.assertEquals(items.get(i).getNumber(), 20);
-				Assert.assertEquals(items.get(i + 1).getNumber(), 20);
+			int moveNum = (ADD_NUM / 2 - SECOND_REMOVE_NUM) / 2;
+			for (int i = 1; i < ADD_PILE_NUM * 2; i += 2) {
+				var code = bag.move(i, i - 1, moveNum);
+				Assert.assertEquals(code, 0);
+				Assert.assertEquals(bag.getBean().getItems().get(i - 1).getNumber(), moveNum);
+				Assert.assertEquals(bag.getBean().getItems().get(i).getNumber(), ADD_NUM / 2 - SECOND_REMOVE_NUM - moveNum);
 			}
-			Assert.assertEquals(items.size(), 20);
+			Assert.assertEquals(bag.getBean().getItems().size(), ADD_PILE_NUM * 2);
 			return Procedure.Success;
 		}, "test4_Move").Call();
 		Assert.assertEquals(ret, Procedure.Success);
