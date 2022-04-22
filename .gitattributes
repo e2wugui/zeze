@@ -21,6 +21,7 @@
 *.md text
 *.txt text
 *.log text
+*.scriban-txt text eol=lf
 # *.json text
 
 # Declare files that will always have CRLF line endings on checkout.
