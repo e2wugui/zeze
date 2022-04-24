@@ -1,7 +1,5 @@
 package Zeze.Util;
 
-import java.nio.file.Path;
-import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -10,18 +8,19 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.RandomAccess;
 
-public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.io.Serializable{
+@SuppressWarnings("CloneableClassWithoutClone")
+public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.io.Serializable {
 	private volatile List<E> read;
-	private List<E> write = new ArrayList<>();
+	private final List<E> write = new ArrayList<>();
 
 	private List<E> prepareRead() {
-		if (null != read)
-			return read;
+		var r = read;
+		if (r != null)
+			return r;
 
 		synchronized (write) {
-			read = new ArrayList<>();
-			read.addAll(write);
-			return read;
+			read = r = new ArrayList<>(write);
+			return r;
 		}
 	}
 
@@ -50,9 +49,9 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 	@Override
 	public E remove(int index) {
 		synchronized (write) {
-			var r = write.remove(index);
+			var prev = write.remove(index);
 			read = null;
-			return r;
+			return prev;
 		}
 	}
 
@@ -108,24 +107,28 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 
 	@Override
 	public <T> T[] toArray(T[] a) {
+		//noinspection SuspiciousToArrayCall
 		return prepareRead().toArray(a);
 	}
 
 	@Override
 	public boolean add(E e) {
 		synchronized (write) {
-			var r = write.add(e);
+			//noinspection ConstantConditions
+			if (!write.add(e))
+				return false;
 			read = null;
-			return r;
+			return true;
 		}
 	}
 
 	@Override
 	public boolean remove(Object o) {
 		synchronized (write) {
-			var r = write.remove(o);
+			if (!write.remove(o))
+				return false;
 			read = null;
-			return r;
+			return true;
 		}
 	}
 
@@ -137,42 +140,48 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 	@Override
 	public boolean addAll(Collection<? extends E> c) {
 		synchronized (write) {
-			var r = write.addAll(c);
+			if (!write.addAll(c))
+				return false;
 			read = null;
-			return r;
+			return true;
 		}
 	}
 
 	@Override
 	public boolean addAll(int index, Collection<? extends E> c) {
 		synchronized (write) {
-			var r = write.addAll(index, c);
+			if (!write.addAll(index, c))
+				return false;
 			read = null;
-			return r;
+			return true;
 		}
 	}
 
 	@Override
 	public boolean removeAll(Collection<?> c) {
 		synchronized (write) {
-			var r = write.removeAll(c);
+			if (!write.removeAll(c))
+				return false;
 			read = null;
-			return r;
+			return true;
 		}
 	}
 
 	@Override
 	public boolean retainAll(Collection<?> c) {
 		synchronized (write) {
-			var r = write.retainAll(c);
+			if (!write.retainAll(c))
+				return false;
 			read = null;
-			return r;
+			return true;
 		}
 	}
 
 	@Override
 	public void clear() {
 		synchronized (write) {
+			if (write.isEmpty())
+				return;
 			write.clear();
 			read = null;
 		}

@@ -7,18 +7,19 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-public class FewModifyMap<K, V> implements Map<K,V>, Cloneable, Serializable {
+@SuppressWarnings("CloneableClassWithoutClone")
+public class FewModifyMap<K, V> implements Map<K, V>, Cloneable, Serializable {
 	private volatile Map<K, V> read;
-	private Map<K, V> write = new HashMap<>();
+	private final Map<K, V> write = new HashMap<>();
 
 	private Map<K, V> prepareRead() {
-		if (null != read)
-			return read;
+		var r = read;
+		if (r != null)
+			return r;
 
 		synchronized (write) {
-			read = new HashMap<>();
-			read.putAll(write);
-			return read;
+			read = r = new HashMap<>(write);
+			return r;
 		}
 	}
 
@@ -50,23 +51,25 @@ public class FewModifyMap<K, V> implements Map<K,V>, Cloneable, Serializable {
 	@Override
 	public V put(K key, V value) {
 		synchronized (write) {
-			var r = write.put(key, value);
+			var prev = write.put(key, value);
 			read = null;
-			return r;
+			return prev;
 		}
 	}
 
 	@Override
 	public V remove(Object key) {
 		synchronized (write) {
-			var r = write.remove(key);
+			var prev = write.remove(key);
 			read = null;
-			return r;
+			return prev;
 		}
 	}
 
 	@Override
 	public void putAll(Map<? extends K, ? extends V> m) {
+		if (m.isEmpty())
+			return;
 		synchronized (write) {
 			write.putAll(m);
 			read = null;
@@ -76,6 +79,8 @@ public class FewModifyMap<K, V> implements Map<K,V>, Cloneable, Serializable {
 	@Override
 	public void clear() {
 		synchronized (write) {
+			if (write.isEmpty())
+				return;
 			write.clear();
 			read = null;
 		}
