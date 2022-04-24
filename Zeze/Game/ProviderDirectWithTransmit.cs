@@ -17,7 +17,7 @@ namespace Zeze.Game
 			var p = _p as Transmit;
 			var provider = ProviderApp.ProviderImplement as ProviderImplementWithOnline;
 			provider.Online.ProcessTransmit(p.Argument.Sender, p.Argument.ActionName,
-				p.Argument.Roles.Keys, p.Argument.ParameterBeanValue);
+				p.Argument.Roles, p.Argument.Parameter);
 			return Procedure.Success;
 		}
 	}

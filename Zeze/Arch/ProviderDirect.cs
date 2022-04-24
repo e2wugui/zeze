@@ -134,8 +134,9 @@ namespace Zeze.Arch
         protected override async Task<long> ProcessAnnounceProviderInfoRequest(Zeze.Net.Protocol _p)
         {
             var r = _p as AnnounceProviderInfo;
-            ProviderApp.ProviderDirectService.SetRelativeServiceReady(
-                (ProviderSession)r.Sender.UserState, r.Argument.Ip, r.Argument.Port);
+            var ps = (ProviderSession)r.Sender.UserState;
+            ps.ServerId = r.Argument.ServerId;
+            ProviderApp.ProviderDirectService.SetRelativeServiceReady(ps, r.Argument.Ip, r.Argument.Port);
             return 0;
         }
 

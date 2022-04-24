@@ -384,6 +384,55 @@ namespace Zeze.Game
             }
         }
 
+        public class RoleOnServer
+        {
+            public int ServerId { get; set; } = -1; // empty when not online
+            public HashSet<long> Roles { get; } = new();
+            public void AddAll(HashSet<long> roles)
+            {
+                foreach (var role in roles)
+                    Roles.Add(role);
+            }
+        }
+
+        public async Task<ICollection<RoleOnServer>> GroupByServer(ICollection<long> roleIds)
+        {
+            var groups = new Dictionary<int, RoleOnServer>();
+            var groupNotOnline = new RoleOnServer(); // LinkName is Empty And Socket is null.
+            groups.Add(groupNotOnline.ServerId, groupNotOnline);
+
+            foreach (var roleId in roleIds)
+            {
+                var online = await _tonline.GetAsync(roleId);
+                if (null == online || online.State != BOnline.StateOnline)
+                {
+                    groupNotOnline.Roles.Add(roleId);
+                    continue;
+                }
+
+                // 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
+                if (false == groups.TryGetValue(online.ProviderId, out var group))
+                {
+                    group = new RoleOnServer()
+                    {
+                        ServerId = online.ProviderId
+                    };
+                    groups.Add(group.ServerId, group);
+                }
+                group.Roles.Add(roleId);
+            }
+            return groups.Values;
+        }
+
+        private RoleOnServer Merge(RoleOnServer current, RoleOnServer m)
+        {
+            if (null == current)
+                return m;
+            foreach (var roleId in m.Roles)
+                current.Roles.Add(roleId);
+            return current;
+        }
+
         private async Task TransmitInProcedure(long sender, string actionName, ICollection<long> roleIds, Binary parameter)
         {
             if (App.Zeze.Config.GlobalCacheManagerHostNameOrAddress.Length == 0)
@@ -393,33 +442,42 @@ namespace Zeze.Game
                 return;
             }
 
-            var groups = await GroupByLink(roleIds);
+            var groups = await GroupByServer(roleIds);
+            RoleOnServer groupLocal = null;
             foreach (var group in groups)
             {
-                if (group.ProviderId == App.Zeze.Config.ServerId
-                    || null == group.LinkSocket // 对于不在线的角色，直接在本机运行。
-                    )
+                if (group.ServerId == -1 || group.ServerId == App.Zeze.Config.ServerId)
                 {
                     // loopback 就是当前gs.
-                    ProcessTransmit(sender, actionName, group.Roles.Keys, parameter);
+                    // 对于不在线的角色，直接在本机运行。
+                    groupLocal = Merge(groupLocal, group);
                     continue;
                 }
 
                 var transmit = new Transmit();
-
                 transmit.Argument.ActionName = actionName;
                 transmit.Argument.Sender = sender;
-                transmit.Argument.ServiceNamePrefix = App.ServerServiceNamePrefix;
-                transmit.Argument.Roles.AddRange(group.Roles);
-
+                transmit.Argument.Roles.AddAll(group.Roles);
                 if (null != parameter)
                 {
-                    transmit.Argument.ParameterBeanName = parameter.GetType().FullName;
-                    transmit.Argument.ParameterBeanValue = parameter;
+                    transmit.Argument.Parameter = parameter;
                 }
 
-                group.LinkSocket.Send(transmit);
+                if (false == App.ProviderDirectService.ProviderByServerId.TryGetValue(group.ServerId, out var ps))
+                {
+                    groupLocal.AddAll(group.Roles);
+                    continue;
+                }
+                var socket = App.ProviderDirectService.GetSocket(ps.SessionId);
+                if (null == socket)
+                {
+                    groupLocal.AddAll(group.Roles);
+                    continue;
+                }
+                transmit.Send(socket);
             }
+            if (groupLocal.Roles.Count > 0)
+                ProcessTransmit(sender, actionName, groupLocal.Roles, parameter);
         }
 
         public void Transmit(long sender, string actionName, ICollection<long> roleIds, Serializable parameter = null)

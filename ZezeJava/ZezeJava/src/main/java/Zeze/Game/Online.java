@@ -525,7 +525,7 @@ public class Online extends AbstractOnline {
 		var groups = groupByServerId(roleIds);
 		RoleOnServer groupLocal = null;
 		for (var group : groups) {
-			if (group.ServerId == app.Zeze.getConfig().getServerId()) {
+			if (group.ServerId == -1 || group.ServerId == app.Zeze.getConfig().getServerId()) {
 				// loopback 就是当前gs.
 				groupLocal = merge(groupLocal, group);
 				continue;
@@ -533,16 +533,24 @@ public class Online extends AbstractOnline {
 			var transmit = new Transmit();
 			transmit.Argument.setActionName(actionName);
 			transmit.Argument.setSender(sender);
-			transmit.Argument.setServiceNamePrefix(app.ServerServiceNamePrefix);
-			//TODO transmit.Argument.getRoles().putAll(group.roles);
+			transmit.Argument.getRoles().addAll(group.roles);
 			if (parameter != null) {
-				// not used
-				// transmit.Argument.setParameterBeanName(parameter.getClass().getName());
-				transmit.Argument.setParameterBeanValue(parameter);
+				transmit.Argument.setParameter(parameter);
 			}
-			//TODO app.Distribute.ChoiceProviderByServerId(app.ServerServiceNamePrefix, );
-			//TODO group.linkSocket.Send(transmit);
+			var ps = app.ProviderDirectService.ProviderByServerId.get(group.ServerId);
+			if (null == ps) {
+				groupLocal.roles.addAll(group.roles);
+				continue;
+			}
+			var socket = app.ProviderDirectService.GetSocket(ps.getSessionId());
+			if (null == socket) {
+				groupLocal.roles.addAll(group.roles);
+				continue;
+			}
+			transmit.Send(socket);
 		}
+		if (!groupLocal.roles.isEmpty())
+			processTransmit(sender, actionName, groupLocal.roles, parameter);
 	}
 
 	public final void transmit(long sender, String actionName, Iterable<Long> roleIds) {

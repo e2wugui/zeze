@@ -15,7 +15,8 @@ namespace Zeze.Arch
 	{
 		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 		public ProviderApp ProviderApp;
-		public readonly ConcurrentDictionary<String, ProviderSession> ProviderSessions = new();
+		public readonly ConcurrentDictionary<string, ProviderSession> ProviderByLoadName = new();
+		public readonly ConcurrentDictionary<int, ProviderSession> ProviderByServerId = new();
 
 		public ProviderDirectService(string name, Zeze.Application zeze)
 			: base(name, zeze)
@@ -29,7 +30,7 @@ namespace Zeze.Arch
 				foreach (var pm in infos.ServiceInfoListSortedByIdentity)
 				{
 					var connName = pm.PassiveIp + ":" + pm.PassivePort;
-					if (ProviderSessions.TryGetValue(connName, out var ps))
+					if (ProviderByLoadName.TryGetValue(connName, out var ps))
 					{
 						// connection has ready.
 						var mid = int.Parse(infos.ServiceName.Split('#')[1]);
@@ -43,12 +44,17 @@ namespace Zeze.Arch
 						continue;
 					if (serverId == Zeze.Config.ServerId)
 					{
-						SetRelativeServiceReady(new ProviderSession(0), ProviderApp.DirectIp, ProviderApp.DirectPort);
+						var psLocal = new ProviderSession();
+						psLocal.ServerId = serverId;
+						SetRelativeServiceReady(psLocal, ProviderApp.DirectIp, ProviderApp.DirectPort);
 						continue;
 					}
 					if (Config.TryGetOrAddConnector(pm.PassiveIp, pm.PassivePort, true, out var newAdd))
 					{
 						// 新建的Connector。开始连接。
+						var psPeer = new ProviderSession();
+						psPeer.ServerId = serverId;
+						newAdd.UserState = psPeer;
 						newAdd.Start();
 					}
 				}
@@ -57,21 +63,27 @@ namespace Zeze.Arch
 
 		public override void OnHandshakeDone(AsyncSocket socket)
 		{
+			// call base
 			base.OnHandshakeDone(socket);
 
-			var ps = new ProviderSession(socket.SessionId);
-			socket.UserState = ps;
 			var c = socket.Connector;
 			if (c != null) {
 				// 主动连接。
+				var ps = (ProviderSession)socket.UserState;
+				ps.SessionId = socket.SessionId;
 				SetRelativeServiceReady(ps, c.HostNameOrAddress, c.Port);
 				var r = new AnnounceProviderInfo();
 				r.Argument.Ip = ProviderApp.DirectIp;
 				r.Argument.Port = ProviderApp.DirectPort;
 				r.Send(socket, async (_r) => 0); // skip result
 			}
-			// 被动连接等待对方报告信息时再处理。
-			// call base
+			else
+            {
+				// 被动连接等待对方报告信息时再处理。
+				var ps = new ProviderSession();
+				ps.SessionId = socket.SessionId;
+				socket.UserState = ps;
+			}
 		}
 
 		internal void SetRelativeServiceReady(ProviderSession ps, String ip, int port)
@@ -81,7 +93,7 @@ namespace Zeze.Arch
 				ps.ServerLoadIp = ip;
 				ps.ServerLoadPort = port;
 				// 本机的连接可能设置多次。此时使用已经存在的，忽略后面的。
-				if (false == ProviderSessions.TryAdd(ps.ServerLoadName, ps))
+				if (false == ProviderByLoadName.TryAdd(ps.ServerLoadName, ps))
 					return;
 
 				// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
@@ -132,7 +144,8 @@ namespace Zeze.Arch
 						}
 					}
 				}
-				ProviderSessions.TryRemove(ps.ServerLoadName, out _);
+				ProviderByLoadName.TryRemove(ps.ServerLoadName, out _);
+				ProviderByServerId.TryRemove(ps.ServerId, out _);
 			}
 			base.OnSocketClose(socket, ex);
 		}

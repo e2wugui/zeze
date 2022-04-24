@@ -10,17 +10,14 @@ namespace Zeze.Arch
 {
     public class ProviderSession
     {
-		public long SessionId { get; }
+		public long SessionId { get; internal set; }
+		public int ServerId { get; internal set; }
+
 		private volatile BLoad Load_ = new BLoad();
 		public BLoad Load { get { return Load_; } set { Load_ = value; } }
 		public string ServerLoadIp { get; set; } = "";
 		public int ServerLoadPort { get; set; }
 		public string ServerLoadName => ServerLoadIp + ":" + ServerLoadPort;
-
-		public ProviderSession(long sid)
-        {
-			SessionId = sid;
-        }
 
 		/**
 		 * 下面维护和本Session相关的订阅Ready状态。在Session关闭时需要取消Ready状态。

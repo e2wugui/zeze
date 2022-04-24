@@ -67,7 +67,7 @@ public class ProviderApp {
 		this.Zeze.getServiceManagerAgent().setOnPrepare(ProviderImplement::ApplyOnPrepare);
 
 		this.Zeze.getServiceManagerAgent().setOnSetServerLoad((serverLoad) -> {
-			var ps = ProviderDirectService.ProviderSessions.get(serverLoad.getName());
+			var ps = ProviderDirectService.ProviderByLoadName.get(serverLoad.getName());
 			if (ps != null) {
 				var load = new BLoad();
 				load.Decode(serverLoad.Param.Wrap());

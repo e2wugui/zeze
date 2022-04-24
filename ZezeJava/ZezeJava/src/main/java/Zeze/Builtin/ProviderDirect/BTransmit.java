@@ -5,11 +5,9 @@ import Zeze.Serialize.ByteBuffer;
 
 public final class BTransmit extends Zeze.Transaction.Bean {
     private String _ActionName;
-    private final Zeze.Transaction.Collections.PMap2<Long, Zeze.Builtin.ProviderDirect.BTransmitContext> _Roles; // 查询目标角色。
+    private final Zeze.Transaction.Collections.PSet1<Long> _Roles; // 查询目标角色。
     private long _Sender; // 结果发送给Sender。
-    private String _ServiceNamePrefix;
-    private String _ParameterBeanName; // fullname
-    private Zeze.Net.Binary _ParameterBeanValue; // encoded bean
+    private Zeze.Net.Binary _Parameter; // encoded bean
 
     public String getActionName() {
         if (!isManaged())
@@ -35,7 +33,7 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__ActionName(this, value));
     }
 
-    public Zeze.Transaction.Collections.PMap2<Long, Zeze.Builtin.ProviderDirect.BTransmitContext> getRoles() {
+    public Zeze.Transaction.Collections.PSet1<Long> getRoles() {
         return _Roles;
     }
 
@@ -61,76 +59,28 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__Sender(this, value));
     }
 
-    public String getServiceNamePrefix() {
+    public Zeze.Net.Binary getParameter() {
         if (!isManaged())
-            return _ServiceNamePrefix;
+            return _Parameter;
         var txn = Zeze.Transaction.Transaction.getCurrent();
         if (txn == null)
-            return _ServiceNamePrefix;
+            return _Parameter;
         txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ServiceNamePrefix)txn.GetLog(this.getObjectId() + 4);
-        return log != null ? log.getValue() : _ServiceNamePrefix;
+        var log = (Log__Parameter)txn.GetLog(this.getObjectId() + 5);
+        return log != null ? log.getValue() : _Parameter;
     }
 
-    public void setServiceNamePrefix(String value) {
+    public void setParameter(Zeze.Net.Binary value) {
         if (value == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _ServiceNamePrefix = value;
+            _Parameter = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ServiceNamePrefix(this, value));
-    }
-
-    public String getParameterBeanName() {
-        if (!isManaged())
-            return _ParameterBeanName;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        if (txn == null)
-            return _ParameterBeanName;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ParameterBeanName)txn.GetLog(this.getObjectId() + 5);
-        return log != null ? log.getValue() : _ParameterBeanName;
-    }
-
-    public void setParameterBeanName(String value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        if (!isManaged()) {
-            _ParameterBeanName = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ParameterBeanName(this, value));
-    }
-
-    public Zeze.Net.Binary getParameterBeanValue() {
-        if (!isManaged())
-            return _ParameterBeanValue;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        if (txn == null)
-            return _ParameterBeanValue;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ParameterBeanValue)txn.GetLog(this.getObjectId() + 6);
-        return log != null ? log.getValue() : _ParameterBeanValue;
-    }
-
-    public void setParameterBeanValue(Zeze.Net.Binary value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        if (!isManaged()) {
-            _ParameterBeanValue = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ParameterBeanValue(this, value));
+        txn.PutLog(new Log__Parameter(this, value));
     }
 
     public BTransmit() {
@@ -140,21 +90,17 @@ public final class BTransmit extends Zeze.Transaction.Bean {
     public BTransmit(int _varId_) {
         super(_varId_);
         _ActionName = "";
-        _Roles = new Zeze.Transaction.Collections.PMap2<>(getObjectId() + 2, (_v) -> new Log__Roles(this, _v));
-        _ServiceNamePrefix = "";
-        _ParameterBeanName = "";
-        _ParameterBeanValue = Zeze.Net.Binary.Empty;
+        _Roles = new Zeze.Transaction.Collections.PSet1<>(getObjectId() + 2, (_v) -> new Log__Roles(this, _v));
+        _Parameter = Zeze.Net.Binary.Empty;
     }
 
     public void Assign(BTransmit other) {
         setActionName(other.getActionName());
         getRoles().clear();
-        for (var e : other.getRoles().entrySet())
-            getRoles().put(e.getKey(), e.getValue().Copy());
+        for (var e : other.getRoles())
+            getRoles().add(e);
         setSender(other.getSender());
-        setServiceNamePrefix(other.getServiceNamePrefix());
-        setParameterBeanName(other.getParameterBeanName());
-        setParameterBeanValue(other.getParameterBeanValue());
+        setParameter(other.getParameter());
     }
 
     public BTransmit CopyIfManaged() {
@@ -193,8 +139,8 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         public void Commit() { this.getBeanTyped()._ActionName = this.getValue(); }
     }
 
-    private static final class Log__Roles extends Zeze.Transaction.Collections.PMap.LogV<Long, Zeze.Builtin.ProviderDirect.BTransmitContext> {
-        public Log__Roles(BTransmit host, org.pcollections.PMap<Long, Zeze.Builtin.ProviderDirect.BTransmitContext> value) { super(host, value); }
+    private static final class Log__Roles extends Zeze.Transaction.Collections.PSet.LogV<Long> {
+        public Log__Roles(BTransmit host, org.pcollections.PSet<Long> value) { super(host, value); }
         @Override
         public long getLogKey() { return getBean().getObjectId() + 2; }
         public BTransmit getBeanTyped() { return (BTransmit)getBean(); }
@@ -210,28 +156,12 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         public void Commit() { this.getBeanTyped()._Sender = this.getValue(); }
     }
 
-    private static final class Log__ServiceNamePrefix extends Zeze.Transaction.Log1<BTransmit, String> {
-        public Log__ServiceNamePrefix(BTransmit self, String value) { super(self, value); }
-        @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 4; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ServiceNamePrefix = this.getValue(); }
-    }
-
-    private static final class Log__ParameterBeanName extends Zeze.Transaction.Log1<BTransmit, String> {
-        public Log__ParameterBeanName(BTransmit self, String value) { super(self, value); }
+    private static final class Log__Parameter extends Zeze.Transaction.Log1<BTransmit, Zeze.Net.Binary> {
+        public Log__Parameter(BTransmit self, Zeze.Net.Binary value) { super(self, value); }
         @Override
         public long getLogKey() { return this.getBean().getObjectId() + 5; }
         @Override
-        public void Commit() { this.getBeanTyped()._ParameterBeanName = this.getValue(); }
-    }
-
-    private static final class Log__ParameterBeanValue extends Zeze.Transaction.Log1<BTransmit, Zeze.Net.Binary> {
-        public Log__ParameterBeanValue(BTransmit self, Zeze.Net.Binary value) { super(self, value); }
-        @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 6; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ParameterBeanValue = this.getValue(); }
+        public void Commit() { this.getBeanTyped()._Parameter = this.getValue(); }
     }
 
     @Override
@@ -249,20 +179,13 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("ActionName").append('=').append(getActionName()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Roles").append("=[").append(System.lineSeparator());
         level += 4;
-        for (var _kv_ : getRoles().entrySet()) {
-            sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
-            sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
-            sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(System.lineSeparator());
-            _kv_.getValue().BuildString(sb, level + 4);
-            sb.append(',').append(System.lineSeparator());
-            sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());
+        for (var _item_ : getRoles()) {
+            sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(_item_).append(',').append(System.lineSeparator());
         }
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append(']').append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Sender").append('=').append(getSender()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ServiceNamePrefix").append('=').append(getServiceNamePrefix()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ParameterBeanName").append('=').append(getParameterBeanName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ParameterBeanValue").append('=').append(getParameterBeanValue()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Parameter").append('=').append(getParameter()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -294,12 +217,10 @@ public final class BTransmit extends Zeze.Transaction.Bean {
             var _x_ = getRoles();
             int _n_ = _x_.size();
             if (_n_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.MAP);
-                _o_.WriteMapType(_n_, ByteBuffer.INTEGER, ByteBuffer.BEAN);
-                for (var _e_ : _x_.entrySet()) {
-                    _o_.WriteLong(_e_.getKey());
-                    _e_.getValue().Encode(_o_);
-                }
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
+                _o_.WriteListType(_n_, ByteBuffer.INTEGER);
+                for (var _v_ : _x_)
+                    _o_.WriteLong(_v_);
             }
         }
         {
@@ -310,23 +231,9 @@ public final class BTransmit extends Zeze.Transaction.Bean {
             }
         }
         {
-            String _x_ = getServiceNamePrefix();
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
-            }
-        }
-        {
-            String _x_ = getParameterBeanName();
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
-            }
-        }
-        {
-            var _x_ = getParameterBeanValue();
+            var _x_ = getParameter();
             if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
             }
         }
@@ -345,13 +252,9 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         if (_i_ == 2) {
             var _x_ = getRoles();
             _x_.clear();
-            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
-                int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
-                for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
-                    var _k_ = _o_.ReadLong(_s_);
-                    var _v_ = _o_.ReadBean(new Zeze.Builtin.ProviderDirect.BTransmitContext(), _t_);
-                    _x_.put(_k_, _v_);
-                }
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadLong(_t_));
             } else
                 _o_.SkipUnknownField(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -360,16 +263,12 @@ public final class BTransmit extends Zeze.Transaction.Bean {
             setSender(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 4) {
-            setServiceNamePrefix(_o_.ReadString(_t_));
+        while (_t_ != 0 && _i_ < 5) {
+            _o_.SkipUnknownField(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 5) {
-            setParameterBeanName(_o_.ReadString(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 6) {
-            setParameterBeanValue(_o_.ReadBinary(_t_));
+            setParameter(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -386,8 +285,8 @@ public final class BTransmit extends Zeze.Transaction.Bean {
     @SuppressWarnings("RedundantIfStatement")
     @Override
     public boolean NegativeCheck() {
-        for (var _v_ : getRoles().values()) {
-            if (_v_.NegativeCheck())
+        for (var _v_ : getRoles()) {
+            if (_v_ < 0)
                 return true;
         }
         if (getSender() < 0)

@@ -5,7 +5,8 @@ import Zeze.Builtin.Provider.BLoad;
 
 public class ProviderSession {
 	public volatile BLoad Load = new BLoad();
-	private final long SessionId;
+	int ServerId;
+	long SessionId;
 	public String ServerLoadIp = "";
 	public int ServerLoadPort;
 
@@ -18,13 +19,10 @@ public class ProviderSession {
 		return getServerLoadName() + "@" + SessionId;
 	}
 
-	public ProviderSession(long ssid) {
-		SessionId = ssid;
-	}
-
 	public final long getSessionId() {
 		return SessionId;
 	}
+	public final int getServerId() { return ServerId; }
 
 	/**
 	 * 下面维护和本Session相关的订阅Ready状态。在Session关闭时需要取消Ready状态。

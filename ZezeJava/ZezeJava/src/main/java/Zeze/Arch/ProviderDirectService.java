@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import java.security.Provider;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.ProviderDirect.AnnounceProviderInfo;
@@ -24,7 +25,8 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	private static final Logger logger = LogManager.getLogger(ProviderDirectService.class);
 
 	public ProviderApp ProviderApp;
-	public final ConcurrentHashMap<String, ProviderSession> ProviderSessions = new ConcurrentHashMap<>();
+	public final ConcurrentHashMap<String, ProviderSession> ProviderByLoadName = new ConcurrentHashMap<>();
+	public final ConcurrentHashMap<Integer, ProviderSession> ProviderByServerId = new ConcurrentHashMap<>();
 
 	public ProviderDirectService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);
@@ -33,7 +35,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	public synchronized void TryConnectAndSetReady(Agent.SubscribeState ss, ServiceInfos infos) {
 		for (var pm : infos.getServiceInfoListSortedByIdentity()) {
 			var connName = pm.getPassiveIp() + ":" + pm.getPassivePort();
-			var ps = ProviderSessions.get(connName);
+			var ps = ProviderByLoadName.get(connName);
 			if (null != ps) {
 				// connection has ready.
 				var mid = Integer.parseInt(infos.getServiceName().split("#")[1]);
@@ -45,12 +47,17 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			if (serverId < getZeze().getConfig().getServerId())
 				continue;
 			if (serverId == getZeze().getConfig().getServerId()) {
-				SetRelativeServiceReady(new ProviderSession(0), ProviderApp.DirectIp, ProviderApp.DirectPort);
+				var localPs = new ProviderSession();
+				localPs.ServerId = serverId;
+				SetRelativeServiceReady(localPs, ProviderApp.DirectIp, ProviderApp.DirectPort);
 				continue;
 			}
 			var out = new OutObject<Connector>();
 			if (getConfig().TryGetOrAddConnector(pm.getPassiveIp(), pm.getPassivePort(), true, out)) {
 				// 新建的Connector。开始连接。
+				var peerPs = new ProviderSession();
+				peerPs.ServerId = serverId;
+				out.Value.UserState = peerPs;
 				out.Value.Start();
 			}
 		}
@@ -58,29 +65,37 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 
 	@Override
 	public void OnHandshakeDone(AsyncSocket socket) throws Throwable {
+		// call base
 		super.OnHandshakeDone(socket);
 
-		var ps = new ProviderSession(socket.getSessionId());
-		socket.setUserState(ps);
 		var c = socket.getConnector();
 		if (c != null) {
 			// 主动连接。
+			var ps = (ProviderSession)socket.getUserState();
+			ps.SessionId = socket.getSessionId();
 			SetRelativeServiceReady(ps, c.getHostNameOrAddress(), c.getPort());
+
 			var r = new AnnounceProviderInfo();
 			r.Argument.setIp(ProviderApp.DirectIp);
 			r.Argument.setPort(ProviderApp.DirectPort);
+			r.Argument.setServerId(ProviderApp.Zeze.getConfig().getServerId());
 			r.Send(socket, (_r) -> 0L); // skip result
+		} else {
+			// 被动连接等待对方报告信息时再处理。
+			// passive connection continue process in ProviderDirect.ProcessAnnounceProviderInfoRequest.
+			var ps = new ProviderSession();
+			ps.SessionId = socket.getSessionId();
+			socket.setUserState(ps); // acceptor
 		}
-		// 被动连接等待对方报告信息时再处理。
-		// call base
 	}
 
 	synchronized void SetRelativeServiceReady(ProviderSession ps, String ip, int port) {
 		ps.ServerLoadIp = ip;
 		ps.ServerLoadPort = port;
 		// 本机的连接可能设置多次。此时使用已经存在的，忽略后面的。
-		if (null != ProviderSessions.putIfAbsent(ps.getServerLoadName(), ps))
+		if (null != ProviderByLoadName.putIfAbsent(ps.getServerLoadName(), ps))
 			return;
+		ProviderByServerId.put(ps.getServerId(), ps);
 
 		// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
 		for (var ss : getZeze().getServiceManagerAgent().getSubscribeStates().values()) {
@@ -116,7 +131,8 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 					subs.SetServiceIdentityReadyState(identity, null);
 				}
 			}
-			ProviderSessions.remove(ps.getServerLoadName());
+			ProviderByLoadName.remove(ps.getServerLoadName());
+			ProviderByServerId.remove(ps.getServerId());
 		}
 		super.OnSocketClose(socket, ex);
 	}

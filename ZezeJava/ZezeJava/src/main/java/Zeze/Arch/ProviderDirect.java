@@ -184,8 +184,9 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 
 	@Override
 	protected long ProcessAnnounceProviderInfoRequest(AnnounceProviderInfo r) {
-		ProviderApp.ProviderDirectService.SetRelativeServiceReady(
-				(ProviderSession)r.getSender().getUserState(), r.Argument.getIp(), r.Argument.getPort());
+		var ps = (ProviderSession)r.getSender().getUserState();
+		ps.ServerId = r.Argument.getServerId();
+		ProviderApp.ProviderDirectService.SetRelativeServiceReady(ps, r.Argument.getIp(), r.Argument.getPort());
 		return 0;
 	}
 }

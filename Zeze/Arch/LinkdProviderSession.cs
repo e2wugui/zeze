@@ -28,9 +28,8 @@ namespace Zeze.Arch
         public BAnnounceProviderInfo Info { get; set; }
 
         public LinkdProviderSession(long sid)
-            : base(sid)
         {
-
+            base.SessionId = sid;
         }
 
         public void AddLinkSession(int moduleId, long linkSessionId)

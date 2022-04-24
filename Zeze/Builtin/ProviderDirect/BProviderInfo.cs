@@ -13,12 +13,14 @@ namespace Zeze.Builtin.ProviderDirect
 
         public string Ip { get; }
         public int Port { get; }
+        public int ServerId { get; }
     }
 
     public sealed class BProviderInfo : Zeze.Transaction.Bean, BProviderInfoReadOnly
     {
         string _Ip;
         int _Port;
+        int _ServerId;
 
         public string Ip
         {
@@ -71,6 +73,31 @@ namespace Zeze.Builtin.ProviderDirect
             }
         }
 
+        public int ServerId
+        {
+            get
+            {
+                if (!IsManaged)
+                    return _ServerId;
+                var txn = Zeze.Transaction.Transaction.Current;
+                if (txn == null) return _ServerId;
+                txn.VerifyRecordAccessed(this, true);
+                var log = (Log__ServerId)txn.GetLog(ObjectId + 3);
+                return log != null ? log.Value : _ServerId;
+            }
+            set
+            {
+                if (!IsManaged)
+                {
+                    _ServerId = value;
+                    return;
+                }
+                var txn = Zeze.Transaction.Transaction.Current;
+                txn.VerifyRecordAccessed(this);
+                txn.PutLog(new Log__ServerId(this, value));
+            }
+        }
+
         public BProviderInfo() : this(0)
         {
         }
@@ -84,6 +111,7 @@ namespace Zeze.Builtin.ProviderDirect
         {
             Ip = other.Ip;
             Port = other.Port;
+            ServerId = other.ServerId;
         }
 
         public BProviderInfo CopyIfManaged()
@@ -127,6 +155,13 @@ namespace Zeze.Builtin.ProviderDirect
             public override void Commit() { this.BeanTyped._Port = this.Value; }
         }
 
+        sealed class Log__ServerId : Zeze.Transaction.Log<BProviderInfo, int>
+        {
+            public Log__ServerId(BProviderInfo self, int value) : base(self, value) {}
+            public override long LogKey => this.Bean.ObjectId + 3;
+            public override void Commit() { this.BeanTyped._ServerId = this.Value; }
+        }
+
         public override string ToString()
         {
             System.Text.StringBuilder sb = new System.Text.StringBuilder();
@@ -140,7 +175,8 @@ namespace Zeze.Builtin.ProviderDirect
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Builtin.ProviderDirect.BProviderInfo: {").Append(Environment.NewLine);
             level += 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Ip").Append('=').Append(Ip).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("Port").Append('=').Append(Port).Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("Port").Append('=').Append(Port).Append(',').Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("ServerId").Append('=').Append(ServerId).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -164,6 +200,14 @@ namespace Zeze.Builtin.ProviderDirect
                     _o_.WriteInt(_x_);
                 }
             }
+            {
+                int _x_ = ServerId;
+                if (_x_ != 0)
+                {
+                    _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                    _o_.WriteInt(_x_);
+                }
+            }
             _o_.WriteByte(0);
         }
 
@@ -181,6 +225,11 @@ namespace Zeze.Builtin.ProviderDirect
                 Port = _o_.ReadInt(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
+            if (_i_ == 3)
+            {
+                ServerId = _o_.ReadInt(_t_);
+                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+            }
             while (_t_ != 0)
             {
                 _o_.SkipUnknownField(_t_);
@@ -195,6 +244,7 @@ namespace Zeze.Builtin.ProviderDirect
         public override bool NegativeCheck()
         {
             if (Port < 0) return true;
+            if (ServerId < 0) return true;
             return false;
         }
     }

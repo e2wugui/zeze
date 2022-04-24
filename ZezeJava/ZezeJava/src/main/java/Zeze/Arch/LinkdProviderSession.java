@@ -24,7 +24,7 @@ public class LinkdProviderSession extends ProviderSession {
 	private final ConcurrentHashMap<Integer, Integer> StaticBinds = new ConcurrentHashMap<>();
 
 	public LinkdProviderSession(long ssid) {
-		super(ssid);
+		super.SessionId = ssid;
 	}
 
 	public final BAnnounceProviderInfo getInfo() {

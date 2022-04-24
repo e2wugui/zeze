@@ -6,6 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 public final class BProviderInfo extends Zeze.Transaction.Bean {
     private String _Ip;
     private int _Port;
+    private int _ServerId;
 
     public String getIp() {
         if (!isManaged())
@@ -53,6 +54,28 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__Port(this, value));
     }
 
+    public int getServerId() {
+        if (!isManaged())
+            return _ServerId;
+        var txn = Zeze.Transaction.Transaction.getCurrent();
+        if (txn == null)
+            return _ServerId;
+        txn.VerifyRecordAccessed(this, true);
+        var log = (Log__ServerId)txn.GetLog(this.getObjectId() + 3);
+        return log != null ? log.getValue() : _ServerId;
+    }
+
+    public void setServerId(int value) {
+        if (!isManaged()) {
+            _ServerId = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrent();
+        assert txn != null;
+        txn.VerifyRecordAccessed(this);
+        txn.PutLog(new Log__ServerId(this, value));
+    }
+
     public BProviderInfo() {
          this(0);
     }
@@ -65,6 +88,7 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
     public void Assign(BProviderInfo other) {
         setIp(other.getIp());
         setPort(other.getPort());
+        setServerId(other.getServerId());
     }
 
     public BProviderInfo CopyIfManaged() {
@@ -111,6 +135,14 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
         public void Commit() { this.getBeanTyped()._Port = this.getValue(); }
     }
 
+    private static final class Log__ServerId extends Zeze.Transaction.Log1<BProviderInfo, Integer> {
+        public Log__ServerId(BProviderInfo self, Integer value) { super(self, value); }
+        @Override
+        public long getLogKey() { return this.getBean().getObjectId() + 3; }
+        @Override
+        public void Commit() { this.getBeanTyped()._ServerId = this.getValue(); }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -124,7 +156,8 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.ProviderDirect.BProviderInfo: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("Ip").append('=').append(getIp()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Port").append('=').append(getPort()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Port").append('=').append(getPort()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ServerId").append('=').append(getServerId()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -159,6 +192,13 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
                 _o_.WriteInt(_x_);
             }
         }
+        {
+            int _x_ = getServerId();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -175,6 +215,10 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
             setPort(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 3) {
+            setServerId(_o_.ReadInt(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -189,6 +233,8 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
     @Override
     public boolean NegativeCheck() {
         if (getPort() < 0)
+            return true;
+        if (getServerId() < 0)
             return true;
         return false;
     }

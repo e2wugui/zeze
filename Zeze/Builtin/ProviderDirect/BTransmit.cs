@@ -12,22 +12,17 @@ namespace Zeze.Builtin.ProviderDirect
         public Zeze.Transaction.Bean CopyBean();
 
         public string ActionName { get; }
-        public System.Collections.Generic.IReadOnlyDictionary<long,Zeze.Builtin.ProviderDirect.BTransmitContextReadOnly> Roles { get; }
+        public System.Collections.Generic.IReadOnlySet<long> Roles { get; }
         public long Sender { get; }
-        public string ServiceNamePrefix { get; }
-        public string ParameterBeanName { get; }
-        public Zeze.Net.Binary ParameterBeanValue { get; }
+        public Zeze.Net.Binary Parameter { get; }
     }
 
     public sealed class BTransmit : Zeze.Transaction.Bean, BTransmitReadOnly
     {
         string _ActionName;
-        readonly Zeze.Transaction.Collections.PMap2<long, Zeze.Builtin.ProviderDirect.BTransmitContext> _Roles; // 查询目标角色。
-        Zeze.Transaction.Collections.PMapReadOnly<long,Zeze.Builtin.ProviderDirect.BTransmitContextReadOnly,Zeze.Builtin.ProviderDirect.BTransmitContext> _RolesReadOnly;
+        readonly Zeze.Transaction.Collections.PSet1<long> _Roles; // 查询目标角色。
         long _Sender; // 结果发送给Sender。
-        string _ServiceNamePrefix;
-        string _ParameterBeanName; // fullname
-        Zeze.Net.Binary _ParameterBeanValue; // encoded bean
+        Zeze.Net.Binary _Parameter; // encoded bean
 
         public string ActionName
         {
@@ -55,8 +50,8 @@ namespace Zeze.Builtin.ProviderDirect
             }
         }
 
-        public Zeze.Transaction.Collections.PMap2<long, Zeze.Builtin.ProviderDirect.BTransmitContext> Roles => _Roles;
-        System.Collections.Generic.IReadOnlyDictionary<long,Zeze.Builtin.ProviderDirect.BTransmitContextReadOnly> Zeze.Builtin.ProviderDirect.BTransmitReadOnly.Roles => _RolesReadOnly;
+        public Zeze.Transaction.Collections.PSet1<long> Roles => _Roles;
+        System.Collections.Generic.IReadOnlySet<long> Zeze.Builtin.ProviderDirect.BTransmitReadOnly.Roles => _Roles;
 
         public long Sender
         {
@@ -83,81 +78,29 @@ namespace Zeze.Builtin.ProviderDirect
             }
         }
 
-        public string ServiceNamePrefix
+        public Zeze.Net.Binary Parameter
         {
             get
             {
                 if (!IsManaged)
-                    return _ServiceNamePrefix;
+                    return _Parameter;
                 var txn = Zeze.Transaction.Transaction.Current;
-                if (txn == null) return _ServiceNamePrefix;
+                if (txn == null) return _Parameter;
                 txn.VerifyRecordAccessed(this, true);
-                var log = (Log__ServiceNamePrefix)txn.GetLog(ObjectId + 4);
-                return log != null ? log.Value : _ServiceNamePrefix;
+                var log = (Log__Parameter)txn.GetLog(ObjectId + 4);
+                return log != null ? log.Value : _Parameter;
             }
             set
             {
                 if (value == null) throw new System.ArgumentNullException();
                 if (!IsManaged)
                 {
-                    _ServiceNamePrefix = value;
+                    _Parameter = value;
                     return;
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ServiceNamePrefix(this, value));
-            }
-        }
-
-        public string ParameterBeanName
-        {
-            get
-            {
-                if (!IsManaged)
-                    return _ParameterBeanName;
-                var txn = Zeze.Transaction.Transaction.Current;
-                if (txn == null) return _ParameterBeanName;
-                txn.VerifyRecordAccessed(this, true);
-                var log = (Log__ParameterBeanName)txn.GetLog(ObjectId + 5);
-                return log != null ? log.Value : _ParameterBeanName;
-            }
-            set
-            {
-                if (value == null) throw new System.ArgumentNullException();
-                if (!IsManaged)
-                {
-                    _ParameterBeanName = value;
-                    return;
-                }
-                var txn = Zeze.Transaction.Transaction.Current;
-                txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ParameterBeanName(this, value));
-            }
-        }
-
-        public Zeze.Net.Binary ParameterBeanValue
-        {
-            get
-            {
-                if (!IsManaged)
-                    return _ParameterBeanValue;
-                var txn = Zeze.Transaction.Transaction.Current;
-                if (txn == null) return _ParameterBeanValue;
-                txn.VerifyRecordAccessed(this, true);
-                var log = (Log__ParameterBeanValue)txn.GetLog(ObjectId + 6);
-                return log != null ? log.Value : _ParameterBeanValue;
-            }
-            set
-            {
-                if (value == null) throw new System.ArgumentNullException();
-                if (!IsManaged)
-                {
-                    _ParameterBeanValue = value;
-                    return;
-                }
-                var txn = Zeze.Transaction.Transaction.Current;
-                txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ParameterBeanValue(this, value));
+                txn.PutLog(new Log__Parameter(this, value));
             }
         }
 
@@ -168,11 +111,8 @@ namespace Zeze.Builtin.ProviderDirect
         public BTransmit(int _varId_) : base(_varId_)
         {
             _ActionName = "";
-            _Roles = new Zeze.Transaction.Collections.PMap2<long, Zeze.Builtin.ProviderDirect.BTransmitContext>(ObjectId + 2, _v => new Log__Roles(this, _v));
-            _RolesReadOnly = new Zeze.Transaction.Collections.PMapReadOnly<long,Zeze.Builtin.ProviderDirect.BTransmitContextReadOnly,Zeze.Builtin.ProviderDirect.BTransmitContext>(_Roles);
-            _ServiceNamePrefix = "";
-            _ParameterBeanName = "";
-            _ParameterBeanValue = Zeze.Net.Binary.Empty;
+            _Roles = new Zeze.Transaction.Collections.PSet1<long>(ObjectId + 2, _v => new Log__Roles(this, _v));
+            _Parameter = Zeze.Net.Binary.Empty;
         }
 
         public void Assign(BTransmit other)
@@ -180,11 +120,9 @@ namespace Zeze.Builtin.ProviderDirect
             ActionName = other.ActionName;
             Roles.Clear();
             foreach (var e in other.Roles)
-                Roles.Add(e.Key, e.Value.Copy());
+                Roles.Add(e);
             Sender = other.Sender;
-            ServiceNamePrefix = other.ServiceNamePrefix;
-            ParameterBeanName = other.ParameterBeanName;
-            ParameterBeanValue = other.ParameterBeanValue;
+            Parameter = other.Parameter;
         }
 
         public BTransmit CopyIfManaged()
@@ -221,9 +159,9 @@ namespace Zeze.Builtin.ProviderDirect
             public override void Commit() { this.BeanTyped._ActionName = this.Value; }
         }
 
-        sealed class Log__Roles : Zeze.Transaction.Collections.PMap2<long, Zeze.Builtin.ProviderDirect.BTransmitContext>.LogV
+        sealed class Log__Roles : Zeze.Transaction.Collections.PSet1<long>.LogV
         {
-            public Log__Roles(BTransmit host, System.Collections.Immutable.ImmutableDictionary<long, Zeze.Builtin.ProviderDirect.BTransmitContext> value) : base(host, value) {}
+            public Log__Roles(BTransmit host, System.Collections.Immutable.ImmutableHashSet<long> value) : base(host, value) {}
             public override long LogKey => Bean.ObjectId + 2;
             public BTransmit BeanTyped => (BTransmit)Bean;
             public override void Commit() { Commit(BeanTyped._Roles); }
@@ -236,25 +174,11 @@ namespace Zeze.Builtin.ProviderDirect
             public override void Commit() { this.BeanTyped._Sender = this.Value; }
         }
 
-        sealed class Log__ServiceNamePrefix : Zeze.Transaction.Log<BTransmit, string>
+        sealed class Log__Parameter : Zeze.Transaction.Log<BTransmit, Zeze.Net.Binary>
         {
-            public Log__ServiceNamePrefix(BTransmit self, string value) : base(self, value) {}
+            public Log__Parameter(BTransmit self, Zeze.Net.Binary value) : base(self, value) {}
             public override long LogKey => this.Bean.ObjectId + 4;
-            public override void Commit() { this.BeanTyped._ServiceNamePrefix = this.Value; }
-        }
-
-        sealed class Log__ParameterBeanName : Zeze.Transaction.Log<BTransmit, string>
-        {
-            public Log__ParameterBeanName(BTransmit self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 5;
-            public override void Commit() { this.BeanTyped._ParameterBeanName = this.Value; }
-        }
-
-        sealed class Log__ParameterBeanValue : Zeze.Transaction.Log<BTransmit, Zeze.Net.Binary>
-        {
-            public Log__ParameterBeanValue(BTransmit self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 6;
-            public override void Commit() { this.BeanTyped._ParameterBeanValue = this.Value; }
+            public override void Commit() { this.BeanTyped._Parameter = this.Value; }
         }
 
         public override string ToString()
@@ -272,23 +196,14 @@ namespace Zeze.Builtin.ProviderDirect
             sb.Append(Zeze.Util.Str.Indent(level)).Append("ActionName").Append('=').Append(ActionName).Append(',').Append(Environment.NewLine);
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Roles").Append("=[").Append(Environment.NewLine);
             level += 4;
-            foreach (var _kv_ in Roles)
+            foreach (var Item in Roles)
             {
-                sb.Append('(').Append(Environment.NewLine);
-                var Key = _kv_.Key;
-                sb.Append(Zeze.Util.Str.Indent(level)).Append("Key").Append('=').Append(Key).Append(',').Append(Environment.NewLine);
-                var Value = _kv_.Value;
-                sb.Append(Zeze.Util.Str.Indent(level)).Append("Value").Append('=').Append(Environment.NewLine);
-                Value.BuildString(sb, level + 4);
-                sb.Append(',').Append(Environment.NewLine);
-                sb.Append(')').Append(Environment.NewLine);
+                sb.Append(Zeze.Util.Str.Indent(level)).Append("Item").Append('=').Append(Item).Append(',').Append(Environment.NewLine);
             }
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append(']').Append(',').Append(Environment.NewLine);
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Sender").Append('=').Append(Sender).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("ServiceNamePrefix").Append('=').Append(ServiceNamePrefix).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("ParameterBeanName").Append('=').Append(ParameterBeanName).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("ParameterBeanValue").Append('=').Append(ParameterBeanValue).Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("Parameter").Append('=').Append(Parameter).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -309,13 +224,10 @@ namespace Zeze.Builtin.ProviderDirect
                 int _n_ = _x_.Count;
                 if (_n_ != 0)
                 {
-                    _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.MAP);
-                    _o_.WriteMapType(_n_, ByteBuffer.INTEGER, ByteBuffer.BEAN);
-                    foreach (var _e_ in _x_)
-                    {
-                        _o_.WriteLong(_e_.Key);
-                        _e_.Value.Encode(_o_);
-                    }
+                    _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
+                    _o_.WriteListType(_n_, ByteBuffer.INTEGER);
+                    foreach (var _v_ in _x_)
+                        _o_.WriteLong(_v_);
                 }
             }
             {
@@ -327,26 +239,10 @@ namespace Zeze.Builtin.ProviderDirect
                 }
             }
             {
-                string _x_ = ServiceNamePrefix;
-                if (_x_.Length != 0)
-                {
-                    _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
-                    _o_.WriteString(_x_);
-                }
-            }
-            {
-                string _x_ = ParameterBeanName;
-                if (_x_.Length != 0)
-                {
-                    _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.BYTES);
-                    _o_.WriteString(_x_);
-                }
-            }
-            {
-                var _x_ = ParameterBeanValue;
+                var _x_ = Parameter;
                 if (_x_.Count != 0)
                 {
-                    _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.BYTES);
+                    _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
                     _o_.WriteBinary(_x_);
                 }
             }
@@ -366,15 +262,10 @@ namespace Zeze.Builtin.ProviderDirect
             {
                 var _x_ = Roles;
                 _x_.Clear();
-                if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP)
+                if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST)
                 {
-                    int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
-                    for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--)
-                    {
-                        var _k_ = _o_.ReadLong(_s_);
-                        var _v_ = _o_.ReadBean(new Zeze.Builtin.ProviderDirect.BTransmitContext(), _t_);
-                        _x_.Add(_k_, _v_);
-                    }
+                    for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                        _x_.Add(_o_.ReadLong(_t_));
                 }
                 else
                     _o_.SkipUnknownField(_t_);
@@ -387,17 +278,7 @@ namespace Zeze.Builtin.ProviderDirect
             }
             if (_i_ == 4)
             {
-                ServiceNamePrefix = _o_.ReadString(_t_);
-                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-            }
-            if (_i_ == 5)
-            {
-                ParameterBeanName = _o_.ReadString(_t_);
-                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-            }
-            if (_i_ == 6)
-            {
-                ParameterBeanValue = _o_.ReadBinary(_t_);
+                Parameter = _o_.ReadBinary(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             while (_t_ != 0)
@@ -414,9 +295,9 @@ namespace Zeze.Builtin.ProviderDirect
 
         public override bool NegativeCheck()
         {
-            foreach (var _v_ in Roles.Values)
+            foreach (var _v_ in Roles)
             {
-                if (_v_.NegativeCheck()) return true;
+                if (_v_ < 0) return true;
             }
             if (Sender < 0) return true;
             return false;

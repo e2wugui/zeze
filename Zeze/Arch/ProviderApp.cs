@@ -69,7 +69,7 @@ namespace Zeze.Arch
 
 			this.Zeze.ServiceManagerAgent.OnSetServerLoad = (serverLoad) =>
 			{
-				if (ProviderDirectService.ProviderSessions.TryGetValue(serverLoad.Name, out var ps))
+				if (ProviderDirectService.ProviderByLoadName.TryGetValue(serverLoad.Name, out var ps))
 				{
 					var load = new BLoad();
 					var bb = ByteBuffer.Wrap(serverLoad.Param);
