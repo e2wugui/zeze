@@ -23,7 +23,7 @@ namespace Zeze.Util
 
         public class Events
         {
-            private ConcurrentDictionary<long, Func<object, EventArgs, Task<long>>> Handles = new();
+            private ConcurrentDictionary<long, Func<object, EventArgs, Task>> Handles = new();
             private Util.AtomicLong NextId = new();
 
             public class Canceler
@@ -53,7 +53,7 @@ namespace Zeze.Util
                 return new Canceler(this, next);
             }
 
-            public ICollection<Func<object, EventArgs, Task<long>>> values()
+            public ICollection<Func<object, EventArgs, Task>> values()
             {
                 return this.Handles.Values;
             }
@@ -90,27 +90,15 @@ namespace Zeze.Util
         {
             foreach (var handle in RunThreadEvents.values())
             {
-                _ = Mission.CallAsync(() => handle(sender, arg), $"EventDispatch.{Name}.runAsync");
+                _ = Mission.CallAsync(async () =>
+                {
+                    await handle(sender, arg);
+                    return 0;
+                }, $"EventDispatch.{Name}.TriggerThread");
             }
         }
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-
-        // 嵌入当前线程执行，所有错误都报告出去，忽略所有错误。
-        public async Task TriggerEmbedIgnoreError(object sender, EventArgs arg)
-        {
-            foreach (var handle in RunEmbedEvents.values())
-            {
-                try
-                {
-                    await handle(sender, arg);
-                }
-                catch (Exception ex)
-                {
-                    logger.Error(ex);
-                }
-            }
-        }
 
         // 在当前线程中，创建新的存储过程并执行，忽略所有错误。
         public async Task TriggerProcedureIgnoreError(Application app, object sender, EventArgs arg)
@@ -119,7 +107,12 @@ namespace Zeze.Util
             {
                 try
                 {
-                    await app.NewProcedure(async () => { await handle(sender, arg); return 0; }, "").CallAsync();
+                    await app.NewProcedure(async () =>
+                    {
+                        await handle(sender, arg);
+                        return 0;
+                    }, $"EventDispatch.{Name}.TriggerProcedureIgnoreError").CallAsync();
+                    // return error has log inner.
                 }
                 catch (Exception ex)
                 {
@@ -142,7 +135,11 @@ namespace Zeze.Util
         {
             foreach (var handle in RunProcedureEvents.values())
             {
-                var rc = await app.NewProcedure(async () => { await handle(sender, arg); return 0L; }, "").CallAsync();
+                var rc = await app.NewProcedure(async () =>
+                {
+                    await handle(sender, arg);
+                    return 0L;
+                }, $"EventDispatch.{Name}.TriggerProcedure").CallAsync();
                 if (0L != rc)
                     throw new Exception($"Nest Call Fail. return={rc}");
             }

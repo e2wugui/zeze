@@ -19,7 +19,7 @@ public class EventDispatcher {
 
 	@FunctionalInterface
 	public interface EventHandle {
-		long invoke(Object sender, EventArgument arg) throws Throwable;
+		void invoke(Object sender, EventArgument arg) throws Throwable;
 	}
 
 	public static class EventArgument {
@@ -100,16 +100,6 @@ public class EventDispatcher {
 	}
 
 	static final Logger logger = LogManager.getLogger(EventDispatcher.class);
-	// 嵌入当前线程执行，所有错误都报告出去，忽略所有错误。
-	public final void triggerEmbedIgnoreError(Object sender, EventArgument arg) {
-		for (var handle : runEmbedEvents.values()) {
-			try {
-				handle.invoke(sender, arg);
-			} catch (Throwable ex) {
-				logger.error(ex);
-			}
-		}
-	}
 
 	// 在当前线程中，创建新的存储过程并执行，忽略所有错误。
 	public final void triggerProcedureIgnoreError(Application app, Object sender, EventArgument arg) {
