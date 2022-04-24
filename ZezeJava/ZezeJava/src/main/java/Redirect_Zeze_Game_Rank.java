@@ -16,7 +16,7 @@ public final class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
         var _a_ = _p_.Argument;
         _a_.setModuleId(11015);
         _a_.setHashCodeConcurrentLevel(arg0);
-        _a_.setMethodFullName("Zeze.Builtin.Game.Rank:getRankAll");
+        _a_.setMethodFullName("Zeze.Game.Rank:getRankAll");
         _a_.setServiceNamePrefix(_redirect_.ProviderApp.ServerServiceNamePrefix);
         _a_.setSessionId(_redirect_.ProviderApp.ProviderDirectService.AddManualContextWithTimeout(_c_));
         var _b_ = Zeze.Serialize.ByteBuffer.Allocate();
@@ -38,7 +38,7 @@ public final class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
         _a_.setModuleId(11015);
         _a_.setRedirectType(Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeWithHash);
         _a_.setHashCode(arg0);
-        _a_.setMethodFullName("Zeze.Builtin.Game.Rank:updateRank");
+        _a_.setMethodFullName("Zeze.Game.Rank:updateRank");
         _a_.setServiceNamePrefix(_redirect_.ProviderApp.ServerServiceNamePrefix);
         var _b_ = Zeze.Serialize.ByteBuffer.Allocate();
         arg1.Encode(_b_);
@@ -59,7 +59,7 @@ public final class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
         super(_app_);
         _redirect_ = _app_.getZeze().Redirect;
 
-        _app_.getZeze().Redirect.Handles.put("Zeze.Builtin.Game.Rank:getRankAll", new Zeze.Arch.RedirectHandle(
+        _app_.getZeze().Redirect.Handles.put("Zeze.Game.Rank:getRankAll", new Zeze.Arch.RedirectHandle(
             Zeze.Transaction.TransactionLevel.Serializable, (_hash_, _params_) -> {
                 var _b_ = _params_.Wrap();
                 var arg1 = new Zeze.Builtin.Game.Rank.BConcurrentKey();
@@ -71,7 +71,7 @@ public final class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
                 _r_.rankList.Encode(_b_);
                 return new Zeze.Net.Binary(_b_);
             }));
-        _app_.getZeze().Redirect.Handles.put("Zeze.Builtin.Game.Rank:updateRank", new Zeze.Arch.RedirectHandle(
+        _app_.getZeze().Redirect.Handles.put("Zeze.Game.Rank:updateRank", new Zeze.Arch.RedirectHandle(
             Zeze.Transaction.TransactionLevel.Serializable, (_hash_, _params_) -> {
                 var arg1 = new Zeze.Builtin.Game.Rank.BConcurrentKey();
                 long arg2;
