@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderService;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Builtin.Game.Online.BAccount;
@@ -43,7 +44,7 @@ public class Online extends AbstractOnline {
 
 	protected static final Logger logger = LogManager.getLogger(Online.class);
 
-	private final ProviderService service;
+	private final ProviderApp app;
 
 	@FunctionalInterface
 	public interface TransmitAction {
@@ -75,16 +76,16 @@ public class Online extends AbstractOnline {
 	 */
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
 
-	public Online(ProviderService service) {
-		this.service = service;
-		RegisterProtocols(service);
-		RegisterZezeTables(service.getZeze());
+	public Online(ProviderApp app) {
+		this.app = app;
+		RegisterProtocols(app.ProviderService);
+		RegisterZezeTables(app.Zeze);
 	}
 
 	@Override
 	public void UnRegister() {
-		UnRegisterProtocols(service);
-		UnRegisterZezeTables(service.getZeze());
+		UnRegisterProtocols(app.ProviderService);
+		UnRegisterZezeTables(app.Zeze);
 	}
 
 	public final ConcurrentHashMap<String, TransmitAction> getTransmitActions() {
@@ -128,7 +129,7 @@ public class Online extends AbstractOnline {
 		online.setState(BOnline.StateNetBroken);
 
 		Task.schedule(10 * 60 * 1000, () -> { // 10 minutes for relogin
-			service.getZeze().NewProcedure(() -> {
+			app.Zeze.NewProcedure(() -> {
 				// 网络断开后延迟删除在线状态。这里简单判断一下是否StateNetBroken。
 				// 由于CLogin,CReLogin的时候没有取消Timeout，所以有可能再次登录断线后，会被上一次断线的Timeout删除。
 				// 造成延迟时间不准确。管理Timeout有点烦，先这样吧。
@@ -195,7 +196,7 @@ public class Online extends AbstractOnline {
 		var future = waitConfirm ? new TaskCompletionSource<Long>() : null;
 
 		// 发送协议请求在另外的事务中执行。
-		service.getZeze().getTaskOneByOneByKey().Execute(roleId, () -> Task.Call(service.getZeze().NewProcedure(() -> {
+		app.Zeze.getTaskOneByOneByKey().Execute(roleId, () -> Task.Call(app.Zeze.NewProcedure(() -> {
 			sendInProcedure(List.of(roleId), typeId, fullEncodedProtocol, future);
 			return Procedure.Success;
 		}, "Game.Online.send"), null, null));
@@ -207,7 +208,7 @@ public class Online extends AbstractOnline {
 	// 广播不支持 WaitConfirm
 	private void send(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
 		// 发送协议请求在另外的事务中执行。
-		Task.run(service.getZeze().NewProcedure(() -> {
+		Task.run(app.Zeze.NewProcedure(() -> {
 			sendInProcedure(roleIds, typeId, fullEncodedProtocol, null);
 			return Procedure.Success;
 		}, "Game.Online.send"));
@@ -225,7 +226,7 @@ public class Online extends AbstractOnline {
 				if (group.linkSocket != null) // skip not online
 					confirmContext.linkNames.add(group.linkName);
 			}
-			serialId = service.AddManualContextWithTimeout(confirmContext, 5000);
+			serialId = app.ProviderService.AddManualContextWithTimeout(confirmContext, 5000);
 		}
 
 		for (var group : groups) {
@@ -243,7 +244,7 @@ public class Online extends AbstractOnline {
 		}
 	}
 
-	private static final class RoleOnLink {
+	public static final class RoleOnLink {
 		String linkName = "";
 		AsyncSocket linkSocket;
 		int providerId = -1;
@@ -263,7 +264,7 @@ public class Online extends AbstractOnline {
 				continue;
 			}
 
-			var connector = service.getLinks().get(online.getLinkName());
+			var connector = app.ProviderService.getLinks().get(online.getLinkName());
 			if (connector == null) {
 				groupNotOnline.roles.putIfAbsent(roleId, new BTransmitContext());
 				continue;
@@ -309,7 +310,7 @@ public class Online extends AbstractOnline {
 			synchronized (this) {
 				linkNames.remove(linkName);
 				if (linkNames.isEmpty())
-					service.<ConfirmContext>TryRemoveManualContext(getSessionId());
+					app.ProviderService.<ConfirmContext>TryRemoveManualContext(getSessionId());
 				return Procedure.Success;
 			}
 		}
@@ -385,8 +386,8 @@ public class Online extends AbstractOnline {
 	public final void sendReliableNotify(long roleId, String listenerName, long typeId, Binary fullEncodedProtocol, boolean WaitConfirm) {
 		var future = WaitConfirm ? new TaskCompletionSource<Long>() : null;
 
-		service.getZeze().getTaskOneByOneByKey().Execute(listenerName,
-				service.getZeze().NewProcedure(() -> {
+		app.Zeze.getTaskOneByOneByKey().Execute(listenerName,
+				app.Zeze.NewProcedure(() -> {
 					BOnline online = _tonline.get(roleId);
 					if (online == null || online.getState() == BOnline.StateOffline) {
 						return Procedure.Success;
@@ -419,11 +420,11 @@ public class Online extends AbstractOnline {
 		if (WaitConfirm) {
 			future = new TaskCompletionSource<>();
 			var confirmContext = new ConfirmContext(future);
-			for (var link : service.getLinks().values()) {
+			for (var link : app.ProviderService.getLinks().values()) {
 				if (link.getSocket() != null)
 					confirmContext.linkNames.add(link.getName());
 			}
-			serialId = service.AddManualContextWithTimeout(confirmContext, 5000);
+			serialId = app.ProviderService.AddManualContextWithTimeout(confirmContext, 5000);
 		}
 
 		var broadcast = new Broadcast();
@@ -432,7 +433,7 @@ public class Online extends AbstractOnline {
 		broadcast.Argument.setConfirmSerialId(serialId);
 		broadcast.Argument.setTime(time);
 
-		for (var link : service.getLinks().values()) {
+		for (var link : app.ProviderService.getLinks().values()) {
 			if (link.getSocket() != null)
 				link.getSocket().Send(broadcast);
 		}
@@ -472,36 +473,75 @@ public class Online extends AbstractOnline {
 		var handle = transmitActions.get(actionName);
 		if (handle != null) {
 			for (var target : roleIds) {
-				Task.run(service.getZeze().NewProcedure(() -> handle.call(sender, target, parameter),
+				Task.Call(app.Zeze.NewProcedure(() -> handle.call(sender, target, parameter),
 						"Game.Online.transmit: " + actionName), null, null);
 			}
 		}
 	}
 
+	public static final class RoleOnServer {
+		int ServerId = -1; // ProviderId
+		final HashSet<Long> roles = new HashSet<>();
+	}
+
+	public final Collection<RoleOnServer> groupByServerId(Iterable<Long> roleIds) {
+		var groups = new HashMap<Integer, RoleOnServer>();
+		var groupNotOnline = new RoleOnServer(); // LinkName is Empty And Socket is null.
+		groups.put(-1, groupNotOnline);
+
+		for (var roleId : roleIds) {
+			var online = _tonline.get(roleId);
+			if (online == null || online.getState() != BOnline.StateOnline) {
+				groupNotOnline.roles.add(roleId);
+				continue;
+			}
+
+			// 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
+			var group = groups.get(online.getProviderId());
+			if (group == null) {
+				group = new RoleOnServer();
+				group.ServerId = online.getProviderId();
+				groups.put(online.getProviderId(), group);
+			}
+			group.roles.add(roleId);
+		}
+		return groups.values();
+	}
+
+	private RoleOnServer merge(RoleOnServer current, RoleOnServer m) {
+		if (null == current)
+			return m;
+		current.roles.addAll(m.roles);
+		return current;
+	}
+
 	private void transmitInProcedure(long sender, String actionName, Iterable<Long> roleIds, Binary parameter) {
-		if (service.getZeze().getConfig().getGlobalCacheManagerHostNameOrAddress().isEmpty()) {
+		if (app.Zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().isEmpty()) {
 			// 没有启用cache-sync，马上触发本地任务。
 			processTransmit(sender, actionName, roleIds, parameter);
 			return;
 		}
 
-		var groups = groupByLink(roleIds);
+		var groups = groupByServerId(roleIds);
+		RoleOnServer groupLocal = null;
 		for (var group : groups) {
-			if (group.providerId == service.getZeze().getConfig().getServerId() // loopback 就是当前gs.
-					|| group.linkSocket == null) { // 对于不在线的角色，本机处理。
-				processTransmit(sender, actionName, group.roles.keySet(), parameter);
+			if (group.ServerId == app.Zeze.getConfig().getServerId()) {
+				// loopback 就是当前gs.
+				groupLocal = merge(groupLocal, group);
 				continue;
 			}
 			var transmit = new Transmit();
 			transmit.Argument.setActionName(actionName);
 			transmit.Argument.setSender(sender);
-			transmit.Argument.setServiceNamePrefix(service.ProviderApp.ServerServiceNamePrefix);
-			transmit.Argument.getRoles().putAll(group.roles);
+			transmit.Argument.setServiceNamePrefix(app.ServerServiceNamePrefix);
+			//TODO transmit.Argument.getRoles().putAll(group.roles);
 			if (parameter != null) {
-				transmit.Argument.setParameterBeanName(parameter.getClass().getName());
+				// not used
+				// transmit.Argument.setParameterBeanName(parameter.getClass().getName());
 				transmit.Argument.setParameterBeanValue(parameter);
 			}
-			group.linkSocket.Send(transmit);
+			//TODO app.Distribute.ChoiceProviderByServerId(app.ServerServiceNamePrefix, );
+			//TODO group.linkSocket.Send(transmit);
 		}
 	}
 
@@ -522,7 +562,7 @@ public class Online extends AbstractOnline {
 		} else
 			bb = null;
 		// 发送协议请求在另外的事务中执行。
-		Task.run(service.getZeze().NewProcedure(() -> {
+		Task.run(app.Zeze.NewProcedure(() -> {
 			transmitInProcedure(sender, actionName, roleIds, bb != null ? new Binary(bb) : null);
 			return Procedure.Success;
 		}, "Game.Online.transmit"), null, null);
@@ -592,7 +632,7 @@ public class Online extends AbstractOnline {
 		online.setReliableNotifyTotalCount(0);
 
 		var linkSession = (ProviderService.LinkSession)session.getLink().getUserState();
-		online.setProviderId(service.getZeze().getConfig().getServerId());
+		online.setProviderId(app.Zeze.getConfig().getServerId());
 		online.setProviderSessionId(linkSession.getProviderSessionId());
 
 		// 先提交结果再设置状态。
