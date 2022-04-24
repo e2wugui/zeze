@@ -50,6 +50,19 @@ public class Online extends AbstractOnline {
 		long call(long sender, long target, Binary parameter);
 	}
 
+	public int getLocalCount() {
+		return _tlocal.getCacheSize();
+	}
+
+	public void walkLocal() {
+
+	}
+
+	/*
+   a) 本机正常Login/Logout/LinkBroken
+   b) 本机Logout/LinkBroken丢失或迟到，而已经在其他机器上Login，此时需要Redirect过来。
+   c) Redirect丢失，本机需要一个机制遍历TableCache，慢慢检测并清除Memory中登录状态无效的数据。
+	*/
 	public taccount getTableAccount() {
 		return _taccount;
 	}

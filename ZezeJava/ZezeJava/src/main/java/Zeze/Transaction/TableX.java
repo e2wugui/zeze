@@ -384,6 +384,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	final TableCache<K, V> getCache() {
 		return Cache;
 	}
+	public int getCacheSize() {
+		return Cache.getDataMap().size();
+	}
 	private void setCache(TableCache<K, V> value) {
 		Cache = value;
 	}
