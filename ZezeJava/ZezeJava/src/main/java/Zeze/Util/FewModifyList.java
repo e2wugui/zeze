@@ -15,13 +15,13 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 
 	private List<E> prepareRead() {
 		var r = read;
-		if (r != null)
-			return r;
-
-		synchronized (write) {
-			read = r = new ArrayList<>(write);
-			return r;
+		if (r == null) {
+			synchronized (write) {
+				if ((r = read) == null)
+					read = r = new ArrayList<>(write);
+			}
 		}
+		return r;
 	}
 
 	@Override

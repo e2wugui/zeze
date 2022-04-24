@@ -137,7 +137,7 @@ namespace Zeze.Gen.java
             {
                 string moduleName = string.Concat(m.Name[..1].ToUpper(), m.Name.AsSpan(1));
                 var fullname = m.Path("_");
-                sw.WriteLine("        " + fullname + " = ReplaceModuleInstance(new " + m.Path(".", $"Module{moduleName}") + "(this));");
+                sw.WriteLine("        " + fullname + " = (" + m.Path(".", $"Module{moduleName}") + ")ReplaceModuleInstance(new " + m.Path(".", $"Module{moduleName}") + "(this));");
                 sw.WriteLine($"        {fullname}.Initialize(this);");
                 sw.WriteLine($"        if (Modules.put({fullname}.getFullName(), {fullname}) != null)");
                 sw.WriteLine($"            throw new RuntimeException(\"duplicate module name: {fullname}\");");

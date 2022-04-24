@@ -3,8 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Zeze.Util
 {
@@ -12,7 +10,7 @@ namespace Zeze.Util
         where TKey : notnull
     {
         private volatile Dictionary<TKey, TValue> read;
-        private Dictionary<TKey, TValue> write = new();
+        private readonly Dictionary<TKey, TValue> write = new();
 
         private Dictionary<TKey, TValue> PrepareRead()
         {
@@ -24,11 +22,7 @@ namespace Zeze.Util
             {
                 if (null == read)
                 {
-                    read = tmp = new();
-                    foreach (var e in write)
-                    {
-                        read.Add(e.Key, e.Value);
-                    }
+                    read = tmp = new(write);
                 }
                 return tmp;
             }
@@ -51,7 +45,7 @@ namespace Zeze.Util
         TValue IDictionary<TKey, TValue>.this[TKey key]
         {
             get => PrepareRead()[key];
-            set 
+            set
             {
                 lock (write)
                 {
@@ -74,8 +68,11 @@ namespace Zeze.Util
         {
             lock (write)
             {
-                write.Clear();
-                read = null;
+                if (write.Count > 0)
+                {
+                    write.Clear();
+                    read = null;
+                }
             }
         }
 
@@ -128,9 +125,8 @@ namespace Zeze.Util
 
         public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
         {
-            var read = PrepareRead();
             var index = arrayIndex;
-            foreach (var e in read)
+            foreach (var e in PrepareRead())
             {
                 array[index++] = e;
             }

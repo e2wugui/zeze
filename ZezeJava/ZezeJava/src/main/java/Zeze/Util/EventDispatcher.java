@@ -106,7 +106,7 @@ public class EventDispatcher {
 			events = runThreadEvents;
 			break;
 		default:
-			throw new RuntimeException("Unknown mode=" + mode);
+			throw new IllegalArgumentException("Unknown mode=" + mode);
 		}
 		events.lock.lock();
 		try {
@@ -161,7 +161,7 @@ public class EventDispatcher {
 					}, "EventDispatcher.triggerProcedureIgnoreError").Call();
 					// 返回错误码时是逻辑错误，这里不需要记录日志。内部已经记录了。
 				} catch (Throwable ex) {
-					logger.error(ex); // 除了框架错误，一般情况下，错误不会到达这里。
+					logger.error("EventDispatcher.triggerProcedureIgnoreError", ex); // 除了框架错误，一般情况下，错误不会到达这里。
 				}
 			}
 		} finally {
@@ -177,11 +177,12 @@ public class EventDispatcher {
 			//noinspection ForLoopReplaceableByForEach
 			for (int i = 0, n = runProcedureEvents.size(); i < n; i++) {
 				var handle = runProcedureEvents.get(i);
-				if (0L != app.NewProcedure(() -> {
+				var result = app.NewProcedure(() -> {
 					handle.invoke(sender, arg);
 					return 0L;
-				}, "EventDispatcher.triggerProcedure").Call())
-					throw new RuntimeException("Nest Call Fail");
+				}, "EventDispatcher.triggerProcedure").Call();
+				if (result != 0)
+					throw new RuntimeException("Nest Call Fail: " + result);
 			}
 		} finally {
 			runProcedureEvents.lock.unlock();
