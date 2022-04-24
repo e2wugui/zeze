@@ -94,6 +94,40 @@ namespace Zeze.Util
             }
         }
 
+        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
+        // 嵌入当前线程执行，所有错误都报告出去，忽略所有错误。
+        public async Task TriggerEmbedIgnoreError(object sender, EventArgs arg)
+        {
+            foreach (var handle in RunEmbedEvents.values())
+            {
+                try
+                {
+                    await handle(sender, arg);
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex);
+                }
+            }
+        }
+
+        // 在当前线程中，创建新的存储过程并执行，忽略所有错误。
+        public async Task TriggerProcedureIgnoreError(Application app, object sender, EventArgs arg)
+        {
+            foreach (var handle in RunProcedureEvents.values())
+            {
+                try
+                {
+                    await app.NewProcedure(async () => { await handle(sender, arg); return 0; }, "").CallAsync();
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex);
+                }
+            }
+        }
+
         // 嵌入当前线程执行，所有错误都报告出去，如果需要对错误进行特别处理，需要自己遍历Handles手动触发。
         public async Task TriggerEmbed(object sender, EventArgs arg)
         {
@@ -108,7 +142,7 @@ namespace Zeze.Util
         {
             foreach (var handle in RunProcedureEvents.values())
             {
-                var rc = await app.NewProcedure(()-> { handle.invoke(sender, arg); return 0L; }, "").CallAsync();
+                var rc = await app.NewProcedure(async () => { await handle(sender, arg); return 0L; }, "").CallAsync();
                 if (0L != rc)
                     throw new Exception($"Nest Call Fail. return={rc}");
             }

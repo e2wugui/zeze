@@ -4,6 +4,8 @@ import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Application;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class EventDispatcher {
 	private String name;
@@ -94,6 +96,33 @@ public class EventDispatcher {
 	public final void triggerThread(Object sender, EventArgument arg) {
 		for (var handle : runThreadEvents.values()) {
 			Task.run(() -> handle.invoke(sender, arg), "EventDispatch." + name + ".runAsync");
+		}
+	}
+
+	static final Logger logger = LogManager.getLogger(EventDispatcher.class);
+	// 嵌入当前线程执行，所有错误都报告出去，忽略所有错误。
+	public final void triggerEmbedIgnoreError(Object sender, EventArgument arg) {
+		for (var handle : runEmbedEvents.values()) {
+			try {
+				handle.invoke(sender, arg);
+			} catch (Throwable ex) {
+				logger.error(ex);
+			}
+		}
+	}
+
+	// 在当前线程中，创建新的存储过程并执行，忽略所有错误。
+	public final void triggerProcedureIgnoreError(Application app, Object sender, EventArgument arg) {
+		for (var handle : runProcedureEvents.values()) {
+			try {
+				app.NewProcedure(() -> {
+					handle.invoke(sender, arg);
+					return 0L;
+				}, "").Call();
+				// 返回错误码时是逻辑错误，这里不需要记录日志。内部已经记录了。
+			} catch (Throwable ex) {
+				logger.error(ex); // 除了框架错误，一般情况下，错误不会到达这里。
+			}
 		}
 	}
 
