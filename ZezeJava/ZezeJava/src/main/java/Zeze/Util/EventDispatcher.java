@@ -19,7 +19,7 @@ public class EventDispatcher {
 
 	@FunctionalInterface
 	public interface EventHandle {
-		void invoke(Object sender, EventArgument arg) throws Throwable;
+		long invoke(Object sender, EventArgument arg) throws Throwable;
 	}
 
 	public static class EventArgument {

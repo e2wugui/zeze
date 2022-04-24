@@ -26,8 +26,9 @@ namespace Zeze.Gen
         public bool BuiltinNotGen => BuiltinNG.Equals("true");
 
         public string ComponentPresentModuleFullName { get; private set; }
+        public string IncludeAllModules { get; private set; } = "false";
 
-        public List<Module> GetAllDefineOrderModules()
+        public List<Module> GetAllOrderdRefModules()
         {
             HashSet<Module> unique = new HashSet<Module>();
             List<Module> modules = new List<Module>();
@@ -41,6 +42,17 @@ namespace Zeze.Gen
                 {
                     m.Depends(unique, modules);
                 }
+            }
+            return modules;
+        }
+
+        public List<Module> GetSolutionAllModules()
+        {
+            HashSet<Module> unique = new HashSet<Module>();
+            List<Module> modules = new List<Module>();
+            foreach (var m in Solution.Modules.Values)
+            { 
+                m.Depends(unique, modules);
             }
             return modules;
         }
@@ -61,7 +73,7 @@ namespace Zeze.Gen
             BuiltinNG = self.GetAttribute("BuiltinNG");
             foreach (string target in self.GetAttribute("GenTables").Split(','))
                 GenTables.Add(target);
-
+            IncludeAllModules = self.GetAttribute("IncludeAllModules");
             //Program.AddNamedObject(FullName, this);
 
             Self = self; // 保存，在编译的时候使用。
@@ -135,7 +147,7 @@ namespace Zeze.Gen
 
         public void Make()
         {
-            AllOrderDefineModules = GetAllDefineOrderModules();
+            AllOrderDefineModules = IncludeAllModules.Equals("true") ? GetSolutionAllModules() : GetAllOrderdRefModules();
                         
             var _AllProtocols = new HashSet<Protocol>();
             foreach (Module mod in AllOrderDefineModules) // 这里本不该用 AllModules。只要第一层的即可，里面会递归。
@@ -251,6 +263,9 @@ namespace Zeze.Gen
                     break;
                 case "java":
                     new java.Maker(this).Make();
+                    break;
+                case "conf+cs":
+                    new confcs.Maker(this).Make();
                     break;
                 default:
                     throw new Exception("Project: unsupport platform: " + Platform);

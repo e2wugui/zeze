@@ -30,6 +30,9 @@ Online Account
 
 1. Zezex Onlines TransmitInProcedure 需要重写。需要改成使用ProviderDirect。
 
+1. FewModifyList
+2. FewModifyMap
+
 1. Online Memory Table 可以存储在线相关数据。
    功能
    a) Local.Online.Count

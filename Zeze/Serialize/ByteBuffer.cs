@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Text;
 using System.Runtime.CompilerServices;
 using Zeze.Net;
-using Zeze.Transaction;
 
 namespace Zeze.Serialize
 {
@@ -1112,7 +1111,7 @@ namespace Zeze.Serialize
             return bean;
         }
 
-        public DynamicBean ReadDynamic(DynamicBean dynBean, int type)
+        public Zeze.Transaction.DynamicBean ReadDynamic(Zeze.Transaction.DynamicBean dynBean, int type)
         {
             type &= TAG_MASK;
             if (type == DYNAMIC)
@@ -1122,7 +1121,7 @@ namespace Zeze.Serialize
             }
             if (type == BEAN)
             {
-                Bean bean = dynBean.CreateBeanFromSpecialTypeId(0);
+                var bean = dynBean.CreateBeanFromSpecialTypeId(0);
                 if (bean != null)
                 {
                     bean.Decode(this);

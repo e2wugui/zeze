@@ -132,4 +132,7 @@
 			<module ref="Module1"/>
 		</service>
 	</project>
+
+	<project name="confcs" gendir=".." platform="conf+cs" IncludeAllModules="true">
+	</project>
 </solution>
