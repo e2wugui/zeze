@@ -11,25 +11,26 @@ namespace Zeze.Util
     public class FewModifyMap<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>, IEnumerable, IDictionary<TKey, TValue>, IReadOnlyCollection<KeyValuePair<TKey, TValue>>, IReadOnlyDictionary<TKey, TValue>
         where TKey : notnull
     {
-        private volatile Dictionary<TKey, TValue> MapRead;
-        private Dictionary<TKey, TValue> MapWrite = new();
+        private volatile Dictionary<TKey, TValue> read;
+        private Dictionary<TKey, TValue> write = new();
 
         private Dictionary<TKey, TValue> PrepareRead()
         {
-            if (null != MapRead)
-                return MapRead;
+            var tmp = read;
+            if (null != tmp)
+                return tmp;
 
-            lock (MapWrite)
+            lock (write)
             {
-                if (null == MapRead)
+                if (null == read)
                 {
-                    MapRead = new();
-                    foreach (var e in MapWrite)
+                    read = tmp = new();
+                    foreach (var e in write)
                     {
-                        MapRead.Add(e.Key, e.Value);
+                        read.Add(e.Key, e.Value);
                     }
                 }
-                return MapRead;
+                return tmp;
             }
         }
 
@@ -45,36 +46,36 @@ namespace Zeze.Util
 
         ICollection<TValue> IDictionary<TKey, TValue>.Values => throw new NotImplementedException();
 
-        public bool IsReadOnly => throw new NotImplementedException();
+        public bool IsReadOnly => false;
 
         TValue IDictionary<TKey, TValue>.this[TKey key]
         {
             get => PrepareRead()[key];
             set 
             {
-                lock (MapWrite)
+                lock (write)
                 {
-                    MapWrite[key] = value;
-                    MapRead = null;
+                    write[key] = value;
+                    read = null;
                 }
             }
         }
 
         public void Add(KeyValuePair<TKey, TValue> item)
         {
-            lock (MapWrite)
+            lock (write)
             {
-                MapWrite.Add(item.Key, item.Value);
-                MapRead = null;
+                write.Add(item.Key, item.Value);
+                read = null;
             }
         }
 
         public void Clear()
         {
-            lock (MapWrite)
+            lock (write)
             {
-                MapWrite.Clear();
-                MapRead = null;
+                write.Clear();
+                read = null;
             }
         }
 
@@ -105,20 +106,20 @@ namespace Zeze.Util
 
         public void Add(TKey key, TValue value)
         {
-            lock (MapWrite)
+            lock (write)
             {
-                MapWrite.Add(key, value);
-                MapRead = null;
+                write.Add(key, value);
+                read = null;
             }
         }
 
         public bool Remove(TKey key)
         {
-            lock (MapWrite)
+            lock (write)
             {
-                if (MapWrite.Remove(key))
+                if (write.Remove(key))
                 {
-                    MapRead = null;
+                    read = null;
                     return true;
                 }
                 return false;
@@ -137,15 +138,15 @@ namespace Zeze.Util
 
         public bool Remove(KeyValuePair<TKey, TValue> item)
         {
-            lock (MapWrite)
+            lock (write)
             {
-                if (MapWrite.TryGetValue(item.Key, out var value))
+                if (write.TryGetValue(item.Key, out var value))
                 {
                     if (item.Value.Equals(value))
                     {
-                        MapWrite.Remove(item.Key);
+                        write.Remove(item.Key);
                     }
-                    MapRead = null;
+                    read = null;
                     return true;
                 }
                 return false;

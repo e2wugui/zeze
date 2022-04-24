@@ -9,22 +9,23 @@ namespace Zeze.Util
 {
     public class FewModifyList<T> : IList<T>, IEnumerable<T>, IEnumerable, IReadOnlyCollection<T>, IReadOnlyList<T>
     {
-        private volatile List<T> ListRead;
-        private List<T> ListWrite = new();
+        private volatile List<T> read;
+        private List<T> write = new();
 
         private List<T> PrepareRead()
         {
-            if (null != ListRead)
-                return ListRead;
+            var tmp = read;
+            if (null != tmp)
+                return tmp;
 
-            lock (ListWrite)
+            lock (write)
             {
-                if (null == ListRead)
+                if (null == read)
                 {
-                    ListRead = new List<T>();
-                    ListRead.AddRange(ListWrite);
+                    read = tmp = new List<T>();
+                    read.AddRange(write);
                 }
-                return ListRead;
+                return tmp;
             }
         }
         public T this[int index] => PrepareRead()[index];
@@ -39,29 +40,29 @@ namespace Zeze.Util
 
             set
             {
-                lock (ListWrite)
+                lock (write)
                 {
-                    ListWrite[index] = value;
-                    ListRead = null;
+                    write[index] = value;
+                    read = null;
                 }
             }
         }
 
         public void Add(T item)
         {
-            lock (ListWrite)
+            lock (write)
             {
-                ListWrite.Add(item);
-                ListRead = null;
+                write.Add(item);
+                read = null;
             }
         }
 
         public void Clear()
         {
-            lock (ListWrite)
+            lock (write)
             {
-                ListWrite.Clear();
-                ListRead = null;
+                write.Clear();
+                read = null;
             }
         }
 
@@ -87,29 +88,32 @@ namespace Zeze.Util
 
         public void Insert(int index, T item)
         {
-            lock (ListWrite)
+            lock (write)
             {
-                ListWrite.Insert(index, item);
-                ListRead = null;
+                write.Insert(index, item);
+                read = null;
             }
         }
 
         public bool Remove(T item)
         {
-            lock (ListWrite)
+            lock (write)
             {
-                var r = ListWrite.Remove(item);
-                ListRead = null;
-                return r;
+                if (write.Remove(item))
+                {
+                    read = null;
+                    return true;
+                }
+                return false;
             }
         }
 
         public void RemoveAt(int index)
         {
-            lock (ListWrite)
+            lock (write)
             {
-                ListWrite.RemoveAt(index);
-                ListRead = null;
+                write.RemoveAt(index);
+                read = null;
             }
         }
 
