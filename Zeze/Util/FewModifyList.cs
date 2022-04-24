@@ -1,16 +1,12 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Zeze.Util
 {
     public class FewModifyList<T> : IList<T>, IEnumerable<T>, IEnumerable, IReadOnlyCollection<T>, IReadOnlyList<T>
     {
         private volatile List<T> read;
-        private List<T> write = new();
+        private readonly List<T> write = new();
 
         private List<T> PrepareRead()
         {
@@ -22,8 +18,7 @@ namespace Zeze.Util
             {
                 if (null == read)
                 {
-                    read = tmp = new List<T>();
-                    read.AddRange(write);
+                    read = tmp = new(write);
                 }
                 return tmp;
             }
@@ -35,7 +30,7 @@ namespace Zeze.Util
         public bool IsReadOnly => false;
 
         T IList<T>.this[int index]
-        { 
+        {
             get => PrepareRead()[index];
 
             set
@@ -61,8 +56,11 @@ namespace Zeze.Util
         {
             lock (write)
             {
-                write.Clear();
-                read = null;
+                if (write.Count > 0)
+                {
+                    write.Clear();
+                    read = null;
+                }
             }
         }
 

@@ -1,6 +1,7 @@
 package Zeze.Util;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -14,13 +15,13 @@ public class FewModifyMap<K, V> implements Map<K, V>, Cloneable, Serializable {
 
 	private Map<K, V> prepareRead() {
 		var r = read;
-		if (r != null)
-			return r;
-
-		synchronized (write) {
-			read = r = new HashMap<>(write);
-			return r;
+		if (r == null) {
+			synchronized (write) {
+				if ((r = read) == null)
+					read = r = new HashMap<>(write);
+			}
 		}
+		return r;
 	}
 
 	@Override
