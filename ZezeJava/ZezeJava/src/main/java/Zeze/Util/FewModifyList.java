@@ -3,17 +3,30 @@ package Zeze.Util;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.RandomAccess;
+import java.util.function.UnaryOperator;
 
-@SuppressWarnings("CloneableClassWithoutClone")
 public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.io.Serializable {
-	private volatile List<E> read;
-	private final List<E> write = new ArrayList<>();
+	private transient volatile ArrayList<E> read;
+	private final ArrayList<E> write;
 
-	private List<E> prepareRead() {
+	public FewModifyList() {
+		write = new ArrayList<>();
+	}
+
+	public FewModifyList(int initialCapacity) {
+		write = new ArrayList<>(initialCapacity);
+	}
+
+	public FewModifyList(Collection<? extends E> m) {
+		write = new ArrayList<>(m);
+	}
+
+	private ArrayList<E> prepareRead() {
 		var r = read;
 		if (r == null) {
 			synchronized (write) {
@@ -114,7 +127,6 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 	@Override
 	public boolean add(E e) {
 		synchronized (write) {
-			//noinspection ConstantConditions
 			if (!write.add(e))
 				return false;
 			read = null;
@@ -185,5 +197,29 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 			write.clear();
 			read = null;
 		}
+	}
+
+	@Override
+	public void sort(Comparator<? super E> c) {
+		synchronized (write) {
+			write.sort(c);
+			read = null;
+		}
+	}
+
+	@Override
+	public void replaceAll(UnaryOperator<E> operator) {
+		throw new UnsupportedOperationException();
+	}
+
+	@SuppressWarnings("MethodDoesntCallSuperMethod")
+	@Override
+	public FewModifyList<E> clone() throws CloneNotSupportedException {
+		if (getClass() == FewModifyList.class) {
+			synchronized (write) {
+				return new FewModifyList<>(write);
+			}
+		}
+		throw new CloneNotSupportedException();
 	}
 }

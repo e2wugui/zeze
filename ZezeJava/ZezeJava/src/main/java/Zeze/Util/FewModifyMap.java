@@ -1,19 +1,34 @@
 package Zeze.Util;
 
-import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
-@SuppressWarnings("CloneableClassWithoutClone")
-public class FewModifyMap<K, V> implements Map<K, V>, Cloneable, Serializable {
-	private volatile Map<K, V> read;
-	private final Map<K, V> write = new HashMap<>();
+public class FewModifyMap<K, V> implements Map<K, V>, Cloneable, java.io.Serializable {
+	private transient volatile HashMap<K, V> read;
+	private final HashMap<K, V> write;
 
-	private Map<K, V> prepareRead() {
+	public FewModifyMap() {
+		write = new HashMap<>();
+	}
+
+	public FewModifyMap(int initialCapacity) {
+		write = new HashMap<>(initialCapacity);
+	}
+
+	public FewModifyMap(int initialCapacity, float loadFactor) {
+		write = new HashMap<>(initialCapacity, loadFactor);
+	}
+
+	public FewModifyMap(Map<? extends K, ? extends V> m) {
+		write = new HashMap<>(m);
+	}
+
+	private HashMap<K, V> prepareRead() {
 		var r = read;
 		if (r == null) {
 			synchronized (write) {
@@ -59,11 +74,49 @@ public class FewModifyMap<K, V> implements Map<K, V>, Cloneable, Serializable {
 	}
 
 	@Override
+	public V putIfAbsent(K key, V value) {
+		synchronized (write) {
+			var prev = write.putIfAbsent(key, value);
+			read = null;
+			return prev;
+		}
+	}
+
+	@Override
+	public V replace(K key, V value) {
+		synchronized (write) {
+			var prev = write.replace(key, value);
+			read = null;
+			return prev;
+		}
+	}
+
+	@Override
+	public boolean replace(K key, V oldValue, V newValue) {
+		synchronized (write) {
+			if (!write.replace(key, oldValue, newValue))
+				return false;
+			read = null;
+			return true;
+		}
+	}
+
+	@Override
 	public V remove(Object key) {
 		synchronized (write) {
 			var prev = write.remove(key);
 			read = null;
 			return prev;
+		}
+	}
+
+	@Override
+	public boolean remove(Object key, Object value) {
+		synchronized (write) {
+			if (!write.remove(key, value))
+				return false;
+			read = null;
+			return true;
 		}
 	}
 
@@ -100,5 +153,41 @@ public class FewModifyMap<K, V> implements Map<K, V>, Cloneable, Serializable {
 	@Override
 	public Set<Entry<K, V>> entrySet() {
 		return Collections.unmodifiableSet(prepareRead().entrySet());
+	}
+
+	@Override
+	public void replaceAll(BiFunction<? super K, ? super V, ? extends V> function) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
+		throw new UnsupportedOperationException();
+	}
+
+	@SuppressWarnings("MethodDoesntCallSuperMethod")
+	@Override
+	public FewModifyMap<K, V> clone() throws CloneNotSupportedException {
+		if (getClass() == FewModifyMap.class) {
+			synchronized (write) {
+				return new FewModifyMap<>(write);
+			}
+		}
+		throw new CloneNotSupportedException();
 	}
 }
