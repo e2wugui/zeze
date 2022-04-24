@@ -29,7 +29,7 @@ public interface RedirectAllFuture<R extends RedirectResult> {
 	}
 
 	// 只用于RedirectAll方法返回的future. 同一future的情况下,此方法不会跟onResult并发,只会回调一次
-	default RedirectAllFuture<R> onAllDone(Action1<ModuleRedirectAllContext<R>> onAllDone) throws Throwable {
+	default RedirectAllFuture<R> onAllDone(Action1<RedirectAllContext<R>> onAllDone) throws Throwable {
 		throw new IllegalStateException();
 	}
 
@@ -106,8 +106,8 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 	}
 
 	private volatile Action1<R> onResult;
-	private volatile Action1<ModuleRedirectAllContext<R>> onAllDone;
-	private volatile ModuleRedirectAllContext<R> ctx;
+	private volatile Action1<RedirectAllContext<R>> onAllDone;
+	private volatile RedirectAllContext<R> ctx;
 	private IntHashSet finishedHashes; // lazy-init
 
 	private IntHashSet getFinishedHashes() {
@@ -122,7 +122,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 		return hashes;
 	}
 
-	void result(ModuleRedirectAllContext<R> ctx, R result) throws Throwable {
+	void result(RedirectAllContext<R> ctx, R result) throws Throwable {
 		if (this.ctx == null)
 			this.ctx = ctx;
 		if (onResult == null)
@@ -168,11 +168,11 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 		return this;
 	}
 
-	void allDone(ModuleRedirectAllContext<R> ctx) throws Throwable {
+	void allDone(RedirectAllContext<R> ctx) throws Throwable {
 		if (this.ctx == null)
 			this.ctx = ctx;
 		@SuppressWarnings("unchecked")
-		var onA = (Action1<ModuleRedirectAllContext<R>>)ON_ALL_DONE.getAndSet(this, null);
+		var onA = (Action1<RedirectAllContext<R>>)ON_ALL_DONE.getAndSet(this, null);
 		if (onA != null) {
 			ctx.getService().getZeze().NewProcedure(() -> {
 				onA.run(ctx);
@@ -185,7 +185,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 	}
 
 	@Override
-	public RedirectAllFuture<R> onAllDone(Action1<ModuleRedirectAllContext<R>> onAllDone) throws Throwable {
+	public RedirectAllFuture<R> onAllDone(Action1<RedirectAllContext<R>> onAllDone) throws Throwable {
 		if (onAllDone == null)
 			throw new NullPointerException();
 		var c = ctx;

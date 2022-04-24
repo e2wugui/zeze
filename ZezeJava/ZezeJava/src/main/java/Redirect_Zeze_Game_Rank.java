@@ -4,7 +4,7 @@ public final class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
 
     @Override
     protected Zeze.Arch.RedirectAllFuture<Zeze.Game.Rank.RRankList> getRankAll(int arg0, Zeze.Builtin.Game.Rank.BConcurrentKey arg1) {
-        var _c_ = new Zeze.Arch.ModuleRedirectAllContext<>(arg0, _params_ -> {
+        var _c_ = new Zeze.Arch.RedirectAllContext<>(arg0, _params_ -> {
             var _r_ = new Zeze.Game.Rank.RRankList();
             if (_params_ != null) {
                 var _b_ = _params_.Wrap();

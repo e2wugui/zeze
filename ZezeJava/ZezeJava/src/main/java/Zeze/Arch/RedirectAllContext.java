@@ -3,17 +3,18 @@ package Zeze.Arch;
 import java.util.function.Function;
 import Zeze.Builtin.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.Net.Binary;
+import Zeze.Net.Service;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.IntHashMap;
 
-public final class ModuleRedirectAllContext<R extends RedirectResult> extends Zeze.Net.Service.ManualContext {
+public final class RedirectAllContext<R extends RedirectResult> extends Service.ManualContext {
 	private final int concurrentLevel;
 	private final IntHashMap<R> hashResults = new IntHashMap<>(); // <hash, result>
 	private final Function<Binary, R> resultDecoder;
 	private final RedirectAllFutureImpl<R> future;
 	private boolean timeout;
 
-	public ModuleRedirectAllContext(int concurrentLevel, Function<Binary, R> resultDecoder) {
+	public RedirectAllContext(int concurrentLevel, Function<Binary, R> resultDecoder) {
 		this.concurrentLevel = concurrentLevel;
 		this.resultDecoder = resultDecoder;
 		future = resultDecoder != null ? new RedirectAllFutureImpl<>() : null;

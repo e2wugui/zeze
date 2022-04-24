@@ -307,7 +307,7 @@ public final class GenModule {
 
 	private void GenRedirectAll(StringBuilderCs sb, StringBuilderCs sbHandles,
 								IModule module, MethodOverride m) throws Throwable {
-		sb.Append("        var _c_ = new Zeze.Arch.ModuleRedirectAllContext<>({}, ", m.hashOrServerIdParameter.getName());
+		sb.Append("        var _c_ = new Zeze.Arch.RedirectAllContext<>({}, ", m.hashOrServerIdParameter.getName());
 		if (m.resultTypeName != null) {
 			sb.AppendLine("_params_ -> {");
 			sb.AppendLine("            var _r_ = new {}();", m.resultTypeName);

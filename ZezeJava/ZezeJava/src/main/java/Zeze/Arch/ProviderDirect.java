@@ -176,7 +176,7 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 	@Override
 	protected long ProcessModuleRedirectAllResult(ModuleRedirectAllResult protocol) throws Throwable {
 		var ctx = ProviderApp.ProviderDirectService.
-				<ModuleRedirectAllContext<?>>TryGetManualContext(protocol.Argument.getSessionId());
+				<RedirectAllContext<?>>TryGetManualContext(protocol.Argument.getSessionId());
 		if (ctx != null)
 			ctx.ProcessResult(ProviderApp.Zeze, protocol);
 		return Procedure.Success;

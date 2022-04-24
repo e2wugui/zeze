@@ -67,7 +67,7 @@ public class RedirectBase {
 	}
 
 	public <T extends RedirectResult> RedirectAllFuture<T> RedirectAll(IModule module, ModuleRedirectAllRequest req,
-																	   ModuleRedirectAllContext<T> ctx) {
+																	   RedirectAllContext<T> ctx) {
 		var future = ctx.getFuture();
 		if (req.Argument.getHashCodeConcurrentLevel() <= 0) {
 			ProviderApp.ProviderDirectService.TryRemoveManualContext(req.Argument.getSessionId());

@@ -220,7 +220,7 @@ public class ModuleRank extends AbstractModule {
 /*
 		// 默认实现是本地遍历调用，这里不使用App.Zeze.Run启动任务（这样无法等待），直接调用实现。
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
-		var ctx = new ModuleRedirectAllContext(concurrentLevel,
+		var ctx = new RedirectAllContext(concurrentLevel,
 				Str.format("{}:{}", getFullName(), "RunGetRank"));
 		ctx.setOnHashEnd(onHashEnd);
 		long sessionId = App.Server.AddManualContextWithTimeout(ctx, 10000); // 处理hash分组结果需要一个上下文保存收集的结果。
@@ -253,7 +253,7 @@ public class ModuleRank extends AbstractModule {
 		GetRank(keyHint,
 				// Action OnHashResult
 				(sessionId, hash, result) -> {
-					var ctx = App.Server.<ModuleRedirectAllContext>TryGetManualContext(sessionId);
+					var ctx = App.Server.<RedirectAllContext>TryGetManualContext(sessionId);
 					if (ctx == null)
 						return;
 					ctx.ProcessHash(hash, Rank::new, (rank2) -> {
