@@ -2,16 +2,16 @@ package Zeze.Util;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.RandomAccess;
+import java.util.Spliterator;
 import java.util.function.UnaryOperator;
 
 public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.io.Serializable {
-	private transient volatile ArrayList<E> read;
+	private transient volatile List<E> read;
 	private final ArrayList<E> write;
 
 	public FewModifyList() {
@@ -26,12 +26,12 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 		write = new ArrayList<>(m);
 	}
 
-	private ArrayList<E> prepareRead() {
+	private List<E> prepareRead() {
 		var r = read;
 		if (r == null) {
 			synchronized (write) {
 				if ((r = read) == null)
-					read = r = new ArrayList<>(write);
+					read = r = List.copyOf(write);
 			}
 		}
 		return r;
@@ -90,7 +90,7 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 
 	@Override
 	public List<E> subList(int fromIndex, int toIndex) {
-		return Collections.unmodifiableList(prepareRead().subList(fromIndex, toIndex));
+		return prepareRead().subList(fromIndex, toIndex);
 	}
 
 	@Override
@@ -190,6 +190,14 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 	}
 
 	@Override
+	public void replaceAll(UnaryOperator<E> operator) {
+		synchronized (write) {
+			write.replaceAll(operator);
+			read = null;
+		}
+	}
+
+	@Override
 	public void clear() {
 		synchronized (write) {
 			if (write.isEmpty())
@@ -208,8 +216,8 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 	}
 
 	@Override
-	public void replaceAll(UnaryOperator<E> operator) {
-		throw new UnsupportedOperationException();
+	public Spliterator<E> spliterator() {
+		return prepareRead().spliterator();
 	}
 
 	@SuppressWarnings("MethodDoesntCallSuperMethod")

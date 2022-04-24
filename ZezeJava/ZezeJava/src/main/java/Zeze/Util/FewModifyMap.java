@@ -1,7 +1,6 @@
 package Zeze.Util;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -9,7 +8,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class FewModifyMap<K, V> implements Map<K, V>, Cloneable, java.io.Serializable {
-	private transient volatile HashMap<K, V> read;
+	private transient volatile Map<K, V> read;
 	private final HashMap<K, V> write;
 
 	public FewModifyMap() {
@@ -28,12 +27,12 @@ public class FewModifyMap<K, V> implements Map<K, V>, Cloneable, java.io.Seriali
 		write = new HashMap<>(m);
 	}
 
-	private HashMap<K, V> prepareRead() {
+	private Map<K, V> prepareRead() {
 		var r = read;
 		if (r == null) {
 			synchronized (write) {
 				if ((r = read) == null)
-					read = r = new HashMap<>(write);
+					read = r = Map.copyOf(write);
 			}
 		}
 		return r;
@@ -131,6 +130,16 @@ public class FewModifyMap<K, V> implements Map<K, V>, Cloneable, java.io.Seriali
 	}
 
 	@Override
+	public void replaceAll(BiFunction<? super K, ? super V, ? extends V> function) {
+		synchronized (write) {
+			if (write.isEmpty())
+				return;
+			write.replaceAll(function);
+			read = null;
+		}
+	}
+
+	@Override
 	public void clear() {
 		synchronized (write) {
 			if (write.isEmpty())
@@ -142,42 +151,53 @@ public class FewModifyMap<K, V> implements Map<K, V>, Cloneable, java.io.Seriali
 
 	@Override
 	public Set<K> keySet() {
-		return Collections.unmodifiableSet(prepareRead().keySet());
+		return prepareRead().keySet();
 	}
 
 	@Override
 	public Collection<V> values() {
-		return Collections.unmodifiableCollection(prepareRead().values());
+		return prepareRead().values();
 	}
 
 	@Override
 	public Set<Entry<K, V>> entrySet() {
-		return Collections.unmodifiableSet(prepareRead().entrySet());
-	}
-
-	@Override
-	public void replaceAll(BiFunction<? super K, ? super V, ? extends V> function) {
-		throw new UnsupportedOperationException();
+		return prepareRead().entrySet();
 	}
 
 	@Override
 	public V compute(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
-		throw new UnsupportedOperationException();
+		synchronized (write) {
+			var v = write.compute(key, remappingFunction);
+			read = null;
+			return v;
+		}
 	}
 
 	@Override
 	public V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
-		throw new UnsupportedOperationException();
+		synchronized (write) {
+			var v = write.computeIfAbsent(key, mappingFunction);
+			read = null;
+			return v;
+		}
 	}
 
 	@Override
 	public V computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
-		throw new UnsupportedOperationException();
+		synchronized (write) {
+			var v = write.computeIfPresent(key, remappingFunction);
+			read = null;
+			return v;
+		}
 	}
 
 	@Override
 	public V merge(K key, V value, BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
-		throw new UnsupportedOperationException();
+		synchronized (write) {
+			var v = write.merge(key, value, remappingFunction);
+			read = null;
+			return v;
+		}
 	}
 
 	@SuppressWarnings("MethodDoesntCallSuperMethod")
