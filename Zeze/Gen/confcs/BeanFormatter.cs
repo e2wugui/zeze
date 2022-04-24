@@ -78,12 +78,16 @@ namespace Zeze.Gen.confcs
             sw.WriteLine("        public override long TypeId => TYPEID;");
             sw.WriteLine();
             cs.Decode.Make(bean, sw, "        ");
-            if (false == string.IsNullOrEmpty(project.MacroEditor))
+            var macro = project.MacroEditor;
+            if (false == string.IsNullOrEmpty(macro))
+                sw.WriteLine($"#if {macro}");
             {
                 cs.Tostring.Make(bean, sw, "        ");
                 cs.Encode.Make(bean, sw, "        ");
                 cs.NegativeCheck.Make(bean, sw, "        ");
             }
+            if (false == string.IsNullOrEmpty(macro))
+                sw.WriteLine($"#endif // {macro}");
         }
     }
 }
