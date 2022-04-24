@@ -49,13 +49,13 @@ public class EventDispatcher {
 		}
 
 		public synchronized void tryRemoveDelay() {
+			if (delayRemoves.isEmpty()) // fast path
+				return;
 			if (!lock.isLocked() && lock.tryLock()) {
 				try {
-					if (!delayRemoves.isEmpty()) {
-						for (EventHandle h : delayRemoves)
-							super.remove(h);
-						delayRemoves.clear();
-					}
+					for (EventHandle h : delayRemoves)
+						super.remove(h);
+					delayRemoves.clear();
 				} finally {
 					lock.unlock();
 				}
