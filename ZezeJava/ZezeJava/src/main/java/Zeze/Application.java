@@ -22,6 +22,7 @@ import Zeze.Transaction.Table;
 import Zeze.Transaction.TableKey;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.EventDispatcher;
 import Zeze.Util.FuncLong;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.Task;
@@ -375,24 +376,24 @@ public final class Application {
 	}
 
 	@Deprecated
-	public TaskCompletionSource<Long> Run(FuncLong func, String actionName, TransactionModes mode) {
+	public TaskCompletionSource<Long> Run(FuncLong func, String actionName, EventDispatcher.Mode mode) {
 		return Run(func, actionName, mode, null);
 	}
 
 	@Deprecated
-	public TaskCompletionSource<Long> Run(FuncLong func, String actionName, TransactionModes mode, Object oneByOneKey) {
+	public TaskCompletionSource<Long> Run(FuncLong func, String actionName, EventDispatcher.Mode mode, Object oneByOneKey) {
 		final var future = new TaskCompletionSource<Long>();
 		try {
 			switch (mode) {
-			case ExecuteInTheCallerTransaction:
+			case RunEmbed:
 				future.SetResult(func.call());
 				break;
 
-			case ExecuteInNestedCall:
+			case RunProcedure:
 				future.SetResult(NewProcedure(func, actionName).Call());
 				break;
 
-			case ExecuteInAnotherThread:
+			case RunThread:
 				if (oneByOneKey != null) {
 					getTaskOneByOneByKey().Execute(oneByOneKey,
 							() -> future.SetResult(NewProcedure(func, actionName).Call()), actionName);

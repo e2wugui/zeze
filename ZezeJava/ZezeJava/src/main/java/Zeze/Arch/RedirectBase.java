@@ -19,7 +19,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * 应用需要继承实现必要的方法，创建实例并保存。(Zeze.Application.setModuleRedirect)。
+ * 应用需要继承实现必要的方法，创建实例并保存。需要继承的可能性不大, 需要的话直接设置Application.Redirect
  */
 public class RedirectBase {
 	private static final Logger logger = LogManager.getLogger(RedirectBase.class);
