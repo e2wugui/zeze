@@ -25,7 +25,7 @@ namespace Zeze.Gen.confcs
             Program.AddGenDir(genDir);
 
             foreach (Types.Bean bean in Project.AllBeans.Values)
-                new BeanFormatter(bean).Make(genCommonDir);
+                new BeanFormatter(Project, bean).Make(genCommonDir);
             foreach (Types.BeanKey beanKey in Project.AllBeanKeys.Values)
                 new cs.BeanKeyFormatter(beanKey).Make(genCommonDir);
         }

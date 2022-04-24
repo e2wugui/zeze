@@ -12,7 +12,10 @@ namespace Zeze.Util
         public abstract long TypeId { get; }
         public int VariableId { get; } // reserve
 
-        public abstract void Encode(ByteBuffer bb);
+        public virtual void Encode(ByteBuffer bb)
+        {
+            throw new NotImplementedException();
+        }
         public abstract void Decode(ByteBuffer bb);
 
         public abstract ConfBean CopyBean();

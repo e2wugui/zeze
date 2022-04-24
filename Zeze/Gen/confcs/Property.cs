@@ -24,30 +24,16 @@ namespace Zeze.Gen.confcs
 
         public void Visit(Bean type)
         {
-            var typeName = TypeName.GetName(type);
-            //var typeNameReadOnly = typeName + "ReadOnly";
-            //var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
-            sw.WriteLine(prefix + "public " + typeName + " " + var.NameUpper1 + " => " + var.NamePrivate + ";");
-            //sw.WriteLine(prefix + typeNameReadOnly + " " + beanNameReadOnly + "." + var.NameUpper1 + " => " + var.NamePrivate + ";");
+            WriteProperty(type);
         }
 
         void WriteProperty(Type type, bool checkNull = false)
         {
-            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1);
-            sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    get");
-            sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "    set");
-            sw.WriteLine(prefix + "    {");
+            sw.Write(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1);
+            sw.Write($" {{ get => {var.NamePrivate}; set {{");
             if (checkNull)
-            {
-                sw.WriteLine(prefix + "        if (value == null) throw new System.ArgumentNullException();");
-            }
-            sw.WriteLine(prefix + "        " + var.NamePrivate + " = value;");
-            sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "}");
+                sw.Write(" if (value == null) throw new System.ArgumentNullException();");
+            sw.Write(" " + var.NamePrivate + " = value; }}");
             sw.WriteLine();
         }
 

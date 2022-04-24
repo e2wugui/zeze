@@ -6,9 +6,11 @@ namespace Zeze.Gen.confcs
     public class BeanFormatter
     {
         readonly Bean bean;
+        readonly Project project;
 
-        public BeanFormatter(Bean bean)
+        public BeanFormatter(Project prj, Bean bean)
         {
+            this.project = prj;
             this.bean = bean;
         }
 
@@ -75,10 +77,13 @@ namespace Zeze.Gen.confcs
             sw.WriteLine("        public const long TYPEID = " + bean.TypeId + ";");
             sw.WriteLine("        public override long TypeId => TYPEID;");
             sw.WriteLine();
-            cs.Tostring.Make(bean, sw, "        ");
-            cs.Encode.Make(bean, sw, "        ");
             cs.Decode.Make(bean, sw, "        ");
-            cs.NegativeCheck.Make(bean, sw, "        ");
+            if (false == string.IsNullOrEmpty(project.MacroEditor))
+            {
+                cs.Tostring.Make(bean, sw, "        ");
+                cs.Encode.Make(bean, sw, "        ");
+                cs.NegativeCheck.Make(bean, sw, "        ");
+            }
         }
     }
 }

@@ -27,6 +27,7 @@ namespace Zeze.Gen
 
         public string ComponentPresentModuleFullName { get; private set; }
         public string IncludeAllModules { get; private set; } = "false";
+        public string MacroEditor { get; private set; }
 
         public List<Module> GetAllOrderdRefModules()
         {
@@ -74,6 +75,8 @@ namespace Zeze.Gen
             foreach (string target in self.GetAttribute("GenTables").Split(','))
                 GenTables.Add(target);
             IncludeAllModules = self.GetAttribute("IncludeAllModules");
+            MacroEditor = self.GetAttribute("MacroEditor");
+
             //Program.AddNamedObject(FullName, this);
 
             Self = self; // 保存，在编译的时候使用。

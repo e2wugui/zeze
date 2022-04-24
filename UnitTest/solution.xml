@@ -133,6 +133,7 @@
 		</service>
 	</project>
 
-	<project name="confcs" gendir=".." platform="conf+cs" IncludeAllModules="true">
+	<!-- MacroEditor="UNITY_EDITOR" -->
+	<project name="confcs" gendir=".." platform="conf+cs" IncludeAllModules="true" >
 	</project>
 </solution>
