@@ -4,6 +4,7 @@ import java.nio.file.Path;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -77,7 +78,7 @@ public class FewModifyList<E> implements List<E>, RandomAccess, Cloneable, java.
 
 	@Override
 	public List<E> subList(int fromIndex, int toIndex) {
-		throw new UnsupportedOperationException();
+		return Collections.unmodifiableList(prepareRead().subList(fromIndex, toIndex));
 	}
 
 	@Override
