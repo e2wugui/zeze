@@ -93,7 +93,7 @@ public class EventDispatcher {
 	 *
 	 * @return 如果需要取消注册，请保存返回值，并调用其cancel。
 	 */
-	public synchronized Canceler add(Mode mode, EventHandle handle) {
+	public Canceler add(Mode mode, EventHandle handle) {
 		Events events;
 		switch (mode) {
 		case RunEmbed:
@@ -135,14 +135,12 @@ public class EventDispatcher {
 	}
 
 	// 嵌入当前线程执行，所有错误都报告出去，如果需要对错误进行特别处理，需要自己遍历Handles手动触发。
-	public synchronized void triggerEmbed(Object sender, EventArgument arg) throws Throwable {
+	public void triggerEmbed(Object sender, EventArgument arg) throws Throwable {
 		runEmbedEvents.lock.lock();
 		try {
 			//noinspection ForLoopReplaceableByForEach
-			for (int i = 0, n = runEmbedEvents.size(); i < n; i++) {
-				var handle = runEmbedEvents.get(i);
-				handle.invoke(sender, arg);
-			}
+			for (int i = 0, n = runEmbedEvents.size(); i < n; i++)
+				runEmbedEvents.get(i).invoke(sender, arg);
 		} finally {
 			runEmbedEvents.lock.unlock();
 			runEmbedEvents.tryRemoveDelay();
@@ -150,7 +148,7 @@ public class EventDispatcher {
 	}
 
 	// 在当前线程中，创建新的存储过程并执行，忽略所有错误。
-	public synchronized void triggerProcedureIgnoreError(Application app, Object sender, EventArgument arg) {
+	public void triggerProcedureIgnoreError(Application app, Object sender, EventArgument arg) {
 		runProcedureEvents.lock.lock();
 		try {
 			//noinspection ForLoopReplaceableByForEach
@@ -173,7 +171,7 @@ public class EventDispatcher {
 	}
 
 	// 在当前线程中，创建新的存储过程并执行，所有错误都报告出去，如果需要对错误进行特别处理，需要自己遍历Handles手动触发。
-	public synchronized void triggerProcedure(Application app, Object sender, EventArgument arg) throws Throwable {
+	public void triggerProcedure(Application app, Object sender, EventArgument arg) throws Throwable {
 		runProcedureEvents.lock.lock();
 		try {
 			//noinspection ForLoopReplaceableByForEach
