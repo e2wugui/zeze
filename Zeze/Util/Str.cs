@@ -61,7 +61,7 @@ namespace Zeze.Util
             {
                 foreach (var e in dic)
                     sb.Append(e.Key).Append(':').Append(e.Value).Append(',');
-                sb[^1] = '}';
+                sb[sb.Length - 1] = '}';
             }
         }
     }

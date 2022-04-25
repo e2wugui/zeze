@@ -115,6 +115,11 @@ namespace Arch
 					var param = 1;
 					var ctx = await app1.Game_Rank.TestAllResult(param);
 					Assert.AreEqual(0, ctx.HashCodes.Count);
+					var sb = new StringBuilder();
+					Str.BuildString(sb, ctx.HashErrors);
+					Str.BuildString(sb, ctx.HashResults);
+					Console.WriteLine(sb.ToString());
+
 					Assert.AreEqual(0, ctx.HashErrors.Count);
 					Assert.AreEqual(100, ctx.HashResults.Count);
 					for (int hash = 0; hash < 100; hash++)

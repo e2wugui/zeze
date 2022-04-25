@@ -11,7 +11,12 @@ using Zeze.Serialize;
 
 namespace Zeze.Arch
 {
-    public class RedirectAll<T> : Service.ManualContext
+    public abstract class AbstractRedirectAll : Service.ManualContext
+    {
+        public abstract Task ProcessResult(Application zeze, ModuleRedirectAllResult result);
+    }
+
+    public class RedirectAll<T> : AbstractRedirectAll
     {
         public string MethodFullName { get; }
         public HashSet<int> HashCodes { get; } = new();
@@ -52,7 +57,7 @@ namespace Zeze.Arch
         }
 
         // 这里处理真正redirect发生时，从远程返回的结果。
-        public async Task ProcessResult(Application zeze, ModuleRedirectAllResult result)
+        public override async Task ProcessResult(Application zeze, ModuleRedirectAllResult result)
         {
             // 一批结果锁一次。
             // 【注意】锁内回调 Processing.
