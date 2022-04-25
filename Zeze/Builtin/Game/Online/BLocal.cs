@@ -90,14 +90,14 @@ namespace Zeze.Builtin.Game.Online
             level += 4;
             foreach (var _kv_ in Datas)
             {
-                sb.Append('(').Append(Environment.NewLine);
+                sb.Append(Zeze.Util.Str.Indent(level)).Append('(').Append(Environment.NewLine);
                 var Key = _kv_.Key;
                 sb.Append(Zeze.Util.Str.Indent(level)).Append("Key").Append('=').Append(Key).Append(',').Append(Environment.NewLine);
                 var Value = _kv_.Value;
                 sb.Append(Zeze.Util.Str.Indent(level)).Append("Value").Append('=').Append(Environment.NewLine);
                 Value.BuildString(sb, level + 4);
                 sb.Append(',').Append(Environment.NewLine);
-                sb.Append(')').Append(Environment.NewLine);
+                sb.Append(Zeze.Util.Str.Indent(level)).Append(')').Append(Environment.NewLine);
             }
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append(']').Append(Environment.NewLine);

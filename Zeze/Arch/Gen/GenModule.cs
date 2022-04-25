@@ -412,6 +412,8 @@ namespace Zeze.Arch.Gen
                 Gen.Instance.GenLocalVariable(sbHandles, "            ", p.ParameterType, p.Name);
             }
             Gen.Instance.GenDecode(sbHandles, "            ", m.ParametersNormal);
+            sbHandles.AppendLine($"            // WARNING reuse var _bb_ to encode result.");
+            sbHandles.AppendLine($"            _bb_ = Zeze.Serialize.ByteBuffer.Allocate(1024);");
             if (m.MethodMode.IsAsync)
             {
                 // 是否有结果都在这个分支处理。

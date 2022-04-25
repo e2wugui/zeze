@@ -404,6 +404,7 @@ namespace Zeze.Net
         {
             public long SessionId { get; internal set; }
             public object UserState { get; set; }
+            public Service Service { get; set; }
 
             public virtual void OnRemoved()
             {
@@ -425,6 +426,7 @@ namespace Zeze.Net
                 if (ManualContexts.TryAdd(sessionId, context))
                 {
                     context.SessionId = sessionId;
+                    context.Service = this;
                     Util.Scheduler.Schedule(
                         (ThisTask) => TryRemoveManualContext<ManualContext>(sessionId)?.OnTimeout(),
                         timeout);

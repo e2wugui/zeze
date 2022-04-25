@@ -26,7 +26,6 @@ namespace Zeze.Arch
         public Func<Binary, T> ResultDecoder { get; }
         public bool IsCompleted => HashCodes.Count == 0;
         public Func<RedirectAll<T>, Task> Processing { get; }
-        public Zeze.Net.Service Service { get; set; } // setup when add 
         private Nito.AsyncEx.AsyncLock Mutex = new();
 
         public RedirectAll(

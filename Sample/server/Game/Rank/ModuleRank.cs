@@ -392,7 +392,7 @@ namespace Game.Rank
 
         protected async Task<long> TestAllResult(int hash, int param)
         {
-            return hash << 32 | param;
+            return (long)App.Zeze.Config.ServerId << 48 | (long)hash << 32 | (uint)param;
         }
 
         [RedirectAll("100")]
