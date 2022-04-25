@@ -13,7 +13,7 @@ namespace Zeze.Gen.cs
         readonly StreamWriter sw;
         readonly string prefix;
 
-        public static void Make(Bean bean, StreamWriter sw, string prefix)
+        public static void Make(Bean bean, StreamWriter sw, string prefix, bool varNameUpper = true)
         {
             sw.WriteLine(prefix + "public override void Encode(ByteBuffer _o_)");
             sw.WriteLine(prefix + "{");
@@ -21,7 +21,7 @@ namespace Zeze.Gen.cs
             foreach (Variable v in bean.Variables)
             {
                 sw.WriteLine(prefix + "    {");
-                v.VariableType.Accept(new Encode(v.NameUpper1, v.Id, "_o_", sw, prefix + "        "));
+                v.VariableType.Accept(new Encode(varNameUpper ? v.NameUpper1 : v.Name, v.Id, "_o_", sw, prefix + "        "));
                 sw.WriteLine(prefix + "    }");
             }
             sw.WriteLine(prefix + "    _o_.WriteByte(0);");

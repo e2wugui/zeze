@@ -23,6 +23,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("import Zeze.Serialize.Serializable;");
 
             sw.WriteLine();
+            sw.WriteLine("@SuppressWarnings({\"UnusedAssignment\", \"RedundantIfStatement\", \"RedundantSuppression\"})");
             sw.WriteLine($"public final class {beanKey.Name} implements Serializable, Comparable<{beanKey.Name}> {{");
 
             // declare enums

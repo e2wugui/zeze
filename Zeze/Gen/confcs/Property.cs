@@ -135,6 +135,7 @@ namespace Zeze.Gen.confcs
             sw.WriteLine($"{prefix}    }}");
             sw.WriteLine($"{prefix}    return null;");
             sw.WriteLine($"{prefix}}}");
+            sw.WriteLine();
         }
 
         public void Visit(TypeQuaternion type)

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using Zeze.Gen.Types;
+using Type = Zeze.Gen.Types.Type;
 
 namespace Zeze.Gen.java
 {
@@ -15,7 +16,6 @@ namespace Zeze.Gen.java
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "@SuppressWarnings(\"UnusedAssignment\")");
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public void Decode(ByteBuffer _o_) {");
             sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");
@@ -56,7 +56,6 @@ namespace Zeze.Gen.java
 
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "@SuppressWarnings(\"UnusedAssignment\")");
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public void Decode(ByteBuffer _o_) {");
             sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");
@@ -214,6 +213,17 @@ namespace Zeze.Gen.java
                 case BeanKey:
                 case TypeDynamic:
                     return bufname + ".ReadBean(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
+                case TypeVector2:
+                    return "Zeze.Util.Vector2.create(" + bufname + ", " + typeVar + ')';
+                case TypeVector2Int:
+                    return "Zeze.Util.Vector2Int.create(" + bufname + ", " + typeVar + ')';
+                case TypeVector3:
+                    return "Zeze.Util.Vector3.create(" + bufname + ", " + typeVar + ')';
+                case TypeVector3Int:
+                    return "Zeze.Util.Vector3Int.create(" + bufname + ", " + typeVar + ')';
+                case TypeVector4:
+                case TypeQuaternion:
+                    return "Zeze.Util.Vector4.create(" + bufname + ", " + typeVar + ')';
                 default:
                     throw new Exception("invalid collection element type: " + type);
             }
@@ -286,34 +296,42 @@ namespace Zeze.Gen.java
                 throw new Exception("invalid variable.id");
         }
 
+        private void VisitVector(Type type)
+        {
+            if (id > 0)
+                sw.WriteLine(prefix + GetVarName() + ".Decode(" + bufname + ", _t_);");
+            else
+                sw.WriteLine(prefix + GetVarName() + ".Decode(" + bufname + ");");
+        }
+
         public void Visit(TypeQuaternion type)
         {
-            throw new NotImplementedException();
+            VisitVector(type);
         }
 
         public void Visit(TypeVector2 type)
         {
-            throw new NotImplementedException();
+            VisitVector(type);
         }
 
         public void Visit(TypeVector2Int type)
         {
-            throw new NotImplementedException();
+            VisitVector(type);
         }
 
         public void Visit(TypeVector3 type)
         {
-            throw new NotImplementedException();
+            VisitVector(type);
         }
 
         public void Visit(TypeVector3Int type)
         {
-            throw new NotImplementedException();
+            VisitVector(type);
         }
 
         public void Visit(TypeVector4 type)
         {
-            throw new NotImplementedException();
+            VisitVector(type);
         }
     }
 }

@@ -4,6 +4,7 @@ package Zeze.Builtin.GlobalCacheManagerWithRaft;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression"})
 public final class GlobalTableKey implements Serializable, Comparable<GlobalTableKey> {
     private String _TableName;
     private Zeze.Net.Binary _Key;
@@ -44,7 +45,6 @@ public final class GlobalTableKey implements Serializable, Comparable<GlobalTabl
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
 
-    @SuppressWarnings("UnusedAssignment")
     @Override
     public void Encode(ByteBuffer _o_) {
         int _i_ = 0;
@@ -65,7 +65,6 @@ public final class GlobalTableKey implements Serializable, Comparable<GlobalTabl
         _o_.WriteByte(0);
     }
 
-    @SuppressWarnings("UnusedAssignment")
     @Override
     public void Decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();

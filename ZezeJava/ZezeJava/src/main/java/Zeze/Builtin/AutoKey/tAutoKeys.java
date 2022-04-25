@@ -3,6 +3,7 @@ package Zeze.Builtin.AutoKey;
 
 import Zeze.Serialize.ByteBuffer;
 
+@SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tAutoKeys extends Zeze.Transaction.TableX<String, Zeze.Builtin.AutoKey.BAutoKey> {
     public tAutoKeys() {
         super("Zeze_Builtin_AutoKey_tAutoKeys");

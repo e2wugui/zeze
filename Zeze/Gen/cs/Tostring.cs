@@ -12,7 +12,7 @@ namespace Zeze.Gen.cs
 		readonly string prefix;
         readonly char sep;
 
-        public static void Make(Bean bean, StreamWriter sw, string prefix)
+        public static void Make(Bean bean, StreamWriter sw, string prefix, bool varNameUpper = true)
 		{
             sw.WriteLine(prefix + "public override string ToString()");
             sw.WriteLine(prefix + "{");
@@ -30,7 +30,7 @@ namespace Zeze.Gen.cs
             {
                 var var = bean.Variables[i];
                 char sep = i == bean.Variables.Count - 1 ? '\0' : ',';
-                var.VariableType.Accept(new Tostring(sw, var.NameUpper1, prefix + "    ", sep));
+                var.VariableType.Accept(new Tostring(sw, varNameUpper ? var.NameUpper1 : var.Name, prefix + "    ", sep));
             }
             sw.WriteLine($"{prefix}    level -= {INDENT_SIZE};");
             sw.WriteLine(prefix + "    sb.Append(Zeze.Util.Str.Indent(level)).Append('}');");

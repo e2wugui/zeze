@@ -3,6 +3,7 @@ package Zeze.Builtin.Collections.LinkedMap;
 
 import Zeze.Serialize.ByteBuffer;
 
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BLinkedMapNode extends Zeze.Transaction.Bean {
     private long _PrevNodeId; // 前一个节点ID. 0表示已到达开头。
     private long _NextNodeId; // 后一个节点ID. 0表示已到达结尾。
@@ -165,7 +166,6 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
         _PRE_ALLOC_SIZE_ = size;
     }
 
-    @SuppressWarnings("UnusedAssignment")
     @Override
     public void Encode(ByteBuffer _o_) {
         int _i_ = 0;
@@ -196,7 +196,6 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
         _o_.WriteByte(0);
     }
 
-    @SuppressWarnings("UnusedAssignment")
     @Override
     public void Decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
@@ -230,7 +229,6 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
         _Values.InitRootInfo(root, this);
     }
 
-    @SuppressWarnings("RedundantIfStatement")
     @Override
     public boolean NegativeCheck() {
         if (getPrevNodeId() < 0)

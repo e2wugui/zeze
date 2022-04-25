@@ -26,7 +26,6 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + "    _PRE_ALLOC_SIZE_ = size;");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
-            sw.WriteLine(prefix + "@SuppressWarnings(\"UnusedAssignment\")");
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public void Encode(ByteBuffer _o_) {");
             sw.WriteLine(prefix + "    int _i_ = 0;");
@@ -45,7 +44,6 @@ namespace Zeze.Gen.rrjava
 
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "@SuppressWarnings(\"UnusedAssignment\")");
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public void Encode(ByteBuffer _o_) {");
             sw.WriteLine(prefix + "    int _i_ = 0;");

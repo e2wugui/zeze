@@ -113,32 +113,32 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeQuaternion type)
         {
-            throw new System.NotImplementedException();
+            name = "Zeze.Util.Vector4";
         }
 
         public void Visit(TypeVector2 type)
         {
-            throw new System.NotImplementedException();
+            name = "Zeze.Util.Vector2";
         }
 
         public void Visit(TypeVector2Int type)
         {
-            throw new System.NotImplementedException();
+            name = "Zeze.Util.Vector2Int";
         }
 
         public void Visit(TypeVector3 type)
         {
-            throw new System.NotImplementedException();
+            name = "Zeze.Util.Vector3";
         }
 
         public void Visit(TypeVector3Int type)
         {
-            throw new System.NotImplementedException();
+            name = "Zeze.Util.Vector3Int";
         }
 
         public void Visit(TypeVector4 type)
         {
-            throw new System.NotImplementedException();
+            name = "Zeze.Util.Vector4";
         }
     }
 }

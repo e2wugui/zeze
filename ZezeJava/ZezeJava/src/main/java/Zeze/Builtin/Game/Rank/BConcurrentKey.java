@@ -4,6 +4,7 @@ package Zeze.Builtin.Game.Rank;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression"})
 public final class BConcurrentKey implements Serializable, Comparable<BConcurrentKey> {
     public static final int TimeTypeTotal = 0; // 所有时间
     public static final int TimeTypeDay = 1; // 每天：Year为当前时间的年份，Offset为天
@@ -70,7 +71,6 @@ public final class BConcurrentKey implements Serializable, Comparable<BConcurren
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
 
-    @SuppressWarnings("UnusedAssignment")
     @Override
     public void Encode(ByteBuffer _o_) {
         int _i_ = 0;
@@ -112,7 +112,6 @@ public final class BConcurrentKey implements Serializable, Comparable<BConcurren
         _o_.WriteByte(0);
     }
 
-    @SuppressWarnings("UnusedAssignment")
     @Override
     public void Decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();

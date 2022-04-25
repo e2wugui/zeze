@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Numerics;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
@@ -37,6 +38,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("import Zeze.Serialize.ByteBuffer;");
             sw.WriteLine();
             // sw.WriteLine($"public final class {bean.Name} extends Zeze.Transaction.Bean implements {bean.Name}ReadOnly {{");
+            sw.WriteLine("@SuppressWarnings({\"UnusedAssignment\", \"RedundantIfStatement\", \"SwitchStatementWithTooFewBranches\", \"RedundantSuppression\"})");
             sw.WriteLine($"public final class {bean.Name} extends Zeze.Transaction.Bean {{");
             WriteDefine(sw);
             sw.WriteLine("}");
@@ -63,6 +65,12 @@ namespace Zeze.Gen.java
                     || vt is TypeMap
                     || vt is Bean
                     || vt is TypeDynamic
+                    || vt is TypeVector2
+                    || vt is TypeVector2Int
+                    || vt is TypeVector3
+                    || vt is TypeVector3Int
+                    || vt is TypeVector4
+                    || vt is TypeQuaternion
                     ? "final " : "";
                 sw.WriteLine("    private " + final + TypeName.GetName(vt) + " " + v.NamePrivate + ";" + v.Comment);
                 // ReadOnlyMap

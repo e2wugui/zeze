@@ -129,32 +129,32 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeQuaternion type)
         {
-            throw new NotImplementedException();
+            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
         }
 
         public void Visit(TypeVector2 type)
         {
-            throw new NotImplementedException();
+            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
         }
 
         public void Visit(TypeVector2Int type)
         {
-            throw new NotImplementedException();
+            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
         }
 
         public void Visit(TypeVector3 type)
         {
-            throw new NotImplementedException();
+            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
         }
 
         public void Visit(TypeVector3Int type)
         {
-            throw new NotImplementedException();
+            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
         }
 
         public void Visit(TypeVector4 type)
         {
-            throw new NotImplementedException();
+            text = (isEquals ? "" : "!") + var.Getter + ".equals(" + another + "." + var.Getter + ")";
         }
     }
 }

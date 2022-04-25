@@ -109,7 +109,9 @@ namespace Zeze.Builtin.Game.Rank
                     _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.LIST);
                     _o_.WriteListType(_n_, ByteBuffer.BEAN);
                     foreach (var _v_ in _x_)
+                    {
                         _v_.Encode(_o_);
+                    }
                 }
             }
             _o_.WriteByte(0);
@@ -126,7 +128,9 @@ namespace Zeze.Builtin.Game.Rank
                 if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST)
                 {
                     for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    {
                         _x_.Add(_o_.ReadBean(new Zeze.Builtin.Game.Rank.BRankValue(), _t_));
+                    }
                 }
                 else
                     _o_.SkipUnknownField(_t_);

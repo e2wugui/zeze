@@ -3,6 +3,7 @@ package Zeze.Builtin.ProviderDirect;
 
 import Zeze.Serialize.ByteBuffer;
 
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
     private int _ModuleId;
     private int _HashCodeConcurrentLevel; // 总的并发分组数量
@@ -337,7 +338,6 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
         _PRE_ALLOC_SIZE_ = size;
     }
 
-    @SuppressWarnings("UnusedAssignment")
     @Override
     public void Encode(ByteBuffer _o_) {
         int _i_ = 0;
@@ -403,7 +403,6 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
         _o_.WriteByte(0);
     }
 
-    @SuppressWarnings("UnusedAssignment")
     @Override
     public void Decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
@@ -457,7 +456,6 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
         _HashCodes.InitRootInfo(root, this);
     }
 
-    @SuppressWarnings("RedundantIfStatement")
     @Override
     public boolean NegativeCheck() {
         if (getModuleId() < 0)

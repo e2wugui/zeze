@@ -3,6 +3,7 @@ package Zeze.Builtin.Provider;
 
 import Zeze.Serialize.ByteBuffer;
 
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BSetUserState extends Zeze.Transaction.Bean {
     private long _linkSid;
     private final Zeze.Transaction.Collections.PList1<Long> _states;
@@ -166,7 +167,6 @@ public final class BSetUserState extends Zeze.Transaction.Bean {
         _PRE_ALLOC_SIZE_ = size;
     }
 
-    @SuppressWarnings("UnusedAssignment")
     @Override
     public void Encode(ByteBuffer _o_) {
         int _i_ = 0;
@@ -197,7 +197,6 @@ public final class BSetUserState extends Zeze.Transaction.Bean {
         _o_.WriteByte(0);
     }
 
-    @SuppressWarnings("UnusedAssignment")
     @Override
     public void Decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
@@ -231,7 +230,6 @@ public final class BSetUserState extends Zeze.Transaction.Bean {
         _states.InitRootInfo(root, this);
     }
 
-    @SuppressWarnings("RedundantIfStatement")
     @Override
     public boolean NegativeCheck() {
         if (getLinkSid() < 0)

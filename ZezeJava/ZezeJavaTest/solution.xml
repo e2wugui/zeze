@@ -54,6 +54,16 @@
 			</variable>
 			<variable id="15" name="map15" type="map" key="long" value="long"/> com aa
 			<variable id="16" name="map16" type="map" key="Key" value="Simple"/> com aa
+
+			<variable id="17" name="vector2" type="vector2" />
+			<variable id="18" name="vector2Int" type="vector2int" />
+			<variable id="19" name="vector3" type="vector3" />
+			<variable id="20" name="vector3Int" type="vector3int" />
+			<variable id="21" name="vector4" type="vector4" />
+			<variable id="22" name="quaternion" type="quaternion" />
+
+			<variable id="23" name="mapVector2Int" type="map" key="vector2int" value="vector2int"/>
+			<variable id="24" name="listVector2Int" type="list" value="vector2int"/>
 		</bean>
 		<beankey name="Key">
 			<enum name="Enum1" value="4"/>

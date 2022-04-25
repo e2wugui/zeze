@@ -3,6 +3,7 @@ package Zeze.Builtin.RedoQueue;
 
 import Zeze.Serialize.ByteBuffer;
 
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BQueueTask extends Zeze.Transaction.Bean {
     private String _QueueName; // 队列名称。
     private int _TaskType; // 任务类型。
@@ -243,7 +244,6 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
         _PRE_ALLOC_SIZE_ = size;
     }
 
-    @SuppressWarnings("UnusedAssignment")
     @Override
     public void Encode(ByteBuffer _o_) {
         int _i_ = 0;
@@ -285,7 +285,6 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
         _o_.WriteByte(0);
     }
 
-    @SuppressWarnings("UnusedAssignment")
     @Override
     public void Decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
@@ -320,7 +319,6 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
     protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
     }
 
-    @SuppressWarnings("RedundantIfStatement")
     @Override
     public boolean NegativeCheck() {
         if (getTaskType() < 0)

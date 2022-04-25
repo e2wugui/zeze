@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using Zeze.Gen.Types;
+using Type = Zeze.Gen.Types.Type;
 
 namespace Zeze.Gen.java
 {
@@ -26,7 +27,6 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    _PRE_ALLOC_SIZE_ = size;");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
-            sw.WriteLine(prefix + "@SuppressWarnings(\"UnusedAssignment\")");
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public void Encode(ByteBuffer _o_) {");
             sw.WriteLine(prefix + "    int _i_ = 0;");
@@ -45,7 +45,6 @@ namespace Zeze.Gen.java
 
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "@SuppressWarnings(\"UnusedAssignment\")");
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public void Encode(ByteBuffer _o_) {");
             sw.WriteLine(prefix + "    int _i_ = 0;");
@@ -225,6 +224,12 @@ namespace Zeze.Gen.java
                 case Bean:
                 case BeanKey:
                 case TypeDynamic:
+                case TypeVector2:
+                case TypeVector2Int:
+                case TypeVector3:
+                case TypeVector3Int:
+                case TypeVector4:
+                case TypeQuaternion:
                     sw.WriteLine(prefix + varName + ".Encode(" + bufname + ");");
                     break;
                 default:
@@ -323,34 +328,48 @@ namespace Zeze.Gen.java
                 throw new Exception("invalid variable.id");
         }
 
+        private void VisitVector(Type type)
+        {
+            if (id > 0)
+            {
+                sw.WriteLine(prefix + "var _x_ = " + varname + ';');
+                sw.WriteLine(prefix + "if (_x_ != null && !_x_.isZero()) {");
+                sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
+                sw.WriteLine(prefix + "    _x_.Encode(" + bufname + ");");
+                sw.WriteLine(prefix + "}");
+            }
+            else
+                sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
+        }
+
         public void Visit(TypeQuaternion type)
         {
-            throw new NotImplementedException();
+            VisitVector(type);
         }
 
         public void Visit(TypeVector2 type)
         {
-            throw new NotImplementedException();
+            VisitVector(type);
         }
 
         public void Visit(TypeVector2Int type)
         {
-            throw new NotImplementedException();
+            VisitVector(type);
         }
 
         public void Visit(TypeVector3 type)
         {
-            throw new NotImplementedException();
+            VisitVector(type);
         }
 
         public void Visit(TypeVector3Int type)
         {
-            throw new NotImplementedException();
+            VisitVector(type);
         }
 
         public void Visit(TypeVector4 type)
         {
-            throw new NotImplementedException();
+            VisitVector(type);
         }
     }
 }

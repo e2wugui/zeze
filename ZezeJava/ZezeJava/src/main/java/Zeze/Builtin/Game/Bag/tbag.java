@@ -3,6 +3,7 @@ package Zeze.Builtin.Game.Bag;
 
 import Zeze.Serialize.ByteBuffer;
 
+@SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tbag extends Zeze.Transaction.TableX<String, Zeze.Builtin.Game.Bag.BBag> {
     public tbag() {
         super("Zeze_Builtin_Game_Bag_tbag");

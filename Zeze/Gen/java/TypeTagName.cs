@@ -90,32 +90,32 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeQuaternion type)
         {
-            throw new System.NotImplementedException();
+            Name = "ByteBuffer.VECTOR4";
         }
 
         public void Visit(TypeVector2 type)
         {
-            throw new System.NotImplementedException();
+            Name = "ByteBuffer.VECTOR2";
         }
 
         public void Visit(TypeVector2Int type)
         {
-            throw new System.NotImplementedException();
+            Name = "ByteBuffer.VECTOR2INT";
         }
 
         public void Visit(TypeVector3 type)
         {
-            throw new System.NotImplementedException();
+            Name = "ByteBuffer.VECTOR3";
         }
 
         public void Visit(TypeVector3Int type)
         {
-            throw new System.NotImplementedException();
+            Name = "ByteBuffer.VECTOR3INT";
         }
 
         public void Visit(TypeVector4 type)
         {
-            throw new System.NotImplementedException();
+            Name = "ByteBuffer.VECTOR4";
         }
     }
 }

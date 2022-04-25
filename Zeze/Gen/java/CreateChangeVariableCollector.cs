@@ -110,32 +110,32 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeQuaternion type)
         {
-            throw new System.NotImplementedException();
+            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
         public void Visit(TypeVector2 type)
         {
-            throw new System.NotImplementedException();
+            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
         public void Visit(TypeVector2Int type)
         {
-            throw new System.NotImplementedException();
+            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
         public void Visit(TypeVector3 type)
         {
-            throw new System.NotImplementedException();
+            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
         public void Visit(TypeVector3Int type)
         {
-            throw new System.NotImplementedException();
+            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
 
         public void Visit(TypeVector4 type)
         {
-            throw new System.NotImplementedException();
+            ChangeVariableCollectorName = "Zeze.Transaction.ChangeVariableCollectorChanged()";
         }
     }
 }

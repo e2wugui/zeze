@@ -205,14 +205,14 @@ public final class ByteBuffer {
 		return ReadLong() != 0;
 	}
 
-	public void WriteByte(byte x) {
+	public void WriteByte(byte v) {
 		EnsureWrite(1);
-		Bytes[WriteIndex++] = x;
+		Bytes[WriteIndex++] = v;
 	}
 
-	public void WriteByte(int x) {
+	public void WriteByte(int v) {
 		EnsureWrite(1);
-		Bytes[WriteIndex++] = (byte)x;
+		Bytes[WriteIndex++] = (byte)v;
 	}
 
 	public byte ReadByte() {
@@ -220,48 +220,48 @@ public final class ByteBuffer {
 		return Bytes[ReadIndex++];
 	}
 
-	public void WriteInt4(int x) {
+	public void WriteInt4(int v) {
 		EnsureWrite(4);
 		byte[] bytes = Bytes;
 		int writeIndex = WriteIndex;
-		bytes[writeIndex] = (byte)x;
-		bytes[writeIndex + 1] = (byte)(x >> 8);
-		bytes[writeIndex + 2] = (byte)(x >> 16);
-		bytes[writeIndex + 3] = (byte)(x >> 24);
+		bytes[writeIndex] = (byte)v;
+		bytes[writeIndex + 1] = (byte)(v >> 8);
+		bytes[writeIndex + 2] = (byte)(v >> 16);
+		bytes[writeIndex + 3] = (byte)(v >> 24);
 		WriteIndex = writeIndex + 4;
 	}
 
 	public int ReadInt4() {
 		EnsureRead(4);
-		int x = ToInt(Bytes, ReadIndex);
+		int v = ToInt(Bytes, ReadIndex);
 		ReadIndex += 4;
-		return x;
+		return v;
 	}
 
-	public void WriteLong8(long x) {
+	public void WriteLong8(long v) {
 		EnsureWrite(8);
 		byte[] bytes = Bytes;
 		int writeIndex = WriteIndex;
-		bytes[writeIndex] = (byte)x;
-		bytes[writeIndex + 1] = (byte)(x >> 8);
-		bytes[writeIndex + 2] = (byte)(x >> 16);
-		bytes[writeIndex + 3] = (byte)(x >> 24);
-		bytes[writeIndex + 4] = (byte)(x >> 32);
-		bytes[writeIndex + 5] = (byte)(x >> 40);
-		bytes[writeIndex + 6] = (byte)(x >> 48);
-		bytes[writeIndex + 7] = (byte)(x >> 56);
+		bytes[writeIndex] = (byte)v;
+		bytes[writeIndex + 1] = (byte)(v >> 8);
+		bytes[writeIndex + 2] = (byte)(v >> 16);
+		bytes[writeIndex + 3] = (byte)(v >> 24);
+		bytes[writeIndex + 4] = (byte)(v >> 32);
+		bytes[writeIndex + 5] = (byte)(v >> 40);
+		bytes[writeIndex + 6] = (byte)(v >> 48);
+		bytes[writeIndex + 7] = (byte)(v >> 56);
 		WriteIndex = writeIndex + 8;
 	}
 
 	public long ReadLong8() {
 		EnsureRead(8);
-		long x = ToLong(Bytes, ReadIndex);
+		long v = ToLong(Bytes, ReadIndex);
 		ReadIndex += 8;
-		return x;
+		return v;
 	}
 
-	public static int writeUIntSize(int x) {
-		long u = x & 0xffff_ffffL;
+	public static int writeUIntSize(int v) {
+		long u = v & 0xffff_ffffL;
 		//@formatter:off
 		if (u <        0x80) return 1;
 		if (u <      0x4000) return 2;
@@ -271,8 +271,8 @@ public final class ByteBuffer {
 		//@formatter:on
 	}
 
-	public void WriteUInt(int x) {
-		long u = x & 0xffff_ffffL;
+	public void WriteUInt(int v) {
+		long u = v & 0xffff_ffffL;
 		if (u < 0x80) {
 			EnsureWrite(1); // 0xxx xxxx
 			Bytes[WriteIndex++] = (byte)u;
@@ -317,240 +317,240 @@ public final class ByteBuffer {
 		EnsureRead(1);
 		byte[] bytes = Bytes;
 		int readIndex = ReadIndex;
-		int x = bytes[readIndex] & 0xff;
-		if (x < 0x80) {
+		int v = bytes[readIndex] & 0xff;
+		if (v < 0x80) {
 			ReadIndex = readIndex + 1;
-		} else if (x < 0xc0) {
+		} else if (v < 0xc0) {
 			EnsureRead(2);
-			x = ((x & 0x3f) << 8)
+			v = ((v & 0x3f) << 8)
 					+ (bytes[readIndex + 1] & 0xff);
 			ReadIndex = readIndex + 2;
-		} else if (x < 0xe0) {
+		} else if (v < 0xe0) {
 			EnsureRead(3);
-			x = ((x & 0x1f) << 16)
+			v = ((v & 0x1f) << 16)
 					+ ((bytes[readIndex + 1] & 0xff) << 8)
 					+ (bytes[readIndex + 2] & 0xff);
 			ReadIndex = readIndex + 3;
-		} else if (x < 0xf0) {
+		} else if (v < 0xf0) {
 			EnsureRead(4);
-			x = ((x & 0xf) << 24)
+			v = ((v & 0xf) << 24)
 					+ ((bytes[readIndex + 1] & 0xff) << 16)
 					+ ((bytes[readIndex + 2] & 0xff) << 8)
 					+ (bytes[readIndex + 3] & 0xff);
 			ReadIndex = readIndex + 4;
 		} else {
 			EnsureRead(5);
-			x = (bytes[readIndex + 1] << 24)
+			v = (bytes[readIndex + 1] << 24)
 					+ ((bytes[readIndex + 2] & 0xff) << 16)
 					+ ((bytes[readIndex + 3] & 0xff) << 8)
 					+ (bytes[readIndex + 4] & 0xff);
 			ReadIndex = readIndex + 5;
 		}
-		return x;
+		return v;
 	}
 
-	public static int writeLongSize(long x) {
+	public static int writeLongSize(long v) {
 		//@formatter:off
-		if (x >= 0) {
-			if (x <                0x40 ) return 1;
-			if (x <              0x2000 ) return 2;
-			if (x <           0x10_0000 ) return 3;
-			if (x <          0x800_0000 ) return 4;
-			if (x <       0x4_0000_0000L) return 5;
-			if (x <     0x200_0000_0000L) return 6;
-			if (x <  0x1_0000_0000_0000L) return 7;
-			if (x < 0x80_0000_0000_0000L) return 8;
+		if (v >= 0) {
+			if (v <                0x40 ) return 1;
+			if (v <              0x2000 ) return 2;
+			if (v <           0x10_0000 ) return 3;
+			if (v <          0x800_0000 ) return 4;
+			if (v <       0x4_0000_0000L) return 5;
+			if (v <     0x200_0000_0000L) return 6;
+			if (v <  0x1_0000_0000_0000L) return 7;
+			if (v < 0x80_0000_0000_0000L) return 8;
 										  return 9;
 		}
-		if (x >= -               0x40 ) return 1;
-		if (x >= -             0x2000 ) return 2;
-		if (x >= -          0x10_0000 ) return 3;
-		if (x >= -         0x800_0000 ) return 4;
-		if (x >= -      0x4_0000_0000L) return 5;
-		if (x >= -    0x200_0000_0000L) return 6;
-		if (x >= - 0x1_0000_0000_0000L) return 7;
-		if (x >= -0x80_0000_0000_0000L) return 8;
+		if (v >= -               0x40 ) return 1;
+		if (v >= -             0x2000 ) return 2;
+		if (v >= -          0x10_0000 ) return 3;
+		if (v >= -         0x800_0000 ) return 4;
+		if (v >= -      0x4_0000_0000L) return 5;
+		if (v >= -    0x200_0000_0000L) return 6;
+		if (v >= - 0x1_0000_0000_0000L) return 7;
+		if (v >= -0x80_0000_0000_0000L) return 8;
 		return 9;
 		//@formatter:on
 	}
 
-	public void WriteLong(long x) {
-		if (x >= 0) {
-			if (x < 0x40) {
+	public void WriteLong(long v) {
+		if (v >= 0) {
+			if (v < 0x40) {
 				EnsureWrite(1); // 00xx xxxx
-				Bytes[WriteIndex++] = (byte)x;
-			} else if (x < 0x2000) {
+				Bytes[WriteIndex++] = (byte)v;
+			} else if (v < 0x2000) {
 				EnsureWrite(2); // 010x xxxx +1B
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
-				bytes[writeIndex] = (byte)((x >> 8) + 0x40);
-				bytes[writeIndex + 1] = (byte)x;
+				bytes[writeIndex] = (byte)((v >> 8) + 0x40);
+				bytes[writeIndex + 1] = (byte)v;
 				WriteIndex = writeIndex + 2;
-			} else if (x < 0x10_0000) {
+			} else if (v < 0x10_0000) {
 				EnsureWrite(3); // 0110 xxxx +2B
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
-				bytes[writeIndex] = (byte)((x >> 16) + 0x60);
-				bytes[writeIndex + 1] = (byte)(x >> 8);
-				bytes[writeIndex + 2] = (byte)x;
+				bytes[writeIndex] = (byte)((v >> 16) + 0x60);
+				bytes[writeIndex + 1] = (byte)(v >> 8);
+				bytes[writeIndex + 2] = (byte)v;
 				WriteIndex = writeIndex + 3;
-			} else if (x < 0x800_0000) {
+			} else if (v < 0x800_0000) {
 				EnsureWrite(4); // 0111 0xxx +3B
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
-				bytes[writeIndex] = (byte)((x >> 24) + 0x70);
-				bytes[writeIndex + 1] = (byte)(x >> 16);
-				bytes[writeIndex + 2] = (byte)(x >> 8);
-				bytes[writeIndex + 3] = (byte)x;
+				bytes[writeIndex] = (byte)((v >> 24) + 0x70);
+				bytes[writeIndex + 1] = (byte)(v >> 16);
+				bytes[writeIndex + 2] = (byte)(v >> 8);
+				bytes[writeIndex + 3] = (byte)v;
 				WriteIndex = writeIndex + 4;
-			} else if (x < 0x4_0000_0000L) {
+			} else if (v < 0x4_0000_0000L) {
 				EnsureWrite(5); // 0111 10xx +4B
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
-				bytes[writeIndex] = (byte)((x >> 32) + 0x78);
-				bytes[writeIndex + 1] = (byte)(x >> 24);
-				bytes[writeIndex + 2] = (byte)(x >> 16);
-				bytes[writeIndex + 3] = (byte)(x >> 8);
-				bytes[writeIndex + 4] = (byte)x;
+				bytes[writeIndex] = (byte)((v >> 32) + 0x78);
+				bytes[writeIndex + 1] = (byte)(v >> 24);
+				bytes[writeIndex + 2] = (byte)(v >> 16);
+				bytes[writeIndex + 3] = (byte)(v >> 8);
+				bytes[writeIndex + 4] = (byte)v;
 				WriteIndex = writeIndex + 5;
-			} else if (x < 0x200_0000_0000L) {
+			} else if (v < 0x200_0000_0000L) {
 				EnsureWrite(6); // 0111 110x +5B
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
-				bytes[writeIndex] = (byte)((x >> 40) + 0x7c);
-				bytes[writeIndex + 1] = (byte)(x >> 32);
-				bytes[writeIndex + 2] = (byte)(x >> 24);
-				bytes[writeIndex + 3] = (byte)(x >> 16);
-				bytes[writeIndex + 4] = (byte)(x >> 8);
-				bytes[writeIndex + 5] = (byte)x;
+				bytes[writeIndex] = (byte)((v >> 40) + 0x7c);
+				bytes[writeIndex + 1] = (byte)(v >> 32);
+				bytes[writeIndex + 2] = (byte)(v >> 24);
+				bytes[writeIndex + 3] = (byte)(v >> 16);
+				bytes[writeIndex + 4] = (byte)(v >> 8);
+				bytes[writeIndex + 5] = (byte)v;
 				WriteIndex = writeIndex + 6;
-			} else if (x < 0x1_0000_0000_0000L) {
+			} else if (v < 0x1_0000_0000_0000L) {
 				EnsureWrite(7); // 0111 1110 +6B
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
 				bytes[writeIndex] = (byte)0x7e;
-				bytes[writeIndex + 1] = (byte)(x >> 40);
-				bytes[writeIndex + 2] = (byte)(x >> 32);
-				bytes[writeIndex + 3] = (byte)(x >> 24);
-				bytes[writeIndex + 4] = (byte)(x >> 16);
-				bytes[writeIndex + 5] = (byte)(x >> 8);
-				bytes[writeIndex + 6] = (byte)x;
+				bytes[writeIndex + 1] = (byte)(v >> 40);
+				bytes[writeIndex + 2] = (byte)(v >> 32);
+				bytes[writeIndex + 3] = (byte)(v >> 24);
+				bytes[writeIndex + 4] = (byte)(v >> 16);
+				bytes[writeIndex + 5] = (byte)(v >> 8);
+				bytes[writeIndex + 6] = (byte)v;
 				WriteIndex = writeIndex + 7;
-			} else if (x < 0x80_0000_0000_0000L) {
+			} else if (v < 0x80_0000_0000_0000L) {
 				EnsureWrite(8); // 0111 1111 0 +7B
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
 				bytes[writeIndex] = (byte)0x7f;
-				bytes[writeIndex + 1] = (byte)(x >> 48);
-				bytes[writeIndex + 2] = (byte)(x >> 40);
-				bytes[writeIndex + 3] = (byte)(x >> 32);
-				bytes[writeIndex + 4] = (byte)(x >> 24);
-				bytes[writeIndex + 5] = (byte)(x >> 16);
-				bytes[writeIndex + 6] = (byte)(x >> 8);
-				bytes[writeIndex + 7] = (byte)x;
+				bytes[writeIndex + 1] = (byte)(v >> 48);
+				bytes[writeIndex + 2] = (byte)(v >> 40);
+				bytes[writeIndex + 3] = (byte)(v >> 32);
+				bytes[writeIndex + 4] = (byte)(v >> 24);
+				bytes[writeIndex + 5] = (byte)(v >> 16);
+				bytes[writeIndex + 6] = (byte)(v >> 8);
+				bytes[writeIndex + 7] = (byte)v;
 				WriteIndex = writeIndex + 8;
 			} else {
 				EnsureWrite(9); // 0111 1111 1 +8B
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
 				bytes[writeIndex] = (byte)0x7f;
-				bytes[writeIndex + 1] = (byte)((x >> 56) + 0x80);
-				bytes[writeIndex + 2] = (byte)(x >> 48);
-				bytes[writeIndex + 3] = (byte)(x >> 40);
-				bytes[writeIndex + 4] = (byte)(x >> 32);
-				bytes[writeIndex + 5] = (byte)(x >> 24);
-				bytes[writeIndex + 6] = (byte)(x >> 16);
-				bytes[writeIndex + 7] = (byte)(x >> 8);
-				bytes[writeIndex + 8] = (byte)x;
+				bytes[writeIndex + 1] = (byte)((v >> 56) + 0x80);
+				bytes[writeIndex + 2] = (byte)(v >> 48);
+				bytes[writeIndex + 3] = (byte)(v >> 40);
+				bytes[writeIndex + 4] = (byte)(v >> 32);
+				bytes[writeIndex + 5] = (byte)(v >> 24);
+				bytes[writeIndex + 6] = (byte)(v >> 16);
+				bytes[writeIndex + 7] = (byte)(v >> 8);
+				bytes[writeIndex + 8] = (byte)v;
 				WriteIndex = writeIndex + 9;
 			}
 		} else {
-			if (x >= -0x40) {
+			if (v >= -0x40) {
 				EnsureWrite(1); // 11xx xxxx
-				Bytes[WriteIndex++] = (byte)x;
-			} else if (x >= -0x2000) {
+				Bytes[WriteIndex++] = (byte)v;
+			} else if (v >= -0x2000) {
 				EnsureWrite(2); // 101x xxxx +1B
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
-				bytes[writeIndex] = (byte)((x >> 8) - 0x40);
-				bytes[writeIndex + 1] = (byte)x;
+				bytes[writeIndex] = (byte)((v >> 8) - 0x40);
+				bytes[writeIndex + 1] = (byte)v;
 				WriteIndex = writeIndex + 2;
-			} else if (x >= -0x10_0000) {
+			} else if (v >= -0x10_0000) {
 				EnsureWrite(3); // 1001 xxxx +2B
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
-				bytes[writeIndex] = (byte)((x >> 16) - 0x60);
-				bytes[writeIndex + 1] = (byte)(x >> 8);
-				bytes[writeIndex + 2] = (byte)x;
+				bytes[writeIndex] = (byte)((v >> 16) - 0x60);
+				bytes[writeIndex + 1] = (byte)(v >> 8);
+				bytes[writeIndex + 2] = (byte)v;
 				WriteIndex = writeIndex + 3;
-			} else if (x >= -0x800_0000) {
+			} else if (v >= -0x800_0000) {
 				EnsureWrite(4); // 1000 1xxx +3B
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
-				bytes[writeIndex] = (byte)((x >> 24) - 0x70);
-				bytes[writeIndex + 1] = (byte)(x >> 16);
-				bytes[writeIndex + 2] = (byte)(x >> 8);
-				bytes[writeIndex + 3] = (byte)x;
+				bytes[writeIndex] = (byte)((v >> 24) - 0x70);
+				bytes[writeIndex + 1] = (byte)(v >> 16);
+				bytes[writeIndex + 2] = (byte)(v >> 8);
+				bytes[writeIndex + 3] = (byte)v;
 				WriteIndex = writeIndex + 4;
-			} else if (x >= -0x4_0000_0000L) {
+			} else if (v >= -0x4_0000_0000L) {
 				EnsureWrite(5); // 1000 01xx +4B
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
-				bytes[writeIndex] = (byte)((x >> 32) - 0x78);
-				bytes[writeIndex + 1] = (byte)(x >> 24);
-				bytes[writeIndex + 2] = (byte)(x >> 16);
-				bytes[writeIndex + 3] = (byte)(x >> 8);
-				bytes[writeIndex + 4] = (byte)x;
+				bytes[writeIndex] = (byte)((v >> 32) - 0x78);
+				bytes[writeIndex + 1] = (byte)(v >> 24);
+				bytes[writeIndex + 2] = (byte)(v >> 16);
+				bytes[writeIndex + 3] = (byte)(v >> 8);
+				bytes[writeIndex + 4] = (byte)v;
 				WriteIndex = writeIndex + 5;
-			} else if (x >= -0x200_0000_0000L) {
+			} else if (v >= -0x200_0000_0000L) {
 				EnsureWrite(6); // 1000 001x +5B
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
-				bytes[writeIndex] = (byte)((x >> 40) - 0x7c);
-				bytes[writeIndex + 1] = (byte)(x >> 32);
-				bytes[writeIndex + 2] = (byte)(x >> 24);
-				bytes[writeIndex + 3] = (byte)(x >> 16);
-				bytes[writeIndex + 4] = (byte)(x >> 8);
-				bytes[writeIndex + 5] = (byte)x;
+				bytes[writeIndex] = (byte)((v >> 40) - 0x7c);
+				bytes[writeIndex + 1] = (byte)(v >> 32);
+				bytes[writeIndex + 2] = (byte)(v >> 24);
+				bytes[writeIndex + 3] = (byte)(v >> 16);
+				bytes[writeIndex + 4] = (byte)(v >> 8);
+				bytes[writeIndex + 5] = (byte)v;
 				WriteIndex = writeIndex + 6;
-			} else if (x >= -0x1_0000_0000_0000L) {
+			} else if (v >= -0x1_0000_0000_0000L) {
 				EnsureWrite(7); // 1000 0001 +6B
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
 				bytes[writeIndex] = (byte)0x81;
-				bytes[writeIndex + 1] = (byte)(x >> 40);
-				bytes[writeIndex + 2] = (byte)(x >> 32);
-				bytes[writeIndex + 3] = (byte)(x >> 24);
-				bytes[writeIndex + 4] = (byte)(x >> 16);
-				bytes[writeIndex + 5] = (byte)(x >> 8);
-				bytes[writeIndex + 6] = (byte)x;
+				bytes[writeIndex + 1] = (byte)(v >> 40);
+				bytes[writeIndex + 2] = (byte)(v >> 32);
+				bytes[writeIndex + 3] = (byte)(v >> 24);
+				bytes[writeIndex + 4] = (byte)(v >> 16);
+				bytes[writeIndex + 5] = (byte)(v >> 8);
+				bytes[writeIndex + 6] = (byte)v;
 				WriteIndex = writeIndex + 7;
-			} else if (x >= -0x80_0000_0000_0000L) {
+			} else if (v >= -0x80_0000_0000_0000L) {
 				EnsureWrite(8); // 1000 0000 1 +7B
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
 				bytes[writeIndex] = (byte)0x80;
-				bytes[writeIndex + 1] = (byte)(x >> 48);
-				bytes[writeIndex + 2] = (byte)(x >> 40);
-				bytes[writeIndex + 3] = (byte)(x >> 32);
-				bytes[writeIndex + 4] = (byte)(x >> 24);
-				bytes[writeIndex + 5] = (byte)(x >> 16);
-				bytes[writeIndex + 6] = (byte)(x >> 8);
-				bytes[writeIndex + 7] = (byte)x;
+				bytes[writeIndex + 1] = (byte)(v >> 48);
+				bytes[writeIndex + 2] = (byte)(v >> 40);
+				bytes[writeIndex + 3] = (byte)(v >> 32);
+				bytes[writeIndex + 4] = (byte)(v >> 24);
+				bytes[writeIndex + 5] = (byte)(v >> 16);
+				bytes[writeIndex + 6] = (byte)(v >> 8);
+				bytes[writeIndex + 7] = (byte)v;
 				WriteIndex = writeIndex + 8;
 			} else {
 				EnsureWrite(9); // 1000 0000 0 +8B
 				byte[] bytes = Bytes;
 				int writeIndex = WriteIndex;
 				bytes[writeIndex] = (byte)0x80;
-				bytes[writeIndex + 1] = (byte)((x >> 56) - 0x80);
-				bytes[writeIndex + 2] = (byte)(x >> 48);
-				bytes[writeIndex + 3] = (byte)(x >> 40);
-				bytes[writeIndex + 4] = (byte)(x >> 32);
-				bytes[writeIndex + 5] = (byte)(x >> 24);
-				bytes[writeIndex + 6] = (byte)(x >> 16);
-				bytes[writeIndex + 7] = (byte)(x >> 8);
-				bytes[writeIndex + 8] = (byte)x;
+				bytes[writeIndex + 1] = (byte)((v >> 56) - 0x80);
+				bytes[writeIndex + 2] = (byte)(v >> 48);
+				bytes[writeIndex + 3] = (byte)(v >> 40);
+				bytes[writeIndex + 4] = (byte)(v >> 32);
+				bytes[writeIndex + 5] = (byte)(v >> 24);
+				bytes[writeIndex + 6] = (byte)(v >> 16);
+				bytes[writeIndex + 7] = (byte)(v >> 8);
+				bytes[writeIndex + 8] = (byte)v;
 				WriteIndex = writeIndex + 9;
 			}
 		}
@@ -663,56 +663,56 @@ public final class ByteBuffer {
 		}
 	}
 
-	public void WriteInt(int x) {
-		WriteLong(x);
+	public void WriteInt(int v) {
+		WriteLong(v);
 	}
 
 	public int ReadInt() {
 		return (int)ReadLong();
 	}
 
-	public void WriteFloat(float x) {
-		WriteInt4(Float.floatToRawIntBits(x));
+	public void WriteFloat(float v) {
+		WriteInt4(Float.floatToRawIntBits(v));
 	}
 
 	public float ReadFloat() {
 		EnsureRead(4);
-		float x = ToFloat(Bytes, ReadIndex);
+		float v = ToFloat(Bytes, ReadIndex);
 		ReadIndex += 4;
-		return x;
+		return v;
 	}
 
-	public void WriteDouble(double x) {
-		WriteLong8(Double.doubleToRawLongBits(x));
+	public void WriteDouble(double v) {
+		WriteLong8(Double.doubleToRawLongBits(v));
 	}
 
 	public double ReadDouble() {
 		EnsureRead(8);
-		double x = ToDouble(Bytes, ReadIndex);
+		double v = ToDouble(Bytes, ReadIndex);
 		ReadIndex += 8;
-		return x;
+		return v;
 	}
 
-	public void WriteString(String x) {
-		WriteBytes(x.getBytes(StandardCharsets.UTF_8));
+	public void WriteString(String v) {
+		WriteBytes(v.getBytes(StandardCharsets.UTF_8));
 	}
 
 	public String ReadString() {
 		int n = ReadUInt();
 		EnsureRead(n);
-		String x = new String(Bytes, ReadIndex, n, StandardCharsets.UTF_8);
+		String v = new String(Bytes, ReadIndex, n, StandardCharsets.UTF_8);
 		ReadIndex += n;
-		return x;
+		return v;
 	}
 
-	public void WriteBytes(byte[] x) {
-		WriteBytes(x, 0, x.length);
+	public void WriteBytes(byte[] v) {
+		WriteBytes(v, 0, v.length);
 	}
 
-	public void WriteBytes(byte[] x, int offset, int length) {
+	public void WriteBytes(byte[] v, int offset, int length) {
 		WriteUInt(length);
 		EnsureWrite(length);
-		System.arraycopy(x, offset, Bytes, WriteIndex, length);
+		System.arraycopy(v, offset, Bytes, WriteIndex, length);
 		WriteIndex += length;
 	}
 
@@ -727,10 +727,10 @@ public final class ByteBuffer {
 	public byte[] ReadBytes() {
 		int n = ReadUInt();
 		EnsureRead(n);
-		byte[] x = new byte[n];
-		System.arraycopy(Bytes, ReadIndex, x, 0, n);
+		byte[] v = new byte[n];
+		System.arraycopy(Bytes, ReadIndex, v, 0, n);
 		ReadIndex += n;
-		return x;
+		return v;
 	}
 
 	public void SkipBytes() {

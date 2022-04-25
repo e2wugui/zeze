@@ -4,6 +4,7 @@ package Zeze.Builtin.Collections.LinkedMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression"})
 public final class BLinkedMapKey implements Serializable, Comparable<BLinkedMapKey> {
     private String _Name; // LinkedMap的Name
     private String _ValueId; // LinkedMap的Key转成字符串类型
@@ -44,7 +45,6 @@ public final class BLinkedMapKey implements Serializable, Comparable<BLinkedMapK
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
 
-    @SuppressWarnings("UnusedAssignment")
     @Override
     public void Encode(ByteBuffer _o_) {
         int _i_ = 0;
@@ -65,7 +65,6 @@ public final class BLinkedMapKey implements Serializable, Comparable<BLinkedMapK
         _o_.WriteByte(0);
     }
 
-    @SuppressWarnings("UnusedAssignment")
     @Override
     public void Decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();

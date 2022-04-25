@@ -3,6 +3,7 @@ package Zeze.Builtin.Game.Rank;
 
 import Zeze.Serialize.ByteBuffer;
 
+@SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class trank extends Zeze.Transaction.TableX<Zeze.Builtin.Game.Rank.BConcurrentKey, Zeze.Builtin.Game.Rank.BRankList> {
     public trank() {
         super("Zeze_Builtin_Game_Rank_trank");

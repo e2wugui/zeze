@@ -11,7 +11,6 @@ namespace Zeze.Gen.java
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "@SuppressWarnings(\"RedundantIfStatement\")");
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public boolean NegativeCheck() {");
             foreach (Variable var in bean.Variables)
@@ -146,32 +145,26 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeQuaternion type)
         {
-            throw new System.NotImplementedException();
         }
 
         public void Visit(TypeVector2 type)
         {
-            throw new System.NotImplementedException();
         }
 
         public void Visit(TypeVector2Int type)
         {
-            throw new System.NotImplementedException();
         }
 
         public void Visit(TypeVector3 type)
         {
-            throw new System.NotImplementedException();
         }
 
         public void Visit(TypeVector3Int type)
         {
-            throw new System.NotImplementedException();
         }
 
         public void Visit(TypeVector4 type)
         {
-            throw new System.NotImplementedException();
         }
     }
 }

@@ -15,7 +15,6 @@ namespace Zeze.Gen.rrjava
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "@SuppressWarnings(\"UnusedAssignment\")");
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public void Decode(ByteBuffer _o_) {");
             sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");
@@ -56,7 +55,6 @@ namespace Zeze.Gen.rrjava
 
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine(prefix + "@SuppressWarnings(\"UnusedAssignment\")");
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public void Decode(ByteBuffer _o_) {");
             sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");

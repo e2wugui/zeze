@@ -82,7 +82,7 @@ public final class App extends Zeze.AppBase {
         ProviderService = new Zezex.ProviderService(Zeze);
     }
     public synchronized void CreateModules() {
-        Zezex_Linkd = ReplaceModuleInstance(new Zezex.Linkd.ModuleLinkd(this));
+        Zezex_Linkd = (Zezex.Linkd.ModuleLinkd)ReplaceModuleInstance(new Zezex.Linkd.ModuleLinkd(this));
         Zezex_Linkd.Initialize(this);
         if (Modules.put(Zezex_Linkd.getFullName(), Zezex_Linkd) != null)
             throw new RuntimeException("duplicate module name: Zezex_Linkd");

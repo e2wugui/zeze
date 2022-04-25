@@ -3,6 +3,7 @@ package Zeze.Builtin.Collections.LinkedMap;
 
 import Zeze.Serialize.ByteBuffer;
 
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
     private String _Id; // LinkedMap的Key转成字符串类型
     private final Zeze.Transaction.DynamicBean _Value;
@@ -130,7 +131,6 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
         _PRE_ALLOC_SIZE_ = size;
     }
 
-    @SuppressWarnings("UnusedAssignment")
     @Override
     public void Encode(ByteBuffer _o_) {
         int _i_ = 0;
@@ -151,7 +151,6 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
         _o_.WriteByte(0);
     }
 
-    @SuppressWarnings("UnusedAssignment")
     @Override
     public void Decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
@@ -175,7 +174,6 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
         _Value.InitRootInfo(root, this);
     }
 
-    @SuppressWarnings("RedundantIfStatement")
     @Override
     public boolean NegativeCheck() {
         return false;

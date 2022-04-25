@@ -11,11 +11,11 @@ namespace Zeze.Gen.confcs
 
 		public static void Make(Bean bean, StreamWriter sw, string prefix)
 		{
-			sw.WriteLine(prefix + "public " + bean.Name + "() : this(0)");
-			sw.WriteLine(prefix + "{");
-			sw.WriteLine(prefix + "}");
-			sw.WriteLine();
-            sw.WriteLine(prefix + "public " + bean.Name + "(int _varId_) : base(_varId_)");
+			// sw.WriteLine(prefix + "public " + bean.Name + "() : this(0)");
+			// sw.WriteLine(prefix + "{");
+			// sw.WriteLine(prefix + "}");
+			// sw.WriteLine();
+            sw.WriteLine(prefix + "public " + bean.Name + "()");
             sw.WriteLine(prefix + "{");
             foreach (Variable var in bean.Variables)
                 var.VariableType.Accept(new Construct(sw, var, prefix + "    "));
@@ -46,7 +46,7 @@ namespace Zeze.Gen.confcs
             string value = variable.Initial;
 			if (value.Length > 0)
 			{
-                string varname = variable.NamePrivate;
+                string varname = variable.Name;
 				sw.WriteLine(prefix + varname + " = " + value + ";");
 			}
 		}
@@ -56,7 +56,7 @@ namespace Zeze.Gen.confcs
             string value = variable.Initial;
             if (value.Length > 0)
             {
-                string varname = variable.NamePrivate;
+                string varname = variable.Name;
                 sw.WriteLine($"{prefix}{varname} = new {TypeName.GetName(type)}{value};");
             }
         }
@@ -64,7 +64,7 @@ namespace Zeze.Gen.confcs
         public void Visit(Bean type)
         {
             string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(" + variable.Id + ");");
+            sw.WriteLine(prefix + variable.Name + " = new " + typeName + "();");
         }
 
         public void Visit(BeanKey type)
@@ -99,32 +99,32 @@ namespace Zeze.Gen.confcs
 
         public void Visit(TypeBinary type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + " = Zeze.Net.Binary.Empty;");
+            sw.WriteLine(prefix + variable.Name + " = Zeze.Net.Binary.Empty;");
         }
 
         public void Visit(TypeString type)
         {
             string value = variable.Initial;
-            string varname = variable.NamePrivate;
+            string varname = variable.Name;
             sw.WriteLine(prefix + varname + " = \"" + value + "\";");
         }
 
         public void Visit(TypeList type)
         {
             string typeName = TypeName.GetName(type);
-            sw.WriteLine($"{prefix}{variable.NamePrivate} = new {typeName}();");
+            sw.WriteLine($"{prefix}{variable.Name} = new {typeName}();");
         }
 
         public void Visit(TypeSet type)
         {
             string typeName = TypeName.GetName(type);
-            sw.WriteLine($"{prefix}{variable.NamePrivate} = new {typeName}();");
+            sw.WriteLine($"{prefix}{variable.Name} = new {typeName}();");
         }
 
         public void Visit(TypeMap type)
         {
             string typeName = TypeName.GetName(type);
-            sw.WriteLine($"{prefix}{variable.NamePrivate} = new {typeName}();");
+            sw.WriteLine($"{prefix}{variable.Name} = new {typeName}();");
         }
 
         public void Visit(TypeFloat type)
@@ -141,12 +141,12 @@ namespace Zeze.Gen.confcs
         {
             if (string.IsNullOrEmpty(type.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
             {
-                sw.WriteLine(prefix + variable.NamePrivate + " = new Zeze.Util.ConfDynamicBean"
+                sw.WriteLine(prefix + variable.Name + " = new Zeze.Util.ConfDynamicBean"
                     + $"({variable.Id}, GetSpecialTypeIdFromBean_{variable.NameUpper1}, CreateBeanFromSpecialTypeId_{variable.NameUpper1});");
             }
             else
             {
-                sw.WriteLine(prefix + variable.NamePrivate + " = new Zeze.Transaction.DynamicBean"
+                sw.WriteLine(prefix + variable.Name + " = new Zeze.Transaction.DynamicBean"
                     + $"({variable.Id}, {type.GetSpecialTypeIdFromBean}, {type.CreateBeanFromSpecialTypeId});");
             }
         }

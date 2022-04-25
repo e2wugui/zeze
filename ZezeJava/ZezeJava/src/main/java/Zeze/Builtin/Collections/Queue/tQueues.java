@@ -3,6 +3,7 @@ package Zeze.Builtin.Collections.Queue;
 
 import Zeze.Serialize.ByteBuffer;
 
+@SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
 public final class tQueues extends Zeze.Transaction.TableX<String, Zeze.Builtin.Collections.Queue.BQueue> {
     public tQueues() {
         super("Zeze_Builtin_Collections_Queue_tQueues");

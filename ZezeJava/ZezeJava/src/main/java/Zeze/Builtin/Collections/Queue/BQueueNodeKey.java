@@ -4,6 +4,7 @@ package Zeze.Builtin.Collections.Queue;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression"})
 public final class BQueueNodeKey implements Serializable, Comparable<BQueueNodeKey> {
     private String _Name; // LinkedMap的Name
     private long _NodeId;
@@ -43,7 +44,6 @@ public final class BQueueNodeKey implements Serializable, Comparable<BQueueNodeK
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
 
-    @SuppressWarnings("UnusedAssignment")
     @Override
     public void Encode(ByteBuffer _o_) {
         int _i_ = 0;
@@ -64,7 +64,6 @@ public final class BQueueNodeKey implements Serializable, Comparable<BQueueNodeK
         _o_.WriteByte(0);
     }
 
-    @SuppressWarnings("UnusedAssignment")
     @Override
     public void Decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();

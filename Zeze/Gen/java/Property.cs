@@ -219,34 +219,42 @@ namespace Zeze.Gen.java
             }
         }
 
+        private void WriteSimpleProperty(Type type)
+        {
+            sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.Getter + " {");
+            sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine();
+        }
+
         public void Visit(TypeQuaternion type)
         {
-            throw new System.NotImplementedException();
+            WriteSimpleProperty(type);
         }
 
         public void Visit(TypeVector2 type)
         {
-            throw new System.NotImplementedException();
+            WriteSimpleProperty(type);
         }
 
         public void Visit(TypeVector2Int type)
         {
-            throw new System.NotImplementedException();
+            WriteSimpleProperty(type);
         }
 
         public void Visit(TypeVector3 type)
         {
-            throw new System.NotImplementedException();
+            WriteSimpleProperty(type);
         }
 
         public void Visit(TypeVector3Int type)
         {
-            throw new System.NotImplementedException();
+            WriteSimpleProperty(type);
         }
 
         public void Visit(TypeVector4 type)
         {
-            throw new System.NotImplementedException();
+            WriteSimpleProperty(type);
         }
     }
 }

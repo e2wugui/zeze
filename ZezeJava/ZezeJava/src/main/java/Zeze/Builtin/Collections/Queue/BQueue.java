@@ -3,6 +3,7 @@ package Zeze.Builtin.Collections.Queue;
 
 import Zeze.Serialize.ByteBuffer;
 
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BQueue extends Zeze.Transaction.Bean {
     private long _HeadNodeId;
     private long _TailNodeId;
@@ -204,7 +205,6 @@ public final class BQueue extends Zeze.Transaction.Bean {
         _PRE_ALLOC_SIZE_ = size;
     }
 
-    @SuppressWarnings("UnusedAssignment")
     @Override
     public void Encode(ByteBuffer _o_) {
         int _i_ = 0;
@@ -239,7 +239,6 @@ public final class BQueue extends Zeze.Transaction.Bean {
         _o_.WriteByte(0);
     }
 
-    @SuppressWarnings("UnusedAssignment")
     @Override
     public void Decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
@@ -270,7 +269,6 @@ public final class BQueue extends Zeze.Transaction.Bean {
     protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
     }
 
-    @SuppressWarnings("RedundantIfStatement")
     @Override
     public boolean NegativeCheck() {
         if (getHeadNodeId() < 0)

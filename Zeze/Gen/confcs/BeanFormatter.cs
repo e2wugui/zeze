@@ -25,7 +25,6 @@ namespace Zeze.Gen.confcs
             sw.WriteLine();
             sw.WriteLine("namespace " + bean.Space.Path());
             sw.WriteLine("{");
-            sw.WriteLine();
             sw.WriteLine($"    public sealed class {bean.Name} : Zeze.Util.ConfBean");
             sw.WriteLine("    {");
             WriteDefine(sw);
@@ -49,45 +48,45 @@ namespace Zeze.Gen.confcs
                 if (vt is TypeDynamic)
                     sw.WriteLine("        " + TypeName.GetName(vt) + " " + v.NamePrivate + ";" + v.Comment);
                 else
-                    sw.WriteLine("        public " + TypeName.GetName(vt) + " " + v.NameUpper1 + ";" + v.Comment);
+                    sw.WriteLine("        public " + TypeName.GetName(vt) + " " + v.Name + ";" + v.Comment);
             }
             sw.WriteLine();
 
             Property.Make(bean, sw, "        ");
             Construct.Make(bean, sw, "        ");
-            cs.Assign.Make(bean, sw, "        ");
+            // cs.Assign.Make(bean, sw, "        ");
             // Copy
-            sw.WriteLine();
-            sw.WriteLine("        public " + bean.Name + " Copy()");
-            sw.WriteLine("        {");
-            sw.WriteLine("            var copy = new " + bean.Name + "();");
-            sw.WriteLine("            copy.Assign(this);");
-            sw.WriteLine("            return copy;");
-            sw.WriteLine("        }");
-            sw.WriteLine();
-            sw.WriteLine($"        public static void Swap({bean.Name} a, {bean.Name} b)");
-            sw.WriteLine("        {");
-            sw.WriteLine($"            {bean.Name} save = a.Copy();");
-            sw.WriteLine("            a.Assign(b);");
-            sw.WriteLine("            b.Assign(save);");
-            sw.WriteLine("        }");
-            sw.WriteLine();
-            sw.WriteLine("        public override Zeze.Util.ConfBean CopyBean()");
-            sw.WriteLine("        {");
-            sw.WriteLine("            return Copy();");
-            sw.WriteLine("        }");
-            sw.WriteLine();
+            // sw.WriteLine();
+            // sw.WriteLine("        public " + bean.Name + " Copy()");
+            // sw.WriteLine("        {");
+            // sw.WriteLine("            var copy = new " + bean.Name + "();");
+            // sw.WriteLine("            copy.Assign(this);");
+            // sw.WriteLine("            return copy;");
+            // sw.WriteLine("        }");
+            // sw.WriteLine();
+            // sw.WriteLine($"        public static void Swap({bean.Name} a, {bean.Name} b)");
+            // sw.WriteLine("        {");
+            // sw.WriteLine($"            {bean.Name} save = a.Copy();");
+            // sw.WriteLine("            a.Assign(b);");
+            // sw.WriteLine("            b.Assign(save);");
+            // sw.WriteLine("        }");
+            // sw.WriteLine();
+            // sw.WriteLine("        public override Zeze.Util.ConfBean CopyBean()");
+            // sw.WriteLine("        {");
+            // sw.WriteLine("            return Copy();");
+            // sw.WriteLine("        }");
+            // sw.WriteLine();
             sw.WriteLine("        public const long TYPEID = " + bean.TypeId + ";");
             sw.WriteLine("        public override long TypeId => TYPEID;");
             sw.WriteLine();
-            cs.Decode.Make(bean, sw, "        ");
+            cs.Decode.Make(bean, sw, "        ", false);
             var macro = project.MacroEditor;
             if (false == string.IsNullOrEmpty(macro))
                 sw.WriteLine($"#if {macro}");
             {
-                cs.Tostring.Make(bean, sw, "        ");
-                cs.Encode.Make(bean, sw, "        ");
-                cs.NegativeCheck.Make(bean, sw, "        ");
+                cs.Tostring.Make(bean, sw, "        ", false);
+                cs.Encode.Make(bean, sw, "        ", false);
+                // cs.NegativeCheck.Make(bean, sw, "        ");
             }
             if (false == string.IsNullOrEmpty(macro))
                 sw.WriteLine($"#endif // {macro}");

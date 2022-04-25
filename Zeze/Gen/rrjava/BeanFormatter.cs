@@ -22,6 +22,7 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine("import Zeze.Serialize.ByteBuffer;");
             sw.WriteLine();
             // sw.WriteLine($"public final class {bean.Name} extends Zeze.Transaction.Bean implements {bean.Name}ReadOnly {{");
+            sw.WriteLine("@SuppressWarnings({\"UnusedAssignment\", \"RedundantIfStatement\", \"SwitchStatementWithTooFewBranches\", \"RedundantSuppression\"})");
             sw.WriteLine($"public final class {bean.Name} extends Zeze.Raft.RocksRaft.Bean {{");
             WriteDefine(sw);
             sw.WriteLine("}");

@@ -3,6 +3,7 @@ package Zeze.Builtin.DelayRemove;
 
 import Zeze.Serialize.ByteBuffer;
 
+@SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BTableKey extends Zeze.Transaction.Bean {
     private String _TableName;
     private Zeze.Net.Binary _EncodedKey;
@@ -144,7 +145,6 @@ public final class BTableKey extends Zeze.Transaction.Bean {
         _PRE_ALLOC_SIZE_ = size;
     }
 
-    @SuppressWarnings("UnusedAssignment")
     @Override
     public void Encode(ByteBuffer _o_) {
         int _i_ = 0;
@@ -165,7 +165,6 @@ public final class BTableKey extends Zeze.Transaction.Bean {
         _o_.WriteByte(0);
     }
 
-    @SuppressWarnings("UnusedAssignment")
     @Override
     public void Decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
@@ -188,7 +187,6 @@ public final class BTableKey extends Zeze.Transaction.Bean {
     protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
     }
 
-    @SuppressWarnings("RedundantIfStatement")
     @Override
     public boolean NegativeCheck() {
         return false;
