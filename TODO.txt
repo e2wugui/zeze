@@ -25,7 +25,6 @@ Online Account
    OR -> List<OperateLog> 所有操作记录日志，收到方重做。问题：Get(index).Update，怎么融入。
 2. Game.Bag Listener
 
-【给张路写了】
 1. Online Memory Table 可以存储在线相关数据。
    功能
    a) Local.Online.Count

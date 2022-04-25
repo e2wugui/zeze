@@ -24,7 +24,6 @@ namespace Zeze.Gen.confcs
 
         public void Visit(Bean type)
         {
-            WriteProperty(type);
         }
 
         void WriteProperty(Type type, bool checkNull = false)
@@ -39,67 +38,54 @@ namespace Zeze.Gen.confcs
 
         public void Visit(BeanKey type)
         {
-            WriteProperty(type);
         }
 
         public void Visit(TypeByte type)
         {
-            WriteProperty(type);
         }
 
         public void Visit(TypeDouble type)
         {
-            WriteProperty(type);
         }
 
         public void Visit(TypeInt type)
         {
-            WriteProperty(type);
         }
 
         public void Visit(TypeLong type)
         {
-            WriteProperty(type);
         }
 
         public void Visit(TypeBool type)
         {
-            WriteProperty(type);
         }
 
         public void Visit(TypeBinary type)
         {
-            WriteProperty(type);
         }
 
         public void Visit(TypeString type)
         {
-            WriteProperty(type, true);
         }
 
         public void Visit(TypeList type)
         {
-            WriteProperty(type);
         }
 
         public void Visit(TypeSet type)
         {
-            WriteProperty(type);
         }
 
         public void Visit(TypeMap type)
         {
-            WriteProperty(type);
         }
 
         public void Visit(TypeFloat type)
         {
-            WriteProperty(type);
         }
 
         public void Visit(TypeShort type)
         {
-            WriteProperty(type);
         }
 
         public void Visit(TypeDynamic type)
@@ -153,32 +139,26 @@ namespace Zeze.Gen.confcs
 
         public void Visit(TypeQuaternion type)
         {
-            WriteProperty(type);
         }
 
         public void Visit(TypeVector2 type)
         {
-            WriteProperty(type);
         }
 
         public void Visit(TypeVector2Int type)
         {
-            WriteProperty(type);
         }
 
         public void Visit(TypeVector3 type)
         {
-            WriteProperty(type);
         }
 
         public void Visit(TypeVector3Int type)
         {
-            WriteProperty(type);
         }
 
         public void Visit(TypeVector4 type)
         {
-            WriteProperty(type);
         }
     }
 }

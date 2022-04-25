@@ -46,7 +46,10 @@ namespace Zeze.Gen.confcs
             foreach (Variable v in bean.Variables)
             {
                 Type vt = v.VariableType;
-                sw.WriteLine("        " + TypeName.GetName(vt) + " " + v.NamePrivate + ";" + v.Comment);
+                if (vt is TypeDynamic)
+                    sw.WriteLine("        " + TypeName.GetName(vt) + " " + v.NamePrivate + ";" + v.Comment);
+                else
+                    sw.WriteLine("        public " + TypeName.GetName(vt) + " " + v.NameUpper1 + ";" + v.Comment);
             }
             sw.WriteLine();
 
