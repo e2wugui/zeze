@@ -192,6 +192,18 @@ namespace Zeze.Game
             return 0;
         }
 
+        protected async Task<BRankList> GetRankAll(int hash, BConcurrentKey key)
+        {
+            var concurrentKey = new BConcurrentKey(key.RankType, hash, key.TimeType, key.Year, key.Offset);
+            return await _trank.GetOrAddAsync(concurrentKey);
+        }
+
+        [RedirectAll("GetConcurrentLevel(key.RankType)")]
+        public Task<RedirectAll<BRankList>> GetRankAll(BConcurrentKey key)
+        {
+            return null;
+        }
+
         private BRankList Merge(BRankList left, BRankList right)
         {
             var result = new BRankList();
@@ -230,7 +242,7 @@ namespace Zeze.Game
             return result;
         }
 
-        private async Task<BRankList> GetRankDirect(BConcurrentKey keyHint)
+        public async Task<BRankList> GetRankDirect(BConcurrentKey keyHint)
         {
             // rebuild
             var datas = new List<BRankList>();

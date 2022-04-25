@@ -25,6 +25,6 @@ AutoKeyLocalStep: 自增长步长。server 实例数量上限。
 	</ServiceConf>
 
 	<ServiceConf Name="ServerDirect">
-		<Acceptor Ip="127.0.0.1" Port="20001"/>
+		<Acceptor Ip="" Port="20001"/>
 	</ServiceConf>
 </zeze>
