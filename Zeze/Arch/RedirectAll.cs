@@ -12,7 +12,6 @@ using Zeze.Serialize;
 namespace Zeze.Arch
 {
     public class RedirectAll<T> : Service.ManualContext
-        where T : Gen.Result, new()
     {
         public string MethodFullName { get; }
         public HashSet<int> HashCodes { get; } = new();
@@ -101,12 +100,12 @@ namespace Zeze.Arch
     }
 
     // 不需要结果
-    public class RedirectAll : RedirectAll<Gen.EmptyResult>
+    public class RedirectAll : RedirectAll<Gen.VoidResult>
     {
         public RedirectAll(
             int concurrentLevel, string methodFullName,
-            Func<Binary, Gen.EmptyResult> resultDecoder,
-            Func<RedirectAll<Gen.EmptyResult>, Task> processing = null)
+            Func<Binary, Gen.VoidResult> resultDecoder,
+            Func<RedirectAll<Gen.VoidResult>, Task> processing = null)
             : base(concurrentLevel, methodFullName, resultDecoder, processing)
         {
         }

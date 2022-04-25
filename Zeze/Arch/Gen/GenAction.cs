@@ -86,10 +86,11 @@ namespace Zeze.Arch.Gen
                     break;
 
                 case OverrideType.RedirectAll:
-                    if (GenericArguments.Length != 1)
-                        throw new Exception(m.Method.Name + ": RedirectAll Result Handle Too Many Parameters.");
-                    //if (!RedirectResult.isAssignableFrom(m.ResultType))
-                    //    throw new Exception(m.method.getName() + ": RedirectAll Result Type Must Extend RedirectContext");
+                    if (GenericArguments.Length != 2)
+                        throw new Exception(m.Method.Name + "===Func<RedirectAll<?>, Task>");
+                    MethodMode.GetRedirectAllGenericParameter(GenericArguments[0]);
+                    if (GenericArguments[1] != typeof(Task))
+                        throw new Exception(m.Method.Name + "");
                     break;
             }
         }

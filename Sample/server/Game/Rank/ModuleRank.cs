@@ -390,20 +390,20 @@ namespace Game.Rank
             return null;
         }
 
-        public class MyResult : Zeze.Arch.Gen.Result
+        protected async Task<long> TestAllResult(int hash, int param)
         {
-            public int Value;
-        }
-
-        protected async Task<MyResult> TestAllResult(int hash, int param)
-        {
-            return new MyResult();
+            return 12345;
         }
 
         [RedirectAll("100")]
-        public Task<RedirectAll<MyResult>> TestAllResult(int param)
+        public virtual Task<RedirectAll<long>> TestAllResult(int param)
         {
             return null;
+        }
+
+        public class MyResult : Zeze.Arch.Gen.Result
+        {
+            public int Value;
         }
 
         protected async Task<MyResult> TestAllResultProcessing(int hash, int param)
@@ -412,7 +412,7 @@ namespace Game.Rank
         }
 
         [RedirectAll("100")]
-        public Task<RedirectAll<MyResult>> TestAllResultProcessing(int param, Action<RedirectAll<MyResult>> processing)
+        public virtual Task<RedirectAll<MyResult>> TestAllResultProcessing(int param, Func<RedirectAll<MyResult>, Task> processing)
         {
             return null;
         }

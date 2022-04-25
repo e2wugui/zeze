@@ -18,6 +18,27 @@ namespace Zeze.Arch.Gen
         public bool IsAsync { get; }
         public Type ResultType { get; }
         public bool HasResult => ResultType != null;
+
+        public static Type GetRedirectAllGenericParameter(Type result)
+        {
+            if (result == typeof(RedirectAll))
+                return null;
+
+            if (result.IsGenericType)
+            {
+                if (result.GetGenericTypeDefinition() == typeof(RedirectAll<>))
+                {
+                    return result.GetGenericArguments()[0];
+                }
+            }
+            throw new Exception("Unknown RedirectAll Parameter.");
+        }
+
+        public Type GetRedirectAllGenericParameter()
+        {
+            return GetRedirectAllGenericParameter(ResultType);
+        }
+
         public MethodMode(ParameterInfo rp)
         {
             ReturnParam = rp;
@@ -98,6 +119,28 @@ namespace Zeze.Arch.Gen
                     var asyncResult = "asyncResult" + Gen.Instance.TmpVarNameId.IncrementAndGet();
                     sb.AppendLine($"            var {asyncResult} = await {callstr};");
                     Gen.Instance.GenEncode(sb, prefix, ResultType, asyncResult);
+                }
+                else
+                {
+                    sb.AppendLine($"            await {callstr};");
+                }
+            }
+            else
+            {
+                sb.AppendLine($"            {callstr};");
+            }
+        }
+
+        public void GenCallAndEncodeRedirectAll(string prefix, StringBuilder sb, string callstr)
+        {
+            if (IsAsync)
+            {
+                var realresult = GetRedirectAllGenericParameter();
+                if (null != realresult)
+                {
+                    var asyncResult = "asyncResult" + Gen.Instance.TmpVarNameId.IncrementAndGet();
+                    sb.AppendLine($"            var {asyncResult} = await {callstr};");
+                    Gen.Instance.GenEncode(sb, prefix, realresult, asyncResult);
                 }
                 else
                 {

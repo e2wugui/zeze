@@ -11,9 +11,9 @@ namespace Zeze.Arch.Gen
     {
     }
 
-    public class EmptyResult : Result
+    public class VoidResult : Result
     {
-        public static EmptyResult Instance = new EmptyResult();
-        public static Func<Binary, EmptyResult> Decoder = (param) => Instance;
+        public static VoidResult Instance = new VoidResult();
+        public static Func<Binary, VoidResult> Decoder = (param) => Instance;
     }
 }
