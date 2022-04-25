@@ -225,73 +225,12 @@ namespace Game.Rank
 
         // 属性参数是获取总的并发分组数量的代码，直接复制到生成代码中。
         // 需要注意在子类上下文中可以编译通过。可以是常量。
-        //[RedirectAllHash("GetConcurrentLevel(keyHint.RankType)")]
+        //[RedirectAll()]
         public virtual void GetRank(BConcurrentKey keyHint,
             System.Action<long, int, long, BRankList> onHashResult,
-            Action<RedirectAllContext> onHashEnd
+            Action<RedirectAll> onHashEnd
             )
         {
-            // 默认实现是本地遍历调用，这里不使用App.Zeze.Run启动任务（这样无法等待），直接调用实现。
-            int concurrentLevel = GetConcurrentLevel(keyHint.RankType);
-            var ctx = new RedirectAllContext(concurrentLevel, $"{FullName}:{nameof(GetRank)}")
-            {
-                OnHashEnd = onHashEnd,
-            };
-            long sessionId = App.Server.AddManualContextWithTimeout(ctx); // 处理hash分组结果需要一个上下文保存收集的结果。
-            for (int i = 0; i < concurrentLevel; ++i)
-            {
-                GetRank(sessionId, i, keyHint, onHashResult);
-            }
-        }
-
-        // 使用异步方案构建rank。
-        private void GetRankAsync(BConcurrentKey keyHint, System.Action<Rank> callback)
-        {
-            if (Ranks.TryGetValue(keyHint, out var rank))
-            {
-                long now = Zeze.Util.Time.NowUnixMillis;
-                if (now - rank.BuildTime < RebuildTime)
-                {
-                    callback(rank);
-                    return;
-                }
-            }
-            // 异步方式没法锁住Rank，所以并发的情况下，可能多次去获取数据，多次构建，多次覆盖Ranks的cache。
-            int countNeed = GetRankCount(keyHint.RankType);
-            int concurrentLevel = GetConcurrentLevel(keyHint.RankType);
-            GetRank(keyHint,
-                // Action OnHashResult
-                (sessionId, hash, returnCode, BRankList) =>
-                {
-                    App.Server.TryGetManualContext<RedirectAllContext>(sessionId)
-                        ?.ProcessHash(hash, () => new Rank(), (rank) =>
-                        {
-                            if (returnCode != Procedure.Success) // 只有处理成功的结果才是有效的。
-                                return returnCode;
-                            if (rank.TableValue == null)
-                                rank.TableValue = BRankList.CopyIfManaged(); // 本地实现的时候可能返回受管理的数据Bean，此时需要拷贝。
-                            else
-                                rank.TableValue = Merge(rank.TableValue, BRankList);
-                            if (rank.TableValue.RankList.Count > countNeed) // 合并中间结果超过需要的数量可以先删除。
-                            rank.TableValue.RankList.RemoveRange(countNeed, rank.TableValue.RankList.Count - countNeed);
-                            return Procedure.Success;
-                        });
-                },
-                // Action OnHashEnd
-                (context) =>
-                {
-                    if (context.HashCodes.Count > 0)
-                    {
-                        // 一般是超时发生时还有未返回结果的hash分组。
-                        logger.Warn($"OnHashEnd: timeout with hashs: {context.HashCodes}");
-                    }
-
-                    var rank = context.UserState as Rank;
-                    rank.BuildTime = Zeze.Util.Time.NowUnixMillis;
-                    Ranks[keyHint] = rank; // 覆盖最新的数据到缓存里面。
-                    callback(rank);
-                }
-            );
         }
 
         /// <summary>
@@ -441,53 +380,41 @@ namespace Game.Rank
 
 
         // broardcast awaitable?, collect awaitable!
-        /*
-        [RedirectAllHash("")]
-        [Zeze.Util.TransactionLevel(Level = "None")]
-        protected virtual void TestAllHashBroadcast(int hash, int param)
+        protected async Task TestAllNoResult(int hash, int param)
         {
         }
 
-        public void TestAllHashBroadcast(int param)
-        {
-            TestAllHashBroadcast(100, param);
-        }
-
-        [RedirectAllHash("")]
-        protected virtual async Task TestAllHashBroadcastAwaitable(int hash, int param)
-        {
-        }
-
-        public async Task TestAllHashBroadcastAwaitable(int param)
-        {
-            await TestAllHashBroadcastAwaitable(100, param);
-        }
-
-        public class RedirectAllResult
-        { 
-        }
-
-        [RedirectAllHash("")]
-        protected virtual RedirectAllResult TestAllHashCollect(int hash, int param)
+        [RedirectAll("100")]
+        public virtual Task<RedirectAll> TestAllNoResult(int param)
         {
             return null;
         }
 
-        protected RedirectAllResult TestAllHashCollect(int param)
+        public class MyResult : Zeze.Arch.Gen.Result
         {
-            return TestAllHashCollect(100, param);
+            public int Value;
         }
 
-        [RedirectAllHash("")]
-        protected virtual async Task<RedirectAllResult> TestAllHashCollectAwaitable(int hash, int param)
+        protected async Task<MyResult> TestAllResult(int hash, int param)
         {
-            return new RedirectAllResult();
+            return new MyResult();
         }
 
-        public virtual async Task<RedirectAllResult> TestAllHashCollectAwaitable(int param)
+        [RedirectAll("100")]
+        public Task<RedirectAll<MyResult>> TestAllResult(int param)
         {
-            return await TestAllHashCollectAwaitable(100, param);
+            return null;
         }
-        // */
+
+        protected async Task<MyResult> TestAllResultProcessing(int hash, int param)
+        {
+            return new MyResult();
+        }
+
+        [RedirectAll("100")]
+        public Task<RedirectAll<MyResult>> TestAllResultProcessing(int param, Action<RedirectAll<MyResult>> processing)
+        {
+            return null;
+        }
     }
 }

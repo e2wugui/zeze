@@ -48,7 +48,7 @@ namespace Zeze.Arch.Gen
             {
                 if (CheckAddMethod(method, OverrideType.RedirectHash, method.GetCustomAttributes(typeof(RedirectHashAttribute), false), overrides))
                     continue;
-                if (CheckAddMethod(method, OverrideType.RedirectAll, method.GetCustomAttributes(typeof(RedirectAllHashAttribute), false), overrides))
+                if (CheckAddMethod(method, OverrideType.RedirectAll, method.GetCustomAttributes(typeof(RedirectAllAttribute), false), overrides))
                     continue;
                 if (CheckAddMethod(method, OverrideType.RedirectToServer, method.GetCustomAttributes(typeof(RedirectToServerAttribute), false), overrides))
                     continue;
@@ -61,7 +61,6 @@ namespace Zeze.Arch.Gen
             string genClassName = $"Redirect_{module.FullName.Replace('.', '_')}";
             if (null == GenRedirect)
             {
-                module.UnRegister();
                 //Console.WriteLine($"'{module.FullName}' Replaced.");
                 // from Game.App.Start. try load new module instance.
                 foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
@@ -75,11 +74,8 @@ namespace Zeze.Arch.Gen
                     {
                         continue;
                     }
-                    if (null == replaceModuleType)
-                        continue;
-                    var newModule = (Zeze.IModule)Activator.CreateInstance(replaceModuleType, userApp);
-                    newModule.Initialize(userApp);
-                    return newModule;
+                    if (null != replaceModuleType)
+                        return (Zeze.IModule)Activator.CreateInstance(replaceModuleType, userApp);
                 }
             }
 
@@ -104,7 +100,6 @@ namespace Zeze.Arch.Gen
                 System.IO.File.SetLastWriteTime(genFileName, new DateTime(srcLastWriteTimeTicks));
                 /*/
                 // .net core, .net 5.0+ 不支持编译。 
-                module.UnRegister();
                 return CompileCode(code, genClassName);
                 //*/
             }

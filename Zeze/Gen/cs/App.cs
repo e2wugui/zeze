@@ -81,8 +81,9 @@ namespace Zeze.Gen.cs
             {
                 var fullname = m.Path("_");
                 sw.WriteLine($"                {fullname} = new {m.Path(".", $"Module{m.Name}")}(this);");
-                sw.WriteLine($"                {fullname}.Initialize(this);");
                 sw.WriteLine($"                {fullname} = ({m.Path(".", $"Module{m.Name}")})ReplaceModuleInstance({fullname});");
+                sw.WriteLine($"                {fullname}.Initialize();");
+                sw.WriteLine($"                {fullname}.Register();");
                 sw.WriteLine($"                Modules.Add({fullname}.FullName, {fullname});");
             }
             sw.WriteLine();

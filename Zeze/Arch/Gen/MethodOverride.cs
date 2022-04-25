@@ -148,7 +148,7 @@ namespace Zeze.Arch.Gen
         {
             if (OverrideType != OverrideType.RedirectAll)
                 throw new Exception("is not RedirectAll");
-            var attr = Attribute as RedirectAllHashAttribute;
+            var attr = Attribute as RedirectAllAttribute;
             return attr.GetConcurrentLevelSource;
         }
     }

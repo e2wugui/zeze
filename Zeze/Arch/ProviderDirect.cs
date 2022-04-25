@@ -143,7 +143,7 @@ namespace Zeze.Arch
         protected override async Task<long> ProcessModuleRedirectAllResult(Zeze.Net.Protocol p)
         {
             var protocol = p as ModuleRedirectAllResult;
-            await ProviderApp.ProviderDirectService.TryGetManualContext<RedirectAllContext>(
+            await ProviderApp.ProviderDirectService.TryGetManualContext<RedirectAll>(
                 protocol.Argument.SessionId)?.ProcessResult(ProviderApp.Zeze, protocol);
             return Procedure.Success;
         }

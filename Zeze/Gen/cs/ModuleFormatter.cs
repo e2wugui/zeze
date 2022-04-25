@@ -188,6 +188,10 @@ namespace Zeze.Gen.cs
             sw.WriteLine($"        public Module{module.Name}(global::{project.Solution.Name}.App app)");
             sw.WriteLine("        {");
             sw.WriteLine("            App = app;");
+            sw.WriteLine("        }");
+            sw.WriteLine();
+            sw.WriteLine("        public override void Register()");
+            sw.WriteLine("        {");
             RegisterProtocols(sw);
             RegisterZezeTables(sw);
             sw.WriteLine("        }");

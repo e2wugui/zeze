@@ -12,6 +12,12 @@ Zezex.client: 可靠消息实现的错误检查。
 Global.RocksRaft.LruTryRemoveCallback
 Global c# 慢的问题。
 
+1. raft 异步测试
+2. Global With Raft 异步测试
+3. Test TestGlobal Simulate 异步测试
+
+Online Account
+
 1. 把 RocksRaft Changes 应用到 Zeze 中，让 Zeze 实现Bean任意级别的更新。// 1. 仅支持整个Bean的订阅。2. log factory 问题。3. 动态订阅。add listener和notify原子问题。
    RocksRaft Collection.List LogList
    SortedDictionary<int, Log Or Bean> ChangeOrAdd; // 优化。中间的值发生了改变或者在尾巴增加。
@@ -19,16 +25,8 @@ Global c# 慢的问题。
    OR -> List<OperateLog> 所有操作记录日志，收到方重做。问题：Get(index).Update，怎么融入。
 2. Game.Bag Listener
 
-1. raft 异步测试
-2. Global With Raft 异步测试
-3. Test TestGlobal Simulate 异步测试
-
-Online Account
-
 1. c# Arch RedirectAll & Test
 2. c# Game.Rank TODO GetRankAll Test
-
-1. Zezex Onlines TransmitInProcedure 需要重写。需要改成使用ProviderDirect。
 
 【给张路写了】
 1. Online Memory Table 可以存储在线相关数据。
@@ -47,6 +45,7 @@ Online Account
 
 【2022/5/11】
 
+1. Zezex Onlines TransmitInProcedure 需要重写。需要改成使用ProviderDirectService.ProviderByServerId。
 1. FewModifyList
 2. FewModifyMap
 c# RedirectGenMain 内建模块Redirect生成。

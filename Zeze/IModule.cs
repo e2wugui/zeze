@@ -11,7 +11,11 @@ namespace Zeze
         public virtual int Id { get; }
         public virtual bool IsBuiltin => false;
 
-        public virtual void UnRegister() // 为了重新装载 Module 的补丁。注册在构造函数里面进行。
+        public virtual void Register()
+        {
+        }
+
+        public virtual void UnRegister()
         {
         }
 
@@ -32,7 +36,7 @@ namespace Zeze
             return Zeze.Net.Protocol.GetProtocolId(result);
         }
 
-        public virtual void Initialize(AppBase app)
+        public virtual void Initialize()
         {
 
         }

@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 namespace Zeze.Arch
 {
     [System.AttributeUsage(System.AttributeTargets.Method)]
-    public class RedirectAllHashAttribute : System.Attribute
+    public class RedirectAllAttribute : System.Attribute
     {
         public string GetConcurrentLevelSource { get; }
 
-        public RedirectAllHashAttribute(string source)
+        public RedirectAllAttribute(string source)
         {
             GetConcurrentLevelSource = source;
         }
