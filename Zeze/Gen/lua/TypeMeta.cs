@@ -121,5 +121,35 @@ namespace Zeze.Gen.lua
             Type = ByteBuffer.DYNAMIC;
             // TypeBeanTypeId = 使用的时候指定。
         }
+
+        public void Visit(TypeQuaternion type)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public void Visit(TypeVector2 type)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public void Visit(TypeVector2Int type)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public void Visit(TypeVector3 type)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public void Visit(TypeVector3Int type)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public void Visit(TypeVector4 type)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

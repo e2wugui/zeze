@@ -122,5 +122,35 @@ namespace Zeze.Gen.rrcs
             sw.WriteLine(prefix + variable.NamePrivate + " = new Zeze.Raft.RocksRaft.DynamicBean"
                 + $"({variable.Id}, GetSpecialTypeIdFromBean_{variable.NameUpper1}, CreateBeanFromSpecialTypeId_{variable.NameUpper1});");
         }
+
+        public void Visit(TypeQuaternion type)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public void Visit(TypeVector2 type)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public void Visit(TypeVector2Int type)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public void Visit(TypeVector3 type)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public void Visit(TypeVector3Int type)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public void Visit(TypeVector4 type)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

@@ -87,5 +87,35 @@ namespace Zeze.Gen.cs
         {
             Name = "ByteBuffer.DYNAMIC";
         }
+
+        public void Visit(TypeQuaternion type)
+        {
+            Name = "ByteBuffer.VECTOR4";
+        }
+
+        public void Visit(TypeVector2 type)
+        {
+            Name = "ByteBuffer.VECTOR2";
+        }
+
+        public void Visit(TypeVector2Int type)
+        {
+            Name = "ByteBuffer.VECTOR2INT";
+        }
+
+        public void Visit(TypeVector3 type)
+        {
+            Name = "ByteBuffer.VECTOR3";
+        }
+
+        public void Visit(TypeVector3Int type)
+        {
+            Name = "ByteBuffer.VECTOR3INT";
+        }
+
+        public void Visit(TypeVector4 type)
+        {
+            Name = "ByteBuffer.VECTOR4";
+        }
     }
 }

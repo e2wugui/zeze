@@ -112,5 +112,35 @@ namespace Zeze.Gen.cs
         {
             sw.WriteLine(prefix + var.NameUpper1 + ".Assign(other." + var.NameUpper1 + ");");
         }
+
+        public void Visit(TypeQuaternion type)
+        {
+            sw.WriteLine(prefix + var.NameUpper1 + " = other." + var.NameUpper1 + ";");
+        }
+
+        public void Visit(TypeVector2 type)
+        {
+            sw.WriteLine(prefix + var.NameUpper1 + " = other." + var.NameUpper1 + ";");
+        }
+
+        public void Visit(TypeVector2Int type)
+        {
+            sw.WriteLine(prefix + var.NameUpper1 + " = other." + var.NameUpper1 + ";");
+        }
+
+        public void Visit(TypeVector3 type)
+        {
+            sw.WriteLine(prefix + var.NameUpper1 + " = other." + var.NameUpper1 + ";");
+        }
+
+        public void Visit(TypeVector3Int type)
+        {
+            sw.WriteLine(prefix + var.NameUpper1 + " = other." + var.NameUpper1 + ";");
+        }
+
+        public void Visit(TypeVector4 type)
+        {
+            sw.WriteLine(prefix + var.NameUpper1 + " = other." + var.NameUpper1 + ";");
+        }
     }
 }

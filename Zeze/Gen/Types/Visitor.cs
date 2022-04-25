@@ -17,5 +17,13 @@ namespace Zeze.Gen.Types
         public void Visit(Bean type);        // 序列化类型: 6
         public void Visit(BeanKey type);     // 序列化类型: 6
         public void Visit(TypeDynamic type); // 序列化类型: 7
+
+        // UnityEngine Types
+        public void Visit(TypeQuaternion type);
+        public void Visit(TypeVector2 type);
+        public void Visit(TypeVector2Int type);
+        public void Visit(TypeVector3 type);
+        public void Visit(TypeVector3Int type);
+        public void Visit(TypeVector4 type);
     }
 }

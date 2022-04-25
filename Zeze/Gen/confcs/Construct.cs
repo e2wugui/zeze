@@ -51,6 +51,16 @@ namespace Zeze.Gen.confcs
 			}
 		}
 
+        void InitialNew(Type type)
+        {
+            string value = variable.Initial;
+            if (value.Length > 0)
+            {
+                string varname = variable.NamePrivate;
+                sw.WriteLine($"{prefix}{varname} = new {TypeName.GetName(type)}{value};");
+            }
+        }
+
         public void Visit(Bean type)
         {
             string typeName = TypeName.GetName(type);
@@ -59,8 +69,7 @@ namespace Zeze.Gen.confcs
 
         public void Visit(BeanKey type)
         {
-            string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "();");
+            InitialNew(type);
         }
 
         public void Visit(TypeByte type)
@@ -140,6 +149,36 @@ namespace Zeze.Gen.confcs
                 sw.WriteLine(prefix + variable.NamePrivate + " = new Zeze.Transaction.DynamicBean"
                     + $"({variable.Id}, {type.GetSpecialTypeIdFromBean}, {type.CreateBeanFromSpecialTypeId});");
             }
+        }
+
+        public void Visit(TypeQuaternion type)
+        {
+            InitialNew(type);
+        }
+
+        public void Visit(TypeVector2 type)
+        {
+            InitialNew(type);
+        }
+
+        public void Visit(TypeVector2Int type)
+        {
+            InitialNew(type);
+        }
+
+        public void Visit(TypeVector3 type)
+        {
+            InitialNew(type);
+        }
+
+        public void Visit(TypeVector3Int type)
+        {
+            InitialNew(type);
+        }
+
+        public void Visit(TypeVector4 type)
+        {
+            InitialNew(type);
         }
     }
 }

@@ -102,5 +102,35 @@ namespace Zeze.Gen.cs
         {
             DefineStack(type);
         }
+
+        public void Visit(TypeQuaternion type)
+        {
+            DefineNew(type);
+        }
+
+        public void Visit(TypeVector2 type)
+        {
+            DefineNew(type);
+        }
+
+        public void Visit(TypeVector2Int type)
+        {
+            DefineNew(type);
+        }
+
+        public void Visit(TypeVector3 type)
+        {
+            DefineNew(type);
+        }
+
+        public void Visit(TypeVector3Int type)
+        {
+            DefineNew(type);
+        }
+
+        public void Visit(TypeVector4 type)
+        {
+            DefineNew(type);
+        }
     }
 }

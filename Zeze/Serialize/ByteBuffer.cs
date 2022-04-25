@@ -882,7 +882,15 @@ namespace Zeze.Serialize
             LIST = 4, // list,set
             MAP = 5, // map
             BEAN = 6, // bean
-            DYNAMIC = 7; // dynamic
+            DYNAMIC = 7, // dynamic
+            EXTERN = 8, // Unity Common Struct
+            VECTOR2 = 9,
+            VECTOR2INT = 10,
+            VECTOR3 = 11,
+            VECTOR3INT = 12,
+            VECTOR4 = 13, // Just Quaternion 
+
+            END = 15;
 
         public const int TAG_SHIFT = 4;
         public const int TAG_MASK = (1 << TAG_SHIFT) - 1;
@@ -1184,8 +1192,25 @@ namespace Zeze.Serialize
                         SkipUnknownField(t);
                     }
                     return;
+                case EXTERN:
+                    SkipUnknownExternField();
+                    return;
                 default:
                     throw new Exception("SkipUnknownField");
+            }
+        }
+
+        // 外部扩展类型。
+        public const int
+            EXTERN_END = int.MaxValue;
+
+        private void SkipUnknownExternField()
+        {
+            var externType = ReadInt();
+            switch (externType)
+            {
+                default:
+                    throw new Exception("Unknown Extern Field");
             }
         }
 

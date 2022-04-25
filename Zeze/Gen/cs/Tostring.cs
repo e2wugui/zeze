@@ -204,5 +204,53 @@ namespace Zeze.Gen.cs
                 sw.Write($".Append('{sep}')");
             sw.WriteLine(".Append(Environment.NewLine);");
         }
+
+        public void Visit(TypeQuaternion type)
+        {
+            sw.Write(prefix + $"sb.Append(Zeze.Util.Str.Indent(level)).Append(\"{var}\").Append(\"=(\").Append({var}.x).Append(',').Append({var}.y).Append(',').Append({var}.z).Append(',').Append({var}.w).Append(')')");
+            if (sep != 0)
+                sw.Write($".Append('{sep}')");
+            sw.WriteLine(".Append(Environment.NewLine);");
+        }
+
+        public void Visit(TypeVector2 type)
+        {
+            sw.Write(prefix + $"sb.Append(Zeze.Util.Str.Indent(level)).Append(\"{var}\").Append(\"=(\").Append({var}.x).Append(',').Append({var}.y).Append(')')");
+            if (sep != 0)
+                sw.Write($".Append('{sep}')");
+            sw.WriteLine(".Append(Environment.NewLine);");
+        }
+
+        public void Visit(TypeVector2Int type)
+        {
+            sw.Write(prefix + $"sb.Append(Zeze.Util.Str.Indent(level)).Append(\"{var}\").Append(\"=(\").Append({var}.x).Append(',').Append({var}.y).Append(')')");
+            if (sep != 0)
+                sw.Write($".Append('{sep}')");
+            sw.WriteLine(".Append(Environment.NewLine);");
+        }
+
+        public void Visit(TypeVector3 type)
+        {
+            sw.Write(prefix + $"sb.Append(Zeze.Util.Str.Indent(level)).Append(\"{var}\").Append(\"=(\").Append({var}.x).Append(',').Append({var}.y).Append(',').Append({var}.z).Append(')')");
+            if (sep != 0)
+                sw.Write($".Append('{sep}')");
+            sw.WriteLine(".Append(Environment.NewLine);");
+        }
+
+        public void Visit(TypeVector3Int type)
+        {
+            sw.Write(prefix + $"sb.Append(Zeze.Util.Str.Indent(level)).Append(\"{var}\").Append(\"=(\").Append({var}.x).Append(',').Append({var}.y).Append(',').Append({var}.z).Append(')')");
+            if (sep != 0)
+                sw.Write($".Append('{sep}')");
+            sw.WriteLine(".Append(Environment.NewLine);");
+        }
+
+        public void Visit(TypeVector4 type)
+        {
+            sw.Write(prefix + $"sb.Append(Zeze.Util.Str.Indent(level)).Append(\"{var}\").Append(\"=(\").Append({var}.x).Append(',').Append({var}.y).Append(',').Append({var}.z).Append(',').Append({var}.w).Append(')')");
+            if (sep != 0)
+                sw.Write($".Append('{sep}')");
+            sw.WriteLine(".Append(Environment.NewLine);");
+        }
     }
 }

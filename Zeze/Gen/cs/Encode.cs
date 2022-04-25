@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using Zeze.Gen.Types;
+using Zeze.Serialize;
 
 namespace Zeze.Gen.cs
 {
@@ -318,6 +319,50 @@ namespace Zeze.Gen.cs
             }
             else
                 throw new Exception("invalid variable.id");
+        }
+
+        public void Visit(TypeQuaternion type)
+        {
+            if (id > 0)
+            {
+                sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
+                sw.WriteLine($"{prefix}    {bufname}.WriteFloat({varname}.x)");
+                sw.WriteLine($"{prefix}    {bufname}.WriteFloat({varname}.y)");
+                sw.WriteLine($"{prefix}    {bufname}.WriteFloat({varname}.z)");
+                sw.WriteLine($"{prefix}    {bufname}.WriteFloat({varname}.w)");
+            }
+            else
+            {
+                sw.WriteLine($"{prefix}{bufname}.WriteFloat({varname}.x)");
+                sw.WriteLine($"{prefix}{bufname}.WriteFloat({varname}.y)");
+                sw.WriteLine($"{prefix}{bufname}.WriteFloat({varname}.z)");
+                sw.WriteLine($"{prefix}{bufname}.WriteFloat({varname}.w)");
+            }
+        }
+
+        public void Visit(TypeVector2 type)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Visit(TypeVector2Int type)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Visit(TypeVector3 type)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Visit(TypeVector3Int type)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Visit(TypeVector4 type)
+        {
+            throw new NotImplementedException();
         }
     }
 }

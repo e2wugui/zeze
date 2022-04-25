@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using Zeze.Gen.Types;
+using Zeze.Serialize;
 
 namespace Zeze.Gen.cs
 {
@@ -262,6 +263,109 @@ namespace Zeze.Gen.cs
                 sw.WriteLine(prefix + bufname + ".ReadDynamic(" + varname + ", _t_);");
             else
                 throw new Exception("invalid variable.id");
+        }
+
+        public void Visit(TypeQuaternion type)
+        {
+            if (id > 0)
+            {
+                sw.WriteLine($"{prefix}if ((_t_ & ByteBuffer.TAG_MASK) == {TypeTagName.GetName(type)})");
+                sw.WriteLine($"{prefix}{{");
+                sw.WriteLine($"{prefix}    {varname}.x = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}    {varname}.y = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}    {varname}.z = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}    {varname}.w = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}}}");
+            }
+            else
+            {
+                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}{varname}.z = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}{varname}.w = {bufname}.ReadFloat();");
+            }
+        }
+
+        public void Visit(TypeVector2 type)
+        {
+            sw.WriteLine($"{prefix}if ({ByteBuffer.VECTOR2} != {bufname}.ReadInt()) throw new System.Exception(\"Sub Type Mis Match.\");");
+            if (id > 0)
+            {
+                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadFloat();");
+            }
+            else
+            {
+                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadFloat();");
+            }
+        }
+
+        public void Visit(TypeVector2Int type)
+        {
+            sw.WriteLine($"{prefix}if ({ByteBuffer.VECTOR2INT} != {bufname}.ReadInt()) throw new System.Exception(\"Sub Type Mis Match.\");");
+            if (id > 0)
+            {
+                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadInt();");
+                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadInt();");
+            }
+            else
+            {
+                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadInt();");
+                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadInt();");
+            }
+        }
+
+        public void Visit(TypeVector3 type)
+        {
+            sw.WriteLine($"{prefix}if ({ByteBuffer.VECTOR3} != {bufname}.ReadInt()) throw new System.Exception(\"Sub Type Mis Match.\");");
+            if (id > 0)
+            {
+                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}{varname}.z = {bufname}.ReadFloat();");
+            }
+            else
+            {
+                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}{varname}.z = {bufname}.ReadFloat();");
+            }
+        }
+
+        public void Visit(TypeVector3Int type)
+        {
+            if (id > 0)
+            {
+                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadInt();");
+                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadInt();");
+                sw.WriteLine($"{prefix}{varname}.z = {bufname}.ReadInt();");
+            }
+            else
+            {
+                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadInt();");
+                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadInt();");
+                sw.WriteLine($"{prefix}{varname}.z = {bufname}.ReadInt();");
+            }
+        }
+
+        public void Visit(TypeVector4 type)
+        {
+            sw.WriteLine($"{prefix}if ({ByteBuffer.VECTOR4} != {bufname}.ReadInt()) throw new System.Exception(\"Sub Type Mis Match.\");");
+            if (id > 0)
+            {
+                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}{varname}.z = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}{varname}.w = {bufname}.ReadFloat();");
+            }
+            else
+            {
+                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}{varname}.z = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}{varname}.w = {bufname}.ReadFloat();");
+            }
         }
     }
 }

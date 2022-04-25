@@ -112,6 +112,36 @@ namespace Zeze.Gen.rrjava
             throw new NotImplementedException();
         }
 
+        public void Visit(Types.TypeQuaternion type)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Visit(Types.TypeVector2 type)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Visit(Types.TypeVector2Int type)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Visit(Types.TypeVector3 type)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Visit(Types.TypeVector3Int type)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Visit(Types.TypeVector4 type)
+        {
+            throw new NotImplementedException();
+        }
+
         public LeaderApplyNoRecursive(Types.Variable var, StreamWriter sw, string prefix)
         {
             this.var = var;

@@ -95,5 +95,35 @@ namespace Zeze.Gen.confcs
         {
             name = "Zeze.Util.ConfDynamicBean";
         }
+
+        public void Visit(TypeQuaternion type)
+        {
+            name = "UnityEngine.Quaternion";
+        }
+
+        public void Visit(TypeVector2 type)
+        {
+            name = "UnityEngine.Vector2";
+        }
+
+        public void Visit(TypeVector2Int type)
+        {
+            name = "UnityEngine.Vector2Int";
+        }
+
+        public void Visit(TypeVector3 type)
+        {
+            name = "UnityEngine.Vector3";
+        }
+
+        public void Visit(TypeVector3Int type)
+        {
+            name = "UnityEngine.Vector3Int";
+        }
+
+        public void Visit(TypeVector4 type)
+        {
+            name = "UnityEngine.Vector4";
+        }
     }
 }

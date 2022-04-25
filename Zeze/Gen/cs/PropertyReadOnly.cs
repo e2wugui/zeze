@@ -121,5 +121,35 @@ namespace Zeze.Gen.cs
                 sw.WriteLine(prefix + "public " + rname + "ReadOnly " + var.NameUpper1 + "_" + real.Space.Path("_", real.Name) + " { get; }");
             }
         }
+
+        public void Visit(TypeQuaternion type)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public void Visit(TypeVector2 type)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public void Visit(TypeVector2Int type)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public void Visit(TypeVector3 type)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public void Visit(TypeVector3Int type)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public void Visit(TypeVector4 type)
+        {
+            throw new System.NotImplementedException();
+        }
     }
 }

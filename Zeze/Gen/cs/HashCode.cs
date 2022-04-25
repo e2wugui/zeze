@@ -14,67 +14,68 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    int _h_ = 0;");
             foreach (Variable var in bean.Variables)
 			{
-				HashCode e = new HashCode(var.NamePrivate);
+				HashCode e = new HashCode(sw, prefix + "    ", var.NamePrivate);
 				var.VariableType.Accept(e);
-				sw.WriteLine(prefix + "    _h_ = _h_ * _prime_ + " + e.text + ";");
 			}
 			sw.WriteLine(prefix + "    return _h_;");
 			sw.WriteLine(prefix + "}");
 			sw.WriteLine();
 		}
 
+        readonly string prefix;
         readonly string varname;
-        string text;
+        readonly StreamWriter sw;
 
-        public HashCode(string varname)
+        public HashCode(StreamWriter sw, string prefix, string varname)
         {
+            this.sw = sw;
+            this.prefix = prefix;
             this.varname = varname;
         }
 
         public void Visit(Bean type)
         {
-            text = varname + ".GetHashCode()";
+            sw.WriteLine($"{prefix}_h_ = _h_ * _prime_ + {varname}.GetHashCode();");
         }
 
         public void Visit(BeanKey type)
         {
-            text = varname + ".GetHashCode()";
+            sw.WriteLine($"{prefix}_h_ = _h_ * _prime_ + {varname}.GetHashCode();");
         }
 
         public void Visit(TypeByte type)
         {
-            text = varname + ".GetHashCode()";
+            sw.WriteLine($"{prefix}_h_ = _h_ * _prime_ + {varname}.GetHashCode();");
         }
 
         public void Visit(TypeDouble type)
         {
-            //text = "(int)System.BitConverter.DoubleToInt64Bits(" + varname + ")";
             throw new NotImplementedException();
         }
 
         public void Visit(TypeInt type)
         {
-            text = varname + ".GetHashCode()";
+            sw.WriteLine($"{prefix}_h_ = _h_ * _prime_ + {varname}.GetHashCode();");
         }
 
         public void Visit(TypeLong type)
         {
-            text = varname + ".GetHashCode()";
+            sw.WriteLine($"{prefix}_h_ = _h_ * _prime_ + {varname}.GetHashCode();");
         }
 
         public void Visit(TypeBool type)
         {
-            text = varname + ".GetHashCode()";
+            sw.WriteLine($"{prefix}_h_ = _h_ * _prime_ + {varname}.GetHashCode();");
         }
 
         public void Visit(TypeBinary type)
         {
-            text = varname + ".GetHashCode()";
+            sw.WriteLine($"{prefix}_h_ = _h_ * _prime_ + {varname}.GetHashCode();");
         }
 
         public void Visit(TypeString type)
         {
-            text = varname + ".GetHashCode()";
+            sw.WriteLine($"{prefix}_h_ = _h_ * _prime_ + {varname}.GetHashCode();");
         }
 
         public void Visit(TypeList type)
@@ -94,17 +95,51 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeFloat type)
         {
-            text = "System.BitConverter.SingleToInt32Bits(" + varname + ").GetHashCode()";
+            throw new NotImplementedException();
+            //text = "System.BitConverter.SingleToInt32Bits(" + varname + ").GetHashCode()";
         }
 
         public void Visit(TypeShort type)
         {
-            text = varname + ".GetHashCode()";
+            sw.WriteLine($"{prefix}_h_ = _h_ * _prime_ + {varname}.GetHashCode();");
         }
 
         public void Visit(TypeDynamic type)
         {
             throw new NotImplementedException();
         }
-	}
+
+        public void Visit(TypeQuaternion type)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Visit(TypeVector2 type)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Visit(TypeVector2Int type)
+        {
+            sw.WriteLine($"{prefix}_h_ = _h_ * _prime_ + {varname}.x.GetHashCode();");
+            sw.WriteLine($"{prefix}_h_ = _h_ * _prime_ + {varname}.y.GetHashCode();");
+        }
+
+        public void Visit(TypeVector3 type)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Visit(TypeVector3Int type)
+        {
+            sw.WriteLine($"{prefix}_h_ = _h_ * _prime_ + {varname}.x.GetHashCode();");
+            sw.WriteLine($"{prefix}_h_ = _h_ * _prime_ + {varname}.y.GetHashCode();");
+            sw.WriteLine($"{prefix}_h_ = _h_ * _prime_ + {varname}.z.GetHashCode();");
+        }
+
+        public void Visit(TypeVector4 type)
+        {
+            throw new NotImplementedException();
+        }
+    }
 }

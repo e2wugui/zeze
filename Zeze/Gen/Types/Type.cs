@@ -85,6 +85,13 @@ namespace Zeze.Gen.Types
 			new TypeSet(Types);
 
 			new TypeDynamic(Types);
+
+			new TypeQuaternion(Types);
+			new TypeVector2(Types);
+			new TypeVector2Int(Types);
+			new TypeVector3(Types);
+			new TypeVector3Int(Types);
+			new TypeVector4(Types);
 		}
 	}
 }
