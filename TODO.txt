@@ -25,9 +25,6 @@ Online Account
    OR -> List<OperateLog> 所有操作记录日志，收到方重做。问题：Get(index).Update，怎么融入。
 2. Game.Bag Listener
 
-1. c# Arch RedirectAll & Test
-2. c# Game.Rank TODO GetRankAll Test
-
 【给张路写了】
 1. Online Memory Table 可以存储在线相关数据。
    功能
@@ -45,6 +42,8 @@ Online Account
 
 【2022/5/11】
 
+1. c# Arch RedirectAll & Test
+2. c# Game.Rank TODO GetRankAll Test
 1. Zezex Onlines TransmitInProcedure 需要重写。需要改成使用ProviderDirectService.ProviderByServerId。
 1. FewModifyList
 2. FewModifyMap
