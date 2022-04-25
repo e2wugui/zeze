@@ -193,6 +193,11 @@ namespace Zeze.Gen.cs
             }
         }
  
+        private bool IsUnityTypeRenameMe(Types.Type type)
+        {
+            return false;
+        }
+
         void DecodeCollection(TypeCollection type)
         {
             if (id <= 0)
@@ -203,7 +208,15 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ")");
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    for (int _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--)");
-            sw.WriteLine(prefix + "        _x_.Add(" + DecodeElement(vt, "_t_") + ");");
+            if (IsUnityTypeRenameMe(type))
+            {
+                type.ValueType.Accept(new Define("_e_", sw, "        "));
+                type.ValueType.Accept(new Decode("_e_", 0, "_bb_", sw, "        "));
+            }
+            else
+            {
+                sw.WriteLine(prefix + "        _x_.Add(" + DecodeElement(vt, "_t_") + ");");
+            }
             sw.WriteLine(prefix + "}");
             sw.WriteLine(prefix + "else");
             sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownField(_t_);");
