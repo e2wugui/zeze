@@ -193,8 +193,18 @@ namespace Zeze.Gen.cs
             }
         }
  
-        private bool IsUnityTypeRenameMe(Types.Type type)
+        public static bool IsUnityType(Types.Type type)
         {
+            switch (type)
+            {
+                case TypeVector2:
+                case TypeVector3:
+                case TypeVector4:
+                case TypeVector2Int:
+                case TypeVector3Int:
+                case TypeQuaternion:
+                    return true;
+            }
             return false;
         }
 
@@ -208,15 +218,18 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ")");
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    for (int _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--)");
-            if (IsUnityTypeRenameMe(type))
+            sw.WriteLine(prefix + "    {");
+            if (IsUnityType(vt))
             {
-                type.ValueType.Accept(new Define("_e_", sw, "        "));
-                type.ValueType.Accept(new Decode("_e_", 0, "_bb_", sw, "        "));
+                vt.Accept(new Define("_e_", sw, prefix + "        "));
+                vt.Accept(new Decode("_e_", 0, bufname, sw, prefix + "        "));
+                sw.WriteLine($"{prefix}        _x_.Add(_e_);");
             }
             else
             {
                 sw.WriteLine(prefix + "        _x_.Add(" + DecodeElement(vt, "_t_") + ");");
             }
+            sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
             sw.WriteLine(prefix + "else");
             sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownField(_t_);");
@@ -245,9 +258,25 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    int _s_ = (_t_ = " + bufname + ".ReadByte()) >> ByteBuffer.TAG_SHIFT;");
             sw.WriteLine(prefix + "    for (int _n_ = " + bufname + ".ReadUInt(); _n_ > 0; _n_--)");
             sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        var _k_ = " + DecodeElement(kt, "_s_") + ';');
-            sw.WriteLine(prefix + "        var _v_ = " + DecodeElement(vt, "_t_") + ';');
-            sw.WriteLine(prefix + "        _x_.Add(_k_, _v_);");
+            if (IsUnityType(kt))
+            {
+                kt.Accept(new Define("_k_", sw, prefix + "        "));
+                kt.Accept(new Decode("_k_", 0, bufname, sw, prefix + "        "));
+            }
+            else
+            {
+                sw.WriteLine(prefix + "        var _k_ = " + DecodeElement(kt, "_s_") + ';');
+            }
+            if (IsUnityType(vt))
+            {
+                vt.Accept(new Define("_v_", sw, prefix + "        "));
+                vt.Accept(new Decode("_v_", 0, bufname, sw, prefix + "        "));
+            }
+            else
+            {
+                sw.WriteLine(prefix + "        var _v_ = " + DecodeElement(vt, "_t_") + ';');
+            }
+            sw.WriteLine($"{prefix}        _x_.Add(_k_, _v_);");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
             sw.WriteLine(prefix + "else");
@@ -282,13 +311,10 @@ namespace Zeze.Gen.cs
         {
             if (id > 0)
             {
-                sw.WriteLine($"{prefix}if ((_t_ & ByteBuffer.TAG_MASK) == {TypeTagName.GetName(type)})");
-                sw.WriteLine($"{prefix}{{");
-                sw.WriteLine($"{prefix}    {varname}.x = {bufname}.ReadFloat();");
-                sw.WriteLine($"{prefix}    {varname}.y = {bufname}.ReadFloat();");
-                sw.WriteLine($"{prefix}    {varname}.z = {bufname}.ReadFloat();");
-                sw.WriteLine($"{prefix}    {varname}.w = {bufname}.ReadFloat();");
-                sw.WriteLine($"{prefix}}}");
+                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}{varname}.z = {bufname}.ReadFloat();");
+                sw.WriteLine($"{prefix}{varname}.w = {bufname}.ReadFloat();");
             }
             else
             {
@@ -301,7 +327,6 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeVector2 type)
         {
-            sw.WriteLine($"{prefix}if ({ByteBuffer.VECTOR2} != {bufname}.ReadInt()) throw new System.Exception(\"Sub Type Mis Match.\");");
             if (id > 0)
             {
                 sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadFloat();");
@@ -316,22 +341,20 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeVector2Int type)
         {
-            sw.WriteLine($"{prefix}if ({ByteBuffer.VECTOR2INT} != {bufname}.ReadInt()) throw new System.Exception(\"Sub Type Mis Match.\");");
             if (id > 0)
             {
-                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadInt();");
-                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadInt();");
+                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadInt4();");
+                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadInt4();");
             }
             else
             {
-                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadInt();");
-                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadInt();");
+                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadInt4();");
+                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadInt4();");
             }
         }
 
         public void Visit(TypeVector3 type)
         {
-            sw.WriteLine($"{prefix}if ({ByteBuffer.VECTOR3} != {bufname}.ReadInt()) throw new System.Exception(\"Sub Type Mis Match.\");");
             if (id > 0)
             {
                 sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadFloat();");
@@ -350,21 +373,20 @@ namespace Zeze.Gen.cs
         {
             if (id > 0)
             {
-                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadInt();");
-                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadInt();");
-                sw.WriteLine($"{prefix}{varname}.z = {bufname}.ReadInt();");
+                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadInt4();");
+                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadInt4();");
+                sw.WriteLine($"{prefix}{varname}.z = {bufname}.ReadInt4();");
             }
             else
             {
-                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadInt();");
-                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadInt();");
-                sw.WriteLine($"{prefix}{varname}.z = {bufname}.ReadInt();");
+                sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadInt4();");
+                sw.WriteLine($"{prefix}{varname}.y = {bufname}.ReadInt4();");
+                sw.WriteLine($"{prefix}{varname}.z = {bufname}.ReadInt4();");
             }
         }
 
         public void Visit(TypeVector4 type)
         {
-            sw.WriteLine($"{prefix}if ({ByteBuffer.VECTOR4} != {bufname}.ReadInt()) throw new System.Exception(\"Sub Type Mis Match.\");");
             if (id > 0)
             {
                 sw.WriteLine($"{prefix}{varname}.x = {bufname}.ReadFloat();");

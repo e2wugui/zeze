@@ -238,7 +238,16 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
             sw.WriteLine(prefix + "    " + bufname + ".WriteListType(_n_, " + TypeTagName.GetName(vt) + ");");
             sw.WriteLine(prefix + "    foreach (var _v_ in _x_)");
-            EncodeElement(vt, prefix + "        ", "_v_");
+            sw.WriteLine(prefix + "    {");
+            if (Decode.IsUnityType(vt))
+            {
+                vt.Accept(new Encode("_v_", 0, bufname, sw, prefix + "        "));
+            }
+            else
+            {
+                EncodeElement(vt, prefix + "        ", "_v_");
+            }
+            sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
         }
 
@@ -266,8 +275,22 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    " + bufname + ".WriteMapType(_n_, " + TypeTagName.GetName(kt) + ", " + TypeTagName.GetName(vt) + ");");
             sw.WriteLine(prefix + "    foreach (var _e_ in _x_)");
             sw.WriteLine(prefix + "    {");
-            EncodeElement(kt, prefix + "        ", "_e_.Key");
-            EncodeElement(vt, prefix + "        ", "_e_.Value");
+            if (Decode.IsUnityType(kt))
+            {
+                vt.Accept(new Encode("_e_.Key", 0, bufname, sw, prefix + "        "));
+            }
+            else
+            {
+                EncodeElement(kt, prefix + "        ", "_e_.Key");
+            }
+            if (Decode.IsUnityType(vt))
+            {
+                vt.Accept(new Encode("_e_.Value", 0, bufname, sw, prefix + "        "));
+            }
+            else
+            {
+                EncodeElement(vt, prefix + "        ", "_e_.Value");
+            }
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
         }
@@ -325,44 +348,102 @@ namespace Zeze.Gen.cs
         {
             if (id > 0)
             {
-                sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
-                sw.WriteLine($"{prefix}    {bufname}.WriteFloat({varname}.x)");
-                sw.WriteLine($"{prefix}    {bufname}.WriteFloat({varname}.y)");
-                sw.WriteLine($"{prefix}    {bufname}.WriteFloat({varname}.z)");
-                sw.WriteLine($"{prefix}    {bufname}.WriteFloat({varname}.w)");
+                sw.WriteLine(prefix + "_i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.x);");
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.y);");
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.z);");
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.w);");
             }
             else
             {
-                sw.WriteLine($"{prefix}{bufname}.WriteFloat({varname}.x)");
-                sw.WriteLine($"{prefix}{bufname}.WriteFloat({varname}.y)");
-                sw.WriteLine($"{prefix}{bufname}.WriteFloat({varname}.z)");
-                sw.WriteLine($"{prefix}{bufname}.WriteFloat({varname}.w)");
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.x);");
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.y);");
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.z);");
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.w);");
             }
         }
 
         public void Visit(TypeVector2 type)
         {
-            throw new NotImplementedException();
+            if (id > 0)
+            {
+                sw.WriteLine(prefix + "_i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.x);");
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.y);");
+            }
+            else
+            {
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.x);");
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.y);");
+            }
         }
 
         public void Visit(TypeVector2Int type)
         {
-            throw new NotImplementedException();
+            if (id > 0)
+            {
+                sw.WriteLine(prefix + "_i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
+                sw.WriteLine(prefix + bufname + $".WriteInt4({varname}.x);");
+                sw.WriteLine(prefix + bufname + $".WriteInt4({varname}.y);");
+            }
+            else
+            {
+                sw.WriteLine(prefix + bufname + $".WriteInt4({varname}.x);");
+                sw.WriteLine(prefix + bufname + $".WriteInt4({varname}.y);");
+            }
         }
 
         public void Visit(TypeVector3 type)
         {
-            throw new NotImplementedException();
+            if (id > 0)
+            {
+                sw.WriteLine(prefix + "_i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.x);");
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.y);");
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.z);");
+            }
+            else
+            {
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.x);");
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.y);");
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.z);");
+            }
         }
 
         public void Visit(TypeVector3Int type)
         {
-            throw new NotImplementedException();
+            if (id > 0)
+            {
+                sw.WriteLine(prefix + "_i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
+                sw.WriteLine(prefix + bufname + $".WriteInt4({varname}.x);");
+                sw.WriteLine(prefix + bufname + $".WriteInt4({varname}.y);");
+                sw.WriteLine(prefix + bufname + $".WriteInt4({varname}.z);");
+            }
+            else
+            {
+                sw.WriteLine(prefix + bufname + $".WriteInt4({varname}.x);");
+                sw.WriteLine(prefix + bufname + $".WriteInt4({varname}.y);");
+                sw.WriteLine(prefix + bufname + $".WriteInt4({varname}.z);");
+            }
         }
 
         public void Visit(TypeVector4 type)
         {
-            throw new NotImplementedException();
+            if (id > 0)
+            {
+                sw.WriteLine(prefix + "_i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.x);");
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.y);");
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.z);");
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.w);");
+            }
+            else
+            {
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.x);");
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.y);");
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.z);");
+                sw.WriteLine(prefix + bufname + $".WriteFloat({varname}.w);");
+            }
         }
     }
 }

@@ -61,6 +61,9 @@
 			<variable id="20" name="Vector3Int" type="vector3int" /> com aa
 			<variable id="21" name="Vector4" type="vector4" /> com aa
 			<variable id="22" name="Quaternion" type="quaternion" /> com aa
+
+			<variable id="23" name="MapVector2Int" type="map" key="vector2int" value="vector2int"/>
+			<variable id="24" name="ListVector2Int" type="list" value="vector2int"/>
 		</bean>
 		<beankey name="Key">
 			<enum name="Enum1" value="4"/>
