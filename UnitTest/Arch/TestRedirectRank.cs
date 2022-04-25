@@ -110,7 +110,19 @@ namespace Arch
 				Assert.IsTrue(outParam == 888);
 				Assert.IsTrue(outServerId == 1);
 
-				// RedirectAll
+                // RedirectAll
+                {
+					var param = 1;
+					var ctx = await app1.Game_Rank.TestAllResult(param);
+					Assert.AreEqual(0, ctx.HashCodes.Count);
+					Assert.AreEqual(0, ctx.HashErrors.Count);
+					Assert.AreEqual(100, ctx.HashResults.Count);
+					for (int hash = 0; hash < 100; hash++)
+                    {
+						Assert.IsTrue(ctx.HashResults.ContainsKey(hash));
+						Assert.IsTrue(ctx.HashResults.ContainsValue(hash<<32|param));
+					}
+				}
 				/*
 				app1.Game_Rank.TestToAllConcLevel = 6;
 				var future1 = new TaskCompletionSource<Boolean>();

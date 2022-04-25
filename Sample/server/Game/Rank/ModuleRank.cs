@@ -392,7 +392,7 @@ namespace Game.Rank
 
         protected async Task<long> TestAllResult(int hash, int param)
         {
-            return 12345;
+            return hash << 32 | param;
         }
 
         [RedirectAll("100")]
