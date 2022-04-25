@@ -808,7 +808,12 @@ public final class ByteBuffer {
 			LIST = 4, // list,set
 			MAP = 5, // map
 			BEAN = 6, // bean
-			DYNAMIC = 7; // dynamic
+			DYNAMIC = 7, // dynamic
+			VECTOR2 = 8, // float{x,y}
+			VECTOR2INT = 9, // int{x,y}
+			VECTOR3 = 10, // float{x,y,z}
+			VECTOR3INT = 11, // int{x,y,z}
+			VECTOR4 = 12; // float{x,y,z,w} Quaternion
 
 	public static final int TAG_SHIFT = 4;
 	public static final int TAG_MASK = (1 << TAG_SHIFT) - 1;
@@ -1046,8 +1051,19 @@ public final class ByteBuffer {
 			ReadIndex += 4;
 			return;
 		case DOUBLE:
+		case VECTOR2:
+		case VECTOR2INT:
 			EnsureRead(8);
 			ReadIndex += 8;
+			return;
+		case VECTOR3:
+		case VECTOR3INT:
+			EnsureRead(12);
+			ReadIndex += 12;
+			return;
+		case VECTOR4:
+			EnsureRead(16);
+			ReadIndex += 16;
 			return;
 		case BYTES:
 			SkipBytes();
