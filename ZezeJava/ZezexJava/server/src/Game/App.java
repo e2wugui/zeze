@@ -152,7 +152,6 @@ public final class App extends Zeze.AppBase {
     public Game.Timer.ModuleTimer Game_Timer;
     public Game.LongSet.ModuleLongSet Game_LongSet;
 
-    @Override
     public Zeze.Application getZeze() {
         return Zeze;
     }

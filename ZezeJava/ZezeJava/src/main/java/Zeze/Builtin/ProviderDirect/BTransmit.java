@@ -66,7 +66,7 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         if (txn == null)
             return _Parameter;
         txn.VerifyRecordAccessed(this, true);
-        var log = (Log__Parameter)txn.GetLog(this.getObjectId() + 5);
+        var log = (Log__Parameter)txn.GetLog(this.getObjectId() + 4);
         return log != null ? log.getValue() : _Parameter;
     }
 
@@ -159,7 +159,7 @@ public final class BTransmit extends Zeze.Transaction.Bean {
     private static final class Log__Parameter extends Zeze.Transaction.Log1<BTransmit, Zeze.Net.Binary> {
         public Log__Parameter(BTransmit self, Zeze.Net.Binary value) { super(self, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 5; }
+        public long getLogKey() { return this.getBean().getObjectId() + 4; }
         @Override
         public void Commit() { this.getBeanTyped()._Parameter = this.getValue(); }
     }
@@ -233,7 +233,7 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         {
             var _x_ = getParameter();
             if (_x_.size() != 0) {
-                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
             }
         }
@@ -263,11 +263,7 @@ public final class BTransmit extends Zeze.Transaction.Bean {
             setSender(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        while (_t_ != 0 && _i_ < 5) {
-            _o_.SkipUnknownField(_t_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 5) {
+        if (_i_ == 4) {
             setParameter(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }

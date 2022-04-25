@@ -90,7 +90,6 @@ public class App extends Zeze.AppBase {
     public demo.Module1.ModuleModule1 demo_Module1;
     public demo.Module1.Module11.ModuleModule11 demo_Module1_Module11;
 
-    @Override
     public Zeze.Application getZeze() {
         return Zeze;
     }

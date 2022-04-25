@@ -1,6 +1,5 @@
 package Zeze.Arch;
 
-import java.security.Provider;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.ProviderDirect.AnnounceProviderInfo;
