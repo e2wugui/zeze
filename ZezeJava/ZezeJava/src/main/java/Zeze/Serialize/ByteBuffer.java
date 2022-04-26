@@ -1000,6 +1000,110 @@ public final class ByteBuffer {
 		return "";
 	}
 
+	public Vector2 ReadVector2() {
+		var r = new Vector2();
+		r.Decode(this);
+		return r;
+	}
+
+	public Vector3 ReadVector3() {
+		var r = new Vector3();
+		r.Decode(this);
+		return r;
+	}
+
+	public Vector4 ReadVector4() {
+		var r = new Vector4();
+		r.Decode(this);
+		return r;
+	}
+
+	public Quaternion ReadQuaternion() {
+		var r = new Quaternion();
+		r.Decode(this);
+		return r;
+	}
+
+	public Vector2Int ReadVector2Int() {
+		var r = new Vector2Int();
+		r.Decode(this);
+		return r;
+	}
+
+	public Vector3Int ReadVector3Int() {
+		var r = new Vector3Int();
+		r.Decode(this);
+		return r;
+	}
+
+	public Vector2 ReadVector2(int type) {
+		type &= TAG_MASK;
+		if (type == VECTOR2)
+			return ReadVector2();
+		if (type == VECTOR3)
+			return ReadVector3();
+		if (type == VECTOR4)
+			return ReadVector4();
+		SkipUnknownField(type);
+		return new Vector2();
+	}
+
+	public Vector3 ReadVector3(int type) {
+		type &= TAG_MASK;
+		if (type == VECTOR2)
+			return new Vector3(ReadVector2());
+		if (type == VECTOR3)
+			return ReadVector3();
+		if (type == VECTOR4)
+			return ReadVector4();
+		SkipUnknownField(type);
+		return new Vector3();
+	}
+
+	public Vector4 ReadVector4(int type) {
+		type &= TAG_MASK;
+		if (type == VECTOR2)
+			return new Vector4(ReadVector2());
+		if (type == VECTOR3)
+			return new Vector4(ReadVector3());
+		if (type == VECTOR4)
+			return ReadVector4();
+		SkipUnknownField(type);
+		return new Vector4();
+	}
+
+	public Quaternion ReadQuaternion(int type) {
+		type &= TAG_MASK;
+		if (type == VECTOR2)
+			return new Quaternion(ReadVector2());
+		if (type == VECTOR3)
+			return new Quaternion(ReadVector3());
+		if (type == VECTOR4)
+			return new Quaternion(ReadVector4());
+		SkipUnknownField(type);
+		return new Quaternion();
+	}
+
+	public Vector2Int ReadVector2Int(int type) {
+		type &= TAG_MASK;
+		if (type == VECTOR2INT)
+			return ReadVector2Int();
+		if (type == VECTOR3INT)
+			return ReadVector3Int();
+		SkipUnknownField(type);
+		return new Vector2Int();
+	}
+
+	public Vector3Int ReadVector3Int(int type) {
+		type &= TAG_MASK;
+		if (type == VECTOR2INT)
+			return new Vector3Int(ReadVector2Int());
+		if (type == VECTOR3INT)
+			return ReadVector3Int();
+		SkipUnknownField(type);
+		return new Vector3Int();
+	}
+
 	public <T extends Serializable> T ReadBean(T bean, int type) {
 		type &= TAG_MASK;
 		if (type == BEAN)
