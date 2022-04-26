@@ -781,8 +781,14 @@ namespace Zeze.Game
             online.LoginVersion = version;
             local.LoginVersion = version;
 
+            if (!online.LinkName.Equals(session.LinkName) || online.LinkSid == session.LinkSid)
+            {
+                ProviderApp.ProviderService.Kick(online.LinkName, online.LinkSid,
+                        BKick.ErrorDuplicateLogin, "duplicate role login");
+            }
+
             online.LinkName = session.LinkName;
-            online.LinkSid = session.SessionId;
+            online.LinkSid = session.LinkSid;
             online.State = BOnline.StateOnline;
 
             online.ReliableNotifyConfirmCount = 0;
@@ -802,7 +808,7 @@ namespace Zeze.Game
             Transaction.Transaction.Current.RunWhileCommit(() =>
             {
                 var setUserState = new SetUserState();
-                setUserState.Argument.LinkSid = session.SessionId;
+                setUserState.Argument.LinkSid = session.LinkSid;
                 setUserState.Argument.States.Add(rpc.Argument.RoleId);
                 rpc.Sender.Send(setUserState); // 直接使用link连接。
             });
@@ -842,7 +848,7 @@ namespace Zeze.Game
             local.LoginVersion = version;
 
             online.LinkName = session.LinkName;
-            online.LinkSid = session.SessionId;
+            online.LinkSid = session.LinkSid;
             online.State = BOnline.StateOnline;
 
             await ReloginTrigger(session.RoleId.Value);
@@ -853,7 +859,7 @@ namespace Zeze.Game
             Transaction.Transaction.Current.RunWhileCommit(() =>
             {
                 var setUserState = new SetUserState();
-                setUserState.Argument.LinkSid = session.SessionId;
+                setUserState.Argument.LinkSid = session.LinkSid;
                 setUserState.Argument.States.Add(rpc.Argument.RoleId);
                 rpc.Sender.Send(setUserState); // 直接使用link连接。
             });
@@ -891,7 +897,7 @@ namespace Zeze.Game
             Transaction.Transaction.Current.RunWhileCommit(() =>
             {
                 var setUserState = new SetUserState();
-                setUserState.Argument.LinkSid = session.SessionId;
+                setUserState.Argument.LinkSid = session.LinkSid;
                 rpc.Sender.Send(setUserState); // 直接使用link连接。
             });
             session.SendResponseWhileCommit(rpc);

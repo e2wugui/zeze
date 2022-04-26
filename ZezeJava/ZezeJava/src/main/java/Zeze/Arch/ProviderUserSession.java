@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import Zeze.Builtin.Provider.Kick;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
@@ -16,7 +17,7 @@ public class ProviderUserSession {
 	private final ProviderService service;
 	private final String Account;
 	private final Long RoleId;
-	private final long SessionId;
+	private final long LinkSid;
 	private final String LinkName;
 	private AsyncSocket Link;
 
@@ -24,9 +25,13 @@ public class ProviderUserSession {
 		this.service = service;
 		Account = account;
 		RoleId = states.isEmpty() ? null : states.get(0);
-		SessionId = linkSid;
+		LinkSid = linkSid;
 		LinkName = service.GetLinkName(link);
 		Link = link;
+	}
+
+	public void kick(int code, String desc) {
+		ProviderImplement.SendKick(Link, LinkSid, code, desc);
 	}
 
 	public final ProviderService getService() {
@@ -41,8 +46,8 @@ public class ProviderUserSession {
 		return RoleId;
 	}
 
-	public final long getSessionId() {
-		return SessionId;
+	public final long getLinkSid() {
+		return LinkSid;
 	}
 
 	public final String getLinkName() {
@@ -63,7 +68,7 @@ public class ProviderUserSession {
 
 	public final void SendResponse(long typeId, Binary fullEncodedProtocol) {
 		var send = new Send();
-		send.Argument.getLinkSids().add(getSessionId());
+		send.Argument.getLinkSids().add(getLinkSid());
 		send.Argument.setProtocolType(typeId);
 		send.Argument.setProtocolWholeData(fullEncodedProtocol);
 

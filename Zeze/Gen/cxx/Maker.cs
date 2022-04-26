@@ -18,7 +18,7 @@ namespace Zeze.Gen.cxx
  
         public void Make()
         {
-            string projectBasedir = Project.Gendir;
+            string projectBasedir = Project.GenDir;
             string projectDir = Path.Combine(projectBasedir, Project.Name);
             string genDir = projectDir;
 

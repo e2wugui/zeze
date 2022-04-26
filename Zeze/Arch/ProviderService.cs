@@ -38,6 +38,12 @@ namespace Zeze.Arch
             return serviceInfo.PassiveIp + ":" + serviceInfo.PassivePort;
         }
 
+        public void Kick(string linkName, long linkSid, int code, string desc)
+        {
+            if (Links.TryGetValue(linkName, out var link))
+                ProviderImplement.SendKick(link.TryGetReadySocket(), linkSid, code, desc);
+        }
+
         public override void Start()
         {
             // copy Config.Connector to Links

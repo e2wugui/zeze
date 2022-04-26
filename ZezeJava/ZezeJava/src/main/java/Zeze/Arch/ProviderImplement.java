@@ -77,7 +77,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		sm.SubscribeService(ProviderApp.LinkdServiceName, SubscribeInfo.SubscribeTypeSimple);
 	}
 
-	private void SendKick(AsyncSocket sender, long linkSid, int code, String desc) {
+	public static void SendKick(AsyncSocket sender, long linkSid, int code, String desc) {
 		var p = new Kick();
 		p.Argument.setLinksid(linkSid);
 		p.Argument.setCode(code);

@@ -15,7 +15,7 @@ namespace Zeze.Arch
         public long? RoleId { get; }
 
         public string LinkName { get; }
-        public long SessionId { get; } // 客户端在linkd上的SessionId
+        public long LinkSid { get; } // 客户端在linkd上的SessionId
 
         public AsyncSocket Link { get; set; }
 
@@ -25,9 +25,14 @@ namespace Zeze.Arch
 
             Account = account;
             RoleId = states.Count == 0 ? null : states[0];
-            SessionId = linkSid;
+            LinkSid = linkSid;
             Link = link;
             LinkName = service.GetLinkName(link);
+        }
+
+        public void Kick(int code, string desc)
+        {
+            ProviderImplement.SendKick(Link, LinkSid, code, desc);
         }
 
         public void SendResponse(Zeze.Net.Binary fullEncodedProtocol)
@@ -38,7 +43,7 @@ namespace Zeze.Arch
         public void SendResponse(long typeId, Zeze.Net.Binary fullEncodedProtocol)
         {
             var send = new Send();
-            send.Argument.LinkSids.Add(SessionId);
+            send.Argument.LinkSids.Add(LinkSid);
             send.Argument.ProtocolType = typeId;
             send.Argument.ProtocolWholeData = fullEncodedProtocol;
 

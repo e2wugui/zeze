@@ -71,7 +71,7 @@ namespace Zeze.Gen.luaClient
                 allRefModulesList.Add(m);
             }
 
-            string projectBasedir = Project.Gendir;
+            string projectBasedir = Project.GenDir;
             string projectDir = Path.Combine(projectBasedir, Project.Name);
             string metaDir = Path.Combine(projectDir, "msgmeta");
             string genDir = Path.Combine(projectDir, "msg");

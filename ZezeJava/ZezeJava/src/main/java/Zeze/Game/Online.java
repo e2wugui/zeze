@@ -18,6 +18,7 @@ import Zeze.Builtin.Game.Online.BLocal;
 import Zeze.Builtin.Game.Online.BOnline;
 import Zeze.Builtin.Game.Online.SReliableNotify;
 import Zeze.Builtin.Game.Online.taccount;
+import Zeze.Builtin.Provider.BKick;
 import Zeze.Builtin.Provider.BLinkBroken;
 import Zeze.Builtin.Provider.Broadcast;
 import Zeze.Builtin.Provider.Send;
@@ -798,8 +799,12 @@ public class Online extends AbstractOnline {
 		online.setLoginVersion(version);
 		local.setLoginVersion(version);
 
+		if (!online.getLinkName().equals(session.getLinkName()) || online.getLinkSid() != session.getLinkSid()) {
+			ProviderApp.ProviderService.kick(online.getLinkName(), online.getLinkSid(),
+					BKick.ErrorDuplicateLogin, "duplicate role login");
+		}
 		online.setLinkName(session.getLinkName());
-		online.setLinkSid(session.getSessionId());
+		online.setLinkSid(session.getLinkSid());
 		online.setState(BOnline.StateOnline);
 
 		online.getReliableNotifyMark().clear();
@@ -819,7 +824,7 @@ public class Online extends AbstractOnline {
 		//noinspection ConstantConditions
 		Transaction.getCurrent().RunWhileCommit(() -> {
 			var setUserState = new SetUserState();
-			setUserState.Argument.setLinkSid(session.getSessionId());
+			setUserState.Argument.setLinkSid(session.getLinkSid());
 			setUserState.Argument.getStates().add(rpc.Argument.getRoleId());
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
@@ -851,7 +856,7 @@ public class Online extends AbstractOnline {
 		local.setLoginVersion(version);
 
 		online.setLinkName(session.getLinkName());
-		online.setLinkSid(session.getSessionId());
+		online.setLinkSid(session.getLinkSid());
 		online.setState(BOnline.StateOnline);
 
 		reloginTrigger(session.getRoleId());
@@ -862,7 +867,7 @@ public class Online extends AbstractOnline {
 		//noinspection ConstantConditions
 		Transaction.getCurrent().RunWhileCommit(() -> {
 			var setUserState = new SetUserState();
-			setUserState.Argument.setLinkSid(session.getSessionId());
+			setUserState.Argument.setLinkSid(session.getLinkSid());
 			setUserState.Argument.getStates().add(rpc.Argument.getRoleId());
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
@@ -922,7 +927,7 @@ public class Online extends AbstractOnline {
 		//noinspection ConstantConditions
 		Transaction.getCurrent().RunWhileCommit(() -> {
 			var setUserState = new SetUserState();
-			setUserState.Argument.setLinkSid(session.getSessionId());
+			setUserState.Argument.setLinkSid(session.getLinkSid());
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 		session.SendResponseWhileCommit(rpc);

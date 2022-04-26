@@ -16,14 +16,35 @@ Global c# 慢的问题。
 2. Global With Raft 异步测试
 3. Test TestGlobal Simulate 异步测试
 
-Online Account
+Online Account （java，c#）
 
 1. 把 RocksRaft Changes 应用到 Zeze 中，让 Zeze 实现Bean任意级别的更新。// 1. 仅支持整个Bean的订阅。2. log factory 问题。3. 动态订阅。add listener和notify原子问题。
    RocksRaft Collection.List LogList
    SortedDictionary<int, Log Or Bean> ChangeOrAdd; // 优化。中间的值发生了改变或者在尾巴增加。
    bool FullCopy; // 当发生中间删除或者插入时。这个有进一步优化空间。
-   OR -> List<OperateLog> 所有操作记录日志，收到方重做。问题：Get(index).Update，怎么融入。
+   【倾向于这种方式】OR -> List<OperateLog> 所有操作记录日志，收到方重做。问题：Get(index).Update，怎么融入。
 2. Game.Bag Listener
+
+Global & c# async
+【分析】
+Global 在zeze中是全局的关键的服务，性能很关键。Global本身没有复杂运算，完全是一个io密集型程序。
+这种程序的性能考量，如果可以把网络带宽吃完，就算达到目的了。对于千兆网络，每秒处理请求两需要达到
+1342177 = 1024 * 1024 * 1024 / 8bits / 2(in+out) / 50(rpc-size，高估)
+Global-java版采用同步方式处理网络请求，如果一个进程开启1万个线程（可以更多？），每个线程每秒完成
+20个请求（低估？），那么可以达到的请求处理量是20万，离最高处理量还很远。提高请求处理能力可以加大
+内存加大线程数量。
+Global-c#采用async模式，不受线程内存限制，预计可以达到100万以上的性能。
+Global负载可以分到多台服务器，如果能大大提高单台的处理能力，就可以用比较少的机器。
+不管java还是c#的处理能力，都需要实际测试。
+【计划】
+1. 开始Global-java的性能测试。
+2. 解决Global-c#目前存在的bug，然后测试性能。
+【其他】
+Global-raft版最大请求处理量
+671088 = 1024 * 1024 * 1024 / 8bits / 4(in+out+RaftNodeCount-1) / 50(rpc-size) : RaftNodeCount = 3
+447392 = 1024 * 1024 * 1024 / 8bits / 6(in+out+RaftNodeCount-1) / 50(rpc-size) : RaftNodeCount = 5
+【征召BUG-FINDER】
+查找c#BUG。1. 需要vs2022打开 zeze/Zeze.sln 编译. 2. Run zeze/env.debug.bat 3. Run UnitTest，有部分不能通过。 4. 开始找BUG。
 
 【2022/5/11】
 

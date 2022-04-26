@@ -45,6 +45,12 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 		return serviceInfo.getPassiveIp() + ":" + serviceInfo.getPassivePort();
 	}
 
+	public void kick(String linkName, long linkSid, int code, String desc) {
+		var link = Links.get(linkName);
+		if (null != link)
+			ProviderImplement.SendKick(link.TryGetReadySocket(), linkSid, code, desc);
+	}
+
 	@Override
 	public void Start() throws Throwable {
 		// copy Config.Connector to Links

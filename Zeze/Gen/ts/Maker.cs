@@ -16,7 +16,7 @@ namespace Zeze.Gen.ts
 
         public void Make()
         {
-            string projectBasedir = Project.Gendir;
+            string projectBasedir = Project.GenDir;
             string projectDir = System.IO.Path.Combine(projectBasedir, Project.Name);
             string genDir = Project.ScriptDir.Length > 0
                 ? System.IO.Path.Combine(projectDir, Project.ScriptDir) : projectDir;

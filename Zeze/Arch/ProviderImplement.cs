@@ -81,7 +81,7 @@ namespace Zeze.Arch
         }
 
 
-        private void SendKick(Zeze.Net.AsyncSocket sender, long linkSid, int code, string desc)
+        public static void SendKick(AsyncSocket sender, long linkSid, int code, string desc)
         {
             var p = new Kick();
             p.Argument.Linksid = linkSid;

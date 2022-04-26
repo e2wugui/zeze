@@ -21,6 +21,8 @@ namespace Zeze.Builtin.Provider
         public const int ErrorProtocolUnkown = 1;
         public const int ErrorDecode = 2;
         public const int ErrorProtocolException = 3;
+        public const int ErrorDuplicateLogin = 4;
+        public const int ErrorSeeDescription = 5;
 
         long _linksid;
         int _code;

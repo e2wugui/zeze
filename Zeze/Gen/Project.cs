@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Xml;
 
@@ -10,7 +11,7 @@ namespace Zeze.Gen
         public string Name { get; private set; }
         public Solution Solution { get; private set; }
         public string Platform { get; private set; }
-        public string Gendir { get; private set; }
+        public string GenDir { get; private set; }
         public string ScriptDir { get; private set; }
         public string GenRelativeDir { get; private set; }
         public string GenCommonRelativeDir { get; private set; }
@@ -64,9 +65,9 @@ namespace Zeze.Gen
 
             Name = self.GetAttribute("name").Trim();
             Platform = self.GetAttribute("platform").Trim();
-            Gendir = self.GetAttribute("gendir").Trim();
-            if (Gendir.Length == 0)
-                Gendir = ".";
+            GenDir = self.GetAttribute("gendir").Trim();
+            if (GenDir.Length == 0)
+                GenDir = ".";
             GenRelativeDir = self.GetAttribute("genrelativedir").Trim();
             GenCommonRelativeDir = self.GetAttribute("GenCommonRelativeDir").Trim();
             ScriptDir = self.GetAttribute("scriptdir").Trim();
@@ -83,7 +84,7 @@ namespace Zeze.Gen
 
             if (Solution.Projects.ContainsKey(Name))
                 throw new Exception("duplicate project name: " + Name);
-            Solution.Projects.Add(Name, this);
+            Solution.Projects.Add(Path.Combine(GenDir, GenRelativeDir, Name), this);
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)

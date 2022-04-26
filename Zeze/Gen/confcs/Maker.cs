@@ -13,7 +13,7 @@ namespace Zeze.Gen.confcs
 
         public void Make()
         {
-            string projectBasedir = Project.Gendir;
+            string projectBasedir = Project.GenDir;
             string projectDir = Path.Combine(projectBasedir, Project.Name);
             string genDir = Path.Combine(projectDir, Project.GenRelativeDir);
             string genCommonDir = string.IsNullOrEmpty(Project.GenCommonRelativeDir)

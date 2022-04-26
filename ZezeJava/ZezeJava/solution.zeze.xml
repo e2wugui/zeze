@@ -222,6 +222,8 @@
 				<enum name="ErrorProtocolUnkown"    value="1"/>
 				<enum name="ErrorDecode"            value="2"/>
 				<enum name="ErrorProtocolException" value="3"/>
+				<enum name="ErrorDuplicateLogin"    value="4"/>
+				<enum name="ErrorSeeDescription"    value="5"/>
 
 				<variable name="linksid" id="1" type="long"/>
 				<variable name="code"    id="2" type="int"/>
@@ -584,7 +586,7 @@
 				. override ProcessReLoginRequest
 				. override ProcessLogoutRequest
 				-->
-			</module>
+			</module> Online 11013
 
 			<module name="Bag" id="11014">
 				<enum name="ResultCodeFromInvalid"  value="1"/>
@@ -640,7 +642,7 @@
 
 				<table name="tbag" key="string" value="BBag"/> key is bag name
 				<table name="tItemClasses" key="int" value="BItemClasses"/> key is 1, only one record
-			</module>
+			</module> Bag 11014
 
 			<module name="Rank" id="11015">
 				<beankey name="BConcurrentKey">
@@ -669,12 +671,124 @@
 				</bean>
 
 				<table name="trank" key="BConcurrentKey" value="BRankList"/>
-			</module>
-		</module>
+			</module> Rank 11015
+		</module> Game
 
-	</module>
+		<module name="Online" id="11100">
+			<enum value="0" name="ResultCodeSuccess"/>
+			<enum value="1" name="ResultCodeCreateRoleDuplicateRoleName"/>
+			<enum value="2" name="ResultCodeAccountNotExist"/>
+			<enum value="3" name="ResultCodeRoleNotExist"/>
+			<enum value="4" name="ResultCodeNotLastLoginRoleId"/>
+			<enum value="5" name="ResultCodeOnlineDataNotFound"/>
+			<enum value="6" name="ResultCodeReliableNotifyConfirmCountOutOfRange"/>
+			<enum value="7" name="ResultCodeNotLogin"/>
+
+			<!-- protocols -->
+			<bean name="BLogin">
+				<variable id="1" name="ClientId" type="string" />
+			</bean>
+			<bean name="BReLogin">
+				<variable id="1" name="ClientId" type="string" />
+				<variable id="2" name="ReliableNotifyConfirmCount" type="long"/>
+			</bean>
+			<bean name="BReliableNotifyConfirm">
+				<variable id="1" name="ReliableNotifyConfirmCount" type="long"/>
+			</bean>
+			<bean name="BReliableNotify">
+				<variable id="1" name="Notifies" type="list" value="binary"/> full encoded protocol list
+				<variable id="2" name="ReliableNotifyTotalCountStart" type="long"/> Notify的计数开始。客户端收到的总计数为：start + Notifies.Count
+			</bean>
+
+			<rpc name="Login"   argument="BLogin"   handle="server"/> 登录角色
+			<rpc name="ReLogin" argument="BReLogin" handle="server"/> 网络断开重新登录（数据无法同步时会失败，此时客户端应该重新走完整的登录流程-装载数据。）
+			<rpc name="Logout" handle="server"/> 登出
+			<rpc name="ReliableNotifyConfirm" argument="BReliableNotifyConfirm" handle="server"/>
+			<protocol name="SReliableNotify" argument="BReliableNotify" handle="client"/>
+
+			<!-- tables -->
+			<bean name="BOnline">
+				<enum name="StateOffline"   value="0"/>
+				<!--enum name="StateLoading"   value="1"/>--> 装载数据还有 StateEnterWorld 不放到这里吧，这里只处理数据安全同步问题。
+				<enum name="StateOnline"    value="2"/>
+				<enum name="StateNetBroken" value="3"/> 客户端连接断开时，一定时间内可以重连。超时会删除 Online-Record。
+
+				<variable id="1" name="LinkName"    type="string"/>
+				<variable id="2" name="LinkSid"     type="long"/>
+				<variable id="3" name="State"       type="int" default="StateOffline"/>
+
+				<!-- 下面的定义用来实现可靠的协议通告。 -->
+				<variable id="4" name="ReliableNotifyMark"         type="set" value="string"/>
+				<variable id="5" name="ReliableNotifyQueue"        type="list" value="binary"/> full encoded protocol list
+				<variable id="6" name="ReliableNotifyConfirmCount" type="long"/>
+				<variable id="7" name="ReliableNotifyTotalCount"   type="long"/>
+
+				<variable id="8" name="ProviderId" type="int"/> Config.AutoKeyLocalId
+				<variable id="9" name="ProviderSessionId" type="long"/> 登录所在Linkd与当前Provider的连接在Linkd方的SessionId
+
+				<variable id="10" name="LoginVersion" type="long"/>
+			</bean>
+
+			<bean name="BAccount">
+				<variable id="1" name="LastLoginVersion" type="long"/> 用来生成 role 登录版本号。每次递增。
+			</bean>
+
+			<table name="taccount"  key="string" value="BAccount"/>
+			<table name="tonline"   key="string" value="BOnline"/>
+
+			<bean name="BAny">
+				<variable id="1" name="Any" type="dynamic">
+					<GetSpecialTypeIdFromBean value="Zeze.Game.Online::GetSpecialTypeIdFromBean"/>
+					<CreateBeanFromSpecialTypeId value="Zeze.Game.Online::CreateBeanFromSpecialTypeId"/>
+				</variable>
+			</bean>
+
+			<bean name="BLocal">
+				<variable id="1" name="LoginVersion" type="long"/>
+				<variable id="2" name="Datas" type="map" key="string" value="BAny"/> 
+			</bean>
+
+			<table name="tlocal" key="string" memory="true" value="BLocal"/>
+
+			<!-- interface -->
+			<!--
+			* 事件
+			. Login Events
+			. ReLogin Events
+			. Logout Events
+			* 数据修改
+			. AddRole(account, roleId)
+			. RemoveRole(account, roleId)
+			. SetLastLoginRoleId?
+			* 协议发送
+			. SendXXX To Role
+			. SendXXX To Account?
+			. Transmit
+			. SendReliable
+			* 重载：一般不需要。
+			. override ProcessLoginRequest
+			. override ProcessReLoginRequest
+			. override ProcessLogoutRequest
+			-->
+		</module> Online 11100
+
+	</module> Builtin
 
 	<!--++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++-->
+
+	<!-- account online -->
+	<component name="Online" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Online"/>
+		</service>
+	</component>
+
+	<!-- role online -->
+	<component name="Online" gendir="src/main/java" genrelativedir="Zeze/Game" platform="zeze+java">
+		<service name="" handle="server">
+			<module ref="Zeze.Builtin.Game.Online"/>
+		</service>
+	</component>
 
 	<component name="Rank" gendir="src/main/java" genrelativedir="Zeze/Game" platform="zeze+java">
 		<service name="" handle="server">
@@ -719,12 +833,6 @@
 	<component name="ProviderImplement" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Provider"/>
-		</service>
-	</component>
-
-	<component name="Online" gendir="src/main/java" genrelativedir="Zeze/Game" platform="zeze+java">
-		<service name="" handle="server">
-			<module ref="Zeze.Builtin.Game.Online"/>
 		</service>
 	</component>
 
