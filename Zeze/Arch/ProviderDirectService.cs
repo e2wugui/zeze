@@ -27,7 +27,7 @@ namespace Zeze.Arch
 		{
 			lock (this)
 			{
-				foreach (var pm in infos.ServiceInfoListSortedByIdentity)
+				foreach (var pm in infos.SortedIdentity)
 				{
 					var connName = pm.PassiveIp + ":" + pm.PassivePort;
 					if (ProviderByLoadName.TryGetValue(connName, out var ps))
@@ -95,6 +95,7 @@ namespace Zeze.Arch
 				// 本机的连接可能设置多次。此时使用已经存在的，忽略后面的。
 				if (false == ProviderByLoadName.TryAdd(ps.ServerLoadName, ps))
 					return;
+				ProviderByServerId[ps.ServerId] = ps;
 
 				// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
 				foreach (var ss in Zeze.ServiceManagerAgent.SubscribeStates.Values)
@@ -107,7 +108,7 @@ namespace Zeze.Arch
 						var mid = int.Parse(ss.ServiceName.Split('#')[1]);
 						if (false == ProviderApp.Modules.TryGetValue(mid, out var m))
 							throw new Exception($"Module Not Found {mid}");
-						foreach (var server in infos.ServiceInfoListSortedByIdentity)
+						foreach (var server in infos.SortedIdentity)
 						{
 							// 符合当前连接目标。每个Identity标识的服务的(ip,port)必须不一样。
 							if (server.PassiveIp.Equals(ip) && server.PassivePort == port)

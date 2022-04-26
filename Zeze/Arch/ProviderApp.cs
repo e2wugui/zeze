@@ -85,6 +85,11 @@ namespace Zeze.Arch
 			this.ProviderDirect.RegisterProtocols(ProviderDirectService);
 		}
 
+		public string MakeServiceName(IModule module)
+        {
+			return ProviderDistribute.MakeServiceName(ServerServiceNamePrefix, module.Id);
+        }
+
 		public void initialize(ProviderModuleBinds binds, Dictionary<string, Zeze.IModule> modules)
 		{
 			binds.BuildStaticBinds(modules, Zeze.Config.ServerId, StaticBinds);

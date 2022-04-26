@@ -49,7 +49,7 @@ namespace Zeze.Arch
         public void ApplyLinksChanged(Zeze.Services.ServiceManager.ServiceInfos serviceInfos)
         {
             var current = new HashSet<string>();
-            foreach (var link in serviceInfos.ServiceInfoListSortedByIdentity)
+            foreach (var link in serviceInfos.SortedIdentity)
             {
                 var linkName = GetLinkName(link);
                 current.Add(Links.GetOrAdd(linkName, (key) =>

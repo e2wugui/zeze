@@ -52,21 +52,25 @@ namespace Arch
 				Assert.IsTrue(outServerId == 1);
 
 				// RedirectHash
+				var subs = app1.Zeze.ServiceManagerAgent.SubscribeStates;
+				Assert.IsTrue(subs.TryGetValue(app1.ProviderApp.MakeServiceName(app1.Game_Rank), out var servers1));
 				await app1.Game_Rank.TestHash(0, 555, (i, s) => { outParam = i; outServerId = s; });
 				Assert.IsTrue(outParam == 555);
-				Assert.IsTrue(outServerId == 0);
+				Assert.IsTrue(outServerId.ToString() == servers1.ServiceInfos.SortedIdentity[0].ServiceIdentity);
 
 				await app1.Game_Rank.TestHash(1, 666, (i, s) => { outParam = i; outServerId = s; });
 				Assert.IsTrue(outParam == 666);
-				Assert.IsTrue(outServerId == 1);
+				Assert.IsTrue(outServerId.ToString() == servers1.ServiceInfos.SortedIdentity[1].ServiceIdentity);
 
+				var subs2 = app2.Zeze.ServiceManagerAgent.SubscribeStates;
+				Assert.IsTrue(subs2.TryGetValue(app1.ProviderApp.MakeServiceName(app2.Game_Rank), out var servers2));
 				await app2.Game_Rank.TestHash(0, 777, (i, s) => { outParam = i; outServerId = s; });
 				Assert.IsTrue(outParam == 777);
-				Assert.IsTrue(outServerId == 0);
+				Assert.IsTrue(outServerId.ToString() == servers2.ServiceInfos.SortedIdentity[0].ServiceIdentity);
 
 				await app2.Game_Rank.TestHash(1, 888, (i, s) => { outParam = i; outServerId = s; });
 				Assert.IsTrue(outParam == 888);
-				Assert.IsTrue(outServerId == 1);
+				Assert.IsTrue(outServerId.ToString() == servers2.ServiceInfos.SortedIdentity[1].ServiceIdentity);
 
 				// RedirectToServerResult
 				long result = 0;
@@ -93,25 +97,25 @@ namespace Arch
 				result = await app1.Game_Rank.TestHashResult(0, 555, (i, s) => { outParam = i; outServerId = s; });
 				Assert.AreEqual(12345, result);
 				Assert.IsTrue(outParam == 555);
-				Assert.IsTrue(outServerId == 0);
+				Assert.IsTrue(outServerId.ToString() == servers1.ServiceInfos.SortedIdentity[0].ServiceIdentity);
 
 				result = await app1.Game_Rank.TestHashResult(1, 666, (i, s) => { outParam = i; outServerId = s; });
 				Assert.AreEqual(12345, result);
 				Assert.IsTrue(outParam == 666);
-				Assert.IsTrue(outServerId == 1);
+				Assert.IsTrue(outServerId.ToString() == servers1.ServiceInfos.SortedIdentity[1].ServiceIdentity);
 
 				result = await app2.Game_Rank.TestHashResult(0, 777, (i, s) => { outParam = i; outServerId = s; });
 				Assert.AreEqual(12345, result);
 				Assert.IsTrue(outParam == 777);
-				Assert.IsTrue(outServerId == 0);
+				Assert.IsTrue(outServerId.ToString() == servers2.ServiceInfos.SortedIdentity[0].ServiceIdentity);
 
 				result = await app2.Game_Rank.TestHashResult(1, 888, (i, s) => { outParam = i; outServerId = s; });
 				Assert.AreEqual(12345, result);
 				Assert.IsTrue(outParam == 888);
-				Assert.IsTrue(outServerId == 1);
+				Assert.IsTrue(outServerId.ToString() == servers2.ServiceInfos.SortedIdentity[1].ServiceIdentity);
 
-                // RedirectAll
-                {
+				// RedirectAll
+				{
 					var param = 1;
 					var ctx = await app1.Game_Rank.TestAllResult(param);
 					Assert.AreEqual(0, ctx.HashCodes.Count);

@@ -34,18 +34,29 @@ namespace Zeze.Arch
 			if (serverId == ProviderApp.Zeze.Config.ServerId)
 				return null; // is Local
 
+			// 直接使用ProviderDirectService.ProviderByServerId查找。
+			if (!ProviderApp.ProviderDirectService.ProviderByServerId.TryGetValue(serverId, out var ps))
+				throw new Exception("Server Session Not Found. ServerId=" + serverId);
+			var socket = ProviderApp.ProviderDirectService.GetSocket(ps.SessionId);
+			if (null == socket)
+				throw new Exception("Server Socket Not Found. ServerId=" + serverId);
+			return socket;
+
+			/*
+			// 使用模块支持的服务查找。
 			if (!ProviderApp.Distribute.ChoiceProviderByServerId(ProviderApp.ServerServiceNamePrefix, module.Id, serverId, out var provider))
 				throw new Exception("Server Not Found. ServerId=" + serverId);
 			var socket = ProviderApp.ProviderDirectService.GetSocket(provider);
 			if (null == socket)
 				throw new Exception("Server Socket Not Found. ServerId=" + serverId);
 			return socket;
+			*/
 		}
 
 		public AsyncSocket ChoiceHash(IModule module, int hash)
 		{
 			var subscribes = ProviderApp.Zeze.ServiceManagerAgent.SubscribeStates;
-			var serviceName = ProviderApp.Distribute.MakeServiceName(ProviderApp.ServerServiceNamePrefix, module.Id);
+			var serviceName = ProviderDistribute.MakeServiceName(ProviderApp.ServerServiceNamePrefix, module.Id);
 
 			if (!subscribes.TryGetValue(serviceName, out var servers))
 				return null;

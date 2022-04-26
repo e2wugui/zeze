@@ -15,14 +15,14 @@ namespace Zeze.Arch
 
         public int MaxOnlineNew { get; set; } = 30;
 
-        public string MakeServiceName(string prefix, int moduleId)
+        public static string MakeServiceName(string prefix, int moduleId)
         {
             return $"{prefix}{moduleId}";
         }
 
         public ServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash)
         {
-            var list = providers.ServiceInfos.ServiceInfoListSortedByIdentity;
+            var list = providers.ServiceInfos.SortedIdentity;
             if (list.Count == 0)
                 return null;
             return list[hash % list.Count];
@@ -45,7 +45,7 @@ namespace Zeze.Arch
         {
             provider = 0;
 
-            var list = providers.ServiceInfos.ServiceInfoListSortedByIdentity;
+            var list = providers.ServiceInfos.SortedIdentity;
             var frees = new List<ProviderSession>(list.Count);
             var all = new List<ProviderSession>(list.Count);
             int TotalWeight = 0;
@@ -101,7 +101,7 @@ namespace Zeze.Arch
             {
                 provider = 0;
 
-                var list = providers.ServiceInfos.ServiceInfoListSortedByIdentity;
+                var list = providers.ServiceInfos.SortedIdentity;
                 // 最多遍历一次。循环里面 continue 时，需要递增索引。
                 for (int i = 0; i < list.Count; ++i, FeedFullOneByOneIndex.IncrementAndGet())
                 {

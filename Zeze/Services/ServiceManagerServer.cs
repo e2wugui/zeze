@@ -886,7 +886,7 @@ namespace Zeze.Services.ServiceManager
                 if (null == p)
                     return false;
 
-                foreach (var pending in p.ServiceInfoListSortedByIdentity)
+                foreach (var pending in p.SortedIdentity)
                 {
                     if (!ServiceIdentityReadyStates.ContainsKey(pending.ServiceIdentity))
                         return false;
@@ -923,7 +923,7 @@ namespace Zeze.Services.ServiceManager
 
             private void PrepareAndTriggerOnChanged()
             {
-                foreach (var info in ServiceInfos.ServiceInfoListSortedByIdentity)
+                foreach (var info in ServiceInfos.SortedIdentity)
                 {
                     if (ServiceIdentityReadyStates.TryGetValue(info.ServiceIdentity, out var state))
                     {
@@ -1758,33 +1758,33 @@ namespace Zeze.Services.ServiceManager
         // ServiceList maybe empty. need a ServiceName
         public string ServiceName { get; private set; }
         // sorted by ServiceIdentity
-        private List<ServiceInfo> ServiceInfoListSortedByIdentity_ { get; } = new List<ServiceInfo>();
-        public IReadOnlyList<ServiceInfo> ServiceInfoListSortedByIdentity => ServiceInfoListSortedByIdentity_;
+        private List<ServiceInfo> SortedIdentity_ { get; } = new List<ServiceInfo>();
+        public IReadOnlyList<ServiceInfo> SortedIdentity => SortedIdentity_;
         public long SerialId { get; set; }
 
-        private readonly static ServiceInfoIdentityComparer ServiceInfoIdentityComparer = new();
+        private readonly static ServiceIdentityComparer ServiceIdentityComparer = new();
 
         public ServiceInfo Insert(ServiceInfo info)
         {
-            var i = ServiceInfoListSortedByIdentity_.BinarySearch(info, ServiceInfoIdentityComparer);
+            var i = SortedIdentity_.BinarySearch(info, ServiceIdentityComparer);
             if (i >= 0)
             {
-                ServiceInfoListSortedByIdentity_[i] = info;
+                SortedIdentity_[i] = info;
             }
             else
             {
-                ServiceInfoListSortedByIdentity_.Insert(~i, info);
+                SortedIdentity_.Insert(~i, info);
             }
             return info;
         }
 
         public ServiceInfo Remove(ServiceInfo info)
         {
-            var i = ServiceInfoListSortedByIdentity_.BinarySearch(info, ServiceInfoIdentityComparer);
+            var i = SortedIdentity_.BinarySearch(info, ServiceIdentityComparer);
             if (i >= 0)
             {
-                info = ServiceInfoListSortedByIdentity_[i];
-                ServiceInfoListSortedByIdentity_.RemoveAt(i);
+                info = SortedIdentity_[i];
+                SortedIdentity_.RemoveAt(i);
                 return info;
             }
             return null;
@@ -1792,9 +1792,9 @@ namespace Zeze.Services.ServiceManager
 
         public ServiceInfo FindServiceInfoByIdentity(string identity)
         {
-            var i = ServiceInfoListSortedByIdentity_.BinarySearch(new ServiceInfo(ServiceName, identity), ServiceInfoIdentityComparer);
+            var i = SortedIdentity_.BinarySearch(new ServiceInfo(ServiceName, identity), ServiceIdentityComparer);
             if (i >= 0)
-                return ServiceInfoListSortedByIdentity_[i];
+                return SortedIdentity_[i];
             return null;
         }
 
@@ -1817,7 +1817,7 @@ namespace Zeze.Services.ServiceManager
             ServiceName = serviceName;
             foreach (var e in state.ServiceInfos)
             {
-                ServiceInfoListSortedByIdentity_.Add(e.Value);
+                Insert(e.Value);
             }
             SerialId = serialId;
         }
@@ -1825,10 +1825,10 @@ namespace Zeze.Services.ServiceManager
         public bool TryGetServiceInfo(string identity, out ServiceInfo info)
         {
             var cur = new ServiceInfo(ServiceName, identity);
-            int index = ServiceInfoListSortedByIdentity_.BinarySearch(cur, ServiceInfoIdentityComparer);
+            int index = SortedIdentity_.BinarySearch(cur, ServiceIdentityComparer);
             if (index >= 0)
             {
-                info = ServiceInfoListSortedByIdentity[index];
+                info = SortedIdentity[index];
                 return true;
             }
             info = null;
@@ -1837,12 +1837,12 @@ namespace Zeze.Services.ServiceManager
         public override void Decode(ByteBuffer bb)
         {
             ServiceName = bb.ReadString();
-            ServiceInfoListSortedByIdentity_.Clear();
+            SortedIdentity_.Clear();
             for (int c = bb.ReadInt(); c > 0; --c)
             {
                 var service = new ServiceInfo();
                 service.Decode(bb);
-                ServiceInfoListSortedByIdentity_.Add(service);
+                SortedIdentity_.Add(service);
             }
             SerialId = bb.ReadLong();
         }
@@ -1850,8 +1850,8 @@ namespace Zeze.Services.ServiceManager
         public override void Encode(ByteBuffer bb)
         {
             bb.WriteString(ServiceName);
-            bb.WriteInt(ServiceInfoListSortedByIdentity_.Count);
-            foreach (var service in ServiceInfoListSortedByIdentity_)
+            bb.WriteInt(SortedIdentity_.Count);
+            foreach (var service in SortedIdentity_)
             {
                 service.Encode(bb);
             }
@@ -1868,7 +1868,7 @@ namespace Zeze.Services.ServiceManager
             var sb = new StringBuilder();
             sb.Append(ServiceName).Append('=');
             sb.Append('[');
-            foreach (var e in ServiceInfoListSortedByIdentity)
+            foreach (var e in SortedIdentity)
             {
                 sb.Append(e.ServiceIdentity);
                 sb.Append(',');
@@ -1938,7 +1938,7 @@ namespace Zeze.Services.ServiceManager
         }
     }
 
-    public sealed class ServiceInfoIdentityComparer : IComparer<ServiceInfo>
+    public sealed class ServiceIdentityComparer : IComparer<ServiceInfo>
     {
         public int Compare(ServiceInfo x, ServiceInfo y)
         {
