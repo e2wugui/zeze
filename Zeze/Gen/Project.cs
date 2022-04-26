@@ -28,7 +28,7 @@ namespace Zeze.Gen
         public string ComponentPresentModuleFullName { get; private set; }
         public string IncludeAllModules { get; private set; } = "false";
         public string MacroEditor { get; private set; }
-        public static Project CurrentMakingInstance { get; set; }
+        public static Project MakingInstance { get; set; }
         public List<Module> GetAllOrderdRefModules()
         {
             HashSet<Module> unique = new HashSet<Module>();
@@ -150,7 +150,7 @@ namespace Zeze.Gen
 
         public void Make()
         {
-            CurrentMakingInstance = this;
+            MakingInstance = this;
             AllOrderDefineModules = IncludeAllModules.Equals("true") ? GetSolutionAllModules() : GetAllOrderdRefModules();
                         
             var _AllProtocols = new HashSet<Protocol>();

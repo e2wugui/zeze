@@ -25,7 +25,6 @@ Online Account
    OR -> List<OperateLog> 所有操作记录日志，收到方重做。问题：Get(index).Update，怎么融入。
 2. Game.Bag Listener
 
-
 【2022/5/11】
 
 2. c# 1) LoadReporter. 

@@ -183,7 +183,7 @@ namespace Zeze.Serialize
         void EnsureRead(int size)
         {
             if (ReadIndex + size > WriteIndex)
-                 throw new Exception("EnsureRead " + size);
+                throw new Exception("EnsureRead " + size);
         }
 
         public void WriteBool(bool b)
@@ -649,34 +649,34 @@ namespace Zeze.Serialize
 
         public long ReadLong()
         {
- 		    EnsureRead(1);
-		    int b = (sbyte)Bytes[ReadIndex++];
-		    switch ((b >> 3) & 0x1f) {
-		    case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06: case 0x07:
-		    case 0x18: case 0x19: case 0x1a: case 0x1b: case 0x1c: case 0x1d: case 0x1e: case 0x1f: return b;
-		    case 0x08: case 0x09: case 0x0a: case 0x0b: return ((b - 0x40 ) <<  8) + ReadLong1();
-		    case 0x14: case 0x15: case 0x16: case 0x17: return ((b + 0x40 ) <<  8) + ReadLong1();
-		    case 0x0c: case 0x0d:                       return ((b - 0x60 ) << 16) + ReadLong2BE();
-		    case 0x12: case 0x13:                       return ((b + 0x60 ) << 16) + ReadLong2BE();
-		    case 0x0e:                                  return ((b - 0x70L) << 24) + ReadLong3BE();
-		    case 0x11:                                  return ((b + 0x70L) << 24) + ReadLong3BE();
-		    case 0x0f:
-			    switch (b & 7) {
-			    case 0: case 1: case 2: case 3: return ((long)(b - 0x78) << 32) + ReadLong4BE();
-			    case 4: case 5:                 return ((long)(b - 0x7c) << 40) + ReadLong5BE();
-			    case 6:                         return ReadLong6BE();
-			    default: long r = ReadLong7BE(); return r < 0x80_0000_0000_0000L ?
-					    r : ((r - 0x80_0000_0000_0000L) << 8) + ReadLong1();
-			    }
-		    default: // 0x10
-			    switch (b & 7) {
-			    case 4: case 5: case 6: case 7: return ((long)(b + 0x78) << 32) + ReadLong4BE();
-			    case 2: case 3:                 return ((long)(b + 0x7c) << 40) + ReadLong5BE();
-			    case 1:                         return -0x0001_0000_0000_0000L  + ReadLong6BE();
-			    default: long r = ReadLong7BE(); return r >= 0x80_0000_0000_0000L ?
-					    -0x0100_0000_0000_0000L + r : ((r + 0x80_0000_0000_0000L) << 8) + ReadLong1();
-			    }
-		    }
+            EnsureRead(1);
+            int b = (sbyte)Bytes[ReadIndex++];
+            switch ((b >> 3) & 0x1f) {
+                case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: case 0x06: case 0x07:
+                case 0x18: case 0x19: case 0x1a: case 0x1b: case 0x1c: case 0x1d: case 0x1e: case 0x1f: return b;
+                case 0x08: case 0x09: case 0x0a: case 0x0b: return ((b - 0x40) << 8) + ReadLong1();
+                case 0x14: case 0x15: case 0x16: case 0x17: return ((b + 0x40) << 8) + ReadLong1();
+                case 0x0c: case 0x0d: return ((b - 0x60) << 16) + ReadLong2BE();
+                case 0x12: case 0x13: return ((b + 0x60) << 16) + ReadLong2BE();
+                case 0x0e: return ((b - 0x70L) << 24) + ReadLong3BE();
+                case 0x11: return ((b + 0x70L) << 24) + ReadLong3BE();
+                case 0x0f:
+                    switch (b & 7) {
+                        case 0: case 1: case 2: case 3: return ((long)(b - 0x78) << 32) + ReadLong4BE();
+                        case 4: case 5: return ((long)(b - 0x7c) << 40) + ReadLong5BE();
+                        case 6: return ReadLong6BE();
+                        default: long r = ReadLong7BE(); return r < 0x80_0000_0000_0000L ?
+                                r : ((r - 0x80_0000_0000_0000L) << 8) + ReadLong1();
+                    }
+                default: // 0x10
+                    switch (b & 7) {
+                        case 4: case 5: case 6: case 7: return ((long)(b + 0x78) << 32) + ReadLong4BE();
+                        case 2: case 3: return ((long)(b + 0x7c) << 40) + ReadLong5BE();
+                        case 1: return -0x0001_0000_0000_0000L + ReadLong6BE();
+                        default: long r = ReadLong7BE(); return r >= 0x80_0000_0000_0000L ?
+                                -0x0100_0000_0000_0000L + r : ((r + 0x80_0000_0000_0000L) << 8) + ReadLong1();
+                    }
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -1101,6 +1101,122 @@ namespace Zeze.Serialize
                 return ReadString();
             SkipUnknownField(type);
             return "";
+        }
+
+        public Vector2 ReadVector2()
+        {
+            var r = new Vector2();
+            r.Decode(this);
+            return r;
+        }
+
+        public Vector3 ReadVector3()
+        {
+            var r = new Vector3();
+            r.Decode(this);
+            return r;
+        }
+
+        public Vector4 ReadVector4()
+        {
+            var r = new Vector4();
+            r.Decode(this);
+            return r;
+        }
+
+        public Quaternion ReadQuaternion()
+        {
+            var r = new Quaternion();
+            r.Decode(this);
+            return r;
+        }
+
+        public Vector2Int ReadVector2Int()
+        {
+            var r = new Vector2Int();
+            r.Decode(this);
+            return r;
+        }
+
+        public Vector3Int ReadVector3Int()
+        {
+            var r = new Vector3Int();
+            r.Decode(this);
+            return r;
+        }
+
+        public Vector2 ReadVector2(int type)
+        {
+            type &= TAG_MASK;
+            if (type == VECTOR2)
+                return ReadVector2();
+            if (type == VECTOR3)
+                return ReadVector3();
+            if (type == VECTOR4)
+                return ReadVector4();
+            SkipUnknownField(type);
+            return new Vector2();
+        }
+
+        public Vector3 ReadVector3(int type)
+        {
+            type &= TAG_MASK;
+            if (type == VECTOR2)
+                return new Vector3(ReadVector2());
+            if (type == VECTOR3)
+                return ReadVector3();
+            if (type == VECTOR4)
+                return ReadVector4();
+            SkipUnknownField(type);
+            return new Vector3();
+        }
+
+        public Vector4 ReadVector4(int type)
+        {
+            type &= TAG_MASK;
+            if (type == VECTOR2)
+                return new Vector4(ReadVector2());
+            if (type == VECTOR3)
+                return new Vector4(ReadVector3());
+            if (type == VECTOR4)
+                return ReadVector4();
+            SkipUnknownField(type);
+            return new Vector4();
+        }
+
+        public Quaternion ReadQuaternion(int type)
+        {
+            type &= TAG_MASK;
+            if (type == VECTOR2)
+                return new Quaternion(ReadVector2());
+            if (type == VECTOR3)
+                return new Quaternion(ReadVector3());
+            if (type == VECTOR4)
+                return new Quaternion(ReadVector4());
+            SkipUnknownField(type);
+            return new Quaternion();
+        }
+
+        public Vector2Int ReadVector2Int(int type)
+        {
+            type &= TAG_MASK;
+            if (type == VECTOR2INT)
+                return ReadVector2Int();
+            if (type == VECTOR3INT)
+                return ReadVector3Int();
+            SkipUnknownField(type);
+            return new Vector2Int();
+        }
+
+        public Vector3Int ReadVector3Int(int type)
+        {
+            type &= TAG_MASK;
+            if (type == VECTOR2INT)
+                return new Vector3Int(ReadVector2Int());
+            if (type == VECTOR3INT)
+                return ReadVector3Int();
+            SkipUnknownField(type);
+            return new Vector3Int();
         }
 
         public T ReadBean<T>(T bean, int type) where T : Serializable

@@ -18,7 +18,7 @@ namespace Zeze.Gen.cs
 
         void DefineNew(Type type)
         {
-            string tName = Project.CurrentMakingInstance.Platform.Equals("conf+cs") ? confcs.TypeName.GetName(type) : TypeName.GetName(type);
+            string tName = Project.MakingInstance.Platform.Equals("conf+cs") ? confcs.TypeName.GetName(type) : TypeName.GetName(type);
             sw.WriteLine(prefix + tName + " " + varname + " = new " + tName + "();");
         }
 

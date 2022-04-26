@@ -188,6 +188,19 @@ namespace Zeze.Gen.cs
                 case BeanKey:
                 case TypeDynamic:
                     return bufname + ".ReadBean(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
+                case TypeVector2:
+                    return $"{bufname}.ReadVector2({typeVar})";
+                case TypeVector3:
+                    return $"{bufname}.ReadVector3({typeVar})";
+                case TypeVector4:
+                    return $"{bufname}.ReadVector4({typeVar})";
+                case TypeQuaternion:
+                    return $"{bufname}.ReadQuaternion({typeVar})";
+                case TypeVector2Int:
+                    return $"{bufname}.ReadVector2Int({typeVar})";
+                case TypeVector3Int:
+                    return $"{bufname}.ReadVector3Int({typeVar})";
+
                 default:
                     throw new Exception("invalid collection element type: " + type);
             }
@@ -195,6 +208,9 @@ namespace Zeze.Gen.cs
  
         public static bool IsUnityType(Types.Type type)
         {
+            if (!Project.MakingInstance.Platform.Equals("conf+cs"))
+                return false;
+
             switch (type)
             {
                 case TypeVector2:
