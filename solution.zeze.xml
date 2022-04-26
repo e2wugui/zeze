@@ -538,11 +538,14 @@
 
 					<variable id="8" name="ProviderId" type="int"/> Config.AutoKeyLocalId
 					<variable id="9" name="ProviderSessionId" type="long"/> 登录所在Linkd与当前Provider的连接在Linkd方的SessionId
+
+					<variable id="10" name="LoginVersion" type="long"/>
 				</bean>
 				<bean name="BAccount">
 					<variable id="1" name="Name"  type="string"/>
 					<variable id="2" name="Roles" type="list" value="long"/> roleid list
 					<variable id="3" name="LastLoginRoleId" type="long"/>
+					<variable id="4" name="LastLoginVersion" type="long"/> 用来生成 role 登录版本号。每次递增。
 				</bean>
 				<table name="taccount"  key="string" value="BAccount"/>
 				<table name="tonline"   key="long"   value="BOnline"/>
@@ -555,7 +558,8 @@
 				</bean>
 
 				<bean name="BLocal">
-					<variable id="1" name="Datas" type="map" key="int" value="BAny"/> 
+					<variable id="1" name="LoginVersion" type="long"/>
+					<variable id="2" name="Datas"   type="map" key="string" value="BAny"/> 
 				</bean>
 
 				<table name="tlocal" key="long" memory="true" value="BLocal"/>

@@ -22,6 +22,7 @@ namespace Zeze.Builtin.Game.Online
         public const int VAR_ReliableNotifyTotalCount = 7;
         public const int VAR_ProviderId = 8;
         public const int VAR_ProviderSessionId = 9;
+        public const int VAR_LoginVersion = 10;
 
         public override long DecodeKey(ByteBuffer _os_)
         {
@@ -51,6 +52,7 @@ namespace Zeze.Builtin.Game.Online
                 7 => new Zeze.Transaction.ChangeVariableCollectorChanged(),
                 8 => new Zeze.Transaction.ChangeVariableCollectorChanged(),
                 9 => new Zeze.Transaction.ChangeVariableCollectorChanged(),
+                10 => new Zeze.Transaction.ChangeVariableCollectorChanged(),
                 _ => null,
             };
         }

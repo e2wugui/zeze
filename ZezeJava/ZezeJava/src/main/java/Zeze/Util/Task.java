@@ -1,5 +1,6 @@
 package Zeze.Util;
 
+import java.util.Calendar;
 import java.util.Collection;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -147,6 +148,18 @@ public class Task implements Future<Long> {
 				logger.error("schedule", e);
 			}
 		}, initialDelay, TimeUnit.MILLISECONDS);
+	}
+
+	public static Future<?> scheduleAt(int hour, int minute, Action0 action) {
+		var firstTime = Calendar.getInstance();
+		firstTime.set(Calendar.HOUR_OF_DAY, hour);
+		firstTime.set(Calendar.MINUTE, minute);
+		firstTime.set(Calendar.SECOND, 0);
+		firstTime.set(Calendar.MILLISECOND, 0);
+		if (firstTime.before(Calendar.getInstance())) // 如果第一次的时间比当前时间早，推到明天。
+			firstTime.add(Calendar.DAY_OF_MONTH, 1); // tomorrow!
+		var delay = firstTime.getTime().getTime() - System.currentTimeMillis();
+		return schedule(delay, action);
 	}
 
 	public static Future<?> schedule(long initialDelay, long period, Action0 action) {

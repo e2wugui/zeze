@@ -552,12 +552,17 @@ namespace Zeze.Transaction
                 });
         }
 
+        public long WalkCache(Func<K, V, bool> callback)
+        {
+            return WalkCache(callback, null);
+        }
+
         /**
          * 事务外调用
          * 遍历缓存
          * @return count
          */
-        public long WalkCache(Func<K, V, bool> callback)
+        public long WalkCache(Func<K, V, bool> callback, Action afterNotLock)
         {
             if (Transaction.Current != null)
             {
@@ -586,6 +591,7 @@ namespace Zeze.Transaction
                 {
                     lockey.Release();
                 }
+                afterNotLock?.Invoke();
             }
             return count;
         }

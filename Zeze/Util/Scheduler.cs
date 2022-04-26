@@ -43,6 +43,16 @@ namespace Zeze.Util
             return Instance.Schedule(new SchedulerTaskAction(action, initialDelay, period));
         }
 
+        public static SchedulerTask ScheduleAt(Action<SchedulerTask> action, int hour, int minute, long period = -1)
+        {
+            var now = new DateTime();
+            var at = new DateTime(now.Year, now.Month, now.Day, hour, minute, 0);
+            if (at.CompareTo(now) < 0)
+                at = at.AddDays(1);
+            long delay = at.Millisecond - now.Millisecond;
+            return Schedule(action, delay, period);
+        }
+
         public static SchedulerTask Schedule(Func<SchedulerTask, Task> action, long initialDelay, long period = -1)
         {
             if (initialDelay < 0)

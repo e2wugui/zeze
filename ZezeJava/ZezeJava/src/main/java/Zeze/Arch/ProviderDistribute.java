@@ -19,7 +19,7 @@ public class ProviderDistribute {
 	public Service ProviderService;
 	private final AtomicInteger FeedFullOneByOneIndex = new AtomicInteger();
 
-	public String MakeServiceName(String serviceNamePrefix, int moduleId) {
+	public static String MakeServiceName(String serviceNamePrefix, int moduleId) {
 		return serviceNamePrefix + moduleId;
 	}
 

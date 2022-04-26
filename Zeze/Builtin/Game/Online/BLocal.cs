@@ -11,16 +11,43 @@ namespace Zeze.Builtin.Game.Online
         public bool NegativeCheck();
         public Zeze.Transaction.Bean CopyBean();
 
-        public System.Collections.Generic.IReadOnlyDictionary<int,Zeze.Builtin.Game.Online.BAnyReadOnly> Datas { get; }
+        public long LoginVersion { get; }
+        public System.Collections.Generic.IReadOnlyDictionary<string,Zeze.Builtin.Game.Online.BAnyReadOnly> Datas { get; }
     }
 
     public sealed class BLocal : Zeze.Transaction.Bean, BLocalReadOnly
     {
-        readonly Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Game.Online.BAny> _Datas;
-        Zeze.Transaction.Collections.PMapReadOnly<int,Zeze.Builtin.Game.Online.BAnyReadOnly,Zeze.Builtin.Game.Online.BAny> _DatasReadOnly;
+        long _LoginVersion;
+        readonly Zeze.Transaction.Collections.PMap2<string, Zeze.Builtin.Game.Online.BAny> _Datas;
+        Zeze.Transaction.Collections.PMapReadOnly<string,Zeze.Builtin.Game.Online.BAnyReadOnly,Zeze.Builtin.Game.Online.BAny> _DatasReadOnly;
 
-        public Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Game.Online.BAny> Datas => _Datas;
-        System.Collections.Generic.IReadOnlyDictionary<int,Zeze.Builtin.Game.Online.BAnyReadOnly> Zeze.Builtin.Game.Online.BLocalReadOnly.Datas => _DatasReadOnly;
+        public long LoginVersion
+        {
+            get
+            {
+                if (!IsManaged)
+                    return _LoginVersion;
+                var txn = Zeze.Transaction.Transaction.Current;
+                if (txn == null) return _LoginVersion;
+                txn.VerifyRecordAccessed(this, true);
+                var log = (Log__LoginVersion)txn.GetLog(ObjectId + 1);
+                return log != null ? log.Value : _LoginVersion;
+            }
+            set
+            {
+                if (!IsManaged)
+                {
+                    _LoginVersion = value;
+                    return;
+                }
+                var txn = Zeze.Transaction.Transaction.Current;
+                txn.VerifyRecordAccessed(this);
+                txn.PutLog(new Log__LoginVersion(this, value));
+            }
+        }
+
+        public Zeze.Transaction.Collections.PMap2<string, Zeze.Builtin.Game.Online.BAny> Datas => _Datas;
+        System.Collections.Generic.IReadOnlyDictionary<string,Zeze.Builtin.Game.Online.BAnyReadOnly> Zeze.Builtin.Game.Online.BLocalReadOnly.Datas => _DatasReadOnly;
 
         public BLocal() : this(0)
         {
@@ -28,12 +55,13 @@ namespace Zeze.Builtin.Game.Online
 
         public BLocal(int _varId_) : base(_varId_)
         {
-            _Datas = new Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Game.Online.BAny>(ObjectId + 1, _v => new Log__Datas(this, _v));
-            _DatasReadOnly = new Zeze.Transaction.Collections.PMapReadOnly<int,Zeze.Builtin.Game.Online.BAnyReadOnly,Zeze.Builtin.Game.Online.BAny>(_Datas);
+            _Datas = new Zeze.Transaction.Collections.PMap2<string, Zeze.Builtin.Game.Online.BAny>(ObjectId + 2, _v => new Log__Datas(this, _v));
+            _DatasReadOnly = new Zeze.Transaction.Collections.PMapReadOnly<string,Zeze.Builtin.Game.Online.BAnyReadOnly,Zeze.Builtin.Game.Online.BAny>(_Datas);
         }
 
         public void Assign(BLocal other)
         {
+            LoginVersion = other.LoginVersion;
             Datas.Clear();
             foreach (var e in other.Datas)
                 Datas.Add(e.Key, e.Value.Copy());
@@ -66,10 +94,17 @@ namespace Zeze.Builtin.Game.Online
         public const long TYPEID = 1038509325594826174;
         public override long TypeId => TYPEID;
 
-        sealed class Log__Datas : Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Game.Online.BAny>.LogV
+        sealed class Log__LoginVersion : Zeze.Transaction.Log<BLocal, long>
         {
-            public Log__Datas(BLocal host, System.Collections.Immutable.ImmutableDictionary<int, Zeze.Builtin.Game.Online.BAny> value) : base(host, value) {}
-            public override long LogKey => Bean.ObjectId + 1;
+            public Log__LoginVersion(BLocal self, long value) : base(self, value) {}
+            public override long LogKey => this.Bean.ObjectId + 1;
+            public override void Commit() { this.BeanTyped._LoginVersion = this.Value; }
+        }
+
+        sealed class Log__Datas : Zeze.Transaction.Collections.PMap2<string, Zeze.Builtin.Game.Online.BAny>.LogV
+        {
+            public Log__Datas(BLocal host, System.Collections.Immutable.ImmutableDictionary<string, Zeze.Builtin.Game.Online.BAny> value) : base(host, value) {}
+            public override long LogKey => Bean.ObjectId + 2;
             public BLocal BeanTyped => (BLocal)Bean;
             public override void Commit() { Commit(BeanTyped._Datas); }
         }
@@ -86,6 +121,7 @@ namespace Zeze.Builtin.Game.Online
         {
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Builtin.Game.Online.BLocal: {").Append(Environment.NewLine);
             level += 4;
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("LoginVersion").Append('=').Append(LoginVersion).Append(',').Append(Environment.NewLine);
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Datas").Append("=[").Append(Environment.NewLine);
             level += 4;
             foreach (var _kv_ in Datas)
@@ -109,15 +145,23 @@ namespace Zeze.Builtin.Game.Online
         {
             int _i_ = 0;
             {
+                long _x_ = LoginVersion;
+                if (_x_ != 0)
+                {
+                    _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                    _o_.WriteLong(_x_);
+                }
+            }
+            {
                 var _x_ = Datas;
                 int _n_ = _x_.Count;
                 if (_n_ != 0)
                 {
-                    _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.MAP);
-                    _o_.WriteMapType(_n_, ByteBuffer.INTEGER, ByteBuffer.BEAN);
+                    _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.MAP);
+                    _o_.WriteMapType(_n_, ByteBuffer.BYTES, ByteBuffer.BEAN);
                     foreach (var _e_ in _x_)
                     {
-                        _o_.WriteLong(_e_.Key);
+                        _o_.WriteString(_e_.Key);
                         _e_.Value.Encode(_o_);
                     }
                 }
@@ -131,6 +175,11 @@ namespace Zeze.Builtin.Game.Online
             int _i_ = _o_.ReadTagSize(_t_);
             if (_i_ == 1)
             {
+                LoginVersion = _o_.ReadLong(_t_);
+                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+            }
+            if (_i_ == 2)
+            {
                 var _x_ = Datas;
                 _x_.Clear();
                 if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP)
@@ -138,7 +187,7 @@ namespace Zeze.Builtin.Game.Online
                     int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                     for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--)
                     {
-                        var _k_ = _o_.ReadInt(_s_);
+                        var _k_ = _o_.ReadString(_s_);
                         var _v_ = _o_.ReadBean(new Zeze.Builtin.Game.Online.BAny(), _t_);
                         _x_.Add(_k_, _v_);
                     }
@@ -161,6 +210,7 @@ namespace Zeze.Builtin.Game.Online
 
         public override bool NegativeCheck()
         {
+            if (LoginVersion < 0) return true;
             return false;
         }
     }

@@ -34,8 +34,10 @@ namespace Zeze.Game
         {
             this.App = app;
 
-            RegisterProtocols(app.ProviderService);
-            RegisterZezeTables(app.Zeze);
+            RegisterProtocols(App.ProviderService);
+            RegisterZezeTables(App.Zeze);
+
+            Util.Scheduler.ScheduleAt(VerifyLocal, 3 + Util.Random.Instance.Next(3), 10); // at 3:10 - 6:10
         }
 
         public override void UnRegister()
@@ -43,6 +45,40 @@ namespace Zeze.Game
             UnRegisterZezeTables(App.Zeze);
             UnRegisterProtocols(App.ProviderService);
         }
+
+        public int LocalCount => _tlocal.Cache.DataMap.Count;
+
+        public long WalkLocal(Func<long, BLocal, bool> walker)
+        {
+            return _tlocal.WalkCache(walker);
+        }
+
+        public async Task SetLocalBean(long roleId, string key, Bean bean)
+        {
+            var bLocal = await _tlocal.GetAsync(roleId);
+            if (null == bLocal)
+                throw new Exception("roleid not online. " + roleId);
+            var bAny = new BAny();
+            bAny.Any.Bean = bean;
+            bLocal.Datas[key] = bAny;
+        }
+
+        public async Task<T> GetLocalBean<T>(long roleId, string key)
+            where T : Bean
+        {
+            var bLocal = await _tlocal.GetAsync(roleId);
+            if (null == bLocal)
+                return null;
+            if (!bLocal.Datas.TryGetValue(key, out var data))
+                return null;
+            return (T)data.Any.Bean;
+
+        }
+
+        public Zeze.Util.EventDispatcher LoginEvents { get; } = new("Online.Login");
+        public Zeze.Util.EventDispatcher ReloginEvents { get; } = new("Online.Relogin");
+        public Zeze.Util.EventDispatcher LogoutEvents { get; } = new("Online.Logout");
+        public Zeze.Util.EventDispatcher LocalRemoveEvents { get; } = new("Online.Local.Remove");
 
         public async Task<bool> AddRole(string account, long roleId)
         {
@@ -72,31 +108,96 @@ namespace Zeze.Game
             return true;
         }
 
+        private async Task RemoveLocalAndTrigger(long roleId)
+        {
+            var arg = new LocalRemoveEventArgument()
+            {
+                RoleId = roleId,
+                LocalData = (await _tlocal.GetAsync(roleId)).Copy(),
+            };
+
+            await _tlocal.RemoveAsync(roleId); // remove first
+
+            await LocalRemoveEvents.TriggerEmbed(this, arg);
+            await LocalRemoveEvents.TriggerProcedure(App.Zeze, this, arg);
+            Transaction.Transaction.Current.RunWhileCommit(() => LocalRemoveEvents.TriggerThread(this, arg));
+        }
+
+        private async Task RemoveOnlineAndTrigger(long roleId)
+        {
+            var arg = new LogoutEventArgument()
+            {
+                RoleId = roleId,
+                OnlineData = (await _tonline.GetAsync(roleId)).Copy(),
+            };
+
+            await _tonline.RemoveAsync(roleId); // remove first
+
+            await LogoutEvents.TriggerEmbed(this, arg);
+            await LogoutEvents.TriggerProcedure(App.Zeze, this, arg);
+            Transaction.Transaction.Current.RunWhileCommit(() => LogoutEvents.TriggerThread(this, arg));
+        }
+
+        private async Task LoginTrigger(long roleId)
+        {
+            var arg = new LoginArgument()
+            {
+                RoleId = roleId,
+            };
+
+            await LoginEvents.TriggerEmbed(this, arg);
+            await LoginEvents.TriggerProcedure(App.Zeze, this, arg);
+            Transaction.Transaction.Current.RunWhileCommit(() => LoginEvents.TriggerThread(this, arg));
+        }
+
+        private async Task ReloginTrigger(long roleId)
+        {
+            var arg = new LoginArgument()
+            {
+                RoleId = roleId,
+            };
+
+            await ReloginEvents.TriggerEmbed(this, arg);
+            await ReloginEvents.TriggerProcedure(App.Zeze, this, arg);
+            Transaction.Transaction.Current.RunWhileCommit(() => ReloginEvents.TriggerThread(this, arg));
+        }
+
         public async Task OnLinkBroken(long roleId, BLinkBroken arg)
         {
-            var online = await _tonline.GetAsync(roleId);
-            if (null == online || online.LinkSid != arg.LinkSid)
-                return; // skip now owner
+            long currentLoginVersion = 0;
+            {
+                var online = await _tonline.GetAsync(roleId);
+                // skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
+                if (null == online || online.LinkSid != arg.LinkSid)
+                    return;
 
-            // 设置状态，延迟以后，准备删除记录。
-            online.State = BOnline.StateNetBroken;
+                var local = await _tlocal.GetAsync(roleId);
+                if (local == null)
+                    return; // 不在本机登录。
+
+                currentLoginVersion = local.LoginVersion;
+                if (online.LoginVersion != currentLoginVersion)
+                    await RemoveLocalAndTrigger(roleId); // 本机数据已经过时，马上删除。
+                else
+                    online.State = BOnline.StateNetBroken;
+                // 准备删除online数据。现在使用Version验证Owner，State已经没有什么意义了。
+            }
             await Task.Delay(10 * 60 * 1000);
 
             // TryRemove
             await App.Zeze.NewProcedure(async () =>
             {
-                // 网络断开后延迟删除在线状态。这里简单判断一下是否StateNetBroken。
-                // 由于CLogin,CReLogin的时候没有取消Timeout，所以有可能再次登录断线后，会被上一次断线的Timeout删除。
-                // 造成延迟时间不准确。管理Timeout有点烦，先这样吧。
-                var online = await _tonline.GetAsync(roleId);
-
-                // 删除前检查：
-                // 1）State是网络断开（StateNetBroken），因为Delay期间可能重新连接并登录（ReLogin）；
-                // 2）Owner：当前LinkSid是关闭连接，理由同上。
-                if (null != online && online.State == BOnline.StateNetBroken && online.LinkSid == arg.LinkSid)
+                // local online 独立判断version分别尝试删除。
+                var local = await _tlocal.GetAsync(roleId);
+                if (null != local && local.LoginVersion == currentLoginVersion)
                 {
-                    await _tonline.RemoveAsync(roleId);
-                    //App.Instance.Load.LogoutCount.IncrementAndGet();
+                    await RemoveLocalAndTrigger(roleId);
+                }
+                // 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
+                var online = await _tonline.GetAsync(roleId);
+                if (null != online && online.LoginVersion == currentLoginVersion)
+                {
+                    await RemoveOnlineAndTrigger(roleId);
                 }
                 return Procedure.Success;
             }, "Onlines.OnLinkBroken").CallAsync();
@@ -591,12 +692,62 @@ namespace Zeze.Game
             Broadcast(p.TypeId, new Binary(p.Encode()), time, WaitConfirm);
         }
 
+        private void VerifyLocal(Util.SchedulerTask thisTask)
+        {
+            long roleId = 0;
+            _tlocal.WalkCache(
+                (k, v) =>
+                {
+                    // 先得到roleId
+                    roleId = k;
+                    return true;
+                },
+                () =>
+                {
+                    // 锁外执行事务
+                    try
+                    {
+                        App.Zeze.NewProcedure(async () =>
+                        {
+                            await TryRemoveLocal(roleId);
+                            return 0L;
+                        }, "VerifyLocal:" + roleId).CallSynchronously();
+                    }
+                    catch (Exception e)
+                    {
+                        logger.Error(e);
+                    }
+                });
+            // 随机开始时间，避免验证操作过于集中。3:10 - 5:10
+            Util.Scheduler.ScheduleAt(VerifyLocal, 3 + Util.Random.Instance.Next(3), 10); // at 3:10 - 6:10
+        }
+
+        private async Task TryRemoveLocal(long roleId)
+        {
+            var online = await _tonline.GetAsync(roleId);
+            var local = await _tlocal.GetAsync(roleId);
+
+            if (null == local)
+                return;
+            // null == online && null == local -> do nothing
+            // null != online && null == local -> do nothing
+
+            if ((null == online) || (online.LoginVersion != local.LoginVersion))
+                await RemoveLocalAndTrigger(roleId);
+        }
+
+        [RedirectToServer]
+        protected async Task RedirectNotify(int serverId, long roleId)
+        {
+            await TryRemoveLocal(roleId);
+        }
+
         protected override async Task<long> ProcessLoginRequest(Zeze.Net.Protocol p)
         {
             var rpc = p as Login;
             var session = ProviderUserSession.Get(rpc);
 
-            BAccount account = await _taccount.GetAsync(session.Account);
+            var account = await _taccount.GetAsync(session.Account);
             if (null == account)
                 return ErrorCode(ResultCodeAccountNotExist);
 
@@ -605,7 +756,20 @@ namespace Zeze.Game
 
             account.LastLoginRoleId = rpc.Argument.RoleId;
 
-            BOnline online = await _tonline.GetOrAddAsync(rpc.Argument.RoleId);
+            var online = await _tonline.GetOrAddAsync(rpc.Argument.RoleId);
+            var local = await _tlocal.GetOrAddAsync(rpc.Argument.RoleId);
+
+            // login exist && not local
+            if (online.LoginVersion != 0 && online.LoginVersion != local.LoginVersion)
+            {
+                // nowait
+                _ = RedirectNotify(online.ProviderId, rpc.Argument.RoleId);
+            }
+            var version = account.LastLoginVersion + 1;
+            account.LastLoginVersion = version;
+            online.LoginVersion = version;
+            local.LoginVersion = version;
+
             online.LinkName = session.LinkName;
             online.LinkSid = session.SessionId;
             online.State = BOnline.StateOnline;
@@ -618,6 +782,8 @@ namespace Zeze.Game
             var linkSession = session.Link.UserState as ProviderService.LinkSession;
             online.ProviderId = App.Zeze.Config.ServerId;
             online.ProviderSessionId = linkSession.ProviderSessionId;
+
+            await LoginTrigger(rpc.Argument.RoleId);
 
             // 先提交结果再设置状态。
             // see linkd::Zezex.Provider.ModuleProvider。ProcessBroadcast
@@ -633,6 +799,65 @@ namespace Zeze.Game
             return Procedure.Success;
         }
 
+        protected override async Task<long> ProcessReLoginRequest(Zeze.Net.Protocol p)
+        {
+            var rpc = p as ReLogin;
+            var session = ProviderUserSession.Get(rpc);
+
+            BAccount account = await _taccount.GetAsync(session.Account);
+            if (null == account)
+                return ErrorCode(ResultCodeAccountNotExist);
+
+            if (account.LastLoginRoleId != rpc.Argument.RoleId)
+                return ErrorCode(ResultCodeNotLastLoginRoleId);
+
+            if (!account.Roles.Contains(rpc.Argument.RoleId))
+                return ErrorCode(ResultCodeRoleNotExist);
+
+            BOnline online = await _tonline.GetAsync(rpc.Argument.RoleId);
+            if (null == online)
+                return ErrorCode(ResultCodeOnlineDataNotFound);
+
+            var local = await _tlocal.GetOrAddAsync(rpc.Argument.RoleId);
+            // login exist && not local
+            if (online.LoginVersion != 0 && online.LoginVersion != local.LoginVersion)
+            {
+                // nowait
+                _ = RedirectNotify(online.ProviderId, rpc.Argument.RoleId);
+            }
+            var version = account.LastLoginVersion + 1;
+            account.LastLoginVersion = version;
+            online.LoginVersion = version;
+            local.LoginVersion = version;
+
+            online.LinkName = session.LinkName;
+            online.LinkSid = session.SessionId;
+            online.State = BOnline.StateOnline;
+
+            await ReloginTrigger(session.RoleId.Value);
+
+            // 先发结果，再发送同步数据（ReliableNotifySync）。
+            // 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
+            session.SendResponseWhileCommit(rpc);
+            Transaction.Transaction.Current.RunWhileCommit(() =>
+            {
+                var setUserState = new SetUserState();
+                setUserState.Argument.LinkSid = session.SessionId;
+                setUserState.Argument.States.Add(rpc.Argument.RoleId);
+                rpc.Sender.Send(setUserState); // 直接使用link连接。
+            });
+
+            var syncResultCode = ReliableNotifySync(
+                session, rpc.Argument.ReliableNotifyConfirmCount,
+                online);
+
+            if (syncResultCode != ResultCodeSuccess)
+                return ErrorCode((ushort)syncResultCode);
+
+            //App.Load.LoginCount.IncrementAndGet();
+            return Procedure.Success;
+        }
+
         protected override async Task<long> ProcessLogoutRequest(Zeze.Net.Protocol p)
         {
             var rpc = p as Logout;
@@ -641,7 +866,15 @@ namespace Zeze.Game
             if (session.RoleId == null)
                 return ErrorCode(ResultCodeNotLogin);
 
-            await _tonline.RemoveAsync(session.RoleId.Value);
+            var local = await _tlocal.GetAsync(session.RoleId.Value);
+            var online = await _tonline.GetAsync(session.RoleId.Value);
+            // 登录在其他机器上。
+            if (local == null && online != null)
+                _ = RedirectNotify(online.ProviderId, session.RoleId.Value); // nowait
+            if (null != local)
+                await RemoveLocalAndTrigger(session.RoleId.Value);
+            if (null != online)
+                await RemoveOnlineAndTrigger(session.RoleId.Value);
 
             // 先设置状态，再发送Logout结果。
             Transaction.Transaction.Current.RunWhileCommit(() =>
@@ -699,51 +932,6 @@ namespace Zeze.Game
             if (ResultCodeSuccess != syncResultCode)
                 return ErrorCode((ushort)syncResultCode);
 
-            return Procedure.Success;
-        }
-
-        protected override async Task<long> ProcessReLoginRequest(Zeze.Net.Protocol p)
-        {
-            var rpc = p as ReLogin;
-            var session = ProviderUserSession.Get(rpc);
-
-            BAccount account = await _taccount.GetAsync(session.Account);
-            if (null == account)
-                return ErrorCode(ResultCodeAccountNotExist);
-
-            if (account.LastLoginRoleId != rpc.Argument.RoleId)
-                return ErrorCode(ResultCodeNotLastLoginRoleId);
-
-            if (!account.Roles.Contains(rpc.Argument.RoleId))
-                return ErrorCode(ResultCodeRoleNotExist);
-
-            BOnline online = await _tonline.GetAsync(rpc.Argument.RoleId);
-            if (null == online)
-                return ErrorCode(ResultCodeOnlineDataNotFound);
-
-            online.LinkName = session.LinkName;
-            online.LinkSid = session.SessionId;
-            online.State = BOnline.StateOnline;
-
-            // 先发结果，再发送同步数据（ReliableNotifySync）。
-            // 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
-            session.SendResponseWhileCommit(rpc);
-            Transaction.Transaction.Current.RunWhileCommit(() =>
-            {
-                var setUserState = new SetUserState();
-                setUserState.Argument.LinkSid = session.SessionId;
-                setUserState.Argument.States.Add(rpc.Argument.RoleId);
-                rpc.Sender.Send(setUserState); // 直接使用link连接。
-            });
-
-            var syncResultCode = ReliableNotifySync(
-                session, rpc.Argument.ReliableNotifyConfirmCount,
-                online);
-
-            if (syncResultCode != ResultCodeSuccess)
-                return ErrorCode((ushort)syncResultCode);
-
-            //App.Load.LoginCount.IncrementAndGet();
             return Procedure.Success;
         }
 

@@ -20,7 +20,8 @@ public final class tlocal extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Gam
     }
 
     public static final int VAR_All = 0;
-    public static final int VAR_Datas = 1;
+    public static final int VAR_LoginVersion = 1;
+    public static final int VAR_Datas = 2;
 
     @Override
     public Long DecodeKey(ByteBuffer _os_) {
@@ -45,7 +46,8 @@ public final class tlocal extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Gam
     public Zeze.Transaction.ChangeVariableCollector CreateChangeVariableCollector(int variableId) {
         switch (variableId) {
             case 0: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 1: return new Zeze.Transaction.ChangeVariableCollectorMap(() -> new Zeze.Transaction.ChangeNoteMap2<Integer, Zeze.Builtin.Game.Online.BAny>(null));
+            case 1: return new Zeze.Transaction.ChangeVariableCollectorChanged();
+            case 2: return new Zeze.Transaction.ChangeVariableCollectorMap(() -> new Zeze.Transaction.ChangeNoteMap2<String, Zeze.Builtin.Game.Online.BAny>(null));
             default: return null;
         }
     }

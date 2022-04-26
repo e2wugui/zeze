@@ -31,10 +31,17 @@ namespace Zeze.Game
         {
             if (app == null)
                 throw new ArgumentException("app is null");
-            this.App = app;
 
-            RegisterZezeTables(app.Zeze);
-            RegisterProtocols(app.Zeze.Redirect.ProviderApp.ProviderService);
+            this.App = app;
+            RegisterZezeTables(App.Zeze);
+            RegisterProtocols(App.Zeze.Redirect.ProviderApp.ProviderService);
+        }
+
+        public async Task StartAsync(string serviceNamePrefix, string providerDirectIp, int providerDirectPort)
+        {
+            var name = ProviderDistribute.MakeServiceName(serviceNamePrefix, Id);
+            var identity = App.Zeze.Config.ServerId.ToString();
+            await App.Zeze.ServiceManagerAgent.RegisterService(name, identity, providerDirectIp, providerDirectPort);
         }
 
         public override void UnRegister()

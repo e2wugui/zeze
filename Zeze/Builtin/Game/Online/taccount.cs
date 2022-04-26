@@ -16,6 +16,7 @@ namespace Zeze.Builtin.Game.Online
         public const int VAR_Name = 1;
         public const int VAR_Roles = 2;
         public const int VAR_LastLoginRoleId = 3;
+        public const int VAR_LastLoginVersion = 4;
 
         public override string DecodeKey(ByteBuffer _os_)
         {
@@ -39,6 +40,7 @@ namespace Zeze.Builtin.Game.Online
                 1 => new Zeze.Transaction.ChangeVariableCollectorChanged(),
                 2 => new Zeze.Transaction.ChangeVariableCollectorChanged(),
                 3 => new Zeze.Transaction.ChangeVariableCollectorChanged(),
+                4 => new Zeze.Transaction.ChangeVariableCollectorChanged(),
                 _ => null,
             };
         }

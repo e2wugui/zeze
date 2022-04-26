@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.function.IntUnaryOperator;
 import Zeze.AppBase;
 import Zeze.Arch.Gen.GenModule;
+import Zeze.Arch.ProviderDistribute;
 import Zeze.Arch.RedirectAll;
 import Zeze.Arch.RedirectAllFuture;
 import Zeze.Arch.RedirectFuture;
@@ -55,6 +56,12 @@ public class Rank extends AbstractRank {
 			UnRegisterProtocols(app.getZeze().Redirect.ProviderApp.ProviderService);
 			UnRegisterZezeTables(app.getZeze());
 		}
+	}
+
+	public void Start(String serviceNamePrefix, String providerDirectIp, int providerDirectPort) {
+		var name = ProviderDistribute.MakeServiceName(serviceNamePrefix, getId());
+		var identity = String.valueOf(app.getZeze().getConfig().getServerId());
+		app.getZeze().getServiceManagerAgent().RegisterService(name, identity, providerDirectIp, providerDirectPort);
 	}
 
 	public final BConcurrentKey newRankKey(int rankType, int timeType) {

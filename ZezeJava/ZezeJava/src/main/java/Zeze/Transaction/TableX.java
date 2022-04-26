@@ -542,6 +542,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @return count
 	 */
 	public final long WalkCache(TableWalkHandle<K, V> callback) {
+		return WalkCache(callback, null);
+	}
+
+	public final long WalkCache(TableWalkHandle<K, V> callback, Runnable afterLock) {
 		if (Transaction.getCurrent() != null) {
 			throw new IllegalStateException("must be called without transaction");
 		}
@@ -567,6 +571,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			} finally {
 				lockey.ExitLock();
 			}
+			if (null != afterLock)
+				afterLock.run();
 		}
 		return count;
 	}

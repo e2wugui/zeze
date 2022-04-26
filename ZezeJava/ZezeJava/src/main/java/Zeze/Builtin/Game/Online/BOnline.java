@@ -18,6 +18,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
     private long _ReliableNotifyTotalCount;
     private int _ProviderId; // Config.AutoKeyLocalId
     private long _ProviderSessionId; // 登录所在Linkd与当前Provider的连接在Linkd方的SessionId
+    private long _LoginVersion;
 
     public String getLinkName() {
         if (!isManaged())
@@ -183,6 +184,28 @@ public final class BOnline extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__ProviderSessionId(this, value));
     }
 
+    public long getLoginVersion() {
+        if (!isManaged())
+            return _LoginVersion;
+        var txn = Zeze.Transaction.Transaction.getCurrent();
+        if (txn == null)
+            return _LoginVersion;
+        txn.VerifyRecordAccessed(this, true);
+        var log = (Log__LoginVersion)txn.GetLog(this.getObjectId() + 10);
+        return log != null ? log.getValue() : _LoginVersion;
+    }
+
+    public void setLoginVersion(long value) {
+        if (!isManaged()) {
+            _LoginVersion = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrent();
+        assert txn != null;
+        txn.VerifyRecordAccessed(this);
+        txn.PutLog(new Log__LoginVersion(this, value));
+    }
+
     public BOnline() {
          this(0);
     }
@@ -209,6 +232,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
         setReliableNotifyTotalCount(other.getReliableNotifyTotalCount());
         setProviderId(other.getProviderId());
         setProviderSessionId(other.getProviderSessionId());
+        setLoginVersion(other.getLoginVersion());
     }
 
     public BOnline CopyIfManaged() {
@@ -313,6 +337,14 @@ public final class BOnline extends Zeze.Transaction.Bean {
         public void Commit() { this.getBeanTyped()._ProviderSessionId = this.getValue(); }
     }
 
+    private static final class Log__LoginVersion extends Zeze.Transaction.Log1<BOnline, Long> {
+        public Log__LoginVersion(BOnline self, Long value) { super(self, value); }
+        @Override
+        public long getLogKey() { return this.getBean().getObjectId() + 10; }
+        @Override
+        public void Commit() { this.getBeanTyped()._LoginVersion = this.getValue(); }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -345,7 +377,8 @@ public final class BOnline extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("ReliableNotifyConfirmCount").append('=').append(getReliableNotifyConfirmCount()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ReliableNotifyTotalCount").append('=').append(getReliableNotifyTotalCount()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ProviderId").append('=').append(getProviderId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ProviderSessionId").append('=').append(getProviderSessionId()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ProviderSessionId").append('=').append(getProviderSessionId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LoginVersion").append('=').append(getLoginVersion()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -434,6 +467,13 @@ public final class BOnline extends Zeze.Transaction.Bean {
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            long _x_ = getLoginVersion();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 10, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -489,6 +529,10 @@ public final class BOnline extends Zeze.Transaction.Bean {
             setProviderSessionId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 10) {
+            setLoginVersion(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -514,6 +558,8 @@ public final class BOnline extends Zeze.Transaction.Bean {
         if (getProviderId() < 0)
             return true;
         if (getProviderSessionId() < 0)
+            return true;
+        if (getLoginVersion() < 0)
             return true;
         return false;
     }

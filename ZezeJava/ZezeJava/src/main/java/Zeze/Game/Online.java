@@ -9,7 +9,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderService;
 import Zeze.Arch.ProviderUserSession;
+import Zeze.Arch.RedirectFuture;
+import Zeze.Arch.RedirectToServer;
 import Zeze.Builtin.Game.Online.BAccount;
+import Zeze.Builtin.Game.Online.BAny;
+import Zeze.Builtin.Game.Online.BLocal;
 import Zeze.Builtin.Game.Online.BOnline;
 import Zeze.Builtin.Game.Online.SReliableNotify;
 import Zeze.Builtin.Game.Online.taccount;
@@ -27,7 +31,11 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
+import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.EventDispatcher;
+import Zeze.Util.OutLong;
+import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
@@ -39,31 +47,65 @@ public class Online extends AbstractOnline {
 	}
 
 	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
-		throw new UnsupportedOperationException("Online Memory Table Dynamic Only.");
+		throw new UnsupportedOperationException("Online Memory Table Dynamic Not Need.");
 	}
 
 	protected static final Logger logger = LogManager.getLogger(Online.class);
 
 	private final ProviderApp app;
 
-	@FunctionalInterface
-	public interface TransmitAction {
-		long call(long sender, long target, Binary parameter);
-	}
-
 	public int getLocalCount() {
 		return _tlocal.getCacheSize();
 	}
 
-	public void walkLocal() {
-
+	public long walkLocal(TableWalkHandle<Long, BLocal> walker) {
+		return _tlocal.WalkCache(walker);
 	}
 
-	/*
-   a) 本机正常Login/Logout/LinkBroken
-   b) 本机Logout/LinkBroken丢失或迟到，而已经在其他机器上Login，此时需要Redirect过来。
-   c) Redirect丢失，本机需要一个机制遍历TableCache，慢慢检测并清除Memory中登录状态无效的数据。
-	*/
+	public void setLocalBean(long roleId, String key, Bean bean) {
+		var bLocal = _tlocal.get(roleId);
+		if (null == bLocal)
+			throw new RuntimeException("roleid not online. " + roleId);
+		var bAny = new BAny();
+		bAny.getAny().setBean(bean);
+		bLocal.getDatas().put(key, bAny);
+	}
+
+	public <T extends Bean> T getLocalBean(long roleId, String key) {
+		var bLocal = _tlocal.get(roleId);
+		if (null == bLocal)
+			return null;
+		var data = bLocal.getDatas().get(key);
+		if (null == data)
+			return null;
+		return (T)data.getAny().getBean();
+	}
+
+	private Zeze.Util.EventDispatcher loginEvents = new EventDispatcher("Online.Login");
+	private Zeze.Util.EventDispatcher reloginEvents = new EventDispatcher("Online.Relogin");
+	private Zeze.Util.EventDispatcher logoutEvents = new EventDispatcher("Online.Logout");
+	private Zeze.Util.EventDispatcher localRemoveEvents = new EventDispatcher("Online.Local.Remove");
+
+	// 登录事件
+	public Zeze.Util.EventDispatcher getLoginEvents() {
+		return loginEvents;
+	}
+
+	// 断线重连事件
+	public Zeze.Util.EventDispatcher getReloginEvents() {
+		return reloginEvents;
+	}
+
+	// 登出事件
+	public Zeze.Util.EventDispatcher getLogoutEvents() {
+		return logoutEvents;
+	}
+
+	// 角色从本机删除事件
+	public Zeze.Util.EventDispatcher getLocalRemoveEvents() {
+		return localRemoveEvents;
+	}
+
 	public taccount getTableAccount() {
 		return _taccount;
 	}
@@ -80,6 +122,7 @@ public class Online extends AbstractOnline {
 		this.app = app;
 		RegisterProtocols(app.ProviderService);
 		RegisterZezeTables(app.Zeze);
+		Task.scheduleAt(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
 	}
 
 	@Override
@@ -120,25 +163,82 @@ public class Online extends AbstractOnline {
 		return Procedure.Success;
 	}
 
-	public final void onLinkBroken(long roleId, BLinkBroken arg) {
-		var online = _tonline.get(roleId);
-		if (online == null || online.getLinkSid() != arg.getLinkSid())
-			return; // skip not owner
+	private void removeLocalAndTrigger(long roleId) throws Throwable {
+		var arg = new LocalRemoveEventArgument();
+		arg.RoleId = roleId;
+		arg.LocalData = _tlocal.get(roleId).Copy();
 
-		// 设置状态，延迟以后，准备删除记录。
-		online.setState(BOnline.StateNetBroken);
+		_tlocal.remove(roleId); // remove first
 
-		Task.schedule(10 * 60 * 1000, () -> { // 10 minutes for relogin
+		localRemoveEvents.triggerEmbed(this, arg);
+		localRemoveEvents.triggerProcedure(app.Zeze, this, arg);
+		Transaction.getCurrent().RunWhileCommit(()->localRemoveEvents.triggerThread(this, arg));
+	}
+
+	private void removeOnlineAndTrigger(long roleId) throws Throwable {
+		var arg = new LogoutEventArgument();
+		arg.RoleId = roleId;
+		arg.OnlineData = _tonline.get(roleId).Copy();
+
+		_tonline.remove(roleId); // remove first
+
+		logoutEvents.triggerEmbed(this, arg);
+		logoutEvents.triggerProcedure(app.Zeze, this, arg);
+		Transaction.getCurrent().RunWhileCommit(()->logoutEvents.triggerThread(this, arg));
+	}
+
+	private void loginTrigger(long roleId) throws Throwable {
+		var arg = new LoginArgument();
+		arg.RoleId = roleId;
+
+		loginEvents.triggerEmbed(this, arg);
+		loginEvents.triggerProcedure(app.Zeze, this, arg);
+		Transaction.getCurrent().RunWhileCommit(() -> loginEvents.triggerThread(this, arg));
+	}
+
+	private void reloginTrigger(long roleId) throws Throwable {
+		var arg = new LoginArgument();
+		arg.RoleId = roleId;
+
+		reloginEvents.triggerEmbed(this, arg);
+		reloginEvents.triggerProcedure(app.Zeze, this, arg);
+		Transaction.getCurrent().RunWhileCommit(() -> reloginEvents.triggerThread(this, arg));
+	}
+
+	public final void onLinkBroken(long roleId, BLinkBroken arg) throws Throwable {
+		long currentLoginVersion = 0;
+		{
+			var online = _tonline.get(roleId);
+			// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
+			if (online == null || online.getLinkSid() != arg.getLinkSid())
+				return;
+
+			var local = _tlocal.get(roleId);
+			if (local == null)
+				return; // 不在本机登录。
+
+			currentLoginVersion = local.getLoginVersion();
+			if (online.getLoginVersion() != currentLoginVersion)
+				removeLocalAndTrigger(roleId); // 本机数据已经过时，马上删除。
+			else
+				online.setState(BOnline.StateNetBroken);
+			// 准备删除online数据。现在使用Version验证Owner，State已经没有什么意义了。
+		}
+
+		final long currentLoginVersionFinal = currentLoginVersion;
+		// delay 10 minutes
+		Task.schedule(10 * 60 * 1000, () -> {
 			app.Zeze.NewProcedure(() -> {
-				// 网络断开后延迟删除在线状态。这里简单判断一下是否StateNetBroken。
-				// 由于CLogin,CReLogin的时候没有取消Timeout，所以有可能再次登录断线后，会被上一次断线的Timeout删除。
-				// 造成延迟时间不准确。管理Timeout有点烦，先这样吧。
-				var online2 = _tonline.get(roleId);
-				// 删除前检查：
-				// 1）State是网络断开（StateNetBroken），因为Delay期间可能重新连接并登录（ReLogin）；
-				// 2）Owner：当前LinkSid是关闭连接，理由同上。
-				if (online2 != null && online2.getState() == BOnline.StateNetBroken && online2.getLinkSid() == arg.getLinkSid())
-					_tonline.remove(roleId);
+				// local online 独立判断version分别尝试删除。
+				var local = _tlocal.get(roleId);
+				if (null != local && local.getLoginVersion() == currentLoginVersionFinal) {
+					removeLocalAndTrigger(roleId);
+				}
+				// 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
+				var online = _tonline.get(roleId);
+				if (null != online && online.getLoginVersion() == currentLoginVersionFinal) {
+					removeOnlineAndTrigger(roleId);
+				}
 				return Procedure.Success;
 			}, "Game.Online.onLinkBroken").Call();
 		});
@@ -620,16 +720,69 @@ public class Online extends AbstractOnline {
 		Transaction.getCurrent().RunWhileRollback(() -> transmit(sender, actionName, roleIds, parameter));
 	}
 
+	private void verifyLocal() {
+		var roleId = new OutLong();
+		_tlocal.WalkCache(
+				(k, v) -> {
+					// 先得到roleId
+					roleId.Value = k;
+					return true;
+					},
+				() -> {
+					// 锁外执行事务
+					try {
+						app.Zeze.NewProcedure(() -> {
+							tryRemoveLocal(roleId.Value);
+							return 0L;
+							}, "VerifyLocal:" + roleId.Value).Call();
+					} catch (Throwable e) {
+						logger.error(e);
+					}
+				});
+		// 随机开始时间，避免验证操作过于集中。3:10 - 5:10
+		Task.scheduleAt(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
+	}
+
+	private void tryRemoveLocal(long roleId) throws Throwable {
+		var online = _tonline.get(roleId);
+		var local = _tlocal.get(roleId);
+
+		if (null == local)
+			return;
+		// null == online && null == local -> do nothing
+		// null != online && null == local -> do nothing
+
+		if ((null == online) || (online.getLoginVersion() != local.getLoginVersion()))
+			removeLocalAndTrigger(roleId);
+	}
+
+	@RedirectToServer
+	protected RedirectFuture<Long> redirectNotify(int serverId, long roleId) throws Throwable {
+		tryRemoveLocal(roleId);
+		return RedirectFuture.finish(0L);
+	}
+
 	@Override
-	protected long ProcessLoginRequest(Zeze.Builtin.Game.Online.Login rpc) {
+	protected long ProcessLoginRequest(Zeze.Builtin.Game.Online.Login rpc) throws Throwable {
 		var session = ProviderUserSession.Get(rpc);
 
-		BAccount account = _taccount.get(session.getAccount());
+		var account = _taccount.get(session.getAccount());
 		if (account == null)
 			return ErrorCode(ResultCodeAccountNotExist);
 		account.setLastLoginRoleId(rpc.Argument.getRoleId());
 
-		BOnline online = _tonline.getOrAdd(rpc.Argument.getRoleId());
+		var online = _tonline.getOrAdd(rpc.Argument.getRoleId());
+		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
+
+		// login exist && not local
+		if (online.getLoginVersion() != 0 && online.getLoginVersion() != local.getLoginVersion()) {
+			redirectNotify(online.getProviderId(), rpc.Argument.getRoleId());
+		}
+		var version = account.getLastLoginVersion() + 1;
+		account.setLastLoginVersion(version);
+		online.setLoginVersion(version);
+		local.setLoginVersion(version);
+
 		online.setLinkName(session.getLinkName());
 		online.setLinkSid(session.getSessionId());
 		online.setState(BOnline.StateOnline);
@@ -642,6 +795,8 @@ public class Online extends AbstractOnline {
 		var linkSession = (ProviderService.LinkSession)session.getLink().getUserState();
 		online.setProviderId(app.Zeze.getConfig().getServerId());
 		online.setProviderSessionId(linkSession.getProviderSessionId());
+
+		loginTrigger(rpc.Argument.getRoleId());
 
 		// 先提交结果再设置状态。
 		// see linkd::Zezex.Provider.ModuleProvider。ProcessBroadcast
@@ -657,7 +812,7 @@ public class Online extends AbstractOnline {
 	}
 
 	@Override
-	protected long ProcessReLoginRequest(Zeze.Builtin.Game.Online.ReLogin rpc) {
+	protected long ProcessReLoginRequest(Zeze.Builtin.Game.Online.ReLogin rpc) throws Throwable {
 		var session = ProviderUserSession.Get(rpc);
 
 		BAccount account = _taccount.get(session.getAccount());
@@ -669,9 +824,22 @@ public class Online extends AbstractOnline {
 		BOnline online = _tonline.get(rpc.Argument.getRoleId());
 		if (online == null)
 			return ErrorCode(ResultCodeOnlineDataNotFound);
+
+		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
+		// login exist && not local
+		if (online.getLoginVersion() != 0 && online.getLoginVersion() != local.getLoginVersion()) {
+			redirectNotify(online.getProviderId(), rpc.Argument.getRoleId());
+		}
+		var version = account.getLastLoginVersion() + 1;
+		account.setLastLoginVersion(version);
+		online.setLoginVersion(version);
+		local.setLoginVersion(version);
+
 		online.setLinkName(session.getLinkName());
 		online.setLinkSid(session.getSessionId());
 		online.setState(BOnline.StateOnline);
+
+		reloginTrigger(session.getRoleId());
 
 		// 先发结果，再发送同步数据（ReliableNotifySync）。
 		// 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
@@ -720,12 +888,20 @@ public class Online extends AbstractOnline {
 	}
 
 	@Override
-	protected long ProcessLogoutRequest(Zeze.Builtin.Game.Online.Logout rpc) {
+	protected long ProcessLogoutRequest(Zeze.Builtin.Game.Online.Logout rpc) throws Throwable {
 		var session = ProviderUserSession.Get(rpc);
 		if (session.getRoleId() == null)
 			return ErrorCode(ResultCodeNotLogin);
 
-		_tonline.remove(session.getRoleId());
+		var local = _tlocal.get(session.getRoleId());
+		var online = _tonline.get(session.getRoleId());
+		// 登录在其他机器上。
+		if (local == null && online != null)
+			redirectNotify(online.getProviderId(), session.getRoleId());
+		if (null != local)
+			removeLocalAndTrigger(session.getRoleId());
+		if (null != online)
+			removeOnlineAndTrigger(session.getRoleId());
 
 		// 先设置状态，再发送Logout结果。
 		//noinspection ConstantConditions

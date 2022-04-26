@@ -8,6 +8,7 @@ public final class BAccount extends Zeze.Transaction.Bean {
     private String _Name;
     private final Zeze.Transaction.Collections.PList1<Long> _Roles; // roleid list
     private long _LastLoginRoleId;
+    private long _LastLoginVersion; // 用来生成 role 登录版本号。每次递增。
 
     public String getName() {
         if (!isManaged())
@@ -59,6 +60,28 @@ public final class BAccount extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__LastLoginRoleId(this, value));
     }
 
+    public long getLastLoginVersion() {
+        if (!isManaged())
+            return _LastLoginVersion;
+        var txn = Zeze.Transaction.Transaction.getCurrent();
+        if (txn == null)
+            return _LastLoginVersion;
+        txn.VerifyRecordAccessed(this, true);
+        var log = (Log__LastLoginVersion)txn.GetLog(this.getObjectId() + 4);
+        return log != null ? log.getValue() : _LastLoginVersion;
+    }
+
+    public void setLastLoginVersion(long value) {
+        if (!isManaged()) {
+            _LastLoginVersion = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrent();
+        assert txn != null;
+        txn.VerifyRecordAccessed(this);
+        txn.PutLog(new Log__LastLoginVersion(this, value));
+    }
+
     public BAccount() {
          this(0);
     }
@@ -75,6 +98,7 @@ public final class BAccount extends Zeze.Transaction.Bean {
         for (var e : other.getRoles())
             getRoles().add(e);
         setLastLoginRoleId(other.getLastLoginRoleId());
+        setLastLoginVersion(other.getLastLoginVersion());
     }
 
     public BAccount CopyIfManaged() {
@@ -130,6 +154,14 @@ public final class BAccount extends Zeze.Transaction.Bean {
         public void Commit() { this.getBeanTyped()._LastLoginRoleId = this.getValue(); }
     }
 
+    private static final class Log__LastLoginVersion extends Zeze.Transaction.Log1<BAccount, Long> {
+        public Log__LastLoginVersion(BAccount self, Long value) { super(self, value); }
+        @Override
+        public long getLogKey() { return this.getBean().getObjectId() + 4; }
+        @Override
+        public void Commit() { this.getBeanTyped()._LastLoginVersion = this.getValue(); }
+    }
+
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -150,7 +182,8 @@ public final class BAccount extends Zeze.Transaction.Bean {
         }
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append(']').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("LastLoginRoleId").append('=').append(getLastLoginRoleId()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LastLoginRoleId").append('=').append(getLastLoginRoleId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("LastLoginVersion").append('=').append(getLastLoginVersion()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -194,6 +227,13 @@ public final class BAccount extends Zeze.Transaction.Bean {
                 _o_.WriteLong(_x_);
             }
         }
+        {
+            long _x_ = getLastLoginVersion();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -219,6 +259,10 @@ public final class BAccount extends Zeze.Transaction.Bean {
             setLastLoginRoleId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 4) {
+            setLastLoginVersion(_o_.ReadLong(_t_));
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -237,6 +281,8 @@ public final class BAccount extends Zeze.Transaction.Bean {
                 return true;
         }
         if (getLastLoginRoleId() < 0)
+            return true;
+        if (getLastLoginVersion() < 0)
             return true;
         return false;
     }

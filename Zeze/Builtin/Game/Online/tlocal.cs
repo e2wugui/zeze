@@ -13,7 +13,8 @@ namespace Zeze.Builtin.Game.Online
         public override bool IsAutoKey => false;
 
         public const int VAR_All = 0;
-        public const int VAR_Datas = 1;
+        public const int VAR_LoginVersion = 1;
+        public const int VAR_Datas = 2;
 
         public override long DecodeKey(ByteBuffer _os_)
         {
@@ -34,7 +35,8 @@ namespace Zeze.Builtin.Game.Online
             return variableId switch
             {
                 0 => new Zeze.Transaction.ChangeVariableCollectorChanged(),
-                1 => new Zeze.Transaction.ChangeVariableCollectorMap(() => new Zeze.Transaction.ChangeNoteMap2<int, Zeze.Builtin.Game.Online.BAny>(null)),
+                1 => new Zeze.Transaction.ChangeVariableCollectorChanged(),
+                2 => new Zeze.Transaction.ChangeVariableCollectorMap(() => new Zeze.Transaction.ChangeNoteMap2<string, Zeze.Builtin.Game.Online.BAny>(null)),
                 _ => null,
             };
         }

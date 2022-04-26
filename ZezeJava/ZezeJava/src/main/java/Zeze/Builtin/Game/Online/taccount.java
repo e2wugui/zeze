@@ -23,6 +23,7 @@ public final class taccount extends Zeze.Transaction.TableX<String, Zeze.Builtin
     public static final int VAR_Name = 1;
     public static final int VAR_Roles = 2;
     public static final int VAR_LastLoginRoleId = 3;
+    public static final int VAR_LastLoginVersion = 4;
 
     @Override
     public String DecodeKey(ByteBuffer _os_) {
@@ -50,6 +51,7 @@ public final class taccount extends Zeze.Transaction.TableX<String, Zeze.Builtin
             case 1: return new Zeze.Transaction.ChangeVariableCollectorChanged();
             case 2: return new Zeze.Transaction.ChangeVariableCollectorChanged();
             case 3: return new Zeze.Transaction.ChangeVariableCollectorChanged();
+            case 4: return new Zeze.Transaction.ChangeVariableCollectorChanged();
             default: return null;
         }
     }

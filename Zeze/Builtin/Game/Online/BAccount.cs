@@ -14,6 +14,7 @@ namespace Zeze.Builtin.Game.Online
         public string Name { get; }
         public System.Collections.Generic.IReadOnlyList<long>Roles { get; }
         public long LastLoginRoleId { get; }
+        public long LastLoginVersion { get; }
     }
 
     public sealed class BAccount : Zeze.Transaction.Bean, BAccountReadOnly
@@ -21,6 +22,7 @@ namespace Zeze.Builtin.Game.Online
         string _Name;
         readonly Zeze.Transaction.Collections.PList1<long> _Roles; // roleid list
         long _LastLoginRoleId;
+        long _LastLoginVersion; // 用来生成 role 登录版本号。每次递增。
 
         public string Name
         {
@@ -76,6 +78,31 @@ namespace Zeze.Builtin.Game.Online
             }
         }
 
+        public long LastLoginVersion
+        {
+            get
+            {
+                if (!IsManaged)
+                    return _LastLoginVersion;
+                var txn = Zeze.Transaction.Transaction.Current;
+                if (txn == null) return _LastLoginVersion;
+                txn.VerifyRecordAccessed(this, true);
+                var log = (Log__LastLoginVersion)txn.GetLog(ObjectId + 4);
+                return log != null ? log.Value : _LastLoginVersion;
+            }
+            set
+            {
+                if (!IsManaged)
+                {
+                    _LastLoginVersion = value;
+                    return;
+                }
+                var txn = Zeze.Transaction.Transaction.Current;
+                txn.VerifyRecordAccessed(this);
+                txn.PutLog(new Log__LastLoginVersion(this, value));
+            }
+        }
+
         public BAccount() : this(0)
         {
         }
@@ -93,6 +120,7 @@ namespace Zeze.Builtin.Game.Online
             foreach (var e in other.Roles)
                 Roles.Add(e);
             LastLoginRoleId = other.LastLoginRoleId;
+            LastLoginVersion = other.LastLoginVersion;
         }
 
         public BAccount CopyIfManaged()
@@ -144,6 +172,13 @@ namespace Zeze.Builtin.Game.Online
             public override void Commit() { this.BeanTyped._LastLoginRoleId = this.Value; }
         }
 
+        sealed class Log__LastLoginVersion : Zeze.Transaction.Log<BAccount, long>
+        {
+            public Log__LastLoginVersion(BAccount self, long value) : base(self, value) {}
+            public override long LogKey => this.Bean.ObjectId + 4;
+            public override void Commit() { this.BeanTyped._LastLoginVersion = this.Value; }
+        }
+
         public override string ToString()
         {
             System.Text.StringBuilder sb = new System.Text.StringBuilder();
@@ -165,7 +200,8 @@ namespace Zeze.Builtin.Game.Online
             }
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append(']').Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("LastLoginRoleId").Append('=').Append(LastLoginRoleId).Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("LastLoginRoleId").Append('=').Append(LastLoginRoleId).Append(',').Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("LastLoginVersion").Append('=').Append(LastLoginVersion).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -202,6 +238,14 @@ namespace Zeze.Builtin.Game.Online
                     _o_.WriteLong(_x_);
                 }
             }
+            {
+                long _x_ = LastLoginVersion;
+                if (_x_ != 0)
+                {
+                    _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
+                    _o_.WriteLong(_x_);
+                }
+            }
             _o_.WriteByte(0);
         }
 
@@ -234,6 +278,11 @@ namespace Zeze.Builtin.Game.Online
                 LastLoginRoleId = _o_.ReadLong(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
+            if (_i_ == 4)
+            {
+                LastLoginVersion = _o_.ReadLong(_t_);
+                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+            }
             while (_t_ != 0)
             {
                 _o_.SkipUnknownField(_t_);
@@ -253,6 +302,7 @@ namespace Zeze.Builtin.Game.Online
                 if (_v_ < 0) return true;
             }
             if (LastLoginRoleId < 0) return true;
+            if (LastLoginVersion < 0) return true;
             return false;
         }
     }
