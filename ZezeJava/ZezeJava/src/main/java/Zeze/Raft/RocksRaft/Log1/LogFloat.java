@@ -5,10 +5,12 @@ import Zeze.Raft.RocksRaft.Log;
 import Zeze.Serialize.ByteBuffer;
 
 public class LogFloat extends Log {
+	private static final int TYPE_ID = Zeze.Transaction.Bean.Hash32("Zeze.Raft.RocksRaft.Log<float>");
+
 	public float Value;
 
 	public LogFloat() {
-		super("Zeze.Raft.RocksRaft.Log<float>");
+		super(TYPE_ID);
 	}
 
 	public LogFloat(Bean belong, int varId, float value) {

@@ -5,10 +5,12 @@ import Zeze.Raft.RocksRaft.Log;
 import Zeze.Serialize.ByteBuffer;
 
 public class LogByte extends Log {
+	private static final int TYPE_ID = Zeze.Transaction.Bean.Hash32("Zeze.Raft.RocksRaft.Log<byte>");
+
 	public byte Value;
 
 	public LogByte() {
-		super("Zeze.Raft.RocksRaft.Log<byte>");
+		super(TYPE_ID);
 	}
 
 	public LogByte(Bean belong, int varId, byte value) {

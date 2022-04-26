@@ -6,10 +6,12 @@ import Zeze.Raft.RocksRaft.Log;
 import Zeze.Serialize.ByteBuffer;
 
 public class LogBinary extends Log {
+	private static final int TYPE_ID = Zeze.Transaction.Bean.Hash32("Zeze.Raft.RocksRaft.Log<binary>");
+
 	public Binary Value;
 
 	public LogBinary() {
-		super("Zeze.Raft.RocksRaft.Log<binary>");
+		super(TYPE_ID);
 	}
 
 	public LogBinary(Bean belong, int varId, Binary value) {

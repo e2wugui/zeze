@@ -10,7 +10,7 @@ import Zeze.Transaction.Bean;
  */
 public abstract class Log implements Serializable {
 	/**
-	 * 用于系列化，外部使用，实现类不用 Decode、Encode 这个变量。
+	 * 用于序列化，外部使用，实现类不用 Decode、Encode 这个变量。
 	 * 只读，常量即可。
 	 * 在一个StateMachine实现中唯一。
 	 * 不冲突的时候使用默认实现即可。

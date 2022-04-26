@@ -16,10 +16,10 @@ public abstract class Log implements Serializable {
 		var factory = Factorys.get(typeId);
 		if (factory != null)
 			return factory.get();
-		throw new UnsupportedOperationException(String.format("unknown log typeId=%d", typeId));
+		throw new UnsupportedOperationException("unknown log typeId=" + typeId);
 	}
 
-	// 事务运行时属性，不会被系列化。
+	// 事务运行时属性，不会被序列化。
 	// 当 Decode，Bean为null。
 	// Apply通过参数得到日志应用需要的Bean。
 	private Bean Belong;

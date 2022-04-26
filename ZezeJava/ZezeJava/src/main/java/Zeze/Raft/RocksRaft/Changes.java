@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Set;
-import Zeze.Net.Protocol;
 import Zeze.Raft.IRaftRpc;
 import Zeze.Raft.RaftLog;
 import Zeze.Raft.StateMachine;
@@ -15,7 +14,7 @@ import Zeze.Util.LongHashMap;
 public final class Changes extends Zeze.Raft.Log {
 	private final Rocks rocks;
 	private final LongHashMap<LogBean> Beans = new LongHashMap<>(); // 收集日志时,记录所有Bean修改. key is Bean.ObjectId
-	private final HashMap<TableKey, Record> Records = new HashMap<>(); // 收集记录的修改,以后需要系列化传输.
+	private final HashMap<TableKey, Record> Records = new HashMap<>(); // 收集记录的修改,以后需要序列化传输.
 	private final IntHashMap<Long> AtomicLongs = new IntHashMap<>();
 	private Transaction transaction;
 
@@ -24,8 +23,8 @@ public final class Changes extends Zeze.Raft.Log {
 		rocks = r;
 	}
 
-	public Changes(Rocks r, Transaction t, Protocol<?> req) {
-		super((IRaftRpc)req);
+	public Changes(Rocks r, Transaction t, IRaftRpc req) {
+		super(req);
 		rocks = r;
 		transaction = t;
 	}
@@ -56,7 +55,7 @@ public final class Changes extends Zeze.Raft.Log {
 		private int State;
 		private Bean PutValue;
 		private final Set<LogBean> LogBean = new HashSet<>();
-		// 所有的日志修改树，key is Record.Value。不会被系列化。
+		// 所有的日志修改树，key is Record.Value。不会被序列化。
 		private final IdentityHashMap<Bean, LogBean> LogBeans = new IdentityHashMap<>();
 		@SuppressWarnings("rawtypes")
 		public Table Table;

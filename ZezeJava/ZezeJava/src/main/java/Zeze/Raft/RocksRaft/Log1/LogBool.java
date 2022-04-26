@@ -5,10 +5,12 @@ import Zeze.Raft.RocksRaft.Log;
 import Zeze.Serialize.ByteBuffer;
 
 public class LogBool extends Log {
+	private static final int TYPE_ID = Zeze.Transaction.Bean.Hash32("Zeze.Raft.RocksRaft.Log<bool>");
+
 	public boolean Value;
 
 	public LogBool() {
-		super("Zeze.Raft.RocksRaft.Log<bool>");
+		super(TYPE_ID);
 	}
 
 	public LogBool(Bean belong, int varId, boolean value) {

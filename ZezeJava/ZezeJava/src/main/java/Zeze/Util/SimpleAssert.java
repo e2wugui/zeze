@@ -11,9 +11,9 @@ public final class SimpleAssert {
 			throw new ThrowAgainException(o + " != null");
 	}
 
-	public static void AreEqual(Object except, Object current) {
-		if (!except.equals(current))
-			throw new ThrowAgainException(except + " != " + current);
+	public static void AreEqual(Object expected, Object current) {
+		if (!expected.equals(current))
+			throw new ThrowAgainException(expected + " != " + current);
 	}
 
 	private SimpleAssert() {

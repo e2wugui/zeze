@@ -109,12 +109,12 @@ public final class Rocks extends StateMachine implements Closeable {
 
 		writeOptions = (new WriteOptions()).setSync(RocksDbWriteOptionSync);
 		// 这个赋值是不必要的，new Raft(...)内部会赋值。有点奇怪。
-		super.setRaft(new Raft(this, raftName, raftConfig, config));
-		super.getRaft().addAtFatalKill(() -> {
+		setRaft(new Raft(this, raftName, raftConfig, config));
+		getRaft().addAtFatalKill(() -> {
 			if (Storage != null)
 				Storage.close();
 		});
-		super.getRaft().getLogSequence().getWriteOptions().setSync(RocksDbWriteOptionSync);
+		getRaft().getLogSequence().getWriteOptions().setSync(RocksDbWriteOptionSync);
 
 		// Raft 在有快照的时候，会调用LoadSnapshot-Restore-OpenDb。
 		// 如果Storage没有创建，需要主动打开。

@@ -2,6 +2,7 @@ package Zeze.Raft.RocksRaft;
 
 import Zeze.Net.Protocol;
 import Zeze.Raft.RaftRetryException;
+import Zeze.Raft.RaftRpc;
 import Zeze.Util.FuncLong;
 import Zeze.Util.TaskCanceledException;
 import Zeze.Util.ThrowAgainException;
@@ -14,7 +15,7 @@ public class Procedure {
 	private Rocks Rocks;
 	private FuncLong Func;
 
-	public Protocol<?> UniqueRequest;
+	public RaftRpc<?, ?> UniqueRequest;
 	public Protocol<?> AutoResponse;
 	public long ResultCode;
 
@@ -50,7 +51,7 @@ public class Procedure {
 	}
 
 	public final long Call() throws Throwable {
-		Transaction currentT = Transaction.getCurrent();
+		var currentT = Transaction.getCurrent();
 		if (currentT == null) {
 			try {
 				return Transaction.Create().Perform(this);

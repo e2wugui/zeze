@@ -8,6 +8,8 @@ import Zeze.Util.LongHashMap;
 public final class Savepoint {
 	private final LongHashMap<Log> Logs = new LongHashMap<>();
 	// private final LongHashMap<Log> Newly = new LongHashMap<Log>(); // 当前Savepoint新加的，用来实现Rollback，先不实现。
+	final List<Action0> CommitActions = new ArrayList<>();
+	final List<Action0> RollbackActions = new ArrayList<>();
 
 	public LongHashMap<Log> getLogs() {
 		return Logs;
@@ -23,24 +25,20 @@ public final class Savepoint {
 	}
 
 	public Savepoint BeginSavepoint() {
-		Savepoint sp = new Savepoint();
+		var sp = new Savepoint();
 		for (var it = Logs.iterator(); it.moveToNext(); )
 			sp.Logs.put(it.key(), it.value().BeginSavepoint());
 		return sp;
 	}
 
-	final List<Action0> CommitActions = new ArrayList<>();
-	final List<Action0> RollbackActions = new ArrayList<>();
-
-	public void MergeFrom(Savepoint other, boolean isCommit) {
+	public void MergeFrom(Savepoint next, boolean isCommit) {
 		if (isCommit) {
-			for (var it = other.Logs.iterator(); it.moveToNext(); )
+			for (var it = next.Logs.iterator(); it.moveToNext(); )
 				it.value().EndSavepoint(this);
-			CommitActions.addAll(other.CommitActions);
-		} else {
-			CommitActions.addAll(other.RollbackActions);
-			RollbackActions.addAll(other.RollbackActions);
-		}
+			CommitActions.addAll(next.CommitActions);
+		} else
+			CommitActions.addAll(next.RollbackActions);
+		RollbackActions.addAll(next.RollbackActions);
 	}
 
 	public void Rollback() {

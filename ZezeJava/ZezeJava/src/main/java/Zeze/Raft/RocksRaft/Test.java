@@ -1,8 +1,7 @@
 package Zeze.Raft.RocksRaft;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -293,26 +292,26 @@ public final class Test {
 		bean1.setI(5 + num);
 	}
 
-	private void VerifyChanges(final String except) {
+	private void VerifyChanges(String expected) {
 		Transaction.getCurrent().RunWhileCommit(() -> {
 			var Changes = Transaction.getCurrent().getChanges();
 			var sb = new StringBuilder();
 			ByteBuffer.BuildString(sb, Changes.getRecords());
-			if (except == null || except.isEmpty())
+			if (expected == null || expected.isEmpty())
 				System.out.println(sb);
 			else
-				SimpleAssert.AreEqual(except.replace("\r\n", "\n"), sb.toString());
+				SimpleAssert.AreEqual(expected.replace("\r", ""), sb.toString());
 		});
 	}
 
-	private void VerifyData(Rocks rocks, Table<Integer, Bean1> table, String except) throws Throwable {
+	private void VerifyData(Rocks rocks, Table<Integer, Bean1> table, String expected) throws Throwable {
 		rocks.NewProcedure(() -> {
 			var value = table.GetOrAdd(1);
 			var current = value.toString();
-			if (except == null || except.isEmpty())
+			if (expected == null)
 				System.out.println(current);
 			else
-				SimpleAssert.AreEqual(except, current);
+				SimpleAssert.AreEqual(expected, current);
 			return 0L;
 		}).Call();
 	}
@@ -400,16 +399,14 @@ public final class Test {
 		}).Call();
 	}
 
-	private Rocks GetLeader(ArrayList<Rocks> rocks, Rocks skip) throws InterruptedException {
+	private Rocks GetLeader(List<Rocks> rocks, Rocks skip) throws InterruptedException {
 		while (true) {
 			for (var rock : rocks) {
-				if (rock == skip)
-					continue;
-				if (rock.isLeader())
+				if (rock != skip && rock.isLeader())
 					return rock;
 			}
 			//noinspection BusyWait
-			Thread.sleep(1000);
+			Thread.sleep(100);
 		}
 	}
 
@@ -424,16 +421,14 @@ public final class Test {
 		try (var rocks1 = new Rocks("127.0.0.1:6000");
 			 var rocks2 = new Rocks("127.0.0.1:6001");
 			 var rocks3 = new Rocks("127.0.0.1:6002")) {
-			var rocksList = new ArrayList<>(Arrays.asList(rocks1, rocks2, rocks3));
+			var rocksList = List.of(rocks1, rocks2, rocks3);
 			for (var rr : rocksList)
 				rr.RegisterTableTemplate("tRocksRaft", Integer.class, Bean1.class);
 
-			// start
 			rocks1.getRaft().getServer().Start();
 			rocks2.getRaft().getServer().Start();
 			rocks3.getRaft().getServer().Start();
 
-			// leader
 			var leader = GetLeader(rocksList, null);
 			RunLeader(leader);
 			leader.getRaft().getServer().Stop();

@@ -4,13 +4,13 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.TreeMap;
+import java.util.function.Supplier;
 import Zeze.Net.Protocol;
 import Zeze.Raft.RaftRetryException;
 import Zeze.Raft.RocksRaft.Log1.LogBeanKey;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action0;
-import Zeze.Util.Func0;
 import Zeze.Util.ThrowAgainException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,7 +20,7 @@ public final class Transaction {
 	private static final ThreadLocal<Transaction> threadLocal = new ThreadLocal<>();
 
 	public static Transaction Create() {
-		Transaction t = threadLocal.get();
+		var t = threadLocal.get();
 		if (t == null)
 			threadLocal.set(t = new Transaction());
 		return t;
@@ -132,16 +132,10 @@ public final class Transaction {
 		Savepoints.get(Savepoints.size() - 1).PutLog(log);
 	}
 
-	public Log LogGetOrAdd(long logKey, Func0<Log> logFactory) {
+	public Log LogGetOrAdd(long logKey, Supplier<Log> logFactory) {
 		var log = GetLog(logKey);
-		if (log == null) {
-			try {
-				log = logFactory.call();
-			} catch (Throwable e) {
-				throw new RuntimeException(e);
-			}
-			PutLog(log);
-		}
+		if (log == null)
+			PutLog(log = logFactory.get());
 		return log;
 	}
 
@@ -159,13 +153,9 @@ public final class Transaction {
 	}
 
 	public void Commit() {
-		if (Savepoints.size() > 1) {
-			// 嵌套事务，把日志合并到上一层。
-			int lastIndex = Savepoints.size() - 1;
-			Savepoint last = Savepoints.get(lastIndex);
-			Savepoints.remove(lastIndex);
-			Savepoints.get(Savepoints.size() - 1).MergeFrom(last, true);
-		}
+		int lastIndex = Savepoints.size() - 1;
+		if (lastIndex > 0)
+			Savepoints.get(lastIndex - 1).MergeFrom(Savepoints.remove(lastIndex), true); // 嵌套事务，把日志合并到上一层。
 		// else // 最外层存储过程提交在 Perform 中处理
 	}
 
@@ -173,26 +163,20 @@ public final class Transaction {
 
 	public void Rollback() {
 		int lastIndex = Savepoints.size() - 1;
-		Savepoint last = Savepoints.get(lastIndex);
-		Savepoints.remove(lastIndex);
+		Savepoint last = Savepoints.remove(lastIndex);
 		last.Rollback();
 
 		if (lastIndex > 0)
-		{
 			Savepoints.get(lastIndex - 1).MergeFrom(last, false);
-		}
 		else
-		{
-			// 最后一个Savepoint Rollback的时候需要保存一下，用来触发回调。ugly。
-			LastRollbackActions = last.RollbackActions;
-		}
+			LastRollbackActions = last.RollbackActions; // 最后一个Savepoint Rollback的时候需要保存一下，用来触发回调。ugly。
 	}
 
 	public long Perform(Procedure procedure) throws Throwable {
 		try {
 			procedure.ResultCode = procedure.Call();
 			if (_lock_and_check_(TransactionLevel.Serializable)) {
-				if (0 == procedure.ResultCode)
+				if (procedure.ResultCode == 0)
 					_final_commit_(procedure);
 				else
 					_final_rollback_(procedure);
@@ -324,7 +308,7 @@ public final class Transaction {
 	}
 
 	private void _final_rollback_(Procedure procedure) {
-		if (null != LastRollbackActions) {
+		if (LastRollbackActions != null) {
 			for (var action : LastRollbackActions) {
 				try {
 					action.run();

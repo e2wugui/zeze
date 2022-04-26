@@ -4,11 +4,13 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.IntHashMap;
 
 public class LogBean extends Log {
+	private static final int TYPE_ID = Zeze.Transaction.Bean.Hash32("Zeze.Raft.RocksRaft.LogBean");
+
 	private IntHashMap<Log> Variables;
 	private Bean This;
 
 	public LogBean() {
-		super("Zeze.Raft.RocksRaft.LogBean");
+		super(TYPE_ID);
 	}
 
 	public LogBean(int typeId) {
