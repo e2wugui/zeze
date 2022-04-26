@@ -7,6 +7,7 @@ import Zeze.Arch.LoadConfig;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderModuleBinds;
 import Zeze.Config;
+import Zeze.Game.LoadReporter;
 import Zeze.Game.Online;
 import Zeze.Game.ProviderDirectWithTransmit;
 import Zeze.Game.ProviderImplementWithOnline;
@@ -21,8 +22,6 @@ public final class App extends Zeze.AppBase {
 		return Instance;
 	}
 
-	private MyConfig MyConfig;
-	private final Game.Load Load = new Load();
 	private ProviderImplementWithOnline provider;
 	public ProviderApp ProviderApp;
 	public ProviderDirectWithTransmit ProviderDirect;
@@ -30,26 +29,6 @@ public final class App extends Zeze.AppBase {
 	@Override
 	public <T extends Zeze.IModule> T ReplaceModuleInstance(T module) {
 		return Zeze.Redirect.ReplaceModuleInstance(this, module);
-	}
-
-	public MyConfig getMyConfig() {
-		return MyConfig;
-	}
-
-	public Game.Load getLoad() {
-		return Load;
-	}
-
-	private void LoadConfig() {
-		try {
-			byte[] bytes = Files.readAllBytes(Paths.get("Game.json"));
-			MyConfig = new ObjectMapper().readValue(bytes, MyConfig.class);
-		} catch (Exception e) {
-			//MessageBox.Show(ex.ToString());
-		}
-		if (MyConfig == null) {
-			MyConfig = new MyConfig();
-		}
 	}
 
 	public ProviderImplementWithOnline getProvider() {
@@ -83,7 +62,6 @@ public final class App extends Zeze.AppBase {
 			}
 		}
 
-		LoadConfig();
 		var config = Config.Load("server.xml");
 		if (ServerId != -1) {
 			config.setServerId(ServerId); // replace from args
@@ -117,7 +95,7 @@ public final class App extends Zeze.AppBase {
 		PersistentAtomicLong socketSessionIdGen = PersistentAtomicLong.getOrAdd("Game.Server." + config.getServerId());
 		AsyncSocket.setSessionIdGenFunc(socketSessionIdGen::next);
 		StartService(); // 启动网络
-		getLoad().StartTimerTask();
+		provider.Online.Start();
 
 		// 服务准备好以后才注册和订阅。
 		ProviderApp.StartLast();

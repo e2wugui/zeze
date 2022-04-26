@@ -26,24 +26,29 @@ namespace Zeze.Game
         }
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-        public ProviderApp App { get; }
-
+        public ProviderApp ProviderApp { get; }
+        public LoadReporter LoadReporter { get; }
         public taccount TableAccount => _taccount;
 
         public Online(ProviderApp app)
         {
-            this.App = app;
+            this.ProviderApp = app;
 
-            RegisterProtocols(App.ProviderService);
-            RegisterZezeTables(App.Zeze);
+            RegisterProtocols(ProviderApp.ProviderService);
+            RegisterZezeTables(ProviderApp.Zeze);
 
             Util.Scheduler.ScheduleAt(VerifyLocal, 3 + Util.Random.Instance.Next(3), 10); // at 3:10 - 6:10
+            LoadReporter = new(this);
         }
 
         public override void UnRegister()
         {
-            UnRegisterZezeTables(App.Zeze);
-            UnRegisterProtocols(App.ProviderService);
+            UnRegisterZezeTables(ProviderApp.Zeze);
+            UnRegisterProtocols(ProviderApp.ProviderService);
+        }
+        public void Start()
+        {
+            LoadReporter.StartTimerTask();
         }
 
         public int LocalCount => _tlocal.Cache.DataMap.Count;
@@ -79,6 +84,10 @@ namespace Zeze.Game
         public Zeze.Util.EventDispatcher ReloginEvents { get; } = new("Online.Relogin");
         public Zeze.Util.EventDispatcher LogoutEvents { get; } = new("Online.Logout");
         public Zeze.Util.EventDispatcher LocalRemoveEvents { get; } = new("Online.Local.Remove");
+
+        private Util.AtomicLong _LoginTimes = new();
+
+        public long LoginTimes => _LoginTimes.Get();
 
         public async Task<bool> AddRole(string account, long roleId)
         {
@@ -119,7 +128,7 @@ namespace Zeze.Game
             await _tlocal.RemoveAsync(roleId); // remove first
 
             await LocalRemoveEvents.TriggerEmbed(this, arg);
-            await LocalRemoveEvents.TriggerProcedure(App.Zeze, this, arg);
+            await LocalRemoveEvents.TriggerProcedure(ProviderApp.Zeze, this, arg);
             Transaction.Transaction.Current.RunWhileCommit(() => LocalRemoveEvents.TriggerThread(this, arg));
         }
 
@@ -134,7 +143,7 @@ namespace Zeze.Game
             await _tonline.RemoveAsync(roleId); // remove first
 
             await LogoutEvents.TriggerEmbed(this, arg);
-            await LogoutEvents.TriggerProcedure(App.Zeze, this, arg);
+            await LogoutEvents.TriggerProcedure(ProviderApp.Zeze, this, arg);
             Transaction.Transaction.Current.RunWhileCommit(() => LogoutEvents.TriggerThread(this, arg));
         }
 
@@ -146,8 +155,9 @@ namespace Zeze.Game
             };
 
             await LoginEvents.TriggerEmbed(this, arg);
-            await LoginEvents.TriggerProcedure(App.Zeze, this, arg);
+            await LoginEvents.TriggerProcedure(ProviderApp.Zeze, this, arg);
             Transaction.Transaction.Current.RunWhileCommit(() => LoginEvents.TriggerThread(this, arg));
+            _LoginTimes.IncrementAndGet();
         }
 
         private async Task ReloginTrigger(long roleId)
@@ -158,8 +168,9 @@ namespace Zeze.Game
             };
 
             await ReloginEvents.TriggerEmbed(this, arg);
-            await ReloginEvents.TriggerProcedure(App.Zeze, this, arg);
+            await ReloginEvents.TriggerProcedure(ProviderApp.Zeze, this, arg);
             Transaction.Transaction.Current.RunWhileCommit(() => ReloginEvents.TriggerThread(this, arg));
+            _LoginTimes.IncrementAndGet();
         }
 
         public async Task OnLinkBroken(long roleId, BLinkBroken arg)
@@ -185,7 +196,7 @@ namespace Zeze.Game
             await Task.Delay(10 * 60 * 1000);
 
             // TryRemove
-            await App.Zeze.NewProcedure(async () =>
+            await ProviderApp.Zeze.NewProcedure(async () =>
             {
                 // local online 独立判断version分别尝试删除。
                 var local = await _tlocal.GetAsync(roleId);
@@ -272,9 +283,9 @@ namespace Zeze.Game
             if (WaitConfirm)
                 future = new TaskCompletionSource<long>();
 
-            App.Zeze.TaskOneByOneByKey.Execute(
+            ProviderApp.Zeze.TaskOneByOneByKey.Execute(
                 listenerName,
-                App.Zeze.NewProcedure(async () =>
+                ProviderApp.Zeze.NewProcedure(async () =>
                 {
                     BOnline online = await _tonline.GetAsync(roleId);
                     if (null == online || online.State == BOnline.StateOffline)
@@ -331,7 +342,7 @@ namespace Zeze.Game
                     continue;
                 }
 
-                if (false == App.ProviderService.Links.TryGetValue(online.LinkName, out var connector))
+                if (false == ProviderApp.ProviderService.Links.TryGetValue(online.LinkName, out var connector))
                 {
                     groupNotOnline.Roles.TryAdd(roleId, new BTransmitContext());
                     continue;
@@ -373,7 +384,7 @@ namespace Zeze.Game
             long serialId = 0;
             if (null != future)
             {
-                var confrmContext = new ConfirmContext(App, future);
+                var confrmContext = new ConfirmContext(ProviderApp, future);
                 // 必须在真正发送前全部加入，否则要是发生结果很快返回，
                 // 导致异步问题：错误的认为所有 Confirm 都收到。
                 foreach (var group in groups)
@@ -383,7 +394,7 @@ namespace Zeze.Game
 
                     confrmContext.LinkNames.Add(group.LinkName);
                 }
-                serialId = App.ProviderService.AddManualContextWithTimeout(confrmContext, 5000);
+                serialId = ProviderApp.ProviderService.AddManualContextWithTimeout(confrmContext, 5000);
             }
 
             foreach (var group in groups)
@@ -414,8 +425,8 @@ namespace Zeze.Game
                 future = new TaskCompletionSource<long>();
 
             // 发送协议请求在另外的事务中执行。
-            App.Zeze.TaskOneByOneByKey.Execute(roleId, () =>
-                App.Zeze.NewProcedure(async () =>
+            ProviderApp.Zeze.TaskOneByOneByKey.Execute(roleId, () =>
+                ProviderApp.Zeze.NewProcedure(async () =>
                 {
                     await SendInProcedure(roleId, typeId, fullEncodedProtocol, future);
                     return Procedure.Success;
@@ -480,7 +491,7 @@ namespace Zeze.Game
             {
                 foreach (var target in roleIds)
                 {
-                    App.Zeze.NewProcedure(async () => await handle(sender, target, parameter), "Game.Online.Transmit:" + actionName).Execute();
+                    ProviderApp.Zeze.NewProcedure(async () => await handle(sender, target, parameter), "Game.Online.Transmit:" + actionName).Execute();
                 }
             }
         }
@@ -536,7 +547,7 @@ namespace Zeze.Game
 
         private async Task TransmitInProcedure(long sender, string actionName, ICollection<long> roleIds, Binary parameter)
         {
-            if (App.Zeze.Config.GlobalCacheManagerHostNameOrAddress.Length == 0)
+            if (ProviderApp.Zeze.Config.GlobalCacheManagerHostNameOrAddress.Length == 0)
             {
                 // 没有启用cache-sync，马上触发本地任务。
                 ProcessTransmit(sender, actionName, roleIds, parameter);
@@ -547,7 +558,7 @@ namespace Zeze.Game
             RoleOnServer groupLocal = null;
             foreach (var group in groups)
             {
-                if (group.ServerId == -1 || group.ServerId == App.Zeze.Config.ServerId)
+                if (group.ServerId == -1 || group.ServerId == ProviderApp.Zeze.Config.ServerId)
                 {
                     // loopback 就是当前gs.
                     // 对于不在线的角色，直接在本机运行。
@@ -564,12 +575,12 @@ namespace Zeze.Game
                     transmit.Argument.Parameter = parameter;
                 }
 
-                if (false == App.ProviderDirectService.ProviderByServerId.TryGetValue(group.ServerId, out var ps))
+                if (false == ProviderApp.ProviderDirectService.ProviderByServerId.TryGetValue(group.ServerId, out var ps))
                 {
                     groupLocal.AddAll(group.Roles);
                     continue;
                 }
-                var socket = App.ProviderDirectService.GetSocket(ps.SessionId);
+                var socket = ProviderApp.ProviderDirectService.GetSocket(ps.SessionId);
                 if (null == socket)
                 {
                     groupLocal.AddAll(group.Roles);
@@ -588,7 +599,7 @@ namespace Zeze.Game
 
             var binaryParam = parameter == null ? Binary.Empty : new Binary(ByteBuffer.Encode(parameter));
             // 发送协议请求在另外的事务中执行。
-            _ = App.Zeze.NewProcedure(async () =>
+            _ = ProviderApp.Zeze.NewProcedure(async () =>
             {
                 await TransmitInProcedure(sender, actionName, roleIds, binaryParam);
                 return Procedure.Success;
@@ -664,13 +675,13 @@ namespace Zeze.Game
             if (WaitConfirm)
             {
                 future = new TaskCompletionSource<long>();
-                var confirmContext = new ConfirmContext(App, future);
-                foreach (var link in App.ProviderService.Links.Values)
+                var confirmContext = new ConfirmContext(ProviderApp, future);
+                foreach (var link in ProviderApp.ProviderService.Links.Values)
                 {
                     if (link.Socket != null)
                         confirmContext.LinkNames.Add(link.Name);
                 }
-                serialId = App.ProviderService.AddManualContextWithTimeout(confirmContext, 5000);
+                serialId = ProviderApp.ProviderService.AddManualContextWithTimeout(confirmContext, 5000);
             }
 
             var broadcast = new Broadcast();
@@ -679,7 +690,7 @@ namespace Zeze.Game
             broadcast.Argument.ConfirmSerialId = serialId;
             broadcast.Argument.Time = time;
 
-            foreach (var link in App.ProviderService.Links.Values)
+            foreach (var link in ProviderApp.ProviderService.Links.Values)
             {
                 link.Socket?.Send(broadcast);
             }
@@ -707,7 +718,7 @@ namespace Zeze.Game
                     // 锁外执行事务
                     try
                     {
-                        App.Zeze.NewProcedure(async () =>
+                        ProviderApp.Zeze.NewProcedure(async () =>
                         {
                             await TryRemoveLocal(roleId);
                             return 0L;
@@ -780,7 +791,7 @@ namespace Zeze.Game
             online.ReliableNotifyQueue.Clear();
 
             var linkSession = session.Link.UserState as ProviderService.LinkSession;
-            online.ProviderId = App.Zeze.Config.ServerId;
+            online.ProviderId = ProviderApp.Zeze.Config.ServerId;
             online.ProviderSessionId = linkSession.ProviderSessionId;
 
             await LoginTrigger(rpc.Argument.RoleId);

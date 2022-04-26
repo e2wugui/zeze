@@ -16,27 +16,9 @@ namespace Game
             return Zeze.Redirect.ReplaceModuleInstance(this, module);
         }
 
-        public Config Config { get; private set; }
-        public Load Load { get; } = new Load();
-
         public ProviderImplementWithOnline ProviderImplementWithOnline { get; set; }
         public ProviderDirectWithTransmit ProviderDirectWithTransmit { get; set; }
         public Zeze.Arch.ProviderApp ProviderApp { get; set; }
-
-        private void LoadConfig()
-        {
-            try
-            {
-                string json = Encoding.UTF8.GetString(System.IO.File.ReadAllBytes("Game.json"));
-                Config = JsonSerializer.Deserialize<Config>(json);
-            }
-            catch (Exception)
-            {
-                //MessageBox.Show(ex.ToString());
-            }
-            if (null == Config)
-                Config = new Config();
-        }
 
         private PersistentAtomicLong AsyncSocketSessionIdGen;
 
@@ -62,7 +44,6 @@ namespace Game
                 }
             }
 
-            LoadConfig();
             var config = global::Zeze.Config.Load("server.xml");
             if (ServerId != -1)
             {
@@ -96,7 +77,7 @@ namespace Game
             AsyncSocket.SessionIdGenFunc = AsyncSocketSessionIdGen.Next;
 
             StartService(); // 启动网络
-            Load.StartTimerTask();
+            ProviderImplementWithOnline.Online.Start();
 
             // 服务准备好以后才注册和订阅。
             _ = ProviderApp.StartLast();

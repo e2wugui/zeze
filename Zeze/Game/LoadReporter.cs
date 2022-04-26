@@ -7,20 +7,20 @@ using Zeze.Builtin.Provider;
 using Zeze.Net;
 using Zeze.Serialize;
 
-namespace Game
+namespace Zeze.Game
 {
-	/// <summary>
-	/// 定时向所有的 linkd 报告负载。
-	/// 如果启用cahce-sync，可能linkd数量比较多。所以正常情况下，报告间隔应长点。比如10秒。
-	/// </summary>
-	public class Load
+	public class LoadReporter
     {
-		public Zeze.Util.AtomicLong LoginCount { get; } = new Zeze.Util.AtomicLong();
-		public Zeze.Util.AtomicLong LogoutCount { get; } = new Zeze.Util.AtomicLong();
-
-		private long LoginCountLast;
+		private long LastLoginTimes;
 		private int ReportDelaySeconds;
 		private int TimoutDelaySeconds;
+
+		public Online Online { get; }
+
+		public LoadReporter(Online online)
+        {
+			Online = online;
+        }
 
 		public void StartTimerTask(int delaySeconds = 1)
 		{
@@ -30,26 +30,26 @@ namespace Game
 
 		private void OnTimerTask(Zeze.Util.SchedulerTask ThisTask)
 		{
-			long login = LoginCount.Get();
-			long logout = LogoutCount.Get();
-			int online = (int)(login - logout);
-			int onlineNew = (int)(login - LoginCountLast);
-			LoginCountLast = login;
+			int online = Online.LocalCount;
+			long loginTimes = Online.LoginTimes;
+			int onlineNew = (int)(loginTimes - LastLoginTimes);
+			LastLoginTimes = loginTimes;
 
 			int onlineNewPerSecond = onlineNew / TimoutDelaySeconds;
-			if (onlineNewPerSecond > App.Instance.Config.MaxOnlineNew)
+			var config = Online.ProviderApp.Distribute.LoadConfig;
+			if (onlineNewPerSecond > config.MaxOnlineNew)
 			{
 				// 最近上线太多，马上报告负载。linkd不会再分配用户过来。
 				Report(online, onlineNew);
 				// new delay for digestion
-				StartTimerTask(onlineNewPerSecond / App.Instance.Config.MaxOnlineNew + App.Instance.Config.DigestionDelayExSeconds);
+				StartTimerTask(onlineNewPerSecond / config.MaxOnlineNew + config.DigestionDelayExSeconds);
 				// 消化完后，下一次强迫报告Load。
-				ReportDelaySeconds = App.Instance.Config.ReportDelaySeconds;
+				ReportDelaySeconds = config.ReportDelaySeconds;
 				return;
 			}
 			// slow report
 			ReportDelaySeconds += TimoutDelaySeconds;
-			if (ReportDelaySeconds >= App.Instance.Config.ReportDelaySeconds)
+			if (ReportDelaySeconds >= config.ReportDelaySeconds)
 			{
 				ReportDelaySeconds = 0;
 				Report(online, onlineNew);
@@ -61,17 +61,18 @@ namespace Game
 		{
 			var load = new BLoad();
 			load.Online = online;
-			load.ProposeMaxOnline = App.Instance.Config.ProposeMaxOnline;
+			var config = Online.ProviderApp.Distribute.LoadConfig;
+			load.ProposeMaxOnline = config.ProposeMaxOnline;
 			load.OnlineNew = onlineNew;
 			var bb = ByteBuffer.Allocate(256);
 			load.Encode(bb);
 
 			var loadServer = new Zeze.Services.ServiceManager.ServerLoad();
-			loadServer.Ip = App.Instance.ProviderApp.DirectIp;
-			loadServer.Port = App.Instance.ProviderApp.DirectPort;
+			loadServer.Ip = Online.ProviderApp.DirectIp;
+			loadServer.Port = Online.ProviderApp.DirectPort;
 			loadServer.Param = new Binary(bb);
 
-			App.Instance.ProviderApp.Zeze.ServiceManagerAgent.SetServerLoad(loadServer);
+			Online.ProviderApp.Zeze.ServiceManagerAgent.SetServerLoad(loadServer);
 		}
 	}
 }
