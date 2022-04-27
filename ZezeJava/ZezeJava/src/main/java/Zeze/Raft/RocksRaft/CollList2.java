@@ -133,7 +133,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 
 		// apply changed
 		for (var e : log.getChanged().entrySet())
-			_list.get(e.getValue()).FollowerApply(e.getKey());
+			_list.get(e.getValue().Value).FollowerApply(e.getKey());
 	}
 
 	@SuppressWarnings("unchecked")

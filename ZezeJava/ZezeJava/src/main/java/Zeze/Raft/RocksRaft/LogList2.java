@@ -3,10 +3,11 @@ package Zeze.Raft.RocksRaft;
 import java.lang.invoke.MethodHandle;
 import java.util.HashMap;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.OutInt;
 import Zeze.Util.Reflect;
 
 public class LogList2<V extends Bean> extends LogList1<V> {
-	private final HashMap<LogBean, Integer> Changed = new HashMap<>(); // changed V logs. using in collect.
+	private final HashMap<LogBean, OutInt> Changed = new HashMap<>(); // changed V logs. using in collect.
 	private final MethodHandle valueFactory;
 
 	public LogList2(Class<V> valueClass) {
@@ -19,7 +20,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 		this.valueFactory = valueFactory;
 	}
 
-	public final HashMap<LogBean, Integer> getChanged() {
+	public final HashMap<LogBean, OutInt> getChanged() {
 		return Changed;
 	}
 
@@ -34,11 +35,13 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 			var idxExist = curList.indexOf(logBean.getThis());
 			if (idxExist < 0)
 				it.remove();
+			else
+				e.getValue().Value = idxExist;
 		}
 		bb.WriteUInt(Changed.size());
 		for (var e : Changed.entrySet()) {
 			e.getKey().Encode(bb);
-			bb.WriteUInt(e.getValue());
+			bb.WriteUInt(e.getValue().Value);
 		}
 
 		// super.Encode(bb);
@@ -61,7 +64,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 			var value = new LogBean();
 			value.Decode(bb);
 			var index = bb.ReadUInt();
-			Changed.put(value, index);
+			Changed.put(value, new OutInt(index));
 		}
 
 		// super.Decode(bb);
@@ -84,14 +87,7 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 
 	@Override
 	public void Collect(Changes changes, Bean recent, Log vlog) {
-		@SuppressWarnings("unchecked")
-		var curList = ((CollList2<V>)getThis())._list;
-		var logBean = (LogBean)vlog;
-		//noinspection SuspiciousMethodCalls
-		var index = curList.indexOf(logBean.getThis());
-		if (index < 0)
-			throw new AssertionError("impossible");
-		if (Changed.put(logBean, index) == null)
+		if (Changed.put((LogBean)vlog, new OutInt()) == null)
 			changes.Collect(recent, this);
 	}
 
