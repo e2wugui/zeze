@@ -22,7 +22,7 @@ public final class App extends Zeze.AppBase {
 		return Instance;
 	}
 
-	private ProviderImplementWithOnline provider;
+	public ProviderImplementWithOnline provider;
 	public ProviderApp ProviderApp;
 	public ProviderDirectWithTransmit ProviderDirect;
 

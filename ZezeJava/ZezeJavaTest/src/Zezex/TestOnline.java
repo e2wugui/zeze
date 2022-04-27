@@ -79,6 +79,9 @@ public class TestOnline extends TestCase {
 		// 不要做第三步的Logout，断开和Linkd的连接，然后重连成功以后，发送ReLogin。注册 ReloginEvents。
 		// 第五 client-linkd-server-Kick
 		// 完成一个client的Login后，再起一个client连接到跟它不同的linkd，然后auth&Login，观察Kick情况。
+		// 1. 第一，第二，第三
+		// 2. 第一，第二，第四
+		// 3. 第一，第二，第五
 		// 【注意】
 		// 1. client对象管理。根据以上的几个测试，可能需要根据测试目的创建不同的client，分别选择特定的linkd进行连接。
 		//    所以client一开始不用马上创建好，根据测试创建，上面的初始化流程就当作client的初始化例子吧。
