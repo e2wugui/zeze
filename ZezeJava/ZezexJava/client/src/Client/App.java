@@ -1,4 +1,4 @@
-package Game;
+package Client;
 
 public class App extends Zeze.AppBase {
     public static App Instance = new App();
@@ -28,7 +28,7 @@ public class App extends Zeze.AppBase {
     public Zeze.Application Zeze;
     public final java.util.HashMap<String, Zeze.IModule> Modules = new java.util.HashMap<>();
 
-    public Game.Client Client;
+    public Client.ClientService ClientService;
 
     public Zeze.Builtin.Game.Online.ModuleOnline Zeze_Builtin_Game_Online;
     public Zeze.Builtin.Game.Bag.ModuleBag Zeze_Builtin_Game_Bag;
@@ -47,12 +47,12 @@ public class App extends Zeze.AppBase {
         if (Zeze != null)
             throw new RuntimeException("Zeze Has Created!");
 
-        Zeze = new Zeze.Application("Game", config);
+        Zeze = new Zeze.Application("Client", config);
     }
 
     public synchronized void CreateService() throws Throwable {
 
-        Client = new Game.Client(Zeze);
+        ClientService = new Client.ClientService(Zeze);
     }
     public synchronized void CreateModules() {
         Zeze_Builtin_Game_Online = (Zeze.Builtin.Game.Online.ModuleOnline)ReplaceModuleInstance(new Zeze.Builtin.Game.Online.ModuleOnline(this));
@@ -75,7 +75,7 @@ public class App extends Zeze.AppBase {
         if (Modules.put(Zezex_Linkd.getFullName(), Zezex_Linkd) != null)
             throw new RuntimeException("duplicate module name: Zezex_Linkd");
 
-        Zeze.setSchemas(new Game.Schemas());
+        Zeze.setSchemas(new Client.Schemas());
     }
 
     public synchronized void DestroyModules() {
@@ -87,7 +87,7 @@ public class App extends Zeze.AppBase {
     }
 
     public synchronized void DestroyServices() {
-        Client = null;
+        ClientService = null;
     }
 
     public synchronized void DestroyZeze() {
@@ -113,12 +113,12 @@ public class App extends Zeze.AppBase {
     }
 
     public synchronized void StartService() throws Throwable {
-        Client.Start();
+        ClientService.Start();
     }
 
     public synchronized void StopService() throws Throwable {
-        if (Client != null)
-            Client.Stop();
+        if (ClientService != null)
+            ClientService.Stop();
     }
     // ZEZE_FILE_CHUNK }}} GEN APP @formatter:on
 }

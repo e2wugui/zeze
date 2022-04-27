@@ -1,10 +1,10 @@
 package Zeze.Builtin.LinkdBase;
 
 public class ModuleLinkdBase extends AbstractModule {
-    public void Start(Game.App app) throws Throwable {
+    public void Start(Client.App app) throws Throwable {
     }
 
-    public void Stop(Game.App app) throws Throwable {
+    public void Stop(Client.App app) throws Throwable {
     }
 
     @Override
@@ -13,7 +13,7 @@ public class ModuleLinkdBase extends AbstractModule {
     }
 
     // ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
-    public ModuleLinkdBase(Game.App app) {
+    public ModuleLinkdBase(Client.App app) {
         super(app);
     }
     // ZEZE_FILE_CHUNK }}} GEN MODULE @formatter:on

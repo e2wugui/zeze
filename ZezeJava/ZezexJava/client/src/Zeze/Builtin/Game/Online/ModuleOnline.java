@@ -1,10 +1,10 @@
 package Zeze.Builtin.Game.Online;
 
 public class ModuleOnline extends AbstractModule {
-    public void Start(Game.App app) throws Throwable {
+    public void Start(Client.App app) throws Throwable {
     }
 
-    public void Stop(Game.App app) throws Throwable {
+    public void Stop(Client.App app) throws Throwable {
     }
 
     @Override
@@ -13,7 +13,7 @@ public class ModuleOnline extends AbstractModule {
     }
 
     // ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
-    public ModuleOnline(Game.App app) {
+    public ModuleOnline(Client.App app) {
         super(app);
     }
     // ZEZE_FILE_CHUNK }}} GEN MODULE @formatter:on
