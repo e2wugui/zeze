@@ -363,7 +363,7 @@
 		</service>
 	</project>
 
-	<project name="client" gendir="." scriptdir="src" platform="java">
+	<project name="client" gendir="." scriptdir="src" platform="java" BuiltinNG="true">
 		<service name="Client" handle="client" base="Zeze.Services.HandshakeClient">
 			<module ref="Zeze.Builtin.Game.Online"/>
 			<module ref="Zeze.Builtin.Game.Bag"/>
