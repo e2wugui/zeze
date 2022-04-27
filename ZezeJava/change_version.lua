@@ -6,6 +6,7 @@ local files = {
 --	{ 1, "pom.xml" },
 	{ 1, "ZezeJava/pom.xml" },
 	{ 2, "ZezeJavaTest/pom.xml" },
+	{ 2, "ZezexJava/client/pom.xml" },
 	{ 2, "ZezexJava/linkd/pom.xml" },
 	{ 2, "ZezexJava/server/pom.xml" },
 	{ 3, "TestRaft/raft.bat" },

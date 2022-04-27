@@ -1,4 +1,7 @@
 /build/
+/client/build/
+/client/Gen/
+/client/target/
 /linkd/build/
 /linkd/Gen/
 /linkd/target/

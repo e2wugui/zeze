@@ -113,7 +113,7 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeQuaternion type)
         {
-            name = "Zeze.Serialize.Vector4";
+            name = "Zeze.Serialize.Quaternion";
         }
 
         public void Visit(TypeVector2 type)
