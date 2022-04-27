@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using Zeze.Gen.Types;
-using Type = Zeze.Gen.Types.Type;
 
 namespace Zeze.Gen.java
 {
@@ -214,16 +213,17 @@ namespace Zeze.Gen.java
                 case TypeDynamic:
                     return bufname + ".ReadBean(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
                 case TypeVector2:
-                    return "Zeze.Util.Vector2.create(" + bufname + ", " + typeVar + ')';
+                    return bufname + ".ReadVector2(" + typeVar + ')';
                 case TypeVector2Int:
-                    return "Zeze.Util.Vector2Int.create(" + bufname + ", " + typeVar + ')';
+                    return bufname + ".ReadVector2Int(" + typeVar + ')';
                 case TypeVector3:
-                    return "Zeze.Util.Vector3.create(" + bufname + ", " + typeVar + ')';
+                    return bufname + ".ReadVector3(" + typeVar + ')';
                 case TypeVector3Int:
-                    return "Zeze.Util.Vector3Int.create(" + bufname + ", " + typeVar + ')';
+                    return bufname + ".ReadVector3Int(" + typeVar + ')';
                 case TypeVector4:
+                    return bufname + ".ReadVector4(" + typeVar + ')';
                 case TypeQuaternion:
-                    return "Zeze.Util.Vector4.create(" + bufname + ", " + typeVar + ')';
+                    return bufname + ".ReadQuaternion(" + typeVar + ')';
                 default:
                     throw new Exception("invalid collection element type: " + type);
             }
@@ -296,42 +296,52 @@ namespace Zeze.Gen.java
                 throw new Exception("invalid variable.id");
         }
 
-        private void VisitVector(Type type)
-        {
-            if (id > 0)
-                sw.WriteLine(prefix + GetVarName() + ".Decode(" + bufname + ", _t_);");
-            else
-                sw.WriteLine(prefix + GetVarName() + ".Decode(" + bufname + ");");
-        }
-
         public void Visit(TypeQuaternion type)
         {
-            VisitVector(type);
+            if (id > 0)
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadQuaternion(_t_)") + ';');
+            else
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadQuaternion()") + ';');
         }
 
         public void Visit(TypeVector2 type)
         {
-            VisitVector(type);
+            if (id > 0)
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector2(_t_)") + ';');
+            else
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector2()") + ';');
         }
 
         public void Visit(TypeVector2Int type)
         {
-            VisitVector(type);
+            if (id > 0)
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector2Int(_t_)") + ';');
+            else
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector2Int()") + ';');
         }
 
         public void Visit(TypeVector3 type)
         {
-            VisitVector(type);
+            if (id > 0)
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector3(_t_)") + ';');
+            else
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector3()") + ';');
         }
 
         public void Visit(TypeVector3Int type)
         {
-            VisitVector(type);
+            if (id > 0)
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector3Int(_t_)") + ';');
+            else
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector3Int()") + ';');
         }
 
         public void Visit(TypeVector4 type)
         {
-            VisitVector(type);
+            if (id > 0)
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector4(_t_)") + ';');
+            else
+                sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector4()") + ';');
         }
     }
 }

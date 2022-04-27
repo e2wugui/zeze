@@ -42,6 +42,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "    if (value == null)");
                 sw.WriteLine(prefix + "        throw new IllegalArgumentException();");
             }
+
             sw.WriteLine(prefix + "    if (!isManaged()) {");
             sw.WriteLine(prefix + "        " + var.NamePrivate + " = value;");
             sw.WriteLine(prefix + "        return;");
@@ -223,6 +224,10 @@ namespace Zeze.Gen.java
         {
             sw.WriteLine(prefix + "public " + TypeName.GetName(type) + " " + var.Getter + " {");
             sw.WriteLine(prefix + "    return " + var.NamePrivate + ";");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine();
+            sw.WriteLine(prefix + "public void " + var.Setter($"{TypeName.GetName(type)} value") + " {");
+            sw.WriteLine(prefix + "    " + var.NamePrivate + " = value;");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }

@@ -1044,42 +1044,58 @@ public final class ByteBuffer {
 			return ReadVector3();
 		if (type == VECTOR4)
 			return ReadVector4();
+		if (type == VECTOR2INT)
+			return new Vector2(ReadVector2Int());
+		if (type == VECTOR3INT)
+			return new Vector3(ReadVector3Int());
 		SkipUnknownField(type);
 		return new Vector2();
 	}
 
 	public Vector3 ReadVector3(int type) {
 		type &= TAG_MASK;
-		if (type == VECTOR2)
-			return new Vector3(ReadVector2());
 		if (type == VECTOR3)
 			return ReadVector3();
+		if (type == VECTOR2)
+			return new Vector3(ReadVector2());
 		if (type == VECTOR4)
 			return ReadVector4();
+		if (type == VECTOR3INT)
+			return new Vector3(ReadVector3Int());
+		if (type == VECTOR2INT)
+			return new Vector3(ReadVector2Int());
 		SkipUnknownField(type);
 		return new Vector3();
 	}
 
 	public Vector4 ReadVector4(int type) {
 		type &= TAG_MASK;
-		if (type == VECTOR2)
-			return new Vector4(ReadVector2());
-		if (type == VECTOR3)
-			return new Vector4(ReadVector3());
 		if (type == VECTOR4)
 			return ReadVector4();
+		if (type == VECTOR3)
+			return new Vector4(ReadVector3());
+		if (type == VECTOR2)
+			return new Vector4(ReadVector2());
+		if (type == VECTOR3INT)
+			return new Vector4(ReadVector3Int());
+		if (type == VECTOR2INT)
+			return new Vector4(ReadVector2Int());
 		SkipUnknownField(type);
 		return new Vector4();
 	}
 
 	public Quaternion ReadQuaternion(int type) {
 		type &= TAG_MASK;
-		if (type == VECTOR2)
-			return new Quaternion(ReadVector2());
+		if (type == VECTOR4)
+			return ReadQuaternion();
 		if (type == VECTOR3)
 			return new Quaternion(ReadVector3());
-		if (type == VECTOR4)
-			return new Quaternion(ReadVector4());
+		if (type == VECTOR2)
+			return new Quaternion(ReadVector2());
+		if (type == VECTOR3INT)
+			return new Quaternion(ReadVector3Int());
+		if (type == VECTOR2INT)
+			return new Quaternion(ReadVector2Int());
 		SkipUnknownField(type);
 		return new Quaternion();
 	}
@@ -1090,16 +1106,28 @@ public final class ByteBuffer {
 			return ReadVector2Int();
 		if (type == VECTOR3INT)
 			return ReadVector3Int();
+		if (type == VECTOR2)
+			return new Vector2Int(ReadVector2());
+		if (type == VECTOR3)
+			return new Vector3Int(ReadVector3());
+		if (type == VECTOR4)
+			return new Vector3Int(ReadVector4());
 		SkipUnknownField(type);
 		return new Vector2Int();
 	}
 
 	public Vector3Int ReadVector3Int(int type) {
 		type &= TAG_MASK;
-		if (type == VECTOR2INT)
-			return new Vector3Int(ReadVector2Int());
 		if (type == VECTOR3INT)
 			return ReadVector3Int();
+		if (type == VECTOR2INT)
+			return new Vector3Int(ReadVector2Int());
+		if (type == VECTOR3)
+			return new Vector3Int(ReadVector3());
+		if (type == VECTOR2)
+			return new Vector3Int(ReadVector2());
+		if (type == VECTOR4)
+			return new Vector3Int(ReadVector4());
 		SkipUnknownField(type);
 		return new Vector3Int();
 	}

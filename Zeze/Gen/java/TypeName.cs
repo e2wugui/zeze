@@ -113,32 +113,32 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeQuaternion type)
         {
-            name = "Zeze.Util.Vector4";
+            name = "Zeze.Serialize.Vector4";
         }
 
         public void Visit(TypeVector2 type)
         {
-            name = "Zeze.Util.Vector2";
+            name = "Zeze.Serialize.Vector2";
         }
 
         public void Visit(TypeVector2Int type)
         {
-            name = "Zeze.Util.Vector2Int";
+            name = "Zeze.Serialize.Vector2Int";
         }
 
         public void Visit(TypeVector3 type)
         {
-            name = "Zeze.Util.Vector3";
+            name = "Zeze.Serialize.Vector3";
         }
 
         public void Visit(TypeVector3Int type)
         {
-            name = "Zeze.Util.Vector3Int";
+            name = "Zeze.Serialize.Vector3Int";
         }
 
         public void Visit(TypeVector4 type)
         {
-            name = "Zeze.Util.Vector4";
+            name = "Zeze.Serialize.Vector4";
         }
     }
 }

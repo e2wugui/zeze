@@ -114,32 +114,32 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeQuaternion type)
         {
-            sw.WriteLine(prefix + var.Getter + ".assign(other." + var.Getter + ");");
+            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
         }
 
         public void Visit(TypeVector2 type)
         {
-            sw.WriteLine(prefix + var.Getter + ".assign(other." + var.Getter + ");");
+            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
         }
 
         public void Visit(TypeVector2Int type)
         {
-            sw.WriteLine(prefix + var.Getter + ".assign(other." + var.Getter + ");");
+            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
         }
 
         public void Visit(TypeVector3 type)
         {
-            sw.WriteLine(prefix + var.Getter + ".assign(other." + var.Getter + ");");
+            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
         }
 
         public void Visit(TypeVector3Int type)
         {
-            sw.WriteLine(prefix + var.Getter + ".assign(other." + var.Getter + ");");
+            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
         }
 
         public void Visit(TypeVector4 type)
         {
-            sw.WriteLine(prefix + var.Getter + ".assign(other." + var.Getter + ");");
+            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
         }
     }
 }

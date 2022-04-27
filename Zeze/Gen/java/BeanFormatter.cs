@@ -1,5 +1,4 @@
 ﻿using System.IO;
-using System.Numerics;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
@@ -65,12 +64,12 @@ namespace Zeze.Gen.java
                     || vt is TypeMap
                     || vt is Bean
                     || vt is TypeDynamic
-                    || vt is TypeVector2
-                    || vt is TypeVector2Int
-                    || vt is TypeVector3
-                    || vt is TypeVector3Int
-                    || vt is TypeVector4
-                    || vt is TypeQuaternion
+                    // || vt is TypeVector2
+                    // || vt is TypeVector2Int
+                    // || vt is TypeVector3
+                    // || vt is TypeVector3Int
+                    // || vt is TypeVector4
+                    // || vt is TypeQuaternion
                     ? "final " : "";
                 sw.WriteLine("    private " + final + TypeName.GetName(vt) + " " + v.NamePrivate + ";" + v.Comment);
                 // ReadOnlyMap
