@@ -191,7 +191,9 @@ namespace Zeze.Gen.cs
             sw.WriteLine("    {");
             sw.WriteLine("        public void Start()");
             sw.WriteLine("        {");
-            sw.WriteLine("            Create();");
+            sw.WriteLine("            CreateZeze();");
+            sw.WriteLine("            CreateService();");
+            sw.WriteLine("            CreateModules();");
             sw.WriteLine("            Zeze.StartAsync().Wait(); // 启动数据库");
             sw.WriteLine("            StartModules(); // 启动模块，装载配置什么的。");
             sw.WriteLine("            StartService(); // 启动网络");
@@ -202,7 +204,9 @@ namespace Zeze.Gen.cs
             sw.WriteLine("            StopService(); // 关闭网络");
             sw.WriteLine("            StopModules(); // 关闭模块，卸载配置什么的。");
             sw.WriteLine("            Zeze.Stop(); // 关闭数据库");
-            sw.WriteLine("            Destroy();");
+            sw.WriteLine("            DestroyModules();");
+            sw.WriteLine("            DestroyService();");
+            sw.WriteLine("            DestroyZeze();");
             sw.WriteLine("        }");
             sw.WriteLine("    }");
             sw.WriteLine("}");

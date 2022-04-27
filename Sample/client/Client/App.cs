@@ -1,29 +1,23 @@
-﻿
-namespace Game
+
+namespace Client
 {
     public sealed partial class App
     {
-        public override Zeze.IModule ReplaceModuleInstance(Zeze.IModule module)
-        {
-            return module;
-        }
-
         public void Start()
         {
             CreateZeze();
             CreateService();
             CreateModules();
-            StartModules(); // 启动模块，装载配置什么的。
             Zeze.StartAsync().Wait(); // 启动数据库
-            StartModules();
+            StartModules(); // 启动模块，装载配置什么的。
             StartService(); // 启动网络
         }
 
         public void Stop()
         {
-            StopService(); // 关闭网络等等。
+            StopService(); // 关闭网络
+            StopModules(); // 关闭模块，卸载配置什么的。
             Zeze.Stop(); // 关闭数据库
-            StopModules(); // 关闭模块,，卸载配置什么的。
             DestroyModules();
             DestroyService();
             DestroyZeze();

@@ -11,11 +11,11 @@ namespace Zeze.Builtin.Game.Online
 
     public partial class ModuleOnline : AbstractModule
     {
-        public void Start(global::Game.App app)
+        public void Start(global::Client.App app)
         {
         }
 
-        public void Stop(global::Game.App app)
+        public void Stop(global::Client.App app)
         {
         }
 
@@ -45,7 +45,7 @@ namespace Zeze.Builtin.Game.Online
                     {
                         int size = bb.ReadInt4();
                         // 所有的notify必须定义了客户端处理。
-                        var factoryHandle = global::Game.App.Instance.Client.FindProtocolFactoryHandle(typeId);
+                        var factoryHandle = global::Client.App.Instance.ClientService.FindProtocolFactoryHandle(typeId);
                         var pNotify = factoryHandle.Factory();
                         pNotify.Decode(bb);
                         await handle.OnReliableNotify(pNotify);

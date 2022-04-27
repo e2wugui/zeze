@@ -8,7 +8,7 @@ namespace Zeze.Gen
 {
     public class ModuleSpace
     {
-        public string Name { get; private set; }
+        public string Name { get; internal set; }
         public string NamePinyin => Program.ToPinyin(Name);
         public ModuleSpace Parent { get; private set; }
         public Util.Ranges ProtocolIdRanges { get; } = new Util.Ranges();

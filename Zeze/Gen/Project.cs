@@ -30,6 +30,8 @@ namespace Zeze.Gen
         public string IncludeAllModules { get; private set; } = "false";
         public string MacroEditor { get; private set; }
         public static Project MakingInstance { get; set; }
+        public string SolutionName { get; set; }
+
         public List<Module> GetAllOrderdRefModules()
         {
             HashSet<Module> unique = new HashSet<Module>();
@@ -77,6 +79,7 @@ namespace Zeze.Gen
                 GenTables.Add(target);
             IncludeAllModules = self.GetAttribute("IncludeAllModules");
             MacroEditor = self.GetAttribute("MacroEditor");
+            SolutionName = self.GetAttribute("SolutionName");
 
             //Program.AddNamedObject(FullName, this);
 
@@ -153,7 +156,7 @@ namespace Zeze.Gen
         {
             MakingInstance = this;
             AllOrderDefineModules = IncludeAllModules.Equals("true") ? GetSolutionAllModules() : GetAllOrderdRefModules();
-                        
+
             var _AllProtocols = new HashSet<Protocol>();
             foreach (Module mod in AllOrderDefineModules) // 这里本不该用 AllModules。只要第一层的即可，里面会递归。
             {
@@ -230,7 +233,12 @@ namespace Zeze.Gen
                 service.SetModuleReference();
             }
 
+            var saved = Solution.Name;
+            if (false == string.IsNullOrEmpty(SolutionName))
+                Solution.Name = SolutionName;
             MakePlatform();
+            if (false == string.IsNullOrEmpty(SolutionName))
+                Solution.Name = saved;
         }
 
         protected virtual void MakePlatform()

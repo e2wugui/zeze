@@ -6,11 +6,11 @@ namespace Zezex.Linkd
 {
     public sealed partial class ModuleLinkd : AbstractModule
     {
-        public void Start(Game.App app)
+        public void Start(Client.App app)
         {
         }
 
-        public void Stop(Game.App app)
+        public void Stop(Client.App app)
         {
         }
 
