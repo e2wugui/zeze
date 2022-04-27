@@ -2,6 +2,7 @@ package Zezex;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import Zeze.Arch.Gen.GenModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.PersistentAtomicLong;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -28,9 +29,33 @@ public final class App extends Zeze.AppBase {
 	}
 
 	public LinkdApp LinkdApp;
-	public void Start() throws Throwable {
+
+	public void Start(String[] args) throws Throwable {
+		int linkPort = -1;
+		int providerPort = -1;
+		for (int i = 0; i < args.length; ++i) {
+			switch (args[i]) {
+			case "-LinkPort":
+				linkPort = Integer.parseInt(args[++i]);
+				break;
+			case "-ProviderPort":
+				providerPort = Integer.parseInt(args[++i]);
+				break;
+			}
+		}
+		Start(linkPort, providerPort);
+	}
+
+	public void Start(int linkPort, int providerPort) throws Throwable {
 		// Create
-		CreateZeze(Config.Load("linkd.xml"));
+		var config = Config.Load("linkd.xml");
+		if (linkPort != -1) {
+			config.getServiceConfMap().get("LinkdService").ForEachAcceptor((a) -> a.setPort(linkPort));
+		}
+		if (linkPort != -1) {
+			config.getServiceConfMap().get("ProviderService").ForEachAcceptor((a) -> a.setPort(linkPort));
+		}
+		CreateZeze(config);
 		CreateService();
 		LinkdProvider = new LinkdProvider();
 		LinkdApp = new LinkdApp("Game.Linkd", Zeze, LinkdProvider, ProviderService, LinkdService, LoadConfig());

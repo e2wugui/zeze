@@ -88,14 +88,15 @@ public final class ServiceConf {
 	public boolean TryGetOrAddConnector(String host, int port, boolean autoReconnect, OutObject<Connector> getOrAdd) {
 		var name = host + ":" + port;
 		final var addNew = new OutObject<Connector>();
-		getOrAdd.Value = Connectors.computeIfAbsent(name,
+		var c = Connectors.computeIfAbsent(name,
 				(key) -> {
 					Connector add = new Connector(host, port, autoReconnect);
 					add.SetService(getService());
 					addNew.Value = add;
 					return add;
 				});
-
+		if (null != getOrAdd)
+			getOrAdd.Value = c;
 		return addNew.Value != null;
 	}
 

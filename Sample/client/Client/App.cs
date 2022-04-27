@@ -3,10 +3,12 @@ namespace Client
 {
     public sealed partial class App
     {
-        public void Start()
+        public void Start(string ip, int port)
         {
-            CreateZeze();
+            var conf = global::Zeze.Config.Load("client.xml");
+            CreateZeze(conf);
             CreateService();
+            ClientService.Config.TryGetOrAddConnector(ip, port, true, out _);
             CreateModules();
             Zeze.StartAsync().Wait(); // 启动数据库
             StartModules(); // 启动模块，装载配置什么的。

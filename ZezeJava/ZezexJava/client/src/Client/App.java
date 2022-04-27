@@ -1,14 +1,19 @@
 package Client;
 
+import Zeze.Config;
+
 public class App extends Zeze.AppBase {
     public static App Instance = new App();
     public static App getInstance() {
         return Instance;
     }
 
-    public void Start() throws Throwable {
-        CreateZeze();
+    public void Start(String ip, int port) throws Throwable {
+        var config = Config.Load("client.xml");
+        CreateZeze(config);
         CreateService();
+        ClientService.getConfig().TryGetOrAddConnector(ip, port, true, null);
+
         CreateModules();
         Zeze.Start(); // 启动数据库
         StartModules(); // 启动模块，装载配置什么的。

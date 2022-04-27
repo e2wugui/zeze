@@ -43,7 +43,11 @@ namespace Game
                         break;
                 }
             }
+            Start(ServerId, ProviderDirectPort, GenRedirect);
+        }
 
+        public void Start(int ServerId, int ProviderDirectPort, string GenRedirect = null)
+        {
             var config = global::Zeze.Config.Load("serverd.xml");
             if (ServerId != -1)
             {

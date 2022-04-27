@@ -26,9 +26,41 @@ namespace Zezex
         public string ProviderServicePassiveIp { get; private set; }
         public int ProviderServicePasivePort { get; private set; }
 
-        public void Start()
+
+        public void Start(string[] args)
         {
+
+            int linkPort = -1;
+            int providerPort = -1;
+            for (int i = 0; i < args.Length; ++i)
+            {
+                switch (args[i])
+                {
+                    case "-LinkPort":
+                        linkPort = int.Parse(args[++i]);
+                        break;
+                    case "-ProviderPort":
+                        providerPort = int.Parse(args[++i]);
+                        break;
+                }
+            }
+            Start(linkPort, providerPort);
+        }
+
+        public void Start(int linkPort, int providerPort)
+        {
+            // Create
             var config = global::Zeze.Config.Load("linkd.xml");
+            if (linkPort != -1)
+            {
+                if (config.ServiceConfMap.TryGetValue("LinkdService", out var service))
+                    service.ForEachAcceptor((a) => a.Port = linkPort);
+            }
+            if (linkPort != -1)
+            {
+                if (config.ServiceConfMap.TryGetValue("ProviderService", out var service))
+                    service.ForEachAcceptor((a) => a.Port = linkPort);
+            }
             CreateZeze(config);
             CreateService();
             LinkdProvider = new LinkdProvider();

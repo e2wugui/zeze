@@ -46,28 +46,32 @@ public final class App extends Zeze.AppBase {
 	}
 
 	public void Start(String[] args) throws Throwable {
-		int ServerId = -1;
-		int ProviderDirectPort = -1;
+		int serverId = -1;
+		int providerDirectPort = -1;
 		for (int i = 0; i < args.length; ++i) {
 			switch (args[i]) {
 			case "-ServerId":
-				ServerId = Integer.parseInt(args[++i]);
+				serverId = Integer.parseInt(args[++i]);
 				break;
 			case "-GenFileSrcRoot":
 				GenModule.Instance.GenFileSrcRoot = args[++i];
 				break;
 			case "-ProviderDirectPort":
-				ProviderDirectPort = Integer.parseInt(args[++i]);
+				providerDirectPort = Integer.parseInt(args[++i]);
 				break;
 			}
 		}
+		Start(serverId, providerDirectPort);
+	}
+
+	public void Start(int serverId, int providerDirectPort) throws Throwable {
 
 		var config = Config.Load("server.xml");
-		if (ServerId != -1) {
-			config.setServerId(ServerId); // replace from args
+		if (serverId != -1) {
+			config.setServerId(serverId); // replace from args
 		}
-		if (ProviderDirectPort != -1) {
-			final int port = ProviderDirectPort;
+		if (providerDirectPort != -1) {
+			final int port = providerDirectPort;
 			config.getServiceConfMap().get("ServerDirect").ForEachAcceptor((a) -> a.setPort(port));
 		}
 		// create
