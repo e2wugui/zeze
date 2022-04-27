@@ -2,6 +2,7 @@ apply from: '../ZezeJava/build.gradle'
 
 dependencies {
     implementation project(":ZezeJava")
+    implementation project(":ZezexJava:client")
     implementation project(":ZezexJava:linkd")
     implementation project(":ZezexJava:server")
     implementation 'junit:junit:4.13.2'
