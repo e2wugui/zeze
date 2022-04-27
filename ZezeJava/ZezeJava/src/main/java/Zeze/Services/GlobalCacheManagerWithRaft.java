@@ -545,7 +545,6 @@ public class GlobalCacheManagerWithRaft
 			return tempVar;
 		});
 
-		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.getGlobalCacheManagerHashIndex())) {
 			rpc.SendResultCode(ReLoginBindSocketFail);
 			return 0;

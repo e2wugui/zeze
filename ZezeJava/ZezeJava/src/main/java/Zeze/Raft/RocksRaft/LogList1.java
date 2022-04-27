@@ -145,6 +145,10 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	public final void Merge(LogList1<V> from) {
+		if (from.cleared) {
+			opLogs.clear();
+			setValue(Empty.vector());
+		}
 		for (var opLog : from.getOpLogs()) {
 			switch (opLog.op) {
 			case LogList1.OpLog.OP_MODIFY:
