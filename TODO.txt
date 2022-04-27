@@ -20,16 +20,15 @@ Global c# 慢的问题。
 Online Account （java，c#）
 
 1. 把 RocksRaft Changes 应用到 Zeze 中，让 Zeze 实现Bean任意级别的更新。// 1. 仅支持整个Bean的订阅。2. log factory 问题。3. 动态订阅。add listener和notify原子问题。
-   RocksRaft Collection.List LogList
-   SortedDictionary<int, Log Or Bean> ChangeOrAdd; // 优化。中间的值发生了改变或者在尾巴增加。
-   bool FullCopy; // 当发生中间删除或者插入时。这个有进一步优化空间。
-   【倾向于这种方式】OR -> List<OperateLog> 所有操作记录日志，收到方重做。问题：Get(index).Update，怎么融入。
 2. Game.Bag Listener
 
-Online Test
+Online Test 【肖丽杨】c#
 
 【2022/5/11】
 
+Online Test 【肖丽杨】Java
+RocksRaft Collection.List LogList
+【张路已完成】OpLogs=List<OperateLog>。list中的Bean更新规则：Encode的时indexOf所有的Changed找到索引，Apply=list.get(index).Apply(beanLog)。
 2. c# 1) LoadReporter. 
 3. java 1) LoadReporter. 
 1. Online Memory Table 可以存储在线相关数据。
