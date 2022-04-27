@@ -2,6 +2,7 @@
 
 <solution name="Game" ModuleIdAllowRanges="1-1000">
 	<import file="solution.linkd.xml"/>
+	<import file="../ZezeJava/solution.zeze.xml"/>
 
 	<module name="Login" id="1">
 		<enum name="ResultCodeCreateRoleDuplicateRoleName" value="1"/>
@@ -359,6 +360,15 @@
 		</ModuleStartOrder>
 
 		<service name="ServerDirect" handle="server,client" base="Zeze.Arch.ProviderDirectService">
+		</service>
+	</project>
+
+	<project name="client" gendir="." scriptdir="src" plaform="java">
+		<service name="Client" handle="client" base="Zeze.Services.HandshakeClient">
+			<module ref="Zeze.Builtin.Game.Online"/>
+			<module ref="Zeze.Builtin.Game.Bag"/>
+			<module ref="Zeze.Builtin.LinkdBase"/>
+			<module ref="Zezex.Linkd"/>
 		</service>
 	</project>
 

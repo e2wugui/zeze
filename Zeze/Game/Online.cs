@@ -37,7 +37,6 @@ namespace Zeze.Game
             RegisterProtocols(ProviderApp.ProviderService);
             RegisterZezeTables(ProviderApp.Zeze);
 
-            Util.Scheduler.ScheduleAt(VerifyLocal, 3 + Util.Random.Instance.Next(3), 10); // at 3:10 - 6:10
             LoadReporter = new(this);
         }
 
@@ -49,6 +48,7 @@ namespace Zeze.Game
         public void Start()
         {
             LoadReporter.StartTimerTask();
+            Util.Scheduler.ScheduleAt(VerifyLocal, 3 + Util.Random.Instance.Next(3), 10); // at 3:10 - 6:10
         }
 
         public int LocalCount => _tlocal.Cache.DataMap.Count;

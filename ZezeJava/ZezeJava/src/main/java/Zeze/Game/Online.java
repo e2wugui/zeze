@@ -131,12 +131,12 @@ public class Online extends AbstractOnline {
 		this.ProviderApp = app;
 		RegisterProtocols(app.ProviderService);
 		RegisterZezeTables(app.Zeze);
-		Task.scheduleAt(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
 		LoadReporter = new LoadReporter(this);
 	}
 
 	public void Start() {
 		LoadReporter.StartTimerTask();
+		Task.scheduleAt(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
 	}
 
 	@Override

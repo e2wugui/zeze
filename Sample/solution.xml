@@ -283,9 +283,9 @@
 
 	<project name="client" gendir="." platform="cs" GenTables="client" BuiltinNG="true">
 		<service name="Client" handle="client" base="Zeze.Services.HandshakeClient">
-			<module ref="Login"/>
 			<module ref="Zeze.Builtin.Game.Online"/>
-			<module ref="Bag"/>
+			<module ref="Zeze.Builtin.Game.Bag"/>
+			<module ref="Zeze.Builtin.LinkdBase"/>
 			<module ref="Zezex.Linkd"/>
 		</service>
 	</project>

@@ -84,7 +84,7 @@ namespace Zeze.Gen
 
             if (Solution.Projects.ContainsKey(Name))
                 throw new Exception("duplicate project name: " + Name);
-            Solution.Projects.Add(Path.Combine(GenDir, GenRelativeDir, Name), this);
+            Solution.Projects.Add(Path.Combine(GenRelativeDir, Name), this);
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)
