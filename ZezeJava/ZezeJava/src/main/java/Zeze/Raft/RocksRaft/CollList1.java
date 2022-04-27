@@ -3,6 +3,7 @@ package Zeze.Raft.RocksRaft;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.Reflect;
+import org.pcollections.Empty;
 
 public class CollList1<V> extends CollList<V> {
 	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
@@ -121,6 +122,8 @@ public class CollList1<V> extends CollList<V> {
 			case LogList1.OpLog.OP_REMOVE:
 				_list = _list.minus(opLog.index);
 				break;
+			case LogList1.OpLog.OP_CLEAR:
+				_list = Empty.vector();
 			}
 		}
 	}

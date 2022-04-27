@@ -3,6 +3,7 @@ package Zeze.Raft.RocksRaft;
 import java.lang.invoke.MethodHandle;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Reflect;
+import org.pcollections.Empty;
 
 public class CollList2<V extends Bean> extends CollList<V> {
 	private final MethodHandle valueFactory;
@@ -124,13 +125,15 @@ public class CollList2<V extends Bean> extends CollList<V> {
 			case LogList1.OpLog.OP_REMOVE:
 				tmp = tmp.minus(opLog.index);
 				break;
+			case LogList1.OpLog.OP_CLEAR:
+				tmp = Empty.vector();
 			}
 		}
 		_list = tmp;
 
 		// apply changed
-		for (var e : log.getChanged())
-			e.getThis().FollowerApply(e);
+		for (var e : log.getChanged().entrySet())
+			_list.get(e.getValue()).FollowerApply(e.getKey());
 	}
 
 	@SuppressWarnings("unchecked")

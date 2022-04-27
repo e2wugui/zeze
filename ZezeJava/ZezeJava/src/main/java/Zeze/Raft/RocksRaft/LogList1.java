@@ -13,6 +13,7 @@ public class LogList1<V> extends LogList<V> {
 		static final int OP_MODIFY = 0;
 		static final int OP_ADD = 1;
 		static final int OP_REMOVE = 2;
+		static final int OP_CLEAR = 3;
 
 		final int op;
 		final int index;
@@ -31,7 +32,6 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	protected final ArrayList<OpLog<V>> opLogs = new ArrayList<>();
-	protected boolean cleared;
 
 	public LogList1(Class<V> valueClass) {
 		super("Zeze.Raft.RocksRaft.LogList1<" + Reflect.GetStableName(valueClass) + '>');
@@ -75,11 +75,9 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	public final void Clear() {
-		for (var e : getValue())
-			Remove(e);
 		setValue(Empty.vector());
 		opLogs.clear();
-		cleared = true;
+		opLogs.add(new OpLog<>(OpLog.OP_CLEAR, 0, null));
 	}
 
 	public final void Add(int index, V item) {
@@ -106,29 +104,25 @@ public class LogList1<V> extends LogList<V> {
 	@Override
 	public void Encode(ByteBuffer bb) {
 		var encoder = valueCodecFuncs.encoder;
-		var logSize = opLogs.size();
-		bb.WriteUInt(cleared ? -1 - logSize : logSize);
+		bb.WriteUInt(opLogs.size());
 		for (var opLog : opLogs) {
 			bb.WriteUInt(opLog.op);
-			bb.WriteUInt(opLog.index);
-			if (opLog.op != OpLog.OP_REMOVE)
-				encoder.accept(bb, opLog.value);
+			if (opLog.op < OpLog.OP_CLEAR) {
+				bb.WriteUInt(opLog.index);
+				if (opLog.op < OpLog.OP_REMOVE)
+					encoder.accept(bb, opLog.value);
+			}
 		}
 	}
 
 	@Override
 	public void Decode(ByteBuffer bb) {
 		var decoder = valueCodecFuncs.decoder;
-		var logSize = bb.ReadUInt();
-		if (logSize < 0) {
-			cleared = true;
-			logSize = -1 - logSize;
-		}
 		opLogs.clear();
-		while (--logSize >= 0) {
+		for (var logSize = bb.ReadUInt(); --logSize >= 0; ) {
 			int op = bb.ReadUInt();
-			int index = bb.ReadUInt();
-			opLogs.add(new OpLog<>(op, index, op != OpLog.OP_REMOVE ? decoder.apply(bb) : null));
+			int index = op < OpLog.OP_CLEAR ? bb.ReadUInt() : 0;
+			opLogs.add(new OpLog<>(op, index, op < OpLog.OP_REMOVE ? decoder.apply(bb) : null));
 		}
 	}
 
@@ -145,21 +139,20 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	public final void Merge(LogList1<V> from) {
-		if (from.cleared) {
-			opLogs.clear();
-			setValue(Empty.vector());
-		}
 		for (var opLog : from.getOpLogs()) {
 			switch (opLog.op) {
-			case LogList1.OpLog.OP_MODIFY:
+			case OpLog.OP_MODIFY:
 				setValue(getValue().with(opLog.index, opLog.value));
 				break;
-			case LogList1.OpLog.OP_ADD:
+			case OpLog.OP_ADD:
 				setValue(getValue().plus(opLog.index, opLog.value));
 				break;
-			case LogList1.OpLog.OP_REMOVE:
+			case OpLog.OP_REMOVE:
 				setValue(getValue().minus(opLog.index));
 				break;
+			case OpLog.OP_CLEAR:
+				opLogs.clear();
+				setValue(Empty.vector());
 			}
 		}
 		opLogs.addAll(from.opLogs);

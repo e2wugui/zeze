@@ -1,13 +1,12 @@
 package Zeze.Raft.RocksRaft;
 
 import java.lang.invoke.MethodHandle;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Reflect;
 
 public class LogList2<V extends Bean> extends LogList1<V> {
-	private final Set<LogBean> Changed = new HashSet<>(); // changed V logs. using in collect.
+	private final HashMap<LogBean, Integer> Changed = new HashMap<>(); // changed V logs. using in collect.
 	private final MethodHandle valueFactory;
 
 	public LogList2(Class<V> valueClass) {
@@ -20,33 +19,37 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 		this.valueFactory = valueFactory;
 	}
 
-	public final Set<LogBean> getChanged() {
+	public final HashMap<LogBean, Integer> getChanged() {
 		return Changed;
 	}
 
 	@Override
 	public void Encode(ByteBuffer bb) {
-		for (var it = Changed.iterator(); it.hasNext(); ) {
-			var bean = it.next().getThis();
-			for (var opLog : opLogs) {
-				if (opLog.value == bean) {
-					it.remove();
-					break;
-				}
-			}
+		@SuppressWarnings("unchecked")
+		var curList = ((CollList2<V>)getThis())._list;
+		for (var it = Changed.entrySet().iterator(); it.hasNext(); ) {
+			var e = it.next();
+			var logBean = e.getKey();
+			//noinspection SuspiciousMethodCalls
+			var idxExist = curList.indexOf(logBean.getThis());
+			if (idxExist < 0)
+				it.remove();
 		}
 		bb.WriteUInt(Changed.size());
-		for (var e : Changed)
-			e.Encode(bb);
+		for (var e : Changed.entrySet()) {
+			e.getKey().Encode(bb);
+			bb.WriteUInt(e.getValue());
+		}
 
 		// super.Encode(bb);
-		var logSize = opLogs.size();
-		bb.WriteUInt(cleared ? -1 - logSize : logSize);
+		bb.WriteUInt(opLogs.size());
 		for (var opLog : opLogs) {
 			bb.WriteUInt(opLog.op);
-			bb.WriteUInt(opLog.index);
-			if (opLog.op != OpLog.OP_REMOVE)
-				opLog.value.Encode(bb);
+			if (opLog.op < OpLog.OP_CLEAR) {
+				bb.WriteUInt(opLog.index);
+				if (opLog.op < OpLog.OP_REMOVE)
+					opLog.value.Encode(bb);
+			}
 		}
 	}
 
@@ -57,21 +60,17 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var value = new LogBean();
 			value.Decode(bb);
-			Changed.add(value);
+			var index = bb.ReadUInt();
+			Changed.put(value, index);
 		}
 
 		// super.Decode(bb);
-		var logSize = bb.ReadUInt();
-		if (logSize < 0) {
-			cleared = true;
-			logSize = -1 - logSize;
-		}
 		opLogs.clear();
-		while (--logSize >= 0) {
+		for (var logSize = bb.ReadUInt(); --logSize >= 0; ) {
 			int op = bb.ReadUInt();
-			int index = bb.ReadUInt();
+			int index = op < OpLog.OP_CLEAR ? bb.ReadUInt() : 0;
 			V value = null;
-			if (op != OpLog.OP_REMOVE) {
+			if (op < OpLog.OP_REMOVE) {
 				try {
 					value = (V)valueFactory.invoke();
 				} catch (Throwable e) {
@@ -85,7 +84,14 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 
 	@Override
 	public void Collect(Changes changes, Bean recent, Log vlog) {
-		if (Changed.add((LogBean)vlog))
+		@SuppressWarnings("unchecked")
+		var curList = ((CollList2<V>)getThis())._list;
+		var logBean = (LogBean)vlog;
+		//noinspection SuspiciousMethodCalls
+		var index = curList.indexOf(logBean.getThis());
+		if (index < 0)
+			throw new AssertionError("impossible");
+		if (Changed.put(logBean, index) == null)
 			changes.Collect(recent, this);
 	}
 
