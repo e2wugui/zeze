@@ -206,7 +206,7 @@ namespace Zeze.Game
         }
 
         [RedirectAll("GetConcurrentLevel(key.RankType)")]
-        public Task<RedirectAll<BRankList>> GetRankAll(BConcurrentKey key)
+        public virtual Task<RedirectAll<BRankList>> GetRankAll(BConcurrentKey key)
         {
             return null;
         }

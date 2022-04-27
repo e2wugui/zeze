@@ -356,7 +356,7 @@ namespace Zeze.Arch.Gen
             sb.AppendLine($"        {req}.Argument.HashCodeConcurrentLevel = {m.GetConcurrentLevelSource()};");
             sb.AppendLine($"        // {req}.Argument.HashCodes = // setup in linkd;");
             sb.AppendLine($"        {req}.Argument.MethodFullName = \"{module.FullName}:{m.Method.Name}\";");
-            sb.AppendLine($"        {req}.Argument.ServiceNamePrefix = App.ProviderApp.ServerServiceNamePrefix;");
+            sb.AppendLine($"        {req}.Argument.ServiceNamePrefix = App.Zeze.Redirect.ProviderApp.ServerServiceNamePrefix;");
             if (m.ParametersNormal.Count > 0)
             {
                 sb.AppendLine($"        {{");
@@ -388,7 +388,7 @@ namespace Zeze.Arch.Gen
             sb.AppendLine($"        var {contextVarName} = new {Gen.Instance.GetTypeName(m.MethodMode.ResultType)}(");
             sb.AppendLine($"            {req}.Argument.HashCodeConcurrentLevel, {req}.Argument.MethodFullName,");
             sb.AppendLine($"            {decoderVar}{(processing.Length > 0 ? ", " : "")}{processing});");
-            sb.AppendLine($"        {req}.Argument.SessionId = App.ProviderApp.ProviderDirectService.AddManualContextWithTimeout({contextVarName});");
+            sb.AppendLine($"        {req}.Argument.SessionId = App.Zeze.Redirect.ProviderApp.ProviderDirectService.AddManualContextWithTimeout({contextVarName});");
             sb.AppendLine($"");
             sb.AppendLine($"        App.Zeze.Redirect.RedirectAll(this, {req});");
             sb.AppendLine($"");

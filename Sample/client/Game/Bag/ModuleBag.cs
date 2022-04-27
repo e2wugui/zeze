@@ -4,6 +4,7 @@ using Zeze.Net;
 
 namespace Game.Bag
 {
+    /*
     public sealed partial class ModuleBag : AbstractModule, Zeze.Builtin.Game.Online.IReliableNotify
     {
         public void Start(Game.App app)
@@ -37,10 +38,8 @@ namespace Game.Bag
                 case BChangedResult.ChangeTagRecordChanged:
                     // 记录改变还需要更新money,capacity。但是listener只监听了items。
                     // server 在发现整个记录变更时，发送了SBag。不会发这个改变。see server::Game.Bag.Module。
-                    /*
-                    bag.Items.Clear();
-                    bag.Items.SetItems(protocol.Argument.ItemsReplace);
-                    */
+                    //bag.Items.Clear();
+                    //bag.Items.SetItems(protocol.Argument.ItemsReplace);
                     break;
                 case BChangedResult.ChangeTagRecordIsRemoved:
                     bag = null;
@@ -63,4 +62,5 @@ namespace Game.Bag
             return 0;
         }
     }
+    */
 }
