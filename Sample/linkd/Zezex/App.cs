@@ -28,7 +28,8 @@ namespace Zezex
 
         public void Start()
         {
-            CreateZeze();
+            var config = global::Zeze.Config.Load("linkd.xml");
+            CreateZeze(config);
             CreateService();
             LinkdProvider = new LinkdProvider();
             LinkdApp = new LinkdApp("Game.Linkd", Zeze, LinkdProvider, ProviderService, LinkdService, LoadConfig.Load("load.json"));

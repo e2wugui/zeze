@@ -44,7 +44,7 @@ namespace Game
                 }
             }
 
-            var config = global::Zeze.Config.Load("server.xml");
+            var config = global::Zeze.Config.Load("serverd.xml");
             if (ServerId != -1)
             {
                 config.ServerId = ServerId; // replace from args
