@@ -4,11 +4,14 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Arch.RedirectFuture;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Net.Service;
@@ -28,6 +31,7 @@ import Zeze.Util.AsyncLock;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.Task;
+import Zeze.Util.ThreadFactoryWithName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.w3c.dom.Element;
@@ -62,18 +66,13 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	private final GCMConfig Config = new GCMConfig();
 
 	private static final class GCMConfig implements Zeze.Config.ICustomize {
-		private int ConcurrencyLevel = 1024;
 		// 设置了这么大，开始使用后，大概会占用700M的内存，作为全局服务器，先这么大吧。
-		// 尽量不重新调整ConcurrentDictionary。
-		private int InitialCapacity = 10000000;
+		// 尽量不重新调整ConcurrentHashMap。
+		private int InitialCapacity = 10_000_000;
 
 		@Override
 		public String getName() {
 			return "GlobalCacheManager";
-		}
-
-		int getConcurrencyLevel() {
-			return ConcurrencyLevel;
 		}
 
 		int getInitialCapacity() {
@@ -82,14 +81,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 
 		@Override
 		public void Parse(Element self) {
-			String attr = self.getAttribute("ConcurrencyLevel");
-			if (attr.length() > 0)
-				ConcurrencyLevel = Integer.parseInt(attr);
-			if (ConcurrencyLevel < Runtime.getRuntime().availableProcessors())
-				ConcurrencyLevel = Runtime.getRuntime().availableProcessors();
-
-			attr = self.getAttribute("InitialCapacity");
-			if (attr.length() > 0)
+			var attr = self.getAttribute("InitialCapacity");
+			if (!attr.isBlank())
 				InitialCapacity = Integer.parseInt(attr);
 			if (InitialCapacity < 31)
 				InitialCapacity = 31;
@@ -110,8 +103,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		if (config == null)
 			config = new Zeze.Config().AddCustomize(Config).LoadAndParse();
 
-		Sessions = new LongConcurrentHashMap<>(4096, 0.75f, Config.getConcurrencyLevel());
-		global = new ConcurrentHashMap<>(Config.getInitialCapacity(), 0.75f, Config.getConcurrencyLevel());
+		Sessions = new LongConcurrentHashMap<>(4096);
+		global = new ConcurrentHashMap<>(Config.getInitialCapacity());
 
 		Server = new ServerService(config);
 
@@ -157,7 +150,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			return 0;
 		}
 
-		var session = Sessions.computeIfAbsent(rpc.Argument.ServerId, __ -> new CacheHolder(Config));
+		var session = Sessions.computeIfAbsent(rpc.Argument.ServerId, __ -> new CacheHolder());
 		if (session.GlobalCacheManagerHashIndex != rpc.Argument.GlobalCacheManagerHashIndex) {
 			// 多点验证
 			rpc.SendResultCode(CleanupErrorGlobalCacheManagerHashIndex);
@@ -187,7 +180,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 
 	private long ProcessLogin(Login rpc) throws Throwable {
 		logger.debug("ProcessLogin: {}", rpc);
-		var session = Sessions.computeIfAbsent(rpc.Argument.ServerId, __ -> new CacheHolder(Config));
+		var session = Sessions.computeIfAbsent(rpc.Argument.ServerId, __ -> new CacheHolder());
 		if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.GlobalCacheManagerHashIndex)) {
 			rpc.SendResultCode(LoginBindSocketFail);
 			return 0;
@@ -204,7 +197,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 
 	private long ProcessReLogin(ReLogin rpc) {
 		logger.debug("ProcessReLogin: {}", rpc);
-		var session = Sessions.computeIfAbsent(rpc.Argument.ServerId, __ -> new CacheHolder(Config));
+		var session = Sessions.computeIfAbsent(rpc.Argument.ServerId, __ -> new CacheHolder());
 		if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.GlobalCacheManagerHashIndex)) {
 			rpc.SendResultCode(ReLoginBindSocketFail);
 			return 0;
@@ -292,7 +285,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	}
 
 	private void ReleaseAsync(CacheHolder sender, GlobalTableKey gkey, CountDownFuture future) {
-		CacheState cs = global.computeIfAbsent(gkey, __ -> new CacheState());
+		var cs = global.computeIfAbsent(gkey, __ -> new CacheState());
 		var state = new Object() {
 			int stage;
 		};
@@ -317,7 +310,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				state.stage = 1;
 				var cur = cs.lock.getCurrent();
 				cs.lock.leaveAndWaitNotify(() -> {
-					if (cs.Modify != null && cs.Share.size() != 0)
+					if (cs.Modify != null && !cs.Share.isEmpty())
 						throw new IllegalStateException("CacheState state error");
 					cs.lock.setCurrent(cur);
 					cur.run();
@@ -348,9 +341,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	}
 
 	private void ReleaseAsync(Acquire rpc) {
-		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
-		GlobalTableKey gkey = rpc.Argument.GlobalTableKey;
-		CacheState cs = global.computeIfAbsent(gkey, __ -> new CacheState());
+		var cs = global.computeIfAbsent(rpc.Argument.GlobalTableKey, __ -> new CacheState());
 		var state = new Object() {
 			int stage;
 		};
@@ -362,6 +353,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				return;
 			}
 
+			var sender = (CacheHolder)rpc.getSender().getUserState();
+			var gkey = rpc.Argument.GlobalTableKey;
 			if (cs.AcquireStatePending != StateInvalid && cs.AcquireStatePending != StateRemoved) {
 				switch (cs.AcquireStatePending) {
 				case StateShare:
@@ -377,7 +370,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				state.stage = 1;
 				var cur = cs.lock.getCurrent();
 				cs.lock.leaveAndWaitNotify(() -> {
-					if (cs.Modify != null && cs.Share.size() != 0)
+					if (cs.Modify != null && !cs.Share.isEmpty())
 						throw new IllegalStateException("CacheState state error");
 					cs.lock.setCurrent(cur);
 					cur.run();
@@ -410,8 +403,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	}
 
 	private void AcquireShareAsync(Acquire rpc) {
-		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
-		CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalTableKey, __ -> new CacheState());
+		var cs = global.computeIfAbsent(rpc.Argument.GlobalTableKey, __ -> new CacheState());
 		var state = new Object() {
 			int stage;
 			int reduceResultState;
@@ -424,10 +416,11 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					return;
 				}
 
-				if (cs.Modify != null && cs.Share.size() != 0)
+				if (cs.Modify != null && !cs.Share.isEmpty())
 					throw new IllegalStateException("CacheState state error");
 			}
 
+			var sender = (CacheHolder)rpc.getSender().getUserState();
 			if (state.stage <= 1) {
 				if (cs.AcquireStatePending != StateInvalid && cs.AcquireStatePending != StateRemoved) {
 					switch (cs.AcquireStatePending) {
@@ -458,7 +451,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					state.stage = 1;
 					var cur = cs.lock.getCurrent();
 					cs.lock.leaveAndWaitNotify(() -> {
-						if (cs.Modify != null && cs.Share.size() != 0)
+						if (cs.Modify != null && !cs.Share.isEmpty())
 							throw new IllegalStateException("CacheState state error");
 						cs.lock.setCurrent(cur);
 						cur.run();
@@ -551,8 +544,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	}
 
 	private void AcquireModifyAsync(Acquire rpc) {
-		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
-		CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalTableKey, __ -> new CacheState());
+		var cs = global.computeIfAbsent(rpc.Argument.GlobalTableKey, __ -> new CacheState());
 		var state = new Object() {
 			int stage;
 			int reduceResultState;
@@ -565,10 +557,11 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					return;
 				}
 
-				if (cs.Modify != null && cs.Share.size() != 0)
+				if (cs.Modify != null && !cs.Share.isEmpty())
 					throw new IllegalStateException("CacheState state error");
 			}
 
+			var sender = (CacheHolder)rpc.getSender().getUserState();
 			if (state.stage <= 1) {
 				if (cs.AcquireStatePending != StateInvalid && cs.AcquireStatePending != StateRemoved) {
 					switch (cs.AcquireStatePending) {
@@ -600,7 +593,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					state.stage = 1;
 					var cur = cs.lock.getCurrent();
 					cs.lock.leaveAndWaitNotify(() -> {
-						if (cs.Modify != null && cs.Share.size() != 0)
+						if (cs.Modify != null && !cs.Share.isEmpty())
 							throw new IllegalStateException("CacheState state error");
 						cs.lock.setCurrent(cur);
 						cur.run();
@@ -657,7 +650,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					// case StateReduceNetError: // 13
 					cs.AcquireStatePending = StateInvalid;
 					cs.lock.notifyAllWait();
-					logger.error("XXX 9 {} {} {}", sender, rpc.Argument.State, cs);
+					logger.error("XXX 9 {} {} {} {}", sender, rpc.Argument.State, cs, state.reduceResultState);
 					rpc.Result.State = StateInvalid;
 					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 					rpc.SendResultCode(AcquireModifyFailed);
@@ -749,17 +742,19 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				allReduceFuture.then(__ -> {
 					// 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
 					// 应该也会等待所有任务结束（包括错误）。
-					for (var reduce : reducePending) {
+					for (var e : reducePending) {
+						var cacheHolder = e.getKey();
+						var reduce = e.getValue();
 						try {
-							if (reduce.getValue().Result.State == StateInvalid)
-								reduceSucceed.add(reduce.getKey());
+							if (reduce.Result.State == StateInvalid)
+								reduceSucceed.add(cacheHolder);
 							else
-								reduce.getKey().SetError();
+								cacheHolder.SetError();
 						} catch (Throwable ex) {
-							reduce.getKey().SetError();
+							cacheHolder.SetError();
 							// 等待失败不再看作成功。
 							logger.error(String.format("Reduce %s AcquireState=%d CacheState=%s arg=%s",
-									sender, rpc.Argument.State, cs, reduce.getValue().Argument), ex);
+									rpc.getSender().getUserState(), rpc.Argument.State, cs, reduce.Argument), ex);
 						}
 					}
 					cs.lock.enter(lastStage); // 需要唤醒等待任务结束的，但没法指定，只能全部唤醒。
@@ -798,10 +793,10 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		long SessionId;
 		int GlobalCacheManagerHashIndex;
 		final ConcurrentHashMap<GlobalTableKey, Integer> Acquired;
-		private long LastErrorTime;
+		private volatile long LastErrorTime;
 
-		CacheHolder(GCMConfig config) {
-			Acquired = new ConcurrentHashMap<>(config.getInitialCapacity(), 0.75f, config.getConcurrencyLevel());
+		CacheHolder() {
+			Acquired = new ConcurrentHashMap<>(Instance.Config.getInitialCapacity());
 		}
 
 		synchronized boolean TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex) {
@@ -842,10 +837,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		boolean Reduce(GlobalTableKey gkey, @SuppressWarnings("SameParameterValue") int state, long globalSerialId,
 					   ProtocolHandle<Rpc<Param2, Param2>> response) {
 			try {
-				synchronized (this) {
-					if (System.currentTimeMillis() - LastErrorTime < ForbidPeriod)
-						return false;
-				}
+				if (System.currentTimeMillis() - LastErrorTime < ForbidPeriod)
+					return false;
 				AsyncSocket peer = Instance.Server.GetSocket(SessionId);
 				if (peer != null && new Reduce(gkey, state, globalSerialId).Send(peer, response, 10000))
 					return true;
@@ -859,7 +852,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			return false;
 		}
 
-		synchronized void SetError() {
+		void SetError() {
 			long now = System.currentTimeMillis();
 			if (now - LastErrorTime > ForbidPeriod)
 				LastErrorTime = now;
@@ -870,10 +863,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		 */
 		Reduce ReduceWaitLater(GlobalTableKey gkey, long globalSerialId, ProtocolHandle<Rpc<Param2, Param2>> handle) {
 			try {
-				synchronized (this) {
-					if (System.currentTimeMillis() - LastErrorTime < ForbidPeriod)
-						return null;
-				}
+				if (System.currentTimeMillis() - LastErrorTime < ForbidPeriod)
+					return null;
 				AsyncSocket peer = Instance.Server.GetSocket(SessionId);
 				if (peer != null) {
 					Reduce reduce = new Reduce(gkey, StateInvalid, globalSerialId);
@@ -907,6 +898,19 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				session.TryUnBindSocket(so); // unbind when login
 			super.OnSocketClose(so, e);
 		}
+
+		@Override
+		public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
+			var handle = factoryHandle.Handle;
+			if (handle != null) {
+				try {
+					handle.handle(p); // 所有协议处理几乎无阻塞,可放心直接跑在IO线程上
+				} catch (Throwable e) {
+					logger.error("handle protocol exception:", e);
+				}
+			} else
+				logger.warn("DispatchProtocol: Protocol Handle Not Found: {}", p);
+		}
 	}
 
 	public static void main(String[] args) throws Throwable {
@@ -915,7 +919,9 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		String raftName = null;
 		String raftConf = "global.raft.xml";
 
-		Task.tryInitThreadPool(null, null, null);
+		Task.initThreadPool((ThreadPoolExecutor)Executors.newFixedThreadPool(
+						Runtime.getRuntime().availableProcessors(), new ThreadFactoryWithName("ZezeTaskPool")),
+				Executors.newSingleThreadScheduledExecutor(new ThreadFactoryWithName("ZezeScheduledPool")));
 
 		for (int i = 0; i < args.length; ++i) {
 			switch (args[i]) {

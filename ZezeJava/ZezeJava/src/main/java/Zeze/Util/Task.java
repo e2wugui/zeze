@@ -6,6 +6,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -24,7 +25,7 @@ import org.apache.logging.log4j.Logger;
 public class Task implements Future<Long> {
 	static final Logger logger = LogManager.getLogger(Task.class);
 	private static ThreadPoolExecutor threadPoolDefault;
-	private static ScheduledThreadPoolExecutor threadPoolScheduled;
+	private static ScheduledExecutorService threadPoolScheduled;
 	//	private static final ThreadPoolExecutor rpcResponseThreadPool
 	//			= (ThreadPoolExecutor)Executors.newCachedThreadPool(new ThreadFactoryWithName("ZezeRespPool"));
 	public static volatile Action4<Level, Throwable, Long, String> LogAction = Task::DefaultLogAction;
@@ -33,11 +34,11 @@ public class Task implements Future<Long> {
 		return threadPoolDefault;
 	}
 
-	public static ScheduledThreadPoolExecutor getScheduledThreadPool() {
+	public static ScheduledExecutorService getScheduledThreadPool() {
 		return threadPoolScheduled;
 	}
 
-	public static synchronized void initThreadPool(ThreadPoolExecutor pool, ScheduledThreadPoolExecutor scheduled) {
+	public static synchronized void initThreadPool(ThreadPoolExecutor pool, ScheduledExecutorService scheduled) {
 		if (pool == null || scheduled == null)
 			throw new IllegalArgumentException();
 
