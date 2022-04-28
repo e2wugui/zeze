@@ -22,6 +22,10 @@ public final class AsyncLock {
 	private final ArrayDeque<Action0> waitQueue = new ArrayDeque<>();
 	private Action0 current;
 
+	public boolean isLocked() {
+		return state != 0;
+	}
+
 	public Action0 getCurrent() {
 		return current;
 	}
@@ -44,7 +48,7 @@ public final class AsyncLock {
 		} else {
 			readyQueue.offer(onEnter);
 			if (stateHandle.compareAndSet(this, 0, 1)) // retry lock, rare-path
-				leave();
+				tryNext();
 		}
 	}
 
@@ -52,15 +56,10 @@ public final class AsyncLock {
 	public void enterAsync(Action0 onEnter) {
 		readyQueue.offer(onEnter);
 		if (stateHandle.compareAndSet(this, 0, 1)) // try lock
-			leave();
+			tryNext();
 	}
 
-	// 释放锁,可能触发其它线程获取锁的回调
-	public void leave() {
-		if (current == null)
-			return;
-		current = null;
-		assert state == 1;
+	private void tryNext() {
 		for (; ; ) {
 			var onReady = readyQueue.poll(); // onEnter or onNotify
 			if (onReady != null) {
@@ -69,7 +68,7 @@ public final class AsyncLock {
 						current = onReady;
 						onReady.run();
 					} catch (Throwable e) {
-						Task.logger.error("AsyncLock.leave->onReady exception:", e);
+						Task.logger.error("AsyncLock.tryNext exception:", e);
 					} finally {
 						leave();
 					}
@@ -80,6 +79,15 @@ public final class AsyncLock {
 			if (readyQueue.isEmpty() || !stateHandle.compareAndSet(this, 0, 1)) // retry, rare-path
 				return;
 		}
+	}
+
+	// 释放锁,可能触发其它线程获取锁的回调
+	public void leave() {
+		if (current == null)
+			return;
+		current = null;
+		assert state == 1;
+		tryNext();
 	}
 
 	// 在获取锁的情况下,释放锁并等到有通知且获取锁时回调onNotify

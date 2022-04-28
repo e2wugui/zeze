@@ -5,8 +5,8 @@ local f = io.popen("jps", "rb")
 local s = f:read "*a"
 f:close()
 
-local pid_global = s:match "(%d+)%s+GlobalCacheManagerServer[\r\n]"
--- local pid_glo = s:match "(%d+)%s+GlobalCacheManagerServer[\r\n]"
+local pid_global = s:match "(%d+)%s+GlobalCacheManager[Async]*Server[\r\n]"
+-- local pid_glo = s:match "(%d+)%s+GlobalCacheManager[Async]*Server[\r\n]"
 if pid_global then
 	f = io.popen("jstack -l -e " .. pid_global, "rb")
 	s = f:read "*a"
@@ -16,7 +16,7 @@ if pid_global then
 	f:write(s)
 	f:close()
 else
-	print "没有找到 GlobalCacheManagerServer 进程"
+	print "没有找到 GlobalCacheManager(Async)Server 进程"
 	f = io.open("stack_global.log", "rb")
 	if not f then return end
 	print "从 stack_global.log 读取线程栈信息"
@@ -103,7 +103,8 @@ local knowns = {
 	{ "在__TryWaitFlushWhenReduce里等待sleep",         ".__TryWaitFlushWhenReduce(Application.java:341)" },
 	{ "在Checkpoint线程等待定时器",                    ".Checkpoint.Run(Checkpoint.java:141)" },
 	{ "在Selector等待NIO事件",                         ".Selector.run(Selector.java:67)" },
-	{ "永久等待(主线程)",                              "GlobalCacheManagerServer.main(GlobalCacheManagerServer.java:949)" },
+	{ "永久等待(主线程)",                              ".main(GlobalCacheManagerServer.java:795)" },
+	{ "永久等待(主线程)",                              ".main(GlobalCacheManagerAsyncServer.java:946)" },
 }
 
 local needKnowns = {

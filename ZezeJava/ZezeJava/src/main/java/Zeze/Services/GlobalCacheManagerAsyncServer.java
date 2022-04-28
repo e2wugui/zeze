@@ -297,56 +297,53 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			int stage;
 		};
 		cs.lock.enter(() -> {
-			try {
-				if (state.stage == 0 && cs.AcquireStatePending == StateRemoved) {
-					// 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
-					cs.lock.leave();
-					ReleaseAsync(sender, gkey, future); // retry
-					return;
-				}
-
-				if (cs.AcquireStatePending != StateInvalid && cs.AcquireStatePending != StateRemoved) {
-					switch (cs.AcquireStatePending) {
-					case StateShare:
-					case StateModify:
-						logger.debug("Release 0 {} {} {}", sender, gkey, cs);
-						break;
-					case StateRemoving:
-						// release 不会导致死锁，等待即可。
-						break;
-					}
-					state.stage = 1;
-					var cur = cs.lock.getCurrent();
-					cs.lock.leaveAndWaitNotify(() -> {
-						if (cs.Modify != null && cs.Share.size() != 0)
-							throw new IllegalStateException("CacheState state error");
-						cs.lock.setCurrent(cur);
-						cur.run();
-					});
-					return;
-				}
-				if (cs.AcquireStatePending == StateRemoved) {
-					cs.lock.leave();
-					ReleaseAsync(sender, gkey, future); // retry
-					return;
-				}
-				cs.AcquireStatePending = StateRemoving;
-
-				if (cs.Modify == sender)
-					cs.Modify = null;
-				cs.Share.remove(sender); // always try remove
-
-				if (cs.Modify == null && cs.Share.isEmpty()) {
-					// 安全的从global中删除，没有并发问题。
-					cs.AcquireStatePending = StateRemoved;
-					global.remove(gkey);
-				} else
-					cs.AcquireStatePending = StateInvalid;
-				sender.Acquired.remove(gkey);
-				cs.lock.notifyAllWait();
-			} finally {
-				future.finishOne();
+			if (state.stage == 0 && cs.AcquireStatePending == StateRemoved) {
+				// 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
+				cs.lock.leave();
+				ReleaseAsync(sender, gkey, future); // retry
+				return;
 			}
+
+			if (cs.AcquireStatePending != StateInvalid && cs.AcquireStatePending != StateRemoved) {
+				switch (cs.AcquireStatePending) {
+				case StateShare:
+				case StateModify:
+					logger.debug("Release 0 {} {} {}", sender, gkey, cs);
+					break;
+				case StateRemoving:
+					// release 不会导致死锁，等待即可。
+					break;
+				}
+				state.stage = 1;
+				var cur = cs.lock.getCurrent();
+				cs.lock.leaveAndWaitNotify(() -> {
+					if (cs.Modify != null && cs.Share.size() != 0)
+						throw new IllegalStateException("CacheState state error");
+					cs.lock.setCurrent(cur);
+					cur.run();
+				});
+				return;
+			}
+			if (cs.AcquireStatePending == StateRemoved) {
+				cs.lock.leave();
+				ReleaseAsync(sender, gkey, future); // retry
+				return;
+			}
+			cs.AcquireStatePending = StateRemoving;
+
+			if (cs.Modify == sender)
+				cs.Modify = null;
+			cs.Share.remove(sender); // always try remove
+
+			if (cs.Modify == null && cs.Share.isEmpty()) {
+				// 安全的从global中删除，没有并发问题。
+				cs.AcquireStatePending = StateRemoved;
+				global.remove(gkey);
+			} else
+				cs.AcquireStatePending = StateInvalid;
+			sender.Acquired.remove(gkey);
+			cs.lock.notifyAllWait();
+			future.finishOne();
 		});
 	}
 
