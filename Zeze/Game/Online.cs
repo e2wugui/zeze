@@ -321,7 +321,7 @@ namespace Zeze.Game
         {
             public string LinkName { get; set; } = ""; // empty when not online
             public AsyncSocket LinkSocket { get; set; } // null if not online
-            public int ProviderId { get; set; } = -1;
+            public int ServerId { get; set; } = -1;
             public long ProviderSessionId { get; set; }
             public Dictionary<long, long> Roles { get; } = new();
         }
@@ -359,8 +359,7 @@ namespace Zeze.Game
                     {
                         LinkName = online.LinkName,
                         LinkSocket = connector.Socket,
-                        ProviderId = online.ProviderId,
-                        ProviderSessionId = online.ProviderSessionId,
+                        ServerId = online.ServerId,
                     };
                     groups.Add(group.LinkName, group);
                 }
@@ -513,11 +512,11 @@ namespace Zeze.Game
                 }
 
                 // 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
-                if (false == groups.TryGetValue(online.ProviderId, out var group))
+                if (false == groups.TryGetValue(online.ServerId, out var group))
                 {
                     group = new RoleOnServer()
                     {
-                        ServerId = online.ProviderId
+                        ServerId = online.ServerId
                     };
                     groups.Add(group.ServerId, group);
                 }
@@ -764,7 +763,7 @@ namespace Zeze.Game
             if (online.LoginVersion != 0 && online.LoginVersion != local.LoginVersion)
             {
                 // nowait
-                _ = RedirectNotify(online.ProviderId, rpc.Argument.RoleId);
+                _ = RedirectNotify(online.ServerId, rpc.Argument.RoleId);
             }
             var version = account.LastLoginVersion + 1;
             account.LastLoginVersion = version;
@@ -787,8 +786,7 @@ namespace Zeze.Game
             online.ReliableNotifyQueue.Clear();
 
             var linkSession = session.Link.UserState as ProviderService.LinkSession;
-            online.ProviderId = ProviderApp.Zeze.Config.ServerId;
-            online.ProviderSessionId = linkSession.ProviderSessionId;
+            online.ServerId = ProviderApp.Zeze.Config.ServerId;
 
             await LoginTrigger(rpc.Argument.RoleId);
 
@@ -830,7 +828,7 @@ namespace Zeze.Game
             if (online.LoginVersion != 0 && online.LoginVersion != local.LoginVersion)
             {
                 // nowait
-                _ = RedirectNotify(online.ProviderId, rpc.Argument.RoleId);
+                _ = RedirectNotify(online.ServerId, rpc.Argument.RoleId);
             }
             var version = account.LastLoginVersion + 1;
             account.LastLoginVersion = version;
@@ -877,7 +875,7 @@ namespace Zeze.Game
             var online = await _tonline.GetAsync(session.RoleId.Value);
             // 登录在其他机器上。
             if (local == null && online != null)
-                _ = RedirectNotify(online.ProviderId, session.RoleId.Value); // nowait
+                _ = RedirectNotify(online.ServerId, session.RoleId.Value); // nowait
             if (null != local)
                 await RemoveLocalAndTrigger(session.RoleId.Value);
             if (null != online)

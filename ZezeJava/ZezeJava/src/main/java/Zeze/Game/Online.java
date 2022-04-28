@@ -360,7 +360,7 @@ public class Online extends AbstractOnline {
 	public static final class RoleOnLink {
 		String linkName = "";
 		AsyncSocket linkSocket;
-		int providerId = -1;
+		int serverId = -1;
 		long providerSessionId;
 		final HashMap<Long, Long> roles = new HashMap<>();
 	}
@@ -392,8 +392,7 @@ public class Online extends AbstractOnline {
 				group = new RoleOnLink();
 				group.linkName = online.getLinkName();
 				group.linkSocket = connector.getSocket();
-				group.providerId = online.getProviderId();
-				group.providerSessionId = online.getProviderSessionId();
+				group.serverId = online.getServerId();
 				groups.put(group.linkName, group);
 			}
 			group.roles.putIfAbsent(roleId, online.getLinkSid());
@@ -606,11 +605,11 @@ public class Online extends AbstractOnline {
 			}
 
 			// 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
-			var group = groups.get(online.getProviderId());
+			var group = groups.get(online.getServerId());
 			if (group == null) {
 				group = new RoleOnServer();
-				group.ServerId = online.getProviderId();
-				groups.put(online.getProviderId(), group);
+				group.ServerId = online.getServerId();
+				groups.put(group.ServerId, group);
 			}
 			group.roles.add(roleId);
 		}
@@ -785,7 +784,7 @@ public class Online extends AbstractOnline {
 
 		// login exist && not local
 		if (online.getLoginVersion() != 0 && online.getLoginVersion() != local.getLoginVersion()) {
-			redirectNotify(online.getProviderId(), rpc.Argument.getRoleId());
+			redirectNotify(online.getServerId(), rpc.Argument.getRoleId());
 		}
 		var version = account.getLastLoginVersion() + 1;
 		account.setLastLoginVersion(version);
@@ -806,8 +805,7 @@ public class Online extends AbstractOnline {
 		online.setReliableNotifyTotalCount(0);
 
 		var linkSession = (ProviderService.LinkSession)session.getLink().getUserState();
-		online.setProviderId(ProviderApp.Zeze.getConfig().getServerId());
-		online.setProviderSessionId(linkSession.getProviderSessionId());
+		online.setServerId(ProviderApp.Zeze.getConfig().getServerId());
 
 		loginTrigger(rpc.Argument.getRoleId());
 
@@ -841,7 +839,7 @@ public class Online extends AbstractOnline {
 		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
 		// login exist && not local
 		if (online.getLoginVersion() != 0 && online.getLoginVersion() != local.getLoginVersion()) {
-			redirectNotify(online.getProviderId(), rpc.Argument.getRoleId());
+			redirectNotify(online.getServerId(), rpc.Argument.getRoleId());
 		}
 		var version = account.getLastLoginVersion() + 1;
 		account.setLastLoginVersion(version);
@@ -910,7 +908,7 @@ public class Online extends AbstractOnline {
 		var online = _tonline.get(session.getRoleId());
 		// 登录在其他机器上。
 		if (local == null && online != null)
-			redirectNotify(online.getProviderId(), session.getRoleId());
+			redirectNotify(online.getServerId(), session.getRoleId());
 		if (null != local)
 			removeLocalAndTrigger(session.getRoleId());
 		if (null != online)

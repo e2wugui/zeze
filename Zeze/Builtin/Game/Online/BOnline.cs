@@ -18,8 +18,7 @@ namespace Zeze.Builtin.Game.Online
         public System.Collections.Generic.IReadOnlyList<Zeze.Net.Binary>ReliableNotifyQueue { get; }
         public long ReliableNotifyConfirmCount { get; }
         public long ReliableNotifyTotalCount { get; }
-        public int ProviderId { get; }
-        public long ProviderSessionId { get; }
+        public int ServerId { get; }
         public long LoginVersion { get; }
     }
 
@@ -36,8 +35,7 @@ namespace Zeze.Builtin.Game.Online
         readonly Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> _ReliableNotifyQueue; // full encoded protocol list
         long _ReliableNotifyConfirmCount;
         long _ReliableNotifyTotalCount;
-        int _ProviderId; // Config.AutoKeyLocalId
-        long _ProviderSessionId; // 登录所在Linkd与当前Provider的连接在Linkd方的SessionId
+        int _ServerId;
         long _LoginVersion;
 
         public string LinkName
@@ -172,53 +170,28 @@ namespace Zeze.Builtin.Game.Online
             }
         }
 
-        public int ProviderId
+        public int ServerId
         {
             get
             {
                 if (!IsManaged)
-                    return _ProviderId;
+                    return _ServerId;
                 var txn = Zeze.Transaction.Transaction.Current;
-                if (txn == null) return _ProviderId;
+                if (txn == null) return _ServerId;
                 txn.VerifyRecordAccessed(this, true);
-                var log = (Log__ProviderId)txn.GetLog(ObjectId + 8);
-                return log != null ? log.Value : _ProviderId;
+                var log = (Log__ServerId)txn.GetLog(ObjectId + 8);
+                return log != null ? log.Value : _ServerId;
             }
             set
             {
                 if (!IsManaged)
                 {
-                    _ProviderId = value;
+                    _ServerId = value;
                     return;
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ProviderId(this, value));
-            }
-        }
-
-        public long ProviderSessionId
-        {
-            get
-            {
-                if (!IsManaged)
-                    return _ProviderSessionId;
-                var txn = Zeze.Transaction.Transaction.Current;
-                if (txn == null) return _ProviderSessionId;
-                txn.VerifyRecordAccessed(this, true);
-                var log = (Log__ProviderSessionId)txn.GetLog(ObjectId + 9);
-                return log != null ? log.Value : _ProviderSessionId;
-            }
-            set
-            {
-                if (!IsManaged)
-                {
-                    _ProviderSessionId = value;
-                    return;
-                }
-                var txn = Zeze.Transaction.Transaction.Current;
-                txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ProviderSessionId(this, value));
+                txn.PutLog(new Log__ServerId(this, value));
             }
         }
 
@@ -231,7 +204,7 @@ namespace Zeze.Builtin.Game.Online
                 var txn = Zeze.Transaction.Transaction.Current;
                 if (txn == null) return _LoginVersion;
                 txn.VerifyRecordAccessed(this, true);
-                var log = (Log__LoginVersion)txn.GetLog(ObjectId + 10);
+                var log = (Log__LoginVersion)txn.GetLog(ObjectId + 9);
                 return log != null ? log.Value : _LoginVersion;
             }
             set
@@ -272,8 +245,7 @@ namespace Zeze.Builtin.Game.Online
                 ReliableNotifyQueue.Add(e);
             ReliableNotifyConfirmCount = other.ReliableNotifyConfirmCount;
             ReliableNotifyTotalCount = other.ReliableNotifyTotalCount;
-            ProviderId = other.ProviderId;
-            ProviderSessionId = other.ProviderSessionId;
+            ServerId = other.ServerId;
             LoginVersion = other.LoginVersion;
         }
 
@@ -355,24 +327,17 @@ namespace Zeze.Builtin.Game.Online
             public override void Commit() { this.BeanTyped._ReliableNotifyTotalCount = this.Value; }
         }
 
-        sealed class Log__ProviderId : Zeze.Transaction.Log<BOnline, int>
+        sealed class Log__ServerId : Zeze.Transaction.Log<BOnline, int>
         {
-            public Log__ProviderId(BOnline self, int value) : base(self, value) {}
+            public Log__ServerId(BOnline self, int value) : base(self, value) {}
             public override long LogKey => this.Bean.ObjectId + 8;
-            public override void Commit() { this.BeanTyped._ProviderId = this.Value; }
-        }
-
-        sealed class Log__ProviderSessionId : Zeze.Transaction.Log<BOnline, long>
-        {
-            public Log__ProviderSessionId(BOnline self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 9;
-            public override void Commit() { this.BeanTyped._ProviderSessionId = this.Value; }
+            public override void Commit() { this.BeanTyped._ServerId = this.Value; }
         }
 
         sealed class Log__LoginVersion : Zeze.Transaction.Log<BOnline, long>
         {
             public Log__LoginVersion(BOnline self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 10;
+            public override long LogKey => this.Bean.ObjectId + 9;
             public override void Commit() { this.BeanTyped._LoginVersion = this.Value; }
         }
 
@@ -409,8 +374,7 @@ namespace Zeze.Builtin.Game.Online
             sb.Append(Zeze.Util.Str.Indent(level)).Append(']').Append(',').Append(Environment.NewLine);
             sb.Append(Zeze.Util.Str.Indent(level)).Append("ReliableNotifyConfirmCount").Append('=').Append(ReliableNotifyConfirmCount).Append(',').Append(Environment.NewLine);
             sb.Append(Zeze.Util.Str.Indent(level)).Append("ReliableNotifyTotalCount").Append('=').Append(ReliableNotifyTotalCount).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("ProviderId").Append('=').Append(ProviderId).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("ProviderSessionId").Append('=').Append(ProviderSessionId).Append(',').Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("ServerId").Append('=').Append(ServerId).Append(',').Append(Environment.NewLine);
             sb.Append(Zeze.Util.Str.Indent(level)).Append("LoginVersion").Append('=').Append(LoginVersion).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
@@ -486,7 +450,7 @@ namespace Zeze.Builtin.Game.Online
                 }
             }
             {
-                int _x_ = ProviderId;
+                int _x_ = ServerId;
                 if (_x_ != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 8, ByteBuffer.INTEGER);
@@ -494,18 +458,10 @@ namespace Zeze.Builtin.Game.Online
                 }
             }
             {
-                long _x_ = ProviderSessionId;
-                if (_x_ != 0)
-                {
-                    _i_ = _o_.WriteTag(_i_, 9, ByteBuffer.INTEGER);
-                    _o_.WriteLong(_x_);
-                }
-            }
-            {
                 long _x_ = LoginVersion;
                 if (_x_ != 0)
                 {
-                    _i_ = _o_.WriteTag(_i_, 10, ByteBuffer.INTEGER);
+                    _i_ = _o_.WriteTag(_i_, 9, ByteBuffer.INTEGER);
                     _o_.WriteLong(_x_);
                 }
             }
@@ -573,15 +529,10 @@ namespace Zeze.Builtin.Game.Online
             }
             if (_i_ == 8)
             {
-                ProviderId = _o_.ReadInt(_t_);
+                ServerId = _o_.ReadInt(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             if (_i_ == 9)
-            {
-                ProviderSessionId = _o_.ReadLong(_t_);
-                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-            }
-            if (_i_ == 10)
             {
                 LoginVersion = _o_.ReadLong(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -605,8 +556,7 @@ namespace Zeze.Builtin.Game.Online
             if (State < 0) return true;
             if (ReliableNotifyConfirmCount < 0) return true;
             if (ReliableNotifyTotalCount < 0) return true;
-            if (ProviderId < 0) return true;
-            if (ProviderSessionId < 0) return true;
+            if (ServerId < 0) return true;
             if (LoginVersion < 0) return true;
             return false;
         }

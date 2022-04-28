@@ -20,10 +20,12 @@ Global c# 慢的问题。
 TableCache增加一级RocksDb的缓存，不受限于内存。Java SoftReference<T>.
 TableCache.Clean 整体考虑。
 Online Account （java，c#）
+Linkd ReuseLinkSid
 Online Test 【肖丽杨】c#
 
 【2022/5/11】
 
+Arch remove ProviderSessionId；Rename ProviderId to ServerId
 Online Test 【肖丽杨】Java
 RocksRaft Collection.List LogList
 【张路已完成】OpLogs=List<OperateLog>。list中的Bean更新规则：Encode的时indexOf所有的Changed找到索引，Apply=list.get(index).Apply(beanLog)。

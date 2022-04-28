@@ -49,8 +49,6 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 		super.OnHandshakeDone(sender);
 
 		var announce = new AnnounceLinkInfo();
-		announce.Argument.setLinkId(0); // reserve
-		announce.Argument.setProviderSessionId(sender.getSessionId());
 		sender.Send(announce);
 	}
 

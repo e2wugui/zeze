@@ -86,20 +86,10 @@ namespace Zeze.Arch
             public string Name { get; }
             public long SessionId { get; }
 
-            // 在和linkd连接建立完成以后，由linkd发送通告协议时保存。
-            public int LinkId { get; private set; } // reserve
-            public long ProviderSessionId { get; private set; }
-
             public LinkSession(string name, long sid)
             {
                 Name = name;
                 SessionId = sid;
-            }
-
-            public void Setup(int linkId, long providerSessionId)
-            {
-                LinkId = linkId;
-                ProviderSessionId = providerSessionId;
             }
         }
 

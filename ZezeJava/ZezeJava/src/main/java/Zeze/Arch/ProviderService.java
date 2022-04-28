@@ -94,41 +94,16 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 	public static class LinkSession {
 		private final String Name;
 		private final long SessionId;
-		private int LinkId; // 在和linkd连接建立完成以后，由linkd发送通告协议时保存。
-		private long ProviderSessionId;
 
 		public LinkSession(String name, long sid) {
 			Name = name;
 			SessionId = sid;
 		}
-
 		public final String getName() {
 			return Name;
 		}
-
 		public final long getSessionId() {
 			return SessionId;
-		}
-
-		public final int getLinkId() {
-			return LinkId;
-		}
-
-		private void setLinkId(int value) {
-			LinkId = value;
-		}
-
-		public final long getProviderSessionId() {
-			return ProviderSessionId;
-		}
-
-		private void setProviderSessionId(long value) {
-			ProviderSessionId = value;
-		}
-
-		public final void Setup(int linkId, long providerSessionId) {
-			setLinkId(linkId);
-			setProviderSessionId(providerSessionId);
 		}
 	}
 

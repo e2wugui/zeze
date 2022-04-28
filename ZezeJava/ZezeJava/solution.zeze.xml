@@ -341,8 +341,7 @@
 			<protocol name="LinkBroken" argument="BLinkBroken" handle="server"/>
 
 			<bean name="BAnnounceLinkInfo">
-				<variable name="LinkId" id="1" type="int"/> reserve
-				<variable name="ProviderSessionId" id="2" type="long"/>
+				Linkd，Provider之间连接建立以后，通告自己的信息。保留。
 			</bean>
 			<protocol name="AnnounceLinkInfo" NoProcedure="true" argument="BAnnounceLinkInfo" handle="server"/>
 
@@ -538,10 +537,8 @@
 					<variable id="6" name="ReliableNotifyConfirmCount" type="long"/>
 					<variable id="7" name="ReliableNotifyTotalCount"   type="long"/>
 
-					<variable id="8" name="ProviderId" type="int"/> Config.AutoKeyLocalId
-					<variable id="9" name="ProviderSessionId" type="long"/> 登录所在Linkd与当前Provider的连接在Linkd方的SessionId
-
-					<variable id="10" name="LoginVersion" type="long"/>
+					<variable id="8" name="ServerId" type="int"/>
+					<variable id="9" name="LoginVersion" type="long"/>
 				</bean>
 				<bean name="BAccount">
 					<variable id="1" name="Name"  type="string"/>

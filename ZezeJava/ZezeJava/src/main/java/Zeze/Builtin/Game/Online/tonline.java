@@ -27,9 +27,8 @@ public final class tonline extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Ga
     public static final int VAR_ReliableNotifyQueue = 5;
     public static final int VAR_ReliableNotifyConfirmCount = 6;
     public static final int VAR_ReliableNotifyTotalCount = 7;
-    public static final int VAR_ProviderId = 8;
-    public static final int VAR_ProviderSessionId = 9;
-    public static final int VAR_LoginVersion = 10;
+    public static final int VAR_ServerId = 8;
+    public static final int VAR_LoginVersion = 9;
 
     @Override
     public Long DecodeKey(ByteBuffer _os_) {
@@ -63,7 +62,6 @@ public final class tonline extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Ga
             case 7: return new Zeze.Transaction.ChangeVariableCollectorChanged();
             case 8: return new Zeze.Transaction.ChangeVariableCollectorChanged();
             case 9: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 10: return new Zeze.Transaction.ChangeVariableCollectorChanged();
             default: return null;
         }
     }

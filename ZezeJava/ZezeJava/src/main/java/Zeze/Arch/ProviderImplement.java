@@ -138,8 +138,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 	@Override
 	protected long ProcessAnnounceLinkInfo(AnnounceLinkInfo protocol) {
-		var linkSession = (ProviderService.LinkSession)protocol.getSender().getUserState();
-		linkSession.Setup(protocol.Argument.getLinkId(), protocol.Argument.getProviderSessionId());
+		//var linkSession = (ProviderService.LinkSession)protocol.getSender().getUserState();
 		return Procedure.Success;
 	}
 }

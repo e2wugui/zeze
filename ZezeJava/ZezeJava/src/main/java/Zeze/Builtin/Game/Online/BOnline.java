@@ -16,8 +16,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
     private final Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> _ReliableNotifyQueue; // full encoded protocol list
     private long _ReliableNotifyConfirmCount;
     private long _ReliableNotifyTotalCount;
-    private int _ProviderId; // Config.AutoKeyLocalId
-    private long _ProviderSessionId; // 登录所在Linkd与当前Provider的连接在Linkd方的SessionId
+    private int _ServerId;
     private long _LoginVersion;
 
     public String getLinkName() {
@@ -140,48 +139,26 @@ public final class BOnline extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__ReliableNotifyTotalCount(this, value));
     }
 
-    public int getProviderId() {
+    public int getServerId() {
         if (!isManaged())
-            return _ProviderId;
+            return _ServerId;
         var txn = Zeze.Transaction.Transaction.getCurrent();
         if (txn == null)
-            return _ProviderId;
+            return _ServerId;
         txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ProviderId)txn.GetLog(this.getObjectId() + 8);
-        return log != null ? log.getValue() : _ProviderId;
+        var log = (Log__ServerId)txn.GetLog(this.getObjectId() + 8);
+        return log != null ? log.getValue() : _ServerId;
     }
 
-    public void setProviderId(int value) {
+    public void setServerId(int value) {
         if (!isManaged()) {
-            _ProviderId = value;
+            _ServerId = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ProviderId(this, value));
-    }
-
-    public long getProviderSessionId() {
-        if (!isManaged())
-            return _ProviderSessionId;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        if (txn == null)
-            return _ProviderSessionId;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ProviderSessionId)txn.GetLog(this.getObjectId() + 9);
-        return log != null ? log.getValue() : _ProviderSessionId;
-    }
-
-    public void setProviderSessionId(long value) {
-        if (!isManaged()) {
-            _ProviderSessionId = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ProviderSessionId(this, value));
+        txn.PutLog(new Log__ServerId(this, value));
     }
 
     public long getLoginVersion() {
@@ -191,7 +168,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
         if (txn == null)
             return _LoginVersion;
         txn.VerifyRecordAccessed(this, true);
-        var log = (Log__LoginVersion)txn.GetLog(this.getObjectId() + 10);
+        var log = (Log__LoginVersion)txn.GetLog(this.getObjectId() + 9);
         return log != null ? log.getValue() : _LoginVersion;
     }
 
@@ -230,8 +207,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
             getReliableNotifyQueue().add(e);
         setReliableNotifyConfirmCount(other.getReliableNotifyConfirmCount());
         setReliableNotifyTotalCount(other.getReliableNotifyTotalCount());
-        setProviderId(other.getProviderId());
-        setProviderSessionId(other.getProviderSessionId());
+        setServerId(other.getServerId());
         setLoginVersion(other.getLoginVersion());
     }
 
@@ -321,26 +297,18 @@ public final class BOnline extends Zeze.Transaction.Bean {
         public void Commit() { this.getBeanTyped()._ReliableNotifyTotalCount = this.getValue(); }
     }
 
-    private static final class Log__ProviderId extends Zeze.Transaction.Log1<BOnline, Integer> {
-        public Log__ProviderId(BOnline self, Integer value) { super(self, value); }
+    private static final class Log__ServerId extends Zeze.Transaction.Log1<BOnline, Integer> {
+        public Log__ServerId(BOnline self, Integer value) { super(self, value); }
         @Override
         public long getLogKey() { return this.getBean().getObjectId() + 8; }
         @Override
-        public void Commit() { this.getBeanTyped()._ProviderId = this.getValue(); }
-    }
-
-    private static final class Log__ProviderSessionId extends Zeze.Transaction.Log1<BOnline, Long> {
-        public Log__ProviderSessionId(BOnline self, Long value) { super(self, value); }
-        @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 9; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ProviderSessionId = this.getValue(); }
+        public void Commit() { this.getBeanTyped()._ServerId = this.getValue(); }
     }
 
     private static final class Log__LoginVersion extends Zeze.Transaction.Log1<BOnline, Long> {
         public Log__LoginVersion(BOnline self, Long value) { super(self, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 10; }
+        public long getLogKey() { return this.getBean().getObjectId() + 9; }
         @Override
         public void Commit() { this.getBeanTyped()._LoginVersion = this.getValue(); }
     }
@@ -376,8 +344,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append(']').append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ReliableNotifyConfirmCount").append('=').append(getReliableNotifyConfirmCount()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("ReliableNotifyTotalCount").append('=').append(getReliableNotifyTotalCount()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ProviderId").append('=').append(getProviderId()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ProviderSessionId").append('=').append(getProviderSessionId()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ServerId").append('=').append(getServerId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("LoginVersion").append('=').append(getLoginVersion()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -454,23 +421,16 @@ public final class BOnline extends Zeze.Transaction.Bean {
             }
         }
         {
-            int _x_ = getProviderId();
+            int _x_ = getServerId();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 8, ByteBuffer.INTEGER);
                 _o_.WriteInt(_x_);
             }
         }
         {
-            long _x_ = getProviderSessionId();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 9, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
-            }
-        }
-        {
             long _x_ = getLoginVersion();
             if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 10, ByteBuffer.INTEGER);
+                _i_ = _o_.WriteTag(_i_, 9, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
             }
         }
@@ -522,14 +482,10 @@ public final class BOnline extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 8) {
-            setProviderId(_o_.ReadInt(_t_));
+            setServerId(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 9) {
-            setProviderSessionId(_o_.ReadLong(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 10) {
             setLoginVersion(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
@@ -555,9 +511,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
             return true;
         if (getReliableNotifyTotalCount() < 0)
             return true;
-        if (getProviderId() < 0)
-            return true;
-        if (getProviderSessionId() < 0)
+        if (getServerId() < 0)
             return true;
         if (getLoginVersion() < 0)
             return true;
