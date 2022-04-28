@@ -11,17 +11,15 @@ Global.Release并发问题【再次】确认
 Zezex.client: 可靠消息实现的错误检查。
 Global.RocksRaft.LruTryRemoveCallback
 Global c# 慢的问题。
-
 1. raft 异步测试
 2. Global With Raft 异步测试
 3. Test TestGlobal Simulate 异步测试
 4. Global 性能测试
-
-Online Account （java，c#）
-
 1. 把 RocksRaft Changes 应用到 Zeze 中，让 Zeze 实现Bean任意级别的更新。// 1. 仅支持整个Bean的订阅。2. log factory 问题。3. 动态订阅。add listener和notify原子问题。
 2. Game.Bag Listener
-
+TableCache增加一级RocksDb的缓存，不受限于内存。Java SoftReference<T>.
+TableCache.Clean 整体考虑。
+Online Account （java，c#）
 Online Test 【肖丽杨】c#
 
 【2022/5/11】
