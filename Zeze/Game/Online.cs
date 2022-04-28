@@ -323,8 +323,7 @@ namespace Zeze.Game
             public AsyncSocket LinkSocket { get; set; } // null if not online
             public int ProviderId { get; set; } = -1;
             public long ProviderSessionId { get; set; }
-            public Dictionary<long, BTransmitContext> Roles { get; }
-                = new Dictionary<long, BTransmitContext>();
+            public Dictionary<long, long> Roles { get; } = new();
         }
 
         public async Task<ICollection<RoleOnLink>> GroupByLink(ICollection<long> roleIds)
@@ -338,19 +337,19 @@ namespace Zeze.Game
                 var online = await _tonline.GetAsync(roleId);
                 if (null == online || online.State != BOnline.StateOnline)
                 {
-                    groupNotOnline.Roles.TryAdd(roleId, new BTransmitContext());
+                    groupNotOnline.Roles.TryAdd(roleId, 0);
                     continue;
                 }
 
                 if (false == ProviderApp.ProviderService.Links.TryGetValue(online.LinkName, out var connector))
                 {
-                    groupNotOnline.Roles.TryAdd(roleId, new BTransmitContext());
+                    groupNotOnline.Roles.TryAdd(roleId, 0);
                     continue;
                 }
 
                 if (false == connector.IsHandshakeDone)
                 {
-                    groupNotOnline.Roles.TryAdd(roleId, new BTransmitContext());
+                    groupNotOnline.Roles.TryAdd(roleId, 0);
                     continue;
                 }
                 // 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
@@ -365,12 +364,7 @@ namespace Zeze.Game
                     };
                     groups.Add(group.LinkName, group);
                 }
-                group.Roles.TryAdd(roleId, new BTransmitContext()
-                {
-                    LinkSid = online.LinkSid,
-                    ProviderId = online.ProviderId,
-                    ProviderSessionId = online.ProviderSessionId,
-                }); // 使用 TryAdd，忽略重复的 roleId。
+                group.Roles.TryAdd(roleId, online.LinkSid);
             }
             return groups.Values;
         }
@@ -406,11 +400,7 @@ namespace Zeze.Game
                 send.Argument.ProtocolType = typeId;
                 send.Argument.ProtocolWholeData = fullEncodedProtocol;
                 send.Argument.ConfirmSerialId = serialId;
-
-                foreach (var ctx in group.Roles.Values)
-                {
-                    send.Argument.LinkSids.Add(ctx.LinkSid);
-                }
+                send.Argument.LinkSids.UnionWith(group.Roles.Values);
                 group.LinkSocket.Send(send);
             }
         }

@@ -23,7 +23,6 @@ import Zeze.Builtin.Provider.BLinkBroken;
 import Zeze.Builtin.Provider.Broadcast;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Builtin.Provider.SetUserState;
-import Zeze.Builtin.ProviderDirect.BTransmitContext;
 import Zeze.Builtin.ProviderDirect.Transmit;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
@@ -353,9 +352,7 @@ public class Online extends AbstractOnline {
 			send.Argument.setProtocolType(typeId);
 			send.Argument.setProtocolWholeData(fullEncodedProtocol);
 			send.Argument.setConfirmSerialId(serialId);
-
-			for (var ctx : group.roles.values())
-				send.Argument.getLinkSids().add(ctx.getLinkSid());
+			send.Argument.getLinkSids().addAll(group.roles.values());
 			group.linkSocket.Send(send);
 		}
 	}
@@ -365,7 +362,7 @@ public class Online extends AbstractOnline {
 		AsyncSocket linkSocket;
 		int providerId = -1;
 		long providerSessionId;
-		final HashMap<Long, BTransmitContext> roles = new HashMap<>();
+		final HashMap<Long, Long> roles = new HashMap<>();
 	}
 
 	public final Collection<RoleOnLink> groupByLink(Iterable<Long> roleIds) {
@@ -376,17 +373,17 @@ public class Online extends AbstractOnline {
 		for (var roleId : roleIds) {
 			var online = _tonline.get(roleId);
 			if (online == null || online.getState() != BOnline.StateOnline) {
-				groupNotOnline.roles.putIfAbsent(roleId, new BTransmitContext());
+				groupNotOnline.roles.putIfAbsent(roleId, null);
 				continue;
 			}
 
 			var connector = ProviderApp.ProviderService.getLinks().get(online.getLinkName());
 			if (connector == null) {
-				groupNotOnline.roles.putIfAbsent(roleId, new BTransmitContext());
+				groupNotOnline.roles.putIfAbsent(roleId, null);
 				continue;
 			}
 			if (!connector.isHandshakeDone()) {
-				groupNotOnline.roles.putIfAbsent(roleId, new BTransmitContext());
+				groupNotOnline.roles.putIfAbsent(roleId, null);
 				continue;
 			}
 			// 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
@@ -399,11 +396,7 @@ public class Online extends AbstractOnline {
 				group.providerSessionId = online.getProviderSessionId();
 				groups.put(group.linkName, group);
 			}
-			BTransmitContext tempVar = new BTransmitContext(); // 使用 TryAdd，忽略重复的 roleId。
-			tempVar.setLinkSid(online.getLinkSid());
-			tempVar.setProviderId(online.getProviderId());
-			tempVar.setProviderSessionId(online.getProviderSessionId());
-			group.roles.putIfAbsent(roleId, tempVar);
+			group.roles.putIfAbsent(roleId, online.getLinkSid());
 		}
 		return groups.values();
 	}

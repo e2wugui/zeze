@@ -1,4 +1,4 @@
-package Zeze.Builtin;
+package Zeze.Util;
 
 import Zeze.AppBase;
 import Zeze.Application;
