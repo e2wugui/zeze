@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Zeze.Arch.Gen;
 
-namespace Zeze.Builtin
+namespace Zeze.Util
 {
 	/**
      * 1. 所有需要Redirect支持的内建模块在这里生成代码。

@@ -34,6 +34,8 @@ namespace Zeze.Gen.cs
         {
             string projectBasedir = Project.GenDir;
             string genDir = projectBasedir; // 公共类（Bean，Protocol，Rpc，Table）生成目录。
+            Program.AddGenDir(Path.Combine(genDir, "Zeze", "Builtin"));
+
             var relativeSrcDir = string.IsNullOrEmpty(Project.GenRelativeDir) ? "Zeze/Component" : Project.GenRelativeDir;
             string srcDir = Path.Combine(projectBasedir, relativeSrcDir); // 生成源代码全部放到同一个目录下。
             Directory.CreateDirectory(srcDir);

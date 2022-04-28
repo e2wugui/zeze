@@ -304,7 +304,7 @@ namespace Zeze.Gen
             {
                 if (OutputsAll.Contains(file))
                     continue;
-                File.Delete(file);
+                //File.Delete(file);
                 Console.WriteLine($"Delete File: {file}");
             }
         }

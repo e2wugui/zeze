@@ -29,6 +29,7 @@ namespace Zeze.Gen
                 default:
                     throw new Exception("Component: unsupport platform: " + Platform);
             }
+            Program.FlushOutputs();
         }
     }
 }
