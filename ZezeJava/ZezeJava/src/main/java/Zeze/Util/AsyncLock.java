@@ -20,11 +20,21 @@ public final class AsyncLock {
 	private volatile int state;
 	private final ConcurrentLinkedQueue<Action0> readyQueue = new ConcurrentLinkedQueue<>();
 	private final ArrayDeque<Action0> waitQueue = new ArrayDeque<>();
+	private Action0 current;
+
+	public Action0 getCurrent() {
+		return current;
+	}
+
+	public void setCurrent(Action0 current) {
+		this.current = current;
+	}
 
 	// 获取锁成功时回调onEnter,回调回程中可以leave,回调完成时也会强制leave
 	public void enter(Action0 onEnter) {
 		if (stateHandle.compareAndSet(this, 0, 1)) { // try lock, fast-path
 			try {
+				current = onEnter;
 				onEnter.run();
 			} catch (Throwable e) {
 				Task.logger.error("AsyncLock.enter exception:", e);
@@ -38,15 +48,25 @@ public final class AsyncLock {
 		}
 	}
 
+	// 同enter, 只是立即取到锁也异步执行onEnter
+	public void enterAsync(Action0 onEnter) {
+		readyQueue.offer(onEnter);
+		if (stateHandle.compareAndSet(this, 0, 1)) // try lock
+			leave();
+	}
+
 	// 释放锁,可能触发其它线程获取锁的回调
 	public void leave() {
-		if (state == 0)
+		if (current == null)
 			return;
+		current = null;
+		assert state == 1;
 		for (; ; ) {
 			var onReady = readyQueue.poll(); // onEnter or onNotify
 			if (onReady != null) {
 				Task.getThreadPool().execute(() -> {
 					try {
+						current = onReady;
 						onReady.run();
 					} catch (Throwable e) {
 						Task.logger.error("AsyncLock.leave->onReady exception:", e);
@@ -66,6 +86,13 @@ public final class AsyncLock {
 	public void leaveAndWaitNotify(Action0 onNotify) {
 		assert state == 1;
 		waitQueue.addLast(onNotify);
+		leave();
+	}
+
+	// 在获取锁的情况下,释放锁并等到有通知且获取锁时回调自身
+	public void leaveAndWaitNotify() {
+		assert state == 1 && current != null;
+		waitQueue.addFirst(current);
 		leave();
 	}
 

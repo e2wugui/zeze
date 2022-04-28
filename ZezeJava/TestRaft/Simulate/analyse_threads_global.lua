@@ -1,25 +1,25 @@
--- 需要当前正在运行 simulate.bat 测试, 否则分析上次分析时保存的栈信息(sim_stack.log)
+-- 需要当前正在运行 simulate.bat 测试, 否则分析上次分析时保存的栈信息(stack_global.log)
 
 print "============================================================ BEGIN"
 local f = io.popen("jps", "rb")
 local s = f:read "*a"
 f:close()
 
-local pid_sim = s:match "(%d+)%s+Simulate[\r\n]"
+local pid_global = s:match "(%d+)%s+GlobalCacheManagerServer[\r\n]"
 -- local pid_glo = s:match "(%d+)%s+GlobalCacheManagerServer[\r\n]"
-if pid_sim then
-	f = io.popen("jstack -l -e " .. pid_sim, "rb")
+if pid_global then
+	f = io.popen("jstack -l -e " .. pid_global, "rb")
 	s = f:read "*a"
 	f:close()
 
-	f = io.open("sim_stack.log", "wb")
+	f = io.open("stack_global.log", "wb")
 	f:write(s)
 	f:close()
 else
-	print "没有找到 Simulate 进程"
-	f = io.open("sim_stack.log", "rb")
+	print "没有找到 GlobalCacheManagerServer 进程"
+	f = io.open("stack_global.log", "rb")
 	if not f then return end
-	print "从 sim_stack.log 读取线程栈信息"
+	print "从 stack_global.log 读取线程栈信息"
 	s = f:read "*a"
 	f:close()
 	print "------------------------------------------------------------"
@@ -93,7 +93,7 @@ end
 local knowns = {
 	{ "在FindInCacheOrStorage等待Record1锁",           ".FindInCacheOrStorage(TableX.java:32)" },
 	{ "在FindInCacheOrStorage等待Acquire(Share)回复",  ".Acquire(GlobalCacheManagerWithRaftAgent.java:165)", ".FindInCacheOrStorage(TableX.java:43)" },
-	{ "在_lock_and_check_等待写锁",                    "._lock_and_check_(Transaction.java:507)", ".EnterWriteLock(Lockey.java:50)" },
+	{ "在_lock_and_check_等待写锁",                    "._lock_and_check_(Transaction.java:506)", ".EnterWriteLock(Lockey.java:50)" },
 	{ "在_check_等待Record1锁",                        "._check_(Transaction.java:452)" },
 	{ "在_check_等待Acquire(Modify)回复",              "._check_(Transaction.java:472)" },
 	{ "在ReduceInvalid等待Lockey写锁",                 ".ReduceInvalid(TableX.java:193)" },
@@ -103,7 +103,7 @@ local knowns = {
 	{ "在__TryWaitFlushWhenReduce里等待sleep",         ".__TryWaitFlushWhenReduce(Application.java:341)" },
 	{ "在Checkpoint线程等待定时器",                    ".Checkpoint.Run(Checkpoint.java:141)" },
 	{ "在Selector等待NIO事件",                         ".Selector.run(Selector.java:67)" },
-	{ "等待所有任务完成(主线程)",                      ".WaitAllRunningTasksAndClear(App.java:64)" },
+	{ "永久等待(主线程)",                              "GlobalCacheManagerServer.main(GlobalCacheManagerServer.java:949)" },
 }
 
 local needKnowns = {
@@ -139,7 +139,7 @@ for _, thread in pairs(threads) do
 		end
 		if found then
 			counts[0] = (counts[0] or 0) + 1
-			if not f then f = io.open("sim_stack_others.log", "wb") end
+			if not f then f = io.open("stack_global_others.log", "wb") end
 			f:write(thread.text)
 			f:write "\n\n"
 		else
@@ -155,7 +155,7 @@ for i, known in ipairs(knowns) do
 end
 print "------------------------------------------------------------"
 if counts[0] then
-	print(string.format("%4d 个线程 未知 (通过sim_stack_others.log补充线程信息)", counts[0]))
+	print(string.format("%4d 个线程 未知 (通过stack_global_others.log补充线程信息)", counts[0]))
 end
 if counts[-1] then
 	print(string.format("%4d 个线程 非Zeze和Infinite所属,或线程池中的空闲线程", counts[-1]))
