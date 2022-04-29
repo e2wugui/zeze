@@ -26,3 +26,11 @@ task startGlobalCacheManager(type: JavaExec) {
     mainClass = 'Zeze.Services.GlobalCacheManagerServer'
     allJvmArgs = [ '-Dlogname=GlobalCacheManagerServer' ]
 }
+
+task startGlobalCacheManagerAsync(type: JavaExec) {
+    classpath = configurations.runtimeClasspath
+    classpath += sourceSets.main.runtimeClasspath
+    classpath += files('.')
+    mainClass = 'Zeze.Services.GlobalCacheManagerAsyncServer'
+    allJvmArgs = [ '-Dlogname=GlobalCacheManagerAsyncServer' ]
+}

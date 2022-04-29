@@ -67,15 +67,25 @@ public final class Tasks {
 			var name = getClass().getName();
 			var runs = getRunCounters(name);
 			var success = getSuccessCounters(name);
-			assert runs.size() == success.size();
+			var tooManyTry = ProcedureStatistics.getInstance().GetOrAdd(name).GetOrAdd(Procedure.TooManyTry).get();
+			if (tooManyTry != 0)
+				Simulate.logger.fatal("tooManyTry({})={}", name, tooManyTry);
+			if (runs.size() != success.size()) {
+				Simulate.logger.error("verify({}): {} != {}", name, runs.size(), success.size());
+				assert false;
+			}
+			var totalCount = 0;
+			var successCount = 0;
 			for (var r : runs.entrySet()) {
+				totalCount += r.getValue().get();
 				var s = success.get(r.getKey());
 				assert s != null;
-				// ignore TooManyTry error
-				var tooManyTry = ProcedureStatistics.getInstance().GetOrAdd(name).GetOrAdd(Procedure.TooManyTry).get();
-				assert r.getValue().get() == s.get() + tooManyTry;
-				if (tooManyTry != 0)
-					Simulate.logger.fatal("tooManyTry={} {}", tooManyTry, name);
+				successCount += s.get();
+			}
+			// ignore TooManyTry error
+			if (totalCount != successCount + tooManyTry) {
+				Simulate.logger.error("verify({}): {} != {} + {}", name, totalCount, successCount, tooManyTry);
+				assert false;
 			}
 		}
 

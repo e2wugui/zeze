@@ -244,13 +244,13 @@ public class Task implements Future<Long> {
 
 	public static void LogAndStatistics(Throwable ex, long result, Protocol<?> p, boolean IsRequestSaved, String aName) {
 		final var actionName = null != aName ? aName : IsRequestSaved ? p.getClass().getName() : p.getClass().getName() + ":Response";
-		var logLevel = p.getService() != null && p.getService().getZeze() != null
+		var logLevel = p != null && p.getService() != null && p.getService().getZeze() != null
 				? p.getService().getZeze().getConfig().getProcessReturnErrorLogLevel()
 				: Level.TRACE;
 		var tmpVolatile = LogAction;
 		if (tmpVolatile != null) {
 			try {
-				tmpVolatile.run(logLevel, ex, result, "Action=" + actionName + " UserState=" + p.getUserState());
+				tmpVolatile.run(logLevel, ex, result, "Action=" + actionName + (p != null ? " UserState=" + p.getUserState() : ""));
 			} catch (Throwable e) {
 				logger.error("LogAction Exception", e);
 			}
@@ -334,6 +334,7 @@ public class Task implements Future<Long> {
 			long result = procedure.Call();
 			if (result != 0 && isRequestSaved && actionWhenError != null)
 				actionWhenError.run(from, result);
+			LogAndStatistics(null, result, from, isRequestSaved, procedure.getActionName());
 			return result;
 		} catch (Throwable ex) {
 			// Procedure.Call处理了所有错误。应该不会到这里。除非内部错误。

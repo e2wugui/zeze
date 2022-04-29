@@ -890,10 +890,20 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				try {
 					handle.handle(p); // 所有协议处理几乎无阻塞,可放心直接跑在IO线程上
 				} catch (Throwable e) {
-					logger.error("handle protocol exception:", e);
+					logger.error("DispatchProtocol exception:", e);
 				}
 			} else
 				logger.warn("DispatchProtocol: Protocol Handle Not Found: {}", p);
+		}
+
+		@Override
+		public <P extends Protocol<?>> void DispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
+																ProtocolFactoryHandle<?> factoryHandle) {
+			try {
+				responseHandle.handle(rpc);
+			} catch (Throwable e) {
+				logger.error("DispatchRpcResponse exception:", e);
+			}
 		}
 	}
 
