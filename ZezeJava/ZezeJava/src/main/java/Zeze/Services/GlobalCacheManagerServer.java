@@ -58,18 +58,13 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	private final GCMConfig Config = new GCMConfig();
 
 	private static final class GCMConfig implements Zeze.Config.ICustomize {
-		private int ConcurrencyLevel = 1024;
 		// 设置了这么大，开始使用后，大概会占用700M的内存，作为全局服务器，先这么大吧。
-		// 尽量不重新调整ConcurrentDictionary。
+		// 尽量不重新调整ConcurrentHashMap。
 		private int InitialCapacity = 10000000;
 
 		@Override
 		public String getName() {
 			return "GlobalCacheManager";
-		}
-
-		int getConcurrencyLevel() {
-			return ConcurrencyLevel;
 		}
 
 		int getInitialCapacity() {
@@ -78,14 +73,8 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 
 		@Override
 		public void Parse(Element self) {
-			String attr = self.getAttribute("ConcurrencyLevel");
-			if (attr.length() > 0)
-				ConcurrencyLevel = Integer.parseInt(attr);
-			if (ConcurrencyLevel < Runtime.getRuntime().availableProcessors())
-				ConcurrencyLevel = Runtime.getRuntime().availableProcessors();
-
-			attr = self.getAttribute("InitialCapacity");
-			if (attr.length() > 0)
+			var attr = self.getAttribute("InitialCapacity");
+			if (!attr.isBlank())
 				InitialCapacity = Integer.parseInt(attr);
 			if (InitialCapacity < 31)
 				InitialCapacity = 31;
@@ -106,8 +95,8 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		if (config == null)
 			config = new Zeze.Config().AddCustomize(Config).LoadAndParse();
 
-		Sessions = new LongConcurrentHashMap<>(4096, 0.75f, Config.getConcurrencyLevel());
-		global = new ConcurrentHashMap<>(Config.getInitialCapacity(), 0.75f, Config.getConcurrencyLevel());
+		Sessions = new LongConcurrentHashMap<>(4096);
+		global = new ConcurrentHashMap<>(Config.getInitialCapacity());
 
 		Server = new ServerService(config);
 
@@ -153,7 +142,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			return 0;
 		}
 
-		var session = Sessions.computeIfAbsent(rpc.Argument.ServerId, __ -> new CacheHolder(Config));
+		var session = Sessions.computeIfAbsent(rpc.Argument.ServerId, __ -> new CacheHolder());
 		if (session.GlobalCacheManagerHashIndex != rpc.Argument.GlobalCacheManagerHashIndex) {
 			// 多点验证
 			rpc.SendResultCode(CleanupErrorGlobalCacheManagerHashIndex);
@@ -182,7 +171,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 
 	private long ProcessLogin(Login rpc) throws Throwable {
 		logger.debug("ProcessLogin: {}", rpc);
-		var session = Sessions.computeIfAbsent(rpc.Argument.ServerId, __ -> new CacheHolder(Config));
+		var session = Sessions.computeIfAbsent(rpc.Argument.ServerId, __ -> new CacheHolder());
 		if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.GlobalCacheManagerHashIndex)) {
 			rpc.SendResultCode(LoginBindSocketFail);
 			return 0;
@@ -198,7 +187,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 
 	private long ProcessReLogin(ReLogin rpc) {
 		logger.debug("ProcessReLogin: {}", rpc);
-		var session = Sessions.computeIfAbsent(rpc.Argument.ServerId, __ -> new CacheHolder(Config));
+		var session = Sessions.computeIfAbsent(rpc.Argument.ServerId, __ -> new CacheHolder());
 		if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.GlobalCacheManagerHashIndex)) {
 			rpc.SendResultCode(ReLoginBindSocketFail);
 			return 0;
@@ -397,7 +386,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						// case StateReduceNetError: // 13
 						cs.AcquireStatePending = StateInvalid;
 						cs.notifyAll(); //notify
-						logger.error("XXX 8 {} {} {}", sender, rpc.Argument.State, cs);
+						logger.error("XXX 8 {} {} {} {}", sender, rpc.Argument.State, cs, reduceResultState.Value);
 						rpc.Result.State = StateInvalid;
 						rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 						rpc.SendResultCode(AcquireShareFailed);
@@ -513,7 +502,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						// case StateReduceNetError: // 13
 						cs.AcquireStatePending = StateInvalid;
 						cs.notifyAll(); //notify
-						logger.error("XXX 9 {} {} {}", sender, rpc.Argument.State, cs);
+						logger.error("XXX 9 {} {} {} {}", sender, rpc.Argument.State, cs, reduceResultState.Value);
 						rpc.Result.State = StateInvalid;
 						rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 						rpc.SendResultCode(AcquireModifyFailed);
@@ -647,10 +636,10 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		long SessionId;
 		int GlobalCacheManagerHashIndex;
 		final ConcurrentHashMap<GlobalTableKey, Integer> Acquired;
-		private long LastErrorTime;
+		private volatile long LastErrorTime;
 
-		CacheHolder(GCMConfig config) {
-			Acquired = new ConcurrentHashMap<>(config.getInitialCapacity(), 0.75f, config.getConcurrencyLevel());
+		CacheHolder() {
+			Acquired = new ConcurrentHashMap<>(Instance.Config.getInitialCapacity());
 		}
 
 		synchronized boolean TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex) {
@@ -691,10 +680,8 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		boolean Reduce(GlobalTableKey gkey, @SuppressWarnings("SameParameterValue") int state, long globalSerialId,
 					   ProtocolHandle<Rpc<Param2, Param2>> response) {
 			try {
-				synchronized (this) {
-					if (System.currentTimeMillis() - LastErrorTime < ForbidPeriod)
-						return false;
-				}
+				if (System.currentTimeMillis() - LastErrorTime < ForbidPeriod)
+					return false;
 				AsyncSocket peer = Instance.Server.GetSocket(SessionId);
 				if (peer != null && new Reduce(gkey, state, globalSerialId).Send(peer, response, 10000)) //await 等RPC回复
 					return true;
@@ -708,7 +695,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			return false;
 		}
 
-		synchronized void SetError() {
+		void SetError() {
 			long now = System.currentTimeMillis();
 			if (now - LastErrorTime > ForbidPeriod)
 				LastErrorTime = now;
@@ -719,10 +706,8 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		 */
 		Reduce ReduceWaitLater(GlobalTableKey gkey, long globalSerialId) {
 			try {
-				synchronized (this) {
-					if (System.currentTimeMillis() - LastErrorTime < ForbidPeriod)
-						return null;
-				}
+				if (System.currentTimeMillis() - LastErrorTime < ForbidPeriod)
+					return null;
 				AsyncSocket peer = Instance.Server.GetSocket(SessionId);
 				if (peer != null) {
 					Reduce reduce = new Reduce(gkey, StateInvalid, globalSerialId);
