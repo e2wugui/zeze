@@ -202,7 +202,13 @@ public final class ByteBuffer {
 	}
 
 	public boolean ReadBool() {
-		return ReadLong() != 0;
+		EnsureRead(1);
+		int b = Bytes[ReadIndex];
+		if ((b & ~1) == 0) { // fast-path
+			ReadIndex++;
+			return b != 0;
+		}
+		return ReadLong() != 0; // rare-path
 	}
 
 	public void WriteByte(byte v) {

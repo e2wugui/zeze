@@ -87,20 +87,12 @@ public final class Binary implements Comparable<Binary> {
 	public int compareTo(Binary other) {
 		int n = Count;
 		int c = n - other.Count;
-		if (c != 0)
-			return c;
-
-		for (int i = 0; i < n; i++) {
-			c = _Bytes[Offset + i] - other._Bytes[Offset + i];
-			if (c != 0)
-				return c;
-		}
-		return 0;
+		return c != 0 ? c : Arrays.compare(_Bytes, Offset, Offset + n, other._Bytes, other.Offset, n);
 	}
 
 	public boolean equals(Binary other) {
 		return other != null && Count == other.Count &&
-				Arrays.equals(_Bytes, Offset, Offset + Count, other._Bytes, other.Offset, other.Offset + other.Count);
+				Arrays.equals(_Bytes, Offset, Offset + Count, other._Bytes, other.Offset, other.Offset + Count);
 	}
 
 	@Override

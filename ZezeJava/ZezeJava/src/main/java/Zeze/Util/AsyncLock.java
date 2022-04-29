@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 // 异步锁. 暂不支持重入
 public final class AsyncLock {
+	private static final boolean TRY_NEXT_SYNC = false;
 	private static final VarHandle stateHandle;
 
 	static {
@@ -66,6 +67,34 @@ public final class AsyncLock {
 	}
 
 	private void tryNext() {
+		if (TRY_NEXT_SYNC)
+			tryNextSync();
+		else
+			tryNextAsync();
+	}
+
+	private void tryNextSync() {
+		for (; ; ) {
+			var onReady = readyQueue.poll(); // onEnter or onNotify
+			if (onReady != null) {
+				try {
+					ownerThread = Thread.currentThread();
+					current = onReady;
+					onReady.run();
+				} catch (Throwable e) {
+					Task.logger.error("AsyncLock.tryNext exception:", e);
+				} finally {
+					leave();
+				}
+				return;
+			}
+			state = 0;
+			if (readyQueue.isEmpty() || !stateHandle.compareAndSet(this, 0, 1)) // retry, rare-path
+				return;
+		}
+	}
+
+	private void tryNextAsync() {
 		for (; ; ) {
 			var onReady = readyQueue.poll(); // onEnter or onNotify
 			if (onReady != null) {
