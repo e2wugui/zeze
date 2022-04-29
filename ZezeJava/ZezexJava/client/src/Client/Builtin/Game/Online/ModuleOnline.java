@@ -1,6 +1,6 @@
-package Zeze.Builtin.LinkdBase;
+package Client.Builtin.Game.Online;
 
-public class ModuleLinkdBase extends AbstractModule {
+public class ModuleOnline extends AbstractModule {
     public void Start(Client.App app) throws Throwable {
     }
 
@@ -8,12 +8,12 @@ public class ModuleLinkdBase extends AbstractModule {
     }
 
     @Override
-    protected long ProcessReportError(Zeze.Builtin.LinkdBase.ReportError p) {
+    protected long ProcessSReliableNotify(Client.Builtin.Game.Online.SReliableNotify p) {
         return Zeze.Transaction.Procedure.NotImplement;
     }
 
     // ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
-    public ModuleLinkdBase(Client.App app) {
+    public ModuleOnline(Client.App app) {
         super(app);
     }
     // ZEZE_FILE_CHUNK }}} GEN MODULE @formatter:on

@@ -233,12 +233,22 @@ namespace Zeze.Gen
                 service.SetModuleReference();
             }
 
-            var saved = Solution.Name;
+            var saved = new Dictionary<Solution, string>();
+            // save
+            foreach (var sol in Program.Solutions.Values)
+                saved.Add(sol, sol.Name);
+
+            // replace
             if (false == string.IsNullOrEmpty(SolutionName))
-                Solution.Name = SolutionName;
+            {
+                foreach (var e in saved)
+                    e.Key.Name = SolutionName;
+            }
             MakePlatform();
-            if (false == string.IsNullOrEmpty(SolutionName))
-                Solution.Name = saved;
+
+            // rollback
+            foreach (var e in saved)
+                e.Key.Name = e.Value;
         }
 
         protected virtual void MakePlatform()

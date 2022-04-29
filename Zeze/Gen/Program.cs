@@ -9,7 +9,7 @@ namespace Zeze.Gen
 {
     public class Program
     {
-        private static Dictionary<string, Solution> solutions = new Dictionary<string, Solution>();
+        public static Dictionary<string, Solution> Solutions { get; } = new Dictionary<string, Solution>();
         public static Zeze.Util.AtomicLong IdGen = new Zeze.Util.AtomicLong();
 
         public static void CheckReserveName(string name)
@@ -59,7 +59,7 @@ namespace Zeze.Gen
 
         public static void ImportSolution(string xmlfile)
         {
-            if (solutions.ContainsKey(xmlfile))
+            if (Solutions.ContainsKey(xmlfile))
                 return;
 
             XmlDocument doc = new XmlDocument();
@@ -72,7 +72,7 @@ namespace Zeze.Gen
                     Console.WriteLine("WARN duplicate solution name: " + solution.Name + " in file: " + exist.Key + "," + xmlfile);
             }
             */
-            solutions.Add(xmlfile, solution);
+            Solutions.Add(xmlfile, solution);
         }
         public static void Main(string[] args)
         {
@@ -113,7 +113,7 @@ namespace Zeze.Gen
                 ImportSolution(file);
             }
 
-            foreach (Solution sol in solutions.Values) // compile all .包含从文件中 import 进来的。
+            foreach (Solution sol in Solutions.Values) // compile all .包含从文件中 import 进来的。
             {
                 sol.Compile();
             }
@@ -121,7 +121,7 @@ namespace Zeze.Gen
             foreach (string file in xmlFileList) // make 参数指定的 Solution
             {
                 Solution sol = null;
-                solutions.TryGetValue(file, out sol);
+                Solutions.TryGetValue(file, out sol);
                 sol.Make();
             }
 

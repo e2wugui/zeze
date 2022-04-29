@@ -35,10 +35,10 @@ public class App extends Zeze.AppBase {
 
     public Client.ClientService ClientService;
 
-    public Zeze.Builtin.Game.Online.ModuleOnline Zeze_Builtin_Game_Online;
-    public Zeze.Builtin.Game.Bag.ModuleBag Zeze_Builtin_Game_Bag;
-    public Zeze.Builtin.LinkdBase.ModuleLinkdBase Zeze_Builtin_LinkdBase;
-    public Zezex.Linkd.ModuleLinkd Zezex_Linkd;
+    public Client.Builtin.Game.Online.ModuleOnline Client_Builtin_Game_Online;
+    public Client.Builtin.Game.Bag.ModuleBag Client_Builtin_Game_Bag;
+    public Client.Builtin.LinkdBase.ModuleLinkdBase Client_Builtin_LinkdBase;
+    public Client.Linkd.ModuleLinkd Client_Linkd;
 
     public Zeze.Application getZeze() {
         return Zeze;
@@ -60,34 +60,34 @@ public class App extends Zeze.AppBase {
         ClientService = new Client.ClientService(Zeze);
     }
     public synchronized void CreateModules() {
-        Zeze_Builtin_Game_Online = (Zeze.Builtin.Game.Online.ModuleOnline)ReplaceModuleInstance(new Zeze.Builtin.Game.Online.ModuleOnline(this));
-        Zeze_Builtin_Game_Online.Initialize(this);
-        if (Modules.put(Zeze_Builtin_Game_Online.getFullName(), Zeze_Builtin_Game_Online) != null)
-            throw new RuntimeException("duplicate module name: Zeze_Builtin_Game_Online");
+        Client_Builtin_Game_Online = (Client.Builtin.Game.Online.ModuleOnline)ReplaceModuleInstance(new Client.Builtin.Game.Online.ModuleOnline(this));
+        Client_Builtin_Game_Online.Initialize(this);
+        if (Modules.put(Client_Builtin_Game_Online.getFullName(), Client_Builtin_Game_Online) != null)
+            throw new RuntimeException("duplicate module name: Client_Builtin_Game_Online");
 
-        Zeze_Builtin_Game_Bag = (Zeze.Builtin.Game.Bag.ModuleBag)ReplaceModuleInstance(new Zeze.Builtin.Game.Bag.ModuleBag(this));
-        Zeze_Builtin_Game_Bag.Initialize(this);
-        if (Modules.put(Zeze_Builtin_Game_Bag.getFullName(), Zeze_Builtin_Game_Bag) != null)
-            throw new RuntimeException("duplicate module name: Zeze_Builtin_Game_Bag");
+        Client_Builtin_Game_Bag = (Client.Builtin.Game.Bag.ModuleBag)ReplaceModuleInstance(new Client.Builtin.Game.Bag.ModuleBag(this));
+        Client_Builtin_Game_Bag.Initialize(this);
+        if (Modules.put(Client_Builtin_Game_Bag.getFullName(), Client_Builtin_Game_Bag) != null)
+            throw new RuntimeException("duplicate module name: Client_Builtin_Game_Bag");
 
-        Zeze_Builtin_LinkdBase = (Zeze.Builtin.LinkdBase.ModuleLinkdBase)ReplaceModuleInstance(new Zeze.Builtin.LinkdBase.ModuleLinkdBase(this));
-        Zeze_Builtin_LinkdBase.Initialize(this);
-        if (Modules.put(Zeze_Builtin_LinkdBase.getFullName(), Zeze_Builtin_LinkdBase) != null)
-            throw new RuntimeException("duplicate module name: Zeze_Builtin_LinkdBase");
+        Client_Builtin_LinkdBase = (Client.Builtin.LinkdBase.ModuleLinkdBase)ReplaceModuleInstance(new Client.Builtin.LinkdBase.ModuleLinkdBase(this));
+        Client_Builtin_LinkdBase.Initialize(this);
+        if (Modules.put(Client_Builtin_LinkdBase.getFullName(), Client_Builtin_LinkdBase) != null)
+            throw new RuntimeException("duplicate module name: Client_Builtin_LinkdBase");
 
-        Zezex_Linkd = (Zezex.Linkd.ModuleLinkd)ReplaceModuleInstance(new Zezex.Linkd.ModuleLinkd(this));
-        Zezex_Linkd.Initialize(this);
-        if (Modules.put(Zezex_Linkd.getFullName(), Zezex_Linkd) != null)
-            throw new RuntimeException("duplicate module name: Zezex_Linkd");
+        Client_Linkd = (Client.Linkd.ModuleLinkd)ReplaceModuleInstance(new Client.Linkd.ModuleLinkd(this));
+        Client_Linkd.Initialize(this);
+        if (Modules.put(Client_Linkd.getFullName(), Client_Linkd) != null)
+            throw new RuntimeException("duplicate module name: Client_Linkd");
 
         Zeze.setSchemas(new Client.Schemas());
     }
 
     public synchronized void DestroyModules() {
-        Zezex_Linkd = null;
-        Zeze_Builtin_LinkdBase = null;
-        Zeze_Builtin_Game_Bag = null;
-        Zeze_Builtin_Game_Online = null;
+        Client_Linkd = null;
+        Client_Builtin_LinkdBase = null;
+        Client_Builtin_Game_Bag = null;
+        Client_Builtin_Game_Online = null;
         Modules.clear();
     }
 
@@ -100,21 +100,21 @@ public class App extends Zeze.AppBase {
     }
 
     public synchronized void StartModules() throws Throwable {
-        Zeze_Builtin_Game_Online.Start(this);
-        Zeze_Builtin_Game_Bag.Start(this);
-        Zeze_Builtin_LinkdBase.Start(this);
-        Zezex_Linkd.Start(this);
+        Client_Builtin_Game_Online.Start(this);
+        Client_Builtin_Game_Bag.Start(this);
+        Client_Builtin_LinkdBase.Start(this);
+        Client_Linkd.Start(this);
     }
 
     public synchronized void StopModules() throws Throwable {
-        if (Zezex_Linkd != null)
-            Zezex_Linkd.Stop(this);
-        if (Zeze_Builtin_LinkdBase != null)
-            Zeze_Builtin_LinkdBase.Stop(this);
-        if (Zeze_Builtin_Game_Bag != null)
-            Zeze_Builtin_Game_Bag.Stop(this);
-        if (Zeze_Builtin_Game_Online != null)
-            Zeze_Builtin_Game_Online.Stop(this);
+        if (Client_Linkd != null)
+            Client_Linkd.Stop(this);
+        if (Client_Builtin_LinkdBase != null)
+            Client_Builtin_LinkdBase.Stop(this);
+        if (Client_Builtin_Game_Bag != null)
+            Client_Builtin_Game_Bag.Stop(this);
+        if (Client_Builtin_Game_Online != null)
+            Client_Builtin_Game_Online.Stop(this);
     }
 
     public synchronized void StartService() throws Throwable {

@@ -1,4 +1,4 @@
-package Zezex.Linkd;
+package Client.Linkd;
 
 public class ModuleLinkd extends AbstractModule {
     public void Start(Client.App app) throws Throwable {
@@ -8,7 +8,7 @@ public class ModuleLinkd extends AbstractModule {
     }
 
     @Override
-    protected long ProcessKeepAlive(Zezex.Linkd.KeepAlive p) {
+    protected long ProcessKeepAlive(Client.Linkd.KeepAlive p) {
         return Zeze.Transaction.Procedure.NotImplement;
     }
 

@@ -1,5 +1,5 @@
 
-namespace Zeze.Builtin.LinkdBase
+namespace Client.Builtin.LinkdBase
 {
     public partial class ModuleLinkdBase : AbstractModule
     {

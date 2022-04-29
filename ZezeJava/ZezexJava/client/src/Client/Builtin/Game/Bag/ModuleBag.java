@@ -1,4 +1,4 @@
-package Zeze.Builtin.Game.Bag;
+package Client.Builtin.Game.Bag;
 
 public class ModuleBag extends AbstractModule {
     public void Start(Client.App app) throws Throwable {

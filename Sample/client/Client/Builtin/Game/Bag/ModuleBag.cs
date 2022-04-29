@@ -1,5 +1,5 @@
 
-namespace Zeze.Builtin.Game.Bag
+namespace Client.Builtin.Game.Bag
 {
     public partial class ModuleBag : AbstractModule
     {
