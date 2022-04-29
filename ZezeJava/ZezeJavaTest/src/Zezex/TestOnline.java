@@ -6,7 +6,7 @@ import io.perfmark.Link;
 import junit.framework.TestCase;
 
 public class TestOnline extends TestCase {
-	ArrayList<Client.App> clients = new ArrayList<>();
+	ArrayList<ClientGame.App> clients = new ArrayList<>();
 	ArrayList<Zezex.App> links = new ArrayList<>();
 	ArrayList<Game.App>  servers = new ArrayList<>();
 
@@ -17,7 +17,7 @@ public class TestOnline extends TestCase {
 	@Override
 	protected void setUp() {
 		for (int i = 0; i < ClientCount; ++i)
-			clients.add(new Client.App());
+			clients.add(new ClientGame.App());
 		for (int i = 0; i < LinkCount; ++i)
 			links.add(new Zezex.App());
 		for (int i = 0; i < ServerCount; ++i)

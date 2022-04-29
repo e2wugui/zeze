@@ -1,4 +1,4 @@
-package Client;
+package ClientGame;
 
 public class ClientService extends ClientServiceBase {
     public ClientService(Zeze.Application zeze) throws Throwable {

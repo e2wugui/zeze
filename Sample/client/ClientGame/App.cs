@@ -1,12 +1,12 @@
 
-namespace Client
+namespace ClientGame
 {
     public sealed partial class App
     {
         public void Start(string ip, int port)
         {
-            var conf = global::Zeze.Config.Load("client.xml");
-            CreateZeze(conf);
+            var config = global::Zeze.Config.Load("client.xml");
+            CreateZeze();
             CreateService();
             ClientService.Config.TryGetOrAddConnector(ip, port, true, out _);
             CreateModules();

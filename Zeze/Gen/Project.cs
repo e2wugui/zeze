@@ -236,13 +236,16 @@ namespace Zeze.Gen
             var saved = new Dictionary<Solution, string>();
             // save
             foreach (var sol in Program.Solutions.Values)
-                saved.Add(sol, sol.Name);
+            {
+                if (!sol.Name.Equals("Zeze"))
+                    saved.Add(sol, sol.Name);
+            }
 
             // replace
             if (false == string.IsNullOrEmpty(SolutionName))
             {
                 foreach (var e in saved)
-                    e.Key.Name = SolutionName;
+                    e.Key.Name = SolutionName + e.Key.Name;
             }
             MakePlatform();
 

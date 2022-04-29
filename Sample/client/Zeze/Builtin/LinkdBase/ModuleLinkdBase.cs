@@ -1,13 +1,13 @@
 
-namespace Client.Builtin.LinkdBase
+namespace Zeze.Builtin.LinkdBase
 {
     public partial class ModuleLinkdBase : AbstractModule
     {
-        public void Start(global::Client.App app)
+        public void Start(global::ClientGame.App app)
         {
         }
 
-        public void Stop(global::Client.App app)
+        public void Stop(global::ClientGame.App app)
         {
         }
 

@@ -1,6 +1,6 @@
 
 
-namespace Client
+namespace ClientGame
 {
     public sealed partial class ClientService
     {

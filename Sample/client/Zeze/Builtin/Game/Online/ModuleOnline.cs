@@ -1,13 +1,13 @@
 
-namespace Client.Builtin.Game.Online
+namespace Zeze.Builtin.Game.Online
 {
     public partial class ModuleOnline : AbstractModule
     {
-        public void Start(global::Client.App app)
+        public void Start(global::ClientGame.App app)
         {
         }
 
-        public void Stop(global::Client.App app)
+        public void Stop(global::ClientGame.App app)
         {
         }
 
