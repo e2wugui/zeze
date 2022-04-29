@@ -24,7 +24,6 @@ import Zeze.Services.GlobalCacheManager.NormalClose;
 import Zeze.Services.GlobalCacheManager.Param2;
 import Zeze.Services.GlobalCacheManager.ReLogin;
 import Zeze.Services.GlobalCacheManager.Reduce;
-import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action0;
 import Zeze.Util.Action1;
 import Zeze.Util.AsyncLock;
@@ -32,13 +31,16 @@ import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.Task;
 import Zeze.Util.ThreadFactoryWithName;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
 import org.w3c.dom.Element;
 
 public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerConst {
 	static {
 		System.setProperty("log4j.configurationFile", "log4j2.xml");
+		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(Level.INFO);
 	}
 
 	private static final Logger logger = LogManager.getLogger(GlobalCacheManagerAsyncServer.class);
@@ -109,23 +111,23 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		Server = new ServerService(config);
 
 		Server.AddFactoryHandle(Acquire.TypeId_,
-				new Service.ProtocolFactoryHandle<>(Acquire::new, this::ProcessAcquireRequest, TransactionLevel.None));
+				new Service.ProtocolFactoryHandle<>(Acquire::new, this::ProcessAcquireRequest));
 
 		Server.AddFactoryHandle(Reduce.TypeId_,
 				new Service.ProtocolFactoryHandle<>(Reduce::new));
 
 		Server.AddFactoryHandle(Login.TypeId_,
-				new Service.ProtocolFactoryHandle<>(Login::new, this::ProcessLogin, TransactionLevel.None));
+				new Service.ProtocolFactoryHandle<>(Login::new, this::ProcessLogin));
 
 		Server.AddFactoryHandle(ReLogin.TypeId_,
-				new Service.ProtocolFactoryHandle<>(ReLogin::new, this::ProcessReLogin, TransactionLevel.None));
+				new Service.ProtocolFactoryHandle<>(ReLogin::new, this::ProcessReLogin));
 
 		Server.AddFactoryHandle(NormalClose.TypeId_,
-				new Service.ProtocolFactoryHandle<>(NormalClose::new, this::ProcessNormalClose, TransactionLevel.None));
+				new Service.ProtocolFactoryHandle<>(NormalClose::new, this::ProcessNormalClose));
 
 		// 临时注册到这里，安全起见应该起一个新的Service，并且仅绑定到 localhost。
 		Server.AddFactoryHandle(Cleanup.TypeId_,
-				new Service.ProtocolFactoryHandle<>(Cleanup::new, this::ProcessCleanup, TransactionLevel.None));
+				new Service.ProtocolFactoryHandle<>(Cleanup::new, this::ProcessCleanup));
 
 		ServerSocket = Server.NewServerSocket(ipaddress, port, null);
 	}
@@ -290,7 +292,10 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			int stage;
 		};
 		cs.lock.enter(() -> {
-			if (state.stage == 0 && cs.AcquireStatePending == StateRemoved) {
+			if (state.stage == 1) {
+				if (cs.Modify != null && !cs.Share.isEmpty())
+					throw new IllegalStateException("CacheState state error");
+			} else if (state.stage == 0 && cs.AcquireStatePending == StateRemoved) {
 				// 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
 				cs.lock.leave();
 				ReleaseAsync(sender, gkey, future); // retry
@@ -308,13 +313,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					break;
 				}
 				state.stage = 1;
-				var cur = cs.lock.getCurrent();
-				cs.lock.leaveAndWaitNotify(() -> {
-					if (cs.Modify != null && !cs.Share.isEmpty())
-						throw new IllegalStateException("CacheState state error");
-					cs.lock.setCurrent(cur);
-					cur.run();
-				});
+				cs.lock.leaveAndWaitNotify();
 				return;
 			}
 			if (cs.AcquireStatePending == StateRemoved) {
@@ -346,7 +345,10 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			int stage;
 		};
 		cs.lock.enter(() -> {
-			if (state.stage == 0 && cs.AcquireStatePending == StateRemoved) {
+			if (state.stage == 1) {
+				if (cs.Modify != null && !cs.Share.isEmpty())
+					throw new IllegalStateException("CacheState state error");
+			} else if (state.stage == 0 && cs.AcquireStatePending == StateRemoved) {
 				// 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
 				cs.lock.leave();
 				ReleaseAsync(rpc); // retry
@@ -368,13 +370,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					break;
 				}
 				state.stage = 1;
-				var cur = cs.lock.getCurrent();
-				cs.lock.leaveAndWaitNotify(() -> {
-					if (cs.Modify != null && !cs.Share.isEmpty())
-						throw new IllegalStateException("CacheState state error");
-					cs.lock.setCurrent(cur);
-					cur.run();
-				});
+				cs.lock.leaveAndWaitNotify();
 				return;
 			}
 			if (cs.AcquireStatePending == StateRemoved) {
@@ -415,10 +411,9 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					AcquireShareAsync(rpc); // retry
 					return;
 				}
-
-				if (cs.Modify != null && !cs.Share.isEmpty())
-					throw new IllegalStateException("CacheState state error");
 			}
+			if (state.stage <= 1 && cs.Modify != null && !cs.Share.isEmpty())
+				throw new IllegalStateException("CacheState state error");
 
 			var sender = (CacheHolder)rpc.getSender().getUserState();
 			if (state.stage <= 1) {
@@ -449,13 +444,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					}
 					logger.debug("3 {} {} {}", sender, rpc.Argument.State, cs);
 					state.stage = 1;
-					var cur = cs.lock.getCurrent();
-					cs.lock.leaveAndWaitNotify(() -> {
-						if (cs.Modify != null && !cs.Share.isEmpty())
-							throw new IllegalStateException("CacheState state error");
-						cs.lock.setCurrent(cur);
-						cur.run();
-					});
+					cs.lock.leaveAndWaitNotify();
 					return;
 				}
 				if (cs.AcquireStatePending == StateRemoved) {
@@ -556,7 +545,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					AcquireModifyAsync(rpc); // retry
 					return;
 				}
-
+			}
+			if (state.stage <= 1) {
 				if (cs.Modify != null && !cs.Share.isEmpty())
 					throw new IllegalStateException("CacheState state error");
 			}
@@ -591,13 +581,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					}
 					logger.debug("3 {} {} {}", sender, rpc.Argument.State, cs);
 					state.stage = 1;
-					var cur = cs.lock.getCurrent();
-					cs.lock.leaveAndWaitNotify(() -> {
-						if (cs.Modify != null && !cs.Share.isEmpty())
-							throw new IllegalStateException("CacheState state error");
-						cs.lock.setCurrent(cur);
-						cur.run();
-					});
+					cs.lock.leaveAndWaitNotify();
 					return;
 				}
 				if (cs.AcquireStatePending == StateRemoved) {
@@ -916,12 +900,9 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	public static void main(String[] args) throws Throwable {
 		String ip = null;
 		int port = 5555;
+		int threadCount = 0;
 		String raftName = null;
 		String raftConf = "global.raft.xml";
-
-		Task.initThreadPool((ThreadPoolExecutor)Executors.newFixedThreadPool(
-						Runtime.getRuntime().availableProcessors(), new ThreadFactoryWithName("ZezeTaskPool")),
-				Executors.newSingleThreadScheduledExecutor(new ThreadFactoryWithName("ZezeScheduledPool")));
 
 		for (int i = 0; i < args.length; ++i) {
 			switch (args[i]) {
@@ -931,18 +912,23 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			case "-port":
 				port = Integer.parseInt(args[++i]);
 				break;
+			case "-threads":
+				threadCount = Integer.parseInt(args[++i]);
+				break;
 			case "-raft":
 				raftName = args[++i];
 				break;
 			case "-raftConf":
 				raftConf = args[++i];
 				break;
-			case "-threads":
-				i++;
-				// ThreadPool.SetMinThreads(int.Parse(args[i]), completionPortThreads);
-				break;
 			}
 		}
+
+		if (threadCount < 1)
+			threadCount = Runtime.getRuntime().availableProcessors();
+		Task.initThreadPool((ThreadPoolExecutor)
+						Executors.newFixedThreadPool(threadCount, new ThreadFactoryWithName("ZezeTaskPool")),
+				Executors.newSingleThreadScheduledExecutor(new ThreadFactoryWithName("ZezeScheduledPool")));
 
 		if (raftName == null || raftName.isEmpty()) {
 			logger.info("Start {}:{}", ip != null ? ip : "any", port);
