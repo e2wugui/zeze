@@ -21,9 +21,14 @@ public final class AsyncLock {
 	private final ConcurrentLinkedQueue<Action0> readyQueue = new ConcurrentLinkedQueue<>();
 	private final ArrayDeque<Action0> waitQueue = new ArrayDeque<>();
 	private Action0 current;
+	private Thread ownerThread;
 
 	public boolean isLocked() {
 		return state != 0;
+	}
+
+	public boolean isHeldByCurrentThread() {
+		return ownerThread == Thread.currentThread();
 	}
 
 	public Action0 getCurrent() {
@@ -38,6 +43,7 @@ public final class AsyncLock {
 	public void enter(Action0 onEnter) {
 		if (stateHandle.compareAndSet(this, 0, 1)) { // try lock, fast-path
 			try {
+				ownerThread = Thread.currentThread();
 				current = onEnter;
 				onEnter.run();
 			} catch (Throwable e) {
@@ -65,6 +71,7 @@ public final class AsyncLock {
 			if (onReady != null) {
 				Task.getThreadPool().execute(() -> {
 					try {
+						ownerThread = Thread.currentThread();
 						current = onReady;
 						onReady.run();
 					} catch (Throwable e) {
@@ -83,10 +90,10 @@ public final class AsyncLock {
 
 	// 释放锁,可能触发其它线程获取锁的回调
 	public void leave() {
-		if (current == null)
+		if (ownerThread != Thread.currentThread())
 			return;
+		ownerThread = null;
 		current = null;
-		assert state == 1;
 		tryNext();
 	}
 
