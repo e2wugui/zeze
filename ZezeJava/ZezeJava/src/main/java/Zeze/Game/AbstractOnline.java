@@ -20,6 +20,7 @@ public abstract class AbstractOnline extends Zeze.IModule {
     protected final Zeze.Builtin.Game.Online.taccount _taccount = new Zeze.Builtin.Game.Online.taccount();
     protected final Zeze.Builtin.Game.Online.tlocal _tlocal = new Zeze.Builtin.Game.Online.tlocal();
     protected final Zeze.Builtin.Game.Online.tonline _tonline = new Zeze.Builtin.Game.Online.tonline();
+    protected final Zeze.Builtin.Game.Online.tversion _tversion = new Zeze.Builtin.Game.Online.tversion();
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(this.getClass());
@@ -64,12 +65,14 @@ public abstract class AbstractOnline extends Zeze.IModule {
         zeze.AddTable(zeze.getConfig().GetTableConf(_taccount.getName()).getDatabaseName(), _taccount);
         zeze.AddTable(zeze.getConfig().GetTableConf(_tlocal.getName()).getDatabaseName(), _tlocal);
         zeze.AddTable(zeze.getConfig().GetTableConf(_tonline.getName()).getDatabaseName(), _tonline);
+        zeze.AddTable(zeze.getConfig().GetTableConf(_tversion.getName()).getDatabaseName(), _tversion);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
         zeze.RemoveTable(zeze.getConfig().GetTableConf(_taccount.getName()).getDatabaseName(), _taccount);
         zeze.RemoveTable(zeze.getConfig().GetTableConf(_tlocal.getName()).getDatabaseName(), _tlocal);
         zeze.RemoveTable(zeze.getConfig().GetTableConf(_tonline.getName()).getDatabaseName(), _tonline);
+        zeze.RemoveTable(zeze.getConfig().GetTableConf(_tversion.getName()).getDatabaseName(), _tversion);
     }
 
     public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

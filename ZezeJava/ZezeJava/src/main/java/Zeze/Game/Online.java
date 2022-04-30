@@ -227,17 +227,14 @@ public class Online extends AbstractOnline {
 			// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
 			if (online == null || online.getLinkSid() != arg.getLinkSid())
 				return;
-
+			var version = _tversion.getOrAdd(roleId);
 			var local = _tlocal.get(roleId);
 			if (local == null)
 				return; // 不在本机登录。
 
 			currentLoginVersion = local.getLoginVersion();
-			if (online.getLoginVersion() != currentLoginVersion)
+			if (version.getLoginVersion() != currentLoginVersion)
 				removeLocalAndTrigger(roleId); // 本机数据已经过时，马上删除。
-			else
-				online.setState(BOnline.StateNetBroken);
-			// 准备删除online数据。现在使用Version验证Owner，State已经没有什么意义了。
 		}
 
 		final long currentLoginVersionFinal = currentLoginVersion;
@@ -251,7 +248,8 @@ public class Online extends AbstractOnline {
 				}
 				// 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
 				var online = _tonline.get(roleId);
-				if (null != online && online.getLoginVersion() == currentLoginVersionFinal) {
+				var version = _tversion.getOrAdd(roleId);
+				if (null != online && version.getLoginVersion() == currentLoginVersionFinal) {
 					removeOnlineAndTrigger(roleId);
 				}
 				return Procedure.Success;
@@ -372,7 +370,7 @@ public class Online extends AbstractOnline {
 
 		for (var roleId : roleIds) {
 			var online = _tonline.get(roleId);
-			if (online == null || online.getState() != BOnline.StateOnline) {
+			if (online == null) {
 				groupNotOnline.roles.putIfAbsent(roleId, null);
 				continue;
 			}
@@ -388,11 +386,12 @@ public class Online extends AbstractOnline {
 			}
 			// 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
 			var group = groups.get(online.getLinkName());
+			var version = _tversion.getOrAdd(roleId);
 			if (group == null) {
 				group = new RoleOnLink();
 				group.linkName = online.getLinkName();
 				group.linkSocket = connector.getSocket();
-				group.serverId = online.getServerId();
+				group.serverId = version.getServerId();
 				groups.put(group.linkName, group);
 			}
 			group.roles.putIfAbsent(roleId, online.getLinkSid());
@@ -426,15 +425,16 @@ public class Online extends AbstractOnline {
 
 	public final void addReliableNotifyMark(long roleId, String listenerName) {
 		var online = _tonline.get(roleId);
-		if (online == null || online.getState() != BOnline.StateOnline)
+		if (online == null)
 			throw new RuntimeException("Not Online. AddReliableNotifyMark: " + listenerName);
-		online.getReliableNotifyMark().add(listenerName);
+		var version = _tversion.getOrAdd(roleId);
+		version.getReliableNotifyMark().add(listenerName);
 	}
 
 	public final void removeReliableNotifyMark(long roleId, String listenerName) {
 		// 移除尽量通过，不做任何判断。
-		if (_tonline.get(roleId) != null)
-			_tonline.get(roleId).getReliableNotifyMark().remove(listenerName);
+		var version = _tversion.getOrAdd(roleId);
+		version.getReliableNotifyMark().remove(listenerName);
 	}
 
 	public final void sendReliableNotifyWhileCommit(long roleId, String listenerName, Protocol<?> p) {
@@ -497,24 +497,23 @@ public class Online extends AbstractOnline {
 		ProviderApp.Zeze.getTaskOneByOneByKey().Execute(listenerName,
 				ProviderApp.Zeze.NewProcedure(() -> {
 					BOnline online = _tonline.get(roleId);
-					if (online == null || online.getState() == BOnline.StateOffline) {
+					if (online == null) {
 						return Procedure.Success;
 					}
-					if (!online.getReliableNotifyMark().contains(listenerName)) {
+					var version = _tversion.getOrAdd(roleId);
+					if (!version.getReliableNotifyMark().contains(listenerName)) {
 						return Procedure.Success; // 相关数据装载的时候要同步设置这个。
 					}
 
 					// 先保存在再发送，然后客户端还会确认。
 					// see Game.Login.Module: CLogin CReLogin CReliableNotifyConfirm 的实现。
-					online.getReliableNotifyQueue().add(fullEncodedProtocol);
-					if (online.getState() == BOnline.StateOnline) {
-						var notify = new SReliableNotify(); // 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
-						notify.Argument.setReliableNotifyTotalCountStart(online.getReliableNotifyTotalCount());
-						notify.Argument.getNotifies().add(fullEncodedProtocol);
+					version.getReliableNotifyQueue().add(fullEncodedProtocol);
+					var notify = new SReliableNotify(); // 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
+					notify.Argument.setReliableNotifyTotalCountStart(version.getReliableNotifyTotalCount());
+					notify.Argument.getNotifies().add(fullEncodedProtocol);
 
-						sendInProcedure(List.of(roleId), notify.getTypeId(), new Binary(notify.Encode()), future);
-					}
-					online.setReliableNotifyTotalCount(online.getReliableNotifyConfirmCount() + 1); // 后加，start 是 Queue.Add 之前的。
+					sendInProcedure(List.of(roleId), notify.getTypeId(), new Binary(notify.Encode()), future);
+					version.setReliableNotifyTotalCount(version.getReliableNotifyConfirmCount() + 1); // 后加，start 是 Queue.Add 之前的。
 					return Procedure.Success;
 				}, "Game.Online.sendReliableNotify." + listenerName), null);
 
@@ -599,16 +598,17 @@ public class Online extends AbstractOnline {
 
 		for (var roleId : roleIds) {
 			var online = _tonline.get(roleId);
-			if (online == null || online.getState() != BOnline.StateOnline) {
+			if (online == null) {
 				groupNotOnline.roles.add(roleId);
 				continue;
 			}
 
+			var version = _tversion.getOrAdd(roleId);
 			// 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
-			var group = groups.get(online.getServerId());
+			var group = groups.get(version.getServerId());
 			if (group == null) {
 				group = new RoleOnServer();
-				group.ServerId = online.getServerId();
+				group.ServerId = version.getServerId();
 				groups.put(group.ServerId, group);
 			}
 			group.roles.add(roleId);
@@ -760,7 +760,8 @@ public class Online extends AbstractOnline {
 		// null == online && null == local -> do nothing
 		// null != online && null == local -> do nothing
 
-		if ((null == online) || (online.getLoginVersion() != local.getLoginVersion()))
+		var version = _tversion.getOrAdd(roleId);
+		if ((null == online) || (version.getLoginVersion() != local.getLoginVersion()))
 			removeLocalAndTrigger(roleId);
 	}
 
@@ -781,31 +782,32 @@ public class Online extends AbstractOnline {
 
 		var online = _tonline.getOrAdd(rpc.Argument.getRoleId());
 		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
-
+		var version = _tversion.getOrAdd(rpc.Argument.getRoleId());
 		// login exist && not local
-		if (online.getLoginVersion() != 0 && online.getLoginVersion() != local.getLoginVersion()) {
-			redirectNotify(online.getServerId(), rpc.Argument.getRoleId());
+		if (version.getLoginVersion() != 0 && version.getLoginVersion() != local.getLoginVersion()) {
+			redirectNotify(version.getServerId(), rpc.Argument.getRoleId());
 		}
-		var version = account.getLastLoginVersion() + 1;
-		account.setLastLoginVersion(version);
-		online.setLoginVersion(version);
-		local.setLoginVersion(version);
+		var loginVersion = account.getLastLoginVersion() + 1;
+		account.setLastLoginVersion(loginVersion);
+		version.setLoginVersion(loginVersion);
+		local.setLoginVersion(loginVersion);
 
 		if (!online.getLinkName().equals(session.getLinkName()) || online.getLinkSid() != session.getLinkSid()) {
 			ProviderApp.ProviderService.kick(online.getLinkName(), online.getLinkSid(),
 					BKick.ErrorDuplicateLogin, "duplicate role login");
 		}
-		online.setLinkName(session.getLinkName());
-		online.setLinkSid(session.getLinkSid());
-		online.setState(BOnline.StateOnline);
+		if (!online.getLinkName().equals(session.getLinkName()))
+			online.setLinkName(session.getLinkName());
+		if (online.getLinkSid() != session.getLinkSid())
+			online.setLinkSid(session.getLinkSid());
 
-		online.getReliableNotifyMark().clear();
-		online.getReliableNotifyQueue().clear();
-		online.setReliableNotifyConfirmCount(0);
-		online.setReliableNotifyTotalCount(0);
+		version.getReliableNotifyMark().clear();
+		version.getReliableNotifyQueue().clear();
+		version.setReliableNotifyConfirmCount(0);
+		version.setReliableNotifyTotalCount(0);
 
 		var linkSession = (ProviderService.LinkSession)session.getLink().getUserState();
-		online.setServerId(ProviderApp.Zeze.getConfig().getServerId());
+		version.setServerId(ProviderApp.Zeze.getConfig().getServerId());
 
 		loginTrigger(rpc.Argument.getRoleId());
 
@@ -837,18 +839,21 @@ public class Online extends AbstractOnline {
 			return ErrorCode(ResultCodeOnlineDataNotFound);
 
 		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
-		// login exist && not local
-		if (online.getLoginVersion() != 0 && online.getLoginVersion() != local.getLoginVersion()) {
-			redirectNotify(online.getServerId(), rpc.Argument.getRoleId());
-		}
-		var version = account.getLastLoginVersion() + 1;
-		account.setLastLoginVersion(version);
-		online.setLoginVersion(version);
-		local.setLoginVersion(version);
+		var version = _tversion.getOrAdd(rpc.Argument.getRoleId());
 
-		online.setLinkName(session.getLinkName());
-		online.setLinkSid(session.getLinkSid());
-		online.setState(BOnline.StateOnline);
+		// login exist && not local
+		if (version.getLoginVersion() != 0 && version.getLoginVersion() != local.getLoginVersion()) {
+			redirectNotify(version.getServerId(), rpc.Argument.getRoleId());
+		}
+		var loginVersion = account.getLastLoginVersion() + 1;
+		account.setLastLoginVersion(loginVersion);
+		version.setLoginVersion(loginVersion);
+		local.setLoginVersion(loginVersion);
+
+		if (!online.getLinkName().equals(session.getLinkName()))
+			online.setLinkName(session.getLinkName());
+		if (online.getLinkSid() != session.getLinkSid())
+			online.setLinkSid(session.getLinkSid());
 
 		reloginTrigger(session.getRoleId());
 
@@ -863,38 +868,39 @@ public class Online extends AbstractOnline {
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 
-		var syncResultCode = reliableNotifySync(session, rpc.Argument.getReliableNotifyConfirmCount(), online);
+		var syncResultCode = reliableNotifySync(session.getRoleId(), session, rpc.Argument.getReliableNotifyConfirmCount());
 		if (syncResultCode != ResultCodeSuccess)
 			return ErrorCode(syncResultCode);
 
 		return Procedure.Success;
 	}
 
-	private int reliableNotifySync(ProviderUserSession session, long reliableNotifyConfirmCount, BOnline online) {
-		return reliableNotifySync(session, reliableNotifyConfirmCount, online, true);
+	private int reliableNotifySync(long roleId, ProviderUserSession session, long reliableNotifyConfirmCount) {
+		return reliableNotifySync(roleId, session, reliableNotifyConfirmCount, true);
 	}
 
-	private int reliableNotifySync(ProviderUserSession session, long reliableNotifyConfirmCount, BOnline online, boolean sync) {
-		if (reliableNotifyConfirmCount < online.getReliableNotifyConfirmCount()
-				|| reliableNotifyConfirmCount > online.getReliableNotifyTotalCount()
-				|| reliableNotifyConfirmCount - online.getReliableNotifyConfirmCount() > online.getReliableNotifyQueue().size()) {
+	private int reliableNotifySync(long roleId, ProviderUserSession session, long reliableNotifyConfirmCount, boolean sync) {
+		var version = _tversion.getOrAdd(roleId);
+		if (reliableNotifyConfirmCount < version.getReliableNotifyConfirmCount()
+				|| reliableNotifyConfirmCount > version.getReliableNotifyTotalCount()
+				|| reliableNotifyConfirmCount - version.getReliableNotifyConfirmCount() > version.getReliableNotifyQueue().size()) {
 			return ResultCodeReliableNotifyConfirmCountOutOfRange;
 		}
 
-		int confirmCount = (int)(reliableNotifyConfirmCount - online.getReliableNotifyConfirmCount());
+		int confirmCount = (int)(reliableNotifyConfirmCount - version.getReliableNotifyConfirmCount());
 
 		if (sync) {
 			var notify = new SReliableNotify();
 			notify.Argument.setReliableNotifyTotalCountStart(reliableNotifyConfirmCount);
-			for (int i = confirmCount; i < online.getReliableNotifyQueue().size(); i++)
-				notify.Argument.getNotifies().add(online.getReliableNotifyQueue().get(i));
+			for (int i = confirmCount; i < version.getReliableNotifyQueue().size(); i++)
+				notify.Argument.getNotifies().add(version.getReliableNotifyQueue().get(i));
 			session.SendResponseWhileCommit(notify);
 		}
 		//noinspection ListRemoveInLoop
 		for (int ir = 0; ir < confirmCount; ir++)
-			online.getReliableNotifyQueue().remove(0);
+			version.getReliableNotifyQueue().remove(0);
 		//online.getReliableNotifyQueue().RemoveRange(0, confirmCount);
-		online.setReliableNotifyConfirmCount(reliableNotifyConfirmCount);
+		version.setReliableNotifyConfirmCount(reliableNotifyConfirmCount);
 		return ResultCodeSuccess;
 	}
 
@@ -906,9 +912,11 @@ public class Online extends AbstractOnline {
 
 		var local = _tlocal.get(session.getRoleId());
 		var online = _tonline.get(session.getRoleId());
+		var version = _tversion.getOrAdd(session.getRoleId());
+
 		// 登录在其他机器上。
 		if (local == null && online != null)
-			redirectNotify(online.getServerId(), session.getRoleId());
+			redirectNotify(version.getServerId(), session.getRoleId());
 		if (null != local)
 			removeLocalAndTrigger(session.getRoleId());
 		if (null != online)
@@ -932,12 +940,13 @@ public class Online extends AbstractOnline {
 		var session = ProviderUserSession.Get(rpc);
 
 		BOnline online = _tonline.get(session.getRoleId());
-		if (online == null || online.getState() == BOnline.StateOffline)
+		if (online == null)
 			return ErrorCode(ResultCodeOnlineDataNotFound);
 
 		session.SendResponseWhileCommit(rpc); // 同步前提交。
 
-		var syncResultCode = reliableNotifySync(session, rpc.Argument.getReliableNotifyConfirmCount(), online, false);
+		var syncResultCode = reliableNotifySync(session.getRoleId(), session,
+				rpc.Argument.getReliableNotifyConfirmCount(), false);
 		if (syncResultCode != ResultCodeSuccess)
 			return ErrorCode(syncResultCode);
 

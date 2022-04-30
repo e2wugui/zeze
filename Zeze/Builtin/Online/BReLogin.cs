@@ -2,105 +2,105 @@
 using ByteBuffer = Zeze.Serialize.ByteBuffer;
 using Environment = System.Environment;
 
-namespace Zeze.Builtin.Game.Online
+namespace Zeze.Builtin.Online
 {
-    public interface BOnlineReadOnly
+    public interface BReLoginReadOnly
     {
         public long TypeId { get; }
         public void Encode(ByteBuffer _os_);
         public bool NegativeCheck();
         public Zeze.Transaction.Bean CopyBean();
 
-        public string LinkName { get; }
-        public long LinkSid { get; }
+        public string ClientId { get; }
+        public long ReliableNotifyConfirmCount { get; }
     }
 
-    public sealed class BOnline : Zeze.Transaction.Bean, BOnlineReadOnly
+    public sealed class BReLogin : Zeze.Transaction.Bean, BReLoginReadOnly
     {
-        string _LinkName;
-        long _LinkSid;
+        string _ClientId;
+        long _ReliableNotifyConfirmCount;
 
-        public string LinkName
+        public string ClientId
         {
             get
             {
                 if (!IsManaged)
-                    return _LinkName;
+                    return _ClientId;
                 var txn = Zeze.Transaction.Transaction.Current;
-                if (txn == null) return _LinkName;
+                if (txn == null) return _ClientId;
                 txn.VerifyRecordAccessed(this, true);
-                var log = (Log__LinkName)txn.GetLog(ObjectId + 1);
-                return log != null ? log.Value : _LinkName;
+                var log = (Log__ClientId)txn.GetLog(ObjectId + 1);
+                return log != null ? log.Value : _ClientId;
             }
             set
             {
                 if (value == null) throw new System.ArgumentNullException();
                 if (!IsManaged)
                 {
-                    _LinkName = value;
+                    _ClientId = value;
                     return;
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__LinkName(this, value));
+                txn.PutLog(new Log__ClientId(this, value));
             }
         }
 
-        public long LinkSid
+        public long ReliableNotifyConfirmCount
         {
             get
             {
                 if (!IsManaged)
-                    return _LinkSid;
+                    return _ReliableNotifyConfirmCount;
                 var txn = Zeze.Transaction.Transaction.Current;
-                if (txn == null) return _LinkSid;
+                if (txn == null) return _ReliableNotifyConfirmCount;
                 txn.VerifyRecordAccessed(this, true);
-                var log = (Log__LinkSid)txn.GetLog(ObjectId + 2);
-                return log != null ? log.Value : _LinkSid;
+                var log = (Log__ReliableNotifyConfirmCount)txn.GetLog(ObjectId + 2);
+                return log != null ? log.Value : _ReliableNotifyConfirmCount;
             }
             set
             {
                 if (!IsManaged)
                 {
-                    _LinkSid = value;
+                    _ReliableNotifyConfirmCount = value;
                     return;
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__LinkSid(this, value));
+                txn.PutLog(new Log__ReliableNotifyConfirmCount(this, value));
             }
         }
 
-        public BOnline() : this(0)
+        public BReLogin() : this(0)
         {
         }
 
-        public BOnline(int _varId_) : base(_varId_)
+        public BReLogin(int _varId_) : base(_varId_)
         {
-            _LinkName = "";
+            _ClientId = "";
         }
 
-        public void Assign(BOnline other)
+        public void Assign(BReLogin other)
         {
-            LinkName = other.LinkName;
-            LinkSid = other.LinkSid;
+            ClientId = other.ClientId;
+            ReliableNotifyConfirmCount = other.ReliableNotifyConfirmCount;
         }
 
-        public BOnline CopyIfManaged()
+        public BReLogin CopyIfManaged()
         {
             return IsManaged ? Copy() : this;
         }
 
-        public BOnline Copy()
+        public BReLogin Copy()
         {
-            var copy = new BOnline();
+            var copy = new BReLogin();
             copy.Assign(this);
             return copy;
         }
 
-        public static void Swap(BOnline a, BOnline b)
+        public static void Swap(BReLogin a, BReLogin b)
         {
-            BOnline save = a.Copy();
+            BReLogin save = a.Copy();
             a.Assign(b);
             b.Assign(save);
         }
@@ -110,21 +110,21 @@ namespace Zeze.Builtin.Game.Online
             return Copy();
         }
 
-        public const long TYPEID = -6079880688513613020;
+        public const long TYPEID = -603574147996514517;
         public override long TypeId => TYPEID;
 
-        sealed class Log__LinkName : Zeze.Transaction.Log<BOnline, string>
+        sealed class Log__ClientId : Zeze.Transaction.Log<BReLogin, string>
         {
-            public Log__LinkName(BOnline self, string value) : base(self, value) {}
+            public Log__ClientId(BReLogin self, string value) : base(self, value) {}
             public override long LogKey => this.Bean.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._LinkName = this.Value; }
+            public override void Commit() { this.BeanTyped._ClientId = this.Value; }
         }
 
-        sealed class Log__LinkSid : Zeze.Transaction.Log<BOnline, long>
+        sealed class Log__ReliableNotifyConfirmCount : Zeze.Transaction.Log<BReLogin, long>
         {
-            public Log__LinkSid(BOnline self, long value) : base(self, value) {}
+            public Log__ReliableNotifyConfirmCount(BReLogin self, long value) : base(self, value) {}
             public override long LogKey => this.Bean.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._LinkSid = this.Value; }
+            public override void Commit() { this.BeanTyped._ReliableNotifyConfirmCount = this.Value; }
         }
 
         public override string ToString()
@@ -137,10 +137,10 @@ namespace Zeze.Builtin.Game.Online
 
         public override void BuildString(System.Text.StringBuilder sb, int level)
         {
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Builtin.Game.Online.BOnline: {").Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Builtin.Online.BReLogin: {").Append(Environment.NewLine);
             level += 4;
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("LinkName").Append('=').Append(LinkName).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("LinkSid").Append('=').Append(LinkSid).Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("ClientId").Append('=').Append(ClientId).Append(',').Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("ReliableNotifyConfirmCount").Append('=').Append(ReliableNotifyConfirmCount).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -149,7 +149,7 @@ namespace Zeze.Builtin.Game.Online
         {
             int _i_ = 0;
             {
-                string _x_ = LinkName;
+                string _x_ = ClientId;
                 if (_x_.Length != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
@@ -157,7 +157,7 @@ namespace Zeze.Builtin.Game.Online
                 }
             }
             {
-                long _x_ = LinkSid;
+                long _x_ = ReliableNotifyConfirmCount;
                 if (_x_ != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
@@ -173,12 +173,12 @@ namespace Zeze.Builtin.Game.Online
             int _i_ = _o_.ReadTagSize(_t_);
             if (_i_ == 1)
             {
-                LinkName = _o_.ReadString(_t_);
+                ClientId = _o_.ReadString(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             if (_i_ == 2)
             {
-                LinkSid = _o_.ReadLong(_t_);
+                ReliableNotifyConfirmCount = _o_.ReadLong(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             while (_t_ != 0)
@@ -194,7 +194,7 @@ namespace Zeze.Builtin.Game.Online
 
         public override bool NegativeCheck()
         {
-            if (LinkSid < 0) return true;
+            if (ReliableNotifyConfirmCount < 0) return true;
             return false;
         }
     }

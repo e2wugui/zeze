@@ -4,9 +4,9 @@ package Zeze.Builtin.Game.Online;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tonline extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Game.Online.BOnline> {
-    public tonline() {
-        super("Zeze_Builtin_Game_Online_tonline");
+public final class tversion extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Game.Online.BVersion> {
+    public tversion() {
+        super("Zeze_Builtin_Game_Online_tversion");
     }
 
     @Override
@@ -20,8 +20,12 @@ public final class tonline extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Ga
     }
 
     public static final int VAR_All = 0;
-    public static final int VAR_LinkName = 1;
-    public static final int VAR_LinkSid = 2;
+    public static final int VAR_LoginVersion = 1;
+    public static final int VAR_ReliableNotifyMark = 2;
+    public static final int VAR_ReliableNotifyQueue = 3;
+    public static final int VAR_ReliableNotifyConfirmCount = 4;
+    public static final int VAR_ReliableNotifyTotalCount = 5;
+    public static final int VAR_ServerId = 6;
 
     @Override
     public Long DecodeKey(ByteBuffer _os_) {
@@ -38,8 +42,8 @@ public final class tonline extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Ga
     }
 
     @Override
-    public Zeze.Builtin.Game.Online.BOnline NewValue() {
-        return new Zeze.Builtin.Game.Online.BOnline();
+    public Zeze.Builtin.Game.Online.BVersion NewValue() {
+        return new Zeze.Builtin.Game.Online.BVersion();
     }
 
     @Override
@@ -47,7 +51,11 @@ public final class tonline extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Ga
         switch (variableId) {
             case 0: return new Zeze.Transaction.ChangeVariableCollectorChanged();
             case 1: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 2: return new Zeze.Transaction.ChangeVariableCollectorChanged();
+            case 2: return new Zeze.Transaction.ChangeVariableCollectorSet();
+            case 3: return new Zeze.Transaction.ChangeVariableCollectorChanged();
+            case 4: return new Zeze.Transaction.ChangeVariableCollectorChanged();
+            case 5: return new Zeze.Transaction.ChangeVariableCollectorChanged();
+            case 6: return new Zeze.Transaction.ChangeVariableCollectorChanged();
             default: return null;
         }
     }

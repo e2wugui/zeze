@@ -522,23 +522,19 @@
 
 				<!-- tables -->
 				<bean name="BOnline">
-					<enum name="StateOffline"   value="0"/>
-					<!--enum name="StateLoading"   value="1"/>--> 装载数据还有 StateEnterWorld 不放到这里吧，这里只处理数据安全同步问题。
-					<enum name="StateOnline"    value="2"/>
-					<enum name="StateNetBroken" value="3"/> 客户端连接断开时，一定时间内可以重连。超时会删除 Online-Record。
+					<variable id="1" name="LinkName" type="string"/>
+					<variable id="2" name="LinkSid"  type="long"/>
+				</bean>
 
-					<variable id="1" name="LinkName"    type="string"/>
-					<variable id="2" name="LinkSid"     type="long"/>
-					<variable id="3" name="State"       type="int" default="StateOffline"/>
-
+				<!-- tables -->
+				<bean name="BVersion">
+					<variable id="1" name="LoginVersion" type="long"/>
 					<!-- 下面的定义用来实现可靠的协议通告。 -->
-					<variable id="4" name="ReliableNotifyMark"         type="set" value="string"/>
-					<variable id="5" name="ReliableNotifyQueue"        type="list" value="binary"/> full encoded protocol list
-					<variable id="6" name="ReliableNotifyConfirmCount" type="long"/>
-					<variable id="7" name="ReliableNotifyTotalCount"   type="long"/>
-
-					<variable id="8" name="ServerId" type="int"/>
-					<variable id="9" name="LoginVersion" type="long"/>
+					<variable id="2" name="ReliableNotifyMark"         type="set" value="string"/>
+					<variable id="3" name="ReliableNotifyQueue"        type="list" value="binary"/> full encoded protocol list
+					<variable id="4" name="ReliableNotifyConfirmCount" type="long"/>
+					<variable id="5" name="ReliableNotifyTotalCount"   type="long"/>
+					<variable id="6" name="ServerId" type="int"/>
 				</bean>
 				<bean name="BAccount">
 					<variable id="1" name="Name"  type="string"/>
@@ -546,8 +542,9 @@
 					<variable id="3" name="LastLoginRoleId" type="long"/>
 					<variable id="4" name="LastLoginVersion" type="long"/> 用来生成 role 登录版本号。每次递增。
 				</bean>
-				<table name="taccount"  key="string" value="BAccount"/>
-				<table name="tonline"   key="long"   value="BOnline"/>
+				<table name="taccount" key="string" value="BAccount"/>
+				<table name="tonline" key="long" value="BOnline"/>
+				<table name="tversion" key="long" value="BVersion"/>
 
 				<bean name="BAny">
 					<variable id="1" name="Any" type="dynamic">

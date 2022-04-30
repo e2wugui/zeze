@@ -181,17 +181,15 @@ namespace Zeze.Game
                 // skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
                 if (null == online || online.LinkSid != arg.LinkSid)
                     return;
+                var version = await _tversion.GetOrAddAsync(roleId);
 
                 var local = await _tlocal.GetAsync(roleId);
                 if (local == null)
                     return; // 不在本机登录。
 
                 currentLoginVersion = local.LoginVersion;
-                if (online.LoginVersion != currentLoginVersion)
+                if (version.LoginVersion != currentLoginVersion)
                     await RemoveLocalAndTrigger(roleId); // 本机数据已经过时，马上删除。
-                else
-                    online.State = BOnline.StateNetBroken;
-                // 准备删除online数据。现在使用Version验证Owner，State已经没有什么意义了。
             }
             await Task.Delay(10 * 60 * 1000);
 
@@ -206,7 +204,8 @@ namespace Zeze.Game
                 }
                 // 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
                 var online = await _tonline.GetAsync(roleId);
-                if (null != online && online.LoginVersion == currentLoginVersion)
+                var version = await _tversion.GetOrAddAsync(roleId);
+                if (null != online && version.LoginVersion == currentLoginVersion)
                 {
                     await RemoveOnlineAndTrigger(roleId);
                 }
@@ -217,15 +216,15 @@ namespace Zeze.Game
         public async Task AddReliableNotifyMark(long roleId, string listenerName)
         {
             var online = await _tonline.GetAsync(roleId);
-            if (null == online || online.State != BOnline.StateOnline)
+            if (null == online)
                 throw new Exception("Not Online. AddReliableNotifyMark: " + listenerName);
-            online.ReliableNotifyMark.Add(listenerName);
+            (await _tversion.GetOrAddAsync(roleId)).ReliableNotifyMark.Add(listenerName);
         }
 
         public async Task RemoveReliableNotifyMark(long roleId, string listenerName)
         {
             // 移除尽量通过，不做任何判断。
-            (await _tonline.GetAsync(roleId))?.ReliableNotifyMark.Remove(listenerName);
+            (await _tversion.GetOrAddAsync(roleId))?.ReliableNotifyMark.Remove(listenerName);
         }
 
         public void SendReliableNotifyWhileCommit(
@@ -288,27 +287,27 @@ namespace Zeze.Game
                 ProviderApp.Zeze.NewProcedure(async () =>
                 {
                     BOnline online = await _tonline.GetAsync(roleId);
-                    if (null == online || online.State == BOnline.StateOffline)
+                    if (null == online)
                     {
+                        // 完全离线，忽略可靠消息发送：可靠消息仅仅为在线提供服务，并不提供全局可靠消息。
                         return Procedure.Success;
                     }
-                    if (false == online.ReliableNotifyMark.Contains(listenerName))
+                    var version = await _tversion.GetOrAddAsync(roleId);
+                    if (false == version.ReliableNotifyMark.Contains(listenerName))
                     {
                         return Procedure.Success; // 相关数据装载的时候要同步设置这个。
                     }
 
                     // 先保存在再发送，然后客户端还会确认。
                     // see Game.Login.Module: CLogin CReLogin CReliableNotifyConfirm 的实现。
-                    online.ReliableNotifyQueue.Add(fullEncodedProtocol);
-                    if (online.State == BOnline.StateOnline)
-                    {
-                        var notify = new SReliableNotify(); // 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
-                        notify.Argument.ReliableNotifyTotalCountStart = online.ReliableNotifyTotalCount;
-                        notify.Argument.Notifies.Add(fullEncodedProtocol);
+                    version.ReliableNotifyQueue.Add(fullEncodedProtocol);
 
-                        await SendInProcedure(roleId, notify.TypeId, new Binary(notify.Encode()), future);
-                    }
-                    online.ReliableNotifyTotalCount += 1; // 后加，start 是 Queue.Add 之前的。
+                    var notify = new SReliableNotify(); // 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
+                    notify.Argument.ReliableNotifyTotalCountStart = version.ReliableNotifyTotalCount;
+                    notify.Argument.Notifies.Add(fullEncodedProtocol);
+
+                    await SendInProcedure(roleId, notify.TypeId, new Binary(notify.Encode()), future);
+                    version.ReliableNotifyTotalCount += 1; // 后加，start 是 Queue.Add 之前的。
                     return Procedure.Success;
                 },
                 "SendReliableNotify." + listenerName
@@ -335,7 +334,7 @@ namespace Zeze.Game
             foreach (var roleId in roleIds)
             {
                 var online = await _tonline.GetAsync(roleId);
-                if (null == online || online.State != BOnline.StateOnline)
+                if (null == online)
                 {
                     groupNotOnline.Roles.TryAdd(roleId, 0);
                     continue;
@@ -359,7 +358,7 @@ namespace Zeze.Game
                     {
                         LinkName = online.LinkName,
                         LinkSocket = connector.Socket,
-                        ServerId = online.ServerId,
+                        ServerId = (await _tversion.GetOrAddAsync(roleId)).ServerId,
                     };
                     groups.Add(group.LinkName, group);
                 }
@@ -505,18 +504,18 @@ namespace Zeze.Game
             foreach (var roleId in roleIds)
             {
                 var online = await _tonline.GetAsync(roleId);
-                if (null == online || online.State != BOnline.StateOnline)
+                if (null == online)
                 {
                     groupNotOnline.Roles.Add(roleId);
                     continue;
                 }
-
+                var version = await _tversion.GetOrAddAsync(roleId);
                 // 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
-                if (false == groups.TryGetValue(online.ServerId, out var group))
+                if (false == groups.TryGetValue(version.ServerId, out var group))
                 {
                     group = new RoleOnServer()
                     {
-                        ServerId = online.ServerId
+                        ServerId = version.ServerId
                     };
                     groups.Add(group.ServerId, group);
                 }
@@ -726,13 +725,13 @@ namespace Zeze.Game
         {
             var online = await _tonline.GetAsync(roleId);
             var local = await _tlocal.GetAsync(roleId);
-
+            var version = await _tversion.GetOrAddAsync(roleId);
             if (null == local)
                 return;
             // null == online && null == local -> do nothing
             // null != online && null == local -> do nothing
 
-            if ((null == online) || (online.LoginVersion != local.LoginVersion))
+            if ((null == online) || (version.LoginVersion != local.LoginVersion))
                 await RemoveLocalAndTrigger(roleId);
         }
 
@@ -758,17 +757,18 @@ namespace Zeze.Game
 
             var online = await _tonline.GetOrAddAsync(rpc.Argument.RoleId);
             var local = await _tlocal.GetOrAddAsync(rpc.Argument.RoleId);
+            var version = await _tversion.GetOrAddAsync(rpc.Argument.RoleId);
 
             // login exist && not local
-            if (online.LoginVersion != 0 && online.LoginVersion != local.LoginVersion)
+            if (version.LoginVersion != 0 && version.LoginVersion != local.LoginVersion)
             {
                 // nowait
-                _ = RedirectNotify(online.ServerId, rpc.Argument.RoleId);
+                _ = RedirectNotify(version.ServerId, rpc.Argument.RoleId);
             }
-            var version = account.LastLoginVersion + 1;
-            account.LastLoginVersion = version;
-            online.LoginVersion = version;
-            local.LoginVersion = version;
+            var loginVersion = account.LastLoginVersion + 1;
+            account.LastLoginVersion = loginVersion;
+            version.LoginVersion = loginVersion;
+            local.LoginVersion = loginVersion;
 
             if (!online.LinkName.Equals(session.LinkName) || online.LinkSid == session.LinkSid)
             {
@@ -776,17 +776,23 @@ namespace Zeze.Game
                         BKick.ErrorDuplicateLogin, "duplicate role login");
             }
 
-            online.LinkName = session.LinkName;
-            online.LinkSid = session.LinkSid;
-            online.State = BOnline.StateOnline;
+            /////////////////////////////////////////////////////////////
+            // 当LinkName,LinkSid没有变化的时候，保持记录是读取状态，不会申请写锁。
+            // 因为Online数据可能会被很多地方缓存，写操作会造成缓存失效。
+            // see Linkd.StableLinkSid
+            if (false == online.LinkName.Equals(session.LinkName))
+                online.LinkName = session.LinkName;
+            if (online.LinkSid != session.LinkSid)
+                online.LinkSid = session.LinkSid;
+            /////////////////////////////////////////////////////////////
 
-            online.ReliableNotifyConfirmCount = 0;
-            online.ReliableNotifyTotalCount = 0;
-            online.ReliableNotifyMark.Clear();
-            online.ReliableNotifyQueue.Clear();
+            version.ReliableNotifyConfirmCount = 0;
+            version.ReliableNotifyTotalCount = 0;
+            version.ReliableNotifyMark.Clear();
+            version.ReliableNotifyQueue.Clear();
 
             var linkSession = session.Link.UserState as ProviderService.LinkSession;
-            online.ServerId = ProviderApp.Zeze.Config.ServerId;
+            version.ServerId = ProviderApp.Zeze.Config.ServerId;
 
             await LoginTrigger(rpc.Argument.RoleId);
 
@@ -824,20 +830,28 @@ namespace Zeze.Game
                 return ErrorCode(ResultCodeOnlineDataNotFound);
 
             var local = await _tlocal.GetOrAddAsync(rpc.Argument.RoleId);
+            var version = await _tversion.GetOrAddAsync(rpc.Argument.RoleId);
+
             // login exist && not local
-            if (online.LoginVersion != 0 && online.LoginVersion != local.LoginVersion)
+            if (version.LoginVersion != 0 && version.LoginVersion != local.LoginVersion)
             {
                 // nowait
-                _ = RedirectNotify(online.ServerId, rpc.Argument.RoleId);
+                _ = RedirectNotify(version.ServerId, rpc.Argument.RoleId);
             }
-            var version = account.LastLoginVersion + 1;
-            account.LastLoginVersion = version;
-            online.LoginVersion = version;
-            local.LoginVersion = version;
+            var loginVersion = account.LastLoginVersion + 1;
+            account.LastLoginVersion = loginVersion;
+            version.LoginVersion = loginVersion;
+            local.LoginVersion = loginVersion;
 
-            online.LinkName = session.LinkName;
-            online.LinkSid = session.LinkSid;
-            online.State = BOnline.StateOnline;
+            /////////////////////////////////////////////////////////////
+            // 当LinkName,LinkSid没有变化的时候，保持记录是读取状态，不会申请写锁。
+            // 因为Online数据可能会被很多地方缓存，写操作会造成缓存失效。
+            // see Linkd.StableLinkSid
+            if (false == online.LinkName.Equals(session.LinkName))
+                online.LinkName = session.LinkName;
+            if (online.LinkSid != session.LinkSid)
+                online.LinkSid = session.LinkSid;
+            /////////////////////////////////////////////////////////////
 
             await ReloginTrigger(session.RoleId.Value);
 
@@ -852,9 +866,8 @@ namespace Zeze.Game
                 rpc.Sender.Send(setUserState); // 直接使用link连接。
             });
 
-            var syncResultCode = ReliableNotifySync(
-                session, rpc.Argument.ReliableNotifyConfirmCount,
-                online);
+            var syncResultCode = await ReliableNotifySync(session.RoleId.Value,
+                session, rpc.Argument.ReliableNotifyConfirmCount);
 
             if (syncResultCode != ResultCodeSuccess)
                 return ErrorCode((ushort)syncResultCode);
@@ -873,9 +886,10 @@ namespace Zeze.Game
 
             var local = await _tlocal.GetAsync(session.RoleId.Value);
             var online = await _tonline.GetAsync(session.RoleId.Value);
+            var version = await _tversion.GetOrAddAsync(session.RoleId.Value);
             // 登录在其他机器上。
             if (local == null && online != null)
-                _ = RedirectNotify(online.ServerId, session.RoleId.Value); // nowait
+                _ = RedirectNotify(version.ServerId, session.RoleId.Value); // nowait
             if (null != local)
                 await RemoveLocalAndTrigger(session.RoleId.Value);
             if (null != online)
@@ -894,8 +908,9 @@ namespace Zeze.Game
             return Procedure.Success;
         }
 
-        private int ReliableNotifySync(ProviderUserSession session, long ReliableNotifyConfirmCount, BOnline online, bool sync = true)
+        private async Task<int> ReliableNotifySync(long roleId, ProviderUserSession session, long ReliableNotifyConfirmCount, bool sync = true)
         {
+            var online = await _tversion.GetOrAddAsync(roleId);
             if (ReliableNotifyConfirmCount < online.ReliableNotifyConfirmCount
                 || ReliableNotifyConfirmCount > online.ReliableNotifyTotalCount
                 || ReliableNotifyConfirmCount - online.ReliableNotifyConfirmCount > online.ReliableNotifyQueue.Count)
@@ -924,15 +939,12 @@ namespace Zeze.Game
             var session = ProviderUserSession.Get(rpc);
 
             BOnline online = await _tonline.GetAsync(session.RoleId.Value);
-            if (null == online || online.State == BOnline.StateOffline)
+            if (null == online)
                 return ErrorCode(ResultCodeOnlineDataNotFound);
 
             session.SendResponseWhileCommit(rpc); // 同步前提交。
-            var syncResultCode = ReliableNotifySync(
-                session,
-                rpc.Argument.ReliableNotifyConfirmCount,
-                online,
-                false);
+            var syncResultCode = await ReliableNotifySync(session.RoleId.Value,
+                session, rpc.Argument.ReliableNotifyConfirmCount, false);
 
             if (ResultCodeSuccess != syncResultCode)
                 return ErrorCode((ushort)syncResultCode);
