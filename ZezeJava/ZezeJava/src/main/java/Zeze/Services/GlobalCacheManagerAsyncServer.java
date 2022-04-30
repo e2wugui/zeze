@@ -741,7 +741,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 									rpc.getSender().getUserState(), rpc.Argument.State, cs, reduce.Argument), ex);
 						}
 					}
-					cs.lock.enter(lastStage); // 需要唤醒等待任务结束的，但没法指定，只能全部唤醒。
+					cs.lock.enter(lastStage);
 				});
 			} else
 				lastStage.run();
