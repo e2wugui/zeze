@@ -25,6 +25,7 @@ Online Test 【肖丽杨】c#
 
 【2022/5/11】
 
+StableLinkSid Done(Need Test)
 StableLinkSid Prepare：分离LinkName,LinkSid到独立表中。
 Arch remove ProviderSessionId；Rename ProviderId to ServerId
 Online Test 【肖丽杨】Java
