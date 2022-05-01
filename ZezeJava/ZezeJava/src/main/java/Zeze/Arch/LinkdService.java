@@ -1,7 +1,9 @@
 package Zeze.Arch;
 
+import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
+import Zeze.Util.ConcurrentLruLike;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import Zeze.Builtin.LinkdBase.*;
@@ -14,6 +16,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 
 	public LinkdService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);
+		StableLinkSids = new ConcurrentLruLike<StableLinkSidKey, StableLinkSid>(1000000, this::TryLruRemove);
 	}
 
 	public void ReportError(long linkSid, int from, int code, String desc) {
@@ -47,12 +50,99 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		}
 	}
 
+	class StableLinkSidKey
+	{
+		// 同一个账号同一个ClientId只允许一个登录。
+		// ClientId 可能的分配方式：每个手机Client分配一个，所有电脑Client分配一个。
+		public String Account;
+		public String ClientId;
+
+		public StableLinkSidKey(String account, String clientId)
+		{
+			Account = account;
+			ClientId = clientId;
+		}
+
+		@Override
+		public int hashCode() {
+			final int _prime_ = 31;
+			int _h_ = 0;
+			_h_ = _h_ * _prime_ + Account.hashCode();
+			_h_ = _h_ * _prime_ + ClientId.hashCode();
+			return _h_;
+		}
+
+		@Override
+		public boolean equals(Object obj) {
+			if (obj == this)
+				return true;
+			if (obj instanceof StableLinkSidKey) {
+				var other = (StableLinkSidKey)obj;
+				return Account.equals(other.Account) && ClientId.equals(other.ClientId);
+			}
+			return false;
+		}
+	}
+
+	public class StableLinkSid {
+		public boolean Removed = false;
+		public long LinkSid;
+		public AsyncSocket AuthedSocket;
+	}
+
+	private ConcurrentLruLike<StableLinkSidKey, StableLinkSid> StableLinkSids;
+
+	private boolean TryLruRemove(StableLinkSidKey key, StableLinkSid value) {
+		var exist = StableLinkSids.remove(key);
+		if (null != exist) {
+			exist.Removed = true;
+		}
+		return true;
+	}
+
+	private void SetStableLinkSid(String account, String clientId, AsyncSocket client) {
+		var key = new StableLinkSidKey(account, clientId);
+		while (true) {
+			var stable = StableLinkSids.GetOrAdd(key, () -> new StableLinkSid());
+			synchronized (stable) {
+				if (stable.Removed)
+					continue;
+
+				if (stable.AuthedSocket == client) // same client
+					return;
+
+				// Must Close Before Reuse LinkSid
+				if (null != stable.AuthedSocket)
+					stable.AuthedSocket.Close(null);
+				if (stable.LinkSid != 0) {
+					// Reuse Old LinkSid
+					client.setSessionId(stable.LinkSid);
+				} else {
+					// first client
+					stable.LinkSid = client.getSessionId();
+				}
+				stable.AuthedSocket = client;
+				//(client.UserState as LinkSession).StableLinkSid = stable;
+			}
+		}
+	}
+
 	@Override
 	public void DispatchUnknownProtocol(Zeze.Net.AsyncSocket so, int moduleId, int protocolId, Zeze.Serialize.ByteBuffer data) {
 		var linkSession = (LinkdUserSession)so.getUserState();
 		if (null == linkSession || linkSession.getAccount().isEmpty()) {
 			ReportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNotAuthed, "not authed.");
 			return;
+		}
+
+		if (moduleId == Zeze.Game.Online.ModuleId && protocolId == Zeze.Builtin.Game.Online.Login.ProtocolId_) {
+			var login = new Zeze.Builtin.Game.Online.Login();
+			login.Decode(Zeze.Serialize.ByteBuffer.Wrap(data));
+			SetStableLinkSid(linkSession.getAccount(), String.valueOf(login.Argument.getRoleId()), so);
+		} else if (moduleId == Zeze.Arch.Online.ModuleId && protocolId == Zeze.Builtin.Online.Login.ProtocolId_) {
+			var login = new Zeze.Builtin.Online.Login();
+			login.Decode(Zeze.Serialize.ByteBuffer.Wrap(data));
+			SetStableLinkSid(linkSession.getAccount(), login.Argument.getClientId(), so);
 		}
 
 		var dispatch = new Dispatch();

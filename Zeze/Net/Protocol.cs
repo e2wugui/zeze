@@ -44,6 +44,20 @@ namespace Zeze.Net
 
 		public abstract void Encode(ByteBuffer bb);
 
+		public static T Decode<T>(ByteBuffer bb, T p)
+			where T : Protocol
+		{
+			var mid = bb.ReadInt4();
+			var pid = bb.ReadInt4();
+			if (MakeTypeId(mid, pid) != p.TypeId)
+				throw new Exception($"mid:pid={mid}:{pid} mismatch {p.ModuleId}:{p.ProtocolId}");
+			var size = bb.ReadInt4();
+			if (size > bb.Size)
+				throw new Exception($"protocol data not enough.");
+			p.Decode(bb);
+			return p;
+		}
+
 		public ByteBuffer Encode()
         {
 			ByteBuffer bb = ByteBuffer.Allocate(1024);

@@ -248,10 +248,10 @@
 			<protocol name="SendConfirm" argument="BSendConfirm" handle="server"/>
 
 			<bean name="BBroadcast">
-				<variable name="protocolType" id="1" type="long"/>
+				<variable name="protocolType"      id="1" type="long"/>
 				<variable name="protocolWholeData" id="2" type="binary"/> 完整的协议打包，包括了 type, size
-				<variable name="time"         id="3" type="int"/>
-				<variable name="ConfirmSerialId" id="4" type="long"/> 不为0的时候，linkd发送SendConfirm回逻辑服务器
+				<variable name="time"              id="3" type="int"/>
+				<variable name="ConfirmSerialId"   id="4" type="long"/> 不为0的时候，linkd发送SendConfirm回逻辑服务器
 			</bean>
 
 			<protocol name="Broadcast" argument="BBroadcast" handle="client"/>
@@ -269,52 +269,6 @@
 				<variable name="ProposeMaxOnline" id="2" type="int"/> 建议最大用户数量
 				<variable name="OnlineNew"        id="3" type="int"/> 最近上线用户数量，一般是一秒内的。用来防止短时间内给同一个gs分配太多用户。
 			</bean>
-			<!--
-			gs 定时向所有的 linkd 报告负载。
-			如果启用cahce-sync，可能linkd数量比较多。所以正常情况下，报告间隔应长点。比如10秒。
-			1）一般gs实现：
-			long LoginCount;
-			long LogoutCount;
-
-			long LoginCountLast;
-			int  ReportDelaySeconds;
-			int  TimoutDelaySeconds;
-
-			void StartTimerTask(int delaySeconds = 1)
-			{
-				TimoutDelaySeconds = delaySeconds;
-				Zeze.Util.Scheduler.Instance.Schedule(OnTimerTask, TimoutDelaySeconds * 1000);
-			}
-
-			void OnTimerTask()
-			{
-				int onlineNew = LoginCount - LoginCountLast;
-				LoginCountLast = LoginCount;
-				int onlineNewPerSecond = onlineNew / TimoutDelaySeconds;
-				if (onlineNewPerSecond > Config.MaxOnlineNew)
-				{
-					// 最近上线太多，马上报告负载。linkd不会再分配用户过来。
-					ReportLoadToAllLinkd;
-					StartTimerTask(onlineNewPerSecond / Config.MaxOnlineNew + 1); // new delay for digestion
-					ReportDelaySeconds = Config.ReportDelaySeconds; // 消化完后，下一次强迫报告Load。
-					return;
-				}
-				// slow report
-				ReportDelaySeconds += TimoutDelaySeconds;
-				if (ReportDelaySeconds >= Config.ReportDelaySeconds)
-				{
-					ReportDelaySeconds = 0;
-					ReportLoadToAllLinkd;
-				}
-				StartTimerTask();
-			}
-			Timer: 因为随时调整Timer的时间，所以这里使用 Zeze.Util.Scheduler。当然也可以使用系统的Timer。
-
-			2）一般linkd实现：
-			linkd在负载均衡选择gs时，会忽略掉 (Online > ProposeMaxOnline || OnlineNew > ConfigMaxOnlineNew)的gs。
-			详细实现参见 linkd/Zezex.Provider.ModuleProvider.Providers
-			<protocol name="ReportLoad" argument="BLoad" handle="client"/>
-			-->
 
 			<!-- link to gs -->
 			<bean name="BDispatch">

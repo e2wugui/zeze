@@ -27,6 +27,10 @@ public final class ByteBuffer {
 		return WriteIndex - ReadIndex;
 	}
 
+	public static ByteBuffer Wrap(ByteBuffer bb) {
+		return Wrap(bb.Bytes, bb.ReadIndex, bb.Size());
+	}
+
 	public static ByteBuffer Wrap(byte[] bytes) {
 		return new ByteBuffer(bytes, 0, bytes.length);
 	}

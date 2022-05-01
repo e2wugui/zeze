@@ -28,7 +28,7 @@ namespace Zeze.Builtin.Online
 
         public BAny(int _varId_) : base(_varId_)
         {
-            _Any = new Zeze.Transaction.DynamicBean(1, Zeze.Game.Online::GetSpecialTypeIdFromBean, Zeze.Game.Online::CreateBeanFromSpecialTypeId);
+            _Any = new Zeze.Transaction.DynamicBean(1, Zeze.Game.Online.GetSpecialTypeIdFromBean, Zeze.Game.Online.CreateBeanFromSpecialTypeId);
         }
 
         public void Assign(BAny other)

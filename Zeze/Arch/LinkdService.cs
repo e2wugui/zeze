@@ -20,6 +20,7 @@ namespace Zeze.Arch
         public LinkdService(string name, Application zeze)
             : base(name, zeze)
         {
+            StableLinkSids = new ConcurrentLruLike<StableLinkSidKey, StableLinkSid>(1000000, TryLruRemove);
         }
 
         public void ReportError(long linkSid, int from, int code, string desc)
@@ -52,6 +53,90 @@ namespace Zeze.Arch
             }
         }
 
+        class StableLinkSidKey
+        {
+            // 同一个账号同一个ClientId只允许一个登录。
+            // ClientId 可能的分配方式：每个手机Client分配一个，所有电脑Client分配一个。
+            public string Account { get; }
+            public string ClientId { get; }
+
+            public StableLinkSidKey(string account, string clientId)
+            {
+                Account = account;
+                ClientId = clientId;
+            }
+
+            public override int GetHashCode()
+            {
+                const int _prime_ = 31;
+                int _h_ = 0;
+                _h_ = _h_ * _prime_ + Account.GetHashCode();
+                _h_ = _h_ * _prime_ + ClientId.GetHashCode();
+                return _h_;
+            }
+
+            public override bool Equals(object obj)
+            {
+                if (obj == this)
+                    return true;
+                if (obj is StableLinkSidKey other)
+                {
+                    return Account.Equals(other.Account) && ClientId.Equals(other.ClientId);
+                }
+                return false;
+            }
+        }
+
+        public class StableLinkSid
+        {
+            public bool Removed { get; set; } = false;
+            public long LinkSid { get; set; }
+            public AsyncSocket AuthedSocket { get; set; }
+        }
+
+        private ConcurrentLruLike<StableLinkSidKey, StableLinkSid> StableLinkSids { get; set; }
+
+        private bool TryLruRemove(StableLinkSidKey key, StableLinkSid value)
+        {
+            if (StableLinkSids.TryRemove(key, out var exist))
+            {
+                exist.Removed = true;
+            }
+            return true;
+        }
+
+        private void SetStableLinkSid(string account, string clientId, AsyncSocket client)
+        {
+            var key = new StableLinkSidKey(account, clientId);
+            while (true)
+            {
+                var stable = StableLinkSids.GetOrAdd(key, (_) => new StableLinkSid());
+                lock (stable)
+                {
+                    if (stable.Removed)
+                        continue;
+
+                    if (stable.AuthedSocket == client) // same client
+                        return;
+
+                    // Must Close Before Reuse LinkSid
+                    stable.AuthedSocket?.Close(null);
+                    if (stable.LinkSid != 0)
+                    {
+                        // Reuse Old LinkSid
+                        client.SetSessionId(stable.LinkSid);
+                    }
+                    else
+                    {
+                        // first client
+                        stable.LinkSid = client.SessionId;
+                    }
+                    stable.AuthedSocket = client;
+                    //(client.UserState as LinkSession).StableLinkSid = stable;
+                }
+            }
+        }
+
         public override void DispatchUnknownProtocol(
             Zeze.Net.AsyncSocket so,
             int moduleId,
@@ -63,6 +148,19 @@ namespace Zeze.Arch
             {
                 ReportError(so.SessionId, BReportError.FromLink, BReportError.CodeNotAuthed, "not authed.");
                 return;
+            }
+
+            if (moduleId == global::Zeze.Game.Online.ModuleId && protocolId == global::Zeze.Builtin.Game.Online.Login.ProtocolId_)
+            {
+                var login = new global::Zeze.Builtin.Game.Online.Login();
+                login.Decode(Serialize.ByteBuffer.Wrap(data));
+                SetStableLinkSid(linkSession.Account, login.Argument.RoleId.ToString(), so);
+            }
+            else if (moduleId == global::Zeze.Arch.Online.ModuleId && protocolId == global::Zeze.Builtin.Online.Login.ProtocolId_)
+            {
+                var login = new global::Zeze.Builtin.Online.Login();
+                login.Decode(Serialize.ByteBuffer.Wrap(data));
+                SetStableLinkSid(linkSession.Account, login.Argument.ClientId, so);
             }
 
             var dispatch = new Dispatch();

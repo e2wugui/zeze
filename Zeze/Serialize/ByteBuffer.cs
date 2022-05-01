@@ -15,6 +15,11 @@ namespace Zeze.Serialize
         public int Size { get { return WriteIndex - ReadIndex; } }
 
         // decode
+        public static ByteBuffer Wrap(ByteBuffer other)
+        {
+            return Wrap(other.Bytes, other.ReadIndex, other.Size);
+        }
+
         public static ByteBuffer Wrap(byte[] bytes)
         {
             return new ByteBuffer(bytes, 0, bytes.Length);
