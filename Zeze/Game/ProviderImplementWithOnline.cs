@@ -25,18 +25,5 @@ namespace Zeze.Game
             }
             return Procedure.Success;
         }
-
-        protected override async Task<long> ProcessSendConfirm(Protocol _p)
-        {
-            var p = _p as SendConfirm;
-            var linkSession = (Zeze.Arch.ProviderService.LinkSession)p.Sender.UserState;
-            var ctx = ProviderApp.ProviderService.TryGetManualContext<Online.ConfirmContext>(p.Argument.ConfirmSerialId);
-            if (ctx != null)
-            {
-                ctx.ProcessLinkConfirm(linkSession.Name);
-            }
-            // linkName 也可以从 protocol.Sender.Connector.Name 获取。
-            return Procedure.Success;
-        }
     }
 }

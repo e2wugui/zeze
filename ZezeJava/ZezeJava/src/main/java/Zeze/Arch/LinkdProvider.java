@@ -201,14 +201,6 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 	@Override
 	protected long ProcessSend(Send protocol) {
-		// 这个是拿来处理乱序问题的：多个逻辑服务器之间，给客户端发送协议排队。
-		// 所以不用等待真正发送给客户端，收到就可以发送结果。
-		if (protocol.Argument.getConfirmSerialId() != 0) {
-			var confirm = new SendConfirm();
-			confirm.Argument.setConfirmSerialId(protocol.Argument.getConfirmSerialId());
-			protocol.getSender().Send(confirm);
-		}
-
 		for (var linkSid : protocol.Argument.getLinkSids()) {
 			var link = LinkdApp.LinkdService.GetSocket(linkSid);
 			var ptype = protocol.Argument.getProtocolType();
@@ -223,12 +215,6 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 	@Override
 	protected long ProcessBroadcast(Broadcast protocol) throws Throwable {
-		if (protocol.Argument.getConfirmSerialId() != 0) {
-			var confirm = new SendConfirm();
-			confirm.Argument.setConfirmSerialId(protocol.Argument.getConfirmSerialId());
-			protocol.getSender().Send(confirm);
-		}
-
 		LinkdApp.LinkdService.Foreach((socket) -> {
 			// auth 通过就允许发送广播。
 			// 如果要实现 role.login 才允许，Provider 增加 SetLogin 协议给内部server调用。

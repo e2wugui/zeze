@@ -236,22 +236,14 @@
 				<variable name="linkSids"     id="1" type="set" value="long"/>
 				<variable name="protocolType" id="2" type="long"/>
 				<variable name="protocolWholeData" id="3" type="binary"/> 完整的协议打包，包括了 type, size
-				<variable name="ConfirmSerialId" id="4" type="long"/> 不为0的时候，linkd发送SendConfirm回逻辑服务器
-			</bean>
-
-			<bean name="BSendConfirm">
-				<variable name="ConfirmSerialId" id="1" type="long"/> SendConfirm 参数，即Send.Argument.ConfirmSerialId
-				<variable name="LinkName" id="2" type="string"/>
 			</bean>
 
 			<protocol name="Send" argument="BSend" handle="client"/>
-			<protocol name="SendConfirm" argument="BSendConfirm" handle="server"/>
 
 			<bean name="BBroadcast">
 				<variable name="protocolType"      id="1" type="long"/>
 				<variable name="protocolWholeData" id="2" type="binary"/> 完整的协议打包，包括了 type, size
 				<variable name="time"              id="3" type="int"/>
-				<variable name="ConfirmSerialId"   id="4" type="long"/> 不为0的时候，linkd发送SendConfirm回逻辑服务器
 			</bean>
 
 			<protocol name="Broadcast" argument="BBroadcast" handle="client"/>

@@ -236,22 +236,14 @@
 				<variable name="linkSids"     id="1" type="set" value="long"/>
 				<variable name="protocolType" id="2" type="long"/>
 				<variable name="protocolWholeData" id="3" type="binary"/> 完整的协议打包，包括了 type, size
-				<variable name="ConfirmSerialId" id="4" type="long"/> 不为0的时候，linkd发送SendConfirm回逻辑服务器
-			</bean>
-
-			<bean name="BSendConfirm">
-				<variable name="ConfirmSerialId" id="1" type="long"/> SendConfirm 参数，即Send.Argument.ConfirmSerialId
-				<variable name="LinkName" id="2" type="string"/>
 			</bean>
 
 			<protocol name="Send" argument="BSend" handle="client"/>
-			<protocol name="SendConfirm" argument="BSendConfirm" handle="server"/>
 
 			<bean name="BBroadcast">
 				<variable name="protocolType"      id="1" type="long"/>
 				<variable name="protocolWholeData" id="2" type="binary"/> 完整的协议打包，包括了 type, size
 				<variable name="time"              id="3" type="int"/>
-				<variable name="ConfirmSerialId"   id="4" type="long"/> 不为0的时候，linkd发送SendConfirm回逻辑服务器
 			</bean>
 
 			<protocol name="Broadcast" argument="BBroadcast" handle="client"/>
@@ -641,7 +633,8 @@
 				<variable id="2" name="ReliableNotifyConfirmCount" type="long"/>
 			</bean>
 			<bean name="BReliableNotifyConfirm">
-				<variable id="1" name="ReliableNotifyConfirmCount" type="long"/>
+				<variable id="1" name="ClientId" type="string" />
+				<variable id="2" name="ReliableNotifyConfirmCount" type="long"/>
 			</bean>
 			<bean name="BReliableNotify">
 				<variable id="1" name="Notifies" type="list" value="binary"/> full encoded protocol list
@@ -656,33 +649,31 @@
 
 			<!-- tables -->
 			<bean name="BOnline">
-				<enum name="StateOffline"   value="0"/>
-				<!--enum name="StateLoading"   value="1"/>--> 装载数据还有 StateEnterWorld 不放到这里吧，这里只处理数据安全同步问题。
-				<enum name="StateOnline"    value="2"/>
-				<enum name="StateNetBroken" value="3"/> 客户端连接断开时，一定时间内可以重连。超时会删除 Online-Record。
-
-				<variable id="1" name="LinkName"    type="string"/>
-				<variable id="2" name="LinkSid"     type="long"/>
-				<variable id="3" name="State"       type="int" default="StateOffline"/>
-
-				<!-- 下面的定义用来实现可靠的协议通告。 -->
-				<variable id="4" name="ReliableNotifyMark"         type="set" value="string"/>
-				<variable id="5" name="ReliableNotifyQueue"        type="list" value="binary"/> full encoded protocol list
-				<variable id="6" name="ReliableNotifyConfirmCount" type="long"/>
-				<variable id="7" name="ReliableNotifyTotalCount"   type="long"/>
-
-				<variable id="8" name="ProviderId" type="int"/> Config.AutoKeyLocalId
-				<variable id="9" name="ProviderSessionId" type="long"/> 登录所在Linkd与当前Provider的连接在Linkd方的SessionId
-
-				<variable id="10" name="LoginVersion" type="long"/>
+				<variable id="1" name="LinkName" type="string"/>
+				<variable id="2" name="LinkSid"  type="long"/>
 			</bean>
-
+			<bean name="BVersion">
+				<variable id="1" name="LoginVersion" type="long"/>
+				<!-- 下面的定义用来实现可靠的协议通告。 -->
+				<variable id="2" name="ReliableNotifyMark"       type="set" value="string"/>
+				<variable id="3" name="ReliableNotifyQueue"      type="list" value="binary"/> full encoded protocol list
+				<variable id="4" name="ReliableNotifyTotalCount" type="long"/>
+				<variable id="5" name="ReliableNotifyConfirmCount" type="long"/>
+				<variable id="6" name="ServerId" type="int"/>
+			</bean>
 			<bean name="BAccount">
 				<variable id="1" name="LastLoginVersion" type="long"/> 用来生成 role 登录版本号。每次递增。
 			</bean>
+			<bean name="BOnlines">
+				<variable id="1" name="Logins" type="map" key="string" value="BOnline"/> key is ClientId
+			</bean>
+			<bean name="BVersions">
+				<variable id="1" name="Logins" type="map" key="string" value="BVersion"/> key is ClientId
+			</bean>
 
-			<table name="taccount"  key="string" value="BAccount"/>
-			<table name="tonline"   key="string" value="BOnline"/>
+			<table name="taccount" key="string" value="BAccount"/>
+			<table name="tonline"  key="string" value="BOnlines"/>
+			<table name="tversion" key="string" value="BVersions"/>
 
 			<bean name="BAny">
 				<variable id="1" name="Any" type="dynamic">
@@ -690,34 +681,14 @@
 					<CreateBeanFromSpecialTypeId value="Zeze.Game.Online.CreateBeanFromSpecialTypeId"/>
 				</variable>
 			</bean>
-
 			<bean name="BLocal">
 				<variable id="1" name="LoginVersion" type="long"/>
 				<variable id="2" name="Datas" type="map" key="string" value="BAny"/> 
 			</bean>
-
-			<table name="tlocal" key="string" memory="true" value="BLocal"/>
-
-			<!-- interface -->
-			<!--
-			* 事件
-			. Login Events
-			. ReLogin Events
-			. Logout Events
-			* 数据修改
-			. AddRole(account, roleId)
-			. RemoveRole(account, roleId)
-			. SetLastLoginRoleId?
-			* 协议发送
-			. SendXXX To Role
-			. SendXXX To Account?
-			. Transmit
-			. SendReliable
-			* 重载：一般不需要。
-			. override ProcessLoginRequest
-			. override ProcessReLoginRequest
-			. override ProcessLogoutRequest
-			-->
+			<bean name="BLocals">
+				<variable id="1" name="Logins" type="map" key="string" value="BLocal"/> key is ClientId
+			</bean>
+			<table name="tlocal" key="string" memory="true" value="BLocals"/>
 		</module> Online 11100
 
 	</module> Builtin

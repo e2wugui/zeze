@@ -38,13 +38,6 @@ public abstract class AbstractProviderImplement extends Zeze.IModule {
             service.AddFactoryHandle(47281652939086L, factoryHandle); // 11008, -1642022578
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Provider.SendConfirm>();
-            factoryHandle.Factory = Zeze.Builtin.Provider.SendConfirm::new;
-            factoryHandle.Handle = this::ProcessSendConfirm;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSendConfirm", Zeze.Transaction.TransactionLevel.Serializable);
-            service.AddFactoryHandle(47282983499888L, factoryHandle); // 11008, -311461776
-        }
-        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Provider.Subscribe>();
             factoryHandle.Factory = Zeze.Builtin.Provider.Subscribe::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessSubscribeRequest", Zeze.Transaction.TransactionLevel.Serializable);
@@ -63,7 +56,6 @@ public abstract class AbstractProviderImplement extends Zeze.IModule {
         service.getFactorys().remove(47279114253990L);
         service.getFactorys().remove(47280285301785L);
         service.getFactorys().remove(47281652939086L);
-        service.getFactorys().remove(47282983499888L);
         service.getFactorys().remove(47280110454586L);
         service.getFactorys().remove(47281107578964L);
     }
@@ -80,5 +72,4 @@ public abstract class AbstractProviderImplement extends Zeze.IModule {
     protected abstract long ProcessAnnounceLinkInfo(Zeze.Builtin.Provider.AnnounceLinkInfo p) throws Throwable;
     protected abstract long ProcessDispatch(Zeze.Builtin.Provider.Dispatch p) throws Throwable;
     protected abstract long ProcessLinkBroken(Zeze.Builtin.Provider.LinkBroken p) throws Throwable;
-    protected abstract long ProcessSendConfirm(Zeze.Builtin.Provider.SendConfirm p) throws Throwable;
 }

@@ -3,7 +3,7 @@ using Zeze.Serialize;
 
 namespace Zeze.Builtin.Online
 {
-    public sealed class tlocal : Zeze.Transaction.Table<string, Zeze.Builtin.Online.BLocal>
+    public sealed class tlocal : Zeze.Transaction.Table<string, Zeze.Builtin.Online.BLocals>
     {
         public tlocal() : base("Zeze_Builtin_Online_tlocal")
         {
@@ -13,8 +13,7 @@ namespace Zeze.Builtin.Online
         public override bool IsAutoKey => false;
 
         public const int VAR_All = 0;
-        public const int VAR_LoginVersion = 1;
-        public const int VAR_Datas = 2;
+        public const int VAR_Logins = 1;
 
         public override string DecodeKey(ByteBuffer _os_)
         {
@@ -35,8 +34,7 @@ namespace Zeze.Builtin.Online
             return variableId switch
             {
                 0 => new Zeze.Transaction.ChangeVariableCollectorChanged(),
-                1 => new Zeze.Transaction.ChangeVariableCollectorChanged(),
-                2 => new Zeze.Transaction.ChangeVariableCollectorMap(() => new Zeze.Transaction.ChangeNoteMap2<string, Zeze.Builtin.Online.BAny>(null)),
+                1 => new Zeze.Transaction.ChangeVariableCollectorMap(() => new Zeze.Transaction.ChangeNoteMap2<string, Zeze.Builtin.Online.BLocal>(null)),
                 _ => null,
             };
         }

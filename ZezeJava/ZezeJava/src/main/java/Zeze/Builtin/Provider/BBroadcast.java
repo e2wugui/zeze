@@ -8,7 +8,6 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
     private long _protocolType;
     private Zeze.Net.Binary _protocolWholeData; // 完整的协议打包，包括了 type, size
     private int _time;
-    private long _ConfirmSerialId; // 不为0的时候，linkd发送SendConfirm回逻辑服务器
 
     public long getProtocolType() {
         if (!isManaged())
@@ -78,28 +77,6 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__time(this, value));
     }
 
-    public long getConfirmSerialId() {
-        if (!isManaged())
-            return _ConfirmSerialId;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        if (txn == null)
-            return _ConfirmSerialId;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ConfirmSerialId)txn.GetLog(this.getObjectId() + 4);
-        return log != null ? log.getValue() : _ConfirmSerialId;
-    }
-
-    public void setConfirmSerialId(long value) {
-        if (!isManaged()) {
-            _ConfirmSerialId = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ConfirmSerialId(this, value));
-    }
-
     public BBroadcast() {
          this(0);
     }
@@ -113,7 +90,6 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
         setProtocolType(other.getProtocolType());
         setProtocolWholeData(other.getProtocolWholeData());
         setTime(other.getTime());
-        setConfirmSerialId(other.getConfirmSerialId());
     }
 
     public BBroadcast CopyIfManaged() {
@@ -168,14 +144,6 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
         public void Commit() { this.getBeanTyped()._time = this.getValue(); }
     }
 
-    private static final class Log__ConfirmSerialId extends Zeze.Transaction.Log1<BBroadcast, Long> {
-        public Log__ConfirmSerialId(BBroadcast self, Long value) { super(self, value); }
-        @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 4; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ConfirmSerialId = this.getValue(); }
-    }
-
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -190,8 +158,7 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("protocolType").append('=').append(getProtocolType()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("protocolWholeData").append('=').append(getProtocolWholeData()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("time").append('=').append(getTime()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ConfirmSerialId").append('=').append(getConfirmSerialId()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("time").append('=').append(getTime()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -232,13 +199,6 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
                 _o_.WriteInt(_x_);
             }
         }
-        {
-            long _x_ = getConfirmSerialId();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
-            }
-        }
         _o_.WriteByte(0);
     }
 
@@ -258,10 +218,6 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
             setTime(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 4) {
-            setConfirmSerialId(_o_.ReadLong(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -277,8 +233,6 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
         if (getProtocolType() < 0)
             return true;
         if (getTime() < 0)
-            return true;
-        if (getConfirmSerialId() < 0)
             return true;
         return false;
     }

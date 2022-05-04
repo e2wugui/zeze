@@ -13,32 +13,12 @@ namespace Zeze.Builtin.Online
 
         public string LinkName { get; }
         public long LinkSid { get; }
-        public int State { get; }
-        public System.Collections.Generic.IReadOnlySet<string> ReliableNotifyMark { get; }
-        public System.Collections.Generic.IReadOnlyList<Zeze.Net.Binary>ReliableNotifyQueue { get; }
-        public long ReliableNotifyConfirmCount { get; }
-        public long ReliableNotifyTotalCount { get; }
-        public int ProviderId { get; }
-        public long ProviderSessionId { get; }
-        public long LoginVersion { get; }
     }
 
     public sealed class BOnline : Zeze.Transaction.Bean, BOnlineReadOnly
     {
-        public const int StateOffline = 0;
-        public const int StateOnline = 2;
-        public const int StateNetBroken = 3; // 客户端连接断开时，一定时间内可以重连。超时会删除 Online-Record。
-
         string _LinkName;
         long _LinkSid;
-        int _State;
-        readonly Zeze.Transaction.Collections.PSet1<string> _ReliableNotifyMark;
-        readonly Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> _ReliableNotifyQueue; // full encoded protocol list
-        long _ReliableNotifyConfirmCount;
-        long _ReliableNotifyTotalCount;
-        int _ProviderId; // Config.AutoKeyLocalId
-        long _ProviderSessionId; // 登录所在Linkd与当前Provider的连接在Linkd方的SessionId
-        long _LoginVersion;
 
         public string LinkName
         {
@@ -91,162 +71,6 @@ namespace Zeze.Builtin.Online
             }
         }
 
-        public int State
-        {
-            get
-            {
-                if (!IsManaged)
-                    return _State;
-                var txn = Zeze.Transaction.Transaction.Current;
-                if (txn == null) return _State;
-                txn.VerifyRecordAccessed(this, true);
-                var log = (Log__State)txn.GetLog(ObjectId + 3);
-                return log != null ? log.Value : _State;
-            }
-            set
-            {
-                if (!IsManaged)
-                {
-                    _State = value;
-                    return;
-                }
-                var txn = Zeze.Transaction.Transaction.Current;
-                txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__State(this, value));
-            }
-        }
-
-        public Zeze.Transaction.Collections.PSet1<string> ReliableNotifyMark => _ReliableNotifyMark;
-        System.Collections.Generic.IReadOnlySet<string> Zeze.Builtin.Online.BOnlineReadOnly.ReliableNotifyMark => _ReliableNotifyMark;
-
-        public Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> ReliableNotifyQueue => _ReliableNotifyQueue;
-        System.Collections.Generic.IReadOnlyList<Zeze.Net.Binary> Zeze.Builtin.Online.BOnlineReadOnly.ReliableNotifyQueue => _ReliableNotifyQueue;
-
-        public long ReliableNotifyConfirmCount
-        {
-            get
-            {
-                if (!IsManaged)
-                    return _ReliableNotifyConfirmCount;
-                var txn = Zeze.Transaction.Transaction.Current;
-                if (txn == null) return _ReliableNotifyConfirmCount;
-                txn.VerifyRecordAccessed(this, true);
-                var log = (Log__ReliableNotifyConfirmCount)txn.GetLog(ObjectId + 6);
-                return log != null ? log.Value : _ReliableNotifyConfirmCount;
-            }
-            set
-            {
-                if (!IsManaged)
-                {
-                    _ReliableNotifyConfirmCount = value;
-                    return;
-                }
-                var txn = Zeze.Transaction.Transaction.Current;
-                txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ReliableNotifyConfirmCount(this, value));
-            }
-        }
-
-        public long ReliableNotifyTotalCount
-        {
-            get
-            {
-                if (!IsManaged)
-                    return _ReliableNotifyTotalCount;
-                var txn = Zeze.Transaction.Transaction.Current;
-                if (txn == null) return _ReliableNotifyTotalCount;
-                txn.VerifyRecordAccessed(this, true);
-                var log = (Log__ReliableNotifyTotalCount)txn.GetLog(ObjectId + 7);
-                return log != null ? log.Value : _ReliableNotifyTotalCount;
-            }
-            set
-            {
-                if (!IsManaged)
-                {
-                    _ReliableNotifyTotalCount = value;
-                    return;
-                }
-                var txn = Zeze.Transaction.Transaction.Current;
-                txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ReliableNotifyTotalCount(this, value));
-            }
-        }
-
-        public int ProviderId
-        {
-            get
-            {
-                if (!IsManaged)
-                    return _ProviderId;
-                var txn = Zeze.Transaction.Transaction.Current;
-                if (txn == null) return _ProviderId;
-                txn.VerifyRecordAccessed(this, true);
-                var log = (Log__ProviderId)txn.GetLog(ObjectId + 8);
-                return log != null ? log.Value : _ProviderId;
-            }
-            set
-            {
-                if (!IsManaged)
-                {
-                    _ProviderId = value;
-                    return;
-                }
-                var txn = Zeze.Transaction.Transaction.Current;
-                txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ProviderId(this, value));
-            }
-        }
-
-        public long ProviderSessionId
-        {
-            get
-            {
-                if (!IsManaged)
-                    return _ProviderSessionId;
-                var txn = Zeze.Transaction.Transaction.Current;
-                if (txn == null) return _ProviderSessionId;
-                txn.VerifyRecordAccessed(this, true);
-                var log = (Log__ProviderSessionId)txn.GetLog(ObjectId + 9);
-                return log != null ? log.Value : _ProviderSessionId;
-            }
-            set
-            {
-                if (!IsManaged)
-                {
-                    _ProviderSessionId = value;
-                    return;
-                }
-                var txn = Zeze.Transaction.Transaction.Current;
-                txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ProviderSessionId(this, value));
-            }
-        }
-
-        public long LoginVersion
-        {
-            get
-            {
-                if (!IsManaged)
-                    return _LoginVersion;
-                var txn = Zeze.Transaction.Transaction.Current;
-                if (txn == null) return _LoginVersion;
-                txn.VerifyRecordAccessed(this, true);
-                var log = (Log__LoginVersion)txn.GetLog(ObjectId + 10);
-                return log != null ? log.Value : _LoginVersion;
-            }
-            set
-            {
-                if (!IsManaged)
-                {
-                    _LoginVersion = value;
-                    return;
-                }
-                var txn = Zeze.Transaction.Transaction.Current;
-                txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__LoginVersion(this, value));
-            }
-        }
-
         public BOnline() : this(0)
         {
         }
@@ -254,27 +78,12 @@ namespace Zeze.Builtin.Online
         public BOnline(int _varId_) : base(_varId_)
         {
             _LinkName = "";
-            _State = StateOffline;
-            _ReliableNotifyMark = new Zeze.Transaction.Collections.PSet1<string>(ObjectId + 4, _v => new Log__ReliableNotifyMark(this, _v));
-            _ReliableNotifyQueue = new Zeze.Transaction.Collections.PList1<Zeze.Net.Binary>(ObjectId + 5, _v => new Log__ReliableNotifyQueue(this, _v));
         }
 
         public void Assign(BOnline other)
         {
             LinkName = other.LinkName;
             LinkSid = other.LinkSid;
-            State = other.State;
-            ReliableNotifyMark.Clear();
-            foreach (var e in other.ReliableNotifyMark)
-                ReliableNotifyMark.Add(e);
-            ReliableNotifyQueue.Clear();
-            foreach (var e in other.ReliableNotifyQueue)
-                ReliableNotifyQueue.Add(e);
-            ReliableNotifyConfirmCount = other.ReliableNotifyConfirmCount;
-            ReliableNotifyTotalCount = other.ReliableNotifyTotalCount;
-            ProviderId = other.ProviderId;
-            ProviderSessionId = other.ProviderSessionId;
-            LoginVersion = other.LoginVersion;
         }
 
         public BOnline CopyIfManaged()
@@ -318,64 +127,6 @@ namespace Zeze.Builtin.Online
             public override void Commit() { this.BeanTyped._LinkSid = this.Value; }
         }
 
-        sealed class Log__State : Zeze.Transaction.Log<BOnline, int>
-        {
-            public Log__State(BOnline self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 3;
-            public override void Commit() { this.BeanTyped._State = this.Value; }
-        }
-
-        sealed class Log__ReliableNotifyMark : Zeze.Transaction.Collections.PSet1<string>.LogV
-        {
-            public Log__ReliableNotifyMark(BOnline host, System.Collections.Immutable.ImmutableHashSet<string> value) : base(host, value) {}
-            public override long LogKey => Bean.ObjectId + 4;
-            public BOnline BeanTyped => (BOnline)Bean;
-            public override void Commit() { Commit(BeanTyped._ReliableNotifyMark); }
-        }
-
-        sealed class Log__ReliableNotifyQueue : Zeze.Transaction.Collections.PList1<Zeze.Net.Binary>.LogV
-        {
-            public Log__ReliableNotifyQueue(BOnline host, System.Collections.Immutable.ImmutableList<Zeze.Net.Binary> value) : base(host, value) {}
-            public override long LogKey => Bean.ObjectId + 5;
-            public BOnline BeanTyped => (BOnline)Bean;
-            public override void Commit() { Commit(BeanTyped._ReliableNotifyQueue); }
-        }
-
-        sealed class Log__ReliableNotifyConfirmCount : Zeze.Transaction.Log<BOnline, long>
-        {
-            public Log__ReliableNotifyConfirmCount(BOnline self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 6;
-            public override void Commit() { this.BeanTyped._ReliableNotifyConfirmCount = this.Value; }
-        }
-
-        sealed class Log__ReliableNotifyTotalCount : Zeze.Transaction.Log<BOnline, long>
-        {
-            public Log__ReliableNotifyTotalCount(BOnline self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 7;
-            public override void Commit() { this.BeanTyped._ReliableNotifyTotalCount = this.Value; }
-        }
-
-        sealed class Log__ProviderId : Zeze.Transaction.Log<BOnline, int>
-        {
-            public Log__ProviderId(BOnline self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 8;
-            public override void Commit() { this.BeanTyped._ProviderId = this.Value; }
-        }
-
-        sealed class Log__ProviderSessionId : Zeze.Transaction.Log<BOnline, long>
-        {
-            public Log__ProviderSessionId(BOnline self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 9;
-            public override void Commit() { this.BeanTyped._ProviderSessionId = this.Value; }
-        }
-
-        sealed class Log__LoginVersion : Zeze.Transaction.Log<BOnline, long>
-        {
-            public Log__LoginVersion(BOnline self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 10;
-            public override void Commit() { this.BeanTyped._LoginVersion = this.Value; }
-        }
-
         public override string ToString()
         {
             System.Text.StringBuilder sb = new System.Text.StringBuilder();
@@ -389,29 +140,7 @@ namespace Zeze.Builtin.Online
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Builtin.Online.BOnline: {").Append(Environment.NewLine);
             level += 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append("LinkName").Append('=').Append(LinkName).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("LinkSid").Append('=').Append(LinkSid).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("State").Append('=').Append(State).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("ReliableNotifyMark").Append("=[").Append(Environment.NewLine);
-            level += 4;
-            foreach (var Item in ReliableNotifyMark)
-            {
-                sb.Append(Zeze.Util.Str.Indent(level)).Append("Item").Append('=').Append(Item).Append(',').Append(Environment.NewLine);
-            }
-            level -= 4;
-            sb.Append(Zeze.Util.Str.Indent(level)).Append(']').Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("ReliableNotifyQueue").Append("=[").Append(Environment.NewLine);
-            level += 4;
-            foreach (var Item in ReliableNotifyQueue)
-            {
-                sb.Append(Zeze.Util.Str.Indent(level)).Append("Item").Append('=').Append(Item).Append(',').Append(Environment.NewLine);
-            }
-            level -= 4;
-            sb.Append(Zeze.Util.Str.Indent(level)).Append(']').Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("ReliableNotifyConfirmCount").Append('=').Append(ReliableNotifyConfirmCount).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("ReliableNotifyTotalCount").Append('=').Append(ReliableNotifyTotalCount).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("ProviderId").Append('=').Append(ProviderId).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("ProviderSessionId").Append('=').Append(ProviderSessionId).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("LoginVersion").Append('=').Append(LoginVersion).Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("LinkSid").Append('=').Append(LinkSid).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -435,80 +164,6 @@ namespace Zeze.Builtin.Online
                     _o_.WriteLong(_x_);
                 }
             }
-            {
-                int _x_ = State;
-                if (_x_ != 0)
-                {
-                    _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
-                    _o_.WriteInt(_x_);
-                }
-            }
-            {
-                var _x_ = ReliableNotifyMark;
-                int _n_ = _x_.Count;
-                if (_n_ != 0)
-                {
-                    _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.LIST);
-                    _o_.WriteListType(_n_, ByteBuffer.BYTES);
-                    foreach (var _v_ in _x_)
-                    {
-                        _o_.WriteString(_v_);
-                    }
-                }
-            }
-            {
-                var _x_ = ReliableNotifyQueue;
-                int _n_ = _x_.Count;
-                if (_n_ != 0)
-                {
-                    _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.LIST);
-                    _o_.WriteListType(_n_, ByteBuffer.BYTES);
-                    foreach (var _v_ in _x_)
-                    {
-                        _o_.WriteBinary(_v_);
-                    }
-                }
-            }
-            {
-                long _x_ = ReliableNotifyConfirmCount;
-                if (_x_ != 0)
-                {
-                    _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.INTEGER);
-                    _o_.WriteLong(_x_);
-                }
-            }
-            {
-                long _x_ = ReliableNotifyTotalCount;
-                if (_x_ != 0)
-                {
-                    _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.INTEGER);
-                    _o_.WriteLong(_x_);
-                }
-            }
-            {
-                int _x_ = ProviderId;
-                if (_x_ != 0)
-                {
-                    _i_ = _o_.WriteTag(_i_, 8, ByteBuffer.INTEGER);
-                    _o_.WriteInt(_x_);
-                }
-            }
-            {
-                long _x_ = ProviderSessionId;
-                if (_x_ != 0)
-                {
-                    _i_ = _o_.WriteTag(_i_, 9, ByteBuffer.INTEGER);
-                    _o_.WriteLong(_x_);
-                }
-            }
-            {
-                long _x_ = LoginVersion;
-                if (_x_ != 0)
-                {
-                    _i_ = _o_.WriteTag(_i_, 10, ByteBuffer.INTEGER);
-                    _o_.WriteLong(_x_);
-                }
-            }
             _o_.WriteByte(0);
         }
 
@@ -526,66 +181,6 @@ namespace Zeze.Builtin.Online
                 LinkSid = _o_.ReadLong(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
-            if (_i_ == 3)
-            {
-                State = _o_.ReadInt(_t_);
-                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-            }
-            if (_i_ == 4)
-            {
-                var _x_ = ReliableNotifyMark;
-                _x_.Clear();
-                if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST)
-                {
-                    for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    {
-                        _x_.Add(_o_.ReadString(_t_));
-                    }
-                }
-                else
-                    _o_.SkipUnknownField(_t_);
-                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-            }
-            if (_i_ == 5)
-            {
-                var _x_ = ReliableNotifyQueue;
-                _x_.Clear();
-                if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST)
-                {
-                    for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    {
-                        _x_.Add(_o_.ReadBinary(_t_));
-                    }
-                }
-                else
-                    _o_.SkipUnknownField(_t_);
-                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-            }
-            if (_i_ == 6)
-            {
-                ReliableNotifyConfirmCount = _o_.ReadLong(_t_);
-                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-            }
-            if (_i_ == 7)
-            {
-                ReliableNotifyTotalCount = _o_.ReadLong(_t_);
-                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-            }
-            if (_i_ == 8)
-            {
-                ProviderId = _o_.ReadInt(_t_);
-                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-            }
-            if (_i_ == 9)
-            {
-                ProviderSessionId = _o_.ReadLong(_t_);
-                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-            }
-            if (_i_ == 10)
-            {
-                LoginVersion = _o_.ReadLong(_t_);
-                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-            }
             while (_t_ != 0)
             {
                 _o_.SkipUnknownField(_t_);
@@ -595,19 +190,11 @@ namespace Zeze.Builtin.Online
 
         protected override void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root)
         {
-            _ReliableNotifyMark.InitRootInfo(root, this);
-            _ReliableNotifyQueue.InitRootInfo(root, this);
         }
 
         public override bool NegativeCheck()
         {
             if (LinkSid < 0) return true;
-            if (State < 0) return true;
-            if (ReliableNotifyConfirmCount < 0) return true;
-            if (ReliableNotifyTotalCount < 0) return true;
-            if (ProviderId < 0) return true;
-            if (ProviderSessionId < 0) return true;
-            if (LoginVersion < 0) return true;
             return false;
         }
     }

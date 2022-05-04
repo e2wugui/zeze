@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace Zeze.Transaction.Collections
 {
-    public sealed class PMap2<K, V> : PMap<K, V> where V : Bean
+    public sealed class PMap2<K, V> : PMap<K, V> where V : Bean, new()
     {
         public PMap2(long logKey, Func<ImmutableDictionary<K, V>, Log> logFactory) : base(logKey, logFactory)
         {
@@ -68,6 +68,15 @@ namespace Zeze.Transaction.Collections
             {
                 map = map.Add(key, value);
             }
+        }
+
+        public V GetOrAdd(K key)
+        {
+            if (false == TryGetValue(key, out var value))
+                return value;
+            value = new V();
+            Add(key, value);
+            return value;
         }
 
         public override void AddRange(IEnumerable<KeyValuePair<K, V>> pairs)

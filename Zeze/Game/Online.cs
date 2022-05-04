@@ -224,7 +224,7 @@ namespace Zeze.Game
         public async Task RemoveReliableNotifyMark(long roleId, string listenerName)
         {
             // 移除尽量通过，不做任何判断。
-            (await _tversion.GetOrAddAsync(roleId))?.ReliableNotifyMark.Remove(listenerName);
+            (await _tversion.GetOrAddAsync(roleId)).ReliableNotifyMark.Remove(listenerName);
         }
 
         public void SendReliableNotifyWhileCommit(
@@ -306,7 +306,7 @@ namespace Zeze.Game
                     notify.Argument.ReliableNotifyTotalCountStart = version.ReliableNotifyTotalCount;
                     notify.Argument.Notifies.Add(fullEncodedProtocol);
 
-                    await SendInProcedure(roleId, notify.TypeId, new Binary(notify.Encode()), future);
+                    await SendInProcedure(roleId, notify.TypeId, new Binary(notify.Encode()));
                     version.ReliableNotifyTotalCount += 1; // 后加，start 是 Queue.Add 之前的。
                     return Procedure.Success;
                 },
@@ -367,28 +367,10 @@ namespace Zeze.Game
             return groups.Values;
         }
 
-        private async Task SendInProcedure(
-            long roleId, long typeId, Binary fullEncodedProtocol,
-            TaskCompletionSource<long> future)
+        private async Task SendInProcedure(long roleId, long typeId, Binary fullEncodedProtocol)
         {
             // 发送消息为了用上TaskOneByOne，只能一个一个发送，为了少改代码，先使用旧的GroupByLink接口。
             var groups = await GroupByLink(new List<long> { roleId });
-            long serialId = 0;
-            if (null != future)
-            {
-                var confrmContext = new ConfirmContext(ProviderApp, future);
-                // 必须在真正发送前全部加入，否则要是发生结果很快返回，
-                // 导致异步问题：错误的认为所有 Confirm 都收到。
-                foreach (var group in groups)
-                {
-                    if (group.LinkSocket == null)
-                        continue; // skip not online
-
-                    confrmContext.LinkNames.Add(group.LinkName);
-                }
-                serialId = ProviderApp.ProviderService.AddManualContextWithTimeout(confrmContext, 5000);
-            }
-
             foreach (var group in groups)
             {
                 if (group.LinkSocket == null)
@@ -397,46 +379,36 @@ namespace Zeze.Game
                 var send = new Send();
                 send.Argument.ProtocolType = typeId;
                 send.Argument.ProtocolWholeData = fullEncodedProtocol;
-                send.Argument.ConfirmSerialId = serialId;
                 send.Argument.LinkSids.UnionWith(group.Roles.Values);
                 group.LinkSocket.Send(send);
             }
         }
 
-        private void Send(
-            long roleId, long typeId, Binary fullEncodedProtocol,
-            bool WaitConfirm)
+        private void Send(long roleId, long typeId, Binary fullEncodedProtocol)
         {
-            TaskCompletionSource<long> future = null;
-
-            if (WaitConfirm)
-                future = new TaskCompletionSource<long>();
-
             // 发送协议请求在另外的事务中执行。
             ProviderApp.Zeze.TaskOneByOneByKey.Execute(roleId, () =>
                 ProviderApp.Zeze.NewProcedure(async () =>
                 {
-                    await SendInProcedure(roleId, typeId, fullEncodedProtocol, future);
+                    await SendInProcedure(roleId, typeId, fullEncodedProtocol);
                     return Procedure.Success;
                 }, "Onlines.Send"));
-
-            future?.Task.Wait();
         }
 
-        public void Send(long roleId, Protocol p, bool WaitConfirm = false)
+        public void Send(long roleId, Protocol p)
         {
-            Send(roleId, p.TypeId, new Binary(p.Encode()), WaitConfirm);
+            Send(roleId, p.TypeId, new Binary(p.Encode()));
         }
 
         public void Send(ICollection<long> roleIds, Protocol p)
         {
             foreach (var roleId in roleIds)
-                Send(roleId, p.TypeId, new Binary(p.Encode()), false);
+                Send(roleId, p.TypeId, new Binary(p.Encode()));
         }
 
-        public void SendWhileCommit(long roleId, Protocol p, bool WaitConfirm = false)
+        public void SendWhileCommit(long roleId, Protocol p)
         {
-            Transaction.Transaction.Current.RunWhileCommit(() => Send(roleId, p, WaitConfirm));
+            Transaction.Transaction.Current.RunWhileCommit(() => Send(roleId, p));
         }
 
         public void SendWhileCommit(ICollection<long> roleIds, Protocol p)
@@ -444,9 +416,9 @@ namespace Zeze.Game
             Transaction.Transaction.Current.RunWhileCommit(() => Send(roleIds, p));
         }
 
-        public void SendWhileRollback(long roleId, Protocol p, bool WaitConfirm = false)
+        public void SendWhileRollback(long roleId, Protocol p)
         {
-            Transaction.Transaction.Current.RunWhileRollback(() => Send(roleId, p, WaitConfirm));
+            Transaction.Transaction.Current.RunWhileRollback(() => Send(roleId, p));
         }
 
         public void SendWhileRollback(ICollection<long> roleIds, Protocol p)
@@ -656,26 +628,11 @@ namespace Zeze.Game
             }
         }
 
-        private void Broadcast(long typeId, Binary fullEncodedProtocol, int time, bool WaitConfirm)
+        private void Broadcast(long typeId, Binary fullEncodedProtocol, int time)
         {
-            TaskCompletionSource<long> future = null;
-            long serialId = 0;
-            if (WaitConfirm)
-            {
-                future = new TaskCompletionSource<long>();
-                var confirmContext = new ConfirmContext(ProviderApp, future);
-                foreach (var link in ProviderApp.ProviderService.Links.Values)
-                {
-                    if (link.Socket != null)
-                        confirmContext.LinkNames.Add(link.Name);
-                }
-                serialId = ProviderApp.ProviderService.AddManualContextWithTimeout(confirmContext, 5000);
-            }
-
             var broadcast = new Broadcast();
             broadcast.Argument.ProtocolType = typeId;
             broadcast.Argument.ProtocolWholeData = fullEncodedProtocol;
-            broadcast.Argument.ConfirmSerialId = serialId;
             broadcast.Argument.Time = time;
 
             foreach (var link in ProviderApp.ProviderService.Links.Values)
@@ -683,12 +640,11 @@ namespace Zeze.Game
                 link.Socket?.Send(broadcast);
             }
 
-            future?.Task.Wait();
         }
 
-        public void Broadcast(Protocol p, int time = 60 * 1000, bool WaitConfirm = false)
+        public void Broadcast(Protocol p, int time = 60 * 1000)
         {
-            Broadcast(p.TypeId, new Binary(p.Encode()), time, WaitConfirm);
+            Broadcast(p.TypeId, new Binary(p.Encode()), time);
         }
 
         private void VerifyLocal(Util.SchedulerTask thisTask)
@@ -746,10 +702,7 @@ namespace Zeze.Game
             var rpc = p as Login;
             var session = ProviderUserSession.Get(rpc);
 
-            var account = await _taccount.GetAsync(session.Account);
-            if (null == account)
-                return ErrorCode(ResultCodeAccountNotExist);
-
+            var account = await _taccount.GetOrAddAsync(session.Account);
             if (!account.Roles.Contains(rpc.Argument.RoleId))
                 return ErrorCode(ResultCodeRoleNotExist);
 

@@ -61,7 +61,7 @@ namespace Zeze.Transaction
         }
     }
 
-    public sealed class ChangeNoteMap2<K, V> : ChangeNoteMap1<K, V> where V : Bean
+    public sealed class ChangeNoteMap2<K, V> : ChangeNoteMap1<K, V> where V : Bean, new()
     {
         // 记录 map 中的 value 发生了改变。需要查找原 Map 才能映射到 Replaced 中。
         // Notify 的时候由 Collector 设置。

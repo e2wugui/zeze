@@ -20,7 +20,6 @@ Global c# 慢的问题。
 TableCache增加一级RocksDb的缓存，不受限于内存。Java SoftReference<T>.
 TableCache.Clean 整体考虑。
 Online Account （java，c#）
-Linkd ReuseLinkSid
 Online Test 【肖丽杨】c#
 
 【2022/5/11】

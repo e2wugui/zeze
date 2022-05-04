@@ -74,13 +74,6 @@ namespace Zeze.Arch
         protected override async Task<long> ProcessBroadcast(Zeze.Net.Protocol p)
         {
             var protocol = p as Broadcast;
-            if (protocol.Argument.ConfirmSerialId != 0)
-            {
-                var confirm = new SendConfirm();
-                confirm.Argument.ConfirmSerialId = protocol.Argument.ConfirmSerialId;
-                protocol.Sender.Send(confirm);
-            }
-
             LinkdApp.LinkdService.Foreach((socket) =>
             {
                 // auth 通过就允许发送广播。
@@ -109,15 +102,6 @@ namespace Zeze.Arch
         protected override async Task<long> ProcessSend(Zeze.Net.Protocol _p)
         {
             var protocol = _p as Send;
-            // 这个是拿来处理乱序问题的：多个逻辑服务器之间，给客户端发送协议排队。
-            // 所以不用等待真正发送给客户端，收到就可以发送结果。
-            if (protocol.Argument.ConfirmSerialId != 0)
-            {
-                var confirm = new SendConfirm();
-                confirm.Argument.ConfirmSerialId = protocol.Argument.ConfirmSerialId;
-                protocol.Sender.Send(confirm);
-            }
-
             foreach (var linkSid in protocol.Argument.LinkSids)
             {
                 var link = LinkdApp.LinkdService.GetSocket(linkSid);

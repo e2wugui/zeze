@@ -21,6 +21,7 @@ namespace Zeze.Arch
         internal Zeze.Builtin.Online.taccount _taccount = new Zeze.Builtin.Online.taccount();
         internal Zeze.Builtin.Online.tlocal _tlocal = new Zeze.Builtin.Online.tlocal();
         internal Zeze.Builtin.Online.tonline _tonline = new Zeze.Builtin.Online.tonline();
+        internal Zeze.Builtin.Online.tversion _tversion = new Zeze.Builtin.Online.tversion();
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {
@@ -66,6 +67,7 @@ namespace Zeze.Arch
             zeze.AddTable(zeze.Config.GetTableConf(_taccount.Name).DatabaseName, _taccount);
             zeze.AddTable(zeze.Config.GetTableConf(_tlocal.Name).DatabaseName, _tlocal);
             zeze.AddTable(zeze.Config.GetTableConf(_tonline.Name).DatabaseName, _tonline);
+            zeze.AddTable(zeze.Config.GetTableConf(_tversion.Name).DatabaseName, _tversion);
         }
 
         public void UnRegisterZezeTables(Zeze.Application zeze)
@@ -73,6 +75,7 @@ namespace Zeze.Arch
             zeze.RemoveTable(zeze.Config.GetTableConf(_taccount.Name).DatabaseName, _taccount);
             zeze.RemoveTable(zeze.Config.GetTableConf(_tlocal.Name).DatabaseName, _tlocal);
             zeze.RemoveTable(zeze.Config.GetTableConf(_tonline.Name).DatabaseName, _tonline);
+            zeze.RemoveTable(zeze.Config.GetTableConf(_tversion.Name).DatabaseName, _tversion);
         }
 
         public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks)

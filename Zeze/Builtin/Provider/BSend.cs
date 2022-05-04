@@ -14,7 +14,6 @@ namespace Zeze.Builtin.Provider
         public System.Collections.Generic.IReadOnlySet<long> LinkSids { get; }
         public long ProtocolType { get; }
         public Zeze.Net.Binary ProtocolWholeData { get; }
-        public long ConfirmSerialId { get; }
     }
 
     public sealed class BSend : Zeze.Transaction.Bean, BSendReadOnly
@@ -22,7 +21,6 @@ namespace Zeze.Builtin.Provider
         readonly Zeze.Transaction.Collections.PSet1<long> _linkSids;
         long _protocolType;
         Zeze.Net.Binary _protocolWholeData; // 完整的协议打包，包括了 type, size
-        long _ConfirmSerialId; // 不为0的时候，linkd发送SendConfirm回逻辑服务器
 
         public Zeze.Transaction.Collections.PSet1<long> LinkSids => _linkSids;
         System.Collections.Generic.IReadOnlySet<long> Zeze.Builtin.Provider.BSendReadOnly.LinkSids => _linkSids;
@@ -78,31 +76,6 @@ namespace Zeze.Builtin.Provider
             }
         }
 
-        public long ConfirmSerialId
-        {
-            get
-            {
-                if (!IsManaged)
-                    return _ConfirmSerialId;
-                var txn = Zeze.Transaction.Transaction.Current;
-                if (txn == null) return _ConfirmSerialId;
-                txn.VerifyRecordAccessed(this, true);
-                var log = (Log__ConfirmSerialId)txn.GetLog(ObjectId + 4);
-                return log != null ? log.Value : _ConfirmSerialId;
-            }
-            set
-            {
-                if (!IsManaged)
-                {
-                    _ConfirmSerialId = value;
-                    return;
-                }
-                var txn = Zeze.Transaction.Transaction.Current;
-                txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ConfirmSerialId(this, value));
-            }
-        }
-
         public BSend() : this(0)
         {
         }
@@ -120,7 +93,6 @@ namespace Zeze.Builtin.Provider
                 LinkSids.Add(e);
             ProtocolType = other.ProtocolType;
             ProtocolWholeData = other.ProtocolWholeData;
-            ConfirmSerialId = other.ConfirmSerialId;
         }
 
         public BSend CopyIfManaged()
@@ -172,13 +144,6 @@ namespace Zeze.Builtin.Provider
             public override void Commit() { this.BeanTyped._protocolWholeData = this.Value; }
         }
 
-        sealed class Log__ConfirmSerialId : Zeze.Transaction.Log<BSend, long>
-        {
-            public Log__ConfirmSerialId(BSend self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 4;
-            public override void Commit() { this.BeanTyped._ConfirmSerialId = this.Value; }
-        }
-
         public override string ToString()
         {
             System.Text.StringBuilder sb = new System.Text.StringBuilder();
@@ -200,8 +165,7 @@ namespace Zeze.Builtin.Provider
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append(']').Append(',').Append(Environment.NewLine);
             sb.Append(Zeze.Util.Str.Indent(level)).Append("ProtocolType").Append('=').Append(ProtocolType).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("ProtocolWholeData").Append('=').Append(ProtocolWholeData).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("ConfirmSerialId").Append('=').Append(ConfirmSerialId).Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("ProtocolWholeData").Append('=').Append(ProtocolWholeData).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -238,14 +202,6 @@ namespace Zeze.Builtin.Provider
                     _o_.WriteBinary(_x_);
                 }
             }
-            {
-                long _x_ = ConfirmSerialId;
-                if (_x_ != 0)
-                {
-                    _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
-                    _o_.WriteLong(_x_);
-                }
-            }
             _o_.WriteByte(0);
         }
 
@@ -278,11 +234,6 @@ namespace Zeze.Builtin.Provider
                 ProtocolWholeData = _o_.ReadBinary(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
-            if (_i_ == 4)
-            {
-                ConfirmSerialId = _o_.ReadLong(_t_);
-                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-            }
             while (_t_ != 0)
             {
                 _o_.SkipUnknownField(_t_);
@@ -302,7 +253,6 @@ namespace Zeze.Builtin.Provider
                 if (_v_ < 0) return true;
             }
             if (ProtocolType < 0) return true;
-            if (ConfirmSerialId < 0) return true;
             return false;
         }
     }

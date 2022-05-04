@@ -258,11 +258,7 @@ public class Online extends AbstractOnline {
 	}
 
 	public final void send(long roleId, Protocol<?> p) {
-		send(roleId, p, false);
-	}
-
-	public final void send(long roleId, Protocol<?> p, boolean waitConfirm) {
-		send(roleId, p.getTypeId(), new Binary(p.Encode()), waitConfirm);
+		send(roleId, p.getTypeId(), new Binary(p.Encode()));
 	}
 
 	// 广播不支持 waitConfirm
@@ -278,12 +274,8 @@ public class Online extends AbstractOnline {
 	}
 
 	public final void sendWhileCommit(long roleId, Protocol<?> p) {
-		sendWhileCommit(roleId, p, false);
-	}
-
-	public final void sendWhileCommit(long roleId, Protocol<?> p, boolean WaitConfirm) {
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileCommit(() -> send(roleId, p, WaitConfirm));
+		Transaction.getCurrent().RunWhileCommit(() -> send(roleId, p));
 	}
 
 	public final void sendWhileCommit(Iterable<Long> roleIds, Protocol<?> p) {
@@ -292,12 +284,8 @@ public class Online extends AbstractOnline {
 	}
 
 	public final void sendWhileRollback(long roleId, Protocol<?> p) {
-		sendWhileRollback(roleId, p, false);
-	}
-
-	public final void sendWhileRollback(long roleId, Protocol<?> p, boolean waitConfirm) {
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileRollback(() -> send(roleId, p, waitConfirm));
+		Transaction.getCurrent().RunWhileRollback(() -> send(roleId, p));
 	}
 
 	public final void sendWhileRollback(Iterable<Long> roleIds, Protocol<?> p) {
@@ -305,43 +293,26 @@ public class Online extends AbstractOnline {
 		Transaction.getCurrent().RunWhileRollback(() -> send(roleIds, p));
 	}
 
-	private void send(long roleId, long typeId, Binary fullEncodedProtocol, boolean waitConfirm) {
-		var future = waitConfirm ? new TaskCompletionSource<Long>() : null;
-
+	private void send(long roleId, long typeId, Binary fullEncodedProtocol) {
 		// 发送协议请求在另外的事务中执行。
 		ProviderApp.Zeze.getTaskOneByOneByKey().Execute(roleId, () -> Task.Call(ProviderApp.Zeze.NewProcedure(() -> {
-			sendInProcedure(List.of(roleId), typeId, fullEncodedProtocol, future);
+			sendInProcedure(List.of(roleId), typeId, fullEncodedProtocol);
 			return Procedure.Success;
 		}, "Game.Online.send"), null, null));
-
-		if (future != null)
-			future.await();
 	}
 
 	// 广播不支持 WaitConfirm
 	private void send(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
 		// 发送协议请求在另外的事务中执行。
 		Task.run(ProviderApp.Zeze.NewProcedure(() -> {
-			sendInProcedure(roleIds, typeId, fullEncodedProtocol, null);
+			sendInProcedure(roleIds, typeId, fullEncodedProtocol);
 			return Procedure.Success;
 		}, "Game.Online.send"));
 	}
 
-	private void sendInProcedure(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol, TaskCompletionSource<Long> future) {
+	private void sendInProcedure(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
 		// 发送消息为了用上TaskOneByOne，只能一个一个发送，为了少改代码，先使用旧的GroupByLink接口。
 		var groups = groupByLink(roleIds);
-		long serialId = 0;
-		if (future != null) {
-			var confirmContext = new ConfirmContext(future);
-			// 必须在真正发送前全部加入，否则要是发生结果很快返回，
-			// 导致异步问题：错误的认为所有 Confirm 都收到。
-			for (var group : groups) {
-				if (group.linkSocket != null) // skip not online
-					confirmContext.linkNames.add(group.linkName);
-			}
-			serialId = ProviderApp.ProviderService.AddManualContextWithTimeout(confirmContext, 5000);
-		}
-
 		for (var group : groups) {
 			if (group.linkSocket == null)
 				continue; // skip not online
@@ -349,7 +320,6 @@ public class Online extends AbstractOnline {
 			var send = new Send();
 			send.Argument.setProtocolType(typeId);
 			send.Argument.setProtocolWholeData(fullEncodedProtocol);
-			send.Argument.setConfirmSerialId(serialId);
 			send.Argument.getLinkSids().addAll(group.roles.values());
 			group.linkSocket.Send(send);
 		}
@@ -438,47 +408,27 @@ public class Online extends AbstractOnline {
 	}
 
 	public final void sendReliableNotifyWhileCommit(long roleId, String listenerName, Protocol<?> p) {
-		sendReliableNotifyWhileCommit(roleId, listenerName, p, false);
-	}
-
-	public final void sendReliableNotifyWhileCommit(long roleId, String listenerName, Protocol<?> p, boolean WaitConfirm) {
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileCommit(() -> sendReliableNotify(roleId, listenerName, p, WaitConfirm));
+		Transaction.getCurrent().RunWhileCommit(() -> sendReliableNotify(roleId, listenerName, p));
 	}
 
 	public final void sendReliableNotifyWhileCommit(long roleId, String listenerName, int typeId, Binary fullEncodedProtocol) {
-		sendReliableNotifyWhileCommit(roleId, listenerName, typeId, fullEncodedProtocol, false);
-	}
-
-	public final void sendReliableNotifyWhileCommit(long roleId, String listenerName, int typeId, Binary fullEncodedProtocol, boolean WaitConfirm) {
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileCommit(() -> sendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol, WaitConfirm));
+		Transaction.getCurrent().RunWhileCommit(() -> sendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol));
 	}
 
 	public final void sendReliableNotifyWhileRollback(long roleId, String listenerName, Protocol<?> p) {
-		sendReliableNotifyWhileRollback(roleId, listenerName, p, false);
-	}
-
-	public final void sendReliableNotifyWhileRollback(long roleId, String listenerName, Protocol<?> p, boolean WaitConfirm) {
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileRollback(() -> sendReliableNotify(roleId, listenerName, p, WaitConfirm));
+		Transaction.getCurrent().RunWhileRollback(() -> sendReliableNotify(roleId, listenerName, p));
 	}
 
 	public final void sendReliableNotifyWhileRollback(long roleId, String listenerName, int typeId, Binary fullEncodedProtocol) {
-		sendReliableNotifyWhileRollback(roleId, listenerName, typeId, fullEncodedProtocol, false);
-	}
-
-	public final void sendReliableNotifyWhileRollback(long roleId, String listenerName, int typeId, Binary fullEncodedProtocol, boolean WaitConfirm) {
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileRollback(() -> sendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol, WaitConfirm));
+		Transaction.getCurrent().RunWhileRollback(() -> sendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol));
 	}
 
 	public final void sendReliableNotify(long roleId, String listenerName, Protocol<?> p) {
-		sendReliableNotify(roleId, listenerName, p, false);
-	}
-
-	public final void sendReliableNotify(long roleId, String listenerName, Protocol<?> p, boolean WaitConfirm) {
-		sendReliableNotify(roleId, listenerName, p.getTypeId(), new Binary(p.Encode()), WaitConfirm);
+		sendReliableNotify(roleId, listenerName, p.getTypeId(), new Binary(p.Encode()));
 	}
 
 	/**
@@ -487,13 +437,7 @@ public class Online extends AbstractOnline {
 	 * @param fullEncodedProtocol 协议必须先编码，因为会跨事务。
 	 */
 
-	public final void sendReliableNotify(long roleId, String listenerName, int typeId, Binary fullEncodedProtocol) {
-		sendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol, false);
-	}
-
-	public final void sendReliableNotify(long roleId, String listenerName, long typeId, Binary fullEncodedProtocol, boolean WaitConfirm) {
-		var future = WaitConfirm ? new TaskCompletionSource<Long>() : null;
-
+	public final void sendReliableNotify(long roleId, String listenerName, long typeId, Binary fullEncodedProtocol) {
 		ProviderApp.Zeze.getTaskOneByOneByKey().Execute(listenerName,
 				ProviderApp.Zeze.NewProcedure(() -> {
 					BOnline online = _tonline.get(roleId);
@@ -512,32 +456,17 @@ public class Online extends AbstractOnline {
 					notify.Argument.setReliableNotifyTotalCountStart(version.getReliableNotifyTotalCount());
 					notify.Argument.getNotifies().add(fullEncodedProtocol);
 
-					sendInProcedure(List.of(roleId), notify.getTypeId(), new Binary(notify.Encode()), future);
+					sendInProcedure(List.of(roleId), notify.getTypeId(), new Binary(notify.Encode()));
 					version.setReliableNotifyTotalCount(version.getReliableNotifyConfirmCount() + 1); // 后加，start 是 Queue.Add 之前的。
 					return Procedure.Success;
 				}, "Game.Online.sendReliableNotify." + listenerName), null);
-
-		if (future != null)
-			future.await();
 	}
 
-	private void broadcast(long typeId, Binary fullEncodedProtocol, int time, boolean WaitConfirm) {
+	private void broadcast(long typeId, Binary fullEncodedProtocol, int time) {
 		TaskCompletionSource<Long> future = null;
-		long serialId = 0;
-		if (WaitConfirm) {
-			future = new TaskCompletionSource<>();
-			var confirmContext = new ConfirmContext(future);
-			for (var link : ProviderApp.ProviderService.getLinks().values()) {
-				if (link.getSocket() != null)
-					confirmContext.linkNames.add(link.getName());
-			}
-			serialId = ProviderApp.ProviderService.AddManualContextWithTimeout(confirmContext, 5000);
-		}
-
 		var broadcast = new Broadcast();
 		broadcast.Argument.setProtocolType(typeId);
 		broadcast.Argument.setProtocolWholeData(fullEncodedProtocol);
-		broadcast.Argument.setConfirmSerialId(serialId);
 		broadcast.Argument.setTime(time);
 
 		for (var link : ProviderApp.ProviderService.getLinks().values()) {
@@ -549,16 +478,12 @@ public class Online extends AbstractOnline {
 			future.await();
 	}
 
-	public final void broadcast(Protocol<?> p, int time) {
-		broadcast(p, time, false);
-	}
-
 	public final void broadcast(Protocol<?> p) {
-		broadcast(p, 60 * 1000, false);
+		broadcast(p, 60 * 1000);
 	}
 
-	public final void broadcast(Protocol<?> p, int time, boolean WaitConfirm) {
-		broadcast(p.getTypeId(), new Binary(p.Encode()), time, WaitConfirm);
+	public final void broadcast(Protocol<?> p, int time) {
+		broadcast(p.getTypeId(), new Binary(p.Encode()), time);
 	}
 
 	/**
@@ -775,9 +700,9 @@ public class Online extends AbstractOnline {
 	protected long ProcessLoginRequest(Zeze.Builtin.Game.Online.Login rpc) throws Throwable {
 		var session = ProviderUserSession.Get(rpc);
 
-		var account = _taccount.get(session.getAccount());
-		if (account == null)
-			return ErrorCode(ResultCodeAccountNotExist);
+		var account = _taccount.getOrAdd(session.getAccount());
+		if (!account.getRoles().contains(rpc.Argument.getRoleId()))
+			return ErrorCode(ResultCodeRoleNotExist);
 		account.setLastLoginRoleId(rpc.Argument.getRoleId());
 
 		var online = _tonline.getOrAdd(rpc.Argument.getRoleId());
