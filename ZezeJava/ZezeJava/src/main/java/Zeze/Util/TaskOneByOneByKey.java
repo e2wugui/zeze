@@ -205,8 +205,10 @@ public final class TaskOneByOneByKey {
 			throw new RuntimeException("CyclicBarrier keys is empty.");
 
 		var barrier = new Barrier(procedure, keys.size(), cancel);
-		for (var key : keys)
-			Execute(key, barrier::Reach, barrier.Procedure.getActionName(), barrier::Cancel);
+		synchronized (this) {
+			for (var key : keys)
+				Execute(key, barrier::Reach, barrier.Procedure.getActionName(), barrier::Cancel);
+		}
 	}
 
 	public void Execute(long key, Procedure procedure) {

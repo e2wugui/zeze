@@ -115,8 +115,11 @@ namespace Zeze.Util
 				throw new Exception("CyclicBarrier keys is empty.");
 
 			var barrier = new Barrier(procdure, keys.Count, cancel);
-			foreach (var key in keys)
-				Execute(key, barrier.Reach, barrier.Procedure.ActionName, barrier.Cancel);
+			lock (this)
+            {
+				foreach (var key in keys)
+					Execute(key, barrier.Reach, barrier.Procedure.ActionName, barrier.Cancel);
+			}
 		}
 
 		public void Execute(object key, Action action, string actionName = null, Action cancel = null)
