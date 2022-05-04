@@ -306,7 +306,7 @@ namespace Zeze.Game
                     notify.Argument.ReliableNotifyTotalCountStart = version.ReliableNotifyTotalCount;
                     notify.Argument.Notifies.Add(fullEncodedProtocol);
 
-                    await SendInProcedure(roleId, notify.TypeId, new Binary(notify.Encode()));
+                    await SendInProcedure(new List<long> { roleId }, notify.TypeId, new Binary(notify.Encode()));
                     version.ReliableNotifyTotalCount += 1; // 后加，start 是 Queue.Add 之前的。
                     return Procedure.Success;
                 },
@@ -367,10 +367,10 @@ namespace Zeze.Game
             return groups.Values;
         }
 
-        private async Task SendInProcedure(long roleId, long typeId, Binary fullEncodedProtocol)
+        private async Task SendInProcedure(ICollection<long> roles, long typeId, Binary fullEncodedProtocol)
         {
             // 发送消息为了用上TaskOneByOne，只能一个一个发送，为了少改代码，先使用旧的GroupByLink接口。
-            var groups = await GroupByLink(new List<long> { roleId });
+            var groups = await GroupByLink(roles);
             foreach (var group in groups)
             {
                 if (group.LinkSocket == null)
@@ -390,9 +390,24 @@ namespace Zeze.Game
             ProviderApp.Zeze.TaskOneByOneByKey.Execute(roleId, () =>
                 ProviderApp.Zeze.NewProcedure(async () =>
                 {
-                    await SendInProcedure(roleId, typeId, fullEncodedProtocol);
+                    await SendInProcedure(new List<long> { roleId }, typeId, fullEncodedProtocol);
                     return Procedure.Success;
                 }, "Onlines.Send"));
+        }
+
+        private void Send(ICollection<long> roles, long typeId, Binary fullEncodedProtocol)
+        {
+
+            // 发送协议请求在另外的事务中执行。
+            if (roles.Count > 0)
+            {
+                ProviderApp.Zeze.TaskOneByOneByKey.ExecuteCyclicBarrier(roles,
+                    ProviderApp.Zeze.NewProcedure(async () =>
+                    {
+                        await SendInProcedure(roles, typeId, fullEncodedProtocol);
+                        return Procedure.Success;
+                    }, "Onlines.Send"));
+            }
         }
 
         public void Send(long roleId, Protocol p)
@@ -402,8 +417,7 @@ namespace Zeze.Game
 
         public void Send(ICollection<long> roleIds, Protocol p)
         {
-            foreach (var roleId in roleIds)
-                Send(roleId, p.TypeId, new Binary(p.Encode()));
+            Send(roleIds, p.TypeId, new Binary(p.Encode()));
         }
 
         public void SendWhileCommit(long roleId, Protocol p)

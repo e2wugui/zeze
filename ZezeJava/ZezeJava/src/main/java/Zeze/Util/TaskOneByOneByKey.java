@@ -1,6 +1,7 @@
 package Zeze.Util;
 
 import java.util.ArrayDeque;
+import java.util.Collection;
 import Zeze.Transaction.Procedure;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -128,6 +129,84 @@ public final class TaskOneByOneByKey {
 
 	public void Execute(long key, Func0<?> func, String name, Action0 cancel) {
 		Execute(Long.hashCode(key), func, name, cancel);
+	}
+
+	public class Barrier
+	{
+		public int Count;
+		public Procedure Procedure;
+		public Action0 CancelAction;
+		public boolean Canceled = false;
+
+		public Barrier(Procedure action, int count, Action0 cancel)
+		{
+			Count = count;
+
+			Procedure = action;
+			CancelAction = cancel;
+		}
+
+		public void Reach() throws InterruptedException {
+			synchronized (this)
+			{
+				if (Canceled)
+					return;
+
+				if (--Count > 0)
+				{
+					this.wait();
+				}
+				else
+				{
+					try
+					{
+						Procedure.Call();
+					}
+					catch (Throwable ex)
+					{
+						logger.error(Procedure.getActionName() + " Run", ex);
+					}
+					finally
+					{
+						this.notifyAll();
+					}
+				}
+			}
+		}
+
+		public void Cancel()
+		{
+			synchronized (this)
+			{
+				if (Canceled)
+					return;
+
+				Canceled = true;
+				try
+				{
+					if (null != CancelAction)
+						CancelAction.run();
+				}
+				catch (Throwable ex)
+				{
+					logger.error(Procedure.getActionName() + " Canceled", ex);
+				}
+				finally
+				{
+					this.notifyAll();
+				}
+			}
+		}
+	}
+
+	public <T> void ExecuteCyclicBarrier(Collection<T> keys, Procedure procedure, Action0 cancel)
+	{
+		if (keys.size() <= 0)
+			throw new RuntimeException("CyclicBarrier keys is empty.");
+
+		var barrier = new Barrier(procedure, keys.size(), cancel);
+		for (var key : keys)
+			Execute(key, barrier::Reach, barrier.Procedure.getActionName(), barrier::Cancel);
 	}
 
 	public void Execute(long key, Procedure procedure) {

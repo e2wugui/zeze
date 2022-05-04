@@ -301,6 +301,16 @@ public class Online extends AbstractOnline {
 		}, "Game.Online.send"), null, null));
 	}
 
+	private void send(Collection<Long> roles, long typeId, Binary fullEncodedProtocol) {
+		if (roles.size() > 0) {
+			ProviderApp.Zeze.getTaskOneByOneByKey().ExecuteCyclicBarrier(roles,
+					ProviderApp.Zeze.NewProcedure(() -> {
+						sendInProcedure(roles, typeId, fullEncodedProtocol);
+						return Procedure.Success;
+			}, "Game.Online.send"), null);
+		}
+	}
+
 	// 广播不支持 WaitConfirm
 	private void send(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
 		// 发送协议请求在另外的事务中执行。

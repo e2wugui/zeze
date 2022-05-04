@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using Zeze.Transaction;
 
 namespace Zeze.Util
 {
@@ -39,6 +40,85 @@ namespace Zeze.Util
 				this.concurrency[i] = new TaskOneByOne();
 		}
 
+		public class Barrier
+		{
+			public int Count;
+			public Procedure Procedure;
+			public Action CancelAction;
+			public bool Canceled = false;
+			private Nito.AsyncEx.AsyncMonitor Monitor = new();
+
+			public Barrier(Procedure action, int count, Action cancel)
+			{
+				Count = count;
+
+				Procedure = action;
+				CancelAction = cancel;
+			}
+
+			public async Task Reach()
+			{
+				using (await Monitor.EnterAsync())
+				{
+					if (Canceled)
+						return;
+
+					if (--Count > 0)
+					{
+						await Monitor.WaitAsync();
+					}
+					else
+					{
+						try
+						{
+							await Mission.CallAsync(Procedure, null, null);
+						}
+						catch (Exception ex)
+						{
+							logger.Error(ex, $"{Procedure.ActionName} Run");
+						}
+						finally
+						{
+							Monitor.PulseAll();
+						}
+					}
+				}
+			}
+
+			public void Cancel()
+            {
+				using (Monitor.Enter())
+                {
+					if (Canceled)
+						return;
+
+					Canceled = true;
+					try
+                    {
+						CancelAction?.Invoke();
+					}
+					catch (Exception ex)
+                    {
+						logger.Error(ex, $"{Procedure.ActionName} Canceled");
+                    }
+					finally
+                    {
+						Monitor.PulseAll();
+					}
+				}
+			}
+		}
+
+		public void ExecuteCyclicBarrier<T>(ICollection<T> keys, Procedure procdure, Action cancel = null)
+		{
+			if (keys.Count <= 0)
+				throw new Exception("CyclicBarrier keys is empty.");
+
+			var barrier = new Barrier(procdure, keys.Count, cancel);
+			foreach (var key in keys)
+				Execute(key, barrier.Reach, barrier.Procedure.ActionName, barrier.Cancel);
+		}
+
 		public void Execute(object key, Action action, string actionName = null, Action cancel = null)
         {
 			int h = Hash(key.GetHashCode());
@@ -65,6 +145,19 @@ namespace Zeze.Util
 			});
 		}
 
+		public void Execute(object key, Func<Task> func, string actionName = null, Action cancel = null)
+		{
+			int h = Hash(key.GetHashCode());
+			int index = h & (concurrency.Length - 1);
+
+			concurrency[index].Execute(new JobActionAsync()
+			{
+				ActionAsync = func,
+				Name = actionName,
+				Cancel = cancel
+			});
+		}
+
 		public void Execute(object key, Func<Net.Protocol, Task<long>> pHandle, Net.Protocol p, string name,
 			Action<Net.Protocol, long> actionWhenError = null, Action cancel = null)
 		{
@@ -83,7 +176,7 @@ namespace Zeze.Util
 			concurrency[index].Execute(new JobProtocol(pHandle, p, actionWhenError, cancel));
 		}
 
-		public void Execute(object key, Zeze.Transaction.Procedure procedure,
+		public void Execute(object key, Procedure procedure,
 			Net.Protocol from = null, Action<Net.Protocol, long> actionWhenError = null,
 			Action cancel = null)
 		{
@@ -165,7 +258,7 @@ namespace Zeze.Util
 
 			public override async Task ProcessAsync()
 			{
-				await Mission.CallAsync(Handle, Protocol, ActionWhenError);
+				await Mission.CallAsync(Handle, Protocol, ActionWhenError, Name);
 			}
         }
 
@@ -190,6 +283,16 @@ namespace Zeze.Util
 				await Mission.CallAsync(Procedure, From, ActionWhenError);
 			}
         }
+
+		internal class JobActionAsync : Job
+		{
+			public Func<Task> ActionAsync { get; set; }
+
+			public override async Task ProcessAsync()
+            {
+				await ActionAsync();
+            }
+		}
 
 		internal class JobFunc : Job
         {
@@ -305,7 +408,7 @@ namespace Zeze.Util
 					}
 					catch (Exception ex)
                     {
-						logger.Error(ex);
+						logger.Error(ex, job.Name);
                     }
 					finally
                     {
