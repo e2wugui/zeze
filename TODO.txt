@@ -5,20 +5,19 @@ ConfigEditor 更多自动完成？普通的列默认最近使用的n个值，根
 ConfigEditor enum 现在不支持引用在其他文档定义的，有需要了再来加。
 war？一个module集合。定义export？private？App.Instance？生成代码使用基类，不再使用具体类型，感觉没必要：应用使用独立进程更加安全灵活些。
 ----------------------------------------------------------------------------------------------------------------------------------
-Global java 异步化： TaskQueueAsync 任务需要参与到队列的推进。全异步和RocksRaft.Transaction.ThreadLocal问题，需要自己实现一个类似AsyncLocal的机制。
 DatabaseTikv OperatesTikv
 Global.Release并发问题【再次】确认
 Zezex.client: 可靠消息实现的错误检查。
 Global.RocksRaft.LruTryRemoveCallback
-Global c# 慢的问题。
 1. raft 异步测试
 2. Global With Raft 异步测试
 3. Test TestGlobal Simulate 异步测试
 4. Global 性能测试
 TableCache增加一级RocksDb的缓存，不受限于内存。Java SoftReference<T>.
 TableCache.Clean 整体考虑。
-Online Account （java，c#）
+Online Account （java）
 Online Test 【肖丽杨】c#
+Online Account Test 肖丽杨？
 
 tag 1.0 java
 ------------------------------------------------------------------------------------------------------------------------------
@@ -38,6 +37,8 @@ Game.Bag Listener
 
 【2022/5/11】
 
+Online Account （c#）
+Global java 异步化： TaskQueueAsync 任务需要参与到队列的推进。全异步和RocksRaft.Transaction.ThreadLocal问题，需要自己实现一个类似AsyncLocal的机制。
 StableLinkSid Done(Need Test)
 StableLinkSid Prepare：分离LinkName,LinkSid到独立表中。
 Arch remove ProviderSessionId；Rename ProviderId to ServerId
