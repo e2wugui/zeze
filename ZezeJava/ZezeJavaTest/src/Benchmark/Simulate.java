@@ -46,8 +46,6 @@ public class Simulate {
 
 	private static long keyBegin, keyEnd;
 	private static final AtomicLong keyWindowBegin = new AtomicLong();
-
-	private static SimpleApp app;
 	private static Table1 table1;
 
 	private static long randKey() {
@@ -89,7 +87,7 @@ public class Simulate {
 		var r1 = table1.getOrAdd(k1);
 		var r2 = table1.getOrAdd(k2);
 		var v = r1.getLong2() + r2.getLong2();
-		r2.setLong2(v);
+		r1.setLong2(v);
 		r2.setLong2(v);
 		return 0;
 	}
@@ -108,30 +106,33 @@ public class Simulate {
 
 	public static void main(String[] args) throws Throwable {
 		var lookup = MethodHandles.lookup();
-		for (int i = 0; i < args.length; ) {
-			var k = args[i++];
-			var v = Integer.parseInt(args[i++]);
-			if (v < 0 || v == 0 && !k.endsWith("Weight") && !k.equals("localPercent"))
-				throw new IllegalArgumentException("invalid " + k + " = " + v);
-			lookup.findStaticVarHandle(Simulate.class, k, int.class).set(v);
+		for (var arg : args) {
+			var kv = arg.split("=");
+			if (kv.length == 2) {
+				var k = kv[0];
+				var v = Integer.parseInt(kv[1]);
+				if (v < 0 || v == 0 && !k.endsWith("Weight") && !k.equals("localPercent"))
+					throw new IllegalArgumentException("invalid " + k + " = " + v);
+				lookup.findStaticVarHandle(Simulate.class, k, int.class).set(v);
+			}
 		}
 		var procs = new ArrayList<Proc>();
 		int totalWeight = 0;
 		for (var f : Simulate.class.getDeclaredFields()) {
 			if (f.getType() == int.class && Modifier.isStatic(f.getModifiers())) {
-				f.setAccessible(true);
-				var v = (int)f.get(null);
 				var k = f.getName();
+				var v = (int)lookup.unreflectVarHandle(f).get();
 				logger.info("{} = {}", k, v);
 				if (k.endsWith("Weight")) {
 					totalWeight += v;
 					var name = k.substring(0, k.length() - 6);
-					procs.add(new Proc(name, lookup.findStatic(Simulate.class, name, MethodType.methodType(long.class)), v));
+					var mh = lookup.findStatic(Simulate.class, name, MethodType.methodType(long.class));
+					procs.add(new Proc(name, mh, v));
 				}
 			}
 		}
 		if (totalWeight <= 0)
-			throw new IllegalArgumentException("invalid totalWeight=" + totalWeight);
+			throw new IllegalArgumentException("invalid totalWeight = " + totalWeight);
 		var totalWeight0 = totalWeight;
 		keyBegin = (long)localKeyRange * serverId;
 		keyEnd = keyBegin + localKeyRange;
@@ -141,9 +142,8 @@ public class Simulate {
 						Executors.newFixedThreadPool(taskThreadCount, new ThreadFactoryWithName("ZezeTaskPool")),
 				Executors.newScheduledThreadPool(schdThreadCount, new ThreadFactoryWithName("ZezeScheduledPool")));
 
-		app = new SimpleApp(serverId);
-		table1 = new Table1();
-		app.getZeze().AddTable("", table1);
+		SimpleApp app = new SimpleApp(serverId);
+		app.getZeze().AddTable("", table1 = new Table1());
 		app.start();
 
 		var counter = new AtomicLong();
@@ -162,6 +162,7 @@ public class Simulate {
 						}
 						var proc0 = proc;
 						app.getZeze().NewProcedure(() -> (long)proc0.mh.invoke(), proc.name).Call();
+
 						var c = counter.incrementAndGet();
 						if (c % procsEveryWindowMove == 0) {
 							long v0, v1;
