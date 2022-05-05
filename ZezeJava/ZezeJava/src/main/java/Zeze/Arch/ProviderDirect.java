@@ -10,7 +10,6 @@ import Zeze.Builtin.ProviderDirect.TransmitAccount;
 import Zeze.Net.AsyncSocket;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutObject;
-import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -186,13 +185,13 @@ public class ProviderDirect extends AbstractProviderDirect {
 	}
 
 	@Override
-	protected long ProcessTransmit(Transmit p) throws Throwable {
-		throw new NotImplementedException("");
+	protected long ProcessTransmit(Transmit p) {
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	protected long ProcessTransmitAccount(TransmitAccount p) throws Throwable {
-		throw new NotImplementedException("");
+	protected long ProcessTransmitAccount(TransmitAccount p) {
+		throw new UnsupportedOperationException();
 	}
 
 	@Override

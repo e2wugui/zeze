@@ -1,4 +1,4 @@
-package Raft;
+package SimpleRaft;
 
 import java.text.FieldPosition;
 import java.text.SimpleDateFormat;

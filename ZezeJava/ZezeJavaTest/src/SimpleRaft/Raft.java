@@ -1,4 +1,4 @@
-package Raft;
+package SimpleRaft;
 
 import java.util.Arrays;
 import java.util.HashMap;
