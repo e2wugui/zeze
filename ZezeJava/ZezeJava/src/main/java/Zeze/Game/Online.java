@@ -753,7 +753,7 @@ public class Online extends AbstractOnline {
 		Transaction.getCurrent().RunWhileCommit(() -> {
 			var setUserState = new SetUserState();
 			setUserState.Argument.setLinkSid(session.getLinkSid());
-			setUserState.Argument.getStates().add(rpc.Argument.getRoleId());
+			setUserState.Argument.setContext(String.valueOf(rpc.Argument.getRoleId()));
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 		return Procedure.Success;
@@ -799,7 +799,7 @@ public class Online extends AbstractOnline {
 		Transaction.getCurrent().RunWhileCommit(() -> {
 			var setUserState = new SetUserState();
 			setUserState.Argument.setLinkSid(session.getLinkSid());
-			setUserState.Argument.getStates().add(rpc.Argument.getRoleId());
+			setUserState.Argument.setContext(String.valueOf(rpc.Argument.getRoleId()));
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 

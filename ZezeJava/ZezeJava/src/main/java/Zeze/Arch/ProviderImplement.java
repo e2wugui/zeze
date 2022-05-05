@@ -98,7 +98,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 			p2.setSender(p.getSender());
 
 			var session = new ProviderUserSession(ProviderApp.ProviderService, p.Argument.getAccount(),
-					p.Argument.getStates(), p.getSender(), p.Argument.getLinkSid());
+					p.Argument.getContext(), p.getSender(), p.Argument.getLinkSid());
 
 			p2.setUserState(session);
 			Transaction txn = Transaction.getCurrent();

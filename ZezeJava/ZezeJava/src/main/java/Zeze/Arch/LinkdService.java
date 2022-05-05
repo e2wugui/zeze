@@ -150,8 +150,8 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		dispatch.Argument.setAccount(linkSession.getAccount());
 		dispatch.Argument.setProtocolType(Protocol.MakeTypeId(moduleId, protocolId));
 		dispatch.Argument.setProtocolData(new Zeze.Net.Binary(data.Copy()));
-		dispatch.Argument.getStates().addAll(linkSession.getUserStates());
-		dispatch.Argument.setStatex(linkSession.getUserStatex());
+		dispatch.Argument.setContext(linkSession.getContext());
+		dispatch.Argument.setContextx(linkSession.getContextx());
 
 		var provider = new Zeze.Util.OutLong();
 		if (linkSession.TryGetProvider(moduleId, provider)) {

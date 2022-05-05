@@ -249,9 +249,9 @@
 			<protocol name="Broadcast" argument="BBroadcast" handle="client"/>
 
 			<bean name="BSetUserState">
-				<variable name="linkSid" id="1" type="long"/>
-				<variable name="states"  id="2" type="list" value="long"/>
-				<variable name="statex"  id="3" type="binary"/>
+				<variable name="linkSid"  id="1" type="long"/>
+				<variable name="context"  id="2" type="string"/>
+				<variable name="contextx" id="3" type="binary"/>
 			</bean>
 
 			<protocol name="SetUserState" argument="BSetUserState" handle="client"/>
@@ -268,20 +268,20 @@
 				<variable name="account"      id="2" type="string"/>
 				<variable name="protocolType" id="3" type="long"/>
 				<variable name="protocolData" id="4" type="binary"/> 协议打包，不包括 type, size
-				<variable name="states"       id="5" type="list" value="long"/> SetUserState
-				<variable name="statex"       id="6" type="binary"/> SetUserState
+				<variable name="context"      id="5" type="string"/> SetUserState
+				<variable name="contextx"     id="6" type="binary"/> SetUserState
 			</bean>
 			<protocol name="Dispatch" argument="BDispatch" handle="server"/>
 
 			<bean name="BLinkBroken">
 				<enum name="REASON_PEERCLOSE" value="0"/>
 
-				<variable name="account"  id="1" type="string"/>
+				<variable name="account" id="1" type="string"/>
 				<variable name="linkSid" id="2" type="long"/>
 				<variable name="reason"  id="3" type="int"/>
 
-				<variable name="states"  id="5" type="list" value="long"/> SetUserState
-				<variable name="statex"  id="6" type="binary"/> SetUserState
+				<variable name="context"  id="5" type="string"/> SetUserState
+				<variable name="contextx" id="6" type="binary"/> SetUserState
 			</bean>
 
 			<protocol name="LinkBroken" argument="BLinkBroken" handle="server"/>
@@ -388,6 +388,16 @@
 			</bean>
 
 			<protocol name="Transmit" argument="BTransmit" NoProcedure="true" handle="server"/> 默认不启用事务，由协议实现自己控制。
+
+			<bean name="BTransmitAccount">
+				<variable name="ActionName"     id="1" type="string"/>
+				<variable name="Parameter"      id="2" type="binary"/> encoded bean
+				<variable name="TargetAccounts" id="3" type="set" value="string"/> 查询目标角色。
+				<variable name="SenderAccount"  id="4" type="string"/> 结果发送给Sender。
+				<variable name="SenderClientId" id="5" type="string"/> 结果发送给Sender。
+			</bean>
+
+			<protocol name="TransmitAccount" argument="BTransmitAccount" NoProcedure="true" handle="server"/> 默认不启用事务，由协议实现自己控制。
 
 			<bean name="BProviderInfo">
 				<variable name="Ip"       id="1" type="string"/>

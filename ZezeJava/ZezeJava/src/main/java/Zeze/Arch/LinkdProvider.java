@@ -62,8 +62,9 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			return Distribute.ChoiceHash(volatileProviders, ByteBuffer.calc_hashnr(linkSession.getAccount()), provider);
 
 		case BModule.ChoiceTypeHashRoleId:
-			if (!linkSession.getUserStates().isEmpty()) {
-				return Distribute.ChoiceHash(volatileProviders, ByteBuffer.calc_hashnr(linkSession.getUserStates().get(0)), provider);
+			var roleId = linkSession.getRoleId();
+			if (null != roleId) {
+				return Distribute.ChoiceHash(volatileProviders, ByteBuffer.calc_hashnr(roleId), provider);
 			} else {
 				return false;
 			}
@@ -220,7 +221,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			// 如果要实现 role.login 才允许，Provider 增加 SetLogin 协议给内部server调用。
 			// 这些广播一般是重要通告，只要登录客户端就允许收到，然后进入世界的时候才显示。这样处理就不用这个状态了。
 			var linkSession = (LinkdUserSession)socket.getUserState();
-			if (linkSession != null && linkSession.getAccount() == null && !linkSession.getUserStates().isEmpty()) {
+			if (linkSession != null && linkSession.getAccount() == null && !linkSession.getContext().isEmpty()) {
 				socket.Send(protocol.Argument.getProtocolWholeData());
 			}
 		});
@@ -242,7 +243,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		var socket = LinkdApp.LinkdService.GetSocket(protocol.Argument.getLinkSid());
 		var linkSession = (LinkdUserSession)socket.getUserState();
 		if (linkSession != null) {
-			linkSession.SetUserState(protocol.Argument.getStates(), protocol.Argument.getStatex());
+			linkSession.SetUserState(protocol.Argument.getContext(), protocol.Argument.getContextx());
 		}
 		return Procedure.Success;
 	}

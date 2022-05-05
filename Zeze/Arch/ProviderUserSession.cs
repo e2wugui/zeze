@@ -12,19 +12,20 @@ namespace Zeze.Arch
     {
         public ProviderService Service { get; }
         public string Account { get; }
-        public long? RoleId { get; }
+        public string Context { get; }
+        public long? RoleId => string.IsNullOrEmpty(Context) ? null : long.Parse(Context);
 
         public string LinkName { get; }
         public long LinkSid { get; } // 客户端在linkd上的SessionId
 
         public AsyncSocket Link { get; set; }
 
-        public ProviderUserSession(ProviderService service, string account, IList<long> states, AsyncSocket link, long linkSid)
+        public ProviderUserSession(ProviderService service, string account, string context, AsyncSocket link, long linkSid)
         {
             Service = service;
 
             Account = account;
-            RoleId = states.Count == 0 ? null : states[0];
+            Context = context;
             LinkSid = linkSid;
             Link = link;
             LinkName = service.GetLinkName(link);

@@ -11,8 +11,8 @@ public class ProviderImplementWithOnline extends ProviderImplement {
 	@Override
 	protected long ProcessLinkBroken(LinkBroken p) throws Throwable {
 		// 目前仅需设置online状态。
-		if (!p.Argument.getStates().isEmpty()) {
-			var roleId = p.Argument.getStates().get(0);
+		if (!p.Argument.getContext().isEmpty()) {
+			var roleId = Long.parseLong(p.Argument.getContext());
 			Online.onLinkBroken(roleId, p.Argument);
 		}
 		return Procedure.Success;

@@ -1,7 +1,5 @@
 package Zeze.Arch;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.concurrent.Future;
 import Zeze.Builtin.Provider.BLinkBroken;
@@ -19,8 +17,8 @@ public class LinkdUserSession {
 	private static final Logger logger = LogManager.getLogger(LinkdUserSession.class);
 
 	private String Account;
-	private final ArrayList<Long> UserStates = new ArrayList<>();
-	private Binary UserStatex = Binary.Empty;
+	private String Context = "";
+	private Binary Contextx = Binary.Empty;
 	private IntHashMap<Long> Binds = new IntHashMap<>();
 	private final long SessionId; // Linkd.SessionId
 	private Future<?> KeepAliveTask; // 仅在网络线程中回调，并且一个时候，只会有一个回调，不线程保护了。
@@ -33,16 +31,16 @@ public class LinkdUserSession {
 		Account = value;
 	}
 
-	public final ArrayList<Long> getUserStates() {
-		return UserStates;
+	public final String getContext() {
+		return Context;
 	}
 
-	public final Binary getUserStatex() {
-		return UserStatex;
+	public final Binary getContextx() {
+		return Contextx;
 	}
 
-	private void setUserStatex(Binary value) {
-		UserStatex = value;
+	public Long getRoleId() {
+		return Context.isEmpty() ? null : Long.parseLong(Context);
 	}
 
 	private IntHashMap<Long> getBinds() {
@@ -61,11 +59,10 @@ public class LinkdUserSession {
 		SessionId = sessionId;
 	}
 
-	public final void SetUserState(Collection<Long> states, Binary statex) {
+	public final void SetUserState(String context, Binary contextx) {
 		synchronized (this) { // 简单使用一下这个锁。
-			getUserStates().clear();
-			getUserStates().addAll(states);
-			setUserStatex(statex);
+			Context = context;
+			Contextx = contextx;
 		}
 	}
 
@@ -169,8 +166,8 @@ public class LinkdUserSession {
 		var linkBroken = new LinkBroken();
 		linkBroken.Argument.setAccount(Account);
 		linkBroken.Argument.setLinkSid(SessionId);
-		linkBroken.Argument.getStates().addAll(getUserStates());
-		linkBroken.Argument.setStatex(UserStatex);
+		linkBroken.Argument.setContext(Context);
+		linkBroken.Argument.setContextx(Contextx);
 		linkBroken.Argument.setReason(BLinkBroken.REASON_PEERCLOSE); // 这个保留吧。现在没什么用。
 
 		// 需要在锁外执行，因为如果 ProviderSocket 和 LinkdSocket 同时关闭。都需要去清理自己和对方，可能导致死锁。

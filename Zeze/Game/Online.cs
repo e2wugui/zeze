@@ -514,8 +514,7 @@ namespace Zeze.Game
         {
             if (null == current)
                 return m;
-            foreach (var roleId in m.Roles)
-                current.Roles.Add(roleId);
+            current.AddAll(m.Roles);
             return current;
         }
 
@@ -606,40 +605,6 @@ namespace Zeze.Game
             if (false == TransmitActions.ContainsKey(actionName))
                 throw new Exception("Unkown Action Name: " + actionName);
             Transaction.Transaction.Current.RunWhileRollback(() => Transmit(sender, actionName, roleIds, parameter));
-        }
-
-        public class ConfirmContext : Service.ManualContext
-        {
-            public HashSet<string> LinkNames { get; } = new HashSet<string>();
-            public TaskCompletionSource<long> Future { get; }
-            public ProviderApp App { get; }
-
-            public ConfirmContext(ProviderApp app, TaskCompletionSource<long> future)
-            {
-                App = app;
-                Future = future;
-            }
-
-            public override void OnRemoved()
-            {
-                lock (this)
-                {
-                    Future.SetResult(base.SessionId);
-                }
-            }
-
-            public long ProcessLinkConfirm(string linkName)
-            {
-                lock (this)
-                {
-                    LinkNames.Remove(linkName);
-                    if (LinkNames.Count == 0)
-                    {
-                        App.ProviderService.TryRemoveManualContext<ConfirmContext>(SessionId);
-                    }
-                    return Procedure.Success;
-                }
-            }
         }
 
         private void Broadcast(long typeId, Binary fullEncodedProtocol, int time)
@@ -770,7 +735,7 @@ namespace Zeze.Game
             {
                 var setUserState = new SetUserState();
                 setUserState.Argument.LinkSid = session.LinkSid;
-                setUserState.Argument.States.Add(rpc.Argument.RoleId);
+                setUserState.Argument.Context = rpc.Argument.RoleId.ToString();
                 rpc.Sender.Send(setUserState); // 直接使用link连接。
             });
             //App.Load.LoginCount.IncrementAndGet();
@@ -829,7 +794,7 @@ namespace Zeze.Game
             {
                 var setUserState = new SetUserState();
                 setUserState.Argument.LinkSid = session.LinkSid;
-                setUserState.Argument.States.Add(rpc.Argument.RoleId);
+                setUserState.Argument.Context = rpc.Argument.RoleId.ToString();
                 rpc.Sender.Send(setUserState); // 直接使用link连接。
             });
 

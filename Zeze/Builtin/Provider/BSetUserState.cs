@@ -12,15 +12,15 @@ namespace Zeze.Builtin.Provider
         public Zeze.Transaction.Bean CopyBean();
 
         public long LinkSid { get; }
-        public System.Collections.Generic.IReadOnlyList<long>States { get; }
-        public Zeze.Net.Binary Statex { get; }
+        public string Context { get; }
+        public Zeze.Net.Binary Contextx { get; }
     }
 
     public sealed class BSetUserState : Zeze.Transaction.Bean, BSetUserStateReadOnly
     {
         long _linkSid;
-        readonly Zeze.Transaction.Collections.PList1<long> _states;
-        Zeze.Net.Binary _statex;
+        string _context;
+        Zeze.Net.Binary _contextx;
 
         public long LinkSid
         {
@@ -47,32 +47,55 @@ namespace Zeze.Builtin.Provider
             }
         }
 
-        public Zeze.Transaction.Collections.PList1<long> States => _states;
-        System.Collections.Generic.IReadOnlyList<long> Zeze.Builtin.Provider.BSetUserStateReadOnly.States => _states;
-
-        public Zeze.Net.Binary Statex
+        public string Context
         {
             get
             {
                 if (!IsManaged)
-                    return _statex;
+                    return _context;
                 var txn = Zeze.Transaction.Transaction.Current;
-                if (txn == null) return _statex;
+                if (txn == null) return _context;
                 txn.VerifyRecordAccessed(this, true);
-                var log = (Log__statex)txn.GetLog(ObjectId + 3);
-                return log != null ? log.Value : _statex;
+                var log = (Log__context)txn.GetLog(ObjectId + 2);
+                return log != null ? log.Value : _context;
             }
             set
             {
                 if (value == null) throw new System.ArgumentNullException();
                 if (!IsManaged)
                 {
-                    _statex = value;
+                    _context = value;
                     return;
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__statex(this, value));
+                txn.PutLog(new Log__context(this, value));
+            }
+        }
+
+        public Zeze.Net.Binary Contextx
+        {
+            get
+            {
+                if (!IsManaged)
+                    return _contextx;
+                var txn = Zeze.Transaction.Transaction.Current;
+                if (txn == null) return _contextx;
+                txn.VerifyRecordAccessed(this, true);
+                var log = (Log__contextx)txn.GetLog(ObjectId + 3);
+                return log != null ? log.Value : _contextx;
+            }
+            set
+            {
+                if (value == null) throw new System.ArgumentNullException();
+                if (!IsManaged)
+                {
+                    _contextx = value;
+                    return;
+                }
+                var txn = Zeze.Transaction.Transaction.Current;
+                txn.VerifyRecordAccessed(this);
+                txn.PutLog(new Log__contextx(this, value));
             }
         }
 
@@ -82,17 +105,15 @@ namespace Zeze.Builtin.Provider
 
         public BSetUserState(int _varId_) : base(_varId_)
         {
-            _states = new Zeze.Transaction.Collections.PList1<long>(ObjectId + 2, _v => new Log__states(this, _v));
-            _statex = Zeze.Net.Binary.Empty;
+            _context = "";
+            _contextx = Zeze.Net.Binary.Empty;
         }
 
         public void Assign(BSetUserState other)
         {
             LinkSid = other.LinkSid;
-            States.Clear();
-            foreach (var e in other.States)
-                States.Add(e);
-            Statex = other.Statex;
+            Context = other.Context;
+            Contextx = other.Contextx;
         }
 
         public BSetUserState CopyIfManaged()
@@ -129,19 +150,18 @@ namespace Zeze.Builtin.Provider
             public override void Commit() { this.BeanTyped._linkSid = this.Value; }
         }
 
-        sealed class Log__states : Zeze.Transaction.Collections.PList1<long>.LogV
+        sealed class Log__context : Zeze.Transaction.Log<BSetUserState, string>
         {
-            public Log__states(BSetUserState host, System.Collections.Immutable.ImmutableList<long> value) : base(host, value) {}
-            public override long LogKey => Bean.ObjectId + 2;
-            public BSetUserState BeanTyped => (BSetUserState)Bean;
-            public override void Commit() { Commit(BeanTyped._states); }
+            public Log__context(BSetUserState self, string value) : base(self, value) {}
+            public override long LogKey => this.Bean.ObjectId + 2;
+            public override void Commit() { this.BeanTyped._context = this.Value; }
         }
 
-        sealed class Log__statex : Zeze.Transaction.Log<BSetUserState, Zeze.Net.Binary>
+        sealed class Log__contextx : Zeze.Transaction.Log<BSetUserState, Zeze.Net.Binary>
         {
-            public Log__statex(BSetUserState self, Zeze.Net.Binary value) : base(self, value) {}
+            public Log__contextx(BSetUserState self, Zeze.Net.Binary value) : base(self, value) {}
             public override long LogKey => this.Bean.ObjectId + 3;
-            public override void Commit() { this.BeanTyped._statex = this.Value; }
+            public override void Commit() { this.BeanTyped._contextx = this.Value; }
         }
 
         public override string ToString()
@@ -157,15 +177,8 @@ namespace Zeze.Builtin.Provider
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Builtin.Provider.BSetUserState: {").Append(Environment.NewLine);
             level += 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append("LinkSid").Append('=').Append(LinkSid).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("States").Append("=[").Append(Environment.NewLine);
-            level += 4;
-            foreach (var Item in States)
-            {
-                sb.Append(Zeze.Util.Str.Indent(level)).Append("Item").Append('=').Append(Item).Append(',').Append(Environment.NewLine);
-            }
-            level -= 4;
-            sb.Append(Zeze.Util.Str.Indent(level)).Append(']').Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("Statex").Append('=').Append(Statex).Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("Context").Append('=').Append(Context).Append(',').Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("Contextx").Append('=').Append(Contextx).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -182,20 +195,15 @@ namespace Zeze.Builtin.Provider
                 }
             }
             {
-                var _x_ = States;
-                int _n_ = _x_.Count;
-                if (_n_ != 0)
+                string _x_ = Context;
+                if (_x_.Length != 0)
                 {
-                    _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
-                    _o_.WriteListType(_n_, ByteBuffer.INTEGER);
-                    foreach (var _v_ in _x_)
-                    {
-                        _o_.WriteLong(_v_);
-                    }
+                    _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                    _o_.WriteString(_x_);
                 }
             }
             {
-                var _x_ = Statex;
+                var _x_ = Contextx;
                 if (_x_.Count != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
@@ -216,22 +224,12 @@ namespace Zeze.Builtin.Provider
             }
             if (_i_ == 2)
             {
-                var _x_ = States;
-                _x_.Clear();
-                if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST)
-                {
-                    for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    {
-                        _x_.Add(_o_.ReadLong(_t_));
-                    }
-                }
-                else
-                    _o_.SkipUnknownField(_t_);
+                Context = _o_.ReadString(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             if (_i_ == 3)
             {
-                Statex = _o_.ReadBinary(_t_);
+                Contextx = _o_.ReadBinary(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             while (_t_ != 0)
@@ -243,16 +241,11 @@ namespace Zeze.Builtin.Provider
 
         protected override void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root)
         {
-            _states.InitRootInfo(root, this);
         }
 
         public override bool NegativeCheck()
         {
             if (LinkSid < 0) return true;
-            foreach (var _v_ in States)
-            {
-                if (_v_ < 0) return true;
-            }
             return false;
         }
     }

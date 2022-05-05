@@ -9,8 +9,8 @@ public final class BDispatch extends Zeze.Transaction.Bean {
     private String _account;
     private long _protocolType;
     private Zeze.Net.Binary _protocolData; // 协议打包，不包括 type, size
-    private final Zeze.Transaction.Collections.PList1<Long> _states; // SetUserState
-    private Zeze.Net.Binary _statex; // SetUserState
+    private String _context; // SetUserState
+    private Zeze.Net.Binary _contextx; // SetUserState
 
     public long getLinkSid() {
         if (!isManaged())
@@ -104,32 +104,52 @@ public final class BDispatch extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__protocolData(this, value));
     }
 
-    public Zeze.Transaction.Collections.PList1<Long> getStates() {
-        return _states;
-    }
-
-    public Zeze.Net.Binary getStatex() {
+    public String getContext() {
         if (!isManaged())
-            return _statex;
+            return _context;
         var txn = Zeze.Transaction.Transaction.getCurrent();
         if (txn == null)
-            return _statex;
+            return _context;
         txn.VerifyRecordAccessed(this, true);
-        var log = (Log__statex)txn.GetLog(this.getObjectId() + 6);
-        return log != null ? log.getValue() : _statex;
+        var log = (Log__context)txn.GetLog(this.getObjectId() + 5);
+        return log != null ? log.getValue() : _context;
     }
 
-    public void setStatex(Zeze.Net.Binary value) {
+    public void setContext(String value) {
         if (value == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _statex = value;
+            _context = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__statex(this, value));
+        txn.PutLog(new Log__context(this, value));
+    }
+
+    public Zeze.Net.Binary getContextx() {
+        if (!isManaged())
+            return _contextx;
+        var txn = Zeze.Transaction.Transaction.getCurrent();
+        if (txn == null)
+            return _contextx;
+        txn.VerifyRecordAccessed(this, true);
+        var log = (Log__contextx)txn.GetLog(this.getObjectId() + 6);
+        return log != null ? log.getValue() : _contextx;
+    }
+
+    public void setContextx(Zeze.Net.Binary value) {
+        if (value == null)
+            throw new IllegalArgumentException();
+        if (!isManaged()) {
+            _contextx = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrent();
+        assert txn != null;
+        txn.VerifyRecordAccessed(this);
+        txn.PutLog(new Log__contextx(this, value));
     }
 
     public BDispatch() {
@@ -140,8 +160,8 @@ public final class BDispatch extends Zeze.Transaction.Bean {
         super(_varId_);
         _account = "";
         _protocolData = Zeze.Net.Binary.Empty;
-        _states = new Zeze.Transaction.Collections.PList1<>(getObjectId() + 5, (_v) -> new Log__states(this, _v));
-        _statex = Zeze.Net.Binary.Empty;
+        _context = "";
+        _contextx = Zeze.Net.Binary.Empty;
     }
 
     public void Assign(BDispatch other) {
@@ -149,10 +169,8 @@ public final class BDispatch extends Zeze.Transaction.Bean {
         setAccount(other.getAccount());
         setProtocolType(other.getProtocolType());
         setProtocolData(other.getProtocolData());
-        getStates().clear();
-        for (var e : other.getStates())
-            getStates().add(e);
-        setStatex(other.getStatex());
+        setContext(other.getContext());
+        setContextx(other.getContextx());
     }
 
     public BDispatch CopyIfManaged() {
@@ -215,21 +233,20 @@ public final class BDispatch extends Zeze.Transaction.Bean {
         public void Commit() { this.getBeanTyped()._protocolData = this.getValue(); }
     }
 
-    private static final class Log__states extends Zeze.Transaction.Collections.PList.LogV<Long> {
-        public Log__states(BDispatch host, org.pcollections.PVector<Long> value) { super(host, value); }
+    private static final class Log__context extends Zeze.Transaction.Log1<BDispatch, String> {
+        public Log__context(BDispatch self, String value) { super(self, value); }
         @Override
-        public long getLogKey() { return getBean().getObjectId() + 5; }
-        public BDispatch getBeanTyped() { return (BDispatch)getBean(); }
+        public long getLogKey() { return this.getBean().getObjectId() + 5; }
         @Override
-        public void Commit() { Commit(getBeanTyped()._states); }
+        public void Commit() { this.getBeanTyped()._context = this.getValue(); }
     }
 
-    private static final class Log__statex extends Zeze.Transaction.Log1<BDispatch, Zeze.Net.Binary> {
-        public Log__statex(BDispatch self, Zeze.Net.Binary value) { super(self, value); }
+    private static final class Log__contextx extends Zeze.Transaction.Log1<BDispatch, Zeze.Net.Binary> {
+        public Log__contextx(BDispatch self, Zeze.Net.Binary value) { super(self, value); }
         @Override
         public long getLogKey() { return this.getBean().getObjectId() + 6; }
         @Override
-        public void Commit() { this.getBeanTyped()._statex = this.getValue(); }
+        public void Commit() { this.getBeanTyped()._contextx = this.getValue(); }
     }
 
     @Override
@@ -248,14 +265,8 @@ public final class BDispatch extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("account").append('=').append(getAccount()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("protocolType").append('=').append(getProtocolType()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("protocolData").append('=').append(getProtocolData()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("states").append("=[").append(System.lineSeparator());
-        level += 4;
-        for (var _item_ : getStates()) {
-            sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(_item_).append(',').append(System.lineSeparator());
-        }
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append(']').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("statex").append('=').append(getStatex()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("context").append('=').append(getContext()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("contextx").append('=').append(getContextx()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -304,17 +315,14 @@ public final class BDispatch extends Zeze.Transaction.Bean {
             }
         }
         {
-            var _x_ = getStates();
-            int _n_ = _x_.size();
-            if (_n_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.LIST);
-                _o_.WriteListType(_n_, ByteBuffer.INTEGER);
-                for (var _v_ : _x_)
-                    _o_.WriteLong(_v_);
+            String _x_ = getContext();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.BYTES);
+                _o_.WriteString(_x_);
             }
         }
         {
-            var _x_ = getStatex();
+            var _x_ = getContextx();
             if (_x_.size() != 0) {
                 _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.BYTES);
                 _o_.WriteBinary(_x_);
@@ -344,17 +352,11 @@ public final class BDispatch extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 5) {
-            var _x_ = getStates();
-            _x_.clear();
-            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
-                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadLong(_t_));
-            } else
-                _o_.SkipUnknownField(_t_);
+            setContext(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 6) {
-            setStatex(_o_.ReadBinary(_t_));
+            setContextx(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -365,7 +367,6 @@ public final class BDispatch extends Zeze.Transaction.Bean {
 
     @Override
     protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _states.InitRootInfo(root, this);
     }
 
     @Override
@@ -374,10 +375,6 @@ public final class BDispatch extends Zeze.Transaction.Bean {
             return true;
         if (getProtocolType() < 0)
             return true;
-        for (var _v_ : getStates()) {
-            if (_v_ < 0)
-                return true;
-        }
         return false;
     }
 }

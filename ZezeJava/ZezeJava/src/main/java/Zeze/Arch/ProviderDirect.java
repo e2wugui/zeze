@@ -5,9 +5,12 @@ import Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash;
 import Zeze.Builtin.ProviderDirect.ModuleRedirect;
 import Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest;
 import Zeze.Builtin.ProviderDirect.ModuleRedirectAllResult;
+import Zeze.Builtin.ProviderDirect.Transmit;
+import Zeze.Builtin.ProviderDirect.TransmitAccount;
 import Zeze.Net.AsyncSocket;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutObject;
+import org.apache.commons.lang3.NotImplementedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -16,7 +19,7 @@ import org.apache.logging.log4j.Logger;
  * 仅包含部分实现，使用的时候需要继承并实现完全。
  * 需要的时候可以重载重新实现默认实现。
  */
-public abstract class ProviderDirect extends AbstractProviderDirect {
+public class ProviderDirect extends AbstractProviderDirect {
 	private static final Logger logger = LogManager.getLogger(RedirectBase.class);
 
 	public ProviderApp ProviderApp;
@@ -180,6 +183,16 @@ public abstract class ProviderDirect extends AbstractProviderDirect {
 		if (ctx != null)
 			ctx.ProcessResult(ProviderApp.Zeze, protocol);
 		return Procedure.Success;
+	}
+
+	@Override
+	protected long ProcessTransmit(Transmit p) throws Throwable {
+		throw new NotImplementedException("");
+	}
+
+	@Override
+	protected long ProcessTransmitAccount(TransmitAccount p) throws Throwable {
+		throw new NotImplementedException("");
 	}
 
 	@Override

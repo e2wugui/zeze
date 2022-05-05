@@ -83,7 +83,7 @@ namespace Zeze.Arch
                 if (null != linkSession && null != linkSession.Account
                     // 这个状态是内部服务在CLogin的时候设置的，判断一下，可能可以简化客户端实现。
                     // 当然这个定义不是很好。但比较符合一般的使用。
-                    && linkSession.UserStates.Count > 0
+                    && false == string.IsNullOrEmpty(linkSession.Context)
                     )
                     socket.Send(protocol.Argument.ProtocolWholeData);
             });
@@ -118,7 +118,7 @@ namespace Zeze.Arch
             var protocol = p as SetUserState;
             var socket = LinkdApp.LinkdService.GetSocket(protocol.Argument.LinkSid);
             var linkSession = socket?.UserState as LinkdUserSession;
-            linkSession?.SetUserState(protocol.Argument.States, protocol.Argument.Statex);
+            linkSession?.SetUserState(protocol.Argument.Context, protocol.Argument.Contextx);
             return Zeze.Transaction.Procedure.Success;
         }
 
@@ -204,12 +204,15 @@ namespace Zeze.Arch
             switch (providerModuleState.ChoiceType)
             {
                 case BModule.ChoiceTypeHashAccount:
-                    return LinkdApp.LinkdProvider.Distribute.ChoiceHash(volatileProviders, Zeze.Serialize.ByteBuffer.calc_hashnr(linkSession.Account), out provider);
+                    return LinkdApp.LinkdProvider.Distribute.ChoiceHash(volatileProviders,
+                        Zeze.Serialize.ByteBuffer.calc_hashnr(linkSession.Account), out provider);
 
                 case BModule.ChoiceTypeHashRoleId:
-                    if (linkSession.UserStates.Count > 0)
+                    var roleId = linkSession.RoleId;
+                    if (null != roleId)
                     {
-                        return LinkdApp.LinkdProvider.Distribute.ChoiceHash(volatileProviders, Zeze.Serialize.ByteBuffer.calc_hashnr(linkSession.UserStates[0]), out provider);
+                        return LinkdApp.LinkdProvider.Distribute.ChoiceHash(volatileProviders,
+                            Zeze.Serialize.ByteBuffer.calc_hashnr(roleId.Value), out provider);
                     }
                     else
                     {

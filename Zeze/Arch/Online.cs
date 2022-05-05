@@ -48,7 +48,7 @@ namespace Zeze.Arch
         public void Start()
         {
             //LoadReporter.StartTimerTask();
-            //Util.Scheduler.ScheduleAt(VerifyLocal, 3 + Util.Random.Instance.Next(3), 10); // at 3:10 - 6:10
+            Util.Scheduler.ScheduleAt(VerifyLocal, 3 + Util.Random.Instance.Next(3), 10); // at 3:10 - 6:10
         }
 
         public int LocalCount => _tlocal.Cache.DataMap.Count;
@@ -296,7 +296,7 @@ namespace Zeze.Arch
                     notify.Argument.ReliableNotifyTotalCountStart = login.ReliableNotifyTotalCount;
                     notify.Argument.Notifies.Add(fullEncodedProtocol);
 
-                    await SendInProcedure(account, clientId, notify.TypeId, new Binary(notify.Encode()));
+                    await SendInProcedure(new List<LoginKey>{new LoginKey(account, clientId) }, notify.TypeId, new Binary(notify.Encode()));
                     login.ReliableNotifyTotalCount += 1; // 后加，start 是 Queue.Add 之前的。
                     return Procedure.Success;
                 },
@@ -310,15 +310,15 @@ namespace Zeze.Arch
             public AsyncSocket LinkSocket { get; set; } // null if not online
             public int ServerId { get; set; } = -1;
             public long ProviderSessionId { get; set; }
-            public Dictionary<ALogin, long> Logins { get; } = new();
+            public Dictionary<LoginKey, long> Logins { get; } = new();
         }
 
-        public class ALogin
+        public class LoginKey
         {
             public string Account { get; set; }
             public string ClientId { get; set; }
 
-            public ALogin(string account, string clientId)
+            public LoginKey(string account, string clientId)
             {
                 Account = account;
                 ClientId = clientId;
@@ -337,7 +337,7 @@ namespace Zeze.Arch
             {
                 if (obj == this)
                     return true;
-                if (obj is ALogin login)
+                if (obj is LoginKey login)
                 {
                     return Account.Equals(login.Account) && ClientId.Equals(login.ClientId);
                 }
@@ -345,7 +345,7 @@ namespace Zeze.Arch
             }
         }
 
-        public async Task<ICollection<RoleOnLink>> GroupByLink(ICollection<ALogin> logins)
+        public async Task<ICollection<RoleOnLink>> GroupByLink(ICollection<LoginKey> logins)
         {
             var groups = new Dictionary<string, RoleOnLink>();
             var groupNotOnline = new RoleOnLink(); // LinkName is Empty And Socket is null.
@@ -393,10 +393,9 @@ namespace Zeze.Arch
         }
 
         private async Task SendInProcedure(
-            string account, string clientId, long typeId, Binary fullEncodedProtocol)
+            ICollection<LoginKey> logins, long typeId, Binary fullEncodedProtocol)
         {
-            // 发送消息为了用上TaskOneByOne，只能一个一个发送，为了少改代码，先使用旧的GroupByLink接口。
-            var groups = await GroupByLink(new List<ALogin> { new ALogin(account, clientId) });
+            var groups = await GroupByLink(logins);
             foreach (var group in groups)
             {
                 if (group.LinkSocket == null)
@@ -412,11 +411,21 @@ namespace Zeze.Arch
 
         private void Send(string account, string clientId, long typeId, Binary fullEncodedProtocol)
         {
-            // 发送协议请求在另外的事务中执行。
-            ProviderApp.Zeze.TaskOneByOneByKey.Execute(account, () =>
+            var login = new LoginKey(account, clientId);
+            ProviderApp.Zeze.TaskOneByOneByKey.Execute(login, () =>
                 ProviderApp.Zeze.NewProcedure(async () =>
                 {
-                    await SendInProcedure(account, clientId, typeId, fullEncodedProtocol);
+                    await SendInProcedure(new List<LoginKey> { login }, typeId, fullEncodedProtocol);
+                    return Procedure.Success;
+                }, "Onlines.Send"));
+        }
+
+        private void Send(ICollection<LoginKey> logins, long typeId, Binary fullEncodedProtocol)
+        {
+            ProviderApp.Zeze.TaskOneByOneByKey.ExecuteCyclicBarrier(logins,
+                ProviderApp.Zeze.NewProcedure(async () =>
+                {
+                    await SendInProcedure(logins, typeId, fullEncodedProtocol);
                     return Procedure.Success;
                 }, "Onlines.Send"));
         }
@@ -426,557 +435,501 @@ namespace Zeze.Arch
             Send(account, clientId, p.TypeId, new Binary(p.Encode()));
         }
 
-        protected override Task<long> ProcessLoginRequest(Protocol p)
+        public void Send(ICollection<LoginKey> logins, Protocol p)
         {
-            throw new NotImplementedException();
+            Send(logins, p.TypeId, new Binary(p.Encode()));
         }
 
-        protected override Task<long> ProcessLogoutRequest(Protocol p)
+        public void SendWhileCommit(string account, string clientId, Protocol p)
         {
-            throw new NotImplementedException();
+            Transaction.Transaction.Current.RunWhileCommit(() => Send(account, clientId, p));
         }
 
-        protected override Task<long> ProcessReliableNotifyConfirmRequest(Protocol p)
+        public void SendWhileCommit(ICollection<LoginKey> logins, Protocol p)
         {
-            throw new NotImplementedException();
+            Transaction.Transaction.Current.RunWhileCommit(() => Send(logins, p));
         }
 
-        protected override Task<long> ProcessReLoginRequest(Protocol p)
+        public void SendWhileRollback(string account, string clientId, Protocol p)
         {
-            throw new NotImplementedException();
+            Transaction.Transaction.Current.RunWhileRollback(() => Send(account, clientId, p));
         }
-        /*
-public void Send(ICollection<ALogin> logins, Protocol p)
-{
-   Send(logins, p.TypeId, new Binary(p.Encode()));
-}
-
-public void SendWhileCommit(string account, Protocol p)
-{
-   Transaction.Transaction.Current.RunWhileCommit(() => Send(account, p));
-}
-
-public void SendWhileCommit(ICollection<string> accounts, Protocol p)
-{
-   Transaction.Transaction.Current.RunWhileCommit(() => Send(accounts, p));
-}
-
-public void SendWhileRollback(string account, Protocol p, bool WaitConfirm = false)
-{
-   Transaction.Transaction.Current.RunWhileRollback(() => Send(account, p, WaitConfirm));
-}
-
-public void SendWhileRollback(ICollection<string> accounts, Protocol p)
-{
-   Transaction.Transaction.Current.RunWhileRollback(() => Send(accounts, p));
-}
-
-/// <summary>
-/// Func<sender, target, result>
-/// sender: 查询发起者，结果发送给他。
-/// target: 查询目标角色。
-/// result: 返回值，int，按普通事务处理过程返回值处理。
-/// </summary>
-public ConcurrentDictionary<string, Func<long, long, Binary, Task<long>>> TransmitActions { get; } = new();
-
-/// <summary>
-/// 转发查询请求给RoleId。
-/// </summary>
-/// <param name="sender">查询发起者，结果发送给他。</param>
-/// <param name="actionName">查询处理的实现</param>
-/// <param name="roleId">目标角色</param>
-public void Transmit(long sender, string actionName, long roleId, Serializable parameter = null)
-{
-   Transmit(sender, actionName, new List<long>() { roleId }, parameter);
-}
-
-public void ProcessTransmit(long sender, string actionName, IEnumerable<long> roleIds, Binary parameter)
-{
-   if (TransmitActions.TryGetValue(actionName, out var handle))
-   {
-       foreach (var target in roleIds)
-       {
-           ProviderApp.Zeze.NewProcedure(async () => await handle(sender, target, parameter), "Game.Online.Transmit:" + actionName).Execute();
-       }
-   }
-}
-
-public class RoleOnServer
-{
-   public int ServerId { get; set; } = -1; // empty when not online
-   public HashSet<long> Roles { get; } = new();
-   public void AddAll(HashSet<long> roles)
-   {
-       foreach (var role in roles)
-           Roles.Add(role);
-   }
-}
-
-public async Task<ICollection<RoleOnServer>> GroupByServer(ICollection<string> accounts)
-{
-   var groups = new Dictionary<int, RoleOnServer>();
-   var groupNotOnline = new RoleOnServer(); // LinkName is Empty And Socket is null.
-   groups.Add(groupNotOnline.ServerId, groupNotOnline);
-
-   foreach (var account in accounts)
-   {
-       var online = await _tonline.GetAsync(account);
-       if (null == online)
-       {
-           groupNotOnline.Roles.Add(account);
-           continue;
-       }
-       var version = await _tversion.GetOrAddAsync(account);
-       // 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
-       if (false == groups.TryGetValue(version.ServerId, out var group))
-       {
-           group = new RoleOnServer()
-           {
-               ServerId = version.ServerId
-           };
-           groups.Add(group.ServerId, group);
-       }
-       group.Roles.Add(account);
-   }
-   return groups.Values;
-}
-
-private RoleOnServer Merge(RoleOnServer current, RoleOnServer m)
-{
-   if (null == current)
-       return m;
-   foreach (var roleId in m.Roles)
-       current.Roles.Add(roleId);
-   return current;
-}
-
-private async Task TransmitInProcedure(long sender, string actionName, ICollection<long> roleIds, Binary parameter)
-{
-   if (ProviderApp.Zeze.Config.GlobalCacheManagerHostNameOrAddress.Length == 0)
-   {
-       // 没有启用cache-sync，马上触发本地任务。
-       ProcessTransmit(sender, actionName, roleIds, parameter);
-       return;
-   }
-
-   var groups = await GroupByServer(roleIds);
-   RoleOnServer groupLocal = null;
-   foreach (var group in groups)
-   {
-       if (group.ServerId == -1 || group.ServerId == ProviderApp.Zeze.Config.ServerId)
-       {
-           // loopback 就是当前gs.
-           // 对于不在线的角色，直接在本机运行。
-           groupLocal = Merge(groupLocal, group);
-           continue;
-       }
-
-       var transmit = new Transmit();
-       transmit.Argument.ActionName = actionName;
-       transmit.Argument.Sender = sender;
-       transmit.Argument.Roles.AddAll(group.Roles);
-       if (null != parameter)
-       {
-           transmit.Argument.Parameter = parameter;
-       }
-
-       if (false == ProviderApp.ProviderDirectService.ProviderByServerId.TryGetValue(group.ServerId, out var ps))
-       {
-           groupLocal.AddAll(group.Roles);
-           continue;
-       }
-       var socket = ProviderApp.ProviderDirectService.GetSocket(ps.SessionId);
-       if (null == socket)
-       {
-           groupLocal.AddAll(group.Roles);
-           continue;
-       }
-       transmit.Send(socket);
-   }
-   if (groupLocal.Roles.Count > 0)
-       ProcessTransmit(sender, actionName, groupLocal.Roles, parameter);
-}
-
-public void Transmit(long sender, string actionName, ICollection<long> roleIds, Serializable parameter = null)
-{
-   if (false == TransmitActions.ContainsKey(actionName))
-       throw new Exception("Unkown Action Name: " + actionName);
-
-   var binaryParam = parameter == null ? Binary.Empty : new Binary(ByteBuffer.Encode(parameter));
-   // 发送协议请求在另外的事务中执行。
-   _ = ProviderApp.Zeze.NewProcedure(async () =>
-   {
-       await TransmitInProcedure(sender, actionName, roleIds, binaryParam);
-       return Procedure.Success;
-   }, "Onlines.Transmit").CallAsync();
-}
-
-public void TransmitWhileCommit(long sender, string actionName, long roleId, Serializable parameter = null)
-{
-   if (false == TransmitActions.ContainsKey(actionName))
-       throw new Exception("Unkown Action Name: " + actionName);
-   Transaction.Transaction.Current.RunWhileCommit(() => Transmit(sender, actionName, roleId, parameter));
-}
-
-public void TransmitWhileCommit(long sender, string actionName, ICollection<long> roleIds, Serializable parameter = null)
-{
-   if (false == TransmitActions.ContainsKey(actionName))
-       throw new Exception("Unkown Action Name: " + actionName);
-   Transaction.Transaction.Current.RunWhileCommit(() => Transmit(sender, actionName, roleIds, parameter));
-}
-
-public void TransmitWhileRollback(long sender, string actionName, long roleId, Serializable parameter = null)
-{
-   if (false == TransmitActions.ContainsKey(actionName))
-       throw new Exception("Unkown Action Name: " + actionName);
-   Transaction.Transaction.Current.RunWhileRollback(() => Transmit(sender, actionName, roleId, parameter));
-}
-
-public void TransmitWhileRollback(long sender, string actionName, ICollection<long> roleIds, Serializable parameter = null)
-{
-   if (false == TransmitActions.ContainsKey(actionName))
-       throw new Exception("Unkown Action Name: " + actionName);
-   Transaction.Transaction.Current.RunWhileRollback(() => Transmit(sender, actionName, roleIds, parameter));
-}
-
-public class ConfirmContext : Service.ManualContext
-{
-   public HashSet<string> LinkNames { get; } = new HashSet<string>();
-   public TaskCompletionSource<long> Future { get; }
-   public ProviderApp App { get; }
-
-   public ConfirmContext(ProviderApp app, TaskCompletionSource<long> future)
-   {
-       App = app;
-       Future = future;
-   }
-
-   public override void OnRemoved()
-   {
-       lock (this)
-       {
-           Future.SetResult(base.SessionId);
-       }
-   }
-
-   public long ProcessLinkConfirm(string linkName)
-   {
-       lock (this)
-       {
-           LinkNames.Remove(linkName);
-           if (LinkNames.Count == 0)
-           {
-               App.ProviderService.TryRemoveManualContext<ConfirmContext>(SessionId);
-           }
-           return Procedure.Success;
-       }
-   }
-}
-
-private void Broadcast(long typeId, Binary fullEncodedProtocol, int time, bool WaitConfirm)
-{
-   TaskCompletionSource<long> future = null;
-   long serialId = 0;
-   if (WaitConfirm)
-   {
-       future = new TaskCompletionSource<long>();
-       var confirmContext = new ConfirmContext(ProviderApp, future);
-       foreach (var link in ProviderApp.ProviderService.Links.Values)
-       {
-           if (link.Socket != null)
-               confirmContext.LinkNames.Add(link.Name);
-       }
-       serialId = ProviderApp.ProviderService.AddManualContextWithTimeout(confirmContext, 5000);
-   }
-
-   var broadcast = new Broadcast();
-   broadcast.Argument.ProtocolType = typeId;
-   broadcast.Argument.ProtocolWholeData = fullEncodedProtocol;
-   broadcast.Argument.ConfirmSerialId = serialId;
-   broadcast.Argument.Time = time;
-
-   foreach (var link in ProviderApp.ProviderService.Links.Values)
-   {
-       link.Socket?.Send(broadcast);
-   }
-
-   future?.Task.Wait();
-}
-
-public void Broadcast(Protocol p, int time = 60 * 1000, bool WaitConfirm = false)
-{
-   Broadcast(p.TypeId, new Binary(p.Encode()), time, WaitConfirm);
-}
-
-private void VerifyLocal(Util.SchedulerTask thisTask)
-{
-   string account = null;
-   _tlocal.WalkCache(
-       (k, v) =>
-       {
-           // 先得到roleId
-           account = k;
-           return true;
-       },
-       () =>
-       {
-           // 锁外执行事务
-           try
-           {
-               ProviderApp.Zeze.NewProcedure(async () =>
-               {
-                   await TryRemoveLocal(account);
-                   return 0L;
-               }, "VerifyLocal:" + account).CallSynchronously();
-           }
-           catch (Exception e)
-           {
-               logger.Error(e);
-           }
-       });
-   // 随机开始时间，避免验证操作过于集中。3:10 - 5:10
-   Util.Scheduler.ScheduleAt(VerifyLocal, 3 + Util.Random.Instance.Next(3), 10); // at 3:10 - 6:10
-}
-
-private async Task TryRemoveLocal(string account)
-{
-   var online = await _tonline.GetAsync(account);
-   var local = await _tlocal.GetAsync(account);
-   var version = await _tversion.GetOrAddAsync(account);
-   if (null == local)
-       return;
-   // null == online && null == local -> do nothing
-   // null != online && null == local -> do nothing
-
-   if (null == online)
-   {
-       // remove all
-       foreach (var loginLocal in local.Logins)
-           await RemoveLocalAndTrigger(account, loginLocal.Key);
-   }
-   else
-   {
-       // 在全局数据中查找login-local，删除不存在或者版本不匹配的。
-       foreach (var loginLocal in local.Logins)
-       {
-           if (false == version.Logins.TryGetValue(loginLocal.Key, out var loginVersion)
-               || loginVersion.LoginVersion != loginLocal.Value.LoginVersion)
-           {
-               await RemoveLocalAndTrigger(account, loginLocal.Key);
-           }
-       }
-   }
-
-}
-
-[RedirectToServer]
-protected async Task RedirectNotify(int serverId, string account)
-{
-   await TryRemoveLocal(account);
-}
-
-protected override async Task<long> ProcessLoginRequest(Zeze.Net.Protocol p)
-{
-   var rpc = p as Login;
-   var session = ProviderUserSession.Get(rpc);
-
-   var account = await _taccount.GetOrAddAsync(session.Account);
-   var online = await _tonline.GetOrAddAsync(rpc.Argument.RoleId);
-   var local = await _tlocal.GetOrAddAsync(rpc.Argument.RoleId);
-   var version = await _tversion.GetOrAddAsync(rpc.Argument.RoleId);
-
-   // login exist && not local
-   if (version.LoginVersion != 0 && version.LoginVersion != local.LoginVersion)
-   {
-       // nowait
-       _ = RedirectNotify(version.ServerId, rpc.Argument.RoleId);
-   }
-   var loginVersion = account.LastLoginVersion + 1;
-   account.LastLoginVersion = loginVersion;
-   version.LoginVersion = loginVersion;
-   local.LoginVersion = loginVersion;
-
-   if (!online.LinkName.Equals(session.LinkName) || online.LinkSid == session.LinkSid)
-   {
-       ProviderApp.ProviderService.Kick(online.LinkName, online.LinkSid,
-               BKick.ErrorDuplicateLogin, "duplicate role login");
-   }
-
-   /////////////////////////////////////////////////////////////
-   // 当LinkName,LinkSid没有变化的时候，保持记录是读取状态，不会申请写锁。
-   // 因为Online数据可能会被很多地方缓存，写操作会造成缓存失效。
-   // see Linkd.StableLinkSid
-   if (false == online.LinkName.Equals(session.LinkName))
-       online.LinkName = session.LinkName;
-   if (online.LinkSid != session.LinkSid)
-       online.LinkSid = session.LinkSid;
-   /////////////////////////////////////////////////////////////
-
-   version.ReliableNotifyConfirmCount = 0;
-   version.ReliableNotifyTotalCount = 0;
-   version.ReliableNotifyMark.Clear();
-   version.ReliableNotifyQueue.Clear();
-
-   var linkSession = session.Link.UserState as ProviderService.LinkSession;
-   version.ServerId = ProviderApp.Zeze.Config.ServerId;
-
-   await LoginTrigger(rpc.Argument.RoleId);
-
-   // 先提交结果再设置状态。
-   // see linkd::Zezex.Provider.ModuleProvider。ProcessBroadcast
-   session.SendResponseWhileCommit(rpc);
-   Transaction.Transaction.Current.RunWhileCommit(() =>
-   {
-       var setUserState = new SetUserState();
-       setUserState.Argument.LinkSid = session.LinkSid;
-       setUserState.Argument.States.Add(rpc.Argument.RoleId);
-       rpc.Sender.Send(setUserState); // 直接使用link连接。
-   });
-   //App.Load.LoginCount.IncrementAndGet();
-   return Procedure.Success;
-}
-
-protected override async Task<long> ProcessReLoginRequest(Zeze.Net.Protocol p)
-{
-   var rpc = p as ReLogin;
-   var session = ProviderUserSession.Get(rpc);
-
-   BAccount account = await _taccount.GetAsync(session.Account);
-   if (null == account)
-       return ErrorCode(ResultCodeAccountNotExist);
-
-   if (account.LastLoginRoleId != rpc.Argument.RoleId)
-       return ErrorCode(ResultCodeNotLastLoginRoleId);
-
-   if (!account.Roles.Contains(rpc.Argument.RoleId))
-       return ErrorCode(ResultCodeRoleNotExist);
-
-   BOnline online = await _tonline.GetAsync(rpc.Argument.RoleId);
-   if (null == online)
-       return ErrorCode(ResultCodeOnlineDataNotFound);
-
-   var local = await _tlocal.GetOrAddAsync(rpc.Argument.RoleId);
-   var version = await _tversion.GetOrAddAsync(rpc.Argument.RoleId);
-
-   // login exist && not local
-   if (version.LoginVersion != 0 && version.LoginVersion != local.LoginVersion)
-   {
-       // nowait
-       _ = RedirectNotify(version.ServerId, rpc.Argument.RoleId);
-   }
-   var loginVersion = account.LastLoginVersion + 1;
-   account.LastLoginVersion = loginVersion;
-   version.LoginVersion = loginVersion;
-   local.LoginVersion = loginVersion;
-
-   /////////////////////////////////////////////////////////////
-   // 当LinkName,LinkSid没有变化的时候，保持记录是读取状态，不会申请写锁。
-   // 因为Online数据可能会被很多地方缓存，写操作会造成缓存失效。
-   // see Linkd.StableLinkSid
-   if (false == online.LinkName.Equals(session.LinkName))
-       online.LinkName = session.LinkName;
-   if (online.LinkSid != session.LinkSid)
-       online.LinkSid = session.LinkSid;
-   /////////////////////////////////////////////////////////////
-
-   await ReloginTrigger(session.RoleId.Value);
-
-   // 先发结果，再发送同步数据（ReliableNotifySync）。
-   // 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
-   session.SendResponseWhileCommit(rpc);
-   Transaction.Transaction.Current.RunWhileCommit(() =>
-   {
-       var setUserState = new SetUserState();
-       setUserState.Argument.LinkSid = session.LinkSid;
-       setUserState.Argument.States.Add(rpc.Argument.RoleId);
-       rpc.Sender.Send(setUserState); // 直接使用link连接。
-   });
-
-   var syncResultCode = await ReliableNotifySync(session.RoleId.Value,
-       session, rpc.Argument.ReliableNotifyConfirmCount);
-
-   if (syncResultCode != ResultCodeSuccess)
-       return ErrorCode((ushort)syncResultCode);
-
-   //App.Load.LoginCount.IncrementAndGet();
-   return Procedure.Success;
-}
-
-protected override async Task<long> ProcessLogoutRequest(Zeze.Net.Protocol p)
-{
-   var rpc = p as Logout;
-   var session = ProviderUserSession.Get(rpc);
-
-   if (session.RoleId == null)
-       return ErrorCode(ResultCodeNotLogin);
-
-   var local = await _tlocal.GetAsync(session.RoleId.Value);
-   var online = await _tonline.GetAsync(session.RoleId.Value);
-   var version = await _tversion.GetOrAddAsync(session.RoleId.Value);
-   // 登录在其他机器上。
-   if (local == null && online != null)
-       _ = RedirectNotify(version.ServerId, session.RoleId.Value); // nowait
-   if (null != local)
-       await RemoveLocalAndTrigger(session.RoleId.Value);
-   if (null != online)
-       await RemoveOnlineAndTrigger(session.RoleId.Value);
-
-   // 先设置状态，再发送Logout结果。
-   Transaction.Transaction.Current.RunWhileCommit(() =>
-   {
-       var setUserState = new SetUserState();
-       setUserState.Argument.LinkSid = session.LinkSid;
-       rpc.Sender.Send(setUserState); // 直接使用link连接。
-   });
-   session.SendResponseWhileCommit(rpc);
-   // 在 OnLinkBroken 时处理。可以同时处理网络异常的情况。
-   // App.Load.LogoutCount.IncrementAndGet();
-   return Procedure.Success;
-}
-
-private async Task<int> ReliableNotifySync(long roleId, ProviderUserSession session, long ReliableNotifyConfirmCount, bool sync = true)
-{
-   var online = await _tversion.GetOrAddAsync(roleId);
-   if (ReliableNotifyConfirmCount < online.ReliableNotifyConfirmCount
-       || ReliableNotifyConfirmCount > online.ReliableNotifyTotalCount
-       || ReliableNotifyConfirmCount - online.ReliableNotifyConfirmCount > online.ReliableNotifyQueue.Count)
-   {
-       return ResultCodeReliableNotifyConfirmCountOutOfRange;
-   }
-
-   int confirmCount = (int)(ReliableNotifyConfirmCount - online.ReliableNotifyConfirmCount);
-
-   if (sync)
-   {
-       var notify = new SReliableNotify();
-       notify.Argument.ReliableNotifyTotalCountStart = ReliableNotifyConfirmCount;
-       for (int i = confirmCount; i < online.ReliableNotifyQueue.Count; ++i)
-           notify.Argument.Notifies.Add(online.ReliableNotifyQueue[i]);
-       session.SendResponseWhileCommit(notify);
-   }
-   online.ReliableNotifyQueue.RemoveRange(0, confirmCount);
-   online.ReliableNotifyConfirmCount = ReliableNotifyConfirmCount;
-   return ResultCodeSuccess;
-}
-
-protected override async Task<long> ProcessReliableNotifyConfirmRequest(Zeze.Net.Protocol p)
-{
-   var rpc = p as ReliableNotifyConfirm;
-   var session = ProviderUserSession.Get(rpc);
-
-   BOnline online = await _tonline.GetAsync(session.RoleId.Value);
-   if (null == online)
-       return ErrorCode(ResultCodeOnlineDataNotFound);
-
-   session.SendResponseWhileCommit(rpc); // 同步前提交。
-   var syncResultCode = await ReliableNotifySync(session.RoleId.Value,
-       session, rpc.Argument.ReliableNotifyConfirmCount, false);
-
-   if (ResultCodeSuccess != syncResultCode)
-       return ErrorCode((ushort)syncResultCode);
-
-   return Procedure.Success;
-}
-*/
+
+        public void SendWhileRollback(ICollection<LoginKey> logins, Protocol p)
+        {
+            Transaction.Transaction.Current.RunWhileRollback(() => Send(logins, p));
+        }
+
+        /// <summary>
+        /// Func<senderAccount, senderClientId, target, result>
+        /// sender: 查询发起者，结果发送给他。
+        /// target: 查询目标。
+        /// result: 返回值，int，按普通事务处理过程返回值处理。
+        /// </summary>
+        public ConcurrentDictionary<string, Func<string, string, string, Binary, Task<long>>> TransmitActions { get; } = new();
+
+        /// <summary>
+        /// 转发查询请求给RoleId。
+        /// </summary>
+        /// <param name="sender">查询发起者，结果发送给他。</param>
+        /// <param name="actionName">查询处理的实现</param>
+        /// <param name="roleId">目标角色</param>
+        public void Transmit(string account, string clientId, string actionName, string target, Serializable parameter = null)
+        {
+            Transmit(account, clientId, actionName, new List<string> { target }, parameter);
+        }
+
+        public void ProcessTransmit(string account, string clientId, string actionName, IEnumerable<string> accounts, Binary parameter)
+        {
+            if (TransmitActions.TryGetValue(actionName, out var handle))
+            {
+                foreach (var target in accounts)
+                {
+                    ProviderApp.Zeze.NewProcedure(async () => await handle(account, clientId, target, parameter), "Game.Online.Transmit:" + actionName).Execute();
+                }
+            }
+        }
+
+        public class RoleOnServer
+        {
+            public int ServerId { get; set; } = -1; // empty when not online
+            public HashSet<string> Accounts { get; } = new();
+            public void AddAll(HashSet<string> accounts)
+            {
+                foreach (var account in accounts)
+                    Accounts.Add(account);
+            }
+        }
+
+        public async Task<ICollection<RoleOnServer>> GroupByServer(ICollection<string> accounts)
+        {
+            var groups = new Dictionary<int, RoleOnServer>();
+            var groupNotOnline = new RoleOnServer(); // LinkName is Empty And Socket is null.
+            groups.Add(groupNotOnline.ServerId, groupNotOnline);
+
+            foreach (var account in accounts)
+            {
+                var online = await _tonline.GetAsync(account);
+                if (null == online)
+                {
+                    groupNotOnline.Accounts.Add(account);
+                    continue;
+                }
+                var version = await _tversion.GetOrAddAsync(account);
+                if (version.Logins.Count == 0)
+                {
+                    // null != online 意味着这里肯定不为0，不会到达这个分支。
+                    // 下面要求Logins.Count必须大于0，判断一下吧。
+                    groupNotOnline.Accounts.Add(account);
+                    continue;
+                }
+                var serverId = version.Logins.GetEnumerator().Current.Value.ServerId;
+                // 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
+                if (false == groups.TryGetValue(serverId, out var group))
+                {
+                    group = new RoleOnServer()
+                    {
+                        ServerId = serverId
+                    };
+                    groups.Add(group.ServerId, group);
+                }
+                group.Accounts.Add(account);
+            }
+            return groups.Values;
+        }
+
+        private RoleOnServer Merge(RoleOnServer current, RoleOnServer m)
+        {
+            if (null == current)
+                return m;
+            current.AddAll(m.Accounts);
+            return current;
+        }
+
+        private async Task TransmitInProcedure(string account, string clientId, string actionName, ICollection<string> accounts, Binary parameter)
+        {
+            if (ProviderApp.Zeze.Config.GlobalCacheManagerHostNameOrAddress.Length == 0)
+            {
+                // 没有启用cache-sync，马上触发本地任务。
+                ProcessTransmit(account, clientId, actionName, accounts, parameter);
+                return;
+            }
+
+            var groups = await GroupByServer(accounts);
+            RoleOnServer groupLocal = null;
+            foreach (var group in groups)
+            {
+                if (group.ServerId == -1 || group.ServerId == ProviderApp.Zeze.Config.ServerId)
+                {
+                    // loopback 就是当前gs.
+                    // 对于不在线的角色，直接在本机运行。
+                    groupLocal = Merge(groupLocal, group);
+                    continue;
+                }
+
+                var transmit = new TransmitAccount();
+                transmit.Argument.ActionName = actionName;
+                transmit.Argument.SenderAccount = account;
+                transmit.Argument.SenderClientId = clientId;
+                transmit.Argument.TargetAccounts.AddAll(group.Accounts);
+                if (null != parameter)
+                {
+                    transmit.Argument.Parameter = parameter;
+                }
+
+                if (false == ProviderApp.ProviderDirectService.ProviderByServerId.TryGetValue(group.ServerId, out var ps))
+                {
+                    groupLocal.AddAll(group.Accounts);
+                    continue;
+                }
+                var socket = ProviderApp.ProviderDirectService.GetSocket(ps.SessionId);
+                if (null == socket)
+                {
+                    groupLocal.AddAll(group.Accounts);
+                    continue;
+                }
+                transmit.Send(socket);
+            }
+            if (groupLocal.Accounts.Count > 0)
+                ProcessTransmit(account, clientId, actionName, groupLocal.Accounts, parameter);
+        }
+
+        public void Transmit(string account, string clientId, string actionName, ICollection<string> targets, Serializable parameter = null)
+        {
+            if (false == TransmitActions.ContainsKey(actionName))
+                throw new Exception("Unkown Action Name: " + actionName);
+
+            var binaryParam = parameter == null ? Binary.Empty : new Binary(ByteBuffer.Encode(parameter));
+            // 发送协议请求在另外的事务中执行。
+            _ = ProviderApp.Zeze.NewProcedure(async () =>
+            {
+                await TransmitInProcedure(account, clientId, actionName, targets, binaryParam);
+                return Procedure.Success;
+            }, "Onlines.Transmit").CallAsync();
+        }
+
+        public void TransmitWhileCommit(string account, string clientId, string actionName, string target, Serializable parameter = null)
+        {
+            if (false == TransmitActions.ContainsKey(actionName))
+                throw new Exception("Unkown Action Name: " + actionName);
+            Transaction.Transaction.Current.RunWhileCommit(() => Transmit(account, clientId, actionName, target, parameter));
+        }
+
+        public void TransmitWhileCommit(string account, string clientId, string actionName, ICollection<string> targets, Serializable parameter = null)
+        {
+            if (false == TransmitActions.ContainsKey(actionName))
+                throw new Exception("Unkown Action Name: " + actionName);
+            Transaction.Transaction.Current.RunWhileCommit(() => Transmit(account, clientId, actionName, targets, parameter));
+        }
+
+        public void TransmitWhileRollback(string account, string clientId, string actionName, string target, Serializable parameter = null)
+        {
+            if (false == TransmitActions.ContainsKey(actionName))
+                throw new Exception("Unkown Action Name: " + actionName);
+            Transaction.Transaction.Current.RunWhileRollback(() => Transmit(account, clientId, actionName, target, parameter));
+        }
+
+        public void TransmitWhileRollback(string account, string clientId, string actionName, ICollection<string> targets, Serializable parameter = null)
+        {
+            if (false == TransmitActions.ContainsKey(actionName))
+                throw new Exception("Unkown Action Name: " + actionName);
+            Transaction.Transaction.Current.RunWhileRollback(() => Transmit(account, clientId, actionName, targets, parameter));
+        }
+
+        private void Broadcast(long typeId, Binary fullEncodedProtocol, int time)
+        {
+            TaskCompletionSource<long> future = null;
+            var broadcast = new Broadcast();
+            broadcast.Argument.ProtocolType = typeId;
+            broadcast.Argument.ProtocolWholeData = fullEncodedProtocol;
+            broadcast.Argument.Time = time;
+
+            foreach (var link in ProviderApp.ProviderService.Links.Values)
+            {
+                link.Socket?.Send(broadcast);
+            }
+        }
+
+        public void Broadcast(Protocol p, int time = 60 * 1000)
+        {
+            Broadcast(p.TypeId, new Binary(p.Encode()), time);
+        }
+
+        private void VerifyLocal(Util.SchedulerTask thisTask)
+        {
+            string account = null;
+            _tlocal.WalkCache(
+                (k, v) =>
+                {
+                    // 先得到roleId
+                    account = k;
+                    return true;
+                },
+                () =>
+                {
+                    // 锁外执行事务
+                    try
+                    {
+                        ProviderApp.Zeze.NewProcedure(async () =>
+                        {
+                            await TryRemoveLocal(account);
+                            return 0L;
+                        }, "VerifyLocal:" + account).CallSynchronously();
+                    }
+                    catch (Exception e)
+                    {
+                        logger.Error(e);
+                    }
+                });
+            // 随机开始时间，避免验证操作过于集中。3:10 - 5:10
+            Util.Scheduler.ScheduleAt(VerifyLocal, 3 + Util.Random.Instance.Next(3), 10); // at 3:10 - 6:10
+        }
+
+        private async Task TryRemoveLocal(string account)
+        {
+            var online = await _tonline.GetAsync(account);
+            var local = await _tlocal.GetAsync(account);
+            var version = await _tversion.GetOrAddAsync(account);
+            if (null == local)
+                return;
+            // null == online && null == local -> do nothing
+            // null != online && null == local -> do nothing
+
+            if (null == online)
+            {
+                // remove all
+                foreach (var loginLocal in local.Logins)
+                    await RemoveLocalAndTrigger(account, loginLocal.Key);
+            }
+            else
+            {
+                // 在全局数据中查找login-local，删除不存在或者版本不匹配的。
+                foreach (var loginLocal in local.Logins)
+                {
+                    if (false == version.Logins.TryGetValue(loginLocal.Key, out var loginVersion)
+                        || loginVersion.LoginVersion != loginLocal.Value.LoginVersion)
+                    {
+                        await RemoveLocalAndTrigger(account, loginLocal.Key);
+                    }
+                }
+            }
+
+        }
+
+        [RedirectToServer]
+        protected async Task RedirectNotify(int serverId, string account)
+        {
+            await TryRemoveLocal(account);
+        }
+
+        protected override async Task<long> ProcessLoginRequest(Zeze.Net.Protocol p)
+        {
+            var rpc = p as Login;
+            var session = ProviderUserSession.Get(rpc);
+
+            var account = await _taccount.GetOrAddAsync(session.Account);
+            var online = await _tonline.GetOrAddAsync(session.Account);
+            var local = await _tlocal.GetOrAddAsync(session.Account);
+            var version = await _tversion.GetOrAddAsync(session.Account);
+
+            var loginLocal = local.Logins.GetOrAdd(rpc.Argument.ClientId);
+            var loginVersion = version.Logins.GetOrAdd(rpc.Argument.ClientId);
+
+            // login exist && not local
+            if (loginVersion.LoginVersion != 0 && loginVersion.LoginVersion != loginLocal.LoginVersion)
+            {
+                // nowait
+                _ = RedirectNotify(loginVersion.ServerId, session.Account);
+            }
+            var loginVersionSerialId = account.LastLoginVersion + 1;
+            account.LastLoginVersion = loginVersionSerialId;
+            loginVersion.LoginVersion = loginVersionSerialId;
+            loginLocal.LoginVersion = loginVersionSerialId;
+
+            var loginOnline = online.Logins.GetOrAdd(rpc.Argument.ClientId);
+            if (!loginOnline.LinkName.Equals(session.LinkName) || loginOnline.LinkSid == session.LinkSid)
+            {
+                ProviderApp.ProviderService.Kick(loginOnline.LinkName, loginOnline.LinkSid,
+                        BKick.ErrorDuplicateLogin, $"duplicate login {session.Account}:{rpc.Argument.ClientId}");
+            }
+
+            /////////////////////////////////////////////////////////////
+            // 当LinkName,LinkSid没有变化的时候，保持记录是读取状态，不会申请写锁。
+            // 因为Online数据可能会被很多地方缓存，写操作会造成缓存失效。
+            // see Linkd.StableLinkSid
+            if (false == loginOnline.LinkName.Equals(session.LinkName))
+                loginOnline.LinkName = session.LinkName;
+            if (loginOnline.LinkSid != session.LinkSid)
+                loginOnline.LinkSid = session.LinkSid;
+            /////////////////////////////////////////////////////////////
+
+            loginVersion.ReliableNotifyConfirmCount = 0;
+            loginVersion.ReliableNotifyTotalCount = 0;
+            loginVersion.ReliableNotifyMark.Clear();
+            loginVersion.ReliableNotifyQueue.Clear();
+
+            var linkSession = session.Link.UserState as ProviderService.LinkSession;
+            loginVersion.ServerId = ProviderApp.Zeze.Config.ServerId;
+
+            await LoginTrigger(session.Account, rpc.Argument.ClientId);
+
+            // 先提交结果再设置状态。
+            // see linkd::Zezex.Provider.ModuleProvider。ProcessBroadcast
+            session.SendResponseWhileCommit(rpc);
+            Transaction.Transaction.Current.RunWhileCommit(() =>
+            {
+                var setUserState = new SetUserState();
+                setUserState.Argument.LinkSid = session.LinkSid;
+                setUserState.Argument.Context = rpc.Argument.ClientId;
+                rpc.Sender.Send(setUserState); // 直接使用link连接。
+            });
+            //App.Load.LoginCount.IncrementAndGet();
+            return Procedure.Success;
+        }
+
+        protected override async Task<long> ProcessReLoginRequest(Zeze.Net.Protocol p)
+        {
+            var rpc = p as ReLogin;
+            var session = ProviderUserSession.Get(rpc);
+
+            var account = await _taccount.GetAsync(session.Account);
+            if (null == account)
+                return ErrorCode(ResultCodeAccountNotExist);
+
+            var online = await _tonline.GetAsync(session.Account);
+            if (null == online)
+                return ErrorCode(ResultCodeOnlineDataNotFound);
+
+            var local = await _tlocal.GetOrAddAsync(session.Account);
+            var version = await _tversion.GetOrAddAsync(session.Account);
+
+            var loginLocal = local.Logins.GetOrAdd(rpc.Argument.ClientId);
+            var loginVersion = version.Logins.GetOrAdd(rpc.Argument.ClientId);
+            // login exist && not local
+            if (loginVersion.LoginVersion != 0 && loginVersion.LoginVersion != loginLocal.LoginVersion)
+            {
+                // nowait
+                _ = RedirectNotify(loginVersion.ServerId, session.Account);
+            }
+            var loginVersionSerialId = account.LastLoginVersion + 1;
+            account.LastLoginVersion = loginVersionSerialId;
+            loginVersion.LoginVersion = loginVersionSerialId;
+            loginLocal.LoginVersion = loginVersionSerialId;
+
+            /////////////////////////////////////////////////////////////
+            // 当LinkName,LinkSid没有变化的时候，保持记录是读取状态，不会申请写锁。
+            // 因为Online数据可能会被很多地方缓存，写操作会造成缓存失效。
+            // see Linkd.StableLinkSid
+            var loginOnline = online.Logins.GetOrAdd(rpc.Argument.ClientId);
+            if (false == loginOnline.LinkName.Equals(session.LinkName))
+                loginOnline.LinkName = session.LinkName;
+            if (loginOnline.LinkSid != session.LinkSid)
+                loginOnline.LinkSid = session.LinkSid;
+            /////////////////////////////////////////////////////////////
+
+            await ReloginTrigger(session.Account, rpc.Argument.ClientId);
+
+            // 先发结果，再发送同步数据（ReliableNotifySync）。
+            // 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
+            session.SendResponseWhileCommit(rpc);
+            Transaction.Transaction.Current.RunWhileCommit(() =>
+            {
+                var setUserState = new SetUserState();
+                setUserState.Argument.LinkSid = session.LinkSid;
+                setUserState.Argument.Context = rpc.Argument.ClientId;
+                rpc.Sender.Send(setUserState); // 直接使用link连接。
+            });
+
+            var syncResultCode = await ReliableNotifySync(session.Account, session.Context,
+                session, rpc.Argument.ReliableNotifyConfirmCount);
+
+            if (syncResultCode != ResultCodeSuccess)
+                return ErrorCode((ushort)syncResultCode);
+
+            //App.Load.LoginCount.IncrementAndGet();
+            return Procedure.Success;
+        }
+
+        protected override async Task<long> ProcessLogoutRequest(Zeze.Net.Protocol p)
+        {
+            var rpc = p as Logout;
+            var session = ProviderUserSession.Get(rpc);
+
+            if (session.RoleId == null)
+                return ErrorCode(ResultCodeNotLogin);
+
+            var local = await _tlocal.GetAsync(session.Account);
+            var online = await _tonline.GetAsync(session.Account);
+            var version = await _tversion.GetOrAddAsync(session.Account);
+
+            var clientId = session.Context;
+            var loginVersion = version.Logins.GetOrAdd(clientId);
+            // 登录在其他机器上。
+            if (local == null && online != null)
+                _ = RedirectNotify(loginVersion.ServerId, session.Account); // nowait
+            if (null != local)
+                await RemoveLocalAndTrigger(session.Account, clientId);
+            if (null != online)
+                await RemoveOnlineAndTrigger(session.Account, clientId);
+
+            // 先设置状态，再发送Logout结果。
+            Transaction.Transaction.Current.RunWhileCommit(() =>
+            {
+                var setUserState = new SetUserState();
+                setUserState.Argument.LinkSid = session.LinkSid;
+                rpc.Sender.Send(setUserState); // 直接使用link连接。
+            });
+            session.SendResponseWhileCommit(rpc);
+            // 在 OnLinkBroken 时处理。可以同时处理网络异常的情况。
+            // App.Load.LogoutCount.IncrementAndGet();
+            return Procedure.Success;
+        }
+
+        private async Task<int> ReliableNotifySync(string account, string clientId,
+            ProviderUserSession session, long ReliableNotifyConfirmCount, bool sync = true)
+        {
+            var online = await _tversion.GetOrAddAsync(account);
+            var loginOnline = online.Logins.GetOrAdd(clientId);
+            if (ReliableNotifyConfirmCount < loginOnline.ReliableNotifyConfirmCount
+                || ReliableNotifyConfirmCount > loginOnline.ReliableNotifyTotalCount
+                || ReliableNotifyConfirmCount - loginOnline.ReliableNotifyConfirmCount > loginOnline.ReliableNotifyQueue.Count)
+            {
+                return ResultCodeReliableNotifyConfirmCountOutOfRange;
+            }
+
+            int confirmCount = (int)(ReliableNotifyConfirmCount - loginOnline.ReliableNotifyConfirmCount);
+
+            if (sync)
+            {
+                var notify = new SReliableNotify();
+                notify.Argument.ReliableNotifyTotalCountStart = ReliableNotifyConfirmCount;
+                for (int i = confirmCount; i < loginOnline.ReliableNotifyQueue.Count; ++i)
+                    notify.Argument.Notifies.Add(loginOnline.ReliableNotifyQueue[i]);
+                session.SendResponseWhileCommit(notify);
+            }
+            loginOnline.ReliableNotifyQueue.RemoveRange(0, confirmCount);
+            loginOnline.ReliableNotifyConfirmCount = ReliableNotifyConfirmCount;
+            return ResultCodeSuccess;
+        }
+
+        protected override async Task<long> ProcessReliableNotifyConfirmRequest(Zeze.Net.Protocol p)
+        {
+            var rpc = p as ReliableNotifyConfirm;
+            var session = ProviderUserSession.Get(rpc);
+
+            var clientId = session.Context;
+            var online = await _tonline.GetAsync(session.Account);
+            if (null == online)
+                return ErrorCode(ResultCodeOnlineDataNotFound);
+
+            session.SendResponseWhileCommit(rpc); // 同步前提交。
+            var syncResultCode = await ReliableNotifySync(session.Account, clientId,
+                session, rpc.Argument.ReliableNotifyConfirmCount, false);
+
+            if (ResultCodeSuccess != syncResultCode)
+                return ErrorCode((ushort)syncResultCode);
+
+            return Procedure.Success;
+        }
     }
 }

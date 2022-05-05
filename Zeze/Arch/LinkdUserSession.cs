@@ -14,26 +14,24 @@ namespace Zeze.Arch
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         public string Account { get; set; } // 为了接入更广泛的用户系统，使用string。
-        public List<long> UserStates { get; } = new List<long>();
-        public Zeze.Net.Binary UserStatex { get; private set; } = Zeze.Net.Binary.Empty;
+        public string Context { get; private set; } = "";
+        public Zeze.Net.Binary Contextx { get; private set; } = Zeze.Net.Binary.Empty;
 
         private Dictionary<int, long> Binds { get; set; } = new Dictionary<int, long>(); // moduleId -> InnerService.SessionId
 
         public long SessionId { get; }
+
+        public long? RoleId => string.IsNullOrEmpty(Context) ? null : long.Parse(Context);
 
         public LinkdUserSession(long sessionId)
         {
             SessionId = sessionId;
         }
 
-        public void SetUserState(ICollection<long> states, Zeze.Net.Binary statex)
+        public void SetUserState(string context, Zeze.Net.Binary contextx)
         {
-            lock (this) // 简单使用一下这个锁。
-            {
-                UserStates.Clear();
-                UserStates.AddRange(states);
-                UserStatex = statex;
-            }
+            Context = context;
+            Contextx = contextx;
         }
 
         public bool TryGetProvider(int moduleId, out long provider)
@@ -127,8 +125,8 @@ namespace Zeze.Arch
             var linkBroken = new LinkBroken();
             linkBroken.Argument.Account = Account;
             linkBroken.Argument.LinkSid = SessionId;
-            linkBroken.Argument.States.AddRange(UserStates);
-            linkBroken.Argument.Statex = UserStatex;
+            linkBroken.Argument.Context = Context;
+            linkBroken.Argument.Contextx = Contextx;
             linkBroken.Argument.Reason = BLinkBroken.REASON_PEERCLOSE; // 这个保留吧。现在没什么用。
 
             // 需要在锁外执行，因为如果 ProviderSocket 和 LinkdSocket 同时关闭。都需要去清理自己和对方，可能导致死锁。

@@ -18,9 +18,9 @@ namespace Zeze.Game
         {
             var p = _p as LinkBroken;
             // 目前仅需设置online状态。
-            if (p.Argument.States.Count > 0)
+            if (false == string.IsNullOrEmpty(p.Argument.Context))
             {
-                var roleId = p.Argument.States[0];
+                var roleId = long.Parse(p.Argument.Context);
                 await Online.OnLinkBroken(roleId, p.Argument);
             }
             return Procedure.Success;

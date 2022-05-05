@@ -168,8 +168,8 @@ namespace Zeze.Arch
             dispatch.Argument.Account = linkSession.Account;
             dispatch.Argument.ProtocolType = Protocol.MakeTypeId(moduleId, protocolId);
             dispatch.Argument.ProtocolData = new Zeze.Net.Binary(data);
-            dispatch.Argument.States.AddRange(linkSession.UserStates);
-            dispatch.Argument.Statex = linkSession.UserStatex;
+            dispatch.Argument.Context = linkSession.Context;
+            dispatch.Argument.Contextx = linkSession.Contextx;
 
             long provider;
             if (linkSession.TryGetProvider(moduleId, out provider))

@@ -109,7 +109,7 @@ namespace Zeze.Arch
                 var session = new ProviderUserSession(
                     ProviderApp.ProviderService,
                     p.Argument.Account,
-                    p.Argument.States,
+                    p.Argument.Context,
                     p.Sender,
                     p.Argument.LinkSid);
 

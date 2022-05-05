@@ -16,15 +16,15 @@ import Zeze.Transaction.Transaction;
 public class ProviderUserSession {
 	private final ProviderService service;
 	private final String Account;
-	private final Long RoleId;
+	private final String Context;
 	private final long LinkSid;
 	private final String LinkName;
 	private AsyncSocket Link;
 
-	public ProviderUserSession(ProviderService service, String account, PList1<Long> states, AsyncSocket link, long linkSid) {
+	public ProviderUserSession(ProviderService service, String account, String context, AsyncSocket link, long linkSid) {
 		this.service = service;
 		Account = account;
-		RoleId = states.isEmpty() ? null : states.get(0);
+		Context = context;
 		LinkSid = linkSid;
 		LinkName = service.GetLinkName(link);
 		Link = link;
@@ -43,7 +43,7 @@ public class ProviderUserSession {
 	}
 
 	public final Long getRoleId() {
-		return RoleId;
+		return Context.isEmpty() ? null : Long.parseLong(Context);
 	}
 
 	public final long getLinkSid() {

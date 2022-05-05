@@ -46,6 +46,12 @@ namespace Zeze.Arch
                 Handle = ProcessTransmit,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessTransmitp", Zeze.Transaction.TransactionLevel.None),
             });
+            service.AddFactoryHandle(47284247217006, new Zeze.Net.Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new Zeze.Builtin.ProviderDirect.TransmitAccount(),
+                Handle = ProcessTransmitAccount,
+                TransactionLevel = _reflect.GetTransactionLevel("ProcessTransmitAccountp", Zeze.Transaction.TransactionLevel.None),
+            });
         }
 
         public void UnRegisterProtocols(Zeze.Net.Service service)
@@ -55,6 +61,7 @@ namespace Zeze.Arch
             service.Factorys.TryRemove(47286816262188, out var _);
             service.Factorys.TryRemove(47283400371444, out var _);
             service.Factorys.TryRemove(47284197108752, out var _);
+            service.Factorys.TryRemove(47284247217006, out var _);
         }
 
         public void RegisterZezeTables(Zeze.Application zeze)
@@ -80,5 +87,7 @@ namespace Zeze.Arch
         protected abstract System.Threading.Tasks.Task<long>  ProcessModuleRedirectAllResult(Zeze.Net.Protocol p);
 
         protected abstract System.Threading.Tasks.Task<long>  ProcessTransmit(Zeze.Net.Protocol p);
+
+        protected abstract System.Threading.Tasks.Task<long>  ProcessTransmitAccount(Zeze.Net.Protocol p);
     }
 }

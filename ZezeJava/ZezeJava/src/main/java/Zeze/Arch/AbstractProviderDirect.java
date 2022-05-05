@@ -47,6 +47,13 @@ public abstract class AbstractProviderDirect extends Zeze.IModule {
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessTransmit", Zeze.Transaction.TransactionLevel.None);
             service.AddFactoryHandle(47284197108752L, factoryHandle); // 11009, 902147088
         }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.ProviderDirect.TransmitAccount>();
+            factoryHandle.Factory = Zeze.Builtin.ProviderDirect.TransmitAccount::new;
+            factoryHandle.Handle = this::ProcessTransmitAccount;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessTransmitAccount", Zeze.Transaction.TransactionLevel.None);
+            service.AddFactoryHandle(47284247217006L, factoryHandle); // 11009, 952255342
+        }
     }
 
     public void UnRegisterProtocols(Zeze.Net.Service service) {
@@ -55,6 +62,7 @@ public abstract class AbstractProviderDirect extends Zeze.IModule {
         service.getFactorys().remove(47286816262188L);
         service.getFactorys().remove(47283400371444L);
         service.getFactorys().remove(47284197108752L);
+        service.getFactorys().remove(47284247217006L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -71,4 +79,5 @@ public abstract class AbstractProviderDirect extends Zeze.IModule {
     protected abstract long ProcessModuleRedirectAllRequest(Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest p) throws Throwable;
     protected abstract long ProcessModuleRedirectAllResult(Zeze.Builtin.ProviderDirect.ModuleRedirectAllResult p) throws Throwable;
     protected abstract long ProcessTransmit(Zeze.Builtin.ProviderDirect.Transmit p) throws Throwable;
+    protected abstract long ProcessTransmitAccount(Zeze.Builtin.ProviderDirect.TransmitAccount p) throws Throwable;
 }

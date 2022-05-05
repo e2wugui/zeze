@@ -7,7 +7,7 @@ using Zeze.Transaction;
 
 namespace Zeze.Arch
 {
-    public abstract class ProviderDirect : AbstractProviderDirect
+    public class ProviderDirect : AbstractProviderDirect
     {
         public ProviderApp ProviderApp { get; set; }
 
@@ -146,6 +146,16 @@ namespace Zeze.Arch
             await ProviderApp.ProviderDirectService.TryGetManualContext<AbstractRedirectAll>(
                 protocol.Argument.SessionId)?.ProcessResult(ProviderApp.Zeze, protocol);
             return Procedure.Success;
+        }
+
+        protected override Task<long> ProcessTransmit(Protocol p)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override Task<long> ProcessTransmitAccount(Protocol p)
+        {
+            throw new NotImplementedException();
         }
     }
 }
