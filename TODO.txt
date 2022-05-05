@@ -15,22 +15,26 @@ Global c# 慢的问题。
 2. Global With Raft 异步测试
 3. Test TestGlobal Simulate 异步测试
 4. Global 性能测试
-1. 把 RocksRaft Changes 应用到 Zeze 中，让 Zeze 实现Bean任意级别的更新。// 1. 仅支持整个Bean的订阅。2. log factory 问题。3. 动态订阅。add listener和notify原子问题。
-2. Game.Bag Listener
 TableCache增加一级RocksDb的缓存，不受限于内存。Java SoftReference<T>.
 TableCache.Clean 整体考虑。
 Online Account （java，c#）
 Online Test 【肖丽杨】c#
 
-Tag 1.0
+tag 1.0 java
 ------------------------------------------------------------------------------------------------------------------------------
-      Test                                                                  性能                             TODO
+      Test                                                                  性能        问题
 ------------------------------------------------------------------------------------------------------------------------------
-单线程顺序执行同一个简单事务           
-多线程同时访问同一个记录             
-多线程同时随机访问1000个记录             
+单线程顺序执行同一个简单事务                                              >100w/s      高的离谱，是不是测试案例被优化了
+多线程同时访问同一个记录                                                  10w/s
+多线程同时随机访问1000个记录                                              50w/s
 Global并行吞吐量，每个app-client在范围200w内随机访问
 Global延迟：单线程顺序交替执行两个app-client写同一个记录的事务
+
+把 RocksRaft Changes 应用到 Zeze 中，让 Zeze 实现Bean任意级别的更新。
+仅支持整个Bean的订阅。
+log factory 问题。（不同步到其他进程没有这个问题）
+动态订阅。add listener和notify原子问题。
+Game.Bag Listener
 
 【2022/5/11】
 
