@@ -228,43 +228,36 @@ namespace Zeze.Game
         }
 
         public void SendReliableNotifyWhileCommit(
-            long roleId, string listenerName, Protocol p, bool WaitConfirm = false)
+            long roleId, string listenerName, Protocol p)
         {
             Transaction.Transaction.Current.RunWhileCommit(
-                () => SendReliableNotify(roleId, listenerName, p, WaitConfirm)
+                () => SendReliableNotify(roleId, listenerName, p)
                 );
         }
 
-        public void SendReliableNotifyWhileCommit(
-            long roleId, string listenerName, int typeId, Binary fullEncodedProtocol,
-            bool WaitConfirm = false)
+        public void SendReliableNotifyWhileCommit(long roleId, string listenerName, int typeId, Binary fullEncodedProtocol)
         {
             Transaction.Transaction.Current.RunWhileCommit(
-                () => SendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol, WaitConfirm)
+                () => SendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol)
                 );
+        }
+
+        public void SendReliableNotifyWhileRollback(long roleId, string listenerName, Protocol p)
+        {
+            Transaction.Transaction.Current.RunWhileRollback(() => SendReliableNotify(roleId, listenerName, p));
         }
 
         public void SendReliableNotifyWhileRollback(
-            long roleId, string listenerName, Protocol p,
-            bool WaitConfirm = false)
+            long roleId, string listenerName, int typeId, Binary fullEncodedProtocol)
         {
             Transaction.Transaction.Current.RunWhileRollback(
-                () => SendReliableNotify(roleId, listenerName, p, WaitConfirm)
+                () => SendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol)
                 );
         }
 
-        public void SendReliableNotifyWhileRollback(
-            long roleId, string listenerName, int typeId, Binary fullEncodedProtocol,
-            bool WaitConfirm = false)
+        public void SendReliableNotify(long roleId, string listenerName, Protocol p)
         {
-            Transaction.Transaction.Current.RunWhileRollback(
-                () => SendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol, WaitConfirm)
-                );
-        }
-
-        public void SendReliableNotify(long roleId, string listenerName, Protocol p, bool WaitConfirm = false)
-        {
-            SendReliableNotify(roleId, listenerName, p.TypeId, new Binary(p.Encode()), WaitConfirm);
+            SendReliableNotify(roleId, listenerName, p.TypeId, new Binary(p.Encode()));
         }
 
         /// <summary>
@@ -274,14 +267,8 @@ namespace Zeze.Game
         /// <param name="listenerName"></param>
         /// <param name="fullEncodedProtocol">协议必须先编码，因为会跨事务。</param>
         public void SendReliableNotify(
-            long roleId, string listenerName, long typeId, Binary fullEncodedProtocol,
-            bool WaitConfirm = false)
+            long roleId, string listenerName, long typeId, Binary fullEncodedProtocol)
         {
-            TaskCompletionSource<long> future = null;
-
-            if (WaitConfirm)
-                future = new TaskCompletionSource<long>();
-
             ProviderApp.Zeze.TaskOneByOneByKey.Execute(
                 listenerName,
                 ProviderApp.Zeze.NewProcedure(async () =>
@@ -312,8 +299,6 @@ namespace Zeze.Game
                 },
                 "SendReliableNotify." + listenerName
                 ));
-
-            future?.Task.Wait();
         }
 
         public class RoleOnLink

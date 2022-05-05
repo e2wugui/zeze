@@ -261,12 +261,10 @@ public class Online extends AbstractOnline {
 		send(roleId, p.getTypeId(), new Binary(p.Encode()));
 	}
 
-	// 广播不支持 waitConfirm
 	public final void send(Iterable<Long> roleIds, Protocol<?> p) {
 		send(roleIds, p.getTypeId(), new Binary(p.Encode()));
 	}
 
-	// 广播不支持 waitConfirm
 	public final void sendAccount(String account, Protocol<?> p) {
 		BAccount bAccount = _taccount.get(account);
 		if (bAccount != null)
@@ -311,7 +309,6 @@ public class Online extends AbstractOnline {
 		}
 	}
 
-	// 广播不支持 WaitConfirm
 	private void send(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
 		// 发送协议请求在另外的事务中执行。
 		Task.run(ProviderApp.Zeze.NewProcedure(() -> {
