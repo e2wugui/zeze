@@ -5,30 +5,32 @@ ConfigEditor 更多自动完成？普通的列默认最近使用的n个值，根
 ConfigEditor enum 现在不支持引用在其他文档定义的，有需要了再来加。
 war？一个module集合。定义export？private？App.Instance？生成代码使用基类，不再使用具体类型，感觉没必要：应用使用独立进程更加安全灵活些。
 ----------------------------------------------------------------------------------------------------------------------------------
+tag 1.0
 DatabaseTikv OperatesTikv
 Global.Release并发问题【再次】确认
 Zezex.client: 可靠消息实现的错误检查。
 Global.RocksRaft.LruTryRemoveCallback
+tag 0.9 c# is ready
 1. raft 异步测试
 2. Global With Raft 异步测试
 3. Test TestGlobal Simulate 异步测试
 4. Global 性能测试
-TableCache增加一级RocksDb的缓存，不受限于内存。Java SoftReference<T>.
-TableCache.Clean 整体考虑。
+tag 0.8 online account & TableCache New Arch
 Online Account （java）
 Online Test 【肖丽杨】c#
 Online Account Test 肖丽杨？
-
-tag 1.0 java
+TableCache增加一级RocksDb的缓存，不受限于内存。Java SoftReference<T>.
+TableCache.Clean 整体考虑。
+tag 0.7 java is ready
 ------------------------------------------------------------------------------------------------------------------------------
-      Test                                                                  性能        问题
+      Benchmark                                                            性能        问题
 ------------------------------------------------------------------------------------------------------------------------------
 单线程顺序执行同一个简单事务                                              >100w/s      高的离谱，是不是测试案例被优化了
 多线程同时访问同一个记录                                                  10w/s
 多线程同时随机访问1000个记录                                              50w/s
-Global并行吞吐量，每个app-client在范围200w内随机访问
+Global并行吞吐量，每个app-client在大范围内随机访问
 Global延迟：单线程顺序交替执行两个app-client写同一个记录的事务
-
+------------------------------------------------------------------------------------------------------------------------------
 把 RocksRaft Changes 应用到 Zeze 中，让 Zeze 实现Bean任意级别的更新。
 仅支持整个Bean的订阅。
 log factory 问题。（不同步到其他进程没有这个问题）
