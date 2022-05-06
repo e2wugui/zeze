@@ -111,8 +111,16 @@ namespace Zeze.Gen.confcs
 
         public void Visit(TypeList type)
         {
-            string typeName = TypeName.GetName(type);
-            sw.WriteLine($"{prefix}{variable.Name} = new {typeName}();");
+            if (type.FixSize >= 0)
+            {
+                string typeName = TypeName.GetName(type);
+                sw.WriteLine($"{prefix}{variable.Name} = new {typeName.Replace("[]", $"[{type.FixSize}]")};");
+            }
+            else
+            {
+                string typeName = TypeName.GetName(type);
+                sw.WriteLine($"{prefix}{variable.Name} = new {typeName}();");
+            }
         }
 
         public void Visit(TypeSet type)

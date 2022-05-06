@@ -64,6 +64,7 @@
 
 			<variable id="23" name="MapVector2Int" type="map" key="vector2int" value="vector2int"/>
 			<variable id="24" name="ListVector2Int" type="list" value="vector2int"/>
+			<variable id="25" name="ListFixSize" type="list" FixSize="8" value="vector2int"/>
 		</bean>
 		<beankey name="Key">
 			<enum name="Enum1" value="4"/>

@@ -18,7 +18,10 @@ namespace Zeze.Util
         }
         public abstract void Decode(ByteBuffer bb);
 
-        public abstract ConfBean CopyBean();
+        public virtual ConfBean CopyBean()
+        {
+            throw new NotImplementedException();
+        }
 
         public virtual bool NegativeCheck()
         {

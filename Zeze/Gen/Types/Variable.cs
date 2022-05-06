@@ -26,6 +26,7 @@ namespace Zeze.Gen.Types
 		public string Validator { get; private set; }
 		public bool AllowNegative { get; private set; } = false;
 		public bool Transient { get; private set; } = false;
+		public string FixSize { get; private set; }
 
 		public string GetBeanFullName()
 		{
@@ -57,6 +58,7 @@ namespace Zeze.Gen.Types
 			if (attr.Length > 0)
 				AllowNegative = bool.Parse(attr);
 			Transient = self.GetAttribute("transient").Equals("true");
+			FixSize = self.GetAttribute("FixSize");
 
 			Comment = self.GetAttribute("comment");
 			if (Comment.Length == 0)
@@ -125,6 +127,11 @@ namespace Zeze.Gen.Types
 		public void Compile(ModuleSpace space)
 		{
             VariableType = Types.Type.Compile(space, Type, Key, Value);
+			if (VariableType is TypeList list)
+			{
+				if (false == string.IsNullOrEmpty(FixSize))
+					list.FixSize = int.Parse(FixSize);
+			}
 		}
 	}
 }

@@ -62,8 +62,16 @@ namespace Zeze.Gen.confcs
         public void Visit(TypeList type)
         {
             string valueName = GetName(type.ValueType);
-            name = $"System.Collections.Generic.List<{valueName}>";
-            nameCollectionImplement = name;
+            if (type.FixSize >= 0)
+            {
+                name = $"{valueName}[]";
+                nameCollectionImplement = name;
+            }
+            else
+            {
+                name = $"System.Collections.Generic.List<{valueName}>";
+                nameCollectionImplement = name;
+            }
         }
 
         public void Visit(TypeSet type)

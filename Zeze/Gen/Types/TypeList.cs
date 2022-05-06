@@ -7,6 +7,8 @@ namespace Zeze.Gen.Types
 {
 	public class TypeList : TypeCollection
 	{
+		public int FixSize { get; set; } = -1;
+
 		public override void Accept(Visitor visitor)
 		{
 			visitor.Visit(this);

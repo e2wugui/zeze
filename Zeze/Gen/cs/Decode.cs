@@ -229,8 +229,10 @@ namespace Zeze.Gen.cs
             if (id <= 0)
                 throw new Exception("invalid variable.id");
             Types.Type vt = type.ValueType;
+            bool isFixSizeList = type is TypeList list && list.FixSize >= 0;
             sw.WriteLine(prefix + "var _x_ = " + varname + ';');
-            sw.WriteLine(prefix + "_x_.Clear();");
+            if (false == isFixSizeList)
+                sw.WriteLine(prefix + "_x_.Clear();");
             sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ")");
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    for (int _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--)");
@@ -239,11 +241,25 @@ namespace Zeze.Gen.cs
             {
                 vt.Accept(new Define("_e_", sw, prefix + "        "));
                 vt.Accept(new Decode("_e_", 0, bufname, sw, prefix + "        "));
-                sw.WriteLine($"{prefix}        _x_.Add(_e_);");
+                if (isFixSizeList)
+                {
+                    sw.WriteLine($"{prefix}        _x_[_x_.Length - _n_] = _e_;");
+                }
+                else
+                {
+                    sw.WriteLine($"{prefix}        _x_.Add(_e_);");
+                }
             }
             else
             {
-                sw.WriteLine(prefix + "        _x_.Add(" + DecodeElement(vt, "_t_") + ");");
+                if (isFixSizeList)
+                {
+                    sw.WriteLine($"{prefix}        _x_[_x_.Length - _n_] = _e_;");
+                }
+                else
+                {
+                    sw.WriteLine(prefix + "        _x_.Add(" + DecodeElement(vt, "_t_") + ");");
+                }
             }
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");

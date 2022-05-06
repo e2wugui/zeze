@@ -1,4 +1,7 @@
-﻿using System;
+﻿
+#define MACRO_CONF_CS_PREDEFINE
+
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Runtime.CompilerServices;
@@ -1108,6 +1111,7 @@ namespace Zeze.Serialize
             return "";
         }
 
+#if !MACRO_CONF_CS
         public Vector2 ReadVector2()
         {
             var r = new Vector2();
@@ -1223,7 +1227,7 @@ namespace Zeze.Serialize
             SkipUnknownField(type);
             return new Vector3Int();
         }
-
+#endif
         public T ReadBean<T>(T bean, int type) where T : Serializable
         {
             type &= TAG_MASK;
