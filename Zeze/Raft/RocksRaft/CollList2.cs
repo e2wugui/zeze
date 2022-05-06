@@ -144,6 +144,7 @@ namespace Zeze.Raft.RocksRaft
 		{
 			var log = (LogList2<E>)_log;
 			var tmp = _list;
+			var newest = new HashSet<int>();
 			foreach (var opLog in log.OpLogs)
 			{
 				switch (opLog.op)
@@ -151,10 +152,12 @@ namespace Zeze.Raft.RocksRaft
 					case LogList1<E>.OpLog.OP_MODIFY:
 						opLog.value.InitRootInfo(RootInfo, this);
 						tmp = tmp.SetItem(opLog.index, opLog.value);
+						newest.Add(opLog.index);
 						break;
 					case LogList1<E>.OpLog.OP_ADD:
 						opLog.value.InitRootInfo(RootInfo, this);
 						tmp = tmp.Insert(opLog.index, opLog.value);
+						newest.Add(opLog.index);
 						break;
 					case LogList1<E>.OpLog.OP_REMOVE:
 						tmp = tmp.RemoveAt(opLog.index);
@@ -168,7 +171,11 @@ namespace Zeze.Raft.RocksRaft
 
 			// apply changed
 			foreach (var e in log.Changed)
+			{
+				if (newest.Contains(e.Value.Value))
+					continue;
 				_list[e.Value.Value].FollowerApply(e.Key);
+			}
 		}
 
 		public override void LeaderApplyNoRecursive(Log _log)

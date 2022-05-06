@@ -1,7 +1,9 @@
 package Zeze.Raft.RocksRaft;
 
 import java.lang.invoke.MethodHandle;
+import java.util.HashSet;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.IntHashSet;
 import Zeze.Util.Reflect;
 import org.pcollections.Empty;
 
@@ -112,15 +114,18 @@ public class CollList2<V extends Bean> extends CollList<V> {
 		@SuppressWarnings("unchecked")
 		var log = (LogList2<V>)_log;
 		var tmp = _list;
+		var newest = new IntHashSet();
 		for (var opLog : log.getOpLogs()) {
 			switch (opLog.op) {
 			case LogList1.OpLog.OP_MODIFY:
 				opLog.value.InitRootInfo(getRootInfo(), this);
 				tmp = tmp.with(opLog.index, opLog.value);
+				newest.add(opLog.index);
 				break;
 			case LogList1.OpLog.OP_ADD:
 				opLog.value.InitRootInfo(getRootInfo(), this);
 				tmp = tmp.plus(opLog.index, opLog.value);
+				newest.add(opLog.index);
 				break;
 			case LogList1.OpLog.OP_REMOVE:
 				tmp = tmp.minus(opLog.index);
@@ -132,8 +137,11 @@ public class CollList2<V extends Bean> extends CollList<V> {
 		_list = tmp;
 
 		// apply changed
-		for (var e : log.getChanged().entrySet())
+		for (var e : log.getChanged().entrySet()) {
+			if (newest.contains(e.getValue().Value))
+				continue;
 			_list.get(e.getValue().Value).FollowerApply(e.getKey());
+		}
 	}
 
 	@SuppressWarnings("unchecked")

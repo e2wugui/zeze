@@ -44,7 +44,8 @@ namespace Zeze.Raft.RocksRaft
 					{
 						if (c.Belong == e.Value)
 						{
-							ChangedWithKey.Add(e.Key, c);
+							if (false == Putted.ContainsKey(e.Key) && false == Removed.Contains(e.Key))
+								ChangedWithKey.Add(e.Key, c);
 							break;
 						}
 					}
