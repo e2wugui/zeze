@@ -50,14 +50,18 @@ public class GlobalCacheManagerPerf {
 			totalAcquireTimes[rpc.Argument.State].add(time);
 			var maxAcquireTime = maxAcquireTimes[rpc.Argument.State];
 			long maxTime;
-			do {
+			do
 				maxTime = maxAcquireTime.get();
-			} while (time > maxTime && !maxAcquireTime.compareAndSet(maxTime, time));
+			while (time > maxTime && !maxAcquireTime.compareAndSet(maxTime, time));
 		}
 	}
 
 	void onReduceBegin(Reduce rpc) {
 		reduces.put(rpc, System.nanoTime());
+	}
+
+	void onReduceCancel(Reduce rpc) {
+		reduces.remove(rpc);
 	}
 
 	void onReduceEnd(Reduce rpc) {
@@ -67,9 +71,9 @@ public class GlobalCacheManagerPerf {
 			totalReduceCount.increment();
 			totalReduceTime.add(time);
 			long maxTime;
-			do {
+			do
 				maxTime = maxReduceTime.get();
-			} while (time > maxTime && !maxReduceTime.compareAndSet(maxTime, time));
+			while (time > maxTime && !maxReduceTime.compareAndSet(maxTime, time));
 		}
 	}
 

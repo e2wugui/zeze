@@ -244,35 +244,31 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		if (rpc.getSender().getUserState() == null) {
 			rpc.Result.State = StateInvalid;
 			rpc.SendResultCode(AcquireNotLogin);
-			if (ENABLE_PERF)
-				perf.onAcquireEnd(rpc);
 		} else {
 			try {
 				switch (rpc.Argument.State) {
 				case StateInvalid: // release
 					ReleaseAsync(rpc);
-					break;
+					return 0;
 				case StateShare:
 					AcquireShareAsync(rpc);
-					break;
+					return 0;
 				case StateModify:
 					AcquireModifyAsync(rpc);
-					break;
+					return 0;
 				default:
 					rpc.Result.State = StateInvalid;
 					rpc.SendResultCode(AcquireErrorState);
-					if (ENABLE_PERF)
-						perf.onAcquireEnd(rpc);
 					break;
 				}
 			} catch (Throwable ex) {
 				logger.error("ProcessAcquireRequest", ex);
 				rpc.Result.State = StateInvalid;
 				rpc.SendResultCode(AcquireException);
-				if (ENABLE_PERF)
-					perf.onAcquireEnd(rpc);
 			}
 		}
+		if (ENABLE_PERF)
+			perf.onAcquireEnd(rpc);
 		return 0;
 	}
 
@@ -492,13 +488,13 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					}
 
 					state.reduceResultState = StateReduceNetError; // 默认网络错误。。
-					if (cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid, cs.GlobalSerialId, r -> {
+					if (cs.Modify.ReduceWaitLater(rpc.Argument.GlobalTableKey, cs.GlobalSerialId, r -> {
 						if (ENABLE_PERF)
 							perf.onReduceEnd((Reduce)r);
 						state.reduceResultState = r.isTimeout() ? StateReduceRpcTimeout : r.Result.State;
 						cs.lock.enter(cs.lock::notifyAllWait);
 						return 0;
-					})) {
+					}) != null) {
 						logger.debug("5 {} {} {}", sender, rpc.Argument.State, cs);
 						state.stage = 2;
 						cs.lock.leaveAndWaitNotify();
@@ -643,13 +639,13 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					}
 
 					state.reduceResultState = StateReduceNetError; // 默认网络错误。
-					if (cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid, cs.GlobalSerialId, r -> {
+					if (cs.Modify.ReduceWaitLater(rpc.Argument.GlobalTableKey, cs.GlobalSerialId, r -> {
 						if (ENABLE_PERF)
 							perf.onReduceEnd((Reduce)r);
 						state.reduceResultState = r.isTimeout() ? StateReduceRpcTimeout : r.Result.State;
 						cs.lock.enter(cs.lock::notifyAllWait);
 						return 0;
-					})) {
+					}) != null) {
 						logger.debug("5 {} {} {}", sender, rpc.Argument.State, cs);
 						state.stage = 2;
 						cs.lock.leaveAndWaitNotify();
@@ -862,28 +858,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			return String.valueOf(SessionId);
 		}
 
-		boolean Reduce(GlobalTableKey gkey, @SuppressWarnings("SameParameterValue") int state, long globalSerialId,
-					   ProtocolHandle<Rpc<Param2, Param2>> handle) {
-			try {
-				if (System.currentTimeMillis() - LastErrorTime < ForbidPeriod)
-					return false;
-				AsyncSocket peer = Instance.Server.GetSocket(SessionId);
-				Reduce reduce;
-				if (peer != null && (reduce = new Reduce(gkey, state, globalSerialId)).Send(peer, handle, 10000)) {
-					if (ENABLE_PERF)
-						Instance.perf.onReduceBegin(reduce);
-					return true;
-				}
-				logger.warn("Send Reduce failed. SessionId={}, peer={}, gkey={}, state={}, globalSerialId={}",
-						SessionId, peer, gkey, state, globalSerialId);
-			} catch (Exception ex) {
-				// 这里的异常只应该是网络发送异常。
-				logger.error("ReduceWaitLater Exception " + gkey, ex);
-			}
-			SetError();
-			return false;
-		}
-
 		void SetError() {
 			long now = System.currentTimeMillis();
 			if (now - LastErrorTime > ForbidPeriod)
@@ -899,13 +873,16 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					return null;
 				AsyncSocket peer = Instance.Server.GetSocket(SessionId);
 				if (peer != null) {
-					Reduce reduce = new Reduce(gkey, StateInvalid, globalSerialId);
-					if (reduce.Send(peer, handle, 10000)) {
-						if (ENABLE_PERF)
-							Instance.perf.onReduceBegin(reduce);
+					var reduce = new Reduce(gkey, StateInvalid, globalSerialId);
+					if (ENABLE_PERF)
+						Instance.perf.onReduceBegin(reduce);
+					if (reduce.Send(peer, handle, 10000))
 						return reduce;
-					}
+					if (ENABLE_PERF)
+						Instance.perf.onReduceCancel(reduce);
 				}
+				logger.warn("Send Reduce failed. SessionId={}, peer={}, gkey={}, globalSerialId={}",
+						SessionId, peer, gkey, globalSerialId);
 			} catch (Throwable ex) {
 				// 这里的异常只应该是网络发送异常。
 				logger.error("ReduceWaitLater Exception " + gkey, ex);

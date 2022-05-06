@@ -24,15 +24,19 @@ import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutInt;
 import Zeze.Util.Task;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
 import org.w3c.dom.Element;
 
 public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	static {
 		System.setProperty("log4j.configurationFile", "log4j2.xml");
+		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(Level.INFO);
 	}
 
+	private static final boolean ENABLE_PERF = true;
 	private static final Logger logger = LogManager.getLogger(GlobalCacheManagerServer.class);
 	private static final GlobalCacheManagerServer Instance = new GlobalCacheManagerServer();
 
@@ -56,6 +60,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	 */
 	private LongConcurrentHashMap<CacheHolder> Sessions;
 	private final GCMConfig Config = new GCMConfig();
+	private GlobalCacheManagerPerf perf;
 
 	private static final class GCMConfig implements Zeze.Config.ICustomize {
 		// 设置了这么大，开始使用后，大概会占用700M的内存，作为全局服务器，先这么大吧。
@@ -91,6 +96,9 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	public synchronized void Start(InetAddress ipaddress, int port, Zeze.Config config) throws Throwable {
 		if (Server != null)
 			return;
+
+		if (ENABLE_PERF)
+			perf = new GlobalCacheManagerPerf(SerialIdGenerator);
 
 		if (config == null)
 			config = new Zeze.Config().AddCustomize(Config).LoadAndParse();
@@ -216,39 +224,43 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	}
 
 	private long ProcessAcquireRequest(Acquire rpc) {
+		if (ENABLE_PERF)
+			perf.onAcquireBegin(rpc);
 		rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
 		rpc.Result.State = rpc.Argument.State; // default success
 
+		long result = 0;
 		if (rpc.getSender().getUserState() == null) {
 			rpc.Result.State = StateInvalid;
 			rpc.SendResultCode(AcquireNotLogin);
-			return 0;
-		}
-		try {
-			switch (rpc.Argument.State) {
-			case StateInvalid: // release
-				var sender = (CacheHolder)rpc.getSender().getUserState();
-				rpc.Result.State = Release(sender, rpc.Argument.GlobalTableKey, true); //await 方法内有等待
-				rpc.SendResult();
-				return 0;
-
-			case StateShare:
-				return AcquireShare(rpc); //await 方法内有等待
-
-			case StateModify:
-				return AcquireModify(rpc); //await 方法内有等待
-
-			default:
+		} else {
+			try {
+				switch (rpc.Argument.State) {
+				case StateInvalid: // release
+					var sender = (CacheHolder)rpc.getSender().getUserState();
+					rpc.Result.State = Release(sender, rpc.Argument.GlobalTableKey, true); //await 方法内有等待
+					rpc.SendResult();
+					break;
+				case StateShare:
+					result = AcquireShare(rpc); //await 方法内有等待
+					break;
+				case StateModify:
+					result = AcquireModify(rpc); //await 方法内有等待
+					break;
+				default:
+					rpc.Result.State = StateInvalid;
+					rpc.SendResultCode(AcquireErrorState);
+					break;
+				}
+			} catch (Throwable ex) {
+				logger.error("ProcessAcquireRequest", ex);
 				rpc.Result.State = StateInvalid;
-				rpc.SendResultCode(AcquireErrorState);
-				return 0;
+				rpc.SendResultCode(AcquireException);
 			}
-		} catch (Throwable ex) {
-			logger.error("ProcessAcquireRequest", ex);
-			rpc.Result.State = StateInvalid;
-			rpc.SendResultCode(AcquireException);
 		}
-		return 0;
+		if (ENABLE_PERF)
+			perf.onAcquireEnd(rpc);
+		return result;
 	}
 
 	private int Release(CacheHolder sender, GlobalTableKey gkey, boolean noWait) throws InterruptedException {
@@ -357,8 +369,10 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					}
 
 					var reduceResultState = new OutInt(StateReduceNetError); // 默认网络错误。
-					if (cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid, cs.GlobalSerialId, p -> { //await 方法内有等待
+					if (cs.Modify.Reduce(rpc.Argument.GlobalTableKey, cs.GlobalSerialId, p -> { //await 方法内有等待
 						var r = (Reduce)p;
+						if (ENABLE_PERF)
+							perf.onReduceEnd(r);
 						reduceResultState.Value = r.isTimeout() ? StateReduceRpcTimeout : r.Result.State;
 						synchronized (cs) {
 							cs.notifyAll(); //notify
@@ -478,8 +492,10 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					}
 
 					var reduceResultState = new OutInt(StateReduceNetError); // 默认网络错误。
-					if (cs.Modify.Reduce(rpc.Argument.GlobalTableKey, StateInvalid, cs.GlobalSerialId, p -> { //await 方法内有等待
+					if (cs.Modify.Reduce(rpc.Argument.GlobalTableKey, cs.GlobalSerialId, p -> { //await 方法内有等待
 						var r = (Reduce)p;
+						if (ENABLE_PERF)
+							perf.onReduceEnd(r);
 						reduceResultState.Value = r.isTimeout() ? StateReduceRpcTimeout : r.Result.State;
 						synchronized (cs) {
 							cs.notifyAll(); //notify
@@ -677,19 +693,25 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			return String.valueOf(SessionId);
 		}
 
-		boolean Reduce(GlobalTableKey gkey, @SuppressWarnings("SameParameterValue") int state, long globalSerialId,
-					   ProtocolHandle<Rpc<Param2, Param2>> response) {
+		boolean Reduce(GlobalTableKey gkey, long globalSerialId, ProtocolHandle<Rpc<Param2, Param2>> response) {
 			try {
 				if (System.currentTimeMillis() - LastErrorTime < ForbidPeriod)
 					return false;
 				AsyncSocket peer = Instance.Server.GetSocket(SessionId);
-				if (peer != null && new Reduce(gkey, state, globalSerialId).Send(peer, response, 10000)) //await 等RPC回复
-					return true;
-				logger.warn("Send Reduce failed. SessionId={}, peer={}, gkey={}, state={}, globalSerialId={}",
-						SessionId, peer, gkey, state, globalSerialId);
+				if (peer != null) {
+					var reduce = new Reduce(gkey, StateInvalid, globalSerialId);
+					if (ENABLE_PERF)
+						Instance.perf.onReduceBegin(reduce);
+					if (reduce.Send(peer, response, 10000)) //await 等RPC回复
+						return true;
+					if (ENABLE_PERF)
+						Instance.perf.onReduceCancel(reduce);
+				}
+				logger.warn("Send Reduce failed. SessionId={}, peer={}, gkey={}, globalSerialId={}",
+						SessionId, peer, gkey, globalSerialId);
 			} catch (Exception ex) {
 				// 这里的异常只应该是网络发送异常。
-				logger.error("ReduceWaitLater Exception " + gkey, ex);
+				logger.error("Reduce Exception " + gkey, ex);
 			}
 			SetError();
 			return false;
@@ -710,8 +732,16 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					return null;
 				AsyncSocket peer = Instance.Server.GetSocket(SessionId);
 				if (peer != null) {
-					Reduce reduce = new Reduce(gkey, StateInvalid, globalSerialId);
+					var reduce = new Reduce(gkey, StateInvalid, globalSerialId);
+					if (ENABLE_PERF)
+						Instance.perf.onReduceBegin(reduce);
 					reduce.SendForWait(peer, 10000);
+					if (ENABLE_PERF) {
+						if (reduce.getFuture().isCompletedExceptionally() && !reduce.isTimeout())
+							Instance.perf.onReduceCancel(reduce);
+						else
+							Instance.perf.onReduceEnd(reduce);
+					}
 					return reduce;
 				}
 			} catch (Throwable ex) {
