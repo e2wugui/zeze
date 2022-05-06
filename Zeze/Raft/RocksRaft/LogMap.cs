@@ -14,7 +14,7 @@ namespace Zeze.Raft.RocksRaft
 
 		public override void Collect(Changes changes, Bean recent, Log vlog)
 		{
-			throw new Exception($"Collect Not Implement.");
+			throw new NotImplementedException($"Collect Not Implement.");
 		}
 	}
 }

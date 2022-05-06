@@ -139,23 +139,11 @@ public class LogList1<V> extends LogList<V> {
 	}
 
 	public final void Merge(LogList1<V> from) {
-		for (var opLog : from.getOpLogs()) {
-			switch (opLog.op) {
-			case OpLog.OP_MODIFY:
-				setValue(getValue().with(opLog.index, opLog.value));
-				break;
-			case OpLog.OP_ADD:
-				setValue(getValue().plus(opLog.index, opLog.value));
-				break;
-			case OpLog.OP_REMOVE:
-				setValue(getValue().minus(opLog.index));
-				break;
-			case OpLog.OP_CLEAR:
+		if (from.opLogs.size() > 0) {
+			if (from.opLogs.get(0).op == OpLog.OP_CLEAR)
 				opLogs.clear();
-				setValue(Empty.vector());
-			}
+			opLogs.addAll(from.opLogs);
 		}
-		opLogs.addAll(from.opLogs);
 	}
 
 	@Override

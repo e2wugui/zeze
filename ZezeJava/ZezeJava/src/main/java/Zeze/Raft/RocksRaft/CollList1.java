@@ -124,6 +124,7 @@ public class CollList1<V> extends CollList<V> {
 				break;
 			case LogList1.OpLog.OP_CLEAR:
 				_list = Empty.vector();
+				break;
 			}
 		}
 	}

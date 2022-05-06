@@ -42,6 +42,7 @@ namespace Zeze.Raft.RocksRaft
                     e.Value.EndSavepoint(this);
                 }
                 CommitActions.AddRange(other.CommitActions);
+                RollbackActions.AddRange(other.RollbackActions);
             }
             else
             {
