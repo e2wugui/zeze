@@ -20,6 +20,15 @@ namespace Zeze.Raft.RocksRaft
 
 		public Dictionary<LogBean, OutInt> Changed { get; } = new(); // changed V logs. using in collect.
 
+		internal override Log BeginSavepoint()
+		{
+			var dup = new LogList2<E>();
+			dup.Belong = Belong;
+			dup.VariableId = VariableId;
+			dup.Value = Value;
+			return dup;
+		}
+
 		public override void Encode(ByteBuffer bb)
 		{
 			if (null != Value)

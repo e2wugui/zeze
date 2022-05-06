@@ -88,7 +88,7 @@ namespace Zeze.Builtin.Online
         sealed class Log__ClientId : Zeze.Transaction.Log<BLogin, string>
         {
             public Log__ClientId(BLogin self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._ClientId = this.Value; }
         }
 

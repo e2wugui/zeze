@@ -232,42 +232,42 @@ namespace Zeze.Builtin.ProviderDirect
         sealed class Log__ModuleId : Zeze.Transaction.Log<BModuleRedirectArgument, int>
         {
             public Log__ModuleId(BModuleRedirectArgument self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._ModuleId = this.Value; }
         }
 
         sealed class Log__HashCode : Zeze.Transaction.Log<BModuleRedirectArgument, int>
         {
             public Log__HashCode(BModuleRedirectArgument self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._HashCode = this.Value; }
         }
 
         sealed class Log__RedirectType : Zeze.Transaction.Log<BModuleRedirectArgument, int>
         {
             public Log__RedirectType(BModuleRedirectArgument self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 3;
+            public override long LogKey => this.Belong.ObjectId + 3;
             public override void Commit() { this.BeanTyped._RedirectType = this.Value; }
         }
 
         sealed class Log__MethodFullName : Zeze.Transaction.Log<BModuleRedirectArgument, string>
         {
             public Log__MethodFullName(BModuleRedirectArgument self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 4;
+            public override long LogKey => this.Belong.ObjectId + 4;
             public override void Commit() { this.BeanTyped._MethodFullName = this.Value; }
         }
 
         sealed class Log__Params : Zeze.Transaction.Log<BModuleRedirectArgument, Zeze.Net.Binary>
         {
             public Log__Params(BModuleRedirectArgument self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 5;
+            public override long LogKey => this.Belong.ObjectId + 5;
             public override void Commit() { this.BeanTyped._Params = this.Value; }
         }
 
         sealed class Log__ServiceNamePrefix : Zeze.Transaction.Log<BModuleRedirectArgument, string>
         {
             public Log__ServiceNamePrefix(BModuleRedirectArgument self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 6;
+            public override long LogKey => this.Belong.ObjectId + 6;
             public override void Commit() { this.BeanTyped._ServiceNamePrefix = this.Value; }
         }
 

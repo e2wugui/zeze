@@ -114,14 +114,14 @@ namespace Zeze.Builtin.Game.Online
         sealed class Log__RoleId : Zeze.Transaction.Log<BReLogin, long>
         {
             public Log__RoleId(BReLogin self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._RoleId = this.Value; }
         }
 
         sealed class Log__ReliableNotifyConfirmCount : Zeze.Transaction.Log<BReLogin, long>
         {
             public Log__ReliableNotifyConfirmCount(BReLogin self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._ReliableNotifyConfirmCount = this.Value; }
         }
 

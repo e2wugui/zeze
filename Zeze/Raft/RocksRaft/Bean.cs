@@ -25,13 +25,14 @@ namespace Zeze.Raft.RocksRaft
 
 		public Bean()
         {
-
-        }
+			TypeId_ = Zeze.Transaction.Bean.Hash64(GetType().FullName);
+		}
 
 		public Bean(int varid)
         {
 			VariableId = varid;
-        }
+			TypeId_ = Zeze.Transaction.Bean.Hash64(GetType().FullName);
+		}
 
 		public void InitRootInfo(Record.RootInfo rootInfo, Bean parent)
 		{
@@ -59,7 +60,9 @@ namespace Zeze.Raft.RocksRaft
 		public abstract void FollowerApply(Log log);
 		public abstract void LeaderApplyNoRecursive(Log log);
 
-		public virtual long TypeId => Zeze.Transaction.Bean.Hash64(GetType().FullName);
+		protected long TypeId_;
+
+		public virtual long TypeId => TypeId_;
 
 		public virtual void BuildString(System.Text.StringBuilder sb, int level)
 		{

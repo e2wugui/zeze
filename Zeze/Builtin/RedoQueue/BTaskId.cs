@@ -86,7 +86,7 @@ namespace Zeze.Builtin.RedoQueue
         sealed class Log__TaskId : Zeze.Transaction.Log<BTaskId, long>
         {
             public Log__TaskId(BTaskId self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._TaskId = this.Value; }
         }
 

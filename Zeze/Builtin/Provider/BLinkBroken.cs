@@ -206,35 +206,35 @@ namespace Zeze.Builtin.Provider
         sealed class Log__account : Zeze.Transaction.Log<BLinkBroken, string>
         {
             public Log__account(BLinkBroken self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._account = this.Value; }
         }
 
         sealed class Log__linkSid : Zeze.Transaction.Log<BLinkBroken, long>
         {
             public Log__linkSid(BLinkBroken self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._linkSid = this.Value; }
         }
 
         sealed class Log__reason : Zeze.Transaction.Log<BLinkBroken, int>
         {
             public Log__reason(BLinkBroken self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 3;
+            public override long LogKey => this.Belong.ObjectId + 3;
             public override void Commit() { this.BeanTyped._reason = this.Value; }
         }
 
         sealed class Log__context : Zeze.Transaction.Log<BLinkBroken, string>
         {
             public Log__context(BLinkBroken self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 5;
+            public override long LogKey => this.Belong.ObjectId + 5;
             public override void Commit() { this.BeanTyped._context = this.Value; }
         }
 
         sealed class Log__contextx : Zeze.Transaction.Log<BLinkBroken, Zeze.Net.Binary>
         {
             public Log__contextx(BLinkBroken self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 6;
+            public override long LogKey => this.Belong.ObjectId + 6;
             public override void Commit() { this.BeanTyped._contextx = this.Value; }
         }
 

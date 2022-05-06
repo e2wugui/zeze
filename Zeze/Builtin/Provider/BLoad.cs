@@ -142,21 +142,21 @@ namespace Zeze.Builtin.Provider
         sealed class Log__Online : Zeze.Transaction.Log<BLoad, int>
         {
             public Log__Online(BLoad self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._Online = this.Value; }
         }
 
         sealed class Log__ProposeMaxOnline : Zeze.Transaction.Log<BLoad, int>
         {
             public Log__ProposeMaxOnline(BLoad self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._ProposeMaxOnline = this.Value; }
         }
 
         sealed class Log__OnlineNew : Zeze.Transaction.Log<BLoad, int>
         {
             public Log__OnlineNew(BLoad self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 3;
+            public override long LogKey => this.Belong.ObjectId + 3;
             public override void Commit() { this.BeanTyped._OnlineNew = this.Value; }
         }
 

@@ -117,14 +117,14 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
         sealed class Log__GlobalTableKey : Zeze.Transaction.Log<AcquireParam, Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey>
         {
             public Log__GlobalTableKey(AcquireParam self, Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._GlobalTableKey = this.Value; }
         }
 
         sealed class Log__State : Zeze.Transaction.Log<AcquireParam, int>
         {
             public Log__State(AcquireParam self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._State = this.Value; }
         }
 

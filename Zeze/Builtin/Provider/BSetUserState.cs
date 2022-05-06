@@ -146,21 +146,21 @@ namespace Zeze.Builtin.Provider
         sealed class Log__linkSid : Zeze.Transaction.Log<BSetUserState, long>
         {
             public Log__linkSid(BSetUserState self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._linkSid = this.Value; }
         }
 
         sealed class Log__context : Zeze.Transaction.Log<BSetUserState, string>
         {
             public Log__context(BSetUserState self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._context = this.Value; }
         }
 
         sealed class Log__contextx : Zeze.Transaction.Log<BSetUserState, Zeze.Net.Binary>
         {
             public Log__contextx(BSetUserState self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 3;
+            public override long LogKey => this.Belong.ObjectId + 3;
             public override void Commit() { this.BeanTyped._contextx = this.Value; }
         }
 

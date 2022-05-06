@@ -67,8 +67,8 @@ namespace Zeze.Builtin.Game.Rank
         sealed class Log__RankList : Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.Rank.BRankValue>.LogV
         {
             public Log__RankList(BRankList host, System.Collections.Immutable.ImmutableList<Zeze.Builtin.Game.Rank.BRankValue> value) : base(host, value) {}
-            public override long LogKey => Bean.ObjectId + 1;
-            public BRankList BeanTyped => (BRankList)Bean;
+            public override long LogKey => Belong.ObjectId + 1;
+            public BRankList BeanTyped => (BRankList)Belong;
             public override void Commit() { Commit(BeanTyped._RankList); }
         }
 

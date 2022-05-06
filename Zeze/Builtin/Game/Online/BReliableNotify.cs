@@ -95,15 +95,15 @@ namespace Zeze.Builtin.Game.Online
         sealed class Log__Notifies : Zeze.Transaction.Collections.PList1<Zeze.Net.Binary>.LogV
         {
             public Log__Notifies(BReliableNotify host, System.Collections.Immutable.ImmutableList<Zeze.Net.Binary> value) : base(host, value) {}
-            public override long LogKey => Bean.ObjectId + 1;
-            public BReliableNotify BeanTyped => (BReliableNotify)Bean;
+            public override long LogKey => Belong.ObjectId + 1;
+            public BReliableNotify BeanTyped => (BReliableNotify)Belong;
             public override void Commit() { Commit(BeanTyped._Notifies); }
         }
 
         sealed class Log__ReliableNotifyTotalCountStart : Zeze.Transaction.Log<BReliableNotify, long>
         {
             public Log__ReliableNotifyTotalCountStart(BReliableNotify self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._ReliableNotifyTotalCountStart = this.Value; }
         }
 

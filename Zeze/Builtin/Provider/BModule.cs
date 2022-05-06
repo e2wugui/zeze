@@ -150,21 +150,21 @@ namespace Zeze.Builtin.Provider
         sealed class Log__ChoiceType : Zeze.Transaction.Log<BModule, int>
         {
             public Log__ChoiceType(BModule self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._ChoiceType = this.Value; }
         }
 
         sealed class Log__ConfigType : Zeze.Transaction.Log<BModule, int>
         {
             public Log__ConfigType(BModule self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._ConfigType = this.Value; }
         }
 
         sealed class Log__SubscribeType : Zeze.Transaction.Log<BModule, int>
         {
             public Log__SubscribeType(BModule self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 3;
+            public override long LogKey => this.Belong.ObjectId + 3;
             public override void Commit() { this.BeanTyped._SubscribeType = this.Value; }
         }
 

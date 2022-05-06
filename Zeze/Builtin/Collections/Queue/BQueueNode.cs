@@ -95,15 +95,15 @@ namespace Zeze.Builtin.Collections.Queue
         sealed class Log__NextNodeId : Zeze.Transaction.Log<BQueueNode, long>
         {
             public Log__NextNodeId(BQueueNode self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._NextNodeId = this.Value; }
         }
 
         sealed class Log__Values : Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.Queue.BQueueNodeValue>.LogV
         {
             public Log__Values(BQueueNode host, System.Collections.Immutable.ImmutableList<Zeze.Builtin.Collections.Queue.BQueueNodeValue> value) : base(host, value) {}
-            public override long LogKey => Bean.ObjectId + 2;
-            public BQueueNode BeanTyped => (BQueueNode)Bean;
+            public override long LogKey => Belong.ObjectId + 2;
+            public BQueueNode BeanTyped => (BQueueNode)Belong;
             public override void Commit() { Commit(BeanTyped._Values); }
         }
 

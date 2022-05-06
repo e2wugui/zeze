@@ -116,14 +116,14 @@ namespace Zeze.Builtin.ProviderDirect
         sealed class Log__ReturnCode : Zeze.Transaction.Log<BModuleRedirectAllHash, long>
         {
             public Log__ReturnCode(BModuleRedirectAllHash self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._ReturnCode = this.Value; }
         }
 
         sealed class Log__Params : Zeze.Transaction.Log<BModuleRedirectAllHash, Zeze.Net.Binary>
         {
             public Log__Params(BModuleRedirectAllHash self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._Params = this.Value; }
         }
 

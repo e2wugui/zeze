@@ -153,29 +153,29 @@ namespace Zeze.Builtin.Game.Online
         sealed class Log__Name : Zeze.Transaction.Log<BAccount, string>
         {
             public Log__Name(BAccount self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._Name = this.Value; }
         }
 
         sealed class Log__Roles : Zeze.Transaction.Collections.PList1<long>.LogV
         {
             public Log__Roles(BAccount host, System.Collections.Immutable.ImmutableList<long> value) : base(host, value) {}
-            public override long LogKey => Bean.ObjectId + 2;
-            public BAccount BeanTyped => (BAccount)Bean;
+            public override long LogKey => Belong.ObjectId + 2;
+            public BAccount BeanTyped => (BAccount)Belong;
             public override void Commit() { Commit(BeanTyped._Roles); }
         }
 
         sealed class Log__LastLoginRoleId : Zeze.Transaction.Log<BAccount, long>
         {
             public Log__LastLoginRoleId(BAccount self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 3;
+            public override long LogKey => this.Belong.ObjectId + 3;
             public override void Commit() { this.BeanTyped._LastLoginRoleId = this.Value; }
         }
 
         sealed class Log__LastLoginVersion : Zeze.Transaction.Log<BAccount, long>
         {
             public Log__LastLoginVersion(BAccount self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 4;
+            public override long LogKey => this.Belong.ObjectId + 4;
             public override void Commit() { this.BeanTyped._LastLoginVersion = this.Value; }
         }
 

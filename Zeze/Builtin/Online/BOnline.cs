@@ -116,14 +116,14 @@ namespace Zeze.Builtin.Online
         sealed class Log__LinkName : Zeze.Transaction.Log<BOnline, string>
         {
             public Log__LinkName(BOnline self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._LinkName = this.Value; }
         }
 
         sealed class Log__LinkSid : Zeze.Transaction.Log<BOnline, long>
         {
             public Log__LinkSid(BOnline self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._LinkSid = this.Value; }
         }
 

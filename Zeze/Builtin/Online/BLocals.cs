@@ -69,8 +69,8 @@ namespace Zeze.Builtin.Online
         sealed class Log__Logins : Zeze.Transaction.Collections.PMap2<string, Zeze.Builtin.Online.BLocal>.LogV
         {
             public Log__Logins(BLocals host, System.Collections.Immutable.ImmutableDictionary<string, Zeze.Builtin.Online.BLocal> value) : base(host, value) {}
-            public override long LogKey => Bean.ObjectId + 1;
-            public BLocals BeanTyped => (BLocals)Bean;
+            public override long LogKey => Belong.ObjectId + 1;
+            public BLocals BeanTyped => (BLocals)Belong;
             public override void Commit() { Commit(BeanTyped._Logins); }
         }
 

@@ -120,6 +120,23 @@ namespace Zeze.Transaction
             }
         }
 
+        public bool TryGetLog(long logKey, out Log log)
+        {
+            log = GetLog(logKey);
+            return null != log;
+        }
+
+        public Log LogGetOrAdd(long logKey, Func<Log> logFactory)
+        {
+            var log = GetLog(logKey);
+            if (null == log)
+            {
+                log = logFactory();
+                PutLog(log);
+            }
+            return log;
+        }
+
         public Log GetLog(long key)
         {
             VerifyRunningOrCompleted();
@@ -339,17 +356,17 @@ namespace Zeze.Transaction
                 Savepoint sp = Savepoints[^1];
                 foreach (Log log in sp.Logs.Values)
                 {
-                    if (log.Bean == null)
+                    if (log.Belong == null)
                         continue; // 特殊日志没有Bean。
 
                     // 写成回调是为了优化，仅在需要的时候才创建path。
-                    cc.CollectChanged(log.Bean.TableKey,
+                    cc.CollectChanged(log.Belong.TableKey,
                         (out List<Util.KV<Bean, int>> path, out ChangeNote note) =>
                         {
                             path = new List<Util.KV<Bean, int>>();
                             note = null;
-                            path.Add(Util.KV.Create(log.Bean, log.VariableId));
-                            log.Bean.BuildChangeListenerPath(path);
+                            path.Add(Util.KV.Create(log.Belong, log.VariableId));
+                            log.Belong.BuildChangeListenerPath(path);
                         });
                 }
                 foreach (ChangeNote cn in sp.ChangeNotes.Values)
@@ -409,7 +426,7 @@ namespace Zeze.Transaction
                     {
                         if (e.Value.Dirty)
                         {
-                            e.Value.OriginRecord.Commit(e.Value);
+                            e.Value.Origin.Commit(e.Value);
                             cc.BuildCollect(procedure.Zeze, e.Key, e.Value); // 首先对脏记录创建Table,Record相关Collector。
                         }
                     }
@@ -450,7 +467,7 @@ namespace Zeze.Transaction
 
         public class RecordAccessed : Bean
         {
-            public Record OriginRecord { get; }
+            public Record Origin { get; }
             public long Timestamp { get; }
             public bool Dirty { get; set; }
 
@@ -459,36 +476,35 @@ namespace Zeze.Transaction
                 PutLog log = (PutLog)Current.GetLog(ObjectId);
                 if (null != log)
                     return log.Value;
-                return OriginRecord.Value;
+                return Origin.Value;
             }
 
             // Record 修改日志先提交到这里(Savepoint.Commit里面调用）。处理完Savepoint后再处理 Dirty 记录。
             public PutLog CommittedPutLog { get; private set; }
 
-            public class PutLog : Log<RecordAccessed, Bean>
+            public class PutLog : Log<Bean>
             {
-                public PutLog(RecordAccessed bean, Bean putValue) : base(bean, putValue)
+                public PutLog(Bean putValue)
                 {
+                    Value = putValue;
                 }
-
-                public override long LogKey => Bean.ObjectId;
 
                 public override void Commit()
                 {
-                    RecordAccessed host = (RecordAccessed)Bean;
+                    RecordAccessed host = (RecordAccessed)Belong;
                     host.CommittedPutLog = this; // 肯定最多只有一个 PutLog。由 LogKey 保证。
                 }
             }
 
             public RecordAccessed(Record originRecord)
             {
-                OriginRecord = originRecord;
+                Origin = originRecord;
                 Timestamp = originRecord.Timestamp;
             }
 
             public void Put(Transaction current, Bean putValue)
             {
-                current.PutLog(new PutLog(this, putValue));
+                current.PutLog(new PutLog(putValue));
             }
 
             public void Remove(Transaction current)
@@ -506,6 +522,11 @@ namespace Zeze.Transaction
 
             public override void Encode(ByteBuffer bb)
             {
+            }
+
+            public override void FollowerApply(Log log)
+            {
+                throw new NotImplementedException();
             }
         }
 
@@ -547,13 +568,13 @@ namespace Zeze.Transaction
             var ra = GetRecordAccessed(bean.TableKey);
             if (ra == null)
                 throw new Exception($"VerifyRecordAccessed: Record Not Control Under Current Transaction. {bean.TableKey}");
-            if (bean.RootInfo.Record != ra.OriginRecord)
+            if (bean.RootInfo.Record != ra.Origin)
                 throw new Exception($"VerifyRecordAccessed: Record Reloaded.{bean.TableKey}");
             // 事务结束后可能会触发Listener，此时Commit已经完成，Timestamp已经改变，
             // 这种情况下不做RedoCheck，当然Listener的访问数据是只读的。
             // 【注意】这个提前检测更容易忙等，因为都没去尝试锁（这会阻塞）。
-            if (ra.OriginRecord.Table.Zeze.Config.FastRedoWhenConflict
-                && State != TransactionState.Completed && ra.OriginRecord.Timestamp != ra.Timestamp)
+            if (ra.Origin.Table.Zeze.Config.FastRedoWhenConflict
+                && State != TransactionState.Completed && ra.Origin.Timestamp != ra.Timestamp)
             {
                 ThrowRedo();
             }
@@ -568,12 +589,12 @@ namespace Zeze.Transaction
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private async Task<CheckResult> Check(bool writeLock, RecordAccessed e)
         {
-            var lockr = await e.OriginRecord.Mutex.LockAsync();
+            var lockr = await e.Origin.Mutex.LockAsync();
             try
             {
                 if (writeLock)
                 {
-                    switch (e.OriginRecord.State)
+                    switch (e.Origin.State)
                     {
                         case GlobalCacheManagerServer.StateRemoved:
                             // 被从cache中清除，不持有该记录的Global锁，简单重做即可。
@@ -581,36 +602,36 @@ namespace Zeze.Transaction
 
                         case GlobalCacheManagerServer.StateInvalid:
                             LastTableKeyOfRedoAndRelease = e.TableKey;
-                            LastGlobalSerialIdOfRedoAndRelease = e.OriginRecord.LastErrorGlobalSerialId;
+                            LastGlobalSerialIdOfRedoAndRelease = e.Origin.LastErrorGlobalSerialId;
                             return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，肯定有Reduce请求。
 
                         case GlobalCacheManagerServer.StateModify:
-                            return e.Timestamp != e.OriginRecord.Timestamp
+                            return e.Timestamp != e.Origin.Timestamp
                                 ? CheckResult.Redo : CheckResult.Success;
 
                         case GlobalCacheManagerServer.StateShare:
                             // 这里可能死锁：另一个先获得提升的请求要求本机Reduce，但是本机Checkpoint无法进行下去，被当前事务挡住了。
                             // 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
-                            var (_, ResultState, ResultGlobalSerialId) = await e.OriginRecord.Acquire(GlobalCacheManagerServer.StateModify);
+                            var (_, ResultState, ResultGlobalSerialId) = await e.Origin.Acquire(GlobalCacheManagerServer.StateModify);
                             if (ResultState  != GlobalCacheManagerServer.StateModify)
                             {
-                                logger.Warn("Acquire Failed. Maybe DeadLock Found {0}", e.OriginRecord);
-                                e.OriginRecord.State = GlobalCacheManagerServer.StateInvalid;
+                                logger.Warn("Acquire Failed. Maybe DeadLock Found {0}", e.Origin);
+                                e.Origin.State = GlobalCacheManagerServer.StateInvalid;
                                 LastTableKeyOfRedoAndRelease = e.TableKey;
-                                e.OriginRecord.LastErrorGlobalSerialId = ResultGlobalSerialId; // save
+                                e.Origin.LastErrorGlobalSerialId = ResultGlobalSerialId; // save
                                 LastGlobalSerialIdOfRedoAndRelease = ResultGlobalSerialId;
 
                                 return CheckResult.RedoAndReleaseLock;
                             }
-                            e.OriginRecord.State = GlobalCacheManagerServer.StateModify;
-                            return e.Timestamp != e.OriginRecord.Timestamp ? CheckResult.Redo : CheckResult.Success;
+                            e.Origin.State = GlobalCacheManagerServer.StateModify;
+                            return e.Timestamp != e.Origin.Timestamp ? CheckResult.Redo : CheckResult.Success;
                     }
-                    return e.Timestamp != e.OriginRecord.Timestamp
+                    return e.Timestamp != e.Origin.Timestamp
                         ? CheckResult.Redo : CheckResult.Success; // impossible
                 }
                 else
                 {
-                    switch (e.OriginRecord.State)
+                    switch (e.Origin.State)
                     {
                         case GlobalCacheManagerServer.StateRemoved:
                             // 被从cache中清除，不持有该记录的Global锁，简单重做即可。
@@ -619,10 +640,10 @@ namespace Zeze.Transaction
                         case GlobalCacheManagerServer.StateInvalid:
                             // 发现Invalid，肯定有Reduce请求或者被Cache清理，此时保险起见释放锁。
                             LastTableKeyOfRedoAndRelease = e.TableKey;
-                            LastGlobalSerialIdOfRedoAndRelease = e.OriginRecord.LastErrorGlobalSerialId;
+                            LastGlobalSerialIdOfRedoAndRelease = e.Origin.LastErrorGlobalSerialId;
                             return CheckResult.RedoAndReleaseLock;
                     }
-                    return e.Timestamp != e.OriginRecord.Timestamp
+                    return e.Timestamp != e.Origin.Timestamp
                         ? CheckResult.Redo : CheckResult.Success;
                 }
             }
@@ -653,10 +674,10 @@ namespace Zeze.Transaction
                 {
                     // 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
                     // 现在不会有这种情况，保留给未来扩展需要。
-                    if (log.Bean == null)
+                    if (log.Belong == null)
                         continue;
 
-                    TableKey tkey = log.Bean.TableKey;
+                    TableKey tkey = log.Belong.TableKey;
                     if (AccessedRecords.TryGetValue(tkey, out var record))
                     {
                         record.Dirty = true;

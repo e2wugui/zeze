@@ -144,21 +144,21 @@ namespace Zeze.Builtin.ProviderDirect
         sealed class Log__ModuleId : Zeze.Transaction.Log<BModuleRedirectResult, int>
         {
             public Log__ModuleId(BModuleRedirectResult self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._ModuleId = this.Value; }
         }
 
         sealed class Log__ServerId : Zeze.Transaction.Log<BModuleRedirectResult, int>
         {
             public Log__ServerId(BModuleRedirectResult self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._ServerId = this.Value; }
         }
 
         sealed class Log__Params : Zeze.Transaction.Log<BModuleRedirectResult, Zeze.Net.Binary>
         {
             public Log__Params(BModuleRedirectResult self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 3;
+            public override long LogKey => this.Belong.ObjectId + 3;
             public override void Commit() { this.BeanTyped._Params = this.Value; }
         }
 

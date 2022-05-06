@@ -1,4 +1,8 @@
 ﻿
+using System;
+using System.Collections.Concurrent;
+using Zeze.Serialize;
+
 namespace Zeze.Transaction
 {
     /// <summary>
@@ -6,28 +10,71 @@ namespace Zeze.Transaction
     /// 主要用于 bean.variable 的修改。
     /// 用于其他非 bean 的日志时，也需要构造一个 bean，用来包装日志。
     /// </summary>
-    public abstract class Log
+    public abstract class Log : Serializable
     {
         public abstract void Commit();
         //public void Rollback() { } // 一般的操作日志不需要实现，特殊日志可能需要。先不实现，参见Savepoint.
-        public abstract long LogKey { get; } // 日志key，由 Bean.ObjectId + Variable.Id 构成
-        public Bean Bean { get; set; }
-        public Log(Bean bean)
+
+        public long LogKey => Belong.ObjectId + VariableId;
+        public Bean Belong { get; set; }
+
+        // 会被系列化，实际上由LogBean管理。
+        private readonly int _TypeId;
+        public virtual int TypeId => _TypeId; public int VariableId { get; set; }
+
+        public Log()
         {
-            Bean = bean;
+            _TypeId = Zeze.Transaction.Bean.Hash32(Util.Reflect.GetStableName(GetType()));
         }
-        public int VariableId => (int)(LogKey & Bean.MaxVariableId);
+
+        public virtual void Collect(Changes changes, Bean recent, Log vlog)
+        {
+            // LogBean LogCollection 需要实现这个方法收集日志.
+        }
+
+        internal abstract void EndSavepoint(Savepoint currentsp);
+
+        internal abstract Log BeginSavepoint();
+        public abstract void Encode(ByteBuffer bb);
+        public abstract void Decode(ByteBuffer bb);
+
+        public static ConcurrentDictionary<int, Func<Log>> Factorys { get; } = new ConcurrentDictionary<int, Func<Log>>();
+
+        public static Log Create(int typeId)
+        {
+            if (Factorys.TryGetValue(typeId, out var factory))
+                return factory();
+            throw new Exception($"unknown log typeId={typeId}");
+        }
     }
 
-    public abstract class Log<TBean, TValue> : Log where TBean : Bean
+    public abstract class Log<T> : Log
     {
-        public TValue Value { get; set; }
+        public T Value { get; set; }
 
-        protected Log(Bean bean, TValue value) : base(bean)
+        public override void Encode(ByteBuffer bb)
         {
-            this.Value = value;
+            SerializeHelper<T>.Encode(bb, Value);
         }
 
-        public TBean BeanTyped => (TBean)Bean;
+        public override void Decode(ByteBuffer bb)
+        {
+            Value = SerializeHelper<T>.Decode(bb);
+        }
+
+        internal override void EndSavepoint(Savepoint currentsp)
+        {
+            currentsp.Logs[LogKey] = this;
+        }
+
+        internal override Log BeginSavepoint()
+        {
+            return this;
+        }
+
+        public override string ToString()
+        {
+            return $"{Value}";
+        }
     }
 }

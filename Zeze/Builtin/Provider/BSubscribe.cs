@@ -69,8 +69,8 @@ namespace Zeze.Builtin.Provider
         sealed class Log__modules : Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Provider.BModule>.LogV
         {
             public Log__modules(BSubscribe host, System.Collections.Immutable.ImmutableDictionary<int, Zeze.Builtin.Provider.BModule> value) : base(host, value) {}
-            public override long LogKey => Bean.ObjectId + 1;
-            public BSubscribe BeanTyped => (BSubscribe)Bean;
+            public override long LogKey => Belong.ObjectId + 1;
+            public BSubscribe BeanTyped => (BSubscribe)Belong;
             public override void Commit() { Commit(BeanTyped._modules); }
         }
 

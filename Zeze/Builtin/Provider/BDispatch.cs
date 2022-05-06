@@ -234,42 +234,42 @@ namespace Zeze.Builtin.Provider
         sealed class Log__linkSid : Zeze.Transaction.Log<BDispatch, long>
         {
             public Log__linkSid(BDispatch self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._linkSid = this.Value; }
         }
 
         sealed class Log__account : Zeze.Transaction.Log<BDispatch, string>
         {
             public Log__account(BDispatch self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._account = this.Value; }
         }
 
         sealed class Log__protocolType : Zeze.Transaction.Log<BDispatch, long>
         {
             public Log__protocolType(BDispatch self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 3;
+            public override long LogKey => this.Belong.ObjectId + 3;
             public override void Commit() { this.BeanTyped._protocolType = this.Value; }
         }
 
         sealed class Log__protocolData : Zeze.Transaction.Log<BDispatch, Zeze.Net.Binary>
         {
             public Log__protocolData(BDispatch self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 4;
+            public override long LogKey => this.Belong.ObjectId + 4;
             public override void Commit() { this.BeanTyped._protocolData = this.Value; }
         }
 
         sealed class Log__context : Zeze.Transaction.Log<BDispatch, string>
         {
             public Log__context(BDispatch self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 5;
+            public override long LogKey => this.Belong.ObjectId + 5;
             public override void Commit() { this.BeanTyped._context = this.Value; }
         }
 
         sealed class Log__contextx : Zeze.Transaction.Log<BDispatch, Zeze.Net.Binary>
         {
             public Log__contextx(BDispatch self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 6;
+            public override long LogKey => this.Belong.ObjectId + 6;
             public override void Commit() { this.BeanTyped._contextx = this.Value; }
         }
 

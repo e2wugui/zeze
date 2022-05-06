@@ -155,29 +155,29 @@ namespace Zeze.Builtin.ProviderDirect
         sealed class Log__ActionName : Zeze.Transaction.Log<BTransmit, string>
         {
             public Log__ActionName(BTransmit self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._ActionName = this.Value; }
         }
 
         sealed class Log__Roles : Zeze.Transaction.Collections.PSet1<long>.LogV
         {
             public Log__Roles(BTransmit host, System.Collections.Immutable.ImmutableHashSet<long> value) : base(host, value) {}
-            public override long LogKey => Bean.ObjectId + 2;
-            public BTransmit BeanTyped => (BTransmit)Bean;
+            public override long LogKey => Belong.ObjectId + 2;
+            public BTransmit BeanTyped => (BTransmit)Belong;
             public override void Commit() { Commit(BeanTyped._Roles); }
         }
 
         sealed class Log__Sender : Zeze.Transaction.Log<BTransmit, long>
         {
             public Log__Sender(BTransmit self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 3;
+            public override long LogKey => this.Belong.ObjectId + 3;
             public override void Commit() { this.BeanTyped._Sender = this.Value; }
         }
 
         sealed class Log__Parameter : Zeze.Transaction.Log<BTransmit, Zeze.Net.Binary>
         {
             public Log__Parameter(BTransmit self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 4;
+            public override long LogKey => this.Belong.ObjectId + 4;
             public override void Commit() { this.BeanTyped._Parameter = this.Value; }
         }
 

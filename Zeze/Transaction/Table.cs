@@ -366,7 +366,7 @@ namespace Zeze.Transaction
             }
 
             V add = NewValue();
-            add.InitRootInfo(cr.OriginRecord.CreateRootInfoIfNeed(tkey), null);
+            add.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
             cr.Put(currentT, add);
             return add;
         }
@@ -379,7 +379,7 @@ namespace Zeze.Transaction
             var currentT = Transaction.Current;
             var tkey = new TableKey(Name, key);
             var cr = currentT.GetRecordAccessed(tkey);
-            value.InitRootInfo(cr.OriginRecord.CreateRootInfoIfNeed(tkey), null);
+            value.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
             cr.Put(currentT, value);
             return true;
         }
@@ -398,7 +398,7 @@ namespace Zeze.Transaction
             var cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
             {
-                value.InitRootInfo(cr.OriginRecord.CreateRootInfoIfNeed(tkey), null);
+                value.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
                 cr.Put(currentT, value);
                 return;
             }

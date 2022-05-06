@@ -97,15 +97,15 @@ namespace Zeze.Builtin.Online
         sealed class Log__LoginVersion : Zeze.Transaction.Log<BLocal, long>
         {
             public Log__LoginVersion(BLocal self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._LoginVersion = this.Value; }
         }
 
         sealed class Log__Datas : Zeze.Transaction.Collections.PMap2<string, Zeze.Builtin.Online.BAny>.LogV
         {
             public Log__Datas(BLocal host, System.Collections.Immutable.ImmutableDictionary<string, Zeze.Builtin.Online.BAny> value) : base(host, value) {}
-            public override long LogKey => Bean.ObjectId + 2;
-            public BLocal BeanTyped => (BLocal)Bean;
+            public override long LogKey => Belong.ObjectId + 2;
+            public BLocal BeanTyped => (BLocal)Belong;
             public override void Commit() { Commit(BeanTyped._Datas); }
         }
 

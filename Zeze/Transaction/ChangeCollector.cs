@@ -137,13 +137,13 @@ namespace Zeze.Transaction
 				else
                 {
 					foreach (var cvc in variables.Values)
-						cvc.NotifyRecordChanged(key, recordAccessed.OriginRecord.Value);
+						cvc.NotifyRecordChanged(key, recordAccessed.Origin.Value);
 				}
 			}
 			else
             {
 				foreach (var cvc in variables.Values)
-					cvc.NotifyVariableChanged(key, recordAccessed.OriginRecord.Value);
+					cvc.NotifyVariableChanged(key, recordAccessed.Origin.Value);
 			}
 		}
 	}

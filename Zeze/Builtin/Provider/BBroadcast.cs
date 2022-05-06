@@ -144,21 +144,21 @@ namespace Zeze.Builtin.Provider
         sealed class Log__protocolType : Zeze.Transaction.Log<BBroadcast, long>
         {
             public Log__protocolType(BBroadcast self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._protocolType = this.Value; }
         }
 
         sealed class Log__protocolWholeData : Zeze.Transaction.Log<BBroadcast, Zeze.Net.Binary>
         {
             public Log__protocolWholeData(BBroadcast self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._protocolWholeData = this.Value; }
         }
 
         sealed class Log__time : Zeze.Transaction.Log<BBroadcast, int>
         {
             public Log__time(BBroadcast self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 3;
+            public override long LogKey => this.Belong.ObjectId + 3;
             public override void Commit() { this.BeanTyped._time = this.Value; }
         }
 

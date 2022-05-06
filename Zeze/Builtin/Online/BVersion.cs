@@ -188,44 +188,44 @@ namespace Zeze.Builtin.Online
         sealed class Log__LoginVersion : Zeze.Transaction.Log<BVersion, long>
         {
             public Log__LoginVersion(BVersion self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._LoginVersion = this.Value; }
         }
 
         sealed class Log__ReliableNotifyMark : Zeze.Transaction.Collections.PSet1<string>.LogV
         {
             public Log__ReliableNotifyMark(BVersion host, System.Collections.Immutable.ImmutableHashSet<string> value) : base(host, value) {}
-            public override long LogKey => Bean.ObjectId + 2;
-            public BVersion BeanTyped => (BVersion)Bean;
+            public override long LogKey => Belong.ObjectId + 2;
+            public BVersion BeanTyped => (BVersion)Belong;
             public override void Commit() { Commit(BeanTyped._ReliableNotifyMark); }
         }
 
         sealed class Log__ReliableNotifyQueue : Zeze.Transaction.Collections.PList1<Zeze.Net.Binary>.LogV
         {
             public Log__ReliableNotifyQueue(BVersion host, System.Collections.Immutable.ImmutableList<Zeze.Net.Binary> value) : base(host, value) {}
-            public override long LogKey => Bean.ObjectId + 3;
-            public BVersion BeanTyped => (BVersion)Bean;
+            public override long LogKey => Belong.ObjectId + 3;
+            public BVersion BeanTyped => (BVersion)Belong;
             public override void Commit() { Commit(BeanTyped._ReliableNotifyQueue); }
         }
 
         sealed class Log__ReliableNotifyTotalCount : Zeze.Transaction.Log<BVersion, long>
         {
             public Log__ReliableNotifyTotalCount(BVersion self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 4;
+            public override long LogKey => this.Belong.ObjectId + 4;
             public override void Commit() { this.BeanTyped._ReliableNotifyTotalCount = this.Value; }
         }
 
         sealed class Log__ReliableNotifyConfirmCount : Zeze.Transaction.Log<BVersion, long>
         {
             public Log__ReliableNotifyConfirmCount(BVersion self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 5;
+            public override long LogKey => this.Belong.ObjectId + 5;
             public override void Commit() { this.BeanTyped._ReliableNotifyConfirmCount = this.Value; }
         }
 
         sealed class Log__ServerId : Zeze.Transaction.Log<BVersion, int>
         {
             public Log__ServerId(BVersion self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 6;
+            public override long LogKey => this.Belong.ObjectId + 6;
             public override void Commit() { this.BeanTyped._ServerId = this.Value; }
         }
 

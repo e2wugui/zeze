@@ -32,6 +32,15 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		return ChangedWithKey;
 	}
 
+	@Override
+	public Log BeginSavepoint() {
+		var dup = new LogMap2<K, V>(getTypeId(), keyCodecFuncs, valueFactory);
+		dup.setBelong(getBelong());
+		dup.setVariableId(getVariableId());
+		dup.setValue(getValue());
+		return dup;
+	}
+
 	@SuppressWarnings("unchecked")
 	@Override
 	public void Encode(ByteBuffer bb) {

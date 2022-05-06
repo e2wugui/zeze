@@ -86,7 +86,7 @@ namespace Zeze.Builtin.Game.Online
         sealed class Log__ReliableNotifyConfirmCount : Zeze.Transaction.Log<BReliableNotifyConfirm, long>
         {
             public Log__ReliableNotifyConfirmCount(BReliableNotifyConfirm self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._ReliableNotifyConfirmCount = this.Value; }
         }
 

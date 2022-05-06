@@ -35,11 +35,11 @@ namespace UnitTest.Zeze.Trans
 
                 }
 
-                public override long LogKey => Bean.ObjectId + 0;
+                public override long LogKey => Belong.ObjectId + 0;
 
                 public override void Commit()
                 {
-                    ((MyBean)Bean)._i = Value;
+                    ((MyBean)Belong)._i = Value;
                 }
             }
             public int I

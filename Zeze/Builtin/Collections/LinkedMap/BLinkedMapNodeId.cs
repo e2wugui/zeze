@@ -86,7 +86,7 @@ namespace Zeze.Builtin.Collections.LinkedMap
         sealed class Log__NodeId : Zeze.Transaction.Log<BLinkedMapNodeId, long>
         {
             public Log__NodeId(BLinkedMapNodeId self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._NodeId = this.Value; }
         }
 

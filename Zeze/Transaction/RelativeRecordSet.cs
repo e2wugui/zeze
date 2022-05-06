@@ -142,7 +142,7 @@ namespace Zeze.Transaction
                 if (ar.Dirty)
                     allRead = false;
 
-                if (ar.OriginRecord.Table.TableConf.CheckpointWhenCommit)
+                if (ar.Origin.Table.TableConf.CheckpointWhenCommit)
                 {
                     // 修改了需要马上提交的记录。
                     if (ar.Dirty)
@@ -152,8 +152,8 @@ namespace Zeze.Transaction
                 {
                     allCheckpointWhenCommit = false;
                 }
-                transAccessRecords.Add(ar.OriginRecord);
-                var volatilerrs = ar.OriginRecord.RelativeRecordSet;
+                transAccessRecords.Add(ar.Origin);
+                var volatilerrs = ar.Origin.RelativeRecordSet;
                 RelativeRecordSets[volatilerrs.Id] = volatilerrs;
             }
 
@@ -259,10 +259,10 @@ namespace Zeze.Transaction
                 // merge 孤立记录。
                 foreach (var ar in trans.AccessedRecords.Values)
                 {
-                    if (ar.OriginRecord.RelativeRecordSet.RecordSet == null
-                        || ar.OriginRecord.RelativeRecordSet == largest.Item1 // urgly
+                    if (ar.Origin.RelativeRecordSet.RecordSet == null
+                        || ar.Origin.RelativeRecordSet == largest.Item1 // urgly
                         )
-                        largest.Item1.Merge(ar.OriginRecord); // 合并孤立记录。这里包含largest是孤立记录的情况。
+                        largest.Item1.Merge(ar.Origin); // 合并孤立记录。这里包含largest是孤立记录的情况。
                 }
             }
             return largest.Item1;

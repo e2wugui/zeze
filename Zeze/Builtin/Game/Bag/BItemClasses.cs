@@ -67,8 +67,8 @@ namespace Zeze.Builtin.Game.Bag
         sealed class Log__ItemClasses : Zeze.Transaction.Collections.PSet1<string>.LogV
         {
             public Log__ItemClasses(BItemClasses host, System.Collections.Immutable.ImmutableHashSet<string> value) : base(host, value) {}
-            public override long LogKey => Bean.ObjectId + 1;
-            public BItemClasses BeanTyped => (BItemClasses)Bean;
+            public override long LogKey => Belong.ObjectId + 1;
+            public BItemClasses BeanTyped => (BItemClasses)Belong;
             public override void Commit() { Commit(BeanTyped._ItemClasses); }
         }
 

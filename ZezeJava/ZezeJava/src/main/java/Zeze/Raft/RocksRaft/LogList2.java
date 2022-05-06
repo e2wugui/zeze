@@ -15,13 +15,22 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
 	}
 
-	LogList2(int typeId, MethodHandle valueFactory) {
+	public LogList2(int typeId, MethodHandle valueFactory) {
 		super(typeId, null);
 		this.valueFactory = valueFactory;
 	}
 
 	public final HashMap<LogBean, OutInt> getChanged() {
 		return Changed;
+	}
+
+	@Override
+	public Log BeginSavepoint() {
+		var dup = new LogList2<V>(getTypeId(), valueFactory);
+		dup.setBelong(getBelong());
+		dup.setVariableId(getVariableId());
+		dup.setValue(getValue());
+		return dup;
 	}
 
 	@Override

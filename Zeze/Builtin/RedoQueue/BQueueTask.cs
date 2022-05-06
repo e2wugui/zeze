@@ -202,35 +202,35 @@ namespace Zeze.Builtin.RedoQueue
         sealed class Log__QueueName : Zeze.Transaction.Log<BQueueTask, string>
         {
             public Log__QueueName(BQueueTask self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._QueueName = this.Value; }
         }
 
         sealed class Log__TaskType : Zeze.Transaction.Log<BQueueTask, int>
         {
             public Log__TaskType(BQueueTask self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._TaskType = this.Value; }
         }
 
         sealed class Log__TaskId : Zeze.Transaction.Log<BQueueTask, long>
         {
             public Log__TaskId(BQueueTask self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 3;
+            public override long LogKey => this.Belong.ObjectId + 3;
             public override void Commit() { this.BeanTyped._TaskId = this.Value; }
         }
 
         sealed class Log__TaskParam : Zeze.Transaction.Log<BQueueTask, Zeze.Net.Binary>
         {
             public Log__TaskParam(BQueueTask self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 4;
+            public override long LogKey => this.Belong.ObjectId + 4;
             public override void Commit() { this.BeanTyped._TaskParam = this.Value; }
         }
 
         sealed class Log__PrevTaskId : Zeze.Transaction.Log<BQueueTask, long>
         {
             public Log__PrevTaskId(BQueueTask self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 5;
+            public override long LogKey => this.Belong.ObjectId + 5;
             public override void Commit() { this.BeanTyped._PrevTaskId = this.Value; }
         }
 

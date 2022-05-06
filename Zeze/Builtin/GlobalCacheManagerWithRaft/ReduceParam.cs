@@ -145,21 +145,21 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
         sealed class Log__GlobalTableKey : Zeze.Transaction.Log<ReduceParam, Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey>
         {
             public Log__GlobalTableKey(ReduceParam self, Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._GlobalTableKey = this.Value; }
         }
 
         sealed class Log__State : Zeze.Transaction.Log<ReduceParam, int>
         {
             public Log__State(ReduceParam self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._State = this.Value; }
         }
 
         sealed class Log__GlobalSerialId : Zeze.Transaction.Log<ReduceParam, long>
         {
             public Log__GlobalSerialId(ReduceParam self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 3;
+            public override long LogKey => this.Belong.ObjectId + 3;
             public override void Commit() { this.BeanTyped._GlobalSerialId = this.Value; }
         }
 

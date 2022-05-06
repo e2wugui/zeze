@@ -97,15 +97,15 @@ namespace Zeze.Builtin.Game.Bag
         sealed class Log__Capacity : Zeze.Transaction.Log<BBag, int>
         {
             public Log__Capacity(BBag self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._Capacity = this.Value; }
         }
 
         sealed class Log__Items : Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Game.Bag.BItem>.LogV
         {
             public Log__Items(BBag host, System.Collections.Immutable.ImmutableDictionary<int, Zeze.Builtin.Game.Bag.BItem> value) : base(host, value) {}
-            public override long LogKey => Bean.ObjectId + 2;
-            public BBag BeanTyped => (BBag)Bean;
+            public override long LogKey => Belong.ObjectId + 2;
+            public BBag BeanTyped => (BBag)Belong;
             public override void Commit() { Commit(BeanTyped._Items); }
         }
 

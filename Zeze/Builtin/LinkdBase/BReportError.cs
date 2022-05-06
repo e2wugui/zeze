@@ -149,21 +149,21 @@ namespace Zeze.Builtin.LinkdBase
         sealed class Log__from : Zeze.Transaction.Log<BReportError, int>
         {
             public Log__from(BReportError self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._from = this.Value; }
         }
 
         sealed class Log__code : Zeze.Transaction.Log<BReportError, int>
         {
             public Log__code(BReportError self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._code = this.Value; }
         }
 
         sealed class Log__desc : Zeze.Transaction.Log<BReportError, string>
         {
             public Log__desc(BReportError self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 3;
+            public override long LogKey => this.Belong.ObjectId + 3;
             public override void Commit() { this.BeanTyped._desc = this.Value; }
         }
 

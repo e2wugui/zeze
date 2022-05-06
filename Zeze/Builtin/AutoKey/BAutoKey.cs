@@ -86,7 +86,7 @@ namespace Zeze.Builtin.AutoKey
         sealed class Log__NextId : Zeze.Transaction.Log<BAutoKey, long>
         {
             public Log__NextId(BAutoKey self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._NextId = this.Value; }
         }
 

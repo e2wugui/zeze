@@ -26,7 +26,7 @@ namespace UnitTest.Zeze.Trans
                 this.appId = appId;
             }
 
-            public override long LogKey => this.Bean.ObjectId + 100;
+            public override long LogKey => this.Belong.ObjectId + 100;
 
             public override void Commit()
             {

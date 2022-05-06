@@ -144,21 +144,21 @@ namespace Zeze.Builtin.Game.Rank
         sealed class Log__RoleId : Zeze.Transaction.Log<BRankValue, long>
         {
             public Log__RoleId(BRankValue self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._RoleId = this.Value; }
         }
 
         sealed class Log__Value : Zeze.Transaction.Log<BRankValue, long>
         {
             public Log__Value(BRankValue self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._Value = this.Value; }
         }
 
         sealed class Log__ValueEx : Zeze.Transaction.Log<BRankValue, Zeze.Net.Binary>
         {
             public Log__ValueEx(BRankValue self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 3;
+            public override long LogKey => this.Belong.ObjectId + 3;
             public override void Commit() { this.BeanTyped._ValueEx = this.Value; }
         }
 

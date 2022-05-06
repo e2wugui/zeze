@@ -144,21 +144,21 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
         sealed class Log__ServerId : Zeze.Transaction.Log<AchillesHeel, int>
         {
             public Log__ServerId(AchillesHeel self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._ServerId = this.Value; }
         }
 
         sealed class Log__SecureKey : Zeze.Transaction.Log<AchillesHeel, string>
         {
             public Log__SecureKey(AchillesHeel self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._SecureKey = this.Value; }
         }
 
         sealed class Log__GlobalCacheManagerHashIndex : Zeze.Transaction.Log<AchillesHeel, int>
         {
             public Log__GlobalCacheManagerHashIndex(AchillesHeel self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 3;
+            public override long LogKey => this.Belong.ObjectId + 3;
             public override void Commit() { this.BeanTyped._GlobalCacheManagerHashIndex = this.Value; }
         }
 

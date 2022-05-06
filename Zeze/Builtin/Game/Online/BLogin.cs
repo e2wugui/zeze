@@ -86,7 +86,7 @@ namespace Zeze.Builtin.Game.Online
         sealed class Log__RoleId : Zeze.Transaction.Log<BLogin, long>
         {
             public Log__RoleId(BLogin self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._RoleId = this.Value; }
         }
 

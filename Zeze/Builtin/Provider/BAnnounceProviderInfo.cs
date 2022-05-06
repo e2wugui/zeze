@@ -176,28 +176,28 @@ namespace Zeze.Builtin.Provider
         sealed class Log__ServiceNamePrefix : Zeze.Transaction.Log<BAnnounceProviderInfo, string>
         {
             public Log__ServiceNamePrefix(BAnnounceProviderInfo self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._ServiceNamePrefix = this.Value; }
         }
 
         sealed class Log__ServiceIndentity : Zeze.Transaction.Log<BAnnounceProviderInfo, string>
         {
             public Log__ServiceIndentity(BAnnounceProviderInfo self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._ServiceIndentity = this.Value; }
         }
 
         sealed class Log__ProviderDirectIp : Zeze.Transaction.Log<BAnnounceProviderInfo, string>
         {
             public Log__ProviderDirectIp(BAnnounceProviderInfo self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 3;
+            public override long LogKey => this.Belong.ObjectId + 3;
             public override void Commit() { this.BeanTyped._ProviderDirectIp = this.Value; }
         }
 
         sealed class Log__ProviderDirectPort : Zeze.Transaction.Log<BAnnounceProviderInfo, int>
         {
             public Log__ProviderDirectPort(BAnnounceProviderInfo self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 4;
+            public override long LogKey => this.Belong.ObjectId + 4;
             public override void Commit() { this.BeanTyped._ProviderDirectPort = this.Value; }
         }
 

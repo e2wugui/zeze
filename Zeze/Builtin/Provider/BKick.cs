@@ -150,21 +150,21 @@ namespace Zeze.Builtin.Provider
         sealed class Log__linksid : Zeze.Transaction.Log<BKick, long>
         {
             public Log__linksid(BKick self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._linksid = this.Value; }
         }
 
         sealed class Log__code : Zeze.Transaction.Log<BKick, int>
         {
             public Log__code(BKick self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._code = this.Value; }
         }
 
         sealed class Log__desc : Zeze.Transaction.Log<BKick, string>
         {
             public Log__desc(BKick self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 3;
+            public override long LogKey => this.Belong.ObjectId + 3;
             public override void Commit() { this.BeanTyped._desc = this.Value; }
         }
 

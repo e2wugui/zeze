@@ -123,22 +123,22 @@ namespace Zeze.Builtin.Collections.LinkedMap
         sealed class Log__PrevNodeId : Zeze.Transaction.Log<BLinkedMapNode, long>
         {
             public Log__PrevNodeId(BLinkedMapNode self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._PrevNodeId = this.Value; }
         }
 
         sealed class Log__NextNodeId : Zeze.Transaction.Log<BLinkedMapNode, long>
         {
             public Log__NextNodeId(BLinkedMapNode self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._NextNodeId = this.Value; }
         }
 
         sealed class Log__Values : Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue>.LogV
         {
             public Log__Values(BLinkedMapNode host, System.Collections.Immutable.ImmutableList<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue> value) : base(host, value) {}
-            public override long LogKey => Bean.ObjectId + 3;
-            public BLinkedMapNode BeanTyped => (BLinkedMapNode)Bean;
+            public override long LogKey => Belong.ObjectId + 3;
+            public BLinkedMapNode BeanTyped => (BLinkedMapNode)Belong;
             public override void Commit() { Commit(BeanTyped._Values); }
         }
 

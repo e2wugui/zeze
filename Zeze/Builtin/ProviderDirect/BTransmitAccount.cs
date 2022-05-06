@@ -187,36 +187,36 @@ namespace Zeze.Builtin.ProviderDirect
         sealed class Log__ActionName : Zeze.Transaction.Log<BTransmitAccount, string>
         {
             public Log__ActionName(BTransmitAccount self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._ActionName = this.Value; }
         }
 
         sealed class Log__Parameter : Zeze.Transaction.Log<BTransmitAccount, Zeze.Net.Binary>
         {
             public Log__Parameter(BTransmitAccount self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._Parameter = this.Value; }
         }
 
         sealed class Log__TargetAccounts : Zeze.Transaction.Collections.PSet1<string>.LogV
         {
             public Log__TargetAccounts(BTransmitAccount host, System.Collections.Immutable.ImmutableHashSet<string> value) : base(host, value) {}
-            public override long LogKey => Bean.ObjectId + 3;
-            public BTransmitAccount BeanTyped => (BTransmitAccount)Bean;
+            public override long LogKey => Belong.ObjectId + 3;
+            public BTransmitAccount BeanTyped => (BTransmitAccount)Belong;
             public override void Commit() { Commit(BeanTyped._TargetAccounts); }
         }
 
         sealed class Log__SenderAccount : Zeze.Transaction.Log<BTransmitAccount, string>
         {
             public Log__SenderAccount(BTransmitAccount self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 4;
+            public override long LogKey => this.Belong.ObjectId + 4;
             public override void Commit() { this.BeanTyped._SenderAccount = this.Value; }
         }
 
         sealed class Log__SenderClientId : Zeze.Transaction.Log<BTransmitAccount, string>
         {
             public Log__SenderClientId(BTransmitAccount self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 5;
+            public override long LogKey => this.Belong.ObjectId + 5;
             public override void Commit() { this.BeanTyped._SenderClientId = this.Value; }
         }
 

@@ -116,14 +116,14 @@ namespace Zeze.Builtin.Game.Bag
         sealed class Log__BagName : Zeze.Transaction.Log<BDestroy, string>
         {
             public Log__BagName(BDestroy self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._BagName = this.Value; }
         }
 
         sealed class Log__Position : Zeze.Transaction.Log<BDestroy, int>
         {
             public Log__Position(BDestroy self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._Position = this.Value; }
         }
 

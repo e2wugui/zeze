@@ -57,9 +57,9 @@ namespace Zeze.Transaction.Collections
             }
         }
 
-        [Obsolete("Don't use this, please use Keys2", true)]
+        [Obsolete("Don't use this, please use Keys", true)]
         ICollection<K> IDictionary<K, V>.Keys => throw new NotImplementedException();
-        [Obsolete("Don't use this, please use Values2", true)]
+        [Obsolete("Don't use this, please use Values", true)]
         ICollection<V> IDictionary<K, V>.Values => throw new NotImplementedException();
 
         public IEnumerable<K> Keys => Data.Keys;

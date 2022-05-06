@@ -114,14 +114,14 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
         sealed class Log__ServerId : Zeze.Transaction.Log<LoginParam, int>
         {
             public Log__ServerId(LoginParam self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._ServerId = this.Value; }
         }
 
         sealed class Log__GlobalCacheManagerHashIndex : Zeze.Transaction.Log<LoginParam, int>
         {
             public Log__GlobalCacheManagerHashIndex(LoginParam self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._GlobalCacheManagerHashIndex = this.Value; }
         }
 

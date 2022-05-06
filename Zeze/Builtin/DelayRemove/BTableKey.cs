@@ -118,14 +118,14 @@ namespace Zeze.Builtin.DelayRemove
         sealed class Log__TableName : Zeze.Transaction.Log<BTableKey, string>
         {
             public Log__TableName(BTableKey self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._TableName = this.Value; }
         }
 
         sealed class Log__EncodedKey : Zeze.Transaction.Log<BTableKey, Zeze.Net.Binary>
         {
             public Log__EncodedKey(BTableKey self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._EncodedKey = this.Value; }
         }
 

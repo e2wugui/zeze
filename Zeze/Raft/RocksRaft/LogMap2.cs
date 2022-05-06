@@ -13,7 +13,16 @@ namespace Zeze.Raft.RocksRaft
 
 		// changed with key. using in encode/decode FollowerApply
 		public Dictionary<K, LogBean> ChangedWithKey { get; } = new Dictionary<K, LogBean>();
-		
+
+		internal override Log BeginSavepoint()
+		{
+			var dup = new LogMap2<K, V>();
+			dup.Belong = Belong;
+			dup.VariableId = VariableId;
+			dup.Value = Value;
+			return dup;
+		}
+
 		public override void Decode(ByteBuffer bb)
         {
 			ChangedWithKey.Clear();

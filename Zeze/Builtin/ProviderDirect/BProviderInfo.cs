@@ -144,21 +144,21 @@ namespace Zeze.Builtin.ProviderDirect
         sealed class Log__Ip : Zeze.Transaction.Log<BProviderInfo, string>
         {
             public Log__Ip(BProviderInfo self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._Ip = this.Value; }
         }
 
         sealed class Log__Port : Zeze.Transaction.Log<BProviderInfo, int>
         {
             public Log__Port(BProviderInfo self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._Port = this.Value; }
         }
 
         sealed class Log__ServerId : Zeze.Transaction.Log<BProviderInfo, int>
         {
             public Log__ServerId(BProviderInfo self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 3;
+            public override long LogKey => this.Belong.ObjectId + 3;
             public override void Commit() { this.BeanTyped._ServerId = this.Value; }
         }
 

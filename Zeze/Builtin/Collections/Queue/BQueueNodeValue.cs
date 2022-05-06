@@ -94,7 +94,7 @@ namespace Zeze.Builtin.Collections.Queue
         sealed class Log__Timestamp : Zeze.Transaction.Log<BQueueNodeValue, long>
         {
             public Log__Timestamp(BQueueNodeValue self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._Timestamp = this.Value; }
         }
 

@@ -116,14 +116,14 @@ namespace Zeze.Builtin.Online
         sealed class Log__ClientId : Zeze.Transaction.Log<BReLogin, string>
         {
             public Log__ClientId(BReLogin self, string value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._ClientId = this.Value; }
         }
 
         sealed class Log__ReliableNotifyConfirmCount : Zeze.Transaction.Log<BReLogin, long>
         {
             public Log__ReliableNotifyConfirmCount(BReLogin self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._ReliableNotifyConfirmCount = this.Value; }
         }
 

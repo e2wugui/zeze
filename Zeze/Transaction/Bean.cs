@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 using Zeze.Serialize;
+using Zeze.Transaction.Collections;
 
 namespace Zeze.Transaction
 {
@@ -27,12 +28,21 @@ namespace Zeze.Transaction
 
         public Bean()
         { 
+            TypeId_ = Hash64(GetType().FullName);
         }
 
         public Bean(int variableId)
         {
             this.VariableId = variableId;
+            TypeId_ = Hash64(GetType().FullName);
         }
+
+        public virtual LogBean CreateLogBean()
+        {
+            return new LogBean() { Belong = Parent, This = this, VariableId = VariableId, };
+        }
+
+        public abstract void FollowerApply(Log log);
 
         /// <summary>
         /// 构建 ChangeListener 链。其中第一个KeyValuePair在调用前加入，这个由Log或者ChangeNote提供。
@@ -68,14 +78,17 @@ namespace Zeze.Transaction
 
         // helper
         public virtual int CapacityHintOfByteBuffer => 1024; // 生成工具分析数据结构，生成容量提示，减少内存拷贝。
+
         public virtual bool NegativeCheck()
         {
             return false;
         }
+
         public virtual Bean CopyBean()
         {
             throw new NotImplementedException();
         }
+
         public virtual void BuildString(System.Text.StringBuilder sb, int level)
         {
             sb.Append(new string(' ', level)).Append("{}").Append(System.Environment.NewLine);
@@ -86,7 +99,8 @@ namespace Zeze.Transaction
         // 默认实现是 ClassName.HashCode()，也可以手动指定一个值。
         // Gen的时候会全局判断是否出现重复冲突。如果出现冲突，则手动指定一个。
         // 这个方法在Gen的时候总是覆盖(override)，提供默认实现是为了方便内部Bean的实现。
-        public virtual long TypeId => Hash64(GetType().FullName);
+        protected long TypeId_;
+        public virtual long TypeId => TypeId_;
 
         // 使用自己的hash算法，因为 TypeId 会持久化，不能因为算法改变导致值变化。
         // XXX: 这个算法定好之后，就不能变了。
@@ -145,6 +159,10 @@ namespace Zeze.Transaction
             return "()";
         }
 
+        public override void FollowerApply(Log log)
+        {
+        }
+
         public readonly static EmptyBean Instance = new EmptyBean();
     }
 
@@ -161,14 +179,14 @@ namespace Zeze.Transaction
             get
             {
                 if (false == this.IsManaged)
-                    return _TypeId;
+                    return TypeId_;
                 var txn = Transaction.Current;
                 if (txn == null)
-                    return _TypeId;
+                    return TypeId_;
                 txn.VerifyRecordAccessed(this, true);
                 // 不能独立设置，总是设置Bean时一起Commit，所以这里访问Bean的Log。
-                var log = (Log)txn.GetLog(this.ObjectId + 1);
-                return log != null ? log.SpecialTypeId : _TypeId;
+                var log = (DynamicLog)txn.GetLog(this.ObjectId + 1);
+                return log != null ? log.SpecialTypeId : TypeId_;
             }
         }
 
@@ -177,13 +195,13 @@ namespace Zeze.Transaction
             get
             {
                 if (false == this.IsManaged)
-                    return _Bean;
+                    return Bean_;
                 var txn = Transaction.Current;
                 if (txn == null)
-                    return _Bean;
+                    return Bean_;
                 txn.VerifyRecordAccessed(this, true);
-                var log = (Log)txn.GetLog(this.ObjectId + 1);
-                return log != null ? log.Value : _Bean;
+                var log = (DynamicLog)txn.GetLog(this.ObjectId + 1);
+                return log != null ? log.Value : Bean_;
             }
 
             set
@@ -193,20 +211,19 @@ namespace Zeze.Transaction
 
                 if (false == this.IsManaged)
                 {
-                    _TypeId = GetSpecialTypeIdFromBean(value);
-                    _Bean = value;
+                    TypeId_ = GetSpecialTypeIdFromBean(value);
+                    Bean_ = value;
                     return;
                 }
                 value.InitRootInfo(RootInfo, this);
                 value.VariableId = 1; // 只有一个变量
                 var txn = Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log(this, value));
+                txn.PutLog(new DynamicLog(this, value));
             }
         }
 
-        private long _TypeId;
-        private Bean _Bean;
+        private Bean Bean_;
 
         public Func<Bean, long> GetSpecialTypeIdFromBean { get; }
         public Func<long, Bean> CreateBeanFromSpecialTypeId { get; }
@@ -214,8 +231,8 @@ namespace Zeze.Transaction
         public DynamicBean(int variableId, Func<Bean, long> get, Func<long, Bean> create)
             : base(variableId)
         {
-            _Bean = new EmptyBean();
-            _TypeId = EmptyBean.TYPEID;
+            Bean_ = new EmptyBean();
+            TypeId_ = EmptyBean.TYPEID;
 
             GetSpecialTypeIdFromBean = get;
             CreateBeanFromSpecialTypeId = create;
@@ -223,7 +240,7 @@ namespace Zeze.Transaction
 
         public bool IsEmpty()
         {
-            return _TypeId == EmptyBean.TYPEID && _Bean.GetType() == typeof(EmptyBean);
+            return TypeId_ == EmptyBean.TYPEID && Bean_.GetType() == typeof(EmptyBean);
         }
 
         public void Assign(DynamicBean other)
@@ -241,8 +258,8 @@ namespace Zeze.Transaction
         public override Bean CopyBean()
         {
             var copy = new DynamicBean(VariableId, GetSpecialTypeIdFromBean, CreateBeanFromSpecialTypeId);
-            copy._Bean = Bean.CopyBean();
-            copy._TypeId = TypeId;
+            copy.Bean_ = Bean.CopyBean();
+            copy.TypeId_ = TypeId;
             return copy;
         }
 
@@ -250,15 +267,15 @@ namespace Zeze.Transaction
         {
             if (false == this.IsManaged)
             {
-                _TypeId = specialTypeId;
-                _Bean = bean;
+                TypeId_ = specialTypeId;
+                Bean_ = bean;
                 return;
             }
             bean.InitRootInfo(RootInfo, this);
             bean.VariableId = 1; // 只有一个变量
             var txn = Transaction.Current;
             txn.VerifyRecordAccessed(this);
-            txn.PutLog(new Log(specialTypeId, this, bean));
+            txn.PutLog(new DynamicLog(specialTypeId, this, bean));
         }
 
         public override void Decode(ByteBuffer bb)
@@ -287,30 +304,38 @@ namespace Zeze.Transaction
 
         protected override void InitChildrenRootInfo(Record.RootInfo root)
         {
-            _Bean.InitRootInfo(root, this);
+            Bean_.InitRootInfo(root, this);
         }
 
-        private sealed class Log : Zeze.Transaction.Log<DynamicBean, Zeze.Transaction.Bean>
+        public override void FollowerApply(Zeze.Transaction.Log log)
+        {
+            Bean_.FollowerApply(log);
+        }
+
+        private sealed class DynamicLog : Log<Bean>
         {
             public long SpecialTypeId { get; }
 
-            public Log(DynamicBean self, Zeze.Transaction.Bean value) : base(self, value)
+            public DynamicLog(DynamicBean self, Bean value)
             {
+                Belong = self;
+                Value = value;
                 // 提前转换，如果是本Dynamic中没有配置的Bean，马上抛出异常。
                 SpecialTypeId = self.GetSpecialTypeIdFromBean(value);
             }
 
-            internal Log(long specialTypeId, DynamicBean self, Zeze.Transaction.Bean value) : base(self, value)
+            internal DynamicLog(long specialTypeId, DynamicBean self, Bean value)
             {
+                Belong = self;
+                Value = value;
                 SpecialTypeId = specialTypeId;
             }
 
-            public override long LogKey => this.Bean.ObjectId + 1;
-
             public override void Commit()
             {
-                this.BeanTyped._Bean = this.Value;
-                this.BeanTyped._TypeId = SpecialTypeId;
+                var self = (DynamicBean)Belong;
+                self.Bean_ = Value;
+                self.TypeId_ = SpecialTypeId;
             }
         }
     }

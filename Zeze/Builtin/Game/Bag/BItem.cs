@@ -122,14 +122,14 @@ namespace Zeze.Builtin.Game.Bag
         sealed class Log__Id : Zeze.Transaction.Log<BItem, int>
         {
             public Log__Id(BItem self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 1;
+            public override long LogKey => this.Belong.ObjectId + 1;
             public override void Commit() { this.BeanTyped._Id = this.Value; }
         }
 
         sealed class Log__Number : Zeze.Transaction.Log<BItem, int>
         {
             public Log__Number(BItem self, int value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._Number = this.Value; }
         }
 

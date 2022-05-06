@@ -266,7 +266,7 @@ namespace Zeze.Transaction
         internal static async Task Flush(Transaction trans)
         {
             await Flush(from ra in trans.AccessedRecords.Values
-                  where ra.Dirty select ra.OriginRecord);
+                  where ra.Dirty select ra.Origin);
         }
 
         internal static async Task Flush(IEnumerable<Record> rs)

@@ -125,22 +125,22 @@ namespace Zeze.Builtin.Provider
         sealed class Log__linkSids : Zeze.Transaction.Collections.PSet1<long>.LogV
         {
             public Log__linkSids(BSend host, System.Collections.Immutable.ImmutableHashSet<long> value) : base(host, value) {}
-            public override long LogKey => Bean.ObjectId + 1;
-            public BSend BeanTyped => (BSend)Bean;
+            public override long LogKey => Belong.ObjectId + 1;
+            public BSend BeanTyped => (BSend)Belong;
             public override void Commit() { Commit(BeanTyped._linkSids); }
         }
 
         sealed class Log__protocolType : Zeze.Transaction.Log<BSend, long>
         {
             public Log__protocolType(BSend self, long value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 2;
+            public override long LogKey => this.Belong.ObjectId + 2;
             public override void Commit() { this.BeanTyped._protocolType = this.Value; }
         }
 
         sealed class Log__protocolWholeData : Zeze.Transaction.Log<BSend, Zeze.Net.Binary>
         {
             public Log__protocolWholeData(BSend self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Bean.ObjectId + 3;
+            public override long LogKey => this.Belong.ObjectId + 3;
             public override void Commit() { this.BeanTyped._protocolWholeData = this.Value; }
         }
 
