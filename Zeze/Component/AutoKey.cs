@@ -1,6 +1,7 @@
 
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
+using Zeze.Serialize;
 using Zeze.Transaction;
 
 namespace Zeze.Component
@@ -38,14 +39,12 @@ namespace Zeze.Component
 		private Module module;
 		private string name;
 		private volatile Range range;
-		private long logKey;
+		private Bean logKeyBean = new EmptyBean();
 
 		private AutoKey(Module module, string name)
 		{
 			this.module = module;
 			this.name = name;
-			// 详细参考Bean的Log的用法。这里只有一个variable。
-			logKey = Zeze.Transaction.Bean.GetNextObjectId();
 		}
 
 		public async Task<long> NextIdAsync()
@@ -58,7 +57,7 @@ namespace Zeze.Component
 			}
 
 			var txn = Transaction.Transaction.Current;
-			var log = (RangeLog)txn.GetLog(logKey);
+			var log = (RangeLog)txn.GetLog(logKeyBean.ObjectId);
 			while (true)
 			{
 				if (null == log)
@@ -110,9 +109,9 @@ namespace Zeze.Component
 			internal Range range;
 
 			public RangeLog(AutoKey autoKey, Range range)
-				: base(null) // null: 特殊日志，不关联Bean。
 			{
 				AutoKey = autoKey;
+				Belong = AutoKey.logKeyBean;
 				this.range = range;
 			}
 
@@ -123,7 +122,15 @@ namespace Zeze.Component
 				AutoKey.range = range;
 			}
 
-			public override long LogKey => AutoKey.logKey;
+            public override void Encode(ByteBuffer bb)
+            {
+                throw new System.NotImplementedException();
+            }
+
+            public override void Decode(ByteBuffer bb)
+            {
+                throw new System.NotImplementedException();
+            }
 		}
 	}
 }

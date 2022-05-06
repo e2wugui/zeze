@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using Zeze.Serialize;
 
 namespace Zeze.Transaction.Collections
 {
@@ -24,7 +25,7 @@ namespace Zeze.Transaction.Collections
         public abstract class LogV : Log
         {
             internal ImmutableDictionary<K, V> Value;
-            protected LogV(Bean bean,ImmutableDictionary<K, V> value) : base(bean)
+            protected LogV(Bean bean,ImmutableDictionary<K, V> value)
             {
                 Value = value;
             }
@@ -32,6 +33,13 @@ namespace Zeze.Transaction.Collections
             protected void Commit(PMap<K, V> variable)
             {
                 variable.map = Value;
+            }
+            public virtual long LogKey { get; }
+            public override void Decode(ByteBuffer bb)
+            {
+            }
+            public override void Encode(ByteBuffer bb)
+            {
             }
         }
 

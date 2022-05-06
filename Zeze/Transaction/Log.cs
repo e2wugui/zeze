@@ -32,9 +32,16 @@ namespace Zeze.Transaction
             // LogBean LogCollection 需要实现这个方法收集日志.
         }
 
-        internal abstract void EndSavepoint(Savepoint currentsp);
+        internal virtual void EndSavepoint(Savepoint currentsp)
+        {
+            throw new NotImplementedException();
+        }
 
-        internal abstract Log BeginSavepoint();
+        internal virtual Log BeginSavepoint()
+        {
+            throw new NotImplementedException();
+        }
+
         public abstract void Encode(ByteBuffer bb);
         public abstract void Decode(ByteBuffer bb);
 
@@ -45,6 +52,23 @@ namespace Zeze.Transaction
             if (Factorys.TryGetValue(typeId, out var factory))
                 return factory();
             throw new Exception($"unknown log typeId={typeId}");
+        }
+    }
+
+    public abstract class Log<TSelf, TValue> : Log where TSelf : Bean
+    { 
+        public TValue Value { get; set; }
+
+        public Log(TSelf self, TValue value)
+        { 
+        }
+        public TSelf BeanTyped => (TSelf)Belong;
+        public virtual long LogKey { get; }
+        public override void Decode(ByteBuffer bb)
+        {
+        }
+        public override void Encode(ByteBuffer bb)
+        {
         }
     }
 

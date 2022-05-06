@@ -26,7 +26,7 @@ namespace Zeze.Transaction.Collections
         {
             internal ImmutableHashSet<E> Value;
 
-            protected LogV(Bean bean, ImmutableHashSet<E> value) : base(bean)
+            protected LogV(Bean bean, ImmutableHashSet<E> value)
             {
                 Value = value;
             }
@@ -34,6 +34,13 @@ namespace Zeze.Transaction.Collections
             protected void Commit(PSet<E> variable)
             {
                 variable.set = Value;
+            }
+            public virtual long LogKey { get; }
+            public override void Decode(Zeze.Serialize.ByteBuffer bb)
+            {
+            }
+            public override void Encode(Zeze.Serialize.ByteBuffer bb)
+            {
             }
         }
 

@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using Zeze.Serialize;
 
 namespace Zeze.Transaction.Collections
 {
@@ -26,7 +27,7 @@ namespace Zeze.Transaction.Collections
         {
             internal ImmutableList<E> Value;
 
-            protected LogV(Bean bean, ImmutableList<E> last) : base(bean)
+            protected LogV(Bean bean, ImmutableList<E> last)
             {
                 this.Value = last;
             }
@@ -34,6 +35,13 @@ namespace Zeze.Transaction.Collections
             protected void Commit(PList<E> variable)
             {
                 variable.list = Value;
+            }
+            public virtual long LogKey { get; }
+            public override void Decode(ByteBuffer bb)
+            { 
+            }
+            public override void Encode(ByteBuffer bb)
+            { 
             }
         }
 

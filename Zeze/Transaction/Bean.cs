@@ -42,7 +42,10 @@ namespace Zeze.Transaction
             return new LogBean() { Belong = Parent, This = this, VariableId = VariableId, };
         }
 
-        public abstract void FollowerApply(Log log);
+        public virtual void FollowerApply(Log log)
+        {
+            throw new NotImplementedException();
+        }
 
         /// <summary>
         /// 构建 ChangeListener 链。其中第一个KeyValuePair在调用前加入，这个由Log或者ChangeNote提供。
