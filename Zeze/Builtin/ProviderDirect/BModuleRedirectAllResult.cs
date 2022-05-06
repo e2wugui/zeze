@@ -26,8 +26,8 @@ namespace Zeze.Builtin.ProviderDirect
         long _SourceProvider; // 从BModuleRedirectAllRequest里面得到。
         string _MethodFullName; // format="ModuleFullName:MethodName"
         long _SessionId; // 发起请求者初始化，返回结果时带回。
-        readonly Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> _Hashs; // 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
-        Zeze.Transaction.Collections.PMapReadOnly<int,Zeze.Builtin.ProviderDirect.BModuleRedirectAllHashReadOnly,Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> _HashsReadOnly;
+        readonly Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> _Hashs; // 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
+        Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.ProviderDirect.BModuleRedirectAllHashReadOnly,Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> _HashsReadOnly;
 
         public int ModuleId
         {
@@ -155,7 +155,7 @@ namespace Zeze.Builtin.ProviderDirect
             }
         }
 
-        public Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> Hashs => _Hashs;
+        public Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> Hashs => _Hashs;
         System.Collections.Generic.IReadOnlyDictionary<int,Zeze.Builtin.ProviderDirect.BModuleRedirectAllHashReadOnly> Zeze.Builtin.ProviderDirect.BModuleRedirectAllResultReadOnly.Hashs => _HashsReadOnly;
 
         public BModuleRedirectAllResult() : this(0)
@@ -165,7 +165,7 @@ namespace Zeze.Builtin.ProviderDirect
         public BModuleRedirectAllResult(int _varId_) : base(_varId_)
         {
             _MethodFullName = "";
-            _Hashs = new Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash>() { VariableId = 6 };
+            _Hashs = new Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash>() { VariableId = 6 };
             _HashsReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.ProviderDirect.BModuleRedirectAllHashReadOnly,Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash>(_Hashs);
         }
 

@@ -18,8 +18,8 @@ namespace Zeze.Builtin.Game.Bag
     public sealed class BBag : Zeze.Transaction.Bean, BBagReadOnly
     {
         int _Capacity;
-        readonly Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Game.Bag.BItem> _Items; // key is bag position
-        Zeze.Transaction.Collections.PMapReadOnly<int,Zeze.Builtin.Game.Bag.BItemReadOnly,Zeze.Builtin.Game.Bag.BItem> _ItemsReadOnly;
+        readonly Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.Game.Bag.BItem> _Items; // key is bag position
+        Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.Game.Bag.BItemReadOnly,Zeze.Builtin.Game.Bag.BItem> _ItemsReadOnly;
 
         public int Capacity
         {
@@ -46,7 +46,7 @@ namespace Zeze.Builtin.Game.Bag
             }
         }
 
-        public Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Game.Bag.BItem> Items => _Items;
+        public Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.Game.Bag.BItem> Items => _Items;
         System.Collections.Generic.IReadOnlyDictionary<int,Zeze.Builtin.Game.Bag.BItemReadOnly> Zeze.Builtin.Game.Bag.BBagReadOnly.Items => _ItemsReadOnly;
 
         public BBag() : this(0)
@@ -55,7 +55,7 @@ namespace Zeze.Builtin.Game.Bag
 
         public BBag(int _varId_) : base(_varId_)
         {
-            _Items = new Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Game.Bag.BItem>() { VariableId = 2 };
+            _Items = new Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.Game.Bag.BItem>() { VariableId = 2 };
             _ItemsReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.Game.Bag.BItemReadOnly,Zeze.Builtin.Game.Bag.BItem>(_Items);
         }
 

@@ -25,7 +25,7 @@ namespace Zeze.Builtin.ProviderDirect
     {
         int _ModuleId;
         int _HashCodeConcurrentLevel; // 总的并发分组数量
-        readonly Zeze.Transaction.Collections.PSet1<int> _HashCodes; // 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
+        readonly Zeze.Transaction.Collections.CollSet1<int> _HashCodes; // 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
         long _SourceProvider; // linkd 转发的时候填写本地provider的sessionId。
         long _SessionId; // 发起请求者初始化，返回结果时带回。
         string _MethodFullName; // format="ModuleFullName:MethodName"
@@ -82,7 +82,7 @@ namespace Zeze.Builtin.ProviderDirect
             }
         }
 
-        public Zeze.Transaction.Collections.PSet1<int> HashCodes => _HashCodes;
+        public Zeze.Transaction.Collections.CollSet1<int> HashCodes => _HashCodes;
         System.Collections.Generic.IReadOnlySet<int> Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequestReadOnly.HashCodes => _HashCodes;
 
         public long SourceProvider
@@ -219,7 +219,7 @@ namespace Zeze.Builtin.ProviderDirect
 
         public BModuleRedirectAllRequest(int _varId_) : base(_varId_)
         {
-            _HashCodes = new Zeze.Transaction.Collections.PSet1<int>() { VariableId = 3 };
+            _HashCodes = new Zeze.Transaction.Collections.CollSet1<int>() { VariableId = 3 };
             _MethodFullName = "";
             _Params = Zeze.Net.Binary.Empty;
             _ServiceNamePrefix = "";

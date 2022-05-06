@@ -20,7 +20,7 @@ namespace Zeze.Builtin.Game.Online
     public sealed class BAccount : Zeze.Transaction.Bean, BAccountReadOnly
     {
         string _Name;
-        readonly Zeze.Transaction.Collections.PList1<long> _Roles; // roleid list
+        readonly Zeze.Transaction.Collections.CollList1<long> _Roles; // roleid list
         long _LastLoginRoleId;
         long _LastLoginVersion; // 用来生成 role 登录版本号。每次递增。
 
@@ -50,7 +50,7 @@ namespace Zeze.Builtin.Game.Online
             }
         }
 
-        public Zeze.Transaction.Collections.PList1<long> Roles => _Roles;
+        public Zeze.Transaction.Collections.CollList1<long> Roles => _Roles;
         System.Collections.Generic.IReadOnlyList<long> Zeze.Builtin.Game.Online.BAccountReadOnly.Roles => _Roles;
 
         public long LastLoginRoleId
@@ -110,7 +110,7 @@ namespace Zeze.Builtin.Game.Online
         public BAccount(int _varId_) : base(_varId_)
         {
             _Name = "";
-            _Roles = new Zeze.Transaction.Collections.PList1<long>() { VariableId = 2 };
+            _Roles = new Zeze.Transaction.Collections.CollList1<long>() { VariableId = 2 };
         }
 
         public void Assign(BAccount other)

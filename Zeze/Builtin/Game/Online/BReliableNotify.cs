@@ -17,10 +17,10 @@ namespace Zeze.Builtin.Game.Online
 
     public sealed class BReliableNotify : Zeze.Transaction.Bean, BReliableNotifyReadOnly
     {
-        readonly Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> _Notifies; // full encoded protocol list
+        readonly Zeze.Transaction.Collections.CollList1<Zeze.Net.Binary> _Notifies; // full encoded protocol list
         long _ReliableNotifyTotalCountStart; // Notify的计数开始。客户端收到的总计数为：start + Notifies.Count
 
-        public Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> Notifies => _Notifies;
+        public Zeze.Transaction.Collections.CollList1<Zeze.Net.Binary> Notifies => _Notifies;
         System.Collections.Generic.IReadOnlyList<Zeze.Net.Binary> Zeze.Builtin.Game.Online.BReliableNotifyReadOnly.Notifies => _Notifies;
 
         public long ReliableNotifyTotalCountStart
@@ -54,7 +54,7 @@ namespace Zeze.Builtin.Game.Online
 
         public BReliableNotify(int _varId_) : base(_varId_)
         {
-            _Notifies = new Zeze.Transaction.Collections.PList1<Zeze.Net.Binary>() { VariableId = 1 };
+            _Notifies = new Zeze.Transaction.Collections.CollList1<Zeze.Net.Binary>() { VariableId = 1 };
         }
 
         public void Assign(BReliableNotify other)

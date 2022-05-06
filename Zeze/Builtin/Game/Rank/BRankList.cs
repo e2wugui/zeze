@@ -16,9 +16,9 @@ namespace Zeze.Builtin.Game.Rank
 
     public sealed class BRankList : Zeze.Transaction.Bean, BRankListReadOnly
     {
-        readonly Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.Rank.BRankValue> _RankList;
+        readonly Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Game.Rank.BRankValue> _RankList;
 
-        public Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.Rank.BRankValue> RankList => _RankList;
+        public Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Game.Rank.BRankValue> RankList => _RankList;
         System.Collections.Generic.IReadOnlyList<Zeze.Builtin.Game.Rank.BRankValueReadOnly> Zeze.Builtin.Game.Rank.BRankListReadOnly.RankList => _RankList;
 
         public BRankList() : this(0)
@@ -27,7 +27,7 @@ namespace Zeze.Builtin.Game.Rank
 
         public BRankList(int _varId_) : base(_varId_)
         {
-            _RankList = new Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.Rank.BRankValue>() { VariableId = 1 };
+            _RankList = new Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Game.Rank.BRankValue>() { VariableId = 1 };
         }
 
         public void Assign(BRankList other)

@@ -60,7 +60,7 @@ namespace Zeze.Gen.cs
                     var value = pmap.ValueType.IsNormalBean
                         ? TypeName.GetName(pmap.ValueType) + "ReadOnly"
                         : TypeName.GetName(pmap.ValueType);
-                    var readonlyTypeName = $"Zeze.Transaction.Collections.PMapReadOnly<{key},{value},{TypeName.GetName(pmap.ValueType)}>";
+                    var readonlyTypeName = $"Zeze.Transaction.Collections.CollMapReadOnly<{key},{value},{TypeName.GetName(pmap.ValueType)}>";
                     sw.WriteLine($"        {readonlyTypeName} {v.NamePrivate}ReadOnly;");
                 }
             }

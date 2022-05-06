@@ -16,9 +16,9 @@ namespace Zeze.Builtin.Game.Bag
 
     public sealed class BItemClasses : Zeze.Transaction.Bean, BItemClassesReadOnly
     {
-        readonly Zeze.Transaction.Collections.PSet1<string> _ItemClasses;
+        readonly Zeze.Transaction.Collections.CollSet1<string> _ItemClasses;
 
-        public Zeze.Transaction.Collections.PSet1<string> ItemClasses => _ItemClasses;
+        public Zeze.Transaction.Collections.CollSet1<string> ItemClasses => _ItemClasses;
         System.Collections.Generic.IReadOnlySet<string> Zeze.Builtin.Game.Bag.BItemClassesReadOnly.ItemClasses => _ItemClasses;
 
         public BItemClasses() : this(0)
@@ -27,7 +27,7 @@ namespace Zeze.Builtin.Game.Bag
 
         public BItemClasses(int _varId_) : base(_varId_)
         {
-            _ItemClasses = new Zeze.Transaction.Collections.PSet1<string>() { VariableId = 1 };
+            _ItemClasses = new Zeze.Transaction.Collections.CollSet1<string>() { VariableId = 1 };
         }
 
         public void Assign(BItemClasses other)

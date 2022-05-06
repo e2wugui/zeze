@@ -62,14 +62,14 @@ namespace Zeze.Gen.cs
         public void Visit(TypeList type)
         {
             string valueName = GetName(type.ValueType);
-            name = "Zeze.Transaction.Collections.PList" + (type.ValueType.IsNormalBean ? "2<" : "1<")  + valueName + ">";
+            name = "Zeze.Transaction.Collections.CollList" + (type.ValueType.IsNormalBean ? "2<" : "1<")  + valueName + ">";
             nameCollectionImplement = "System.Collections.Immutable.ImmutableList<" + valueName + ">";
         }
 
         public void Visit(TypeSet type)
         {
             string valueName = GetName(type.ValueType);
-            name = "Zeze.Transaction.Collections.PSet1<" + valueName + ">";
+            name = "Zeze.Transaction.Collections.CollSet1<" + valueName + ">";
             nameCollectionImplement = "System.Collections.Immutable.ImmutableHashSet<" + valueName + ">";
         }
 
@@ -77,7 +77,7 @@ namespace Zeze.Gen.cs
         {
             string key = GetName(type.KeyType);
             string value = GetName(type.ValueType);
-            name = "Zeze.Transaction.Collections.PMap" + (type.ValueType.IsNormalBean ? "2<" : "1<") + key + ", " + value + ">";
+            name = "Zeze.Transaction.Collections.CollMap" + (type.ValueType.IsNormalBean ? "2<" : "1<") + key + ", " + value + ">";
             nameCollectionImplement = "System.Collections.Immutable.ImmutableDictionary<" + key + ", " + value + ">";
         }
 

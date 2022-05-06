@@ -18,7 +18,7 @@ namespace Zeze.Builtin.Collections.Queue
     public sealed class BQueueNode : Zeze.Transaction.Bean, BQueueNodeReadOnly
     {
         long _NextNodeId; // 后一个节点ID. 0表示已到达结尾。
-        readonly Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.Queue.BQueueNodeValue> _Values;
+        readonly Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Collections.Queue.BQueueNodeValue> _Values;
 
         public long NextNodeId
         {
@@ -45,7 +45,7 @@ namespace Zeze.Builtin.Collections.Queue
             }
         }
 
-        public Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.Queue.BQueueNodeValue> Values => _Values;
+        public Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Collections.Queue.BQueueNodeValue> Values => _Values;
         System.Collections.Generic.IReadOnlyList<Zeze.Builtin.Collections.Queue.BQueueNodeValueReadOnly> Zeze.Builtin.Collections.Queue.BQueueNodeReadOnly.Values => _Values;
 
         public BQueueNode() : this(0)
@@ -54,7 +54,7 @@ namespace Zeze.Builtin.Collections.Queue
 
         public BQueueNode(int _varId_) : base(_varId_)
         {
-            _Values = new Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.Queue.BQueueNodeValue>() { VariableId = 2 };
+            _Values = new Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Collections.Queue.BQueueNodeValue>() { VariableId = 2 };
         }
 
         public void Assign(BQueueNode other)

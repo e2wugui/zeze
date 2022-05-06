@@ -18,11 +18,11 @@ namespace Zeze.Builtin.Provider
 
     public sealed class BSend : Zeze.Transaction.Bean, BSendReadOnly
     {
-        readonly Zeze.Transaction.Collections.PSet1<long> _linkSids;
+        readonly Zeze.Transaction.Collections.CollSet1<long> _linkSids;
         long _protocolType;
         Zeze.Net.Binary _protocolWholeData; // 完整的协议打包，包括了 type, size
 
-        public Zeze.Transaction.Collections.PSet1<long> LinkSids => _linkSids;
+        public Zeze.Transaction.Collections.CollSet1<long> LinkSids => _linkSids;
         System.Collections.Generic.IReadOnlySet<long> Zeze.Builtin.Provider.BSendReadOnly.LinkSids => _linkSids;
 
         public long ProtocolType
@@ -82,7 +82,7 @@ namespace Zeze.Builtin.Provider
 
         public BSend(int _varId_) : base(_varId_)
         {
-            _linkSids = new Zeze.Transaction.Collections.PSet1<long>() { VariableId = 1 };
+            _linkSids = new Zeze.Transaction.Collections.CollSet1<long>() { VariableId = 1 };
             _protocolWholeData = Zeze.Net.Binary.Empty;
         }
 

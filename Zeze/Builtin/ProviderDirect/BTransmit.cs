@@ -20,7 +20,7 @@ namespace Zeze.Builtin.ProviderDirect
     public sealed class BTransmit : Zeze.Transaction.Bean, BTransmitReadOnly
     {
         string _ActionName;
-        readonly Zeze.Transaction.Collections.PSet1<long> _Roles; // 查询目标角色。
+        readonly Zeze.Transaction.Collections.CollSet1<long> _Roles; // 查询目标角色。
         long _Sender; // 结果发送给Sender。
         Zeze.Net.Binary _Parameter; // encoded bean
 
@@ -50,7 +50,7 @@ namespace Zeze.Builtin.ProviderDirect
             }
         }
 
-        public Zeze.Transaction.Collections.PSet1<long> Roles => _Roles;
+        public Zeze.Transaction.Collections.CollSet1<long> Roles => _Roles;
         System.Collections.Generic.IReadOnlySet<long> Zeze.Builtin.ProviderDirect.BTransmitReadOnly.Roles => _Roles;
 
         public long Sender
@@ -111,7 +111,7 @@ namespace Zeze.Builtin.ProviderDirect
         public BTransmit(int _varId_) : base(_varId_)
         {
             _ActionName = "";
-            _Roles = new Zeze.Transaction.Collections.PSet1<long>() { VariableId = 2 };
+            _Roles = new Zeze.Transaction.Collections.CollSet1<long>() { VariableId = 2 };
             _Parameter = Zeze.Net.Binary.Empty;
         }
 

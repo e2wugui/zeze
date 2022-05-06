@@ -22,8 +22,8 @@ namespace Zeze.Builtin.Online
     public sealed class BVersion : Zeze.Transaction.Bean, BVersionReadOnly
     {
         long _LoginVersion;
-        readonly Zeze.Transaction.Collections.PSet1<string> _ReliableNotifyMark;
-        readonly Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> _ReliableNotifyQueue; // full encoded protocol list
+        readonly Zeze.Transaction.Collections.CollSet1<string> _ReliableNotifyMark;
+        readonly Zeze.Transaction.Collections.CollList1<Zeze.Net.Binary> _ReliableNotifyQueue; // full encoded protocol list
         long _ReliableNotifyTotalCount;
         long _ReliableNotifyConfirmCount;
         int _ServerId;
@@ -53,10 +53,10 @@ namespace Zeze.Builtin.Online
             }
         }
 
-        public Zeze.Transaction.Collections.PSet1<string> ReliableNotifyMark => _ReliableNotifyMark;
+        public Zeze.Transaction.Collections.CollSet1<string> ReliableNotifyMark => _ReliableNotifyMark;
         System.Collections.Generic.IReadOnlySet<string> Zeze.Builtin.Online.BVersionReadOnly.ReliableNotifyMark => _ReliableNotifyMark;
 
-        public Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> ReliableNotifyQueue => _ReliableNotifyQueue;
+        public Zeze.Transaction.Collections.CollList1<Zeze.Net.Binary> ReliableNotifyQueue => _ReliableNotifyQueue;
         System.Collections.Generic.IReadOnlyList<Zeze.Net.Binary> Zeze.Builtin.Online.BVersionReadOnly.ReliableNotifyQueue => _ReliableNotifyQueue;
 
         public long ReliableNotifyTotalCount
@@ -140,8 +140,8 @@ namespace Zeze.Builtin.Online
 
         public BVersion(int _varId_) : base(_varId_)
         {
-            _ReliableNotifyMark = new Zeze.Transaction.Collections.PSet1<string>() { VariableId = 2 };
-            _ReliableNotifyQueue = new Zeze.Transaction.Collections.PList1<Zeze.Net.Binary>() { VariableId = 3 };
+            _ReliableNotifyMark = new Zeze.Transaction.Collections.CollSet1<string>() { VariableId = 2 };
+            _ReliableNotifyQueue = new Zeze.Transaction.Collections.CollList1<Zeze.Net.Binary>() { VariableId = 3 };
         }
 
         public void Assign(BVersion other)

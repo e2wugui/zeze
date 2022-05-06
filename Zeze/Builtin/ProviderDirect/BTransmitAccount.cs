@@ -22,7 +22,7 @@ namespace Zeze.Builtin.ProviderDirect
     {
         string _ActionName;
         Zeze.Net.Binary _Parameter; // encoded bean
-        readonly Zeze.Transaction.Collections.PSet1<string> _TargetAccounts; // 查询目标角色。
+        readonly Zeze.Transaction.Collections.CollSet1<string> _TargetAccounts; // 查询目标角色。
         string _SenderAccount; // 结果发送给Sender。
         string _SenderClientId; // 结果发送给Sender。
 
@@ -78,7 +78,7 @@ namespace Zeze.Builtin.ProviderDirect
             }
         }
 
-        public Zeze.Transaction.Collections.PSet1<string> TargetAccounts => _TargetAccounts;
+        public Zeze.Transaction.Collections.CollSet1<string> TargetAccounts => _TargetAccounts;
         System.Collections.Generic.IReadOnlySet<string> Zeze.Builtin.ProviderDirect.BTransmitAccountReadOnly.TargetAccounts => _TargetAccounts;
 
         public string SenderAccount
@@ -141,7 +141,7 @@ namespace Zeze.Builtin.ProviderDirect
         {
             _ActionName = "";
             _Parameter = Zeze.Net.Binary.Empty;
-            _TargetAccounts = new Zeze.Transaction.Collections.PSet1<string>() { VariableId = 3 };
+            _TargetAccounts = new Zeze.Transaction.Collections.CollSet1<string>() { VariableId = 3 };
             _SenderAccount = "";
             _SenderClientId = "";
         }

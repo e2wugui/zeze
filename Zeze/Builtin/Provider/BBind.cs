@@ -20,14 +20,14 @@ namespace Zeze.Builtin.Provider
         public const int ResultSuccess = 0;
         public const int ResultFaild = 1;
 
-        readonly Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Provider.BModule> _modules; // moduleId -> BModule
-        Zeze.Transaction.Collections.PMapReadOnly<int,Zeze.Builtin.Provider.BModuleReadOnly,Zeze.Builtin.Provider.BModule> _modulesReadOnly;
-        readonly Zeze.Transaction.Collections.PSet1<long> _linkSids;
+        readonly Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.Provider.BModule> _modules; // moduleId -> BModule
+        Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.Provider.BModuleReadOnly,Zeze.Builtin.Provider.BModule> _modulesReadOnly;
+        readonly Zeze.Transaction.Collections.CollSet1<long> _linkSids;
 
-        public Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Provider.BModule> Modules => _modules;
+        public Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.Provider.BModule> Modules => _modules;
         System.Collections.Generic.IReadOnlyDictionary<int,Zeze.Builtin.Provider.BModuleReadOnly> Zeze.Builtin.Provider.BBindReadOnly.Modules => _modulesReadOnly;
 
-        public Zeze.Transaction.Collections.PSet1<long> LinkSids => _linkSids;
+        public Zeze.Transaction.Collections.CollSet1<long> LinkSids => _linkSids;
         System.Collections.Generic.IReadOnlySet<long> Zeze.Builtin.Provider.BBindReadOnly.LinkSids => _linkSids;
 
         public BBind() : this(0)
@@ -36,9 +36,9 @@ namespace Zeze.Builtin.Provider
 
         public BBind(int _varId_) : base(_varId_)
         {
-            _modules = new Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Provider.BModule>() { VariableId = 1 };
+            _modules = new Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.Provider.BModule>() { VariableId = 1 };
             _modulesReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.Provider.BModuleReadOnly,Zeze.Builtin.Provider.BModule>(_modules);
-            _linkSids = new Zeze.Transaction.Collections.PSet1<long>() { VariableId = 2 };
+            _linkSids = new Zeze.Transaction.Collections.CollSet1<long>() { VariableId = 2 };
         }
 
         public void Assign(BBind other)

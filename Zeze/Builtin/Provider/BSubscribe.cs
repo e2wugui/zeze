@@ -16,10 +16,10 @@ namespace Zeze.Builtin.Provider
 
     public sealed class BSubscribe : Zeze.Transaction.Bean, BSubscribeReadOnly
     {
-        readonly Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Provider.BModule> _modules; // moduleId -> BModule
-        Zeze.Transaction.Collections.PMapReadOnly<int,Zeze.Builtin.Provider.BModuleReadOnly,Zeze.Builtin.Provider.BModule> _modulesReadOnly;
+        readonly Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.Provider.BModule> _modules; // moduleId -> BModule
+        Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.Provider.BModuleReadOnly,Zeze.Builtin.Provider.BModule> _modulesReadOnly;
 
-        public Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Provider.BModule> Modules => _modules;
+        public Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.Provider.BModule> Modules => _modules;
         System.Collections.Generic.IReadOnlyDictionary<int,Zeze.Builtin.Provider.BModuleReadOnly> Zeze.Builtin.Provider.BSubscribeReadOnly.Modules => _modulesReadOnly;
 
         public BSubscribe() : this(0)
@@ -28,7 +28,7 @@ namespace Zeze.Builtin.Provider
 
         public BSubscribe(int _varId_) : base(_varId_)
         {
-            _modules = new Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Provider.BModule>() { VariableId = 1 };
+            _modules = new Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.Provider.BModule>() { VariableId = 1 };
             _modulesReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.Provider.BModuleReadOnly,Zeze.Builtin.Provider.BModule>(_modules);
         }
 

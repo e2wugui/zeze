@@ -18,8 +18,8 @@ namespace Zeze.Builtin.Online
     public sealed class BLocal : Zeze.Transaction.Bean, BLocalReadOnly
     {
         long _LoginVersion;
-        readonly Zeze.Transaction.Collections.PMap2<string, Zeze.Builtin.Online.BAny> _Datas;
-        Zeze.Transaction.Collections.PMapReadOnly<string,Zeze.Builtin.Online.BAnyReadOnly,Zeze.Builtin.Online.BAny> _DatasReadOnly;
+        readonly Zeze.Transaction.Collections.CollMap2<string, Zeze.Builtin.Online.BAny> _Datas;
+        Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Builtin.Online.BAnyReadOnly,Zeze.Builtin.Online.BAny> _DatasReadOnly;
 
         public long LoginVersion
         {
@@ -46,7 +46,7 @@ namespace Zeze.Builtin.Online
             }
         }
 
-        public Zeze.Transaction.Collections.PMap2<string, Zeze.Builtin.Online.BAny> Datas => _Datas;
+        public Zeze.Transaction.Collections.CollMap2<string, Zeze.Builtin.Online.BAny> Datas => _Datas;
         System.Collections.Generic.IReadOnlyDictionary<string,Zeze.Builtin.Online.BAnyReadOnly> Zeze.Builtin.Online.BLocalReadOnly.Datas => _DatasReadOnly;
 
         public BLocal() : this(0)
@@ -55,7 +55,7 @@ namespace Zeze.Builtin.Online
 
         public BLocal(int _varId_) : base(_varId_)
         {
-            _Datas = new Zeze.Transaction.Collections.PMap2<string, Zeze.Builtin.Online.BAny>() { VariableId = 2 };
+            _Datas = new Zeze.Transaction.Collections.CollMap2<string, Zeze.Builtin.Online.BAny>() { VariableId = 2 };
             _DatasReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Builtin.Online.BAnyReadOnly,Zeze.Builtin.Online.BAny>(_Datas);
         }
 
