@@ -9,7 +9,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicLong;
-import Zeze.Util.OutLong;
 import Zeze.Util.Task;
 import Zeze.Util.ThreadFactoryWithName;
 import demo.Module1.Table1;
@@ -37,7 +36,10 @@ public class Simulate {
 	private static int procsEveryWindowMove = 100; // 处理多少个事务后移动localKey的窗口
 	private static int concurrentProcs = 100; // 执行事务的并发线程数
 	private static int localPercent = 90; // localKey范围内取key的百分比
-	private static int procsPerLog = 10_000;
+	private static String serviceManagerIp = "127.0.0.1";
+	private static int serviceManagerPort = 5001;
+	private static String globalServerIp = "127.0.0.1";
+	private static int globalServerPort = 5555;
 
 	private static int read1Weight = 40;
 	private static int readWrite1Weight = 30;
@@ -104,30 +106,47 @@ public class Simulate {
 		}
 	}
 
+	private static final class ThreadFactory extends ThreadFactoryWithName {
+		public ThreadFactory(String poolName) {
+			super(poolName);
+		}
+
+		@Override
+		public Thread newThread(Runnable r) {
+			var t = super.newThread(r);
+			t.setPriority(Thread.MIN_PRIORITY);
+			return t;
+		}
+	}
+
 	public static void main(String[] args) throws Throwable {
 		var lookup = MethodHandles.lookup();
 		for (var arg : args) {
 			var kv = arg.split("=");
 			if (kv.length == 2) {
 				var k = kv[0];
-				var v = Integer.parseInt(kv[1]);
-				if (v < 0 || v == 0 && !k.endsWith("Weight") && !k.equals("localPercent"))
-					throw new IllegalArgumentException("invalid " + k + " = " + v);
-				lookup.findStaticVarHandle(Simulate.class, k, int.class).set(v);
+				if (k.endsWith("Ip"))
+					lookup.findStaticVarHandle(Simulate.class, k, String.class).set(kv[1]);
+				else {
+					var v = Integer.parseInt(kv[1]);
+					if (v < 0 || v == 0 && !k.endsWith("Weight") && !k.equals("localPercent"))
+						throw new IllegalArgumentException("invalid " + k + " = " + v);
+					lookup.findStaticVarHandle(Simulate.class, k, int.class).set(v);
+				}
 			}
 		}
 		var procs = new ArrayList<Proc>();
 		int totalWeight = 0;
 		for (var f : Simulate.class.getDeclaredFields()) {
-			if (f.getType() == int.class && Modifier.isStatic(f.getModifiers())) {
+			if ((f.getType() == int.class || f.getType() == String.class) && Modifier.isStatic(f.getModifiers())) {
 				var k = f.getName();
-				var v = (int)lookup.unreflectVarHandle(f).get();
+				Object v = lookup.unreflectVarHandle(f).get();
 				logger.info("{} = {}", k, v);
 				if (k.endsWith("Weight")) {
-					totalWeight += v;
+					totalWeight += (int)v;
 					var name = k.substring(0, k.length() - 6);
 					var mh = lookup.findStatic(Simulate.class, name, MethodType.methodType(long.class));
-					procs.add(new Proc(name, mh, v));
+					procs.add(new Proc(name, mh, (int)v));
 				}
 			}
 		}
@@ -139,15 +158,19 @@ public class Simulate {
 		keyWindowBegin.set(keyBegin);
 
 		Task.initThreadPool((ThreadPoolExecutor)
-						Executors.newFixedThreadPool(taskThreadCount, new ThreadFactoryWithName("ZezeTaskPool")),
-				Executors.newScheduledThreadPool(schdThreadCount, new ThreadFactoryWithName("ZezeScheduledPool")));
+						Executors.newFixedThreadPool(taskThreadCount, new ThreadFactory("ZezeTaskPool")),
+				Executors.newScheduledThreadPool(schdThreadCount, new ThreadFactory("ZezeScheduledPool")));
 
-		SimpleApp app = new SimpleApp(serverId);
+		var app = new SimpleApp(serverId, 20000 + serverId,
+				serviceManagerIp, serviceManagerPort, globalServerIp, globalServerPort);
 		app.getZeze().AddTable("", table1 = new Table1());
 		app.start();
 
-		var counter = new AtomicLong();
-		var lastTime = new OutLong(System.nanoTime());
+		var totalCount = new AtomicLong();
+		var lastTime = new AtomicLong(System.nanoTime());
+		var state = new Object() {
+			long lastCount;
+		};
 		for (int i = 0; i < concurrentProcs; i++) {
 			var t = new Thread(() -> {
 				try {
@@ -163,19 +186,20 @@ public class Simulate {
 						var proc0 = proc;
 						app.getZeze().NewProcedure(() -> (long)proc0.mh.invoke(), proc.name).Call();
 
-						var c = counter.incrementAndGet();
-						if (c % procsEveryWindowMove == 0) {
+						var tc = totalCount.incrementAndGet();
+						if (tc % procsEveryWindowMove == 0) {
 							long v0, v1;
 							do {
 								v0 = keyWindowBegin.get();
 								v1 = v0 + 1 < keyEnd ? v0 + 1 : keyBegin;
 							} while (!keyWindowBegin.compareAndSet(v0, v1));
 						}
-						if (c % procsPerLog == 0) {
-							var nt = System.nanoTime();
-							var ns = nt - lastTime.Value;
-							lastTime.Value = nt;
-							logger.info("finished {} {}/s", c, procsPerLog * 1_000_000_000L / ns);
+						var t0 = lastTime.get();
+						var t1 = System.nanoTime();
+						var dt = t1 - t0;
+						if (dt >= 1_000_000_000 && lastTime.compareAndSet(t0, t1)) {
+							logger.info("finished {} {}/s", tc, (tc - state.lastCount) * 1_000_000_000L / dt);
+							state.lastCount = tc;
 						}
 					}
 				} catch (Throwable e) {
