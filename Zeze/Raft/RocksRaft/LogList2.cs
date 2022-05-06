@@ -12,41 +12,43 @@ namespace Zeze.Raft.RocksRaft
 		public class OutInt
 		{
 			public int Value { get; set; }
-		}
+            public override string ToString()
+            {
+                return Value.ToString();
+            }
+        }
 
 		public Dictionary<LogBean, OutInt> Changed { get; } = new(); // changed V logs. using in collect.
 
 		public override void Encode(ByteBuffer bb)
 		{
-			var curList = ((CollList2<E>)This)._list;
-			foreach (var e in Changed)
-			{
-				var logBean = e.Key;
-				//noinspection SuspiciousMethodCalls
-				var idxExist = curList.IndexOf((E)logBean.This);
-				if (idxExist < 0)
-					Changed.Remove(logBean);
-				else
-					e.Value.Value = idxExist;
+			if (null != Value)
+            {
+				// follower接收到log时，Value为空，此时不做Changed过滤。
+				var miss = new List<LogBean>();
+				foreach (var e in Changed)
+				{
+					var logBean = e.Key;
+					var idxExist = Value.IndexOf((E)logBean.This);
+					if (idxExist < 0)
+						miss.Add(logBean);
+					else
+						e.Value.Value = idxExist;
+				}
+				foreach (var logbean in miss)
+				{
+					Changed.Remove(logbean);
+				}
 			}
+
 			bb.WriteUInt(Changed.Count);
 			foreach (var e in Changed)
 			{
 				e.Key.Encode(bb);
 				bb.WriteUInt(e.Value.Value);
 			}
-
-			bb.WriteUInt(OpLogs.Count);
-			foreach (var opLog in OpLogs)
-			{
-				bb.WriteUInt(opLog.op);
-				if (opLog.op < OpLog.OP_CLEAR)
-				{
-					bb.WriteUInt(opLog.index);
-					if (opLog.op < OpLog.OP_REMOVE)
-						opLog.value.Encode(bb);
-				}
-			}
+			// encode oplogs
+			base.Encode(bb);
 		}
 
 		public override void Decode(ByteBuffer bb)
@@ -59,20 +61,8 @@ namespace Zeze.Raft.RocksRaft
 				var index = bb.ReadUInt();
 				Changed[value] = new OutInt() { Value = index };
 			}
-
-			OpLogs.Clear();
-			for (var logSize = bb.ReadUInt(); --logSize >= 0;)
-			{
-				int op = bb.ReadUInt();
-				int index = op < OpLog.OP_CLEAR ? bb.ReadUInt() : 0;
-				E value = null;
-				if (op < OpLog.OP_REMOVE)
-				{
-					value = new E();
-					value.Decode(bb);
-				}
-				OpLogs.Add(new OpLog(op, index, value));
-			}
+			// deocde oplogs
+			base.Decode(bb);
 		}
 
 		public override void Collect(Changes changes, Bean recent, Log vlog)
@@ -84,7 +74,7 @@ namespace Zeze.Raft.RocksRaft
 		public override string ToString()
 		{
 			var sb = new StringBuilder();
-			sb.Append(" opLogs:");
+			sb.Append("OpLogs:");
 			ByteBuffer.BuildString(sb, OpLogs);
 			sb.Append(" Changed:");
 			ByteBuffer.BuildString(sb, Changed);

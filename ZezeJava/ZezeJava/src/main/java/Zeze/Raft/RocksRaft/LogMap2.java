@@ -35,11 +35,13 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void Encode(ByteBuffer bb) {
-		for (var c : Changed) {
-			Object pkey = c.getThis().getMapKey();
-			//noinspection SuspiciousMethodCalls
-			if (!getPutted().containsKey(pkey) && !getRemoved().contains(pkey))
-				ChangedWithKey.put((K)pkey, c);
+		if (getValue() != null) {
+			for (var c : Changed) {
+				Object pkey = c.getThis().getMapKey();
+				//noinspection SuspiciousMethodCalls
+				if (!getPutted().containsKey(pkey) && !getRemoved().contains(pkey))
+					ChangedWithKey.put((K)pkey, c);
+			}
 		}
 		bb.WriteUInt(ChangedWithKey.size());
 		var keyEncoder = keyCodecFuncs.encoder;

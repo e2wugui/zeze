@@ -28,25 +28,29 @@ namespace Zeze.Raft.RocksRaft
 
         public override void Encode(ByteBuffer bb)
         {
-			foreach (var c in Changed)
+			if (null != Value)
             {
-				if (CollMap2<K, V>.PropertyMapKey != null)
+				foreach (var c in Changed)
 				{
-					var pkey = (K)CollMap2<K, V>.PropertyMapKey.GetValue(c.This);
-					if (false == Putted.ContainsKey(pkey) && false == Removed.Contains(pkey))
-						ChangedWithKey.Add(pkey, c);
-					continue;
-				}
-				// slow search.
-				foreach (var e in Value)
-				{
-					if (c.Belong == e.Value)
+					if (CollMap2<K, V>.PropertyMapKey != null)
 					{
-						ChangedWithKey.Add(e.Key, c);
-						break;
+						var pkey = (K)CollMap2<K, V>.PropertyMapKey.GetValue(c.This);
+						if (false == Putted.ContainsKey(pkey) && false == Removed.Contains(pkey))
+							ChangedWithKey.Add(pkey, c);
+						continue;
+					}
+					// slow search.
+					foreach (var e in Value)
+					{
+						if (c.Belong == e.Value)
+						{
+							ChangedWithKey.Add(e.Key, c);
+							break;
+						}
 					}
 				}
 			}
+			
 			bb.WriteUInt(ChangedWithKey.Count);
 			foreach (var e in ChangedWithKey)
             {

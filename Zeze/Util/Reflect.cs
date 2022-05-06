@@ -66,6 +66,10 @@ namespace Zeze.Util
 					return $"Zeze.Raft.RocksRaft.LogMap2<{GetStableName(type.GenericTypeArguments[0])}, {GetStableName(type.GenericTypeArguments[1])}>";
 				if (def == typeof(Zeze.Raft.RocksRaft.LogSet1<>))
 					return $"Zeze.Raft.RocksRaft.LogSet1<{GetStableName(type.GenericTypeArguments[0])}>";
+				if (def == typeof(Zeze.Raft.RocksRaft.LogList1<>))
+					return $"Zeze.Raft.RocksRaft.LogList1<{GetStableName(type.GenericTypeArguments[0])}>";
+				if (def == typeof(Zeze.Raft.RocksRaft.LogList2<>))
+					return $"Zeze.Raft.RocksRaft.LogList2<{GetStableName(type.GenericTypeArguments[0])}>";
 
 				// 下面的反射目前实际上不需要，先写在这里。
 				/*

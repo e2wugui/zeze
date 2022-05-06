@@ -10,6 +10,70 @@ namespace Zeze.Raft.RocksRaft
 {
 	public class Test
 	{
+		public sealed class BList : Bean
+        {
+			private readonly CollList1<int> _list1;
+			private readonly CollList2<Bean2> _list2;
+			public CollList1<int> List1 => _list1;
+			public CollList2<Bean2> List2 => _list2;
+
+			public BList()
+			{
+				_list1 = new CollList1<int>() { VariableId = 6 };
+				_list2 = new CollList2<Bean2>() { VariableId = 7 };
+			}
+
+			public override void FollowerApply(Log log)
+			{
+				var blog = (LogBean)log;
+				foreach (var vlog in blog.Variables.Values)
+				{
+					switch (vlog.VariableId)
+					{
+						case 6: _list1.FollowerApply(vlog); break;
+						case 7: _list2.FollowerApply(vlog); break;
+					}
+				}
+			}
+
+			public override void LeaderApplyNoRecursive(Log vlog)
+			{
+				switch (vlog.VariableId)
+				{
+					case 6: _list1.LeaderApplyNoRecursive(vlog); break;
+					case 7: _list2.LeaderApplyNoRecursive(vlog); break;
+				}
+			}
+
+			public override void Decode(ByteBuffer bb)
+			{
+				List1.Decode(bb);
+				List2.Decode(bb);
+			}
+
+			public override void Encode(ByteBuffer bb)
+			{
+				List1.Encode(bb);
+				List2.Encode(bb);
+			}
+
+			protected override void InitChildrenRootInfo(Record.RootInfo root)
+			{
+				_list1.InitRootInfo(root, this);
+				_list2.InitRootInfo(root, this);
+			}
+
+			public override string ToString()
+			{
+				return $"BList(List1={List1} List2={List2})";
+			}
+
+            public override Bean CopyBean()
+            {
+                throw new NotImplementedException();
+            }
+        }
+
 		public sealed class Bean1 : Bean
 		{
 			private int _i;
@@ -51,6 +115,7 @@ namespace Zeze.Raft.RocksRaft
             {
                 throw new NotImplementedException();
             }
+
             public long L
 			{
 				get

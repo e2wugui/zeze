@@ -26,17 +26,18 @@ public class LogList2<V extends Bean> extends LogList1<V> {
 
 	@Override
 	public void Encode(ByteBuffer bb) {
-		@SuppressWarnings("unchecked")
-		var curList = ((CollList2<V>)getThis())._list;
-		for (var it = Changed.entrySet().iterator(); it.hasNext(); ) {
-			var e = it.next();
-			var logBean = e.getKey();
-			//noinspection SuspiciousMethodCalls
-			var idxExist = curList.indexOf(logBean.getThis());
-			if (idxExist < 0)
-				it.remove();
-			else
-				e.getValue().Value = idxExist;
+		var curList = getValue();
+		if (curList != null) {
+			for (var it = Changed.entrySet().iterator(); it.hasNext(); ) {
+				var e = it.next();
+				var logBean = e.getKey();
+				//noinspection SuspiciousMethodCalls
+				var idxExist = curList.indexOf(logBean.getThis());
+				if (idxExist < 0)
+					it.remove();
+				else
+					e.getValue().Value = idxExist;
+			}
 		}
 		bb.WriteUInt(Changed.size());
 		for (var e : Changed.entrySet()) {

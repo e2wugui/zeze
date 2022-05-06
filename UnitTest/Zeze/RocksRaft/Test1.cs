@@ -232,7 +232,10 @@ AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(I=0 L=0 Map1={}
             {
                 Rocks.RegisterLog<LogMap1<int, int>>();
                 Rocks.RegisterLog<LogMap2<int, Bean1>>();
+				Rocks.RegisterLog<LogList1<int>>();
+				Rocks.RegisterLog<LogList2<Bean2>>();
 				rr.RegisterTableTemplate<int, Bean1>("tRocksRaft");
+				rr.RegisterTableTemplate<int, BList>("tList");
 			}
 
 			// start
@@ -243,11 +246,67 @@ AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(I=0 L=0 Map1={}
 			// leader
 			var leader = GetLeader(rockslist, null);
             RunLeader(leader);
+			await RunListAsync(leader);
 			leader.Raft.Server.Stop();
 
 			// 只简单验证一下最新的数据。
 			var newleader = GetLeader(rockslist, leader);
             VerifyData(newleader, "Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
+		}
+
+		private async Task RunListAsync(Rocks rocks)
+        {
+			// PutRecord first add
+			await rocks.NewProcedure(async () =>
+			{
+				var tlist = rocks.GetTableTemplate("tList").OpenTable<int, BList>();
+				var blist = await tlist.GetOrAddAsync(1);
+				blist.List1.Add(1);
+				blist.List2.Add(new Bean2() { I = 1 });
+				blist.List2.Add(new Bean2() { I = 2 });
+				VerifyChanges(@"{(tList#0,1):State=1 PutValue=BList(List1=[1] List2=[Bean2(I=1),Bean2(I=2)])
+Log=[]
+AllLog=[{0:Value=BList(List1=[1] List2=[Bean2(I=1),Bean2(I=2)])},{6:OpLogs:[(1,0,1)],7:OpLogs:[(1,0,Bean2(I=1)),(1,1,Bean2(I=2))] Changed:{}}]}");
+				return 0;
+			}).CallAsync();
+			VerifyListData(rocks, "BList(List1=[1] List2=[Bean2(I=1),Bean2(I=2)])");
+
+			// Edit second add
+			await rocks.NewProcedure(async () =>
+			{
+				var tlist = rocks.GetTableTemplate("tList").OpenTable<int, BList>();
+				var blist = await tlist.GetOrAddAsync(1);
+				blist.List1.RemoveAt(0);
+				blist.List1.Add(2);
+
+				blist.List2.RemoveAt(0);
+				blist.List2[0].I = 22;
+
+                VerifyChanges(@"{(tList#0,1):State=2 PutValue=
+Log=[{6:OpLogs:[(1,0,2),(2,0,0)],7:OpLogs:[(2,0,)] Changed:{{1:Value=22}:0}}]
+AllLog=[{6:OpLogs:[(1,0,2),(2,0,0)],7:OpLogs:[(2,0,)] Changed:{{1:Value=22}:0}}]}");
+                return 0;
+			}).CallAsync();
+			VerifyListData(rocks, "BList(List1=[2] List2=[Bean2(I=22)])");
+		}
+
+		private static void VerifyListData(Rocks rocks, string except)
+		{
+			rocks.NewProcedure(async () =>
+			{
+				var table = rocks.GetTableTemplate("tList").OpenTable<int, BList>(0);
+				var value = await table.GetOrAddAsync(1);
+				var current = value.ToString();
+				if (string.IsNullOrEmpty(except))
+				{
+					Console.WriteLine(current);
+				}
+				else
+				{
+					Assert.AreEqual(except, current);
+				}
+				return 0;
+			}).CallSynchronously();
 		}
 
 		private static void RunLeader(Rocks rocks)

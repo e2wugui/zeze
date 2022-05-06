@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Text;
+using Zeze.Serialize;
 
 namespace Zeze.Raft.RocksRaft
 {
@@ -130,6 +132,45 @@ namespace Zeze.Raft.RocksRaft
 			dup.VariableId = VariableId;
 			dup.Value = Value;
 			return dup;
+		}
+
+        public override string ToString()
+        {
+			var sb = new StringBuilder();
+			sb.Append("OpLogs:");
+			Zeze.Util.Str.BuildString(sb, OpLogs);
+            return sb.ToString();
+        }
+
+		public override void Encode(ByteBuffer bb)
+		{
+			bb.WriteUInt(OpLogs.Count);
+			foreach (var opLog in OpLogs)
+			{
+				bb.WriteUInt(opLog.op);
+				if (opLog.op < OpLog.OP_CLEAR)
+				{
+					bb.WriteUInt(opLog.index);
+					if (opLog.op < OpLog.OP_REMOVE)
+						SerializeHelper<E>.Encode(bb, opLog.value);
+				}
+			}
+		}
+
+        public override void Decode(ByteBuffer bb)
+        {
+			OpLogs.Clear();
+			for (var logSize = bb.ReadUInt(); --logSize >= 0;)
+			{
+				int op = bb.ReadUInt();
+				int index = op < OpLog.OP_CLEAR ? bb.ReadUInt() : 0;
+				E value = default;
+				if (op < OpLog.OP_REMOVE)
+				{
+					value = SerializeHelper<E>.Decode(bb);
+				}
+				OpLogs.Add(new OpLog(op, index, value));
+			}
 		}
 	}
 }
