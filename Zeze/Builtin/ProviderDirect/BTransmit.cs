@@ -46,7 +46,7 @@ namespace Zeze.Builtin.ProviderDirect
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ActionName(this, value));
+                txn.PutLog(new Log__ActionName() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -74,7 +74,7 @@ namespace Zeze.Builtin.ProviderDirect
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__Sender(this, value));
+                txn.PutLog(new Log__Sender() { Belong = this, VariableId = 3, Value = value });
             }
         }
 
@@ -100,7 +100,7 @@ namespace Zeze.Builtin.ProviderDirect
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__Parameter(this, value));
+                txn.PutLog(new Log__Parameter() { Belong = this, VariableId = 4, Value = value });
             }
         }
 
@@ -111,7 +111,7 @@ namespace Zeze.Builtin.ProviderDirect
         public BTransmit(int _varId_) : base(_varId_)
         {
             _ActionName = "";
-            _Roles = new Zeze.Transaction.Collections.PSet1<long>(ObjectId + 2, _v => new Log__Roles(this, _v));
+            _Roles = new Zeze.Transaction.Collections.PSet1<long>() { VariableId = 2 };
             _Parameter = Zeze.Net.Binary.Empty;
         }
 
@@ -152,33 +152,20 @@ namespace Zeze.Builtin.ProviderDirect
         public const long TYPEID = 7395081565293443928;
         public override long TypeId => TYPEID;
 
-        sealed class Log__ActionName : Zeze.Transaction.Log<BTransmit, string>
+        sealed class Log__ActionName : Zeze.Transaction.Log<string>
         {
-            public Log__ActionName(BTransmit self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._ActionName = this.Value; }
+            public override void Commit() { ((BTransmit)Belong)._ActionName = this.Value; }
         }
 
-        sealed class Log__Roles : Zeze.Transaction.Collections.PSet1<long>.LogV
+
+        sealed class Log__Sender : Zeze.Transaction.Log<long>
         {
-            public Log__Roles(BTransmit host, System.Collections.Immutable.ImmutableHashSet<long> value) : base(host, value) {}
-            public override long LogKey => Belong.ObjectId + 2;
-            public BTransmit BeanTyped => (BTransmit)Belong;
-            public override void Commit() { Commit(BeanTyped._Roles); }
+            public override void Commit() { ((BTransmit)Belong)._Sender = this.Value; }
         }
 
-        sealed class Log__Sender : Zeze.Transaction.Log<BTransmit, long>
+        sealed class Log__Parameter : Zeze.Transaction.Log<Zeze.Net.Binary>
         {
-            public Log__Sender(BTransmit self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 3;
-            public override void Commit() { this.BeanTyped._Sender = this.Value; }
-        }
-
-        sealed class Log__Parameter : Zeze.Transaction.Log<BTransmit, Zeze.Net.Binary>
-        {
-            public Log__Parameter(BTransmit self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 4;
-            public override void Commit() { this.BeanTyped._Parameter = this.Value; }
+            public override void Commit() { ((BTransmit)Belong)._Parameter = this.Value; }
         }
 
         public override string ToString()

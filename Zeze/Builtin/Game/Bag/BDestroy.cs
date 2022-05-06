@@ -42,7 +42,7 @@ namespace Zeze.Builtin.Game.Bag
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__BagName(this, value));
+                txn.PutLog(new Log__BagName() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -67,7 +67,7 @@ namespace Zeze.Builtin.Game.Bag
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__Position(this, value));
+                txn.PutLog(new Log__Position() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -113,18 +113,14 @@ namespace Zeze.Builtin.Game.Bag
         public const long TYPEID = -3139270057603893776;
         public override long TypeId => TYPEID;
 
-        sealed class Log__BagName : Zeze.Transaction.Log<BDestroy, string>
+        sealed class Log__BagName : Zeze.Transaction.Log<string>
         {
-            public Log__BagName(BDestroy self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._BagName = this.Value; }
+            public override void Commit() { ((BDestroy)Belong)._BagName = this.Value; }
         }
 
-        sealed class Log__Position : Zeze.Transaction.Log<BDestroy, int>
+        sealed class Log__Position : Zeze.Transaction.Log<int>
         {
-            public Log__Position(BDestroy self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._Position = this.Value; }
+            public override void Commit() { ((BDestroy)Belong)._Position = this.Value; }
         }
 
         public override string ToString()

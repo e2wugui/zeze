@@ -39,7 +39,7 @@ namespace Zeze.Builtin.Game.Online
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__RoleId(this, value));
+                txn.PutLog(new Log__RoleId() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -83,11 +83,9 @@ namespace Zeze.Builtin.Game.Online
         public const long TYPEID = 4454573042979027680;
         public override long TypeId => TYPEID;
 
-        sealed class Log__RoleId : Zeze.Transaction.Log<BLogin, long>
+        sealed class Log__RoleId : Zeze.Transaction.Log<long>
         {
-            public Log__RoleId(BLogin self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._RoleId = this.Value; }
+            public override void Commit() { ((BLogin)Belong)._RoleId = this.Value; }
         }
 
         public override string ToString()

@@ -28,8 +28,8 @@ namespace Zeze.Builtin.Online
 
         public BOnlines(int _varId_) : base(_varId_)
         {
-            _Logins = new Zeze.Transaction.Collections.PMap2<string, Zeze.Builtin.Online.BOnline>(ObjectId + 1, _v => new Log__Logins(this, _v));
-            _LoginsReadOnly = new Zeze.Transaction.Collections.PMapReadOnly<string,Zeze.Builtin.Online.BOnlineReadOnly,Zeze.Builtin.Online.BOnline>(_Logins);
+            _Logins = new Zeze.Transaction.Collections.PMap2<string, Zeze.Builtin.Online.BOnline>() { VariableId = 1 };
+            _LoginsReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Builtin.Online.BOnlineReadOnly,Zeze.Builtin.Online.BOnline>(_Logins);
         }
 
         public void Assign(BOnlines other)
@@ -66,13 +66,6 @@ namespace Zeze.Builtin.Online
         public const long TYPEID = -725348871039859823;
         public override long TypeId => TYPEID;
 
-        sealed class Log__Logins : Zeze.Transaction.Collections.PMap2<string, Zeze.Builtin.Online.BOnline>.LogV
-        {
-            public Log__Logins(BOnlines host, System.Collections.Immutable.ImmutableDictionary<string, Zeze.Builtin.Online.BOnline> value) : base(host, value) {}
-            public override long LogKey => Belong.ObjectId + 1;
-            public BOnlines BeanTyped => (BOnlines)Belong;
-            public override void Commit() { Commit(BeanTyped._Logins); }
-        }
 
         public override string ToString()
         {

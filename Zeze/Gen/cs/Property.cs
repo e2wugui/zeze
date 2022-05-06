@@ -58,7 +58,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "        }");
             sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.Current;");
             sw.WriteLine(prefix + "        txn.VerifyRecordAccessed(this);");
-            sw.WriteLine(prefix + "        txn.PutLog(new Log_" + var.NamePrivate + "(this, value));"); // 
+            sw.WriteLine(prefix + $"        txn.PutLog(new Log_{var.NamePrivate}() {{ Belong = this, VariableId = {var.Id}, Value = value }});"); // 
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
@@ -89,7 +89,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "        }");
             sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.Current;");
             sw.WriteLine(prefix + "        txn.VerifyRecordAccessed(this);");
-            sw.WriteLine(prefix + "        txn.PutLog(new Log_" + var.NamePrivate + "(this, value));"); // 
+            sw.WriteLine(prefix + $"        txn.PutLog(new Log_{var.NamePrivate}() {{ Belong = this, VariableId = {var.Id}, Value = value }});"); // 
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
@@ -144,7 +144,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "        }");
             sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.Current;");
             sw.WriteLine(prefix + "        txn.VerifyRecordAccessed(this);");
-            sw.WriteLine(prefix + "        txn.PutLog(new Log_" + var.NamePrivate + "(this, value));"); // 
+            sw.WriteLine(prefix + $"        txn.PutLog(new Log_{var.NamePrivate}() {{ Belong = this, VariableId = {var.Id}, Value = value }});"); // 
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();

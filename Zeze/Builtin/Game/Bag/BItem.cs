@@ -44,7 +44,7 @@ namespace Zeze.Builtin.Game.Bag
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__Id(this, value));
+                txn.PutLog(new Log__Id() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -69,7 +69,7 @@ namespace Zeze.Builtin.Game.Bag
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__Number(this, value));
+                txn.PutLog(new Log__Number() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -119,18 +119,14 @@ namespace Zeze.Builtin.Game.Bag
         public const long TYPEID = 8937000213993683283;
         public override long TypeId => TYPEID;
 
-        sealed class Log__Id : Zeze.Transaction.Log<BItem, int>
+        sealed class Log__Id : Zeze.Transaction.Log<int>
         {
-            public Log__Id(BItem self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._Id = this.Value; }
+            public override void Commit() { ((BItem)Belong)._Id = this.Value; }
         }
 
-        sealed class Log__Number : Zeze.Transaction.Log<BItem, int>
+        sealed class Log__Number : Zeze.Transaction.Log<int>
         {
-            public Log__Number(BItem self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._Number = this.Value; }
+            public override void Commit() { ((BItem)Belong)._Number = this.Value; }
         }
 
         public static long GetSpecialTypeIdFromBean_Item(Zeze.Transaction.Bean bean)

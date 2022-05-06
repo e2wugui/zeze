@@ -49,7 +49,7 @@ namespace Zeze.Builtin.ProviderDirect
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ModuleId(this, value));
+                txn.PutLog(new Log__ModuleId() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -74,7 +74,7 @@ namespace Zeze.Builtin.ProviderDirect
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__HashCode(this, value));
+                txn.PutLog(new Log__HashCode() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -99,7 +99,7 @@ namespace Zeze.Builtin.ProviderDirect
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__RedirectType(this, value));
+                txn.PutLog(new Log__RedirectType() { Belong = this, VariableId = 3, Value = value });
             }
         }
 
@@ -125,7 +125,7 @@ namespace Zeze.Builtin.ProviderDirect
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__MethodFullName(this, value));
+                txn.PutLog(new Log__MethodFullName() { Belong = this, VariableId = 4, Value = value });
             }
         }
 
@@ -151,7 +151,7 @@ namespace Zeze.Builtin.ProviderDirect
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__Params(this, value));
+                txn.PutLog(new Log__Params() { Belong = this, VariableId = 5, Value = value });
             }
         }
 
@@ -177,7 +177,7 @@ namespace Zeze.Builtin.ProviderDirect
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ServiceNamePrefix(this, value));
+                txn.PutLog(new Log__ServiceNamePrefix() { Belong = this, VariableId = 6, Value = value });
             }
         }
 
@@ -229,46 +229,34 @@ namespace Zeze.Builtin.ProviderDirect
         public const long TYPEID = -5561456902586805165;
         public override long TypeId => TYPEID;
 
-        sealed class Log__ModuleId : Zeze.Transaction.Log<BModuleRedirectArgument, int>
+        sealed class Log__ModuleId : Zeze.Transaction.Log<int>
         {
-            public Log__ModuleId(BModuleRedirectArgument self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._ModuleId = this.Value; }
+            public override void Commit() { ((BModuleRedirectArgument)Belong)._ModuleId = this.Value; }
         }
 
-        sealed class Log__HashCode : Zeze.Transaction.Log<BModuleRedirectArgument, int>
+        sealed class Log__HashCode : Zeze.Transaction.Log<int>
         {
-            public Log__HashCode(BModuleRedirectArgument self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._HashCode = this.Value; }
+            public override void Commit() { ((BModuleRedirectArgument)Belong)._HashCode = this.Value; }
         }
 
-        sealed class Log__RedirectType : Zeze.Transaction.Log<BModuleRedirectArgument, int>
+        sealed class Log__RedirectType : Zeze.Transaction.Log<int>
         {
-            public Log__RedirectType(BModuleRedirectArgument self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 3;
-            public override void Commit() { this.BeanTyped._RedirectType = this.Value; }
+            public override void Commit() { ((BModuleRedirectArgument)Belong)._RedirectType = this.Value; }
         }
 
-        sealed class Log__MethodFullName : Zeze.Transaction.Log<BModuleRedirectArgument, string>
+        sealed class Log__MethodFullName : Zeze.Transaction.Log<string>
         {
-            public Log__MethodFullName(BModuleRedirectArgument self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 4;
-            public override void Commit() { this.BeanTyped._MethodFullName = this.Value; }
+            public override void Commit() { ((BModuleRedirectArgument)Belong)._MethodFullName = this.Value; }
         }
 
-        sealed class Log__Params : Zeze.Transaction.Log<BModuleRedirectArgument, Zeze.Net.Binary>
+        sealed class Log__Params : Zeze.Transaction.Log<Zeze.Net.Binary>
         {
-            public Log__Params(BModuleRedirectArgument self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 5;
-            public override void Commit() { this.BeanTyped._Params = this.Value; }
+            public override void Commit() { ((BModuleRedirectArgument)Belong)._Params = this.Value; }
         }
 
-        sealed class Log__ServiceNamePrefix : Zeze.Transaction.Log<BModuleRedirectArgument, string>
+        sealed class Log__ServiceNamePrefix : Zeze.Transaction.Log<string>
         {
-            public Log__ServiceNamePrefix(BModuleRedirectArgument self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 6;
-            public override void Commit() { this.BeanTyped._ServiceNamePrefix = this.Value; }
+            public override void Commit() { ((BModuleRedirectArgument)Belong)._ServiceNamePrefix = this.Value; }
         }
 
         public override string ToString()

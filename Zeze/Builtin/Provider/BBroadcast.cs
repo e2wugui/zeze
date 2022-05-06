@@ -43,7 +43,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__protocolType(this, value));
+                txn.PutLog(new Log__protocolType() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -69,7 +69,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__protocolWholeData(this, value));
+                txn.PutLog(new Log__protocolWholeData() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -94,7 +94,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__time(this, value));
+                txn.PutLog(new Log__time() { Belong = this, VariableId = 3, Value = value });
             }
         }
 
@@ -141,25 +141,19 @@ namespace Zeze.Builtin.Provider
         public const long TYPEID = -6926497733546172658;
         public override long TypeId => TYPEID;
 
-        sealed class Log__protocolType : Zeze.Transaction.Log<BBroadcast, long>
+        sealed class Log__protocolType : Zeze.Transaction.Log<long>
         {
-            public Log__protocolType(BBroadcast self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._protocolType = this.Value; }
+            public override void Commit() { ((BBroadcast)Belong)._protocolType = this.Value; }
         }
 
-        sealed class Log__protocolWholeData : Zeze.Transaction.Log<BBroadcast, Zeze.Net.Binary>
+        sealed class Log__protocolWholeData : Zeze.Transaction.Log<Zeze.Net.Binary>
         {
-            public Log__protocolWholeData(BBroadcast self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._protocolWholeData = this.Value; }
+            public override void Commit() { ((BBroadcast)Belong)._protocolWholeData = this.Value; }
         }
 
-        sealed class Log__time : Zeze.Transaction.Log<BBroadcast, int>
+        sealed class Log__time : Zeze.Transaction.Log<int>
         {
-            public Log__time(BBroadcast self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 3;
-            public override void Commit() { this.BeanTyped._time = this.Value; }
+            public override void Commit() { ((BBroadcast)Belong)._time = this.Value; }
         }
 
         public override string ToString()

@@ -42,7 +42,7 @@ namespace Zeze.Builtin.Collections.Queue
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__Timestamp(this, value));
+                txn.PutLog(new Log__Timestamp() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -91,11 +91,9 @@ namespace Zeze.Builtin.Collections.Queue
         public const long TYPEID = 486912310764000976;
         public override long TypeId => TYPEID;
 
-        sealed class Log__Timestamp : Zeze.Transaction.Log<BQueueNodeValue, long>
+        sealed class Log__Timestamp : Zeze.Transaction.Log<long>
         {
-            public Log__Timestamp(BQueueNodeValue self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._Timestamp = this.Value; }
+            public override void Commit() { ((BQueueNodeValue)Belong)._Timestamp = this.Value; }
         }
 
         public static long GetSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean)

@@ -41,7 +41,7 @@ namespace Zeze.Builtin.ProviderDirect
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ReturnCode(this, value));
+                txn.PutLog(new Log__ReturnCode() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -67,7 +67,7 @@ namespace Zeze.Builtin.ProviderDirect
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__Params(this, value));
+                txn.PutLog(new Log__Params() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -113,18 +113,14 @@ namespace Zeze.Builtin.ProviderDirect
         public const long TYPEID = 5611412794338295457;
         public override long TypeId => TYPEID;
 
-        sealed class Log__ReturnCode : Zeze.Transaction.Log<BModuleRedirectAllHash, long>
+        sealed class Log__ReturnCode : Zeze.Transaction.Log<long>
         {
-            public Log__ReturnCode(BModuleRedirectAllHash self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._ReturnCode = this.Value; }
+            public override void Commit() { ((BModuleRedirectAllHash)Belong)._ReturnCode = this.Value; }
         }
 
-        sealed class Log__Params : Zeze.Transaction.Log<BModuleRedirectAllHash, Zeze.Net.Binary>
+        sealed class Log__Params : Zeze.Transaction.Log<Zeze.Net.Binary>
         {
-            public Log__Params(BModuleRedirectAllHash self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._Params = this.Value; }
+            public override void Commit() { ((BModuleRedirectAllHash)Belong)._Params = this.Value; }
         }
 
         public override string ToString()

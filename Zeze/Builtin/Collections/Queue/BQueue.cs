@@ -45,7 +45,7 @@ namespace Zeze.Builtin.Collections.Queue
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__HeadNodeId(this, value));
+                txn.PutLog(new Log__HeadNodeId() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -70,7 +70,7 @@ namespace Zeze.Builtin.Collections.Queue
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__TailNodeId(this, value));
+                txn.PutLog(new Log__TailNodeId() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -95,7 +95,7 @@ namespace Zeze.Builtin.Collections.Queue
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__Count(this, value));
+                txn.PutLog(new Log__Count() { Belong = this, VariableId = 3, Value = value });
             }
         }
 
@@ -120,7 +120,7 @@ namespace Zeze.Builtin.Collections.Queue
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__LastNodeId(this, value));
+                txn.PutLog(new Log__LastNodeId() { Belong = this, VariableId = 4, Value = value });
             }
         }
 
@@ -167,32 +167,24 @@ namespace Zeze.Builtin.Collections.Queue
         public const long TYPEID = -4684745065046332255;
         public override long TypeId => TYPEID;
 
-        sealed class Log__HeadNodeId : Zeze.Transaction.Log<BQueue, long>
+        sealed class Log__HeadNodeId : Zeze.Transaction.Log<long>
         {
-            public Log__HeadNodeId(BQueue self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._HeadNodeId = this.Value; }
+            public override void Commit() { ((BQueue)Belong)._HeadNodeId = this.Value; }
         }
 
-        sealed class Log__TailNodeId : Zeze.Transaction.Log<BQueue, long>
+        sealed class Log__TailNodeId : Zeze.Transaction.Log<long>
         {
-            public Log__TailNodeId(BQueue self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._TailNodeId = this.Value; }
+            public override void Commit() { ((BQueue)Belong)._TailNodeId = this.Value; }
         }
 
-        sealed class Log__Count : Zeze.Transaction.Log<BQueue, long>
+        sealed class Log__Count : Zeze.Transaction.Log<long>
         {
-            public Log__Count(BQueue self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 3;
-            public override void Commit() { this.BeanTyped._Count = this.Value; }
+            public override void Commit() { ((BQueue)Belong)._Count = this.Value; }
         }
 
-        sealed class Log__LastNodeId : Zeze.Transaction.Log<BQueue, long>
+        sealed class Log__LastNodeId : Zeze.Transaction.Log<long>
         {
-            public Log__LastNodeId(BQueue self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 4;
-            public override void Commit() { this.BeanTyped._LastNodeId = this.Value; }
+            public override void Commit() { ((BQueue)Belong)._LastNodeId = this.Value; }
         }
 
         public override string ToString()

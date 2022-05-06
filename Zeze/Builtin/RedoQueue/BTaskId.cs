@@ -39,7 +39,7 @@ namespace Zeze.Builtin.RedoQueue
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__TaskId(this, value));
+                txn.PutLog(new Log__TaskId() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -83,11 +83,9 @@ namespace Zeze.Builtin.RedoQueue
         public const long TYPEID = -3646825359403112989;
         public override long TypeId => TYPEID;
 
-        sealed class Log__TaskId : Zeze.Transaction.Log<BTaskId, long>
+        sealed class Log__TaskId : Zeze.Transaction.Log<long>
         {
-            public Log__TaskId(BTaskId self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._TaskId = this.Value; }
+            public override void Commit() { ((BTaskId)Belong)._TaskId = this.Value; }
         }
 
         public override string ToString()

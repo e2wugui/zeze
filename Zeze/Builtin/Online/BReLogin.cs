@@ -42,7 +42,7 @@ namespace Zeze.Builtin.Online
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ClientId(this, value));
+                txn.PutLog(new Log__ClientId() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -67,7 +67,7 @@ namespace Zeze.Builtin.Online
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ReliableNotifyConfirmCount(this, value));
+                txn.PutLog(new Log__ReliableNotifyConfirmCount() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -113,18 +113,14 @@ namespace Zeze.Builtin.Online
         public const long TYPEID = -603574147996514517;
         public override long TypeId => TYPEID;
 
-        sealed class Log__ClientId : Zeze.Transaction.Log<BReLogin, string>
+        sealed class Log__ClientId : Zeze.Transaction.Log<string>
         {
-            public Log__ClientId(BReLogin self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._ClientId = this.Value; }
+            public override void Commit() { ((BReLogin)Belong)._ClientId = this.Value; }
         }
 
-        sealed class Log__ReliableNotifyConfirmCount : Zeze.Transaction.Log<BReLogin, long>
+        sealed class Log__ReliableNotifyConfirmCount : Zeze.Transaction.Log<long>
         {
-            public Log__ReliableNotifyConfirmCount(BReLogin self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._ReliableNotifyConfirmCount = this.Value; }
+            public override void Commit() { ((BReLogin)Belong)._ReliableNotifyConfirmCount = this.Value; }
         }
 
         public override string ToString()

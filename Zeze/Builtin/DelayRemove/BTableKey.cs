@@ -42,7 +42,7 @@ namespace Zeze.Builtin.DelayRemove
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__TableName(this, value));
+                txn.PutLog(new Log__TableName() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -68,7 +68,7 @@ namespace Zeze.Builtin.DelayRemove
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__EncodedKey(this, value));
+                txn.PutLog(new Log__EncodedKey() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -115,18 +115,14 @@ namespace Zeze.Builtin.DelayRemove
         public const long TYPEID = 6060766480176216446;
         public override long TypeId => TYPEID;
 
-        sealed class Log__TableName : Zeze.Transaction.Log<BTableKey, string>
+        sealed class Log__TableName : Zeze.Transaction.Log<string>
         {
-            public Log__TableName(BTableKey self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._TableName = this.Value; }
+            public override void Commit() { ((BTableKey)Belong)._TableName = this.Value; }
         }
 
-        sealed class Log__EncodedKey : Zeze.Transaction.Log<BTableKey, Zeze.Net.Binary>
+        sealed class Log__EncodedKey : Zeze.Transaction.Log<Zeze.Net.Binary>
         {
-            public Log__EncodedKey(BTableKey self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._EncodedKey = this.Value; }
+            public override void Commit() { ((BTableKey)Belong)._EncodedKey = this.Value; }
         }
 
         public override string ToString()

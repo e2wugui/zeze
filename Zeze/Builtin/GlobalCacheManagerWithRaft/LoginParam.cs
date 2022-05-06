@@ -41,7 +41,7 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ServerId(this, value));
+                txn.PutLog(new Log__ServerId() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -66,7 +66,7 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__GlobalCacheManagerHashIndex(this, value));
+                txn.PutLog(new Log__GlobalCacheManagerHashIndex() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -111,18 +111,14 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
         public const long TYPEID = 8338257265267188489;
         public override long TypeId => TYPEID;
 
-        sealed class Log__ServerId : Zeze.Transaction.Log<LoginParam, int>
+        sealed class Log__ServerId : Zeze.Transaction.Log<int>
         {
-            public Log__ServerId(LoginParam self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._ServerId = this.Value; }
+            public override void Commit() { ((LoginParam)Belong)._ServerId = this.Value; }
         }
 
-        sealed class Log__GlobalCacheManagerHashIndex : Zeze.Transaction.Log<LoginParam, int>
+        sealed class Log__GlobalCacheManagerHashIndex : Zeze.Transaction.Log<int>
         {
-            public Log__GlobalCacheManagerHashIndex(LoginParam self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._GlobalCacheManagerHashIndex = this.Value; }
+            public override void Commit() { ((LoginParam)Belong)._GlobalCacheManagerHashIndex = this.Value; }
         }
 
         public override string ToString()

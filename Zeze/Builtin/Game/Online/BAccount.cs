@@ -46,7 +46,7 @@ namespace Zeze.Builtin.Game.Online
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__Name(this, value));
+                txn.PutLog(new Log__Name() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -74,7 +74,7 @@ namespace Zeze.Builtin.Game.Online
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__LastLoginRoleId(this, value));
+                txn.PutLog(new Log__LastLoginRoleId() { Belong = this, VariableId = 3, Value = value });
             }
         }
 
@@ -99,7 +99,7 @@ namespace Zeze.Builtin.Game.Online
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__LastLoginVersion(this, value));
+                txn.PutLog(new Log__LastLoginVersion() { Belong = this, VariableId = 4, Value = value });
             }
         }
 
@@ -110,7 +110,7 @@ namespace Zeze.Builtin.Game.Online
         public BAccount(int _varId_) : base(_varId_)
         {
             _Name = "";
-            _Roles = new Zeze.Transaction.Collections.PList1<long>(ObjectId + 2, _v => new Log__Roles(this, _v));
+            _Roles = new Zeze.Transaction.Collections.PList1<long>() { VariableId = 2 };
         }
 
         public void Assign(BAccount other)
@@ -150,33 +150,20 @@ namespace Zeze.Builtin.Game.Online
         public const long TYPEID = -6071732171172452068;
         public override long TypeId => TYPEID;
 
-        sealed class Log__Name : Zeze.Transaction.Log<BAccount, string>
+        sealed class Log__Name : Zeze.Transaction.Log<string>
         {
-            public Log__Name(BAccount self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._Name = this.Value; }
+            public override void Commit() { ((BAccount)Belong)._Name = this.Value; }
         }
 
-        sealed class Log__Roles : Zeze.Transaction.Collections.PList1<long>.LogV
+
+        sealed class Log__LastLoginRoleId : Zeze.Transaction.Log<long>
         {
-            public Log__Roles(BAccount host, System.Collections.Immutable.ImmutableList<long> value) : base(host, value) {}
-            public override long LogKey => Belong.ObjectId + 2;
-            public BAccount BeanTyped => (BAccount)Belong;
-            public override void Commit() { Commit(BeanTyped._Roles); }
+            public override void Commit() { ((BAccount)Belong)._LastLoginRoleId = this.Value; }
         }
 
-        sealed class Log__LastLoginRoleId : Zeze.Transaction.Log<BAccount, long>
+        sealed class Log__LastLoginVersion : Zeze.Transaction.Log<long>
         {
-            public Log__LastLoginRoleId(BAccount self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 3;
-            public override void Commit() { this.BeanTyped._LastLoginRoleId = this.Value; }
-        }
-
-        sealed class Log__LastLoginVersion : Zeze.Transaction.Log<BAccount, long>
-        {
-            public Log__LastLoginVersion(BAccount self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 4;
-            public override void Commit() { this.BeanTyped._LastLoginVersion = this.Value; }
+            public override void Commit() { ((BAccount)Belong)._LastLoginVersion = this.Value; }
         }
 
         public override string ToString()

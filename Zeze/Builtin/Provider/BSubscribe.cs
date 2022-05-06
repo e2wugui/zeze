@@ -28,8 +28,8 @@ namespace Zeze.Builtin.Provider
 
         public BSubscribe(int _varId_) : base(_varId_)
         {
-            _modules = new Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Provider.BModule>(ObjectId + 1, _v => new Log__modules(this, _v));
-            _modulesReadOnly = new Zeze.Transaction.Collections.PMapReadOnly<int,Zeze.Builtin.Provider.BModuleReadOnly,Zeze.Builtin.Provider.BModule>(_modules);
+            _modules = new Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Provider.BModule>() { VariableId = 1 };
+            _modulesReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.Provider.BModuleReadOnly,Zeze.Builtin.Provider.BModule>(_modules);
         }
 
         public void Assign(BSubscribe other)
@@ -66,13 +66,6 @@ namespace Zeze.Builtin.Provider
         public const long TYPEID = 1112180088628051173;
         public override long TypeId => TYPEID;
 
-        sealed class Log__modules : Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Provider.BModule>.LogV
-        {
-            public Log__modules(BSubscribe host, System.Collections.Immutable.ImmutableDictionary<int, Zeze.Builtin.Provider.BModule> value) : base(host, value) {}
-            public override long LogKey => Belong.ObjectId + 1;
-            public BSubscribe BeanTyped => (BSubscribe)Belong;
-            public override void Commit() { Commit(BeanTyped._modules); }
-        }
 
         public override string ToString()
         {

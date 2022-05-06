@@ -48,7 +48,7 @@ namespace Zeze.Builtin.LinkdBase
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__from(this, value));
+                txn.PutLog(new Log__from() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -73,7 +73,7 @@ namespace Zeze.Builtin.LinkdBase
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__code(this, value));
+                txn.PutLog(new Log__code() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -99,7 +99,7 @@ namespace Zeze.Builtin.LinkdBase
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__desc(this, value));
+                txn.PutLog(new Log__desc() { Belong = this, VariableId = 3, Value = value });
             }
         }
 
@@ -146,25 +146,19 @@ namespace Zeze.Builtin.LinkdBase
         public const long TYPEID = -947669033141460287;
         public override long TypeId => TYPEID;
 
-        sealed class Log__from : Zeze.Transaction.Log<BReportError, int>
+        sealed class Log__from : Zeze.Transaction.Log<int>
         {
-            public Log__from(BReportError self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._from = this.Value; }
+            public override void Commit() { ((BReportError)Belong)._from = this.Value; }
         }
 
-        sealed class Log__code : Zeze.Transaction.Log<BReportError, int>
+        sealed class Log__code : Zeze.Transaction.Log<int>
         {
-            public Log__code(BReportError self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._code = this.Value; }
+            public override void Commit() { ((BReportError)Belong)._code = this.Value; }
         }
 
-        sealed class Log__desc : Zeze.Transaction.Log<BReportError, string>
+        sealed class Log__desc : Zeze.Transaction.Log<string>
         {
-            public Log__desc(BReportError self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 3;
-            public override void Commit() { this.BeanTyped._desc = this.Value; }
+            public override void Commit() { ((BReportError)Belong)._desc = this.Value; }
         }
 
         public override string ToString()

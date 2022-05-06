@@ -27,7 +27,7 @@ namespace Zeze.Builtin.Game.Rank
 
         public BRankList(int _varId_) : base(_varId_)
         {
-            _RankList = new Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.Rank.BRankValue>(ObjectId + 1, _v => new Log__RankList(this, _v));
+            _RankList = new Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.Rank.BRankValue>() { VariableId = 1 };
         }
 
         public void Assign(BRankList other)
@@ -64,13 +64,6 @@ namespace Zeze.Builtin.Game.Rank
         public const long TYPEID = -1625874326687776700;
         public override long TypeId => TYPEID;
 
-        sealed class Log__RankList : Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.Rank.BRankValue>.LogV
-        {
-            public Log__RankList(BRankList host, System.Collections.Immutable.ImmutableList<Zeze.Builtin.Game.Rank.BRankValue> value) : base(host, value) {}
-            public override long LogKey => Belong.ObjectId + 1;
-            public BRankList BeanTyped => (BRankList)Belong;
-            public override void Commit() { Commit(BeanTyped._RankList); }
-        }
 
         public override string ToString()
         {

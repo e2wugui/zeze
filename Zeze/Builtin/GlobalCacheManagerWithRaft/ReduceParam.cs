@@ -45,7 +45,7 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__GlobalTableKey(this, value));
+                txn.PutLog(new Log__GlobalTableKey() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -70,7 +70,7 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__State(this, value));
+                txn.PutLog(new Log__State() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -95,7 +95,7 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__GlobalSerialId(this, value));
+                txn.PutLog(new Log__GlobalSerialId() { Belong = this, VariableId = 3, Value = value });
             }
         }
 
@@ -142,25 +142,19 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
         public const long TYPEID = -4489915946741208436;
         public override long TypeId => TYPEID;
 
-        sealed class Log__GlobalTableKey : Zeze.Transaction.Log<ReduceParam, Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey>
+        sealed class Log__GlobalTableKey : Zeze.Transaction.Log<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey>
         {
-            public Log__GlobalTableKey(ReduceParam self, Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._GlobalTableKey = this.Value; }
+            public override void Commit() { ((ReduceParam)Belong)._GlobalTableKey = this.Value; }
         }
 
-        sealed class Log__State : Zeze.Transaction.Log<ReduceParam, int>
+        sealed class Log__State : Zeze.Transaction.Log<int>
         {
-            public Log__State(ReduceParam self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._State = this.Value; }
+            public override void Commit() { ((ReduceParam)Belong)._State = this.Value; }
         }
 
-        sealed class Log__GlobalSerialId : Zeze.Transaction.Log<ReduceParam, long>
+        sealed class Log__GlobalSerialId : Zeze.Transaction.Log<long>
         {
-            public Log__GlobalSerialId(ReduceParam self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 3;
-            public override void Commit() { this.BeanTyped._GlobalSerialId = this.Value; }
+            public override void Commit() { ((ReduceParam)Belong)._GlobalSerialId = this.Value; }
         }
 
         public override string ToString()

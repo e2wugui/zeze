@@ -36,9 +36,9 @@ namespace Zeze.Builtin.Provider
 
         public BBind(int _varId_) : base(_varId_)
         {
-            _modules = new Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Provider.BModule>(ObjectId + 1, _v => new Log__modules(this, _v));
-            _modulesReadOnly = new Zeze.Transaction.Collections.PMapReadOnly<int,Zeze.Builtin.Provider.BModuleReadOnly,Zeze.Builtin.Provider.BModule>(_modules);
-            _linkSids = new Zeze.Transaction.Collections.PSet1<long>(ObjectId + 2, _v => new Log__linkSids(this, _v));
+            _modules = new Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Provider.BModule>() { VariableId = 1 };
+            _modulesReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.Provider.BModuleReadOnly,Zeze.Builtin.Provider.BModule>(_modules);
+            _linkSids = new Zeze.Transaction.Collections.PSet1<long>() { VariableId = 2 };
         }
 
         public void Assign(BBind other)
@@ -78,21 +78,7 @@ namespace Zeze.Builtin.Provider
         public const long TYPEID = 318036402741860020;
         public override long TypeId => TYPEID;
 
-        sealed class Log__modules : Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Provider.BModule>.LogV
-        {
-            public Log__modules(BBind host, System.Collections.Immutable.ImmutableDictionary<int, Zeze.Builtin.Provider.BModule> value) : base(host, value) {}
-            public override long LogKey => Belong.ObjectId + 1;
-            public BBind BeanTyped => (BBind)Belong;
-            public override void Commit() { Commit(BeanTyped._modules); }
-        }
 
-        sealed class Log__linkSids : Zeze.Transaction.Collections.PSet1<long>.LogV
-        {
-            public Log__linkSids(BBind host, System.Collections.Immutable.ImmutableHashSet<long> value) : base(host, value) {}
-            public override long LogKey => Belong.ObjectId + 2;
-            public BBind BeanTyped => (BBind)Belong;
-            public override void Commit() { Commit(BeanTyped._linkSids); }
-        }
 
         public override string ToString()
         {

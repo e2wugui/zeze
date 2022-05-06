@@ -43,7 +43,7 @@ namespace Zeze.Builtin.Game.Rank
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__RoleId(this, value));
+                txn.PutLog(new Log__RoleId() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -68,7 +68,7 @@ namespace Zeze.Builtin.Game.Rank
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__Value(this, value));
+                txn.PutLog(new Log__Value() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -94,7 +94,7 @@ namespace Zeze.Builtin.Game.Rank
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ValueEx(this, value));
+                txn.PutLog(new Log__ValueEx() { Belong = this, VariableId = 3, Value = value });
             }
         }
 
@@ -141,25 +141,19 @@ namespace Zeze.Builtin.Game.Rank
         public const long TYPEID = 2276228832088785165;
         public override long TypeId => TYPEID;
 
-        sealed class Log__RoleId : Zeze.Transaction.Log<BRankValue, long>
+        sealed class Log__RoleId : Zeze.Transaction.Log<long>
         {
-            public Log__RoleId(BRankValue self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._RoleId = this.Value; }
+            public override void Commit() { ((BRankValue)Belong)._RoleId = this.Value; }
         }
 
-        sealed class Log__Value : Zeze.Transaction.Log<BRankValue, long>
+        sealed class Log__Value : Zeze.Transaction.Log<long>
         {
-            public Log__Value(BRankValue self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._Value = this.Value; }
+            public override void Commit() { ((BRankValue)Belong)._Value = this.Value; }
         }
 
-        sealed class Log__ValueEx : Zeze.Transaction.Log<BRankValue, Zeze.Net.Binary>
+        sealed class Log__ValueEx : Zeze.Transaction.Log<Zeze.Net.Binary>
         {
-            public Log__ValueEx(BRankValue self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 3;
-            public override void Commit() { this.BeanTyped._ValueEx = this.Value; }
+            public override void Commit() { ((BRankValue)Belong)._ValueEx = this.Value; }
         }
 
         public override string ToString()

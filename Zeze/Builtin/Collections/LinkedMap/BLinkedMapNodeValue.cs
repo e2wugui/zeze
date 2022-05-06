@@ -43,7 +43,7 @@ namespace Zeze.Builtin.Collections.LinkedMap
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__Id(this, value));
+                txn.PutLog(new Log__Id() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -93,11 +93,9 @@ namespace Zeze.Builtin.Collections.LinkedMap
         public const long TYPEID = -6110801358414370128;
         public override long TypeId => TYPEID;
 
-        sealed class Log__Id : Zeze.Transaction.Log<BLinkedMapNodeValue, string>
+        sealed class Log__Id : Zeze.Transaction.Log<string>
         {
-            public Log__Id(BLinkedMapNodeValue self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._Id = this.Value; }
+            public override void Commit() { ((BLinkedMapNodeValue)Belong)._Id = this.Value; }
         }
 
         public static long GetSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean)

@@ -42,7 +42,7 @@ namespace Zeze.Builtin.Game.Bag
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__Capacity(this, value));
+                txn.PutLog(new Log__Capacity() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -55,8 +55,8 @@ namespace Zeze.Builtin.Game.Bag
 
         public BBag(int _varId_) : base(_varId_)
         {
-            _Items = new Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Game.Bag.BItem>(ObjectId + 2, _v => new Log__Items(this, _v));
-            _ItemsReadOnly = new Zeze.Transaction.Collections.PMapReadOnly<int,Zeze.Builtin.Game.Bag.BItemReadOnly,Zeze.Builtin.Game.Bag.BItem>(_Items);
+            _Items = new Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Game.Bag.BItem>() { VariableId = 2 };
+            _ItemsReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.Game.Bag.BItemReadOnly,Zeze.Builtin.Game.Bag.BItem>(_Items);
         }
 
         public void Assign(BBag other)
@@ -94,20 +94,11 @@ namespace Zeze.Builtin.Game.Bag
         public const long TYPEID = -5051317137860806350;
         public override long TypeId => TYPEID;
 
-        sealed class Log__Capacity : Zeze.Transaction.Log<BBag, int>
+        sealed class Log__Capacity : Zeze.Transaction.Log<int>
         {
-            public Log__Capacity(BBag self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._Capacity = this.Value; }
+            public override void Commit() { ((BBag)Belong)._Capacity = this.Value; }
         }
 
-        sealed class Log__Items : Zeze.Transaction.Collections.PMap2<int, Zeze.Builtin.Game.Bag.BItem>.LogV
-        {
-            public Log__Items(BBag host, System.Collections.Immutable.ImmutableDictionary<int, Zeze.Builtin.Game.Bag.BItem> value) : base(host, value) {}
-            public override long LogKey => Belong.ObjectId + 2;
-            public BBag BeanTyped => (BBag)Belong;
-            public override void Commit() { Commit(BeanTyped._Items); }
-        }
 
         public override string ToString()
         {

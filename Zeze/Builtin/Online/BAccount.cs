@@ -39,7 +39,7 @@ namespace Zeze.Builtin.Online
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__LastLoginVersion(this, value));
+                txn.PutLog(new Log__LastLoginVersion() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -83,11 +83,9 @@ namespace Zeze.Builtin.Online
         public const long TYPEID = 3220082739597459764;
         public override long TypeId => TYPEID;
 
-        sealed class Log__LastLoginVersion : Zeze.Transaction.Log<BAccount, long>
+        sealed class Log__LastLoginVersion : Zeze.Transaction.Log<long>
         {
-            public Log__LastLoginVersion(BAccount self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._LastLoginVersion = this.Value; }
+            public override void Commit() { ((BAccount)Belong)._LastLoginVersion = this.Value; }
         }
 
         public override string ToString()

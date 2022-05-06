@@ -46,7 +46,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ServiceNamePrefix(this, value));
+                txn.PutLog(new Log__ServiceNamePrefix() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -72,7 +72,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ServiceIndentity(this, value));
+                txn.PutLog(new Log__ServiceIndentity() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -98,7 +98,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ProviderDirectIp(this, value));
+                txn.PutLog(new Log__ProviderDirectIp() { Belong = this, VariableId = 3, Value = value });
             }
         }
 
@@ -123,7 +123,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ProviderDirectPort(this, value));
+                txn.PutLog(new Log__ProviderDirectPort() { Belong = this, VariableId = 4, Value = value });
             }
         }
 
@@ -173,32 +173,24 @@ namespace Zeze.Builtin.Provider
         public const long TYPEID = 4964769950995033065;
         public override long TypeId => TYPEID;
 
-        sealed class Log__ServiceNamePrefix : Zeze.Transaction.Log<BAnnounceProviderInfo, string>
+        sealed class Log__ServiceNamePrefix : Zeze.Transaction.Log<string>
         {
-            public Log__ServiceNamePrefix(BAnnounceProviderInfo self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._ServiceNamePrefix = this.Value; }
+            public override void Commit() { ((BAnnounceProviderInfo)Belong)._ServiceNamePrefix = this.Value; }
         }
 
-        sealed class Log__ServiceIndentity : Zeze.Transaction.Log<BAnnounceProviderInfo, string>
+        sealed class Log__ServiceIndentity : Zeze.Transaction.Log<string>
         {
-            public Log__ServiceIndentity(BAnnounceProviderInfo self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._ServiceIndentity = this.Value; }
+            public override void Commit() { ((BAnnounceProviderInfo)Belong)._ServiceIndentity = this.Value; }
         }
 
-        sealed class Log__ProviderDirectIp : Zeze.Transaction.Log<BAnnounceProviderInfo, string>
+        sealed class Log__ProviderDirectIp : Zeze.Transaction.Log<string>
         {
-            public Log__ProviderDirectIp(BAnnounceProviderInfo self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 3;
-            public override void Commit() { this.BeanTyped._ProviderDirectIp = this.Value; }
+            public override void Commit() { ((BAnnounceProviderInfo)Belong)._ProviderDirectIp = this.Value; }
         }
 
-        sealed class Log__ProviderDirectPort : Zeze.Transaction.Log<BAnnounceProviderInfo, int>
+        sealed class Log__ProviderDirectPort : Zeze.Transaction.Log<int>
         {
-            public Log__ProviderDirectPort(BAnnounceProviderInfo self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 4;
-            public override void Commit() { this.BeanTyped._ProviderDirectPort = this.Value; }
+            public override void Commit() { ((BAnnounceProviderInfo)Belong)._ProviderDirectPort = this.Value; }
         }
 
         public override string ToString()

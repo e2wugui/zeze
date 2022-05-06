@@ -42,7 +42,7 @@ namespace Zeze.Builtin.Game.Online
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__LoginVersion(this, value));
+                txn.PutLog(new Log__LoginVersion() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -55,8 +55,8 @@ namespace Zeze.Builtin.Game.Online
 
         public BLocal(int _varId_) : base(_varId_)
         {
-            _Datas = new Zeze.Transaction.Collections.PMap2<string, Zeze.Builtin.Game.Online.BAny>(ObjectId + 2, _v => new Log__Datas(this, _v));
-            _DatasReadOnly = new Zeze.Transaction.Collections.PMapReadOnly<string,Zeze.Builtin.Game.Online.BAnyReadOnly,Zeze.Builtin.Game.Online.BAny>(_Datas);
+            _Datas = new Zeze.Transaction.Collections.PMap2<string, Zeze.Builtin.Game.Online.BAny>() { VariableId = 2 };
+            _DatasReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Builtin.Game.Online.BAnyReadOnly,Zeze.Builtin.Game.Online.BAny>(_Datas);
         }
 
         public void Assign(BLocal other)
@@ -94,20 +94,11 @@ namespace Zeze.Builtin.Game.Online
         public const long TYPEID = 1038509325594826174;
         public override long TypeId => TYPEID;
 
-        sealed class Log__LoginVersion : Zeze.Transaction.Log<BLocal, long>
+        sealed class Log__LoginVersion : Zeze.Transaction.Log<long>
         {
-            public Log__LoginVersion(BLocal self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._LoginVersion = this.Value; }
+            public override void Commit() { ((BLocal)Belong)._LoginVersion = this.Value; }
         }
 
-        sealed class Log__Datas : Zeze.Transaction.Collections.PMap2<string, Zeze.Builtin.Game.Online.BAny>.LogV
-        {
-            public Log__Datas(BLocal host, System.Collections.Immutable.ImmutableDictionary<string, Zeze.Builtin.Game.Online.BAny> value) : base(host, value) {}
-            public override long LogKey => Belong.ObjectId + 2;
-            public BLocal BeanTyped => (BLocal)Belong;
-            public override void Commit() { Commit(BeanTyped._Datas); }
-        }
 
         public override string ToString()
         {

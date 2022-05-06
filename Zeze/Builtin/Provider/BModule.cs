@@ -51,7 +51,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ChoiceType(this, value));
+                txn.PutLog(new Log__ChoiceType() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -76,7 +76,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ConfigType(this, value));
+                txn.PutLog(new Log__ConfigType() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -101,7 +101,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__SubscribeType(this, value));
+                txn.PutLog(new Log__SubscribeType() { Belong = this, VariableId = 3, Value = value });
             }
         }
 
@@ -147,25 +147,19 @@ namespace Zeze.Builtin.Provider
         public const long TYPEID = 5883923521926593765;
         public override long TypeId => TYPEID;
 
-        sealed class Log__ChoiceType : Zeze.Transaction.Log<BModule, int>
+        sealed class Log__ChoiceType : Zeze.Transaction.Log<int>
         {
-            public Log__ChoiceType(BModule self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._ChoiceType = this.Value; }
+            public override void Commit() { ((BModule)Belong)._ChoiceType = this.Value; }
         }
 
-        sealed class Log__ConfigType : Zeze.Transaction.Log<BModule, int>
+        sealed class Log__ConfigType : Zeze.Transaction.Log<int>
         {
-            public Log__ConfigType(BModule self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._ConfigType = this.Value; }
+            public override void Commit() { ((BModule)Belong)._ConfigType = this.Value; }
         }
 
-        sealed class Log__SubscribeType : Zeze.Transaction.Log<BModule, int>
+        sealed class Log__SubscribeType : Zeze.Transaction.Log<int>
         {
-            public Log__SubscribeType(BModule self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 3;
-            public override void Commit() { this.BeanTyped._SubscribeType = this.Value; }
+            public override void Commit() { ((BModule)Belong)._SubscribeType = this.Value; }
         }
 
         public override string ToString()

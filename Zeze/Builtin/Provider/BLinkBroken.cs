@@ -50,7 +50,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__account(this, value));
+                txn.PutLog(new Log__account() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -75,7 +75,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__linkSid(this, value));
+                txn.PutLog(new Log__linkSid() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -100,7 +100,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__reason(this, value));
+                txn.PutLog(new Log__reason() { Belong = this, VariableId = 3, Value = value });
             }
         }
 
@@ -126,7 +126,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__context(this, value));
+                txn.PutLog(new Log__context() { Belong = this, VariableId = 5, Value = value });
             }
         }
 
@@ -152,7 +152,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__contextx(this, value));
+                txn.PutLog(new Log__contextx() { Belong = this, VariableId = 6, Value = value });
             }
         }
 
@@ -203,39 +203,29 @@ namespace Zeze.Builtin.Provider
         public const long TYPEID = 1424702393060691138;
         public override long TypeId => TYPEID;
 
-        sealed class Log__account : Zeze.Transaction.Log<BLinkBroken, string>
+        sealed class Log__account : Zeze.Transaction.Log<string>
         {
-            public Log__account(BLinkBroken self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._account = this.Value; }
+            public override void Commit() { ((BLinkBroken)Belong)._account = this.Value; }
         }
 
-        sealed class Log__linkSid : Zeze.Transaction.Log<BLinkBroken, long>
+        sealed class Log__linkSid : Zeze.Transaction.Log<long>
         {
-            public Log__linkSid(BLinkBroken self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._linkSid = this.Value; }
+            public override void Commit() { ((BLinkBroken)Belong)._linkSid = this.Value; }
         }
 
-        sealed class Log__reason : Zeze.Transaction.Log<BLinkBroken, int>
+        sealed class Log__reason : Zeze.Transaction.Log<int>
         {
-            public Log__reason(BLinkBroken self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 3;
-            public override void Commit() { this.BeanTyped._reason = this.Value; }
+            public override void Commit() { ((BLinkBroken)Belong)._reason = this.Value; }
         }
 
-        sealed class Log__context : Zeze.Transaction.Log<BLinkBroken, string>
+        sealed class Log__context : Zeze.Transaction.Log<string>
         {
-            public Log__context(BLinkBroken self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 5;
-            public override void Commit() { this.BeanTyped._context = this.Value; }
+            public override void Commit() { ((BLinkBroken)Belong)._context = this.Value; }
         }
 
-        sealed class Log__contextx : Zeze.Transaction.Log<BLinkBroken, Zeze.Net.Binary>
+        sealed class Log__contextx : Zeze.Transaction.Log<Zeze.Net.Binary>
         {
-            public Log__contextx(BLinkBroken self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 6;
-            public override void Commit() { this.BeanTyped._contextx = this.Value; }
+            public override void Commit() { ((BLinkBroken)Belong)._contextx = this.Value; }
         }
 
         public override string ToString()

@@ -41,7 +41,7 @@ namespace Zeze.Builtin.Game.Online
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__RoleId(this, value));
+                txn.PutLog(new Log__RoleId() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -66,7 +66,7 @@ namespace Zeze.Builtin.Game.Online
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ReliableNotifyConfirmCount(this, value));
+                txn.PutLog(new Log__ReliableNotifyConfirmCount() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -111,18 +111,14 @@ namespace Zeze.Builtin.Game.Online
         public const long TYPEID = 8551355014943125267;
         public override long TypeId => TYPEID;
 
-        sealed class Log__RoleId : Zeze.Transaction.Log<BReLogin, long>
+        sealed class Log__RoleId : Zeze.Transaction.Log<long>
         {
-            public Log__RoleId(BReLogin self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._RoleId = this.Value; }
+            public override void Commit() { ((BReLogin)Belong)._RoleId = this.Value; }
         }
 
-        sealed class Log__ReliableNotifyConfirmCount : Zeze.Transaction.Log<BReLogin, long>
+        sealed class Log__ReliableNotifyConfirmCount : Zeze.Transaction.Log<long>
         {
-            public Log__ReliableNotifyConfirmCount(BReLogin self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._ReliableNotifyConfirmCount = this.Value; }
+            public override void Commit() { ((BReLogin)Belong)._ReliableNotifyConfirmCount = this.Value; }
         }
 
         public override string ToString()

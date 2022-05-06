@@ -49,7 +49,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__linkSid(this, value));
+                txn.PutLog(new Log__linkSid() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -75,7 +75,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__account(this, value));
+                txn.PutLog(new Log__account() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -100,7 +100,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__protocolType(this, value));
+                txn.PutLog(new Log__protocolType() { Belong = this, VariableId = 3, Value = value });
             }
         }
 
@@ -126,7 +126,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__protocolData(this, value));
+                txn.PutLog(new Log__protocolData() { Belong = this, VariableId = 4, Value = value });
             }
         }
 
@@ -152,7 +152,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__context(this, value));
+                txn.PutLog(new Log__context() { Belong = this, VariableId = 5, Value = value });
             }
         }
 
@@ -178,7 +178,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__contextx(this, value));
+                txn.PutLog(new Log__contextx() { Belong = this, VariableId = 6, Value = value });
             }
         }
 
@@ -231,46 +231,34 @@ namespace Zeze.Builtin.Provider
         public const long TYPEID = -496680173908943081;
         public override long TypeId => TYPEID;
 
-        sealed class Log__linkSid : Zeze.Transaction.Log<BDispatch, long>
+        sealed class Log__linkSid : Zeze.Transaction.Log<long>
         {
-            public Log__linkSid(BDispatch self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._linkSid = this.Value; }
+            public override void Commit() { ((BDispatch)Belong)._linkSid = this.Value; }
         }
 
-        sealed class Log__account : Zeze.Transaction.Log<BDispatch, string>
+        sealed class Log__account : Zeze.Transaction.Log<string>
         {
-            public Log__account(BDispatch self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._account = this.Value; }
+            public override void Commit() { ((BDispatch)Belong)._account = this.Value; }
         }
 
-        sealed class Log__protocolType : Zeze.Transaction.Log<BDispatch, long>
+        sealed class Log__protocolType : Zeze.Transaction.Log<long>
         {
-            public Log__protocolType(BDispatch self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 3;
-            public override void Commit() { this.BeanTyped._protocolType = this.Value; }
+            public override void Commit() { ((BDispatch)Belong)._protocolType = this.Value; }
         }
 
-        sealed class Log__protocolData : Zeze.Transaction.Log<BDispatch, Zeze.Net.Binary>
+        sealed class Log__protocolData : Zeze.Transaction.Log<Zeze.Net.Binary>
         {
-            public Log__protocolData(BDispatch self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 4;
-            public override void Commit() { this.BeanTyped._protocolData = this.Value; }
+            public override void Commit() { ((BDispatch)Belong)._protocolData = this.Value; }
         }
 
-        sealed class Log__context : Zeze.Transaction.Log<BDispatch, string>
+        sealed class Log__context : Zeze.Transaction.Log<string>
         {
-            public Log__context(BDispatch self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 5;
-            public override void Commit() { this.BeanTyped._context = this.Value; }
+            public override void Commit() { ((BDispatch)Belong)._context = this.Value; }
         }
 
-        sealed class Log__contextx : Zeze.Transaction.Log<BDispatch, Zeze.Net.Binary>
+        sealed class Log__contextx : Zeze.Transaction.Log<Zeze.Net.Binary>
         {
-            public Log__contextx(BDispatch self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 6;
-            public override void Commit() { this.BeanTyped._contextx = this.Value; }
+            public override void Commit() { ((BDispatch)Belong)._contextx = this.Value; }
         }
 
         public override string ToString()

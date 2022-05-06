@@ -48,7 +48,7 @@ namespace Zeze.Builtin.RedoQueue
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__QueueName(this, value));
+                txn.PutLog(new Log__QueueName() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -73,7 +73,7 @@ namespace Zeze.Builtin.RedoQueue
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__TaskType(this, value));
+                txn.PutLog(new Log__TaskType() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -98,7 +98,7 @@ namespace Zeze.Builtin.RedoQueue
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__TaskId(this, value));
+                txn.PutLog(new Log__TaskId() { Belong = this, VariableId = 3, Value = value });
             }
         }
 
@@ -124,7 +124,7 @@ namespace Zeze.Builtin.RedoQueue
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__TaskParam(this, value));
+                txn.PutLog(new Log__TaskParam() { Belong = this, VariableId = 4, Value = value });
             }
         }
 
@@ -149,7 +149,7 @@ namespace Zeze.Builtin.RedoQueue
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__PrevTaskId(this, value));
+                txn.PutLog(new Log__PrevTaskId() { Belong = this, VariableId = 5, Value = value });
             }
         }
 
@@ -199,39 +199,29 @@ namespace Zeze.Builtin.RedoQueue
         public const long TYPEID = 3220291684741669511;
         public override long TypeId => TYPEID;
 
-        sealed class Log__QueueName : Zeze.Transaction.Log<BQueueTask, string>
+        sealed class Log__QueueName : Zeze.Transaction.Log<string>
         {
-            public Log__QueueName(BQueueTask self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._QueueName = this.Value; }
+            public override void Commit() { ((BQueueTask)Belong)._QueueName = this.Value; }
         }
 
-        sealed class Log__TaskType : Zeze.Transaction.Log<BQueueTask, int>
+        sealed class Log__TaskType : Zeze.Transaction.Log<int>
         {
-            public Log__TaskType(BQueueTask self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._TaskType = this.Value; }
+            public override void Commit() { ((BQueueTask)Belong)._TaskType = this.Value; }
         }
 
-        sealed class Log__TaskId : Zeze.Transaction.Log<BQueueTask, long>
+        sealed class Log__TaskId : Zeze.Transaction.Log<long>
         {
-            public Log__TaskId(BQueueTask self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 3;
-            public override void Commit() { this.BeanTyped._TaskId = this.Value; }
+            public override void Commit() { ((BQueueTask)Belong)._TaskId = this.Value; }
         }
 
-        sealed class Log__TaskParam : Zeze.Transaction.Log<BQueueTask, Zeze.Net.Binary>
+        sealed class Log__TaskParam : Zeze.Transaction.Log<Zeze.Net.Binary>
         {
-            public Log__TaskParam(BQueueTask self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 4;
-            public override void Commit() { this.BeanTyped._TaskParam = this.Value; }
+            public override void Commit() { ((BQueueTask)Belong)._TaskParam = this.Value; }
         }
 
-        sealed class Log__PrevTaskId : Zeze.Transaction.Log<BQueueTask, long>
+        sealed class Log__PrevTaskId : Zeze.Transaction.Log<long>
         {
-            public Log__PrevTaskId(BQueueTask self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 5;
-            public override void Commit() { this.BeanTyped._PrevTaskId = this.Value; }
+            public override void Commit() { ((BQueueTask)Belong)._PrevTaskId = this.Value; }
         }
 
         public override string ToString()

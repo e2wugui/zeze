@@ -39,7 +39,7 @@ namespace Zeze.Builtin.Game.Online
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ReliableNotifyConfirmCount(this, value));
+                txn.PutLog(new Log__ReliableNotifyConfirmCount() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -83,11 +83,9 @@ namespace Zeze.Builtin.Game.Online
         public const long TYPEID = -6588057877320371892;
         public override long TypeId => TYPEID;
 
-        sealed class Log__ReliableNotifyConfirmCount : Zeze.Transaction.Log<BReliableNotifyConfirm, long>
+        sealed class Log__ReliableNotifyConfirmCount : Zeze.Transaction.Log<long>
         {
-            public Log__ReliableNotifyConfirmCount(BReliableNotifyConfirm self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._ReliableNotifyConfirmCount = this.Value; }
+            public override void Commit() { ((BReliableNotifyConfirm)Belong)._ReliableNotifyConfirmCount = this.Value; }
         }
 
         public override string ToString()

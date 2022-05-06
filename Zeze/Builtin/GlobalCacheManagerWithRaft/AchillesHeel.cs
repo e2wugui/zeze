@@ -43,7 +43,7 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ServerId(this, value));
+                txn.PutLog(new Log__ServerId() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -69,7 +69,7 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__SecureKey(this, value));
+                txn.PutLog(new Log__SecureKey() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -94,7 +94,7 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__GlobalCacheManagerHashIndex(this, value));
+                txn.PutLog(new Log__GlobalCacheManagerHashIndex() { Belong = this, VariableId = 3, Value = value });
             }
         }
 
@@ -141,25 +141,19 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
         public const long TYPEID = -2721594206374974168;
         public override long TypeId => TYPEID;
 
-        sealed class Log__ServerId : Zeze.Transaction.Log<AchillesHeel, int>
+        sealed class Log__ServerId : Zeze.Transaction.Log<int>
         {
-            public Log__ServerId(AchillesHeel self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._ServerId = this.Value; }
+            public override void Commit() { ((AchillesHeel)Belong)._ServerId = this.Value; }
         }
 
-        sealed class Log__SecureKey : Zeze.Transaction.Log<AchillesHeel, string>
+        sealed class Log__SecureKey : Zeze.Transaction.Log<string>
         {
-            public Log__SecureKey(AchillesHeel self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._SecureKey = this.Value; }
+            public override void Commit() { ((AchillesHeel)Belong)._SecureKey = this.Value; }
         }
 
-        sealed class Log__GlobalCacheManagerHashIndex : Zeze.Transaction.Log<AchillesHeel, int>
+        sealed class Log__GlobalCacheManagerHashIndex : Zeze.Transaction.Log<int>
         {
-            public Log__GlobalCacheManagerHashIndex(AchillesHeel self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 3;
-            public override void Commit() { this.BeanTyped._GlobalCacheManagerHashIndex = this.Value; }
+            public override void Commit() { ((AchillesHeel)Belong)._GlobalCacheManagerHashIndex = this.Value; }
         }
 
         public override string ToString()

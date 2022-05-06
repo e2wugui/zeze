@@ -44,7 +44,7 @@ namespace Zeze.Builtin.Online
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ReliableNotifyTotalCountStart(this, value));
+                txn.PutLog(new Log__ReliableNotifyTotalCountStart() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -54,7 +54,7 @@ namespace Zeze.Builtin.Online
 
         public BReliableNotify(int _varId_) : base(_varId_)
         {
-            _Notifies = new Zeze.Transaction.Collections.PList1<Zeze.Net.Binary>(ObjectId + 1, _v => new Log__Notifies(this, _v));
+            _Notifies = new Zeze.Transaction.Collections.PList1<Zeze.Net.Binary>() { VariableId = 1 };
         }
 
         public void Assign(BReliableNotify other)
@@ -92,19 +92,10 @@ namespace Zeze.Builtin.Online
         public const long TYPEID = -8784206618120085556;
         public override long TypeId => TYPEID;
 
-        sealed class Log__Notifies : Zeze.Transaction.Collections.PList1<Zeze.Net.Binary>.LogV
-        {
-            public Log__Notifies(BReliableNotify host, System.Collections.Immutable.ImmutableList<Zeze.Net.Binary> value) : base(host, value) {}
-            public override long LogKey => Belong.ObjectId + 1;
-            public BReliableNotify BeanTyped => (BReliableNotify)Belong;
-            public override void Commit() { Commit(BeanTyped._Notifies); }
-        }
 
-        sealed class Log__ReliableNotifyTotalCountStart : Zeze.Transaction.Log<BReliableNotify, long>
+        sealed class Log__ReliableNotifyTotalCountStart : Zeze.Transaction.Log<long>
         {
-            public Log__ReliableNotifyTotalCountStart(BReliableNotify self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._ReliableNotifyTotalCountStart = this.Value; }
+            public override void Commit() { ((BReliableNotify)Belong)._ReliableNotifyTotalCountStart = this.Value; }
         }
 
         public override string ToString()

@@ -44,7 +44,7 @@ namespace Zeze.Builtin.ProviderDirect
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__Ip(this, value));
+                txn.PutLog(new Log__Ip() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -69,7 +69,7 @@ namespace Zeze.Builtin.ProviderDirect
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__Port(this, value));
+                txn.PutLog(new Log__Port() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -94,7 +94,7 @@ namespace Zeze.Builtin.ProviderDirect
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ServerId(this, value));
+                txn.PutLog(new Log__ServerId() { Belong = this, VariableId = 3, Value = value });
             }
         }
 
@@ -141,25 +141,19 @@ namespace Zeze.Builtin.ProviderDirect
         public const long TYPEID = 858135112612157161;
         public override long TypeId => TYPEID;
 
-        sealed class Log__Ip : Zeze.Transaction.Log<BProviderInfo, string>
+        sealed class Log__Ip : Zeze.Transaction.Log<string>
         {
-            public Log__Ip(BProviderInfo self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._Ip = this.Value; }
+            public override void Commit() { ((BProviderInfo)Belong)._Ip = this.Value; }
         }
 
-        sealed class Log__Port : Zeze.Transaction.Log<BProviderInfo, int>
+        sealed class Log__Port : Zeze.Transaction.Log<int>
         {
-            public Log__Port(BProviderInfo self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._Port = this.Value; }
+            public override void Commit() { ((BProviderInfo)Belong)._Port = this.Value; }
         }
 
-        sealed class Log__ServerId : Zeze.Transaction.Log<BProviderInfo, int>
+        sealed class Log__ServerId : Zeze.Transaction.Log<int>
         {
-            public Log__ServerId(BProviderInfo self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 3;
-            public override void Commit() { this.BeanTyped._ServerId = this.Value; }
+            public override void Commit() { ((BProviderInfo)Belong)._ServerId = this.Value; }
         }
 
         public override string ToString()

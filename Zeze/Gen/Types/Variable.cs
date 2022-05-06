@@ -129,7 +129,7 @@ namespace Zeze.Gen.Types
             VariableType = Types.Type.Compile(space, Type, Key, Value);
 			if (VariableType is TypeList list)
 			{
-				if (Project.MakingInstance.Platform.Equals("conf+cs") && false == string.IsNullOrEmpty(FixSize))
+				if (false == string.IsNullOrEmpty(FixSize))
 					list.FixSize = int.Parse(FixSize);
 			}
 		}

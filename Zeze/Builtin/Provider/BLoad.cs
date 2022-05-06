@@ -43,7 +43,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__Online(this, value));
+                txn.PutLog(new Log__Online() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -68,7 +68,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ProposeMaxOnline(this, value));
+                txn.PutLog(new Log__ProposeMaxOnline() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -93,7 +93,7 @@ namespace Zeze.Builtin.Provider
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__OnlineNew(this, value));
+                txn.PutLog(new Log__OnlineNew() { Belong = this, VariableId = 3, Value = value });
             }
         }
 
@@ -139,25 +139,19 @@ namespace Zeze.Builtin.Provider
         public const long TYPEID = 8972064501607813483;
         public override long TypeId => TYPEID;
 
-        sealed class Log__Online : Zeze.Transaction.Log<BLoad, int>
+        sealed class Log__Online : Zeze.Transaction.Log<int>
         {
-            public Log__Online(BLoad self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._Online = this.Value; }
+            public override void Commit() { ((BLoad)Belong)._Online = this.Value; }
         }
 
-        sealed class Log__ProposeMaxOnline : Zeze.Transaction.Log<BLoad, int>
+        sealed class Log__ProposeMaxOnline : Zeze.Transaction.Log<int>
         {
-            public Log__ProposeMaxOnline(BLoad self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._ProposeMaxOnline = this.Value; }
+            public override void Commit() { ((BLoad)Belong)._ProposeMaxOnline = this.Value; }
         }
 
-        sealed class Log__OnlineNew : Zeze.Transaction.Log<BLoad, int>
+        sealed class Log__OnlineNew : Zeze.Transaction.Log<int>
         {
-            public Log__OnlineNew(BLoad self, int value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 3;
-            public override void Commit() { this.BeanTyped._OnlineNew = this.Value; }
+            public override void Commit() { ((BLoad)Belong)._OnlineNew = this.Value; }
         }
 
         public override string ToString()

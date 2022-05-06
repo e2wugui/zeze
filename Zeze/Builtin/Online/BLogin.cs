@@ -40,7 +40,7 @@ namespace Zeze.Builtin.Online
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ClientId(this, value));
+                txn.PutLog(new Log__ClientId() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -85,11 +85,9 @@ namespace Zeze.Builtin.Online
         public const long TYPEID = -2914025305442353160;
         public override long TypeId => TYPEID;
 
-        sealed class Log__ClientId : Zeze.Transaction.Log<BLogin, string>
+        sealed class Log__ClientId : Zeze.Transaction.Log<string>
         {
-            public Log__ClientId(BLogin self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._ClientId = this.Value; }
+            public override void Commit() { ((BLogin)Belong)._ClientId = this.Value; }
         }
 
         public override string ToString()

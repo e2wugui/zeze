@@ -10,6 +10,7 @@ namespace Zeze.Gen.cs
 
         public static void Make(StreamWriter sw, string prefix, Bean bean)
         {
+            // TODO delete me
             sw.WriteLine(prefix + "public override Zeze.Transaction.ChangeVariableCollector CreateChangeVariableCollector(int variableId)");
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    return variableId switch");

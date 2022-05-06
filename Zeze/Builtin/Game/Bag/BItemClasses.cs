@@ -27,7 +27,7 @@ namespace Zeze.Builtin.Game.Bag
 
         public BItemClasses(int _varId_) : base(_varId_)
         {
-            _ItemClasses = new Zeze.Transaction.Collections.PSet1<string>(ObjectId + 1, _v => new Log__ItemClasses(this, _v));
+            _ItemClasses = new Zeze.Transaction.Collections.PSet1<string>() { VariableId = 1 };
         }
 
         public void Assign(BItemClasses other)
@@ -64,13 +64,6 @@ namespace Zeze.Builtin.Game.Bag
         public const long TYPEID = 1779211758793833239;
         public override long TypeId => TYPEID;
 
-        sealed class Log__ItemClasses : Zeze.Transaction.Collections.PSet1<string>.LogV
-        {
-            public Log__ItemClasses(BItemClasses host, System.Collections.Immutable.ImmutableHashSet<string> value) : base(host, value) {}
-            public override long LogKey => Belong.ObjectId + 1;
-            public BItemClasses BeanTyped => (BItemClasses)Belong;
-            public override void Commit() { Commit(BeanTyped._ItemClasses); }
-        }
 
         public override string ToString()
         {

@@ -48,7 +48,7 @@ namespace Zeze.Builtin.ProviderDirect
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ActionName(this, value));
+                txn.PutLog(new Log__ActionName() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -74,7 +74,7 @@ namespace Zeze.Builtin.ProviderDirect
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__Parameter(this, value));
+                txn.PutLog(new Log__Parameter() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -103,7 +103,7 @@ namespace Zeze.Builtin.ProviderDirect
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__SenderAccount(this, value));
+                txn.PutLog(new Log__SenderAccount() { Belong = this, VariableId = 4, Value = value });
             }
         }
 
@@ -129,7 +129,7 @@ namespace Zeze.Builtin.ProviderDirect
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__SenderClientId(this, value));
+                txn.PutLog(new Log__SenderClientId() { Belong = this, VariableId = 5, Value = value });
             }
         }
 
@@ -141,7 +141,7 @@ namespace Zeze.Builtin.ProviderDirect
         {
             _ActionName = "";
             _Parameter = Zeze.Net.Binary.Empty;
-            _TargetAccounts = new Zeze.Transaction.Collections.PSet1<string>(ObjectId + 3, _v => new Log__TargetAccounts(this, _v));
+            _TargetAccounts = new Zeze.Transaction.Collections.PSet1<string>() { VariableId = 3 };
             _SenderAccount = "";
             _SenderClientId = "";
         }
@@ -184,40 +184,25 @@ namespace Zeze.Builtin.ProviderDirect
         public const long TYPEID = 2637210793748287339;
         public override long TypeId => TYPEID;
 
-        sealed class Log__ActionName : Zeze.Transaction.Log<BTransmitAccount, string>
+        sealed class Log__ActionName : Zeze.Transaction.Log<string>
         {
-            public Log__ActionName(BTransmitAccount self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._ActionName = this.Value; }
+            public override void Commit() { ((BTransmitAccount)Belong)._ActionName = this.Value; }
         }
 
-        sealed class Log__Parameter : Zeze.Transaction.Log<BTransmitAccount, Zeze.Net.Binary>
+        sealed class Log__Parameter : Zeze.Transaction.Log<Zeze.Net.Binary>
         {
-            public Log__Parameter(BTransmitAccount self, Zeze.Net.Binary value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._Parameter = this.Value; }
+            public override void Commit() { ((BTransmitAccount)Belong)._Parameter = this.Value; }
         }
 
-        sealed class Log__TargetAccounts : Zeze.Transaction.Collections.PSet1<string>.LogV
+
+        sealed class Log__SenderAccount : Zeze.Transaction.Log<string>
         {
-            public Log__TargetAccounts(BTransmitAccount host, System.Collections.Immutable.ImmutableHashSet<string> value) : base(host, value) {}
-            public override long LogKey => Belong.ObjectId + 3;
-            public BTransmitAccount BeanTyped => (BTransmitAccount)Belong;
-            public override void Commit() { Commit(BeanTyped._TargetAccounts); }
+            public override void Commit() { ((BTransmitAccount)Belong)._SenderAccount = this.Value; }
         }
 
-        sealed class Log__SenderAccount : Zeze.Transaction.Log<BTransmitAccount, string>
+        sealed class Log__SenderClientId : Zeze.Transaction.Log<string>
         {
-            public Log__SenderAccount(BTransmitAccount self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 4;
-            public override void Commit() { this.BeanTyped._SenderAccount = this.Value; }
-        }
-
-        sealed class Log__SenderClientId : Zeze.Transaction.Log<BTransmitAccount, string>
-        {
-            public Log__SenderClientId(BTransmitAccount self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 5;
-            public override void Commit() { this.BeanTyped._SenderClientId = this.Value; }
+            public override void Commit() { ((BTransmitAccount)Belong)._SenderClientId = this.Value; }
         }
 
         public override string ToString()

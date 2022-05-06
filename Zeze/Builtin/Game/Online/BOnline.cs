@@ -42,7 +42,7 @@ namespace Zeze.Builtin.Game.Online
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__LinkName(this, value));
+                txn.PutLog(new Log__LinkName() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -67,7 +67,7 @@ namespace Zeze.Builtin.Game.Online
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__LinkSid(this, value));
+                txn.PutLog(new Log__LinkSid() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -113,18 +113,14 @@ namespace Zeze.Builtin.Game.Online
         public const long TYPEID = -6079880688513613020;
         public override long TypeId => TYPEID;
 
-        sealed class Log__LinkName : Zeze.Transaction.Log<BOnline, string>
+        sealed class Log__LinkName : Zeze.Transaction.Log<string>
         {
-            public Log__LinkName(BOnline self, string value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 1;
-            public override void Commit() { this.BeanTyped._LinkName = this.Value; }
+            public override void Commit() { ((BOnline)Belong)._LinkName = this.Value; }
         }
 
-        sealed class Log__LinkSid : Zeze.Transaction.Log<BOnline, long>
+        sealed class Log__LinkSid : Zeze.Transaction.Log<long>
         {
-            public Log__LinkSid(BOnline self, long value) : base(self, value) {}
-            public override long LogKey => this.Belong.ObjectId + 2;
-            public override void Commit() { this.BeanTyped._LinkSid = this.Value; }
+            public override void Commit() { ((BOnline)Belong)._LinkSid = this.Value; }
         }
 
         public override string ToString()
