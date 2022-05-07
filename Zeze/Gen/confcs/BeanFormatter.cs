@@ -25,6 +25,7 @@ namespace Zeze.Gen.confcs
             sw.WriteLine();
             sw.WriteLine("namespace " + bean.Space.Path());
             sw.WriteLine("{");
+            sw.WriteLine("    [System.Serializable]");
             sw.WriteLine($"    public sealed class {bean.Name} : Zeze.Util.ConfBean");
             sw.WriteLine("    {");
             WriteDefine(sw);
@@ -76,9 +77,9 @@ namespace Zeze.Gen.confcs
             // sw.WriteLine("            return Copy();");
             // sw.WriteLine("        }");
             // sw.WriteLine();
-            sw.WriteLine("        public const long TYPEID = " + bean.TypeId + ";");
-            sw.WriteLine("        public override long TypeId => TYPEID;");
-            sw.WriteLine();
+            // sw.WriteLine("        public const long TYPEID = " + bean.TypeId + ";");
+            // sw.WriteLine("        public override long TypeId => TYPEID;");
+            // sw.WriteLine();
             cs.Decode.Make(bean, sw, "        ", false);
             var macro = project.MacroEditor;
             if (false == string.IsNullOrEmpty(macro))
