@@ -11,7 +11,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Util.Task;
 import Zeze.Util.ThreadFactoryWithName;
-import demo.Module1.Table1;
+import demo.Module1.Table5;
 import demo.SimpleApp;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -48,7 +48,7 @@ public class Simulate {
 
 	private static long keyBegin, keyEnd;
 	private static final AtomicLong keyWindowBegin = new AtomicLong();
-	private static Table1 table1;
+	private static Table5 table5;
 
 	private static long randKey() {
 		var rand = ThreadLocalRandom.current();
@@ -62,35 +62,35 @@ public class Simulate {
 
 	private static long read1() {
 		var k = randKey();
-		var r = table1.getOrAdd(k);
-		r.getLong2();
+		var r = table5.getOrAdd(k);
+		r.getS();
 		return 0;
 	}
 
 	private static long readWrite1() {
 		var k = randKey();
-		var r = table1.getOrAdd(k);
-		r.setLong2(r.getLong2() + 1);
+		var r = table5.getOrAdd(k);
+		r.setS(r.getS() + 1);
 		return 0;
 	}
 
 	private static long read2Write1() {
 		var k1 = randKey();
 		var k2 = randKey();
-		var r1 = table1.getOrAdd(k1);
-		var r2 = table1.getOrAdd(k2);
-		r2.setLong2(r1.getLong2() + r2.getLong2());
+		var r1 = table5.getOrAdd(k1);
+		var r2 = table5.getOrAdd(k2);
+		r2.setS(r1.getS() + r2.getS());
 		return 0;
 	}
 
 	private static long readWrite2() {
 		var k1 = randKey();
 		var k2 = randKey();
-		var r1 = table1.getOrAdd(k1);
-		var r2 = table1.getOrAdd(k2);
-		var v = r1.getLong2() + r2.getLong2();
-		r1.setLong2(v);
-		r2.setLong2(v);
+		var r1 = table5.getOrAdd(k1);
+		var r2 = table5.getOrAdd(k2);
+		var v = r1.getS() + r2.getS();
+		r1.setS(v);
+		r2.setS(v);
 		return 0;
 	}
 
@@ -128,7 +128,7 @@ public class Simulate {
 				if (k.endsWith("Ip"))
 					lookup.findStaticVarHandle(Simulate.class, k, String.class).set(kv[1]);
 				else {
-					var v = Integer.parseInt(kv[1]);
+					var v = Integer.parseInt(kv[1].replace("_", ""));
 					if (v < 0 || v == 0 && !k.endsWith("Weight") && !k.equals("localPercent"))
 						throw new IllegalArgumentException("invalid " + k + " = " + v);
 					lookup.findStaticVarHandle(Simulate.class, k, int.class).set(v);
@@ -163,7 +163,7 @@ public class Simulate {
 
 		var app = new SimpleApp(serverId, 20000 + serverId,
 				serviceManagerIp, serviceManagerPort, globalServerIp, globalServerPort);
-		app.getZeze().AddTable("", table1 = new Table1());
+		app.getZeze().AddTable("", table5 = new Table5());
 		app.start();
 
 		var totalCount = new AtomicLong();
