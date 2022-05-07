@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using Zeze.Arch;
 using Zeze.Net;
 using Zeze.Transaction;
-
+using Zeze.Transaction.Collections;
 
 namespace Game.Equip
 {
@@ -12,7 +12,7 @@ namespace Game.Equip
     {
         public void Start(Game.App app)
         {
-            _tequip.ChangeListenerMap.AddListener(tequip.VAR_Items, new ItemsChangeListener());
+            _tequip.ChangeListenerMap.AddListener(new ItemsChangeListener());
         }
 
         public void Stop(Game.App app)
@@ -23,40 +23,52 @@ namespace Game.Equip
         {
             public static string Name { get; } = "Game.Equip.Items";
 
-            void ChangeListener.OnChanged(object key, Bean value)
+            public void OnChanged(TableKey tkey, Changes.Record changes)
             {
-                // 记录改变，通知全部。
-                BEquips bequips = (BEquips)value;
+                switch (changes.State)
+                {
+                    case Changes.Record.Remove:
+                        {
+                            SEquipement changed = new SEquipement();
+                            changed.Argument.ChangeTag = Game.Bag.BChangedResult.ChangeTagRecordIsRemoved;
+                            Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)tkey.Key, Name, changed);
+                        }
+                        break;
 
-                SEquipement changed = new SEquipement();
-                changed.Argument.ChangeTag = Game.Bag.BChangedResult.ChangeTagRecordChanged;
-                changed.Argument.ItemsReplace.AddRange(bequips.Items);
+                    case Changes.Record.Put:
+                        {
+                            // 记录改变，通知全部。
+                            BEquips bequips = (BEquips)changes.PutValue;
 
-                Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
-            }
+                            SEquipement changed = new SEquipement();
+                            changed.Argument.ChangeTag = Game.Bag.BChangedResult.ChangeTagRecordChanged;
+                            changed.Argument.ItemsReplace.AddRange(bequips.Items);
 
-            void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
-            {
-                // 增量变化，通知变更。
-                ChangeNoteMap2<int, Game.Bag.BItem> notemap2 = (ChangeNoteMap2<int, Game.Bag.BItem>)note;
-                BEquips bequips = (BEquips)value;
-                notemap2.MergeChangedToReplaced(bequips.Items);
+                            Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)tkey.Key, Name, changed);
+                        }
+                        break;
 
-                SEquipement changed = new SEquipement();
-                changed.Argument.ChangeTag = Game.Bag.BChangedResult.ChangeTagNormalChanged;
+                    case Changes.Record.Edit:
+                        {
+                            var logbean = changes.GetLogBean();
+                            if (logbean.Variables.TryGetValue(tequip.VAR_Items, out var note))
+                            {
+                                // 增量变化，通知变更。
+                                var notemap2 = (LogMap2<int, Game.Bag.BItem>)note;
+                                notemap2.MergeChangedToReplaced();
 
-                changed.Argument.ItemsReplace.AddRange(notemap2.Replaced);
-                foreach (var p in notemap2.Removed)
-                    changed.Argument.ItemsRemove.Add(p);
+                                SEquipement changed = new SEquipement();
+                                changed.Argument.ChangeTag = Game.Bag.BChangedResult.ChangeTagNormalChanged;
 
-                Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
-            }
+                                changed.Argument.ItemsReplace.AddRange(notemap2.Replaced);
+                                foreach (var p in notemap2.Removed)
+                                    changed.Argument.ItemsRemove.Add(p);
 
-            void ChangeListener.OnRemoved(object key)
-            {
-                SEquipement changed = new SEquipement();
-                changed.Argument.ChangeTag = Game.Bag.BChangedResult.ChangeTagRecordIsRemoved;
-                Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
+                                Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)tkey.Key, Name, changed);
+                            }
+                        }
+                        break;
+                }
             }
         }
 

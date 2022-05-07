@@ -25,7 +25,7 @@ namespace Game
         public void Start(string[] args)
         {
             string GenRedirect = null;
-            //GenRedirect = "C:\\Users\\10501\\Desktop\\code\\zeze\\Zezex\\server";
+            //GenRedirect = "C:\\Users\\10501\\Desktop\\code\\zeze\\Sample\\server";
             int ServerId = -1;
             int ProviderDirectPort = -1;
             for (int i = 0; i < args.Length; ++i)

@@ -303,7 +303,7 @@ namespace Game.Bag
         }
 
         // warning. 暴露了内部数据。可以用来实现一些不是通用的方法。
-        public PMap2<int, Game.Bag.BItem> Items => bag.Items;
+        public CollMap2<int, Game.Bag.BItem> Items => bag.Items;
 
         public void ToProtocol(BBag b)
         {

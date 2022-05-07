@@ -57,6 +57,20 @@ namespace Zeze.Util
 			{
 				var def = type.GetGenericTypeDefinition();
 
+				// Zeze.Transaction.Logs
+				if (def == typeof(Zeze.Transaction.Log<>))
+					return $"Zeze.Transaction.Log<{GetStableName(type.GenericTypeArguments[0])}>";
+				if (def == typeof(Zeze.Transaction.Collections.LogMap1<,>))
+					return $"Zeze.Transaction.Collections.LogMap1<{GetStableName(type.GenericTypeArguments[0])}, {GetStableName(type.GenericTypeArguments[1])}>";
+				if (def == typeof(Zeze.Transaction.Collections.LogMap2<,>))
+					return $"Zeze.Transaction.Collections.LogMap2<{GetStableName(type.GenericTypeArguments[0])}, {GetStableName(type.GenericTypeArguments[1])}>";
+				if (def == typeof(Zeze.Transaction.Collections.LogSet1<>))
+					return $"Zeze.Transaction.Collections.LogSet1<{GetStableName(type.GenericTypeArguments[0])}>";
+				if (def == typeof(Zeze.Transaction.Collections.LogList1<>))
+					return $"Zeze.Transaction.Collections.LogList1<{GetStableName(type.GenericTypeArguments[0])}>";
+				if (def == typeof(Zeze.Transaction.Collections.LogList2<>))
+					return $"Zeze.Transaction.Collections.LogList2<{GetStableName(type.GenericTypeArguments[0])}>";
+
 				// Zeze.Raft.RocksRaft.Logs
 				if (def == typeof(Zeze.Raft.RocksRaft.Log<>))
 					return $"Zeze.Raft.RocksRaft.Log<{GetStableName(type.GenericTypeArguments[0])}>";

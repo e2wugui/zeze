@@ -68,12 +68,32 @@ namespace UnitTest.Zeze.Trans
         {
             var root = new TableKey("1", 1);
             // 特殊测试，拼凑一个record用来提供需要的信息。
-            var r = new Record<long, TestBegin.MyBean>(null, 1, bean);
+            var table = new MyTable();
+            var r = new Record<long, TestBegin.MyBean>(table, 1, bean);
             bean.InitRootInfo(r.CreateRootInfoIfNeed(root), null);
             var rc = demo.App.Instance.Zeze.NewProcedure(ProcNest, "ProcNest").CallSynchronously();
             Assert.IsTrue(rc == Procedure.Success);
             // 最后一个 Call，事务外，bean 已经没法访问事务支持的属性了。直接访问内部变量。
             Assert.AreEqual(bean._i, 123);
+        }
+
+        public class MyTable : Table<long, TestBegin.MyBean>
+        {
+            public MyTable() : base("MyTable_1232")
+            {
+            }
+
+            public override long DecodeKey(ByteBuffer bb)
+            {
+                return bb.ReadLong();
+            }
+
+            public override ByteBuffer EncodeKey(long key)
+            {
+                var bb = ByteBuffer.Allocate(16);
+                bb.WriteLong(key);
+                return bb;
+            }
         }
     }
 }

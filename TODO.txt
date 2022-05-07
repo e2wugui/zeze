@@ -30,18 +30,7 @@ TableCache.Clean 整体考虑。
 ------------------------------------------------------------------------------------------------------------------------------
 tag 0.9.0 java is ready
 ------------------------------------------------------------------------------------------------------------------------------
-Java New Changes: 1. Gen 2. Collections 3. Log 4. Changes
-
-            public void OnRemoved(object key)
-	    {
-	    }
-	    public void OnChanged(object key, Bean value)
-	    {
-	    }
-            public void OnChanged(object key, Log note)
-	    {
-	    }
-
+Java New Changes: 1. Gen 2. Collections 3. Log 4. Changes 5. Transaction & Savepoint
 
 【2022/5/11】
 

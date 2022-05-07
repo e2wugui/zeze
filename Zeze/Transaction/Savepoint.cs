@@ -25,7 +25,7 @@ namespace Zeze.Transaction
             var sp = new Savepoint();
             foreach (var e in Logs)
             {
-                sp.Logs[e.Key] = e.Value;
+                sp.Logs[e.Key] = e.Value.BeginSavepoint();
             }
             return sp;
         }
@@ -39,7 +39,7 @@ namespace Zeze.Transaction
             {
                 foreach (var e in other.Logs)
                 {
-                    Logs[e.Key] = e.Value;
+                    e.Value.EndSavepoint(this);
                 }
 
                 CommitActions.AddRange(other.CommitActions);

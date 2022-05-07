@@ -386,7 +386,7 @@ namespace Zeze.Transaction
             foreach (Log log in lastsp.Logs.Values)
             {
                 // 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
-                if (log.Belong == null)
+                if (log.Belong == null || false == log.Belong.IsManaged)
                     continue;
 
                 // 当changes.Collect在日志往上一级传递时调用，
@@ -442,8 +442,9 @@ namespace Zeze.Transaction
 
             public class PutLog : Log<Bean>
             {
-                public PutLog(Bean putValue)
+                public PutLog(RecordAccessed self, Bean putValue)
                 {
+                    Belong = self;
                     Value = putValue;
                 }
 
@@ -462,7 +463,7 @@ namespace Zeze.Transaction
 
             public void Put(Transaction current, Bean putValue)
             {
-                current.PutLog(new PutLog(putValue));
+                current.PutLog(new PutLog(this, putValue));
             }
 
             public void Remove(Transaction current)
@@ -630,12 +631,10 @@ namespace Zeze.Transaction
                 // 其他情况属于Begin,Commit,Rollback不匹配。外面检查。
                 foreach (var log in Savepoints[0].Logs.Values)
                 {
-                    // 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
-                    // 现在不会有这种情况，保留给未来扩展需要。
-                    if (log.Belong == null)
+                    TableKey tkey = log.Belong?.TableKey;
+                    if (tkey == null)
                         continue;
 
-                    TableKey tkey = log.Belong.TableKey;
                     if (AccessedRecords.TryGetValue(tkey, out var record))
                     {
                         record.Dirty = true;

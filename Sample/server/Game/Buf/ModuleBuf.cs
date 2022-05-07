@@ -2,6 +2,7 @@
 using Zeze.Transaction;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Zeze.Transaction.Collections;
 
 namespace Game.Buf
 {
@@ -9,7 +10,7 @@ namespace Game.Buf
     {
         public void Start(Game.App app)
         {
-            _tbufs.ChangeListenerMap.AddListener(tbufs.VAR_Bufs, new BufChangeListener("Game.Buf.Bufs"));
+            _tbufs.ChangeListenerMap.AddListener(new BufChangeListener("Game.Buf.Bufs"));
         }
 
         public void Stop(Game.App app)
@@ -24,40 +25,53 @@ namespace Game.Buf
             {
                 Name = name;
             }
-            void ChangeListener.OnChanged(object key, Bean value)
+
+            public void OnChanged(TableKey tkey, Changes.Record changes)
             {
-                // 记录改变，通知全部。
-                BBufs record = (BBufs)value;
+                switch (changes.State)
+                {
+                    case Changes.Record.Remove:
+                        {
+                            SChanged changed = new SChanged();
+                            changed.Argument.ChangeTag = BBufChanged.ChangeTagRecordIsRemoved;
+                            Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)tkey.Key, Name, changed);
+                        }
+                        break;
 
-                SChanged changed = new SChanged();
-                changed.Argument.ChangeTag = BBufChanged.ChangeTagRecordChanged;
-                changed.Argument.Replace.AddRange(record.Bufs);
+                    case Changes.Record.Put:
+                        {
+                            // 记录改变，通知全部。
+                            BBufs record = (BBufs)changes.PutValue;
 
-                Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
-            }
+                            SChanged changed = new SChanged();
+                            changed.Argument.ChangeTag = BBufChanged.ChangeTagRecordChanged;
+                            changed.Argument.Replace.AddRange(record.Bufs);
 
-            void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
-            {
-                // 增量变化，通知变更。
-                ChangeNoteMap2<int, BBuf> notemap2 = (ChangeNoteMap2<int, BBuf>)note;
-                BBufs record = (BBufs)value;
-                notemap2.MergeChangedToReplaced(record.Bufs);
+                            Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)tkey.Key, Name, changed);
+                        }
+                        break;
 
-                SChanged changed = new SChanged();
-                changed.Argument.ChangeTag = BBufChanged.ChangeTagNormalChanged;
+                    case Changes.Record.Edit:
+                        {
+                            var logbean = changes.GetLogBean();
+                            if (logbean.Variables.TryGetValue(tbufs.VAR_Bufs, out var note))
+                            {
+                                // 增量变化，通知变更。
+                                var notemap2 = (LogMap2<int, BBuf>)note;
+                                notemap2.MergeChangedToReplaced();
 
-                changed.Argument.Replace.AddRange(notemap2.Replaced);
-                foreach (var p in notemap2.Removed)
-                    changed.Argument.Remove.Add(p);
+                                SChanged changed = new SChanged();
+                                changed.Argument.ChangeTag = BBufChanged.ChangeTagNormalChanged;
 
-                Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
-            }
+                                changed.Argument.Replace.AddRange(notemap2.Replaced);
+                                foreach (var p in notemap2.Removed)
+                                    changed.Argument.Remove.Add(p);
 
-            void ChangeListener.OnRemoved(object key)
-            {
-                SChanged changed = new SChanged();
-                changed.Argument.ChangeTag = BBufChanged.ChangeTagRecordIsRemoved;
-                Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
+                                Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)tkey.Key, Name, changed);
+                            }
+                        }
+                        break;
+                }
             }
         }
 

@@ -77,6 +77,7 @@ namespace Zeze.Arch.Gen
                     if (null != replaceModuleType)
                         return (Zeze.IModule)Activator.CreateInstance(replaceModuleType, userApp);
                 }
+                throw new Exception($"RedirectOverride Not Found: {genClassName}");
             }
 
             string srcFileName = System.IO.Path.Combine(GenRedirect,
