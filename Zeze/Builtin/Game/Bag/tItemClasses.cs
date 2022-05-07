@@ -28,15 +28,5 @@ namespace Zeze.Builtin.Game.Bag
             _os_.WriteInt(_v_);
             return _os_;
         }
-
-        public override Zeze.Transaction.ChangeVariableCollector CreateChangeVariableCollector(int variableId)
-        {
-            return variableId switch
-            {
-                0 => new Zeze.Transaction.ChangeVariableCollectorChanged(),
-                1 => new Zeze.Transaction.ChangeVariableCollectorSet(),
-                _ => null,
-            };
-        }
     }
 }

@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using Zeze.Arch;
 using Zeze.Net;
 using Zeze.Transaction;
+using Zeze.Transaction.Collections;
 
 namespace Game.Bag
 {
@@ -10,8 +11,7 @@ namespace Game.Bag
     {
         public void Start(Game.App app)
         {
-            _tbag.ChangeListenerMap.AddListener(tbag.VAR_Items, new ItemsChangeListener());
-            _tbag.ChangeListenerMap.AddListener(tbag.VAR_All, new BagChangeListener());
+            _tbag.ChangeListenerMap.AddListener(new BagChangeListener());
         }
 
         public void Stop(Game.App app)
@@ -25,56 +25,46 @@ namespace Game.Bag
             public void OnChanged(object key, Bean value)
             {
                 // 记录改变，通知全部。
-                BBag bbag = (BBag)value;
-                var sbag = new SBag();
-                Bag.ToProtocol(bbag, sbag.Argument);
-
-                Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, sbag);
             }
 
-            public void OnChanged(object key, Bean value, ChangeNote note)
+            public void OnChanged(TableKey tkey, Changes.Record changes)
             {
-                // 整个记录改变没有 note，只有Map,Set才有note。
-                OnChanged(key, value);
-            }
+                switch (changes.State)
+                {
+                    case Changes.Record.Remove:
+                        {
+                            SChanged changed = new SChanged();
+                            changed.Argument.ChangeTag = BChangedResult.ChangeTagRecordIsRemoved;
+                            Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)tkey.Key, Name, changed);
+                        }
+                        break;
 
-            public void OnRemoved(object key)
-            {
-                SChanged changed = new SChanged();
-                changed.Argument.ChangeTag = BChangedResult.ChangeTagRecordIsRemoved;
-                Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
-            }
-        }
+                    case Changes.Record.Put:
+                        {
+                            BBag bbag = (BBag)changes.PutValue;
+                            var sbag = new SBag();
+                            Bag.ToProtocol(bbag, sbag.Argument);
+                            Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)tkey.Key, Name, sbag);
+                        }
+                        break;
 
-        class ItemsChangeListener : ChangeListener
-        {
-            public string Name => BagChangeListener.Name;
+                    case Changes.Record.Edit:
+                        var logbean = changes.LogBean.GetEnumerator().Current;
+                        if (logbean.Variables.TryGetValue(tbag.VAR_Items, out var log))
+                        {
+                            var note = (LogMap2<int, BItem>)log;
+                            note.MergeChangedToReplaced();
 
-            void ChangeListener.OnChanged(object key, Bean value)
-            {
-                // 整个记录改变，由 BagChangeListener 处理。发送包含 Money, Capacity.
-            }
+                            SChanged changed = new SChanged();
+                            changed.Argument.ChangeTag = BChangedResult.ChangeTagNormalChanged;
+                            changed.Argument.ItemsReplace.AddRange(note.Replaced);
+                            foreach (var p in note.Removed)
+                                changed.Argument.ItemsRemove.Add(p);
 
-            void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
-            {
-                // 增量变化，通知变更。
-                ChangeNoteMap2<int, BItem> notemap2 = (ChangeNoteMap2<int, BItem>)note;
-                BBag bbag = (BBag)value;
-                notemap2.MergeChangedToReplaced(bbag.Items);
-
-                SChanged changed = new SChanged();
-                changed.Argument.ChangeTag = BChangedResult.ChangeTagNormalChanged;
-
-                changed.Argument.ItemsReplace.AddRange(notemap2.Replaced);
-                foreach (var p in notemap2.Removed)
-                    changed.Argument.ItemsRemove.Add(p);
-
-                Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
-            }
-
-            void ChangeListener.OnRemoved(object key)
-            {
-                // 整个记录删除，由 BagChangeListener 处理。
+                            Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)tkey.Key, Name, changed);
+                        }
+                        break;
+                }
             }
         }
 

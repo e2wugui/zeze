@@ -44,12 +44,12 @@ namespace Zeze.Transaction
 
         public ChangeListenerMap ChangeListenerMap { get; } = new ChangeListenerMap();
 
-        public abstract ChangeVariableCollector CreateChangeVariableCollector(int variableId);
-
         public abstract Storage Storage { get; }
 
         public abstract bool IsNew { get; }
         public abstract ByteBuffer EncodeKey(object key);
+        public abstract object DecodeObjectKey(ByteBuffer bb);
+        public abstract Bean NewBeanValue();
     }
 
     public abstract class Table<K, V> : Table where V : Bean, new()
@@ -468,6 +468,16 @@ namespace Zeze.Transaction
         // Key 都是简单变量，系列化方法都不一样，需要生成。
         public abstract ByteBuffer EncodeKey(K key);
         public abstract K DecodeKey(ByteBuffer bb);
+
+        public override object DecodeObjectKey(ByteBuffer bb)
+        {
+            return DecodeKey(bb);
+        }
+
+        public override Bean NewBeanValue()
+        {
+            return NewValue();
+        }
 
         public async Task DelayRemoveAsync(K key)
         {

@@ -132,11 +132,11 @@ namespace Zeze.Transaction.Collections
 		{
 			var log = (LogMap2<K, V>)_log;
 			var tmp = _map;
-			foreach (var put in log.Putted)
+			foreach (var put in log.Replaced)
             {
 				put.Value.InitRootInfo(RootInfo, this);
             }
-			tmp = tmp.SetItems(log.Putted);
+			tmp = tmp.SetItems(log.Replaced);
 			tmp = tmp.RemoveRange(log.Removed);
 
 			// apply changed

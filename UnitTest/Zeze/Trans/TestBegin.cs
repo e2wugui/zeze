@@ -28,14 +28,14 @@ namespace UnitTest.Zeze.Trans
 
             public int _i;
 
-            class MyLog : Log<MyBean, int>
+            class MyLog : Log<int>
             {
-                public MyLog(MyBean bean, int value) : base(bean, value)
+                public MyLog(MyBean bean, int value)
                 {
-
+                    Belong = bean;
+                    Value = value;
+                    VariableId = 0;
                 }
-
-                public override long LogKey => Belong.ObjectId + 0;
 
                 public override void Commit()
                 {

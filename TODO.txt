@@ -35,6 +35,8 @@ tag 0.9.0 java is ready
 log factory 问题。（不同步到其他进程没有这个问题）
 动态订阅。add listener和notify原子问题。
 Game.Bag Listener
+Java: 1. Gen 2. Collections 3. Log 4. Changes
+c#: PropertyMapKey
 
 【2022/5/11】
 

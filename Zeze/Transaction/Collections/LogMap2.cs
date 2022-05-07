@@ -35,16 +35,19 @@ namespace Zeze.Transaction.Collections
             base.Decode(bb);
         }
 
-        public override void Encode(ByteBuffer bb)
-        {
-			if (null != Value)
-            {
+		private bool Merged = false;
+
+		public void BuildChangedWithKey()
+		{
+			if (false == Merged && null != Value)
+			{
+				Merged = true;
 				foreach (var c in Changed)
 				{
 					if (CollMap2<K, V>.PropertyMapKey != null)
 					{
 						var pkey = (K)CollMap2<K, V>.PropertyMapKey.GetValue(c.This);
-						if (false == Putted.ContainsKey(pkey) && false == Removed.Contains(pkey))
+						if (false == Replaced.ContainsKey(pkey) && false == Removed.Contains(pkey))
 							ChangedWithKey.Add(pkey, c);
 						continue;
 					}
@@ -53,14 +56,29 @@ namespace Zeze.Transaction.Collections
 					{
 						if (c.Belong == e.Value)
 						{
-							if (false == Putted.ContainsKey(e.Key) && false == Removed.Contains(e.Key))
+							if (false == Replaced.ContainsKey(e.Key) && false == Removed.Contains(e.Key))
 								ChangedWithKey.Add(e.Key, c);
 							break;
 						}
 					}
 				}
 			}
-			
+		}
+
+		public void MergeChangedToReplaced()
+		{
+			BuildChangedWithKey();
+
+			foreach (var e in ChangedWithKey)
+			{
+				Replaced.TryAdd(e.Key, (V)e.Value.This);
+			}
+		}
+
+		public override void Encode(ByteBuffer bb)
+        {
+			BuildChangedWithKey();
+
 			bb.WriteUInt(ChangedWithKey.Count);
 			foreach (var e in ChangedWithKey)
             {
@@ -82,7 +100,7 @@ namespace Zeze.Transaction.Collections
 		{
 			var sb = new StringBuilder();
 			sb.Append(" Putted:");
-			ByteBuffer.BuildString(sb, Putted);
+			ByteBuffer.BuildString(sb, Replaced);
 			sb.Append(" Removed:");
 			ByteBuffer.BuildString(sb, Removed);
 			sb.Append(" Changed:");

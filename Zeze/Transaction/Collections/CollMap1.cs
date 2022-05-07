@@ -110,7 +110,7 @@ namespace Zeze.Transaction.Collections
         {
 			var log = (LogMap1<K, V>)_log;
 			var tmp = _map;
-			tmp = tmp.SetItems(log.Putted);
+			tmp = tmp.SetItems(log.Replaced);
 			tmp = tmp.RemoveRange(log.Removed);
 			_map = tmp;
 		}

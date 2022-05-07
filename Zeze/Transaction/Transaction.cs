@@ -150,19 +150,6 @@ namespace Zeze.Transaction
             Savepoints[^1].PutLog(log);
         }
 
-        public ChangeNote GetOrAddChangeNote(long key, Func<ChangeNote> factory)
-        {
-            // 必须存在 Savepoint. 可能是为了修改。
-            return Savepoints[^1].GetOrAddChangeNote(key, factory);
-        }
-
-        /*
-        public void PutChangeNote(long key, ChangeNote note)
-        {
-            savepoints[~1].PutChangeNote(key, note);
-        }
-        */
-
         private List<Action> LastRollbackActions;
 
         public void RunWhileCommit(Action action)
@@ -349,53 +336,6 @@ namespace Zeze.Transaction
             }
         }
 
-        private void NotifyListener(ChangeCollector cc)
-        {
-            try
-            {
-                Savepoint sp = Savepoints[^1];
-                foreach (Log log in sp.Logs.Values)
-                {
-                    if (log.Belong == null)
-                        continue; // 特殊日志没有Bean。
-
-                    // 写成回调是为了优化，仅在需要的时候才创建path。
-                    cc.CollectChanged(log.Belong.TableKey,
-                        (out List<Util.KV<Bean, int>> path, out ChangeNote note) =>
-                        {
-                            path = new List<Util.KV<Bean, int>>();
-                            note = null;
-                            path.Add(Util.KV.Create(log.Belong, log.VariableId));
-                            log.Belong.BuildChangeListenerPath(path);
-                        });
-                }
-                foreach (ChangeNote cn in sp.ChangeNotes.Values)
-                {
-                    if (cn.Bean == null)
-                        continue;
-
-                    // 写成回调是为了优化，仅在需要的时候才创建path。
-                    cc.CollectChanged(cn.Bean.TableKey,
-                        (out List<Util.KV<Bean, int>> path, out ChangeNote note) =>
-                        {
-                            path = new List<Util.KV<Bean, int>>();
-                            note = cn;
-                            path.Add(Util.KV.Create(cn.Bean.Parent, cn.Bean.VariableId));
-                            cn.Bean.Parent.BuildChangeListenerPath(path);
-                        });
-                }
-
-                Savepoints.Clear();
-                //accessedRecords.Clear(); // 事务内访问过的记录保留，这样在Listener中可以读取。
-
-                cc.Notify();
-            }
-            catch (Exception ex)
-            {
-                logger.Error(ex, "ChangeListener Collect And Notify");
-            }
-        }
-
         private static void TriggerCommitActions(Procedure procedure, Savepoint lastSavepoint)
         {
             foreach (Action action in lastSavepoint.CommitActions)
@@ -415,7 +355,7 @@ namespace Zeze.Transaction
         {
             // 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
             // 可以在最终提交里可以实现每事务checkpoint。
-            var cc = new ChangeCollector();
+            var cc = new Changes(this);
             var lastsp = Savepoints[0];
             await RelativeRecordSet.TryUpdateAndCheckpoint(this, procedure, () =>
             {
@@ -427,22 +367,40 @@ namespace Zeze.Transaction
                         if (e.Value.Dirty)
                         {
                             e.Value.Origin.Commit(e.Value);
-                            cc.BuildCollect(procedure.Zeze, e.Key, e.Value); // 首先对脏记录创建Table,Record相关Collector。
                         }
                     }
                 }
                 catch (Exception e)
                 {
-                    logger.Error(e, "Transaction._final_commit_ {0}", procedure);
+                    logger.Error(e, "Transaction.FinalCommit {0}", procedure);
                     NLog.LogManager.Shutdown();
-                    System.Diagnostics.Process.GetCurrentProcess().Kill();
+                    Process.GetCurrentProcess().Kill();
                 }
             });
 
             // 禁止在listener回调中访问表格的操作。除了回调参数中给定的记录可以访问。
             // 不再支持在回调中再次执行事务。
             State = TransactionState.Completed; // 在Notify之前设置的。
-            NotifyListener(cc);
+
+            // collect logs and notify listeners
+            foreach (Log log in lastsp.Logs.Values)
+            {
+                // 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
+                if (log.Belong == null)
+                    continue;
+
+                // 当changes.Collect在日志往上一级传递时调用，
+                // 第一个参数Owner为null，表示bean属于record，到达root了。
+                cc.Collect(log.Belong, log);
+            }
+
+            foreach (var ar in AccessedRecords.Values)
+            {
+                if (ar.Dirty)
+                    cc.CollectRecord(ar);
+            }
+            cc.NotifyListener();
+
             TriggerCommitActions(procedure, lastsp);
         }
 

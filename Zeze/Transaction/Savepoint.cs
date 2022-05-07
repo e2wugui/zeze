@@ -9,24 +9,6 @@ namespace Zeze.Transaction
         internal Dictionary<long, Log> Logs { get; } = new Dictionary<long, Log>(); // 保存所有的log
         //private readonly Dictionary<long, Log> Newly = new Dictionary<long, Log>(); // 当前Savepoint新加的，用来实现Rollback，先不实现。
 
-        internal Dictionary<long, ChangeNote> ChangeNotes { get; } = new Dictionary<long, ChangeNote>(); // 所有Collection的ChangeNote。
-
-        /*
-        public void PutChangeNote(long key, ChangeNote note)
-        {
-            notes[key] = note;
-        }
-        */
-
-        public ChangeNote GetOrAddChangeNote(long key, Func<ChangeNote> factory)
-        {
-            if (ChangeNotes.TryGetValue(key, out var exist))
-                return exist;
-            ChangeNote newNote = factory();
-            ChangeNotes.Add(key, newNote);
-            return newNote;
-        }
-
         public void PutLog(Log log)
         {
             Logs[log.LogKey] = log;
@@ -60,13 +42,6 @@ namespace Zeze.Transaction
                     Logs[e.Key] = e.Value;
                 }
 
-                foreach (var e in other.ChangeNotes)
-                {
-                    if (this.ChangeNotes.TryGetValue(e.Key, out var cur))
-                        cur.Merge(e.Value);
-                    else
-                        this.ChangeNotes.Add(e.Key, e.Value);
-                }
                 CommitActions.AddRange(other.CommitActions);
             }
             else

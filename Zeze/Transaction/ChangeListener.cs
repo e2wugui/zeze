@@ -14,26 +14,7 @@ namespace Zeze.Transaction
 	/// </summary>
 	public interface ChangeListener
 	{
-		/// <summary>
-		/// 新增记录 或 覆盖记录时，进行回调。需要同步所有数据。
-		/// </summary>
-		/// <param name="key"></param>
-		/// <param name="value"></param>
-		public void OnChanged(object key, Bean value);
-
-		/// <summary>
-		/// 删除记录时，进行回调。
-		/// </summary>
-		/// <param name="key"></param>
-		public void OnRemoved(object key);
-
-		/// <summary>
-		/// 记录脏了的时候进行回调，监听Map，Set类型的记录项具会有Note信息
-		/// Note信息可以用来做增量数据同步。
-		/// </summary>
-		/// <param name="key"></param>
-		/// <param name="note"></param>
-		public void OnChanged(object key, Bean value, ChangeNote note);
+		public void OnChanged(TableKey tkey, Changes.Record changes);
 	}
 
 	/// <summary>
@@ -41,64 +22,47 @@ namespace Zeze.Transaction
 	/// </summary>
 	public sealed class ChangeListenerMap
 	{
-		private Dictionary<int, HashSet<ChangeListener>> map = new Dictionary<int, HashSet<ChangeListener>>();
-		internal volatile Dictionary<int, HashSet<ChangeListener>> mapCopy = new Dictionary<int, HashSet<ChangeListener>>();
+		private HashSet<ChangeListener> Listnerers = new();
+		internal volatile HashSet<ChangeListener> VolatileListnerers;
 
-		public void AddListener(int variableId, ChangeListener listener)
+		public void AddListener(ChangeListener listener)
         {
 			lock (this)
             {
-				HashSet<ChangeListener> set;
-				if (false == map.TryGetValue(variableId, out set))
-				{
-					set = new HashSet<ChangeListener>();
-					map.Add(variableId, set);
-				}
-				if (false == set.Add(listener))
-					throw new ArgumentException();
-				MapCopyDeep();
+				Listnerers.Add(listener);
+				VolatileListnerers = null;
 			}
 		}
 
-		public void RemoveListener(int variableId, ChangeListener listener)
+		public void RemoveListener(ChangeListener listener)
         {
 			lock (this)
             {
-				if (map.TryGetValue(variableId, out var set))
+				Listnerers.Remove(listener);
+				VolatileListnerers = null;
+			}
+		}
+
+		public IReadOnlySet<ChangeListener> GetListeners()
+        {
+			var tmp = VolatileListnerers;
+			if (null != tmp)
+				return tmp;
+
+			lock (this)
+			{
+				tmp = VolatileListnerers;
+				if (null == tmp)
 				{
-					bool changed = set.Remove(listener);
-					if (set.Count == 0)
-						map.Remove(variableId);
-					if (changed)
-						MapCopyDeep();
+					tmp = new HashSet<ChangeListener>();
+					foreach (var e in Listnerers)
+						tmp.Add(e);
+					VolatileListnerers = tmp;
 				}
+				return tmp;
 			}
 		}
 
-		// under lock
-		private void MapCopyDeep()
-        {
-			Dictionary<int, HashSet<ChangeListener>> copy = new Dictionary<int, HashSet<ChangeListener>>();
-			foreach (var e in map)
-            {
-				HashSet<ChangeListener> set = new HashSet<ChangeListener>();
-				foreach (var s in e.Value)
-					set.Add(s);
-				copy.Add(e.Key, set);
-			}
-			mapCopy = copy;
-		}
-
-		public bool HasListener()
-		{
-			Dictionary<int, HashSet<ChangeListener>> tmp = mapCopy;
-			return tmp.Count > 0;
-		}
-
-		public bool HasListener(int variableId)
-        {
-			Dictionary<int, HashSet<ChangeListener>> tmp = mapCopy;
-			return tmp.ContainsKey(variableId);
-		}
+		public bool HasListener => GetListeners().Count > 0;
 	}
 }

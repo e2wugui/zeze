@@ -12,21 +12,23 @@ namespace UnitTest.Zeze.Trans
     public class TestGlobal
     {
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-        public class PrintLog : Log<demo.Module1.Value, demo.Module1.Value>
+        public class PrintLog : Log<demo.Module1.Value>
         {
             static volatile int lastInt = -1;
             int oldInt;
             int appId;
             bool eq = false;
-            public PrintLog(Bean bean, demo.Module1.Value value, int appId) : base(bean, value)
+            public PrintLog(Bean bean, demo.Module1.Value value, int appId)
             {
+                Belong = bean;
+                Value = value;
+                VariableId = 100;
+ 
                 int last = lastInt;
                 oldInt = Value.Int1;
                 eq = lastInt == oldInt;
                 this.appId = appId;
             }
-
-            public override long LogKey => this.Belong.ObjectId + 100;
 
             public override void Commit()
             {

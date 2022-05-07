@@ -61,8 +61,6 @@ namespace Zeze.Gen.cs
             table.KeyType.Accept(new Encode("_v_", -1, "_os_", sw, "            "));
             sw.WriteLine("            return _os_;");
             sw.WriteLine("        }");
-            sw.WriteLine();
-            CreateChangeVariableCollector.Make(sw, "        ", (Types.Bean)table.ValueType);
             sw.WriteLine("    }");
             sw.WriteLine("}");
         }

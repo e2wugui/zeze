@@ -55,23 +55,6 @@ namespace Zeze.Transaction
         }
     }
 
-    public abstract class Log<TSelf, TValue> : Log where TSelf : Bean
-    { 
-        public TValue Value { get; set; }
-
-        public Log(TSelf self, TValue value)
-        { 
-        }
-        public TSelf BeanTyped => (TSelf)Belong;
-        public virtual long LogKey { get; }
-        public override void Decode(ByteBuffer bb)
-        {
-        }
-        public override void Encode(ByteBuffer bb)
-        {
-        }
-    }
-
     public abstract class Log<T> : Log
     {
         public T Value { get; set; }

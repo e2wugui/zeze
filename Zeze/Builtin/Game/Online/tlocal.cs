@@ -29,16 +29,5 @@ namespace Zeze.Builtin.Game.Online
             _os_.WriteLong(_v_);
             return _os_;
         }
-
-        public override Zeze.Transaction.ChangeVariableCollector CreateChangeVariableCollector(int variableId)
-        {
-            return variableId switch
-            {
-                0 => new Zeze.Transaction.ChangeVariableCollectorChanged(),
-                1 => new Zeze.Transaction.ChangeVariableCollectorChanged(),
-                2 => new Zeze.Transaction.ChangeVariableCollectorMap(() => new Zeze.Transaction.ChangeNoteMap2<string, Zeze.Builtin.Game.Online.BAny>(null)),
-                _ => null,
-            };
-        }
     }
 }

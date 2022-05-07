@@ -8,12 +8,12 @@ using Zeze.Transaction.Collections;
 
 namespace Zeze.Transaction
 {
-	public class Changes : Serializable
+	public class Changes
 	{
 		// 收集日志时,记录所有Bean修改.
 		// key is Bean.ObjectId
 		public Dictionary<long, LogBean> Beans { get; } = new();
-		public Transaction Transaction { get; set; }
+		public Transaction Transaction { get; }
 
 		public class Record
         {
@@ -25,8 +25,14 @@ namespace Zeze.Transaction
 			public Bean PutValue { get; set; }
 			public ISet<LogBean> LogBean { get; } = new HashSet<LogBean>();
 
-			// 所有的日志修改树，key is Record.Value。不会被系列化。
+			// 所有的日志修改树，key is Record.Value。中间变量，不需要系列化。
 			public Util.IdentityHashMap<Bean, LogBean> LogBeans { get; } = new Util.IdentityHashMap<Bean, LogBean>();
+			public Table Table { get; }
+
+			public Record(Table table)
+            {
+				Table = table;
+            }
 
 			public void Collect(Transaction.RecordAccessed ar)
             {
@@ -69,7 +75,7 @@ namespace Zeze.Transaction
 						break;
 
 					case Put:
-						PutValue = null; // TODO Table.NewValue();
+						PutValue = Table.NewBeanValue();
 						PutValue.Decode(bb);
 						break;
 
@@ -95,16 +101,36 @@ namespace Zeze.Transaction
         }
 
 		// 收集记录的修改,以后需要系列化传输.
-		public Dictionary<TableKey, Record> Records { get; } = new Dictionary<TableKey, Record>();
+		// 如果表没有监听者，则不会收集该表的改变。
+		public Dictionary<TableKey, Record> Records { get; } = new();
+		public Util.IdentityHashMap<Table, IReadOnlySet<ChangeListener>> Listeners { get; } = new();
+
+		public Changes(Transaction trans)
+		{
+			Transaction = trans;
+
+			// 建立脏记录的表的监听者的快照，以后收集日志和通知监听者都使用这个快照，避免由于监听者发生变化造成收集和通知不一致。
+			foreach (var ar in trans.AccessedRecords.Values)
+			{
+				if (ar.Dirty)
+				{
+					Listeners.TryAdd(ar.Origin.Table, ar.Origin.Table.ChangeListenerMap.GetListeners());
+				}
+			}
+		}
 
 		public void Collect(Bean recent, Log log)
 		{
+			// is table has listener
+			if (false == Listeners.TryGetValue(recent.RootInfo.Record.Table, out _))
+				return;
+
 			if (null == log.Belong)
             {
 				// 记录可能存在多个修改日志树。收集的时候全部保留，后面会去掉不需要的。see Transaction._final_commit_
 				if (false == Records.TryGetValue(recent.TableKey, out var r))
 				{
-					r = new Record();
+					r = new Record(recent.RootInfo.Record.Table);
 					Records.Add(recent.TableKey, r);
 				}
 				r.LogBeans.TryAdd(recent, (LogBean)log);
@@ -129,47 +155,20 @@ namespace Zeze.Transaction
 
 		public void CollectRecord(Transaction.RecordAccessed ar)
         {
+			// is table has listener
+			if (false == Listeners.TryGetValue(ar.Origin.Table, out _))
+				return;
+
 			var tkey = ar.TableKey;
 
 			if (false == Records.TryGetValue(tkey, out var r))
             {
 				// put record only
-				r = new Record();
+				r = new Record(ar.Origin.Table);
 				Records.Add(tkey, r);
 			}
 
 			r.Collect(ar);
-		}
-
-		public void Decode(ByteBuffer bb)
-		{
-			for (int i = bb.ReadUInt(); i > 0; i--)
-			{
-				var tName = bb.ReadString();
-				object key = null; // TODO SerializeHelper<K>.Decode(bb);
-				var r = new Record();
-				r.Decode(bb);
-				Records.Add(new TableKey(tName, key), r);
-			}
-		}
-
-		public void Encode(ByteBuffer bb)
-		{
-			bb.WriteUInt(Records.Count);
-			foreach (var r in Records)
-			{
-				// encode TableTemplate
-				//TODO bb.WriteUInt(r.Value.TableTemplateId);
-				//bb.WriteString(r.Value.TableTemplateName);
-
-				// encode TableKey
-				//r.Value.SetTableByName(this, r.Value.TableTemplateName);
-				bb.WriteString(r.Key.Name);
-				//r.Value.Table.EncodeKey(bb, r.Key.Key);
-
-				// encode record
-				r.Value.Encode(bb);
-			}
 		}
 
         public override string ToString()
@@ -178,5 +177,25 @@ namespace Zeze.Transaction
 			ByteBuffer.BuildString(sb, Records);
             return sb.ToString();
         }
+
+		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+
+		public void NotifyListener()
+		{
+			foreach (var e in Records)
+			{
+				if (Listeners.TryGetValue(e.Value.Table, out var listeners))
+				{
+					foreach (var listener in listeners)
+					{
+						listener.OnChanged(e.Key, e.Value);
+					}
+				}
+				else
+				{
+					logger.Error("Impossible! Record Log Exist But No Listener");
+				}
+			}
+		}
 	}
 }

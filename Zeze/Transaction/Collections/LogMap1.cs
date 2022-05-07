@@ -10,7 +10,7 @@ namespace Zeze.Transaction.Collections
 {
 	public class LogMap1<K, V> : LogMap<K, V>
 	{
-		public Dictionary<K, V> Putted { get; } = new Dictionary<K, V>();
+		public Dictionary<K, V> Replaced { get; } = new Dictionary<K, V>();
 		public ISet<K> Removed { get; } = new HashSet<K>();
 
 		public V Get(K key)
@@ -23,7 +23,7 @@ namespace Zeze.Transaction.Collections
 		public void Add(K key, V value)
 		{
 			Value = Value.Add(key, value);
-			Putted[key] = value;
+			Replaced[key] = value;
 			Removed.Remove(key);
 		}
 
@@ -38,7 +38,7 @@ namespace Zeze.Transaction.Collections
 		public void SetItem(K key, V value)
 		{
 			Value = Value.SetItem(key, value);
-			Putted[key] = value;
+			Replaced[key] = value;
 			Removed.Remove(key);
 		}
 
@@ -56,7 +56,7 @@ namespace Zeze.Transaction.Collections
 			if (newValue != Value)
             {
 				Value = newValue;
-				Putted.Remove(key);
+				Replaced.Remove(key);
 				Removed.Add(key);
 				return true;
 			}
@@ -83,12 +83,12 @@ namespace Zeze.Transaction.Collections
 
 		public override void Decode(ByteBuffer bb)
 		{
-			Putted.Clear();
+			Replaced.Clear();
 			for (int i = bb.ReadUInt(); i > 0; --i)
 			{
 				var key = SerializeHelper<K>.Decode(bb);
 				var value = SerializeHelper<V>.Decode(bb);
-				Putted.Add(key, value);
+				Replaced.Add(key, value);
 			}
 
 			Removed.Clear();
@@ -101,8 +101,8 @@ namespace Zeze.Transaction.Collections
 
 		public override void Encode(ByteBuffer bb)
 		{
-			bb.WriteUInt(Putted.Count);
-			foreach (var p in Putted)
+			bb.WriteUInt(Replaced.Count);
+			foreach (var p in Replaced)
 			{
 				SerializeHelper<K>.Encode(bb, p.Key);
 				SerializeHelper<V>.Encode(bb, p.Value);
@@ -133,16 +133,16 @@ namespace Zeze.Transaction.Collections
 		{
 			// Put,Remove 需要确认有没有顺序问题
 			// this: replace 1,3 remove 2,4 nest: replace 2 remove 1
-			foreach (var e in another.Putted)
+			foreach (var e in another.Replaced)
 			{
 				// replace 1,2,3 remove 4
-				Putted[e.Key] = e.Value;
+				Replaced[e.Key] = e.Value;
 				Removed.Remove(e.Key);
 			}
 			foreach (var e in another.Removed)
 			{
 				// replace 2,3 remove 1,4
-				Putted.Remove(e);
+				Replaced.Remove(e);
 				Removed.Add(e);
 			}
 		}
@@ -160,7 +160,7 @@ namespace Zeze.Transaction.Collections
 		{
 			var sb = new StringBuilder();
 			sb.Append(" Putted:");
-			ByteBuffer.BuildString(sb, Putted);
+			ByteBuffer.BuildString(sb, Replaced);
 			sb.Append(" Removed:");
 			ByteBuffer.BuildString(sb, Removed);
 			return sb.ToString();
