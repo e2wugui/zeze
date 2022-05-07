@@ -30,7 +30,7 @@ TableCache.Clean 整体考虑。
 ------------------------------------------------------------------------------------------------------------------------------
 tag 0.9.0 java is ready
 ------------------------------------------------------------------------------------------------------------------------------
-Java New Changes: 1. Gen 2. Collections 3. Log 4. Changes 5. Transaction & Savepoint
+Java New Changes: 1. Gen 2. Collections 3. Log 4. Changes & remove CreateChangeVariableCollector 5. Transaction & Savepoint
 
 【2022/5/11】
 
