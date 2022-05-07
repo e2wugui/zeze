@@ -39,12 +39,13 @@ namespace Zeze.Component
 		private Module module;
 		private string name;
 		private volatile Range range;
-		private Bean logKeyBean = new EmptyBean();
+		private long logKey;
 
 		private AutoKey(Module module, string name)
 		{
 			this.module = module;
 			this.name = name;
+			logKey = Bean.GetNextObjectId();
 		}
 
 		public async Task<long> NextIdAsync()
@@ -57,7 +58,7 @@ namespace Zeze.Component
 			}
 
 			var txn = Transaction.Transaction.Current;
-			var log = (RangeLog)txn.GetLog(logKeyBean.ObjectId);
+			var log = (RangeLog)txn.GetLog(logKey);
 			while (true)
 			{
 				if (null == log)
@@ -111,11 +112,12 @@ namespace Zeze.Component
 			public RangeLog(AutoKey autoKey, Range range)
 			{
 				AutoKey = autoKey;
-				Belong = AutoKey.logKeyBean;
 				this.range = range;
 			}
 
-			public override void Commit()
+            public override long LogKey => AutoKey.logKey;
+
+            public override void Commit()
 			{
 				// 这里直接修改拥有者的引用，开放出去，以后其他事务就能看到新的Range了。
 				// 并发：多线程实际上由 _autokeys 表的锁来达到互斥，commit的时候，是互斥锁。

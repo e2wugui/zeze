@@ -15,7 +15,7 @@ namespace Zeze.Transaction
         public abstract void Commit();
         //public void Rollback() { } // 一般的操作日志不需要实现，特殊日志可能需要。先不实现，参见Savepoint.
 
-        public long LogKey => Belong.ObjectId + VariableId;
+        public virtual long LogKey => Belong.ObjectId + VariableId;
         public Bean Belong { get; set; }
 
         // 会被系列化，实际上由LogBean管理。
