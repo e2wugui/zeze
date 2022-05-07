@@ -241,5 +241,19 @@ namespace Zeze.Builtin.Game.Rank
             if (Value < 0) return true;
             return false;
         }
+        public override void FollowerApply(Zeze.Transaction.Log log)
+        {
+            var blog = (Zeze.Transaction.Collections.LogBean)log;
+            foreach (var vlog in blog.Variables.Values)
+            {
+                switch (vlog.VariableId)
+                {
+                    case 1: _RoleId = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 2: _Value = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 3: _ValueEx = ((Zeze.Transaction.Log<Zeze.Net.Binary>)vlog).Value; break;
+                }
+            }
+        }
+
     }
 }

@@ -247,5 +247,19 @@ namespace Zeze.Builtin.Provider
             if (Code < 0) return true;
             return false;
         }
+        public override void FollowerApply(Zeze.Transaction.Log log)
+        {
+            var blog = (Zeze.Transaction.Collections.LogBean)log;
+            foreach (var vlog in blog.Variables.Values)
+            {
+                switch (vlog.VariableId)
+                {
+                    case 1: _linksid = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 2: _code = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 3: _desc = ((Zeze.Transaction.Log<string>)vlog).Value; break;
+                }
+            }
+        }
+
     }
 }

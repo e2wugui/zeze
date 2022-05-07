@@ -241,5 +241,19 @@ namespace Zeze.Builtin.Provider
             if (Time < 0) return true;
             return false;
         }
+        public override void FollowerApply(Zeze.Transaction.Log log)
+        {
+            var blog = (Zeze.Transaction.Collections.LogBean)log;
+            foreach (var vlog in blog.Variables.Values)
+            {
+                switch (vlog.VariableId)
+                {
+                    case 1: _protocolType = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 2: _protocolWholeData = ((Zeze.Transaction.Log<Zeze.Net.Binary>)vlog).Value; break;
+                    case 3: _time = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                }
+            }
+        }
+
     }
 }

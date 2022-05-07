@@ -20,6 +20,8 @@ namespace Zeze.Builtin.ProviderDirect
         long _ReturnCode;
         Zeze.Net.Binary _Params;
 
+        public int _zeze_map_key_int_ { get; set; }
+
         public long ReturnCode
         {
             get
@@ -193,5 +195,18 @@ namespace Zeze.Builtin.ProviderDirect
             if (ReturnCode < 0) return true;
             return false;
         }
+        public override void FollowerApply(Zeze.Transaction.Log log)
+        {
+            var blog = (Zeze.Transaction.Collections.LogBean)log;
+            foreach (var vlog in blog.Variables.Values)
+            {
+                switch (vlog.VariableId)
+                {
+                    case 1: _ReturnCode = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 2: _Params = ((Zeze.Transaction.Log<Zeze.Net.Binary>)vlog).Value; break;
+                }
+            }
+        }
+
     }
 }

@@ -30,16 +30,15 @@ TableCache.Clean 整体考虑。
 ------------------------------------------------------------------------------------------------------------------------------
 tag 0.9.0 java is ready
 ------------------------------------------------------------------------------------------------------------------------------
+Java New Changes: 1. Gen 2. Collections 3. Log 4. Changes
+
+【2022/5/11】
+
 把 RocksRaft Changes 应用到 Zeze 中，让 Zeze 实现Bean任意级别的更新。
 仅支持整个Bean的订阅。
 log factory 问题。（不同步到其他进程没有这个问题）
 动态订阅。add listener和notify原子问题。
 Game.Bag Listener
-Java: 1. Gen 2. Collections 3. Log 4. Changes
-c#: PropertyMapKey
-
-【2022/5/11】
-
 Online Account （c#）
 Global java 异步化： TaskQueueAsync 任务需要参与到队列的推进。全异步和RocksRaft.Transaction.ThreadLocal问题，需要自己实现一个类似AsyncLocal的机制。
 StableLinkSid Done(Need Test)

@@ -30,6 +30,8 @@ namespace Zeze.Builtin.Provider
         int _ConfigType;
         int _SubscribeType;
 
+        public int _zeze_map_key_int_ { get; set; }
+
         public int ChoiceType
         {
             get
@@ -248,5 +250,19 @@ namespace Zeze.Builtin.Provider
             if (SubscribeType < 0) return true;
             return false;
         }
+        public override void FollowerApply(Zeze.Transaction.Log log)
+        {
+            var blog = (Zeze.Transaction.Collections.LogBean)log;
+            foreach (var vlog in blog.Variables.Values)
+            {
+                switch (vlog.VariableId)
+                {
+                    case 1: _ChoiceType = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 2: _ConfigType = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 3: _SubscribeType = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                }
+            }
+        }
+
     }
 }

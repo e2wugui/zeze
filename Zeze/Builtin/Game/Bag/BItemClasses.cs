@@ -143,5 +143,17 @@ namespace Zeze.Builtin.Game.Bag
         {
             return false;
         }
+        public override void FollowerApply(Zeze.Transaction.Log log)
+        {
+            var blog = (Zeze.Transaction.Collections.LogBean)log;
+            foreach (var vlog in blog.Variables.Values)
+            {
+                switch (vlog.VariableId)
+                {
+                    case 1: _ItemClasses.FollowerApply(vlog); break;
+                }
+            }
+        }
+
     }
 }

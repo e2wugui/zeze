@@ -197,5 +197,18 @@ namespace Zeze.Builtin.Collections.Queue
             }
             return false;
         }
+        public override void FollowerApply(Zeze.Transaction.Log log)
+        {
+            var blog = (Zeze.Transaction.Collections.LogBean)log;
+            foreach (var vlog in blog.Variables.Values)
+            {
+                switch (vlog.VariableId)
+                {
+                    case 1: _NextNodeId = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 2: _Values.FollowerApply(vlog); break;
+                }
+            }
+        }
+
     }
 }

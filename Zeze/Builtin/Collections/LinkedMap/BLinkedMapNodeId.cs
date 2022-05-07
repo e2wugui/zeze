@@ -144,5 +144,17 @@ namespace Zeze.Builtin.Collections.LinkedMap
             if (NodeId < 0) return true;
             return false;
         }
+        public override void FollowerApply(Zeze.Transaction.Log log)
+        {
+            var blog = (Zeze.Transaction.Collections.LogBean)log;
+            foreach (var vlog in blog.Variables.Values)
+            {
+                switch (vlog.VariableId)
+                {
+                    case 1: _NodeId = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                }
+            }
+        }
+
     }
 }

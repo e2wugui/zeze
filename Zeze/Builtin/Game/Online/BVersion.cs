@@ -382,5 +382,22 @@ namespace Zeze.Builtin.Game.Online
             if (ServerId < 0) return true;
             return false;
         }
+        public override void FollowerApply(Zeze.Transaction.Log log)
+        {
+            var blog = (Zeze.Transaction.Collections.LogBean)log;
+            foreach (var vlog in blog.Variables.Values)
+            {
+                switch (vlog.VariableId)
+                {
+                    case 1: _LoginVersion = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 2: _ReliableNotifyMark.FollowerApply(vlog); break;
+                    case 3: _ReliableNotifyQueue.FollowerApply(vlog); break;
+                    case 4: _ReliableNotifyConfirmCount = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 5: _ReliableNotifyTotalCount = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 6: _ServerId = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                }
+            }
+        }
+
     }
 }

@@ -11,6 +11,15 @@ namespace Zeze.Gen.cs
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
+            foreach (var k in bean.MapKeyTypes)
+            {
+                // 【注意】{k.Name} see Zeze.Util.Reflect.GetStableName
+                var property = $"_zeze_map_key_{k.Name}_";
+                sw.WriteLine($"{prefix}public {TypeName.GetName(k)} {property} {{ get; set; }}");
+            }
+            if (bean.MapKeyTypes.Count > 0)
+                sw.WriteLine();
+            
             foreach (Variable var in bean.Variables)
                 var.VariableType.Accept(new Property(sw, var, prefix));
         }

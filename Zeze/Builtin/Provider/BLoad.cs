@@ -240,5 +240,19 @@ namespace Zeze.Builtin.Provider
             if (OnlineNew < 0) return true;
             return false;
         }
+        public override void FollowerApply(Zeze.Transaction.Log log)
+        {
+            var blog = (Zeze.Transaction.Collections.LogBean)log;
+            foreach (var vlog in blog.Variables.Values)
+            {
+                switch (vlog.VariableId)
+                {
+                    case 1: _Online = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 2: _ProposeMaxOnline = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 3: _OnlineNew = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                }
+            }
+        }
+
     }
 }

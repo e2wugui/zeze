@@ -338,5 +338,21 @@ namespace Zeze.Builtin.RedoQueue
             if (PrevTaskId < 0) return true;
             return false;
         }
+        public override void FollowerApply(Zeze.Transaction.Log log)
+        {
+            var blog = (Zeze.Transaction.Collections.LogBean)log;
+            foreach (var vlog in blog.Variables.Values)
+            {
+                switch (vlog.VariableId)
+                {
+                    case 1: _QueueName = ((Zeze.Transaction.Log<string>)vlog).Value; break;
+                    case 2: _TaskType = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 3: _TaskId = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 4: _TaskParam = ((Zeze.Transaction.Log<Zeze.Net.Binary>)vlog).Value; break;
+                    case 5: _PrevTaskId = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                }
+            }
+        }
+
     }
 }

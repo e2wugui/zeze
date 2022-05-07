@@ -187,5 +187,18 @@ namespace Zeze.Builtin.Collections.LinkedMap
         {
             return false;
         }
+        public override void FollowerApply(Zeze.Transaction.Log log)
+        {
+            var blog = (Zeze.Transaction.Collections.LogBean)log;
+            foreach (var vlog in blog.Variables.Values)
+            {
+                switch (vlog.VariableId)
+                {
+                    case 1: _Id = ((Zeze.Transaction.Log<string>)vlog).Value; break;
+                    case 2: _Value.FollowerApply(vlog); break;
+                }
+            }
+        }
+
     }
 }

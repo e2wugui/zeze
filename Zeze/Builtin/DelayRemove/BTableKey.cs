@@ -194,5 +194,18 @@ namespace Zeze.Builtin.DelayRemove
         {
             return false;
         }
+        public override void FollowerApply(Zeze.Transaction.Log log)
+        {
+            var blog = (Zeze.Transaction.Collections.LogBean)log;
+            foreach (var vlog in blog.Variables.Values)
+            {
+                switch (vlog.VariableId)
+                {
+                    case 1: _TableName = ((Zeze.Transaction.Log<string>)vlog).Value; break;
+                    case 2: _EncodedKey = ((Zeze.Transaction.Log<Zeze.Net.Binary>)vlog).Value; break;
+                }
+            }
+        }
+
     }
 }

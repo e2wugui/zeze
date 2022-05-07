@@ -21,6 +21,8 @@ namespace Zeze.Builtin.Online
         readonly Zeze.Transaction.Collections.CollMap2<string, Zeze.Builtin.Online.BAny> _Datas;
         Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Builtin.Online.BAnyReadOnly,Zeze.Builtin.Online.BAny> _DatasReadOnly;
 
+        public string _zeze_map_key_string_ { get; set; }
+
         public long LoginVersion
         {
             get
@@ -204,5 +206,18 @@ namespace Zeze.Builtin.Online
             if (LoginVersion < 0) return true;
             return false;
         }
+        public override void FollowerApply(Zeze.Transaction.Log log)
+        {
+            var blog = (Zeze.Transaction.Collections.LogBean)log;
+            foreach (var vlog in blog.Variables.Values)
+            {
+                switch (vlog.VariableId)
+                {
+                    case 1: _LoginVersion = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 2: _Datas.FollowerApply(vlog); break;
+                }
+            }
+        }
+
     }
 }

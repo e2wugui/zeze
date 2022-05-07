@@ -246,5 +246,19 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             if (GlobalSerialId < 0) return true;
             return false;
         }
+        public override void FollowerApply(Zeze.Transaction.Log log)
+        {
+            var blog = (Zeze.Transaction.Collections.LogBean)log;
+            foreach (var vlog in blog.Variables.Values)
+            {
+                switch (vlog.VariableId)
+                {
+                    case 1: _GlobalTableKey = ((Zeze.Transaction.Log<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey>)vlog).Value; break;
+                    case 2: _State = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 3: _GlobalSerialId = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                }
+            }
+        }
+
     }
 }

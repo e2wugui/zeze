@@ -192,5 +192,18 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             if (GlobalCacheManagerHashIndex < 0) return true;
             return false;
         }
+        public override void FollowerApply(Zeze.Transaction.Log log)
+        {
+            var blog = (Zeze.Transaction.Collections.LogBean)log;
+            foreach (var vlog in blog.Variables.Values)
+            {
+                switch (vlog.VariableId)
+                {
+                    case 1: _ServerId = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 2: _GlobalCacheManagerHashIndex = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                }
+            }
+        }
+
     }
 }

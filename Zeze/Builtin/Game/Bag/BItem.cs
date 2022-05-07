@@ -23,6 +23,8 @@ namespace Zeze.Builtin.Game.Bag
         int _Number;
         readonly Zeze.Transaction.DynamicBean _Item;
 
+        public int _zeze_map_key_int_ { get; set; }
+
         public int Id
         {
             get
@@ -234,5 +236,19 @@ namespace Zeze.Builtin.Game.Bag
             if (Number < 0) return true;
             return false;
         }
+        public override void FollowerApply(Zeze.Transaction.Log log)
+        {
+            var blog = (Zeze.Transaction.Collections.LogBean)log;
+            foreach (var vlog in blog.Variables.Values)
+            {
+                switch (vlog.VariableId)
+                {
+                    case 1: _Id = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 2: _Number = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 3: _Item.FollowerApply(vlog); break;
+                }
+            }
+        }
+
     }
 }

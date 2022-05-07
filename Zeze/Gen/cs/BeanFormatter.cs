@@ -103,6 +103,7 @@ namespace Zeze.Gen.cs
             Decode.Make(bean, sw, "        ");
             InitChildrenTableKey.Make(bean, sw, "        ");
             NegativeCheck.Make(bean, sw, "        ");
+            FollowerApply.Make(bean, sw, "        ");
         }
     }
 }

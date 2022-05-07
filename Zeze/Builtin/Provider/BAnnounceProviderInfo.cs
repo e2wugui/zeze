@@ -291,5 +291,20 @@ namespace Zeze.Builtin.Provider
             if (ProviderDirectPort < 0) return true;
             return false;
         }
+        public override void FollowerApply(Zeze.Transaction.Log log)
+        {
+            var blog = (Zeze.Transaction.Collections.LogBean)log;
+            foreach (var vlog in blog.Variables.Values)
+            {
+                switch (vlog.VariableId)
+                {
+                    case 1: _ServiceNamePrefix = ((Zeze.Transaction.Log<string>)vlog).Value; break;
+                    case 2: _ServiceIndentity = ((Zeze.Transaction.Log<string>)vlog).Value; break;
+                    case 3: _ProviderDirectIp = ((Zeze.Transaction.Log<string>)vlog).Value; break;
+                    case 4: _ProviderDirectPort = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                }
+            }
+        }
+
     }
 }
