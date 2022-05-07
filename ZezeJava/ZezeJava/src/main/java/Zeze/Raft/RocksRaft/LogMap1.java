@@ -111,10 +111,16 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	private void MergeChangeNote(LogMap1<K, V> another) {
 		// Put,Remove 需要确认有没有顺序问题
 		// this: replace 1,3 remove 2,4 nest: replace 2 remove 1
-		for (var e : another.Putted.entrySet())
-			Put(e.getKey(), e.getValue()); // replace 1,2,3 remove 4
-		for (var e : another.Removed)
-			Remove(e); // replace 2,3 remove 1,4
+		for (var e : another.Putted.entrySet()) {
+			// replace 1,2,3 remove 4
+			Putted.put(e.getKey(), e.getValue());
+			Removed.remove(e.getKey());
+		}
+		for (var e : another.Removed) {
+			// replace 2,3 remove 1,4
+			Putted.remove(e);
+			Removed.add(e);
+		}
 	}
 
 	@Override
