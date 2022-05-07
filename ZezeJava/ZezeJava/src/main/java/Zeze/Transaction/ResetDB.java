@@ -25,7 +25,7 @@ import org.rocksdb.RocksIterator;
 
 public class ResetDB {
 
-	public void CheckAndRemoveTable(Schemas other, Zeze.Application app) throws RocksDBException {
+	public void CheckAndRemoveTable(Schemas other, Application app) throws RocksDBException {
 		if (app.getConfig().autoResetTable() == false)
 			return;
 
@@ -59,17 +59,17 @@ public class ResetDB {
 
 		if (removeList != null) {
 			switch (defaultDb.GetConf().getDatabaseType()) {
-			case MySql:
-				ResetMySql(app.getConfig(), databaseName, removeList);
-				ByteBuffer newData = ByteBuffer.Allocate(1024);
-				app.getSchemas().Encode(newData);
-				break;
-			case RocksDb:
-				defaultDb.Close();
-				ResetRocksDB(app, defaultDb.GetConf(), removeList);
-				break;
-			default:
-				return;
+				case MySql:
+					ResetMySql(app.getConfig(), databaseName, removeList);
+					ByteBuffer newData = ByteBuffer.Allocate(1024);
+					app.getSchemas().Encode(newData);
+					break;
+				case RocksDb:
+					defaultDb.Close();
+					ResetRocksDB(app, defaultDb.GetConf(), removeList);
+					break;
+				default:
+					return;
 			}
 			var newData = ByteBuffer.Allocate(1024);
 			app.getSchemas().Encode(newData);

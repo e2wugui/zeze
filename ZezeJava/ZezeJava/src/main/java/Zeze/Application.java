@@ -18,6 +18,7 @@ import Zeze.Transaction.GlobalAgent;
 import Zeze.Transaction.IGlobalAgent;
 import Zeze.Transaction.Locks;
 import Zeze.Transaction.Procedure;
+import Zeze.Transaction.ResetDB;
 import Zeze.Transaction.Table;
 import Zeze.Transaction.TableKey;
 import Zeze.Transaction.TransactionLevel;
@@ -31,6 +32,7 @@ import Zeze.Util.TaskOneByOneByKey;
 import Zeze.Util.ThreadFactoryWithName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.rocksdb.RocksDBException;
 
 public final class Application {
 	static final Logger logger = LogManager.getLogger(Application.class);
@@ -55,6 +57,7 @@ public final class Application {
 	private Schemas Schemas;
 	private boolean IsStart;
 	public RedirectBase Redirect;
+	private ResetDB ResetDB;
 
 	public Application(String solutionName) throws Throwable {
 		this(solutionName, null);
@@ -294,6 +297,10 @@ public final class Application {
 			autoKey.UnRegisterZezeTables(this);
 			autoKey = null;
 		}
+	}
+
+	public synchronized void CheckAndRemoveTable(Schemas other) throws RocksDBException {
+		ResetDB.CheckAndRemoveTable(other, this);
 	}
 
 	public void CheckpointRun() {
