@@ -25,6 +25,14 @@ namespace Zeze.Transaction
 			public Bean PutValue { get; set; }
 			public ISet<LogBean> LogBean { get; } = new HashSet<LogBean>();
 
+			public LogBean GetLogBean()
+			{ 
+				var it = LogBean.GetEnumerator();
+				if (it.MoveNext())
+					return it.Current;
+				return null;
+			}
+
 			// 所有的日志修改树，key is Record.Value。中间变量，不需要系列化。
 			public Util.IdentityHashMap<Bean, LogBean> LogBeans { get; } = new Util.IdentityHashMap<Bean, LogBean>();
 			public Table Table { get; }

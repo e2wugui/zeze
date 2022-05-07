@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Serialize;
 using System.Runtime.InteropServices;
 using Zeze.Net;
+using Zeze.Transaction.Collections;
 
 namespace UnitTest.Zeze.Trans
 {
@@ -250,21 +251,25 @@ namespace UnitTest.Zeze.Trans
 
         private void AddListener()
         {
-            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_int1, _CLInt1);
-            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_long2, _ClLong2);
-            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_string3, _CLString3);
-            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_bool4, _CLBool4);
-            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_short5, _CLShort5);
-            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_float6, _CLFloat6);
-            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_double7, _CLDouble7);
-            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_bytes8, _CLBytes8);
-            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_list9, _CLList9);
-            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_set10, _CLSet10);
-            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_map11, _CLMap11);
-            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_bean12, _CLBean12);
-            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_byte13, _CLByte13);
-            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_dynamic14, _ClDynamic14);
-            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(demo.Module1.Table1.VAR_map15, _CLMap15);
+            var l = new VarListeners();
+
+            l.Vars.Add(demo.Module1.Table1.VAR_int1, _CLInt1);
+            l.Vars.Add(demo.Module1.Table1.VAR_long2, _ClLong2);
+            l.Vars.Add(demo.Module1.Table1.VAR_string3, _CLString3);
+            l.Vars.Add(demo.Module1.Table1.VAR_bool4, _CLBool4);
+            l.Vars.Add(demo.Module1.Table1.VAR_short5, _CLShort5);
+            l.Vars.Add(demo.Module1.Table1.VAR_float6, _CLFloat6);
+            l.Vars.Add(demo.Module1.Table1.VAR_double7, _CLDouble7);
+            l.Vars.Add(demo.Module1.Table1.VAR_bytes8, _CLBytes8);
+            l.Vars.Add(demo.Module1.Table1.VAR_list9, _CLList9);
+            l.Vars.Add(demo.Module1.Table1.VAR_set10, _CLSet10);
+            l.Vars.Add(demo.Module1.Table1.VAR_map11, _CLMap11);
+            l.Vars.Add(demo.Module1.Table1.VAR_bean12, _CLBean12);
+            l.Vars.Add(demo.Module1.Table1.VAR_byte13, _CLByte13);
+            l.Vars.Add(demo.Module1.Table1.VAR_dynamic14, _ClDynamic14);
+            l.Vars.Add(demo.Module1.Table1.VAR_map15, _CLMap15);
+
+            demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(l);
         }
 
         private readonly CLInt1 _CLInt1 = new CLInt1();
@@ -283,7 +288,50 @@ namespace UnitTest.Zeze.Trans
         private readonly ClDynamic14 _ClDynamic14 = new ClDynamic14();
         private readonly CLMap15 _CLMap15 = new CLMap15();
 
-        class CLMap15 : ChangeListener
+        public interface VarListener
+        {
+            public void OnRemoved(object key);
+            public void OnChanged(object key, Bean value);
+            public void OnChanged(object key, Log change);
+        }
+        public class VarListeners : ChangeListener
+        {
+            public Dictionary<int, VarListener> Vars { get; } = new();
+
+            public void OnChanged(TableKey tkey, Changes.Record r)
+            {
+                // 这是为了兼容旧的测试代码，拼凑出来的类。
+                switch (r.State)
+                {
+                    case Changes.Record.Remove:
+                        foreach (var v in Vars)
+                        {
+                            v.Value.OnRemoved(tkey.Key);
+                        }
+                        break;
+                    case Changes.Record.Put:
+                        foreach (var v in Vars)
+                        {
+                            v.Value.OnChanged(tkey.Key, r.PutValue);
+                        }
+                        break;
+
+                    case Changes.Record.Edit:
+                        {
+                            var logbean = r.GetLogBean();
+                            foreach (var v in Vars)
+                            {
+                                if (logbean.Variables.TryGetValue(v.Key, out var log))
+                                    v.Value.OnChanged(tkey.Key, log);
+                            }
+                        }
+                        break;
+                }
+
+            }
+        }
+
+        class CLMap15 : VarListener
         {
             private Dictionary<long, long> newValue;
 
@@ -317,30 +365,28 @@ namespace UnitTest.Zeze.Trans
                 }
             }
 
-            void ChangeListener.OnChanged(object key, Bean value)
+            public void OnRemoved(object key)
+            {
+                newValue = null;
+            }
+            public void OnChanged(object key, Bean value)
             {
                 newValue = new Dictionary<long, long>();
                 foreach (var e in ((demo.Module1.Value)value).Map15)
                     newValue.Add(e.Key, e.Value);
             }
-
-            void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
+            public void OnChanged(object key, Log note)
             {
-                ChangeNoteMap1<long, long> notemap1 = (ChangeNoteMap1<long, long>)note;
+                var notemap1 = (LogMap1<long, long>)note;
 
                 foreach (var a in notemap1.Replaced)
                     newValue[a.Key] = a.Value;
                 foreach (var r in notemap1.Removed)
                     newValue.Remove(r);
             }
-
-            void ChangeListener.OnRemoved(object key)
-            {
-                newValue = null;
-            }
         }
 
-        class ClDynamic14 : ChangeListener
+        class ClDynamic14 : VarListener
         {
             private Bean newValue;
 
@@ -367,23 +413,21 @@ namespace UnitTest.Zeze.Trans
                 }
             }
 
-            void ChangeListener.OnChanged(object key, Bean value)
-            {
-                newValue = ((demo.Module1.Value)value).Dynamic14;
-            }
-
-            void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
-            {
-                newValue = ((demo.Module1.Value)value).Dynamic14;
-            }
-
-            void ChangeListener.OnRemoved(object key)
+            public void OnRemoved(object key)
             {
                 newValue = null;
             }
+            public void OnChanged(object key, Bean value)
+            {
+                newValue = ((demo.Module1.Value)value).Dynamic14;
+            }
+            public void OnChanged(object key, Log note)
+            {
+                newValue = ((demo.Module1.Value)note.Belong).Dynamic14;
+            }
         }
 
-        class CLByte13 : ChangeListener
+        class CLByte13 : VarListener
         {
             private byte newValue;
 
@@ -402,23 +446,21 @@ namespace UnitTest.Zeze.Trans
                 Assert.AreEqual(newValue, current.Byte13);
             }
 
-            void ChangeListener.OnChanged(object key, Bean value)
-            {
-                newValue = ((demo.Module1.Value)value).Byte13;
-            }
-
-            void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
-            {
-                newValue = ((demo.Module1.Value)value).Byte13;
-            }
-
-            void ChangeListener.OnRemoved(object key)
+            public void OnRemoved(object key)
             {
                 newValue = 255;
             }
+            public void OnChanged(object key, Bean value)
+            {
+                newValue = ((demo.Module1.Value)value).Byte13;
+            }
+            public void OnChanged(object key, Log note)
+            {
+                newValue = ((demo.Module1.Value)note.Belong).Byte13;
+            }
         }
 
-        class CLBean12 : ChangeListener
+        class CLBean12 : VarListener
         {
             private demo.Module1.Simple newValue;
 
@@ -441,23 +483,21 @@ namespace UnitTest.Zeze.Trans
                 Assert.IsTrue(newValue.Int1 == current.Bean12.Int1);
             }
 
-            void ChangeListener.OnChanged(object key, Bean value)
-            {
-                newValue = ((demo.Module1.Value)value).Bean12.Copy();
-            }
-
-            void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
-            {
-                newValue = ((demo.Module1.Value)value).Bean12.Copy();
-            }
-
-            void ChangeListener.OnRemoved(object key)
+            public void OnRemoved(object key)
             {
                 newValue = null;
             }
+            public void OnChanged(object key, Bean value)
+            {
+                newValue = ((demo.Module1.Value)value).Bean12.Copy();
+            }
+            public void OnChanged(object key, Log note)
+            {
+                newValue = ((demo.Module1.Value)note.Belong).Bean12.Copy();
+            }
         }
 
-        class CLMap11 : ChangeListener
+        class CLMap11 : VarListener
         {
             private Dictionary<long, demo.Module2.Value> newValue;
 
@@ -491,31 +531,29 @@ namespace UnitTest.Zeze.Trans
                 }
             }
 
-            void ChangeListener.OnChanged(object key, Bean value)
+            public void OnRemoved(object key)
+            {
+                newValue = null;
+            }
+            public void OnChanged(object key, Bean value)
             {
                 newValue = new Dictionary<long, demo.Module2.Value>();
                 foreach (var e in ((demo.Module1.Value)value).Map11)
                     newValue.Add(e.Key, e.Value.Copy());
             }
-
-            void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
+            public void OnChanged(object key, Log note)
             {
-                ChangeNoteMap2<long, demo.Module2.Value> notemap2 = (ChangeNoteMap2<long, demo.Module2.Value>)note;
-                notemap2.MergeChangedToReplaced(((demo.Module1.Value)value).Map11);
+                var notemap2 = (LogMap2<long, demo.Module2.Value>)note;
+                notemap2.MergeChangedToReplaced();
 
                 foreach (var a in notemap2.Replaced)
                     newValue[a.Key] = a.Value;
                 foreach (var r in notemap2.Removed)
                     newValue.Remove(r);
             }
-
-            void ChangeListener.OnRemoved(object key)
-            {
-                newValue = null;
-            }
         }
 
-        class CLSet10 : ChangeListener
+        class CLSet10 : VarListener
         {
             private HashSet<int> newValue;
 
@@ -548,29 +586,27 @@ namespace UnitTest.Zeze.Trans
                 }
             }
 
-            void ChangeListener.OnChanged(object key, Bean value)
+            public void OnRemoved(object key)
+            {
+                newValue = null;
+            }
+            public void OnChanged(object key, Bean value)
             {
                 newValue = new HashSet<int>();
                 foreach (var i in ((demo.Module1.Value)value).Set10)
                     newValue.Add(i);
             }
-
-            void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
+            public void OnChanged(object key, Log note)
             {
-                ChangeNoteSet<int> noteset = (ChangeNoteSet<int>)note;
+                var noteset = (LogSet1<int>)note;
                 foreach (var a in noteset.Added)
                     newValue.Add(a);
                 foreach (var r in noteset.Removed)
                     newValue.Remove(r);
             }
-
-            void ChangeListener.OnRemoved(object key)
-            {
-                newValue = null;
-            }
         }
 
-        class CLList9 : ChangeListener
+        class CLList9 : VarListener
         {
             private List<demo.Bean1> newValue;
 
@@ -600,27 +636,25 @@ namespace UnitTest.Zeze.Trans
                 }
             }
 
-            void ChangeListener.OnChanged(object key, Bean value)
-            {
-                newValue = new List<demo.Bean1>();
-                foreach (var e in ((demo.Module1.Value)value).List9)
-                    newValue.Add(e.Copy());
-            }
-
-            void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
-            {
-                newValue = new List<demo.Bean1>();
-                foreach (var e in ((demo.Module1.Value)value).List9)
-                    newValue.Add(e.Copy());
-            }
-
-            void ChangeListener.OnRemoved(object key)
+            public void OnRemoved(object key)
             {
                 newValue = null;
             }
+            public void OnChanged(object key, Bean value)
+            {
+                newValue = new List<demo.Bean1>();
+                foreach (var e in ((demo.Module1.Value)value).List9)
+                    newValue.Add(e.Copy());
+            }
+            public void OnChanged(object key, Log note)
+            {
+                newValue = new List<demo.Bean1>();
+                foreach (var e in ((demo.Module1.Value)note.Belong).List9)
+                    newValue.Add(e.Copy());
+            }
         }
 
-        class CLBytes8 : ChangeListener
+        class CLBytes8 : VarListener
         {
             private Binary newValue;
 
@@ -639,23 +673,21 @@ namespace UnitTest.Zeze.Trans
                 Assert.AreEqual(newValue, current.Bytes8);
             }
 
-            void ChangeListener.OnChanged(object key, Bean value)
-            {
-                newValue = ((demo.Module1.Value)value).Bytes8;
-            }
-
-            void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
-            {
-                newValue = ((demo.Module1.Value)value).Bytes8;
-            }
-
-            void ChangeListener.OnRemoved(object key)
+            public void OnRemoved(object key)
             {
                 newValue = null;
             }
+            public void OnChanged(object key, Bean value)
+            {
+                newValue = ((demo.Module1.Value)value).Bytes8;
+            }
+            public void OnChanged(object key, Log note)
+            {
+                newValue = ((demo.Module1.Value)note.Belong).Bytes8;
+            }
         }
 
-        class CLDouble7 : ChangeListener
+        class CLDouble7 : VarListener
         {
             private double newValue;
 
@@ -674,23 +706,21 @@ namespace UnitTest.Zeze.Trans
                 Assert.AreEqual(newValue, current.Double7);
             }
 
-            void ChangeListener.OnChanged(object key, Bean value)
-            {
-                newValue = ((demo.Module1.Value)value).Double7;
-            }
-
-            void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
-            {
-                newValue = ((demo.Module1.Value)value).Double7;
-            }
-
-            void ChangeListener.OnRemoved(object key)
+            public void OnRemoved(object key)
             {
                 newValue = 0;
             }
+            public void OnChanged(object key, Bean value)
+            {
+                newValue = ((demo.Module1.Value)value).Double7;
+            }
+            public void OnChanged(object key, Log note)
+            {
+                newValue = ((demo.Module1.Value)note.Belong).Double7;
+            }
         }
 
-        class CLFloat6 : ChangeListener
+        class CLFloat6 : VarListener
         {
             private float newValue;
 
@@ -709,23 +739,21 @@ namespace UnitTest.Zeze.Trans
                 Assert.AreEqual(newValue, current.Float6);
             }
 
-            void ChangeListener.OnChanged(object key, Bean value)
-            {
-                newValue = ((demo.Module1.Value)value).Float6;
-            }
-
-            void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
-            {
-                newValue = ((demo.Module1.Value)value).Float6;
-            }
-
-            void ChangeListener.OnRemoved(object key)
+            public void OnRemoved(object key)
             {
                 newValue = 0;
             }
+            public void OnChanged(object key, Bean value)
+            {
+                newValue = ((demo.Module1.Value)value).Float6;
+            }
+            public void OnChanged(object key, Log note)
+            {
+                newValue = ((demo.Module1.Value)note.Belong).Float6;
+            }
         }
 
-        class CLShort5 : ChangeListener
+        class CLShort5 : VarListener
         {
             private short newValue;
 
@@ -744,23 +772,21 @@ namespace UnitTest.Zeze.Trans
                 Assert.AreEqual(newValue, current.Short5);
             }
 
-            void ChangeListener.OnChanged(object key, Bean value)
-            {
-                newValue = ((demo.Module1.Value)value).Short5;
-            }
-
-            void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
-            {
-                newValue = ((demo.Module1.Value)value).Short5;
-            }
-
-            void ChangeListener.OnRemoved(object key)
+            public void OnRemoved(object key)
             {
                 newValue = -1;
             }
+            public void OnChanged(object key, Bean value)
+            {
+                newValue = ((demo.Module1.Value)value).Short5;
+            }
+            public void OnChanged(object key, Log note)
+            {
+                newValue = ((demo.Module1.Value)note.Belong).Short5;
+            }
         }
 
-        class CLBool4 : ChangeListener
+        class CLBool4 : VarListener
         {
             private bool newValue;
 
@@ -779,24 +805,22 @@ namespace UnitTest.Zeze.Trans
                 Assert.AreEqual(newValue, current.Bool4);
             }
 
-            void ChangeListener.OnChanged(object key, Bean value)
-            {
-                newValue = ((demo.Module1.Value)value).Bool4;
-            }
-
-            void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
-            {
-                newValue = ((demo.Module1.Value)value).Bool4;
-            }
-
-            void ChangeListener.OnRemoved(object key)
+            public void OnRemoved(object key)
             {
                 newValue = false;
+            }
+            public void OnChanged(object key, Bean value)
+            {
+                newValue = ((demo.Module1.Value)value).Bool4;
+            }
+            public void OnChanged(object key, Log note)
+            {
+                newValue = ((demo.Module1.Value)note.Belong).Bool4;
             }
 
         }
 
-        class CLString3 : ChangeListener
+        class CLString3 : VarListener
         {
             private string newValue;
 
@@ -815,23 +839,21 @@ namespace UnitTest.Zeze.Trans
                 Assert.AreEqual(newValue, current.String3);
             }
 
-            void ChangeListener.OnChanged(object key, Bean value)
-            {
-                newValue = ((demo.Module1.Value)value).String3;
-            }
-
-            void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
-            {
-                newValue = ((demo.Module1.Value)value).String3;
-            }
-
-            void ChangeListener.OnRemoved(object key)
+            public void OnRemoved(object key)
             {
                 newValue = null;
             }
+            public void OnChanged(object key, Bean value)
+            {
+                newValue = ((demo.Module1.Value)value).String3;
+            }
+            public void OnChanged(object key, Log note)
+            {
+                newValue = ((demo.Module1.Value)note.Belong).String3;
+            }
         }
 
-        class ClLong2 : ChangeListener
+        class ClLong2 : VarListener
         {
             private long newValue;
 
@@ -850,24 +872,22 @@ namespace UnitTest.Zeze.Trans
                 Assert.AreEqual(newValue, current.Long2);
             }
 
-            void ChangeListener.OnChanged(object key, Bean value)
-            {
-                newValue = ((demo.Module1.Value)value).Long2;
-            }
-
-            void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
-            {
-                newValue = ((demo.Module1.Value)value).Long2;
-            }
-
-            void ChangeListener.OnRemoved(object key)
+            public void OnRemoved(object key)
             {
                 newValue = -1;
+            }
+            public void OnChanged(object key, Bean value)
+            {
+                newValue = ((demo.Module1.Value)value).Long2;
+            }
+            public void OnChanged(object key, Log note)
+            {
+                newValue = ((demo.Module1.Value)note.Belong).Long2;
             }
         }
 
 
-        class CLInt1 : ChangeListener
+        class CLInt1 : VarListener
         {
             private int newValue;
 
@@ -886,19 +906,17 @@ namespace UnitTest.Zeze.Trans
                 Assert.AreEqual(newValue, current.Int1);
             }
 
-            void ChangeListener.OnChanged(object key, Bean value)
-            {
-                newValue = ((demo.Module1.Value)value).Int1;
-            }
-
-            void ChangeListener.OnChanged(object key, Bean value, ChangeNote note)
-            {
-                newValue = ((demo.Module1.Value)value).Int1;
-            }
-
-            void ChangeListener.OnRemoved(object key)
+            public void OnRemoved(object key)
             {
                 newValue = -1;
+            }
+            public void OnChanged(object key, Bean value)
+            {
+                newValue = ((demo.Module1.Value)value).Int1;
+            }
+            public void OnChanged(object key, Log note)
+            {
+                newValue = ((demo.Module1.Value)note.Belong).Int1;
             }
         }
     }
