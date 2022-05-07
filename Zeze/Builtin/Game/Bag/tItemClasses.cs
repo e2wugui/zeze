@@ -12,7 +12,6 @@ namespace Zeze.Builtin.Game.Bag
         public override bool IsMemory => false;
         public override bool IsAutoKey => false;
 
-        public const int VAR_All = 0;
         public const int VAR_ItemClasses = 1;
 
         public override int DecodeKey(ByteBuffer _os_)

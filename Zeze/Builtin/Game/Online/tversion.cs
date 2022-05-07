@@ -12,7 +12,6 @@ namespace Zeze.Builtin.Game.Online
         public override bool IsMemory => false;
         public override bool IsAutoKey => false;
 
-        public const int VAR_All = 0;
         public const int VAR_LoginVersion = 1;
         public const int VAR_ReliableNotifyMark = 2;
         public const int VAR_ReliableNotifyQueue = 3;

@@ -34,7 +34,6 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        public override bool IsMemory => " + (table.IsMemory ? "true;" : "false;"));
             sw.WriteLine("        public override bool IsAutoKey => " + (table.IsAutoKey ? "true;" : "false;"));
             sw.WriteLine();
-            sw.WriteLine("        public const int VAR_All = 0;");
             foreach (var v in ((Types.Bean)table.ValueType).Variables)
                 sw.WriteLine("        public const int VAR_" + v.Name + " = " + v.Id + ";");
             sw.WriteLine();

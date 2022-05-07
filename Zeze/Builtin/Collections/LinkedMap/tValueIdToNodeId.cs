@@ -12,7 +12,6 @@ namespace Zeze.Builtin.Collections.LinkedMap
         public override bool IsMemory => false;
         public override bool IsAutoKey => false;
 
-        public const int VAR_All = 0;
         public const int VAR_NodeId = 1;
 
         public override Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey DecodeKey(ByteBuffer _os_)

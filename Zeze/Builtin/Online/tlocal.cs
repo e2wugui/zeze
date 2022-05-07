@@ -12,7 +12,6 @@ namespace Zeze.Builtin.Online
         public override bool IsMemory => true;
         public override bool IsAutoKey => false;
 
-        public const int VAR_All = 0;
         public const int VAR_Logins = 1;
 
         public override string DecodeKey(ByteBuffer _os_)

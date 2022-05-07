@@ -12,7 +12,6 @@ namespace Zeze.Builtin.Game.Rank
         public override bool IsMemory => false;
         public override bool IsAutoKey => false;
 
-        public const int VAR_All = 0;
         public const int VAR_RankList = 1;
 
         public override Zeze.Builtin.Game.Rank.BConcurrentKey DecodeKey(ByteBuffer _os_)
