@@ -49,7 +49,7 @@ public final class Config {
 	private boolean AllowSchemasReuseVariableIdWithSameType = true;
 	private boolean FastRedoWhenConflict = false;
 	private final ConcurrentHashMap<String, ICustomize> Customize = new ConcurrentHashMap<>();
-	private boolean DoNotCheckSchemasWhenTableIsNew = false;
+	private boolean AutoResetTable = false;
 	private final ConcurrentHashMap<String, DatabaseConf> DatabaseConfMap = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<String, ServiceConf> ServiceConfMap = new ConcurrentHashMap<>();
 	private ServiceConf DefaultServiceConf = new ServiceConf();
@@ -181,8 +181,8 @@ public final class Config {
 		return Customize;
 	}
 
-	public boolean doNotCheckSchemasWhenTableIsNew() {
-		return DoNotCheckSchemasWhenTableIsNew;
+	public boolean autoResetTable() {
+		return AutoResetTable;
 	}
 
 	/**
@@ -352,9 +352,9 @@ public final class Config {
 			CheckpointMode = Zeze.Transaction.CheckpointMode.Table;
 		}
 
-		attr = self.getAttribute("DoNotCheckSchemasWhenTableIsNew");
+		attr = self.getAttribute("AutoResetTable");
 		if (!attr.isEmpty())
-			DoNotCheckSchemasWhenTableIsNew = Boolean.parseBoolean(attr);
+			AutoResetTable = Boolean.parseBoolean(attr);
 
 		NodeList childNodes = self.getChildNodes();
 		for (int i = 0; i < childNodes.getLength(); i++) {
