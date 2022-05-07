@@ -3,7 +3,11 @@ package Zeze.Component;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Log;
+import Zeze.Transaction.Savepoint;
 import Zeze.Transaction.Transaction;
+import org.apache.commons.lang3.NotImplementedException;
 
 public class AutoKey {
 	public static class Module extends AbstractAutoKey {
@@ -119,6 +123,26 @@ public class AutoKey {
 		@Override
 		public long getLogKey() {
 			return AutoKey.this.logKey;
+		}
+
+		@Override
+		public void EndSavepoint(Savepoint currentsp) {
+			currentsp.getLogs().put(getLogKey(), this);
+		}
+
+		@Override
+		public Log BeginSavepoint() {
+			return this;
+		}
+
+		@Override
+		public void Encode(ByteBuffer bb) {
+			throw new NotImplementedException("");
+		}
+
+		@Override
+		public void Decode(ByteBuffer bb) {
+			throw new NotImplementedException("");
 		}
 	}
 }

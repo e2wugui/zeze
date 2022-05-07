@@ -133,6 +133,16 @@ namespace Zeze.Component
             {
                 throw new System.NotImplementedException();
             }
-		}
+
+            internal override void EndSavepoint(Savepoint currentsp)
+            {
+				currentsp.Logs[LogKey] = this;
+			}
+
+            internal override Log BeginSavepoint()
+            {
+				return this;
+            }
+        }
 	}
 }

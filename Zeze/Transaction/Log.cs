@@ -32,15 +32,9 @@ namespace Zeze.Transaction
             // LogBean LogCollection 需要实现这个方法收集日志.
         }
 
-        internal virtual void EndSavepoint(Savepoint currentsp)
-        {
-            throw new NotImplementedException();
-        }
+        internal abstract void EndSavepoint(Savepoint currentsp);
 
-        internal virtual Log BeginSavepoint()
-        {
-            throw new NotImplementedException();
-        }
+        internal abstract Log BeginSavepoint();
 
         public abstract void Encode(ByteBuffer bb);
         public abstract void Decode(ByteBuffer bb);

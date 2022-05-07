@@ -1,6 +1,8 @@
 package Zeze.Transaction;
 
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
+import org.apache.commons.lang3.NotImplementedException;
 
 /**
  操作日志。
@@ -34,6 +36,17 @@ public abstract class Log implements Serializable {
 		return VariableId;
 	}
 
-	public abstract void EndSavepoint(Savepoint currentsp);
-	public abstract Log BeginSavepoint();
+	// TODO change to abstract
+	public void EndSavepoint(Savepoint currentsp) {
+		throw new NotImplementedException("");
+	}
+	public Log BeginSavepoint() {
+		throw new NotImplementedException("");
+	}
+	public void Encode(ByteBuffer bb) {
+
+	}
+	public void Decode(ByteBuffer bb) {
+
+	}
 }
