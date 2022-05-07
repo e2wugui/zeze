@@ -29,7 +29,8 @@ public abstract class PList<E> extends PCollection implements List<E> {
 		public final PVector<E> Value;
 
 		public LogV(Bean bean, PVector<E> last) {
-			super(bean);
+			super("bean");
+			setBelong(bean);
 			this.Value = last;
 		}
 

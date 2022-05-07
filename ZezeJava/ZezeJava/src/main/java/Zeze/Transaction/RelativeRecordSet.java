@@ -134,7 +134,7 @@ public class RelativeRecordSet {
 			if (ar.Dirty)
 				allRead = false;
 
-			if (ar.OriginRecord.getTable().getTableConf().getCheckpointWhenCommit()) {
+			if (ar.Origin.getTable().getTableConf().getCheckpointWhenCommit()) {
 				// 修改了需要马上提交的记录。
 				if (ar.Dirty) {
 					needFlushNow = true;
@@ -144,8 +144,8 @@ public class RelativeRecordSet {
 				allCheckpointWhenCommit = false;
 			}
 			// 读写都需要收集。
-			transAccessRecords.add(ar.OriginRecord);
-			final var volatileRrs = ar.OriginRecord.getRelativeRecordSet();
+			transAccessRecords.add(ar.Origin);
+			final var volatileRrs = ar.Origin.getRelativeRecordSet();
 			RelativeRecordSets.put(volatileRrs.Id, volatileRrs);
 		}
 
@@ -242,9 +242,9 @@ public class RelativeRecordSet {
 		if (largest.getRecordSet() != null || !allRead) {
 			// merge 孤立记录。
 			for (var ar : trans.getAccessedRecords().values()) {
-				if (ar.OriginRecord.getRelativeRecordSet().RecordSet == null
-						|| ar.OriginRecord.getRelativeRecordSet() == largest /* is self. urgly */) {
-					largest.Merge(ar.OriginRecord); // 合并孤立记录。这里包含largest是孤立记录的情况。
+				if (ar.Origin.getRelativeRecordSet().RecordSet == null
+						|| ar.Origin.getRelativeRecordSet() == largest /* is self. urgly */) {
+					largest.Merge(ar.Origin); // 合并孤立记录。这里包含largest是孤立记录的情况。
 				}
 			}
 		}

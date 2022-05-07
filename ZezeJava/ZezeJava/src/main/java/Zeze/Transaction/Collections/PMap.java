@@ -30,7 +30,8 @@ public abstract class PMap<K, V> extends PCollection implements Map<K, V> {
 		public final org.pcollections.PMap<K, V> Value;
 
 		protected LogV(Bean bean, org.pcollections.PMap<K, V> value) {
-			super(bean);
+			super("bean");
+			setBean(bean);
 			Value = value;
 		}
 

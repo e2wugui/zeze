@@ -2,8 +2,8 @@ package Zeze.Transaction;
 
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicLong;
-import Zeze.Raft.RocksRaft.Log;
 import Zeze.Serialize.Serializable;
+import Zeze.Transaction.Collections.LogBean;
 import Zeze.Util.KV;
 import Zeze.Util.Str;
 import org.apache.commons.lang3.NotImplementedException;
@@ -29,7 +29,7 @@ public abstract class Bean implements Serializable {
 	// VariableId 初始化分两部分：
 	// 1. Bean 包含的 Bean 在构造的时候初始化，同时初始化容器的LogKey（包含 VariableId）
 	// 2. Bean 加入容器时，由容器初始化。使用容器所在Bean的LogKey中的VariableId初始化。
-	private int VariableId;
+	public int VariableId;
 
 	public Bean() {
 	}
@@ -135,6 +135,10 @@ public abstract class Bean implements Serializable {
 	}
 
 	public void FollowerApply(Log log) {
+		throw new NotImplementedException("");
+	}
+
+	public LogBean CreateLogBean() {
 		throw new NotImplementedException("");
 	}
 }

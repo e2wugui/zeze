@@ -83,7 +83,7 @@ namespace Zeze.Gen.java
 
         public void Visit(BeanKey type)
         {
-            Name = $"Zeze.Transaction.Logs.Log1.LogBeanKey<{TypeName.GetName(type)}>";
+            Name = $"Zeze.Transaction.Logs.LogBeanKey<{TypeName.GetName(type)}>";
         }
 
         public void Visit(TypeDynamic type)
@@ -93,32 +93,32 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeQuaternion type)
         {
-            throw new NotImplementedException();
+            Name = $"Zeze.Transaction.Logs.LogBeanKey<{TypeName.GetName(type)}>";
         }
 
         public void Visit(TypeVector2 type)
         {
-            throw new NotImplementedException();
+            Name = $"Zeze.Transaction.Logs.LogBeanKey<{TypeName.GetName(type)}>";
         }
 
         public void Visit(TypeVector2Int type)
         {
-            throw new NotImplementedException();
+            Name = $"Zeze.Transaction.Logs.LogBeanKey<{TypeName.GetName(type)}>";
         }
 
         public void Visit(TypeVector3 type)
         {
-            throw new NotImplementedException();
+            Name = $"Zeze.Transaction.Logs.LogBeanKey<{TypeName.GetName(type)}>";
         }
 
         public void Visit(TypeVector3Int type)
         {
-            throw new NotImplementedException();
+            Name = $"Zeze.Transaction.Logs.LogBeanKey<{TypeName.GetName(type)}>";
         }
 
         public void Visit(TypeVector4 type)
         {
-            throw new NotImplementedException();
+            Name = $"Zeze.Transaction.Logs.LogBeanKey<{TypeName.GetName(type)}>";
         }
 
         public string Name { get; set; }

@@ -3,7 +3,7 @@ package Zeze.Transaction;
 import Zeze.Serialize.ByteBuffer;
 
 public class RecordAccessed extends Bean {
-	final Record OriginRecord;
+	final Record Origin;
 	final long Timestamp;
 	boolean Dirty;
 
@@ -14,7 +14,7 @@ public class RecordAccessed extends Bean {
 			PutLog putlog = (PutLog)log;
 			return putlog.getValue();
 		}
-		return OriginRecord.getValue();
+		return Origin.getValue();
 	}
 
 	// Record 修改日志先提交到这里(Savepoint.Commit里面调用）。处理完Savepoint后再处理 Dirty 记录。
@@ -38,7 +38,7 @@ public class RecordAccessed extends Bean {
 	}
 
 	public RecordAccessed(Record originRecord) {
-		OriginRecord = originRecord;
+		Origin = originRecord;
 		Timestamp = originRecord.getTimestamp();
 	}
 

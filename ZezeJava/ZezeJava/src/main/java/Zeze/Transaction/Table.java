@@ -69,4 +69,5 @@ public abstract class Table {
 	public final Database getDatabase() { return _Database; }
 	protected final void setDatabase(Database db) { _Database = db; }
 	public abstract boolean isNew();
+	public abstract Bean NewBeanValue();
 }

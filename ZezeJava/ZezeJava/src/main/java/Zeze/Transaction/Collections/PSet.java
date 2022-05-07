@@ -28,7 +28,8 @@ public abstract class PSet<E> extends PCollection implements Set<E> {
 		public final org.pcollections.PSet<E> Value;
 
 		protected LogV(Bean bean, org.pcollections.PSet<E> value) {
-			super(bean);
+			super("bean");
+			setBean(bean);
 			Value = value;
 		}
 

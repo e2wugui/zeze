@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.function.Supplier;
 import Zeze.Services.GlobalCacheManagerServer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -93,6 +94,13 @@ public final class Transaction {
 			last.MergeActions(Actions, false);
 		}
 
+	}
+
+	public Log LogGetOrAdd(long logKey, Supplier<Log> logFactory) {
+		var log = GetLog(logKey);
+		if (log == null)
+			PutLog(log = logFactory.get());
+		return log;
 	}
 
 	public Log GetLog(long key) {
@@ -357,7 +365,7 @@ public final class Transaction {
 
 					for (var e : getAccessedRecords().entrySet()) {
 						if (e.getValue().Dirty) {
-							e.getValue().OriginRecord.Commit(e.getValue());
+							e.getValue().Origin.Commit(e.getValue());
 							cc.BuildCollect(procedure.getZeze(), e.getKey(), e.getValue()); // 首先对脏记录创建Table,Record相关Collector。
 						}
 					}
@@ -429,14 +437,14 @@ public final class Transaction {
 		if (ra == null) {
 			throw new IllegalStateException("VerifyRecordAccessed: Record Not Control Under Current Transaction. " + bean.getTableKey());
 		}
-		if (bean.RootInfo.getRecord() != ra.OriginRecord) {
+		if (bean.RootInfo.getRecord() != ra.Origin) {
 			throw new IllegalStateException("VerifyRecordAccessed: Record Reloaded. " + bean.getTableKey());
 		}
 		// 事务结束后可能会触发Listener，此时Commit已经完成，Timestamp已经改变，
 		// 这种情况下不做RedoCheck，当然Listener的访问数据是只读的。
-		if (ra.OriginRecord.getTable().getZeze().getConfig().getFastRedoWhenConflict()
+		if (ra.Origin.getTable().getZeze().getConfig().getFastRedoWhenConflict()
 				&& State != TransactionState.Completed
-				&& ra.OriginRecord.getTimestamp() != ra.Timestamp) {
+				&& ra.Origin.getTimestamp() != ra.Timestamp) {
 			ThrowRedo();
 		}
 	}
@@ -448,55 +456,55 @@ public final class Transaction {
 	}
 
 	private CheckResult _check_(boolean writeLock, RecordAccessed e) {
-		e.OriginRecord.EnterFairLock();
+		e.Origin.EnterFairLock();
 		try {
 			//noinspection IfStatementWithIdenticalBranches
 			if (writeLock) {
-				switch (e.OriginRecord.getState()) {
+				switch (e.Origin.getState()) {
 					case GlobalCacheManagerServer.StateRemoved:
 						// 被从cache中清除，不持有该记录的Global锁，简单重做即可。
 						return CheckResult.Redo;
 
 					case GlobalCacheManagerServer.StateInvalid:
 						LastTableKeyOfRedoAndRelease = e.getTableKey();
-						LastGlobalSerialIdOfRedoAndRelease = e.OriginRecord.LastErrorGlobalSerialId;
+						LastGlobalSerialIdOfRedoAndRelease = e.Origin.LastErrorGlobalSerialId;
 						return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，可能有Reduce请求。
 
 					case GlobalCacheManagerServer.StateModify:
-						return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
+						return e.Timestamp != e.Origin.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
 
 					case GlobalCacheManagerServer.StateShare:
 						// 这里可能死锁：另一个先获得提升的请求要求本机Reduce，但是本机Checkpoint无法进行下去，被当前事务挡住了。
 						// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
-						var acquire = e.OriginRecord.Acquire(GlobalCacheManagerServer.StateModify);
+						var acquire = e.Origin.Acquire(GlobalCacheManagerServer.StateModify);
 						if (acquire.ResultState != GlobalCacheManagerServer.StateModify) {
-							logger.debug("Acquire Failed. Maybe DeadLock Found {}", e.OriginRecord);
-							e.OriginRecord.setState(GlobalCacheManagerServer.StateInvalid); // 这里保留StateShare更好吗？
+							logger.debug("Acquire Failed. Maybe DeadLock Found {}", e.Origin);
+							e.Origin.setState(GlobalCacheManagerServer.StateInvalid); // 这里保留StateShare更好吗？
 							LastTableKeyOfRedoAndRelease = e.getTableKey();
-							e.OriginRecord.LastErrorGlobalSerialId = acquire.ResultGlobalSerialId; // save
+							e.Origin.LastErrorGlobalSerialId = acquire.ResultGlobalSerialId; // save
 							LastGlobalSerialIdOfRedoAndRelease = acquire.ResultGlobalSerialId;
 							return CheckResult.RedoAndReleaseLock;
 						}
-						e.OriginRecord.setState(GlobalCacheManagerServer.StateModify);
-						return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
+						e.Origin.setState(GlobalCacheManagerServer.StateModify);
+						return e.Timestamp != e.Origin.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
 				}
-				return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success; // impossible
+				return e.Timestamp != e.Origin.getTimestamp() ? CheckResult.Redo : CheckResult.Success; // impossible
 			}
 			else {
-				switch (e.OriginRecord.getState()) {
+				switch (e.Origin.getState()) {
 					case GlobalCacheManagerServer.StateRemoved:
 						// 被从cache中清除，不持有该记录的Global锁，简单重做即可。
 						return CheckResult.Redo;
 
 					case GlobalCacheManagerServer.StateInvalid:
 						LastTableKeyOfRedoAndRelease = e.getTableKey();
-						LastGlobalSerialIdOfRedoAndRelease = e.OriginRecord.LastErrorGlobalSerialId;
+						LastGlobalSerialIdOfRedoAndRelease = e.Origin.LastErrorGlobalSerialId;
 						return CheckResult.RedoAndReleaseLock; // 发现Invalid，可能有Reduce请求或者被Cache清理，此时保险起见释放锁。
 				}
-				return e.Timestamp != e.OriginRecord.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
+				return e.Timestamp != e.Origin.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
 			}
 		} finally {
-			e.OriginRecord.ExitFairLock();
+			e.Origin.ExitFairLock();
 		}
 	}
 

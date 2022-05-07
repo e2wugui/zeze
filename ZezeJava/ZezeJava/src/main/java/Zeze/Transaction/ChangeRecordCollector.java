@@ -47,8 +47,8 @@ public final class ChangeRecordCollector {
 			if (recordAccessed.CommittedPutLog.getValue() == null)
 				variables.foreachValue(cvc -> cvc.NotifyRecordRemoved(key));
 			else
-				variables.foreachValue(cvc -> cvc.NotifyRecordChanged(key, recordAccessed.OriginRecord.getValue()));
+				variables.foreachValue(cvc -> cvc.NotifyRecordChanged(key, recordAccessed.Origin.getValue()));
 		} else
-			variables.foreachValue(cvc -> cvc.NotifyVariableChanged(key, recordAccessed.OriginRecord.getValue()));
+			variables.foreachValue(cvc -> cvc.NotifyVariableChanged(key, recordAccessed.Origin.getValue()));
 	}
 }

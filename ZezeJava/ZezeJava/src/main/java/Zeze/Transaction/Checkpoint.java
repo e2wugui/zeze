@@ -247,7 +247,7 @@ public final class Checkpoint {
 
 	public void Flush(Transaction trans) {
 		var result = trans.getAccessedRecords().values()
-				.stream().filter((r) -> r.Dirty).map((r) -> r.OriginRecord)
+				.stream().filter((r) -> r.Dirty).map((r) -> r.Origin)
 				.collect(Collectors.toList());
 		Flush(result);
 	}

@@ -319,7 +319,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 
 		V add = NewValue();
-		add.InitRootInfo(cr.OriginRecord.CreateRootInfoIfNeed(tkey), null);
+		add.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
 		cr.Put(currentT, add);
 		return add;
 	}
@@ -333,7 +333,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		TableKey tkey = new TableKey(Name, key);
 		assert currentT != null;
 		Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
-		value.InitRootInfo(cr.OriginRecord.CreateRootInfoIfNeed(tkey), null);
+		value.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
 		cr.Put(currentT, value);
 		return true;
 	}
@@ -352,7 +352,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		assert currentT != null;
 		Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
 		if (null != cr) {
-			value.InitRootInfo(cr.OriginRecord.CreateRootInfoIfNeed(tkey), null);
+			value.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
 			cr.Put(currentT, value);
 			return;
 		}
@@ -451,6 +451,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public abstract V NewValue();
+	public Bean NewBeanValue() {
+		return NewValue();
+	}
 
 	public final ByteBuffer EncodeValue(V sa) {
 		return ByteBuffer.Encode(sa);
