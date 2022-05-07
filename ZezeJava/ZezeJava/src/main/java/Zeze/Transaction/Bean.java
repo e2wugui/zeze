@@ -2,9 +2,11 @@ package Zeze.Transaction;
 
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicLong;
+import Zeze.Raft.RocksRaft.Log;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.KV;
 import Zeze.Util.Str;
+import org.apache.commons.lang3.NotImplementedException;
 
 public abstract class Bean implements Serializable {
 	public static final int ObjectIdStep = 4096; // 自增长步长。低位保留给Variable.Id。也就是，Variable.Id 最大只能是4095.
@@ -122,5 +124,17 @@ public abstract class Bean implements Serializable {
 	public static int Hash32(String name) {
 		long hash64 = Hash64(name);
 		return (int)(hash64 ^ (hash64 >> 32));
+	}
+
+	public Object getMapKey() {
+		throw new UnsupportedOperationException();
+	}
+
+	public void setMapKey(Object mapKey) {
+		throw new UnsupportedOperationException();
+	}
+
+	public void FollowerApply(Log log) {
+		throw new NotImplementedException("");
 	}
 }

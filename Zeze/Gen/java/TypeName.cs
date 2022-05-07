@@ -71,7 +71,7 @@ namespace Zeze.Gen.java
         public virtual void Visit(TypeList type)
         {
             string valueName = BoxingName.GetBoxingName(type.ValueType);
-            nameRaw = "Zeze.Transaction.Collections.PList";
+            nameRaw = "Zeze.Transaction.Collections.CollList";
             nameOmitted = nameRaw + (type.ValueType.IsNormalBean ? '2' : '1');
             name = nameOmitted + '<' + valueName + '>';
             nameCollectionImplement = "org.pcollections.PVector<" + valueName + '>';
@@ -80,7 +80,7 @@ namespace Zeze.Gen.java
         public virtual void Visit(TypeSet type)
         {
             string valueName = BoxingName.GetBoxingName(type.ValueType);
-            nameRaw = "Zeze.Transaction.Collections.PSet";
+            nameRaw = "Zeze.Transaction.Collections.CollSet";
             nameOmitted = nameRaw + '1';
             name = nameOmitted + '<' + valueName + '>';
             nameCollectionImplement = "org.pcollections.PSet<" + valueName + '>';
@@ -90,7 +90,7 @@ namespace Zeze.Gen.java
         {
             string key = BoxingName.GetBoxingName(type.KeyType);
             string value = BoxingName.GetBoxingName(type.ValueType);
-            nameRaw = "Zeze.Transaction.Collections.PMap";
+            nameRaw = "Zeze.Transaction.Collections.CollMap";
             nameOmitted = nameRaw + (type.ValueType.IsNormalBean ? '2' : '1');
             name = nameOmitted + '<' + key + ", " + value + '>';
             nameCollectionImplement = "org.pcollections.PMap<" + key + ", " + value + '>';

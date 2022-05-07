@@ -11,6 +11,22 @@ namespace Zeze.Gen.java
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
+            if (bean.MapKeyTypes.Count > 0)
+            {
+                sw.WriteLine($"{prefix}private Object __zeze_map_key__;");
+                sw.WriteLine();
+                sw.WriteLine($"{prefix}@Override");
+                sw.WriteLine($"{prefix}public Object getMapKey() {{");
+                sw.WriteLine($"{prefix}    return __zeze_map_key__;");
+                sw.WriteLine($"{prefix}}}");
+                sw.WriteLine();
+                sw.WriteLine($"{prefix}@Override");
+                sw.WriteLine($"{prefix}public void setMapKey(Object value) {{");
+                sw.WriteLine($"{prefix}    __zeze_map_key__ = value;");
+                sw.WriteLine($"{prefix}}}");
+                sw.WriteLine();
+            }
+
             foreach (Variable var in bean.Variables)
                 var.VariableType.Accept(new Property(sw, var, prefix));
         }
@@ -20,6 +36,11 @@ namespace Zeze.Gen.java
             this.sw = sw;
             this.var = var;
             this.prefix = prefix;
+        }
+
+        public static string GetLogName(Type type)
+        {
+            return LogName.GetName(type);
         }
 
         void WriteProperty(Type type, bool checkNull = false)
@@ -50,7 +71,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    var txn = Zeze.Transaction.Transaction.getCurrent();");
             sw.WriteLine(prefix + "    assert txn != null;");
             sw.WriteLine(prefix + "    txn.VerifyRecordAccessed(this);");
-            sw.WriteLine(prefix + "    txn.PutLog(new Log_" + var.NamePrivate + "(this, value));"); //
+            sw.WriteLine(prefix + "    txn.PutLog(new Log_" + var.NamePrivate + $"(this, {var.Id}, value));"); //
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }

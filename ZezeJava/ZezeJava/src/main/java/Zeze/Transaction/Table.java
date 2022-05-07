@@ -3,6 +3,7 @@ package Zeze.Transaction;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Services.GlobalCacheManager.Reduce;
+import org.apache.commons.lang3.NotImplementedException;
 
 public abstract class Table {
 	public Table(String name) {
@@ -56,7 +57,11 @@ public abstract class Table {
 		return ChangeListenerMap;
 	}
 
-	public abstract ChangeVariableCollector CreateChangeVariableCollector(int variableId);
+	public ChangeVariableCollector CreateChangeVariableCollector(int variableId)
+	{
+		// TODO delete me
+		throw new NotImplementedException("");
+	}
 
 	abstract Storage GetStorage();
 

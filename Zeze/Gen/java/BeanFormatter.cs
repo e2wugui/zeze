@@ -80,7 +80,7 @@ namespace Zeze.Gen.java
                     var value = pmap.ValueType.IsNormalBean
                         ? TypeName.GetName(pmap.ValueType) + "ReadOnly"
                         : TypeName.GetName(pmap.ValueType);
-                    var readonlyTypeName = $"Zeze.Transaction.Collections.PMapReadOnly<{key},{value},{TypeName.GetName(pmap.ValueType)}>";
+                    var readonlyTypeName = $"Zeze.Transaction.Collections.CollMapReadOnly<{key},{value},{TypeName.GetName(pmap.ValueType)}>";
                     sw.WriteLine($"        private {readonlyTypeName} {v.NamePrivate}ReadOnly;");
                 }
                 */
@@ -125,6 +125,7 @@ namespace Zeze.Gen.java
             Decode.Make(bean, sw, "    ");
             InitChildrenTableKey.Make(bean, sw, "    ");
             NegativeCheck.Make(bean, sw, "    ");
+            FollowerApply.Make(bean, sw, "        ");
         }
     }
 }

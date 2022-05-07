@@ -35,12 +35,10 @@ namespace Zeze.Gen.java
         void WriteLogValue(Types.Type type)
         {
             string valueName = BoxingName.GetBoxingName(type);
-            sw.WriteLine(prefix + "private static final class Log_" + var.NamePrivate + " extends Zeze.Transaction.Log1<" + bean.Name + ", " + valueName + "> {");
-            sw.WriteLine(prefix + "    public Log_" + var.NamePrivate + "(" + bean.Name + " self, " + valueName + " value) { super(self, value); }");
+            sw.WriteLine(prefix + $"private static final class Log_{var.NamePrivate} extends Zeze.Transaction.Log1<{bean.Name}, {valueName}> {{");
+            sw.WriteLine(prefix + $"   public Log_{var.NamePrivate}({bean.Name} bean, int varId, {valueName} value) {{ super(bean, varId, value); }}");
             sw.WriteLine(prefix + "    @Override");
-            sw.WriteLine(prefix + "    public long getLogKey() { return this.getBean().getObjectId() + " + var.Id + "; }");
-            sw.WriteLine(prefix + "    @Override");
-            sw.WriteLine(prefix + "    public void Commit() { this.getBeanTyped()." + var.NamePrivate + " = this.getValue(); }");
+            sw.WriteLine(prefix + $"    public void Commit() {{ getBeanTyped().{var.NamePrivate} = this.getValue(); }}");
             sw.WriteLine(prefix + "}");
         }
 
@@ -104,6 +102,7 @@ namespace Zeze.Gen.java
 
         void WriteCollectionLog(Types.Type type)
         {
+            /*
             var pn = GetTemplatParams(type);
             var tn = new TypeName();
             type.Accept(tn);
@@ -116,6 +115,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    @Override");
             sw.WriteLine(prefix + "    public void Commit() { Commit(getBeanTyped()." + var.NamePrivate + "); }");
             sw.WriteLine(prefix + "}");
+            */
         }
 
         public void Visit(TypeList type)

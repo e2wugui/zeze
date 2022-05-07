@@ -72,8 +72,8 @@ namespace Zeze.Gen.java
             sw.WriteLine($"    public {value} NewValue() {{");
             sw.WriteLine($"        return new {value}();");
             sw.WriteLine("    }");
-            sw.WriteLine();
-            CreateChangeVariableCollector.Make(sw, "    ", (Types.Bean)table.ValueType);
+            //sw.WriteLine();
+            //CreateChangeVariableCollector.Make(sw, "    ", (Types.Bean)table.ValueType);
             sw.WriteLine("}");
         }
     }
