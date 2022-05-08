@@ -1,6 +1,7 @@
 package Zeze.Transaction.Collections;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
@@ -70,7 +71,28 @@ public class LogList1<V> extends LogList<V> {
 		return true;
 	}
 
-	public final boolean Remove(V item) {
+	public final boolean AddAll(Collection<? extends V> items) {
+		var addindex = getValue().size();
+		var list = getValue().plusAll(items);
+		if (list == getValue())
+			return false;
+		setValue(list);
+		for (var item : items) {
+			opLogs.add(new OpLog<>(OpLog.OP_ADD, addindex++, item));
+		}
+		return true;
+	}
+
+	public final boolean RemoveAll(Collection<?> c) {
+		var result = false;
+		for (var o : c) {
+			if (Remove(o))
+				result = true; // 只要有一个删除成功，就认为成功：removeAll的定义是发生了改变就返回true。
+		}
+		return result;
+	}
+
+	public final boolean Remove(Object item) {
 		var index = getValue().indexOf(item);
 		if (index < 0)
 			return false;

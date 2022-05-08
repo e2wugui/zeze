@@ -1,5 +1,6 @@
 package Zeze.Transaction.Collections;
 
+import java.util.Collection;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Serialize.ByteBuffer;
@@ -15,7 +16,7 @@ public class CollList1<V> extends CollList<V> {
 
 	public CollList1(Class<V> valueClass) {
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
-		logTypeId = Zeze.Transaction.Bean.Hash32("Zeze.Raft.RocksRaft.LogList1<" + Reflect.GetStableName(valueClass) + '>');
+		logTypeId = Zeze.Transaction.Bean.Hash32("Zeze.Transaction.LogList1<" + Reflect.GetStableName(valueClass) + '>');
 	}
 
 	private CollList1(int logTypeId, SerializeHelper.CodecFuncs<V> valueCodecFuncs) {
@@ -25,9 +26,16 @@ public class CollList1<V> extends CollList<V> {
 
 	@Override
 	public boolean add(V item) {
+		if (item == null) {
+			throw new NullPointerException();
+		}
+
 		if (isManaged()) {
+			var txn = Transaction.getCurrent();
+			assert txn != null;
+			txn.VerifyRecordAccessed(this);
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList1<V>)Transaction.getCurrent().LogGetOrAdd(
+			var listLog = (LogList1<V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
 			return listLog.Add(item);
 		}
@@ -39,10 +47,13 @@ public class CollList1<V> extends CollList<V> {
 	}
 
 	@Override
-	public boolean remove(V item) {
+	public boolean remove(Object item) {
 		if (isManaged()) {
+			var txn = Transaction.getCurrent();
+			assert txn != null;
+			txn.VerifyRecordAccessed(this);
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList1<V>)Transaction.getCurrent().LogGetOrAdd(
+			var listLog = (LogList1<V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
 			return listLog.Remove(item);
 		}
@@ -56,8 +67,11 @@ public class CollList1<V> extends CollList<V> {
 	@Override
 	public void clear() {
 		if (isManaged()) {
+			var txn = Transaction.getCurrent();
+			assert txn != null;
+			txn.VerifyRecordAccessed(this);
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList1<V>)Transaction.getCurrent().LogGetOrAdd(
+			var listLog = (LogList1<V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
 			listLog.Clear();
 		} else
@@ -66,9 +80,16 @@ public class CollList1<V> extends CollList<V> {
 
 	@Override
 	public V set(int index, V item) {
+		if (item == null) {
+			throw new NullPointerException();
+		}
+
 		if (isManaged()) {
+			var txn = Transaction.getCurrent();
+			assert txn != null;
+			txn.VerifyRecordAccessed(this);
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList1<V>)Transaction.getCurrent().LogGetOrAdd(
+			var listLog = (LogList1<V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
 			return listLog.Set(index, item);
 		}
@@ -79,9 +100,16 @@ public class CollList1<V> extends CollList<V> {
 
 	@Override
 	public void add(int index, V item) {
+		if (item == null) {
+			throw new NullPointerException();
+		}
+
 		if (isManaged()) {
+			var txn = Transaction.getCurrent();
+			assert txn != null;
+			txn.VerifyRecordAccessed(this);
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList1<V>)Transaction.getCurrent().LogGetOrAdd(
+			var listLog = (LogList1<V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
 			listLog.Add(index, item);
 		} else
@@ -91,14 +119,59 @@ public class CollList1<V> extends CollList<V> {
 	@Override
 	public V remove(int index) {
 		if (isManaged()) {
+			var txn = Transaction.getCurrent();
+			assert txn != null;
+			txn.VerifyRecordAccessed(this);
 			@SuppressWarnings("unchecked")
-			var listLog = (LogList1<V>)Transaction.getCurrent().LogGetOrAdd(
+			var listLog = (LogList1<V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
 			return listLog.Remove(index);
 		}
 		var old = _list.get(index);
 		_list = _list.minus(index);
 		return old;
+	}
+
+	@Override
+	public boolean addAll(Collection<? extends V> items) {
+		// XXX
+		for (var v : items) {
+			if (null == v) {
+				throw new NullPointerException();
+			}
+		}
+
+		if (this.isManaged()) {
+			var txn = Transaction.getCurrent();
+			assert txn != null;
+			txn.VerifyRecordAccessed(this);
+			@SuppressWarnings("unchecked")
+			var listLog = (LogList1<V>)txn.LogGetOrAdd(
+					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+			return listLog.AddAll(items);
+		}
+		else {
+			_list = _list.plusAll(items);
+		}
+		return true;
+	}
+
+	@Override
+	public boolean removeAll(Collection<?> c) {
+		if (this.isManaged()) {
+			var txn = Transaction.getCurrent();
+			assert txn != null;
+			txn.VerifyRecordAccessed(this);
+			@SuppressWarnings("unchecked")
+			var listLog = (LogList1<V>)txn.LogGetOrAdd(
+					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+			return listLog.RemoveAll(c);
+		}
+		else {
+			var oldList = _list;
+			_list = _list.minusAll(c);
+			return oldList != _list;
+		}
 	}
 
 	@Override

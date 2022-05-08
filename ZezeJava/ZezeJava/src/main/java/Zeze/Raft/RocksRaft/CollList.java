@@ -59,7 +59,25 @@ public abstract class CollList<V> extends Collection implements Iterable<V> {
 
 	@Override
 	public Iterator<V> iterator() {
-		return getList().iterator();
+		return new Iterator<>() {
+			private final Iterator<V> it = getList().iterator();
+			private V next;
+
+			@Override
+			public boolean hasNext() {
+				return it.hasNext();
+			}
+
+			@Override
+			public V next() {
+				return next = it.next();
+			}
+
+			@Override
+			public void remove() {
+				CollList.this.remove(next);
+			}
+		};
 	}
 
 	@Override

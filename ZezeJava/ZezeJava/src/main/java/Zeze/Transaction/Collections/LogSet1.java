@@ -1,5 +1,6 @@
 package Zeze.Transaction.Collections;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
@@ -51,11 +52,37 @@ public class LogSet1<V> extends LogSet<V> {
 		return false;
 	}
 
-	public final boolean Remove(V item) {
+	public final boolean AddAll(Collection<? extends V> c) {
+		var newSet = getValue().plusAll(c);
+		if (newSet != getValue()) {
+			for (var item : c) {
+				Added.add(item);
+				Removed.remove(item);
+			}
+			setValue(newSet);
+			return true;
+		}
+		return false;
+	}
+
+	public final boolean Remove(Object item) {
 		var newSet = getValue().minus(item);
 		if (newSet != getValue()) {
-			Removed.add(item);
+			Removed.add((V)item);
 			Added.remove(item);
+			setValue(newSet);
+			return true;
+		}
+		return false;
+	}
+
+	public final boolean RemoveAll(Collection<?> c) {
+		var newSet = getValue().minusAll(c);
+		if (newSet != getValue()) {
+			for (var i : c) {
+				Removed.add((V)i);
+				Added.remove(i);
+			}
 			setValue(newSet);
 			return true;
 		}

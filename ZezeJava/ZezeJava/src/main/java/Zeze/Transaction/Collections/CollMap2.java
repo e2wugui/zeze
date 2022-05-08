@@ -1,6 +1,7 @@
 package Zeze.Transaction.Collections;
 
 import java.lang.invoke.MethodHandle;
+import java.util.Map;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
@@ -30,39 +31,108 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 	}
 
 	@Override
-	public void add(K key, V value) {
-		put(key, value);
-	}
+	public V put(K key, V value) {
+		if (key == null) {
+			throw new NullPointerException();
+		}
+		if (value == null) {
+			throw new NullPointerException();
+		}
 
-	@Override
-	public void put(K key, V value) {
 		value.setMapKey(key);
 		if (isManaged()) {
 			value.InitRootInfo(RootInfo, this);
+			var txn = Transaction.getCurrent();
+			assert txn != null;
+			txn.VerifyRecordAccessed(this);
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap2<K, V>)Transaction.getCurrent().LogGetOrAdd(
+			var mapLog = (LogMap2<K, V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
-			mapLog.Put(key, value);
-		} else
+			return mapLog.Put(key, value);
+		}
+		else {
+			var oldV = _map.get(key);
 			_map = _map.plus(key, value);
+			return oldV;
+		}
 	}
 
 	@Override
-	public void remove(K key) {
-		if (isManaged()) {
+	public void putAll(Map<? extends K, ? extends V> m) {
+		for (var p : m.entrySet()) {
+			if (p.getKey() == null) {
+				throw new NullPointerException();
+			}
+			if (p.getValue() == null) {
+				throw new NullPointerException();
+			}
+		}
+
+		if (this.isManaged()) {
+			for (var p : m.entrySet()) {
+				p.getValue().InitRootInfo(RootInfo, this);
+			}
+			var txn = Transaction.getCurrent();
+			assert txn != null;
+			txn.VerifyRecordAccessed(this);
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap2<K, V>)Transaction.getCurrent().LogGetOrAdd(
+			var mapLog = (LogMap1<K, V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
-			mapLog.Remove(key);
-		} else
+			mapLog.PutAll(m);
+		}
+		else {
+			_map = _map.plusAll(m);
+		}
+	}
+
+	@Override
+	public V remove(Object key) {
+		if (isManaged()) {
+			var txn = Transaction.getCurrent();
+			assert txn != null;
+			txn.VerifyRecordAccessed(this);
+			@SuppressWarnings("unchecked")
+			var mapLog = (LogMap2<K, V>)txn.LogGetOrAdd(
+					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+			return mapLog.Remove(key);
+		} else {
+			//noinspection SuspiciousMethodCalls
+			var exist = _map.get(key);
 			_map = _map.minus(key);
+			return exist;
+		}
+	}
+
+	@Override
+	public boolean remove(Entry<K, V> item) {
+		if (isManaged()) {
+			var txn = Transaction.getCurrent();
+			assert txn != null;
+			txn.VerifyRecordAccessed(this);
+			@SuppressWarnings("unchecked")
+			var mapLog = (LogMap1<K, V>)txn.LogGetOrAdd(
+					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+			return mapLog.Remove(item.getKey(), item.getValue());
+		} else {
+			var old = _map;
+			//noinspection SuspiciousMethodCalls
+			var exist = old.get(item.getKey());
+			if (null != exist && exist.equals(item.getValue())) {
+				_map = _map.minus(item.getKey());
+				return true;
+			}
+			return false;
+		}
 	}
 
 	@Override
 	public void clear() {
 		if (isManaged()) {
+			var txn = Transaction.getCurrent();
+			assert txn != null;
+			txn.VerifyRecordAccessed(this);
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap2<K, V>)Transaction.getCurrent().LogGetOrAdd(
+			var mapLog = (LogMap2<K, V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
 			mapLog.Clear();
 		} else

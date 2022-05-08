@@ -1,8 +1,10 @@
 package Zeze.Transaction.Collections;
 
+import java.util.Map;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.ChangeNoteMap1;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
@@ -16,7 +18,7 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 	public CollMap1(Class<K> keyClass, Class<V> valueClass) {
 		keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
-		logTypeId = Zeze.Transaction.Bean.Hash32("Zeze.Raft.RocksRaft.LogMap1<"
+		logTypeId = Zeze.Transaction.Bean.Hash32("Zeze.Transaction.Collections.LogMap1<"
 				+ Reflect.GetStableName(keyClass) + ", " + Reflect.GetStableName(valueClass) + '>');
 	}
 
@@ -28,43 +30,102 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 	}
 
 	@Override
-	public void add(K key, V value) {
+	public V put(K key, V value) {
+		if (key == null) {
+			throw new NullPointerException();
+		}
+		if (value == null) {
+			throw new NullPointerException();
+		}
+
 		if (isManaged()) {
+			var txn = Transaction.getCurrent();
+			assert txn != null;
+			txn.VerifyRecordAccessed(this);
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().LogGetOrAdd(
+			var mapLog = (LogMap1<K, V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
-			mapLog.Add(key, value);
-		} else
+			return mapLog.Put(key, value);
+		} else {
+			var exist = _map.get(key);
 			_map = _map.plus(key, value);
+			return exist;
+		}
 	}
 
 	@Override
-	public void put(K key, V value) {
-		if (isManaged()) {
+	public void putAll(Map<? extends K, ? extends V> m) {
+		for (var p : m.entrySet()) {
+			if (p.getKey() == null) {
+				throw new NullPointerException();
+			}
+			if (p.getValue() == null) {
+				throw new NullPointerException();
+			}
+		}
+
+		if (this.isManaged()) {
+			var txn = Transaction.getCurrent();
+			assert txn != null;
+			txn.VerifyRecordAccessed(this);
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().LogGetOrAdd(
+			var mapLog = (LogMap1<K, V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
-			mapLog.Put(key, value);
-		} else
-			_map = _map.plus(key, value);
+			mapLog.PutAll(m);
+		}
+		else {
+			_map = _map.plusAll(m);
+		}
 	}
 
 	@Override
-	public void remove(K key) {
+	public V remove(Object key) {
 		if (isManaged()) {
+			var txn = Transaction.getCurrent();
+			assert txn != null;
+			txn.VerifyRecordAccessed(this);
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().LogGetOrAdd(
+			var mapLog = (LogMap1<K, V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
-			mapLog.Remove(key);
-		} else
+			return mapLog.Remove(key);
+		} else {
+			//noinspection SuspiciousMethodCalls
+			var exist = _map.get(key);
 			_map = _map.minus(key);
+			return exist;
+		}
+	}
+
+	@Override
+	public boolean remove(Entry<K, V> item) {
+		if (isManaged()) {
+			var txn = Transaction.getCurrent();
+			assert txn != null;
+			txn.VerifyRecordAccessed(this);
+			@SuppressWarnings("unchecked")
+			var mapLog = (LogMap1<K, V>)txn.LogGetOrAdd(
+					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+			return mapLog.Remove(item.getKey(), item.getValue());
+		} else {
+			var old = _map;
+			//noinspection SuspiciousMethodCalls
+			var exist = old.get(item.getKey());
+			if (null != exist && exist.equals(item.getValue())) {
+				_map = _map.minus(item.getKey());
+				return true;
+			}
+			return false;
+		}
 	}
 
 	@Override
 	public void clear() {
 		if (isManaged()) {
+			var txn = Transaction.getCurrent();
+			assert txn != null;
+			txn.VerifyRecordAccessed(this);
 			@SuppressWarnings("unchecked")
-			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().LogGetOrAdd(
+			var mapLog = (LogMap1<K, V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
 			mapLog.Clear();
 		} else

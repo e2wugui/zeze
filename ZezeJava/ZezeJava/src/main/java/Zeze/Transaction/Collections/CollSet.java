@@ -1,24 +1,32 @@
 package Zeze.Transaction.Collections;
 
 import java.util.Iterator;
+import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
+import org.apache.commons.lang3.NotImplementedException;
 
-public abstract class CollSet<V> extends Collection implements Iterable<V> {
+public abstract class CollSet<V> extends Collection implements Set<V> {
 	public org.pcollections.PSet<V> _set = org.pcollections.Empty.set();
 
+	@Override
 	public abstract boolean add(V item);
 
-	public abstract boolean remove(V item);
+	@Override
+	public abstract boolean remove(Object item);
 
+	@Override
 	public abstract void clear();
 
 	protected final org.pcollections.PSet<V> getSet() {
 		if (isManaged()) {
-			if (Transaction.getCurrent() == null)
+			var txn = Transaction.getCurrent();
+			if (txn == null) {
 				return _set;
-			Log log = Transaction.getCurrent().GetLog(getParent().getObjectId() + getVariableId());
+			}
+			txn.VerifyRecordAccessed(this, true);
+			Log log = txn.GetLog(getParent().getObjectId() + getVariableId());
 			if (log == null)
 				return _set;
 			@SuppressWarnings("unchecked")
@@ -28,17 +36,70 @@ public abstract class CollSet<V> extends Collection implements Iterable<V> {
 		return _set;
 	}
 
+	@Override
 	public final int size() {
 		return getSet().size();
 	}
 
-	public final boolean Contains(V v) {
+	@Override
+	public final boolean isEmpty() {
+		return getSet().isEmpty();
+	}
+
+	@Override
+	public final boolean contains(Object v) {
 		return getSet().contains(v);
 	}
 
 	@Override
+	public boolean containsAll(java.util.Collection<?> c) {
+		return getSet().containsAll(c);
+	}
+
+	@Override
+	public boolean retainAll(java.util.Collection<?> c) {
+		throw new NotImplementedException("");
+	}
+
+	public final void CopyTo(V[] array, int arrayIndex) {
+		int index = arrayIndex;
+		for (var e : getSet()) {
+			array[index++] = e;
+		}
+	}
+
+	@Override
+	public Object[] toArray() {
+		return getSet().toArray();
+	}
+
+	@Override
+	public <T> T[] toArray(T[] a) {
+		//noinspection SuspiciousToArrayCall
+		return getSet().toArray(a);
+	}
+
+	@Override
 	public Iterator<V> iterator() {
-		return getSet().iterator();
+		return new Iterator<>() {
+			private final Iterator<V> it = getSet().iterator();
+			private V next;
+
+			@Override
+			public boolean hasNext() {
+				return it.hasNext();
+			}
+
+			@Override
+			public V next() {
+				return next = it.next();
+			}
+
+			@Override
+			public void remove() {
+				CollSet.this.remove(next);
+			}
+		};
 	}
 
 	@Override

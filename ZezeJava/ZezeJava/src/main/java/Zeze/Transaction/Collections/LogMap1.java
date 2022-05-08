@@ -2,6 +2,7 @@ package Zeze.Transaction.Collections;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
@@ -49,16 +50,44 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		Put(key, value);
 	}
 
-	public final void Put(K key, V value) {
+	public final V Put(K key, V value) {
+		var exist = getValue().get(key);
 		setValue(getValue().plus(key, value));
 		Putted.put(key, value);
 		Removed.remove(key);
+		return exist;
 	}
 
-	public final void Remove(K key) {
-		setValue(getValue().minus(key));
-		Putted.remove(key);
-		Removed.add(key);
+	public final void PutAll(Map<? extends K, ? extends V> m) {
+		var newmap = getValue().plusAll(m);
+		if (newmap != getValue()) {
+			setValue(newmap);
+			for (var e : m.entrySet()) {
+				Putted.put(e.getKey(), e.getValue());
+				Removed.remove(e.getKey());
+			}
+		}
+	}
+
+	public final V Remove(Object key) {
+		var old = getValue().get(key);
+		if (null != old) {
+			setValue(getValue().minus(key));
+			Putted.remove(key);
+			Removed.add((K)key);
+		}
+		return old;
+	}
+
+	public final boolean Remove(Object key, V value) {
+		var old = getValue().get(key);
+		if (null != old && old.equals((value))) {
+			setValue(getValue().minus(key));
+			Putted.remove(key);
+			Removed.add((K)key);
+			return true;
+		}
+		return false;
 	}
 
 	public final void Clear() {

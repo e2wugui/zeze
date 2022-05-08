@@ -1,5 +1,6 @@
 package Zeze.Transaction.Collections;
 
+import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
@@ -24,9 +25,16 @@ public class CollSet1<V> extends CollSet<V> {
 
 	@Override
 	public boolean add(V item) {
+		if (item == null) {
+			throw new NullPointerException();
+		}
+
 		if (isManaged()) {
+			var txn = Transaction.getCurrent();
+			assert txn != null;
+			txn.VerifyRecordAccessed(this);
 			@SuppressWarnings("unchecked")
-			var setLog = (LogSet1<V>)Transaction.getCurrent().LogGetOrAdd(
+			var setLog = (LogSet1<V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
 			return setLog.Add(item);
 		}
@@ -38,10 +46,13 @@ public class CollSet1<V> extends CollSet<V> {
 	}
 
 	@Override
-	public boolean remove(V item) {
+	public boolean remove(Object item) {
 		if (isManaged()) {
+			var txn = Transaction.getCurrent();
+			assert txn != null;
+			txn.VerifyRecordAccessed(this);
 			@SuppressWarnings("unchecked")
-			var setLog = (LogSet1<V>)Transaction.getCurrent().LogGetOrAdd(
+			var setLog = (LogSet1<V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
 			return setLog.Remove(item);
 		}
@@ -53,10 +64,49 @@ public class CollSet1<V> extends CollSet<V> {
 	}
 
 	@Override
+	public boolean addAll(Collection<? extends V> c) {
+		if (isManaged()) {
+			var txn = Transaction.getCurrent();
+			assert txn != null;
+			txn.VerifyRecordAccessed(this);
+			@SuppressWarnings("unchecked")
+			var setLog = (LogSet1<V>)txn.LogGetOrAdd(
+					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+			return setLog.AddAll(c);
+		}
+		var newSet = _set.plusAll(c);
+		if (newSet == _set)
+			return false;
+		_set = newSet;
+		return true;
+	}
+
+	@Override
+	public boolean removeAll(Collection<?> c) {
+		if (isManaged()) {
+			var txn = Transaction.getCurrent();
+			assert txn != null;
+			txn.VerifyRecordAccessed(this);
+			@SuppressWarnings("unchecked")
+			var setLog = (LogSet1<V>)txn.LogGetOrAdd(
+					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+			return setLog.RemoveAll(c);
+		}
+		var newSet = _set.minusAll(c);
+		if (newSet == _set)
+			return false;
+		_set = newSet;
+		return true;
+	}
+
+	@Override
 	public void clear() {
 		if (isManaged()) {
+			var txn = Transaction.getCurrent();
+			assert txn != null;
+			txn.VerifyRecordAccessed(this);
 			@SuppressWarnings("unchecked")
-			var setLog = (LogSet1<V>)Transaction.getCurrent().LogGetOrAdd(
+			var setLog = (LogSet1<V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
 			setLog.Clear();
 		} else

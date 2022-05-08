@@ -24,6 +24,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 	@Override
 	public boolean add(V item) {
 		if (isManaged()) {
+			item.InitRootInfo(getRootInfo(), this);
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrent().LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
@@ -65,6 +66,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 	@Override
 	public V set(int index, V item) {
 		if (isManaged()) {
+			item.InitRootInfo(getRootInfo(), this);
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrent().LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
@@ -78,6 +80,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 	@Override
 	public void add(int index, V item) {
 		if (isManaged()) {
+			item.InitRootInfo(getRootInfo(), this);
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrent().LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);

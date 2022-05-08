@@ -1,6 +1,7 @@
 package Zeze.Raft.RocksRaft;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.Reflect;
@@ -63,6 +64,18 @@ public class LogList1<V> extends LogList<V> {
 		var list = getValue();
 		setValue(list.plus(item));
 		opLogs.add(new OpLog<>(OpLog.OP_ADD, list.size(), item));
+		return true;
+	}
+
+	public final boolean AddAll(Collection<? extends V> items) {
+		var addindex = getValue().size();
+		var list = getValue().plusAll(items);
+		if (list == getValue())
+			return false;
+		setValue(list);
+		for (var item : items) {
+			opLogs.add(new OpLog<>(OpLog.OP_ADD, addindex++, item));
+		}
 		return true;
 	}
 
