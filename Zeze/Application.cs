@@ -56,10 +56,10 @@ namespace Zeze
         internal class LastFlushWhenReduce
         {
             public TableKey Key { get; set; }
-            public long LastGlobalSerialId { get; set; }
+            public Util.AtomicLong LastGlobalSerialId = new();
             public long Ticks { get; set; }
             public bool Removed { get; set; } = false;
-
+            public Nito.AsyncEx.AsyncMonitor Monitor = new();
             public LastFlushWhenReduce(TableKey tkey)
             {
                 Key = tkey;
@@ -72,19 +72,19 @@ namespace Zeze
             = new ConcurrentDictionary<long, Util.IdentityHashSet<LastFlushWhenReduce>>();
         private Util.SchedulerTask FlushWhenReduceTimerTask;
 
-        internal void SetLastGlobalSerialId(TableKey tkey, long globalSerialId)
+        internal async Task SetLastGlobalSerialId(TableKey tkey, long globalSerialId)
         {
             while (true)
             {
                 var last = FlushWhenReduce.GetOrAdd(tkey, (k) => new LastFlushWhenReduce(k));
-                lock (last)
+                using (await last.Monitor.EnterAsync())
                 {
                     if (last.Removed)
                         continue;
 
-                    last.LastGlobalSerialId = globalSerialId;
+                    last.LastGlobalSerialId.GetAndSet(globalSerialId);
                     last.Ticks = DateTime.Now.Ticks;
-                    Monitor.PulseAll(last);
+                    last.Monitor.PulseAll();
                     var minutes = last.Ticks / TimeSpan.TicksPerMinute;
                     FlushWhenReduceActives.GetOrAdd(minutes, (key) => new Util.IdentityHashSet<LastFlushWhenReduce>()).Add(last);
                     return;
@@ -92,24 +92,23 @@ namespace Zeze
             }
         }
 
-        internal bool TryWaitFlushWhenReduce(TableKey tkey, long hope)
+        internal async Task<bool> TryWaitFlushWhenReduce(TableKey tkey, long hope)
         {
             while (true)
             {
                 var last = FlushWhenReduce.GetOrAdd(tkey, (k) => new LastFlushWhenReduce(k));
-                lock (last)
+                using (await last.Monitor.EnterAsync())
                 {
-                    if (last.Removed)
-                        continue;
-
-                    while (last.LastGlobalSerialId < hope)
+                    while (false == last.Removed && last.LastGlobalSerialId.Get() < hope)
                     {
                         // 超时的时候，马上返回。
                         // 这个机制的是为了防止忙等。
                         // 所以不需要严格等待成功。
-                        if (false == Monitor.Wait(last, 5000))
-                            return false;
+                        // TODO 加上超时支持。
+                        await last.Monitor.WaitAsync();
                     }
+                    if (last.Removed)
+                        continue;
                     return true;
                 }
             }

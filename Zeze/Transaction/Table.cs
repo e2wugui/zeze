@@ -156,7 +156,7 @@ namespace Zeze.Transaction
                     rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                     logger.Debug("ReduceShare SendResult 1 {0}", r);
                     rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
-                    Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+                    await Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                     return 0;
                 }
                 using var lockr = r.Mutex.Lock();
@@ -168,7 +168,7 @@ namespace Zeze.Transaction
                         rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                         logger.Debug("ReduceShare SendResult 2 {0}", r);
                         rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
-                        Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+                        await Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                         return 0;
 
                     case GlobalCacheManagerServer.StateShare:
@@ -178,7 +178,7 @@ namespace Zeze.Transaction
                             break;
                         logger.Debug("ReduceShare SendResult 3 {0}", r);
                         rpc.SendResult();
-                        Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+                        await Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                         return 0;
 
                     case GlobalCacheManagerServer.StateModify:
@@ -187,7 +187,7 @@ namespace Zeze.Transaction
                             break;
                         logger.Debug("ReduceShare SendResult * {0}", r);
                         rpc.SendResult();
-                        Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+                        await Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                         return 0;
                 }
             }
@@ -201,7 +201,7 @@ namespace Zeze.Transaction
             logger.Debug("ReduceShare SendResult 4 {0}", r);
             // Must before SendResult
             rpc.SendResult();
-            Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+            await Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
             //logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
             return 0;
         }
@@ -245,7 +245,7 @@ namespace Zeze.Transaction
                     rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                     logger.Debug("ReduceInvalid SendResult 1 {0}", r);
                     rpc.SendResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
-                    Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+                    await Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                     return 0;
                 }
                 using var lockr = r.Mutex.Lock();
@@ -260,7 +260,7 @@ namespace Zeze.Transaction
                             break;
                         logger.Debug("ReduceInvalid SendResult 2 {0}", r);
                         rpc.SendResult();
-                        Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+                        await Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                         return 0;
 
                     case GlobalCacheManagerServer.StateShare:
@@ -270,7 +270,7 @@ namespace Zeze.Transaction
                             break;
                         logger.Debug("ReduceInvalid SendResult 3 {0}", r);
                         rpc.SendResult();
-                        Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+                        await Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                         return 0;
 
                     case GlobalCacheManagerServer.StateModify:
@@ -278,7 +278,7 @@ namespace Zeze.Transaction
                         if (r.Dirty)
                             break;
                         rpc.SendResult();
-                        Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+                        await Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                         return 0;
                 }
             }
@@ -292,7 +292,7 @@ namespace Zeze.Transaction
             logger.Debug("ReduceInvalid SendResult 4 {0} ", r);
             // Must before SendResult
             rpc.SendResult();
-            Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
+            await Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
             //logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
             return 0;
         }
