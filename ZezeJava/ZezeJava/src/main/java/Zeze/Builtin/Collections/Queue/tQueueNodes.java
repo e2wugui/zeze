@@ -19,7 +19,6 @@ public final class tQueueNodes extends Zeze.Transaction.TableX<Zeze.Builtin.Coll
         return false;
     }
 
-    public static final int VAR_All = 0;
     public static final int VAR_NextNodeId = 1;
     public static final int VAR_Values = 2;
 

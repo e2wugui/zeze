@@ -19,7 +19,6 @@ public final class tValueIdToNodeId extends Zeze.Transaction.TableX<Zeze.Builtin
         return false;
     }
 
-    public static final int VAR_All = 0;
     public static final int VAR_NodeId = 1;
 
     @Override

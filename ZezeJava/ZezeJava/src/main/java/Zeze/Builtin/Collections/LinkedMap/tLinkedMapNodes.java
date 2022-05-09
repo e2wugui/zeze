@@ -19,7 +19,6 @@ public final class tLinkedMapNodes extends Zeze.Transaction.TableX<Zeze.Builtin.
         return false;
     }
 
-    public static final int VAR_All = 0;
     public static final int VAR_PrevNodeId = 1;
     public static final int VAR_NextNodeId = 2;
     public static final int VAR_Values = 3;

@@ -19,7 +19,6 @@ public final class tItemClasses extends Zeze.Transaction.TableX<Integer, Zeze.Bu
         return false;
     }
 
-    public static final int VAR_All = 0;
     public static final int VAR_ItemClasses = 1;
 
     @Override

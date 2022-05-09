@@ -19,7 +19,6 @@ public final class taccount extends Zeze.Transaction.TableX<String, Zeze.Builtin
         return false;
     }
 
-    public static final int VAR_All = 0;
     public static final int VAR_Name = 1;
     public static final int VAR_Roles = 2;
     public static final int VAR_LastLoginRoleId = 3;

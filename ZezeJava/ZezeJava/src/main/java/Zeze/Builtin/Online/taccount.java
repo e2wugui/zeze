@@ -19,7 +19,6 @@ public final class taccount extends Zeze.Transaction.TableX<String, Zeze.Builtin
         return false;
     }
 
-    public static final int VAR_All = 0;
     public static final int VAR_LastLoginVersion = 1;
 
     @Override

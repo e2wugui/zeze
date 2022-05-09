@@ -19,7 +19,6 @@ public final class trank extends Zeze.Transaction.TableX<Zeze.Builtin.Game.Rank.
         return false;
     }
 
-    public static final int VAR_All = 0;
     public static final int VAR_RankList = 1;
 
     @Override

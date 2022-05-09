@@ -19,7 +19,6 @@ public final class tQueues extends Zeze.Transaction.TableX<String, Zeze.Builtin.
         return false;
     }
 
-    public static final int VAR_All = 0;
     public static final int VAR_HeadNodeId = 1;
     public static final int VAR_TailNodeId = 2;
     public static final int VAR_Count = 3;

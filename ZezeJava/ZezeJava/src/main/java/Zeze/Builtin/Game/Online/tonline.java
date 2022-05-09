@@ -19,7 +19,6 @@ public final class tonline extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Ga
         return false;
     }
 
-    public static final int VAR_All = 0;
     public static final int VAR_LinkName = 1;
     public static final int VAR_LinkSid = 2;
 

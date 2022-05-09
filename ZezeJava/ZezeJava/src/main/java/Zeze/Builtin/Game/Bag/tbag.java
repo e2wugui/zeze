@@ -19,7 +19,6 @@ public final class tbag extends Zeze.Transaction.TableX<String, Zeze.Builtin.Gam
         return false;
     }
 
-    public static final int VAR_All = 0;
     public static final int VAR_Capacity = 1;
     public static final int VAR_Items = 2;
 

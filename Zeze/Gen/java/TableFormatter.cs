@@ -41,7 +41,6 @@ namespace Zeze.Gen.java
             sw.WriteLine("        return " + (table.IsAutoKey ? "true;" : "false;"));
             sw.WriteLine("    }");
             sw.WriteLine();
-            sw.WriteLine("    public static final int VAR_All = 0;");
             foreach (var v in ((Types.Bean)table.ValueType).Variables)
                 sw.WriteLine("    public static final int VAR_" + v.Name + " = " + v.Id + ";");
             sw.WriteLine();

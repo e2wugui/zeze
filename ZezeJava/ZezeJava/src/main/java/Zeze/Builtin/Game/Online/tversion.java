@@ -19,7 +19,6 @@ public final class tversion extends Zeze.Transaction.TableX<Long, Zeze.Builtin.G
         return false;
     }
 
-    public static final int VAR_All = 0;
     public static final int VAR_LoginVersion = 1;
     public static final int VAR_ReliableNotifyMark = 2;
     public static final int VAR_ReliableNotifyQueue = 3;

@@ -19,7 +19,6 @@ public final class tlocal extends Zeze.Transaction.TableX<String, Zeze.Builtin.O
         return false;
     }
 
-    public static final int VAR_All = 0;
     public static final int VAR_LoginVersion = 1;
     public static final int VAR_Datas = 2;
 

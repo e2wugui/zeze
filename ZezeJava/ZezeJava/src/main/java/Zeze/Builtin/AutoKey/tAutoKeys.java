@@ -19,7 +19,6 @@ public final class tAutoKeys extends Zeze.Transaction.TableX<String, Zeze.Builti
         return false;
     }
 
-    public static final int VAR_All = 0;
     public static final int VAR_NextId = 1;
 
     @Override
