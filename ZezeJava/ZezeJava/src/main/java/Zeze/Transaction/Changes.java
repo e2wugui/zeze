@@ -193,7 +193,11 @@ public final class Changes {
 			if (null != listeners) {
 				for (var l : listeners)
 				{
-					l.OnChanged(e.getKey().getKey(), e.getValue());
+					try {
+						l.OnChanged(e.getKey().getKey(), e.getValue());
+					} catch (Throwable ex) {
+						logger.error(ex);
+					}
 				}
 			}
 			else

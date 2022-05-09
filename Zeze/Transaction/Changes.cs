@@ -198,7 +198,14 @@ namespace Zeze.Transaction
 				{
 					foreach (var listener in listeners)
 					{
-						listener.OnChanged(e.Key.Key, e.Value);
+						try
+                        {
+							listener.OnChanged(e.Key.Key, e.Value);
+						}
+						catch (Exception ex)
+                        {
+							logger.Error(ex);
+                        }
 					}
 				}
 				else

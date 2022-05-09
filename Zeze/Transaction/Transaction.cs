@@ -357,7 +357,6 @@ namespace Zeze.Transaction
         {
             // 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
             // 可以在最终提交里可以实现每事务checkpoint。
-            var cc = new Changes(this);
             var lastsp = Savepoints[0];
             await RelativeRecordSet.TryUpdateAndCheckpoint(this, procedure, () =>
             {
@@ -385,23 +384,31 @@ namespace Zeze.Transaction
             State = TransactionState.Completed; // 在Notify之前设置的。
 
             // collect logs and notify listeners
-            foreach (var log in lastsp.Logs.Values)
+            try
             {
-                // 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
-                if (log.Belong == null || false == log.Belong.IsManaged)
-                    continue;
+                var cc = new Changes(this);
+                foreach (var log in lastsp.Logs.Values)
+                {
+                    // 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
+                    if (log.Belong == null || false == log.Belong.IsManaged)
+                        continue;
 
-                // 当changes.Collect在日志往上一级传递时调用，
-                // 第一个参数Owner为null，表示bean属于record，到达root了。
-                cc.Collect(log.Belong, log);
+                    // 当changes.Collect在日志往上一级传递时调用，
+                    // 第一个参数Owner为null，表示bean属于record，到达root了。
+                    cc.Collect(log.Belong, log);
+                }
+
+                foreach (var ar in AccessedRecords.Values)
+                {
+                    if (ar.Dirty)
+                        cc.CollectRecord(ar);
+                }
+                cc.NotifyListener();
             }
-
-            foreach (var ar in AccessedRecords.Values)
+            catch (Exception ex)
             {
-                if (ar.Dirty)
-                    cc.CollectRecord(ar);
+                logger.Error(ex);
             }
-            cc.NotifyListener();
 
             TriggerCommitActions(procedure, lastsp);
         }

@@ -299,8 +299,6 @@ public final class Transaction {
 	private void _final_commit_(Procedure procedure) {
 		// 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
 		// 可以在最终提交里可以实现每事务checkpoint。
-		var cc = new Changes(this);
-
 		var lastsp = Savepoints.get(Savepoints.size() - 1);
 		RelativeRecordSet.TryUpdateAndCheckpoint(this, procedure, () -> {
 				try {
@@ -325,20 +323,25 @@ public final class Transaction {
 		State = TransactionState.Completed;
 
 		// collect logs and notify listeners
-		lastsp.getLogs().foreachValue((log) -> {
-			// 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
-			if (log.getBelong() != null && log.getBelong().isManaged()) {
-				// 第一个参数Owner为null，表示bean属于record，到达root了。
-				cc.Collect(log.getBelong(), log);
-			}
-		});
+		try {
+			var cc = new Changes(this);
+			lastsp.getLogs().foreachValue((log) -> {
+				// 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
+				if (log.getBelong() != null && log.getBelong().isManaged()) {
+					// 第一个参数Owner为null，表示bean属于record，到达root了。
+					cc.Collect(log.getBelong(), log);
+				}
+			});
 
-		for (var ar : AccessedRecords.values())
-		{
-			if (ar.Dirty)
-				cc.CollectRecord(ar);
+			for (var ar : AccessedRecords.values())
+			{
+				if (ar.Dirty)
+					cc.CollectRecord(ar);
+			}
+			cc.NotifyListener();
+		} catch (Throwable ex) {
+			logger.error(ex);
 		}
-		cc.NotifyListener();
 
 		_trigger_commit_actions_(procedure);
 	}
