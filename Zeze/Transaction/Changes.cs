@@ -122,7 +122,9 @@ namespace Zeze.Transaction
 			{
 				if (ar.Dirty)
 				{
-					Listeners.TryAdd(ar.Origin.Table, ar.Origin.Table.ChangeListenerMap.GetListeners());
+					var tmp = ar.Origin.Table.ChangeListenerMap.GetListeners();
+					if (tmp.Count > 0)
+						Listeners.TryAdd(ar.Origin.Table, tmp);
 				}
 			}
 		}
