@@ -139,6 +139,10 @@ public abstract class Bean implements Serializable {
 	}
 
 	public LogBean CreateLogBean() {
-		throw new NotImplementedException("");
+		var log = new LogBean();
+		log.setBelong(Parent);
+		log.setThis(this);
+		log.setVariableId(VariableId);
+		return log;
 	}
 }
