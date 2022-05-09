@@ -33,7 +33,7 @@ namespace Game.Bag
                 {
                     case Changes.Record.Remove:
                         {
-                            SChanged changed = new SChanged();
+                            var changed = new SChanged();
                             changed.Argument.ChangeTag = BChangedResult.ChangeTagRecordIsRemoved;
                             Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
                         }
@@ -41,7 +41,7 @@ namespace Game.Bag
 
                     case Changes.Record.Put:
                         {
-                            BBag bbag = (BBag)changes.PutValue;
+                            var bbag = (BBag)changes.PutValue;
                             var sbag = new SBag();
                             Bag.ToProtocol(bbag, sbag.Argument);
                             Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, sbag);
@@ -55,7 +55,7 @@ namespace Game.Bag
                             var note = (LogMap2<int, BItem>)log;
                             note.MergeChangedToReplaced();
 
-                            SChanged changed = new SChanged();
+                            var changed = new SChanged();
                             changed.Argument.ChangeTag = BChangedResult.ChangeTagNormalChanged;
                             changed.Argument.ItemsReplace.AddRange(note.Replaced);
                             foreach (var p in note.Removed)

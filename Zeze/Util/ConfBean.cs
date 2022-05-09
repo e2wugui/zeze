@@ -68,7 +68,7 @@ namespace Zeze.Util
             return "()";
         }
 
-        public readonly static ConfEmptyBean Instance = new ConfEmptyBean();
+        public readonly static ConfEmptyBean Instance = new();
     }
 
     public class ConfDynamicBean : ConfBean

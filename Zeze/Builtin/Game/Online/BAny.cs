@@ -76,9 +76,6 @@ namespace Zeze.Builtin.Game.Online
 
         public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Any(long typeId)
         {
-            switch (typeId)
-            {
-            }
             return null;
         }
 

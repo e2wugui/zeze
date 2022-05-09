@@ -29,7 +29,7 @@ namespace Game.Equip
                 {
                     case Changes.Record.Remove:
                         {
-                            SEquipement changed = new SEquipement();
+                            var changed = new SEquipement();
                             changed.Argument.ChangeTag = Game.Bag.BChangedResult.ChangeTagRecordIsRemoved;
                             Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
                         }
@@ -38,9 +38,9 @@ namespace Game.Equip
                     case Changes.Record.Put:
                         {
                             // 记录改变，通知全部。
-                            BEquips bequips = (BEquips)changes.PutValue;
+                            var bequips = (BEquips)changes.PutValue;
 
-                            SEquipement changed = new SEquipement();
+                            var changed = new SEquipement();
                             changed.Argument.ChangeTag = Game.Bag.BChangedResult.ChangeTagRecordChanged;
                             changed.Argument.ItemsReplace.AddRange(bequips.Items);
 
@@ -57,7 +57,7 @@ namespace Game.Equip
                                 var notemap2 = (LogMap2<int, Game.Bag.BItem>)note;
                                 notemap2.MergeChangedToReplaced();
 
-                                SEquipement changed = new SEquipement();
+                                var changed = new SEquipement();
                                 changed.Argument.ChangeTag = Game.Bag.BChangedResult.ChangeTagNormalChanged;
 
                                 changed.Argument.ItemsReplace.AddRange(notemap2.Replaced);
@@ -132,8 +132,8 @@ namespace Game.Equip
             if (equips.Items.TryGetValue(rpc.Argument.EquipPos, out var eItem))
             {
                 equips.Items.Remove(rpc.Argument.EquipPos);
-                Bag.Bag bag = await App.Instance.Game_Bag.GetBag(session.RoleId.Value);
-                Bag.BItem bItemAdd = new Bag.BItem() { Id = eItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = (BEquipExtra)eItem.Extra.CopyBean() };
+                var bag = await App.Instance.Game_Bag.GetBag(session.RoleId.Value);
+                var bItemAdd = new Bag.BItem() { Id = eItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = (BEquipExtra)eItem.Extra.CopyBean() };
                 if (0 != bag.Add(-1, bItemAdd))
                     return ErrorCode(ResultCodeBagIsFull); // bag is full
                 session.SendResponse(rpc);

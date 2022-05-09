@@ -8,7 +8,7 @@ namespace Zeze.Transaction
 {
     public abstract class Bean : global::Zeze.Serialize.Serializable
     {
-        private static global::Zeze.Util.AtomicLong _objectIdGen = new global::Zeze.Util.AtomicLong();
+        private static global::Zeze.Util.AtomicLong _objectIdGen = new();
 
         public const int ObjectIdStep = 4096; // 自增长步长。低位保留给Variable.Id。也就是，Variable.Id 最大只能是4095.
         public const int MaxVariableId = ObjectIdStep - 1;
@@ -166,7 +166,7 @@ namespace Zeze.Transaction
         {
         }
 
-        public readonly static EmptyBean Instance = new EmptyBean();
+        public readonly static EmptyBean Instance = new();
     }
 
     public interface DynamicBeanReadOnly

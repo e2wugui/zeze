@@ -127,12 +127,15 @@ namespace Zeze.Gen.confcs
             sw.WriteLine();
             sw.WriteLine($"{prefix}public static Zeze.Util.ConfBean CreateBeanFromSpecialTypeId_{var.NameUpper1}(long typeId)");
             sw.WriteLine($"{prefix}{{");
-            sw.WriteLine($"{prefix}    switch (typeId)");
-            sw.WriteLine($"{prefix}    {{");
-            //sw.WriteLine($"{prefix}        case Zeze.Transaction.EmptyBean.TYPEID: return new Zeze.Transaction.EmptyBean();");
-            foreach (var real in type.RealBeans)
-                sw.WriteLine($"{prefix}        case {real.Key}: return new {real.Value.FullName}();");
-            sw.WriteLine($"{prefix}    }}");
+            if (type.RealBeans.Count > 0)
+            {
+                sw.WriteLine($"{prefix}    switch (typeId)");
+                sw.WriteLine($"{prefix}    {{");
+                //sw.WriteLine($"{prefix}        case Zeze.Transaction.EmptyBean.TYPEID: return new Zeze.Transaction.EmptyBean();");
+                foreach (var real in type.RealBeans)
+                    sw.WriteLine($"{prefix}        case {real.Key}: return new {real.Value.FullName}();");
+                sw.WriteLine($"{prefix}    }}");
+            }
             sw.WriteLine($"{prefix}    return null;");
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();

@@ -110,7 +110,7 @@ namespace UnitTest.Zeze.Trans
                 async () =>
                 {
                     demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
-                    List<int> except = new List<int>
+                    var except = new List<int>
                     {
                         1,
                         2
@@ -126,7 +126,7 @@ namespace UnitTest.Zeze.Trans
                 async () =>
                 {
                     demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
-                    List<int> intersect = new List<int>
+                    var intersect = new List<int>
                     {
                         123,
                         126
@@ -142,7 +142,7 @@ namespace UnitTest.Zeze.Trans
                 async () =>
                 {
                     demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
-                    List<int> SymmetricExcept = new List<int>
+                    var SymmetricExcept = new List<int>
                     {
                         123,
                         140
@@ -158,7 +158,7 @@ namespace UnitTest.Zeze.Trans
                 async () =>
                 {
                     demo.Module1.Value value = await demo.App.Instance.demo_Module1.Table1.GetOrAddAsync(1);
-                    List<int> Union = new List<int>
+                    var Union = new List<int>
                     {
                         123,
                         140
@@ -354,7 +354,7 @@ namespace UnitTest.Zeze.Trans
                     Assert.IsTrue(null == newValue);
                     return;
                 }
-                Dictionary<long, long> newValueCopy = new Dictionary<long, long>();
+                var newValueCopy = new Dictionary<long, long>();
                 foreach (var e in ((demo.Module1.Value)current).Map15)
                     newValueCopy.Add(e.Key, e.Value);
                 Assert.AreEqual(newValue.Count, newValueCopy.Count);
@@ -520,7 +520,7 @@ namespace UnitTest.Zeze.Trans
                     Assert.IsTrue(null == newValue);
                     return;
                 }
-                Dictionary<long, demo.Module2.Value> newValueCopy = new Dictionary<long, demo.Module2.Value>();
+                var newValueCopy = new Dictionary<long, demo.Module2.Value>();
                 foreach (var e in ((demo.Module1.Value)current).Map11)
                     newValueCopy.Add(e.Key, e.Value.Copy());
                 Assert.AreEqual(newValue.Count, newValueCopy.Count);
@@ -576,7 +576,7 @@ namespace UnitTest.Zeze.Trans
                     Assert.IsTrue(null == newValue);
                     return;
                 }
-                HashSet<int> newValueCopy = new HashSet<int>();
+                var newValueCopy = new HashSet<int>();
                 foreach (var i in ((demo.Module1.Value)current).Set10)
                     newValueCopy.Add(i);
                 Assert.AreEqual(newValue.Count, newValueCopy.Count);

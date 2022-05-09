@@ -109,9 +109,6 @@ namespace Zeze.Builtin.Collections.LinkedMap
 
         public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Value(long typeId)
         {
-            switch (typeId)
-            {
-            }
             return null;
         }
 

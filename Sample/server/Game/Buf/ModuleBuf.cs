@@ -32,7 +32,7 @@ namespace Game.Buf
                 {
                     case Changes.Record.Remove:
                         {
-                            SChanged changed = new SChanged();
+                            var changed = new SChanged();
                             changed.Argument.ChangeTag = BBufChanged.ChangeTagRecordIsRemoved;
                             Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
                         }
@@ -41,9 +41,9 @@ namespace Game.Buf
                     case Changes.Record.Put:
                         {
                             // 记录改变，通知全部。
-                            BBufs record = (BBufs)changes.PutValue;
+                            var record = (BBufs)changes.PutValue;
 
-                            SChanged changed = new SChanged();
+                            var changed = new SChanged();
                             changed.Argument.ChangeTag = BBufChanged.ChangeTagRecordChanged;
                             changed.Argument.Replace.AddRange(record.Bufs);
 
@@ -60,7 +60,7 @@ namespace Game.Buf
                                 var notemap2 = (LogMap2<int, BBuf>)note;
                                 notemap2.MergeChangedToReplaced();
 
-                                SChanged changed = new SChanged();
+                                var changed = new SChanged();
                                 changed.Argument.ChangeTag = BBufChanged.ChangeTagNormalChanged;
 
                                 changed.Argument.Replace.AddRange(notemap2.Replaced);

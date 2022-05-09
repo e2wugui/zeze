@@ -142,9 +142,6 @@ namespace Zeze.Builtin.Game.Bag
 
         public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Item(long typeId)
         {
-            switch (typeId)
-            {
-            }
             return null;
         }
 
