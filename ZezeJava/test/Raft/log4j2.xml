@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration status="WARN" monitorInterval="30">
+	<Properties>
+		<Property name="path">.</Property>
+		<Property name="name">${sys:logname:-zeze}</Property>
+		<Property name="ext">.log</Property>
+	</Properties>
+	<appenders>
+		<console name="Console" target="SYSTEM_OUT">
+			<PatternLayout pattern="%d{HH:mm:ss.SSS} %5p [%t] %c{1}: %m%n" />
+		</console>
+
+		<RollingFile name="AllLog" fileName="${path}/${name}${ext}" filePattern="${path}/${name}.%d{yy-MM-dd}-%i${ext}">
+			<PatternLayout charset="UTF-8" pattern="%d{yy-MM-dd HH:mm:ss.SSS} %5p [%t] %c{1}: %m%n" />
+			<Policies>
+				<SizeBasedTriggeringPolicy size="100 MB" />
+			</Policies>
+		</RollingFile>
+
+		<RollingFile name="ErrorLog" fileName="${path}/${name}_error${ext}" filePattern="${path}/${name}_error.%d{yy-MM-dd}-%i${ext}">
+			<ThresholdFilter level="WARN" onMatch="ACCEPT" onMismatch="DENY" />
+			<PatternLayout charset="UTF-8" pattern="%d{yy-MM-dd HH:mm:ss.SSS} %5p [%t] %c{1}: %m%n" />
+			<Policies>
+				<SizeBasedTriggeringPolicy size="100 MB" />
+			</Policies>
+		</RollingFile>
+	</appenders>
+
+	<loggers>
+		<logger name="org" level="INFO" />
+		<logger name="io.netty" level="INFO" />
+
+		<root level="TRACE">
+			<appender-ref ref="Console" />
+			<appender-ref ref="AllLog" />
+			<appender-ref ref="ErrorLog" />
+		</root>
+	</loggers>
+</configuration>
