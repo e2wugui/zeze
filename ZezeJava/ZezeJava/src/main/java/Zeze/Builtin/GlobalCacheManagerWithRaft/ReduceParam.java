@@ -235,19 +235,20 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
-        @SuppressWarnings("unchecked")
-        @Override
-        public void FollowerApply(Zeze.Transaction.Log log) {
-            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-            if (vars == null)
-                return;
-            for (var it = vars.iterator(); it.moveToNext(); ) {
-                var vlog = it.value();
-                switch (vlog.getVariableId()) {
-                    case 1: _GlobalTableKey = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey>)vlog).Value; break;
-                    case 2: _State = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
-                    case 3: _GlobalSerialId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public void FollowerApply(Zeze.Transaction.Log log) {
+        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+        if (vars == null)
+            return;
+        for (var it = vars.iterator(); it.moveToNext(); ) {
+            var vlog = it.value();
+            switch (vlog.getVariableId()) {
+                case 1: _GlobalTableKey = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey>)vlog).Value; break;
+                case 2: _State = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                case 3: _GlobalSerialId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
             }
         }
+    }
 }

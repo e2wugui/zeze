@@ -186,17 +186,18 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
         }
         return false;
     }
-        @Override
-        public void FollowerApply(Zeze.Transaction.Log log) {
-            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-            if (vars == null)
-                return;
-            for (var it = vars.iterator(); it.moveToNext(); ) {
-                var vlog = it.value();
-                switch (vlog.getVariableId()) {
-                    case 1: _NextNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                    case 2: _Values.FollowerApply(vlog); break;
-                }
+
+    @Override
+    public void FollowerApply(Zeze.Transaction.Log log) {
+        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+        if (vars == null)
+            return;
+        for (var it = vars.iterator(); it.moveToNext(); ) {
+            var vlog = it.value();
+            switch (vlog.getVariableId()) {
+                case 1: _NextNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 2: _Values.FollowerApply(vlog); break;
             }
         }
+    }
 }

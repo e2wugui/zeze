@@ -46,7 +46,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	}
 
 	public boolean ChoiceProviderAndBind(int moduleId, AsyncSocket link, OutLong provider) {
-		var serviceName = Distribute.MakeServiceName(getServerServiceNamePrefix(), moduleId);
+		var serviceName = ProviderDistribute.MakeServiceName(getServerServiceNamePrefix(), moduleId);
 		var linkSession = (LinkdUserSession)link.getUserState();
 		provider.Value = 0L;
 		var volatileProviders = Distribute.Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
@@ -123,7 +123,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 				}
 				var providerModuleState = new ProviderModuleState(providerSession.getSessionId(),
 						module.getKey(), module.getValue().getChoiceType(), module.getValue().getConfigType());
-				var serviceName = Distribute.MakeServiceName(providerSession.getInfo().getServiceNamePrefix(), module.getKey());
+				var serviceName = ProviderDistribute.MakeServiceName(providerSession.getInfo().getServiceNamePrefix(), module.getKey());
 				var subState = Distribute.Zeze.getServiceManagerAgent().SubscribeService(
 						serviceName, Zeze.Services.ServiceManager.SubscribeInfo.SubscribeTypeReadyCommit, providerModuleState);
 				// 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
@@ -150,7 +150,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		for (var module : rpc.Argument.getModules().entrySet()) {
 			var providerModuleState = new ProviderModuleState(providerSession.getSessionId(),
 					module.getKey(), module.getValue().getChoiceType(), module.getValue().getConfigType());
-			var serviceName = Distribute.MakeServiceName(providerSession.getInfo().getServiceNamePrefix(), module.getKey());
+			var serviceName = ProviderDistribute.MakeServiceName(providerSession.getInfo().getServiceNamePrefix(), module.getKey());
 			var subState = Distribute.Zeze.getServiceManagerAgent().SubscribeService(
 					serviceName, module.getValue().getSubscribeType(), providerModuleState);
 			// 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
@@ -172,7 +172,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			if (!isOnProviderClose) {
 				providerSession.getStaticBinds().remove(moduleId);
 			}
-			var serviceName = Distribute.MakeServiceName(providerSession.getInfo().getServiceNamePrefix(), moduleId);
+			var serviceName = ProviderDistribute.MakeServiceName(providerSession.getInfo().getServiceNamePrefix(), moduleId);
 			var volatileProviders = Distribute.Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
 			if (volatileProviders == null)
 				continue;

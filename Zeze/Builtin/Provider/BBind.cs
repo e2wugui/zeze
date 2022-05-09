@@ -18,7 +18,7 @@ namespace Zeze.Builtin.Provider
     public sealed class BBind : Zeze.Transaction.Bean, BBindReadOnly
     {
         public const int ResultSuccess = 0;
-        public const int ResultFaild = 1;
+        public const int ResultFailed = 1;
 
         readonly Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.Provider.BModule> _modules; // moduleId -> BModule
         Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.Provider.BModuleReadOnly,Zeze.Builtin.Provider.BModule> _modulesReadOnly;

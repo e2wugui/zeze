@@ -1,7 +1,6 @@
 package Zeze.Util;
 
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.Quaternion;
 import Zeze.Serialize.Serializable;
 
 public class Vector4 implements Serializable {

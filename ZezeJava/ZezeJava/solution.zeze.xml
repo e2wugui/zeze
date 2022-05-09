@@ -206,7 +206,7 @@
 				<variable name="linkSids" id="2" type="set" value="long"/>
 
 				<enum name="ResultSuccess" value="0"/>
-				<enum name="ResultFaild"   value="1"/>
+				<enum name="ResultFailed"  value="1"/>
 			</bean>
 
 			<rpc name="Bind"   argument="BBind" handle="client"/>

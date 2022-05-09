@@ -6,7 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BBind extends Zeze.Transaction.Bean {
     public static final int ResultSuccess = 0;
-    public static final int ResultFaild = 1;
+    public static final int ResultFailed = 1;
 
     private final Zeze.Transaction.Collections.CollMap2<Integer, Zeze.Builtin.Provider.BModule> _modules; // moduleId -> BModule
     private final Zeze.Transaction.Collections.CollSet1<Long> _linkSids;
@@ -197,17 +197,18 @@ public final class BBind extends Zeze.Transaction.Bean {
         }
         return false;
     }
-        @Override
-        public void FollowerApply(Zeze.Transaction.Log log) {
-            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-            if (vars == null)
-                return;
-            for (var it = vars.iterator(); it.moveToNext(); ) {
-                var vlog = it.value();
-                switch (vlog.getVariableId()) {
-                    case 1: _modules.FollowerApply(vlog); break;
-                    case 2: _linkSids.FollowerApply(vlog); break;
-                }
+
+    @Override
+    public void FollowerApply(Zeze.Transaction.Log log) {
+        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+        if (vars == null)
+            return;
+        for (var it = vars.iterator(); it.moveToNext(); ) {
+            var vlog = it.value();
+            switch (vlog.getVariableId()) {
+                case 1: _modules.FollowerApply(vlog); break;
+                case 2: _linkSids.FollowerApply(vlog); break;
             }
         }
+    }
 }

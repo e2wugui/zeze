@@ -5,7 +5,6 @@ import java.util.HashSet;
 import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
-import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
@@ -65,10 +64,10 @@ public class LogSet1<V> extends LogSet<V> {
 		return false;
 	}
 
-	public final boolean Remove(Object item) {
+	public final boolean Remove(V item) {
 		var newSet = getValue().minus(item);
 		if (newSet != getValue()) {
-			Removed.add((V)item);
+			Removed.add(item);
 			Added.remove(item);
 			setValue(newSet);
 			return true;
@@ -76,11 +75,11 @@ public class LogSet1<V> extends LogSet<V> {
 		return false;
 	}
 
-	public final boolean RemoveAll(Collection<?> c) {
+	public final boolean RemoveAll(Collection<? extends V> c) {
 		var newSet = getValue().minusAll(c);
 		if (newSet != getValue()) {
 			for (var i : c) {
-				Removed.add((V)i);
+				Removed.add(i);
 				Added.remove(i);
 			}
 			setValue(newSet);

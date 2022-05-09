@@ -45,16 +45,16 @@ public class CollSet1<V> extends CollSet<V> {
 		return true;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public boolean remove(Object item) {
 		if (isManaged()) {
 			var txn = Transaction.getCurrent();
 			assert txn != null;
 			txn.VerifyRecordAccessed(this);
-			@SuppressWarnings("unchecked")
 			var setLog = (LogSet1<V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
-			return setLog.Remove(item);
+			return setLog.Remove((V)item);
 		}
 		var newSet = _set.minus(item);
 		if (newSet == _set)
@@ -81,16 +81,16 @@ public class CollSet1<V> extends CollSet<V> {
 		return true;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public boolean removeAll(Collection<?> c) {
 		if (isManaged()) {
 			var txn = Transaction.getCurrent();
 			assert txn != null;
 			txn.VerifyRecordAccessed(this);
-			@SuppressWarnings("unchecked")
 			var setLog = (LogSet1<V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
-			return setLog.RemoveAll(c);
+			return setLog.RemoveAll((Collection<? extends V>)c);
 		}
 		var newSet = _set.minusAll(c);
 		if (newSet == _set)

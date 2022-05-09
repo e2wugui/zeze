@@ -18,7 +18,10 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public void Decode(ByteBuffer _o_) {");
             sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");
-            sw.WriteLine(prefix + "    int _i_ = _o_.ReadTagSize(_t_);");
+            if (bean.Variables.Count > 0)
+                sw.WriteLine(prefix + "    int _i_ = _o_.ReadTagSize(_t_);");
+            else
+                sw.WriteLine(prefix + "    _o_.ReadTagSize(_t_);");
 
             int lastId = 0;
             foreach (Variable v in bean.Variables)
@@ -89,7 +92,7 @@ namespace Zeze.Gen.java
             this.sw = sw;
             this.prefix = prefix;
         }
- 
+
         public Decode(string tmpvarname, int id, string bufname, StreamWriter sw, string prefix)
         {
             this.var = null;

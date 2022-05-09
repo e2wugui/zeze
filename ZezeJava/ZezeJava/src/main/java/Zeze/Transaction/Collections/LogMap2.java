@@ -47,19 +47,20 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	private boolean built = false;
 
 	public boolean BuildChangedWithKey() {
-		if (false == built && getValue() != null) {
+		if (!built && getValue() != null) {
 			built = true;
 			for (var c : Changed) {
-				Object pkey = c.getThis().getMapKey();
-				//noinspection SuspiciousMethodCalls
+				@SuppressWarnings("unchecked")
+				K pkey = (K)c.getThis().getMapKey();
 				if (!getReplaced().containsKey(pkey) && !getRemoved().contains(pkey))
-					ChangedWithKey.put((K)pkey, c);
+					ChangedWithKey.put(pkey, c);
 			}
 			return true;
 		}
 		return false;
 	}
 
+	@SuppressWarnings("unchecked")
 	public void MergeChangedToReplaced() {
 		if (BuildChangedWithKey()) {
 			for (var e : ChangedWithKey.entrySet()) {

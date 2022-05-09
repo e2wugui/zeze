@@ -1,6 +1,5 @@
 package Zeze.Transaction.Collections;
 
-import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 
@@ -28,6 +27,7 @@ public abstract class LogSet<V> extends LogBean {
 		throw new UnsupportedOperationException("Collect Not Implement.");
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void Commit() {
 		((CollSet<V>)getThis())._set = Value;

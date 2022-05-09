@@ -13,10 +13,10 @@ import org.apache.logging.log4j.Logger;
 public final class Changes {
 	private final LongHashMap<LogBean> Beans = new LongHashMap<>(); // 收集日志时,记录所有Bean修改. key is Bean.ObjectId
 	private final HashMap<TableKey, Record> Records = new HashMap<>(); // 收集记录的修改,以后需要序列化传输.
-	private Transaction transaction;
+//	private Transaction transaction;
 
 	public Changes(Transaction t) {
-		transaction = t;
+//		transaction = t;
 		// 建立脏记录的表的监听者的快照，以后收集日志和通知监听者都使用这个快照，避免由于监听者发生变化造成收集和通知不一致。
 		for (var ar : t.getAccessedRecords().values())
 		{
@@ -45,8 +45,7 @@ public final class Changes {
 		private final HashSet<LogBean> LogBean = new HashSet<>();
 		// 所有的日志修改树，key is Record.Value。不会被序列化。
 		private final IdentityHashMap<Bean, LogBean> LogBeans = new IdentityHashMap<>();
-		@SuppressWarnings("rawtypes")
-		public Table Table;
+		public final Table Table;
 
 		public LogBean logBean() {
 			var it = LogBean.iterator();
@@ -129,7 +128,7 @@ public final class Changes {
 		}
 	}
 
-	public IdentityHashMap<Table, HashSet<ChangeListener>> Listeners = new IdentityHashMap<>();
+	public final IdentityHashMap<Table, HashSet<ChangeListener>> Listeners = new IdentityHashMap<>();
 
 	public void Collect(Bean recent, Log log) {
 		// is table has listener
@@ -152,6 +151,7 @@ public final class Changes {
 		if (logBean == null) {
 			if (belong instanceof Collection) {
 				// 容器使用共享的日志。需要先去查询，没有的话才创建。
+				//noinspection ConstantConditions
 				logBean = (LogBean)Transaction.getCurrent().GetLog(
 						belong.getParent().getObjectId() + belong.getVariableId());
 			}

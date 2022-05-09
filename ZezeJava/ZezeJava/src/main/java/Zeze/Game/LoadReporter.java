@@ -1,7 +1,6 @@
 package Zeze.Game;
 
 import java.util.concurrent.Future;
-import Zeze.Arch.ProviderApp;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
@@ -12,7 +11,7 @@ public class LoadReporter {
 	private int TimeoutDelaySeconds;
 	private Future<?> TimerTask;
 
-	public Online Online;
+	public final Online Online;
 
 	public LoadReporter(Online online) {
 		this.Online = online;

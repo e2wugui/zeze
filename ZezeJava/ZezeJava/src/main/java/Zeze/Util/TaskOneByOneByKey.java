@@ -131,11 +131,11 @@ public final class TaskOneByOneByKey {
 		Execute(Long.hashCode(key), func, name, cancel);
 	}
 
-	public class Barrier
+	public static class Barrier
 	{
 		public int Count;
-		public Procedure Procedure;
-		public Action0 CancelAction;
+		public final Procedure Procedure;
+		public final Action0 CancelAction;
 		public boolean Canceled = false;
 
 		public Barrier(Procedure action, int count, Action0 cancel)

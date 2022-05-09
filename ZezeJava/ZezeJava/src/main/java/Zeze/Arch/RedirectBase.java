@@ -58,7 +58,7 @@ public class RedirectBase {
 
 	public AsyncSocket ChoiceHash(IModule module, int hash) {
 		var subscribes = ProviderApp.Zeze.getServiceManagerAgent().getSubscribeStates();
-		var serviceName = ProviderApp.Distribute.MakeServiceName(ProviderApp.ServerServiceNamePrefix, module.getId());
+		var serviceName = ProviderDistribute.MakeServiceName(ProviderApp.ServerServiceNamePrefix, module.getId());
 
 		var servers = subscribes.get(serviceName);
 		if (servers == null)

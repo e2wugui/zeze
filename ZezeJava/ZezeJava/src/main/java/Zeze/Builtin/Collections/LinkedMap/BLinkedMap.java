@@ -273,19 +273,20 @@ public final class BLinkedMap extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
-        @Override
-        public void FollowerApply(Zeze.Transaction.Log log) {
-            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-            if (vars == null)
-                return;
-            for (var it = vars.iterator(); it.moveToNext(); ) {
-                var vlog = it.value();
-                switch (vlog.getVariableId()) {
-                    case 1: _HeadNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                    case 2: _TailNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                    case 3: _Count = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                    case 4: _LastNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                }
+
+    @Override
+    public void FollowerApply(Zeze.Transaction.Log log) {
+        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+        if (vars == null)
+            return;
+        for (var it = vars.iterator(); it.moveToNext(); ) {
+            var vlog = it.value();
+            switch (vlog.getVariableId()) {
+                case 1: _HeadNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 2: _TailNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 3: _Count = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 4: _LastNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
             }
         }
+    }
 }

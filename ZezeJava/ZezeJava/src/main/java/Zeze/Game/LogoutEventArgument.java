@@ -1,6 +1,5 @@
 package Zeze.Game;
 
-import Zeze.Builtin.Game.Online.BLocal;
 import Zeze.Builtin.Game.Online.BOnline;
 import Zeze.Util.EventDispatcher;
 

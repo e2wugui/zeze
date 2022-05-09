@@ -50,6 +50,8 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	public void close() throws IOException {
 		try {
 			Stop();
+		} catch (IOException | RuntimeException e) {
+			throw e;
 		} catch (Throwable e) {
 			throw new RuntimeException(e);
 		}

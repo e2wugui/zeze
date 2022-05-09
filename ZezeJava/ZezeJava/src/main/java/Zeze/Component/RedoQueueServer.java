@@ -66,7 +66,7 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 		}
 
 		@Override
-		public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) throws Throwable {
+		public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
 			var proc = getZeze().NewProcedure(() -> factoryHandle.Handle.handle(p),
 					p.getClass().getName(), TransactionLevel.Serializable, p.getUserState());
 			proc.RunWhileCommit = () -> p.SendResultCode(p.getResultCode());

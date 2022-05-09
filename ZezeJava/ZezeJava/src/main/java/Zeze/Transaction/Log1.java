@@ -1,9 +1,5 @@
 package Zeze.Transaction;
 
-import Zeze.Serialize.ByteBuffer;
-import Zeze.Util.Reflect;
-import org.apache.commons.lang3.NotImplementedException;
-
 public abstract class Log1<TBean extends Bean, TValue> extends Log {
 	private TValue Value;
 	public final TValue getValue() {

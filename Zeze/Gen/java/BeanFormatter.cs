@@ -85,7 +85,8 @@ namespace Zeze.Gen.java
                 }
                 */
             }
-            sw.WriteLine();
+            if (bean.Variables.Count > 0)
+                sw.WriteLine();
 
             Property.Make(bean, sw, "    ");
             Construct.Make(bean, sw, "    ");
@@ -125,7 +126,7 @@ namespace Zeze.Gen.java
             Decode.Make(bean, sw, "    ");
             InitChildrenTableKey.Make(bean, sw, "    ");
             NegativeCheck.Make(bean, sw, "    ");
-            FollowerApply.Make(bean, sw, "        ");
+            FollowerApply.Make(bean, sw, "    ");
         }
     }
 }

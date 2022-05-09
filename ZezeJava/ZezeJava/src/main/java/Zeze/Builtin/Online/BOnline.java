@@ -533,25 +533,26 @@ public final class BOnline extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
-        @Override
-        public void FollowerApply(Zeze.Transaction.Log log) {
-            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-            if (vars == null)
-                return;
-            for (var it = vars.iterator(); it.moveToNext(); ) {
-                var vlog = it.value();
-                switch (vlog.getVariableId()) {
-                    case 1: _LinkName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
-                    case 2: _LinkSid = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                    case 3: _State = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
-                    case 4: _ReliableNotifyMark.FollowerApply(vlog); break;
-                    case 5: _ReliableNotifyQueue.FollowerApply(vlog); break;
-                    case 6: _ReliableNotifyConfirmCount = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                    case 7: _ReliableNotifyTotalCount = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                    case 8: _ProviderId = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
-                    case 9: _ProviderSessionId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                    case 10: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                }
+
+    @Override
+    public void FollowerApply(Zeze.Transaction.Log log) {
+        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+        if (vars == null)
+            return;
+        for (var it = vars.iterator(); it.moveToNext(); ) {
+            var vlog = it.value();
+            switch (vlog.getVariableId()) {
+                case 1: _LinkName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                case 2: _LinkSid = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 3: _State = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                case 4: _ReliableNotifyMark.FollowerApply(vlog); break;
+                case 5: _ReliableNotifyQueue.FollowerApply(vlog); break;
+                case 6: _ReliableNotifyConfirmCount = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 7: _ReliableNotifyTotalCount = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 8: _ProviderId = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                case 9: _ProviderSessionId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 10: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
             }
         }
+    }
 }

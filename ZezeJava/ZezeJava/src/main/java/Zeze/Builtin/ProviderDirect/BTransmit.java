@@ -274,19 +274,20 @@ public final class BTransmit extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
-        @Override
-        public void FollowerApply(Zeze.Transaction.Log log) {
-            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-            if (vars == null)
-                return;
-            for (var it = vars.iterator(); it.moveToNext(); ) {
-                var vlog = it.value();
-                switch (vlog.getVariableId()) {
-                    case 1: _ActionName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
-                    case 2: _Roles.FollowerApply(vlog); break;
-                    case 3: _Sender = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                    case 4: _Parameter = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
-                }
+
+    @Override
+    public void FollowerApply(Zeze.Transaction.Log log) {
+        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+        if (vars == null)
+            return;
+        for (var it = vars.iterator(); it.moveToNext(); ) {
+            var vlog = it.value();
+            switch (vlog.getVariableId()) {
+                case 1: _ActionName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                case 2: _Roles.FollowerApply(vlog); break;
+                case 3: _Sender = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 4: _Parameter = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
             }
         }
+    }
 }

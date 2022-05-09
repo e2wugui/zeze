@@ -29,7 +29,8 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public void Encode(ByteBuffer _o_) {");
-            sw.WriteLine(prefix + "    int _i_ = 0;");
+            if (bean.Variables.Count > 0)
+                sw.WriteLine(prefix + "    int _i_ = 0;");
 
             foreach (Variable v in bean.Variables)
             {

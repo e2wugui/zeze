@@ -5,7 +5,6 @@ import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
-import org.apache.commons.lang3.NotImplementedException;
 
 public abstract class CollSet<V> extends Collection implements Set<V> {
 	public org.pcollections.PSet<V> _set = org.pcollections.Empty.set();
@@ -58,7 +57,7 @@ public abstract class CollSet<V> extends Collection implements Set<V> {
 
 	@Override
 	public boolean retainAll(java.util.Collection<?> c) {
-		throw new NotImplementedException("");
+		throw new UnsupportedOperationException();
 	}
 
 	public final void CopyTo(V[] array, int arrayIndex) {

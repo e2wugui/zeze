@@ -1,6 +1,5 @@
 package Zeze.Arch;
 
-import Zeze.Builtin.Provider.Kick;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;

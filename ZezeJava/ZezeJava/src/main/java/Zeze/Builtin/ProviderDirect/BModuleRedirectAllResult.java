@@ -372,21 +372,22 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
         }
         return false;
     }
-        @Override
-        public void FollowerApply(Zeze.Transaction.Log log) {
-            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-            if (vars == null)
-                return;
-            for (var it = vars.iterator(); it.moveToNext(); ) {
-                var vlog = it.value();
-                switch (vlog.getVariableId()) {
-                    case 1: _ModuleId = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
-                    case 2: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
-                    case 3: _SourceProvider = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                    case 4: _MethodFullName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
-                    case 5: _SessionId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                    case 6: _Hashs.FollowerApply(vlog); break;
-                }
+
+    @Override
+    public void FollowerApply(Zeze.Transaction.Log log) {
+        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+        if (vars == null)
+            return;
+        for (var it = vars.iterator(); it.moveToNext(); ) {
+            var vlog = it.value();
+            switch (vlog.getVariableId()) {
+                case 1: _ModuleId = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                case 2: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                case 3: _SourceProvider = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 4: _MethodFullName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                case 5: _SessionId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 6: _Hashs.FollowerApply(vlog); break;
             }
         }
+    }
 }

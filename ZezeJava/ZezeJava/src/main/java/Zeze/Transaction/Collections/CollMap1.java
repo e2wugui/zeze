@@ -77,16 +77,16 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public V remove(Object key) {
 		if (isManaged()) {
 			var txn = Transaction.getCurrent();
 			assert txn != null;
 			txn.VerifyRecordAccessed(this);
-			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap1<K, V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
-			return mapLog.Remove(key);
+			return mapLog.Remove((K)key);
 		} else {
 			//noinspection SuspiciousMethodCalls
 			var exist = _map.get(key);
@@ -107,7 +107,6 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 			return mapLog.Remove(item.getKey(), item.getValue());
 		} else {
 			var old = _map;
-			//noinspection SuspiciousMethodCalls
 			var exist = old.get(item.getKey());
 			if (null != exist && exist.equals(item.getValue())) {
 				_map = _map.minus(item.getKey());

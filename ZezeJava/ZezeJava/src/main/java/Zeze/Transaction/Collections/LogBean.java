@@ -6,7 +6,6 @@ import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import Zeze.Util.IntHashMap;
-import org.apache.commons.lang3.NotImplementedException;
 
 public class LogBean extends Log {
 	private static final int TYPE_ID = Zeze.Transaction.Bean.Hash32("Zeze.Transaction.Collections.LogBean");
@@ -20,7 +19,7 @@ public class LogBean extends Log {
 
 	@Override
 	public void Commit() {
-		throw new NotImplementedException("");
+		throw new UnsupportedOperationException();
 	}
 
 	public LogBean(int typeId) {

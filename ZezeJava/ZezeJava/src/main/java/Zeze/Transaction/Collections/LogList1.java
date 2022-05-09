@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
-import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
@@ -83,7 +82,7 @@ public class LogList1<V> extends LogList<V> {
 		return true;
 	}
 
-	public final boolean RemoveAll(Collection<?> c) {
+	public final boolean RemoveAll(Collection<? extends V> c) {
 		var result = false;
 		for (var o : c) {
 			if (Remove(o))
@@ -92,7 +91,7 @@ public class LogList1<V> extends LogList<V> {
 		return result;
 	}
 
-	public final boolean Remove(Object item) {
+	public final boolean Remove(V item) {
 		var index = getValue().indexOf(item);
 		if (index < 0)
 			return false;

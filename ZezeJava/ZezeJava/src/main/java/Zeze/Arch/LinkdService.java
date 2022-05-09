@@ -16,7 +16,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 
 	public LinkdService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);
-		StableLinkSids = new ConcurrentLruLike<StableLinkSidKey, StableLinkSid>(1000000, this::TryLruRemove);
+		StableLinkSids = new ConcurrentLruLike<>(1000000, this::TryLruRemove);
 	}
 
 	public void ReportError(long linkSid, int from, int code, String desc) {
@@ -50,12 +50,12 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		}
 	}
 
-	class StableLinkSidKey
+	static class StableLinkSidKey
 	{
 		// 同一个账号同一个ClientId只允许一个登录。
 		// ClientId 可能的分配方式：每个手机Client分配一个，所有电脑Client分配一个。
-		public String Account;
-		public String ClientId;
+		public final String Account;
+		public final String ClientId;
 
 		public StableLinkSidKey(String account, String clientId)
 		{
@@ -84,13 +84,13 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		}
 	}
 
-	public class StableLinkSid {
+	public static class StableLinkSid {
 		public boolean Removed = false;
 		public long LinkSid;
 		public AsyncSocket AuthedSocket;
 	}
 
-	private ConcurrentLruLike<StableLinkSidKey, StableLinkSid> StableLinkSids;
+	private final ConcurrentLruLike<StableLinkSidKey, StableLinkSid> StableLinkSids;
 
 	private boolean TryLruRemove(StableLinkSidKey key, StableLinkSid value) {
 		var exist = StableLinkSids.remove(key);
@@ -103,7 +103,8 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	private void SetStableLinkSid(String account, String clientId, AsyncSocket client) {
 		var key = new StableLinkSidKey(account, clientId);
 		while (true) {
-			var stable = StableLinkSids.GetOrAdd(key, () -> new StableLinkSid());
+			var stable = StableLinkSids.GetOrAdd(key, StableLinkSid::new);
+			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (stable) {
 				if (stable.Removed)
 					continue;

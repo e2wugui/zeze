@@ -624,9 +624,11 @@ public class GlobalCacheManagerWithRaft
 	}
 
 	@Override
-	public void close() throws IOException {
+	public void close() {
 		try {
 			Rocks.close();
+		} catch (RuntimeException e) {
+			throw e;
 		} catch (Throwable e) {
 			throw new RuntimeException(e);
 		}

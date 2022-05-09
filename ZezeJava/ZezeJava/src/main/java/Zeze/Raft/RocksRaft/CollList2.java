@@ -1,7 +1,6 @@
 package Zeze.Raft.RocksRaft;
 
 import java.lang.invoke.MethodHandle;
-import java.util.HashSet;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.IntHashSet;
 import Zeze.Util.Reflect;

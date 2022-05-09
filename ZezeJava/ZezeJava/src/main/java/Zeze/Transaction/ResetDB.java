@@ -26,7 +26,7 @@ import org.rocksdb.RocksIterator;
 public class ResetDB {
 
 	public void CheckAndRemoveTable(Schemas other, Application app) throws RocksDBException {
-		if (app.getConfig().autoResetTable() == false)
+		if (!app.getConfig().autoResetTable())
 			return;
 
 		if (null == other)
@@ -38,7 +38,7 @@ public class ResetDB {
 			db.Open(app);
 		}
 
-		List removeList = new LinkedList<>();
+		List<String> removeList = new LinkedList<>();
 		app.getSchemas().Compile();
 		var keyOfSchemas = ByteBuffer.Allocate(24);
 		keyOfSchemas.WriteString("zeze.Schemas." + app.getConfig().getServerId());
@@ -57,27 +57,25 @@ public class ResetDB {
 			version = dataVersion.Version;
 		}
 
-		if (removeList != null) {
-			switch (defaultDb.GetConf().getDatabaseType()) {
-				case MySql:
-					ResetMySql(app.getConfig(), databaseName, removeList);
-					ByteBuffer newData = ByteBuffer.Allocate(1024);
-					app.getSchemas().Encode(newData);
-					break;
-				case RocksDb:
-					defaultDb.Close();
-					ResetRocksDB(app, defaultDb.GetConf(), removeList);
-					break;
-				default:
-					return;
-			}
-			var newData = ByteBuffer.Allocate(1024);
-			app.getSchemas().Encode(newData);
-			defaultDb.getDirectOperates().SaveDataWithSameVersion(keyOfSchemas, newData, version);
+		switch (defaultDb.GetConf().getDatabaseType()) {
+			case MySql:
+				ResetMySql(app.getConfig(), databaseName, removeList);
+				ByteBuffer newData = ByteBuffer.Allocate(1024);
+				app.getSchemas().Encode(newData);
+				break;
+			case RocksDb:
+				defaultDb.Close();
+				ResetRocksDB(app, defaultDb.GetConf(), removeList);
+				break;
+			default:
+				return;
 		}
+		var newData = ByteBuffer.Allocate(1024);
+		app.getSchemas().Encode(newData);
+		defaultDb.getDirectOperates().SaveDataWithSameVersion(keyOfSchemas, newData, version);
 	}
 
-	public  void CheckCompatible(Schemas other, Application app, List removeList) {
+	public void CheckCompatible(Schemas other, Application app, List<String> removeList) {
 		if (null == other) {
 			return;
 		}
@@ -100,9 +98,7 @@ public class ResetDB {
 					if (rmTable != null) {
 						String[] strs = otherTable.Name.split("_", 3);
 						String moduleName = String.format("_" + strs[1] + "_");
-						if (removeModules.get(moduleName) == null) {
-							removeModules.put(moduleName, 1);
-						}
+						removeModules.putIfAbsent(moduleName, 1);
 					}
 				}
 			}
@@ -145,12 +141,12 @@ public class ResetDB {
 
 		RocksDB db = RocksDB.open(dbOptions, path, columnFamilies, outHandles);
 
-		if (columnFamilies != null && columnFamilies.size() > 0) {
+		if (columnFamilies.size() > 0) {
 			for (int i = 0; i < columnFamilies.size(); i++) {
 				ColumnFamilyHandle cfh = outHandles.get(i);
-				String tablename = new String(columnFamilies.get(i).getName());
-				if (!cfhMap.containsKey(tablename)) {
-					cfhMap.put(tablename, cfh);
+				String tableName = new String(columnFamilies.get(i).getName());
+				if (!cfhMap.containsKey(tableName)) {
+					cfhMap.put(tableName, cfh);
 				}
 			}
 		}
@@ -199,7 +195,7 @@ public class ResetDB {
 						if(stmt != null) {
 							stmt.close();
 						}
-					}catch(SQLException se2){
+					}catch(SQLException ignored){
 					}// 什么都不做
 					try{
 						if(conn != null) {

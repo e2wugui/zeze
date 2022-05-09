@@ -5,7 +5,6 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean {
-
     public BAnnounceLinkInfo() {
          this(0);
     }
@@ -75,14 +74,13 @@ public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean {
 
     @Override
     public void Encode(ByteBuffer _o_) {
-        int _i_ = 0;
         _o_.WriteByte(0);
     }
 
     @Override
     public void Decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
-        int _i_ = _o_.ReadTagSize(_t_);
+        _o_.ReadTagSize(_t_);
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -97,15 +95,8 @@ public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean {
     public boolean NegativeCheck() {
         return false;
     }
-        @Override
-        public void FollowerApply(Zeze.Transaction.Log log) {
-            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-            if (vars == null)
-                return;
-            for (var it = vars.iterator(); it.moveToNext(); ) {
-                var vlog = it.value();
-                switch (vlog.getVariableId()) {
-                }
-            }
-        }
+
+    @Override
+    public void FollowerApply(Zeze.Transaction.Log log) {
+    }
 }

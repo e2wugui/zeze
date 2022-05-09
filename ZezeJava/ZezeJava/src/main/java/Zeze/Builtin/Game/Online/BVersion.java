@@ -351,21 +351,22 @@ public final class BVersion extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
-        @Override
-        public void FollowerApply(Zeze.Transaction.Log log) {
-            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-            if (vars == null)
-                return;
-            for (var it = vars.iterator(); it.moveToNext(); ) {
-                var vlog = it.value();
-                switch (vlog.getVariableId()) {
-                    case 1: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                    case 2: _ReliableNotifyMark.FollowerApply(vlog); break;
-                    case 3: _ReliableNotifyQueue.FollowerApply(vlog); break;
-                    case 4: _ReliableNotifyConfirmCount = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                    case 5: _ReliableNotifyTotalCount = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                    case 6: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
-                }
+
+    @Override
+    public void FollowerApply(Zeze.Transaction.Log log) {
+        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+        if (vars == null)
+            return;
+        for (var it = vars.iterator(); it.moveToNext(); ) {
+            var vlog = it.value();
+            switch (vlog.getVariableId()) {
+                case 1: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 2: _ReliableNotifyMark.FollowerApply(vlog); break;
+                case 3: _ReliableNotifyQueue.FollowerApply(vlog); break;
+                case 4: _ReliableNotifyConfirmCount = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 5: _ReliableNotifyTotalCount = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 6: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
             }
         }
+    }
 }

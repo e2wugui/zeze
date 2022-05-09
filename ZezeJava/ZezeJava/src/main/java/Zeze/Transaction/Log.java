@@ -4,7 +4,6 @@ import java.util.function.Supplier;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.LongConcurrentHashMap;
-import org.apache.commons.lang3.NotImplementedException;
 
 /**
  操作日志。
@@ -74,11 +73,13 @@ public abstract class Log implements Serializable {
 		return this;
 	}
 
+	@Override
 	public void Encode(ByteBuffer bb) {
-		throw new NotImplementedException("");
+		throw new UnsupportedOperationException();
 	}
 
+	@Override
 	public void Decode(ByteBuffer bb) {
-		throw new NotImplementedException("");
+		throw new UnsupportedOperationException();
 	}
 }

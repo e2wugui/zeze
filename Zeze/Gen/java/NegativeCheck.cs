@@ -21,6 +21,7 @@ namespace Zeze.Gen.java
             }
             sw.WriteLine(prefix + "    return false;");
             sw.WriteLine(prefix + "}");
+            sw.WriteLine();
         }
 
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)

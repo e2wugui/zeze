@@ -46,16 +46,16 @@ public class CollList1<V> extends CollList<V> {
 		return true;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public boolean remove(Object item) {
 		if (isManaged()) {
 			var txn = Transaction.getCurrent();
 			assert txn != null;
 			txn.VerifyRecordAccessed(this);
-			@SuppressWarnings("unchecked")
 			var listLog = (LogList1<V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
-			return listLog.Remove(item);
+			return listLog.Remove((V)item);
 		}
 		var newList = _list.minus(item);
 		if (newList == _list)
@@ -156,16 +156,16 @@ public class CollList1<V> extends CollList<V> {
 		return true;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public boolean removeAll(Collection<?> c) {
 		if (this.isManaged()) {
 			var txn = Transaction.getCurrent();
 			assert txn != null;
 			txn.VerifyRecordAccessed(this);
-			@SuppressWarnings("unchecked")
 			var listLog = (LogList1<V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
-			return listLog.RemoveAll(c);
+			return listLog.RemoveAll((Collection<V>)c);
 		}
 		else {
 			var oldList = _list;

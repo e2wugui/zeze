@@ -7,7 +7,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Savepoint;
 import Zeze.Transaction.Transaction;
-import org.apache.commons.lang3.NotImplementedException;
 
 public class AutoKey {
 	public static class Module extends AbstractAutoKey {
@@ -137,12 +136,12 @@ public class AutoKey {
 
 		@Override
 		public void Encode(ByteBuffer bb) {
-			throw new NotImplementedException("");
+			throw new UnsupportedOperationException();
 		}
 
 		@Override
 		public void Decode(ByteBuffer bb) {
-			throw new NotImplementedException("");
+			throw new UnsupportedOperationException();
 		}
 	}
 }

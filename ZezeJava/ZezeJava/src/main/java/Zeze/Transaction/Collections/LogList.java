@@ -1,6 +1,5 @@
 package Zeze.Transaction.Collections;
 
-import Zeze.Transaction.Bean;
 import Zeze.Transaction.Changes;
 import Zeze.Transaction.Log;
 import org.pcollections.PVector;
@@ -29,6 +28,7 @@ public abstract class LogList<V> extends LogBean {
 		throw new UnsupportedOperationException("Collect Not Implement.");
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void Commit() {
 		((CollList<V>)getThis())._list = Value;

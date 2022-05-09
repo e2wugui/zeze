@@ -69,22 +69,22 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		}
 	}
 
-	public final V Remove(Object key) {
+	public final V Remove(K key) {
 		var old = getValue().get(key);
 		if (null != old) {
 			setValue(getValue().minus(key));
 			Replaced.remove(key);
-			Removed.add((K)key);
+			Removed.add(key);
 		}
 		return old;
 	}
 
-	public final boolean Remove(Object key, V value) {
+	public final boolean Remove(K key, V value) {
 		var old = getValue().get(key);
 		if (null != old && old.equals((value))) {
 			setValue(getValue().minus(key));
 			Replaced.remove(key);
-			Removed.add((K)key);
+			Removed.add(key);
 			return true;
 		}
 		return false;

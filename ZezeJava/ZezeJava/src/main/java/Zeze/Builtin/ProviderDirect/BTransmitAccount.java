@@ -316,20 +316,21 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
     public boolean NegativeCheck() {
         return false;
     }
-        @Override
-        public void FollowerApply(Zeze.Transaction.Log log) {
-            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
-            if (vars == null)
-                return;
-            for (var it = vars.iterator(); it.moveToNext(); ) {
-                var vlog = it.value();
-                switch (vlog.getVariableId()) {
-                    case 1: _ActionName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
-                    case 2: _Parameter = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
-                    case 3: _TargetAccounts.FollowerApply(vlog); break;
-                    case 4: _SenderAccount = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
-                    case 5: _SenderClientId = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
-                }
+
+    @Override
+    public void FollowerApply(Zeze.Transaction.Log log) {
+        var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+        if (vars == null)
+            return;
+        for (var it = vars.iterator(); it.moveToNext(); ) {
+            var vlog = it.value();
+            switch (vlog.getVariableId()) {
+                case 1: _ActionName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                case 2: _Parameter = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
+                case 3: _TargetAccounts.FollowerApply(vlog); break;
+                case 4: _SenderAccount = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                case 5: _SenderClientId = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
             }
         }
+    }
 }
