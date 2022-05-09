@@ -159,13 +159,13 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			if (null != factoryHandle.Handle) {
 				var r = (ModuleRedirectAllResult)p;
 				// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-				Zeze.Util.Task.Call(() -> factoryHandle.Handle.handle(p), p, Protocol::SendResultCode, r.Argument.getMethodFullName());
+				Zeze.Util.Task.run(() -> factoryHandle.Handle.handle(p), p, Protocol::SendResultCode, r.Argument.getMethodFullName());
 			} else
 				logger.warn("Protocol Handle Not Found: {}", p);
 			return;
 		}
 		// 所有的Direct都不启用存储过程。
-		Zeze.Util.Task.Call(() -> factoryHandle.Handle.handle(p), p, Protocol::SendResultCode);
+		Zeze.Util.Task.run(() -> factoryHandle.Handle.handle(p), p, Protocol::SendResultCode);
 		//super.DispatchProtocol(p, factoryHandle);
 	}
 

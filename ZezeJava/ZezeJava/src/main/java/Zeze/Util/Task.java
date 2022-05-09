@@ -308,6 +308,10 @@ public class Task implements Future<Long> {
 		return threadPoolDefault.submit(() -> Call(func, p, actionWhenError));
 	}
 
+	public static Future<Long> run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName) {
+		return threadPoolDefault.submit(() -> Call(func, p, actionWhenError, specialName));
+	}
+
 	@Deprecated
 	public static Task Run(FuncLong func, Protocol<?> p) {
 		return new Task(threadPoolDefault.submit(() -> Call(func, p, null)));
