@@ -29,9 +29,9 @@ public class TestDatabaseMySql extends TestCase {
 		var hostName = InetAddress.getLocalHost().getHostName();
 		System.out.println("hostName=" + hostName);
 		switch (hostName) {
-		case "DESKTOP-DVFC8AI": // lichenghua's computer
+		case "DESKTOP-DVFC8AI": // lichenghua's computer 1 & 2
+		case "DESKTOP-L17H5QD": // lichenghua's computer 2
 			return "jdbc:mysql://localhost/devtest?user=dev&password=devtest12345&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
-
 		default:
 			return "jdbc:mysql://localhost:3306/mysql?user=root&password=123&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
 		}
