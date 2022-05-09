@@ -40,13 +40,4 @@ public final class tItemClasses extends Zeze.Transaction.TableX<Integer, Zeze.Bu
     public Zeze.Builtin.Game.Bag.BItemClasses NewValue() {
         return new Zeze.Builtin.Game.Bag.BItemClasses();
     }
-
-    @Override
-    public Zeze.Transaction.ChangeVariableCollector CreateChangeVariableCollector(int variableId) {
-        switch (variableId) {
-            case 0: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 1: return new Zeze.Transaction.ChangeVariableCollectorSet();
-            default: return null;
-        }
-    }
 }

@@ -27,7 +27,7 @@ public final class LoginParam extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ServerId(this, value));
+        txn.PutLog(new Log__ServerId(this, 1, value));
     }
 
     public int getGlobalCacheManagerHashIndex() {
@@ -49,7 +49,7 @@ public final class LoginParam extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__GlobalCacheManagerHashIndex(this, value));
+        txn.PutLog(new Log__GlobalCacheManagerHashIndex(this, 2, value));
     }
 
     public LoginParam() {
@@ -94,19 +94,15 @@ public final class LoginParam extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__ServerId extends Zeze.Transaction.Log1<LoginParam, Integer> {
-        public Log__ServerId(LoginParam self, Integer value) { super(self, value); }
+       public Log__ServerId(LoginParam bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ServerId = this.getValue(); }
+        public void Commit() { getBeanTyped()._ServerId = this.getValue(); }
     }
 
     private static final class Log__GlobalCacheManagerHashIndex extends Zeze.Transaction.Log1<LoginParam, Integer> {
-        public Log__GlobalCacheManagerHashIndex(LoginParam self, Integer value) { super(self, value); }
+       public Log__GlobalCacheManagerHashIndex(LoginParam bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 2; }
-        @Override
-        public void Commit() { this.getBeanTyped()._GlobalCacheManagerHashIndex = this.getValue(); }
+        public void Commit() { getBeanTyped()._GlobalCacheManagerHashIndex = this.getValue(); }
     }
 
     @Override
@@ -189,4 +185,17 @@ public final class LoginParam extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                    case 2: _GlobalCacheManagerHashIndex = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                }
+            }
+        }
 }

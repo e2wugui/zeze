@@ -6,6 +6,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
+import Zeze.Transaction.Changes;
+import Zeze.Transaction.Collections.LogMap1;
+import Zeze.Transaction.Collections.LogMap2;
+import Zeze.Transaction.Collections.LogSet1;
+import Zeze.Transaction.Log;
+import demo.Module2.Value;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -14,12 +20,7 @@ import org.junit.Test;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.ChangeListener;
-import Zeze.Transaction.ChangeNote;
-import Zeze.Transaction.ChangeNoteMap1;
-import Zeze.Transaction.ChangeNoteMap2;
-import Zeze.Transaction.ChangeNoteSet;
 import Zeze.Transaction.Procedure;
-import Zeze.Transaction.Collections.PSet1;
 
 public class TestChangeListener {
 
@@ -237,21 +238,25 @@ public class TestChangeListener {
 	}
 
 	private void AddListener() {
-		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_int1, _CLInt1);
-		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_long2, _ClLong2);
-		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_string3, _CLString3);
-		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_bool4, _CLBool4);
-		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_short5, _CLShort5);
-		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_float6, _CLFloat6);
-		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_double7, _CLDouble7);
-		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_bytes8, _CLBytes8);
-		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_list9, _CLList9);
-		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_set10, _CLSet10);
-		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_map11, _CLMap11);
-		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_bean12, _CLBean12);
-		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_byte13, _CLByte13);
-		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_dynamic14, _ClDynamic14);
-		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(demo.Module1.Table1.VAR_map15, _CLMap15);
+		var ls = new Listener();
+
+		ls.Vars.put(demo.Module1.Table1.VAR_int1, _CLInt1);
+		ls.Vars.put(demo.Module1.Table1.VAR_long2, _ClLong2);
+		ls.Vars.put(demo.Module1.Table1.VAR_string3, _CLString3);
+		ls.Vars.put(demo.Module1.Table1.VAR_bool4, _CLBool4);
+		ls.Vars.put(demo.Module1.Table1.VAR_short5, _CLShort5);
+		ls.Vars.put(demo.Module1.Table1.VAR_float6, _CLFloat6);
+		ls.Vars.put(demo.Module1.Table1.VAR_double7, _CLDouble7);
+		ls.Vars.put(demo.Module1.Table1.VAR_bytes8, _CLBytes8);
+		ls.Vars.put(demo.Module1.Table1.VAR_list9, _CLList9);
+		ls.Vars.put(demo.Module1.Table1.VAR_set10, _CLSet10);
+		ls.Vars.put(demo.Module1.Table1.VAR_map11, _CLMap11);
+		ls.Vars.put(demo.Module1.Table1.VAR_bean12, _CLBean12);
+		ls.Vars.put(demo.Module1.Table1.VAR_byte13, _CLByte13);
+		ls.Vars.put(demo.Module1.Table1.VAR_dynamic14, _ClDynamic14);
+		ls.Vars.put(demo.Module1.Table1.VAR_map15, _CLMap15);
+
+		demo.App.getInstance().demo_Module1.getTable1().getChangeListenerMap().AddListener(ls);
 	}
 
 	private final CLInt1 _CLInt1 = new CLInt1();
@@ -270,7 +275,39 @@ public class TestChangeListener {
 	private final ClDynamic14 _ClDynamic14 = new ClDynamic14();
 	private final CLMap15 _CLMap15 = new CLMap15();
 
-	private static class CLMap15 implements ChangeListener {
+	static class Listener implements ChangeListener {
+		public HashMap<Integer, VarListener> Vars = new HashMap<>();
+		@Override
+		public void OnChanged(Object key, Changes.Record r) {
+			switch (r.getState()) {
+			case Changes.Record.Remove:
+				for (var var : Vars.values())
+					var.OnRemoved(key);
+				break;
+			case Changes.Record.Put:
+				for (var var : Vars.values())
+					var.OnChanged(key, r.getPutValue());
+				break;
+			case Changes.Record.Edit:
+				var logbean = r.logBean();
+				for (var e : Vars.entrySet()) {
+					var vlog = logbean.getVariables().get(e.getKey());
+					if (null != vlog) {
+						e.getValue().OnChanged(key, vlog);
+					}
+				}
+				break;
+			}
+		}
+	}
+
+	interface VarListener {
+		void OnChanged(Object key, Bean value);
+		void OnChanged(Object key, Log log);
+		void OnRemoved(Object key);
+	}
+
+	private static class CLMap15 implements VarListener {
 		private HashMap<Long, Long> newValue;
 
 		public final void Init(demo.Module1.Value current) {
@@ -309,9 +346,9 @@ public class TestChangeListener {
 			}
 		}
 
-		public final void OnChanged(Object key, Bean value, ChangeNote note) {
+		public final void OnChanged(Object key, Log note) {
 			@SuppressWarnings("unchecked")
-			ChangeNoteMap1<Long, Long> notemap1 = (ChangeNoteMap1<Long, Long>)note;
+			var notemap1 = (LogMap1<Long, Long>)note;
 
 			for (var a : notemap1.getReplaced().entrySet()) {
 				newValue.put(a.getKey(), a.getValue());
@@ -326,7 +363,7 @@ public class TestChangeListener {
 		}
 	}
 
-	private static class ClDynamic14 implements ChangeListener {
+	private static class ClDynamic14 implements VarListener {
 		private Bean newValue;
 
 		public final void Init(demo.Module1.Value current) {
@@ -353,8 +390,8 @@ public class TestChangeListener {
 			newValue = ((demo.Module1.Value)value).getDynamic14();
 		}
 
-		public final void OnChanged(Object key, Bean value, ChangeNote note) {
-			newValue = ((demo.Module1.Value)value).getDynamic14();
+		public final void OnChanged(Object key, Log note) {
+			newValue = ((demo.Module1.Value)note.getBelong()).getDynamic14();
 		}
 
 		public final void OnRemoved(Object key) {
@@ -362,7 +399,7 @@ public class TestChangeListener {
 		}
 	}
 
-	private static class CLByte13 implements ChangeListener {
+	private static class CLByte13 implements VarListener {
 		private byte newValue;
 
 		public final void Init(demo.Module1.Value current) {
@@ -381,8 +418,8 @@ public class TestChangeListener {
 			newValue = ((demo.Module1.Value)value).getByte13();
 		}
 
-		public final void OnChanged(Object key, Bean value, ChangeNote note) {
-			newValue = ((demo.Module1.Value)value).getByte13();
+		public final void OnChanged(Object key, Log note) {
+			newValue = ((demo.Module1.Value)note.getBelong()).getByte13();
 		}
 
 		public final void OnRemoved(Object key) {
@@ -390,7 +427,7 @@ public class TestChangeListener {
 		}
 	}
 
-	private static class CLBean12 implements ChangeListener {
+	private static class CLBean12 implements VarListener {
 		private demo.Module1.Simple newValue;
 
 		public final void Init(demo.Module1.Value current) {
@@ -413,8 +450,8 @@ public class TestChangeListener {
 			newValue = ((demo.Module1.Value)value).getBean12().Copy();
 		}
 
-		public final void OnChanged(Object key, Bean value, ChangeNote note) {
-			newValue = ((demo.Module1.Value)value).getBean12().Copy();
+		public final void OnChanged(Object key, Log note) {
+			newValue = ((demo.Module1.Value)note.getBelong()).getBean12().Copy();
 		}
 
 		public final void OnRemoved(Object key) {
@@ -422,7 +459,7 @@ public class TestChangeListener {
 		}
 	}
 
-	private static class CLMap11 implements ChangeListener {
+	private static class CLMap11 implements VarListener {
 		private HashMap<Long, demo.Module2.Value> newValue;
 
 		public final void Init(demo.Module1.Value current) {
@@ -460,10 +497,10 @@ public class TestChangeListener {
 			}
 		}
 
-		public final void OnChanged(Object key, Bean value, ChangeNote note) {
+		public final void OnChanged(Object key, Log note) {
 			@SuppressWarnings("unchecked")
-			ChangeNoteMap2<Long, demo.Module2.Value> notemap2 = (ChangeNoteMap2<Long, demo.Module2.Value>)note;
-			notemap2.MergeChangedToReplaced(((demo.Module1.Value)value).getMap11());
+			var notemap2 = (LogMap2<Long, Value>)note;
+			notemap2.MergeChangedToReplaced();
 
 			for (var a : notemap2.getReplaced().entrySet()) {
 				newValue.put(a.getKey(), a.getValue());
@@ -478,7 +515,7 @@ public class TestChangeListener {
 		}
 	}
 
-	private static class CLSet10 implements ChangeListener {
+	private static class CLSet10 implements VarListener {
 		private HashSet<Integer> newValue;
 
 		public final void Init(demo.Module1.Value current) {
@@ -514,9 +551,9 @@ public class TestChangeListener {
 			}
 		}
 
-		public final void OnChanged(Object key, Bean value, ChangeNote note) {
+		public final void OnChanged(Object key, Log note) {
 			@SuppressWarnings("unchecked")
-			ChangeNoteSet<Integer> noteset = (ChangeNoteSet<Integer>)note;
+			var noteset = (LogSet1<Integer>)note;
 			for (var a : noteset.getAdded()) {
 				newValue.add(a);
 			}
@@ -530,7 +567,7 @@ public class TestChangeListener {
 		}
 	}
 
-	private static class CLList9 implements ChangeListener {
+	private static class CLList9 implements VarListener {
 		private ArrayList<demo.Bean1> newValue;
 
 		public final void Init(demo.Module1.Value current) {
@@ -562,9 +599,9 @@ public class TestChangeListener {
 			}
 		}
 
-		public final void OnChanged(Object key, Bean value, ChangeNote note) {
+		public final void OnChanged(Object key, Log note) {
 			newValue = new ArrayList<demo.Bean1>();
-			for (var e : ((demo.Module1.Value)value).getList9()) {
+			for (var e : ((demo.Module1.Value)note.getBelong()).getList9()) {
 				newValue.add(e.Copy());
 			}
 		}
@@ -574,7 +611,7 @@ public class TestChangeListener {
 		}
 	}
 
-	private static class CLBytes8 implements ChangeListener {
+	private static class CLBytes8 implements VarListener {
 		private Binary newValue;
 
 		public final void Init(demo.Module1.Value current) {
@@ -593,8 +630,8 @@ public class TestChangeListener {
 			newValue = ((demo.Module1.Value)value).getBytes8();
 		}
 
-		public final void OnChanged(Object key, Bean value, ChangeNote note) {
-			newValue = ((demo.Module1.Value)value).getBytes8();
+		public final void OnChanged(Object key, Log note) {
+			newValue = ((demo.Module1.Value)note.getBelong()).getBytes8();
 		}
 
 		public final void OnRemoved(Object key) {
@@ -602,7 +639,7 @@ public class TestChangeListener {
 		}
 	}
 
-	private static class CLDouble7 implements ChangeListener {
+	private static class CLDouble7 implements VarListener {
 		private double newValue;
 
 		public final void Init(demo.Module1.Value current) {
@@ -621,8 +658,8 @@ public class TestChangeListener {
 			newValue = ((demo.Module1.Value)value).getDouble7();
 		}
 
-		public final void OnChanged(Object key, Bean value, ChangeNote note) {
-			newValue = ((demo.Module1.Value)value).getDouble7();
+		public final void OnChanged(Object key, Log note) {
+			newValue = ((demo.Module1.Value)note.getBelong()).getDouble7();
 		}
 
 		public final void OnRemoved(Object key) {
@@ -630,7 +667,7 @@ public class TestChangeListener {
 		}
 	}
 
-	private static class CLFloat6 implements ChangeListener {
+	private static class CLFloat6 implements VarListener {
 		private float newValue;
 
 		public final void Init(demo.Module1.Value current) {
@@ -649,8 +686,8 @@ public class TestChangeListener {
 			newValue = ((demo.Module1.Value)value).getFloat6();
 		}
 
-		public final void OnChanged(Object key, Bean value, ChangeNote note) {
-			newValue = ((demo.Module1.Value)value).getFloat6();
+		public final void OnChanged(Object key, Log note) {
+			newValue = ((demo.Module1.Value)note.getBelong()).getFloat6();
 		}
 
 		public final void OnRemoved(Object key) {
@@ -658,7 +695,7 @@ public class TestChangeListener {
 		}
 	}
 
-	private static class CLShort5 implements ChangeListener {
+	private static class CLShort5 implements VarListener {
 		private short newValue;
 
 		public final void Init(demo.Module1.Value current) {
@@ -677,8 +714,8 @@ public class TestChangeListener {
 			newValue = ((demo.Module1.Value)value).getShort5();
 		}
 
-		public final void OnChanged(Object key, Bean value, ChangeNote note) {
-			newValue = ((demo.Module1.Value)value).getShort5();
+		public final void OnChanged(Object key, Log note) {
+			newValue = ((demo.Module1.Value)note.getBelong()).getShort5();
 		}
 
 		public final void OnRemoved(Object key) {
@@ -686,7 +723,7 @@ public class TestChangeListener {
 		}
 	}
 
-	private static class CLBool4 implements ChangeListener {
+	private static class CLBool4 implements VarListener {
 		private boolean newValue;
 
 		public final void Init(demo.Module1.Value current) {
@@ -705,8 +742,8 @@ public class TestChangeListener {
 			newValue = ((demo.Module1.Value)value).isBool4();
 		}
 
-		public final void OnChanged(Object key, Bean value, ChangeNote note) {
-			newValue = ((demo.Module1.Value)value).isBool4();
+		public final void OnChanged(Object key, Log note) {
+			newValue = ((demo.Module1.Value)note.getBelong()).isBool4();
 		}
 
 		public final void OnRemoved(Object key) {
@@ -715,7 +752,7 @@ public class TestChangeListener {
 
 	}
 
-	private static class CLString3 implements ChangeListener {
+	private static class CLString3 implements VarListener {
 		private String newValue;
 
 		public final void Init(demo.Module1.Value current) {
@@ -734,8 +771,8 @@ public class TestChangeListener {
 			newValue = ((demo.Module1.Value)value).getString3();
 		}
 
-		public final void OnChanged(Object key, Bean value, ChangeNote note) {
-			newValue = ((demo.Module1.Value)value).getString3();
+		public final void OnChanged(Object key, Log note) {
+			newValue = ((demo.Module1.Value)note.getBelong()).getString3();
 		}
 
 		public final void OnRemoved(Object key) {
@@ -743,7 +780,7 @@ public class TestChangeListener {
 		}
 	}
 
-	private static class ClLong2 implements ChangeListener {
+	private static class ClLong2 implements VarListener {
 		private long newValue;
 
 		public final void Init(demo.Module1.Value current) {
@@ -762,8 +799,8 @@ public class TestChangeListener {
 			newValue = ((demo.Module1.Value)value).getLong2();
 		}
 
-		public final void OnChanged(Object key, Bean value, ChangeNote note) {
-			newValue = ((demo.Module1.Value)value).getLong2();
+		public final void OnChanged(Object key, Log note) {
+			newValue = ((demo.Module1.Value)note.getBelong()).getLong2();
 		}
 
 		public final void OnRemoved(Object key) {
@@ -771,7 +808,7 @@ public class TestChangeListener {
 		}
 	}
 
-	private static class CLInt1 implements ChangeListener {
+	private static class CLInt1 implements VarListener {
 		private int newValue;
 
 		public final void Init(demo.Module1.Value current) {
@@ -790,8 +827,8 @@ public class TestChangeListener {
 			newValue = ((demo.Module1.Value)value).getInt1();
 		}
 
-		public final void OnChanged(Object key, Bean value, ChangeNote note) {
-			newValue = ((demo.Module1.Value)value).getInt1();
+		public final void OnChanged(Object key, Log note) {
+			newValue = ((demo.Module1.Value)note.getBelong()).getInt1();
 		}
 
 		public final void OnRemoved(Object key) {

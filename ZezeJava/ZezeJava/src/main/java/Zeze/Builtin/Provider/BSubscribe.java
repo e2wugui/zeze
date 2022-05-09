@@ -5,9 +5,9 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BSubscribe extends Zeze.Transaction.Bean {
-    private final Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Provider.BModule> _modules; // moduleId -> BModule
+    private final Zeze.Transaction.Collections.CollMap2<Integer, Zeze.Builtin.Provider.BModule> _modules; // moduleId -> BModule
 
-    public Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Provider.BModule> getModules() {
+    public Zeze.Transaction.Collections.CollMap2<Integer, Zeze.Builtin.Provider.BModule> getModules() {
         return _modules;
     }
 
@@ -17,7 +17,8 @@ public final class BSubscribe extends Zeze.Transaction.Bean {
 
     public BSubscribe(int _varId_) {
         super(_varId_);
-        _modules = new Zeze.Transaction.Collections.PMap2<>(getObjectId() + 1, (_v) -> new Log__modules(this, _v));
+        _modules = new Zeze.Transaction.Collections.CollMap2<>(Integer.class, Zeze.Builtin.Provider.BModule.class);
+        _modules.VariableId = 1;
     }
 
     public void Assign(BSubscribe other) {
@@ -54,14 +55,6 @@ public final class BSubscribe extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__modules extends Zeze.Transaction.Collections.PMap.LogV<Integer, Zeze.Builtin.Provider.BModule> {
-        public Log__modules(BSubscribe host, org.pcollections.PMap<Integer, Zeze.Builtin.Provider.BModule> value) { super(host, value); }
-        @Override
-        public long getLogKey() { return getBean().getObjectId() + 1; }
-        public BSubscribe getBeanTyped() { return (BSubscribe)getBean(); }
-        @Override
-        public void Commit() { Commit(getBeanTyped()._modules); }
-    }
 
     @Override
     public String toString() {
@@ -158,4 +151,16 @@ public final class BSubscribe extends Zeze.Transaction.Bean {
         }
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _modules.FollowerApply(vlog); break;
+                }
+            }
+        }
 }

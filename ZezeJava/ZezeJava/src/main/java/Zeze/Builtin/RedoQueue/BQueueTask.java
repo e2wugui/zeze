@@ -32,7 +32,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__QueueName(this, value));
+        txn.PutLog(new Log__QueueName(this, 1, value));
     }
 
     public int getTaskType() {
@@ -54,7 +54,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__TaskType(this, value));
+        txn.PutLog(new Log__TaskType(this, 2, value));
     }
 
     public long getTaskId() {
@@ -76,7 +76,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__TaskId(this, value));
+        txn.PutLog(new Log__TaskId(this, 3, value));
     }
 
     public Zeze.Net.Binary getTaskParam() {
@@ -100,7 +100,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__TaskParam(this, value));
+        txn.PutLog(new Log__TaskParam(this, 4, value));
     }
 
     public long getPrevTaskId() {
@@ -122,7 +122,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__PrevTaskId(this, value));
+        txn.PutLog(new Log__PrevTaskId(this, 5, value));
     }
 
     public BQueueTask() {
@@ -172,43 +172,33 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__QueueName extends Zeze.Transaction.Log1<BQueueTask, String> {
-        public Log__QueueName(BQueueTask self, String value) { super(self, value); }
+       public Log__QueueName(BQueueTask bean, int varId, String value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._QueueName = this.getValue(); }
+        public void Commit() { getBeanTyped()._QueueName = this.getValue(); }
     }
 
     private static final class Log__TaskType extends Zeze.Transaction.Log1<BQueueTask, Integer> {
-        public Log__TaskType(BQueueTask self, Integer value) { super(self, value); }
+       public Log__TaskType(BQueueTask bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 2; }
-        @Override
-        public void Commit() { this.getBeanTyped()._TaskType = this.getValue(); }
+        public void Commit() { getBeanTyped()._TaskType = this.getValue(); }
     }
 
     private static final class Log__TaskId extends Zeze.Transaction.Log1<BQueueTask, Long> {
-        public Log__TaskId(BQueueTask self, Long value) { super(self, value); }
+       public Log__TaskId(BQueueTask bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 3; }
-        @Override
-        public void Commit() { this.getBeanTyped()._TaskId = this.getValue(); }
+        public void Commit() { getBeanTyped()._TaskId = this.getValue(); }
     }
 
     private static final class Log__TaskParam extends Zeze.Transaction.Log1<BQueueTask, Zeze.Net.Binary> {
-        public Log__TaskParam(BQueueTask self, Zeze.Net.Binary value) { super(self, value); }
+       public Log__TaskParam(BQueueTask bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 4; }
-        @Override
-        public void Commit() { this.getBeanTyped()._TaskParam = this.getValue(); }
+        public void Commit() { getBeanTyped()._TaskParam = this.getValue(); }
     }
 
     private static final class Log__PrevTaskId extends Zeze.Transaction.Log1<BQueueTask, Long> {
-        public Log__PrevTaskId(BQueueTask self, Long value) { super(self, value); }
+       public Log__PrevTaskId(BQueueTask bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 5; }
-        @Override
-        public void Commit() { this.getBeanTyped()._PrevTaskId = this.getValue(); }
+        public void Commit() { getBeanTyped()._PrevTaskId = this.getValue(); }
     }
 
     @Override
@@ -329,4 +319,20 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _QueueName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                    case 2: _TaskType = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                    case 3: _TaskId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                    case 4: _TaskParam = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
+                    case 5: _PrevTaskId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                }
+            }
+        }
 }

@@ -26,7 +26,7 @@ public final class BAccount extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__LastLoginVersion(this, value));
+        txn.PutLog(new Log__LastLoginVersion(this, 1, value));
     }
 
     public BAccount() {
@@ -70,11 +70,9 @@ public final class BAccount extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__LastLoginVersion extends Zeze.Transaction.Log1<BAccount, Long> {
-        public Log__LastLoginVersion(BAccount self, Long value) { super(self, value); }
+       public Log__LastLoginVersion(BAccount bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._LastLoginVersion = this.getValue(); }
+        public void Commit() { getBeanTyped()._LastLoginVersion = this.getValue(); }
     }
 
     @Override
@@ -143,4 +141,16 @@ public final class BAccount extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _LastLoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                }
+            }
+        }
 }

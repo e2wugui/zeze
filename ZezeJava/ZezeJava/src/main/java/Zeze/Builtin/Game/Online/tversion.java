@@ -45,18 +45,4 @@ public final class tversion extends Zeze.Transaction.TableX<Long, Zeze.Builtin.G
     public Zeze.Builtin.Game.Online.BVersion NewValue() {
         return new Zeze.Builtin.Game.Online.BVersion();
     }
-
-    @Override
-    public Zeze.Transaction.ChangeVariableCollector CreateChangeVariableCollector(int variableId) {
-        switch (variableId) {
-            case 0: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 1: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 2: return new Zeze.Transaction.ChangeVariableCollectorSet();
-            case 3: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 4: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 5: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 6: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            default: return null;
-        }
-    }
 }

@@ -57,12 +57,6 @@ public abstract class Table {
 		return ChangeListenerMap;
 	}
 
-	public ChangeVariableCollector CreateChangeVariableCollector(int variableId)
-	{
-		// TODO delete me
-		throw new NotImplementedException("");
-	}
-
 	abstract Storage GetStorage();
 
 	private Database _Database;

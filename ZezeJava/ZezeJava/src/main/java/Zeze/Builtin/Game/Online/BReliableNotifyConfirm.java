@@ -26,7 +26,7 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ReliableNotifyConfirmCount(this, value));
+        txn.PutLog(new Log__ReliableNotifyConfirmCount(this, 1, value));
     }
 
     public BReliableNotifyConfirm() {
@@ -70,11 +70,9 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__ReliableNotifyConfirmCount extends Zeze.Transaction.Log1<BReliableNotifyConfirm, Long> {
-        public Log__ReliableNotifyConfirmCount(BReliableNotifyConfirm self, Long value) { super(self, value); }
+       public Log__ReliableNotifyConfirmCount(BReliableNotifyConfirm bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ReliableNotifyConfirmCount = this.getValue(); }
+        public void Commit() { getBeanTyped()._ReliableNotifyConfirmCount = this.getValue(); }
     }
 
     @Override
@@ -143,4 +141,16 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _ReliableNotifyConfirmCount = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                }
+            }
+        }
 }

@@ -9,8 +9,7 @@ import Game.*;
 
 public final class ModuleBag extends AbstractModule {
 	public void Start(App app) {
-		_tbag.getChangeListenerMap().AddListener(tbag.VAR_Items, new ItemsChangeListener());
-		_tbag.getChangeListenerMap().AddListener(tbag.VAR_All, new BagChangeListener());
+		_tbag.getChangeListenerMap().AddListener(new BagChangeListener());
 	}
 
 	public void Stop(App app) {

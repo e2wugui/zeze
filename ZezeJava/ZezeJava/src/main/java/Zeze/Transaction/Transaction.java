@@ -114,19 +114,6 @@ public final class Transaction {
 		Savepoints.get(Savepoints.size() - 1).PutLog(log);
 	}
 
-	public ChangeNote GetOrAddChangeNote(long key, Zeze.Util.Factory<ChangeNote> factory) {
-		// 必须存在 Savepoint. 可能是为了修改。
-		return Savepoints.get(Savepoints.size() - 1).GetOrAddChangeNote(key, factory);
-	}
-
-	/*
-	public void PutChangeNote(long key, ChangeNote note)
-	{
-	    Savepoints[~1].PutChangeNote(key, note);
-	}
-	*/
-
-
 	public void RunWhileCommit(Runnable action) {
 		VerifyRunning();
 		Savepoints.get(Savepoints.size() - 1).addCommitAction(action);
@@ -281,52 +268,6 @@ public final class Transaction {
 		}
 	}
 
-	private void _notify_listener_(ChangeCollector cc) {
-		try {
-			Savepoint sp = Savepoints.get(Savepoints.size() - 1);
-			sp.getLogs().foreachValue(log -> {
-				if (log.getBean() == null)
-					return; // 特殊日志没有Bean。
-
-				// 写成回调是为了优化，仅在需要的时候才创建path。
-				//noinspection ConstantConditions
-				cc.CollectChanged(log.getBean().getTableKey(),
-					() -> {
-						var pn = new ChangePathAndNote();
-						pn.path = new ArrayList<>();
-						pn.note = null;
-						pn.path.add(Zeze.Util.KV.Create(log.getBean(), log.getVariableId()));
-						log.getBean().BuildChangeListenerPath(pn.path);
-						return pn;
-					});
-			});
-			sp.getChangeNotes().foreachValue(cn -> {
-				if (cn.getBean() == null)
-					return;
-
-				// 写成回调是为了优化，仅在需要的时候才创建path。
-				//noinspection ConstantConditions
-				cc.CollectChanged(cn.getBean().getTableKey(),
-						() -> {
-							var pn = new ChangePathAndNote();
-							pn.path = new ArrayList<>();
-							pn.note = cn;
-							pn.path.add(Zeze.Util.KV.Create(cn.getBean().getParent(), cn.getBean().getVariableId()));
-							cn.getBean().getParent().BuildChangeListenerPath(pn.path);
-							return pn;
-				});
-			});
-
-			Savepoints.clear();
-			//accessedRecords.Clear(); // 事务内访问过的记录保留，这样在Listener中可以读取。
-
-			cc.Notify();
-		}
-		catch (Throwable ex) {
-			logger.error("ChangeListener Collect And Notify", ex);
-		}
-	}
-
 	private void triggerActions(Procedure procedure) {
 		for (var action : Actions) {
 			try {
@@ -356,17 +297,17 @@ public final class Transaction {
 	private void _final_commit_(Procedure procedure) {
 		// 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
 		// 可以在最终提交里可以实现每事务checkpoint。
-		ChangeCollector cc = new ChangeCollector();
+		var cc = new Changes(this);
 
+		var lastsp = Savepoints.get(Savepoints.size() - 1);
 		RelativeRecordSet.TryUpdateAndCheckpoint(this, procedure, () -> {
 				try {
-					Savepoints.get(Savepoints.size() - 1).MergeActions(Actions, true);
-					Savepoints.get(Savepoints.size() - 1).Commit();
+					lastsp.MergeActions(Actions, true);
+					lastsp.Commit();
 
 					for (var e : getAccessedRecords().entrySet()) {
 						if (e.getValue().Dirty) {
 							e.getValue().Origin.Commit(e.getValue());
-							cc.BuildCollect(procedure.getZeze(), e.getKey(), e.getValue()); // 首先对脏记录创建Table,Record相关Collector。
 						}
 					}
 				}
@@ -380,7 +321,23 @@ public final class Transaction {
 		// 不再支持在回调中再次执行事务。
 		// 在Notify之前设置的。
 		State = TransactionState.Completed;
-		_notify_listener_(cc);
+
+		// collect logs and notify listeners
+		lastsp.getLogs().foreachValue((log) -> {
+			// 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
+			if (log.getBelong() != null && log.getBelong().isManaged()) {
+				// 第一个参数Owner为null，表示bean属于record，到达root了。
+				cc.Collect(log.getBelong(), log);
+			}
+		});
+
+		for (var ar : AccessedRecords.values())
+		{
+			if (ar.Dirty)
+				cc.CollectRecord(ar);
+		}
+		cc.NotifyListener();
+
 		_trigger_commit_actions_(procedure);
 	}
 

@@ -31,7 +31,7 @@ public final class BMove extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__BagName(this, value));
+        txn.PutLog(new Log__BagName(this, 1, value));
     }
 
     public int getPositionFrom() {
@@ -53,7 +53,7 @@ public final class BMove extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__PositionFrom(this, value));
+        txn.PutLog(new Log__PositionFrom(this, 2, value));
     }
 
     public int getPositionTo() {
@@ -75,7 +75,7 @@ public final class BMove extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__PositionTo(this, value));
+        txn.PutLog(new Log__PositionTo(this, 3, value));
     }
 
     public int getNumber() {
@@ -97,7 +97,7 @@ public final class BMove extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__number(this, value));
+        txn.PutLog(new Log__number(this, 4, value));
     }
 
     public BMove() {
@@ -145,35 +145,27 @@ public final class BMove extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__BagName extends Zeze.Transaction.Log1<BMove, String> {
-        public Log__BagName(BMove self, String value) { super(self, value); }
+       public Log__BagName(BMove bean, int varId, String value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._BagName = this.getValue(); }
+        public void Commit() { getBeanTyped()._BagName = this.getValue(); }
     }
 
     private static final class Log__PositionFrom extends Zeze.Transaction.Log1<BMove, Integer> {
-        public Log__PositionFrom(BMove self, Integer value) { super(self, value); }
+       public Log__PositionFrom(BMove bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 2; }
-        @Override
-        public void Commit() { this.getBeanTyped()._PositionFrom = this.getValue(); }
+        public void Commit() { getBeanTyped()._PositionFrom = this.getValue(); }
     }
 
     private static final class Log__PositionTo extends Zeze.Transaction.Log1<BMove, Integer> {
-        public Log__PositionTo(BMove self, Integer value) { super(self, value); }
+       public Log__PositionTo(BMove bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 3; }
-        @Override
-        public void Commit() { this.getBeanTyped()._PositionTo = this.getValue(); }
+        public void Commit() { getBeanTyped()._PositionTo = this.getValue(); }
     }
 
     private static final class Log__number extends Zeze.Transaction.Log1<BMove, Integer> {
-        public Log__number(BMove self, Integer value) { super(self, value); }
+       public Log__number(BMove bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 4; }
-        @Override
-        public void Commit() { this.getBeanTyped()._number = this.getValue(); }
+        public void Commit() { getBeanTyped()._number = this.getValue(); }
     }
 
     @Override
@@ -282,4 +274,19 @@ public final class BMove extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _BagName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                    case 2: _PositionFrom = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                    case 3: _PositionTo = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                    case 4: _number = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                }
+            }
+        }
 }

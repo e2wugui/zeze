@@ -12,8 +12,8 @@ public final class BOnline extends Zeze.Transaction.Bean {
     private String _LinkName;
     private long _LinkSid;
     private int _State;
-    private final Zeze.Transaction.Collections.PSet1<String> _ReliableNotifyMark;
-    private final Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> _ReliableNotifyQueue; // full encoded protocol list
+    private final Zeze.Transaction.Collections.CollSet1<String> _ReliableNotifyMark;
+    private final Zeze.Transaction.Collections.CollList1<Zeze.Net.Binary> _ReliableNotifyQueue; // full encoded protocol list
     private long _ReliableNotifyConfirmCount;
     private long _ReliableNotifyTotalCount;
     private int _ProviderId; // Config.AutoKeyLocalId
@@ -41,7 +41,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__LinkName(this, value));
+        txn.PutLog(new Log__LinkName(this, 1, value));
     }
 
     public long getLinkSid() {
@@ -63,7 +63,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__LinkSid(this, value));
+        txn.PutLog(new Log__LinkSid(this, 2, value));
     }
 
     public int getState() {
@@ -85,14 +85,14 @@ public final class BOnline extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__State(this, value));
+        txn.PutLog(new Log__State(this, 3, value));
     }
 
-    public Zeze.Transaction.Collections.PSet1<String> getReliableNotifyMark() {
+    public Zeze.Transaction.Collections.CollSet1<String> getReliableNotifyMark() {
         return _ReliableNotifyMark;
     }
 
-    public Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> getReliableNotifyQueue() {
+    public Zeze.Transaction.Collections.CollList1<Zeze.Net.Binary> getReliableNotifyQueue() {
         return _ReliableNotifyQueue;
     }
 
@@ -115,7 +115,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ReliableNotifyConfirmCount(this, value));
+        txn.PutLog(new Log__ReliableNotifyConfirmCount(this, 6, value));
     }
 
     public long getReliableNotifyTotalCount() {
@@ -137,7 +137,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ReliableNotifyTotalCount(this, value));
+        txn.PutLog(new Log__ReliableNotifyTotalCount(this, 7, value));
     }
 
     public int getProviderId() {
@@ -159,7 +159,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ProviderId(this, value));
+        txn.PutLog(new Log__ProviderId(this, 8, value));
     }
 
     public long getProviderSessionId() {
@@ -181,7 +181,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ProviderSessionId(this, value));
+        txn.PutLog(new Log__ProviderSessionId(this, 9, value));
     }
 
     public long getLoginVersion() {
@@ -203,7 +203,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__LoginVersion(this, value));
+        txn.PutLog(new Log__LoginVersion(this, 10, value));
     }
 
     public BOnline() {
@@ -214,8 +214,10 @@ public final class BOnline extends Zeze.Transaction.Bean {
         super(_varId_);
         _LinkName = "";
         _State = StateOffline;
-        _ReliableNotifyMark = new Zeze.Transaction.Collections.PSet1<>(getObjectId() + 4, (_v) -> new Log__ReliableNotifyMark(this, _v));
-        _ReliableNotifyQueue = new Zeze.Transaction.Collections.PList1<>(getObjectId() + 5, (_v) -> new Log__ReliableNotifyQueue(this, _v));
+        _ReliableNotifyMark = new Zeze.Transaction.Collections.CollSet1<>(String.class);
+        _ReliableNotifyMark.VariableId = 4;
+        _ReliableNotifyQueue = new Zeze.Transaction.Collections.CollList1<>(Zeze.Net.Binary.class);
+        _ReliableNotifyQueue.VariableId = 5;
     }
 
     public void Assign(BOnline other) {
@@ -264,85 +266,53 @@ public final class BOnline extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__LinkName extends Zeze.Transaction.Log1<BOnline, String> {
-        public Log__LinkName(BOnline self, String value) { super(self, value); }
+       public Log__LinkName(BOnline bean, int varId, String value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._LinkName = this.getValue(); }
+        public void Commit() { getBeanTyped()._LinkName = this.getValue(); }
     }
 
     private static final class Log__LinkSid extends Zeze.Transaction.Log1<BOnline, Long> {
-        public Log__LinkSid(BOnline self, Long value) { super(self, value); }
+       public Log__LinkSid(BOnline bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 2; }
-        @Override
-        public void Commit() { this.getBeanTyped()._LinkSid = this.getValue(); }
+        public void Commit() { getBeanTyped()._LinkSid = this.getValue(); }
     }
 
     private static final class Log__State extends Zeze.Transaction.Log1<BOnline, Integer> {
-        public Log__State(BOnline self, Integer value) { super(self, value); }
+       public Log__State(BOnline bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 3; }
-        @Override
-        public void Commit() { this.getBeanTyped()._State = this.getValue(); }
+        public void Commit() { getBeanTyped()._State = this.getValue(); }
     }
 
-    private static final class Log__ReliableNotifyMark extends Zeze.Transaction.Collections.PSet.LogV<String> {
-        public Log__ReliableNotifyMark(BOnline host, org.pcollections.PSet<String> value) { super(host, value); }
-        @Override
-        public long getLogKey() { return getBean().getObjectId() + 4; }
-        public BOnline getBeanTyped() { return (BOnline)getBean(); }
-        @Override
-        public void Commit() { Commit(getBeanTyped()._ReliableNotifyMark); }
-    }
 
-    private static final class Log__ReliableNotifyQueue extends Zeze.Transaction.Collections.PList.LogV<Zeze.Net.Binary> {
-        public Log__ReliableNotifyQueue(BOnline host, org.pcollections.PVector<Zeze.Net.Binary> value) { super(host, value); }
-        @Override
-        public long getLogKey() { return getBean().getObjectId() + 5; }
-        public BOnline getBeanTyped() { return (BOnline)getBean(); }
-        @Override
-        public void Commit() { Commit(getBeanTyped()._ReliableNotifyQueue); }
-    }
 
     private static final class Log__ReliableNotifyConfirmCount extends Zeze.Transaction.Log1<BOnline, Long> {
-        public Log__ReliableNotifyConfirmCount(BOnline self, Long value) { super(self, value); }
+       public Log__ReliableNotifyConfirmCount(BOnline bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 6; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ReliableNotifyConfirmCount = this.getValue(); }
+        public void Commit() { getBeanTyped()._ReliableNotifyConfirmCount = this.getValue(); }
     }
 
     private static final class Log__ReliableNotifyTotalCount extends Zeze.Transaction.Log1<BOnline, Long> {
-        public Log__ReliableNotifyTotalCount(BOnline self, Long value) { super(self, value); }
+       public Log__ReliableNotifyTotalCount(BOnline bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 7; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ReliableNotifyTotalCount = this.getValue(); }
+        public void Commit() { getBeanTyped()._ReliableNotifyTotalCount = this.getValue(); }
     }
 
     private static final class Log__ProviderId extends Zeze.Transaction.Log1<BOnline, Integer> {
-        public Log__ProviderId(BOnline self, Integer value) { super(self, value); }
+       public Log__ProviderId(BOnline bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 8; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ProviderId = this.getValue(); }
+        public void Commit() { getBeanTyped()._ProviderId = this.getValue(); }
     }
 
     private static final class Log__ProviderSessionId extends Zeze.Transaction.Log1<BOnline, Long> {
-        public Log__ProviderSessionId(BOnline self, Long value) { super(self, value); }
+       public Log__ProviderSessionId(BOnline bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 9; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ProviderSessionId = this.getValue(); }
+        public void Commit() { getBeanTyped()._ProviderSessionId = this.getValue(); }
     }
 
     private static final class Log__LoginVersion extends Zeze.Transaction.Log1<BOnline, Long> {
-        public Log__LoginVersion(BOnline self, Long value) { super(self, value); }
+       public Log__LoginVersion(BOnline bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 10; }
-        @Override
-        public void Commit() { this.getBeanTyped()._LoginVersion = this.getValue(); }
+        public void Commit() { getBeanTyped()._LoginVersion = this.getValue(); }
     }
 
     @Override
@@ -563,4 +533,25 @@ public final class BOnline extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _LinkName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                    case 2: _LinkSid = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                    case 3: _State = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                    case 4: _ReliableNotifyMark.FollowerApply(vlog); break;
+                    case 5: _ReliableNotifyQueue.FollowerApply(vlog); break;
+                    case 6: _ReliableNotifyConfirmCount = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                    case 7: _ReliableNotifyTotalCount = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                    case 8: _ProviderId = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                    case 9: _ProviderSessionId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                    case 10: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                }
+            }
+        }
 }

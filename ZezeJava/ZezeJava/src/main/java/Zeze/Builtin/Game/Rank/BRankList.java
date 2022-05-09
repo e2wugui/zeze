@@ -5,9 +5,9 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BRankList extends Zeze.Transaction.Bean {
-    private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.Rank.BRankValue> _RankList;
+    private final Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Game.Rank.BRankValue> _RankList;
 
-    public Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.Rank.BRankValue> getRankList() {
+    public Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Game.Rank.BRankValue> getRankList() {
         return _RankList;
     }
 
@@ -17,7 +17,8 @@ public final class BRankList extends Zeze.Transaction.Bean {
 
     public BRankList(int _varId_) {
         super(_varId_);
-        _RankList = new Zeze.Transaction.Collections.PList2<>(getObjectId() + 1, (_v) -> new Log__RankList(this, _v));
+        _RankList = new Zeze.Transaction.Collections.CollList2<>(Zeze.Builtin.Game.Rank.BRankValue.class);
+        _RankList.VariableId = 1;
     }
 
     public void Assign(BRankList other) {
@@ -54,14 +55,6 @@ public final class BRankList extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__RankList extends Zeze.Transaction.Collections.PList.LogV<Zeze.Builtin.Game.Rank.BRankValue> {
-        public Log__RankList(BRankList host, org.pcollections.PVector<Zeze.Builtin.Game.Rank.BRankValue> value) { super(host, value); }
-        @Override
-        public long getLogKey() { return getBean().getObjectId() + 1; }
-        public BRankList getBeanTyped() { return (BRankList)getBean(); }
-        @Override
-        public void Commit() { Commit(getBeanTyped()._RankList); }
-    }
 
     @Override
     public String toString() {
@@ -149,4 +142,16 @@ public final class BRankList extends Zeze.Transaction.Bean {
         }
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _RankList.FollowerApply(vlog); break;
+                }
+            }
+        }
 }

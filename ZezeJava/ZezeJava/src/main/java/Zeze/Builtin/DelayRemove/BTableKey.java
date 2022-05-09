@@ -29,7 +29,7 @@ public final class BTableKey extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__TableName(this, value));
+        txn.PutLog(new Log__TableName(this, 1, value));
     }
 
     public Zeze.Net.Binary getEncodedKey() {
@@ -53,7 +53,7 @@ public final class BTableKey extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__EncodedKey(this, value));
+        txn.PutLog(new Log__EncodedKey(this, 2, value));
     }
 
     public BTableKey() {
@@ -100,19 +100,15 @@ public final class BTableKey extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__TableName extends Zeze.Transaction.Log1<BTableKey, String> {
-        public Log__TableName(BTableKey self, String value) { super(self, value); }
+       public Log__TableName(BTableKey bean, int varId, String value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._TableName = this.getValue(); }
+        public void Commit() { getBeanTyped()._TableName = this.getValue(); }
     }
 
     private static final class Log__EncodedKey extends Zeze.Transaction.Log1<BTableKey, Zeze.Net.Binary> {
-        public Log__EncodedKey(BTableKey self, Zeze.Net.Binary value) { super(self, value); }
+       public Log__EncodedKey(BTableKey bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 2; }
-        @Override
-        public void Commit() { this.getBeanTyped()._EncodedKey = this.getValue(); }
+        public void Commit() { getBeanTyped()._EncodedKey = this.getValue(); }
     }
 
     @Override
@@ -191,4 +187,17 @@ public final class BTableKey extends Zeze.Transaction.Bean {
     public boolean NegativeCheck() {
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _TableName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                    case 2: _EncodedKey = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
+                }
+            }
+        }
 }

@@ -8,14 +8,9 @@ public final class Savepoint {
 	// private static final Logger logger = LogManager.getLogger(Savepoint.class);
 	private final LongHashMap<Log> Logs = new LongHashMap<>();
 	// private readonly Dictionary<long, Log> Newly = new Dictionary<>(); // 当前Savepoint新加的，用来实现Rollback，先不实现。
-	private final LongHashMap<ChangeNote> ChangeNotes = new LongHashMap<>();
 
 	public LongHashMap<Log> getLogs() {
 		return Logs;
-	}
-
-	public LongHashMap<ChangeNote> getChangeNotes() {
-		return ChangeNotes;
 	}
 
 	public enum ActionType {
@@ -36,22 +31,6 @@ public final class Savepoint {
 
 	private final ArrayList<Action> actions = new ArrayList<>();
 
-	/*
-	public void PutChangeNote(long key, ChangeNote note)
-	{
-	    notes[key] = note;
-	}
-	*/
-
-	public ChangeNote GetOrAddChangeNote(long key, Zeze.Util.Factory<ChangeNote> factory) {
-		var exist = ChangeNotes.get(key);
-		if (exist != null)
-			return exist;
-		ChangeNote newNote = factory.create();
-		getChangeNotes().put(key, newNote);
-		return newNote;
-	}
-
 	public void PutLog(Log log) {
 		Logs.put(log.getLogKey(), log);
 		//newly[log.LogKey] = log;
@@ -70,14 +49,6 @@ public final class Savepoint {
 	public void MergeFrom(Savepoint other, boolean isCommit) {
 		if (isCommit) {
 			Logs.putAll(other.Logs);
-
-			other.ChangeNotes.foreach((k, v) -> {
-				var cur = ChangeNotes.get(k);
-				if (cur != null)
-					cur.Merge(v);
-				else
-					ChangeNotes.put(k, v);
-			});
 			actions.addAll(other.actions);
 		} else{
 

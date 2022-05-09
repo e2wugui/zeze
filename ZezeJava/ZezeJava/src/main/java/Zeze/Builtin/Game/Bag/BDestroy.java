@@ -29,7 +29,7 @@ public final class BDestroy extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__BagName(this, value));
+        txn.PutLog(new Log__BagName(this, 1, value));
     }
 
     public int getPosition() {
@@ -51,7 +51,7 @@ public final class BDestroy extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__Position(this, value));
+        txn.PutLog(new Log__Position(this, 2, value));
     }
 
     public BDestroy() {
@@ -97,19 +97,15 @@ public final class BDestroy extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__BagName extends Zeze.Transaction.Log1<BDestroy, String> {
-        public Log__BagName(BDestroy self, String value) { super(self, value); }
+       public Log__BagName(BDestroy bean, int varId, String value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._BagName = this.getValue(); }
+        public void Commit() { getBeanTyped()._BagName = this.getValue(); }
     }
 
     private static final class Log__Position extends Zeze.Transaction.Log1<BDestroy, Integer> {
-        public Log__Position(BDestroy self, Integer value) { super(self, value); }
+       public Log__Position(BDestroy bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 2; }
-        @Override
-        public void Commit() { this.getBeanTyped()._Position = this.getValue(); }
+        public void Commit() { getBeanTyped()._Position = this.getValue(); }
     }
 
     @Override
@@ -190,4 +186,17 @@ public final class BDestroy extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _BagName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                    case 2: _Position = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                }
+            }
+        }
 }

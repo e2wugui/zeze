@@ -17,6 +17,18 @@ public final class BModule extends Zeze.Transaction.Bean {
     private int _ConfigType;
     private int _SubscribeType;
 
+    private Object __zeze_map_key__;
+
+    @Override
+    public Object getMapKey() {
+        return __zeze_map_key__;
+    }
+
+    @Override
+    public void setMapKey(Object value) {
+        __zeze_map_key__ = value;
+    }
+
     public int getChoiceType() {
         if (!isManaged())
             return _ChoiceType;
@@ -36,7 +48,7 @@ public final class BModule extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ChoiceType(this, value));
+        txn.PutLog(new Log__ChoiceType(this, 1, value));
     }
 
     public int getConfigType() {
@@ -58,7 +70,7 @@ public final class BModule extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ConfigType(this, value));
+        txn.PutLog(new Log__ConfigType(this, 2, value));
     }
 
     public int getSubscribeType() {
@@ -80,7 +92,7 @@ public final class BModule extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__SubscribeType(this, value));
+        txn.PutLog(new Log__SubscribeType(this, 3, value));
     }
 
     public BModule() {
@@ -126,27 +138,21 @@ public final class BModule extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__ChoiceType extends Zeze.Transaction.Log1<BModule, Integer> {
-        public Log__ChoiceType(BModule self, Integer value) { super(self, value); }
+       public Log__ChoiceType(BModule bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ChoiceType = this.getValue(); }
+        public void Commit() { getBeanTyped()._ChoiceType = this.getValue(); }
     }
 
     private static final class Log__ConfigType extends Zeze.Transaction.Log1<BModule, Integer> {
-        public Log__ConfigType(BModule self, Integer value) { super(self, value); }
+       public Log__ConfigType(BModule bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 2; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ConfigType = this.getValue(); }
+        public void Commit() { getBeanTyped()._ConfigType = this.getValue(); }
     }
 
     private static final class Log__SubscribeType extends Zeze.Transaction.Log1<BModule, Integer> {
-        public Log__SubscribeType(BModule self, Integer value) { super(self, value); }
+       public Log__SubscribeType(BModule bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 3; }
-        @Override
-        public void Commit() { this.getBeanTyped()._SubscribeType = this.getValue(); }
+        public void Commit() { getBeanTyped()._SubscribeType = this.getValue(); }
     }
 
     @Override
@@ -243,4 +249,18 @@ public final class BModule extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _ChoiceType = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                    case 2: _ConfigType = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                    case 3: _SubscribeType = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                }
+            }
+        }
 }

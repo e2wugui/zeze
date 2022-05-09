@@ -26,7 +26,7 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__NextId(this, value));
+        txn.PutLog(new Log__NextId(this, 1, value));
     }
 
     public BAutoKey() {
@@ -70,11 +70,9 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__NextId extends Zeze.Transaction.Log1<BAutoKey, Long> {
-        public Log__NextId(BAutoKey self, Long value) { super(self, value); }
+       public Log__NextId(BAutoKey bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._NextId = this.getValue(); }
+        public void Commit() { getBeanTyped()._NextId = this.getValue(); }
     }
 
     @Override
@@ -143,4 +141,16 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _NextId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                }
+            }
+        }
 }

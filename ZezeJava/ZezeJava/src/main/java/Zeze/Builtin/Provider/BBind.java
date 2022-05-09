@@ -8,14 +8,14 @@ public final class BBind extends Zeze.Transaction.Bean {
     public static final int ResultSuccess = 0;
     public static final int ResultFaild = 1;
 
-    private final Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Provider.BModule> _modules; // moduleId -> BModule
-    private final Zeze.Transaction.Collections.PSet1<Long> _linkSids;
+    private final Zeze.Transaction.Collections.CollMap2<Integer, Zeze.Builtin.Provider.BModule> _modules; // moduleId -> BModule
+    private final Zeze.Transaction.Collections.CollSet1<Long> _linkSids;
 
-    public Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Provider.BModule> getModules() {
+    public Zeze.Transaction.Collections.CollMap2<Integer, Zeze.Builtin.Provider.BModule> getModules() {
         return _modules;
     }
 
-    public Zeze.Transaction.Collections.PSet1<Long> getLinkSids() {
+    public Zeze.Transaction.Collections.CollSet1<Long> getLinkSids() {
         return _linkSids;
     }
 
@@ -25,8 +25,10 @@ public final class BBind extends Zeze.Transaction.Bean {
 
     public BBind(int _varId_) {
         super(_varId_);
-        _modules = new Zeze.Transaction.Collections.PMap2<>(getObjectId() + 1, (_v) -> new Log__modules(this, _v));
-        _linkSids = new Zeze.Transaction.Collections.PSet1<>(getObjectId() + 2, (_v) -> new Log__linkSids(this, _v));
+        _modules = new Zeze.Transaction.Collections.CollMap2<>(Integer.class, Zeze.Builtin.Provider.BModule.class);
+        _modules.VariableId = 1;
+        _linkSids = new Zeze.Transaction.Collections.CollSet1<>(Long.class);
+        _linkSids.VariableId = 2;
     }
 
     public void Assign(BBind other) {
@@ -66,23 +68,7 @@ public final class BBind extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__modules extends Zeze.Transaction.Collections.PMap.LogV<Integer, Zeze.Builtin.Provider.BModule> {
-        public Log__modules(BBind host, org.pcollections.PMap<Integer, Zeze.Builtin.Provider.BModule> value) { super(host, value); }
-        @Override
-        public long getLogKey() { return getBean().getObjectId() + 1; }
-        public BBind getBeanTyped() { return (BBind)getBean(); }
-        @Override
-        public void Commit() { Commit(getBeanTyped()._modules); }
-    }
 
-    private static final class Log__linkSids extends Zeze.Transaction.Collections.PSet.LogV<Long> {
-        public Log__linkSids(BBind host, org.pcollections.PSet<Long> value) { super(host, value); }
-        @Override
-        public long getLogKey() { return getBean().getObjectId() + 2; }
-        public BBind getBeanTyped() { return (BBind)getBean(); }
-        @Override
-        public void Commit() { Commit(getBeanTyped()._linkSids); }
-    }
 
     @Override
     public String toString() {
@@ -211,4 +197,17 @@ public final class BBind extends Zeze.Transaction.Bean {
         }
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _modules.FollowerApply(vlog); break;
+                    case 2: _linkSids.FollowerApply(vlog); break;
+                }
+            }
+        }
 }

@@ -7,7 +7,7 @@ import Zeze.Serialize.ByteBuffer;
 public final class BTransmitAccount extends Zeze.Transaction.Bean {
     private String _ActionName;
     private Zeze.Net.Binary _Parameter; // encoded bean
-    private final Zeze.Transaction.Collections.PSet1<String> _TargetAccounts; // 查询目标角色。
+    private final Zeze.Transaction.Collections.CollSet1<String> _TargetAccounts; // 查询目标角色。
     private String _SenderAccount; // 结果发送给Sender。
     private String _SenderClientId; // 结果发送给Sender。
 
@@ -32,7 +32,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ActionName(this, value));
+        txn.PutLog(new Log__ActionName(this, 1, value));
     }
 
     public Zeze.Net.Binary getParameter() {
@@ -56,10 +56,10 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__Parameter(this, value));
+        txn.PutLog(new Log__Parameter(this, 2, value));
     }
 
-    public Zeze.Transaction.Collections.PSet1<String> getTargetAccounts() {
+    public Zeze.Transaction.Collections.CollSet1<String> getTargetAccounts() {
         return _TargetAccounts;
     }
 
@@ -84,7 +84,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__SenderAccount(this, value));
+        txn.PutLog(new Log__SenderAccount(this, 4, value));
     }
 
     public String getSenderClientId() {
@@ -108,7 +108,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__SenderClientId(this, value));
+        txn.PutLog(new Log__SenderClientId(this, 5, value));
     }
 
     public BTransmitAccount() {
@@ -119,7 +119,8 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
         super(_varId_);
         _ActionName = "";
         _Parameter = Zeze.Net.Binary.Empty;
-        _TargetAccounts = new Zeze.Transaction.Collections.PSet1<>(getObjectId() + 3, (_v) -> new Log__TargetAccounts(this, _v));
+        _TargetAccounts = new Zeze.Transaction.Collections.CollSet1<>(String.class);
+        _TargetAccounts.VariableId = 3;
         _SenderAccount = "";
         _SenderClientId = "";
     }
@@ -163,44 +164,28 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__ActionName extends Zeze.Transaction.Log1<BTransmitAccount, String> {
-        public Log__ActionName(BTransmitAccount self, String value) { super(self, value); }
+       public Log__ActionName(BTransmitAccount bean, int varId, String value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ActionName = this.getValue(); }
+        public void Commit() { getBeanTyped()._ActionName = this.getValue(); }
     }
 
     private static final class Log__Parameter extends Zeze.Transaction.Log1<BTransmitAccount, Zeze.Net.Binary> {
-        public Log__Parameter(BTransmitAccount self, Zeze.Net.Binary value) { super(self, value); }
+       public Log__Parameter(BTransmitAccount bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 2; }
-        @Override
-        public void Commit() { this.getBeanTyped()._Parameter = this.getValue(); }
+        public void Commit() { getBeanTyped()._Parameter = this.getValue(); }
     }
 
-    private static final class Log__TargetAccounts extends Zeze.Transaction.Collections.PSet.LogV<String> {
-        public Log__TargetAccounts(BTransmitAccount host, org.pcollections.PSet<String> value) { super(host, value); }
-        @Override
-        public long getLogKey() { return getBean().getObjectId() + 3; }
-        public BTransmitAccount getBeanTyped() { return (BTransmitAccount)getBean(); }
-        @Override
-        public void Commit() { Commit(getBeanTyped()._TargetAccounts); }
-    }
 
     private static final class Log__SenderAccount extends Zeze.Transaction.Log1<BTransmitAccount, String> {
-        public Log__SenderAccount(BTransmitAccount self, String value) { super(self, value); }
+       public Log__SenderAccount(BTransmitAccount bean, int varId, String value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 4; }
-        @Override
-        public void Commit() { this.getBeanTyped()._SenderAccount = this.getValue(); }
+        public void Commit() { getBeanTyped()._SenderAccount = this.getValue(); }
     }
 
     private static final class Log__SenderClientId extends Zeze.Transaction.Log1<BTransmitAccount, String> {
-        public Log__SenderClientId(BTransmitAccount self, String value) { super(self, value); }
+       public Log__SenderClientId(BTransmitAccount bean, int varId, String value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 5; }
-        @Override
-        public void Commit() { this.getBeanTyped()._SenderClientId = this.getValue(); }
+        public void Commit() { getBeanTyped()._SenderClientId = this.getValue(); }
     }
 
     @Override
@@ -331,4 +316,20 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
     public boolean NegativeCheck() {
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _ActionName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                    case 2: _Parameter = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
+                    case 3: _TargetAccounts.FollowerApply(vlog); break;
+                    case 4: _SenderAccount = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                    case 5: _SenderClientId = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                }
+            }
+        }
 }

@@ -9,6 +9,18 @@ public final class BItem extends Zeze.Transaction.Bean {
     private int _Number;
     private final Zeze.Transaction.DynamicBean _Item;
 
+    private Object __zeze_map_key__;
+
+    @Override
+    public Object getMapKey() {
+        return __zeze_map_key__;
+    }
+
+    @Override
+    public void setMapKey(Object value) {
+        __zeze_map_key__ = value;
+    }
+
     public int getId() {
         if (!isManaged())
             return _Id;
@@ -28,7 +40,7 @@ public final class BItem extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__Id(this, value));
+        txn.PutLog(new Log__Id(this, 1, value));
     }
 
     public int getNumber() {
@@ -50,7 +62,7 @@ public final class BItem extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__Number(this, value));
+        txn.PutLog(new Log__Number(this, 2, value));
     }
 
     public Zeze.Transaction.DynamicBean getItem() {
@@ -101,19 +113,15 @@ public final class BItem extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__Id extends Zeze.Transaction.Log1<BItem, Integer> {
-        public Log__Id(BItem self, Integer value) { super(self, value); }
+       public Log__Id(BItem bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._Id = this.getValue(); }
+        public void Commit() { getBeanTyped()._Id = this.getValue(); }
     }
 
     private static final class Log__Number extends Zeze.Transaction.Log1<BItem, Integer> {
-        public Log__Number(BItem self, Integer value) { super(self, value); }
+       public Log__Number(BItem bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 2; }
-        @Override
-        public void Commit() { this.getBeanTyped()._Number = this.getValue(); }
+        public void Commit() { getBeanTyped()._Number = this.getValue(); }
     }
 
     public static long GetSpecialTypeIdFromBean_Item(Zeze.Transaction.Bean bean) {
@@ -223,4 +231,18 @@ public final class BItem extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _Id = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                    case 2: _Number = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                    case 3: _Item.FollowerApply(vlog); break;
+                }
+            }
+        }
 }

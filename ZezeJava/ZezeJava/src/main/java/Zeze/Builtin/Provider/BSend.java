@@ -5,11 +5,11 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BSend extends Zeze.Transaction.Bean {
-    private final Zeze.Transaction.Collections.PSet1<Long> _linkSids;
+    private final Zeze.Transaction.Collections.CollSet1<Long> _linkSids;
     private long _protocolType;
     private Zeze.Net.Binary _protocolWholeData; // 完整的协议打包，包括了 type, size
 
-    public Zeze.Transaction.Collections.PSet1<Long> getLinkSids() {
+    public Zeze.Transaction.Collections.CollSet1<Long> getLinkSids() {
         return _linkSids;
     }
 
@@ -32,7 +32,7 @@ public final class BSend extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__protocolType(this, value));
+        txn.PutLog(new Log__protocolType(this, 2, value));
     }
 
     public Zeze.Net.Binary getProtocolWholeData() {
@@ -56,7 +56,7 @@ public final class BSend extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__protocolWholeData(this, value));
+        txn.PutLog(new Log__protocolWholeData(this, 3, value));
     }
 
     public BSend() {
@@ -65,7 +65,8 @@ public final class BSend extends Zeze.Transaction.Bean {
 
     public BSend(int _varId_) {
         super(_varId_);
-        _linkSids = new Zeze.Transaction.Collections.PSet1<>(getObjectId() + 1, (_v) -> new Log__linkSids(this, _v));
+        _linkSids = new Zeze.Transaction.Collections.CollSet1<>(Long.class);
+        _linkSids.VariableId = 1;
         _protocolWholeData = Zeze.Net.Binary.Empty;
     }
 
@@ -105,29 +106,17 @@ public final class BSend extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__linkSids extends Zeze.Transaction.Collections.PSet.LogV<Long> {
-        public Log__linkSids(BSend host, org.pcollections.PSet<Long> value) { super(host, value); }
-        @Override
-        public long getLogKey() { return getBean().getObjectId() + 1; }
-        public BSend getBeanTyped() { return (BSend)getBean(); }
-        @Override
-        public void Commit() { Commit(getBeanTyped()._linkSids); }
-    }
 
     private static final class Log__protocolType extends Zeze.Transaction.Log1<BSend, Long> {
-        public Log__protocolType(BSend self, Long value) { super(self, value); }
+       public Log__protocolType(BSend bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 2; }
-        @Override
-        public void Commit() { this.getBeanTyped()._protocolType = this.getValue(); }
+        public void Commit() { getBeanTyped()._protocolType = this.getValue(); }
     }
 
     private static final class Log__protocolWholeData extends Zeze.Transaction.Log1<BSend, Zeze.Net.Binary> {
-        public Log__protocolWholeData(BSend self, Zeze.Net.Binary value) { super(self, value); }
+       public Log__protocolWholeData(BSend bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 3; }
-        @Override
-        public void Commit() { this.getBeanTyped()._protocolWholeData = this.getValue(); }
+        public void Commit() { getBeanTyped()._protocolWholeData = this.getValue(); }
     }
 
     @Override
@@ -240,4 +229,18 @@ public final class BSend extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _linkSids.FollowerApply(vlog); break;
+                    case 2: _protocolType = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                    case 3: _protocolWholeData = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
+                }
+            }
+        }
 }

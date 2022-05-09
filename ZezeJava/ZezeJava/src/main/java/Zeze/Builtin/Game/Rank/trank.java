@@ -40,13 +40,4 @@ public final class trank extends Zeze.Transaction.TableX<Zeze.Builtin.Game.Rank.
     public Zeze.Builtin.Game.Rank.BRankList NewValue() {
         return new Zeze.Builtin.Game.Rank.BRankList();
     }
-
-    @Override
-    public Zeze.Transaction.ChangeVariableCollector CreateChangeVariableCollector(int variableId) {
-        switch (variableId) {
-            case 0: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 1: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            default: return null;
-        }
-    }
 }

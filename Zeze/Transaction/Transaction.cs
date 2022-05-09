@@ -383,7 +383,7 @@ namespace Zeze.Transaction
             State = TransactionState.Completed; // 在Notify之前设置的。
 
             // collect logs and notify listeners
-            foreach (Log log in lastsp.Logs.Values)
+            foreach (var log in lastsp.Logs.Values)
             {
                 // 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
                 if (log.Belong == null || false == log.Belong.IsManaged)

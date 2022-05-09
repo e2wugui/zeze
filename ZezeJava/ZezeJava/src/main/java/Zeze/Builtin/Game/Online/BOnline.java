@@ -29,7 +29,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__LinkName(this, value));
+        txn.PutLog(new Log__LinkName(this, 1, value));
     }
 
     public long getLinkSid() {
@@ -51,7 +51,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__LinkSid(this, value));
+        txn.PutLog(new Log__LinkSid(this, 2, value));
     }
 
     public BOnline() {
@@ -97,19 +97,15 @@ public final class BOnline extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__LinkName extends Zeze.Transaction.Log1<BOnline, String> {
-        public Log__LinkName(BOnline self, String value) { super(self, value); }
+       public Log__LinkName(BOnline bean, int varId, String value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._LinkName = this.getValue(); }
+        public void Commit() { getBeanTyped()._LinkName = this.getValue(); }
     }
 
     private static final class Log__LinkSid extends Zeze.Transaction.Log1<BOnline, Long> {
-        public Log__LinkSid(BOnline self, Long value) { super(self, value); }
+       public Log__LinkSid(BOnline bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 2; }
-        @Override
-        public void Commit() { this.getBeanTyped()._LinkSid = this.getValue(); }
+        public void Commit() { getBeanTyped()._LinkSid = this.getValue(); }
     }
 
     @Override
@@ -190,4 +186,17 @@ public final class BOnline extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _LinkName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                    case 2: _LinkSid = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                }
+            }
+        }
 }

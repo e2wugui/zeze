@@ -4,7 +4,6 @@ import java.util.Map;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
-import Zeze.Transaction.ChangeNoteMap1;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
@@ -136,7 +135,7 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 	public void FollowerApply(Log _log) {
 		@SuppressWarnings("unchecked")
 		var log = (LogMap1<K, V>)_log;
-		_map = _map.plusAll(log.getPutted()).minusAll(log.getRemoved());
+		_map = _map.plusAll(log.getReplaced()).minusAll(log.getRemoved());
 	}
 
 	@Override

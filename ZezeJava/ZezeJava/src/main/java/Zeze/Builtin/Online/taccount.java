@@ -40,13 +40,4 @@ public final class taccount extends Zeze.Transaction.TableX<String, Zeze.Builtin
     public Zeze.Builtin.Online.BAccount NewValue() {
         return new Zeze.Builtin.Online.BAccount();
     }
-
-    @Override
-    public Zeze.Transaction.ChangeVariableCollector CreateChangeVariableCollector(int variableId) {
-        switch (variableId) {
-            case 0: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 1: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            default: return null;
-        }
-    }
 }

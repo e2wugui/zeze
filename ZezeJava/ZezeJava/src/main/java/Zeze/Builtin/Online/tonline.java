@@ -49,22 +49,4 @@ public final class tonline extends Zeze.Transaction.TableX<String, Zeze.Builtin.
     public Zeze.Builtin.Online.BOnline NewValue() {
         return new Zeze.Builtin.Online.BOnline();
     }
-
-    @Override
-    public Zeze.Transaction.ChangeVariableCollector CreateChangeVariableCollector(int variableId) {
-        switch (variableId) {
-            case 0: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 1: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 2: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 3: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 4: return new Zeze.Transaction.ChangeVariableCollectorSet();
-            case 5: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 6: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 7: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 8: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 9: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 10: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            default: return null;
-        }
-    }
 }

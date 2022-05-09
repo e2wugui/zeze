@@ -7,6 +7,18 @@ import Zeze.Serialize.ByteBuffer;
 public final class BAny extends Zeze.Transaction.Bean {
     private final Zeze.Transaction.DynamicBean _Any;
 
+    private Object __zeze_map_key__;
+
+    @Override
+    public Object getMapKey() {
+        return __zeze_map_key__;
+    }
+
+    @Override
+    public void setMapKey(Object value) {
+        __zeze_map_key__ = value;
+    }
+
     public Zeze.Transaction.DynamicBean getAny() {
         return _Any;
     }
@@ -131,4 +143,16 @@ public final class BAny extends Zeze.Transaction.Bean {
     public boolean NegativeCheck() {
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _Any.FollowerApply(vlog); break;
+                }
+            }
+        }
 }

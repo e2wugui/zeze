@@ -5,9 +5,9 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BItemClasses extends Zeze.Transaction.Bean {
-    private final Zeze.Transaction.Collections.PSet1<String> _ItemClasses;
+    private final Zeze.Transaction.Collections.CollSet1<String> _ItemClasses;
 
-    public Zeze.Transaction.Collections.PSet1<String> getItemClasses() {
+    public Zeze.Transaction.Collections.CollSet1<String> getItemClasses() {
         return _ItemClasses;
     }
 
@@ -17,7 +17,8 @@ public final class BItemClasses extends Zeze.Transaction.Bean {
 
     public BItemClasses(int _varId_) {
         super(_varId_);
-        _ItemClasses = new Zeze.Transaction.Collections.PSet1<>(getObjectId() + 1, (_v) -> new Log__ItemClasses(this, _v));
+        _ItemClasses = new Zeze.Transaction.Collections.CollSet1<>(String.class);
+        _ItemClasses.VariableId = 1;
     }
 
     public void Assign(BItemClasses other) {
@@ -54,14 +55,6 @@ public final class BItemClasses extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__ItemClasses extends Zeze.Transaction.Collections.PSet.LogV<String> {
-        public Log__ItemClasses(BItemClasses host, org.pcollections.PSet<String> value) { super(host, value); }
-        @Override
-        public long getLogKey() { return getBean().getObjectId() + 1; }
-        public BItemClasses getBeanTyped() { return (BItemClasses)getBean(); }
-        @Override
-        public void Commit() { Commit(getBeanTyped()._ItemClasses); }
-    }
 
     @Override
     public String toString() {
@@ -143,4 +136,16 @@ public final class BItemClasses extends Zeze.Transaction.Bean {
     public boolean NegativeCheck() {
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _ItemClasses.FollowerApply(vlog); break;
+                }
+            }
+        }
 }

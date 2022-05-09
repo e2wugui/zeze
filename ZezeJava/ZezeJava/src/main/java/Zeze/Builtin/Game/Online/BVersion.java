@@ -6,8 +6,8 @@ import Zeze.Serialize.ByteBuffer;
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BVersion extends Zeze.Transaction.Bean {
     private long _LoginVersion;
-    private final Zeze.Transaction.Collections.PSet1<String> _ReliableNotifyMark;
-    private final Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> _ReliableNotifyQueue; // full encoded protocol list
+    private final Zeze.Transaction.Collections.CollSet1<String> _ReliableNotifyMark;
+    private final Zeze.Transaction.Collections.CollList1<Zeze.Net.Binary> _ReliableNotifyQueue; // full encoded protocol list
     private long _ReliableNotifyConfirmCount;
     private long _ReliableNotifyTotalCount;
     private int _ServerId;
@@ -31,14 +31,14 @@ public final class BVersion extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__LoginVersion(this, value));
+        txn.PutLog(new Log__LoginVersion(this, 1, value));
     }
 
-    public Zeze.Transaction.Collections.PSet1<String> getReliableNotifyMark() {
+    public Zeze.Transaction.Collections.CollSet1<String> getReliableNotifyMark() {
         return _ReliableNotifyMark;
     }
 
-    public Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> getReliableNotifyQueue() {
+    public Zeze.Transaction.Collections.CollList1<Zeze.Net.Binary> getReliableNotifyQueue() {
         return _ReliableNotifyQueue;
     }
 
@@ -61,7 +61,7 @@ public final class BVersion extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ReliableNotifyConfirmCount(this, value));
+        txn.PutLog(new Log__ReliableNotifyConfirmCount(this, 4, value));
     }
 
     public long getReliableNotifyTotalCount() {
@@ -83,7 +83,7 @@ public final class BVersion extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ReliableNotifyTotalCount(this, value));
+        txn.PutLog(new Log__ReliableNotifyTotalCount(this, 5, value));
     }
 
     public int getServerId() {
@@ -105,7 +105,7 @@ public final class BVersion extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ServerId(this, value));
+        txn.PutLog(new Log__ServerId(this, 6, value));
     }
 
     public BVersion() {
@@ -114,8 +114,10 @@ public final class BVersion extends Zeze.Transaction.Bean {
 
     public BVersion(int _varId_) {
         super(_varId_);
-        _ReliableNotifyMark = new Zeze.Transaction.Collections.PSet1<>(getObjectId() + 2, (_v) -> new Log__ReliableNotifyMark(this, _v));
-        _ReliableNotifyQueue = new Zeze.Transaction.Collections.PList1<>(getObjectId() + 3, (_v) -> new Log__ReliableNotifyQueue(this, _v));
+        _ReliableNotifyMark = new Zeze.Transaction.Collections.CollSet1<>(String.class);
+        _ReliableNotifyMark.VariableId = 2;
+        _ReliableNotifyQueue = new Zeze.Transaction.Collections.CollList1<>(Zeze.Net.Binary.class);
+        _ReliableNotifyQueue.VariableId = 3;
     }
 
     public void Assign(BVersion other) {
@@ -160,53 +162,29 @@ public final class BVersion extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__LoginVersion extends Zeze.Transaction.Log1<BVersion, Long> {
-        public Log__LoginVersion(BVersion self, Long value) { super(self, value); }
+       public Log__LoginVersion(BVersion bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._LoginVersion = this.getValue(); }
+        public void Commit() { getBeanTyped()._LoginVersion = this.getValue(); }
     }
 
-    private static final class Log__ReliableNotifyMark extends Zeze.Transaction.Collections.PSet.LogV<String> {
-        public Log__ReliableNotifyMark(BVersion host, org.pcollections.PSet<String> value) { super(host, value); }
-        @Override
-        public long getLogKey() { return getBean().getObjectId() + 2; }
-        public BVersion getBeanTyped() { return (BVersion)getBean(); }
-        @Override
-        public void Commit() { Commit(getBeanTyped()._ReliableNotifyMark); }
-    }
 
-    private static final class Log__ReliableNotifyQueue extends Zeze.Transaction.Collections.PList.LogV<Zeze.Net.Binary> {
-        public Log__ReliableNotifyQueue(BVersion host, org.pcollections.PVector<Zeze.Net.Binary> value) { super(host, value); }
-        @Override
-        public long getLogKey() { return getBean().getObjectId() + 3; }
-        public BVersion getBeanTyped() { return (BVersion)getBean(); }
-        @Override
-        public void Commit() { Commit(getBeanTyped()._ReliableNotifyQueue); }
-    }
 
     private static final class Log__ReliableNotifyConfirmCount extends Zeze.Transaction.Log1<BVersion, Long> {
-        public Log__ReliableNotifyConfirmCount(BVersion self, Long value) { super(self, value); }
+       public Log__ReliableNotifyConfirmCount(BVersion bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 4; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ReliableNotifyConfirmCount = this.getValue(); }
+        public void Commit() { getBeanTyped()._ReliableNotifyConfirmCount = this.getValue(); }
     }
 
     private static final class Log__ReliableNotifyTotalCount extends Zeze.Transaction.Log1<BVersion, Long> {
-        public Log__ReliableNotifyTotalCount(BVersion self, Long value) { super(self, value); }
+       public Log__ReliableNotifyTotalCount(BVersion bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 5; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ReliableNotifyTotalCount = this.getValue(); }
+        public void Commit() { getBeanTyped()._ReliableNotifyTotalCount = this.getValue(); }
     }
 
     private static final class Log__ServerId extends Zeze.Transaction.Log1<BVersion, Integer> {
-        public Log__ServerId(BVersion self, Integer value) { super(self, value); }
+       public Log__ServerId(BVersion bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 6; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ServerId = this.getValue(); }
+        public void Commit() { getBeanTyped()._ServerId = this.getValue(); }
     }
 
     @Override
@@ -373,4 +351,21 @@ public final class BVersion extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                    case 2: _ReliableNotifyMark.FollowerApply(vlog); break;
+                    case 3: _ReliableNotifyQueue.FollowerApply(vlog); break;
+                    case 4: _ReliableNotifyConfirmCount = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                    case 5: _ReliableNotifyTotalCount = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                    case 6: _ServerId = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                }
+            }
+        }
 }

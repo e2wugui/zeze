@@ -7,6 +7,8 @@ import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.LongHashMap;
 import Zeze.Transaction.Collections.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class Changes {
 	private final LongHashMap<LogBean> Beans = new LongHashMap<>(); // 收集日志时,记录所有Bean修改. key is Bean.ObjectId
@@ -173,5 +175,23 @@ public final class Changes {
 		var sb = new StringBuilder();
 		ByteBuffer.BuildString(sb, Records);
 		return sb.toString();
+	}
+
+	private static final Logger logger = LogManager.getLogger(Changes.class);
+
+	public void NotifyListener() {
+		for (var e : Records.entrySet()) {
+			var listeners = Listeners.get(e.getValue().Table);
+			if (null != listeners) {
+				for (var l : listeners)
+				{
+					l.OnChanged(e.getKey().getKey(), e.getValue());
+				}
+			}
+			else
+			{
+				logger.error("Impossible! Record Log Exist But No Listener");
+			}
+		}
 	}
 }

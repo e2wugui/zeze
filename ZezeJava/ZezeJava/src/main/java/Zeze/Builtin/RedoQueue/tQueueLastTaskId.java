@@ -40,13 +40,4 @@ public final class tQueueLastTaskId extends Zeze.Transaction.TableX<String, Zeze
     public Zeze.Builtin.RedoQueue.BTaskId NewValue() {
         return new Zeze.Builtin.RedoQueue.BTaskId();
     }
-
-    @Override
-    public Zeze.Transaction.ChangeVariableCollector CreateChangeVariableCollector(int variableId) {
-        switch (variableId) {
-            case 0: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 1: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            default: return null;
-        }
-    }
 }

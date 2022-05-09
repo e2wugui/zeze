@@ -30,7 +30,7 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__GlobalTableKey(this, value));
+        txn.PutLog(new Log__GlobalTableKey(this, 1, value));
     }
 
     public int getState() {
@@ -52,7 +52,7 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__State(this, value));
+        txn.PutLog(new Log__State(this, 2, value));
     }
 
     public long getGlobalSerialId() {
@@ -74,7 +74,7 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__GlobalSerialId(this, value));
+        txn.PutLog(new Log__GlobalSerialId(this, 3, value));
     }
 
     public ReduceParam() {
@@ -121,27 +121,21 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__GlobalTableKey extends Zeze.Transaction.Log1<ReduceParam, Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey> {
-        public Log__GlobalTableKey(ReduceParam self, Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey value) { super(self, value); }
+       public Log__GlobalTableKey(ReduceParam bean, int varId, Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._GlobalTableKey = this.getValue(); }
+        public void Commit() { getBeanTyped()._GlobalTableKey = this.getValue(); }
     }
 
     private static final class Log__State extends Zeze.Transaction.Log1<ReduceParam, Integer> {
-        public Log__State(ReduceParam self, Integer value) { super(self, value); }
+       public Log__State(ReduceParam bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 2; }
-        @Override
-        public void Commit() { this.getBeanTyped()._State = this.getValue(); }
+        public void Commit() { getBeanTyped()._State = this.getValue(); }
     }
 
     private static final class Log__GlobalSerialId extends Zeze.Transaction.Log1<ReduceParam, Long> {
-        public Log__GlobalSerialId(ReduceParam self, Long value) { super(self, value); }
+       public Log__GlobalSerialId(ReduceParam bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 3; }
-        @Override
-        public void Commit() { this.getBeanTyped()._GlobalSerialId = this.getValue(); }
+        public void Commit() { getBeanTyped()._GlobalSerialId = this.getValue(); }
     }
 
     @Override
@@ -241,4 +235,19 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
+        @SuppressWarnings("unchecked")
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _GlobalTableKey = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey>)vlog).Value; break;
+                    case 2: _State = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                    case 3: _GlobalSerialId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                }
+            }
+        }
 }

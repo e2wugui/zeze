@@ -41,14 +41,4 @@ public final class tQueueNodes extends Zeze.Transaction.TableX<Zeze.Builtin.Coll
     public Zeze.Builtin.Collections.Queue.BQueueNode NewValue() {
         return new Zeze.Builtin.Collections.Queue.BQueueNode();
     }
-
-    @Override
-    public Zeze.Transaction.ChangeVariableCollector CreateChangeVariableCollector(int variableId) {
-        switch (variableId) {
-            case 0: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 1: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 2: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            default: return null;
-        }
-    }
 }

@@ -6,7 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BBag extends Zeze.Transaction.Bean {
     private int _Capacity;
-    private final Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Game.Bag.BItem> _Items; // key is bag position
+    private final Zeze.Transaction.Collections.CollMap2<Integer, Zeze.Builtin.Game.Bag.BItem> _Items; // key is bag position
 
     public int getCapacity() {
         if (!isManaged())
@@ -27,10 +27,10 @@ public final class BBag extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__Capacity(this, value));
+        txn.PutLog(new Log__Capacity(this, 1, value));
     }
 
-    public Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Game.Bag.BItem> getItems() {
+    public Zeze.Transaction.Collections.CollMap2<Integer, Zeze.Builtin.Game.Bag.BItem> getItems() {
         return _Items;
     }
 
@@ -40,7 +40,8 @@ public final class BBag extends Zeze.Transaction.Bean {
 
     public BBag(int _varId_) {
         super(_varId_);
-        _Items = new Zeze.Transaction.Collections.PMap2<>(getObjectId() + 2, (_v) -> new Log__Items(this, _v));
+        _Items = new Zeze.Transaction.Collections.CollMap2<>(Integer.class, Zeze.Builtin.Game.Bag.BItem.class);
+        _Items.VariableId = 2;
     }
 
     public void Assign(BBag other) {
@@ -79,21 +80,11 @@ public final class BBag extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__Capacity extends Zeze.Transaction.Log1<BBag, Integer> {
-        public Log__Capacity(BBag self, Integer value) { super(self, value); }
+       public Log__Capacity(BBag bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._Capacity = this.getValue(); }
+        public void Commit() { getBeanTyped()._Capacity = this.getValue(); }
     }
 
-    private static final class Log__Items extends Zeze.Transaction.Collections.PMap.LogV<Integer, Zeze.Builtin.Game.Bag.BItem> {
-        public Log__Items(BBag host, org.pcollections.PMap<Integer, Zeze.Builtin.Game.Bag.BItem> value) { super(host, value); }
-        @Override
-        public long getLogKey() { return getBean().getObjectId() + 2; }
-        public BBag getBeanTyped() { return (BBag)getBean(); }
-        @Override
-        public void Commit() { Commit(getBeanTyped()._Items); }
-    }
 
     @Override
     public String toString() {
@@ -204,4 +195,17 @@ public final class BBag extends Zeze.Transaction.Bean {
         }
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _Capacity = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                    case 2: _Items.FollowerApply(vlog); break;
+                }
+            }
+        }
 }

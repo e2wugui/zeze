@@ -40,13 +40,4 @@ public final class tValueIdToNodeId extends Zeze.Transaction.TableX<Zeze.Builtin
     public Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeId NewValue() {
         return new Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeId();
     }
-
-    @Override
-    public Zeze.Transaction.ChangeVariableCollector CreateChangeVariableCollector(int variableId) {
-        switch (variableId) {
-            case 0: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 1: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            default: return null;
-        }
-    }
 }

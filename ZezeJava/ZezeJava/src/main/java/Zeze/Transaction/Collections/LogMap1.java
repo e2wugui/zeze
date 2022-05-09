@@ -14,7 +14,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	protected final SerializeHelper.CodecFuncs<K> keyCodecFuncs;
 	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
 
-	private final HashMap<K, V> Putted = new HashMap<>();
+	private final HashMap<K, V> Replaced = new HashMap<>();
 	private final Set<K> Removed = new HashSet<>();
 
 	public LogMap1(Class<K> keyClass, Class<V> valueClass) {
@@ -34,8 +34,8 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		this.valueCodecFuncs = valueCodecFuncs;
 	}
 
-	public final HashMap<K, V> getPutted() {
-		return Putted;
+	public final HashMap<K, V> getReplaced() {
+		return Replaced;
 	}
 
 	public final Set<K> getRemoved() {
@@ -53,7 +53,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	public final V Put(K key, V value) {
 		var exist = getValue().get(key);
 		setValue(getValue().plus(key, value));
-		Putted.put(key, value);
+		Replaced.put(key, value);
 		Removed.remove(key);
 		return exist;
 	}
@@ -63,7 +63,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		if (newmap != getValue()) {
 			setValue(newmap);
 			for (var e : m.entrySet()) {
-				Putted.put(e.getKey(), e.getValue());
+				Replaced.put(e.getKey(), e.getValue());
 				Removed.remove(e.getKey());
 			}
 		}
@@ -73,7 +73,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		var old = getValue().get(key);
 		if (null != old) {
 			setValue(getValue().minus(key));
-			Putted.remove(key);
+			Replaced.remove(key);
 			Removed.add((K)key);
 		}
 		return old;
@@ -83,7 +83,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		var old = getValue().get(key);
 		if (null != old && old.equals((value))) {
 			setValue(getValue().minus(key));
-			Putted.remove(key);
+			Replaced.remove(key);
 			Removed.add((K)key);
 			return true;
 		}
@@ -98,10 +98,10 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 
 	@Override
 	public void Encode(ByteBuffer bb) {
-		bb.WriteUInt(Putted.size());
+		bb.WriteUInt(Replaced.size());
 		var keyEncoder = keyCodecFuncs.encoder;
 		var valueEncoder = valueCodecFuncs.encoder;
-		for (var p : Putted.entrySet()) {
+		for (var p : Replaced.entrySet()) {
 			keyEncoder.accept(bb, p.getKey());
 			valueEncoder.accept(bb, p.getValue());
 		}
@@ -113,13 +113,13 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 
 	@Override
 	public void Decode(ByteBuffer bb) {
-		Putted.clear();
+		Replaced.clear();
 		var keyDecoder = keyCodecFuncs.decoder;
 		var valueDecoder = valueCodecFuncs.decoder;
 		for (int i = bb.ReadUInt(); i > 0; --i) {
 			var key = keyDecoder.apply(bb);
 			var value = valueDecoder.apply(bb);
-			Putted.put(key, value);
+			Replaced.put(key, value);
 		}
 
 		Removed.clear();
@@ -142,14 +142,14 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	private void MergeChangeNote(LogMap1<K, V> another) {
 		// Put,Remove 需要确认有没有顺序问题
 		// this: replace 1,3 remove 2,4 nest: replace 2 remove 1
-		for (var e : another.Putted.entrySet()) {
+		for (var e : another.Replaced.entrySet()) {
 			// replace 1,2,3 remove 4
-			Putted.put(e.getKey(), e.getValue());
+			Replaced.put(e.getKey(), e.getValue());
 			Removed.remove(e.getKey());
 		}
 		for (var e : another.Removed) {
 			// replace 2,3 remove 1,4
-			Putted.remove(e);
+			Replaced.remove(e);
 			Removed.add(e);
 		}
 	}
@@ -167,7 +167,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 	public String toString() {
 		var sb = new StringBuilder();
 		sb.append(" Putted:");
-		ByteBuffer.BuildSortedString(sb, Putted);
+		ByteBuffer.BuildSortedString(sb, Replaced);
 		sb.append(" Removed:");
 		ByteBuffer.BuildSortedString(sb, Removed);
 		return sb.toString();

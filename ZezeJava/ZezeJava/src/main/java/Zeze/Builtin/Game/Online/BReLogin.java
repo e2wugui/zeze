@@ -27,7 +27,7 @@ public final class BReLogin extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__RoleId(this, value));
+        txn.PutLog(new Log__RoleId(this, 1, value));
     }
 
     public long getReliableNotifyConfirmCount() {
@@ -49,7 +49,7 @@ public final class BReLogin extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ReliableNotifyConfirmCount(this, value));
+        txn.PutLog(new Log__ReliableNotifyConfirmCount(this, 2, value));
     }
 
     public BReLogin() {
@@ -94,19 +94,15 @@ public final class BReLogin extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__RoleId extends Zeze.Transaction.Log1<BReLogin, Long> {
-        public Log__RoleId(BReLogin self, Long value) { super(self, value); }
+       public Log__RoleId(BReLogin bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._RoleId = this.getValue(); }
+        public void Commit() { getBeanTyped()._RoleId = this.getValue(); }
     }
 
     private static final class Log__ReliableNotifyConfirmCount extends Zeze.Transaction.Log1<BReLogin, Long> {
-        public Log__ReliableNotifyConfirmCount(BReLogin self, Long value) { super(self, value); }
+       public Log__ReliableNotifyConfirmCount(BReLogin bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 2; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ReliableNotifyConfirmCount = this.getValue(); }
+        public void Commit() { getBeanTyped()._ReliableNotifyConfirmCount = this.getValue(); }
     }
 
     @Override
@@ -189,4 +185,17 @@ public final class BReLogin extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _RoleId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                    case 2: _ReliableNotifyConfirmCount = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                }
+            }
+        }
 }

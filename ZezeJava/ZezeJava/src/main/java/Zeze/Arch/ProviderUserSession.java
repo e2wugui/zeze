@@ -6,7 +6,6 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.Collections.PList1;
 import Zeze.Transaction.Transaction;
 
 /**

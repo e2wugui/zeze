@@ -31,7 +31,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ServiceNamePrefix(this, value));
+        txn.PutLog(new Log__ServiceNamePrefix(this, 1, value));
     }
 
     public String getServiceIndentity() {
@@ -55,7 +55,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ServiceIndentity(this, value));
+        txn.PutLog(new Log__ServiceIndentity(this, 2, value));
     }
 
     public String getProviderDirectIp() {
@@ -79,7 +79,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ProviderDirectIp(this, value));
+        txn.PutLog(new Log__ProviderDirectIp(this, 3, value));
     }
 
     public int getProviderDirectPort() {
@@ -101,7 +101,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ProviderDirectPort(this, value));
+        txn.PutLog(new Log__ProviderDirectPort(this, 4, value));
     }
 
     public BAnnounceProviderInfo() {
@@ -151,35 +151,27 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__ServiceNamePrefix extends Zeze.Transaction.Log1<BAnnounceProviderInfo, String> {
-        public Log__ServiceNamePrefix(BAnnounceProviderInfo self, String value) { super(self, value); }
+       public Log__ServiceNamePrefix(BAnnounceProviderInfo bean, int varId, String value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ServiceNamePrefix = this.getValue(); }
+        public void Commit() { getBeanTyped()._ServiceNamePrefix = this.getValue(); }
     }
 
     private static final class Log__ServiceIndentity extends Zeze.Transaction.Log1<BAnnounceProviderInfo, String> {
-        public Log__ServiceIndentity(BAnnounceProviderInfo self, String value) { super(self, value); }
+       public Log__ServiceIndentity(BAnnounceProviderInfo bean, int varId, String value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 2; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ServiceIndentity = this.getValue(); }
+        public void Commit() { getBeanTyped()._ServiceIndentity = this.getValue(); }
     }
 
     private static final class Log__ProviderDirectIp extends Zeze.Transaction.Log1<BAnnounceProviderInfo, String> {
-        public Log__ProviderDirectIp(BAnnounceProviderInfo self, String value) { super(self, value); }
+       public Log__ProviderDirectIp(BAnnounceProviderInfo bean, int varId, String value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 3; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ProviderDirectIp = this.getValue(); }
+        public void Commit() { getBeanTyped()._ProviderDirectIp = this.getValue(); }
     }
 
     private static final class Log__ProviderDirectPort extends Zeze.Transaction.Log1<BAnnounceProviderInfo, Integer> {
-        public Log__ProviderDirectPort(BAnnounceProviderInfo self, Integer value) { super(self, value); }
+       public Log__ProviderDirectPort(BAnnounceProviderInfo bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 4; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ProviderDirectPort = this.getValue(); }
+        public void Commit() { getBeanTyped()._ProviderDirectPort = this.getValue(); }
     }
 
     @Override
@@ -284,4 +276,19 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _ServiceNamePrefix = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                    case 2: _ServiceIndentity = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                    case 3: _ProviderDirectIp = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                    case 4: _ProviderDirectPort = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                }
+            }
+        }
 }

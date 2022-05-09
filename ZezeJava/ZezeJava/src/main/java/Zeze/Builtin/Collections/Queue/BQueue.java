@@ -29,7 +29,7 @@ public final class BQueue extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__HeadNodeId(this, value));
+        txn.PutLog(new Log__HeadNodeId(this, 1, value));
     }
 
     public long getTailNodeId() {
@@ -51,7 +51,7 @@ public final class BQueue extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__TailNodeId(this, value));
+        txn.PutLog(new Log__TailNodeId(this, 2, value));
     }
 
     public long getCount() {
@@ -73,7 +73,7 @@ public final class BQueue extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__Count(this, value));
+        txn.PutLog(new Log__Count(this, 3, value));
     }
 
     public long getLastNodeId() {
@@ -95,7 +95,7 @@ public final class BQueue extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__LastNodeId(this, value));
+        txn.PutLog(new Log__LastNodeId(this, 4, value));
     }
 
     public BQueue() {
@@ -142,35 +142,27 @@ public final class BQueue extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__HeadNodeId extends Zeze.Transaction.Log1<BQueue, Long> {
-        public Log__HeadNodeId(BQueue self, Long value) { super(self, value); }
+       public Log__HeadNodeId(BQueue bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._HeadNodeId = this.getValue(); }
+        public void Commit() { getBeanTyped()._HeadNodeId = this.getValue(); }
     }
 
     private static final class Log__TailNodeId extends Zeze.Transaction.Log1<BQueue, Long> {
-        public Log__TailNodeId(BQueue self, Long value) { super(self, value); }
+       public Log__TailNodeId(BQueue bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 2; }
-        @Override
-        public void Commit() { this.getBeanTyped()._TailNodeId = this.getValue(); }
+        public void Commit() { getBeanTyped()._TailNodeId = this.getValue(); }
     }
 
     private static final class Log__Count extends Zeze.Transaction.Log1<BQueue, Long> {
-        public Log__Count(BQueue self, Long value) { super(self, value); }
+       public Log__Count(BQueue bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 3; }
-        @Override
-        public void Commit() { this.getBeanTyped()._Count = this.getValue(); }
+        public void Commit() { getBeanTyped()._Count = this.getValue(); }
     }
 
     private static final class Log__LastNodeId extends Zeze.Transaction.Log1<BQueue, Long> {
-        public Log__LastNodeId(BQueue self, Long value) { super(self, value); }
+       public Log__LastNodeId(BQueue bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 4; }
-        @Override
-        public void Commit() { this.getBeanTyped()._LastNodeId = this.getValue(); }
+        public void Commit() { getBeanTyped()._LastNodeId = this.getValue(); }
     }
 
     @Override
@@ -281,4 +273,19 @@ public final class BQueue extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _HeadNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                    case 2: _TailNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                    case 3: _Count = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                    case 4: _LastNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                }
+            }
+        }
 }

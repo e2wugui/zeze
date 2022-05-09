@@ -7,7 +7,7 @@ import Zeze.Serialize.ByteBuffer;
 public final class BLinkedMapNode extends Zeze.Transaction.Bean {
     private long _PrevNodeId; // 前一个节点ID. 0表示已到达开头。
     private long _NextNodeId; // 后一个节点ID. 0表示已到达结尾。
-    private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue> _Values; // 多个KeyValue对,容量由LinkedMap构造时的nodeSize决定
+    private final Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue> _Values; // 多个KeyValue对,容量由LinkedMap构造时的nodeSize决定
 
     public long getPrevNodeId() {
         if (!isManaged())
@@ -28,7 +28,7 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__PrevNodeId(this, value));
+        txn.PutLog(new Log__PrevNodeId(this, 1, value));
     }
 
     public long getNextNodeId() {
@@ -50,10 +50,10 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__NextNodeId(this, value));
+        txn.PutLog(new Log__NextNodeId(this, 2, value));
     }
 
-    public Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue> getValues() {
+    public Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue> getValues() {
         return _Values;
     }
 
@@ -63,7 +63,8 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
 
     public BLinkedMapNode(int _varId_) {
         super(_varId_);
-        _Values = new Zeze.Transaction.Collections.PList2<>(getObjectId() + 3, (_v) -> new Log__Values(this, _v));
+        _Values = new Zeze.Transaction.Collections.CollList2<>(Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue.class);
+        _Values.VariableId = 3;
     }
 
     public void Assign(BLinkedMapNode other) {
@@ -103,29 +104,17 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__PrevNodeId extends Zeze.Transaction.Log1<BLinkedMapNode, Long> {
-        public Log__PrevNodeId(BLinkedMapNode self, Long value) { super(self, value); }
+       public Log__PrevNodeId(BLinkedMapNode bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._PrevNodeId = this.getValue(); }
+        public void Commit() { getBeanTyped()._PrevNodeId = this.getValue(); }
     }
 
     private static final class Log__NextNodeId extends Zeze.Transaction.Log1<BLinkedMapNode, Long> {
-        public Log__NextNodeId(BLinkedMapNode self, Long value) { super(self, value); }
+       public Log__NextNodeId(BLinkedMapNode bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 2; }
-        @Override
-        public void Commit() { this.getBeanTyped()._NextNodeId = this.getValue(); }
+        public void Commit() { getBeanTyped()._NextNodeId = this.getValue(); }
     }
 
-    private static final class Log__Values extends Zeze.Transaction.Collections.PList.LogV<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue> {
-        public Log__Values(BLinkedMapNode host, org.pcollections.PVector<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue> value) { super(host, value); }
-        @Override
-        public long getLogKey() { return getBean().getObjectId() + 3; }
-        public BLinkedMapNode getBeanTyped() { return (BLinkedMapNode)getBean(); }
-        @Override
-        public void Commit() { Commit(getBeanTyped()._Values); }
-    }
 
     @Override
     public String toString() {
@@ -237,4 +226,18 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _PrevNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                    case 2: _NextNodeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                    case 3: _Values.FollowerApply(vlog); break;
+                }
+            }
+        }
 }

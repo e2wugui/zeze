@@ -28,7 +28,7 @@ public final class BLoad extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__Online(this, value));
+        txn.PutLog(new Log__Online(this, 1, value));
     }
 
     public int getProposeMaxOnline() {
@@ -50,7 +50,7 @@ public final class BLoad extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ProposeMaxOnline(this, value));
+        txn.PutLog(new Log__ProposeMaxOnline(this, 2, value));
     }
 
     public int getOnlineNew() {
@@ -72,7 +72,7 @@ public final class BLoad extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__OnlineNew(this, value));
+        txn.PutLog(new Log__OnlineNew(this, 3, value));
     }
 
     public BLoad() {
@@ -118,27 +118,21 @@ public final class BLoad extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__Online extends Zeze.Transaction.Log1<BLoad, Integer> {
-        public Log__Online(BLoad self, Integer value) { super(self, value); }
+       public Log__Online(BLoad bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._Online = this.getValue(); }
+        public void Commit() { getBeanTyped()._Online = this.getValue(); }
     }
 
     private static final class Log__ProposeMaxOnline extends Zeze.Transaction.Log1<BLoad, Integer> {
-        public Log__ProposeMaxOnline(BLoad self, Integer value) { super(self, value); }
+       public Log__ProposeMaxOnline(BLoad bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 2; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ProposeMaxOnline = this.getValue(); }
+        public void Commit() { getBeanTyped()._ProposeMaxOnline = this.getValue(); }
     }
 
     private static final class Log__OnlineNew extends Zeze.Transaction.Log1<BLoad, Integer> {
-        public Log__OnlineNew(BLoad self, Integer value) { super(self, value); }
+       public Log__OnlineNew(BLoad bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 3; }
-        @Override
-        public void Commit() { this.getBeanTyped()._OnlineNew = this.getValue(); }
+        public void Commit() { getBeanTyped()._OnlineNew = this.getValue(); }
     }
 
     @Override
@@ -235,4 +229,18 @@ public final class BLoad extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _Online = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                    case 2: _ProposeMaxOnline = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                    case 3: _OnlineNew = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
+                }
+            }
+        }
 }

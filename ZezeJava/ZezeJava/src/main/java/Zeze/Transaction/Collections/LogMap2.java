@@ -44,17 +44,34 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		return dup;
 	}
 
-	@SuppressWarnings("unchecked")
-	@Override
-	public void Encode(ByteBuffer bb) {
-		if (getValue() != null) {
+	private boolean built = false;
+
+	public boolean BuildChangedWithKey() {
+		if (false == built && getValue() != null) {
+			built = true;
 			for (var c : Changed) {
 				Object pkey = c.getThis().getMapKey();
 				//noinspection SuspiciousMethodCalls
-				if (!getPutted().containsKey(pkey) && !getRemoved().contains(pkey))
+				if (!getReplaced().containsKey(pkey) && !getRemoved().contains(pkey))
 					ChangedWithKey.put((K)pkey, c);
 			}
+			return true;
 		}
+		return false;
+	}
+
+	public void MergeChangedToReplaced() {
+		if (BuildChangedWithKey()) {
+			for (var e : ChangedWithKey.entrySet()) {
+				getReplaced().put(e.getKey(), (V)e.getValue().getThis());
+			}
+		}
+	}
+
+	@Override
+	public void Encode(ByteBuffer bb) {
+		BuildChangedWithKey();
+
 		bb.WriteUInt(ChangedWithKey.size());
 		var keyEncoder = keyCodecFuncs.encoder;
 		for (var e : ChangedWithKey.entrySet()) {
@@ -63,8 +80,8 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		}
 
 		// super.Encode(bb);
-		bb.WriteUInt(getPutted().size());
-		for (var p : getPutted().entrySet()) {
+		bb.WriteUInt(getReplaced().size());
+		for (var p : getReplaced().entrySet()) {
 			keyEncoder.accept(bb, p.getKey());
 			p.getValue().Encode(bb);
 		}
@@ -86,7 +103,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 		}
 
 		// super.Decode(bb);
-		getPutted().clear();
+		getReplaced().clear();
 		for (int i = bb.ReadUInt(); i > 0; i--) {
 			var key = keyDecoder.apply(bb);
 			V value;
@@ -96,7 +113,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 				throw new RuntimeException(e);
 			}
 			value.Decode(bb);
-			getPutted().put(key, value);
+			getReplaced().put(key, value);
 		}
 		getRemoved().clear();
 		for (int i = bb.ReadUInt(); i > 0; i--)
@@ -113,7 +130,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	public String toString() {
 		var sb = new StringBuilder();
 		sb.append(" Putted:");
-		ByteBuffer.BuildSortedString(sb, getPutted());
+		ByteBuffer.BuildSortedString(sb, getReplaced());
 		sb.append(" Removed:");
 		ByteBuffer.BuildSortedString(sb, getRemoved());
 		sb.append(" Changed:");

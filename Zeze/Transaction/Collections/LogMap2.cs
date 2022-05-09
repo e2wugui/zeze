@@ -35,13 +35,13 @@ namespace Zeze.Transaction.Collections
             base.Decode(bb);
         }
 
-		private bool Merged = false;
+		private bool Built = false;
 
-		public void BuildChangedWithKey()
+		public bool BuildChangedWithKey()
 		{
-			if (false == Merged && null != Value)
+			if (false == Built && null != Value)
 			{
-				Merged = true;
+				Built = true;
 				foreach (var c in Changed)
 				{
 					if (CollMap2<K, V>.PropertyMapKey != null)
@@ -62,16 +62,19 @@ namespace Zeze.Transaction.Collections
 						}
 					}
 				}
+				return true;
 			}
+			return false;
 		}
 
 		public void MergeChangedToReplaced()
 		{
-			BuildChangedWithKey();
-
-			foreach (var e in ChangedWithKey)
-			{
-				Replaced.TryAdd(e.Key, (V)e.Value.This);
+			if (BuildChangedWithKey())
+            {
+				foreach (var e in ChangedWithKey)
+				{
+					Replaced.TryAdd(e.Key, (V)e.Value.This);
+				}
 			}
 		}
 

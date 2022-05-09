@@ -43,16 +43,4 @@ public final class tLinkedMaps extends Zeze.Transaction.TableX<String, Zeze.Buil
     public Zeze.Builtin.Collections.LinkedMap.BLinkedMap NewValue() {
         return new Zeze.Builtin.Collections.LinkedMap.BLinkedMap();
     }
-
-    @Override
-    public Zeze.Transaction.ChangeVariableCollector CreateChangeVariableCollector(int variableId) {
-        switch (variableId) {
-            case 0: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 1: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 2: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 3: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 4: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            default: return null;
-        }
-    }
 }

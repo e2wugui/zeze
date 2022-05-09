@@ -5,10 +5,10 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BReliableNotify extends Zeze.Transaction.Bean {
-    private final Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> _Notifies; // full encoded protocol list
+    private final Zeze.Transaction.Collections.CollList1<Zeze.Net.Binary> _Notifies; // full encoded protocol list
     private long _ReliableNotifyTotalCountStart; // Notify的计数开始。客户端收到的总计数为：start + Notifies.Count
 
-    public Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> getNotifies() {
+    public Zeze.Transaction.Collections.CollList1<Zeze.Net.Binary> getNotifies() {
         return _Notifies;
     }
 
@@ -31,7 +31,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ReliableNotifyTotalCountStart(this, value));
+        txn.PutLog(new Log__ReliableNotifyTotalCountStart(this, 2, value));
     }
 
     public BReliableNotify() {
@@ -40,7 +40,8 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
 
     public BReliableNotify(int _varId_) {
         super(_varId_);
-        _Notifies = new Zeze.Transaction.Collections.PList1<>(getObjectId() + 1, (_v) -> new Log__Notifies(this, _v));
+        _Notifies = new Zeze.Transaction.Collections.CollList1<>(Zeze.Net.Binary.class);
+        _Notifies.VariableId = 1;
     }
 
     public void Assign(BReliableNotify other) {
@@ -78,21 +79,11 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__Notifies extends Zeze.Transaction.Collections.PList.LogV<Zeze.Net.Binary> {
-        public Log__Notifies(BReliableNotify host, org.pcollections.PVector<Zeze.Net.Binary> value) { super(host, value); }
-        @Override
-        public long getLogKey() { return getBean().getObjectId() + 1; }
-        public BReliableNotify getBeanTyped() { return (BReliableNotify)getBean(); }
-        @Override
-        public void Commit() { Commit(getBeanTyped()._Notifies); }
-    }
 
     private static final class Log__ReliableNotifyTotalCountStart extends Zeze.Transaction.Log1<BReliableNotify, Long> {
-        public Log__ReliableNotifyTotalCountStart(BReliableNotify self, Long value) { super(self, value); }
+       public Log__ReliableNotifyTotalCountStart(BReliableNotify bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 2; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ReliableNotifyTotalCountStart = this.getValue(); }
+        public void Commit() { getBeanTyped()._ReliableNotifyTotalCountStart = this.getValue(); }
     }
 
     @Override
@@ -189,4 +180,17 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _Notifies.FollowerApply(vlog); break;
+                    case 2: _ReliableNotifyTotalCountStart = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                }
+            }
+        }
 }

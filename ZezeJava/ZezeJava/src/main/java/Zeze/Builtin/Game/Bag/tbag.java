@@ -41,14 +41,4 @@ public final class tbag extends Zeze.Transaction.TableX<String, Zeze.Builtin.Gam
     public Zeze.Builtin.Game.Bag.BBag NewValue() {
         return new Zeze.Builtin.Game.Bag.BBag();
     }
-
-    @Override
-    public Zeze.Transaction.ChangeVariableCollector CreateChangeVariableCollector(int variableId) {
-        switch (variableId) {
-            case 0: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 1: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 2: return new Zeze.Transaction.ChangeVariableCollectorMap(() -> new Zeze.Transaction.ChangeNoteMap2<Integer, Zeze.Builtin.Game.Bag.BItem>(null));
-            default: return null;
-        }
-    }
 }

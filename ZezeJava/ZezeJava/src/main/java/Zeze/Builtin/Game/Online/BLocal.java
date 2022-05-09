@@ -6,7 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BLocal extends Zeze.Transaction.Bean {
     private long _LoginVersion;
-    private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Game.Online.BAny> _Datas;
+    private final Zeze.Transaction.Collections.CollMap2<String, Zeze.Builtin.Game.Online.BAny> _Datas;
 
     public long getLoginVersion() {
         if (!isManaged())
@@ -27,10 +27,10 @@ public final class BLocal extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__LoginVersion(this, value));
+        txn.PutLog(new Log__LoginVersion(this, 1, value));
     }
 
-    public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Game.Online.BAny> getDatas() {
+    public Zeze.Transaction.Collections.CollMap2<String, Zeze.Builtin.Game.Online.BAny> getDatas() {
         return _Datas;
     }
 
@@ -40,7 +40,8 @@ public final class BLocal extends Zeze.Transaction.Bean {
 
     public BLocal(int _varId_) {
         super(_varId_);
-        _Datas = new Zeze.Transaction.Collections.PMap2<>(getObjectId() + 2, (_v) -> new Log__Datas(this, _v));
+        _Datas = new Zeze.Transaction.Collections.CollMap2<>(String.class, Zeze.Builtin.Game.Online.BAny.class);
+        _Datas.VariableId = 2;
     }
 
     public void Assign(BLocal other) {
@@ -79,21 +80,11 @@ public final class BLocal extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__LoginVersion extends Zeze.Transaction.Log1<BLocal, Long> {
-        public Log__LoginVersion(BLocal self, Long value) { super(self, value); }
+       public Log__LoginVersion(BLocal bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._LoginVersion = this.getValue(); }
+        public void Commit() { getBeanTyped()._LoginVersion = this.getValue(); }
     }
 
-    private static final class Log__Datas extends Zeze.Transaction.Collections.PMap.LogV<String, Zeze.Builtin.Game.Online.BAny> {
-        public Log__Datas(BLocal host, org.pcollections.PMap<String, Zeze.Builtin.Game.Online.BAny> value) { super(host, value); }
-        @Override
-        public long getLogKey() { return getBean().getObjectId() + 2; }
-        public BLocal getBeanTyped() { return (BLocal)getBean(); }
-        @Override
-        public void Commit() { Commit(getBeanTyped()._Datas); }
-    }
 
     @Override
     public String toString() {
@@ -200,4 +191,17 @@ public final class BLocal extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _LoginVersion = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                    case 2: _Datas.FollowerApply(vlog); break;
+                }
+            }
+        }
 }

@@ -41,14 +41,4 @@ public final class tlocal extends Zeze.Transaction.TableX<String, Zeze.Builtin.O
     public Zeze.Builtin.Online.BLocal NewValue() {
         return new Zeze.Builtin.Online.BLocal();
     }
-
-    @Override
-    public Zeze.Transaction.ChangeVariableCollector CreateChangeVariableCollector(int variableId) {
-        switch (variableId) {
-            case 0: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 1: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 2: return new Zeze.Transaction.ChangeVariableCollectorMap(() -> new Zeze.Transaction.ChangeNoteMap2<String, Zeze.Builtin.Online.BAny>(null));
-            default: return null;
-        }
-    }
 }

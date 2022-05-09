@@ -27,7 +27,7 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__Timestamp(this, value));
+        txn.PutLog(new Log__Timestamp(this, 1, value));
     }
 
     public Zeze.Transaction.DynamicBean getValue() {
@@ -77,11 +77,9 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__Timestamp extends Zeze.Transaction.Log1<BQueueNodeValue, Long> {
-        public Log__Timestamp(BQueueNodeValue self, Long value) { super(self, value); }
+       public Log__Timestamp(BQueueNodeValue bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._Timestamp = this.getValue(); }
+        public void Commit() { getBeanTyped()._Timestamp = this.getValue(); }
     }
 
     public static long GetSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean) {
@@ -177,4 +175,17 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _Timestamp = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                    case 2: _Value.FollowerApply(vlog); break;
+                }
+            }
+        }
 }

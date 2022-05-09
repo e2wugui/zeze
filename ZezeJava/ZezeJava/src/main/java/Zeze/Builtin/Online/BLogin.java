@@ -28,7 +28,7 @@ public final class BLogin extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ClientId(this, value));
+        txn.PutLog(new Log__ClientId(this, 1, value));
     }
 
     public BLogin() {
@@ -73,11 +73,9 @@ public final class BLogin extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__ClientId extends Zeze.Transaction.Log1<BLogin, String> {
-        public Log__ClientId(BLogin self, String value) { super(self, value); }
+       public Log__ClientId(BLogin bean, int varId, String value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._ClientId = this.getValue(); }
+        public void Commit() { getBeanTyped()._ClientId = this.getValue(); }
     }
 
     @Override
@@ -144,4 +142,16 @@ public final class BLogin extends Zeze.Transaction.Bean {
     public boolean NegativeCheck() {
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _ClientId = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                }
+            }
+        }
 }

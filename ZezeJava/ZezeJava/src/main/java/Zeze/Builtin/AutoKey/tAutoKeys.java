@@ -40,13 +40,4 @@ public final class tAutoKeys extends Zeze.Transaction.TableX<String, Zeze.Builti
     public Zeze.Builtin.AutoKey.BAutoKey NewValue() {
         return new Zeze.Builtin.AutoKey.BAutoKey();
     }
-
-    @Override
-    public Zeze.Transaction.ChangeVariableCollector CreateChangeVariableCollector(int variableId) {
-        switch (variableId) {
-            case 0: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            case 1: return new Zeze.Transaction.ChangeVariableCollectorChanged();
-            default: return null;
-        }
-    }
 }

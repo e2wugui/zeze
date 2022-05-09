@@ -28,7 +28,7 @@ public final class BSetUserState extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__linkSid(this, value));
+        txn.PutLog(new Log__linkSid(this, 1, value));
     }
 
     public String getContext() {
@@ -52,7 +52,7 @@ public final class BSetUserState extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__context(this, value));
+        txn.PutLog(new Log__context(this, 2, value));
     }
 
     public Zeze.Net.Binary getContextx() {
@@ -76,7 +76,7 @@ public final class BSetUserState extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__contextx(this, value));
+        txn.PutLog(new Log__contextx(this, 3, value));
     }
 
     public BSetUserState() {
@@ -124,27 +124,21 @@ public final class BSetUserState extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__linkSid extends Zeze.Transaction.Log1<BSetUserState, Long> {
-        public Log__linkSid(BSetUserState self, Long value) { super(self, value); }
+       public Log__linkSid(BSetUserState bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 1; }
-        @Override
-        public void Commit() { this.getBeanTyped()._linkSid = this.getValue(); }
+        public void Commit() { getBeanTyped()._linkSid = this.getValue(); }
     }
 
     private static final class Log__context extends Zeze.Transaction.Log1<BSetUserState, String> {
-        public Log__context(BSetUserState self, String value) { super(self, value); }
+       public Log__context(BSetUserState bean, int varId, String value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 2; }
-        @Override
-        public void Commit() { this.getBeanTyped()._context = this.getValue(); }
+        public void Commit() { getBeanTyped()._context = this.getValue(); }
     }
 
     private static final class Log__contextx extends Zeze.Transaction.Log1<BSetUserState, Zeze.Net.Binary> {
-        public Log__contextx(BSetUserState self, Zeze.Net.Binary value) { super(self, value); }
+       public Log__contextx(BSetUserState bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
         @Override
-        public long getLogKey() { return this.getBean().getObjectId() + 3; }
-        @Override
-        public void Commit() { this.getBeanTyped()._contextx = this.getValue(); }
+        public void Commit() { getBeanTyped()._contextx = this.getValue(); }
     }
 
     @Override
@@ -237,4 +231,18 @@ public final class BSetUserState extends Zeze.Transaction.Bean {
             return true;
         return false;
     }
+        @Override
+        public void FollowerApply(Zeze.Transaction.Log log) {
+            var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
+            if (vars == null)
+                return;
+            for (var it = vars.iterator(); it.moveToNext(); ) {
+                var vlog = it.value();
+                switch (vlog.getVariableId()) {
+                    case 1: _linkSid = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                    case 2: _context = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                    case 3: _contextx = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
+                }
+            }
+        }
 }
