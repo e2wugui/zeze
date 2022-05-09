@@ -17,6 +17,14 @@ public final class Changes {
 
 	public Changes(Transaction t) {
 		transaction = t;
+		// 建立脏记录的表的监听者的快照，以后收集日志和通知监听者都使用这个快照，避免由于监听者发生变化造成收集和通知不一致。
+		for (var ar : t.getAccessedRecords().values())
+		{
+			if (ar.Dirty)
+			{
+				Listeners.putIfAbsent(ar.Origin.getTable(), ar.Origin.getTable().getChangeListenerMap().getListeners());
+			}
+		}
 	}
 
 	public LongHashMap<LogBean> getBeans() {

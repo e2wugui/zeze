@@ -27,16 +27,16 @@ public final class ModuleEquip extends AbstractModule {
 
 		public final void OnChanged(Object key, Changes.Record c) {
 			switch (c.getState()) {
-			case Changes.Record.Put:
-				// 记录改变，通知全部。
-				BEquips bequips = (BEquips)c.getPutValue();
+				case Changes.Record.Put:
+					// 记录改变，通知全部。
+					BEquips bequips = (BEquips)c.getPutValue();
 
-				SEquipement changed = new SEquipement();
-				changed.Argument.setChangeTag(Game.Bag.BChangedResult.ChangeTagRecordChanged);
-				changed.Argument.getItemsReplace().putAll(bequips.getItems());
+					SEquipement changed = new SEquipement();
+					changed.Argument.setChangeTag(Game.Bag.BChangedResult.ChangeTagRecordChanged);
+					changed.Argument.getItemsReplace().putAll(bequips.getItems());
 
-				Game.App.Instance.getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
-				break;
+					Game.App.Instance.getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
+					break;
 				case Changes.Record.Edit:
 					// 增量变化，通知变更。
 					@SuppressWarnings("unchecked")

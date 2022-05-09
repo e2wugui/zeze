@@ -42,13 +42,13 @@ public final class Savepoint {
 
 	public Savepoint Duplicate() {
 		Savepoint sp = new Savepoint();
-		sp.Logs.putAll(Logs);
+		Logs.foreachValue((log) -> sp.Logs.put(log.getLogKey(), log.BeginSavepoint()));
 		return sp;
 	}
 
 	public void MergeFrom(Savepoint other, boolean isCommit) {
 		if (isCommit) {
-			Logs.putAll(other.Logs);
+			other.Logs.foreachValue((log) -> log.EndSavepoint(this));
 			actions.addAll(other.actions);
 		} else{
 

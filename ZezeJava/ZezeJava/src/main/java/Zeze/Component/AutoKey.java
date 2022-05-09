@@ -109,7 +109,7 @@ public class AutoKey {
 		private final Range range;
 
 		public RangeLog(Range range) {
-			super(null); // null: 特殊日志，不关联Bean。
+			super(0); // null: 特殊日志，不关联Bean。
 			this.range = range;
 		}
 

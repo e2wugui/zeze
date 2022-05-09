@@ -43,6 +43,7 @@ namespace Zeze.Transaction
                 }
 
                 CommitActions.AddRange(other.CommitActions);
+                RollbackActions.AddRange(other.RollbackActions);
             }
             else
             {
