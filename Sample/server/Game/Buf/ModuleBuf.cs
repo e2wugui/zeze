@@ -26,7 +26,7 @@ namespace Game.Buf
                 Name = name;
             }
 
-            public void OnChanged(TableKey tkey, Changes.Record changes)
+            public void OnChanged(object key, Changes.Record changes)
             {
                 switch (changes.State)
                 {
@@ -34,7 +34,7 @@ namespace Game.Buf
                         {
                             SChanged changed = new SChanged();
                             changed.Argument.ChangeTag = BBufChanged.ChangeTagRecordIsRemoved;
-                            Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)tkey.Key, Name, changed);
+                            Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
                         }
                         break;
 
@@ -47,7 +47,7 @@ namespace Game.Buf
                             changed.Argument.ChangeTag = BBufChanged.ChangeTagRecordChanged;
                             changed.Argument.Replace.AddRange(record.Bufs);
 
-                            Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)tkey.Key, Name, changed);
+                            Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
                         }
                         break;
 
@@ -67,7 +67,7 @@ namespace Game.Buf
                                 foreach (var p in notemap2.Removed)
                                     changed.Argument.Remove.Add(p);
 
-                                Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)tkey.Key, Name, changed);
+                                Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
                             }
                         }
                         break;

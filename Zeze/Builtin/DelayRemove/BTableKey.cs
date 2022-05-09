@@ -34,7 +34,7 @@ namespace Zeze.Builtin.DelayRemove
             }
             set
             {
-                if (value == null) throw new System.ArgumentNullException();
+                if (value == null) throw new System.ArgumentNullException(nameof(value));
                 if (!IsManaged)
                 {
                     _TableName = value;
@@ -60,7 +60,7 @@ namespace Zeze.Builtin.DelayRemove
             }
             set
             {
-                if (value == null) throw new System.ArgumentNullException();
+                if (value == null) throw new System.ArgumentNullException(nameof(value));
                 if (!IsManaged)
                 {
                     _EncodedKey = value;
@@ -127,7 +127,7 @@ namespace Zeze.Builtin.DelayRemove
 
         public override string ToString()
         {
-            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            var sb = new System.Text.StringBuilder();
             BuildString(sb, 0);
             sb.Append(Environment.NewLine);
             return sb.ToString();

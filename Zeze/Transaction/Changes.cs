@@ -196,7 +196,7 @@ namespace Zeze.Transaction
 				{
 					foreach (var listener in listeners)
 					{
-						listener.OnChanged(e.Key, e.Value);
+						listener.OnChanged(e.Key.Key, e.Value);
 					}
 				}
 				else

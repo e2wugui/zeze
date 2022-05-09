@@ -14,7 +14,7 @@ namespace Zeze.Transaction
 	/// </summary>
 	public interface ChangeListener
 	{
-		public void OnChanged(TableKey tkey, Changes.Record changes);
+		public void OnChanged(object tkey, Changes.Record changes);
 	}
 
 	/// <summary>
@@ -22,7 +22,7 @@ namespace Zeze.Transaction
 	/// </summary>
 	public sealed class ChangeListenerMap
 	{
-		private HashSet<ChangeListener> Listnerers = new();
+		private readonly HashSet<ChangeListener> Listnerers = new();
 		internal volatile HashSet<ChangeListener> VolatileListnerers;
 
 		public void AddListener(ChangeListener listener)

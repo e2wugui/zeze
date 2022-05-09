@@ -139,7 +139,7 @@ public class TestChangeListener {
 			demo.Module1.Value value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			ArrayList<Integer> intersect = new ArrayList<Integer>(Arrays.asList(123, 126));
 			//value.getSet10().IntersectWith(intersect);
-			PSet1<Integer> set10 = value.getSet10();
+			var set10 = value.getSet10();
 			List<Integer> temp = new ArrayList<>(intersect.size());
 			intersect.forEach(i -> {
 				if (set10.contains(i)) {

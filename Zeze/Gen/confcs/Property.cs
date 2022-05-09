@@ -31,7 +31,7 @@ namespace Zeze.Gen.confcs
             sw.Write(prefix + "public " + TypeName.GetName(type) + " " + var.NameUpper1);
             sw.Write($" {{ get => {var.NamePrivate}; set {{");
             if (checkNull)
-                sw.Write(" if (value == null) throw new System.ArgumentNullException();");
+                sw.Write(" if (value == null) throw new System.ArgumentNullException(nameof(value));");
             sw.Write(" " + var.NamePrivate + " = value; }}");
             sw.WriteLine();
         }

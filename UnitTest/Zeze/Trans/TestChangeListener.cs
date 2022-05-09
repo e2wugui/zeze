@@ -272,21 +272,21 @@ namespace UnitTest.Zeze.Trans
             demo.App.Instance.demo_Module1.Table1.ChangeListenerMap.AddListener(l);
         }
 
-        private readonly CLInt1 _CLInt1 = new CLInt1();
-        private readonly ClLong2 _ClLong2 = new ClLong2();
-        private readonly CLString3 _CLString3 = new CLString3();
-        private readonly CLBool4 _CLBool4 = new CLBool4();
-        private readonly CLShort5 _CLShort5 = new CLShort5();
-        private readonly CLFloat6 _CLFloat6 = new CLFloat6();
-        private readonly CLDouble7 _CLDouble7 = new CLDouble7();
-        private readonly CLBytes8 _CLBytes8 = new CLBytes8();
-        private readonly CLList9 _CLList9 = new CLList9();
-        private readonly CLSet10 _CLSet10 = new CLSet10();
-        private readonly CLMap11 _CLMap11 = new CLMap11();
-        private readonly CLBean12 _CLBean12 = new CLBean12();
-        private readonly CLByte13 _CLByte13 = new CLByte13();
-        private readonly ClDynamic14 _ClDynamic14 = new ClDynamic14();
-        private readonly CLMap15 _CLMap15 = new CLMap15();
+        private readonly CLInt1 _CLInt1 = new ();
+        private readonly ClLong2 _ClLong2 = new ();
+        private readonly CLString3 _CLString3 = new ();
+        private readonly CLBool4 _CLBool4 = new ();
+        private readonly CLShort5 _CLShort5 = new ();
+        private readonly CLFloat6 _CLFloat6 = new ();
+        private readonly CLDouble7 _CLDouble7 = new ();
+        private readonly CLBytes8 _CLBytes8 = new ();
+        private readonly CLList9 _CLList9 = new ();
+        private readonly CLSet10 _CLSet10 = new ();
+        private readonly CLMap11 _CLMap11 = new ();
+        private readonly CLBean12 _CLBean12 = new ();
+        private readonly CLByte13 _CLByte13 = new ();
+        private readonly ClDynamic14 _ClDynamic14 = new ();
+        private readonly CLMap15 _CLMap15 = new ();
 
         public interface VarListener
         {
@@ -298,7 +298,7 @@ namespace UnitTest.Zeze.Trans
         {
             public Dictionary<int, VarListener> Vars { get; } = new();
 
-            public void OnChanged(TableKey tkey, Changes.Record r)
+            public void OnChanged(object key, Changes.Record r)
             {
                 // 这是为了兼容旧的测试代码，拼凑出来的类。
                 switch (r.State)
@@ -306,13 +306,13 @@ namespace UnitTest.Zeze.Trans
                     case Changes.Record.Remove:
                         foreach (var v in Vars)
                         {
-                            v.Value.OnRemoved(tkey.Key);
+                            v.Value.OnRemoved(key);
                         }
                         break;
                     case Changes.Record.Put:
                         foreach (var v in Vars)
                         {
-                            v.Value.OnChanged(tkey.Key, r.PutValue);
+                            v.Value.OnChanged(key, r.PutValue);
                         }
                         break;
 
@@ -322,7 +322,7 @@ namespace UnitTest.Zeze.Trans
                             foreach (var v in Vars)
                             {
                                 if (logbean.Variables.TryGetValue(v.Key, out var log))
-                                    v.Value.OnChanged(tkey.Key, log);
+                                    v.Value.OnChanged(key, log);
                             }
                         }
                         break;

@@ -40,7 +40,7 @@ namespace Zeze.Builtin.RedoQueue
             }
             set
             {
-                if (value == null) throw new System.ArgumentNullException();
+                if (value == null) throw new System.ArgumentNullException(nameof(value));
                 if (!IsManaged)
                 {
                     _QueueName = value;
@@ -116,7 +116,7 @@ namespace Zeze.Builtin.RedoQueue
             }
             set
             {
-                if (value == null) throw new System.ArgumentNullException();
+                if (value == null) throw new System.ArgumentNullException(nameof(value));
                 if (!IsManaged)
                 {
                     _TaskParam = value;
@@ -226,7 +226,7 @@ namespace Zeze.Builtin.RedoQueue
 
         public override string ToString()
         {
-            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            var sb = new System.Text.StringBuilder();
             BuildString(sb, 0);
             sb.Append(Environment.NewLine);
             return sb.ToString();

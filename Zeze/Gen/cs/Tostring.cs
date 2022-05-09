@@ -16,7 +16,7 @@ namespace Zeze.Gen.cs
 		{
             sw.WriteLine(prefix + "public override string ToString()");
             sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    System.Text.StringBuilder sb = new System.Text.StringBuilder();");
+            sw.WriteLine(prefix + "    var sb = new System.Text.StringBuilder();");
             sw.WriteLine(prefix + "    BuildString(sb, 0);");
             sw.WriteLine(prefix + "    sb.Append(Environment.NewLine);");
             sw.WriteLine(prefix + "    return sb.ToString();");

@@ -42,7 +42,7 @@ namespace Zeze.Builtin.Provider
             }
             set
             {
-                if (value == null) throw new System.ArgumentNullException();
+                if (value == null) throw new System.ArgumentNullException(nameof(value));
                 if (!IsManaged)
                 {
                     _account = value;
@@ -118,7 +118,7 @@ namespace Zeze.Builtin.Provider
             }
             set
             {
-                if (value == null) throw new System.ArgumentNullException();
+                if (value == null) throw new System.ArgumentNullException(nameof(value));
                 if (!IsManaged)
                 {
                     _context = value;
@@ -144,7 +144,7 @@ namespace Zeze.Builtin.Provider
             }
             set
             {
-                if (value == null) throw new System.ArgumentNullException();
+                if (value == null) throw new System.ArgumentNullException(nameof(value));
                 if (!IsManaged)
                 {
                     _contextx = value;
@@ -230,7 +230,7 @@ namespace Zeze.Builtin.Provider
 
         public override string ToString()
         {
-            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            var sb = new System.Text.StringBuilder();
             BuildString(sb, 0);
             sb.Append(Environment.NewLine);
             return sb.ToString();

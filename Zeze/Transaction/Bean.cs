@@ -210,7 +210,7 @@ namespace Zeze.Transaction
             set
             {
                 if (null == value)
-                    throw new System.ArgumentNullException();
+                    throw new System.ArgumentNullException(nameof(value));
 
                 if (false == this.IsManaged)
                 {

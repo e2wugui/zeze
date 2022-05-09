@@ -10,7 +10,7 @@ namespace Zeze.Component
 	{
 		public class Module : AbstractAutoKey
 		{
-			private ConcurrentDictionary<string, AutoKey> map = new();
+			private readonly ConcurrentDictionary<string, AutoKey> map = new();
 			public Application Zeze { get; }
 
 			// 这个组件Zeze.Application会自动初始化，不需要应用初始化。
@@ -36,10 +36,10 @@ namespace Zeze.Component
 
 		private const int AllocateCount = 1000;
 
-		private Module module;
-		private string name;
+		private readonly Module module;
+		private readonly string name;
 		private volatile Range range;
-		private long logKey;
+		private readonly long logKey;
 
 		private AutoKey(Module module, string name)
 		{
@@ -85,8 +85,8 @@ namespace Zeze.Component
 
 		private class Range
 		{
-			private Util.AtomicLong atomicNextId;
-			private long max;
+			private readonly Util.AtomicLong atomicNextId;
+			private readonly long max;
 
 			public long? TryNextId()
 			{

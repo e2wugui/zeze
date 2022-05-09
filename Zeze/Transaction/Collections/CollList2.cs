@@ -14,7 +14,7 @@ namespace Zeze.Transaction.Collections
 			set
 			{
 				if (value == null)
-					throw new ArgumentNullException("value is null");
+					throw new ArgumentNullException(nameof(value));
 
 				if (this.IsManaged)
 				{
@@ -159,12 +159,14 @@ namespace Zeze.Transaction.Collections
 
 		public override LogBean CreateLogBean()
 		{
-			var log = new LogList2<E>();
-			log.Belong = Parent;
-			log.This = this;
-			log.VariableId = VariableId;
-			log.Value = _list;
-			return log;
+            var log = new LogList2<E>
+            {
+                Belong = Parent,
+                This = this,
+                VariableId = VariableId,
+                Value = _list
+            };
+            return log;
 		}
 
 		public override void FollowerApply(Log _log)
@@ -215,9 +217,11 @@ namespace Zeze.Transaction.Collections
 
 		public override Bean CopyBean()
 		{
-			var copy = new CollList2<E>();
-			copy._list = _list;
-			return copy;
+            var copy = new CollList2<E>
+            {
+                _list = _list
+            };
+            return copy;
 		}
 	}
 }

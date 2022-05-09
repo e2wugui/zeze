@@ -23,7 +23,7 @@ namespace Game.Equip
         {
             public static string Name { get; } = "Game.Equip.Items";
 
-            public void OnChanged(TableKey tkey, Changes.Record changes)
+            public void OnChanged(object key, Changes.Record changes)
             {
                 switch (changes.State)
                 {
@@ -31,7 +31,7 @@ namespace Game.Equip
                         {
                             SEquipement changed = new SEquipement();
                             changed.Argument.ChangeTag = Game.Bag.BChangedResult.ChangeTagRecordIsRemoved;
-                            Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)tkey.Key, Name, changed);
+                            Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
                         }
                         break;
 
@@ -44,7 +44,7 @@ namespace Game.Equip
                             changed.Argument.ChangeTag = Game.Bag.BChangedResult.ChangeTagRecordChanged;
                             changed.Argument.ItemsReplace.AddRange(bequips.Items);
 
-                            Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)tkey.Key, Name, changed);
+                            Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
                         }
                         break;
 
@@ -64,7 +64,7 @@ namespace Game.Equip
                                 foreach (var p in notemap2.Removed)
                                     changed.Argument.ItemsRemove.Add(p);
 
-                                Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)tkey.Key, Name, changed);
+                                Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
                             }
                         }
                         break;

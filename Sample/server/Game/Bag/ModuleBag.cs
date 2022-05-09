@@ -27,7 +27,7 @@ namespace Game.Bag
                 // 记录改变，通知全部。
             }
 
-            public void OnChanged(TableKey tkey, Changes.Record changes)
+            public void OnChanged(object key, Changes.Record changes)
             {
                 switch (changes.State)
                 {
@@ -35,7 +35,7 @@ namespace Game.Bag
                         {
                             SChanged changed = new SChanged();
                             changed.Argument.ChangeTag = BChangedResult.ChangeTagRecordIsRemoved;
-                            Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)tkey.Key, Name, changed);
+                            Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
                         }
                         break;
 
@@ -44,7 +44,7 @@ namespace Game.Bag
                             BBag bbag = (BBag)changes.PutValue;
                             var sbag = new SBag();
                             Bag.ToProtocol(bbag, sbag.Argument);
-                            Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)tkey.Key, Name, sbag);
+                            Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, sbag);
                         }
                         break;
 
@@ -61,7 +61,7 @@ namespace Game.Bag
                             foreach (var p in note.Removed)
                                 changed.Argument.ItemsRemove.Add(p);
 
-                            Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)tkey.Key, Name, changed);
+                            Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, changed);
                         }
                         break;
                 }

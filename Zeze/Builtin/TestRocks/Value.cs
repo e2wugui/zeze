@@ -125,7 +125,7 @@ namespace Zeze.Builtin.TestRocks
             }
             set
             {
-                if (value == null) throw new System.ArgumentNullException();
+                if (value == null) throw new System.ArgumentNullException(nameof(value));
                 if (!IsManaged)
                 {
                     _String = value;
@@ -149,7 +149,7 @@ namespace Zeze.Builtin.TestRocks
             }
             set
             {
-                if (value == null) throw new System.ArgumentNullException();
+                if (value == null) throw new System.ArgumentNullException(nameof(value));
                 if (!IsManaged)
                 {
                     _Binary = value;
@@ -182,7 +182,7 @@ namespace Zeze.Builtin.TestRocks
             set
             {
                 if (value == null)
-                    throw new System.ArgumentNullException();
+                    throw new System.ArgumentNullException(nameof(value));
                 if (!IsManaged)
                 {
                     _Beankey = value;

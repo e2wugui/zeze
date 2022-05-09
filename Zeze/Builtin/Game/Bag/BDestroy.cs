@@ -34,7 +34,7 @@ namespace Zeze.Builtin.Game.Bag
             }
             set
             {
-                if (value == null) throw new System.ArgumentNullException();
+                if (value == null) throw new System.ArgumentNullException(nameof(value));
                 if (!IsManaged)
                 {
                     _BagName = value;
@@ -125,7 +125,7 @@ namespace Zeze.Builtin.Game.Bag
 
         public override string ToString()
         {
-            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            var sb = new System.Text.StringBuilder();
             BuildString(sb, 0);
             sb.Append(Environment.NewLine);
             return sb.ToString();

@@ -36,7 +36,7 @@ namespace Zeze.Builtin.ProviderDirect
             }
             set
             {
-                if (value == null) throw new System.ArgumentNullException();
+                if (value == null) throw new System.ArgumentNullException(nameof(value));
                 if (!IsManaged)
                 {
                     _Ip = value;
@@ -158,7 +158,7 @@ namespace Zeze.Builtin.ProviderDirect
 
         public override string ToString()
         {
-            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            var sb = new System.Text.StringBuilder();
             BuildString(sb, 0);
             sb.Append(Environment.NewLine);
             return sb.ToString();

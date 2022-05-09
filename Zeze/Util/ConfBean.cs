@@ -84,7 +84,7 @@ namespace Zeze.Util
             set
             {
                 if (null == value)
-                    throw new System.ArgumentNullException();
+                    throw new System.ArgumentNullException(nameof(value));
 
                 _TypeId = GetSpecialTypeIdFromBean(value);
                 _Bean = value;

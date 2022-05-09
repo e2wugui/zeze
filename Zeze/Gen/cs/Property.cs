@@ -58,7 +58,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    {");
             if (checkNull)
             {
-                sw.WriteLine(prefix + "        if (value == null) throw new System.ArgumentNullException();");
+                sw.WriteLine(prefix + "        if (value == null) throw new System.ArgumentNullException(nameof(value));");
             }
             sw.WriteLine(prefix + "        if (!IsManaged)");
             sw.WriteLine(prefix + "        {");
@@ -90,7 +90,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    set");
             sw.WriteLine(prefix + "    {");
             sw.WriteLine(prefix + "        if (value == null)");
-            sw.WriteLine(prefix + "            throw new System.ArgumentNullException();");
+            sw.WriteLine(prefix + "            throw new System.ArgumentNullException(nameof(value));");
             sw.WriteLine(prefix + "        if (!IsManaged)");
             sw.WriteLine(prefix + "        {");
             sw.WriteLine(prefix + "            " + var.NamePrivate + " = value;");
@@ -145,7 +145,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    set");
             sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        if (value == null) throw new System.ArgumentNullException();");
+            sw.WriteLine(prefix + "        if (value == null) throw new System.ArgumentNullException(nameof(value));");
             sw.WriteLine(prefix + "        if (!IsManaged)");
             sw.WriteLine(prefix + "        {");
             sw.WriteLine(prefix + "            " + var.NamePrivate + " = value;");
@@ -228,7 +228,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    private set");
             sw.WriteLine(prefix + "    {");
             sw.WriteLine(prefix + "        if (value == null)");
-            sw.WriteLine(prefix + "            throw new System.ArgumentNullException();");
+            sw.WriteLine(prefix + "            throw new System.ArgumentNullException(nameof(value));");
             sw.WriteLine(prefix + "        if (!IsManaged)");
             sw.WriteLine(prefix + "        {");
             sw.WriteLine(prefix + "            " + var.NamePrivate + " = value;");
