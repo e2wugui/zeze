@@ -196,6 +196,7 @@ namespace Zeze.Transaction
                             CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
                             try
                             {
+                                LastTableKeyOfRedoAndRelease = null;
                                 var result = await procedure.CallAsync();
                                 switch (State)
                                 {
@@ -320,7 +321,8 @@ namespace Zeze.Transaction
                         procedure.Zeze.Checkpoint.ExitFlushReadLock();
                     }
                     //logger.Debug("Checkpoint.WaitRun {0}", procedure);
-                    await procedure.Zeze.TryWaitFlushWhenReduce(LastTableKeyOfRedoAndRelease, LastGlobalSerialIdOfRedoAndRelease);
+                    if (null != LastTableKeyOfRedoAndRelease)
+                        await procedure.Zeze.TryWaitFlushWhenReduce(LastTableKeyOfRedoAndRelease, LastGlobalSerialIdOfRedoAndRelease);
                 }
                 logger.Error("Transaction.Perform:{0}. too many try.", procedure);
                 FinalRollback(procedure);

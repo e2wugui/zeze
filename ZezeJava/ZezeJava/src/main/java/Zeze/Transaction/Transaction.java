@@ -147,6 +147,7 @@ public final class Transaction {
 					for (; tryCount < 256; ++tryCount) { // 最多尝试次数
 						CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
 						try {
+							LastTableKeyOfRedoAndRelease = null;
 							var result = procedure.Call();
 							switch (State) {
 								case Running:
@@ -254,7 +255,8 @@ public final class Transaction {
 					procedure.getZeze().getCheckpoint().ExitFlushReadLock();
 				}
 				//logger.Debug("Checkpoint.WaitRun {0}", procedure);
-				procedure.getZeze().__TryWaitFlushWhenReduce(LastTableKeyOfRedoAndRelease, LastGlobalSerialIdOfRedoAndRelease);
+				if (null != LastTableKeyOfRedoAndRelease)
+					procedure.getZeze().__TryWaitFlushWhenReduce(LastTableKeyOfRedoAndRelease, LastGlobalSerialIdOfRedoAndRelease);
 			}
 			logger.error("Transaction.Perform:{}. too many try.", procedure);
 			_final_rollback_(procedure);

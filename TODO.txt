@@ -26,13 +26,14 @@ Online Test 【肖丽杨】c#
 Online Account Test 肖丽杨？
 TableCache增加一级RocksDb的缓存，不受限于内存。Java SoftReference<T>.
 TableCache.Clean 整体考虑。
+
+【2022/5/11】
+
 ------------------------------------------------------------------------------------------------------------------------------
 tag 0.9.0 java is ready
 ------------------------------------------------------------------------------------------------------------------------------
 Java New Changes: 1. Gen 2. Collections 3. Log 4. Changes & remove CreateChangeVariableCollector 5. Transaction & Savepoint
-
-【2022/5/11】
-
+------------------------------------------------------------------------------------------------------------------------------
 3. Test TestGlobal Simulate 异步测试【已经通过测试了 2022.5.9】
 把 RocksRaft Changes 应用到 Zeze 中，让 Zeze 实现Bean任意级别的更新。
 仅支持整个Bean的订阅。
