@@ -1,9 +1,11 @@
 package Game.Equip;
 
+import Game.Bag.BItem;
 import Game.Fight.*;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Transaction.*;
 import Game.*;
+import Zeze.Transaction.Collections.LogMap2;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
@@ -11,7 +13,7 @@ import Game.*;
 
 public final class ModuleEquip extends AbstractModule {
 	public void Start(App app) {
-		_tequip.getChangeListenerMap().AddListener(tequip.VAR_Items, new ItemsChangeListener());
+		_tequip.getChangeListenerMap().AddListener(new ItemsChangeListener());
 	}
 
 	public void Stop(App app) {
@@ -23,39 +25,40 @@ public final class ModuleEquip extends AbstractModule {
 			return Name;
 		}
 
-		public final void OnChanged(Object key, Bean value) {
-			// 记录改变，通知全部。
-			BEquips bequips = (BEquips)value;
+		public final void OnChanged(Object key, Changes.Record c) {
+			switch (c.getState()) {
+			case Changes.Record.Put:
+				// 记录改变，通知全部。
+				BEquips bequips = (BEquips)c.getPutValue();
 
-			SEquipement changed = new SEquipement();
-			changed.Argument.setChangeTag(Game.Bag.BChangedResult.ChangeTagRecordChanged);
-			changed.Argument.getItemsReplace().putAll(bequips.getItems());
+				SEquipement changed = new SEquipement();
+				changed.Argument.setChangeTag(Game.Bag.BChangedResult.ChangeTagRecordChanged);
+				changed.Argument.getItemsReplace().putAll(bequips.getItems());
 
-			Game.App.Instance.getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
-		}
+				Game.App.Instance.getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
+				break;
+				case Changes.Record.Edit:
+					// 增量变化，通知变更。
+					@SuppressWarnings("unchecked")
+					var notemap2 = (LogMap2<Integer, BItem>)c.logBean();
+					notemap2.MergeChangedToReplaced();
 
-		public final void OnChanged(Object key, Bean value, ChangeNote note) {
-			// 增量变化，通知变更。
-			@SuppressWarnings("unchecked")
-			ChangeNoteMap2<Integer, Game.Bag.BItem> notemap2 = (ChangeNoteMap2<Integer, Game.Bag.BItem>)note;
-			BEquips bequips = (BEquips)value;
-			notemap2.MergeChangedToReplaced(bequips.getItems());
+					SEquipement changed2 = new SEquipement();
+					changed2.Argument.setChangeTag(Game.Bag.BChangedResult.ChangeTagNormalChanged);
 
-			SEquipement changed = new SEquipement();
-			changed.Argument.setChangeTag(Game.Bag.BChangedResult.ChangeTagNormalChanged);
+					changed2.Argument.getItemsReplace().putAll(notemap2.getReplaced());
+					for (var p : notemap2.getRemoved()) {
+						changed2.Argument.getItemsRemove().add(p);
+					}
 
-			changed.Argument.getItemsReplace().putAll(notemap2.getReplaced());
-			for (var p : notemap2.getRemoved()) {
-				changed.Argument.getItemsRemove().add(p);
+					Game.App.Instance.getProvider().Online.sendReliableNotify((Long)key, getName(), changed2);
+					break;
+				case Changes.Record.Remove:
+					SEquipement changed3 = new SEquipement();
+					changed3.Argument.setChangeTag(Game.Bag.BChangedResult.ChangeTagRecordIsRemoved);
+					Game.App.Instance.getProvider().Online.sendReliableNotify((Long)key, getName(), changed3);
+					break;
 			}
-
-			Game.App.Instance.getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
-		}
-
-		public final void OnRemoved(Object key) {
-			SEquipement changed = new SEquipement();
-			changed.Argument.setChangeTag(Game.Bag.BChangedResult.ChangeTagRecordIsRemoved);
-			Game.App.Instance.getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
 		}
 	}
 

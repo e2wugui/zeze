@@ -3,6 +3,7 @@ package Game.Bag;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Transaction.*;
 import Game.*;
+import Zeze.Transaction.Collections.LogMap2;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
@@ -21,55 +22,38 @@ public final class ModuleBag extends AbstractModule {
 			return Name;
 		}
 
-		public final void OnChanged(Object key, Bean value) {
-			// 记录改变，通知全部。
-			BBag bbag = (BBag)value;
-			var sbag = new SBag();
-			Bag.ToProtocol(bbag, sbag.Argument);
+		public final void OnChanged(Object key, Changes.Record c) {
+			switch (c.getState()) {
+			case Changes.Record.Put:
+				// 记录改变，通知全部。
+				BBag bbag = (BBag)c.getPutValue();
+				var sbag = new SBag();
+				Bag.ToProtocol(bbag, sbag.Argument);
+				Game.App.getInstance().getProvider().Online.sendReliableNotify((Long)key, getName(), sbag);
+				break;
 
-			Game.App.getInstance().getProvider().Online.sendReliableNotify((Long)key, getName(), sbag);
-		}
+			case Changes.Record.Edit:
+				// 增量变化，通知变更。
+				@SuppressWarnings("unchecked")
+				var notemap2 = (LogMap2<Integer, BItem>)c.logBean();
+				notemap2.MergeChangedToReplaced();
 
-		public final void OnChanged(Object key, Bean value, ChangeNote note) {
-			// 整个记录改变没有 note，只有Map,Set才有note。
-			OnChanged(key, value);
-		}
+				SChanged changed = new SChanged();
+				changed.Argument.setChangeTag(BChangedResult.ChangeTagNormalChanged);
+				changed.Argument.getItemsReplace().putAll(notemap2.getReplaced());
+				for (var p : notemap2.getRemoved()) {
+					changed.Argument.getItemsRemove().add(p);
+				}
 
-		public final void OnRemoved(Object key) {
-			SChanged changed = new SChanged();
-			changed.Argument.setChangeTag(BChangedResult.ChangeTagRecordIsRemoved);
-			Game.App.getInstance().getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
-		}
-	}
+				Game.App.getInstance().getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
+				break;
 
-	private static class ItemsChangeListener implements ChangeListener {
-		public final String getName() {
-			return BagChangeListener.getName();
-		}
-
-		public final void OnChanged(Object key, Bean value) {
-			// 整个记录改变，由 BagChangeListener 处理。发送包含 Money, Capacity.
-		}
-
-		public final void OnChanged(Object key, Bean value, ChangeNote note) {
-			// 增量变化，通知变更。
-			@SuppressWarnings("unchecked")
-			ChangeNoteMap2<Integer, BItem> notemap2 = (ChangeNoteMap2<Integer, BItem>)note;
-			BBag bbag = (BBag)value;
-			notemap2.MergeChangedToReplaced(bbag.getItems());
-
-			SChanged changed = new SChanged();
-			changed.Argument.setChangeTag(BChangedResult.ChangeTagNormalChanged);
-			changed.Argument.getItemsReplace().putAll(notemap2.getReplaced());
-			for (var p : notemap2.getRemoved()) {
-				changed.Argument.getItemsRemove().add(p);
+			case Changes.Record.Remove:
+				SChanged changed2 = new SChanged();
+				changed2.Argument.setChangeTag(BChangedResult.ChangeTagRecordIsRemoved);
+				Game.App.getInstance().getProvider().Online.sendReliableNotify((Long)key, getName(), changed2);
+				break;
 			}
-
-			Game.App.getInstance().getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
-		}
-
-		public final void OnRemoved(Object key) {
-			// 整个记录删除，由 BagChangeListener 处理。
 		}
 	}
 

@@ -2,13 +2,14 @@ package Game.Buf;
 
 import Zeze.Transaction.*;
 import Game.*;
+import Zeze.Transaction.Collections.LogMap2;
 
 //ZEZE_FILE_CHUNK {{{ IMPORT GEN
 //ZEZE_FILE_CHUNK }}} IMPORT GEN
 
 public class ModuleBuf extends AbstractModule {
 	public final void Start(App app) {
-		_tbufs.getChangeListenerMap().AddListener(tbufs.VAR_Bufs, new BufChangeListener("Game.Buf.Bufs"));
+		_tbufs.getChangeListenerMap().AddListener(new BufChangeListener("Game.Buf.Bufs"));
 	}
 
 	public final void Stop(App app) {
@@ -23,38 +24,40 @@ public class ModuleBuf extends AbstractModule {
 		public BufChangeListener(String name) {
 			Name = name;
 		}
-		public final void OnChanged(Object key, Bean value) {
-			// 记录改变，通知全部。
-			BBufs record = (BBufs)value;
 
-			SChanged changed = new SChanged();
-			changed.Argument.setChangeTag(BBufChanged.ChangeTagRecordChanged);
-			changed.Argument.getReplace().putAll(record.getBufs());
+		public final void OnChanged(Object key, Changes.Record c) {
+			switch (c.getState()) {
+			case Changes.Record.Put:
+				// 记录改变，通知全部。
+				BBufs record = (BBufs)c.getPutValue();
 
-			Game.App.Instance.getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
-		}
+				SChanged changed1 = new SChanged();
+				changed1.Argument.setChangeTag(BBufChanged.ChangeTagRecordChanged);
+				changed1.Argument.getReplace().putAll(record.getBufs());
 
-		public final void OnChanged(Object key, Bean value, ChangeNote note) {
-			// 增量变化，通知变更。
-			@SuppressWarnings("unchecked")
-			ChangeNoteMap2<Integer, BBuf> notemap2 = (ChangeNoteMap2<Integer, BBuf>)note;
-			BBufs record = (BBufs)value;
-			notemap2.MergeChangedToReplaced(record.getBufs());
+				Game.App.Instance.getProvider().Online.sendReliableNotify((Long)key, getName(), changed1);
+				break;
+			case Changes.Record.Edit:
+				// 增量变化，通知变更。
+				@SuppressWarnings("unchecked")
+				var notemap2 = (LogMap2<Integer, BBuf>)c.logBean();
+				notemap2.MergeChangedToReplaced();
 
-			SChanged changed = new SChanged();
-			changed.Argument.setChangeTag(BBufChanged.ChangeTagNormalChanged);
-			changed.Argument.getReplace().putAll(notemap2.getReplaced());
-			for (var p : notemap2.getRemoved()) {
-				changed.Argument.getRemove().add(p);
+				SChanged changed2 = new SChanged();
+				changed2.Argument.setChangeTag(BBufChanged.ChangeTagNormalChanged);
+				changed2.Argument.getReplace().putAll(notemap2.getReplaced());
+				for (var p : notemap2.getRemoved()) {
+					changed2.Argument.getRemove().add(p);
+				}
+
+				Game.App.getInstance().getProvider().Online.sendReliableNotify((Long)key, getName(), changed2);
+				break;
+			case Changes.Record.Remove:
+				SChanged changed3 = new SChanged();
+				changed3.Argument.setChangeTag(BBufChanged.ChangeTagRecordIsRemoved);
+				Game.App.getInstance().getProvider().Online.sendReliableNotify((Long)key, getName(), changed3);
+				break;
 			}
-
-			Game.App.getInstance().getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
-		}
-
-		public final void OnRemoved(Object key) {
-			SChanged changed = new SChanged();
-			changed.Argument.setChangeTag(BBufChanged.ChangeTagRecordIsRemoved);
-			Game.App.getInstance().getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
 		}
 	}
 
