@@ -289,7 +289,7 @@ public class TestChangeListener {
 					var.OnChanged(key, r.getPutValue());
 				break;
 			case Changes.Record.Edit:
-				var logbean = r.logBean();
+				var logbean = r.getLogBean();
 				for (var e : Vars.entrySet()) {
 					var vlog = logbean.getVariables().get(e.getKey());
 					if (null != vlog) {

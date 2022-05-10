@@ -88,7 +88,7 @@ public final class GenModule {
 
 	static HashMap<String, Class<?>> GenClassMap = new HashMap<>();
 
-	public <T extends IModule> T ReplaceModuleInstance(AppBase userApp, T module) {
+	public synchronized  <T extends IModule> T ReplaceModuleInstance(AppBase userApp, T module) {
 		if (module.getClass().getName().startsWith(REDIRECT_PREFIX)) // 预防二次replace
 			return module;
 
