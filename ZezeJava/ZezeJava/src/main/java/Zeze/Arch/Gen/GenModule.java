@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import Zeze.AppBase;
 import Zeze.Arch.RedirectAll;
@@ -85,6 +86,8 @@ public final class GenModule {
 		}
 	}
 
+	static HashMap<String, Class<?>> GenClassMap = new HashMap<>();
+
 	public <T extends IModule> T ReplaceModuleInstance(AppBase userApp, T module) {
 		if (module.getClass().getName().startsWith(REDIRECT_PREFIX)) // 预防二次replace
 			return module;
@@ -105,9 +108,17 @@ public final class GenModule {
 
 		String genClassName = getRedirectClassName(module.getClass());
 		try {
+			{
+				var genClass = GenClassMap.get(genClassName);
+				if (null != genClass) {
+					module.UnRegister();
+					return newModule(genClass, userApp);
+				}
+			}
 			if (GenFileSrcRoot == null) { // 不需要生成到文件的时候，尝试装载已经存在的生成模块子类。
 				try {
 					var genClass = Class.forName(genClassName);
+					GenClassMap.put(genClassName, genClass);
 					module.UnRegister();
 					return newModule(genClass, userApp);
 				} catch (ClassNotFoundException ignored) {
@@ -140,7 +151,9 @@ public final class GenModule {
 				return module; // 生成带File需要再次编译，所以这里返回原来的module。
 			}
 			module.UnRegister();
-			return newModule(compiler.compile(genClassName, code), userApp);
+			var genClass = compiler.compile(genClassName, code);
+			GenClassMap.put(genClassName, genClass);
+			return newModule(genClass, userApp);
 		} catch (RuntimeException | Error e) {
 			throw e;
 		} catch (Throwable e) {
