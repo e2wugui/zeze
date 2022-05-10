@@ -9,6 +9,7 @@ namespace Zeze.Builtin.Game.Bag
         {
         }
 
+        public override int Id => 1057953754;
         public override bool IsMemory => false;
         public override bool IsAutoKey => false;
 

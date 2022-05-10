@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Xml;
+using Zeze.Transaction;
 
 namespace Zeze.Gen
 {
@@ -21,6 +22,7 @@ namespace Zeze.Gen
         public string FullName => Space.Path(".", Name);
         public string Kind { get; private set; } = "";
         public bool IsRocks => Kind.Equals("rocks");
+        public int Id { get; private set; }
 
         public Table(ModuleSpace space, XmlElement self)
         {
@@ -33,10 +35,13 @@ namespace Zeze.Gen
             Value = self.GetAttribute("value");
             Gen = self.GetAttribute("gen");
             string attr = self.GetAttribute("memory");
-            IsMemory = attr.Length > 0 ? bool.Parse(attr) : false;
+            IsMemory = attr.Length > 0 && bool.Parse(attr);
             attr = self.GetAttribute("autokey");
-            IsAutoKey = attr.Length > 0 ? bool.Parse(attr) : false;
+            IsAutoKey = attr.Length > 0 && bool.Parse(attr);
             Kind = self.GetAttribute("kind");
+
+            attr = self.GetAttribute("id");
+            Id = attr.Length > 0 ? int.Parse(attr) : Bean.Hash32(FullName);
         }
 
         public void Compile()
@@ -44,7 +49,7 @@ namespace Zeze.Gen
             KeyType = Types.Type.Compile(Space, Key);
             if (false == KeyType.IsKeyable)
                 throw new Exception("table.key need a isKeyable type: " + Space.Path(".", Name));
-            if (this.IsAutoKey && !(KeyType is Types.TypeLong))
+            if (this.IsAutoKey && KeyType is not Types.TypeLong)
                 throw new Exception("autokey only support key type of long");
 
             ValueType = Types.Type.Compile(Space, Value);

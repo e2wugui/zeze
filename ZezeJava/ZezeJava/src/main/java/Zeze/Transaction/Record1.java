@@ -53,10 +53,10 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 			return new IGlobalAgent.AcquireResult(0, state, 0);
 		}
 
-		var gkey = new GlobalTableKey(getTTable().getName(), new Binary(getTTable().EncodeKey(getKey())));
+		var gkey = new GlobalTableKey(getTTable().getId(), new Binary(getTTable().EncodeKey(getKey())));
 		logger.debug("Acquire NewState={} {}", state, this);
 
-		var stat = TableStatistics.getInstance().GetOrAdd(getTTable().getName());
+		var stat = TableStatistics.getInstance().GetOrAdd(getTTable().getId());
 		switch (state) {
 			case GlobalCacheManagerServer.StateInvalid:
 				stat.getGlobalAcquireInvalid().incrementAndGet();
@@ -118,7 +118,7 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 	private ByteBuffer snapshotValue;
 
 	public final boolean TryEncodeN(ConcurrentHashMap<K, Record1<K, V>> changed, ConcurrentHashMap<K, Record1<K, V>> encoded) {
-		Lockey lockey = getTable().getZeze().getLocks().Get(new TableKey(getTTable().getName(), getKey()));
+		Lockey lockey = getTable().getZeze().getLocks().Get(new TableKey(getTTable().getId(), getKey()));
 		if (!lockey.TryEnterReadLock(0)) {
 			return false;
 		}
@@ -217,7 +217,7 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 		this.setDatabaseTransactionTmp(null);
 
 		if (getTable().getZeze().getCheckpoint().getCheckpointMode() == CheckpointMode.Period) {
-			TableKey tkey = new TableKey(getTable().getName(), getKey());
+			TableKey tkey = new TableKey(getTable().getId(), getKey());
 			Lockey lockey = getTable().getZeze().getLocks().Get(tkey);
 			lockey.EnterWriteLock();
 			try {

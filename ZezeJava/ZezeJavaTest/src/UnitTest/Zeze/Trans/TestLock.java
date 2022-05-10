@@ -65,8 +65,8 @@ public class TestLock extends TestCase {
 	public final void test1() {
 		Locks locks = Locks;
 
-		TableKey tk1 = new TableKey("1", 1);
-		TableKey tk2 = new TableKey("1", 1);
+		TableKey tk1 = new TableKey(1, 1);
+		TableKey tk2 = new TableKey(1, 1);
 
 		Lockey lock1 = new Lockey(tk1);
 		Lockey lock2 = new Lockey(tk2);
@@ -79,7 +79,7 @@ public class TestLock extends TestCase {
 		Lockey lock2ref = locks.Get(lock2);
 		Assert.assertEquals(lock2ref, lock1); // second Get. the exist
 
-		TableKey tk3 = new TableKey("1", 2);
+		TableKey tk3 = new TableKey(1, 2);
 		Lockey lock3 = new Lockey(tk3);
 		Lockey lock3ref = locks.Get(lock3);
 		Assert.assertEquals(lock3ref, lock3);

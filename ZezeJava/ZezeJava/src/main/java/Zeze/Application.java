@@ -42,7 +42,7 @@ public final class Application {
 	private final String SolutionName;
 	private final Config Conf;
 	private final HashMap<String, Database> Databases = new HashMap<>();
-	private final ConcurrentHashMap<String, Table> Tables = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Integer, Table> Tables = new ConcurrentHashMap<>();
 	private final ConcurrentHashMap<TableKey, LastFlushWhenReduce> FlushWhenReduce = new ConcurrentHashMap<>();
 	private final LongConcurrentHashMap<ConcurrentHashSet<LastFlushWhenReduce>> FlushWhenReduceActives = new LongConcurrentHashMap<>();
 	private final TaskOneByOneByKey TaskOneByOneByKey = new TaskOneByOneByKey();
@@ -142,19 +142,28 @@ public final class Application {
 	}
 
 	public void AddTable(String dbName, Table table) {
+		TableKey.Tables.put(table.getId(), table.getName());
 		var db = GetDatabase(dbName);
-		if (Tables.putIfAbsent(table.getName(), table) != null)
+		if (Tables.putIfAbsent(table.getId(), table) != null)
 			throw new IllegalStateException("duplicate table name=" + table.getName());
 		db.AddTable(table);
 	}
 
 	public void RemoveTable(String dbName, Table table) {
-		Tables.remove(table.getName());
+		Tables.remove(table.getId());
 		GetDatabase(dbName).RemoveTable(table);
 	}
 
-	public Table GetTable(String name) {
-		return Tables.get(name);
+	public Table GetTable(int id) {
+		return Tables.get(id);
+	}
+
+	public Table GetTableSlow(String name) {
+		for (var table : Tables.values()) {
+			if (table.getName().equals(name))
+				return table;
+		}
+		return null;
 	}
 
 	public Database GetDatabase(String name) {

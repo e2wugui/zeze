@@ -242,10 +242,12 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
 
         public override bool NegativeCheck()
         {
+            if (GlobalTableKey.NegativeCheck()) return true;
             if (State < 0) return true;
             if (GlobalSerialId < 0) return true;
             return false;
         }
+
         public override void FollowerApply(Zeze.Transaction.Log log)
         {
             var blog = (Zeze.Transaction.Collections.LogBean)log;

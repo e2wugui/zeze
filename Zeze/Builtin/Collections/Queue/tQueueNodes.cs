@@ -9,6 +9,7 @@ namespace Zeze.Builtin.Collections.Queue
         {
         }
 
+        public override int Id => -117984600;
         public override bool IsMemory => false;
         public override bool IsAutoKey => false;
 

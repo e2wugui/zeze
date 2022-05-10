@@ -9,6 +9,7 @@ namespace Zeze.Builtin.Collections.LinkedMap
         {
         }
 
+        public override int Id => -1295098614;
         public override bool IsMemory => false;
         public override bool IsAutoKey => false;
 

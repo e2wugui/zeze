@@ -10,6 +10,11 @@ public final class tValueIdToNodeId extends Zeze.Transaction.TableX<Zeze.Builtin
     }
 
     @Override
+    public int getId() {
+        return -1128401683;
+    }
+
+    @Override
     public boolean isMemory() {
         return false;
     }

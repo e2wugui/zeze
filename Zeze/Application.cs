@@ -177,13 +177,14 @@ namespace Zeze
             ServiceManagerAgent = new Agent(this);
         }
 
-        private readonly ConcurrentDictionary<string, Table> Tables = new();
+        private readonly ConcurrentDictionary<int, Table> Tables = new();
 
         public void AddTable(string dbName, Table table)
         {
+            TableKey.Tables[table.Id] = table.Name;
             if (Databases.TryGetValue(dbName, out var db))
             {
-                if (false == Tables.TryAdd(table.Name, table))
+                if (false == Tables.TryAdd(table.Id, table))
                     throw new Exception($"duplicate table name={table.Name}");
                 db.AddTable(table);
                 return;
@@ -193,7 +194,7 @@ namespace Zeze
 
         public void RemoveTable(string dbName, Table table)
         {
-            Tables.TryRemove(table.Name, out _);
+            Tables.TryRemove(table.Id, out _);
             if (Databases.TryGetValue(dbName, out var db))
             {
                 db.RemoveTable(table);
@@ -202,10 +203,18 @@ namespace Zeze
             throw new Exception($"database not found dbName={dbName}");
         }
 
-        public Table GetTable(string name)
+        public Table GetTable(int id)
         {
-            if (Tables.TryGetValue(name, out var table))
+            if (Tables.TryGetValue(id, out var table))
                 return table;
+            return null;
+        }
+
+        public Table GetTableSlow(string name)
+        {
+            foreach (var table in Tables.Values)
+                if (table.Name == name)
+                    return table;
             return null;
         }
 

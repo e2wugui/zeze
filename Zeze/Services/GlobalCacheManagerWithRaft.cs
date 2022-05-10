@@ -481,7 +481,7 @@ namespace Zeze.Services
                 }
                 var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(sender.ServerId);
                 await SenderAcquired.RemoveAsync(gkey);
-                logger.Debug($"Release {gkey.TableName}:{gkey.Key} {cs}");
+                logger.Debug($"Release {gkey.Id}:{gkey.Key} {cs}");
                 lockey.PulseAll();
                 return GetSenderCacheState(cs, sender);
             }

@@ -15,21 +15,25 @@ namespace Zeze.Gen.cs
 
         public static void Make(Types.Bean bean, StreamWriter sw, string prefix)
         {
+            sw.WriteLine();
             sw.WriteLine(prefix + $"public override void FollowerApply(Zeze.Transaction.Log log)");
             sw.WriteLine(prefix + "{");
-            sw.WriteLine(prefix + "    var blog = (Zeze.Transaction.Collections.LogBean)log;");
-            sw.WriteLine(prefix + "    foreach (var vlog in blog.Variables.Values)");
-            sw.WriteLine(prefix + "    {");
-            sw.WriteLine(prefix + "        switch (vlog.VariableId)");
-            sw.WriteLine(prefix + "        {");
-            foreach (var v in bean.Variables)
+            if (bean.Variables.Count > 0)
             {
-                if (v.Transient)
-                    continue;
-                v.VariableType.Accept(new FollowerApply(v, sw, prefix + "        "));
+                sw.WriteLine(prefix + "    var blog = (Zeze.Transaction.Collections.LogBean)log;");
+                sw.WriteLine(prefix + "    foreach (var vlog in blog.Variables.Values)");
+                sw.WriteLine(prefix + "    {");
+                sw.WriteLine(prefix + "        switch (vlog.VariableId)");
+                sw.WriteLine(prefix + "        {");
+                foreach (var v in bean.Variables)
+                {
+                    if (v.Transient)
+                        continue;
+                    v.VariableType.Accept(new FollowerApply(v, sw, prefix + "        "));
+                }
+                sw.WriteLine(prefix + "        }");
+                sw.WriteLine(prefix + "    }");
             }
-            sw.WriteLine(prefix + "        }");
-            sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }

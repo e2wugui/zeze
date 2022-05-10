@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using Zeze.Serialize;
 
@@ -6,18 +7,21 @@ namespace Zeze.Transaction
 {
     public sealed class TableKey : IComparable<TableKey>
     {
-        public string Name { get; }
+        // 用来记录名字转换，不检查Table.Id唯一性。
+        public static ConcurrentDictionary<int, string> Tables { get; } = new();
+
+        public int Id { get; }
         public object Key { get; } // 只能是简单变量(bool,byte,short,int,long)和BeanKey
 
-        public TableKey(string name, object key)
+        public TableKey(int id, object key)
         {
-            Name = name;
+            Id = id;
             Key = key;
         }
 
         public int CompareTo(TableKey other)
         {
-            int c = this.Name.CompareTo(other.Name);
+            int c = this.Id.CompareTo(other.Id);
             if (c != 0)
             {
                 return c;
@@ -27,14 +31,15 @@ namespace Zeze.Transaction
 
         public override string ToString()
         {
-            return $"tkey{{{Name},{Key}}}";
+            Tables.TryGetValue(Id, out var name);
+            return $"tkey{{{name},{Key}}}";
         }
 
         public override int GetHashCode()
         {
             const int prime = 31;
             int result = 17;
-            result = prime * result + Name.GetHashCode();
+            result = prime * result + Id.GetHashCode();
             result = prime * result + Key.GetHashCode();
             return result;
         }
@@ -46,7 +51,7 @@ namespace Zeze.Transaction
 
             if (obj is TableKey another)
             {
-                return Name.Equals(another.Name) && Key.Equals(another.Key);
+                return Id.Equals(another.Id) && Key.Equals(another.Key);
             }
             return false;
         }

@@ -187,6 +187,8 @@ public final class AcquireParam extends Zeze.Transaction.Bean {
 
     @Override
     public boolean NegativeCheck() {
+        if (getGlobalTableKey().NegativeCheck())
+            return true;
         if (getState() < 0)
             return true;
         return false;

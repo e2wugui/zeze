@@ -127,10 +127,10 @@ namespace Zeze.Transaction
                 return (0, state, 0);
             }
 
-            var gkey = new Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey(TTable.Name, new Zeze.Net.Binary(TTable.EncodeKey(Key)));
+            var gkey = new Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey(TTable.Id, new Zeze.Net.Binary(TTable.EncodeKey(Key)));
             logger.Debug("Acquire NewState={0} {1}", state, this);
 #if ENABLE_STATISTICS
-            var stat = TableStatistics.Instance.GetOrAdd(TTable.Name);
+            var stat = TableStatistics.Instance.GetOrAdd(TTable.Id);
             switch (state)
             {
                 case GlobalCacheManagerServer.StateInvalid:
@@ -187,7 +187,7 @@ namespace Zeze.Transaction
             ConcurrentDictionary<K, Record<K, V>> changed,
             ConcurrentDictionary<K, Record<K, V>> encoded)
         {
-            var lockey = TTable.Zeze.Locks.Get(new TableKey(TTable.Name, Key));
+            var lockey = TTable.Zeze.Locks.Get(new TableKey(TTable.Id, Key));
             if (false == lockey.TryEnterReadLock())
                 return false;
             try
@@ -284,7 +284,7 @@ namespace Zeze.Transaction
 
             if (TTable.Zeze.Checkpoint.CheckpointMode == CheckpointMode.Period)
             {
-                var tkey = new TableKey(Table.Name, Key);
+                var tkey = new TableKey(Table.Id, Key);
                 var lockey = await TTable.Zeze.Locks.Get(tkey).WriterLockAsync();
                 try
                 {
@@ -310,7 +310,7 @@ namespace Zeze.Transaction
 
         internal override async Task SetExistInBackDatabase(long timestamp, bool value)
         {
-            var tkey = new TableKey(Table.Name, Key);
+            var tkey = new TableKey(Table.Id, Key);
             var lockey = await TTable.Zeze.Locks.Get(tkey).WriterLockAsync();
             try
             {

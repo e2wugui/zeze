@@ -236,7 +236,7 @@ namespace Zeze.Transaction
         private bool TryRemoveRecord(KeyValuePair<K, Record<K, V>> p)
         {
             // lockey 第一优先，和事务并发。
-            var tkey = new TableKey(this.Table.Name, p.Key);
+            var tkey = new TableKey(this.Table.Id, p.Key);
             var lockey = Table.Zeze.Locks.Get(tkey);
 
             if (false == lockey.TryEnterWriteLock())

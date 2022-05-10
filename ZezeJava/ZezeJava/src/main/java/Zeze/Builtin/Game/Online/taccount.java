@@ -10,6 +10,11 @@ public final class taccount extends Zeze.Transaction.TableX<String, Zeze.Builtin
     }
 
     @Override
+    public int getId() {
+        return -1097404497;
+    }
+
+    @Override
     public boolean isMemory() {
         return false;
     }

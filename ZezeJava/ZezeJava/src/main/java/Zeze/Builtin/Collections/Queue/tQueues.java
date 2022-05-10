@@ -10,6 +10,11 @@ public final class tQueues extends Zeze.Transaction.TableX<String, Zeze.Builtin.
     }
 
     @Override
+    public int getId() {
+        return 1005923355;
+    }
+
+    @Override
     public boolean isMemory() {
         return false;
     }

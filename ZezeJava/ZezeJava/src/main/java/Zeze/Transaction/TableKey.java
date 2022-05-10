@@ -1,24 +1,29 @@
 package Zeze.Transaction;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 public final class TableKey implements java.lang.Comparable<TableKey> {
-	private final String Name;
-	public String getName() {
-		return Name;
+	// 用来做名字转换，不检查Table.Id唯一性。
+	public static ConcurrentHashMap<Integer, String> Tables = new ConcurrentHashMap<>();
+
+	private final int Id;
+	public int getId() {
+		return Id;
 	}
 	private final Object Key;
 	public Object getKey() {
 		return Key;
 	}
 
-	public TableKey(String name, Object key) {
-		Name = name;
+	public TableKey(int id, Object key) {
+		Id = id;
 		Key = key;
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
 	public int compareTo(TableKey other) {
-		int c = this.Name.compareTo(other.Name);
+		int c = Integer.compare(this.Id, other.Id);
 		if (c != 0) {
 			return c;
 		}
@@ -29,14 +34,14 @@ public final class TableKey implements java.lang.Comparable<TableKey> {
 
 	@Override
 	public String toString() {
-		return String.format("tkey(%s:%s)", Name, Key);
+		return String.format("tkey(%s:%s)", Tables.get(Id), Key);
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 17;
-		result = prime * result + Name.hashCode();
+		result = prime * result + Integer.hashCode(Id);
 		result = prime * result + getKey().hashCode();
 		return result;
 	}
@@ -49,7 +54,7 @@ public final class TableKey implements java.lang.Comparable<TableKey> {
 
 		if (obj instanceof TableKey) {
 			TableKey another = (TableKey) obj;
-			return Name.equals(another.Name) && getKey().equals(another.getKey());
+			return Id == another.Id && getKey().equals(another.getKey());
 		}
 		return false;
 	}

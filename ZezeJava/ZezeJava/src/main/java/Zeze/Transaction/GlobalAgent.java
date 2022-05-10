@@ -177,10 +177,10 @@ public final class GlobalAgent implements IGlobalAgent {
 	public int ProcessReduceRequest(Reduce rpc) {
 		switch (rpc.Argument.State) {
 		case GlobalCacheManagerServer.StateInvalid:
-			var table1 = Zeze.GetTable(rpc.Argument.GlobalTableKey.getTableName());
+			var table1 = Zeze.GetTable(rpc.Argument.GlobalTableKey.getId());
 			if (null == table1) {
 				logger.warn("ReduceInvalid Table Not Found={},ServerId={}",
-						rpc.Argument.GlobalTableKey.getTableName(), Zeze.getConfig().getServerId());
+						rpc.Argument.GlobalTableKey.getId(), Zeze.getConfig().getServerId());
 				// 本地没有找到表格看作成功。
 				rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
 				rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
@@ -190,10 +190,10 @@ public final class GlobalAgent implements IGlobalAgent {
 			return table1.ReduceInvalid(rpc);
 
 		case GlobalCacheManagerServer.StateShare:
-			var table2 = Zeze.GetTable(rpc.Argument.GlobalTableKey.getTableName());
+			var table2 = Zeze.GetTable(rpc.Argument.GlobalTableKey.getId());
 			if (table2 == null) {
 				logger.warn("ReduceShare Table Not Found={},ServerId={}",
-						rpc.Argument.GlobalTableKey.getTableName(), Zeze.getConfig().getServerId());
+						rpc.Argument.GlobalTableKey.getId(), Zeze.getConfig().getServerId());
 				// 本地没有找到表格看作成功。
 				rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
 				rpc.Result.State = GlobalCacheManagerServer.StateInvalid;

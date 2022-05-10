@@ -221,7 +221,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 
 	private boolean TryRemoveRecord(Map.Entry<K, Record1<K, V>> p) {
 		// lockey 第一优先，和事务并发。
-		final TableKey tkey = new TableKey(this.getTable().getName(), p.getKey());
+		final TableKey tkey = new TableKey(this.getTable().getId(), p.getKey());
 		final Locks locks = Table.getZeze().getLocks();
 		if (locks == null) // 可能是已经执行Application.Stop导致的
 			return TryRemoveRecordUnderLocks(p); // 临时修正

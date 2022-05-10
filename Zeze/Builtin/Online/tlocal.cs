@@ -9,6 +9,7 @@ namespace Zeze.Builtin.Online
         {
         }
 
+        public override int Id => -1858917951;
         public override bool IsMemory => true;
         public override bool IsAutoKey => false;
 

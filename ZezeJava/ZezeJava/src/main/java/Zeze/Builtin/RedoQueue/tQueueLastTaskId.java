@@ -10,6 +10,11 @@ public final class tQueueLastTaskId extends Zeze.Transaction.TableX<String, Zeze
     }
 
     @Override
+    public int getId() {
+        return -1495051256;
+    }
+
+    @Override
     public boolean isMemory() {
         return false;
     }

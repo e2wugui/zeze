@@ -229,6 +229,8 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
 
     @Override
     public boolean NegativeCheck() {
+        if (getGlobalTableKey().NegativeCheck())
+            return true;
         if (getState() < 0)
             return true;
         if (getGlobalSerialId() < 0)

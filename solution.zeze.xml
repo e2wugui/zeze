@@ -21,7 +21,7 @@
 
 			<!-- rpc -->
 			<beankey name="GlobalTableKey">
-				<variable id="1" name="TableName" type="string"/>
+				<variable id="1" name="Id" type="int"/>
 				<variable id="2" name="Key" type="binary"/>
 			</beankey>
 

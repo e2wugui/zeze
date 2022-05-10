@@ -67,8 +67,8 @@ namespace UnitTest.Zeze.Trans
         {
             var locks = new Locks();
 
-            var tk1 = new TableKey("1", 1);
-            var tk2 = new TableKey("1", 1);
+            var tk1 = new TableKey(1, 1);
+            var tk2 = new TableKey(1, 1);
 
             var lock1 = new Lockey(tk1);
             var lock2 = new Lockey(tk2);
@@ -81,7 +81,7 @@ namespace UnitTest.Zeze.Trans
             var lock2ref = locks.Get(lock2);
             Assert.IsTrue(lock2ref == lock1); // second Get. the exist
 
-            var tk3 = new TableKey("1", 2);
+            var tk3 = new TableKey(1, 2);
             var lock3 = new Lockey(tk3);
             var lock3ref = locks.Get(lock3);
             Assert.IsTrue(lock3ref == lock3);
@@ -126,7 +126,7 @@ namespace UnitTest.Zeze.Trans
         public void TestTry()
         {
             var locks = new Locks();
-            var tkey = new TableKey("1", 1);
+            var tkey = new TableKey(1, 1);
             var tasks = new List<Task>
             {
                 Task.Run(async () =>

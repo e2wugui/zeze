@@ -291,6 +291,7 @@ namespace Zeze.Builtin.Provider
             if (ProviderDirectPort < 0) return true;
             return false;
         }
+
         public override void FollowerApply(Zeze.Transaction.Log log)
         {
             var blog = (Zeze.Transaction.Collections.LogBean)log;

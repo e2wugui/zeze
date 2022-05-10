@@ -594,7 +594,7 @@ namespace Zeze
             };
             foreach (var table in Tables.Values)
             {
-                var ztable = app.GetTable(table.Name);
+                var ztable = app.GetTableSlow(table.Name);
                 if (null != ztable && ztable.IsNew && app.Config.DonotCheckSchemasWhenTableIsNew)
                     continue;
 

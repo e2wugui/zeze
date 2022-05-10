@@ -31,6 +31,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        {");
             sw.WriteLine("        }");
             sw.WriteLine();
+            sw.WriteLine($"        public override int Id => {table.Id};");
             sw.WriteLine("        public override bool IsMemory => " + (table.IsMemory ? "true;" : "false;"));
             sw.WriteLine("        public override bool IsAutoKey => " + (table.IsAutoKey ? "true;" : "false;"));
             sw.WriteLine();

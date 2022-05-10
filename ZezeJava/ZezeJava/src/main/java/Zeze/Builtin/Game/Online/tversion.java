@@ -10,6 +10,11 @@ public final class tversion extends Zeze.Transaction.TableX<Long, Zeze.Builtin.G
     }
 
     @Override
+    public int getId() {
+        return -1673876055;
+    }
+
+    @Override
     public boolean isMemory() {
         return false;
     }

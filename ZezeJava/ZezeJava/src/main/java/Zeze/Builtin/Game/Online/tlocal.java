@@ -10,6 +10,11 @@ public final class tlocal extends Zeze.Transaction.TableX<Long, Zeze.Builtin.Gam
     }
 
     @Override
+    public int getId() {
+        return -1657900798;
+    }
+
+    @Override
     public boolean isMemory() {
         return true;
     }

@@ -1,5 +1,6 @@
 package Zeze.Transaction;
 
+import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Services.GlobalCacheManager.Reduce;
@@ -7,6 +8,11 @@ import Zeze.Services.GlobalCacheManager.Reduce;
 public abstract class Table {
 	public Table(String name) {
 		this.Name = name;
+
+		// 新增属性Id，为了影响最小，采用virtual方式定义。
+		// AddTable不能在这里调用。
+		// 该调用移到Application.AddTable。
+		// 影响：允许Table.Id重复，只要它没有加入zeze-app。
 	}
 
 	protected final String Name;
@@ -38,6 +44,10 @@ public abstract class Table {
 
 	abstract Storage Open(Application app, Database database);
 	abstract void Close();
+
+	public int getId() {
+		return 0; // 新增属性。为了增加顺利，提供默认实现。子类必须提供新的实现。
+	}
 
 	public int ReduceShare(Reduce rpc) {
 		throw new UnsupportedOperationException();

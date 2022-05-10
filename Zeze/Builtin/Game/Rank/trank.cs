@@ -9,6 +9,7 @@ namespace Zeze.Builtin.Game.Rank
         {
         }
 
+        public override int Id => -2043108039;
         public override bool IsMemory => false;
         public override bool IsAutoKey => false;
 

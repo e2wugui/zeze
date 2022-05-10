@@ -36,15 +36,18 @@ TableCache 原来想增加一级基于RocksDb的巨大缓存，由于这个缓�
 7. TableCache由每张表独立清理改成全局清理。每张表发现自己超过容量，就加入全局清理线程队列。
 8. TableCache.Lru.Node增加时戳。全局清理线程优先清理最老的超过容量的。【时戳是保留来未来增加清理策略，目前没什么大的用处】
 9. 使用RocksDb保存被GC的用户数据这个特性做成可选（又是需要if判断）?
+*. Cache实现细节
+   OnLoad -> RocksDb.Save; Soft.SetTarget(bean);
+   Transaction.WriteLock -> StrongRef = Soft.GetTarget();
+   Checkpoint.Flush -> RocksDb.Save; StrongRef = null;
+   Transaction.Get -> LoadIfNeedFromRocksDb; return Soft.Target(); 
 >>>
 
 【2022/5/11】
 
-------------------------------------------------------------------------------------------------------------------------------
-tag 0.9.0 java is ready
-------------------------------------------------------------------------------------------------------------------------------
+TableKey,GlobalTableKey TableName -> TableId
 Java New Changes: 1. Gen 2. Collections 3. Log 4. Changes & remove CreateChangeVariableCollector 5. Transaction & Savepoint
-Java Global Performance: 【张路】
+Java Global Performance: 【张路】26w/s 200M带宽
 ------------------------------------------------------------------------------------------------------------------------------
 3. Test TestGlobal Simulate 异步测试【已经通过测试了 2022.5.9】
 把 RocksRaft Changes 应用到 Zeze 中，让 Zeze 实现Bean任意级别的更新。

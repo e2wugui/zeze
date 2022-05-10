@@ -9,6 +9,7 @@ namespace Zeze.Builtin.AutoKey
         {
         }
 
+        public override int Id => -716529252;
         public override bool IsMemory => false;
         public override bool IsAutoKey => false;
 

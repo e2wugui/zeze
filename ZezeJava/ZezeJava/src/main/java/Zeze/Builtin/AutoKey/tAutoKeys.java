@@ -10,6 +10,11 @@ public final class tAutoKeys extends Zeze.Transaction.TableX<String, Zeze.Builti
     }
 
     @Override
+    public int getId() {
+        return -716529252;
+    }
+
+    @Override
     public boolean isMemory() {
         return false;
     }

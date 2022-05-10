@@ -10,6 +10,11 @@ public final class trank extends Zeze.Transaction.TableX<Zeze.Builtin.Game.Rank.
     }
 
     @Override
+    public int getId() {
+        return -2043108039;
+    }
+
+    @Override
     public boolean isMemory() {
         return false;
     }

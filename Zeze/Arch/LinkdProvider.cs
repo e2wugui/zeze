@@ -79,8 +79,7 @@ namespace Zeze.Arch
                 // auth 通过就允许发送广播。
                 // 如果要实现 role.login 才允许，Provider 增加 SetLogin 协议给内部server调用。
                 // 这些广播一般是重要通告，只要登录客户端就允许收到，然后进入世界的时候才显示。这样处理就不用这个状态了。
-                var linkSession = socket.UserState as LinkdUserSession;
-                if (null != linkSession && null != linkSession.Account
+                if (socket.UserState is LinkdUserSession linkSession && null != linkSession.Account
                     // 这个状态是内部服务在CLogin的时候设置的，判断一下，可能可以简化客户端实现。
                     // 当然这个定义不是很好。但比较符合一般的使用。
                     && false == string.IsNullOrEmpty(linkSession.Context)
@@ -238,8 +237,7 @@ namespace Zeze.Arch
 
         public void OnProviderClose(Zeze.Net.AsyncSocket provider)
         {
-            var ps = provider.UserState as LinkdProviderSession;
-            if (null == ps)
+            if (provider.UserState is not LinkdProviderSession ps)
                 return;
 
             // unbind module

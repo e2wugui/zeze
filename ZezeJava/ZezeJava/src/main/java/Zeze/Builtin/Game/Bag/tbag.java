@@ -10,6 +10,11 @@ public final class tbag extends Zeze.Transaction.TableX<String, Zeze.Builtin.Gam
     }
 
     @Override
+    public int getId() {
+        return 863603985;
+    }
+
+    @Override
     public boolean isMemory() {
         return false;
     }

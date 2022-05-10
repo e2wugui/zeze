@@ -10,6 +10,11 @@ public final class tonline extends Zeze.Transaction.TableX<String, Zeze.Builtin.
     }
 
     @Override
+    public int getId() {
+        return -2094601796;
+    }
+
+    @Override
     public boolean isMemory() {
         return false;
     }

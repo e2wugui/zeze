@@ -32,6 +32,11 @@ namespace Zeze.Gen.java
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
+            sw.WriteLine("    public int getId() {");
+            sw.WriteLine($"        return {table.Id};");
+            sw.WriteLine("    }");
+            sw.WriteLine();
+            sw.WriteLine("    @Override");
             sw.WriteLine("    public boolean isMemory() {");
             sw.WriteLine("        return " + (table.IsMemory ? "true;" : "false;"));
             sw.WriteLine("    }");

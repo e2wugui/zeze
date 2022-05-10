@@ -31,7 +31,7 @@ namespace Zeze.Transaction
 				throw new InvalidOperationException();
 
 #if ENABLE_STATISTICS
-			TableStatistics.Instance.GetOrAdd(Lockey.TableKey.Name).ReadLockTimes.IncrementAndGet();
+			TableStatistics.Instance.GetOrAdd(Lockey.TableKey.Id).ReadLockTimes.IncrementAndGet();
 #endif
 			Acquired = await Lockey.RWlock.ReaderLockAsync();
 			AcquiredType = 1;
@@ -43,7 +43,7 @@ namespace Zeze.Transaction
 			if (AcquiredType != 0)
 				throw new InvalidOperationException();
 #if ENABLE_STATISTICS
-			TableStatistics.Instance.GetOrAdd(Lockey.TableKey.Name).WriteLockTimes.IncrementAndGet();
+			TableStatistics.Instance.GetOrAdd(Lockey.TableKey.Id).WriteLockTimes.IncrementAndGet();
 #endif
 			Acquired = await Lockey.RWlock.WriterLockAsync();
 			AcquiredType = 2;
@@ -56,7 +56,7 @@ namespace Zeze.Transaction
 				throw new InvalidOperationException();
 
 #if ENABLE_STATISTICS
-			TableStatistics.Instance.GetOrAdd(Lockey.TableKey.Name).TryReadLockTimes.IncrementAndGet();
+			TableStatistics.Instance.GetOrAdd(Lockey.TableKey.Id).TryReadLockTimes.IncrementAndGet();
 #endif
 			var source = new CancellationTokenSource();
 			var context = Lockey.RWlock.ReaderLockAsync(source.Token);
@@ -88,7 +88,7 @@ namespace Zeze.Transaction
 				throw new InvalidOperationException();
 
 #if ENABLE_STATISTICS
-			TableStatistics.Instance.GetOrAdd(Lockey.TableKey.Name).TryWriteLockTimes.IncrementAndGet();
+			TableStatistics.Instance.GetOrAdd(Lockey.TableKey.Id).TryWriteLockTimes.IncrementAndGet();
 #endif
 			var source = new CancellationTokenSource();
 			var context = Lockey.RWlock.WriterLockAsync(source.Token);

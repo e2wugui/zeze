@@ -56,7 +56,7 @@ public class TestProcdure {
 
 	@Test
 	public final void test1() throws Throwable {
-		TableKey root = new TableKey("1", 1);
+		TableKey root = new TableKey(1, 1);
 		// 特殊测试，拼凑一个record用来提供需要的信息。
 		var r = new Record1<>(null, 1L, bean);
 		bean.InitRootInfo(r.CreateRootInfoIfNeed(root), null);

@@ -241,6 +241,7 @@ namespace Zeze.Builtin.Collections.LinkedMap
             if (NextNodeId < 0) return true;
             return false;
         }
+
         public override void FollowerApply(Zeze.Transaction.Log log)
         {
             var blog = (Zeze.Transaction.Collections.LogBean)log;

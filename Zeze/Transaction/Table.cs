@@ -6,6 +6,7 @@ using Zeze.Services;
 using System.Threading;
 using Zeze.Services.GlobalCacheManager;
 using System.Threading.Tasks;
+using System.Collections.Concurrent;
 
 namespace Zeze.Transaction
 {
@@ -14,9 +15,15 @@ namespace Zeze.Transaction
         public Table(string name)
         {
             this.Name = name;
+
+            // 新增属性Id，为了影响最小，采用virtual方式定义。
+            // AddTable不能在这里调用。
+            // 该调用移到Application.AddTable。
+            // 影响：允许Table.Id重复，只要它没有加入zeze-app。
         }
 
         public string Name { get; }
+        public virtual int Id { get; } = 0;
         public Application Zeze { get; protected set; }
 
         public virtual bool IsMemory => true;
@@ -63,7 +70,7 @@ namespace Zeze.Transaction
 
         private async Task<Record<K, V>> LoadAsync(K key)
         {
-            var tkey = new TableKey(Name, key);
+            var tkey = new TableKey(Id, key);
             while (true)
             {
                 Record<K, V> r = Cache.GetOrAdd(key, (key) => new Record<K, V>(this, key, null));
@@ -96,7 +103,7 @@ namespace Zeze.Transaction
                     if (null != TStorage)
                     {
 #if ENABLE_STATISTICS
-                        TableStatistics.Instance.GetOrAdd(Name).StorageFindCount.IncrementAndGet();
+                        TableStatistics.Instance.GetOrAdd(Id).StorageFindCount.IncrementAndGet();
 #endif
                         r.Value = await TStorage.FindAsync(key, this); // r.Value still maybe null
 
@@ -144,7 +151,7 @@ namespace Zeze.Transaction
 
             //logger.Debug("Reduce NewState={0}", rpc.Argument.State);
 
-            var tkey = new TableKey(Name, key);
+            var tkey = new TableKey(Id, key);
 
             Record<K, V> r = null;
             var lockey = await Zeze.Locks.Get(tkey).WriterLockAsync();
@@ -234,7 +241,7 @@ namespace Zeze.Transaction
 
             K key = DecodeKey(ByteBuffer.Wrap(rpc.Argument.GlobalTableKey.Key));
 
-            var tkey = new TableKey(Name, key);
+            var tkey = new TableKey(Id, key);
             Record<K, V> r = null;
             var lockey = await Zeze.Locks.Get(tkey).WriterLockAsync();
             try
@@ -301,14 +308,14 @@ namespace Zeze.Transaction
         {
             foreach (var e in Cache.DataMap)
             {
-                var gkey = new Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey(Name, new Zeze.Net.Binary(EncodeKey(e.Key)));
+                var gkey = new Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey(Id, new Zeze.Net.Binary(EncodeKey(e.Key)));
                 if (Zeze.GlobalAgent.GetGlobalCacheManagerHashIndex(gkey) != GlobalCacheManagerHashIndex)
                 {
                     // 不是断开连接的GlobalCacheManager。跳过。
                     continue;
                 }
 
-                var tkey = new TableKey(Name, e.Key);
+                var tkey = new TableKey(Id, e.Key);
                 var lockey = await Zeze.Locks.Get(tkey).WriterLockAsync();
                 try
                 {
@@ -326,7 +333,7 @@ namespace Zeze.Transaction
         public async Task<V> GetAsync(K key)
         {
             var currentT = Transaction.Current;
-            var tkey = new TableKey(Name, key);
+            var tkey = new TableKey(Id, key);
 
             var cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
@@ -342,7 +349,7 @@ namespace Zeze.Transaction
         public async Task<V> GetOrAddAsync(K key)
         {
             var currentT = Transaction.Current;
-            var tkey = new TableKey(Name, key);
+            var tkey = new TableKey(Id, key);
 
             Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
@@ -377,7 +384,7 @@ namespace Zeze.Transaction
                 return false;
 
             var currentT = Transaction.Current;
-            var tkey = new TableKey(Name, key);
+            var tkey = new TableKey(Id, key);
             var cr = currentT.GetRecordAccessed(tkey);
             value.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
             cr.Put(currentT, value);
@@ -393,7 +400,7 @@ namespace Zeze.Transaction
         public async Task PutAsync(K key, V value)
         {
             var currentT = Transaction.Current;
-            var tkey = new TableKey(Name, key);
+            var tkey = new TableKey(Id, key);
 
             var cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
@@ -412,7 +419,7 @@ namespace Zeze.Transaction
         public async Task RemoveAsync(K key)
         {
             var currentT = Transaction.Current;
-            var tkey = new TableKey(Name, key);
+            var tkey = new TableKey(Id, key);
 
             var cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
@@ -531,7 +538,7 @@ namespace Zeze.Transaction
                 (key, value) =>
                 {
                     K k = DecodeKey(ByteBuffer.Wrap(key));
-                    var tkey = new TableKey(Name, k);
+                    var tkey = new TableKey(Id, k);
                     var lockey = Zeze.Locks.Get(tkey);
                     lockey.EnterReadLock();
                     try
@@ -581,7 +588,7 @@ namespace Zeze.Transaction
             long count = 0;
             foreach (var e in Cache.DataMap)
             {
-                var tkey = new TableKey(Name, e.Key);
+                var tkey = new TableKey(Id, e.Key);
                 var lockey = Zeze.Locks.Get(tkey);
                 lockey.EnterReadLock();
                 try
@@ -646,7 +653,7 @@ namespace Zeze.Transaction
         /// <returns></returns>
         public async Task<V> SelectCopyAsync(K key)
         {
-            var tkey = new TableKey(Name, key);
+            var tkey = new TableKey(Id, key);
             Transaction currentT = Transaction.Current;
             if (null != currentT)
             {
@@ -672,7 +679,7 @@ namespace Zeze.Transaction
 
         public async Task<V> SelectDirtyAsync(K key)
         {
-            var tkey = new TableKey(Name, key);
+            var tkey = new TableKey(Id, key);
             Transaction currentT = Transaction.Current;
             if (null != currentT)
             {

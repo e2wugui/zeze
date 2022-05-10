@@ -6,22 +6,21 @@ import Zeze.Serialize.Serializable;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "RedundantSuppression"})
 public final class GlobalTableKey implements Serializable, Comparable<GlobalTableKey> {
-    private String _TableName;
+    private int _Id;
     private Zeze.Net.Binary _Key;
 
     // for decode only
     public GlobalTableKey() {
-        _TableName = "";
         _Key = Zeze.Net.Binary.Empty;
     }
 
-    public GlobalTableKey(String _TableName_, Zeze.Net.Binary _Key_) {
-        this._TableName = _TableName_;
+    public GlobalTableKey(int _Id_, Zeze.Net.Binary _Key_) {
+        this._Id = _Id_;
         this._Key = _Key_;
     }
 
-    public String getTableName() {
-        return _TableName;
+    public int getId() {
+        return _Id;
     }
 
     public Zeze.Net.Binary getKey() {
@@ -39,7 +38,7 @@ public final class GlobalTableKey implements Serializable, Comparable<GlobalTabl
     public void BuildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("TableName").append('=').append(getTableName()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Id").append('=').append(getId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(getKey()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -49,10 +48,10 @@ public final class GlobalTableKey implements Serializable, Comparable<GlobalTabl
     public void Encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getTableName();
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
+            int _x_ = getId();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteInt(_x_);
             }
         }
         {
@@ -70,7 +69,7 @@ public final class GlobalTableKey implements Serializable, Comparable<GlobalTabl
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _TableName = _o_.ReadString(_t_);
+            _Id = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
@@ -89,7 +88,7 @@ public final class GlobalTableKey implements Serializable, Comparable<GlobalTabl
             return true;
         if (_obj1_ instanceof GlobalTableKey) {
             var _obj_ = (GlobalTableKey)_obj1_;
-            if (!getTableName().equals(_obj_.getTableName()))
+            if (getId() != _obj_.getId())
                 return false;
             if (!getKey().equals(_obj_.getKey()))
                 return false;
@@ -102,7 +101,7 @@ public final class GlobalTableKey implements Serializable, Comparable<GlobalTabl
     public int hashCode() {
         final int _prime_ = 31;
         int _h_ = 0;
-        _h_ = _h_ * _prime_ + _TableName.hashCode();
+        _h_ = _h_ * _prime_ + Integer.hashCode(_Id);
         _h_ = _h_ * _prime_ + _Key.hashCode();
         return _h_;
     }
@@ -113,7 +112,7 @@ public final class GlobalTableKey implements Serializable, Comparable<GlobalTabl
             return 0;
         if (_o_ != null) {
             int _c_;
-            _c_ = _TableName.compareTo(_o_._TableName);
+            _c_ = Integer.compare(_Id, _o_._Id);
             if (_c_ != 0)
                 return _c_;
             _c_ = _Key.compareTo(_o_._Key);
@@ -125,6 +124,8 @@ public final class GlobalTableKey implements Serializable, Comparable<GlobalTabl
     }
 
     public boolean NegativeCheck() {
+        if (getId() < 0)
+            return true;
         return false;
     }
 }

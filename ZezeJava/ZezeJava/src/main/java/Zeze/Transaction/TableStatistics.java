@@ -11,13 +11,13 @@ public class TableStatistics {
 		return Instance;
 	}
 
-	private final ConcurrentHashMap<String, Statistics> Tables = new ConcurrentHashMap<> ();
-	public final ConcurrentHashMap<String, Statistics> getTables() {
+	private final ConcurrentHashMap<Integer, Statistics> Tables = new ConcurrentHashMap<> ();
+	public final ConcurrentHashMap<Integer, Statistics> getTables() {
 		return Tables;
 	}
 
-	public final Statistics GetOrAdd(String name) {
-		return getTables().computeIfAbsent(name, (key) -> new Statistics());
+	public final Statistics GetOrAdd(int id) {
+		return getTables().computeIfAbsent(id, (key) -> new Statistics());
 	}
 
 	public static class Statistics {

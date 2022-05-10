@@ -10,6 +10,11 @@ public final class tItemClasses extends Zeze.Transaction.TableX<Integer, Zeze.Bu
     }
 
     @Override
+    public int getId() {
+        return 1057953754;
+    }
+
+    @Override
     public boolean isMemory() {
         return false;
     }

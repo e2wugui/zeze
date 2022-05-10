@@ -197,6 +197,7 @@ namespace Zeze.Builtin.Collections.Queue
             }
             return false;
         }
+
         public override void FollowerApply(Zeze.Transaction.Log log)
         {
             var blog = (Zeze.Transaction.Collections.LogBean)log;

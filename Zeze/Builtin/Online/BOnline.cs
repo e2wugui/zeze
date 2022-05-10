@@ -195,6 +195,7 @@ namespace Zeze.Builtin.Online
             if (LinkSid < 0) return true;
             return false;
         }
+
         public override void FollowerApply(Zeze.Transaction.Log log)
         {
             var blog = (Zeze.Transaction.Collections.LogBean)log;

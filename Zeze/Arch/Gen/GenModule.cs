@@ -42,69 +42,72 @@ namespace Zeze.Arch.Gen
         public Zeze.IModule ReplaceModuleInstance<T>(T userApp, Zeze.IModule module)
             where T : AppBase
         {
-            List<MethodOverride> overrides = new List<MethodOverride>();
-            var methods = module.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
-            foreach (var method in methods)
+            lock (this)
             {
-                if (CheckAddMethod(method, OverrideType.RedirectHash, method.GetCustomAttributes(typeof(RedirectHashAttribute), false), overrides))
-                    continue;
-                if (CheckAddMethod(method, OverrideType.RedirectAll, method.GetCustomAttributes(typeof(RedirectAllAttribute), false), overrides))
-                    continue;
-                if (CheckAddMethod(method, OverrideType.RedirectToServer, method.GetCustomAttributes(typeof(RedirectToServerAttribute), false), overrides))
-                    continue;
-            }
-            if (overrides.Count == 0)
-                return module; // 没有需要重定向的方法。
-
-            overrides.Sort((a, b) => a.Method.Name.CompareTo(b.Method.Name));
-
-            string genClassName = $"Redirect_{module.FullName.Replace('.', '_')}";
-            if (null == GenRedirect)
-            {
-                //Console.WriteLine($"'{module.FullName}' Replaced.");
-                // from Game.App.Start. try load new module instance.
-                foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+                List<MethodOverride> overrides = new List<MethodOverride>();
+                var methods = module.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+                foreach (var method in methods)
                 {
-                    Type replaceModuleType = null;
-                    try
-                    {
-                        replaceModuleType = assembly.GetType(genClassName);
-                    }
-                    catch (Exception)
-                    {
+                    if (CheckAddMethod(method, OverrideType.RedirectHash, method.GetCustomAttributes(typeof(RedirectHashAttribute), false), overrides))
                         continue;
-                    }
-                    if (null != replaceModuleType)
-                        return (Zeze.IModule)Activator.CreateInstance(replaceModuleType, userApp);
+                    if (CheckAddMethod(method, OverrideType.RedirectAll, method.GetCustomAttributes(typeof(RedirectAllAttribute), false), overrides))
+                        continue;
+                    if (CheckAddMethod(method, OverrideType.RedirectToServer, method.GetCustomAttributes(typeof(RedirectToServerAttribute), false), overrides))
+                        continue;
                 }
-                throw new Exception($"RedirectOverride Not Found: {genClassName}");
+                if (overrides.Count == 0)
+                    return module; // 没有需要重定向的方法。
+
+                overrides.Sort((a, b) => a.Method.Name.CompareTo(b.Method.Name));
+
+                string genClassName = $"Redirect_{module.FullName.Replace('.', '_')}";
+                if (null == GenRedirect)
+                {
+                    //Console.WriteLine($"'{module.FullName}' Replaced.");
+                    // from Game.App.Start. try load new module instance.
+                    foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+                    {
+                        Type replaceModuleType = null;
+                        try
+                        {
+                            replaceModuleType = assembly.GetType(genClassName);
+                        }
+                        catch (Exception)
+                        {
+                            continue;
+                        }
+                        if (null != replaceModuleType)
+                            return (Zeze.IModule)Activator.CreateInstance(replaceModuleType, userApp);
+                    }
+                    throw new Exception($"RedirectOverride Not Found: {genClassName}");
+                }
+
+                string srcFileName = System.IO.Path.Combine(GenRedirect,
+                    module.FullName.Replace('.', System.IO.Path.DirectorySeparatorChar), $"Module{module.Name}.cs");
+
+                long srcLastWriteTimeTicks = System.IO.File.GetLastWriteTime(srcFileName).Ticks;
+                string genFileName = System.IO.Path.Combine(GenRedirect, genClassName + ".cs");
+
+                if (false == System.IO.File.Exists(genFileName)
+                    || System.IO.File.GetLastWriteTime(genFileName).Ticks != srcLastWriteTimeTicks)
+                {
+                    Console.WriteLine("ModuleRedirect '" + module.FullName + "' Gen Now ...");
+                    HasNewGen = true;
+                    var userAppName = module.IsBuiltin ? "Zeze.AppBase" : userApp.GetType().FullName;
+                    string code = GenModuleCode(module, genClassName, overrides, userAppName);
+                    //*
+                    //System.IO.File.Delete(genFileName); // 如果被vs占用，删除也没用。
+                    System.IO.StreamWriter sw = new System.IO.StreamWriter(genFileName, false, Encoding.UTF8);
+                    sw.Write(code);
+                    sw.Close();
+                    System.IO.File.SetLastWriteTime(genFileName, new DateTime(srcLastWriteTimeTicks));
+                    /*/
+                    // .net core, .net 5.0+ 不支持编译。 
+                    return CompileCode(code, genClassName);
+                    //*/
+                }
+                return module;
             }
-
-            string srcFileName = System.IO.Path.Combine(GenRedirect,
-                module.FullName.Replace('.', System.IO.Path.DirectorySeparatorChar), $"Module{module.Name}.cs");
-
-            long srcLastWriteTimeTicks = System.IO.File.GetLastWriteTime(srcFileName).Ticks;
-            string genFileName = System.IO.Path.Combine(GenRedirect, genClassName + ".cs");
-
-            if (false == System.IO.File.Exists(genFileName)
-                || System.IO.File.GetLastWriteTime(genFileName).Ticks != srcLastWriteTimeTicks)
-            {
-                Console.WriteLine("ModuleRedirect '" + module.FullName + "' Gen Now ...");
-                HasNewGen = true;
-                var userAppName = module.IsBuiltin ? "Zeze.AppBase" : userApp.GetType().FullName;
-                string code = GenModuleCode(module, genClassName, overrides, userAppName);
-                //*
-                //System.IO.File.Delete(genFileName); // 如果被vs占用，删除也没用。
-                System.IO.StreamWriter sw = new System.IO.StreamWriter(genFileName, false, Encoding.UTF8);
-                sw.Write(code);
-                sw.Close();
-                System.IO.File.SetLastWriteTime(genFileName, new DateTime(srcLastWriteTimeTicks));
-                /*/
-                // .net core, .net 5.0+ 不支持编译。 
-                return CompileCode(code, genClassName);
-                //*/
-            }
-            return module;
         }
 
         /*

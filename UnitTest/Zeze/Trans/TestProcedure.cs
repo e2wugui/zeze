@@ -66,7 +66,7 @@ namespace UnitTest.Zeze.Trans
         [TestMethod]
         public void Test1()
         {
-            var root = new TableKey("1", 1);
+            var root = new TableKey(1, 1);
             // 特殊测试，拼凑一个record用来提供需要的信息。
             var table = new MyTable();
             var r = new Record<long, TestBegin.MyBean>(table, 1, bean);

@@ -10,6 +10,11 @@ public final class tLinkedMapNodes extends Zeze.Transaction.TableX<Zeze.Builtin.
     }
 
     @Override
+    public int getId() {
+        return -1295098614;
+    }
+
+    @Override
     public boolean isMemory() {
         return false;
     }

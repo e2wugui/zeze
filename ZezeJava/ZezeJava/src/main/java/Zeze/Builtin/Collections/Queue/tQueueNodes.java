@@ -10,6 +10,11 @@ public final class tQueueNodes extends Zeze.Transaction.TableX<Zeze.Builtin.Coll
     }
 
     @Override
+    public int getId() {
+        return -117984600;
+    }
+
+    @Override
     public boolean isMemory() {
         return false;
     }
