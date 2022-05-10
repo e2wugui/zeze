@@ -5,7 +5,7 @@ cd `dirname $0`
 SERVER_ID=2
 SERVER_NAME=gs$SERVER_ID
 
-nohup java -Dlogname=$SERVER_NAME -cp .:lib/* Benchmark.Simulate \
+nohup java -Dlogname=$SERVER_NAME -Xlog:gc=info,gc+heap=info:${SERVER_NAME}_gc.log:time -cp .:lib/* Benchmark.Simulate \
 serverId=$SERVER_ID \
 taskThreadCount=50 \
 schdThreadCount=10 \

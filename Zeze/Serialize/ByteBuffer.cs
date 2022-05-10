@@ -855,7 +855,7 @@ namespace Zeze.Serialize
 
         public static int calc_hashnr(long value)
         {
-            return calc_hashnr(value.ToString());
+            return (int)((value * unchecked((long)0x9E3779B97F4A7C15L)) >> 32);
         }
 
         public static int calc_hashnr(string str)

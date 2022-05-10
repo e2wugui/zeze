@@ -7,7 +7,7 @@ set SERVER_NAME=gs%SERVER_ID%
 
 title %SERVER_NAME%
 
-java -Dlogname=%SERVER_NAME% -cp .;lib\* Benchmark.Simulate ^
+java -Dlogname=%SERVER_NAME% -Xlog:gc=info,gc+heap=info:%SERVER_NAME%_gc.log:time -cp .;lib\* Benchmark.Simulate ^
 serverId=%SERVER_ID% ^
 taskThreadCount=50 ^
 schdThreadCount=10 ^

@@ -787,7 +787,7 @@ public final class ByteBuffer {
 	}
 
 	public static int calc_hashnr(long value) {
-		return calc_hashnr(String.valueOf(value));
+		return (int)((value * 0x9E3779B97F4A7C15L) >> 32);
 	}
 
 	public static int calc_hashnr(String str) {
