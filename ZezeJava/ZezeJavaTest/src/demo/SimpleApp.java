@@ -27,11 +27,11 @@ public class SimpleApp extends AppBase {
 	public Rank rank;
 
 	public SimpleApp(int serverId) throws Throwable {
-		this(serverId, 20000 + serverId, "127.0.0.1", 5001, "127.0.0.1", 5555);
+		this(serverId, 20000 + serverId, "127.0.0.1", 5001, "127.0.0.1", 5555, 20000);
 	}
 
 	public SimpleApp(int serverId, int providerPort, String serviceManagerIp, int serviceManagerPort,
-					 String globalServerIp, int globalServerPort) throws Throwable {
+					 String globalServerIp, int globalServerPort, int cacheSize) throws Throwable {
 		var config = new Config();
 		var serviceConf = new ServiceConf();
 		serviceConf.AddConnector(new Connector(serviceManagerIp, serviceManagerPort)); // 连接本地ServiceManager
@@ -42,7 +42,9 @@ public class SimpleApp extends AppBase {
 		config.setGlobalCacheManagerHostNameOrAddress(globalServerIp); // 连接本地GlobalServer
 		config.setGlobalCacheManagerPort(globalServerPort);
 		config.getDatabaseConfMap().put("", new Config.DatabaseConf()); // 默认内存数据库配置
-		config.setDefaultTableConf(new Config.TableConf()); // 默认的Table配置
+		var tableConf = new Config.TableConf();
+		tableConf.setCacheCapacity(cacheSize);
+		config.setDefaultTableConf(tableConf);
 		config.setServerId(serverId); // 设置Provider服务器ID
 		zeze = new Application("SimpleApp", config);
 
