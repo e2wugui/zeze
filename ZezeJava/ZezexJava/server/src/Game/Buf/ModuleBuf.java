@@ -41,18 +41,16 @@ public class ModuleBuf extends AbstractModule {
 				// 增量变化，通知变更。
 				@SuppressWarnings("unchecked")
 				var notemap2 = (LogMap2<Integer, BBuf>)c.getVariableLog(tbufs.VAR_Bufs);
-				if (null == notemap2)
-					break;
-				notemap2.MergeChangedToReplaced();
-
-				SChanged changed2 = new SChanged();
-				changed2.Argument.setChangeTag(BBufChanged.ChangeTagNormalChanged);
-				changed2.Argument.getReplace().putAll(notemap2.getReplaced());
-				for (var p : notemap2.getRemoved()) {
-					changed2.Argument.getRemove().add(p);
+				if (null != notemap2) {
+					notemap2.MergeChangedToReplaced();
+					SChanged changed2 = new SChanged();
+					changed2.Argument.setChangeTag(BBufChanged.ChangeTagNormalChanged);
+					changed2.Argument.getReplace().putAll(notemap2.getReplaced());
+					for (var p : notemap2.getRemoved()) {
+						changed2.Argument.getRemove().add(p);
+					}
+					Game.App.getInstance().getProvider().Online.sendReliableNotify((Long)key, getName(), changed2);
 				}
-
-				Game.App.getInstance().getProvider().Online.sendReliableNotify((Long)key, getName(), changed2);
 				break;
 			case Changes.Record.Remove:
 				SChanged changed3 = new SChanged();

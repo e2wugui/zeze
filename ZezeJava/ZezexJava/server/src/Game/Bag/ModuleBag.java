@@ -36,18 +36,16 @@ public final class ModuleBag extends AbstractModule {
 				// 增量变化，通知变更。
 				@SuppressWarnings("unchecked")
 				var notemap2 = (LogMap2<Integer, BItem>)c.getVariableLog(tbag.VAR_Items);
-				if (null == notemap2)
-					break;
-				notemap2.MergeChangedToReplaced();
-
-				SChanged changed = new SChanged();
-				changed.Argument.setChangeTag(BChangedResult.ChangeTagNormalChanged);
-				changed.Argument.getItemsReplace().putAll(notemap2.getReplaced());
-				for (var p : notemap2.getRemoved()) {
-					changed.Argument.getItemsRemove().add(p);
+				if (null != notemap2) {
+					notemap2.MergeChangedToReplaced();
+					SChanged changed = new SChanged();
+					changed.Argument.setChangeTag(BChangedResult.ChangeTagNormalChanged);
+					changed.Argument.getItemsReplace().putAll(notemap2.getReplaced());
+					for (var p : notemap2.getRemoved()) {
+						changed.Argument.getItemsRemove().add(p);
+					}
+					Game.App.getInstance().getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
 				}
-
-				Game.App.getInstance().getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
 				break;
 
 			case Changes.Record.Remove:

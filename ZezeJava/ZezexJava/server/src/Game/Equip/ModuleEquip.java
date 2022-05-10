@@ -41,19 +41,16 @@ public final class ModuleEquip extends AbstractModule {
 					// 增量变化，通知变更。
 					@SuppressWarnings("unchecked")
 					var notemap2 = (LogMap2<Integer, BItem>)c.getVariableLog(tequip.VAR_Items);
-					if (null == notemap2)
-						break;
-					notemap2.MergeChangedToReplaced();
-
-					SEquipement changed2 = new SEquipement();
-					changed2.Argument.setChangeTag(Game.Bag.BChangedResult.ChangeTagNormalChanged);
-
-					changed2.Argument.getItemsReplace().putAll(notemap2.getReplaced());
-					for (var p : notemap2.getRemoved()) {
-						changed2.Argument.getItemsRemove().add(p);
+					if (null != notemap2) {
+						notemap2.MergeChangedToReplaced();
+						SEquipement changed2 = new SEquipement();
+						changed2.Argument.setChangeTag(Game.Bag.BChangedResult.ChangeTagNormalChanged);
+						changed2.Argument.getItemsReplace().putAll(notemap2.getReplaced());
+						for (var p : notemap2.getRemoved()) {
+							changed2.Argument.getItemsRemove().add(p);
+						}
+						Game.App.Instance.getProvider().Online.sendReliableNotify((Long)key, getName(), changed2);
 					}
-
-					Game.App.Instance.getProvider().Online.sendReliableNotify((Long)key, getName(), changed2);
 					break;
 				case Changes.Record.Remove:
 					SEquipement changed3 = new SEquipement();
