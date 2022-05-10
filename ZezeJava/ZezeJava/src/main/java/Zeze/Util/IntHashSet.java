@@ -101,8 +101,8 @@ public class IntHashSet implements Cloneable {
 		int m = mask;
 		int i = hash(key);
 		for (; ; ) {
-			int k;
-			if ((k = kt[i]) == 0) {
+			int k = kt[i];
+			if (k == 0) {
 				kt[i] = key;
 				if (++size >= threshold)
 					resize(kt.length << 1);
@@ -117,11 +117,9 @@ public class IntHashSet implements Cloneable {
 	public void addAll(IntHashSet set) {
 		if (set.hasZeroKey)
 			hasZeroKey = true;
-		for (int k : set.keyTable) {
-			if (k == 0)
-				continue;
-			add(k);
-		}
+		for (int k : set.keyTable)
+			if (k != 0)
+				add(k);
 	}
 
 	public boolean remove(int key) {
@@ -220,16 +218,15 @@ public class IntHashSet implements Cloneable {
 	}
 
 	public interface IntSetPredicate {
-		boolean test(IntHashSet var1, int var2);
+		boolean test(IntHashSet set, int key);
 	}
 
 	public boolean foreachTest(IntSetPredicate tester) {
 		if (hasZeroKey && !tester.test(this, 0))
 			return false;
 		for (int k : keyTable) {
-			if (k == 0 || tester.test(this, k))
-				continue;
-			return false;
+			if (k != 0 && !tester.test(this, k))
+				return false;
 		}
 		return true;
 	}

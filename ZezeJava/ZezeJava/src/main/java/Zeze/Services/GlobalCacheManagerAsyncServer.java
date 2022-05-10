@@ -2,7 +2,6 @@ package Zeze.Services;
 
 import java.net.InetAddress;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -27,6 +26,7 @@ import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Util.Action0;
 import Zeze.Util.Action1;
 import Zeze.Util.AsyncLock;
+import Zeze.Util.IdentityHashSet;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.Task;
@@ -689,14 +689,12 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			}
 
 			var reducePending = new ArrayList<KV<CacheHolder, Reduce>>();
-			var reduceSucceed = new HashSet<CacheHolder>();
+			var reduceSucceed = new IdentityHashSet<CacheHolder>();
 			var allReduceFuture = new CountDownFuture();
 			var senderIsShareTmp = false;
-			var reduceFailed = false;
 			// 先把降级请求全部发送给出去。
-			for (CacheHolder c : cs.Share) {
-				if (reduceFailed)
-					continue;
+			for (var it = cs.Share.iterator(); it.moveToNext(); ) {
+				CacheHolder c = it.value();
 				if (c == sender) {
 					// 申请者不需要降级，直接加入成功。
 					senderIsShareTmp = true;
@@ -713,16 +711,17 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				if (reduce == null) {
 					// 网络错误不再认为成功。整个降级失败，要中断降级。
 					// 已经发出去的降级请求要等待并处理结果。后面处理。
-					reduceFailed = true;
 					allReduceFuture.finishOne();
-				} else
-					reducePending.add(KV.Create(c, reduce));
+					break;
+				}
+				reducePending.add(KV.Create(c, reduce));
 			}
 			boolean senderIsShare = senderIsShareTmp;
 
 			Action0 lastStage = () -> {
 				// 移除成功的。
-				for (CacheHolder succeed : reduceSucceed) {
+				for (var it = reduceSucceed.iterator(); it.moveToNext(); ) {
+					var succeed = it.value();
 					if (succeed != sender) {
 						// sender 不移除：
 						// 1. 如果申请成功，后面会更新到Modify状态。
@@ -792,7 +791,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		CacheHolder Modify;
 		int AcquireStatePending = StateInvalid;
 		long GlobalSerialId;
-		final HashSet<CacheHolder> Share = new HashSet<>();
+		final IdentityHashSet<CacheHolder> Share = new IdentityHashSet<>();
 		final AsyncLock lock = new AsyncLock();
 
 		int GetSenderCacheState(CacheHolder sender) {
@@ -816,12 +815,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 
 		long SessionId;
 		int GlobalCacheManagerHashIndex;
-		final ConcurrentHashMap<GlobalTableKey, Integer> Acquired;
+		final ConcurrentHashMap<GlobalTableKey, Integer> Acquired = new ConcurrentHashMap<>();
 		private volatile long LastErrorTime;
-
-		CacheHolder() {
-			Acquired = new ConcurrentHashMap<>(Instance.Config.getInitialCapacity());
-		}
 
 		synchronized boolean TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex) {
 			if (newSocket.getUserState() != null)

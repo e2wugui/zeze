@@ -113,20 +113,20 @@ public class RedirectBase {
 			var sessionId = it.key();
 			var request = it.value();
 			var socket = ProviderApp.ProviderDirectService.GetSocket(sessionId);
-			if (socket != null)
-				request.Send(socket);
-			else if (sessionId == 0) { // loop-back. sessionId=0应该不可能是有效的socket session,代表自己
-				try {
-					var service = ProviderApp.ProviderDirectService;
-					request.Dispatch(service, service.FindProtocolFactoryHandle(request.getTypeId()));
-				} catch (Throwable e) {
-					logger.error("", e);
-				}
-			} else {
-				for (var hashIndex : request.Argument.getHashCodes()) {
-					BModuleRedirectAllHash hashResult = new BModuleRedirectAllHash();
-					hashResult.setReturnCode(Zeze.Transaction.Procedure.ProviderNotExist);
-					miss.Argument.getHashs().put(hashIndex, hashResult);
+			if (socket == null || !request.Send(socket)) {
+				if (sessionId == 0) { // loop-back. sessionId=0应该不可能是有效的socket session,代表自己
+					try {
+						var service = ProviderApp.ProviderDirectService;
+						request.Dispatch(service, service.FindProtocolFactoryHandle(request.getTypeId()));
+					} catch (Throwable e) {
+						logger.error("", e);
+					}
+				} else {
+					for (var hashIndex : request.Argument.getHashCodes()) {
+						BModuleRedirectAllHash hashResult = new BModuleRedirectAllHash();
+						hashResult.setReturnCode(Zeze.Transaction.Procedure.ProviderNotExist);
+						miss.Argument.getHashs().put(hashIndex, hashResult);
+					}
 				}
 			}
 		}

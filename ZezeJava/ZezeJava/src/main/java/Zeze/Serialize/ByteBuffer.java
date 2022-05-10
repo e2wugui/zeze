@@ -11,6 +11,7 @@ import Zeze.Net.Binary;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Util.BitConverter;
+import Zeze.Util.IdentityHashSet;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashMap;
 
@@ -1275,6 +1276,17 @@ public final class ByteBuffer {
 		else {
 			for (var it = map.iterator(); it.moveToNext(); )
 				sb.append(it.key()).append(':').append(it.value()).append(',');
+			sb.setCharAt(sb.length() - 1, '}');
+		}
+	}
+
+	public static <TK> void BuildString(StringBuilder sb, IdentityHashSet<TK> set) {
+		sb.append('{');
+		if (set == null || set.isEmpty())
+			sb.append('}');
+		else {
+			for (var it = set.iterator(); it.moveToNext(); )
+				sb.append(it.value()).append(',');
 			sb.setCharAt(sb.length() - 1, '}');
 		}
 	}

@@ -44,6 +44,7 @@ public final class GenModule {
 	 */
 	public String GenFileSrcRoot = System.getProperty("GenFileSrcRoot"); // 支持通过给JVM传递-DGenFileSrcRoot=xxx参数指定
 	private final InMemoryJavaCompiler compiler = new InMemoryJavaCompiler();
+	private final HashMap<String, Class<?>> GenClassMap = new HashMap<>();
 
 	private GenModule() {
 		compiler.ignoreWarnings();
@@ -86,9 +87,7 @@ public final class GenModule {
 		}
 	}
 
-	static HashMap<String, Class<?>> GenClassMap = new HashMap<>();
-
-	public synchronized  <T extends IModule> T ReplaceModuleInstance(AppBase userApp, T module) {
+	public synchronized <T extends IModule> T ReplaceModuleInstance(AppBase userApp, T module) {
 		if (module.getClass().getName().startsWith(REDIRECT_PREFIX)) // 预防二次replace
 			return module;
 
@@ -108,20 +107,18 @@ public final class GenModule {
 
 		String genClassName = getRedirectClassName(module.getClass());
 		try {
-			{
-				var genClass = GenClassMap.get(genClassName);
-				if (null != genClass) {
-					module.UnRegister();
-					return newModule(genClass, userApp);
-				}
-			}
 			if (GenFileSrcRoot == null) { // 不需要生成到文件的时候，尝试装载已经存在的生成模块子类。
-				try {
-					var genClass = Class.forName(genClassName);
-					GenClassMap.put(genClassName, genClass);
+				var genClass = GenClassMap.get(genClassName);
+				if (genClass == null) {
+					try {
+						genClass = Class.forName(genClassName);
+						GenClassMap.put(genClassName, genClass);
+					} catch (ClassNotFoundException ignored) {
+					}
+				}
+				if (genClass != null) {
 					module.UnRegister();
 					return newModule(genClass, userApp);
-				} catch (ClassNotFoundException ignored) {
 				}
 			}
 

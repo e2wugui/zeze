@@ -101,8 +101,8 @@ public class LongHashSet implements Cloneable {
 		int m = mask;
 		int i = hash(key);
 		for (; ; ) {
-			long k;
-			if ((k = kt[i]) == 0) {
+			long k = kt[i];
+			if (k == 0) {
 				kt[i] = key;
 				if (++size >= threshold)
 					resize(kt.length << 1);
@@ -117,11 +117,9 @@ public class LongHashSet implements Cloneable {
 	public void addAll(LongHashSet set) {
 		if (set.hasZeroKey)
 			hasZeroKey = true;
-		for (long k : set.keyTable) {
-			if (k == 0)
-				continue;
-			add(k);
-		}
+		for (long k : set.keyTable)
+			if (k != 0)
+				add(k);
 	}
 
 	public boolean remove(long key) {
@@ -220,16 +218,15 @@ public class LongHashSet implements Cloneable {
 	}
 
 	public interface LongSetPredicate {
-		boolean test(LongHashSet var1, long var2);
+		boolean test(LongHashSet set, long key);
 	}
 
 	public boolean foreachTest(LongSetPredicate tester) {
 		if (hasZeroKey && !tester.test(this, 0))
 			return false;
 		for (long k : keyTable) {
-			if (k == 0 || tester.test(this, k))
-				continue;
-			return false;
+			if (k != 0 && !tester.test(this, k))
+				return false;
 		}
 		return true;
 	}

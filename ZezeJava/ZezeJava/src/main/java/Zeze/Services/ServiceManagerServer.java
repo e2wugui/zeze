@@ -30,8 +30,9 @@ import Zeze.Services.ServiceManager.UnSubscribe;
 import Zeze.Services.ServiceManager.Update;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.ConcurrentHashSet;
-import Zeze.Util.IdentityHashSet;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.LongHashSet;
+import Zeze.Util.LongList;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
@@ -102,7 +103,7 @@ public final class ServiceManagerServer implements Closeable {
 	public static class LoadObservers {
 		public final ServiceManagerServer ServiceManager;
 		public Zeze.Services.ServiceManager.ServerLoad Load;
-		public final IdentityHashSet<Long> Observers = new IdentityHashSet<>();
+		public final LongHashSet Observers = new LongHashSet();
 
 		public LoadObservers(ServiceManagerServer m) {
 			ServiceManager = m;
@@ -113,8 +114,9 @@ public final class ServiceManagerServer implements Closeable {
 			Load = load;
 			var set = new SetServerLoad();
 			set.Argument = load;
-			for (var it = Observers.iterator(); it.hasNext(); ) {
-				Long observer = it.next();
+			LongList removed = null;
+			for (var it = Observers.iterator(); it.moveToNext(); ) {
+				long observer = it.value();
 				try {
 					// skip rpc result
 					if (set.Send(ServiceManager.Server.GetSocket(observer)))
@@ -122,8 +124,12 @@ public final class ServiceManagerServer implements Closeable {
 				} catch (Throwable ex) {
 					// skip error
 				}
-				it.remove();
+				if (removed == null)
+					removed = new LongList();
+				removed.add(observer);
 			}
+			if (removed != null)
+				removed.foreach(Observers::remove);
 		}
 	}
 
@@ -491,7 +497,7 @@ public final class ServiceManagerServer implements Closeable {
 		if (ip.isEmpty() || port == 0)
 			return;
 		var host = ip + ":" + port;
-		Loads.computeIfAbsent(host, (key) -> new LoadObservers(this)).Observers.Add(sender.getSessionId());
+		Loads.computeIfAbsent(host, (key) -> new LoadObservers(this)).Observers.add(sender.getSessionId());
 	}
 
 	private long ProcessRegister(Register r) {

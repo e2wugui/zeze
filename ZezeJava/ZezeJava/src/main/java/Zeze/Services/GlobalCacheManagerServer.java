@@ -2,7 +2,6 @@ package Zeze.Services;
 
 import java.net.InetAddress;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey;
@@ -20,6 +19,7 @@ import Zeze.Services.GlobalCacheManager.Param2;
 import Zeze.Services.GlobalCacheManager.ReLogin;
 import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.IdentityHashSet;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutInt;
@@ -537,10 +537,11 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 				}
 
 				ArrayList<KV<CacheHolder, Reduce>> reducePending = new ArrayList<>();
-				HashSet<CacheHolder> reduceSucceed = new HashSet<>();
+				IdentityHashSet<CacheHolder> reduceSucceed = new IdentityHashSet<>();
 				boolean senderIsShare = false;
 				// 先把降级请求全部发送给出去。
-				for (CacheHolder c : cs.Share) {
+				for (var it = cs.Share.iterator(); it.moveToNext(); ) {
+					var c = it.value();
 					if (c == sender) {
 						// 申请者不需要降级，直接加入成功。
 						senderIsShare = true;
@@ -587,7 +588,8 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 				}
 
 				// 移除成功的。
-				for (CacheHolder succeed : reduceSucceed) {
+				for (var it = reduceSucceed.iterator(); it.moveToNext(); ) {
+					var succeed = it.value();
 					if (succeed != sender) {
 						// sender 不移除：
 						// 1. 如果申请成功，后面会更新到Modify状态。
@@ -628,7 +630,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		CacheHolder Modify;
 		int AcquireStatePending = StateInvalid;
 		long GlobalSerialId;
-		final HashSet<CacheHolder> Share = new HashSet<>();
+		final IdentityHashSet<CacheHolder> Share = new IdentityHashSet<>();
 
 		int GetSenderCacheState(CacheHolder sender) {
 			if (Modify == sender)
@@ -651,12 +653,8 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 
 		long SessionId;
 		int GlobalCacheManagerHashIndex;
-		final ConcurrentHashMap<GlobalTableKey, Integer> Acquired;
+		final ConcurrentHashMap<GlobalTableKey, Integer> Acquired = new ConcurrentHashMap<>();
 		private volatile long LastErrorTime;
-
-		CacheHolder() {
-			Acquired = new ConcurrentHashMap<>(Instance.Config.getInitialCapacity());
-		}
 
 		synchronized boolean TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex) {
 			if (newSocket.getUserState() != null)

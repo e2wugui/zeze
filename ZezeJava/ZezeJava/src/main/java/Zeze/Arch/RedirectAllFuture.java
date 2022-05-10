@@ -191,7 +191,7 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 		var c = ctx;
 		if (c == null || !c.isCompleted()) {
 			this.onAllDone = onAllDone;
-			if ((c = ctx) == null || !c.isCompleted() || ON_ALL_DONE.getAndSet(this, null) != onAllDone) // 再次确认,避免并发窗口问题
+			if ((c = ctx) == null || !c.isCompleted() || !ON_ALL_DONE.compareAndSet(this, onAllDone, null)) // 再次确认,避免并发窗口问题
 				return this;
 		}
 		var c1 = c;
