@@ -49,7 +49,7 @@ namespace Game.Bag
                         break;
 
                     case Changes.Record.Edit:
-                        var logbean = changes.GetLogBean();
+                        var logbean = changes.GetVariableLog(tbag.VAR_Items);
                         if (logbean.Variables.TryGetValue(tbag.VAR_Items, out var log))
                         {
                             var note = (LogMap2<int, BItem>)log;

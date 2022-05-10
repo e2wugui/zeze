@@ -47,11 +47,18 @@ public final class Changes {
 		private final IdentityHashMap<Bean, LogBean> LogBeans = new IdentityHashMap<>();
 		public final Table Table;
 
-		public LogBean logBean() {
+		public LogBean getLogBean() {
 			var it = LogBean.iterator();
 			if (it.hasNext())
 				return it.next();
 			return null;
+		}
+
+		public Log getVariableLog(int variableId) {
+			var logBean = getLogBean();
+			if (null == logBean)
+				return null;
+			return logBean.getVariables().get(variableId);
 		}
 
 		public int getState() {
@@ -60,10 +67,6 @@ public final class Changes {
 
 		public Bean getPutValue() {
 			return PutValue;
-		}
-
-		public Set<LogBean> getLogBean() {
-			return LogBean;
 		}
 
 		public IdentityHashMap<Bean, LogBean> getLogBeans() {

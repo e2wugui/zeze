@@ -40,7 +40,9 @@ public class ModuleBuf extends AbstractModule {
 			case Changes.Record.Edit:
 				// 增量变化，通知变更。
 				@SuppressWarnings("unchecked")
-				var notemap2 = (LogMap2<Integer, BBuf>)c.logBean();
+				var notemap2 = (LogMap2<Integer, BBuf>)c.getVariableLog(tbufs.VAR_Bufs);
+				if (null == notemap2)
+					break;
 				notemap2.MergeChangedToReplaced();
 
 				SChanged changed2 = new SChanged();
