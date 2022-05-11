@@ -955,6 +955,9 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			case "-raftConf":
 				raftConf = args[++i];
 				break;
+			case "-tryNextSync":
+				AsyncLock.tryNextSync = true;
+				break;
 			}
 		}
 
