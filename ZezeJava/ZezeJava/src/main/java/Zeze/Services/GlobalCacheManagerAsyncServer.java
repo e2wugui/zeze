@@ -13,6 +13,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
+import Zeze.Net.Selectors;
 import Zeze.Net.Service;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
@@ -957,11 +958,14 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			}
 		}
 
+		int cpuCount = Runtime.getRuntime().availableProcessors();
 		if (threadCount < 1)
-			threadCount = Runtime.getRuntime().availableProcessors();
+			threadCount = cpuCount;
 		Task.initThreadPool((ThreadPoolExecutor)
 						Executors.newFixedThreadPool(threadCount, new ThreadFactoryWithName("ZezeTaskPool")),
 				Executors.newSingleThreadScheduledExecutor(new ThreadFactoryWithName("ZezeScheduledPool")));
+		if (Selectors.getInstance().getCount() < cpuCount)
+			Selectors.getInstance().add(cpuCount - Selectors.getInstance().getCount());
 
 		if (raftName == null || raftName.isEmpty()) {
 			logger.info("Start {}:{}", ip != null ? ip : "any", port);

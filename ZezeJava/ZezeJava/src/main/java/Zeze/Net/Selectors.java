@@ -18,6 +18,10 @@ public class Selectors {
 		add(Math.min(Runtime.getRuntime().availableProcessors(), 8));
 	}
 
+	public int getCount() {
+		return SelectorList.length;
+	}
+
 	public synchronized void add(int count) {
 		try {
 			Selector[] tmp = SelectorList;
