@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Globalization;
 
 namespace Zeze.Util
@@ -11,6 +12,13 @@ namespace Zeze.Util
         {
             DateTime origin = new DateTime(1970, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc);
             return origin.AddMilliseconds(unixMillis);
+        }
+
+        public static long NanoTime()
+        {
+            double timestamp = Stopwatch.GetTimestamp();
+            double nanoseconds = 1_000_000_000.0 * timestamp / Stopwatch.Frequency;
+            return (long)nanoseconds;
         }
 
         public static long DateTimeToUnixMillis(DateTime time)

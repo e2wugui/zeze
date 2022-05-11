@@ -104,6 +104,7 @@ namespace Zeze.Services
         }
 
         public GCMConfig Config { get; } = new GCMConfig();
+        private GlobalCacheManagerPerf Perf;
 
         public void Start(IPAddress ipaddress, int port, Config config = null)
         {
@@ -118,6 +119,10 @@ namespace Zeze.Services
                     config.AddCustomize(Config);
                     config.LoadAndParse();
                 }
+
+                // TODO 根据配置是否启用性能统计。
+                Perf = new(SerialIdGenerator);
+
                 Sessions = new ConcurrentDictionary<int, CacheHolder>(Config.ConcurrencyLevel, 4096);
                 global = new ConcurrentDictionary<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey, CacheState>
                     (Config.ConcurrencyLevel, Config.InitialCapacity);
@@ -296,6 +301,8 @@ namespace Zeze.Services
         private async Task<long> ProcessAcquireRequest(Protocol p)
         {
             Acquire rpc = (Acquire)p;
+            Perf?.OnAcquireBegin(rpc);
+
             rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
             rpc.Result.State = rpc.Argument.State; // default success
 
@@ -303,6 +310,7 @@ namespace Zeze.Services
             {
                 rpc.Result.State = StateInvalid;
                 rpc.SendResultCode(AcquireNotLogin);
+                Perf?.OnAcquireEnd(rpc);
                 return 0;
             }
             try
@@ -332,6 +340,10 @@ namespace Zeze.Services
                 rpc.Result.State = StateInvalid;
                 rpc.SendResultCode(AcquireException);
                 return 0;
+            }
+            finally
+            {
+                Perf?.OnAcquireEnd(rpc);
             }
         }
 
@@ -463,6 +475,7 @@ namespace Zeze.Services
                         async (p) =>
                         {
                             var r = p as Reduce;
+                            Perf?.OnReduceEnd(r);
                             reduceResultState = r.IsTimeout ? StateReduceRpcTimeout : r.Result.State;
                             using var lockcs = await cs.Monitor.EnterAsync();
                             cs.Monitor.PulseAll();
@@ -601,6 +614,7 @@ namespace Zeze.Services
                         async (p) =>
                         {
                             var r = p as Reduce;
+                            Perf?.OnReduceEnd(r);
                             reduceResultState = r.IsTimeout ? StateReduceRpcTimeout : r.Result.State;
                             using var lockcs = await cs.Monitor.EnterAsync();
                             cs.Monitor.PulseAll();
@@ -688,6 +702,7 @@ namespace Zeze.Services
                                     reduceSucceed.Add(reduce.Key);
                                 else
                                     reduce.Key.SetError();
+                                Perf?.OnReduceEnd(reduce.Value);
                             }
                             catch (Exception ex)
                             {
@@ -843,8 +858,10 @@ namespace Zeze.Services
                     if (null != peer)
                     {
                         Reduce reduce = new(gkey, state, globalSerialId);
+                        Instance.Perf?.OnReduceBegin(reduce);
                         if (reduce.Send(peer, response, 10000))
                             return true;
+                        Instance.Perf?.OnReduceCancel(reduce);
                     }
                 }
                 catch (Exception ex)
@@ -888,6 +905,7 @@ namespace Zeze.Services
                     if (null != peer)
                     {
                         Reduce reduce = new(gkey, state, globalSerialId);
+                        Instance.Perf?.OnReduceBegin(reduce);
                         _ = reduce.SendAsync(peer, 10000);
                         return reduce;
                     }
