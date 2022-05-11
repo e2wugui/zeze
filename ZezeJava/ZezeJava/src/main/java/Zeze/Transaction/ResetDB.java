@@ -13,6 +13,8 @@ import Zeze.Application;
 import Zeze.Config;
 import Zeze.Schemas;
 import Zeze.Serialize.ByteBuffer;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
@@ -25,7 +27,10 @@ import org.rocksdb.RocksIterator;
 
 public class ResetDB {
 
+	public static final Logger logger = LogManager.getLogger(ResetDB.class);
+
 	public void CheckAndRemoveTable(Schemas other, Application app) throws RocksDBException {
+		logger.debug("reset db start!");
 		if (!app.getConfig().autoResetTable())
 			return;
 
@@ -109,6 +114,7 @@ public class ResetDB {
 			String key = String.format("_" + strs[1] + "_");
 			if (removeModules.get(key) != null) {
 				removeList.add(table.Name);
+				logger.debug("add remove table list : {}.", table.Name);
 			}
 		}
 
@@ -161,6 +167,7 @@ public class ResetDB {
 
 			for (iter.seekToFirst(); iter.isValid(); iter.next()) {
 				db.delete(rmCfh, iter.key());
+				logger.debug("table name:" + rmTable + ", " + "iterator :" + iter.key().toString() + ":" + iter.value().toString());
 			}
 			db.dropColumnFamily(rmCfh);
 		}
@@ -180,6 +187,7 @@ public class ResetDB {
 					for (var rmTable : removeList) {
 						String sql = String.format("DROP TABLE %s", rmTable);
 						stmt.execute(sql);
+						logger.debug("execute sql {}", sql);
 					}
 					stmt.close();
 					conn.close();
