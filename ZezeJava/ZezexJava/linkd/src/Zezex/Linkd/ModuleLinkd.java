@@ -1,8 +1,11 @@
 package Zezex.Linkd;
 
 import Zeze.Arch.*;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public final class ModuleLinkd extends AbstractModule {
+	public static final Logger logger = LogManager.getLogger(ModuleLinkd.class);
 	@SuppressWarnings("RedundantThrows")
 	public void Start(@SuppressWarnings("unused") Zezex.App app) throws Throwable {
 	}
@@ -27,7 +30,7 @@ public final class ModuleLinkd extends AbstractModule {
 		var linkSession = (LinkdUserSession)rpc.getSender().getUserState();
 		linkSession.setAccount(rpc.Argument.getAccount());
 		rpc.SendResultCode(Auth.Success);
-
+		logger.info("Auth accout:{} ip:{}", linkSession.getAccount(), rpc.getSender().getRemoteAddress());
 		return Zeze.Transaction.Procedure.Success;
 	}
 

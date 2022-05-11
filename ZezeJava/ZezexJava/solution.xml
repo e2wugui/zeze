@@ -7,26 +7,28 @@
 	<module name="Login" id="1">
 		<enum name="ResultCodeCreateRoleDuplicateRoleName" value="1"/>
 
+		<bean name="BCreateRole">
+			<variable id="1" name="Name" type="string"/>
+		</bean>
+
 		<bean name="BRole">
 			<variable id="1" name="Id" type="long"/>
 			<variable id="2" name="Name" type="string"/>
 		</bean>
+
 		<bean name="BRoles">
 			<variable id="1" name="RoleList" type="list" value="BRole"/>
 			<variable id="2" name="LastLoginRoleId" type="long"/>
 		</bean>
 
-		<rpc name="CreateRole" argument="BRole" handle="server"/>
+		<rpc name="CreateRole" argument="BCreateRole" result="BRole" handle="server"/>
 		<rpc name="GetRoleList" result="BRoles" handle="server"/>
 
-		<bean name="BRoleData">
-			<variable id="1" name="Name" type="string"/>
-		</bean>
 		<bean name="BRoleId">
 			<variable id="1" name="Id" type="long"/>
 		</bean>
 
-		<table name="trole" key="long" value="BRoleData" autokey="true"/>
+		<table name="trole" key="long" value="BRole"/>
 		<table name="trolename" key="string" value="BRoleId"/> rolename to roleid. duplicate name check
 	</module>
 

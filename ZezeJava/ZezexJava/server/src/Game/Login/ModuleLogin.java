@@ -1,6 +1,7 @@
 package Game.Login;
 
 import Game.App;
+import Game.AutoKey.ModuleAutoKey;
 import Game.Server;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Builtin.Provider.SetUserState;
@@ -9,8 +10,10 @@ import Zeze.Transaction.Transaction;
 
 public final class ModuleLogin extends AbstractModule {
 
-	public void Start(App app) {
+	private ModuleAutoKey.AutoKey autoKey;
 
+	public void Start(App app) {
+		autoKey = ModuleAutoKey.getAutoKey("roleId");
 	}
 
 	public void Stop(App app) {
@@ -21,9 +24,13 @@ public final class ModuleLogin extends AbstractModule {
 	protected long ProcessCreateRoleRequest(CreateRole rpc) {
 		var session = ProviderUserSession.Get(rpc);
 
-		BRoleData tempVar = new BRoleData();
-		tempVar.setName(rpc.Argument.getName());
-		long roleId = _trole.insert(tempVar);
+		BRole role = new BRole();
+
+		long roleId = autoKey.nextId();
+		role.setId(roleId);
+		role.setName(rpc.Argument.getName());
+
+		_trole.insert(roleId, role);
 
 		// duplicate name check
 		BRoleId tempVar2 = new BRoleId();
@@ -38,6 +45,7 @@ public final class ModuleLogin extends AbstractModule {
 		// initialize role data
 		App.Game_Bag.GetBag(roleId).SetCapacity(50);
 
+		rpc.Result = role;
 		session.SendResponse(rpc);
 		return Procedure.Success;
 	}
@@ -49,11 +57,11 @@ public final class ModuleLogin extends AbstractModule {
 		var account = App.getProvider().Online.getTableAccount().get(session.getAccount());
 		if (null != account) {
 			for (var roleId : account.getRoles()) {
-				BRoleData roleData = _trole.get(roleId);
-				if (null != roleData) {
+				BRole role = _trole.get(roleId);
+				if (null != role) {
 					BRole tempVar = new BRole();
 					tempVar.setId(roleId);
-					tempVar.setName(roleData.getName());
+					tempVar.setName(role.getName());
 					rpc.Result.getRoleList().add(tempVar);
 				}
 			}
