@@ -36,7 +36,7 @@ namespace Zeze.Util
             var task = new SchedulerTaskAction(action);
             if (false == Instance.Timers.TryAdd(task, task))
                 throw new Exception("Impossible!");
-            task.Timer = new Timer(task.Run);
+            task.Timer = new Timer(task.Run, period, initialDelay, period >= 0 ? period : Timeout.Infinite);
             return task;
         }
 
@@ -58,7 +58,7 @@ namespace Zeze.Util
             var task = new SchedulerTaskAsyncAction(action);
             if (false == Instance.Timers.TryAdd(task, task))
                 throw new Exception("Impossible!");
-            task.Timer = new Timer(task.Run);
+            task.Timer = new Timer(task.Run, period, initialDelay, period >= 0 ? period : Timeout.Infinite);
             return task;
         }
 
@@ -84,7 +84,7 @@ namespace Zeze.Util
                 Action = action;
             }
 
-            public override void Run(object param)
+            public override void Process()
             {
                 try
                 {
@@ -106,7 +106,7 @@ namespace Zeze.Util
                 AsyncFunc = asyncFunc;
             }
 
-            public override async void Run(object param)
+            public override async void Process()
             {
                 await Mission.CallAsync(async () => { await AsyncFunc(this); return 0; }, "SchedulerTaskAsyncAction");
             }
@@ -122,6 +122,20 @@ namespace Zeze.Util
             Scheduler.Unschedule(this);
         }
 
-        public abstract void Run(object param);
+        public void Run(object param)
+        { 
+            try
+            {
+                Process();
+            }
+            finally
+            {
+                var period = (long)param;
+                if (period < 0)
+                    Cancel();
+            }
+        }
+
+        public abstract void Process();
     }
 }
