@@ -5,11 +5,11 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BSend extends Zeze.Transaction.Bean {
-    private final Zeze.Transaction.Collections.CollSet1<Long> _linkSids;
+    private final Zeze.Transaction.Collections.PSet1<Long> _linkSids;
     private long _protocolType;
     private Zeze.Net.Binary _protocolWholeData; // 完整的协议打包，包括了 type, size
 
-    public Zeze.Transaction.Collections.CollSet1<Long> getLinkSids() {
+    public Zeze.Transaction.Collections.PSet1<Long> getLinkSids() {
         return _linkSids;
     }
 
@@ -65,7 +65,7 @@ public final class BSend extends Zeze.Transaction.Bean {
 
     public BSend(int _varId_) {
         super(_varId_);
-        _linkSids = new Zeze.Transaction.Collections.CollSet1<>(Long.class);
+        _linkSids = new Zeze.Transaction.Collections.PSet1<>(Long.class);
         _linkSids.VariableId = 1;
         _protocolWholeData = Zeze.Net.Binary.Empty;
     }

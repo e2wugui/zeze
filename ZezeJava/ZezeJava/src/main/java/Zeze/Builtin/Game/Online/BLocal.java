@@ -6,7 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BLocal extends Zeze.Transaction.Bean {
     private long _LoginVersion;
-    private final Zeze.Transaction.Collections.CollMap2<String, Zeze.Builtin.Game.Online.BAny> _Datas;
+    private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Game.Online.BAny> _Datas;
 
     public long getLoginVersion() {
         if (!isManaged())
@@ -30,7 +30,7 @@ public final class BLocal extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__LoginVersion(this, 1, value));
     }
 
-    public Zeze.Transaction.Collections.CollMap2<String, Zeze.Builtin.Game.Online.BAny> getDatas() {
+    public Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Game.Online.BAny> getDatas() {
         return _Datas;
     }
 
@@ -40,7 +40,7 @@ public final class BLocal extends Zeze.Transaction.Bean {
 
     public BLocal(int _varId_) {
         super(_varId_);
-        _Datas = new Zeze.Transaction.Collections.CollMap2<>(String.class, Zeze.Builtin.Game.Online.BAny.class);
+        _Datas = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Game.Online.BAny.class);
         _Datas.VariableId = 2;
     }
 

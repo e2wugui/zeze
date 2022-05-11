@@ -7,7 +7,7 @@ import Zeze.Serialize.ByteBuffer;
 public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
     private int _ModuleId;
     private int _HashCodeConcurrentLevel; // 总的并发分组数量
-    private final Zeze.Transaction.Collections.CollSet1<Integer> _HashCodes; // 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
+    private final Zeze.Transaction.Collections.PSet1<Integer> _HashCodes; // 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
     private long _SourceProvider; // linkd 转发的时候填写本地provider的sessionId。
     private long _SessionId; // 发起请求者初始化，返回结果时带回。
     private String _MethodFullName; // format="ModuleFullName:MethodName"
@@ -58,7 +58,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__HashCodeConcurrentLevel(this, 2, value));
     }
 
-    public Zeze.Transaction.Collections.CollSet1<Integer> getHashCodes() {
+    public Zeze.Transaction.Collections.PSet1<Integer> getHashCodes() {
         return _HashCodes;
     }
 
@@ -184,7 +184,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
 
     public BModuleRedirectAllRequest(int _varId_) {
         super(_varId_);
-        _HashCodes = new Zeze.Transaction.Collections.CollSet1<>(Integer.class);
+        _HashCodes = new Zeze.Transaction.Collections.PSet1<>(Integer.class);
         _HashCodes.VariableId = 3;
         _MethodFullName = "";
         _Params = Zeze.Net.Binary.Empty;

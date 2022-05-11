@@ -6,7 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BAccount extends Zeze.Transaction.Bean {
     private String _Name;
-    private final Zeze.Transaction.Collections.CollList1<Long> _Roles; // roleid list
+    private final Zeze.Transaction.Collections.PList1<Long> _Roles; // roleid list
     private long _LastLoginRoleId;
     private long _LastLoginVersion; // 用来生成 role 登录版本号。每次递增。
 
@@ -34,7 +34,7 @@ public final class BAccount extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__Name(this, 1, value));
     }
 
-    public Zeze.Transaction.Collections.CollList1<Long> getRoles() {
+    public Zeze.Transaction.Collections.PList1<Long> getRoles() {
         return _Roles;
     }
 
@@ -89,7 +89,7 @@ public final class BAccount extends Zeze.Transaction.Bean {
     public BAccount(int _varId_) {
         super(_varId_);
         _Name = "";
-        _Roles = new Zeze.Transaction.Collections.CollList1<>(Long.class);
+        _Roles = new Zeze.Transaction.Collections.PList1<>(Long.class);
         _Roles.VariableId = 2;
     }
 

@@ -31,6 +31,6 @@ public abstract class LogList<V> extends LogBean {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void Commit() {
-		((CollList<V>)getThis())._list = Value;
+		((PList<V>)getThis())._list = Value;
 	}
 }

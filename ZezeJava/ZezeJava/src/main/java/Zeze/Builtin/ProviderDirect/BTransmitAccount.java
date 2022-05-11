@@ -7,7 +7,7 @@ import Zeze.Serialize.ByteBuffer;
 public final class BTransmitAccount extends Zeze.Transaction.Bean {
     private String _ActionName;
     private Zeze.Net.Binary _Parameter; // encoded bean
-    private final Zeze.Transaction.Collections.CollSet1<String> _TargetAccounts; // 查询目标角色。
+    private final Zeze.Transaction.Collections.PSet1<String> _TargetAccounts; // 查询目标角色。
     private String _SenderAccount; // 结果发送给Sender。
     private String _SenderClientId; // 结果发送给Sender。
 
@@ -59,7 +59,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__Parameter(this, 2, value));
     }
 
-    public Zeze.Transaction.Collections.CollSet1<String> getTargetAccounts() {
+    public Zeze.Transaction.Collections.PSet1<String> getTargetAccounts() {
         return _TargetAccounts;
     }
 
@@ -119,7 +119,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
         super(_varId_);
         _ActionName = "";
         _Parameter = Zeze.Net.Binary.Empty;
-        _TargetAccounts = new Zeze.Transaction.Collections.CollSet1<>(String.class);
+        _TargetAccounts = new Zeze.Transaction.Collections.PSet1<>(String.class);
         _TargetAccounts.VariableId = 3;
         _SenderAccount = "";
         _SenderClientId = "";

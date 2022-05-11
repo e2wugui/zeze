@@ -6,7 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BQueueNode extends Zeze.Transaction.Bean {
     private long _NextNodeId; // 后一个节点ID. 0表示已到达结尾。
-    private final Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Collections.Queue.BQueueNodeValue> _Values;
+    private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.Queue.BQueueNodeValue> _Values;
 
     public long getNextNodeId() {
         if (!isManaged())
@@ -30,7 +30,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__NextNodeId(this, 1, value));
     }
 
-    public Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Collections.Queue.BQueueNodeValue> getValues() {
+    public Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.Queue.BQueueNodeValue> getValues() {
         return _Values;
     }
 
@@ -40,7 +40,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
 
     public BQueueNode(int _varId_) {
         super(_varId_);
-        _Values = new Zeze.Transaction.Collections.CollList2<>(Zeze.Builtin.Collections.Queue.BQueueNodeValue.class);
+        _Values = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Collections.Queue.BQueueNodeValue.class);
         _Values.VariableId = 2;
     }
 

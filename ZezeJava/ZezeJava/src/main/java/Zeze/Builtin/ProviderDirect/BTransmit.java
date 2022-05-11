@@ -6,7 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BTransmit extends Zeze.Transaction.Bean {
     private String _ActionName;
-    private final Zeze.Transaction.Collections.CollSet1<Long> _Roles; // 查询目标角色。
+    private final Zeze.Transaction.Collections.PSet1<Long> _Roles; // 查询目标角色。
     private long _Sender; // 结果发送给Sender。
     private Zeze.Net.Binary _Parameter; // encoded bean
 
@@ -34,7 +34,7 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__ActionName(this, 1, value));
     }
 
-    public Zeze.Transaction.Collections.CollSet1<Long> getRoles() {
+    public Zeze.Transaction.Collections.PSet1<Long> getRoles() {
         return _Roles;
     }
 
@@ -91,7 +91,7 @@ public final class BTransmit extends Zeze.Transaction.Bean {
     public BTransmit(int _varId_) {
         super(_varId_);
         _ActionName = "";
-        _Roles = new Zeze.Transaction.Collections.CollSet1<>(Long.class);
+        _Roles = new Zeze.Transaction.Collections.PSet1<>(Long.class);
         _Roles.VariableId = 2;
         _Parameter = Zeze.Net.Binary.Empty;
     }

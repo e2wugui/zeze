@@ -6,7 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
 
-public abstract class CollSet<V> extends Collection implements Set<V> {
+public abstract class PSet<V> extends Collection implements Set<V> {
 	public org.pcollections.PSet<V> _set = org.pcollections.Empty.set();
 
 	@Override
@@ -96,7 +96,7 @@ public abstract class CollSet<V> extends Collection implements Set<V> {
 
 			@Override
 			public void remove() {
-				CollSet.this.remove(next);
+				PSet.this.remove(next);
 			}
 		};
 	}

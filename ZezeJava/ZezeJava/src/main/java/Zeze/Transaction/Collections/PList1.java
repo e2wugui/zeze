@@ -10,16 +10,16 @@ import Zeze.Transaction.Transaction;
 import Zeze.Util.Reflect;
 import org.pcollections.Empty;
 
-public class CollList1<V> extends CollList<V> {
+public class PList1<V> extends PList<V> {
 	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
 	private final int logTypeId;
 
-	public CollList1(Class<V> valueClass) {
+	public PList1(Class<V> valueClass) {
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 		logTypeId = Zeze.Transaction.Bean.Hash32("Zeze.Transaction.LogList1<" + Reflect.GetStableName(valueClass) + '>');
 	}
 
-	private CollList1(int logTypeId, SerializeHelper.CodecFuncs<V> valueCodecFuncs) {
+	private PList1(int logTypeId, SerializeHelper.CodecFuncs<V> valueCodecFuncs) {
 		this.valueCodecFuncs = valueCodecFuncs;
 		this.logTypeId = logTypeId;
 	}
@@ -212,7 +212,7 @@ public class CollList1<V> extends CollList<V> {
 
 	@Override
 	public Bean CopyBean() {
-		var copy = new CollList1<>(logTypeId, valueCodecFuncs);
+		var copy = new PList1<>(logTypeId, valueCodecFuncs);
 		copy._list = _list;
 		return copy;
 	}

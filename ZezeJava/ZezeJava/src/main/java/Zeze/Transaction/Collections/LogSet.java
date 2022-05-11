@@ -30,6 +30,6 @@ public abstract class LogSet<V> extends LogBean {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void Commit() {
-		((CollSet<V>)getThis())._set = Value;
+		((PSet<V>)getThis())._set = Value;
 	}
 }

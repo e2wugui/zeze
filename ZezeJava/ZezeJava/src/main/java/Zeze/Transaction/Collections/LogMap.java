@@ -30,6 +30,6 @@ public abstract class LogMap<K, V> extends LogBean {
 	@SuppressWarnings("unchecked")
 	@Override
 	public void Commit() {
-		((CollMap<K, V>)getThis())._map = Value;
+		((PMap<K, V>)getThis())._map = Value;
 	}
 }

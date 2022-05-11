@@ -8,7 +8,7 @@ import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Transaction;
 
-public abstract class CollMap<K, V> extends Collection implements Map<K, V>, Iterable<Map.Entry<K, V>> {
+public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterable<Map.Entry<K, V>> {
 	public org.pcollections.PMap<K, V> _map = org.pcollections.Empty.map();
 
 	@Override
@@ -158,7 +158,7 @@ public abstract class CollMap<K, V> extends Collection implements Map<K, V>, Ite
 
 					@Override
 					public void remove() {
-						CollMap.this.remove(next.getKey());
+						PMap.this.remove(next.getKey());
 					}
 				};
 			}

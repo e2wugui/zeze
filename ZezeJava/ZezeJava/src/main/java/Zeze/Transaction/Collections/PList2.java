@@ -11,16 +11,16 @@ import Zeze.Util.IntHashSet;
 import Zeze.Util.Reflect;
 import org.pcollections.Empty;
 
-public class CollList2<V extends Bean> extends CollList<V> {
+public class PList2<V extends Bean> extends PList<V> {
 	private final MethodHandle valueFactory;
 	private final int logTypeId;
 
-	public CollList2(Class<V> valueClass) {
+	public PList2(Class<V> valueClass) {
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
 		logTypeId = Zeze.Transaction.Bean.Hash32("Zeze.Raft.RocksRaft.LogList2<" + Reflect.GetStableName(valueClass) + '>');
 	}
 
-	private CollList2(int logTypeId, MethodHandle valueFactory) {
+	private PList2(int logTypeId, MethodHandle valueFactory) {
 		this.valueFactory = valueFactory;
 		this.logTypeId = logTypeId;
 	}
@@ -227,7 +227,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 
 	@Override
 	public Bean CopyBean() {
-		var copy = new CollList2<V>(logTypeId, valueFactory);
+		var copy = new PList2<V>(logTypeId, valueFactory);
 		copy._list = _list;
 		return copy;
 	}

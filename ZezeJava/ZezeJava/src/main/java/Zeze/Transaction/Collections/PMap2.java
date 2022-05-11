@@ -12,19 +12,19 @@ import Zeze.Util.Reflect;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
+public class PMap2<K, V extends Bean> extends PMap<K, V> {
 	protected final SerializeHelper.CodecFuncs<K> keyCodecFuncs;
 	private final MethodHandle valueFactory;
 	private final int logTypeId;
 
-	public CollMap2(Class<K> keyClass, Class<V> valueClass) {
+	public PMap2(Class<K> keyClass, Class<V> valueClass) {
 		keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
 		logTypeId = Zeze.Transaction.Bean.Hash32("Zeze.Raft.RocksRaft.LogMap2<"
 				+ Reflect.GetStableName(keyClass) + ", " + Reflect.GetStableName(valueClass) + '>');
 	}
 
-	private CollMap2(int logTypeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs, MethodHandle valueFactory) {
+	private PMap2(int logTypeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs, MethodHandle valueFactory) {
 		this.keyCodecFuncs = keyCodecFuncs;
 		this.valueFactory = valueFactory;
 		this.logTypeId = logTypeId;
@@ -138,7 +138,7 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 			_map = org.pcollections.Empty.map();
 	}
 
-	private static final Logger logger = LogManager.getLogger(CollMap2.class);
+	private static final Logger logger = LogManager.getLogger(PMap2.class);
 
 	@Override
 	public void FollowerApply(Log _log) {
@@ -178,7 +178,7 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 
 	@Override
 	public Bean CopyBean() {
-		var copy = new CollMap2<K, V>(logTypeId, keyCodecFuncs, valueFactory);
+		var copy = new PMap2<K, V>(logTypeId, keyCodecFuncs, valueFactory);
 		copy._map = _map;
 		return copy;
 	}

@@ -5,10 +5,10 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BReliableNotify extends Zeze.Transaction.Bean {
-    private final Zeze.Transaction.Collections.CollList1<Zeze.Net.Binary> _Notifies; // full encoded protocol list
+    private final Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> _Notifies; // full encoded protocol list
     private long _ReliableNotifyTotalCountStart; // Notify的计数开始。客户端收到的总计数为：start + Notifies.Count
 
-    public Zeze.Transaction.Collections.CollList1<Zeze.Net.Binary> getNotifies() {
+    public Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> getNotifies() {
         return _Notifies;
     }
 
@@ -40,7 +40,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
 
     public BReliableNotify(int _varId_) {
         super(_varId_);
-        _Notifies = new Zeze.Transaction.Collections.CollList1<>(Zeze.Net.Binary.class);
+        _Notifies = new Zeze.Transaction.Collections.PList1<>(Zeze.Net.Binary.class);
         _Notifies.VariableId = 1;
     }
 

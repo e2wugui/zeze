@@ -7,7 +7,7 @@ import Zeze.Serialize.ByteBuffer;
 public final class BLinkedMapNode extends Zeze.Transaction.Bean {
     private long _PrevNodeId; // 前一个节点ID. 0表示已到达开头。
     private long _NextNodeId; // 后一个节点ID. 0表示已到达结尾。
-    private final Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue> _Values; // 多个KeyValue对,容量由LinkedMap构造时的nodeSize决定
+    private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue> _Values; // 多个KeyValue对,容量由LinkedMap构造时的nodeSize决定
 
     public long getPrevNodeId() {
         if (!isManaged())
@@ -53,7 +53,7 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__NextNodeId(this, 2, value));
     }
 
-    public Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue> getValues() {
+    public Zeze.Transaction.Collections.PList2<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue> getValues() {
         return _Values;
     }
 
@@ -63,7 +63,7 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
 
     public BLinkedMapNode(int _varId_) {
         super(_varId_);
-        _Values = new Zeze.Transaction.Collections.CollList2<>(Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue.class);
+        _Values = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue.class);
         _Values.VariableId = 3;
     }
 

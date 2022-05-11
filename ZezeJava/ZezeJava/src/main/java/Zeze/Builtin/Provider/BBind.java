@@ -8,14 +8,14 @@ public final class BBind extends Zeze.Transaction.Bean {
     public static final int ResultSuccess = 0;
     public static final int ResultFailed = 1;
 
-    private final Zeze.Transaction.Collections.CollMap2<Integer, Zeze.Builtin.Provider.BModule> _modules; // moduleId -> BModule
-    private final Zeze.Transaction.Collections.CollSet1<Long> _linkSids;
+    private final Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Provider.BModule> _modules; // moduleId -> BModule
+    private final Zeze.Transaction.Collections.PSet1<Long> _linkSids;
 
-    public Zeze.Transaction.Collections.CollMap2<Integer, Zeze.Builtin.Provider.BModule> getModules() {
+    public Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Provider.BModule> getModules() {
         return _modules;
     }
 
-    public Zeze.Transaction.Collections.CollSet1<Long> getLinkSids() {
+    public Zeze.Transaction.Collections.PSet1<Long> getLinkSids() {
         return _linkSids;
     }
 
@@ -25,9 +25,9 @@ public final class BBind extends Zeze.Transaction.Bean {
 
     public BBind(int _varId_) {
         super(_varId_);
-        _modules = new Zeze.Transaction.Collections.CollMap2<>(Integer.class, Zeze.Builtin.Provider.BModule.class);
+        _modules = new Zeze.Transaction.Collections.PMap2<>(Integer.class, Zeze.Builtin.Provider.BModule.class);
         _modules.VariableId = 1;
-        _linkSids = new Zeze.Transaction.Collections.CollSet1<>(Long.class);
+        _linkSids = new Zeze.Transaction.Collections.PSet1<>(Long.class);
         _linkSids.VariableId = 2;
     }
 

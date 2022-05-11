@@ -9,7 +9,7 @@ import Zeze.Transaction.Log;
 import Zeze.Transaction.Transaction;
 import org.pcollections.PVector;
 
-public abstract class CollList<V> extends Collection implements List<V> {
+public abstract class PList<V> extends Collection implements List<V> {
 	public PVector<V> _list = org.pcollections.Empty.vector();
 
 	@Override
@@ -123,7 +123,7 @@ public abstract class CollList<V> extends Collection implements List<V> {
 
 			@Override
 			public void remove() {
-				CollList.this.remove(next);
+				PList.this.remove(next);
 			}
 		};
 	}

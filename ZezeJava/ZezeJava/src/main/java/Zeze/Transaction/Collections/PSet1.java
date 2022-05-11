@@ -9,16 +9,16 @@ import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Reflect;
 
-public class CollSet1<V> extends CollSet<V> {
+public class PSet1<V> extends PSet<V> {
 	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
 	private final int logTypeId;
 
-	public CollSet1(Class<V> valueClass) {
+	public PSet1(Class<V> valueClass) {
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 		logTypeId = Zeze.Transaction.Bean.Hash32("Zeze.Raft.RocksRaft.LogSet1<" + Reflect.GetStableName(valueClass) + '>');
 	}
 
-	private CollSet1(int logTypeId, SerializeHelper.CodecFuncs<V> valueCodecFuncs) {
+	private PSet1(int logTypeId, SerializeHelper.CodecFuncs<V> valueCodecFuncs) {
 		this.valueCodecFuncs = valueCodecFuncs;
 		this.logTypeId = logTypeId;
 	}
@@ -136,7 +136,7 @@ public class CollSet1<V> extends CollSet<V> {
 
 	@Override
 	public Bean CopyBean() {
-		var copy = new CollSet1<>(logTypeId, valueCodecFuncs);
+		var copy = new PSet1<>(logTypeId, valueCodecFuncs);
 		copy._set = _set;
 		return copy;
 	}

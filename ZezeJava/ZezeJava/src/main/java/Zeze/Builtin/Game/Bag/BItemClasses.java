@@ -5,9 +5,9 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BItemClasses extends Zeze.Transaction.Bean {
-    private final Zeze.Transaction.Collections.CollSet1<String> _ItemClasses;
+    private final Zeze.Transaction.Collections.PSet1<String> _ItemClasses;
 
-    public Zeze.Transaction.Collections.CollSet1<String> getItemClasses() {
+    public Zeze.Transaction.Collections.PSet1<String> getItemClasses() {
         return _ItemClasses;
     }
 
@@ -17,7 +17,7 @@ public final class BItemClasses extends Zeze.Transaction.Bean {
 
     public BItemClasses(int _varId_) {
         super(_varId_);
-        _ItemClasses = new Zeze.Transaction.Collections.CollSet1<>(String.class);
+        _ItemClasses = new Zeze.Transaction.Collections.PSet1<>(String.class);
         _ItemClasses.VariableId = 1;
     }
 

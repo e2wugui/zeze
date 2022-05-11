@@ -10,7 +10,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
     private long _SourceProvider; // 从BModuleRedirectAllRequest里面得到。
     private String _MethodFullName; // format="ModuleFullName:MethodName"
     private long _SessionId; // 发起请求者初始化，返回结果时带回。
-    private final Zeze.Transaction.Collections.CollMap2<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> _Hashs; // 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
+    private final Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> _Hashs; // 发送给具体进程时需要处理的分组hash-index（目前由linkd填写）
 
     public int getModuleId() {
         if (!isManaged())
@@ -124,7 +124,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__SessionId(this, 5, value));
     }
 
-    public Zeze.Transaction.Collections.CollMap2<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> getHashs() {
+    public Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> getHashs() {
         return _Hashs;
     }
 
@@ -135,7 +135,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
     public BModuleRedirectAllResult(int _varId_) {
         super(_varId_);
         _MethodFullName = "";
-        _Hashs = new Zeze.Transaction.Collections.CollMap2<>(Integer.class, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.class);
+        _Hashs = new Zeze.Transaction.Collections.PMap2<>(Integer.class, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash.class);
         _Hashs.VariableId = 6;
     }
 

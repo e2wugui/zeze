@@ -5,9 +5,9 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BRankList extends Zeze.Transaction.Bean {
-    private final Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Game.Rank.BRankValue> _RankList;
+    private final Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.Rank.BRankValue> _RankList;
 
-    public Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Game.Rank.BRankValue> getRankList() {
+    public Zeze.Transaction.Collections.PList2<Zeze.Builtin.Game.Rank.BRankValue> getRankList() {
         return _RankList;
     }
 
@@ -17,7 +17,7 @@ public final class BRankList extends Zeze.Transaction.Bean {
 
     public BRankList(int _varId_) {
         super(_varId_);
-        _RankList = new Zeze.Transaction.Collections.CollList2<>(Zeze.Builtin.Game.Rank.BRankValue.class);
+        _RankList = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Game.Rank.BRankValue.class);
         _RankList.VariableId = 1;
     }
 

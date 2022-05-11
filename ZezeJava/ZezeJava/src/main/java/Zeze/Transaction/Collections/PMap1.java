@@ -9,20 +9,20 @@ import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.Reflect;
 
-public class CollMap1<K, V> extends CollMap<K, V> {
+public class PMap1<K, V> extends PMap<K, V> {
 	protected final SerializeHelper.CodecFuncs<K> keyCodecFuncs;
 	protected final SerializeHelper.CodecFuncs<V> valueCodecFuncs;
 	private final int logTypeId;
 
-	public CollMap1(Class<K> keyClass, Class<V> valueClass) {
+	public PMap1(Class<K> keyClass, Class<V> valueClass) {
 		keyCodecFuncs = SerializeHelper.createCodec(keyClass);
 		valueCodecFuncs = SerializeHelper.createCodec(valueClass);
 		logTypeId = Zeze.Transaction.Bean.Hash32("Zeze.Transaction.Collections.LogMap1<"
 				+ Reflect.GetStableName(keyClass) + ", " + Reflect.GetStableName(valueClass) + '>');
 	}
 
-	private CollMap1(int logTypeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs,
-					 SerializeHelper.CodecFuncs<V> valueCodecFuncs) {
+	private PMap1(int logTypeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs,
+				  SerializeHelper.CodecFuncs<V> valueCodecFuncs) {
 		this.keyCodecFuncs = keyCodecFuncs;
 		this.valueCodecFuncs = valueCodecFuncs;
 		this.logTypeId = logTypeId;
@@ -153,7 +153,7 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 
 	@Override
 	public Bean CopyBean() {
-		var copy = new CollMap1<>(logTypeId, keyCodecFuncs, valueCodecFuncs);
+		var copy = new PMap1<>(logTypeId, keyCodecFuncs, valueCodecFuncs);
 		copy._map = _map;
 		return copy;
 	}

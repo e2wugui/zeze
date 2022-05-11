@@ -5,9 +5,9 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BSubscribe extends Zeze.Transaction.Bean {
-    private final Zeze.Transaction.Collections.CollMap2<Integer, Zeze.Builtin.Provider.BModule> _modules; // moduleId -> BModule
+    private final Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Provider.BModule> _modules; // moduleId -> BModule
 
-    public Zeze.Transaction.Collections.CollMap2<Integer, Zeze.Builtin.Provider.BModule> getModules() {
+    public Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Provider.BModule> getModules() {
         return _modules;
     }
 
@@ -17,7 +17,7 @@ public final class BSubscribe extends Zeze.Transaction.Bean {
 
     public BSubscribe(int _varId_) {
         super(_varId_);
-        _modules = new Zeze.Transaction.Collections.CollMap2<>(Integer.class, Zeze.Builtin.Provider.BModule.class);
+        _modules = new Zeze.Transaction.Collections.PMap2<>(Integer.class, Zeze.Builtin.Provider.BModule.class);
         _modules.VariableId = 1;
     }
 

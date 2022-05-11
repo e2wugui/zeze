@@ -6,7 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BBag extends Zeze.Transaction.Bean {
     private int _Capacity;
-    private final Zeze.Transaction.Collections.CollMap2<Integer, Zeze.Builtin.Game.Bag.BItem> _Items; // key is bag position
+    private final Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Game.Bag.BItem> _Items; // key is bag position
 
     public int getCapacity() {
         if (!isManaged())
@@ -30,7 +30,7 @@ public final class BBag extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__Capacity(this, 1, value));
     }
 
-    public Zeze.Transaction.Collections.CollMap2<Integer, Zeze.Builtin.Game.Bag.BItem> getItems() {
+    public Zeze.Transaction.Collections.PMap2<Integer, Zeze.Builtin.Game.Bag.BItem> getItems() {
         return _Items;
     }
 
@@ -40,7 +40,7 @@ public final class BBag extends Zeze.Transaction.Bean {
 
     public BBag(int _varId_) {
         super(_varId_);
-        _Items = new Zeze.Transaction.Collections.CollMap2<>(Integer.class, Zeze.Builtin.Game.Bag.BItem.class);
+        _Items = new Zeze.Transaction.Collections.PMap2<>(Integer.class, Zeze.Builtin.Game.Bag.BItem.class);
         _Items.VariableId = 2;
     }
 

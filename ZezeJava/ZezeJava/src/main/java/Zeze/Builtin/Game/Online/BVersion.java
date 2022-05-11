@@ -6,8 +6,8 @@ import Zeze.Serialize.ByteBuffer;
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BVersion extends Zeze.Transaction.Bean {
     private long _LoginVersion;
-    private final Zeze.Transaction.Collections.CollSet1<String> _ReliableNotifyMark;
-    private final Zeze.Transaction.Collections.CollList1<Zeze.Net.Binary> _ReliableNotifyQueue; // full encoded protocol list
+    private final Zeze.Transaction.Collections.PSet1<String> _ReliableNotifyMark;
+    private final Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> _ReliableNotifyQueue; // full encoded protocol list
     private long _ReliableNotifyConfirmCount;
     private long _ReliableNotifyTotalCount;
     private int _ServerId;
@@ -34,11 +34,11 @@ public final class BVersion extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__LoginVersion(this, 1, value));
     }
 
-    public Zeze.Transaction.Collections.CollSet1<String> getReliableNotifyMark() {
+    public Zeze.Transaction.Collections.PSet1<String> getReliableNotifyMark() {
         return _ReliableNotifyMark;
     }
 
-    public Zeze.Transaction.Collections.CollList1<Zeze.Net.Binary> getReliableNotifyQueue() {
+    public Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> getReliableNotifyQueue() {
         return _ReliableNotifyQueue;
     }
 
@@ -114,9 +114,9 @@ public final class BVersion extends Zeze.Transaction.Bean {
 
     public BVersion(int _varId_) {
         super(_varId_);
-        _ReliableNotifyMark = new Zeze.Transaction.Collections.CollSet1<>(String.class);
+        _ReliableNotifyMark = new Zeze.Transaction.Collections.PSet1<>(String.class);
         _ReliableNotifyMark.VariableId = 2;
-        _ReliableNotifyQueue = new Zeze.Transaction.Collections.CollList1<>(Zeze.Net.Binary.class);
+        _ReliableNotifyQueue = new Zeze.Transaction.Collections.PList1<>(Zeze.Net.Binary.class);
         _ReliableNotifyQueue.VariableId = 3;
     }
 
