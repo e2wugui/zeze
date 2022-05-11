@@ -15,3 +15,4 @@ java -Dlogname=GlobalCacheManagerAsyncServer ^
 -cp .;lib\* ^
 Zeze.Services.GlobalCacheManagerAsyncServer ^
 -port 5555
+-tryNextSync

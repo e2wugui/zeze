@@ -15,5 +15,6 @@ nohup java -Dlogname=global \
 -cp .:lib/* \
 Zeze.Services.GlobalCacheManagerAsyncServer \
 -port 5555 \
+-tryNextSync \
 1> global_stdout.log \
 2> global_stderr.log &

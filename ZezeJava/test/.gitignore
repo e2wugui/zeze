@@ -3,4 +3,5 @@ autokeys
 lib
 
 *.log
+*.log.*
 *.pal

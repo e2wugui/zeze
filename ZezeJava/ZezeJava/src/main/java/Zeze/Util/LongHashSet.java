@@ -6,11 +6,10 @@ import java.util.function.LongConsumer;
 public class LongHashSet implements Cloneable {
 	private int size;
 	private long[] keyTable;
-	private boolean hasZeroKey;
 	private final float loadFactor;
 	private int threshold;
-	private int mask;
-	private int shift;
+	private byte shift;
+	private boolean hasZeroKey;
 
 	public LongHashSet() {
 		this(2, 0.8f);
@@ -26,19 +25,17 @@ public class LongHashSet implements Cloneable {
 		this.loadFactor = loadFactor;
 		int tableSize = tableSize(Math.max(cap, 0));
 		threshold = (int)((float)tableSize * loadFactor);
-		mask = tableSize - 1;
-		shift = Long.numberOfLeadingZeros(mask);
+		shift = (byte)Long.numberOfLeadingZeros(tableSize - 1);
 		keyTable = new long[tableSize];
 	}
 
 	public LongHashSet(LongHashSet set) {
 		size = set.size;
 		keyTable = set.keyTable.clone();
-		hasZeroKey = set.hasZeroKey;
 		loadFactor = set.loadFactor;
 		threshold = set.threshold;
-		mask = set.mask;
 		shift = set.shift;
+		hasZeroKey = set.hasZeroKey;
 	}
 
 	private int tableSize(int cap) {
@@ -50,24 +47,24 @@ public class LongHashSet implements Cloneable {
 		return (int)(key * 0x9E3779B97F4A7C15L >>> shift);
 	}
 
-	public long[] getKeyTable() {
-		return keyTable;
+	public int size() {
+		return size;
 	}
 
-	public boolean hasZeroKey() {
-		return hasZeroKey;
+	public long[] getKeyTable() {
+		return keyTable;
 	}
 
 	public float getLoadFactor() {
 		return loadFactor;
 	}
 
-	public int capacity() {
-		return mask + 1;
+	public boolean hasZeroKey() {
+		return hasZeroKey;
 	}
 
-	public int size() {
-		return size;
+	public int capacity() {
+		return keyTable.length;
 	}
 
 	public boolean isEmpty() {
@@ -78,14 +75,11 @@ public class LongHashSet implements Cloneable {
 		if (key == 0)
 			return hasZeroKey;
 		long[] kt = keyTable;
-		int m = mask;
+		int m = kt.length - 1;
 		int i = hash(key);
-		long k;
-		while ((k = kt[i]) != key) {
+		for (long k; (k = kt[i]) != key; i = (i + 1) & m)
 			if (k == 0)
 				return false;
-			i = (i + 1) & m;
-		}
 		return true;
 	}
 
@@ -98,9 +92,7 @@ public class LongHashSet implements Cloneable {
 			return true;
 		}
 		long[] kt = keyTable;
-		int m = mask;
-		int i = hash(key);
-		for (; ; ) {
+		for (int i = hash(key), m = kt.length - 1; ; i = (i + 1) & m) {
 			long k = kt[i];
 			if (k == 0) {
 				kt[i] = key;
@@ -110,7 +102,6 @@ public class LongHashSet implements Cloneable {
 			}
 			if (k == key)
 				return false;
-			i = (i + 1) & m;
 		}
 	}
 
@@ -123,7 +114,6 @@ public class LongHashSet implements Cloneable {
 	}
 
 	public boolean remove(long key) {
-		long k;
 		if (key == 0) {
 			if (!hasZeroKey)
 				return false;
@@ -132,21 +122,17 @@ public class LongHashSet implements Cloneable {
 			return true;
 		}
 		long[] kt = keyTable;
-		int m = mask;
+		int m = kt.length - 1;
 		int i = hash(key);
-		while ((k = kt[i]) != key) {
+		for (long k; (k = kt[i]) != key; i = (i + 1) & m)
 			if (k == 0)
 				return false;
-			i = (i + 1) & m;
-		}
-		int j = (i + 1) & m;
-		while ((key = kt[j]) != 0) {
+		for (int j = (i + 1) & m; (key = kt[j]) != 0; j = (j + 1) & m) {
 			int h = hash(key);
 			if (((j - h) & m) > ((i - h) & m)) {
 				kt[i] = key;
 				i = j;
 			}
-			j = (j + 1) & m;
 		}
 		kt[i] = 0;
 		size--;
@@ -185,23 +171,19 @@ public class LongHashSet implements Cloneable {
 	}
 
 	private void resize(int newSize) {
-		int m;
 		threshold = (int)(newSize * loadFactor);
-		mask = m = newSize - 1;
-		shift = Long.numberOfLeadingZeros(m);
+		int m = newSize - 1;
+		shift = (byte)Long.numberOfLeadingZeros(m);
 		long[] kt = new long[newSize];
 		if (size != 0) {
-			block0:
 			for (long k : keyTable) {
-				if (k == 0)
-					continue;
-				int i = hash(k);
-				for (; ; ) {
-					if (kt[i] == 0) {
-						kt[i] = k;
-						continue block0;
+				if (k != 0) {
+					for (int i = hash(k); ; i = (i + 1) & m) {
+						if (kt[i] == 0) {
+							kt[i] = k;
+							break;
+						}
 					}
-					i = (i + 1) & m;
 				}
 			}
 		}
@@ -211,10 +193,9 @@ public class LongHashSet implements Cloneable {
 	public void foreach(LongConsumer consumer) {
 		if (hasZeroKey)
 			consumer.accept(0);
-		for (long k : keyTable) {
+		for (long k : keyTable)
 			if (k != 0)
 				consumer.accept(k);
-		}
 	}
 
 	public interface LongSetPredicate {
@@ -224,10 +205,9 @@ public class LongHashSet implements Cloneable {
 	public boolean foreachTest(LongSetPredicate tester) {
 		if (hasZeroKey && !tester.test(this, 0))
 			return false;
-		for (long k : keyTable) {
+		for (long k : keyTable)
 			if (k != 0 && !tester.test(this, k))
 				return false;
-		}
 		return true;
 	}
 
@@ -240,11 +220,10 @@ public class LongHashSet implements Cloneable {
 				if (hasZeroKey)
 					return true;
 			}
-			final long[] kt = keyTable;
-			for (final int lastIdx = kt.length - 1; idx < lastIdx; ) {
+			long[] kt = keyTable;
+			for (int lastIdx = kt.length - 1; idx < lastIdx; )
 				if (kt[++idx] != 0)
 					return true;
-			}
 			return false;
 		}
 
@@ -270,25 +249,21 @@ public class LongHashSet implements Cloneable {
 			return "{}";
 		StringBuilder sb = new StringBuilder(32).append('{');
 		long[] kt = keyTable;
-		int n = Math.min(kt.length, 20);
-		int i = 0;
+		int i = 0, n = Math.min(kt.length, 20);
 		long k;
 		if (hasZeroKey)
 			sb.append('0');
 		else {
 			while (i < n) {
-				if ((k = kt[i++]) == 0)
-					continue;
-				sb.append(k);
-				break;
+				if ((k = kt[i++]) != 0) {
+					sb.append(k);
+					break;
+				}
 			}
 		}
-		while (i < n) {
-			k = kt[i];
-			if (k != 0)
+		for (; i < n; i++)
+			if ((k = kt[i]) != 0)
 				sb.append(',').append(k);
-			i++;
-		}
 		if (n != kt.length)
 			sb.append(",...");
 		return sb.append('}').toString();
