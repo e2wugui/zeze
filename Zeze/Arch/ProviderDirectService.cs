@@ -61,7 +61,19 @@ namespace Zeze.Arch
 			}
 		}
 
-		public override void OnHandshakeDone(AsyncSocket socket)
+        public override void OnSocketAccept(AsyncSocket socket)
+        {
+			if (socket.Connector == null)
+            {
+				// 被动连接等待对方报告信息时再处理。
+				var ps = new ProviderSession();
+				ps.SessionId = socket.SessionId;
+				socket.UserState = ps;
+			}
+			base.OnSocketAccept(socket);
+        }
+
+        public override void OnHandshakeDone(AsyncSocket socket)
 		{
 			// call base
 			base.OnHandshakeDone(socket);
@@ -76,13 +88,6 @@ namespace Zeze.Arch
 				r.Argument.Ip = ProviderApp.DirectIp;
 				r.Argument.Port = ProviderApp.DirectPort;
 				r.Send(socket, async (_r) => 0); // skip result
-			}
-			else
-            {
-				// 被动连接等待对方报告信息时再处理。
-				var ps = new ProviderSession();
-				ps.SessionId = socket.SessionId;
-				socket.UserState = ps;
 			}
 		}
 

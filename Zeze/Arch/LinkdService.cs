@@ -223,10 +223,10 @@ namespace Zeze.Arch
             }
         }
 
-        public override void OnHandshakeDone(Zeze.Net.AsyncSocket sender)
+        public override void OnSocketAccept(AsyncSocket sender)
         {
             sender.UserState = new LinkdUserSession(sender.SessionId);
-            base.OnHandshakeDone(sender);
+            base.OnSocketAccept(sender);
         }
 
         public override void OnSocketClose(Zeze.Net.AsyncSocket so, System.Exception e)

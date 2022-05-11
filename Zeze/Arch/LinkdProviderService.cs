@@ -53,9 +53,14 @@ namespace Zeze.Arch
 				logger.Warn("Protocol Handle Not Found: {}", p);
 		}
 
-		public override void OnHandshakeDone(AsyncSocket sender)
-		{
+        public override void OnSocketAccept(AsyncSocket sender)
+        {
 			sender.UserState = new LinkdProviderSession(sender.SessionId);
+			base.OnSocketAccept(sender);
+        }
+
+        public override void OnHandshakeDone(AsyncSocket sender)
+		{
 			base.OnHandshakeDone(sender);
 
 			var announce = new AnnounceLinkInfo();

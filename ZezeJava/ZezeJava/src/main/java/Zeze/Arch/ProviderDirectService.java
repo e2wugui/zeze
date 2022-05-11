@@ -63,6 +63,18 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	}
 
 	@Override
+	public void OnSocketAccept(AsyncSocket sender) throws Throwable {
+		if (sender.getConnector() == null) {
+			// 被动连接等待对方报告信息时再处理。
+			// passive connection continue process in ProviderDirect.ProcessAnnounceProviderInfoRequest.
+			var ps = new ProviderSession();
+			ps.SessionId = sender.getSessionId();
+			sender.setUserState(ps); // acceptor
+		}
+		super.OnSocketAccept(sender);
+	}
+
+	@Override
 	public void OnHandshakeDone(AsyncSocket socket) throws Throwable {
 		// call base
 		super.OnHandshakeDone(socket);
@@ -79,12 +91,6 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			r.Argument.setPort(ProviderApp.DirectPort);
 			r.Argument.setServerId(ProviderApp.Zeze.getConfig().getServerId());
 			r.Send(socket, (_r) -> 0L); // skip result
-		} else {
-			// 被动连接等待对方报告信息时再处理。
-			// passive connection continue process in ProviderDirect.ProcessAnnounceProviderInfoRequest.
-			var ps = new ProviderSession();
-			ps.SessionId = socket.getSessionId();
-			socket.setUserState(ps); // acceptor
 		}
 	}
 

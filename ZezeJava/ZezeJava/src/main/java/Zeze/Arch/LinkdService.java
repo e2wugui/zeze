@@ -196,9 +196,9 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	}
 
 	@Override
-	public void OnHandshakeDone(Zeze.Net.AsyncSocket sender) throws Throwable {
+	public void OnSocketAccept(AsyncSocket sender) throws Throwable {
 		sender.setUserState(new LinkdUserSession(sender.getSessionId()));
-		super.OnHandshakeDone(sender);
+		super.OnSocketAccept(sender);
 	}
 
 	@Override
