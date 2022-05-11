@@ -16,7 +16,7 @@ namespace Zeze.Services
         protected override async Task<long> ProcessAcquireRequest(Zeze.Net.Protocol _p)
         {
             var rpc = _p as Acquire;
-            rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
+            rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
             rpc.Result.State = rpc.Argument.State; // default success
             rpc.ResultCode = 0;
 
@@ -34,7 +34,7 @@ namespace Zeze.Services
                     switch (rpc.Argument.State)
                     {
                         case GlobalCacheManagerServer.StateInvalid: // realease
-                            rpc.Result.State = await ReleasePrivate(rpc.Sender.UserState as CacheHolder, rpc.Argument.GlobalTableKey, true);
+                            rpc.Result.State = await ReleasePrivate(rpc.Sender.UserState as CacheHolder, rpc.Argument.GlobalKey, true);
                             return 0;
 
                         case GlobalCacheManagerServer.StateShare:
@@ -63,9 +63,9 @@ namespace Zeze.Services
 
             while (true)
             {
-                var lockey = await Zeze.Raft.RocksRaft.Transaction.Current.AddPessimismLockAsync(Locks.Get(rpc.Argument.GlobalTableKey));
+                var lockey = await Zeze.Raft.RocksRaft.Transaction.Current.AddPessimismLockAsync(Locks.Get(rpc.Argument.GlobalKey));
 
-                CacheState cs = await GlobalStates.GetOrAddAsync(rpc.Argument.GlobalTableKey);
+                CacheState cs = await GlobalStates.GetOrAddAsync(rpc.Argument.GlobalKey);
                 if (cs.AcquireStatePending == GlobalCacheManagerServer.StateRemoved)
                     continue;
 
@@ -124,19 +124,19 @@ namespace Zeze.Services
                         rpc.Result.State = GlobalCacheManagerServer.StateModify;
                         // 已经是Modify又申请，可能是sender异常关闭，
                         // 又重启连上。更新一下。应该是不需要的。
-                        await SenderAcquired.PutAsync(rpc.Argument.GlobalTableKey, new AcquiredState() { State = GlobalCacheManagerServer.StateModify });
+                        await SenderAcquired.PutAsync(rpc.Argument.GlobalKey, new AcquiredState() { State = GlobalCacheManagerServer.StateModify });
                         rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                         return GlobalCacheManagerServer.AcquireShareAlreadyIsModify;
                     }
 
                     int reduceResultState = GlobalCacheManagerServer.StateReduceNetError; // 默认网络错误。
                     if (CacheHolder.Reduce(Sessions, cs.Modify,
-                        rpc.Argument.GlobalTableKey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId,
+                        rpc.Argument.GlobalKey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId,
                         async (p) =>
                         {
                             var r = p as Reduce;
                             reduceResultState = r.IsTimeout ? GlobalCacheManagerServer.StateReduceRpcTimeout : r.Result.State;
-                            using var lockey2 = await Locks.Get(r.Argument.GlobalTableKey).EnterAsync();
+                            using var lockey2 = await Locks.Get(r.Argument.GlobalKey).EnterAsync();
                             lockey2.PulseAll();
                             return 0;
                         }))
@@ -149,13 +149,13 @@ namespace Zeze.Services
                     switch (reduceResultState)
                     {
                         case GlobalCacheManagerServer.StateShare:
-                            await ModifyAcquired.PutAsync(rpc.Argument.GlobalTableKey, new AcquiredState() { State = GlobalCacheManagerServer.StateShare });
+                            await ModifyAcquired.PutAsync(rpc.Argument.GlobalKey, new AcquiredState() { State = GlobalCacheManagerServer.StateShare });
                             cs.Share.Add(cs.Modify); // 降级成功。
                             break;
 
                         case GlobalCacheManagerServer.StateInvalid:
                             // 降到了 Invalid，此时就不需要加入 Share 了。
-                            await ModifyAcquired.RemoveAsync(rpc.Argument.GlobalTableKey);
+                            await ModifyAcquired.RemoveAsync(rpc.Argument.GlobalKey);
                             break;
 
                         default:
@@ -173,7 +173,7 @@ namespace Zeze.Services
                     }
 
                     cs.Modify = -1;
-                    await SenderAcquired.PutAsync(rpc.Argument.GlobalTableKey, new AcquiredState() { State = GlobalCacheManagerServer.StateShare });
+                    await SenderAcquired.PutAsync(rpc.Argument.GlobalKey, new AcquiredState() { State = GlobalCacheManagerServer.StateShare });
                     cs.Share.Add(sender.ServerId);
                     cs.AcquireStatePending = GlobalCacheManagerServer.StateInvalid;
                     lockey.PulseAll();
@@ -182,7 +182,7 @@ namespace Zeze.Services
                     return 0; // 成功也会自动发送结果.
                 }
 
-                await SenderAcquired.PutAsync(rpc.Argument.GlobalTableKey, new AcquiredState() { State = GlobalCacheManagerServer.StateShare });
+                await SenderAcquired.PutAsync(rpc.Argument.GlobalKey, new AcquiredState() { State = GlobalCacheManagerServer.StateShare });
                 cs.Share.Add(sender.ServerId);
                 cs.AcquireStatePending = GlobalCacheManagerServer.StateInvalid;
                 lockey.PulseAll();
@@ -198,9 +198,9 @@ namespace Zeze.Services
 
             while (true)
             {
-                var lockey = await Zeze.Raft.RocksRaft.Transaction.Current.AddPessimismLockAsync(Locks.Get(rpc.Argument.GlobalTableKey));
+                var lockey = await Zeze.Raft.RocksRaft.Transaction.Current.AddPessimismLockAsync(Locks.Get(rpc.Argument.GlobalKey));
 
-                CacheState cs = await GlobalStates.GetOrAddAsync(rpc.Argument.GlobalTableKey);
+                CacheState cs = await GlobalStates.GetOrAddAsync(rpc.Argument.GlobalKey);
                 if (cs.AcquireStatePending == GlobalCacheManagerServer.StateRemoved)
                     continue;
 
@@ -257,7 +257,7 @@ namespace Zeze.Services
                         logger.Debug("4 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         // 已经是Modify又申请，可能是sender异常关闭，又重启连上。
                         // 更新一下。应该是不需要的。
-                        await SenderAcquired.PutAsync(rpc.Argument.GlobalTableKey, new AcquiredState() { State = GlobalCacheManagerServer.StateModify });
+                        await SenderAcquired.PutAsync(rpc.Argument.GlobalKey, new AcquiredState() { State = GlobalCacheManagerServer.StateModify });
                         rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                         cs.AcquireStatePending = GlobalCacheManagerServer.StateInvalid;
                         lockey.PulseAll();
@@ -266,12 +266,12 @@ namespace Zeze.Services
 
                     int reduceResultState = GlobalCacheManagerServer.StateReduceNetError; // 默认网络错误。
                     if (CacheHolder.Reduce(Sessions, cs.Modify,
-                        rpc.Argument.GlobalTableKey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId,
+                        rpc.Argument.GlobalKey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId,
                         async (p) =>
                         {
                             var r = p as Reduce;
                             reduceResultState = r.IsTimeout ? GlobalCacheManagerServer.StateReduceRpcTimeout : r.Result.State;
-                            using var lockey2 = await Locks.Get(r.Argument.GlobalTableKey).EnterAsync();
+                            using var lockey2 = await Locks.Get(r.Argument.GlobalKey).EnterAsync();
                             lockey2.PulseAll();
                             return 0;
                         }))
@@ -284,7 +284,7 @@ namespace Zeze.Services
                     switch (reduceResultState)
                     {
                         case GlobalCacheManagerServer.StateInvalid:
-                            await ModifyAcquired.RemoveAsync(rpc.Argument.GlobalTableKey);
+                            await ModifyAcquired.RemoveAsync(rpc.Argument.GlobalKey);
                             break; // reduce success
 
                         default:
@@ -302,7 +302,7 @@ namespace Zeze.Services
 
                     cs.Modify = sender.ServerId;
                     cs.Share.Remove(sender.ServerId);
-                    await SenderAcquired.PutAsync(rpc.Argument.GlobalTableKey, new AcquiredState() { State = GlobalCacheManagerServer.StateModify });
+                    await SenderAcquired.PutAsync(rpc.Argument.GlobalKey, new AcquiredState() { State = GlobalCacheManagerServer.StateModify });
                     cs.AcquireStatePending = GlobalCacheManagerServer.StateInvalid;
                     lockey.PulseAll();
 
@@ -324,7 +324,7 @@ namespace Zeze.Services
                         continue;
                     }
                     Reduce reduce = CacheHolder.ReduceWaitLater(Sessions, c, out var session,
-                        rpc.Argument.GlobalTableKey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId);
+                        rpc.Argument.GlobalKey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId);
                     if (null != reduce)
                     {
                         reducePending.Add(Util.KV.Create(session, reduce));
@@ -366,7 +366,7 @@ namespace Zeze.Services
                                 logger.Error(ex, "Reduce {0} {1} {2} {3}", sender, rpc.Argument.State, cs, reduce.Value.Argument);
                             }
                         }
-                        using var lockey2 = await Locks.Get(rpc.Argument.GlobalTableKey).EnterAsync();
+                        using var lockey2 = await Locks.Get(rpc.Argument.GlobalKey).EnterAsync();
                         lockey2.PulseAll();
                     });
                     logger.Debug("7 {0} {1} {2}", sender, rpc.Argument.State, cs);
@@ -382,7 +382,7 @@ namespace Zeze.Services
                         // 1. 如果申请成功，后面会更新到Modify状态。
                         // 2. 如果申请不成功，恢复 cs.Share，保持 Acquired 不变。
                         var KeyAcquired = ServerAcquiredTemplate.OpenTableWithType(succeed.ServerId);
-                        await KeyAcquired.RemoveAsync(rpc.Argument.GlobalTableKey);
+                        await KeyAcquired.RemoveAsync(rpc.Argument.GlobalKey);
                     }
                     cs.Share.Remove(succeed.ServerId);
                 }
@@ -391,7 +391,7 @@ namespace Zeze.Services
                 if (cs.Share.Count == 0)
                 {
                     cs.Modify = sender.ServerId;
-                    await SenderAcquired.PutAsync(rpc.Argument.GlobalTableKey, new AcquiredState()
+                    await SenderAcquired.PutAsync(rpc.Argument.GlobalKey, new AcquiredState()
                     {
                         State = GlobalCacheManagerServer.StateModify
                     });
@@ -419,7 +419,7 @@ namespace Zeze.Services
             }
         }
 
-        private async Task<int> Release(CacheHolder sender, GlobalTableKey gkey, bool noWait)
+        private async Task<int> Release(CacheHolder sender, Binary gkey, bool noWait)
         {
             int result = 0;
             await Rocks.NewProcedure(async () =>
@@ -430,7 +430,7 @@ namespace Zeze.Services
             return result;
         }
 
-        private async Task<int> ReleasePrivate(CacheHolder sender, GlobalTableKey gkey, bool noWait)
+        private async Task<int> ReleasePrivate(CacheHolder sender, Binary gkey, bool noWait)
         {
             while (true)
             {
@@ -481,7 +481,7 @@ namespace Zeze.Services
                 }
                 var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(sender.ServerId);
                 await SenderAcquired.RemoveAsync(gkey);
-                logger.Debug($"Release {gkey.Id}:{gkey.Key} {cs}");
+                logger.Debug($"Release {gkey} {cs}");
                 lockey.PulseAll();
                 return GetSenderCacheState(cs, sender);
             }
@@ -619,13 +619,13 @@ namespace Zeze.Services
         /// <summary>
         /// 全局记录分配状态。
         /// </summary>
-        private Table<GlobalTableKey, CacheState> GlobalStates;
+        private Table<Binary, CacheState> GlobalStates;
 
         /// <summary>
         /// 每个服务器已分配记录。
         /// 这是个Table模板，使用的时候根据ServerId打开真正的存储表。
         /// </summary>
-        private TableTemplate<GlobalTableKey, AcquiredState> ServerAcquiredTemplate;
+        private TableTemplate<Binary, AcquiredState> ServerAcquiredTemplate;
 
         /*
          * 会话。
@@ -658,8 +658,8 @@ namespace Zeze.Services
             RegisterRocksTables(Rocks);
             RegisterProtocols(Rocks.Raft.Server);
 
-            GlobalStates = Rocks.GetTableTemplate("Global").OpenTable<GlobalTableKey, CacheState>(0);
-            ServerAcquiredTemplate = Rocks.GetTableTemplate("Session") as TableTemplate<GlobalTableKey, AcquiredState>;
+            GlobalStates = Rocks.GetTableTemplate("Global").OpenTable<Binary, CacheState>(0);
+            ServerAcquiredTemplate = Rocks.GetTableTemplate("Session") as TableTemplate<Binary, AcquiredState>;
 
             Rocks.Raft.Server.Start();
             return this;
@@ -719,7 +719,7 @@ namespace Zeze.Services
             }
 
             public static bool Reduce(ConcurrentDictionary<int, CacheHolder> sessions, int serverId,
-                GlobalTableKey gkey, int state, long globalSerialId, Func<Protocol, Task<long>> response)
+                Binary gkey, int state, long globalSerialId, Func<Protocol, Task<long>> response)
             { 
                 if (sessions.TryGetValue(serverId, out var session))
                     return session.Reduce(gkey, state, globalSerialId, response);
@@ -729,7 +729,7 @@ namespace Zeze.Services
 
             public static Reduce ReduceWaitLater(ConcurrentDictionary<int, CacheHolder> sessions,
                 int serverId, out CacheHolder session,
-                GlobalTableKey gkey, int state, long globalSerialId)
+                Binary gkey, int state, long globalSerialId)
             {
                 if (sessions.TryGetValue(serverId, out session))
                     return session.ReduceWaitLater(gkey, state, globalSerialId);
@@ -737,7 +737,7 @@ namespace Zeze.Services
                 return null;
             }
 
-            public bool Reduce(GlobalTableKey gkey, int state, long globalSerialId, Func<Protocol, Task<long>> response)
+            public bool Reduce(Binary gkey, int state, long globalSerialId, Func<Protocol, Task<long>> response)
             {
                 try
                 {
@@ -750,7 +750,7 @@ namespace Zeze.Services
                     if (null != peer)
                     {
                         var reduce = new Reduce();
-                        reduce.Argument.GlobalTableKey = gkey;
+                        reduce.Argument.GlobalKey = gkey;
                         reduce.Argument.State = state;
                         reduce.Argument.GlobalSerialId = globalSerialId;
                         if (reduce.Send(peer, response, 10000))
@@ -784,7 +784,7 @@ namespace Zeze.Services
             /// <param name="gkey"></param>
             /// <param name="state"></param>
             /// <returns></returns>
-            public Reduce ReduceWaitLater(GlobalTableKey gkey, int state, long globalSerialId)
+            public Reduce ReduceWaitLater(Binary gkey, int state, long globalSerialId)
             {
                 try
                 {
@@ -797,7 +797,7 @@ namespace Zeze.Services
                     if (null != peer)
                     {
                         var reduce = new Reduce();
-                        reduce.Argument.GlobalTableKey = gkey;
+                        reduce.Argument.GlobalKey = gkey;
                         reduce.Argument.State = state;
                         reduce.Argument.GlobalSerialId = globalSerialId;
                         _ = reduce.SendAsync(peer, 10000);

@@ -1,6 +1,6 @@
 package Zeze.Services;
 
-import Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey;
+import Zeze.Net.Binary;
 import Zeze.Util.WeakHashSet;
 
 /**
@@ -103,11 +103,11 @@ public final class GlobalLocks {
 		return segmentFor(lockey).Get(lockey);
 	}
 
-	public GlobalLockey Get(GlobalTableKey tkey) {
+	public GlobalLockey Get(Binary tkey) {
 		return Get(new GlobalLockey(tkey));
 	}
 
-	public boolean Contains(GlobalTableKey tkey) {
+	public boolean Contains(Binary tkey) {
 		return Contains(new GlobalLockey(tkey));
 	}
 }

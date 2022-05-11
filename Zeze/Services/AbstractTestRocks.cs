@@ -39,8 +39,8 @@ namespace Zeze.Services
             Zeze.Raft.RocksRaft.Rocks.RegisterLog<Zeze.Raft.RocksRaft.Log<string>>();
             Zeze.Raft.RocksRaft.Rocks.RegisterLog<Zeze.Raft.RocksRaft.Log<Zeze.Net.Binary>>();
             Zeze.Raft.RocksRaft.Rocks.RegisterLog<Zeze.Raft.RocksRaft.LogSet1<int>>();
-            Zeze.Raft.RocksRaft.Rocks.RegisterLog<Zeze.Raft.RocksRaft.LogSet1<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey>>();
-            Zeze.Raft.RocksRaft.Rocks.RegisterLog<Zeze.Raft.RocksRaft.Log<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey>>();
+            Zeze.Raft.RocksRaft.Rocks.RegisterLog<Zeze.Raft.RocksRaft.LogSet1<Zeze.Builtin.TestRocks.BeanKey>>();
+            Zeze.Raft.RocksRaft.Rocks.RegisterLog<Zeze.Raft.RocksRaft.Log<Zeze.Builtin.TestRocks.BeanKey>>();
             Zeze.Raft.RocksRaft.Rocks.RegisterLog<Zeze.Raft.RocksRaft.LogMap1<int, int>>();
             Zeze.Raft.RocksRaft.Rocks.RegisterLog<Zeze.Raft.RocksRaft.LogMap2<int, Zeze.Builtin.TestRocks.Value>>();
         }

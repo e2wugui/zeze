@@ -16,22 +16,17 @@
 				<variable id="1" name="State" type="int"/>
 			</bean>
 
-			<table name="Global" key="GlobalTableKey" value="CacheState" kind="rocks" />
-			<table name="Session" key="GlobalTableKey" value="AcquiredState" kind="rocks" />
+			<table name="Global" key="binary" value="CacheState" kind="rocks" />
+			<table name="Session" key="binary" value="AcquiredState" kind="rocks" />
 
 			<!-- rpc -->
-			<beankey name="GlobalTableKey">
-				<variable id="1" name="Id" type="int"/>
-				<variable id="2" name="Key" type="binary"/>
-			</beankey>
-
 			<bean name="AcquireParam">
-				<variable id="1" name="GlobalTableKey" type="GlobalTableKey"/>
+				<variable id="1" name="GlobalKey" type="binary"/>
 				<variable id="2" name="State" type="int"/>
 			</bean>
 
 			<bean name="ReduceParam">
-				<variable id="1" name="GlobalTableKey" type="GlobalTableKey"/>
+				<variable id="1" name="GlobalKey" type="binary"/>
 				<variable id="2" name="State" type="int"/>
 				<variable id="3" name="GlobalSerialId" type="long"/>
 			</bean>
@@ -58,6 +53,11 @@
 
 		<!-- Rocks 测试模块 -->
 		<module name="TestRocks" id="11002">
+			<beankey name="BeanKey">
+				<variable id="1" name="Id" type="int"/>
+				<variable id="2" name="Name" type="string"/>
+			</beankey>
+
 			<bean name="Value" kind="rocks">
 				<variable id="1" name="Int" type="int"/>
 				<variable id="2" name="Bool" type="bool"/>
@@ -66,10 +66,10 @@
 				<variable id="5" name="String" type="string"/>
 				<variable id="6" name="Binary" type="binary"/>
 				<variable id="7" name="SetInt" type="set" value="int"/>
-				<variable id="8" name="SetBeankey" type="set" value="Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey"/>
+				<variable id="8" name="SetBeankey" type="set" value="BeanKey"/>
 				<variable id="9" name="MapInt" type="map" key="int" value="int"/>
 				<variable id="10" name="MapBean" type="map" key="int" value="Value"/>
-				<variable id="11" name="Beankey" type="Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey"/>
+				<variable id="11" name="Beankey" type="BeanKey"/>
 			</bean>
 
 			<table name="tRocks" key="int" value="Value" kind="rocks"/>

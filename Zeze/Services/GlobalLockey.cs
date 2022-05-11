@@ -7,6 +7,7 @@ using Zeze.Builtin.GlobalCacheManagerWithRaft;
 using System.Threading;
 using System.Threading.Tasks;
 using Zeze.Raft.RocksRaft;
+using Zeze.Net;
 
 namespace Zeze.Services
 {
@@ -60,7 +61,7 @@ namespace Zeze.Services
 
 	public sealed class GlobalLockey : System.IComparable<GlobalLockey>
     {
-		public GlobalTableKey GlobalTableKey { get; }
+		public Binary GlobalKey { get; }
 		internal Nito.AsyncEx.AsyncMonitor Monitor { get; set; } = new();
 
 		/// <summary>
@@ -68,9 +69,9 @@ namespace Zeze.Services
 		/// 不要自己构造这个对象。开放出去仅仅为了测试。
 		/// </summary>
 		/// <param name="key"></param>
-		public GlobalLockey(GlobalTableKey key)
+		public GlobalLockey(Binary key)
 		{
-			GlobalTableKey = key;
+			GlobalKey = key;
 		}
 
 		public int CompareTo(GlobalLockey other)
@@ -78,12 +79,12 @@ namespace Zeze.Services
 			if (other == null)
 				return 1; // null always small
 
-			return GlobalTableKey.CompareTo(other.GlobalTableKey);
+			return GlobalKey.CompareTo(other.GlobalKey);
         }
 
         public override int GetHashCode()
         {
-            return GlobalTableKey.GetHashCode();
+            return GlobalKey.GetHashCode();
         }
 
         public override bool Equals(object obj)
@@ -92,7 +93,7 @@ namespace Zeze.Services
 				return true;
 
 			if (obj is GlobalLockey another)
-	            return GlobalTableKey.Equals(another.GlobalTableKey);
+	            return GlobalKey.Equals(another.GlobalKey);
 
 			return false;
         }
@@ -208,7 +209,7 @@ namespace Zeze.Services
 			return SegmentFor(lockey).Get(lockey);
 		}
 
-		public GlobalLockAsync Get(GlobalTableKey tkey)
+		public GlobalLockAsync Get(Binary tkey)
         {
 			return new GlobalLockAsync(Get(new GlobalLockey(tkey)));
         }

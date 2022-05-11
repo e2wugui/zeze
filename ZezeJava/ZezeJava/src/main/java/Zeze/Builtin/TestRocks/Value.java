@@ -12,10 +12,10 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
     private String _String;
     private Zeze.Net.Binary _Binary;
     private final Zeze.Raft.RocksRaft.CollSet1<Integer> _SetInt;
-    private final Zeze.Raft.RocksRaft.CollSet1<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey> _SetBeankey;
+    private final Zeze.Raft.RocksRaft.CollSet1<Zeze.Builtin.TestRocks.BeanKey> _SetBeankey;
     private final Zeze.Raft.RocksRaft.CollMap1<Integer, Integer> _MapInt;
     private final Zeze.Raft.RocksRaft.CollMap2<Integer, Zeze.Builtin.TestRocks.Value> _MapBean;
-    private Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey _Beankey;
+    private Zeze.Builtin.TestRocks.BeanKey _Beankey;
 
     private Object __zeze_map_key__;
 
@@ -169,7 +169,7 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
         return _SetInt;
     }
 
-    public Zeze.Raft.RocksRaft.CollSet1<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey> getSetBeankey() {
+    public Zeze.Raft.RocksRaft.CollSet1<Zeze.Builtin.TestRocks.BeanKey> getSetBeankey() {
         return _SetBeankey;
     }
 
@@ -182,7 +182,7 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
     }
 
     @SuppressWarnings("unchecked")
-    public Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey getBeankey() {
+    public Zeze.Builtin.TestRocks.BeanKey getBeankey() {
         if (!isManaged())
             return _Beankey;
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
@@ -191,10 +191,10 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
         var log = txn.GetLog(getObjectId() + 11);
         if (null == log)
             return _Beankey;
-        return ((Zeze.Raft.RocksRaft.Log1.LogBeanKey<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey>)log).Value;
+        return ((Zeze.Raft.RocksRaft.Log1.LogBeanKey<Zeze.Builtin.TestRocks.BeanKey>)log).Value;
     }
 
-    public void setBeankey(Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey value) {
+    public void setBeankey(Zeze.Builtin.TestRocks.BeanKey value) {
         if (value == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
@@ -203,7 +203,7 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
         }
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
         assert txn != null;
-        txn.PutLog(new Zeze.Raft.RocksRaft.Log1.LogBeanKey<>(Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey.class, this, 11, value));
+        txn.PutLog(new Zeze.Raft.RocksRaft.Log1.LogBeanKey<>(Zeze.Builtin.TestRocks.BeanKey.class, this, 11, value));
     }
 
     public Value() {
@@ -216,13 +216,13 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
         _Binary = Zeze.Net.Binary.Empty;
         _SetInt = new Zeze.Raft.RocksRaft.CollSet1<>(Integer.class);
         _SetInt.VariableId = 7;
-        _SetBeankey = new Zeze.Raft.RocksRaft.CollSet1<>(Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey.class);
+        _SetBeankey = new Zeze.Raft.RocksRaft.CollSet1<>(Zeze.Builtin.TestRocks.BeanKey.class);
         _SetBeankey.VariableId = 8;
         _MapInt = new Zeze.Raft.RocksRaft.CollMap1<>(Integer.class, Integer.class);
         _MapInt.VariableId = 9;
         _MapBean = new Zeze.Raft.RocksRaft.CollMap2<>(Integer.class, Zeze.Builtin.TestRocks.Value.class);
         _MapBean.VariableId = 10;
-        _Beankey = new Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey();
+        _Beankey = new Zeze.Builtin.TestRocks.BeanKey();
     }
 
     public void Assign(Value other) {
@@ -495,7 +495,7 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadBean(new Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey(), _t_));
+                    _x_.add(_o_.ReadBean(new Zeze.Builtin.TestRocks.BeanKey(), _t_));
             } else
                 _o_.SkipUnknownField(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -560,7 +560,7 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
             case 8: _SetBeankey.LeaderApplyNoRecursive(vlog); break;
             case 9: _MapInt.LeaderApplyNoRecursive(vlog); break;
             case 10: _MapBean.LeaderApplyNoRecursive(vlog); break;
-            case 11: _Beankey = ((Zeze.Raft.RocksRaft.Log1.LogBeanKey<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey>)vlog).Value; break;
+            case 11: _Beankey = ((Zeze.Raft.RocksRaft.Log1.LogBeanKey<Zeze.Builtin.TestRocks.BeanKey>)vlog).Value; break;
         }
     }
 
@@ -583,7 +583,7 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
                 case 8: _SetBeankey.FollowerApply(vlog); break;
                 case 9: _MapInt.FollowerApply(vlog); break;
                 case 10: _MapBean.FollowerApply(vlog); break;
-                case 11: _Beankey = ((Zeze.Raft.RocksRaft.Log1.LogBeanKey<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey>)vlog).Value; break;
+                case 11: _Beankey = ((Zeze.Raft.RocksRaft.Log1.LogBeanKey<Zeze.Builtin.TestRocks.BeanKey>)vlog).Value; break;
             }
         }
     }

@@ -3,6 +3,8 @@ using Zeze.Builtin.GlobalCacheManagerWithRaft;
 using System.Threading.Tasks;
 using System;
 using Zeze.Transaction;
+using Zeze.Net;
+using Zeze.Serialize;
 
 namespace Zeze.Services
 {
@@ -64,14 +66,14 @@ namespace Zeze.Services
             public ReduceBridge(Reduce real)
             {
                 Real = real;
-                Argument.GlobalTableKey = real.Argument.GlobalTableKey;
+                Argument.GlobalKey = real.Argument.GlobalKey;
                 Argument.State = real.Argument.State;
                 Argument.GlobalSerialId = real.Argument.GlobalSerialId;
             }
 
             public override void SendResult(Zeze.Net.Binary result = null)
             {
-                Real.Result.GlobalTableKey = Real.Argument.GlobalTableKey; // no change
+                Real.Result.GlobalKey = Real.Argument.GlobalKey; // no change
                 Real.Result.GlobalSerialId = Result.GlobalSerialId;
                 Real.Result.State = Result.State;
 
@@ -80,7 +82,7 @@ namespace Zeze.Services
 
             public override void SendResultCode(long code, Zeze.Net.Binary result = null)
             {
-                Real.Result.GlobalTableKey = Real.Argument.GlobalTableKey; // no change
+                Real.Result.GlobalKey = Real.Argument.GlobalKey; // no change
                 Real.Result.GlobalSerialId = Result.GlobalSerialId;
                 Real.Result.State = Result.State;
 
@@ -95,32 +97,36 @@ namespace Zeze.Services
             {
                 case GlobalCacheManagerServer.StateInvalid:
                     {
-                        var table = Zeze.GetTable(rpc.Argument.GlobalTableKey.Id);
+                        var bb = ByteBuffer.Wrap(rpc.Argument.GlobalKey);
+                        var tableId = bb.ReadInt4();
+                        var table = Zeze.GetTable(tableId);
                         if (table == null)
                         {
-                            logger.Warn($"ReduceInvalid Table Not Found={rpc.Argument.GlobalTableKey.Id},ServerId={Zeze.Config.ServerId}");
+                            logger.Warn($"ReduceInvalid Table Not Found={tableId},ServerId={Zeze.Config.ServerId}");
                             // 本地没有找到表格看作成功。
-                            rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
+                            rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
                             rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                             rpc.SendResultCode(0);
                             return 0;
                         }
-                        return await table.ReduceInvalid(new ReduceBridge(rpc));
+                        return await table.ReduceInvalid(new ReduceBridge(rpc), bb);
                     }
 
                 case GlobalCacheManagerServer.StateShare:
                     {
-                        var table = Zeze.GetTable(rpc.Argument.GlobalTableKey.Id);
+                        var bb = ByteBuffer.Wrap(rpc.Argument.GlobalKey);
+                        var tableId = bb.ReadInt4();
+                        var table = Zeze.GetTable(tableId);
                         if (table == null)
                         {
-                            logger.Warn($"ReduceShare Table Not Found={rpc.Argument.GlobalTableKey.Id},ServerId={Zeze.Config.ServerId}");
+                            logger.Warn($"ReduceShare Table Not Found={tableId},ServerId={Zeze.Config.ServerId}");
                             // 本地没有找到表格看作成功。
-                            rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
+                            rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
                             rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                             rpc.SendResultCode(0);
                             return 0;
                         }
-                        return await table.ReduceShare(new ReduceBridge(rpc));
+                        return await table.ReduceShare(new ReduceBridge(rpc), bb);
                     }
 
                 default:
@@ -132,12 +138,12 @@ namespace Zeze.Services
 
         internal RaftAgent[] Agents;
 
-        public int GetGlobalCacheManagerHashIndex(GlobalTableKey gkey)
+        public int GetGlobalCacheManagerHashIndex(Binary gkey)
         {
             return gkey.GetHashCode() % Agents.Length;
         }
 
-        public async Task<(long, int, long)> Acquire(GlobalTableKey gkey, int state)
+        public async Task<(long, int, long)> Acquire(Binary gkey, int state)
         {
             if (null != Agents)
             {
@@ -146,7 +152,7 @@ namespace Zeze.Services
                 await agent.WaitLoginSuccess();
 
                 var rpc = new Acquire();
-                rpc.Argument.GlobalTableKey = gkey;
+                rpc.Argument.GlobalKey = gkey;
                 rpc.Argument.State = state;
                 await agent.RaftClient.SendAsync(rpc);
 

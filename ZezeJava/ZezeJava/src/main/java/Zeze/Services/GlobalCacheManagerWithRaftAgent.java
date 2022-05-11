@@ -4,13 +4,13 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Login;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.NormalClose;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.ReLogin;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce;
+import Zeze.Net.Binary;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.IGlobalAgent;
-import Zeze.Transaction.Table;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
@@ -72,7 +72,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 
 		public ReduceBridge(Reduce real) {
 			Real = real;
-			Argument.GlobalTableKey = real.Argument.getGlobalTableKey();
+			Argument.GlobalKey = real.Argument.getGlobalKey();
 			Argument.State = real.Argument.getState();
 			Argument.GlobalSerialId = real.Argument.getGlobalSerialId();
 		}
@@ -84,7 +84,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 
 		@Override
 		public void SendResult(Zeze.Net.Binary result) {
-			Real.Result.setGlobalTableKey(Real.Argument.getGlobalTableKey()); // no change
+			Real.Result.setGlobalKey(Real.Argument.getGlobalKey()); // no change
 			Real.Result.setGlobalSerialId(Result.GlobalSerialId);
 			Real.Result.setState(Result.State);
 			Real.SendResult(result);
@@ -97,7 +97,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 
 		@Override
 		public void SendResultCode(long code, Zeze.Net.Binary result) {
-			Real.Result.setGlobalTableKey(Real.Argument.getGlobalTableKey()); // no change
+			Real.Result.setGlobalKey(Real.Argument.getGlobalKey()); // no change
 			Real.Result.setGlobalSerialId(Result.GlobalSerialId);
 			Real.Result.setState(Result.State);
 			Real.SendResultCode(code, result);
@@ -108,31 +108,35 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	protected long ProcessReduceRequest(Reduce rpc) {
 		switch (rpc.Argument.getState()) {
 		case GlobalCacheManagerServer.StateInvalid: {
-			var table = zz.GetTable(rpc.Argument.getGlobalTableKey().getId());
+			var bb = ByteBuffer.Wrap(rpc.Argument.getGlobalKey());
+			var tableId = bb.ReadInt4();
+			var table = zz.GetTable(tableId);
 			if (table == null) {
 				logger.warn("ReduceInvalid Table Not Found={},ServerId={}",
-						rpc.Argument.getGlobalTableKey().getId(), zz.getConfig().getServerId());
+						tableId, zz.getConfig().getServerId());
 				// 本地没有找到表格看作成功。
-				rpc.Result.setGlobalTableKey(rpc.Argument.getGlobalTableKey());
+				rpc.Result.setGlobalKey(rpc.Argument.getGlobalKey());
 				rpc.Result.setState(GlobalCacheManagerServer.StateInvalid);
 				rpc.SendResultCode(0);
 				return 0;
 			}
-			return table.ReduceInvalid(new ReduceBridge(rpc));
+			return table.ReduceInvalid(new ReduceBridge(rpc), bb);
 		}
 
 		case GlobalCacheManagerServer.StateShare: {
-			var table = zz.GetTable(rpc.Argument.getGlobalTableKey().getId());
+			var bb = ByteBuffer.Wrap(rpc.Argument.getGlobalKey());
+			var tableId = bb.ReadInt4();
+			var table = zz.GetTable(tableId);
 			if (table == null) {
 				logger.warn("ReduceShare Table Not Found={},ServerId={}",
-						rpc.Argument.getGlobalTableKey().getId(), zz.getConfig().getServerId());
+						tableId, zz.getConfig().getServerId());
 				// 本地没有找到表格看作成功。
-				rpc.Result.setGlobalTableKey(rpc.Argument.getGlobalTableKey());
+				rpc.Result.setGlobalKey(rpc.Argument.getGlobalKey());
 				rpc.Result.setState(GlobalCacheManagerServer.StateInvalid);
 				rpc.SendResultCode(0);
 				return 0;
 			}
-			return table.ReduceShare(new ReduceBridge(rpc));
+			return table.ReduceShare(new ReduceBridge(rpc), bb);
 		}
 
 		default:
@@ -143,12 +147,12 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	}
 
 	@Override
-	public final int GetGlobalCacheManagerHashIndex(GlobalTableKey gkey) {
+	public final int GetGlobalCacheManagerHashIndex(Binary gkey) {
 		return gkey.hashCode() % Agents.length;
 	}
 
 	@Override
-	public IGlobalAgent.AcquireResult Acquire(GlobalTableKey gkey, int state) {
+	public IGlobalAgent.AcquireResult Acquire(Binary gkey, int state) {
 		if (Agents != null) {
 			var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
 
@@ -163,7 +167,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			}
 
 			var rpc = new Acquire();
-			rpc.Argument.setGlobalTableKey(gkey);
+			rpc.Argument.setGlobalKey(gkey);
 			rpc.Argument.setState(state);
 			agent.RaftClient.SendForWait(rpc).await();
 

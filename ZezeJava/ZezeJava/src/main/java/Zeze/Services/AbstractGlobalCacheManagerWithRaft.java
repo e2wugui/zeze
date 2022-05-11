@@ -77,8 +77,8 @@ public abstract class AbstractGlobalCacheManagerWithRaft extends Zeze.IModule {
     }
 
     public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
-        rocks.RegisterTableTemplate("Global", Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey.class, Zeze.Builtin.GlobalCacheManagerWithRaft.CacheState.class);
-        rocks.RegisterTableTemplate("Session", Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey.class, Zeze.Builtin.GlobalCacheManagerWithRaft.AcquiredState.class);
+        rocks.RegisterTableTemplate("Global", Zeze.Net.Binary.class, Zeze.Builtin.GlobalCacheManagerWithRaft.CacheState.class);
+        rocks.RegisterTableTemplate("Session", Zeze.Net.Binary.class, Zeze.Builtin.GlobalCacheManagerWithRaft.AcquiredState.class);
         Zeze.Raft.RocksRaft.Rocks.RegisterLog(() -> new Zeze.Raft.RocksRaft.LogSet1<>(Integer.class));
     }
 

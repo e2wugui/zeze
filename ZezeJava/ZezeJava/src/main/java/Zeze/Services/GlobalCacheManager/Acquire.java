@@ -1,6 +1,6 @@
 package Zeze.Services.GlobalCacheManager;
 
-import Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey;
+import Zeze.Net.Binary;
 
 public class Acquire extends Zeze.Net.Rpc<Param, Param2> {
 	public static final int ProtocolId_ = Zeze.Transaction.Bean.Hash32(Acquire.class.getName());
@@ -21,10 +21,10 @@ public class Acquire extends Zeze.Net.Rpc<Param, Param2> {
 		Result = new Param2();
 	}
 
-	public Acquire(GlobalTableKey gkey, int state) {
+	public Acquire(Binary gkey, int state) {
 		Argument = new Param();
 		Result = new Param2();
-		Argument.GlobalTableKey = gkey;
+		Argument.GlobalKey = gkey;
 		Argument.State = state;
 	}
 }

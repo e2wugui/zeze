@@ -127,7 +127,7 @@ namespace Zeze.Transaction
                 return (0, state, 0);
             }
 
-            var gkey = new Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey(TTable.Id, new Zeze.Net.Binary(TTable.EncodeKey(Key)));
+            var gkey = TTable.EncodeGlobalKey(Key);
             logger.Debug("Acquire NewState={0} {1}", state, this);
 #if ENABLE_STATISTICS
             var stat = TableStatistics.Instance.GetOrAdd(TTable.Id);

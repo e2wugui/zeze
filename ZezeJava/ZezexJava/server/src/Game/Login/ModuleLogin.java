@@ -24,7 +24,7 @@ public final class ModuleLogin extends AbstractModule {
 	protected long ProcessCreateRoleRequest(CreateRole rpc) {
 		var session = ProviderUserSession.Get(rpc);
 
-		BRole role = new BRole();
+		var role = new BRole();
 
 		long roleId = autoKey.nextId();
 		role.setId(roleId);

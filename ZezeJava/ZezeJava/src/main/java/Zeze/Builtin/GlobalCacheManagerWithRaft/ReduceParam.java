@@ -5,32 +5,32 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class ReduceParam extends Zeze.Transaction.Bean {
-    private Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey _GlobalTableKey;
+    private Zeze.Net.Binary _GlobalKey;
     private int _State;
     private long _GlobalSerialId;
 
-    public Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey getGlobalTableKey() {
+    public Zeze.Net.Binary getGlobalKey() {
         if (!isManaged())
-            return _GlobalTableKey;
+            return _GlobalKey;
         var txn = Zeze.Transaction.Transaction.getCurrent();
         if (txn == null)
-            return _GlobalTableKey;
+            return _GlobalKey;
         txn.VerifyRecordAccessed(this, true);
-        var log = (Log__GlobalTableKey)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _GlobalTableKey;
+        var log = (Log__GlobalKey)txn.GetLog(this.getObjectId() + 1);
+        return log != null ? log.getValue() : _GlobalKey;
     }
 
-    public void setGlobalTableKey(Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey value) {
+    public void setGlobalKey(Zeze.Net.Binary value) {
         if (value == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _GlobalTableKey = value;
+            _GlobalKey = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__GlobalTableKey(this, 1, value));
+        txn.PutLog(new Log__GlobalKey(this, 1, value));
     }
 
     public int getState() {
@@ -83,11 +83,11 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
 
     public ReduceParam(int _varId_) {
         super(_varId_);
-        _GlobalTableKey = new Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey();
+        _GlobalKey = Zeze.Net.Binary.Empty;
     }
 
     public void Assign(ReduceParam other) {
-        setGlobalTableKey(other.getGlobalTableKey());
+        setGlobalKey(other.getGlobalKey());
         setState(other.getState());
         setGlobalSerialId(other.getGlobalSerialId());
     }
@@ -120,10 +120,10 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__GlobalTableKey extends Zeze.Transaction.Log1<ReduceParam, Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey> {
-       public Log__GlobalTableKey(ReduceParam bean, int varId, Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey value) { super(bean, varId, value); }
+    private static final class Log__GlobalKey extends Zeze.Transaction.Log1<ReduceParam, Zeze.Net.Binary> {
+       public Log__GlobalKey(ReduceParam bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
         @Override
-        public void Commit() { getBeanTyped()._GlobalTableKey = this.getValue(); }
+        public void Commit() { getBeanTyped()._GlobalKey = this.getValue(); }
     }
 
     private static final class Log__State extends Zeze.Transaction.Log1<ReduceParam, Integer> {
@@ -150,9 +150,7 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
     public void BuildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.ReduceParam: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("GlobalTableKey").append('=').append(System.lineSeparator());
-        getGlobalTableKey().BuildString(sb, level + 4);
-        sb.append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("GlobalKey").append('=').append(getGlobalKey()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("State").append('=').append(getState()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("GlobalSerialId").append('=').append(getGlobalSerialId()).append(System.lineSeparator());
         level -= 4;
@@ -175,14 +173,11 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
     public void Encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            int _a_ = _o_.WriteIndex;
-            int _j_ = _o_.WriteTag(_i_, 1, ByteBuffer.BEAN);
-            int _b_ = _o_.WriteIndex;
-            getGlobalTableKey().Encode(_o_);
-            if (_b_ + 1 == _o_.WriteIndex)
-                _o_.WriteIndex = _a_;
-            else
-                _i_ = _j_;
+            var _x_ = getGlobalKey();
+            if (_x_.size() != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
+                _o_.WriteBinary(_x_);
+            }
         }
         {
             int _x_ = getState();
@@ -206,7 +201,7 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            _o_.ReadBean(getGlobalTableKey(), _t_);
+            setGlobalKey(_o_.ReadBinary(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
@@ -229,8 +224,6 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
 
     @Override
     public boolean NegativeCheck() {
-        if (getGlobalTableKey().NegativeCheck())
-            return true;
         if (getState() < 0)
             return true;
         if (getGlobalSerialId() < 0)
@@ -238,7 +231,6 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
         return false;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public void FollowerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();
@@ -247,7 +239,7 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _GlobalTableKey = ((Zeze.Transaction.Logs.LogBeanKey<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey>)vlog).Value; break;
+                case 1: _GlobalKey = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
                 case 2: _State = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
                 case 3: _GlobalSerialId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
             }

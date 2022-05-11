@@ -11,39 +11,38 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
         public bool NegativeCheck();
         public Zeze.Transaction.Bean CopyBean();
 
-        public Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey GlobalTableKey { get; }
+        public Zeze.Net.Binary GlobalKey { get; }
         public int State { get; }
     }
 
     public sealed class AcquireParam : Zeze.Transaction.Bean, AcquireParamReadOnly
     {
-        Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey _GlobalTableKey;
+        Zeze.Net.Binary _GlobalKey;
         int _State;
 
-        public Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey GlobalTableKey
+        public Zeze.Net.Binary GlobalKey
         {
             get
             {
                 if (!IsManaged)
-                    return _GlobalTableKey;
+                    return _GlobalKey;
                 var txn = Zeze.Transaction.Transaction.Current;
-                if (txn == null) return _GlobalTableKey;
+                if (txn == null) return _GlobalKey;
                 txn.VerifyRecordAccessed(this, true);
-                var log = (Log__GlobalTableKey)txn.GetLog(ObjectId + 1);
-                return log != null ? log.Value : _GlobalTableKey;
+                var log = (Log__GlobalKey)txn.GetLog(ObjectId + 1);
+                return log != null ? log.Value : _GlobalKey;
             }
             set
             {
-                if (value == null)
-                    throw new System.ArgumentNullException(nameof(value));
+                if (value == null) throw new System.ArgumentNullException(nameof(value));
                 if (!IsManaged)
                 {
-                    _GlobalTableKey = value;
+                    _GlobalKey = value;
                     return;
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__GlobalTableKey() { Belong = this, VariableId = 1, Value = value });
+                txn.PutLog(new Log__GlobalKey() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -78,12 +77,12 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
 
         public AcquireParam(int _varId_) : base(_varId_)
         {
-            _GlobalTableKey = new Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey();
+            _GlobalKey = Zeze.Net.Binary.Empty;
         }
 
         public void Assign(AcquireParam other)
         {
-            GlobalTableKey = other.GlobalTableKey;
+            GlobalKey = other.GlobalKey;
             State = other.State;
         }
 
@@ -114,9 +113,9 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
         public const long TYPEID = 8991661748018394550;
         public override long TypeId => TYPEID;
 
-        sealed class Log__GlobalTableKey : Zeze.Transaction.Log<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey>
+        sealed class Log__GlobalKey : Zeze.Transaction.Log<Zeze.Net.Binary>
         {
-            public override void Commit() { ((AcquireParam)Belong)._GlobalTableKey = this.Value; }
+            public override void Commit() { ((AcquireParam)Belong)._GlobalKey = this.Value; }
         }
 
         sealed class Log__State : Zeze.Transaction.Log<int>
@@ -136,9 +135,7 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
         {
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Builtin.GlobalCacheManagerWithRaft.AcquireParam: {").Append(Environment.NewLine);
             level += 4;
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("GlobalTableKey").Append('=').Append(Environment.NewLine);
-            GlobalTableKey.BuildString(sb, level + 4);
-            sb.Append(',').Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("GlobalKey").Append('=').Append(GlobalKey).Append(',').Append(Environment.NewLine);
             sb.Append(Zeze.Util.Str.Indent(level)).Append("State").Append('=').Append(State).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
@@ -148,14 +145,12 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
         {
             int _i_ = 0;
             {
-                int _a_ = _o_.WriteIndex;
-                int _j_ = _o_.WriteTag(_i_, 1, ByteBuffer.BEAN);
-                int _b_ = _o_.WriteIndex;
-                GlobalTableKey.Encode(_o_);
-                if (_b_ + 1 == _o_.WriteIndex)
-                    _o_.WriteIndex = _a_;
-                else
-                    _i_ = _j_;
+                var _x_ = GlobalKey;
+                if (_x_.Count != 0)
+                {
+                    _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
+                    _o_.WriteBinary(_x_);
+                }
             }
             {
                 int _x_ = State;
@@ -174,7 +169,7 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             int _i_ = _o_.ReadTagSize(_t_);
             if (_i_ == 1)
             {
-                _o_.ReadBean(GlobalTableKey, _t_);
+                GlobalKey = _o_.ReadBinary(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             if (_i_ == 2)
@@ -195,7 +190,6 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
 
         public override bool NegativeCheck()
         {
-            if (GlobalTableKey.NegativeCheck()) return true;
             if (State < 0) return true;
             return false;
         }
@@ -207,7 +201,7 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _GlobalTableKey = ((Zeze.Transaction.Log<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey>)vlog).Value; break;
+                    case 1: _GlobalKey = ((Zeze.Transaction.Log<Zeze.Net.Binary>)vlog).Value; break;
                     case 2: _State = ((Zeze.Transaction.Log<int>)vlog).Value; break;
                 }
             }

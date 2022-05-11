@@ -2,7 +2,7 @@ package Zeze.Transaction;
 
 import java.util.Map;
 import Zeze.Application;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey;
+import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Services.GlobalCacheManagerServer;
@@ -85,12 +85,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@Override
-	public int ReduceShare(Reduce rpc) {
-		rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
+	public int ReduceShare(Reduce rpc, ByteBuffer bbKey) {
+		rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
 		rpc.Result.State = rpc.Argument.State;
 		rpc.Result.GlobalSerialId = rpc.Argument.GlobalSerialId;
 
-		K key = DecodeKey(ByteBuffer.Wrap(rpc.Argument.GlobalTableKey.getKey()));
+		K key = DecodeKey(bbKey);
 
 		logger.debug("Reduce NewState={}", rpc);
 
@@ -178,12 +178,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@Override
-	public int ReduceInvalid(Reduce rpc) {
-		rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
+	public int ReduceInvalid(Reduce rpc, ByteBuffer bbKey) {
+		rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
 		rpc.Result.State = rpc.Argument.State;
 		rpc.Result.GlobalSerialId = rpc.Argument.GlobalSerialId;
 
-		K key = DecodeKey(ByteBuffer.Wrap(rpc.Argument.GlobalTableKey.getKey()));
+		K key = DecodeKey(bbKey);
 
 		//logger.Debug("Reduce NewState={0}", rpc.Argument.State);
 
@@ -254,10 +254,17 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return 0;
 	}
 
+	public Binary EncodeGlobalKey(K key) {
+		var bb = ByteBuffer.Allocate();
+		bb.WriteInt4(getId());
+		var bbKey = EncodeKey(key);
+		bb.Append(bbKey.Bytes, bbKey.ReadIndex, bbKey.Size());
+		return new Binary(bb);
+	}
 	@Override
 	void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex) {
 		for (var e : getCache().getDataMap().entrySet()) {
-			var gkey = new GlobalTableKey(getId(), new Zeze.Net.Binary(EncodeKey(e.getKey())));
+			var gkey = EncodeGlobalKey(e.getKey());
 			if (getZeze().getGlobalAgent().GetGlobalCacheManagerHashIndex(gkey) != GlobalCacheManagerHashIndex) {
 				// 不是断开连接的GlobalCacheManager。跳过。
 				continue;

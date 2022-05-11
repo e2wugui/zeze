@@ -13,10 +13,10 @@ namespace Zeze.Builtin.TestRocks
         string _String;
         Zeze.Net.Binary _Binary;
         readonly Zeze.Raft.RocksRaft.CollSet1<int> _SetInt;
-        readonly Zeze.Raft.RocksRaft.CollSet1<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey> _SetBeankey;
+        readonly Zeze.Raft.RocksRaft.CollSet1<Zeze.Builtin.TestRocks.BeanKey> _SetBeankey;
         readonly Zeze.Raft.RocksRaft.CollMap1<int, int> _MapInt;
         readonly Zeze.Raft.RocksRaft.CollMap2<int, Zeze.Builtin.TestRocks.Value> _MapBean;
-        Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey _Beankey;
+        Zeze.Builtin.TestRocks.BeanKey _Beankey;
 
         public int _zeze_map_key_int_ { get; set; }
 
@@ -162,13 +162,13 @@ namespace Zeze.Builtin.TestRocks
 
         public Zeze.Raft.RocksRaft.CollSet1<int> SetInt => _SetInt;
 
-        public Zeze.Raft.RocksRaft.CollSet1<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey> SetBeankey => _SetBeankey;
+        public Zeze.Raft.RocksRaft.CollSet1<Zeze.Builtin.TestRocks.BeanKey> SetBeankey => _SetBeankey;
 
         public Zeze.Raft.RocksRaft.CollMap1<int, int> MapInt => _MapInt;
 
         public Zeze.Raft.RocksRaft.CollMap2<int, Zeze.Builtin.TestRocks.Value> MapBean => _MapBean;
 
-        public Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey Beankey
+        public Zeze.Builtin.TestRocks.BeanKey Beankey
         {
             get
             {
@@ -177,7 +177,7 @@ namespace Zeze.Builtin.TestRocks
                 var txn = Zeze.Raft.RocksRaft.Transaction.Current;
                 if (txn == null) return _Beankey;
                 var log = txn.GetLog(ObjectId + 11);
-                return log != null ? ((Zeze.Raft.RocksRaft.Log<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey>)log).Value : _Beankey;
+                return log != null ? ((Zeze.Raft.RocksRaft.Log<Zeze.Builtin.TestRocks.BeanKey>)log).Value : _Beankey;
             }
             set
             {
@@ -189,7 +189,7 @@ namespace Zeze.Builtin.TestRocks
                     return;
                 }
                 var txn = Zeze.Raft.RocksRaft.Transaction.Current;
-                txn.PutLog(new Zeze.Raft.RocksRaft.Log<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey>() { Belong = this, VariableId = 11, Value = value, });
+                txn.PutLog(new Zeze.Raft.RocksRaft.Log<Zeze.Builtin.TestRocks.BeanKey>() { Belong = this, VariableId = 11, Value = value, });
             }
         }
 
@@ -202,10 +202,10 @@ namespace Zeze.Builtin.TestRocks
             _String = "";
             _Binary = Zeze.Net.Binary.Empty;
             _SetInt = new Zeze.Raft.RocksRaft.CollSet1<int>() { VariableId = 7 };
-            _SetBeankey = new Zeze.Raft.RocksRaft.CollSet1<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey>() { VariableId = 8 };
+            _SetBeankey = new Zeze.Raft.RocksRaft.CollSet1<Zeze.Builtin.TestRocks.BeanKey>() { VariableId = 8 };
             _MapInt = new Zeze.Raft.RocksRaft.CollMap1<int, int>() { VariableId = 9 };
             _MapBean = new Zeze.Raft.RocksRaft.CollMap2<int, Zeze.Builtin.TestRocks.Value>() { VariableId = 10 };
-            _Beankey = new Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey();
+            _Beankey = new Zeze.Builtin.TestRocks.BeanKey();
         }
 
         public void Assign(Value other)
@@ -497,7 +497,7 @@ namespace Zeze.Builtin.TestRocks
                 if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST)
                 {
                     for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                        _x_.Add(_o_.ReadBean(new Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey(), _t_));
+                        _x_.Add(_o_.ReadBean(new Zeze.Builtin.TestRocks.BeanKey(), _t_));
                 }
                 else
                     _o_.SkipUnknownField(_t_);
@@ -573,7 +573,7 @@ namespace Zeze.Builtin.TestRocks
                 case 8: _SetBeankey.LeaderApplyNoRecursive(vlog); break;
                 case 9: _MapInt.LeaderApplyNoRecursive(vlog); break;
                 case 10: _MapBean.LeaderApplyNoRecursive(vlog); break;
-                case 11: _Beankey = ((Zeze.Raft.RocksRaft.Log<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey>)vlog).Value; break;
+                case 11: _Beankey = ((Zeze.Raft.RocksRaft.Log<Zeze.Builtin.TestRocks.BeanKey>)vlog).Value; break;
             }
         }
 
@@ -594,7 +594,7 @@ namespace Zeze.Builtin.TestRocks
                     case 8: _SetBeankey.FollowerApply(vlog); break;
                     case 9: _MapInt.FollowerApply(vlog); break;
                     case 10: _MapBean.FollowerApply(vlog); break;
-                    case 11: _Beankey = ((Zeze.Raft.RocksRaft.Log<Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey>)vlog).Value; break;
+                    case 11: _Beankey = ((Zeze.Raft.RocksRaft.Log<Zeze.Builtin.TestRocks.BeanKey>)vlog).Value; break;
                 }
             }
         }

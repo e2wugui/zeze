@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 import java.io.Closeable;
+import Zeze.Net.Binary;
 
 public interface IGlobalAgent extends Closeable {
 	class AcquireResult {
@@ -15,7 +16,7 @@ public interface IGlobalAgent extends Closeable {
 		}
 	}
 
-	AcquireResult Acquire(Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey gkey, int state);
+	AcquireResult Acquire(Binary gkey, int state);
 
-	int GetGlobalCacheManagerHashIndex(Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey gkey);
+	int GetGlobalCacheManagerHashIndex(Binary gkey);
 }

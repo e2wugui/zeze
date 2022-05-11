@@ -1,27 +1,25 @@
 package Zeze.Services.GlobalCacheManager;
 
+import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey;
 
 public class Param2 extends Bean {
-    public GlobalTableKey GlobalTableKey; // 没有初始化，使用时注意
+    public Binary GlobalKey; // 没有初始化，使用时注意
     public int State;
     public long GlobalSerialId;
 
     @Override
     public void Decode(ByteBuffer bb) {
-        if (null == GlobalTableKey)
-            GlobalTableKey = new GlobalTableKey();
-        GlobalTableKey.Decode(bb);
+        GlobalKey = bb.ReadBinary();
         State = bb.ReadInt();
         GlobalSerialId = bb.ReadLong();
     }
 
     @Override
     public void Encode(ByteBuffer bb) {
-        GlobalTableKey.Encode(bb);
+        bb.WriteBinary(GlobalKey);
         bb.WriteInt(State);
         bb.WriteLong(GlobalSerialId);
     }
@@ -33,7 +31,7 @@ public class Param2 extends Bean {
 
     @Override
     public String toString() {
-        return GlobalTableKey + ":" + State;
+        return GlobalKey + ":" + State;
     }
 
     private static int _PRE_ALLOC_SIZE_ = 16;

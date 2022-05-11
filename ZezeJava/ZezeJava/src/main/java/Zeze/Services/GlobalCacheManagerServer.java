@@ -4,8 +4,8 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.Binary;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Net.Service;
@@ -46,7 +46,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 
 	private ServerService Server;
 	private AsyncSocket ServerSocket;
-	private ConcurrentHashMap<GlobalTableKey, CacheState> global;
+	private ConcurrentHashMap<Binary, CacheState> global;
 	private final AtomicLong SerialIdGenerator = new AtomicLong();
 	/*
 	 * 会话。
@@ -226,7 +226,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	private long ProcessAcquireRequest(Acquire rpc) {
 		if (ENABLE_PERF)
 			perf.onAcquireBegin(rpc);
-		rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
+		rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
 		rpc.Result.State = rpc.Argument.State; // default success
 
 		long result = 0;
@@ -238,7 +238,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 				switch (rpc.Argument.State) {
 				case StateInvalid: // release
 					var sender = (CacheHolder)rpc.getSender().getUserState();
-					rpc.Result.State = Release(sender, rpc.Argument.GlobalTableKey, true); //await 方法内有等待
+					rpc.Result.State = Release(sender, rpc.Argument.GlobalKey, true); //await 方法内有等待
 					rpc.SendResult();
 					break;
 				case StateShare:
@@ -263,7 +263,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		return result;
 	}
 
-	private int Release(CacheHolder sender, GlobalTableKey gkey, boolean noWait) throws InterruptedException {
+	private int Release(CacheHolder sender, Binary gkey, boolean noWait) throws InterruptedException {
 		while (true) {
 			CacheState cs = global.computeIfAbsent(gkey, __ -> new CacheState());
 			//noinspection SynchronizationOnLocalVariableOrMethodParameter
@@ -311,7 +311,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	private int AcquireShare(Acquire rpc) throws InterruptedException {
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
 		while (true) {
-			CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalTableKey, __ -> new CacheState());
+			CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalKey, __ -> new CacheState());
 			synchronized (cs) { //await 等锁
 				if (cs.AcquireStatePending == StateRemoved)
 					continue;
@@ -359,7 +359,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					if (cs.Modify == sender) {
 						// 已经是Modify又申请，可能是sender异常关闭，
 						// 又重启连上。更新一下。应该是不需要的。
-						sender.Acquired.put(rpc.Argument.GlobalTableKey, StateModify);
+						sender.Acquired.put(rpc.Argument.GlobalKey, StateModify);
 						cs.AcquireStatePending = StateInvalid;
 						logger.debug("4 {} {} {}", sender, rpc.Argument.State, cs);
 						rpc.Result.State = StateModify;
@@ -369,7 +369,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					}
 
 					var reduceResultState = new OutInt(StateReduceNetError); // 默认网络错误。
-					if (cs.Modify.Reduce(rpc.Argument.GlobalTableKey, cs.GlobalSerialId, p -> { //await 方法内有等待
+					if (cs.Modify.Reduce(rpc.Argument.GlobalKey, cs.GlobalSerialId, p -> { //await 方法内有等待
 						var r = (Reduce)p;
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
@@ -384,13 +384,13 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					}
 					switch (reduceResultState.Value) {
 					case StateShare:
-						cs.Modify.Acquired.put(rpc.Argument.GlobalTableKey, StateShare);
+						cs.Modify.Acquired.put(rpc.Argument.GlobalKey, StateShare);
 						cs.Share.add(cs.Modify); // 降级成功。
 						break;
 
 					case StateInvalid:
 						// 降到了 Invalid，此时就不需要加入 Share 了。
-						cs.Modify.Acquired.remove(rpc.Argument.GlobalTableKey);
+						cs.Modify.Acquired.remove(rpc.Argument.GlobalKey);
 						break;
 
 					default:
@@ -407,7 +407,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						return 0;
 					}
 
-					sender.Acquired.put(rpc.Argument.GlobalTableKey, StateShare);
+					sender.Acquired.put(rpc.Argument.GlobalKey, StateShare);
 					cs.Modify = null;
 					cs.Share.add(sender);
 					cs.AcquireStatePending = StateInvalid;
@@ -418,7 +418,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					return 0;
 				}
 
-				sender.Acquired.put(rpc.Argument.GlobalTableKey, StateShare);
+				sender.Acquired.put(rpc.Argument.GlobalKey, StateShare);
 				cs.Share.add(sender);
 				cs.AcquireStatePending = StateInvalid;
 				cs.notifyAll(); //notify
@@ -433,7 +433,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	private int AcquireModify(Acquire rpc) throws InterruptedException {
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
 		while (true) {
-			CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalTableKey, __ -> new CacheState());
+			CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalKey, __ -> new CacheState());
 			synchronized (cs) { //await 等锁
 				if (cs.AcquireStatePending == StateRemoved)
 					continue;
@@ -483,7 +483,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						logger.debug("4 {} {} {}", sender, rpc.Argument.State, cs);
 						// 已经是Modify又申请，可能是sender异常关闭，又重启连上。
 						// 更新一下。应该是不需要的。
-						sender.Acquired.put(rpc.Argument.GlobalTableKey, StateModify);
+						sender.Acquired.put(rpc.Argument.GlobalKey, StateModify);
 						cs.AcquireStatePending = StateInvalid;
 						cs.notifyAll(); //notify
 						rpc.Result.GlobalSerialId = cs.GlobalSerialId;
@@ -492,7 +492,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					}
 
 					var reduceResultState = new OutInt(StateReduceNetError); // 默认网络错误。
-					if (cs.Modify.Reduce(rpc.Argument.GlobalTableKey, cs.GlobalSerialId, p -> { //await 方法内有等待
+					if (cs.Modify.Reduce(rpc.Argument.GlobalKey, cs.GlobalSerialId, p -> { //await 方法内有等待
 						var r = (Reduce)p;
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
@@ -509,7 +509,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					//noinspection SwitchStatementWithTooFewBranches
 					switch (reduceResultState.Value) {
 					case StateInvalid:
-						cs.Modify.Acquired.remove(rpc.Argument.GlobalTableKey);
+						cs.Modify.Acquired.remove(rpc.Argument.GlobalKey);
 						break; // reduce success
 
 					default:
@@ -525,7 +525,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						return 0;
 					}
 
-					sender.Acquired.put(rpc.Argument.GlobalTableKey, StateModify);
+					sender.Acquired.put(rpc.Argument.GlobalKey, StateModify);
 					cs.Modify = sender;
 					cs.Share.remove(sender);
 					cs.AcquireStatePending = StateInvalid;
@@ -548,7 +548,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						reduceSucceed.add(sender);
 						continue;
 					}
-					Reduce reduce = c.ReduceWaitLater(rpc.Argument.GlobalTableKey, cs.GlobalSerialId);
+					Reduce reduce = c.ReduceWaitLater(rpc.Argument.GlobalKey, cs.GlobalSerialId);
 					if (reduce == null) {
 						// 网络错误不再认为成功。整个降级失败，要中断降级。
 						// 已经发出去的降级请求要等待并处理结果。后面处理。
@@ -594,13 +594,13 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						// sender 不移除：
 						// 1. 如果申请成功，后面会更新到Modify状态。
 						// 2. 如果申请不成功，恢复 cs.Share，保持 Acquired 不变。
-						succeed.Acquired.remove(rpc.Argument.GlobalTableKey);
+						succeed.Acquired.remove(rpc.Argument.GlobalKey);
 					}
 					cs.Share.remove(succeed);
 				}
 				// 如果前面降级发生中断(break)，这里就不会为0。
 				if (cs.Share.isEmpty()) {
-					sender.Acquired.put(rpc.Argument.GlobalTableKey, StateModify);
+					sender.Acquired.put(rpc.Argument.GlobalKey, StateModify);
 					cs.Modify = sender;
 					cs.AcquireStatePending = StateInvalid;
 					cs.notifyAll(); //notify
@@ -653,7 +653,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 
 		long SessionId;
 		int GlobalCacheManagerHashIndex;
-		final ConcurrentHashMap<GlobalTableKey, Integer> Acquired = new ConcurrentHashMap<>();
+		final ConcurrentHashMap<Binary, Integer> Acquired = new ConcurrentHashMap<>();
 		private volatile long LastErrorTime;
 
 		synchronized boolean TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex) {
@@ -691,7 +691,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			return String.valueOf(SessionId);
 		}
 
-		boolean Reduce(GlobalTableKey gkey, long globalSerialId, ProtocolHandle<Rpc<Param2, Param2>> response) {
+		boolean Reduce(Binary gkey, long globalSerialId, ProtocolHandle<Rpc<Param2, Param2>> response) {
 			try {
 				if (System.currentTimeMillis() - LastErrorTime < ForbidPeriod)
 					return false;
@@ -724,7 +724,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		/**
 		 * 返回null表示发生了网络错误，或者应用服务器已经关闭。
 		 */
-		Reduce ReduceWaitLater(GlobalTableKey gkey, long globalSerialId) {
+		Reduce ReduceWaitLater(Binary gkey, long globalSerialId) {
 			try {
 				if (System.currentTimeMillis() - LastErrorTime < ForbidPeriod)
 					return null;

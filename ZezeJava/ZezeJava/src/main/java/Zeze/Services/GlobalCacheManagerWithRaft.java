@@ -1,14 +1,12 @@
 package Zeze.Services;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.AcquiredState;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.CacheState;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Cleanup;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.KeepAlive;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Login;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.NormalClose;
@@ -16,6 +14,7 @@ import Zeze.Builtin.GlobalCacheManagerWithRaft.ReLogin;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.ReduceParam;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.Binary;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Raft.RaftConfig;
@@ -42,12 +41,12 @@ public class GlobalCacheManagerWithRaft
 	/**
 	 * 全局记录分配状态。
 	 */
-	private final Table<GlobalTableKey, CacheState> GlobalStates;
+	private final Table<Binary, CacheState> GlobalStates;
 	/**
 	 * 每个服务器已分配记录。
 	 * 这是个Table模板，使用的时候根据ServerId打开真正的存储表。
 	 */
-	private final TableTemplate<GlobalTableKey, AcquiredState> ServerAcquiredTemplate;
+	private final TableTemplate<Binary, AcquiredState> ServerAcquiredTemplate;
 	/*
 	 * 会话。
 	 * key是 LogicServer.Id，现在的实现就是Zeze.Config.ServerId。
@@ -79,7 +78,7 @@ public class GlobalCacheManagerWithRaft
 		RegisterRocksTables(Rocks);
 		RegisterProtocols(Rocks.getRaft().getServer());
 
-		GlobalStates = Rocks.<GlobalTableKey, CacheState>GetTableTemplate("Global").OpenTable(0);
+		GlobalStates = Rocks.<Binary, CacheState>GetTableTemplate("Global").OpenTable(0);
 		ServerAcquiredTemplate = Rocks.GetTableTemplate("Session");
 
 		Rocks.getRaft().getServer().Start();
@@ -97,7 +96,7 @@ public class GlobalCacheManagerWithRaft
 
 	@Override
 	protected long ProcessAcquireRequest(Acquire rpc) throws Throwable {
-		rpc.Result.setGlobalTableKey(rpc.Argument.getGlobalTableKey());
+		rpc.Result.setGlobalKey(rpc.Argument.getGlobalKey());
 		rpc.Result.setState(rpc.Argument.getState()); // default success
 		rpc.setResultCode(0);
 
@@ -112,7 +111,7 @@ public class GlobalCacheManagerWithRaft
 			switch (rpc.Argument.getState()) {
 			case StateInvalid: // release
 				rpc.Result.setState(_Release((CacheHolder)rpc.getSender().getUserState(),
-						rpc.Argument.getGlobalTableKey(), true));
+						rpc.Argument.getGlobalKey(), true));
 				return 0L;
 
 			case StateShare:
@@ -133,7 +132,7 @@ public class GlobalCacheManagerWithRaft
 
 	private long AcquireShare(Acquire rpc) throws InterruptedException {
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
-		GlobalTableKey globalTableKey = rpc.Argument.getGlobalTableKey();
+		var globalTableKey = rpc.Argument.getGlobalKey();
 		int acquireState = rpc.Argument.getState();
 
 		while (true) {
@@ -256,7 +255,7 @@ public class GlobalCacheManagerWithRaft
 
 	private long AcquireModify(Acquire rpc) throws InterruptedException {
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
-		GlobalTableKey globalTableKey = rpc.Argument.getGlobalTableKey();
+		var globalTableKey = rpc.Argument.getGlobalKey();
 		int acquireState = rpc.Argument.getState();
 
 		while (true) {
@@ -454,14 +453,14 @@ public class GlobalCacheManagerWithRaft
 		}
 	}
 
-	private void Release(CacheHolder sender, GlobalTableKey gkey) throws Throwable {
+	private void Release(CacheHolder sender, Binary gkey) throws Throwable {
 		Rocks.NewProcedure(() -> {
 			_Release(sender, gkey, false);
 			return 0L;
 		}).Call();
 	}
 
-	private int _Release(CacheHolder sender, GlobalTableKey gkey, boolean noWait) throws InterruptedException {
+	private int _Release(CacheHolder sender, Binary gkey, boolean noWait) throws InterruptedException {
 		while (true) {
 			var lockey = Transaction.getCurrent().AddPessimismLock(Locks.Get(gkey));
 
@@ -692,7 +691,7 @@ public class GlobalCacheManagerWithRaft
 		}
 
 		static boolean Reduce(LongConcurrentHashMap<CacheHolder> sessions, int serverId,
-							  GlobalTableKey gkey, long globalSerialId,
+							  Binary gkey, long globalSerialId,
 							  ProtocolHandle<Rpc<ReduceParam, ReduceParam>> response) {
 			var session = sessions.get(serverId);
 			if (session == null) {
@@ -703,7 +702,7 @@ public class GlobalCacheManagerWithRaft
 		}
 
 		static KV<CacheHolder, Reduce> ReduceWaitLater(LongConcurrentHashMap<CacheHolder> sessions, int serverId,
-													   GlobalTableKey gkey, long globalSerialId) {
+													   Binary gkey, long globalSerialId) {
 			CacheHolder session = sessions.get(serverId);
 			if (session == null)
 				return null;
@@ -711,7 +710,7 @@ public class GlobalCacheManagerWithRaft
 			return reduce != null ? KV.Create(session, reduce) : null;
 		}
 
-		boolean Reduce(GlobalTableKey gkey, long globalSerialId,
+		boolean Reduce(Binary gkey, long globalSerialId,
 					   ProtocolHandle<Rpc<ReduceParam, ReduceParam>> response) {
 			try {
 				synchronized (this) {
@@ -721,7 +720,7 @@ public class GlobalCacheManagerWithRaft
 				AsyncSocket peer = GlobalInstance.getRocks().getRaft().getServer().GetSocket(SessionId);
 				if (peer != null) {
 					var reduce = new Reduce();
-					reduce.Argument.setGlobalTableKey(gkey);
+					reduce.Argument.setGlobalKey(gkey);
 					reduce.Argument.setState(StateInvalid);
 					reduce.Argument.setGlobalSerialId(globalSerialId);
 					if (reduce.Send(peer, response, 10000))
@@ -742,7 +741,7 @@ public class GlobalCacheManagerWithRaft
 		/**
 		 * 返回null表示发生了网络错误，或者应用服务器已经关闭。
 		 */
-		Reduce ReduceWaitLater(GlobalTableKey gkey, long globalSerialId) {
+		Reduce ReduceWaitLater(Binary gkey, long globalSerialId) {
 			try {
 				synchronized (this) {
 					if (System.currentTimeMillis() - LastErrorTime < ForbidPeriod)
@@ -751,7 +750,7 @@ public class GlobalCacheManagerWithRaft
 				AsyncSocket peer = GlobalInstance.getRocks().getRaft().getServer().GetSocket(SessionId);
 				if (peer != null) {
 					var reduce = new Reduce();
-					reduce.Argument.setGlobalTableKey(gkey);
+					reduce.Argument.setGlobalKey(gkey);
 					reduce.Argument.setState(StateInvalid);
 					reduce.Argument.setGlobalSerialId(globalSerialId);
 					reduce.SendForWait(peer, 10000);

@@ -3,11 +3,11 @@ package Zeze.Services;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey;
+import Zeze.Net.Binary;
 import Zeze.Raft.RocksRaft.PessimismLock;
 
 public final class GlobalLockey implements Comparable<GlobalLockey>, PessimismLock {
-	private final GlobalTableKey GlobalTableKey;
+	private final Binary GlobalKey;
 	private Lock lock;
 	private Condition cond;
 
@@ -15,12 +15,12 @@ public final class GlobalLockey implements Comparable<GlobalLockey>, PessimismLo
 	 * 相同值的 TableKey 要得到同一个 Lock 引用，必须使用 Locks 查询。
 	 * 不要自己构造这个对象。开放出去仅仅为了测试。
 	 */
-	public GlobalLockey(GlobalTableKey key) {
-		GlobalTableKey = key;
+	public GlobalLockey(Binary key) {
+		GlobalKey = key;
 	}
 
-	public GlobalTableKey getGlobalTableKey() {
-		return GlobalTableKey;
+	public Binary getGlobalKey() {
+		return GlobalKey;
 	}
 
 	@Override
@@ -64,12 +64,12 @@ public final class GlobalLockey implements Comparable<GlobalLockey>, PessimismLo
 		if (other == null)
 			return 1; // null always small
 
-		return GlobalTableKey.compareTo(other.GlobalTableKey);
+		return GlobalKey.compareTo(other.GlobalKey);
 	}
 
 	@Override
 	public int hashCode() {
-		return GlobalTableKey.hashCode();
+		return GlobalKey.hashCode();
 	}
 
 	@Override
@@ -78,7 +78,7 @@ public final class GlobalLockey implements Comparable<GlobalLockey>, PessimismLo
 			return true;
 
 		if (obj instanceof GlobalLockey)
-			return GlobalTableKey.equals(((GlobalLockey)obj).GlobalTableKey);
+			return GlobalKey.equals(((GlobalLockey)obj).GlobalKey);
 
 		return false;
 	}

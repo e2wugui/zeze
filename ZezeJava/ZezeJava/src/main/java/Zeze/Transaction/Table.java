@@ -3,6 +3,7 @@ package Zeze.Transaction;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Config;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Reduce;
 
 public abstract class Table {
@@ -49,11 +50,11 @@ public abstract class Table {
 		return 0; // 新增属性。为了增加顺利，提供默认实现。子类必须提供新的实现。
 	}
 
-	public int ReduceShare(Reduce rpc) {
+	public int ReduceShare(Reduce rpc, ByteBuffer bbKey) {
 		throw new UnsupportedOperationException();
 	}
 
-	public int ReduceInvalid(Reduce rpc) {
+	public int ReduceInvalid(Reduce rpc, ByteBuffer bbKey) {
 		throw new UnsupportedOperationException();
 	}
 

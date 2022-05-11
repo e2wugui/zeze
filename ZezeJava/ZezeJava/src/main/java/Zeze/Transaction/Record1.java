@@ -1,7 +1,6 @@
 package Zeze.Transaction;
 
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManagerServer;
@@ -53,7 +52,7 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 			return new IGlobalAgent.AcquireResult(0, state, 0);
 		}
 
-		var gkey = new GlobalTableKey(getTTable().getId(), new Binary(getTTable().EncodeKey(getKey())));
+		var gkey = getTTable().EncodeGlobalKey(getKey());
 		logger.debug("Acquire NewState={} {}", state, this);
 
 		var stat = TableStatistics.getInstance().GetOrAdd(getTTable().getId());

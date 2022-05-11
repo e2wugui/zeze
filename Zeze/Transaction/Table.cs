@@ -7,6 +7,7 @@ using System.Threading;
 using Zeze.Services.GlobalCacheManager;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
+using Zeze.Net;
 
 namespace Zeze.Transaction
 {
@@ -34,12 +35,12 @@ namespace Zeze.Transaction
         internal abstract Storage Open(Application app, Database database);
         internal abstract void Close();
 
-        internal virtual Task<int> ReduceShare(Reduce rpc)
+        internal virtual Task<int> ReduceShare(Reduce rpc, ByteBuffer bbkey)
         {
             throw new NotImplementedException();
         }
 
-        internal virtual Task<int> ReduceInvalid(Reduce rpc)
+        internal virtual Task<int> ReduceInvalid(Reduce rpc, ByteBuffer bbkey)
         {
             throw new NotImplementedException();
         }
@@ -139,15 +140,15 @@ namespace Zeze.Transaction
             }
         }
 
-        internal override async Task<int> ReduceShare(Reduce rpc)
+        internal override async Task<int> ReduceShare(Reduce rpc, ByteBuffer bbkey)
         {
             logger.Debug("ReduceShare NewState={0}", rpc.Argument.State);
 
-            rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
+            rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
             rpc.Result.State = rpc.Argument.State;
             rpc.Result.GlobalSerialId = rpc.Argument.GlobalSerialId;
 
-            K key = DecodeKey(ByteBuffer.Wrap(rpc.Argument.GlobalTableKey.Key));
+            K key = DecodeKey(bbkey);
 
             //logger.Debug("Reduce NewState={0}", rpc.Argument.State);
 
@@ -231,15 +232,15 @@ namespace Zeze.Transaction
             }
         }
 
-        internal override async Task<int> ReduceInvalid(Reduce rpc)
+        internal override async Task<int> ReduceInvalid(Reduce rpc, ByteBuffer bbkey)
         {
             logger.Debug("ReduceInvalid NewState={0}", rpc.Argument.State);
 
-            rpc.Result.GlobalTableKey = rpc.Argument.GlobalTableKey;
+            rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
             rpc.Result.State = rpc.Argument.State;
             rpc.Result.GlobalSerialId = rpc.Argument.GlobalSerialId;
 
-            K key = DecodeKey(ByteBuffer.Wrap(rpc.Argument.GlobalTableKey.Key));
+            K key = DecodeKey(bbkey);
 
             var tkey = new TableKey(Id, key);
             Record<K, V> r = null;
@@ -304,11 +305,21 @@ namespace Zeze.Transaction
             return 0;
         }
 
+        public Binary EncodeGlobalKey(K key)
+        { 
+            var bb = ByteBuffer.Allocate();
+            bb.WriteInt4(Id);
+            // 避免bbkey的拷贝需要修改EncodeKey定义。这个对象很小，暂时先这样。
+            var bbkey = EncodeKey(key);
+            bb.Append(bbkey.Bytes, bbkey.ReadIndex, bbkey.Size);
+            return new Binary(bb);
+        }
+
         internal override async Task<int> ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex)
         {
             foreach (var e in Cache.DataMap)
             {
-                var gkey = new Zeze.Builtin.GlobalCacheManagerWithRaft.GlobalTableKey(Id, new Zeze.Net.Binary(EncodeKey(e.Key)));
+                var gkey = EncodeGlobalKey(e.Key);
                 if (Zeze.GlobalAgent.GetGlobalCacheManagerHashIndex(gkey) != GlobalCacheManagerHashIndex)
                 {
                     // 不是断开连接的GlobalCacheManager。跳过。
