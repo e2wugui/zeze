@@ -105,8 +105,8 @@ namespace Zeze.Services
 
         public GCMConfig Config { get; } = new GCMConfig();
         private GlobalCacheManagerPerf Perf;
-        private Util.ObjectPool<Acquire> AcquirePool = new();
-        private Util.ObjectPool<Reduce> ReducePool = new();
+        //private Util.ObjectPool<Acquire> AcquirePool = new();
+        //private Util.ObjectPool<Reduce> ReducePool = new();
 
         public void Start(IPAddress ipaddress, int port, Config config = null)
         {
@@ -135,7 +135,7 @@ namespace Zeze.Services
                     new Acquire().TypeId,
                     new Service.ProtocolFactoryHandle()
                     {
-                        Factory = AcquirePool.Create,
+                        Factory = () => new Acquire(), //AcquirePool.Create,
                         Handle = ProcessAcquireRequest,
                     });
 
@@ -143,7 +143,7 @@ namespace Zeze.Services
                     new Reduce().TypeId,
                     new Service.ProtocolFactoryHandle()
                     {
-                        Factory = ReducePool.Create,
+                        Factory = () => new Reduce(), // ReducePool.Create,
                     });
 
                 Server.AddFactoryHandle(
@@ -313,7 +313,7 @@ namespace Zeze.Services
                 rpc.Result.State = StateInvalid;
                 rpc.SendResultCode(AcquireNotLogin);
                 Perf?.OnAcquireEnd(rpc);
-                AcquirePool.Reclaim(rpc);
+                //AcquirePool.Reclaim(rpc);
                 return 0;
             }
             try
@@ -347,7 +347,7 @@ namespace Zeze.Services
             finally
             {
                 Perf?.OnAcquireEnd(rpc);
-                AcquirePool.Reclaim(rpc);
+                //AcquirePool.Reclaim(rpc);
             }
         }
 
@@ -483,7 +483,7 @@ namespace Zeze.Services
                             reduceResultState = r.IsTimeout ? StateReduceRpcTimeout : r.Result.State;
                             using var lockcs = await cs.Monitor.EnterAsync();
                             cs.Monitor.PulseAll();
-                            ReducePool.Reclaim(r);
+                            //ReducePool.Reclaim(r);
                             return 0;
                         }))
                     {
@@ -623,7 +623,7 @@ namespace Zeze.Services
                             reduceResultState = r.IsTimeout ? StateReduceRpcTimeout : r.Result.State;
                             using var lockcs = await cs.Monitor.EnterAsync();
                             cs.Monitor.PulseAll();
-                            ReducePool.Reclaim(r);
+                            //ReducePool.Reclaim(r);
                             return 0;
                         }))
                     {
