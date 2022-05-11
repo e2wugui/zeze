@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,20 +13,12 @@ namespace Zeze.Util
     {
         internal static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-        private readonly SortedDictionary<SchedulerTask, SchedulerTask> scheduled = new();
-        private readonly Thread SchedulerThread;
-        private volatile bool IsRunning;
-
         internal static Scheduler Instance { get; } = new Scheduler();
+
+        private ConcurrentDictionary<SchedulerTask, SchedulerTask> Timers { get; } = new();
 
         public Scheduler()
         {
-            IsRunning = true;
-            SchedulerThread = new Thread(ThreadRun)
-            {
-                IsBackground = true
-            };
-            SchedulerThread.Start();
         }
 
         /// <summary>
@@ -40,7 +33,11 @@ namespace Zeze.Util
             if (initialDelay < 0)
                 throw new ArgumentException("initialDelay < 0");
 
-            return Instance.Schedule(new SchedulerTaskAction(action, initialDelay, period));
+            var task = new SchedulerTaskAction(action);
+            if (false == Instance.Timers.TryAdd(task, task))
+                throw new Exception("Impossible!");
+            task.Timer = new Timer(task.Run);
+            return task;
         }
 
         public static SchedulerTask ScheduleAt(Action<SchedulerTask> action, int hour, int minute, long period = -1)
@@ -58,12 +55,17 @@ namespace Zeze.Util
             if (initialDelay < 0)
                 throw new ArgumentException("initialDelay < 0");
 
-            return Instance.Schedule(new SchedulerTaskAsyncAction(action, initialDelay, period));
+            var task = new SchedulerTaskAsyncAction(action);
+            if (false == Instance.Timers.TryAdd(task, task))
+                throw new Exception("Impossible!");
+            task.Timer = new Timer(task.Run);
+            return task;
         }
 
         public static bool Unschedule(SchedulerTask task)
         {
-            return Instance.UnschedulePrivate(task);
+            task.Timer.Dispose();
+            return Instance.Timers.TryRemove(task, out _);
         }
 
         /// <summary>
@@ -71,91 +73,18 @@ namespace Zeze.Util
         /// </summary>
         public static void StopAndJoin()
         {
-            Instance.IsRunning = false;
-            lock (Instance)
+        }
+
+        public class SchedulerTaskAction : SchedulerTask
+        {
+            public Action<SchedulerTask> Action { get; }
+
+            internal SchedulerTaskAction(Action<SchedulerTask> action)
             {
-                Monitor.Pulse(Instance);
+                Action = action;
             }
-            Instance.SchedulerThread.Join();
-        }
 
-        internal SchedulerTask Schedule(SchedulerTask t)
-        {
-            lock (this)
-            {
-                scheduled.Add(t, t);
-                Monitor.Pulse(this);
-                return t;
-            }
-        }
-
-        private bool UnschedulePrivate(SchedulerTask task)
-        {
-            lock (this)
-            {
-                return scheduled.Remove(task);
-            }
-        }
-
-        private void ThreadRun()
-        {
-            while (IsRunning)
-            {
-                var willRun = new List<SchedulerTask>(scheduled.Count);
-                long nextTime = -1;
-                long now = Time.NowUnixMillis;
-
-                lock (this)
-                {
-                    foreach (SchedulerTask k in scheduled.Keys)
-                    {
-                        if (k.Time <= now)
-                        {
-                            willRun.Add(k);
-                            continue;
-                        }
-                        nextTime = k.Time;
-                        break;
-                    }
-                    foreach (SchedulerTask k in willRun)
-                        scheduled.Remove(k);
-                }
-
-                var hasPeriod = false;
-                foreach (SchedulerTask k in willRun)
-                {
-                    if (k.Run())
-                        hasPeriod = true;
-                }
-
-                if (hasPeriod) // 如果执行了任务，可能有重新调度的Task，马上再次检测。
-                    continue;
-
-                lock (this)
-                {
-                    int waitTime = Timeout.Infinite;
-                    if (nextTime > now)
-                        waitTime = (int)(nextTime - now);
-                    Monitor.Wait(this, waitTime); // wait until new task or nextTime.
-                }
-            }
-        }
-    }
-
-    public class SchedulerTaskAction : SchedulerTask
-    {
-        public Action<SchedulerTask> Action { get; }
-
-        internal SchedulerTaskAction(Action<SchedulerTask> action, long initialDelay, long period)
-            : base(initialDelay, period)
-        {
-            Action = action;
-        }
-
-        internal override void Dispatch()
-        {
-            // 派发出去运行，让系统管理大量任务的线程问题。
-            Task.Run(() =>
+            public override void Run(object param)
             {
                 try
                 {
@@ -165,87 +94,34 @@ namespace Zeze.Util
                 {
                     Scheduler.logger.Error(ex);
                 }
-            });
+            }
+        }
+
+        public class SchedulerTaskAsyncAction : SchedulerTask
+        {
+            public Func<SchedulerTask, Task> AsyncFunc { get; }
+
+            internal SchedulerTaskAsyncAction(Func<SchedulerTask, Task> asyncFunc)
+            {
+                AsyncFunc = asyncFunc;
+            }
+
+            public override async void Run(object param)
+            {
+                await Mission.CallAsync(async () => { await AsyncFunc(this); return 0; }, "SchedulerTaskAsyncAction");
+            }
         }
     }
 
-    public class SchedulerTaskAsyncAction : SchedulerTask
+    public abstract class SchedulerTask
     {
-        public Func<SchedulerTask, Task> AsyncFunc { get; }
-
-        internal SchedulerTaskAsyncAction(Func<SchedulerTask, Task> asyncFunc, long initialDelay, long period)
-            : base(initialDelay, period)
-        {
-            AsyncFunc = asyncFunc;
-        }
-
-        internal override void Dispatch()
-        {
-            _ = Mission.CallAsync(async () => { await AsyncFunc(this); return 0; }, "SchedulerTaskAsyncAction");
-        }
-    }
-
-    public abstract class SchedulerTask : IComparable<SchedulerTask>
-    {
-        public long Time { get; private set; }
-        public long Period { get; private set; }
-        public long SequenceNumber { get; private set; }
-
-        private volatile bool canceled;
-
-        private static readonly AtomicLong sequencer = new();
-
-        internal SchedulerTask(long initialDelay, long period)
-        {
-            this.Time = Util.Time.NowUnixMillis + initialDelay;
-            this.Period = period;
-            this.SequenceNumber = sequencer.IncrementAndGet();
-            this.canceled = false;
-        }
+        public Timer Timer { get; internal set; }
 
         public void Cancel()
         {
-            this.canceled = true;
             Scheduler.Unschedule(this);
         }
 
-        internal abstract void Dispatch();
-
-        internal bool Run()
-        {
-            if (this.canceled)
-                return false;
-
-            Dispatch();
-
-            if (this.Period > 0)
-            {
-                this.Time += this.Period;
-                Scheduler.Instance.Schedule(this);
-                return true;
-            }
-            return false;
-        }
-
-        public int CompareTo(SchedulerTask other)
-        {
-            if (other == null) // 不可能吧
-                return 1;
-
-            if (other == this)
-                return 0;
-
-            long diff = Time - other.Time;
-            if (diff < 0)
-                return -1;
-
-            if (diff > 0)
-                return 1;
-
-            if (this.SequenceNumber < other.SequenceNumber)
-                return -1;
-
-            return 1;
-        }
+        public abstract void Run(object param);
     }
 }

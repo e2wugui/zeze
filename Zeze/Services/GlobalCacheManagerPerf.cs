@@ -1,6 +1,7 @@
 
 using System.Collections.Concurrent;
 using System.Text;
+using System.Threading;
 using Zeze.Util;
 
 namespace Zeze.Services.GlobalCacheManager
