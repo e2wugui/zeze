@@ -73,7 +73,7 @@ namespace Zeze.Services
         {
         }
 
-        public bool IsHandshakeProtocol(long typeId)
+        public override bool IsHandshakeProtocol(long typeId)
         {
             return HandshakeProtocols.Contains(typeId);
         }

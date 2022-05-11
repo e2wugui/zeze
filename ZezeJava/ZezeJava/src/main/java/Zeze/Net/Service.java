@@ -303,9 +303,18 @@ public class Service {
 			logger.warn("DispatchProtocol2: Protocol Handle Not Found: {}", p);
 	}
 
+	public boolean IsHandshakeProtocol(long typeId) {
+		return false;
+	}
+
 	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) throws Throwable {
 		ProtocolHandle<P> handle = factoryHandle.Handle;
 		if (handle != null) {
+			if (IsHandshakeProtocol(p.getTypeId())) {
+				// handshake protocol call direct in io-thread.
+				Task.Call(() -> handle.handle(p), p);
+				return;
+			}
 			TransactionLevel level = factoryHandle.Level;
 			Application zeze = Zeze;
 			if (zeze != null && level != TransactionLevel.None)

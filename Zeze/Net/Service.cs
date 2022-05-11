@@ -285,11 +285,21 @@ namespace Zeze.Net
             }
         }
 
-        public virtual void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+        public virtual bool IsHandshakeProtocol(long typeId)
+        {
+            return false;
+        }
+
+        public virtual async void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
             if (null != factoryHandle.Handle)
             {
-                if (null != Zeze && TransactionLevel.None != factoryHandle.TransactionLevel)
+                if (IsHandshakeProtocol(p.TypeId))
+                {
+                    // handshake protocol call direct in io-thread.
+                    await Mission.CallAsync(factoryHandle.Handle, p, null);
+                }
+                else if (null != Zeze && TransactionLevel.None != factoryHandle.TransactionLevel)
                 {
                     _ = Mission.CallAsync(Zeze.NewProcedure(() => factoryHandle.Handle(p),
                         p.GetType().FullName, factoryHandle.TransactionLevel, p.UserState), p, null);

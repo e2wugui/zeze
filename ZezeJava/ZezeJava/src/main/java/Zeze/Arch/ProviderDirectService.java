@@ -63,7 +63,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 	}
 
 	@Override
-	public void OnSocketAccept(AsyncSocket sender) throws Throwable {
+	public void OnSocketAccept(AsyncSocket sender) {
 		if (sender.getConnector() == null) {
 			// 被动连接等待对方报告信息时再处理。
 			// passive connection continue process in ProviderDirect.ProcessAnnounceProviderInfoRequest.

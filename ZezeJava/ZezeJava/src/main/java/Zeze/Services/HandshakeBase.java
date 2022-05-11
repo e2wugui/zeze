@@ -43,7 +43,9 @@ public class HandshakeBase extends Service {
 		super(name, app);
 	}
 
-	public final boolean IsHandshakeProtocol(long typeId) {
+
+	@Override
+	public boolean IsHandshakeProtocol(long typeId) {
 		return HandshakeProtocols.contains(typeId);
 	}
 
