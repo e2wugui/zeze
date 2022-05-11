@@ -37,8 +37,8 @@ public class Selectors {
 		if (tmp == null)
 			return null;
 
-		long count = choiceCount.getAndIncrement() & Long.MAX_VALUE;
-		int index = (int)(count % tmp.length);
+		long count = choiceCount.getAndIncrement();
+		int index = (int)Long.remainderUnsigned(count, tmp.length);
 		return tmp[index];
 	}
 
