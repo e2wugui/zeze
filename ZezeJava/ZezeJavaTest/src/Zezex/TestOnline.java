@@ -3,15 +3,11 @@ package Zezex;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 import Game.Login.BRole;
-import Game.Login.BRoles;
 import Game.Login.CreateRole;
-import Game.Login.GetRoleList;
 import Zeze.Builtin.Game.Online.Login;
 import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.Game.Online.ReLogin;
-import Zeze.Net.AsyncSocket;
 import Zeze.Transaction.Procedure;
-import Zeze.Util.Str;
 import Zeze.Util.Task;
 import Zezex.Linkd.Auth;
 import junit.framework.TestCase;
@@ -35,10 +31,10 @@ public class TestOnline extends TestCase {
 	ArrayList<BRole> roles = new ArrayList<>();
 	ArrayList<String> accounts = new ArrayList<>();
 
-	final int ClientCount = 2;
-	final int LinkCount = 2;
-	final int ServerCount = 2;
-	final int RoleCount = 2;
+	final static int ClientCount = 2;
+	final static int LinkCount = 2;
+	final static int ServerCount = 2;
+	final static int RoleCount = 2;
 
 	@Override
 	protected void setUp() throws ExecutionException, InterruptedException {
@@ -88,7 +84,7 @@ public class TestOnline extends TestCase {
 
 	@Override
 	protected void tearDown() {
-		System.out.println("Begin Stop");
+		logger.info("Begin Stop");
 		try {
 			for (var client : clients)
 				client.Stop();
