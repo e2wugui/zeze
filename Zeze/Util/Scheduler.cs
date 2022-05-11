@@ -121,12 +121,14 @@ namespace Zeze.Util
                         scheduled.Remove(k);
                 }
 
+                var hasPeriod = false;
                 foreach (SchedulerTask k in willRun)
                 {
-                    k.Run();
+                    if (k.Run())
+                        hasPeriod = true;
                 }
 
-                if (willRun.Count > 0) // 如果执行了任务，可能有重新调度的Task，马上再次检测。
+                if (hasPeriod) // 如果执行了任务，可能有重新调度的Task，马上再次检测。
                     continue;
 
                 lock (this)
@@ -209,10 +211,10 @@ namespace Zeze.Util
 
         internal abstract void Dispatch();
 
-        internal void Run()
+        internal bool Run()
         {
             if (this.canceled)
-                return;
+                return false;
 
             Dispatch();
 
@@ -220,7 +222,9 @@ namespace Zeze.Util
             {
                 this.Time += this.Period;
                 Scheduler.Instance.Schedule(this);
+                return true;
             }
+            return false;
         }
 
         public int CompareTo(SchedulerTask other)
