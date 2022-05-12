@@ -25,7 +25,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		autoKey = value;
 	}
 
-	private Record1<K, V> FindInCacheOrStorage(K key) {
+	private Record1<K, V> Load(K key) {
 		var tkey = new TableKey(getId(), key);
 		while (true) {
 			Record1<K, V> r = getCache().GetOrAdd(key, () -> new Record1<>(this, key, null));
@@ -295,7 +295,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			return r;
 		}
 
-		Record1<K, V> r = FindInCacheOrStorage(key);
+		Record1<K, V> r = Load(key);
 		currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), new Zeze.Transaction.RecordAccessed(r));
 		return r.getValueTyped();
 	}
@@ -315,7 +315,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			// add
 		}
 		else {
-			Record1<K, V> r = FindInCacheOrStorage(key);
+			Record1<K, V> r = Load(key);
 			cr = new Zeze.Transaction.RecordAccessed(r);
 			currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
 
@@ -363,7 +363,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			cr.Put(currentT, value);
 			return;
 		}
-		Record1<K, V> r = FindInCacheOrStorage(key);
+		Record1<K, V> r = Load(key);
 		cr = new Zeze.Transaction.RecordAccessed(r);
 		cr.Put(currentT, value);
 		currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
@@ -381,7 +381,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			return;
 		}
 
-		Record1<K, V> r = FindInCacheOrStorage(key);
+		Record1<K, V> r = Load(key);
 		cr = new Zeze.Transaction.RecordAccessed(r);
 		cr.Put(currentT, null);
 		currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
@@ -616,7 +616,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var lockey = getZeze().getLocks().Get(tkey);
 		lockey.EnterReadLock();
 		try {
-			var r= FindInCacheOrStorage(key);
+			var r= Load(key);
 			if (null == r.getValue())
 				return null;
 			@SuppressWarnings("unchecked")
@@ -639,7 +639,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			}
 		}
 		@SuppressWarnings("unchecked")
-		var v = (V)FindInCacheOrStorage(key).getValue();
+		var v = (V)Load(key).getValue();
 		return v;
 	}
 

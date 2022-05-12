@@ -94,7 +94,6 @@ namespace Zeze.Transaction
 
         internal Database.ITransaction DatabaseTransactionTmp { get; set; }
         internal abstract void SetDirty();
-        internal abstract Task SetExistInBackDatabase(long timestamp, bool value);
         internal Nito.AsyncEx.AsyncLock Mutex = new();
     }
 
@@ -304,25 +303,6 @@ namespace Zeze.Transaction
             // CheckpointMode.Table
             snapshotKey = null;
             snapshotValue = null;
-        }
-
-        private long ExistInBackDatabaseModifyTimestamp;
-
-        internal override async Task SetExistInBackDatabase(long timestamp, bool value)
-        {
-            var tkey = new TableKey(Table.Id, Key);
-            var lockey = await TTable.Zeze.Locks.Get(tkey).WriterLockAsync();
-            try
-            {
-                if (timestamp < ExistInBackDatabaseModifyTimestamp)
-                    return;
-                ExistInBackDatabaseModifyTimestamp = timestamp;
-                ExistInBackDatabase = value;
-            }
-            finally
-            {
-                lockey.Release();
-            }
         }
 
         private volatile ConcurrentDictionary<K, Record<K, V>> _LruNode;

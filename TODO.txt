@@ -35,14 +35,63 @@ TableCache 原来想增加一级基于RocksDb的巨大缓存，由于这个缓�
 4. SoftReference 回收的时候，保存一份到RocksDb中。【原子问题需要考虑】
 5. SoftReference 不存在，从RocksDb装载。【原子问题需要考虑】
 6. RocksDb虽然是持久化到硬盘的，但是重启会全部删除。
-7. TableCache由每张表独立清理改成全局清理。每张表发现自己超过容量，就加入全局清理线程队列。
+7. TableCache由每张表独立清理改成全局清理。
 8. TableCache.Lru.Node增加时戳。全局清理线程优先清理最老的超过容量的。【时戳是保留来未来增加清理策略，目前没什么大的用处】
 9. 使用RocksDb保存被GC的用户数据这个特性做成可选（又是需要if判断）?
-*. Cache实现细节
-   OnLoad -> RocksDb.Save; Soft.SetTarget(bean);
-   Transaction.WriteLock -> StrongRef = Soft.GetTarget();
-   Checkpoint.Flush -> RocksDb.Save; StrongRef = null;
-   Transaction.Get -> LoadIfNeedFromRocksDb; return Soft.Target(); 
+*. Cache 实现改动
+【一】
+private KV<Record1<K,V>, V> TableX.Load(K key) {
+    ...
+    if (r.getState() is right) {
+        var strong = r.Soft.get();
+        if (null == strong && r.ExistInBackDatabase) {
+            strong = RocksDb.get();
+            r.Soft.set(strong);
+        }
+
+        // strong需要返回，不能从r.soft里面再次获取
+        // 使用Load的地方：
+        // 1. Transaction.get等。需要把strong记到事务的RecordAccessed中，在事务结束前都不能触发soft回收。
+        // 2. selectCopy, selectDirty。可以事务外使用，有使用者自己管理strong生命期。
+        return KV.Create(r, strong);
+    }
+    ...
+    // load from storage
+    var strong = TStorage.Find(key, this);
+    RocksDb.put(); // 【原则】保持Rocks和后台数据库一致。
+    r.Soft.set(strong);
+    ...
+    return KV.Create(r, strong);
+}
+
+【二】
+Record.setDirty(bool value) {
+    Dirty = value; 【原来的】
+    StrongRef = value ? soft.get() : null; // 脏数据在记录内保持一份强引用。
+    // 由于记录不存在时，StrongRef可为null，所以原来的bool Dirty不能使用 StrongRef != null 代替。
+    // 需要分成明确的两个变量。
+}
+
+【三】
+RecordAccessed 增加 Bean StrongRef，保存Load的返回值的引用。
+
+【四】
+public void Record1.Flush(Database.Transaction t) {
+    ...
+    if (null != snapshotValue)
+        RocksDb.put();
+    else
+        RocksDb.Remove();
+}
+
+【五】
+public void Record1.SetDirty() {
+    ...
+    case Immediately:
+        RocksDb.put(); // Immediately 模式需要在这里保持Rocks和后台数据库一致。它走不一样的Flush流程。
+        break;
+}
+
 >>>
 
 【2022/5/11】
