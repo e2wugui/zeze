@@ -33,7 +33,13 @@ import org.w3c.dom.Element;
 public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	static {
 		System.setProperty("log4j.configurationFile", "log4j2.xml");
-		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(Level.INFO);
+		var levelProp = System.getProperty("logLevel");
+		var level = Level.INFO;
+		if ("trace".equalsIgnoreCase(levelProp))
+			level = Level.TRACE;
+		else if ("debug".equalsIgnoreCase(levelProp))
+			level = Level.DEBUG;
+		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
 	}
 
 	private static final boolean ENABLE_PERF = true;
@@ -65,7 +71,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	private static final class GCMConfig implements Zeze.Config.ICustomize {
 		// 设置了这么大，开始使用后，大概会占用700M的内存，作为全局服务器，先这么大吧。
 		// 尽量不重新调整ConcurrentHashMap。
-		private int InitialCapacity = 10000000;
+		private int InitialCapacity = 10_000_000;
 
 		@Override
 		public String getName() {
@@ -80,9 +86,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		public void Parse(Element self) {
 			var attr = self.getAttribute("InitialCapacity");
 			if (!attr.isBlank())
-				InitialCapacity = Integer.parseInt(attr);
-			if (InitialCapacity < 31)
-				InitialCapacity = 31;
+				InitialCapacity = Math.max(Integer.parseInt(attr), 31);
 		}
 	}
 
@@ -266,7 +270,6 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	private int Release(CacheHolder sender, Binary _gKey, boolean noWait) throws InterruptedException {
 		while (true) {
 			CacheState cs = global.computeIfAbsent(_gKey, CacheState::new);
-			var gKey = cs.GlobalKey; // release 应该不需要引用到同一个key，统一写成这样了。
 			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (cs) { //await 等锁
 				if (cs.AcquireStatePending == StateRemoved) {
@@ -274,6 +277,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					continue;
 				}
 
+				var gKey = cs.GlobalKey; // release 应该不需要引用到同一个key，统一写成这样了。
 				while (cs.AcquireStatePending != StateInvalid && cs.AcquireStatePending != StateRemoved) {
 					switch (cs.AcquireStatePending) {
 					case StateShare:
@@ -313,7 +317,6 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
 		while (true) {
 			CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalKey, CacheState::new);
-			var gKey = cs.GlobalKey;
 			synchronized (cs) { //await 等锁
 				if (cs.AcquireStatePending == StateRemoved)
 					continue;
@@ -357,6 +360,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 				cs.AcquireStatePending = StateShare;
 				cs.GlobalSerialId = SerialIdGenerator.incrementAndGet();
 
+				var gKey = cs.GlobalKey;
 				if (cs.Modify != null) {
 					if (cs.Modify == sender) {
 						// 已经是Modify又申请，可能是sender异常关闭，
@@ -436,7 +440,6 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
 		while (true) {
 			CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalKey, CacheState::new);
-			var gKey = cs.GlobalKey;
 			synchronized (cs) { //await 等锁
 				if (cs.AcquireStatePending == StateRemoved)
 					continue;
@@ -481,6 +484,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 				cs.AcquireStatePending = StateModify;
 				cs.GlobalSerialId = SerialIdGenerator.incrementAndGet();
 
+				var gKey = cs.GlobalKey;
 				if (cs.Modify != null) {
 					if (cs.Modify == sender) {
 						logger.debug("4 {} {} {}", sender, rpc.Argument.State, cs);
@@ -805,6 +809,8 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 				i++;
 				// ThreadPool.SetMinThreads(int.Parse(args[i]), completionPortThreads);
 				break;
+			default:
+				throw new IllegalArgumentException("unknown argument: " + args[i]);
 			}
 		}
 

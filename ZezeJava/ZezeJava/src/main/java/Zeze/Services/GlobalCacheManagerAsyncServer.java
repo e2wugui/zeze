@@ -41,7 +41,13 @@ import org.w3c.dom.Element;
 public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerConst {
 	static {
 		System.setProperty("log4j.configurationFile", "log4j2.xml");
-		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(Level.INFO);
+		var levelProp = System.getProperty("logLevel");
+		var level = Level.INFO;
+		if ("trace".equalsIgnoreCase(levelProp))
+			level = Level.TRACE;
+		else if ("debug".equalsIgnoreCase(levelProp))
+			level = Level.DEBUG;
+		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
 	}
 
 	private static final boolean ENABLE_PERF = true;
@@ -88,9 +94,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		public void Parse(Element self) {
 			var attr = self.getAttribute("InitialCapacity");
 			if (!attr.isBlank())
-				InitialCapacity = Integer.parseInt(attr);
-			if (InitialCapacity < 31)
-				InitialCapacity = 31;
+				InitialCapacity = Math.max(Integer.parseInt(attr), 31);
 		}
 	}
 
@@ -353,7 +357,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			int stage;
 		};
 		cs.lock.enter(() -> {
-			var gKey = cs.GlobalKey;
 			if (state.stage == 1) {
 				if (cs.Modify != null && !cs.Share.isEmpty())
 					throw new IllegalStateException("CacheState state error");
@@ -365,6 +368,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			}
 
 			var sender = (CacheHolder)rpc.getSender().getUserState();
+			var gKey = cs.GlobalKey;
 			if (cs.AcquireStatePending != StateInvalid && cs.AcquireStatePending != StateRemoved) {
 				switch (cs.AcquireStatePending) {
 				case StateShare:
@@ -417,7 +421,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			int reduceResultState;
 		};
 		cs.lock.enter(() -> {
-			var gKey = cs.GlobalKey;
 			if (state.stage == 0) {
 				if (cs.AcquireStatePending == StateRemoved) {
 					cs.lock.leave();
@@ -474,6 +477,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				cs.GlobalSerialId = SerialIdGenerator.incrementAndGet();
 			}
 
+			var gKey = cs.GlobalKey;
 			if (cs.Modify != null || state.stage == 2) {
 				if (state.stage != 2) {
 					if (cs.Modify == sender) {
@@ -566,7 +570,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			int reduceResultState;
 		};
 		cs.lock.enter(() -> {
-			var gKey = cs.GlobalKey;
 			if (state.stage == 0) {
 				if (cs.AcquireStatePending == StateRemoved) {
 					cs.lock.leave();
@@ -626,6 +629,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				cs.GlobalSerialId = SerialIdGenerator.incrementAndGet();
 			}
 
+			var gKey = cs.GlobalKey;
 			if (cs.Modify != null || state.stage == 2) {
 				if (state.stage != 2) {
 					if (cs.Modify == sender) {
@@ -966,6 +970,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			case "-tryNextSync":
 				AsyncLock.tryNextSync = true;
 				break;
+			default:
+				throw new IllegalArgumentException("unknown argument: " + args[i]);
 			}
 		}
 
