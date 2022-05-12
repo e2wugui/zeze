@@ -92,6 +92,13 @@ public void Record1.SetDirty() {
         break;
 }
 
+【六】
+private boolean TableCache.Remove(Map.Entry<K, Record1<K, V>> p) {
+    ...
+    RocksDb.remove(); // 从cache中删除，也需要删除持久化的
+    return true;
+}
+
 【原则】
 1. RocksDb和后台数据库一致。
 2. 事务内访问的记录不可能被回收。
