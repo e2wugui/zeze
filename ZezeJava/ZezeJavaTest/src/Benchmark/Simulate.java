@@ -162,7 +162,7 @@ public class Simulate {
 				Executors.newScheduledThreadPool(schdThreadCount, new ThreadFactory("ZezeScheduledPool")));
 
 		var app = new SimpleApp(serverId, 20000 + serverId,
-				serviceManagerIp, serviceManagerPort, globalServerIp, globalServerPort, totalKeyRange);
+				serviceManagerIp, serviceManagerPort, globalServerIp, globalServerPort, 20000);
 		app.getZeze().AddTable("", table5 = new Table5());
 		app.start();
 
