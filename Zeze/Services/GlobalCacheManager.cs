@@ -773,10 +773,10 @@ namespace Zeze.Services
         {
             internal CacheHolder Modify { get; set; }
             internal Binary GlobalKey { get; set; }
-            internal int AcquireStatePending { get; set; } = StateInvalid;
             internal long GlobalSerialId { get; set; }
             internal HashSet<CacheHolder> Share { get; } = new HashSet<CacheHolder>();
             internal Nito.AsyncEx.AsyncMonitor Monitor { get; } = new Nito.AsyncEx.AsyncMonitor();
+            internal int AcquireStatePending { get; set; } = StateInvalid;
 
             public override string ToString()
             {
@@ -800,10 +800,10 @@ namespace Zeze.Services
             private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
             public long SessionId { get; private set; }
-            public int GlobalCacheManagerHashIndex { get; private set; } // UnBind 的时候不会重置，会一直保留到下一次Bind。
 
             public ConcurrentDictionary<Binary, int> Acquired { get; }
             private Nito.AsyncEx.AsyncLock Mutex { get; } = new Nito.AsyncEx.AsyncLock();
+            public int GlobalCacheManagerHashIndex { get; private set; } // UnBind 的时候不会重置，会一直保留到下一次Bind。
 
             public CacheHolder(GCMConfig config)
             {
