@@ -704,8 +704,50 @@ public final class ByteBuffer {
 		return v;
 	}
 
-	public void WriteString(String v) {
-		WriteBytes(v.getBytes(StandardCharsets.UTF_8));
+	public static int utf8Size(String str) {
+		if (str == null)
+			return 0;
+		int bn = 0;
+		for (int i = 0, cn = str.length(); i < cn; i++) {
+			int c = str.charAt(i);
+			if (c < 0x80)
+				bn++;
+			else
+				bn += (c < 0x800 ? 2 : 3);
+		}
+		return bn;
+	}
+
+	public void WriteString(String str) {
+		int bn = utf8Size(str);
+		if (bn <= 0) {
+			WriteByte(0);
+			return;
+		}
+		WriteUInt(bn);
+		EnsureWrite(bn);
+		byte[] buf = Bytes;
+		int wi = WriteIndex;
+		int cn = str.length();
+		if (bn == cn) {
+			for (int i = 0; i < cn; i++)
+				buf[wi++] = (byte)str.charAt(i);
+		} else {
+			for (int i = 0; i < cn; i++) {
+				int v = str.charAt(i);
+				if (v < 0x80)
+					buf[wi++] = (byte)v;                  // 0xxx xxxx
+				else if (v < 0x800) {
+					buf[wi++] = (byte)(0xc0 + (v >> 6));  // 110x xxxx  10xx xxxx
+					buf[wi++] = (byte)(0x80 + (v & 0x3f));
+				} else {
+					buf[wi++] = (byte)(0xe0 + (v >> 12)); // 1110 xxxx  10xx xxxx  10xx xxxx
+					buf[wi++] = (byte)(0x80 + ((v >> 6) & 0x3f));
+					buf[wi++] = (byte)(0x80 + (v & 0x3f));
+				}
+			}
+		}
+		WriteIndex = wi;
 	}
 
 	public String ReadString() {
@@ -777,12 +819,12 @@ public final class ByteBuffer {
 	}
 
 	@Override
-	public boolean equals(Object obj) {
-		return obj instanceof ByteBuffer && equals((ByteBuffer)obj);
+	public boolean equals(Object other) {
+		return other instanceof ByteBuffer && equals((ByteBuffer)other);
 	}
 
 	public boolean equals(ByteBuffer other) {
-		return other != null &&
+		return this == other || other != null &&
 				Arrays.equals(Bytes, ReadIndex, WriteIndex, other.Bytes, other.ReadIndex, other.WriteIndex);
 	}
 
@@ -791,7 +833,10 @@ public final class ByteBuffer {
 	}
 
 	public static int calc_hashnr(String str) {
-		return calc_hashnr(str.getBytes(StandardCharsets.UTF_8));
+		int hash = 0;
+		for (int i = 0, n = str.length(); i < n; i++)
+			hash = (hash * 16777619) ^ str.charAt(i);
+		return hash;
 	}
 
 	public static int calc_hashnr(byte[] keys) {
@@ -801,7 +846,7 @@ public final class ByteBuffer {
 	public static int calc_hashnr(byte[] keys, int offset, int len) {
 		int hash = 0;
 		for (int end = offset + len; offset < end; offset++)
-			hash = hash * 16777619 ^ keys[offset];
+			hash = (hash * 16777619) ^ keys[offset];
 		return hash;
 	}
 

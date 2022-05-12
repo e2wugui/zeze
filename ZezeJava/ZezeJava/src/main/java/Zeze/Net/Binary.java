@@ -91,13 +91,13 @@ public final class Binary implements Comparable<Binary> {
 	}
 
 	public boolean equals(Binary other) {
-		return other != null && Count == other.Count &&
+		return this == other || other != null && Count == other.Count &&
 				Arrays.equals(_Bytes, Offset, Offset + Count, other._Bytes, other.Offset, other.Offset + Count);
 	}
 
 	@Override
-	public boolean equals(Object obj) {
-		return this == obj || obj instanceof Binary && equals((Binary)obj);
+	public boolean equals(Object other) {
+		return this == other || other instanceof Binary && equals((Binary)other);
 	}
 
 	@Override

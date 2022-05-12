@@ -26,6 +26,13 @@ public class TestByteBuffer extends TestCase {
 		assertEquals("02-01-02", bb.toString());
 		assertEquals(BitConverter.toString(v), BitConverter.toString(bb.ReadBytes()));
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
+
+		var str = "abc汉字123";
+		bb.WriteString(str);
+		assertEquals(13, bb.Size());
+		assertEquals("0C-61-62-63-E6-B1-89-E5-AD-97-31-32-33", bb.toString());
+		assertEquals(str, bb.ReadString());
+		assertEquals(bb.ReadIndex, bb.WriteIndex);
 	}
 
 	public void testBasic() {

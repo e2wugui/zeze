@@ -860,7 +860,10 @@ namespace Zeze.Serialize
 
         public static int calc_hashnr(string str)
         {
-            return calc_hashnr(Encoding.UTF8.GetBytes(str));
+            int hash = 0;
+            for (int i = 0, n = str.Length; i < n; i++)
+                hash = (hash * 16777619) ^ str[i];
+            return hash;
         }
 
         public static int calc_hashnr(byte[] keys)
@@ -872,7 +875,7 @@ namespace Zeze.Serialize
         {
             int hash = 0;
             for (int end = offset + len; offset < end; offset++)
-                hash = hash * 16777619 ^ keys[offset];
+                hash = (hash * 16777619) ^ keys[offset];
             return hash;
         }
 
