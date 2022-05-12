@@ -265,7 +265,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 
 	private int Release(CacheHolder sender, Binary _gKey, boolean noWait) throws InterruptedException {
 		while (true) {
-			CacheState cs = global.computeIfAbsent(_gKey, key -> new CacheState(key));
+			CacheState cs = global.computeIfAbsent(_gKey, CacheState::new);
 			var gKey = cs.GlobalKey; // release 应该不需要引用到同一个key，统一写成这样了。
 			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (cs) { //await 等锁
@@ -312,7 +312,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	private int AcquireShare(Acquire rpc) throws InterruptedException {
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
 		while (true) {
-			CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalKey, key -> new CacheState(key));
+			CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalKey, CacheState::new);
 			var gKey = cs.GlobalKey;
 			synchronized (cs) { //await 等锁
 				if (cs.AcquireStatePending == StateRemoved)
@@ -361,7 +361,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					if (cs.Modify == sender) {
 						// 已经是Modify又申请，可能是sender异常关闭，
 						// 又重启连上。更新一下。应该是不需要的。
-						sender.Acquired.put(rpc.Argument.GlobalKey, StateModify);
+						sender.Acquired.put(gKey, StateModify);
 						cs.AcquireStatePending = StateInvalid;
 						logger.debug("4 {} {} {}", sender, rpc.Argument.State, cs);
 						rpc.Result.State = StateModify;
@@ -371,7 +371,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					}
 
 					var reduceResultState = new OutInt(StateReduceNetError); // 默认网络错误。
-					if (cs.Modify.Reduce(rpc.Argument.GlobalKey, cs.GlobalSerialId, p -> { //await 方法内有等待
+					if (cs.Modify.Reduce(gKey, cs.GlobalSerialId, p -> { //await 方法内有等待
 						var r = (Reduce)p;
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
@@ -386,13 +386,13 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					}
 					switch (reduceResultState.Value) {
 					case StateShare:
-						cs.Modify.Acquired.put(rpc.Argument.GlobalKey, StateShare);
+						cs.Modify.Acquired.put(gKey, StateShare);
 						cs.Share.add(cs.Modify); // 降级成功。
 						break;
 
 					case StateInvalid:
 						// 降到了 Invalid，此时就不需要加入 Share 了。
-						cs.Modify.Acquired.remove(rpc.Argument.GlobalKey);
+						cs.Modify.Acquired.remove(gKey);
 						break;
 
 					default:
@@ -409,7 +409,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						return 0;
 					}
 
-					sender.Acquired.put(rpc.Argument.GlobalKey, StateShare);
+					sender.Acquired.put(gKey, StateShare);
 					cs.Modify = null;
 					cs.Share.add(sender);
 					cs.AcquireStatePending = StateInvalid;
@@ -420,7 +420,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					return 0;
 				}
 
-				sender.Acquired.put(rpc.Argument.GlobalKey, StateShare);
+				sender.Acquired.put(gKey, StateShare);
 				cs.Share.add(sender);
 				cs.AcquireStatePending = StateInvalid;
 				cs.notifyAll(); //notify
@@ -435,7 +435,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	private int AcquireModify(Acquire rpc) throws InterruptedException {
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
 		while (true) {
-			CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalKey, key -> new CacheState(key));
+			CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalKey, CacheState::new);
 			var gKey = cs.GlobalKey;
 			synchronized (cs) { //await 等锁
 				if (cs.AcquireStatePending == StateRemoved)
@@ -630,11 +630,11 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	}
 
 	private static final class CacheState {
+		final Binary GlobalKey; // 这里的引用同global map的key,用于给CacheHolder里的map相同的key引用
+		final IdentityHashSet<CacheHolder> Share = new IdentityHashSet<>();
 		CacheHolder Modify;
-		Binary GlobalKey;
 		int AcquireStatePending = StateInvalid;
 		long GlobalSerialId;
-		final IdentityHashSet<CacheHolder> Share = new IdentityHashSet<>();
 
 		public CacheState(Binary gKey) {
 			GlobalKey = gKey;
@@ -659,9 +659,9 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	private static final class CacheHolder {
 		static final long ForbidPeriod = 10 * 1000; // 10 seconds
 
+		final ConcurrentHashMap<Binary, Integer> Acquired = new ConcurrentHashMap<>();
 		long SessionId;
 		int GlobalCacheManagerHashIndex;
-		final ConcurrentHashMap<Binary, Integer> Acquired = new ConcurrentHashMap<>();
 		private volatile long LastErrorTime;
 
 		synchronized boolean TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex) {
