@@ -52,7 +52,7 @@ private KV<Record1<K,V>, V> TableX.Load(K key) {
         // strong需要返回，不能从r.soft里面再次获取
         // 使用Load的地方：
         // 1. Transaction.get等。需要把strong记到事务的RecordAccessed中，在事务结束前都不能触发soft回收。
-        // 2. selectCopy, selectDirty。可以事务外使用，有使用者自己管理strong生命期。
+        // 2. selectCopy, selectDirty。可以事务外使用，使用者自己管理strong生命期。
         return KV.Create(r, strong);
     }
     ...
@@ -73,7 +73,7 @@ Record.setDirty(bool value) {
 }
 
 【三】
-RecordAccessed 增加 Bean StrongRef，保存Load的返回值的引用。
+RecordAccessed 增加 Bean StrongRef，保存Load的返回值里的bean引用。
 
 【四】
 public void Record1.Flush(Database.Transaction t) {
