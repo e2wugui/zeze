@@ -350,11 +350,12 @@ namespace Zeze.Services
             }
         }
 
-        private async Task<int> ReleaseAsync(CacheHolder sender, Binary gkey, bool noWait)
+        private async Task<int> ReleaseAsync(CacheHolder sender, Binary _gkey, bool noWait)
         {
             while (true)
             {
-                CacheState cs = global.GetOrAdd(gkey, (tabkeKeyNotUsed) => new CacheState());
+                CacheState cs = global.GetOrAdd(_gkey, (key) => new CacheState() { GlobalKey = key });
+                var gkey = cs.GlobalKey;
                 using var lockcs = await cs.Monitor.EnterAsync();
 
                 if (cs.AcquireStatePending == StateRemoved)
@@ -408,7 +409,8 @@ namespace Zeze.Services
 
             while (true)
             {
-                CacheState cs = global.GetOrAdd(rpc.Argument.GlobalKey, (_) => new CacheState());
+                CacheState cs = global.GetOrAdd(rpc.Argument.GlobalKey, (key) => new CacheState() { GlobalKey = key });
+                var gkey = cs.GlobalKey;
                 using var lockcs = await cs.Monitor.EnterAsync();
 
                 if (cs.AcquireStatePending == StateRemoved)
@@ -467,14 +469,14 @@ namespace Zeze.Services
                         rpc.Result.State = StateModify;
                         // 已经是Modify又申请，可能是sender异常关闭，
                         // 又重启连上。更新一下。应该是不需要的。
-                        sender.Acquired[rpc.Argument.GlobalKey] = StateModify;
+                        sender.Acquired[gkey] = StateModify;
                         rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                         rpc.SendResultCode(AcquireShareAlreadyIsModify);
                         return 0;
                     }
 
                     int reduceResultState = StateReduceNetError; // 默认网络错误。
-                    if (cs.Modify.Reduce(rpc.Argument.GlobalKey, StateInvalid, cs.GlobalSerialId,
+                    if (cs.Modify.Reduce(gkey, StateInvalid, cs.GlobalSerialId,
                         async (p) =>
                         {
                             var r = p as Reduce;
@@ -493,13 +495,13 @@ namespace Zeze.Services
                     switch (reduceResultState)
                     {
                         case StateShare:
-                            cs.Modify.Acquired[rpc.Argument.GlobalKey] = StateShare;
+                            cs.Modify.Acquired[gkey] = StateShare;
                             cs.Share.Add(cs.Modify); // 降级成功。
                             break;
 
                         case StateInvalid:
                             // 降到了 Invalid，此时就不需要加入 Share 了。
-                            cs.Modify.Acquired.TryRemove(rpc.Argument.GlobalKey, out _);
+                            cs.Modify.Acquired.TryRemove(gkey, out _);
                             break;
 
                         default:
@@ -518,7 +520,7 @@ namespace Zeze.Services
                     }
 
                     cs.Modify = null;
-                    sender.Acquired[rpc.Argument.GlobalKey] = StateShare;
+                    sender.Acquired[gkey] = StateShare;
                     cs.Share.Add(sender);
                     cs.AcquireStatePending = StateInvalid;
                     cs.Monitor.PulseAll();
@@ -528,7 +530,7 @@ namespace Zeze.Services
                     return 0;
                 }
 
-                sender.Acquired[rpc.Argument.GlobalKey] = StateShare;
+                sender.Acquired[gkey] = StateShare;
                 cs.Share.Add(sender);
                 cs.AcquireStatePending = StateInvalid;
                 cs.Monitor.PulseAll();
@@ -545,7 +547,8 @@ namespace Zeze.Services
             CacheHolder sender = (CacheHolder)rpc.Sender.UserState;
             while (true)
             {
-                CacheState cs = global.GetOrAdd(rpc.Argument.GlobalKey, (tabkeKeyNotUsed) => new CacheState());
+                CacheState cs = global.GetOrAdd(rpc.Argument.GlobalKey, (key) => new CacheState() { GlobalKey = key });
+                var gkey = cs.GlobalKey;
                 using var lockcs = await cs.Monitor.EnterAsync();
 
                 if (cs.AcquireStatePending == StateRemoved)
@@ -605,7 +608,7 @@ namespace Zeze.Services
                         logger.Debug("4 {0} {1} {2}", sender, rpc.Argument.State, cs);
                         // 已经是Modify又申请，可能是sender异常关闭，又重启连上。
                         // 更新一下。应该是不需要的。
-                        sender.Acquired[rpc.Argument.GlobalKey] = StateModify;
+                        sender.Acquired[gkey] = StateModify;
                         rpc.Result.GlobalSerialId = cs.GlobalSerialId;
                         rpc.SendResultCode(AcquireModifyAlreadyIsModify);
                         cs.AcquireStatePending = StateInvalid;
@@ -614,7 +617,7 @@ namespace Zeze.Services
                     }
 
                     int reduceResultState = StateReduceNetError; // 默认网络错误。
-                    if (cs.Modify.Reduce(rpc.Argument.GlobalKey, StateInvalid, cs.GlobalSerialId,
+                    if (cs.Modify.Reduce(gkey, StateInvalid, cs.GlobalSerialId,
                         async (p) =>
                         {
                             var r = p as Reduce;
@@ -633,7 +636,7 @@ namespace Zeze.Services
                     switch (reduceResultState)
                     {
                         case StateInvalid:
-                            cs.Modify.Acquired.TryRemove(rpc.Argument.GlobalKey, out _);
+                            cs.Modify.Acquired.TryRemove(gkey, out _);
                             break; // reduce success
 
                         default:
@@ -652,7 +655,7 @@ namespace Zeze.Services
 
                     cs.Modify = sender;
                     cs.Share.Remove(sender);
-                    sender.Acquired[rpc.Argument.GlobalKey] = StateModify;
+                    sender.Acquired[gkey] = StateModify;
                     cs.AcquireStatePending = StateInvalid;
                     cs.Monitor.PulseAll();
 
@@ -675,7 +678,7 @@ namespace Zeze.Services
                         reduceSucceed.Add(sender);
                         continue;
                     }
-                    Reduce reduce = c.ReduceWaitLater(rpc.Argument.GlobalKey, StateInvalid, cs.GlobalSerialId);
+                    Reduce reduce = c.ReduceWaitLater(gkey, StateInvalid, cs.GlobalSerialId);
                     if (null != reduce)
                     {
                         reducePending.Add(Util.KV.Create(c, reduce));
@@ -731,7 +734,7 @@ namespace Zeze.Services
                         // sender 不移除：
                         // 1. 如果申请成功，后面会更新到Modify状态。
                         // 2. 如果申请不成功，恢复 cs.Share，保持 Acquired 不变。
-                        succeed.Acquired.TryRemove(rpc.Argument.GlobalKey, out var _);
+                        succeed.Acquired.TryRemove(gkey, out var _);
                     }
                     cs.Share.Remove(succeed);
                 }
@@ -740,7 +743,7 @@ namespace Zeze.Services
                 if (cs.Share.Count == 0)
                 {
                     cs.Modify = sender;
-                    sender.Acquired[rpc.Argument.GlobalKey] = StateModify;
+                    sender.Acquired[gkey] = StateModify;
                     cs.AcquireStatePending = StateInvalid;
                     cs.Monitor.PulseAll();
 
@@ -769,6 +772,7 @@ namespace Zeze.Services
         public sealed class CacheState
         {
             internal CacheHolder Modify { get; set; }
+            internal Binary GlobalKey { get; set; }
             internal int AcquireStatePending { get; set; } = StateInvalid;
             internal long GlobalSerialId { get; set; }
             internal HashSet<CacheHolder> Share { get; } = new HashSet<CacheHolder>();
