@@ -263,9 +263,10 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		return result;
 	}
 
-	private int Release(CacheHolder sender, Binary gkey, boolean noWait) throws InterruptedException {
+	private int Release(CacheHolder sender, Binary _gKey, boolean noWait) throws InterruptedException {
 		while (true) {
-			CacheState cs = global.computeIfAbsent(gkey, __ -> new CacheState());
+			CacheState cs = global.computeIfAbsent(_gKey, key -> new CacheState(key));
+			var gKey = cs.GlobalKey; // release 应该不需要引用到同一个key，统一写成这样了。
 			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (cs) { //await 等锁
 				if (cs.AcquireStatePending == StateRemoved) {
@@ -277,7 +278,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					switch (cs.AcquireStatePending) {
 					case StateShare:
 					case StateModify:
-						logger.debug("Release 0 {} {} {}", sender, gkey, cs);
+						logger.debug("Release 0 {} {} {}", sender, gKey, cs);
 						if (noWait)
 							return cs.GetSenderCacheState(sender);
 						break;
@@ -298,10 +299,10 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 				if (cs.Modify == null && cs.Share.isEmpty()) {
 					// 安全的从global中删除，没有并发问题。
 					cs.AcquireStatePending = StateRemoved;
-					global.remove(gkey);
+					global.remove(gKey);
 				} else
 					cs.AcquireStatePending = StateInvalid;
-				sender.Acquired.remove(gkey);
+				sender.Acquired.remove(gKey);
 				cs.notifyAll(); //notify
 				return cs.GetSenderCacheState(sender);
 			} //notify
@@ -311,7 +312,8 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	private int AcquireShare(Acquire rpc) throws InterruptedException {
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
 		while (true) {
-			CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalKey, __ -> new CacheState());
+			CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalKey, key -> new CacheState(key));
+			var gKey = cs.GlobalKey;
 			synchronized (cs) { //await 等锁
 				if (cs.AcquireStatePending == StateRemoved)
 					continue;
@@ -433,7 +435,8 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	private int AcquireModify(Acquire rpc) throws InterruptedException {
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
 		while (true) {
-			CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalKey, __ -> new CacheState());
+			CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalKey, key -> new CacheState(key));
+			var gKey = cs.GlobalKey;
 			synchronized (cs) { //await 等锁
 				if (cs.AcquireStatePending == StateRemoved)
 					continue;
@@ -483,7 +486,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						logger.debug("4 {} {} {}", sender, rpc.Argument.State, cs);
 						// 已经是Modify又申请，可能是sender异常关闭，又重启连上。
 						// 更新一下。应该是不需要的。
-						sender.Acquired.put(rpc.Argument.GlobalKey, StateModify);
+						sender.Acquired.put(gKey, StateModify);
 						cs.AcquireStatePending = StateInvalid;
 						cs.notifyAll(); //notify
 						rpc.Result.GlobalSerialId = cs.GlobalSerialId;
@@ -492,7 +495,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					}
 
 					var reduceResultState = new OutInt(StateReduceNetError); // 默认网络错误。
-					if (cs.Modify.Reduce(rpc.Argument.GlobalKey, cs.GlobalSerialId, p -> { //await 方法内有等待
+					if (cs.Modify.Reduce(gKey, cs.GlobalSerialId, p -> { //await 方法内有等待
 						var r = (Reduce)p;
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
@@ -509,7 +512,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					//noinspection SwitchStatementWithTooFewBranches
 					switch (reduceResultState.Value) {
 					case StateInvalid:
-						cs.Modify.Acquired.remove(rpc.Argument.GlobalKey);
+						cs.Modify.Acquired.remove(gKey);
 						break; // reduce success
 
 					default:
@@ -525,7 +528,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						return 0;
 					}
 
-					sender.Acquired.put(rpc.Argument.GlobalKey, StateModify);
+					sender.Acquired.put(gKey, StateModify);
 					cs.Modify = sender;
 					cs.Share.remove(sender);
 					cs.AcquireStatePending = StateInvalid;
@@ -548,7 +551,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						reduceSucceed.add(sender);
 						continue;
 					}
-					Reduce reduce = c.ReduceWaitLater(rpc.Argument.GlobalKey, cs.GlobalSerialId);
+					Reduce reduce = c.ReduceWaitLater(gKey, cs.GlobalSerialId);
 					if (reduce == null) {
 						// 网络错误不再认为成功。整个降级失败，要中断降级。
 						// 已经发出去的降级请求要等待并处理结果。后面处理。
@@ -594,13 +597,13 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						// sender 不移除：
 						// 1. 如果申请成功，后面会更新到Modify状态。
 						// 2. 如果申请不成功，恢复 cs.Share，保持 Acquired 不变。
-						succeed.Acquired.remove(rpc.Argument.GlobalKey);
+						succeed.Acquired.remove(gKey);
 					}
 					cs.Share.remove(succeed);
 				}
 				// 如果前面降级发生中断(break)，这里就不会为0。
 				if (cs.Share.isEmpty()) {
-					sender.Acquired.put(rpc.Argument.GlobalKey, StateModify);
+					sender.Acquired.put(gKey, StateModify);
 					cs.Modify = sender;
 					cs.AcquireStatePending = StateInvalid;
 					cs.notifyAll(); //notify
@@ -628,9 +631,14 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 
 	private static final class CacheState {
 		CacheHolder Modify;
+		Binary GlobalKey;
 		int AcquireStatePending = StateInvalid;
 		long GlobalSerialId;
 		final IdentityHashSet<CacheHolder> Share = new IdentityHashSet<>();
+
+		public CacheState(Binary gKey) {
+			GlobalKey = gKey;
+		}
 
 		int GetSenderCacheState(CacheHolder sender) {
 			if (Modify == sender)
