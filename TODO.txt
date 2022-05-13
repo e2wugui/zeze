@@ -96,7 +96,9 @@ public void Record1.SetDirty() {
 【六】
 private boolean TableCache.Remove(Map.Entry<K, Record1<K, V>> p) {
     ...
-    RocksDb.remove(); // 从cache中删除，也需要删除持久化的
+    RocksDb.remove();
+    // 从cache中删除，也需要删除持久化的，这个违背了【原则：RocksDb和后台数据库一致】，
+    // 但是不删除，会导致长期运行，本地cache一直积累。
     return true;
 }
 
