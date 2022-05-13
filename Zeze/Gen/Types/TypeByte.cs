@@ -7,7 +7,7 @@ namespace Zeze.Gen.Types
 {
 	public class TypeByte : Type
 	{
-		public override Type Compile(ModuleSpace space, string key, string value)
+		public override Type Compile(ModuleSpace space, string key, string value, object param)
 		{
 			if (key != null && key.Length > 0)
 				throw new Exception(Name + " type does not need a key. " + key);

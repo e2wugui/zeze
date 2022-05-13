@@ -14,21 +14,19 @@ namespace Zeze.Gen.Types
 			visitor.Visit(this);
 		}
 
-		public override Type Compile(ModuleSpace space, string key, string value)
+		public override Type Compile(ModuleSpace space, string key, string value, object param)
 		{
-			return new TypeList(space, key, value);
+			return new TypeList(space, key, value, param);
 		}
 
-		private TypeList(global::Zeze.Gen.ModuleSpace space, string key, string value)
+		private TypeList(global::Zeze.Gen.ModuleSpace space, string key, string value, object param)
 		{
 			if (key != null && key.Length > 0)
 				throw new Exception(Name + " type does not need a key. " + key);
 
-			ValueType = Type.Compile(space, value, null, null);
+			ValueType = Type.Compile(space, value, null, null, param);
 			//if (ValueType is TypeBinary)
 			//	throw new Exception(Name + " Error : value type is binary.");
-			if (ValueType is TypeDynamic)
-				throw new Exception(Name + " Error : value type is dynamic.");
 		}
 
 		internal TypeList(SortedDictionary<string, Type> types)

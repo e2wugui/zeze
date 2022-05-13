@@ -24,44 +24,34 @@ namespace Zeze.Gen.Types
 
         public SortedDictionary<long, Bean> RealBeans { get; } = new SortedDictionary<long, Bean>();
         public int SpecialCount { get; }
-        public string GetSpecialTypeIdFromBean { get; }
-        public string CreateBeanFromSpecialTypeId { get; }
+        public DynamicParams DynamicParams { get; }
 
         public override void Accept(Visitor visitor)
         {
             visitor.Visit(this);
         }
 
-        public override Type Compile(ModuleSpace space, string key, string value)
+        public override Type Compile(ModuleSpace space, string key, string value, object param)
         {
             if (key != null && key.Length > 0)
                 throw new Exception(Name + " type does not need a key. " + key);
-            return new TypeDynamic(space, value);
+            return new TypeDynamic(space, (DynamicParams)param);
         }
 
         // value=BeanName[:SpecialTypeId],BeanName2[:SpecialTypeId2]
         // 如果指定特别的TypeId，必须全部都指定。虽然部分指定也可以处理，感觉这样不大好。
-        private TypeDynamic(ModuleSpace space, string value)
+        private TypeDynamic(ModuleSpace space, DynamicParams value)
         {
             Kind = "dynamic";
-            var split2 = value.Split('%');
-            if (split2.Length > 2)
-                throw new Exception($"error dynamic value format:{value}");
-
-            if (split2.Length > 1)
-            { 
-                var func2 = split2[1].Split(',');
-                GetSpecialTypeIdFromBean = func2[0];
-                CreateBeanFromSpecialTypeId = func2[1];
-            }
-            foreach (var beanWithSpecialTypeId in split2[0].Split(','))
+            DynamicParams = value;
+            foreach (var beanWithSpecialTypeId in DynamicParams.DynamicBeans)
             {
                 if (beanWithSpecialTypeId.Length == 0) // empty
                     continue;
                 var beanWithSpecialTypeIdArray = beanWithSpecialTypeId.Split(':');
                 if (beanWithSpecialTypeIdArray.Length == 0)
                     continue;
-                Type type = Type.Compile(space, beanWithSpecialTypeIdArray[0], null, null);
+                Type type = Type.Compile(space, beanWithSpecialTypeIdArray[0], null, null, null);
                 if (false == type.IsNormalBean)
                     throw new Exception("dynamic only support normal bean");
                 Bean bean = type as Bean;

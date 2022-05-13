@@ -35,6 +35,43 @@ namespace Zeze.Gen.cs
             sw.WriteLine("}");
         }
 
+        private void GenDynamicSpecialMethod(StreamWriter sw, string prefix, Types.Variable var, TypeDynamic type, bool isCollection)
+        {
+            if (false == isCollection)
+            {
+                foreach (var real in type.RealBeans)
+                    sw.WriteLine($"{prefix}public const long DynamicTypeId{var.NameUpper1}{real.Value.Space.Path("_", real.Value.Name)} = {real.Key};");
+                if (type.RealBeans.Count > 0)
+                    sw.WriteLine();
+            }
+
+            sw.WriteLine($"{prefix}public static long GetSpecialTypeIdFromBean_{var.NameUpper1}(Zeze.Transaction.Bean bean)");
+            sw.WriteLine($"{prefix}{{");
+            sw.WriteLine($"{prefix}    switch (bean.TypeId)");
+            sw.WriteLine($"{prefix}    {{");
+            sw.WriteLine($"{prefix}        case Zeze.Transaction.EmptyBean.TYPEID: return Zeze.Transaction.EmptyBean.TYPEID;");
+            foreach (var real in type.RealBeans)
+                sw.WriteLine($"{prefix}        case {real.Value.TypeId}: return {real.Key}; // {real.Value.FullName}");
+            sw.WriteLine($"{prefix}    }}");
+            sw.WriteLine($"{prefix}    throw new System.Exception(\"Unknown Bean! dynamic@{(var.Bean as Bean).FullName}:{var.Name}\");");
+            sw.WriteLine($"{prefix}}}");
+            sw.WriteLine();
+            sw.WriteLine($"{prefix}public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_{var.NameUpper1}(long typeId)");
+            sw.WriteLine($"{prefix}{{");
+            if (type.RealBeans.Count > 0)
+            {
+                sw.WriteLine($"{prefix}    switch (typeId)");
+                sw.WriteLine($"{prefix}    {{");
+                //sw.WriteLine($"{prefix}        case Zeze.Transaction.EmptyBean.TYPEID: return new Zeze.Transaction.EmptyBean();");
+                foreach (var real in type.RealBeans)
+                    sw.WriteLine($"{prefix}        case {real.Key}: return new {real.Value.FullName}();");
+                sw.WriteLine($"{prefix}    }}");
+            }
+            sw.WriteLine($"{prefix}    return null;");
+            sw.WriteLine($"{prefix}}}");
+            sw.WriteLine();
+        }
+
         public void WriteDefine(StreamWriter sw)
         {
             // declare enums
@@ -63,6 +100,12 @@ namespace Zeze.Gen.cs
                     var readonlyTypeName = $"Zeze.Transaction.Collections.CollMapReadOnly<{key},{value},{TypeName.GetName(pmap.ValueType)}>";
                     sw.WriteLine($"        {readonlyTypeName} {v.NamePrivate}ReadOnly;");
                 }
+                if (vt is TypeDynamic dy0)
+                    GenDynamicSpecialMethod(sw, "        ", v, dy0, false);
+                else if (vt is TypeMap map && map.ValueType is TypeDynamic dy1)
+                    GenDynamicSpecialMethod(sw, "        ", v, dy1, true);
+                else if (vt is TypeCollection coll && coll.ValueType is TypeDynamic dy2)
+                    GenDynamicSpecialMethod(sw, "        ", v, dy2, true);
             }
             sw.WriteLine();
 

@@ -15,9 +15,9 @@ namespace Zeze.Gen.Types
 			visitor.Visit(this);
 		}
 
-		public override Type Compile(ModuleSpace space, string key, string value)
+		public override Type Compile(ModuleSpace space, string key, string value, object param)
 		{
-			return new TypeMap(space, key, value);
+			return new TypeMap(space, key, value, param);
 		}
 
 		public override string Name => "map";
@@ -31,25 +31,23 @@ namespace Zeze.Gen.Types
 			}
 		}
 
-		private TypeMap(global::Zeze.Gen.ModuleSpace space, string key, string value)
+		private TypeMap(global::Zeze.Gen.ModuleSpace space, string key, string value, object param)
 		{
 			if (key.Length == 0)
 				throw new Exception("map type need a key");
 			if (value.Length == 0)
 				throw new Exception("map type need a value");
 
-			KeyType = Type.Compile(space, key, null, null);
+			KeyType = Type.Compile(space, key, null, null, null);
 			if (!KeyType.IsKeyable)
 				throw new Exception("map key need a keyable type");
-			ValueType = Type.Compile(space, value, null, null);
+			ValueType = Type.Compile(space, value, null, null, param);
 
 			if (ValueType.IsNormalBeanOrRocks)
 				(ValueType as Bean).MapKeyTypes.Add(KeyType);
 
 			//if (ValueType is TypeBinary)
 			//	throw new Exception(Name + " Error : value type is binary.");
-			if (ValueType is TypeDynamic)
-				throw new Exception(Name + " Error : value type is dynamic.");
 		}
 
 		internal TypeMap(SortedDictionary<string, Type> types)

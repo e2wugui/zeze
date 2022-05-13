@@ -1245,7 +1245,7 @@ namespace Zeze.Serialize
                 SkipUnknownField(type);
             return bean;
         }
-
+     
         public Zeze.Transaction.DynamicBean ReadDynamic(Zeze.Transaction.DynamicBean dynBean, int type)
         {
             type &= TAG_MASK;
@@ -1256,6 +1256,7 @@ namespace Zeze.Serialize
             }
             if (type == BEAN)
             {
+                // @张路 这里肯定创建失败，所以没有什么意义吧。
                 var bean = dynBean.CreateBeanFromSpecialTypeId(0);
                 if (bean != null)
                 {

@@ -6,7 +6,7 @@ namespace Zeze.Gen.Types
 {
 	public abstract class Type
 	{
-		public abstract Type Compile(ModuleSpace space, string key, string value);
+		public abstract Type Compile(ModuleSpace space, string key, string value, object param);
 		public abstract void Depends(HashSet<Type> includes);
 		public abstract void Accept(Visitor visitor);
 
@@ -42,16 +42,16 @@ namespace Zeze.Gen.Types
 
 		public static Type Compile(global::Zeze.Gen.ModuleSpace space, string name)
 		{
-			return Compile(space, name, null, null);
+			return Compile(space, name, null, null, null);
 		}
 
-		public static Type Compile(ModuleSpace space, string name, string key, string value)
+		public static Type Compile(ModuleSpace space, string name, string key, string value, object param)
 		{
 			Type type = null;
 
 			if (Types.TryGetValue(name, out type))
 			{
-				return type.Compile(space, key, value);
+				return type.Compile(space, key, value, param);
 			}
 
 			if (false == Program.IsFullName(name))
@@ -59,7 +59,7 @@ namespace Zeze.Gen.Types
 				name = space.Path(".", name);
 				if (Types.TryGetValue(name, out type))
 				{
-					return type.Compile(space, key, value);
+					return type.Compile(space, key, value, param);
 				}
 			}
 

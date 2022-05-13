@@ -23,6 +23,43 @@ Sample(Zezex).client: 可靠消息实现的错误检查。
 Global.RocksRaft.LruTryRemoveCallback
 DatabaseTikv OperatesTikv
 
+Gen & Defing Change
+1. 新的模板参数声明格式
+   <variable id="1" name="ListInt" type="list[int]"/>
+   <variable id="2" name="SetInt" type="set[int]"/>
+   <variable id="3" name="MingIntInt" type="map[int,int]"/>
+   # 兼容旧的key，value声明方式，同时指定将抛异常。
+2. dynaimc 统一包含的Bean类型定义方式
+   <variable id="1" name="Dynamic" type="dynamic" value="bean1,bean2">
+      <value bean="bean3"/>
+   </variable>
+   改成
+   <variable id="1" name="Dynamic" type="dynamic">
+      <value bean="bean1"/>
+      <value bean="bean2"/>
+      <value bean="bean3"/>
+   </variable>
+   直接在variable的属性value中声明方式不再支持，统一在包含的element中声明。
+3. dynamic 指定基类&可以放入容器中
+   【基类即Bean将实现继承，仅在dynamic中才支持声明基类，下面是例子】
+   【继承实现将有 @张路 完成，目前仅完成声明基类的解析】
+   【解析是针对多有版本的，计划具体实现仅用于platform="conf+cs"，由张路决定】
+   <variable id="1" name="ListInt" type="list[dynamic:BBase]"/>
+   <variable id="2" name="SetInt" type="set[int]"/> set不支持包含dynamic，特别放这里说明一下
+   <variable id="3" name="MingIntInt" type="map[int,dynamic:BBase]"/>
+   <variable id="4" name="BeanWithBase" type="dynamic:BBase"/>
+4. bean继承实现
+   【注意】class B : A; List<A>中被放入B时，Decode成A或者失败或者Encode报错。
+   【注意】继承要实现动态，必须配合dynamic使用。
+5. @张路
+    上面的1，2，3都基本实现了，其中第3的指定基类仅解析完成。
+    Gen修改。
+    Compile增加一个object param参数，现在用于传递DynamicParams给TypeDynamic。
+    以前是string编解码通过Value传递。增加这个参数以后便于扩展。
+    ByteBuffer里面查找“张路”，有个注释。
+    以上已实现部分仅c#。java,ts版本我稍后做，还是使用包装类DynamicBean。
+    conf+cs留给你，
+
 ------------------------------------------------------------------------------------------------------------------------------
 tag 0.9.1 Java TableCache SoftReference 2022.5.13
 ------------------------------------------------------------------------------------------------------------------------------

@@ -186,8 +186,9 @@ namespace Zeze.Gen.cs
                     return bufname + ".ReadString(" + typeVar + ')';
                 case Bean:
                 case BeanKey:
-                case TypeDynamic:
                     return bufname + ".ReadBean(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
+                case TypeDynamic:
+                    return bufname + ".ReadDynamic(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
                 case TypeVector2:
                     return $"{bufname}.ReadVector2({typeVar})";
                 case TypeVector3:
@@ -206,8 +207,11 @@ namespace Zeze.Gen.cs
             }
         }
  
-        public static bool IsUnityType(Types.Type type)
+        public static bool IsOldStypeEncodeDecodeType(Types.Type type)
         {
+            if (type is TypeDynamic)
+                return true;
+
             if (!Project.MakingInstance.Platform.Equals("conf+cs"))
                 return false;
 
@@ -237,7 +241,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    for (int _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--)");
             sw.WriteLine(prefix + "    {");
-            if (IsUnityType(vt))
+            if (IsOldStypeEncodeDecodeType(vt))
             {
                 vt.Accept(new Define("_e_", sw, prefix + "        "));
                 vt.Accept(new Decode("_e_", 0, bufname, sw, prefix + "        "));
@@ -290,7 +294,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    int _s_ = (_t_ = " + bufname + ".ReadByte()) >> ByteBuffer.TAG_SHIFT;");
             sw.WriteLine(prefix + "    for (int _n_ = " + bufname + ".ReadUInt(); _n_ > 0; _n_--)");
             sw.WriteLine(prefix + "    {");
-            if (IsUnityType(kt))
+            if (IsOldStypeEncodeDecodeType(kt))
             {
                 kt.Accept(new Define("_k_", sw, prefix + "        "));
                 kt.Accept(new Decode("_k_", 0, bufname, sw, prefix + "        "));
@@ -299,7 +303,7 @@ namespace Zeze.Gen.cs
             {
                 sw.WriteLine(prefix + "        var _k_ = " + DecodeElement(kt, "_s_") + ';');
             }
-            if (IsUnityType(vt))
+            if (IsOldStypeEncodeDecodeType(vt))
             {
                 vt.Accept(new Define("_v_", sw, prefix + "        "));
                 vt.Accept(new Decode("_v_", 0, bufname, sw, prefix + "        "));
@@ -336,7 +340,7 @@ namespace Zeze.Gen.cs
             if (id > 0)
                 sw.WriteLine(prefix + bufname + ".ReadDynamic(" + varname + ", _t_);");
             else
-                throw new Exception("invalid variable.id");
+                sw.WriteLine(prefix + bufname + ".ReadDynamic(" + varname + ", _t_);");
         }
 
         public void Visit(TypeQuaternion type)

@@ -147,7 +147,7 @@ namespace Zeze.Gen.confcs
 
         public void Visit(TypeDynamic type)
         {
-            if (string.IsNullOrEmpty(type.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
+            if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
             {
                 sw.WriteLine(prefix + variable.Name + " = new Zeze.Util.ConfDynamicBean"
                     + $"({variable.Id}, GetSpecialTypeIdFromBean_{variable.NameUpper1}, CreateBeanFromSpecialTypeId_{variable.NameUpper1});");
@@ -155,7 +155,7 @@ namespace Zeze.Gen.confcs
             else
             {
                 sw.WriteLine(prefix + variable.Name + " = new Zeze.Transaction.DynamicBean"
-                    + $"({variable.Id}, {type.GetSpecialTypeIdFromBean}, {type.CreateBeanFromSpecialTypeId});");
+                    + $"({variable.Id}, {type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateBeanFromSpecialTypeId});");
             }
         }
 

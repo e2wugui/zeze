@@ -243,7 +243,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    " + bufname + ".WriteListType(_n_, " + TypeTagName.GetName(vt) + ");");
             sw.WriteLine(prefix + "    foreach (var _v_ in _x_)");
             sw.WriteLine(prefix + "    {");
-            if (Decode.IsUnityType(vt))
+            if (Decode.IsOldStypeEncodeDecodeType(vt))
             {
                 vt.Accept(new Encode("_v_", 0, bufname, sw, prefix + "        "));
             }
@@ -279,7 +279,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    " + bufname + ".WriteMapType(_n_, " + TypeTagName.GetName(kt) + ", " + TypeTagName.GetName(vt) + ");");
             sw.WriteLine(prefix + "    foreach (var _e_ in _x_)");
             sw.WriteLine(prefix + "    {");
-            if (Decode.IsUnityType(kt))
+            if (Decode.IsOldStypeEncodeDecodeType(kt))
             {
                 vt.Accept(new Encode("_e_.Key", 0, bufname, sw, prefix + "        "));
             }
@@ -287,7 +287,7 @@ namespace Zeze.Gen.cs
             {
                 EncodeElement(kt, prefix + "        ", "_e_.Key");
             }
-            if (Decode.IsUnityType(vt))
+            if (Decode.IsOldStypeEncodeDecodeType(vt))
             {
                 vt.Accept(new Encode("_e_.Value", 0, bufname, sw, prefix + "        "));
             }
@@ -345,7 +345,9 @@ namespace Zeze.Gen.cs
                 sw.WriteLine(prefix + "}");
             }
             else
-                throw new Exception("invalid variable.id");
+            {
+                sw.WriteLine(prefix + "_x_.Encode(" + bufname + ");");
+            }
         }
 
         public void Visit(TypeQuaternion type)

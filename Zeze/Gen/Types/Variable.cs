@@ -28,6 +28,8 @@ namespace Zeze.Gen.Types
 		public bool Transient { get; private set; } = false;
 		public string FixSize { get; private set; }
 
+		public DynamicParams DynamicParams { get; } = new(); 
+
 		public string GetBeanFullName()
 		{
 			if (Bean is Bean)
@@ -37,6 +39,69 @@ namespace Zeze.Gen.Types
 				return ((BeanKey)Bean).FullName;
 
 			throw new Exception("Variable holder is not a bean");
+		}
+
+		string ParseDynamicBase(string type)
+		{
+			var dbase = type.Trim().Split(':');
+			if (dbase.Length == 0)
+				throw new Exception($"error type define, no type: '{type}'"); // impossible
+			if (dbase.Length == 1)
+				return dbase[0].Trim(); // 普通类型或者没有指定基类的dynamic
+			if (dbase.Length > 2)
+				throw new Exception($"error type define, too many base: '{type}'");
+
+			dbase[0] = dbase[0].Trim();
+			dbase[1] = dbase[1].Trim();
+
+			if (false == string.IsNullOrEmpty(DynamicParams.DynamicBase))
+				throw new Exception($"error type define, '{type}'");
+			DynamicParams.DynamicBase = dbase[1];
+			if (false == dbase[0].Equals("dynamic"))
+				throw new Exception($"error type define, only dynamic has base: '{type}'");
+			return dbase[0];
+		}
+
+		void ParseType()
+		{
+			var typeTemplate = Type.Split('[');
+			if (typeTemplate.Length == 0)
+				throw new Exception($"error type define: no type, impossible. '{Type}'");
+
+			var typesaved = Type;
+			Type = ParseDynamicBase(typeTemplate[0]);
+
+			if (typeTemplate.Length == 1)
+				return; // 非模板类型。
+
+			if (typeTemplate.Length > 2 || false == typeTemplate[1].EndsWith("]"))
+				throw new Exception($"error type define: '{Type}'");
+
+			var keyvalue = typeTemplate[1].Remove(typeTemplate[1].Length - 1).Split(',');
+			switch (keyvalue.Length)
+			{
+				case 0:
+					throw new Exception($"error type define, key value is 0: '{Type}'");
+
+				case 1:
+					if (Value.Length > 0)
+						throw new Exception($"error type define, value has present.");
+					Value = ParseDynamicBase(keyvalue[0]);
+					break;
+
+				case 2:
+					if (Key.Length > 0)
+						throw new Exception($"error type define, key has present.");
+					if (Value.Length > 0)
+						throw new Exception($"error type define, value has present.");
+					Key = keyvalue[0].Trim();
+					Value = ParseDynamicBase(keyvalue[1]);
+					break;
+
+				default:
+					throw new Exception($"error type define, too many template params: '{typesaved}'");
+			}
+			// ParseDynamicBase 上面调用了多次，只会成功一次。
 		}
 
 		public Variable(Type bean, XmlElement self)
@@ -74,59 +139,42 @@ namespace Zeze.Gen.Types
 			if (Comment.Length > 0)
 				Comment = " // " + Comment;
 
-			HashSet<string> dynamicValue = new HashSet<string>();
+			ParseType();
+
 			XmlNodeList childNodes = self.ChildNodes;
-			string GetSpecialTypeIdFromBean = null;
-			string CreateBeanFromSpecialTypeId = null;
 			foreach (XmlNode node in childNodes)
 			{
 				if (XmlNodeType.Element != node.NodeType)
 					continue;
 
 				XmlElement e = (XmlElement)node;
-
                 string nodename = e.Name;
 				switch (e.Name)
 				{
 					case "value":
-						dynamicValue.Add(e.GetAttribute("bean"));
+						DynamicParams.DynamicBeans.Add(e.GetAttribute("bean"));
 						break;
 					case "GetSpecialTypeIdFromBean":
-						GetSpecialTypeIdFromBean = e.GetAttribute("value");
+						DynamicParams.GetSpecialTypeIdFromBean = e.GetAttribute("value");
 						break;
 					case "CreateBeanFromSpecialTypeId":
-						CreateBeanFromSpecialTypeId = e.GetAttribute("value");
+						DynamicParams.CreateBeanFromSpecialTypeId = e.GetAttribute("value");
 						break;
 					default:
 						throw new Exception("node=" + nodename);
 				}
 			}
-			foreach (string b in Value.Split(','))
-				dynamicValue.Add(b.Trim());
-			StringBuilder valueBuilder = new StringBuilder();
-			bool first = true;
-			foreach (string b in dynamicValue)
-            {
-				if (b.Length == 0)
-					continue;
-				if (first)
-					first = false;
-				else
-					valueBuilder.Append(',');
-				valueBuilder.Append(b);
-			}
-			if (!string.IsNullOrEmpty(CreateBeanFromSpecialTypeId) && !string.IsNullOrEmpty(GetSpecialTypeIdFromBean))
-			{
-				valueBuilder.Append("%").Append(GetSpecialTypeIdFromBean).Append(",").Append(CreateBeanFromSpecialTypeId);
-			}
-			Value = valueBuilder.ToString();
+			// 不再支持直接在Attribute中定义dynamic包含的Bean类型。XXX 怎么报错。
+			//foreach (string b in Value.Split(','))
+			//	dynamicValue.Add(b.Trim());
+			DynamicParams.Variable = this;
 		}
 
 		public Type VariableType { get; private set; }
 
 		public void Compile(ModuleSpace space)
 		{
-            VariableType = Types.Type.Compile(space, Type, Key, Value);
+            VariableType = Types.Type.Compile(space, Type, Key, Value, DynamicParams);
 			if (VariableType is TypeList list)
 			{
 				if (false == string.IsNullOrEmpty(FixSize))

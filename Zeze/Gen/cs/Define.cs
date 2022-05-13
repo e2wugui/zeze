@@ -100,7 +100,17 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeDynamic type)
         {
-            DefineStack(type);
+            string tName = Project.MakingInstance.Platform.Equals("conf+cs") ? confcs.TypeName.GetName(type) : TypeName.GetName(type);
+            if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
+            {
+                sw.WriteLine($"{prefix}{tName} {varname} = new Zeze.Transaction.DynamicBean"
+                    + $"(0, GetSpecialTypeIdFromBean_{type.DynamicParams.Variable.NameUpper1}, CreateBeanFromSpecialTypeId_{type.DynamicParams.Variable.NameUpper1});");
+            }
+            else
+            {
+                sw.WriteLine($"{prefix}{tName} = new Zeze.Transaction.DynamicBean"
+                    + $"(0, {type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateBeanFromSpecialTypeId});");
+            }
         }
 
         public void Visit(TypeQuaternion type)

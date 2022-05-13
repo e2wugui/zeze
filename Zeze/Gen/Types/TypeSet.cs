@@ -12,14 +12,14 @@ namespace Zeze.Gen.Types
 			visitor.Visit(this);
 		}
 
-		public override Type Compile(ModuleSpace space, string key, string value)
+		public override Type Compile(ModuleSpace space, string key, string value, object param)
 		{
-			return new TypeSet(space, key, value);
+			return new TypeSet(space, key, value, param);
 		}
 
-		private TypeSet(ModuleSpace space, string key, string value)
+		private TypeSet(ModuleSpace space, string key, string value, object param)
 		{
-			_compile(space, key, value);
+			_compile(space, key, value, param);
 			if (!ValueType.IsKeyable)
 				throw new Exception("set value need a keyable type.");
 		}

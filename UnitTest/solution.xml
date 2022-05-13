@@ -55,6 +55,9 @@
 			</variable>
 			<variable id="15" name="map15" type="map" key="long" value="long"/> com aa
 			<variable id="16" name="map16" type="map" key="Key" value="Simple"/> com aa
+			<variable id="17" name="map17" type="map[Key,Simple]"/>
+			<variable id="18" name="map18" type="map[Key,dynamic:Simple]"/>
+			<variable id="19" name="dynamic19" type="dynamic:Simple"/>
 		</bean>
 		<beankey name="Key">
 			<enum name="Enum1" value="4"/>
