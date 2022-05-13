@@ -212,7 +212,7 @@ public final class Application {
 				deleteDirectory(file);
 			}
 		}
-		if (!directoryToBeDeleted.delete())
+		if (directoryToBeDeleted.exists() && !directoryToBeDeleted.delete())
 			throw new RuntimeException("delete file fail: " + directoryToBeDeleted);
 	}
 
