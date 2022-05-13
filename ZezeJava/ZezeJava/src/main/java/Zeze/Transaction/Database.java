@@ -94,10 +94,10 @@ public abstract class Database {
 		logger.info("Checkpoint Encode0 And Snapshot countEncode0={} countSnapshot={}", countEncode0, countSnapshot);
 	}
 
-	public final void Flush(Transaction trans) {
+	public final void Flush(Transaction trans, Database.Transaction lct) {
 		int countFlush = 0;
 		for (Storage storage : storages) {
-			countFlush += storage.Flush(trans);
+			countFlush += storage.Flush(trans, lct);
 		}
 		logger.info("Checkpoint Flush count={}", countFlush);
 	}

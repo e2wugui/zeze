@@ -44,7 +44,7 @@ private KV<Record1<K,V>, V> TableX.Load(K key) {
     ...
     if (r.getState() is right) {
         var strong = r.Soft.get();
-        if (null == strong && r.ExistInBackDatabase) {
+        if (null == strong && false == r.getDirty()) { // dirty 时意味着应用做出了修改但还没刷新，此时肯定不需要load
             strong = RocksDb.get();
             r.Soft.set(strong);
         }
@@ -52,7 +52,7 @@ private KV<Record1<K,V>, V> TableX.Load(K key) {
         // strong需要返回，不能从r.soft里面再次获取
         // 使用Load的地方：
         // 1. Transaction.get等。需要把strong记到事务的RecordAccessed中，在事务结束前都不能触发soft回收。
-        // 2. selectCopy, selectDirty。可以事务外使用，使用者自己管理strong生命期。
+        // 2. selectDirty。可以事务外使用，使用者自己管理strong生命期。
         return KV.Create(r, strong);
     }
     ...
@@ -101,8 +101,8 @@ private boolean TableCache.Remove(Map.Entry<K, Record1<K, V>> p) {
 
 【原则】
 1. RocksDb和后台数据库一致。
-2. 事务内访问的记录不可能被回收。
-3. selectCopy,selectDirty返回的strongref需要使用者自己管理。
+2. 事务内访问的记录不能被回收。
+3. selectDirty返回的strongref需要使用者自己管理。
 
 >>>
 

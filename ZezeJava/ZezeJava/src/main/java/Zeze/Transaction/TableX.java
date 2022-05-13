@@ -7,6 +7,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Services.GlobalCacheManagerServer;
 import Zeze.Services.ServiceManager.AutoKey;
+import Zeze.Util.KV;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -25,11 +26,34 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		autoKey = value;
 	}
 
-	private Record1<K, V> Load(K key) {
+	void RocksCachePut(K key, V value) {
+		var t = getZeze().getLocalRocksCacheDb().BeginTransaction();
+		LocalRocksCacheTable.Replace(t, EncodeKey(key), EncodeValue(value));
+		t.Commit();
+		try {
+			t.close();
+		} catch (Exception e) {
+			logger.error(e);
+		}
+	}
+
+	void RocksCacheRemove(K key) {
+		var t = getZeze().getLocalRocksCacheDb().BeginTransaction();
+		LocalRocksCacheTable.Remove(t, EncodeKey(key));
+		t.Commit();
+		try {
+			t.close();
+		} catch (Exception e) {
+			logger.error(e);
+		}
+	}
+
+	private KV<Record1<K, V>, V> Load(K key) {
 		var tkey = new TableKey(getId(), key);
 		while (true) {
 			Record1<K, V> r = getCache().GetOrAdd(key, () -> new Record1<>(this, key, null));
 			r.EnterFairLock(); // 对同一个记录，不允许重入。
+			V strongRef = null;
 			try {
 				if (r.getState() == GlobalCacheManagerServer.StateRemoved) {
 					continue; // 正在被删除，重新 GetOrAdd 一次。以后 _lock_check_ 里面会再次检查这个状态。
@@ -37,7 +61,16 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 				if (r.getState() == GlobalCacheManagerServer.StateShare
 						|| r.getState() == GlobalCacheManagerServer.StateModify) {
-					return r;
+					strongRef = (V)r.getSoftValue();
+					if (null == strongRef && false == r.getDirty()) {
+						var find = LocalRocksCacheTable.Find(EncodeKey(key));
+						if (null != find) {
+							strongRef = DecodeValue(find);
+							strongRef.InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
+							r.setSoftValue(strongRef);
+						}
+					}
+					return KV.Create(r, strongRef);
 				}
 
 				var acquire = r.Acquire(GlobalCacheManagerServer.StateShare);
@@ -56,31 +89,35 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 				if (null != TStorage) {
 					TableStatistics.getInstance().GetOrAdd(getId()).getStorageFindCount().incrementAndGet();
-					r.setValue(TStorage.Find(key, this)); // r.Value still maybe null
-
+					strongRef = TStorage.Find(key, this);
+					if (null != strongRef){
+						RocksCachePut(key, strongRef);
+					}
+					r.setSoftValue(strongRef); // r.Value still maybe null
 					// 【注意】这个变量不管 OldTable 中是否存在的情况。
-					r.setExistInBackDatabase(null != r.getValue());
+					r.setExistInBackDatabase(null != strongRef);
 
 					// 当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
-					if (null == r.getValue() && null != getOldTable()) {
+					if (null == strongRef && null != getOldTable()) {
 						ByteBuffer old = getOldTable().Find(EncodeKey(key));
 						if (null != old) {
-							r.setValue(DecodeValue(old));
+							strongRef = DecodeValue(old);
+							r.setSoftValue(strongRef);
 							// 从旧表装载时，马上设为脏，使得可以写入新表。
 							// TODO CheckpointMode.Immediately
 							// 需要马上保存，否则，直到这个记录被访问才有机会保存。
 							r.SetDirty();
 						}
 					}
-					if (null != r.getValue()) {
-						r.getValue().InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
+					if (null != strongRef) {
+						strongRef.InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
 					}
 				}
 				logger.debug("FindInCacheOrStorage {}", r);
 			} finally {
 				r.ExitFairLock();
 			}
-			return r;
+			return KV.Create(r, strongRef);
 		}
 	}
 
@@ -295,9 +332,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			return r;
 		}
 
-		Record1<K, V> r = Load(key);
-		currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), new Zeze.Transaction.RecordAccessed(r));
-		return r.getValueTyped();
+		var r = Load(key);
+		currentT.AddRecordAccessed(r.getKey().CreateRootInfoIfNeed(tkey), new Zeze.Transaction.RecordAccessed(r.getKey(), r.getValue()));
+		return r.getValue();
 	}
 
 	public final V getOrAdd(K key) {
@@ -315,12 +352,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			// add
 		}
 		else {
-			Record1<K, V> r = Load(key);
-			cr = new Zeze.Transaction.RecordAccessed(r);
-			currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
+			var r = Load(key);
+			cr = new Zeze.Transaction.RecordAccessed(r.getKey(), r.getValue());
+			currentT.AddRecordAccessed(r.getKey().CreateRootInfoIfNeed(tkey), cr);
 
 			if (null != r.getValue()) {
-				return r.getValueTyped();
+				return r.getValue();
 			}
 			// add
 		}
@@ -363,10 +400,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			cr.Put(currentT, value);
 			return;
 		}
-		Record1<K, V> r = Load(key);
-		cr = new Zeze.Transaction.RecordAccessed(r);
+		var r = Load(key);
+		cr = new Zeze.Transaction.RecordAccessed(r.getKey(), r.getValue());
 		cr.Put(currentT, value);
-		currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
+		currentT.AddRecordAccessed(r.getKey().CreateRootInfoIfNeed(tkey), cr);
 	}
 
 	// 几乎和Put一样，还是独立开吧。
@@ -381,10 +418,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			return;
 		}
 
-		Record1<K, V> r = Load(key);
-		cr = new Zeze.Transaction.RecordAccessed(r);
+		var r = Load(key);
+		cr = new Zeze.Transaction.RecordAccessed(r.getKey(), r.getValue());
 		cr.Put(currentT, null);
-		currentT.AddRecordAccessed(r.CreateRootInfoIfNeed(tkey), cr);
+		currentT.AddRecordAccessed(r.getKey().CreateRootInfoIfNeed(tkey), cr);
 	}
 
 	private TableCache<K, V> Cache;
@@ -414,6 +451,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	Storage1<K, V> TStorage;
+	private DatabaseRocksDb.Table LocalRocksCacheTable;
+	DatabaseRocksDb.Table getLocalRocksCacheTable() {
+		return LocalRocksCacheTable;
+	}
 
 	@Override
 	Storage GetStorage() {
@@ -438,6 +479,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		TStorage = isMemory() ? null : new Storage1<>(this, database, getName());
 		setOldTable(getTableConf().getDatabaseOldMode() == 1
 				? app.GetDatabase(getTableConf().getDatabaseOldName()).OpenTable(getName()) : null);
+		LocalRocksCacheTable = app.getLocalRocksCacheDb().OpenTable(getName());
 		return TStorage;
 	}
 
@@ -504,10 +546,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (r.getState() == GlobalCacheManagerServer.StateShare
 							|| r.getState() == GlobalCacheManagerServer.StateModify) {
 						// 拥有正确的状态：
-						if (r.getValue() == null) {
+						var strongRef = (V)r.getSoftValue();
+						if (strongRef == null) {
 							return true; // 已经被删除，但是还没有checkpoint的记录看不到。
 						}
-						return callback.handle(r.getKey(), r.getValueTyped());
+						return callback.handle(r.getKey(), strongRef);
 					}
 					// else GlobalCacheManager.StateInvalid
 					// 继续后面的处理：使用数据库中的数据。
@@ -571,12 +614,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			try {
 				if (r.getState() == GlobalCacheManagerServer.StateShare
 					|| r.getState() == GlobalCacheManagerServer.StateModify) {
-
-					if (r.getValue() == null) {
+					var strongRef = (V)r.getSoftValue();
+					if (strongRef == null) {
 						continue;
 					}
 					count++;
-					if (!callback.handle(r.getKey(), r.getValueTyped())) {
+					if (!callback.handle(r.getKey(), strongRef)) {
 						break;
 					}
 				}
@@ -638,9 +681,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				return r;
 			}
 		}
-		@SuppressWarnings("unchecked")
-		var v = (V)Load(key).getValue();
-		return v;
+		return Load(key).getValue();
 	}
 
 	@Override

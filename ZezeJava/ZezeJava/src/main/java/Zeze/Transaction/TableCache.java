@@ -182,6 +182,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			p.getValue().setState(GlobalCacheManagerServer.StateRemoved);
 			// 必须使用 Pair，有可能 LurNode 里面已经有新建的记录了。
 			p.getValue().getLruNode().remove(p.getKey(), p.getValue());
+			getTable().RocksCacheRemove(p.getKey());
 			return true;
 		}
 		return true; // 没有删除成功，仍然返回true。

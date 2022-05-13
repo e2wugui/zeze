@@ -1,7 +1,6 @@
 package Zeze.Transaction;
 
 import java.util.concurrent.ConcurrentHashMap;
-import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManagerServer;
 import org.apache.logging.log4j.LogManager;
@@ -25,11 +24,6 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 	@Override
 	public Table getTable() {
 		return getTTable();
-	}
-
-	@SuppressWarnings("unchecked")
-	final V getValueTyped() {
-		return (V)getValue();
 	}
 
 	public Record1(TableX<K, V> table, K key, V value) {
@@ -89,7 +83,7 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 	@Override
 	public void Commit(Zeze.Transaction.RecordAccessed accessed) {
 		if (null != accessed.CommittedPutLog) {
-			setValue(accessed.CommittedPutLog.getValue());
+			setSoftValue(accessed.CommittedPutLog.getValue());
 		}
 		setTimestamp(getNextTimestamp()); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
 		SetDirty();
@@ -108,7 +102,8 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 				setDirty(true);
 				break;
 			case Immediately:
-				// do nothing
+				// 立即模式需要马上保存到RocksCache中。
+				// 为了支持事务，需要在Checkpoint中实现。
 				break;
 		}
 	}
@@ -144,7 +139,7 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 
 		// 可能编码多次：TryEncodeN 记录读锁；Snapshot FlushWriteLock;
 		snapshotKey = getTTable().EncodeKey(getKey());
-		snapshotValue = getValue() != null ? getTTable().EncodeValue(getValueTyped()) : null;
+		snapshotValue = StrongDirtyValue != null ? getTTable().EncodeValue((V)StrongDirtyValue) : null;
 
 		// 【注意】
 		// 这个标志本来应该在真正写到Database之后修改才是最合适的；
@@ -178,7 +173,7 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 	*/
 
 	@Override
-	public void Flush(Database.Transaction t) {
+	public void Flush(Database.Transaction t, Database.Transaction lct) {
 		if (!getDirty())
 			return;
 
@@ -187,12 +182,18 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 			if (getTTable().TStorage != null) {
 				getTTable().TStorage.getDatabaseTable().Replace(t, snapshotKey, snapshotValue);
 			}
+			if (null != lct) {
+				getTTable().getLocalRocksCacheTable().Replace(lct, snapshotKey, snapshotValue);
+			}
 		}
 		else {
 			// removed
 			if (ExistInBackDatabaseSavedForFlushRemove) { // 优化，仅在后台db存在时才去删除。
 				if (TTable.TStorage != null) {
 					TTable.TStorage.getDatabaseTable().Remove(t, snapshotKey);
+				}
+				if (null != lct) {
+					getTTable().getLocalRocksCacheTable().Remove(lct, snapshotKey);
 				}
 			}
 

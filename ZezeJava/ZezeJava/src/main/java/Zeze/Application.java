@@ -1,5 +1,6 @@
 package Zeze;
 
+import java.io.File;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
@@ -14,6 +15,7 @@ import Zeze.Services.GlobalCacheManagerWithRaftAgent;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Transaction.Checkpoint;
 import Zeze.Transaction.Database;
+import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.GlobalAgent;
 import Zeze.Transaction.IGlobalAgent;
 import Zeze.Transaction.Locks;
@@ -58,6 +60,18 @@ public final class Application {
 	private boolean IsStart;
 	public RedirectBase Redirect;
 	private ResetDB ResetDB;
+
+	/**
+	 * 本地Rocks缓存数据库虽然也用了Database接口，但它不给用户提供事务操作的表。
+	 * 1. 不需要加入到Databases里面。
+	 * 2. 不需要在里面注册表(Database.AddTable)。
+	 * 3. Flush的时候特殊处理。see Checkpoint。
+	 */
+	private DatabaseRocksDb LocalRocksCacheDb;
+
+	public DatabaseRocksDb getLocalRocksCacheDb() {
+		return LocalRocksCacheDb;
+	}
 
 	public Application(String solutionName) throws Throwable {
 		this(solutionName, null);
@@ -191,6 +205,16 @@ public final class Application {
 		return new Procedure(this, action, actionName, level, userState);
 	}
 
+	boolean deleteDirectory(File directoryToBeDeleted) {
+		File[] allContents = directoryToBeDeleted.listFiles();
+		if (allContents != null) {
+			for (File file : allContents) {
+				deleteDirectory(file);
+			}
+		}
+		return directoryToBeDeleted.delete();
+	}
+
 	public synchronized void Start() throws Throwable {
 		if (IsStart)
 			return;
@@ -210,6 +234,16 @@ public final class Application {
 		Conf.ClearInUseAndIAmSureAppStopped(this, Databases);
 		for (var db : Databases.values())
 			db.getDirectOperates().SetInUse(Conf.getServerId(), Conf.getGlobalCacheManagerHostNameOrAddress());
+
+		{
+			var dbConf = new Config.DatabaseConf();
+			dbConf.setName("zeze_rocks_cache_" + getConfig().getServerId());
+			dbConf.setDatabaseUrl(dbConf.getName());
+			deleteDirectory(new File(dbConf.getDatabaseUrl()));
+			dbConf.setDatabaseType(Config.DbType.RocksDb);
+			LocalRocksCacheDb = new DatabaseRocksDb(dbConf);
+			LocalRocksCacheDb.Open(this);
+		}
 
 		Database defaultDb = GetDatabase(Conf.getDefaultTableConf().getDatabaseName());
 		for (var db : Databases.values())
@@ -235,7 +269,7 @@ public final class Application {
 			}
 		}
 
-		_checkpoint = new Checkpoint(Conf.getCheckpointMode(), Databases.values(), Conf.getServerId());
+		_checkpoint = new Checkpoint(this, Conf.getCheckpointMode(), Databases.values(), Conf.getServerId());
 		_checkpoint.Start(Conf.getCheckpointPeriod()); // 定时模式可以和其他模式混用。
 
 		FlushWhenReduceTimerTask = Task.schedule(60 * 1000, 60 * 1000, this::FlushWhenReduceTimer);
@@ -296,6 +330,11 @@ public final class Application {
 			ServiceManagerAgent.Stop();
 		for (var db : Databases.values())
 			db.Close();
+		if (null != LocalRocksCacheDb) {
+			var dir = LocalRocksCacheDb.getDatabaseUrl();
+			LocalRocksCacheDb.Close();
+			deleteDirectory(new File(dir));
+		}
 		if (Conf != null)
 			Conf.ClearInUseAndIAmSureAppStopped(this, Databases);
 		if (queueModule != null) {
