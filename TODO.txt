@@ -29,7 +29,7 @@ Gen & Defing Change
    <variable id="2" name="SetInt" type="set[int]"/>
    <variable id="3" name="MingIntInt" type="map[int,int]"/>
    # 兼容旧的key，value声明方式，同时指定将抛异常。
-2. dynaimc 统一包含的Bean类型定义方式
+2. dynaimc 统一包含Bean的定义方式
    <variable id="1" name="Dynamic" type="dynamic" value="bean1,bean2">
       <value bean="bean3"/>
    </variable>
