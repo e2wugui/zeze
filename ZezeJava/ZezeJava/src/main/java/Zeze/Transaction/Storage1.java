@@ -93,9 +93,9 @@ public final class Storage1<K extends Comparable<K>, V extends Bean> extends Sto
 	 @return flush record count
 	*/
 	@Override
-	public int Flush(Database.Transaction t) {
+	public int Flush(Database.Transaction t, Database.Transaction lct) {
 		for (var e : snapshot.entrySet()) {
-			e.getValue().Flush(t);
+			e.getValue().Flush(t, lct);
 		}
 		return snapshot.size();
 	}

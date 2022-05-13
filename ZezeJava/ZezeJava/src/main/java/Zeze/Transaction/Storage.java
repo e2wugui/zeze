@@ -15,7 +15,7 @@ public abstract class Storage {
 
 	public abstract int Snapshot();
 
-	public abstract int Flush(Database.Transaction t);
+	public abstract int Flush(Database.Transaction t, Database.Transaction lct);
 
 	public abstract void Cleanup();
 

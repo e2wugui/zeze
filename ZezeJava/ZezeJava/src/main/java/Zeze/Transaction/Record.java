@@ -1,5 +1,6 @@
 package Zeze.Transaction;
 
+import java.lang.ref.SoftReference;
 import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class Record {
@@ -22,7 +23,8 @@ public abstract class Record {
 	}
 
 	public final RootInfo CreateRootInfoIfNeed(TableKey tkey) {
-		var cur = getValue() == null ? null : getValue().RootInfo;
+		var strongRef = getSoftValue();
+		var cur = strongRef == null ? null : strongRef.RootInfo;
 		if (null == cur) {
 			cur = new RootInfo(this, tkey);
 		}
@@ -64,21 +66,25 @@ public abstract class Record {
 	 Flush(rrs): foreach (r in rrs) r.ClearDirty 不需要锁。
 	*/
 	private boolean Dirty = false;
+	protected volatile Bean StrongDirtyValue;
 	public final boolean getDirty() {
 		return Dirty;
 	}
 
 	final void setDirty(boolean value) {
 		Dirty = value;
+		StrongDirtyValue = value ? SoftValue.get() : null; // 脏数据在记录内保持一份强引用。
 	}
 
-	private volatile Bean Value;
-	public final Bean getValue() {
-		return Value;
+	private volatile SoftReference<Bean> SoftValue = new SoftReference<>(null);
+	public final Bean getSoftValue() {
+		return SoftValue.get();
 	}
-	public final void setValue(Bean value) {
-		Value = value;
+
+	public final void setSoftValue(Bean value) {
+		SoftValue = new SoftReference<>(value);
 	}
+
 	private volatile int State;
 	public final int getState() {
 		return State;
@@ -100,7 +106,7 @@ public abstract class Record {
 
 	public Record(Bean value) {
 		setState(Zeze.Services.GlobalCacheManagerServer.StateInvalid);
-		setValue(value);
+		setSoftValue(value);
 		//Timestamp = NextTimestamp; // Table.FindInCacheOrStorage 可能发生数据变化，这里初始化一次不够。
 	}
 
@@ -116,7 +122,7 @@ public abstract class Record {
 	public abstract IGlobalAgent.AcquireResult Acquire(int state);
 
 	public abstract void Encode0();
-	public abstract void Flush(Database.Transaction t);
+	public abstract void Flush(Database.Transaction t, Database.Transaction lct);
 	public abstract void Cleanup();
 
 	private Database.Transaction DatabaseTransactionTmp;

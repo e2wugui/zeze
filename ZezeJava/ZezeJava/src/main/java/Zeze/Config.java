@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.xml.parsers.DocumentBuilderFactory;
 import Zeze.Net.ServiceConf;
+import Zeze.Transaction.CheckpointMode;
 import org.apache.logging.log4j.Level;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -351,6 +352,8 @@ public final class Config {
 			Application.logger.warn("CheckpointMode.Period Cannot Work With Global. Change To CheckpointMode.Table Now.");
 			CheckpointMode = Zeze.Transaction.CheckpointMode.Table;
 		}
+		if (CheckpointMode == Zeze.Transaction.CheckpointMode.Immediately)
+			throw new UnsupportedOperationException();
 
 		attr = self.getAttribute("AutoResetTable");
 		if (!attr.isEmpty())

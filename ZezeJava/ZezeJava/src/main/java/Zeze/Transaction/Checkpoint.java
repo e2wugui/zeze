@@ -40,12 +40,17 @@ public final class Checkpoint {
 	}
 
 	private final Thread CheckpointThread;
+	private Zeze.Application Zeze;
 
-	public Checkpoint(CheckpointMode mode, int serverId) {
-		this(mode, null, serverId);
+	public Zeze.Application getZeze() {
+		return Zeze;
+	}
+	public Checkpoint(Zeze.Application zeze, CheckpointMode mode, int serverId) {
+		this(zeze, mode, null, serverId);
 	}
 
-	public Checkpoint(CheckpointMode mode, Iterable<Database> dbs, int serverId) {
+	public Checkpoint(Zeze.Application zeze, CheckpointMode mode, Iterable<Database> dbs, int serverId) {
+		Zeze = zeze;
 		Mode = mode;
 		if (dbs != null)
 			Add(dbs);
@@ -206,16 +211,19 @@ public final class Checkpoint {
 		}
 		// flush
 		var dts = new HashMap<Database, Database.Transaction>();
+		Database.Transaction localCacheTransaction = Zeze.getLocalRocksCacheDb().BeginTransaction();
 		try {
 			for (var db : getDatabases()) {
 				dts.put(db, db.BeginTransaction());
 			}
 			for (var e : dts.entrySet()) {
-				e.getKey().Flush(e.getValue());
+				e.getKey().Flush(e.getValue(), localCacheTransaction);
 			}
 			for (var e : dts.entrySet()) {
 				e.getValue().Commit();
 			}
+			if (null != localCacheTransaction)
+				localCacheTransaction.Commit();
 			// cleanup
 			try {
 				for (var db : getDatabases()) {
@@ -233,6 +241,13 @@ public final class Checkpoint {
 					logger.error("CheckpointPeriod Rollback Exception", ex);
 				}
 			}
+			if (null != localCacheTransaction) {
+				try {
+					localCacheTransaction.Rollback();
+				} catch (Throwable ex) {
+					logger.error("CheckpointPeriod Rollback Exception", ex);
+				}
+			}
 			throw e;
 		} finally {
 			for (var t : dts.values()) {
@@ -240,6 +255,13 @@ public final class Checkpoint {
 					t.close();
 				} catch (Throwable ex) {
 					logger.error("CheckpointPeriod close Exception transaction=" + t, ex);
+				}
+			}
+			if (null != localCacheTransaction) {
+				try {
+					localCacheTransaction.close();
+				} catch (Throwable ex) {
+					logger.error("CheckpointPeriod close Exception transaction=" + localCacheTransaction, ex);
 				}
 			}
 		}
@@ -254,6 +276,8 @@ public final class Checkpoint {
 
 	public void Flush(Iterable<Record> rs) {
 		var dts = new HashMap<Database, Database.Transaction>();
+		Database.Transaction localCacheTransaction = Zeze.getLocalRocksCacheDb().BeginTransaction();
+
 		try {
 			// prepare: 编码并且为每一个数据库创建一个数据库事务。
 			for (var r : rs) {
@@ -273,12 +297,14 @@ public final class Checkpoint {
 			}
 			// 保存到数据库中
 			for (var r : rs) {
-				r.Flush(r.getDatabaseTransactionTmp());
+				r.Flush(r.getDatabaseTransactionTmp(), localCacheTransaction);
 			}
 			// 提交。
 			for (var t : dts.values()) {
 				t.Commit();
 			}
+			if (null != localCacheTransaction)
+				localCacheTransaction.Commit();
 			try {
 				// 清除编码状态
 				for (var r : rs) {
@@ -297,6 +323,13 @@ public final class Checkpoint {
 					logger.error("Flush Rollback Exception", ex);
 				}
 			}
+			if (null != localCacheTransaction) {
+				try {
+					localCacheTransaction.Rollback();
+				} catch (Throwable ex) {
+					logger.error("Flush Rollback Exception", ex);
+				}
+			}
 			throw e;
 		}
 		finally {
@@ -305,6 +338,13 @@ public final class Checkpoint {
 					t.close();
 				} catch (Throwable e) {
 					logger.error("Flush close Exception transaction=" + t, e);
+				}
+			}
+			if (null != localCacheTransaction) {
+				try {
+					localCacheTransaction.close();
+				} catch (Throwable e) {
+					logger.error("Flush close Exception transaction=" + localCacheTransaction, e);
 				}
 			}
 		}

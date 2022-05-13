@@ -3,7 +3,6 @@ package Zeze.Transaction;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
-import java.util.Set;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.LongHashMap;
 import Zeze.Transaction.Collections.*;
@@ -85,7 +84,7 @@ public final class Changes {
 			}
 
 			State = Edit;
-			var logBean = LogBeans.get(ar.Origin.getValue());
+			var logBean = LogBeans.get(ar.StrongRef);
 			if (logBean != null)
 				LogBean.add(logBean); // edit
 		}
