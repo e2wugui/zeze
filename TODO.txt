@@ -22,8 +22,9 @@ tag 0.9.2 ReliableNotify & Global.RocksRaft.LruTryRemoveCallback & OperatesTikv
 Sample(Zezex).client: 可靠消息实现的错误检查。
 Global.RocksRaft.LruTryRemoveCallback
 DatabaseTikv OperatesTikv
+
 ------------------------------------------------------------------------------------------------------------------------------
-tag 0.9.1 Java TableCache SoftReference
+tag 0.9.1 Java TableCache SoftReference 2022.5.13
 ------------------------------------------------------------------------------------------------------------------------------
 TableCache增加一级RocksDb的缓存，不容易受限于内存。Java SoftReference<T>.
 TableCache.Clean 整体考虑。
@@ -38,13 +39,13 @@ TableCache 原来想增加一级基于RocksDb的巨大缓存，由于这个缓�
 7. TableCache由每张表独立清理改成全局清理。
 8. TableCache.Lru.Node增加时戳。全局清理线程优先清理最老的超过容量的。【时戳是保留来未来增加清理策略，目前没什么大的用处】
 9. 使用RocksDb保存被GC的用户数据这个特性做成可选（又是需要if判断）?
-*. Cache 实现改动
+*. Cache 实现草稿
 【一】
 private KV<Record1<K,V>, V> TableX.Load(K key) {
     ...
     if (r.getState() is right) {
         var strong = r.Soft.get();
-        if (null == strong && false == r.getDirty()) { // dirty 时意味着应用做出了修改但还没刷新，此时肯定不需要load
+        if (null == strong && false == r.getDirty()) { // dirty 时意味着应用做出了修改但还没保存，此时不需要load
             strong = RocksDb.get();
             r.Soft.set(strong);
         }
@@ -97,6 +98,13 @@ private boolean TableCache.Remove(Map.Entry<K, Record1<K, V>> p) {
     ...
     RocksDb.remove(); // 从cache中删除，也需要删除持久化的
     return true;
+}
+
+【七】
+public void Record1.Encode0() {
+    ...
+    snapshotValue = StrongDirtyValue != null ? getTTable().EncodeValue((V)StrongDirtyValue) : null;
+    // StrongDirtyValue 最新的value。
 }
 
 【原则】
