@@ -429,6 +429,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return Cache;
 	}
 	public int getCacheSize() {
+		if (null == Cache)
+			return 0;
 		return Cache.getDataMap().size();
 	}
 	private void setCache(TableCache<K, V> value) {
@@ -489,7 +491,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			TStorage.Close();
 		}
 		TStorage = null;
-		Cache.close();
+		if (null != Cache)
+			Cache.close();
+		Cache = null;
 	}
 
 	// Key 都是简单变量，系列化方法都不一样，需要生成。
