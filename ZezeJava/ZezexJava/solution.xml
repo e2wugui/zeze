@@ -73,8 +73,10 @@
 		<bean name="BItem">
 			<variable id="1" name="Id" type="int"/>
 			<variable id="2" name="Number" type="int"/>
-			<variable id="3" name="Extra" type="dynamic" value="Game.Item.BHorseExtra,Game.Item.BFoodExtra">
-				<value bean="Game.Equip.BEquipExtra"/> 少量的动态bean可以声明在 Attribute.value 中，更多的可以声明在这里。
+			<variable id="3" name="Extra" type="dynamic">
+				<value bean="Game.Item.BHorseExtra"/>
+				<value bean="Game.Item.BFoodExtra"/>
+				<value bean="Game.Equip.BEquipExtra"/>
 			</variable>
 		</bean>
 
