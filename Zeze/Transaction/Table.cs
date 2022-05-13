@@ -481,6 +481,7 @@ namespace Zeze.Transaction
         {
             TStorage?.Close();
             TStorage = null;
+            Cache?.Close();
         }
 
         // Key 都是简单变量，系列化方法都不一样，需要生成。

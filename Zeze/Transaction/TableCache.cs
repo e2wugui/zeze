@@ -35,6 +35,8 @@ namespace Zeze.Transaction
         private volatile ConcurrentDictionary<K, Record<K, V>> LruHot;
 
         public Table<K, V> Table { get; }
+        private Util.SchedulerTask TimerNewHot;
+        private Util.SchedulerTask TimerClean;
 
         public TableCache(Application _, Table<K, V> table)
         {
@@ -42,7 +44,7 @@ namespace Zeze.Transaction
             DataMap = new ConcurrentDictionary<K, Record<K, V>>(
                 GetCacheConcurrencyLevel(), GetCacheInitialCapacity());
             NewLruHot();
-            Util.Scheduler.Schedule((task) =>
+            TimerNewHot = Util.Scheduler.Schedule((task) =>
             {
                 // 访问很少的时候不创建新的热点。这个选项没什么意思。
                 if (LruHot.Count > table.TableConf.CacheNewAccessHotThreshold)
@@ -50,9 +52,16 @@ namespace Zeze.Transaction
                     NewLruHot();
                 }
             }, table.TableConf.CacheNewLruHotPeriod, table.TableConf.CacheNewLruHotPeriod);
-            Util.Scheduler.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
+            TimerClean = Util.Scheduler.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
         }
 
+        public void Close()
+        {
+            TimerNewHot?.Cancel();
+            TimerNewHot = null;
+            TimerClean?.Cancel();
+            TimerClean = null;
+        }
         private int GetCacheConcurrencyLevel()
         {
             // 这样写，当配置修改，可以使用的时候马上生效。
@@ -141,7 +150,7 @@ namespace Zeze.Transaction
 
             if (Table.TableConf.CacheCapacity <= 0)
             {
-                Util.Scheduler.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
+                TimerClean = Util.Scheduler.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
                 return; // 容量不限
             }
             try
@@ -175,7 +184,7 @@ namespace Zeze.Transaction
             }
             finally
             {
-                Util.Scheduler.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
+                TimerClean = Util.Scheduler.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
             }
         }
 
