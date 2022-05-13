@@ -205,14 +205,15 @@ public final class Application {
 		return new Procedure(this, action, actionName, level, userState);
 	}
 
-	boolean deleteDirectory(File directoryToBeDeleted) {
+	void deleteDirectory(File directoryToBeDeleted) {
 		File[] allContents = directoryToBeDeleted.listFiles();
 		if (allContents != null) {
 			for (File file : allContents) {
 				deleteDirectory(file);
 			}
 		}
-		return directoryToBeDeleted.delete();
+		if (!directoryToBeDeleted.delete())
+			throw new RuntimeException("delete file fail: " + directoryToBeDeleted);
 	}
 
 	public synchronized void Start() throws Throwable {
