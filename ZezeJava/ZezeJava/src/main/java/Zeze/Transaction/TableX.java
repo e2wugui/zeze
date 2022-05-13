@@ -489,6 +489,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			TStorage.Close();
 		}
 		TStorage = null;
+		Cache.close();
 	}
 
 	// Key 都是简单变量，系列化方法都不一样，需要生成。

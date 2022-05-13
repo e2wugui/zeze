@@ -5,6 +5,7 @@ import Zeze.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.Future;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -53,14 +54,14 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		this.Table = table;
 		DataMap = new ConcurrentHashMap<>(GetCacheInitialCapacity(), 0.75f, GetCacheConcurrencyLevel());
 		NewLruHot();
-		Task.schedule(table.getTableConf().getCacheNewLruHotPeriod(), table.getTableConf().getCacheNewLruHotPeriod(),
+		TimerNewHot = Task.schedule(table.getTableConf().getCacheNewLruHotPeriod(), table.getTableConf().getCacheNewLruHotPeriod(),
 				() -> {
 				// 访问很少的时候不创建新的热点。这个选项没什么意思。
 				if (getLruHot().size() > table.getTableConf().getCacheNewAccessHotThreshold()) {
 					NewLruHot();
 				}
 		});
-		Task.schedule(getTable().getTableConf().getCacheCleanPeriod(), this::CleanNow);
+		TimerClean = Task.schedule(getTable().getTableConf().getCacheCleanPeriod(), this::CleanNow);
 	}
 
 	private int GetCacheConcurrencyLevel() {
@@ -138,7 +139,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		// 每次执行完重新调度。
 
 		if (getTable().getTableConf().getCacheCapacity() <= 0) {
-			Task.schedule(getTable().getTableConf().getCacheCleanPeriod(), this::CleanNow);
+			TimerClean = Task.schedule(getTable().getTableConf().getCacheCleanPeriod(), this::CleanNow);
 			return; // 容量不限
 		}
 
@@ -169,8 +170,20 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 				}
 			}
 		} finally {
-			Task.schedule(getTable().getTableConf().getCacheCleanPeriod(), this::CleanNow);
+			TimerClean = Task.schedule(getTable().getTableConf().getCacheCleanPeriod(), this::CleanNow);
 		}
+	}
+
+	private Future<?> TimerClean;
+	private Future<?> TimerNewHot;
+
+	public void close() {
+		if (null != TimerClean)
+			TimerClean.cancel(true);
+		TimerClean = null;
+		if (null != TimerNewHot)
+			TimerNewHot.cancel(true);
+		TimerNewHot = null;
 	}
 
 	// under lockey.writeLock and record.fairLock
