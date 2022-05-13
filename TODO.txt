@@ -36,9 +36,7 @@ TableCache 原来想增加一级基于RocksDb的巨大缓存，由于这个缓�
 4. SoftReference 回收的时候，保存一份到RocksDb中。【原子问题需要考虑】
 5. SoftReference 不存在，从RocksDb装载。【原子问题需要考虑】
 6. RocksDb虽然是持久化到硬盘的，但是重启会全部删除。
-7. TableCache由每张表独立清理改成全局清理。
-8. TableCache.Lru.Node增加时戳。全局清理线程优先清理最老的超过容量的。【时戳是保留来未来增加清理策略，目前没什么大的用处】
-9. 使用RocksDb保存被GC的用户数据这个特性做成可选（又是需要if判断）?
+9. 使用RocksDb保存被GC的用户数据这个特性做成可选（又是需要if判断）?【没有实现】
 *. Cache 实现草稿
 【一】
 private KV<Record1<K,V>, V> TableX.Load(K key) {
