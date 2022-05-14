@@ -44,7 +44,7 @@ namespace Zeze.Gen.Types
         {
             Kind = "dynamic";
             Variable = var;
-            foreach (var beanWithSpecialTypeId in DynamicParams.DynamicBeans)
+            foreach (var beanWithSpecialTypeId in DynamicParams.Beans)
             {
                 if (beanWithSpecialTypeId.Length == 0) // empty
                     continue;

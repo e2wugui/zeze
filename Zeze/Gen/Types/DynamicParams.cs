@@ -8,9 +8,8 @@ namespace Zeze.Gen.Types
 {
 	public class DynamicParams
 	{
-		public Variable Variable { get; set; }
-		public string DynamicBase { get; set; }
-		public HashSet<string> DynamicBeans { get; } = new();
+		public string Base { get; set; }
+		public HashSet<string> Beans { get; } = new();
 		public string GetSpecialTypeIdFromBean { get; set; }
 		public string CreateBeanFromSpecialTypeId { get; set; }
 	}

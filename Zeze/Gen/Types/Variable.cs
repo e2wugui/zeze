@@ -54,9 +54,9 @@ namespace Zeze.Gen.Types
 			dbase[0] = dbase[0].Trim();
 			dbase[1] = dbase[1].Trim();
 
-			if (false == string.IsNullOrEmpty(DynamicParams.DynamicBase))
+			if (false == string.IsNullOrEmpty(DynamicParams.Base))
 				throw new Exception($"error type define, '{type}'");
-			DynamicParams.DynamicBase = dbase[1];
+			DynamicParams.Base = dbase[1];
 			if (false == dbase[0].Equals("dynamic"))
 				throw new Exception($"error type define, only dynamic has base: '{type}'");
 			return dbase[0];
@@ -152,7 +152,7 @@ namespace Zeze.Gen.Types
 				switch (e.Name)
 				{
 					case "value":
-						DynamicParams.DynamicBeans.Add(e.GetAttribute("bean"));
+						DynamicParams.Beans.Add(e.GetAttribute("bean"));
 						break;
 					case "GetSpecialTypeIdFromBean":
 						DynamicParams.GetSpecialTypeIdFromBean = e.GetAttribute("value");
@@ -167,7 +167,6 @@ namespace Zeze.Gen.Types
 			// 不再支持直接在Attribute中定义dynamic包含的Bean类型。XXX 怎么报错。
 			//foreach (string b in Value.Split(','))
 			//	dynamicValue.Add(b.Trim());
-			DynamicParams.Variable = this;
 		}
 
 		public Type VariableType { get; private set; }

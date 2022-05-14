@@ -104,7 +104,7 @@ namespace Zeze.Gen.cs
             if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
             {
                 sw.WriteLine($"{prefix}{tName} {varname} = new Zeze.Transaction.DynamicBean"
-                    + $"(0, GetSpecialTypeIdFromBean_{type.DynamicParams.Variable.NameUpper1}, CreateBeanFromSpecialTypeId_{type.DynamicParams.Variable.NameUpper1});");
+                    + $"(0, GetSpecialTypeIdFromBean_{type.Variable.NameUpper1}, CreateBeanFromSpecialTypeId_{type.Variable.NameUpper1});");
             }
             else
             {
