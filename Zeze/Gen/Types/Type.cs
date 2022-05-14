@@ -6,7 +6,7 @@ namespace Zeze.Gen.Types
 {
 	public abstract class Type
 	{
-		public abstract Type Compile(ModuleSpace space, string key, string value, object param);
+		public abstract Type Compile(ModuleSpace space, string key, string value, Variable var);
 		public abstract void Depends(HashSet<Type> includes);
 		public abstract void Accept(Visitor visitor);
 
@@ -26,6 +26,7 @@ namespace Zeze.Gen.Types
 		{
 			return Name;
 		}
+		public Variable Variable { get; protected set; }
 
 		/////////////////////////////////////////////////////////////////////////////
 		public static SortedDictionary<string, Type> Types { get; private set; } = new SortedDictionary<string, Type>();
@@ -45,13 +46,13 @@ namespace Zeze.Gen.Types
 			return Compile(space, name, null, null, null);
 		}
 
-		public static Type Compile(ModuleSpace space, string name, string key, string value, object param)
+		public static Type Compile(ModuleSpace space, string name, string key, string value, Variable var)
 		{
 			Type type = null;
 
 			if (Types.TryGetValue(name, out type))
 			{
-				return type.Compile(space, key, value, param);
+				return type.Compile(space, key, value, var);
 			}
 
 			if (false == Program.IsFullName(name))
@@ -59,7 +60,7 @@ namespace Zeze.Gen.Types
 				name = space.Path(".", name);
 				if (Types.TryGetValue(name, out type))
 				{
-					return type.Compile(space, key, value, param);
+					return type.Compile(space, key, value, var);
 				}
 			}
 

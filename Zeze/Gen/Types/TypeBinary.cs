@@ -7,7 +7,7 @@ namespace Zeze.Gen.Types
 {
 	public class TypeBinary : Type
 	{
-		public override Type Compile(ModuleSpace space, string key, string value, object param)
+		public override Type Compile(ModuleSpace space, string key, string value, Variable var)
 		{
 			if (key != null && key.Length > 0)
 				throw new Exception(Name + " type does not need a key. " + key);

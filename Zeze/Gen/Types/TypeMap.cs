@@ -15,9 +15,9 @@ namespace Zeze.Gen.Types
 			visitor.Visit(this);
 		}
 
-		public override Type Compile(ModuleSpace space, string key, string value, object param)
+		public override Type Compile(ModuleSpace space, string key, string value, Variable var)
 		{
-			return new TypeMap(space, key, value, param);
+			return new TypeMap(space, key, value, var);
 		}
 
 		public override string Name => "map";
@@ -31,17 +31,18 @@ namespace Zeze.Gen.Types
 			}
 		}
 
-		private TypeMap(global::Zeze.Gen.ModuleSpace space, string key, string value, object param)
+		private TypeMap(global::Zeze.Gen.ModuleSpace space, string key, string value, Variable var)
 		{
+			Variable = var;
 			if (key.Length == 0)
 				throw new Exception("map type need a key");
 			if (value.Length == 0)
 				throw new Exception("map type need a value");
 
-			KeyType = Type.Compile(space, key, null, null, null);
+			KeyType = Type.Compile(space, key, null, null, var);
 			if (!KeyType.IsKeyable)
 				throw new Exception("map key need a keyable type");
-			ValueType = Type.Compile(space, value, null, null, param);
+			ValueType = Type.Compile(space, value, null, null, var);
 
 			if (ValueType.IsNormalBeanOrRocks)
 				(ValueType as Bean).MapKeyTypes.Add(KeyType);

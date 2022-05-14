@@ -174,7 +174,7 @@ namespace Zeze.Gen.Types
 
 		public void Compile(ModuleSpace space)
 		{
-            VariableType = Types.Type.Compile(space, Type, Key, Value, DynamicParams);
+            VariableType = Types.Type.Compile(space, Type, Key, Value, this);
 			if (VariableType is TypeList list)
 			{
 				if (false == string.IsNullOrEmpty(FixSize))

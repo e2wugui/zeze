@@ -14,17 +14,18 @@ namespace Zeze.Gen.Types
 			visitor.Visit(this);
 		}
 
-		public override Type Compile(ModuleSpace space, string key, string value, object param)
+		public override Type Compile(ModuleSpace space, string key, string value, Variable var)
 		{
-			return new TypeList(space, key, value, param);
+			return new TypeList(space, key, value, var);
 		}
 
-		private TypeList(global::Zeze.Gen.ModuleSpace space, string key, string value, object param)
+		private TypeList(global::Zeze.Gen.ModuleSpace space, string key, string value, Variable var)
 		{
+			Variable = var;
 			if (key != null && key.Length > 0)
 				throw new Exception(Name + " type does not need a key. " + key);
 
-			ValueType = Type.Compile(space, value, null, null, param);
+			ValueType = Type.Compile(space, value, null, null, var);
 			//if (ValueType is TypeBinary)
 			//	throw new Exception(Name + " Error : value type is binary.");
 		}

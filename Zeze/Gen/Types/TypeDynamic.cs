@@ -24,26 +24,26 @@ namespace Zeze.Gen.Types
 
         public SortedDictionary<long, Bean> RealBeans { get; } = new SortedDictionary<long, Bean>();
         public int SpecialCount { get; }
-        public DynamicParams DynamicParams { get; }
+        public DynamicParams DynamicParams => Variable.DynamicParams;
 
         public override void Accept(Visitor visitor)
         {
             visitor.Visit(this);
         }
 
-        public override Type Compile(ModuleSpace space, string key, string value, object param)
+        public override Type Compile(ModuleSpace space, string key, string value, Variable var)
         {
             if (key != null && key.Length > 0)
                 throw new Exception(Name + " type does not need a key. " + key);
-            return new TypeDynamic(space, (DynamicParams)param);
+            return new TypeDynamic(space, var);
         }
 
         // value=BeanName[:SpecialTypeId],BeanName2[:SpecialTypeId2]
         // 如果指定特别的TypeId，必须全部都指定。虽然部分指定也可以处理，感觉这样不大好。
-        private TypeDynamic(ModuleSpace space, DynamicParams value)
+        private TypeDynamic(ModuleSpace space, Variable var)
         {
             Kind = "dynamic";
-            DynamicParams = value;
+            Variable = var;
             foreach (var beanWithSpecialTypeId in DynamicParams.DynamicBeans)
             {
                 if (beanWithSpecialTypeId.Length == 0) // empty
