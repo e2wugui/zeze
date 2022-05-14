@@ -65,6 +65,9 @@
 
 			<variable id="23" name="mapVector2Int" type="map" key="vector2int" value="vector2int"/>
 			<variable id="24" name="listVector2Int" type="list" value="vector2int"/>
+			<variable id="25" name="map25" type="map[Key,Simple]"/>
+			<variable id="26" name="map26" type="map[Key,dynamic:Simple]"/>
+			<variable id="27" name="dynamic27" type="dynamic:Simple"/>
 		</bean>
 		<beankey name="Key">
 			<enum name="Enum1" value="4"/>

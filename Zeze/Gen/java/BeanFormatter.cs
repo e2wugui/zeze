@@ -43,6 +43,39 @@ namespace Zeze.Gen.java
             sw.WriteLine("}");
         }
 
+        private void GenDynamicSpecialMethod(StreamWriter sw, string prefix, Types.Variable var, TypeDynamic type, bool isCollection)
+        {
+            foreach (var real in type.RealBeans)
+            {
+                sw.WriteLine($"{prefix}public static final long DynamicTypeId{var.NameUpper1}{real.Value.Space.Path("_", real.Value.Name)} = {real.Key}L;");
+            }
+            if (type.RealBeans.Count > 0)
+                sw.WriteLine();
+
+            sw.WriteLine($"{prefix}public static long GetSpecialTypeIdFromBean_{var.NameUpper1}(Zeze.Transaction.Bean bean) {{");
+            sw.WriteLine($"{prefix}    var _typeId_ = bean.getTypeId();");
+            sw.WriteLine($"{prefix}    if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)");
+            sw.WriteLine($"{prefix}        return Zeze.Transaction.EmptyBean.TYPEID;");
+            foreach (var real in type.RealBeans)
+            {
+                sw.WriteLine($"{prefix}    if (_typeId_ == {real.Value.TypeId}L)");
+                sw.WriteLine($"{prefix}        return {real.Key}L; // {real.Value.FullName}");
+            }
+            sw.WriteLine($"{prefix}    throw new RuntimeException(\"Unknown Bean! dynamic@{(var.Bean as Bean).FullName}:{var.Name}\");");
+            sw.WriteLine($"{prefix}}}");
+            sw.WriteLine();
+            sw.WriteLine($"{prefix}public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_{var.NameUpper1}(long typeId) {{");
+            //sw.WriteLine($"{prefix}    case Zeze.Transaction.EmptyBean.TYPEID: return new Zeze.Transaction.EmptyBean();");
+            foreach (var real in type.RealBeans)
+            {
+                sw.WriteLine($"{prefix}    if (typeId == {real.Key}L)");
+                sw.WriteLine($"{prefix}        return new {real.Value.FullName}();");
+            }
+            sw.WriteLine($"{prefix}    return null;");
+            sw.WriteLine($"{prefix}}}");
+            sw.WriteLine();
+        }
+
         public void WriteDefine(StreamWriter sw)
         {
             // declare enums
@@ -84,6 +117,12 @@ namespace Zeze.Gen.java
                     sw.WriteLine($"        private {readonlyTypeName} {v.NamePrivate}ReadOnly;");
                 }
                 */
+                if (vt is TypeDynamic dy0)
+                    GenDynamicSpecialMethod(sw, "        ", v, dy0, false);
+                else if (vt is TypeMap map && map.ValueType is TypeDynamic dy1)
+                    GenDynamicSpecialMethod(sw, "        ", v, dy1, true);
+                else if (vt is TypeCollection coll && coll.ValueType is TypeDynamic dy2)
+                    GenDynamicSpecialMethod(sw, "        ", v, dy2, true);
             }
             if (bean.Variables.Count > 0)
                 sw.WriteLine();

@@ -248,8 +248,16 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "if (_n_ != 0) {");
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
             sw.WriteLine(prefix + "    " + bufname + ".WriteListType(_n_, " + TypeTagName.GetName(vt) + ");");
-            sw.WriteLine(prefix + "    for (var _v_ : _x_)");
-            EncodeElement(vt, prefix + "        ", "_v_");
+            sw.WriteLine(prefix + "    for (var _v_ : _x_) {");
+            if (Decode.IsOldStypeEncodeDecodeType(vt))
+            {
+                vt.Accept(new Encode("_v_", 0, bufname, sw, prefix + "        "));
+            }
+            else
+            {
+                EncodeElement(vt, prefix + "        ", "_v_");
+            }
+            sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
         }
 
@@ -275,8 +283,22 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
             sw.WriteLine(prefix + "    " + bufname + ".WriteMapType(_n_, " + TypeTagName.GetName(kt) + ", " + TypeTagName.GetName(vt) + ");");
             sw.WriteLine(prefix + "    for (var _e_ : _x_.entrySet()) {");
-            EncodeElement(kt, prefix + "        ", "_e_.getKey()");
-            EncodeElement(vt, prefix + "        ", "_e_.getValue()");
+            if (Decode.IsOldStypeEncodeDecodeType(kt))
+            {
+                vt.Accept(new Encode("_e_.getKey()", 0, bufname, sw, prefix + "        "));
+            }
+            else
+            {
+                EncodeElement(kt, prefix + "        ", "_e_.getKey()");
+            }
+            if (Decode.IsOldStypeEncodeDecodeType(vt))
+            {
+                vt.Accept(new Encode("_e_.getValue()", 0, bufname, sw, prefix + "        "));
+            }
+            else
+            {
+                EncodeElement(vt, prefix + "        ", "_e_.getValue()");
+            }
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
         }
@@ -326,7 +348,9 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "}");
             }
             else
-                throw new Exception("invalid variable.id");
+            {
+                sw.WriteLine(prefix + "_x_.Encode(" + bufname + ");");
+            }
         }
 
         private void VisitVector(Type type)

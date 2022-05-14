@@ -100,37 +100,47 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeDynamic type)
         {
-            DefineStack(type);
+            string tName = TypeName.GetName(type);
+            if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
+            {
+                sw.WriteLine($"{prefix}{tName} {varname} = new Zeze.Transaction.DynamicBean"
+                    + $"(0, {type.Variable.Bean.Name}::GetSpecialTypeIdFromBean_{type.Variable.NameUpper1}, {type.Variable.Bean.Name}::CreateBeanFromSpecialTypeId_{type.Variable.NameUpper1});");
+            }
+            else
+            {
+                sw.WriteLine($"{prefix}{tName} = new Zeze.Transaction.DynamicBean"
+                    + $"(0, {type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateBeanFromSpecialTypeId});");
+            }
         }
 
         public void Visit(TypeQuaternion type)
         {
-            throw new System.NotImplementedException();
+            DefineStack(type);
         }
 
         public void Visit(TypeVector2 type)
         {
-            throw new System.NotImplementedException();
+            DefineStack(type);
         }
 
         public void Visit(TypeVector2Int type)
         {
-            throw new System.NotImplementedException();
+            DefineStack(type);
         }
 
         public void Visit(TypeVector3 type)
         {
-            throw new System.NotImplementedException();
+            DefineStack(type);
         }
 
         public void Visit(TypeVector3Int type)
         {
-            throw new System.NotImplementedException();
+            DefineStack(type);
         }
 
         public void Visit(TypeVector4 type)
         {
-            throw new System.NotImplementedException();
+            DefineStack(type);
         }
     }
 }

@@ -213,8 +213,9 @@ namespace Zeze.Gen.java
                     return bufname + ".ReadString(" + typeVar + ')';
                 case Bean:
                 case BeanKey:
-                case TypeDynamic:
                     return bufname + ".ReadBean(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
+                case TypeDynamic:
+                    return bufname + ".ReadDynamic(new " + TypeName.GetName(type) + "(), " + typeVar + ')';
                 case TypeVector2:
                     return bufname + ".ReadVector2(" + typeVar + ')';
                 case TypeVector2Int:
@@ -232,6 +233,24 @@ namespace Zeze.Gen.java
             }
         }
 
+        public static bool IsOldStypeEncodeDecodeType(Types.Type type)
+        {
+            if (type is TypeDynamic)
+                return true;
+
+            switch (type)
+            {
+                case TypeVector2:
+                case TypeVector3:
+                case TypeVector4:
+                case TypeVector2Int:
+                case TypeVector3Int:
+                case TypeQuaternion:
+                    return true;
+            }
+            return false;
+        }
+
         void DecodeCollection(TypeCollection type)
         {
             if (id <= 0)
@@ -240,10 +259,21 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "var _x_ = " + var.Getter + ';');
             sw.WriteLine(prefix + "_x_.clear();");
             sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
-            sw.WriteLine(prefix + "    for (int _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--)");
-            sw.WriteLine(prefix + "        _x_.add(" + DecodeElement(vt, "_t_") + ");");
-            sw.WriteLine(prefix + "} else");
+            sw.WriteLine(prefix + "    for (int _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--) {");
+            if (IsOldStypeEncodeDecodeType(vt))
+            {
+                vt.Accept(new Define("_e_", sw, prefix + "        "));
+                vt.Accept(new Decode("_e_", 0, bufname, sw, prefix + "        "));
+                sw.WriteLine($"{prefix}        _x_.add(_e_);");
+            }
+            else
+            {
+                sw.WriteLine(prefix + "        _x_.add(" + DecodeElement(vt, "_t_") + ");");
+            }
+            sw.WriteLine(prefix + "    }");
+            sw.WriteLine(prefix + "} else {");
             sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownField(_t_);");
+            sw.WriteLine(prefix + "}");
         }
 
         public void Visit(TypeList type)
@@ -267,8 +297,24 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
             sw.WriteLine(prefix + "    int _s_ = (_t_ = " + bufname + ".ReadByte()) >> ByteBuffer.TAG_SHIFT;");
             sw.WriteLine(prefix + "    for (int _n_ = " + bufname + ".ReadUInt(); _n_ > 0; _n_--) {");
-            sw.WriteLine(prefix + "        var _k_ = " + DecodeElement(kt, "_s_") + ';');
-            sw.WriteLine(prefix + "        var _v_ = " + DecodeElement(vt, "_t_") + ';');
+            if (IsOldStypeEncodeDecodeType(kt))
+            {
+                kt.Accept(new Define("_k_", sw, prefix + "        "));
+                kt.Accept(new Decode("_k_", 0, bufname, sw, prefix + "        "));
+            }
+            else
+            {
+                sw.WriteLine(prefix + "        var _k_ = " + DecodeElement(kt, "_s_") + ';');
+            }
+            if (IsOldStypeEncodeDecodeType(vt))
+            {
+                vt.Accept(new Define("_v_", sw, prefix + "        "));
+                vt.Accept(new Decode("_v_", 0, bufname, sw, prefix + "        "));
+            }
+            else
+            {
+                sw.WriteLine(prefix + "        var _v_ = " + DecodeElement(vt, "_t_") + ';');
+            }
             sw.WriteLine(prefix + "        _x_.put(_k_, _v_);");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "} else");
@@ -296,7 +342,7 @@ namespace Zeze.Gen.java
             if (id > 0)
                 sw.WriteLine(prefix + bufname + ".ReadDynamic(" + GetVarName() + ", _t_);");
             else
-                throw new Exception("invalid variable.id");
+                sw.WriteLine(prefix + bufname + ".ReadDynamic(" + GetVarName() + ", _t_);");
         }
 
         public void Visit(TypeQuaternion type)
