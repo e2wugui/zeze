@@ -20,6 +20,20 @@ namespace Zeze.Builtin.Collections.LinkedMap
     {
         string _Id; // LinkedMap的Key转成字符串类型
         readonly Zeze.Transaction.DynamicBean _Value;
+        public static long GetSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean)
+        {
+            switch (bean.TypeId)
+            {
+                case Zeze.Transaction.EmptyBean.TYPEID: return Zeze.Transaction.EmptyBean.TYPEID;
+            }
+            throw new System.Exception("Unknown Bean! dynamic@Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue:Value");
+        }
+
+        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Value(long typeId)
+        {
+            return null;
+        }
+
 
         public string Id
         {
@@ -98,19 +112,6 @@ namespace Zeze.Builtin.Collections.LinkedMap
             public override void Commit() { ((BLinkedMapNodeValue)Belong)._Id = this.Value; }
         }
 
-        public static long GetSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean)
-        {
-            switch (bean.TypeId)
-            {
-                case Zeze.Transaction.EmptyBean.TYPEID: return Zeze.Transaction.EmptyBean.TYPEID;
-            }
-            throw new System.Exception("Unknown Bean! dynamic@Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue:Value");
-        }
-
-        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Value(long typeId)
-        {
-            return null;
-        }
 
         public override string ToString()
         {

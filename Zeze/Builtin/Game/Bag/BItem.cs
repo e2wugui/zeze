@@ -22,6 +22,20 @@ namespace Zeze.Builtin.Game.Bag
         int _Id;
         int _Number;
         readonly Zeze.Transaction.DynamicBean _Item;
+        public static long GetSpecialTypeIdFromBean_Item(Zeze.Transaction.Bean bean)
+        {
+            switch (bean.TypeId)
+            {
+                case Zeze.Transaction.EmptyBean.TYPEID: return Zeze.Transaction.EmptyBean.TYPEID;
+            }
+            throw new System.Exception("Unknown Bean! dynamic@Zeze.Builtin.Game.Bag.BItem:Item");
+        }
+
+        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Item(long typeId)
+        {
+            return null;
+        }
+
 
         public int _zeze_map_key_int_ { get; set; }
 
@@ -131,19 +145,6 @@ namespace Zeze.Builtin.Game.Bag
             public override void Commit() { ((BItem)Belong)._Number = this.Value; }
         }
 
-        public static long GetSpecialTypeIdFromBean_Item(Zeze.Transaction.Bean bean)
-        {
-            switch (bean.TypeId)
-            {
-                case Zeze.Transaction.EmptyBean.TYPEID: return Zeze.Transaction.EmptyBean.TYPEID;
-            }
-            throw new System.Exception("Unknown Bean! dynamic@Zeze.Builtin.Game.Bag.BItem:Item");
-        }
-
-        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Item(long typeId)
-        {
-            return null;
-        }
 
         public override string ToString()
         {

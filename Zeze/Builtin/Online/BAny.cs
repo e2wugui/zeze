@@ -18,6 +18,20 @@ namespace Zeze.Builtin.Online
     public sealed class BAny : Zeze.Transaction.Bean, BAnyReadOnly
     {
         readonly Zeze.Transaction.DynamicBean _Any;
+        public static long GetSpecialTypeIdFromBean_Any(Zeze.Transaction.Bean bean)
+        {
+            switch (bean.TypeId)
+            {
+                case Zeze.Transaction.EmptyBean.TYPEID: return Zeze.Transaction.EmptyBean.TYPEID;
+            }
+            throw new System.Exception("Unknown Bean! dynamic@Zeze.Builtin.Online.BAny:Any");
+        }
+
+        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Any(long typeId)
+        {
+            return null;
+        }
+
 
         public string _zeze_map_key_string_ { get; set; }
 
@@ -65,19 +79,6 @@ namespace Zeze.Builtin.Online
         public const long TYPEID = 5253251427600819301;
         public override long TypeId => TYPEID;
 
-        public static long GetSpecialTypeIdFromBean_Any(Zeze.Transaction.Bean bean)
-        {
-            switch (bean.TypeId)
-            {
-                case Zeze.Transaction.EmptyBean.TYPEID: return Zeze.Transaction.EmptyBean.TYPEID;
-            }
-            throw new System.Exception("Unknown Bean! dynamic@Zeze.Builtin.Online.BAny:Any");
-        }
-
-        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Any(long typeId)
-        {
-            return null;
-        }
 
         public override string ToString()
         {

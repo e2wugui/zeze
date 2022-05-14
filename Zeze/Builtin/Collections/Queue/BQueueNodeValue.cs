@@ -20,6 +20,20 @@ namespace Zeze.Builtin.Collections.Queue
     {
         long _Timestamp;
         readonly Zeze.Transaction.DynamicBean _Value;
+        public static long GetSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean)
+        {
+            switch (bean.TypeId)
+            {
+                case Zeze.Transaction.EmptyBean.TYPEID: return Zeze.Transaction.EmptyBean.TYPEID;
+            }
+            throw new System.Exception("Unknown Bean! dynamic@Zeze.Builtin.Collections.Queue.BQueueNodeValue:Value");
+        }
+
+        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Value(long typeId)
+        {
+            return null;
+        }
+
 
         public long Timestamp
         {
@@ -96,19 +110,6 @@ namespace Zeze.Builtin.Collections.Queue
             public override void Commit() { ((BQueueNodeValue)Belong)._Timestamp = this.Value; }
         }
 
-        public static long GetSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean)
-        {
-            switch (bean.TypeId)
-            {
-                case Zeze.Transaction.EmptyBean.TYPEID: return Zeze.Transaction.EmptyBean.TYPEID;
-            }
-            throw new System.Exception("Unknown Bean! dynamic@Zeze.Builtin.Collections.Queue.BQueueNodeValue:Value");
-        }
-
-        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Value(long typeId)
-        {
-            return null;
-        }
 
         public override string ToString()
         {

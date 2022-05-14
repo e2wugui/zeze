@@ -4,22 +4,22 @@
 
 	<bean name="Bean1">
 		<enum name="Enum1" value="4"/>
-		<variable id="1" name="V1" type="int" default="1"/> bean1comm
+		<variable id="1" name="v1" type="int" default="1"/> bean1comm
 		bean1line2
-		<variable id="2" name="V2" type="map" key="int" value="int"/> bean1v2
+		<variable id="2" name="v2" type="map" key="int" value="int"/> bean1v2
 		bean1v2line2
 	</bean>
 
 	<module name="Module1" id="1">
 		<beankey name="AutoKey">
-			<variable id="1" name="Name" type="string"/> 一般就是表名。
-			<variable id="2" name="LocalId" type="long"/>
+			<variable id="1" name="name" type="string"/> 一般就是表名。
+			<variable id="2" name="localId" type="long"/>
 		</beankey>
 
 		<bean name="AutoValue">
-			<variable id="1" name="Current" type="long"/>
-			<variable id="2" name="Name" type="string"/>
-			<variable id="3" name="LocalId" type="long"/>
+			<variable id="1" name="current" type="long"/>
+			<variable id="2" name="name" type="string"/>
+			<variable id="3" name="localId" type="long"/>
 		</bean>
 
 		<table name="Autokey_" key="AutoKey" value="AutoValue"/>
@@ -44,27 +44,28 @@
 			<variable id="6" name="float6" type="float"/> com aa
 			<variable id="7" name="double7" type="double"/> com aa
 			<variable id="8" name="bytes8" type="binary"/> com aa
-			<variable id="9" name="list9" type="list" value="demo.Bean1"/> com aa
-			<variable id="10" name="set10" type="set" value="int"/> com aa
-			<variable id="11" name="map11" type="map" key="long" value="demo.Module2.Value"/> com aa
+			<variable id="9" name="list9" type="list[demo.Bean1]"/> com aa
+			<variable id="10" name="set10" type="set[int]"/> com aa
+			<variable id="11" name="map11" type="map[long,demo.Module2.Value]"/> com aa
 			<variable id="12" name="bean12" type="Simple"/> simple
 			<variable id="13" name="byte13" type="byte"/> com aa
-			<variable id="14" name="dynamic14" type="dynamic" value="demo.Bean1:1">
+			<variable id="14" name="dynamic14" type="dynamic">
+				<value bean="demo.Bean1:1"/>
 				<value bean="Simple:2"/>
 			</variable>
-			<variable id="15" name="map15" type="map" key="long" value="long"/> com aa
-			<variable id="16" name="map16" type="map" key="Key" value="Simple"/> com aa
+			<variable id="15" name="map15" type="map[long, long]"/> com aa
+			<variable id="16" name="map16" type="map[Key,Simple]"/> com aa
 
-			<variable id="17" name="Vector2" type="vector2" /> com aa
-			<variable id="18" name="Vector2Int" type="vector2int" /> com aa
-			<variable id="19" name="Vector3" type="vector3" /> com aa
-			<variable id="20" name="Vector3Int" type="vector3int" /> com aa
-			<variable id="21" name="Vector4" type="vector4" /> com aa
-			<variable id="22" name="Quaternion" type="quaternion" /> com aa
+			<variable id="17" name="vector2" type="vector2" /> com aa
+			<variable id="18" name="vector2Int" type="vector2int" /> com aa
+			<variable id="19" name="vector3" type="vector3" /> com aa
+			<variable id="20" name="vector3Int" type="vector3int" /> com aa
+			<variable id="21" name="vector4" type="vector4" /> com aa
+			<variable id="22" name="quaternion" type="quaternion" /> com aa
 
-			<variable id="23" name="MapVector2Int" type="map" key="vector2int" value="vector2int"/>
-			<variable id="24" name="ListVector2Int" type="list" value="vector2int"/>
-			<variable id="25" name="ListFixSize" type="list" FixSize="8" value="vector2int"/>
+			<variable id="23" name="mapVector2Int" type="map" key="vector2int" value="vector2int"/>
+			<variable id="24" name="setVector2Int" type="set" value="vector2int"/>
+			<variable id="25" name="listFixSize" type="list" FixSize="8" value="vector2int"/>
 		</bean>
 		<beankey name="Key">
 			<enum name="Enum1" value="4"/>
@@ -86,6 +87,32 @@
 		<protocol name="ProtocolNoProcedure" NoProcedure="true" handle="server"/>
 		<table name="tflush" key="long" value="Value" memory="false"/>
 		<module name="Module11" id="3">
+			<bean name="Base" extendable="true">
+				<variable id="1" name="baseInt" type="int"/>
+			</bean>
+			<bean name="Derive" base="Base" extendable="true">
+				<variable id="1" name="deriveInt" type="int"/>
+			</bean>
+			<bean name="Final" base="Derive">
+				<variable id="1" name="finalInt" type="int"/>
+			</bean>
+			<bean name="Dynamic">
+				<variable id="1" name="dyn" type="dynamic:Base">
+					<value bean="Base:1"/>
+					<value bean="Derive:2"/>
+					<value bean="Final:3"/>
+				</variable>
+				<variable id="2" name="dynList" type="list[dynamic:Base]">
+					<value bean="Base:1"/>
+					<value bean="Derive:2"/>
+					<value bean="Final:3"/>
+				</variable>
+				<variable id="3" name="dynMap" type="map[int, dynamic:Base]">
+					<value bean="Base:1"/>
+					<value bean="Derive:2"/>
+					<value bean="Final:3"/>
+				</variable>
+			</bean>
 		</module>
 	</module>
 

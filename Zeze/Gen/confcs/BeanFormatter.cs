@@ -17,6 +17,8 @@ namespace Zeze.Gen.confcs
         public void Make(string baseDir)
         {
             using StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + ".cs");
+            var preClass = bean.Extendable ? "" : "sealed ";
+            var baseClass = bean.Base == "" ? "Zeze.Util.ConfBean" : bean.Base;
 
             sw.WriteLine("// auto-generated");
             sw.WriteLine("using ByteBuffer = Zeze.Serialize.ByteBuffer;");
@@ -26,7 +28,7 @@ namespace Zeze.Gen.confcs
             sw.WriteLine("namespace " + bean.Space.Path());
             sw.WriteLine("{");
             sw.WriteLine("    [System.Serializable]");
-            sw.WriteLine($"    public sealed class {bean.Name} : Zeze.Util.ConfBean");
+            sw.WriteLine($"    public {preClass}class {bean.Name} : {baseClass}");
             sw.WriteLine("    {");
             WriteDefine(sw);
             sw.WriteLine("    }");

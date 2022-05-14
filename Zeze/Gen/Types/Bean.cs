@@ -29,7 +29,7 @@ namespace Zeze.Gen.Types
 					var.VariableType.Depends(includes);
 
                     // 常量初始化引用到的Bean也加入depends中。 BeanName.ConstStaticVarName
-                    // 
+                    //
                     string[] initial = var.Initial.Split('.');
                     string beanNameMabe = "";
 					for (int i = 0; i < initial.Length - 1; ++i)
@@ -44,7 +44,7 @@ namespace Zeze.Gen.Types
 					{
 						Type type = Type.Compile(Space, beanNameMabe);
 						if (type != null)
-							includes.Add(type); // type.depends(type); 肯定是 Bean，不需要递归包含。 
+							includes.Add(type); // type.depends(type); 肯定是 Bean，不需要递归包含。
 					}
 					catch (Exception ex)
 					{
@@ -104,6 +104,8 @@ namespace Zeze.Gen.Types
 		public string Comment { get; private set; }
 		public string FullName => Space.Path(".", Name);
 		public long TypeId { get; private set; }
+		public bool Extendable { get; private set; }
+		public string Base { get; private set; }
 		// ///////////////////////////////////////////
 		public Bean(ModuleSpace space, XmlElement self)
 		{
@@ -119,6 +121,8 @@ namespace Zeze.Gen.Types
 			// previous sibling comment
 			Comment = self.GetAttribute("comment");
 			string attr = self.GetAttribute("TypeId");
+			Extendable = self.GetAttribute("extendable") == "true";
+			Base = self.GetAttribute("base");
 			TypeId = attr.Length > 0 ? int.Parse(attr) : Zeze.Transaction.Bean.Hash64(space.Path(".", _name));
 			if (false == Program.BeanTypeIdDuplicateChecker.Add(TypeId))
 				throw new Exception("duplicate Bean.TypeId, please choice one.");
