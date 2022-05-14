@@ -102,37 +102,50 @@ namespace Zeze.Gen.ts
 
         public void Visit(TypeDynamic type)
         {
-            DefineStack(type);
+            string tName = TypeName.GetName(type);
+            var bean = (Bean)type.Variable.Bean;
+            if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
+            {
+                sw.WriteLine($"{prefix}var {varname} = new Zeze.DynamicBean("
+                + $"{bean.Space.Path("_", bean.Name)}.GetSpecialTypeIdFromBean_{type.Variable.NameUpper1}, "
+                + $"{bean.Space.Path("_", bean.Name)}.CreateBeanFromSpecialTypeId_{type.Variable.NameUpper1}"
+                + ");");
+            }
+            else
+            {
+                sw.WriteLine($"{prefix}var {varname} = new Zeze.DynamicBean"
+                    + $"(0, {type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateBeanFromSpecialTypeId});");
+            }
         }
 
         public void Visit(TypeQuaternion type)
         {
-            throw new NotImplementedException();
+            DefineStack(type);
         }
 
         public void Visit(TypeVector2 type)
         {
-            throw new NotImplementedException();
+            DefineStack(type);
         }
 
         public void Visit(TypeVector2Int type)
         {
-            throw new NotImplementedException();
+            DefineStack(type);
         }
 
         public void Visit(TypeVector3 type)
         {
-            throw new NotImplementedException();
+            DefineStack(type);
         }
 
         public void Visit(TypeVector3Int type)
         {
-            throw new NotImplementedException();
+            DefineStack(type);
         }
 
         public void Visit(TypeVector4 type)
         {
-            throw new NotImplementedException();
+            DefineStack(type);
         }
     }
 }

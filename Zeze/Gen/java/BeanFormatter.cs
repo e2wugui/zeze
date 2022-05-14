@@ -45,12 +45,15 @@ namespace Zeze.Gen.java
 
         private void GenDynamicSpecialMethod(StreamWriter sw, string prefix, Types.Variable var, TypeDynamic type, bool isCollection)
         {
-            foreach (var real in type.RealBeans)
+            if (false == isCollection)
             {
-                sw.WriteLine($"{prefix}public static final long DynamicTypeId{var.NameUpper1}{real.Value.Space.Path("_", real.Value.Name)} = {real.Key}L;");
+                foreach (var real in type.RealBeans)
+                {
+                    sw.WriteLine($"{prefix}public static final long DynamicTypeId{var.NameUpper1}{real.Value.Space.Path("_", real.Value.Name)} = {real.Key}L;");
+                }
+                if (type.RealBeans.Count > 0)
+                    sw.WriteLine();
             }
-            if (type.RealBeans.Count > 0)
-                sw.WriteLine();
 
             sw.WriteLine($"{prefix}public static long GetSpecialTypeIdFromBean_{var.NameUpper1}(Zeze.Transaction.Bean bean) {{");
             sw.WriteLine($"{prefix}    var _typeId_ = bean.getTypeId();");
