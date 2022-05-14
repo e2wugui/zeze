@@ -13,6 +13,7 @@ import Zeze.Application;
 import Zeze.Config;
 import Zeze.Schemas;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.BitConverter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.ColumnFamilyDescriptor;
@@ -167,7 +168,8 @@ public class ResetDB {
 
 			for (iter.seekToFirst(); iter.isValid(); iter.next()) {
 				db.delete(rmCfh, iter.key());
-				logger.debug("table name:" + rmTable + ", " + "iterator :" + iter.key().toString() + ":" + iter.value().toString());
+				logger.debug("table name:{}, iterator:{}:{}",
+					rmTable, BitConverter.toString(iter.key()), BitConverter.toString(iter.value()));
 			}
 			db.dropColumnFamily(rmCfh);
 		}

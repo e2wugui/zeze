@@ -20,7 +20,7 @@ public final class Changes {
 		for (var ar : t.getAccessedRecords().values()) {
 			if (ar.Dirty) {
 				var tmp = ar.Origin.getTable().getChangeListenerMap().getListeners();
-				if (false == tmp.isEmpty())
+				if (!tmp.isEmpty())
 					Listeners.putIfAbsent(ar.Origin.getTable(), tmp);
 			}
 		}

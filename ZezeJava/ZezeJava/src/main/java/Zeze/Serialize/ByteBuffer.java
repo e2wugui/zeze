@@ -1266,6 +1266,7 @@ public final class ByteBuffer {
 			return;
 		case DYNAMIC:
 			ReadLong();
+			//noinspection fallthrough
 		case BEAN:
 			while ((t = ReadByte()) != 0) {
 				if ((t & ID_MASK) == 0xf0)

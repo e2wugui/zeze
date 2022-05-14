@@ -794,6 +794,7 @@ public class Online extends AbstractOnline {
 		if (online.getLinkSid() != session.getLinkSid())
 			online.setLinkSid(session.getLinkSid());
 
+		//noinspection ConstantConditions
 		reloginTrigger(session.getRoleId());
 
 		// 先发结果，再发送同步数据（ReliableNotifySync）。
@@ -884,6 +885,7 @@ public class Online extends AbstractOnline {
 
 		session.SendResponseWhileCommit(rpc); // 同步前提交。
 
+		//noinspection ConstantConditions
 		var syncResultCode = reliableNotifySync(session.getRoleId(), session,
 				rpc.Argument.getReliableNotifyConfirmCount(), false);
 		if (syncResultCode != ResultCodeSuccess)

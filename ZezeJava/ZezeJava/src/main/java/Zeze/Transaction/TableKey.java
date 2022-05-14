@@ -4,7 +4,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class TableKey implements java.lang.Comparable<TableKey> {
 	// 用来做名字转换，不检查Table.Id唯一性。
-	public static ConcurrentHashMap<Integer, String> Tables = new ConcurrentHashMap<>();
+	public static final ConcurrentHashMap<Integer, String> Tables = new ConcurrentHashMap<>();
 
 	private final int Id;
 	public int getId() {

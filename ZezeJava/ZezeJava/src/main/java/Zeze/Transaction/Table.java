@@ -1,6 +1,5 @@
 package Zeze.Transaction;
 
-import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;

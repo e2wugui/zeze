@@ -40,7 +40,7 @@ public final class Checkpoint {
 	}
 
 	private final Thread CheckpointThread;
-	private Zeze.Application Zeze;
+	private final Zeze.Application Zeze;
 
 	public Zeze.Application getZeze() {
 		return Zeze;

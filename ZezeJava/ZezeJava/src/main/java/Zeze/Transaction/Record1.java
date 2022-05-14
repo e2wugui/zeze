@@ -127,6 +127,7 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public void Encode0() {
 		if (!getDirty())

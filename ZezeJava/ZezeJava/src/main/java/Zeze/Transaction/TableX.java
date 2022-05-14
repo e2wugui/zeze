@@ -48,6 +48,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	private KV<Record1<K, V>, V> Load(K key) {
 		var tkey = new TableKey(getId(), key);
 		while (true) {
@@ -62,7 +63,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				if (r.getState() == GlobalCacheManagerServer.StateShare
 						|| r.getState() == GlobalCacheManagerServer.StateModify) {
 					strongRef = (V)r.getSoftValue();
-					if (null == strongRef && false == r.getDirty()) {
+					if (null == strongRef && !r.getDirty()) {
 						var find = LocalRocksCacheTable.Find(EncodeKey(key));
 						if (null != find) {
 							strongRef = DecodeValue(find);
@@ -551,6 +552,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					if (r.getState() == GlobalCacheManagerServer.StateShare
 							|| r.getState() == GlobalCacheManagerServer.StateModify) {
 						// 拥有正确的状态：
+						@SuppressWarnings("unchecked")
 						var strongRef = (V)r.getSoftValue();
 						if (strongRef == null) {
 							return true; // 已经被删除，但是还没有checkpoint的记录看不到。
@@ -619,6 +621,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			try {
 				if (r.getState() == GlobalCacheManagerServer.StateShare
 					|| r.getState() == GlobalCacheManagerServer.StateModify) {
+					@SuppressWarnings("unchecked")
 					var strongRef = (V)r.getSoftValue();
 					if (strongRef == null) {
 						continue;
