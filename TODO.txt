@@ -43,7 +43,7 @@ Gen & Defing Change
 3. dynamic 指定基类&可以放入容器中
    【基类即Bean将实现继承，仅在dynamic中才支持声明基类，下面是例子】
    【继承实现将有 @张路 完成，目前仅完成声明基类的解析】
-   【解析是针对多有版本的，计划具体实现仅用于platform="conf+cs"，由张路决定】
+   【解析基类是所有版本的，计划具体实现仅用于platform="conf+cs"，由张路决定】
    <variable id="1" name="ListInt" type="list[dynamic:BBase]"/>
    <variable id="2" name="SetInt" type="set[int]"/> set不支持包含dynamic，特别放这里说明一下
    <variable id="3" name="MingIntInt" type="map[int,dynamic:BBase]"/>
@@ -55,7 +55,6 @@ Gen & Defing Change
     上面的1，2，3都基本实现了，其中第3的指定基类仅解析完成。
     Gen Compile传递Variable并部分记录到Type类中，然后具体类型从Variable中读取自己需要的信息。
     以前是编解码通过Value传递。增加这个参数以后便于扩展。
-    ByteBuffer里面查找“张路”，有个注释。
     以上已实现部分仅c#。java,ts版本我稍后做，还是使用包装类DynamicBean。
     conf+cs留给你，
 
