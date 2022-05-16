@@ -46,13 +46,7 @@ namespace Zeze.Gen.confcs
             // declare variables
             bean.Variables.Sort((a, b) => a.Id - b.Id);
             foreach (Variable v in bean.Variables)
-            {
-                Type vt = v.VariableType;
-                if (vt is TypeDynamic)
-                    sw.WriteLine("        " + TypeName.GetName(vt) + " " + v.NamePrivate + ";" + v.Comment);
-                else
-                    sw.WriteLine("        public " + TypeName.GetName(vt) + " " + v.Name + ";" + v.Comment);
-            }
+                sw.WriteLine("        public " + TypeName.GetName(v.VariableType) + " " + v.Name + ";" + v.Comment);
             sw.WriteLine();
 
             Property.Make(bean, sw, "        ");
@@ -79,9 +73,9 @@ namespace Zeze.Gen.confcs
             // sw.WriteLine("            return Copy();");
             // sw.WriteLine("        }");
             // sw.WriteLine();
-            // sw.WriteLine("        public const long TYPEID = " + bean.TypeId + ";");
-            // sw.WriteLine("        public override long TypeId => TYPEID;");
-            // sw.WriteLine();
+            sw.WriteLine("        public const long TYPEID = " + bean.TypeId + ";");
+            sw.WriteLine("        public override long TypeId => TYPEID;");
+            sw.WriteLine();
             cs.Decode.Make(bean, sw, "        ", false);
             var macro = project.MacroEditor;
             if (false == string.IsNullOrEmpty(macro))

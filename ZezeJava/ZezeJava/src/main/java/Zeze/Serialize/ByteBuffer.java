@@ -1235,6 +1235,8 @@ public final class ByteBuffer {
 			ReadLong();
 			return;
 		case FLOAT:
+			if (type == 1) // FLOAT == 1
+				return;
 			EnsureRead(4);
 			ReadIndex += 4;
 			return;
@@ -1269,6 +1271,8 @@ public final class ByteBuffer {
 			//noinspection fallthrough
 		case BEAN:
 			while ((t = ReadByte()) != 0) {
+				if (t == 1)
+					continue;
 				if ((t & ID_MASK) == 0xf0)
 					ReadUInt();
 				SkipUnknownField(t);

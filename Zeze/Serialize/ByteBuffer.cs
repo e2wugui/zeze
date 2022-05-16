@@ -1245,7 +1245,7 @@ namespace Zeze.Serialize
                 SkipUnknownField(type);
             return bean;
         }
-     
+
         public Zeze.Transaction.DynamicBean ReadDynamic(Zeze.Transaction.DynamicBean dynBean, int type)
         {
             type &= TAG_MASK;
@@ -1290,6 +1290,8 @@ namespace Zeze.Serialize
                     ReadLong();
                     return;
                 case FLOAT:
+                    if (type == 1) // FLOAT == 1
+                        return;
                     EnsureRead(4);
                     ReadIndex += 4;
                     return;
@@ -1328,6 +1330,8 @@ namespace Zeze.Serialize
                 case BEAN:
                     while ((t = ReadByte()) != 0)
                     {
+                        if (t == 1)
+                            continue;
                         if ((t & ID_MASK) == 0xf0)
                             ReadUInt();
                         SkipUnknownField(t);

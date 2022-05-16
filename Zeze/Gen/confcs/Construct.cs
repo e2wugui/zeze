@@ -147,16 +147,16 @@ namespace Zeze.Gen.confcs
 
         public void Visit(TypeDynamic type)
         {
-            if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
-            {
-                sw.WriteLine(prefix + variable.Name + " = new Zeze.Util.ConfDynamicBean"
-                    + $"({variable.Id}, GetSpecialTypeIdFromBean_{variable.NameUpper1}, CreateBeanFromSpecialTypeId_{variable.NameUpper1});");
-            }
-            else
-            {
-                sw.WriteLine(prefix + variable.Name + " = new Zeze.Transaction.DynamicBean"
-                    + $"({variable.Id}, {type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateBeanFromSpecialTypeId});");
-            }
+            // if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
+            // {
+            //     sw.WriteLine(prefix + variable.Name + " = new Zeze.Util.ConfDynamicBean"
+            //         + $"({variable.Id}, GetSpecialTypeIdFromBean_{variable.NameUpper1}, CreateBeanFromSpecialTypeId_{variable.NameUpper1});");
+            // }
+            // else
+            // {
+            //     sw.WriteLine(prefix + variable.Name + " = new Zeze.Transaction.DynamicBean"
+            //         + $"({variable.Id}, {type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateBeanFromSpecialTypeId});");
+            // }
         }
 
         public void Visit(TypeQuaternion type)

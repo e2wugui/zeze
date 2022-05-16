@@ -12,6 +12,7 @@ namespace Zeze.Gen.cs
         readonly string bufname;
         readonly StreamWriter sw;
         readonly string prefix;
+        readonly string varUpperName1;
 
         public static void Make(Bean bean, StreamWriter sw, string prefix, bool varNameUpper = true)
         {
@@ -21,10 +22,16 @@ namespace Zeze.Gen.cs
             foreach (Variable v in bean.Variables)
             {
                 sw.WriteLine(prefix + "    {");
-                v.VariableType.Accept(new Encode(varNameUpper ? v.NameUpper1 : v.Name, v.Id, "_o_", sw, prefix + "        "));
+                v.VariableType.Accept(new Encode(varNameUpper ? v.NameUpper1 : v.Name, v.Id, "_o_", sw, prefix + "        ", v.NameUpper1));
                 sw.WriteLine(prefix + "    }");
             }
-            sw.WriteLine(prefix + "    _o_.WriteByte(0);");
+            if (bean.Base != "")
+            {
+                sw.WriteLine(prefix + "    _o_.WriteByte(1);");
+                sw.WriteLine(prefix + "    base.Encode(_o_);");
+            }
+            else
+                sw.WriteLine(prefix + "    _o_.WriteByte(0);");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
@@ -37,7 +44,7 @@ namespace Zeze.Gen.cs
             foreach (Variable v in bean.Variables)
             {
                 sw.WriteLine(prefix + "    {");
-                v.VariableType.Accept(new Encode(v.NamePrivate, v.Id, "_o_", sw, prefix + "        "));
+                v.VariableType.Accept(new Encode(v.NamePrivate, v.Id, "_o_", sw, prefix + "        ", v.NameUpper1));
                 sw.WriteLine(prefix + "    }");
             }
             sw.WriteLine(prefix + "    _o_.WriteByte(0);");
@@ -45,13 +52,14 @@ namespace Zeze.Gen.cs
             sw.WriteLine();
         }
 
-        public Encode(string varname, int id, string bufname, StreamWriter sw, string prefix)
+        public Encode(string varname, int id, string bufname, StreamWriter sw, string prefix, string varUpperName1)
         {
             this.varname = varname;
             this.id = id;
             this.bufname = bufname;
             this.sw = sw;
             this.prefix = prefix;
+            this.varUpperName1 = varUpperName1;
         }
 
         public void Visit(TypeBool type)
@@ -245,7 +253,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    {");
             if (Decode.IsOldStypeEncodeDecodeType(vt))
             {
-                vt.Accept(new Encode("_v_", 0, bufname, sw, prefix + "        "));
+                vt.Accept(new Encode("_v_", 0, bufname, sw, prefix + "        ", varUpperName1));
             }
             else
             {
@@ -281,7 +289,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    {");
             if (Decode.IsOldStypeEncodeDecodeType(kt))
             {
-                vt.Accept(new Encode("_e_.Key", 0, bufname, sw, prefix + "        "));
+                vt.Accept(new Encode("_e_.Key", 0, bufname, sw, prefix + "        ", varUpperName1));
             }
             else
             {
@@ -289,7 +297,7 @@ namespace Zeze.Gen.cs
             }
             if (Decode.IsOldStypeEncodeDecodeType(vt))
             {
-                vt.Accept(new Encode("_e_.Value", 0, bufname, sw, prefix + "        "));
+                vt.Accept(new Encode("_e_.Value", 0, bufname, sw, prefix + "        ", varUpperName1));
             }
             else
             {
@@ -335,7 +343,25 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeDynamic type)
         {
-            if (id > 0)
+            if (Project.MakingInstance.Platform.Equals("conf+cs"))
+            {
+                if (id > 0)
+                {
+                    sw.WriteLine($"{prefix}var _x_ = {varname};");
+                    sw.WriteLine($"{prefix}if (_x_ != null)");
+                    sw.WriteLine($"{prefix}{{");
+                    sw.WriteLine($"{prefix}    _i_ = {bufname}.WriteTag(_i_, {id}, {TypeTagName.GetName(type)});");
+                    sw.WriteLine($"{prefix}    {bufname}.WriteLong(GetSpecialTypeIdFromBean_{varUpperName1}(_x_));");
+                    sw.WriteLine($"{prefix}    _x_.Encode({bufname});");
+                    sw.WriteLine($"{prefix}}}");
+                }
+                else
+                {
+                    sw.WriteLine($"{prefix}{bufname}.WriteLong(GetSpecialTypeIdFromBean_{varUpperName1}({varname}));");
+                    sw.WriteLine($"{prefix}{varname}.Encode({bufname});");
+                }
+            }
+            else if (id > 0)
             {
                 sw.WriteLine(prefix + "var _x_ = " + varname + ';');
                 sw.WriteLine(prefix + "if (!_x_.IsEmpty())");

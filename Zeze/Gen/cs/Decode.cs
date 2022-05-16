@@ -1,7 +1,6 @@
 ﻿using System;
 using System.IO;
 using Zeze.Gen.Types;
-using Zeze.Serialize;
 
 namespace Zeze.Gen.cs
 {
@@ -12,6 +11,7 @@ namespace Zeze.Gen.cs
         readonly string bufname;
         readonly StreamWriter sw;
         readonly string prefix;
+        readonly string varUpperName1;
 
         public static void Make(Bean bean, StreamWriter sw, string prefix, bool varNameUpper = true)
         {
@@ -39,7 +39,7 @@ namespace Zeze.Gen.cs
                     sw.WriteLine(prefix + "    if (_i_ == " + v.Id + ")");
                 }
                 sw.WriteLine(prefix + "    {");
-                v.VariableType.Accept(new Decode(varNameUpper ? v.NameUpper1 : v.Name, v.Id, "_o_", sw, prefix + "        "));
+                v.VariableType.Accept(new Decode(varNameUpper ? v.NameUpper1 : v.Name, v.Id, "_o_", sw, prefix + "        ", v.NameUpper1));
                 if (v.Id > 0)
                     sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
                 sw.WriteLine(prefix + "    }");
@@ -47,6 +47,14 @@ namespace Zeze.Gen.cs
 
             sw.WriteLine(prefix + "    while (_t_ != 0)");
             sw.WriteLine(prefix + "    {");
+            if (bean.Base != "")
+            {
+                sw.WriteLine(prefix + "        if (_t_ == 1)");
+                sw.WriteLine(prefix + "        {");
+                sw.WriteLine(prefix + "            base.Decode(_o_);");
+                sw.WriteLine(prefix + "            return;");
+                sw.WriteLine(prefix + "        }");
+            }
             sw.WriteLine(prefix + "        _o_.SkipUnknownField(_t_);");
             sw.WriteLine(prefix + "        _o_.ReadTagSize(_t_ = _o_.ReadByte());");
             sw.WriteLine(prefix + "    }");
@@ -66,7 +74,7 @@ namespace Zeze.Gen.cs
                 if (v.Id > 0)
                     sw.WriteLine(prefix + "    if (_i_ == " + v.Id + ")");
                 sw.WriteLine(prefix + "    {");
-                v.VariableType.Accept(new Decode(v.NamePrivate, v.Id, "_o_", sw, prefix + "        "));
+                v.VariableType.Accept(new Decode(v.NamePrivate, v.Id, "_o_", sw, prefix + "        ", v.NameUpper1));
                 if (v.Id > 0)
                     sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
                 sw.WriteLine(prefix + "    }");
@@ -81,13 +89,14 @@ namespace Zeze.Gen.cs
             sw.WriteLine();
         }
 
-        public Decode(string varname, int id, string bufname, StreamWriter sw, string prefix)
+        public Decode(string varname, int id, string bufname, StreamWriter sw, string prefix, string varUpperName1)
         {
             this.varname = varname;
             this.id = id;
             this.bufname = bufname;
             this.sw = sw;
             this.prefix = prefix;
+            this.varUpperName1 = varUpperName1;
         }
 
         public void Visit(TypeBool type)
@@ -161,7 +170,7 @@ namespace Zeze.Gen.cs
             else
                 sw.WriteLine(prefix + $"{varname} = {bufname}.ReadString();");
         }
- 
+
         string DecodeElement(Types.Type type, string typeVar)
         {
             switch (type)
@@ -206,7 +215,7 @@ namespace Zeze.Gen.cs
                     throw new Exception("invalid collection element type: " + type);
             }
         }
- 
+
         public static bool IsOldStypeEncodeDecodeType(Types.Type type)
         {
             if (type is TypeDynamic)
@@ -244,7 +253,7 @@ namespace Zeze.Gen.cs
             if (IsOldStypeEncodeDecodeType(vt))
             {
                 vt.Accept(new Define("_e_", sw, prefix + "        "));
-                vt.Accept(new Decode("_e_", 0, bufname, sw, prefix + "        "));
+                vt.Accept(new Decode("_e_", 0, bufname, sw, prefix + "        ", varUpperName1));
                 if (isFixSizeList)
                 {
                     sw.WriteLine($"{prefix}        _x_[_x_.Length - _n_] = _e_;");
@@ -297,7 +306,7 @@ namespace Zeze.Gen.cs
             if (IsOldStypeEncodeDecodeType(kt))
             {
                 kt.Accept(new Define("_k_", sw, prefix + "        "));
-                kt.Accept(new Decode("_k_", 0, bufname, sw, prefix + "        "));
+                kt.Accept(new Decode("_k_", 0, bufname, sw, prefix + "        ", varUpperName1));
             }
             else
             {
@@ -306,7 +315,7 @@ namespace Zeze.Gen.cs
             if (IsOldStypeEncodeDecodeType(vt))
             {
                 vt.Accept(new Define("_v_", sw, prefix + "        "));
-                vt.Accept(new Decode("_v_", 0, bufname, sw, prefix + "        "));
+                vt.Accept(new Decode("_v_", 0, bufname, sw, prefix + "        ", varUpperName1));
             }
             else
             {
@@ -337,10 +346,16 @@ namespace Zeze.Gen.cs
 
         public void Visit(TypeDynamic type)
         {
-            if (id > 0)
+            if (Project.MakingInstance.Platform.Equals("conf+cs"))
+            {
+                sw.WriteLine($"{prefix}var _x_ = CreateBeanFromSpecialTypeId_{varUpperName1}({bufname}.ReadLong());");
+                sw.WriteLine($"{prefix}_x_.Decode({bufname});");
+                sw.WriteLine($"{prefix}{varname} = _x_;");
+            }
+            else if (id > 0)
                 sw.WriteLine(prefix + bufname + ".ReadDynamic(" + varname + ", _t_);");
             else
-                sw.WriteLine(prefix + bufname + ".ReadDynamic(" + varname + ", _t_);");
+                sw.WriteLine(prefix + varname + ".Decode(" + bufname + ");");
         }
 
         public void Visit(TypeQuaternion type)

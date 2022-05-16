@@ -83,7 +83,7 @@ namespace Gen
                 (srcFile, dstFile) =>
                 {
                     var source = File.ReadAllText(srcFile.FullName, Encoding.UTF8);
-                    source = source.Replace("Zeze.Transaction.DynamicBean", "Zeze.Util.ConfDynamicBean");
+                    // source = source.Replace("Zeze.Transaction.DynamicBean", "Zeze.Util.ConfDynamicBean");
                     source = source.Replace("MACRO_CONF_CS_PREDEFINE", "MACRO_CONF_CS");
                     File.WriteAllText(dstFile, source, Encoding.UTF8);
                 });

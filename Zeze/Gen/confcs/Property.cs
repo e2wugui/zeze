@@ -70,6 +70,8 @@ namespace Zeze.Gen.confcs
 
         public void Visit(TypeList type)
         {
+            if (type.ValueType is TypeDynamic dynamicType)
+                Visit(dynamicType);
         }
 
         public void Visit(TypeSet type)
@@ -78,6 +80,8 @@ namespace Zeze.Gen.confcs
 
         public void Visit(TypeMap type)
         {
+            if (type.ValueType is TypeDynamic dynamicType)
+                Visit(dynamicType);
         }
 
         public void Visit(TypeFloat type)
@@ -90,42 +94,42 @@ namespace Zeze.Gen.confcs
 
         public void Visit(TypeDynamic type)
         {
-            var typeName = TypeName.GetName(type);
-            //var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
-            sw.WriteLine($"{prefix}public {typeName} {var.NameUpper1} => {var.NamePrivate};");
-            //sw.WriteLine($"{prefix}{typeName}ReadOnly {beanNameReadOnly}.{var.NameUpper1} => {var.NameUpper1};");
-            sw.WriteLine();
-            foreach (Bean real in type.RealBeans.Values)
-            {
-                string rname = TypeName.GetName(real);
-                string pname = var.NameUpper1 + "_" + real.Space.Path("_", real.Name);
-                sw.WriteLine(prefix + "public " + rname + " " + pname);
-                sw.WriteLine(prefix + "{");
-                sw.WriteLine(prefix + "    get { return (" + rname + ")" + var.NameUpper1 + ".Bean; }");
-                sw.WriteLine(prefix + "    set { " + var.NameUpper1 + ".Bean = value; }");
-                sw.WriteLine(prefix + "}");
-                sw.WriteLine();
-                //sw.WriteLine(prefix + rname + "ReadOnly " + beanNameReadOnly + "." + pname + " => " + pname + ";");
-                //sw.WriteLine();
-            }
+            // var typeName = TypeName.GetName(type);
+            // //var beanNameReadOnly = TypeName.GetName(var.Bean) + "ReadOnly";
+            // sw.WriteLine($"{prefix}public {typeName} {var.NameUpper1} => {var.NamePrivate};");
+            // //sw.WriteLine($"{prefix}{typeName}ReadOnly {beanNameReadOnly}.{var.NameUpper1} => {var.NameUpper1};");
+            // sw.WriteLine();
+            // foreach (Bean real in type.RealBeans.Values)
+            // {
+            //     string rname = TypeName.GetName(real);
+            //     string pname = var.NameUpper1 + "_" + real.Space.Path("_", real.Name);
+            //     sw.WriteLine(prefix + "public " + rname + " " + pname);
+            //     sw.WriteLine(prefix + "{");
+            //     sw.WriteLine(prefix + "    get { return (" + rname + ")" + var.NameUpper1 + ".Bean; }");
+            //     sw.WriteLine(prefix + "    set { " + var.NameUpper1 + ".Bean = value; }");
+            //     sw.WriteLine(prefix + "}");
+            //     sw.WriteLine();
+            //     //sw.WriteLine(prefix + rname + "ReadOnly " + beanNameReadOnly + "." + pname + " => " + pname + ";");
+            //     //sw.WriteLine();
+            // }
 
-            foreach (var real in type.RealBeans)
-                sw.WriteLine($"{prefix}public const long DynamicTypeId{var.NameUpper1}{real.Value.Space.Path("_", real.Value.Name)} = {real.Key};");
-            if (type.RealBeans.Count > 0)
-                sw.WriteLine();
+            // foreach (var real in type.RealBeans)
+            //     sw.WriteLine($"{prefix}public const long DynamicTypeId{var.NameUpper1}{real.Value.Space.Path("_", real.Value.Name)} = {real.Key};");
+            // if (type.RealBeans.Count > 0)
+            //     sw.WriteLine();
 
-            sw.WriteLine($"{prefix}public static long GetSpecialTypeIdFromBean_{var.NameUpper1}(Zeze.Util.ConfBean bean)");
+            sw.WriteLine($"{prefix}public static long GetSpecialTypeIdFromBean_{var.NameUpper1}({type.DynamicParams.Base} bean)");
             sw.WriteLine($"{prefix}{{");
             sw.WriteLine($"{prefix}    switch (bean.TypeId)");
             sw.WriteLine($"{prefix}    {{");
-            sw.WriteLine($"{prefix}        case Zeze.Util.ConfEmptyBean.TYPEID: return Zeze.Util.ConfEmptyBean.TYPEID;");
+            // sw.WriteLine($"{prefix}        case Zeze.Util.ConfEmptyBean.TYPEID: return Zeze.Util.ConfEmptyBean.TYPEID;");
             foreach (var real in type.RealBeans)
                 sw.WriteLine($"{prefix}        case {real.Value.TypeId}: return {real.Key}; // {real.Value.FullName}");
             sw.WriteLine($"{prefix}    }}");
-            sw.WriteLine($"{prefix}    throw new System.Exception(\"Unknown Bean! dynamic@{(var.Bean as Bean).FullName}:{var.Name}\");");
+            sw.WriteLine($"{prefix}    throw new System.Exception(\"Unknown Bean! dynamic@{((Bean)var.Bean).FullName}:{var.Name}: \" + typeof(bean));");
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
-            sw.WriteLine($"{prefix}public static Zeze.Util.ConfBean CreateBeanFromSpecialTypeId_{var.NameUpper1}(long typeId)");
+            sw.WriteLine($"{prefix}public static {type.DynamicParams.Base} CreateBeanFromSpecialTypeId_{var.NameUpper1}(long typeId)");
             sw.WriteLine($"{prefix}{{");
             if (type.RealBeans.Count > 0)
             {
@@ -136,7 +140,7 @@ namespace Zeze.Gen.confcs
                     sw.WriteLine($"{prefix}        case {real.Key}: return new {real.Value.FullName}();");
                 sw.WriteLine($"{prefix}    }}");
             }
-            sw.WriteLine($"{prefix}    return null;");
+            sw.WriteLine($"{prefix}    throw new System.Exception(\"Unknown TypeId! dynamic@{((Bean)var.Bean).FullName}:{var.Name}: \" + typeId);");
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
         }
