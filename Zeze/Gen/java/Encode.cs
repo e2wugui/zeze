@@ -39,16 +39,35 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "    }");
             }
 
-            sw.WriteLine(prefix + "    _o_.WriteByte(0);");
+            if (bean.Base != "")
+            {
+                sw.WriteLine(prefix + "    _o_.WriteByte(1);");
+                sw.WriteLine(prefix + "    super.Encode(_o_);");
+            }
+            else
+                sw.WriteLine(prefix + "    _o_.WriteByte(0);");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
 
         public static void Make(BeanKey bean, StreamWriter sw, string prefix)
         {
+            sw.WriteLine(prefix + "private static int _PRE_ALLOC_SIZE_ = 16;");
+            sw.WriteLine();
+            sw.WriteLine(prefix + "@Override");
+            sw.WriteLine(prefix + "public int getPreAllocSize() {");
+            sw.WriteLine(prefix + "    return _PRE_ALLOC_SIZE_;");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine();
+            sw.WriteLine(prefix + "@Override");
+            sw.WriteLine(prefix + "public void setPreAllocSize(int size) {");
+            sw.WriteLine(prefix + "    _PRE_ALLOC_SIZE_ = size;");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine();
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public void Encode(ByteBuffer _o_) {");
-            sw.WriteLine(prefix + "    int _i_ = 0;");
+            if (bean.Variables.Count > 0)
+                sw.WriteLine(prefix + "    int _i_ = 0;");
 
             foreach (Variable v in bean.Variables)
             {

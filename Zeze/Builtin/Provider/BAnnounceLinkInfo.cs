@@ -73,14 +73,13 @@ namespace Zeze.Builtin.Provider
 
         public override void Encode(ByteBuffer _o_)
         {
-            int _i_ = 0;
             _o_.WriteByte(0);
         }
 
         public override void Decode(ByteBuffer _o_)
         {
             int _t_ = _o_.ReadByte();
-            int _i_ = _o_.ReadTagSize(_t_);
+            _o_.ReadTagSize(_t_);
             while (_t_ != 0)
             {
                 _o_.SkipUnknownField(_t_);

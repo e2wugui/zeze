@@ -107,7 +107,7 @@
 					<value bean="Derive:2"/>
 					<value bean="Final:3"/>
 				</variable>
-				<variable id="3" name="dynMap" type="map[int, dynamic:Base]">
+				<variable id="5" name="dynMap" type="map[int, dynamic:Base]">
 					<value bean="Base:1"/>
 					<value bean="Derive:2"/>
 					<value bean="Final:3"/>

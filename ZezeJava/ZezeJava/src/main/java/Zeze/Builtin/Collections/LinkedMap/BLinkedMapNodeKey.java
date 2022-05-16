@@ -44,6 +44,18 @@ public final class BLinkedMapNodeKey implements Serializable, Comparable<BLinked
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
 
+    private static int _PRE_ALLOC_SIZE_ = 16;
+
+    @Override
+    public int getPreAllocSize() {
+        return _PRE_ALLOC_SIZE_;
+    }
+
+    @Override
+    public void setPreAllocSize(int size) {
+        _PRE_ALLOC_SIZE_ = size;
+    }
+
     @Override
     public void Encode(ByteBuffer _o_) {
         int _i_ = 0;

@@ -18,7 +18,10 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "public override void Decode(ByteBuffer _o_)");
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");
-            sw.WriteLine(prefix + "    int _i_ = _o_.ReadTagSize(_t_);");
+            if (bean.Variables.Count > 0)
+                sw.WriteLine(prefix + "    int _i_ = _o_.ReadTagSize(_t_);");
+            else
+                sw.WriteLine(prefix + "    _o_.ReadTagSize(_t_);");
 
             int lastId = 0;
             foreach (Variable v in bean.Variables)
@@ -29,7 +32,7 @@ namespace Zeze.Gen.cs
                         throw new Exception("unordered var.id");
                     if (v.Id - lastId > 1)
                     {
-                         sw.WriteLine(prefix + "    while (_t_ != 0 && _i_ < " + v.Id + ")");
+                         sw.WriteLine(prefix + "    while ((_t_ & 0xff) > 1 && _i_ < " + v.Id + ")");
                          sw.WriteLine(prefix + "    {");
                          sw.WriteLine(prefix + "        _o_.SkipUnknownField(_t_);");
                          sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
@@ -67,12 +70,29 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "public void Decode(ByteBuffer _o_)");
             sw.WriteLine(prefix + "{");
             sw.WriteLine(prefix + "    int _t_ = _o_.ReadByte();");
-            sw.WriteLine(prefix + "    int _i_ = _o_.ReadTagSize(_t_);");
+            if (bean.Variables.Count > 0)
+                sw.WriteLine(prefix + "    int _i_ = _o_.ReadTagSize(_t_);");
+            else
+                sw.WriteLine(prefix + "    _o_.ReadTagSize(_t_);");
 
+            int lastId = 0;
             foreach (Variable v in bean.Variables)
             {
                 if (v.Id > 0)
+                {
+                    if (v.Id <= lastId)
+                        throw new Exception("unordered var.id");
+                    if (v.Id - lastId > 1)
+                    {
+                         sw.WriteLine(prefix + "    while ((_t_ & 0xff) > 1 && _i_ < " + v.Id + ")");
+                         sw.WriteLine(prefix + "    {");
+                         sw.WriteLine(prefix + "        _o_.SkipUnknownField(_t_);");
+                         sw.WriteLine(prefix + "        _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());");
+                         sw.WriteLine(prefix + "    }");
+                    }
+                    lastId = v.Id;
                     sw.WriteLine(prefix + "    if (_i_ == " + v.Id + ")");
+                }
                 sw.WriteLine(prefix + "    {");
                 v.VariableType.Accept(new Decode(v.NamePrivate, v.Id, "_o_", sw, prefix + "        ", v.NameUpper1));
                 if (v.Id > 0)
