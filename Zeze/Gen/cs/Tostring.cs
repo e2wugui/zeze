@@ -200,7 +200,10 @@ namespace Zeze.Gen.cs
         public void Visit(TypeDynamic type)
         {
             sw.WriteLine(prefix + $"sb.Append(Zeze.Util.Str.Indent(level)).Append(\"{var}\").Append('=').Append(Environment.NewLine);");
-            sw.WriteLine(prefix + $"{var}.Bean.BuildString(sb, level + {INDENT_SIZE});");
+            if (Project.MakingInstance.Platform.Equals("conf+cs"))
+                sw.WriteLine(prefix + $"{var}.BuildString(sb, level + {INDENT_SIZE});");
+            else
+                sw.WriteLine(prefix + $"{var}.Bean.BuildString(sb, level + {INDENT_SIZE});");
             sw.Write(prefix + "sb");
             if (sep != 0)
                 sw.Write($".Append('{sep}')");

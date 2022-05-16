@@ -102,7 +102,7 @@ namespace Zeze.Gen.cs
         {
             if (Project.MakingInstance.Platform.Equals("conf+cs"))
             {
-                sw.WriteLine($"{prefix}{confcs.TypeName.GetName(type)} {varname};");
+                sw.WriteLine($"{prefix}{confcs.TypeName.GetName(type)} {varname} = null;");
             }
             else if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
             {

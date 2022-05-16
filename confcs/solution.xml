@@ -66,6 +66,10 @@
 			<variable id="23" name="mapVector2Int" type="map" key="vector2int" value="vector2int"/>
 			<variable id="24" name="setVector2Int" type="set" value="vector2int"/>
 			<variable id="25" name="listFixSize" type="list" FixSize="8" value="vector2int"/>
+			<variable id="26" name="arrayDynamic" type="list" value="dynamic">
+				<value bean="demo.Bean1"/>
+				<value bean="Simple"/>
+			</variable>
 		</bean>
 		<beankey name="Key">
 			<enum name="Enum1" value="4"/>

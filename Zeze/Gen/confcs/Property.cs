@@ -127,7 +127,7 @@ namespace Zeze.Gen.confcs
             foreach (var real in type.RealBeans)
                 sw.WriteLine($"{prefix}        case {real.Value.TypeId}: return {real.Key}; // {real.Value.FullName}");
             sw.WriteLine($"{prefix}    }}");
-            sw.WriteLine($"{prefix}    throw new System.Exception(\"Unknown Bean! dynamic@{((Bean)var.Bean).FullName}:{var.Name}: \" + typeof(bean));");
+            sw.WriteLine($"{prefix}    throw new System.Exception(\"Unknown Bean! dynamic@{((Bean)var.Bean).FullName}:{var.Name}: \" + bean.GetType());");
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
             sw.WriteLine($"{prefix}public static {baseType} CreateBeanFromSpecialTypeId_{var.NameUpper1}(long typeId)");

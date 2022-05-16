@@ -51,7 +51,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("        public override " + TypeName.GetName(table.KeyType) + " DecodeKey(ByteBuffer _os_)");
             sw.WriteLine("        {");
             table.KeyType.Accept(new Define("_v_", sw, "            "));
-            table.KeyType.Accept(new Decode("_v_", -1, "_os_", sw, "            ", null));
+            table.KeyType.Accept(new Decode("_v_", -1, "_os_", sw, "            ", null, null));
             sw.WriteLine("            return _v_;");
             sw.WriteLine("        }");
             sw.WriteLine();
