@@ -53,7 +53,7 @@ public final class App extends Zeze.AppBase {
 			config.getServiceConfMap().get("LinkdService").ForEachAcceptor((a) -> a.setPort(linkPort));
 		}
 		if (linkPort != -1) {
-			config.getServiceConfMap().get("ProviderService").ForEachAcceptor((a) -> a.setPort(linkPort));
+			config.getServiceConfMap().get("ProviderService").ForEachAcceptor((a) -> a.setPort(providerPort));
 		}
 		CreateZeze(config);
 		CreateService();
