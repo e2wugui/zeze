@@ -111,6 +111,8 @@ namespace Zeze.Gen.confcs
 
         public void Visit(TypeList type)
         {
+            if (type.Variable.Type == "array")
+                return;
             if (type.FixSize >= 0)
             {
                 string typeName = TypeName.GetName(type);

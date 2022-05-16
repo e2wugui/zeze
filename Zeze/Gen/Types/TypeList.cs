@@ -33,6 +33,7 @@ namespace Zeze.Gen.Types
 		internal TypeList(SortedDictionary<string, Type> types)
 		{
 			types.Add(Name, this);
+			types.Add("array", this);
 		}
 
 		public override string Name => "list";

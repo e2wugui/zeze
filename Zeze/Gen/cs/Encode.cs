@@ -241,7 +241,7 @@ namespace Zeze.Gen.cs
             if (id <= 0)
                 throw new Exception("invalid variable.id");
             Types.Type vt = type.ValueType;
-            bool isFixSizeList = type is TypeList list && list.FixSize >= 0;
+            bool isFixSizeList = type is TypeList list && list.FixSize >= 0 || type.Variable.Type == "array";
             sw.WriteLine(prefix + "var _x_ = " + varname + ';');
             if (isFixSizeList)
                 sw.WriteLine(prefix + "int _n_ = _x_.Length;");
