@@ -17,13 +17,27 @@ tag 0.9.3 c# ready
 【2022/6/11】
 
 ------------------------------------------------------------------------------------------------------------------------------
-tag 0.9.2 ReliableNotify & Global.RocksRaft.LruTryRemoveCallback & OperatesTikv
+tag 0.9.3 ReliableNotify & Global.RocksRaft.LruTryRemoveCallback & OperatesTikv
 ------------------------------------------------------------------------------------------------------------------------------
 Sample(Zezex).client: 可靠消息实现的错误检查。
 Global.RocksRaft.LruTryRemoveCallback
 DatabaseTikv OperatesTikv
 
-Gen & Defing Change
+------------------------------------------------------------------------------------------------------------------------------
+tag 0.9.3 inherit bean
+------------------------------------------------------------------------------------------------------------------------------
+1. bean继承实现
+   【注意】class B : A; List<A>中被放入B时，Decode成A或者失败或者Encode报错。
+   【注意】继承要实现动态，必须配合dynamic使用。如，List<dynamic:A>这样里面可以放A及A的子类，可以被正确encode/decode。
+2. @张路
+    上面的1，2，3都基本实现了，其中第3的指定基类仅解析完成。
+    Gen Compile传递Variable并部分记录到Type类中，然后具体类型从Variable中读取自己需要的信息。
+    以前是编解码通过Value传递。增加这个参数以后便于扩展。
+    conf+cs留给你，
+
+------------------------------------------------------------------------------------------------------------------------------
+tag 0.9.2 Gen: new type format; collection can hold dynamic type now
+------------------------------------------------------------------------------------------------------------------------------
 1. 新的模板参数声明格式
    <variable id="1" name="ListInt" type="list[int]"/>
    <variable id="2" name="SetInt" type="set[int]"/>
@@ -48,14 +62,6 @@ Gen & Defing Change
    <variable id="2" name="SetInt" type="set[int]"/> set不支持包含dynamic，特别放这里说明一下
    <variable id="3" name="MingIntInt" type="map[int,dynamic:BBase]"/>
    <variable id="4" name="BeanWithBase" type="dynamic:BBase"/>
-4. bean继承实现
-   【注意】class B : A; List<A>中被放入B时，Decode成A或者失败或者Encode报错。
-   【注意】继承要实现动态，必须配合dynamic使用。
-5. @张路
-    上面的1，2，3都基本实现了，其中第3的指定基类仅解析完成。
-    Gen Compile传递Variable并部分记录到Type类中，然后具体类型从Variable中读取自己需要的信息。
-    以前是编解码通过Value传递。增加这个参数以后便于扩展。
-    conf+cs留给你，
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 0.9.1 Java TableCache SoftReference 2022.5.13
