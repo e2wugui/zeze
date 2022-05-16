@@ -248,16 +248,17 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "if (_n_ != 0) {");
             sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
             sw.WriteLine(prefix + "    " + bufname + ".WriteListType(_n_, " + TypeTagName.GetName(vt) + ");");
-            sw.WriteLine(prefix + "    for (var _v_ : _x_) {");
             if (Decode.IsOldStypeEncodeDecodeType(vt))
             {
+                sw.WriteLine(prefix + "    for (var _v_ : _x_) {");
                 vt.Accept(new Encode("_v_", 0, bufname, sw, prefix + "        "));
+                sw.WriteLine(prefix + "    }");
             }
             else
             {
+                sw.WriteLine(prefix + "    for (var _v_ : _x_)");
                 EncodeElement(vt, prefix + "        ", "_v_");
             }
-            sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
         }
 

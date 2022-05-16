@@ -235,11 +235,9 @@ namespace Zeze.Gen.java
 
         public static bool IsOldStypeEncodeDecodeType(Types.Type type)
         {
-            if (type is TypeDynamic)
-                return true;
-
             switch (type)
             {
+                case TypeDynamic:
                 case TypeVector2:
                 case TypeVector3:
                 case TypeVector4:
@@ -259,21 +257,22 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "var _x_ = " + var.Getter + ';');
             sw.WriteLine(prefix + "_x_.clear();");
             sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == " + TypeTagName.GetName(type) + ") {");
-            sw.WriteLine(prefix + "    for (int _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--) {");
+            sw.Write(prefix + "    for (int _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte()); _n_ > 0; _n_--)");
             if (IsOldStypeEncodeDecodeType(vt))
             {
+                sw.WriteLine(" {");
                 vt.Accept(new Define("_e_", sw, prefix + "        "));
                 vt.Accept(new Decode("_e_", 0, bufname, sw, prefix + "        "));
                 sw.WriteLine($"{prefix}        _x_.add(_e_);");
+                sw.WriteLine($"{prefix}    }}");
             }
             else
             {
+                sw.WriteLine();
                 sw.WriteLine(prefix + "        _x_.add(" + DecodeElement(vt, "_t_") + ");");
             }
-            sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "} else {");
+            sw.WriteLine($"{prefix}}} else");
             sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownField(_t_);");
-            sw.WriteLine(prefix + "}");
         }
 
         public void Visit(TypeList type)

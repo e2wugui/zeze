@@ -101,7 +101,7 @@ namespace Zeze.Gen.confcs
 
         public void Visit(TypeDynamic type)
         {
-            name = type.DynamicParams.Base;
+            name = string.IsNullOrEmpty(type.DynamicParams.Base) ? "Zeze.Util.ConfBean" : type.DynamicParams.Base;
         }
 
         public void Visit(TypeQuaternion type)

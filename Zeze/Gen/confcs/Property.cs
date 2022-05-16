@@ -118,7 +118,8 @@ namespace Zeze.Gen.confcs
             // if (type.RealBeans.Count > 0)
             //     sw.WriteLine();
 
-            sw.WriteLine($"{prefix}public static long GetSpecialTypeIdFromBean_{var.NameUpper1}({type.DynamicParams.Base} bean)");
+            var baseType = string.IsNullOrEmpty(type.DynamicParams.Base) ? "Zeze.Util.ConfBean" : type.DynamicParams.Base;
+            sw.WriteLine($"{prefix}public static long GetSpecialTypeIdFromBean_{var.NameUpper1}({baseType} bean)");
             sw.WriteLine($"{prefix}{{");
             sw.WriteLine($"{prefix}    switch (bean.TypeId)");
             sw.WriteLine($"{prefix}    {{");
@@ -129,7 +130,7 @@ namespace Zeze.Gen.confcs
             sw.WriteLine($"{prefix}    throw new System.Exception(\"Unknown Bean! dynamic@{((Bean)var.Bean).FullName}:{var.Name}: \" + typeof(bean));");
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
-            sw.WriteLine($"{prefix}public static {type.DynamicParams.Base} CreateBeanFromSpecialTypeId_{var.NameUpper1}(long typeId)");
+            sw.WriteLine($"{prefix}public static {baseType} CreateBeanFromSpecialTypeId_{var.NameUpper1}(long typeId)");
             sw.WriteLine($"{prefix}{{");
             if (type.RealBeans.Count > 0)
             {
