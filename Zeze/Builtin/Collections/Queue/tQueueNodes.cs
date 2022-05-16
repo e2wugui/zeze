@@ -18,7 +18,7 @@ namespace Zeze.Builtin.Collections.Queue
 
         public override Zeze.Builtin.Collections.Queue.BQueueNodeKey DecodeKey(ByteBuffer _os_)
         {
-            Zeze.Builtin.Collections.Queue.BQueueNodeKey _v_ = new Zeze.Builtin.Collections.Queue.BQueueNodeKey();
+            var _v_ = new Zeze.Builtin.Collections.Queue.BQueueNodeKey();
             _v_.Decode(_os_);
             return _v_;
         }

@@ -17,7 +17,7 @@ namespace Zeze.Builtin.Collections.LinkedMap
 
         public override Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey DecodeKey(ByteBuffer _os_)
         {
-            Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey _v_ = new Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey();
+            var _v_ = new Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey();
             _v_.Decode(_os_);
             return _v_;
         }

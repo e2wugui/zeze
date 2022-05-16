@@ -19,7 +19,7 @@ namespace Zeze.Gen.cs
         void DefineNew(Type type)
         {
             string tName = Project.MakingInstance.Platform.Equals("conf+cs") ? confcs.TypeName.GetName(type) : TypeName.GetName(type);
-            sw.WriteLine(prefix + tName + " " + varname + " = new " + tName + "();");
+            sw.WriteLine(prefix + "var " + varname + " = new " + tName + "();");
         }
 
         void DefineStack(Type type)

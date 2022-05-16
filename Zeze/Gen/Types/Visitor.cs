@@ -2,21 +2,21 @@ namespace Zeze.Gen.Types
 {
     public interface Visitor
     {
-        public void Visit(TypeBool type);    // ĞòÁĞ»¯ÀàĞÍ: 0
-        public void Visit(TypeByte type);    // ĞòÁĞ»¯ÀàĞÍ: 0
-        public void Visit(TypeShort type);   // ĞòÁĞ»¯ÀàĞÍ: 0
-        public void Visit(TypeInt type);     // ĞòÁĞ»¯ÀàĞÍ: 0
-        public void Visit(TypeLong type);    // ĞòÁĞ»¯ÀàĞÍ: 0
-        public void Visit(TypeFloat type);   // ĞòÁĞ»¯ÀàĞÍ: 1
-        public void Visit(TypeDouble type);  // ĞòÁĞ»¯ÀàĞÍ: 2
-        public void Visit(TypeBinary type);  // ĞòÁĞ»¯ÀàĞÍ: 3
-        public void Visit(TypeString type);  // ĞòÁĞ»¯ÀàĞÍ: 3
-        public void Visit(TypeList type);    // ĞòÁĞ»¯ÀàĞÍ: 4
-        public void Visit(TypeSet type);     // ĞòÁĞ»¯ÀàĞÍ: 4
-        public void Visit(TypeMap type);     // ĞòÁĞ»¯ÀàĞÍ: 5
-        public void Visit(Bean type);        // ĞòÁĞ»¯ÀàĞÍ: 6
-        public void Visit(BeanKey type);     // ĞòÁĞ»¯ÀàĞÍ: 6
-        public void Visit(TypeDynamic type); // ĞòÁĞ»¯ÀàĞÍ: 7
+        public void Visit(TypeBool type);    // åºåˆ—åŒ–ç±»å‹: 0
+        public void Visit(TypeByte type);    // åºåˆ—åŒ–ç±»å‹: 0
+        public void Visit(TypeShort type);   // åºåˆ—åŒ–ç±»å‹: 0
+        public void Visit(TypeInt type);     // åºåˆ—åŒ–ç±»å‹: 0
+        public void Visit(TypeLong type);    // åºåˆ—åŒ–ç±»å‹: 0
+        public void Visit(TypeFloat type);   // åºåˆ—åŒ–ç±»å‹: 1
+        public void Visit(TypeDouble type);  // åºåˆ—åŒ–ç±»å‹: 2
+        public void Visit(TypeBinary type);  // åºåˆ—åŒ–ç±»å‹: 3
+        public void Visit(TypeString type);  // åºåˆ—åŒ–ç±»å‹: 3
+        public void Visit(TypeList type);    // åºåˆ—åŒ–ç±»å‹: 4
+        public void Visit(TypeSet type);     // åºåˆ—åŒ–ç±»å‹: 4
+        public void Visit(TypeMap type);     // åºåˆ—åŒ–ç±»å‹: 5
+        public void Visit(Bean type);        // åºåˆ—åŒ–ç±»å‹: 6
+        public void Visit(BeanKey type);     // åºåˆ—åŒ–ç±»å‹: 6
+        public void Visit(TypeDynamic type); // åºåˆ—åŒ–ç±»å‹: 7
 
         // UnityEngine Types
         public void Visit(TypeQuaternion type);

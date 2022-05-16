@@ -281,7 +281,7 @@ namespace Zeze.Gen.cs
                 sw.WriteLine(prefix + "    int _n_ = " + bufname + ".ReadTagSize(_t_ = " + bufname + ".ReadByte());");
                 if (type.Variable.Type == "array")
                 {
-                    sw.WriteLine(prefix + "    var _x_ = new " + TypeName.GetName(vt) + "[_n_];");
+                    sw.WriteLine(prefix + "    var _x_ = new " + confcs.TypeName.GetName(vt) + "[_n_];");
                     sw.WriteLine(prefix + "    " + varname + " = _x_;");
                 }
                 sw.WriteLine(prefix + "    for (int _j_ = 0; _j_ < _n_; _j_++)");

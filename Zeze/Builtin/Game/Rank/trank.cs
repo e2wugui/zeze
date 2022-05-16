@@ -17,7 +17,7 @@ namespace Zeze.Builtin.Game.Rank
 
         public override Zeze.Builtin.Game.Rank.BConcurrentKey DecodeKey(ByteBuffer _os_)
         {
-            Zeze.Builtin.Game.Rank.BConcurrentKey _v_ = new Zeze.Builtin.Game.Rank.BConcurrentKey();
+            var _v_ = new Zeze.Builtin.Game.Rank.BConcurrentKey();
             _v_.Decode(_os_);
             return _v_;
         }
