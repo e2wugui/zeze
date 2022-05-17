@@ -19,6 +19,7 @@ import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Raft.RaftConfig;
 import Zeze.Raft.RocksRaft.Procedure;
+import Zeze.Raft.RocksRaft.Record;
 import Zeze.Raft.RocksRaft.Rocks;
 import Zeze.Raft.RocksRaft.RocksMode;
 import Zeze.Raft.RocksRaft.Table;
@@ -78,7 +79,9 @@ public class GlobalCacheManagerWithRaft
 		RegisterRocksTables(Rocks);
 		RegisterProtocols(Rocks.getRaft().getServer());
 
-		GlobalStates = Rocks.<Binary, CacheState>GetTableTemplate("Global").OpenTable(0);
+		var globalTemplate = Rocks.<Binary, CacheState>GetTableTemplate("Global");
+		globalTemplate.setLruTryRemoveCallback(this::GlobalLruTryRemove);
+		GlobalStates = globalTemplate.OpenTable(0);
 		ServerAcquiredTemplate = Rocks.GetTableTemplate("Session");
 
 		Rocks.getRaft().getServer().Start();
@@ -128,6 +131,18 @@ public class GlobalCacheManagerWithRaft
 		proc.AutoResponse = rpc; // 启用自动发送rpc结果，但不做唯一检查。
 		proc.Call();
 		return 0; // has handle all error.
+	}
+
+	private boolean GlobalLruTryRemove(Binary key, Record<Binary> r) {
+		var lockey = Locks.Get(key);
+		if (false == lockey.tryLock())
+			return false;
+		try {
+			GlobalStates.getLruCache().remove(key);
+			return true;
+		} finally {
+			lockey.unlock();
+		}
 	}
 
 	private long AcquireShare(Acquire rpc) throws InterruptedException {

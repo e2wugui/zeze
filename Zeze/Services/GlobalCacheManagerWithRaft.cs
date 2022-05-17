@@ -57,6 +57,16 @@ namespace Zeze.Services
             return 0; // has handle all error.
         }
 
+        private bool GlobalLruTryRemoveCallback(Binary key, Record<Binary, CacheState> r)
+        {
+            using (var lockey = Locks.Get(key))
+            {
+                if (false == lockey.TryEnter())
+                    return false;
+                return GlobalStates.LruCache.TryRemove(key, out _);
+            }
+        }
+
         private async Task<long> AcquireShare(Acquire rpc)
         {
             CacheHolder sender = (CacheHolder)rpc.Sender.UserState;
@@ -658,7 +668,9 @@ namespace Zeze.Services
             RegisterRocksTables(Rocks);
             RegisterProtocols(Rocks.Raft.Server);
 
-            GlobalStates = Rocks.GetTableTemplate("Global").OpenTable<Binary, CacheState>(0);
+            var globalTemplate = (TableTemplate<Binary, CacheState>)Rocks.GetTableTemplate("Global");
+            globalTemplate.LruTryRemove = GlobalLruTryRemoveCallback;
+            GlobalStates = globalTemplate.OpenTable<Binary, CacheState>(0);
             ServerAcquiredTemplate = Rocks.GetTableTemplate("Session") as TableTemplate<Binary, AcquiredState>;
 
             Rocks.Raft.Server.Start();

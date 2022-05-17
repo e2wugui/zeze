@@ -259,7 +259,7 @@ namespace Zeze.Raft.RocksRaft
             return true;
         }
 
-        private Util.ConcurrentLruLike<K, Record<K, V>> LruCache;
+        public Util.ConcurrentLruLike<K, Record<K, V>> LruCache { get; private set; }
         internal override ColumnFamilyHandle ColumnFamily { get; set; }
         public Rocks Rocks { get; }
         public int Capacity { get; }

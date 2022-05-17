@@ -7,7 +7,7 @@ public final class TableTemplate<K, V extends Bean> {
 	private final Rocks Rocks;
 	private final Class<K> keyClass;
 	private final Class<V> valueClass;
-	private BiPredicate<K, Record<K>> lruRemoveCallback;
+	private BiPredicate<K, Record<K>> lruTryRemoveCallback;
 
 	public String getName() {
 		return Name;
@@ -17,8 +17,8 @@ public final class TableTemplate<K, V extends Bean> {
 		return Rocks;
 	}
 
-	public void setLruRemoveCallback(BiPredicate<K, Record<K>> callback) {
-		lruRemoveCallback = callback;
+	public void setLruTryRemoveCallback(BiPredicate<K, Record<K>> callback) {
+		lruTryRemoveCallback = callback;
 	}
 
 	public TableTemplate(Rocks r, String name, Class<K> keyClass, Class<V> valueClass) {
@@ -35,7 +35,7 @@ public final class TableTemplate<K, V extends Bean> {
 	@SuppressWarnings("unchecked")
 	public Table<K, V> OpenTable(int templateId) {
 		return (Table<K, V>)Rocks.getTables().computeIfAbsent(Name + "#" + templateId,
-				__ -> new Table<>(Rocks, Name, templateId, keyClass, valueClass, lruRemoveCallback));
+				__ -> new Table<>(Rocks, Name, templateId, keyClass, valueClass, lruTryRemoveCallback));
 	}
 
 	public Table<K, V> OpenTable(BiPredicate<K, Record<K>> callback) {

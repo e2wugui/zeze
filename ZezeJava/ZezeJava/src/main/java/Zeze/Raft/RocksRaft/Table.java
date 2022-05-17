@@ -30,6 +30,10 @@ public final class Table<K, V extends Bean> {
 	private ConcurrentLruLike<K, Record<K>> LruCache;
 	private BiPredicate<K, Record<K>> LruTryRemoveCallback;
 
+	public ConcurrentLruLike<K, Record<K>> getLruCache() {
+		return LruCache;
+	}
+
 	public Table(Rocks rocks, String templateName, int templateId, Class<K> keyClass, Class<V> valueClass, BiPredicate<K, Record<K>> callback) {
 		Rocks = rocks;
 		TemplateName = templateName;

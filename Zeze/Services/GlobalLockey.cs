@@ -42,6 +42,29 @@ namespace Zeze.Services
 			return await EnterAsync();
 		}
 
+		public bool TryEnter()
+        {
+			var source = new CancellationTokenSource();
+			var context = GlobalLockey.Monitor.EnterAsync(source.Token);
+			if (context.AsTask().Wait(0))
+            {
+				Acquired = context.AsTask().Result;
+				return true;
+            }
+			source.Cancel();
+			try
+			{
+				// Cancel 之后需要等待结果。此时还可能得到锁。
+				context.AsTask().Wait();
+				Acquired = context.AsTask().Result;
+				return true;
+			}
+			catch (Exception)
+			{
+			}
+			return false;
+		}
+
 		public async Task WaitAsync()
 		{
 			await GlobalLockey.Monitor.WaitAsync();

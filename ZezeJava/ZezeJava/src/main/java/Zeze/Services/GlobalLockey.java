@@ -28,6 +28,10 @@ public final class GlobalLockey implements Comparable<GlobalLockey>, PessimismLo
 		Enter();
 	}
 
+	public boolean tryLock() {
+		return lock.tryLock();
+	}
+
 	@Override
 	public void unlock() {
 		Exit();
