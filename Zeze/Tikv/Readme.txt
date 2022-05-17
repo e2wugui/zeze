@@ -1,15 +1,18 @@
 
+ä¸€ï¼Œintall
 Install GoLang
 Install mingw-w64 (windows)
 git clone https://github.com/tikv/client-go
 
+äºŒï¼Œcopy
 copy tikv.go client-go/
 copy build.bat client-go/
 copy tikvbridge.h client-go/
 copy tikvbridge.c client-go/
 
+ä¸‰ï¼Œclieng-go-1.0 ä¿®æ”¹ï¼Œã€2.0å¯èƒ½å·²ç»ä¸éœ€è¦ã€‚ã€‘
 Edit client-go\txnkv\kv\memdb_buffer.go
-ĞŞ¸ÄÏÂÃæµÄ´úÂë£¬ÅĞ¶ÏÕæÕıµÄnil£¬ÔÊĞí³¤¶ÈÎª0µÄÊı×é¡£
+ä¿®æ”¹ä¸‹é¢çš„ä»£ç ï¼Œåˆ¤æ–­çœŸæ­£çš„nilï¼Œå…è®¸é•¿åº¦ä¸º0çš„æ•°ç»„ã€‚
 (
 // Set associates key with value.
 func (m *memDbBuffer) Set(k key.Key, v []byte) error {
@@ -27,4 +30,4 @@ func (m *memDbBuffer) Set(k key.Key, v []byte) error {
 	}
 )
 
-run build.bat
+å››ï¼Œrun build.bat

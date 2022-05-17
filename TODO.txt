@@ -14,14 +14,15 @@ tag 0.9.3 c# ready
 4. Net Full Async
 5. Rewrite Scheduler
 
+DatabaseTikv.OperatesTikv
+
 【2022/6/11】
 
 ------------------------------------------------------------------------------------------------------------------------------
-tag 0.9.4 ReliableNotify & LruTryRemoveCallback & OperatesTikv
+tag 0.9.4 Online.ReliableNotify & Global.LruTryRemoveCallback
 ------------------------------------------------------------------------------------------------------------------------------
 ReliableNotify - Sample(Zezex).client: 客户端可以延迟确认，如果发现Index不匹配，可以发送确认Rpc并且带上Sync标记进行重新同步。
 Global.RocksRaft.LruTryRemoveCallback
-DatabaseTikv OperatesTikv
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 0.9.3 inherit bean (conf+cs only)
