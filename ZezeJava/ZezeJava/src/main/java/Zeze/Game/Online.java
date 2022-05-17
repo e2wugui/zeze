@@ -323,16 +323,18 @@ public class Online extends AbstractOnline {
 	private void sendInProcedure(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
 		// 发送消息为了用上TaskOneByOne，只能一个一个发送，为了少改代码，先使用旧的GroupByLink接口。
 		var groups = groupByLink(roleIds);
-		for (var group : groups) {
-			if (group.linkSocket == null)
-				continue; // skip not online
+		Transaction.getCurrent().RunWhileCommit(() -> {
+			for (var group : groups) {
+				if (group.linkSocket == null)
+					continue; // skip not online
 
-			var send = new Send();
-			send.Argument.setProtocolType(typeId);
-			send.Argument.setProtocolWholeData(fullEncodedProtocol);
-			send.Argument.getLinkSids().addAll(group.roles.values());
-			group.linkSocket.Send(send);
-		}
+				var send = new Send();
+				send.Argument.setProtocolType(typeId);
+				send.Argument.setProtocolWholeData(fullEncodedProtocol);
+				send.Argument.getLinkSids().addAll(group.roles.values());
+				group.linkSocket.Send(send);
+			}
+		});
 	}
 
 	public static final class RoleOnLink {
@@ -438,12 +440,14 @@ public class Online extends AbstractOnline {
 					// 先保存在再发送，然后客户端还会确认。
 					// see Game.Login.Module: CLogin CReLogin CReliableNotifyConfirm 的实现。
 					version.getReliableNotifyQueue().add(fullEncodedProtocol);
-					var notify = new SReliableNotify(); // 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
+					version.setReliableNotifyIndex(version.getReliableNotifyIndex() + 1);
+
+					// 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
+					var notify = new SReliableNotify();
 					notify.Argument.setReliableNotifyIndex(version.getReliableNotifyIndex());
 					notify.Argument.getNotifies().add(fullEncodedProtocol);
 
 					sendInProcedure(List.of(roleId), notify.getTypeId(), new Binary(notify.Encode()));
-					version.setReliableNotifyIndex(version.getReliableNotifyIndex() + 1); // 后加，start 是 Queue.Add 之前的。
 					return Procedure.Success;
 				}, "Game.Online.sendReliableNotify." + listenerName), null);
 	}
@@ -793,19 +797,19 @@ public class Online extends AbstractOnline {
 		return reliableNotifySync(roleId, session, reliableNotifyConfirmCount, true);
 	}
 
-	private int reliableNotifySync(long roleId, ProviderUserSession session, long reliableNotifyConfirmCount, boolean sync) {
+	private int reliableNotifySync(long roleId, ProviderUserSession session, long index, boolean sync) {
 		var version = _tversion.getOrAdd(roleId);
-		if (reliableNotifyConfirmCount < version.getReliableNotifyConfirmIndex()
-				|| reliableNotifyConfirmCount > version.getReliableNotifyIndex()
-				|| reliableNotifyConfirmCount - version.getReliableNotifyConfirmIndex() > version.getReliableNotifyQueue().size()) {
+		if (index < version.getReliableNotifyConfirmIndex()
+				|| index > version.getReliableNotifyIndex()
+				|| index - version.getReliableNotifyConfirmIndex() > version.getReliableNotifyQueue().size()) {
 			return ResultCodeReliableNotifyConfirmIndexOutOfRange;
 		}
 
-		int confirmCount = (int)(reliableNotifyConfirmCount - version.getReliableNotifyConfirmIndex());
+		int confirmCount = (int)(index - version.getReliableNotifyConfirmIndex());
 
 		if (sync) {
 			var notify = new SReliableNotify();
-			notify.Argument.setReliableNotifyIndex(reliableNotifyConfirmCount);
+			notify.Argument.setReliableNotifyIndex(index);
 			for (int i = confirmCount; i < version.getReliableNotifyQueue().size(); i++)
 				notify.Argument.getNotifies().add(version.getReliableNotifyQueue().get(i));
 			session.SendResponseWhileCommit(notify);
@@ -814,7 +818,7 @@ public class Online extends AbstractOnline {
 		for (int ir = 0; ir < confirmCount; ir++)
 			version.getReliableNotifyQueue().remove(0);
 		//online.getReliableNotifyQueue().RemoveRange(0, confirmCount);
-		version.setReliableNotifyConfirmIndex(reliableNotifyConfirmCount);
+		version.setReliableNotifyConfirmIndex(index);
 		return ResultCodeSuccess;
 	}
 

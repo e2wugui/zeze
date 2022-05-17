@@ -288,13 +288,13 @@ namespace Zeze.Game
                     // 先保存在再发送，然后客户端还会确认。
                     // see Game.Login.Module: CLogin CReLogin CReliableNotifyConfirm 的实现。
                     version.ReliableNotifyQueue.Add(fullEncodedProtocol);
+                    version.ReliableNotifyIndex += 1;
 
                     var notify = new SReliableNotify(); // 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
                     notify.Argument.ReliableNotifyIndex = version.ReliableNotifyIndex;
                     notify.Argument.Notifies.Add(fullEncodedProtocol);
 
                     await SendInProcedure(new List<long> { roleId }, notify.TypeId, new Binary(notify.Encode()));
-                    version.ReliableNotifyIndex += 1; // 后加，start 是 Queue.Add 之前的。
                     return Procedure.Success;
                 },
                 "SendReliableNotify." + listenerName
@@ -356,17 +356,20 @@ namespace Zeze.Game
         {
             // 发送消息为了用上TaskOneByOne，只能一个一个发送，为了少改代码，先使用旧的GroupByLink接口。
             var groups = await GroupByLink(roles);
-            foreach (var group in groups)
+            Transaction.Transaction.Current.RunWhileCommit(() =>
             {
-                if (group.LinkSocket == null)
-                    continue; // skip not online
+                foreach (var group in groups)
+                {
+                    if (group.LinkSocket == null)
+                        continue; // skip not online
 
-                var send = new Send();
-                send.Argument.ProtocolType = typeId;
-                send.Argument.ProtocolWholeData = fullEncodedProtocol;
-                send.Argument.LinkSids.UnionWith(group.Roles.Values);
-                group.LinkSocket.Send(send);
-            }
+                        var send = new Send();
+                        send.Argument.ProtocolType = typeId;
+                        send.Argument.ProtocolWholeData = fullEncodedProtocol;
+                        send.Argument.LinkSids.UnionWith(group.Roles.Values);
+                        group.LinkSocket.Send(send);
+                }
+            });
         }
 
         private void Send(long roleId, long typeId, Binary fullEncodedProtocol)
