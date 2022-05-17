@@ -25,7 +25,7 @@ public class DatabaseRocksDb extends Database {
 		super(conf);
 		DBOptions dbOptions = new DBOptions();
 		dbOptions.setCreateIfMissing(true);
-		final String dbHome = conf.getDatabaseUrl().isEmpty()?"db":conf.getDatabaseUrl();
+		final String dbHome = conf.getDatabaseUrl().isEmpty() ? "db" : conf.getDatabaseUrl();
 		try {
 			var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
 			org.rocksdb.Options options = new Options();
@@ -40,7 +40,7 @@ public class DatabaseRocksDb extends Database {
 			var outHandles = new ArrayList<ColumnFamilyHandle>();
 			Db = RocksDB.open(dbOptions, dbHome, columnFamilies, outHandles);
 
-			for (int i = 0; i< columnFamilies.size(); ++i){
+			for (int i = 0; i < columnFamilies.size(); ++i){
 				var cf = columnFamilies.get(i);
 				var str = new String(cf.getName(), StandardCharsets.UTF_8);
 				ColumnFamilies.put(str, outHandles.get(i));
