@@ -236,7 +236,7 @@ public final class Application {
 		for (var db : Databases.values())
 			db.getDirectOperates().SetInUse(Conf.getServerId(), Conf.getGlobalCacheManagerHostNameOrAddress());
 
-		{
+		if (getConfig().getServerId() >= 0) {
 			var dbConf = new Config.DatabaseConf();
 			dbConf.setName("zeze_rocks_cache_" + getConfig().getServerId());
 			dbConf.setDatabaseUrl(dbConf.getName());

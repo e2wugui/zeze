@@ -30,7 +30,7 @@ public final class Table<K, V extends Bean> {
 	private ConcurrentLruLike<K, Record<K>> LruCache;
 	private BiPredicate<K, Record<K>> LruTryRemoveCallback;
 
-	public Table(Rocks rocks, String templateName, int templateId, Class<K> keyClass, Class<V> valueClass) {
+	public Table(Rocks rocks, String templateName, int templateId, Class<K> keyClass, Class<V> valueClass, BiPredicate<K, Record<K>> callback) {
 		Rocks = rocks;
 		TemplateName = templateName;
 		TemplateId = templateId;
@@ -38,6 +38,7 @@ public final class Table<K, V extends Bean> {
 		keyEncodeFunc = SerializeHelper.createEncodeFunc(keyClass);
 		keyDecodeFunc = SerializeHelper.createDecodeFunc(keyClass);
 		valueFactory = Reflect.getDefaultConstructor(valueClass);
+		LruTryRemoveCallback = callback;
 		Open();
 	}
 

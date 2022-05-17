@@ -49,6 +49,8 @@ namespace Zeze.Raft.RocksRaft
     public class TableTemplate<K, V> : TableTemplate
         where V : Bean, new()
     {
+        public Func<K, Record<K, V>, bool> LruTryRemove { get; set; }
+
         public TableTemplate(Rocks r, string name)
             : base(r, name)
         {
@@ -57,7 +59,11 @@ namespace Zeze.Raft.RocksRaft
 
         public override Table OpenTable(int templateId)
         {
-            return Rocks.Tables.GetOrAdd($"{Name}#{templateId}", (key) => new Table<K, V>(Rocks, Name, templateId));
+            return Rocks.Tables.GetOrAdd($"{Name}#{templateId}",
+                (key) => new Table<K, V>(Rocks, Name, templateId)
+                {
+                    LruTryRemoveCallback = LruTryRemove
+                });
         }
 
         public Table<K, V> OpenTableWithType(int templateId)
@@ -257,7 +263,7 @@ namespace Zeze.Raft.RocksRaft
         internal override ColumnFamilyHandle ColumnFamily { get; set; }
         public Rocks Rocks { get; }
         public int Capacity { get; }
-        public Func<K, Record<K, V>, bool> LruTryRemoveCallback { get; set; } = null;
+        public Func<K, Record<K, V>, bool> LruTryRemoveCallback { get; set; }
 
         public Table(Rocks rocks, string templateName, int templateId)
         {
