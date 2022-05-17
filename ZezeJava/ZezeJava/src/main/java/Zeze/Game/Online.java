@@ -440,11 +440,11 @@ public class Online extends AbstractOnline {
 					// 先保存在再发送，然后客户端还会确认。
 					// see Game.Login.Module: CLogin CReLogin CReliableNotifyConfirm 的实现。
 					version.getReliableNotifyQueue().add(fullEncodedProtocol);
-					version.setReliableNotifyIndex(version.getReliableNotifyIndex() + 1);
 
 					// 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
 					var notify = new SReliableNotify();
 					notify.Argument.setReliableNotifyIndex(version.getReliableNotifyIndex());
+					version.setReliableNotifyIndex(version.getReliableNotifyIndex() + 1); // after set notify.Argument
 					notify.Argument.getNotifies().add(fullEncodedProtocol);
 
 					sendInProcedure(List.of(roleId), notify.getTypeId(), new Binary(notify.Encode()));

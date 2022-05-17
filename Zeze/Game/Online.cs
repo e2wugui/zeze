@@ -288,10 +288,9 @@ namespace Zeze.Game
                     // 先保存在再发送，然后客户端还会确认。
                     // see Game.Login.Module: CLogin CReLogin CReliableNotifyConfirm 的实现。
                     version.ReliableNotifyQueue.Add(fullEncodedProtocol);
-                    version.ReliableNotifyIndex += 1;
-
                     var notify = new SReliableNotify(); // 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
                     notify.Argument.ReliableNotifyIndex = version.ReliableNotifyIndex;
+                    version.ReliableNotifyIndex += 1; // after set notify.Argument
                     notify.Argument.Notifies.Add(fullEncodedProtocol);
 
                     await SendInProcedure(new List<long> { roleId }, notify.TypeId, new Binary(notify.Encode()));

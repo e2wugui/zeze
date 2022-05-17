@@ -291,10 +291,10 @@ namespace Zeze.Arch
                     // 先保存在再发送，然后客户端还会确认。
                     // see Game.Login.Module: CLogin CReLogin CReliableNotifyConfirm 的实现。
                     login.ReliableNotifyQueue.Add(fullEncodedProtocol);
-                    login.ReliableNotifyIndex += 1;
 
                     var notify = new SReliableNotify(); // 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
                     notify.Argument.ReliableNotifyIndex = login.ReliableNotifyIndex;
+                    login.ReliableNotifyIndex += 1; // after set notify.Argument
                     notify.Argument.Notifies.Add(fullEncodedProtocol);
 
                     await SendInProcedure(new List<LoginKey>{new LoginKey(account, clientId) }, notify.TypeId, new Binary(notify.Encode()));
@@ -902,11 +902,11 @@ namespace Zeze.Arch
 
             int confirmCount = (int)(index - loginOnline.ReliableNotifyConfirmIndex);
 
-            if (sync)
+            if (sync && confirmCount > 0)
             {
                 var notify = new SReliableNotify();
                 notify.Argument.ReliableNotifyIndex = index;
-                for (int i = confirmCount; i < loginOnline.ReliableNotifyQueue.Count; ++i)
+                for (int i = confirmCount - 1; i < loginOnline.ReliableNotifyQueue.Count; ++i)
                     notify.Argument.Notifies.Add(loginOnline.ReliableNotifyQueue[i]);
                 session.SendResponseWhileCommit(notify);
             }
