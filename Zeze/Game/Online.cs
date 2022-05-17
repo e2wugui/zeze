@@ -864,7 +864,7 @@ namespace Zeze.Game
 
             session.SendResponseWhileCommit(rpc); // 同步前提交。
             var syncResultCode = await ReliableNotifySync(session.RoleId.Value,
-                session, rpc.Argument.ReliableNotifyConfirmIndex, false);
+                session, rpc.Argument.ReliableNotifyConfirmIndex, rpc.Argument.Sync);
 
             if (ResultCodeSuccess != syncResultCode)
                 return ErrorCode((ushort)syncResultCode);

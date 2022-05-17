@@ -12,11 +12,13 @@ namespace Zeze.Builtin.Game.Online
         public Zeze.Transaction.Bean CopyBean();
 
         public long ReliableNotifyConfirmIndex { get; }
+        public bool Sync { get; }
     }
 
     public sealed class BReliableNotifyConfirm : Zeze.Transaction.Bean, BReliableNotifyConfirmReadOnly
     {
         long _ReliableNotifyConfirmIndex;
+        bool _Sync;
 
         public long ReliableNotifyConfirmIndex
         {
@@ -43,6 +45,31 @@ namespace Zeze.Builtin.Game.Online
             }
         }
 
+        public bool Sync
+        {
+            get
+            {
+                if (!IsManaged)
+                    return _Sync;
+                var txn = Zeze.Transaction.Transaction.Current;
+                if (txn == null) return _Sync;
+                txn.VerifyRecordAccessed(this, true);
+                var log = (Log__Sync)txn.GetLog(ObjectId + 2);
+                return log != null ? log.Value : _Sync;
+            }
+            set
+            {
+                if (!IsManaged)
+                {
+                    _Sync = value;
+                    return;
+                }
+                var txn = Zeze.Transaction.Transaction.Current;
+                txn.VerifyRecordAccessed(this);
+                txn.PutLog(new Log__Sync() { Belong = this, VariableId = 2, Value = value });
+            }
+        }
+
         public BReliableNotifyConfirm() : this(0)
         {
         }
@@ -54,6 +81,7 @@ namespace Zeze.Builtin.Game.Online
         public void Assign(BReliableNotifyConfirm other)
         {
             ReliableNotifyConfirmIndex = other.ReliableNotifyConfirmIndex;
+            Sync = other.Sync;
         }
 
         public BReliableNotifyConfirm CopyIfManaged()
@@ -88,6 +116,11 @@ namespace Zeze.Builtin.Game.Online
             public override void Commit() { ((BReliableNotifyConfirm)Belong)._ReliableNotifyConfirmIndex = this.Value; }
         }
 
+        sealed class Log__Sync : Zeze.Transaction.Log<bool>
+        {
+            public override void Commit() { ((BReliableNotifyConfirm)Belong)._Sync = this.Value; }
+        }
+
         public override string ToString()
         {
             var sb = new System.Text.StringBuilder();
@@ -100,7 +133,8 @@ namespace Zeze.Builtin.Game.Online
         {
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Builtin.Game.Online.BReliableNotifyConfirm: {").Append(Environment.NewLine);
             level += 4;
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("ReliableNotifyConfirmIndex").Append('=').Append(ReliableNotifyConfirmIndex).Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("ReliableNotifyConfirmIndex").Append('=').Append(ReliableNotifyConfirmIndex).Append(',').Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("Sync").Append('=').Append(Sync).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -116,6 +150,14 @@ namespace Zeze.Builtin.Game.Online
                     _o_.WriteLong(_x_);
                 }
             }
+            {
+                bool _x_ = Sync;
+                if (_x_)
+                {
+                    _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
+                    _o_.WriteByte(1);
+                }
+            }
             _o_.WriteByte(0);
         }
 
@@ -126,6 +168,11 @@ namespace Zeze.Builtin.Game.Online
             if (_i_ == 1)
             {
                 ReliableNotifyConfirmIndex = _o_.ReadLong(_t_);
+                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+            }
+            if (_i_ == 2)
+            {
+                Sync = _o_.ReadBool(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             while (_t_ != 0)
@@ -153,6 +200,7 @@ namespace Zeze.Builtin.Game.Online
                 switch (vlog.VariableId)
                 {
                     case 1: _ReliableNotifyConfirmIndex = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 2: _Sync = ((Zeze.Transaction.Log<bool>)vlog).Value; break;
                 }
             }
         }

@@ -464,6 +464,7 @@
 				</bean>
 				<bean name="BReliableNotifyConfirm">
 					<variable id="1" name="ReliableNotifyConfirmIndex" type="long"/>
+					<variable id="2" name="Sync" type="bool"/>
 				</bean>
 				<bean name="BReliableNotify">
 					<variable id="1" name="Notifies" type="list" value="binary"/> full encoded protocol list
@@ -645,6 +646,7 @@
 			<bean name="BReliableNotifyConfirm">
 				<variable id="1" name="ClientId" type="string" />
 				<variable id="2" name="ReliableNotifyConfirmIndex" type="long"/>
+				<variable id="3" name="Sync" type="bool"/>
 			</bean>
 			<bean name="BReliableNotify">
 				<variable id="1" name="Notifies" type="list" value="binary"/> full encoded protocol list

@@ -865,7 +865,7 @@ public class Online extends AbstractOnline {
 
 		//noinspection ConstantConditions
 		var syncResultCode = reliableNotifySync(session.getRoleId(), session,
-				rpc.Argument.getReliableNotifyConfirmIndex(), false);
+				rpc.Argument.getReliableNotifyConfirmIndex(), rpc.Argument.isSync());
 		if (syncResultCode != ResultCodeSuccess)
 			return ErrorCode(syncResultCode);
 

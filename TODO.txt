@@ -17,9 +17,9 @@ tag 0.9.3 c# ready
 【2022/6/11】
 
 ------------------------------------------------------------------------------------------------------------------------------
-tag 0.9.4 ReliableNotify & Global.RocksRaft.LruTryRemoveCallback & OperatesTikv
+tag 0.9.4 Global.RocksRaft.LruTryRemoveCallback & OperatesTikv
 ------------------------------------------------------------------------------------------------------------------------------
-Sample(Zezex).client: 可靠消息实现的错误检查。
+ReliableNotify - Sample(Zezex).client: 客户端可以延迟确认，如果发现Index不匹配，可以发送确认Rpc并且带上Sync标记进行重新同步。
 Global.RocksRaft.LruTryRemoveCallback
 DatabaseTikv OperatesTikv
 

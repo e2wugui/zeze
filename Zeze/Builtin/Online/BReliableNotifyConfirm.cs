@@ -13,12 +13,14 @@ namespace Zeze.Builtin.Online
 
         public string ClientId { get; }
         public long ReliableNotifyConfirmIndex { get; }
+        public bool Sync { get; }
     }
 
     public sealed class BReliableNotifyConfirm : Zeze.Transaction.Bean, BReliableNotifyConfirmReadOnly
     {
         string _ClientId;
         long _ReliableNotifyConfirmIndex;
+        bool _Sync;
 
         public string ClientId
         {
@@ -71,6 +73,31 @@ namespace Zeze.Builtin.Online
             }
         }
 
+        public bool Sync
+        {
+            get
+            {
+                if (!IsManaged)
+                    return _Sync;
+                var txn = Zeze.Transaction.Transaction.Current;
+                if (txn == null) return _Sync;
+                txn.VerifyRecordAccessed(this, true);
+                var log = (Log__Sync)txn.GetLog(ObjectId + 3);
+                return log != null ? log.Value : _Sync;
+            }
+            set
+            {
+                if (!IsManaged)
+                {
+                    _Sync = value;
+                    return;
+                }
+                var txn = Zeze.Transaction.Transaction.Current;
+                txn.VerifyRecordAccessed(this);
+                txn.PutLog(new Log__Sync() { Belong = this, VariableId = 3, Value = value });
+            }
+        }
+
         public BReliableNotifyConfirm() : this(0)
         {
         }
@@ -84,6 +111,7 @@ namespace Zeze.Builtin.Online
         {
             ClientId = other.ClientId;
             ReliableNotifyConfirmIndex = other.ReliableNotifyConfirmIndex;
+            Sync = other.Sync;
         }
 
         public BReliableNotifyConfirm CopyIfManaged()
@@ -123,6 +151,11 @@ namespace Zeze.Builtin.Online
             public override void Commit() { ((BReliableNotifyConfirm)Belong)._ReliableNotifyConfirmIndex = this.Value; }
         }
 
+        sealed class Log__Sync : Zeze.Transaction.Log<bool>
+        {
+            public override void Commit() { ((BReliableNotifyConfirm)Belong)._Sync = this.Value; }
+        }
+
         public override string ToString()
         {
             var sb = new System.Text.StringBuilder();
@@ -136,7 +169,8 @@ namespace Zeze.Builtin.Online
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Builtin.Online.BReliableNotifyConfirm: {").Append(Environment.NewLine);
             level += 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append("ClientId").Append('=').Append(ClientId).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("ReliableNotifyConfirmIndex").Append('=').Append(ReliableNotifyConfirmIndex).Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("ReliableNotifyConfirmIndex").Append('=').Append(ReliableNotifyConfirmIndex).Append(',').Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("Sync").Append('=').Append(Sync).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -160,6 +194,14 @@ namespace Zeze.Builtin.Online
                     _o_.WriteLong(_x_);
                 }
             }
+            {
+                bool _x_ = Sync;
+                if (_x_)
+                {
+                    _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                    _o_.WriteByte(1);
+                }
+            }
             _o_.WriteByte(0);
         }
 
@@ -175,6 +217,11 @@ namespace Zeze.Builtin.Online
             if (_i_ == 2)
             {
                 ReliableNotifyConfirmIndex = _o_.ReadLong(_t_);
+                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+            }
+            if (_i_ == 3)
+            {
+                Sync = _o_.ReadBool(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             while (_t_ != 0)
@@ -203,6 +250,7 @@ namespace Zeze.Builtin.Online
                 {
                     case 1: _ClientId = ((Zeze.Transaction.Log<string>)vlog).Value; break;
                     case 2: _ReliableNotifyConfirmIndex = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 3: _Sync = ((Zeze.Transaction.Log<bool>)vlog).Value; break;
                 }
             }
         }
