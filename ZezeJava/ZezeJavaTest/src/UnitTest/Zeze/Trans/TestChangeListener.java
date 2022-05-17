@@ -286,7 +286,7 @@ public class TestChangeListener {
 				break;
 			case Changes.Record.Put:
 				for (var var : Vars.values())
-					var.OnChanged(key, r.getPutValue());
+					var.OnChanged(key, r.getValue());
 				break;
 			case Changes.Record.Edit:
 				var logbean = r.getLogBean();

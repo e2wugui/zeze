@@ -29,7 +29,7 @@ public class ModuleBuf extends AbstractModule {
 			switch (c.getState()) {
 			case Changes.Record.Put:
 				// 记录改变，通知全部。
-				BBufs record = (BBufs)c.getPutValue();
+				BBufs record = (BBufs)c.getValue();
 
 				SChanged changed1 = new SChanged();
 				changed1.Argument.setChangeTag(BBufChanged.ChangeTagRecordChanged);

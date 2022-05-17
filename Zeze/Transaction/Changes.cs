@@ -22,7 +22,7 @@ namespace Zeze.Transaction
 			public const int Edit = 2;
 
 			public int State { get; set; }
-			public Bean PutValue { get; set; }
+			public Bean Value { get; set; }
 			public ISet<LogBean> LogBean { get; } = new HashSet<LogBean>();
 
 			public LogBean GetLogBean()
@@ -53,14 +53,26 @@ namespace Zeze.Transaction
             {
 				if (null != ar.CommittedPutLog) // put or remove
 				{
-					PutValue = ar.CommittedPutLog.Value;
-					State = PutValue == null ? Remove : Put;
+					var put = ar.CommittedPutLog.Value;
+					if (null != put)
+					{
+						Value = put;
+						State = Put;
+					}
+					else
+					{
+						Value = ar.Origin.Value;
+						State = Remove;
+					}
 					return;
 				}
 
 				State = Edit;
 				if (LogBeans.TryGetValue(ar.Origin.Value, out var logbean))
+                {
+					Value = ar.Origin.Value;
 					LogBean.Add(logbean); // edit
+				}
 			}
 
 			public void Encode(ByteBuffer bb)
@@ -72,7 +84,7 @@ namespace Zeze.Transaction
 						break;
 
 					case Put:
-						PutValue.Encode(bb);
+						Value.Encode(bb);
 						break;
 
 					case Edit:
@@ -90,8 +102,8 @@ namespace Zeze.Transaction
 						break;
 
 					case Put:
-						PutValue = Table.NewBeanValue();
-						PutValue.Decode(bb);
+						Value = Table.NewBeanValue();
+						Value.Decode(bb);
 						break;
 
 					case Edit:
@@ -105,7 +117,7 @@ namespace Zeze.Transaction
 				var sb = new StringBuilder();
 
 				sb.Append("State=").Append(State);
-				sb.Append(" PutValue=").Append(PutValue);
+				sb.Append(" PutValue=").Append(Value);
 				sb.Append("\nLog=");
 				ByteBuffer.BuildString(sb, LogBean);
 				sb.Append("\nAllLog=");

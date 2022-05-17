@@ -26,7 +26,7 @@ public final class ModuleBag extends AbstractModule {
 			switch (c.getState()) {
 			case Changes.Record.Put:
 				// 记录改变，通知全部。
-				BBag bbag = (BBag)c.getPutValue();
+				BBag bbag = (BBag)c.getValue();
 				var sbag = new SBag();
 				Bag.ToProtocol(bbag, sbag.Argument);
 				Game.App.getInstance().getProvider().Online.sendReliableNotify((Long)key, getName(), sbag);

@@ -41,7 +41,7 @@ namespace Game.Bag
 
                     case Changes.Record.Put:
                         {
-                            var bbag = (BBag)changes.PutValue;
+                            var bbag = (BBag)changes.Value;
                             var sbag = new SBag();
                             Bag.ToProtocol(bbag, sbag.Argument);
                             Game.App.Instance.ProviderImplementWithOnline.Online.SendReliableNotify((long)key, Name, sbag);

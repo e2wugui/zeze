@@ -41,7 +41,7 @@ namespace Game.Buf
                     case Changes.Record.Put:
                         {
                             // 记录改变，通知全部。
-                            var record = (BBufs)changes.PutValue;
+                            var record = (BBufs)changes.Value;
 
                             var changed = new SChanged();
                             changed.Argument.ChangeTag = BBufChanged.ChangeTagRecordChanged;

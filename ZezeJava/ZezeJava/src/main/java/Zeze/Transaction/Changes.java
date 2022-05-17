@@ -40,7 +40,7 @@ public final class Changes {
 		public static final int Edit = 2;
 
 		private int State;
-		private Bean PutValue;
+		private Bean Value;
 		private final HashSet<LogBean> LogBean = new HashSet<>();
 		// 所有的日志修改树，key is Record.Value。不会被序列化。
 		private final IdentityHashMap<Bean, LogBean> LogBeans = new IdentityHashMap<>();
@@ -64,8 +64,8 @@ public final class Changes {
 			return State;
 		}
 
-		public Bean getPutValue() {
-			return PutValue;
+		public Bean getValue() {
+			return Value;
 		}
 
 		public IdentityHashMap<Bean, LogBean> getLogBeans() {
@@ -78,15 +78,23 @@ public final class Changes {
 
 		public void Collect(RecordAccessed ar) {
 			if (ar.CommittedPutLog != null) { // put or remove
-				PutValue = ar.CommittedPutLog.getValue();
-				State = PutValue == null ? Remove : Put;
+				var put = ar.CommittedPutLog.getValue();
+				if (null != put) {
+					Value = put; // put
+					State = Put;
+				} else {
+					Value = ar.StrongRef; // old
+					State = Remove;
+				}
 				return;
 			}
 
 			State = Edit;
 			var logBean = LogBeans.get(ar.StrongRef);
-			if (logBean != null)
+			if (logBean != null) {
+				Value = ar.StrongRef; // old
 				LogBean.add(logBean); // edit
+			}
 		}
 
 		public void Encode(ByteBuffer bb) {
@@ -95,7 +103,7 @@ public final class Changes {
 			case Remove:
 				break;
 			case Put:
-				PutValue.Encode(bb);
+				Value.Encode(bb);
 				break;
 			case Edit:
 				bb.Encode(LogBean);
@@ -109,8 +117,8 @@ public final class Changes {
 			case Remove:
 				break;
 			case Put:
-				PutValue = Table.NewBeanValue();
-				PutValue.Decode(bb);
+				Value = Table.NewBeanValue();
+				Value.Decode(bb);
 				break;
 			case Edit:
 				bb.Decode(LogBean, LogBean::new);
@@ -121,7 +129,7 @@ public final class Changes {
 		@Override
 		public String toString() {
 			var sb = new StringBuilder();
-			sb.append("State=").append(State).append(" PutValue=").append(PutValue);
+			sb.append("State=").append(State).append(" PutValue=").append(Value);
 			sb.append("\nLog=");
 			ByteBuffer.BuildSortedString(sb, LogBean);
 			sb.append("\nAllLog=");

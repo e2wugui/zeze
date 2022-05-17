@@ -29,7 +29,7 @@ public final class ModuleEquip extends AbstractModule {
 			switch (c.getState()) {
 				case Changes.Record.Put:
 					// 记录改变，通知全部。
-					BEquips bequips = (BEquips)c.getPutValue();
+					BEquips bequips = (BEquips)c.getValue();
 
 					SEquipement changed = new SEquipement();
 					changed.Argument.setChangeTag(Game.Bag.BChangedResult.ChangeTagRecordChanged);

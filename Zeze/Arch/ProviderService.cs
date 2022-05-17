@@ -93,8 +93,8 @@ namespace Zeze.Arch
             }
         }
 
-        public ConcurrentDictionary<string, Connector> Links { get; }
-            = new ConcurrentDictionary<string, Connector>();
+        public ConcurrentDictionary<string, Connector> Links { get; } = new();
+
         private volatile KeyValuePair<string, Connector>[] LinkConnectors;
         private readonly Zeze.Util.AtomicInteger LinkRandomIndex = new();
         public AsyncSocket RandomLink()

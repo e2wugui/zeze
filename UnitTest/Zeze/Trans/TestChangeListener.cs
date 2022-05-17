@@ -312,7 +312,7 @@ namespace UnitTest.Zeze.Trans
                     case Changes.Record.Put:
                         foreach (var v in Vars)
                         {
-                            v.Value.OnChanged(key, r.PutValue);
+                            v.Value.OnChanged(key, r.Value);
                         }
                         break;
 

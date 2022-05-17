@@ -38,7 +38,7 @@ namespace Game.Equip
                     case Changes.Record.Put:
                         {
                             // 记录改变，通知全部。
-                            var bequips = (BEquips)changes.PutValue;
+                            var bequips = (BEquips)changes.Value;
 
                             var changed = new SEquipement();
                             changed.Argument.ChangeTag = Game.Bag.BChangedResult.ChangeTagRecordChanged;
