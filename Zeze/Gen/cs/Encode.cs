@@ -243,7 +243,9 @@ namespace Zeze.Gen.cs
             Types.Type vt = type.ValueType;
             bool isFixSizeList = type is TypeList list && list.FixSize >= 0 || type.Variable.Type == "array";
             sw.WriteLine(prefix + "var _x_ = " + varname + ';');
-            if (isFixSizeList)
+            if (type.Variable.Type == "array")
+                sw.WriteLine(prefix + "int _n_ = _x_?.Length ?? 0;");
+            else if (isFixSizeList)
                 sw.WriteLine(prefix + "int _n_ = _x_.Length;");
             else
                 sw.WriteLine(prefix + "int _n_ = _x_.Count;");

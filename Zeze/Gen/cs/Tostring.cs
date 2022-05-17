@@ -130,13 +130,22 @@ namespace Zeze.Gen.cs
         public void Visit(TypeList type)
         {
             sw.WriteLine(prefix + $"sb.Append(Zeze.Util.Str.Indent(level)).Append(\"{var}\").Append(\"=[\").Append(Environment.NewLine);");
-            sw.WriteLine($"{prefix}level += {INDENT_SIZE};");
-            sw.WriteLine(prefix + $"foreach (var Item in {var})");
-            sw.WriteLine(prefix + "{");
-            type.ValueType.Accept(new Tostring(sw, "Item", prefix + "    ", ','));
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine($"{prefix}level -= {INDENT_SIZE};");
-            sw.Write(prefix + $"sb.Append(Zeze.Util.Str.Indent(level)).Append(']')");
+            var prefix1 = prefix;
+            if (type.Variable.Type == "array")
+            {
+                sw.WriteLine($"{prefix}if ({var} != null)");
+                sw.WriteLine($"{prefix}{{");
+                prefix1 = prefix + "    ";
+            }
+            sw.WriteLine($"{prefix1}level += {INDENT_SIZE};");
+            sw.WriteLine(prefix1 + $"foreach (var Item in {var})");
+            sw.WriteLine(prefix1 + "{");
+            type.ValueType.Accept(new Tostring(sw, "Item", prefix1 + "    ", ','));
+            sw.WriteLine(prefix1 + "}");
+            sw.WriteLine($"{prefix1}level -= {INDENT_SIZE};");
+            if (type.Variable.Type == "array")
+                sw.WriteLine($"{prefix}}}");
+            sw.Write(prefix + "sb.Append(Zeze.Util.Str.Indent(level)).Append(']')");
             if (sep != 0)
                 sw.Write($".Append('{sep}')");
             sw.WriteLine(".Append(Environment.NewLine);");
@@ -201,7 +210,7 @@ namespace Zeze.Gen.cs
         {
             sw.WriteLine(prefix + $"sb.Append(Zeze.Util.Str.Indent(level)).Append(\"{var}\").Append('=').Append(Environment.NewLine);");
             if (Project.MakingInstance.Platform.Equals("conf+cs"))
-                sw.WriteLine(prefix + $"{var}.BuildString(sb, level + {INDENT_SIZE});");
+                sw.WriteLine(prefix + $"{var}?.BuildString(sb, level + {INDENT_SIZE});");
             else
                 sw.WriteLine(prefix + $"{var}.Bean.BuildString(sb, level + {INDENT_SIZE});");
             sw.Write(prefix + "sb");
