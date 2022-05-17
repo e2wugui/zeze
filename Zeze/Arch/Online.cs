@@ -293,11 +293,11 @@ namespace Zeze.Arch
                     login.ReliableNotifyQueue.Add(fullEncodedProtocol);
 
                     var notify = new SReliableNotify(); // 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
-                    notify.Argument.ReliableNotifyTotalCountStart = login.ReliableNotifyTotalCount;
+                    notify.Argument.ReliableNotifyIndex = login.ReliableNotifyIndex;
                     notify.Argument.Notifies.Add(fullEncodedProtocol);
 
                     await SendInProcedure(new List<LoginKey>{new LoginKey(account, clientId) }, notify.TypeId, new Binary(notify.Encode()));
-                    login.ReliableNotifyTotalCount += 1; // 后加，start 是 Queue.Add 之前的。
+                    login.ReliableNotifyIndex += 1; // 后加，start 是 Queue.Add 之前的。
                     return Procedure.Success;
                 },
                 "SendReliableNotify." + listenerName
@@ -763,8 +763,8 @@ namespace Zeze.Arch
                 loginOnline.LinkSid = session.LinkSid;
             /////////////////////////////////////////////////////////////
 
-            loginVersion.ReliableNotifyConfirmCount = 0;
-            loginVersion.ReliableNotifyTotalCount = 0;
+            loginVersion.ReliableNotifyConfirmIndex = 0;
+            loginVersion.ReliableNotifyIndex = 0;
             loginVersion.ReliableNotifyMark.Clear();
             loginVersion.ReliableNotifyQueue.Clear();
 
@@ -841,7 +841,7 @@ namespace Zeze.Arch
             });
 
             var syncResultCode = await ReliableNotifySync(session.Account, session.Context,
-                session, rpc.Argument.ReliableNotifyConfirmCount);
+                session, rpc.Argument.ReliableNotifyConfirmIndex);
 
             if (syncResultCode != ResultCodeSuccess)
                 return ErrorCode((ushort)syncResultCode);
@@ -886,29 +886,29 @@ namespace Zeze.Arch
         }
 
         private async Task<int> ReliableNotifySync(string account, string clientId,
-            ProviderUserSession session, long ReliableNotifyConfirmCount, bool sync = true)
+            ProviderUserSession session, long index, bool sync = true)
         {
             var online = await _tversion.GetOrAddAsync(account);
             var loginOnline = online.Logins.GetOrAdd(clientId);
-            if (ReliableNotifyConfirmCount < loginOnline.ReliableNotifyConfirmCount
-                || ReliableNotifyConfirmCount > loginOnline.ReliableNotifyTotalCount
-                || ReliableNotifyConfirmCount - loginOnline.ReliableNotifyConfirmCount > loginOnline.ReliableNotifyQueue.Count)
+            if (index < loginOnline.ReliableNotifyConfirmIndex
+                || index > loginOnline.ReliableNotifyIndex
+                || index - loginOnline.ReliableNotifyConfirmIndex > loginOnline.ReliableNotifyQueue.Count)
             {
-                return ResultCodeReliableNotifyConfirmCountOutOfRange;
+                return ResultCodeReliableNotifyConfirmIndexOutOfRange;
             }
 
-            int confirmCount = (int)(ReliableNotifyConfirmCount - loginOnline.ReliableNotifyConfirmCount);
+            int confirmCount = (int)(index - loginOnline.ReliableNotifyConfirmIndex);
 
             if (sync)
             {
                 var notify = new SReliableNotify();
-                notify.Argument.ReliableNotifyTotalCountStart = ReliableNotifyConfirmCount;
+                notify.Argument.ReliableNotifyIndex = index;
                 for (int i = confirmCount; i < loginOnline.ReliableNotifyQueue.Count; ++i)
                     notify.Argument.Notifies.Add(loginOnline.ReliableNotifyQueue[i]);
                 session.SendResponseWhileCommit(notify);
             }
             loginOnline.ReliableNotifyQueue.RemoveRange(0, confirmCount);
-            loginOnline.ReliableNotifyConfirmCount = ReliableNotifyConfirmCount;
+            loginOnline.ReliableNotifyConfirmIndex = index;
             return ResultCodeSuccess;
         }
 
@@ -924,7 +924,7 @@ namespace Zeze.Arch
 
             session.SendResponseWhileCommit(rpc); // 同步前提交。
             var syncResultCode = await ReliableNotifySync(session.Account, clientId,
-                session, rpc.Argument.ReliableNotifyConfirmCount, false);
+                session, rpc.Argument.ReliableNotifyConfirmIndex, false);
 
             if (ResultCodeSuccess != syncResultCode)
                 return ErrorCode((ushort)syncResultCode);

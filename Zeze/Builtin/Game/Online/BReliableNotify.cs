@@ -12,39 +12,39 @@ namespace Zeze.Builtin.Game.Online
         public Zeze.Transaction.Bean CopyBean();
 
         public System.Collections.Generic.IReadOnlyList<Zeze.Net.Binary>Notifies { get; }
-        public long ReliableNotifyTotalCountStart { get; }
+        public long ReliableNotifyIndex { get; }
     }
 
     public sealed class BReliableNotify : Zeze.Transaction.Bean, BReliableNotifyReadOnly
     {
         readonly Zeze.Transaction.Collections.CollList1<Zeze.Net.Binary> _Notifies; // full encoded protocol list
-        long _ReliableNotifyTotalCountStart; // Notify的计数开始。客户端收到的总计数为：start + Notifies.Count
+        long _ReliableNotifyIndex; // Notify的计数开始。客户端收到的总计数为：start + Notifies.Count
 
         public Zeze.Transaction.Collections.CollList1<Zeze.Net.Binary> Notifies => _Notifies;
         System.Collections.Generic.IReadOnlyList<Zeze.Net.Binary> Zeze.Builtin.Game.Online.BReliableNotifyReadOnly.Notifies => _Notifies;
 
-        public long ReliableNotifyTotalCountStart
+        public long ReliableNotifyIndex
         {
             get
             {
                 if (!IsManaged)
-                    return _ReliableNotifyTotalCountStart;
+                    return _ReliableNotifyIndex;
                 var txn = Zeze.Transaction.Transaction.Current;
-                if (txn == null) return _ReliableNotifyTotalCountStart;
+                if (txn == null) return _ReliableNotifyIndex;
                 txn.VerifyRecordAccessed(this, true);
-                var log = (Log__ReliableNotifyTotalCountStart)txn.GetLog(ObjectId + 2);
-                return log != null ? log.Value : _ReliableNotifyTotalCountStart;
+                var log = (Log__ReliableNotifyIndex)txn.GetLog(ObjectId + 2);
+                return log != null ? log.Value : _ReliableNotifyIndex;
             }
             set
             {
                 if (!IsManaged)
                 {
-                    _ReliableNotifyTotalCountStart = value;
+                    _ReliableNotifyIndex = value;
                     return;
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ReliableNotifyTotalCountStart() { Belong = this, VariableId = 2, Value = value });
+                txn.PutLog(new Log__ReliableNotifyIndex() { Belong = this, VariableId = 2, Value = value });
             }
         }
 
@@ -62,7 +62,7 @@ namespace Zeze.Builtin.Game.Online
             Notifies.Clear();
             foreach (var e in other.Notifies)
                 Notifies.Add(e);
-            ReliableNotifyTotalCountStart = other.ReliableNotifyTotalCountStart;
+            ReliableNotifyIndex = other.ReliableNotifyIndex;
         }
 
         public BReliableNotify CopyIfManaged()
@@ -93,9 +93,9 @@ namespace Zeze.Builtin.Game.Online
         public override long TypeId => TYPEID;
 
 
-        sealed class Log__ReliableNotifyTotalCountStart : Zeze.Transaction.Log<long>
+        sealed class Log__ReliableNotifyIndex : Zeze.Transaction.Log<long>
         {
-            public override void Commit() { ((BReliableNotify)Belong)._ReliableNotifyTotalCountStart = this.Value; }
+            public override void Commit() { ((BReliableNotify)Belong)._ReliableNotifyIndex = this.Value; }
         }
 
         public override string ToString()
@@ -118,7 +118,7 @@ namespace Zeze.Builtin.Game.Online
             }
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append(']').Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("ReliableNotifyTotalCountStart").Append('=').Append(ReliableNotifyTotalCountStart).Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("ReliableNotifyIndex").Append('=').Append(ReliableNotifyIndex).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -140,7 +140,7 @@ namespace Zeze.Builtin.Game.Online
                 }
             }
             {
-                long _x_ = ReliableNotifyTotalCountStart;
+                long _x_ = ReliableNotifyIndex;
                 if (_x_ != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
@@ -171,7 +171,7 @@ namespace Zeze.Builtin.Game.Online
             }
             if (_i_ == 2)
             {
-                ReliableNotifyTotalCountStart = _o_.ReadLong(_t_);
+                ReliableNotifyIndex = _o_.ReadLong(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             while (_t_ != 0)
@@ -188,7 +188,7 @@ namespace Zeze.Builtin.Game.Online
 
         public override bool NegativeCheck()
         {
-            if (ReliableNotifyTotalCountStart < 0) return true;
+            if (ReliableNotifyIndex < 0) return true;
             return false;
         }
 
@@ -200,7 +200,7 @@ namespace Zeze.Builtin.Game.Online
                 switch (vlog.VariableId)
                 {
                     case 1: _Notifies.FollowerApply(vlog); break;
-                    case 2: _ReliableNotifyTotalCountStart = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 2: _ReliableNotifyIndex = ((Zeze.Transaction.Log<long>)vlog).Value; break;
                 }
             }
         }

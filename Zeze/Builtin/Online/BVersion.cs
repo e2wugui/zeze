@@ -14,8 +14,8 @@ namespace Zeze.Builtin.Online
         public long LoginVersion { get; }
         public System.Collections.Generic.IReadOnlySet<string> ReliableNotifyMark { get; }
         public System.Collections.Generic.IReadOnlyList<Zeze.Net.Binary>ReliableNotifyQueue { get; }
-        public long ReliableNotifyTotalCount { get; }
-        public long ReliableNotifyConfirmCount { get; }
+        public long ReliableNotifyIndex { get; }
+        public long ReliableNotifyConfirmIndex { get; }
         public int ServerId { get; }
     }
 
@@ -24,8 +24,8 @@ namespace Zeze.Builtin.Online
         long _LoginVersion;
         readonly Zeze.Transaction.Collections.CollSet1<string> _ReliableNotifyMark;
         readonly Zeze.Transaction.Collections.CollList1<Zeze.Net.Binary> _ReliableNotifyQueue; // full encoded protocol list
-        long _ReliableNotifyTotalCount;
-        long _ReliableNotifyConfirmCount;
+        long _ReliableNotifyIndex;
+        long _ReliableNotifyConfirmIndex;
         int _ServerId;
 
         public string _zeze_map_key_string_ { get; set; }
@@ -61,53 +61,53 @@ namespace Zeze.Builtin.Online
         public Zeze.Transaction.Collections.CollList1<Zeze.Net.Binary> ReliableNotifyQueue => _ReliableNotifyQueue;
         System.Collections.Generic.IReadOnlyList<Zeze.Net.Binary> Zeze.Builtin.Online.BVersionReadOnly.ReliableNotifyQueue => _ReliableNotifyQueue;
 
-        public long ReliableNotifyTotalCount
+        public long ReliableNotifyIndex
         {
             get
             {
                 if (!IsManaged)
-                    return _ReliableNotifyTotalCount;
+                    return _ReliableNotifyIndex;
                 var txn = Zeze.Transaction.Transaction.Current;
-                if (txn == null) return _ReliableNotifyTotalCount;
+                if (txn == null) return _ReliableNotifyIndex;
                 txn.VerifyRecordAccessed(this, true);
-                var log = (Log__ReliableNotifyTotalCount)txn.GetLog(ObjectId + 4);
-                return log != null ? log.Value : _ReliableNotifyTotalCount;
+                var log = (Log__ReliableNotifyIndex)txn.GetLog(ObjectId + 4);
+                return log != null ? log.Value : _ReliableNotifyIndex;
             }
             set
             {
                 if (!IsManaged)
                 {
-                    _ReliableNotifyTotalCount = value;
+                    _ReliableNotifyIndex = value;
                     return;
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ReliableNotifyTotalCount() { Belong = this, VariableId = 4, Value = value });
+                txn.PutLog(new Log__ReliableNotifyIndex() { Belong = this, VariableId = 4, Value = value });
             }
         }
 
-        public long ReliableNotifyConfirmCount
+        public long ReliableNotifyConfirmIndex
         {
             get
             {
                 if (!IsManaged)
-                    return _ReliableNotifyConfirmCount;
+                    return _ReliableNotifyConfirmIndex;
                 var txn = Zeze.Transaction.Transaction.Current;
-                if (txn == null) return _ReliableNotifyConfirmCount;
+                if (txn == null) return _ReliableNotifyConfirmIndex;
                 txn.VerifyRecordAccessed(this, true);
-                var log = (Log__ReliableNotifyConfirmCount)txn.GetLog(ObjectId + 5);
-                return log != null ? log.Value : _ReliableNotifyConfirmCount;
+                var log = (Log__ReliableNotifyConfirmIndex)txn.GetLog(ObjectId + 5);
+                return log != null ? log.Value : _ReliableNotifyConfirmIndex;
             }
             set
             {
                 if (!IsManaged)
                 {
-                    _ReliableNotifyConfirmCount = value;
+                    _ReliableNotifyConfirmIndex = value;
                     return;
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ReliableNotifyConfirmCount() { Belong = this, VariableId = 5, Value = value });
+                txn.PutLog(new Log__ReliableNotifyConfirmIndex() { Belong = this, VariableId = 5, Value = value });
             }
         }
 
@@ -155,8 +155,8 @@ namespace Zeze.Builtin.Online
             ReliableNotifyQueue.Clear();
             foreach (var e in other.ReliableNotifyQueue)
                 ReliableNotifyQueue.Add(e);
-            ReliableNotifyTotalCount = other.ReliableNotifyTotalCount;
-            ReliableNotifyConfirmCount = other.ReliableNotifyConfirmCount;
+            ReliableNotifyIndex = other.ReliableNotifyIndex;
+            ReliableNotifyConfirmIndex = other.ReliableNotifyConfirmIndex;
             ServerId = other.ServerId;
         }
 
@@ -194,14 +194,14 @@ namespace Zeze.Builtin.Online
 
 
 
-        sealed class Log__ReliableNotifyTotalCount : Zeze.Transaction.Log<long>
+        sealed class Log__ReliableNotifyIndex : Zeze.Transaction.Log<long>
         {
-            public override void Commit() { ((BVersion)Belong)._ReliableNotifyTotalCount = this.Value; }
+            public override void Commit() { ((BVersion)Belong)._ReliableNotifyIndex = this.Value; }
         }
 
-        sealed class Log__ReliableNotifyConfirmCount : Zeze.Transaction.Log<long>
+        sealed class Log__ReliableNotifyConfirmIndex : Zeze.Transaction.Log<long>
         {
-            public override void Commit() { ((BVersion)Belong)._ReliableNotifyConfirmCount = this.Value; }
+            public override void Commit() { ((BVersion)Belong)._ReliableNotifyConfirmIndex = this.Value; }
         }
 
         sealed class Log__ServerId : Zeze.Transaction.Log<int>
@@ -238,8 +238,8 @@ namespace Zeze.Builtin.Online
             }
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append(']').Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("ReliableNotifyTotalCount").Append('=').Append(ReliableNotifyTotalCount).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("ReliableNotifyConfirmCount").Append('=').Append(ReliableNotifyConfirmCount).Append(',').Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("ReliableNotifyIndex").Append('=').Append(ReliableNotifyIndex).Append(',').Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("ReliableNotifyConfirmIndex").Append('=').Append(ReliableNotifyConfirmIndex).Append(',').Append(Environment.NewLine);
             sb.Append(Zeze.Util.Str.Indent(level)).Append("ServerId").Append('=').Append(ServerId).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
@@ -283,7 +283,7 @@ namespace Zeze.Builtin.Online
                 }
             }
             {
-                long _x_ = ReliableNotifyTotalCount;
+                long _x_ = ReliableNotifyIndex;
                 if (_x_ != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
@@ -291,7 +291,7 @@ namespace Zeze.Builtin.Online
                 }
             }
             {
-                long _x_ = ReliableNotifyConfirmCount;
+                long _x_ = ReliableNotifyConfirmIndex;
                 if (_x_ != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.INTEGER);
@@ -350,12 +350,12 @@ namespace Zeze.Builtin.Online
             }
             if (_i_ == 4)
             {
-                ReliableNotifyTotalCount = _o_.ReadLong(_t_);
+                ReliableNotifyIndex = _o_.ReadLong(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             if (_i_ == 5)
             {
-                ReliableNotifyConfirmCount = _o_.ReadLong(_t_);
+                ReliableNotifyConfirmIndex = _o_.ReadLong(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             if (_i_ == 6)
@@ -379,8 +379,8 @@ namespace Zeze.Builtin.Online
         public override bool NegativeCheck()
         {
             if (LoginVersion < 0) return true;
-            if (ReliableNotifyTotalCount < 0) return true;
-            if (ReliableNotifyConfirmCount < 0) return true;
+            if (ReliableNotifyIndex < 0) return true;
+            if (ReliableNotifyConfirmIndex < 0) return true;
             if (ServerId < 0) return true;
             return false;
         }
@@ -395,8 +395,8 @@ namespace Zeze.Builtin.Online
                     case 1: _LoginVersion = ((Zeze.Transaction.Log<long>)vlog).Value; break;
                     case 2: _ReliableNotifyMark.FollowerApply(vlog); break;
                     case 3: _ReliableNotifyQueue.FollowerApply(vlog); break;
-                    case 4: _ReliableNotifyTotalCount = ((Zeze.Transaction.Log<long>)vlog).Value; break;
-                    case 5: _ReliableNotifyConfirmCount = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 4: _ReliableNotifyIndex = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 5: _ReliableNotifyConfirmIndex = ((Zeze.Transaction.Log<long>)vlog).Value; break;
                     case 6: _ServerId = ((Zeze.Transaction.Log<int>)vlog).Value; break;
                 }
             }

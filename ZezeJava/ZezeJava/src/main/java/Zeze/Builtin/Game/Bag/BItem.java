@@ -8,17 +8,6 @@ public final class BItem extends Zeze.Transaction.Bean {
     private int _Id;
     private int _Number;
     private final Zeze.Transaction.DynamicBean _Item;
-        public static long GetSpecialTypeIdFromBean_Item(Zeze.Transaction.Bean bean) {
-            var _typeId_ = bean.getTypeId();
-            if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
-                return Zeze.Transaction.EmptyBean.TYPEID;
-            throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Game.Bag.BItem:Item");
-        }
-
-        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Item(long typeId) {
-            return null;
-        }
-
 
     private Object __zeze_map_key__;
 
@@ -133,6 +122,17 @@ public final class BItem extends Zeze.Transaction.Bean {
        public Log__Number(BItem bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._Number = this.getValue(); }
+    }
+
+    public static long GetSpecialTypeIdFromBean_Item(Zeze.Transaction.Bean bean) {
+        var _typeId_ = bean.getTypeId();
+        if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
+            return Zeze.Transaction.EmptyBean.TYPEID;
+        throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Game.Bag.BItem:Item");
+    }
+
+    public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Item(long typeId) {
+        return null;
     }
 
 

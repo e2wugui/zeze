@@ -86,6 +86,12 @@ public class Queue<V extends Bean> {
 		return head;
 	}
 
+	public void clear() {
+		while (pollNode() != null) {
+			// do nothing
+		}
+	}
+
 	/**
 	 * @return 头节点，null if empty
 	 */

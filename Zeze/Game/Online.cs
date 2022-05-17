@@ -290,11 +290,11 @@ namespace Zeze.Game
                     version.ReliableNotifyQueue.Add(fullEncodedProtocol);
 
                     var notify = new SReliableNotify(); // 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
-                    notify.Argument.ReliableNotifyTotalCountStart = version.ReliableNotifyTotalCount;
+                    notify.Argument.ReliableNotifyIndex = version.ReliableNotifyIndex;
                     notify.Argument.Notifies.Add(fullEncodedProtocol);
 
                     await SendInProcedure(new List<long> { roleId }, notify.TypeId, new Binary(notify.Encode()));
-                    version.ReliableNotifyTotalCount += 1; // 后加，start 是 Queue.Add 之前的。
+                    version.ReliableNotifyIndex += 1; // 后加，start 是 Queue.Add 之前的。
                     return Procedure.Success;
                 },
                 "SendReliableNotify." + listenerName
@@ -703,8 +703,8 @@ namespace Zeze.Game
                 online.LinkSid = session.LinkSid;
             /////////////////////////////////////////////////////////////
 
-            version.ReliableNotifyConfirmCount = 0;
-            version.ReliableNotifyTotalCount = 0;
+            version.ReliableNotifyConfirmIndex = 0;
+            version.ReliableNotifyIndex = 0;
             version.ReliableNotifyMark.Clear();
             version.ReliableNotifyQueue.Clear();
 
@@ -784,7 +784,7 @@ namespace Zeze.Game
             });
 
             var syncResultCode = await ReliableNotifySync(session.RoleId.Value,
-                session, rpc.Argument.ReliableNotifyConfirmCount);
+                session, rpc.Argument.ReliableNotifyConfirmIndex);
 
             if (syncResultCode != ResultCodeSuccess)
                 return ErrorCode((ushort)syncResultCode);
@@ -825,28 +825,28 @@ namespace Zeze.Game
             return Procedure.Success;
         }
 
-        private async Task<int> ReliableNotifySync(long roleId, ProviderUserSession session, long ReliableNotifyConfirmCount, bool sync = true)
+        private async Task<int> ReliableNotifySync(long roleId, ProviderUserSession session, long index, bool sync = true)
         {
             var online = await _tversion.GetOrAddAsync(roleId);
-            if (ReliableNotifyConfirmCount < online.ReliableNotifyConfirmCount
-                || ReliableNotifyConfirmCount > online.ReliableNotifyTotalCount
-                || ReliableNotifyConfirmCount - online.ReliableNotifyConfirmCount > online.ReliableNotifyQueue.Count)
+            if (index < online.ReliableNotifyConfirmIndex
+                || index > online.ReliableNotifyIndex
+                || index - online.ReliableNotifyConfirmIndex > online.ReliableNotifyQueue.Count)
             {
-                return ResultCodeReliableNotifyConfirmCountOutOfRange;
+                return ResultCodeReliableNotifyConfirmIndexOutOfRange;
             }
 
-            int confirmCount = (int)(ReliableNotifyConfirmCount - online.ReliableNotifyConfirmCount);
+            int confirmCount = (int)(index - online.ReliableNotifyConfirmIndex);
 
             if (sync)
             {
                 var notify = new SReliableNotify();
-                notify.Argument.ReliableNotifyTotalCountStart = ReliableNotifyConfirmCount;
+                notify.Argument.ReliableNotifyIndex = index;
                 for (int i = confirmCount; i < online.ReliableNotifyQueue.Count; ++i)
                     notify.Argument.Notifies.Add(online.ReliableNotifyQueue[i]);
                 session.SendResponseWhileCommit(notify);
             }
             online.ReliableNotifyQueue.RemoveRange(0, confirmCount);
-            online.ReliableNotifyConfirmCount = ReliableNotifyConfirmCount;
+            online.ReliableNotifyConfirmIndex = index;
             return ResultCodeSuccess;
         }
 
@@ -861,7 +861,7 @@ namespace Zeze.Game
 
             session.SendResponseWhileCommit(rpc); // 同步前提交。
             var syncResultCode = await ReliableNotifySync(session.RoleId.Value,
-                session, rpc.Argument.ReliableNotifyConfirmCount, false);
+                session, rpc.Argument.ReliableNotifyConfirmIndex, false);
 
             if (ResultCodeSuccess != syncResultCode)
                 return ErrorCode((ushort)syncResultCode);

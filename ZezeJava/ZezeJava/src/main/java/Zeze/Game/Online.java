@@ -26,7 +26,6 @@ import Zeze.Builtin.ProviderDirect.Transmit;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
-import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
@@ -37,7 +36,6 @@ import Zeze.Util.EventDispatcher;
 import Zeze.Util.OutLong;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
-import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -381,30 +379,6 @@ public class Online extends AbstractOnline {
 		return groups.values();
 	}
 
-	public final class ConfirmContext extends Service.ManualContext {
-		final HashSet<String> linkNames = new HashSet<>();
-		final TaskCompletionSource<Long> future;
-
-		public ConfirmContext(TaskCompletionSource<Long> future) {
-			this.future = future;
-		}
-
-		@Override
-		public void OnRemoved() {
-			future.SetResult(super.getSessionId());
-		}
-
-		@SuppressWarnings("unused")
-		public long processLinkConfirm(String linkName) {
-			synchronized (this) {
-				linkNames.remove(linkName);
-				if (linkNames.isEmpty())
-					ProviderApp.ProviderService.<ConfirmContext>TryRemoveManualContext(getSessionId());
-				return Procedure.Success;
-			}
-		}
-	}
-
 	public final void addReliableNotifyMark(long roleId, String listenerName) {
 		var online = _tonline.get(roleId);
 		if (online == null)
@@ -465,11 +439,11 @@ public class Online extends AbstractOnline {
 					// see Game.Login.Module: CLogin CReLogin CReliableNotifyConfirm 的实现。
 					version.getReliableNotifyQueue().add(fullEncodedProtocol);
 					var notify = new SReliableNotify(); // 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
-					notify.Argument.setReliableNotifyTotalCountStart(version.getReliableNotifyTotalCount());
+					notify.Argument.setReliableNotifyIndex(version.getReliableNotifyIndex());
 					notify.Argument.getNotifies().add(fullEncodedProtocol);
 
 					sendInProcedure(List.of(roleId), notify.getTypeId(), new Binary(notify.Encode()));
-					version.setReliableNotifyTotalCount(version.getReliableNotifyConfirmCount() + 1); // 后加，start 是 Queue.Add 之前的。
+					version.setReliableNotifyIndex(version.getReliableNotifyIndex() + 1); // 后加，start 是 Queue.Add 之前的。
 					return Procedure.Success;
 				}, "Game.Online.sendReliableNotify." + listenerName), null);
 	}
@@ -742,8 +716,8 @@ public class Online extends AbstractOnline {
 
 		version.getReliableNotifyMark().clear();
 		version.getReliableNotifyQueue().clear();
-		version.setReliableNotifyConfirmCount(0);
-		version.setReliableNotifyTotalCount(0);
+		version.setReliableNotifyConfirmIndex(0);
+		version.setReliableNotifyIndex(0);
 
 		// var linkSession = (ProviderService.LinkSession)session.getLink().getUserState();
 		version.setServerId(ProviderApp.Zeze.getConfig().getServerId());
@@ -808,7 +782,7 @@ public class Online extends AbstractOnline {
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 
-		var syncResultCode = reliableNotifySync(session.getRoleId(), session, rpc.Argument.getReliableNotifyConfirmCount());
+		var syncResultCode = reliableNotifySync(session.getRoleId(), session, rpc.Argument.getReliableNotifyConfirmIndex());
 		if (syncResultCode != ResultCodeSuccess)
 			return ErrorCode(syncResultCode);
 
@@ -821,17 +795,17 @@ public class Online extends AbstractOnline {
 
 	private int reliableNotifySync(long roleId, ProviderUserSession session, long reliableNotifyConfirmCount, boolean sync) {
 		var version = _tversion.getOrAdd(roleId);
-		if (reliableNotifyConfirmCount < version.getReliableNotifyConfirmCount()
-				|| reliableNotifyConfirmCount > version.getReliableNotifyTotalCount()
-				|| reliableNotifyConfirmCount - version.getReliableNotifyConfirmCount() > version.getReliableNotifyQueue().size()) {
-			return ResultCodeReliableNotifyConfirmCountOutOfRange;
+		if (reliableNotifyConfirmCount < version.getReliableNotifyConfirmIndex()
+				|| reliableNotifyConfirmCount > version.getReliableNotifyIndex()
+				|| reliableNotifyConfirmCount - version.getReliableNotifyConfirmIndex() > version.getReliableNotifyQueue().size()) {
+			return ResultCodeReliableNotifyConfirmIndexOutOfRange;
 		}
 
-		int confirmCount = (int)(reliableNotifyConfirmCount - version.getReliableNotifyConfirmCount());
+		int confirmCount = (int)(reliableNotifyConfirmCount - version.getReliableNotifyConfirmIndex());
 
 		if (sync) {
 			var notify = new SReliableNotify();
-			notify.Argument.setReliableNotifyTotalCountStart(reliableNotifyConfirmCount);
+			notify.Argument.setReliableNotifyIndex(reliableNotifyConfirmCount);
 			for (int i = confirmCount; i < version.getReliableNotifyQueue().size(); i++)
 				notify.Argument.getNotifies().add(version.getReliableNotifyQueue().get(i));
 			session.SendResponseWhileCommit(notify);
@@ -840,7 +814,7 @@ public class Online extends AbstractOnline {
 		for (int ir = 0; ir < confirmCount; ir++)
 			version.getReliableNotifyQueue().remove(0);
 		//online.getReliableNotifyQueue().RemoveRange(0, confirmCount);
-		version.setReliableNotifyConfirmCount(reliableNotifyConfirmCount);
+		version.setReliableNotifyConfirmIndex(reliableNotifyConfirmCount);
 		return ResultCodeSuccess;
 	}
 
@@ -887,7 +861,7 @@ public class Online extends AbstractOnline {
 
 		//noinspection ConstantConditions
 		var syncResultCode = reliableNotifySync(session.getRoleId(), session,
-				rpc.Argument.getReliableNotifyConfirmCount(), false);
+				rpc.Argument.getReliableNotifyConfirmIndex(), false);
 		if (syncResultCode != ResultCodeSuccess)
 			return ErrorCode(syncResultCode);
 

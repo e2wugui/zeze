@@ -14,7 +14,7 @@ public abstract class AbstractOnline extends Zeze.IModule {
     public static final int ResultCodeRoleNotExist = 3;
     public static final int ResultCodeNotLastLoginRoleId = 4;
     public static final int ResultCodeOnlineDataNotFound = 5;
-    public static final int ResultCodeReliableNotifyConfirmCountOutOfRange = 6;
+    public static final int ResultCodeReliableNotifyConfirmIndexOutOfRange = 6;
     public static final int ResultCodeNotLogin = 7;
 
     protected final Zeze.Builtin.Game.Online.taccount _taccount = new Zeze.Builtin.Game.Online.taccount();

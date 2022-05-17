@@ -5,28 +5,28 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
-    private long _ReliableNotifyConfirmCount;
+    private long _ReliableNotifyConfirmIndex;
 
-    public long getReliableNotifyConfirmCount() {
+    public long getReliableNotifyConfirmIndex() {
         if (!isManaged())
-            return _ReliableNotifyConfirmCount;
+            return _ReliableNotifyConfirmIndex;
         var txn = Zeze.Transaction.Transaction.getCurrent();
         if (txn == null)
-            return _ReliableNotifyConfirmCount;
+            return _ReliableNotifyConfirmIndex;
         txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ReliableNotifyConfirmCount)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _ReliableNotifyConfirmCount;
+        var log = (Log__ReliableNotifyConfirmIndex)txn.GetLog(this.getObjectId() + 1);
+        return log != null ? log.getValue() : _ReliableNotifyConfirmIndex;
     }
 
-    public void setReliableNotifyConfirmCount(long value) {
+    public void setReliableNotifyConfirmIndex(long value) {
         if (!isManaged()) {
-            _ReliableNotifyConfirmCount = value;
+            _ReliableNotifyConfirmIndex = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ReliableNotifyConfirmCount(this, 1, value));
+        txn.PutLog(new Log__ReliableNotifyConfirmIndex(this, 1, value));
     }
 
     public BReliableNotifyConfirm() {
@@ -38,7 +38,7 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
     }
 
     public void Assign(BReliableNotifyConfirm other) {
-        setReliableNotifyConfirmCount(other.getReliableNotifyConfirmCount());
+        setReliableNotifyConfirmIndex(other.getReliableNotifyConfirmIndex());
     }
 
     public BReliableNotifyConfirm CopyIfManaged() {
@@ -69,10 +69,10 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__ReliableNotifyConfirmCount extends Zeze.Transaction.Log1<BReliableNotifyConfirm, Long> {
-       public Log__ReliableNotifyConfirmCount(BReliableNotifyConfirm bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__ReliableNotifyConfirmIndex extends Zeze.Transaction.Log1<BReliableNotifyConfirm, Long> {
+       public Log__ReliableNotifyConfirmIndex(BReliableNotifyConfirm bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public void Commit() { getBeanTyped()._ReliableNotifyConfirmCount = this.getValue(); }
+        public void Commit() { getBeanTyped()._ReliableNotifyConfirmIndex = this.getValue(); }
     }
 
     @Override
@@ -87,7 +87,7 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
     public void BuildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Game.Online.BReliableNotifyConfirm: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ReliableNotifyConfirmCount").append('=').append(getReliableNotifyConfirmCount()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ReliableNotifyConfirmIndex").append('=').append(getReliableNotifyConfirmIndex()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -108,7 +108,7 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
     public void Encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            long _x_ = getReliableNotifyConfirmCount();
+            long _x_ = getReliableNotifyConfirmIndex();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
@@ -122,7 +122,7 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setReliableNotifyConfirmCount(_o_.ReadLong(_t_));
+            setReliableNotifyConfirmIndex(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -137,7 +137,7 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
 
     @Override
     public boolean NegativeCheck() {
-        if (getReliableNotifyConfirmCount() < 0)
+        if (getReliableNotifyConfirmIndex() < 0)
             return true;
         return false;
     }
@@ -150,7 +150,7 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ReliableNotifyConfirmCount = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 1: _ReliableNotifyConfirmIndex = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
             }
         }
     }

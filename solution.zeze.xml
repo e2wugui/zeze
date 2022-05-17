@@ -451,7 +451,7 @@
 				<enum value="3" name="ResultCodeRoleNotExist"/>
 				<enum value="4" name="ResultCodeNotLastLoginRoleId"/>
 				<enum value="5" name="ResultCodeOnlineDataNotFound"/>
-				<enum value="6" name="ResultCodeReliableNotifyConfirmCountOutOfRange"/>
+				<enum value="6" name="ResultCodeReliableNotifyConfirmIndexOutOfRange"/>
 				<enum value="7" name="ResultCodeNotLogin"/>
 
 				<!-- protocols -->
@@ -460,14 +460,14 @@
 				</bean>
 				<bean name="BReLogin">
 					<variable id="1" name="RoleId" type="long"/>
-					<variable id="2" name="ReliableNotifyConfirmCount" type="long"/>
+					<variable id="2" name="ReliableNotifyConfirmIndex" type="long"/>
 				</bean>
 				<bean name="BReliableNotifyConfirm">
-					<variable id="1" name="ReliableNotifyConfirmCount" type="long"/>
+					<variable id="1" name="ReliableNotifyConfirmIndex" type="long"/>
 				</bean>
 				<bean name="BReliableNotify">
 					<variable id="1" name="Notifies" type="list" value="binary"/> full encoded protocol list
-					<variable id="2" name="ReliableNotifyTotalCountStart" type="long"/> Notify的计数开始。客户端收到的总计数为：start + Notifies.Count
+					<variable id="2" name="ReliableNotifyIndex" type="long"/> Notify的计数开始。客户端收到的总计数为：start + Notifies.Count
 				</bean>
 
 				<rpc name="Login"   argument="BLogin"   handle="server"/> 登录角色
@@ -488,8 +488,8 @@
 					<!-- 下面的定义用来实现可靠的协议通告。 -->
 					<variable id="2" name="ReliableNotifyMark"         type="set" value="string"/>
 					<variable id="3" name="ReliableNotifyQueue"        type="list" value="binary"/> full encoded protocol list
-					<variable id="4" name="ReliableNotifyConfirmCount" type="long"/>
-					<variable id="5" name="ReliableNotifyTotalCount"   type="long"/>
+					<variable id="4" name="ReliableNotifyConfirmIndex" type="long"/>
+					<variable id="5" name="ReliableNotifyIndex"        type="long"/>
 					<variable id="6" name="ServerId" type="int"/>
 				</bean>
 				<bean name="BAccount">
@@ -631,7 +631,7 @@
 			<enum value="3" name="ResultCodeRoleNotExist"/>
 			<enum value="4" name="ResultCodeNotLastLoginRoleId"/>
 			<enum value="5" name="ResultCodeOnlineDataNotFound"/>
-			<enum value="6" name="ResultCodeReliableNotifyConfirmCountOutOfRange"/>
+			<enum value="6" name="ResultCodeReliableNotifyConfirmIndexOutOfRange"/>
 			<enum value="7" name="ResultCodeNotLogin"/>
 
 			<!-- protocols -->
@@ -640,15 +640,15 @@
 			</bean>
 			<bean name="BReLogin">
 				<variable id="1" name="ClientId" type="string" />
-				<variable id="2" name="ReliableNotifyConfirmCount" type="long"/>
+				<variable id="2" name="ReliableNotifyConfirmIndex" type="long"/>
 			</bean>
 			<bean name="BReliableNotifyConfirm">
 				<variable id="1" name="ClientId" type="string" />
-				<variable id="2" name="ReliableNotifyConfirmCount" type="long"/>
+				<variable id="2" name="ReliableNotifyConfirmIndex" type="long"/>
 			</bean>
 			<bean name="BReliableNotify">
 				<variable id="1" name="Notifies" type="list" value="binary"/> full encoded protocol list
-				<variable id="2" name="ReliableNotifyTotalCountStart" type="long"/> Notify的计数开始。客户端收到的总计数为：start + Notifies.Count
+				<variable id="2" name="ReliableNotifyIndex" type="long"/> Notify的计数开始。客户端收到的总计数为：start + Notifies.Count
 			</bean>
 
 			<rpc name="Login"   argument="BLogin"   handle="server"/> 登录角色
@@ -665,11 +665,11 @@
 			<bean name="BVersion">
 				<variable id="1" name="LoginVersion" type="long"/>
 				<!-- 下面的定义用来实现可靠的协议通告。 -->
-				<variable id="2" name="ReliableNotifyMark"       type="set" value="string"/>
-				<variable id="3" name="ReliableNotifyQueue"      type="list" value="binary"/> full encoded protocol list
-				<variable id="4" name="ReliableNotifyTotalCount" type="long"/>
-				<variable id="5" name="ReliableNotifyConfirmCount" type="long"/>
-				<variable id="6" name="ServerId" type="int"/>
+				<variable id="2" name="ReliableNotifyMark"         type="set" value="string"/>
+				<variable id="3" name="ReliableNotifyQueue"        type="list" value="binary"/> full encoded protocol list
+				<variable id="4" name="ReliableNotifyIndex"        type="long"/>
+				<variable id="5" name="ReliableNotifyConfirmIndex" type="long"/>
+				<variable id="6" name="ServerId"                   type="int"/>
 			</bean>
 			<bean name="BAccount">
 				<variable id="1" name="LastLoginVersion" type="long"/> 用来生成 role 登录版本号。每次递增。

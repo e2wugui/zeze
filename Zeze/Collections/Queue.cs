@@ -92,6 +92,14 @@ namespace Zeze.Collections
 			return head;
 		}
 
+		public async Task ClearAsync()
+		{
+			while (await PollNodeAsync() != null)
+			{
+				// do nothing
+			}
+		}
+
 		/**
 		 * @return ͷ�ڵ㣬null if empty
 		 */

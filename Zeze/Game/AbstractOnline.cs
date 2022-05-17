@@ -16,7 +16,7 @@ namespace Zeze.Game
         public const int ResultCodeRoleNotExist = 3;
         public const int ResultCodeNotLastLoginRoleId = 4;
         public const int ResultCodeOnlineDataNotFound = 5;
-        public const int ResultCodeReliableNotifyConfirmCountOutOfRange = 6;
+        public const int ResultCodeReliableNotifyConfirmIndexOutOfRange = 6;
         public const int ResultCodeNotLogin = 7;
         internal Zeze.Builtin.Game.Online.taccount _taccount = new Zeze.Builtin.Game.Online.taccount();
         internal Zeze.Builtin.Game.Online.tlocal _tlocal = new Zeze.Builtin.Game.Online.tlocal();

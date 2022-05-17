@@ -296,7 +296,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean {
             setReason(_o_.ReadInt(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        while ((_t_ & 0xff) > 1 && _i_ < 5) {
+        while (_t_ != 0 && _i_ < 5) {
             _o_.SkipUnknownField(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }

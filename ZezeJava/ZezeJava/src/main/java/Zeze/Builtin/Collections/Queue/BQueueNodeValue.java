@@ -7,17 +7,6 @@ import Zeze.Serialize.ByteBuffer;
 public final class BQueueNodeValue extends Zeze.Transaction.Bean {
     private long _Timestamp;
     private final Zeze.Transaction.DynamicBean _Value;
-        public static long GetSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean) {
-            var _typeId_ = bean.getTypeId();
-            if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
-                return Zeze.Transaction.EmptyBean.TYPEID;
-            throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Collections.Queue.BQueueNodeValue:Value");
-        }
-
-        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Value(long typeId) {
-            return null;
-        }
-
 
     public long getTimestamp() {
         if (!isManaged())
@@ -91,6 +80,17 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
        public Log__Timestamp(BQueueNodeValue bean, int varId, Long value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._Timestamp = this.getValue(); }
+    }
+
+    public static long GetSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean) {
+        var _typeId_ = bean.getTypeId();
+        if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
+            return Zeze.Transaction.EmptyBean.TYPEID;
+        throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Collections.Queue.BQueueNodeValue:Value");
+    }
+
+    public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Value(long typeId) {
+        return null;
     }
 
 

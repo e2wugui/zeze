@@ -6,17 +6,6 @@ import Zeze.Serialize.ByteBuffer;
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BAny extends Zeze.Transaction.Bean {
     private final Zeze.Transaction.DynamicBean _Any;
-        public static long GetSpecialTypeIdFromBean_Any(Zeze.Transaction.Bean bean) {
-            var _typeId_ = bean.getTypeId();
-            if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
-                return Zeze.Transaction.EmptyBean.TYPEID;
-            throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Game.Online.BAny:Any");
-        }
-
-        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Any(long typeId) {
-            return null;
-        }
-
 
     private Object __zeze_map_key__;
 
@@ -73,6 +62,17 @@ public final class BAny extends Zeze.Transaction.Bean {
     @Override
     public long getTypeId() {
         return TYPEID;
+    }
+
+    public static long GetSpecialTypeIdFromBean_Any(Zeze.Transaction.Bean bean) {
+        var _typeId_ = bean.getTypeId();
+        if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
+            return Zeze.Transaction.EmptyBean.TYPEID;
+        throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Game.Online.BAny:Any");
+    }
+
+    public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Any(long typeId) {
+        return null;
     }
 
 

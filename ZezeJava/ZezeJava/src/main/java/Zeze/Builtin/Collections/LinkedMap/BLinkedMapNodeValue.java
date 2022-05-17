@@ -7,17 +7,6 @@ import Zeze.Serialize.ByteBuffer;
 public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
     private String _Id; // LinkedMap的Key转成字符串类型
     private final Zeze.Transaction.DynamicBean _Value;
-        public static long GetSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean) {
-            var _typeId_ = bean.getTypeId();
-            if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
-                return Zeze.Transaction.EmptyBean.TYPEID;
-            throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue:Value");
-        }
-
-        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Value(long typeId) {
-            return null;
-        }
-
 
     public String getId() {
         if (!isManaged())
@@ -94,6 +83,17 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
        public Log__Id(BLinkedMapNodeValue bean, int varId, String value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._Id = this.getValue(); }
+    }
+
+    public static long GetSpecialTypeIdFromBean_Value(Zeze.Transaction.Bean bean) {
+        var _typeId_ = bean.getTypeId();
+        if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
+            return Zeze.Transaction.EmptyBean.TYPEID;
+        throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue:Value");
+    }
+
+    public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Value(long typeId) {
+        return null;
     }
 
 

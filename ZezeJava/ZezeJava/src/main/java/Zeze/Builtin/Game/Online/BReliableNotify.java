@@ -6,32 +6,32 @@ import Zeze.Serialize.ByteBuffer;
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BReliableNotify extends Zeze.Transaction.Bean {
     private final Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> _Notifies; // full encoded protocol list
-    private long _ReliableNotifyTotalCountStart; // Notify的计数开始。客户端收到的总计数为：start + Notifies.Count
+    private long _ReliableNotifyIndex; // Notify的计数开始。客户端收到的总计数为：start + Notifies.Count
 
     public Zeze.Transaction.Collections.PList1<Zeze.Net.Binary> getNotifies() {
         return _Notifies;
     }
 
-    public long getReliableNotifyTotalCountStart() {
+    public long getReliableNotifyIndex() {
         if (!isManaged())
-            return _ReliableNotifyTotalCountStart;
+            return _ReliableNotifyIndex;
         var txn = Zeze.Transaction.Transaction.getCurrent();
         if (txn == null)
-            return _ReliableNotifyTotalCountStart;
+            return _ReliableNotifyIndex;
         txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ReliableNotifyTotalCountStart)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _ReliableNotifyTotalCountStart;
+        var log = (Log__ReliableNotifyIndex)txn.GetLog(this.getObjectId() + 2);
+        return log != null ? log.getValue() : _ReliableNotifyIndex;
     }
 
-    public void setReliableNotifyTotalCountStart(long value) {
+    public void setReliableNotifyIndex(long value) {
         if (!isManaged()) {
-            _ReliableNotifyTotalCountStart = value;
+            _ReliableNotifyIndex = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ReliableNotifyTotalCountStart(this, 2, value));
+        txn.PutLog(new Log__ReliableNotifyIndex(this, 2, value));
     }
 
     public BReliableNotify() {
@@ -48,7 +48,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
         getNotifies().clear();
         for (var e : other.getNotifies())
             getNotifies().add(e);
-        setReliableNotifyTotalCountStart(other.getReliableNotifyTotalCountStart());
+        setReliableNotifyIndex(other.getReliableNotifyIndex());
     }
 
     public BReliableNotify CopyIfManaged() {
@@ -80,10 +80,10 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
     }
 
 
-    private static final class Log__ReliableNotifyTotalCountStart extends Zeze.Transaction.Log1<BReliableNotify, Long> {
-       public Log__ReliableNotifyTotalCountStart(BReliableNotify bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__ReliableNotifyIndex extends Zeze.Transaction.Log1<BReliableNotify, Long> {
+       public Log__ReliableNotifyIndex(BReliableNotify bean, int varId, Long value) { super(bean, varId, value); }
         @Override
-        public void Commit() { getBeanTyped()._ReliableNotifyTotalCountStart = this.getValue(); }
+        public void Commit() { getBeanTyped()._ReliableNotifyIndex = this.getValue(); }
     }
 
     @Override
@@ -105,7 +105,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
         }
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append(']').append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ReliableNotifyTotalCountStart").append('=').append(getReliableNotifyTotalCountStart()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ReliableNotifyIndex").append('=').append(getReliableNotifyIndex()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -136,7 +136,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
             }
         }
         {
-            long _x_ = getReliableNotifyTotalCountStart();
+            long _x_ = getReliableNotifyIndex();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
                 _o_.WriteLong(_x_);
@@ -160,7 +160,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            setReliableNotifyTotalCountStart(_o_.ReadLong(_t_));
+            setReliableNotifyIndex(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -176,7 +176,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
 
     @Override
     public boolean NegativeCheck() {
-        if (getReliableNotifyTotalCountStart() < 0)
+        if (getReliableNotifyIndex() < 0)
             return true;
         return false;
     }
@@ -190,7 +190,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _Notifies.FollowerApply(vlog); break;
-                case 2: _ReliableNotifyTotalCountStart = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
+                case 2: _ReliableNotifyIndex = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
             }
         }
     }

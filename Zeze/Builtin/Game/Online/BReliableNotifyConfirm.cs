@@ -11,35 +11,35 @@ namespace Zeze.Builtin.Game.Online
         public bool NegativeCheck();
         public Zeze.Transaction.Bean CopyBean();
 
-        public long ReliableNotifyConfirmCount { get; }
+        public long ReliableNotifyConfirmIndex { get; }
     }
 
     public sealed class BReliableNotifyConfirm : Zeze.Transaction.Bean, BReliableNotifyConfirmReadOnly
     {
-        long _ReliableNotifyConfirmCount;
+        long _ReliableNotifyConfirmIndex;
 
-        public long ReliableNotifyConfirmCount
+        public long ReliableNotifyConfirmIndex
         {
             get
             {
                 if (!IsManaged)
-                    return _ReliableNotifyConfirmCount;
+                    return _ReliableNotifyConfirmIndex;
                 var txn = Zeze.Transaction.Transaction.Current;
-                if (txn == null) return _ReliableNotifyConfirmCount;
+                if (txn == null) return _ReliableNotifyConfirmIndex;
                 txn.VerifyRecordAccessed(this, true);
-                var log = (Log__ReliableNotifyConfirmCount)txn.GetLog(ObjectId + 1);
-                return log != null ? log.Value : _ReliableNotifyConfirmCount;
+                var log = (Log__ReliableNotifyConfirmIndex)txn.GetLog(ObjectId + 1);
+                return log != null ? log.Value : _ReliableNotifyConfirmIndex;
             }
             set
             {
                 if (!IsManaged)
                 {
-                    _ReliableNotifyConfirmCount = value;
+                    _ReliableNotifyConfirmIndex = value;
                     return;
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ReliableNotifyConfirmCount() { Belong = this, VariableId = 1, Value = value });
+                txn.PutLog(new Log__ReliableNotifyConfirmIndex() { Belong = this, VariableId = 1, Value = value });
             }
         }
 
@@ -53,7 +53,7 @@ namespace Zeze.Builtin.Game.Online
 
         public void Assign(BReliableNotifyConfirm other)
         {
-            ReliableNotifyConfirmCount = other.ReliableNotifyConfirmCount;
+            ReliableNotifyConfirmIndex = other.ReliableNotifyConfirmIndex;
         }
 
         public BReliableNotifyConfirm CopyIfManaged()
@@ -83,9 +83,9 @@ namespace Zeze.Builtin.Game.Online
         public const long TYPEID = -6588057877320371892;
         public override long TypeId => TYPEID;
 
-        sealed class Log__ReliableNotifyConfirmCount : Zeze.Transaction.Log<long>
+        sealed class Log__ReliableNotifyConfirmIndex : Zeze.Transaction.Log<long>
         {
-            public override void Commit() { ((BReliableNotifyConfirm)Belong)._ReliableNotifyConfirmCount = this.Value; }
+            public override void Commit() { ((BReliableNotifyConfirm)Belong)._ReliableNotifyConfirmIndex = this.Value; }
         }
 
         public override string ToString()
@@ -100,7 +100,7 @@ namespace Zeze.Builtin.Game.Online
         {
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Builtin.Game.Online.BReliableNotifyConfirm: {").Append(Environment.NewLine);
             level += 4;
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("ReliableNotifyConfirmCount").Append('=').Append(ReliableNotifyConfirmCount).Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("ReliableNotifyConfirmIndex").Append('=').Append(ReliableNotifyConfirmIndex).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -109,7 +109,7 @@ namespace Zeze.Builtin.Game.Online
         {
             int _i_ = 0;
             {
-                long _x_ = ReliableNotifyConfirmCount;
+                long _x_ = ReliableNotifyConfirmIndex;
                 if (_x_ != 0)
                 {
                     _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
@@ -125,7 +125,7 @@ namespace Zeze.Builtin.Game.Online
             int _i_ = _o_.ReadTagSize(_t_);
             if (_i_ == 1)
             {
-                ReliableNotifyConfirmCount = _o_.ReadLong(_t_);
+                ReliableNotifyConfirmIndex = _o_.ReadLong(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             while (_t_ != 0)
@@ -141,7 +141,7 @@ namespace Zeze.Builtin.Game.Online
 
         public override bool NegativeCheck()
         {
-            if (ReliableNotifyConfirmCount < 0) return true;
+            if (ReliableNotifyConfirmIndex < 0) return true;
             return false;
         }
 
@@ -152,7 +152,7 @@ namespace Zeze.Builtin.Game.Online
             {
                 switch (vlog.VariableId)
                 {
-                    case 1: _ReliableNotifyConfirmCount = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 1: _ReliableNotifyConfirmIndex = ((Zeze.Transaction.Log<long>)vlog).Value; break;
                 }
             }
         }

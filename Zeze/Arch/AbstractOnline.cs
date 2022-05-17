@@ -16,7 +16,7 @@ namespace Zeze.Arch
         public const int ResultCodeRoleNotExist = 3;
         public const int ResultCodeNotLastLoginRoleId = 4;
         public const int ResultCodeOnlineDataNotFound = 5;
-        public const int ResultCodeReliableNotifyConfirmCountOutOfRange = 6;
+        public const int ResultCodeReliableNotifyConfirmIndexOutOfRange = 6;
         public const int ResultCodeNotLogin = 7;
         internal Zeze.Builtin.Online.taccount _taccount = new Zeze.Builtin.Online.taccount();
         internal Zeze.Builtin.Online.tlocal _tlocal = new Zeze.Builtin.Online.tlocal();
