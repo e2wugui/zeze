@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Xml;
+using Zeze.Gen.Types;
 using Zeze.Util;
 
 namespace Zeze.Gen
@@ -55,6 +56,23 @@ namespace Zeze.Gen
                 throw new Exception("NamedObject is not " + fullName); // 怎么得到模板参数类型？
             }
             throw new Exception("NamedObject not found(Not Case Sensitive): " + fullName);
+        }
+
+        static void GenDerives()
+        {
+            foreach (var e in NamedObjects)
+            {
+                if (e.Value is Bean bean)
+                {
+                    for (var baseName = bean.Base; baseName != "";)
+                    {
+                        if (!NamedObjects.TryGetValue(baseName.ToLower(), out var baseType) || baseType is not Bean baseBean)
+                            break;
+                        baseBean.Derives.Add(bean.FullName);
+                        baseName = baseBean.Base;
+                    }
+                }
+            }
         }
 
         public static void ImportSolution(string xmlfile)
@@ -113,6 +131,7 @@ namespace Zeze.Gen
                 ImportSolution(file);
             }
 
+            GenDerives();
             foreach (Solution sol in Solutions.Values) // compile all .包含从文件中 import 进来的。
             {
                 sol.Compile();

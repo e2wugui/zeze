@@ -44,6 +44,15 @@ namespace Zeze.Gen.Types
         {
             Kind = "dynamic";
             Variable = var;
+            if (DynamicParams.Beans.Count == 0)
+            {
+                if (Program.NamedObjects.TryGetValue(DynamicParams.Base.ToLower(), out var baseType) && baseType is Bean baseBean)
+                {
+                    DynamicParams.Beans.Add(baseBean.FullName);
+                    foreach (var derive in baseBean.Derives)
+                        DynamicParams.Beans.Add(derive);
+                }
+            }
             foreach (var beanWithSpecialTypeId in DynamicParams.Beans)
             {
                 if (beanWithSpecialTypeId.Length == 0) // empty

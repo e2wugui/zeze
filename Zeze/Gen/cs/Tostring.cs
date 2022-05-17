@@ -33,7 +33,10 @@ namespace Zeze.Gen.cs
                 var.VariableType.Accept(new Tostring(sw, varNameUpper ? var.NameUpper1 : var.Name, prefix + "    ", sep));
             }
             if (bean.Base != "")
+            {
                 sw.WriteLine($"{prefix}    base.BuildString(sb, level);");
+                sw.WriteLine($"{prefix}    sb.Append(Environment.NewLine);");
+            }
             sw.WriteLine($"{prefix}    level -= {INDENT_SIZE};");
             sw.WriteLine(prefix + "    sb.Append(Zeze.Util.Str.Indent(level)).Append('}');");
             sw.WriteLine(prefix + "}");

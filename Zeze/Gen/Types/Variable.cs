@@ -28,7 +28,7 @@ namespace Zeze.Gen.Types
 		public bool Transient { get; private set; } = false;
 		public string FixSize { get; private set; }
 
-		public DynamicParams DynamicParams { get; } = new(); 
+		public DynamicParams DynamicParams { get; } = new();
 
 		public string GetBeanFullName()
 		{
@@ -57,6 +57,8 @@ namespace Zeze.Gen.Types
 			if (false == string.IsNullOrEmpty(DynamicParams.Base))
 				throw new Exception($"error type define, '{type}'");
 			DynamicParams.Base = dbase[1];
+			if (!DynamicParams.Base.Contains('.'))
+				DynamicParams.Base = ((Bean)Bean).Space.Path(".", DynamicParams.Base);
 			if (false == dbase[0].Equals("dynamic"))
 				throw new Exception($"error type define, only dynamic has base: '{type}'");
 			return dbase[0];

@@ -106,6 +106,7 @@ namespace Zeze.Gen.Types
 		public long TypeId { get; private set; }
 		public bool Extendable { get; private set; }
 		public string Base { get; private set; }
+		public List<string> Derives = new();
 		// ///////////////////////////////////////////
 		public Bean(ModuleSpace space, XmlElement self)
 		{
@@ -123,6 +124,8 @@ namespace Zeze.Gen.Types
 			string attr = self.GetAttribute("TypeId");
 			Extendable = self.GetAttribute("extendable") == "true";
 			Base = self.GetAttribute("base");
+			if (Base != "" && !Base.Contains('.'))
+				Base = Space.Path(".", Base);
 			TypeId = attr.Length > 0 ? int.Parse(attr) : Zeze.Transaction.Bean.Hash64(space.Path(".", _name));
 			if (false == Program.BeanTypeIdDuplicateChecker.Add(TypeId))
 				throw new Exception("duplicate Bean.TypeId, please choice one.");
