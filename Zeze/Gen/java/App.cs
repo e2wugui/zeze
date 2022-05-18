@@ -110,7 +110,7 @@ namespace Zeze.Gen.java
             if (project.AllOrderDefineModules.Count > 0)
                 sw.WriteLine();
 
-            // sw.WriteLine("    @Override"); // 临时注释
+            sw.WriteLine("    @Override");
             sw.WriteLine("    public Zeze.Application getZeze() {");
             sw.WriteLine("        return Zeze;");
             sw.WriteLine("    }");
@@ -137,7 +137,7 @@ namespace Zeze.Gen.java
             {
                 string moduleName = string.Concat(m.Name[..1].ToUpper(), m.Name.AsSpan(1));
                 var fullname = m.Path("_");
-                sw.WriteLine("        " + fullname + " = (" + m.Path(".", $"Module{moduleName}") + ")ReplaceModuleInstance(new " + m.Path(".", $"Module{moduleName}") + "(this));");
+                sw.WriteLine("        " + fullname + " = ReplaceModuleInstance(new " + m.Path(".", $"Module{moduleName}") + "(this));");
                 sw.WriteLine($"        {fullname}.Initialize(this);");
                 sw.WriteLine($"        if (Modules.put({fullname}.getFullName(), {fullname}) != null)");
                 sw.WriteLine($"            throw new RuntimeException(\"duplicate module name: {fullname}\");");

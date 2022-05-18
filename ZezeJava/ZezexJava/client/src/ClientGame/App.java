@@ -39,6 +39,7 @@ public class App extends Zeze.AppBase {
     public Zeze.Builtin.LinkdBase.ModuleLinkdBase Zeze_Builtin_LinkdBase;
     public ClientZezex.Linkd.ModuleLinkd ClientZezex_Linkd;
 
+    @Override
     public Zeze.Application getZeze() {
         return Zeze;
     }
@@ -59,22 +60,22 @@ public class App extends Zeze.AppBase {
         ClientService = new ClientGame.ClientService(Zeze);
     }
     public synchronized void CreateModules() {
-        Zeze_Builtin_Game_Online = (Zeze.Builtin.Game.Online.ModuleOnline)ReplaceModuleInstance(new Zeze.Builtin.Game.Online.ModuleOnline(this));
+        Zeze_Builtin_Game_Online = ReplaceModuleInstance(new Zeze.Builtin.Game.Online.ModuleOnline(this));
         Zeze_Builtin_Game_Online.Initialize(this);
         if (Modules.put(Zeze_Builtin_Game_Online.getFullName(), Zeze_Builtin_Game_Online) != null)
             throw new RuntimeException("duplicate module name: Zeze_Builtin_Game_Online");
 
-        Zeze_Builtin_Game_Bag = (Zeze.Builtin.Game.Bag.ModuleBag)ReplaceModuleInstance(new Zeze.Builtin.Game.Bag.ModuleBag(this));
+        Zeze_Builtin_Game_Bag = ReplaceModuleInstance(new Zeze.Builtin.Game.Bag.ModuleBag(this));
         Zeze_Builtin_Game_Bag.Initialize(this);
         if (Modules.put(Zeze_Builtin_Game_Bag.getFullName(), Zeze_Builtin_Game_Bag) != null)
             throw new RuntimeException("duplicate module name: Zeze_Builtin_Game_Bag");
 
-        Zeze_Builtin_LinkdBase = (Zeze.Builtin.LinkdBase.ModuleLinkdBase)ReplaceModuleInstance(new Zeze.Builtin.LinkdBase.ModuleLinkdBase(this));
+        Zeze_Builtin_LinkdBase = ReplaceModuleInstance(new Zeze.Builtin.LinkdBase.ModuleLinkdBase(this));
         Zeze_Builtin_LinkdBase.Initialize(this);
         if (Modules.put(Zeze_Builtin_LinkdBase.getFullName(), Zeze_Builtin_LinkdBase) != null)
             throw new RuntimeException("duplicate module name: Zeze_Builtin_LinkdBase");
 
-        ClientZezex_Linkd = (ClientZezex.Linkd.ModuleLinkd)ReplaceModuleInstance(new ClientZezex.Linkd.ModuleLinkd(this));
+        ClientZezex_Linkd = ReplaceModuleInstance(new ClientZezex.Linkd.ModuleLinkd(this));
         ClientZezex_Linkd.Initialize(this);
         if (Modules.put(ClientZezex_Linkd.getFullName(), ClientZezex_Linkd) != null)
             throw new RuntimeException("duplicate module name: ClientZezex_Linkd");
