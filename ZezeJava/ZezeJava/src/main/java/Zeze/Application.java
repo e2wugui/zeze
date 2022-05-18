@@ -44,7 +44,7 @@ public final class Application {
 	private final String SolutionName;
 	private final Config Conf;
 	private final HashMap<String, Database> Databases = new HashMap<>();
-	private final ConcurrentHashMap<Integer, Table> Tables = new ConcurrentHashMap<>();
+	private final LongConcurrentHashMap<Table> Tables = new LongConcurrentHashMap<>();
 	private final ConcurrentHashMap<TableKey, LastFlushWhenReduce> FlushWhenReduce = new ConcurrentHashMap<>();
 	private final LongConcurrentHashMap<ConcurrentHashSet<LastFlushWhenReduce>> FlushWhenReduceActives = new LongConcurrentHashMap<>();
 	private final TaskOneByOneByKey TaskOneByOneByKey = new TaskOneByOneByKey();
@@ -173,7 +173,7 @@ public final class Application {
 	}
 
 	public Table GetTableSlow(String name) {
-		for (var table : Tables.values()) {
+		for (var table : Tables) {
 			if (table.getName().equals(name))
 				return table;
 		}

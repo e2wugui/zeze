@@ -6,10 +6,11 @@ import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.Task;
 
 public class RedoQueueServer extends AbstractRedoQueueServer {
-	private final ConcurrentHashMap<String, ConcurrentHashMap<Integer, Predicate<Binary>>> handles = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, LongConcurrentHashMap<Predicate<Binary>>> handles = new ConcurrentHashMap<>();
 	private final Server server;
 
 	public RedoQueueServer(Zeze.Application zeze) throws Throwable {
@@ -37,7 +38,7 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 	 * 注册任务，
 	 */
 	public void register(String queue, int type, Predicate<Binary> task) {
-		if (null != handles.computeIfAbsent(queue, (key) -> new ConcurrentHashMap<>()).putIfAbsent(type, task))
+		if (null != handles.computeIfAbsent(queue, (key) -> new LongConcurrentHashMap<>()).putIfAbsent(type, task))
 			throw new RuntimeException("duplicate task type. " + type);
 	}
 

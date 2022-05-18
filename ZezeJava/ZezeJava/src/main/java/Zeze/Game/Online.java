@@ -324,6 +324,7 @@ public class Online extends AbstractOnline {
 	private void sendInProcedure(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
 		// 发送消息为了用上TaskOneByOne，只能一个一个发送，为了少改代码，先使用旧的GroupByLink接口。
 		var groups = groupByLink(roleIds);
+		//noinspection ConstantConditions
 		Transaction.getCurrent().RunWhileCommit(() -> {
 			for (var group : groups) {
 				if (group.linkSocket == null)
@@ -814,7 +815,6 @@ public class Online extends AbstractOnline {
 		}
 
 		int confirmCount = (int)(index - version.getReliableNotifyConfirmIndex());
-		//noinspection ListRemoveInLoop
 		for (int i = 0; i < confirmCount; i++)
 			queue.poll();
 		if (sync) {

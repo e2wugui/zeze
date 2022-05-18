@@ -2,6 +2,7 @@ package Zeze.Transaction;
 
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Util.LongConcurrentHashMap;
 
 public class TableStatistics {
 	// 为了使用的地方可以方便访问，定义成全局的。
@@ -11,8 +12,8 @@ public class TableStatistics {
 		return Instance;
 	}
 
-	private final ConcurrentHashMap<Integer, Statistics> Tables = new ConcurrentHashMap<> ();
-	public final ConcurrentHashMap<Integer, Statistics> getTables() {
+	private final LongConcurrentHashMap<Statistics> Tables = new LongConcurrentHashMap<> ();
+	public final LongConcurrentHashMap<Statistics> getTables() {
 		return Tables;
 	}
 

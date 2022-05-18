@@ -12,6 +12,7 @@ import Zeze.Net.ProtocolHandle;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.ServiceInfo;
 import Zeze.Services.ServiceManager.ServiceInfos;
+import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -25,7 +26,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 
 	public ProviderApp ProviderApp;
 	public final ConcurrentHashMap<String, ProviderSession> ProviderByLoadName = new ConcurrentHashMap<>();
-	public final ConcurrentHashMap<Integer, ProviderSession> ProviderByServerId = new ConcurrentHashMap<>();
+	public final LongConcurrentHashMap<ProviderSession> ProviderByServerId = new LongConcurrentHashMap<>();
 
 	public ProviderDirectService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);

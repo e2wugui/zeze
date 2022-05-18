@@ -1,10 +1,10 @@
 package Zeze.Transaction;
 
-import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Util.LongConcurrentHashMap;
 
 public final class TableKey implements java.lang.Comparable<TableKey> {
 	// 用来做名字转换，不检查Table.Id唯一性。
-	public static final ConcurrentHashMap<Integer, String> Tables = new ConcurrentHashMap<>();
+	public static final LongConcurrentHashMap<String> Tables = new LongConcurrentHashMap<>();
 
 	private final int Id;
 	public int getId() {
