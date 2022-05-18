@@ -52,13 +52,13 @@ public class TestNestProcedureModifyMapSet {
 			value.getSet10().add(1);
 
 			assert 0L != demo.App.Instance.Zeze.NewProcedure(() -> {
-				Assert.assertEquals(true, value.getSet10().contains(1));
+				Assert.assertTrue(value.getSet10().contains(1));
 				value.getSet10().remove(1);
-				Assert.assertEquals(false, value.getSet10().contains(1));
+				Assert.assertFalse(value.getSet10().contains(1));
 				return Zeze.Transaction.Procedure.LogicError;
 			}, "ModifySetRemove1").Call();
 
-			Assert.assertEquals(true, value.getSet10().contains(1));
+			Assert.assertTrue(value.getSet10().contains(1));
 			return 0L;
 		}, "ModifySetAdd1").Call();
 	}

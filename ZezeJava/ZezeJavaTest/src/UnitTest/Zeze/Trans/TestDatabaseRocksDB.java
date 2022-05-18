@@ -5,7 +5,6 @@ import Zeze.Config.DatabaseConf;
 import Zeze.Config.DbType;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Database;
-import Zeze.Transaction.DatabaseMySql;
 import Zeze.Transaction.DatabaseRocksDb;
 import junit.framework.TestCase;
 import org.junit.Assert;
@@ -103,8 +102,7 @@ public class TestDatabaseRocksDB extends TestCase {
 		databaseConf.setName("RocksDB");
 		databaseConf.setDbcpConf(new Config.DbcpConf());
 
-		DatabaseRocksDb db = new DatabaseRocksDb(databaseConf);
-		return db;
+		return new DatabaseRocksDb(databaseConf);
 	}
 
 	public final boolean PrintRecord(byte[] key, byte[] value) {

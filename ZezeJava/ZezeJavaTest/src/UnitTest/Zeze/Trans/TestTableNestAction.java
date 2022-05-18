@@ -1,6 +1,5 @@
 package UnitTest.Zeze.Trans;
 
-import java.util.Objects;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.OutInt;
@@ -35,9 +34,7 @@ public class TestTableNestAction {
 
 			demo.App.getInstance().Zeze.NewProcedure(() -> {
 
-				Transaction.getCurrent().RunWhileCommit(() -> {
-					value1.Value++;
-				});
+				Transaction.getCurrent().RunWhileCommit(() -> value1.Value++);
 
 				Transaction.getCurrent().RunWhileRollback(() -> {
 					Assert.assertEquals(value1.Value, value2.Value + 1);
@@ -57,9 +54,7 @@ public class TestTableNestAction {
 
 				demo.App.getInstance().Zeze.NewProcedure(() -> {
 
-					Transaction.getCurrent().RunWhileCommit(() -> {
-						value1.Value++;
-					});
+					Transaction.getCurrent().RunWhileCommit(() -> value1.Value++);
 
 					Transaction.getCurrent().RunWhileRollback(() -> {
 						Assert.assertEquals(value1.Value, value2.Value + 1);

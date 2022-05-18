@@ -1,13 +1,11 @@
 package Game.Fight;
 
-import Game.*;
-
 public class Fighter {
-	private BFighterId Id;
+	private final BFighterId Id;
 	public final BFighterId getId() {
 		return Id;
 	}
-	private BFighter Bean;
+	private final BFighter Bean;
 	public final BFighter getBean() {
 		return Bean;
 	}

@@ -3,11 +3,11 @@ package Game.Buf;
 import Game.*;
 
 public class Bufs {
-	private long RoleId;
+	private final long RoleId;
 	public final long getRoleId() {
 		return RoleId;
 	}
-	private BBufs bean;
+	private final BBufs bean;
 
 	public Bufs(long roleId, BBufs bean) {
 		this.RoleId = roleId;

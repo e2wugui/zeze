@@ -73,12 +73,12 @@ public class TestBag {
 			Assert.assertEquals(bag.getBean().getItems().size(), ADD_PILE_NUM * 2);
 			for (int i = MIN_ITEM_ID; i < MIN_ITEM_ID + ADD_PILE_NUM; i++) {
 				var code = bag.remove(i, ADD_NUM / 2);
-				Assert.assertEquals(code, true);
+				Assert.assertTrue(code);
 			}
 			Assert.assertEquals(bag.getBean().getItems().size(), ADD_PILE_NUM);
 			for (int i = MIN_ITEM_ID; i < MIN_ITEM_ID + ADD_PILE_NUM; i++) {
 				var code = bag.remove(i, SECOND_REMOVE_NUM);
-				Assert.assertEquals(code, true);
+				Assert.assertTrue(code);
 			}
 			for (int i = 1; i < ADD_PILE_NUM * 2; i += 2) {
 				Assert.assertEquals(bag.getBean().getItems().get(i).getNumber(), ADD_NUM / 2 - SECOND_REMOVE_NUM);

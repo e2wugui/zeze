@@ -11,7 +11,7 @@ import Zeze.Transaction.Record1;
 import Zeze.Transaction.TableKey;
 
 public class TestProcdure {
-	private MyBean bean = new MyBean();
+	private final MyBean bean = new MyBean();
 
 	public final long ProcTrue() {
 		bean.setI(123);

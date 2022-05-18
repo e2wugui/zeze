@@ -1,9 +1,7 @@
 package Game.Item;
 
-import Game.*;
-
 public class Food extends Item {
-	private BFoodExtra extra;
+	private final BFoodExtra extra;
 
 	public Food(Game.Bag.BItem bItem, BFoodExtra extra) {
 		super(bItem);

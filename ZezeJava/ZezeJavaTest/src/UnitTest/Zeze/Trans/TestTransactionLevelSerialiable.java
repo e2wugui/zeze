@@ -2,7 +2,6 @@ package UnitTest.Zeze.Trans;
 
 import java.util.concurrent.Future;
 import Zeze.Transaction.Transaction;
-import Zeze.Util.Task;
 import demo.App;
 import org.junit.After;
 import org.junit.Assert;
@@ -48,9 +47,7 @@ public class TestTransactionLevelSerialiable {
 		var v2 = App.Instance.demo_Module1.getTable1().getOrAdd(2L);
 		final var total = v1.getInt1() + v2.getInt1();
 		// 必须在事务成功时verify，执行过程中是可能失败的。
-		Transaction.getCurrent().RunWhileCommit(() -> {
-			Assert.assertEquals(total, 100_000);
-		});
+		Transaction.getCurrent().RunWhileCommit(() -> Assert.assertEquals(total, 100_000));
 		return 0;
 	}
 

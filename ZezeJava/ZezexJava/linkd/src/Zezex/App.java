@@ -2,7 +2,6 @@ package Zezex;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import Zeze.Arch.Gen.GenModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.PersistentAtomicLong;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -10,7 +9,7 @@ import Zeze.Arch.*;
 import Zeze.Config;
 
 public final class App extends Zeze.AppBase {
-	public static App Instance = new App();
+	public static final App Instance = new App();
 
 	public static App getInstance() {
 		return Instance;

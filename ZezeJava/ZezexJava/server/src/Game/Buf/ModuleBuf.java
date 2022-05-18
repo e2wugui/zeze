@@ -16,7 +16,7 @@ public class ModuleBuf extends AbstractModule {
 	}
 
 	private static class BufChangeListener implements ChangeListener {
-		private String Name;
+		private final String Name;
 		public final String getName() {
 			return Name;
 		}
@@ -25,6 +25,7 @@ public class ModuleBuf extends AbstractModule {
 			Name = name;
 		}
 
+		@Override
 		public final void OnChanged(Object key, Changes.Record c) {
 			switch (c.getState()) {
 			case Changes.Record.Put:

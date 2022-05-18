@@ -7,7 +7,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import Zeze.Transaction.Procedure;
-import Zeze.Util.Task;
 
 public class TestConflict {
 	private int sum;
@@ -29,9 +28,9 @@ public class TestConflict {
 		for (int i = 0; i < 2000; ++i) {
 			tasks[i]=Zeze.Util.Task.run(demo.App.getInstance().Zeze.NewProcedure(this::ProcAdd, "ProcAdd"), null, null);
 		}
-		for (int i = 0; i < tasks.length; ++i) {
+		for (Future<?> task : tasks) {
 			try {
-				tasks[i].get();
+				task.get();
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
@@ -42,7 +41,7 @@ public class TestConflict {
 	}
 
 	private long ProcRemove() {
-		demo.App.getInstance().demo_Module1.getTable1().remove(123123l);
+		demo.App.getInstance().demo_Module1.getTable1().remove(123123L);
 		return Procedure.Success;
 	}
 

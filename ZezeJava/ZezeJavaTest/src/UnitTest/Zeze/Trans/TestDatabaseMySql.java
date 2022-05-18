@@ -11,7 +11,6 @@ import org.junit.Assert;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Properties;
 
 public class TestDatabaseMySql extends TestCase {
 

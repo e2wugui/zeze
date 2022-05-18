@@ -25,9 +25,9 @@ public class TestOnline extends TestCase {
 
 	private static final Logger logger = LogManager.getLogger(TestOnline.class);
 
-	ArrayList<ClientGame.App> clients = new ArrayList<>();
-	ArrayList<Zezex.App> links = new ArrayList<>();
-	ArrayList<Game.App>  servers = new ArrayList<>();
+	final ArrayList<ClientGame.App> clients = new ArrayList<>();
+	final ArrayList<Zezex.App> links = new ArrayList<>();
+	final ArrayList<Game.App>  servers = new ArrayList<>();
 	ArrayList<BRole> roles = new ArrayList<>();
 	ArrayList<String> accounts = new ArrayList<>();
 

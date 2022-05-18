@@ -7,7 +7,6 @@ import Zeze.Arch.LoadConfig;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderModuleBinds;
 import Zeze.Config;
-import Zeze.Game.LoadReporter;
 import Zeze.Game.Online;
 import Zeze.Game.ProviderDirectWithTransmit;
 import Zeze.Game.ProviderImplementWithOnline;
@@ -16,7 +15,7 @@ import Zeze.Util.PersistentAtomicLong;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public final class App extends Zeze.AppBase {
-	public static App Instance = new App();
+	public static final App Instance = new App();
 
 	public static App getInstance() {
 		return Instance;

@@ -32,7 +32,7 @@ public class MyBean extends Bean {
 
 		@Override
 		public long getLogKey() {
-			return getBean().getObjectId() + 0;
+			return getBean().getObjectId();
 		}
 
 		@Override
@@ -45,7 +45,7 @@ public class MyBean extends Bean {
 		var txn = Transaction.getCurrent();
 		if (null == txn)
 			return _i;
-		MyBean.MyLog log = (MyBean.MyLog)txn.GetLog(this.getObjectId() + 0);
+		MyBean.MyLog log = (MyBean.MyLog)txn.GetLog(this.getObjectId());
 		return (null != log) ? log.getValue() : _i;
 	}
 

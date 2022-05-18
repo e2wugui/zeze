@@ -1,7 +1,5 @@
 package Game.Equip;
 
-import Game.*;
-
 public class Equip extends Game.Item.Item {
 
 	public Equip(Game.Bag.BItem bItem, BEquipExtra extra) {

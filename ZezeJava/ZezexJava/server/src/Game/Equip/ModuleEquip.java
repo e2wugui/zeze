@@ -20,11 +20,12 @@ public final class ModuleEquip extends AbstractModule {
 	}
 
 	private static class ItemsChangeListener implements ChangeListener {
-		private static String Name = "Game.Equip.Items";
+		private static final String Name = "Game.Equip.Items";
 		public static String getName() {
 			return Name;
 		}
 
+		@Override
 		public final void OnChanged(Object key, Changes.Record c) {
 			switch (c.getState()) {
 				case Changes.Record.Put:
@@ -96,22 +97,16 @@ public final class ModuleEquip extends AbstractModule {
 				tempVar.setNumber(1);
 				tempVar.setExtra(eItem.getExtra_Game_Equip_BEquipExtra().Copy());
 				bag.Add(rpc.Argument.getBagPos(), tempVar);
-
-				bEquipAdd = new Game.Bag.BItem();
-				bEquipAdd.setId(bItem.getId());
-				bEquipAdd.setNumber(1);
-				bEquipAdd.setExtra(bItem.getExtra_Game_Equip_BEquipExtra().Copy());
-				equips.getItems().put(equipPos, bEquipAdd);
 			}
 			else {
 				// 装备目标位置为空
 				bag.Remove(rpc.Argument.getBagPos(), bItem.getId(), 1);
-				bEquipAdd = new Game.Bag.BItem();
-				bEquipAdd.setId(bItem.getId());
-				bEquipAdd.setNumber(1);
-				bEquipAdd.setExtra(bItem.getExtra_Game_Equip_BEquipExtra().Copy());
-				equips.getItems().put(equipPos, bEquipAdd);
 			}
+			bEquipAdd = new BItem();
+			bEquipAdd.setId(bItem.getId());
+			bEquipAdd.setNumber(1);
+			bEquipAdd.setExtra(bItem.getExtra_Game_Equip_BEquipExtra().Copy());
+			equips.getItems().put(equipPos, bEquipAdd);
 			session.SendResponse(rpc);
 			return Procedure.Success;
 		}

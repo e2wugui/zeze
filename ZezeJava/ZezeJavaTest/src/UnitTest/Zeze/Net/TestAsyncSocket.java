@@ -16,7 +16,7 @@ public class TestAsyncSocket extends TestCase {
 	}
 
 	public static class ServiceClient extends Service {
-		public TaskCompletionSource<Boolean> Future = new TaskCompletionSource<>();
+		public final TaskCompletionSource<Boolean> Future = new TaskCompletionSource<>();
 		public ServiceClient() {
 			super("TestAsyncSocket.ServiceClient");
 		}

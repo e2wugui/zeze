@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import demo.App;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -119,7 +120,7 @@ public class TestTable {
 		Assert.assertEquals(v.getByte13(), 13);
 
 		demo.App.getInstance().demo_Module1.getTable1().remove(1L);
-		Assert.assertEquals(demo.App.getInstance().demo_Module1.getTable1().get(1L), null);
+		Assert.assertNull(App.getInstance().demo_Module1.getTable1().get(1L));
 		return Procedure.Success;
 	}
 
@@ -150,7 +151,7 @@ public class TestTable {
 	private long ProcGet21() {
 		ProcGet11();
 		demo.Module1.Key key = new demo.Module1.Key((short)1);
-		Assert.assertEquals(demo.App.getInstance().demo_Module1.getTable2().get(key), null);
+		Assert.assertNull(App.getInstance().demo_Module1.getTable2().get(key));
 		demo.Module1.Value v = new demo.Module1.Value();
 		v.setInt1(1);
 		v.setLong2(2);
@@ -191,12 +192,12 @@ public class TestTable {
 		Assert.assertEquals(v.getByte13(), 13);
 
 		demo.App.getInstance().demo_Module1.getTable2().remove(key);
-		Assert.assertEquals(demo.App.getInstance().demo_Module1.getTable2().get(key), null);
+		Assert.assertNull(App.getInstance().demo_Module1.getTable2().get(key));
 		return Procedure.Success;
 	}
 
 	private long ProcGet11() {
-		Assert.assertEquals(demo.App.getInstance().demo_Module1.getTable1().get(1L), null);
+		Assert.assertNull(App.getInstance().demo_Module1.getTable1().get(1L));
 		demo.Module1.Value v = new demo.Module1.Value();
 		v.setInt1(1);
 		v.setLong2(2);
@@ -235,7 +236,7 @@ public class TestTable {
 		Assert.assertEquals(v.getByte13(), 13);
 
 		demo.App.getInstance().demo_Module1.getTable1().remove(1L);
-		Assert.assertEquals(demo.App.getInstance().demo_Module1.getTable1().get(1L), null);
+		Assert.assertNull(App.getInstance().demo_Module1.getTable1().get(1L));
 		return Procedure.Success;
 	}
 }

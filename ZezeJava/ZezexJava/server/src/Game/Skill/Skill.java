@@ -1,9 +1,7 @@
 package Game.Skill;
 
-import Game.*;
-
 public class Skill {
-	private BSkill Bean;
+	private final BSkill Bean;
 
 	public Skill(BSkill bean) {
 		this.Bean = bean;

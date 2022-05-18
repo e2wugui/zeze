@@ -135,7 +135,7 @@ public class GlobalCacheManagerWithRaft
 
 	private boolean GlobalLruTryRemove(Binary key, Record<Binary> r) {
 		var lockey = Locks.Get(key);
-		if (false == lockey.tryLock())
+		if (!lockey.tryLock())
 			return false;
 		try {
 			GlobalStates.getLruCache().remove(key);

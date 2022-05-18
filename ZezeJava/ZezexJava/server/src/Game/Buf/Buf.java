@@ -1,10 +1,7 @@
 package Game.Buf;
 
-import Game.Buf.*;
-import Game.*;
-
 public abstract class Buf {
-	private BBuf bean;
+	private final BBuf bean;
 
 	public final int getId() {
 		return bean.getId();

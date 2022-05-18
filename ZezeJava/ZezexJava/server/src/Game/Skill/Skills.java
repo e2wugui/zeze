@@ -1,13 +1,11 @@
 package Game.Skill;
 
-import Game.*;
-
 public class Skills {
-	private long RoleId;
+	private final long RoleId;
 	public final long getRoleId() {
 		return RoleId;
 	}
-	private BSkills Bean;
+	private final BSkills Bean;
 
 	public Skills(long roleId, BSkills bean) {
 		this.RoleId = roleId;

@@ -10,7 +10,7 @@ import junit.framework.TestCase;
 import org.junit.Assert;
 
 public class TestRpc extends TestCase {
-	Zeze.Util.TaskCompletionSource<AsyncSocket> connected = new Zeze.Util.TaskCompletionSource<>();
+	final Zeze.Util.TaskCompletionSource<AsyncSocket> connected = new Zeze.Util.TaskCompletionSource<>();
 
 	public final void testRpcSimple() throws Throwable {
 		Service server = new Service("TestRpc.Server");

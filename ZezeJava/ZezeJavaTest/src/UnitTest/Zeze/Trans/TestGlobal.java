@@ -9,7 +9,6 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log1;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
-import Zeze.Util.Task;
 import junit.framework.TestCase;
 import org.junit.Assert;
 
@@ -18,13 +17,12 @@ public class TestGlobal extends TestCase {
 		private static final Logger logger = LogManager.getLogger(TestGlobal.class);
 
 		private static volatile int lastInt = -1;
-		private int oldInt;
-		private int appId;
-		private boolean eq = false;
+		private final int oldInt;
+		private final int appId;
+		private boolean eq;
 
 		public PrintLog(Bean bean, demo.Module1.Value value, int appId) {
 			super(bean, value);
-			int last = lastInt;
 			oldInt = getValue().getInt1();
 			eq = lastInt == oldInt;
 			this.appId = appId;
@@ -52,7 +50,7 @@ public class TestGlobal extends TestCase {
 		System.out.println(rname);
 		var x = Zeze.Transaction.Bean.Hash32(rname);
 		System.out.println(x);
-		var i = (int)x & 0xffff;
+		var i = x & 0xffff;
 		System.out.println(i);
 	}
 
@@ -105,16 +103,16 @@ public class TestGlobal extends TestCase {
 		Future<?>[] tasks = new Future[count];
 		for (int i = 0; i < tasks.length; ++i) {
 			tasks[i] = Zeze.Util.Task.run(app.Zeze.NewProcedure(() -> {
-				demo.Module1.Value b = app.demo_Module1.getTable1().getOrAdd(6785l);
+				demo.Module1.Value b = app.demo_Module1.getTable1().getOrAdd(6785L);
 				b.setInt1(b.getInt1() + 1);
 				PrintLog log = new PrintLog(b, b, appId);
 				Transaction.getCurrent().PutLog(log);
 				return Procedure.Success;
 			}, "ConcurrentAdd" + appId), null, null);
 		}
-		for (int i = 0; i < tasks.length; ++i) {
+		for (Future<?> task : tasks) {
 			try {
-				tasks[i].get();
+				task.get();
 			} catch (Exception e) {
 				e.printStackTrace();
 			}

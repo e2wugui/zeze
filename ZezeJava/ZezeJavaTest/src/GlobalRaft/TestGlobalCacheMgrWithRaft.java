@@ -32,8 +32,8 @@ public class TestGlobalCacheMgrWithRaft {
 
 	private static String ConfigFileName = "global.raft.xml";
 
-	private App App1 = new App();
-	private App App2 = new App();
+	private final App App1 = new App();
+	private final App App2 = new App();
 
 	private final LongHashMap<Long> Errors = new LongHashMap<>();
 	private final ArrayList<FailAction> FailActions = new ArrayList<>();
@@ -296,7 +296,7 @@ public class TestGlobalCacheMgrWithRaft {
 		try {
 			task2[0].get();
 			task2[1].get();
-			System.out.println(String.format("ConcurrentAddCount task1 count %s task2 count %s", finalCount1.get(), finalCount2.get()));
+			System.out.printf("ConcurrentAddCount task1 count %s task2 count %s%n", finalCount1.get(), finalCount2.get());
 		} catch (Exception e) {
 			var currentCount = GetCurrentCount();
 			var expectCount = this.ExpectCount.get();
@@ -314,7 +314,7 @@ public class TestGlobalCacheMgrWithRaft {
 				var v = app.demo_Module1.getTable1().getOrAdd(99L);
 				v.setInt1(v.getInt1() + 1);
 
-				System.out.println(String.format("appId %d value %d timestamp %s", appId, v.getInt1(), System.currentTimeMillis()));
+				System.out.printf("appId %d value %d timestamp %s%n", appId, v.getInt1(), System.currentTimeMillis());
 				return Procedure.Success;
 			}, "doConcurrency" + appId), null, null);
 
@@ -334,13 +334,13 @@ public class TestGlobalCacheMgrWithRaft {
 					finalCount--;
 
 				if (!result.equals(Procedure.Success))
-					System.out.println(String.format("TestConcurrency exception %s", result));
+					System.out.printf("TestConcurrency exception %s%n", result);
 			} catch (Exception e) {
 				logger.warn("TestConcurrency count {} appId {} index {} fail.", count, appId, i);
 				e.printStackTrace();
 			}
 		}
-		System.out.println(String.format("TestConcurrency finalCount %s", finalCount));
+		System.out.printf("TestConcurrency finalCount %s%n", finalCount);
 		return finalCount;
 	}
 

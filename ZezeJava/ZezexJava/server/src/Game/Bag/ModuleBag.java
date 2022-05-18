@@ -17,11 +17,12 @@ public final class ModuleBag extends AbstractModule {
 	}
 
 	private static class BagChangeListener implements ChangeListener {
-		private static String Name = "Game.Bag";
+		private static final String Name = "Game.Bag";
 		public static String getName() {
 			return Name;
 		}
 
+		@Override
 		public final void OnChanged(Object key, Changes.Record c) {
 			switch (c.getState()) {
 			case Changes.Record.Put:
@@ -97,7 +98,7 @@ public final class ModuleBag extends AbstractModule {
 
 		GetBag(session.getRoleId().longValue()).ToProtocol(rpc.Result);
 		session.SendResponse(rpc);
-		App.getInstance().getProvider().Online.addReliableNotifyMark(session.getRoleId().longValue(), BagChangeListener.getName());
+		Game.App.getInstance().getProvider().Online.addReliableNotifyMark(session.getRoleId().longValue(), BagChangeListener.getName());
 		return Procedure.Success;
 	}
 

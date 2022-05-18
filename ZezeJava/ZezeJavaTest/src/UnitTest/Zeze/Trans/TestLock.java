@@ -6,7 +6,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import Zeze.Transaction.Lockey;
 import Zeze.Transaction.Locks;
 import Zeze.Transaction.TableKey;
-import Zeze.Util.OutObject;
 import Zeze.Util.WeakHashSet;
 import junit.framework.TestCase;
 import org.junit.Assert;
@@ -16,11 +15,11 @@ public class TestLock extends TestCase {
 	public final void test() {
 		// DEBUG 下垃圾回收策略导致 WeakReference 不回收。
 //#if RELEASE
-		WeakHashSet<demo.Module1.Key> keys = new WeakHashSet<demo.Module1.Key>();
+		WeakHashSet<demo.Module1.Key> keys = new WeakHashSet<>();
 		demo.Module1.Key key1 = new demo.Module1.Key((short)1);
 		demo.Module1.Key key2 = new demo.Module1.Key((short)1);
 
-		Assert.assertEquals(null, keys.get(key1));
+		Assert.assertNull(keys.get(key1));
 		keys.add(key1);
 
 		demo.Module1.Key exist1 = keys.get(key1);
@@ -31,14 +30,8 @@ public class TestLock extends TestCase {
 		Assert.assertNotNull(exist2);
 		Assert.assertEquals(exist2, key1);
 
-		key1 = null;
-		key2 = null;
-		exist1 = null;
-		exist2 = null;
-
 		demo.Module1.Key k4 = new demo.Module1.Key((short)1);
-		WeakReference<demo.Module1.Key> wref = new WeakReference<demo.Module1.Key>(k4);
-		k4 = null;
+		WeakReference<demo.Module1.Key> wref = new WeakReference<>(k4);
 		for (int i = 0; i < 10; ++i) {
 			System.gc();
 			System.runFinalization();
@@ -52,15 +45,15 @@ public class TestLock extends TestCase {
 				break;
 		}
 
-		Assert.assertEquals(null, wref.get());
+		Assert.assertNull(wref.get());
 
 		demo.Module1.Key key3 = new demo.Module1.Key((short)1);
 		System.out.println("test: is null.");
-		Assert.assertEquals(null, keys.get(key3));
+		Assert.assertNull(keys.get(key3));
 //#endif
 	}
 
-	private Zeze.Transaction.Locks Locks = new Zeze.Transaction.Locks();
+	private final Zeze.Transaction.Locks Locks = new Zeze.Transaction.Locks();
 
 	public final void test1() {
 		Locks locks = Locks;
@@ -111,7 +104,6 @@ public class TestLock extends TestCase {
 	public final void testRwlock() {
 		var rw = new ReentrantReadWriteLock();
 		rw.readLock().lock();
-		;
 		//rw.writeLock().lock(); // 会死锁。java没有对这种情况报错。
 		//rw.writeLock().unlock();
 		rw.readLock().unlock();

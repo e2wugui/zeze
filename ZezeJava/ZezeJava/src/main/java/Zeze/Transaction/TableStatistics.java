@@ -1,7 +1,6 @@
 package Zeze.Transaction;
 
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Util.LongConcurrentHashMap;
 
 public class TableStatistics {

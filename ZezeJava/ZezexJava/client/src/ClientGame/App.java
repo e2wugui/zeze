@@ -3,7 +3,7 @@ package ClientGame;
 import Zeze.Config;
 
 public class App extends Zeze.AppBase {
-    public static App Instance = new App();
+    public static final App Instance = new App();
     public static App getInstance() {
         return Instance;
     }

@@ -6,7 +6,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import Zeze.Transaction.Procedure;
-import Zeze.Util.Task;
 
 public class TestCheckpointModeTable{
 
@@ -41,9 +40,9 @@ public class TestCheckpointModeTable{
 			for (int i = 0; i < tasks.length; ++i) {
 				tasks[i] = Zeze.Util.Task.run(demo.App.getInstance().Zeze.NewProcedure(this::Add, "TestCheckpointModeTable.Add"), null, null);
 			}
-			for (int i = 0; i < tasks.length; ++i) {
+			for (Future<?> task : tasks) {
 				try {
-					tasks[i].get();
+					task.get();
 				} catch (Throwable e) {
 					e.printStackTrace();
 				}
@@ -57,9 +56,9 @@ public class TestCheckpointModeTable{
 			for (int i = 0; i < tasks.length; ++i) {
 				tasks[i] = Zeze.Util.Task.run(demo.App.getInstance().Zeze.NewProcedure(this::Add2, "TestCheckpointModeTable.Add2"), null, null);
 			}
-			for (int i = 0; i < tasks.length; ++i) {
+			for (Future<?> task : tasks) {
 				try {
-					tasks[i].get();
+					task.get();
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -70,15 +69,15 @@ public class TestCheckpointModeTable{
 	}
 
 	private long Add() {
-		var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1l);
+		var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1L);
 		value.setInt1 (value.getInt1() + 1);
 		return Procedure.Success;
 	}
 
 	private long Add2() {
-		var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1l);
+		var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1L);
 		value.setInt1(value.getInt1() + 1);
-		var value2 = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1l);
+		var value2 = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 		value2.setInt1 ( value2.getInt1() + 1);
 		return Procedure.Success;
 	}

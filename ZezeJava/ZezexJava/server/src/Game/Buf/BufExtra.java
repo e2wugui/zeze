@@ -1,10 +1,7 @@
 package Game.Buf;
 
-import Game.Buf.*;
-import Game.*;
-
 public class BufExtra extends Buf {
-	private BBufExtra extra;
+	private final BBufExtra extra;
 
 	public BufExtra(BBuf bean, BBufExtra extra) {
 		super(bean);

@@ -1,9 +1,7 @@
 package Game.Item;
 
-import Game.*;
-
 public class Horse extends Item {
-	private BHorseExtra extra;
+	private final BHorseExtra extra;
 
 	public Horse(Game.Bag.BItem bItem, BHorseExtra extra) {
 		super(bItem);

@@ -5,7 +5,7 @@ import junit.framework.TestCase;
 public class TestConcurrentDictionary extends TestCase {
 
 	public final void testRemoveInForeach() {
-		java.util.concurrent.ConcurrentHashMap<Integer, Integer> cd = new java.util.concurrent.ConcurrentHashMap<Integer, Integer>();
+		java.util.concurrent.ConcurrentHashMap<Integer, Integer> cd = new java.util.concurrent.ConcurrentHashMap<>();
 
 		cd.putIfAbsent(1, 1);
 		cd.putIfAbsent(2, 2);
