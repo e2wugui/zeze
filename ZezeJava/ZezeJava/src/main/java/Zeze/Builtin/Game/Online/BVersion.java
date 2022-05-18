@@ -157,7 +157,6 @@ public final class BVersion extends Zeze.Transaction.Bean {
         public void Commit() { getBeanTyped()._LoginVersion = this.getValue(); }
     }
 
-
     private static final class Log__ReliableNotifyConfirmIndex extends Zeze.Transaction.Log1<BVersion, Long> {
        public Log__ReliableNotifyConfirmIndex(BVersion bean, int varId, Long value) { super(bean, varId, value); }
         @Override
@@ -313,6 +312,7 @@ public final class BVersion extends Zeze.Transaction.Bean {
         return false;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void FollowerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();

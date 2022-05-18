@@ -187,6 +187,7 @@ public final class BReLogin extends Zeze.Transaction.Bean {
         return false;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void FollowerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();

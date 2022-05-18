@@ -12,6 +12,7 @@ namespace Zeze.Gen.java
         readonly string bufname;
         readonly StreamWriter sw;
         readonly string prefix;
+        readonly string typeVarName;
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
@@ -115,9 +116,10 @@ namespace Zeze.Gen.java
             this.bufname = bufname;
             this.sw = sw;
             this.prefix = prefix;
+            this.typeVarName = "_t_";
         }
 
-        public Decode(string tmpvarname, int id, string bufname, StreamWriter sw, string prefix)
+        public Decode(string tmpvarname, int id, string bufname, StreamWriter sw, string prefix, string typeVarName = null)
         {
             this.var = null;
             this.tmpvarname = tmpvarname;
@@ -125,6 +127,7 @@ namespace Zeze.Gen.java
             this.bufname = bufname;
             this.sw = sw;
             this.prefix = prefix;
+            this.typeVarName = typeVarName ?? "_t_";
         }
 
         string GetVarName()
@@ -323,7 +326,7 @@ namespace Zeze.Gen.java
             if (IsOldStypeEncodeDecodeType(kt))
             {
                 kt.Accept(new Define("_k_", sw, prefix + "        "));
-                kt.Accept(new Decode("_k_", 0, bufname, sw, prefix + "        "));
+                kt.Accept(new Decode("_k_", 0, bufname, sw, prefix + "        ", "_s_"));
             }
             else
             {
@@ -362,58 +365,37 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeDynamic type)
         {
-            if (id > 0)
-                sw.WriteLine(prefix + bufname + ".ReadDynamic(" + GetVarName() + ", _t_);");
-            else
-                sw.WriteLine(prefix + GetVarName() + ".Decode(" + bufname + ");");
+            sw.WriteLine(prefix + bufname + ".ReadDynamic(" + GetVarName() + ", " + typeVarName + ");");
         }
 
         public void Visit(TypeQuaternion type)
         {
-            if (id > 0)
-                sw.WriteLine(prefix + AssignText($"{bufname}.ReadQuaternion(_t_)") + ';');
-            else
-                sw.WriteLine(prefix + AssignText($"{bufname}.ReadQuaternion()") + ';');
+            sw.WriteLine(prefix + AssignText($"{bufname}.ReadQuaternion({typeVarName})") + ';');
         }
 
         public void Visit(TypeVector2 type)
         {
-            if (id > 0)
-                sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector2(_t_)") + ';');
-            else
-                sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector2()") + ';');
+            sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector2({typeVarName})") + ';');
         }
 
         public void Visit(TypeVector2Int type)
         {
-            if (id > 0)
-                sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector2Int(_t_)") + ';');
-            else
-                sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector2Int()") + ';');
+            sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector2Int({typeVarName})") + ';');
         }
 
         public void Visit(TypeVector3 type)
         {
-            if (id > 0)
-                sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector3(_t_)") + ';');
-            else
-                sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector3()") + ';');
+            sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector3({typeVarName})") + ';');
         }
 
         public void Visit(TypeVector3Int type)
         {
-            if (id > 0)
-                sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector3Int(_t_)") + ';');
-            else
-                sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector3Int()") + ';');
+            sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector3Int({typeVarName})") + ';');
         }
 
         public void Visit(TypeVector4 type)
         {
-            if (id > 0)
-                sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector4(_t_)") + ';');
-            else
-                sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector4()") + ';');
+            sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector4({typeVarName})") + ';');
         }
     }
 }

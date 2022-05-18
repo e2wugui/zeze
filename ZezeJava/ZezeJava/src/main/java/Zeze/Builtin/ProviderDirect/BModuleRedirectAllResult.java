@@ -208,7 +208,6 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
         public void Commit() { getBeanTyped()._SessionId = this.getValue(); }
     }
 
-
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -373,6 +372,7 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
         return false;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void FollowerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();

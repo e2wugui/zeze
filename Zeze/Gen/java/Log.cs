@@ -16,7 +16,6 @@ namespace Zeze.Gen.java
             foreach (Variable var in bean.Variables)
             {
                 var.VariableType.Accept(new Log(bean, sw, var, prefix));
-                sw.WriteLine();
             }
         }
 
@@ -40,6 +39,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    @Override");
             sw.WriteLine(prefix + $"    public void Commit() {{ getBeanTyped().{var.NamePrivate} = this.getValue(); }}");
             sw.WriteLine(prefix + "}");
+            sw.WriteLine();
         }
 
         public void Visit(TypeBool type)
@@ -115,6 +115,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    @Override");
             sw.WriteLine(prefix + "    public void Commit() { Commit(getBeanTyped()." + var.NamePrivate + "); }");
             sw.WriteLine(prefix + "}");
+            sw.WriteLine();
             */
         }
 
@@ -147,36 +148,42 @@ namespace Zeze.Gen.java
         public void Visit(TypeQuaternion type)
         {
             sw.WriteLine($"    // unsupported Log for {type.Name} {var.Name}");
+            sw.WriteLine();
             // throw new NotImplementedException();
         }
 
         public void Visit(TypeVector2 type)
         {
             sw.WriteLine($"    // unsupported Log for {type.Name} {var.Name}");
+            sw.WriteLine();
             // throw new NotImplementedException();
         }
 
         public void Visit(TypeVector2Int type)
         {
             sw.WriteLine($"    // unsupported Log for {type.Name} {var.Name}");
+            sw.WriteLine();
             // throw new NotImplementedException();
         }
 
         public void Visit(TypeVector3 type)
         {
             sw.WriteLine($"    // unsupported Log for {type.Name} {var.Name}");
+            sw.WriteLine();
             // throw new NotImplementedException();
         }
 
         public void Visit(TypeVector3Int type)
         {
             sw.WriteLine($"    // unsupported Log for {type.Name} {var.Name}");
+            sw.WriteLine();
             // throw new NotImplementedException();
         }
 
         public void Visit(TypeVector4 type)
         {
             sw.WriteLine($"    // unsupported Log for {type.Name} {var.Name}");
+            sw.WriteLine();
             // throw new NotImplementedException();
         }
     }

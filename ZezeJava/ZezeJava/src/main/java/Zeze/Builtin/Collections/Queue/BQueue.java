@@ -7,7 +7,7 @@ import Zeze.Serialize.ByteBuffer;
 public final class BQueue extends Zeze.Transaction.Bean {
     private long _HeadNodeId;
     private long _TailNodeId;
-    private long _Count; // 暂时没用
+    private long _Count;
     private long _LastNodeId; // 最近分配过的NodeId, 用于下次分配
 
     public long getHeadNodeId() {
@@ -274,6 +274,7 @@ public final class BQueue extends Zeze.Transaction.Bean {
         return false;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void FollowerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();

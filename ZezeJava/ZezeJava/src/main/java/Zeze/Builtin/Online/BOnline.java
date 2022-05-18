@@ -283,8 +283,6 @@ public final class BOnline extends Zeze.Transaction.Bean {
         public void Commit() { getBeanTyped()._State = this.getValue(); }
     }
 
-
-
     private static final class Log__ReliableNotifyConfirmCount extends Zeze.Transaction.Log1<BOnline, Long> {
        public Log__ReliableNotifyConfirmCount(BOnline bean, int varId, Long value) { super(bean, varId, value); }
         @Override
@@ -534,6 +532,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
         return false;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void FollowerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();

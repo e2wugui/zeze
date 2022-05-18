@@ -106,7 +106,6 @@ public final class BSend extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-
     private static final class Log__protocolType extends Zeze.Transaction.Log1<BSend, Long> {
        public Log__protocolType(BSend bean, int varId, Long value) { super(bean, varId, value); }
         @Override
@@ -230,6 +229,7 @@ public final class BSend extends Zeze.Transaction.Bean {
         return false;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void FollowerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();

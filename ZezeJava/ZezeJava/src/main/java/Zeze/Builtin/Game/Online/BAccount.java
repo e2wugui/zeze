@@ -136,7 +136,6 @@ public final class BAccount extends Zeze.Transaction.Bean {
         public void Commit() { getBeanTyped()._Name = this.getValue(); }
     }
 
-
     private static final class Log__LastLoginRoleId extends Zeze.Transaction.Log1<BAccount, Long> {
        public Log__LastLoginRoleId(BAccount bean, int varId, Long value) { super(bean, varId, value); }
         @Override
@@ -274,6 +273,7 @@ public final class BAccount extends Zeze.Transaction.Bean {
         return false;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void FollowerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();

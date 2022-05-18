@@ -139,7 +139,6 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         public void Commit() { getBeanTyped()._ActionName = this.getValue(); }
     }
 
-
     private static final class Log__Sender extends Zeze.Transaction.Log1<BTransmit, Long> {
        public Log__Sender(BTransmit bean, int varId, Long value) { super(bean, varId, value); }
         @Override
@@ -275,6 +274,7 @@ public final class BTransmit extends Zeze.Transaction.Bean {
         return false;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void FollowerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();

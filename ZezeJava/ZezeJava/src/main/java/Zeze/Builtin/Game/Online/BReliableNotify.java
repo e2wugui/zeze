@@ -79,7 +79,6 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-
     private static final class Log__ReliableNotifyIndex extends Zeze.Transaction.Log1<BReliableNotify, Long> {
        public Log__ReliableNotifyIndex(BReliableNotify bean, int varId, Long value) { super(bean, varId, value); }
         @Override
@@ -181,6 +180,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
         return false;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void FollowerApply(Zeze.Transaction.Log log) {
         var vars = ((Zeze.Transaction.Collections.LogBean)log).getVariables();

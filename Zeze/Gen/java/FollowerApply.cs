@@ -19,15 +19,9 @@ namespace Zeze.Gen.java
             foreach (var v in bean.Variables)
             {
                 if (!v.Transient)
-                {
                     needApplyVars = true;
-                    if (v.VariableType is Types.BeanKey)
-                    {
-                        sw.WriteLine(prefix + "@SuppressWarnings(\"unchecked\")");
-                        break;
-                    }
-                }
             }
+            sw.WriteLine(prefix + "@SuppressWarnings(\"unchecked\")");
             sw.WriteLine(prefix + "@Override");
             sw.WriteLine(prefix + "public void FollowerApply(Zeze.Transaction.Log log) {");
             if (needApplyVars)
