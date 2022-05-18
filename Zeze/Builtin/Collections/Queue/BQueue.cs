@@ -21,7 +21,7 @@ namespace Zeze.Builtin.Collections.Queue
     {
         long _HeadNodeId;
         long _TailNodeId;
-        long _Count; // 暂时没用
+        long _Count;
         long _LastNodeId; // 最近分配过的NodeId, 用于下次分配
 
         public long HeadNodeId

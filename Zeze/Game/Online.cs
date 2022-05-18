@@ -260,13 +260,18 @@ namespace Zeze.Game
             SendReliableNotify(roleId, listenerName, p.TypeId, new Binary(p.Encode()));
         }
 
-        /// <summary>
-        /// 发送在线可靠协议，如果不在线等，仍然不会发送哦。
-        /// </summary>
-        /// <param name="roleId"></param>
-        /// <param name="listenerName"></param>
-        /// <param name="fullEncodedProtocol">协议必须先编码，因为会跨事务。</param>
-        public void SendReliableNotify(
+        private Zeze.Collections.Queue<BNotify> OpenQueue(long roleId)
+        {
+            return ProviderApp.Zeze.Queues.Open<BNotify>("Game.Online.ReliableNotifyQueue." + roleId);
+        }
+
+    /// <summary>
+    /// 发送在线可靠协议，如果不在线等，仍然不会发送哦。
+    /// </summary>
+    /// <param name="roleId"></param>
+    /// <param name="listenerName"></param>
+    /// <param name="fullEncodedProtocol">协议必须先编码，因为会跨事务。</param>
+    public void SendReliableNotify(
             long roleId, string listenerName, long typeId, Binary fullEncodedProtocol)
         {
             ProviderApp.Zeze.TaskOneByOneByKey.Execute(
@@ -287,7 +292,9 @@ namespace Zeze.Game
 
                     // 先保存在再发送，然后客户端还会确认。
                     // see Game.Login.Module: CLogin CReLogin CReliableNotifyConfirm 的实现。
-                    version.ReliableNotifyQueue.Add(fullEncodedProtocol);
+                    var queue = OpenQueue(roleId);
+                    await queue.AddAsync(new BNotify() { FullEncodedProtocol = fullEncodedProtocol });
+
                     var notify = new SReliableNotify(); // 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
                     notify.Argument.ReliableNotifyIndex = version.ReliableNotifyIndex;
                     version.ReliableNotifyIndex += 1; // after set notify.Argument
@@ -708,7 +715,7 @@ namespace Zeze.Game
             version.ReliableNotifyConfirmIndex = 0;
             version.ReliableNotifyIndex = 0;
             version.ReliableNotifyMark.Clear();
-            version.ReliableNotifyQueue.Clear();
+            await OpenQueue(rpc.Argument.RoleId).ClearAsync();
 
             var linkSession = session.Link.UserState as ProviderService.LinkSession;
             version.ServerId = ProviderApp.Zeze.Config.ServerId;
@@ -830,24 +837,30 @@ namespace Zeze.Game
         private async Task<int> ReliableNotifySync(long roleId, ProviderUserSession session, long index, bool sync = true)
         {
             var online = await _tversion.GetOrAddAsync(roleId);
+            var queue = OpenQueue(roleId);
             if (index < online.ReliableNotifyConfirmIndex
                 || index > online.ReliableNotifyIndex
-                || index - online.ReliableNotifyConfirmIndex > online.ReliableNotifyQueue.Count)
+                || index - online.ReliableNotifyConfirmIndex > await queue.CountAsync())
             {
                 return ResultCodeReliableNotifyConfirmIndexOutOfRange;
             }
 
             int confirmCount = (int)(index - online.ReliableNotifyConfirmIndex);
 
+            for (int i = 0; i < confirmCount; i++)
+                await queue.PollAsync();
+
             if (sync)
             {
                 var notify = new SReliableNotify();
                 notify.Argument.ReliableNotifyIndex = index;
-                for (int i = confirmCount; i < online.ReliableNotifyQueue.Count; ++i)
-                    notify.Argument.Notifies.Add(online.ReliableNotifyQueue[i]);
+                await queue.WalkAsync((node, bNofity) =>
+                {
+                    notify.Argument.Notifies.Add(bNofity.FullEncodedProtocol);
+                    return true;
+                });
                 session.SendResponseWhileCommit(notify);
             }
-            online.ReliableNotifyQueue.RemoveRange(0, confirmCount);
             online.ReliableNotifyConfirmIndex = index;
             return ResultCodeSuccess;
         }

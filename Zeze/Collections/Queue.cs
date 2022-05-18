@@ -88,6 +88,7 @@ namespace Zeze.Collections
 				return null;
 
 			root.HeadNodeId = head.NextNodeId;
+			root.Count -= head.Values.Count;
 			await module._tQueueNodes.DelayRemoveAsync(nodeKey);
 			return head;
 		}
@@ -137,6 +138,7 @@ namespace Zeze.Collections
 			var nodeValues = head.Values;
 			var nodeValue = nodeValues[0];
 			nodeValues.RemoveAt(0);
+			root.Count--;
 			if (nodeValues.Count == 0)
 			{
 				root.HeadNodeId = head.NextNodeId;
@@ -166,6 +168,11 @@ namespace Zeze.Collections
 			return value;
 		}
 
+		public async Task<long> CountAsync()
+		{
+			return (await module._tQueues.GetAsync(name)).Count;
+		}
+
 		/**
 		 * 用作queue, 值追加到尾节点的最后, 满则追加一个尾节点。
 		 */
@@ -184,6 +191,7 @@ namespace Zeze.Collections
 				if (tail != null)
 					tail.NextNodeId = newNodeId;
 				await module._tQueueNodes.InsertAsync(new BQueueNodeKey(name, newNodeId), tail = new BQueueNode());
+				root.Count++;
 			}
 			var nodeValue = new BQueueNodeValue();
 			nodeValue.Timestamp = Util.Time.NowUnixMillis;
@@ -207,6 +215,7 @@ namespace Zeze.Collections
 				if (root.TailNodeId == 0)
 					root.TailNodeId = newNodeId;
 				await module._tQueueNodes.InsertAsync(new BQueueNodeKey(name, newNodeId), head = new BQueueNode());
+				root.Count++;
 				if (headNodeId != 0)
 					head.NextNodeId = headNodeId;
 			}
@@ -229,7 +238,6 @@ namespace Zeze.Collections
 		// foreach
 
 		/**
-		 * 必须在事务外。
 		 * func 第一个参数是当前Value所在的Node.Id。
 		 */
 		public async Task<long> WalkAsync(Func<long, V, bool> func)

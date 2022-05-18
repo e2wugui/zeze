@@ -82,6 +82,7 @@ public class Queue<V extends Bean> {
 			return null;
 
 		root.setHeadNodeId(head.getNextNodeId());
+		root.setCount(root.getCount() - head.getValues().size());
 		module._tQueueNodes.delayRemove(nodeKey);
 		return head;
 	}
@@ -126,6 +127,7 @@ public class Queue<V extends Bean> {
 
 		var nodeValues = head.getValues();
 		var nodeValue = nodeValues.remove(0);
+		root.setCount(root.getCount() - 1);
 		if (nodeValues.isEmpty()) {
 			root.setHeadNodeId(head.getNextNodeId());
 			module._tQueueNodes.remove(nodeKey);
@@ -155,6 +157,11 @@ public class Queue<V extends Bean> {
 		return value;
 	}
 
+	public long size() {
+		var root = module._tQueues.getOrAdd(name);
+		return root.getCount();
+	}
+
 	/**
 	 * 用作queue, 值追加到尾节点的最后, 满则追加一个尾节点。
 	 */
@@ -171,6 +178,7 @@ public class Queue<V extends Bean> {
 			if (tail != null)
 				tail.setNextNodeId(newNodeId);
 			module._tQueueNodes.insert(new BQueueNodeKey(name, newNodeId), tail = new BQueueNode());
+			root.setCount(root.getCount() + 1);
 		}
 		var nodeValue = new BQueueNodeValue();
 		nodeValue.setTimestamp(System.currentTimeMillis());
@@ -192,6 +200,7 @@ public class Queue<V extends Bean> {
 			if (root.getTailNodeId() == 0)
 				root.setTailNodeId(newNodeId);
 			module._tQueueNodes.insert(new BQueueNodeKey(name, newNodeId), head = new BQueueNode());
+			root.setCount(root.getCount() + 1);
 			if (headNodeId != 0)
 				head.setNextNodeId(headNodeId);
 		}
@@ -213,7 +222,6 @@ public class Queue<V extends Bean> {
 	// foreach
 
 	/**
-	 * 必须在事务外。
 	 * func 第一个参数是当前Value所在的Node.Id。
 	 */
 	@SuppressWarnings("unchecked")

@@ -132,7 +132,7 @@
 				<bean name="BQueue">
 					<variable id="1" name="HeadNodeId" type="long" />
 					<variable id="2" name="TailNodeId" type="long" />
-					<variable id="3" name="Count" type="long" /> 暂时没用
+					<variable id="3" name="Count" type="long" />
 					<variable id="4" name="LastNodeId" type="long" /> 最近分配过的NodeId, 用于下次分配
 				</bean>
 				<table name="tQueues" key="string" value="BQueue" /> key: Queue的Name
@@ -483,15 +483,18 @@
 					<variable id="2" name="LinkSid"  type="long"/>
 				</bean>
 
+				<bean name="BNotify">
+					<variable id="1" name="FullEncodedProtocol" type="binary"/>
+				</bean>
+
 				<!-- tables -->
 				<bean name="BVersion">
 					<variable id="1" name="LoginVersion" type="long"/>
 					<!-- 下面的定义用来实现可靠的协议通告。 -->
 					<variable id="2" name="ReliableNotifyMark"         type="set" value="string"/>
-					<variable id="3" name="ReliableNotifyQueue"        type="list" value="binary"/> full encoded protocol list
-					<variable id="4" name="ReliableNotifyConfirmIndex" type="long"/>
-					<variable id="5" name="ReliableNotifyIndex"        type="long"/>
-					<variable id="6" name="ServerId" type="int"/>
+					<variable id="3" name="ReliableNotifyConfirmIndex" type="long"/>
+					<variable id="4" name="ReliableNotifyIndex"        type="long"/>
+					<variable id="5" name="ServerId" type="int"/>
 				</bean>
 				<bean name="BAccount">
 					<variable id="1" name="Name"  type="string"/>

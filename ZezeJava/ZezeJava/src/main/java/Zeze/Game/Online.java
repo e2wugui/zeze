@@ -14,6 +14,7 @@ import Zeze.Arch.RedirectToServer;
 import Zeze.Builtin.Game.Online.BAccount;
 import Zeze.Builtin.Game.Online.BAny;
 import Zeze.Builtin.Game.Online.BLocal;
+import Zeze.Builtin.Game.Online.BNotify;
 import Zeze.Builtin.Game.Online.BOnline;
 import Zeze.Builtin.Game.Online.SReliableNotify;
 import Zeze.Builtin.Game.Online.taccount;
@@ -419,12 +420,15 @@ public class Online extends AbstractOnline {
 		sendReliableNotify(roleId, listenerName, p.getTypeId(), new Binary(p.Encode()));
 	}
 
+	private Zeze.Collections.Queue<BNotify> openQueue(long roleId) {
+		return ProviderApp.Zeze.getQueueModule().open("Game.Online.ReliableNotifyQueue." + roleId, BNotify.class);
+	}
+
 	/**
 	 * 发送在线可靠协议，如果不在线等，仍然不会发送哦。
 	 *
 	 * @param fullEncodedProtocol 协议必须先编码，因为会跨事务。
 	 */
-
 	public final void sendReliableNotify(long roleId, String listenerName, long typeId, Binary fullEncodedProtocol) {
 		ProviderApp.Zeze.getTaskOneByOneByKey().Execute(listenerName,
 				ProviderApp.Zeze.NewProcedure(() -> {
@@ -439,7 +443,10 @@ public class Online extends AbstractOnline {
 
 					// 先保存在再发送，然后客户端还会确认。
 					// see Game.Login.Module: CLogin CReLogin CReliableNotifyConfirm 的实现。
-					version.getReliableNotifyQueue().add(fullEncodedProtocol);
+					var queue = openQueue(roleId);
+					var bNotify = new BNotify();
+					bNotify.setFullEncodedProtocol(fullEncodedProtocol);
+					queue.add(bNotify);
 
 					// 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
 					var notify = new SReliableNotify();
@@ -719,7 +726,7 @@ public class Online extends AbstractOnline {
 			online.setLinkSid(session.getLinkSid());
 
 		version.getReliableNotifyMark().clear();
-		version.getReliableNotifyQueue().clear();
+		openQueue(rpc.Argument.getRoleId()).clear();
 		version.setReliableNotifyConfirmIndex(0);
 		version.setReliableNotifyIndex(0);
 
@@ -799,24 +806,26 @@ public class Online extends AbstractOnline {
 
 	private int reliableNotifySync(long roleId, ProviderUserSession session, long index, boolean sync) {
 		var version = _tversion.getOrAdd(roleId);
+		var queue = openQueue(roleId);
 		if (index < version.getReliableNotifyConfirmIndex()
 				|| index > version.getReliableNotifyIndex()
-				|| index - version.getReliableNotifyConfirmIndex() > version.getReliableNotifyQueue().size()) {
+				|| index - version.getReliableNotifyConfirmIndex() > queue.size()) {
 			return ResultCodeReliableNotifyConfirmIndexOutOfRange;
 		}
 
 		int confirmCount = (int)(index - version.getReliableNotifyConfirmIndex());
-
+		//noinspection ListRemoveInLoop
+		for (int i = 0; i < confirmCount; i++)
+			queue.poll();
 		if (sync) {
 			var notify = new SReliableNotify();
 			notify.Argument.setReliableNotifyIndex(index);
-			for (int i = confirmCount; i < version.getReliableNotifyQueue().size(); i++)
-				notify.Argument.getNotifies().add(version.getReliableNotifyQueue().get(i));
+			queue.walk((nodeId, bNotify) -> {
+				notify.Argument.getNotifies().add(bNotify.getFullEncodedProtocol());
+				return true;
+			});
 			session.SendResponseWhileCommit(notify);
 		}
-		//noinspection ListRemoveInLoop
-		for (int ir = 0; ir < confirmCount; ir++)
-			version.getReliableNotifyQueue().remove(0);
 		//online.getReliableNotifyQueue().RemoveRange(0, confirmCount);
 		version.setReliableNotifyConfirmIndex(index);
 		return ResultCodeSuccess;

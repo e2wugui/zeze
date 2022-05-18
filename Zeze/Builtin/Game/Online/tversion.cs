@@ -15,10 +15,9 @@ namespace Zeze.Builtin.Game.Online
 
         public const int VAR_LoginVersion = 1;
         public const int VAR_ReliableNotifyMark = 2;
-        public const int VAR_ReliableNotifyQueue = 3;
-        public const int VAR_ReliableNotifyConfirmIndex = 4;
-        public const int VAR_ReliableNotifyIndex = 5;
-        public const int VAR_ServerId = 6;
+        public const int VAR_ReliableNotifyConfirmIndex = 3;
+        public const int VAR_ReliableNotifyIndex = 4;
+        public const int VAR_ServerId = 5;
 
         public override long DecodeKey(ByteBuffer _os_)
         {
