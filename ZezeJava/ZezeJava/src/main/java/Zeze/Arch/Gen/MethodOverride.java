@@ -12,12 +12,14 @@ import Zeze.Arch.RedirectAllFuture;
 import Zeze.Arch.RedirectFuture;
 import Zeze.Arch.RedirectResult;
 import Zeze.Arch.RedirectToServer;
+import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.KV;
+import Zeze.Util.TransactionLevelAnnotation;
 
 final class MethodOverride {
 	final Method method;
 	final Annotation annotation;
-	final Zeze.Transaction.TransactionLevel TransactionLevel;
+	final TransactionLevel transactionLevel;
 	final Parameter[] allParameters;
 	final Parameter hashOrServerIdParameter;
 	final ArrayList<Parameter> inputParameters = new ArrayList<>();
@@ -30,10 +32,8 @@ final class MethodOverride {
 		this.method = method;
 		this.annotation = annotation;
 
-		var levelAnn = method.getAnnotation(Zeze.Util.TransactionLevel.class);
-		TransactionLevel = levelAnn != null
-				? Zeze.Transaction.TransactionLevel.valueOf(levelAnn.Level())
-				: Zeze.Transaction.TransactionLevel.Serializable;
+		var levelAnn = method.getAnnotation(TransactionLevelAnnotation.class);
+		transactionLevel = levelAnn != null ? levelAnn.Level() : TransactionLevel.Serializable;
 
 		allParameters = method.getParameters();
 		inputParameters.addAll(Arrays.asList(allParameters));

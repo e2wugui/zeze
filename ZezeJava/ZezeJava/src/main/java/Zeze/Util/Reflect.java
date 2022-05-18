@@ -34,11 +34,8 @@ public class Reflect {
 		if (null == method)
 			return def;
 
-		var annotation = method.getAnnotation(Zeze.Util.TransactionLevel.class);
-		if (null == annotation)
-			return def;
-
-		return TransactionLevel.valueOf(annotation.Level());
+		var annotation = method.getAnnotation(TransactionLevelAnnotation.class);
+		return annotation != null ? annotation.Level() : def;
 	}
 
 	public static String GetStableName(Class<?> cls) {

@@ -245,7 +245,7 @@ public final class GenModule {
 
 			// Handles
 			sbHandles.AppendLine("        _app_.getZeze().Redirect.Handles.put(\"{}:{}\", new Zeze.Arch.RedirectHandle(", module.getFullName(), m.method.getName());
-			sbHandles.AppendLine("            Zeze.Transaction.TransactionLevel.{}, (_hash_, _params_) -> {", m.TransactionLevel);
+			sbHandles.AppendLine("            Zeze.Transaction.TransactionLevel.{}, (_hash_, _params_) -> {", m.transactionLevel);
 			boolean genLocal = false;
 			for (int i = 0; i < m.inputParameters.size(); ++i) {
 				var p = m.inputParameters.get(i);
@@ -304,11 +304,11 @@ public final class GenModule {
 
 		sb.AppendLine("        if (_t_ == null) { // local: loop-back");
 		if (returnName.equals("void")) {
-			sb.AppendLine("            _redirect_.RunVoid(Zeze.Transaction.TransactionLevel.{},", methodOverride.TransactionLevel);
+			sb.AppendLine("            _redirect_.RunVoid(Zeze.Transaction.TransactionLevel.{},", methodOverride.transactionLevel);
 			sb.AppendLine("                () -> super.{}({}));", methodOverride.method.getName(), methodOverride.GetBaseCallString());
 			sb.AppendLine("            return;");
 		} else {
-			sb.AppendLine("            return _redirect_.RunFuture(Zeze.Transaction.TransactionLevel.{},", methodOverride.TransactionLevel);
+			sb.AppendLine("            return _redirect_.RunFuture(Zeze.Transaction.TransactionLevel.{},", methodOverride.transactionLevel);
 			sb.AppendLine("                () -> super.{}({}));", methodOverride.method.getName(), methodOverride.GetBaseCallString());
 		}
 		sb.AppendLine("        }");
@@ -351,7 +351,7 @@ public final class GenModule {
 
 		// handles
 		sbHandles.AppendLine("        _app_.getZeze().Redirect.Handles.put(\"{}:{}\", new Zeze.Arch.RedirectHandle(", module.getFullName(), m.method.getName());
-		sbHandles.AppendLine("            Zeze.Transaction.TransactionLevel.{}, (_hash_, _params_) -> {", m.TransactionLevel);
+		sbHandles.AppendLine("            Zeze.Transaction.TransactionLevel.{}, (_hash_, _params_) -> {", m.transactionLevel);
 		if (!m.inputParameters.isEmpty()) {
 			sbHandles.AppendLine("                var _b_ = _params_.Wrap();");
 			for (int i = 0; i < m.inputParameters.size(); ++i) {
