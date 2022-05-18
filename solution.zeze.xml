@@ -667,14 +667,16 @@
 				<variable id="1" name="LinkName" type="string"/>
 				<variable id="2" name="LinkSid"  type="long"/>
 			</bean>
+			<bean name="BNotify">
+				<variable id="1" name="FullEncodedProtocol" type="binary"/>
+			</bean>
 			<bean name="BVersion">
 				<variable id="1" name="LoginVersion" type="long"/>
 				<!-- 下面的定义用来实现可靠的协议通告。 -->
 				<variable id="2" name="ReliableNotifyMark"         type="set" value="string"/>
-				<variable id="3" name="ReliableNotifyQueue"        type="list" value="binary"/> full encoded protocol list
-				<variable id="4" name="ReliableNotifyIndex"        type="long"/>
-				<variable id="5" name="ReliableNotifyConfirmIndex" type="long"/>
-				<variable id="6" name="ServerId"                   type="int"/>
+				<variable id="3" name="ReliableNotifyIndex"        type="long"/>
+				<variable id="4" name="ReliableNotifyConfirmIndex" type="long"/>
+				<variable id="5" name="ServerId"                   type="int"/>
 			</bean>
 			<bean name="BAccount">
 				<variable id="1" name="LastLoginVersion" type="long"/> 用来生成 role 登录版本号。每次递增。

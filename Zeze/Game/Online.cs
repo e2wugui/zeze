@@ -262,17 +262,17 @@ namespace Zeze.Game
 
         private Zeze.Collections.Queue<BNotify> OpenQueue(long roleId)
         {
-            return ProviderApp.Zeze.Queues.Open<BNotify>("Game.Online.ReliableNotifyQueue." + roleId);
+            return ProviderApp.Zeze.Queues.Open<BNotify>("Zeze.Game.Online.ReliableNotifyQueue:" + roleId);
         }
 
-    /// <summary>
-    /// 发送在线可靠协议，如果不在线等，仍然不会发送哦。
-    /// </summary>
-    /// <param name="roleId"></param>
-    /// <param name="listenerName"></param>
-    /// <param name="fullEncodedProtocol">协议必须先编码，因为会跨事务。</param>
-    public void SendReliableNotify(
-            long roleId, string listenerName, long typeId, Binary fullEncodedProtocol)
+        /// <summary>
+        /// 发送在线可靠协议，如果不在线等，仍然不会发送哦。
+        /// </summary>
+        /// <param name="roleId"></param>
+        /// <param name="listenerName"></param>
+        /// <param name="fullEncodedProtocol">协议必须先编码，因为会跨事务。</param>
+        public void SendReliableNotify(
+                long roleId, string listenerName, long typeId, Binary fullEncodedProtocol)
         {
             ProviderApp.Zeze.TaskOneByOneByKey.Execute(
                 listenerName,

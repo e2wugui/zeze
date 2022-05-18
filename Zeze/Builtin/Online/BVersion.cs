@@ -13,7 +13,6 @@ namespace Zeze.Builtin.Online
 
         public long LoginVersion { get; }
         public System.Collections.Generic.IReadOnlySet<string> ReliableNotifyMark { get; }
-        public System.Collections.Generic.IReadOnlyList<Zeze.Net.Binary>ReliableNotifyQueue { get; }
         public long ReliableNotifyIndex { get; }
         public long ReliableNotifyConfirmIndex { get; }
         public int ServerId { get; }
@@ -23,7 +22,6 @@ namespace Zeze.Builtin.Online
     {
         long _LoginVersion;
         readonly Zeze.Transaction.Collections.CollSet1<string> _ReliableNotifyMark;
-        readonly Zeze.Transaction.Collections.CollList1<Zeze.Net.Binary> _ReliableNotifyQueue; // full encoded protocol list
         long _ReliableNotifyIndex;
         long _ReliableNotifyConfirmIndex;
         int _ServerId;
@@ -58,9 +56,6 @@ namespace Zeze.Builtin.Online
         public Zeze.Transaction.Collections.CollSet1<string> ReliableNotifyMark => _ReliableNotifyMark;
         System.Collections.Generic.IReadOnlySet<string> Zeze.Builtin.Online.BVersionReadOnly.ReliableNotifyMark => _ReliableNotifyMark;
 
-        public Zeze.Transaction.Collections.CollList1<Zeze.Net.Binary> ReliableNotifyQueue => _ReliableNotifyQueue;
-        System.Collections.Generic.IReadOnlyList<Zeze.Net.Binary> Zeze.Builtin.Online.BVersionReadOnly.ReliableNotifyQueue => _ReliableNotifyQueue;
-
         public long ReliableNotifyIndex
         {
             get
@@ -70,7 +65,7 @@ namespace Zeze.Builtin.Online
                 var txn = Zeze.Transaction.Transaction.Current;
                 if (txn == null) return _ReliableNotifyIndex;
                 txn.VerifyRecordAccessed(this, true);
-                var log = (Log__ReliableNotifyIndex)txn.GetLog(ObjectId + 4);
+                var log = (Log__ReliableNotifyIndex)txn.GetLog(ObjectId + 3);
                 return log != null ? log.Value : _ReliableNotifyIndex;
             }
             set
@@ -82,7 +77,7 @@ namespace Zeze.Builtin.Online
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ReliableNotifyIndex() { Belong = this, VariableId = 4, Value = value });
+                txn.PutLog(new Log__ReliableNotifyIndex() { Belong = this, VariableId = 3, Value = value });
             }
         }
 
@@ -95,7 +90,7 @@ namespace Zeze.Builtin.Online
                 var txn = Zeze.Transaction.Transaction.Current;
                 if (txn == null) return _ReliableNotifyConfirmIndex;
                 txn.VerifyRecordAccessed(this, true);
-                var log = (Log__ReliableNotifyConfirmIndex)txn.GetLog(ObjectId + 5);
+                var log = (Log__ReliableNotifyConfirmIndex)txn.GetLog(ObjectId + 4);
                 return log != null ? log.Value : _ReliableNotifyConfirmIndex;
             }
             set
@@ -107,7 +102,7 @@ namespace Zeze.Builtin.Online
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ReliableNotifyConfirmIndex() { Belong = this, VariableId = 5, Value = value });
+                txn.PutLog(new Log__ReliableNotifyConfirmIndex() { Belong = this, VariableId = 4, Value = value });
             }
         }
 
@@ -120,7 +115,7 @@ namespace Zeze.Builtin.Online
                 var txn = Zeze.Transaction.Transaction.Current;
                 if (txn == null) return _ServerId;
                 txn.VerifyRecordAccessed(this, true);
-                var log = (Log__ServerId)txn.GetLog(ObjectId + 6);
+                var log = (Log__ServerId)txn.GetLog(ObjectId + 5);
                 return log != null ? log.Value : _ServerId;
             }
             set
@@ -132,7 +127,7 @@ namespace Zeze.Builtin.Online
                 }
                 var txn = Zeze.Transaction.Transaction.Current;
                 txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__ServerId() { Belong = this, VariableId = 6, Value = value });
+                txn.PutLog(new Log__ServerId() { Belong = this, VariableId = 5, Value = value });
             }
         }
 
@@ -143,7 +138,6 @@ namespace Zeze.Builtin.Online
         public BVersion(int _varId_) : base(_varId_)
         {
             _ReliableNotifyMark = new Zeze.Transaction.Collections.CollSet1<string>() { VariableId = 2 };
-            _ReliableNotifyQueue = new Zeze.Transaction.Collections.CollList1<Zeze.Net.Binary>() { VariableId = 3 };
         }
 
         public void Assign(BVersion other)
@@ -152,9 +146,6 @@ namespace Zeze.Builtin.Online
             ReliableNotifyMark.Clear();
             foreach (var e in other.ReliableNotifyMark)
                 ReliableNotifyMark.Add(e);
-            ReliableNotifyQueue.Clear();
-            foreach (var e in other.ReliableNotifyQueue)
-                ReliableNotifyQueue.Add(e);
             ReliableNotifyIndex = other.ReliableNotifyIndex;
             ReliableNotifyConfirmIndex = other.ReliableNotifyConfirmIndex;
             ServerId = other.ServerId;
@@ -193,7 +184,6 @@ namespace Zeze.Builtin.Online
         }
 
 
-
         sealed class Log__ReliableNotifyIndex : Zeze.Transaction.Log<long>
         {
             public override void Commit() { ((BVersion)Belong)._ReliableNotifyIndex = this.Value; }
@@ -225,14 +215,6 @@ namespace Zeze.Builtin.Online
             sb.Append(Zeze.Util.Str.Indent(level)).Append("ReliableNotifyMark").Append("=[").Append(Environment.NewLine);
             level += 4;
             foreach (var Item in ReliableNotifyMark)
-            {
-                sb.Append(Zeze.Util.Str.Indent(level)).Append("Item").Append('=').Append(Item).Append(',').Append(Environment.NewLine);
-            }
-            level -= 4;
-            sb.Append(Zeze.Util.Str.Indent(level)).Append(']').Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("ReliableNotifyQueue").Append("=[").Append(Environment.NewLine);
-            level += 4;
-            foreach (var Item in ReliableNotifyQueue)
             {
                 sb.Append(Zeze.Util.Str.Indent(level)).Append("Item").Append('=').Append(Item).Append(',').Append(Environment.NewLine);
             }
@@ -270,23 +252,10 @@ namespace Zeze.Builtin.Online
                 }
             }
             {
-                var _x_ = ReliableNotifyQueue;
-                int _n_ = _x_.Count;
-                if (_n_ != 0)
-                {
-                    _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.LIST);
-                    _o_.WriteListType(_n_, ByteBuffer.BYTES);
-                    foreach (var _v_ in _x_)
-                    {
-                        _o_.WriteBinary(_v_);
-                    }
-                }
-            }
-            {
                 long _x_ = ReliableNotifyIndex;
                 if (_x_ != 0)
                 {
-                    _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
+                    _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
                     _o_.WriteLong(_x_);
                 }
             }
@@ -294,7 +263,7 @@ namespace Zeze.Builtin.Online
                 long _x_ = ReliableNotifyConfirmIndex;
                 if (_x_ != 0)
                 {
-                    _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.INTEGER);
+                    _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.INTEGER);
                     _o_.WriteLong(_x_);
                 }
             }
@@ -302,7 +271,7 @@ namespace Zeze.Builtin.Online
                 int _x_ = ServerId;
                 if (_x_ != 0)
                 {
-                    _i_ = _o_.WriteTag(_i_, 6, ByteBuffer.INTEGER);
+                    _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.INTEGER);
                     _o_.WriteInt(_x_);
                 }
             }
@@ -335,30 +304,15 @@ namespace Zeze.Builtin.Online
             }
             if (_i_ == 3)
             {
-                var _x_ = ReliableNotifyQueue;
-                _x_.Clear();
-                if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST)
-                {
-                    for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    {
-                        _x_.Add(_o_.ReadBinary(_t_));
-                    }
-                }
-                else
-                    _o_.SkipUnknownField(_t_);
+                ReliableNotifyIndex = _o_.ReadLong(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             if (_i_ == 4)
             {
-                ReliableNotifyIndex = _o_.ReadLong(_t_);
-                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-            }
-            if (_i_ == 5)
-            {
                 ReliableNotifyConfirmIndex = _o_.ReadLong(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
-            if (_i_ == 6)
+            if (_i_ == 5)
             {
                 ServerId = _o_.ReadInt(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -373,7 +327,6 @@ namespace Zeze.Builtin.Online
         protected override void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root)
         {
             _ReliableNotifyMark.InitRootInfo(root, this);
-            _ReliableNotifyQueue.InitRootInfo(root, this);
         }
 
         public override bool NegativeCheck()
@@ -394,10 +347,9 @@ namespace Zeze.Builtin.Online
                 {
                     case 1: _LoginVersion = ((Zeze.Transaction.Log<long>)vlog).Value; break;
                     case 2: _ReliableNotifyMark.FollowerApply(vlog); break;
-                    case 3: _ReliableNotifyQueue.FollowerApply(vlog); break;
-                    case 4: _ReliableNotifyIndex = ((Zeze.Transaction.Log<long>)vlog).Value; break;
-                    case 5: _ReliableNotifyConfirmIndex = ((Zeze.Transaction.Log<long>)vlog).Value; break;
-                    case 6: _ServerId = ((Zeze.Transaction.Log<int>)vlog).Value; break;
+                    case 3: _ReliableNotifyIndex = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 4: _ReliableNotifyConfirmIndex = ((Zeze.Transaction.Log<long>)vlog).Value; break;
+                    case 5: _ServerId = ((Zeze.Transaction.Log<int>)vlog).Value; break;
                 }
             }
         }

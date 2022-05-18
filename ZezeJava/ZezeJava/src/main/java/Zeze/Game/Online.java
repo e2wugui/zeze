@@ -421,7 +421,7 @@ public class Online extends AbstractOnline {
 	}
 
 	private Zeze.Collections.Queue<BNotify> openQueue(long roleId) {
-		return ProviderApp.Zeze.getQueueModule().open("Game.Online.ReliableNotifyQueue." + roleId, BNotify.class);
+		return ProviderApp.Zeze.getQueueModule().open("Zeze.Game.Online.ReliableNotifyQueue:" + roleId, BNotify.class);
 	}
 
 	/**

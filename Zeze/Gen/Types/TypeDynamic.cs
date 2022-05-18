@@ -46,7 +46,9 @@ namespace Zeze.Gen.Types
             Variable = var;
             if (DynamicParams.Beans.Count == 0)
             {
-                if (Program.NamedObjects.TryGetValue(DynamicParams.Base.ToLower(), out var baseType) && baseType is Bean baseBean)
+                if (false == string.IsNullOrEmpty(DynamicParams.Base)
+                    && Program.NamedObjects.TryGetValue(DynamicParams.Base.ToLower(), out var baseType)
+                    && baseType is Bean baseBean)
                 {
                     DynamicParams.Beans.Add(baseBean.FullName);
                     foreach (var derive in baseBean.Derives)

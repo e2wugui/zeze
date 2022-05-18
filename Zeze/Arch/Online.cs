@@ -262,6 +262,11 @@ namespace Zeze.Arch
             SendReliableNotify(account, clientId, listenerName, p.TypeId, new Binary(p.Encode()));
         }
 
+        private Zeze.Collections.Queue<BNotify> OpenQueue(string account, string clientId)
+        {
+            return ProviderApp.Zeze.Queues.Open<BNotify>("Zeze.Arch.Online.ReliableNotifyQueue:" + account + ":" + clientId);
+        }
+        
         /// <summary>
         /// 发送在线可靠协议，如果不在线等，仍然不会发送哦。
         /// </summary>
@@ -290,7 +295,8 @@ namespace Zeze.Arch
 
                     // 先保存在再发送，然后客户端还会确认。
                     // see Game.Login.Module: CLogin CReLogin CReliableNotifyConfirm 的实现。
-                    login.ReliableNotifyQueue.Add(fullEncodedProtocol);
+                    var queue = OpenQueue(account, clientId);
+                    await queue.AddAsync(new BNotify() { FullEncodedProtocol = fullEncodedProtocol });
 
                     var notify = new SReliableNotify(); // 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
                     notify.Argument.ReliableNotifyIndex = login.ReliableNotifyIndex;
@@ -769,7 +775,7 @@ namespace Zeze.Arch
             loginVersion.ReliableNotifyConfirmIndex = 0;
             loginVersion.ReliableNotifyIndex = 0;
             loginVersion.ReliableNotifyMark.Clear();
-            loginVersion.ReliableNotifyQueue.Clear();
+            await OpenQueue(session.Account, rpc.Argument.ClientId).ClearAsync();
 
             var linkSession = session.Link.UserState as ProviderService.LinkSession;
             loginVersion.ServerId = ProviderApp.Zeze.Config.ServerId;
@@ -892,25 +898,30 @@ namespace Zeze.Arch
             ProviderUserSession session, long index, bool sync = true)
         {
             var online = await _tversion.GetOrAddAsync(account);
+            var queue = OpenQueue(account, clientId);
             var loginOnline = online.Logins.GetOrAdd(clientId);
             if (index < loginOnline.ReliableNotifyConfirmIndex
                 || index > loginOnline.ReliableNotifyIndex
-                || index - loginOnline.ReliableNotifyConfirmIndex > loginOnline.ReliableNotifyQueue.Count)
+                || index - loginOnline.ReliableNotifyConfirmIndex > await queue.CountAsync())
             {
                 return ResultCodeReliableNotifyConfirmIndexOutOfRange;
             }
 
             int confirmCount = (int)(index - loginOnline.ReliableNotifyConfirmIndex);
+            for (int i = 0; i < confirmCount; i++)
+                await queue.PollAsync();
 
-            if (sync && confirmCount > 0)
+            if (sync)
             {
                 var notify = new SReliableNotify();
                 notify.Argument.ReliableNotifyIndex = index;
-                for (int i = confirmCount - 1; i < loginOnline.ReliableNotifyQueue.Count; ++i)
-                    notify.Argument.Notifies.Add(loginOnline.ReliableNotifyQueue[i]);
+                await queue.WalkAsync((node, bNofity) =>
+                {
+                    notify.Argument.Notifies.Add(bNofity.FullEncodedProtocol);
+                    return true;
+                });
                 session.SendResponseWhileCommit(notify);
             }
-            loginOnline.ReliableNotifyQueue.RemoveRange(0, confirmCount);
             loginOnline.ReliableNotifyConfirmIndex = index;
             return ResultCodeSuccess;
         }
