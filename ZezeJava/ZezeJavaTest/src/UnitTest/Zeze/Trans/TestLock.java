@@ -12,6 +12,7 @@ import org.junit.Assert;
 
 public class TestLock extends TestCase {
 
+	@SuppressWarnings("UnusedAssignment")
 	public final void test() {
 		// DEBUG 下垃圾回收策略导致 WeakReference 不回收。
 //#if RELEASE
@@ -30,8 +31,14 @@ public class TestLock extends TestCase {
 		Assert.assertNotNull(exist2);
 		Assert.assertEquals(exist2, key1);
 
+		key1 = null;
+		key2 = null;
+		exist1 = null;
+		exist2 = null;
+
 		demo.Module1.Key k4 = new demo.Module1.Key((short)1);
 		WeakReference<demo.Module1.Key> wref = new WeakReference<>(k4);
+		k4 = null;
 		for (int i = 0; i < 10; ++i) {
 			System.gc();
 			System.runFinalization();
