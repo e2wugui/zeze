@@ -2,10 +2,10 @@ package Game.Timer;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
-import Game.AutoKey.ModuleAutoKey;
 import Game.LongSet.ModuleLongSet;
 import Game.LongSet.NameValue;
 import Zeze.Arch.RedirectToServer;
+import Zeze.Component.AutoKey;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
@@ -20,12 +20,12 @@ public class ModuleTimer extends AbstractModule {
 
 	public static final int TimerCountPerNode = 200;
 
-	private ModuleAutoKey.AutoKey NodeIdGenerator;
-	private ModuleAutoKey.AutoKey TimerIdGenerator;
+	private AutoKey NodeIdGenerator;
+	private AutoKey TimerIdGenerator;
 
 	public void Start(Game.App app) throws Throwable {
-		NodeIdGenerator = Game.AutoKey.ModuleAutoKey.getAutoKey("Game.Timer.NodeIdGenerator");
-		TimerIdGenerator = Game.AutoKey.ModuleAutoKey.getAutoKey("Game.Timer.TimerIdGenerator");
+		NodeIdGenerator = app.Zeze.GetAutoKey("Game.Timer.NodeIdGenerator");
+		TimerIdGenerator = app.Zeze.GetAutoKey("Game.Timer.TimerIdGenerator");
 		Zeze.Util.Task.run(this::LoadTimerLocal, "LoadTimerLocal");
 	}
 

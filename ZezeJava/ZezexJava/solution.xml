@@ -269,13 +269,6 @@
 		<protocol name="SGetRankList" argument="BRankListResult" handle="client"/>
 	</module>
 
-	<module name="AutoKey" id="10">
-		<bean name="AutoKey">
-			<variable id="1" name="NextId" type="long"/> 
-		</bean>
-		<table name="tautokeys" key="string" value="AutoKey" />
-	</module>
-
 	<module name="Timer" id="11">
 		<bean name="NodeRoot">
 			<variable id="1" name="HeadNodeId" type="long"/>
@@ -355,7 +348,6 @@
 			<module ref="Equip"/>
 			<module ref="Map" dynamic="true"/> 地图模块动态绑定。
 			<module ref="Rank"/>
-			<module ref="AutoKey"/>
 			<module ref="Timer"/>
 			<module ref="LongSet"/>
 		</service>

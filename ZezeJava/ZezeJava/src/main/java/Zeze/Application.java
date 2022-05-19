@@ -236,6 +236,8 @@ public final class Application {
 		for (var db : Databases.values())
 			db.getDirectOperates().SetInUse(Conf.getServerId(), Conf.getGlobalCacheManagerHostNameOrAddress());
 
+		Database defaultDb = GetDatabase(Conf.getDefaultTableConf().getDatabaseName());
+
 		if (getConfig().getServerId() >= 0) {
 			var dbConf = new Config.DatabaseConf();
 			dbConf.setName("zeze_rocks_cache_" + getConfig().getServerId());
@@ -244,11 +246,10 @@ public final class Application {
 			dbConf.setDatabaseType(Config.DbType.RocksDb);
 			LocalRocksCacheDb = new DatabaseRocksDb(dbConf);
 			LocalRocksCacheDb.Open(this);
-		}
 
-		Database defaultDb = GetDatabase(Conf.getDefaultTableConf().getDatabaseName());
-		for (var db : Databases.values())
-			db.Open(this);
+			for (var db : Databases.values())
+				db.Open(this);
+		}
 
 		var serviceManagerConf = Conf.GetServiceConf(Agent.DefaultServiceName);
 		if (serviceManagerConf != null && ServiceManagerAgent != null) {
@@ -276,7 +277,7 @@ public final class Application {
 		FlushWhenReduceTimerTask = Task.schedule(60 * 1000, 60 * 1000, this::FlushWhenReduceTimer);
 
 		/////////////////////////////////////////////////////
-		if (Schemas != null) {
+		if (getConfig().getServerId() >= 0 && Schemas != null) {
 			Schemas.Compile();
 			var keyOfSchemas = ByteBuffer.Allocate(24);
 			keyOfSchemas.WriteString("zeze.Schemas." + Conf.getServerId());

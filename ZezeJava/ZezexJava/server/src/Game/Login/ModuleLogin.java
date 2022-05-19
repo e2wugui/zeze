@@ -1,21 +1,19 @@
 package Game.Login;
 
 import Game.App;
-import Game.AutoKey.ModuleAutoKey;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Transaction.Procedure;
 
 public final class ModuleLogin extends AbstractModule {
 
-	private ModuleAutoKey.AutoKey autoKey;
+	private Zeze.Component.AutoKey autoKey;
 
 	public void Start(App app) {
-		autoKey = ModuleAutoKey.getAutoKey("roleId");
+		autoKey = app.Zeze.GetAutoKey("roleId");
 	}
 
 	public void Stop(App app) {
 	}
-
 
 	@Override
 	protected long ProcessCreateRoleRequest(CreateRole rpc) {

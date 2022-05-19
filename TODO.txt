@@ -19,7 +19,7 @@ tag 0.9.5 c# ready
 5. Rewrite Scheduler【简单处理一下，使用的地方比较多，先这样啦】
 6. UnitTest TestBag没过(呼叫肖丽杨)。
 
-java ASYNC GlobalWithRaft Question：Transaction.Current is ThreadLocal？【决定使用虚拟线程】
+java ASYNC GlobalWithRaft Question：1. Transaction.Current is ThreadLocal？2. try ... finally? 3. exception? 【决定使用虚拟线程】
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 0.9.4 Online.ReliableNotify & Global.LruTryRemoveCallback

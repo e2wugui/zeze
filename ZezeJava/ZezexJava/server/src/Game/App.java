@@ -129,7 +129,6 @@ public final class App extends Zeze.AppBase {
     public Game.Equip.ModuleEquip Game_Equip;
     public Game.Map.ModuleMap Game_Map;
     public Game.Rank.ModuleRank Game_Rank;
-    public Game.AutoKey.ModuleAutoKey Game_AutoKey;
     public Game.Timer.ModuleTimer Game_Timer;
     public Game.LongSet.ModuleLongSet Game_LongSet;
 
@@ -200,11 +199,6 @@ public final class App extends Zeze.AppBase {
         if (Modules.put(Game_Rank.getFullName(), Game_Rank) != null)
             throw new RuntimeException("duplicate module name: Game_Rank");
 
-        Game_AutoKey = ReplaceModuleInstance(new Game.AutoKey.ModuleAutoKey(this));
-        Game_AutoKey.Initialize(this);
-        if (Modules.put(Game_AutoKey.getFullName(), Game_AutoKey) != null)
-            throw new RuntimeException("duplicate module name: Game_AutoKey");
-
         Game_Timer = ReplaceModuleInstance(new Game.Timer.ModuleTimer(this));
         Game_Timer.Initialize(this);
         if (Modules.put(Game_Timer.getFullName(), Game_Timer) != null)
@@ -221,7 +215,6 @@ public final class App extends Zeze.AppBase {
     public synchronized void DestroyModules() {
         Game_LongSet = null;
         Game_Timer = null;
-        Game_AutoKey = null;
         Game_Rank = null;
         Game_Map = null;
         Game_Equip = null;
@@ -253,7 +246,6 @@ public final class App extends Zeze.AppBase {
         Game_Equip.Start(this);
         Game_Map.Start(this);
         Game_Rank.Start(this);
-        Game_AutoKey.Start(this);
         Game_Timer.Start(this);
         Game_LongSet.Start(this);
     }
@@ -263,8 +255,6 @@ public final class App extends Zeze.AppBase {
             Game_LongSet.Stop(this);
         if (Game_Timer != null)
             Game_Timer.Stop(this);
-        if (Game_AutoKey != null)
-            Game_AutoKey.Stop(this);
         if (Game_Rank != null)
             Game_Rank.Stop(this);
         if (Game_Map != null)
