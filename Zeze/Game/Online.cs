@@ -191,26 +191,30 @@ namespace Zeze.Game
                 if (version.LoginVersion != currentLoginVersion)
                     await RemoveLocalAndTrigger(roleId); // 本机数据已经过时，马上删除。
             }
-            await Task.Delay(10 * 60 * 1000);
-
-            // TryRemove
-            await ProviderApp.Zeze.NewProcedure(async () =>
+            Transaction.Transaction.Current.RunWhileCommit(() =>
             {
-                // local online 独立判断version分别尝试删除。
-                var local = await _tlocal.GetAsync(roleId);
-                if (null != local && local.LoginVersion == currentLoginVersion)
+                Util.Scheduler.Schedule(async (ThisTask) =>
                 {
-                    await RemoveLocalAndTrigger(roleId);
-                }
-                // 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
-                var online = await _tonline.GetAsync(roleId);
-                var version = await _tversion.GetOrAddAsync(roleId);
-                if (null != online && version.LoginVersion == currentLoginVersion)
-                {
-                    await RemoveOnlineAndTrigger(roleId);
-                }
-                return Procedure.Success;
-            }, "Onlines.OnLinkBroken").CallAsync();
+                    // TryRemove
+                    await ProviderApp.Zeze.NewProcedure(async () =>
+                    {
+                    // local online 独立判断version分别尝试删除。
+                    var local = await _tlocal.GetAsync(roleId);
+                        if (null != local && local.LoginVersion == currentLoginVersion)
+                        {
+                            await RemoveLocalAndTrigger(roleId);
+                        }
+                    // 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
+                    var online = await _tonline.GetAsync(roleId);
+                        var version = await _tversion.GetOrAddAsync(roleId);
+                        if (null != online && version.LoginVersion == currentLoginVersion)
+                        {
+                            await RemoveOnlineAndTrigger(roleId);
+                        }
+                        return Procedure.Success;
+                    }, "Onlines.OnLinkBroken").CallAsync();
+                }, 10 * 60 * 1000);
+            });
         }
 
         public async Task AddReliableNotifyMark(long roleId, string listenerName)

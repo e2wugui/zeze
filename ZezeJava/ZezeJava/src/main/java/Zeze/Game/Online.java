@@ -241,22 +241,24 @@ public class Online extends AbstractOnline {
 		}
 
 		final long currentLoginVersionFinal = currentLoginVersion;
-		// delay 10 minutes
-		Task.schedule(10 * 60 * 1000, () -> {
-			ProviderApp.Zeze.NewProcedure(() -> {
-				// local online 独立判断version分别尝试删除。
-				var local = _tlocal.get(roleId);
-				if (null != local && local.getLoginVersion() == currentLoginVersionFinal) {
-					removeLocalAndTrigger(roleId);
-				}
-				// 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
-				var online = _tonline.get(roleId);
-				var version = _tversion.getOrAdd(roleId);
-				if (null != online && version.getLoginVersion() == currentLoginVersionFinal) {
-					removeOnlineAndTrigger(roleId);
-				}
-				return Procedure.Success;
-			}, "Game.Online.onLinkBroken").Call();
+		Transaction.getCurrent().RunWhileCommit(() -> {
+			// delay 10 minutes
+			Task.schedule(10 * 60 * 1000, () -> {
+				ProviderApp.Zeze.NewProcedure(() -> {
+					// local online 独立判断version分别尝试删除。
+					var local = _tlocal.get(roleId);
+					if (null != local && local.getLoginVersion() == currentLoginVersionFinal) {
+						removeLocalAndTrigger(roleId);
+					}
+					// 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
+					var online = _tonline.get(roleId);
+					var version = _tversion.getOrAdd(roleId);
+					if (null != online && version.getLoginVersion() == currentLoginVersionFinal) {
+						removeOnlineAndTrigger(roleId);
+					}
+					return Procedure.Success;
+				}, "Game.Online.onLinkBroken").Call();
+			});
 		});
 	}
 

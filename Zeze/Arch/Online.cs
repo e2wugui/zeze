@@ -184,30 +184,34 @@ namespace Zeze.Arch
                 if (loginVersion.LoginVersion != currentLoginVersion)
                     await RemoveLocalAndTrigger(account, clientId); // 本机数据已经过时，马上删除。
             }
-            await Task.Delay(10 * 60 * 1000);
-
-            // TryRemove
-            await ProviderApp.Zeze.NewProcedure(async () =>
+            Transaction.Transaction.Current.RunWhileCommit(() =>
             {
-                // local online 独立判断version分别尝试删除。
-                var local = await _tlocal.GetAsync(account);
-                if (null != local
-                    && local.Logins.TryGetValue(clientId, out var loginLocal)
-                    && loginLocal.LoginVersion == currentLoginVersion)
+                Util.Scheduler.Schedule(async (ThisTask) =>
                 {
-                    await RemoveLocalAndTrigger(account, clientId);
-                }
-                // 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
-                var online = await _tonline.GetAsync(account);
-                var version = await _tversion.GetOrAddAsync(account);
-                if (null != online
-                    && version.Logins.TryGetValue(clientId, out var loginVersion)
-                    && loginVersion.LoginVersion == currentLoginVersion)
-                {
-                    await RemoveOnlineAndTrigger(account, clientId);
-                }
-                return Procedure.Success;
-            }, "Onlines.OnLinkBroken").CallAsync();
+                    // TryRemove
+                    await ProviderApp.Zeze.NewProcedure(async () =>
+                    {
+                        // local online 独立判断version分别尝试删除。
+                        var local = await _tlocal.GetAsync(account);
+                        if (null != local
+                            && local.Logins.TryGetValue(clientId, out var loginLocal)
+                            && loginLocal.LoginVersion == currentLoginVersion)
+                        {
+                            await RemoveLocalAndTrigger(account, clientId);
+                        }
+                        // 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
+                        var online = await _tonline.GetAsync(account);
+                        var version = await _tversion.GetOrAddAsync(account);
+                        if (null != online
+                            && version.Logins.TryGetValue(clientId, out var loginVersion)
+                            && loginVersion.LoginVersion == currentLoginVersion)
+                        {
+                            await RemoveOnlineAndTrigger(account, clientId);
+                        }
+                        return Procedure.Success;
+                    }, "Onlines.OnLinkBroken").CallAsync();
+                }, 10 * 60 * 1000);
+            });
         }
 
         public async Task AddReliableNotifyMark(string account, string clientId, string listenerName)
