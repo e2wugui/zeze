@@ -45,11 +45,18 @@ namespace Zeze.Game
             UnRegisterZezeTables(ProviderApp.Zeze);
             UnRegisterProtocols(ProviderApp.ProviderService);
         }
+
         public void Start()
         {
-            LoadReporter.StartTimerTask();
+            LoadReporter.Start();
             Util.Scheduler.ScheduleAt(VerifyLocal, 3 + Util.Random.Instance.Next(3), 10); // at 3:10 - 6:10
         }
+
+        public void Stop()
+        {
+            LoadReporter.Stop();
+        }
+
 
         public int LocalCount => _tlocal.Cache.DataMap.Count;
 

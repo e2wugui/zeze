@@ -15,7 +15,11 @@ namespace UnitTest
                 {
                     Layout = layout
                 });
-            logConfig.AddRule(NLog.LogLevel.Debug, NLog.LogLevel.Fatal, "console");
+#if Debug
+            logConfig.AddRule(NLog.LogLevel.Trace, NLog.LogLevel.Fatal, "console");
+#else
+            logConfig.AddRule(NLog.LogLevel.Info, NLog.LogLevel.Fatal, "console");
+#endif // Debug
             NLog.LogManager.Configuration = logConfig;
         }
     }

@@ -1163,7 +1163,7 @@ namespace Zeze.Services.ServiceManager
         {
             var p = new SetServerLoad();
             p.Argument = load;
-            return p.Send(Client.Socket);
+            return p.Send(Client?.Socket);
         }
 
 #pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously

@@ -17,15 +17,22 @@ public class LoadReporter {
 		this.Online = online;
 	}
 
-	public final void StartTimerTask() {
-		StartTimerTask(1);
+	public final void Start() {
+		Start(1);
 	}
 
-	public final void StartTimerTask(int delaySeconds) {
+	public final void Start(int delaySeconds) {
 		TimeoutDelaySeconds = delaySeconds;
 		if (null != TimerTask)
 			TimerTask.cancel(false);
 		TimerTask = Zeze.Util.Task.schedule(TimeoutDelaySeconds * 1000L, this::OnTimerTask);
+	}
+
+	public final void Stop() {
+		if (null != TimerTask) {
+			TimerTask.cancel(true);
+			TimerTask = null;
+		}
 	}
 
 	private void OnTimerTask() {
@@ -40,7 +47,7 @@ public class LoadReporter {
 			// 最近上线太多，马上报告负载。linkd不会再分配用户过来。
 			Report(online, onlineNew);
 			// new delay for digestion
-			StartTimerTask(onlineNewPerSecond / config.getMaxOnlineNew() + config.getDigestionDelayExSeconds());
+			Start(onlineNewPerSecond / config.getMaxOnlineNew() + config.getDigestionDelayExSeconds());
 			// 消化完后，下一次强迫报告Load。
 			ReportDelaySeconds = config.getReportDelaySeconds();
 			return;
@@ -51,7 +58,7 @@ public class LoadReporter {
 			ReportDelaySeconds = 0;
 			Report(online, onlineNew);
 		}
-		StartTimerTask();
+		Start();
 	}
 
 	public void Report(int online, int onlineNew) {

@@ -14,6 +14,7 @@ namespace Zeze.Game
 		private long LastLoginTimes;
 		private int ReportDelaySeconds;
 		private int TimoutDelaySeconds;
+		private Util.SchedulerTask Timer;
 
 		public Online Online { get; }
 
@@ -22,10 +23,17 @@ namespace Zeze.Game
 			Online = online;
         }
 
-		public void StartTimerTask(int delaySeconds = 1)
+		public void Start(int delaySeconds = 1)
 		{
 			TimoutDelaySeconds = delaySeconds;
-			Zeze.Util.Scheduler.Schedule(OnTimerTask, TimoutDelaySeconds * 1000);
+			Timer?.Cancel();
+			Timer = Zeze.Util.Scheduler.Schedule(OnTimerTask, TimoutDelaySeconds * 1000);
+		}
+
+		public void Stop()
+		{
+			Timer?.Cancel();
+			Timer = null;
 		}
 
 		private void OnTimerTask(Zeze.Util.SchedulerTask ThisTask)
@@ -42,7 +50,7 @@ namespace Zeze.Game
 				// 最近上线太多，马上报告负载。linkd不会再分配用户过来。
 				Report(online, onlineNew);
 				// new delay for digestion
-				StartTimerTask(onlineNewPerSecond / config.MaxOnlineNew + config.DigestionDelayExSeconds);
+				Start(onlineNewPerSecond / config.MaxOnlineNew + config.DigestionDelayExSeconds);
 				// 消化完后，下一次强迫报告Load。
 				ReportDelaySeconds = config.ReportDelaySeconds;
 				return;
@@ -54,7 +62,7 @@ namespace Zeze.Game
 				ReportDelaySeconds = 0;
 				Report(online, onlineNew);
 			}
-			StartTimerTask();
+			Start();
 		}
 
 		public void Report(int online, int onlineNew)

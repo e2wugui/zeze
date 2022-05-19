@@ -133,8 +133,12 @@ public class Online extends AbstractOnline {
 	}
 
 	public void Start() {
-		LoadReporter.StartTimerTask();
+		LoadReporter.Start();
 		Task.scheduleAt(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
+	}
+
+	public void Stop() {
+		LoadReporter.Stop();
 	}
 
 	@Override

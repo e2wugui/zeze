@@ -105,6 +105,7 @@ public final class App extends Zeze.AppBase {
 	}
 
 	public void Stop() throws Throwable {
+		provider.Online.Stop();
 		StopService(); // 关闭网络
 		StopModules(); // 关闭模块，卸载配置什么的。
 		Zeze.Stop(); // 关闭数据库

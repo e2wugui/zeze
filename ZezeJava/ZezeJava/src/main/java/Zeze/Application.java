@@ -221,24 +221,26 @@ public final class Application {
 			return;
 		IsStart = true;
 
-		// 自动初始化的组件。
-		autoKey = new AutoKey.Module(this);
-		queueModule = new Queue.Module(this);
-
+		// Start Thread Pool
 		Task.tryInitThreadPool(this, null, null); // 确保Task线程池已经建立,如需定制,在Start前先手动初始化
-
 		int core = Conf.getInternalThreadPoolWorkerCount();
 		core = core > 0 ? core : Runtime.getRuntime().availableProcessors() * 30;
 		InternalThreadPool = new ThreadPoolExecutor(core, core, 0, TimeUnit.SECONDS,
 				new LinkedBlockingQueue<>(), new ThreadFactoryWithName("ZezeInternalPool-" + Conf.getServerId()));
 
-		Conf.ClearInUseAndIAmSureAppStopped(this, Databases);
-		for (var db : Databases.values())
-			db.getDirectOperates().SetInUse(Conf.getServerId(), Conf.getGlobalCacheManagerHostNameOrAddress());
-
-		Database defaultDb = GetDatabase(Conf.getDefaultTableConf().getDatabaseName());
-
 		if (getConfig().getServerId() >= 0) {
+			// 自动初始化的组件。
+			autoKey = new AutoKey.Module(this);
+			queueModule = new Queue.Module(this);
+
+			// XXX Remove Me
+			Conf.ClearInUseAndIAmSureAppStopped(this, Databases);
+
+			// Set Database InUse
+			for (var db : Databases.values())
+				db.getDirectOperates().SetInUse(Conf.getServerId(), Conf.getGlobalCacheManagerHostNameOrAddress());
+
+			// Open RocksCache
 			var dbConf = new Config.DatabaseConf();
 			dbConf.setName("zeze_rocks_cache_" + getConfig().getServerId());
 			dbConf.setDatabaseUrl(dbConf.getName());
@@ -246,61 +248,69 @@ public final class Application {
 			dbConf.setDatabaseType(Config.DbType.RocksDb);
 			LocalRocksCacheDb = new DatabaseRocksDb(dbConf);
 			LocalRocksCacheDb.Open(this);
-
-			for (var db : Databases.values())
-				db.Open(this);
 		}
 
+		// Start ServiceManager
 		var serviceManagerConf = Conf.GetServiceConf(Agent.DefaultServiceName);
 		if (serviceManagerConf != null && ServiceManagerAgent != null) {
 			ServiceManagerAgent.getClient().Start();
 			ServiceManagerAgent.WaitConnectorReady();
 		}
 
-		var hosts = Conf.getGlobalCacheManagerHostNameOrAddress().split(";");
-		if (hosts.length > 0) {
-			var isRaft = hosts[0].endsWith(".xml");
-			if (!isRaft) {
-				var impl = new GlobalAgent(this);
-				impl.Start(hosts, Conf.getGlobalCacheManagerPort());
-				GlobalAgent = impl;
-			} else {
-				var impl = new GlobalCacheManagerWithRaftAgent(this);
-				impl.Start(hosts);
-				GlobalAgent = impl;
-			}
-		}
+		if (getConfig().getServerId() >= 0) {
+			// Open Databases
+			for (var db : Databases.values())
+				db.Open(this);
 
-		_checkpoint = new Checkpoint(this, Conf.getCheckpointMode(), Databases.values(), Conf.getServerId());
-		_checkpoint.Start(Conf.getCheckpointPeriod()); // 定时模式可以和其他模式混用。
-
-		FlushWhenReduceTimerTask = Task.schedule(60 * 1000, 60 * 1000, this::FlushWhenReduceTimer);
-
-		/////////////////////////////////////////////////////
-		if (getConfig().getServerId() >= 0 && Schemas != null) {
-			Schemas.Compile();
-			var keyOfSchemas = ByteBuffer.Allocate(24);
-			keyOfSchemas.WriteString("zeze.Schemas." + Conf.getServerId());
-			while (true) {
-				var dataVersion = defaultDb.getDirectOperates().GetDataWithVersion(keyOfSchemas);
-				long version = 0;
-				if (dataVersion != null && dataVersion.Data != null) {
-					var SchemasPrevious = new Schemas();
-					try {
-						SchemasPrevious.Decode(dataVersion.Data);
-						SchemasPrevious.Compile();
-					} catch (Throwable ex) {
-						SchemasPrevious = null;
-						logger.error("Schemas Implement Changed?", ex);
-					}
-					Schemas.CheckCompatible(SchemasPrevious, this);
-					version = dataVersion.Version;
+			// Open Global
+			var hosts = Conf.getGlobalCacheManagerHostNameOrAddress().split(";");
+			if (hosts.length > 0) {
+				var isRaft = hosts[0].endsWith(".xml");
+				if (!isRaft) {
+					var impl = new GlobalAgent(this);
+					impl.Start(hosts, Conf.getGlobalCacheManagerPort());
+					GlobalAgent = impl;
+				} else {
+					var impl = new GlobalCacheManagerWithRaftAgent(this);
+					impl.Start(hosts);
+					GlobalAgent = impl;
 				}
-				var newData = ByteBuffer.Allocate(1024);
-				Schemas.Encode(newData);
-				var versionRc = defaultDb.getDirectOperates().SaveDataWithSameVersion(keyOfSchemas, newData, version);
-				if (versionRc.getValue())
-					break;
+			}
+
+			// Checkpoint
+			_checkpoint = new Checkpoint(this, Conf.getCheckpointMode(), Databases.values(), Conf.getServerId());
+			_checkpoint.Start(Conf.getCheckpointPeriod()); // 定时模式可以和其他模式混用。
+			// FlushWhenReduceTimerTask
+			FlushWhenReduceTimerTask = Task.schedule(60 * 1000, 60 * 1000, this::FlushWhenReduceTimer);
+
+			/////////////////////////////////////////////////////
+			// Schemas
+			var defaultDb = GetDatabase(Conf.getDefaultTableConf().getDatabaseName());
+			if (Schemas != null) {
+				Schemas.Compile();
+				var keyOfSchemas = ByteBuffer.Allocate(24);
+				keyOfSchemas.WriteString("zeze.Schemas." + Conf.getServerId());
+				while (true) {
+					var dataVersion = defaultDb.getDirectOperates().GetDataWithVersion(keyOfSchemas);
+					long version = 0;
+					if (dataVersion != null && dataVersion.Data != null) {
+						var SchemasPrevious = new Schemas();
+						try {
+							SchemasPrevious.Decode(dataVersion.Data);
+							SchemasPrevious.Compile();
+						} catch (Throwable ex) {
+							SchemasPrevious = null;
+							logger.error("Schemas Implement Changed?", ex);
+						}
+						Schemas.CheckCompatible(SchemasPrevious, this);
+						version = dataVersion.Version;
+					}
+					var newData = ByteBuffer.Allocate(1024);
+					Schemas.Encode(newData);
+					var versionRc = defaultDb.getDirectOperates().SaveDataWithSameVersion(keyOfSchemas, newData, version);
+					if (versionRc.getValue())
+						break;
+				}
 			}
 		}
 	}
