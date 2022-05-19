@@ -23,7 +23,7 @@ namespace UnitTest.Zeze.Util
             System.Threading.Thread.Sleep(100);
             Scheduler.Schedule(SchedulerRun3, 100, 100);
             System.Threading.Thread.Sleep(300);
-            Scheduler.StopAndJoin();
+            System.Threading.Thread.Sleep(300);
             Assert.IsTrue(SchedulerRun1Count > 3);
             Assert.IsTrue(SchedulerRun2Count == 1);
             Assert.IsTrue(SchedulerRun1Count > 2);
@@ -32,19 +32,19 @@ namespace UnitTest.Zeze.Util
 
         void SchedulerRun1(SchedulerTask ThisTask)
         {
-            //Console.WriteLine("SchedulerRun1 " + Time.NowMillis);
+            //Console.WriteLine("SchedulerRun1 " + Time.NowUnixMillis);
             SchedulerRun1Count++;
         }
 
         void SchedulerRun2(SchedulerTask ThisTask)
         {
-            //Console.WriteLine("SchedulerRun2 " + Time.NowMillis);
+            //Console.WriteLine("SchedulerRun2 " + Time.NowUnixMillis);
             SchedulerRun2Count++;
         }
 
         void SchedulerRun3(SchedulerTask ThisTask)
         {
-            //Console.WriteLine("SchedulerRun3 " + Time.NowMillis);
+            //Console.WriteLine("SchedulerRun3 " + Time.NowUnixMillis);
             SchedulerRun3Count++;
         }
     }

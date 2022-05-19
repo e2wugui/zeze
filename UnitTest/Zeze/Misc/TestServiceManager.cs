@@ -70,6 +70,17 @@ namespace UnitTest.Zeze.Misc
                 Console.WriteLine("OnChanged: " + state.ServiceInfos);
                 this.future.SetResult(0);
             };
+            agent.OnPrepare = (state) =>
+            {
+                var pending = state.ServiceInfosPending;
+                if (null != pending)
+                {
+                    foreach (var service in pending.SortedIdentity)
+                    {
+                        state.SetServiceIdentityReadyState(service.ServiceIdentity, "");
+                    }
+                }
+            };
             await agent.SubscribeService(serviceName, SubscribeInfo.SubscribeTypeSimple);
             var load = new ServerLoad()
             {

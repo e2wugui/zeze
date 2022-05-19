@@ -17,7 +17,7 @@ tag 0.9.5 c# ready
 3. 查找所有Wait并确认【Done】
 4. Net Full Async【Done 但没有达到Global可以直接在DispatchProtocol里面await的目的】
 5. Rewrite Scheduler【简单处理一下，使用的地方比较多，先这样啦】
-6. UnitTest 三个没过。
+6. UnitTest TestBag没过(呼叫肖丽杨)。
 
 java ASYNC GlobalWithRaft Question：Transaction.Current is ThreadLocal？【决定使用虚拟线程】
 

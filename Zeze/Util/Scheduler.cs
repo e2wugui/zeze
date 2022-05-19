@@ -72,13 +72,6 @@ namespace Zeze.Util
             return Instance.Timers.TryRemove(task, out _);
         }
 
-        /// <summary>
-        /// 设置停止标志，并等待调度线程结束。不是必须调用。
-        /// </summary>
-        public static void StopAndJoin()
-        {
-        }
-
         public class SchedulerTaskAction : SchedulerTask
         {
             public Action<SchedulerTask> Action { get; }
