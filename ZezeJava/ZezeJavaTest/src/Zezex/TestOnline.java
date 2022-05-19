@@ -68,8 +68,8 @@ public class TestOnline extends TestCase {
 
 		for (int i = 0; i < RoleCount; i++) {
 			String name = "RoleName_" + i;
-			int serverId = i % servers.size();
-			var so = servers.get(serverId).Server.GetSocket();
+
+			var so = clients.get(i).ClientService.GetSocket();
 
 			CreateRole createRole = new CreateRole();
 			createRole.Argument.setName(name);
@@ -100,7 +100,7 @@ public class TestOnline extends TestCase {
 		logger.info("End Stop");
 	}
 
-	public void testLoginXyz() throws Throwable {
+//	public void testLoginXyz() throws Throwable {
 		// 理解 client-linkd-server 之间的关系，
 		// 做好【准备工作】，分别做以下测试，并【验证结果】。
 		// 【准备工作】
@@ -128,7 +128,7 @@ public class TestOnline extends TestCase {
 		// 【注意】
 		// 1. client对象管理。根据以上的几个测试，可能需要根据测试目的创建不同的client，分别选择特定的linkd进行连接。
 		//    所以client一开始不用马上创建好，根据测试创建，上面的初始化流程就当作client的初始化例子吧。
-	}
+//	}
 
 	public void testLogin() {
 		logger.info("login test start");
