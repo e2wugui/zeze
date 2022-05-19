@@ -61,7 +61,7 @@ namespace Zeze.Arch
 			}
 		}
 
-        public override void OnSocketAccept(AsyncSocket socket)
+        public override async Task OnSocketAccept(AsyncSocket socket)
         {
 			if (socket.Connector == null)
             {
@@ -70,13 +70,13 @@ namespace Zeze.Arch
 				ps.SessionId = socket.SessionId;
 				socket.UserState = ps;
 			}
-			base.OnSocketAccept(socket);
+			await base.OnSocketAccept(socket);
         }
 
-        public override void OnHandshakeDone(AsyncSocket socket)
+        public override async Task OnHandshakeDone(AsyncSocket socket)
 		{
 			// call base
-			base.OnHandshakeDone(socket);
+			await base.OnHandshakeDone(socket);
 
 			var c = socket.Connector;
 			if (c != null) {
@@ -135,7 +135,7 @@ namespace Zeze.Arch
 			ss.SetServiceIdentityReadyState(server.ServiceIdentity, pms);
 		}
 
-		public override void OnSocketClose(AsyncSocket socket, Exception ex)
+		public override async Task OnSocketClose(AsyncSocket socket, Exception ex)
 		{
 			var ps = (ProviderSession)socket.UserState;
 			if (ps != null)
@@ -153,10 +153,10 @@ namespace Zeze.Arch
 				ProviderByLoadName.TryRemove(ps.ServerLoadName, out _);
 				ProviderByServerId.TryRemove(ps.ServerId, out _);
 			}
-			base.OnSocketClose(socket, ex);
+			await base.OnSocketClose(socket, ex);
 		}
 
-		public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+		public override async Task DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
 		{
 			// 防止Client不进入加密，直接发送用户协议。
 			if (!IsHandshakeProtocol(p.TypeId)) {
@@ -178,15 +178,17 @@ namespace Zeze.Arch
 			{
 				var r = (ModuleRedirectAllResult)p;
 				// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-				_ = Mission.CallAsync(factoryHandle.Handle, p, (p, code) => p.SendResultCode(code), r.Argument.MethodFullName);
+				// 按收到顺序处理，不并发。这样也避免线程切换。
+				await Mission.CallAsync(factoryHandle.Handle, p, (p, code) => p.SendResultCode(code), r.Argument.MethodFullName);
 
 				return;
 			}
 			// 所有的ProviderDirectService都不启用存储过程。
-			_ = Mission.CallAsync(factoryHandle.Handle, p, (p, code) => p.SendResultCode(code));
+			// 按收到顺序处理，不并发。这样也避免线程切换。
+			await Mission.CallAsync(factoryHandle.Handle, p, (p, code) => p.SendResultCode(code));
 		}
 
-		public override void DispatchRpcResponse(Protocol rpc, Func<Protocol, Task<long>> responseHandle, ProtocolFactoryHandle factoryHandle)
+		public override async Task DispatchRpcResponse(Protocol rpc, Func<Protocol, Task<long>> responseHandle, ProtocolFactoryHandle factoryHandle)
 		{
 			if (rpc.TypeId == ModuleRedirect.TypeId_)
 			{
@@ -197,7 +199,8 @@ namespace Zeze.Arch
 			}
 
 			// no procedure.
-			_= Mission.CallAsync(responseHandle, rpc);
+			// 按收到顺序处理，不并发。这样也避免线程切换。
+			await Mission.CallAsync(responseHandle, rpc);
 		}
 	}
 }

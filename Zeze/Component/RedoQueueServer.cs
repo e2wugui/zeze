@@ -1,6 +1,7 @@
 
 using System;
 using System.Collections.Concurrent;
+using System.Threading.Tasks;
 using Zeze.Builtin.RedoQueue;
 using Zeze.Net;
 using Zeze.Transaction;
@@ -72,11 +73,12 @@ namespace Zeze.Component
 			{
 			}
 
-			public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+			public override async Task DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
 			{
 				var r = p as RunTask;
-				var proc = Zeze.NewProcedure(async () => await factoryHandle.Handle(p), $"RedoQueue={r.Argument.QueueName} RunTask={r.Argument.TaskType}");
-				_ = Mission.CallAsync(proc, p, (p, code) => p.SendResultCode(code)); // error result
+				var proc = Zeze.NewProcedure(async () => await factoryHandle.Handle(p),
+					$"RedoQueue={r.Argument.QueueName} RunTask={r.Argument.TaskType}");
+				await Mission.CallAsync(proc, p, (p, code) => p.SendResultCode(code)); // error result
 			}
 		}
 	}

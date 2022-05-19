@@ -35,9 +35,9 @@ namespace Zeze.Net
 
 		public object UserState { get; set; }
 
-		internal virtual void Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle)
+		internal virtual async Task Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle)
 		{
-			service.DispatchProtocol(this, factoryHandle);
+			await service.DispatchProtocol(this, factoryHandle);
 		}
 
 		public abstract void Decode(ByteBuffer bb);
@@ -104,7 +104,7 @@ namespace Zeze.Net
 		/// </summary>
 		/// <param name="bb"></param>
 		/// <returns></returns>
-		internal static void Decode(Service service, AsyncSocket so, ByteBuffer bb, Zeze.Services.ToLuaService.ToLua toLua = null)
+		internal static async Task Decode(Service service, AsyncSocket so, ByteBuffer bb, Zeze.Services.ToLuaService.ToLua toLua = null)
         {
 			ByteBuffer os = ByteBuffer.Wrap(bb.Bytes, bb.ReadIndex, bb.Size); // 创建一个新的ByteBuffer，解码确认了才修改bb索引。
 			while (os.Size > 0)
@@ -160,7 +160,7 @@ namespace Zeze.Net
                     }
 					p.Sender = so;
 					p.UserState = so.UserState;
-					p.Dispatch(service, factoryHandle);
+					await p.Dispatch(service, factoryHandle);
 					continue;
 				}
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Serialize;
 using Zeze.Transaction;
@@ -38,13 +39,13 @@ namespace Zeze.Services
             ToLua.RegisterGlobalAndCallback(this);
         }
 
-        public override void OnHandshakeDone(AsyncSocket sender)
+        public override async Task OnHandshakeDone(AsyncSocket sender)
         {
             sender.IsHandshakeDone = true;
             ToLua.SetHandshakeDone(sender.SessionId, this);
         }
 
-        public override void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
+        public override async Task OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
         {
             if (so.IsHandshakeDone)
             {
@@ -52,13 +53,13 @@ namespace Zeze.Services
                 input.ReadIndex = input.WriteIndex;
             }
             else
-                base.OnSocketProcessInputBuffer(so, input);
+                await base.OnSocketProcessInputBuffer(so, input);
         }
 
-        public override void OnSocketClose(AsyncSocket so, Exception e)
+        public override async Task OnSocketClose(AsyncSocket so, Exception e)
         {
             ToLua.SetSocketClose(so.SessionId, this);
-            base.OnSocketClose(so, e);
+            await base.OnSocketClose(so, e);
         }
     }
 
@@ -78,13 +79,13 @@ namespace Zeze.Services
             ToLua.RegisterGlobalAndCallback(this);
         }
 
-        public override void OnHandshakeDone(AsyncSocket sender)
+        public override async Task OnHandshakeDone(AsyncSocket sender)
         {
             sender.IsHandshakeDone = true;
             ToLua.SetHandshakeDone(sender.SessionId, this);
         }
 
-        public override void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
+        public override async Task OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
         {
             if (so.IsHandshakeDone)
             {
@@ -92,7 +93,7 @@ namespace Zeze.Services
                 input.ReadIndex = input.WriteIndex;
             }
             else
-                base.OnSocketProcessInputBuffer(so, input);
+                await base.OnSocketProcessInputBuffer(so, input);
         }
     }
 }

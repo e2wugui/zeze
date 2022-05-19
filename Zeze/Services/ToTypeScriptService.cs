@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Zeze.Net;
 using Zeze.Serialize;
 
@@ -11,7 +12,7 @@ namespace Zeze.Services
         {
         }
 
-        public override void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
+        public override async Task OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
         {
             if (so.IsHandshakeDone)
             {
@@ -20,17 +21,17 @@ namespace Zeze.Services
             }
             else
             {
-                base.OnSocketProcessInputBuffer(so, input);
+                await base.OnSocketProcessInputBuffer(so, input);
             }
         }
 
-        public override void OnSocketClose(AsyncSocket so, Exception e)
+        public override async Task OnSocketClose(AsyncSocket so, Exception e)
         {
             SetSocketClose(so.SessionId);
-            base.OnSocketClose(so, e);
+            await base.OnSocketClose(so, e);
         }
 
-        public override void OnHandshakeDone(AsyncSocket sender)
+        public override async Task OnHandshakeDone(AsyncSocket sender)
         {
             sender.IsHandshakeDone = true;
             SetHandshakeDone(sender.SessionId);

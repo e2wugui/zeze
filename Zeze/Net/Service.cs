@@ -131,7 +131,7 @@ namespace Zeze.Net
         /// </summary>
         /// <param name="so"></param>
         /// <param name="e"></param>
-        public virtual void OnSocketClose(AsyncSocket so, Exception e)
+        public virtual async Task OnSocketClose(AsyncSocket so, Exception e)
         {
             SocketMap.TryRemove(KeyValuePair.Create(so.SessionId, so));
 
@@ -191,10 +191,10 @@ namespace Zeze.Net
         /// 服务器接受到新连接回调。
         /// </summary>
         /// <param name="so"></param>
-        public virtual void OnSocketAccept(AsyncSocket so)
+        public virtual async Task OnSocketAccept(AsyncSocket so)
         {
             SocketMap.TryAdd(so.SessionId, so);
-            OnHandshakeDone(so);
+            await OnHandshakeDone(so);
         }
 
         /// <summary>
@@ -203,7 +203,7 @@ namespace Zeze.Net
         /// 加密压缩的连接在相应的方法中调用（see Services\Handshake.cs）。
         /// 注意：修改OnHandshakeDone的时机，需要重载OnSocketAccept OnSocketConnected，并且不再调用Service的默认实现。
         /// </summary>
-        public virtual void OnHandshakeDone(AsyncSocket sender)
+        public virtual async Task OnHandshakeDone(AsyncSocket sender)
         {
             sender.IsHandshakeDone = true;
             sender.Connector?.OnSocketHandshakeDone(sender);
@@ -214,13 +214,13 @@ namespace Zeze.Net
         /// </summary>
         /// <param name="so"></param>
         /// <param name="e"></param>
-        public virtual void OnSocketConnectError(AsyncSocket so, Exception e)
+        public virtual async Task OnSocketConnectError(AsyncSocket so, Exception e)
         {
             SocketMap.TryRemove(KeyValuePair.Create(so.SessionId, so));
             logger.Log(SocketOptions.SocketLogLevel, e, "OnSocketConnectError");
         }
 
-        public virtual void OnSocketAcceptError(AsyncSocket listener, Exception e)
+        public virtual async Task OnSocketAcceptError(AsyncSocket listener, Exception e)
         {
             logger.Log(SocketOptions.SocketLogLevel, e, $"OnSocketAcceptError {listener}");
         }
@@ -229,10 +229,10 @@ namespace Zeze.Net
         /// 连接成功回调。
         /// </summary>
         /// <param name="so"></param>
-        public virtual void OnSocketConnected(AsyncSocket so)
+        public virtual async Task OnSocketConnected(AsyncSocket so)
         {
             SocketMap.TryAdd(so.SessionId, so);
-            OnHandshakeDone(so);
+            await OnHandshakeDone(so);
         }
 
         /// <summary>
@@ -241,13 +241,13 @@ namespace Zeze.Net
         /// </summary>
         /// <param name="so"></param>
         /// <param name="input"></param>
-        public virtual void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
+        public virtual async Task OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
         {
-            Protocol.Decode(this, so, input);
+            await Protocol.Decode(this, so, input);
         }
 
         // 用来派发异步rpc回调。
-        public virtual void DispatchRpcResponse(Protocol rpc,
+        public virtual async Task DispatchRpcResponse(Protocol rpc,
             Func<Protocol, Task<long>> responseHandle,
             ProtocolFactoryHandle factoryHandle)
         {
@@ -290,7 +290,7 @@ namespace Zeze.Net
             return false;
         }
 
-        public virtual async void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+        public virtual async Task DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
             if (null != factoryHandle.Handle)
             {

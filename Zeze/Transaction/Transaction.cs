@@ -416,18 +416,21 @@ namespace Zeze.Transaction
         private void FinalRollback(Procedure procedure)
         {
             State = TransactionState.Completed;
-            foreach (Action action in LastRollbackActions)
+            if (null != LastRollbackActions)
             {
-                try
+                foreach (Action action in LastRollbackActions)
                 {
-                    action();
+                    try
+                    {
+                        action();
+                    }
+                    catch (Exception e)
+                    {
+                        logger.Error(e, "Rollback Procedure {0} Action {1}", procedure, action.Method.Name);
+                    }
                 }
-                catch (Exception e)
-                {
-                    logger.Error(e, "Rollback Procedure {0} Action {1}", procedure, action.Method.Name);
-                }
+                LastRollbackActions = null;
             }
-            LastRollbackActions = null;
         }
 
         private readonly List<LockAsync> holdLocks = new(); // 读写锁的话需要一个包装类，用来记录当前维持的是哪个锁。

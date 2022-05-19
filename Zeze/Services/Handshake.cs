@@ -256,19 +256,19 @@ namespace Zeze.Services
             AddHandshakeServerFactoryHandle();
         }
 
-        public override void OnSocketAccept(AsyncSocket so)
+        public override async Task OnSocketAccept(AsyncSocket so)
         {
             // 重载这个方法，推迟OnHandshakeDone调用
             SocketMap.TryAdd(so.SessionId, so);
         }
 
-        public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+        public override async Task DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
             // 防止Client不进入加密，直接发送用户协议。
             if (false == IsHandshakeProtocol(p.TypeId))
                 p.Sender.VerifySecurity();
 
-            base.DispatchProtocol(p, factoryHandle);
+            await base.DispatchProtocol(p, factoryHandle);
         }
     }
 
@@ -290,20 +290,20 @@ namespace Zeze.Services
             c.Start();
         }
 
-        public override void OnSocketConnected(AsyncSocket so)
+        public override async Task OnSocketConnected(AsyncSocket so)
         {
             // 重载这个方法，推迟OnHandshakeDone调用
             SocketMap.TryAdd(so.SessionId, so);
             StartHandshake(so);
         }
 
-        public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+        public override async Task DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
             // 防止Client不进入加密，直接发送用户协议。
             if (false == IsHandshakeProtocol(p.TypeId))
                 p.Sender.VerifySecurity();
 
-            base.DispatchProtocol(p, factoryHandle);
+            await base.DispatchProtocol(p, factoryHandle);
         }
     }
 
@@ -321,26 +321,26 @@ namespace Zeze.Services
             AddHandshakeServerFactoryHandle();
         }
 
-        public override void OnSocketAccept(AsyncSocket so)
+        public override async Task OnSocketAccept(AsyncSocket so)
         {
             // 重载这个方法，推迟OnHandshakeDone调用
             SocketMap.TryAdd(so.SessionId, so);
         }
 
-        public override void OnSocketConnected(AsyncSocket so)
+        public override async Task OnSocketConnected(AsyncSocket so)
         {
             // 重载这个方法，推迟OnHandshakeDone调用
             SocketMap.TryAdd(so.SessionId, so);
             StartHandshake(so);
         }
 
-        public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+        public override async Task DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
             // 防止Client不进入加密，直接发送用户协议。
             if (false == IsHandshakeProtocol(p.TypeId))
                 p.Sender.VerifySecurity();
 
-            base.DispatchProtocol(p, factoryHandle);
+            await base.DispatchProtocol(p, factoryHandle);
         }
     }
 }

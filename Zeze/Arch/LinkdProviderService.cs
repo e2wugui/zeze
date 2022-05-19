@@ -23,7 +23,7 @@ namespace Zeze.Arch
 		}
 
 		// 重载需要的方法。
-		public override async void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+		public override async Task DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
 		{
 			if (null != factoryHandle.Handle)
 			{
@@ -53,25 +53,25 @@ namespace Zeze.Arch
 				logger.Warn("Protocol Handle Not Found: {}", p);
 		}
 
-        public override void OnSocketAccept(AsyncSocket sender)
+        public override async Task OnSocketAccept(AsyncSocket sender)
         {
 			sender.UserState = new LinkdProviderSession(sender.SessionId);
-			base.OnSocketAccept(sender);
+			await base.OnSocketAccept(sender);
         }
 
-        public override void OnHandshakeDone(AsyncSocket sender)
+        public override async Task OnHandshakeDone(AsyncSocket sender)
 		{
-			base.OnHandshakeDone(sender);
+			await base.OnHandshakeDone(sender);
 
 			var announce = new AnnounceLinkInfo();
 			sender.Send(announce);
 		}
 
-		public override void OnSocketClose(AsyncSocket so, Exception e)
+		public override async Task OnSocketClose(AsyncSocket so, Exception e)
 		{
 			// 先unbind。这样避免有时间窗口。
 			LinkdApp.LinkdProvider.OnProviderClose(so);
-			base.OnSocketClose(so, e);
+			await base.OnSocketClose(so, e);
 		}
 	}
 }

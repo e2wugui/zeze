@@ -11,13 +11,14 @@ tag 0.9.5 c# ready
 1. raft 异步测试
 2. Global With Raft 异步测试
 3. 查找所有Wait并确认【Done】
-4. Net Full Async【】
+4. Net Full Async【Done 但没有达到Global可以直接在DispatchProtocol里面await的目的】
 5. Rewrite Scheduler【】
 
 DatabaseTikv.OperatesTikv
-java ASYNC GlobalWithRaft Question：Transaction.Current is ThreadLocal？
 
 【2022/6/11】
+
+java ASYNC GlobalWithRaft Question：Transaction.Current is ThreadLocal？【决定使用虚拟线程】
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 0.9.4 Online.ReliableNotify & Global.LruTryRemoveCallback

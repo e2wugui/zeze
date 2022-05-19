@@ -101,10 +101,9 @@ namespace UnitTest.Zeze.Net
 
             }
 
-            public override void OnHandshakeDone(AsyncSocket sender)
+            public override async Task OnHandshakeDone(AsyncSocket sender)
             {
-                base.OnHandshakeDone(sender);
-
+                await base.OnHandshakeDone(sender);
             }
         }
     }

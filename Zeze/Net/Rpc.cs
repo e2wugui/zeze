@@ -188,11 +188,11 @@ namespace Zeze.Net
             }
         }
 
-        internal override void Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle)
+        internal override async Task Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle)
         {
             if (IsRequest)
             {
-                service.DispatchProtocol(this, factoryHandle);
+                await service.DispatchProtocol(this, factoryHandle);
                 return;
             }
 
@@ -218,7 +218,7 @@ namespace Zeze.Net
             context.IsTimeout = false; // not need
             if (null != context.ResponseHandle)
             {
-                service.DispatchRpcResponse(context, context.ResponseHandle, factoryHandle);
+                await service.DispatchRpcResponse(context, context.ResponseHandle, factoryHandle);
             }
         }
 

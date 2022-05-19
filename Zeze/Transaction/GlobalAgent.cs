@@ -309,7 +309,7 @@ namespace Zeze.Transaction
         {
         }
 
-        public override void OnHandshakeDone(AsyncSocket so)
+        public override async Task OnHandshakeDone(AsyncSocket so)
         {
             var agent = so.UserState as GlobalAgent.Agent;
             if (agent.LoginTimes.Get() > 0)
@@ -317,63 +317,57 @@ namespace Zeze.Transaction
                 var relogin = new ReLogin();
                 relogin.Argument.ServerId = Zeze.Config.ServerId;
                 relogin.Argument.GlobalCacheManagerHashIndex = agent.GlobalCacheManagerHashIndex;
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-                relogin.Send(so,
-                    async (_) =>
+                relogin.Send(so, async (_) =>
+                {
+                    if (relogin.IsTimeout)
                     {
-                        if (relogin.IsTimeout)
-                        {
-                            so.Close(new Exception("GlobalAgent.ReLogin Timeout"));
-                        }
-                        else if (relogin.ResultCode != 0)
-                        {
-                            so.Close(new Exception("GlobalAgent.ReLogin Fail code=" + relogin.ResultCode));
-                        }
-                        else
-                        {
-                            agent.LoginTimes.IncrementAndGet();
-                            base.OnHandshakeDone(so);
-                        }
-                        return 0;
-                    });
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+                        so.Close(new Exception("GlobalAgent.ReLogin Timeout"));
+                    }
+                    else if (relogin.ResultCode != 0)
+                    {
+                        so.Close(new Exception("GlobalAgent.ReLogin Fail code=" + relogin.ResultCode));
+                    }
+                    else
+                    {
+                        agent.LoginTimes.IncrementAndGet();
+                        await base.OnHandshakeDone(so);
+                    }
+                    return 0;
+                });
             }
             else
             {
                 var login = new Login();
                 login.Argument.ServerId = Zeze.Config.ServerId;
                 login.Argument.GlobalCacheManagerHashIndex = agent.GlobalCacheManagerHashIndex;
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-                login.Send(so,
-                    async (_) =>
+                login.Send(so, async (_) =>
+                {
+                    if (login.IsTimeout)
                     {
-                        if (login.IsTimeout)
-                        {
-                            so.Close(new Exception("GlobalAgent.Login Timeout"));
-                        }
-                        else if (login.ResultCode != 0)
-                        {
-                            so.Close(new Exception($"GlobalAgent.Logoin Error {login.ResultCode}"));
-                        }
-                        else
-                        {
-                            agent.LoginTimes.IncrementAndGet();
-                            base.OnHandshakeDone(so);
-                        }
-                        return 0;
-                    });
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+                        so.Close(new Exception("GlobalAgent.Login Timeout"));
+                    }
+                    else if (login.ResultCode != 0)
+                    {
+                        so.Close(new Exception($"GlobalAgent.Logoin Error {login.ResultCode}"));
+                    }
+                    else
+                    {
+                        agent.LoginTimes.IncrementAndGet();
+                        await base.OnHandshakeDone(so);
+                    }
+                    return 0;
+                });
             }
         }
 
-        public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+        public override async Task DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
             _ = Util.Mission.CallAsync(factoryHandle.Handle, p);
         }
 
-        public override void OnSocketClose(AsyncSocket so, Exception e)
+        public override async Task OnSocketClose(AsyncSocket so, Exception e)
         {
-            base.OnSocketClose(so, e);
+            await base.OnSocketClose(so, e);
             var agent = so.UserState as GlobalAgent.Agent;
             if (null == e)
                 e = new Exception("Peer Normal Close.");

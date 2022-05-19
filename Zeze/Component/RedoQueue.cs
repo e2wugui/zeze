@@ -156,18 +156,18 @@ namespace Zeze.Component
 			return rpc.ResultCode;
 		}
 
-		public override async void OnHandshakeDone(AsyncSocket sender)
+		public override async Task OnHandshakeDone(AsyncSocket sender)
 		{
-			base.OnHandshakeDone(sender);
+			await base.OnHandshakeDone(sender);
 			using (await Mutex.LockAsync())
 			{
 				await TryStartSendNextTask(null, sender);
 			}
 		}
 
-		public override async void OnSocketClose(AsyncSocket socket, Exception ex)
+		public override async Task OnSocketClose(AsyncSocket socket, Exception ex)
 		{
-			base.OnSocketClose(socket, ex);
+			await base.OnSocketClose(socket, ex);
 			using (await Mutex.LockAsync())
 			{ 
 				if (Socket == socket) {

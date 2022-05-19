@@ -113,9 +113,10 @@ namespace Zeze.Arch
         public TaskCompletionSource<bool> ProviderStaticBindCompleted = new();
         public TaskCompletionSource<bool> ProviderDynamicSubscribeCompleted = new();
 
-        public override void OnHandshakeDone(AsyncSocket sender)
+        public override async Task OnHandshakeDone(AsyncSocket sender)
         {
-            base.OnHandshakeDone(sender);
+            await base.OnHandshakeDone(sender);
+
             var linkName = GetLinkName(sender);
             sender.UserState = new LinkSession(linkName, sender.SessionId);
 
@@ -133,13 +134,13 @@ namespace Zeze.Arch
             sub.Send(sender, async (protocol) => { ProviderDynamicSubscribeCompleted.SetResult(true); return 0; });
         }
 
-        public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+        public override async Task DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
             // 防止Client不进入加密，直接发送用户协议。
             if (false == IsHandshakeProtocol(p.TypeId))
                 p.Sender.VerifySecurity();
 
-            base.DispatchProtocol(p, factoryHandle);
+            await base.DispatchProtocol(p, factoryHandle);
         }
 
         /*
