@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
+using Zeze.Util;
 
 namespace Zeze.Arch.Gen
 {
@@ -19,9 +20,9 @@ namespace Zeze.Arch.Gen
 
         public MethodOverride(MethodInfo method, OverrideType type, Attribute attribute)
         {
-            var tLevelAnn = method.GetCustomAttribute(typeof(Zeze.Util.TransactionLevelAttribute));
+            var tLevelAnn = method.GetCustomAttribute<TransactionLevelAttribute>();
             if (tLevelAnn != null)
-                Enum.TryParse((tLevelAnn as Zeze.Util.TransactionLevelAttribute).Level, out TransactionLevel);
+                TransactionLevel = tLevelAnn.Level;
 
             if (false == method.IsVirtual)
                 throw new Exception("ModuleRedirect Need Virtual。");

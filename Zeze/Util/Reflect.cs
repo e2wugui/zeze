@@ -44,7 +44,7 @@ namespace Zeze.Util
             {
                 var attr = method.GetCustomAttribute<TransactionLevelAttribute>();
                 if (attr != null)
-                    return (TransactionLevel)TransactionLevel.Parse(typeof(TransactionLevel), attr.Level);
+                    return attr.Level;
                 // else def
             }
             return def;

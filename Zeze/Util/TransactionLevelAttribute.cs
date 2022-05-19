@@ -1,16 +1,11 @@
-﻿
-using System;
+﻿using System;
+using Zeze.Transaction;
 
 namespace Zeze.Util
 {
     [AttributeUsage(AttributeTargets.Method)]
     public class TransactionLevelAttribute : Attribute
     {
-        public string Level { get; set; } = "Serializable";
-        
-        public TransactionLevelAttribute()
-        {
-
-        }
+        public TransactionLevel Level { get; set; } = TransactionLevel.Serializable;
     }
 }
