@@ -15,6 +15,7 @@ tag 0.9.5 c# ready
 5. Rewrite Scheduler【】
 
 DatabaseTikv.OperatesTikv
+java ASYNC GlobalWithRaft Question：Transaction.Current is ThreadLocal？
 
 【2022/6/11】
 
