@@ -778,7 +778,7 @@ namespace Zeze.Raft
 
             public override async Task DispatchRpcResponse(Protocol rpc, Func<Protocol, Task<long>> responseHandle, ProtocolFactoryHandle factoryHandle)
             {
-                await Util.Mission.CallAsync(responseHandle, rpc, null);
+                _ = Util.Mission.CallAsync(responseHandle, rpc, null);
             }
 
             public override async Task DispatchProtocol(Protocol p, ProtocolFactoryHandle pfh)
@@ -787,8 +787,8 @@ namespace Zeze.Raft
                 if (false == IsHandshakeProtocol(p.TypeId))
                     p.Sender.VerifySecurity();
 
-                // 按收到顺序处理，不并发。这样也避免线程切换。
-                await Util.Mission.CallAsync(pfh.Handle, p, null);
+                // await 按收到顺序处理，不并发。这样也避免线程切换。
+                _ = Util.Mission.CallAsync(pfh.Handle, p, null);
             }
         }
     }
