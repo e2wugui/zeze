@@ -159,4 +159,32 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean> {
 		module._tDepartmentTree.remove(new BDepartmentKey(name, departmentId));
 		return true;
 	}
+
+	public boolean isRecursiveChild(long departmentId, long child) {
+		var department = module._tDepartmentTree.get(new BDepartmentKey(name, departmentId));
+		if (null == department)
+			return false;
+		for (var c : department.getChilds().values()) {
+			if (c == child)
+				return true;
+			if (isRecursiveChild(c, child))
+				return true;
+		}
+		return false;
+	}
+
+	public boolean moveDepartment(long departmentId, long parent) {
+		if (isRecursiveChild(departmentId, parent))
+			return false;
+		var department = module._tDepartmentTree.get(new BDepartmentKey(name, departmentId));
+		var newParent = getDepartment(parent);
+		if (null == department || null == newParent)
+			return false;
+		var oldParent = getDepartment(department.getParentDepartment());
+		oldParent.getChilds().remove(department.getName());
+		if (null != newParent.getChilds().put(department.getName(), departmentId))
+			return false;
+		department.setParentDepartment(parent);
+		return true;
+	}
 }
