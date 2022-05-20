@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Net.Binary;
 import Zeze.Net.Service;
@@ -107,7 +106,7 @@ public class Test {
 			}
 		});
 
-		Task.initThreadPool((ThreadPoolExecutor)Executors.newFixedThreadPool(10, new ThreadFactoryWithName("test")),
+		Task.initThreadPool(Task.newFixedThreadPool(10, "test"),
 				Executors.newScheduledThreadPool(3, new ThreadFactoryWithName("test-sch")));
 		var raftConfigStart = RaftConfig.Load(RaftConfigFileName);
 

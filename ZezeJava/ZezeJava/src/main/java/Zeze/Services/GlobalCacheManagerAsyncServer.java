@@ -4,7 +4,6 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Arch.RedirectFuture;
@@ -978,8 +977,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		int cpuCount = Runtime.getRuntime().availableProcessors();
 		if (threadCount < 1)
 			threadCount = cpuCount;
-		Task.initThreadPool((ThreadPoolExecutor)
-						Executors.newFixedThreadPool(threadCount, new ThreadFactoryWithName("ZezeTaskPool")),
+		Task.initThreadPool(Task.newFixedThreadPool(threadCount, "ZezeTaskPool"),
 				Executors.newSingleThreadScheduledExecutor(new ThreadFactoryWithName("ZezeScheduledPool")));
 		if (Selectors.getInstance().getCount() < cpuCount)
 			Selectors.getInstance().add(cpuCount - Selectors.getInstance().getCount());

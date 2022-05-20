@@ -4,6 +4,8 @@ import java.util.Calendar;
 import java.util.Collection;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
@@ -24,13 +26,13 @@ import org.apache.logging.log4j.Logger;
 
 public class Task implements Future<Long> {
 	static final Logger logger = LogManager.getLogger(Task.class);
-	private static ThreadPoolExecutor threadPoolDefault;
+	private static ExecutorService threadPoolDefault;
 	private static ScheduledExecutorService threadPoolScheduled;
 	//	private static final ThreadPoolExecutor rpcResponseThreadPool
 	//			= (ThreadPoolExecutor)Executors.newCachedThreadPool(new ThreadFactoryWithName("ZezeRespPool"));
 	public static volatile Action4<Level, Throwable, Long, String> LogAction = Task::DefaultLogAction;
 
-	public static ThreadPoolExecutor getThreadPool() {
+	public static ExecutorService getThreadPool() {
 		return threadPoolDefault;
 	}
 
@@ -38,7 +40,20 @@ public class Task implements Future<Long> {
 		return threadPoolScheduled;
 	}
 
-	public static synchronized void initThreadPool(ThreadPoolExecutor pool, ScheduledExecutorService scheduled) {
+	public static ExecutorService newFixedThreadPool(int threadCount, String threadNamePrefix) {
+		try {
+			//noinspection JavaReflectionMemberAccess
+			var r = (ExecutorService)Executors.class.getMethod("newVirtualThreadPerTaskExecutor", (Class<?>[])null).invoke(null);
+			logger.info("newFixedThreadPool({},{}) use virtual thread pool", threadCount, threadNamePrefix);
+			return r;
+		} catch (ReflectiveOperationException ignored) {
+		}
+
+		return new ThreadPoolExecutor(threadCount, threadCount, 0, TimeUnit.NANOSECONDS,
+				new LinkedBlockingQueue<>(), new ThreadFactoryWithName(threadNamePrefix));
+	}
+
+	public static synchronized void initThreadPool(ExecutorService pool, ScheduledExecutorService scheduled) {
 		if (pool == null || scheduled == null)
 			throw new IllegalArgumentException();
 
@@ -48,7 +63,7 @@ public class Task implements Future<Long> {
 		threadPoolScheduled = scheduled;
 	}
 
-	public static synchronized boolean tryInitThreadPool(Application app, ThreadPoolExecutor pool,
+	public static synchronized boolean tryInitThreadPool(Application app, ExecutorService pool,
 														 ScheduledThreadPoolExecutor scheduled) {
 		if (threadPoolDefault != null || threadPoolScheduled != null)
 			return false;
@@ -56,8 +71,7 @@ public class Task implements Future<Long> {
 		if (pool == null) {
 			int workerThreads = app == null ? 240 : (app.getConfig().getWorkerThreads() > 0
 					? app.getConfig().getWorkerThreads() : Runtime.getRuntime().availableProcessors() * 30);
-			threadPoolDefault = new ThreadPoolExecutor(workerThreads, workerThreads, 0, TimeUnit.NANOSECONDS,
-					new LinkedBlockingQueue<>(), new ThreadFactoryWithName("ZezeTaskPool"));
+			threadPoolDefault = newFixedThreadPool(workerThreads, "ZezeTaskPool");
 		} else
 			threadPoolDefault = pool;
 

@@ -3,7 +3,6 @@ package Zeze.Raft.RocksRaft;
 import java.io.File;
 import java.util.List;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
 import Zeze.Raft.LogSequence;
 import Zeze.Raft.RocksRaft.Log1.LogInt;
 import Zeze.Raft.RocksRaft.Log1.LogLong;
@@ -466,7 +465,7 @@ public final class Test {
 	}
 
 	public static void main(String[] args) throws Throwable {
-		Task.initThreadPool((ThreadPoolExecutor)Executors.newFixedThreadPool(5, new ThreadFactoryWithName("test")),
+		Task.initThreadPool(Task.newFixedThreadPool(5, "test"),
 				Executors.newScheduledThreadPool(3, new ThreadFactoryWithName("test-sch")));
 		new Test().Test_1();
 		System.out.println("main end!");

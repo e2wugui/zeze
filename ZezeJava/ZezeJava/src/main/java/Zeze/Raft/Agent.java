@@ -236,7 +236,7 @@ public final class Agent {
 	}
 
 	public Agent(String name, RaftConfig raftConf, Zeze.Config config) throws Throwable {
-		InternalThreadPool = Executors.newFixedThreadPool(5, new ThreadFactoryWithName("RaftAgent"));
+		InternalThreadPool = Task.newFixedThreadPool(5, "RaftAgent");
 		if (config == null)
 			config = Config.Load();
 

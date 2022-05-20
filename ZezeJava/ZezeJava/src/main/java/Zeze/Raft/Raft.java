@@ -234,7 +234,7 @@ public final class Raft {
 		if (RaftConfig.getNodes().size() < 3)
 			throw new IllegalStateException("Startup Nodes.Count Must >= 3.");
 
-		ImportantThreadPool = Executors.newFixedThreadPool(5, new ThreadFactoryWithName("Raft"));
+		ImportantThreadPool = Task.newFixedThreadPool(5, "Raft");
 		Zeze.Raft.Server.CreateAcceptor(Server, raftConf);
 		Zeze.Raft.Server.CreateConnector(Server, raftConf);
 

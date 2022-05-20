@@ -157,8 +157,7 @@ public class Simulate {
 		keyEnd = keyBegin + localKeyRange;
 		keyWindowBegin.set(keyBegin);
 
-		Task.initThreadPool((ThreadPoolExecutor)
-						Executors.newFixedThreadPool(taskThreadCount, new ThreadFactory("ZezeTaskPool")),
+		Task.initThreadPool(Task.newFixedThreadPool(taskThreadCount, "ZezeTaskPool"),
 				Executors.newScheduledThreadPool(schdThreadCount, new ThreadFactory("ZezeScheduledPool")));
 
 		var app = new SimpleApp(serverId, 20000 + serverId,
