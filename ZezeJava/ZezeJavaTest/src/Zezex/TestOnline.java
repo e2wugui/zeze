@@ -73,12 +73,21 @@ public class TestOnline extends TestCase {
 
 			CreateRole createRole = new CreateRole();
 			createRole.Argument.setName(name);
-			var role = createRole.SendForWait(so).get();
+			createRole.SendForWait(so).await();
+			var role = createRole.Result;
 			roles.add(role);
 
-			String account = "RoleAccount_" + i;
-			servers.get(i % servers.size()).provider.Online.addRole(account, role.getId());
-			accounts.add(account);
+			int index = i;
+			try {
+				servers.get(i).Zeze.NewProcedure(() -> {
+					String account = "RoleAccount_" + index;
+					servers.get(index % servers.size()).provider.Online.addRole(account, role.getId());
+					accounts.add(account);
+					return Procedure.Success;
+				}, "TestAddRole").Call();
+			} catch (Throwable e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -137,7 +146,6 @@ public class TestOnline extends TestCase {
 			String account = accounts.get(i);
 			long roleId = role.getId();
 			var socket = clients.get(i).ClientService.GetSocket();
-			servers.get(i % servers.size()).provider.Online.addRole(account, roleId);
 
 			Auth auth = new Auth();
 			auth.Argument.setAccount(account);
