@@ -14,6 +14,7 @@ import Zeze.Transaction.ProcedureStatistics;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.FuncLong;
 import Zeze.Util.Random;
+import org.junit.Assert;
 
 public final class Tasks {
 	private static final ConcurrentHashMap<String, ConcurrentHashMap<Long, AtomicLong>> CounterRun = new ConcurrentHashMap<>();
@@ -72,20 +73,20 @@ public final class Tasks {
 				Simulate.logger.fatal("tooManyTry({})={}", name, tooManyTry);
 			if (runs.size() != success.size()) {
 				Simulate.logger.error("verify({}): {} != {}", name, runs.size(), success.size());
-				assert false;
+				Assert.fail();
 			}
 			var totalCount = 0;
 			var successCount = 0;
 			for (var r : runs.entrySet()) {
 				totalCount += r.getValue().get();
 				var s = success.get(r.getKey());
-				assert s != null;
+				Assert.assertNotNull(s);
 				successCount += s.get();
 			}
 			// ignore TooManyTry error
 			if (totalCount != successCount + tooManyTry) {
 				Simulate.logger.error("verify({}): {} != {} + {}", name, totalCount, successCount, tooManyTry);
-				assert false;
+				Assert.fail();
 			}
 		}
 
@@ -181,7 +182,7 @@ public final class Tasks {
 			var app = Simulate.getInstance().randApp().app; // 任何一个app都能查到相同的结果。
 			var success = getSuccessCounters(name);
 			for (var key : getRunCounters(name).keySet())
-				assert app.demo_Module1.getTable1().selectDirty(key).getLong2() == success.get(key).get();
+				Assert.assertEquals(app.demo_Module1.getTable1().selectDirty(key).getLong2(), success.get(key).get());
 			Simulate.logger.debug("{}.verify OK!", name);
 		}
 	}
@@ -251,7 +252,7 @@ public final class Tasks {
 				if (value != null)
 					sum += value.getInt1();
 			}
-			assert sum == 0;
+			Assert.assertEquals(sum, 0);
 		}
 	}
 
@@ -289,11 +290,11 @@ public final class Tasks {
 						if (valueBytes != null)
 							sum += table1.DecodeValue(valueBytes).getInt1();
 					}
-					assert sum == 0;
+					Assert.assertEquals(sum, 0);
 				}
 			} catch (Exception e) {
 				Simulate.logger.error(tflushInt1TradeConcurrentVerify.class.getName(), e);
-				assert false;
+				Assert.fail();
 			}
 			return 0L;
 		}
