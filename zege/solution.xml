@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<solution name="zege" ModuleIdAllowRanges="1-1000">
+<solution name="Zege" ModuleIdAllowRanges="1-1000">
 	<import file="solution.linkd.xml"/>
 	<import file="../ZezeJava/ZezeJava/solution.zeze.xml"/>
 
@@ -44,7 +44,7 @@
 		<table name="tIdentiryCard" key="string" value="BAccount" /> key is identirycard
 		<table name="tPhone"        key="string" value="BAccounts" /> key is phone
 
-		<protocolref ref="Zezex.Linkd.Auth" />
+		<protocolref ref="Zege.Linkd.Auth" />
 
 		<!-- Rsa 签字验证 -->
 		<bean name="BTokenRsa">

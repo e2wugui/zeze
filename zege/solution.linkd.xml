@@ -1,14 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<solution name="zege" ModuleIdAllowRanges="10000-10999">
+<solution name="Zege" ModuleIdAllowRanges="10000-10999">
 
 	<module name="Linkd" id="10000">
 		<bean name="BAuth">
+			<enum name="ProviderUserModuleId" value="2" />
+
+			<enum name="TypeRsa" value="0" />
+			<enum name="TypePhoneMessage" value="1" />
+
+			<enum name="ResultCodeSuccess"         value="0"/>
+			<enum name="ResultCodeUnknownError"    value="1"/>
+
+			<enum name="ResultCodeUserNotExist" value="2"/> 账号不存在，处于安全原因，最好不要返回这个错误。
+			<enum name="ResultCodeInvalidUser"  value="3"/> 账号不正确，返回这个有助于用户判断输入错误。处于安全原因，最好不要返回这个错误。
+
 			<variable id="1" name="Account" type="string"/>
-			<variable id="2" name="Token" type="string"/> security. maybe password
+			<variable id="2" name="Type" type="int"/>
+			<variable id="3" name="Token" type="binary"/> 根据Type不同含义不同。
+			<variable id="4" name="ClientId" type="string"/> 每个(Account,ClientId)在同一个Linkd上只允许一个连接。
 		</bean>
 
-		<rpc name="Auth" argument="BAuth" handle="server">
+		<bean name="BAuthResult">
+			<variable id="1" name="Message" type="string"/> 结果描述。错误码在ResultCode中。
+		</bean>
+		
+		<rpc name="Auth" argument="BAuth" result="BAuthResult" handle="server">
 			<enum name="Success" value="0"/>
 			<enum name="Error"   value="1"/>
 		</rpc>
