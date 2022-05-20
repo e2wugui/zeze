@@ -34,8 +34,7 @@ namespace Zeze.Arch
             var serviceInfo = ChoiceHash(providers, hash);
             if (null == serviceInfo)
                 return false;
-            var providerModuleState = serviceInfo.LocalState as ProviderModuleState;
-            if (null == providerModuleState)
+            if (serviceInfo.LocalState is not ProviderModuleState providerModuleState)
                 return false;
             provider = providerModuleState.SessionId;
             return true;
@@ -53,11 +52,9 @@ namespace Zeze.Arch
             // 新的provider在后面，从后面开始搜索。后面的可能是新的provider。
             for (int i = list.Count - 1; i >= 0; --i)
             {
-                var providerModuleState = list[i].LocalState as ProviderModuleState;
-                if (null == providerModuleState)
+                if (list[i].LocalState is not ProviderModuleState providerModuleState)
                     continue;
-                var ps = ProviderService.GetSocket(providerModuleState.SessionId)?.UserState as ProviderSession;
-                if (null == ps)
+                if (ProviderService.GetSocket(providerModuleState.SessionId)?.UserState is not ProviderSession ps)
                     continue; // 这里发现关闭的服务，仅仅忽略.
                 all.Add(ps);
                 if (ps.Load.OnlineNew > MaxOnlineNew)
@@ -92,7 +89,7 @@ namespace Zeze.Arch
             return false;
         }
 
-        private Zeze.Util.AtomicInteger FeedFullOneByOneIndex = new Zeze.Util.AtomicInteger();
+        private readonly Zeze.Util.AtomicInteger FeedFullOneByOneIndex = new();
 
         public bool ChoiceFeedFullOneByOne(Agent.SubscribeState providers, out long provider)
         {
@@ -107,12 +104,10 @@ namespace Zeze.Arch
                 {
                     var index = (int)((uint)FeedFullOneByOneIndex.Get() % (uint)list.Count); // current
                     var serviceinfo = list[index];
-                    var providerModuleState = serviceinfo.LocalState as ProviderModuleState;
-                    if (providerModuleState == null)
+                    if (serviceinfo.LocalState is not ProviderModuleState providerModuleState)
                         continue;
-                    var ps = ProviderService.GetSocket(providerModuleState.SessionId)?.UserState as ProviderSession;
                     // 这里发现关闭的服务，仅仅忽略.
-                    if (null == ps)
+                    if (ProviderService.GetSocket(providerModuleState.SessionId)?.UserState is not ProviderSession ps)
                         continue;
                     // 这个和一个一个喂饱冲突，但是一下子给一个服务分配太多用户，可能超载。如果不想让这个生效，把MaxOnlineNew设置的很大。
                     if (ps.Load.OnlineNew > LoadConfig.MaxOnlineNew)
@@ -150,7 +145,7 @@ namespace Zeze.Arch
             return true;
         }
 
-        public bool ChoiceProviderByServerId(string serviceNamePrefix, int moduleId, int hash, out long provider)
+        public bool ChoiceProviderByServerId(string serviceNamePrefix, int moduleId, int serverId, out long provider)
         {
             var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
             if (false == Zeze.ServiceManagerAgent.SubscribeStates.TryGetValue(
@@ -159,7 +154,7 @@ namespace Zeze.Arch
                 provider = 0;
                 return false;
             }
-            var si = volatileProviders.ServiceInfos.FindServiceInfoByServerId(hash);
+            var si = volatileProviders.ServiceInfos.Find(serverId);
             if (null != si)
             {
                 var state = (ProviderModuleState)si.LocalState;

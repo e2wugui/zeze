@@ -89,8 +89,10 @@ namespace Zeze.Services
                 lock (this)
                 {
                     Load = load;
-                    var set = new SetServerLoad();
-                    set.Argument = load;
+                    var set = new SetServerLoad
+                    {
+                        Argument = load
+                    };
                     foreach (var e in Observers)
                     {
                         try
@@ -151,7 +153,7 @@ namespace Zeze.Services
         /// <summary>
         /// 需要从配置文件中读取，把这个引用加入： Zeze.Config.AddCustomize
         /// </summary>
-        public Conf Config { get; } = new Conf();
+        public Conf Config { get; } = new();
 
         private void AddLoadObserver(string ip, int port, AsyncSocket sender)
         {
@@ -177,12 +179,9 @@ namespace Zeze.Services
 
             // identity ->
             // 记录一下SessionId，方便以后找到服务所在的连接。
-            public ConcurrentDictionary<string, ServiceInfo> ServiceInfos { get; }
-                = new ConcurrentDictionary<string, ServiceInfo>();
-            public ConcurrentDictionary<long, SubscribeState> Simple { get; }
-                = new ConcurrentDictionary<long, SubscribeState>();
-            public ConcurrentDictionary<long, SubscribeState> ReadyCommit { get; }
-                = new ConcurrentDictionary<long, SubscribeState>();
+            public ConcurrentDictionary<string, ServiceInfo> ServiceInfos { get; } = new();
+            public ConcurrentDictionary<long, SubscribeState> Simple { get; } = new();
+            public ConcurrentDictionary<long, SubscribeState> ReadyCommit { get; } = new();
 
             private SchedulerTask NotifyTimeoutTask;
             private long SerialId;
@@ -269,7 +268,7 @@ namespace Zeze.Services
             {
                 lock (this)
                 {
-                    if (false == ServiceInfos.TryGetValue(info.ServiceIdentity, out var current))
+                    if (false == ServiceInfos.TryGetValue(info.Identity, out var current))
                         return Update.ServiceIndentityNotExist;
 
                     current.PassiveIp = info.PassiveIp;
@@ -384,11 +383,9 @@ namespace Zeze.Services
         {
             public ServiceManagerServer ServiceManager { get; }
             public long SessionId { get; }
-            public ConcurrentDictionary<ServiceInfo, ServiceInfo> Registers { get; }
-                = new ConcurrentDictionary<ServiceInfo, ServiceInfo>(new ServiceInfoEqualityComparer());
+            public ConcurrentDictionary<ServiceInfo, ServiceInfo> Registers { get; } = new(new ServiceInfoEqualityComparer());
             // key is ServiceName: 会话订阅
-            public ConcurrentDictionary<string, SubscribeInfo> Subscribes { get; }
-                = new ConcurrentDictionary<string, SubscribeInfo>();
+            public ConcurrentDictionary<string, SubscribeInfo> Subscribes { get; } = new();
             private SchedulerTask KeepAliveTimerTask;
 
             public Session(ServiceManagerServer sm, long ssid)
@@ -452,7 +449,7 @@ namespace Zeze.Services
             var session = r.Sender.UserState as Session;
             // 允许重复登录，断线重连Agent不好原子实现重发。
             session.Registers.TryAdd(r.Argument, r.Argument);
-            var state = ServerStates.GetOrAdd(r.Argument.ServiceName, (name) => new ServerState(this, name));
+            var state = ServerStates.GetOrAdd(r.Argument.Name, (name) => new ServerState(this, name));
 
             // 【警告】
             // 为了简单，这里没有创建新的对象，直接修改并引用了r.Argument。
@@ -463,7 +460,7 @@ namespace Zeze.Services
             r.Argument.LocalState = r.Sender.SessionId;
 
             // AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
-            var current = state.ServiceInfos.AddOrUpdate(r.Argument.ServiceIdentity, r.Argument, (key, value) => r.Argument);
+            var current = state.ServiceInfos.AddOrUpdate(r.Argument.Identity, r.Argument, (key, value) => r.Argument);
             r.SendResultCode(Register.Success);
             state.StartReadyCommitNotify();
             state.NotifySimpleOnRegister(current);
@@ -479,7 +476,7 @@ namespace Zeze.Services
             if (false == session.Registers.ContainsKey(r.Argument))
                 return Update.ServiceNotRetister;
 
-            if (false == ServerStates.TryGetValue(r.Argument.ServiceName, out var state))
+            if (false == ServerStates.TryGetValue(r.Argument.Name, out var state))
                 return Update.ServerStateError;
 
             var rc = state.UpdateAndNotify(r.Argument);
@@ -491,16 +488,16 @@ namespace Zeze.Services
 
         internal ServerState UnRegisterNow(long sessionId, ServiceInfo info)
         {
-            if (ServerStates.TryGetValue(info.ServiceName, out var state))
+            if (ServerStates.TryGetValue(info.Name, out var state))
             {
-                if (state.ServiceInfos.TryGetValue(info.ServiceIdentity, out var current))
+                if (state.ServiceInfos.TryGetValue(info.Identity, out var current))
                 {
                     // 这里存在一个时间窗口，可能使得重复的注销会成功。注销一般比较特殊，忽略这个问题。
                     long? existSessionId = current.LocalState as long?;
                     if (existSessionId == null || sessionId == existSessionId.Value)
                     {
                         // 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
-                        state.ServiceInfos.TryRemove(info.ServiceIdentity, out var _);
+                        state.ServiceInfos.TryRemove(info.Identity, out var _);
                         state.NotifySimpleOnUnRegister(current);
                         return state;
                     }
@@ -688,8 +685,7 @@ namespace Zeze.Services
         }
 
         private readonly RocksDb AutoKeysDb;
-        private ConcurrentDictionary<string, AutoKey> AutoKeys { get; }
-            = new ConcurrentDictionary<string, AutoKey>();
+        private ConcurrentDictionary<string, AutoKey> AutoKeys { get; } = new();
 
         public sealed class AutoKey
         {
@@ -819,8 +815,7 @@ namespace Zeze.Services.ServiceManager
     {
         // key is ServiceName。对于一个Agent，一个服务只能有一个订阅。
         // ServiceName ->
-        public ConcurrentDictionary<string, SubscribeState> SubscribeStates { get; }
-            = new ConcurrentDictionary<string, SubscribeState>();
+        public ConcurrentDictionary<string, SubscribeState> SubscribeStates { get; } = new();
         public NetClient Client { get; private set; }
         public Application Zeze { get; }
 
@@ -839,8 +834,7 @@ namespace Zeze.Services.ServiceManager
         public Action OnKeepAlive { get; set; }
 
         // key is (ServiceName, ServideIdentity)
-        private ConcurrentDictionary<ServiceInfo, ServiceInfo> Registers { get; }
-            = new ConcurrentDictionary<ServiceInfo, ServiceInfo>(new ServiceInfoEqualityComparer());
+        private ConcurrentDictionary<ServiceInfo, ServiceInfo> Registers { get; } = new(new ServiceInfoEqualityComparer());
 
         // 【警告】
         // 记住当前已经注册和订阅信息，当ServiceManager连接发生重连时，重新发送请求。
@@ -869,8 +863,7 @@ namespace Zeze.Services.ServiceManager
             }
 
             // 服务准备好。
-            public ConcurrentDictionary<string, object> ServiceIdentityReadyStates { get; }
-                = new ConcurrentDictionary<string, object>();
+            public ConcurrentDictionary<string, object> ServiceIdentityReadyStates { get; } = new();
 
             public SubscribeState(Agent ag, SubscribeInfo info)
             {
@@ -888,7 +881,7 @@ namespace Zeze.Services.ServiceManager
 
                 foreach (var pending in p.SortedIdentity)
                 {
-                    if (!ServiceIdentityReadyStates.ContainsKey(pending.ServiceIdentity))
+                    if (!ServiceIdentityReadyStates.ContainsKey(pending.Identity))
                         return false;
                 }
                 var r = new ReadyServiceList();
@@ -925,7 +918,7 @@ namespace Zeze.Services.ServiceManager
             {
                 foreach (var info in ServiceInfos.SortedIdentity)
                 {
-                    if (ServiceIdentityReadyStates.TryGetValue(info.ServiceIdentity, out var state))
+                    if (ServiceIdentityReadyStates.TryGetValue(info.Identity, out var state))
                     {
                         info.LocalState = state;
                     }
@@ -937,7 +930,7 @@ namespace Zeze.Services.ServiceManager
             {
                 lock (this)
                 {
-                    var exist = ServiceInfos.FindServiceInfoByIdentity(info.ServiceIdentity);
+                    var exist = ServiceInfos.Find(info.Identity);
                     if (null == exist)
                         return;
 
@@ -1073,8 +1066,15 @@ namespace Zeze.Services.ServiceManager
             return reg;
         }
 
+        private void Verify(string identity)
+        {
+            if (false == identity.StartsWith("@"))
+                int.Parse(identity);
+        }
+
         private async Task<ServiceInfo> RegisterService(ServiceInfo info)
         {
+            Verify(info.Identity);
             await WaitConnectorReadyAsync();
 
             bool regNew = false;
@@ -1161,8 +1161,10 @@ namespace Zeze.Services.ServiceManager
 
         public bool SetServerLoad(ServerLoad load)
         {
-            var p = new SetServerLoad();
-            p.Argument = load;
+            var p = new SetServerLoad
+            {
+                Argument = load
+            };
             return p.Send(Client?.Socket);
         }
 
@@ -1202,7 +1204,7 @@ namespace Zeze.Services.ServiceManager
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             var r = p as Update;
-            if (false == SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
+            if (false == SubscribeStates.TryGetValue(r.Argument.Name, out var state))
                 return Update.ServiceNotSubscribe;
 
             state.OnUpdate(r.Argument);
@@ -1215,7 +1217,7 @@ namespace Zeze.Services.ServiceManager
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             var r = p as Register;
-            if (false == SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
+            if (false == SubscribeStates.TryGetValue(r.Argument.Name, out var state))
                 return Update.ServiceNotSubscribe;
 
             state.OnRegister(r.Argument);
@@ -1228,7 +1230,7 @@ namespace Zeze.Services.ServiceManager
 #pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
         {
             var r = p as UnRegister;
-            if (false == SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
+            if (false == SubscribeStates.TryGetValue(r.Argument.Name, out var state))
                 return Update.ServiceNotSubscribe;
 
             state.OnUnRegister(r.Argument);
@@ -1320,8 +1322,7 @@ namespace Zeze.Services.ServiceManager
             }
         }
 
-        private ConcurrentDictionary<string, AutoKey> AutoKeys { get; }
-            = new ConcurrentDictionary<string, AutoKey>();
+        private ConcurrentDictionary<string, AutoKey> AutoKeys { get; } = new();
 
         public AutoKey GetAutoKey(string name)
         {
@@ -1460,8 +1461,10 @@ namespace Zeze.Services.ServiceManager
 
         public bool SetLoad(ServerLoad load)
         {
-            var p = new SetServerLoad();
-            p.Argument = load;
+            var p = new SetServerLoad
+            {
+                Argument = load
+            };
             return p.Send(Client.GetSocket());
         }
 
@@ -1564,13 +1567,13 @@ namespace Zeze.Services.ServiceManager
         /// <summary>
         /// 服务名，比如"GameServer"
         /// </summary>
-        public string ServiceName { get; private set; }
+        public string Name { get; private set; }
 
         /// <summary>
         /// 服务id，对于 Zeze.Application，一般就是 Config.ServerId.
         /// 这里使用类型 string 是为了更好的支持扩展。
         /// </summary>
-        public string ServiceIdentity { get; private set; }
+        public string Identity { get; private set; }
 
         /// <summary>
         /// 服务ip-port，如果没有，保持空和0.
@@ -1594,8 +1597,8 @@ namespace Zeze.Services.ServiceManager
             string ip = null, int port = 0,
             Binary extrainfo = null)
         {
-            ServiceName = name;
-            ServiceIdentity = identity;
+            Name = name;
+            Identity = identity;
             if (null != ip)
                 PassiveIp = ip;
             PassivePort = port;
@@ -1605,8 +1608,8 @@ namespace Zeze.Services.ServiceManager
 
         public override void Decode(ByteBuffer bb)
         {
-            ServiceName = bb.ReadString();
-            ServiceIdentity = bb.ReadString();
+            Name = bb.ReadString();
+            Identity = bb.ReadString();
             PassiveIp = bb.ReadString();
             PassivePort = bb.ReadInt();
             ExtraInfo = bb.ReadBinary();
@@ -1614,8 +1617,8 @@ namespace Zeze.Services.ServiceManager
 
         public override void Encode(ByteBuffer bb)
         {
-            bb.WriteString(ServiceName);
-            bb.WriteString(ServiceIdentity);
+            bb.WriteString(Name);
+            bb.WriteString(Identity);
             bb.WriteString(PassiveIp);
             bb.WriteInt(PassivePort);
             bb.WriteBinary(ExtraInfo);
@@ -1630,8 +1633,8 @@ namespace Zeze.Services.ServiceManager
         {
             const int prime = 31;
             int result = 17;
-            result = prime * result + ServiceName.GetHashCode();
-            result = prime * result + ServiceIdentity.GetHashCode();
+            result = prime * result + Name.GetHashCode();
+            result = prime * result + Identity.GetHashCode();
             return result;
         }
 
@@ -1642,15 +1645,15 @@ namespace Zeze.Services.ServiceManager
 
             if (obj is ServiceInfo other)
             {
-                return ServiceName.Equals(other.ServiceName)
-                    && ServiceIdentity.Equals(other.ServiceIdentity);
+                return Name.Equals(other.Name)
+                    && Identity.Equals(other.Identity);
             }
             return false;
         }
 
         public override string ToString()
         {
-            return $"{ServiceName}@{ServiceIdentity}";
+            return $"{Name}@{Identity}";
         }
     }
 
@@ -1758,15 +1761,15 @@ namespace Zeze.Services.ServiceManager
         // ServiceList maybe empty. need a ServiceName
         public string ServiceName { get; private set; }
         // sorted by ServiceIdentity
-        private List<ServiceInfo> SortedIdentity_ { get; } = new List<ServiceInfo>();
+        private List<ServiceInfo> SortedIdentity_ { get; } = new();
         public IReadOnlyList<ServiceInfo> SortedIdentity => SortedIdentity_;
         public long SerialId { get; set; }
 
-        private readonly static ServiceIdentityComparer ServiceIdentityComparer = new();
+        private readonly static ServiceIdentityComparer Comparer = new();
 
         public ServiceInfo Insert(ServiceInfo info)
         {
-            var i = SortedIdentity_.BinarySearch(info, ServiceIdentityComparer);
+            var i = SortedIdentity_.BinarySearch(info, Comparer);
             if (i >= 0)
             {
                 SortedIdentity_[i] = info;
@@ -1780,7 +1783,7 @@ namespace Zeze.Services.ServiceManager
 
         public ServiceInfo Remove(ServiceInfo info)
         {
-            var i = SortedIdentity_.BinarySearch(info, ServiceIdentityComparer);
+            var i = SortedIdentity_.BinarySearch(info, Comparer);
             if (i >= 0)
             {
                 info = SortedIdentity_[i];
@@ -1790,17 +1793,17 @@ namespace Zeze.Services.ServiceManager
             return null;
         }
 
-        public ServiceInfo FindServiceInfoByIdentity(string identity)
+        public ServiceInfo Find(string identity)
         {
-            var i = SortedIdentity_.BinarySearch(new ServiceInfo(ServiceName, identity), ServiceIdentityComparer);
+            var i = SortedIdentity_.BinarySearch(new ServiceInfo(ServiceName, identity), Comparer);
             if (i >= 0)
                 return SortedIdentity_[i];
             return null;
         }
 
-        public ServiceInfo FindServiceInfoByServerId(int serverId)
+        public ServiceInfo Find(int serverId)
         {
-            return FindServiceInfoByIdentity(serverId.ToString());
+            return Find(serverId.ToString());
         }
 
         public ServiceInfos()
@@ -1825,7 +1828,7 @@ namespace Zeze.Services.ServiceManager
         public bool TryGetServiceInfo(string identity, out ServiceInfo info)
         {
             var cur = new ServiceInfo(ServiceName, identity);
-            int index = SortedIdentity_.BinarySearch(cur, ServiceIdentityComparer);
+            int index = SortedIdentity_.BinarySearch(cur, Comparer);
             if (index >= 0)
             {
                 info = SortedIdentity[index];
@@ -1870,7 +1873,7 @@ namespace Zeze.Services.ServiceManager
             sb.Append('[');
             foreach (var e in SortedIdentity)
             {
-                sb.Append(e.ServiceIdentity);
+                sb.Append(e.Identity);
                 sb.Append(',');
             }
             sb.Append(']');
@@ -1942,7 +1945,9 @@ namespace Zeze.Services.ServiceManager
     {
         public int Compare(ServiceInfo x, ServiceInfo y)
         {
-            return x.ServiceIdentity.CompareTo(y.ServiceIdentity);
+            if (x.Identity.StartsWith("@"))
+                return x.Identity.CompareTo(y.Identity);
+            return int.Parse(x.Identity).CompareTo(int.Parse(y.Identity));
         }
     }
 

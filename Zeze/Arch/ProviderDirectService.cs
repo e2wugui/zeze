@@ -39,7 +39,7 @@ namespace Zeze.Arch
 						SetReady(ss, pm, ps, mid, m);
 						continue;
 					}
-					var serverId = int.Parse(pm.ServiceIdentity);
+					var serverId = int.Parse(pm.Identity);
 					if (serverId < Zeze.Config.ServerId)
 						continue;
 					if (serverId == Zeze.Config.ServerId)
@@ -129,10 +129,10 @@ namespace Zeze.Arch
 		private void SetReady(Agent.SubscribeState ss, ServiceInfo server, ProviderSession ps,
 			int mid, Zeze.Builtin.Provider.BModule m)
 		{
-			Console.WriteLine($"SetReady Server={Zeze.Config.ServerId} {ss.ServiceName} {server.ServiceIdentity}");
+			Console.WriteLine($"SetReady Server={Zeze.Config.ServerId} {ss.ServiceName} {server.Identity}");
 			var pms = new ProviderModuleState(ps.SessionId, mid, m.ChoiceType, m.ConfigType);
-			ps.GetOrAddServiceReadyState(ss.ServiceName).TryAdd(server.ServiceIdentity, pms);
-			ss.SetServiceIdentityReadyState(server.ServiceIdentity, pms);
+			ps.GetOrAddServiceReadyState(ss.ServiceName).TryAdd(server.Identity, pms);
+			ss.SetServiceIdentityReadyState(server.Identity, pms);
 		}
 
 		public override async Task OnSocketClose(AsyncSocket socket, Exception ex)

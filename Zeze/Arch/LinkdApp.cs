@@ -30,12 +30,14 @@ namespace Zeze.Arch
 			LinkdService = linkdService;
 			LinkdService.LinkdApp = this;
 
-			LinkdProvider.Distribute = new ProviderDistribute();
-			LinkdProvider.Distribute.ProviderService = LinkdProviderService;
-			LinkdProvider.Distribute.Zeze = Zeze;
-			LinkdProvider.Distribute.LoadConfig = LoadConfig;
+            LinkdProvider.Distribute = new ProviderDistribute
+            {
+                ProviderService = LinkdProviderService,
+                Zeze = Zeze,
+                LoadConfig = LoadConfig
+            };
 
-			LinkdProvider.RegisterProtocols(LinkdProviderService);
+            LinkdProvider.RegisterProtocols(LinkdProviderService);
 
 			this.Zeze.ServiceManagerAgent.OnSetServerLoad = (serverLoad) =>
 			{
@@ -58,7 +60,7 @@ namespace Zeze.Arch
 
 		public async Task RegisterService(Zeze.Net.Binary extra)
 		{
-			var identity = ProviderIp + ":" + ProviderPort;
+			var identity = "@" + ProviderIp + ":" + ProviderPort;
 			await Zeze.ServiceManagerAgent.RegisterService(LinkdServiceName, identity, ProviderIp, ProviderPort, extra);
 		}
 	}

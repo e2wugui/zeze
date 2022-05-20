@@ -9,7 +9,16 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
 public final class ServiceInfos extends Bean {
-	private static final Comparator<ServiceInfo> ServiceInfoIdentityComparer = Comparator.comparing(ServiceInfo::getServiceIdentity);
+	public static class ServiceInfoComparer implements Comparator<ServiceInfo> {
+
+		@Override
+		public int compare(ServiceInfo o1, ServiceInfo o2) {
+			if (o1.getServiceIdentity().startsWith("@"))
+				return o1.getServiceIdentity().compareTo(o2.getServiceIdentity());
+			return Integer.compare(Integer.parseInt(o1.getServiceIdentity()), Integer.parseInt(o2.getServiceIdentity()));
+		}
+	}
+	private static final Comparator<ServiceInfo> Comparer = new ServiceInfoComparer();
 
 	// ServiceList maybe empty. need a ServiceName
 	private String ServiceName;
@@ -27,7 +36,7 @@ public final class ServiceInfos extends Bean {
 	public ServiceInfos(String serviceName, ServiceManagerServer.ServerState state, long serialId) {
 		ServiceName = serviceName;
 		_ServiceInfoListSortedByIdentity.addAll(state.getServiceInfos().values());
-		_ServiceInfoListSortedByIdentity.sort(ServiceInfoIdentityComparer);
+		_ServiceInfoListSortedByIdentity.sort(Comparer);
 		SerialId = serialId;
 	}
 
@@ -44,7 +53,7 @@ public final class ServiceInfos extends Bean {
 	}
 
 	public ServiceInfo Insert(ServiceInfo info) {
-		int index = Collections.binarySearch(_ServiceInfoListSortedByIdentity, info, ServiceInfoIdentityComparer);
+		int index = Collections.binarySearch(_ServiceInfoListSortedByIdentity, info, Comparer);
 		if (index >= 0)
 			_ServiceInfoListSortedByIdentity.set(index, info);
 		else
@@ -53,7 +62,7 @@ public final class ServiceInfos extends Bean {
 	}
 
 	public ServiceInfo Remove(ServiceInfo info) {
-		int index = Collections.binarySearch(_ServiceInfoListSortedByIdentity, info, ServiceInfoIdentityComparer);
+		int index = Collections.binarySearch(_ServiceInfoListSortedByIdentity, info, Comparer);
 		if (index >= 0) {
 			info = _ServiceInfoListSortedByIdentity.get(index);
 			_ServiceInfoListSortedByIdentity.remove(index);
@@ -64,7 +73,7 @@ public final class ServiceInfos extends Bean {
 
 	public ServiceInfo get(String identity) {
 		var cur = new ServiceInfo(ServiceName, identity);
-		int index = Collections.binarySearch(_ServiceInfoListSortedByIdentity, cur, ServiceInfoIdentityComparer);
+		int index = Collections.binarySearch(_ServiceInfoListSortedByIdentity, cur, Comparer);
 		if (index >= 0) {
 			return _ServiceInfoListSortedByIdentity.get(index);
 		}

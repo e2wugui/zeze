@@ -62,7 +62,7 @@ namespace Zeze.Arch
 				return null;
 
 			var serviceInfo = ProviderApp.Distribute.ChoiceHash(servers, hash);
-			if (serviceInfo == null || serviceInfo.ServiceIdentity.Equals(ProviderApp.Zeze.Config.ServerId.ToString()))
+			if (serviceInfo == null || serviceInfo.Identity.Equals(ProviderApp.Zeze.Config.ServerId.ToString()))
 				return null;
 
 			var providerModuleState = (ProviderModuleState)serviceInfo.LocalState;
@@ -122,7 +122,7 @@ namespace Zeze.Arch
 					AddMiss(miss, i, Zeze.Transaction.Procedure.ProviderNotExist);
 					continue; // miss
 				}
-				if (target.ServiceIdentity.Equals(ProviderApp.Zeze.Config.ServerId.ToString()))
+				if (target.Identity.Equals(ProviderApp.Zeze.Config.ServerId.ToString()))
 				{
 					AddTransmits(transmits, 0, i, req);
 					continue; // loop-back

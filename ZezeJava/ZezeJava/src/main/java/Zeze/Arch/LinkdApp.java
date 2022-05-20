@@ -53,7 +53,7 @@ public class LinkdApp {
 	}
 
 	public void RegisterService(Zeze.Net.Binary extra) {
-		var identity = ProviderIp + ":" + ProviderPort;
+		var identity = "@" + ProviderIp + ":" + ProviderPort;
 		Zeze.getServiceManagerAgent().RegisterService(LinkdServiceName, identity,
 				ProviderIp, ProviderPort, extra);
 	}

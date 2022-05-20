@@ -350,7 +350,14 @@ public final class Agent implements Closeable {
 		return reg;
 	}
 
+	private void Verify(String identity)
+	{
+		if (false == identity.startsWith("@"))
+			Integer.parseInt(identity);
+	}
+
 	private ServiceInfo RegisterService(ServiceInfo info) {
+		Verify(info.getServiceIdentity());
 		WaitConnectorReady();
 
 		var regNew = new OutObject<Boolean>();
