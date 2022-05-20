@@ -14,7 +14,7 @@ namespace Zeze.Builtin.Collections.DepartmentTree
         public string Root { get; }
         public System.Collections.Generic.IReadOnlyDictionary<string,Zeze.Transaction.DynamicBean> Managers { get; }
         public long NextDepartmentId { get; }
-        public System.Collections.Generic.IReadOnlyDictionary<string,long> ChildDepartments { get; }
+        public System.Collections.Generic.IReadOnlyDictionary<string,long> Childs { get; }
     }
 
     public sealed class BDepartmentRoot : Zeze.Transaction.Bean, BDepartmentRootReadOnly
@@ -37,8 +37,8 @@ namespace Zeze.Builtin.Collections.DepartmentTree
         }
 
         long _NextDepartmentId; // 部门Id种子
-        readonly Zeze.Transaction.Collections.CollMap1<string, long> _ChildDepartments; // name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
-        Zeze.Transaction.Collections.CollMapReadOnly<string,long,long> _ChildDepartmentsReadOnly;
+        readonly Zeze.Transaction.Collections.CollMap1<string, long> _Childs; // name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
+        Zeze.Transaction.Collections.CollMapReadOnly<string,long,long> _ChildsReadOnly;
 
         public string Root
         {
@@ -94,8 +94,8 @@ namespace Zeze.Builtin.Collections.DepartmentTree
             }
         }
 
-        public Zeze.Transaction.Collections.CollMap1<string, long> ChildDepartments => _ChildDepartments;
-        System.Collections.Generic.IReadOnlyDictionary<string,long> Zeze.Builtin.Collections.DepartmentTree.BDepartmentRootReadOnly.ChildDepartments => _ChildDepartmentsReadOnly;
+        public Zeze.Transaction.Collections.CollMap1<string, long> Childs => _Childs;
+        System.Collections.Generic.IReadOnlyDictionary<string,long> Zeze.Builtin.Collections.DepartmentTree.BDepartmentRootReadOnly.Childs => _ChildsReadOnly;
 
         public BDepartmentRoot() : this(0)
         {
@@ -106,8 +106,8 @@ namespace Zeze.Builtin.Collections.DepartmentTree
             _Root = "";
             _Managers = new Zeze.Transaction.Collections.CollMap1<string, Zeze.Transaction.DynamicBean>() { VariableId = 2 };
             _ManagersReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Transaction.DynamicBean,Zeze.Transaction.DynamicBean>(_Managers);
-            _ChildDepartments = new Zeze.Transaction.Collections.CollMap1<string, long>() { VariableId = 4 };
-            _ChildDepartmentsReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<string,long,long>(_ChildDepartments);
+            _Childs = new Zeze.Transaction.Collections.CollMap1<string, long>() { VariableId = 4 };
+            _ChildsReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<string,long,long>(_Childs);
         }
 
         public void Assign(BDepartmentRoot other)
@@ -117,9 +117,9 @@ namespace Zeze.Builtin.Collections.DepartmentTree
             foreach (var e in other.Managers)
                 Managers.Add(e.Key, e.Value);
             NextDepartmentId = other.NextDepartmentId;
-            ChildDepartments.Clear();
-            foreach (var e in other.ChildDepartments)
-                ChildDepartments.Add(e.Key, e.Value);
+            Childs.Clear();
+            foreach (var e in other.Childs)
+                Childs.Add(e.Key, e.Value);
         }
 
         public BDepartmentRoot CopyIfManaged()
@@ -190,9 +190,9 @@ namespace Zeze.Builtin.Collections.DepartmentTree
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append(']').Append(',').Append(Environment.NewLine);
             sb.Append(Zeze.Util.Str.Indent(level)).Append("NextDepartmentId").Append('=').Append(NextDepartmentId).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("ChildDepartments").Append("=[").Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("Childs").Append("=[").Append(Environment.NewLine);
             level += 4;
-            foreach (var _kv_ in ChildDepartments)
+            foreach (var _kv_ in Childs)
             {
                 sb.Append(Zeze.Util.Str.Indent(level)).Append('(').Append(Environment.NewLine);
                 var Key = _kv_.Key;
@@ -241,7 +241,7 @@ namespace Zeze.Builtin.Collections.DepartmentTree
                 }
             }
             {
-                var _x_ = ChildDepartments;
+                var _x_ = Childs;
                 int _n_ = _x_.Count;
                 if (_n_ != 0)
                 {
@@ -292,7 +292,7 @@ namespace Zeze.Builtin.Collections.DepartmentTree
             }
             if (_i_ == 4)
             {
-                var _x_ = ChildDepartments;
+                var _x_ = Childs;
                 _x_.Clear();
                 if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP)
                 {
@@ -318,13 +318,13 @@ namespace Zeze.Builtin.Collections.DepartmentTree
         protected override void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root)
         {
             _Managers.InitRootInfo(root, this);
-            _ChildDepartments.InitRootInfo(root, this);
+            _Childs.InitRootInfo(root, this);
         }
 
         public override bool NegativeCheck()
         {
             if (NextDepartmentId < 0) return true;
-            foreach (var _v_ in ChildDepartments.Values)
+            foreach (var _v_ in Childs.Values)
             {
                 if (_v_ < 0) return true;
             }
@@ -341,7 +341,7 @@ namespace Zeze.Builtin.Collections.DepartmentTree
                     case 1: _Root = ((Zeze.Transaction.Log<string>)vlog).Value; break;
                     case 2: _Managers.FollowerApply(vlog); break;
                     case 3: _NextDepartmentId = ((Zeze.Transaction.Log<long>)vlog).Value; break;
-                    case 4: _ChildDepartments.FollowerApply(vlog); break;
+                    case 4: _Childs.FollowerApply(vlog); break;
                 }
             }
         }

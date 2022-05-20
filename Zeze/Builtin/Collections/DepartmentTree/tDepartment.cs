@@ -16,7 +16,7 @@ namespace Zeze.Builtin.Collections.DepartmentTree
         public const int VAR_Root = 1;
         public const int VAR_Managers = 2;
         public const int VAR_NextDepartmentId = 3;
-        public const int VAR_ChildDepartments = 4;
+        public const int VAR_Childs = 4;
 
         public override string DecodeKey(ByteBuffer _os_)
         {

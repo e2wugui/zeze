@@ -124,7 +124,7 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean> {
 		var dId = dRoot.getNextDepartmentId() + 1;
 
 		if (departmentParent == 0) {
-			if (null != dRoot.getChildDepartments().put(name, dId))
+			if (null != dRoot.getChilds().put(name, dId))
 				return -1; // put first and check duplicate
 		} else {
 			var parent = getDepartment(departmentParent);
@@ -150,7 +150,7 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean> {
 		}
 		if (department.getParentDepartment() == 0) {
 			var root = module._tDepartment.get(name);
-			root.getChildDepartments().remove(department.getName());
+			root.getChilds().remove(department.getName());
 		} else {
 			var parent = getDepartment(department.getParentDepartment());
 			parent.getChilds().remove(department.getName());
@@ -161,22 +161,43 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean> {
 	}
 
 	public boolean isRecursiveChild(long departmentId, long child) {
+		if (departmentId == child)
+			return true;
+
 		var department = module._tDepartmentTree.get(new BDepartmentKey(name, departmentId));
 		if (null == department)
 			return false;
 		for (var c : department.getChilds().values()) {
-			if (c == child)
-				return true;
 			if (isRecursiveChild(c, child))
 				return true;
 		}
 		return false;
 	}
 
+	public boolean moveDepartment(long departmentId) {
+		var department = module._tDepartmentTree.get(new BDepartmentKey(name, departmentId));
+		var newParent = module._tDepartment.get(name);
+		if (null == department || null == newParent)
+			return false;
+		if (department.getParentDepartment() == 0)
+			return true; // top child
+		var oldParent = getDepartment(department.getParentDepartment());
+		oldParent.getChilds().remove(department.getName());
+		if (null != newParent.getChilds().put(department.getName(), departmentId))
+			return false;
+		department.setParentDepartment(0);
+		return true;
+	}
+
 	public boolean moveDepartment(long departmentId, long parent) {
+		if (parent == 0) // to root
+			return moveDepartment(departmentId);
+
 		if (isRecursiveChild(departmentId, parent))
 			return false;
 		var department = module._tDepartmentTree.get(new BDepartmentKey(name, departmentId));
+		if (department.getParentDepartment() == parent)
+			return true; // same parent
 		var newParent = getDepartment(parent);
 		if (null == department || null == newParent)
 			return false;
