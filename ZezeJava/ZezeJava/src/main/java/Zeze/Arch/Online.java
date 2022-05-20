@@ -439,7 +439,7 @@ public class Online extends AbstractOnline {
                 ProviderApp.Zeze.NewProcedure(() -> {
                     SendInProcedure(logins, typeId, fullEncodedProtocol);
                     return Procedure.Success;
-                }, "Onlines.Send"));
+                }, "Onlines.Send"), null);
     }
 
     public void send(String account, String clientId, Protocol p) {

@@ -67,6 +67,67 @@ public final class TaskOneByOneByKey {
 		Execute(key.hashCode(), procedure);
 	}
 
+	public static class Barrier {
+		public int Count;
+		public final Procedure Procedure;
+		public final Action0 CancelAction;
+		public boolean Canceled = false;
+
+		public Barrier(Procedure action, int count, Action0 cancel) {
+			Count = count;
+
+			Procedure = action;
+			CancelAction = cancel;
+		}
+
+		public void Reach() throws InterruptedException {
+			synchronized (this) {
+				if (Canceled)
+					return;
+
+				if (--Count > 0) {
+					this.wait();
+				} else {
+					try {
+						Procedure.Call();
+					} catch (Throwable ex) {
+						logger.error(Procedure.getActionName() + " Run", ex);
+					} finally {
+						this.notifyAll();
+					}
+				}
+			}
+		}
+
+		public void Cancel() {
+			synchronized (this) {
+				if (Canceled)
+					return;
+
+				Canceled = true;
+				try {
+					if (null != CancelAction)
+						CancelAction.run();
+				} catch (Throwable ex) {
+					logger.error(Procedure.getActionName() + " Canceled", ex);
+				} finally {
+					this.notifyAll();
+				}
+			}
+		}
+	}
+
+	public <T> void ExecuteCyclicBarrier(Collection<T> keys, Procedure procdure, Action0 cancel) {
+		if (keys.size() <= 0)
+			throw new RuntimeException("CyclicBarrier keys is empty.");
+
+		var barrier = new Barrier(procdure, keys.size(), cancel);
+		synchronized (this) {
+			for (var key : keys)
+				Execute(key, barrier::Reach, barrier.Procedure.getActionName(), barrier::Cancel);
+		}
+	}
+
 	public void Execute(Object key, Procedure procedure, Action0 cancel) {
 		Execute(key.hashCode(), procedure, cancel);
 	}
@@ -129,86 +190,6 @@ public final class TaskOneByOneByKey {
 
 	public void Execute(long key, Func0<?> func, String name, Action0 cancel) {
 		Execute(Long.hashCode(key), func, name, cancel);
-	}
-
-	public static class Barrier
-	{
-		public int Count;
-		public final Procedure Procedure;
-		public final Action0 CancelAction;
-		public boolean Canceled = false;
-
-		public Barrier(Procedure action, int count, Action0 cancel)
-		{
-			Count = count;
-
-			Procedure = action;
-			CancelAction = cancel;
-		}
-
-		public void Reach() throws InterruptedException {
-			synchronized (this)
-			{
-				if (Canceled)
-					return;
-
-				if (--Count > 0)
-				{
-					this.wait();
-				}
-				else
-				{
-					try
-					{
-						Procedure.Call();
-					}
-					catch (Throwable ex)
-					{
-						logger.error(Procedure.getActionName() + " Run", ex);
-					}
-					finally
-					{
-						this.notifyAll();
-					}
-				}
-			}
-		}
-
-		public void Cancel()
-		{
-			synchronized (this)
-			{
-				if (Canceled)
-					return;
-
-				Canceled = true;
-				try
-				{
-					if (null != CancelAction)
-						CancelAction.run();
-				}
-				catch (Throwable ex)
-				{
-					logger.error(Procedure.getActionName() + " Canceled", ex);
-				}
-				finally
-				{
-					this.notifyAll();
-				}
-			}
-		}
-	}
-
-	public <T> void ExecuteCyclicBarrier(Collection<T> keys, Procedure procedure, Action0 cancel)
-	{
-		if (keys.size() <= 0)
-			throw new RuntimeException("CyclicBarrier keys is empty.");
-
-		var barrier = new Barrier(procedure, keys.size(), cancel);
-		synchronized (this) {
-			for (var key : keys)
-				Execute(key, barrier::Reach, barrier.Procedure.getActionName(), barrier::Cancel);
-		}
 	}
 
 	public void Execute(long key, Procedure procedure) {
