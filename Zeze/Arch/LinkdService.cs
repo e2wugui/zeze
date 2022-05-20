@@ -144,7 +144,7 @@ namespace Zeze.Arch
             Zeze.Serialize.ByteBuffer data)
         {
             var linkSession = so.UserState as LinkdUserSession;
-            if (null == linkSession || null == linkSession.Account)
+            if (null == linkSession || string.IsNullOrEmpty(linkSession.Account))
             {
                 ReportError(so.SessionId, BReportError.FromLink, BReportError.CodeNotAuthed, "not authed.");
                 return;
