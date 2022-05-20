@@ -726,8 +726,8 @@
 
 			<bean name="BAny">
 				<variable id="1" name="Any" type="dynamic">
-					<GetSpecialTypeIdFromBean value="Zeze.Game.Online.GetSpecialTypeIdFromBean"/>
-					<CreateBeanFromSpecialTypeId value="Zeze.Game.Online.CreateBeanFromSpecialTypeId"/>
+					<GetSpecialTypeIdFromBean value="Zeze.Arch.Online.GetSpecialTypeIdFromBean"/>
+					<CreateBeanFromSpecialTypeId value="Zeze.Arch.Online.CreateBeanFromSpecialTypeId"/>
 				</variable>
 			</bean>
 			<bean name="BLocal">

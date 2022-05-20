@@ -8,6 +8,18 @@ public final class BLocal extends Zeze.Transaction.Bean {
     private long _LoginVersion;
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Online.BAny> _Datas;
 
+    private Object __zeze_map_key__;
+
+    @Override
+    public Object getMapKey() {
+        return __zeze_map_key__;
+    }
+
+    @Override
+    public void setMapKey(Object value) {
+        __zeze_map_key__ = value;
+    }
+
     public long getLoginVersion() {
         if (!isManaged())
             return _LoginVersion;

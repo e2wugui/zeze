@@ -30,6 +30,15 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		this.logTypeId = logTypeId;
 	}
 
+	public V getOrAdd(K key) throws Throwable {
+		var exist = get(key);
+		if (null == exist) {
+			exist = (V)valueFactory.invoke();
+			put(key, exist);
+		}
+		return exist;
+	}
+
 	@Override
 	public V put(K key, V value) {
 		if (key == null) {

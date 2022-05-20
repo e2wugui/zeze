@@ -39,7 +39,8 @@ public class ProviderUserSession {
 	public final String getAccount() {
 		return Account;
 	}
-
+	public final String getContext() { return Context; }
+	public final boolean isLogin() { return null == Context || Context.isEmpty(); }
 	public final Long getRoleId() {
 		return Context.isEmpty() ? null : Long.parseLong(Context);
 	}

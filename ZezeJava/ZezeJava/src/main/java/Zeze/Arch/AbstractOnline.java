@@ -14,12 +14,13 @@ public abstract class AbstractOnline extends Zeze.IModule {
     public static final int ResultCodeRoleNotExist = 3;
     public static final int ResultCodeNotLastLoginRoleId = 4;
     public static final int ResultCodeOnlineDataNotFound = 5;
-    public static final int ResultCodeReliableNotifyConfirmCountOutOfRange = 6;
+    public static final int ResultCodeReliableNotifyConfirmIndexOutOfRange = 6;
     public static final int ResultCodeNotLogin = 7;
 
     protected final Zeze.Builtin.Online.taccount _taccount = new Zeze.Builtin.Online.taccount();
     protected final Zeze.Builtin.Online.tlocal _tlocal = new Zeze.Builtin.Online.tlocal();
     protected final Zeze.Builtin.Online.tonline _tonline = new Zeze.Builtin.Online.tonline();
+    protected final Zeze.Builtin.Online.tversion _tversion = new Zeze.Builtin.Online.tversion();
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(this.getClass());
@@ -64,12 +65,14 @@ public abstract class AbstractOnline extends Zeze.IModule {
         zeze.AddTable(zeze.getConfig().GetTableConf(_taccount.getName()).getDatabaseName(), _taccount);
         zeze.AddTable(zeze.getConfig().GetTableConf(_tlocal.getName()).getDatabaseName(), _tlocal);
         zeze.AddTable(zeze.getConfig().GetTableConf(_tonline.getName()).getDatabaseName(), _tonline);
+        zeze.AddTable(zeze.getConfig().GetTableConf(_tversion.getName()).getDatabaseName(), _tversion);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
         zeze.RemoveTable(zeze.getConfig().GetTableConf(_taccount.getName()).getDatabaseName(), _taccount);
         zeze.RemoveTable(zeze.getConfig().GetTableConf(_tlocal.getName()).getDatabaseName(), _tlocal);
         zeze.RemoveTable(zeze.getConfig().GetTableConf(_tonline.getName()).getDatabaseName(), _tonline);
+        zeze.RemoveTable(zeze.getConfig().GetTableConf(_tversion.getName()).getDatabaseName(), _tversion);
     }
 
     public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

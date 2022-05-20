@@ -4,7 +4,7 @@ package Zeze.Builtin.Online;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"DuplicateBranchesInSwitch", "RedundantSuppression"})
-public final class tlocal extends Zeze.Transaction.TableX<String, Zeze.Builtin.Online.BLocal> {
+public final class tlocal extends Zeze.Transaction.TableX<String, Zeze.Builtin.Online.BLocals> {
     public tlocal() {
         super("Zeze_Builtin_Online_tlocal");
     }
@@ -24,8 +24,7 @@ public final class tlocal extends Zeze.Transaction.TableX<String, Zeze.Builtin.O
         return false;
     }
 
-    public static final int VAR_LoginVersion = 1;
-    public static final int VAR_Datas = 2;
+    public static final int VAR_Logins = 1;
 
     @Override
     public String DecodeKey(ByteBuffer _os_) {
@@ -42,7 +41,7 @@ public final class tlocal extends Zeze.Transaction.TableX<String, Zeze.Builtin.O
     }
 
     @Override
-    public Zeze.Builtin.Online.BLocal NewValue() {
-        return new Zeze.Builtin.Online.BLocal();
+    public Zeze.Builtin.Online.BLocals NewValue() {
+        return new Zeze.Builtin.Online.BLocals();
     }
 }

@@ -425,7 +425,7 @@ namespace Zeze.Arch
         private void Send(string account, string clientId, long typeId, Binary fullEncodedProtocol)
         {
             var login = new LoginKey(account, clientId);
-            ProviderApp.Zeze.TaskOneByOneByKey.Execute(login, () =>
+            ProviderApp.Zeze.TaskOneByOneByKey.Execute(login,
                 ProviderApp.Zeze.NewProcedure(async () =>
                 {
                     await SendInProcedure(new List<LoginKey> { login }, typeId, fullEncodedProtocol);
@@ -498,7 +498,7 @@ namespace Zeze.Arch
             {
                 foreach (var target in accounts)
                 {
-                    ProviderApp.Zeze.NewProcedure(async () => await handle(account, clientId, target, parameter), "Game.Online.Transmit:" + actionName).Execute();
+                    ProviderApp.Zeze.NewProcedure(async () => await handle(account, clientId, target, parameter), "Arch.Online.Transmit:" + actionName).Execute();
                 }
             }
         }
@@ -651,7 +651,6 @@ namespace Zeze.Arch
 
         private void Broadcast(long typeId, Binary fullEncodedProtocol, int time)
         {
-            TaskCompletionSource<long> future = null;
             var broadcast = new Broadcast();
             broadcast.Argument.ProtocolType = typeId;
             broadcast.Argument.ProtocolWholeData = fullEncodedProtocol;
@@ -868,7 +867,7 @@ namespace Zeze.Arch
             var rpc = p as Logout;
             var session = ProviderUserSession.Get(rpc);
 
-            if (session.RoleId == null)
+            if (string.IsNullOrEmpty(session.Context))
                 return ErrorCode(ResultCodeNotLogin);
 
             var local = await _tlocal.GetAsync(session.Account);
@@ -914,6 +913,7 @@ namespace Zeze.Arch
             int confirmCount = (int)(index - loginOnline.ReliableNotifyConfirmIndex);
             for (int i = 0; i < confirmCount; i++)
                 await queue.PollAsync();
+            loginOnline.ReliableNotifyConfirmIndex = index;
 
             if (sync)
             {
@@ -926,7 +926,6 @@ namespace Zeze.Arch
                 });
                 session.SendResponseWhileCommit(notify);
             }
-            loginOnline.ReliableNotifyConfirmIndex = index;
             return ResultCodeSuccess;
         }
 
