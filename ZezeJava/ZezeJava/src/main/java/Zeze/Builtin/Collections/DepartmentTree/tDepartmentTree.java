@@ -25,7 +25,7 @@ public final class tDepartmentTree extends Zeze.Transaction.TableX<Zeze.Builtin.
     }
 
     public static final int VAR_ParentDepartment = 1;
-    public static final int VAR_ChildDepartments = 2;
+    public static final int VAR_Childs = 2;
     public static final int VAR_Name = 3;
     public static final int VAR_Managers = 4;
 

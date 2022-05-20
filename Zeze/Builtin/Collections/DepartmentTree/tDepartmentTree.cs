@@ -14,7 +14,7 @@ namespace Zeze.Builtin.Collections.DepartmentTree
         public override bool IsAutoKey => false;
 
         public const int VAR_ParentDepartment = 1;
-        public const int VAR_ChildDepartments = 2;
+        public const int VAR_Childs = 2;
         public const int VAR_Name = 3;
         public const int VAR_Managers = 4;
 

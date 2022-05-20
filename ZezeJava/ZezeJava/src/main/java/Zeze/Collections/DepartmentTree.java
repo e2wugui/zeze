@@ -56,6 +56,12 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean> {
 		return name;
 	}
 
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Api 设计原则：
+	// 1. 可以直接访问原始Bean，不进行包装。
+	// 2. 提供必要的辅助函数完成一些操作。
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 	public BDepartmentRoot getRoot() {
 		return module._tDepartment.get(name);
 	}
@@ -109,6 +115,10 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean> {
 		d.getManagers().put(name, dynamic);
 	}
 
+	public long createDepartment(String name) {
+		return createDepartment(0, name);
+	}
+
 	public long createDepartment(long departmentParent, String name) {
 		var dRoot = module._tDepartment.getOrAdd(name);
 		var dId = dRoot.getNextDepartmentId() + 1;
@@ -118,7 +128,7 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean> {
 				return -1; // put first and check duplicate
 		} else {
 			var parent = getDepartment(departmentParent);
-			if (null != parent.getChildDepartments().put(name, dId))
+			if (null != parent.getChilds().put(name, dId))
 				return -1; // put first and check duplicate
 		}
 		var child = new BDepartmentTreeNode();
@@ -127,5 +137,26 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean> {
 		module._tDepartmentTree.insert(new BDepartmentKey(getName(), dId), child);
 		dRoot.setNextDepartmentId(dId);
 		return dId;
+	}
+
+	public boolean deleteDepartment(long departmentId, boolean recursive) {
+		var department = module._tDepartmentTree.get(new BDepartmentKey(name, departmentId));
+		if (null == department)
+			return false;
+		if (!recursive && department.getChilds().size() > 0)
+			return false;
+		for (var child : department.getChilds().values()) {
+			deleteDepartment(child, true);
+		}
+		if (department.getParentDepartment() == 0) {
+			var root = module._tDepartment.get(name);
+			root.getChildDepartments().remove(department.getName());
+		} else {
+			var parent = getDepartment(department.getParentDepartment());
+			parent.getChilds().remove(department.getName());
+		}
+		getDepartmentMembers(departmentId).clear();
+		module._tDepartmentTree.remove(new BDepartmentKey(name, departmentId));
+		return true;
 	}
 }

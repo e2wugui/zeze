@@ -276,7 +276,7 @@ namespace Zeze.Builtin.Collections.DepartmentTree
                     for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--)
                     {
                         var _k_ = _o_.ReadString(_s_);
-                        Zeze.Transaction.DynamicBean = new Zeze.Transaction.DynamicBean(0, Zeze.Collections.DepartmentTree.GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree.CreateBeanFromSpecialTypeId);
+                        var _v_ = new Zeze.Transaction.DynamicBean(0, Zeze.Collections.DepartmentTree.GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree.CreateBeanFromSpecialTypeId);
                         _v_.Decode(_o_);
                         _x_.Add(_k_, _v_);
                     }

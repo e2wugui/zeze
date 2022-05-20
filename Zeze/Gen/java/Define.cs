@@ -108,7 +108,7 @@ namespace Zeze.Gen.java
             }
             else
             {
-                sw.WriteLine($"{prefix}{tName} = new Zeze.Transaction.DynamicBean"
+                sw.WriteLine($"{prefix}{tName} {varname} = new Zeze.Transaction.DynamicBean"
                     + $"(0, {type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateBeanFromSpecialTypeId});");
             }
         }

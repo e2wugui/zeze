@@ -101,7 +101,7 @@ public class LinkedMap<V extends Bean> {
 			if (e.getId().equals(id)) {
 				values.remove(i);
 				if (values.isEmpty())
-					removeNodeUnsafe(nodeId, node);
+					removeNodeUnsafe(nodeId.getNodeId(), node);
 				return addUnsafe(e.Copy());
 			}
 		}
@@ -180,17 +180,51 @@ public class LinkedMap<V extends Bean> {
 				var root = getRoot();
 				root.setCount(root.getCount() - 1);
 				if (values.isEmpty())
-					removeNodeUnsafe(nodeId, node);
+					removeNodeUnsafe(nodeId.getNodeId(), node);
 				return (V)e.getValue().getBean();
 			}
 		}
 		throw new IllegalStateException("NodeId Exist. But Value Not Found.");
 	}
 
+	public void removeNode(long nodeId) {
+		BLinkedMapNode node = getNode(nodeId);
+		for (var e : node.getValues()) {
+			module._tValueIdToNodeId.remove(new BLinkedMapKey(name, e.getId()));
+			var root = getRoot();
+			root.setCount(root.getCount() - node.getValues().size());
+			node.getValues().clear();
+			removeNodeUnsafe(nodeId, node);
+		}
+		// 没有马上删除，启动gc延迟删除。
+		module._tLinkedMapNodes.delayRemove(new BLinkedMapNodeKey(name, nodeId));
+	}
+
 	// foreach
+	public void clear() {
+		Zeze.Util.Task.run(() -> {
+			var root = module._tLinkedMaps.selectDirty(name);
+			if (null == root)
+				return;
+
+			var nodeId = root.getTailNodeId();
+			while (nodeId != 0) {
+				var node = module._tLinkedMapNodes.selectDirty(new BLinkedMapNodeKey(name, nodeId));
+				final var finalNodeId = nodeId;
+				module.Zeze.NewProcedure(() -> {
+					removeNode(finalNodeId);
+					return 0;
+				}, name + ".clear.node").Call();
+				nodeId = node.getPrevNodeId();
+			}
+			module.Zeze.NewProcedure(() -> {
+				module._tLinkedMaps.remove(name);
+				return 0;
+			}, name + ".clear.root").Call();
+		}, name + ".clear");
+	}
 
 	/**
-	 * 必须在事务外。
 	 * func 第一个参数是当前Value所在的Node.Id。
 	 */
 	@SuppressWarnings("unchecked")
@@ -240,7 +274,7 @@ public class LinkedMap<V extends Bean> {
 		return newNodeId;
 	}
 
-	private void removeNodeUnsafe(BLinkedMapNodeId nodeId, BLinkedMapNode node) {
+	private void removeNodeUnsafe(long nodeId, BLinkedMapNode node) {
 		var root = getRoot();
 		var prevNodeId = node.getPrevNodeId();
 		var nextNodeId = node.getNextNodeId();
@@ -256,6 +290,6 @@ public class LinkedMap<V extends Bean> {
 			getNode(nextNodeId).setPrevNodeId(prevNodeId);
 
 		// 没有马上删除，启动gc延迟删除。
-		module._tLinkedMapNodes.delayRemove(new BLinkedMapNodeKey(name, nodeId.getNodeId()));
+		module._tLinkedMapNodes.delayRemove(new BLinkedMapNodeKey(name, nodeId));
 	}
 }

@@ -6,7 +6,7 @@ import Zeze.Serialize.ByteBuffer;
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
     private long _ParentDepartment; // 0表示第一级部门
-    private final Zeze.Transaction.Collections.PMap1<String, Long> _ChildDepartments; // name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
+    private final Zeze.Transaction.Collections.PMap1<String, Long> _Childs; // name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
     private String _Name;
     private final Zeze.Transaction.Collections.PMap1<String, Zeze.Transaction.DynamicBean> _Managers;
         public static long GetSpecialTypeIdFromBean_Managers(Zeze.Transaction.Bean bean) {
@@ -43,8 +43,8 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__ParentDepartment(this, 1, value));
     }
 
-    public Zeze.Transaction.Collections.PMap1<String, Long> getChildDepartments() {
-        return _ChildDepartments;
+    public Zeze.Transaction.Collections.PMap1<String, Long> getChilds() {
+        return _Childs;
     }
 
     public String getName() {
@@ -81,8 +81,8 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
 
     public BDepartmentTreeNode(int _varId_) {
         super(_varId_);
-        _ChildDepartments = new Zeze.Transaction.Collections.PMap1<>(String.class, Long.class);
-        _ChildDepartments.VariableId = 2;
+        _Childs = new Zeze.Transaction.Collections.PMap1<>(String.class, Long.class);
+        _Childs.VariableId = 2;
         _Name = "";
         _Managers = new Zeze.Transaction.Collections.PMap1<>(String.class, Zeze.Transaction.DynamicBean.class);
         _Managers.VariableId = 4;
@@ -90,9 +90,9 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
 
     public void Assign(BDepartmentTreeNode other) {
         setParentDepartment(other.getParentDepartment());
-        getChildDepartments().clear();
-        for (var e : other.getChildDepartments().entrySet())
-            getChildDepartments().put(e.getKey(), e.getValue());
+        getChilds().clear();
+        for (var e : other.getChilds().entrySet())
+            getChilds().put(e.getKey(), e.getValue());
         setName(other.getName());
         getManagers().clear();
         for (var e : other.getManagers().entrySet())
@@ -152,9 +152,9 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("ParentDepartment").append('=').append(getParentDepartment()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("ChildDepartments").append("=[").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Childs").append("=[").append(System.lineSeparator());
         level += 4;
-        for (var _kv_ : getChildDepartments().entrySet()) {
+        for (var _kv_ : getChilds().entrySet()) {
             sb.append(Zeze.Util.Str.indent(level)).append('(').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Key").append('=').append(_kv_.getKey()).append(',').append(System.lineSeparator());
             sb.append(Zeze.Util.Str.indent(level)).append("Value").append('=').append(_kv_.getValue()).append(',').append(System.lineSeparator());
@@ -202,7 +202,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
             }
         }
         {
-            var _x_ = getChildDepartments();
+            var _x_ = getChilds();
             int _n_ = _x_.size();
             if (_n_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.MAP);
@@ -244,7 +244,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
-            var _x_ = getChildDepartments();
+            var _x_ = getChilds();
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.MAP) {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
@@ -268,7 +268,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
                 int _s_ = (_t_ = _o_.ReadByte()) >> ByteBuffer.TAG_SHIFT;
                 for (int _n_ = _o_.ReadUInt(); _n_ > 0; _n_--) {
                     var _k_ = _o_.ReadString(_s_);
-                    Zeze.Transaction.DynamicBean = new Zeze.Transaction.DynamicBean(0, Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId);
+                    Zeze.Transaction.DynamicBean _v_ = new Zeze.Transaction.DynamicBean(0, Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId);
                     _o_.ReadDynamic(_v_, _t_);
                     _x_.put(_k_, _v_);
                 }
@@ -284,7 +284,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
 
     @Override
     protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _ChildDepartments.InitRootInfo(root, this);
+        _Childs.InitRootInfo(root, this);
         _Managers.InitRootInfo(root, this);
     }
 
@@ -292,7 +292,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
     public boolean NegativeCheck() {
         if (getParentDepartment() < 0)
             return true;
-        for (var _v_ : getChildDepartments().values()) {
+        for (var _v_ : getChilds().values()) {
             if (_v_ < 0)
                 return true;
         }
@@ -309,7 +309,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
                 case 1: _ParentDepartment = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
-                case 2: _ChildDepartments.FollowerApply(vlog); break;
+                case 2: _Childs.FollowerApply(vlog); break;
                 case 3: _Name = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
                 case 4: _Managers.FollowerApply(vlog); break;
             }

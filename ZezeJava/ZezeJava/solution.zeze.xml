@@ -171,7 +171,7 @@
 
 				<bean name="BDepartmentTreeNode">
 					<variable id="1" name="ParentDepartment" type="long" /> 0表示第一级部门
-					<variable id="2" name="ChildDepartments" type="map" key="string" value="long" /> name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
+					<variable id="2" name="Childs" type="map" key="string" value="long" /> name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
 					<variable id="3" name="Name" type="string" />
 					<variable id="4" name="Managers" type="map[string,dynamic]">
 						<GetSpecialTypeIdFromBean value="Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean"/>
