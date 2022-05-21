@@ -86,17 +86,25 @@
 			<variable id="2" name="Friend" type="string" />
 			<variable id="3" name="MessageId" type="long" />
 		</beankey>
+		<beankey name="BFriendKey">
+			<variable id="1" name="Owner" type="string" />
+			<variable id="2" name="Friend" type="string" />
+		</beankey>
 
-		<table name="tFriendMessage" key="zzuser.Friend.BFriendKey" value="BMessageRoot" />
+		<table name="tFriendMessage" key="BFriendKey" value="BMessageRoot" />
 		<table name="tFriendMessages" key="BFriendMessageKey" value="BMessage" />
 
 		<!-- 群（部门）消息历史 -->
+		<beankey name="BDepartmentKey">
+			<variable id="1" name="Owner" type="string" />
+			<variable id="2" name="DepartmentId" type="long" />
+		</beankey>
 		<beankey name="BDepartmentMessageKey">
 			<variable id="1" name="Owner" type="string" />
 			<variable id="2" name="DepartmentId" type="long" />
 			<variable id="3" name="MessageId" type="long" />
 		</beankey>
-		<table name="tDepartementMessage" key="zzuser.Friend.BDepartmentKey" value="BMessageRoot" />
+		<table name="tDepartementMessage" key="BDepartmentKey" value="BMessageRoot" />
 		<table name="tDepartementMessages" key="BDepartmentMessageKey" value="BMessage" />
 	</module>
 
@@ -119,9 +127,9 @@
 		</service>
 	</project>
 
-	<project name="client" gendir="." scriptdir="src" platform="java" SolutionName="Client" BuiltinNG="true">
+	<project name="client" gendir="." scriptdir="src" platform="java" BuiltinNG="true">
 		<service name="ClientService" handle="client" base="Zeze.Services.HandshakeClient">
-			<module ref="Zeze.Builtin.Arch.Online"/>
+			<module ref="Zeze.Builtin.Online"/>
 			<module ref="Zeze.Builtin.LinkdBase"/>
 			<module ref="Zege.Linkd"/>
 		</service>
