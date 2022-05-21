@@ -13,22 +13,18 @@ namespace UnitTest.Zeze.Trans
     {
         readonly TestBegin.MyBean bean = new();
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        public async Task<long> ProcTrue()
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        public Task<long> ProcTrue()
         {
             bean.I = 123;
             Assert.AreEqual(bean.I, 123);
-            return Procedure.Success;
+            return Task.FromResult(Procedure.Success);
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        public async Task<long> ProcFalse()
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        public Task<long> ProcFalse()
         {
             bean.I = 456;
             Assert.AreEqual(bean.I, 456);
-            return Procedure.Unknown;
+            return Task.FromResult(Procedure.Unknown);
         }
 
         public async Task<long> ProcNest()

@@ -399,12 +399,11 @@ namespace Zeze.Raft
 
         private long LowPrecisionTimer;
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task OnLowPrecisionTimer()
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        private Task OnLowPrecisionTimer()
         {
             Server.Config.ForEachConnector((c) => c.Start()); // Connector Reconnect Bug?
             LogSequence.RemoveExpiredUniqueRequestSet();
+            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -555,9 +554,7 @@ namespace Zeze.Raft
             }
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task<long> ProcessLeaderIs(Protocol p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        private Task<long> ProcessLeaderIs(Protocol p)
         {
             var r = p as LeaderIs;
 
@@ -566,7 +563,7 @@ namespace Zeze.Raft
             // Raft也会收到，忽略。
             r.SendResultCode(0);
 
-            return Procedure.Success;
+            return Task.FromResult(Procedure.Success);
         }
 
         private async Task<long> ProcessRequestVoteResult(RequestVote rpc)

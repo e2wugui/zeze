@@ -249,9 +249,8 @@ namespace Zeze.Services
                     login.Argument.ServerId = agent.Client.Zeze.Config.ServerId;
                     login.Argument.GlobalCacheManagerHashIndex = GlobalCacheManagerHashIndex;
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
                     agent.Send(login,
-                        async (p) =>
+                        (p) =>
                         {
                             var rpc = p as Login;
                             if (rpc.IsTimeout || rpc.ResultCode != 0)
@@ -264,18 +263,16 @@ namespace Zeze.Services
                                 LoginTimes.IncrementAndGet();
                                 future.TrySetResult(true);
                             }
-                            return 0;
+                            return Task.FromResult(0L);
                         }, true);
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
                 }
                 else
                 {
                     var relogin = new ReLogin();
                     relogin.Argument.ServerId = agent.Client.Zeze.Config.ServerId;
                     relogin.Argument.GlobalCacheManagerHashIndex = GlobalCacheManagerHashIndex;
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
                     agent.Send(relogin,
-                        async (p) =>
+                        (p) =>
                         {
                             var rpc = p as ReLogin;
                             if (rpc.IsTimeout || rpc.ResultCode != 0)
@@ -288,9 +285,8 @@ namespace Zeze.Services
                                 LoginTimes.IncrementAndGet();
                                 future.TrySetResult(true);
                             }
-                            return 0;
+                            return Task.FromResult(0L);
                         }, true);
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
                 }
             }
         }

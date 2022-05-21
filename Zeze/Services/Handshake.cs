@@ -102,17 +102,13 @@ namespace Zeze.Services
             }
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task<long> ProcessCHandshakeDone(Protocol p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        private Task<long> ProcessCHandshakeDone(Protocol p)
         {
             OnHandshakeDone(p.Sender);
-            return 0;
+            return Task.FromResult(0L);
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task<long> ProcessCHandshake(Protocol _p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        private Task<long> ProcessCHandshake(Protocol _p)
         {
             try
             {
@@ -121,7 +117,7 @@ namespace Zeze.Services
                 if (false == Config.HandshakeOptions.DhGroups.Contains(group))
                 {
                     p.Sender.Close(new Exception("dhGroup Not Supported"));
-                    return 0;
+                    return Task.FromResult(0L);
                 }
                 Array.Reverse(p.Argument.dh_data);
                 var data = new BigInteger(p.Argument.dh_data);
@@ -151,13 +147,13 @@ namespace Zeze.Services
                 // 所以增加CHandshakeDone协议，在Client进入加密以后发送给Server。
                 // OnHandshakeDone(p.Sender);
 
-                return 0;
+                return Task.FromResult(0L);
             }
             catch (Exception ex)
             {
                 _p.Sender.Close(ex);
             }
-            return 0;
+            return Task.FromResult(0L);
         }
 
         protected void AddHandshakeClientFactoryHandle()
@@ -172,9 +168,7 @@ namespace Zeze.Services
             });
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task<long> ProcessSHandshake(Protocol _p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        private Task<long> ProcessSHandshake(Protocol _p)
         {
             try
             {
@@ -207,7 +201,7 @@ namespace Zeze.Services
                     {
                         ctx.TimeoutTask?.Cancel();
                     }
-                    return 0;
+                    return Task.FromResult(0L);
                 }
                 p.Sender.Close(new Exception("handshake lost context."));
             }
@@ -215,7 +209,7 @@ namespace Zeze.Services
             {
                 _p.Sender.Close(ex);
             }
-            return 0;
+            return Task.FromResult(0L);
         }
 
         protected void StartHandshake(AsyncSocket so)

@@ -770,11 +770,10 @@ namespace Zeze.Raft
 
                 }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-                public override async Task Apply(RaftLog holder, StateMachine stateMachine)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+                public override Task Apply(RaftLog holder, StateMachine stateMachine)
                 {
                     (stateMachine as TestStateMachine).Count += 1;
+                    return Task.CompletedTask;
                 }
 
                 public override void Decode(ByteBuffer bb)
@@ -797,12 +796,11 @@ namespace Zeze.Raft
                 Count = bb.ReadLong();
             }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-            public override async Task LoadSnapshot(string path)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+            public override Task LoadSnapshot(string path)
             {
                 LoadSnapshotInternal(path);
                 logger.Info($"{Raft.Name} LoadSnapshot Count={Count}");
+                return Task.CompletedTask;
             }
 
             // 这里没有处理重入，调用者需要保证。
@@ -926,16 +924,14 @@ namespace Zeze.Raft
                 return Procedure.Success;
             }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-            private async Task<long> ProcessGetCount(Zeze.Net.Protocol p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+            private Task<long> ProcessGetCount(Zeze.Net.Protocol p)
             {
                 var r = p as GetCount;
 
                 r.Result.Count = StateMachine.Count;
                 r.SendResult();
 
-                return Procedure.Success;
+                return Task.FromResult(Procedure.Success);
             }
         }
 

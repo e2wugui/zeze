@@ -291,9 +291,7 @@ namespace Infinite
                 return false;
             }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-            public override async Task<long> Process()
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+            public override Task<long> Process()
             {
                 var table1 = App.demo_Module1.Tflush;
                 var keys = new HashSet<Zeze.Serialize.ByteBuffer>();
@@ -327,7 +325,7 @@ namespace Infinite
                 {
                     t.Dispose();
                 }
-                return 0L;
+                return System.Threading.Tasks.Task.FromResult(0L);
             }
         }
     }

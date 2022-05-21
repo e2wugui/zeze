@@ -26,9 +26,7 @@ namespace Zeze.Raft
             Info = info ?? string.Empty;
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        public override async Task Apply(RaftLog holder, StateMachine stateMachine)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        public override Task Apply(RaftLog holder, StateMachine stateMachine)
         {
             switch (Operate)
             {
@@ -36,6 +34,8 @@ namespace Zeze.Raft
                     stateMachine.Raft.SetLeaderReady(holder);
                     break;
             }
+
+            return Task.CompletedTask;
         }
 
         public override void Decode(ByteBuffer bb)

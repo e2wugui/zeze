@@ -562,9 +562,7 @@ namespace Zeze.Raft
                     throw new Exception("duplicate requestid rpc=" + rpc);
             }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-            rpc.ResponseHandle = async (p) => SendForWaitHandle(p, future, rpc);
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+            rpc.ResponseHandle = (p) => Task.FromResult(SendForWaitHandle(p, future, rpc));
             rpc.Send(_Leader?.TryGetReadySocket());
             await future.Task;
         }
@@ -665,9 +663,7 @@ namespace Zeze.Raft
             return null;
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task<long> ProcessLeaderIs(Protocol p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        private Task<long> ProcessLeaderIs(Protocol p)
         {
             var r = p as LeaderIs;
             logger.Info("=============== LEADERIS Old={0} New={1} From={2}", _Leader?.Name, r.Argument.LeaderId, p.Sender);
@@ -680,7 +676,7 @@ namespace Zeze.Raft
                 // 一般不会发生这种情况。
                 var address = r.Argument.LeaderId.Split(':');
                 if (address.Length != 2)
-                    return 0;
+                    return Task.FromResult(0L);
 
                 if (Client.Config.TryGetOrAddConnector(
                     address[0], int.Parse(address[1]), true, out node))
@@ -702,7 +698,7 @@ namespace Zeze.Raft
             }
             //OnLeaderChanged?.Invoke(this);
             r.SendResultCode(0);
-            return Procedure.Success;
+            return Task.FromResult(Procedure.Success);
         }
 
         private void ReSend(bool immediately = false)

@@ -45,17 +45,13 @@ namespace UnitTest.Zeze.Net
 
         readonly ManualResetEvent connected = new(false);
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-#pragma warning disable CA1822 // Mark members as static
-        public async Task<long> ProcessFirstRpcRequest(Protocol p)
-#pragma warning restore CA1822 // Mark members as static
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        public Task<long> ProcessFirstRpcRequest(Protocol p)
         {
             var rpc = p as FirstRpc;
             rpc.Result.Assign(rpc.Argument);
             rpc.SendResult();
             Console.WriteLine("ProcessFirstRpcRequest result.Int1=" +  rpc.Result.Int1);
-            return Procedure.Success;
+            return Task.FromResult(Procedure.Success);
         }
 
         public class FirstRpc : Rpc<demo.Module1.Value, demo.Module1.Value>

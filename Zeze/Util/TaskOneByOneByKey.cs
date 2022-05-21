@@ -301,25 +301,23 @@ namespace Zeze.Util
         {
 			public Func<long> Func { get; set; }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-            public override async Task ProcessAsync()
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+            public override Task ProcessAsync()
             {
-				Func();
-			}
+                Func();
+                return Task.CompletedTask;
+            }
         }
 
 		internal class JobAction : Job
 		{
 			public Action Action { get; set; }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-            public override async Task ProcessAsync()
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+            public override Task ProcessAsync()
             {
-				Action();
-			}
-		}
+                Action();
+                return Task.CompletedTask;
+            }
+        }
 
 		internal class TaskOneByOne
 		{

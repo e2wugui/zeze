@@ -163,13 +163,11 @@ namespace Zeze.Services
             Loads.GetOrAdd(host, (key) => new LoadObservers(this)).Observers.Add(sender.SessionId);
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task<long> ProcessSetServerLoad(Protocol _p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        private Task<long> ProcessSetServerLoad(Protocol _p)
         {
             var p = _p as SetServerLoad;
             Loads.GetOrAdd(p.Argument.Name, (key) => new LoadObservers(this)).SetServerLoad(p.Argument);            
-            return 0;
+            return Task.FromResult(0L);
         }
 
         public sealed class ServerState
@@ -441,9 +439,7 @@ namespace Zeze.Services
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task<long> ProcessRegister(Protocol p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        private Task<long> ProcessRegister(Protocol p)
         {
             var r = p as Register;
             var session = r.Sender.UserState as Session;
@@ -464,26 +460,24 @@ namespace Zeze.Services
             r.SendResultCode(Register.Success);
             state.StartReadyCommitNotify();
             state.NotifySimpleOnRegister(current);
-            return Procedure.Success;
+            return Task.FromResult(Procedure.Success);
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task<long> ProcessUpdate(Protocol p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        private Task<long> ProcessUpdate(Protocol p)
         {
             var r = p as Update;
             var session = r.Sender.UserState as Session;
             if (false == session.Registers.ContainsKey(r.Argument))
-                return Update.ServiceNotRetister;
+                return Task.FromResult((long)Update.ServiceNotRetister);
 
             if (false == ServerStates.TryGetValue(r.Argument.Name, out var state))
-                return Update.ServerStateError;
+                return Task.FromResult((long)Update.ServerStateError);
 
             var rc = state.UpdateAndNotify(r.Argument);
             if (rc != Procedure.Success)
-                return rc;
+                return Task.FromResult((long)rc);
             r.SendResult();
-            return 0;
+            return Task.FromResult(0L);
         }
 
         internal ServerState UnRegisterNow(long sessionId, ServiceInfo info)
@@ -506,9 +500,7 @@ namespace Zeze.Services
             return null;
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task<long> ProcessUnRegister(Protocol p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        private Task<long> ProcessUnRegister(Protocol p)
         {
             var r = p as UnRegister;
             var session = r.Sender.UserState as Session;
@@ -521,19 +513,17 @@ namespace Zeze.Services
             }
             // 注销不存在也返回成功，否则Agent处理比较麻烦。
             r.SendResultCode(UnRegister.Success);
-            return Procedure.Success;
+            return Task.FromResult(Procedure.Success);
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task<long> ProcessSubscribe(Protocol p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        private Task<long> ProcessSubscribe(Protocol p)
         {
             var r = p as Subscribe;
             var session = r.Sender.UserState as Session;
             // 允许重复订阅。
             session.Subscribes.TryAdd(r.Argument.ServiceName, r.Argument);
             var state = ServerStates.GetOrAdd(r.Argument.ServiceName, (name) => new ServerState(this, name));
-            return state.SubscribeAndSend(r, session);
+            return Task.FromResult(state.SubscribeAndSend(r, session));
         }
 
         internal ServerState UnSubscribeNow(long sessionId, SubscribeInfo info)
@@ -555,9 +545,7 @@ namespace Zeze.Services
             return null;
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task<long> ProcessUnSubscribe(Protocol p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        private Task<long> ProcessUnSubscribe(Protocol p)
         {
             var r = p as UnSubscribe;
             var session = r.Sender.UserState as Session;
@@ -571,7 +559,7 @@ namespace Zeze.Services
                         r.ResultCode = UnSubscribe.Success;
                         r.SendResult();
                         changed.TryCommit();
-                        return Procedure.Success;
+                        return Task.FromResult(Procedure.Success);
                     }
                 }
             }
@@ -581,18 +569,16 @@ namespace Zeze.Services
             //return Procedure.LogicError;
             r.ResultCode = UnRegister.Success;
             r.SendResult();
-            return Procedure.Success;
+            return Task.FromResult(Procedure.Success);
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task<long> ProcessReadyServiceList(Protocol p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        private Task<long> ProcessReadyServiceList(Protocol p)
         {
             var r = p as ReadyServiceList;
             var session = r.Sender.UserState as Session;
             var state = ServerStates.GetOrAdd(r.Argument.ServiceName, (name) => new ServerState(this, name));
             state.SetReady(r, session);
-            return Procedure.Success;
+            return Task.FromResult(Procedure.Success);
         }
 
         public void Dispose()
@@ -736,16 +722,14 @@ namespace Zeze.Services
             }
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task<long> ProcessAllocateId(Protocol p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        private Task<long> ProcessAllocateId(Protocol p)
         {
             var r = p as AllocateId;
             var n = r.Argument.Name;
             r.Result.Name = n;
             AutoKeys.GetOrAdd(n, (_) => new AutoKey(n, AutoKeysDb)).Allocate(r);
             r.SendResult();
-            return 0;
+            return Task.FromResult(0L);
         }
 
         private void StartNotifyAll(SchedulerTask ThisTask)
@@ -1168,16 +1152,14 @@ namespace Zeze.Services.ServiceManager
             return p.Send(Client?.Socket);
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task<long> ProcessSubscribeFirstCommit(Protocol p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        private Task<long> ProcessSubscribeFirstCommit(Protocol p)
         {
             var r = p as SubscribeFirstCommit;
             if (SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
             {
                 state.OnFirstCommit(r.Argument);
             }
-            return Procedure.Success;
+            return Task.FromResult(Procedure.Success);
         }
 
         public async Task UnSubscribeService(string serviceName)
@@ -1199,48 +1181,40 @@ namespace Zeze.Services.ServiceManager
             }
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task<long> ProcessUpdate(Protocol p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        private Task<long> ProcessUpdate(Protocol p)
         {
             var r = p as Update;
             if (false == SubscribeStates.TryGetValue(r.Argument.Name, out var state))
-                return Update.ServiceNotSubscribe;
+                return Task.FromResult((long)Update.ServiceNotSubscribe);
 
             state.OnUpdate(r.Argument);
             r.SendResult();
-            return 0;
+            return Task.FromResult(0L);
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task<long> ProcessRegister(Protocol p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        private Task<long> ProcessRegister(Protocol p)
         {
             var r = p as Register;
             if (false == SubscribeStates.TryGetValue(r.Argument.Name, out var state))
-                return Update.ServiceNotSubscribe;
+                return Task.FromResult((long)Update.ServiceNotSubscribe);
 
             state.OnRegister(r.Argument);
             r.SendResult();
-            return 0;
+            return Task.FromResult(0L);
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task<long> ProcessUnRegister(Protocol p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        private Task<long> ProcessUnRegister(Protocol p)
         {
             var r = p as UnRegister;
             if (false == SubscribeStates.TryGetValue(r.Argument.Name, out var state))
-                return Update.ServiceNotSubscribe;
+                return Task.FromResult((long)Update.ServiceNotSubscribe);
 
             state.OnUnRegister(r.Argument);
             r.SendResult();
-            return 0;
+            return Task.FromResult(0L);
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task<long> ProcessNotifyServiceList(Protocol p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        private Task<long> ProcessNotifyServiceList(Protocol p)
         {
             var r = p as NotifyServiceList;
             if (SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
@@ -1251,12 +1225,10 @@ namespace Zeze.Services.ServiceManager
             {
                 Agent.logger.Warn("NotifyServiceList But SubscribeState Not Found.");
             }
-            return Procedure.Success;
+            return Task.FromResult(Procedure.Success);
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task<long> ProcessCommitServiceList(Protocol p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        private Task<long> ProcessCommitServiceList(Protocol p)
         {
             var r = p as CommitServiceList;
             if (SubscribeStates.TryGetValue(r.Argument.ServiceName, out var state))
@@ -1267,17 +1239,15 @@ namespace Zeze.Services.ServiceManager
             {
                 Agent.logger.Warn("CommitServiceList But SubscribeState Not Found.");
             }
-            return Procedure.Success;
+            return Task.FromResult(Procedure.Success);
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task<long> ProcessKeepAlive(Protocol p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        private Task<long> ProcessKeepAlive(Protocol p)
         {
             var r = p as KeepAlive;
             OnKeepAlive?.Invoke();
             r.SendResultCode(KeepAlive.Success);
-            return Procedure.Success;
+            return Task.FromResult(Procedure.Success);
         }
 
         public sealed class AutoKey
@@ -1449,14 +1419,12 @@ namespace Zeze.Services.ServiceManager
 
         public readonly ConcurrentDictionary<string, ServerLoad> Loads = new();
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        private async Task<long> ProcessSetServerLoad(Protocol _p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        private Task<long> ProcessSetServerLoad(Protocol _p)
         {
             var p = _p as SetServerLoad;
             Loads[p.Argument.Name] = p.Argument;
             OnSetServerLoad?.Invoke(p.Argument);
-            return Procedure.Success;
+            return Task.FromResult(Procedure.Success);
         }
 
         public bool SetLoad(ServerLoad load)

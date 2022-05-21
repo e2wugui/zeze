@@ -13,9 +13,7 @@ namespace demo.Module1
         {
         }
 
-#pragma warning disable CA1822 // Mark members as static
         public void Stop(demo.App _)
-#pragma warning restore CA1822 // Mark members as static
         {
         }
 
@@ -28,25 +26,19 @@ namespace demo.Module1
             return Zeze.Transaction.Procedure.Success;
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        protected override async Task<long> ProcessProtocol3(Protocol p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        protected override Task<long> ProcessProtocol3(Protocol p)
         {
-            return Zeze.Transaction.Procedure.NotImplement;
+            return Task.FromResult(Zeze.Transaction.Procedure.NotImplement);
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        protected override async Task<long> ProcessRpc1Request(Protocol p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        protected override Task<long> ProcessRpc1Request(Protocol p)
         {
             var rpc = p as Rpc1;
             rpc.SendResult();
-            return Zeze.Transaction.Procedure.Success;
+            return Task.FromResult(Zeze.Transaction.Procedure.Success);
         }
 
-#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-        protected override async Task<long> ProcessProtocolNoProcedure(Protocol p)
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
+        protected override Task<long> ProcessProtocolNoProcedure(Protocol p)
         {
             throw new NotImplementedException();
         }
