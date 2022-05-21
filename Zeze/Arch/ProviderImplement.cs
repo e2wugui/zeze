@@ -152,14 +152,14 @@ namespace Zeze.Arch
             }
         }
 
-        protected override async Task<long> ProcessAnnounceLinkInfo(Zeze.Net.Protocol _p)
+        protected override Task<long> ProcessAnnounceLinkInfo(Zeze.Net.Protocol _p)
         {
             // reserve
             /*
             var protocol = _p as AnnounceLinkInfo;
             var linkSession = protocol.Sender.UserState as ProviderService.LinkSession;
             */
-            return Procedure.Success;
+            return Task.FromResult(Procedure.Success);
         }
     }
 }

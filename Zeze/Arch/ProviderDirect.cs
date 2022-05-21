@@ -131,13 +131,13 @@ namespace Zeze.Arch
             return Procedure.Success;
         }
 
-        protected override async Task<long> ProcessAnnounceProviderInfoRequest(Zeze.Net.Protocol _p)
+        protected override Task<long> ProcessAnnounceProviderInfoRequest(Zeze.Net.Protocol _p)
         {
             var r = _p as AnnounceProviderInfo;
             var ps = (ProviderSession)r.Sender.UserState;
             ps.ServerId = r.Argument.ServerId;
             ProviderApp.ProviderDirectService.SetRelativeServiceReady(ps, r.Argument.Ip, r.Argument.Port);
-            return 0;
+            return Task.FromResult(0L);
         }
 
         protected override async Task<long> ProcessModuleRedirectAllResult(Zeze.Net.Protocol p)

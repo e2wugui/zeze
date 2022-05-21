@@ -19,13 +19,13 @@ namespace Zeze.Arch
         // 不建议在一个项目里面使用多个Prefix。
         public string ServerServiceNamePrefix { get; private set; } = "";
 
-        protected override async Task<long> ProcessAnnounceProviderInfo(Zeze.Net.Protocol _p)
+        protected override Task<long> ProcessAnnounceProviderInfo(Zeze.Net.Protocol _p)
         {
             var protocol = _p as AnnounceProviderInfo;
             var session = protocol.Sender.UserState as LinkdProviderSession;
             session.Info = protocol.Argument;
             ServerServiceNamePrefix = protocol.Argument.ServiceNamePrefix;
-            return Zeze.Transaction.Procedure.Success;
+            return Task.FromResult(Zeze.Transaction.Procedure.Success);
         }
 
         public int FirstModuleWithConfigTypeDefault { get; private set; } = 0;
@@ -71,7 +71,7 @@ namespace Zeze.Arch
             return Zeze.Transaction.Procedure.Success;
         }
 
-        protected override async Task<long> ProcessBroadcast(Zeze.Net.Protocol p)
+        protected override Task<long> ProcessBroadcast(Zeze.Net.Protocol p)
         {
             var protocol = p as Broadcast;
             LinkdApp.LinkdService.Foreach((socket) =>
@@ -86,19 +86,19 @@ namespace Zeze.Arch
                     )
                     socket.Send(protocol.Argument.ProtocolWholeData);
             });
-            return Zeze.Transaction.Procedure.Success;
+            return Task.FromResult(Zeze.Transaction.Procedure.Success);
         }
 
-        protected override async Task<long> ProcessKick(Zeze.Net.Protocol p)
+        protected override Task<long> ProcessKick(Zeze.Net.Protocol p)
         {
             var protocol = p as Kick;
             LinkdApp.LinkdService.ReportError(
                 protocol.Argument.Linksid, BReportError.FromProvider,
                 protocol.Argument.Code, protocol.Argument.Desc);
-            return Zeze.Transaction.Procedure.Success;
+            return Task.FromResult(Zeze.Transaction.Procedure.Success);
         }
 
-        protected override async Task<long> ProcessSend(Zeze.Net.Protocol _p)
+        protected override Task<long> ProcessSend(Zeze.Net.Protocol _p)
         {
             var protocol = _p as Send;
             foreach (var linkSid in protocol.Argument.LinkSids)
@@ -109,16 +109,16 @@ namespace Zeze.Arch
                 // ProtocolId现在是hash值，显示出来也不好看，以后加配置换成名字。
                 link?.Send(protocol.Argument.ProtocolWholeData);
             }
-            return Zeze.Transaction.Procedure.Success;
+            return Task.FromResult(Zeze.Transaction.Procedure.Success);
         }
 
-        protected override async Task<long> ProcessSetUserState(Zeze.Net.Protocol p)
+        protected override Task<long> ProcessSetUserState(Zeze.Net.Protocol p)
         {
             var protocol = p as SetUserState;
             var socket = LinkdApp.LinkdService.GetSocket(protocol.Argument.LinkSid);
             var linkSession = socket?.UserState as LinkdUserSession;
             linkSession?.SetUserState(protocol.Argument.Context, protocol.Argument.Contextx);
-            return Zeze.Transaction.Procedure.Success;
+            return Task.FromResult(Zeze.Transaction.Procedure.Success);
         }
 
         protected override async Task<long> ProcessSubscribeRequest(Zeze.Net.Protocol _p)
@@ -160,7 +160,7 @@ namespace Zeze.Arch
                 volatileProviders.SetServiceIdentityReadyState(ps.Info.ServiceIndentity, null);
             }
         }
-        protected override async Task<long> ProcessUnBindRequest(Zeze.Net.Protocol p)
+        protected override Task<long> ProcessUnBindRequest(Zeze.Net.Protocol p)
         {
             var rpc = p as UnBind;
             if (rpc.Argument.LinkSids.Count == 0)
@@ -181,7 +181,7 @@ namespace Zeze.Arch
                 }
             }
             rpc.SendResultCode(BBind.ResultSuccess);
-            return Zeze.Transaction.Procedure.Success;
+            return Task.FromResult(Zeze.Transaction.Procedure.Success);
         }
 
 

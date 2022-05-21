@@ -15,7 +15,7 @@ namespace Zezex.Linkd
         {
         }
 
-        protected override async Task<long> ProcessAuthRequest(Protocol p)
+        protected override Task<long> ProcessAuthRequest(Protocol p)
         {
             var rpc = p as Auth;
             /*
@@ -33,22 +33,21 @@ namespace Zezex.Linkd
             linkSession.Account = rpc.Argument.Account;
             rpc.SendResultCode(Auth.Success);
 
-            return Zeze.Transaction.Procedure.Success;
+            return Task.FromResult(Zeze.Transaction.Procedure.Success);
         }
 
-        protected override async Task<long> ProcessKeepAlive(Protocol p)
+        protected override Task<long> ProcessKeepAlive(Protocol p)
         {
             var protocol = p as KeepAlive;
-            var linkSession = protocol.Sender.UserState as LinkdUserSession;
-            if (null == linkSession)
+            if (protocol.Sender.UserState is not LinkdUserSession linkSession)
             {
                 // handshake 完成之前不可能回收得到 keepalive，先这样处理吧。
                 protocol.Sender.Close(null);
-                return Zeze.Transaction.Procedure.LogicError;
+                return Task.FromResult(Zeze.Transaction.Procedure.LogicError);
             }
             linkSession.KeepAlive(App.Instance.LinkdService);
             protocol.Sender.Send(protocol); // send back;
-            return Zeze.Transaction.Procedure.Success;
+            return Task.FromResult(Zeze.Transaction.Procedure.Success);
         }
     }
 }

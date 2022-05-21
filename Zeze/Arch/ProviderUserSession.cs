@@ -28,7 +28,7 @@ namespace Zeze.Arch
             Context = context;
             LinkSid = linkSid;
             Link = link;
-            LinkName = service.GetLinkName(link);
+            LinkName = ProviderService.GetLinkName(link);
         }
 
         public void Kick(int code, string desc)

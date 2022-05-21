@@ -17,7 +17,7 @@ namespace Game.Rank
     public partial class ModuleRank : AbstractModule
     {
 
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        //private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         public void Start(Game.App app)
         {
@@ -68,7 +68,7 @@ namespace Game.Rank
                         RoleId = roleId,
                         Value = value,
                         ValueEx = valueEx,
-                        AwardTaken = null == exist ? false : exist.AwardTaken
+                        AwardTaken = null != exist && exist.AwardTaken
                     });
                     if (rank.RankList.Count > maxCount)
                     {
@@ -342,29 +342,31 @@ namespace Game.Rank
 
         /******************************** ModuleRedirect 测试 *****************************************/
         [RedirectToServer()]
-        public virtual async Task TestToServer(int serverId, int param, Action<int, int> result)
+        public virtual Task TestToServer(int serverId, int param, Action<int, int> result)
         {
             result(param, App.Zeze.Config.ServerId);
+            return Task.CompletedTask;
         }
 
         [RedirectHash()]
-        public virtual async Task TestHash(int hash, int param, Action<int, int> result)
+        public virtual Task TestHash(int hash, int param, Action<int, int> result)
         {
             result(param, App.Zeze.Config.ServerId);
+            return Task.CompletedTask;
         }
 
         [RedirectToServer()]
-        public virtual async Task<long> TestToServerResult(int serverId, int param, Action<int, int> result)
+        public virtual Task<long> TestToServerResult(int serverId, int param, Action<int, int> result)
         {
             result(param, App.Zeze.Config.ServerId);
-            return 12345;
+            return Task.FromResult(12345L);
         }
 
         [RedirectHash()]
-        public virtual async Task<long> TestHashResult(int hash, int param, Action<int, int> result)
+        public virtual Task<long> TestHashResult(int hash, int param, Action<int, int> result)
         {
             result(param, App.Zeze.Config.ServerId);
-            return 12345;
+            return Task.FromResult(12345L);
         }
 
         [RedirectToServer()]
@@ -380,8 +382,9 @@ namespace Game.Rank
 
 
         // broardcast awaitable?, collect awaitable!
-        protected async Task TestAllNoResult(int hash, int param)
+        protected Task TestAllNoResult(int hash, int param)
         {
+            return Task.CompletedTask;
         }
 
         [RedirectAll("100")]
@@ -390,9 +393,9 @@ namespace Game.Rank
             return null;
         }
 
-        protected async Task<long> TestAllResult(int hash, int param)
+        protected Task<long> TestAllResult(int hash, int param)
         {
-            return (long)App.Zeze.Config.ServerId << 48 | (long)hash << 32 | (uint)param;
+            return Task.FromResult((long)App.Zeze.Config.ServerId << 48 | (long)hash << 32 | (uint)param);
         }
 
         [RedirectAll("100")]
@@ -406,9 +409,9 @@ namespace Game.Rank
             public int Value;
         }
 
-        protected async Task<MyResult> TestAllResultProcessing(int hash, int param)
+        protected Task<MyResult> TestAllResultProcessing(int hash, int param)
         {
-            return new MyResult();
+            return Task.FromResult(new MyResult());
         }
 
         [RedirectAll("100")]

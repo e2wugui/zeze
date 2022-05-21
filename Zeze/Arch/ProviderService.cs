@@ -12,7 +12,7 @@ namespace Zeze.Arch
 {
     public class ProviderService : Zeze.Services.HandshakeClient
     {
-        private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+        //private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 
         public ProviderApp ProviderApp;
 
@@ -28,12 +28,12 @@ namespace Zeze.Arch
         /// </summary>
         /// <param name="sender"></param>
         /// <returns></returns>
-        public string GetLinkName(AsyncSocket sender)
+        public static string GetLinkName(AsyncSocket sender)
         {
             return sender.Connector.Name;
         }
 
-        public string GetLinkName(Zeze.Services.ServiceManager.ServiceInfo serviceInfo)
+        public static string GetLinkName(Zeze.Services.ServiceManager.ServiceInfo serviceInfo)
         {
             return serviceInfo.PassiveIp + ":" + serviceInfo.PassivePort;
         }
@@ -128,10 +128,10 @@ namespace Zeze.Arch
             // static binds
             var rpc = new Bind();
             rpc.Argument.Modules.AddRange(ProviderApp.StaticBinds);
-            rpc.Send(sender, async (protocol) => { ProviderStaticBindCompleted.SetResult(true); return 0; });
+            rpc.Send(sender, (protocol) => { ProviderStaticBindCompleted.SetResult(true); return Task.FromResult(0L); });
             var sub = new Subscribe();
             sub.Argument.Modules.AddRange(ProviderApp.DynamicModules);
-            sub.Send(sender, async (protocol) => { ProviderDynamicSubscribeCompleted.SetResult(true); return 0; });
+            sub.Send(sender, (protocol) => { ProviderDynamicSubscribeCompleted.SetResult(true); return Task.FromResult(0L); });
         }
 
         public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)

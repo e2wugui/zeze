@@ -11,10 +11,10 @@ namespace ClientZezex.Linkd
         {
         }
 
-        protected override async System.Threading.Tasks.Task<long> ProcessKeepAlive(Zeze.Net.Protocol _p)
+        protected override System.Threading.Tasks.Task<long> ProcessKeepAlive(Zeze.Net.Protocol _p)
         {
-            var p = _p as KeepAlive;
-            return Zeze.Transaction.Procedure.NotImplement;
+            //var p = _p as KeepAlive;
+            return System.Threading.Tasks.Task.FromResult(Zeze.Transaction.Procedure.NotImplement);
         }
 
     }

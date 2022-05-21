@@ -87,7 +87,7 @@ namespace Zeze.Arch
 				var r = new AnnounceProviderInfo();
 				r.Argument.Ip = ProviderApp.DirectIp;
 				r.Argument.Port = ProviderApp.DirectPort;
-				r.Send(socket, async (_r) => 0); // skip result
+				r.Send(socket, (_r) => Task.FromResult(0L)); // skip result
 			}
 		}
 

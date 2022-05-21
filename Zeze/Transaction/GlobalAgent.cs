@@ -317,7 +317,7 @@ namespace Zeze.Transaction
                 var relogin = new ReLogin();
                 relogin.Argument.ServerId = Zeze.Config.ServerId;
                 relogin.Argument.GlobalCacheManagerHashIndex = agent.GlobalCacheManagerHashIndex;
-                relogin.Send(so, async (_) =>
+                relogin.Send(so, (_) =>
                 {
                     if (relogin.IsTimeout)
                     {
@@ -332,7 +332,7 @@ namespace Zeze.Transaction
                         agent.LoginTimes.IncrementAndGet();
                         base.OnHandshakeDone(so);
                     }
-                    return 0;
+                    return Task.FromResult(0L);
                 });
             }
             else
@@ -340,7 +340,7 @@ namespace Zeze.Transaction
                 var login = new Login();
                 login.Argument.ServerId = Zeze.Config.ServerId;
                 login.Argument.GlobalCacheManagerHashIndex = agent.GlobalCacheManagerHashIndex;
-                login.Send(so, async (_) =>
+                login.Send(so, (_) =>
                 {
                     if (login.IsTimeout)
                     {
@@ -355,7 +355,7 @@ namespace Zeze.Transaction
                         agent.LoginTimes.IncrementAndGet();
                         base.OnHandshakeDone(so);
                     }
-                    return 0;
+                    return Task.FromResult(0L);
                 });
             }
         }

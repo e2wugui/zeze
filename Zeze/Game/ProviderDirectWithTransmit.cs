@@ -12,13 +12,13 @@ namespace Zeze.Game
 {
     public class ProviderDirectWithTransmit : ProviderDirect
     {
-        protected override async Task<long> ProcessTransmit(Protocol _p)
+        protected override Task<long> ProcessTransmit(Protocol _p)
         {
 			var p = _p as Transmit;
 			var provider = ProviderApp.ProviderImplement as ProviderImplementWithOnline;
 			provider.Online.ProcessTransmit(p.Argument.Sender, p.Argument.ActionName,
 				p.Argument.Roles, p.Argument.Parameter);
-			return Procedure.Success;
+			return Task.FromResult(Procedure.Success);
 		}
 	}
 }

@@ -16,24 +16,24 @@ namespace Game.Map
         {
         }
 
-        protected override async Task<long> ProcessCEnterWorld(Protocol p)
+        protected override Task<long> ProcessCEnterWorld(Protocol p)
         {
             var protocol = p as CEnterWorld;
             var session = ProviderUserSession.Get(protocol);
             if (null == session.RoleId)
             {
-                return Procedure.LogicError;
+                return Task.FromResult(Procedure.LogicError);
             }
 
             // TODO map
-            return Zeze.Transaction.Procedure.NotImplement;
+            return Task.FromResult(Zeze.Transaction.Procedure.NotImplement);
         }
 
-        protected override async Task<long> ProcessCEnterWorldDone(Protocol _p)
+        protected override Task<long> ProcessCEnterWorldDone(Protocol _p)
         {
-            var p = _p as CEnterWorldDone;
+            //var p = _p as CEnterWorldDone;
             // TODO map
-            return Zeze.Transaction.Procedure.NotImplement;
+            return Task.FromResult(Zeze.Transaction.Procedure.NotImplement);
         }
     }
 }
