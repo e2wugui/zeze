@@ -199,21 +199,11 @@ namespace Zeze.Arch
             ReportError(so.SessionId, BReportError.FromLink, BReportError.CodeNoProvider, "no provider.");
         }
 
-        public override async void DispatchProtocol(Zeze.Net.Protocol p, ProtocolFactoryHandle factoryHandle)
+        public override void DispatchProtocol(Zeze.Net.Protocol p, ProtocolFactoryHandle factoryHandle)
         {
             if (null != factoryHandle.Handle)
             {
-                try
-                {
-                    // 不启用新的Task，直接在io-thread里面执行。
-                    var isRequestSaved = p.IsRequest;
-                    var result = await factoryHandle.Handle(p);
-                    Mission.LogAndStatistics(null, result, p, isRequestSaved);
-                }
-                catch (System.Exception ex)
-                {
-                    p.Sender.Close(ex); // link 在异常时关闭连接。
-                }
+                _ = Mission.CallAsync(factoryHandle.Handle, p);
             }
             else
             {

@@ -11,7 +11,7 @@ namespace Zeze.Component
 {
 	public class RedoQueueServer : AbstractRedoQueueServer
 	{
-		protected override async System.Threading.Tasks.Task<long> ProcessRunTaskRequest(Zeze.Net.Protocol _p)
+		protected override async Task<long> ProcessRunTaskRequest(Zeze.Net.Protocol _p)
 		{
 			var r = _p as RunTask;
 			Zeze.Transaction.Transaction.Current.RunWhileCommit(() => r.SendResult());

@@ -198,7 +198,7 @@ namespace Zeze.Component
 		private readonly ColumnFamilyOptions CfOptions = new ColumnFamilyOptions();
 		public WriteOptions WriteOptions = new WriteOptions();
 		public ReadOptions ReadOptions = new ReadOptions();
-		private ConcurrentDictionary<string, ColumnFamilyAsync> Families = new();
+		private readonly ConcurrentDictionary<string, ColumnFamilyAsync> Families = new();
 		private ColumnFamilyHandle FamilyLastDoneTaskId;
 		private ColumnFamilyHandle FamilyTaskQueue;
 		private long LastTaskId;
