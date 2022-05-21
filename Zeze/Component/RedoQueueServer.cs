@@ -73,7 +73,7 @@ namespace Zeze.Component
 			{
 			}
 
-			public override async Task DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+			public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
 			{
 				var r = p as RunTask;
 				var proc = Zeze.NewProcedure(async () => await factoryHandle.Handle(p),

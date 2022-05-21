@@ -199,7 +199,7 @@ namespace Zeze.Arch
             ReportError(so.SessionId, BReportError.FromLink, BReportError.CodeNoProvider, "no provider.");
         }
 
-        public override async Task DispatchProtocol(Zeze.Net.Protocol p, ProtocolFactoryHandle factoryHandle)
+        public override async void DispatchProtocol(Zeze.Net.Protocol p, ProtocolFactoryHandle factoryHandle)
         {
             if (null != factoryHandle.Handle)
             {
@@ -222,15 +222,15 @@ namespace Zeze.Arch
             }
         }
 
-        public override async Task OnSocketAccept(AsyncSocket sender)
+        public override void OnSocketAccept(AsyncSocket sender)
         {
             sender.UserState = new LinkdUserSession(sender.SessionId);
-            await base.OnSocketAccept(sender);
+            base.OnSocketAccept(sender);
         }
 
-        public override async Task OnSocketClose(Zeze.Net.AsyncSocket so, System.Exception e)
+        public override void OnSocketClose(Zeze.Net.AsyncSocket so, System.Exception e)
         {
-            await base.OnSocketClose(so, e);
+            base.OnSocketClose(so, e);
             var linkSession = so.UserState as LinkdUserSession;
             linkSession?.OnClose(LinkdApp.LinkdProviderService);
         }

@@ -22,15 +22,15 @@ namespace UnitTest.Zeze.Net
 
             }
 
-            public override async Task OnSocketConnected(AsyncSocket so)
+            public override void OnSocketConnected(AsyncSocket so)
             {
-                await base.OnSocketConnected(so);
+                base.OnSocketConnected(so);
                 Console.WriteLine("OnSocketConnected: " + so.SessionId);
                 string head = "GET http://www.163.com/\r\nHost: www.163.com\r\nAccept:*/*\r\n\r\n";
                 so.Send(head);
             }
 
-            public override async Task OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
+            public override void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
             {
                 Console.WriteLine("input size=" + input.Size);
                 Console.WriteLine(Encoding.UTF8.GetString(input.Bytes, input.ReadIndex, input.Size));

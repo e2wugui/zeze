@@ -309,7 +309,7 @@ namespace Zeze.Transaction
         {
         }
 
-        public override async Task OnHandshakeDone(AsyncSocket so)
+        public override void OnHandshakeDone(AsyncSocket so)
         {
             var agent = so.UserState as GlobalAgent.Agent;
             if (agent.LoginTimes.Get() > 0)
@@ -330,7 +330,7 @@ namespace Zeze.Transaction
                     else
                     {
                         agent.LoginTimes.IncrementAndGet();
-                        await base.OnHandshakeDone(so);
+                        base.OnHandshakeDone(so);
                     }
                     return 0;
                 });
@@ -353,21 +353,21 @@ namespace Zeze.Transaction
                     else
                     {
                         agent.LoginTimes.IncrementAndGet();
-                        await base.OnHandshakeDone(so);
+                        base.OnHandshakeDone(so);
                     }
                     return 0;
                 });
             }
         }
 
-        public override async Task DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+        public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
             _ = Util.Mission.CallAsync(factoryHandle.Handle, p);
         }
 
-        public override async Task OnSocketClose(AsyncSocket so, Exception e)
+        public override void OnSocketClose(AsyncSocket so, Exception e)
         {
-            await base.OnSocketClose(so, e);
+            base.OnSocketClose(so, e);
             var agent = so.UserState as GlobalAgent.Agent;
             if (null == e)
                 e = new Exception("Peer Normal Close.");

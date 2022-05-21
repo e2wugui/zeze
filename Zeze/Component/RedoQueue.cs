@@ -20,7 +20,7 @@ namespace Zeze.Component
 	 */
 	public class RedoQueue : Zeze.Services.HandshakeClient
 	{
-		private Nito.AsyncEx.AsyncLock Mutex = new();
+		private readonly Nito.AsyncEx.AsyncLock Mutex = new();
 
 		public RedoQueue(string name, Zeze.Config config)
 			: base(name, config)
@@ -156,18 +156,18 @@ namespace Zeze.Component
 			return rpc.ResultCode;
 		}
 
-		public override async Task OnHandshakeDone(AsyncSocket sender)
+		public override async void OnHandshakeDone(AsyncSocket sender)
 		{
-			await base.OnHandshakeDone(sender);
+			base.OnHandshakeDone(sender);
 			using (await Mutex.LockAsync())
 			{
 				await TryStartSendNextTask(null, sender);
 			}
 		}
 
-		public override async Task OnSocketClose(AsyncSocket socket, Exception ex)
+		public override async void OnSocketClose(AsyncSocket socket, Exception ex)
 		{
-			await base.OnSocketClose(socket, ex);
+			base.OnSocketClose(socket, ex);
 			using (await Mutex.LockAsync())
 			{ 
 				if (Socket == socket) {
@@ -195,7 +195,7 @@ namespace Zeze.Component
 		}
 
 		private AsyncRocksDb Db;
-		private ColumnFamilyOptions CfOptions = new ColumnFamilyOptions();
+		private readonly ColumnFamilyOptions CfOptions = new ColumnFamilyOptions();
 		public WriteOptions WriteOptions = new WriteOptions();
 		public ReadOptions ReadOptions = new ReadOptions();
 		private ConcurrentDictionary<string, ColumnFamilyAsync> Families = new();

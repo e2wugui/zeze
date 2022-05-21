@@ -1141,15 +1141,15 @@ namespace Zeze.Services.GlobalCacheManager
         {
         }
 
-        public override async Task OnSocketClose(AsyncSocket so, Exception e)
+        public override async void OnSocketClose(AsyncSocket so, Exception e)
         {
             var session = (GlobalCacheManagerServer.CacheHolder)so.UserState;
             // unbind when login
             await session?.TryUnBindSocket(so);
-            await base.OnSocketClose(so, e);
+            base.OnSocketClose(so, e);
         }
 
-        public override async Task DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+        public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
             // Global 处理是纯异步的，直接在io-thread中异步执行。不需要进行线程切换。
             _ = Mission.CallAsync(factoryHandle.Handle, p, null);

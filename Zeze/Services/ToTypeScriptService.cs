@@ -12,7 +12,7 @@ namespace Zeze.Services
         {
         }
 
-        public override async Task OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
+        public override void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
         {
             if (so.IsHandshakeDone)
             {
@@ -21,17 +21,17 @@ namespace Zeze.Services
             }
             else
             {
-                await base.OnSocketProcessInputBuffer(so, input);
+                base.OnSocketProcessInputBuffer(so, input);
             }
         }
 
-        public override async Task OnSocketClose(AsyncSocket so, Exception e)
+        public override void OnSocketClose(AsyncSocket so, Exception e)
         {
             SetSocketClose(so.SessionId);
-            await base.OnSocketClose(so, e);
+            base.OnSocketClose(so, e);
         }
 
-        public override async Task OnHandshakeDone(AsyncSocket sender)
+        public override void OnHandshakeDone(AsyncSocket sender)
         {
             sender.IsHandshakeDone = true;
             SetHandshakeDone(sender.SessionId);

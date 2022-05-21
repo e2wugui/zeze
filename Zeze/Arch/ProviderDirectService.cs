@@ -61,7 +61,7 @@ namespace Zeze.Arch
 			}
 		}
 
-        public override async Task OnSocketAccept(AsyncSocket socket)
+        public override void OnSocketAccept(AsyncSocket socket)
         {
 			if (socket.Connector == null)
             {
@@ -70,13 +70,13 @@ namespace Zeze.Arch
 				ps.SessionId = socket.SessionId;
 				socket.UserState = ps;
 			}
-			await base.OnSocketAccept(socket);
+			base.OnSocketAccept(socket);
         }
 
-        public override async Task OnHandshakeDone(AsyncSocket socket)
+        public override void OnHandshakeDone(AsyncSocket socket)
 		{
 			// call base
-			await base.OnHandshakeDone(socket);
+			base.OnHandshakeDone(socket);
 
 			var c = socket.Connector;
 			if (c != null) {
@@ -135,7 +135,7 @@ namespace Zeze.Arch
 			ss.SetServiceIdentityReadyState(server.Identity, pms);
 		}
 
-		public override async Task OnSocketClose(AsyncSocket socket, Exception ex)
+		public override void OnSocketClose(AsyncSocket socket, Exception ex)
 		{
 			var ps = (ProviderSession)socket.UserState;
 			if (ps != null)
@@ -153,10 +153,10 @@ namespace Zeze.Arch
 				ProviderByLoadName.TryRemove(ps.ServerLoadName, out _);
 				ProviderByServerId.TryRemove(ps.ServerId, out _);
 			}
-			await base.OnSocketClose(socket, ex);
+			base.OnSocketClose(socket, ex);
 		}
 
-		public override async Task DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+		public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
 		{
 			// 防止Client不进入加密，直接发送用户协议。
 			if (!IsHandshakeProtocol(p.TypeId)) {
@@ -187,7 +187,7 @@ namespace Zeze.Arch
 			_ = Mission.CallAsync(factoryHandle.Handle, p, (p, code) => p.SendResultCode(code));
 		}
 
-		public override async Task DispatchRpcResponse(Protocol rpc, Func<Protocol, Task<long>> responseHandle, ProtocolFactoryHandle factoryHandle)
+		public override void DispatchRpcResponse(Protocol rpc, Func<Protocol, Task<long>> responseHandle, ProtocolFactoryHandle factoryHandle)
 		{
 			if (rpc.TypeId == ModuleRedirect.TypeId_)
 			{
@@ -199,7 +199,7 @@ namespace Zeze.Arch
 
 			// no procedure.
 			// 按收到顺序处理，不并发。这样也避免线程切换。
-			await Mission.CallAsync(responseHandle, rpc);
+			_ = Mission.CallAsync(responseHandle, rpc);
 		}
 	}
 }

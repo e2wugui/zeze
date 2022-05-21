@@ -39,13 +39,13 @@ namespace Zeze.Services
             ToLua.RegisterGlobalAndCallback(this);
         }
 
-        public override async Task OnHandshakeDone(AsyncSocket sender)
+        public override void OnHandshakeDone(AsyncSocket sender)
         {
             sender.IsHandshakeDone = true;
             ToLua.SetHandshakeDone(sender.SessionId, this);
         }
 
-        public override async Task OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
+        public override void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
         {
             if (so.IsHandshakeDone)
             {
@@ -53,13 +53,13 @@ namespace Zeze.Services
                 input.ReadIndex = input.WriteIndex;
             }
             else
-                await base.OnSocketProcessInputBuffer(so, input);
+                base.OnSocketProcessInputBuffer(so, input);
         }
 
-        public override async Task OnSocketClose(AsyncSocket so, Exception e)
+        public override void OnSocketClose(AsyncSocket so, Exception e)
         {
             ToLua.SetSocketClose(so.SessionId, this);
-            await base.OnSocketClose(so, e);
+            base.OnSocketClose(so, e);
         }
     }
 
@@ -79,13 +79,13 @@ namespace Zeze.Services
             ToLua.RegisterGlobalAndCallback(this);
         }
 
-        public override async Task OnHandshakeDone(AsyncSocket sender)
+        public override void OnHandshakeDone(AsyncSocket sender)
         {
             sender.IsHandshakeDone = true;
             ToLua.SetHandshakeDone(sender.SessionId, this);
         }
 
-        public override async Task OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
+        public override void OnSocketProcessInputBuffer(AsyncSocket so, ByteBuffer input)
         {
             if (so.IsHandshakeDone)
             {
@@ -93,7 +93,7 @@ namespace Zeze.Services
                 input.ReadIndex = input.WriteIndex;
             }
             else
-                await base.OnSocketProcessInputBuffer(so, input);
+                base.OnSocketProcessInputBuffer(so, input);
         }
     }
 }

@@ -787,22 +787,22 @@ namespace Zeze.Services
                 ServiceManager = sm;
             }
 
-            public override async Task OnSocketAccept(AsyncSocket so)
+            public override void OnSocketAccept(AsyncSocket so)
             {
                 so.UserState = new Session(ServiceManager, so.SessionId);
-                await base.OnSocketAccept(so);
+                base.OnSocketAccept(so);
             }
 
-            public override async Task OnSocketClose(AsyncSocket so, Exception e)
+            public override void OnSocketClose(AsyncSocket so, Exception e)
             {
                 var session = so.UserState as Session;
                 session?.OnClose();
-                await base.OnSocketClose(so, e);
+                base.OnSocketClose(so, e);
             }
 
-            public override async Task DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+            public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
             {
-                await Mission.CallAsync(factoryHandle.Handle, p, (_, code) => p.SendResultCode(code));
+                _ = Mission.CallAsync(factoryHandle.Handle, p, (_, code) => p.SendResultCode(code));
             }
         }
 
@@ -1500,13 +1500,13 @@ namespace Zeze.Services.ServiceManager
                 Agent = agent;
             }
 
-            public override async Task OnHandshakeDone(AsyncSocket sender)
+            public override void OnHandshakeDone(AsyncSocket sender)
             {
-                await base.OnHandshakeDone(sender);
+                base.OnHandshakeDone(sender);
                 if (null == Socket)
                 {
                     Socket = sender;
-                    await Agent.OnConnected();
+                    _ = Agent.OnConnected();
                 }
                 else
                 {
@@ -1514,16 +1514,16 @@ namespace Zeze.Services.ServiceManager
                 }
             }
 
-            public override async Task OnSocketClose(AsyncSocket so, Exception e)
+            public override void OnSocketClose(AsyncSocket so, Exception e)
             {
                 if (Socket == so)
                     Socket = null;
-                await base.OnSocketClose(so, e);
+                base.OnSocketClose(so, e);
             }
 
-            public override async Task DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+            public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
             {
-                await Mission.CallAsync(factoryHandle.Handle, p, (_, code) => p.SendResultCode(code));
+                _ = Mission.CallAsync(factoryHandle.Handle, p, (_, code) => p.SendResultCode(code));
             }
 
         }

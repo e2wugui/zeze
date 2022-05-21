@@ -86,7 +86,7 @@ namespace Zeze.Net
             eventArgsAccept = new SocketAsyncEventArgs();
             eventArgsAccept.Completed += OnAsyncIOCompleted;
 
-            _ = BeginAcceptAsync();
+            BeginAcceptAsync();
         }
 
         /// <summary>
@@ -115,7 +115,7 @@ namespace Zeze.Net
 
             RemoteAddress = (Socket.RemoteEndPoint as IPEndPoint).Address.ToString();
 
-            _ = BeginReceiveAsync();
+            BeginReceiveAsync();
         }
 
         /// <summary>
@@ -274,7 +274,7 @@ namespace Zeze.Net
             return Send(Encoding.UTF8.GetBytes(str));
         }
 
-        private async void OnAsyncIOCompleted(object sender, SocketAsyncEventArgs e)
+        private void OnAsyncIOCompleted(object sender, SocketAsyncEventArgs e)
         {
             if (Socket == null) // async closed
                 return;
@@ -284,13 +284,13 @@ namespace Zeze.Net
                 switch (e.LastOperation)
                 {
                     case SocketAsyncOperation.Accept:
-                        await ProcessAccept(e);
+                        ProcessAccept(e);
                         break;
                     case SocketAsyncOperation.Send:
                         ProcessSend(e);
                         break;
                     case SocketAsyncOperation.Receive:
-                        await ProcessReceive(e);
+                        ProcessReceive(e);
                         break;
                     default:
                         throw new ArgumentException($"Invalid LastOperation={e.LastOperation}");
@@ -302,14 +302,14 @@ namespace Zeze.Net
             }
         }
 
-        private async Task BeginAcceptAsync()
+        private void BeginAcceptAsync()
         {
             eventArgsAccept.AcceptSocket = null;
             if (false == Socket.AcceptAsync(eventArgsAccept))
-                await ProcessAccept(eventArgsAccept);
+                ProcessAccept(eventArgsAccept);
         }
 
-        private async Task ProcessAccept(SocketAsyncEventArgs e)
+        private void ProcessAccept(SocketAsyncEventArgs e)
         {
             if (e.SocketError == SocketError.Success)
             {
@@ -317,21 +317,21 @@ namespace Zeze.Net
                 try
                 {
                     accepted = new AsyncSocket(this.Service, e.AcceptSocket, this.Acceptor);
-                    await this.Service.OnSocketAccept(accepted);
+                    this.Service.OnSocketAccept(accepted);
                 }
                 catch (Exception ce)
                 {
                     accepted?.Close(ce);
                     try
                     {
-                        await this.Service.OnSocketAcceptError(this, ce);
+                        this.Service.OnSocketAcceptError(this, ce);
                     }
                     catch (Exception ex)
                     {
                         logger.Error(ex);
                     }
                 }
-                await BeginAcceptAsync();
+                BeginAcceptAsync();
             }
             /*
             else
@@ -341,7 +341,7 @@ namespace Zeze.Net
             */
         }
 
-        private async void OnAsyncGetHostAddresses(IAsyncResult ar)
+        private void OnAsyncGetHostAddresses(IAsyncResult ar)
         {
             if (Socket == null)
                 return; // async close?
@@ -356,7 +356,7 @@ namespace Zeze.Net
             {
                 try
                 {
-                    await this.Service.OnSocketConnectError(this, e);
+                    this.Service.OnSocketConnectError(this, e);
                 }
                 catch (Exception ex)
                 {
@@ -366,7 +366,7 @@ namespace Zeze.Net
             }
         }
 
-        private async void OnAsyncConnect(IAsyncResult ar)
+        private void OnAsyncConnect(IAsyncResult ar)
         {
             if (Socket == null)
                 return; // async close?
@@ -376,15 +376,15 @@ namespace Zeze.Net
                 this.Socket.EndConnect(ar);
                 this.Connector?.OnSocketConnected(this);
                 this.RemoteAddress = (this.Socket.RemoteEndPoint as IPEndPoint).Address.ToString();
-                await this.Service.OnSocketConnected(this);
+                this.Service.OnSocketConnected(this);
                 this._inputBuffer = new byte[Service.SocketOptions.InputBufferSize];
-                await BeginReceiveAsync();
+                BeginReceiveAsync();
             }
             catch (Exception e)
             {
                 try
                 {
-                    await this.Service.OnSocketConnectError(this, e);
+                    this.Service.OnSocketConnectError(this, e);
                 }
                 catch (Exception ex)
                 {
@@ -394,7 +394,7 @@ namespace Zeze.Net
             }
         }
 
-        private async Task BeginReceiveAsync()
+        private void BeginReceiveAsync()
         {
             if (null == eventArgsReceive)
             {
@@ -404,10 +404,10 @@ namespace Zeze.Net
 
             eventArgsReceive.SetBuffer(_inputBuffer, 0, _inputBuffer.Length);
             if (false == this.Socket.ReceiveAsync(eventArgsReceive))
-                await ProcessReceive(eventArgsReceive);
+                ProcessReceive(eventArgsReceive);
         }
 
-        private async Task ProcessReceive(SocketAsyncEventArgs e)
+        private void ProcessReceive(SocketAsyncEventArgs e)
         {
             if (e.BytesTransferred > 0 && e.SocketError == SocketError.Success)
             {
@@ -418,20 +418,20 @@ namespace Zeze.Net
                     inputCodecChain.update(_inputBuffer, 0, e.BytesTransferred);
                     inputCodecChain.flush();
 
-                    await this.Service.OnSocketProcessInputBuffer(this, inputCodecBuffer.Buffer);
+                    this.Service.OnSocketProcessInputBuffer(this, inputCodecBuffer.Buffer);
                 }
                 else if (inputCodecBuffer.Buffer.Size > 0)
                 {
                     // 上次解析有剩余数据（不完整的协议），把新数据加入。
                     inputCodecBuffer.Buffer.Append(_inputBuffer, 0, e.BytesTransferred);
 
-                    await this.Service.OnSocketProcessInputBuffer(this, inputCodecBuffer.Buffer);
+                    this.Service.OnSocketProcessInputBuffer(this, inputCodecBuffer.Buffer);
                 }
                 else
                 {
                     ByteBuffer avoidCopy = ByteBuffer.Wrap(_inputBuffer, 0, e.BytesTransferred);
 
-                    await this.Service.OnSocketProcessInputBuffer(this, avoidCopy);
+                    this.Service.OnSocketProcessInputBuffer(this, avoidCopy);
 
                     if (avoidCopy.Size > 0) // 有剩余数据（不完整的协议），加入 inputCodecBuffer 等待新的数据。
                         inputCodecBuffer.Buffer.Append(avoidCopy.Bytes, avoidCopy.ReadIndex, avoidCopy.Size);
@@ -451,7 +451,7 @@ namespace Zeze.Net
                     inputCodecBuffer.Buffer.FreeInternalBuffer(); // 解析缓冲如果为空，马上释放内部bytes[]。
                 }
 
-                await BeginReceiveAsync();
+                BeginReceiveAsync();
             }
             else
             {
@@ -553,7 +553,7 @@ namespace Zeze.Net
             Dispose();
         }
 
-        public async void Dispose()
+        public void Dispose()
         {
             Socket tmp = null; 
 
@@ -576,7 +576,7 @@ namespace Zeze.Net
             }
             try
             {
-                await Service.OnSocketClose(this, this.LastException);
+                Service.OnSocketClose(this, this.LastException);
             }
             catch (Exception e)
             {

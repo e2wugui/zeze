@@ -71,9 +71,9 @@ namespace UnitTest.Zeze.Net
             {
                 this.test = test;
             }
-            public override async Task OnSocketConnected(AsyncSocket so)
+            public override void OnSocketConnected(AsyncSocket so)
             {
-                await base.OnSocketConnected(so);
+                base.OnSocketConnected(so);
                 test.connected.Set();
             }
         }

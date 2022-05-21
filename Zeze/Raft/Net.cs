@@ -122,13 +122,13 @@ namespace Zeze.Raft
                 || typeId == LeaderIs.TypeId_;
         }
 
-        public override async Task DispatchRpcResponse(Protocol p,
+        public override void DispatchRpcResponse(Protocol p,
             Func<Protocol, Task<long>> responseHandle,
             ProtocolFactoryHandle factoryHandle)
         {
             // 覆盖基类方法，不支持存储过程。
             // 按收到顺序处理，不并发。这样也避免线程切换。
-            await Util.Mission.CallAsync(responseHandle, p, null);
+            _ = Util.Mission.CallAsync(responseHandle, p, null);
         }
 
         public Util.TaskOneByOneByKey TaskOneByOne { get; } = new Util.TaskOneByOneByKey();
@@ -160,7 +160,7 @@ namespace Zeze.Raft
             return 0;
         }
 
-        public override async Task DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
+        public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
             // 防止Client不进入加密，直接发送用户协议。
             if (false == IsHandshakeProtocol(p.TypeId))
@@ -168,7 +168,7 @@ namespace Zeze.Raft
 
             if (IsImportantProtocol(p.TypeId))
             {
-                await Util.Mission.CallAsync(factoryHandle.Handle, p, null);
+                _ = Util.Mission.CallAsync(factoryHandle.Handle, p, null);
                 return;
             }
 
@@ -211,9 +211,9 @@ namespace Zeze.Raft
             redirect.Send(sender); // ignore response
         }
 
-        public override async Task OnHandshakeDone(AsyncSocket so)
+        public override void OnHandshakeDone(AsyncSocket so)
         {
-            await base.OnHandshakeDone(so);
+            base.OnHandshakeDone(so);
 
             // 没有判断是否和其他Raft-Node的连接。
             _ = Util.Mission.CallAsync(async () =>
@@ -776,12 +776,12 @@ namespace Zeze.Raft
                 Agent = agent;
             }
 
-            public override async Task DispatchRpcResponse(Protocol rpc, Func<Protocol, Task<long>> responseHandle, ProtocolFactoryHandle factoryHandle)
+            public override void DispatchRpcResponse(Protocol rpc, Func<Protocol, Task<long>> responseHandle, ProtocolFactoryHandle factoryHandle)
             {
                 _ = Util.Mission.CallAsync(responseHandle, rpc, null);
             }
 
-            public override async Task DispatchProtocol(Protocol p, ProtocolFactoryHandle pfh)
+            public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle pfh)
             {
                 // 防止Client不进入加密，直接发送用户协议。
                 if (false == IsHandshakeProtocol(p.TypeId))
