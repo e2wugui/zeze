@@ -289,7 +289,7 @@ public class Service {
 			Task.runRpcResponse(() -> responseHandle.handle(rpc), rpc);
 	}
 
-	public final <P extends Protocol<?>> void DispatchProtocol2(Object key, P p, ProtocolFactoryHandle<P> factoryHandle) {
+	public <P extends Protocol<?>> void DispatchProtocol2(Object key, P p, ProtocolFactoryHandle<P> factoryHandle) {
 		if (factoryHandle.Handle != null) {
 			if (factoryHandle.Level != TransactionLevel.None) {
 				Zeze.getTaskOneByOneByKey().Execute(key, () ->
