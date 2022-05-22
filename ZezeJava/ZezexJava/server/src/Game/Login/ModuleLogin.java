@@ -38,7 +38,7 @@ public final class ModuleLogin extends AbstractModule {
 		account.getRoles().add(roleId);
 
 		// initialize role data
-		//App.Game_Bag.GetBag(roleId).SetCapacity(50);
+		// ...
 
 		rpc.Result = role;
 		session.SendResponse(rpc);

@@ -122,7 +122,6 @@ public final class App extends Zeze.AppBase {
     public Game.ServerDirect ServerDirect;
 
     public Game.Login.ModuleLogin Game_Login;
-    public Game.Bag.ModuleBag Game_Bag;
     public Game.Item.ModuleItem Game_Item;
     public Game.Fight.ModuleFight Game_Fight;
     public Game.Skill.ModuleSkill Game_Skill;
@@ -159,11 +158,6 @@ public final class App extends Zeze.AppBase {
         Game_Login.Initialize(this);
         if (Modules.put(Game_Login.getFullName(), Game_Login) != null)
             throw new RuntimeException("duplicate module name: Game_Login");
-
-        Game_Bag = ReplaceModuleInstance(new Game.Bag.ModuleBag(this));
-        Game_Bag.Initialize(this);
-        if (Modules.put(Game_Bag.getFullName(), Game_Bag) != null)
-            throw new RuntimeException("duplicate module name: Game_Bag");
 
         Game_Item = ReplaceModuleInstance(new Game.Item.ModuleItem(this));
         Game_Item.Initialize(this);
@@ -223,7 +217,6 @@ public final class App extends Zeze.AppBase {
         Game_Skill = null;
         Game_Fight = null;
         Game_Item = null;
-        Game_Bag = null;
         Game_Login = null;
         Modules.clear();
     }
@@ -239,7 +232,6 @@ public final class App extends Zeze.AppBase {
 
     public synchronized void StartModules() throws Throwable {
         Game_Login.Start(this);
-        Game_Bag.Start(this);
         Game_Item.Start(this);
         Game_Fight.Start(this);
         Game_Skill.Start(this);
@@ -270,8 +262,6 @@ public final class App extends Zeze.AppBase {
             Game_Fight.Stop(this);
         if (Game_Item != null)
             Game_Item.Stop(this);
-        if (Game_Bag != null)
-            Game_Bag.Stop(this);
         if (Game_Login != null)
             Game_Login.Stop(this);
     }

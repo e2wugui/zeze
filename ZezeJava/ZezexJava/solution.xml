@@ -32,63 +32,6 @@
 		<table name="trolename" key="string" value="BRoleId"/> rolename to roleid. duplicate name check
 	</module>
 
-	<module name="Bag" id="2">
-		<enum name="ResultCodeFromInvalid"  value="1"/>
-		<enum name="ResultCodeToInvalid"    value="2"/>
-		<enum name="ResultCodeFromNotExist" value="3"/>
-
-		<enum name="ResultCodeTrySplitButTargetExistDifferenceItem" value="4"/>
-
-		<bean name="BMove">
-			<variable id="1" name="PositionFrom" type="int"/>
-			<variable id="2" name="PositionTo" type="int"/>
-			<variable id="3" name="number" type="int"/> -1 表示全部
-		</bean>
-		<bean name="BDestroy">
-			<variable id="1" name="Position" type="int"/>
-		</bean>
-		<bean name="BChangedResult">
-			<enum name="ChangeTagNormalChanged" value="0"/> 普通增量修改。
-			<enum name="ChangeTagRecordIsRemoved" value="1"/> 整个记录删除了。
-			<enum name="ChangeTagRecordChanged" value="2"/> 整个记录发生了变更，需要先清除本地数据，再替换进去。
-
-			<variable id="1" name="ItemsReplace" type="map" key="int" value="BItem"/> key is position
-			<variable id="2" name="ItemsRemove" type="set" value="int"/> key is position
-			<variable id="3" name="ChangeTag" type="int"/>
-		</bean>
-		<bean name="BUse">
-			<variable id="1" name="Position" type="int"/>
-		</bean>
-
-		<rpc name="Move" argument="BMove" handle="server"/>
-		<rpc name="Destroy" argument="BDestroy" handle="server"/>
-		<rpc name="Sort" handle="server"/>
-		<rpc name="GetBag" result="BBag" handle="server"/>
-
-		<protocol name="SChanged" argument="BChangedResult" handle="client"/> 所有的包裹改变都通过这个协议发送。
-		<protocol name="SBag" argument="BBag" handle="client"/> 包裹全部改变时发送这个协议。在可靠消息框架内使用。不直接处理。
-
-		<protocol name="CUse" argument="BUse" handle="server"/> 没有结果，bag变更自动发送，使用效果在具体的物品使用时设置和发送结果（如果需要）
-
-		<bean name="BItem">
-			<variable id="1" name="Id" type="int"/>
-			<variable id="2" name="Number" type="int"/>
-			<variable id="3" name="Extra" type="dynamic">
-				<value bean="Game.Item.BHorseExtra"/>
-				<value bean="Game.Item.BFoodExtra"/>
-				<value bean="Game.Equip.BEquipExtra"/>
-			</variable>
-		</bean>
-
-		<bean name="BBag">
-			<variable id="1" name="Money" type="long"/>
-			<variable id="2" name="Capacity" type="int"/>
-			<variable id="3" name="Items" type="map" key="int" value="BItem"/> key is bag position
-		</bean>
-
-		<table name="tbag" key="long" value="BBag"/>
-	</module>
-
 	<module name="Item" id="3">
 		<bean name="BFoodExtra">
 			<variable id="1" name="Ammount" type="int"/>
@@ -182,7 +125,25 @@
 		<rpc name="Equipement" argument="BEquipement" handle="server"/>
 		<rpc name="Unequipement" argument="BUnequipement" handle="server"/>
 
-		<protocol name="SEquipement" argument="Game.Bag.BChangedResult" handle="client"/>
+		<bean name="BItem">
+			<variable id="1" name="Id" type="int"/>
+			<variable id="2" name="Number" type="int"/>
+			<variable id="3" name="Extra" type="dynamic">
+				<value bean="Game.Item.BHorseExtra"/>
+				<value bean="Game.Item.BFoodExtra"/>
+				<value bean="Game.Equip.BEquipExtra"/>
+			</variable>
+		</bean>
+		<bean name="BChangedResult">
+			<enum name="ChangeTagNormalChanged" value="0"/> 普通增量修改。
+			<enum name="ChangeTagRecordIsRemoved" value="1"/> 整个记录删除了。
+			<enum name="ChangeTagRecordChanged" value="2"/> 整个记录发生了变更，需要先清除本地数据，再替换进去。
+
+			<variable id="1" name="ItemsReplace" type="map" key="int" value="BItem"/> key is position
+			<variable id="2" name="ItemsRemove" type="set" value="int"/> key is position
+			<variable id="3" name="ChangeTag" type="int"/>
+		</bean>
+		<protocol name="SEquipement" argument="BChangedResult" handle="client"/>
 
 		<bean name="BEquipExtra">
 			<variable id="1" name="Attack" type="int"/>
@@ -190,7 +151,7 @@
 		</bean>
 
 		<bean name="BEquips">
-			<variable id="1" name="Items" type="map" key="int" value="Game.Bag.BItem"/> key is equip position
+			<variable id="1" name="Items" type="map" key="int" value="BItem"/> key is equip position
 		</bean>
 		<table name="tequip" key="long" value="BEquips"/>
 	</module>
@@ -340,7 +301,6 @@
 		<!-- service 生成到 solution 名字空间下 -->
 		<service name="Server" handle="server" base="Zeze.Arch.ProviderService">
 			<module ref="Login"/>
-			<module ref="Bag"/>
 			<module ref="Item"/>
 			<module ref="Fight"/>
 			<module ref="Skill"/>
