@@ -36,6 +36,7 @@ public final class ModuleLogin extends AbstractModule {
 
 		var account = App.getProvider().Online.getTableAccount().getOrAdd(session.getAccount());
 		account.getRoles().add(roleId);
+		App.getProvider().Online.addRole(session.getAccount(), roleId);
 
 		// initialize role data
 		// ...

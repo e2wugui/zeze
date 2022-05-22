@@ -325,6 +325,7 @@
 			<module ref="Zeze.Builtin.Game.Bag"/>
 			<module ref="Zeze.Builtin.LinkdBase"/>
 			<module ref="Zezex.Linkd"/>
+			<module ref="Game.Login"/>
 		</service>
 	</project>
 

@@ -1,17 +1,15 @@
 package Zezex;
 
 import java.util.ArrayList;
-import java.util.concurrent.ExecutionException;
-import Game.Login.BRole;
-import Game.Login.CreateRole;
+import ClientGame.Login.BRole;
+import ClientGame.Login.CreateRole;
+import ClientGame.Login.GetRoleList;
 import Zeze.Builtin.Game.Online.Login;
 import Zeze.Builtin.Game.Online.Logout;
 import Zeze.Builtin.Game.Online.ReLogin;
-import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
 import Zezex.Linkd.Auth;
 import junit.framework.TestCase;
-
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -28,16 +26,39 @@ public class TestOnline extends TestCase {
 	final ArrayList<ClientGame.App> clients = new ArrayList<>();
 	final ArrayList<Zezex.App> links = new ArrayList<>();
 	final ArrayList<Game.App>  servers = new ArrayList<>();
-	ArrayList<BRole> roles = new ArrayList<>();
-	ArrayList<String> accounts = new ArrayList<>();
 
 	final static int ClientCount = 2;
 	final static int LinkCount = 2;
 	final static int ServerCount = 2;
 	final static int RoleCount = 2;
 
-	@Override
-	protected void setUp() throws ExecutionException, InterruptedException {
+	private void start() throws Throwable {
+		for (int i = 0; i < LinkCount; ++i)
+			links.get(i).Start(10000 + i, 15000 + i);
+		for (int i = 0; i < ServerCount; ++i)
+			servers.get(i).Start(i, 20000 + i);
+		Thread.sleep(2000); // wait server ready
+		for (int i = 0; i < ClientCount; ++i) {
+			var link = links.get(i % LinkCount); // 按顺序选择link
+			var ipport = link.LinkdService.GetOnePassiveAddress();
+			clients.get(i).Start(ipport.getKey(), ipport.getValue());
+			// wait client connected
+			clients.get(i).Connector.WaitReady();
+		}
+	}
+
+	private void stop() throws Throwable {
+		logger.info("Begin Stop");
+		for (var client : clients)
+			client.Stop();
+		for (var server : servers)
+			server.Stop();
+		for (var link : links)
+			link.Stop();
+		logger.info("End Stop");
+	}
+
+	public void test3() throws Throwable {
 		Task.tryInitThreadPool(null, null, null);
 
 		for (int i = 0; i < ClientCount; ++i) {
@@ -50,63 +71,81 @@ public class TestOnline extends TestCase {
 			servers.add(new Game.App());
 
 		try {
-			for (int i = 0; i < LinkCount; ++i)
-				links.get(i).Start(10000 + i, 15000 + i);
-			for (int i = 0; i < ServerCount; ++i)
-				servers.get(i).Start(i, 20000 + i);
+			start();
 
-			Thread.sleep(2000); // wait server ready
+			// testcase first;
+			var client0 = clients.get(0);
+			auth(client0, "account0");
+			var role = getRole(client0);
+			var roleId = null != role ? role.getId() : createRole(client0, "role0");
+			login(client0, roleId);
 
-			for (int i = 0; i < ClientCount; ++i) {
-				var link = links.get(i % LinkCount); // 按顺序选择link
-				var ipport = link.LinkdService.GetOnePassiveAddress();
-				clients.get(i).Start(ipport.getKey(), ipport.getValue());
-			}
-		} catch (Throwable ex) {
-			throw new RuntimeException(ex);
-		}
+			// testcase relogin
+			client0.ClientService.Stop();
+			client0.ClientService.Start();
+			client0.Connector.WaitReady();
+			relogin(client0, roleId);
 
-		for (int i = 0; i < RoleCount; i++) {
-			String name = "RoleName_" + i;
+			// testcase kick
+			var client1 = clients.get(1);
+			auth(client1, "account0");
+			login(client1, roleId);
 
-			var so = clients.get(i).ClientService.GetSocket();
-
-			CreateRole createRole = new CreateRole();
-			createRole.Argument.setName(name);
-			createRole.SendForWait(so).await();
-			var role = createRole.Result;
-			roles.add(role);
-
-			int index = i;
-			try {
-				servers.get(i).Zeze.NewProcedure(() -> {
-					String account = "RoleAccount_" + index;
-					servers.get(index % servers.size()).provider.Online.addRole(account, role.getId());
-					accounts.add(account);
-					return Procedure.Success;
-				}, "TestAddRole").Call();
-			} catch (Throwable e) {
-				e.printStackTrace();
-			}
+			// logout client1: client0 被踢了
+			logout(client1, roleId);
+		} finally {
+			stop();
 		}
 	}
 
-	@Override
-	protected void tearDown() {
-		logger.info("Begin Stop");
-		try {
-			for (var client : clients)
-				client.Stop();
-			for (var server : servers)
-				server.Stop();
-			for (var link : links)
-				link.Stop();
-		} catch (Throwable e) {
-			throw new RuntimeException(e);
-		}
-		roles = null;
-		accounts = null;
-		logger.info("End Stop");
+	private void relogin(ClientGame.App app, long roleId) {
+		var relogin = new ReLogin();
+		relogin.Argument.setRoleId(roleId);
+		relogin.SendForWait(app.ClientService.GetSocket()).await();
+		if (relogin.getResultCode() != 0)
+			throw new RuntimeException("relogin error. roleId=" + roleId + " code=" + relogin.getResultCode());
+	}
+
+	private void logout(ClientGame.App app, long roleIdForLogOnly) {
+		var logout = new Logout();
+		logout.SendForWait(app.ClientService.GetSocket()).await();
+		if (logout.getResultCode() != 0)
+			throw new RuntimeException("logout error. roleId=" + roleIdForLogOnly);
+	}
+
+	private void login(ClientGame.App app, long roleId) {
+		var login = new Login();
+		login.Argument.setRoleId(roleId);
+		login.SendForWait(app.ClientService.GetSocket()).await();
+		if (login.getResultCode() != 0)
+			throw new RuntimeException("login error. roleId=" + roleId + " code=" + login.getResultCode());
+	}
+
+	private void auth(ClientGame.App app, String account) {
+		var auth = new Auth();
+		auth.Argument.setAccount(account);
+		auth.SendForWait(app.ClientService.GetSocket()).await();
+		if (auth.getResultCode() != 0)
+			throw new RuntimeException("auth error " + account + " code=" + auth.getResultCode());
+	}
+
+	private long createRole(ClientGame.App app, String role) {
+		var createRole = new CreateRole();
+		createRole.Argument.setName(role);
+		createRole.SendForWait(app.ClientService.GetSocket()).await();
+		if (createRole.getResultCode() != 0)
+			throw new RuntimeException("createRole error " + role + " code=" + createRole.getResultCode());
+		return createRole.Result.getId();
+	}
+
+	private BRole getRole(ClientGame.App app) {
+		var get = new GetRoleList();
+		get.SendForWait(app.ClientService.GetSocket()).await();
+		if (get.getResultCode() != 0)
+			throw new RuntimeException("getRoleList error. code=" + get.getResultCode());
+		if (get.Result.getRoleList().isEmpty())
+			return null;
+		return get.Result.getRoleList().get(0);
 	}
 
 //	public void testLoginXyz() throws Throwable {
@@ -138,137 +177,4 @@ public class TestOnline extends TestCase {
 		// 1. client对象管理。根据以上的几个测试，可能需要根据测试目的创建不同的client，分别选择特定的linkd进行连接。
 		//    所以client一开始不用马上创建好，根据测试创建，上面的初始化流程就当作client的初始化例子吧。
 //	}
-
-	public void testLogin() {
-		logger.info("login test start");
-		for (int i = 0; i < RoleCount; ++i) {
-			BRole role = roles.get(i);
-			String account = accounts.get(i);
-			long roleId = role.getId();
-			var socket = clients.get(i).ClientService.GetSocket();
-
-			Auth auth = new Auth();
-			auth.Argument.setAccount(account);
-			auth.SendForWait(socket).await();
-			if (auth.getResultCode() != Procedure.Success) {
-				logger.error("role index {} id {} auth error {}", i, roleId, auth.getResultCode());
-				break;
-			}
-
-			Login login = new Login();
-			login.Argument.setRoleId(roleId);
-			login.SendForWait(socket).await();
-			if (login.getResultCode() != Procedure.Success) {
-				logger.error("role index {} id {} login error {}", i, roleId, login.getResultCode());
-				break;
-			}
-		}
-	}
-
-	public void testLogout() {
-		logger.info("logout test start");
-		for (int i = 0; i < roles.size(); i++) {
-			BRole role = roles.get(i);
-			String account = accounts.get(i);
-			long roleId = role.getId();
-			var socket = clients.get(i).ClientService.GetSocket();
-			Auth auth = new Auth();
-			auth.Argument.setAccount(account);
-			auth.SendForWait(socket).await();
-			if (auth.getResultCode() != Procedure.Success) {
-				logger.error("role index {} id {} auth error {}", i, roleId, auth.getResultCode());
-				break;
-			}
-
-			Login login = new Login();
-			login.Argument.setRoleId(roleId);
-			login.SendForWait(socket).await();
-			if (login.getResultCode() != Procedure.Success) {
-				logger.error("role index {} id {} login error {}", i, roleId, login.getResultCode());
-				break;
-			}
-
-			Logout logout = new Logout();
-			logout.SendForWait(socket).await();
-			if (logout.getResultCode() != Procedure.Success) {
-				logger.error("role index {} id {} logout error {}", i, roleId, login.getResultCode());
-				break;
-			}
-		}
-		logger.info("logout test end");
-	}
-
-	public void testRelogin() {
-		logger.info("relogin test start");
-		for (int i = 0; i < roles.size(); i++) {
-			BRole role = roles.get(i);
-			String account = accounts.get(i);
-			long roleId = role.getId();
-			var socket = clients.get(i).ClientService.GetSocket();
-			Auth auth = new Auth();
-			auth.Argument.setAccount(account);
-			auth.SendForWait(socket).await();
-			if (auth.getResultCode() != Procedure.Success) {
-				logger.error("role index {} id {} auth error {}", i, roleId, auth.getResultCode());
-				break;
-			}
-
-			Login login = new Login();
-			login.Argument.setRoleId(roleId);
-			login.SendForWait(socket).await();
-			if (login.getResultCode() != Procedure.Success) {
-				logger.error("role index {} id {} login error {}", i, roleId, login.getResultCode());
-				break;
-			}
-
-			ReLogin relogin = new ReLogin();
-			relogin.Argument.setRoleId(roleId);
-			relogin.SendForWait(socket).await();
-			if (relogin.getResultCode() != Procedure.Success) {
-				logger.error("role index {} id {} relogin error {}", i, roleId, relogin.getResultCode());
-				break;
-			}
-		}
-		logger.info("relogin test end");
-	}
-
-	public void testKick() {
-		logger.info("kick test start");
-		BRole role = roles.get(0);
-		String account = accounts.get(0);
-		long roleId = role.getId();
-		var socket = clients.get(0).ClientService.GetSocket();
-		Auth auth = new Auth();
-		auth.Argument.setAccount(account);
-		auth.SendForWait(socket).await();
-		if (auth.getResultCode() != Procedure.Success) {
-			logger.error("role id {} auth error {}", roleId, auth.getResultCode());
-			return;
-		}
-
-		Login login = new Login();
-		login.Argument.setRoleId(roleId);
-		login.SendForWait(socket).await();
-		if (login.getResultCode() != Procedure.Success) {
-			logger.error("role id {} login error {}", roleId, login.getResultCode());
-			return;
-		}
-
-		Auth auth1 = new Auth();
-		auth1.Argument.setAccount(account);
-		auth1.SendForWait(socket).await();
-		if (auth1.getResultCode() != Procedure.Success) {
-			logger.error("role id {} auth1 error {}", roleId, auth1.getResultCode());
-			return;
-		}
-
-		Login login1 = new Login();
-		login1.Argument.setRoleId(roleId);
-		login1.SendForWait(socket).await();
-		if (login1.getResultCode() != Procedure.Success) {
-			logger.error("role id {} login1 error {}", roleId, login1.getResultCode());
-			return;
-		}
-		logger.info("kick test end");
-	}
 }
