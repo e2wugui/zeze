@@ -262,7 +262,7 @@ namespace Zeze.Net
             }
         }
 
-        public void DispatchProtocol2(object key, Protocol p, ProtocolFactoryHandle factoryHandle)
+        public virtual void DispatchProtocol2(object key, Protocol p, ProtocolFactoryHandle factoryHandle)
         {
             if (null != factoryHandle.Handle)
             {
