@@ -2,7 +2,7 @@ package Game.Equip;
 
 public class Equip extends Game.Item.Item {
 
-	public Equip(Game.Bag.BItem bItem, BEquipExtra extra) {
+	public Equip(Game.Equip.BItem bItem, BEquipExtra extra) {
 		super(bItem);
 
 	}

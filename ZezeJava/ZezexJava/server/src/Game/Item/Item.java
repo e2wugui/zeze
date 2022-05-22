@@ -1,9 +1,9 @@
 package Game.Item;
 
 public abstract class Item {
-	protected final Game.Bag.BItem bItem; // bItem.Position: 根据所在容器不同，含义可能不一样：比如在包裹中是格子号，在装备中就是装备位置。
+	protected final Game.Equip.BItem bItem; // bItem.Position: 根据所在容器不同，含义可能不一样：比如在包裹中是格子号，在装备中就是装备位置。
 
-	public Item(Game.Bag.BItem bItem) {
+	public Item(Game.Equip.BItem bItem) {
 		this.bItem = bItem;
 	}
 

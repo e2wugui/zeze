@@ -1,6 +1,5 @@
 package Game.Equip;
 
-import Game.Bag.BItem;
 import Game.Fight.*;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Transaction.*;
@@ -33,7 +32,7 @@ public final class ModuleEquip extends AbstractModule {
 					BEquips bequips = (BEquips)c.getValue();
 
 					SEquipement changed = new SEquipement();
-					changed.Argument.setChangeTag(Game.Bag.BChangedResult.ChangeTagRecordChanged);
+					changed.Argument.setChangeTag(BChangedResult.ChangeTagRecordChanged);
 					changed.Argument.getItemsReplace().putAll(bequips.getItems());
 
 					Game.App.Instance.getProvider().Online.sendReliableNotify((Long)key, getName(), changed);
@@ -45,7 +44,7 @@ public final class ModuleEquip extends AbstractModule {
 					if (null != notemap2) {
 						notemap2.MergeChangedToReplaced();
 						SEquipement changed2 = new SEquipement();
-						changed2.Argument.setChangeTag(Game.Bag.BChangedResult.ChangeTagNormalChanged);
+						changed2.Argument.setChangeTag(BChangedResult.ChangeTagNormalChanged);
 						changed2.Argument.getItemsReplace().putAll(notemap2.getReplaced());
 						for (var p : notemap2.getRemoved()) {
 							changed2.Argument.getItemsRemove().add(p);
@@ -55,7 +54,7 @@ public final class ModuleEquip extends AbstractModule {
 					break;
 				case Changes.Record.Remove:
 					SEquipement changed3 = new SEquipement();
-					changed3.Argument.setChangeTag(Game.Bag.BChangedResult.ChangeTagRecordIsRemoved);
+					changed3.Argument.setChangeTag(BChangedResult.ChangeTagRecordIsRemoved);
 					Game.App.Instance.getProvider().Online.sendReliableNotify((Long)key, getName(), changed3);
 					break;
 			}
@@ -74,7 +73,7 @@ public final class ModuleEquip extends AbstractModule {
 	@Override
 	protected long ProcessEquipementRequest(Equipement rpc) throws Throwable {
 		var session = ProviderUserSession.Get(rpc);
-
+		/*
 		Game.Bag.Bag bag = App.Game_Bag.GetBag(session.getRoleId().longValue());
 		var bItem = bag.getItems().get(rpc.Argument.getBagPos());
 		if (null != bItem) {
@@ -110,13 +109,14 @@ public final class ModuleEquip extends AbstractModule {
 			session.SendResponse(rpc);
 			return Procedure.Success;
 		}
+		*/
 		return ErrorCode(ResultCodeItemNotFound);
 	}
 
 	@Override
 	protected long ProcessUnequipementRequest(Unequipement rpc) throws Throwable {
 		var session = ProviderUserSession.Get(rpc);
-
+		/*
 		BEquips equips = _tequip.getOrAdd(session.getRoleId().longValue());
 		var eItem = equips.getItems().get(rpc.Argument.getEquipPos());
 		if (null != eItem) {
@@ -132,7 +132,7 @@ public final class ModuleEquip extends AbstractModule {
 			session.SendResponse(rpc);
 			return Procedure.Success;
 		}
-
+		*/
 		return ErrorCode(ResultCodeEquipNotFound);
 	}
 
