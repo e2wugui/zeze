@@ -1,0 +1,14 @@
+apply from: '../../ZezeJava/build.gradle'
+
+dependencies {
+    implementation project(":ZezeJava")
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir "src"
+            srcDir "Gen"
+        }
+    }
+}

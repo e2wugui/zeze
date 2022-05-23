@@ -2,7 +2,7 @@
 
 <solution name="Zege" ModuleIdAllowRanges="1-1000">
 	<import file="solution.linkd.xml"/>
-	<import file="../ZezeJava/ZezeJava/solution.zeze.xml"/>
+	<import file="../ZezeJava/solution.zeze.xml"/>
 
 	<module name="User" id="1">
 		修改 id 必须同时修改 solution.linkd.xml:Zezex.Linkd.BAuth.ProviderUserModuleId. Linkd转发需要知道。
