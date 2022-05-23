@@ -4,7 +4,7 @@
 
 	<module name="Linkd" id="10000">
 		<bean name="BAuth">
-			<enum name="ProviderUserModuleId" value="2" />
+			<enum name="ProviderUserModuleId" value="1" />
 
 			<enum name="TypeRsa" value="0" />
 			<enum name="TypePhoneMessage" value="1" />

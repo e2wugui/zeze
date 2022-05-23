@@ -1,14 +1,29 @@
 package Zege;
 
+import Zeze.Config;
+import Zeze.Net.Connector;
+import Zeze.Util.OutObject;
+
 public class App extends Zeze.AppBase {
     public static App Instance = new App();
     public static App getInstance() {
         return Instance;
     }
+    public Zeze.Net.Connector Connector;
 
-    public void Start() throws Throwable {
-        CreateZeze();
+    public void Start(String ip, int port) throws Throwable {
+        CreateZeze(Config.Load("client.xml"));
         CreateService();
+        if (null != ip && false == ip.isEmpty() && port != 0) {
+            var c = new OutObject<Connector>();
+            ClientService.getConfig().TryGetOrAddConnector(ip, port, true, c);
+            Connector = c.Value;
+        } else {
+            ClientService.getConfig().forEachConnector2((c) -> { Connector = c; return false; });
+        }
+        if (null == Connector)
+            throw new RuntimeException("miss Connector!");
+
         CreateModules();
         Zeze.Start(); // 启动数据库
         StartModules(); // 启动模块，装载配置什么的。

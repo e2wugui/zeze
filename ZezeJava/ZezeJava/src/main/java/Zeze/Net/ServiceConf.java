@@ -119,7 +119,7 @@ public final class ServiceConf {
 		return Connectors.size();
 	}
 
-	public boolean ForEachConnector2(Predicate<Connector> func) {
+	public boolean forEachConnector2(Predicate<Connector> func) {
 		for (var c : Connectors.values()) {
 			if (!func.test(c)) {
 				return false;

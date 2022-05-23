@@ -1,21 +1,61 @@
 package Zege;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import Zeze.Arch.LoadConfig;
+import Zeze.Arch.ProviderApp;
+import Zeze.Arch.ProviderModuleBinds;
+import Zeze.Game.Online;
+import Zeze.Game.ProviderDirectWithTransmit;
+import Zeze.Game.ProviderImplementWithOnline;
+import Zeze.Net.AsyncSocket;
+import Zeze.Util.PersistentAtomicLong;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 public class App extends Zeze.AppBase {
     public static App Instance = new App();
     public static App getInstance() {
         return Instance;
     }
 
+    public ProviderApp ProviderApp;
+    public ProviderDirectWithTransmit ProviderDirect;
+    public ProviderImplementWithOnline Provider;
+
+    private LoadConfig LoadConfig() {
+        try {
+            byte[] bytes = Files.readAllBytes(Paths.get("linkd.json"));
+            return new ObjectMapper().readValue(bytes, LoadConfig.class);
+        } catch (Exception e) {
+            // e.printStackTrace();
+        }
+        return new LoadConfig();
+    }
+
     public void Start() throws Throwable {
         CreateZeze();
         CreateService();
+
+        Provider = new ProviderImplementWithOnline();
+        ProviderDirect = new ProviderDirectWithTransmit();
+        ProviderApp = new ProviderApp(Zeze, Provider, Server,
+                "Zege.Server.Module#",
+                ProviderDirect, ServerDirect, "Zege.Linkd", LoadConfig());
+        Provider.Online = new Online(ProviderApp);
+
         CreateModules();
         Zeze.Start(); // 启动数据库
         StartModules(); // 启动模块，装载配置什么的。
+        Provider.Online.Start();
+
+        PersistentAtomicLong socketSessionIdGen = PersistentAtomicLong.getOrAdd("Zege.Server." + Zeze.getConfig().getServerId());
+        AsyncSocket.setSessionIdGenFunc(socketSessionIdGen::next);
         StartService(); // 启动网络
+        ProviderApp.StartLast(ProviderModuleBinds.Load(), Modules);
     }
 
     public void Stop() throws Throwable {
+        Provider.Online.Stop();
         StopService(); // 关闭网络
         StopModules(); // 关闭模块，卸载配置什么的。
         Zeze.Stop(); // 关闭数据库

@@ -1,18 +1,44 @@
 package Zege;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import Zeze.Arch.LinkdApp;
+import Zeze.Arch.LinkdProvider;
+import Zeze.Arch.LoadConfig;
+import Zeze.Net.AsyncSocket;
+import Zeze.Util.PersistentAtomicLong;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 public class App extends Zeze.AppBase {
     public static App Instance = new App();
     public static App getInstance() {
         return Instance;
     }
 
+    public Zeze.Arch.LinkdApp LinkdApp;
+    public Zeze.Arch.LinkdProvider LinkdProvider;
+
+    private LoadConfig LoadConfig() {
+        try {
+            byte[] bytes = Files.readAllBytes(Paths.get("linkd.json"));
+            return new ObjectMapper().readValue(bytes, LoadConfig.class);
+        } catch (Exception e) {
+            // e.printStackTrace();
+        }
+        return new LoadConfig();
+    }
+
     public void Start() throws Throwable {
         CreateZeze();
         CreateService();
+        LinkdProvider = new LinkdProvider();
+        LinkdApp = new LinkdApp("Zege.Linkd", Zeze, LinkdProvider, ProviderService, LinkdService, LoadConfig());
         CreateModules();
         Zeze.Start(); // 启动数据库
         StartModules(); // 启动模块，装载配置什么的。
+        AsyncSocket.setSessionIdGenFunc(PersistentAtomicLong.getOrAdd(LinkdApp.GetName())::next);
         StartService(); // 启动网络
+        LinkdApp.RegisterService(null);
     }
 
     public void Stop() throws Throwable {
