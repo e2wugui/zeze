@@ -217,7 +217,7 @@ namespace Zeze.Raft
                         // 【注意】
                         // 服务器完全奔溃（数据全部丢失）后，重新配置一台新的服务器，仍然又很小的机会存在无法判断唯一。
                         // 此时比较好的做法时，从工作节点的数据库(unique/)复制出一份，作为开始数据。
-                        // 参考 RemoveLogAndCancelStart 
+                        // 参考 RemoveLogAndCancelStart
 
                         //if (raftLog.Log.Unique.RequestId > 0)
                         //    OpenUniqueRequests(raftLog.Log.CreateTime).Remove(raftLog);
@@ -857,6 +857,8 @@ namespace Zeze.Raft
                         Raft.FatalKill();
                     }
                 }
+                // 最后修改LastIndex。
+                LastIndex = raftLog.Index;
                 // 广播给followers并异步等待多数确认
                 try
                 {
@@ -864,13 +866,12 @@ namespace Zeze.Raft
                 }
                 catch (Exception)
                 {
+                    LastIndex--;
                     // 只有下面这个需要回滚，日志(SaveLog, OpenUniqueRequests(...).Save)以后根据LastIndex覆盖。
                     if (waitapplied)
                         LeaderAppendLogs.TryRemove(raftLog.Index, out _);
                     throw;
                 }
-                // 最后修改LastIndex。
-                LastIndex = raftLog.Index;
             }
             return (Term, LastIndex, future);
         }
@@ -1018,7 +1019,7 @@ namespace Zeze.Raft
                 if (state.Pending.Argument.Done && state.Pending.ResultCode == 0)
                 {
                     cex.NextIndex = state.Pending.Argument.LastIncludedIndex + 1;
-                    
+
                     if (state.Pending.Argument.LastIncludedIndex > cex.MatchIndex) // see EndReceiveInstallSnapshot 6.
                         cex.MatchIndex = state.Pending.Argument.LastIncludedIndex;
                     // start log copy

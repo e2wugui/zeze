@@ -667,10 +667,6 @@ public class LogSequence {
 		return stateMachine instanceof Test.TestStateMachine ? ((Test.TestStateMachine)stateMachine).getCount() : -1;
 	}
 
-	LongConcurrentHashMap<RaftLog> getLeaderAppendLogs() {
-		return LeaderAppendLogs;
-	}
-
 	public void SendHeartbeatTo(Server.ConnectorEx connector) {
 		synchronized (Raft) {
 			connector.setAppendLogActiveTime(System.currentTimeMillis());
@@ -730,31 +726,31 @@ public class LogSequence {
 			// 容易出错的放到前面。
 			if (WaitApply) {
 				raftLog.setLeaderFuture(future = new TaskCompletionSource<>());
-				if (getLeaderAppendLogs().putIfAbsent(raftLog.getIndex(), raftLog) != null) {
+				if (LeaderAppendLogs.putIfAbsent(raftLog.getIndex(), raftLog) != null) {
 					logger.fatal("LeaderAppendLogs.TryAdd Fail. Index={}", raftLog.getIndex());
 					Raft.FatalKill();
 				}
+			}
+			// 最后修改LastIndex。
+			LastIndex = raftLog.getIndex();
+			// 广播给followers并异步等待多数确认
+			try {
+				Raft.getServer().getConfig().ForEachConnector(c -> TrySendAppendEntries((Server.ConnectorEx)c, null));
+			} catch (Throwable e) {
+				LastIndex--;
+				// 只有下面这个需要回滚，日志(SaveLog, OpenUniqueRequests(...).Save)以后根据LastIndex覆盖。
+				if (WaitApply)
+					LeaderAppendLogs.remove(raftLog.getIndex());
+				throw e;
 			}
 			if (result != null) {
 				result.term = Term;
 				result.index = LastIndex;
 			}
-
-			// 广播给followers并异步等待多数确认
-			try {
-				Raft.getServer().getConfig().ForEachConnector(c -> TrySendAppendEntries((Server.ConnectorEx)c, null));
-			} catch (Throwable e) {
-				// 只有当前下面这个需要回滚，日志(SaveLog, OpenUniqueRequests(...).Save)以后根据LastIndex覆盖。
-				if (WaitApply)
-					LeaderAppendLogs.remove(raftLog.getIndex());
-				throw e;
-			}
-			// 最后修改LastIndex。
-			LastIndex = raftLog.getIndex();
 		}
 
 		if (WaitApply && !future.await(Raft.getRaftConfig().getAppendEntriesTimeout() * 2L + 1000)) {
-			getLeaderAppendLogs().remove(LastIndex);
+			LeaderAppendLogs.remove(LastIndex);
 			throw new RaftRetryException("timeout or canceled");
 		}
 	}
@@ -1057,7 +1053,7 @@ public class LogSequence {
 	private void RemoveLogAndCancelStart(long startIndex, long endIndex) throws IOException, RocksDBException {
 		for (long index = startIndex; index <= endIndex; index++) {
 			RaftLog raftLog;
-			if (index > LastApplied && (raftLog = getLeaderAppendLogs().remove(index)) != null) {
+			if (index > LastApplied && (raftLog = LeaderAppendLogs.remove(index)) != null) {
 				// 还没有applied的日志被删除，
 				// 当发生在重新选举，但是旧的leader上还有一些没有提交的请求时，
 				// 需要取消。
