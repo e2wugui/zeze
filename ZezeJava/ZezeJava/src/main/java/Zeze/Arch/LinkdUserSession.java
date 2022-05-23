@@ -22,6 +22,7 @@ public class LinkdUserSession {
 	private IntHashMap<Long> Binds = new IntHashMap<>();
 	private final long SessionId; // Linkd.SessionId
 	private Future<?> KeepAliveTask; // 仅在网络线程中回调，并且一个时候，只会有一个回调，不线程保护了。
+	private boolean authed = false;
 
 	public final String getAccount() {
 		return Account;
@@ -29,6 +30,33 @@ public class LinkdUserSession {
 
 	public final void setAccount(String value) {
 		Account = value;
+	}
+
+	public final boolean isAuthed() {
+		synchronized (this) {
+			return authed;
+		}
+	}
+
+	public final void setAuthed() {
+		synchronized (this) {
+			authed = true;
+		}
+	}
+
+	public boolean TrySetAccount(String newAccount)
+	{
+		synchronized (this) {
+			if (null == Account || Account.isEmpty()) {
+				Account = newAccount;
+				return true;
+			}
+
+			if (Account.equals(newAccount))
+				return true;
+
+			return false;
+		}
 	}
 
 	public final String getContext() {
@@ -152,7 +180,7 @@ public class LinkdUserSession {
 			KeepAliveTask.cancel(false);
 		}
 
-		if (getAccount() == null) {
+		if (false == isAuthed()) {
 			// 未验证通过的不通告。此时Binds肯定是空的。
 			return;
 		}

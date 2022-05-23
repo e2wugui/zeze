@@ -359,7 +359,7 @@ public class ModuleRank extends AbstractModule {
 
 	@Override
 	protected long ProcessCGetRankList(CGetRankList protocol) {
-		var session = ProviderUserSession.Get(protocol);
+		var session = ProviderUserSession.get(protocol);
 
 		var result = new SGetRankList();
 		if (session.getRoleId() == null) {

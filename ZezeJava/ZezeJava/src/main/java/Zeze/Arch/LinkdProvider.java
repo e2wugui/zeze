@@ -45,6 +45,32 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		ServerServiceNamePrefix = value;
 	}
 
+	public boolean ChoiceProvider(AsyncSocket link, int moduleId, Zeze.Util.Func1<AsyncSocket, Boolean> OnSend) throws Throwable {
+		var linkSession = (LinkdUserSession)link.getUserState();
+		var provider = new OutLong();
+		if (linkSession.TryGetProvider(moduleId, provider)) {
+			var socket = LinkdApp.LinkdProviderService.GetSocket(provider.Value);
+			if (null != socket) {
+				if (OnSend.call(socket))
+					return true; // done
+			}
+			// 原来绑定的provider找不到连接，尝试继续从静态绑定里面查找。
+			// 此时应该处于 UnBind 过程中。
+		}
+
+		if (ChoiceProviderAndBind(moduleId, link, provider)) {
+			var providerSocket = LinkdApp.LinkdProviderService.GetSocket(provider.Value);
+			if (null != providerSocket) {
+				// ChoiceProviderAndBind 内部已经处理了绑定。这里只需要发送。
+				if (OnSend.call(providerSocket))
+					return true;
+			}
+			// else
+			// 找到provider但是发送之前连接关闭，当作没有找到处理。这个窗口很小，再次查找意义不大。
+		}
+		return false;
+	}
+
 	public boolean ChoiceProviderAndBind(int moduleId, AsyncSocket link, OutLong provider) {
 		var serviceName = ProviderDistribute.MakeServiceName(getServerServiceNamePrefix(), moduleId);
 		var linkSession = (LinkdUserSession)link.getUserState();

@@ -705,7 +705,7 @@ public class Online extends AbstractOnline {
 
 	@Override
 	protected long ProcessLoginRequest(Zeze.Builtin.Game.Online.Login rpc) throws Throwable {
-		var session = ProviderUserSession.Get(rpc);
+		var session = ProviderUserSession.get(rpc);
 
 		var account = _taccount.getOrAdd(session.getAccount());
 		if (!account.getRoles().contains(rpc.Argument.getRoleId()))
@@ -758,7 +758,7 @@ public class Online extends AbstractOnline {
 
 	@Override
 	protected long ProcessReLoginRequest(Zeze.Builtin.Game.Online.ReLogin rpc) throws Throwable {
-		var session = ProviderUserSession.Get(rpc);
+		var session = ProviderUserSession.get(rpc);
 
 		BAccount account = _taccount.get(session.getAccount());
 		if (account == null)
@@ -840,7 +840,7 @@ public class Online extends AbstractOnline {
 
 	@Override
 	protected long ProcessLogoutRequest(Zeze.Builtin.Game.Online.Logout rpc) throws Throwable {
-		var session = ProviderUserSession.Get(rpc);
+		var session = ProviderUserSession.get(rpc);
 		if (session.getRoleId() == null)
 			return ErrorCode(ResultCodeNotLogin);
 
@@ -871,7 +871,7 @@ public class Online extends AbstractOnline {
 
 	@Override
 	protected long ProcessReliableNotifyConfirmRequest(Zeze.Builtin.Game.Online.ReliableNotifyConfirm rpc) {
-		var session = ProviderUserSession.Get(rpc);
+		var session = ProviderUserSession.get(rpc);
 
 		BOnline online = _tonline.get(session.getRoleId());
 		if (online == null)

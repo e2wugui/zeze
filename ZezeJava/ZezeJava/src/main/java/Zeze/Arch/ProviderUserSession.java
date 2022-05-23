@@ -121,7 +121,7 @@ public class ProviderUserSession {
 		Transaction.getCurrent().RunWhileRollback(() -> SendResponse(p));
 	}
 
-	public static ProviderUserSession Get(Protocol<?> context) {
+	public static ProviderUserSession get(Protocol<?> context) {
 		if (null == context.getUserState()) {
 			throw new RuntimeException("not auth");
 		}

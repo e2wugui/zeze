@@ -8,7 +8,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.IntUnaryOperator;
 import Zeze.Application;
 import Zeze.Arch.ProviderApp;
-import Zeze.Arch.ProviderService;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Builtin.Game.Bag.BBag;
 import Zeze.Builtin.Game.Bag.BItem;
@@ -371,7 +370,7 @@ public class Bag {
 
 		@Override
 		protected long ProcessDestroyRequest(Zeze.Builtin.Game.Bag.Destroy r) {
-			var session = ProviderUserSession.Get(r);
+			var session = ProviderUserSession.get(r);
 			var moduleCode = open(r.Argument.getBagName()).destroy(r.Argument.getPosition());
 			if (0 != moduleCode) {
 				return ErrorCode(moduleCode);
@@ -382,7 +381,7 @@ public class Bag {
 
 		@Override
 		protected long ProcessMoveRequest(Zeze.Builtin.Game.Bag.Move r) {
-			var session = ProviderUserSession.Get(r);
+			var session = ProviderUserSession.get(r);
 			// throw exception if not login
 			var moduleCode = open(r.Argument.getBagName()).move(
 					r.Argument.getPositionFrom(), r.Argument.getPositionTo(), r.Argument.getNumber());

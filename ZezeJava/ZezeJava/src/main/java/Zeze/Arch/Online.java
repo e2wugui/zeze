@@ -718,7 +718,7 @@ public class Online extends AbstractOnline {
 
     @Override
     protected long ProcessLoginRequest(Login rpc) throws Throwable {
-        var session = ProviderUserSession.Get(rpc);
+        var session = ProviderUserSession.get(rpc);
 
         var account = _taccount.getOrAdd(session.getAccount());
         var online = _tonline.getOrAdd(session.getAccount());
@@ -779,7 +779,7 @@ public class Online extends AbstractOnline {
 
     @Override
     protected long ProcessLogoutRequest(Zeze.Builtin.Online.Logout rpc) throws Throwable {
-        var session = ProviderUserSession.Get(rpc);
+        var session = ProviderUserSession.get(rpc);
 
         if (!session.isLogin())
             return ErrorCode(ResultCodeNotLogin);
@@ -840,7 +840,7 @@ public class Online extends AbstractOnline {
 
     @Override
     protected long ProcessReliableNotifyConfirmRequest(Zeze.Builtin.Online.ReliableNotifyConfirm rpc) throws Throwable {
-        var session = ProviderUserSession.Get(rpc);
+        var session = ProviderUserSession.get(rpc);
 
         var clientId = session.getContext();
         var online = _tonline.get(session.getAccount());
@@ -859,7 +859,7 @@ public class Online extends AbstractOnline {
 
     @Override
     protected long ProcessReLoginRequest(Zeze.Builtin.Online.ReLogin rpc) throws Throwable {
-        var session = ProviderUserSession.Get(rpc);
+        var session = ProviderUserSession.get(rpc);
 
         var account = _taccount.get(session.getAccount());
         if (null == account)

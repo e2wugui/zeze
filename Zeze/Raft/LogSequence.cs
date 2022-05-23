@@ -864,7 +864,7 @@ namespace Zeze.Raft
                 }
                 catch (Exception)
                 {
-                    // 只有当前下面这个需要回滚，日志(SaveLog, OpenUniqueRequests(...).Save)以后根据LastIndex覆盖。
+                    // 只有下面这个需要回滚，日志(SaveLog, OpenUniqueRequests(...).Save)以后根据LastIndex覆盖。
                     if (waitapplied)
                         LeaderAppendLogs.TryRemove(raftLog.Index, out _);
                     throw;

@@ -72,7 +72,7 @@ public final class ModuleEquip extends AbstractModule {
 
 	@Override
 	protected long ProcessEquipementRequest(Equipement rpc) throws Throwable {
-		var session = ProviderUserSession.Get(rpc);
+		var session = ProviderUserSession.get(rpc);
 		/*
 		Game.Bag.Bag bag = App.Game_Bag.GetBag(session.getRoleId().longValue());
 		var bItem = bag.getItems().get(rpc.Argument.getBagPos());
@@ -115,7 +115,7 @@ public final class ModuleEquip extends AbstractModule {
 
 	@Override
 	protected long ProcessUnequipementRequest(Unequipement rpc) throws Throwable {
-		var session = ProviderUserSession.Get(rpc);
+		var session = ProviderUserSession.get(rpc);
 		/*
 		BEquips equips = _tequip.getOrAdd(session.getRoleId().longValue());
 		var eItem = equips.getItems().get(rpc.Argument.getEquipPos());

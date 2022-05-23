@@ -17,7 +17,7 @@ public final class ModuleLogin extends AbstractModule {
 
 	@Override
 	protected long ProcessCreateRoleRequest(CreateRole rpc) {
-		var session = ProviderUserSession.Get(rpc);
+		var session = ProviderUserSession.get(rpc);
 
 		var role = new BRole();
 
@@ -48,7 +48,7 @@ public final class ModuleLogin extends AbstractModule {
 
 	@Override
 	protected long ProcessGetRoleListRequest(GetRoleList rpc) {
-		var session = ProviderUserSession.Get(rpc);
+		var session = ProviderUserSession.get(rpc);
 
 		var account = App.getProvider().Online.getTableAccount().get(session.getAccount());
 		if (null != account) {
