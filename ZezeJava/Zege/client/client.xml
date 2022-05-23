@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<zeze
+	GlobalCacheManagerHostNameOrAddress="" GlobalCacheManagerPort="5555"
+	CheckpointPeriod="60000" ServerId="-1" CheckpointMode="Table"
+	>
+
+	<!--
+	数据库配置。默认数据库的名字为空。
+	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
+	<DatabaseConf Name="" DatabaseType="SqlServer" DatabaseUrl="Server=(localdb)\MSSQLLocalDB;Integrated Security=true"/>
+	<DatabaseConf Name="" DatabaseType="MySql" DatabaseUrl="jdbc:mysql://localhost:3306/mysql?user=root&amp;password=123"/>
+	<DatabaseConf Name="" DatabaseType="Tikv" DatabaseUrl="172.21.15.68:2379"/>
+	-->
+	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
+
+	<ServiceConf Name="ClientService" InputBufferMaxProtocolSize="2097152" SocketLogLevel="Trace">
+		<Acceptor Ip="" Port="5100"/> 如果linkd运行在双网（内外网）机器上，这里可以配置Ip为内部网络的地址，不允许外部连接。
+	</ServiceConf>
+
+</zeze>

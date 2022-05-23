@@ -12,7 +12,8 @@ public class App extends Zeze.AppBase {
     public Zeze.Net.Connector Connector;
 
     public void Start(String ip, int port) throws Throwable {
-        CreateZeze(Config.Load("client.xml"));
+        var config = Config.Load("client.xml");
+        CreateZeze(config);
         CreateService();
         if (null != ip && false == ip.isEmpty() && port != 0) {
             var c = new OutObject<Connector>();

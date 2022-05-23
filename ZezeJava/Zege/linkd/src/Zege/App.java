@@ -5,6 +5,7 @@ import java.nio.file.Paths;
 import Zeze.Arch.LinkdApp;
 import Zeze.Arch.LinkdProvider;
 import Zeze.Arch.LoadConfig;
+import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.PersistentAtomicLong;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -29,7 +30,8 @@ public class App extends Zeze.AppBase {
     }
 
     public void Start() throws Throwable {
-        CreateZeze();
+        var config = Config.Load("linkd.xml");
+        CreateZeze(config);
         CreateService();
         LinkdProvider = new LinkdProvider();
         LinkdApp = new LinkdApp("Zege.Linkd", Zeze, LinkdProvider, ProviderService, LinkdService, LoadConfig());

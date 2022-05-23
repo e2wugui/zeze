@@ -5,6 +5,7 @@ import java.nio.file.Paths;
 import Zeze.Arch.LoadConfig;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderModuleBinds;
+import Zeze.Config;
 import Zeze.Game.Online;
 import Zeze.Game.ProviderDirectWithTransmit;
 import Zeze.Game.ProviderImplementWithOnline;
@@ -33,7 +34,8 @@ public class App extends Zeze.AppBase {
     }
 
     public void Start() throws Throwable {
-        CreateZeze();
+        var config = Config.Load("server.xml");
+        CreateZeze(config);
         CreateService();
 
         Provider = new ProviderImplementWithOnline();
