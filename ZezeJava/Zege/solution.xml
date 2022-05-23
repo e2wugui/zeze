@@ -59,8 +59,42 @@
 
 	<module name="Friend" id="2">
 		<!-- 好友列表用 Zeze.Collections.LinkedMap -->
+		<bean name="BFriend">
+			<variable id="1" name="Nick" type="string"/>
+		</bean>
+
+		<bean name="BAccount">
+			<variable id="1" name="Account" type="string"/>
+		</bean>
+
+		<bean name="BFriendNodeId">
+			<variable id="1" name="NodeId" type="long"/>
+		</bean>
+
+		<rpc name="AddFriend" argument="BAccount" handle="server"/>
+		<rpc name="GetFriendNode" argument="BFriendNodeId" result="Zeze.Builtin.Collections.LinkedMap.BLinkedMapNode" handle="server"/>
+
 		<!-- 部门树用 Zeze.Collections.DepartmentTree -->
-		
+		<bean name="BDepartment">
+			<variable id="1" name="Name" type="string"/>
+			<variable id="2" name="ParentDepartment" type="long"/>
+		</bean>
+
+		<rpc name="CreateDepartment" argument="BDepartment" handle="server"/>
+
+		<bean name="BDepartmentId">
+			<variable id="1" name="Id" type="long"/>
+		</bean>
+
+		<rpc name="DeleteDepartment" argument="BDepartmentId" handle="server"/>
+
+		<bean name="BDepartmentMove">
+			<variable id="1" name="Id" type="long"/>
+			<variable id="2" name="NewParent" type="long"/>
+		</bean>
+		<rpc name="MoveDepartment" argument="BDepartmentMove" handle="server"/>
+
+		<rpc name="GetDepartmentNode" argument="BDepartmentId" result="Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode" handle="server"/>
 	</module>
 
 	<module name="Message" id="3">
