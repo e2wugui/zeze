@@ -80,11 +80,10 @@ public class SimpleApp extends AppBase {
 //			System.exit(0);
 //		}
 
-		providerApp.initialize(ProviderModuleBinds.Load(""), modules);
 		zeze.Start();
 		providerApp.ProviderService.Start();
 		providerApp.ProviderDirectService.Start();
-		providerApp.StartLast();
+		providerApp.StartLast(ProviderModuleBinds.Load(""), modules);
 	}
 
 	public void stop() throws Throwable {

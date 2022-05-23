@@ -61,6 +61,7 @@ public class Online extends AbstractOnline {
     public void Start() {
         //LoadReporter.StartTimerTask();
         Task.scheduleAt(3 + Zeze.Util.Random.getInstance().nextInt(3), 10, this::VerifyLocal); // at 3:10 - 6:10
+        ProviderApp.BuiltinModules.put(this.getFullName(), this);
     }
 
     public int getLocalCount() {
@@ -906,7 +907,7 @@ public class Online extends AbstractOnline {
             rpc.getSender().Send(setUserState); // 直接使用link连接。
         });
 
-        var syncResultCode = ReliableNotifySync(session.getAccount(), session.getContext(),
+        var syncResultCode = ReliableNotifySync(session.getAccount(), rpc.Argument.getClientId(),
                 session, rpc.Argument.getReliableNotifyConfirmIndex(), true);
 
         if (syncResultCode != ResultCodeSuccess)

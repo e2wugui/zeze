@@ -135,6 +135,7 @@ public class Online extends AbstractOnline {
 	public void Start() {
 		LoadReporter.Start();
 		Task.scheduleAt(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
+		ProviderApp.BuiltinModules.put(this.getFullName(), this);
 	}
 
 	public void Stop() {
@@ -787,7 +788,7 @@ public class Online extends AbstractOnline {
 			online.setLinkSid(session.getLinkSid());
 
 		//noinspection ConstantConditions
-		reloginTrigger(session.getRoleId());
+		reloginTrigger(rpc.Argument.getRoleId());
 
 		// 先发结果，再发送同步数据（ReliableNotifySync）。
 		// 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
@@ -800,7 +801,7 @@ public class Online extends AbstractOnline {
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
 
-		var syncResultCode = reliableNotifySync(session.getRoleId(), session, rpc.Argument.getReliableNotifyConfirmIndex());
+		var syncResultCode = reliableNotifySync(rpc.Argument.getRoleId(), session, rpc.Argument.getReliableNotifyConfirmIndex());
 		if (syncResultCode != ResultCodeSuccess)
 			return ErrorCode(syncResultCode);
 

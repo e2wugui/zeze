@@ -72,8 +72,6 @@ namespace Game
             if (global::Zeze.Arch.Gen.GenModule.Instance.GenRedirect != null)
                 throw new Exception("ModuleRedirect HasNewGen. Please Rebuild Now.");
 
-            ProviderApp.initialize(global::Zeze.Arch.ProviderModuleBinds.Load(), Modules); // need Modules
-
             Zeze.StartAsync().Wait(); // 启动数据库
             StartModules(); // 启动模块，装载配置什么的。
 
@@ -84,7 +82,7 @@ namespace Game
             ProviderImplementWithOnline.Online.Start();
 
             // 服务准备好以后才注册和订阅。
-            _ = ProviderApp.StartLast();
+            _ = ProviderApp.StartLast(global::Zeze.Arch.ProviderModuleBinds.Load(), Modules);
         }
 
         public void Stop()

@@ -49,6 +49,7 @@ namespace Zeze.Arch
         {
             //LoadReporter.StartTimerTask();
             Util.Scheduler.ScheduleAt(VerifyLocal, 3 + Util.Random.Instance.Next(3), 10); // at 3:10 - 6:10
+            ProviderApp.BuiltinModules.Add(FullName, this);
         }
 
         public int LocalCount => _tlocal.Cache.DataMap.Count;
@@ -852,7 +853,7 @@ namespace Zeze.Arch
                 rpc.Sender.Send(setUserState); // 直接使用link连接。
             });
 
-            var syncResultCode = await ReliableNotifySync(session.Account, session.Context,
+            var syncResultCode = await ReliableNotifySync(session.Account, rpc.Argument.ClientId,
                 session, rpc.Argument.ReliableNotifyConfirmIndex);
 
             if (syncResultCode != ResultCodeSuccess)

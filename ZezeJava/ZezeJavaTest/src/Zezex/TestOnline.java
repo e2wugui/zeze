@@ -84,6 +84,7 @@ public class TestOnline extends TestCase {
 			client0.ClientService.Stop();
 			client0.ClientService.Start();
 			client0.Connector.WaitReady();
+			auth(client0, "account0");
 			relogin(client0, roleId);
 
 			// testcase kick

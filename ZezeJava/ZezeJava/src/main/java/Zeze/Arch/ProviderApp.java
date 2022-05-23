@@ -31,6 +31,7 @@ public class ProviderApp {
 	public final IntHashMap<BModule> StaticBinds = new IntHashMap<>();
 	public final IntHashMap<BModule> DynamicModules = new IntHashMap<>();
 	public final IntHashMap<BModule> Modules = new IntHashMap<>();
+	public final HashMap<String, Zeze.IModule> BuiltinModules = new HashMap<>();
 
 	public ProviderApp(Zeze.Application zeze,
 					   ProviderImplement server,
@@ -82,14 +83,13 @@ public class ProviderApp {
 		this.ProviderDirect.RegisterProtocols(ProviderDirectService);
 	}
 
-	public void initialize(ProviderModuleBinds binds, HashMap<String, Zeze.IModule> modules) {
+	public void StartLast(ProviderModuleBinds binds, HashMap<String, Zeze.IModule> modules) {
+		for (var builtin : BuiltinModules.values())
+			modules.put(builtin.getFullName(), builtin);
 		binds.BuildStaticBinds(modules, Zeze.getConfig().getServerId(), StaticBinds);
 		binds.BuildDynamicBinds(modules, Zeze.getConfig().getServerId(), DynamicModules);
 		Modules.putAll(StaticBinds);
 		Modules.putAll(DynamicModules);
-	}
-
-	public void StartLast() {
 		ProviderImplement.RegisterModulesAndSubscribeLinkd();
 	}
 }

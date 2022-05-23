@@ -30,9 +30,10 @@ namespace Zeze.Arch
 
 		public ProviderDistribute Distribute;
 
-		public Dictionary<int, BModule> StaticBinds = new();
-		public Dictionary<int, BModule> DynamicModules = new();
-		public Dictionary<int, BModule> Modules = new();
+		public readonly Dictionary<int, BModule> StaticBinds = new();
+		public readonly Dictionary<int, BModule> DynamicModules = new();
+		public readonly Dictionary<int, BModule> Modules = new();
+		public readonly Dictionary<string, IModule> BuiltinModules = new();
 
 		public ProviderApp(Zeze.Application zeze,
 						   ProviderImplement server,
@@ -90,18 +91,18 @@ namespace Zeze.Arch
 			return ProviderDistribute.MakeServiceName(ServerServiceNamePrefix, module.Id);
         }
 
-		public void initialize(ProviderModuleBinds binds, Dictionary<string, Zeze.IModule> modules)
+		public async Task StartLast(ProviderModuleBinds binds, Dictionary<string, Zeze.IModule> modules)
 		{
+			foreach (var builtin in BuiltinModules.Values)
+				modules.Add(builtin.FullName, builtin);
+
 			binds.BuildStaticBinds(modules, Zeze.Config.ServerId, StaticBinds);
 			binds.BuildDynamicBinds(modules, Zeze.Config.ServerId, DynamicModules);
 			foreach (var e in StaticBinds)
 				Modules.Add(e.Key, e.Value);
 			foreach (var e in DynamicModules)
 				Modules.Add(e.Key, e.Value);
-		}
 
-		public async Task StartLast()
-		{
 			await ProviderImplement.RegisterModulesAndSubscribeLinkd();
 		}
 	}

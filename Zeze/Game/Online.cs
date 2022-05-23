@@ -50,6 +50,7 @@ namespace Zeze.Game
         {
             LoadReporter.Start();
             Util.Scheduler.ScheduleAt(VerifyLocal, 3 + Util.Random.Instance.Next(3), 10); // at 3:10 - 6:10
+            ProviderApp.BuiltinModules.Add(FullName, this);
         }
 
         public void Stop()
@@ -707,7 +708,7 @@ namespace Zeze.Game
             version.LoginVersion = loginVersion;
             local.LoginVersion = loginVersion;
 
-            if (!online.LinkName.Equals(session.LinkName) || online.LinkSid == session.LinkSid)
+            if (!online.LinkName.Equals(session.LinkName) || online.LinkSid != session.LinkSid)
             {
                 ProviderApp.ProviderService.Kick(online.LinkName, online.LinkSid,
                         BKick.ErrorDuplicateLogin, "duplicate role login");
@@ -790,7 +791,7 @@ namespace Zeze.Game
                 online.LinkSid = session.LinkSid;
             /////////////////////////////////////////////////////////////
 
-            await ReloginTrigger(session.RoleId.Value);
+            await ReloginTrigger(rpc.Argument.RoleId);
 
             // 先发结果，再发送同步数据（ReliableNotifySync）。
             // 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
@@ -803,7 +804,7 @@ namespace Zeze.Game
                 rpc.Sender.Send(setUserState); // 直接使用link连接。
             });
 
-            var syncResultCode = await ReliableNotifySync(session.RoleId.Value,
+            var syncResultCode = await ReliableNotifySync(rpc.Argument.RoleId,
                 session, rpc.Argument.ReliableNotifyConfirmIndex);
 
             if (syncResultCode != ResultCodeSuccess)

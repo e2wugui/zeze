@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.IntUnaryOperator;
 import Zeze.Application;
+import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderService;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Builtin.Game.Bag.BBag;
@@ -308,21 +309,22 @@ public class Bag {
 
 	public static class Module extends AbstractBag {
 		private final ConcurrentHashMap<String, Bag> Bags = new ConcurrentHashMap<>();
-		public ProviderService Service;
+		public Zeze.Arch.ProviderApp ProviderApp;
 		public final Application Zeze;
 
 		// 用于UserApp服务，可以处理客户端发送的协议。
-		public Module(ProviderService ps) {
-			Service = ps;
-			Zeze = ps.getZeze();
-			RegisterProtocols(ps);
-			RegisterZezeTables(ps.getZeze());
+		public Module(ProviderApp pa) {
+			ProviderApp = pa;
+			Zeze = ProviderApp.Zeze;
+			RegisterProtocols(ProviderApp.ProviderService);
+			RegisterZezeTables(Zeze);
+			ProviderApp.BuiltinModules.put(this.getFullName(), this);
 		}
 
 		@Override
 		public void UnRegister() {
-			if (null != Service) {
-				UnRegisterProtocols(Service);
+			if (null != ProviderApp) {
+				UnRegisterProtocols(ProviderApp.ProviderService);
 			}
 			if (null != Zeze) {
 				UnRegisterZezeTables(Zeze);
@@ -352,6 +354,7 @@ public class Bag {
 
 		@SuppressWarnings("unchecked")
 		public void Start(Zeze.Application zeze) throws Throwable {
+			ProviderApp.BuiltinModules.put(this.getFullName(), this);
 			if (0L != zeze.NewProcedure(() -> {
 				var classes = _tItemClasses.getOrAdd(1);
 				for (var cls : classes.getItemClasses()) {

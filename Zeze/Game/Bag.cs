@@ -323,7 +323,7 @@ namespace Zeze.Game
         public class Module : AbstractBag
         {
             private ConcurrentDictionary<string, Bag> Bags = new();
-            public ProviderService ProviderService { get; }
+            public ProviderApp ProviderApp { get; }
             public Application Zeze { get; }
 
             public tbag getTable()
@@ -331,25 +331,24 @@ namespace Zeze.Game
                 return _tbag;
             }
 
-            public Module(ProviderService service)
+            public Module(ProviderApp pa)
             {
-                ProviderService = service;
-                Zeze = service.Zeze;
-                RegisterProtocols(service);
+                ProviderApp = pa;
+                Zeze = ProviderApp.Zeze;
+                RegisterProtocols(ProviderApp.ProviderService);
                 RegisterZezeTables(Zeze);
             }
 
             public Module(Application zeze)
             {
-                ProviderService = null;
                 Zeze = zeze;
                 RegisterZezeTables(Zeze);
             }
 
             public override void UnRegister()
             {
-                if (null != ProviderService)
-                    UnRegisterProtocols(ProviderService);
+                if (null != ProviderApp)
+                    UnRegisterProtocols(ProviderApp.ProviderService);
                 if (null != Zeze)
                     UnRegisterZezeTables(Zeze);
             }
@@ -369,6 +368,7 @@ namespace Zeze.Game
 
             public void Start(Zeze.Application zeze)
             {
+                ProviderApp.BuiltinModules.Add(FullName, this);
                 if (0L != zeze.NewProcedure(async () =>
                 {
                     var classes = await _tItemClasses.GetOrAddAsync(1);

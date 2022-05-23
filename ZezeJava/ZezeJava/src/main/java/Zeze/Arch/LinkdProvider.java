@@ -241,11 +241,14 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	@Override
 	protected long ProcessSetUserState(SetUserState protocol) {
 		var socket = LinkdApp.LinkdService.GetSocket(protocol.Argument.getLinkSid());
-		var linkSession = (LinkdUserSession)socket.getUserState();
-		if (linkSession != null) {
-			linkSession.SetUserState(protocol.Argument.getContext(), protocol.Argument.getContextx());
+		if (null != socket) {
+			var linkSession = (LinkdUserSession)socket.getUserState();
+			if (linkSession != null) {
+				linkSession.SetUserState(protocol.Argument.getContext(), protocol.Argument.getContextx());
+				return Procedure.Success;
+			}
 		}
-		return Procedure.Success;
+		return Procedure.Unknown;
 	}
 
 	@Override
