@@ -39,7 +39,7 @@ end}}
     case variable.variable_type.name
     when "bool"
         if variable.initial != ''
-            ret string.emptystring.downcase(variable.initial)
+            ret string.downcase(variable.initial)
         else
             ret 'false'
         end
