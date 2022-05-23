@@ -842,6 +842,11 @@ namespace Zeze.Raft
             // has under lock (Raft)
             {
                 var raftLog = new RaftLog(Term, LastIndex + 1, log);
+                if (raftLog.Log.Unique.RequestId > 0)
+                    await OpenUniqueRequests(raftLog.Log.CreateTime).Save(raftLog);
+                await SaveLog(raftLog);
+
+                // 容易出错的放到前面。
                 if (waitapplied)
                 {
                     raftLog.LeaderFuture = new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -852,13 +857,20 @@ namespace Zeze.Raft
                         Raft.FatalKill();
                     }
                 }
-                if (raftLog.Log.Unique.RequestId > 0)
-                    await OpenUniqueRequests(raftLog.Log.CreateTime).Save(raftLog);
-                await SaveLog(raftLog);
-                LastIndex = raftLog.Index;
-
                 // 广播给followers并异步等待多数确认
-                await Raft.Server.Config.ForEachConnectorAsync(async (c) => await TrySendAppendEntries(c as Server.ConnectorEx, null));
+                try
+                {
+                    await Raft.Server.Config.ForEachConnectorAsync(async (c) => await TrySendAppendEntries(c as Server.ConnectorEx, null));
+                }
+                catch (Exception)
+                {
+                    // 只有当前下面这个需要回滚，日志(SaveLog, OpenUniqueRequests(...).Save)以后根据LastIndex覆盖。
+                    if (waitapplied)
+                        LeaderAppendLogs.TryRemove(raftLog.Index, out _);
+                    throw;
+                }
+                // 最后修改LastIndex。
+                LastIndex = raftLog.Index;
             }
             return (Term, LastIndex, future);
         }
