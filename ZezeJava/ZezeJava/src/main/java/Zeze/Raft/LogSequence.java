@@ -723,6 +723,11 @@ public class LogSequence {
 				throw new RaftRetryException("not leader"); // 快速失败
 
 			var raftLog = new RaftLog(Term, LastIndex + 1, log);
+			if (raftLog.getLog().getUnique().getRequestId() > 0)
+				OpenUniqueRequests(raftLog.getLog().getCreateTime()).Save(raftLog);
+			SaveLog(raftLog);
+
+			// 容易出错的放到前面。
 			if (WaitApply) {
 				raftLog.setLeaderFuture(future = new TaskCompletionSource<>());
 				if (getLeaderAppendLogs().putIfAbsent(raftLog.getIndex(), raftLog) != null) {
@@ -730,17 +735,22 @@ public class LogSequence {
 					Raft.FatalKill();
 				}
 			}
-			if (raftLog.getLog().getUnique().getRequestId() > 0)
-				OpenUniqueRequests(raftLog.getLog().getCreateTime()).Save(raftLog);
-			SaveLog(raftLog);
-			LastIndex = raftLog.getIndex();
 			if (result != null) {
 				result.term = Term;
 				result.index = LastIndex;
 			}
 
 			// 广播给followers并异步等待多数确认
-			Raft.getServer().getConfig().ForEachConnector(c -> TrySendAppendEntries((Server.ConnectorEx)c, null));
+			try {
+				Raft.getServer().getConfig().ForEachConnector(c -> TrySendAppendEntries((Server.ConnectorEx)c, null));
+			} catch (Throwable e) {
+				// 只有当前下面这个需要回滚，日志(SaveLog, OpenUniqueRequests(...).Save)以后根据LastIndex覆盖。
+				if (WaitApply)
+					LeaderAppendLogs.remove(raftLog.getIndex());
+				throw e;
+			}
+			// 最后修改LastIndex。
+			LastIndex = raftLog.getIndex();
 		}
 
 		if (WaitApply && !future.await(Raft.getRaftConfig().getAppendEntriesTimeout() * 2L + 1000)) {
