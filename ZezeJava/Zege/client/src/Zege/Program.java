@@ -1,3 +1,5 @@
+package Zege;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
@@ -8,6 +10,7 @@ import Zege.Friend.BFriend;
 import Zege.Friend.BFriendNode;
 import Zege.Message.BMessage;
 import Zege.Message.BTextMessage;
+import Zege.Message.NotifyMessage;
 import Zeze.Serialize.ByteBuffer;
 
 public class Program {
@@ -83,6 +86,13 @@ public class Program {
 		public boolean processNotifyMessage(BMessage notify) {
 			return false;
 		}
+	}
+
+	public void OnMessage(NotifyMessage r) {
+		var current = Layers.get(Layers.size() - 1);
+		if (current.processNotifyMessage(r.Argument))
+			return;
+		Main.processNotifyMessage(r.Argument);
 	}
 
 	public class ChatLayer extends Layer {

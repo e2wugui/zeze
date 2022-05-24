@@ -33,7 +33,7 @@ public class ModuleMessage extends AbstractModule {
 
     @Override
     protected long ProcessNotifyMessageRequest(Zege.Message.NotifyMessage r) {
-        Program.Instance.process(r);
+        Zege.Program.Instance.OnMessage(r);
         return Procedure.Success;
     }
 
