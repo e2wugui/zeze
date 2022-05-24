@@ -70,6 +70,13 @@ public class LinkedMap<V extends Bean> {
 		return module._tLinkedMapNodes.get(new BLinkedMapNodeKey(name, nodeId));
 	}
 
+	public BLinkedMapNode getFristNode() {
+		var root = getRoot();
+		if (null != root)
+			return getNode(root.getHeadNodeId());
+		return null;
+	}
+
 	public boolean isEmpty() {
 		return size() == 0;
 	}
@@ -78,13 +85,15 @@ public class LinkedMap<V extends Bean> {
 		return getRoot().getCount();
 	}
 
-	/**
-	 * 把项移到队尾。
-	 *
-	 * @param id of value
-	 * @return node id that contains value
-	 */
-	public long moveToTail(String id) {
+	public long moveAhead(String id) {
+		return move(id, true);
+	}
+
+	public long moveTail(String id) {
+		return move(id, false);
+	}
+
+	private long move(String id, boolean ahead) {
 		var nodeId = module._tValueIdToNodeId.get(new BLinkedMapKey(name, id));
 		if (nodeId == null)
 			return 0;
@@ -92,17 +101,23 @@ public class LinkedMap<V extends Bean> {
 		var nodeIdLong = nodeId.getNodeId();
 		var node = getNode(nodeIdLong);
 		var values = node.getValues();
-		int i = values.size() - 1;
-		// activate。优化：这个操作比较多，并且很可能都是尾部活跃，需要判断已经是最后一个了，不调整。
-		if (values.get(i).getId().equals(id) && getRoot().getTailNodeId() == nodeIdLong) // TailNode && List.Last
-			return nodeIdLong;
-		for (; i >= 0; i--) {
+
+		// activate。优化：这个操作比较多，已经在目标位置，不调整。
+		if (ahead) {
+			if (values.get(0).getId().equals(id) && getRoot().getHeadNodeId() == nodeIdLong) // HeadNode && List.Last
+				return nodeIdLong;
+		} else {
+			if (values.get(values.size() - 1).getId().equals(id) && getRoot().getTailNodeId() == nodeIdLong) // TailNode && List.Last
+				return nodeIdLong;
+		}
+
+		for (int i = 0; i < values.size(); i++) {
 			var e = values.get(i);
 			if (e.getId().equals(id)) {
 				values.remove(i);
 				if (values.isEmpty())
 					removeNodeUnsafe(nodeId.getNodeId(), node);
-				return addUnsafe(e.Copy());
+				return ahead ? addHeadUnsafe(e.Copy()) : addTailUnsafe(e.Copy());
 			}
 		}
 		throw new IllegalStateException("Node Exist But Value Not Found.");
@@ -110,10 +125,14 @@ public class LinkedMap<V extends Bean> {
 
 	// map
 	public V put(long id, V value) {
-		return put(String.valueOf(id), value);
+		return put(String.valueOf(id), value, true);
 	}
 
 	public V put(String id, V value) {
+		return put(id, value, true);
+	}
+
+	public V put(String id, V value, boolean ahead) {
 		var nodeIdKey = new BLinkedMapKey(name, id);
 		var nodeId = module._tValueIdToNodeId.get(nodeIdKey);
 		if (nodeId == null) {
@@ -121,7 +140,7 @@ public class LinkedMap<V extends Bean> {
 			newNodeValue.setId(id);
 			newNodeValue.getValue().setBean(value);
 			nodeId = new BLinkedMapNodeId();
-			nodeId.setNodeId(addUnsafe(newNodeValue));
+			nodeId.setNodeId(ahead ? addHeadUnsafe(newNodeValue) : addTailUnsafe(newNodeValue));
 			module._tValueIdToNodeId.insert(nodeIdKey, nodeId);
 			var root = getRoot();
 			root.setCount(root.getCount() + 1);
@@ -251,7 +270,31 @@ public class LinkedMap<V extends Bean> {
 	}
 
 	// inner
-	private long addUnsafe(BLinkedMapNodeValue nodeValue) {
+	private long addHeadUnsafe(BLinkedMapNodeValue nodeValue) {
+		var root = module._tLinkedMaps.getOrAdd(name);
+		var headNodeId = root.getHeadNodeId();
+		var head = headNodeId != 0 ? getNode(headNodeId) : null;
+		if (head != null && head.getValues().size() < nodeSize) {
+			// head is null means empty
+			head.getValues().add(0, nodeValue);
+			return headNodeId;
+		}
+		var newNode = new BLinkedMapNode();
+		if (headNodeId != 0)
+			newNode.setNextNodeId(headNodeId); // 这里包含了empty
+		newNode.getValues().add(0, nodeValue);
+		var newNodeId = root.getLastNodeId() + 1;
+		root.setLastNodeId(newNodeId);
+		root.setHeadNodeId(newNodeId);
+		module._tLinkedMapNodes.insert(new BLinkedMapNodeKey(name, newNodeId), newNode);
+		if (head != null)
+			head.setPrevNodeId(newNodeId);
+		else // isEmpty.
+			root.setTailNodeId(newNodeId);
+		return newNodeId;
+	}
+
+	private long addTailUnsafe(BLinkedMapNodeValue nodeValue) {
 		var root = module._tLinkedMaps.getOrAdd(name);
 		var tailNodeId = root.getTailNodeId();
 		var tail = tailNodeId != 0 ? getNode(tailNodeId) : null;

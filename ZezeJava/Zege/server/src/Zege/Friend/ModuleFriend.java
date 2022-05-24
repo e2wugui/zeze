@@ -1,5 +1,8 @@
 package Zege.Friend;
 
+import Zeze.Arch.ProviderUserSession;
+import Zeze.Transaction.Procedure;
+
 public class ModuleFriend extends AbstractModule {
     public void Start(Zege.App app) throws Throwable {
     }
@@ -9,7 +12,12 @@ public class ModuleFriend extends AbstractModule {
 
     @Override
     protected long ProcessAddFriendRequest(Zege.Friend.AddFriend r) {
-        return Zeze.Transaction.Procedure.NotImplement;
+        var session = ProviderUserSession.get(r);
+        var self = App.LinkedMaps.open("Zege.Friend." + session.getAccount(), BFriend.class);
+        var peer = App.LinkedMaps.open("Zege.Friend." + r.Argument.getAccount(), BFriend.class);
+        self.put(r.Argument.getAccount(), new BFriend());
+        peer.put(session.getAccount(), new BFriend());
+        return Procedure.Success;
     }
 
     @Override

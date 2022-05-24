@@ -74,6 +74,14 @@ namespace Zeze.Collections
 			return await module._tLinkedMapNodes.GetAsync(new BLinkedMapNodeKey(name, nodeId));
 		}
 
+		public async Task<BLinkedMapNode> GetFristNodeAsync()
+		{
+			var root = await GetRootAsync();
+			if (null != root)
+				return await GetNodeAsync(root.HeadNodeId);
+			return null;
+		}
+
 		public async Task<bool> IsEmptyAsync()
 		{
 			return await GetSizeAsync() == 0;
@@ -84,13 +92,18 @@ namespace Zeze.Collections
 			return (await GetRootAsync()).Count;
 		}
 
-		/**
-		 * 把项移到队尾。
-		 *
-		 * @param id of value
-		 * @return node id that contains value
-		 */
-		public async Task<long> MoveToTailAsync(string id)
+
+		public async Task<long> MoveAheadAsync(string id)
+        {
+			return await MoveAsync(id, true);
+        }
+
+		public async Task<long> MoveTailAsync(string id)
+		{
+			return await MoveAsync(id, false);
+		}
+
+		private async Task<long> MoveAsync(string id, bool ahead)
 		{
 			var nodeId = await module._tValueIdToNodeId.GetAsync(new BLinkedMapKey(name, id));
 			if (nodeId == null)
@@ -101,8 +114,16 @@ namespace Zeze.Collections
 			var values = node.Values;
 			int i = values.Count - 1;
 			// activate。优化：这个操作比较多，并且很可能都是尾部活跃，需要判断已经是最后一个了，不调整。
-			if (values[i].Id.Equals(id) && (await GetRootAsync()).TailNodeId == nodeIdLong) // TailNode && List.Last
-				return nodeIdLong;
+			if (ahead)
+            {
+				if (values[0].Id.Equals(id) && (await GetRootAsync()).HeadNodeId == nodeIdLong) // HeadNode && List.Last
+					return nodeIdLong;
+			}
+			else
+            {
+				if (values[i].Id.Equals(id) && (await GetRootAsync()).TailNodeId == nodeIdLong) // TailNode && List.Last
+					return nodeIdLong;
+			}
 			for (; i >= 0; i--)
 			{
 				var e = values[i];
@@ -111,7 +132,7 @@ namespace Zeze.Collections
 					values.RemoveAt(i);
 					if (values.Count == 0)
 						await RemoveNodeUnsafeAsync(nodeId, node);
-					return await AddUnsafeAsync(e.Copy());
+					return ahead ? await AddHeadUnsafeAsync(e.Copy()) : await AddTailUnsafeAsync(e.Copy());
 				}
 			}
 			throw new Exception("Node Exist But Value Not Found.");
@@ -120,10 +141,15 @@ namespace Zeze.Collections
 		// map
 		public async Task<V> PutAsync(long id, V value)
 		{
-			return await PutAsync(id.ToString(), value);
+			return await PutAsync(id.ToString(), value, true);
 		}
 
 		public async Task<V> PutAsync(string id, V value)
+		{
+			return await PutAsync(id, value, true);
+		}
+
+		public async Task<V> PutAsync(string id, V value, bool ahead)
 		{
 			var nodeIdKey = new BLinkedMapKey(name, id);
 			var nodeId = await module._tValueIdToNodeId.GetAsync(nodeIdKey);
@@ -133,7 +159,7 @@ namespace Zeze.Collections
 				newNodeValue.Id = id;
 				newNodeValue.Value.Bean = value;
 				nodeId = new BLinkedMapNodeId();
-				nodeId.NodeId = await AddUnsafeAsync(newNodeValue);
+				nodeId.NodeId = ahead ? await AddHeadUnsafeAsync(newNodeValue) : await AddTailUnsafeAsync(newNodeValue);
 				await module._tValueIdToNodeId.InsertAsync(nodeIdKey, nodeId);
 				var root = await GetRootAsync();
 				root.Count += 1;
@@ -238,7 +264,33 @@ namespace Zeze.Collections
 		}
 
 		// inner
-		private async Task<long> AddUnsafeAsync(BLinkedMapNodeValue nodeValue)
+		private async Task<long> AddHeadUnsafeAsync(BLinkedMapNodeValue nodeValue)
+		{
+			var root = await module._tLinkedMaps.GetOrAddAsync(name);
+			var headNodeId = root.HeadNodeId;
+			var head = headNodeId != 0 ? await GetNodeAsync(headNodeId) : null;
+			if (head != null && head.Values.Count < nodeCapacity)
+			{
+				// head is null means empty
+				head.Values.Insert(0, nodeValue);
+				return headNodeId;
+			}
+			var newNode = new BLinkedMapNode();
+			if (headNodeId != 0)
+				newNode.NextNodeId = headNodeId; // 这里包含了empty
+			newNode.Values.Add(nodeValue);
+			var newNodeId = root.LastNodeId + 1;
+			root.LastNodeId = newNodeId;
+			root.HeadNodeId = newNodeId;
+			await module._tLinkedMapNodes.InsertAsync(new BLinkedMapNodeKey(name, newNodeId), newNode);
+			if (head != null)
+				head.PrevNodeId = newNodeId;
+			else // isEmpty.
+				root.TailNodeId = newNodeId;
+			return newNodeId;
+		}
+
+		private async Task<long> AddTailUnsafeAsync(BLinkedMapNodeValue nodeValue)
 		{
 			var root = await module._tLinkedMaps.GetOrAddAsync(name);
 			var tailNodeId = root.TailNodeId;

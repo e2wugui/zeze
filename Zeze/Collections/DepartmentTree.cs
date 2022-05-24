@@ -25,18 +25,18 @@ namespace Zeze.Collections
 		{
 			private readonly ConcurrentDictionary<string, DepartmentTree> Trees = new();
 			public Zeze.Application Zeze { get; }
-			public LinkedMap.Module Members { get; }
+			public LinkedMap.Module LinkedMaps { get; }
 
-			public Module(Zeze.Application zeze)
+			public Module(Zeze.Application zeze, LinkedMap.Module linkedMapModule)
 			{
 				Zeze = zeze;
 				RegisterZezeTables(zeze);
-				Members = new LinkedMap.Module(zeze);
+				LinkedMaps = linkedMapModule;
 			}
 
 			public override void UnRegister()
 			{
-				Members.UnRegister();
+				LinkedMaps.UnRegister();
 				UnRegisterZezeTables(Zeze);
 			}
 
@@ -75,7 +75,7 @@ namespace Zeze.Collections
 
 		public LinkedMap<TMember> GetMembers(long departmentId)
 		{
-			return module.Members.Open<TMember>($"{departmentId}#{name}");
+			return module.LinkedMaps.Open<TMember>($"{departmentId}#{name}");
 		}
 
 		public async Task<BDepartmentRoot> SelectDirtyRootAsync()

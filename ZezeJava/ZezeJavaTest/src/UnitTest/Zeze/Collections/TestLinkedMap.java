@@ -1,5 +1,7 @@
 package UnitTest.Zeze.Collections;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 import UnitTest.Zeze.MyBean;
 import Zeze.Transaction.Procedure;
@@ -53,10 +55,11 @@ public class TestLinkedMap {
 	public final void test3_LinkedMapWalk() {
 		var map = demo.App.getInstance().LinkedMapModule.open("test1", MyBean.class);
 		var i = new AtomicInteger(0);
-		int[] arr = {100, 101, 102, 103, 104, 105, 106, 107, 108, 109};
+		var arr = Arrays.asList(100, 101, 102, 103, 104, 105, 106, 107, 108, 109);
+		Collections.reverse(arr);
 		map.walk(((key, value) -> {
 			Assert.assertTrue(i.get() < 10);
-			Assert.assertEquals(value.getI(), arr[i.getAndAdd(1)]);
+			Assert.assertEquals(value.getI(), (int)arr.get(i.getAndAdd(1)));
 			return true;
 		}));
 		Assert.assertEquals(i.get(), 10);

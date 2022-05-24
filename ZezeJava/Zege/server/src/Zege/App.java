@@ -5,6 +5,8 @@ import java.nio.file.Paths;
 import Zeze.Arch.LoadConfig;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderModuleBinds;
+import Zeze.Collections.DepartmentTree;
+import Zeze.Collections.LinkedMap;
 import Zeze.Config;
 import Zeze.Game.Online;
 import Zeze.Game.ProviderDirectWithTransmit;
@@ -22,6 +24,8 @@ public class App extends Zeze.AppBase {
     public ProviderApp ProviderApp;
     public ProviderDirectWithTransmit ProviderDirect;
     public ProviderImplementWithOnline Provider;
+    public LinkedMap.Module LinkedMaps;
+    public DepartmentTree.Module DepartmentTrees;
 
     private LoadConfig LoadConfig() {
         try {
@@ -44,6 +48,8 @@ public class App extends Zeze.AppBase {
                 "Zege.Server.Module#",
                 ProviderDirect, ServerDirect, "Zege.Linkd", LoadConfig());
         Provider.Online = new Online(ProviderApp);
+        LinkedMaps = new LinkedMap.Module(Zeze);
+        DepartmentTrees = new DepartmentTree.Module(Zeze, LinkedMaps);
 
         CreateModules();
         Zeze.Start(); // 启动数据库

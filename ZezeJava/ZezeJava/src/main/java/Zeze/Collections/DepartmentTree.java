@@ -19,17 +19,16 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean> {
 	public static class Module extends AbstractDepartmentTree {
 		private final ConcurrentHashMap<String, DepartmentTree<?, ?>> Trees = new ConcurrentHashMap<>();
 		public final Zeze.Application Zeze;
-		public final LinkedMap.Module Members;
+		public final LinkedMap.Module LinkedMaps;
 
-		public Module(Zeze.Application zeze) {
+		public Module(Zeze.Application zeze, LinkedMap.Module linkedMapModule) {
 			Zeze = zeze;
 			RegisterZezeTables(zeze);
-			Members = new LinkedMap.Module(zeze);
+			LinkedMaps = linkedMapModule;
 		}
 
 		@Override
 		public void UnRegister() {
-			Members.UnRegister();
 			UnRegisterZezeTables(Zeze);
 		}
 
@@ -71,11 +70,11 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean> {
 	}
 
 	public LinkedMap<TMember> getDepartmentMembers(long departmentId) {
-		return module.Members.<TMember>open("" + departmentId + "#" + name, memberClass);
+		return module.LinkedMaps.<TMember>open("" + departmentId + "#" + name, memberClass);
 	}
 
 	public LinkedMap<TMember> getMembers() {
-		return module.Members.<TMember>open("0#" + name, memberClass);
+		return module.LinkedMaps.<TMember>open("0#" + name, memberClass);
 	}
 
 	public BDepartmentRoot selectDirtyRoot() {
