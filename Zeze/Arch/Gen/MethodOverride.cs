@@ -25,7 +25,7 @@ namespace Zeze.Arch.Gen
                 TransactionLevel = tLevelAnn.Level;
 
             if (false == method.IsVirtual)
-                throw new Exception("ModuleRedirect Need Virtual。");
+                throw new Exception("ModuleRedirect Need Virtual。{method}");
             Method = method;
             OverrideType = type;
             Attribute = attribute;
@@ -93,12 +93,12 @@ namespace Zeze.Arch.Gen
 
         private string GetHashOrServerParameterName()
         {
-            switch (OverrideType)
+            return OverrideType switch
             {
-                case OverrideType.RedirectHash: return "hash";
-                case OverrideType.RedirectToServer: return "serverId";
-                default: throw new Exception("error override type");
-            }
+                OverrideType.RedirectHash => "hash",
+                OverrideType.RedirectToServer => "serverId",
+                _ => throw new Exception("error override type"),
+            };
         }
         public string GetHashOrServerCallString()
         {
@@ -116,33 +116,23 @@ namespace Zeze.Arch.Gen
 
         public string GetRedirectType()
         {
-            switch (OverrideType)
+            return OverrideType switch
             {
-                case OverrideType.RedirectHash:
-                    return "Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeWithHash";
-
-                case OverrideType.RedirectToServer:
-                    return "Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeToServer";
-
-                default:
-                    throw new Exception("unkown OverrideType");
-            }
+                OverrideType.RedirectHash => "Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeWithHash",
+                OverrideType.RedirectToServer => "Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeToServer",
+                _ => throw new Exception("unkown OverrideType"),
+            };
         }
 
 
         public string GetChoiceHashOrServerCodeSource()
         {
-            switch (OverrideType)
+            return OverrideType switch
             {
-                case OverrideType.RedirectToServer:
-                    return "serverId";
-
-                case OverrideType.RedirectHash:
-                    return "hash"; // parameter name
-
-                default:
-                    throw new Exception("error state");
-            }
+                OverrideType.RedirectToServer => "serverId",
+                OverrideType.RedirectHash => "hash",// parameter name
+                _ => throw new Exception("error state"),
+            };
         }
 
         public string GetConcurrentLevelSource()

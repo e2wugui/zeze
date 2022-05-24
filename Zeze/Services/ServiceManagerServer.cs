@@ -1050,7 +1050,7 @@ namespace Zeze.Services.ServiceManager
             return reg;
         }
 
-        private void Verify(string identity)
+        private static void Verify(string identity)
         {
             if (false == identity.StartsWith("@"))
                 int.Parse(identity);

@@ -6,6 +6,7 @@ using System.Text.Json;
 using Zeze.Util;
 using Zeze.Net;
 using Zeze.Game;
+using Zeze.Arch.Gen;
 
 namespace Game
 {
@@ -13,7 +14,7 @@ namespace Game
     {
         public override Zeze.IModule ReplaceModuleInstance(Zeze.IModule module)
         {
-            return Zeze.Redirect.ReplaceModuleInstance(this, module);
+            return GenModule.Instance.ReplaceModuleInstance(this, module);
         }
 
         public ProviderImplementWithOnline ProviderImplementWithOnline { get; set; }
@@ -65,7 +66,7 @@ namespace Game
             ProviderDirectWithTransmit = new ProviderDirectWithTransmit();
             ProviderApp = new Zeze.Arch.ProviderApp(Zeze, ProviderImplementWithOnline, Server, "Game.Server.Module#",
                 ProviderDirectWithTransmit, ServerDirect, "Game.Linkd", global::Zeze.Arch.LoadConfig.Load("load.json"));
-            ProviderImplementWithOnline.Online = new(ProviderApp);
+            ProviderImplementWithOnline.Online = (Online)ReplaceModuleInstance(new Online(this));
 
             global::Zeze.Arch.Gen.GenModule.Instance.GenRedirect = GenRedirect;
             CreateModules();

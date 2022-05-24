@@ -12,7 +12,7 @@ namespace Zeze.Arch
 {
 	public class LinkdProviderService : Zeze.Services.HandshakeServer
 	{
-		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+		//private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 		public LinkdApp LinkdApp { get; set; }
 		public ConcurrentDictionary<string, ProviderSession> ProviderSessions = new();
 

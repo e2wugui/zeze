@@ -155,12 +155,16 @@ namespace Zeze.Collections
 			var nodeId = await module._tValueIdToNodeId.GetAsync(nodeIdKey);
 			if (nodeId == null)
 			{
-				var newNodeValue = new BLinkedMapNodeValue();
-				newNodeValue.Id = id;
-				newNodeValue.Value.Bean = value;
-				nodeId = new BLinkedMapNodeId();
-				nodeId.NodeId = ahead ? await AddHeadUnsafeAsync(newNodeValue) : await AddTailUnsafeAsync(newNodeValue);
-				await module._tValueIdToNodeId.InsertAsync(nodeIdKey, nodeId);
+                var newNodeValue = new BLinkedMapNodeValue
+                {
+                    Id = id
+                };
+                newNodeValue.Value.Bean = value;
+                nodeId = new BLinkedMapNodeId
+                {
+                    NodeId = ahead ? await AddHeadUnsafeAsync(newNodeValue) : await AddTailUnsafeAsync(newNodeValue)
+                };
+                await module._tValueIdToNodeId.InsertAsync(nodeIdKey, nodeId);
 				var root = await GetRootAsync();
 				root.Count += 1;
 				return null;

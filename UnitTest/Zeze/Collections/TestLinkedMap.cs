@@ -32,9 +32,11 @@ namespace UnitTest.Zeze.Collections
 				var map = demo.App.Instance.LinkedMapModule.Open<demo.Module1.Value>("test1");
 				for (int i = 100; i < 110; i++)
 				{
-					var bean = new demo.Module1.Value();
-					bean.Int1 = i;
-					await map.PutAsync(i, bean);
+                    var bean = new demo.Module1.Value
+                    {
+                        Int1 = i
+                    };
+                    await map.PutAsync(i, bean);
 				}
 				return Procedure.Success;
 			}, "test1_LinkedMapPut").CallSynchronously());

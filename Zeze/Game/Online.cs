@@ -27,12 +27,21 @@ namespace Zeze.Game
 
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         public ProviderApp ProviderApp { get; }
+        public AppBase App { get; }
         public LoadReporter LoadReporter { get; }
         public taccount TableAccount => _taccount;
 
-        public Online(ProviderApp app)
+        internal Online()
+        { 
+            // for gen
+        }
+
+        public Online(AppBase app)
         {
-            this.ProviderApp = app;
+            if (app == null)
+                throw new ArgumentException("app is null");
+            this.App = app;
+            this.ProviderApp = app.Zeze.Redirect.ProviderApp;
 
             RegisterProtocols(ProviderApp.ProviderService);
             RegisterZezeTables(ProviderApp.Zeze);
@@ -95,7 +104,7 @@ namespace Zeze.Game
         public Zeze.Util.EventDispatcher LogoutEvents { get; } = new("Online.Logout");
         public Zeze.Util.EventDispatcher LocalRemoveEvents { get; } = new("Online.Local.Remove");
 
-        private Util.AtomicLong _LoginTimes = new();
+        private readonly Util.AtomicLong _LoginTimes = new();
 
         public long LoginTimes => _LoginTimes.Get();
 
@@ -518,7 +527,7 @@ namespace Zeze.Game
             return groups.Values;
         }
 
-        private RoleOnServer Merge(RoleOnServer current, RoleOnServer m)
+        private static RoleOnServer Merge(RoleOnServer current, RoleOnServer m)
         {
             if (null == current)
                 return m;
@@ -679,7 +688,7 @@ namespace Zeze.Game
         }
 
         [RedirectToServer]
-        protected async Task RedirectNotify(int serverId, long roleId)
+        protected virtual async Task RedirectNotify(int serverId, long roleId)
         {
             await TryRemoveLocal(roleId);
         }

@@ -27,9 +27,9 @@ namespace Zeze.Arch.Gen
                 IList<Zezex.Provider.BActionParam>,
                 (long, Zeze.Net.Binary)>>();
         */
-        public static readonly GenModule Instance = new GenModule();
+        public static readonly GenModule Instance = new();
 
-        private bool CheckAddMethod(MethodInfo method, OverrideType type, object[] attrs, List<MethodOverride> result)
+        private static bool CheckAddMethod(MethodInfo method, OverrideType type, object[] attrs, List<MethodOverride> result)
         {
             if (attrs.Length == 1)
             {
@@ -39,12 +39,13 @@ namespace Zeze.Arch.Gen
             return false;
         }
 
-        public Zeze.IModule ReplaceModuleInstance<T>(T userApp, Zeze.IModule module)
+        public M ReplaceModuleInstance<T, M>(T userApp, M module)
             where T : AppBase
+            where M : IModule
         {
             lock (this)
             {
-                List<MethodOverride> overrides = new List<MethodOverride>();
+                var overrides = new List<MethodOverride>();
                 var methods = module.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
                 foreach (var method in methods)
                 {
@@ -77,7 +78,7 @@ namespace Zeze.Arch.Gen
                             continue;
                         }
                         if (null != replaceModuleType)
-                            return (Zeze.IModule)Activator.CreateInstance(replaceModuleType, userApp);
+                            return (M)Activator.CreateInstance(replaceModuleType, userApp);
                     }
                     throw new Exception($"RedirectOverride Not Found: {genClassName}");
                 }
@@ -97,7 +98,7 @@ namespace Zeze.Arch.Gen
                     string code = GenModuleCode(module, genClassName, overrides, userAppName);
                     //*
                     //System.IO.File.Delete(genFileName); // 如果被vs占用，删除也没用。
-                    System.IO.StreamWriter sw = new System.IO.StreamWriter(genFileName, false, Encoding.UTF8);
+                    var sw = new System.IO.StreamWriter(genFileName, false, Encoding.UTF8);
                     sw.Write(code);
                     sw.Close();
                     System.IO.File.SetLastWriteTime(genFileName, new DateTime(srcLastWriteTimeTicks));
@@ -137,7 +138,7 @@ namespace Zeze.Arch.Gen
         public bool HasNewGen { get; private set; } = false;
 
         // 根据转发类型选择目标服务器，如果目标服务器是自己，直接调用基类方法完成工作。
-        void ChoiceTargetRunLoopback(IModule module, StringBuilder sb, MethodOverride m)
+        static void ChoiceTargetRunLoopback(IModule module, StringBuilder sb, MethodOverride m)
         {
             switch (m.OverrideType)
             {
@@ -209,16 +210,16 @@ namespace Zeze.Arch.Gen
             sb.AppendLine();
         }
 
-        private string GenModuleCode(Zeze.IModule module, string genClassName, List<MethodOverride> overrides, string userAppName)
+        private static string GenModuleCode(Zeze.IModule module, string genClassName, List<MethodOverride> overrides, string userAppName)
         {
-            StringBuilder sb = new StringBuilder();
+            var sb = new StringBuilder();
             var clsName = module.IsBuiltin ? "" : $".Module{module.Name}";
             sb.AppendLine($"public class {genClassName} : {module.FullName}{clsName}");
             sb.AppendLine($"{{");
 
             // TaskCompletionSource<long> void
-            StringBuilder sbHandles = new StringBuilder();
-            StringBuilder sbContexts = new StringBuilder();
+            var sbHandles = new StringBuilder();
+            var sbContexts = new StringBuilder();
             foreach (var m in overrides)
             {
                 m.PrepareParameters();
@@ -344,15 +345,15 @@ namespace Zeze.Arch.Gen
 
             sb.AppendLine($"    public {genClassName}({userAppName} app) : base(app)");
             sb.AppendLine($"    {{");
-            sb.Append(sbHandles.ToString());
+            sb.Append(sbHandles);
             sb.AppendLine($"    }}");
             sb.AppendLine($"");
-            sb.Append(sbContexts.ToString());
+            sb.Append(sbContexts);
             sb.AppendLine($"}}");
             return sb.ToString();
         }
 
-        void GenRedirectAll(StringBuilder sb, StringBuilder sbHandles, Zeze.IModule module, MethodOverride m)
+        static void GenRedirectAll(StringBuilder sb, StringBuilder sbHandles, Zeze.IModule module, MethodOverride m)
         {
             var req = "reqall" + Gen.Instance.TmpVarNameId.IncrementAndGet();
             sb.AppendLine($"        var {req} = new Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest();");

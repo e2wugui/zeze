@@ -23,12 +23,6 @@ namespace Zeze.Arch
 			ProviderApp = app;
 		}
 
-		public IModule ReplaceModuleInstance<T>(T userApp, IModule module)
-			where T : AppBase
-		{
-			return Gen.GenModule.Instance.ReplaceModuleInstance(userApp, module);
-		}
-
 		public AsyncSocket ChoiceServer(IModule module, int serverId)
 		{
 			if (serverId == ProviderApp.Zeze.Config.ServerId)
@@ -72,14 +66,16 @@ namespace Zeze.Arch
 			return ProviderApp.ProviderDirectService.GetSocket(providerModuleState.SessionId);
 		}
 
-		private void AddMiss(ModuleRedirectAllResult miss, int hash, long code)
+		private static void AddMiss(ModuleRedirectAllResult miss, int hash, long code)
         {
-			var tempVar = new BModuleRedirectAllHash();
-			tempVar.ReturnCode = code;
-			miss.Argument.Hashs.Add(hash, tempVar);
+            var tempVar = new BModuleRedirectAllHash
+            {
+                ReturnCode = code
+            };
+            miss.Argument.Hashs.Add(hash, tempVar);
 		}
 
-		private void AddTransmits(Dictionary<long, ModuleRedirectAllRequest> transmits,
+		private static void AddTransmits(Dictionary<long, ModuleRedirectAllRequest> transmits,
 			long provider, int hash, ModuleRedirectAllRequest req)
         {
 			if (false == transmits.TryGetValue(provider, out var exist))
@@ -119,21 +115,20 @@ namespace Zeze.Arch
 				var target = ProviderApp.Distribute.ChoiceProvider(req.Argument.ServiceNamePrefix, req.Argument.ModuleId, i);
 				if (null == target)
                 {
-					AddMiss(miss, i, Zeze.Transaction.Procedure.ProviderNotExist);
+                    AddMiss(miss, i, Zeze.Transaction.Procedure.ProviderNotExist);
 					continue; // miss
 				}
 				if (target.Identity.Equals(ProviderApp.Zeze.Config.ServerId.ToString()))
 				{
-					AddTransmits(transmits, 0, i, req);
+                    AddTransmits(transmits, 0, i, req);
 					continue; // loop-back
 				}
-				var state = target.LocalState as ProviderModuleState;
-				if (null == state)
+                if (target.LocalState is not ProviderModuleState state)
                 {
-					AddMiss(miss, i, Zeze.Transaction.Procedure.ProviderNotExist);
-					continue; // not ready
-				}
-				AddTransmits(transmits, state.SessionId, i, req);
+                    AddMiss(miss, i, Zeze.Transaction.Procedure.ProviderNotExist);
+                    continue; // not ready
+                }
+                AddTransmits(transmits, state.SessionId, i, req);
 			}
 
 			// 转发给provider
@@ -160,9 +155,11 @@ namespace Zeze.Arch
 				else
 				{
 					foreach (var hashIndex in request.Argument.HashCodes) {
-						var tempVar2 = new BModuleRedirectAllHash();
-						tempVar2.ReturnCode = Zeze.Transaction.Procedure.ProviderNotExist;
-						miss.Argument.Hashs.Add(hashIndex, tempVar2);
+                        var tempVar2 = new BModuleRedirectAllHash
+                        {
+                            ReturnCode = Zeze.Transaction.Procedure.ProviderNotExist
+                        };
+                        miss.Argument.Hashs.Add(hashIndex, tempVar2);
 					}
 				}
 			}

@@ -27,12 +27,9 @@ namespace Zeze.Game
             App = null;
         }
 
-        protected Rank(AppBase app)
+        public Rank(AppBase app)
         {
-            if (app == null)
-                throw new ArgumentException("app is null");
-
-            this.App = app;
+            this.App = app ?? throw new ArgumentException("app is null");
             RegisterZezeTables(App.Zeze);
             RegisterProtocols(App.Zeze.Redirect.ProviderApp.ProviderService);
         }
@@ -52,12 +49,12 @@ namespace Zeze.Game
                 UnRegisterZezeTables(App.Zeze);
             }
         }
-        public BConcurrentKey NewRankKey(int rankType, int timeType, long customizeId = 0)
+        public static BConcurrentKey NewRankKey(int rankType, int timeType, long customizeId = 0)
         {
             return NewRankKey(DateTime.Now, rankType, timeType, customizeId);
         }
 
-        public BConcurrentKey NewRankKey(DateTime time, int rankType, int timeType, long customizeId = 0)
+        public static BConcurrentKey NewRankKey(DateTime time, int rankType, int timeType, long customizeId = 0)
         {
             var year = time.Year; // 后面根据TimeType可能覆盖这个值。
             long offset;
@@ -211,7 +208,7 @@ namespace Zeze.Game
             return null;
         }
 
-        private BRankList Merge(BRankList left, BRankList right)
+        private static BRankList Merge(BRankList left, BRankList right)
         {
             var result = new BRankList();
             int indexLeft = 0;
@@ -265,7 +262,7 @@ namespace Zeze.Game
             return Merge(GetRankSize(keyHint.RankType), datas);
         }
 
-        private BRankList Merge(int countNeed, List<BRankList> datas)
+        private static BRankList Merge(int countNeed, List<BRankList> datas)
         {
             if (datas.Count == 0)
                 return new BRankList();

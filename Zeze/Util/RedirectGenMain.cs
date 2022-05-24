@@ -30,6 +30,8 @@ namespace Zeze.Util
 
 			var app = new AppFake();
 			GenModule.Instance.ReplaceModuleInstance(app, new Zeze.Game.Rank());
+			GenModule.Instance.ReplaceModuleInstance(app, new Zeze.Game.Online());
+			GenModule.Instance.ReplaceModuleInstance(app, new Zeze.Arch.Online());
 
 			Console.WriteLine("==================");
 			Console.WriteLine("Gen Redirect Done!");
