@@ -2,6 +2,9 @@ package Zege.Message;
 
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Transaction.Procedure;
+import Zeze.Transaction.Transaction;
+import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.TransactionLevelAnnotation;
 
 public class ModuleMessage extends AbstractModule {
     public void Start(Zege.App app) throws Throwable {
@@ -11,6 +14,7 @@ public class ModuleMessage extends AbstractModule {
     }
 
     @Override
+    @TransactionLevelAnnotation(Level=TransactionLevel.None)
     protected long ProcessSendDepartmentMessageRequest(Zege.Message.SendDepartmentMessage r) {
         var session = ProviderUserSession.get(r);
         var group = App.Zege_Friend.getDepartmentTree(r.Argument.getGroup());
