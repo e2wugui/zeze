@@ -56,7 +56,13 @@ public class ModuleFriend extends AbstractModule {
     protected long ProcessGetDepartmentNodeRequest(Zege.Friend.GetDepartmentNode r) {
         var session = ProviderUserSession.get(r);
         var group = getDepartmentTree(r.Argument.getGroup());
-        r.Result = group.getDepartment(r.Argument.getId());
+        var department = group.getDepartment(r.Argument.getId());
+        r.Result.setParentDepartment(department.getParentDepartment());
+        r.Result.setName(department.getName());
+        r.Result.getChilds().putAll(department.getChilds());
+        for (var manager : department.getManagers()) {
+            r.Result.getManagers().put(manager.getKey(), (BManager)manager.getValue().getBean());
+        }
         session.SendResponseWhileCommit(r);
         return Procedure.Success;
     }
@@ -65,7 +71,12 @@ public class ModuleFriend extends AbstractModule {
     protected long ProcessGetFriendNodeRequest(Zege.Friend.GetFriendNode r) {
         var session = ProviderUserSession.get(r);
         var friends = getFriends(session.getAccount());
-        r.Result = friends.getNode(r.Argument.getNodeId());
+        var friendNode = r.Argument.getNodeId() == 0 ? friends.getFristNode() : friends.getNode(r.Argument.getNodeId());
+        r.Result.setNextNodeId(friendNode.getNextNodeId());
+        r.Result.setPrevNodeId(friendNode.getPrevNodeId());
+        for (var friend : friendNode.getValues()) {
+            r.Result.getFriends().add((BFriend)friend.getValue().getBean());
+        }
         session.SendResponseWhileCommit(r);
         return Procedure.Success;
     }
@@ -84,7 +95,12 @@ public class ModuleFriend extends AbstractModule {
     protected long ProcessGetGroupRootRequest(Zege.Friend.GetGroupRoot r) {
         var session = ProviderUserSession.get(r);
         var group = getDepartmentTree(r.Argument.getGroup());
-        r.Result = group.getRoot();
+        var root = group.getRoot();
+        r.Result.setRoot(root.getRoot());
+        r.Result.getChilds().putAll(root.getChilds());
+        for (var manager : root.getManagers()) {
+            r.Result.getManagers().put(manager.getKey(), (BManager)manager.getValue().getBean());
+        }
         session.SendResponseWhileCommit(r);
         return Procedure.Success;
     }

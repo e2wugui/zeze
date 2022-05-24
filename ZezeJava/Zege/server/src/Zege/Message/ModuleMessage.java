@@ -16,16 +16,20 @@ public class ModuleMessage extends AbstractModule {
         var group = App.Zege_Friend.getDepartmentTree(r.Argument.getGroup());
 
         r.Argument.getMessage().setFrom(session.getAccount());
+        r.Argument.getMessage().setGroup(r.Argument.getGroup());
+
+        var notify = new NotifyMessage();
+        notify.Argument = r.Argument.getMessage();
         if (0 == r.Argument.getDepartmentId()) {
             // group root
             group.getMembers().walk((node, member) -> {
-                App.Provider.Online.sendWhileCommit(member.getAccount(), "PC", r);
+                App.Provider.Online.sendWhileCommit(member.getAccount(), "PC", notify);
                 return true;
             });
         } else {
             // department
             group.getDepartmentMembers(r.Argument.getDepartmentId()).walk((node, member) -> {
-                App.Provider.Online.sendWhileCommit(member.getAccount(), "PC", r);
+                App.Provider.Online.sendWhileCommit(member.getAccount(), "PC", notify);
                 return true;
             });
         }
@@ -38,10 +42,15 @@ public class ModuleMessage extends AbstractModule {
         var session = ProviderUserSession.get(r);
         var friends = App.Zege_Friend.getFriends(session.getAccount());
         var friend = friends.get(r.Argument.getFriend());
+
         if (null == friend)
             return Procedure.LogicError;
+
         r.Argument.getMessage().setFrom(session.getAccount());
-        App.Provider.Online.sendWhileCommit(r.Argument.getFriend(), "PC", r);
+        var notify = new NotifyMessage();
+        notify.Argument = r.Argument.getMessage();
+        App.Provider.Online.sendWhileCommit(r.Argument.getFriend(), "PC", notify);
+
         session.SendResponseWhileCommit(r);
         return Procedure.Success;
     }

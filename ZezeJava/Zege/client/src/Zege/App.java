@@ -49,6 +49,8 @@ public class App extends Zeze.AppBase {
     public Zeze.Builtin.Online.ModuleOnline Zeze_Builtin_Online;
     public Zeze.Builtin.LinkdBase.ModuleLinkdBase Zeze_Builtin_LinkdBase;
     public Zege.Linkd.ModuleLinkd Zege_Linkd;
+    public Zege.Friend.ModuleFriend Zege_Friend;
+    public Zege.Message.ModuleMessage Zege_Message;
 
     @Override
     public Zeze.Application getZeze() {
@@ -86,10 +88,22 @@ public class App extends Zeze.AppBase {
         if (Modules.put(Zege_Linkd.getFullName(), Zege_Linkd) != null)
             throw new RuntimeException("duplicate module name: Zege_Linkd");
 
+        Zege_Friend = ReplaceModuleInstance(new Zege.Friend.ModuleFriend(this));
+        Zege_Friend.Initialize(this);
+        if (Modules.put(Zege_Friend.getFullName(), Zege_Friend) != null)
+            throw new RuntimeException("duplicate module name: Zege_Friend");
+
+        Zege_Message = ReplaceModuleInstance(new Zege.Message.ModuleMessage(this));
+        Zege_Message.Initialize(this);
+        if (Modules.put(Zege_Message.getFullName(), Zege_Message) != null)
+            throw new RuntimeException("duplicate module name: Zege_Message");
+
         Zeze.setSchemas(new Zege.Schemas());
     }
 
     public synchronized void DestroyModules() {
+        Zege_Message = null;
+        Zege_Friend = null;
         Zege_Linkd = null;
         Zeze_Builtin_LinkdBase = null;
         Zeze_Builtin_Online = null;
@@ -108,9 +122,15 @@ public class App extends Zeze.AppBase {
         Zeze_Builtin_Online.Start(this);
         Zeze_Builtin_LinkdBase.Start(this);
         Zege_Linkd.Start(this);
+        Zege_Friend.Start(this);
+        Zege_Message.Start(this);
     }
 
     public synchronized void StopModules() throws Throwable {
+        if (Zege_Message != null)
+            Zege_Message.Stop(this);
+        if (Zege_Friend != null)
+            Zege_Friend.Stop(this);
         if (Zege_Linkd != null)
             Zege_Linkd.Stop(this);
         if (Zeze_Builtin_LinkdBase != null)

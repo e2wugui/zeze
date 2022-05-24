@@ -10,6 +10,7 @@ DatabaseTikv.OperatesTikv
 【2022/6/11】
 
 一致性hash负载分配算法：解决provider变动带来的原来分配方式（hash%count)导致re-hash造成cache大量重来的问题。
+BLinkedMapNodeValue 里面保存了key，但是walk接口没有返回，需要在dynamic里面再次定义。
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 0.9.6 zege start & c# raft ready
