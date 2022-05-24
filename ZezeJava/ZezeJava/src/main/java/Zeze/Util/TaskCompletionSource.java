@@ -81,6 +81,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 	public R get() throws InterruptedException, ExecutionException {
 		Object r = result;
 		if (r == null) {
+			assert !Thread.currentThread().getName().startsWith("Selector");
 			synchronized (this) {
 				while ((r = result) == null)
 					wait();
@@ -96,6 +97,7 @@ public class TaskCompletionSource<R> implements Future<R> {
 			timeout = unit.toMillis(timeout);
 			if (timeout <= 0) // wait(0) == wait(), but get(0) != get()
 				throw new TimeoutException();
+			assert !Thread.currentThread().getName().startsWith("Selector");
 			synchronized (this) {
 				if ((r = result) == null) {
 					wait(timeout);

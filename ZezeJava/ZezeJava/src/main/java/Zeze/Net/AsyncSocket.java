@@ -19,12 +19,14 @@ import java.util.function.LongSupplier;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Action0;
 import Zeze.Util.LongConcurrentHashMap;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public final class AsyncSocket implements SelectorHandle, Closeable {
 	static final Logger logger = LogManager.getLogger(AsyncSocket.class);
 	static final boolean ENABLE_PROTOCOL_LOG = false; // 仅自己调试时临时打开
+	static final Level LEVEL_PROTOCOL_LOG = Level.INFO;
 	private static final AtomicLong SessionIdGen = new AtomicLong();
 	private static LongSupplier SessionIdGenFunc;
 
@@ -192,7 +194,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				sc = ((ServerSocketChannel)channel).accept();
 				if (sc != null) {
 					if (ENABLE_PROTOCOL_LOG)
-						logger.trace("OPEN({}): accepted", SessionId);
+						logger.log(LEVEL_PROTOCOL_LOG, "OPEN({}): accepted", SessionId);
 					Service.OnSocketAccept(new AsyncSocket(Service, sc, Acceptor));
 				}
 			} catch (Throwable e) {
@@ -206,7 +208,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				SocketChannel sc = (SocketChannel)channel;
 				if (sc.finishConnect()) {
 					if (ENABLE_PROTOCOL_LOG)
-						logger.trace("OPEN({}): connected", SessionId);
+						logger.log(LEVEL_PROTOCOL_LOG, "OPEN({}): connected", SessionId);
 					// 先修改事件，防止doConnectSuccess发送数据注册了新的事件导致OP_CONNECT重新触发。
 					// 虽然实际上在回调中应该不会唤醒Selector重入。
 					doConnectSuccess(sc);
@@ -409,12 +411,12 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		if (ENABLE_PROTOCOL_LOG) {
 			if (protocol.isRequest()) {
 				if (protocol instanceof Rpc)
-					logger.trace("SEND({}) {}({}): {}", SessionId, protocol.getClass().getSimpleName(),
+					logger.log(LEVEL_PROTOCOL_LOG, "SEND({}) {}({}): {}", SessionId, protocol.getClass().getSimpleName(),
 							((Rpc<?, ?>)protocol).getSessionId(), protocol.Argument);
 				else
-					logger.trace("SEND({}) {}: {}", SessionId, protocol.getClass().getSimpleName(), protocol.Argument);
+					logger.log(LEVEL_PROTOCOL_LOG, "SEND({}) {}: {}", SessionId, protocol.getClass().getSimpleName(), protocol.Argument);
 			} else
-				logger.trace("SEND({}) {}({})> {}", SessionId, protocol.getClass().getSimpleName(),
+				logger.log(LEVEL_PROTOCOL_LOG, "SEND({}) {}({})> {}", SessionId, protocol.getClass().getSimpleName(),
 						((Rpc<?, ?>)protocol).getSessionId(), protocol.getResultBean());
 		}
 		return Send(protocol.Encode());
@@ -529,7 +531,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 
 		if (ENABLE_PROTOCOL_LOG)
-			logger.trace("CLOSE({}): {}", SessionId, ex);
+			logger.log(LEVEL_PROTOCOL_LOG, "CLOSE({}): {}", SessionId, ex);
 		if (ex != null)
 			logger.log(Service.getSocketOptions().getSocketLogLevel(), "Close " + this, ex);
 		if (Connector != null) {

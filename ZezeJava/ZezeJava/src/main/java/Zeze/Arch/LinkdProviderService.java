@@ -3,6 +3,7 @@ package Zeze.Arch;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Provider.AnnounceLinkInfo;
 import Zeze.Builtin.Provider.Bind;
+import Zeze.Builtin.Provider.Subscribe;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
@@ -24,7 +25,7 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 	@Override
 	public <P extends Protocol<?>> void DispatchProtocol(P p, Service.ProtocolFactoryHandle<P> factoryHandle) {
 		if (null != factoryHandle.Handle) {
-			if (p.getTypeId() == Bind.TypeId_) {
+			if (p.getTypeId() == Bind.TypeId_ || p.getTypeId() == Subscribe.TypeId_) {
 				// Bind 的处理需要同步等待ServiceManager的订阅成功，时间比较长，
 				// 不要直接在io-thread里面执行。
 				Task.run(() -> factoryHandle.Handle.handle(p), p);

@@ -188,13 +188,13 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 				if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
 					if (p.isRequest()) {
 						if (p instanceof Rpc)
-							AsyncSocket.logger.trace("RECV({}) {}({}): {}", so.getSessionId(),
+							AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV({}) {}({}): {}", so.getSessionId(),
 									p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.Argument);
 						else
-							AsyncSocket.logger.trace("RECV({}) {}: {}", so.getSessionId(),
+							AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV({}) {}: {}", so.getSessionId(),
 									p.getClass().getSimpleName(), p.Argument);
 					} else
-						AsyncSocket.logger.trace("RECV({}) {}({})> {}", so.getSessionId(),
+						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV({}) {}({})> {}", so.getSessionId(),
 								p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.getResultBean());
 				}
 				p.Dispatch(service, factoryHandle);

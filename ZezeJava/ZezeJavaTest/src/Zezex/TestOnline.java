@@ -14,6 +14,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
+import org.junit.Assert;
 
 public class TestOnline extends TestCase {
 	static {
@@ -71,9 +72,11 @@ public class TestOnline extends TestCase {
 			servers.add(new Game.App());
 
 		try {
+			logger.info("=== test3 - start");
 			start();
 
 			// testcase first;
+			logger.info("=== test3 - 1");
 			var client0 = clients.get(0);
 			auth(client0, "account0");
 			var role = getRole(client0);
@@ -81,6 +84,7 @@ public class TestOnline extends TestCase {
 			login(client0, roleId);
 
 			// testcase relogin
+			logger.info("=== test3 - 2");
 			client0.ClientService.Stop();
 			client0.ClientService.Start();
 			client0.Connector.WaitReady();
@@ -88,13 +92,16 @@ public class TestOnline extends TestCase {
 			relogin(client0, roleId);
 
 			// testcase kick
+			logger.info("=== test3 - 3");
 			var client1 = clients.get(1);
 			auth(client1, "account0");
 			login(client1, roleId);
 
 			// logout client1: client0 被踢了
+			logger.info("=== test3 - 4");
 			logout(client1, roleId);
 		} finally {
+			logger.info("=== test3 - stop");
 			stop();
 		}
 	}
@@ -103,41 +110,41 @@ public class TestOnline extends TestCase {
 		var relogin = new ReLogin();
 		relogin.Argument.setRoleId(roleId);
 		relogin.SendForWait(app.ClientService.GetSocket()).await();
-		assert relogin.getResultCode() == 0;
+		Assert.assertEquals(0, relogin.getResultCode());
 	}
 
 	private void logout(ClientGame.App app, long roleIdForLogOnly) {
 		var logout = new Logout();
 		logout.SendForWait(app.ClientService.GetSocket()).await();
-		assert logout.getResultCode() == 0;
+		Assert.assertEquals(0, logout.getResultCode());
 	}
 
 	private void login(ClientGame.App app, long roleId) {
 		var login = new Login();
 		login.Argument.setRoleId(roleId);
 		login.SendForWait(app.ClientService.GetSocket()).await();
-		assert login.getResultCode() == 0;
+		Assert.assertEquals(0, login.getResultCode());
 	}
 
 	private void auth(ClientGame.App app, String account) {
 		var auth = new Auth();
 		auth.Argument.setAccount(account);
 		auth.SendForWait(app.ClientService.GetSocket()).await();
-		assert auth.getResultCode() == 0;
+		Assert.assertEquals(0, auth.getResultCode());
 	}
 
 	private long createRole(ClientGame.App app, String role) {
 		var createRole = new CreateRole();
 		createRole.Argument.setName(role);
 		createRole.SendForWait(app.ClientService.GetSocket()).await();
-		assert createRole.getResultCode() == 0;
+		Assert.assertEquals(0, createRole.getResultCode());
 		return createRole.Result.getId();
 	}
 
 	private BRole getRole(ClientGame.App app) {
 		var get = new GetRoleList();
 		get.SendForWait(app.ClientService.GetSocket()).await();
-		assert get.getResultCode() == 0;
+		Assert.assertEquals(0, get.getResultCode());
 		if (get.Result.getRoleList().isEmpty())
 			return null;
 		return get.Result.getRoleList().get(0);
