@@ -42,7 +42,7 @@ public final class ModuleLogin extends AbstractModule {
 		// ...
 
 		rpc.Result = role;
-		session.SendResponse(rpc);
+		session.SendResponseWhileCommit(rpc);
 		return Procedure.Success;
 	}
 
