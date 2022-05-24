@@ -3,6 +3,7 @@ package Zeze.Util;
 import Zeze.AppBase;
 import Zeze.Application;
 import Zeze.Arch.Gen.GenModule;
+import Zeze.Arch.Online;
 import Zeze.Game.Rank;
 
 /**
@@ -26,6 +27,7 @@ public class RedirectGenMain {
 			}
 		};
 
+		GenModule.Instance.ReplaceModuleInstance(app, new Online(null));
 		GenModule.Instance.ReplaceModuleInstance(app, new Rank());
 
 		System.out.println("==================");

@@ -194,8 +194,8 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 							AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV({}) {}: {}", so.getSessionId(),
 									p.getClass().getSimpleName(), p.Argument);
 					} else
-						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV({}) {}({})> {}", so.getSessionId(),
-								p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.getResultBean());
+						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV({}) {}({})>{} {}", so.getSessionId(),
+								p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.ResultCode, p.getResultBean());
 				}
 				p.Dispatch(service, factoryHandle);
 			} else {

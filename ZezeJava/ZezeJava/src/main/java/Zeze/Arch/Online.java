@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
+import Zeze.AppBase;
 import Zeze.Builtin.Online.*;
 import Zeze.Builtin.Provider.BKick;
 import Zeze.Builtin.Provider.BLinkBroken;
@@ -45,11 +46,13 @@ public class Online extends AbstractOnline {
         return _taccount;
     }
 
-    public Online(ProviderApp app) {
-        this.ProviderApp = app;
-
-        RegisterProtocols(ProviderApp.ProviderService);
-        RegisterZezeTables(ProviderApp.Zeze);
+    public Online(AppBase app) {
+        if (app != null) {
+            this.ProviderApp = app.getZeze().Redirect.ProviderApp;
+            RegisterProtocols(ProviderApp.ProviderService);
+            RegisterZezeTables(ProviderApp.Zeze);
+        } else // for RedirectGenMain
+            this.ProviderApp = null;
 
         //LoadReporter = new(this);
     }

@@ -2,6 +2,7 @@ package Zege;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.LoadConfig;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderModuleBinds;
@@ -47,7 +48,7 @@ public class App extends Zeze.AppBase {
         ProviderApp = new ProviderApp(Zeze, Provider, Server,
                 "Zege.Server.Module#",
                 ProviderDirect, ServerDirect, "Zege.Linkd", LoadConfig());
-        Provider.Online = new Online(ProviderApp);
+        Provider.Online = GenModule.Instance.ReplaceModuleInstance(this, new Online(this));
         LinkedMaps = new LinkedMap.Module(Zeze);
         DepartmentTrees = new DepartmentTree.Module(Zeze, LinkedMaps);
 
