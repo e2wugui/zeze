@@ -16,7 +16,12 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 
 	public LinkdService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);
+	}
+
+	@Override
+	public void Start() throws Throwable {
 		StableLinkSids = new ConcurrentLruLike<>(1000000, this::TryLruRemove);
+		super.Start();
 	}
 
 	public void ReportError(long linkSid, int from, int code, String desc) {
@@ -90,7 +95,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		public AsyncSocket AuthedSocket;
 	}
 
-	private final ConcurrentLruLike<StableLinkSidKey, StableLinkSid> StableLinkSids;
+	private ConcurrentLruLike<StableLinkSidKey, StableLinkSid> StableLinkSids;
 
 	private boolean TryLruRemove(StableLinkSidKey key, StableLinkSid value) {
 		var exist = StableLinkSids.remove(key);
