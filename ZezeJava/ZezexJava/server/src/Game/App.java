@@ -81,7 +81,7 @@ public final class App extends Zeze.AppBase {
 		ProviderApp = new ProviderApp(Zeze, Provider, Server,
 				"Game.Server.Module#",
 				ProviderDirect, ServerDirect, "Game.Linkd", LoadConfig());
-		Provider.Online = new Online(ProviderApp);
+		Provider.Online = GenModule.Instance.ReplaceModuleInstance(this, new Online(this));
 
 		CreateModules();
 		if (GenModule.Instance.GenFileSrcRoot != null) {

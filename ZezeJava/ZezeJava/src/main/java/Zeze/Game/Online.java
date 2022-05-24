@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
+import Zeze.AppBase;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Arch.RedirectFuture;
@@ -126,10 +127,14 @@ public class Online extends AbstractOnline {
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
 	public final LoadReporter LoadReporter;
 
-	public Online(ProviderApp app) {
-		this.ProviderApp = app;
-		RegisterProtocols(app.ProviderService);
-		RegisterZezeTables(app.Zeze);
+	public Online(AppBase app) {
+		if (app != null) {
+			this.ProviderApp = app.getZeze().Redirect.ProviderApp;
+			RegisterProtocols(ProviderApp.ProviderService);
+			RegisterZezeTables(ProviderApp.Zeze);
+		} else // for RedirectGenMain
+			this.ProviderApp = null;
+
 		LoadReporter = new LoadReporter(this);
 	}
 
