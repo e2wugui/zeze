@@ -10,7 +10,8 @@ namespace Zeze
     {
         public virtual Application Zeze { get; set; }
 
-        public virtual Zeze.IModule ReplaceModuleInstance(Zeze.IModule input)
+        public virtual T ReplaceModuleInstance<T>(T input)
+            where T : IModule
         {
             return input;
         }

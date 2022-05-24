@@ -284,6 +284,8 @@ public final class Agent implements Closeable {
 		*/
 
 		public synchronized void OnCommit(CommitServiceList r) {
+			if (ServiceInfosPending == null)
+				return; // 并发过来的Commit，只需要处理一个。
 			if (r.Argument.SerialId != ServiceInfosPending.getSerialId()) {
 				logger.warn("OnCommit " + getServiceName() + " " + r.Argument.SerialId + " != " + ServiceInfosPending.getSerialId());
 			}

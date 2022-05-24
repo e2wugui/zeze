@@ -987,6 +987,9 @@ namespace Zeze.Services.ServiceManager
             {
                 lock (this)
                 {
+                    if (ServiceInfosPending == null)
+                        return; // 并发过来的Commit，只需要处理一个。
+
                     if (r.Argument.SerialId != ServiceInfosPending.SerialId)
                         Agent.logger.Warn($"OnCommit {ServiceName} {r.Argument.SerialId} != {ServiceInfosPending.SerialId}");
 

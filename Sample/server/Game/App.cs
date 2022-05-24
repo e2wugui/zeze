@@ -12,7 +12,7 @@ namespace Game
 {
     public sealed partial class App
     {
-        public override Zeze.IModule ReplaceModuleInstance(Zeze.IModule module)
+        public override T ReplaceModuleInstance<T>(T module)
         {
             return GenModule.Instance.ReplaceModuleInstance(this, module);
         }
