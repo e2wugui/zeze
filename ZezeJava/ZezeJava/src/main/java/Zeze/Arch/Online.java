@@ -1,9 +1,9 @@
 package Zeze.Arch;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.Online.*;
@@ -22,6 +22,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.EventDispatcher;
 import Zeze.Util.Func4;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
@@ -87,6 +88,7 @@ public class Online extends AbstractOnline {
         login.getDatas().put(key, bAny);
     }
 
+    @SuppressWarnings("unchecked")
     public <T extends Bean> T getLocalBean(String account, String clientId, String key) {
         var bLocals = _tlocal.get(account);
         if (null == bLocals)
@@ -100,28 +102,28 @@ public class Online extends AbstractOnline {
         return (T)data.getAny().getBean();
     }
 
-    private Zeze.Util.EventDispatcher LoginEvents = new Zeze.Util.EventDispatcher("Online.Login");
-    private Zeze.Util.EventDispatcher ReloginEvents = new Zeze.Util.EventDispatcher("Online.Relogin");
-    private Zeze.Util.EventDispatcher LogoutEvents = new Zeze.Util.EventDispatcher("Online.Logout");
-    private Zeze.Util.EventDispatcher LocalRemoveEvents = new Zeze.Util.EventDispatcher("Online.Local.Remove");
+    private final EventDispatcher LoginEvents = new EventDispatcher("Online.Login");
+    private final EventDispatcher ReloginEvents = new EventDispatcher("Online.Relogin");
+    private final EventDispatcher LogoutEvents = new EventDispatcher("Online.Logout");
+    private final EventDispatcher LocalRemoveEvents = new EventDispatcher("Online.Local.Remove");
 
-    public Zeze.Util.EventDispatcher getLoginEvents() {
+    public EventDispatcher getLoginEvents() {
         return LoginEvents;
     }
 
-    public Zeze.Util.EventDispatcher getReloginEvents() {
+    public EventDispatcher getReloginEvents() {
         return ReloginEvents;
     }
 
-    public Zeze.Util.EventDispatcher getLogoutEvents() {
+    public EventDispatcher getLogoutEvents() {
         return LogoutEvents;
     }
 
-    public Zeze.Util.EventDispatcher getLocalRemoveEvents() {
+    public EventDispatcher getLocalRemoveEvents() {
         return LocalRemoveEvents;
     }
 
-    private AtomicLong _LoginTimes = new AtomicLong();
+    private final AtomicLong _LoginTimes = new AtomicLong();
 
     public long getLoginTimes() {
         return _LoginTimes.get();
@@ -185,7 +187,7 @@ public class Online extends AbstractOnline {
     }
 
     public void OnLinkBroken(String account, String clientId, BLinkBroken arg) throws Throwable {
-        long currentLoginVersion = 0;
+        long currentLoginVersion;
         {
             var online = _tonline.get(account);
             var loginOnline = online.getLogins().get(clientId);
@@ -210,32 +212,28 @@ public class Online extends AbstractOnline {
                 RemoveLocalAndTrigger(account, clientId); // 本机数据已经过时，马上删除。
         }
         final var finalCurrentLoginVersion = currentLoginVersion;
-        Transaction.getCurrent().RunWhileCommit(() ->
-        {
-            Zeze.Util.Task.schedule((ThisTask) ->
+        Transaction.getCurrent().RunWhileCommit(() -> Task.schedule(10 * 60 * 1000, () -> {
+            // TryRemove
+            ProviderApp.Zeze.NewProcedure(() ->
             {
-                // TryRemove
-                ProviderApp.Zeze.NewProcedure(() ->
-                {
-                    // local online 独立判断version分别尝试删除。
-                    var local = _tlocal.get(account);
-                    if (null != local) {
-                        var loginLocal = local.getLogins().get(clientId);
-                        if (null != loginLocal && loginLocal.getLoginVersion() == finalCurrentLoginVersion)
-                            RemoveLocalAndTrigger(account, clientId);
-                    }
-                    // 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
-                    var online = _tonline.get(account);
-                    var version = _tversion.getOrAdd(account);
-                    if (null != online) {
-                        var loginVersion = version.getLogins().get(clientId);
-                        if (null != loginVersion && loginVersion.getLoginVersion() == finalCurrentLoginVersion)
-                            RemoveOnlineAndTrigger(account, clientId);
-                    }
-                    return Procedure.Success;
-                }, "Onlines.OnLinkBroken").Call();
-            }, 10 * 60 * 1000);
-        });
+                // local online 独立判断version分别尝试删除。
+                var local = _tlocal.get(account);
+                if (null != local) {
+                    var loginLocal = local.getLogins().get(clientId);
+                    if (null != loginLocal && loginLocal.getLoginVersion() == finalCurrentLoginVersion)
+                        RemoveLocalAndTrigger(account, clientId);
+                }
+                // 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
+                var online = _tonline.get(account);
+                var version = _tversion.getOrAdd(account);
+                if (null != online) {
+                    var loginVersion = version.getLogins().get(clientId);
+                    if (null != loginVersion && loginVersion.getLoginVersion() == finalCurrentLoginVersion)
+                        RemoveOnlineAndTrigger(account, clientId);
+                }
+                return Procedure.Success;
+            }, "Onlines.OnLinkBroken").Call();
+        }));
     }
 
     public void addReliableNotifyMark(String account, String clientId, String listenerName) throws Throwable {
@@ -253,7 +251,7 @@ public class Online extends AbstractOnline {
             login.getReliableNotifyMark().remove(listenerName);
     }
 
-    public void sendReliableNotifyWhileCommit(String account, String clientId, String listenerName, Protocol p) {
+    public void sendReliableNotifyWhileCommit(String account, String clientId, String listenerName, Protocol<?> p) {
         Transaction.getCurrent().RunWhileCommit(
                 () -> sendReliableNotify(account, clientId, listenerName, p)
                 );
@@ -266,7 +264,7 @@ public class Online extends AbstractOnline {
                 );
     }
 
-    public void sendReliableNotifyWhileRollback(String account, String clientId, String listenerName, Protocol p) {
+    public void sendReliableNotifyWhileRollback(String account, String clientId, String listenerName, Protocol<?> p) {
         Transaction.getCurrent().RunWhileRollback(
                 () -> sendReliableNotify(account, clientId, listenerName, p)
                 );
@@ -280,7 +278,7 @@ public class Online extends AbstractOnline {
                 );
     }
 
-    public void sendReliableNotify(String account, String clientId, String listenerName, Protocol p) {
+    public void sendReliableNotify(String account, String clientId, String listenerName, Protocol<?> p) {
         sendReliableNotify(account, clientId, listenerName, p.getTypeId(), new Binary(p.Encode()));
     }
 
@@ -323,7 +321,7 @@ public class Online extends AbstractOnline {
                             login.setReliableNotifyIndex(login.getReliableNotifyIndex() + 1); // after set notify.Argument
                             notify.Argument.getNotifies().add(fullEncodedProtocol);
 
-                            SendInProcedure(Arrays.asList(new LoginKey(account, clientId))
+                            SendInProcedure(List.of(new LoginKey(account, clientId))
                                     , notify.getTypeId(), new Binary(notify.Encode()));
                             return Procedure.Success;
                         },
@@ -430,7 +428,7 @@ public class Online extends AbstractOnline {
         var login = new LoginKey(account, clientId);
         ProviderApp.Zeze.getTaskOneByOneByKey().Execute(login,
                 ProviderApp.Zeze.NewProcedure(() -> {
-                    SendInProcedure(Arrays.asList(login), typeId, fullEncodedProtocol);
+                    SendInProcedure(List.of(login), typeId, fullEncodedProtocol);
                     return Procedure.Success;
                 }, "Onlines.Send"));
     }
@@ -443,27 +441,27 @@ public class Online extends AbstractOnline {
                 }, "Onlines.Send"), null);
     }
 
-    public void send(String account, String clientId, Protocol p) {
+    public void send(String account, String clientId, Protocol<?> p) {
         Send(account, clientId, p.getTypeId(), new Binary(p.Encode()));
     }
 
-    public void send(Collection<LoginKey> logins, Protocol p) {
+    public void send(Collection<LoginKey> logins, Protocol<?> p) {
         Send(logins, p.getTypeId(), new Binary(p.Encode()));
     }
 
-    public void sendWhileCommit(String account, String clientId, Protocol p) {
+    public void sendWhileCommit(String account, String clientId, Protocol<?> p) {
         Transaction.getCurrent().RunWhileCommit(() -> send(account, clientId, p));
     }
 
-    public void SendWhileCommit(Collection<LoginKey> logins, Protocol p) {
+    public void SendWhileCommit(Collection<LoginKey> logins, Protocol<?> p) {
         Transaction.getCurrent().RunWhileCommit(() -> send(logins, p));
     }
 
-    public void sendWhileRollback(String account, String clientId, Protocol p) {
+    public void sendWhileRollback(String account, String clientId, Protocol<?> p) {
         Transaction.getCurrent().RunWhileRollback(() -> send(account, clientId, p));
     }
 
-    public void sendWhileRollback(Collection<LoginKey> logins, Protocol p) {
+    public void sendWhileRollback(Collection<LoginKey> logins, Protocol<?> p) {
         Transaction.getCurrent().RunWhileRollback(() -> send(logins, p));
     }
 
@@ -482,7 +480,7 @@ public class Online extends AbstractOnline {
     /// <param name="actionName">查询处理的实现</param>
     /// <param name="roleId">目标角色</param>
     public void transmit(String account, String clientId, String actionName, String target, Serializable parameter) throws Throwable {
-        transmit(account, clientId, actionName, Arrays.asList(target), parameter);
+        transmit(account, clientId, actionName, List.of(target), parameter);
     }
 
     public void processTransmit(String account, String clientId, String actionName, Collection<String> accounts, Binary parameter) throws Throwable {
@@ -494,7 +492,7 @@ public class Online extends AbstractOnline {
         }
     }
 
-    public class RoleOnServer {
+    public static class RoleOnServer {
         public int ServerId = -1; // empty when not online
         public HashSet<String> Accounts = new HashSet<>();
 
@@ -656,7 +654,7 @@ public class Online extends AbstractOnline {
         }
     }
 
-    public void Broadcast(Protocol p, int time) {
+    public void Broadcast(Protocol<?> p, int time) {
         Broadcast(p.getTypeId(), new Binary(p.Encode()), time);
     }
 
@@ -681,7 +679,7 @@ public class Online extends AbstractOnline {
                     }
                 });
         // 随机开始时间，避免验证操作过于集中。3:10 - 5:10
-        Zeze.Util.Task.scheduleAt(3 + Zeze.Util.Random.getInstance().nextInt(3), 10, this::VerifyLocal); // at 3:10 - 6:10
+        Task.scheduleAt(3 + Zeze.Util.Random.getInstance().nextInt(3), 10, this::VerifyLocal); // at 3:10 - 6:10
     }
 
     private static final Logger logger = LogManager.getLogger(Online.class);
