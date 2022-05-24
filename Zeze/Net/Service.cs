@@ -336,7 +336,7 @@ namespace Zeze.Net
         public void AddFactoryHandle(long type, ProtocolFactoryHandle factory)
         {
             if (false == Factorys.TryAdd(type, factory))
-                throw new Exception($"duplicate factory type={type} moduleid={(type >> 16) & 0x7fff} id={type & 0x7fff}");
+                throw new Exception($"duplicate factory type={type} moduleid={(type >> 32) & 0x7fff} id={type & 0x7fff}");
         }
 
         /* target: 静态方法可以传null */

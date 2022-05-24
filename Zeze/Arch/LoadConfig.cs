@@ -23,9 +23,9 @@ namespace Zeze.Arch
                 string json = Encoding.UTF8.GetString(System.IO.File.ReadAllBytes(jsonFile));
                 return JsonSerializer.Deserialize<LoadConfig>(json);
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                Console.WriteLine(e);
+                //Console.WriteLine(e);
                 return new LoadConfig();
             }
         }
