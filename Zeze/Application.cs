@@ -107,9 +107,8 @@ namespace Zeze
                         // TODO 加上超时支持。
                         await last.Monitor.WaitAsync();
                     }
-                    if (last.Removed)
-                        continue;
-                    return true;
+                    if (false == last.Removed)
+                        return true;
                 }
             }
         }
