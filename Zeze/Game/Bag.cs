@@ -274,8 +274,11 @@ namespace Zeze.Game
                 }
                 else
                 {
+                    if (itemFrom.Number == number)
+                        bean.Items.Remove(from);
+                    else
+                        itemFrom.Number -= number;
                     itemTo.Number = numberToWill;
-                    bean.Items.Remove(from);
                 }
                 return 0;
             }

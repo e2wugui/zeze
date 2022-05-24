@@ -1,28 +1,17 @@
 ﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using Zeze.Transaction;
 using Zeze.Game;
+using Zeze.Transaction;
 
 namespace UnitTest.Zeze.Game
 {
     [TestClass()]
     public class TestBag
     {
-        public const int ADD_NUM = 100;          // add item num
-        public const int ADD_PILE_NUM = 10;      // 添加的格子数量
-        public const int MIN_ITEM_ID = 100;      // item编号起始值
-        public const int SECOND_REMOVE_NUM = 10; // 第二次删除的item数量 应小于ADD_NUM/2
-        public const int MAX_BAG_CAPACITY = 100; // 背包容量
-
         [TestInitialize]
         public void TestInit()
         {
             demo.App.Instance.Start();
-            Bag.FuncItemPileMax = (itemId) => 50;
+            Bag.FuncItemPileMax = (itemId) => 99;
         }
 
         [TestCleanup]
@@ -32,92 +21,69 @@ namespace UnitTest.Zeze.Game
         }
 
         [TestMethod()]
-        public void Test1_Add()
+        public void Test1_All()
         {
             var result = demo.App.Instance.Zeze.NewProcedure(async () =>
             {
                 var bag = await demo.App.Instance.BagModule.OpenAsync("test1");
-                bag.Capacity = MAX_BAG_CAPACITY;
-                for (int i = MIN_ITEM_ID; i < MIN_ITEM_ID + ADD_PILE_NUM; i++)
+                bag.Capacity = 100;
+                for (int i = 100; i < 100 + 10; i++)
                 {
-                    var code = await bag.AddAsync(i, ADD_NUM);
+                    var code = await bag.AddAsync(i, 100);
                     Assert.IsTrue(code == 0);
                 }
-                Assert.IsTrue(bag.Bean.Items.Count == ADD_PILE_NUM * 2);
+                Assert.IsTrue(bag.Bean.Items.Count == 10 * 2);
+
+                Assert.IsTrue(bag.Bean.Items.Count == 20);
+
+                for (int i = 0; i < 20; i += 2)
+                {
+                    Assert.IsTrue(bag.Bean.Items[i].Number >= 49);
+                    var code = bag.Move(i, i + 1, 49);
+                    Assert.IsTrue(code == 0);
+                    Assert.IsTrue(bag.Bean.Items[i].Number == 50);
+                    Assert.IsTrue(bag.Bean.Items[i + 1].Number == 50);
+                }
+
+                Assert.IsTrue(bag.Bean.Items.Count == 20);
+                for (int i = 100; i < 100 + 10; i++)
+                {
+                    var code = bag.Remove(i, 50);
+                    Assert.IsTrue(code == true);
+                }
+
+                Assert.IsTrue(bag.Bean.Items.Count == 10);
+                for (int i = 100; i < 110; i++)
+                {
+                    var code = bag.Remove(i, 10);
+                    Assert.IsTrue(code == true);
+                }
+
+                for (int i = 1; i < 20; i += 2)
+                {
+                    Assert.IsTrue(bag.Bean.Items[i].Number == 40);
+                }
+
+                Assert.IsTrue(bag.Bean.Items.Count == 10);
+                for (int i = 1; i < 20; i += 2)
+                {
+                    var code = bag.Move(i, i - 1, 20);
+                    Assert.IsTrue(code == 0);
+                    Assert.IsTrue(bag.Bean.Items[i - 1].Number == 20);
+                    Assert.IsTrue(bag.Bean.Items[i].Number == 20);
+                }
+                Assert.IsTrue(bag.Bean.Items.Count == 20);
+
+                // test move swap
+                var fromId = bag.Bean.Items[0].Id;
+                var fromNum = bag.Bean.Items[0].Number;
+                var toId = bag.Bean.Items[2].Id;
+                var toNum = bag.Bean.Items[2].Number;
+                var rst = bag.Move(0, 2, -1);
+                Assert.IsTrue(bag.Bean.Items[0].Id == toId && bag.Bean.Items[0].Number == toNum);
+                Assert.IsTrue(bag.Bean.Items[2].Id == fromId && bag.Bean.Items[2].Number == fromNum);
                 return Procedure.Success;
             }, "Test1_Add").CallSynchronously();
-            Assert.IsTrue(result == Procedure.Success);
-        }
-
-        [TestMethod()]
-        public void Test2_Move()
-        {
-            var result = demo.App.Instance.Zeze.NewProcedure(async () =>
-            {
-                var bag = await demo.App.Instance.BagModule.OpenAsync("test1");
-                Assert.IsTrue(bag.Bean.Items.Count == ADD_PILE_NUM * 2);
-                int moveNum = ADD_NUM / 4;
-
-                Assert.IsTrue(bag.Bean.Items[0].Number >= moveNum);
-                var code = bag.Move(0, 2, -1);
-                Assert.IsTrue(bag.Bean.Items[0].Id == MIN_ITEM_ID + 1);
-                Assert.IsTrue(bag.Bean.Items[2].Id == MIN_ITEM_ID);
-                Assert.IsTrue(code == 0);
-                Assert.IsTrue(bag.Bean.Items[0].Number == ADD_NUM / 2);
-                Assert.IsTrue(bag.Bean.Items[2].Number == ADD_NUM / 2);
-
-                return Procedure.Success;
-            }, "Test2_Move").CallSynchronously();
-            Assert.IsTrue(result == Procedure.Success);
-        }
-
-        [TestMethod()]
-        public void Test3_Remove()
-        { 
-            var result = demo.App.Instance.Zeze.NewProcedure(async () =>
-            {
-                var bag = await demo.App.Instance.BagModule.OpenAsync("test1");
-                Assert.IsTrue(bag.Bean.Items.Count == ADD_PILE_NUM * 2);
-                for (int i = MIN_ITEM_ID; i < MIN_ITEM_ID + ADD_PILE_NUM; i++)
-                {
-                    var code = bag.Remove(i, ADD_NUM / 2);
-                    Assert.IsTrue(code == true);
-                }
-
-                Assert.IsTrue(bag.Bean.Items.Count == ADD_PILE_NUM);
-                for (int i = MIN_ITEM_ID; i < MIN_ITEM_ID + ADD_PILE_NUM; i++)
-                {
-                    var code = bag.Remove(i, SECOND_REMOVE_NUM);
-                    Assert.IsTrue(code == true);
-                }
-
-                for (int i = 1; i < ADD_PILE_NUM * 2; i += 2)
-                {
-                    Assert.IsTrue(bag.Bean.Items[i].Number == ADD_NUM / 2 - SECOND_REMOVE_NUM);
-                }
-                return Procedure.Success;
-            }, "Test3_Remove").CallSynchronously();
-            Assert.IsTrue(result == Procedure.Success);
-        }
-
-        [TestMethod()]
-        public void Test4_Move()
-        {
-            var result = demo.App.Instance.Zeze.NewProcedure(async () =>
-            {
-                var bag = await demo.App.Instance.BagModule.OpenAsync("test1");
-                Assert.IsTrue(bag.Bean.Items.Count == ADD_PILE_NUM);
-                int moveNum = (ADD_NUM / 2 - SECOND_REMOVE_NUM) / 2;
-                for (int i = 1; i < ADD_PILE_NUM * 2; i += 2)
-                {
-                    var code = bag.Move(i, i - 1, moveNum);
-                    Assert.IsTrue(code == 0);
-                    Assert.IsTrue(bag.Bean.Items[i - 1].Number == moveNum);
-                    Assert.IsTrue(bag.Bean.Items[i].Number == ADD_NUM / 2 - SECOND_REMOVE_NUM - moveNum);
-                }
-                Assert.IsTrue(bag.Bean.Items.Count == ADD_PILE_NUM * 2);
-                return Procedure.Success;
-            }, "Test4_Move").CallSynchronously();
             Assert.IsTrue(result == Procedure.Success);
         }
     }
