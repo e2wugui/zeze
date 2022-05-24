@@ -43,10 +43,13 @@ namespace Zeze.Game
             this.App = app;
             this.ProviderApp = app.Zeze.Redirect.ProviderApp;
 
+            LoadReporter = new(this);
+        }
+
+        public override void Register()
+        {
             RegisterProtocols(ProviderApp.ProviderService);
             RegisterZezeTables(ProviderApp.Zeze);
-
-            LoadReporter = new(this);
         }
 
         public override void UnRegister()
