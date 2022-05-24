@@ -46,16 +46,18 @@ namespace Zeze.Game
             UnRegisterProtocols(ProviderApp.ProviderService);
         }
 
+        private Util.SchedulerTask VerifyLocalTimer;
         public void Start()
         {
             LoadReporter.Start();
-            Util.Scheduler.ScheduleAt(VerifyLocal, 3 + Util.Random.Instance.Next(3), 10); // at 3:10 - 6:10
+            VerifyLocalTimer = Util.Scheduler.ScheduleAt(VerifyLocal, 3 + Util.Random.Instance.Next(3), 10); // at 3:10 - 6:10
             ProviderApp.BuiltinModules.Add(FullName, this);
         }
 
         public void Stop()
         {
             LoadReporter.Stop();
+            VerifyLocalTimer?.Cancel();
         }
 
 
@@ -659,7 +661,7 @@ namespace Zeze.Game
                     }
                 });
             // 随机开始时间，避免验证操作过于集中。3:10 - 5:10
-            Util.Scheduler.ScheduleAt(VerifyLocal, 3 + Util.Random.Instance.Next(3), 10); // at 3:10 - 6:10
+            VerifyLocalTimer = Util.Scheduler.ScheduleAt(VerifyLocal, 3 + Util.Random.Instance.Next(3), 10); // at 3:10 - 6:10
         }
 
         private async Task TryRemoveLocal(long roleId)

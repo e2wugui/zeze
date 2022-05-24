@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.Online.*;
 import Zeze.Builtin.Provider.BKick;
@@ -59,10 +60,17 @@ public class Online extends AbstractOnline {
         UnRegisterProtocols(ProviderApp.ProviderService);
     }
 
+    private Future<?> VerifyLocalTimer;
     public void Start() {
         //LoadReporter.StartTimerTask();
-        Task.scheduleAt(3 + Zeze.Util.Random.getInstance().nextInt(3), 10, this::VerifyLocal); // at 3:10 - 6:10
+        VerifyLocalTimer = Task.scheduleAt(3 + Zeze.Util.Random.getInstance().nextInt(3), 10, this::VerifyLocal); // at 3:10 - 6:10
         ProviderApp.BuiltinModules.put(this.getFullName(), this);
+    }
+
+    public void Stop() {
+        //LoadReporter.Stop();
+        if (null != VerifyLocalTimer)
+            VerifyLocalTimer.cancel(false);
     }
 
     public int getLocalCount() {
@@ -679,7 +687,7 @@ public class Online extends AbstractOnline {
                     }
                 });
         // 随机开始时间，避免验证操作过于集中。3:10 - 5:10
-        Task.scheduleAt(3 + Zeze.Util.Random.getInstance().nextInt(3), 10, this::VerifyLocal); // at 3:10 - 6:10
+        VerifyLocalTimer = Zeze.Util.Task.scheduleAt(3 + Zeze.Util.Random.getInstance().nextInt(3), 10, this::VerifyLocal); // at 3:10 - 6:10
     }
 
     private static final Logger logger = LogManager.getLogger(Online.class);

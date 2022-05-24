@@ -5,7 +5,7 @@ import Zeze.Builtin.Collections.DepartmentTree.*;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DynamicBean;
 
-public class DepartmentTree<TManager extends Bean, TMember extends Bean> {
+public class DepartmentTree<TManager extends Bean, TMember extends Bean, TDepartmentMember extends Bean> {
 	private static final BeanFactory beanFactory = new BeanFactory();
 
 	public static long GetSpecialTypeIdFromBean(Bean bean) {
@@ -17,7 +17,7 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean> {
 	}
 
 	public static class Module extends AbstractDepartmentTree {
-		private final ConcurrentHashMap<String, DepartmentTree<?, ?>> Trees = new ConcurrentHashMap<>();
+		private final ConcurrentHashMap<String, DepartmentTree<?, ?, ?>> Trees = new ConcurrentHashMap<>();
 		public final Zeze.Application Zeze;
 		public final LinkedMap.Module LinkedMaps;
 
@@ -33,9 +33,9 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean> {
 		}
 
 		@SuppressWarnings("unchecked")
-		public <TManager extends Bean, TMember extends Bean> DepartmentTree<TManager, TMember>
-			open(String name, Class<TManager> managerClass, Class<TMember> memberClass) {
-			return (DepartmentTree<TManager, TMember>)Trees.computeIfAbsent(name, k -> new DepartmentTree<>(this, k, managerClass, memberClass));
+		public <TManager extends Bean, TMember extends Bean, TDepartmentMember extends Bean> DepartmentTree<TManager, TMember, TDepartmentMember>
+			open(String name, Class<TManager> managerClass, Class<TMember> memberClass, Class<TDepartmentMember> departmentMemberClass) {
+			return (DepartmentTree<TManager, TMember, TDepartmentMember>)Trees.computeIfAbsent(name, k -> new DepartmentTree<>(this, k, managerClass, memberClass, departmentMemberClass));
 		}
 
 	}
@@ -43,12 +43,14 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean> {
 	private final Module module;
 	private final String name;
 	private final Class<TMember> memberClass;
+	private final Class<TDepartmentMember> departmentMemberClass;
 
-	private DepartmentTree(Module module, String name, Class<TManager> managerClass, Class<TMember> memberClass) {
+	private DepartmentTree(Module module, String name, Class<TManager> managerClass, Class<TMember> memberClass, Class<TDepartmentMember> departmentMemberClass) {
 		this.module = module;
 		this.name = name;
 		beanFactory.register(managerClass);
 		this.memberClass = memberClass;
+		this.departmentMemberClass = departmentMemberClass;
 	}
 
 	public String getName() {
@@ -69,8 +71,10 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean> {
 		return module._tDepartmentTree.get(new BDepartmentKey(name, departmentId));
 	}
 
-	public LinkedMap<TMember> getDepartmentMembers(long departmentId) {
-		return module.LinkedMaps.<TMember>open("" + departmentId + "#" + name, memberClass);
+	public LinkedMap<TDepartmentMember> getDepartmentMembers(long departmentId) {
+		if (departmentId == 0)
+			throw new RuntimeException("root members use getMembers.");
+		return module.LinkedMaps.<TDepartmentMember>open("" + departmentId + "#" + name, departmentMemberClass);
 	}
 
 	public LinkedMap<TMember> getMembers() {

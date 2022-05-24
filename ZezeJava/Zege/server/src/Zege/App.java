@@ -8,9 +8,9 @@ import Zeze.Arch.ProviderModuleBinds;
 import Zeze.Collections.DepartmentTree;
 import Zeze.Collections.LinkedMap;
 import Zeze.Config;
-import Zeze.Game.Online;
-import Zeze.Game.ProviderDirectWithTransmit;
-import Zeze.Game.ProviderImplementWithOnline;
+import Zeze.Arch.Online;
+import Zeze.Arch.ProviderDirect;
+import Zeze.Arch.ProviderWithOnline;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.PersistentAtomicLong;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -22,8 +22,8 @@ public class App extends Zeze.AppBase {
     }
 
     public ProviderApp ProviderApp;
-    public ProviderDirectWithTransmit ProviderDirect;
-    public ProviderImplementWithOnline Provider;
+    public ProviderDirect ProviderDirect;
+    public ProviderWithOnline Provider;
     public LinkedMap.Module LinkedMaps;
     public DepartmentTree.Module DepartmentTrees;
 
@@ -42,8 +42,8 @@ public class App extends Zeze.AppBase {
         CreateZeze(config);
         CreateService();
 
-        Provider = new ProviderImplementWithOnline();
-        ProviderDirect = new ProviderDirectWithTransmit();
+        Provider = new ProviderWithOnline();
+        ProviderDirect = new ProviderDirect();
         ProviderApp = new ProviderApp(Zeze, Provider, Server,
                 "Zege.Server.Module#",
                 ProviderDirect, ServerDirect, "Zege.Linkd", LoadConfig());

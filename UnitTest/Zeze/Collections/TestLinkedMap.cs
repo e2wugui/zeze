@@ -61,6 +61,8 @@ namespace UnitTest.Zeze.Collections
 			var map = demo.App.Instance.LinkedMapModule.Open<demo.Module1.Value>("test1");
 			var i = new AtomicInteger(0);
 			int[] arr = { 100, 101, 102, 103, 104, 105, 106, 107, 108, 109 };
+			Array.Reverse(arr);
+
 			map.WalkAsync((key, value) =>
 			{
 				Assert.IsTrue(i.Get() < 10);

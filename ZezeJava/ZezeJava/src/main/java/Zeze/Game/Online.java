@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderUserSession;
@@ -132,15 +133,17 @@ public class Online extends AbstractOnline {
 		LoadReporter = new LoadReporter(this);
 	}
 
+	private Future<?> VerifyLocalTimer;
 	public void Start() {
 		LoadReporter.Start();
-		Task.scheduleAt(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
+		VerifyLocalTimer = Task.scheduleAt(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
 		ProviderApp.BuiltinModules.put(this.getFullName(), this);
 	}
 
 	public void Stop() {
 		LoadReporter.Stop();
-	}
+		if (null != VerifyLocalTimer)
+			VerifyLocalTimer.cancel(false);	}
 
 	@Override
 	public void UnRegister() {
@@ -680,7 +683,7 @@ public class Online extends AbstractOnline {
 					}
 				});
 		// 随机开始时间，避免验证操作过于集中。3:10 - 5:10
-		Task.scheduleAt(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
+		VerifyLocalTimer = Task.scheduleAt(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
 	}
 
 	private void tryRemoveLocal(long roleId) throws Throwable {

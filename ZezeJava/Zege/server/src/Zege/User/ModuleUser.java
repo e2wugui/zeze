@@ -1,5 +1,9 @@
 package Zege.User;
 
+import Zege.Friend.BDepartmentMember;
+import Zege.Friend.BFriend;
+import Zege.Friend.BMember;
+import Zege.Friend.ModuleFriend;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Transaction.Procedure;
 
@@ -8,6 +12,10 @@ public class ModuleUser extends AbstractModule {
     }
 
     public void Stop(Zege.App app) throws Throwable {
+    }
+
+    public boolean contains(String account) {
+        return _tUser.get(account) != null;
     }
 
     @Override
@@ -20,6 +28,17 @@ public class ModuleUser extends AbstractModule {
             user.setCreateTime(System.currentTimeMillis());
         }
         session.SendResponseWhileCommit(r);
+
+        // 【准备测试数据】
+        // 把用户加入默认群，并且把群加入用户好友列表。
+        var defaultGroup = "wanmei@group";
+        var group = App.Zege_Friend.getDepartmentTree(defaultGroup);
+        var member = new BMember();
+        member.setAccount(session.getAccount());
+        group.getMembers().put(session.getAccount(), member);
+        var friend = new BFriend();
+        friend.setAccount(defaultGroup);
+        App.Zege_Friend.getFriends(session.getAccount()).put(friend.getAccount(), friend);
         return Procedure.Success;
     }
 
