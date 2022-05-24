@@ -1,15 +1,17 @@
 package Zeze.Transaction;
 
+import org.apache.logging.log4j.LogManager;
 import org.rocksdb.*;
-
+import org.apache.logging.log4j.Logger;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.*;
 import Zeze.Serialize.ByteBuffer;
 
 public class DatabaseRocksDb extends Database {
-	// private static final Logger logger = LogManager.getLogger(DatabaseMySql.class);
+	private static final Logger logger = LogManager.getLogger(DatabaseRocksDb.class);
 
 	private final RocksDB Db;
 	private final WriteOptions WriteOptions = new WriteOptions();
@@ -19,6 +21,25 @@ public class DatabaseRocksDb extends Database {
 
 	static{
 		RocksDB.loadLibrary();
+	}
+
+	public static RocksDB Open(final DBOptions options, final String path,
+							   final List<ColumnFamilyDescriptor> columnFamilyDescriptors,
+							   final List<ColumnFamilyHandle> columnFamilyHandles) throws RocksDBException {
+		RocksDBException lastE = null;
+		for (int i = 0; i < 10; ++i) {
+			try {
+				return RocksDB.open(options, path, columnFamilyDescriptors, columnFamilyHandles);
+			} catch (RocksDBException e) {
+				logger.info("RocksDB.open " + path, e);
+				lastE = e;
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException ignored) {
+				}
+			}
+		}
+		throw lastE;
 	}
 
 	public DatabaseRocksDb(Config.DatabaseConf conf) {
@@ -38,7 +59,7 @@ public class DatabaseRocksDb extends Database {
 
 			// DirectOperates 依赖 Db，所以只能在这里打开。要不然，放在Open里面更加合理。
 			var outHandles = new ArrayList<ColumnFamilyHandle>();
-			Db = RocksDB.open(dbOptions, dbHome, columnFamilies, outHandles);
+			Db = Open(dbOptions, dbHome, columnFamilies, outHandles);
 
 			for (int i = 0; i < columnFamilies.size(); ++i){
 				var cf = columnFamilies.get(i);
