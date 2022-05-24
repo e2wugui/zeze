@@ -29,6 +29,7 @@ public final class ModuleLinkd extends AbstractModule {
 		*/
 		var linkSession = (LinkdUserSession)rpc.getSender().getUserState();
 		linkSession.setAccount(rpc.Argument.getAccount());
+		linkSession.setAuthed();
 		rpc.SendResultCode(Auth.Success);
 		logger.info("Auth accout:{} ip:{}", linkSession.getAccount(), rpc.getSender().getRemoteAddress());
 		return Zeze.Transaction.Procedure.Success;

@@ -372,7 +372,7 @@ public final class Agent implements Closeable {
 				var r = new Register();
 				r.Argument = info;
 				r.SendAndWaitCheckResultCode(Client.getSocket());
-				logger.debug("RegisterService " + info);
+				logger.info("RegisterService " + info);
 			} catch (Throwable e) {
 				getRegisters().remove(info, info); // rollback
 				throw e;
@@ -431,7 +431,7 @@ public final class Agent implements Closeable {
 			var r = new Subscribe();
 			r.Argument = info;
 			r.SendAndWaitCheckResultCode(Client.getSocket());
-			logger.debug("SubscribeService " + info);
+			logger.info("SubscribeService " + info);
 		}
 		return subState;
 	}
