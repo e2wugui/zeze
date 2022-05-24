@@ -103,47 +103,41 @@ public class TestOnline extends TestCase {
 		var relogin = new ReLogin();
 		relogin.Argument.setRoleId(roleId);
 		relogin.SendForWait(app.ClientService.GetSocket()).await();
-		if (relogin.getResultCode() != 0)
-			throw new RuntimeException("relogin error. roleId=" + roleId + " code=" + relogin.getResultCode());
+		assert relogin.getResultCode() == 0;
 	}
 
 	private void logout(ClientGame.App app, long roleIdForLogOnly) {
 		var logout = new Logout();
 		logout.SendForWait(app.ClientService.GetSocket()).await();
-		if (logout.getResultCode() != 0)
-			throw new RuntimeException("logout error. roleId=" + roleIdForLogOnly);
+		assert logout.getResultCode() == 0;
 	}
 
 	private void login(ClientGame.App app, long roleId) {
 		var login = new Login();
 		login.Argument.setRoleId(roleId);
 		login.SendForWait(app.ClientService.GetSocket()).await();
-		if (login.getResultCode() != 0)
-			throw new RuntimeException("login error. roleId=" + roleId + " code=" + login.getResultCode());
+		assert login.getResultCode() == 0;
 	}
 
 	private void auth(ClientGame.App app, String account) {
 		var auth = new Auth();
 		auth.Argument.setAccount(account);
 		auth.SendForWait(app.ClientService.GetSocket()).await();
-		if (auth.getResultCode() != 0)
-			throw new RuntimeException("auth error " + account + " code=" + auth.getResultCode());
+		assert auth.getResultCode() == 0;
 	}
 
 	private long createRole(ClientGame.App app, String role) {
 		var createRole = new CreateRole();
 		createRole.Argument.setName(role);
 		createRole.SendForWait(app.ClientService.GetSocket()).await();
-		if (createRole.getResultCode() != 0)
-			throw new RuntimeException("createRole error " + role + " code=" + createRole.getResultCode());
+		assert createRole.getResultCode() == 0;
 		return createRole.Result.getId();
 	}
 
 	private BRole getRole(ClientGame.App app) {
 		var get = new GetRoleList();
 		get.SendForWait(app.ClientService.GetSocket()).await();
-		if (get.getResultCode() != 0)
-			throw new RuntimeException("getRoleList error. code=" + get.getResultCode());
+		assert get.getResultCode() == 0;
 		if (get.Result.getRoleList().isEmpty())
 			return null;
 		return get.Result.getRoleList().get(0);

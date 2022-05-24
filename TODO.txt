@@ -9,7 +9,7 @@ DatabaseTikv.OperatesTikv
 
 【2022/6/11】
 
-一致性hash负载分配算法：解决provider变动带来的原来分配方式（hash%count)导致大量re-hash造成cache全部重来的问题。
+一致性hash负载分配算法：解决provider变动带来的原来分配方式（hash%count)导致re-hash造成cache大量重来的问题。
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 0.9.6 zege start & c# raft ready

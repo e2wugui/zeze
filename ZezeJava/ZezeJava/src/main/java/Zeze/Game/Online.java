@@ -782,6 +782,10 @@ public class Online extends AbstractOnline {
 		version.setLoginVersion(loginVersion);
 		local.setLoginVersion(loginVersion);
 
+		if (!online.getLinkName().equals(session.getLinkName()) || online.getLinkSid() != session.getLinkSid()) {
+			ProviderApp.ProviderService.kick(online.getLinkName(), online.getLinkSid(),
+					BKick.ErrorDuplicateLogin, "duplicate role login");
+		}
 		if (!online.getLinkName().equals(session.getLinkName()))
 			online.setLinkName(session.getLinkName());
 		if (online.getLinkSid() != session.getLinkSid())
