@@ -257,7 +257,7 @@ public class Bag {
 			int numberToWill = itemTo.getNumber() + number;
 			if (numberToWill > pileMax) {
 				itemTo.setNumber(pileMax);
-				itemFrom.setNumber(itemFrom.getNumber() - (numberToWill - pileMax));
+				itemFrom.setNumber(itemFrom.getNumber() - number + (numberToWill - pileMax));
 			} else {
 				itemTo.setNumber(numberToWill);
 				var remainNum = itemFrom.getNumber() - number;

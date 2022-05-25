@@ -270,7 +270,7 @@ namespace Zeze.Game
                 if (numberToWill > pileMax)
                 {
                     itemTo.Number = pileMax;
-                    itemFrom.Number = numberToWill - pileMax;
+                    itemFrom.Number = itemFrom.Number - number + (numberToWill - pileMax);
                 }
                 else
                 {
