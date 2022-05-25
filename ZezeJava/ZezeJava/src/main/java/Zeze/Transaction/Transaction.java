@@ -387,10 +387,8 @@ public final class Transaction {
 	}
 
 	public void VerifyRecordAccessed(Bean bean, @SuppressWarnings("unused") boolean IsRead) {
-		/*
-		if (IsRead && getTopProcedure().getZeze().getConfig().getAllowReadWhenRecordNotAccessed())
-		    return;
-		*/
+		if (IsRead)
+		    return; // allow read
 
 		if (bean.RootInfo.getRecord().getState() == GlobalCacheManagerServer.StateRemoved) {
 			ThrowRedo(); // 这个错误需要redo。不是逻辑错误。

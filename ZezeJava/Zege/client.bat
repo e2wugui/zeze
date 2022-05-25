@@ -1,2 +1,11 @@
 
-java -cp ../ZezeJava/build/classes/java/main;client/build/classes/java/main;lib/log4j-core-2.17.2.jar;lib/log4j-api-2.17.2.jar Zege.Program
+@echo off
+
+setlocal enabledelayedexpansion
+set libs=
+for /f %%i in ('dir /b lib')  do (
+	if "!libs!" == "" (set libs=lib\%%i) else (set libs=!libs!;lib\%%i)
+) 
+
+set classes=../ZezeJava/build/classes/java/main;client/build/classes/java/main
+java -cp %classes%;%libs% Zege.Program

@@ -13,9 +13,11 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Str;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public abstract class ProviderImplement extends AbstractProviderImplement {
-	//private static final Logger logger = LogManager.getLogger(ProviderImplement.class);
+	private static final Logger logger = LogManager.getLogger(ProviderImplement.class);
 
 	public ProviderApp ProviderApp;
 
@@ -132,7 +134,8 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 					});
 		} catch (Throwable ex) {
 			SendKick(p.getSender(), p.Argument.getLinkSid(), BKick.ErrorProtocolException, ex.toString());
-			throw ex;
+			logger.error(ex);
+			return Procedure.Success;
 		}
 	}
 

@@ -174,15 +174,12 @@ namespace Zeze.Transaction
                 this.ThrowRedo();
         }
 
-        public Application RecentPerformZeze { get; private set; }
-
         /// <summary>
         /// Procedure 第一层入口，总的处理流程，包括重做和所有错误处理。
         /// </summary>
         /// <param name="procedure"></param>
         internal async Task<long> Perform(Procedure procedure)
         {
-            RecentPerformZeze = procedure.Zeze;
             try
             {
                 for (int tryCount = 0; tryCount < 256; ++tryCount) // 最多尝试次数
@@ -530,8 +527,8 @@ namespace Zeze.Transaction
 
         public void VerifyRecordAccessed(Bean bean, bool isRead = false)
         {
-            if (isRead && RecentPerformZeze.Config.AllowReadWhenRecordNotAccessed)
-                return;
+            if (isRead) // && Zeze.Config.AllowReadWhenRecordNotAccessed)
+                return; // allow read
 
             if (bean.RootInfo.Record.State == GlobalCacheManagerServer.StateRemoved)
                 ThrowRedo(); // 这个错误需要redo。不是逻辑错误。

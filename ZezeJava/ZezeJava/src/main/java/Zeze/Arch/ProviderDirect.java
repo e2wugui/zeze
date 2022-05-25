@@ -19,7 +19,7 @@ import org.apache.logging.log4j.Logger;
  * 需要的时候可以重载重新实现默认实现。
  */
 public class ProviderDirect extends AbstractProviderDirect {
-	private static final Logger logger = LogManager.getLogger(RedirectBase.class);
+	private static final Logger logger = LogManager.getLogger(ProviderDirect.class);
 
 	public ProviderApp ProviderApp;
 

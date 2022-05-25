@@ -23,15 +23,18 @@ public class ModuleFriend extends AbstractModule {
         return req.Result;
     }
 
-    public BMemberNode getMemberNode(long nodeId) {
+    public BMemberNode getGroupMemberNode(String group, long nodeId) {
         var req = new GetGroupMemberNode();
+        req.Argument.setGroup(group);
         req.Argument.setNodeId(nodeId);
         req.SendForWait(App.Connector.GetReadySocket()).await();
         return req.Result;
     }
 
-    public BDepartmentMemberNode getDepartmentMemberNode(long nodeId) {
+    public BDepartmentMemberNode getDepartmentMemberNode(String group, long departmentId, long nodeId) {
         var req = new GetDepartmentMemberNode();
+        req.Argument.setGroup(group);
+        req.Argument.setDepartmentId(departmentId);
         req.Argument.setNodeId(nodeId);
         req.SendForWait(App.Connector.GetReadySocket()).await();
         return req.Result;

@@ -7,6 +7,7 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
+import javax.swing.GroupLayout;
 import Zege.Friend.BFriend;
 import Zege.Friend.BFriendNode;
 import Zege.Friend.BMemberNode;
@@ -76,7 +77,7 @@ public class Program {
 
 		public boolean process(String line) {
 			if (line.isEmpty()) {
-				refresh();
+				Program.this.refresh();
 				return true;
 			}
 
@@ -121,10 +122,10 @@ public class Program {
 	}
 
 	public class GroupWindow extends Window {
-		public String Target;
-		public GroupWindow(String target) {
-			this.Target = target;
-			Name = "group:" + target;
+		public String Group;
+		public GroupWindow(String group) {
+			this.Group = group;
+			Name = "group:" + Group;
 		}
 
 		@Override
@@ -133,13 +134,13 @@ public class Program {
 			if (super.process(line))
 				return true;
 
-			App.Instance.Zege_Message.send(Target, line).await();
+			App.Instance.Zege_Message.send(Group, line).await();
 			return true;
 		}
 
 		@Override
 		public boolean processNotifyMessage(BMessage notify) {
-			if (notify.getGroup().equals(Target)) {
+			if (notify.getGroup().equals(Group)) {
 				var bb = ByteBuffer.Wrap(notify.getSecureMessage());
 				var bMsg = new BTextMessage();
 				bMsg.Decode(bb);
@@ -154,7 +155,7 @@ public class Program {
 
 		@Override
 		public void refresh() {
-			Node = App.Instance.Zege_Friend.getMemberNode(NodeId);
+			Node = App.Instance.Zege_Friend.getGroupMemberNode(Group, NodeId);
 			for (var member : Node.getMembers()) {
 				System.out.println(member.getAccount());
 			}
@@ -221,11 +222,11 @@ public class Program {
 			var cmd = line.split(" ");
 			switch (cmd[0])
 			{
-			case "chat":
+			case "open":
 				if (cmd.length > 1) {
 					var target = cmd[1];
 					if (null != find(target)) {
-						addLayer(new ChatWindow(target));
+						addLayer(target.endsWith("@group") ? new GroupWindow(target) : new ChatWindow(target));
 						return true;
 					}
 				}
@@ -264,7 +265,7 @@ public class Program {
 	}
 
 	private void refresh() {
-		System.out.print("window: ");
+		System.out.print("self=" + Self + " window=");
 		for (var layer : Windows) {
 			System.out.print("/");
 			System.out.print(layer.Name);
