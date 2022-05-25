@@ -9,6 +9,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import Zege.Friend.BFriend;
 import Zege.Friend.BFriendNode;
+import Zege.Friend.BMemberNode;
 import Zege.Message.BMessage;
 import Zege.Message.BTextMessage;
 import Zege.Message.NotifyMessage;
@@ -59,7 +60,11 @@ public class Program {
 			String line = "";
 			do {
 				line = console.readLine();
-				Windows.get(Windows.size() - 1).process(line);
+				try {
+					Windows.get(Windows.size() - 1).process(line);
+				} catch (Throwable e) {
+					e.printStackTrace();
+				}
 			} while (!line.equals("exit"));
 		} finally {
 			app.Stop();
@@ -78,7 +83,7 @@ public class Program {
 			var cmd = line.split(" ");
 			switch (cmd[0])
 			{
-			case "b": case "back":
+			case "b":
 				if (cmd.length > 1) {
 					var find = Windows.indexOf(cmd[1]);
 					if (find >= 0) {
@@ -92,6 +97,9 @@ public class Program {
 					refresh();
 					return true;
 				}
+				break;
+			case "af":
+				App.Instance.Zege_Friend.add(cmd[1]).await();
 				break;
 			}
 			return false;
@@ -110,6 +118,47 @@ public class Program {
 		if (current.processNotifyMessage(r.Argument))
 			return;
 		Main.processNotifyMessage(r.Argument);
+	}
+
+	public class GroupWindow extends Window {
+		public String Target;
+		public GroupWindow(String target) {
+			this.Target = target;
+			Name = "group:" + target;
+		}
+
+		@Override
+		public boolean process(String line) {
+			// 聊天消息先处理基本命令。
+			if (super.process(line))
+				return true;
+
+			App.Instance.Zege_Message.send(Target, line).await();
+			return true;
+		}
+
+		@Override
+		public boolean processNotifyMessage(BMessage notify) {
+			if (notify.getGroup().equals(Target)) {
+				var bb = ByteBuffer.Wrap(notify.getSecureMessage());
+				var bMsg = new BTextMessage();
+				bMsg.Decode(bb);
+				System.out.println(bMsg.getMessage());
+				return true;
+			}
+			return false;
+		}
+
+		public long NodeId;
+		public BMemberNode Node;
+
+		@Override
+		public void refresh() {
+			Node = App.Instance.Zege_Friend.getMemberNode(NodeId);
+			for (var member : Node.getMembers()) {
+				System.out.println(member.getAccount());
+			}
+		}
 	}
 
 	public class ChatWindow extends Window {
@@ -131,24 +180,14 @@ public class Program {
 
 		@Override
 		public boolean processNotifyMessage(BMessage notify) {
-			if (notify.getGroup().isEmpty()) {
-				// user chat
-				if (!notify.getFrom().equals(Target)) {
-					return false;
-				}
+			if (notify.getGroup().isEmpty() && notify.getFrom().equals(Target)) {
 				var bb = ByteBuffer.Wrap(notify.getSecureMessage());
 				var bMsg = new BTextMessage();
 				bMsg.Decode(bb);
 				System.out.println(bMsg.getMessage());
-			} else {
-				if (!notify.getGroup().equals(Target))
-					return false;
-				var bb = ByteBuffer.Wrap(notify.getSecureMessage());
-				var bMsg = new BTextMessage();
-				bMsg.Decode(bb);
-				System.out.println(bMsg.getMessage());
+				return true;
 			}
-			return true;
+			return false;
 		}
 
 		@Override
@@ -166,11 +205,11 @@ public class Program {
 			Name = "main";
 		}
 
-		public long FriendNodeId;
-		public BFriendNode FriendNode;
+		public long NodeId;
+		public BFriendNode Node;
 
 		public BFriend find(String value) {
-			for (var friend : FriendNode.getFriends()) {
+			for (var friend : Node.getFriends()) {
 				if (friend.getAccount().equals(value))
 					return friend;
 			}
@@ -200,13 +239,12 @@ public class Program {
 
 		@Override
 		public void refresh() {
-			FriendNode = App.Instance.Zege_Friend.getFriendNode(FriendNodeId);
-			for (var friend : FriendNode.getFriends()) {
+			Node = App.Instance.Zege_Friend.getFriendNode(NodeId);
+			for (var friend : Node.getFriends()) {
 				System.out.print(friend.getAccount());
 				var list = ReceivedMessages.get(friend);
 				System.out.println(null == list ? "" : "(" + list.size() + ")");
 			}
-
 		}
 
 		private HashMap<String, ArrayList<BMessage>> ReceivedMessages = new HashMap<>();
@@ -226,12 +264,13 @@ public class Program {
 	}
 
 	private void refresh() {
-		System.out.print("path: ");
+		System.out.print("window: ");
 		for (var layer : Windows) {
 			System.out.print("/");
 			System.out.print(layer.Name);
 		}
 		System.out.println();
 		Windows.get(Windows.size() - 1).refresh();
+		System.out.print(">");
 	}
 }

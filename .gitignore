@@ -78,3 +78,5 @@
 /ZezeJava/Zege/client/build
 /ZezeJava/Zege/linkd/build
 /ZezeJava/Zege/server/build
+/ZezeJava/Zege/linkd/*.pal
+/ZezeJava/Zege/server/*.pal

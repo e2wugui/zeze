@@ -68,7 +68,7 @@
 			<variable id="1" name="Account" type="string"/>
 		</bean>
 
-		<bean name="BFriendNodeId">
+		<bean name="BNodeId">
 			<variable id="1" name="NodeId" type="long"/>
 		</bean>
 
@@ -79,7 +79,7 @@
 		</bean>
 
 		<rpc name="AddFriend" argument="BAccount" handle="server"/>
-		<rpc name="GetFriendNode" argument="BFriendNodeId" result="BFriendNode" handle="server"/>
+		<rpc name="GetFriendNode" argument="BNodeId" result="BFriendNode" handle="server"/>
 
 		<!-- 部门树用 Zeze.Collections.DepartmentTree -->
 		<bean name="BManager">
@@ -129,6 +129,33 @@
 			<variable id="4" name="Childs" type="map" key="string" value="long" /> name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
 		</bean>
 		<rpc name="GetGroupRoot"      argument="BDepartmentId" result="BGroup" handle="server"/>
+
+		<bean name="BMemberNode">
+			<variable id="1" name="PrevNodeId" type="long"/>
+			<variable id="2" name="NextNodeId" type="long"/>
+			<variable id="3" name="Members"    type="list[BMember]"/>
+		</bean>
+
+		<bean name="BDepartmentMemberNode">
+			<variable id="1" name="PrevNodeId" type="long"/>
+			<variable id="2" name="NextNodeId" type="long"/>
+			<variable id="3" name="DepartmentMembers" type="list[BDepartmentMember]"/>
+		</bean>
+
+		<bean name="BGroupNodeId">
+			<variable id="1" name="Group" type="string"/>
+			<variable id="2" name="NodeId" type="long"/>
+		</bean>
+
+		<rpc name="GetGroupMemberNode" argument="BGroupNodeId" result="BMemberNode" handle="server"/>
+
+		<bean name="BDepartmentNodeId">
+			<variable id="1" name="Group" type="string"/>
+			<variable id="2" name="DepartmentId" type="long"/>
+			<variable id="3" name="NodeId" type="long"/>
+		</bean>
+		<rpc name="GetDepartmentMemberNode" argument="BDepartmentNodeId" result="BDepartmentMemberNode" handle="server"/>
+
 	</module>
 
 	<module name="Message" id="3">

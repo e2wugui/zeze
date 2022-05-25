@@ -105,6 +105,38 @@ public class ModuleFriend extends AbstractModule {
         return Procedure.Success;
     }
 
+    @Override
+    protected long ProcessGetDepartmentMemberNodeRequest(Zege.Friend.GetDepartmentMemberNode r) {
+        var session = ProviderUserSession.get(r);
+        var group = getDepartmentTree(r.Argument.getGroup());
+        var node = r.Argument.getNodeId() == 0
+                ? group.getDepartmentMembers(r.Argument.getDepartmentId()).getFristNode()
+                : group.getDepartmentMembers(r.Argument.getDepartmentId()).getNode(r.Argument.getNodeId());
+        r.Result.setNextNodeId(node.getNextNodeId());
+        r.Result.setPrevNodeId(node.getPrevNodeId());
+        for (var friend : node.getValues()) {
+            r.Result.getDepartmentMembers().add((BDepartmentMember)friend.getValue().getBean());
+        }
+        session.sendResponseWhileCommit(r);
+        return Procedure.Success;
+    }
+
+    @Override
+    protected long ProcessGetGroupMemberNodeRequest(Zege.Friend.GetGroupMemberNode r) {
+        var session = ProviderUserSession.get(r);
+        var group = getDepartmentTree(r.Argument.getGroup());
+        var node = r.Argument.getNodeId() == 0
+                ? group.getMembers().getFristNode()
+                : group.getMembers().getNode(r.Argument.getNodeId());
+        r.Result.setNextNodeId(node.getNextNodeId());
+        r.Result.setPrevNodeId(node.getPrevNodeId());
+        for (var friend : node.getValues()) {
+            r.Result.getMembers().add((BMember)friend.getValue().getBean());
+        }
+        session.sendResponseWhileCommit(r);
+        return Procedure.Success;
+    }
+
     // ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
     public ModuleFriend(Zege.App app) {
         super(app);
