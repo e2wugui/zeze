@@ -12,3 +12,11 @@ sourceSets {
         }
     }
 }
+
+task start_client(type: JavaExec) {
+    classpath = configurations.runtimeClasspath
+    classpath += sourceSets.main.runtimeClasspath
+    classpath += files('.')
+    mainClass = 'Zege.Program'
+    allJvmArgs = [ '-Dlogname=client' ]
+}

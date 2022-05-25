@@ -753,7 +753,7 @@ public class Online extends AbstractOnline {
 
 		// 先提交结果再设置状态。
 		// see linkd::Zezex.Provider.ModuleProvider。ProcessBroadcast
-		session.SendResponseWhileCommit(rpc);
+		session.sendResponseWhileCommit(rpc);
 		//noinspection ConstantConditions
 		Transaction.getCurrent().RunWhileCommit(() -> {
 			var setUserState = new SetUserState();
@@ -804,7 +804,7 @@ public class Online extends AbstractOnline {
 
 		// 先发结果，再发送同步数据（ReliableNotifySync）。
 		// 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
-		session.SendResponseWhileCommit(rpc);
+		session.sendResponseWhileCommit(rpc);
 		//noinspection ConstantConditions
 		Transaction.getCurrent().RunWhileCommit(() -> {
 			var setUserState = new SetUserState();
@@ -843,7 +843,7 @@ public class Online extends AbstractOnline {
 				notify.Argument.getNotifies().add(bNotify.getFullEncodedProtocol());
 				return true;
 			});
-			session.SendResponseWhileCommit(notify);
+			session.sendResponseWhileCommit(notify);
 		}
 		//online.getReliableNotifyQueue().RemoveRange(0, confirmCount);
 		version.setReliableNotifyConfirmIndex(index);
@@ -875,7 +875,7 @@ public class Online extends AbstractOnline {
 			setUserState.Argument.setLinkSid(session.getLinkSid());
 			rpc.getSender().Send(setUserState); // 直接使用link连接。
 		});
-		session.SendResponseWhileCommit(rpc);
+		session.sendResponseWhileCommit(rpc);
 		// 在 OnLinkBroken 时处理。可以同时处理网络异常的情况。
 		// App.Load.LogoutCount.IncrementAndGet();
 		return Procedure.Success;
@@ -889,7 +889,7 @@ public class Online extends AbstractOnline {
 		if (online == null)
 			return ErrorCode(ResultCodeOnlineDataNotFound);
 
-		session.SendResponseWhileCommit(rpc); // 同步前提交。
+		session.sendResponseWhileCommit(rpc); // 同步前提交。
 
 		//noinspection ConstantConditions
 		var syncResultCode = reliableNotifySync(session.getRoleId(), session,

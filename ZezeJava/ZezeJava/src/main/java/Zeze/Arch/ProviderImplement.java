@@ -110,7 +110,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				proc.setUserState(p2.getUserState());
 				return Zeze.Util.Task.Call(() -> factoryHandle.Handle.handleProtocol(p2), p2, (p3, code) -> {
 					p3.setResultCode(code);
-					session.SendResponse(p3);
+					session.sendResponse(p3);
 				});
 			}
 
@@ -118,7 +118,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 				// 应用框架不支持事务或者协议配置了"不需要事务”
 				return Zeze.Util.Task.Call(() -> factoryHandle.Handle.handleProtocol(p2), p2, (p3, code) -> {
 					p3.setResultCode(code);
-					session.SendResponse(p3);
+					session.sendResponse(p3);
 				});
 			}
 
@@ -128,7 +128,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 							p2.getClass().getName(), factoryHandle.Level, p2.getUserState()),
 					p2, (p3, code) -> {
 						p3.setResultCode(code);
-						session.SendResponse(p3);
+						session.sendResponse(p3);
 					});
 		} catch (Throwable ex) {
 			SendKick(p.getSender(), p.Argument.getLinkSid(), BKick.ErrorProtocolException, ex.toString());

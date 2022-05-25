@@ -61,11 +61,11 @@ public class ProviderUserSession {
 		Link = value;
 	}
 
-	public final void SendResponse(Binary fullEncodedProtocol) {
-		SendResponse(ByteBuffer.Wrap(fullEncodedProtocol).ReadInt4(), fullEncodedProtocol);
+	public final void sendResponse(Binary fullEncodedProtocol) {
+		sendResponse(ByteBuffer.Wrap(fullEncodedProtocol).ReadInt4(), fullEncodedProtocol);
 	}
 
-	public final void SendResponse(long typeId, Binary fullEncodedProtocol) {
+	public final void sendResponse(long typeId, Binary fullEncodedProtocol) {
 		var send = new Send();
 		send.Argument.getLinkSids().add(getLinkSid());
 		send.Argument.setProtocolType(typeId);
@@ -85,40 +85,40 @@ public class ProviderUserSession {
 		}
 	}
 
-	public final void SendResponse(Protocol<?> p) {
+	public final void sendResponse(Protocol<?> p) {
 		p.setRequest(false);
-		SendResponse(p.getTypeId(), new Binary(p.Encode()));
+		sendResponse(p.getTypeId(), new Binary(p.Encode()));
 	}
 
 	@SuppressWarnings("ConstantConditions")
-	public final void SendResponseWhileCommit(int typeId, Binary fullEncodedProtocol) {
-		Transaction.getCurrent().RunWhileCommit(() -> SendResponse(typeId, fullEncodedProtocol));
+	public final void sendResponseWhileCommit(int typeId, Binary fullEncodedProtocol) {
+		Transaction.getCurrent().RunWhileCommit(() -> sendResponse(typeId, fullEncodedProtocol));
 	}
 
 	@SuppressWarnings("ConstantConditions")
-	public final void SendResponseWhileCommit(Binary fullEncodedProtocol) {
-		Transaction.getCurrent().RunWhileCommit(() -> SendResponse(fullEncodedProtocol));
+	public final void sendResponseWhileCommit(Binary fullEncodedProtocol) {
+		Transaction.getCurrent().RunWhileCommit(() -> sendResponse(fullEncodedProtocol));
 	}
 
 	@SuppressWarnings("ConstantConditions")
-	public final void SendResponseWhileCommit(Protocol<?> p) {
-		Transaction.getCurrent().RunWhileCommit(() -> SendResponse(p));
+	public final void sendResponseWhileCommit(Protocol<?> p) {
+		Transaction.getCurrent().RunWhileCommit(() -> sendResponse(p));
 	}
 
 	// 这个方法用来优化广播协议。不能用于Rpc，先隐藏。
 	@SuppressWarnings({"ConstantConditions", "unused"})
-	private void SendResponseWhileRollback(int typeId, Binary fullEncodedProtocol) {
-		Transaction.getCurrent().RunWhileRollback(() -> SendResponse(typeId, fullEncodedProtocol));
+	private void sendResponseWhileRollback(int typeId, Binary fullEncodedProtocol) {
+		Transaction.getCurrent().RunWhileRollback(() -> sendResponse(typeId, fullEncodedProtocol));
 	}
 
 	@SuppressWarnings({"ConstantConditions", "unused"})
-	private void SendResponseWhileRollback(Binary fullEncodedProtocol) {
-		Transaction.getCurrent().RunWhileRollback(() -> SendResponse(fullEncodedProtocol));
+	private void sendResponseWhileRollback(Binary fullEncodedProtocol) {
+		Transaction.getCurrent().RunWhileRollback(() -> sendResponse(fullEncodedProtocol));
 	}
 
 	@SuppressWarnings("ConstantConditions")
-	public final void SendResponseWhileRollback(Protocol<?> p) {
-		Transaction.getCurrent().RunWhileRollback(() -> SendResponse(p));
+	public final void sendResponseWhileRollback(Protocol<?> p) {
+		Transaction.getCurrent().RunWhileRollback(() -> sendResponse(p));
 	}
 
 	public static ProviderUserSession get(Protocol<?> context) {

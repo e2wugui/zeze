@@ -1,11 +1,12 @@
 package Zege;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
-import Zege.App;
 import Zege.Friend.BFriend;
 import Zege.Friend.BFriendNode;
 import Zege.Message.BMessage;
@@ -26,30 +27,46 @@ public class Program {
 		Instance.run(args);
 	}
 
-	private ArrayList<Layer> Layers = new ArrayList<>();
-	private MainLayer Main;
+	private ArrayList<Window> Windows = new ArrayList<>();
+	private MainWindow Main;
 	public String Self;
 
 	public void run(String[] args) throws Throwable {
 		var app = App.Instance;
-		app.Start(null, 0);
+		var linkIp = "127.0.0.1";
+		var linkPort = 5100;
+		for (int i = 0; i < args.length; ++i) {
+			switch (args[i]) {
+			case "-ip":
+				linkIp = args[++i];
+				break;
+			case "-port":
+				linkPort = Integer.parseInt(args[++i]);
+				break;
+			}
+		}
+		app.Start(linkIp, linkPort);
 		try {
 			app.Connector.WaitReady();
 			var account = getComputerName().toLowerCase(Locale.ROOT);
 			app.Zege_Linkd.auth(account).await();
 			app.Zeze_Builtin_Online.login("PC").await();
-			Main = new MainLayer();
-			Layers.add(Main);
-			refresh();
+			Main = new MainWindow();
+			Windows.add(Main);
 			Self = account;
-			var cmd = "";
-			Main.process(cmd);
+			refresh();
+			var console = new BufferedReader(new InputStreamReader(System.in));
+			String line = "";
+			do {
+				line = console.readLine();
+				Windows.get(Windows.size() - 1).process(line);
+			} while (!line.equals("exit"));
 		} finally {
 			app.Stop();
 		}
 	}
 
-	public class Layer {
+	public class Window {
 		public String Name;
 
 		public boolean process(String line) {
@@ -63,15 +80,15 @@ public class Program {
 			{
 			case "b": case "back":
 				if (cmd.length > 1) {
-					var find = Layers.indexOf(cmd[1]);
+					var find = Windows.indexOf(cmd[1]);
 					if (find >= 0) {
-						for (int i = find + 1; i < Layers.size(); ++i)
-							Layers.remove(i);
+						for (int i = find + 1; i < Windows.size(); ++i)
+							Windows.remove(i);
 						refresh();
 						return true;
 					}
-				} else if (Layers.size() > 1) {
-					Layers.remove(Layers.size() - 1);
+				} else if (Windows.size() > 1) {
+					Windows.remove(Windows.size() - 1);
 					refresh();
 					return true;
 				}
@@ -89,22 +106,22 @@ public class Program {
 	}
 
 	public void OnMessage(NotifyMessage r) {
-		var current = Layers.get(Layers.size() - 1);
+		var current = Windows.get(Windows.size() - 1);
 		if (current.processNotifyMessage(r.Argument))
 			return;
 		Main.processNotifyMessage(r.Argument);
 	}
 
-	public class ChatLayer extends Layer {
+	public class ChatWindow extends Window {
 		public String Target;
-		public ChatLayer(String target) {
+		public ChatWindow(String target) {
 			this.Target = target;
 			Name = "chat:" + target;
 		}
 
 		@Override
 		public boolean process(String line) {
-			// 聊天消息先处理基类命令。
+			// 聊天消息先处理基本命令。
 			if (super.process(line))
 				return true;
 
@@ -123,7 +140,6 @@ public class Program {
 				var bMsg = new BTextMessage();
 				bMsg.Decode(bb);
 				System.out.println(bMsg.getMessage());
-				return true;
 			} else {
 				if (!notify.getGroup().equals(Target))
 					return false;
@@ -131,8 +147,8 @@ public class Program {
 				var bMsg = new BTextMessage();
 				bMsg.Decode(bb);
 				System.out.println(bMsg.getMessage());
-				return true;
 			}
+			return true;
 		}
 
 		@Override
@@ -145,8 +161,8 @@ public class Program {
 		}
 	}
 
-	public class MainLayer extends Layer {
-		public MainLayer() {
+	public class MainWindow extends Window {
+		public MainWindow() {
 			Name = "main";
 		}
 
@@ -170,7 +186,7 @@ public class Program {
 				if (cmd.length > 1) {
 					var target = cmd[1];
 					if (null != find(target)) {
-						addLayer(new ChatLayer(target));
+						addLayer(new ChatWindow(target));
 						return true;
 					}
 				}
@@ -204,18 +220,18 @@ public class Program {
 		}
 	}
 
-	private void addLayer(Layer layer) {
-		Layers.add(layer);
+	private void addLayer(Window layer) {
+		Windows.add(layer);
 		refresh();
 	}
 
 	private void refresh() {
 		System.out.print("path: ");
-		for (var layer : Layers) {
+		for (var layer : Windows) {
 			System.out.print("/");
 			System.out.print(layer.Name);
 		}
 		System.out.println();
-		Layers.get(Layers.size() - 1).refresh();
+		Windows.get(Windows.size() - 1).refresh();
 	}
 }

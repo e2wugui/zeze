@@ -2,7 +2,6 @@ package Zege.Message;
 
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Transaction.Procedure;
-import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.TransactionLevelAnnotation;
 
@@ -37,7 +36,7 @@ public class ModuleMessage extends AbstractModule {
                 return true;
             });
         }
-        session.SendResponseWhileCommit(r);
+        session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }
 
@@ -55,7 +54,7 @@ public class ModuleMessage extends AbstractModule {
         notify.Argument = r.Argument.getMessage();
         App.Provider.Online.sendWhileCommit(r.Argument.getFriend(), "PC", notify);
 
-        session.SendResponseWhileCommit(r);
+        session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }
 

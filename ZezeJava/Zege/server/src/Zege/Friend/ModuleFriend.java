@@ -29,7 +29,7 @@ public class ModuleFriend extends AbstractModule {
         var peer = getFriends(r.Argument.getAccount());
         self.put(r.Argument.getAccount(), new BFriend());
         peer.put(session.getAccount(), new BFriend());
-        session.SendResponseWhileCommit(r);
+        session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }
 
@@ -38,7 +38,7 @@ public class ModuleFriend extends AbstractModule {
         var session = ProviderUserSession.get(r);
         var group = getDepartmentTree(r.Argument.getGroup());
         r.Result.setId(group.createDepartment(r.Argument.getParentDepartment(), r.Argument.getName()));
-        session.SendResponseWhileCommit(r);
+        session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }
 
@@ -48,7 +48,7 @@ public class ModuleFriend extends AbstractModule {
         var group = getDepartmentTree(r.Argument.getGroup());
         var result = group.deleteDepartment(r.Argument.getId(), true);
         r.setResultCode(result ? 0 : -1);
-        session.SendResponseWhileCommit(r);
+        session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }
 
@@ -63,7 +63,7 @@ public class ModuleFriend extends AbstractModule {
         for (var manager : department.getManagers()) {
             r.Result.getManagers().put(manager.getKey(), (BManager)manager.getValue().getBean());
         }
-        session.SendResponseWhileCommit(r);
+        session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }
 
@@ -77,7 +77,7 @@ public class ModuleFriend extends AbstractModule {
         for (var friend : friendNode.getValues()) {
             r.Result.getFriends().add((BFriend)friend.getValue().getBean());
         }
-        session.SendResponseWhileCommit(r);
+        session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }
 
@@ -87,7 +87,7 @@ public class ModuleFriend extends AbstractModule {
         var group = getDepartmentTree(r.Argument.getGroup());
         var result = group.moveDepartment(r.Argument.getId(), r.Argument.getNewParent());
         r.setResultCode(result ? 0 : -1);
-        session.SendResponseWhileCommit(r);
+        session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }
 
@@ -101,7 +101,7 @@ public class ModuleFriend extends AbstractModule {
         for (var manager : root.getManagers()) {
             r.Result.getManagers().put(manager.getKey(), (BManager)manager.getValue().getBean());
         }
-        session.SendResponseWhileCommit(r);
+        session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }
 

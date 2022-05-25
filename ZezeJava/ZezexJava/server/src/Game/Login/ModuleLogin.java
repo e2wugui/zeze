@@ -42,7 +42,7 @@ public final class ModuleLogin extends AbstractModule {
 		// ...
 
 		rpc.Result = role;
-		session.SendResponseWhileCommit(rpc);
+		session.sendResponseWhileCommit(rpc);
 		return Procedure.Success;
 	}
 
@@ -64,7 +64,7 @@ public final class ModuleLogin extends AbstractModule {
 			rpc.Result.setLastLoginRoleId(account.getLastLoginRoleId());
 		}
 
-		session.SendResponse(rpc);
+		session.sendResponse(rpc);
 		return Procedure.Success;
 	}
 
