@@ -90,18 +90,18 @@ public class Program {
 					if (find >= 0) {
 						for (int i = find + 1; i < Windows.size(); ++i)
 							Windows.remove(i);
-						refresh();
+						Program.this.refresh();
 						return true;
 					}
 				} else if (Windows.size() > 1) {
 					Windows.remove(Windows.size() - 1);
-					refresh();
+					Program.this.refresh();
 					return true;
 				}
 				break;
 			case "af":
 				App.Instance.Zege_Friend.add(cmd[1]).await();
-				break;
+				return true;
 			}
 			return false;
 		}
@@ -265,7 +265,7 @@ public class Program {
 	}
 
 	private void refresh() {
-		System.out.print("self=" + Self + " window=");
+		System.out.print("You Are '" + Self + "' Window=");
 		for (var layer : Windows) {
 			System.out.print("/");
 			System.out.print(layer.Name);
