@@ -1,11 +1,8 @@
-
 @echo off
+setlocal
+pushd %~dp0
 
-setlocal enabledelayedexpansion
-set libs=
-for /f %%i in ('dir /b lib')  do (
-	if "!libs!" == "" (set libs=lib\%%i) else (set libs=!libs!;lib\%%i)
-) 
+title client
 
-set classes=../ZezeJava/build/classes/java/main;client/build/classes/java/main
-java -cp %classes%;%libs% Zege.Program
+set classes=client/build/classes/java/main;../ZezeJava/build/classes/java/main
+java -Dlogname=client -cp %classes%;../ZezeJava/lib/*;. Zege.Program

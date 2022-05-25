@@ -7,6 +7,7 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketAddress;
+import java.net.SocketException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
@@ -225,7 +226,12 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	@Override
 	public void doException(SelectionKey key, Throwable e) {
 		Close(e);
-		logger.error("AsyncSocket.doException " + this, e);
+		if (!logger.isEnabled(Service.getSocketOptions().getSocketLogLevel())) {
+			if (e instanceof IOException)
+				logger.info("AsyncSocket.doException {}: {}", this, e);
+			else
+				logger.error("AsyncSocket.doException " + this, e);
+		}
 	}
 
 	/**
@@ -532,8 +538,12 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 
 		if (ENABLE_PROTOCOL_LOG)
 			logger.log(LEVEL_PROTOCOL_LOG, "CLOSE({}): {}", SessionId, ex);
-		if (ex != null)
-			logger.log(Service.getSocketOptions().getSocketLogLevel(), "Close " + this, ex);
+		if (ex != null) {
+			if (ex instanceof IOException)
+				logger.log(Service.getSocketOptions().getSocketLogLevel(), "Close " + this + ": " + ex);
+			else
+				logger.log(Service.getSocketOptions().getSocketLogLevel(), "Close " + this, ex);
+		}
 		if (Connector != null) {
 			try {
 				Connector.OnSocketClose(this, ex);

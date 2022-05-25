@@ -3,7 +3,7 @@
 <configuration status="WARN" monitorInterval="30">
 	<Properties>
 		<Property name="path">log</Property>
-		<Property name="name">gs</Property>
+		<Property name="name">linkd</Property>
 		<Property name="ext">.log</Property>
 	</Properties>
 	<appenders>
