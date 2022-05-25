@@ -27,8 +27,12 @@ public class ModuleFriend extends AbstractModule {
         if (!App.Zege_User.contains(r.Argument.getAccount()))
             return Procedure.LogicError;
         var peer = getFriends(r.Argument.getAccount());
-        self.put(r.Argument.getAccount(), new BFriend());
-        peer.put(session.getAccount(), new BFriend());
+        var peerFriend = new BFriend();
+        peerFriend.setAccount(session.getAccount());
+        self.put(r.Argument.getAccount(), peerFriend);
+        var selfFriend = new BFriend();
+        selfFriend.setAccount(r.Argument.getAccount());
+        peer.put(session.getAccount(), selfFriend);
         session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }
