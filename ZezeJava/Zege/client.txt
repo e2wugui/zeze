@@ -29,3 +29,4 @@ open [name] : 根据目标类型，打开不同的窗口。
 
 TODO
 群管理
+af 有bug
