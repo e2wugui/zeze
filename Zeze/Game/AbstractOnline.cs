@@ -18,10 +18,10 @@ namespace Zeze.Game
         public const int ResultCodeOnlineDataNotFound = 5;
         public const int ResultCodeReliableNotifyConfirmIndexOutOfRange = 6;
         public const int ResultCodeNotLogin = 7;
-        internal Zeze.Builtin.Game.Online.taccount _taccount = new Zeze.Builtin.Game.Online.taccount();
-        internal Zeze.Builtin.Game.Online.tlocal _tlocal = new Zeze.Builtin.Game.Online.tlocal();
-        internal Zeze.Builtin.Game.Online.tonline _tonline = new Zeze.Builtin.Game.Online.tonline();
-        internal Zeze.Builtin.Game.Online.tversion _tversion = new Zeze.Builtin.Game.Online.tversion();
+        internal Zeze.Builtin.Game.Online.taccount _taccount = new();
+        internal Zeze.Builtin.Game.Online.tlocal _tlocal = new();
+        internal Zeze.Builtin.Game.Online.tonline _tonline = new();
+        internal Zeze.Builtin.Game.Online.tversion _tversion = new();
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {

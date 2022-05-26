@@ -59,11 +59,12 @@ namespace Zeze.Game
         }
 
         private Util.SchedulerTask VerifyLocalTimer;
+
         public void Start()
         {
+            ProviderApp.BuiltinModules.Add(FullName, this);
             LoadReporter.Start();
             VerifyLocalTimer = Util.Scheduler.ScheduleAt(VerifyLocal, 3 + Util.Random.Instance.Next(3), 10); // at 3:10 - 6:10
-            ProviderApp.BuiltinModules.Add(FullName, this);
         }
 
         public void Stop()

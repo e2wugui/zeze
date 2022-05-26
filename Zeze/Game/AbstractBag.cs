@@ -14,8 +14,8 @@ namespace Zeze.Game
         public const int ResultCodeToInvalid = 2;
         public const int ResultCodeFromNotExist = 3;
         public const int ResultCodeTrySplitButTargetExistDifferenceItem = 4;
-        internal Zeze.Builtin.Game.Bag.tbag _tbag = new Zeze.Builtin.Game.Bag.tbag();
-        internal Zeze.Builtin.Game.Bag.tItemClasses _tItemClasses = new Zeze.Builtin.Game.Bag.tItemClasses();
+        internal Zeze.Builtin.Game.Bag.tbag _tbag = new();
+        internal Zeze.Builtin.Game.Bag.tItemClasses _tItemClasses = new();
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {

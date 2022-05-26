@@ -18,10 +18,10 @@ namespace Zeze.Arch
         public const int ResultCodeOnlineDataNotFound = 5;
         public const int ResultCodeReliableNotifyConfirmIndexOutOfRange = 6;
         public const int ResultCodeNotLogin = 7;
-        internal Zeze.Builtin.Online.taccount _taccount = new Zeze.Builtin.Online.taccount();
-        internal Zeze.Builtin.Online.tlocal _tlocal = new Zeze.Builtin.Online.tlocal();
-        internal Zeze.Builtin.Online.tonline _tonline = new Zeze.Builtin.Online.tonline();
-        internal Zeze.Builtin.Online.tversion _tversion = new Zeze.Builtin.Online.tversion();
+        internal Zeze.Builtin.Online.taccount _taccount = new();
+        internal Zeze.Builtin.Online.tlocal _tlocal = new();
+        internal Zeze.Builtin.Online.tonline _tonline = new();
+        internal Zeze.Builtin.Online.tversion _tversion = new();
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {

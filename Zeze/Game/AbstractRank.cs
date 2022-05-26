@@ -9,7 +9,7 @@ namespace Zeze.Game
         public override int Id => ModuleId;
         public override bool IsBuiltin => true;
 
-        internal Zeze.Builtin.Game.Rank.trank _trank = new Zeze.Builtin.Game.Rank.trank();
+        internal Zeze.Builtin.Game.Rank.trank _trank = new();
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {

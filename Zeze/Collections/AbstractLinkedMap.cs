@@ -9,9 +9,9 @@ namespace Zeze.Collections
         public override int Id => ModuleId;
         public override bool IsBuiltin => true;
 
-        internal Zeze.Builtin.Collections.LinkedMap.tLinkedMapNodes _tLinkedMapNodes = new Zeze.Builtin.Collections.LinkedMap.tLinkedMapNodes();
-        internal Zeze.Builtin.Collections.LinkedMap.tLinkedMaps _tLinkedMaps = new Zeze.Builtin.Collections.LinkedMap.tLinkedMaps();
-        internal Zeze.Builtin.Collections.LinkedMap.tValueIdToNodeId _tValueIdToNodeId = new Zeze.Builtin.Collections.LinkedMap.tValueIdToNodeId();
+        internal Zeze.Builtin.Collections.LinkedMap.tLinkedMapNodes _tLinkedMapNodes = new();
+        internal Zeze.Builtin.Collections.LinkedMap.tLinkedMaps _tLinkedMaps = new();
+        internal Zeze.Builtin.Collections.LinkedMap.tValueIdToNodeId _tValueIdToNodeId = new();
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {

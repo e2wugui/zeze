@@ -9,8 +9,8 @@ namespace Zeze.Collections
         public override int Id => ModuleId;
         public override bool IsBuiltin => true;
 
-        internal Zeze.Builtin.Collections.DepartmentTree.tDepartment _tDepartment = new Zeze.Builtin.Collections.DepartmentTree.tDepartment();
-        internal Zeze.Builtin.Collections.DepartmentTree.tDepartmentTree _tDepartmentTree = new Zeze.Builtin.Collections.DepartmentTree.tDepartmentTree();
+        internal Zeze.Builtin.Collections.DepartmentTree.tDepartment _tDepartment = new();
+        internal Zeze.Builtin.Collections.DepartmentTree.tDepartmentTree _tDepartmentTree = new();
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {

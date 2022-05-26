@@ -9,8 +9,8 @@ namespace Zeze.Collections
         public override int Id => ModuleId;
         public override bool IsBuiltin => true;
 
-        internal Zeze.Builtin.Collections.Queue.tQueueNodes _tQueueNodes = new Zeze.Builtin.Collections.Queue.tQueueNodes();
-        internal Zeze.Builtin.Collections.Queue.tQueues _tQueues = new Zeze.Builtin.Collections.Queue.tQueues();
+        internal Zeze.Builtin.Collections.Queue.tQueueNodes _tQueueNodes = new();
+        internal Zeze.Builtin.Collections.Queue.tQueues _tQueues = new();
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {

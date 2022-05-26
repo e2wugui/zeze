@@ -9,7 +9,7 @@ namespace Zeze.Component
         public override int Id => ModuleId;
         public override bool IsBuiltin => true;
 
-        internal Zeze.Builtin.RedoQueue.tQueueLastTaskId _tQueueLastTaskId = new Zeze.Builtin.RedoQueue.tQueueLastTaskId();
+        internal Zeze.Builtin.RedoQueue.tQueueLastTaskId _tQueueLastTaskId = new();
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {

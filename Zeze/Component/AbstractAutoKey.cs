@@ -9,7 +9,7 @@ namespace Zeze.Component
         public override int Id => ModuleId;
         public override bool IsBuiltin => true;
 
-        internal Zeze.Builtin.AutoKey.tAutoKeys _tAutoKeys = new Zeze.Builtin.AutoKey.tAutoKeys();
+        internal Zeze.Builtin.AutoKey.tAutoKeys _tAutoKeys = new();
 
         public void RegisterProtocols(Zeze.Net.Service service)
         {

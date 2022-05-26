@@ -48,7 +48,7 @@ namespace Zeze.Util
             var at = new DateTime(now.Year, now.Month, now.Day, hour, minute, 0);
             if (at.CompareTo(now) < 0)
                 at = at.AddDays(1);
-            long delay = at.Millisecond - now.Millisecond;
+            long delay = Time.DateTimeToUnixMillis(at) - Time.DateTimeToUnixMillis(now);
             return Schedule(action, delay, period);
         }
 

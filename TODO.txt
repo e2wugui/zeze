@@ -8,6 +8,8 @@ war？一个module集合。定义export？private？App.Instance？生成代码�
 DatabaseTikv.OperatesTikv
 一致性hash负载分配算法：解决provider变动带来的原来分配方式（hash%count)导致re-hash造成cache大量重来的问题。
 too many try: 从Global得到锁以后，确保本地至少用过一次（事务成功），才允许Reduce。
+Handshake 是否加密可以配置。
+ServiceConf.Acceptor ip="@internal" "@external"
 
 【2022/6/11】
 
