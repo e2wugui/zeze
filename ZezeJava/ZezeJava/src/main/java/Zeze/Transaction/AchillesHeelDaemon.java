@@ -39,7 +39,8 @@ package Zeze.Transaction;
  * 8. Timeout
  *    a) ServerKeepAlive.IdleTimeout < ServerDaemonTimeout;
  *    b) ServerDaemonTimeout + ServerReleaseTimeout < GlobalDaemonTimeout; 必须满足而且不能太接近【Important！】
- *    rpc.Timeout? 现在Global的Rpc.Timeout设的比较长，需要重新考虑。
+ *    *) rpc.Timeout? 现在Global的Rpc.Timeout设的比较长，需要重新考虑。
+ *       Acquire.Timeout, Reduce.Timeout, KeepAlive.Timeout,
  *
  * *. Change
  *    不再需要的旧实现：Server在发现Global断开连接，马上释放本地资源。
