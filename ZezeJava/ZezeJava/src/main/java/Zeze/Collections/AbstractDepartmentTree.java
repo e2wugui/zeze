@@ -8,6 +8,14 @@ public abstract class AbstractDepartmentTree extends Zeze.IModule {
     @Override public int getId() { return ModuleId; }
     @Override public boolean isBuiltin() { return true; }
 
+    public static final int ErrorChangeRootNotOwner = 1;
+    public static final int ErrorDepartmentDuplicate = 2;
+    public static final int ErrorDepartmentNotExist = 3;
+    public static final int ErrorDeleteDepartmentRemainChilds = 4;
+    public static final int ErrorDepartmentSameParent = 5;
+    public static final int ErrorCanNotMoveToChilds = 6;
+    public static final int ErrorDepartmentParentNotExist = 7;
+
     protected final Zeze.Builtin.Collections.DepartmentTree.tDepartment _tDepartment = new Zeze.Builtin.Collections.DepartmentTree.tDepartment();
     protected final Zeze.Builtin.Collections.DepartmentTree.tDepartmentTree _tDepartmentTree = new Zeze.Builtin.Collections.DepartmentTree.tDepartmentTree();
 

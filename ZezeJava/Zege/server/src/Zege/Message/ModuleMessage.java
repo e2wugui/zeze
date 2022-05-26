@@ -25,7 +25,7 @@ public class ModuleMessage extends AbstractModule {
         notify.Argument = r.Argument.getMessage();
         if (0 == r.Argument.getDepartmentId()) {
             // group root
-            group.getMembers().walk((key, member) -> {
+            group.getGroupMembers().walk((key, member) -> {
                 App.Provider.Online.sendWhileCommit(member.getAccount(), "PC", notify);
                 return true;
             });

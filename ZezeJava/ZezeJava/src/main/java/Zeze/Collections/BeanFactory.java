@@ -9,7 +9,15 @@ public final class BeanFactory {
 	private final LongHashMap<MethodHandle> writingFactory = new LongHashMap<>();
 	private volatile LongHashMap<MethodHandle> readingFactory;
 
-	public void register(Class<? extends Bean> beanClass) {
+	public <T extends Bean> T invoke(MethodHandle methodHandle) {
+		try {
+			return (T)methodHandle.invoke();
+		} catch (Throwable e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public MethodHandle register(Class<? extends Bean> beanClass) {
 		MethodHandle beanCtor = Reflect.getDefaultConstructor(beanClass);
 		Bean bean;
 		try {
@@ -23,6 +31,7 @@ public final class BeanFactory {
 			writingFactory.putIfAbsent(bean.getTypeId(), beanCtor);
 		}
 		readingFactory = null;
+		return beanCtor;
 	}
 
 	public long GetSpecialTypeIdFromBean(Bean bean) {

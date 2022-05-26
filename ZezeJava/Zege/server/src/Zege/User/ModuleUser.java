@@ -2,7 +2,6 @@ package Zege.User;
 
 import Zege.Friend.BFriend;
 import Zege.Friend.BMember;
-import Zeze.Arch.ProviderUserSession;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 
@@ -34,7 +33,7 @@ public class ModuleUser extends AbstractModule {
         var group = App.Zege_Friend.getDepartmentTree(defaultGroup);
         var member = new BMember();
         member.setAccount(account);
-        group.getMembers().put(account, member);
+        group.getGroupMembers().put(account, member);
         var friend = new BFriend();
         friend.setAccount(defaultGroup);
         App.Zege_Friend.getFriends(account).put(friend.getAccount(), friend);

@@ -4,6 +4,7 @@ import Zeze.Arch.ProviderUserSession;
 import Zeze.Collections.DepartmentTree;
 import Zeze.Collections.LinkedMap;
 import Zeze.Transaction.Procedure;
+import Zeze.Util.OutLong;
 
 public class ModuleFriend extends AbstractModule {
     public void Start(Zege.App app) throws Throwable {
@@ -41,7 +42,9 @@ public class ModuleFriend extends AbstractModule {
     protected long ProcessCreateDepartmentRequest(Zege.Friend.CreateDepartment r) {
         var session = ProviderUserSession.get(r);
         var group = getDepartmentTree(r.Argument.getGroup());
-        r.Result.setId(group.createDepartment(r.Argument.getParentDepartment(), r.Argument.getName()));
+        var out = new OutLong();
+        r.setResultCode(group.createDepartment(r.Argument.getParentDepartment(), r.Argument.getName(), out));
+        r.Result.setId(out.Value);
         session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }
@@ -50,8 +53,7 @@ public class ModuleFriend extends AbstractModule {
     protected long ProcessDeleteDepartmentRequest(Zege.Friend.DeleteDepartment r) {
         var session = ProviderUserSession.get(r);
         var group = getDepartmentTree(r.Argument.getGroup());
-        var result = group.deleteDepartment(r.Argument.getId(), true);
-        r.setResultCode(result ? 0 : -1);
+        r.setResultCode(group.deleteDepartment(r.Argument.getId(), true));
         session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }
@@ -60,7 +62,7 @@ public class ModuleFriend extends AbstractModule {
     protected long ProcessGetDepartmentNodeRequest(Zege.Friend.GetDepartmentNode r) {
         var session = ProviderUserSession.get(r);
         var group = getDepartmentTree(r.Argument.getGroup());
-        var department = group.getDepartment(r.Argument.getId());
+        var department = group.getDepartmentTreeNode(r.Argument.getId());
         r.Result.setParentDepartment(department.getParentDepartment());
         r.Result.setName(department.getName());
         r.Result.getChilds().putAll(department.getChilds());
@@ -89,8 +91,7 @@ public class ModuleFriend extends AbstractModule {
     protected long ProcessMoveDepartmentRequest(Zege.Friend.MoveDepartment r) {
         var session = ProviderUserSession.get(r);
         var group = getDepartmentTree(r.Argument.getGroup());
-        var result = group.moveDepartment(r.Argument.getId(), r.Argument.getNewParent());
-        r.setResultCode(result ? 0 : -1);
+        r.setResultCode(group.moveDepartment(r.Argument.getId(), r.Argument.getNewParent()));
         session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }
@@ -130,8 +131,8 @@ public class ModuleFriend extends AbstractModule {
         var session = ProviderUserSession.get(r);
         var group = getDepartmentTree(r.Argument.getGroup());
         var node = r.Argument.getNodeId() == 0
-                ? group.getMembers().getFristNode()
-                : group.getMembers().getNode(r.Argument.getNodeId());
+                ? group.getGroupMembers().getFristNode()
+                : group.getGroupMembers().getNode(r.Argument.getNodeId());
         r.Result.setNextNodeId(node.getNextNodeId());
         r.Result.setPrevNodeId(node.getPrevNodeId());
         for (var friend : node.getValues()) {
