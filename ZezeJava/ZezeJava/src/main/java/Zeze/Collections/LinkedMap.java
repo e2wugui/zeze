@@ -243,11 +243,8 @@ public class LinkedMap<V extends Bean> {
 		}, name + ".clear");
 	}
 
-	/**
-	 * func 第一个参数是当前Value所在的Node.Id。
-	 */
 	@SuppressWarnings("unchecked")
-	public long walk(TableWalkHandle<Long, V> func) {
+	public long walk(TableWalkHandle<String, V> func) {
 		long count = 0L;
 		var root = module._tLinkedMaps.selectDirty(name);
 		if (null == root)
@@ -261,7 +258,7 @@ public class LinkedMap<V extends Bean> {
 
 			for (var value : node.getValues()) {
 				++count;
-				if (!func.handle(nodeId, (V)value.getValue().getBean()))
+				if (!func.handle(value.getId(), (V)value.getValue().getBean()))
 					return count;
 			}
 			nodeId = node.getPrevNodeId();
