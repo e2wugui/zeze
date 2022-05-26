@@ -242,7 +242,7 @@ namespace Zeze.Collections
 		 * 必须在事务外。
 		 * func 第一个参数是当前Value所在的Node.Id。
 		 */
-		public async Task<long> WalkAsync(Func<long, V, bool> func)
+		public async Task<long> WalkAsync(Func<string, V, bool> func)
 		{
 			long count = 0L;
 			var root = await module._tLinkedMaps.SelectDirtyAsync(name);
@@ -259,7 +259,7 @@ namespace Zeze.Collections
 				foreach (var value in node.Values)
 				{
 					++count;
-					if (!func(nodeId, (V)value.Value.Bean))
+					if (!func(value.Id, (V)value.Value.Bean))
 						return count;
 				}
 				nodeId = node.PrevNodeId;
