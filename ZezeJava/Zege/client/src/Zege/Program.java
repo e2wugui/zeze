@@ -62,7 +62,8 @@ public class Program {
 			do {
 				line = console.readLine();
 				try {
-					Windows.get(Windows.size() - 1).process(line);
+					if (!Windows.get(Windows.size() - 1).process(line))
+						System.out.println("Unknown Command!");
 				} catch (Throwable e) {
 					e.printStackTrace();
 				}
@@ -101,6 +102,7 @@ public class Program {
 				break;
 			case "af":
 				App.Instance.Zege_Friend.add(cmd[1]).await();
+				Program.this.refresh();
 				return true;
 			}
 			return false;
@@ -222,7 +224,7 @@ public class Program {
 			var cmd = line.split(" ");
 			switch (cmd[0])
 			{
-			case "open":
+			case "chat":
 				if (cmd.length > 1) {
 					var target = cmd[1];
 					if (null != find(target)) {
