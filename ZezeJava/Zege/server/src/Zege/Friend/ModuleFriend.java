@@ -28,12 +28,10 @@ public class ModuleFriend extends AbstractModule {
         if (!App.Zege_User.contains(r.Argument.getAccount()))
             return Procedure.LogicError;
         var peer = getFriends(r.Argument.getAccount());
-        var friendPeer = new BFriend();
-        friendPeer.setAccount(r.Argument.getAccount());
-        self.put(r.Argument.getAccount(), friendPeer);
-        var friendSelf = new BFriend();
-        friendSelf.setAccount(session.getAccount());
-        peer.put(session.getAccount(), friendSelf);
+
+        self.getOrAdd(r.Argument.getAccount()).setAccount(r.Argument.getAccount());
+        peer.getOrAdd(session.getAccount()).setAccount(session.getAccount());
+
         session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }

@@ -1,5 +1,6 @@
 package Zeze.Collections;
 
+import java.lang.invoke.MethodHandle;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMap;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapKey;
@@ -49,12 +50,13 @@ public class LinkedMap<V extends Bean> {
 	private final Module module;
 	private final String name;
 	private final int nodeSize;
+	private final MethodHandle valueConstructor;
 
 	private LinkedMap(Module module, String name, Class<V> valueClass, int nodeSize) {
 		this.module = module;
 		this.name = name;
 		this.nodeSize = nodeSize;
-		beanFactory.register(valueClass);
+		this.valueConstructor = beanFactory.register(valueClass);
 	}
 
 	public String getName() {
@@ -124,6 +126,15 @@ public class LinkedMap<V extends Bean> {
 	}
 
 	// map
+	public V getOrAdd(String id) {
+		var value = get(id);
+		if (null != value)
+			return value;
+		value = beanFactory.invoke(valueConstructor);
+		put(id, value);
+		return value;
+	}
+
 	public V put(long id, V value) {
 		return put(String.valueOf(id), value, true);
 	}

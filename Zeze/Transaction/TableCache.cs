@@ -253,9 +253,7 @@ namespace Zeze.Transaction
             try
             {
                 // record.lock 和事务并发。
-                if (false == System.Threading.Monitor.TryEnter(p.Value))
-                    return false;
-                try
+                using (p.Value.Mutex.Lock()) // 最好使用TryLock，先这样了。
                 {
                     // rrs lock
                     var rrs = p.Value.RelativeRecordSet;
@@ -276,10 +274,6 @@ namespace Zeze.Transaction
                     {
                         lockrrs.Dispose();
                     }
-                }
-                finally
-                {
-                    System.Threading.Monitor.Exit(p.Value);
                 }
             }
             finally

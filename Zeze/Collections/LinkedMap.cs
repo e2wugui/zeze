@@ -139,6 +139,16 @@ namespace Zeze.Collections
 		}
 
 		// map
+		public async Task<V> GetOrAddAsync(string id)
+		{
+			var value = await GetAsync(id);
+			if (null != value)
+				return value;
+			value = new V();
+			await PutAsync(id, value);
+			return value;
+		}
+
 		public async Task<V> PutAsync(long id, V value)
 		{
 			return await PutAsync(id.ToString(), value, true);
