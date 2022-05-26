@@ -344,16 +344,13 @@ namespace Zeze
                 domain.UnhandledException -= UnhandledExceptionEventHandler;
                 domain.ProcessExit -= ProcessExit;
 
-                GlobalAgent?.Dispose(); // 关闭时需要生成新的SessionId，这个现在使用AutoKey，需要事务支持。
-
                 if (false == IsStart)
                     return;
 
+                GlobalAgent?.Dispose(); // 关闭时需要生成新的SessionId，这个现在使用AutoKey，需要事务支持。
+
                 FlushWhenReduceTimerTask?.Cancel();
                 FlushWhenReduceTimerTask = null;
-
-                Config?.ClearInUseAndIAmSureAppStopped(this, Databases);
-                IsStart = false;
 
                 _checkpoint?.StopAndJoin();
                 _checkpoint = null;
@@ -365,6 +362,9 @@ namespace Zeze
                 ServiceManagerAgent.Stop();
                 Locks = null;
                 Config = null;
+
+                Config?.ClearInUseAndIAmSureAppStopped(this, Databases);
+                IsStart = false;
             }
         }
  

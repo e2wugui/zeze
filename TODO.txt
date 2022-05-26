@@ -10,7 +10,17 @@ DatabaseTikv.OperatesTikv
 【2022/6/11】
 
 一致性hash负载分配算法：解决provider变动带来的原来分配方式（hash%count)导致re-hash造成cache大量重来的问题。
-BLinkedMapNodeValue 里面保存了key，但是walk接口没有返回，需要在dynamic里面再次定义。
+从Global得到锁以后，确保本地至少用过一次（事务成功），才允许Reduce。
+Global错误处理：GS增加AchillesHeelDaemon，申请token（特别的keepalive）机制，本地释放锁超时，如果稍有不正常，就自杀。
+
+------------------------------------------------------------------------------------------------------------------------------
+tag 0.9.7 
+------------------------------------------------------------------------------------------------------------------------------
+LinkedMap.BLinkedMapNodeValue 里面保存了key，但是walk接口没有返回，需要在dynamic里面再次定义。【callback返回key(id)，而不是nodeid】
+LinkedMap.GetOrAdd
+Zege 框架搭建完成。
+java ServiceManager.AgentClient.DispatchProtocol Run In IO-Thread。
+java Zeze.Applicate.deleteDirectroy: while(exist) { delete() }
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 0.9.6 zege start & c# raft ready

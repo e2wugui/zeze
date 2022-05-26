@@ -210,8 +210,10 @@ public final class Application {
 				deleteDirectory(file);
 			}
 		}
-		if (directoryToBeDeleted.exists() && !directoryToBeDeleted.delete())
-			throw new RuntimeException("delete file fail: " + directoryToBeDeleted);
+		while (directoryToBeDeleted.exists()) {
+			if (!directoryToBeDeleted.delete())
+				throw new RuntimeException("delete file fail: " + directoryToBeDeleted);
+		}
 	}
 
 	public synchronized void Start() throws Throwable {
@@ -315,28 +317,20 @@ public final class Application {
 	public synchronized void Stop() throws Throwable {
 		if (!IsStart)
 			return;
-		IsStart = false;
 
-		if (InternalThreadPool != null) {
-			InternalThreadPool.shutdown();
-			//noinspection ResultOfMethodCallIgnored
-			InternalThreadPool.awaitTermination(3, TimeUnit.SECONDS);
-			InternalThreadPool = null;
+		if (GlobalAgent != null) {
+			GlobalAgent.close();
+			GlobalAgent = null;
 		}
 		if (FlushWhenReduceTimerTask != null) {
 			FlushWhenReduceTimerTask.cancel(false);
 			FlushWhenReduceTimerTask = null;
 		}
+
 		if (_checkpoint != null) {
 			_checkpoint.StopAndJoin();
 			_checkpoint = null;
 		}
-		if (GlobalAgent != null) {
-			GlobalAgent.close();
-			GlobalAgent = null;
-		}
-		if (ServiceManagerAgent != null)
-			ServiceManagerAgent.Stop();
 		for (var db : Databases.values())
 			db.Close();
 		if (null != LocalRocksCacheDb) {
@@ -344,8 +338,8 @@ public final class Application {
 			LocalRocksCacheDb.Close();
 			deleteDirectory(new File(dir));
 		}
-		if (Conf != null)
-			Conf.ClearInUseAndIAmSureAppStopped(this, Databases);
+		if (ServiceManagerAgent != null)
+			ServiceManagerAgent.Stop();
 		if (queueModule != null) {
 			queueModule.UnRegisterZezeTables(this);
 			queueModule = null;
@@ -354,6 +348,15 @@ public final class Application {
 			autoKey.UnRegisterZezeTables(this);
 			autoKey = null;
 		}
+		if (InternalThreadPool != null) {
+			InternalThreadPool.shutdown();
+			//noinspection ResultOfMethodCallIgnored
+			InternalThreadPool.awaitTermination(3, TimeUnit.SECONDS);
+			InternalThreadPool = null;
+		}
+		if (Conf != null)
+			Conf.ClearInUseAndIAmSureAppStopped(this, Databases);
+		IsStart = false;
 	}
 
 	public synchronized void CheckAndRemoveTable(Schemas other) throws RocksDBException {
