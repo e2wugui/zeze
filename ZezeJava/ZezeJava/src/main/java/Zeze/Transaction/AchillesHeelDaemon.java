@@ -33,10 +33,12 @@ package Zeze.Transaction;
  * 7. Server-AchillesHeel-Daemon
  *    Server每秒扫描一遍Global，发现 now - Global.LastActiveTime > ServerDaemonTimeout(5秒)，启动本地释放锁线程。
  *    a) 2秒，需要大于KeepAlive的空闲间隔。
- *    b) 本地释放锁必须在独立线程执行，守护线程等待释放完成，如果释放超过10秒还未完成，就自杀！【Important！】
+ *    b) 本地释放锁必须在独立线程执行，守护线程等待释放完成，如果释放超过ServerReleaseTimeout(10秒)还未完成，就自杀！【Important！】
  *    c) 守护线程一开始创建，做最简单的事情，确保需要的时候，最终的自杀能成功。【Important！】
  *
- * 8. ServerKeepAlive.IdleTimeout < ServerDaemonTimeout < GlobalDaemonTimeout
+ * 8. Timeout
+ *    a) ServerKeepAlive.IdleTimeout < ServerDaemonTimeout;
+ *    b) ServerDaemonTimeout + ServerReleaseTimeout < GlobalDaemonTimeout; 必须满足而且不能太接近【Important！】
  *    rpc.Timeout? 现在Global的Rpc.Timeout设的比较长，需要重新考虑。
  *
  * *. Change
