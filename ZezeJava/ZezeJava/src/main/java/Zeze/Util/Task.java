@@ -88,6 +88,8 @@ public class Task implements Future<Long> {
 	public static void Call(Action0 action, String name) {
 		try {
 			action.run();
+		} catch (AssertionError e) {
+			throw e;
 		} catch (Throwable ex) {
 			logger.error(name != null ? name : action != null ? action.getClass().getName() : "", ex);
 		}
@@ -96,6 +98,8 @@ public class Task implements Future<Long> {
 	public static long Call(FuncLong func, String name) {
 		try {
 			return func.call();
+		} catch (AssertionError e) {
+			throw e;
 		} catch (Throwable ex) {
 			logger.error(name != null ? name : func != null ? func.getClass().getName() : "", ex);
 			return Procedure.Exception;
@@ -159,6 +163,8 @@ public class Task implements Future<Long> {
 		return threadPoolScheduled.schedule(() -> {
 			try {
 				action.run();
+			} catch (AssertionError e) {
+				throw e;
 			} catch (Throwable e) {
 				logger.error("schedule", e);
 			}
@@ -181,6 +187,8 @@ public class Task implements Future<Long> {
 		return threadPoolScheduled.scheduleWithFixedDelay(() -> {
 			try {
 				action.run();
+			} catch (AssertionError e) {
+				throw e;
 			} catch (Throwable e) {
 				logger.error("schedule", e);
 			}
@@ -191,6 +199,8 @@ public class Task implements Future<Long> {
 		return threadPoolScheduled.schedule(() -> {
 			try {
 				return func.call();
+			} catch (AssertionError e) {
+				throw e;
 			} catch (Exception | Error e) {
 				logger.error("schedule", e);
 				throw e;
@@ -218,6 +228,8 @@ public class Task implements Future<Long> {
 		public Integer call() {
 			try {
 				SchedulerHandle.handle(this);
+			} catch (AssertionError e) {
+				throw e;
 			} catch (Throwable ex) {
 				logger.error("SchedulerTask", ex);
 			}
@@ -265,6 +277,8 @@ public class Task implements Future<Long> {
 		if (tmpVolatile != null) {
 			try {
 				tmpVolatile.run(logLevel, ex, result, "Action=" + actionName + (p != null ? " UserState=" + p.getUserState() : ""));
+			} catch (AssertionError e) {
+				throw e;
 			} catch (Throwable e) {
 				logger.error("LogAction Exception", e);
 			}
@@ -288,6 +302,8 @@ public class Task implements Future<Long> {
 				actionWhenError.handle(p, result);
 			LogAndStatistics(null, result, p, IsRequestSaved, aName);
 			return result;
+		} catch (AssertionError e) {
+			throw e;
 		} catch (Throwable ex) {
 			long errorCode;
 			for (Throwable rootEx = ex, cause; ; rootEx = cause) {
@@ -305,6 +321,8 @@ public class Task implements Future<Long> {
 			if (IsRequestSaved && actionWhenError != null) {
 				try {
 					actionWhenError.handle(p, errorCode);
+				} catch (AssertionError e) {
+					throw e;
 				} catch (Throwable e) {
 					logger.error(e);
 				}
@@ -354,11 +372,15 @@ public class Task implements Future<Long> {
 				actionWhenError.run(from, result);
 			LogAndStatistics(null, result, from, isRequestSaved, procedure.getActionName());
 			return result;
+		} catch (AssertionError e) {
+			throw e;
 		} catch (Throwable ex) {
 			// Procedure.Call处理了所有错误。应该不会到这里。除非内部错误。
 			if (isRequestSaved && actionWhenError != null) {
 				try {
 					actionWhenError.run(from, Procedure.Exception);
+				} catch (AssertionError e) {
+					throw e;
 				} catch (Throwable e) {
 					logger.error("ActionWhenError Exception", e);
 				}
