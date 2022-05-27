@@ -47,6 +47,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 	}
 
+	public static boolean flag = true;
+
 	@SuppressWarnings("unchecked")
 	private AtomicTupleRecord<K, V> Load(K key) {
 		var tkey = new TableKey(getId(), key);
@@ -61,6 +63,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 				if (r.getState() == GlobalCacheManagerServer.StateShare
 						|| r.getState() == GlobalCacheManagerServer.StateModify) {
+					var beforeTimestamp = r.getTimestamp(); // read timestamp before read value。see Record1.Commit
 					strongRef = (V)r.getSoftValue();
 					if (null == strongRef && !r.getDirty()) {
 						var find = LocalRocksCacheTable.Find(EncodeKey(key));
@@ -70,7 +73,15 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							r.setSoftValue(strongRef);
 						}
 					}
-					return AtomicTupleRecord.create(r, strongRef, r.getTimestamp());
+					if (!flag) {
+						flag = true;
+						try {
+							Thread.sleep(2000);
+						} catch (InterruptedException e) {
+							throw new RuntimeException(e);
+						}
+					}
+					return AtomicTupleRecord.create(r, strongRef, beforeTimestamp);
 				}
 
 				var acquire = r.Acquire(GlobalCacheManagerServer.StateShare);
@@ -86,7 +97,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				}
 
 				r.setTimestamp(Record.getNextTimestamp());
-
+				var beforeTimestamp = r.getTimestamp();
 				if (null != TStorage) {
 					TableStatistics.getInstance().GetOrAdd(getId()).getStorageFindCount().incrementAndGet();
 					strongRef = TStorage.Find(key, this);
@@ -113,8 +124,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						strongRef.InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
 					}
 				}
-				logger.debug("FindInCacheOrStorage {}", r);
-				return AtomicTupleRecord.create(r, strongRef, r.getTimestamp());
+				logger.debug("Load {}", r);
+				return AtomicTupleRecord.create(r, strongRef, beforeTimestamp);
 			} finally {
 				r.ExitFairLock();
 			}

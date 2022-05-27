@@ -274,6 +274,8 @@ public final class Transaction {
 		for (var action : Actions) {
 			try {
 				action.action.run();
+			} catch (AssertionError e) {
+				throw e;
 			} catch (Throwable e) {
 				String typeStr;
 				if (action.actionType == Savepoint.ActionType.COMMIT) {
@@ -296,6 +298,8 @@ public final class Transaction {
 		triggerActions(procedure);
 	}
 
+	public static boolean flag = true;
+
 	private void _final_commit_(Procedure procedure) {
 		// 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
 		// 可以在最终提交里可以实现每事务checkpoint。
@@ -305,6 +309,12 @@ public final class Transaction {
 					lastsp.MergeActions(Actions, true);
 					lastsp.Commit();
 
+					if (!flag) {
+						flag= true;
+						System.out.println("sleep1 begin");
+						Thread.sleep(2000);
+						System.out.println("sleep1 end");
+					}
 					for (var e : getAccessedRecords().entrySet()) {
 						if (e.getValue().Dirty) {
 							e.getValue().AtomicTupleRecord.Record.Commit(e.getValue());
@@ -438,7 +448,7 @@ public final class Transaction {
 						// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
 						var acquire = e.AtomicTupleRecord.Record.Acquire(GlobalCacheManagerServer.StateModify);
 						if (acquire.ResultState != GlobalCacheManagerServer.StateModify) {
-							logger.debug("Acquire Failed. Maybe DeadLock Found {}", e.AtomicTupleRecord.Record);
+							logger.debug("Acquire Failed. Maybe DeadLock Found {}", e.AtomicTupleRecord);
 							e.AtomicTupleRecord.Record.setState(GlobalCacheManagerServer.StateInvalid); // 这里保留StateShare更好吗？
 							LastTableKeyOfRedoAndRelease = e.getTableKey();
 							e.AtomicTupleRecord.Record.LastErrorGlobalSerialId = acquire.ResultGlobalSerialId; // save

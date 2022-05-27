@@ -87,6 +87,7 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 		}
 		setTimestamp(getNextTimestamp()); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
 		SetDirty();
+		//System.out.println("commit: " + this + " put=" + accessed.CommittedPutLog + " atr=" + accessed.AtomicTupleRecord);
 	}
 
 	@Override

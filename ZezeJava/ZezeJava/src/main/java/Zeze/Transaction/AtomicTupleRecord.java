@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import java.sql.Time;
+
 public class AtomicTupleRecord<K extends Comparable<K>, V extends Bean> {
 	public Record1<K, V> Record;
 	public V StrongRef;
@@ -10,6 +12,12 @@ public class AtomicTupleRecord<K extends Comparable<K>, V extends Bean> {
 		atr.Record = r;
 		atr.StrongRef = strongRef;
 		atr.Timestamp = timestamp;
+		//System.out.println(atr);
 		return atr;
+	}
+
+	@Override
+	public String toString() {
+		return "" + Record + " ref=" + StrongRef + " time=" + Timestamp;
 	}
 }
