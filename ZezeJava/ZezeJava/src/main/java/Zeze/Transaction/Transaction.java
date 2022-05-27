@@ -438,7 +438,7 @@ public final class Transaction {
 						// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
 						var acquire = e.AtomicTupleRecord.Record.Acquire(GlobalCacheManagerServer.StateModify);
 						if (acquire.ResultState != GlobalCacheManagerServer.StateModify) {
-							logger.debug("Acquire Failed. Maybe DeadLock Found {}", e.AtomicTupleRecord);
+							logger.debug("Acquire Failed. Maybe DeadLock Found {}", e.AtomicTupleRecord.Record);
 							e.AtomicTupleRecord.Record.setState(GlobalCacheManagerServer.StateInvalid); // 这里保留StateShare更好吗？
 							LastTableKeyOfRedoAndRelease = e.getTableKey();
 							e.AtomicTupleRecord.Record.LastErrorGlobalSerialId = acquire.ResultGlobalSerialId; // save

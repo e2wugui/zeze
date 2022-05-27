@@ -76,7 +76,7 @@ public final class Simulate {
 
 	public static void main(String[] args) throws Throwable {
 		var simulate = new Simulate();
-		simulate.Infinite = args.length > 0 && args[0].equalsIgnoreCase("infinite"); // 一直执行。
+		simulate.Infinite = true;
 		simulate.Before();
 		try {
 			simulate.testMain();
