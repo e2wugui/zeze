@@ -321,7 +321,6 @@ namespace Zeze
                         }
                         catch (Exception ex)
                         {
-                            logger.Error(ex);
                             SchemasPrevious = null;
                             logger.Error(ex, "Schemas Implement Changed?");
                         }

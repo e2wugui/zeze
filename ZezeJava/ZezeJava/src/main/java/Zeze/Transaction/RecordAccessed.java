@@ -3,9 +3,7 @@ package Zeze.Transaction;
 import Zeze.Serialize.ByteBuffer;
 
 public class RecordAccessed extends Bean {
-	final Record Origin;
-	final Bean StrongRef;
-	final long Timestamp;
+	final AtomicTupleRecord<?, ?> AtomicTupleRecord;
 	boolean Dirty;
 
 	public final Bean NewestValue() {
@@ -15,7 +13,7 @@ public class RecordAccessed extends Bean {
 			PutLog putlog = (PutLog)log;
 			return putlog.getValue();
 		}
-		return StrongRef;
+		return AtomicTupleRecord.StrongRef;
 	}
 
 	// Record 修改日志先提交到这里(Savepoint.Commit里面调用）。处理完Savepoint后再处理 Dirty 记录。
@@ -38,10 +36,8 @@ public class RecordAccessed extends Bean {
 		}
 	}
 
-	public RecordAccessed(Record originRecord, Bean strongRef) {
-		Origin = originRecord;
-		StrongRef = strongRef;
-		Timestamp = originRecord.getTimestamp();
+	public RecordAccessed(AtomicTupleRecord<?, ?> a) {
+		AtomicTupleRecord = a;
 	}
 
 	public final void Put(Transaction current, Bean putValue) {

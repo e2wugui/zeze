@@ -7,7 +7,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Services.GlobalCacheManagerServer;
 import Zeze.Services.ServiceManager.AutoKey;
-import Zeze.Util.KV;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -49,7 +48,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@SuppressWarnings("unchecked")
-	private KV<Record1<K, V>, V> Load(K key) {
+	private AtomicTupleRecord<K, V> Load(K key) {
 		var tkey = new TableKey(getId(), key);
 		while (true) {
 			Record1<K, V> r = getCache().GetOrAdd(key, () -> new Record1<>(this, key, null));
@@ -71,7 +70,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							r.setSoftValue(strongRef);
 						}
 					}
-					return KV.Create(r, strongRef);
+					return AtomicTupleRecord.create(r, strongRef, r.getTimestamp());
 				}
 
 				var acquire = r.Acquire(GlobalCacheManagerServer.StateShare);
@@ -115,10 +114,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					}
 				}
 				logger.debug("FindInCacheOrStorage {}", r);
+				return AtomicTupleRecord.create(r, strongRef, r.getTimestamp());
 			} finally {
 				r.ExitFairLock();
 			}
-			return KV.Create(r, strongRef);
 		}
 	}
 
@@ -334,8 +333,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 
 		var r = Load(key);
-		currentT.AddRecordAccessed(r.getKey().CreateRootInfoIfNeed(tkey), new Zeze.Transaction.RecordAccessed(r.getKey(), r.getValue()));
-		return r.getValue();
+		currentT.AddRecordAccessed(r.Record.CreateRootInfoIfNeed(tkey), new Zeze.Transaction.RecordAccessed(r));
+		return r.StrongRef;
 	}
 
 	public final V getOrAdd(K key) {
@@ -354,17 +353,17 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 		else {
 			var r = Load(key);
-			cr = new Zeze.Transaction.RecordAccessed(r.getKey(), r.getValue());
-			currentT.AddRecordAccessed(r.getKey().CreateRootInfoIfNeed(tkey), cr);
+			cr = new Zeze.Transaction.RecordAccessed(r);
+			currentT.AddRecordAccessed(r.Record.CreateRootInfoIfNeed(tkey), cr);
 
-			if (null != r.getValue()) {
-				return r.getValue();
+			if (null != r.StrongRef) {
+				return r.StrongRef;
 			}
 			// add
 		}
 
 		V add = NewValue();
-		add.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
+		add.InitRootInfo(cr.AtomicTupleRecord.Record.CreateRootInfoIfNeed(tkey), null);
 		cr.Put(currentT, add);
 		return add;
 	}
@@ -378,7 +377,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		TableKey tkey = new TableKey(getId(), key);
 		assert currentT != null;
 		Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
-		value.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
+		value.InitRootInfo(cr.AtomicTupleRecord.Record.CreateRootInfoIfNeed(tkey), null);
 		cr.Put(currentT, value);
 		return true;
 	}
@@ -397,14 +396,14 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		assert currentT != null;
 		Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
 		if (null != cr) {
-			value.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
+			value.InitRootInfo(cr.AtomicTupleRecord.Record.CreateRootInfoIfNeed(tkey), null);
 			cr.Put(currentT, value);
 			return;
 		}
 		var r = Load(key);
-		cr = new Zeze.Transaction.RecordAccessed(r.getKey(), r.getValue());
+		cr = new Zeze.Transaction.RecordAccessed(r);
 		cr.Put(currentT, value);
-		currentT.AddRecordAccessed(r.getKey().CreateRootInfoIfNeed(tkey), cr);
+		currentT.AddRecordAccessed(r.Record.CreateRootInfoIfNeed(tkey), cr);
 	}
 
 	// 几乎和Put一样，还是独立开吧。
@@ -420,9 +419,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 
 		var r = Load(key);
-		cr = new Zeze.Transaction.RecordAccessed(r.getKey(), r.getValue());
+		cr = new Zeze.Transaction.RecordAccessed(r);
 		cr.Put(currentT, null);
-		currentT.AddRecordAccessed(r.getKey().CreateRootInfoIfNeed(tkey), cr);
+		currentT.AddRecordAccessed(r.Record.CreateRootInfoIfNeed(tkey), cr);
 	}
 
 	private TableCache<K, V> Cache;
@@ -668,10 +667,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		lockey.EnterReadLock();
 		try {
 			var r= Load(key);
-			if (null == r.getValue())
+			if (null == r.StrongRef)
 				return null;
 			@SuppressWarnings("unchecked")
-			var v = (V)r.getValue().CopyBean();
+			var v = (V)r.StrongRef.CopyBean();
 			return v;
 		} finally {
 			lockey.ExitReadLock();
@@ -689,7 +688,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				return r;
 			}
 		}
-		return Load(key).getValue();
+		return Load(key).StrongRef;
 	}
 
 	@Override

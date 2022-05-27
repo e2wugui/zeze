@@ -5,6 +5,7 @@ using Zeze.Serialize;
 using System.Collections.Concurrent;
 using Zeze.Services;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace Zeze.Transaction
 {
@@ -33,8 +34,8 @@ namespace Zeze.Transaction
         private long _Timestamp; // CS0677 volatile cannot apply to long
         internal long Timestamp
         {
-            get { return _Timestamp; }
-            set { _Timestamp = value; }
+            get { return Interlocked.Read(ref _Timestamp); }
+            set { Interlocked.Exchange(ref _Timestamp, value); }
         }
 
         /// <summary>

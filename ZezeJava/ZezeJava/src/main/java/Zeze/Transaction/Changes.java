@@ -19,9 +19,9 @@ public final class Changes {
 		// 建立脏记录的表的监听者的快照，以后收集日志和通知监听者都使用这个快照，避免由于监听者发生变化造成收集和通知不一致。
 		for (var ar : t.getAccessedRecords().values()) {
 			if (ar.Dirty) {
-				var tmp = ar.Origin.getTable().getChangeListenerMap().getListeners();
+				var tmp = ar.AtomicTupleRecord.Record.getTable().getChangeListenerMap().getListeners();
 				if (!tmp.isEmpty())
-					Listeners.putIfAbsent(ar.Origin.getTable(), tmp);
+					Listeners.putIfAbsent(ar.AtomicTupleRecord.Record.getTable(), tmp);
 			}
 		}
 	}
@@ -83,16 +83,16 @@ public final class Changes {
 					Value = put; // put
 					State = Put;
 				} else {
-					Value = ar.StrongRef; // old
+					Value = ar.AtomicTupleRecord.StrongRef; // old
 					State = Remove;
 				}
 				return;
 			}
 
 			State = Edit;
-			var logBean = LogBeans.get(ar.StrongRef);
+			var logBean = LogBeans.get(ar.AtomicTupleRecord.StrongRef);
 			if (logBean != null) {
-				Value = ar.StrongRef; // old
+				Value = ar.AtomicTupleRecord.StrongRef; // old
 				LogBean.add(logBean); // edit
 			}
 		}
@@ -174,14 +174,14 @@ public final class Changes {
 
 	public void CollectRecord(RecordAccessed ar) {
 		// is table has listener
-		if (null == Listeners.get(ar.Origin.getTable()))
+		if (null == Listeners.get(ar.AtomicTupleRecord.Record.getTable()))
 			return;
 
 		var tkey = ar.getTableKey();
 		var r = Records.get(tkey);
 		if (r == null) {
 			// put record only
-			r = new Record(ar.Origin.getTable());
+			r = new Record(ar.AtomicTupleRecord.Record.getTable());
 			Records.put(tkey, r);
 		}
 

@@ -4,7 +4,6 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import java.util.*;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -268,10 +267,12 @@ public final class Checkpoint {
 	}
 
 	public void Flush(Transaction trans) {
-		var result = trans.getAccessedRecords().values()
-				.stream().filter((r) -> r.Dirty).map((r) -> r.Origin)
-				.collect(Collectors.toList());
-		Flush(result);
+		var records = new ArrayList<Record>(trans.getAccessedRecords().size());
+		for (var ar : trans.getAccessedRecords().values()) {
+			if (ar.Dirty)
+				records.add(ar.AtomicTupleRecord.Record);
+		}
+		Flush(records);
 	}
 
 	public void Flush(Iterable<Record> rs) {
