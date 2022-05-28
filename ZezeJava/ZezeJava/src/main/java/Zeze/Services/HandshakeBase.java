@@ -12,6 +12,7 @@ import Zeze.Services.Handshake.CHandshake;
 import Zeze.Services.Handshake.CHandshakeDone;
 import Zeze.Services.Handshake.Helper;
 import Zeze.Services.Handshake.SHandshake;
+import Zeze.Services.Handshake.SHandshake0;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashSet;
@@ -58,17 +59,18 @@ public class HandshakeBase extends Service {
 				CHandshakeDone::new, this::ProcessCHandshakeDone, TransactionLevel.None));
 	}
 
-	private int ProcessCHandshakeDone(CHandshakeDone p) throws Throwable {
+	private long ProcessCHandshakeDone(CHandshakeDone p) throws Throwable {
+		p.getSender().VerifySecurity();
 		OnHandshakeDone(p.getSender());
-		return 0;
+		return 0L;
 	}
 
-	private int ProcessCHandshake(CHandshake p) {
+	private long ProcessCHandshake(CHandshake p) {
 		try {
 			int group = p.Argument.dh_group;
 			if (!getConfig().getHandshakeOptions().getDhGroups().contains(group)) {
 				p.getSender().Close(new UnsupportedOperationException("dhGroup Not Supported"));
-				return 0;
+				return 0L;
 			}
 
 			BigInteger data = new BigInteger(p.Argument.dh_data);
@@ -98,10 +100,10 @@ public class HandshakeBase extends Service {
 			// 所以增加CHandshakeDone协议，在Client进入加密以后发送给Server。
 			// OnHandshakeDone(p.Sender);
 
-			return 0;
+			return 0L;
 		} catch (Throwable ex) {
 			p.getSender().Close(ex);
-			return 0;
+			return 0L;
 		}
 	}
 
@@ -109,9 +111,26 @@ public class HandshakeBase extends Service {
 		HandshakeProtocols.add(SHandshake.TypeId_);
 		AddFactoryHandle(SHandshake.TypeId_, new Service.ProtocolFactoryHandle<>(SHandshake::new
 				, this::ProcessSHandshake, TransactionLevel.None));
+		HandshakeProtocols.add(SHandshake0.TypeId_);
+		AddFactoryHandle(SHandshake0.TypeId_, new Service.ProtocolFactoryHandle<>(SHandshake0::new
+				, this::ProcessSHandshake0, TransactionLevel.None));
 	}
 
-	private int ProcessSHandshake(SHandshake p) {
+	private long ProcessSHandshake0(SHandshake0 p) {
+		try {
+			if (p.Argument.EnableEncrypt) {
+				StartHandshake(p.getSender());
+			} else {
+				new CHandshakeDone().Send(p.getSender());
+				OnHandshakeDone(p.getSender());
+			}
+		} catch (Throwable ex) {
+			p.getSender().Close(ex);
+		}
+		return 0L;
+	}
+
+	private long ProcessSHandshake(SHandshake p) {
 		Context ctx = null;
 		try {
 			ctx = DHContext.remove(p.getSender().getSessionId());

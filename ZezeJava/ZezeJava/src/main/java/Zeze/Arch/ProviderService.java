@@ -151,15 +151,6 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 		});
 	}
 
-	@Override
-	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) throws Throwable {
-		// 防止Client不进入加密，直接发送用户协议。
-		if (!IsHandshakeProtocol(p.getTypeId())) {
-			p.getSender().VerifySecurity();
-		}
-		super.DispatchProtocol(p, factoryHandle);
-	}
-
 	/*
 	public void ReportLoad(int online, int proposeMaxOnline, int onlineNew) {
 		var report = new ReportLoad();

@@ -198,6 +198,8 @@ namespace Zeze.Net
             if (attr.Length > 0) HandshakeOptions.C2sNeedCompress = bool.Parse(attr);
             attr = self.GetAttribute("DhGroup");
             if (attr.Length > 0) HandshakeOptions.DhGroup = byte.Parse(attr);
+            attr = self.GetAttribute("EnableEncrypt");
+            if (attr.Length > 0) HandshakeOptions.EnableEncrypt = bool.Parse(attr);
 
             if (string.IsNullOrEmpty(Name))
             {

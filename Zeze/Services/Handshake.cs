@@ -31,6 +31,7 @@ namespace Zeze.Services
 
         // for HandshakeClient
         public byte DhGroup { get; set; } = 1;
+        public bool EnableEncrypt { get; set; } = false;
 
         public HandshakeOptions()
         {
@@ -104,6 +105,7 @@ namespace Zeze.Services
 
         private Task<long> ProcessCHandshakeDone(Protocol p)
         {
+            p.Sender.VerifySecurity();
             OnHandshakeDone(p.Sender);
             return Task.FromResult(0L);
         }
@@ -158,21 +160,55 @@ namespace Zeze.Services
 
         protected void AddHandshakeClientFactoryHandle()
         {
-            var tmp = new Handshake.SHandshake();
-            HandshakeProtocols.Add(tmp.TypeId);
-            AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle()
             {
-                Factory = () => new Handshake.SHandshake(),
-                Handle = ProcessSHandshake,
-                TransactionLevel = TransactionLevel.None,
-            });
+                var tmp = new Handshake.SHandshake();
+                HandshakeProtocols.Add(tmp.TypeId);
+                AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle()
+                {
+                    Factory = () => new Handshake.SHandshake(),
+                    Handle = ProcessSHandshake,
+                    TransactionLevel = TransactionLevel.None,
+                });
+            }
+            {
+                var tmp = new Handshake.SHandshake0();
+                HandshakeProtocols.Add(tmp.TypeId);
+                AddFactoryHandle(tmp.TypeId, new ProtocolFactoryHandle()
+                {
+                    Factory = () => new Handshake.SHandshake0(),
+                    Handle = ProcessSHandshake0,
+                    TransactionLevel = TransactionLevel.None,
+                });
+            }
+        }
+
+        private Task<long> ProcessSHandshake0(Protocol _p)
+        {
+            try
+            {
+                var p = (Handshake.SHandshake0)_p;
+                if (p.Argument.EnableEncrypt)
+                {
+                    StartHandshake(p.Sender);
+                }
+                else
+                {
+                    new Handshake.CHandshakeDone().Send(p.Sender);
+                    OnHandshakeDone(p.Sender);
+                }
+            }
+            catch (Exception ex)
+            {
+                _p.Sender.Close(ex);
+            }
+            return Task.FromResult(0L);
         }
 
         private Task<long> ProcessSHandshake(Protocol _p)
         {
             try
             {
-                Handshake.SHandshake p = (Handshake.SHandshake)_p;
+                var p = (Handshake.SHandshake)_p;
                 if (DHContext.TryRemove(p.Sender.SessionId, out var ctx))
                 {
                     try
@@ -254,15 +290,10 @@ namespace Zeze.Services
         {
             // 重载这个方法，推迟OnHandshakeDone调用
             SocketMap.TryAdd(so.SessionId, so);
-        }
 
-        public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
-        {
-            // 防止Client不进入加密，直接发送用户协议。
-            if (false == IsHandshakeProtocol(p.TypeId))
-                p.Sender.VerifySecurity();
-
-            base.DispatchProtocol(p, factoryHandle);
+            var hand0 = new Handshake.SHandshake0();
+            hand0.Argument.EnableEncrypt = Config.HandshakeOptions.EnableEncrypt;
+            hand0.Send(so);
         }
     }
 
@@ -288,16 +319,6 @@ namespace Zeze.Services
         {
             // 重载这个方法，推迟OnHandshakeDone调用
             SocketMap.TryAdd(so.SessionId, so);
-            StartHandshake(so);
-        }
-
-        public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
-        {
-            // 防止Client不进入加密，直接发送用户协议。
-            if (false == IsHandshakeProtocol(p.TypeId))
-                p.Sender.VerifySecurity();
-
-            base.DispatchProtocol(p, factoryHandle);
         }
     }
 
@@ -319,22 +340,16 @@ namespace Zeze.Services
         {
             // 重载这个方法，推迟OnHandshakeDone调用
             SocketMap.TryAdd(so.SessionId, so);
+
+            var hand0 = new Handshake.SHandshake0();
+            hand0.Argument.EnableEncrypt = Config.HandshakeOptions.EnableEncrypt;
+            hand0.Send(so);
         }
 
         public override void OnSocketConnected(AsyncSocket so)
         {
             // 重载这个方法，推迟OnHandshakeDone调用
             SocketMap.TryAdd(so.SessionId, so);
-            StartHandshake(so);
-        }
-
-        public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
-        {
-            // 防止Client不进入加密，直接发送用户协议。
-            if (false == IsHandshakeProtocol(p.TypeId))
-                p.Sender.VerifySecurity();
-
-            base.DispatchProtocol(p, factoryHandle);
         }
     }
 }
@@ -343,7 +358,7 @@ namespace Zeze.Services.Handshake
 {
     public static class Helper
     {
-        private static readonly BigInteger dh_g = new (2);
+        private static readonly BigInteger dh_g = new(2);
         private static readonly BigInteger[] dh_group = new BigInteger[] {
             BigInteger.Zero,
             BigInteger.Parse(
@@ -497,6 +512,34 @@ namespace Zeze.Services.Handshake
     public sealed class CHandshakeDone : Protocol<EmptyBean>
     {
         public readonly static int ProtocolId_ = Bean.Hash32(typeof(CHandshakeDone).FullName);
+
+        public override int ModuleId => 0;
+        public override int ProtocolId => ProtocolId_;
+    }
+
+    public sealed class SHandshake0Argument : Bean
+    {
+        public bool EnableEncrypt { get; set; }
+
+        public override void Decode(ByteBuffer bb)
+        {
+            EnableEncrypt = bb.ReadBool();
+        }
+
+        public override void Encode(ByteBuffer bb)
+        {
+            bb.WriteBool(EnableEncrypt);
+        }
+
+        protected override void InitChildrenRootInfo(Record.RootInfo root)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public sealed class SHandshake0 : Protocol<SHandshake0Argument>
+    {
+        public readonly static int ProtocolId_ = Bean.Hash32(typeof(SHandshake0).FullName);
 
         public override int ModuleId => 0;
         public override int ProtocolId => ProtocolId_;

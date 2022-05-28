@@ -162,10 +162,6 @@ namespace Zeze.Raft
 
         public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
         {
-            // 防止Client不进入加密，直接发送用户协议。
-            if (false == IsHandshakeProtocol(p.TypeId))
-                p.Sender.VerifySecurity();
-
             if (IsImportantProtocol(p.TypeId))
             {
                 _ = Util.Mission.CallAsync(factoryHandle.Handle, p, null);
@@ -779,10 +775,6 @@ namespace Zeze.Raft
 
             public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle pfh)
             {
-                // 防止Client不进入加密，直接发送用户协议。
-                if (false == IsHandshakeProtocol(p.TypeId))
-                    p.Sender.VerifySecurity();
-
                 // await 按收到顺序处理，不并发。这样也避免线程切换。
                 _ = Util.Mission.CallAsync(pfh.Handle, p, null);
             }

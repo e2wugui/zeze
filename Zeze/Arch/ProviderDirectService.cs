@@ -158,11 +158,6 @@ namespace Zeze.Arch
 
 		public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
 		{
-			// 防止Client不进入加密，直接发送用户协议。
-			if (!IsHandshakeProtocol(p.TypeId)) {
-				p.Sender?.VerifySecurity();
-			}
-
 			if (p.TypeId == ModuleRedirect.TypeId_)
 			{
 				var r = (ModuleRedirect)p;

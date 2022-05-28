@@ -327,7 +327,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	public void VerifySecurity() {
-		if (!isSecurity())
+		if (Service.getConfig().getHandshakeOptions().getEnableEncrypt() && !isSecurity())
 			throw new IllegalStateException(Service.getName() + " !isSecurity");
 	}
 

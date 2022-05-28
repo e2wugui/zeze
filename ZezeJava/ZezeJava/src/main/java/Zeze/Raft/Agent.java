@@ -388,10 +388,6 @@ public final class Agent {
 
 		@Override
 		public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> pfh) {
-			// 防止Client不进入加密，直接发送用户协议。
-			if (!IsHandshakeProtocol(p.getTypeId()))
-				p.getSender().VerifySecurity();
-
 			if (p.getTypeId() == LeaderIs.TypeId_ || Agent.DispatchProtocolToInternalThreadPool)
 				Agent.InternalThreadPool.execute(() -> Task.Call(() -> pfh.Handle.handle(p), "InternalRequest"));
 			else

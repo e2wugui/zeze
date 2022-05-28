@@ -16,6 +16,7 @@ public class HandshakeOptions {
 	private boolean S2cNeedCompress = true;
 	private boolean C2sNeedCompress = true;
 	private byte DhGroup = 1; // for HandshakeClient
+	private boolean EnableEncrypt = false;
 
 	public HandshakeOptions() {
 		AddDhGroup(1);
@@ -41,6 +42,14 @@ public class HandshakeOptions {
 			for (Integer v : value)
 				DhGroups.add(v);
 		}
+	}
+
+	public final boolean getEnableEncrypt() {
+		return EnableEncrypt;
+	}
+
+	public final void setEnableEncrypt(boolean value) {
+		EnableEncrypt = value;
 	}
 
 	public final byte[] getSecureIp() {

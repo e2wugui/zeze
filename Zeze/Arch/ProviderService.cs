@@ -134,15 +134,6 @@ namespace Zeze.Arch
             sub.Send(sender, (protocol) => { ProviderDynamicSubscribeCompleted.SetResult(true); return Task.FromResult(0L); });
         }
 
-        public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
-        {
-            // 防止Client不进入加密，直接发送用户协议。
-            if (false == IsHandshakeProtocol(p.TypeId))
-                p.Sender.VerifySecurity();
-
-            base.DispatchProtocol(p, factoryHandle);
-        }
-
         /*
         public void ReportLoad(int online, int proposeMaxOnline, int onlineNew)
         {

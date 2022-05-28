@@ -194,10 +194,6 @@ public final class Server extends HandshakeBoth {
 
 	@Override
 	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
-		// 防止Client不进入加密，直接发送用户协议。
-		if (!IsHandshakeProtocol(p.getTypeId()))
-			p.getSender().VerifySecurity();
-
 		if (IsImportantProtocol(p.getTypeId())) {
 			// 不能在默认线程中执行，使用专用线程池，保证这些协议得到处理。
 			// 内部协议总是使用明确返回值或者超时，不使用框架的错误时自动发送结果。

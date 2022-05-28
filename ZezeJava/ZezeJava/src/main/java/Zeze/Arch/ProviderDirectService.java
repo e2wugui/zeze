@@ -145,13 +145,6 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 
 	@Override
 	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
-		// 防止Client不进入加密，直接发送用户协议。
-		if (!IsHandshakeProtocol(p.getTypeId())) {
-			var sender = p.getSender();
-			if (sender != null)
-				sender.VerifySecurity();
-		}
-
 		if (p.getTypeId() == ModuleRedirect.TypeId_) {
 			if (null != factoryHandle.Handle) {
 				var r = (ModuleRedirect)p;

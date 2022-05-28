@@ -205,7 +205,6 @@ public final class ServiceConf {
 		if (attr.length() > 0) {
 			getSocketOptions().setSocketLogLevel(Level.toLevel(attr));
 		}
-
 		// HandshakeOptions
 		attr = self.getAttribute("DhGroups");
 		if (attr.length() > 0) {
@@ -237,6 +236,10 @@ public final class ServiceConf {
 		attr = self.getAttribute("DhGroup");
 		if (attr.length() > 0) {
 			getHandshakeOptions().setDhGroup(Byte.parseByte(attr));
+		}
+		attr = self.getAttribute("EnableEncrypt");
+		if (attr.length() > 0) {
+			getHandshakeOptions().setEnableEncrypt(Boolean.parseBoolean(attr));
 		}
 		{
 			String name = getName();

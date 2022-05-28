@@ -167,7 +167,7 @@ namespace Zeze.Net
 
         public void VerifySecurity()
         {
-            if (!IsSecurity)
+            if (Service.Config.HandshakeOptions.EnableEncrypt && !IsSecurity)
                 throw new Exception($"{Service.Name} !IsSecurity");
         }
 
