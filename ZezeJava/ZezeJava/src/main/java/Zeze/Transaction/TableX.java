@@ -47,7 +47,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 	}
 
-	public static boolean flag = true;
+	//public static boolean flag = true;
 
 	@SuppressWarnings("unchecked")
 	private AtomicTupleRecord<K, V> Load(K key) {
@@ -73,6 +73,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							r.setSoftValue(strongRef);
 						}
 					}
+					/*
 					if (!flag) {
 						flag = true;
 						try {
@@ -81,6 +82,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							throw new RuntimeException(e);
 						}
 					}
+					*/
 					return AtomicTupleRecord.create(r, strongRef, beforeTimestamp);
 				}
 

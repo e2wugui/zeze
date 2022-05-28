@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Zeze.Serialize;
 using Zeze.Transaction;
+using Zeze.Util;
 
 namespace UnitTest.Zeze.Trans
 {
@@ -55,6 +56,15 @@ namespace UnitTest.Zeze.Trans
                 }
             }
         }
+
+        /*
+        [TestMethod]
+        public async System.Threading.Tasks.Task TestAssert()
+        {
+            await Mission.CallAsync(() => { Assert.IsTrue(false); return System.Threading.Tasks.Task.FromResult(0L); }, "");
+        }
+        */
+
 
         private Locks Locks = new Locks();
         [TestMethod]

@@ -40,15 +40,15 @@ public class TestBug extends TestCase {
 		System.out.println("begin");
 		app.Start();
 		app.app.Zeze.NewProcedure(() -> {
-			app.app.demo_Module1.getTable1().remove(1L);
-			app.app.demo_Module1.getTable1().remove(2L);
+			app.app.demo_Module1.getTflush().remove(1L);
+			app.app.demo_Module1.getTflush().remove(2L);
 			return 0L;
 		}, "prepare").Call();
 
-		Transaction.flag = false;
+		//Transaction.flag = false;
 		var f1 = Task.run(app.app.Zeze.NewProcedure(new Task1(1, 2, 1000), "task1"));
 		Thread.sleep(1000);
-		TableX.flag = false;
+		//TableX.flag = false;
 		var f2 = Task.run(app.app.Zeze.NewProcedure(new Task1(1, 2, 2000), "task2"));
 		f1.get();
 		f2.get();

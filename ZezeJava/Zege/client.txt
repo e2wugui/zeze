@@ -1,32 +1,32 @@
 
-��ʼ��ʾ
-window: /main/chat:name - ��ʾ����·������һ����main�����Ǵ��ڣ����һ���ǵ�ǰ���ڡ�
->��������س���
+初始显示
+window: /main/chat:name - 显示窗口路径。第一个是main，总是存在；最后一个是当前窗口。
+>输入命令并回车。
 
-����������
+命令行例子
 cmd [parameter]
 
-����˭
-Сд�ļ��������Ϊ�˺ŵ�¼���������룬���ұ�Ĭ�ϼ���Ⱥ"wanmei@group"��
+我是谁
+小写的计算机名作为账号登录，无需密码，并且被默认加入群"wanmei@group"。
 
-һ��ȫ������
+一，全局命令
 
-"" : ˢ�µ�ǰ���ڣ�ֱ�ӻس�������main���ڣ�������ʾ���к��ѡ�
-af [name] : ���Ӻ��ѣ�˫�����ӣ�����ȷ�ϡ�
-b [window_name] : ���˴��ڡ�window_nameme��ָ��ʱ�����˵���һ�����ڡ�
-exit �˳�����
+"" : 刷新当前窗口（直接回车）。如main窗口，重新显示所有好友。
+af [name] : 增加好友，双向增加，无需确认。
+b [window_name] : 回退窗口。window_nameme不指定时，回退到上一级窗口。
+exit 退出程序
 
-����main����
+二，main窗口
 
-chat [friend] : �����촰�ڡ�friendΪ�����˺Ż���Ⱥ�š�
+chat [friend] : 打开聊天窗口。friend为好友账号或者群号。
 
-����chat:friend �������촰��
+三，chat:friend 好友聊天窗口
 
-���벢�س���������Ϣ����������ȫ������ʱ������ִ�����
+输入并回车：发送消息。当输入是全局命令时，优先执行命令。
 
-�ģ�group:name-department Ⱥ���촰��
+四，group:name-department 群聊天窗口
 
-���벢�س���������Ϣ��������������ʱ������ִ�����
+输入并回车：发送消息。当输入是命令时，优先执行命令。
 
 TODO
-Ⱥ����
+群管理

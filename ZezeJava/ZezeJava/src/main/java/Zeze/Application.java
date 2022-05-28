@@ -211,8 +211,7 @@ public final class Application {
 			}
 		}
 		while (directoryToBeDeleted.exists()) {
-			if (!directoryToBeDeleted.delete())
-				throw new RuntimeException("delete file fail: " + directoryToBeDeleted);
+			directoryToBeDeleted.delete();
 		}
 	}
 

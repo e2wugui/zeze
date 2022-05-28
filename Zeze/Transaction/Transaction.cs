@@ -346,6 +346,13 @@ namespace Zeze.Transaction
                 catch (Exception e)
                 {
                     logger.Error(e, "Commit Procedure {0} Action {1}", procedure, action.Method.Name);
+#if DEBUG
+                    // 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
+                    if (e.GetType().Name == "AssertFailedException")
+                    {
+                        throw;
+                    }
+#endif
                 }
             }
         }

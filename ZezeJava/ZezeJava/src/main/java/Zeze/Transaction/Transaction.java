@@ -298,7 +298,7 @@ public final class Transaction {
 		triggerActions(procedure);
 	}
 
-	public static boolean flag = true;
+	//public static boolean flag = true;
 
 	private void _final_commit_(Procedure procedure) {
 		// 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
@@ -308,13 +308,14 @@ public final class Transaction {
 				try {
 					lastsp.MergeActions(Actions, true);
 					lastsp.Commit();
-
+					/*
 					if (!flag) {
 						flag= true;
 						System.out.println("sleep1 begin");
 						Thread.sleep(2000);
 						System.out.println("sleep1 end");
 					}
+					*/
 					for (var e : getAccessedRecords().entrySet()) {
 						if (e.getValue().Dirty) {
 							e.getValue().AtomicTupleRecord.Record.Commit(e.getValue());
