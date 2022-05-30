@@ -1,11 +1,12 @@
 package Infinite;
 
-import Zeze.Transaction.TableX;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.FuncLong;
 import Zeze.Util.Task;
 import junit.framework.TestCase;
+import org.junit.Ignore;
 
+@Ignore
 public class TestBug extends TestCase {
 	static final App app = new App(1);
 

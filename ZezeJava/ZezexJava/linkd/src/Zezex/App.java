@@ -69,7 +69,8 @@ public final class App extends Zeze.AppBase {
 
 	public void Stop() throws Throwable {
 		StopService(); // 关闭网络
-		Zeze.Stop(); // 关闭数据库
+		if (Zeze != null)
+			Zeze.Stop(); // 关闭数据库
 		StopModules(); // 关闭模块，卸载配置什么的。
 		DestroyModules();
 		DestroyServices();

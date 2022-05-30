@@ -502,11 +502,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	void Close() {
 		if (TStorage != null) {
 			TStorage.Close();
+			TStorage = null;
 		}
-		TStorage = null;
-		if (null != Cache)
+		if (Cache != null) {
 			Cache.close();
-		Cache = null;
+			Cache = null;
+		}
 	}
 
 	// Key 都是简单变量，系列化方法都不一样，需要生成。

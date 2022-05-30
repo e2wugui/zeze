@@ -44,6 +44,7 @@ public class DatabaseRocksDb extends Database {
 
 	public DatabaseRocksDb(Config.DatabaseConf conf) {
 		super(conf);
+		// logger.info("--- create rocksdb: " + conf.getDatabaseUrl(), new Exception());
 		DBOptions dbOptions = new DBOptions();
 		dbOptions.setCreateIfMissing(true);
 		final String dbHome = conf.getDatabaseUrl().isEmpty() ? "db" : conf.getDatabaseUrl();
@@ -67,6 +68,7 @@ public class DatabaseRocksDb extends Database {
 				ColumnFamilies.put(str, outHandles.get(i));
 			}
 			setDirectOperates(new OperatesRocksDb(this));
+			// logger.info("--- create rocksdb: " + conf.getDatabaseUrl() + " OK!");
 		} catch (RocksDBException dbEx) {
 			throw new RuntimeException(dbEx);
 		}
@@ -74,7 +76,15 @@ public class DatabaseRocksDb extends Database {
 
 	@Override
 	public void Close() {
+		// logger.info("--- close rocksdb: " + getDatabaseUrl(), new Exception());
+		if (Db.isOwningHandle()) {
+			try {
+				Db.syncWal();
+			} catch (RocksDBException ignored) {
+			}
+		}
 		Db.close();
+		// logger.info("--- close rocksdb: " + getDatabaseUrl() + " OK!");
 		super.Close();
 	}
 

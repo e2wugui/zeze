@@ -1,6 +1,7 @@
 package Zeze;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -203,15 +204,22 @@ public final class Application {
 		return new Procedure(this, action, actionName, level, userState);
 	}
 
-	void deleteDirectory(File directoryToBeDeleted) {
+	void deleteDirectory(File directoryToBeDeleted) throws IOException, InterruptedException {
 		File[] allContents = directoryToBeDeleted.listFiles();
 		if (allContents != null) {
 			for (File file : allContents) {
 				deleteDirectory(file);
 			}
 		}
-		while (directoryToBeDeleted.exists()) {
+		for (int i = 0; directoryToBeDeleted.exists(); i++) {
+			//noinspection ResultOfMethodCallIgnored
 			directoryToBeDeleted.delete();
+			if (!directoryToBeDeleted.exists())
+				break;
+			if (i >= 50)
+				throw new IOException("delete failed: " + directoryToBeDeleted.getAbsolutePath());
+			//noinspection BusyWait
+			Thread.sleep(100);
 		}
 	}
 
@@ -332,10 +340,11 @@ public final class Application {
 		}
 		for (var db : Databases.values())
 			db.Close();
-		if (null != LocalRocksCacheDb) {
+		if (LocalRocksCacheDb != null) {
 			var dir = LocalRocksCacheDb.getDatabaseUrl();
 			LocalRocksCacheDb.Close();
 			deleteDirectory(new File(dir));
+			LocalRocksCacheDb = null;
 		}
 		if (ServiceManagerAgent != null)
 			ServiceManagerAgent.Stop();
