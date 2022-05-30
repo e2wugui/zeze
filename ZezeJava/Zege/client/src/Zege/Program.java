@@ -7,13 +7,8 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Locale;
-import javax.swing.GroupLayout;
-import Zege.Friend.BFriend;
-import Zege.Friend.BFriendNode;
-import Zege.Friend.BMemberNode;
-import Zege.Message.BMessage;
-import Zege.Message.BTextMessage;
-import Zege.Message.NotifyMessage;
+import Zege.Friend.*;
+import Zege.Message.*;
 import Zeze.Serialize.ByteBuffer;
 
 public class Program {
@@ -76,6 +71,18 @@ public class Program {
 	public class Window {
 		public String Name;
 
+		public long tryParseLong(String value) {
+			try {
+				return Long.parseLong(value);
+			} catch (Exception ex) {
+				return -1L;
+			}
+		}
+		public void back() {
+			Windows.remove(Windows.size() - 1);
+			Program.this.refresh();
+		}
+
 		public boolean process(String line) {
 			if (line.isEmpty()) {
 				Program.this.refresh();
@@ -95,8 +102,7 @@ public class Program {
 						return true;
 					}
 				} else if (Windows.size() > 1) {
-					Windows.remove(Windows.size() - 1);
-					Program.this.refresh();
+					back();
 					return true;
 				}
 				break;
@@ -123,8 +129,107 @@ public class Program {
 		Main.processNotifyMessage(r.Argument);
 	}
 
+	public class DepartmentWindow extends Window {
+		public String Group;
+		public String DepartmentName;
+		public long Id;
+		public BDepartmentNode Department;
+		public long MemberNodeId;
+		public BDepartmentMemberNode MemberNode;
+
+		public DepartmentWindow(String group, long id, String name) {
+			this.Group = group;
+			this.Id = id;
+			this.DepartmentName = name;
+			Name = name + "(" + Id + ")";
+		}
+
+		@Override
+		public boolean process(String line) {
+			// 聊天消息先处理基本命令。
+			if (super.process(line))
+				return true;
+
+			var cmd = line.split(" ");
+			if (cmd.length == 0)
+				return true;
+
+			switch (cmd[0]) {
+			case "create":
+				var newId = App.Instance.Zege_Friend.createDepartment(Group, cmd[1]);
+				addWindow(new DepartmentWindow(Group, newId.getId(), cmd[1]));
+				Program.this.refresh();
+				break;
+			case "delete":
+				App.Instance.Zege_Friend.deleteDepartment(Group, Id);
+				back();
+				break;
+			case "move":
+				App.Instance.Zege_Friend.moveDepartment(Group, Id, Long.parseLong(cmd[1]));
+				System.out.println("Move Success. Window Not Change Because This Is A Simple Program.");
+				break;
+			case "open":
+				var id = tryParseLong(cmd[1]);
+				if (id > 0) {
+					addWindow(new DepartmentWindow(Group, id, findChildName(id)));
+				} else {
+					addWindow(new DepartmentWindow(Group, findChildId(cmd[1]), cmd[1]));
+				}
+				return true;
+			}
+			App.Instance.Zege_Message.send(Group, line, Id).await();
+			return true;
+		}
+
+		public String findChildName(long id) {
+			for (var child : Department.getChilds()) {
+				if (child.getValue() == id)
+					return child.getKey();
+			}
+			throw new RuntimeException("child not found with id=" + id);
+		}
+
+		public long findChildId(String name) {
+			return Department.getChilds().get(name);
+		}
+
+		@Override
+		public boolean processNotifyMessage(BMessage notify) {
+			if (notify.getGroup().equals(Group) && notify.getDeparmentId() == Id) {
+				var bb = ByteBuffer.Wrap(notify.getSecureMessage());
+				var bMsg = new BTextMessage();
+				bMsg.Decode(bb);
+				System.out.println(bMsg.getMessage());
+				return true;
+			}
+			return false;
+		}
+
+		@Override
+		public void refresh() {
+			Department = App.Instance.Zege_Friend.getDepartmentNode(Group, Id);
+			for (var child : Department.getChilds()) {
+				System.out.println("[" + child.getKey() + "(" + child.getValue() + ")]");
+			}
+			MemberNode = App.Instance.Zege_Friend.getDepartmentMemberNode(Group, Id, MemberNodeId);
+			for (var member : MemberNode.getDepartmentMembers()) {
+				System.out.println(member.getAccount());
+			}
+
+			var list = Main.ReceivedMessages.remove(new MessageTaget(Group, Id));
+			if (null != list) {
+				for (var notify : list)
+					processNotifyMessage(notify);
+			}
+		}
+	}
+
 	public class GroupWindow extends Window {
 		public String Group;
+		public BGroup Root;
+		public long MemberNodeId;
+		public BMemberNode MemberNode;
+
 		public GroupWindow(String group) {
 			this.Group = group;
 			Name = "group:" + Group;
@@ -136,13 +241,50 @@ public class Program {
 			if (super.process(line))
 				return true;
 
-			App.Instance.Zege_Message.send(Group, line).await();
+			var cmd = line.split(" ");
+			if (cmd.length == 0)
+				return true;
+
+			switch (cmd[0]) {
+			case "create":
+				var newId = App.Instance.Zege_Friend.createDepartment(Group, cmd[1]);
+				addWindow(new DepartmentWindow(Group, newId.getId(), cmd[1]));
+				Program.this.refresh();
+				break;
+			case "delete":
+				System.out.println("Can Not Delete Group Root.");
+				break;
+			case "move":
+				System.out.println("Can Not Move Group Root.");
+				break;
+			case "open":
+				var id = tryParseLong(cmd[1]);
+				if (id > 0) {
+					addWindow(new DepartmentWindow(Group, id, findChildName(id)));
+				} else {
+					addWindow(new DepartmentWindow(Group, findChildId(cmd[1]), cmd[1]));
+				}
+				return true;
+			}
+			App.Instance.Zege_Message.send(Group, line, 0).await();
 			return true;
+		}
+
+		public String findChildName(long id) {
+			for (var child : Root.getChilds()) {
+				if (child.getValue() == id)
+					return child.getKey();
+			}
+			throw new RuntimeException("child not found with id=" + id);
+		}
+
+		public long findChildId(String name) {
+			return Root.getChilds().get(name);
 		}
 
 		@Override
 		public boolean processNotifyMessage(BMessage notify) {
-			if (notify.getGroup().equals(Group)) {
+			if (notify.getGroup().equals(Group) && notify.getDeparmentId() == 0) {
 				var bb = ByteBuffer.Wrap(notify.getSecureMessage());
 				var bMsg = new BTextMessage();
 				bMsg.Decode(bb);
@@ -152,14 +294,21 @@ public class Program {
 			return false;
 		}
 
-		public long NodeId;
-		public BMemberNode Node;
-
 		@Override
 		public void refresh() {
-			Node = App.Instance.Zege_Friend.getGroupMemberNode(Group, NodeId);
-			for (var member : Node.getMembers()) {
+			Root = App.Instance.Zege_Friend.getGroupRoot(Group);
+			for (var child : Root.getChilds()) {
+				System.out.println("[" + child.getKey() + "(" + child.getValue() + ")]");
+			}
+			MemberNode = App.Instance.Zege_Friend.getGroupMemberNode(Group, MemberNodeId);
+			for (var member : MemberNode.getMembers()) {
 				System.out.println(member.getAccount());
+			}
+
+			var list = Main.ReceivedMessages.remove(new MessageTaget(Group, 0));
+			if (null != list) {
+				for (var notify : list)
+					processNotifyMessage(notify);
 			}
 		}
 	}
@@ -177,7 +326,7 @@ public class Program {
 			if (super.process(line))
 				return true;
 
-			App.Instance.Zege_Message.send(Target, line).await();
+			App.Instance.Zege_Message.send(Target, line, 0).await();
 			return true;
 		}
 
@@ -195,11 +344,37 @@ public class Program {
 
 		@Override
 		public void refresh() {
-			var list = Main.ReceivedMessages.remove(Target);
+			var list = Main.ReceivedMessages.remove(new MessageTaget(Target, 0));
 			if (null != list) {
 				for (var notify : list)
 					processNotifyMessage(notify);
 			}
+		}
+	}
+
+	public static class MessageTaget {
+		public String Name;
+		public long   Id;
+
+		@Override
+		public int hashCode() {
+			return Name.hashCode() ^ Long.hashCode(Id);
+		}
+
+		@Override
+		public boolean equals(Object o) {
+			if (o == this)
+				return true;
+			if (o instanceof MessageTaget) {
+				var other = (MessageTaget)o;
+				return Name.equals(other.Name) && Id == other.Id;
+			}
+			return false;
+		}
+
+		public MessageTaget(String name, long id) {
+			Name = name;
+			Id = id;
 		}
 	}
 
@@ -224,11 +399,11 @@ public class Program {
 			var cmd = line.split(" ");
 			switch (cmd[0])
 			{
-			case "chat":
+			case "open":
 				if (cmd.length > 1) {
 					var target = cmd[1];
 					if (null != find(target)) {
-						addLayer(target.endsWith("@group") ? new GroupWindow(target) : new ChatWindow(target));
+						addWindow(target.endsWith("@group") ? new GroupWindow(target) : new ChatWindow(target));
 						return true;
 					}
 				}
@@ -245,23 +420,26 @@ public class Program {
 			Node = App.Instance.Zege_Friend.getFriendNode(NodeId);
 			for (var friend : Node.getFriends()) {
 				System.out.print(friend.getAccount());
-				var list = ReceivedMessages.get(friend);
+				// 子部门的消息不统计。
+				var list = ReceivedMessages.get(new MessageTaget(friend.getAccount(), 0));
 				System.out.println(null == list ? "" : "(" + list.size() + ")");
 			}
 		}
 
-		private HashMap<String, ArrayList<BMessage>> ReceivedMessages = new HashMap<>();
+		private HashMap<MessageTaget, ArrayList<BMessage>> ReceivedMessages = new HashMap<>();
 
 		@Override
 		public boolean processNotifyMessage(BMessage notify) {
 			var target = notify.getGroup().isEmpty() ? notify.getFrom() : notify.getGroup();
-			var list = ReceivedMessages.computeIfAbsent(target, k -> new ArrayList<>());
+			var list = ReceivedMessages.computeIfAbsent(
+					new MessageTaget(target, notify.getDeparmentId()),
+					k -> new ArrayList<>());
 			list.add(notify);
 			return true;
 		}
 	}
 
-	private void addLayer(Window layer) {
+	private void addWindow(Window layer) {
 		Windows.add(layer);
 		refresh();
 	}

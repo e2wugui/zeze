@@ -20,6 +20,7 @@ public class ModuleMessage extends AbstractModule {
 
         r.Argument.getMessage().setFrom(session.getAccount());
         r.Argument.getMessage().setGroup(r.Argument.getGroup());
+        r.Argument.getMessage().setDeparmentId(r.Argument.getDepartmentId());
 
         var notify = new NotifyMessage();
         notify.Argument = r.Argument.getMessage();

@@ -13,21 +13,22 @@ public class ModuleMessage extends AbstractModule {
     public void Stop(Zege.App app) throws Throwable {
     }
 
-    public TaskCompletionSource<EmptyBean> send(String target, String message) {
+    public TaskCompletionSource<EmptyBean> send(String target, String message, long departmentId) {
         if (target.endsWith("@group")) {
             var req = new SendDepartmentMessage();
             req.Argument.setGroup(target);
+            req.Argument.setDepartmentId(departmentId);
             var bMsg = new BTextMessage();
             bMsg.setMessage(message);
             req.Argument.getMessage().setSecureMessage(new Binary(ByteBuffer.Encode(bMsg)));
-            return req.SendForWait(App.Connector.GetReadySocket());
+            return req.SendForWait(App.Connector.TryGetReadySocket());
         } else {
             var req = new SendMessage();
             req.Argument.setFriend(target);
             var bMsg = new BTextMessage();
             bMsg.setMessage(message);
             req.Argument.getMessage().setSecureMessage(new Binary(ByteBuffer.Encode(bMsg)));
-            return req.SendForWait(App.Connector.GetReadySocket());
+            return req.SendForWait(App.Connector.TryGetReadySocket());
         }
     }
 

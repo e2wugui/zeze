@@ -17,7 +17,7 @@ public class ModuleLinkd extends AbstractModule {
     public TaskCompletionSource<BAuthResult> auth(String account) {
         var a = new Auth();
         a.Argument.setAccount(account);
-        return a.SendForWait(App.Connector.GetReadySocket());
+        return a.SendForWait(App.Connector.TryGetReadySocket());
     }
 
     // ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off

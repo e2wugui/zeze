@@ -16,11 +16,13 @@ ServiceConf.Acceptor ip="@internal" "@external"
 tag 0.9.8 
 ------------------------------------------------------------------------------------------------------------------------------
 Handshake 是否加密可以配置。默认不加密。
+AsyncSocket.VerifySecurity 在 CHandshakeDone处理时调用一次。不再需要在DispatchProtocol时调用。
+Global错误处理：GS增加AchillesHeelDaemon，申请token（特别的keepalive）机制，本地释放锁超时，如果稍有不正常，就自杀。
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 0.9.7 Java TableCache SoftReference Fix Bug Timestamp Value Access Order
 ------------------------------------------------------------------------------------------------------------------------------
-Global错误处理：GS增加AchillesHeelDaemon，申请token（特别的keepalive）机制，本地释放锁超时，如果稍有不正常，就自杀。
+Global错误处理：GS增加AchillesHeelDaemon，申请token（特别的keepalive）机制，本地释放锁超时，如果稍有不正常，就自杀。【草稿】
 LinkedMap.BLinkedMapNodeValue 里面保存了key，但是walk接口没有返回，需要在dynamic里面再次定义。【callback返回key(id)，而不是nodeid】
 LinkedMap.GetOrAdd
 Zege 框架搭建完成。
