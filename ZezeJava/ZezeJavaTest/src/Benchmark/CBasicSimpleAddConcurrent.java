@@ -2,6 +2,7 @@ package Benchmark;
 
 import demo.App;
 import junit.framework.TestCase;
+import org.junit.Assert;
 
 import java.util.ArrayList;
 import java.util.concurrent.Future;
@@ -47,7 +48,7 @@ public class CBasicSimpleAddConcurrent extends TestCase {
             var r = App.Instance.demo_Module1.getTable1().getOrAdd(i);
             sum += r.getLong2();
         }
-        assert sum == AddCount;
+        Assert.assertEquals(AddCount, sum);
         //System.out.println(r.getLong2());
         return 0;
     }

@@ -31,7 +31,7 @@ public class TestPersistentAtomicLong extends TestCase {
 			}
 		} catch (Exception ex) {
 			ex.printStackTrace();
-			assert false;
+			Assert.fail();
 		}
 	}
 }

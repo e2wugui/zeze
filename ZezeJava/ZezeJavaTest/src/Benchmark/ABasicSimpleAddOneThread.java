@@ -2,6 +2,7 @@ package Benchmark;
 
 import demo.App;
 import junit.framework.TestCase;
+import org.junit.Assert;
 
 public class ABasicSimpleAddOneThread extends TestCase {
     public final static int AddCount = 10_000_000;
@@ -26,7 +27,7 @@ public class ABasicSimpleAddOneThread extends TestCase {
 
     private long Check() {
         var r = App.Instance.demo_Module1.getTable1().getOrAdd(1L);
-        assert r.getLong2() == AddCount;
+        Assert.assertEquals(AddCount, r.getLong2());
         //System.out.println(r.getLong2());
         return 0;
     }

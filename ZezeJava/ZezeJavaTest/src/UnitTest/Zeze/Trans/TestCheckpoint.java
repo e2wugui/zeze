@@ -10,7 +10,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Procedure;
 
 public class TestCheckpoint{
-	
+
 	@Before
 	public final void testInit() throws Throwable {
 		demo.App.getInstance().Start();
@@ -24,38 +24,38 @@ public class TestCheckpoint{
 	@Test
 	public final void testModeTable() throws Throwable {
 		/*
-		assert App.Instance.Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, App.Instance.Zeze.NewProcedure(() -> {
 			App.Instance.demo_Module1.getTable1().remove(1L);
 			App.Instance.demo_Module1.getTable1().remove(2L);
 			App.Instance.demo_Module1.getTable1().remove(3L);
 			App.Instance.demo_Module1.getTable1().remove(4L);
 			return 0L;
-		}, "remove").Call() == Procedure.Success;
+		}, "remove").Call());
 		System.out.println("1");
 		System.out.println(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 		App.Instance.Zeze.CheckpointRun();
 		System.out.println("2");
 		System.out.println(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 		*/
-		assert App.Instance.Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, App.Instance.Zeze.NewProcedure(() -> {
 			App.Instance.demo_Module1.getTable1().get(1L);
 			App.Instance.demo_Module1.getTable1().getOrAdd(2L).setInt1(222);
 			return 0L;
-		}, "12").Call() == Procedure.Success;
+		}, "12").Call());
 		//System.out.println("3");
 		//System.out.println(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
-		assert App.Instance.Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, App.Instance.Zeze.NewProcedure(() -> {
 			App.Instance.demo_Module1.getTable1().get(3L);
 			App.Instance.demo_Module1.getTable1().getOrAdd(4L).setInt1(444);
 			return 0L;
-		}, "34").Call() == Procedure.Success;
+		}, "34").Call());
 		//System.out.println("4");
 		//System.out.println(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
-		assert App.Instance.Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, App.Instance.Zeze.NewProcedure(() -> {
 			App.Instance.demo_Module1.getTable1().get(2L);
 			App.Instance.demo_Module1.getTable1().getOrAdd(3L).setInt1(333);
 			return 0L;
-		}, "23").Call() == Procedure.Success;
+		}, "23").Call());
 		//System.out.println("5");
 		//System.out.println(Zeze.Transaction.RelativeRecordSet.RelativeRecordSetMapToString());
 		App.Instance.Zeze.CheckpointRun();

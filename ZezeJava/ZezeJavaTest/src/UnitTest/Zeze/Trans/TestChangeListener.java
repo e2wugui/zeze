@@ -35,12 +35,12 @@ public class TestChangeListener {
 	}
 
 	private void Prepare() throws Throwable {
-		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
 			return Procedure.Success;
-		}, "TestChangeListener.Remove").Call();
+		}, "TestChangeListener.Remove").Call());
 
-		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
 			demo.Module1.Value value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			value.setInt1(123);
 			value.setLong2(123);
@@ -68,7 +68,7 @@ public class TestChangeListener {
 			value.getMap15().put(1L, 1L);
 			value.getMap15().put(2L, 2L);
 			return Procedure.Success;
-		}, "TestChangeListener.Prepare").Call();
+		}, "TestChangeListener.Prepare").Call());
 	}
 
 	@Test
@@ -77,7 +77,7 @@ public class TestChangeListener {
 		AddListener();
 
 		Init();
-		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
 			demo.Module1.Value value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			value.setInt1(124);
 			value.setLong2(124);
@@ -106,11 +106,11 @@ public class TestChangeListener {
 			value.getMap15().put(4L, 4L);
 
 			return Procedure.Success;
-		}, "TestChangeListener.Modify").Call();
+		}, "TestChangeListener.Modify").Call());
 		Verify();
 
 		Init();
-		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
 			demo.Module1.Value value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			value.getSet10().add(127);
 			value.getSet10().remove(124);
@@ -123,20 +123,20 @@ public class TestChangeListener {
 			value.getMap15().remove(1L);
 			value.getMap15().remove(2L);
 			return Procedure.Success;
-		}, "TestChangeListener.ModifyCollections").Call();
+		}, "TestChangeListener.ModifyCollections").Call());
 		Verify();
 
 		Init();
-		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
 			demo.Module1.Value value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			ArrayList<Integer> except = new ArrayList<>(Arrays.asList(1, 2));
 			value.getSet10().removeAll(except);
 			return Procedure.Success;
-		}, "TestChangeListener.ModifySetExcept").Call();
+		}, "TestChangeListener.ModifySetExcept").Call());
 		Verify();
 
 		Init();
-		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
 			demo.Module1.Value value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			ArrayList<Integer> intersect = new ArrayList<>(Arrays.asList(123, 126));
 			//value.getSet10().IntersectWith(intersect);
@@ -150,51 +150,51 @@ public class TestChangeListener {
 			set10.clear();
 			set10.addAll(temp);
 			return Procedure.Success;
-		}, "TestChangeListener.ModifySetIntersect").Call();
+		}, "TestChangeListener.ModifySetIntersect").Call());
 		Verify();
 
 		Init();
-		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
 			demo.Module1.Value value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			ArrayList<Integer> SymmetricExcept = new ArrayList<>(Arrays.asList(123, 140));
 			value.getSet10().removeAll(SymmetricExcept);
 			return Procedure.Success;
-		}, "TestChangeListener.ModifySetSymmetricExcept").Call();
+		}, "TestChangeListener.ModifySetSymmetricExcept").Call());
 		Verify();
 
 		Init();
-		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
 			demo.Module1.Value value = demo.App.getInstance().demo_Module1.getTable1().getOrAdd(1L);
 			ArrayList<Integer> Union = new ArrayList<>(Arrays.asList(123, 140));
 			//value.getSet10().UnionWith(Union);
 			value.getSet10().addAll(Union);
 			return Procedure.Success;
-		}, "TestChangeListener.ModifySetUnion").Call();
+		}, "TestChangeListener.ModifySetUnion").Call());
 		Verify();
 
 		Init();
-		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().put(1L, new demo.Module1.Value());
 			return Procedure.Success;
-		}, "TestChangeListener.PutRecord").Call();
+		}, "TestChangeListener.PutRecord").Call());
 		Verify();
 
 		Init();
-		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
 			demo.App.getInstance().demo_Module1.getTable1().remove(1L);
 			return Procedure.Success;
-		}, "TestChangeListener.RemoveRecord").Call();
+		}, "TestChangeListener.RemoveRecord").Call());
 		Verify();
 	}
 
 	private demo.Module1.Value localValue;
 
 	private void Init() throws Throwable {
-		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
 			demo.Module1.Value value = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 			localValue = value == null ? null : value.Copy();
 			return Procedure.Success;
-		}, "TestChangeListener.CopyLocal").Call();
+		}, "TestChangeListener.CopyLocal").Call());
 
 		_CLInt1.Init(localValue);
 		_ClLong2.Init(localValue);
@@ -214,11 +214,11 @@ public class TestChangeListener {
 	}
 
 	private void Verify() throws Throwable {
-		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
 			demo.Module1.Value value = demo.App.getInstance().demo_Module1.getTable1().get(1L);
 			localValue = value == null ? null : value.Copy();
 			return Procedure.Success;
-		}, "TestChangeListener.CopyLocal").Call();
+		}, "TestChangeListener.CopyLocal").Call());
 
 		_CLInt1.Verify(localValue);
 		_ClLong2.Verify(localValue);

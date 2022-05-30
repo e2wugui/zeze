@@ -2,6 +2,7 @@ package UnitTest.Zeze.Trans;
 
 import java.util.concurrent.Future;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -20,19 +21,19 @@ public class TestCheckpointModeTable{
 	}
 
 	private void Check(int expect) throws Throwable {
-		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
 					var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1L);
 					return value.getInt1() == expect ? Procedure.Success : Procedure.LogicError;
-		}, "TestCheckpointModeTable.Check").Call();
+		}, "TestCheckpointModeTable.Check").Call());
 	}
 
 	@Test
 	public final void test1() throws Throwable {
-		assert Procedure.Success == demo.App.getInstance().Zeze.NewProcedure(() -> {
+		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(() -> {
 					var value = demo.App.getInstance().demo_Module1.getTableImportant().getOrAdd(1L);
 					value.setInt1(0);
 					return Procedure.Success;
-		}, "TestCheckpointModeTable.Init").Call();
+		}, "TestCheckpointModeTable.Init").Call());
 		Check(0);
 
 		int sum = 0; {
