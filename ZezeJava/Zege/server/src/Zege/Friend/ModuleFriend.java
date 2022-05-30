@@ -151,6 +151,22 @@ public class ModuleFriend extends AbstractModule {
         return Procedure.Success;
     }
 
+    @Override
+    protected long ProcessAddDepartmentMemberRequest(Zege.Friend.AddDepartmentMember r) {
+        var session = ProviderUserSession.get(r);
+        var group = getDepartmentTree(r.Argument.getGroup());
+        var groupMembers = group.getGroupMembers();
+        if (r.Argument.getDepartmentId() == 0) {
+            groupMembers.getOrAdd(r.Argument.getAccount()).setAccount(r.Argument.getAccount());
+        } else {
+            if (null == groupMembers.get(r.Argument.getAccount()))
+                return ErrorCode(ErrorDeparmentMemberNotInGroup);
+            group.getDepartmentMembers(r.Argument.getDepartmentId()).getOrAdd(r.Argument.getAccount()).setAccount(r.Argument.getAccount());
+        }
+        session.sendResponseWhileCommit(r);
+        return Procedure.Success;
+    }
+
     // ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
     public ModuleFriend(Zege.App app) {
         super(app);

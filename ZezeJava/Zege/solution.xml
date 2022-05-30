@@ -61,6 +61,7 @@
 		<enum name="ErrorDepartmentNotFound" value="1"/>
 		<enum name="ErrorFriendNodeNotFound" value="2"/>
 		<enum name="ErrorMemberNodeNotFound" value="3"/>
+		<enum name="ErrorDeparmentMemberNotInGroup" value="4"/>
 
 		<!-- 好友列表用 Zeze.Collections.LinkedMap -->
 		<bean name="BFriend">
@@ -160,6 +161,12 @@
 		</bean>
 		<rpc name="GetDepartmentMemberNode" argument="BDepartmentNodeId" result="BDepartmentMemberNode" handle="server"/>
 
+		<bean name="BAddDepartmentMember">
+			<variable id="1" name="Group" type="string"/>
+			<variable id="2" name="DepartmentId" type="long"/>
+			<variable id="3" name="Account" type="string"/>
+		</bean>
+		<rpc name="AddDepartmentMember" argument="BAddDepartmentMember" handle="server"/>
 	</module>
 
 	<module name="Message" id="3">

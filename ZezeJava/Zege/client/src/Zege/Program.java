@@ -132,16 +132,16 @@ public class Program {
 	public class DepartmentWindow extends Window {
 		public String Group;
 		public String DepartmentName;
-		public long Id;
+		public long DepartmentId;
 		public BDepartmentNode Department;
 		public long MemberNodeId;
 		public BDepartmentMemberNode MemberNode;
 
 		public DepartmentWindow(String group, long id, String name) {
 			this.Group = group;
-			this.Id = id;
+			this.DepartmentId = id;
 			this.DepartmentName = name;
-			Name = name + "(" + Id + ")";
+			Name = name + "(" + DepartmentId + ")";
 		}
 
 		@Override
@@ -155,17 +155,20 @@ public class Program {
 				return true;
 
 			switch (cmd[0]) {
+			case "add":
+				App.Instance.Zege_Friend.addDepartmentMember(Group, DepartmentId, cmd[1]);
+				break;
 			case "create":
-				var newId = App.Instance.Zege_Friend.createDepartment(Group, Id, cmd[1]);
+				var newId = App.Instance.Zege_Friend.createDepartment(Group, DepartmentId, cmd[1]);
 				addWindow(new DepartmentWindow(Group, newId.getId(), cmd[1]));
 				Program.this.refresh();
 				break;
 			case "delete":
-				App.Instance.Zege_Friend.deleteDepartment(Group, Id);
+				App.Instance.Zege_Friend.deleteDepartment(Group, DepartmentId);
 				back();
 				break;
 			case "move":
-				App.Instance.Zege_Friend.moveDepartment(Group, Id, Long.parseLong(cmd[1]));
+				App.Instance.Zege_Friend.moveDepartment(Group, DepartmentId, Long.parseLong(cmd[1]));
 				System.out.println("Move Success. Window Not Change Because This Is A Simple Program.");
 				break;
 			case "open":
@@ -177,7 +180,7 @@ public class Program {
 				}
 				return true;
 			}
-			App.Instance.Zege_Message.send(Group, line, Id).await();
+			App.Instance.Zege_Message.send(Group, line, DepartmentId).await();
 			return true;
 		}
 
@@ -195,7 +198,7 @@ public class Program {
 
 		@Override
 		public boolean processNotifyMessage(BMessage notify) {
-			if (notify.getGroup().equals(Group) && notify.getDeparmentId() == Id) {
+			if (notify.getGroup().equals(Group) && notify.getDeparmentId() == DepartmentId) {
 				var bb = ByteBuffer.Wrap(notify.getSecureMessage());
 				var bMsg = new BTextMessage();
 				bMsg.Decode(bb);
@@ -207,16 +210,16 @@ public class Program {
 
 		@Override
 		public void refresh() {
-			Department = App.Instance.Zege_Friend.getDepartmentNode(Group, Id);
+			Department = App.Instance.Zege_Friend.getDepartmentNode(Group, DepartmentId);
 			for (var child : Department.getChilds()) {
 				System.out.println("[" + child.getKey() + "(" + child.getValue() + ")]");
 			}
-			MemberNode = App.Instance.Zege_Friend.getDepartmentMemberNode(Group, Id, MemberNodeId);
+			MemberNode = App.Instance.Zege_Friend.getDepartmentMemberNode(Group, DepartmentId, MemberNodeId);
 			for (var member : MemberNode.getDepartmentMembers()) {
 				System.out.println(member.getAccount());
 			}
 
-			var list = Main.ReceivedMessages.remove(new MessageTarget(Group, Id));
+			var list = Main.ReceivedMessages.remove(new MessageTarget(Group, DepartmentId));
 			if (null != list) {
 				for (var notify : list)
 					processNotifyMessage(notify);
@@ -246,6 +249,9 @@ public class Program {
 				return true;
 
 			switch (cmd[0]) {
+			case "add":
+				App.Instance.Zege_Friend.addDepartmentMember(Group, 0, cmd[1]);
+				break;
 			case "create":
 				var newId = App.Instance.Zege_Friend.createDepartment(Group, 0, cmd[1]);
 				addWindow(new DepartmentWindow(Group, newId.getId(), cmd[1]));

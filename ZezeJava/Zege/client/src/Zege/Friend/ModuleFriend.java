@@ -85,6 +85,15 @@ public class ModuleFriend extends AbstractModule {
             throw new RuntimeException("MoveDepartment code=" + req.getResultCode());
     }
 
+    public void addDepartmentMember(String group, long departmentId, String account) {
+        var req = new AddDepartmentMember();
+        req.Argument.setGroup(group);
+        req.Argument.setDepartmentId(departmentId);
+        req.Argument.setAccount(account);
+        req.SendForWait(App.Connector.TryGetReadySocket()).await();
+        if (req.getResultCode() != 0)
+            throw new RuntimeException("AddDepartmentMember code=" + req.getResultCode());
+    }
     // ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
     public ModuleFriend(Zege.App app) {
         super(app);
