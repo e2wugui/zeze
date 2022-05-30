@@ -92,7 +92,7 @@ public class Program {
 			var cmd = line.split(" ");
 			switch (cmd[0])
 			{
-			case "b":
+			case "b": case "back":
 				if (cmd.length > 1) {
 					var find = Windows.indexOf(cmd[1]);
 					if (find >= 0) {
