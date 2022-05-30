@@ -58,6 +58,10 @@
 	</module>
 
 	<module name="Friend" id="2">
+		<enum name="ErrorDepartmentNotFound" value="1"/>
+		<enum name="ErrorFriendNodeNotFound" value="2"/>
+		<enum name="ErrorMemberNodeNotFound" value="3"/>
+
 		<!-- 好友列表用 Zeze.Collections.LinkedMap -->
 		<bean name="BFriend">
 			<variable id="1" name="Account" type="string"/>

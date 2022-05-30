@@ -156,7 +156,7 @@ public class Program {
 
 			switch (cmd[0]) {
 			case "create":
-				var newId = App.Instance.Zege_Friend.createDepartment(Group, cmd[1]);
+				var newId = App.Instance.Zege_Friend.createDepartment(Group, Id, cmd[1]);
 				addWindow(new DepartmentWindow(Group, newId.getId(), cmd[1]));
 				Program.this.refresh();
 				break;
@@ -216,7 +216,7 @@ public class Program {
 				System.out.println(member.getAccount());
 			}
 
-			var list = Main.ReceivedMessages.remove(new MessageTaget(Group, Id));
+			var list = Main.ReceivedMessages.remove(new MessageTarget(Group, Id));
 			if (null != list) {
 				for (var notify : list)
 					processNotifyMessage(notify);
@@ -232,7 +232,7 @@ public class Program {
 
 		public GroupWindow(String group) {
 			this.Group = group;
-			Name = "group:" + Group;
+			Name = Group;
 		}
 
 		@Override
@@ -247,15 +247,9 @@ public class Program {
 
 			switch (cmd[0]) {
 			case "create":
-				var newId = App.Instance.Zege_Friend.createDepartment(Group, cmd[1]);
+				var newId = App.Instance.Zege_Friend.createDepartment(Group, 0, cmd[1]);
 				addWindow(new DepartmentWindow(Group, newId.getId(), cmd[1]));
 				Program.this.refresh();
-				break;
-			case "delete":
-				System.out.println("Can Not Delete Group Root.");
-				break;
-			case "move":
-				System.out.println("Can Not Move Group Root.");
 				break;
 			case "open":
 				var id = tryParseLong(cmd[1]);
@@ -305,7 +299,7 @@ public class Program {
 				System.out.println(member.getAccount());
 			}
 
-			var list = Main.ReceivedMessages.remove(new MessageTaget(Group, 0));
+			var list = Main.ReceivedMessages.remove(new MessageTarget(Group, 0));
 			if (null != list) {
 				for (var notify : list)
 					processNotifyMessage(notify);
@@ -344,7 +338,7 @@ public class Program {
 
 		@Override
 		public void refresh() {
-			var list = Main.ReceivedMessages.remove(new MessageTaget(Target, 0));
+			var list = Main.ReceivedMessages.remove(new MessageTarget(Target, 0));
 			if (null != list) {
 				for (var notify : list)
 					processNotifyMessage(notify);
@@ -352,7 +346,7 @@ public class Program {
 		}
 	}
 
-	public static class MessageTaget {
+	public static class MessageTarget {
 		public String Name;
 		public long   Id;
 
@@ -365,14 +359,14 @@ public class Program {
 		public boolean equals(Object o) {
 			if (o == this)
 				return true;
-			if (o instanceof MessageTaget) {
-				var other = (MessageTaget)o;
+			if (o instanceof MessageTarget) {
+				var other = (MessageTarget)o;
 				return Name.equals(other.Name) && Id == other.Id;
 			}
 			return false;
 		}
 
-		public MessageTaget(String name, long id) {
+		public MessageTarget(String name, long id) {
 			Name = name;
 			Id = id;
 		}
@@ -421,18 +415,18 @@ public class Program {
 			for (var friend : Node.getFriends()) {
 				System.out.print(friend.getAccount());
 				// 子部门的消息不统计。
-				var list = ReceivedMessages.get(new MessageTaget(friend.getAccount(), 0));
+				var list = ReceivedMessages.get(new MessageTarget(friend.getAccount(), 0));
 				System.out.println(null == list ? "" : "(" + list.size() + ")");
 			}
 		}
 
-		private HashMap<MessageTaget, ArrayList<BMessage>> ReceivedMessages = new HashMap<>();
+		private HashMap<MessageTarget, ArrayList<BMessage>> ReceivedMessages = new HashMap<>();
 
 		@Override
 		public boolean processNotifyMessage(BMessage notify) {
 			var target = notify.getGroup().isEmpty() ? notify.getFrom() : notify.getGroup();
 			var list = ReceivedMessages.computeIfAbsent(
-					new MessageTaget(target, notify.getDeparmentId()),
+					new MessageTarget(target, notify.getDeparmentId()),
 					k -> new ArrayList<>());
 			list.add(notify);
 			return true;

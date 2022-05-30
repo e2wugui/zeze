@@ -18,13 +18,18 @@ exit 退出程序
 
 二，main窗口
 
-chat [friend] : 打开聊天窗口。friend为好友账号或者群号。
+open [friend] : 打开聊天窗口。friend为好友账号或者群号。
 
 三，chat:friend 好友聊天窗口
 
 输入并回车：发送消息。当输入是全局命令时，优先执行命令。
 
 四，group:name-department 群聊天窗口
+
+create 部门名 ：创建部门
+delete 删除当前部门
+move 新的父部门Id ：移动部门
+open 部门名 Or Id : 打开部门
 
 输入并回车：发送消息。当输入是命令时，优先执行命令。
 

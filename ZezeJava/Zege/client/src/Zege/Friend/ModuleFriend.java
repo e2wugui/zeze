@@ -20,7 +20,7 @@ public class ModuleFriend extends AbstractModule {
         var req = new GetFriendNode();
         req.Argument.setNodeId(nodeId);
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
-        return req.Result;
+        return req.getResultCode() == 0 ? req.Result : new BFriendNode();
     }
 
     public BMemberNode getGroupMemberNode(String group, long nodeId) {
@@ -28,7 +28,7 @@ public class ModuleFriend extends AbstractModule {
         req.Argument.setGroup(group);
         req.Argument.setNodeId(nodeId);
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
-        return req.Result;
+        return req.getResultCode() == 0 ? req.Result : new BMemberNode();
     }
 
     public BDepartmentMemberNode getDepartmentMemberNode(String group, long departmentId, long nodeId) {
@@ -37,7 +37,7 @@ public class ModuleFriend extends AbstractModule {
         req.Argument.setDepartmentId(departmentId);
         req.Argument.setNodeId(nodeId);
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
-        return req.Result;
+        return req.getResultCode() == 0 ? req.Result : new BDepartmentMemberNode();
     }
 
     public BGroup getGroupRoot(String group) {
@@ -47,11 +47,14 @@ public class ModuleFriend extends AbstractModule {
         return req.Result;
     }
 
-    public BDepartmentId createDepartment(String group, String name) {
+    public BDepartmentId createDepartment(String group, long parent, String name) {
         var req = new CreateDepartment();
         req.Argument.setGroup(group);
+        req.Argument.setParentDepartment(parent);
         req.Argument.setName(name);
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
+        if (req.getResultCode() != 0)
+            throw new RuntimeException("createDepartment faild.");
         return req.Result;
     }
 
@@ -69,7 +72,7 @@ public class ModuleFriend extends AbstractModule {
         req.Argument.setGroup(group);
         req.Argument.setId(id);
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
-        return req.Result;
+        return req.getResultCode() == 0 ? req.Result : new BDepartmentNode();
     }
 
     public void moveDepartment(String group, long id, long newParent) {

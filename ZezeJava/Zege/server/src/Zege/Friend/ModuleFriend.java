@@ -61,6 +61,8 @@ public class ModuleFriend extends AbstractModule {
         var session = ProviderUserSession.get(r);
         var group = getDepartmentTree(r.Argument.getGroup());
         var department = group.getDepartmentTreeNode(r.Argument.getId());
+        if (null == department)
+            return ErrorCode(ErrorDepartmentNotFound);
         r.Result.setParentDepartment(department.getParentDepartment());
         r.Result.setName(department.getName());
         r.Result.getChilds().putAll(department.getChilds());
@@ -76,6 +78,9 @@ public class ModuleFriend extends AbstractModule {
         var session = ProviderUserSession.get(r);
         var friends = getFriends(session.getAccount());
         var friendNode = r.Argument.getNodeId() == 0 ? friends.getFristNode() : friends.getNode(r.Argument.getNodeId());
+        if (null == friendNode)
+            return ErrorCode(ErrorFriendNodeNotFound);
+
         r.Result.setNextNodeId(friendNode.getNextNodeId());
         r.Result.setPrevNodeId(friendNode.getPrevNodeId());
         for (var friend : friendNode.getValues()) {
@@ -104,7 +109,7 @@ public class ModuleFriend extends AbstractModule {
         for (var manager : root.getManagers()) {
             r.Result.getManagers().put(manager.getKey(), (BManager)manager.getValue().getBean());
         }
-        session.sendResponseWhileCommit(r);
+       session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }
 
@@ -115,6 +120,10 @@ public class ModuleFriend extends AbstractModule {
         var node = r.Argument.getNodeId() == 0
                 ? group.getDepartmentMembers(r.Argument.getDepartmentId()).getFristNode()
                 : group.getDepartmentMembers(r.Argument.getDepartmentId()).getNode(r.Argument.getNodeId());
+
+        if (null == node)
+            return ErrorCode(ErrorMemberNodeNotFound);
+
         r.Result.setNextNodeId(node.getNextNodeId());
         r.Result.setPrevNodeId(node.getPrevNodeId());
         for (var friend : node.getValues()) {
@@ -131,6 +140,8 @@ public class ModuleFriend extends AbstractModule {
         var node = r.Argument.getNodeId() == 0
                 ? group.getGroupMembers().getFristNode()
                 : group.getGroupMembers().getNode(r.Argument.getNodeId());
+        if (null == node)
+            return ErrorCode(ErrorMemberNodeNotFound);
         r.Result.setNextNodeId(node.getNextNodeId());
         r.Result.setPrevNodeId(node.getPrevNodeId());
         for (var friend : node.getValues()) {

@@ -154,13 +154,13 @@ public final class Transaction {
 									if ((result == Procedure.Success && Savepoints.size() != 1) || (result != Procedure.Success && !Savepoints.isEmpty())) {
 										// 这个错误不应该重做
 										logger.fatal("Transaction.Perform:{}. savepoints.Count != 1.", procedure);
-										_final_rollback_(procedure);
+										finalRollback(procedure);
 										return Procedure.ErrorSavepoint;
 									}
 									checkResult = _lock_and_check_(procedure.getTransactionLevel());
 									if (checkResult == CheckResult.Success) {
 										if (result == Procedure.Success) {
-											_final_commit_(procedure);
+											finalCommit(procedure);
 											// 正常一次成功的不统计，用来观察redo多不多。
 											// 失败在 Procedure.cs 中的统计。
 											if (tryCount > 0) {
@@ -168,14 +168,14 @@ public final class Transaction {
 											}
 											return Procedure.Success;
 										}
-										_final_rollback_(procedure, true);
+										finalRollback(procedure, true);
 										return result;
 									}
 									break; // retry
 
 								case Abort:
 									logger.debug("Transaction.Perform: Abort");
-									_final_rollback_(procedure);
+									finalRollback(procedure);
 									return Procedure.AbortException;
 
 								case Redo:
@@ -199,17 +199,17 @@ public final class Transaction {
 									if (!Savepoints.isEmpty()) {
 										// 这个错误不应该重做
 										logger.fatal("Transaction.Perform:{}. exception. savepoints.Count != 0.", procedure, e);
-										_final_rollback_(procedure);
+										finalRollback(procedure);
 										return Procedure.ErrorSavepoint;
 									}
 									// 对于 unit test 的异常特殊处理，与unit test框架能搭配工作
 									if (e instanceof AssertionError) {
-										_final_rollback_(procedure);
+										finalRollback(procedure);
 										throw (AssertionError)e;
 									}
 									checkResult = _lock_and_check_(procedure.getTransactionLevel());
 									if (checkResult == CheckResult.Success) {
-										_final_rollback_(procedure, true);
+										finalRollback(procedure, true);
 										return Procedure.Exception;
 									}
 									// retry
@@ -217,7 +217,7 @@ public final class Transaction {
 
 								case Abort:
 									logger.debug("Transaction.Perform: Abort");
-									_final_rollback_(procedure);
+									finalRollback(procedure);
 									return Procedure.AbortException;
 
 								case Redo:
@@ -259,7 +259,7 @@ public final class Transaction {
 					procedure.getZeze().__TryWaitFlushWhenReduce(LastTableKeyOfRedoAndRelease, LastGlobalSerialIdOfRedoAndRelease);
 			}
 			logger.error("Transaction.Perform:{}. too many try.", procedure);
-			_final_rollback_(procedure);
+			finalRollback(procedure);
 			return Procedure.TooManyTry;
 		}
 		finally {
@@ -300,7 +300,7 @@ public final class Transaction {
 
 	//public static boolean flag = true;
 
-	private void _final_commit_(Procedure procedure) {
+	private void finalCommit(Procedure procedure) {
 		// 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
 		// 可以在最终提交里可以实现每事务checkpoint。
 		var lastsp = Savepoints.get(Savepoints.size() - 1);
@@ -357,11 +357,11 @@ public final class Transaction {
 		_trigger_commit_actions_(procedure);
 	}
 
-	private void _final_rollback_(Procedure procedure) {
-		_final_rollback_(procedure, false);
+	private void finalRollback(Procedure procedure) {
+		finalRollback(procedure, false);
 	}
 
-	private void _final_rollback_(Procedure procedure, boolean executeRollbackAction) {
+	private void finalRollback(Procedure procedure, boolean executeRollbackAction) {
 		State = TransactionState.Completed;
 		if (executeRollbackAction) {
 			_trigger_rollback_actions_(procedure);
