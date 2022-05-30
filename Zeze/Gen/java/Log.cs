@@ -35,7 +35,8 @@ namespace Zeze.Gen.java
         {
             string valueName = BoxingName.GetBoxingName(type);
             sw.WriteLine(prefix + $"private static final class Log_{var.NamePrivate} extends Zeze.Transaction.Log1<{bean.Name}, {valueName}> {{");
-            sw.WriteLine(prefix + $"   public Log_{var.NamePrivate}({bean.Name} bean, int varId, {valueName} value) {{ super(bean, varId, value); }}");
+            sw.WriteLine(prefix + $"    public Log_{var.NamePrivate}({bean.Name} bean, int varId, {valueName} value) {{ super(bean, varId, value); }}");
+            sw.WriteLine();
             sw.WriteLine(prefix + "    @Override");
             sw.WriteLine(prefix + $"    public void Commit() {{ getBeanTyped().{var.NamePrivate} = this.getValue(); }}");
             sw.WriteLine(prefix + "}");

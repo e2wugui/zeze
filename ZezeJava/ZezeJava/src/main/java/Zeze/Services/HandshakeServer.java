@@ -2,7 +2,6 @@ package Zeze.Services;
 
 import Zeze.Application;
 import Zeze.Net.AsyncSocket;
-import Zeze.Net.Protocol;
 import Zeze.Services.Handshake.SHandshake0;
 
 public class HandshakeServer extends HandshakeBase {

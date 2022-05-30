@@ -70,7 +70,8 @@ public final class BAccount extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__LastLoginVersion extends Zeze.Transaction.Log1<BAccount, Long> {
-       public Log__LastLoginVersion(BAccount bean, int varId, Long value) { super(bean, varId, value); }
+        public Log__LastLoginVersion(BAccount bean, int varId, Long value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._LastLoginVersion = this.getValue(); }
     }

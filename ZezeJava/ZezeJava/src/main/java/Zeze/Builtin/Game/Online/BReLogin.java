@@ -94,13 +94,15 @@ public final class BReLogin extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__RoleId extends Zeze.Transaction.Log1<BReLogin, Long> {
-       public Log__RoleId(BReLogin bean, int varId, Long value) { super(bean, varId, value); }
+        public Log__RoleId(BReLogin bean, int varId, Long value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._RoleId = this.getValue(); }
     }
 
     private static final class Log__ReliableNotifyConfirmIndex extends Zeze.Transaction.Log1<BReLogin, Long> {
-       public Log__ReliableNotifyConfirmIndex(BReLogin bean, int varId, Long value) { super(bean, varId, value); }
+        public Log__ReliableNotifyConfirmIndex(BReLogin bean, int varId, Long value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._ReliableNotifyConfirmIndex = this.getValue(); }
     }

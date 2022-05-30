@@ -2,7 +2,6 @@ package Zeze.Raft;
 
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.function.ToLongFunction;
 import Zeze.Application;
 import Zeze.Config;
@@ -21,7 +20,6 @@ import Zeze.Util.PersistentAtomicLong;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
-import Zeze.Util.ThreadFactoryWithName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

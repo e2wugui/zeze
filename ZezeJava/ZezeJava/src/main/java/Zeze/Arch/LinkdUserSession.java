@@ -52,10 +52,7 @@ public class LinkdUserSession {
 				return true;
 			}
 
-			if (Account.equals(newAccount))
-				return true;
-
-			return false;
+			return Account.equals(newAccount);
 		}
 	}
 

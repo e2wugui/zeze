@@ -254,6 +254,7 @@ public class Online extends AbstractOnline {
 		}
 
 		final long currentLoginVersionFinal = currentLoginVersion;
+		//noinspection ConstantConditions
 		Transaction.getCurrent().RunWhileCommit(() -> {
 			// delay 10 minutes
 			Task.schedule(10 * 60 * 1000, () -> {
@@ -799,7 +800,6 @@ public class Online extends AbstractOnline {
 		if (online.getLinkSid() != session.getLinkSid())
 			online.setLinkSid(session.getLinkSid());
 
-		//noinspection ConstantConditions
 		reloginTrigger(rpc.Argument.getRoleId());
 
 		// 先发结果，再发送同步数据（ReliableNotifySync）。

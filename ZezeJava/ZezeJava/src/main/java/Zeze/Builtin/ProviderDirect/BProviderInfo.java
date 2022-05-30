@@ -121,19 +121,22 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__Ip extends Zeze.Transaction.Log1<BProviderInfo, String> {
-       public Log__Ip(BProviderInfo bean, int varId, String value) { super(bean, varId, value); }
+        public Log__Ip(BProviderInfo bean, int varId, String value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._Ip = this.getValue(); }
     }
 
     private static final class Log__Port extends Zeze.Transaction.Log1<BProviderInfo, Integer> {
-       public Log__Port(BProviderInfo bean, int varId, Integer value) { super(bean, varId, value); }
+        public Log__Port(BProviderInfo bean, int varId, Integer value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._Port = this.getValue(); }
     }
 
     private static final class Log__ServerId extends Zeze.Transaction.Log1<BProviderInfo, Integer> {
-       public Log__ServerId(BProviderInfo bean, int varId, Integer value) { super(bean, varId, value); }
+        public Log__ServerId(BProviderInfo bean, int varId, Integer value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._ServerId = this.getValue(); }
     }

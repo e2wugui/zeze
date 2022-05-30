@@ -30,6 +30,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		this.logTypeId = logTypeId;
 	}
 
+	@SuppressWarnings("unchecked")
 	public V getOrAdd(K key) throws Throwable {
 		var exist = get(key);
 		if (null == exist) {

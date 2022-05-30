@@ -79,11 +79,11 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean, TDepart
 	public LinkedMap<TDepartmentMember> getDepartmentMembers(long departmentId) {
 		if (departmentId == 0)
 			throw new RuntimeException("root members use getMembers.");
-		return module.LinkedMaps.<TDepartmentMember>open("" + departmentId + "#" + name, departmentMemberClass);
+		return module.LinkedMaps.open("" + departmentId + "#" + name, departmentMemberClass);
 	}
 
 	public LinkedMap<TMember> getGroupMembers() {
-		return module.LinkedMaps.<TMember>open("0#" + name, memberClass);
+		return module.LinkedMaps.open("0#" + name, memberClass);
 	}
 
 	public BDepartmentRoot selectRoot() {

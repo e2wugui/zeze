@@ -97,13 +97,15 @@ public final class AcquireParam extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__GlobalKey extends Zeze.Transaction.Log1<AcquireParam, Zeze.Net.Binary> {
-       public Log__GlobalKey(AcquireParam bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__GlobalKey(AcquireParam bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._GlobalKey = this.getValue(); }
     }
 
     private static final class Log__State extends Zeze.Transaction.Log1<AcquireParam, Integer> {
-       public Log__State(AcquireParam bean, int varId, Integer value) { super(bean, varId, value); }
+        public Log__State(AcquireParam bean, int varId, Integer value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._State = this.getValue(); }
     }

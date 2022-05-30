@@ -399,7 +399,7 @@ public final class Application {
 			var last = FlushWhenReduce.computeIfAbsent(tkey, LastFlushWhenReduce::new);
 			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (last) {
-				while (!last.Removed && last.LastGlobalSerialId < hope) {
+				if (!last.Removed && last.LastGlobalSerialId < hope) {
 					// 超时的时候，马上返回。
 					// 这个机制的是为了防止忙等。
 					// 所以不需要严格等待成功。

@@ -109,13 +109,15 @@ public final class BOnline extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__LinkName extends Zeze.Transaction.Log1<BOnline, String> {
-       public Log__LinkName(BOnline bean, int varId, String value) { super(bean, varId, value); }
+        public Log__LinkName(BOnline bean, int varId, String value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._LinkName = this.getValue(); }
     }
 
     private static final class Log__LinkSid extends Zeze.Transaction.Log1<BOnline, Long> {
-       public Log__LinkSid(BOnline bean, int varId, Long value) { super(bean, varId, value); }
+        public Log__LinkSid(BOnline bean, int varId, Long value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._LinkSid = this.getValue(); }
     }

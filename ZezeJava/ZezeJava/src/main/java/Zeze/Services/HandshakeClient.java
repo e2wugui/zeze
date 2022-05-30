@@ -3,7 +3,6 @@ package Zeze.Services;
 import Zeze.Application;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Connector;
-import Zeze.Net.Protocol;
 
 public class HandshakeClient extends HandshakeBase {
 	public HandshakeClient(String name, Zeze.Config config) throws Throwable {

@@ -9,6 +9,7 @@ public final class BeanFactory {
 	private final LongHashMap<MethodHandle> writingFactory = new LongHashMap<>();
 	private volatile LongHashMap<MethodHandle> readingFactory;
 
+	@SuppressWarnings("unchecked")
 	public <T extends Bean> T invoke(MethodHandle methodHandle) {
 		try {
 			return (T)methodHandle.invoke();

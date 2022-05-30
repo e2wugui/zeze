@@ -100,13 +100,15 @@ public final class BTableKey extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__TableName extends Zeze.Transaction.Log1<BTableKey, String> {
-       public Log__TableName(BTableKey bean, int varId, String value) { super(bean, varId, value); }
+        public Log__TableName(BTableKey bean, int varId, String value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._TableName = this.getValue(); }
     }
 
     private static final class Log__EncodedKey extends Zeze.Transaction.Log1<BTableKey, Zeze.Net.Binary> {
-       public Log__EncodedKey(BTableKey bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__EncodedKey(BTableKey bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._EncodedKey = this.getValue(); }
     }
