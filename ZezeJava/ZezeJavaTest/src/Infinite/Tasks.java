@@ -181,8 +181,18 @@ public final class Tasks {
 			var name = Table1Long2Add1.class.getName();
 			var app = Simulate.getInstance().randApp().app; // 任何一个app都能查到相同的结果。
 			var success = getSuccessCounters(name);
-			for (var key : getRunCounters(name).keySet())
-				Assert.assertEquals(app.demo_Module1.getTable1().selectDirty(key).getLong2(), success.get(key).get());
+			for (var key : getRunCounters(name).keySet()) {
+				var v1 = app.demo_Module1.getTable1().selectDirty(key);
+				var v2 = success.get(key);
+				if (v1 == null || v2 == null) {
+					if (v1 == null)
+						Simulate.logger.error("app.demo_Module1.getTable1().selectDirty({}) = null", key);
+					if (v2 == null)
+						Simulate.logger.error("getSuccessCounters({}).get({}) = null", name, key);
+					Assert.fail();
+				}
+				Assert.assertEquals(v1.getLong2(), v2.get());
+			}
 			Simulate.logger.debug("{}.verify OK!", name);
 		}
 	}

@@ -29,11 +29,25 @@ import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
 
 public class GlobalCacheManagerWithRaft
 		extends AbstractGlobalCacheManagerWithRaft implements Closeable, GlobalCacheManagerConst {
+	static {
+		System.setProperty("log4j.configurationFile", "log4j2.xml");
+		var levelProp = System.getProperty("logLevel");
+		var level = Level.INFO;
+		if ("trace".equalsIgnoreCase(levelProp))
+			level = Level.TRACE;
+		else if ("debug".equalsIgnoreCase(levelProp))
+			level = Level.DEBUG;
+		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
+	}
+
+	private static final boolean ENABLE_PERF = true;
 	private static final Logger logger = LogManager.getLogger(GlobalCacheManagerWithRaft.class);
 	public static final int GlobalSerialIdAtomicLongIndex = 0;
 
@@ -59,6 +73,8 @@ public class GlobalCacheManagerWithRaft
 	 */
 	private final LongConcurrentHashMap<CacheHolder> Sessions = new LongConcurrentHashMap<>();
 
+	private final GlobalCacheManagerPerf perf;
+
 	public GlobalCacheManagerWithRaft(String raftName) throws Throwable {
 		this(raftName, null, null, false);
 	}
@@ -67,8 +83,7 @@ public class GlobalCacheManagerWithRaft
 		this(raftName, raftConf, null, false);
 	}
 
-	public GlobalCacheManagerWithRaft(String raftName, RaftConfig raftConf, Zeze.Config config)
-			throws Throwable {
+	public GlobalCacheManagerWithRaft(String raftName, RaftConfig raftConf, Zeze.Config config) throws Throwable {
 		this(raftName, raftConf, config, false);
 	}
 
@@ -83,6 +98,9 @@ public class GlobalCacheManagerWithRaft
 		globalTemplate.setLruTryRemoveCallback(this::GlobalLruTryRemove);
 		GlobalStates = globalTemplate.OpenTable(0);
 		ServerAcquiredTemplate = Rocks.GetTableTemplate("Session");
+
+		if (ENABLE_PERF)
+			perf = new GlobalCacheManagerPerf(Rocks.AtomicLong(GlobalSerialIdAtomicLongIndex));
 
 		Rocks.getRaft().getServer().Start();
 	}
@@ -99,38 +117,40 @@ public class GlobalCacheManagerWithRaft
 
 	@Override
 	protected long ProcessAcquireRequest(Acquire rpc) throws Throwable {
+		if (ENABLE_PERF)
+			perf.onAcquireBegin(rpc, rpc.Argument.getState());
 		rpc.Result.setGlobalKey(rpc.Argument.getGlobalKey());
 		rpc.Result.setState(rpc.Argument.getState()); // default success
 		rpc.setResultCode(0);
 
+		long result;
 		if (rpc.getSender().getUserState() == null) {
 			rpc.Result.setState(StateInvalid);
 			// 没有登录重做。登录是Agent自动流程的一部分，应该稍后重试。
 			rpc.SendResultCode(Zeze.Transaction.Procedure.RaftRetry);
-			return 0L;
+			result = 0;
+		} else {
+			var proc = new Procedure(Rocks, () -> {
+				switch (rpc.Argument.getState()) {
+				case StateInvalid: // release
+					rpc.Result.setState(_Release((CacheHolder)rpc.getSender().getUserState(),
+							rpc.Argument.getGlobalKey(), true));
+					return 0;
+				case StateShare:
+					return AcquireShare(rpc);
+				case StateModify:
+					return AcquireModify(rpc);
+				default:
+					rpc.Result.setState(StateInvalid);
+					return AcquireErrorState;
+				}
+			});
+			proc.AutoResponse = rpc; // 启用自动发送rpc结果，但不做唯一检查。
+			result = proc.Call();
 		}
-
-		var proc = new Procedure(Rocks, () -> {
-			switch (rpc.Argument.getState()) {
-			case StateInvalid: // release
-				rpc.Result.setState(_Release((CacheHolder)rpc.getSender().getUserState(),
-						rpc.Argument.getGlobalKey(), true));
-				return 0L;
-
-			case StateShare:
-				return AcquireShare(rpc);
-
-			case StateModify:
-				return AcquireModify(rpc);
-
-			default:
-				rpc.Result.setState(StateInvalid);
-				return AcquireErrorState;
-			}
-		});
-		proc.AutoResponse = rpc; // 启用自动发送rpc结果，但不做唯一检查。
-		proc.Call();
-		return 0; // has handle all error.
+		if (ENABLE_PERF)
+			perf.onAcquireEnd(rpc, rpc.Argument.getState());
+		return result; // has handle all error.
 	}
 
 	private boolean GlobalLruTryRemove(Binary key, Record<Binary> r) {
@@ -209,8 +229,10 @@ public class GlobalCacheManagerWithRaft
 				}
 
 				var reduceResultState = new OutObject<>(StateReduceNetError); // 默认网络错误。
-				if (CacheHolder.Reduce(Sessions, cs.getModify(), globalTableKey, cs.getGlobalSerialId(), p -> {
-					reduceResultState.Value = p.isTimeout() ? StateReduceRpcTimeout : p.Result.getState();
+				if (CacheHolder.Reduce(Sessions, cs.getModify(), globalTableKey, cs.getGlobalSerialId(), r -> {
+					if (ENABLE_PERF)
+						perf.onReduceEnd(r);
+					reduceResultState.Value = r.isTimeout() ? StateReduceRpcTimeout : r.Result.getState();
 					lockey.Enter();
 					try {
 						lockey.PulseAll();
@@ -332,8 +354,10 @@ public class GlobalCacheManagerWithRaft
 				}
 
 				var reduceResultState = new OutObject<>(StateReduceNetError); // 默认网络错误。
-				if (CacheHolder.Reduce(Sessions, cs.getModify(), globalTableKey, cs.getGlobalSerialId(), p -> {
-					reduceResultState.Value = p.isTimeout() ? StateReduceRpcTimeout : p.Result.getState();
+				if (CacheHolder.Reduce(Sessions, cs.getModify(), globalTableKey, cs.getGlobalSerialId(), r -> {
+					if (ENABLE_PERF)
+						perf.onReduceEnd(r);
+					reduceResultState.Value = r.isTimeout() ? StateReduceRpcTimeout : r.Result.getState();
 					lockey.Enter();
 					try {
 						lockey.PulseAll();
@@ -738,8 +762,12 @@ public class GlobalCacheManagerWithRaft
 					reduce.Argument.setGlobalKey(gkey);
 					reduce.Argument.setState(StateInvalid);
 					reduce.Argument.setGlobalSerialId(globalSerialId);
+					if (ENABLE_PERF)
+						GlobalInstance.perf.onReduceBegin(reduce);
 					if (reduce.Send(peer, response, 10000))
 						return true;
+					if (ENABLE_PERF)
+						GlobalInstance.perf.onReduceCancel(reduce);
 					logger.warn("Reduce send failed. SessionId={}, peer={}, gkey={}, globalSerialId={}",
 							SessionId, peer, gkey, globalSerialId);
 				} else
@@ -768,7 +796,15 @@ public class GlobalCacheManagerWithRaft
 					reduce.Argument.setGlobalKey(gkey);
 					reduce.Argument.setState(StateInvalid);
 					reduce.Argument.setGlobalSerialId(globalSerialId);
+					if (ENABLE_PERF)
+						GlobalInstance.perf.onReduceBegin(reduce);
 					reduce.SendForWait(peer, 10000);
+					if (ENABLE_PERF) {
+						if (reduce.getFuture().isCompletedExceptionally() && !reduce.isTimeout())
+							GlobalInstance.perf.onReduceCancel(reduce);
+						else
+							GlobalInstance.perf.onReduceEnd(reduce);
+					}
 					return reduce;
 				} else
 					logger.error("ReduceWaitLater invalid sessionId={}", SessionId);

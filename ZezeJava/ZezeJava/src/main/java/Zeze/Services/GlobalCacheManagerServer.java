@@ -229,7 +229,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 
 	private long ProcessAcquireRequest(Acquire rpc) {
 		if (ENABLE_PERF)
-			perf.onAcquireBegin(rpc);
+			perf.onAcquireBegin(rpc, rpc.Argument.State);
 		rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
 		rpc.Result.State = rpc.Argument.State; // default success
 
@@ -263,7 +263,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			}
 		}
 		if (ENABLE_PERF)
-			perf.onAcquireEnd(rpc);
+			perf.onAcquireEnd(rpc, rpc.Argument.State);
 		return result;
 	}
 
@@ -375,8 +375,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					}
 
 					var reduceResultState = new OutInt(StateReduceNetError); // 默认网络错误。
-					if (cs.Modify.Reduce(gKey, cs.GlobalSerialId, p -> { //await 方法内有等待
-						var r = (Reduce)p;
+					if (cs.Modify.Reduce(gKey, cs.GlobalSerialId, r -> { //await 方法内有等待
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
 						reduceResultState.Value = r.isTimeout() ? StateReduceRpcTimeout : r.Result.State;
@@ -499,8 +498,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					}
 
 					var reduceResultState = new OutInt(StateReduceNetError); // 默认网络错误。
-					if (cs.Modify.Reduce(gKey, cs.GlobalSerialId, p -> { //await 方法内有等待
-						var r = (Reduce)p;
+					if (cs.Modify.Reduce(gKey, cs.GlobalSerialId, r -> { //await 方法内有等待
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
 						reduceResultState.Value = r.isTimeout() ? StateReduceRpcTimeout : r.Result.State;

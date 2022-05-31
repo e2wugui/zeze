@@ -103,8 +103,7 @@ local knowns = {
 	{ "在__TryWaitFlushWhenReduce里等待sleep",         ".__TryWaitFlushWhenReduce(Application.java:341)" },
 	{ "在Checkpoint线程等待定时器",                    ".Checkpoint.Run(Checkpoint.java:141)" },
 	{ "在Selector等待NIO事件",                         ".Selector.run(Selector.java:67)" },
-	{ "永久等待(主线程)",                              ".main(GlobalCacheManagerServer.java:795)" },
-	{ "永久等待(主线程)",                              ".main(GlobalCacheManagerAsyncServer.java:946)" },
+	{ "永久等待(主线程)",                              ".Object.wait(", ".main(GlobalCacheManagerServer.java:" },
 }
 
 local needKnowns = {

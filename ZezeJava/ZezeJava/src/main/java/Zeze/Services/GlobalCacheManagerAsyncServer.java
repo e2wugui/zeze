@@ -241,7 +241,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 
 	private long ProcessAcquireRequest(Acquire rpc) {
 		if (ENABLE_PERF)
-			perf.onAcquireBegin(rpc);
+			perf.onAcquireBegin(rpc, rpc.Argument.State);
 		rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
 		rpc.Result.State = rpc.Argument.State; // default success
 
@@ -272,7 +272,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			}
 		}
 		if (ENABLE_PERF)
-			perf.onAcquireEnd(rpc);
+			perf.onAcquireEnd(rpc, rpc.Argument.State);
 		return 0;
 	}
 
@@ -376,7 +376,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					rpc.Result.State = cs.GetSenderCacheState(sender);
 					rpc.SendResult();
 					if (ENABLE_PERF)
-						perf.onAcquireEnd(rpc);
+						perf.onAcquireEnd(rpc, rpc.Argument.State);
 					return;
 				case StateRemoving:
 					// release 不会导致死锁，等待即可。
@@ -409,7 +409,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			rpc.Result.State = cs.GetSenderCacheState(sender);
 			rpc.SendResult();
 			if (ENABLE_PERF)
-				perf.onAcquireEnd(rpc);
+				perf.onAcquireEnd(rpc, rpc.Argument.State);
 		});
 	}
 
@@ -443,7 +443,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 							rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 							rpc.SendResultCode(AcquireShareDeadLockFound);
 							if (ENABLE_PERF)
-								perf.onAcquireEnd(rpc);
+								perf.onAcquireEnd(rpc, rpc.Argument.State);
 							return;
 						}
 						break;
@@ -454,7 +454,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 							rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 							rpc.SendResultCode(AcquireShareDeadLockFound);
 							if (ENABLE_PERF)
-								perf.onAcquireEnd(rpc);
+								perf.onAcquireEnd(rpc, rpc.Argument.State);
 							return;
 						}
 						break;
@@ -489,14 +489,14 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 						rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 						rpc.SendResultCode(AcquireShareAlreadyIsModify);
 						if (ENABLE_PERF)
-							perf.onAcquireEnd(rpc);
+							perf.onAcquireEnd(rpc, rpc.Argument.State);
 						return;
 					}
 
 					state.reduceResultState = StateReduceNetError; // 默认网络错误。。
 					if (cs.Modify.ReduceWaitLater(gKey, cs.GlobalSerialId, r -> {
 						if (ENABLE_PERF)
-							perf.onReduceEnd((Reduce)r);
+							perf.onReduceEnd(r);
 						state.reduceResultState = r.isTimeout() ? StateReduceRpcTimeout : r.Result.State;
 						cs.lock.enter(cs.lock::notifyAllWait);
 						return 0;
@@ -533,7 +533,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 					rpc.SendResultCode(AcquireShareFailed);
 					if (ENABLE_PERF)
-						perf.onAcquireEnd(rpc);
+						perf.onAcquireEnd(rpc, rpc.Argument.State);
 					return;
 				}
 
@@ -546,7 +546,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 				rpc.SendResult();
 				if (ENABLE_PERF)
-					perf.onAcquireEnd(rpc);
+					perf.onAcquireEnd(rpc, rpc.Argument.State);
 				return;
 			}
 
@@ -558,7 +558,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 			rpc.SendResult();
 			if (ENABLE_PERF)
-				perf.onAcquireEnd(rpc);
+				perf.onAcquireEnd(rpc, rpc.Argument.State);
 		});
 	}
 
@@ -595,7 +595,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 							rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 							rpc.SendResultCode(AcquireModifyDeadLockFound);
 							if (ENABLE_PERF)
-								perf.onAcquireEnd(rpc);
+								perf.onAcquireEnd(rpc, rpc.Argument.State);
 							return;
 						}
 						break;
@@ -606,7 +606,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 							rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 							rpc.SendResultCode(AcquireModifyDeadLockFound);
 							if (ENABLE_PERF)
-								perf.onAcquireEnd(rpc);
+								perf.onAcquireEnd(rpc, rpc.Argument.State);
 							return;
 						}
 						break;
@@ -641,14 +641,14 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 						rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 						rpc.SendResultCode(AcquireModifyAlreadyIsModify);
 						if (ENABLE_PERF)
-							perf.onAcquireEnd(rpc);
+							perf.onAcquireEnd(rpc, rpc.Argument.State);
 						return;
 					}
 
 					state.reduceResultState = StateReduceNetError; // 默认网络错误。
 					if (cs.Modify.ReduceWaitLater(gKey, cs.GlobalSerialId, r -> {
 						if (ENABLE_PERF)
-							perf.onReduceEnd((Reduce)r);
+							perf.onReduceEnd(r);
 						state.reduceResultState = r.isTimeout() ? StateReduceRpcTimeout : r.Result.State;
 						cs.lock.enter(cs.lock::notifyAllWait);
 						return 0;
@@ -678,7 +678,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 					rpc.SendResultCode(AcquireModifyFailed);
 					if (ENABLE_PERF)
-						perf.onAcquireEnd(rpc);
+						perf.onAcquireEnd(rpc, rpc.Argument.State);
 					return;
 				}
 
@@ -691,7 +691,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 				rpc.SendResult();
 				if (ENABLE_PERF)
-					perf.onAcquireEnd(rpc);
+					perf.onAcquireEnd(rpc, rpc.Argument.State);
 				return;
 			}
 
@@ -711,7 +711,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				allReduceFuture.createOne();
 				Reduce reduce = c.ReduceWaitLater(gKey, cs.GlobalSerialId, r -> {
 					if (ENABLE_PERF)
-						perf.onReduceEnd((Reduce)r);
+						perf.onReduceEnd(r);
 					allReduceFuture.finishOne();
 					return 0;
 				});
@@ -759,7 +759,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					rpc.SendResultCode(AcquireModifyFailed);
 				}
 				if (ENABLE_PERF)
-					perf.onAcquireEnd(rpc);
+					perf.onAcquireEnd(rpc, rpc.Argument.State);
 				// 很好，网络失败不再看成成功，发现除了加break，
 				// 其他处理已经能包容这个改动，都不用动。
 			};

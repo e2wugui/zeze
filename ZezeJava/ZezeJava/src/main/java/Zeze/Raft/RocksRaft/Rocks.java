@@ -199,6 +199,10 @@ public final class Rocks extends StateMachine implements Closeable {
 		TableTemplates.computeIfAbsent(tableTemplateName, key -> new TableTemplate<>(this, key, keyClass, valueClass));
 	}
 
+	public AtomicLong AtomicLong(int index) {
+		return AtomicLongs.computeIfAbsent(index, __ -> new AtomicLong());
+	}
+
 	public long AtomicLongIncrementAndGet(int index) {
 		return AtomicLongs.computeIfAbsent(index, __ -> new AtomicLong()).incrementAndGet();
 	}
