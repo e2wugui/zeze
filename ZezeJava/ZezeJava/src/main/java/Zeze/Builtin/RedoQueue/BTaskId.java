@@ -70,8 +70,7 @@ public final class BTaskId extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__TaskId extends Zeze.Transaction.Log1<BTaskId, Long> {
-        public Log__TaskId(BTaskId bean, int varId, Long value) { super(bean, varId, value); }
-
+       public Log__TaskId(BTaskId bean, int varId, Long value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._TaskId = this.getValue(); }
     }

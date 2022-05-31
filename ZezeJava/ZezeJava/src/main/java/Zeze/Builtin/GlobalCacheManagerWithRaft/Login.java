@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.GlobalCacheManagerWithRaft;
 
-public class Login extends Zeze.Raft.RaftRpc<Zeze.Builtin.GlobalCacheManagerWithRaft.LoginParam, Zeze.Transaction.EmptyBean> {
+public class Login extends Zeze.Raft.RaftRpc<Zeze.Builtin.GlobalCacheManagerWithRaft.LoginParam, Zeze.Builtin.GlobalCacheManagerWithRaft.AchillesHeelConfig> {
     public static final int ModuleId_ = 11001;
     public static final int ProtocolId_ = -1968616174;
     public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_);
@@ -18,6 +18,6 @@ public class Login extends Zeze.Raft.RaftRpc<Zeze.Builtin.GlobalCacheManagerWith
 
     public Login() {
         Argument = new Zeze.Builtin.GlobalCacheManagerWithRaft.LoginParam();
-        Result = new Zeze.Transaction.EmptyBean();
+        Result = new Zeze.Builtin.GlobalCacheManagerWithRaft.AchillesHeelConfig();
     }
 }

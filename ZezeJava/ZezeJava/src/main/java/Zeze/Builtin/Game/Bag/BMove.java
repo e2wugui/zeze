@@ -145,29 +145,25 @@ public final class BMove extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__BagName extends Zeze.Transaction.Log1<BMove, String> {
-        public Log__BagName(BMove bean, int varId, String value) { super(bean, varId, value); }
-
+       public Log__BagName(BMove bean, int varId, String value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._BagName = this.getValue(); }
     }
 
     private static final class Log__PositionFrom extends Zeze.Transaction.Log1<BMove, Integer> {
-        public Log__PositionFrom(BMove bean, int varId, Integer value) { super(bean, varId, value); }
-
+       public Log__PositionFrom(BMove bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._PositionFrom = this.getValue(); }
     }
 
     private static final class Log__PositionTo extends Zeze.Transaction.Log1<BMove, Integer> {
-        public Log__PositionTo(BMove bean, int varId, Integer value) { super(bean, varId, value); }
-
+       public Log__PositionTo(BMove bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._PositionTo = this.getValue(); }
     }
 
     private static final class Log__number extends Zeze.Transaction.Log1<BMove, Integer> {
-        public Log__number(BMove bean, int varId, Integer value) { super(bean, varId, value); }
-
+       public Log__number(BMove bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._number = this.getValue(); }
     }

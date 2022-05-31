@@ -70,8 +70,7 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__NextId extends Zeze.Transaction.Log1<BAutoKey, Long> {
-        public Log__NextId(BAutoKey bean, int varId, Long value) { super(bean, varId, value); }
-
+       public Log__NextId(BAutoKey bean, int varId, Long value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._NextId = this.getValue(); }
     }

@@ -80,8 +80,7 @@ public final class BLocal extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__LoginVersion extends Zeze.Transaction.Log1<BLocal, Long> {
-        public Log__LoginVersion(BLocal bean, int varId, Long value) { super(bean, varId, value); }
-
+       public Log__LoginVersion(BLocal bean, int varId, Long value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._LoginVersion = this.getValue(); }
     }

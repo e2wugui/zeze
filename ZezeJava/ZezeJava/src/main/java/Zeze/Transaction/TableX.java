@@ -311,12 +311,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		bb.Append(bbKey.Bytes, bbKey.ReadIndex, bbKey.Size());
 		return new Binary(bb);
 	}
+
 	@Override
 	void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex) {
 		for (var e : getCache().getDataMap().entrySet()) {
 			var gkey = EncodeGlobalKey(e.getKey());
 			if (getZeze().getGlobalAgent().GetGlobalCacheManagerHashIndex(gkey) != GlobalCacheManagerHashIndex) {
-				// 不是断开连接的GlobalCacheManager。跳过。
 				continue;
 			}
 

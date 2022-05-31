@@ -657,7 +657,7 @@ public class GlobalCacheManagerWithRaft
 
 	@Override
 	protected long ProcessKeepAliveRequest(KeepAlive rpc) {
-		rpc.SendResultCode(Zeze.Transaction.Procedure.NotImplement);
+		rpc.SendResultCode(Zeze.Transaction.Procedure.Success);
 		return 0;
 	}
 

@@ -88,8 +88,7 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__Timestamp extends Zeze.Transaction.Log1<BQueueNodeValue, Long> {
-        public Log__Timestamp(BQueueNodeValue bean, int varId, Long value) { super(bean, varId, value); }
-
+       public Log__Timestamp(BQueueNodeValue bean, int varId, Long value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._Timestamp = this.getValue(); }
     }

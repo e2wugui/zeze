@@ -199,43 +199,37 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__ModuleId extends Zeze.Transaction.Log1<BModuleRedirectArgument, Integer> {
-        public Log__ModuleId(BModuleRedirectArgument bean, int varId, Integer value) { super(bean, varId, value); }
-
+       public Log__ModuleId(BModuleRedirectArgument bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._ModuleId = this.getValue(); }
     }
 
     private static final class Log__HashCode extends Zeze.Transaction.Log1<BModuleRedirectArgument, Integer> {
-        public Log__HashCode(BModuleRedirectArgument bean, int varId, Integer value) { super(bean, varId, value); }
-
+       public Log__HashCode(BModuleRedirectArgument bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._HashCode = this.getValue(); }
     }
 
     private static final class Log__RedirectType extends Zeze.Transaction.Log1<BModuleRedirectArgument, Integer> {
-        public Log__RedirectType(BModuleRedirectArgument bean, int varId, Integer value) { super(bean, varId, value); }
-
+       public Log__RedirectType(BModuleRedirectArgument bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._RedirectType = this.getValue(); }
     }
 
     private static final class Log__MethodFullName extends Zeze.Transaction.Log1<BModuleRedirectArgument, String> {
-        public Log__MethodFullName(BModuleRedirectArgument bean, int varId, String value) { super(bean, varId, value); }
-
+       public Log__MethodFullName(BModuleRedirectArgument bean, int varId, String value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._MethodFullName = this.getValue(); }
     }
 
     private static final class Log__Params extends Zeze.Transaction.Log1<BModuleRedirectArgument, Zeze.Net.Binary> {
-        public Log__Params(BModuleRedirectArgument bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
-
+       public Log__Params(BModuleRedirectArgument bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._Params = this.getValue(); }
     }
 
     private static final class Log__ServiceNamePrefix extends Zeze.Transaction.Log1<BModuleRedirectArgument, String> {
-        public Log__ServiceNamePrefix(BModuleRedirectArgument bean, int varId, String value) { super(bean, varId, value); }
-
+       public Log__ServiceNamePrefix(BModuleRedirectArgument bean, int varId, String value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._ServiceNamePrefix = this.getValue(); }
     }

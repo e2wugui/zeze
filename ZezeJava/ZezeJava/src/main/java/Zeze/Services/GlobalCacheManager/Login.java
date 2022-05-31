@@ -1,6 +1,6 @@
 package Zeze.Services.GlobalCacheManager;
 
-public class Login extends Zeze.Net.Rpc<LoginParam, Zeze.Transaction.EmptyBean> {
+public class Login extends Zeze.Net.Rpc<LoginParam, AchillesHeelConfig> {
 	public static final int ProtocolId_ = Zeze.Transaction.Bean.Hash32(Login.class.getName());
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
 
@@ -16,12 +16,12 @@ public class Login extends Zeze.Net.Rpc<LoginParam, Zeze.Transaction.EmptyBean> 
 
 	public Login() {
 		Argument = new LoginParam();
-		Result = new Zeze.Transaction.EmptyBean();
+		Result = new AchillesHeelConfig();
 	}
 
 	public Login(int id) {
 		Argument = new LoginParam();
-		Result = new Zeze.Transaction.EmptyBean();
+		Result = new AchillesHeelConfig();
 
 		Argument.ServerId = id;
 	}

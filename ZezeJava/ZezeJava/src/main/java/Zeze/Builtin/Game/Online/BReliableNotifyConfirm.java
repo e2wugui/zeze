@@ -94,15 +94,13 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__ReliableNotifyConfirmIndex extends Zeze.Transaction.Log1<BReliableNotifyConfirm, Long> {
-        public Log__ReliableNotifyConfirmIndex(BReliableNotifyConfirm bean, int varId, Long value) { super(bean, varId, value); }
-
+       public Log__ReliableNotifyConfirmIndex(BReliableNotifyConfirm bean, int varId, Long value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._ReliableNotifyConfirmIndex = this.getValue(); }
     }
 
     private static final class Log__Sync extends Zeze.Transaction.Log1<BReliableNotifyConfirm, Boolean> {
-        public Log__Sync(BReliableNotifyConfirm bean, int varId, Boolean value) { super(bean, varId, value); }
-
+       public Log__Sync(BReliableNotifyConfirm bean, int varId, Boolean value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._Sync = this.getValue(); }
     }

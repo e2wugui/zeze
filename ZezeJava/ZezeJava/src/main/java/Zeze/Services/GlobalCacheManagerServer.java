@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
+import Zeze.Net.Connector;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Net.Service;
@@ -13,6 +14,7 @@ import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Acquire;
 import Zeze.Services.GlobalCacheManager.Cleanup;
+import Zeze.Services.GlobalCacheManager.KeepAlive;
 import Zeze.Services.GlobalCacheManager.Login;
 import Zeze.Services.GlobalCacheManager.NormalClose;
 import Zeze.Services.GlobalCacheManager.Param2;
@@ -87,7 +89,21 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			var attr = self.getAttribute("InitialCapacity");
 			if (!attr.isBlank())
 				InitialCapacity = Math.max(Integer.parseInt(attr), 31);
+
+			attr = self.getAttribute("MaxNetPing");
+			if (!attr.isEmpty())
+				MaxNetPing = Integer.parseInt(attr);
+			attr = self.getAttribute("ServerProcessTime");
+			if (!attr.isEmpty())
+				ServerProcessTime = Integer.parseInt(attr);
+			attr = self.getAttribute("ServerReleaseTimeout");
+			if (!attr.isEmpty())
+				ServerReleaseTimeout = Integer.parseInt(attr);
 		}
+
+		public int MaxNetPing = 1000;
+		public int ServerProcessTime = 500;
+		public int ServerReleaseTimeout = 10 * 1000;
 	}
 
 	private GlobalCacheManagerServer() {
@@ -131,7 +147,33 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		Server.AddFactoryHandle(Cleanup.TypeId_,
 				new Service.ProtocolFactoryHandle<>(Cleanup::new, this::ProcessCleanup, TransactionLevel.None));
 
+		Server.AddFactoryHandle(KeepAlive.TypeId_,
+				new Service.ProtocolFactoryHandle<>(KeepAlive::new, this::ProcessKeepAliveRequest, TransactionLevel.None));
+
 		ServerSocket = Server.NewServerSocket(ipaddress, port, null);
+
+		// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
+		AchillesHeelConfig = new AchillesHeelConfig(Config.MaxNetPing, Config.ServerProcessTime, Config.ServerReleaseTimeout);
+		Task.schedule(5000, 5000, this::AchillesHeelDaemon);
+	}
+
+	private AchillesHeelConfig AchillesHeelConfig;
+
+	private void AchillesHeelDaemon() {
+		var now = System.currentTimeMillis();
+
+		Sessions.forEach(session -> {
+			if (now - session.getActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout) {
+				for (var e : session.Acquired.entrySet()) {
+					// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
+					try {
+						Release(session, e.getKey(), false);
+					} catch (InterruptedException ex) {
+						logger.error(ex);
+					}
+				}
+			}
+		});
 	}
 
 	public synchronized void Stop() throws Throwable {
@@ -148,6 +190,9 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	 * 手动Cleanup时，连接正确的服务器执行。
 	 */
 	private long ProcessCleanup(Cleanup rpc) {
+		if (AchillesHeelConfig != null) // disable cleanup.
+			return 0;
+
 		// 安全性以后加强。
 		if (!rpc.Argument.SecureKey.equals("Ok! verify secure.")) {
 			rpc.SendResultCode(CleanupErrorSecureKey);
@@ -224,6 +269,17 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		}
 		rpc.SendResultCode(0);
 		logger.debug("After NormalClose global.Count={}", global.size());
+		return 0;
+	}
+
+	private long ProcessKeepAliveRequest(KeepAlive rpc) {
+		if (rpc.getSender().getUserState() == null) {
+			rpc.SendResultCode(AcquireNotLogin);
+			return 0;
+		}
+		var sender = (CacheHolder)rpc.getSender().getUserState();
+		sender.setActiveTime(System.currentTimeMillis());
+		rpc.SendResult();
 		return 0;
 	}
 
@@ -659,12 +715,20 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	}
 
 	private static final class CacheHolder {
-		static final long ForbidPeriod = 10 * 1000; // 10 seconds
+		private volatile long ActiveTime;
 
 		final ConcurrentHashMap<Binary, Integer> Acquired = new ConcurrentHashMap<>();
 		long SessionId;
 		int GlobalCacheManagerHashIndex;
 		private volatile long LastErrorTime;
+
+		long getActiveTime() {
+			return ActiveTime;
+		}
+
+		synchronized void setActiveTime(long value) {
+			ActiveTime = value;
+		}
 
 		synchronized boolean TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex) {
 			if (newSocket.getUserState() != null)
@@ -703,14 +767,14 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 
 		boolean Reduce(Binary gkey, long globalSerialId, ProtocolHandle<Rpc<Param2, Param2>> response) {
 			try {
-				if (System.currentTimeMillis() - LastErrorTime < ForbidPeriod)
+				if (System.currentTimeMillis() - LastErrorTime < Instance.AchillesHeelConfig.GlobalForbidPeriod)
 					return false;
 				AsyncSocket peer = Instance.Server.GetSocket(SessionId);
 				if (peer != null) {
 					var reduce = new Reduce(gkey, StateInvalid, globalSerialId);
 					if (ENABLE_PERF)
 						Instance.perf.onReduceBegin(reduce);
-					if (reduce.Send(peer, response, 10000)) //await 等RPC回复
+					if (reduce.Send(peer, response, Instance.AchillesHeelConfig.ReduceTimeout)) //await 等RPC回复
 						return true;
 					if (ENABLE_PERF)
 						Instance.perf.onReduceCancel(reduce);
@@ -727,7 +791,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 
 		void SetError() {
 			long now = System.currentTimeMillis();
-			if (now - LastErrorTime > ForbidPeriod)
+			if (now - LastErrorTime > Instance.AchillesHeelConfig.GlobalForbidPeriod)
 				LastErrorTime = now;
 		}
 
@@ -736,14 +800,14 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		 */
 		Reduce ReduceWaitLater(Binary gkey, long globalSerialId) {
 			try {
-				if (System.currentTimeMillis() - LastErrorTime < ForbidPeriod)
+				if (System.currentTimeMillis() - LastErrorTime < Instance.AchillesHeelConfig.GlobalForbidPeriod)
 					return null;
 				AsyncSocket peer = Instance.Server.GetSocket(SessionId);
 				if (peer != null) {
 					var reduce = new Reduce(gkey, StateInvalid, globalSerialId);
 					if (ENABLE_PERF)
 						Instance.perf.onReduceBegin(reduce);
-					reduce.SendForWait(peer, 10000);
+					reduce.SendForWait(peer, Instance.AchillesHeelConfig.ReduceTimeout);
 					if (ENABLE_PERF) {
 						if (reduce.getFuture().isCompletedExceptionally() && !reduce.isTimeout())
 							Instance.perf.onReduceCancel(reduce);

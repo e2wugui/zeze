@@ -127,22 +127,19 @@ public final class BKick extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__linksid extends Zeze.Transaction.Log1<BKick, Long> {
-        public Log__linksid(BKick bean, int varId, Long value) { super(bean, varId, value); }
-
+       public Log__linksid(BKick bean, int varId, Long value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._linksid = this.getValue(); }
     }
 
     private static final class Log__code extends Zeze.Transaction.Log1<BKick, Integer> {
-        public Log__code(BKick bean, int varId, Integer value) { super(bean, varId, value); }
-
+       public Log__code(BKick bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._code = this.getValue(); }
     }
 
     private static final class Log__desc extends Zeze.Transaction.Log1<BKick, String> {
-        public Log__desc(BKick bean, int varId, String value) { super(bean, varId, value); }
-
+       public Log__desc(BKick bean, int varId, String value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._desc = this.getValue(); }
     }

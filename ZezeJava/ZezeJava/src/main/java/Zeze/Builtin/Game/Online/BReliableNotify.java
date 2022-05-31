@@ -80,8 +80,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__ReliableNotifyIndex extends Zeze.Transaction.Log1<BReliableNotify, Long> {
-        public Log__ReliableNotifyIndex(BReliableNotify bean, int varId, Long value) { super(bean, varId, value); }
-
+       public Log__ReliableNotifyIndex(BReliableNotify bean, int varId, Long value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._ReliableNotifyIndex = this.getValue(); }
     }

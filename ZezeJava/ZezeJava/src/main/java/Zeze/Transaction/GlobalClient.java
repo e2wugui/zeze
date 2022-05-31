@@ -45,6 +45,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 				}
 				else {
 					agent.getLoginTimes().incrementAndGet();
+					agent.initialize(login.Result.MaxNetPing, login.Result.ServerProcessTime, login.Result.ServerReleaseTimeout);
 					super.OnHandshakeDone(so);
 				}
 				return 0;
@@ -59,15 +60,5 @@ public final class GlobalClient extends Zeze.Net.Service {
 			getZeze().__GetInternalThreadPoolUnsafe().execute(
 					() -> Zeze.Util.Task.Call(() -> factoryHandle.Handle.handle(p), p));
 		}
-	}
-
-	@Override
-	public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
-		super.OnSocketClose(so, e);
-		var agent = (GlobalAgent.Agent)so.getUserState();
-		if (null == e) {
-			e = new RuntimeException("Peer Normal Close.");
-		}
-		agent.OnSocketClose(this, e);
 	}
 }

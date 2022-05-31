@@ -121,22 +121,19 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__protocolType extends Zeze.Transaction.Log1<BBroadcast, Long> {
-        public Log__protocolType(BBroadcast bean, int varId, Long value) { super(bean, varId, value); }
-
+       public Log__protocolType(BBroadcast bean, int varId, Long value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._protocolType = this.getValue(); }
     }
 
     private static final class Log__protocolWholeData extends Zeze.Transaction.Log1<BBroadcast, Zeze.Net.Binary> {
-        public Log__protocolWholeData(BBroadcast bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
-
+       public Log__protocolWholeData(BBroadcast bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._protocolWholeData = this.getValue(); }
     }
 
     private static final class Log__time extends Zeze.Transaction.Log1<BBroadcast, Integer> {
-        public Log__time(BBroadcast bean, int varId, Integer value) { super(bean, varId, value); }
-
+       public Log__time(BBroadcast bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._time = this.getValue(); }
     }

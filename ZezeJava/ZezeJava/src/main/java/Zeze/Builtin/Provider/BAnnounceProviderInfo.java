@@ -151,29 +151,25 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__ServiceNamePrefix extends Zeze.Transaction.Log1<BAnnounceProviderInfo, String> {
-        public Log__ServiceNamePrefix(BAnnounceProviderInfo bean, int varId, String value) { super(bean, varId, value); }
-
+       public Log__ServiceNamePrefix(BAnnounceProviderInfo bean, int varId, String value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._ServiceNamePrefix = this.getValue(); }
     }
 
     private static final class Log__ServiceIndentity extends Zeze.Transaction.Log1<BAnnounceProviderInfo, String> {
-        public Log__ServiceIndentity(BAnnounceProviderInfo bean, int varId, String value) { super(bean, varId, value); }
-
+       public Log__ServiceIndentity(BAnnounceProviderInfo bean, int varId, String value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._ServiceIndentity = this.getValue(); }
     }
 
     private static final class Log__ProviderDirectIp extends Zeze.Transaction.Log1<BAnnounceProviderInfo, String> {
-        public Log__ProviderDirectIp(BAnnounceProviderInfo bean, int varId, String value) { super(bean, varId, value); }
-
+       public Log__ProviderDirectIp(BAnnounceProviderInfo bean, int varId, String value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._ProviderDirectIp = this.getValue(); }
     }
 
     private static final class Log__ProviderDirectPort extends Zeze.Transaction.Log1<BAnnounceProviderInfo, Integer> {
-        public Log__ProviderDirectPort(BAnnounceProviderInfo bean, int varId, Integer value) { super(bean, varId, value); }
-
+       public Log__ProviderDirectPort(BAnnounceProviderInfo bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._ProviderDirectPort = this.getValue(); }
     }

@@ -14,6 +14,21 @@ ServiceConf.Acceptor ip="@internal" "@external"
 ------------------------------------------------------------------------------------------------------------------------------
 tag 0.9.9 Silence. ^_^
 ------------------------------------------------------------------------------------------------------------------------------
+1. Warning
+global 统计增加了Acquire和Reduce ResultCode的统计, GlobalRaft跑Simulate时,Acquire出现过以下失败情况:
+ public static final long Exception = -1;
+ public static final long RaftRetry = -15;
+ int AcquireShareDeadLockFound = 21;
+ int AcquireShareAlreadyIsModify = 22;
+ int AcquireModifyDeadLockFound = 23;
+ int AcquireModifyAlreadyIsModify = 25;
+ int AcquireShareFailed = 26;
+ int AcquireModifyFailed = 27;
+
+2. Fatal
+ERROR [] Table: RocksRaft Process Exception
+java.lang.IllegalStateException: CacheState state error
+ at Zeze.Services.GlobalCacheManagerWithRaft.AcquireShare(GlobalCacheManagerWithRaft.java:188)
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 0.9.8 

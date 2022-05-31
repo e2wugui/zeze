@@ -121,22 +121,19 @@ public final class BRankValue extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__RoleId extends Zeze.Transaction.Log1<BRankValue, Long> {
-        public Log__RoleId(BRankValue bean, int varId, Long value) { super(bean, varId, value); }
-
+       public Log__RoleId(BRankValue bean, int varId, Long value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._RoleId = this.getValue(); }
     }
 
     private static final class Log__Value extends Zeze.Transaction.Log1<BRankValue, Long> {
-        public Log__Value(BRankValue bean, int varId, Long value) { super(bean, varId, value); }
-
+       public Log__Value(BRankValue bean, int varId, Long value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._Value = this.getValue(); }
     }
 
     private static final class Log__ValueEx extends Zeze.Transaction.Log1<BRankValue, Zeze.Net.Binary> {
-        public Log__ValueEx(BRankValue bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
-
+       public Log__ValueEx(BRankValue bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._ValueEx = this.getValue(); }
     }

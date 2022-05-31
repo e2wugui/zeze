@@ -4,13 +4,17 @@ import java.io.IOException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.KeepAlive;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Login;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.NormalClose;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.ReLogin;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce;
+import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.GlobalAgentBase;
 import Zeze.Transaction.IGlobalAgent;
+import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
@@ -170,6 +174,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			rpc.Argument.setGlobalKey(gkey);
 			rpc.Argument.setState(state);
 			agent.RaftClient.SendForWait(rpc).await();
+			agent.setActiveTime(System.currentTimeMillis()); // Acquire.Response
 
 			if (rpc.getResultCode() < 0) {
 				Transaction trans = Transaction.getCurrent();
@@ -197,7 +202,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	// 2. 【Login|NormalClose】有多个事务处理，这跟rpc.UniqueRequestId唯一性有矛盾。【可行方法：去掉唯一判断，让流程正确处理重复请求。】
 	// 3. 【ReLogin】没有数据修改，完全允许重复，并且不判断唯一性。
 	// 4. Raft 高可用性，所以认为服务器永远不会关闭，就不需要处理服务器关闭时清理本地状态。
-	public static class RaftAgent {
+	public static class RaftAgent extends GlobalAgentBase {
 		private final GlobalCacheManagerWithRaftAgent GlobalCacheManagerWithRaftAgent;
 		private final int GlobalCacheManagerHashIndex;
 		private final Zeze.Raft.Agent RaftClient;
@@ -208,6 +213,19 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		public RaftAgent(GlobalCacheManagerWithRaftAgent global, Zeze.Application zeze,
 						 int _GlobalCacheManagerHashIndex) throws Throwable {
 			this(global, zeze, _GlobalCacheManagerHashIndex, null);
+		}
+
+		@Override
+		public void keepAlive() {
+			if (null == getConfig())
+				return; // not login
+
+			var rpc = new KeepAlive();
+			RaftClient.Send(rpc, p -> {
+				if (!rpc.isTimeout() && (rpc.getResultCode() == 0 || rpc.getResultCode() == Procedure.RaftApplied))
+					setActiveTime(System.currentTimeMillis()); // KeepAlive.Response
+				return 0;
+			});
 		}
 
 		public RaftAgent(GlobalCacheManagerWithRaftAgent global, Zeze.Application zeze,
@@ -294,6 +312,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 						// 这里不记录future失败，等待raft通知新的Leader启动新的Login。让外面等待的线程一直等待。
 					} else {
 						LoginTimes.incrementAndGet();
+						this.initialize(login.Result.getMaxNetPing(), login.Result.getServerProcessTime(), login.Result.getServerReleaseTimeout());
 						future.SetResult(true);
 					}
 					return 0;

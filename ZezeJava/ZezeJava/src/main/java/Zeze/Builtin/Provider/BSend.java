@@ -107,15 +107,13 @@ public final class BSend extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__protocolType extends Zeze.Transaction.Log1<BSend, Long> {
-        public Log__protocolType(BSend bean, int varId, Long value) { super(bean, varId, value); }
-
+       public Log__protocolType(BSend bean, int varId, Long value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._protocolType = this.getValue(); }
     }
 
     private static final class Log__protocolWholeData extends Zeze.Transaction.Log1<BSend, Zeze.Net.Binary> {
-        public Log__protocolWholeData(BSend bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
-
+       public Log__protocolWholeData(BSend bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._protocolWholeData = this.getValue(); }
     }

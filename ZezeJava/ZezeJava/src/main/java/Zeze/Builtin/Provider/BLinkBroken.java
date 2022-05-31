@@ -177,36 +177,31 @@ public final class BLinkBroken extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__account extends Zeze.Transaction.Log1<BLinkBroken, String> {
-        public Log__account(BLinkBroken bean, int varId, String value) { super(bean, varId, value); }
-
+       public Log__account(BLinkBroken bean, int varId, String value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._account = this.getValue(); }
     }
 
     private static final class Log__linkSid extends Zeze.Transaction.Log1<BLinkBroken, Long> {
-        public Log__linkSid(BLinkBroken bean, int varId, Long value) { super(bean, varId, value); }
-
+       public Log__linkSid(BLinkBroken bean, int varId, Long value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._linkSid = this.getValue(); }
     }
 
     private static final class Log__reason extends Zeze.Transaction.Log1<BLinkBroken, Integer> {
-        public Log__reason(BLinkBroken bean, int varId, Integer value) { super(bean, varId, value); }
-
+       public Log__reason(BLinkBroken bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._reason = this.getValue(); }
     }
 
     private static final class Log__context extends Zeze.Transaction.Log1<BLinkBroken, String> {
-        public Log__context(BLinkBroken bean, int varId, String value) { super(bean, varId, value); }
-
+       public Log__context(BLinkBroken bean, int varId, String value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._context = this.getValue(); }
     }
 
     private static final class Log__contextx extends Zeze.Transaction.Log1<BLinkBroken, Zeze.Net.Binary> {
-        public Log__contextx(BLinkBroken bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
-
+       public Log__contextx(BLinkBroken bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._contextx = this.getValue(); }
     }

@@ -1,5 +1,9 @@
 package Zeze.Transaction;
 
+import Zeze.Services.AchillesHeelConfig;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 /**
  * 【问题】 Server失联，Global回收记录锁怎么处理？
  * Server与Global之间记录锁管理机制。这里锁有三个状态，Modify,Share,Invalid。
@@ -20,27 +24,27 @@ package Zeze.Transaction;
  *
  * 4. KeepAlive Rpc
  *    Server空闲时发送给Global。
- *    LastActiveTime = Acquire或者KeepAlive的活动时间。
- *    Global为每个Server都维护LastActiveTime。在收到Acquire或者KeepAlive设为now。
- *    Server为每个Global都维护LastActiveTime。在收到Acquire.Response或者KeepAlive.Response时设为now。
- *    Server每秒检查LastActiveTime，发现 now - LastActiveTime > ServerIdleTimeout 时发送KeepAlive。
+ *    ActiveTime = Acquire或者KeepAlive的活动时间。
+ *    Global为每个Server都维护ActiveTime。在收到Acquire或者KeepAlive设为now。
+ *    Server为每个Global都维护ActiveTime。在收到Acquire.Response或者KeepAlive.Response时设为now。
+ *    Server每秒检查ActiveTime，发现 now - ActiveTime > ServerIdleTimeout 时发送KeepAlive。
  *
  * 5. Global发现Server断开连接
  *    不做任何处理。短暂断开允许重连。锁释放由Global-AchillesHeel-Daemon处理。
  *
  * 6. Global-AchillesHeel-Daemon
- *    每5秒扫描一遍所有Server，发现 now - Server.LastActiveTime > GlobalDaemonTimeout，释放该Server所有锁。【Important!】
+ *    每5秒扫描一遍所有Server，发现 now - Server.ActiveTime > GlobalDaemonTimeout，释放该Server所有锁。【Important!】
  *    a) 5秒慢检查;如果Server很多，避免轮询消耗太多cpu。慢检查会造成实际回收时间超出超时设置，但不会造成锁状态问题。
  *    b) GlobalDaemonTimeout，最终超时。Server必须在这之前释放自己持有的锁或者退出进程；
  *
  * 7. Server-AchillesHeel-Daemon
- *    Server每秒扫描一遍Global，发现 now - Global.LastActiveTime > ServerDaemonTimeout，启动本地释放锁线程。
+ *    Server每秒扫描一遍Global，发现 now - Global.ActiveTime > ServerDaemonTimeout，启动本地释放锁线程。
  *    a) ServerDaemonTimeout需要大于KeepAlive的空闲间隔 + 尝试重连的时间。
  *    b) 本地释放锁必须在独立线程执行，守护线程等待释放完成，如果释放线程超过ServerReleaseTimeout还未完成，就自杀！【Important！】
  *    c) 守护线程一开始创建，做最简单的事情，确保需要的时候，最终的自杀能成功。【Important！】
  *
  * 8. Timeout
- *    a) ServerKeepAlive.IdleTimeout < ServerDaemonTimeout;
+ *    a) ServerKeepAliveIdleTimeout < ServerDaemonTimeout;
  *    b) ServerDaemonTimeout + ServerReleaseTimeout < GlobalDaemonTimeout; 必须满足而且不能太接近【Important！】
  *    c) 其他Timeout：Acquire.Timeout, Reduce.Timeout, KeepAlive.Timeout, Server.FastErrorPeriod, Global.ForbidPeriod
  *
@@ -53,10 +57,10 @@ package Zeze.Transaction;
  *
  * 10. Timeout Compute
  *    *) Reconnect.Timer = 1000;
- *    a) ServerKeepAlive.IdleTimeout = MaxNetPing;
+ *    a) ServerKeepAliveIdleTimeout = MaxNetPing;
  *    b) ServerDaemonTimeout = MaxNetPing * 4; // 期间允许4次重连尝试
  *    c) ServerReleaseTimeout = 10 * 1000; // From Global
- *    d) GlobalDaemonTimeout = (ServerDaemonTimeout + ServerReleaseTimeout) * 1.2f; // 多出20%
+ *    d) GlobalDaemonTimeout = ServerDaemonTimeout + ServerReleaseTimeout + MaxNetPing * 2 + 1000;
  *    e) Reduce.Timeout = MaxNetPing + ServerProcessTime;
  *    f) Acquire.Timeout = Reduce.Timeout + MaxNetPing
  *    g) KeepAlive.Timeout = MaxNetPing;
@@ -67,8 +71,72 @@ package Zeze.Transaction;
  *    a) Server在发现Global断开连接，马上释放本地资源。改成由AchillesHeelDaemon处理。
  *    b) Global.Cleanup 手动释放锁禁用。
  *
+ * 12. Implement
+ *    =============================================
+ *    Server-Implement    RaftAgent NormalAgent
+ *    ---------------------------------------------
+ *    Acquire.Timeout        No         Yes
+ *    KeepAlive.Timeout      No         Yes
+ *    Server.FastErrorPeriod No         Yes
+ *    Reconnect.Timer        No         Yes
+ *    =============================================
+ *    Global-Implement    WithRaft   Normal  Async
+ *    ---------------------------------------------
+ *    GlobalDaemonTimeout             Yes
+ *    Reduce.Timeout                  Yes
+ *    Global.ForbidPeriod             Yes
+ *
  * *. 原来的思路参见 zeze/GlobalCacheManager/Cleanup.txt。在这个基础上增加了KeepAlive。
  */
 
-public class AchillesHeelDaemon {
+public class AchillesHeelDaemon extends Thread {
+	private static final Logger logger = LogManager.getLogger(AchillesHeelDaemon.class);
+
+	private GlobalAgentBase[] Agents;
+
+	public final AchillesHeelConfig getConfig(int index) {
+		return Agents[index].getConfig();
+	}
+
+	public <T extends GlobalAgentBase> AchillesHeelDaemon(T[] agents) {
+		Agents = new GlobalAgentBase[agents.length];
+		for (int i = 0; i < agents.length; ++i)
+			Agents[i] = agents[i];
+	}
+
+	private volatile boolean Running;
+
+	public void stopAndJoin() throws InterruptedException {
+		Running = false;
+		this.join();
+	}
+
+	@Override
+	public void run() {
+		while (Running) {
+			var now = System.currentTimeMillis();
+			for (var agent : Agents) {
+				var config = agent.getConfig();
+				if (null == config)
+					continue; // skip agent not login
+
+				agent.tryHalt(config.ServerReleaseTimeout);
+
+				var idle = now - agent.getActiveTime();
+				if (idle > config.ServerDaemonTimeout) {
+					agent.startReleaseLocal();
+					continue;
+				}
+				if (idle > config.ServerKeepAliveIdleTimeout) {
+					agent.keepAlive();
+					continue;
+				}
+			}
+			try {
+				Thread.sleep(1000);
+			} catch (InterruptedException e) {
+				logger.warn(e);
+			}
+		}
+	}
 }

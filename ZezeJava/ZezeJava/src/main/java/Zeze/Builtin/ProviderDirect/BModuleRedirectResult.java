@@ -121,22 +121,19 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__ModuleId extends Zeze.Transaction.Log1<BModuleRedirectResult, Integer> {
-        public Log__ModuleId(BModuleRedirectResult bean, int varId, Integer value) { super(bean, varId, value); }
-
+       public Log__ModuleId(BModuleRedirectResult bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._ModuleId = this.getValue(); }
     }
 
     private static final class Log__ServerId extends Zeze.Transaction.Log1<BModuleRedirectResult, Integer> {
-        public Log__ServerId(BModuleRedirectResult bean, int varId, Integer value) { super(bean, varId, value); }
-
+       public Log__ServerId(BModuleRedirectResult bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._ServerId = this.getValue(); }
     }
 
     private static final class Log__Params extends Zeze.Transaction.Log1<BModuleRedirectResult, Zeze.Net.Binary> {
-        public Log__Params(BModuleRedirectResult bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
-
+       public Log__Params(BModuleRedirectResult bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._Params = this.getValue(); }
     }

@@ -80,8 +80,7 @@ public final class BBag extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__Capacity extends Zeze.Transaction.Log1<BBag, Integer> {
-        public Log__Capacity(BBag bean, int varId, Integer value) { super(bean, varId, value); }
-
+       public Log__Capacity(BBag bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._Capacity = this.getValue(); }
     }

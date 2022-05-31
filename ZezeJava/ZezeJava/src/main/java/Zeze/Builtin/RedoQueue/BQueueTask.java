@@ -172,36 +172,31 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__QueueName extends Zeze.Transaction.Log1<BQueueTask, String> {
-        public Log__QueueName(BQueueTask bean, int varId, String value) { super(bean, varId, value); }
-
+       public Log__QueueName(BQueueTask bean, int varId, String value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._QueueName = this.getValue(); }
     }
 
     private static final class Log__TaskType extends Zeze.Transaction.Log1<BQueueTask, Integer> {
-        public Log__TaskType(BQueueTask bean, int varId, Integer value) { super(bean, varId, value); }
-
+       public Log__TaskType(BQueueTask bean, int varId, Integer value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._TaskType = this.getValue(); }
     }
 
     private static final class Log__TaskId extends Zeze.Transaction.Log1<BQueueTask, Long> {
-        public Log__TaskId(BQueueTask bean, int varId, Long value) { super(bean, varId, value); }
-
+       public Log__TaskId(BQueueTask bean, int varId, Long value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._TaskId = this.getValue(); }
     }
 
     private static final class Log__TaskParam extends Zeze.Transaction.Log1<BQueueTask, Zeze.Net.Binary> {
-        public Log__TaskParam(BQueueTask bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
-
+       public Log__TaskParam(BQueueTask bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._TaskParam = this.getValue(); }
     }
 
     private static final class Log__PrevTaskId extends Zeze.Transaction.Log1<BQueueTask, Long> {
-        public Log__PrevTaskId(BQueueTask bean, int varId, Long value) { super(bean, varId, value); }
-
+       public Log__PrevTaskId(BQueueTask bean, int varId, Long value) { super(bean, varId, value); }
         @Override
         public void Commit() { getBeanTyped()._PrevTaskId = this.getValue(); }
     }

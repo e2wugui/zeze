@@ -8,7 +8,9 @@ import Zeze.Net.Binary;
 import Zeze.Net.Connector;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Services.AchillesHeelConfig;
 import Zeze.Services.GlobalCacheManager.Acquire;
+import Zeze.Services.GlobalCacheManager.KeepAlive;
 import Zeze.Services.GlobalCacheManager.Login;
 import Zeze.Services.GlobalCacheManager.NormalClose;
 import Zeze.Services.GlobalCacheManager.ReLogin;
@@ -16,13 +18,12 @@ import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Services.GlobalCacheManagerServer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.tikv.shade.com.google.api.MonitoredResource;
 
 public final class GlobalAgent implements IGlobalAgent {
 	private static final Logger logger = LogManager.getLogger(GlobalAgent.class);
 
-	public static final class Agent {
-		private static final long FastErrorPeriod = 10 * 1000; // 10 seconds
-
+	public static final class Agent extends GlobalAgentBase {
 		private final Connector connector;
 		private final AtomicLong LoginTimes = new AtomicLong();
 		private final int GlobalCacheManagerHashIndex;
@@ -33,7 +34,20 @@ public final class GlobalAgent implements IGlobalAgent {
 			connector = new Zeze.Net.Connector(host, port, true);
 			connector.UserState = this;
 			GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
+			connector.setMaxReconnectDelay(AchillesHeelConfig.ReconnectTimer);
 			client.getConfig().AddConnector(connector);
+		}
+
+		@Override
+		public void keepAlive() {
+			if (null == getConfig())
+				return; // not login
+
+			new KeepAlive().Send(connector.TryGetReadySocket(), rpc -> {
+				if (!rpc.isTimeout() && rpc.getResultCode() == 0)
+					setActiveTime(System.currentTimeMillis()); // KeepAlive.Response
+				return 0;
+			}, getConfig().KeepAliveTimeout);
 		}
 
 		public AtomicLong getLoginTimes() {
@@ -58,7 +72,7 @@ public final class GlobalAgent implements IGlobalAgent {
 					return so;
 
 				synchronized (this) {
-					if (System.currentTimeMillis() - LastErrorTime < FastErrorPeriod)
+					if (System.currentTimeMillis() - LastErrorTime < getConfig().ServerFastErrorPeriod)
 						ThrowException("GlobalAgent In FastErrorPeriod", null); // abort
 					// else continue
 				}
@@ -67,7 +81,7 @@ public final class GlobalAgent implements IGlobalAgent {
 			} catch (Throwable abort) {
 				var now = System.currentTimeMillis();
 				synchronized (this) {
-					if (now - LastErrorTime > FastErrorPeriod)
+					if (now - LastErrorTime > getConfig().ServerFastErrorPeriod)
 						LastErrorTime = now;
 				}
 				ThrowException("GlobalAgent Login Failed", abort);
@@ -88,21 +102,6 @@ public final class GlobalAgent implements IGlobalAgent {
 					new NormalClose().SendForWait(ready).await();
 			} finally {
 				connector.Stop(); // 正常关闭，先设置这个，以后 OnSocketClose 的时候判断做不同的处理。
-			}
-		}
-
-		public void OnSocketClose(GlobalClient client, Throwable ignoredEx) {
-			synchronized (this) {
-				if (ActiveClose)
-					return; // Connector 的状态在它自己的回调里面处理。
-			}
-
-			if (connector.isHandshakeDone()) {
-				for (var database : client.getZeze().getDatabases().values()) {
-					for (var table : database.getTables())
-						table.ReduceInvalidAllLocalOnly(getGlobalCacheManagerHashIndex());
-				}
-				client.getZeze().CheckpointRun();
 			}
 		}
 	}
@@ -147,7 +146,7 @@ public final class GlobalAgent implements IGlobalAgent {
 			// 一个请求异常不关闭连接，尝试继续工作。
 			var rpc = new Acquire(gkey, state);
 			try {
-				rpc.SendForWait(socket, 12000).get();
+				rpc.SendForWait(socket, agent.getConfig().AcquireTimeout).get();
 			} catch (InterruptedException | ExecutionException e) {
 				var trans = Transaction.getCurrent();
 				if (trans == null)
@@ -161,6 +160,8 @@ public final class GlobalAgent implements IGlobalAgent {
 			    logger.Warn("Acquire ResultCode={0} {1}", rpc.ResultCode, rpc.Result);
 			}
 			*/
+			agent.setActiveTime(System.currentTimeMillis()); // Acquire.Response
+
 			if (rpc.getResultCode() == GlobalCacheManagerServer.AcquireModifyFailed
 					|| rpc.getResultCode() == GlobalCacheManagerServer.AcquireShareFailed) {
 				var trans = Transaction.getCurrent();
@@ -229,6 +230,8 @@ public final class GlobalAgent implements IGlobalAgent {
 				new Service.ProtocolFactoryHandle<>(ReLogin::new, null, TransactionLevel.None));
 		Client.AddFactoryHandle(NormalClose.TypeId_,
 				new Service.ProtocolFactoryHandle<>(NormalClose::new, null, TransactionLevel.None));
+		Client.AddFactoryHandle(KeepAlive.TypeId_,
+				new Service.ProtocolFactoryHandle<>(KeepAlive::new, null, TransactionLevel.None));
 
 		Agents = new Agent[hostNameOrAddress.length];
 		for (int i = 0; i < hostNameOrAddress.length; i++) {
