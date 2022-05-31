@@ -25,11 +25,16 @@ public abstract class GlobalAgentBase {
 
 	public abstract void keepAlive();
 
-	public void tryHalt(int timeout) {
+	// 如果正在释放本地锁，并且超时了，立即杀死程序。
+	public void tryHalt(int index, int timeout) {
 
 	}
 
-	public void startReleaseLocal() {
+	// 开始释放本地锁。
+	// 1.【要并发，要快】启动线程池来执行，释放锁除了需要和应用互斥，没有其他IO操作，基本上都是cpu。
+	// 2. 超时没有释放完成，程序中止。see tryHalt。
+	// 3. Per Global Instance.
+	public void startReleaseLocal(int index) {
 		/*
 		for (var database : client.getZeze().getDatabases().values()) {
 			for (var table : database.getTables())
