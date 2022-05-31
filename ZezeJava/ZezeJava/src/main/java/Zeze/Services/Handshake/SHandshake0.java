@@ -1,7 +1,6 @@
 package Zeze.Services.Handshake;
 
 import Zeze.Net.Protocol1;
-import Zeze.Services.GlobalCacheManager.SHandshake0Argument;
 import Zeze.Transaction.Bean;
 
 public class SHandshake0 extends Protocol1<SHandshake0Argument> {

@@ -1,7 +1,10 @@
 package Zeze.Transaction;
 
 /**
+ * 【问题】 Server失联，Global回收记录锁怎么处理？
  * Server与Global之间记录锁管理机制。这里锁有三个状态，Modify,Share,Invalid。
+ * 下面从Server-Global之间所有的交互进行分析，
+ *
  * 0. Acquire Rpc
  *    Server向Global申请记录锁。Release也是通过这个操作处理，锁状态的一种，即Invalid。
  *

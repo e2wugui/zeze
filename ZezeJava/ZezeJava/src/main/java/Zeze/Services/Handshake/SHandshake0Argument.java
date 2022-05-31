@@ -1,4 +1,4 @@
-package Zeze.Services.GlobalCacheManager;
+package Zeze.Services.Handshake;
 
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
