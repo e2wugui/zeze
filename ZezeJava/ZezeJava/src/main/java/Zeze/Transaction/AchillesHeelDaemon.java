@@ -32,7 +32,7 @@ package Zeze.Transaction;
  *
  * 7. Server-AchillesHeel-Daemon
  *    Server每秒扫描一遍Global，发现 now - Global.LastActiveTime > ServerDaemonTimeout(5秒)，启动本地释放锁线程。
- *    a) 2秒，需要大于KeepAlive的空闲间隔。
+ *    a) ServerDaemonTimeout需要大于KeepAlive的空闲间隔。
  *    b) 本地释放锁必须在独立线程执行，守护线程等待释放完成，如果释放超过ServerReleaseTimeout(10秒)还未完成，就自杀！【Important！】
  *    c) 守护线程一开始创建，做最简单的事情，确保需要的时候，最终的自杀能成功。【Important！】
  *
@@ -41,6 +41,12 @@ package Zeze.Transaction;
  *    b) ServerDaemonTimeout + ServerReleaseTimeout < GlobalDaemonTimeout; 必须满足而且不能太接近【Important！】
  *    *) rpc.Timeout? 现在Global的Rpc.Timeout设的比较长，需要重新考虑。
  *       Acquire.Timeout, Reduce.Timeout, KeepAlive.Timeout,
+ *
+ * 9. Timeout Config
+ *    a) 在Global配置两个参数：NetPing ProcessTime
+ *    b) 其他Timeout配置全部从上面两个参数按一定比例计算得出。
+ *    c) Gs不独立配置，Login的时候从Global得到配置。避免由于配置不一致导致问题。
+ *    d) Global多个实例允许不一样的配置，异构网络里面可能需要。
  *
  * *. Change
  *    不再需要的旧实现：Server在发现Global断开连接，马上释放本地资源。
