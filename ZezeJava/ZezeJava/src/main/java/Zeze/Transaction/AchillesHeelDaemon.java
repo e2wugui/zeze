@@ -45,16 +45,17 @@ package Zeze.Transaction;
  *    c) 其他Timeout：Acquire.Timeout, Reduce.Timeout, KeepAlive.Timeout, Server.FastErrorPeriod, Global.ForbidPeriod
  *
  * 9. Timeout Config
- *    a) 在Global配置两个参数：MaxNetPing=1000, ServerProcessTime=500
+ *    a) 在Global配置三个参数：MaxNetPing=1000, ServerProcessTime=500, ServerReleaseTimeout=10*1000,
  *    b) 其他Timeout配置全部从上面两个参数按一定比例计算得出。
  *    c) Gs不独立配置，Login的时候从Global得到配置。避免由于配置不一致导致问题。
- *    d) Global多个实例允许不一样的配置，异构网络里面可能需要。
+ *    d) Global多个实例允许不一样的配置，异构网络里面可能需要。简单起见，最好统一配置。
+ *    e) ServerReleaseTimeout 默认10秒，这个和Server.Cache.Capacity相关，而且会与应用事务竞争，可能需要长一些。
  *
  * 10. Timeout Compute
  *    *) Reconnect.Timer = 1000;
  *    a) ServerKeepAlive.IdleTimeout = MaxNetPing;
  *    b) ServerDaemonTimeout = MaxNetPing * 4; // 期间允许4次重连尝试
- *    c) ServerReleaseTimeout = 10 * 1000;
+ *    c) ServerReleaseTimeout = 10 * 1000; // From Global
  *    d) GlobalDaemonTimeout = (ServerDaemonTimeout + ServerReleaseTimeout) * 1.2f; // 多出20%
  *    e) Reduce.Timeout = MaxNetPing + ServerProcessTime;
  *    f) Acquire.Timeout = Reduce.Timeout + MaxNetPing
@@ -63,9 +64,11 @@ package Zeze.Transaction;
  *    i) Global.ForbidPeriod = ServerDaemonTimeout / 2; // Reduce失败一次即进入这个超时，期间所有的Reduce马上失败。
  *
  * 11. Change Log
- *    不再需要的旧实现：Server在发现Global断开连接，马上释放本地资源。改成由AchillesHeelDaemon处理。
+ *    a) Server在发现Global断开连接，马上释放本地资源。改成由AchillesHeelDaemon处理。
+ *    b) Global.Cleanup 手动释放锁禁用。
  *
  * *. 原来的思路参见 zeze/GlobalCacheManager/Cleanup.txt。在这个基础上增加了KeepAlive。
  */
+
 public class AchillesHeelDaemon {
 }
