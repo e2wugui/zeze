@@ -115,16 +115,17 @@ public class AchillesHeelDaemon extends Thread {
 	public void run() {
 		while (Running) {
 			var now = System.currentTimeMillis();
-			for (var agent : Agents) {
+			for (int i = 0; i < Agents.length; ++i) {
+				var agent = Agents[i];
 				var config = agent.getConfig();
 				if (null == config)
 					continue; // skip agent not login
 
-				agent.tryHalt(config.ServerReleaseTimeout);
+				agent.tryHalt(i, config.ServerReleaseTimeout);
 
 				var idle = now - agent.getActiveTime();
 				if (idle > config.ServerDaemonTimeout) {
-					agent.startReleaseLocal();
+					agent.startReleaseLocal(i);
 					continue;
 				}
 				if (idle > config.ServerKeepAliveIdleTimeout) {
