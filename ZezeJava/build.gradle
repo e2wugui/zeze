@@ -1,6 +1,6 @@
 allprojects {
     group 'com.zezeno'
-    version '0.9.22-SNAPSHOT'
+    version '0.10.0-SNAPSHOT'
     apply plugin: 'java'
     apply plugin: 'idea'
 
@@ -17,13 +17,13 @@ allprojects {
 
     java {
         toolchain {
-            languageVersion = JavaLanguageVersion.of(11)
+            languageVersion = JavaLanguageVersion.of(17)
         }
     }
 
     compileJava {
-        sourceCompatibility = 11
-        targetCompatibility = 11
+        sourceCompatibility = 17
+        targetCompatibility = 17
         options.encoding = 'utf-8'
         options.incremental = true
         options.fork = true

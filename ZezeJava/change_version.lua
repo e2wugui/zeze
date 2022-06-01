@@ -1,5 +1,5 @@
-local old_version = "0.9.21-SNAPSHOT"
-local new_version = "0.9.22-SNAPSHOT"
+local old_version = "0.9.22-SNAPSHOT"
+local new_version = "0.10.0-SNAPSHOT"
 
 local files = {
 	{ 1, "build.gradle" },
@@ -9,11 +9,13 @@ local files = {
 	{ 2, "ZezexJava/client/pom.xml" },
 	{ 2, "ZezexJava/linkd/pom.xml" },
 	{ 2, "ZezexJava/server/pom.xml" },
-	{ 3, "TestRaft/raft.bat" },
-	{ 7, "TestRaft/raft.more.bat" },
-	{ 5, "TestRaft/raft.5x6node.bat" },
-	{ 2, "TestRaft/GlobalRaft/service&global_raft3.bat" },
-	{ 2, "TestRaft/Simulate/simulate.bat" },
+	{ 3, "test/Raft/raft.bat" },
+	{ 7, "test/Raft/raft.more.bat" },
+	{ 5, "test/Raft/raft.5x6node.bat" },
+	{ 2, "test/GlobalRaft/service&global_raft3.bat" },
+	{ 2, "test/InfiniteSimulate/simulate.bat" },
+	{ 2, "test/GlobalRaft/service&global_raft3.bat" },
+	{ 2, "test/GlobalCacheManagerWithRaft/global_raft.bat" },
 }
 
 local old_version_pat = old_version:gsub("%.", "%%."):gsub("%-", "%%-")
