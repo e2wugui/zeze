@@ -25,6 +25,10 @@ public abstract class GlobalAgentBase {
 		return config;
 	}
 
+	public GlobalAgentBase() {
+		config = new AchillesHeelConfig(1000, 500, 10 * 1000);
+	}
+
 	public final void initialize(int maxNetPing, int serverProcessTime, int serverReleaseTimeout) {
 		config = new AchillesHeelConfig(maxNetPing, serverProcessTime, serverReleaseTimeout);
 	}

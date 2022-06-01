@@ -238,6 +238,9 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
 			Release(session, e.getKey(), false);
 		}
+		rpc.Result.MaxNetPing = Config.MaxNetPing;
+		rpc.Result.ServerProcessTime = Config.ServerProcessTime;
+		rpc.Result.ServerReleaseTimeout = Config.ServerReleaseTimeout;
 		rpc.SendResultCode(0);
 		return 0;
 	}
