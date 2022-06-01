@@ -101,8 +101,8 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 				ServerReleaseTimeout = Integer.parseInt(attr);
 		}
 
-		public int MaxNetPing = 1000;
-		public int ServerProcessTime = 500;
+		public int MaxNetPing = 2000;
+		public int ServerProcessTime = 2000;
 		public int ServerReleaseTimeout = 10 * 1000;
 	}
 
