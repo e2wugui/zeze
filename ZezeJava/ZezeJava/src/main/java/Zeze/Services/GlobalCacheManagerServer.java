@@ -6,7 +6,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
-import Zeze.Net.Connector;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Net.Service;
@@ -68,20 +67,21 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	 */
 	private LongConcurrentHashMap<CacheHolder> Sessions;
 	private final GCMConfig Config = new GCMConfig();
+	private AchillesHeelConfig AchillesHeelConfig;
 	private GlobalCacheManagerPerf perf;
 
 	public static final class GCMConfig implements Zeze.Config.ICustomize {
 		// 设置了这么大，开始使用后，大概会占用700M的内存，作为全局服务器，先这么大吧。
 		// 尽量不重新调整ConcurrentHashMap。
-		private int InitialCapacity = 10_000_000;
+		int InitialCapacity = 10_000_000;
+
+		int MaxNetPing = 2_000;
+		int ServerProcessTime = 2_000;
+		int ServerReleaseTimeout = 10_000;
 
 		@Override
 		public String getName() {
 			return "GlobalCacheManager";
-		}
-
-		int getInitialCapacity() {
-			return InitialCapacity;
 		}
 
 		@Override
@@ -100,10 +100,6 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			if (!attr.isEmpty())
 				ServerReleaseTimeout = Integer.parseInt(attr);
 		}
-
-		public int MaxNetPing = 2000;
-		public int ServerProcessTime = 2000;
-		public int ServerReleaseTimeout = 10 * 1000;
 	}
 
 	// 外面主动提供装载配置，需要在Load之前把这个实例注册进去。
@@ -129,7 +125,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			config = new Zeze.Config().AddCustomize(Config).LoadAndParse();
 
 		Sessions = new LongConcurrentHashMap<>(4096);
-		global = new ConcurrentHashMap<>(Config.getInitialCapacity());
+		global = new ConcurrentHashMap<>(Config.InitialCapacity);
 
 		Server = new ServerService(config);
 
@@ -162,8 +158,6 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		Task.schedule(5000, 5000, this::AchillesHeelDaemon);
 	}
 
-	private AchillesHeelConfig AchillesHeelConfig;
-
 	private void AchillesHeelDaemon() {
 		var now = System.currentTimeMillis();
 
@@ -195,12 +189,13 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	 * 手动Cleanup时，连接正确的服务器执行。
 	 */
 	private long ProcessCleanup(Cleanup rpc) {
-		logger.info("ProcessCleanup: {} {}", rpc.getSender(), rpc);
+		logger.info("ProcessCleanup: {} RequestId={} {}", rpc.getSender(), rpc.getSessionId(), rpc.Argument);
 		if (AchillesHeelConfig != null) // disable cleanup.
 			return 0;
 
 		// 安全性以后加强。
 		if (!rpc.Argument.SecureKey.equals("Ok! verify secure.")) {
+			logger.warn("ProcessCleanup: {} RequestId={} result={}", rpc.getSender(), rpc.getSessionId(), CleanupErrorSecureKey);
 			rpc.SendResultCode(CleanupErrorSecureKey);
 			return 0;
 		}
@@ -208,12 +203,14 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		var session = Sessions.computeIfAbsent(rpc.Argument.ServerId, __ -> new CacheHolder());
 		if (session.GlobalCacheManagerHashIndex != rpc.Argument.GlobalCacheManagerHashIndex) {
 			// 多点验证
+			logger.warn("ProcessCleanup: {} RequestId={} result={}", rpc.getSender(), rpc.getSessionId(), CleanupErrorGlobalCacheManagerHashIndex);
 			rpc.SendResultCode(CleanupErrorGlobalCacheManagerHashIndex);
 			return 0;
 		}
 
 		if (Server.GetSocket(session.SessionId) != null) {
 			// 连接存在，禁止cleanup。
+			logger.warn("ProcessCleanup: {} RequestId={} result={}", rpc.getSender(), rpc.getSessionId(), CleanupErrorHasConnection);
 			rpc.SendResultCode(CleanupErrorHasConnection);
 			return 0;
 		}
@@ -233,7 +230,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	}
 
 	private long ProcessLogin(Login rpc) throws Throwable {
-		logger.info("ProcessLogin: {} {}", rpc.getSender(), rpc);
+		logger.info("ProcessLogin: {} RequestId={} {}", rpc.getSender(), rpc.getSessionId(), rpc.Argument);
 		var session = Sessions.computeIfAbsent(rpc.Argument.ServerId, __ -> new CacheHolder());
 		if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.GlobalCacheManagerHashIndex)) {
 			rpc.SendResultCode(LoginBindSocketFail);
@@ -253,7 +250,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	}
 
 	private long ProcessReLogin(ReLogin rpc) {
-		logger.info("ProcessReLogin: {} {}", rpc.getSender(), rpc);
+		logger.info("ProcessReLogin: {} RequestId={} {}", rpc.getSender(), rpc.getSessionId(), rpc.Argument);
 		var session = Sessions.computeIfAbsent(rpc.Argument.ServerId, __ -> new CacheHolder());
 		if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.GlobalCacheManagerHashIndex)) {
 			rpc.SendResultCode(ReLoginBindSocketFail);
@@ -265,13 +262,15 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	}
 
 	private long ProcessNormalClose(NormalClose rpc) throws Throwable {
-		logger.info("ProcessNormalClose: {}", rpc.getSender());
+		logger.info("ProcessNormalClose: {} RequestId={}", rpc.getSender(), rpc.getSessionId());
 		var session = (CacheHolder)rpc.getSender().getUserState();
 		if (session == null) {
+			logger.warn("ProcessNormalClose: {} RequestId={} result={}", rpc.getSender(), rpc.getSessionId(), AcquireNotLogin);
 			rpc.SendResultCode(AcquireNotLogin);
 			return 0; // not login
 		}
 		if (!session.TryUnBindSocket(rpc.getSender())) {
+			logger.warn("ProcessNormalClose: {} RequestId={} result={}", rpc.getSender(), rpc.getSessionId(), NormalCloseUnbindFail);
 			rpc.SendResultCode(NormalCloseUnbindFail);
 			return 0;
 		}
@@ -734,18 +733,17 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	}
 
 	private static final class CacheHolder {
-		private volatile long ActiveTime;
-
 		final ConcurrentHashMap<Binary, Integer> Acquired = new ConcurrentHashMap<>();
 		long SessionId;
 		int GlobalCacheManagerHashIndex;
+		private volatile long ActiveTime;
 		private volatile long LastErrorTime;
 
 		long getActiveTime() {
 			return ActiveTime;
 		}
 
-		synchronized void setActiveTime(long value) {
+		void setActiveTime(long value) {
 			ActiveTime = value;
 		}
 
