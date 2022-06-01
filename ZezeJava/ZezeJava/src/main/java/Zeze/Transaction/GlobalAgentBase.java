@@ -11,13 +11,13 @@ import Zeze.Util.Task;
 
 public abstract class GlobalAgentBase {
 	private AchillesHeelConfig config;
-	private long activeTime;
+	private volatile long activeTime;
 
 	public final long getActiveTime() {
 		return activeTime;
 	}
 
-	public final void setActiveTime(long value) {
+	public final synchronized void setActiveTime(long value) {
 		activeTime = value;
 	}
 
