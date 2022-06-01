@@ -175,6 +175,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	 * 手动Cleanup时，连接正确的服务器执行。
 	 */
 	private long ProcessCleanup(Cleanup rpc) {
+		logger.info("ProcessCleanup: {} {}", rpc.getSender(), rpc);
 		if (AchillesHeelConfig != null) // disable cleanup.
 			return 0;
 
@@ -213,7 +214,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	}
 
 	private long ProcessLogin(Login rpc) throws Throwable {
-		logger.debug("ProcessLogin: {}", rpc);
+		logger.info("ProcessLogin: {} {}", rpc.getSender(), rpc);
 		var session = Sessions.computeIfAbsent(rpc.Argument.ServerId, __ -> new CacheHolder());
 		if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.GlobalCacheManagerHashIndex)) {
 			rpc.SendResultCode(LoginBindSocketFail);
@@ -233,7 +234,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	}
 
 	private long ProcessReLogin(ReLogin rpc) {
-		logger.debug("ProcessReLogin: {}", rpc);
+		logger.info("ProcessReLogin: {} {}", rpc.getSender(), rpc);
 		var session = Sessions.computeIfAbsent(rpc.Argument.ServerId, __ -> new CacheHolder());
 		if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.GlobalCacheManagerHashIndex)) {
 			rpc.SendResultCode(ReLoginBindSocketFail);
@@ -244,6 +245,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	}
 
 	private long ProcessNormalClose(NormalClose rpc) throws Throwable {
+		logger.info("ProcessNormalClose: {}", rpc.getSender());
 		var session = (CacheHolder)rpc.getSender().getUserState();
 		if (session == null) {
 			rpc.SendResultCode(AcquireNotLogin);
@@ -260,7 +262,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		}
 		allReleaseFuture.then(__ -> {
 			rpc.SendResultCode(0);
-			logger.debug("After NormalClose global.Count={}", global.size());
+			logger.info("After NormalClose global.Count={}", global.size());
 		});
 		return 0;
 	}
@@ -567,7 +569,9 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					// case StateReduceNetError: // 13
 					cs.AcquireStatePending = StateInvalid;
 					cs.lock.notifyAllWait();
-					logger.error("XXX 8 {} {} {} {}", sender, rpc.Argument.State, cs, state.reduceResultState);
+					if (ENABLE_PERF)
+						perf.onOthers("XXX 8 " + rpc.Argument.State + " " + state.reduceResultState);
+					// logger.error("XXX 8 {} {} {} {}", sender, rpc.Argument.State, cs, state.reduceResultState);
 					rpc.Result.State = StateInvalid;
 					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 					rpc.SendResultCode(AcquireShareFailed);
@@ -712,7 +716,9 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					// case StateReduceNetError: // 13
 					cs.AcquireStatePending = StateInvalid;
 					cs.lock.notifyAllWait();
-					logger.error("XXX 9 {} {} {} {}", sender, rpc.Argument.State, cs, state.reduceResultState);
+					if (ENABLE_PERF)
+						perf.onOthers("XXX 9 " + rpc.Argument.State + " " + state.reduceResultState);
+					// logger.error("XXX 9 {} {} {} {}", sender, rpc.Argument.State, cs, state.reduceResultState);
 					rpc.Result.State = StateInvalid;
 					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 					rpc.SendResultCode(AcquireModifyFailed);
@@ -792,7 +798,9 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 						cs.Share.add(sender);
 					cs.AcquireStatePending = StateInvalid;
 					cs.lock.notifyAllWait();
-					logger.error("XXX 10 {} {} {}", sender, rpc.Argument.State, cs);
+					if (ENABLE_PERF)
+						perf.onOthers("XXX 10 " + rpc.Argument.State);
+					// logger.error("XXX 10 {} {} {}", sender, rpc.Argument.State, cs);
 					rpc.Result.State = StateInvalid;
 					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 					rpc.SendResultCode(AcquireModifyFailed);
@@ -878,8 +886,10 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		}
 
 		synchronized boolean TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex) {
-			if (newSocket.getUserState() != null)
+			if (newSocket.getUserState() != null) {
+				logger.warn("TryBindSocket: already bound! newSocket.getUserState() != null, SessionId={}", newSocket.getSessionId());
 				return false; // 不允许再次绑定。Login Or ReLogin 只能发一次。
+			}
 
 			var socket = Instance.Server.GetSocket(SessionId);
 			if (socket == null) {
@@ -890,6 +900,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				return true;
 			}
 			// 每个ServerId只允许一个实例，已经存在了以后，旧的实例上有状态，阻止新的实例登录成功。
+			logger.warn("TryBindSocket: already bound! GetSocket(SessionId={}) != null", newSocket.getSessionId());
 			return false;
 		}
 
@@ -953,12 +964,14 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 
 		@Override
 		public void OnSocketAccept(AsyncSocket so) throws Throwable {
+			logger.info("OnSocketAccept {}", so);
 			// so.UserState = new CacheHolder(so.SessionId); // Login ReLogin 的时候初始化。
 			super.OnSocketAccept(so);
 		}
 
 		@Override
 		public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
+			logger.info("OnSocketClose {}", so);
 			var session = (CacheHolder)so.getUserState();
 			if (session != null)
 				session.TryUnBindSocket(so); // unbind when login

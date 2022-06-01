@@ -28,6 +28,7 @@ public class GlobalCacheManagerPerf {
 	@SuppressWarnings("unchecked")
 	private final ConcurrentSkipListMap<Long, LongAdder>[] totalAcquireResults = new ConcurrentSkipListMap[ACQUIRE_STATE_COUNT];
 	private final ConcurrentSkipListMap<Long, LongAdder> totalReduceResults = new ConcurrentSkipListMap<>();
+	private final ConcurrentSkipListMap<String, LongAdder> others = new ConcurrentSkipListMap<>();
 
 	GlobalCacheManagerPerf(AtomicLong serialIdGenerator) {
 		this.serialIdGenerator = serialIdGenerator;
@@ -83,6 +84,10 @@ public class GlobalCacheManagerPerf {
 		}
 	}
 
+	void onOthers(String info) {
+		others.computeIfAbsent(info, __ -> new LongAdder()).increment();
+	}
+
 	private void report() {
 		long curSerialId = serialIdGenerator.get();
 		long serialIds = curSerialId - lastSerialId;
@@ -120,6 +125,8 @@ public class GlobalCacheManagerPerf {
 		}
 		sb.append("\nAcquire/Reduce Pendings = ").append(acquires.size()).append(" / ")
 				.append(reduces.size()).append('\n');
+		for (var e : others.entrySet())
+			sb.append(e.getKey()).append(" = ").append(e.getValue().sum()).append('\n');
 		logger.info("\n{}", sb.toString());
 
 		for (int i = 0; i < ACQUIRE_STATE_COUNT; i++) {
@@ -132,5 +139,6 @@ public class GlobalCacheManagerPerf {
 		totalReduceTime.reset();
 		maxReduceTime.set(0);
 		totalReduceResults.clear();
+		others.clear();
 	}
 }
