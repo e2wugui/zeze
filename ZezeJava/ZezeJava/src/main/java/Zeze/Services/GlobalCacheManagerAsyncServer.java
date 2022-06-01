@@ -54,43 +54,12 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	 * 简化实现。
 	 */
 	private LongConcurrentHashMap<CacheHolder> Sessions;
-	private final GCMConfig Config = new GCMConfig();
+	private final GlobalCacheManagerServer.GCMConfig Config = new GlobalCacheManagerServer.GCMConfig();
 	private GlobalCacheManagerPerf perf;
 
-	private static final class GCMConfig implements Zeze.Config.ICustomize {
-		// 设置了这么大，开始使用后，大概会占用700M的内存，作为全局服务器，先这么大吧。
-		// 尽量不重新调整ConcurrentHashMap。
-		private int InitialCapacity = 10_000_000;
-
-		@Override
-		public String getName() {
-			return "GlobalCacheManager";
-		}
-
-		int getInitialCapacity() {
-			return InitialCapacity;
-		}
-
-		@Override
-		public void Parse(Element self) {
-			var attr = self.getAttribute("InitialCapacity");
-			if (!attr.isBlank())
-				InitialCapacity = Math.max(Integer.parseInt(attr), 31);
-
-			attr = self.getAttribute("MaxNetPing");
-			if (!attr.isEmpty())
-				MaxNetPing = Integer.parseInt(attr);
-			attr = self.getAttribute("ServerProcessTime");
-			if (!attr.isEmpty())
-				ServerProcessTime = Integer.parseInt(attr);
-			attr = self.getAttribute("ServerReleaseTimeout");
-			if (!attr.isEmpty())
-				ServerReleaseTimeout = Integer.parseInt(attr);
-		}
-
-		public int MaxNetPing = 2000;
-		public int ServerProcessTime = 2000;
-		public int ServerReleaseTimeout = 10 * 1000;
+	// 外面主动提供装载配置，需要在Load之前把这个实例注册进去。
+	public GlobalCacheManagerServer.GCMConfig getConfig() {
+		return Config;
 	}
 
 	private GlobalCacheManagerAsyncServer() {
@@ -220,6 +189,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			rpc.SendResultCode(LoginBindSocketFail);
 			return 0;
 		}
+		session.setActiveTime(System.currentTimeMillis());
 		// new login, 比如逻辑服务器重启。release old acquired.
 		var allReleaseFuture = new CountDownFuture();
 		for (var e : session.Acquired.entrySet()) {
@@ -240,6 +210,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			rpc.SendResultCode(ReLoginBindSocketFail);
 			return 0;
 		}
+		session.setActiveTime(System.currentTimeMillis());
 		rpc.SendResultCode(0);
 		return 0;
 	}
@@ -317,15 +288,15 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		return 0;
 	}
 
-	private static final class CountDownFuture extends RedirectFuture<Object> {
+	public static final class CountDownFuture extends RedirectFuture<Object> {
 		private final AtomicInteger counter = new AtomicInteger(1);
 
-		CountDownFuture createOne() {
+		public CountDownFuture createOne() {
 			counter.incrementAndGet();
 			return this;
 		}
 
-		void finishOne() {
+		public void finishOne() {
 			if (counter.decrementAndGet() == 0)
 				SetResult(null);
 		}

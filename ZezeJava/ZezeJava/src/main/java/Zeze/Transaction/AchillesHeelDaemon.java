@@ -59,7 +59,7 @@ import org.apache.logging.log4j.Logger;
  * 10. Timeout Compute
  *    *) Reconnect.Timer = 1000;
  *    a) ServerKeepAliveIdleTimeout = MaxNetPing;
- *    b) ServerDaemonTimeout = MaxNetPing * 4; // 期间允许4次重连尝试
+ *    b) ServerDaemonTimeout = Reconnect.Timer * 8; // 期间允许8次重连尝试
  *    c) ServerReleaseTimeout = 10 * 1000; // From Global
  *    d) GlobalDaemonTimeout = ServerDaemonTimeout + ServerReleaseTimeout + MaxNetPing * 2 + 1000;
  *    e) Reduce.Timeout = MaxNetPing + ServerProcessTime;

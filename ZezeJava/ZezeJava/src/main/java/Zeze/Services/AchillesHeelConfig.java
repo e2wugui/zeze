@@ -25,7 +25,7 @@ public class AchillesHeelConfig {
 
 	public AchillesHeelConfig(int maxNetPing, int serverProcessTime, int serverReleaseTimeout) {
 		ServerKeepAliveIdleTimeout = maxNetPing;
-		ServerDaemonTimeout = maxNetPing * 4;
+		ServerDaemonTimeout = ReconnectTimer * 8;
 		ServerReleaseTimeout = serverReleaseTimeout;
 		GlobalDaemonTimeout = ServerDaemonTimeout + ServerReleaseTimeout + maxNetPing * 2 + 1000;
 

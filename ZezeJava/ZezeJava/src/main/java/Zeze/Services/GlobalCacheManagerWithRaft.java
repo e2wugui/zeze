@@ -3,28 +3,14 @@ package Zeze.Services;
 import java.io.Closeable;
 import java.util.ArrayList;
 import java.util.HashSet;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.AcquiredState;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.CacheState;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.Cleanup;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.KeepAlive;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.Login;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.NormalClose;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.ReLogin;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.ReduceParam;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.*;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Raft.RaftConfig;
-import Zeze.Raft.RocksRaft.Procedure;
+import Zeze.Raft.RocksRaft.*;
 import Zeze.Raft.RocksRaft.Record;
-import Zeze.Raft.RocksRaft.Rocks;
-import Zeze.Raft.RocksRaft.RocksMode;
-import Zeze.Raft.RocksRaft.Table;
-import Zeze.Raft.RocksRaft.TableTemplate;
-import Zeze.Raft.RocksRaft.Transaction;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutObject;
@@ -73,7 +59,14 @@ public class GlobalCacheManagerWithRaft
 	 */
 	private final LongConcurrentHashMap<CacheHolder> Sessions = new LongConcurrentHashMap<>();
 
+	private final GlobalCacheManagerServer.GCMConfig Config = new GlobalCacheManagerServer.GCMConfig();
+	private Zeze.Config ZezeConfig;
 	private final GlobalCacheManagerPerf perf;
+
+	// 外面主动提供装载配置，需要在Load之前把这个实例注册进去。
+	public GlobalCacheManagerServer.GCMConfig getConfig() {
+		return Config;
+	}
 
 	public GlobalCacheManagerWithRaft(String raftName) throws Throwable {
 		this(raftName, null, null, false);
@@ -90,6 +83,9 @@ public class GlobalCacheManagerWithRaft
 	public GlobalCacheManagerWithRaft(String raftName, RaftConfig raftConf, Zeze.Config config,
 									  boolean RocksDbWriteOptionSync) throws Throwable {
 		Rocks = new Rocks(raftName, RocksMode.Pessimism, raftConf, config, RocksDbWriteOptionSync);
+		ZezeConfig = config;
+		if (ZezeConfig == null)
+			ZezeConfig = new Zeze.Config().AddCustomize(Config).LoadAndParse();
 
 		RegisterRocksTables(Rocks);
 		RegisterProtocols(Rocks.getRaft().getServer());
@@ -103,6 +99,36 @@ public class GlobalCacheManagerWithRaft
 			perf = new GlobalCacheManagerPerf(Rocks.AtomicLong(GlobalSerialIdAtomicLongIndex));
 
 		Rocks.getRaft().getServer().Start();
+
+		// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
+		AchillesHeelConfig = new AchillesHeelConfig(Config.MaxNetPing, Config.ServerProcessTime, Config.ServerReleaseTimeout);
+		Task.schedule(5000, 5000, this::AchillesHeelDaemon);
+	}
+
+	private AchillesHeelConfig AchillesHeelConfig;
+
+	private void AchillesHeelDaemon() {
+		var now = System.currentTimeMillis();
+		if (Rocks.getRaft().isLeader()) {
+			Sessions.forEach(session -> {
+				if (now - session.getActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout) {
+					var Acquired = ServerAcquiredTemplate.OpenTable(session.getServerId());
+					try {
+						Acquired.Walk((key, value) -> {
+							// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
+							if (Rocks.getRaft().isLeader()) {
+								Release(session, key);
+								return true;
+							}
+							return false;
+						});
+					} catch (Throwable e) {
+						logger.error(e);
+					}
+					// skip allReleaseFuture result
+				}
+			});
+		}
 	}
 
 	public Rocks getRocks() {
@@ -130,11 +156,12 @@ public class GlobalCacheManagerWithRaft
 			rpc.SendResultCode(Zeze.Transaction.Procedure.RaftRetry);
 			result = 0;
 		} else {
+			var sender = (CacheHolder)rpc.getSender().getUserState();
+			sender.setActiveTime(System.currentTimeMillis());
 			var proc = new Procedure(Rocks, () -> {
 				switch (rpc.Argument.getState()) {
 				case StateInvalid: // release
-					rpc.Result.setState(_Release((CacheHolder)rpc.getSender().getUserState(),
-							rpc.Argument.getGlobalKey(), true));
+					rpc.Result.setState(_Release(sender, rpc.Argument.getGlobalKey(), true));
 					return 0;
 				case StateShare:
 					return AcquireShare(rpc);
@@ -563,12 +590,18 @@ public class GlobalCacheManagerWithRaft
 			rpc.SendResultCode(LoginBindSocketFail);
 			return 0;
 		}
+		session.setActiveTime(System.currentTimeMillis());
 		// new login, 比如逻辑服务器重启。release old acquired.
 		var SenderAcquired = ServerAcquiredTemplate.OpenTable(session.ServerId);
 		SenderAcquired.Walk((key, value) -> {
 			Release(session, key);
 			return true; // continue walk
 		});
+
+		rpc.Result.setMaxNetPing(Config.MaxNetPing);
+		rpc.Result.setServerProcessTime(Config.ServerProcessTime);
+		rpc.Result.setServerReleaseTimeout(Config.ServerReleaseTimeout);
+
 		rpc.SendResultCode(0);
 		logger.info("Login {} {}.", Rocks.getRaft().getName(), rpc.getSender());
 		return 0;
@@ -587,6 +620,7 @@ public class GlobalCacheManagerWithRaft
 			rpc.SendResultCode(ReLoginBindSocketFail);
 			return 0;
 		}
+		session.setActiveTime(System.currentTimeMillis());
 		rpc.SendResultCode(0);
 		logger.info("ReLogin {} {}.", Rocks.getRaft().getName(), rpc.getSender());
 		return 0;
@@ -617,6 +651,9 @@ public class GlobalCacheManagerWithRaft
 
 	@Override
 	protected long ProcessCleanupRequest(Cleanup rpc) {
+		if (AchillesHeelConfig != null) // disable cleanup.
+			return 0;
+
 		// 安全性以后加强。
 		if (!rpc.Argument.getSecureKey().equals("Ok! verify secure.")) {
 			rpc.SendResultCode(CleanupErrorSecureKey);
@@ -657,6 +694,12 @@ public class GlobalCacheManagerWithRaft
 
 	@Override
 	protected long ProcessKeepAliveRequest(KeepAlive rpc) {
+		var sender = (CacheHolder)rpc.getUserState();
+		if (null == sender) {
+			rpc.SendResultCode(AcquireNotLogin);
+			return 0;
+		}
+		sender.setActiveTime(System.currentTimeMillis());
 		rpc.SendResultCode(Zeze.Transaction.Procedure.Success);
 		return 0;
 	}
@@ -673,7 +716,7 @@ public class GlobalCacheManagerWithRaft
 	}
 
 	static final class CacheHolder {
-		private static final long ForbidPeriod = 10 * 1000; // 10 seconds
+		private volatile long ActiveTime;
 
 		private long SessionId;
 		private int GlobalCacheManagerHashIndex;
@@ -683,6 +726,14 @@ public class GlobalCacheManagerWithRaft
 
 		int getServerId() {
 			return ServerId;
+		}
+
+		long getActiveTime() {
+			return ActiveTime;
+		}
+
+		synchronized void setActiveTime(long value) {
+			ActiveTime = value;
 		}
 
 		void setServerId(int value) {
@@ -725,7 +776,7 @@ public class GlobalCacheManagerWithRaft
 
 		synchronized void SetError() {
 			long now = System.currentTimeMillis();
-			if (now - LastErrorTime > ForbidPeriod)
+			if (now - LastErrorTime > GlobalInstance.AchillesHeelConfig.GlobalForbidPeriod)
 				LastErrorTime = now;
 		}
 
@@ -753,7 +804,7 @@ public class GlobalCacheManagerWithRaft
 					   ProtocolHandle<Rpc<ReduceParam, ReduceParam>> response) {
 			try {
 				synchronized (this) {
-					if (System.currentTimeMillis() - LastErrorTime < ForbidPeriod)
+					if (System.currentTimeMillis() - LastErrorTime < GlobalInstance.AchillesHeelConfig.GlobalForbidPeriod)
 						return false;
 				}
 				AsyncSocket peer = GlobalInstance.getRocks().getRaft().getServer().GetSocket(SessionId);
@@ -787,7 +838,7 @@ public class GlobalCacheManagerWithRaft
 		Reduce ReduceWaitLater(Binary gkey, long globalSerialId) {
 			try {
 				synchronized (this) {
-					if (System.currentTimeMillis() - LastErrorTime < ForbidPeriod)
+					if (System.currentTimeMillis() - LastErrorTime < GlobalInstance.AchillesHeelConfig.GlobalForbidPeriod)
 						return null;
 				}
 				AsyncSocket peer = GlobalInstance.getRocks().getRaft().getServer().GetSocket(SessionId);

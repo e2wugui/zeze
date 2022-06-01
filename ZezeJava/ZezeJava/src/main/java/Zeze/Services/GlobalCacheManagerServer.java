@@ -70,7 +70,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	private final GCMConfig Config = new GCMConfig();
 	private GlobalCacheManagerPerf perf;
 
-	private static final class GCMConfig implements Zeze.Config.ICustomize {
+	public static final class GCMConfig implements Zeze.Config.ICustomize {
 		// 设置了这么大，开始使用后，大概会占用700M的内存，作为全局服务器，先这么大吧。
 		// 尽量不重新调整ConcurrentHashMap。
 		private int InitialCapacity = 10_000_000;
@@ -104,6 +104,11 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		public int MaxNetPing = 2000;
 		public int ServerProcessTime = 2000;
 		public int ServerReleaseTimeout = 10 * 1000;
+	}
+
+	// 外面主动提供装载配置，需要在Load之前把这个实例注册进去。
+	public GlobalCacheManagerServer.GCMConfig getConfig() {
+		return Config;
 	}
 
 	private GlobalCacheManagerServer() {
@@ -239,6 +244,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
 			Release(session, e.getKey(), false);
 		}
+		session.setActiveTime(System.currentTimeMillis());
 		rpc.Result.MaxNetPing = Config.MaxNetPing;
 		rpc.Result.ServerProcessTime = Config.ServerProcessTime;
 		rpc.Result.ServerReleaseTimeout = Config.ServerReleaseTimeout;
@@ -253,6 +259,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			rpc.SendResultCode(ReLoginBindSocketFail);
 			return 0;
 		}
+		session.setActiveTime(System.currentTimeMillis());
 		rpc.SendResultCode(0);
 		return 0;
 	}
