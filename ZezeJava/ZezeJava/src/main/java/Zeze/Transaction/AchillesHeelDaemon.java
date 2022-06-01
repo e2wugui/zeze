@@ -119,7 +119,7 @@ public class AchillesHeelDaemon extends Thread {
 	}
 
 	@Override
-	public void run() {
+	public synchronized void run() {
 		try {
 			while (Running) {
 				var now = System.currentTimeMillis();
@@ -145,7 +145,7 @@ public class AchillesHeelDaemon extends Thread {
 					}
 				}
 				try {
-					Thread.sleep(1000);
+					this.wait(1000);
 				} catch (InterruptedException e) {
 					logger.warn(e);
 				}

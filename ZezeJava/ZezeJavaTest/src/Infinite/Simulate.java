@@ -57,20 +57,25 @@ public final class Simulate {
 	@Test
 	public void testMain() throws Throwable {
 		logger.fatal("Prepare");
-		Tasks.prepare();
-		do {
-			++BatchNumber;
-			logger.fatal("Run {}", BatchNumber);
-			for (int i = 0; i < BatchTaskCount; i++)
-				Tasks.randCreateTask().Run();
-			logger.fatal("Wait {}", BatchNumber);
-			for (var app : Apps) {
-				app.WaitAllRunningTasksAndClear();
-				logger.fatal("Finish {}-{}", BatchNumber, app.getServerId());
-			}
-			logger.fatal("Verify {}", BatchNumber);
-			Tasks.verify();
-		} while (Infinite);
+		try {
+			Tasks.prepare();
+			do {
+				++BatchNumber;
+				logger.fatal("Run {}", BatchNumber);
+				for (int i = 0; i < BatchTaskCount; i++)
+					Tasks.randCreateTask().Run();
+				logger.fatal("Wait {}", BatchNumber);
+				for (var app : Apps) {
+					app.WaitAllRunningTasksAndClear();
+					logger.fatal("Finish {}-{}", BatchNumber, app.getServerId());
+				}
+				logger.fatal("Verify {}", BatchNumber);
+				Tasks.verify();
+			} while (Infinite);
+		} catch (Exception ex) {
+			logger.error(ex);
+			throw ex;
+		}
 		logger.fatal("Done!!!!!!");
 	}
 

@@ -43,6 +43,9 @@ public class App {
 	}
 
 	public void Stop() throws Throwable {
+		for (var task : RunningTasks) {
+			task.cancel(false);
+		}
 		app.Stop();
 	}
 
