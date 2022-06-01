@@ -7,32 +7,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Arch.RedirectFuture;
-import Zeze.Net.AsyncSocket;
-import Zeze.Net.Binary;
-import Zeze.Net.Protocol;
-import Zeze.Net.ProtocolHandle;
-import Zeze.Net.Rpc;
-import Zeze.Net.Selectors;
-import Zeze.Net.Service;
+import Zeze.Net.*;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Services.GlobalCacheManager.Acquire;
-import Zeze.Services.GlobalCacheManager.Cleanup;
-import Zeze.Services.GlobalCacheManager.KeepAlive;
-import Zeze.Services.GlobalCacheManager.Login;
-import Zeze.Services.GlobalCacheManager.NormalClose;
-import Zeze.Services.GlobalCacheManager.Param2;
-import Zeze.Services.GlobalCacheManager.ReLogin;
-import Zeze.Services.GlobalCacheManager.Reduce;
+import Zeze.Services.GlobalCacheManager.*;
 import Zeze.Transaction.TransactionLevel;
-import Zeze.Util.Action0;
-import Zeze.Util.Action1;
-import Zeze.Util.AsyncLock;
-import Zeze.Util.IdentityHashSet;
-import Zeze.Util.KV;
-import Zeze.Util.LongConcurrentHashMap;
-import Zeze.Util.Task;
-import Zeze.Util.ThreadFactoryWithName;
+import Zeze.Util.*;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -307,6 +287,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			rpc.SendResultCode(AcquireNotLogin);
 		} else {
 			try {
+				var sender = (GlobalCacheManagerAsyncServer.CacheHolder)rpc.getSender().getUserState();
+				sender.setActiveTime(System.currentTimeMillis());
 				switch (rpc.Argument.State) {
 				case StateInvalid: // release
 					ReleaseAsync(rpc);
