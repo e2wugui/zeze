@@ -142,25 +142,29 @@ public final class BQueue extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__HeadNodeId extends Zeze.Transaction.Log1<BQueue, Long> {
-       public Log__HeadNodeId(BQueue bean, int varId, Long value) { super(bean, varId, value); }
+        public Log__HeadNodeId(BQueue bean, int varId, Long value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._HeadNodeId = this.getValue(); }
     }
 
     private static final class Log__TailNodeId extends Zeze.Transaction.Log1<BQueue, Long> {
-       public Log__TailNodeId(BQueue bean, int varId, Long value) { super(bean, varId, value); }
+        public Log__TailNodeId(BQueue bean, int varId, Long value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._TailNodeId = this.getValue(); }
     }
 
     private static final class Log__Count extends Zeze.Transaction.Log1<BQueue, Long> {
-       public Log__Count(BQueue bean, int varId, Long value) { super(bean, varId, value); }
+        public Log__Count(BQueue bean, int varId, Long value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._Count = this.getValue(); }
     }
 
     private static final class Log__LastNodeId extends Zeze.Transaction.Log1<BQueue, Long> {
-       public Log__LastNodeId(BQueue bean, int varId, Long value) { super(bean, varId, value); }
+        public Log__LastNodeId(BQueue bean, int varId, Long value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._LastNodeId = this.getValue(); }
     }

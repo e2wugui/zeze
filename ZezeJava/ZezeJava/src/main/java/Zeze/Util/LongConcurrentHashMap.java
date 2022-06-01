@@ -1,9 +1,6 @@
 package Zeze.Util;
 
 import java.lang.reflect.Field;
-import java.security.AccessController;
-import java.security.PrivilegedActionException;
-import java.security.PrivilegedExceptionAction;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
@@ -1175,25 +1172,15 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 	 *
 	 * @return a sun.misc.Unsafe
 	 */
-	private static Unsafe getUnsafe() {
-		try {
-			return Unsafe.getUnsafe();
-		} catch (SecurityException ignored) {
+	private static Unsafe getUnsafe() throws IllegalAccessException {
+		Class<Unsafe> k = Unsafe.class;
+		for (Field f : k.getDeclaredFields()) {
+			f.setAccessible(true);
+			Object x = f.get(null);
+			if (k.isInstance(x))
+				return k.cast(x);
 		}
-		try {
-			return AccessController.doPrivileged((PrivilegedExceptionAction<Unsafe>)() -> {
-				Class<Unsafe> k = Unsafe.class;
-				for (Field f : k.getDeclaredFields()) {
-					f.setAccessible(true);
-					Object x = f.get(null);
-					if (k.isInstance(x))
-						return k.cast(x);
-				}
-				throw new NoSuchFieldError("the Unsafe");
-			});
-		} catch (PrivilegedActionException e) {
-			throw new RuntimeException("Could not initialize intrinsics", e.getCause());
-		}
+		throw new NoSuchFieldError("the Unsafe");
 	}
 
 	static {

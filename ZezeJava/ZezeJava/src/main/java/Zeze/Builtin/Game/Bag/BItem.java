@@ -124,13 +124,15 @@ public final class BItem extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__Id extends Zeze.Transaction.Log1<BItem, Integer> {
-       public Log__Id(BItem bean, int varId, Integer value) { super(bean, varId, value); }
+        public Log__Id(BItem bean, int varId, Integer value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._Id = this.getValue(); }
     }
 
     private static final class Log__Number extends Zeze.Transaction.Log1<BItem, Integer> {
-       public Log__Number(BItem bean, int varId, Integer value) { super(bean, varId, value); }
+        public Log__Number(BItem bean, int varId, Integer value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._Number = this.getValue(); }
     }

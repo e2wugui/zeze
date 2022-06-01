@@ -73,7 +73,8 @@ public final class BLogin extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__ClientId extends Zeze.Transaction.Log1<BLogin, String> {
-       public Log__ClientId(BLogin bean, int varId, String value) { super(bean, varId, value); }
+        public Log__ClientId(BLogin bean, int varId, String value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._ClientId = this.getValue(); }
     }

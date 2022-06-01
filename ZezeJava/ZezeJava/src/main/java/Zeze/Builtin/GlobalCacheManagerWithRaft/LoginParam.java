@@ -94,13 +94,15 @@ public final class LoginParam extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__ServerId extends Zeze.Transaction.Log1<LoginParam, Integer> {
-       public Log__ServerId(LoginParam bean, int varId, Integer value) { super(bean, varId, value); }
+        public Log__ServerId(LoginParam bean, int varId, Integer value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._ServerId = this.getValue(); }
     }
 
     private static final class Log__GlobalCacheManagerHashIndex extends Zeze.Transaction.Log1<LoginParam, Integer> {
-       public Log__GlobalCacheManagerHashIndex(LoginParam bean, int varId, Integer value) { super(bean, varId, value); }
+        public Log__GlobalCacheManagerHashIndex(LoginParam bean, int varId, Integer value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._GlobalCacheManagerHashIndex = this.getValue(); }
     }

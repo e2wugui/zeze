@@ -138,19 +138,22 @@ public final class BModule extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__ChoiceType extends Zeze.Transaction.Log1<BModule, Integer> {
-       public Log__ChoiceType(BModule bean, int varId, Integer value) { super(bean, varId, value); }
+        public Log__ChoiceType(BModule bean, int varId, Integer value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._ChoiceType = this.getValue(); }
     }
 
     private static final class Log__ConfigType extends Zeze.Transaction.Log1<BModule, Integer> {
-       public Log__ConfigType(BModule bean, int varId, Integer value) { super(bean, varId, value); }
+        public Log__ConfigType(BModule bean, int varId, Integer value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._ConfigType = this.getValue(); }
     }
 
     private static final class Log__SubscribeType extends Zeze.Transaction.Log1<BModule, Integer> {
-       public Log__SubscribeType(BModule bean, int varId, Integer value) { super(bean, varId, value); }
+        public Log__SubscribeType(BModule bean, int varId, Integer value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._SubscribeType = this.getValue(); }
     }

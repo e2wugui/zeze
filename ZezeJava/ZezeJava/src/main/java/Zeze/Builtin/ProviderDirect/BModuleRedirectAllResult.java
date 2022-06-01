@@ -179,31 +179,36 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__ModuleId extends Zeze.Transaction.Log1<BModuleRedirectAllResult, Integer> {
-       public Log__ModuleId(BModuleRedirectAllResult bean, int varId, Integer value) { super(bean, varId, value); }
+        public Log__ModuleId(BModuleRedirectAllResult bean, int varId, Integer value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._ModuleId = this.getValue(); }
     }
 
     private static final class Log__ServerId extends Zeze.Transaction.Log1<BModuleRedirectAllResult, Integer> {
-       public Log__ServerId(BModuleRedirectAllResult bean, int varId, Integer value) { super(bean, varId, value); }
+        public Log__ServerId(BModuleRedirectAllResult bean, int varId, Integer value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._ServerId = this.getValue(); }
     }
 
     private static final class Log__SourceProvider extends Zeze.Transaction.Log1<BModuleRedirectAllResult, Long> {
-       public Log__SourceProvider(BModuleRedirectAllResult bean, int varId, Long value) { super(bean, varId, value); }
+        public Log__SourceProvider(BModuleRedirectAllResult bean, int varId, Long value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._SourceProvider = this.getValue(); }
     }
 
     private static final class Log__MethodFullName extends Zeze.Transaction.Log1<BModuleRedirectAllResult, String> {
-       public Log__MethodFullName(BModuleRedirectAllResult bean, int varId, String value) { super(bean, varId, value); }
+        public Log__MethodFullName(BModuleRedirectAllResult bean, int varId, String value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._MethodFullName = this.getValue(); }
     }
 
     private static final class Log__SessionId extends Zeze.Transaction.Log1<BModuleRedirectAllResult, Long> {
-       public Log__SessionId(BModuleRedirectAllResult bean, int varId, Long value) { super(bean, varId, value); }
+        public Log__SessionId(BModuleRedirectAllResult bean, int varId, Long value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._SessionId = this.getValue(); }
     }

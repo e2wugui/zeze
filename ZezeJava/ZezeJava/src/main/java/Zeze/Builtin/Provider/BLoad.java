@@ -118,19 +118,22 @@ public final class BLoad extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__Online extends Zeze.Transaction.Log1<BLoad, Integer> {
-       public Log__Online(BLoad bean, int varId, Integer value) { super(bean, varId, value); }
+        public Log__Online(BLoad bean, int varId, Integer value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._Online = this.getValue(); }
     }
 
     private static final class Log__ProposeMaxOnline extends Zeze.Transaction.Log1<BLoad, Integer> {
-       public Log__ProposeMaxOnline(BLoad bean, int varId, Integer value) { super(bean, varId, value); }
+        public Log__ProposeMaxOnline(BLoad bean, int varId, Integer value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._ProposeMaxOnline = this.getValue(); }
     }
 
     private static final class Log__OnlineNew extends Zeze.Transaction.Log1<BLoad, Integer> {
-       public Log__OnlineNew(BLoad bean, int varId, Integer value) { super(bean, varId, value); }
+        public Log__OnlineNew(BLoad bean, int varId, Integer value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._OnlineNew = this.getValue(); }
     }

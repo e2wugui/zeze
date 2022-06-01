@@ -109,13 +109,15 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__ReturnCode extends Zeze.Transaction.Log1<BModuleRedirectAllHash, Long> {
-       public Log__ReturnCode(BModuleRedirectAllHash bean, int varId, Long value) { super(bean, varId, value); }
+        public Log__ReturnCode(BModuleRedirectAllHash bean, int varId, Long value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._ReturnCode = this.getValue(); }
     }
 
     private static final class Log__Params extends Zeze.Transaction.Log1<BModuleRedirectAllHash, Zeze.Net.Binary> {
-       public Log__Params(BModuleRedirectAllHash bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__Params(BModuleRedirectAllHash bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._Params = this.getValue(); }
     }

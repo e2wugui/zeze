@@ -121,19 +121,22 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__GlobalKey extends Zeze.Transaction.Log1<ReduceParam, Zeze.Net.Binary> {
-       public Log__GlobalKey(ReduceParam bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__GlobalKey(ReduceParam bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._GlobalKey = this.getValue(); }
     }
 
     private static final class Log__State extends Zeze.Transaction.Log1<ReduceParam, Integer> {
-       public Log__State(ReduceParam bean, int varId, Integer value) { super(bean, varId, value); }
+        public Log__State(ReduceParam bean, int varId, Integer value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._State = this.getValue(); }
     }
 
     private static final class Log__GlobalSerialId extends Zeze.Transaction.Log1<ReduceParam, Long> {
-       public Log__GlobalSerialId(ReduceParam bean, int varId, Long value) { super(bean, varId, value); }
+        public Log__GlobalSerialId(ReduceParam bean, int varId, Long value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._GlobalSerialId = this.getValue(); }
     }

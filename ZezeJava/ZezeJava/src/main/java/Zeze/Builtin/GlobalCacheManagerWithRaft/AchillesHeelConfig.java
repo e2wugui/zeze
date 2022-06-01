@@ -118,19 +118,22 @@ public final class AchillesHeelConfig extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__MaxNetPing extends Zeze.Transaction.Log1<AchillesHeelConfig, Integer> {
-       public Log__MaxNetPing(AchillesHeelConfig bean, int varId, Integer value) { super(bean, varId, value); }
+        public Log__MaxNetPing(AchillesHeelConfig bean, int varId, Integer value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._MaxNetPing = this.getValue(); }
     }
 
     private static final class Log__ServerProcessTime extends Zeze.Transaction.Log1<AchillesHeelConfig, Integer> {
-       public Log__ServerProcessTime(AchillesHeelConfig bean, int varId, Integer value) { super(bean, varId, value); }
+        public Log__ServerProcessTime(AchillesHeelConfig bean, int varId, Integer value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._ServerProcessTime = this.getValue(); }
     }
 
     private static final class Log__ServerReleaseTimeout extends Zeze.Transaction.Log1<AchillesHeelConfig, Integer> {
-       public Log__ServerReleaseTimeout(AchillesHeelConfig bean, int varId, Integer value) { super(bean, varId, value); }
+        public Log__ServerReleaseTimeout(AchillesHeelConfig bean, int varId, Integer value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._ServerReleaseTimeout = this.getValue(); }
     }

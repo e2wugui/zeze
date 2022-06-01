@@ -73,7 +73,8 @@ public final class BNotify extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__FullEncodedProtocol extends Zeze.Transaction.Log1<BNotify, Zeze.Net.Binary> {
-       public Log__FullEncodedProtocol(BNotify bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__FullEncodedProtocol(BNotify bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._FullEncodedProtocol = this.getValue(); }
     }

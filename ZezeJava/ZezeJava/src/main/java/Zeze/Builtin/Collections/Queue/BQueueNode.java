@@ -80,7 +80,8 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__NextNodeId extends Zeze.Transaction.Log1<BQueueNode, Long> {
-       public Log__NextNodeId(BQueueNode bean, int varId, Long value) { super(bean, varId, value); }
+        public Log__NextNodeId(BQueueNode bean, int varId, Long value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._NextNodeId = this.getValue(); }
     }

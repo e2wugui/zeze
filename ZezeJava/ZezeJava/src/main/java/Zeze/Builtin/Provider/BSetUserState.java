@@ -124,19 +124,22 @@ public final class BSetUserState extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__linkSid extends Zeze.Transaction.Log1<BSetUserState, Long> {
-       public Log__linkSid(BSetUserState bean, int varId, Long value) { super(bean, varId, value); }
+        public Log__linkSid(BSetUserState bean, int varId, Long value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._linkSid = this.getValue(); }
     }
 
     private static final class Log__context extends Zeze.Transaction.Log1<BSetUserState, String> {
-       public Log__context(BSetUserState bean, int varId, String value) { super(bean, varId, value); }
+        public Log__context(BSetUserState bean, int varId, String value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._context = this.getValue(); }
     }
 
     private static final class Log__contextx extends Zeze.Transaction.Log1<BSetUserState, Zeze.Net.Binary> {
-       public Log__contextx(BSetUserState bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__contextx(BSetUserState bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._contextx = this.getValue(); }
     }

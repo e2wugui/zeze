@@ -91,7 +91,8 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__Id extends Zeze.Transaction.Log1<BLinkedMapNodeValue, String> {
-       public Log__Id(BLinkedMapNodeValue bean, int varId, String value) { super(bean, varId, value); }
+        public Log__Id(BLinkedMapNodeValue bean, int varId, String value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._Id = this.getValue(); }
     }

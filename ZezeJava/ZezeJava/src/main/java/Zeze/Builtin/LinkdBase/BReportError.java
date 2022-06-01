@@ -126,19 +126,22 @@ public final class BReportError extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__from extends Zeze.Transaction.Log1<BReportError, Integer> {
-       public Log__from(BReportError bean, int varId, Integer value) { super(bean, varId, value); }
+        public Log__from(BReportError bean, int varId, Integer value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._from = this.getValue(); }
     }
 
     private static final class Log__code extends Zeze.Transaction.Log1<BReportError, Integer> {
-       public Log__code(BReportError bean, int varId, Integer value) { super(bean, varId, value); }
+        public Log__code(BReportError bean, int varId, Integer value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._code = this.getValue(); }
     }
 
     private static final class Log__desc extends Zeze.Transaction.Log1<BReportError, String> {
-       public Log__desc(BReportError bean, int varId, String value) { super(bean, varId, value); }
+        public Log__desc(BReportError bean, int varId, String value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._desc = this.getValue(); }
     }

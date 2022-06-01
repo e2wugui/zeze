@@ -128,13 +128,15 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__ParentDepartment extends Zeze.Transaction.Log1<BDepartmentTreeNode, Long> {
-       public Log__ParentDepartment(BDepartmentTreeNode bean, int varId, Long value) { super(bean, varId, value); }
+        public Log__ParentDepartment(BDepartmentTreeNode bean, int varId, Long value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._ParentDepartment = this.getValue(); }
     }
 
     private static final class Log__Name extends Zeze.Transaction.Log1<BDepartmentTreeNode, String> {
-       public Log__Name(BDepartmentTreeNode bean, int varId, String value) { super(bean, varId, value); }
+        public Log__Name(BDepartmentTreeNode bean, int varId, String value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._Name = this.getValue(); }
     }

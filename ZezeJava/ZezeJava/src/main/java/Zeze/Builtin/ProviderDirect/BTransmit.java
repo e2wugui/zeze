@@ -134,19 +134,22 @@ public final class BTransmit extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__ActionName extends Zeze.Transaction.Log1<BTransmit, String> {
-       public Log__ActionName(BTransmit bean, int varId, String value) { super(bean, varId, value); }
+        public Log__ActionName(BTransmit bean, int varId, String value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._ActionName = this.getValue(); }
     }
 
     private static final class Log__Sender extends Zeze.Transaction.Log1<BTransmit, Long> {
-       public Log__Sender(BTransmit bean, int varId, Long value) { super(bean, varId, value); }
+        public Log__Sender(BTransmit bean, int varId, Long value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._Sender = this.getValue(); }
     }
 
     private static final class Log__Parameter extends Zeze.Transaction.Log1<BTransmit, Zeze.Net.Binary> {
-       public Log__Parameter(BTransmit bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__Parameter(BTransmit bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._Parameter = this.getValue(); }
     }

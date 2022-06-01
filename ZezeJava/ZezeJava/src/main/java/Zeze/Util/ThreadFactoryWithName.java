@@ -9,7 +9,6 @@ public class ThreadFactoryWithName implements ThreadFactory {
 	private static final Method unstartedMethod;
 	// private static final AtomicInteger poolNumber = new AtomicInteger(1);
 
-	private final ThreadGroup group;
 	private final AtomicInteger threadNumber = new AtomicInteger(1);
 	private final String namePrefix;
 
@@ -28,8 +27,6 @@ public class ThreadFactoryWithName implements ThreadFactory {
 	}
 
 	public ThreadFactoryWithName(String poolName) {
-		SecurityManager s = System.getSecurityManager();
-		group = (s != null) ? s.getThreadGroup() : Thread.currentThread().getThreadGroup();
 		namePrefix = poolName + "-thread-";
 	}
 
@@ -43,7 +40,7 @@ public class ThreadFactoryWithName implements ThreadFactory {
 				throw new RuntimeException(e);
 			}
 		} else {
-			t = new Thread(group, r, namePrefix + threadNumber.getAndIncrement(), 0);
+			t = new Thread(null, r, namePrefix + threadNumber.getAndIncrement(), 0);
 			//if (t.isDaemon())
 			//    t.setDaemon(false);
 			t.setDaemon(true); // 先不考虑安全关闭，以后再调整。

@@ -97,13 +97,15 @@ public final class BDestroy extends Zeze.Transaction.Bean {
     }
 
     private static final class Log__BagName extends Zeze.Transaction.Log1<BDestroy, String> {
-       public Log__BagName(BDestroy bean, int varId, String value) { super(bean, varId, value); }
+        public Log__BagName(BDestroy bean, int varId, String value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._BagName = this.getValue(); }
     }
 
     private static final class Log__Position extends Zeze.Transaction.Log1<BDestroy, Integer> {
-       public Log__Position(BDestroy bean, int varId, Integer value) { super(bean, varId, value); }
+        public Log__Position(BDestroy bean, int varId, Integer value) { super(bean, varId, value); }
+
         @Override
         public void Commit() { getBeanTyped()._Position = this.getValue(); }
     }
