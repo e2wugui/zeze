@@ -889,7 +889,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
 				return true;
 			}
-			// 每个AutoKeyLocalId只允许一个实例，已经存在了以后，旧的实例上有状态，阻止新的实例登录成功。
+			// 每个ServerId只允许一个实例，已经存在了以后，旧的实例上有状态，阻止新的实例登录成功。
 			return false;
 		}
 
