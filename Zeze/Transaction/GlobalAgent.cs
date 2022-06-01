@@ -27,7 +27,7 @@ namespace Zeze.Transaction
             Stop();
         }
 
-        public class Agent
+        public class Agent : GlobalAgentBase
         {
             public bool ActiveClose { get; private set; } = false;
             public Connector Connector { get; private set; }
@@ -44,7 +44,19 @@ namespace Zeze.Transaction
                 {
                     UserState = this
                 };
+                Connector.MaxReconnectDelay = AchillesHeelConfig.ReconnectTimer;
                 client.Config.AddConnector(this.Connector);
+            }
+
+            public override void KeepAlive()
+            {
+                var rpc = new KeepAlive();
+                rpc.Send(Connector.TryGetReadySocket(), p =>
+                {
+                    if (false == rpc.IsTimeout && rpc.ResultCode == 0)
+                        SetActiveTime(Util.Time.NowUnixMillis);
+                    return Task.FromResult(0L);
+                }, Config.KeepAliveTimeout);
             }
 
             private static void ThrowException(string msg, Exception cause = null)
@@ -61,7 +73,7 @@ namespace Zeze.Transaction
                 if (null != so)
                     return so;
 
-                if (global::Zeze.Util.Time.NowUnixMillis - LastErrorTime.Get() < FastErrorPeriod)
+                if (global::Zeze.Util.Time.NowUnixMillis - LastErrorTime.Get() < Config.ServerFastErrorPeriod)
                     ThrowException("GlobalAgent.Connect: In Forbid Login Period");
 
                 try
@@ -74,7 +86,7 @@ namespace Zeze.Transaction
                     long now = global::Zeze.Util.Time.NowUnixMillis;
                     lock (this)
                     {
-                        if (now - LastErrorTime.Get() > FastErrorPeriod)
+                        if (now - LastErrorTime.Get() > Config.ServerFastErrorPeriod)
                             LastErrorTime.GetAndSet(now);
                     }
                     ThrowException("GlobalAgent.Connect: Login Timeout", e);
@@ -151,13 +163,14 @@ namespace Zeze.Transaction
                 // 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了），打断外面的事务。
                 // 一个请求异常不关闭连接，尝试继续工作。
                 var rpc = new Acquire(gkey, state);
-                await rpc.SendAsync(socket, 12000);
+                await rpc.SendAsync(socket, agent.Config.AcquireTimeout);
                 /*
                 if (rpc.ResultCode != 0) // 这个用来跟踪调试，正常流程使用Result.State检查结果。
                 {
                     logger.Warn("Acquire ResultCode={0} {1}", rpc.ResultCode, rpc.Result);
                 }
                 */
+                agent.SetActiveTime(Util.Time.NowUnixMillis);
                 if (rpc.ResultCode < 0)
                 {
                     Transaction.Current.ThrowAbort("GlobalAgent.Acquire Failed");
@@ -268,6 +281,11 @@ namespace Zeze.Transaction
                     Factory = () => new NormalClose(),
                     TransactionLevel = TransactionLevel.None
                 });
+                Client.AddFactoryHandle(new KeepAlive().TypeId, new Service.ProtocolFactoryHandle()
+                {
+                    Factory = () => new KeepAlive(),
+                    TransactionLevel = TransactionLevel.None
+                });
 
                 Agents = new Agent[hostNameOrAddress.Length];
                 for (int i = 0; i < hostNameOrAddress.Length; ++i)
@@ -353,6 +371,7 @@ namespace Zeze.Transaction
                     else
                     {
                         agent.LoginTimes.IncrementAndGet();
+                        agent.Initialize(login.Result.MaxNetPing, login.Result.ServerProcessTime, login.Result.ServerReleaseTimeout);
                         base.OnHandshakeDone(so);
                     }
                     return Task.FromResult(0L);

@@ -20,6 +20,7 @@ namespace Zeze
         public Agent ServiceManagerAgent { get; private set; }
         public Zeze.Arch.RedirectBase Redirect { get; set; }
         internal IGlobalAgent GlobalAgent { get; private set; }
+        private AchillesHeelDaemon AchillesHeelDaemon { get; set; }
 
         public Component.AutoKey.Module AutoKeys { get; private set; }
         public Collections.Queue.Module Queues { get; private set; }
@@ -290,12 +291,14 @@ namespace Zeze
                         var impl = new GlobalAgent(this);
                         impl.Start(hosts, Config.GlobalCacheManagerPort);
                         GlobalAgent = impl;
+                        AchillesHeelDaemon = new AchillesHeelDaemon(this, impl.Agents);
                     }
                     else
                     {
                         var impl = new Zeze.Services.GlobalCacheManagerWithRaftAgent(this);
                         await impl.Start(hosts);
                         GlobalAgent = impl;
+                        AchillesHeelDaemon = new AchillesHeelDaemon(this, impl.Agents);
                     }
                 }
 
@@ -332,6 +335,7 @@ namespace Zeze
                         break;
                 }
                 FlushWhenReduceTimerTask = Util.Scheduler.Schedule(FlushWhenReduceTimer, 60 * 1000, 60 * 1000);
+                AchillesHeelDaemon.Start();
             }
         }
 
@@ -345,6 +349,9 @@ namespace Zeze
 
                 if (false == IsStart)
                     return;
+
+                AchillesHeelDaemon?.StopAndJoin();
+                AchillesHeelDaemon = null;
 
                 GlobalAgent?.Dispose(); // 关闭时需要生成新的SessionId，这个现在使用AutoKey，需要事务支持。
 

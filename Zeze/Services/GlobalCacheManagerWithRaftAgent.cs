@@ -156,6 +156,7 @@ namespace Zeze.Services
                 rpc.Argument.State = state;
                 await agent.RaftClient.SendAsync(rpc);
 
+                agent.SetActiveTime(Util.Time.NowUnixMillis);
                 if (rpc.ResultCode < 0)
                 {
                     Transaction.Transaction.Current.ThrowAbort("GlobalAgent.Acquire Failed");
@@ -179,7 +180,7 @@ namespace Zeze.Services
         // 2. 【Login|NormalClose】有多个事务处理，这跟rpc.UniqueRequestId唯一性有矛盾。【可行方法：去掉唯一判断，让流程正确处理重复请求。】
         // 3. 【ReLogin】没有数据修改，完全允许重复，并且不判断唯一性。
         // 4. Raft 高可用性，所以认为服务器永远不会关闭，就不需要处理服务器关闭时清理本地状态。
-        public class RaftAgent
+        public class RaftAgent : GlobalAgentBase
         {
             public GlobalCacheManagerWithRaftAgent GlobalCacheManagerWithRaftAgent { get; }
             public Zeze.Raft.Agent RaftClient { get; }
@@ -194,6 +195,17 @@ namespace Zeze.Services
                 GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
                 RaftClient = new Raft.Agent("Zeze.GlobalRaft.Agent", zeze, raftconf) { OnSetLeader = RaftOnSetLeader };
                 GlobalCacheManagerWithRaftAgent.RegisterProtocols(RaftClient.Client);
+            }
+
+            public override void KeepAlive()
+            {
+                var rpc = new KeepAlive();
+                RaftClient.Send(rpc, p =>
+                {
+                    if (false == rpc.IsTimeout && (rpc.ResultCode == 0 || rpc.ResultCode == Procedure.RaftApplied))
+                        SetActiveTime(Util.Time.NowUnixMillis);
+                    return Task.FromResult(0L);
+                });
             }
 
             public void Close()
@@ -261,6 +273,7 @@ namespace Zeze.Services
                             else
                             {
                                 LoginTimes.IncrementAndGet();
+                                this.Initialize(login.Result.MaxNetPing, login.Result.ServerProcessTime, login.Result.ServerReleaseTimeout);
                                 future.TrySetResult(true);
                             }
                             return Task.FromResult(0L);

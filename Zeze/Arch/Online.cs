@@ -38,10 +38,7 @@ namespace Zeze.Arch
 
         public Online(AppBase app)
         {
-            if (app == null)
-                throw new ArgumentException("app is null");
-
-            this.App = app;
+            this.App = app ?? throw new ArgumentException("app is null");
             this.ProviderApp = app.Zeze.Redirect.ProviderApp;
 
             //LoadReporter = new(this);

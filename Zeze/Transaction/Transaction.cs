@@ -17,22 +17,12 @@ namespace Zeze.Transaction
 
         private static readonly AsyncLocal<Transaction> asyncLocal = new();
 
-        public static Transaction Current
-        {
-            get
-            {
-                var tmp = asyncLocal.Value;
-                if (null == tmp)
-                    return null;
-                return tmp.Created ? tmp : null;
-            }
-        }
+        public static Transaction Current => asyncLocal.Value;
+
         // 嵌套存储过程栈。
         public List<Procedure> ProcedureStack { get; } = new List<Procedure>();
 
         public Procedure TopProcedure => ProcedureStack.Count == 0 ? null : ProcedureStack[^1];
-
-        private bool Created = true;
 
         /*
         private void ReuseTransaction()

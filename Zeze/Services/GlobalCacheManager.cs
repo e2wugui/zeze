@@ -86,6 +86,10 @@ namespace Zeze.Services
             // 尽量不重新调整ConcurrentDictionary。
             public int InitialCapacity { get; set; } = 10000000;
 
+            public int MaxNetPing = 2000;
+            public int ServerProcessTime = 2000;
+            public int ServerReleaseTimeout = 10 * 1000;
+
             public void Parse(XmlElement self)
             {
                 string attr;
@@ -101,6 +105,16 @@ namespace Zeze.Services
                     InitialCapacity = int.Parse(attr);
                 if (InitialCapacity < 31)
                     InitialCapacity = 31;
+
+                attr = self.GetAttribute("MaxNetPing");
+                if (attr.Length > 0)
+                    MaxNetPing = int.Parse(attr);
+                attr = self.GetAttribute("ServerProcessTime");
+                if (attr.Length > 0)
+                    ServerProcessTime = int.Parse(attr);
+                attr = self.GetAttribute("ServerReleaseTimeout");
+                if (attr.Length > 0)
+                    ServerReleaseTimeout = int.Parse(attr);
             }
         }
 
@@ -179,9 +193,52 @@ namespace Zeze.Services
                         Handle = ProcessCleanup,
                     });
 
+                Server.AddFactoryHandle(
+                    new KeepAlive().TypeId,
+                    new Service.ProtocolFactoryHandle()
+                    {
+                        Factory = () => new KeepAlive(),
+                        Handle = ProcessKeepAlive
+                    });
                 ServerSocket = Server.NewServerSocket(ipaddress, port, null);
 
+
+                // Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
+                AchillesHeelConfig = new AchillesHeelConfig(Config.MaxNetPing, Config.ServerProcessTime, Config.ServerReleaseTimeout);
+                Scheduler.Schedule(AchillesHeelDaemon, 5000, 5000);
             }
+        }
+
+        private AchillesHeelConfig AchillesHeelConfig;
+
+        private async Task AchillesHeelDaemon(SchedulerTask ThisTask)
+        {
+            var now = Util.Time.NowUnixMillis;
+
+            foreach (var session in Sessions.Values)
+            { 
+                if (now - session.GetActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout)
+                {
+                    foreach (var e in session.Acquired)
+                    {
+                        // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
+                        await ReleaseAsync(session, e.Key, false);
+                    }
+                }
+            }
+        }
+
+        private Task<long> ProcessKeepAlive(Protocol p)
+        {
+            var session = (CacheHolder)p.UserState;
+            if (null == session)
+            {
+                p.SendResultCode(AcquireNotLogin);
+                return Task.FromResult(0L);
+            }
+            session.SetActiveTime(Util.Time.NowUnixMillis);
+            p.SendResultCode(0);
+            return Task.FromResult(0L);
         }
 
         public void Stop()
@@ -205,6 +262,9 @@ namespace Zeze.Services
         /// <returns></returns>
         private async Task<long> ProcessCleanup(Protocol p)
         {
+            if (AchillesHeelConfig != null)
+                return 0;
+
             var rpc = p as Cleanup;
 
             // 安全性以后加强。
@@ -251,7 +311,7 @@ namespace Zeze.Services
                 rpc.SendResultCode(LoginBindSocketFail);
                 return 0;
             }
-
+            session.SetActiveTime(Util.Time.NowUnixMillis);
             // 只会有一个会话成功绑定并继续到达这里。
             // new login, 比如逻辑服务器重启。release old acquired.
             foreach (var e in session.Acquired)
@@ -259,6 +319,9 @@ namespace Zeze.Services
                 // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
                 await ReleaseAsync(session, e.Key, false);
             }
+            rpc.Result.MaxNetPing = Config.MaxNetPing;
+            rpc.Result.ServerProcessTime = Config.ServerProcessTime;
+            rpc.Result.ServerReleaseTimeout = Config.ServerReleaseTimeout;
             rpc.SendResultCode(0);
             return 0;
         }
@@ -272,6 +335,7 @@ namespace Zeze.Services
                 rpc.SendResultCode(ReLoginBindSocketFail);
                 return 0;
             }
+            session.SetActiveTime(Util.Time.NowUnixMillis);
             rpc.SendResultCode(0);
             return 0;
         }
@@ -318,10 +382,12 @@ namespace Zeze.Services
             }
             try
             {
+                var session = rpc.Sender.UserState as CacheHolder;
+                session.SetActiveTime(Util.Time.NowUnixMillis);
                 switch (rpc.Argument.State)
                 {
                     case StateInvalid: // realease
-                        rpc.Result.State = await ReleaseAsync(rpc.Sender.UserState as CacheHolder, rpc.Argument.GlobalKey, true);
+                        rpc.Result.State = await ReleaseAsync(session, rpc.Argument.GlobalKey, true);
                         rpc.SendResult();
                         return 0;
 
@@ -799,12 +865,23 @@ namespace Zeze.Services
         public sealed class CacheHolder
         {
             private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+            private long ActiveTime;
 
             public long SessionId { get; private set; }
 
             public ConcurrentDictionary<Binary, int> Acquired { get; }
             private Nito.AsyncEx.AsyncLock Mutex { get; } = new Nito.AsyncEx.AsyncLock();
             public int GlobalCacheManagerHashIndex { get; private set; } // UnBind 的时候不会重置，会一直保留到下一次Bind。
+
+            public long GetActiveTime()
+            {
+                return Interlocked.Read(ref ActiveTime);
+            }
+
+            public void SetActiveTime(long value)
+            {
+                Interlocked.Exchange(ref ActiveTime, value);
+            }
 
             public CacheHolder(GCMConfig config)
             {
@@ -859,7 +936,7 @@ namespace Zeze.Services
                 {
                     lock (this)
                     {
-                        if (global::Zeze.Util.Time.NowUnixMillis - LastErrorTime < ForbidPeriod)
+                        if (global::Zeze.Util.Time.NowUnixMillis - LastErrorTime < Instance.AchillesHeelConfig.GlobalForbidPeriod)
                             return false;
                     }
                     AsyncSocket peer = GlobalCacheManagerServer.Instance.Server.GetSocket(SessionId);
@@ -867,7 +944,7 @@ namespace Zeze.Services
                     {
                         var reduce = new Reduce(gkey, state, globalSerialId);
                         Instance.Perf?.OnReduceBegin(reduce);
-                        if (reduce.Send(peer, response, 10000))
+                        if (reduce.Send(peer, response, Instance.AchillesHeelConfig.ReduceTimeout))
                             return true;
                         Instance.Perf?.OnReduceCancel(reduce);
                     }
@@ -881,7 +958,6 @@ namespace Zeze.Services
                 return false;
             }
 
-            public const long ForbidPeriod = 10 * 1000; // 10 seconds
             private long LastErrorTime = 0;
 
             public void SetError()
@@ -889,7 +965,7 @@ namespace Zeze.Services
                 lock (this)
                 {
                     long now = global::Zeze.Util.Time.NowUnixMillis;
-                    if (now - LastErrorTime > ForbidPeriod)
+                    if (now - LastErrorTime > Instance.AchillesHeelConfig.GlobalForbidPeriod)
                         LastErrorTime = now;
                 }
             }
@@ -906,7 +982,7 @@ namespace Zeze.Services
                 {
                     lock (this)
                     {
-                        if (global::Zeze.Util.Time.NowUnixMillis - LastErrorTime < ForbidPeriod)
+                        if (global::Zeze.Util.Time.NowUnixMillis - LastErrorTime < Instance.AchillesHeelConfig.GlobalForbidPeriod)
                             return null;
                     }
                     AsyncSocket peer = GlobalCacheManagerServer.Instance.Server.GetSocket(SessionId);
@@ -914,7 +990,7 @@ namespace Zeze.Services
                     {
                         Reduce reduce = new(gkey, state, globalSerialId);
                         Instance.Perf?.OnReduceBegin(reduce);
-                        _ = reduce.SendAsync(peer, 10000);
+                        _ = reduce.SendAsync(peer, Instance.AchillesHeelConfig.ReduceTimeout);
                         return reduce;
                     }
                 }
@@ -1058,7 +1134,33 @@ namespace Zeze.Services.GlobalCacheManager
         }
     }
 
-    public sealed class Login : Rpc<LoginParam, EmptyBean>
+    public sealed class AchillesHeelConfigFromGlobal : Bean
+    {
+        public int MaxNetPing;
+        public int ServerProcessTime;
+        public int ServerReleaseTimeout;
+
+        public override void Decode(ByteBuffer bb)
+        {
+            MaxNetPing = bb.ReadInt();
+            ServerProcessTime = bb.ReadInt();
+            ServerReleaseTimeout = bb.ReadInt();
+        }
+
+        public override void Encode(ByteBuffer bb)
+        {
+            bb.WriteInt(MaxNetPing);
+            bb.WriteInt(ServerProcessTime);
+            bb.WriteInt(ServerReleaseTimeout);
+        }
+
+        protected override void InitChildrenRootInfo(Record.RootInfo root)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    public sealed class Login : Rpc<LoginParam, AchillesHeelConfigFromGlobal>
     {
         public readonly static int ProtocolId_ = Bean.Hash32(typeof(Login).FullName);
 

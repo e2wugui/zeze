@@ -71,10 +71,11 @@ namespace Zeze
             return false;
         }
 
-        public void AddCustomize(ICustomize c)
+        public Config AddCustomize(ICustomize c)
         {
             if (!Customize.TryAdd(c.Name, c))
                 throw new Exception($"Duplicate Customize Config '{c.Name}'");
+            return this;
         }
 
         public TableConf GetTableConf(string name)

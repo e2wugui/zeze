@@ -42,9 +42,15 @@
 				<variable id="3" name="GlobalCacheManagerHashIndex" type="int"/>
 			</bean>
 
+			<bean name="AchillesHeelConfigFromGlobal">
+				<variable id="1" name="MaxNetPing" type="int"/>
+				<variable id="2" name="ServerProcessTime" type="int"/>
+				<variable id="3" name="ServerReleaseTimeout" type="int"/>
+			</bean>
+
 			<rpc name="Acquire" argument="AcquireParam" result="ReduceParam" base="Zeze.Raft.RaftRpc" handle="server" />
 			<rpc name="Reduce" argument="ReduceParam" result="ReduceParam" base="Zeze.Raft.RaftRpc" handle="client" />
-			<rpc name="Login" argument="LoginParam" base="Zeze.Raft.RaftRpc" handle="server" />
+			<rpc name="Login" argument="LoginParam" result="AchillesHeelConfigFromGlobal" base="Zeze.Raft.RaftRpc" handle="server" />
 			<rpc name="ReLogin" argument="LoginParam" base="Zeze.Raft.RaftRpc" handle="server" />
 			<rpc name="NormalClose" handle="server" base="Zeze.Raft.RaftRpc" />
 			<rpc name="Cleanup" argument="AchillesHeel" base="Zeze.Raft.RaftRpc" handle="server" />

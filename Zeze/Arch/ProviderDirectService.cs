@@ -13,7 +13,7 @@ namespace Zeze.Arch
 {
 	public class ProviderDirectService : Zeze.Services.HandshakeBoth
 	{
-		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
+		//private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
 		public ProviderApp ProviderApp;
 		public readonly ConcurrentDictionary<string, ProviderSession> ProviderByLoadName = new();
 		public readonly ConcurrentDictionary<int, ProviderSession> ProviderByServerId = new();
@@ -44,17 +44,21 @@ namespace Zeze.Arch
 						continue;
 					if (serverId == Zeze.Config.ServerId)
 					{
-						var psLocal = new ProviderSession();
-						psLocal.ServerId = serverId;
-						SetRelativeServiceReady(psLocal, ProviderApp.DirectIp, ProviderApp.DirectPort);
+                        var psLocal = new ProviderSession
+                        {
+                            ServerId = serverId
+                        };
+                        SetRelativeServiceReady(psLocal, ProviderApp.DirectIp, ProviderApp.DirectPort);
 						continue;
 					}
 					if (Config.TryGetOrAddConnector(pm.PassiveIp, pm.PassivePort, true, out var newAdd))
 					{
-						// 新建的Connector。开始连接。
-						var psPeer = new ProviderSession();
-						psPeer.ServerId = serverId;
-						newAdd.UserState = psPeer;
+                        // 新建的Connector。开始连接。
+                        var psPeer = new ProviderSession
+                        {
+                            ServerId = serverId
+                        };
+                        newAdd.UserState = psPeer;
 						newAdd.Start();
 					}
 				}
@@ -65,10 +69,12 @@ namespace Zeze.Arch
         {
 			if (socket.Connector == null)
             {
-				// 被动连接等待对方报告信息时再处理。
-				var ps = new ProviderSession();
-				ps.SessionId = socket.SessionId;
-				socket.UserState = ps;
+                // 被动连接等待对方报告信息时再处理。
+                var ps = new ProviderSession
+                {
+                    SessionId = socket.SessionId
+                };
+                socket.UserState = ps;
 			}
 			base.OnSocketAccept(socket);
         }
