@@ -13,6 +13,7 @@ import Zeze.Component.AutoKey;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManagerWithRaftAgent;
 import Zeze.Services.ServiceManager.Agent;
+import Zeze.Transaction.AchillesHeelDaemon;
 import Zeze.Transaction.Checkpoint;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseRocksDb;
@@ -53,6 +54,7 @@ public final class Application {
 	private AutoKey.Module autoKey;
 	private Zeze.Collections.Queue.Module queueModule;
 	private IGlobalAgent GlobalAgent;
+	private Zeze.Transaction.AchillesHeelDaemon AchillesHeelDaemon;
 	private Checkpoint _checkpoint;
 	private Future<?> FlushWhenReduceTimerTask;
 	private Schemas Schemas;
@@ -226,7 +228,6 @@ public final class Application {
 	public synchronized void Start() throws Throwable {
 		if (IsStart)
 			return;
-		IsStart = true;
 
 		// Start Thread Pool
 		Task.tryInitThreadPool(this, null, null); // 确保Task线程池已经建立,如需定制,在Start前先手动初始化
@@ -276,10 +277,12 @@ public final class Application {
 					var impl = new GlobalAgent(this);
 					impl.Start(hosts, Conf.getGlobalCacheManagerPort());
 					GlobalAgent = impl;
+					AchillesHeelDaemon = new AchillesHeelDaemon(this, impl.Agents);
 				} else {
 					var impl = new GlobalCacheManagerWithRaftAgent(this);
 					impl.Start(hosts);
 					GlobalAgent = impl;
+					AchillesHeelDaemon = new AchillesHeelDaemon(this, impl.Agents);
 				}
 			}
 
@@ -318,12 +321,20 @@ public final class Application {
 						break;
 				}
 			}
+			// start last
+			AchillesHeelDaemon.start();
+			IsStart = true;
 		}
 	}
 
 	public synchronized void Stop() throws Throwable {
 		if (!IsStart)
 			return;
+
+		if (null != AchillesHeelDaemon) {
+			AchillesHeelDaemon.stopAndJoin();
+			AchillesHeelDaemon = null;
+		}
 
 		if (GlobalAgent != null) {
 			GlobalAgent.close();

@@ -18,11 +18,13 @@ import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Acquire;
 import Zeze.Services.GlobalCacheManager.Cleanup;
+import Zeze.Services.GlobalCacheManager.KeepAlive;
 import Zeze.Services.GlobalCacheManager.Login;
 import Zeze.Services.GlobalCacheManager.NormalClose;
 import Zeze.Services.GlobalCacheManager.Param2;
 import Zeze.Services.GlobalCacheManager.ReLogin;
 import Zeze.Services.GlobalCacheManager.Reduce;
+import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action0;
 import Zeze.Util.Action1;
 import Zeze.Util.AsyncLock;
@@ -94,7 +96,21 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			var attr = self.getAttribute("InitialCapacity");
 			if (!attr.isBlank())
 				InitialCapacity = Math.max(Integer.parseInt(attr), 31);
+
+			attr = self.getAttribute("MaxNetPing");
+			if (!attr.isEmpty())
+				MaxNetPing = Integer.parseInt(attr);
+			attr = self.getAttribute("ServerProcessTime");
+			if (!attr.isEmpty())
+				ServerProcessTime = Integer.parseInt(attr);
+			attr = self.getAttribute("ServerReleaseTimeout");
+			if (!attr.isEmpty())
+				ServerReleaseTimeout = Integer.parseInt(attr);
 		}
+
+		public int MaxNetPing = 1000;
+		public int ServerProcessTime = 500;
+		public int ServerReleaseTimeout = 10 * 1000;
 	}
 
 	private GlobalCacheManagerAsyncServer() {
@@ -138,7 +154,31 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		Server.AddFactoryHandle(Cleanup.TypeId_,
 				new Service.ProtocolFactoryHandle<>(Cleanup::new, this::ProcessCleanup));
 
+		Server.AddFactoryHandle(KeepAlive.TypeId_,
+				new Service.ProtocolFactoryHandle<>(KeepAlive::new, this::ProcessKeepAliveRequest, TransactionLevel.None));
+
 		ServerSocket = Server.NewServerSocket(ipaddress, port, null);
+
+		// Global的守护不需要独立线程。当出现异常问题不能工作时，没有释放锁是不会造成致命问题的。
+		AchillesHeelConfig = new AchillesHeelConfig(Config.MaxNetPing, Config.ServerProcessTime, Config.ServerReleaseTimeout);
+		Task.schedule(5000, 5000, this::AchillesHeelDaemon);
+	}
+
+	private AchillesHeelConfig AchillesHeelConfig;
+
+	private void AchillesHeelDaemon() {
+		var now = System.currentTimeMillis();
+
+		Sessions.forEach(session -> {
+			if (now - session.getActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout) {
+				var allReleaseFuture = new CountDownFuture();
+				for (var e : session.Acquired.entrySet()) {
+					// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
+					ReleaseAsync(session, e.getKey(), allReleaseFuture.createOne());
+				}
+				// skip allReleaseFuture result
+			}
+		});
 	}
 
 	public synchronized void Stop() throws Throwable {
@@ -155,6 +195,9 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	 * 手动Cleanup时，连接正确的服务器执行。
 	 */
 	private long ProcessCleanup(Cleanup rpc) {
+		if (AchillesHeelConfig != null) // disable cleanup.
+			return 0;
+
 		// 安全性以后加强。
 		if (!rpc.Argument.SecureKey.equals("Ok! verify secure.")) {
 			rpc.SendResultCode(CleanupErrorSecureKey);
@@ -236,6 +279,17 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			rpc.SendResultCode(0);
 			logger.debug("After NormalClose global.Count={}", global.size());
 		});
+		return 0;
+	}
+
+	private long ProcessKeepAliveRequest(KeepAlive rpc) {
+		if (rpc.getSender().getUserState() == null) {
+			rpc.SendResultCode(AcquireNotLogin);
+			return 0;
+		}
+		var sender = (GlobalCacheManagerAsyncServer.CacheHolder)rpc.getSender().getUserState();
+		sender.setActiveTime(System.currentTimeMillis());
+		rpc.SendResult();
 		return 0;
 	}
 
@@ -823,12 +877,20 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	}
 
 	private static final class CacheHolder {
-		static final long ForbidPeriod = 10 * 1000; // 10 seconds
+		private volatile long ActiveTime;
 
 		final ConcurrentHashMap<Binary, Integer> Acquired = new ConcurrentHashMap<>();
 		long SessionId;
 		int GlobalCacheManagerHashIndex;
 		private volatile long LastErrorTime;
+
+		long getActiveTime() {
+			return ActiveTime;
+		}
+
+		synchronized void setActiveTime(long value) {
+			ActiveTime = value;
+		}
 
 		synchronized boolean TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex) {
 			if (newSocket.getUserState() != null)
@@ -867,7 +929,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 
 		void SetError() {
 			long now = System.currentTimeMillis();
-			if (now - LastErrorTime > ForbidPeriod)
+			if (now - LastErrorTime > Instance.AchillesHeelConfig.GlobalForbidPeriod)
 				LastErrorTime = now;
 		}
 
@@ -876,14 +938,14 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		 */
 		Reduce ReduceWaitLater(Binary gkey, long globalSerialId, ProtocolHandle<Rpc<Param2, Param2>> handle) {
 			try {
-				if (System.currentTimeMillis() - LastErrorTime < ForbidPeriod)
+				if (System.currentTimeMillis() - LastErrorTime < Instance.AchillesHeelConfig.GlobalForbidPeriod)
 					return null;
 				AsyncSocket peer = Instance.Server.GetSocket(SessionId);
 				if (peer != null) {
 					var reduce = new Reduce(gkey, StateInvalid, globalSerialId);
 					if (ENABLE_PERF)
 						Instance.perf.onReduceBegin(reduce);
-					if (reduce.Send(peer, handle, 10000))
+					if (reduce.Send(peer, handle, Instance.AchillesHeelConfig.ReduceTimeout))
 						return reduce;
 					if (ENABLE_PERF)
 						Instance.perf.onReduceCancel(reduce);

@@ -1,5 +1,6 @@
 package Zeze.Transaction;
 
+import Zeze.Application;
 import Zeze.Services.AchillesHeelConfig;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -72,33 +73,39 @@ import org.apache.logging.log4j.Logger;
  *    b) Global.Cleanup 手动释放锁禁用。
  *
  * 12. Implement
- *    =============================================
- *    Server-Implement    RaftAgent NormalAgent
- *    ---------------------------------------------
- *    Acquire.Timeout        No         Yes
- *    KeepAlive.Timeout      No         Yes
- *    Server.FastErrorPeriod No         Yes
- *    Reconnect.Timer        No         Yes
- *    =============================================
- *    Global-Implement    WithRaft   Normal  Async
- *    ---------------------------------------------
- *    GlobalDaemonTimeout             Yes
- *    Reduce.Timeout                  Yes
- *    Global.ForbidPeriod             Yes
+ *    查看相关实现代码: 打开 Zeze.Services.AchillesHeelConfig，在每个配置上查看引用。
+ *    下面是配置的使用情况统计。No表示没有用到。
+ *    ==============================================
+ *    Server-Implement         RaftAgent NormalAgent
+ *    ----------------------------------------------
+ *    *) Reconnect.Timer            No       Yes
+ *    a) ServerKeepAliveIdleTimeout Yes      Yes  - In Same Place
+ *    b) ServerDaemonTimeout        Yes      Yes  - In Same Place
+ *    c) ServerReleaseTimeout       Yes      Yes  - In Same Place
+ *    f) Acquire.Timeout            No       Yes
+ *    g) KeepAlive.Timeout          No       Yes
+ *    h) Server.FastErrorPeriod     No       Yes
+ *    ==============================================
+ *    Global-Implement       WithRaft   Normal  Async
+ *    ----------------------------------------------
+ *    d) GlobalDaemonTimeout             Yes   Yes
+ *    e) Reduce.Timeout                  Yes   Yes
+ *    i) Global.ForbidPeriod             Yes   Yes
  *
  * *. 原来的思路参见 zeze/GlobalCacheManager/Cleanup.txt。在这个基础上增加了KeepAlive。
  */
 
 public class AchillesHeelDaemon extends Thread {
 	private static final Logger logger = LogManager.getLogger(AchillesHeelDaemon.class);
-
+	private Application Zeze;
 	private GlobalAgentBase[] Agents;
 
 	public final AchillesHeelConfig getConfig(int index) {
 		return Agents[index].getConfig();
 	}
 
-	public <T extends GlobalAgentBase> AchillesHeelDaemon(T[] agents) {
+	public <T extends GlobalAgentBase> AchillesHeelDaemon(Application zeze, T[] agents) {
+		Zeze = zeze;
 		Agents = new GlobalAgentBase[agents.length];
 		for (int i = 0; i < agents.length; ++i)
 			Agents[i] = agents[i];
@@ -113,31 +120,41 @@ public class AchillesHeelDaemon extends Thread {
 
 	@Override
 	public void run() {
-		while (Running) {
-			var now = System.currentTimeMillis();
-			for (int i = 0; i < Agents.length; ++i) {
-				var agent = Agents[i];
-				var config = agent.getConfig();
-				if (null == config)
-					continue; // skip agent not login
+		try {
+			while (Running) {
+				var now = System.currentTimeMillis();
+				for (int i = 0; i < Agents.length; ++i) {
+					var agent = Agents[i];
+					var config = agent.getConfig();
+					if (null == config)
+						continue; // skip agent not login
 
-				agent.tryHalt(i, config.ServerReleaseTimeout);
+					if (agent.checkReleaseTimeout(i, now, config.ServerReleaseTimeout)) {
+						logger.fatal("AchillesHeelDaemon global release timeout. index=" + i);
+						Runtime.getRuntime().halt(123123);
+					}
 
-				var idle = now - agent.getActiveTime();
-				if (idle > config.ServerDaemonTimeout) {
-					agent.startReleaseLocal(i);
-					continue;
+					var idle = now - agent.getActiveTime();
+					if (idle > config.ServerDaemonTimeout) {
+						agent.startRelease(Zeze, i);
+						continue;
+					}
+					if (idle > config.ServerKeepAliveIdleTimeout) {
+						agent.keepAlive();
+						continue;
+					}
 				}
-				if (idle > config.ServerKeepAliveIdleTimeout) {
-					agent.keepAlive();
-					continue;
+				try {
+					Thread.sleep(1000);
+				} catch (InterruptedException e) {
+					logger.warn(e);
 				}
 			}
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				logger.warn(e);
-			}
+		}
+		catch (Throwable ex) {
+			// 这个线程不准出错。
+			logger.fatal("AchillesHeelDaemon ", ex);
+			Runtime.getRuntime().halt(321321);
 		}
 	}
 }

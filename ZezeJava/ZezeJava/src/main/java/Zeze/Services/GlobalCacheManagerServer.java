@@ -295,9 +295,10 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			rpc.SendResultCode(AcquireNotLogin);
 		} else {
 			try {
+				var sender = (CacheHolder)rpc.getSender().getUserState();
+				sender.setActiveTime(System.currentTimeMillis());
 				switch (rpc.Argument.State) {
 				case StateInvalid: // release
-					var sender = (CacheHolder)rpc.getSender().getUserState();
 					rpc.Result.State = Release(sender, rpc.Argument.GlobalKey, true); //await 方法内有等待
 					rpc.SendResult();
 					break;
