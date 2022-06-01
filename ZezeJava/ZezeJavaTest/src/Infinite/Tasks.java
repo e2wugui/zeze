@@ -184,14 +184,11 @@ public final class Tasks {
 			for (var key : getRunCounters(name).keySet()) {
 				var v1 = app.demo_Module1.getTable1().selectDirty(key);
 				var v2 = success.get(key);
-				if (v1 == null || v2 == null) {
-					if (v1 == null)
-						Simulate.logger.error("app.demo_Module1.getTable1().selectDirty({}) = null", key);
-					if (v2 == null)
-						Simulate.logger.error("getSuccessCounters({}).get({}) = null", name, key);
-					Assert.fail();
-				}
-				Assert.assertEquals(v1.getLong2(), v2.get());
+				if (v1 == null)
+					Simulate.logger.warn("app.demo_Module1.getTable1().selectDirty({}) = null", key);
+				if (v2 == null)
+					Simulate.logger.warn("getSuccessCounters({}).get({}) = null", name, key);
+				Assert.assertEquals(v1 != null ? v1.getLong2() : 0, v2 != null ? v2.get() : 0);
 			}
 			Simulate.logger.debug("{}.verify OK!", name);
 		}
@@ -300,7 +297,7 @@ public final class Tasks {
 						if (valueBytes != null)
 							sum += table1.DecodeValue(valueBytes).getInt1();
 					}
-					Assert.assertEquals(sum, 0);
+					Assert.assertEquals(0, sum);
 				}
 			} catch (Exception e) {
 				Simulate.logger.error(tflushInt1TradeConcurrentVerify.class.getName(), e);

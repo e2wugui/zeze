@@ -73,7 +73,7 @@ public final class Simulate {
 				Tasks.verify();
 			} while (Infinite);
 		} catch (Exception ex) {
-			logger.error(ex);
+			logger.error("", ex);
 			throw ex;
 		}
 		logger.fatal("Done!!!!!!");
