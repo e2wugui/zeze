@@ -104,7 +104,8 @@ public final class Tasks {
 					for (var key : Keys)
 						getSuccessCounter(getClass().getName(), key).incrementAndGet();
 				}
-			}
+			} else
+				Simulate.logger.error("{}.process() = {}", getClass().getName(), result);
 			return result;
 		}
 	}

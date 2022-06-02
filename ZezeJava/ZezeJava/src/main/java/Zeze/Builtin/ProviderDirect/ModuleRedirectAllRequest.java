@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.ProviderDirect;
 
-public class ModuleRedirectAllRequest extends Zeze.Net.Protocol1<Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest> {
+public class ModuleRedirectAllRequest extends Zeze.Net.Protocol<Zeze.Builtin.ProviderDirect.BModuleRedirectAllRequest> {
     public static final int ModuleId_ = 11009;
     public static final int ProtocolId_ = -773666772;
     public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_);

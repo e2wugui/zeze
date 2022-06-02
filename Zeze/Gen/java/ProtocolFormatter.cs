@@ -18,7 +18,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("package " + p.Space.Path() + ";");
             sw.WriteLine();
             string argument = p.ArgumentType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(p.ArgumentType);
-            sw.WriteLine("public class " + p.Name + " extends Zeze.Net.Protocol1<" + argument + "> {");
+            sw.WriteLine("public class " + p.Name + " extends Zeze.Net.Protocol<" + argument + "> {");
             sw.WriteLine("    public static final int ModuleId_ = " + p.Space.Id + ";");
             sw.WriteLine("    public static final int ProtocolId_ = " + p.Id + ";");
             sw.WriteLine("    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_);");

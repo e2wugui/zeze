@@ -1,9 +1,9 @@
 package Zeze.Services.Handshake;
 
-import Zeze.Net.Protocol1;
+import Zeze.Net.Protocol;
 import Zeze.Transaction.Bean;
 
-public class SHandshake0 extends Protocol1<SHandshake0Argument> {
+public class SHandshake0 extends Protocol<SHandshake0Argument> {
 	public static final int ProtocolId_ = Bean.Hash32(SHandshake0.class.getName());
 	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
 
