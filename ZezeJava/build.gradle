@@ -39,7 +39,7 @@ task clearJar(type: Delete) {
     delete 'lib'
 }
 
-task copyJar(type: Copy) {
+task copyJar(type: Sync) {
     from configurations.runtimeClasspath
     into 'lib'
 }
