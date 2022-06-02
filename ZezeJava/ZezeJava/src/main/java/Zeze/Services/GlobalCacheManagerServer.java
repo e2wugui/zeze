@@ -169,7 +169,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					try {
 						Release(session, e.getKey(), false);
 					} catch (InterruptedException ex) {
-						logger.error(ex);
+						logger.error("", ex);
 					}
 				}
 			}

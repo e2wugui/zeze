@@ -324,7 +324,7 @@ public class Task implements Future<Long> {
 				} catch (AssertionError e) {
 					throw e;
 				} catch (Throwable e) {
-					logger.error(e);
+					logger.error("", e);
 				}
 			}
 			LogAndStatistics(ex, errorCode, p, IsRequestSaved, aName);

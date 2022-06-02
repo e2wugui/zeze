@@ -206,7 +206,7 @@ public final class Changes {
 					try {
 						l.OnChanged(e.getKey().getKey(), e.getValue());
 					} catch (Throwable ex) {
-						logger.error(ex);
+						logger.error("", ex);
 					}
 				}
 			}

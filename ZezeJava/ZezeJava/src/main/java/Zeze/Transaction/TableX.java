@@ -32,7 +32,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		try {
 			t.close();
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error("", e);
 		}
 	}
 
@@ -43,7 +43,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		try {
 			t.close();
 		} catch (Exception e) {
-			logger.error(e);
+			logger.error("", e);
 		}
 	}
 

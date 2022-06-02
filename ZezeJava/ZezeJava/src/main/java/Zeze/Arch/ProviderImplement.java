@@ -134,7 +134,7 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 					});
 		} catch (Throwable ex) {
 			SendKick(p.getSender(), p.Argument.getLinkSid(), BKick.ErrorProtocolException, ex.toString());
-			logger.error(ex);
+			logger.error("", ex);
 			return Procedure.Success;
 		}
 	}

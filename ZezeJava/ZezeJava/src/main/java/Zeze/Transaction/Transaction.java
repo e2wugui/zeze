@@ -258,7 +258,7 @@ public final class Transaction {
 				try {
 					Thread.sleep(Zeze.Util.Random.getInstance().nextInt(100) + 10);
 				} catch (InterruptedException e) {
-					logger.error(e);
+					logger.error("", e);
 				}
 				if (null != LastTableKeyOfRedoAndRelease)
 					procedure.getZeze().__TryWaitFlushWhenReduce(LastTableKeyOfRedoAndRelease, LastGlobalSerialIdOfRedoAndRelease);
@@ -357,7 +357,7 @@ public final class Transaction {
 			}
 			cc.NotifyListener();
 		} catch (Throwable ex) {
-			logger.error(ex);
+			logger.error("", ex);
 		}
 
 		_trigger_commit_actions_(procedure);

@@ -609,7 +609,7 @@ public class Online extends AbstractOnline {
             try {
                 transmit(account, clientId, actionName, target, parameter);
             } catch (Throwable e) {
-                logger.error(e);
+                logger.error("", e);
             }
         });
     }
@@ -621,7 +621,7 @@ public class Online extends AbstractOnline {
             try {
                 transmit(account, clientId, actionName, targets, parameter);
             } catch (Throwable e) {
-                logger.error(e);
+                logger.error("", e);
             }
         });
     }
@@ -633,7 +633,7 @@ public class Online extends AbstractOnline {
             try {
                 transmit(account, clientId, actionName, target, parameter);
             } catch (Throwable e) {
-                logger.error(e);
+                logger.error("", e);
             }
         });
     }
@@ -645,7 +645,7 @@ public class Online extends AbstractOnline {
             try {
                 transmit(account, clientId, actionName, targets, parameter);
             } catch (Throwable e) {
-                logger.error(e);
+                logger.error("", e);
             }
         });
     }
@@ -684,7 +684,7 @@ public class Online extends AbstractOnline {
                             return 0L;
                         }, "VerifyLocal:" + account).Call();
                     } catch (Throwable e) {
-                        logger.error(e);
+                        logger.error("", e);
                     }
                 });
         // 随机开始时间，避免验证操作过于集中。3:10 - 5:10

@@ -685,7 +685,7 @@ public class Online extends AbstractOnline {
 							return 0L;
 							}, "VerifyLocal:" + roleId.Value).Call();
 					} catch (Throwable e) {
-						logger.error(e);
+						logger.error("", e);
 					}
 				});
 		// 随机开始时间，避免验证操作过于集中。3:10 - 5:10

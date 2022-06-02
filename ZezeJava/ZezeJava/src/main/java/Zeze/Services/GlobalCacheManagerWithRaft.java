@@ -122,7 +122,7 @@ public class GlobalCacheManagerWithRaft
 							return false;
 						});
 					} catch (Throwable e) {
-						logger.error(e);
+						logger.error("", e);
 					}
 					// skip allReleaseFuture result
 				}
