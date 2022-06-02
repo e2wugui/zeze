@@ -586,6 +586,7 @@ namespace Zeze.Transaction
                                 GlobalCacheManagerServer.StateModify, e.Origin.fresh);
                             if (ResultState  != GlobalCacheManagerServer.StateModify)
                             {
+                                e.Origin.SetNotFresh(); // 抢失败不再新鲜。
                                 logger.Warn("Acquire Failed. Maybe DeadLock Found {0}", e.Origin);
                                 e.Origin.State = GlobalCacheManagerServer.StateInvalid;
                                 LastTableKeyOfRedoAndRelease = e.TableKey;

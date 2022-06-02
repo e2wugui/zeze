@@ -153,6 +153,6 @@ public abstract class Record {
 	}
 
 	public final boolean isFreshAcquire() {
-		return fresh && System.currentTimeMillis() - acquireTime < 50;
+		return fresh && System.currentTimeMillis() - acquireTime < 1000;
 	}
 }

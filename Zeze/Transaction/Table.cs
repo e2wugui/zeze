@@ -179,6 +179,7 @@ namespace Zeze.Transaction
                     rpc.SendResult();
                     return 0;
                 }
+                r.SetNotFresh(); // 被降级不再新鲜。
                 r.LastErrorGlobalSerialId = rpc.Argument.GlobalSerialId;
                 switch (r.State)
                 {
@@ -278,6 +279,7 @@ namespace Zeze.Transaction
                     rpc.SendResult();
                     return 0;
                 }
+                r.SetNotFresh(); // 被降级不再新鲜。
                 r.LastErrorGlobalSerialId = rpc.Argument.GlobalSerialId;
                 switch (r.State)
                 {

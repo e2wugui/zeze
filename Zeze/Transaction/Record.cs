@@ -113,7 +113,7 @@ namespace Zeze.Transaction
 
         public bool IsFreshAcquire()
         {
-            return fresh && Util.Time.NowUnixMillis - acquireTime < 50;
+            return fresh && Util.Time.NowUnixMillis - acquireTime < 1000;
         }
     }
 

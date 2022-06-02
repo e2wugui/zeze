@@ -171,6 +171,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					rpc.SendResult();
 					return 0;
 				}
+				r.setNotFresh(); // 被降级不再新鲜。
 				r.LastErrorGlobalSerialId = rpc.Argument.GlobalSerialId;
 				switch (r.getState()) {
 					case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
@@ -273,6 +274,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					rpc.SendResult();
 					return 0;
 				}
+				r.setNotFresh(); // 被降级不再新鲜。
 				r.LastErrorGlobalSerialId = rpc.Argument.GlobalSerialId;
 				switch (r.getState()) {
 					case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.

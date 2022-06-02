@@ -454,6 +454,7 @@ public final class Transaction {
 						var acquire = e.AtomicTupleRecord.Record.Acquire(
 								GlobalCacheManagerServer.StateModify, e.AtomicTupleRecord.Record.isFresh());
 						if (acquire.ResultState != GlobalCacheManagerServer.StateModify) {
+							e.AtomicTupleRecord.Record.setNotFresh(); // 抢失败不再新鲜。
 							logger.debug("Acquire Failed. Maybe DeadLock Found {}", e.AtomicTupleRecord);
 							e.AtomicTupleRecord.Record.setState(GlobalCacheManagerServer.StateInvalid); // 这里保留StateShare更好吗？
 							LastTableKeyOfRedoAndRelease = e.getTableKey();
