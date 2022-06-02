@@ -27,6 +27,7 @@ namespace Zeze.Services
         public const int StateReduceNetError = 13;  // 用来表示 reduce 网络失败。不是状态。
         public const int StateReduceDuplicate = 14; // 用来表示重复的 reduce。错误报告，不是状态。
         public const int StateReduceSessionNotFound = 15;
+        public const int StateReduceErrorFreshAcquire = 16; // 错误码，too many try 处理机制
 
         public const int AcquireShareDeadLockFound = 21;
         public const int AcquireShareAlreadyIsModify = 22;
@@ -38,6 +39,7 @@ namespace Zeze.Services
         public const int AcquireException = 28;
         public const int AcquireInvalidFailed = 29;
         public const int AcquireNotLogin = 30;
+        public const int AcquireFreshSource = 31;
 
         public const int ReduceErrorState = 41;
         public const int ReduceShareAlreadyIsInvalid = 42;
@@ -472,6 +474,9 @@ namespace Zeze.Services
 
         private async Task<int> AcquireShareAsync(Acquire rpc)
         {
+            var fresh = rpc.ResultCode;
+            rpc.ResultCode = 0;
+
             CacheHolder sender = (CacheHolder)rpc.Sender.UserState;
 
             while (true)
@@ -543,7 +548,7 @@ namespace Zeze.Services
                     }
 
                     int reduceResultState = StateReduceNetError; // 默认网络错误。
-                    if (cs.Modify.Reduce(gkey, StateInvalid, cs.GlobalSerialId,
+                    if (cs.Modify.Reduce(gkey, StateInvalid, cs.GlobalSerialId, fresh,
                         async (p) =>
                         {
                             var r = p as Reduce;
@@ -570,6 +575,16 @@ namespace Zeze.Services
                             // 降到了 Invalid，此时就不需要加入 Share 了。
                             cs.Modify.Acquired.TryRemove(gkey, out _);
                             break;
+
+                        case StateReduceErrorFreshAcquire:
+                            cs.AcquireStatePending = StateInvalid;
+
+                            logger.Error("XXX fresh {0} {1} {2}", sender, rpc.Argument.State, cs);
+                            rpc.Result.State = StateInvalid;
+                            rpc.Result.GlobalSerialId = cs.GlobalSerialId;
+                            cs.Monitor.PulseAll();
+                            rpc.SendResultCode(StateReduceErrorFreshAcquire);
+                            return 0;
 
                         default:
                             // 包含协议返回错误的值的情况。
@@ -611,6 +626,9 @@ namespace Zeze.Services
 
         private async Task<int> AcquireModifyAsync(Acquire rpc)
         {
+            var fresh = rpc.ResultCode;
+            rpc.ResultCode = 0;
+
             CacheHolder sender = (CacheHolder)rpc.Sender.UserState;
             while (true)
             {
@@ -684,7 +702,7 @@ namespace Zeze.Services
                     }
 
                     int reduceResultState = StateReduceNetError; // 默认网络错误。
-                    if (cs.Modify.Reduce(gkey, StateInvalid, cs.GlobalSerialId,
+                    if (cs.Modify.Reduce(gkey, StateInvalid, cs.GlobalSerialId, fresh,
                         async (p) =>
                         {
                             var r = p as Reduce;
@@ -705,6 +723,16 @@ namespace Zeze.Services
                         case StateInvalid:
                             cs.Modify.Acquired.TryRemove(gkey, out _);
                             break; // reduce success
+
+                        case StateReduceErrorFreshAcquire:
+                            cs.AcquireStatePending = StateInvalid;
+
+                            logger.Error("XXX fresh {0} {1} {2}", sender, rpc.Argument.State, cs);
+                            rpc.Result.State = StateInvalid;
+                            rpc.Result.GlobalSerialId = cs.GlobalSerialId;
+                            cs.Monitor.PulseAll();
+                            rpc.SendResultCode(StateReduceErrorFreshAcquire);
+                            return 0;
 
                         default:
                             // case StateReduceRpcTimeout:
@@ -745,7 +773,7 @@ namespace Zeze.Services
                         reduceSucceed.Add(sender);
                         continue;
                     }
-                    Reduce reduce = c.ReduceWaitLater(gkey, StateInvalid, cs.GlobalSerialId);
+                    Reduce reduce = c.ReduceWaitLater(gkey, StateInvalid, cs.GlobalSerialId, fresh);
                     if (null != reduce)
                     {
                         reducePending.Add(Util.KV.Create(c, reduce));
@@ -760,6 +788,7 @@ namespace Zeze.Services
                 // 两种情况不需要发reduce
                 // 1. share是空的, 可以直接升为Modify
                 // 2. sender是share, 而且reducePending的size是0
+                var freshReduce = false;
                 if (!(cs.Share.Count == 0) && (!senderIsShare || reducePending.Count > 0))
                 {
                     // 必须放到另外的线程执行，后面cs.Monitor.WaitAsync();会释放锁。
@@ -773,10 +802,18 @@ namespace Zeze.Services
                             try
                             {
                                 await reduce.Value.Future.Task;
-                                if (reduce.Value.Result.State == StateInvalid)
-                                    reduceSucceed.Add(reduce.Key);
-                                else
-                                    reduce.Key.SetError();
+                                switch (reduce.Value.Result.State)
+                                {
+                                    case StateInvalid:
+                                        reduceSucceed.Add(reduce.Key);
+                                        break;
+                                    case StateReduceErrorFreshAcquire:
+                                        freshReduce = true;
+                                        break;
+                                    default:
+                                        reduce.Key.SetError();
+                                        break;
+                                }
                                 Perf?.OnReduceEnd(reduce.Value);
                             }
                             catch (Exception ex)
@@ -830,7 +867,7 @@ namespace Zeze.Services
                     logger.Error("XXX 10 {0} {1} {2}", sender, rpc.Argument.State, cs);
                     rpc.Result.State = StateInvalid;
                     rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                    rpc.SendResultCode(AcquireModifyFailed);
+                    rpc.SendResultCode(freshReduce ? StateReduceErrorFreshAcquire : AcquireModifyFailed);
                 }
                 return 0;
             }
@@ -930,7 +967,7 @@ namespace Zeze.Services
                 return "" + SessionId;
             }
 
-            public bool Reduce(Binary gkey, int state, long globalSerialId, Func<Protocol, Task<long>> response)
+            public bool Reduce(Binary gkey, int state, long globalSerialId, long fresh, Func<Protocol, Task<long>> response)
             {
                 try
                 {
@@ -943,6 +980,7 @@ namespace Zeze.Services
                     if (null != peer)
                     {
                         var reduce = new Reduce(gkey, state, globalSerialId);
+                        reduce.ResultCode = fresh;
                         Instance.Perf?.OnReduceBegin(reduce);
                         if (reduce.Send(peer, response, Instance.AchillesHeelConfig.ReduceTimeout))
                             return true;
@@ -976,7 +1014,7 @@ namespace Zeze.Services
             /// <param name="gkey"></param>
             /// <param name="state"></param>
             /// <returns></returns>
-            public Reduce ReduceWaitLater(Binary gkey, int state, long globalSerialId)
+            public Reduce ReduceWaitLater(Binary gkey, int state, long globalSerialId, long fresh)
             {
                 try
                 {
@@ -989,6 +1027,8 @@ namespace Zeze.Services
                     if (null != peer)
                     {
                         Reduce reduce = new(gkey, state, globalSerialId);
+                        reduce.ResultCode = fresh;
+
                         Instance.Perf?.OnReduceBegin(reduce);
                         _ = reduce.SendAsync(peer, Instance.AchillesHeelConfig.ReduceTimeout);
                         return reduce;

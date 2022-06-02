@@ -100,6 +100,7 @@ namespace Zeze.Transaction
                     }
 
                     r.Timestamp = Record.NextTimestamp;
+                    r.SetFreshAcquire();
 
                     if (null != TStorage)
                     {
@@ -142,6 +143,9 @@ namespace Zeze.Transaction
 
         internal override async Task<int> ReduceShare(Reduce rpc, ByteBuffer bbkey)
         {
+            var fresh = rpc.ResultCode;
+            rpc.ResultCode = 0;
+
             logger.Debug("ReduceShare NewState={0}", rpc.Argument.State);
 
             rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
@@ -168,6 +172,13 @@ namespace Zeze.Transaction
                     return 0;
                 }
                 using var lockr = r.Mutex.Lock();
+                if (fresh != GlobalCacheManagerServer.AcquireFreshSource && r.IsFreshAcquire())
+                {
+                    logger.Debug("Reduce SendResult fresh {}", r);
+                    rpc.Result.State = GlobalCacheManagerServer.StateReduceErrorFreshAcquire;
+                    rpc.SendResult();
+                    return 0;
+                }
                 r.LastErrorGlobalSerialId = rpc.Argument.GlobalSerialId;
                 switch (r.State)
                 {
@@ -234,6 +245,9 @@ namespace Zeze.Transaction
 
         internal override async Task<int> ReduceInvalid(Reduce rpc, ByteBuffer bbkey)
         {
+            var fresh = rpc.ResultCode;
+            rpc.ResultCode = 0;
+
             logger.Debug("ReduceInvalid NewState={0}", rpc.Argument.State);
 
             rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
@@ -257,6 +271,13 @@ namespace Zeze.Transaction
                     return 0;
                 }
                 using var lockr = r.Mutex.Lock();
+                if (fresh != GlobalCacheManagerServer.AcquireFreshSource && r.IsFreshAcquire())
+                {
+                    logger.Debug("Reduce SendResult fresh {}", r);
+                    rpc.Result.State = GlobalCacheManagerServer.StateReduceErrorFreshAcquire;
+                    rpc.SendResult();
+                    return 0;
+                }
                 r.LastErrorGlobalSerialId = rpc.Argument.GlobalSerialId;
                 switch (r.State)
                 {

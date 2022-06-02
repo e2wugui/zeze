@@ -143,7 +143,7 @@ namespace Zeze.Services
             return gkey.GetHashCode() % Agents.Length;
         }
 
-        public async Task<(long, int, long)> Acquire(Binary gkey, int state)
+        public async Task<(long, int, long)> Acquire(Binary gkey, int state, bool fresh)
         {
             if (null != Agents)
             {
@@ -152,6 +152,8 @@ namespace Zeze.Services
                 await agent.WaitLoginSuccess();
 
                 var rpc = new Acquire();
+                if (fresh)
+                    rpc.ResultCode = GlobalCacheManagerServer.AcquireFreshSource;
                 rpc.Argument.GlobalKey = gkey;
                 rpc.Argument.State = state;
                 await agent.RaftClient.SendAsync(rpc);

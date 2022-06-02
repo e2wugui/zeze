@@ -13,7 +13,7 @@ namespace Zeze.Transaction
     internal interface IGlobalAgent : IDisposable
     {
         // (ResultCode, State, GlobalSerialId)
-        public Task<(long, int, long)> Acquire(Binary gkey, int state);
+        public Task<(long, int, long)> Acquire(Binary gkey, int state, bool fresh);
         public int GetGlobalCacheManagerHashIndex(Binary gkey);
     }
 
@@ -153,7 +153,7 @@ namespace Zeze.Transaction
             return gkey.GetHashCode() % Agents.Length;
         }
 
-        public async Task<(long, int, long)> Acquire(Binary gkey, int state)
+        public async Task<(long, int, long)> Acquire(Binary gkey, int state, bool fresh)
         {
             if (null != Client)
             {
@@ -163,6 +163,8 @@ namespace Zeze.Transaction
                 // 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了），打断外面的事务。
                 // 一个请求异常不关闭连接，尝试继续工作。
                 var rpc = new Acquire(gkey, state);
+                if (fresh)
+                    rpc.ResultCode = GlobalCacheManagerServer.AcquireFreshSource;
                 await rpc.SendAsync(socket, agent.Config.AcquireTimeout);
                 /*
                 if (rpc.ResultCode != 0) // 这个用来跟踪调试，正常流程使用Result.State检查结果。

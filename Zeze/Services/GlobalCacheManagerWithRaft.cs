@@ -73,6 +73,9 @@ namespace Zeze.Services
 
         private async Task<long> AcquireShare(Acquire rpc)
         {
+            var fresh = rpc.ResultCode;
+            rpc.ResultCode = 0;
+
             CacheHolder sender = (CacheHolder)rpc.Sender.UserState;
 
             while (true)
@@ -145,7 +148,7 @@ namespace Zeze.Services
 
                     int reduceResultState = GlobalCacheManagerServer.StateReduceNetError; // 默认网络错误。
                     if (CacheHolder.Reduce(Sessions, cs.Modify,
-                        rpc.Argument.GlobalKey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId,
+                        rpc.Argument.GlobalKey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId, fresh,
                         async (p) =>
                         {
                             var r = p as Reduce;
@@ -171,6 +174,15 @@ namespace Zeze.Services
                             // 降到了 Invalid，此时就不需要加入 Share 了。
                             await ModifyAcquired.RemoveAsync(rpc.Argument.GlobalKey);
                             break;
+
+                        case GlobalCacheManagerServer.StateReduceErrorFreshAcquire:
+                            cs.AcquireStatePending = GlobalCacheManagerServer.StateInvalid;
+
+                            logger.Error("XXX fresh {0} {1} {2}", sender, rpc.Argument.State, cs);
+                            rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+                            rpc.Result.GlobalSerialId = cs.GlobalSerialId;
+                            lockey.PulseAll();
+                            return GlobalCacheManagerServer.StateReduceErrorFreshAcquire;
 
                         default:
                             // 包含协议返回错误的值的情况。
@@ -208,6 +220,9 @@ namespace Zeze.Services
 
         private async Task<long> AcquireModify(Acquire rpc)
         {
+            var fresh = rpc.ResultCode;
+            rpc.ResultCode = 0;
+
             CacheHolder sender = (CacheHolder)rpc.Sender.UserState;
 
             while (true)
@@ -280,7 +295,7 @@ namespace Zeze.Services
 
                     int reduceResultState = GlobalCacheManagerServer.StateReduceNetError; // 默认网络错误。
                     if (CacheHolder.Reduce(Sessions, cs.Modify,
-                        rpc.Argument.GlobalKey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId,
+                        rpc.Argument.GlobalKey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId, fresh,
                         async (p) =>
                         {
                             var r = p as Reduce;
@@ -300,6 +315,15 @@ namespace Zeze.Services
                         case GlobalCacheManagerServer.StateInvalid:
                             await ModifyAcquired.RemoveAsync(rpc.Argument.GlobalKey);
                             break; // reduce success
+
+                        case GlobalCacheManagerServer.StateReduceErrorFreshAcquire:
+                            cs.AcquireStatePending = GlobalCacheManagerServer.StateInvalid;
+
+                            logger.Error("XXX fresh {0} {1} {2}", sender, rpc.Argument.State, cs);
+                            rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+                            rpc.Result.GlobalSerialId = cs.GlobalSerialId;
+                            lockey.PulseAll();
+                            return GlobalCacheManagerServer.StateReduceErrorFreshAcquire;
 
                         default:
                             // case StateReduceRpcTimeout:
@@ -338,7 +362,7 @@ namespace Zeze.Services
                         continue;
                     }
                     Reduce reduce = CacheHolder.ReduceWaitLater(Sessions, c, out var session,
-                        rpc.Argument.GlobalKey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId);
+                        rpc.Argument.GlobalKey, GlobalCacheManagerServer.StateInvalid, cs.GlobalSerialId, fresh);
                     if (null != reduce)
                     {
                         reducePending.Add(Util.KV.Create(session, reduce));
@@ -353,6 +377,7 @@ namespace Zeze.Services
                 // 两种情况不需要发reduce
                 // 1. share是空的, 可以直接升为Modify
                 // 2. sender是share, 而且reducePending的size是0
+                var freshReduce = false;
                 if (!(cs.Share.Count == 0) && (!senderIsShare || reducePending.Count > 0))
                 {
                     _ = Task.Run(async () =>
@@ -364,13 +389,17 @@ namespace Zeze.Services
                             try
                             {
                                 await reduce.Value.Future.Task;
-                                if (reduce.Value.Result.State == GlobalCacheManagerServer.StateInvalid)
+                                switch (reduce.Value.Result.State)
                                 {
-                                    reduceSucceed.Add(reduce.Key);
-                                }
-                                else
-                                {
-                                    reduce.Key.SetError();
+                                    case GlobalCacheManagerServer.StateInvalid:
+                                        reduceSucceed.Add(reduce.Key);
+                                        break;
+                                    case GlobalCacheManagerServer.StateReduceErrorFreshAcquire:
+                                        freshReduce = true;
+                                        break;
+                                    default:
+                                        reduce.Key.SetError();
+                                        break;
                                 }
                             }
                             catch (Exception ex)
@@ -429,7 +458,7 @@ namespace Zeze.Services
 
                 rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                 rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                return GlobalCacheManagerServer.AcquireModifyFailed;
+                return freshReduce ? GlobalCacheManagerServer.StateReduceErrorFreshAcquire : GlobalCacheManagerServer.AcquireModifyFailed;
             }
         }
 
@@ -799,25 +828,25 @@ namespace Zeze.Services
             }
 
             public static bool Reduce(ConcurrentDictionary<int, CacheHolder> sessions, int serverId,
-                Binary gkey, int state, long globalSerialId, Func<Protocol, Task<long>> response)
+                Binary gkey, int state, long globalSerialId, long fresh, Func<Protocol, Task<long>> response)
             { 
                 if (sessions.TryGetValue(serverId, out var session))
-                    return session.Reduce(gkey, state, globalSerialId, response);
+                    return session.Reduce(gkey, state, globalSerialId, fresh, response);
 
                 return false;
             }
 
             public static Reduce ReduceWaitLater(ConcurrentDictionary<int, CacheHolder> sessions,
                 int serverId, out CacheHolder session,
-                Binary gkey, int state, long globalSerialId)
+                Binary gkey, int state, long globalSerialId, long fresh)
             {
                 if (sessions.TryGetValue(serverId, out session))
-                    return session.ReduceWaitLater(gkey, state, globalSerialId);
+                    return session.ReduceWaitLater(gkey, state, globalSerialId, fresh);
 
                 return null;
             }
 
-            public bool Reduce(Binary gkey, int state, long globalSerialId, Func<Protocol, Task<long>> response)
+            public bool Reduce(Binary gkey, int state, long globalSerialId, long fresh, Func<Protocol, Task<long>> response)
             {
                 try
                 {
@@ -830,6 +859,7 @@ namespace Zeze.Services
                     if (null != peer)
                     {
                         var reduce = new Reduce();
+                        reduce.ResultCode = fresh;
                         reduce.Argument.GlobalKey = gkey;
                         reduce.Argument.State = state;
                         reduce.Argument.GlobalSerialId = globalSerialId;
@@ -863,7 +893,7 @@ namespace Zeze.Services
             /// <param name="gkey"></param>
             /// <param name="state"></param>
             /// <returns></returns>
-            public Reduce ReduceWaitLater(Binary gkey, int state, long globalSerialId)
+            public Reduce ReduceWaitLater(Binary gkey, int state, long globalSerialId, long fresh)
             {
                 try
                 {
@@ -876,6 +906,7 @@ namespace Zeze.Services
                     if (null != peer)
                     {
                         var reduce = new Reduce();
+                        reduce.ResultCode = fresh;
                         reduce.Argument.GlobalKey = gkey;
                         reduce.Argument.State = state;
                         reduce.Argument.GlobalSerialId = globalSerialId;

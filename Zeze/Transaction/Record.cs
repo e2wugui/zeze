@@ -96,6 +96,25 @@ namespace Zeze.Transaction
         internal Database.ITransaction DatabaseTransactionTmp { get; set; }
         internal abstract void SetDirty();
         internal Nito.AsyncEx.AsyncLock Mutex = new();
+
+        protected bool fresh;
+        private long acquireTime;
+
+        public void SetNotFresh()
+        {
+            fresh = false;
+        }
+
+        public void SetFreshAcquire()
+        {
+            acquireTime = Util.Time.NowUnixMillis;
+            fresh = true;
+        }
+
+        public bool IsFreshAcquire()
+        {
+            return fresh && Util.Time.NowUnixMillis - acquireTime < 50;
+        }
     }
 
     public class Record<K, V> : Record where V : Bean, new()
@@ -146,7 +165,7 @@ namespace Zeze.Transaction
                     break;
             }
 #endif
-            return await TTable.Zeze.GlobalAgent.Acquire(gkey, state);
+            return await TTable.Zeze.GlobalAgent.Acquire(gkey, state, fresh);
         }
 
         internal long SavedTimestampForCheckpointPeriod { get; set; }

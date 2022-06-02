@@ -359,6 +359,7 @@ namespace Zeze.Transaction
                     lastsp.Commit();
                     foreach (var e in AccessedRecords)
                     {
+                        e.Value.Origin.SetNotFresh();
                         if (e.Value.Dirty)
                         {
                             e.Value.Origin.Commit(e.Value);
@@ -409,6 +410,10 @@ namespace Zeze.Transaction
 
         private void FinalRollback(Procedure procedure)
         {
+            foreach (var e in AccessedRecords)
+            {
+                e.Value.Origin.SetNotFresh();
+            }
             State = TransactionState.Completed;
             if (null != LastRollbackActions)
             {
