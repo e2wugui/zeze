@@ -40,7 +40,7 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 	}
 
 	@Override
-	public IGlobalAgent.AcquireResult Acquire(int state) {
+	public IGlobalAgent.AcquireResult Acquire(int state, boolean fresh) {
 		if (null == getTTable().TStorage) {
 			// 不支持内存表cache同步。
 			return new IGlobalAgent.AcquireResult(0, state, 0);

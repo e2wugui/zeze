@@ -582,7 +582,8 @@ namespace Zeze.Transaction
                         case GlobalCacheManagerServer.StateShare:
                             // 这里可能死锁：另一个先获得提升的请求要求本机Reduce，但是本机Checkpoint无法进行下去，被当前事务挡住了。
                             // 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
-                            var (_, ResultState, ResultGlobalSerialId) = await e.Origin.Acquire(GlobalCacheManagerServer.StateModify);
+                            var (_, ResultState, ResultGlobalSerialId) = await e.Origin.Acquire(
+                                GlobalCacheManagerServer.StateModify, e.Origin.fresh);
                             if (ResultState  != GlobalCacheManagerServer.StateModify)
                             {
                                 logger.Warn("Acquire Failed. Maybe DeadLock Found {0}", e.Origin);

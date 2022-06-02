@@ -225,7 +225,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		}
 
 		if (p.getValue().getState() != GlobalCacheManagerServer.StateInvalid) {
-			var r = p.getValue().Acquire(GlobalCacheManagerServer.StateInvalid);
+			var r = p.getValue().Acquire(GlobalCacheManagerServer.StateInvalid, false);
 			if (r.ResultCode != 0 || r.ResultState != GlobalCacheManagerServer.StateInvalid) {
 				return false;
 			}

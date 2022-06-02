@@ -87,7 +87,7 @@ namespace Zeze.Transaction
                         return r;
                     }
 
-                    var (ResultCode, ResultState, ResultGlobalSerialId) = await r.Acquire(GlobalCacheManagerServer.StateShare);
+                    var (ResultCode, ResultState, ResultGlobalSerialId) = await r.Acquire(GlobalCacheManagerServer.StateShare, false);
                     r.State = ResultState;
                     if (r.State == GlobalCacheManagerServer.StateInvalid)
                     {

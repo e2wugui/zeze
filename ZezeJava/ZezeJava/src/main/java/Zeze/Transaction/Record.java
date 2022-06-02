@@ -119,7 +119,7 @@ public abstract class Record {
 
 	public abstract void Commit(Zeze.Transaction.RecordAccessed accessed);
 
-	public abstract IGlobalAgent.AcquireResult Acquire(int state);
+	public abstract IGlobalAgent.AcquireResult Acquire(int state, boolean fresh);
 
 	public abstract void Encode0();
 	public abstract void Flush(Database.Transaction t, Database.Transaction lct);
@@ -136,11 +136,15 @@ public abstract class Record {
 	public abstract Object getObjectKey();
 
 	// too many try
-	protected boolean fresh;
+	private boolean fresh;
 	private long acquireTime;
 
 	public final void setNotFresh() {
 		fresh = false;
+	}
+
+	public final boolean isFresh() {
+		return fresh;
 	}
 
 	public final void setFreshAcquire() {

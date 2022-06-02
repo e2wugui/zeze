@@ -86,7 +86,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					return AtomicTupleRecord.create(r, strongRef, beforeTimestamp);
 				}
 
-				var acquire = r.Acquire(GlobalCacheManagerServer.StateShare);
+				var acquire = r.Acquire(GlobalCacheManagerServer.StateShare, false);
 				r.setState(acquire.ResultState);
 				if (r.getState() == GlobalCacheManagerServer.StateInvalid) {
 					r.LastErrorGlobalSerialId = acquire.ResultGlobalSerialId; // save

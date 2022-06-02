@@ -87,7 +87,7 @@ namespace Zeze.Transaction
 
         internal abstract void Commit(Transaction.RecordAccessed accessed);
 
-        internal abstract Task<(long, int, long)> Acquire(int state);
+        internal abstract Task<(long, int, long)> Acquire(int state, bool fresh);
 
         internal abstract void Encode0();
         internal abstract Task Flush(Database.ITransaction t);
@@ -97,7 +97,7 @@ namespace Zeze.Transaction
         internal abstract void SetDirty();
         internal Nito.AsyncEx.AsyncLock Mutex = new();
 
-        protected bool fresh;
+        internal bool fresh;
         private long acquireTime;
 
         public void SetNotFresh()
@@ -138,7 +138,7 @@ namespace Zeze.Transaction
             // 记录的log可能在Transaction.AddRecordAccessed之前进行，不能再访问了。
         }
 
-        internal async override Task<(long, int, long)> Acquire(int state)
+        internal async override Task<(long, int, long)> Acquire(int state, bool fresh)
         {
             if (null == TTable.TStorage)
             {

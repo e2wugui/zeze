@@ -1,5 +1,5 @@
 【TODO】
-Zeze 打包和更新工具
+打包和更新工具
 ConfigEditor 自动完成: Foreign；自动id，Load 的时候记录maxid，以后编辑AddRow都使用这个递增；
 ConfigEditor 更多自动完成？普通的列默认最近使用的n个值，根据输入在列中查找最匹配的。
 ConfigEditor enum 现在不支持引用在其他文档定义的，有需要了再来加。
@@ -8,6 +8,9 @@ war？一个module集合。定义export？private？App.Instance？生成代码�
 DatabaseTikv.OperatesTikv
 一致性hash负载分配算法：解决provider变动带来的原来分配方式（hash%count)导致re-hash造成cache大量重来的问题。
 ServiceConf.Acceptor ip="@internal" "@external"
+Task
+Universe
+Zege
 
 【2022/6/11】
 
