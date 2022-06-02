@@ -83,6 +83,7 @@ public final class Application {
 		Conf = config != null ? config : Config.Load();
 		Conf.CreateDatabase(this, Databases);
 		ServiceManagerAgent = new Agent(this);
+		ResetDB = new ResetDB();
 	}
 
 	public Application() {
@@ -311,6 +312,7 @@ public final class Application {
 							SchemasPrevious = null;
 							logger.error("Schemas Implement Changed?", ex);
 						}
+						ResetDB.CheckAndRemoveTable(SchemasPrevious, this);
 						Schemas.CheckCompatible(SchemasPrevious, this);
 						version = dataVersion.Version;
 					}
