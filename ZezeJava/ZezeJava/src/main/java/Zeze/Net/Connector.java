@@ -93,6 +93,16 @@ public class Connector {
 
 	public final void setAutoReconnect(boolean value) {
 		IsAutoReconnect = value;
+		if (IsAutoReconnect) {
+			TryReconnect();
+		} else {
+			synchronized (this) {
+				if (ReconnectTask != null) {
+					ReconnectTask.cancel(false);
+					ReconnectTask = null;
+				}
+			}
+		}
 	}
 
 	public final boolean isConnected() {

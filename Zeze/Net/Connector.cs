@@ -18,7 +18,33 @@ namespace Zeze.Net
 
         public string HostNameOrAddress { get; }
         public int Port { get; } = 0;
-        public bool IsAutoReconnect { get; set; } = true;
+        private volatile bool autoReconnect = true;
+        public bool AutoReconnect
+        {
+            get
+            {
+                return autoReconnect;
+            }
+            set
+            {
+                autoReconnect = value;
+                if (autoReconnect)
+                {
+                    TryReconnect();
+                }
+                else
+                {
+                    lock (this)
+                    {
+                        if (ReconnectTask != null)
+                        {
+                            ReconnectTask.Cancel();
+                            ReconnectTask = null;
+                        }
+                    }
+                }
+            }
+        }
         public bool IsConnected { get; private set; } = false;
         public bool IsHandshakeDone => TryGetReadySocket() != null;
         private volatile TaskCompletionSource<AsyncSocket> FutureSocket = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -49,7 +75,7 @@ namespace Zeze.Net
         {
             HostNameOrAddress = host;
             Port = port;
-            IsAutoReconnect = autoReconnect;
+            AutoReconnect = autoReconnect;
         }
 
         public static Connector Create(XmlElement e)
@@ -68,7 +94,7 @@ namespace Zeze.Net
             HostNameOrAddress = self.GetAttribute("HostNameOrAddress");
             attr = self.GetAttribute("IsAutoReconnect");
             if (attr.Length > 0)
-                IsAutoReconnect = bool.Parse(attr);
+                AutoReconnect = bool.Parse(attr);
             attr = self.GetAttribute("MaxReconnectDelay");
             if (attr.Length > 0)
                 MaxReconnectDelay = int.Parse(attr) * 1000;
@@ -149,7 +175,7 @@ namespace Zeze.Net
         {
             lock (this)
             {
-                if (false == IsAutoReconnect
+                if (false == AutoReconnect
                     || null != Socket
                     || null != ReconnectTask)
                 {
