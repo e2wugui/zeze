@@ -288,7 +288,9 @@ public class GlobalCacheManagerWithRaft
 
 				case StateReduceErrorFreshAcquire:
 					cs.setAcquireStatePending(StateInvalid);
-					logger.error("XXX fresh {} {} {} {}", sender, rpc.Argument.getState(), cs, reduceResultState.Value);
+					if (ENABLE_PERF)
+						perf.onOthers("XXX Fresh " + acquireState);
+					// logger.error("XXX fresh {} {} {}", sender, acquireState, cs);
 					rpc.Result.setState(StateInvalid);
 					rpc.Result.setGlobalSerialId(cs.getGlobalSerialId());
 					lockey.PulseAll(); //notify
@@ -300,7 +302,9 @@ public class GlobalCacheManagerWithRaft
 					// case StateReduceException: // 12
 					// case StateReduceNetError: // 13
 					cs.setAcquireStatePending(StateInvalid);
-					logger.error("XXX 8 state={} {} {} {}", reduceResultState.Value, sender, acquireState, cs);
+					if (ENABLE_PERF)
+						perf.onOthers("XXX 8 " + acquireState + " " + reduceResultState.Value);
+					// logger.error("XXX 8 state={} {} {} {}", reduceResultState.Value, sender, acquireState, cs);
 					rpc.Result.setState(StateInvalid);
 					rpc.Result.setGlobalSerialId(cs.getGlobalSerialId());
 					lockey.PulseAll();
@@ -417,7 +421,9 @@ public class GlobalCacheManagerWithRaft
 
 				case StateReduceErrorFreshAcquire:
 					cs.setAcquireStatePending(StateInvalid);
-					logger.error("XXX fresh {} {} {} {}", sender, rpc.Argument.getState(), cs, reduceResultState.Value);
+					if (ENABLE_PERF)
+						perf.onOthers("XXX Fresh " + acquireState);
+					// logger.error("XXX fresh {} {} {} {}", sender, acquireState, cs);
 					rpc.Result.setState(StateInvalid);
 					rpc.Result.setGlobalSerialId(cs.getGlobalSerialId());
 					lockey.PulseAll(); //notify
@@ -428,7 +434,9 @@ public class GlobalCacheManagerWithRaft
 					// case StateReduceException: // 12
 					// case StateReduceNetError: // 13
 					cs.setAcquireStatePending(StateInvalid);
-					logger.error("XXX 9 {} {} {}", sender, acquireState, cs);
+					if (ENABLE_PERF)
+						perf.onOthers("XXX 9 " + acquireState + " " + reduceResultState.Value);
+					// logger.error("XXX 9 {} {} {} {}", sender, acquireState, cs, reduceResultState.Value);
 					rpc.Result.setState(StateInvalid);
 					rpc.Result.setGlobalSerialId(cs.getGlobalSerialId());
 					lockey.PulseAll();
@@ -532,7 +540,9 @@ public class GlobalCacheManagerWithRaft
 					cs.getShare().add(sender.getServerId());
 
 				cs.setAcquireStatePending(StateInvalid);
-				logger.error("XXX 10 {} {} {}", sender, acquireState, cs);
+				if (ENABLE_PERF)
+					perf.onOthers("XXX 10 " + acquireState);
+				// logger.error("XXX 10 {} {} {}", sender, acquireState, cs);
 				rpc.Result.setState(StateInvalid);
 				rpc.Result.setGlobalSerialId(cs.getGlobalSerialId());
 				lockey.PulseAll();
