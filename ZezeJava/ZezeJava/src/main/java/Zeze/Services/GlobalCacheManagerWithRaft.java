@@ -146,7 +146,6 @@ public class GlobalCacheManagerWithRaft
 			perf.onAcquireBegin(rpc, rpc.Argument.getState());
 		rpc.Result.setGlobalKey(rpc.Argument.getGlobalKey());
 		rpc.Result.setState(rpc.Argument.getState()); // default success
-		rpc.setResultCode(0);
 
 		long result;
 		if (rpc.getSender().getUserState() == null) {
@@ -161,6 +160,7 @@ public class GlobalCacheManagerWithRaft
 				switch (rpc.Argument.getState()) {
 				case StateInvalid: // release
 					rpc.Result.setState(_Release(sender, rpc.Argument.getGlobalKey(), true));
+					rpc.setResultCode(0);
 					return 0;
 				case StateShare:
 					return AcquireShare(rpc);
@@ -168,6 +168,7 @@ public class GlobalCacheManagerWithRaft
 					return AcquireModify(rpc);
 				default:
 					rpc.Result.setState(StateInvalid);
+					rpc.setResultCode(0);
 					return AcquireErrorState;
 				}
 			});

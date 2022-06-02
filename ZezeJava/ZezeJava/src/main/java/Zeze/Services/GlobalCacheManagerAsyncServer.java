@@ -409,7 +409,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				case StateModify:
 					logger.debug("Release 0 {} {} {}", sender, gKey, cs);
 					rpc.Result.State = cs.GetSenderCacheState(sender);
-					rpc.SendResult();
+					rpc.SendResultCode(0);
 					if (ENABLE_PERF)
 						perf.onAcquireEnd(rpc, rpc.Argument.State);
 					return;
@@ -442,16 +442,13 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			sender.Acquired.remove(gKey);
 			cs.lock.notifyAllWait();
 			rpc.Result.State = cs.GetSenderCacheState(sender);
-			rpc.SendResult();
+			rpc.SendResultCode(0);
 			if (ENABLE_PERF)
 				perf.onAcquireEnd(rpc, rpc.Argument.State);
 		});
 	}
 
 	private void AcquireShareAsync(Acquire rpc) {
-		var fresh = rpc.getResultCode();
-		rpc.setResultCode(0);
-
 		var cs = global.computeIfAbsent(rpc.Argument.GlobalKey, CacheState::new);
 		var state = new Object() {
 			int stage;
@@ -532,7 +529,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					}
 
 					state.reduceResultState = StateReduceNetError; // 默认网络错误。。
-					if (cs.Modify.ReduceWaitLater(gKey, cs.GlobalSerialId, fresh, r -> {
+					if (cs.Modify.ReduceWaitLater(gKey, cs.GlobalSerialId, rpc.getResultCode(), r -> {
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
 						state.reduceResultState = r.isTimeout() ? StateReduceRpcTimeout : r.Result.State;
@@ -596,7 +593,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				cs.lock.notifyAllWait();
 				logger.debug("6 {} {} {}", sender, rpc.Argument.State, cs);
 				rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-				rpc.SendResult();
+				rpc.SendResultCode(0);
 				if (ENABLE_PERF)
 					perf.onAcquireEnd(rpc, rpc.Argument.State);
 				return;
@@ -608,16 +605,13 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			cs.lock.notifyAllWait();
 			logger.debug("7 {} {} {}", sender, rpc.Argument.State, cs);
 			rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-			rpc.SendResult();
+			rpc.SendResultCode(0);
 			if (ENABLE_PERF)
 				perf.onAcquireEnd(rpc, rpc.Argument.State);
 		});
 	}
 
 	private void AcquireModifyAsync(Acquire rpc) {
-		var fresh = rpc.getResultCode();
-		rpc.setResultCode(0);
-
 		var cs = global.computeIfAbsent(rpc.Argument.GlobalKey, CacheState::new);
 		var state = new Object() {
 			int stage;
@@ -701,7 +695,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					}
 
 					state.reduceResultState = StateReduceNetError; // 默认网络错误。
-					if (cs.Modify.ReduceWaitLater(gKey, cs.GlobalSerialId, fresh, r -> {
+					if (cs.Modify.ReduceWaitLater(gKey, cs.GlobalSerialId, rpc.getResultCode(), r -> {
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
 						state.reduceResultState = r.isTimeout() ? StateReduceRpcTimeout : r.Result.State;
@@ -757,7 +751,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				cs.lock.notifyAllWait();
 				logger.debug("6 {} {} {}", sender, rpc.Argument.State, cs);
 				rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-				rpc.SendResult();
+				rpc.SendResultCode(0);
 				if (ENABLE_PERF)
 					perf.onAcquireEnd(rpc, rpc.Argument.State);
 				return;
@@ -777,7 +771,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					continue;
 				}
 				allReduceFuture.createOne();
-				Reduce reduce = c.ReduceWaitLater(gKey, cs.GlobalSerialId, fresh, r -> {
+				Reduce reduce = c.ReduceWaitLater(gKey, cs.GlobalSerialId, rpc.getResultCode(), r -> {
 					if (ENABLE_PERF)
 						perf.onReduceEnd(r);
 					allReduceFuture.finishOne();
@@ -814,7 +808,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					cs.lock.notifyAllWait();
 					logger.debug("8 {} {} {}", sender, rpc.Argument.State, cs);
 					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-					rpc.SendResult();
+					rpc.SendResultCode(0);
 				} else {
 					// senderIsShare 在失败的时候，Acquired 没有变化，不需要更新。
 					// 失败了，要把原来是share的sender恢复。先这样吧。
@@ -828,7 +822,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					rpc.Result.State = StateInvalid;
 					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 					if (errorFreshAcquire.Value)
-						rpc.setResultCode(StateReduceErrorFreshAcquire); // 这个错误不看做失败，允许发送方继续尝试。
+						rpc.SendResultCode(StateReduceErrorFreshAcquire); // 这个错误不看做失败，允许发送方继续尝试。
 					else
 						rpc.SendResultCode(AcquireModifyFailed);
 				}
