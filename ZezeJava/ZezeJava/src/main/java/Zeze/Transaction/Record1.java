@@ -64,7 +64,7 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 				break;
 		}
 
-		return getTTable().getZeze().getGlobalAgent().Acquire(gkey, state);
+		return getTTable().getZeze().getGlobalAgent().Acquire(gkey, state, fresh);
 	}
 
 	private long SavedTimestampForCheckpointPeriod;

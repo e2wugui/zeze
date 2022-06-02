@@ -156,7 +156,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	}
 
 	@Override
-	public IGlobalAgent.AcquireResult Acquire(Binary gkey, int state) {
+	public IGlobalAgent.AcquireResult Acquire(Binary gkey, int state, boolean fresh) {
 		if (Agents != null) {
 			var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
 
@@ -171,6 +171,8 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			}
 
 			var rpc = new Acquire();
+			if (fresh)
+				rpc.setResultCode(GlobalCacheManagerServer.AcquireFreshSource);
 			rpc.Argument.setGlobalKey(gkey);
 			rpc.Argument.setState(state);
 			agent.RaftClient.SendForWait(rpc).await();

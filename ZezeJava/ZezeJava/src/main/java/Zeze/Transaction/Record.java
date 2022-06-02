@@ -134,4 +134,21 @@ public abstract class Record {
 	}
 	public abstract void SetDirty();
 	public abstract Object getObjectKey();
+
+	// too many try
+	protected boolean fresh;
+	private long acquireTime;
+
+	public final void setNotFresh() {
+		fresh = false;
+	}
+
+	public final void setFreshAcquire() {
+		acquireTime = System.currentTimeMillis();
+		fresh = true;
+	}
+
+	public final boolean isFreshAcquire() {
+		return fresh && System.currentTimeMillis() - acquireTime < 50;
+	}
 }

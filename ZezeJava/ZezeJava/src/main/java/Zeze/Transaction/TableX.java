@@ -99,7 +99,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				}
 
 				r.setTimestamp(Record.getNextTimestamp());
+				r.setFreshAcquire();
 				var beforeTimestamp = r.getTimestamp();
+
 				if (null != TStorage) {
 					TableStatistics.getInstance().GetOrAdd(getId()).getStorageFindCount().incrementAndGet();
 					strongRef = TStorage.Find(key, this);
@@ -136,6 +138,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	@Override
 	public int ReduceShare(Reduce rpc, ByteBuffer bbKey) {
+		var fresh = rpc.getResultCode();
+		rpc.setResultCode(0);
+
 		rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
 		rpc.Result.State = rpc.Argument.State;
 		rpc.Result.GlobalSerialId = rpc.Argument.GlobalSerialId;
@@ -160,6 +165,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			}
 			r.EnterFairLock();
 			try {
+				if (fresh != GlobalCacheManagerServer.AcquireFreshSource && r.isFreshAcquire()) {
+					logger.debug("Reduce SendResult fresh {}", r);
+					rpc.Result.State = GlobalCacheManagerServer.StateReduceErrorFreshAcquire;
+					rpc.SendResult();
+					return 0;
+				}
 				r.LastErrorGlobalSerialId = rpc.Argument.GlobalSerialId;
 				switch (r.getState()) {
 					case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
@@ -229,6 +240,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	@Override
 	public int ReduceInvalid(Reduce rpc, ByteBuffer bbKey) {
+		var fresh = rpc.getResultCode();
+		rpc.setResultCode(0);
+
 		rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
 		rpc.Result.State = rpc.Argument.State;
 		rpc.Result.GlobalSerialId = rpc.Argument.GlobalSerialId;
@@ -253,6 +267,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			}
 			r.EnterFairLock();
 			try {
+				if (fresh != GlobalCacheManagerServer.AcquireFreshSource && r.isFreshAcquire()) {
+					logger.debug("Reduce SendResult fresh {}", r);
+					rpc.Result.State = GlobalCacheManagerServer.StateReduceErrorFreshAcquire;
+					rpc.SendResult();
+					return 0;
+				}
 				r.LastErrorGlobalSerialId = rpc.Argument.GlobalSerialId;
 				switch (r.getState()) {
 					case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.

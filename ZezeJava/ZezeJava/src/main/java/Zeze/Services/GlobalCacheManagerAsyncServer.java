@@ -448,6 +448,9 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	}
 
 	private void AcquireShareAsync(Acquire rpc) {
+		var fresh = rpc.getResultCode();
+		rpc.setResultCode(0);
+
 		var cs = global.computeIfAbsent(rpc.Argument.GlobalKey, CacheState::new);
 		var state = new Object() {
 			int stage;
@@ -528,7 +531,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					}
 
 					state.reduceResultState = StateReduceNetError; // 默认网络错误。。
-					if (cs.Modify.ReduceWaitLater(gKey, cs.GlobalSerialId, r -> {
+					if (cs.Modify.ReduceWaitLater(gKey, cs.GlobalSerialId, fresh, r -> {
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
 						state.reduceResultState = r.isTimeout() ? StateReduceRpcTimeout : r.Result.State;
@@ -554,6 +557,18 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					assert cs.Modify != null;
 					cs.Modify.Acquired.remove(gKey);
 					break;
+
+				case StateReduceErrorFreshAcquire:
+					cs.AcquireStatePending = StateInvalid;
+					cs.lock.notifyAllWait(); //notify
+					if (ENABLE_PERF)
+						perf.onOthers("XXX Fresh " + rpc.Argument.State + " " + state.reduceResultState);
+					rpc.Result.State = StateInvalid;
+					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
+					rpc.SendResultCode(StateReduceErrorFreshAcquire);
+					if (ENABLE_PERF)
+						perf.onAcquireEnd(rpc, rpc.Argument.State);
+					return;
 
 				default:
 					// 包含协议返回错误的值的情况。
@@ -599,6 +614,9 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	}
 
 	private void AcquireModifyAsync(Acquire rpc) {
+		var fresh = rpc.getResultCode();
+		rpc.setResultCode(0);
+
 		var cs = global.computeIfAbsent(rpc.Argument.GlobalKey, CacheState::new);
 		var state = new Object() {
 			int stage;
@@ -682,7 +700,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					}
 
 					state.reduceResultState = StateReduceNetError; // 默认网络错误。
-					if (cs.Modify.ReduceWaitLater(gKey, cs.GlobalSerialId, r -> {
+					if (cs.Modify.ReduceWaitLater(gKey, cs.GlobalSerialId, fresh, r -> {
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
 						state.reduceResultState = r.isTimeout() ? StateReduceRpcTimeout : r.Result.State;
@@ -702,6 +720,18 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					assert cs.Modify != null;
 					cs.Modify.Acquired.remove(gKey);
 					break; // reduce success
+
+				case StateReduceErrorFreshAcquire:
+					cs.AcquireStatePending = StateInvalid;
+					cs.lock.notifyAllWait(); //notify
+					if (ENABLE_PERF)
+						perf.onOthers("XXX Fresh " + rpc.Argument.State + " " + state.reduceResultState);
+					rpc.Result.State = StateInvalid;
+					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
+					rpc.SendResultCode(StateReduceErrorFreshAcquire);
+					if (ENABLE_PERF)
+						perf.onAcquireEnd(rpc, rpc.Argument.State);
+					return;
 
 				default:
 					// case StateReduceRpcTimeout: // 11
@@ -747,7 +777,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					continue;
 				}
 				allReduceFuture.createOne();
-				Reduce reduce = c.ReduceWaitLater(gKey, cs.GlobalSerialId, r -> {
+				Reduce reduce = c.ReduceWaitLater(gKey, cs.GlobalSerialId, fresh, r -> {
 					if (ENABLE_PERF)
 						perf.onReduceEnd(r);
 					allReduceFuture.finishOne();
@@ -924,13 +954,14 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		/**
 		 * 返回null表示发生了网络错误，或者应用服务器已经关闭。
 		 */
-		Reduce ReduceWaitLater(Binary gkey, long globalSerialId, ProtocolHandle<Rpc<Param2, Param2>> handle) {
+		Reduce ReduceWaitLater(Binary gkey, long globalSerialId, long fresh, ProtocolHandle<Rpc<Param2, Param2>> handle) {
 			try {
 				if (System.currentTimeMillis() - LastErrorTime < Instance.AchillesHeelConfig.GlobalForbidPeriod)
 					return null;
 				AsyncSocket peer = Instance.Server.GetSocket(SessionId);
 				if (peer != null) {
 					var reduce = new Reduce(gkey, StateInvalid, globalSerialId);
+					reduce.setResultCode(fresh);
 					if (ENABLE_PERF)
 						Instance.perf.onReduceBegin(reduce);
 					if (reduce.Send(peer, handle, Instance.AchillesHeelConfig.ReduceTimeout))

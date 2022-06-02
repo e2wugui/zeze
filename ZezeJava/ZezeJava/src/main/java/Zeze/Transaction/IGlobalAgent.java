@@ -16,6 +16,6 @@ public interface IGlobalAgent extends Closeable {
 		}
 	}
 
-	AcquireResult Acquire(Binary gkey, int state);
+	AcquireResult Acquire(Binary gkey, int state, boolean fresh);
 	int GetGlobalCacheManagerHashIndex(Binary gkey);
 }

@@ -137,7 +137,7 @@ public final class GlobalAgent implements IGlobalAgent {
 	}
 
 	@Override
-	public AcquireResult Acquire(Binary gkey, int state) {
+	public AcquireResult Acquire(Binary gkey, int state, boolean fresh) {
 		if (Client != null) {
 			var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
 			var socket = agent.Connect();
@@ -145,6 +145,8 @@ public final class GlobalAgent implements IGlobalAgent {
 			// 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了），打断外面的事务。
 			// 一个请求异常不关闭连接，尝试继续工作。
 			var rpc = new Acquire(gkey, state);
+			if (fresh)
+				rpc.setResultCode(GlobalCacheManagerServer.AcquireFreshSource);
 			try {
 				rpc.SendForWait(socket, agent.getConfig().AcquireTimeout).get();
 			} catch (InterruptedException | ExecutionException e) {

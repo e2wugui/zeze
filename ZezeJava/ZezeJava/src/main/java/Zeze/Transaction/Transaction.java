@@ -317,6 +317,7 @@ public final class Transaction {
 					}
 					*/
 					for (var e : getAccessedRecords().entrySet()) {
+						e.getValue().AtomicTupleRecord.Record.setNotFresh();
 						if (e.getValue().Dirty) {
 							e.getValue().AtomicTupleRecord.Record.Commit(e.getValue());
 						}
@@ -362,6 +363,9 @@ public final class Transaction {
 	}
 
 	private void finalRollback(Procedure procedure, boolean executeRollbackAction) {
+		for (var e : getAccessedRecords().entrySet()) {
+			e.getValue().AtomicTupleRecord.Record.setNotFresh();
+		}
 		State = TransactionState.Completed;
 		if (executeRollbackAction) {
 			_trigger_rollback_actions_(procedure);

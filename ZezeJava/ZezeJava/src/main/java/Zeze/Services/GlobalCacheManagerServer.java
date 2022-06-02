@@ -24,6 +24,7 @@ import Zeze.Util.IdentityHashSet;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutInt;
+import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -383,6 +384,9 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 
 	private int AcquireShare(Acquire rpc) throws InterruptedException {
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
+		var fresh = rpc.getResultCode();
+		rpc.setResultCode(0);
+
 		while (true) {
 			CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalKey, CacheState::new);
 			synchronized (cs) { //await 等锁
@@ -443,7 +447,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					}
 
 					var reduceResultState = new OutInt(StateReduceNetError); // 默认网络错误。
-					if (cs.Modify.Reduce(gKey, cs.GlobalSerialId, r -> { //await 方法内有等待
+					if (cs.Modify.Reduce(gKey, cs.GlobalSerialId, fresh, r -> { //await 方法内有等待
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
 						reduceResultState.Value = r.isTimeout() ? StateReduceRpcTimeout : r.Result.State;
@@ -465,6 +469,17 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						// 降到了 Invalid，此时就不需要加入 Share 了。
 						cs.Modify.Acquired.remove(gKey);
 						break;
+
+					case StateReduceErrorFreshAcquire:
+						cs.AcquireStatePending = StateInvalid;
+						cs.notifyAll(); //notify
+						if (ENABLE_PERF)
+							perf.onOthers("XXX Fresh " + rpc.Argument.State + " " + reduceResultState.Value);
+						// logger.error("XXX 8 {} {} {} {}", sender, rpc.Argument.State, cs, reduceResultState.Value);
+						rpc.Result.State = StateInvalid;
+						rpc.Result.GlobalSerialId = cs.GlobalSerialId;
+						rpc.SendResultCode(StateReduceErrorFreshAcquire);
+						return 0;
 
 					default:
 						// 包含协议返回错误的值的情况。
@@ -507,6 +522,9 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 
 	private int AcquireModify(Acquire rpc) throws InterruptedException {
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
+		var fresh = rpc.getResultCode();
+		rpc.setResultCode(0);
+
 		while (true) {
 			CacheState cs = global.computeIfAbsent(rpc.Argument.GlobalKey, CacheState::new);
 			synchronized (cs) { //await 等锁
@@ -568,7 +586,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					}
 
 					var reduceResultState = new OutInt(StateReduceNetError); // 默认网络错误。
-					if (cs.Modify.Reduce(gKey, cs.GlobalSerialId, r -> { //await 方法内有等待
+					if (cs.Modify.Reduce(gKey, cs.GlobalSerialId, fresh, r -> { //await 方法内有等待
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
 						reduceResultState.Value = r.isTimeout() ? StateReduceRpcTimeout : r.Result.State;
@@ -586,6 +604,17 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					case StateInvalid:
 						cs.Modify.Acquired.remove(gKey);
 						break; // reduce success
+
+					case StateReduceErrorFreshAcquire:
+						cs.AcquireStatePending = StateInvalid;
+						cs.notifyAll(); //notify
+						if (ENABLE_PERF)
+							perf.onOthers("XXX Fresh " + rpc.Argument.State + " " + reduceResultState.Value);
+						// logger.error("XXX 8 {} {} {} {}", sender, rpc.Argument.State, cs, reduceResultState.Value);
+						rpc.Result.State = StateInvalid;
+						rpc.Result.GlobalSerialId = cs.GlobalSerialId;
+						rpc.SendResultCode(StateReduceErrorFreshAcquire);
+						return 0;
 
 					default:
 						// case StateReduceRpcTimeout: // 11
@@ -625,7 +654,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						reduceSucceed.add(sender);
 						continue;
 					}
-					Reduce reduce = c.ReduceWaitLater(gKey, cs.GlobalSerialId);
+					Reduce reduce = c.ReduceWaitLater(gKey, cs.GlobalSerialId, fresh);
 					if (reduce == null) {
 						// 网络错误不再认为成功。整个降级失败，要中断降级。
 						// 已经发出去的降级请求要等待并处理结果。后面处理。
@@ -637,17 +666,26 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 				// 两种情况不需要发reduce
 				// 1. share是空的, 可以直接升为Modify
 				// 2. sender是share, 而且reducePending的size是0
+				var errorFreshAcquire = new OutObject<Boolean>();
 				if (!cs.Share.isEmpty() && (!senderIsShare || reducePending.size() != 0)) {
 					Task.run(() -> {
 						// 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
 						// 应该也会等待所有任务结束（包括错误）。
+						var freshAcquire = false;
 						for (var reduce : reducePending) {
 							try {
 								reduce.getValue().getFuture().await(); //await 等RPC回复
-								if (reduce.getValue().Result.State == StateInvalid)
+								switch (reduce.getValue().Result.State) {
+								case StateInvalid:
 									reduceSucceed.add(reduce.getKey());
-								else
+									break;
+								case StateReduceErrorFreshAcquire:
+									// 这个错误不进入Forbid状态。
+									freshAcquire = true;
+									break;
+								default:
 									reduce.getKey().SetError();
+								}
 							} catch (Throwable ex) {
 								reduce.getKey().SetError();
 								// 等待失败不再看作成功。
@@ -655,6 +693,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 										sender, rpc.Argument.State, cs, reduce.getValue().Argument), ex);
 							}
 						}
+						errorFreshAcquire.Value = freshAcquire;
 						synchronized (cs) {
 							// 需要唤醒等待任务结束的，但没法指定，只能全部唤醒。
 							cs.notifyAll(); //notify
@@ -696,7 +735,10 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					// logger.error("XXX 10 {} {} {}", sender, rpc.Argument.State, cs);
 					rpc.Result.State = StateInvalid;
 					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-					rpc.SendResultCode(AcquireModifyFailed);
+					if (errorFreshAcquire.Value)
+						rpc.setResultCode(StateReduceErrorFreshAcquire); // 这个错误不看做失败，允许发送方继续尝试。
+					else
+						rpc.SendResultCode(AcquireModifyFailed);
 				}
 				// 很好，网络失败不再看成成功，发现除了加break，
 				// 其他处理已经能包容这个改动，都不用动。
@@ -785,13 +827,14 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			return String.valueOf(SessionId);
 		}
 
-		boolean Reduce(Binary gkey, long globalSerialId, ProtocolHandle<Rpc<Param2, Param2>> response) {
+		boolean Reduce(Binary gkey, long globalSerialId, long fresh, ProtocolHandle<Rpc<Param2, Param2>> response) {
 			try {
 				if (System.currentTimeMillis() - LastErrorTime < Instance.AchillesHeelConfig.GlobalForbidPeriod)
 					return false;
 				AsyncSocket peer = Instance.Server.GetSocket(SessionId);
 				if (peer != null) {
 					var reduce = new Reduce(gkey, StateInvalid, globalSerialId);
+					reduce.setResultCode(fresh);
 					if (ENABLE_PERF)
 						Instance.perf.onReduceBegin(reduce);
 					if (reduce.Send(peer, response, Instance.AchillesHeelConfig.ReduceTimeout)) //await 等RPC回复
@@ -818,13 +861,14 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		/**
 		 * 返回null表示发生了网络错误，或者应用服务器已经关闭。
 		 */
-		Reduce ReduceWaitLater(Binary gkey, long globalSerialId) {
+		Reduce ReduceWaitLater(Binary gkey, long globalSerialId, long fresh) {
 			try {
 				if (System.currentTimeMillis() - LastErrorTime < Instance.AchillesHeelConfig.GlobalForbidPeriod)
 					return null;
 				AsyncSocket peer = Instance.Server.GetSocket(SessionId);
 				if (peer != null) {
 					var reduce = new Reduce(gkey, StateInvalid, globalSerialId);
+					reduce.setResultCode(fresh);
 					if (ENABLE_PERF)
 						Instance.perf.onReduceBegin(reduce);
 					reduce.SendForWait(peer, Instance.AchillesHeelConfig.ReduceTimeout);

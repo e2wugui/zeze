@@ -12,6 +12,7 @@ public interface GlobalCacheManagerConst {
 	int StateReduceNetError = 13; // 用来表示 reduce 网络失败。不是状态。
 	int StateReduceDuplicate = 14; // 用来表示重复的 reduce。错误报告，不是状态。
 	int StateReduceSessionNotFound = 15;
+	int StateReduceErrorFreshAcquire = 16; // 错误码，too many try 处理机制
 
 	int AcquireShareDeadLockFound = 21;
 	int AcquireShareAlreadyIsModify = 22;
@@ -23,6 +24,7 @@ public interface GlobalCacheManagerConst {
 	int AcquireException = 28;
 	int AcquireInvalidFailed = 29;
 	int AcquireNotLogin = 30;
+	int AcquireFreshSource = 31;
 
 	int ReduceErrorState = 41;
 	int ReduceShareAlreadyIsInvalid = 42;
