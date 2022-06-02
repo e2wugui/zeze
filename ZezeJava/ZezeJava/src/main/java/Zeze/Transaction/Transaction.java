@@ -255,6 +255,11 @@ public final class Transaction {
 					procedure.getZeze().getCheckpoint().ExitFlushReadLock();
 				}
 				//logger.Debug("Checkpoint.WaitRun {0}", procedure);
+				try {
+					Thread.sleep(Zeze.Util.Random.getInstance().nextInt(100) + 10);
+				} catch (InterruptedException e) {
+					logger.error(e);
+				}
 				if (null != LastTableKeyOfRedoAndRelease)
 					procedure.getZeze().__TryWaitFlushWhenReduce(LastTableKeyOfRedoAndRelease, LastGlobalSerialIdOfRedoAndRelease);
 			}

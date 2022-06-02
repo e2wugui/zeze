@@ -11,6 +11,7 @@ ServiceConf.Acceptor ip="@internal" "@external"
 Task
 Universe
 Zege
+Too Many Try 本地忙等，原来机制在新的功能下失效。
 
 【2022/6/11】
 
