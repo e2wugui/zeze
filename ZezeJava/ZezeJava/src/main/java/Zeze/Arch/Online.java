@@ -264,29 +264,24 @@ public class Online extends AbstractOnline {
 
     public void sendReliableNotifyWhileCommit(String account, String clientId, String listenerName, Protocol<?> p) {
         Transaction.getCurrent().RunWhileCommit(
-                () -> sendReliableNotify(account, clientId, listenerName, p)
-                );
+                () -> sendReliableNotify(account, clientId, listenerName, p));
     }
 
     public void SendReliableNotifyWhileCommit(
             String account, String clientId, String listenerName, int typeId, Binary fullEncodedProtocol) {
         Transaction.getCurrent().RunWhileCommit(
-                () -> sendReliableNotify(account, clientId, listenerName, typeId, fullEncodedProtocol)
-                );
+                () -> sendReliableNotify(account, clientId, listenerName, typeId, fullEncodedProtocol));
     }
 
     public void sendReliableNotifyWhileRollback(String account, String clientId, String listenerName, Protocol<?> p) {
         Transaction.getCurrent().RunWhileRollback(
-                () -> sendReliableNotify(account, clientId, listenerName, p)
-                );
+                () -> sendReliableNotify(account, clientId, listenerName, p));
     }
 
     public void sendReliableNotifyWhileRollback(
-            String account, String clientId, String listenerName, int typeId, Binary fullEncodedProtocol)
-    {
+            String account, String clientId, String listenerName, int typeId, Binary fullEncodedProtocol) {
         Transaction.getCurrent().RunWhileRollback(
-                () -> sendReliableNotify(account, clientId, listenerName, typeId, fullEncodedProtocol)
-                );
+                () -> sendReliableNotify(account, clientId, listenerName, typeId, fullEncodedProtocol));
     }
 
     public void sendReliableNotify(String account, String clientId, String listenerName, Protocol<?> p) {
@@ -316,7 +311,7 @@ public class Online extends AbstractOnline {
                             }
                             var version = _tversion.getOrAdd(account);
                             var login = version.getLogins().get(clientId);
-                            if (null == login || false == login.getReliableNotifyMark().contains(listenerName)) {
+                            if (null == login || !login.getReliableNotifyMark().contains(listenerName)) {
                                 return Procedure.Success; // 相关数据装载的时候要同步设置这个。
                             }
 
@@ -362,7 +357,7 @@ public class Online extends AbstractOnline {
                 continue;
             }
 
-            if (false == connector.isHandshakeDone()) {
+            if (!connector.isHandshakeDone()) {
                 groupNotOnline.Logins.putIfAbsent(alogin, 0L);
                 continue;
             }
@@ -578,22 +573,25 @@ public class Online extends AbstractOnline {
 
             var ps = ProviderApp.ProviderDirectService.ProviderByServerId.get(group.ServerId);
             if (null == ps) {
+                assert groupLocal != null;
                 groupLocal.addAll(group.Accounts);
                 continue;
             }
             var socket = ProviderApp.ProviderDirectService.GetSocket(ps.SessionId);
             if (null == socket) {
+                assert groupLocal != null;
                 groupLocal.addAll(group.Accounts);
                 continue;
             }
             transmit.Send(socket);
         }
+        assert groupLocal != null;
         if (groupLocal.Accounts.size() > 0)
             processTransmit(account, clientId, actionName, groupLocal.Accounts, parameter);
     }
 
     public void transmit(String account, String clientId, String actionName, Collection<String> targets, Serializable parameter) throws Throwable {
-        if (false == TransmitActions.containsKey(actionName))
+        if (!TransmitActions.containsKey(actionName))
             throw new RuntimeException("Unkown Action Name: " + actionName);
 
         var binaryParam = parameter == null ? Binary.Empty : new Binary(ByteBuffer.Encode(parameter));
@@ -605,7 +603,7 @@ public class Online extends AbstractOnline {
     }
 
     public void transmitWhileCommit(String account, String clientId, String actionName, String target, Serializable parameter) {
-        if (false == TransmitActions.containsKey(actionName))
+        if (!TransmitActions.containsKey(actionName))
             throw new RuntimeException("Unkown Action Name: " + actionName);
         Transaction.getCurrent().RunWhileCommit(() -> {
             try {
@@ -617,7 +615,7 @@ public class Online extends AbstractOnline {
     }
 
     public void transmitWhileCommit(String account, String clientId, String actionName, Collection<String> targets, Serializable parameter) {
-        if (false == TransmitActions.containsKey(actionName))
+        if (!TransmitActions.containsKey(actionName))
             throw new RuntimeException("Unkown Action Name: " + actionName);
         Transaction.getCurrent().RunWhileCommit(() -> {
             try {
@@ -629,7 +627,7 @@ public class Online extends AbstractOnline {
     }
 
     public void transmitWhileRollback(String account, String clientId, String actionName, String target, Serializable parameter) {
-        if (false == TransmitActions.containsKey(actionName))
+        if (!TransmitActions.containsKey(actionName))
             throw new RuntimeException("Unkown Action Name: " + actionName);
         Transaction.getCurrent().RunWhileRollback(() -> {
             try {
@@ -641,7 +639,7 @@ public class Online extends AbstractOnline {
     }
 
     public void transmitWhileRollback(String account, String clientId, String actionName, Collection<String> targets, Serializable parameter) {
-        if (false == TransmitActions.containsKey(actionName))
+        if (!TransmitActions.containsKey(actionName))
             throw new RuntimeException("Unkown Action Name: " + actionName);
         Transaction.getCurrent().RunWhileRollback(() -> {
             try {
@@ -757,7 +755,7 @@ public class Online extends AbstractOnline {
         // 当LinkName,LinkSid没有变化的时候，保持记录是读取状态，不会申请写锁。
         // 因为Online数据可能会被很多地方缓存，写操作会造成缓存失效。
         // see Linkd.StableLinkSid
-        if (false == loginOnline.getLinkName().equals(session.getLinkName()))
+        if (!loginOnline.getLinkName().equals(session.getLinkName()))
             loginOnline.setLinkName(session.getLinkName());
         if (loginOnline.getLinkSid() != session.getLinkSid())
             loginOnline.setLinkSid(session.getLinkSid());
@@ -768,7 +766,7 @@ public class Online extends AbstractOnline {
         loginVersion.getReliableNotifyMark().clear();
         OpenQueue(session.getAccount(), rpc.Argument.getClientId()).clear();
 
-        var linkSession = (ProviderService.LinkSession)session.getLink().getUserState();
+        // var linkSession = (ProviderService.LinkSession)session.getLink().getUserState();
         loginVersion.setServerId(ProviderApp.Zeze.getConfig().getServerId());
 
         LoginTrigger(session.getAccount(), rpc.Argument.getClientId());
@@ -898,7 +896,7 @@ public class Online extends AbstractOnline {
         // 因为Online数据可能会被很多地方缓存，写操作会造成缓存失效。
         // see Linkd.StableLinkSid
         var loginOnline = online.getLogins().getOrAdd(rpc.Argument.getClientId());
-        if (false == loginOnline.getLinkName().equals(session.getLinkName()))
+        if (!loginOnline.getLinkName().equals(session.getLinkName()))
             loginOnline.setLinkName(session.getLinkName());
         if (loginOnline.getLinkSid() != session.getLinkSid())
             loginOnline.setLinkSid(session.getLinkSid());

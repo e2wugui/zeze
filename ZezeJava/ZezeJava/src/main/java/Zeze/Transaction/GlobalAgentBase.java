@@ -2,10 +2,8 @@ package Zeze.Transaction;
 
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import Zeze.Application;
-import Zeze.Net.AsyncSocket;
 import Zeze.Services.AchillesHeelConfig;
 import Zeze.Util.Task;
 
@@ -35,7 +33,7 @@ public abstract class GlobalAgentBase {
 
 	public abstract void keepAlive();
 
-	private ConcurrentHashMap<Integer, Releaser> Releasers = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<Integer, Releaser> Releasers = new ConcurrentHashMap<>();
 
 	public boolean checkReleaseTimeout(int index, long now, int timeout) {
 		var r = Releasers.get(index);
@@ -50,7 +48,7 @@ public abstract class GlobalAgentBase {
 		return now - r.StartTime > timeout;
 	}
 
-	public class Releaser {
+	public static class Releaser {
 		public int GlobalIndex;
 		public long StartTime = System.currentTimeMillis();
 		public ArrayList<Future<Boolean>> Tasks = new ArrayList<>();
@@ -58,8 +56,8 @@ public abstract class GlobalAgentBase {
 		public final boolean isCompletedSuccessfully() {
 			try {
 				for (var task : Tasks) {
-						if (!task.isDone() || !task.get())
-							return false;
+					if (!task.isDone() || !task.get())
+						return false;
 				}
 				return true;
 			} catch (Exception e) {

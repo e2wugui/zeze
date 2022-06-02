@@ -474,8 +474,8 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						cs.AcquireStatePending = StateInvalid;
 						cs.notifyAll(); //notify
 						if (ENABLE_PERF)
-							perf.onOthers("XXX Fresh " + rpc.Argument.State + " " + reduceResultState.Value);
-						// logger.error("XXX 8 {} {} {} {}", sender, rpc.Argument.State, cs, reduceResultState.Value);
+							perf.onOthers("XXX Fresh " + rpc.Argument.State);
+						// logger.error("XXX Fresh {} {} {}", sender, rpc.Argument.State, cs);
 						rpc.Result.State = StateInvalid;
 						rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 						rpc.SendResultCode(StateReduceErrorFreshAcquire);
@@ -608,8 +608,8 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						cs.AcquireStatePending = StateInvalid;
 						cs.notifyAll(); //notify
 						if (ENABLE_PERF)
-							perf.onOthers("XXX Fresh " + rpc.Argument.State + " " + reduceResultState.Value);
-						// logger.error("XXX 8 {} {} {} {}", sender, rpc.Argument.State, cs, reduceResultState.Value);
+							perf.onOthers("XXX Fresh " + rpc.Argument.State);
+						// logger.error("XXX Fresh {} {} {}", sender, rpc.Argument.State, cs);
 						rpc.Result.State = StateInvalid;
 						rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 						rpc.SendResultCode(StateReduceErrorFreshAcquire);

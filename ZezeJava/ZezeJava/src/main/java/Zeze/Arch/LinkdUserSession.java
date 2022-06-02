@@ -177,7 +177,7 @@ public class LinkdUserSession {
 			KeepAliveTask.cancel(false);
 		}
 
-		if (false == isAuthed()) {
+		if (!isAuthed()) {
 			// 未验证通过的不通告。此时Binds肯定是空的。
 			return;
 		}

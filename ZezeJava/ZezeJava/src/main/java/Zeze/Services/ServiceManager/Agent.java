@@ -352,10 +352,11 @@ public final class Agent implements Closeable {
 		return reg;
 	}
 
-	private void Verify(String identity)
-	{
-		if (false == identity.startsWith("@"))
+	private void Verify(String identity) {
+		if (!identity.startsWith("@")) {
+			//noinspection ResultOfMethodCallIgnored
 			Integer.parseInt(identity);
+		}
 	}
 
 	private ServiceInfo RegisterService(ServiceInfo info) {

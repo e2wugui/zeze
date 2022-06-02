@@ -136,7 +136,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	@Override
 	public void DispatchUnknownProtocol(Zeze.Net.AsyncSocket so, int moduleId, int protocolId, Zeze.Serialize.ByteBuffer data) {
 		var linkSession = (LinkdUserSession)so.getUserState();
-		if (null == linkSession || false == linkSession.isAuthed()) {
+		if (null == linkSession || !linkSession.isAuthed()) {
 			ReportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNotAuthed, "not authed.");
 			return;
 		}

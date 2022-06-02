@@ -62,6 +62,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 			var providerSocket = LinkdApp.LinkdProviderService.GetSocket(provider.Value);
 			if (null != providerSocket) {
 				// ChoiceProviderAndBind 内部已经处理了绑定。这里只需要发送。
+				//noinspection RedundantIfStatement
 				if (OnSend.call(providerSocket))
 					return true;
 			}

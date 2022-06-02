@@ -563,7 +563,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					cs.AcquireStatePending = StateInvalid;
 					cs.lock.notifyAllWait(); //notify
 					if (ENABLE_PERF)
-						perf.onOthers("XXX Fresh " + rpc.Argument.State + " " + state.reduceResultState);
+						perf.onOthers("XXX Fresh " + rpc.Argument.State);
 					rpc.Result.State = StateInvalid;
 					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 					rpc.SendResultCode(StateReduceErrorFreshAcquire);
@@ -725,7 +725,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					cs.AcquireStatePending = StateInvalid;
 					cs.lock.notifyAllWait(); //notify
 					if (ENABLE_PERF)
-						perf.onOthers("XXX Fresh " + rpc.Argument.State + " " + state.reduceResultState);
+						perf.onOthers("XXX Fresh " + rpc.Argument.State);
 					rpc.Result.State = StateInvalid;
 					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 					rpc.SendResultCode(StateReduceErrorFreshAcquire);
