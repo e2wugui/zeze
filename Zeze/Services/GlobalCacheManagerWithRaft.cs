@@ -38,6 +38,7 @@ namespace Zeze.Services
                     {
                         case GlobalCacheManagerServer.StateInvalid: // realease
                             rpc.Result.State = await ReleasePrivate(session, rpc.Argument.GlobalKey, true);
+                            rpc.ResultCode = 0;
                             return 0;
 
                         case GlobalCacheManagerServer.StateShare:
@@ -48,6 +49,7 @@ namespace Zeze.Services
 
                         default:
                             rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+                            rpc.ResultCode = 0;
                             return GlobalCacheManagerServer.AcquireErrorState;
                     }
                 })
