@@ -20,7 +20,6 @@ namespace Zeze.Services
             var rpc = _p as Acquire;
             rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
             rpc.Result.State = rpc.Argument.State; // default success
-            rpc.ResultCode = 0;
 
             if (rpc.Sender.UserState == null)
             {

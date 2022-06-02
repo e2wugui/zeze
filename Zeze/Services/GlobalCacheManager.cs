@@ -390,7 +390,7 @@ namespace Zeze.Services
                 {
                     case StateInvalid: // realease
                         rpc.Result.State = await ReleaseAsync(session, rpc.Argument.GlobalKey, true);
-                        rpc.SendResult();
+                        rpc.SendResultCode(0);
                         return 0;
 
                     case StateShare:
