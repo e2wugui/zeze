@@ -28,7 +28,7 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
             return _ReturnCode;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__ReturnCode)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _ReturnCode;
+        return log != null ? log.Value : _ReturnCode;
     }
 
     public void setReturnCode(long value) {
@@ -50,7 +50,7 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
             return _Params;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__Params)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _Params;
+        return log != null ? log.Value : _Params;
     }
 
     public void setParams(Zeze.Net.Binary value) {
@@ -108,18 +108,18 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__ReturnCode extends Zeze.Transaction.Log1<BModuleRedirectAllHash, Long> {
-        public Log__ReturnCode(BModuleRedirectAllHash bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__ReturnCode extends Zeze.Transaction.Logs.LogLong {
+        public Log__ReturnCode(BModuleRedirectAllHash bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._ReturnCode = this.getValue(); }
+        public void Commit() { ((BModuleRedirectAllHash)getBelong())._ReturnCode = Value; }
     }
 
-    private static final class Log__Params extends Zeze.Transaction.Log1<BModuleRedirectAllHash, Zeze.Net.Binary> {
+    private static final class Log__Params extends Zeze.Transaction.Logs.LogBinary {
         public Log__Params(BModuleRedirectAllHash bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._Params = this.getValue(); }
+        public void Commit() { ((BModuleRedirectAllHash)getBelong())._Params = Value; }
     }
 
     @Override

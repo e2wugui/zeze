@@ -16,7 +16,7 @@ public final class BTableKey extends Zeze.Transaction.Bean {
             return _TableName;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__TableName)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _TableName;
+        return log != null ? log.Value : _TableName;
     }
 
     public void setTableName(String value) {
@@ -40,7 +40,7 @@ public final class BTableKey extends Zeze.Transaction.Bean {
             return _EncodedKey;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__EncodedKey)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _EncodedKey;
+        return log != null ? log.Value : _EncodedKey;
     }
 
     public void setEncodedKey(Zeze.Net.Binary value) {
@@ -99,18 +99,18 @@ public final class BTableKey extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__TableName extends Zeze.Transaction.Log1<BTableKey, String> {
+    private static final class Log__TableName extends Zeze.Transaction.Logs.LogString {
         public Log__TableName(BTableKey bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._TableName = this.getValue(); }
+        public void Commit() { ((BTableKey)getBelong())._TableName = Value; }
     }
 
-    private static final class Log__EncodedKey extends Zeze.Transaction.Log1<BTableKey, Zeze.Net.Binary> {
+    private static final class Log__EncodedKey extends Zeze.Transaction.Logs.LogBinary {
         public Log__EncodedKey(BTableKey bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._EncodedKey = this.getValue(); }
+        public void Commit() { ((BTableKey)getBelong())._EncodedKey = Value; }
     }
 
     @Override

@@ -20,7 +20,7 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
             return _ReliableNotifyIndex;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__ReliableNotifyIndex)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _ReliableNotifyIndex;
+        return log != null ? log.Value : _ReliableNotifyIndex;
     }
 
     public void setReliableNotifyIndex(long value) {
@@ -79,11 +79,11 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__ReliableNotifyIndex extends Zeze.Transaction.Log1<BReliableNotify, Long> {
-        public Log__ReliableNotifyIndex(BReliableNotify bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__ReliableNotifyIndex extends Zeze.Transaction.Logs.LogLong {
+        public Log__ReliableNotifyIndex(BReliableNotify bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._ReliableNotifyIndex = this.getValue(); }
+        public void Commit() { ((BReliableNotify)getBelong())._ReliableNotifyIndex = Value; }
     }
 
     @Override

@@ -21,7 +21,7 @@ public class RecordAccessed extends Bean {
 
 	public static class PutLog extends Log1<RecordAccessed, Bean> {
 		public PutLog(RecordAccessed bean, Bean putValue) {
-			super(bean, putValue);
+			super(bean, 0, putValue);
 		}
 
 		@Override

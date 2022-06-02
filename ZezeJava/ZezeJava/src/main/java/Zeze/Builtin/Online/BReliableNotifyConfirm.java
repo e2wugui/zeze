@@ -17,7 +17,7 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
             return _ClientId;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__ClientId)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _ClientId;
+        return log != null ? log.Value : _ClientId;
     }
 
     public void setClientId(String value) {
@@ -41,7 +41,7 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
             return _ReliableNotifyConfirmIndex;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__ReliableNotifyConfirmIndex)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _ReliableNotifyConfirmIndex;
+        return log != null ? log.Value : _ReliableNotifyConfirmIndex;
     }
 
     public void setReliableNotifyConfirmIndex(long value) {
@@ -63,7 +63,7 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
             return _Sync;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__Sync)txn.GetLog(this.getObjectId() + 3);
-        return log != null ? log.getValue() : _Sync;
+        return log != null ? log.Value : _Sync;
     }
 
     public void setSync(boolean value) {
@@ -120,25 +120,25 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__ClientId extends Zeze.Transaction.Log1<BReliableNotifyConfirm, String> {
+    private static final class Log__ClientId extends Zeze.Transaction.Logs.LogString {
         public Log__ClientId(BReliableNotifyConfirm bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._ClientId = this.getValue(); }
+        public void Commit() { ((BReliableNotifyConfirm)getBelong())._ClientId = Value; }
     }
 
-    private static final class Log__ReliableNotifyConfirmIndex extends Zeze.Transaction.Log1<BReliableNotifyConfirm, Long> {
-        public Log__ReliableNotifyConfirmIndex(BReliableNotifyConfirm bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__ReliableNotifyConfirmIndex extends Zeze.Transaction.Logs.LogLong {
+        public Log__ReliableNotifyConfirmIndex(BReliableNotifyConfirm bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._ReliableNotifyConfirmIndex = this.getValue(); }
+        public void Commit() { ((BReliableNotifyConfirm)getBelong())._ReliableNotifyConfirmIndex = Value; }
     }
 
-    private static final class Log__Sync extends Zeze.Transaction.Log1<BReliableNotifyConfirm, Boolean> {
-        public Log__Sync(BReliableNotifyConfirm bean, int varId, Boolean value) { super(bean, varId, value); }
+    private static final class Log__Sync extends Zeze.Transaction.Logs.LogBool {
+        public Log__Sync(BReliableNotifyConfirm bean, int varId, boolean value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._Sync = this.getValue(); }
+        public void Commit() { ((BReliableNotifyConfirm)getBelong())._Sync = Value; }
     }
 
     @Override

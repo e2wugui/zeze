@@ -40,7 +40,7 @@ public final class BItem extends Zeze.Transaction.Bean {
             return _Id;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__Id)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _Id;
+        return log != null ? log.Value : _Id;
     }
 
     public void setId(int value) {
@@ -62,7 +62,7 @@ public final class BItem extends Zeze.Transaction.Bean {
             return _Number;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__Number)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _Number;
+        return log != null ? log.Value : _Number;
     }
 
     public void setNumber(int value) {
@@ -123,18 +123,18 @@ public final class BItem extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__Id extends Zeze.Transaction.Log1<BItem, Integer> {
-        public Log__Id(BItem bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__Id extends Zeze.Transaction.Logs.LogInt {
+        public Log__Id(BItem bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._Id = this.getValue(); }
+        public void Commit() { ((BItem)getBelong())._Id = Value; }
     }
 
-    private static final class Log__Number extends Zeze.Transaction.Log1<BItem, Integer> {
-        public Log__Number(BItem bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__Number extends Zeze.Transaction.Logs.LogInt {
+        public Log__Number(BItem bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._Number = this.getValue(); }
+        public void Commit() { ((BItem)getBelong())._Number = Value; }
     }
 
     @Override

@@ -17,7 +17,7 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
             return _Ip;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__Ip)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _Ip;
+        return log != null ? log.Value : _Ip;
     }
 
     public void setIp(String value) {
@@ -41,7 +41,7 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
             return _Port;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__Port)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _Port;
+        return log != null ? log.Value : _Port;
     }
 
     public void setPort(int value) {
@@ -63,7 +63,7 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
             return _ServerId;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__ServerId)txn.GetLog(this.getObjectId() + 3);
-        return log != null ? log.getValue() : _ServerId;
+        return log != null ? log.Value : _ServerId;
     }
 
     public void setServerId(int value) {
@@ -120,25 +120,25 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__Ip extends Zeze.Transaction.Log1<BProviderInfo, String> {
+    private static final class Log__Ip extends Zeze.Transaction.Logs.LogString {
         public Log__Ip(BProviderInfo bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._Ip = this.getValue(); }
+        public void Commit() { ((BProviderInfo)getBelong())._Ip = Value; }
     }
 
-    private static final class Log__Port extends Zeze.Transaction.Log1<BProviderInfo, Integer> {
-        public Log__Port(BProviderInfo bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__Port extends Zeze.Transaction.Logs.LogInt {
+        public Log__Port(BProviderInfo bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._Port = this.getValue(); }
+        public void Commit() { ((BProviderInfo)getBelong())._Port = Value; }
     }
 
-    private static final class Log__ServerId extends Zeze.Transaction.Log1<BProviderInfo, Integer> {
-        public Log__ServerId(BProviderInfo bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__ServerId extends Zeze.Transaction.Logs.LogInt {
+        public Log__ServerId(BProviderInfo bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._ServerId = this.getValue(); }
+        public void Commit() { ((BProviderInfo)getBelong())._ServerId = Value; }
     }
 
     @Override

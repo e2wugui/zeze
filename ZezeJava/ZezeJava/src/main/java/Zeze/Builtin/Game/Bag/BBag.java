@@ -16,7 +16,7 @@ public final class BBag extends Zeze.Transaction.Bean {
             return _Capacity;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__Capacity)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _Capacity;
+        return log != null ? log.Value : _Capacity;
     }
 
     public void setCapacity(int value) {
@@ -79,11 +79,11 @@ public final class BBag extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__Capacity extends Zeze.Transaction.Log1<BBag, Integer> {
-        public Log__Capacity(BBag bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__Capacity extends Zeze.Transaction.Logs.LogInt {
+        public Log__Capacity(BBag bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._Capacity = this.getValue(); }
+        public void Commit() { ((BBag)getBelong())._Capacity = Value; }
     }
 
     @Override

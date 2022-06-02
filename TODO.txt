@@ -31,12 +31,14 @@ java.lang.IllegalStateException: CacheState state error
  at Zeze.Services.GlobalCacheManagerWithRaft.AcquireShare(GlobalCacheManagerWithRaft.java:188)
 
 ------------------------------------------------------------------------------------------------------------------------------
-tag 0.9.8 
+tag 0.9.8 AchillesHeel & Handshake & Too Many Try
 ------------------------------------------------------------------------------------------------------------------------------
 Handshake 是否加密可以配置。默认不加密。
 AsyncSocket.VerifySecurity 在 CHandshakeDone处理时调用一次。不再需要在DispatchProtocol时调用。
 Global错误处理：GS增加AchillesHeelDaemon，申请token（特别的keepalive）机制，本地释放锁超时，如果稍有不正常，就自杀。
 too many try: 从Global得到锁以后，确保本地至少用过一次（事务成功），才允许Reduce。
+Global-Server 错误恢复测试。1. Server 强制杀掉，8秒内重启。2. Server 强制杀掉，Global一定时间后回收记录锁。
+Java Apply Zeze.Transaction.Logs
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 0.9.7 Java TableCache SoftReference Fix Bug Timestamp Value Access Order

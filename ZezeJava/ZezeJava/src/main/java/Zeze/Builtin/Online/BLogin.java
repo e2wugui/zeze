@@ -15,7 +15,7 @@ public final class BLogin extends Zeze.Transaction.Bean {
             return _ClientId;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__ClientId)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _ClientId;
+        return log != null ? log.Value : _ClientId;
     }
 
     public void setClientId(String value) {
@@ -72,11 +72,11 @@ public final class BLogin extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__ClientId extends Zeze.Transaction.Log1<BLogin, String> {
+    private static final class Log__ClientId extends Zeze.Transaction.Logs.LogString {
         public Log__ClientId(BLogin bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._ClientId = this.getValue(); }
+        public void Commit() { ((BLogin)getBelong())._ClientId = Value; }
     }
 
     @Override

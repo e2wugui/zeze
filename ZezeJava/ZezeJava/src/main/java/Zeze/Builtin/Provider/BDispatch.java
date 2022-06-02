@@ -20,7 +20,7 @@ public final class BDispatch extends Zeze.Transaction.Bean {
             return _linkSid;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__linkSid)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _linkSid;
+        return log != null ? log.Value : _linkSid;
     }
 
     public void setLinkSid(long value) {
@@ -42,7 +42,7 @@ public final class BDispatch extends Zeze.Transaction.Bean {
             return _account;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__account)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _account;
+        return log != null ? log.Value : _account;
     }
 
     public void setAccount(String value) {
@@ -66,7 +66,7 @@ public final class BDispatch extends Zeze.Transaction.Bean {
             return _protocolType;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__protocolType)txn.GetLog(this.getObjectId() + 3);
-        return log != null ? log.getValue() : _protocolType;
+        return log != null ? log.Value : _protocolType;
     }
 
     public void setProtocolType(long value) {
@@ -88,7 +88,7 @@ public final class BDispatch extends Zeze.Transaction.Bean {
             return _protocolData;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__protocolData)txn.GetLog(this.getObjectId() + 4);
-        return log != null ? log.getValue() : _protocolData;
+        return log != null ? log.Value : _protocolData;
     }
 
     public void setProtocolData(Zeze.Net.Binary value) {
@@ -112,7 +112,7 @@ public final class BDispatch extends Zeze.Transaction.Bean {
             return _context;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__context)txn.GetLog(this.getObjectId() + 5);
-        return log != null ? log.getValue() : _context;
+        return log != null ? log.Value : _context;
     }
 
     public void setContext(String value) {
@@ -136,7 +136,7 @@ public final class BDispatch extends Zeze.Transaction.Bean {
             return _contextx;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__contextx)txn.GetLog(this.getObjectId() + 6);
-        return log != null ? log.getValue() : _contextx;
+        return log != null ? log.Value : _contextx;
     }
 
     public void setContextx(Zeze.Net.Binary value) {
@@ -201,46 +201,46 @@ public final class BDispatch extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__linkSid extends Zeze.Transaction.Log1<BDispatch, Long> {
-        public Log__linkSid(BDispatch bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__linkSid extends Zeze.Transaction.Logs.LogLong {
+        public Log__linkSid(BDispatch bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._linkSid = this.getValue(); }
+        public void Commit() { ((BDispatch)getBelong())._linkSid = Value; }
     }
 
-    private static final class Log__account extends Zeze.Transaction.Log1<BDispatch, String> {
+    private static final class Log__account extends Zeze.Transaction.Logs.LogString {
         public Log__account(BDispatch bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._account = this.getValue(); }
+        public void Commit() { ((BDispatch)getBelong())._account = Value; }
     }
 
-    private static final class Log__protocolType extends Zeze.Transaction.Log1<BDispatch, Long> {
-        public Log__protocolType(BDispatch bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__protocolType extends Zeze.Transaction.Logs.LogLong {
+        public Log__protocolType(BDispatch bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._protocolType = this.getValue(); }
+        public void Commit() { ((BDispatch)getBelong())._protocolType = Value; }
     }
 
-    private static final class Log__protocolData extends Zeze.Transaction.Log1<BDispatch, Zeze.Net.Binary> {
+    private static final class Log__protocolData extends Zeze.Transaction.Logs.LogBinary {
         public Log__protocolData(BDispatch bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._protocolData = this.getValue(); }
+        public void Commit() { ((BDispatch)getBelong())._protocolData = Value; }
     }
 
-    private static final class Log__context extends Zeze.Transaction.Log1<BDispatch, String> {
+    private static final class Log__context extends Zeze.Transaction.Logs.LogString {
         public Log__context(BDispatch bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._context = this.getValue(); }
+        public void Commit() { ((BDispatch)getBelong())._context = Value; }
     }
 
-    private static final class Log__contextx extends Zeze.Transaction.Log1<BDispatch, Zeze.Net.Binary> {
+    private static final class Log__contextx extends Zeze.Transaction.Logs.LogBinary {
         public Log__contextx(BDispatch bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._contextx = this.getValue(); }
+        public void Commit() { ((BDispatch)getBelong())._contextx = Value; }
     }
 
     @Override

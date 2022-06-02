@@ -19,7 +19,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
             return _ActionName;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__ActionName)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _ActionName;
+        return log != null ? log.Value : _ActionName;
     }
 
     public void setActionName(String value) {
@@ -43,7 +43,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
             return _Parameter;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__Parameter)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _Parameter;
+        return log != null ? log.Value : _Parameter;
     }
 
     public void setParameter(Zeze.Net.Binary value) {
@@ -71,7 +71,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
             return _SenderAccount;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__SenderAccount)txn.GetLog(this.getObjectId() + 4);
-        return log != null ? log.getValue() : _SenderAccount;
+        return log != null ? log.Value : _SenderAccount;
     }
 
     public void setSenderAccount(String value) {
@@ -95,7 +95,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
             return _SenderClientId;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__SenderClientId)txn.GetLog(this.getObjectId() + 5);
-        return log != null ? log.getValue() : _SenderClientId;
+        return log != null ? log.Value : _SenderClientId;
     }
 
     public void setSenderClientId(String value) {
@@ -163,32 +163,32 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__ActionName extends Zeze.Transaction.Log1<BTransmitAccount, String> {
+    private static final class Log__ActionName extends Zeze.Transaction.Logs.LogString {
         public Log__ActionName(BTransmitAccount bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._ActionName = this.getValue(); }
+        public void Commit() { ((BTransmitAccount)getBelong())._ActionName = Value; }
     }
 
-    private static final class Log__Parameter extends Zeze.Transaction.Log1<BTransmitAccount, Zeze.Net.Binary> {
+    private static final class Log__Parameter extends Zeze.Transaction.Logs.LogBinary {
         public Log__Parameter(BTransmitAccount bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._Parameter = this.getValue(); }
+        public void Commit() { ((BTransmitAccount)getBelong())._Parameter = Value; }
     }
 
-    private static final class Log__SenderAccount extends Zeze.Transaction.Log1<BTransmitAccount, String> {
+    private static final class Log__SenderAccount extends Zeze.Transaction.Logs.LogString {
         public Log__SenderAccount(BTransmitAccount bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._SenderAccount = this.getValue(); }
+        public void Commit() { ((BTransmitAccount)getBelong())._SenderAccount = Value; }
     }
 
-    private static final class Log__SenderClientId extends Zeze.Transaction.Log1<BTransmitAccount, String> {
+    private static final class Log__SenderClientId extends Zeze.Transaction.Logs.LogString {
         public Log__SenderClientId(BTransmitAccount bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._SenderClientId = this.getValue(); }
+        public void Commit() { ((BTransmitAccount)getBelong())._SenderClientId = Value; }
     }
 
     @Override

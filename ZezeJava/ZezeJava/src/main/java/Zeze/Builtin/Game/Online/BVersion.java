@@ -19,7 +19,7 @@ public final class BVersion extends Zeze.Transaction.Bean {
             return _LoginVersion;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__LoginVersion)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _LoginVersion;
+        return log != null ? log.Value : _LoginVersion;
     }
 
     public void setLoginVersion(long value) {
@@ -45,7 +45,7 @@ public final class BVersion extends Zeze.Transaction.Bean {
             return _ReliableNotifyConfirmIndex;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__ReliableNotifyConfirmIndex)txn.GetLog(this.getObjectId() + 3);
-        return log != null ? log.getValue() : _ReliableNotifyConfirmIndex;
+        return log != null ? log.Value : _ReliableNotifyConfirmIndex;
     }
 
     public void setReliableNotifyConfirmIndex(long value) {
@@ -67,7 +67,7 @@ public final class BVersion extends Zeze.Transaction.Bean {
             return _ReliableNotifyIndex;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__ReliableNotifyIndex)txn.GetLog(this.getObjectId() + 4);
-        return log != null ? log.getValue() : _ReliableNotifyIndex;
+        return log != null ? log.Value : _ReliableNotifyIndex;
     }
 
     public void setReliableNotifyIndex(long value) {
@@ -89,7 +89,7 @@ public final class BVersion extends Zeze.Transaction.Bean {
             return _ServerId;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__ServerId)txn.GetLog(this.getObjectId() + 5);
-        return log != null ? log.getValue() : _ServerId;
+        return log != null ? log.Value : _ServerId;
     }
 
     public void setServerId(int value) {
@@ -151,32 +151,32 @@ public final class BVersion extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__LoginVersion extends Zeze.Transaction.Log1<BVersion, Long> {
-        public Log__LoginVersion(BVersion bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__LoginVersion extends Zeze.Transaction.Logs.LogLong {
+        public Log__LoginVersion(BVersion bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._LoginVersion = this.getValue(); }
+        public void Commit() { ((BVersion)getBelong())._LoginVersion = Value; }
     }
 
-    private static final class Log__ReliableNotifyConfirmIndex extends Zeze.Transaction.Log1<BVersion, Long> {
-        public Log__ReliableNotifyConfirmIndex(BVersion bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__ReliableNotifyConfirmIndex extends Zeze.Transaction.Logs.LogLong {
+        public Log__ReliableNotifyConfirmIndex(BVersion bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._ReliableNotifyConfirmIndex = this.getValue(); }
+        public void Commit() { ((BVersion)getBelong())._ReliableNotifyConfirmIndex = Value; }
     }
 
-    private static final class Log__ReliableNotifyIndex extends Zeze.Transaction.Log1<BVersion, Long> {
-        public Log__ReliableNotifyIndex(BVersion bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__ReliableNotifyIndex extends Zeze.Transaction.Logs.LogLong {
+        public Log__ReliableNotifyIndex(BVersion bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._ReliableNotifyIndex = this.getValue(); }
+        public void Commit() { ((BVersion)getBelong())._ReliableNotifyIndex = Value; }
     }
 
-    private static final class Log__ServerId extends Zeze.Transaction.Log1<BVersion, Integer> {
-        public Log__ServerId(BVersion bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__ServerId extends Zeze.Transaction.Logs.LogInt {
+        public Log__ServerId(BVersion bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._ServerId = this.getValue(); }
+        public void Commit() { ((BVersion)getBelong())._ServerId = Value; }
     }
 
     @Override

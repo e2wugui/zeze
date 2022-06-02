@@ -21,7 +21,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean {
             return _account;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__account)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _account;
+        return log != null ? log.Value : _account;
     }
 
     public void setAccount(String value) {
@@ -45,7 +45,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean {
             return _linkSid;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__linkSid)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _linkSid;
+        return log != null ? log.Value : _linkSid;
     }
 
     public void setLinkSid(long value) {
@@ -67,7 +67,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean {
             return _reason;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__reason)txn.GetLog(this.getObjectId() + 3);
-        return log != null ? log.getValue() : _reason;
+        return log != null ? log.Value : _reason;
     }
 
     public void setReason(int value) {
@@ -89,7 +89,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean {
             return _context;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__context)txn.GetLog(this.getObjectId() + 5);
-        return log != null ? log.getValue() : _context;
+        return log != null ? log.Value : _context;
     }
 
     public void setContext(String value) {
@@ -113,7 +113,7 @@ public final class BLinkBroken extends Zeze.Transaction.Bean {
             return _contextx;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__contextx)txn.GetLog(this.getObjectId() + 6);
-        return log != null ? log.getValue() : _contextx;
+        return log != null ? log.Value : _contextx;
     }
 
     public void setContextx(Zeze.Net.Binary value) {
@@ -176,39 +176,39 @@ public final class BLinkBroken extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__account extends Zeze.Transaction.Log1<BLinkBroken, String> {
+    private static final class Log__account extends Zeze.Transaction.Logs.LogString {
         public Log__account(BLinkBroken bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._account = this.getValue(); }
+        public void Commit() { ((BLinkBroken)getBelong())._account = Value; }
     }
 
-    private static final class Log__linkSid extends Zeze.Transaction.Log1<BLinkBroken, Long> {
-        public Log__linkSid(BLinkBroken bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__linkSid extends Zeze.Transaction.Logs.LogLong {
+        public Log__linkSid(BLinkBroken bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._linkSid = this.getValue(); }
+        public void Commit() { ((BLinkBroken)getBelong())._linkSid = Value; }
     }
 
-    private static final class Log__reason extends Zeze.Transaction.Log1<BLinkBroken, Integer> {
-        public Log__reason(BLinkBroken bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__reason extends Zeze.Transaction.Logs.LogInt {
+        public Log__reason(BLinkBroken bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._reason = this.getValue(); }
+        public void Commit() { ((BLinkBroken)getBelong())._reason = Value; }
     }
 
-    private static final class Log__context extends Zeze.Transaction.Log1<BLinkBroken, String> {
+    private static final class Log__context extends Zeze.Transaction.Logs.LogString {
         public Log__context(BLinkBroken bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._context = this.getValue(); }
+        public void Commit() { ((BLinkBroken)getBelong())._context = Value; }
     }
 
-    private static final class Log__contextx extends Zeze.Transaction.Log1<BLinkBroken, Zeze.Net.Binary> {
+    private static final class Log__contextx extends Zeze.Transaction.Logs.LogBinary {
         public Log__contextx(BLinkBroken bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._contextx = this.getValue(); }
+        public void Commit() { ((BLinkBroken)getBelong())._contextx = Value; }
     }
 
     @Override

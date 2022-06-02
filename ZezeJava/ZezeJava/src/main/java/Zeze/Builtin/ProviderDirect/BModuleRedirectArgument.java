@@ -20,7 +20,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean {
             return _ModuleId;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__ModuleId)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _ModuleId;
+        return log != null ? log.Value : _ModuleId;
     }
 
     public void setModuleId(int value) {
@@ -42,7 +42,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean {
             return _HashCode;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__HashCode)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _HashCode;
+        return log != null ? log.Value : _HashCode;
     }
 
     public void setHashCode(int value) {
@@ -64,7 +64,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean {
             return _RedirectType;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__RedirectType)txn.GetLog(this.getObjectId() + 3);
-        return log != null ? log.getValue() : _RedirectType;
+        return log != null ? log.Value : _RedirectType;
     }
 
     public void setRedirectType(int value) {
@@ -86,7 +86,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean {
             return _MethodFullName;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__MethodFullName)txn.GetLog(this.getObjectId() + 4);
-        return log != null ? log.getValue() : _MethodFullName;
+        return log != null ? log.Value : _MethodFullName;
     }
 
     public void setMethodFullName(String value) {
@@ -110,7 +110,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean {
             return _Params;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__Params)txn.GetLog(this.getObjectId() + 5);
-        return log != null ? log.getValue() : _Params;
+        return log != null ? log.Value : _Params;
     }
 
     public void setParams(Zeze.Net.Binary value) {
@@ -134,7 +134,7 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean {
             return _ServiceNamePrefix;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__ServiceNamePrefix)txn.GetLog(this.getObjectId() + 6);
-        return log != null ? log.getValue() : _ServiceNamePrefix;
+        return log != null ? log.Value : _ServiceNamePrefix;
     }
 
     public void setServiceNamePrefix(String value) {
@@ -198,46 +198,46 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__ModuleId extends Zeze.Transaction.Log1<BModuleRedirectArgument, Integer> {
-        public Log__ModuleId(BModuleRedirectArgument bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__ModuleId extends Zeze.Transaction.Logs.LogInt {
+        public Log__ModuleId(BModuleRedirectArgument bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._ModuleId = this.getValue(); }
+        public void Commit() { ((BModuleRedirectArgument)getBelong())._ModuleId = Value; }
     }
 
-    private static final class Log__HashCode extends Zeze.Transaction.Log1<BModuleRedirectArgument, Integer> {
-        public Log__HashCode(BModuleRedirectArgument bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__HashCode extends Zeze.Transaction.Logs.LogInt {
+        public Log__HashCode(BModuleRedirectArgument bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._HashCode = this.getValue(); }
+        public void Commit() { ((BModuleRedirectArgument)getBelong())._HashCode = Value; }
     }
 
-    private static final class Log__RedirectType extends Zeze.Transaction.Log1<BModuleRedirectArgument, Integer> {
-        public Log__RedirectType(BModuleRedirectArgument bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__RedirectType extends Zeze.Transaction.Logs.LogInt {
+        public Log__RedirectType(BModuleRedirectArgument bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._RedirectType = this.getValue(); }
+        public void Commit() { ((BModuleRedirectArgument)getBelong())._RedirectType = Value; }
     }
 
-    private static final class Log__MethodFullName extends Zeze.Transaction.Log1<BModuleRedirectArgument, String> {
+    private static final class Log__MethodFullName extends Zeze.Transaction.Logs.LogString {
         public Log__MethodFullName(BModuleRedirectArgument bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._MethodFullName = this.getValue(); }
+        public void Commit() { ((BModuleRedirectArgument)getBelong())._MethodFullName = Value; }
     }
 
-    private static final class Log__Params extends Zeze.Transaction.Log1<BModuleRedirectArgument, Zeze.Net.Binary> {
+    private static final class Log__Params extends Zeze.Transaction.Logs.LogBinary {
         public Log__Params(BModuleRedirectArgument bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._Params = this.getValue(); }
+        public void Commit() { ((BModuleRedirectArgument)getBelong())._Params = Value; }
     }
 
-    private static final class Log__ServiceNamePrefix extends Zeze.Transaction.Log1<BModuleRedirectArgument, String> {
+    private static final class Log__ServiceNamePrefix extends Zeze.Transaction.Logs.LogString {
         public Log__ServiceNamePrefix(BModuleRedirectArgument bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._ServiceNamePrefix = this.getValue(); }
+        public void Commit() { ((BModuleRedirectArgument)getBelong())._ServiceNamePrefix = Value; }
     }
 
     @Override

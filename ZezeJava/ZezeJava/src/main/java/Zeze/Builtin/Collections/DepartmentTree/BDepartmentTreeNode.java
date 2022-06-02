@@ -29,7 +29,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
             return _ParentDepartment;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__ParentDepartment)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _ParentDepartment;
+        return log != null ? log.Value : _ParentDepartment;
     }
 
     public void setParentDepartment(long value) {
@@ -55,7 +55,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
             return _Name;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__Name)txn.GetLog(this.getObjectId() + 3);
-        return log != null ? log.getValue() : _Name;
+        return log != null ? log.Value : _Name;
     }
 
     public void setName(String value) {
@@ -127,18 +127,18 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__ParentDepartment extends Zeze.Transaction.Log1<BDepartmentTreeNode, Long> {
-        public Log__ParentDepartment(BDepartmentTreeNode bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__ParentDepartment extends Zeze.Transaction.Logs.LogLong {
+        public Log__ParentDepartment(BDepartmentTreeNode bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._ParentDepartment = this.getValue(); }
+        public void Commit() { ((BDepartmentTreeNode)getBelong())._ParentDepartment = Value; }
     }
 
-    private static final class Log__Name extends Zeze.Transaction.Log1<BDepartmentTreeNode, String> {
+    private static final class Log__Name extends Zeze.Transaction.Logs.LogString {
         public Log__Name(BDepartmentTreeNode bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._Name = this.getValue(); }
+        public void Commit() { ((BDepartmentTreeNode)getBelong())._Name = Value; }
     }
 
     @Override

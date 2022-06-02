@@ -16,7 +16,7 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
             return _NextNodeId;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__NextNodeId)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _NextNodeId;
+        return log != null ? log.Value : _NextNodeId;
     }
 
     public void setNextNodeId(long value) {
@@ -79,11 +79,11 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__NextNodeId extends Zeze.Transaction.Log1<BQueueNode, Long> {
-        public Log__NextNodeId(BQueueNode bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__NextNodeId extends Zeze.Transaction.Logs.LogLong {
+        public Log__NextNodeId(BQueueNode bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._NextNodeId = this.getValue(); }
+        public void Commit() { ((BQueueNode)getBelong())._NextNodeId = Value; }
     }
 
     @Override

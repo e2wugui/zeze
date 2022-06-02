@@ -15,7 +15,7 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean {
             return _NodeId;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__NodeId)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _NodeId;
+        return log != null ? log.Value : _NodeId;
     }
 
     public void setNodeId(long value) {
@@ -69,11 +69,11 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__NodeId extends Zeze.Transaction.Log1<BLinkedMapNodeId, Long> {
-        public Log__NodeId(BLinkedMapNodeId bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__NodeId extends Zeze.Transaction.Logs.LogLong {
+        public Log__NodeId(BLinkedMapNodeId bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._NodeId = this.getValue(); }
+        public void Commit() { ((BLinkedMapNodeId)getBelong())._NodeId = Value; }
     }
 
     @Override

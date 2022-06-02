@@ -15,7 +15,7 @@ public final class BNotify extends Zeze.Transaction.Bean {
             return _FullEncodedProtocol;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__FullEncodedProtocol)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _FullEncodedProtocol;
+        return log != null ? log.Value : _FullEncodedProtocol;
     }
 
     public void setFullEncodedProtocol(Zeze.Net.Binary value) {
@@ -72,11 +72,11 @@ public final class BNotify extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__FullEncodedProtocol extends Zeze.Transaction.Log1<BNotify, Zeze.Net.Binary> {
+    private static final class Log__FullEncodedProtocol extends Zeze.Transaction.Logs.LogBinary {
         public Log__FullEncodedProtocol(BNotify bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._FullEncodedProtocol = this.getValue(); }
+        public void Commit() { ((BNotify)getBelong())._FullEncodedProtocol = Value; }
     }
 
     @Override

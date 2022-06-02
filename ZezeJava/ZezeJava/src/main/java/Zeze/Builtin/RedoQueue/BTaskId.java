@@ -15,7 +15,7 @@ public final class BTaskId extends Zeze.Transaction.Bean {
             return _TaskId;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__TaskId)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _TaskId;
+        return log != null ? log.Value : _TaskId;
     }
 
     public void setTaskId(long value) {
@@ -69,11 +69,11 @@ public final class BTaskId extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__TaskId extends Zeze.Transaction.Log1<BTaskId, Long> {
-        public Log__TaskId(BTaskId bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__TaskId extends Zeze.Transaction.Logs.LogLong {
+        public Log__TaskId(BTaskId bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._TaskId = this.getValue(); }
+        public void Commit() { ((BTaskId)getBelong())._TaskId = Value; }
     }
 
     @Override

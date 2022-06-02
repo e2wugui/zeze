@@ -16,7 +16,7 @@ public final class BDestroy extends Zeze.Transaction.Bean {
             return _BagName;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__BagName)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _BagName;
+        return log != null ? log.Value : _BagName;
     }
 
     public void setBagName(String value) {
@@ -40,7 +40,7 @@ public final class BDestroy extends Zeze.Transaction.Bean {
             return _Position;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__Position)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _Position;
+        return log != null ? log.Value : _Position;
     }
 
     public void setPosition(int value) {
@@ -96,18 +96,18 @@ public final class BDestroy extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__BagName extends Zeze.Transaction.Log1<BDestroy, String> {
+    private static final class Log__BagName extends Zeze.Transaction.Logs.LogString {
         public Log__BagName(BDestroy bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._BagName = this.getValue(); }
+        public void Commit() { ((BDestroy)getBelong())._BagName = Value; }
     }
 
-    private static final class Log__Position extends Zeze.Transaction.Log1<BDestroy, Integer> {
-        public Log__Position(BDestroy bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__Position extends Zeze.Transaction.Logs.LogInt {
+        public Log__Position(BDestroy bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._Position = this.getValue(); }
+        public void Commit() { ((BDestroy)getBelong())._Position = Value; }
     }
 
     @Override

@@ -17,7 +17,7 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
             return _GlobalKey;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__GlobalKey)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _GlobalKey;
+        return log != null ? log.Value : _GlobalKey;
     }
 
     public void setGlobalKey(Zeze.Net.Binary value) {
@@ -41,7 +41,7 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
             return _State;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__State)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _State;
+        return log != null ? log.Value : _State;
     }
 
     public void setState(int value) {
@@ -63,7 +63,7 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
             return _GlobalSerialId;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__GlobalSerialId)txn.GetLog(this.getObjectId() + 3);
-        return log != null ? log.getValue() : _GlobalSerialId;
+        return log != null ? log.Value : _GlobalSerialId;
     }
 
     public void setGlobalSerialId(long value) {
@@ -120,25 +120,25 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__GlobalKey extends Zeze.Transaction.Log1<ReduceParam, Zeze.Net.Binary> {
+    private static final class Log__GlobalKey extends Zeze.Transaction.Logs.LogBinary {
         public Log__GlobalKey(ReduceParam bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._GlobalKey = this.getValue(); }
+        public void Commit() { ((ReduceParam)getBelong())._GlobalKey = Value; }
     }
 
-    private static final class Log__State extends Zeze.Transaction.Log1<ReduceParam, Integer> {
-        public Log__State(ReduceParam bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__State extends Zeze.Transaction.Logs.LogInt {
+        public Log__State(ReduceParam bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._State = this.getValue(); }
+        public void Commit() { ((ReduceParam)getBelong())._State = Value; }
     }
 
-    private static final class Log__GlobalSerialId extends Zeze.Transaction.Log1<ReduceParam, Long> {
-        public Log__GlobalSerialId(ReduceParam bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__GlobalSerialId extends Zeze.Transaction.Logs.LogLong {
+        public Log__GlobalSerialId(ReduceParam bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._GlobalSerialId = this.getValue(); }
+        public void Commit() { ((ReduceParam)getBelong())._GlobalSerialId = Value; }
     }
 
     @Override

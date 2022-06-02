@@ -29,7 +29,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
             return _Root;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__Root)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _Root;
+        return log != null ? log.Value : _Root;
     }
 
     public void setRoot(String value) {
@@ -57,7 +57,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
             return _NextDepartmentId;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__NextDepartmentId)txn.GetLog(this.getObjectId() + 3);
-        return log != null ? log.getValue() : _NextDepartmentId;
+        return log != null ? log.Value : _NextDepartmentId;
     }
 
     public void setNextDepartmentId(long value) {
@@ -127,18 +127,18 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__Root extends Zeze.Transaction.Log1<BDepartmentRoot, String> {
+    private static final class Log__Root extends Zeze.Transaction.Logs.LogString {
         public Log__Root(BDepartmentRoot bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._Root = this.getValue(); }
+        public void Commit() { ((BDepartmentRoot)getBelong())._Root = Value; }
     }
 
-    private static final class Log__NextDepartmentId extends Zeze.Transaction.Log1<BDepartmentRoot, Long> {
-        public Log__NextDepartmentId(BDepartmentRoot bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__NextDepartmentId extends Zeze.Transaction.Logs.LogLong {
+        public Log__NextDepartmentId(BDepartmentRoot bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._NextDepartmentId = this.getValue(); }
+        public void Commit() { ((BDepartmentRoot)getBelong())._NextDepartmentId = Value; }
     }
 
     @Override

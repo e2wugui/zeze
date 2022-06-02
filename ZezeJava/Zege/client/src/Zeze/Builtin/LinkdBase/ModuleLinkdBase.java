@@ -1,5 +1,7 @@
 package Zeze.Builtin.LinkdBase;
 
+import Zeze.Transaction.Procedure;
+
 public class ModuleLinkdBase extends AbstractModule {
     public void Start(Zege.App app) throws Throwable {
     }
@@ -9,7 +11,9 @@ public class ModuleLinkdBase extends AbstractModule {
 
     @Override
     protected long ProcessReportError(Zeze.Builtin.LinkdBase.ReportError p) {
-        return Zeze.Transaction.Procedure.NotImplement;
+        System.out.println("ReportError code=" + p.Argument.getCode() + " desc=" + p.Argument.getDesc());
+        p.getSender().close();
+        return Procedure.Success;
     }
 
     // ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off

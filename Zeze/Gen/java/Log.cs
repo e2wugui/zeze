@@ -33,12 +33,13 @@ namespace Zeze.Gen.java
 
         void WriteLogValue(Types.Type type)
         {
-            string valueName = BoxingName.GetBoxingName(type);
-            sw.WriteLine(prefix + $"private static final class Log_{var.NamePrivate} extends Zeze.Transaction.Log1<{bean.Name}, {valueName}> {{");
+            string valueName = TypeName.GetName(type);
+            string logBase = LogName.GetName(type);
+            sw.WriteLine(prefix + $"private static final class Log_{var.NamePrivate} extends {logBase} {{");
             sw.WriteLine(prefix + $"    public Log_{var.NamePrivate}({bean.Name} bean, int varId, {valueName} value) {{ super(bean, varId, value); }}");
             sw.WriteLine();
             sw.WriteLine(prefix + "    @Override");
-            sw.WriteLine(prefix + $"    public void Commit() {{ getBeanTyped().{var.NamePrivate} = this.getValue(); }}");
+            sw.WriteLine(prefix + $"    public void Commit() {{ (({bean.Name})getBelong()).{var.NamePrivate} = Value; }}");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
@@ -137,7 +138,15 @@ namespace Zeze.Gen.java
 
         public void Visit(BeanKey type)
         {
-            WriteLogValue(type);
+            string valueName = TypeName.GetName(type);
+            string logBase = LogName.GetName(type);
+            sw.WriteLine(prefix + $"private static final class Log_{var.NamePrivate} extends {logBase} {{");
+            sw.WriteLine(prefix + $"    public Log_{var.NamePrivate}({bean.Name} bean, int varId, {valueName} value) {{ super({valueName}.class, bean, varId, value); }}");
+            sw.WriteLine();
+            sw.WriteLine(prefix + "    @Override");
+            sw.WriteLine(prefix + $"    public void Commit() {{ (({bean.Name})getBelong()).{var.NamePrivate} = Value; }}");
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine();
         }
 
         public void Visit(TypeDynamic type)

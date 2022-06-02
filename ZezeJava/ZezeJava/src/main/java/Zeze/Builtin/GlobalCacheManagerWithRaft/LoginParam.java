@@ -16,7 +16,7 @@ public final class LoginParam extends Zeze.Transaction.Bean {
             return _ServerId;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__ServerId)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _ServerId;
+        return log != null ? log.Value : _ServerId;
     }
 
     public void setServerId(int value) {
@@ -38,7 +38,7 @@ public final class LoginParam extends Zeze.Transaction.Bean {
             return _GlobalCacheManagerHashIndex;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__GlobalCacheManagerHashIndex)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _GlobalCacheManagerHashIndex;
+        return log != null ? log.Value : _GlobalCacheManagerHashIndex;
     }
 
     public void setGlobalCacheManagerHashIndex(int value) {
@@ -93,18 +93,18 @@ public final class LoginParam extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__ServerId extends Zeze.Transaction.Log1<LoginParam, Integer> {
-        public Log__ServerId(LoginParam bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__ServerId extends Zeze.Transaction.Logs.LogInt {
+        public Log__ServerId(LoginParam bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._ServerId = this.getValue(); }
+        public void Commit() { ((LoginParam)getBelong())._ServerId = Value; }
     }
 
-    private static final class Log__GlobalCacheManagerHashIndex extends Zeze.Transaction.Log1<LoginParam, Integer> {
-        public Log__GlobalCacheManagerHashIndex(LoginParam bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__GlobalCacheManagerHashIndex extends Zeze.Transaction.Logs.LogInt {
+        public Log__GlobalCacheManagerHashIndex(LoginParam bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._GlobalCacheManagerHashIndex = this.getValue(); }
+        public void Commit() { ((LoginParam)getBelong())._GlobalCacheManagerHashIndex = Value; }
     }
 
     @Override

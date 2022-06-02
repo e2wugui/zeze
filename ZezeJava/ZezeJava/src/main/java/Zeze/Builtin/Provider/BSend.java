@@ -21,7 +21,7 @@ public final class BSend extends Zeze.Transaction.Bean {
             return _protocolType;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__protocolType)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _protocolType;
+        return log != null ? log.Value : _protocolType;
     }
 
     public void setProtocolType(long value) {
@@ -43,7 +43,7 @@ public final class BSend extends Zeze.Transaction.Bean {
             return _protocolWholeData;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__protocolWholeData)txn.GetLog(this.getObjectId() + 3);
-        return log != null ? log.getValue() : _protocolWholeData;
+        return log != null ? log.Value : _protocolWholeData;
     }
 
     public void setProtocolWholeData(Zeze.Net.Binary value) {
@@ -106,18 +106,18 @@ public final class BSend extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__protocolType extends Zeze.Transaction.Log1<BSend, Long> {
-        public Log__protocolType(BSend bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__protocolType extends Zeze.Transaction.Logs.LogLong {
+        public Log__protocolType(BSend bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._protocolType = this.getValue(); }
+        public void Commit() { ((BSend)getBelong())._protocolType = Value; }
     }
 
-    private static final class Log__protocolWholeData extends Zeze.Transaction.Log1<BSend, Zeze.Net.Binary> {
+    private static final class Log__protocolWholeData extends Zeze.Transaction.Logs.LogBinary {
         public Log__protocolWholeData(BSend bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._protocolWholeData = this.getValue(); }
+        public void Commit() { ((BSend)getBelong())._protocolWholeData = Value; }
     }
 
     @Override

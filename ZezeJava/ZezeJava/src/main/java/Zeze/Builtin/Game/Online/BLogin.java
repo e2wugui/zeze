@@ -15,7 +15,7 @@ public final class BLogin extends Zeze.Transaction.Bean {
             return _RoleId;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__RoleId)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _RoleId;
+        return log != null ? log.Value : _RoleId;
     }
 
     public void setRoleId(long value) {
@@ -69,11 +69,11 @@ public final class BLogin extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__RoleId extends Zeze.Transaction.Log1<BLogin, Long> {
-        public Log__RoleId(BLogin bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__RoleId extends Zeze.Transaction.Logs.LogLong {
+        public Log__RoleId(BLogin bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._RoleId = this.getValue(); }
+        public void Commit() { ((BLogin)getBelong())._RoleId = Value; }
     }
 
     @Override

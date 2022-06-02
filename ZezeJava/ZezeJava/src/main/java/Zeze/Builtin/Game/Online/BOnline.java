@@ -16,7 +16,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
             return _LinkName;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__LinkName)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _LinkName;
+        return log != null ? log.Value : _LinkName;
     }
 
     public void setLinkName(String value) {
@@ -40,7 +40,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
             return _LinkSid;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__LinkSid)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _LinkSid;
+        return log != null ? log.Value : _LinkSid;
     }
 
     public void setLinkSid(long value) {
@@ -96,18 +96,18 @@ public final class BOnline extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__LinkName extends Zeze.Transaction.Log1<BOnline, String> {
+    private static final class Log__LinkName extends Zeze.Transaction.Logs.LogString {
         public Log__LinkName(BOnline bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._LinkName = this.getValue(); }
+        public void Commit() { ((BOnline)getBelong())._LinkName = Value; }
     }
 
-    private static final class Log__LinkSid extends Zeze.Transaction.Log1<BOnline, Long> {
-        public Log__LinkSid(BOnline bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__LinkSid extends Zeze.Transaction.Logs.LogLong {
+        public Log__LinkSid(BOnline bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._LinkSid = this.getValue(); }
+        public void Commit() { ((BOnline)getBelong())._LinkSid = Value; }
     }
 
     @Override

@@ -16,7 +16,7 @@ public final class AcquireParam extends Zeze.Transaction.Bean {
             return _GlobalKey;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__GlobalKey)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _GlobalKey;
+        return log != null ? log.Value : _GlobalKey;
     }
 
     public void setGlobalKey(Zeze.Net.Binary value) {
@@ -40,7 +40,7 @@ public final class AcquireParam extends Zeze.Transaction.Bean {
             return _State;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__State)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _State;
+        return log != null ? log.Value : _State;
     }
 
     public void setState(int value) {
@@ -96,18 +96,18 @@ public final class AcquireParam extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__GlobalKey extends Zeze.Transaction.Log1<AcquireParam, Zeze.Net.Binary> {
+    private static final class Log__GlobalKey extends Zeze.Transaction.Logs.LogBinary {
         public Log__GlobalKey(AcquireParam bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._GlobalKey = this.getValue(); }
+        public void Commit() { ((AcquireParam)getBelong())._GlobalKey = Value; }
     }
 
-    private static final class Log__State extends Zeze.Transaction.Log1<AcquireParam, Integer> {
-        public Log__State(AcquireParam bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__State extends Zeze.Transaction.Logs.LogInt {
+        public Log__State(AcquireParam bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._State = this.getValue(); }
+        public void Commit() { ((AcquireParam)getBelong())._State = Value; }
     }
 
     @Override

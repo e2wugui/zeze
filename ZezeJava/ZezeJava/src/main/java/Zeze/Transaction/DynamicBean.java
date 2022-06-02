@@ -148,13 +148,13 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		}
 
 		public LogV(DynamicBean self, Bean value) {
-			super(self, value);
+			super(self, 0, value);
 			// 提前转换，如果是本Dynamic中没有配置的Bean，马上抛出异常。
 			SpecialTypeId = self.GetSpecialTypeIdFromBean.applyAsLong(value);
 		}
 
 		public LogV(long specialTypeId, DynamicBean self, Bean value) {
-			super(self, value);
+			super(self, 0, value);
 			SpecialTypeId = specialTypeId;
 		}
 

@@ -17,7 +17,7 @@ public final class AchillesHeelConfig extends Zeze.Transaction.Bean {
             return _MaxNetPing;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__MaxNetPing)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _MaxNetPing;
+        return log != null ? log.Value : _MaxNetPing;
     }
 
     public void setMaxNetPing(int value) {
@@ -39,7 +39,7 @@ public final class AchillesHeelConfig extends Zeze.Transaction.Bean {
             return _ServerProcessTime;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__ServerProcessTime)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _ServerProcessTime;
+        return log != null ? log.Value : _ServerProcessTime;
     }
 
     public void setServerProcessTime(int value) {
@@ -61,7 +61,7 @@ public final class AchillesHeelConfig extends Zeze.Transaction.Bean {
             return _ServerReleaseTimeout;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__ServerReleaseTimeout)txn.GetLog(this.getObjectId() + 3);
-        return log != null ? log.getValue() : _ServerReleaseTimeout;
+        return log != null ? log.Value : _ServerReleaseTimeout;
     }
 
     public void setServerReleaseTimeout(int value) {
@@ -117,25 +117,25 @@ public final class AchillesHeelConfig extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__MaxNetPing extends Zeze.Transaction.Log1<AchillesHeelConfig, Integer> {
-        public Log__MaxNetPing(AchillesHeelConfig bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__MaxNetPing extends Zeze.Transaction.Logs.LogInt {
+        public Log__MaxNetPing(AchillesHeelConfig bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._MaxNetPing = this.getValue(); }
+        public void Commit() { ((AchillesHeelConfig)getBelong())._MaxNetPing = Value; }
     }
 
-    private static final class Log__ServerProcessTime extends Zeze.Transaction.Log1<AchillesHeelConfig, Integer> {
-        public Log__ServerProcessTime(AchillesHeelConfig bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__ServerProcessTime extends Zeze.Transaction.Logs.LogInt {
+        public Log__ServerProcessTime(AchillesHeelConfig bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._ServerProcessTime = this.getValue(); }
+        public void Commit() { ((AchillesHeelConfig)getBelong())._ServerProcessTime = Value; }
     }
 
-    private static final class Log__ServerReleaseTimeout extends Zeze.Transaction.Log1<AchillesHeelConfig, Integer> {
-        public Log__ServerReleaseTimeout(AchillesHeelConfig bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__ServerReleaseTimeout extends Zeze.Transaction.Logs.LogInt {
+        public Log__ServerReleaseTimeout(AchillesHeelConfig bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._ServerReleaseTimeout = this.getValue(); }
+        public void Commit() { ((AchillesHeelConfig)getBelong())._ServerReleaseTimeout = Value; }
     }
 
     @Override

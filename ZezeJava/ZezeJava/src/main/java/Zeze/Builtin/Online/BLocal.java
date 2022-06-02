@@ -28,7 +28,7 @@ public final class BLocal extends Zeze.Transaction.Bean {
             return _LoginVersion;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__LoginVersion)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _LoginVersion;
+        return log != null ? log.Value : _LoginVersion;
     }
 
     public void setLoginVersion(long value) {
@@ -91,11 +91,11 @@ public final class BLocal extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__LoginVersion extends Zeze.Transaction.Log1<BLocal, Long> {
-        public Log__LoginVersion(BLocal bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__LoginVersion extends Zeze.Transaction.Logs.LogLong {
+        public Log__LoginVersion(BLocal bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._LoginVersion = this.getValue(); }
+        public void Commit() { ((BLocal)getBelong())._LoginVersion = Value; }
     }
 
     @Override

@@ -23,7 +23,7 @@ public final class BKick extends Zeze.Transaction.Bean {
             return _linksid;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__linksid)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _linksid;
+        return log != null ? log.Value : _linksid;
     }
 
     public void setLinksid(long value) {
@@ -45,7 +45,7 @@ public final class BKick extends Zeze.Transaction.Bean {
             return _code;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__code)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _code;
+        return log != null ? log.Value : _code;
     }
 
     public void setCode(int value) {
@@ -67,7 +67,7 @@ public final class BKick extends Zeze.Transaction.Bean {
             return _desc;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__desc)txn.GetLog(this.getObjectId() + 3);
-        return log != null ? log.getValue() : _desc;
+        return log != null ? log.Value : _desc;
     }
 
     public void setDesc(String value) {
@@ -126,25 +126,25 @@ public final class BKick extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__linksid extends Zeze.Transaction.Log1<BKick, Long> {
-        public Log__linksid(BKick bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__linksid extends Zeze.Transaction.Logs.LogLong {
+        public Log__linksid(BKick bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._linksid = this.getValue(); }
+        public void Commit() { ((BKick)getBelong())._linksid = Value; }
     }
 
-    private static final class Log__code extends Zeze.Transaction.Log1<BKick, Integer> {
-        public Log__code(BKick bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__code extends Zeze.Transaction.Logs.LogInt {
+        public Log__code(BKick bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._code = this.getValue(); }
+        public void Commit() { ((BKick)getBelong())._code = Value; }
     }
 
-    private static final class Log__desc extends Zeze.Transaction.Log1<BKick, String> {
+    private static final class Log__desc extends Zeze.Transaction.Logs.LogString {
         public Log__desc(BKick bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._desc = this.getValue(); }
+        public void Commit() { ((BKick)getBelong())._desc = Value; }
     }
 
     @Override

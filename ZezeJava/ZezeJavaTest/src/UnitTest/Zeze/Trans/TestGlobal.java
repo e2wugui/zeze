@@ -22,7 +22,7 @@ public class TestGlobal extends TestCase {
 		private boolean eq;
 
 		public PrintLog(Bean bean, demo.Module1.Value value, int appId) {
-			super(bean, value);
+			super(bean, 0, value);
 			oldInt = getValue().getInt1();
 			eq = lastInt == oldInt;
 			this.appId = appId;

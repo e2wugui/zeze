@@ -22,7 +22,7 @@ public final class BReportError extends Zeze.Transaction.Bean {
             return _from;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__from)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _from;
+        return log != null ? log.Value : _from;
     }
 
     public void setFrom(int value) {
@@ -44,7 +44,7 @@ public final class BReportError extends Zeze.Transaction.Bean {
             return _code;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__code)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _code;
+        return log != null ? log.Value : _code;
     }
 
     public void setCode(int value) {
@@ -66,7 +66,7 @@ public final class BReportError extends Zeze.Transaction.Bean {
             return _desc;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__desc)txn.GetLog(this.getObjectId() + 3);
-        return log != null ? log.getValue() : _desc;
+        return log != null ? log.Value : _desc;
     }
 
     public void setDesc(String value) {
@@ -125,25 +125,25 @@ public final class BReportError extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__from extends Zeze.Transaction.Log1<BReportError, Integer> {
-        public Log__from(BReportError bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__from extends Zeze.Transaction.Logs.LogInt {
+        public Log__from(BReportError bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._from = this.getValue(); }
+        public void Commit() { ((BReportError)getBelong())._from = Value; }
     }
 
-    private static final class Log__code extends Zeze.Transaction.Log1<BReportError, Integer> {
-        public Log__code(BReportError bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__code extends Zeze.Transaction.Logs.LogInt {
+        public Log__code(BReportError bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._code = this.getValue(); }
+        public void Commit() { ((BReportError)getBelong())._code = Value; }
     }
 
-    private static final class Log__desc extends Zeze.Transaction.Log1<BReportError, String> {
+    private static final class Log__desc extends Zeze.Transaction.Logs.LogString {
         public Log__desc(BReportError bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._desc = this.getValue(); }
+        public void Commit() { ((BReportError)getBelong())._desc = Value; }
     }
 
     @Override

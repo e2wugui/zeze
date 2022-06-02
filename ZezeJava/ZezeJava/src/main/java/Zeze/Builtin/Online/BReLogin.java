@@ -16,7 +16,7 @@ public final class BReLogin extends Zeze.Transaction.Bean {
             return _ClientId;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__ClientId)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _ClientId;
+        return log != null ? log.Value : _ClientId;
     }
 
     public void setClientId(String value) {
@@ -40,7 +40,7 @@ public final class BReLogin extends Zeze.Transaction.Bean {
             return _ReliableNotifyConfirmIndex;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__ReliableNotifyConfirmIndex)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _ReliableNotifyConfirmIndex;
+        return log != null ? log.Value : _ReliableNotifyConfirmIndex;
     }
 
     public void setReliableNotifyConfirmIndex(long value) {
@@ -96,18 +96,18 @@ public final class BReLogin extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__ClientId extends Zeze.Transaction.Log1<BReLogin, String> {
+    private static final class Log__ClientId extends Zeze.Transaction.Logs.LogString {
         public Log__ClientId(BReLogin bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._ClientId = this.getValue(); }
+        public void Commit() { ((BReLogin)getBelong())._ClientId = Value; }
     }
 
-    private static final class Log__ReliableNotifyConfirmIndex extends Zeze.Transaction.Log1<BReLogin, Long> {
-        public Log__ReliableNotifyConfirmIndex(BReLogin bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__ReliableNotifyConfirmIndex extends Zeze.Transaction.Logs.LogLong {
+        public Log__ReliableNotifyConfirmIndex(BReLogin bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._ReliableNotifyConfirmIndex = this.getValue(); }
+        public void Commit() { ((BReLogin)getBelong())._ReliableNotifyConfirmIndex = Value; }
     }
 
     @Override

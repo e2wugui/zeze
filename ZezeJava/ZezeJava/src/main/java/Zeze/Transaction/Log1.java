@@ -9,15 +9,8 @@ public abstract class Log1<TBean extends Bean, TValue> extends Log {
 		Value = value;
 	}
 
-	// TODO delete me
-	protected Log1(Bean bean, TValue value) {
-		super("");
-		setBean(bean);
-		this.setValue(value);
-	}
-
 	protected Log1(Bean bean, int varId, TValue value) {
-		super(""); // TODO
+		super(0); // 现在Log1仅用于特殊目的，不支持相关日志系列化。
 		setBean(bean);
 		setVariableId(varId);
 		this.setValue(value);

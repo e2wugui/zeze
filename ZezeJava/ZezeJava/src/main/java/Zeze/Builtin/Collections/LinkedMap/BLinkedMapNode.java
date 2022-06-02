@@ -17,7 +17,7 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
             return _PrevNodeId;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__PrevNodeId)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _PrevNodeId;
+        return log != null ? log.Value : _PrevNodeId;
     }
 
     public void setPrevNodeId(long value) {
@@ -39,7 +39,7 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
             return _NextNodeId;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__NextNodeId)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _NextNodeId;
+        return log != null ? log.Value : _NextNodeId;
     }
 
     public void setNextNodeId(long value) {
@@ -103,18 +103,18 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__PrevNodeId extends Zeze.Transaction.Log1<BLinkedMapNode, Long> {
-        public Log__PrevNodeId(BLinkedMapNode bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__PrevNodeId extends Zeze.Transaction.Logs.LogLong {
+        public Log__PrevNodeId(BLinkedMapNode bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._PrevNodeId = this.getValue(); }
+        public void Commit() { ((BLinkedMapNode)getBelong())._PrevNodeId = Value; }
     }
 
-    private static final class Log__NextNodeId extends Zeze.Transaction.Log1<BLinkedMapNode, Long> {
-        public Log__NextNodeId(BLinkedMapNode bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__NextNodeId extends Zeze.Transaction.Logs.LogLong {
+        public Log__NextNodeId(BLinkedMapNode bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._NextNodeId = this.getValue(); }
+        public void Commit() { ((BLinkedMapNode)getBelong())._NextNodeId = Value; }
     }
 
     @Override

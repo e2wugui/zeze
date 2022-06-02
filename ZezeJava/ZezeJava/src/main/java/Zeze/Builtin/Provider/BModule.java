@@ -37,7 +37,7 @@ public final class BModule extends Zeze.Transaction.Bean {
             return _ChoiceType;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__ChoiceType)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _ChoiceType;
+        return log != null ? log.Value : _ChoiceType;
     }
 
     public void setChoiceType(int value) {
@@ -59,7 +59,7 @@ public final class BModule extends Zeze.Transaction.Bean {
             return _ConfigType;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__ConfigType)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _ConfigType;
+        return log != null ? log.Value : _ConfigType;
     }
 
     public void setConfigType(int value) {
@@ -81,7 +81,7 @@ public final class BModule extends Zeze.Transaction.Bean {
             return _SubscribeType;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__SubscribeType)txn.GetLog(this.getObjectId() + 3);
-        return log != null ? log.getValue() : _SubscribeType;
+        return log != null ? log.Value : _SubscribeType;
     }
 
     public void setSubscribeType(int value) {
@@ -137,25 +137,25 @@ public final class BModule extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__ChoiceType extends Zeze.Transaction.Log1<BModule, Integer> {
-        public Log__ChoiceType(BModule bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__ChoiceType extends Zeze.Transaction.Logs.LogInt {
+        public Log__ChoiceType(BModule bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._ChoiceType = this.getValue(); }
+        public void Commit() { ((BModule)getBelong())._ChoiceType = Value; }
     }
 
-    private static final class Log__ConfigType extends Zeze.Transaction.Log1<BModule, Integer> {
-        public Log__ConfigType(BModule bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__ConfigType extends Zeze.Transaction.Logs.LogInt {
+        public Log__ConfigType(BModule bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._ConfigType = this.getValue(); }
+        public void Commit() { ((BModule)getBelong())._ConfigType = Value; }
     }
 
-    private static final class Log__SubscribeType extends Zeze.Transaction.Log1<BModule, Integer> {
-        public Log__SubscribeType(BModule bean, int varId, Integer value) { super(bean, varId, value); }
+    private static final class Log__SubscribeType extends Zeze.Transaction.Logs.LogInt {
+        public Log__SubscribeType(BModule bean, int varId, int value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._SubscribeType = this.getValue(); }
+        public void Commit() { ((BModule)getBelong())._SubscribeType = Value; }
     }
 
     @Override

@@ -15,7 +15,7 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
             return _NextId;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__NextId)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _NextId;
+        return log != null ? log.Value : _NextId;
     }
 
     public void setNextId(long value) {
@@ -69,11 +69,11 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__NextId extends Zeze.Transaction.Log1<BAutoKey, Long> {
-        public Log__NextId(BAutoKey bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__NextId extends Zeze.Transaction.Logs.LogLong {
+        public Log__NextId(BAutoKey bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._NextId = this.getValue(); }
+        public void Commit() { ((BAutoKey)getBelong())._NextId = Value; }
     }
 
     @Override

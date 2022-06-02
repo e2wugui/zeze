@@ -68,6 +68,7 @@
 			<variable id="25" name="map25" type="map[Key,Simple]"/>
 			<variable id="26" name="map26" type="map[Key,dynamic:Simple]"/>
 			<variable id="27" name="dynamic27" type="dynamic:Simple"/>
+			<variable id="28" name="key28" type="Key"/>
 		</bean>
 		<beankey name="Key">
 			<enum name="Enum1" value="4"/>

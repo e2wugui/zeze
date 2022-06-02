@@ -17,7 +17,7 @@ public final class BRankValue extends Zeze.Transaction.Bean {
             return _RoleId;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__RoleId)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.getValue() : _RoleId;
+        return log != null ? log.Value : _RoleId;
     }
 
     public void setRoleId(long value) {
@@ -39,7 +39,7 @@ public final class BRankValue extends Zeze.Transaction.Bean {
             return _Value;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__Value)txn.GetLog(this.getObjectId() + 2);
-        return log != null ? log.getValue() : _Value;
+        return log != null ? log.Value : _Value;
     }
 
     public void setValue(long value) {
@@ -61,7 +61,7 @@ public final class BRankValue extends Zeze.Transaction.Bean {
             return _ValueEx;
         txn.VerifyRecordAccessed(this, true);
         var log = (Log__ValueEx)txn.GetLog(this.getObjectId() + 3);
-        return log != null ? log.getValue() : _ValueEx;
+        return log != null ? log.Value : _ValueEx;
     }
 
     public void setValueEx(Zeze.Net.Binary value) {
@@ -120,25 +120,25 @@ public final class BRankValue extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__RoleId extends Zeze.Transaction.Log1<BRankValue, Long> {
-        public Log__RoleId(BRankValue bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__RoleId extends Zeze.Transaction.Logs.LogLong {
+        public Log__RoleId(BRankValue bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._RoleId = this.getValue(); }
+        public void Commit() { ((BRankValue)getBelong())._RoleId = Value; }
     }
 
-    private static final class Log__Value extends Zeze.Transaction.Log1<BRankValue, Long> {
-        public Log__Value(BRankValue bean, int varId, Long value) { super(bean, varId, value); }
+    private static final class Log__Value extends Zeze.Transaction.Logs.LogLong {
+        public Log__Value(BRankValue bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._Value = this.getValue(); }
+        public void Commit() { ((BRankValue)getBelong())._Value = Value; }
     }
 
-    private static final class Log__ValueEx extends Zeze.Transaction.Log1<BRankValue, Zeze.Net.Binary> {
+    private static final class Log__ValueEx extends Zeze.Transaction.Logs.LogBinary {
         public Log__ValueEx(BRankValue bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { getBeanTyped()._ValueEx = this.getValue(); }
+        public void Commit() { ((BRankValue)getBelong())._ValueEx = Value; }
     }
 
     @Override
