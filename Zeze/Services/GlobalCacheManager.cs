@@ -390,7 +390,7 @@ namespace Zeze.Services
                 {
                     case StateInvalid: // realease
                         rpc.Result.State = await ReleaseAsync(session, rpc.Argument.GlobalKey, true);
-                        rpc.SendResult();
+                        rpc.SendResultCode(0);
                         return 0;
 
                     case StateShare:
@@ -474,9 +474,6 @@ namespace Zeze.Services
 
         private async Task<int> AcquireShareAsync(Acquire rpc)
         {
-            var fresh = rpc.ResultCode;
-            rpc.ResultCode = 0;
-
             CacheHolder sender = (CacheHolder)rpc.Sender.UserState;
 
             while (true)
@@ -548,7 +545,7 @@ namespace Zeze.Services
                     }
 
                     int reduceResultState = StateReduceNetError; // 默认网络错误。
-                    if (cs.Modify.Reduce(gkey, StateInvalid, cs.GlobalSerialId, fresh,
+                    if (cs.Modify.Reduce(gkey, StateInvalid, cs.GlobalSerialId, rpc.ResultCode,
                         async (p) =>
                         {
                             var r = p as Reduce;
@@ -608,7 +605,7 @@ namespace Zeze.Services
                     cs.Monitor.PulseAll();
                     logger.Debug("6 {0} {1} {2}", sender, rpc.Argument.State, cs);
                     rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                    rpc.SendResult();
+                    rpc.SendResultCode(0);
                     return 0;
                 }
 
@@ -618,7 +615,7 @@ namespace Zeze.Services
                 cs.Monitor.PulseAll();
                 logger.Debug("7 {0} {1} {2}", sender, rpc.Argument.State, cs);
                 rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                rpc.SendResult();
+                rpc.SendResultCode(0);
 
                 return 0;
             }
@@ -626,9 +623,6 @@ namespace Zeze.Services
 
         private async Task<int> AcquireModifyAsync(Acquire rpc)
         {
-            var fresh = rpc.ResultCode;
-            rpc.ResultCode = 0;
-
             CacheHolder sender = (CacheHolder)rpc.Sender.UserState;
             while (true)
             {
@@ -702,7 +696,7 @@ namespace Zeze.Services
                     }
 
                     int reduceResultState = StateReduceNetError; // 默认网络错误。
-                    if (cs.Modify.Reduce(gkey, StateInvalid, cs.GlobalSerialId, fresh,
+                    if (cs.Modify.Reduce(gkey, StateInvalid, cs.GlobalSerialId, rpc.ResultCode,
                         async (p) =>
                         {
                             var r = p as Reduce;
@@ -756,7 +750,7 @@ namespace Zeze.Services
 
                     logger.Debug("6 {0} {1} {2}", sender, rpc.Argument.State, cs);
                     rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                    rpc.SendResult();
+                    rpc.SendResultCode(0);
                     return 0;
                 }
 
@@ -773,7 +767,7 @@ namespace Zeze.Services
                         reduceSucceed.Add(sender);
                         continue;
                     }
-                    Reduce reduce = c.ReduceWaitLater(gkey, StateInvalid, cs.GlobalSerialId, fresh);
+                    Reduce reduce = c.ReduceWaitLater(gkey, StateInvalid, cs.GlobalSerialId, rpc.ResultCode);
                     if (null != reduce)
                     {
                         reducePending.Add(Util.KV.Create(c, reduce));
@@ -853,7 +847,7 @@ namespace Zeze.Services
 
                     logger.Debug("8 {0} {1} {2}", sender, rpc.Argument.State, cs);
                     rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-                    rpc.SendResult();
+                    rpc.SendResultCode(0);
                 }
                 else
                 {
