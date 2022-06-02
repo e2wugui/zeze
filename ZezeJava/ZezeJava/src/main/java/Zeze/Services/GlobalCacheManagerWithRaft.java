@@ -195,7 +195,6 @@ public class GlobalCacheManagerWithRaft
 	private long AcquireShare(Acquire rpc) throws InterruptedException {
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
 		var globalTableKey = rpc.Argument.getGlobalKey();
-		int acquireState = rpc.Argument.getState();
 		var fresh = rpc.getResultCode();
 		rpc.setResultCode(0);
 
@@ -216,7 +215,7 @@ public class GlobalCacheManagerWithRaft
 						throw new IllegalStateException("CacheState state error");
 
 					if (cs.getModify() == sender.getServerId()) {
-						logger.debug("1 {} {} {}", sender, acquireState, cs);
+						logger.debug("1 {} {} {}", sender, StateShare, cs);
 						rpc.Result.setState(StateInvalid);
 						rpc.Result.setGlobalSerialId(cs.getGlobalSerialId());
 						return AcquireShareDeadLockFound;
@@ -224,7 +223,7 @@ public class GlobalCacheManagerWithRaft
 					break;
 				case StateModify:
 					if (cs.getModify() == sender.getServerId() || cs.getShare().Contains(sender.getServerId())) {
-						logger.debug("2 {} {} {}", sender, acquireState, cs);
+						logger.debug("2 {} {} {}", sender, StateShare, cs);
 						rpc.Result.setState(StateInvalid);
 						rpc.Result.setGlobalSerialId(cs.getGlobalSerialId());
 						return AcquireShareDeadLockFound;
@@ -233,7 +232,7 @@ public class GlobalCacheManagerWithRaft
 				case StateRemoving:
 					break;
 				}
-				logger.debug("3 {} {} {}", sender, acquireState, cs);
+				logger.debug("3 {} {} {}", sender, StateShare, cs);
 				lockey.Wait();
 				if (cs.getModify() != -1 && cs.getShare().size() != 0)
 					throw new IllegalStateException("CacheState state error");
@@ -251,7 +250,7 @@ public class GlobalCacheManagerWithRaft
 					// 又重启连上。更新一下。应该是不需要的。
 					SenderAcquired.Put(globalTableKey, newAcquiredState(StateModify));
 					cs.setAcquireStatePending(StateInvalid);
-					logger.debug("4 {} {} {}", sender, acquireState, cs);
+					logger.debug("4 {} {} {}", sender, StateShare, cs);
 					rpc.Result.setState(StateModify);
 					rpc.Result.setGlobalSerialId(cs.getGlobalSerialId());
 					return AcquireShareAlreadyIsModify;
@@ -270,7 +269,7 @@ public class GlobalCacheManagerWithRaft
 					}
 					return 0;
 				})) {
-					logger.debug("5 {} {} {}", sender, acquireState, cs);
+					logger.debug("5 {} {} {}", sender, StateShare, cs);
 					lockey.Wait();
 				}
 
@@ -289,7 +288,7 @@ public class GlobalCacheManagerWithRaft
 				case StateReduceErrorFreshAcquire:
 					cs.setAcquireStatePending(StateInvalid);
 					if (ENABLE_PERF)
-						perf.onOthers("XXX Fresh " + acquireState);
+						perf.onOthers("XXX Fresh " + StateShare);
 					// logger.error("XXX fresh {} {} {}", sender, acquireState, cs);
 					rpc.Result.setState(StateInvalid);
 					rpc.Result.setGlobalSerialId(cs.getGlobalSerialId());
@@ -303,7 +302,7 @@ public class GlobalCacheManagerWithRaft
 					// case StateReduceNetError: // 13
 					cs.setAcquireStatePending(StateInvalid);
 					if (ENABLE_PERF)
-						perf.onOthers("XXX 8 " + acquireState + " " + reduceResultState.Value);
+						perf.onOthers("XXX 8 " + StateShare + " " + reduceResultState.Value);
 					// logger.error("XXX 8 state={} {} {} {}", reduceResultState.Value, sender, acquireState, cs);
 					rpc.Result.setState(StateInvalid);
 					rpc.Result.setGlobalSerialId(cs.getGlobalSerialId());
@@ -315,7 +314,7 @@ public class GlobalCacheManagerWithRaft
 				cs.setModify(-1);
 				cs.getShare().add(sender.getServerId());
 				cs.setAcquireStatePending(StateInvalid);
-				logger.debug("6 {} {} {}", sender, acquireState, cs);
+				logger.debug("6 {} {} {}", sender, StateShare, cs);
 				rpc.Result.setGlobalSerialId(cs.getGlobalSerialId());
 				lockey.PulseAll();
 				return 0; // 成功也会自动发送结果.
@@ -324,7 +323,7 @@ public class GlobalCacheManagerWithRaft
 			SenderAcquired.Put(globalTableKey, newAcquiredState(StateShare));
 			cs.getShare().add(sender.getServerId());
 			cs.setAcquireStatePending(StateInvalid);
-			logger.debug("7 {} {} {}", sender, acquireState, cs);
+			logger.debug("7 {} {} {}", sender, StateShare, cs);
 			rpc.Result.setGlobalSerialId(cs.getGlobalSerialId());
 			lockey.PulseAll();
 			return 0; // 成功也会自动发送结果.
@@ -334,7 +333,6 @@ public class GlobalCacheManagerWithRaft
 	private long AcquireModify(Acquire rpc) throws InterruptedException {
 		CacheHolder sender = (CacheHolder)rpc.getSender().getUserState();
 		var globalTableKey = rpc.Argument.getGlobalKey();
-		int acquireState = rpc.Argument.getState();
 		var fresh = rpc.getResultCode();
 		rpc.setResultCode(0);
 
@@ -356,7 +354,7 @@ public class GlobalCacheManagerWithRaft
 						throw new IllegalStateException("CacheState state error");
 					}
 					if (cs.getModify() == sender.getServerId()) {
-						logger.debug("1 {} {} {}", sender, acquireState, cs);
+						logger.debug("1 {} {} {}", sender, StateModify, cs);
 						rpc.Result.setState(StateInvalid);
 						rpc.Result.setGlobalSerialId(cs.getGlobalSerialId());
 						return AcquireModifyDeadLockFound;
@@ -364,7 +362,7 @@ public class GlobalCacheManagerWithRaft
 					break;
 				case StateModify:
 					if (cs.getModify() == sender.getServerId() || cs.getShare().Contains(sender.getServerId())) {
-						logger.debug("2 {} {} {}", sender, acquireState, cs);
+						logger.debug("2 {} {} {}", sender, StateModify, cs);
 						rpc.Result.setState(StateInvalid);
 						rpc.Result.setGlobalSerialId(cs.getGlobalSerialId());
 						return AcquireModifyDeadLockFound;
@@ -373,7 +371,7 @@ public class GlobalCacheManagerWithRaft
 				case StateRemoving:
 					break;
 				}
-				logger.debug("3 {} {} {}", sender, acquireState, cs);
+				logger.debug("3 {} {} {}", sender, StateModify, cs);
 				lockey.Wait();
 				if (cs.getModify() != -1 && cs.getShare().size() != 0)
 					throw new IllegalStateException("CacheState state error");
@@ -390,7 +388,7 @@ public class GlobalCacheManagerWithRaft
 					// 更新一下。应该是不需要的。
 					SenderAcquired.Put(globalTableKey, newAcquiredState(StateModify));
 					cs.setAcquireStatePending(StateInvalid);
-					logger.debug("4 {} {} {}", sender, acquireState, cs);
+					logger.debug("4 {} {} {}", sender, StateModify, cs);
 					rpc.Result.setGlobalSerialId(cs.getGlobalSerialId());
 					lockey.PulseAll();
 					return AcquireModifyAlreadyIsModify;
@@ -409,7 +407,7 @@ public class GlobalCacheManagerWithRaft
 					}
 					return 0;
 				})) {
-					logger.debug("5 {} {} {}", sender, acquireState, cs);
+					logger.debug("5 {} {} {}", sender, StateModify, cs);
 					lockey.Wait();
 				}
 
@@ -422,7 +420,7 @@ public class GlobalCacheManagerWithRaft
 				case StateReduceErrorFreshAcquire:
 					cs.setAcquireStatePending(StateInvalid);
 					if (ENABLE_PERF)
-						perf.onOthers("XXX Fresh " + acquireState);
+						perf.onOthers("XXX Fresh " + StateModify);
 					// logger.error("XXX fresh {} {} {} {}", sender, acquireState, cs);
 					rpc.Result.setState(StateInvalid);
 					rpc.Result.setGlobalSerialId(cs.getGlobalSerialId());
@@ -435,7 +433,7 @@ public class GlobalCacheManagerWithRaft
 					// case StateReduceNetError: // 13
 					cs.setAcquireStatePending(StateInvalid);
 					if (ENABLE_PERF)
-						perf.onOthers("XXX 9 " + acquireState + " " + reduceResultState.Value);
+						perf.onOthers("XXX 9 " + StateModify + " " + reduceResultState.Value);
 					// logger.error("XXX 9 {} {} {} {}", sender, acquireState, cs, reduceResultState.Value);
 					rpc.Result.setState(StateInvalid);
 					rpc.Result.setGlobalSerialId(cs.getGlobalSerialId());
@@ -449,7 +447,7 @@ public class GlobalCacheManagerWithRaft
 				cs.setAcquireStatePending(StateInvalid);
 				lockey.PulseAll();
 
-				logger.debug("6 {} {} {}", sender, acquireState, cs);
+				logger.debug("6 {} {} {}", sender, StateModify, cs);
 				rpc.Result.setGlobalSerialId(cs.getGlobalSerialId());
 				return 0;
 			}
@@ -499,13 +497,13 @@ public class GlobalCacheManagerWithRaft
 							default:
 								session.SetError();
 								logger.warn("Reduce {} AcquireState={} CacheState={} res={}",
-										sender, acquireState, cs, reduce.Result);
+										sender, StateModify, cs, reduce.Result);
 							}
 						} catch (RuntimeException ex) {
 							session.SetError();
 							// 等待失败不再看作成功。
 							logger.error(String.format("Reduce %s AcquireState=%d CacheState=%s arg=%s",
-									sender, acquireState, cs, reduce.Argument), ex);
+									sender, StateModify, cs, reduce.Argument), ex);
 						}
 					}
 					errorFreshAcquire.Value = freshAcquire;
@@ -516,7 +514,7 @@ public class GlobalCacheManagerWithRaft
 						lockey.Exit();
 					}
 				}, "GlobalCacheManagerWithRaft.AcquireModify.WaitReduce");
-				logger.debug("7 {} {} {}", sender, acquireState, cs);
+				logger.debug("7 {} {} {}", sender, StateModify, cs);
 				lockey.Wait();
 			}
 
@@ -541,7 +539,7 @@ public class GlobalCacheManagerWithRaft
 
 				cs.setAcquireStatePending(StateInvalid);
 				if (ENABLE_PERF)
-					perf.onOthers("XXX 10 " + acquireState);
+					perf.onOthers("XXX 10 " + StateModify);
 				// logger.error("XXX 10 {} {} {}", sender, acquireState, cs);
 				rpc.Result.setState(StateInvalid);
 				rpc.Result.setGlobalSerialId(cs.getGlobalSerialId());
@@ -552,7 +550,7 @@ public class GlobalCacheManagerWithRaft
 			SenderAcquired.Put(globalTableKey, newAcquiredState(StateModify));
 			cs.setModify(sender.getServerId());
 			cs.setAcquireStatePending(StateInvalid);
-			logger.debug("8 {} {} {}", sender, acquireState, cs);
+			logger.debug("8 {} {} {}", sender, StateModify, cs);
 			rpc.Result.setGlobalSerialId(cs.getGlobalSerialId());
 			lockey.PulseAll();
 			return 0; // 成功也会自动发送结果.
