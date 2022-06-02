@@ -58,7 +58,8 @@ public class GlobalCacheManagerPerf {
 			do
 				maxTime = maxAcquireTime.get();
 			while (time > maxTime && !maxAcquireTime.compareAndSet(maxTime, time));
-			totalAcquireResults[state].computeIfAbsent(rpc.getResultCode(), __ -> new LongAdder()).increment();
+			if (rpc.getResultCode() != 0)
+				totalAcquireResults[state].computeIfAbsent(rpc.getResultCode(), __ -> new LongAdder()).increment();
 		}
 	}
 
@@ -80,7 +81,8 @@ public class GlobalCacheManagerPerf {
 			do
 				maxTime = maxReduceTime.get();
 			while (time > maxTime && !maxReduceTime.compareAndSet(maxTime, time));
-			totalReduceResults.computeIfAbsent(rpc.getResultCode(), __ -> new LongAdder()).increment();
+			if (rpc.getResultCode() != 0)
+				totalReduceResults.computeIfAbsent(rpc.getResultCode(), __ -> new LongAdder()).increment();
 		}
 	}
 
