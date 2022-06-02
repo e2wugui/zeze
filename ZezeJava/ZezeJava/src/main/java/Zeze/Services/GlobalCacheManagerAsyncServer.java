@@ -30,6 +30,7 @@ import Zeze.Util.AsyncLock;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.OutObject;
 import Zeze.Util.Task;
 import Zeze.Util.ThreadFactoryWithName;
 import org.apache.logging.log4j.Level;
@@ -714,7 +715,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					}
 				}
 
-				//noinspection SwitchStatementWithTooFewBranches
 				switch (state.reduceResultState) {
 				case StateInvalid:
 					assert cs.Modify != null;
@@ -793,6 +793,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			}
 			boolean senderIsShare = senderIsShareTmp;
 
+			var errorFreshAcquire = new OutObject<Boolean>();
 			Action0 lastStage = () -> {
 				// 移除成功的。
 				for (var it = reduceSucceed.iterator(); it.moveToNext(); ) {
@@ -826,7 +827,10 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					// logger.error("XXX 10 {} {} {}", sender, rpc.Argument.State, cs);
 					rpc.Result.State = StateInvalid;
 					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
-					rpc.SendResultCode(AcquireModifyFailed);
+					if (errorFreshAcquire.Value)
+						rpc.setResultCode(StateReduceErrorFreshAcquire); // 这个错误不看做失败，允许发送方继续尝试。
+					else
+						rpc.SendResultCode(AcquireModifyFailed);
 				}
 				if (ENABLE_PERF)
 					perf.onAcquireEnd(rpc, rpc.Argument.State);
@@ -842,10 +846,22 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				allReduceFuture.then(__ -> {
 					// 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
 					// 应该也会等待所有任务结束（包括错误）。
+					var freshAcquire = false;
 					for (var e : reducePending) {
 						var cacheHolder = e.getKey();
 						var reduce = e.getValue();
 						try {
+							switch (reduce.Result.State) {
+							case StateInvalid:
+								reduceSucceed.add(cacheHolder);
+								break;
+							case StateReduceErrorFreshAcquire:
+								// 这个错误不进入Forbid状态。
+								freshAcquire = true;
+								break;
+							default:
+								cacheHolder.SetError();
+							}
 							if (reduce.Result.State == StateInvalid)
 								reduceSucceed.add(cacheHolder);
 							else
@@ -857,6 +873,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 									rpc.getSender().getUserState(), rpc.Argument.State, cs, reduce.Argument), ex);
 						}
 					}
+					errorFreshAcquire.Value = freshAcquire;
 					cs.lock.enter(lastStage);
 				});
 			} else

@@ -60,6 +60,7 @@ public class GlobalCacheManagerWithRaft
 	private final LongConcurrentHashMap<CacheHolder> Sessions = new LongConcurrentHashMap<>();
 
 	private final GlobalCacheManagerServer.GCMConfig Config = new GlobalCacheManagerServer.GCMConfig();
+	private final AchillesHeelConfig AchillesHeelConfig;
 	private Zeze.Config ZezeConfig;
 	private final GlobalCacheManagerPerf perf;
 
@@ -104,8 +105,6 @@ public class GlobalCacheManagerWithRaft
 		AchillesHeelConfig = new AchillesHeelConfig(Config.MaxNetPing, Config.ServerProcessTime, Config.ServerReleaseTimeout);
 		Task.schedule(5000, 5000, this::AchillesHeelDaemon);
 	}
-
-	private AchillesHeelConfig AchillesHeelConfig;
 
 	private void AchillesHeelDaemon() {
 		var now = System.currentTimeMillis();
@@ -410,7 +409,6 @@ public class GlobalCacheManagerWithRaft
 				}
 
 				var ModifyAcquired = ServerAcquiredTemplate.OpenTable(cs.getModify());
-				//noinspection SwitchStatementWithTooFewBranches
 				switch (reduceResultState.Value) {
 				case StateInvalid:
 					ModifyAcquired.Remove(globalTableKey);
@@ -828,8 +826,10 @@ public class GlobalCacheManagerWithRaft
 			if (session == null)
 				return null;
 			Reduce reduce = session.ReduceWaitLater(gkey, globalSerialId);
+			if (reduce == null)
+				return null;
 			reduce.setResultCode(fresh);
-			return reduce != null ? KV.Create(session, reduce) : null;
+			return KV.Create(session, reduce);
 		}
 
 		boolean Reduce(Binary gkey, long globalSerialId, long fresh,

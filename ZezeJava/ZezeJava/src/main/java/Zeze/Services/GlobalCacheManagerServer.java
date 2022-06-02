@@ -599,7 +599,6 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 						cs.wait(); //await 等通知
 					}
 
-					//noinspection SwitchStatementWithTooFewBranches
 					switch (reduceResultState.Value) {
 					case StateInvalid:
 						cs.Modify.Acquired.remove(gKey);
