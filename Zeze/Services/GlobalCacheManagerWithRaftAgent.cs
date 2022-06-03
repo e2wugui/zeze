@@ -157,8 +157,8 @@ namespace Zeze.Services
                 rpc.Argument.GlobalKey = gkey;
                 rpc.Argument.State = state;
                 await agent.RaftClient.SendAsync(rpc);
-
-                agent.SetActiveTime(Util.Time.NowUnixMillis);
+                if (false == rpc.IsTimeout)
+                    agent.SetActiveTime(Util.Time.NowUnixMillis);
                 if (rpc.ResultCode < 0)
                 {
                     Transaction.Transaction.Current.ThrowAbort("GlobalAgent.Acquire Failed");

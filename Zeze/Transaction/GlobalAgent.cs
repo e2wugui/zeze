@@ -172,7 +172,9 @@ namespace Zeze.Transaction
                     logger.Warn("Acquire ResultCode={0} {1}", rpc.ResultCode, rpc.Result);
                 }
                 */
-                agent.SetActiveTime(Util.Time.NowUnixMillis);
+                if (false == rpc.IsTimeout)
+                    agent.SetActiveTime(Util.Time.NowUnixMillis);
+
                 if (rpc.ResultCode < 0)
                 {
                     Transaction.Current.ThrowAbort("GlobalAgent.Acquire Failed");

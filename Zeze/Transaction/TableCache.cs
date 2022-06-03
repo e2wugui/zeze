@@ -204,7 +204,7 @@ namespace Zeze.Transaction
             return false;
         }
 
-        private bool TryRemoveRecordUnderLocks(KeyValuePair<K, Record<K, V>> p)
+        private bool TryRemoveRecordUnderLock(KeyValuePair<K, Record<K, V>> p)
         {
             var storage = Table.TStorage;
             if (null == storage)
@@ -227,6 +227,9 @@ namespace Zeze.Transaction
             // 这里只是读取，就不加锁了。
 
             if (p.Value.Dirty)
+                return false;
+
+            if (p.Value.IsFreshAcquire())
                 return false;
 
             if (p.Value.State != GlobalCacheManagerServer.StateInvalid)
@@ -268,7 +271,7 @@ namespace Zeze.Transaction
                         if (rrs.RecordSet != null && rrs.RecordSet.Count > 1)
                             return false; // 只包含自己的时候才可以删除，多个记录关联起来时不删除。
 
-                        return TryRemoveRecordUnderLocks(p);
+                        return TryRemoveRecordUnderLock(p);
                     }
                     finally
                     {

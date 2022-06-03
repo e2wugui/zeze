@@ -573,37 +573,50 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 @return count
 	*/
 	public final long Walk(TableWalkHandle<K, V> callback) {
+		return Walk(callback, null);
+	}
+
+	private boolean invokeCallback(byte[] key, byte[] value, TableWalkHandle<K, V> callback) {
+		K k = DecodeKey(ByteBuffer.Wrap(key));
+		TableKey tkey = new TableKey(getId(), k);
+		Lockey lockey = getZeze().getLocks().Get(tkey);
+		lockey.EnterReadLock();
+		try {
+			Record1<K, V> r = getCache().Get(k);
+			if (null != r && r.getState() != GlobalCacheManagerServer.StateRemoved) {
+				if (r.getState() == GlobalCacheManagerServer.StateShare
+						|| r.getState() == GlobalCacheManagerServer.StateModify) {
+					// 拥有正确的状态：
+					@SuppressWarnings("unchecked")
+					var strongRef = (V)r.getSoftValue();
+					if (strongRef == null) {
+						return true; // 已经被删除，但是还没有checkpoint的记录看不到。
+					}
+					return callback.handle(r.getKey(), strongRef);
+				}
+				// else GlobalCacheManager.StateInvalid
+				// 继续后面的处理：使用数据库中的数据。
+			}
+		}
+		finally {
+			lockey.ExitReadLock();
+		}
+		// 缓存中不存在或者正在被删除，使用数据库中的数据。
+		V v = DecodeValue(ByteBuffer.Wrap(value));
+		return callback.handle(k, v);
+	}
+
+	public final long Walk(TableWalkHandle<K, V> callback, Runnable afterLock) {
 		if (Transaction.getCurrent() != null) {
 			throw new IllegalStateException("must be called without transaction");
 		}
 		return TStorage.getDatabaseTable().Walk((key, value) -> {
-			K k = DecodeKey(ByteBuffer.Wrap(key));
-			TableKey tkey = new TableKey(getId(), k);
-			Lockey lockey = getZeze().getLocks().Get(tkey);
-			lockey.EnterReadLock();
-			try {
-				Record1<K, V> r = getCache().Get(k);
-				if (null != r && r.getState() != GlobalCacheManagerServer.StateRemoved) {
-					if (r.getState() == GlobalCacheManagerServer.StateShare
-							|| r.getState() == GlobalCacheManagerServer.StateModify) {
-						// 拥有正确的状态：
-						@SuppressWarnings("unchecked")
-						var strongRef = (V)r.getSoftValue();
-						if (strongRef == null) {
-							return true; // 已经被删除，但是还没有checkpoint的记录看不到。
-						}
-						return callback.handle(r.getKey(), strongRef);
-					}
-					// else GlobalCacheManager.StateInvalid
-					// 继续后面的处理：使用数据库中的数据。
-				}
+			if (invokeCallback(key, value, callback)) {
+				if (null != afterLock)
+					afterLock.run();
+				return true;
 			}
-			finally {
-				lockey.ExitReadLock();
-			}
-			// 缓存中不存在或者正在被删除，使用数据库中的数据。
-			V v = DecodeValue(ByteBuffer.Wrap(value));
-			return callback.handle(k, v);
+			return false;
 		});
 	}
 

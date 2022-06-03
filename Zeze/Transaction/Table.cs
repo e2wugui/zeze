@@ -565,42 +565,57 @@ namespace Zeze.Transaction
         /// <returns></returns>
         public async Task<long> WalkAsync(Func<K, V, bool> callback)
         {
+            return await WalkAsync(callback, null);
+        }
+
+        private bool InvokeCallback(byte[] key, byte[] value, Func<K, V, bool> callback)
+        {
+            K k = DecodeKey(ByteBuffer.Wrap(key));
+            var tkey = new TableKey(Id, k);
+            var lockey = Zeze.Locks.Get(tkey);
+            lockey.EnterReadLock();
+            try
+            {
+                var r = Cache.Get(k);
+                if (null != r && r.State != GlobalCacheManagerServer.StateRemoved)
+                {
+                    if (r.State == GlobalCacheManagerServer.StateShare
+                        || r.State == GlobalCacheManagerServer.StateModify)
+                    {
+                        // 拥有正确的状态：
+                        if (r.Value == null)
+                            return true; // 已经被删除，但是还没有checkpoint的记录看不到。
+                        return callback(r.Key, r.ValueTyped);
+                    }
+                    // else GlobalCacheManager.StateInvalid
+                    // 继续后面的处理：使用数据库中的数据。
+                }
+            }
+            finally
+            {
+                lockey.Release();
+            }
+            // 缓存中不存在或者正在被删除，使用数据库中的数据。
+            // 不需要锁。提前释放。
+            V v = DecodeValue(ByteBuffer.Wrap(value));
+            return callback(k, v);
+        }
+
+        public async Task<long> WalkAsync(Func<K, V, bool> callback, Action actionNotLock)
+        {
             if (Transaction.Current != null)
             {
                 throw new Exception("must be called without transaction");
             }
             return await TStorage.TableAsync.WalkAsync(
-                (key, value) =>
+                (key, value) => 
                 {
-                    K k = DecodeKey(ByteBuffer.Wrap(key));
-                    var tkey = new TableKey(Id, k);
-                    var lockey = Zeze.Locks.Get(tkey);
-                    lockey.EnterReadLock();
-                    try
+                    if (InvokeCallback(key, value, callback))
                     {
-                        var r = Cache.Get(k);
-                        if (null != r && r.State != GlobalCacheManagerServer.StateRemoved)
-                        {
-                            if (r.State == GlobalCacheManagerServer.StateShare
-                                || r.State == GlobalCacheManagerServer.StateModify)
-                            {
-                                // 拥有正确的状态：
-                                if (r.Value == null)
-                                    return true; // 已经被删除，但是还没有checkpoint的记录看不到。
-                                return callback(r.Key, r.ValueTyped);
-                            }
-                            // else GlobalCacheManager.StateInvalid
-                            // 继续后面的处理：使用数据库中的数据。
-                        }
+                        actionNotLock?.Invoke();
+                        return true;
                     }
-                    finally
-                    {
-                        lockey.Release();
-                    }
-                    // 缓存中不存在或者正在被删除，使用数据库中的数据。
-                    // 测试不需要锁。提前释放。
-                    V v = DecodeValue(ByteBuffer.Wrap(value));
-                    return callback(k, v);
+                    return false;
                 });
         }
 

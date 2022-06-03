@@ -201,7 +201,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		return true; // 没有删除成功，仍然返回true。
 	}
 
-	private boolean TryRemoveRecordUnderLocks(Map.Entry<K, Record1<K, V>> p) {
+	private boolean TryRemoveRecordUnderLock(Map.Entry<K, Record1<K, V>> p) {
 		var storage = getTable().TStorage;
 		if (null == storage) {
 				/* 不支持内存表cache同步。
@@ -224,6 +224,9 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			return false;
 		}
 
+		if (p.getValue().isFreshAcquire())
+			return false;
+
 		if (p.getValue().getState() != GlobalCacheManagerServer.StateInvalid) {
 			var r = p.getValue().Acquire(GlobalCacheManagerServer.StateInvalid, false);
 			if (r.ResultCode != 0 || r.ResultState != GlobalCacheManagerServer.StateInvalid) {
@@ -238,7 +241,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		final TableKey tkey = new TableKey(this.getTable().getId(), p.getKey());
 		final Locks locks = Table.getZeze().getLocks();
 		if (locks == null) // 可能是已经执行Application.Stop导致的
-			return TryRemoveRecordUnderLocks(p); // 临时修正
+			return TryRemoveRecordUnderLock(p); // 临时修正
 		final Lockey lockey = locks.Get(tkey);
 		if (!lockey.TryEnterWriteLock(0))
 			return false;
@@ -258,7 +261,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 					if (rrs.getRecordSet() != null && rrs.getRecordSet().size() > 1)
 						return false; // 只包含自己的时候才可以删除，多个记录关联起来时不删除。
 
-					return TryRemoveRecordUnderLocks(p);
+					return TryRemoveRecordUnderLock(p);
 				} finally {
 					rrs.UnLock();
 				}
