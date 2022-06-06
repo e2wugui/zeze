@@ -255,6 +255,7 @@ public final class Transaction {
 					procedure.getZeze().getCheckpoint().ExitFlushReadLock();
 				}
 				//logger.Debug("Checkpoint.WaitRun {0}", procedure);
+				// 实现Fresh队列以后删除Sleep。
 				try {
 					Thread.sleep(Zeze.Util.Random.getInstance().nextInt(100) + 10);
 				} catch (InterruptedException e) {

@@ -34,6 +34,9 @@ namespace Zeze.Gen.java
 
             foreach (Variable v in bean.Variables)
             {
+                if (v.Transient)
+                    continue;
+
                 sw.WriteLine(prefix + "    {");
                 v.VariableType.Accept(new Encode(v.Getter, v.Id, "_o_", sw, prefix + "        "));
                 sw.WriteLine(prefix + "    }");
@@ -71,6 +74,9 @@ namespace Zeze.Gen.java
 
             foreach (Variable v in bean.Variables)
             {
+                if (v.Transient)
+                    continue;
+
                 sw.WriteLine(prefix + "    {");
                 v.VariableType.Accept(new Encode(v.Getter, v.Id, "_o_", sw, prefix + "        "));
                 sw.WriteLine(prefix + "    }");

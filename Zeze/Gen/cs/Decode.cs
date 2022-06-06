@@ -27,6 +27,9 @@ namespace Zeze.Gen.cs
             int lastId = 0;
             foreach (Variable v in bean.Variables)
             {
+                if (v.Transient)
+                    continue;
+
                 if (v.Id > 0)
                 {
                     if (v.Id <= lastId)
@@ -79,6 +82,9 @@ namespace Zeze.Gen.cs
             int lastId = 0;
             foreach (Variable v in bean.Variables)
             {
+                if (v.Transient)
+                    continue;
+
                 if (v.Id > 0)
                 {
                     if (v.Id <= lastId)

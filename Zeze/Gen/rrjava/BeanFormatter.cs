@@ -16,7 +16,7 @@ namespace Zeze.Gen.rrjava
         {
             using StreamWriter sw = bean.Space.OpenWriter(baseDir, bean.Name + ".java");
 
-            sw.WriteLine("// auto-generated @formatter:off");
+            sw.WriteLine("// auto-generated rocks @formatter:off");
             sw.WriteLine("package " + bean.Space.Path() + ";");
             sw.WriteLine();
             sw.WriteLine("import Zeze.Serialize.ByteBuffer;");

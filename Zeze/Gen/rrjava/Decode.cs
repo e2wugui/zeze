@@ -23,6 +23,9 @@ namespace Zeze.Gen.rrjava
             int lastId = 0;
             foreach (Variable v in bean.Variables)
             {
+                if (v.Transient)
+                    continue;
+
                 if (v.Id > 0)
                 {
                     if (v.Id <= lastId)
@@ -62,6 +65,9 @@ namespace Zeze.Gen.rrjava
 
             foreach (Variable v in bean.Variables)
             {
+                if (v.Transient)
+                    continue;
+
                 if (v.Id > 0)
                     sw.WriteLine(prefix + "    if (_i_ == " + v.Id + ") {");
                 else

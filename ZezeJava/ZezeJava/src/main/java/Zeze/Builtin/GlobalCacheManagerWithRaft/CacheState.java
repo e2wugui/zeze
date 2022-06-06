@@ -1,4 +1,4 @@
-// auto-generated @formatter:off
+// auto-generated rocks @formatter:off
 package Zeze.Builtin.GlobalCacheManagerWithRaft;
 
 import Zeze.Serialize.ByteBuffer;
@@ -142,20 +142,6 @@ public final class CacheState extends Zeze.Raft.RocksRaft.Bean {
     public void Encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            int _x_ = getAcquireStatePending();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
-                _o_.WriteInt(_x_);
-            }
-        }
-        {
-            long _x_ = getGlobalSerialId();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
-            }
-        }
-        {
             int _x_ = getModify();
             if (_x_ != 0) {
                 _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
@@ -179,12 +165,8 @@ public final class CacheState extends Zeze.Raft.RocksRaft.Bean {
     public void Decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
-        if (_i_ == 1) {
-            _AcquireStatePending = _o_.ReadInt(_t_);
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 2) {
-            _GlobalSerialId = _o_.ReadLong(_t_);
+        while (_t_ != 0 && _i_ < 3) {
+            _o_.SkipUnknownField(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {

@@ -308,6 +308,10 @@ namespace Zeze.Transaction
                         procedure.Zeze.Checkpoint.ExitFlushReadLock();
                     }
                     //logger.Debug("Checkpoint.WaitRun {0}", procedure);
+
+                    // 实现Fresh队列以后删除Sleep。
+                    Thread.Sleep(Util.Random.Instance.Next(50) + 50);
+
                     if (null != LastTableKeyOfRedoAndRelease)
                         await procedure.Zeze.TryWaitFlushWhenReduce(LastTableKeyOfRedoAndRelease, LastGlobalSerialIdOfRedoAndRelease);
                 }

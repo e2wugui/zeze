@@ -1,4 +1,4 @@
-// auto-generated @formatter:off
+// auto-generated rocks @formatter:off
 package Zeze.Builtin.GlobalCacheManagerWithRaft;
 
 import Zeze.Serialize.ByteBuffer;

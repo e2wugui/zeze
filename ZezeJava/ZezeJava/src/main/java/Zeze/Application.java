@@ -390,7 +390,7 @@ public final class Application {
 
 	private static final class LastFlushWhenReduce {
 		public final TableKey Key;
-		public volatile long LastGlobalSerialId;
+		public long LastGlobalSerialId;
 		public long Ticks; // System.currentTimeMillis()
 		public boolean Removed;
 
@@ -421,20 +421,21 @@ public final class Application {
 			var last = FlushWhenReduce.computeIfAbsent(tkey, LastFlushWhenReduce::new);
 			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (last) {
-				if (!last.Removed && last.LastGlobalSerialId < hope) {
-					// 超时的时候，马上返回。
-					// 这个机制的是为了防止忙等。
-					// 所以不需要严格等待成功。
-					try {
-						last.wait(5000);
-						return false; // timeout
-					} catch (InterruptedException skip) {
-						logger.error(skip);
-						return false;
-					}
-				}
-				if (!last.Removed)
+				if (last.Removed)
+					continue;
+
+				if (last.LastGlobalSerialId >= hope)
 					return true;
+
+				// 超时的时候，马上返回。这个机制的是为了防止忙等。所以不需要严格等待成功。中断的时候也马上返回。只等待一次。
+				try {
+					var waitms = Zeze.Util.Random.getInstance().nextInt(50) + 50;
+					last.wait(waitms);
+					return last.LastGlobalSerialId >= hope; // timeout will return false
+				} catch (InterruptedException skip) {
+					logger.error(skip);
+					return false;
+				}
 			}
 		}
 	}
@@ -443,14 +444,14 @@ public final class Application {
 		var minutes = System.currentTimeMillis() / MillisPerMinute;
 
 		for (var it = FlushWhenReduceActives.entryIterator(); it.moveToNext(); ) {
-			if (it.key() - minutes > FlushWhenReduceIdleMinutes) {
+			if (minutes - it.key()> FlushWhenReduceIdleMinutes) {
 				for (var last : it.value()) {
 					//noinspection SynchronizationOnLocalVariableOrMethodParameter
 					synchronized (last) {
 						if (last.Removed)
 							continue;
 
-						if (last.Ticks / MillisPerMinute > FlushWhenReduceIdleMinutes) {
+						if (minutes - last.Ticks / MillisPerMinute > FlushWhenReduceIdleMinutes) {
 							if (FlushWhenReduce.remove(last.Key) != null)
 								last.Removed = true;
 						}

@@ -57,7 +57,7 @@ namespace Zeze
         internal class LastFlushWhenReduce
         {
             public TableKey Key { get; set; }
-            public Util.AtomicLong LastGlobalSerialId = new();
+            public long LastGlobalSerialId;
             public long Ticks { get; set; }
             public bool Removed { get; set; } = false;
             public Nito.AsyncEx.AsyncMonitor Monitor = new();
@@ -83,7 +83,7 @@ namespace Zeze
                     if (last.Removed)
                         continue;
 
-                    last.LastGlobalSerialId.GetAndSet(globalSerialId);
+                    last.LastGlobalSerialId = globalSerialId;
                     last.Ticks = DateTime.Now.Ticks;
                     last.Monitor.PulseAll();
                     var minutes = last.Ticks / TimeSpan.TicksPerMinute;
@@ -100,38 +100,39 @@ namespace Zeze
                 var last = FlushWhenReduce.GetOrAdd(tkey, (k) => new LastFlushWhenReduce(k));
                 using (await last.Monitor.EnterAsync())
                 {
-                    while (false == last.Removed && last.LastGlobalSerialId.Get() < hope)
-                    {
-                        // 超时的时候，马上返回。
-                        // 这个机制的是为了防止忙等。
-                        // 所以不需要严格等待成功。
-                        // TODO 加上超时支持。
-                        await last.Monitor.WaitAsync();
-                    }
-                    if (false == last.Removed)
+                    if (last.Removed)
+                        continue;
+
+                    if (last.LastGlobalSerialId >= hope)
                         return true;
+
+                    // 超时的时候，马上返回。这个机制的是为了防止忙等。所以不需要严格等待成功。中断的时候也马上返回。只等待一次。
+                    var waitms = Util.Random.Instance.Next(50) + 50;
+                    var task = last.Monitor.WaitAsync();
+                    await Task.WhenAny(task, Task.Delay(waitms));
+                    return last.LastGlobalSerialId >= hope;
                 }
             }
         }
 
         public const long FlushWhenReduceIdleMinuts = 30;
 
-        private void FlushWhenReduceTimer(Util.SchedulerTask ThisTask)
+        private async void FlushWhenReduceTimer(Util.SchedulerTask ThisTask)
         {
             var minuts = DateTime.Now.Ticks / TimeSpan.TicksPerMinute;
 
             foreach (var active in FlushWhenReduceActives)
             {
-                if (active.Key - minuts > FlushWhenReduceIdleMinuts)
+                if (minuts - active.Key > FlushWhenReduceIdleMinuts)
                 {
                     foreach (var last in active.Value)
                     {
-                        lock (last)
+                        using (await last.Monitor.EnterAsync())
                         {
                             if (last.Removed)
                                 continue;
 
-                            if (last.Ticks / TimeSpan.TicksPerMinute > FlushWhenReduceIdleMinuts)
+                            if (minuts - last.Ticks / TimeSpan.TicksPerMinute > FlushWhenReduceIdleMinuts)
                             {
                                 if (FlushWhenReduce.TryRemove(last.Key, out _))
                                 {
