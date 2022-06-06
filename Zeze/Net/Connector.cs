@@ -70,7 +70,7 @@ namespace Zeze.Net
         }
         private int ReConnectDelay;
         public Util.SchedulerTask ReconnectTask { get; private set; }
-        public int ReadyTimeout { get; set; } = 2000;
+        public int ReadyTimeout { get; set; } = 5000;
 
         public Connector(string host, int port = 0, bool autoReconnect = true)
         {

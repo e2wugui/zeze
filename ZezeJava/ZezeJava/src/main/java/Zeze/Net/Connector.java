@@ -29,7 +29,7 @@ public class Connector {
 	private Future<?> ReconnectTask;
 	private int MaxReconnectDelay = 8000; // 毫秒
 	private int ReConnectDelay;
-	private int ReadyTimeout = 2000;
+	private int ReadyTimeout = 5000;
 
 	public static Connector Create(Element e) {
 		String className = e.getAttribute("Class");
