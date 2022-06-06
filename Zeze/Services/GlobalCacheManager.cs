@@ -308,7 +308,7 @@ namespace Zeze.Services
             var rpc = p as Login;
             var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder(Config));
 
-            if (false == await session.TryBindSocket(p.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
+            if (false == await session.TryBindSocket(p.Sender, rpc.Argument.GlobalCacheManagerHashIndex, true))
             {
                 rpc.SendResultCode(LoginBindSocketFail);
                 return 0;
@@ -332,7 +332,7 @@ namespace Zeze.Services
         {
             var rpc = p as ReLogin;
             var session = Sessions.GetOrAdd(rpc.Argument.ServerId, (_) => new CacheHolder(Config));
-            if (false == await session.TryBindSocket(p.Sender, rpc.Argument.GlobalCacheManagerHashIndex))
+            if (false == await session.TryBindSocket(p.Sender, rpc.Argument.GlobalCacheManagerHashIndex, false))
             {
                 rpc.SendResultCode(ReLoginBindSocketFail);
                 return 0;
@@ -897,7 +897,7 @@ namespace Zeze.Services
         {
             private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
             private long ActiveTime;
-
+            private bool Logined = false;
             public long SessionId { get; private set; }
 
             public ConcurrentDictionary<Binary, int> Acquired { get; }
@@ -919,10 +919,22 @@ namespace Zeze.Services
                 Acquired = new(config.ConcurrencyLevel, config.InitialCapacity);
             }
 
-            public async Task<bool> TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex)
+            public async Task<bool> TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex, bool login)
             {
                 using (await Mutex.LockAsync())
                 {
+                    if (login)
+                    {
+                        // login 相当于重置，允许再次Login。
+                        Logined = true;
+                    }
+                    else
+                    {
+                        // relogin 必须login之后才允许ReLogin。这个用来检测Global宕机并重启。
+                        if (false == Logined)
+                            return false;
+                    }
+
                     if (newSocket.UserState != null)
                         return false; // 不允许再次绑定。Login Or ReLogin 只能发一次。
 
@@ -935,7 +947,7 @@ namespace Zeze.Services
                         GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
                         return true;
                     }
-                    // 每个AutoKeyLocalId只允许一个实例，已经存在了以后，旧的实例上有状态，阻止新的实例登录成功。
+                    // 每个ServerId只允许一个实例，已经存在了以后，旧的实例上有状态，阻止新的实例登录成功。
                     return false;
                 }
             }

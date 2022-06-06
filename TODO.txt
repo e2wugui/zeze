@@ -12,12 +12,14 @@ Task
 Universe
 Zege
 Too Many Try: Fresh机制下由Global提供排队方案草稿：
-  0.【先采用临时方案】Server在RedoAndReleaseLock时随机Sleep延迟。原来的TryWaitFlushWhenReduce删除。
   1. Server发现本地Fresh，拒绝Reduce。
   2. Global发现由于Fresh的拒绝，把申请者加入队列。
   3. Server把set Fresh=false时，发送通知给Global。
   4. Global收到Fresh==false通知，选择队列中的一个申请者开始处理。
-  *. 这个方案以后再实现?
+  5. Global-Fresh队列管理。
+     需要定时轮询的方式启动队列中的请求进行重做，防止Fresh=false通知丢失。
+     请求总超时管理按一般请求超时处理。
+     问题：请求第一次来的时候要不要判断Fresh队列不为空，然后马上加入队列。
 
 Global-Server错误码分析
 1. Warning

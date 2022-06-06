@@ -134,7 +134,7 @@ public class AchillesHeelDaemon extends Thread {
 
 					var idle = now - agent.getActiveTime();
 					if (idle > config.ServerDaemonTimeout)
-						agent.startRelease(Zeze, i);
+						agent.startRelease(Zeze, i, null);
 					else if (idle > config.ServerKeepAliveIdleTimeout)
 						agent.keepAlive();
 				}

@@ -58,6 +58,7 @@ namespace Zeze.Transaction
 			public int GlobalIndex;
 			public long StartTime = Util.Time.NowUnixMillis;
 			public List<Task> Tasks = new();
+			public Action EndAction;
 
 			public bool IsCompletedSuccessfully()
 			{
@@ -68,6 +69,7 @@ namespace Zeze.Transaction
 						if (false == task.IsCompletedSuccessfully)
 							return false;
 					}
+					EndAction?.Invoke();
 					return true;
 				}
 				catch (Exception)
@@ -76,8 +78,9 @@ namespace Zeze.Transaction
 				}
 			}
 
-			public Releaser(Application zeze, int index)
+			public Releaser(Application zeze, int index, Action endAction)
 			{
+				EndAction = endAction;
 				GlobalIndex = index;
 				foreach (var database in zeze.Databases.Values)
 				{
@@ -93,9 +96,9 @@ namespace Zeze.Transaction
 		// 1.【要并发，要快】启动线程池来执行，释放锁除了需要和应用互斥，没有其他IO操作，基本上都是cpu。
 		// 2. 超时没有释放完成，程序中止。see tryHalt。
 		// 3. 每个Global服务一个Releaser.
-		public void StartRelease(Application zeze, int index)
+		public void StartRelease(Application zeze, int index, Action endAction = null)
 		{
-			Releasers.GetOrAdd(index, key => new Releaser(zeze, index));
+			Releasers.GetOrAdd(index, key => new Releaser(zeze, index, endAction));
 		}
 	}
 }

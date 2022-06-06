@@ -206,7 +206,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	private long ProcessLogin(Login rpc) throws Throwable {
 		logger.info("ProcessLogin: {} RequestId={} {}", rpc.getSender(), rpc.getSessionId(), rpc.Argument);
 		var session = Sessions.computeIfAbsent(rpc.Argument.ServerId, __ -> new CacheHolder());
-		if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.GlobalCacheManagerHashIndex)) {
+		if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.GlobalCacheManagerHashIndex, true)) {
 			rpc.SendResultCode(LoginBindSocketFail);
 			return 0;
 		}
@@ -227,7 +227,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	private long ProcessReLogin(ReLogin rpc) {
 		logger.info("ProcessReLogin: {} RequestId={} {}", rpc.getSender(), rpc.getSessionId(), rpc.Argument);
 		var session = Sessions.computeIfAbsent(rpc.Argument.ServerId, __ -> new CacheHolder());
-		if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.GlobalCacheManagerHashIndex)) {
+		if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.GlobalCacheManagerHashIndex, false)) {
 			rpc.SendResultCode(ReLoginBindSocketFail);
 			return 0;
 		}
@@ -909,6 +909,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		int GlobalCacheManagerHashIndex;
 		private volatile long ActiveTime;
 		private volatile long LastErrorTime;
+		private boolean Logined = false;
 
 		long getActiveTime() {
 			return ActiveTime;
@@ -918,7 +919,15 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			ActiveTime = value;
 		}
 
-		synchronized boolean TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex) {
+		synchronized boolean TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex, boolean login) {
+			if (login) {
+				// login 相当于重置，允许再次Login。
+				Logined = true;
+			} else {
+				// relogin 必须login之后才允许ReLogin。这个用来检测Global宕机并重启。
+				if (!Logined)
+					return false;
+			}
 			if (newSocket.getUserState() != null) {
 				logger.warn("TryBindSocket: already bound! newSocket.getUserState() != null, SessionId={}", newSocket.getSessionId());
 				return false; // 不允许再次绑定。Login Or ReLogin 只能发一次。

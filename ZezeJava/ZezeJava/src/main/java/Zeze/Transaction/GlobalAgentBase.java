@@ -52,6 +52,7 @@ public abstract class GlobalAgentBase {
 		public int GlobalIndex;
 		public long StartTime = System.currentTimeMillis();
 		public ArrayList<Future<Boolean>> Tasks = new ArrayList<>();
+		public Runnable EndAction;
 
 		public final boolean isCompletedSuccessfully() {
 			try {
@@ -59,13 +60,16 @@ public abstract class GlobalAgentBase {
 					if (!task.isDone() || !task.get())
 						return false;
 				}
+				if (null != EndAction)
+					EndAction.run();
 				return true;
 			} catch (Exception e) {
 				return false;
 			}
 		}
 
-		public Releaser(Application zeze, int index) {
+		public Releaser(Application zeze, int index, Runnable endAction) {
+			EndAction = endAction;
 			GlobalIndex = index;
 			for (var database : zeze.getDatabases().values()) {
 				for (var table : database.getTables()) {
@@ -81,7 +85,7 @@ public abstract class GlobalAgentBase {
 	// 1.【要并发，要快】启动线程池来执行，释放锁除了需要和应用互斥，没有其他IO操作，基本上都是cpu。
 	// 2. 超时没有释放完成，程序中止。see tryHalt。
 	// 3. 每个Global服务一个Releaser.
-	public void startRelease(Application zeze, int index) {
-		Releasers.computeIfAbsent(index, key -> new Releaser(zeze, index));
+	public void startRelease(Application zeze, int index, Runnable endAction) {
+		Releasers.computeIfAbsent(index, key -> new Releaser(zeze, index, endAction));
 	}
 }

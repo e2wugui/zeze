@@ -347,7 +347,18 @@ namespace Zeze.Transaction
                     }
                     else if (relogin.ResultCode != 0)
                     {
+                        // 清理本地已经分配的记录锁。
+                        // 1. 关闭网络。下面两行有点重复，就这样了。
                         so.Close(new Exception("GlobalAgent.ReLogin Fail code=" + relogin.ResultCode));
+                        so.Connector.Stop();
+                        // 2. 开始清理，由守护线程保护，必须成功。
+                        agent.StartRelease(Zeze, agent.GlobalCacheManagerHashIndex, () =>
+                        {
+                            // 3. 重置登录次数，下一次连接成功，会发送Login。
+                            agent.LoginTimes.GetAndSet(0);
+                            // 4. 开始网络连接。
+                            so.Connector.Start();
+                        });
                     }
                     else
                     {
