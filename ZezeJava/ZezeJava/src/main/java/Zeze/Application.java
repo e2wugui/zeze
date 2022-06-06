@@ -29,6 +29,7 @@ import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.FuncLong;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.Str;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskOneByOneByKey;
@@ -271,7 +272,7 @@ public final class Application {
 				db.Open(this);
 
 			// Open Global
-			var hosts = Conf.getGlobalCacheManagerHostNameOrAddress().split(";");
+			var hosts = Str.trim(Conf.getGlobalCacheManagerHostNameOrAddress().split(";"));
 			if (hosts.length > 0) {
 				var isRaft = hosts[0].endsWith(".xml");
 				if (!isRaft) {
