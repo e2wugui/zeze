@@ -86,8 +86,8 @@ namespace Zeze.Transaction
 				{
 					foreach (var table in database.Tables)
 					{
-						Tasks.Add(Task.Run(() => table.ReduceInvalidAllLocalOnly(index)));
-
+						if (!table.IsMemory)
+							Tasks.Add(Task.Run(() => table.ReduceInvalidAllLocalOnly(index)));
 					}
 				}
 			}

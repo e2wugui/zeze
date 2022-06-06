@@ -73,10 +73,12 @@ public abstract class GlobalAgentBase {
 			GlobalIndex = index;
 			for (var database : zeze.getDatabases().values()) {
 				for (var table : database.getTables()) {
-					Tasks.add(Task.getThreadPool().submit(() -> {
-						table.ReduceInvalidAllLocalOnly(index);
-						return true;
-					}));
+					if (!table.isMemory()) {
+						Tasks.add(Task.getThreadPool().submit(() -> {
+							table.ReduceInvalidAllLocalOnly(index);
+							return true;
+						}));
+					}
 				}
 			}
 		}
