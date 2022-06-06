@@ -1,24 +1,30 @@
 package Zeze.Util;
 
-public class CubeIndex implements java.lang.Comparable<CubeIndex> {
+public class CubeIndex implements Comparable<CubeIndex> {
 	private long X;
+	private long Y;
+	private long Z;
+
 	public final long getX() {
 		return X;
 	}
+
 	public final void setX(long value) {
 		X = value;
 	}
-	private long Y;
+
 	public final long getY() {
 		return Y;
 	}
+
 	public final void setY(long value) {
 		Y = value;
 	}
-	private long Z;
+
 	public final long getZ() {
 		return Z;
 	}
+
 	public final void setZ(long value) {
 		Z = value;
 	}
@@ -39,9 +45,8 @@ public class CubeIndex implements java.lang.Comparable<CubeIndex> {
 			return true;
 		}
 
-		boolean tempVar = obj instanceof CubeIndex;
-		CubeIndex other = tempVar ? (CubeIndex)obj : null;
-		if (tempVar) {
+		if (obj instanceof CubeIndex) {
+			CubeIndex other = (CubeIndex)obj;
 			return getX() == other.getX() && getY() == other.getY() && getZ() == other.getZ();
 		}
 		return false;

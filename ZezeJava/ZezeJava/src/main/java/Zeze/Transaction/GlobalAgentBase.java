@@ -86,6 +86,6 @@ public abstract class GlobalAgentBase {
 	// 2. 超时没有释放完成，程序中止。see tryHalt。
 	// 3. 每个Global服务一个Releaser.
 	public void startRelease(Application zeze, int index, Runnable endAction) {
-		Releasers.computeIfAbsent(index, key -> new Releaser(zeze, index, endAction));
+		Releasers.put(index, new Releaser(zeze, index, endAction));
 	}
 }

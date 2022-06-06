@@ -31,8 +31,7 @@ public class Vector2 implements Serializable {
 	}
 
 	public boolean isZero() {
-		return (Float.floatToRawIntBits(x) |
-				Float.floatToRawIntBits(y)) == 0;
+		return x == 0 & y == 0;
 	}
 
 	@Override

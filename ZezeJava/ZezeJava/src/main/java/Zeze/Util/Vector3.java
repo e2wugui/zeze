@@ -36,9 +36,7 @@ public class Vector3 implements Serializable {
 	}
 
 	public boolean isZero() {
-		return (Float.floatToRawIntBits(x) |
-				Float.floatToRawIntBits(y) |
-				Float.floatToRawIntBits(z)) == 0;
+		return x == 0 & y == 0 & z == 0;
 	}
 
 	@Override

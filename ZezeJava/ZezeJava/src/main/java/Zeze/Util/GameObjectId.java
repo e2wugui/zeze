@@ -1,27 +1,33 @@
 package Zeze.Util;
 
 /**
- Game Helper
-*/
-public class GameObjectId implements java.lang.Comparable<GameObjectId> {
+ * Game Helper
+ */
+public class GameObjectId implements Comparable<GameObjectId> {
 	private int Type;
+	private int ConfigId;
+	private long InstanceId;
+
 	public final int getType() {
 		return Type;
 	}
+
 	public final void setType(int value) {
 		Type = value;
 	}
-	private int ConfigId;
+
 	public final int getConfigId() {
 		return ConfigId;
 	}
+
 	public final void setConfigId(int value) {
 		ConfigId = value;
 	}
-	private long InstanceId;
+
 	public final long getInstanceId() {
 		return InstanceId;
 	}
+
 	public final void setInstanceId(long value) {
 		InstanceId = value;
 	}
@@ -38,17 +44,12 @@ public class GameObjectId implements java.lang.Comparable<GameObjectId> {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (obj == null) {
-			return false;
-		}
-
 		if (obj == this) {
 			return true;
 		}
 
-		boolean tempVar = obj instanceof GameObjectId;
-		GameObjectId o = tempVar ? (GameObjectId)obj : null;
-		if (tempVar) {
+		if (obj instanceof GameObjectId) {
+			GameObjectId o = (GameObjectId)obj;
 			return getType() == o.getType() && getConfigId() == o.getConfigId() && getInstanceId() == o.getInstanceId();
 		}
 		return false;

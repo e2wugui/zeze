@@ -2,7 +2,7 @@ package Zeze.Transaction;
 
 import Zeze.Util.LongConcurrentHashMap;
 
-public final class TableKey implements java.lang.Comparable<TableKey> {
+public final class TableKey implements Comparable<TableKey> {
 	// 用来做名字转换，不检查Table.Id唯一性。
 	public static final LongConcurrentHashMap<String> Tables = new LongConcurrentHashMap<>();
 

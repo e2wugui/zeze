@@ -98,7 +98,7 @@ namespace Zeze.Transaction
 		// 3. 每个Global服务一个Releaser.
 		public void StartRelease(Application zeze, int index, Action endAction = null)
 		{
-			Releasers.GetOrAdd(index, key => new Releaser(zeze, index, endAction));
+			Releasers[index] = new Releaser(zeze, index, endAction);
 		}
 	}
 }
