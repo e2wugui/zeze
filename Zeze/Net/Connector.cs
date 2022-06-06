@@ -70,6 +70,7 @@ namespace Zeze.Net
         }
         private int ReConnectDelay;
         public Util.SchedulerTask ReconnectTask { get; private set; }
+        public int ReadyTimeout { get; set; } = 2000;
 
         public Connector(string host, int port = 0, bool autoReconnect = true)
         {
@@ -113,15 +114,15 @@ namespace Zeze.Net
         public AsyncSocket GetReadySocket()
         {
             var task = GetReadySocketAsync();
-            task.Wait();
-            return task.Result;
+            if (task.Wait(ReadyTimeout))
+                return task.Result;
+            throw new Exception("GetReadySocket Timeout.");
         }
 
         public async Task<AsyncSocket> GetReadySocketAsync()
         {
             var volatileTmp = FutureSocket;
-            await volatileTmp.Task;
-            return volatileTmp.Task.Result;
+            return await volatileTmp.Task.WaitAsync(TimeSpan.FromMilliseconds(ReadyTimeout));
         }
 
         public virtual AsyncSocket TryGetReadySocket()
