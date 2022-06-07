@@ -68,13 +68,11 @@ namespace Zeze.Services
                 Real = real;
                 Argument.GlobalKey = real.Argument.GlobalKey;
                 Argument.State = real.Argument.State;
-                Argument.GlobalSerialId = real.Argument.GlobalSerialId;
             }
 
             public override void SendResult(Zeze.Net.Binary result = null)
             {
                 Real.Result.GlobalKey = Real.Argument.GlobalKey; // no change
-                Real.Result.GlobalSerialId = Result.GlobalSerialId;
                 Real.Result.State = Result.State;
 
                 Real.SendResult(result);
@@ -83,7 +81,6 @@ namespace Zeze.Services
             public override void SendResultCode(long code, Zeze.Net.Binary result = null)
             {
                 Real.Result.GlobalKey = Real.Argument.GlobalKey; // no change
-                Real.Result.GlobalSerialId = Result.GlobalSerialId;
                 Real.Result.State = Result.State;
 
                 Real.SendResultCode(code, result);
@@ -143,7 +140,7 @@ namespace Zeze.Services
             return gkey.GetHashCode() % Agents.Length;
         }
 
-        public async Task<(long, int, long)> Acquire(Binary gkey, int state, bool fresh)
+        public async Task<(long, int)> Acquire(Binary gkey, int state, bool fresh)
         {
             if (null != Agents)
             {
@@ -172,10 +169,10 @@ namespace Zeze.Services
                         // never got here
                         break;
                 }
-                return (rpc.ResultCode, rpc.Result.State, rpc.Result.GlobalSerialId);
+                return (rpc.ResultCode, rpc.Result.State);
             }
             logger.Debug("Acquire local ++++++");
-            return (0, state, 0);
+            return (0, state);
         }
 
         // 1. 【Login|ReLogin|NormalClose】会被Raft.Agent重发处理，这要求GlobalRaft能处理重复请求。

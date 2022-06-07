@@ -6,7 +6,6 @@ import Zeze.Serialize.ByteBuffer;
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class CacheState extends Zeze.Raft.RocksRaft.Bean {
     private int _AcquireStatePending;
-    private long _GlobalSerialId;
     private int _Modify; // ServerId, default MUST BE -1.
     private final Zeze.Raft.RocksRaft.CollSet1<Integer> _Share;
 
@@ -18,21 +17,13 @@ public final class CacheState extends Zeze.Raft.RocksRaft.Bean {
         _AcquireStatePending = value;
     }
 
-    public long getGlobalSerialId() {
-        return _GlobalSerialId;
-    }
-
-    public void setGlobalSerialId(long value) {
-        _GlobalSerialId = value;
-    }
-
     public int getModify() {
         if (!isManaged())
             return _Modify;
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
         if (txn == null)
             return _Modify;
-        var log = txn.GetLog(getObjectId() + 3);
+        var log = txn.GetLog(getObjectId() + 2);
         if (log == null)
             return _Modify;
         return ((Zeze.Raft.RocksRaft.Log1.LogInt)log).Value;
@@ -45,7 +36,7 @@ public final class CacheState extends Zeze.Raft.RocksRaft.Bean {
         }
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
         assert txn != null;
-        txn.PutLog(new Zeze.Raft.RocksRaft.Log1.LogInt(this, 3, value));
+        txn.PutLog(new Zeze.Raft.RocksRaft.Log1.LogInt(this, 2, value));
     }
 
     public Zeze.Raft.RocksRaft.CollSet1<Integer> getShare() {
@@ -60,12 +51,11 @@ public final class CacheState extends Zeze.Raft.RocksRaft.Bean {
         super(_varId_);
         _Modify = -1;
         _Share = new Zeze.Raft.RocksRaft.CollSet1<>(Integer.class);
-        _Share.VariableId = 4;
+        _Share.VariableId = 3;
     }
 
     public void Assign(CacheState other) {
         setAcquireStatePending(other.getAcquireStatePending());
-        setGlobalSerialId(other.getGlobalSerialId());
         setModify(other.getModify());
         getShare().clear();
         for (var e : other.getShare())
@@ -113,7 +103,6 @@ public final class CacheState extends Zeze.Raft.RocksRaft.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.CacheState: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("AcquireStatePending").append('=').append(getAcquireStatePending()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("GlobalSerialId").append('=').append(getGlobalSerialId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Modify").append('=').append(getModify()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Share").append("=[").append(System.lineSeparator());
         level += 4;
@@ -144,7 +133,7 @@ public final class CacheState extends Zeze.Raft.RocksRaft.Bean {
         {
             int _x_ = getModify();
             if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.INTEGER);
                 _o_.WriteInt(_x_);
             }
         }
@@ -152,7 +141,7 @@ public final class CacheState extends Zeze.Raft.RocksRaft.Bean {
             var _x_ = getShare();
             int _n_ = _x_.size();
             if (_n_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 4, ByteBuffer.LIST);
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.LIST);
                 _o_.WriteListType(_n_, ByteBuffer.INTEGER);
                 for (var _v_ : _x_)
                     _o_.WriteLong(_v_);
@@ -165,15 +154,15 @@ public final class CacheState extends Zeze.Raft.RocksRaft.Bean {
     public void Decode(ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
-        while (_t_ != 0 && _i_ < 3) {
+        while (_t_ != 0 && _i_ < 2) {
             _o_.SkipUnknownField(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 3) {
+        if (_i_ == 2) {
             _Modify = _o_.ReadInt(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
-        if (_i_ == 4) {
+        if (_i_ == 3) {
             var _x_ = getShare();
             _x_.clear();
             if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
@@ -197,8 +186,8 @@ public final class CacheState extends Zeze.Raft.RocksRaft.Bean {
     @Override
     public void LeaderApplyNoRecursive(Zeze.Raft.RocksRaft.Log vlog) {
         switch (vlog.getVariableId()) {
-            case 3: _Modify = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).Value; break;
-            case 4: _Share.LeaderApplyNoRecursive(vlog); break;
+            case 2: _Modify = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).Value; break;
+            case 3: _Share.LeaderApplyNoRecursive(vlog); break;
         }
     }
 
@@ -210,8 +199,8 @@ public final class CacheState extends Zeze.Raft.RocksRaft.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 3: _Modify = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).Value; break;
-                case 4: _Share.FollowerApply(vlog); break;
+                case 2: _Modify = ((Zeze.Raft.RocksRaft.Log1.LogInt)vlog).Value; break;
+                case 3: _Share.FollowerApply(vlog); break;
             }
         }
     }

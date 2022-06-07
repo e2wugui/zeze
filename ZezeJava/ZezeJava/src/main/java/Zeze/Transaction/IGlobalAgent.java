@@ -7,12 +7,10 @@ public interface IGlobalAgent extends Closeable {
 	class AcquireResult {
 		public final long ResultCode;
 		public final int ResultState;
-		public final long ResultGlobalSerialId;
 
-		public AcquireResult(long code, int state, long serial) {
+		public AcquireResult(long code, int state) {
 			ResultCode = code;
 			ResultState = state;
-			ResultGlobalSerialId = serial;
 		}
 	}
 

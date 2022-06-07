@@ -236,7 +236,7 @@ namespace Zeze.Transaction
             {
                 var task = p.Value.Acquire(GlobalCacheManagerServer.StateInvalid, false);
                 task.Wait();
-                var (ResultCode, ResultState, _) = task.Result;
+                var (ResultCode, ResultState) = task.Result;
                 if (ResultCode != 0 || ResultState != GlobalCacheManagerServer.StateInvalid)
                 {
                     return false;

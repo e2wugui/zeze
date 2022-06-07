@@ -21,11 +21,10 @@ public class Reduce extends Zeze.Net.Rpc<Param2, Param2> {
 		Result = new Param2();
 	}
 
-	public Reduce(Binary gkey, int state, long globalSerialId) {
+	public Reduce(Binary gkey, int state) {
 		Argument = new Param2();
 		Result = new Param2();
 		Argument.GlobalKey = gkey;
 		Argument.State = state;
-		Argument.GlobalSerialId = globalSerialId;
 	}
 }

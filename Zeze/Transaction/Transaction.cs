@@ -154,8 +154,6 @@ namespace Zeze.Transaction
             Savepoints[^1].RollbackActions.Add(action);
         }
 
-        internal TableKey LastTableKeyOfRedoAndRelease { get; set; } = null;
-        internal long LastGlobalSerialIdOfRedoAndRelease { get; set; } = 0;
         private bool AlwaysReleaseLockWhenRedo = false;
         internal void SetAlwaysReleaseLockWhenRedo()
         {
@@ -183,7 +181,6 @@ namespace Zeze.Transaction
                             CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
                             try
                             {
-                                LastTableKeyOfRedoAndRelease = null;
                                 var result = await procedure.CallAsync();
                                 switch (State)
                                 {
@@ -310,10 +307,7 @@ namespace Zeze.Transaction
                     //logger.Debug("Checkpoint.WaitRun {0}", procedure);
 
                     // 实现Fresh队列以后删除Sleep。
-                    Thread.Sleep(Util.Random.Instance.Next(50) + 50);
-
-                    if (null != LastTableKeyOfRedoAndRelease)
-                        await procedure.Zeze.TryWaitFlushWhenReduce(LastTableKeyOfRedoAndRelease, LastGlobalSerialIdOfRedoAndRelease);
+                    Thread.Sleep(Util.Random.Instance.Next(80) + 20);
                 }
                 logger.Error("Transaction.Perform:{0}. too many try.", procedure);
                 FinalRollback(procedure);
@@ -575,8 +569,6 @@ namespace Zeze.Transaction
                             return CheckResult.Redo;
 
                         case GlobalCacheManagerServer.StateInvalid:
-                            LastTableKeyOfRedoAndRelease = e.TableKey;
-                            LastGlobalSerialIdOfRedoAndRelease = e.Origin.LastErrorGlobalSerialId;
                             return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，肯定有Reduce请求。
 
                         case GlobalCacheManagerServer.StateModify:
@@ -586,17 +578,12 @@ namespace Zeze.Transaction
                         case GlobalCacheManagerServer.StateShare:
                             // 这里可能死锁：另一个先获得提升的请求要求本机Reduce，但是本机Checkpoint无法进行下去，被当前事务挡住了。
                             // 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
-                            var (_, ResultState, ResultGlobalSerialId) = await e.Origin.Acquire(
-                                GlobalCacheManagerServer.StateModify, e.Origin.fresh);
+                            var (_, ResultState) = await e.Origin.Acquire(GlobalCacheManagerServer.StateModify, e.Origin.fresh);
                             if (ResultState  != GlobalCacheManagerServer.StateModify)
                             {
                                 e.Origin.SetNotFresh(); // 抢失败不再新鲜。
                                 logger.Warn("Acquire Failed. Maybe DeadLock Found {0}", e.Origin);
                                 e.Origin.State = GlobalCacheManagerServer.StateInvalid;
-                                LastTableKeyOfRedoAndRelease = e.TableKey;
-                                e.Origin.LastErrorGlobalSerialId = ResultGlobalSerialId; // save
-                                LastGlobalSerialIdOfRedoAndRelease = ResultGlobalSerialId;
-
                                 return CheckResult.RedoAndReleaseLock;
                             }
                             e.Origin.State = GlobalCacheManagerServer.StateModify;
@@ -615,8 +602,6 @@ namespace Zeze.Transaction
 
                         case GlobalCacheManagerServer.StateInvalid:
                             // 发现Invalid，肯定有Reduce请求或者被Cache清理，此时保险起见释放锁。
-                            LastTableKeyOfRedoAndRelease = e.TableKey;
-                            LastGlobalSerialIdOfRedoAndRelease = e.Origin.LastErrorGlobalSerialId;
                             return CheckResult.RedoAndReleaseLock;
                     }
                     return e.Timestamp != e.Origin.Timestamp

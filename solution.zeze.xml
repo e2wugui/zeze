@@ -7,9 +7,8 @@
 			<!-- table -->
 			<bean name="CacheState" kind="rocks">
 				<variable id="1" name="AcquireStatePending" type="int" transient="true"/>
-				<variable id="2" name="GlobalSerialId" type="long" transient="true"/>
-				<variable id="3" name="Modify" type="int" default="-1"/> ServerId, default MUST BE -1.
-				<variable id="4" name="Share" type="set" value="int"/>
+				<variable id="2" name="Modify" type="int" default="-1"/> ServerId, default MUST BE -1.
+				<variable id="3" name="Share" type="set" value="int"/>
 			</bean>
 
 			<bean name="AcquiredState" kind="rocks">
@@ -28,7 +27,6 @@
 			<bean name="ReduceParam">
 				<variable id="1" name="GlobalKey" type="binary"/>
 				<variable id="2" name="State" type="int"/>
-				<variable id="3" name="GlobalSerialId" type="long"/>
 			</bean>
 
 			<bean name="LoginParam">

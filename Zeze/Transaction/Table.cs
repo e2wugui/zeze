@@ -87,14 +87,11 @@ namespace Zeze.Transaction
                         return r;
                     }
 
-                    var (ResultCode, ResultState, ResultGlobalSerialId) = await r.Acquire(GlobalCacheManagerServer.StateShare, false);
+                    var (ResultCode, ResultState) = await r.Acquire(GlobalCacheManagerServer.StateShare, false);
                     r.State = ResultState;
                     if (r.State == GlobalCacheManagerServer.StateInvalid)
                     {
-                        r.LastErrorGlobalSerialId = ResultGlobalSerialId; // save
                         var txn = Transaction.Current;
-                        txn.LastTableKeyOfRedoAndRelease = tkey;
-                        txn.LastGlobalSerialIdOfRedoAndRelease = ResultGlobalSerialId;
                         txn.ThrowRedoAndReleaseLock(tkey.ToString() + ":" + r.ToString());
                         //throw new RedoAndReleaseLockException();
                     }
@@ -150,7 +147,6 @@ namespace Zeze.Transaction
 
             rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
             rpc.Result.State = rpc.Argument.State;
-            rpc.Result.GlobalSerialId = rpc.Argument.GlobalSerialId;
 
             K key = DecodeKey(bbkey);
 
@@ -168,7 +164,6 @@ namespace Zeze.Transaction
                     rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                     logger.Debug("ReduceShare SendResult 1 {0}", r);
                     rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
-                    await Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                     return 0;
                 }
                 using var lockr = r.Mutex.Lock();
@@ -180,7 +175,6 @@ namespace Zeze.Transaction
                     return 0;
                 }
                 r.SetNotFresh(); // 被降级不再新鲜。
-                r.LastErrorGlobalSerialId = rpc.Argument.GlobalSerialId;
                 switch (r.State)
                 {
                     case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
@@ -188,7 +182,6 @@ namespace Zeze.Transaction
                         rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                         logger.Debug("ReduceShare SendResult 2 {0}", r);
                         rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
-                        await Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                         return 0;
 
                     case GlobalCacheManagerServer.StateShare:
@@ -198,7 +191,6 @@ namespace Zeze.Transaction
                             break;
                         logger.Debug("ReduceShare SendResult 3 {0}", r);
                         rpc.SendResult();
-                        await Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                         return 0;
 
                     case GlobalCacheManagerServer.StateModify:
@@ -207,7 +199,6 @@ namespace Zeze.Transaction
                             break;
                         logger.Debug("ReduceShare SendResult * {0}", r);
                         rpc.SendResult();
-                        await Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                         return 0;
                 }
             }
@@ -221,7 +212,6 @@ namespace Zeze.Transaction
             logger.Debug("ReduceShare SendResult 4 {0}", r);
             // Must before SendResult
             rpc.SendResult();
-            await Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
             //logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
             return 0;
         }
@@ -253,7 +243,6 @@ namespace Zeze.Transaction
 
             rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
             rpc.Result.State = rpc.Argument.State;
-            rpc.Result.GlobalSerialId = rpc.Argument.GlobalSerialId;
 
             K key = DecodeKey(bbkey);
 
@@ -268,7 +257,6 @@ namespace Zeze.Transaction
                     rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                     logger.Debug("ReduceInvalid SendResult 1 {0}", r);
                     rpc.SendResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
-                    await Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                     return 0;
                 }
                 using var lockr = r.Mutex.Lock();
@@ -280,7 +268,6 @@ namespace Zeze.Transaction
                     return 0;
                 }
                 r.SetNotFresh(); // 被降级不再新鲜。
-                r.LastErrorGlobalSerialId = rpc.Argument.GlobalSerialId;
                 switch (r.State)
                 {
                     case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
@@ -291,7 +278,6 @@ namespace Zeze.Transaction
                             break;
                         logger.Debug("ReduceInvalid SendResult 2 {0}", r);
                         rpc.SendResult();
-                        await Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                         return 0;
 
                     case GlobalCacheManagerServer.StateShare:
@@ -301,7 +287,6 @@ namespace Zeze.Transaction
                             break;
                         logger.Debug("ReduceInvalid SendResult 3 {0}", r);
                         rpc.SendResult();
-                        await Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                         return 0;
 
                     case GlobalCacheManagerServer.StateModify:
@@ -309,7 +294,6 @@ namespace Zeze.Transaction
                         if (r.Dirty)
                             break;
                         rpc.SendResult();
-                        await Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
                         return 0;
                 }
             }
@@ -323,7 +307,6 @@ namespace Zeze.Transaction
             logger.Debug("ReduceInvalid SendResult 4 {0} ", r);
             // Must before SendResult
             rpc.SendResult();
-            await Zeze.SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
             //logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
             return 0;
         }

@@ -8,20 +8,17 @@ import Zeze.Transaction.Record;
 public class Param2 extends Bean {
     public Binary GlobalKey; // 没有初始化，使用时注意
     public int State;
-    public long GlobalSerialId;
 
     @Override
     public void Decode(ByteBuffer bb) {
         GlobalKey = bb.ReadBinary();
         State = bb.ReadInt();
-        GlobalSerialId = bb.ReadLong();
     }
 
     @Override
     public void Encode(ByteBuffer bb) {
         bb.WriteBinary(GlobalKey);
         bb.WriteInt(State);
-        bb.WriteLong(GlobalSerialId);
     }
 
     @Override

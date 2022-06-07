@@ -46,8 +46,6 @@ public final class Application {
 	private final Config Conf;
 	private final HashMap<String, Database> Databases = new HashMap<>();
 	private final LongConcurrentHashMap<Table> Tables = new LongConcurrentHashMap<>();
-	private final ConcurrentHashMap<TableKey, LastFlushWhenReduce> FlushWhenReduce = new ConcurrentHashMap<>();
-	private final LongConcurrentHashMap<ConcurrentHashSet<LastFlushWhenReduce>> FlushWhenReduceActives = new LongConcurrentHashMap<>();
 	private final TaskOneByOneByKey TaskOneByOneByKey = new TaskOneByOneByKey();
 	private final Locks Locks = new Locks();
 	private final Agent ServiceManagerAgent;
@@ -291,8 +289,6 @@ public final class Application {
 			// Checkpoint
 			_checkpoint = new Checkpoint(this, Conf.getCheckpointMode(), Databases.values(), Conf.getServerId());
 			_checkpoint.Start(Conf.getCheckpointPeriod()); // 定时模式可以和其他模式混用。
-			// FlushWhenReduceTimerTask
-			FlushWhenReduceTimerTask = Task.schedule(60 * 1000, 60 * 1000, this::FlushWhenReduceTimer);
 
 			/////////////////////////////////////////////////////
 			// Schemas
@@ -387,79 +383,6 @@ public final class Application {
 
 	public void CheckpointRun() {
 		_checkpoint.RunOnce();
-	}
-
-	private static final class LastFlushWhenReduce {
-		public final TableKey Key;
-		public long LastGlobalSerialId;
-		public long Ticks; // System.currentTimeMillis()
-		public boolean Removed;
-
-		public LastFlushWhenReduce(TableKey tkey) {
-			Key = tkey;
-		}
-	}
-
-	public void __SetLastGlobalSerialId(TableKey tkey, long globalSerialId) {
-		while (true) {
-			var last = FlushWhenReduce.computeIfAbsent(tkey, LastFlushWhenReduce::new);
-			//noinspection SynchronizationOnLocalVariableOrMethodParameter
-			synchronized (last) {
-				if (!last.Removed) {
-					last.LastGlobalSerialId = globalSerialId;
-					last.Ticks = System.currentTimeMillis();
-					last.notifyAll();
-					var minutes = last.Ticks / MillisPerMinute;
-					FlushWhenReduceActives.computeIfAbsent(minutes, (k) -> new ConcurrentHashSet<>()).add(last);
-					return;
-				}
-			}
-		}
-	}
-
-	public boolean __TryWaitFlushWhenReduce(TableKey tkey, long hope) {
-		while (true) {
-			var last = FlushWhenReduce.computeIfAbsent(tkey, LastFlushWhenReduce::new);
-			//noinspection SynchronizationOnLocalVariableOrMethodParameter
-			synchronized (last) {
-				if (last.Removed)
-					continue;
-
-				if (last.LastGlobalSerialId >= hope)
-					return true;
-
-				// 超时的时候，马上返回。这个机制的是为了防止忙等。所以不需要严格等待成功。中断的时候也马上返回。只等待一次。
-				try {
-					var waitms = Zeze.Util.Random.getInstance().nextInt(50) + 50;
-					last.wait(waitms);
-					return last.LastGlobalSerialId >= hope; // timeout will return false
-				} catch (InterruptedException skip) {
-					logger.error(skip);
-					return false;
-				}
-			}
-		}
-	}
-
-	private void FlushWhenReduceTimer() {
-		var minutes = System.currentTimeMillis() / MillisPerMinute;
-
-		for (var it = FlushWhenReduceActives.entryIterator(); it.moveToNext(); ) {
-			if (minutes - it.key()> FlushWhenReduceIdleMinutes) {
-				for (var last : it.value()) {
-					//noinspection SynchronizationOnLocalVariableOrMethodParameter
-					synchronized (last) {
-						if (last.Removed)
-							continue;
-
-						if (minutes - last.Ticks / MillisPerMinute > FlushWhenReduceIdleMinutes) {
-							if (FlushWhenReduce.remove(last.Key) != null)
-								last.Removed = true;
-						}
-					}
-				}
-			}
-		}
 	}
 
 	public TaskOneByOneByKey getTaskOneByOneByKey() {

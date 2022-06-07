@@ -32,6 +32,7 @@ java.lang.IllegalStateException: CacheState state error
 ------------------------------------------------------------------------------------------------------------------------------
 tag 0.9.9 Random Sleep For Global-Dead-Lock and Too-Many-Try & Global Restart ...
 ------------------------------------------------------------------------------------------------------------------------------
+【TryWaitFlushWhenRecude 去掉啦】
 Too Many Try: Fresh机制下由Global提供排队方案草稿：
   1. Server发现本地Fresh，拒绝Reduce。
   2. Global发现由于Fresh的拒绝，把申请者加入队列。

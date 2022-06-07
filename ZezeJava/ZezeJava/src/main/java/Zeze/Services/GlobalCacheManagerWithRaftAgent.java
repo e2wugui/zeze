@@ -77,7 +77,6 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			Real = real;
 			Argument.GlobalKey = real.Argument.getGlobalKey();
 			Argument.State = real.Argument.getState();
-			Argument.GlobalSerialId = real.Argument.getGlobalSerialId();
 		}
 
 		@Override
@@ -88,7 +87,6 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		@Override
 		public void SendResult(Zeze.Net.Binary result) {
 			Real.Result.setGlobalKey(Real.Argument.getGlobalKey()); // no change
-			Real.Result.setGlobalSerialId(Result.GlobalSerialId);
 			Real.Result.setState(Result.State);
 			Real.SendResult(result);
 		}
@@ -101,7 +99,6 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		@Override
 		public void SendResultCode(long code, Zeze.Net.Binary result) {
 			Real.Result.setGlobalKey(Real.Argument.getGlobalKey()); // no change
-			Real.Result.setGlobalSerialId(Result.GlobalSerialId);
 			Real.Result.setState(Result.State);
 			Real.SendResultCode(code, result);
 		}
@@ -193,11 +190,10 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 				trans.ThrowAbort("GlobalAgent.Acquire Failed", null);
 				// never got here
 			}
-			return new IGlobalAgent.AcquireResult(
-					rpc.getResultCode(), rpc.Result.getState(), rpc.Result.getGlobalSerialId());
+			return new IGlobalAgent.AcquireResult(rpc.getResultCode(), rpc.Result.getState());
 		}
 		logger.debug("Acquire local ++++++");
-		return new IGlobalAgent.AcquireResult(0, state, 0);
+		return new IGlobalAgent.AcquireResult(0, state);
 	}
 
 	// 1. 【Login|ReLogin|NormalClose】会被Raft.Agent重发处理，这要求GlobalRaft能处理重复请求。

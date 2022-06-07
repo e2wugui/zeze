@@ -54,97 +54,6 @@ namespace Zeze
             */
         }
 
-        internal class LastFlushWhenReduce
-        {
-            public TableKey Key { get; set; }
-            public long LastGlobalSerialId;
-            public long Ticks { get; set; }
-            public bool Removed { get; set; } = false;
-            public Nito.AsyncEx.AsyncMonitor Monitor = new();
-            public LastFlushWhenReduce(TableKey tkey)
-            {
-                Key = tkey;
-            }
-        }
-
-        private ConcurrentDictionary<TableKey, LastFlushWhenReduce> FlushWhenReduce { get; }
-            = new ConcurrentDictionary<TableKey, LastFlushWhenReduce>();
-        private ConcurrentDictionary<long, Util.IdentityHashSet<LastFlushWhenReduce>> FlushWhenReduceActives { get; }
-            = new ConcurrentDictionary<long, Util.IdentityHashSet<LastFlushWhenReduce>>();
-        private Util.SchedulerTask FlushWhenReduceTimerTask;
-
-        internal async Task SetLastGlobalSerialId(TableKey tkey, long globalSerialId)
-        {
-            while (true)
-            {
-                var last = FlushWhenReduce.GetOrAdd(tkey, (k) => new LastFlushWhenReduce(k));
-                using (await last.Monitor.EnterAsync())
-                {
-                    if (last.Removed)
-                        continue;
-
-                    last.LastGlobalSerialId = globalSerialId;
-                    last.Ticks = DateTime.Now.Ticks;
-                    last.Monitor.PulseAll();
-                    var minutes = last.Ticks / TimeSpan.TicksPerMinute;
-                    FlushWhenReduceActives.GetOrAdd(minutes, (key) => new Util.IdentityHashSet<LastFlushWhenReduce>()).Add(last);
-                    return;
-                }
-            }
-        }
-
-        internal async Task<bool> TryWaitFlushWhenReduce(TableKey tkey, long hope)
-        {
-            while (true)
-            {
-                var last = FlushWhenReduce.GetOrAdd(tkey, (k) => new LastFlushWhenReduce(k));
-                using (await last.Monitor.EnterAsync())
-                {
-                    if (last.Removed)
-                        continue;
-
-                    if (last.LastGlobalSerialId >= hope)
-                        return true;
-
-                    // 超时的时候，马上返回。这个机制的是为了防止忙等。所以不需要严格等待成功。中断的时候也马上返回。只等待一次。
-                    var waitms = Util.Random.Instance.Next(50) + 50;
-                    var task = last.Monitor.WaitAsync();
-                    await Task.WhenAny(task, Task.Delay(waitms));
-                    return last.LastGlobalSerialId >= hope;
-                }
-            }
-        }
-
-        public const long FlushWhenReduceIdleMinuts = 30;
-
-        private async void FlushWhenReduceTimer(Util.SchedulerTask ThisTask)
-        {
-            var minuts = DateTime.Now.Ticks / TimeSpan.TicksPerMinute;
-
-            foreach (var active in FlushWhenReduceActives)
-            {
-                if (minuts - active.Key > FlushWhenReduceIdleMinuts)
-                {
-                    foreach (var last in active.Value)
-                    {
-                        using (await last.Monitor.EnterAsync())
-                        {
-                            if (last.Removed)
-                                continue;
-
-                            if (minuts - last.Ticks / TimeSpan.TicksPerMinute > FlushWhenReduceIdleMinuts)
-                            {
-                                if (FlushWhenReduce.TryRemove(last.Key, out _))
-                                {
-                                    last.Removed = true;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         public Schemas Schemas { get; set; } // no thread protected
         public string SolutionName { get; }
 
@@ -335,7 +244,6 @@ namespace Zeze
                     if (defaultDb.DirectOperates.SaveDataWithSameVersion(keyOfSchemas, newdata, ref version))
                         break;
                 }
-                FlushWhenReduceTimerTask = Util.Scheduler.Schedule(FlushWhenReduceTimer, 60 * 1000, 60 * 1000);
                 AchillesHeelDaemon.Start();
             }
         }
@@ -355,9 +263,6 @@ namespace Zeze
                 AchillesHeelDaemon = null;
 
                 GlobalAgent?.Dispose(); // 关闭时需要生成新的SessionId，这个现在使用AutoKey，需要事务支持。
-
-                FlushWhenReduceTimerTask?.Cancel();
-                FlushWhenReduceTimerTask = null;
 
                 _checkpoint?.StopAndJoin();
                 _checkpoint = null;

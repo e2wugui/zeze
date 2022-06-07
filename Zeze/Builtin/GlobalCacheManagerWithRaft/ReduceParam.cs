@@ -13,14 +13,12 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
 
         public Zeze.Net.Binary GlobalKey { get; }
         public int State { get; }
-        public long GlobalSerialId { get; }
     }
 
     public sealed class ReduceParam : Zeze.Transaction.Bean, ReduceParamReadOnly
     {
         Zeze.Net.Binary _GlobalKey;
         int _State;
-        long _GlobalSerialId;
 
         public Zeze.Net.Binary GlobalKey
         {
@@ -73,31 +71,6 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             }
         }
 
-        public long GlobalSerialId
-        {
-            get
-            {
-                if (!IsManaged)
-                    return _GlobalSerialId;
-                var txn = Zeze.Transaction.Transaction.Current;
-                if (txn == null) return _GlobalSerialId;
-                txn.VerifyRecordAccessed(this, true);
-                var log = (Log__GlobalSerialId)txn.GetLog(ObjectId + 3);
-                return log != null ? log.Value : _GlobalSerialId;
-            }
-            set
-            {
-                if (!IsManaged)
-                {
-                    _GlobalSerialId = value;
-                    return;
-                }
-                var txn = Zeze.Transaction.Transaction.Current;
-                txn.VerifyRecordAccessed(this);
-                txn.PutLog(new Log__GlobalSerialId() { Belong = this, VariableId = 3, Value = value });
-            }
-        }
-
         public ReduceParam() : this(0)
         {
         }
@@ -111,7 +84,6 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
         {
             GlobalKey = other.GlobalKey;
             State = other.State;
-            GlobalSerialId = other.GlobalSerialId;
         }
 
         public ReduceParam CopyIfManaged()
@@ -151,11 +123,6 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             public override void Commit() { ((ReduceParam)Belong)._State = this.Value; }
         }
 
-        sealed class Log__GlobalSerialId : Zeze.Transaction.Log<long>
-        {
-            public override void Commit() { ((ReduceParam)Belong)._GlobalSerialId = this.Value; }
-        }
-
         public override string ToString()
         {
             var sb = new System.Text.StringBuilder();
@@ -169,8 +136,7 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             sb.Append(Zeze.Util.Str.Indent(level)).Append("Zeze.Builtin.GlobalCacheManagerWithRaft.ReduceParam: {").Append(Environment.NewLine);
             level += 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append("GlobalKey").Append('=').Append(GlobalKey).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("State").Append('=').Append(State).Append(',').Append(Environment.NewLine);
-            sb.Append(Zeze.Util.Str.Indent(level)).Append("GlobalSerialId").Append('=').Append(GlobalSerialId).Append(Environment.NewLine);
+            sb.Append(Zeze.Util.Str.Indent(level)).Append("State").Append('=').Append(State).Append(Environment.NewLine);
             level -= 4;
             sb.Append(Zeze.Util.Str.Indent(level)).Append('}');
         }
@@ -194,14 +160,6 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
                     _o_.WriteInt(_x_);
                 }
             }
-            {
-                long _x_ = GlobalSerialId;
-                if (_x_ != 0)
-                {
-                    _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
-                    _o_.WriteLong(_x_);
-                }
-            }
             _o_.WriteByte(0);
         }
 
@@ -219,11 +177,6 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
                 State = _o_.ReadInt(_t_);
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
-            if (_i_ == 3)
-            {
-                GlobalSerialId = _o_.ReadLong(_t_);
-                _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-            }
             while (_t_ != 0)
             {
                 _o_.SkipUnknownField(_t_);
@@ -238,7 +191,6 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
         public override bool NegativeCheck()
         {
             if (State < 0) return true;
-            if (GlobalSerialId < 0) return true;
             return false;
         }
 
@@ -251,7 +203,6 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
                 {
                     case 1: _GlobalKey = ((Zeze.Transaction.Log<Zeze.Net.Binary>)vlog).Value; break;
                     case 2: _State = ((Zeze.Transaction.Log<int>)vlog).Value; break;
-                    case 3: _GlobalSerialId = ((Zeze.Transaction.Log<long>)vlog).Value; break;
                 }
             }
         }

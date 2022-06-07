@@ -61,7 +61,6 @@ namespace Zeze.Transaction
             get { return _State; }
             set { _State = value; }
         }
-        internal long LastErrorGlobalSerialId { get; set; }
 
         public abstract Table Table { get; }
         private volatile RelativeRecordSet RelativeRecordSetPrivate = new();
@@ -87,7 +86,7 @@ namespace Zeze.Transaction
 
         internal abstract void Commit(Transaction.RecordAccessed accessed);
 
-        internal abstract Task<(long, int, long)> Acquire(int state, bool fresh);
+        internal abstract Task<(long, int)> Acquire(int state, bool fresh);
 
         internal abstract void Encode0();
         internal abstract Task Flush(Database.ITransaction t);
@@ -138,12 +137,12 @@ namespace Zeze.Transaction
             // 记录的log可能在Transaction.AddRecordAccessed之前进行，不能再访问了。
         }
 
-        internal async override Task<(long, int, long)> Acquire(int state, bool fresh)
+        internal async override Task<(long, int)> Acquire(int state, bool fresh)
         {
             if (null == TTable.TStorage)
             {
                 // 不支持内存表cache同步。
-                return (0, state, 0);
+                return (0, state);
             }
 
             var gkey = TTable.EncodeGlobalKey(Key);

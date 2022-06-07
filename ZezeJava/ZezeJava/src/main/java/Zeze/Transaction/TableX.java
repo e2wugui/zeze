@@ -89,12 +89,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				var acquire = r.Acquire(GlobalCacheManagerServer.StateShare, false);
 				r.setState(acquire.ResultState);
 				if (r.getState() == GlobalCacheManagerServer.StateInvalid) {
-					r.LastErrorGlobalSerialId = acquire.ResultGlobalSerialId; // save
 					var txn = Transaction.getCurrent();
 					if (null == txn)
 						throw new IllegalStateException("Acquire Failed");
-					txn.LastTableKeyOfRedoAndRelease = tkey;
-					txn.LastGlobalSerialIdOfRedoAndRelease = acquire.ResultGlobalSerialId;
 					txn.ThrowRedoAndReleaseLock(tkey + ":" + r, null);
 				}
 
@@ -143,7 +140,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 		rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
 		rpc.Result.State = rpc.Argument.State;
-		rpc.Result.GlobalSerialId = rpc.Argument.GlobalSerialId;
 
 		K key = DecodeKey(bbKey);
 
@@ -160,7 +156,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
 				logger.debug("Reduce SendResult 1 r=null");
 				rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
-				getZeze().__SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
 				return 0;
 			}
 			r.EnterFairLock();
@@ -172,7 +167,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					return 0;
 				}
 				r.setNotFresh(); // 被降级不再新鲜。
-				r.LastErrorGlobalSerialId = rpc.Argument.GlobalSerialId;
 				switch (r.getState()) {
 					case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
 					case GlobalCacheManagerServer.StateInvalid:
@@ -183,7 +177,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							break;
 						logger.debug("Reduce SendResult 2 {}", r);
 						rpc.SendResult();
-						getZeze().__SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
 						return 0;
 
 					case GlobalCacheManagerServer.StateShare:
@@ -193,7 +186,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							break;
 						logger.debug("Reduce SendResult 3 {}", r);
 						rpc.SendResult();
-						getZeze().__SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
 						return 0;
 
 					case GlobalCacheManagerServer.StateModify:
@@ -203,7 +195,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							break;
 						logger.debug("Reduce SendResult * {}", r);
 						rpc.SendResult();
-						getZeze().__SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
 						return 0;
 				}
 			} finally {
@@ -217,7 +208,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		FlushWhenReduce(r, () -> {
 			logger.debug("Reduce SendResult 4 {}", fr);
 			rpc.SendResult();
-			getZeze().__SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
 		});
 		//logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
 		return 0;
@@ -246,7 +236,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 		rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
 		rpc.Result.State = rpc.Argument.State;
-		rpc.Result.GlobalSerialId = rpc.Argument.GlobalSerialId;
 
 		K key = DecodeKey(bbKey);
 
@@ -263,7 +252,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
 				logger.debug("Reduce SendResult 1 r=null");
 				rpc.SendResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
-				getZeze().__SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
 				return 0;
 			}
 			r.EnterFairLock();
@@ -275,7 +263,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					return 0;
 				}
 				r.setNotFresh(); // 被降级不再新鲜。
-				r.LastErrorGlobalSerialId = rpc.Argument.GlobalSerialId;
 				switch (r.getState()) {
 					case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
 					case GlobalCacheManagerServer.StateInvalid:
@@ -285,7 +272,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							break;
 						logger.debug("Reduce SendResult 2 {}", r);
 						rpc.SendResult();
-						getZeze().__SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
 						return 0;
 
 					case GlobalCacheManagerServer.StateShare:
@@ -295,7 +281,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							break;
 						logger.debug("Reduce SendResult 3 {}", r);
 						rpc.SendResult();
-						getZeze().__SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
 						return 0;
 
 					case GlobalCacheManagerServer.StateModify:
@@ -304,7 +289,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							break;
 						logger.debug("Reduce SendResult * {}", r);
 						rpc.SendResult();
-						getZeze().__SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
 						return 0;
 				}
 			} finally {
@@ -320,7 +304,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		FlushWhenReduce(r, () -> {
 			logger.debug("Reduce SendResult 4 {}", fr);
 			rpc.SendResult();
-			getZeze().__SetLastGlobalSerialId(tkey, rpc.Argument.GlobalSerialId);
 		});
 		//logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
 		return 0;

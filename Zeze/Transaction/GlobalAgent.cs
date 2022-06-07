@@ -13,7 +13,7 @@ namespace Zeze.Transaction
     internal interface IGlobalAgent : IDisposable
     {
         // (ResultCode, State, GlobalSerialId)
-        public Task<(long, int, long)> Acquire(Binary gkey, int state, bool fresh);
+        public Task<(long, int)> Acquire(Binary gkey, int state, bool fresh);
         public int GetGlobalCacheManagerHashIndex(Binary gkey);
     }
 
@@ -153,7 +153,7 @@ namespace Zeze.Transaction
             return gkey.GetHashCode() % Agents.Length;
         }
 
-        public async Task<(long, int, long)> Acquire(Binary gkey, int state, bool fresh)
+        public async Task<(long, int)> Acquire(Binary gkey, int state, bool fresh)
         {
             if (null != Client)
             {
@@ -188,10 +188,10 @@ namespace Zeze.Transaction
                         // never got here
                         break;
                 }
-                return (rpc.ResultCode, rpc.Result.State, rpc.Result.GlobalSerialId);
+                return (rpc.ResultCode, rpc.Result.State);
             }
             logger.Debug("Acquire local ++++++");
-            return (0, state, 0);
+            return (0, state);
         }
 
         public async Task<long> ProcessReduceRequest(Zeze.Net.Protocol p)

@@ -92,7 +92,6 @@ public abstract class Record {
 	public final void setState(int value) {
 		State = value;
 	}
-	public long LastErrorGlobalSerialId;
 
 	public abstract Table getTable();
 

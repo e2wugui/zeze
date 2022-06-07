@@ -7,7 +7,6 @@ import Zeze.Serialize.ByteBuffer;
 public final class ReduceParam extends Zeze.Transaction.Bean {
     private Zeze.Net.Binary _GlobalKey;
     private int _State;
-    private long _GlobalSerialId;
 
     public Zeze.Net.Binary getGlobalKey() {
         if (!isManaged())
@@ -55,28 +54,6 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__State(this, 2, value));
     }
 
-    public long getGlobalSerialId() {
-        if (!isManaged())
-            return _GlobalSerialId;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        if (txn == null)
-            return _GlobalSerialId;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__GlobalSerialId)txn.GetLog(this.getObjectId() + 3);
-        return log != null ? log.Value : _GlobalSerialId;
-    }
-
-    public void setGlobalSerialId(long value) {
-        if (!isManaged()) {
-            _GlobalSerialId = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__GlobalSerialId(this, 3, value));
-    }
-
     public ReduceParam() {
          this(0);
     }
@@ -89,7 +66,6 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
     public void Assign(ReduceParam other) {
         setGlobalKey(other.getGlobalKey());
         setState(other.getState());
-        setGlobalSerialId(other.getGlobalSerialId());
     }
 
     public ReduceParam CopyIfManaged() {
@@ -134,13 +110,6 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
         public void Commit() { ((ReduceParam)getBelong())._State = Value; }
     }
 
-    private static final class Log__GlobalSerialId extends Zeze.Transaction.Logs.LogLong {
-        public Log__GlobalSerialId(ReduceParam bean, int varId, long value) { super(bean, varId, value); }
-
-        @Override
-        public void Commit() { ((ReduceParam)getBelong())._GlobalSerialId = Value; }
-    }
-
     @Override
     public String toString() {
         var sb = new StringBuilder();
@@ -154,8 +123,7 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.GlobalCacheManagerWithRaft.ReduceParam: {").append(System.lineSeparator());
         level += 4;
         sb.append(Zeze.Util.Str.indent(level)).append("GlobalKey").append('=').append(getGlobalKey()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("State").append('=').append(getState()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("GlobalSerialId").append('=').append(getGlobalSerialId()).append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("State").append('=').append(getState()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -189,13 +157,6 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
                 _o_.WriteInt(_x_);
             }
         }
-        {
-            long _x_ = getGlobalSerialId();
-            if (_x_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
-                _o_.WriteLong(_x_);
-            }
-        }
         _o_.WriteByte(0);
     }
 
@@ -209,10 +170,6 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
         }
         if (_i_ == 2) {
             setState(_o_.ReadInt(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 3) {
-            setGlobalSerialId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -229,8 +186,6 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
     public boolean NegativeCheck() {
         if (getState() < 0)
             return true;
-        if (getGlobalSerialId() < 0)
-            return true;
         return false;
     }
 
@@ -245,7 +200,6 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
             switch (vlog.getVariableId()) {
                 case 1: _GlobalKey = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
                 case 2: _State = ((Zeze.Transaction.Logs.LogInt)vlog).Value; break;
-                case 3: _GlobalSerialId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
             }
         }
     }

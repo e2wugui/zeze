@@ -124,8 +124,6 @@ public final class Transaction {
 		Savepoints.get(Savepoints.size() - 1).addRollbackAction(action);
 	}
 
-	TableKey LastTableKeyOfRedoAndRelease;
-	long LastGlobalSerialIdOfRedoAndRelease;
 	private boolean AlwaysReleaseLockWhenRedo = false;
 	void SetAlwaysReleaseLockWhenRedo() {
 		AlwaysReleaseLockWhenRedo = true;
@@ -147,7 +145,6 @@ public final class Transaction {
 					for (; tryCount < 256; ++tryCount) { // 最多尝试次数
 						CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
 						try {
-							LastTableKeyOfRedoAndRelease = null;
 							var result = procedure.Call();
 							switch (State) {
 								case Running:
@@ -257,12 +254,10 @@ public final class Transaction {
 				//logger.Debug("Checkpoint.WaitRun {0}", procedure);
 				// 实现Fresh队列以后删除Sleep。
 				try {
-					Thread.sleep(Zeze.Util.Random.getInstance().nextInt(100) + 10);
+					Thread.sleep(Zeze.Util.Random.getInstance().nextInt(80) + 20);
 				} catch (InterruptedException e) {
 					logger.error("", e);
 				}
-				if (null != LastTableKeyOfRedoAndRelease)
-					procedure.getZeze().__TryWaitFlushWhenReduce(LastTableKeyOfRedoAndRelease, LastGlobalSerialIdOfRedoAndRelease);
 			}
 			logger.error("Transaction.Perform:{}. too many try.", procedure);
 			finalRollback(procedure);
@@ -447,8 +442,6 @@ public final class Transaction {
 						return CheckResult.Redo;
 
 					case GlobalCacheManagerServer.StateInvalid:
-						LastTableKeyOfRedoAndRelease = e.getTableKey();
-						LastGlobalSerialIdOfRedoAndRelease = e.AtomicTupleRecord.Record.LastErrorGlobalSerialId;
 						return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，可能有Reduce请求。
 
 					case GlobalCacheManagerServer.StateModify:
@@ -463,9 +456,6 @@ public final class Transaction {
 							e.AtomicTupleRecord.Record.setNotFresh(); // 抢失败不再新鲜。
 							logger.debug("Acquire Failed. Maybe DeadLock Found {}", e.AtomicTupleRecord);
 							e.AtomicTupleRecord.Record.setState(GlobalCacheManagerServer.StateInvalid); // 这里保留StateShare更好吗？
-							LastTableKeyOfRedoAndRelease = e.getTableKey();
-							e.AtomicTupleRecord.Record.LastErrorGlobalSerialId = acquire.ResultGlobalSerialId; // save
-							LastGlobalSerialIdOfRedoAndRelease = acquire.ResultGlobalSerialId;
 							return CheckResult.RedoAndReleaseLock;
 						}
 						e.AtomicTupleRecord.Record.setState(GlobalCacheManagerServer.StateModify);
@@ -480,8 +470,6 @@ public final class Transaction {
 						return CheckResult.Redo;
 
 					case GlobalCacheManagerServer.StateInvalid:
-						LastTableKeyOfRedoAndRelease = e.getTableKey();
-						LastGlobalSerialIdOfRedoAndRelease = e.AtomicTupleRecord.Record.LastErrorGlobalSerialId;
 						return CheckResult.RedoAndReleaseLock; // 发现Invalid，可能有Reduce请求或者被Cache清理，此时保险起见释放锁。
 				}
 				return e.AtomicTupleRecord.Timestamp != e.AtomicTupleRecord.Record.getTimestamp() ? CheckResult.Redo : CheckResult.Success;

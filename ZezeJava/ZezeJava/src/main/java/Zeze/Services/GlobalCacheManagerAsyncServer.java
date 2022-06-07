@@ -475,7 +475,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 						if (cs.Modify == sender) {
 							logger.debug("1 {} {} {}", sender, StateShare, cs);
 							rpc.Result.State = StateInvalid;
-							rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 							rpc.SendResultCode(AcquireShareDeadLockFound);
 							if (ENABLE_PERF)
 								perf.onAcquireEnd(rpc, StateShare);
@@ -486,7 +485,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 						if (cs.Modify == sender || cs.Share.contains(sender)) {
 							logger.debug("2 {} {} {}", sender, StateShare, cs);
 							rpc.Result.State = StateInvalid;
-							rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 							rpc.SendResultCode(AcquireShareDeadLockFound);
 							if (ENABLE_PERF)
 								perf.onAcquireEnd(rpc, StateShare);
@@ -508,7 +506,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				}
 
 				cs.AcquireStatePending = StateShare;
-				cs.GlobalSerialId = SerialIdGenerator.incrementAndGet();
+				SerialIdGenerator.incrementAndGet();
 			}
 
 			var gKey = cs.GlobalKey;
@@ -521,7 +519,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 						cs.AcquireStatePending = StateInvalid;
 						logger.debug("4 {} {} {}", sender, StateShare, cs);
 						rpc.Result.State = StateModify;
-						rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 						rpc.SendResultCode(AcquireShareAlreadyIsModify);
 						if (ENABLE_PERF)
 							perf.onAcquireEnd(rpc, StateShare);
@@ -529,7 +526,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					}
 
 					state.reduceResultState = StateReduceNetError; // 默认网络错误。。
-					if (cs.Modify.ReduceWaitLater(gKey, cs.GlobalSerialId, rpc.getResultCode(), r -> {
+					if (cs.Modify.ReduceWaitLater(gKey, rpc.getResultCode(), r -> {
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
 						state.reduceResultState = r.isTimeout() ? StateReduceRpcTimeout : r.Result.State;
@@ -562,7 +559,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					if (ENABLE_PERF)
 						perf.onOthers("XXX Fresh " + StateShare);
 					rpc.Result.State = StateInvalid;
-					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 					rpc.SendResultCode(StateReduceErrorFreshAcquire);
 					if (ENABLE_PERF)
 						perf.onAcquireEnd(rpc, StateShare);
@@ -579,7 +575,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 						perf.onOthers("XXX 8 " + StateShare + " " + state.reduceResultState);
 					// logger.error("XXX 8 {} {} {} {}", sender, StateShare, cs, state.reduceResultState);
 					rpc.Result.State = StateInvalid;
-					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 					rpc.SendResultCode(AcquireShareFailed);
 					if (ENABLE_PERF)
 						perf.onAcquireEnd(rpc, StateShare);
@@ -592,7 +587,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				cs.AcquireStatePending = StateInvalid;
 				cs.lock.notifyAllWait();
 				logger.debug("6 {} {} {}", sender, StateShare, cs);
-				rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 				rpc.SendResultCode(0);
 				if (ENABLE_PERF)
 					perf.onAcquireEnd(rpc, StateShare);
@@ -604,7 +598,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			cs.AcquireStatePending = StateInvalid;
 			cs.lock.notifyAllWait();
 			logger.debug("7 {} {} {}", sender, StateShare, cs);
-			rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 			rpc.SendResultCode(0);
 			if (ENABLE_PERF)
 				perf.onAcquireEnd(rpc, StateShare);
@@ -641,7 +634,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 						if (cs.Modify == sender) {
 							logger.debug("1 {} {} {}", sender, StateModify, cs);
 							rpc.Result.State = StateInvalid;
-							rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 							rpc.SendResultCode(AcquireModifyDeadLockFound);
 							if (ENABLE_PERF)
 								perf.onAcquireEnd(rpc, StateModify);
@@ -652,7 +644,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 						if (cs.Modify == sender || cs.Share.contains(sender)) {
 							logger.debug("2 {} {} {}", sender, StateModify, cs);
 							rpc.Result.State = StateInvalid;
-							rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 							rpc.SendResultCode(AcquireModifyDeadLockFound);
 							if (ENABLE_PERF)
 								perf.onAcquireEnd(rpc, StateModify);
@@ -674,7 +665,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				}
 
 				cs.AcquireStatePending = StateModify;
-				cs.GlobalSerialId = SerialIdGenerator.incrementAndGet();
+				SerialIdGenerator.incrementAndGet();
 			}
 
 			var gKey = cs.GlobalKey;
@@ -687,7 +678,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 						sender.Acquired.put(gKey, StateModify);
 						cs.AcquireStatePending = StateInvalid;
 						cs.lock.notifyAllWait();
-						rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 						rpc.SendResultCode(AcquireModifyAlreadyIsModify);
 						if (ENABLE_PERF)
 							perf.onAcquireEnd(rpc, StateModify);
@@ -695,7 +685,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					}
 
 					state.reduceResultState = StateReduceNetError; // 默认网络错误。
-					if (cs.Modify.ReduceWaitLater(gKey, cs.GlobalSerialId, rpc.getResultCode(), r -> {
+					if (cs.Modify.ReduceWaitLater(gKey, rpc.getResultCode(), r -> {
 						if (ENABLE_PERF)
 							perf.onReduceEnd(r);
 						state.reduceResultState = r.isTimeout() ? StateReduceRpcTimeout : r.Result.State;
@@ -721,7 +711,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					if (ENABLE_PERF)
 						perf.onOthers("XXX Fresh " + StateModify);
 					rpc.Result.State = StateInvalid;
-					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 					rpc.SendResultCode(StateReduceErrorFreshAcquire);
 					if (ENABLE_PERF)
 						perf.onAcquireEnd(rpc, StateModify);
@@ -737,7 +726,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 						perf.onOthers("XXX 9 " + StateModify + " " + state.reduceResultState);
 					// logger.error("XXX 9 {} {} {} {}", sender, StateModify, cs, state.reduceResultState);
 					rpc.Result.State = StateInvalid;
-					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 					rpc.SendResultCode(AcquireModifyFailed);
 					if (ENABLE_PERF)
 						perf.onAcquireEnd(rpc, StateModify);
@@ -750,7 +738,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				cs.AcquireStatePending = StateInvalid;
 				cs.lock.notifyAllWait();
 				logger.debug("6 {} {} {}", sender, StateModify, cs);
-				rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 				rpc.SendResultCode(0);
 				if (ENABLE_PERF)
 					perf.onAcquireEnd(rpc, StateModify);
@@ -771,7 +758,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					continue;
 				}
 				allReduceFuture.createOne();
-				Reduce reduce = c.ReduceWaitLater(gKey, cs.GlobalSerialId, rpc.getResultCode(), r -> {
+				Reduce reduce = c.ReduceWaitLater(gKey, rpc.getResultCode(), r -> {
 					if (ENABLE_PERF)
 						perf.onReduceEnd(r);
 					allReduceFuture.finishOne();
@@ -807,7 +794,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					cs.AcquireStatePending = StateInvalid;
 					cs.lock.notifyAllWait();
 					logger.debug("8 {} {} {}", sender, StateModify, cs);
-					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 					rpc.SendResultCode(0);
 				} else {
 					// senderIsShare 在失败的时候，Acquired 没有变化，不需要更新。
@@ -820,7 +806,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 						perf.onOthers("XXX 10 " + StateModify);
 					// logger.error("XXX 10 {} {} {}", sender, StateModify, cs);
 					rpc.Result.State = StateInvalid;
-					rpc.Result.GlobalSerialId = cs.GlobalSerialId;
 					if (errorFreshAcquire.Value)
 						rpc.SendResultCode(StateReduceErrorFreshAcquire); // 这个错误不看做失败，允许发送方继续尝试。
 					else
@@ -881,7 +866,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		final AsyncLock lock = new AsyncLock();
 		CacheHolder Modify;
 		int AcquireStatePending = StateInvalid;
-		long GlobalSerialId;
 
 		public CacheState(Binary gKey) {
 			GlobalKey = gKey;
@@ -974,13 +958,13 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		/**
 		 * 返回null表示发生了网络错误，或者应用服务器已经关闭。
 		 */
-		Reduce ReduceWaitLater(Binary gkey, long globalSerialId, long fresh, ProtocolHandle<Rpc<Param2, Param2>> handle) {
+		Reduce ReduceWaitLater(Binary gkey, long fresh, ProtocolHandle<Rpc<Param2, Param2>> handle) {
 			try {
 				if (System.currentTimeMillis() - LastErrorTime < Instance.AchillesHeelConfig.GlobalForbidPeriod)
 					return null;
 				AsyncSocket peer = Instance.Server.GetSocket(SessionId);
 				if (peer != null) {
-					var reduce = new Reduce(gkey, StateInvalid, globalSerialId);
+					var reduce = new Reduce(gkey, StateInvalid);
 					reduce.setResultCode(fresh);
 					if (ENABLE_PERF)
 						Instance.perf.onReduceBegin(reduce);
@@ -989,8 +973,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					if (ENABLE_PERF)
 						Instance.perf.onReduceCancel(reduce);
 				}
-				logger.warn("Send Reduce failed. SessionId={}, peer={}, gkey={}, globalSerialId={}",
-						SessionId, peer, gkey, globalSerialId);
+				logger.warn("Send Reduce failed. SessionId={}, peer={}, gkey={}", SessionId, peer, gkey);
 			} catch (Throwable ex) {
 				// 这里的异常只应该是网络发送异常。
 				logger.error("ReduceWaitLater Exception " + gkey, ex);
