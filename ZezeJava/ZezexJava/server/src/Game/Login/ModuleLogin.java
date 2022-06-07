@@ -64,7 +64,7 @@ public final class ModuleLogin extends AbstractModule {
 			rpc.Result.setLastLoginRoleId(account.getLastLoginRoleId());
 		}
 
-		session.sendResponse(rpc);
+		session.sendResponseWhileCommit(rpc);
 		return Procedure.Success;
 	}
 

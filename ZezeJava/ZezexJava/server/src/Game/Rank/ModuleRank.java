@@ -364,7 +364,7 @@ public class ModuleRank extends AbstractModule {
 		var result = new SGetRankList();
 		if (session.getRoleId() == null) {
 			result.setResultCode(-1);
-			session.sendResponse(result);
+			session.sendResponseWhileCommit(result);
 			return Procedure.LogicError;
 		}
 		/*
@@ -372,13 +372,13 @@ public class ModuleRank extends AbstractModule {
 		GetRankAsync(protocol.Argument.RankType, (rank) =>
 		{
 		    result.Argument.RankList.AddRange(rank.TableValue.RankList);
-		    session.SendResponse(result);
+		    session.sendResponseWhileCommit(result);
 		});
 		/*/
 		// 同步方式获取rank
 		var rankKey = NewRankKey(protocol.Argument.getRankType(), protocol.Argument.getTimeType());
 		result.Argument.getRankList().addAll(GetRankSync(rankKey).getTableValue().getRankList());
-		session.sendResponse(result);
+		session.sendResponseWhileCommit(result);
 		// */
 		return Procedure.Success;
 	}

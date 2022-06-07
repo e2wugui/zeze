@@ -42,7 +42,7 @@ namespace Game.Login
             // initialize role data
             (await Game.App.Instance.Game_Bag.GetBag(roleid)).SetCapacity(50);
 
-            session.SendResponse(rpc);
+            session.SendResponseWhileCommit(rpc);
             return Procedure.Success;
         }
 
@@ -69,7 +69,7 @@ namespace Game.Login
                 rpc.Result.LastLoginRoleId = account.LastLoginRoleId;
             }
 
-            session.SendResponse(rpc);
+            session.SendResponseWhileCommit(rpc);
             return Procedure.Success;
         }
     }

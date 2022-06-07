@@ -23,23 +23,20 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 	void ApplyOnChanged(Agent.SubscribeState subState) {
 		if (subState.getServiceName().equals(ProviderApp.LinkdServiceName)) {
+			// Linkd info
 			ProviderApp.ProviderService.Apply(subState.getServiceInfos());
+		} else if (subState.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)) {
+			// Provider info
+			// 对于 SubscribeTypeSimple 是不需要 SetReady 的，为了能一致处理，就都设置上了。
+			// 对于 SubscribeTypeReadyCommit 在 ApplyOnPrepare 中处理。
+			if (subState.getSubscribeType() == SubscribeInfo.SubscribeTypeSimple)
+				this.ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, subState.getServiceInfos());
 		}
-		/*
-		else if (subState.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)){
-			System.out.println("ServerId=" + ProviderApp.Zeze.getConfig().getServerId()
-			+ " OnChanged=" + subState.getServiceInfos());
-			//this.ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, subState.getServiceInfos());
-		}
-		*/
 	}
 
 	void ApplyOnPrepare(Agent.SubscribeState subState) {
 		var pending = subState.getServiceInfosPending();
-		if (pending == null)
-			return;
-
-		if (pending.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)) {
+		if (pending != null && pending.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)) {
 			this.ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, pending);
 		}
 	}

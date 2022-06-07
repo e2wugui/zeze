@@ -106,7 +106,7 @@ public final class ModuleEquip extends AbstractModule {
 			bEquipAdd.setNumber(1);
 			bEquipAdd.setExtra(bItem.getExtra_Game_Equip_BEquipExtra().Copy());
 			equips.getItems().put(equipPos, bEquipAdd);
-			session.SendResponse(rpc);
+			session.sendResponseWhileCommit(rpc);
 			return Procedure.Success;
 		}
 		*/
@@ -129,7 +129,7 @@ public final class ModuleEquip extends AbstractModule {
 			if (0 != bag.Add(-1, bItemAdd)) {
 				return ErrorCode(ResultCodeBagIsFull); // bag is full
 			}
-			session.SendResponse(rpc);
+			session.sendResponseWhileCommit(rpc);
 			return Procedure.Success;
 		}
 		*/

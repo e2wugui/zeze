@@ -97,7 +97,7 @@ namespace Zeze.Arch
                     {
                         ChoiceType = GetModuleChoiceType(bind.Key),
                         ConfigType = bind.Value,
-                        SubscribeType = SubscribeInfo.SubscribeTypeReadyCommit,
+                        SubscribeType = SubscribeInfo.SubscribeTypeSimple,
                     });
             }
         }

@@ -67,8 +67,7 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 					try {
 						outC.Value.Start();
 					} catch (Throwable e) {
-						logger.error("", e);
-						return null;
+						throw new RuntimeException(e);
 					}
 				}
 				return outC.Value;

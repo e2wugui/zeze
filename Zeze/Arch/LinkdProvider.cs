@@ -47,9 +47,9 @@ namespace Zeze.Arch
                         module.Key, module.Value.ChoiceType, module.Value.ConfigType);
                     var serviceName = ProviderDistribute.MakeServiceName(providerSession.Info.ServiceNamePrefix, module.Key);
                     var subState = await LinkdApp.Zeze.ServiceManagerAgent.SubscribeService(serviceName,
-                        SubscribeInfo.SubscribeTypeReadyCommit,
-                        providerModuleState);
+                        SubscribeInfo.SubscribeTypeSimple, providerModuleState);
                     // 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
+                    // 即使 SubscribeTypeSimple 也需要设置 Ready，因为 providerModuleState 需要设置到ServiceInfo中，以后Choice的时候需要用。
                     subState.SetServiceIdentityReadyState(providerSession.Info.ServiceIndentity, providerModuleState);
                     providerSession.StaticBinds.TryAdd(module.Key, module.Key);
                 }
@@ -134,8 +134,8 @@ namespace Zeze.Arch
                 var subState = await LinkdApp.Zeze.ServiceManagerAgent.SubscribeService(
                         serviceName, module.Value.SubscribeType, providerModuleState);
                 // 订阅成功以后，仅仅需要设置ready。service-list由Agent维护。
-                if (SubscribeInfo.SubscribeTypeReadyCommit == module.Value.SubscribeType)
-                    subState.SetServiceIdentityReadyState(ps.Info.ServiceIndentity, providerModuleState);
+                // 即使 SubscribeTypeSimple 也需要设置 Ready，因为 providerModuleState 需要设置到ServiceInfo中，以后Choice的时候需要用。
+                subState.SetServiceIdentityReadyState(ps.Info.ServiceIndentity, providerModuleState);
             }
 
             rpc.SendResult();

@@ -80,7 +80,7 @@ namespace Game.Bag
                 rpc.Argument.Number);
             if (moduleCode != 0)
                 return ErrorCode((ushort)moduleCode);
-            session.SendResponse(rpc);
+            session.SendResponseWhileCommit(rpc);
             return 0;
         }
 
@@ -91,7 +91,7 @@ namespace Game.Bag
             var moduleCode = (await GetBag(session.RoleId.Value)).Destroy(rpc.Argument.Position);
             if (0 != moduleCode)
                 return ErrorCode((ushort)moduleCode);
-            session.SendResponse(rpc);
+            session.SendResponseWhileCommit(rpc);
             return 0;
         }
 
@@ -101,7 +101,7 @@ namespace Game.Bag
             var session = ProviderUserSession.Get(rpc);
             Bag bag = await GetBag(session.RoleId.Value);
             bag.Sort();
-            session.SendResponse(rpc);
+            session.SendResponseWhileCommit(rpc);
             return Procedure.Success;
         }
 
@@ -111,7 +111,7 @@ namespace Game.Bag
             var session = ProviderUserSession.Get(rpc);
 
             (await GetBag(session.RoleId.Value)).ToProtocol(rpc.Result);
-            session.SendResponse(rpc);
+            session.SendResponseWhileCommit(rpc);
             await Game.App.Instance.ProviderImplementWithOnline.Online.AddReliableNotifyMark(
                 session.RoleId.Value, BagChangeListener.Name);
             return Procedure.Success;

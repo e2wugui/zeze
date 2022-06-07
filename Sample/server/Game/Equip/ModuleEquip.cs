@@ -117,7 +117,7 @@ namespace Game.Equip
                     bEquipAdd = new Game.Bag.BItem() { Id = bItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = bItem.Extra_Game_Equip_BEquipExtra.Copy() };
                     equips.Items.Add(equipPos, bEquipAdd);
                 }
-                session.SendResponse(rpc);
+                session.SendResponseWhileCommit(rpc);
                 return Procedure.Success;
             }
             return ErrorCode(ResultCodeItemNotFound);
@@ -136,7 +136,7 @@ namespace Game.Equip
                 var bItemAdd = new Bag.BItem() { Id = eItem.Id, Number = 1, Extra_Game_Equip_BEquipExtra = (BEquipExtra)eItem.Extra.CopyBean() };
                 if (0 != bag.Add(-1, bItemAdd))
                     return ErrorCode(ResultCodeBagIsFull); // bag is full
-                session.SendResponse(rpc);
+                session.SendResponseWhileCommit(rpc);
                 return Procedure.Success;
             }
 

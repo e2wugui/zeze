@@ -17,24 +17,23 @@ namespace Zeze.Arch
         {
             if (subState.ServiceName.Equals(ProviderApp.LinkdServiceName))
             {
+                // Linkd info
                 ProviderApp.ProviderService.ApplyLinksChanged(subState.ServiceInfos);
             }
-            /*
-            else if (subState.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)){
-                System.out.println("ServerId=" + ProviderApp.Zeze.getConfig().getServerId()
-                + " OnChanged=" + subState.getServiceInfos());
-                //this.ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, subState.getServiceInfos());
+            else if (subState.ServiceName.StartsWith(ProviderApp.ServerServiceNamePrefix))
+            {
+                // Provider info
+                // 对于 SubscribeTypeSimple 是不需要 SetReady 的，为了能一致处理，就都设置上了。
+                // 对于 SubscribeTypeReadyCommit 在 ApplyOnPrepare 中处理。
+                if (subState.SubscribeType == SubscribeInfo.SubscribeTypeSimple)
+                    this.ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, subState.ServiceInfos);
             }
-            */
         }
 
         internal void ApplyOnPrepare(Agent.SubscribeState subState)
         {
             var pending = subState.ServiceInfosPending;
-            if (pending == null)
-                return;
-
-            if (pending.ServiceName.StartsWith(ProviderApp.ServerServiceNamePrefix))
+            if (pending != null && pending.ServiceName.StartsWith(ProviderApp.ServerServiceNamePrefix))
             {
                 this.ProviderApp.ProviderDirectService.TryConnectAndSetReady(subState, pending);
             }

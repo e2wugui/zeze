@@ -96,7 +96,7 @@ public class ProviderModuleBinds {
 				var tempVar = new BModule();
 				tempVar.setChoiceType(GetModuleChoiceType(bind.getKey()));
 				tempVar.setConfigType(bind.getValue());
-				tempVar.setSubscribeType(SubscribeInfo.SubscribeTypeReadyCommit);
+				tempVar.setSubscribeType(SubscribeInfo.SubscribeTypeSimple);
 				modules.put(m.getId(), tempVar);
 			}
 		}

@@ -276,7 +276,7 @@ namespace Game.Rank
             if (null == session.RoleId)
             {
                 r.ResultCode = -1;
-                session.SendResponse(r);
+                session.SendResponseWhileCommit(r);
                 return Procedure.LogicError;
             }
             /* 
@@ -291,7 +291,7 @@ namespace Game.Rank
             r.Result.RankList.AddRange((await GetRank(
                 NewRankKey(r.Argument.RankType, r.Argument.TimeType)
                 )).TableValue.RankList);
-            session.SendResponse(r);
+            session.SendResponseWhileCommit(r);
             // */
             return Procedure.Success;
         }
