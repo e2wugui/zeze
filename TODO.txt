@@ -43,7 +43,7 @@ java.lang.IllegalStateException: CacheState state error
 ------------------------------------------------------------------------------------------------------------------------------
 tag 0.9.9 Silence. ^_^
 ------------------------------------------------------------------------------------------------------------------------------
-Arch：模块默认类型设置为，SubsribeTypeSimple。（准备以后改成一致性hash算法）。
+Arch：模块默认订阅类型设置为，SubsribeTypeSimple。（准备以后改成一致性hash算法）。
 Global宕机：Server重连发送ReLogin，此时新启动的Global需要拒绝ReLogin，然后Server释放本地所有锁，重新发Login才能登录。
 Gen: transient 应用到所有版本。
 Too Many Try: Fresh机制下由Global提供排队方案草稿：
