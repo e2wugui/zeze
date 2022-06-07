@@ -761,7 +761,10 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				Reduce reduce = c.ReduceWaitLater(gKey, rpc.getResultCode(), r -> {
 					if (ENABLE_PERF)
 						perf.onReduceEnd(r);
+					// cs.lock.enter(() -> {
+					// 	cs.Share.remove(c);
 					allReduceFuture.finishOne();
+					// });
 					return 0;
 				});
 				if (reduce == null) {
