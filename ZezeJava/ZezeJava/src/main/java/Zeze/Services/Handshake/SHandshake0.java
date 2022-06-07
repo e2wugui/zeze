@@ -4,8 +4,8 @@ import Zeze.Net.Protocol;
 import Zeze.Transaction.Bean;
 
 public class SHandshake0 extends Protocol<SHandshake0Argument> {
-	public static final int ProtocolId_ = Bean.Hash32(SHandshake0.class.getName());
-	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
+	public static final int ProtocolId_ = Bean.Hash32(SHandshake0.class.getName()); // -2018202792
+	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 2276764504
 
 	@Override
 	public int getModuleId() {

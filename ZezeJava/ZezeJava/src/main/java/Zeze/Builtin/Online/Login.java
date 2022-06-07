@@ -3,8 +3,8 @@ package Zeze.Builtin.Online;
 
 public class Login extends Zeze.Net.Rpc<Zeze.Builtin.Online.BLogin, Zeze.Transaction.EmptyBean> {
     public static final int ModuleId_ = 11100;
-    public static final int ProtocolId_ = -1498951762;
-    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_);
+    public static final int ProtocolId_ = -1498951762; // 2796015534
+    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_); // 47676933001134
 
     @Override
     public int getModuleId() {

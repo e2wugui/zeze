@@ -6,7 +6,7 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
     {
         public const int ModuleId_ = 11001;
         public const int ProtocolId_ = 257764070;
-        public const long TypeId_ = (long)ModuleId_ << 32 | (ProtocolId_ & 0xffff_ffff);
+        public const long TypeId_ = (long)ModuleId_ << 32 | unchecked((uint)ProtocolId_); // 47249192987366
 
         public override int ModuleId => ModuleId_;
         public override int ProtocolId => ProtocolId_;

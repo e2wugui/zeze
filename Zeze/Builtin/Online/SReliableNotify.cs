@@ -6,7 +6,7 @@ namespace Zeze.Builtin.Online
     {
         public const int ModuleId_ = 11100;
         public const int ProtocolId_ = 240607704;
-        public const long TypeId_ = (long)ModuleId_ << 32 | (ProtocolId_ & 0xffff_ffff);
+        public const long TypeId_ = (long)ModuleId_ << 32 | unchecked((uint)ProtocolId_); // 47674377593304
 
         public override int ModuleId => ModuleId_;
         public override int ProtocolId => ProtocolId_;

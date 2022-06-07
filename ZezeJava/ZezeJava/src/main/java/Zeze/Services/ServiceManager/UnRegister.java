@@ -9,8 +9,8 @@ import Zeze.Transaction.EmptyBean;
  * 最好主动注销，方便以后错误处理。
  */
 public final class UnRegister extends Rpc<ServiceInfo, EmptyBean> {
-	public static final int ProtocolId_ = Bean.Hash32(UnRegister.class.getName());
-	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
+	public static final int ProtocolId_ = Bean.Hash32(UnRegister.class.getName()); // 1424315418
+	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 1424315418
 
 	public static final int Success = 0;
 	public static final int NotExist = 1;

@@ -1,8 +1,8 @@
 package Zeze.Services.GlobalCacheManager;
 
 public class NormalClose extends Zeze.Net.Rpc<Zeze.Transaction.EmptyBean, Zeze.Transaction.EmptyBean> {
-	public static final int ProtocolId_ = Zeze.Transaction.Bean.Hash32(NormalClose.class.getName());
-	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
+	public static final int ProtocolId_ = Zeze.Transaction.Bean.Hash32(NormalClose.class.getName()); // -532299976
+	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 3762667320
 
 	@Override
 	public int getModuleId() {

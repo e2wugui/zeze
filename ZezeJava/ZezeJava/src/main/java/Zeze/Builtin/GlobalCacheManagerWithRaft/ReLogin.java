@@ -3,8 +3,8 @@ package Zeze.Builtin.GlobalCacheManagerWithRaft;
 
 public class ReLogin extends Zeze.Raft.RaftRpc<Zeze.Builtin.GlobalCacheManagerWithRaft.LoginParam, Zeze.Transaction.EmptyBean> {
     public static final int ModuleId_ = 11001;
-    public static final int ProtocolId_ = -1422572442;
-    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_);
+    public static final int ProtocolId_ = -1422572442; // 2872394854
+    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_); // 47251807618150
 
     @Override
     public int getModuleId() {

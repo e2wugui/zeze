@@ -29,8 +29,8 @@ namespace Zeze.Gen.cs
             sw.WriteLine($"    public sealed class {rpc.Name} : {baseclass}<{argument}, {result}>");
             sw.WriteLine("    {");
             sw.WriteLine("        public const int ModuleId_ = " + rpc.Space.Id + ";");
-            sw.WriteLine("        public const int ProtocolId_ = " + rpc.Id + ";");
-            sw.WriteLine("        public const long TypeId_ = (long)ModuleId_ << 32 | (ProtocolId_ & 0xffff_ffff);");
+            sw.WriteLine("        public const int ProtocolId_ = " + rpc.Id + ";" + (rpc.Id < 0 ? " // " + (uint)rpc.Id : ""));
+            sw.WriteLine("        public const long TypeId_ = (long)ModuleId_ << 32 | unchecked((uint)ProtocolId_); // " + Net.Protocol.MakeTypeId(rpc.Space.Id, rpc.Id));
             sw.WriteLine();
             sw.WriteLine("        public override int ModuleId => ModuleId_;");
             sw.WriteLine("        public override int ProtocolId => ProtocolId_;");

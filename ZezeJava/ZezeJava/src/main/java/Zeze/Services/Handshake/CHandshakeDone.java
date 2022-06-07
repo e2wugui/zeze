@@ -5,8 +5,8 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 
 public final class CHandshakeDone extends Protocol<EmptyBean> {
-	public static final int ProtocolId_ = Bean.Hash32(CHandshakeDone.class.getName());
-	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
+	public static final int ProtocolId_ = Bean.Hash32(CHandshakeDone.class.getName()); // 1896283174
+	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 1896283174
 
 	@Override
 	public int getModuleId() {

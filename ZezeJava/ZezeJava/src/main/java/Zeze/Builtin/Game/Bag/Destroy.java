@@ -3,8 +3,8 @@ package Zeze.Builtin.Game.Bag;
 
 public class Destroy extends Zeze.Net.Rpc<Zeze.Builtin.Game.Bag.BDestroy, Zeze.Transaction.EmptyBean> {
     public static final int ModuleId_ = 11014;
-    public static final int ProtocolId_ = -1194800685;
-    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_);
+    public static final int ProtocolId_ = -1194800685; // 3100166611
+    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_); // 47307869964755
 
     @Override
     public int getModuleId() {

@@ -3,8 +3,8 @@ package Zeze.Builtin.Online;
 
 public class ReliableNotifyConfirm extends Zeze.Net.Rpc<Zeze.Builtin.Online.BReliableNotifyConfirm, Zeze.Transaction.EmptyBean> {
     public static final int ModuleId_ = 11100;
-    public static final int ProtocolId_ = -244732886;
-    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_);
+    public static final int ProtocolId_ = -244732886; // 4050234410
+    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_); // 47678187220010
 
     @Override
     public int getModuleId() {

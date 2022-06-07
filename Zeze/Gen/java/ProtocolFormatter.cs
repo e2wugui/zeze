@@ -20,8 +20,8 @@ namespace Zeze.Gen.java
             string argument = p.ArgumentType == null ? "Zeze.Transaction.EmptyBean" : TypeName.GetName(p.ArgumentType);
             sw.WriteLine("public class " + p.Name + " extends Zeze.Net.Protocol<" + argument + "> {");
             sw.WriteLine("    public static final int ModuleId_ = " + p.Space.Id + ";");
-            sw.WriteLine("    public static final int ProtocolId_ = " + p.Id + ";");
-            sw.WriteLine("    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_);");
+            sw.WriteLine("    public static final int ProtocolId_ = " + p.Id + ";" + (p.Id < 0 ? " // " + (uint)p.Id : ""));
+            sw.WriteLine("    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_); // " + Net.Protocol.MakeTypeId(p.Space.Id, p.Id));
             sw.WriteLine();
             sw.WriteLine("    @Override");
             sw.WriteLine("    public int getModuleId() {");

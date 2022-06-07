@@ -1,8 +1,8 @@
 package Zeze.Services.GlobalCacheManager;
 
 public class ReLogin extends Zeze.Net.Rpc<LoginParam, Zeze.Transaction.EmptyBean> {
-	public static final int ProtocolId_ = Zeze.Transaction.Bean.Hash32(ReLogin.class.getName());
-	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
+	public static final int ProtocolId_ = Zeze.Transaction.Bean.Hash32(ReLogin.class.getName()); // 1197409195
+	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 1197409195
 
 	@Override
 	public int getModuleId() {

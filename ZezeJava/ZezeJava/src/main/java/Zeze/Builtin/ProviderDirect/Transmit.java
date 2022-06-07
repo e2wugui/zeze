@@ -4,7 +4,7 @@ package Zeze.Builtin.ProviderDirect;
 public class Transmit extends Zeze.Net.Protocol<Zeze.Builtin.ProviderDirect.BTransmit> {
     public static final int ModuleId_ = 11009;
     public static final int ProtocolId_ = 902147088;
-    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_);
+    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_); // 47284197108752
 
     @Override
     public int getModuleId() {

@@ -3,8 +3,8 @@ package Zeze.Builtin.Provider;
 
 public class Kick extends Zeze.Net.Protocol<Zeze.Builtin.Provider.BKick> {
     public static final int ModuleId_ = 11008;
-    public static final int ProtocolId_ = -73074142;
-    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_);
+    public static final int ProtocolId_ = -73074142; // 4221893154
+    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_); // 47283221887522
 
     @Override
     public int getModuleId() {

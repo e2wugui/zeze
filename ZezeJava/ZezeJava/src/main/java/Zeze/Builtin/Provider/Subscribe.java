@@ -4,7 +4,7 @@ package Zeze.Builtin.Provider;
 public class Subscribe extends Zeze.Net.Rpc<Zeze.Builtin.Provider.BSubscribe, Zeze.Transaction.EmptyBean> {
     public static final int ModuleId_ = 11008;
     public static final int ProtocolId_ = 1110460218;
-    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_);
+    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_); // 47280110454586
 
     @Override
     public int getModuleId() {

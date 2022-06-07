@@ -5,8 +5,8 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 
 public final class Update extends Rpc<ServiceInfo, EmptyBean> {
-	public static final int ProtocolId_ = Bean.Hash32(Update.class.getName());
-	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
+	public static final int ProtocolId_ = Bean.Hash32(Update.class.getName()); // -723792139
+	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 3571175157
 
 	public static final int Success = 0;
 	public static final int ServiceNotRegister = 1;

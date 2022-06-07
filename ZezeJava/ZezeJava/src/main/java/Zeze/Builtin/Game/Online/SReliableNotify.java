@@ -4,7 +4,7 @@ package Zeze.Builtin.Game.Online;
 public class SReliableNotify extends Zeze.Net.Protocol<Zeze.Builtin.Game.Online.BReliableNotify> {
     public static final int ModuleId_ = 11013;
     public static final int ProtocolId_ = 1941465447;
-    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_);
+    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_); // 47302416296295
 
     @Override
     public int getModuleId() {

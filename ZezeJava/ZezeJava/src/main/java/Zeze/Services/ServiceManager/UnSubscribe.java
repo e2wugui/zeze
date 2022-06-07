@@ -5,8 +5,8 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.EmptyBean;
 
 public final class UnSubscribe extends Rpc<SubscribeInfo, EmptyBean> {
-	public static final int ProtocolId_ = Bean.Hash32(UnSubscribe.class.getName());
-	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL;
+	public static final int ProtocolId_ = Bean.Hash32(UnSubscribe.class.getName()); // -1962944542
+	public static final long TypeId_ = ProtocolId_ & 0xffff_ffffL; // 2332022754
 
 	public static final int Success = 0;
 	public static final int NotExist = 1;

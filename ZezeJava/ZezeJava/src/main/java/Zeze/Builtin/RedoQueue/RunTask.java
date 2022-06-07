@@ -4,7 +4,7 @@ package Zeze.Builtin.RedoQueue;
 public class RunTask extends Zeze.Net.Rpc<Zeze.Builtin.RedoQueue.BQueueTask, Zeze.Builtin.RedoQueue.BTaskId> {
     public static final int ModuleId_ = 11010;
     public static final int ProtocolId_ = 1530872255;
-    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_);
+    public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_); // 47289120801215
 
     @Override
     public int getModuleId() {
