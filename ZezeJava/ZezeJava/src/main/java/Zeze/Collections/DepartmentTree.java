@@ -134,7 +134,7 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean, TDepart
 	}
 
 	public long createDepartment(long departmentParent, String dName, OutLong outDepartmentId) {
-		var dRoot = module._tDepartment.getOrAdd(dName);
+		var dRoot = module._tDepartment.getOrAdd(name);
 		var dId = dRoot.getNextDepartmentId() + 1;
 
 		if (departmentParent == 0) {

@@ -110,6 +110,8 @@ public class Program {
 				App.Instance.Zege_Friend.add(cmd[1]).await();
 				Program.this.refresh();
 				return true;
+			case "exit":
+				return true; // 外面主循环会退出，这里认为已经处理即可。
 			}
 			return false;
 		}
