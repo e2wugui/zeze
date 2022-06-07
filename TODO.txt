@@ -11,16 +11,6 @@ ServiceConf.Acceptor ip="@internal" "@external"
 Task
 Universe
 Zege
-Too Many Try: Fresh机制下由Global提供排队方案草稿：
-  1. Server发现本地Fresh，拒绝Reduce。
-  2. Global发现由于Fresh的拒绝，把申请者加入队列。
-  3. Server把set Fresh=false时，发送通知给Global。
-  4. Global收到Fresh==false通知，选择队列中的一个申请者开始处理。
-  5. Global-Fresh队列管理。
-     需要定时轮询的方式启动队列中的请求进行重做，防止Fresh=false通知丢失。
-     请求总超时管理按一般请求超时处理。
-     问题：请求第一次来的时候要不要判断Fresh队列不为空，然后马上加入队列。
-
 Global-Server错误码分析
 1. Warning
 global 统计增加了Acquire和Reduce ResultCode的统计, GlobalRaft跑Simulate时,Acquire出现过以下失败情况:
@@ -32,7 +22,6 @@ global 统计增加了Acquire和Reduce ResultCode的统计, GlobalRaft跑Simulat
  int AcquireModifyAlreadyIsModify = 25;
  int AcquireShareFailed = 26;
  int AcquireModifyFailed = 27;
-
 2. Fatal
 ERROR [] Table: RocksRaft Process Exception
 java.lang.IllegalStateException: CacheState state error
@@ -41,14 +30,29 @@ java.lang.IllegalStateException: CacheState state error
 【2022/6/11】
 
 ------------------------------------------------------------------------------------------------------------------------------
-tag 0.9.9 Silence. ^_^
+tag 0.9.9 Random Sleep For Global-Dead-Lock and Too-Many-Try & Global Restart ...
 ------------------------------------------------------------------------------------------------------------------------------
+Too Many Try: Fresh机制下由Global提供排队方案草稿：
+  1. Server发现本地Fresh，拒绝Reduce。
+  2. Global发现由于Fresh的拒绝，把申请者加入队列。
+  3. Server把set Fresh=false时，发送通知给Global。
+  4. Global收到Fresh==false通知，选择队列中的一个申请者开始处理。
+  5. Global-Fresh队列管理。
+     需要定时轮询的方式启动队列中的请求进行重做，防止Fresh=false通知丢失。
+     请求总超时管理按一般请求超时处理。
+     问题：请求第一次来的时候要不要判断Fresh队列不为空，然后马上加入队列。
+  【死锁检测忙等问题】
+     由于死锁检测必须返回结果，没法使用队列，所以这个问题不好解决。
+     死锁检测原来的忙等解决方案是：TryWaitFlushWhenRecude，但仍然存在一个忙等窗口：
+     当一个申请在进行过程中，CacheState还没有更新时，忙等仍然存在。
+  【总结】
+     用随机延迟一起解决Fresh排队和死锁检测忙等，上面的Fresh队列也不实现了。
+-------------------------------------------------------------------------------------------
 Arch：模块默认订阅类型设置为，SubsribeTypeSimple。（准备以后改成一致性hash算法）。
 Global宕机：Server重连发送ReLogin，此时新启动的Global需要拒绝ReLogin，然后Server释放本地所有锁，重新发Login才能登录。
 Gen: transient 应用到所有版本。
 Too Many Try: Fresh机制下由Global提供排队方案草稿：
   0.【先采用临时方案】Server在RedoAndReleaseLock时随机Sleep延迟。
-
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 0.9.8 AchillesHeel & Handshake & Too Many Try
