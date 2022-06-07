@@ -1038,7 +1038,7 @@ namespace Zeze.Services
 
 namespace Zeze.Services.GlobalCacheManager
 {
-    public sealed class Param : Bean
+    public sealed class GlobalKeyState : Bean
     {
         public Binary GlobalKey { get; set; }
         public int State { get; set; }
@@ -1066,35 +1066,7 @@ namespace Zeze.Services.GlobalCacheManager
         }
     }
 
-    public sealed class Param2 : Bean
-    {
-        public Binary GlobalKey { get; set; }
-        public int State { get; set; }
-
-        public override void Decode(ByteBuffer bb)
-        {
-            GlobalKey = bb.ReadBinary();
-            State = bb.ReadInt();
-        }
-
-        public override void Encode(ByteBuffer bb)
-        {
-            bb.WriteBinary(GlobalKey);
-            bb.WriteInt(State);
-        }
-
-        protected override void InitChildrenRootInfo(Record.RootInfo root)
-        {
-            throw new NotImplementedException();
-        }
-
-        public override string ToString()
-        {
-            return GlobalKey + ":" + State;
-        }
-    }
-
-    public sealed class Acquire : Rpc<Param, Param2>
+    public sealed class Acquire : Rpc<GlobalKeyState, GlobalKeyState>
     {
         public readonly static int ProtocolId_ = Bean.Hash32(typeof(Acquire).FullName);
 
@@ -1112,7 +1084,7 @@ namespace Zeze.Services.GlobalCacheManager
         }
     }
 
-    public class Reduce : Rpc<Param2, Param2>
+    public class Reduce : Rpc<GlobalKeyState, GlobalKeyState>
     {
         public readonly static int ProtocolId_ = Bean.Hash32(typeof(Reduce).FullName);
 
