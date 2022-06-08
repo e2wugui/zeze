@@ -36,6 +36,8 @@ namespace Zeze.Util
 				if (!nodes.Add(node))
 					return;
 
+				nodeKey ??= "";
+				
 				for (int i = 0; i < numberOfReplicas; ++i)
 				{
 					var hash = Zeze.Transaction.Bean.Hash32(nodeKey + "#" + i);
@@ -60,10 +62,13 @@ namespace Zeze.Util
 				if (!nodes.Remove(node))
 					return;
 
+				nodeKey ??= "";
+
 				for (int i = 0; i < numberOfReplicas; ++i)
 				{
 					var hash = Zeze.Transaction.Bean.Hash32(nodeKey + "#" + i);
-					circle.Remove(hash);
+					if (circle.TryGetValue(hash, out var current) && current.Equals(node))
+						circle.Remove(hash);
 				}
 			}
 		}

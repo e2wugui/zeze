@@ -9,11 +9,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class ConsistentHash<TNode> {
-	static final Logger logger = LogManager.getLogger(ConsistentHash.class);
+	private static final Logger logger = LogManager.getLogger(ConsistentHash.class);
 
 	private final int numberOfReplicas;
 	private final TreeMap<Integer, TNode> circle = new TreeMap<>();
 	private final HashSet<TNode> nodes = new HashSet<>();
+	private final Set<TNode> nodesView = Collections.unmodifiableSet(nodes);
 
 	public ConsistentHash() {
 		this(128);
@@ -26,7 +27,7 @@ public class ConsistentHash<TNode> {
 	}
 
 	public Set<TNode> getNodes() {
-		return Collections.unmodifiableSet(nodes);
+		return nodesView;
 	}
 
 	public synchronized void add(String nodeKey, TNode node) {
@@ -35,6 +36,9 @@ public class ConsistentHash<TNode> {
 
 		if (!nodes.add(node))
 			return;
+
+		if (nodeKey == null)
+			nodeKey = "";
 
 		for (int i = 0; i < numberOfReplicas; ++i) {
 			var hash = Zeze.Transaction.Bean.Hash32(nodeKey + "#" + i);
@@ -52,18 +56,22 @@ public class ConsistentHash<TNode> {
 		if (!nodes.remove(node))
 			return;
 
+		if (nodeKey == null)
+			nodeKey = "";
+
 		for (int i = 0; i < numberOfReplicas; ++i) {
 			var hash = Zeze.Transaction.Bean.Hash32(nodeKey + "#" + i);
-			circle.remove(hash);
+			circle.remove(hash, node);
 		}
 	}
 
 	public synchronized TNode get(int hash) {
-		if (circle.isEmpty())
-			return null;
-
-		var tailMap = circle.tailMap(hash);
-		var key = tailMap.isEmpty() ? circle.firstKey() : tailMap.firstKey();
-		return circle.get(key);
+		var e = circle.ceilingEntry(hash);
+		if (e == null) {
+			e = circle.firstEntry();
+			if (e == null)
+				return null;
+		}
+		return e.getValue();
 	}
 }
