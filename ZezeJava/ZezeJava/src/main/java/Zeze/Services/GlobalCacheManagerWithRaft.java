@@ -2,15 +2,29 @@ package Zeze.Services;
 
 import java.io.Closeable;
 import java.util.ArrayList;
-import java.util.HashSet;
-import Zeze.Builtin.GlobalCacheManagerWithRaft.*;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.AcquiredState;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.CacheState;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.Cleanup;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.KeepAlive;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.Login;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.NormalClose;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.ReLogin;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce;
+import Zeze.Builtin.GlobalCacheManagerWithRaft.ReduceParam;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Raft.RaftConfig;
-import Zeze.Raft.RocksRaft.*;
+import Zeze.Raft.RocksRaft.Procedure;
 import Zeze.Raft.RocksRaft.Record;
+import Zeze.Raft.RocksRaft.Rocks;
+import Zeze.Raft.RocksRaft.RocksMode;
+import Zeze.Raft.RocksRaft.Table;
+import Zeze.Raft.RocksRaft.TableTemplate;
+import Zeze.Raft.RocksRaft.Transaction;
+import Zeze.Util.IdentityHashSet;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutObject;
@@ -61,7 +75,6 @@ public class GlobalCacheManagerWithRaft
 
 	private final GlobalCacheManagerServer.GCMConfig Config = new GlobalCacheManagerServer.GCMConfig();
 	private final AchillesHeelConfig AchillesHeelConfig;
-	private Zeze.Config ZezeConfig;
 	private final GlobalCacheManagerPerf perf;
 
 	// 外面主动提供装载配置，需要在Load之前把这个实例注册进去。
@@ -83,10 +96,9 @@ public class GlobalCacheManagerWithRaft
 
 	public GlobalCacheManagerWithRaft(String raftName, RaftConfig raftConf, Zeze.Config config,
 									  boolean RocksDbWriteOptionSync) throws Throwable {
+		if (config == null)
+			config = new Zeze.Config().AddCustomize(Config).LoadAndParse();
 		Rocks = new Rocks(raftName, RocksMode.Pessimism, raftConf, config, RocksDbWriteOptionSync);
-		ZezeConfig = config;
-		if (ZezeConfig == null)
-			ZezeConfig = new Zeze.Config().AddCustomize(Config).LoadAndParse();
 
 		RegisterRocksTables(Rocks);
 		RegisterProtocols(Rocks.getRaft().getServer());
@@ -440,7 +452,7 @@ public class GlobalCacheManagerWithRaft
 			}
 
 			ArrayList<KV<CacheHolder, Reduce>> reducePending = new ArrayList<>();
-			HashSet<CacheHolder> reduceSucceed = new HashSet<>();
+			IdentityHashSet<CacheHolder> reduceSucceed = new IdentityHashSet<>();
 			boolean senderIsShare = false;
 			// 先把降级请求全部发送给出去。
 			for (var c : cs.getShare()) {
@@ -486,12 +498,15 @@ public class GlobalCacheManagerWithRaft
 								logger.warn("Reduce {} AcquireState={} CacheState={} res={}",
 										sender, StateModify, cs, reduce.Result);
 							}
-							perf.onReduceEnd(reduce);
-						} catch (Throwable ex) {
-							if (reduce.isTimeout())
+							if (ENABLE_PERF)
 								perf.onReduceEnd(reduce);
-							else
-								perf.onReduceCancel(reduce);
+						} catch (Throwable ex) {
+							if (ENABLE_PERF) {
+								if (reduce.isTimeout())
+									perf.onReduceEnd(reduce);
+								else
+									perf.onReduceCancel(reduce);
+							}
 							session.SetError();
 							// 等待失败不再看作成功。
 							logger.error(String.format("Reduce %s AcquireState=%d CacheState=%s arg=%s",
@@ -511,7 +526,8 @@ public class GlobalCacheManagerWithRaft
 			}
 
 			// 移除成功的。
-			for (CacheHolder succeed : reduceSucceed) {
+			for (var it = reduceSucceed.iterator(); it.moveToNext(); ) {
+				CacheHolder succeed = it.value();
 				if (succeed.getServerId() != sender.getServerId()) {
 					// sender 不移除：
 					// 1. 如果申请成功，后面会更新到Modify状态。
@@ -744,13 +760,12 @@ public class GlobalCacheManagerWithRaft
 	}
 
 	static final class CacheHolder {
-		private volatile long ActiveTime;
-
 		private long SessionId;
 		private int GlobalCacheManagerHashIndex;
 		private int ServerId;
 		private GlobalCacheManagerWithRaft GlobalInstance;
-		private long LastErrorTime;
+		private volatile long ActiveTime;
+		private volatile long LastErrorTime;
 
 		int getServerId() {
 			return ServerId;
@@ -760,7 +775,7 @@ public class GlobalCacheManagerWithRaft
 			return ActiveTime;
 		}
 
-		synchronized void setActiveTime(long value) {
+		void setActiveTime(long value) {
 			ActiveTime = value;
 		}
 
@@ -802,14 +817,13 @@ public class GlobalCacheManagerWithRaft
 			return true;
 		}
 
-		synchronized void SetError() {
+		void SetError() {
 			long now = System.currentTimeMillis();
 			if (now - LastErrorTime > GlobalInstance.AchillesHeelConfig.GlobalForbidPeriod)
 				LastErrorTime = now;
 		}
 
-		static boolean Reduce(LongConcurrentHashMap<CacheHolder> sessions, int serverId,
-							  Binary gkey, long fresh,
+		static boolean Reduce(LongConcurrentHashMap<CacheHolder> sessions, int serverId, Binary gkey, long fresh,
 							  ProtocolHandle<Rpc<ReduceParam, ReduceParam>> response) {
 			var session = sessions.get(serverId);
 			if (session == null) {
@@ -830,16 +844,14 @@ public class GlobalCacheManagerWithRaft
 			return KV.Create(session, reduce);
 		}
 
-		boolean Reduce(Binary gkey, long fresh,
-					   ProtocolHandle<Rpc<ReduceParam, ReduceParam>> response) {
+		boolean Reduce(Binary gkey, long fresh, ProtocolHandle<Rpc<ReduceParam, ReduceParam>> response) {
+			Reduce reduce = null;
 			try {
-				synchronized (this) {
-					if (System.currentTimeMillis() - LastErrorTime < GlobalInstance.AchillesHeelConfig.GlobalForbidPeriod)
-						return false;
-				}
+				if (System.currentTimeMillis() - LastErrorTime < GlobalInstance.AchillesHeelConfig.GlobalForbidPeriod)
+					return false;
 				AsyncSocket peer = GlobalInstance.getRocks().getRaft().getServer().GetSocket(SessionId);
 				if (peer != null) {
-					var reduce = new Reduce();
+					reduce = new Reduce();
 					reduce.setResultCode(fresh);
 					reduce.Argument.setGlobalKey(gkey);
 					reduce.Argument.setState(StateInvalid);
@@ -851,10 +863,12 @@ public class GlobalCacheManagerWithRaft
 						GlobalInstance.perf.onReduceCancel(reduce);
 					logger.warn("Reduce send failed. SessionId={}, peer={}, gkey={}", SessionId, peer, gkey);
 				} else
-					logger.error("Reduce invalid SessionId={}. gkey={}", SessionId, gkey);
+					logger.error("Reduce invalid. SessionId={}, gkey={}", SessionId, gkey);
 			} catch (RuntimeException ex) {
+				if (ENABLE_PERF && reduce != null)
+					GlobalInstance.perf.onReduceCancel(reduce);
 				// 这里的异常只应该是网络发送异常。
-				logger.error("Reduce Exception: " + gkey, ex);
+				logger.error("Reduce Exception: gkey=" + gkey, ex);
 			}
 			SetError();
 			return false;
@@ -864,14 +878,13 @@ public class GlobalCacheManagerWithRaft
 		 * 返回null表示发生了网络错误，或者应用服务器已经关闭。
 		 */
 		Reduce ReduceWaitLater(Binary gkey, long fresh) {
+			Reduce reduce = null;
 			try {
-				synchronized (this) {
-					if (System.currentTimeMillis() - LastErrorTime < GlobalInstance.AchillesHeelConfig.GlobalForbidPeriod)
-						return null;
-				}
+				if (System.currentTimeMillis() - LastErrorTime < GlobalInstance.AchillesHeelConfig.GlobalForbidPeriod)
+					return null;
 				AsyncSocket peer = GlobalInstance.getRocks().getRaft().getServer().GetSocket(SessionId);
 				if (peer != null) {
-					var reduce = new Reduce();
+					reduce = new Reduce();
 					reduce.setResultCode(fresh);
 					reduce.Argument.setGlobalKey(gkey);
 					reduce.Argument.setState(StateInvalid);
@@ -879,11 +892,13 @@ public class GlobalCacheManagerWithRaft
 						GlobalInstance.perf.onReduceBegin(reduce);
 					reduce.SendForWait(peer, GlobalInstance.AchillesHeelConfig.ReduceTimeout);
 					return reduce;
-				} else
-					logger.error("ReduceWaitLater invalid sessionId={}", SessionId);
+				}
+				logger.error("ReduceWaitLater invalid. sessionId={}, gkey={}", SessionId, gkey);
 			} catch (RuntimeException ex) {
+				if (ENABLE_PERF && reduce != null)
+					GlobalInstance.perf.onReduceCancel(reduce);
 				// 这里的异常只应该是网络发送异常。
-				logger.error("ReduceWaitLater Exception: " + gkey, ex);
+				logger.error("ReduceWaitLater Exception: gkey=" + gkey, ex);
 			}
 			SetError();
 			return null;

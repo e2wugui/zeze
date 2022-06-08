@@ -43,8 +43,10 @@ public class GlobalCacheManagerPerf {
 	}
 
 	void onAcquireBegin(Protocol<?> rpc, int state) {
-		if ((state & 0xffff_ffffL) < ACQUIRE_STATE_COUNT)
-			acquires.put(rpc, System.nanoTime());
+		if ((state & 0xffff_ffffL) < ACQUIRE_STATE_COUNT) {
+			if (acquires.put(rpc, System.nanoTime()) != null)
+				logger.warn("onAcquireBegin again");
+		}
 	}
 
 	void onAcquireEnd(Protocol<?> rpc, int state) {
@@ -64,7 +66,8 @@ public class GlobalCacheManagerPerf {
 	}
 
 	void onReduceBegin(Protocol<?> rpc) {
-		reduces.put(rpc, System.nanoTime());
+		if (reduces.put(rpc, System.nanoTime()) != null)
+			logger.warn("onReduceBegin again");
 	}
 
 	void onReduceCancel(Protocol<?> rpc) {
