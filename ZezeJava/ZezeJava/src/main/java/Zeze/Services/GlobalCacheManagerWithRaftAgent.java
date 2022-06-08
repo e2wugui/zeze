@@ -77,6 +77,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			Real = real;
 			Argument.GlobalKey = real.Argument.getGlobalKey();
 			Argument.State = real.Argument.getState();
+			setResultCode(real.getResultCode());
 		}
 
 		@Override
@@ -88,6 +89,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		public void SendResult(Zeze.Net.Binary result) {
 			Real.Result.setGlobalKey(Real.Argument.getGlobalKey()); // no change
 			Real.Result.setState(Result.State);
+			Real.setResultCode(getResultCode());
 			Real.SendResult(result);
 		}
 
@@ -98,6 +100,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 
 		@Override
 		public void SendResultCode(long code, Zeze.Net.Binary result) {
+			setResultCode(code);
 			Real.Result.setGlobalKey(Real.Argument.getGlobalKey()); // no change
 			Real.Result.setState(Result.State);
 			Real.SendResultCode(code, result);

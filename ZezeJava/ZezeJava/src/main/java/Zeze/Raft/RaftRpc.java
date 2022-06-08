@@ -55,6 +55,7 @@ public abstract class RaftRpc<TArgument extends Bean, TResult extends Bean> exte
 		bridge.Argument = Argument;
 		bridge.setCreateTime(CreateTime);
 		bridge.setUnique(Unique);
+		bridge.setResultCode(this.getResultCode());
 		return bridge.Send(socket, getResponseHandle(), getTimeout());
 	}
 

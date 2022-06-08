@@ -68,21 +68,22 @@ namespace Zeze.Services
                 Real = real;
                 Argument.GlobalKey = real.Argument.GlobalKey;
                 Argument.State = real.Argument.State;
+                ResultCode = real.ResultCode;
             }
 
             public override void SendResult(Zeze.Net.Binary result = null)
             {
                 Real.Result.GlobalKey = Real.Argument.GlobalKey; // no change
                 Real.Result.State = Result.State;
-
+                Real.ResultCode = ResultCode;
                 Real.SendResult(result);
             }
 
             public override void SendResultCode(long code, Zeze.Net.Binary result = null)
             {
+                ResultCode = code;
                 Real.Result.GlobalKey = Real.Argument.GlobalKey; // no change
                 Real.Result.State = Result.State;
-
                 Real.SendResultCode(code, result);
             }
         }

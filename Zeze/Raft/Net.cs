@@ -329,7 +329,8 @@ namespace Zeze.Raft
                 ResponseHandle = this.ResponseHandle,
                 Argument = this.Argument,
                 CreateTime = this.CreateTime,
-                Unique = this.Unique
+                Unique = this.Unique,
+                ResultCode = this.ResultCode
             };
 
             return bridge.Send(socket, bridge.ResponseHandle, this.Timeout);

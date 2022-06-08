@@ -819,10 +819,9 @@ public class GlobalCacheManagerWithRaft
 			CacheHolder session = sessions.get(serverId);
 			if (session == null)
 				return null;
-			Reduce reduce = session.ReduceWaitLater(gkey);
+			Reduce reduce = session.ReduceWaitLater(gkey, fresh);
 			if (reduce == null)
 				return null;
-			reduce.setResultCode(fresh);
 			return KV.Create(session, reduce);
 		}
 
@@ -859,7 +858,7 @@ public class GlobalCacheManagerWithRaft
 		/**
 		 * 返回null表示发生了网络错误，或者应用服务器已经关闭。
 		 */
-		Reduce ReduceWaitLater(Binary gkey) {
+		Reduce ReduceWaitLater(Binary gkey, long fresh) {
 			try {
 				synchronized (this) {
 					if (System.currentTimeMillis() - LastErrorTime < GlobalInstance.AchillesHeelConfig.GlobalForbidPeriod)
@@ -868,11 +867,12 @@ public class GlobalCacheManagerWithRaft
 				AsyncSocket peer = GlobalInstance.getRocks().getRaft().getServer().GetSocket(SessionId);
 				if (peer != null) {
 					var reduce = new Reduce();
+					reduce.setResultCode(fresh);
 					reduce.Argument.setGlobalKey(gkey);
 					reduce.Argument.setState(StateInvalid);
 					if (ENABLE_PERF)
 						GlobalInstance.perf.onReduceBegin(reduce);
-					reduce.SendForWait(peer, 10000);
+					reduce.SendForWait(peer, GlobalInstance.AchillesHeelConfig.ReduceTimeout);
 					if (ENABLE_PERF) {
 						if (reduce.getFuture().isCompletedExceptionally() && !reduce.isTimeout())
 							GlobalInstance.perf.onReduceCancel(reduce);
