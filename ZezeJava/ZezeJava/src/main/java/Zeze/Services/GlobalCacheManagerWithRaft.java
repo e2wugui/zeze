@@ -109,7 +109,7 @@ public class GlobalCacheManagerWithRaft
 		ServerAcquiredTemplate = Rocks.GetTableTemplate("Session");
 
 		if (ENABLE_PERF)
-			perf = new GlobalCacheManagerPerf(Rocks.AtomicLong(GlobalSerialIdAtomicLongIndex));
+			perf = new GlobalCacheManagerPerf(raftName, Rocks.AtomicLong(GlobalSerialIdAtomicLongIndex));
 
 		Rocks.getRaft().getServer().Start();
 

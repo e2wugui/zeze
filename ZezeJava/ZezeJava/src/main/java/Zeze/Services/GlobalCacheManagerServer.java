@@ -120,7 +120,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			return;
 
 		if (ENABLE_PERF)
-			perf = new GlobalCacheManagerPerf(SerialIdGenerator);
+			perf = new GlobalCacheManagerPerf("", SerialIdGenerator);
 
 		if (config == null)
 			config = new Zeze.Config().AddCustomize(Config).LoadAndParse();

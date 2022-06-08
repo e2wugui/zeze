@@ -94,7 +94,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			return;
 
 		if (ENABLE_PERF)
-			perf = new GlobalCacheManagerPerf(SerialIdGenerator);
+			perf = new GlobalCacheManagerPerf("", SerialIdGenerator);
 
 		if (config == null)
 			config = new Zeze.Config().AddCustomize(Config).LoadAndParse();
