@@ -123,7 +123,7 @@ public class GlobalCacheManagerWithRaft
 		if (Rocks.getRaft().isLeader()) {
 			Sessions.forEach(session -> {
 				if (now - session.getActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout) {
-					var Acquired = ServerAcquiredTemplate.OpenTable(session.getServerId());
+					var Acquired = ServerAcquiredTemplate.OpenTable(session.ServerId);
 					try {
 						Acquired.Walk((key, value) -> {
 							// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
@@ -226,14 +226,14 @@ public class GlobalCacheManagerWithRaft
 					if (cs.getModify() == -1)
 						throw new IllegalStateException("CacheState state error");
 
-					if (cs.getModify() == sender.getServerId()) {
+					if (cs.getModify() == sender.ServerId) {
 						logger.debug("1 {} {} {}", sender, StateShare, cs);
 						rpc.Result.setState(StateInvalid);
 						return AcquireShareDeadLockFound; // 事务数据没有改变，回滚
 					}
 					break;
 				case StateModify:
-					if (cs.getModify() == sender.getServerId() || cs.getShare().Contains(sender.getServerId())) {
+					if (cs.getModify() == sender.ServerId || cs.getShare().Contains(sender.ServerId)) {
 						logger.debug("2 {} {} {}", sender, StateShare, cs);
 						rpc.Result.setState(StateInvalid);
 						return AcquireShareDeadLockFound; // 事务数据没有改变，回滚
@@ -253,9 +253,9 @@ public class GlobalCacheManagerWithRaft
 
 			cs.setAcquireStatePending(StateShare);
 			Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
-			var SenderAcquired = ServerAcquiredTemplate.OpenTable(sender.getServerId());
+			var SenderAcquired = ServerAcquiredTemplate.OpenTable(sender.ServerId);
 			if (cs.getModify() != -1) {
-				if (cs.getModify() == sender.getServerId()) {
+				if (cs.getModify() == sender.ServerId) {
 					// 已经是Modify又申请，可能是sender异常关闭，
 					// 又重启连上。更新一下。应该是不需要的。
 					SenderAcquired.Put(globalTableKey, newAcquiredState(StateModify));
@@ -320,7 +320,7 @@ public class GlobalCacheManagerWithRaft
 
 				SenderAcquired.Put(globalTableKey, newAcquiredState(StateShare));
 				cs.setModify(-1);
-				cs.getShare().add(sender.getServerId());
+				cs.getShare().add(sender.ServerId);
 				cs.setAcquireStatePending(StateInvalid);
 				logger.debug("6 {} {} {}", sender, StateShare, cs);
 				lockey.PulseAll();
@@ -328,7 +328,7 @@ public class GlobalCacheManagerWithRaft
 			}
 
 			SenderAcquired.Put(globalTableKey, newAcquiredState(StateShare));
-			cs.getShare().add(sender.getServerId());
+			cs.getShare().add(sender.ServerId);
 			cs.setAcquireStatePending(StateInvalid);
 			logger.debug("7 {} {} {}", sender, StateShare, cs);
 			lockey.PulseAll();
@@ -359,14 +359,14 @@ public class GlobalCacheManagerWithRaft
 						logger.error("cs state must be modify");
 						throw new IllegalStateException("CacheState state error");
 					}
-					if (cs.getModify() == sender.getServerId()) {
+					if (cs.getModify() == sender.ServerId) {
 						logger.debug("1 {} {} {}", sender, StateModify, cs);
 						rpc.Result.setState(StateInvalid);
 						return AcquireModifyDeadLockFound; // 事务数据没有改变，回滚
 					}
 					break;
 				case StateModify:
-					if (cs.getModify() == sender.getServerId() || cs.getShare().Contains(sender.getServerId())) {
+					if (cs.getModify() == sender.ServerId || cs.getShare().Contains(sender.ServerId)) {
 						logger.debug("2 {} {} {}", sender, StateModify, cs);
 						rpc.Result.setState(StateInvalid);
 						return AcquireModifyDeadLockFound; // 事务数据没有改变，回滚
@@ -385,9 +385,9 @@ public class GlobalCacheManagerWithRaft
 
 			cs.setAcquireStatePending(StateModify);
 			Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
-			var SenderAcquired = ServerAcquiredTemplate.OpenTable(sender.getServerId());
+			var SenderAcquired = ServerAcquiredTemplate.OpenTable(sender.ServerId);
 			if (cs.getModify() != -1) {
-				if (cs.getModify() == sender.getServerId()) {
+				if (cs.getModify() == sender.ServerId) {
 					// 已经是Modify又申请，可能是sender异常关闭，又重启连上。
 					// 更新一下。应该是不需要的。
 					SenderAcquired.Put(globalTableKey, newAcquiredState(StateModify));
@@ -443,8 +443,8 @@ public class GlobalCacheManagerWithRaft
 					return AcquireModifyFailed; // 事务数据没有改变，回滚
 				}
 
-				cs.setModify(sender.getServerId());
-				cs.getShare().remove(sender.getServerId());
+				cs.setModify(sender.ServerId);
+				cs.getShare().remove(sender.ServerId);
 				SenderAcquired.Put(globalTableKey, newAcquiredState(StateModify));
 				cs.setAcquireStatePending(StateInvalid);
 				lockey.PulseAll();
@@ -458,7 +458,7 @@ public class GlobalCacheManagerWithRaft
 			boolean senderIsShare = false;
 			// 先把降级请求全部发送给出去。
 			for (var c : cs.getShare()) {
-				if (c == sender.getServerId()) {
+				if (c == sender.ServerId) {
 					senderIsShare = true;
 					reduceSucceed.add(sender);
 					continue;
@@ -497,8 +497,8 @@ public class GlobalCacheManagerWithRaft
 
 							default:
 								session.SetError();
-								logger.warn("Reduce {} AcquireState={} CacheState={} res={}",
-										sender, StateModify, cs, reduce.Result);
+								logger.warn("Reduce {}=>{} AcquireState={} CacheState={} res={}",
+										sender, session, StateModify, cs, reduce.Result);
 							}
 							if (ENABLE_PERF)
 								perf.onReduceEnd(reduce);
@@ -511,8 +511,8 @@ public class GlobalCacheManagerWithRaft
 							}
 							session.SetError();
 							// 等待失败不再看作成功。
-							logger.error(String.format("Reduce %s AcquireState=%d CacheState=%s arg=%s",
-									sender, StateModify, cs, reduce.Argument), ex);
+							logger.error(String.format("Reduce %s=>%s AcquireState=%d CacheState=%s arg=%s",
+									sender, session, StateModify, cs, reduce.Argument), ex);
 						}
 					}
 					lockey.Enter();
@@ -530,14 +530,14 @@ public class GlobalCacheManagerWithRaft
 			// 移除成功的。
 			for (var it = reduceSucceed.iterator(); it.moveToNext(); ) {
 				CacheHolder succeed = it.value();
-				if (succeed.getServerId() != sender.getServerId()) {
+				if (succeed.ServerId != sender.ServerId) {
 					// sender 不移除：
 					// 1. 如果申请成功，后面会更新到Modify状态。
 					// 2. 如果申请不成功，恢复 cs.Share，保持 Acquired 不变。
-					var KeyAcquired = ServerAcquiredTemplate.OpenTable(succeed.getServerId());
+					var KeyAcquired = ServerAcquiredTemplate.OpenTable(succeed.ServerId);
 					KeyAcquired.Remove(globalTableKey);
 				}
-				cs.getShare().remove(succeed.getServerId());
+				cs.getShare().remove(succeed.ServerId);
 			}
 
 			// 如果前面降级发生中断(break)，这里就不会为0。
@@ -545,7 +545,7 @@ public class GlobalCacheManagerWithRaft
 				// senderIsShare 在失败的时候，Acquired 没有变化，不需要更新。
 				// 失败了，要把原来是share的sender恢复。先这样吧。
 				if (senderIsShare)
-					cs.getShare().add(sender.getServerId());
+					cs.getShare().add(sender.ServerId);
 
 				cs.setAcquireStatePending(StateInvalid);
 				if (ENABLE_PERF)
@@ -554,13 +554,13 @@ public class GlobalCacheManagerWithRaft
 				rpc.Result.setState(StateInvalid);
 				lockey.PulseAll();
 				rpc.setResultCode(errorFreshAcquire.Value
-					? StateReduceErrorFreshAcquire  // 这个错误码导致Server-RedoAndReleaseLock
-					: AcquireModifyFailed); // 这个错误码导致Server事务失败。
+						? StateReduceErrorFreshAcquire  // 这个错误码导致Server-RedoAndReleaseLock
+						: AcquireModifyFailed); // 这个错误码导致Server事务失败。
 				return 0; // 可能存在部分reduce成功，需要提交事务。
 			}
 
 			SenderAcquired.Put(globalTableKey, newAcquiredState(StateModify));
-			cs.setModify(sender.getServerId());
+			cs.setModify(sender.ServerId);
 			cs.setAcquireStatePending(StateInvalid);
 			logger.debug("8 {} {} {}", sender, StateModify, cs);
 			lockey.PulseAll();
@@ -601,9 +601,9 @@ public class GlobalCacheManagerWithRaft
 				continue;
 			cs.setAcquireStatePending(StateRemoving);
 
-			if (cs.getModify() == sender.getServerId())
+			if (cs.getModify() == sender.ServerId)
 				cs.setModify(-1);
-			cs.getShare().remove(sender.getServerId()); // always try remove
+			cs.getShare().remove(sender.ServerId); // always try remove
 
 			if (cs.getModify() == -1 && cs.getShare().size() == 0 && cs.getAcquireStatePending() == StateInvalid) {
 				// 安全的从global中删除，没有并发问题。
@@ -611,7 +611,7 @@ public class GlobalCacheManagerWithRaft
 				GlobalStates.Remove(gkey);
 			} else
 				cs.setAcquireStatePending(StateInvalid);
-			var SenderAcquired = ServerAcquiredTemplate.OpenTable(sender.getServerId());
+			var SenderAcquired = ServerAcquiredTemplate.OpenTable(sender.ServerId);
 			SenderAcquired.Remove(gkey);
 			lockey.PulseAll();
 			return GetSenderCacheState(cs, sender);
@@ -619,22 +619,16 @@ public class GlobalCacheManagerWithRaft
 	}
 
 	private int GetSenderCacheState(CacheState cs, CacheHolder sender) {
-		if (cs.getModify() == sender.getServerId())
+		if (cs.getModify() == sender.ServerId)
 			return StateModify;
-		if (cs.getShare().Contains(sender.getServerId()))
+		if (cs.getShare().Contains(sender.ServerId))
 			return StateShare;
 		return StateInvalid;
 	}
 
 	@Override
 	protected long ProcessLoginRequest(Login rpc) throws Throwable {
-		var session = Sessions.computeIfAbsent(rpc.Argument.getServerId(), serverId -> {
-			CacheHolder tempVar = new CacheHolder();
-			tempVar.setGlobalInstance(this);
-			tempVar.setServerId((int)serverId);
-			return tempVar;
-		});
-
+		var session = Sessions.computeIfAbsent(rpc.Argument.getServerId(), serverId -> new CacheHolder((int)serverId));
 		if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.getGlobalCacheManagerHashIndex())) {
 			rpc.SendResultCode(LoginBindSocketFail);
 			return 0;
@@ -658,13 +652,7 @@ public class GlobalCacheManagerWithRaft
 
 	@Override
 	protected long ProcessReLoginRequest(ReLogin rpc) {
-		var session = Sessions.computeIfAbsent(rpc.Argument.getServerId(), serverId -> {
-			CacheHolder tempVar = new CacheHolder();
-			tempVar.setGlobalInstance(this);
-			tempVar.setServerId((int)serverId);
-			return tempVar;
-		});
-
+		var session = Sessions.computeIfAbsent(rpc.Argument.getServerId(), serverId -> new CacheHolder((int)serverId));
 		if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.getGlobalCacheManagerHashIndex())) {
 			rpc.SendResultCode(ReLoginBindSocketFail);
 			return 0;
@@ -709,11 +697,7 @@ public class GlobalCacheManagerWithRaft
 			return 0;
 		}
 
-		var session = Sessions.computeIfAbsent(rpc.Argument.getServerId(), __ -> {
-			CacheHolder tempVar = new CacheHolder();
-			tempVar.setGlobalInstance(this);
-			return tempVar;
-		});
+		var session = Sessions.computeIfAbsent(rpc.Argument.getServerId(), serverId -> new CacheHolder((int)serverId));
 		if (session.GlobalCacheManagerHashIndex != rpc.Argument.getGlobalCacheManagerHashIndex()) {
 			// 多点验证
 			rpc.SendResultCode(CleanupErrorGlobalCacheManagerHashIndex);
@@ -764,16 +748,15 @@ public class GlobalCacheManagerWithRaft
 		}
 	}
 
-	static final class CacheHolder {
+	final class CacheHolder {
+		final int ServerId;
 		private long SessionId;
 		private int GlobalCacheManagerHashIndex;
-		private int ServerId;
-		private GlobalCacheManagerWithRaft GlobalInstance;
 		private volatile long ActiveTime;
 		private volatile long LastErrorTime;
 
-		int getServerId() {
-			return ServerId;
+		CacheHolder(int serverId) {
+			ServerId = serverId;
 		}
 
 		long getActiveTime() {
@@ -784,19 +767,11 @@ public class GlobalCacheManagerWithRaft
 			ActiveTime = value;
 		}
 
-		void setServerId(int value) {
-			ServerId = value;
-		}
-
-		void setGlobalInstance(GlobalCacheManagerWithRaft value) {
-			GlobalInstance = value;
-		}
-
 		synchronized boolean TryBindSocket(AsyncSocket newSocket, int globalCacheManagerHashIndex) {
 			if (newSocket.getUserState() != null && newSocket.getUserState() != this)
 				return false; // 允许重复login|relogin，但不允许切换ServerId。
 
-			var socket = GlobalInstance.getRocks().getRaft().getServer().GetSocket(SessionId);
+			var socket = getRocks().getRaft().getServer().GetSocket(SessionId);
 			if (socket == null || socket == newSocket) {
 				// old socket not exist or has lost.
 				SessionId = newSocket.getSessionId();
@@ -814,7 +789,7 @@ public class GlobalCacheManagerWithRaft
 			if (oldSocket.getUserState() != this)
 				return false; // not bind to this
 
-			var socket = GlobalInstance.getRocks().getRaft().getServer().GetSocket(SessionId);
+			var socket = getRocks().getRaft().getServer().GetSocket(SessionId);
 			if (socket != null && socket != oldSocket)
 				return false; // not same socket
 
@@ -824,7 +799,7 @@ public class GlobalCacheManagerWithRaft
 
 		void SetError() {
 			long now = System.currentTimeMillis();
-			if (now - LastErrorTime > GlobalInstance.AchillesHeelConfig.GlobalForbidPeriod)
+			if (now - LastErrorTime > AchillesHeelConfig.GlobalForbidPeriod)
 				LastErrorTime = now;
 		}
 
@@ -852,28 +827,28 @@ public class GlobalCacheManagerWithRaft
 		boolean Reduce(Binary gkey, long fresh, ProtocolHandle<Rpc<ReduceParam, ReduceParam>> response) {
 			Reduce reduce = null;
 			try {
-				if (System.currentTimeMillis() - LastErrorTime < GlobalInstance.AchillesHeelConfig.GlobalForbidPeriod)
+				if (System.currentTimeMillis() - LastErrorTime < AchillesHeelConfig.GlobalForbidPeriod)
 					return false;
-				AsyncSocket peer = GlobalInstance.getRocks().getRaft().getServer().GetSocket(SessionId);
+				AsyncSocket peer = getRocks().getRaft().getServer().GetSocket(SessionId);
 				if (peer != null) {
 					reduce = new Reduce();
 					reduce.setResultCode(fresh);
 					reduce.Argument.setGlobalKey(gkey);
 					reduce.Argument.setState(StateInvalid);
 					if (ENABLE_PERF)
-						GlobalInstance.perf.onReduceBegin(reduce);
+						perf.onReduceBegin(reduce);
 					if (reduce.Send(peer, response, 10000))
 						return true;
 					if (ENABLE_PERF)
-						GlobalInstance.perf.onReduceCancel(reduce);
-					logger.warn("Reduce send failed. SessionId={}, peer={}, gkey={}", SessionId, peer, gkey);
+						perf.onReduceCancel(reduce);
+					logger.warn("Reduce send failed: {} peer={}, gkey={}", this, peer, gkey);
 				} else
-					logger.error("Reduce invalid. SessionId={}, gkey={}", SessionId, gkey);
+					logger.error("Reduce invalid: {} gkey={}", this, gkey);
 			} catch (RuntimeException ex) {
 				if (ENABLE_PERF && reduce != null)
-					GlobalInstance.perf.onReduceCancel(reduce);
+					perf.onReduceCancel(reduce);
 				// 这里的异常只应该是网络发送异常。
-				logger.error("Reduce Exception: gkey=" + gkey, ex);
+				logger.error("Reduce Exception: " + this + " gkey=" + gkey, ex);
 			}
 			SetError();
 			return false;
@@ -885,25 +860,25 @@ public class GlobalCacheManagerWithRaft
 		Reduce ReduceWaitLater(Binary gkey, long fresh) {
 			Reduce reduce = null;
 			try {
-				if (System.currentTimeMillis() - LastErrorTime < GlobalInstance.AchillesHeelConfig.GlobalForbidPeriod)
+				if (System.currentTimeMillis() - LastErrorTime < AchillesHeelConfig.GlobalForbidPeriod)
 					return null;
-				AsyncSocket peer = GlobalInstance.getRocks().getRaft().getServer().GetSocket(SessionId);
+				AsyncSocket peer = getRocks().getRaft().getServer().GetSocket(SessionId);
 				if (peer != null) {
 					reduce = new Reduce();
 					reduce.setResultCode(fresh);
 					reduce.Argument.setGlobalKey(gkey);
 					reduce.Argument.setState(StateInvalid);
 					if (ENABLE_PERF)
-						GlobalInstance.perf.onReduceBegin(reduce);
-					reduce.SendForWait(peer, GlobalInstance.AchillesHeelConfig.ReduceTimeout);
+						perf.onReduceBegin(reduce);
+					reduce.SendForWait(peer, AchillesHeelConfig.ReduceTimeout);
 					return reduce;
 				}
-				logger.error("ReduceWaitLater invalid. sessionId={}, gkey={}", SessionId, gkey);
+				logger.error("ReduceWaitLater invalid: {} gkey={}", this, gkey);
 			} catch (RuntimeException ex) {
 				if (ENABLE_PERF && reduce != null)
-					GlobalInstance.perf.onReduceCancel(reduce);
+					perf.onReduceCancel(reduce);
 				// 这里的异常只应该是网络发送异常。
-				logger.error("ReduceWaitLater Exception: gkey=" + gkey, ex);
+				logger.error("ReduceWaitLater Exception: " + this + " gkey=" + gkey, ex);
 			}
 			SetError();
 			return null;
