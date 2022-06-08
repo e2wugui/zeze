@@ -33,8 +33,8 @@ namespace Zeze.Arch
 				{
 					conn.Stop();
 					ProviderByLoadName.TryRemove(connName, out _);
-					ProviderByServerId.TryRemove(int.Parse(pm.Identity), out _);
-					ss.SetServiceIdentityReadyState(pm.Identity, null);
+					ProviderByServerId.TryRemove(int.Parse(pm.ServiceIdentity), out _);
+					ss.SetServiceIdentityReadyState(pm.ServiceIdentity, null);
 					Config.RemoveConnector(conn);
 				}
 			}
@@ -48,13 +48,13 @@ namespace Zeze.Arch
 				if (ProviderByLoadName.TryGetValue(connName, out var ps))
 				{
 					// connection has ready.
-					var mid = int.Parse(pm.Name.Split('#')[1]);
+					var mid = int.Parse(pm.ServiceName.Split('#')[1]);
 					if (false == ProviderApp.Modules.TryGetValue(mid, out var m))
 						throw new Exception($"Module Not Found {mid}");
 					SetReady(ss, pm, ps, mid, m);
 					return;
 				}
-				var serverId = int.Parse(pm.Identity);
+				var serverId = int.Parse(pm.ServiceIdentity);
 				if (serverId < Zeze.Config.ServerId)
 					return;
 				if (serverId == Zeze.Config.ServerId)
@@ -164,10 +164,10 @@ namespace Zeze.Arch
 		private void SetReady(Agent.SubscribeState ss, ServiceInfo server, ProviderSession ps,
 			int mid, Zeze.Builtin.Provider.BModule m)
 		{
-			Console.WriteLine($"SetReady Server={Zeze.Config.ServerId} {ss.ServiceName} {server.Identity}");
+			Console.WriteLine($"SetReady Server={Zeze.Config.ServerId} {ss.ServiceName} {server.ServiceIdentity}");
 			var pms = new ProviderModuleState(ps.SessionId, mid, m.ChoiceType, m.ConfigType);
-			ps.GetOrAddServiceReadyState(ss.ServiceName).TryAdd(server.Identity, pms);
-			ss.SetServiceIdentityReadyState(server.Identity, pms);
+			ps.GetOrAddServiceReadyState(ss.ServiceName).TryAdd(server.ServiceIdentity, pms);
+			ss.SetServiceIdentityReadyState(server.ServiceIdentity, pms);
 		}
 
 		public override void OnSocketClose(AsyncSocket socket, Exception ex)

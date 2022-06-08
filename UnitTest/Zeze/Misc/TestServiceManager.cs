@@ -77,7 +77,7 @@ namespace UnitTest.Zeze.Misc
                 {
                     foreach (var service in pending.SortedIdentity)
                     {
-                        state.SetServiceIdentityReadyState(service.Identity, "");
+                        state.SetServiceIdentityReadyState(service.ServiceIdentity, "");
                     }
                 }
             };
