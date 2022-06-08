@@ -934,6 +934,8 @@ namespace Zeze.Services.ServiceManager
                 lock (this)
                 {
                     info = ServiceInfos.Insert(info);
+                    if (ServiceIdentityReadyStates.TryGetValue(info.Identity, out var local))
+                        info.LocalState = local;
                     if (Agent.OnUpdate != null)
                         Task.Run(() => Agent.OnUpdate.Invoke(this, info));
                     else

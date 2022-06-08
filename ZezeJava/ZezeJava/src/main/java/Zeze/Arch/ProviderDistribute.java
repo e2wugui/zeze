@@ -1,10 +1,13 @@
 package Zeze.Arch;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Net.Service;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.ServiceInfo;
+import Zeze.Util.ConsistentHash;
 import Zeze.Util.OutLong;
 import Zeze.Util.Random;
 
@@ -19,16 +22,42 @@ public class ProviderDistribute {
 	public Service ProviderService;
 	private final AtomicInteger FeedFullOneByOneIndex = new AtomicInteger();
 
+	public ConcurrentHashMap<String, Zeze.Util.ConsistentHash<ServiceInfo>> ConsistentHashs = new ConcurrentHashMap<>();
+
+	public void AddServer(Agent.SubscribeState state, ServiceInfo s) {
+		var consistentHash = ConsistentHashs.computeIfAbsent(s.getServiceName(), key -> new ConsistentHash<>());
+		consistentHash.add(s.getServiceIdentity(), s);
+	}
+
+	public void RemoveServer(Agent.SubscribeState state, ServiceInfo s) {
+		var consistentHash = ConsistentHashs.get(s.getServiceName());
+		if (null != consistentHash)
+			consistentHash.remove(s.getServiceIdentity(), s);
+	}
+
+	public void ApplyServers(Agent.SubscribeState ass) {
+		var consistentHash = ConsistentHashs.computeIfAbsent(ass.getServiceName(), key -> new ConsistentHash<>());
+		var nodes = consistentHash.getNodes();
+		var current = new HashSet<ServiceInfo>();
+		for (var node : ass.getServiceInfos().getServiceInfoListSortedByIdentity()) {
+			consistentHash.add(node.getServiceIdentity(), node);
+			current.add(node);
+		}
+		for (var node : nodes) {
+			if (!current.contains(node))
+				consistentHash.remove(node.getServiceIdentity(), node);
+		}
+	}
+
 	public static String MakeServiceName(String serviceNamePrefix, int moduleId) {
 		return serviceNamePrefix + moduleId;
 	}
 
 	public ServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash) {
-		var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
-		if (list.isEmpty()) {
+		var consistentHash = ConsistentHashs.get(providers.getServiceName());
+		if (null == consistentHash)
 			return null;
-		}
-		return list.get(Integer.remainderUnsigned(hash, list.size()));
+		return consistentHash.get(hash);
 	}
 
 	public boolean ChoiceHash(Agent.SubscribeState providers, int hash, OutLong provider) {

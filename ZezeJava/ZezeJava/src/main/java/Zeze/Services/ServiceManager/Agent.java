@@ -27,9 +27,9 @@ public final class Agent implements Closeable {
 	/**
 	 * 订阅服务状态发生变化时回调。 如果需要处理这个事件，请在订阅前设置回调。
 	 */
-	private Action1<SubscribeState> OnChanged;
-	private Action2<SubscribeState, ServiceInfo> OnUpdate;
-	private Action2<SubscribeState, ServiceInfo> OnRemove;
+	private Action1<SubscribeState> OnChanged; // Simple Or ReadyCommit
+	private Action2<SubscribeState, ServiceInfo> OnUpdate; // Simple
+	private Action2<SubscribeState, ServiceInfo> OnRemove; // Simple
 	private Action1<SubscribeState> OnPrepare; // ReadyCommit 的第一步回调。
 	private Action1<ServerLoad> OnSetServerLoad;
 
@@ -235,6 +235,9 @@ public final class Agent implements Closeable {
 
 		synchronized void OnRegister(ServiceInfo info) {
 			var info2 = ServiceInfos.Insert(info);
+			var local = ServiceIdentityReadyStates.get(info2.getServiceIdentity());
+			if (null != local)
+				info2.setLocalState(local);
 			if (Agent.this.OnUpdate != null)
 				Task.run(() -> Agent.this.OnUpdate.run(this, info2), "ServiceManager.Agent.OnUpdate");
 			else if (null != Agent.this.OnChanged)

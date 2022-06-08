@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -20,8 +21,45 @@ namespace Zeze.Arch
             return $"{prefix}{moduleId}";
         }
 
+        public ConcurrentDictionary<string, Zeze.Util.ConsistentHash<ServiceInfo>> ConsistentHashs = new();
+
+        public void AddServer(Agent.SubscribeState state, ServiceInfo s)
+        {
+            var consistentHash = ConsistentHashs.GetOrAdd(s.Name, key => new());
+            consistentHash.Add(s.Identity, s);
+        }
+
+        public void RemoveServer(Agent.SubscribeState state, ServiceInfo s)
+        {
+            if (ConsistentHashs.TryGetValue(s.Name, out var consistentHash))
+                consistentHash.Remove(s.Identity, s);
+        }
+
+        public void ApplyServers(Agent.SubscribeState ass)
+        {
+            var consistentHash = ConsistentHashs.GetOrAdd(ass.ServiceName, key => new());
+            var nodes = consistentHash.Nodes;
+            var current = new HashSet<ServiceInfo>();
+            foreach (var node in ass.ServiceInfos.SortedIdentity)
+            {
+                consistentHash.Add(node.Identity, node);
+                current.Add(node);
+            }
+            foreach (var node in nodes)
+            {
+                if (!current.Contains(node))
+                    consistentHash.Remove(node.Identity, node);
+            }
+        }
+
         public ServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash)
         {
+            /*
+             ConsistentHash.Get 还没有实现。
+            if (ConsistentHashs.TryGetValue(providers.ServiceName, out var consistentHash))
+                return consistentHash.Get(hash);
+            */
+
             var list = providers.ServiceInfos.SortedIdentity;
             if (list.Count == 0)
                 return null;

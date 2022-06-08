@@ -65,9 +65,6 @@ namespace Zeze.Arch
 
 			this.ProviderImplement.RegisterProtocols(ProviderService);
 
-			this.Zeze.ServiceManagerAgent.OnChanged = ProviderImplement.ApplyOnChanged;
-			this.Zeze.ServiceManagerAgent.OnPrepare = ProviderImplement.ApplyOnPrepare;
-
 			this.Zeze.ServiceManagerAgent.OnSetServerLoad = (serverLoad) =>
 			{
 				if (ProviderDirectService.ProviderByLoadName.TryGetValue(serverLoad.Name, out var ps))
@@ -82,6 +79,23 @@ namespace Zeze.Arch
 			this.Distribute.LoadConfig = loadConfig;
 			this.Distribute.Zeze = Zeze;
 			this.Distribute.ProviderService = ProviderDirectService;
+
+			this.Zeze.ServiceManagerAgent.OnChanged = (ss) =>
+			{
+				ProviderImplement.ApplyOnChanged(ss);
+				Distribute.ApplyServers(ss);
+			};
+			this.Zeze.ServiceManagerAgent.OnPrepare = ProviderImplement.ApplyOnPrepare;
+			this.Zeze.ServiceManagerAgent.OnUpdate = (ss, si) =>
+			{
+				Distribute.AddServer(ss, si);
+				ProviderDirectService.AddServer(ss, si);
+			};
+			this.Zeze.ServiceManagerAgent.OnRemove = (ss, si) =>
+			{
+				Distribute.RemoveServer(ss, si);
+				ProviderDirectService.RemoveServer(ss, si);
+			};
 
 			this.ProviderDirect.RegisterProtocols(ProviderDirectService);
 		}

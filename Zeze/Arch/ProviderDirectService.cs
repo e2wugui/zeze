@@ -23,45 +23,74 @@ namespace Zeze.Arch
 		{
 		}
 
-		public void TryConnectAndSetReady(Agent.SubscribeState ss, ServiceInfos infos)
+		public void RemoveServer(Agent.SubscribeState ss, ServiceInfo pm)
 		{
 			lock (this)
 			{
-				foreach (var pm in infos.SortedIdentity)
+				var connName = pm.PassiveIp + ":" + pm.PassivePort;
+				var conn = Config.FindConnector(connName);
+				if (null != conn)
 				{
-					var connName = pm.PassiveIp + ":" + pm.PassivePort;
-					if (ProviderByLoadName.TryGetValue(connName, out var ps))
-					{
-						// connection has ready.
-						var mid = int.Parse(infos.ServiceName.Split('#')[1]);
-						if (false == ProviderApp.Modules.TryGetValue(mid, out var m))
-							throw new Exception($"Module Not Found {mid}");
-						SetReady(ss, pm, ps, mid, m);
-						continue;
-					}
-					var serverId = int.Parse(pm.Identity);
-					if (serverId < Zeze.Config.ServerId)
-						continue;
-					if (serverId == Zeze.Config.ServerId)
-					{
-                        var psLocal = new ProviderSession
-                        {
-                            ServerId = serverId
-                        };
-                        SetRelativeServiceReady(psLocal, ProviderApp.DirectIp, ProviderApp.DirectPort);
-						continue;
-					}
-					if (Config.TryGetOrAddConnector(pm.PassiveIp, pm.PassivePort, true, out var newAdd))
-					{
-                        // 新建的Connector。开始连接。
-                        var psPeer = new ProviderSession
-                        {
-                            ServerId = serverId
-                        };
-                        newAdd.UserState = psPeer;
-						newAdd.Start();
-					}
+					conn.Stop();
+					ProviderByLoadName.TryRemove(connName, out _);
+					ProviderByServerId.TryRemove(int.Parse(pm.Identity), out _);
+					ss.SetServiceIdentityReadyState(pm.Identity, null);
+					Config.RemoveConnector(conn);
 				}
+			}
+		}
+
+		public void AddServer(Agent.SubscribeState ss, ServiceInfo pm)
+		{
+			lock (this)
+			{
+				var connName = pm.PassiveIp + ":" + pm.PassivePort;
+				if (ProviderByLoadName.TryGetValue(connName, out var ps))
+				{
+					// connection has ready.
+					var mid = int.Parse(pm.Name.Split('#')[1]);
+					if (false == ProviderApp.Modules.TryGetValue(mid, out var m))
+						throw new Exception($"Module Not Found {mid}");
+					SetReady(ss, pm, ps, mid, m);
+					return;
+				}
+				var serverId = int.Parse(pm.Identity);
+				if (serverId < Zeze.Config.ServerId)
+					return;
+				if (serverId == Zeze.Config.ServerId)
+				{
+					var psLocal = new ProviderSession
+					{
+						ServerId = serverId
+					};
+					SetRelativeServiceReady(psLocal, ProviderApp.DirectIp, ProviderApp.DirectPort);
+					return;
+				}
+				if (Config.TryGetOrAddConnector(pm.PassiveIp, pm.PassivePort, true, out var newAdd))
+				{
+					// 新建的Connector。开始连接。
+					var psPeer = new ProviderSession
+					{
+						ServerId = serverId
+					};
+					newAdd.UserState = psPeer;
+					newAdd.Start();
+				}
+			}
+		}
+
+		public void TryConnectAndSetReady(Agent.SubscribeState ss, ServiceInfos infos)
+		{
+			var current = new Dictionary<string, ServiceInfo>(); 
+			foreach (var pm in infos.SortedIdentity)
+			{
+				AddServer(ss, pm);
+				current[pm.PassiveIp + ":" + pm.PassivePort] = pm;
+			}
+			Config.ForEachConnector((c) => current.Remove(c.Name, out _));
+			foreach (var pm in current.Values)
+			{
+				RemoveServer(ss, pm);
 			}
 		}
 

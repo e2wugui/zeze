@@ -33,7 +33,11 @@ public class LinkdApp {
 
 		LinkdProvider.RegisterProtocols(LinkdProviderService);
 
-		this.Zeze.getServiceManagerAgent().setOnSetServerLoad((serverLoad) -> {
+		Zeze.getServiceManagerAgent().setOnChanged(LinkdProvider.Distribute::ApplyServers);
+		Zeze.getServiceManagerAgent().setOnUpdate(LinkdProvider.Distribute::AddServer);
+		Zeze.getServiceManagerAgent().setOnRemoved(LinkdProvider.Distribute::RemoveServer);
+
+		Zeze.getServiceManagerAgent().setOnSetServerLoad((serverLoad) -> {
 			var ps = this.LinkdProviderService.ProviderSessions.get(serverLoad.getName());
 			if (null != ps) {
 				var bb = ByteBuffer.Wrap(serverLoad.Param);

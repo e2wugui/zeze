@@ -39,7 +39,11 @@ namespace Zeze.Arch
 
             LinkdProvider.RegisterProtocols(LinkdProviderService);
 
-			this.Zeze.ServiceManagerAgent.OnSetServerLoad = (serverLoad) =>
+			Zeze.ServiceManagerAgent.OnChanged = LinkdProvider.Distribute.ApplyServers;
+			Zeze.ServiceManagerAgent.OnUpdate = LinkdProvider.Distribute.AddServer;
+			Zeze.ServiceManagerAgent.OnRemove = LinkdProvider.Distribute.RemoveServer;
+
+			Zeze.ServiceManagerAgent.OnSetServerLoad = (serverLoad) =>
 			{
 				if (this.LinkdProviderService.ProviderSessions.TryGetValue(serverLoad.Name, out var ps))
 				{ 

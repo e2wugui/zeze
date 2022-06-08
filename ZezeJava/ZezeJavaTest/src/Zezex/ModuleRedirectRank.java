@@ -73,7 +73,7 @@ public class ModuleRedirectRank extends TestCase {
 		app1.Game_Rank.TestHash(1, 666).then(result -> {
 			assertEquals(1, result.hash);
 			assertEquals(666, result.out);
-			assertEquals(1, result.serverId);
+			assertEquals(0, result.serverId);
 		}).await();
 
 		app2.Game_Rank.TestHash(0, 777).then(result -> {
@@ -85,7 +85,7 @@ public class ModuleRedirectRank extends TestCase {
 		app2.Game_Rank.TestHash(1, 888).then(result -> {
 			assertEquals(1, result.hash);
 			assertEquals(888, result.out);
-			assertEquals(1, result.serverId);
+			assertEquals(0, result.serverId);
 		}).await();
 
 		// RedirectAll

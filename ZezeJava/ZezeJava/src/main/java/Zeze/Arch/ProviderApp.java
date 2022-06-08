@@ -64,10 +64,7 @@ public class ProviderApp {
 
 		this.ProviderImplement.RegisterProtocols(ProviderService);
 
-		this.Zeze.getServiceManagerAgent().setOnChanged(ProviderImplement::ApplyOnChanged);
-		this.Zeze.getServiceManagerAgent().setOnPrepare(ProviderImplement::ApplyOnPrepare);
-
-		this.Zeze.getServiceManagerAgent().setOnSetServerLoad((serverLoad) -> {
+		Zeze.getServiceManagerAgent().setOnSetServerLoad((serverLoad) -> {
 			var ps = ProviderDirectService.ProviderByLoadName.get(serverLoad.getName());
 			if (ps != null) {
 				var load = new BLoad();
@@ -75,10 +72,25 @@ public class ProviderApp {
 				ps.Load = load;
 			}
 		});
+
 		this.Distribute = new ProviderDistribute();
 		this.Distribute.LoadConfig = loadConfig;
 		this.Distribute.Zeze = Zeze;
 		this.Distribute.ProviderService = ProviderDirectService;
+
+		this.Zeze.getServiceManagerAgent().setOnChanged((ss) -> {
+			ProviderImplement.ApplyOnChanged(ss);
+			Distribute.ApplyServers(ss);
+		});
+		this.Zeze.getServiceManagerAgent().setOnPrepare(ProviderImplement::ApplyOnPrepare);
+		this.Zeze.getServiceManagerAgent().setOnUpdate((ss, si) -> {
+			Distribute.AddServer(ss, si);
+			ProviderDirectService.AddServer(ss, si);
+		});
+		this.Zeze.getServiceManagerAgent().setOnRemoved((ss, si) -> {
+			Distribute.RemoveServer(ss, si);
+			ProviderDirectService.RemoveServer(ss, si);
+		});
 
 		this.ProviderDirect.RegisterProtocols(ProviderDirectService);
 	}

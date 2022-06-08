@@ -1,5 +1,7 @@
 package Zeze.Arch;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.ProviderDirect.AnnounceProviderInfo;
@@ -32,34 +34,56 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		super(name, zeze);
 	}
 
-	public synchronized void TryConnectAndSetReady(Agent.SubscribeState ss, ServiceInfos infos) {
+	public synchronized void RemoveServer(Agent.SubscribeState ss, ServiceInfo pm) {
+		var connName = pm.getPassiveIp() + ":" + pm.getPassivePort();
+		var conn = getConfig().FindConnector(connName);
+		if (null != conn) {
+			conn.Stop();
+			ProviderByLoadName.remove(connName);
+			ProviderByServerId.remove(Integer.valueOf(pm.getServiceIdentity()));
+			ss.SetServiceIdentityReadyState(pm.getServiceIdentity(), null);
+			getConfig().RemoveConnector(conn);
+		}
+	}
+
+	public synchronized void AddServer(Agent.SubscribeState ss, ServiceInfo pm) {
+		var connName = pm.getPassiveIp() + ":" + pm.getPassivePort();
+		var ps = ProviderByLoadName.get(connName);
+		if (null != ps) {
+			// connection has ready.
+			var mid = Integer.parseInt(pm.getServiceName().split("#")[1]);
+			var m = ProviderApp.Modules.get(mid);
+			SetReady(ss, pm, ps, mid, m);
+			return;
+		}
+		var serverId = Integer.parseInt(pm.getServiceIdentity());
+		if (serverId < getZeze().getConfig().getServerId())
+			return;
+		if (serverId == getZeze().getConfig().getServerId()) {
+			var localPs = new ProviderSession();
+			localPs.ServerId = serverId;
+			SetRelativeServiceReady(localPs, ProviderApp.DirectIp, ProviderApp.DirectPort);
+			return;
+		}
+		var out = new OutObject<Connector>();
+		if (getConfig().TryGetOrAddConnector(pm.getPassiveIp(), pm.getPassivePort(), true, out)) {
+			// 新建的Connector。开始连接。
+			var peerPs = new ProviderSession();
+			peerPs.ServerId = serverId;
+			out.Value.UserState = peerPs;
+			out.Value.Start();
+		}
+	}
+
+	public void TryConnectAndSetReady(Agent.SubscribeState ss, ServiceInfos infos) throws Throwable {
+		var current = new HashMap<String, ServiceInfo>();
 		for (var pm : infos.getServiceInfoListSortedByIdentity()) {
-			var connName = pm.getPassiveIp() + ":" + pm.getPassivePort();
-			var ps = ProviderByLoadName.get(connName);
-			if (null != ps) {
-				// connection has ready.
-				var mid = Integer.parseInt(infos.getServiceName().split("#")[1]);
-				var m = ProviderApp.Modules.get(mid);
-				SetReady(ss, pm, ps, mid, m);
-				continue;
-			}
-			var serverId = Integer.parseInt(pm.getServiceIdentity());
-			if (serverId < getZeze().getConfig().getServerId())
-				continue;
-			if (serverId == getZeze().getConfig().getServerId()) {
-				var localPs = new ProviderSession();
-				localPs.ServerId = serverId;
-				SetRelativeServiceReady(localPs, ProviderApp.DirectIp, ProviderApp.DirectPort);
-				continue;
-			}
-			var out = new OutObject<Connector>();
-			if (getConfig().TryGetOrAddConnector(pm.getPassiveIp(), pm.getPassivePort(), true, out)) {
-				// 新建的Connector。开始连接。
-				var peerPs = new ProviderSession();
-				peerPs.ServerId = serverId;
-				out.Value.UserState = peerPs;
-				out.Value.Start();
-			}
+			AddServer(ss, pm);
+			current.put(pm.getPassiveIp() + ":" + pm.getPassivePort(), pm);
+		}
+		getConfig().ForEachConnector((c) -> current.remove(c.getName()));
+		for (var pm : current.values()) {
+			RemoveServer(ss, pm);
 		}
 	}
 
