@@ -2,6 +2,7 @@ package Zeze.Services;
 
 import java.io.Closeable;
 import java.util.ArrayList;
+import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.AcquiredState;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.CacheState;
@@ -109,7 +110,7 @@ public class GlobalCacheManagerWithRaft
 		ServerAcquiredTemplate = Rocks.GetTableTemplate("Session");
 
 		if (ENABLE_PERF)
-			perf = new GlobalCacheManagerPerf(Rocks.AtomicLong(GlobalSerialIdAtomicLongIndex));
+			perf = new GlobalCacheManagerPerf(SerialId); // Rocks.AtomicLong(GlobalSerialIdAtomicLongIndex));
 
 		Rocks.getRaft().getServer().Start();
 
@@ -145,6 +146,7 @@ public class GlobalCacheManagerWithRaft
 	public Rocks getRocks() {
 		return Rocks;
 	}
+	private AtomicLong SerialId = new AtomicLong();
 
 	private static AcquiredState newAcquiredState(int state) {
 		AcquiredState acquiredState = new AcquiredState();
@@ -252,7 +254,8 @@ public class GlobalCacheManagerWithRaft
 				continue; // concurrent release.
 
 			cs.setAcquireStatePending(StateShare);
-			Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
+			//Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
+			SerialId.incrementAndGet();
 			var SenderAcquired = ServerAcquiredTemplate.OpenTable(sender.ServerId);
 			if (cs.getModify() != -1) {
 				if (cs.getModify() == sender.ServerId) {
@@ -384,7 +387,8 @@ public class GlobalCacheManagerWithRaft
 				continue; // concurrent release
 
 			cs.setAcquireStatePending(StateModify);
-			Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
+			//Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
+			SerialId.incrementAndGet();
 			var SenderAcquired = ServerAcquiredTemplate.OpenTable(sender.ServerId);
 			if (cs.getModify() != -1) {
 				if (cs.getModify() == sender.ServerId) {
@@ -837,7 +841,7 @@ public class GlobalCacheManagerWithRaft
 					reduce.Argument.setState(StateInvalid);
 					if (ENABLE_PERF)
 						perf.onReduceBegin(reduce);
-					if (reduce.Send(peer, response, 10000))
+					if (reduce.Send(peer, response, AchillesHeelConfig.ReduceTimeout))
 						return true;
 					if (ENABLE_PERF)
 						perf.onReduceCancel(reduce);
