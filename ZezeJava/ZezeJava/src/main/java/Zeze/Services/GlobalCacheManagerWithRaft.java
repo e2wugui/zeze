@@ -460,7 +460,7 @@ public class GlobalCacheManagerWithRaft
 			// 两种情况不需要发reduce
 			// 1. share是空的, 可以直接升为Modify
 			// 2. sender是share, 而且reducePending是空的
-			var errorFreshAcquire = new OutObject<Boolean>();
+			var errorFreshAcquire = new OutObject<Boolean>(false);
 			if (cs.getShare().size() != 0 && (!senderIsShare || !reducePending.isEmpty())) {
 				Task.run(() -> {
 					// 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
@@ -486,16 +486,16 @@ public class GlobalCacheManagerWithRaft
 								logger.warn("Reduce {} AcquireState={} CacheState={} res={}",
 										sender, StateModify, cs, reduce.Result);
 							}
-						} catch (RuntimeException ex) {
+						} catch (Throwable ex) {
 							session.SetError();
 							// 等待失败不再看作成功。
 							logger.error(String.format("Reduce %s AcquireState=%d CacheState=%s arg=%s",
 									sender, StateModify, cs, reduce.Argument), ex);
 						}
 					}
-					errorFreshAcquire.Value = freshAcquire;
 					lockey.Enter();
 					try {
+						errorFreshAcquire.Value = freshAcquire;
 						lockey.PulseAll();
 					} finally {
 						lockey.Exit();
