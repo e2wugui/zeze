@@ -14,7 +14,7 @@ namespace Zeze.Util
 
 		public ConsistentHash()
 		{
-			this.numberOfReplicas = 512;
+			this.numberOfReplicas = 128;
 		}
 
 		public ConsistentHash(int numberOfReplicas)

@@ -16,7 +16,7 @@ public class ConsistentHash<TNode> {
 	private final HashSet<TNode> nodes = new HashSet<>();
 
 	public ConsistentHash() {
-		this(512);
+		this(128);
 	}
 
 	public ConsistentHash(int numberOfReplicas) {
