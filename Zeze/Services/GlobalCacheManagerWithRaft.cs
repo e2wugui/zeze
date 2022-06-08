@@ -129,7 +129,8 @@ namespace Zeze.Services
                     continue; // concurrent release.
 
                 cs.AcquireStatePending = GlobalCacheManagerServer.StateShare;
-                Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
+                //Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
+                SerialId.IncrementAndGet();
                 var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(sender.ServerId);
                 if (cs.Modify != -1)
                 {
@@ -270,7 +271,8 @@ namespace Zeze.Services
                     continue; // concurrent release
 
                 cs.AcquireStatePending = GlobalCacheManagerServer.StateModify;
-                Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
+                //Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
+                SerialId.IncrementAndGet();
                 var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(sender.ServerId);
                 if (cs.Modify != -1)
                 {
@@ -659,6 +661,7 @@ namespace Zeze.Services
         }
 
         private Rocks Rocks { get; set; }
+        private AtomicLong SerialId { get; } = new();
         private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
         private readonly Locks Locks = new();
 
