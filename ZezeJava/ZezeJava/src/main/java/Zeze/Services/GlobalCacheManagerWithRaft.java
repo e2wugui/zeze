@@ -460,7 +460,7 @@ public class GlobalCacheManagerWithRaft
 			// 两种情况不需要发reduce
 			// 1. share是空的, 可以直接升为Modify
 			// 2. sender是share, 而且reducePending是空的
-			var errorFreshAcquire = new OutObject<Boolean>(false);
+			var errorFreshAcquire = new OutObject<>(Boolean.FALSE);
 			if (cs.getShare().size() != 0 && (!senderIsShare || !reducePending.isEmpty())) {
 				Task.run(() -> {
 					// 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
@@ -486,7 +486,12 @@ public class GlobalCacheManagerWithRaft
 								logger.warn("Reduce {} AcquireState={} CacheState={} res={}",
 										sender, StateModify, cs, reduce.Result);
 							}
+							perf.onReduceEnd(reduce);
 						} catch (Throwable ex) {
+							if (reduce.isTimeout())
+								perf.onReduceEnd(reduce);
+							else
+								perf.onReduceCancel(reduce);
 							session.SetError();
 							// 等待失败不再看作成功。
 							logger.error(String.format("Reduce %s AcquireState=%d CacheState=%s arg=%s",
@@ -873,12 +878,6 @@ public class GlobalCacheManagerWithRaft
 					if (ENABLE_PERF)
 						GlobalInstance.perf.onReduceBegin(reduce);
 					reduce.SendForWait(peer, GlobalInstance.AchillesHeelConfig.ReduceTimeout);
-					if (ENABLE_PERF) {
-						if (reduce.getFuture().isCompletedExceptionally() && !reduce.isTimeout())
-							GlobalInstance.perf.onReduceCancel(reduce);
-						else
-							GlobalInstance.perf.onReduceEnd(reduce);
-					}
 					return reduce;
 				} else
 					logger.error("ReduceWaitLater invalid sessionId={}", SessionId);
