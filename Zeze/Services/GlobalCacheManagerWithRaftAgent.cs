@@ -78,14 +78,6 @@ namespace Zeze.Services
                 Real.ResultCode = ResultCode;
                 Real.SendResult(result);
             }
-
-            public override void SendResultCode(long code, Zeze.Net.Binary result = null)
-            {
-                ResultCode = code;
-                Real.Result.GlobalKey = Real.Argument.GlobalKey; // no change
-                Real.Result.State = Result.State;
-                Real.SendResultCode(code, result);
-            }
         }
 
         protected override async Task<long> ProcessReduceRequest(Zeze.Net.Protocol _p)

@@ -173,21 +173,6 @@ namespace Zeze.Net
             }
         }
 
-        public override void SendResultCode(long code, Binary result = null)
-        {
-            if (SendResultDone)
-                return;
-            SendResultDone = true;
-
-            ResultEncoded = result;
-            ResultCode = code;
-            IsRequest = false;
-            if (false == base.Send(Sender))
-            {
-                logger.Log(Service.SocketOptions.SocketLogLevel, $"Rpc.SendResult Failed {Sender.Socket} {this}");
-            }
-        }
-
         internal override void Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle)
         {
             if (IsRequest)

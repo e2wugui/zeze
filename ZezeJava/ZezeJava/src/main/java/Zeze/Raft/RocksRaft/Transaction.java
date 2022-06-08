@@ -174,27 +174,31 @@ public final class Transaction {
 
 	public long Perform(Procedure procedure) throws Throwable {
 		try {
-			procedure.ResultCode = procedure.Call();
+			var rc = procedure.Call();
 			if (_lock_and_check_(TransactionLevel.Serializable)) {
-				if (procedure.ResultCode == 0)
+				if (rc == 0) {
 					_final_commit_(procedure);
-				else
+				}
+				else {
+					procedure.setAutoResponseResultCode(rc);
 					_final_rollback_(procedure);
-				return procedure.ResultCode;
+				}
+				return rc;
 			}
+			procedure.setAutoResponseResultCode(rc);
 			_final_rollback_(procedure); // 乐观锁，这里应该redo
-			return procedure.ResultCode;
+			return rc;
 		} catch (ThrowAgainException e) {
-			procedure.ResultCode = Zeze.Transaction.Procedure.Exception;
+			procedure.setAutoResponseResultCode(Zeze.Transaction.Procedure.Exception);
 			_final_rollback_(procedure);
 			throw e;
 		} catch (RaftRetryException e) {
-			procedure.ResultCode = Zeze.Transaction.Procedure.RaftRetry;
+			procedure.setAutoResponseResultCode(Zeze.Transaction.Procedure.RaftRetry);
 			logger.debug("RocksRaft Retry", e);
 			_final_rollback_(procedure);
-			return procedure.ResultCode;
+			return Zeze.Transaction.Procedure.RaftRetry;
 		} catch (Throwable e) {
-			procedure.ResultCode = Zeze.Transaction.Procedure.Exception;
+			procedure.setAutoResponseResultCode(Zeze.Transaction.Procedure.Exception);
 			logger.error("RocksRaft Call Exception", e);
 			if (e instanceof AssertionError) {
 				_final_rollback_(procedure);
@@ -202,10 +206,10 @@ public final class Transaction {
 			}
 			if (_lock_and_check_(TransactionLevel.Serializable)) {
 				_final_rollback_(procedure);
-				return procedure.ResultCode;
+				return Zeze.Transaction.Procedure.Exception;
 			}
 			_final_rollback_(procedure); // 乐观锁，这里应该redo
-			return procedure.ResultCode;
+			return Zeze.Transaction.Procedure.Exception;
 		} finally {
 			for (var pLock : PessimismLocks)
 				pLock.unlock();
@@ -293,7 +297,7 @@ public final class Transaction {
 
 		Protocol<?> autoResponse = procedure.AutoResponse;
 		if (autoResponse != null)
-			autoResponse.SendResultCode(procedure.ResultCode);
+			autoResponse.SendResult();
 	}
 
 	private void _trigger_commit_actions_(Procedure procedure, Savepoint last) {
@@ -320,6 +324,6 @@ public final class Transaction {
 		}
 		Protocol<?> autoResponse = procedure.AutoResponse;
 		if (autoResponse != null)
-			autoResponse.SendResultCode(procedure.ResultCode);
+			autoResponse.SendResult();
 	}
 }

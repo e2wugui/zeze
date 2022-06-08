@@ -199,34 +199,40 @@ namespace Zeze.Raft.RocksRaft
 
             try
             {
-				procedure.ResultCode = await procedure.CallAsync();
+				var rc = await procedure.CallAsync();
                 if (LockAndCheck(Zeze.Transaction.TransactionLevel.Serializable))
                 {
-                    if (0 == procedure.ResultCode)
+                    if (0 == rc)
+                    {
                         await FinalCommit(procedure);
+                    }
                     else
+                    {
+                        procedure.SetAutoResponseResultCode(rc);
                         FinalRollback(procedure);
-                    return procedure.ResultCode;
+                    }
+                    return rc;
                 }
+                procedure.SetAutoResponseResultCode(rc);
                 FinalRollback(procedure); // 乐观锁，这里应该redo
-                return procedure.ResultCode;
+                return rc;
 			}
             catch (Zeze.Util.ThrowAgainException)
             {
-                procedure.ResultCode = Zeze.Transaction.Procedure.Exception;
+                procedure.SetAutoResponseResultCode(Zeze.Transaction.Procedure.Exception);
                 FinalRollback(procedure);
                 throw;
             }
             catch (RaftRetryException ex1)
             {
                 logger.Debug(ex1);
-                procedure.ResultCode = Zeze.Transaction.Procedure.RaftRetry;
+                procedure.SetAutoResponseResultCode(Zeze.Transaction.Procedure.RaftRetry);
                 FinalRollback(procedure);
-                return procedure.ResultCode;
+                return Zeze.Transaction.Procedure.RaftRetry;
             }
             catch (Exception ex)
             {
-                procedure.ResultCode = Zeze.Transaction.Procedure.Exception;
+                procedure.SetAutoResponseResultCode(Zeze.Transaction.Procedure.Exception);
                 logger.Error(ex);
 
                 if (ex.GetType().Name == "AssertFailedException")
@@ -238,10 +244,10 @@ namespace Zeze.Raft.RocksRaft
                 if (LockAndCheck(Zeze.Transaction.TransactionLevel.Serializable))
                 {
                     FinalRollback(procedure);
-                    return procedure.ResultCode;
+                    return Zeze.Transaction.Procedure.Exception;
                 }
                 FinalRollback(procedure); // 乐观锁，这里应该redo
-                return procedure.ResultCode;
+                return Zeze.Transaction.Procedure.Exception;
             }
             finally
             {
@@ -346,7 +352,7 @@ namespace Zeze.Raft.RocksRaft
             }
 
             TriggerCommitActions(procedure, sp);
-            procedure.AutoResponse?.SendResultCode(procedure.ResultCode);
+            procedure.AutoResponse?.SendResult();
         }
 
         internal async Task LeaderApply(Changes changes)
@@ -385,7 +391,7 @@ namespace Zeze.Raft.RocksRaft
                 }
                 LastRollbackActions = null;
             }
-            procedure.AutoResponse?.SendResultCode(procedure.ResultCode);
+            procedure.AutoResponse?.SendResult();
         }
 
     }

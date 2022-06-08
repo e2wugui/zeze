@@ -229,14 +229,14 @@ public class GlobalCacheManagerWithRaft
 					if (cs.getModify() == sender.getServerId()) {
 						logger.debug("1 {} {} {}", sender, StateShare, cs);
 						rpc.Result.setState(StateInvalid);
-						return AcquireShareDeadLockFound;
+						return AcquireShareDeadLockFound; // 事务数据没有改变，回滚
 					}
 					break;
 				case StateModify:
 					if (cs.getModify() == sender.getServerId() || cs.getShare().Contains(sender.getServerId())) {
 						logger.debug("2 {} {} {}", sender, StateShare, cs);
 						rpc.Result.setState(StateInvalid);
-						return AcquireShareDeadLockFound;
+						return AcquireShareDeadLockFound; // 事务数据没有改变，回滚
 					}
 					break;
 				case StateRemoving:
@@ -262,7 +262,8 @@ public class GlobalCacheManagerWithRaft
 					cs.setAcquireStatePending(StateInvalid);
 					logger.debug("4 {} {} {}", sender, StateShare, cs);
 					rpc.Result.setState(StateModify);
-					return AcquireShareAlreadyIsModify;
+					rpc.setResultCode(AcquireShareAlreadyIsModify);
+					return 0; // 可以忽略的错误，数据有改变，需要提交事务。
 				}
 
 				var reduceResultState = new OutObject<>(StateReduceNetError); // 默认网络错误。
@@ -301,7 +302,7 @@ public class GlobalCacheManagerWithRaft
 					// logger.error("XXX fresh {} {} {}", sender, acquireState, cs);
 					rpc.Result.setState(StateInvalid);
 					lockey.PulseAll(); //notify
-					return StateReduceErrorFreshAcquire;
+					return StateReduceErrorFreshAcquire; // 事务数据没有改变，回滚
 
 				default:
 					// 包含协议返回错误的值的情况。
@@ -314,7 +315,7 @@ public class GlobalCacheManagerWithRaft
 					// logger.error("XXX 8 state={} {} {} {}", reduceResultState.Value, sender, acquireState, cs);
 					rpc.Result.setState(StateInvalid);
 					lockey.PulseAll();
-					return AcquireShareFailed;
+					return AcquireShareFailed; // 事务数据没有改变，回滚
 				}
 
 				SenderAcquired.Put(globalTableKey, newAcquiredState(StateShare));
@@ -361,14 +362,14 @@ public class GlobalCacheManagerWithRaft
 					if (cs.getModify() == sender.getServerId()) {
 						logger.debug("1 {} {} {}", sender, StateModify, cs);
 						rpc.Result.setState(StateInvalid);
-						return AcquireModifyDeadLockFound;
+						return AcquireModifyDeadLockFound; // 事务数据没有改变，回滚
 					}
 					break;
 				case StateModify:
 					if (cs.getModify() == sender.getServerId() || cs.getShare().Contains(sender.getServerId())) {
 						logger.debug("2 {} {} {}", sender, StateModify, cs);
 						rpc.Result.setState(StateInvalid);
-						return AcquireModifyDeadLockFound;
+						return AcquireModifyDeadLockFound; // 事务数据没有改变，回滚
 					}
 					break;
 				case StateRemoving:
@@ -393,7 +394,8 @@ public class GlobalCacheManagerWithRaft
 					cs.setAcquireStatePending(StateInvalid);
 					logger.debug("4 {} {} {}", sender, StateModify, cs);
 					lockey.PulseAll();
-					return AcquireModifyAlreadyIsModify;
+					rpc.setResultCode(AcquireModifyAlreadyIsModify);
+					return 0; // 可以忽略的错误，数据有改变，需要提交事务。
 				}
 
 				var reduceResultState = new OutObject<>(StateReduceNetError); // 默认网络错误。
@@ -426,7 +428,7 @@ public class GlobalCacheManagerWithRaft
 					// logger.error("XXX fresh {} {} {} {}", sender, acquireState, cs);
 					rpc.Result.setState(StateInvalid);
 					lockey.PulseAll(); //notify
-					return StateReduceErrorFreshAcquire;
+					return StateReduceErrorFreshAcquire; // 事务数据没有改变，回滚
 
 				default:
 					// case StateReduceRpcTimeout: // 11
@@ -438,7 +440,7 @@ public class GlobalCacheManagerWithRaft
 					// logger.error("XXX 9 {} {} {} {}", sender, acquireState, cs, reduceResultState.Value);
 					rpc.Result.setState(StateInvalid);
 					lockey.PulseAll();
-					return AcquireModifyFailed;
+					return AcquireModifyFailed; // 事务数据没有改变，回滚
 				}
 
 				cs.setModify(sender.getServerId());
@@ -551,7 +553,10 @@ public class GlobalCacheManagerWithRaft
 				// logger.error("XXX 10 {} {} {}", sender, acquireState, cs);
 				rpc.Result.setState(StateInvalid);
 				lockey.PulseAll();
-				return errorFreshAcquire.Value ? StateReduceErrorFreshAcquire : AcquireModifyFailed;
+				rpc.setResultCode(errorFreshAcquire.Value
+					? StateReduceErrorFreshAcquire  // 这个错误码导致Server-RedoAndReleaseLock
+					: AcquireModifyFailed); // 这个错误码导致Server事务失败。
+				return 0; // 可能存在部分reduce成功，需要提交事务。
 			}
 
 			SenderAcquired.Put(globalTableKey, newAcquiredState(StateModify));

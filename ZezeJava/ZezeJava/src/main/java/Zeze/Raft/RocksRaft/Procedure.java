@@ -17,7 +17,11 @@ public class Procedure {
 
 	public RaftRpc<?, ?> UniqueRequest;
 	public Protocol<?> AutoResponse;
-	public long ResultCode;
+
+	public final void setAutoResponseResultCode(long code) {
+		if (null != AutoResponse)
+			AutoResponse.setResultCode(code);
+	}
 
 	public Procedure() {
 	}

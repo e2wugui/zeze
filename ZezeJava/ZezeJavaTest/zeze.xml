@@ -5,6 +5,10 @@
 	CheckpointPeriod="60000" ServerId="0" CheckpointMode="Table"
 	>
 
+	<GlobalCacheManagersConf>
+		<host name="global.raft.xml"/>
+	</GlobalCacheManagersConf>
+	
 	<!--
 	数据库配置。默认数据库的名字为空。
 	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>

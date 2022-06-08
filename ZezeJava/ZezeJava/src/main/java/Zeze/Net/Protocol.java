@@ -126,14 +126,23 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 		return so != null && Send(so);
 	}
 
-	// 用于Rpc自动发送结果。
+	// 用于Rpc发送结果。
 	// Rpc会重载实现。
-	public void SendResultCode(long code) {
-		ResultCode = code;
+	public void SendResult(Binary result) {
 	}
 
-	public void SendResultCode(long code, @SuppressWarnings("unused") Binary result) {
-		ResultCode = code;
+	// Rpc 发送结果辅助函数。
+	public final void SendResult() {
+		SendResult(null);
+	}
+
+	public final void SendResultCode(long code) {
+		SendResultCode(code, null);
+	}
+
+	public final void SendResultCode(long code, @SuppressWarnings("unused") Binary result) {
+		setResultCode(code);
+		SendResult(result);
 	}
 
 	@SuppressWarnings("unchecked")

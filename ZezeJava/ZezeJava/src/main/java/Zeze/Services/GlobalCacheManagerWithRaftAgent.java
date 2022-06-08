@@ -81,29 +81,11 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		}
 
 		@Override
-		public void SendResult() {
-			SendResult(null);
-		}
-
-		@Override
 		public void SendResult(Zeze.Net.Binary result) {
 			Real.Result.setGlobalKey(Real.Argument.getGlobalKey()); // no change
 			Real.Result.setState(Result.State);
 			Real.setResultCode(getResultCode());
 			Real.SendResult(result);
-		}
-
-		@Override
-		public void SendResultCode(long code) {
-			SendResultCode(code, null);
-		}
-
-		@Override
-		public void SendResultCode(long code, Zeze.Net.Binary result) {
-			setResultCode(code);
-			Real.Result.setGlobalKey(Real.Argument.getGlobalKey()); // no change
-			Real.Result.setState(Result.State);
-			Real.SendResultCode(code, result);
 		}
 	}
 

@@ -90,9 +90,14 @@ namespace Zeze.Net
 
 		// 用于Rpc自动发送结果。
 		// Rpc会重载实现。
-		public virtual void SendResultCode(long code, Binary result = null)
+		public virtual void SendResult(Binary result = null)
+		{ 
+		}
+
+		public void SendResultCode(long code, Binary result = null)
         {
 			ResultCode = code;
+			SendResult(result);
 		}
 
 		// always true for Protocol, Rpc Will override

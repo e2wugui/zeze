@@ -103,7 +103,7 @@ namespace Zeze.Services
                             {
                                 logger.Debug("1 {0} {1} {2}", sender, rpc.Argument.State, cs);
                                 rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                                return GlobalCacheManagerServer.AcquireShareDeadLockFound;
+                                return GlobalCacheManagerServer.AcquireShareDeadLockFound; // 事务数据没有改变，回滚
                             }
                             break;
 
@@ -112,7 +112,7 @@ namespace Zeze.Services
                             {
                                 logger.Debug("2 {0} {1} {2}", sender, rpc.Argument.State, cs);
                                 rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                                return GlobalCacheManagerServer.AcquireShareDeadLockFound;
+                                return GlobalCacheManagerServer.AcquireShareDeadLockFound; // 事务数据没有改变，回滚
                             }
                             break;
 
@@ -141,7 +141,8 @@ namespace Zeze.Services
                         // 已经是Modify又申请，可能是sender异常关闭，
                         // 又重启连上。更新一下。应该是不需要的。
                         await SenderAcquired.PutAsync(rpc.Argument.GlobalKey, new AcquiredState() { State = GlobalCacheManagerServer.StateModify });
-                        return GlobalCacheManagerServer.AcquireShareAlreadyIsModify;
+                        rpc.ResultCode = GlobalCacheManagerServer.AcquireShareAlreadyIsModify;
+                        return 0; // 可以忽略的错误，数据有改变，需要提交事务。
                     }
 
                     int reduceResultState = GlobalCacheManagerServer.StateReduceNetError; // 默认网络错误。
@@ -179,7 +180,7 @@ namespace Zeze.Services
                             logger.Error("XXX fresh {0} {1} {2}", sender, rpc.Argument.State, cs);
                             rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                             lockey.PulseAll();
-                            return GlobalCacheManagerServer.StateReduceErrorFreshAcquire;
+                            return GlobalCacheManagerServer.StateReduceErrorFreshAcquire; // 事务数据没有改变，回滚
 
                         default:
                             // 包含协议返回错误的值的情况。
@@ -191,7 +192,7 @@ namespace Zeze.Services
                             logger.Error("XXX 8 {0} {1} {2}", sender, rpc.Argument.State, cs);
                             rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                             lockey.PulseAll();
-                            return GlobalCacheManagerServer.AcquireShareFailed;
+                            return GlobalCacheManagerServer.AcquireShareFailed; // 事务数据没有改变，回滚
                     }
 
                     cs.Modify = -1;
@@ -245,7 +246,7 @@ namespace Zeze.Services
                             {
                                 logger.Debug("1 {0} {1} {2}", sender, rpc.Argument.State, cs);
                                 rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                                return GlobalCacheManagerServer.AcquireModifyDeadLockFound;
+                                return GlobalCacheManagerServer.AcquireModifyDeadLockFound; // 事务数据没有改变，回滚
                             }
                             break;
                         case GlobalCacheManagerServer.StateModify:
@@ -253,7 +254,7 @@ namespace Zeze.Services
                             {
                                 logger.Debug("2 {0} {1} {2}", sender, rpc.Argument.State, cs);
                                 rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                                return GlobalCacheManagerServer.AcquireModifyDeadLockFound;
+                                return GlobalCacheManagerServer.AcquireModifyDeadLockFound; // 事务数据没有改变，回滚
                             }
                             break;
                         case GlobalCacheManagerServer.StateRemoving:
@@ -281,7 +282,8 @@ namespace Zeze.Services
                         await SenderAcquired.PutAsync(rpc.Argument.GlobalKey, new AcquiredState() { State = GlobalCacheManagerServer.StateModify });
                         cs.AcquireStatePending = GlobalCacheManagerServer.StateInvalid;
                         lockey.PulseAll();
-                        return GlobalCacheManagerServer.AcquireModifyAlreadyIsModify;
+                        rpc.ResultCode = GlobalCacheManagerServer.AcquireModifyAlreadyIsModify;
+                        return 0; // 可以忽略的错误，数据有改变，需要提交事务。
                     }
 
                     int reduceResultState = GlobalCacheManagerServer.StateReduceNetError; // 默认网络错误。
@@ -313,7 +315,7 @@ namespace Zeze.Services
                             logger.Error("XXX fresh {0} {1} {2}", sender, rpc.Argument.State, cs);
                             rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
                             lockey.PulseAll();
-                            return GlobalCacheManagerServer.StateReduceErrorFreshAcquire;
+                            return GlobalCacheManagerServer.StateReduceErrorFreshAcquire; // 事务数据没有改变，回滚
 
                         default:
                             // case StateReduceRpcTimeout:
@@ -324,7 +326,7 @@ namespace Zeze.Services
 
                             logger.Error("XXX 9 {0} {1} {2}", sender, rpc.Argument.State, cs);
                             rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                            return GlobalCacheManagerServer.AcquireModifyFailed;
+                            return GlobalCacheManagerServer.AcquireModifyFailed; // 事务数据没有改变，回滚
                     }
 
                     cs.Modify = sender.ServerId;
@@ -444,7 +446,10 @@ namespace Zeze.Services
                 logger.Error("XXX 10 {0} {1} {2}", sender, rpc.Argument.State, cs);
 
                 rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-                return freshReduce ? GlobalCacheManagerServer.StateReduceErrorFreshAcquire : GlobalCacheManagerServer.AcquireModifyFailed;
+                rpc.ResultCode = freshReduce
+                    ? GlobalCacheManagerServer.StateReduceErrorFreshAcquire // 这个错误码导致Server-RedoAndReleaseLock
+                    : GlobalCacheManagerServer.AcquireModifyFailed; // 这个错误码导致Server事务失败。
+                return 0; // 可能存在部分reduce成功，需要提交事务。
             }
         }
 

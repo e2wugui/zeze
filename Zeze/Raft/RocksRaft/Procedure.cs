@@ -14,7 +14,12 @@ namespace Zeze.Raft.RocksRaft
         public Rocks Rocks { get; set; }
         public Zeze.Net.Protocol UniqueRequest { get; set; }
         public Zeze.Net.Protocol AutoResponse { get; set; }
-        public long ResultCode { get; set; }
+
+        public void SetAutoResponseResultCode(long code)
+        { 
+            if (AutoResponse != null)
+                AutoResponse.ResultCode = code;
+        }
 
         public Procedure()
         {
