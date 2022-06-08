@@ -13,6 +13,7 @@ public class GlobalCacheManagerPerf {
 	private static final int ACQUIRE_STATE_COUNT = 3;
 	private static final Logger logger = LogManager.getLogger(GlobalCacheManagerPerf.class);
 
+	private final String perfName;
 	private final AtomicLong serialIdGenerator;
 	private long lastSerialId;
 
@@ -30,7 +31,8 @@ public class GlobalCacheManagerPerf {
 	private final ConcurrentSkipListMap<Long, LongAdder> totalReduceResults = new ConcurrentSkipListMap<>();
 	private final ConcurrentSkipListMap<String, LongAdder> others = new ConcurrentSkipListMap<>();
 
-	GlobalCacheManagerPerf(AtomicLong serialIdGenerator) {
+	GlobalCacheManagerPerf(String perfName, AtomicLong serialIdGenerator) {
+		this.perfName = perfName;
 		this.serialIdGenerator = serialIdGenerator;
 		lastSerialId = serialIdGenerator.get();
 		for (int i = 0; i < ACQUIRE_STATE_COUNT; i++) {
@@ -93,7 +95,7 @@ public class GlobalCacheManagerPerf {
 		others.computeIfAbsent(info, __ -> new LongAdder()).increment();
 	}
 
-	private void report() {
+	private synchronized void report() {
 		long curSerialId = serialIdGenerator.get();
 		long serialIds = curSerialId - lastSerialId;
 		lastSerialId = curSerialId;
@@ -132,7 +134,7 @@ public class GlobalCacheManagerPerf {
 				.append(reduces.size()).append('\n');
 		for (var e : others.entrySet())
 			sb.append(e.getKey()).append(" = ").append(e.getValue().sum()).append('\n');
-		logger.info("\n{}", sb.toString());
+		logger.info("{}\n{}", perfName, sb.toString());
 
 		for (int i = 0; i < ACQUIRE_STATE_COUNT; i++) {
 			totalAcquireCounts[i].reset();

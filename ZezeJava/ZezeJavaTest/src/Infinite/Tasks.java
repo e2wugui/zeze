@@ -5,7 +5,7 @@ import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DatabaseMemory;
@@ -17,23 +17,23 @@ import Zeze.Util.Random;
 import org.junit.Assert;
 
 public final class Tasks {
-	private static final ConcurrentHashMap<String, ConcurrentHashMap<Long, AtomicLong>> CounterRun = new ConcurrentHashMap<>();
-	private static final ConcurrentHashMap<String, ConcurrentHashMap<Long, AtomicLong>> CounterSuccess = new ConcurrentHashMap<>();
+	private static final ConcurrentHashMap<String, ConcurrentHashMap<Long, LongAdder>> CounterRun = new ConcurrentHashMap<>();
+	private static final ConcurrentHashMap<String, ConcurrentHashMap<Long, LongAdder>> CounterSuccess = new ConcurrentHashMap<>();
 
-	static ConcurrentHashMap<Long, AtomicLong> getRunCounters(String name) {
+	static ConcurrentHashMap<Long, LongAdder> getRunCounters(String name) {
 		return CounterRun.computeIfAbsent(name, __ -> new ConcurrentHashMap<>());
 	}
 
-	static AtomicLong getRunCounter(String name, long key) {
-		return getRunCounters(name).computeIfAbsent(key, __ -> new AtomicLong());
+	static LongAdder getRunCounter(String name, long key) {
+		return getRunCounters(name).computeIfAbsent(key, __ -> new LongAdder());
 	}
 
-	static ConcurrentHashMap<Long, AtomicLong> getSuccessCounters(String name) {
+	static ConcurrentHashMap<Long, LongAdder> getSuccessCounters(String name) {
 		return CounterSuccess.computeIfAbsent(name, __ -> new ConcurrentHashMap<>());
 	}
 
-	static AtomicLong getSuccessCounter(String name, long key) {
-		return getSuccessCounters(name).computeIfAbsent(key, __ -> new AtomicLong());
+	static LongAdder getSuccessCounter(String name, long key) {
+		return getSuccessCounters(name).computeIfAbsent(key, __ -> new LongAdder());
 	}
 
 	// 所有以long为key的记录访问可以使用这个基类。
@@ -78,10 +78,10 @@ public final class Tasks {
 			var totalCount = 0;
 			var successCount = 0;
 			for (var r : runs.entrySet()) {
-				totalCount += r.getValue().get();
+				totalCount += r.getValue().sum();
 				var s = success.get(r.getKey());
 				Assert.assertNotNull(s);
-				successCount += s.get();
+				successCount += s.sum();
 			}
 			// ignore TooManyTry error
 			if (totalCount != successCount + tooManyTry) {
@@ -92,20 +92,21 @@ public final class Tasks {
 
 		@Override
 		public long call() {
+			var name = getClass().getName();
 			var result = process();
 			if (result == 0) {
 				var txn = Transaction.getCurrent();
 				if (txn != null) {
 					txn.RunWhileCommit(() -> {
 						for (var key : Keys)
-							getSuccessCounter(getClass().getName(), key).incrementAndGet();
+							getSuccessCounter(name, key).increment();
 					});
 				} else {
 					for (var key : Keys)
-						getSuccessCounter(getClass().getName(), key).incrementAndGet();
+						getSuccessCounter(name, key).increment();
 				}
 			} else
-				Simulate.logger.error("{}.process() = {}", getClass().getName(), result);
+				Simulate.logger.error("{}.process() = {}", name, result);
 			return result;
 		}
 	}
@@ -189,7 +190,7 @@ public final class Tasks {
 					Simulate.logger.warn("app.demo_Module1.getTable1().selectDirty({}) = null", key);
 				if (v2 == null)
 					Simulate.logger.warn("getSuccessCounters({}).get({}) = null", name, key);
-				Assert.assertEquals(v1 != null ? v1.getLong2() : 0, v2 != null ? v2.get() : 0);
+				Assert.assertEquals(v1 != null ? v1.getLong2() : 0, v2 != null ? v2.sum() : 0);
 			}
 			Simulate.logger.debug("{}.verify OK!", name);
 		}
