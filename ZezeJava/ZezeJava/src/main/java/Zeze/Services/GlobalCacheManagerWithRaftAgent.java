@@ -268,7 +268,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			}
 			if (LoginTimes.get() > 0)
 				RaftClient.SendForWait(new NormalClose()).await(10 * 1000); // 10s
-			RaftClient.getClient().Stop();
+			RaftClient.Stop();
 		}
 
 		public final void WaitLoginSuccess() throws ExecutionException, InterruptedException {

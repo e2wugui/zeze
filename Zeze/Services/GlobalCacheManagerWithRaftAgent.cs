@@ -219,7 +219,7 @@ namespace Zeze.Services
                     }
                 }
 
-                RaftClient.Client.Stop();
+                RaftClient.Stop();
             }
 
             private volatile TaskCompletionSource<bool> LoginFuture = new (TaskCreationOptions.RunContinuationsAsynchronously);
