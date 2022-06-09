@@ -674,6 +674,26 @@ namespace Zeze.Transaction
                 });
         }
 
+        public long WalkCacheKey(Func<K, bool> callback)
+        {
+            return Cache.WalkKey(callback);
+        }
+
+        public async Task<long> WalkCacheKeyAsync(Func<K, Task<bool>> callback)
+        {
+            return await Cache.WalkKeyAsync(callback);
+        }
+
+        public async Task<long> WalkDatabaseKeyAsync(Func<K, bool> callback)
+        {
+            return await TStorage.TableAsync.WalkKeyAsync((key) =>
+            {
+                K k = DecodeKey(ByteBuffer.Wrap(key));
+                return callback(k);
+            });
+        }
+
+
         /// <summary>
         /// 获得记录的拷贝。
         /// 1. 一般在事务外使用。

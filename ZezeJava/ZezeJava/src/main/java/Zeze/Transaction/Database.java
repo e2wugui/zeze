@@ -128,6 +128,7 @@ public abstract class Database {
 		 @return 返回已经遍历的数量
 		*/
 		long Walk(TableWalkHandleRaw callback);
+		long WalkKey(TableWalkKeyRaw callback);
 		void Close();
 	}
 

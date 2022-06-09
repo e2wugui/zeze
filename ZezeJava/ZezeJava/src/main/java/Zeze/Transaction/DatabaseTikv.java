@@ -272,6 +272,33 @@ public class DatabaseTikv extends Database {
 			}
 		}
 
+		@Override
+		public long WalkKey(TableWalkKeyRaw callback) {
+			long countWalked = 0;
+			ByteString startKey = ByteString.copyFrom(keyPrefix.Bytes, keyPrefix.ReadIndex, keyPrefix.Size());
+			int length = name.getBytes(StandardCharsets.UTF_8).length + 1;
+			final ByteString endKey = Key.toRawKey(startKey).nextPrefix().toByteString();
+			Key maxKey = Key.MIN;
+			while (true) {
+				List<Kvrpcpb.KvPair> kvPairs = database.client.scan(startKey, endKey, PAGE_SIZE);
+				countWalked += kvPairs.size();
+				for (Kvrpcpb.KvPair pair : kvPairs) {
+					ByteString key = pair.getKey();
+					if (!callback.handle(key.substring(length).toByteArray())) {
+						return countWalked;
+					}
+					Key currentKey = Key.toRawKey(key);
+					if (currentKey.compareTo(maxKey) > 0) {
+						maxKey = currentKey;
+					}
+				}
+				if (kvPairs.size() < PAGE_SIZE) {
+					return countWalked;
+				}
+				startKey = maxKey.next().toByteString();
+			}
+		}
+
 		private static ByteString withKeySpace(ByteBuffer keyPrefix, ByteBuffer key) {
 			int keyPrefixSize = keyPrefix.Size();
 			int keySize = key.Size();

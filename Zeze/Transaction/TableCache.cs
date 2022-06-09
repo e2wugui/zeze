@@ -55,6 +55,30 @@ namespace Zeze.Transaction
             TimerClean = Util.Scheduler.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
         }
 
+        public async Task<long> WalkKeyAsync(Func<K, Task<bool>> callback)
+        {
+            long cw = 0;
+            foreach (var e in DataMap)
+            {
+                if (false == await callback(e.Key))
+                    return cw;
+                ++cw;
+            }
+            return cw;
+        }
+
+        public long WalkKey(Func<K, bool> callback)
+        {
+            long cw = 0;
+            foreach (var e in DataMap)
+            {
+                if (false == callback(e.Key))
+                    return cw;
+                ++cw;
+            }
+            return cw;
+        }
+
         public void Close()
         {
             TimerNewHot?.Cancel();

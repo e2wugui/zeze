@@ -3,6 +3,7 @@ package Zeze.Util;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.BiPredicate;
+import Zeze.Transaction.TableWalkKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -108,6 +109,16 @@ public class ConcurrentLruLike<K, V> {
 		});
 		// 下面这个任务的执行时间可能很长，不直接使用带period的schedule的定时任务，每次执行完重新调度。
 		Task.schedule(CleanPeriod, this::CleanNow);
+	}
+
+	public long WalkKey(TableWalkKey<K> callback) {
+		long cw = 0;
+		for (var e : DataMap.entrySet()) {
+			if (!callback.handle(e.getKey()))
+				return cw;
+			++cw;
+		}
+		return cw;
 	}
 
 	private void newLruHot() {

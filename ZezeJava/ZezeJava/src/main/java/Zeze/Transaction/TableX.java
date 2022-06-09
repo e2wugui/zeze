@@ -7,6 +7,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Services.GlobalCacheManagerServer;
 import Zeze.Services.ServiceManager.AutoKey;
+import Zeze.Util.Func1;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -600,6 +601,17 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				return true;
 			}
 			return false;
+		});
+	}
+
+	public final long WalkCacheKey(TableWalkKey<K> callback) {
+		return Cache.WalkKey(callback);
+	}
+
+	public final long WalkDatabaseKey(TableWalkKey<K> callback) {
+		return TStorage.getDatabaseTable().WalkKey((key) -> {
+			K k = DecodeKey(ByteBuffer.Wrap(key));
+			return callback.handle(k);
 		});
 	}
 

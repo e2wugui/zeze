@@ -166,6 +166,18 @@ namespace Zeze.Tikv
                 transaction.Commit();
                 return result;
             }
+
+            public long WalkKey(Func<byte[], bool> callback)
+            {
+                using TikvConnection connection = new(DatabaseReal.DatabaseUrl);
+                connection.Open();
+                using TikvTransaction transaction = connection.BeginTransaction();
+
+                // TODO？ 实现只扫描key的版本。
+                long result = Tikv.Driver.Scan(transaction.TransactionId, KeyPrefix, (key, value) => callback(key));
+                transaction.Commit();
+                return result;
+            }
         }
     }
 }

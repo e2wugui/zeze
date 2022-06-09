@@ -147,6 +147,7 @@ namespace Zeze.Transaction
             /// <param name="callback"></param>
             /// <returns>返回已经遍历的数量</returns>
             public long Walk(Func<byte[], byte[], bool> callback);
+            public long WalkKey(Func<byte[], bool> callback);
             public void Close();
             public abstract bool IsNew { get; }
         }
@@ -220,6 +221,13 @@ namespace Zeze.Transaction
             {
                 long count = 0;
                 await Database.Executor.RunAsync(() => count = ITable.Walk(callback));
+                return count;
+            }
+
+            public async Task<long> WalkKeyAsync(Func<byte[], bool> callback)
+            {
+                long count = 0;
+                await Database.Executor.RunAsync(() => count = ITable.WalkKey(callback));
                 return count;
             }
         }
@@ -734,6 +742,27 @@ namespace Zeze.Transaction
                 }
                 return count;
             }
+
+            public long WalkKey(Func<byte[], bool> callback)
+            {
+                using var connection = new MySqlConnection(DatabaseReal.DatabaseUrl);
+                connection.Open();
+
+                string sql = "SELECT id FROM " + Name;
+                var cmd = new MySqlCommand(sql, connection);
+                cmd.Prepare();
+
+                long count = 0;
+                using MySqlDataReader reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    byte[] key = (byte[])reader[0];
+                    ++count;
+                    if (false == callback(key))
+                        break;
+                }
+                return count;
+            }
         }
     }
 
@@ -1189,6 +1218,27 @@ namespace Zeze.Transaction
                 }
                 return count;
             }
+
+            public long WalkKey(Func<byte[], bool> callback)
+            {
+                using var connection = new SqlConnection(DatabaseReal.DatabaseUrl);
+                connection.Open();
+
+                string sql = "SELECT id FROM " + Name;
+                var cmd = new SqlCommand(sql, connection);
+                cmd.Prepare();
+
+                long count = 0;
+                using SqlDataReader reader = cmd.ExecuteReader();
+                while (reader.Read())
+                {
+                    byte[] key = (byte[])reader[0];
+                    ++count;
+                    if (false == callback(key))
+                        break;
+                }
+                return count;
+            }
         }
     }
 
@@ -1355,6 +1405,28 @@ namespace Zeze.Transaction
                     {
                         ++countWalked;
                         if (false == callback(it.Key(), it.Value()))
+                            return countWalked;
+                        it.Next();
+                    }
+                    return countWalked;
+                }
+                finally
+                {
+                    it.Dispose();
+                }
+            }
+
+            public long WalkKey(Func<byte[], bool> callback)
+            {
+                var it = DatabaseReal.Db.NewIterator(ColumnFamily, DatabaseReal.ReadOptions);
+                try
+                {
+                    long countWalked = 0;
+                    it.SeekToFirst();
+                    while (it.Valid())
+                    {
+                        ++countWalked;
+                        if (false == callback(it.Key()))
                             return countWalked;
                         it.Next();
                     }
@@ -1696,6 +1768,22 @@ namespace Zeze.Transaction
                     {
                         ++count;
                         if (false == callback(e.Key.Copy(), ByteBuffer.Copy(e.Value)))
+                            break;
+                    }
+                    return count;
+                }
+            }
+
+            public long WalkKey(Func<byte[], bool> callback)
+            {
+                lock (this)
+                {
+                    // 不允许并发？
+                    long count = 0;
+                    foreach (var e in Map)
+                    {
+                        ++count;
+                        if (false == callback(e.Key.Copy()))
                             break;
                     }
                     return count;

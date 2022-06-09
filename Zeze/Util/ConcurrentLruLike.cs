@@ -126,6 +126,19 @@ namespace Zeze.Util
             return false;
         }
 
+        public long WalkKey(Func<K, bool> callback)
+        {
+            long cw = 0;
+            foreach (var e in DataMap)
+            {
+                if (false == callback(e.Key))
+                    return cw;
+                ++cw;
+            }
+            return cw;
+        }
+
+
         private int GetLruInitialCapacity()
         {
             int lruInitialCapacity = (int)(InitialCapacity * 0.2);

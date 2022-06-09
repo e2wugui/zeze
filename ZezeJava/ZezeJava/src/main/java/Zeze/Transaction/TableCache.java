@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 
+import Zeze.Util.Func1;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import Zeze.Util.Task;
@@ -74,6 +75,16 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		// 31 from c# document
 		// 这样写，当配置修改，可以使用的时候马上生效。
 		return Math.max(getTable().getTableConf().getCacheInitialCapacity(), 31);
+	}
+
+	public long WalkKey(TableWalkKey<K> callback) {
+		long cw = 0;
+		for (var e : DataMap.entrySet()) {
+			if (!callback.handle(e.getKey()))
+				return cw;
+			++cw;
+		}
+		return cw;
 	}
 
 	private int GetLruInitialCapacity() {

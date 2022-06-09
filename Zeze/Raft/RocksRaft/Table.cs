@@ -244,6 +244,20 @@ namespace Zeze.Raft.RocksRaft
             return true;
         }
 
+        public bool WalkKey(Func<K, bool> callback)
+        {
+            using var it = Rocks.Storage.RocksDb.NewIterator(ColumnFamily);
+            it.SeekToFirst();
+            while (it.Valid())
+            {
+                var key = SerializeHelper<K>.Decode(ByteBuffer.Wrap(it.Key()));
+                if (false == callback(key))
+                    return false;
+                it.Next();
+            }
+            return true;
+        }
+
         public async Task<bool> WalkAsync(Func<K, V, Task<bool>> callback)
         {
             using var it = Rocks.Storage.RocksDb.NewIterator(ColumnFamily);
@@ -253,6 +267,20 @@ namespace Zeze.Raft.RocksRaft
                 var key = SerializeHelper<K>.Decode(ByteBuffer.Wrap(it.Key()));
                 var value = SerializeHelper<V>.Decode(ByteBuffer.Wrap(it.Value()));
                 if (false == await callback(key, value))
+                    return false;
+                it.Next();
+            }
+            return true;
+        }
+
+        public async Task<bool> WalkKeyAsync(Func<K, Task<bool>> callback)
+        {
+            using var it = Rocks.Storage.RocksDb.NewIterator(ColumnFamily);
+            it.SeekToFirst();
+            while (it.Valid())
+            {
+                var key = SerializeHelper<K>.Decode(ByteBuffer.Wrap(it.Key()));
+                if (false == await callback(key))
                     return false;
                 it.Next();
             }

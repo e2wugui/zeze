@@ -216,6 +216,19 @@ public final class DatabaseMemory extends Database {
 		}
 
 		@Override
+		public long WalkKey(TableWalkKeyRaw callback) {
+			// 不允许并发？
+			long count = 0;
+			for (var e : Map.entrySet()) {
+				++count;
+				if (!callback.handle(e.getKey().Copy())) {
+					break;
+				}
+			}
+			return count;
+		}
+
+		@Override
 		public void Close() {
 		}
 	}

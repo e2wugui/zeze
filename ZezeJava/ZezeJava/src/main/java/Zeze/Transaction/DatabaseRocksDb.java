@@ -235,6 +235,22 @@ public class DatabaseRocksDb extends Database {
 				return countWalked;
 			}
 		}
+
+		@Override
+		public long WalkKey(TableWalkKeyRaw callback) {
+			try (var it = getDatabaseReal().Db.newIterator(getColumnFamily(), getDatabaseReal().ReadOptions)) {
+				long countWalked = 0;
+				it.seekToFirst();
+				while (it.isValid()) {
+					++countWalked;
+					if (!callback.handle(it.key())) {
+						return countWalked;
+					}
+					it.next();
+				}
+				return countWalked;
+			}
+		}
 	}
 
 	public final static class OperatesRocksDb implements Operates {

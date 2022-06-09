@@ -425,5 +425,29 @@ public final class DatabaseMySql extends DatabaseJdbc {
 				throw new RuntimeException(e);
 			}
 		}
+
+		@Override
+		public long WalkKey(TableWalkKeyRaw callback) {
+			try (var connection = DatabaseReal.dataSource.getConnection()) {
+				connection.setAutoCommit(true);
+
+				String sql = "SELECT id FROM " + getName();
+				try (var cmd = connection.prepareStatement(sql)) {
+					long count = 0;
+					try (var rs = cmd.executeQuery()) {
+						while (rs.next()) {
+							byte[] key = rs.getBytes(1);
+							++count;
+							if (!callback.handle(key)) {
+								break;
+							}
+						}
+					}
+					return count;
+				}
+			} catch (java.sql.SQLException e) {
+				throw new RuntimeException(e);
+			}
+		}
 	}
 }
