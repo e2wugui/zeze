@@ -73,13 +73,15 @@ public final class Tasks {
 			var stats = ProcedureStatistics.getInstance().GetOrAdd(name);
 			var abortCount = stats.GetOrAdd(Procedure.AbortException).get();
 			var tooManyTry = stats.GetOrAdd(Procedure.TooManyTry).get();
+			Simulate.logger.info("  totalCount({})={}", name, runCount);
+			Simulate.logger.info("successCount({})={}", name, successCount);
 			if (abortCount != 0)
-				Simulate.logger.warn("abortCount({})={}", name, abortCount);
+				Simulate.logger.warn("  abortCount({})={}", name, abortCount);
 			if (tooManyTry != 0)
-				Simulate.logger.warn("tooManyTry({})={}", name, tooManyTry);
+				Simulate.logger.warn("  tooManyTry({})={}", name, tooManyTry);
 			if (runCount != successCount + abortCount + tooManyTry) {
-				Simulate.logger.error("verify({}): {} != {} + {} + {}",
-						name, runCount, successCount, abortCount, tooManyTry);
+				Simulate.logger.error("verify failed({}): {} != {} = {} + {} + {}",
+						name, runCount, successCount + abortCount + tooManyTry, successCount, abortCount, tooManyTry);
 				Assert.fail();
 			}
 		}
@@ -168,6 +170,8 @@ public final class Tasks {
 
 		@Override
 		void verify() {
+			super.verify();
+
 			// verify 时，所有任务都执行完毕，不需要考虑并发。
 			var name = Table1Long2Add1.class.getName();
 			var app = Simulate.getInstance().randApp().app; // 任何一个app都能查到相同的结果。
@@ -244,6 +248,8 @@ public final class Tasks {
 
 		@Override
 		void verify() {
+			super.verify();
+
 			var app = Simulate.getInstance().randApp().app; // 任何一个app都能查到相同的结果。
 			int sum = 0;
 			for (int key = 0; key < KeyBoundTrade; key++) {
@@ -251,7 +257,7 @@ public final class Tasks {
 				if (value != null)
 					sum += value.getInt1();
 			}
-			Assert.assertEquals(sum, 0);
+			Assert.assertEquals(0, sum);
 		}
 	}
 
