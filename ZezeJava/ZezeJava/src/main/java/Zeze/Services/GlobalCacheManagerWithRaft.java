@@ -503,6 +503,7 @@ public class GlobalCacheManagerWithRaft
 								session.SetError();
 								logger.warn("Reduce {}=>{} AcquireState={} CacheState={} res={}",
 										sender, session, StateModify, cs, reduce.Result);
+								break;
 							}
 							if (ENABLE_PERF)
 								perf.onReduceEnd(reduce);

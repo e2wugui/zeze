@@ -843,6 +843,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 								break;
 							default:
 								cacheHolder.SetError();
+								break;
 							}
 							if (reduce.Result.State == StateInvalid)
 								reduceSucceed.add(cacheHolder);
