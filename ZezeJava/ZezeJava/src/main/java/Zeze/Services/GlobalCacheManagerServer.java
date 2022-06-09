@@ -76,9 +76,9 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		// 尽量不重新调整ConcurrentHashMap。
 		int InitialCapacity = 10_000_000;
 
-		int MaxNetPing = 2_000;
-		int ServerProcessTime = 2_000;
-		int ServerReleaseTimeout = 10_000;
+		int MaxNetPing = 1_500;
+		int ServerProcessTime = 1_000;
+		int ServerReleaseTimeout = 5_000;
 
 		@Override
 		public String getName() {

@@ -88,9 +88,9 @@ namespace Zeze.Services
             // 尽量不重新调整ConcurrentDictionary。
             public int InitialCapacity { get; set; } = 10000000;
 
-            public int MaxNetPing = 2000;
-            public int ServerProcessTime = 2000;
-            public int ServerReleaseTimeout = 10 * 1000;
+            public int MaxNetPing = 1500;
+            public int ServerProcessTime = 1000;
+            public int ServerReleaseTimeout = 5 * 1000;
 
             public void Parse(XmlElement self)
             {
