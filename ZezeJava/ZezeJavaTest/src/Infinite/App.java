@@ -58,8 +58,9 @@ public class App {
 			do
 				key = Random.getInstance().nextInt(keyBound);
 			while (!task.Keys.add(key));
-			Tasks.getRunCounter(name, key).increment();
+			Tasks.getKeyCounter(name, key).increment();
 		}
+		Tasks.getRunCounter(name).increment();
 		RunningTasks.add(task.IsProcedure() ? Task.run(app.Zeze.NewProcedure(task, name)) : Task.run(task::call, name));
 	}
 

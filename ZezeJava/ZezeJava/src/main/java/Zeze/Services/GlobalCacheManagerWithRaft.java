@@ -77,6 +77,7 @@ public class GlobalCacheManagerWithRaft
 	private final GlobalCacheManagerServer.GCMConfig Config = new GlobalCacheManagerServer.GCMConfig();
 	private final AchillesHeelConfig AchillesHeelConfig;
 	private final GlobalCacheManagerPerf perf;
+	private final AtomicLong SerialId = new AtomicLong();
 
 	// 外面主动提供装载配置，需要在Load之前把这个实例注册进去。
 	public GlobalCacheManagerServer.GCMConfig getConfig() {
@@ -126,7 +127,7 @@ public class GlobalCacheManagerWithRaft
 				if (now - session.getActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout) {
 					var Acquired = ServerAcquiredTemplate.OpenTable(session.ServerId);
 					try {
-						Acquired.Walk((key, value) -> {
+						Acquired.WalkKey(key -> {
 							// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
 							if (Rocks.getRaft().isLeader()) {
 								Release(session, key);
@@ -146,7 +147,6 @@ public class GlobalCacheManagerWithRaft
 	public Rocks getRocks() {
 		return Rocks;
 	}
-	private AtomicLong SerialId = new AtomicLong();
 
 	private static AcquiredState newAcquiredState(int state) {
 		AcquiredState acquiredState = new AcquiredState();
@@ -640,7 +640,7 @@ public class GlobalCacheManagerWithRaft
 		session.setActiveTime(System.currentTimeMillis());
 		// new login, 比如逻辑服务器重启。release old acquired.
 		var SenderAcquired = ServerAcquiredTemplate.OpenTable(session.ServerId);
-		SenderAcquired.Walk((key, value) -> {
+		SenderAcquired.WalkKey(key -> {
 			Release(session, key);
 			return true; // continue walk
 		});
@@ -681,7 +681,7 @@ public class GlobalCacheManagerWithRaft
 		}
 		// TODO 确认Walk中删除记录是否有问题。
 		var SenderAcquired = ServerAcquiredTemplate.OpenTable(session.ServerId);
-		SenderAcquired.Walk((key, value) -> {
+		SenderAcquired.WalkKey(key -> {
 			Release(session, key);
 			return true; // continue walk
 		});
@@ -719,7 +719,7 @@ public class GlobalCacheManagerWithRaft
 		// XXX verify danger
 		Task.schedule(5 * 60 * 1000, () -> { // delay 5 mins
 			var SenderAcquired = ServerAcquiredTemplate.OpenTable(session.ServerId);
-			SenderAcquired.Walk((key, value) -> {
+			SenderAcquired.WalkKey(key -> {
 				Release(session, key);
 				return true; // continue release;
 			});

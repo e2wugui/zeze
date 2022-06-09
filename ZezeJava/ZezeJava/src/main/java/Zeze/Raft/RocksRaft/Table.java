@@ -7,6 +7,7 @@ import java.util.function.Function;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Util.ConcurrentLruLike;
+import Zeze.Util.Func1;
 import Zeze.Util.Func2;
 import Zeze.Util.Reflect;
 import org.apache.logging.log4j.LogManager;
@@ -254,6 +255,17 @@ public final class Table<K, V extends Bean> {
 				var value = NewValue();
 				value.Decode(ByteBuffer.Wrap(it.value()));
 				if (!callback.call(key, value))
+					return false;
+			}
+			return true;
+		}
+	}
+
+	public boolean WalkKey(Func1<K, Boolean> callback) throws Throwable {
+		try (var it = Rocks.getStorage().newIterator(ColumnFamily)) {
+			for (it.seekToFirst(); it.isValid(); it.next()) {
+				var key = keyDecodeFunc.apply(ByteBuffer.Wrap(it.key()));
+				if (!callback.call(key))
 					return false;
 			}
 			return true;
