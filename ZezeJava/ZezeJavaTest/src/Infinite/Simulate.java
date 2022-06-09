@@ -70,6 +70,8 @@ public final class Simulate {
 					logger.fatal("Finish {}-{}", BatchNumber, app.getServerId());
 				}
 				logger.fatal("Verify {}", BatchNumber);
+				//noinspection BusyWait
+				Thread.sleep(4000);
 				Tasks.verify();
 			} while (Infinite);
 		} catch (Exception ex) {

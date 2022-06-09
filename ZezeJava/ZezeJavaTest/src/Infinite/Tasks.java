@@ -13,27 +13,29 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.ProcedureStatistics;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.FuncLong;
+import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.Random;
 import org.junit.Assert;
 
 public final class Tasks {
-	private static final ConcurrentHashMap<String, ConcurrentHashMap<Long, LongAdder>> CounterRun = new ConcurrentHashMap<>();
-	private static final ConcurrentHashMap<String, ConcurrentHashMap<Long, LongAdder>> CounterSuccess = new ConcurrentHashMap<>();
+	private static final ConcurrentHashMap<String, LongConcurrentHashMap<LongAdder>> CounterKey = new ConcurrentHashMap<>();
+	private static final ConcurrentHashMap<String, LongAdder> CounterRun = new ConcurrentHashMap<>();
+	private static final ConcurrentHashMap<String, LongAdder> CounterSuccess = new ConcurrentHashMap<>();
 
-	static ConcurrentHashMap<Long, LongAdder> getRunCounters(String name) {
-		return CounterRun.computeIfAbsent(name, __ -> new ConcurrentHashMap<>());
+	static LongConcurrentHashMap<LongAdder> getKeyCounters(String name) {
+		return CounterKey.computeIfAbsent(name, __ -> new LongConcurrentHashMap<>());
 	}
 
-	static LongAdder getRunCounter(String name, long key) {
-		return getRunCounters(name).computeIfAbsent(key, __ -> new LongAdder());
+	static LongAdder getKeyCounter(String name, long key) {
+		return getKeyCounters(name).computeIfAbsent(key, __ -> new LongAdder());
 	}
 
-	static ConcurrentHashMap<Long, LongAdder> getSuccessCounters(String name) {
-		return CounterSuccess.computeIfAbsent(name, __ -> new ConcurrentHashMap<>());
+	static LongAdder getRunCounter(String name) {
+		return CounterRun.computeIfAbsent(name, __ -> new LongAdder());
 	}
 
-	static LongAdder getSuccessCounter(String name, long key) {
-		return getSuccessCounters(name).computeIfAbsent(key, __ -> new LongAdder());
+	static LongAdder getSuccessCounter(String name) {
+		return CounterSuccess.computeIfAbsent(name, __ -> new LongAdder());
 	}
 
 	// 所有以long为key的记录访问可以使用这个基类。
@@ -66,26 +68,18 @@ public final class Tasks {
 		void verify() {
 			// default verify
 			var name = getClass().getName();
-			var runs = getRunCounters(name);
-			var success = getSuccessCounters(name);
-			var tooManyTry = ProcedureStatistics.getInstance().GetOrAdd(name).GetOrAdd(Procedure.TooManyTry).get();
+			var runCount = getRunCounter(name).sum();
+			var successCount = getSuccessCounter(name).sum();
+			var stats = ProcedureStatistics.getInstance().GetOrAdd(name);
+			var abortCount = stats.GetOrAdd(Procedure.AbortException).get();
+			var tooManyTry = stats.GetOrAdd(Procedure.TooManyTry).get();
+			if (abortCount != 0)
+				Simulate.logger.warn("abortCount({})={}", name, abortCount);
 			if (tooManyTry != 0)
-				Simulate.logger.fatal("tooManyTry({})={}", name, tooManyTry);
-			if (runs.size() != success.size()) {
-				Simulate.logger.error("verify({}): {} != {}", name, runs.size(), success.size());
-				Assert.fail();
-			}
-			var totalCount = 0;
-			var successCount = 0;
-			for (var r : runs.entrySet()) {
-				totalCount += r.getValue().sum();
-				var s = success.get(r.getKey());
-				Assert.assertNotNull(s);
-				successCount += s.sum();
-			}
-			// ignore TooManyTry error
-			if (totalCount != successCount + tooManyTry) {
-				Simulate.logger.error("verify({}): {} != {} + {}", name, totalCount, successCount, tooManyTry);
+				Simulate.logger.warn("tooManyTry({})={}", name, tooManyTry);
+			if (runCount != successCount + abortCount + tooManyTry) {
+				Simulate.logger.error("verify({}): {} != {} + {} + {}",
+						name, runCount, successCount, abortCount, tooManyTry);
 				Assert.fail();
 			}
 		}
@@ -96,15 +90,10 @@ public final class Tasks {
 			var result = process();
 			if (result == 0) {
 				var txn = Transaction.getCurrent();
-				if (txn != null) {
-					txn.RunWhileCommit(() -> {
-						for (var key : Keys)
-							getSuccessCounter(name, key).increment();
-					});
-				} else {
-					for (var key : Keys)
-						getSuccessCounter(name, key).increment();
-				}
+				if (txn != null)
+					txn.RunWhileCommit(() -> getSuccessCounter(name).increment());
+				else
+					getSuccessCounter(name).increment();
 			} else
 				Simulate.logger.error("{}.process() = {}", name, result);
 			return result;
@@ -182,16 +171,17 @@ public final class Tasks {
 			// verify 时，所有任务都执行完毕，不需要考虑并发。
 			var name = Table1Long2Add1.class.getName();
 			var app = Simulate.getInstance().randApp().app; // 任何一个app都能查到相同的结果。
-			var success = getSuccessCounters(name);
-			for (var key : getRunCounters(name).keySet()) {
+			var success = getSuccessCounter(name).sum();
+			var sum = 0L;
+			for (var it = getKeyCounters(name).keyIterator(); it.hasNext(); ) {
+				var key = it.next();
 				var v1 = app.demo_Module1.getTable1().selectDirty(key);
-				var v2 = success.get(key);
 				if (v1 == null)
 					Simulate.logger.warn("app.demo_Module1.getTable1().selectDirty({}) = null", key);
-				if (v2 == null)
-					Simulate.logger.warn("getSuccessCounters({}).get({}) = null", name, key);
-				Assert.assertEquals(v1 != null ? v1.getLong2() : 0, v2 != null ? v2.sum() : 0);
+				else
+					sum += v1.getLong2();
 			}
+			Assert.assertEquals(success, sum);
 			Simulate.logger.debug("{}.verify OK!", name);
 		}
 	}

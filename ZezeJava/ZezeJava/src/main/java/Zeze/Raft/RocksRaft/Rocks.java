@@ -199,6 +199,7 @@ public final class Rocks extends StateMachine implements Closeable {
 		TableTemplates.computeIfAbsent(tableTemplateName, key -> new TableTemplate<>(this, key, keyClass, valueClass));
 	}
 
+/*
 	public AtomicLong AtomicLong(int index) {
 		return AtomicLongs.computeIfAbsent(index, __ -> new AtomicLong());
 	}
@@ -210,10 +211,11 @@ public final class Rocks extends StateMachine implements Closeable {
 	public long AtomicLongGet(int index) {
 		return AtomicLongs.computeIfAbsent(index, __ -> new AtomicLong()).get();
 	}
+*/
 
 	// 应用只能递增，这个方法仅 Follower 用来更新计数器。
 	private void AtomicLongSet(int index, long value) {
-		AtomicLongs.computeIfAbsent(index, __ -> new AtomicLong()).getAndSet(value);
+		AtomicLongs.computeIfAbsent(index, __ -> new AtomicLong()).set(value);
 	}
 
 	public void UpdateAtomicLongs(IntHashMap<Long> to) {
