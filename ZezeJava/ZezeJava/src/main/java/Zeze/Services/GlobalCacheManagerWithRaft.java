@@ -128,7 +128,7 @@ public class GlobalCacheManagerWithRaft
 					var Acquired = ServerAcquiredTemplate.OpenTable(session.ServerId);
 					try {
 						Acquired.WalkKey(key -> {
-							// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
+							// 在循环中删除。这样虽然效率低些，但是能处理更多情况。
 							if (Rocks.getRaft().isLeader()) {
 								Release(session, key);
 								return true;
@@ -136,9 +136,8 @@ public class GlobalCacheManagerWithRaft
 							return false;
 						});
 					} catch (Throwable e) {
-						logger.error("", e);
+						logger.error("AchillesHeelDaemon.Release", e);
 					}
-					// skip allReleaseFuture result
 				}
 			});
 		}
@@ -610,7 +609,7 @@ public class GlobalCacheManagerWithRaft
 				cs.setModify(-1);
 			cs.getShare().remove(sender.ServerId); // always try remove
 
-			if (cs.getModify() == -1 && cs.getShare().size() == 0 && cs.getAcquireStatePending() == StateInvalid) {
+			if (cs.getModify() == -1 && cs.getShare().size() == 0) {
 				// 安全的从global中删除，没有并发问题。
 				cs.setAcquireStatePending(StateRemoved);
 				GlobalStates.Remove(gkey);

@@ -503,9 +503,7 @@ namespace Zeze.Services
                     cs.Modify = -1;
                 cs.Share.Remove(sender.ServerId); // always try remove
 
-                if (cs.Modify == -1
-                    && cs.Share.Count == 0
-                    && cs.AcquireStatePending == GlobalCacheManagerServer.StateInvalid)
+                if (cs.Modify == -1 && cs.Share.Count == 0)
                 {
                     // 安全的从global中删除，没有并发问题。
                     cs.AcquireStatePending = GlobalCacheManagerServer.StateRemoved;
@@ -547,7 +545,7 @@ namespace Zeze.Services
             session.SetActiveTime(Util.Time.NowUnixMillis);
             // new login, 比如逻辑服务器重启。release old acquired.
             var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
-            await SenderAcquired.WalkAsync(async (key, value) =>
+            await SenderAcquired.WalkKeyAsync(async (key) =>
             {
                 await Release(session, key, false);
                 return true; // continue walk
@@ -594,7 +592,7 @@ namespace Zeze.Services
             }
             // TODO 确认Walk中删除记录是否有问题。
             var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
-            await SenderAcquired.WalkAsync(async (key, value) =>
+            await SenderAcquired.WalkKeyAsync(async (key) =>
             {
                 await Release(session, key, false);
                 return true; // continue walk
@@ -638,7 +636,7 @@ namespace Zeze.Services
             // XXX verify danger
             await Task.Delay(5 * 60 * 1000); // delay 5 mins
             var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
-            await SenderAcquired.WalkAsync(async (key, value) =>
+            await SenderAcquired.WalkKeyAsync(async (key) =>
             {
                 await Release(session, key, false);
                 return true; // continue release;
@@ -741,7 +739,7 @@ namespace Zeze.Services
                     if (now - session.GetActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout)
                     {
                         var Acquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
-                        await Acquired.WalkAsync(async (key, value) =>
+                        await Acquired.WalkKeyAsync(async (key) =>
                         {
                             // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
                             if (Rocks.Raft.IsLeader)
