@@ -184,11 +184,11 @@ public final class Table<K, V extends Bean> {
 	private V StorageLoad(K key) {
 		var keyBB = ByteBuffer.Allocate();
 		keyEncodeFunc.accept(keyBB, key);
-		byte[] valueBytes = null;
+		byte[] valueBytes;
 		try {
 			valueBytes = Rocks.getStorage().get(ColumnFamily, new ReadOptions(), keyBB.Bytes, 0, keyBB.Size());
 		} catch (RocksDBException e) {
-			logger.error("RocksDB.get error! key=" + key, e);
+			throw new RuntimeException(e);
 		}
 		if (valueBytes == null)
 			return null;
