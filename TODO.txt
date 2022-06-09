@@ -10,6 +10,14 @@ ServiceConf.Acceptor ip="@internal" "@external"
 Task
 Universe
 Zege
+
+【2022/7/11】
+
+------------------------------------------------------------------------------------------------------------------------------
+tag 1.0.0 ^_^
+------------------------------------------------------------------------------------------------------------------------------
+一致性hash负载分配算法, 【c# 没有TreeMap.tailMap。】
+Table.WalkKey
 Global-Server错误码分析
 1. Warning
 global 统计增加了Acquire和Reduce ResultCode的统计, GlobalRaft跑Simulate时,Acquire出现过以下失败情况:
@@ -25,13 +33,6 @@ global 统计增加了Acquire和Reduce ResultCode的统计, GlobalRaft跑Simulat
 ERROR [] Table: RocksRaft Process Exception
 java.lang.IllegalStateException: CacheState state error
  at Zeze.Services.GlobalCacheManagerWithRaft.AcquireShare(GlobalCacheManagerWithRaft.java:188)
-
-【2022/7/11】
-
-------------------------------------------------------------------------------------------------------------------------------
-tag 1.0.0 ^_^
-------------------------------------------------------------------------------------------------------------------------------
-一致性hash负载分配算法, 【c# 没有TreeMap.tailMap。】
 
 【2022/6/11】
 
