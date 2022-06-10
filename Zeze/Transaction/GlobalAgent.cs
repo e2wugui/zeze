@@ -362,6 +362,7 @@ namespace Zeze.Transaction
                     }
                     else
                     {
+                        agent.SetActiveTime(Util.Time.NowUnixMillis);
                         agent.LoginTimes.IncrementAndGet();
                         base.OnHandshakeDone(so);
                     }
@@ -385,6 +386,7 @@ namespace Zeze.Transaction
                     }
                     else
                     {
+                        agent.SetActiveTime(Util.Time.NowUnixMillis);
                         agent.LoginTimes.IncrementAndGet();
                         agent.Initialize(login.Result.MaxNetPing, login.Result.ServerProcessTime, login.Result.ServerReleaseTimeout);
                         base.OnHandshakeDone(so);

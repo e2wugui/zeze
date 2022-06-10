@@ -264,6 +264,7 @@ namespace Zeze.Services
                             }
                             else
                             {
+                                SetActiveTime(Util.Time.NowUnixMillis);
                                 LoginTimes.IncrementAndGet();
                                 this.Initialize(login.Result.MaxNetPing, login.Result.ServerProcessTime, login.Result.ServerReleaseTimeout);
                                 future.TrySetResult(true);
@@ -287,6 +288,7 @@ namespace Zeze.Services
                             }
                             else
                             {
+                                SetActiveTime(Util.Time.NowUnixMillis);
                                 LoginTimes.IncrementAndGet();
                                 future.TrySetResult(true);
                             }

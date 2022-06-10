@@ -39,7 +39,7 @@ namespace Zeze.Transaction
 			Thread.Start();
         }
 
-		private volatile bool Running;
+		private volatile bool Running = true;
 
 		public void StopAndJoin()
 		{
@@ -71,11 +71,13 @@ namespace Zeze.Transaction
 							var idle = now - agent.GetActiveTime();
 							if (idle > config.ServerDaemonTimeout)
 							{
+								logger.Warn($"StartRelease ServerDaemonTimeout {config.ServerReleaseTimeout}");
 								agent.StartRelease(Zeze, i);
 								continue;
 							}
 							if (idle > config.ServerKeepAliveIdleTimeout)
 							{
+								logger.Debug($"KeepAlive ServerKeepAliveIdleTimeout={config.ServerKeepAliveIdleTimeout}");
 								agent.KeepAlive();
 								continue;
 							}

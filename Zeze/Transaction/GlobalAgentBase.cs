@@ -11,7 +11,7 @@ namespace Zeze.Transaction
 {
 	public abstract class GlobalAgentBase
 	{
-		private long activeTime;
+		private long activeTime = Util.Time.NowUnixMillis;
 
 		public long GetActiveTime()
 		{
