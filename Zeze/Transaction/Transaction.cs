@@ -185,7 +185,8 @@ namespace Zeze.Transaction
                                 switch (State)
                                 {
                                     case TransactionState.Running:
-                                        if ((result == Procedure.Success && Savepoints.Count != 1) || (result != Procedure.Success && Savepoints.Count != 0))
+                                        if ((result == Procedure.Success && Savepoints.Count != 1)
+                                            || (result != Procedure.Success && Savepoints.Count != 0))
                                         {
                                             // 这个错误不应该重做
                                             logger.Fatal("Transaction.Perform:{0}. savepoints.Count != 1.", procedure);
@@ -719,8 +720,23 @@ namespace Zeze.Transaction
                         // 重新从当前 e 继续锁。
                         continue;
                     }
-                    // else 已经持有读锁，不可能被修改也不可能降级(reduce)，所以不做检测了。                    
-                    // 已经锁定了，跳过当前锁，比较下一个。
+                    // BUG 即使锁内。Record.Global.State 可能没有提升到需要水平。需要重新_check_。
+                    var checkResult = await Check(e.Value.Dirty, e.Value);
+                    switch (checkResult)
+                    {
+                        case CheckResult.Success:
+                            // 已经锁内，所以肯定不会冲突，多数情况是这个。
+                            break;
+
+                        case CheckResult.Redo:
+                            // Impossible!
+                            conflict = true;
+                            break; // continue lock
+
+                        case CheckResult.RedoAndReleaseLock:
+                            // _check_可能需要到Global提升状态，这里可能发生GLOBAL-DEAD-LOCK。
+                            return CheckResult.RedoAndReleaseLock;
+                    }
                     ++index;
                     hasNext = itar.MoveNext();
                     continue;

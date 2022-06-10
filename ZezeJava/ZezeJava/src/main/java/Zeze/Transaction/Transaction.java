@@ -148,7 +148,8 @@ public final class Transaction {
 							var result = procedure.Call();
 							switch (State) {
 							case Running:
-								if ((result == Procedure.Success && Savepoints.size() != 1) || (result != Procedure.Success && !Savepoints.isEmpty())) {
+								if ((result == Procedure.Success && Savepoints.size() != 1)
+										|| (result != Procedure.Success && !Savepoints.isEmpty())) {
 									// 这个错误不应该重做
 									logger.fatal("Transaction.Perform:{}. savepoints.Count != 1.", procedure);
 									finalRollback(procedure);
@@ -562,8 +563,20 @@ public final class Transaction {
 					// 重新从当前 e 继续锁。
 					continue;
 				}
-				// else 已经持有读锁，不可能被修改也不可能降级(reduce)，所以不做检测了。
-				// 已经锁定了，跳过当前锁，比较下一个。
+				// BUG 即使锁内。Record.Global.State 可能没有提升到需要水平。需要重新_check_。
+				var r = _check_(e.getValue().Dirty, e.getValue());
+				switch (r) {
+				case Success:
+					// 已经锁内，所以肯定不会冲突，多数情况是这个。
+					break;
+				case Redo:
+					// Impossible!
+					conflict = true;
+					break; // continue lock
+				default:
+					// _check_可能需要到Global提升状态，这里可能发生GLOBAL-DEAD-LOCK。
+					return r;
+				}
 				++index;
 				e = ite.hasNext() ? ite.next() : null;
 				continue;
