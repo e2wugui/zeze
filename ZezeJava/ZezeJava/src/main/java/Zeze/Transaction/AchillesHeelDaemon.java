@@ -105,11 +105,12 @@ public class AchillesHeelDaemon extends Thread {
 	}
 
 	public <T extends GlobalAgentBase> AchillesHeelDaemon(Application zeze, T[] agents) {
+		super("AchillesHeelDaemon");
 		Zeze = zeze;
 		Agents = agents.clone();
 	}
 
-	private volatile boolean Running;
+	private volatile boolean Running = true;
 
 	public void stopAndJoin() throws InterruptedException {
 		Running = false;
