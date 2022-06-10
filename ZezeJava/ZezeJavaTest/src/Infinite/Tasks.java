@@ -18,6 +18,7 @@ import Zeze.Util.Random;
 import org.junit.Assert;
 
 public final class Tasks {
+	private static final boolean debugTradeSum = false;
 	private static final ConcurrentHashMap<String, LongConcurrentHashMap<LongAdder>> CounterKey = new ConcurrentHashMap<>();
 	private static final ConcurrentHashMap<String, LongAdder> CounterRun = new ConcurrentHashMap<>();
 	private static final ConcurrentHashMap<String, LongAdder> CounterSuccess = new ConcurrentHashMap<>();
@@ -232,17 +233,29 @@ public final class Tasks {
 		@Override
 		long process() {
 			var it = Keys.iterator();
-			var v1 = App.demo_Module1.getTflush().getOrAdd(it.next());
-			var v2 = App.demo_Module1.getTflush().getOrAdd(it.next());
-			var money = Random.getInstance().nextInt(1000);
-			if (Random.getInstance().nextBoolean()) {
-				// random swap
-				var tmp = v1;
-				v1 = v2;
-				v2 = tmp;
+			long k1, k2;
+			if (Random.getInstance().nextBoolean()) { // random swap
+				k1 = it.next();
+				k2 = it.next();
+			} else {
+				k2 = it.next();
+				k1 = it.next();
 			}
-			v1.setInt1(v1.getInt1() - money);
-			v2.setInt1(v2.getInt1() + money);
+			var v1 = App.demo_Module1.getTflush().getOrAdd(k1);
+			var v2 = App.demo_Module1.getTflush().getOrAdd(k2);
+			var m1 = v1.getInt1();
+			var m2 = v2.getInt1();
+			var money = Random.getInstance().nextInt(1000);
+			v1.setInt1(m1 - money);
+			v2.setInt1(m2 + money);
+			var r1 = v1.getInt1();
+			var r2 = v2.getInt1();
+			if (debugTradeSum) {
+				//noinspection ConstantConditions
+				Transaction.getCurrent().RunWhileCommit(() ->
+						Simulate.logger.info("{} --- {}:{}-{}={} {}:{}+{}={}",
+								App.getZeze().getConfig().getServerId(), k1, m1, money, r1, k2, m2, money, r2));
+			}
 			return 0L;
 		}
 
@@ -294,6 +307,18 @@ public final class Tasks {
 					for (var valueBytes : all.values()) {
 						if (valueBytes != null)
 							sum += table1.DecodeValue(valueBytes).getInt1();
+					}
+					if (debugTradeSum && sum != 0) {
+						for (var e : all.entrySet()) {
+							var valueBytes = e.getValue();
+							if (valueBytes != null) {
+								valueBytes.ReadIndex = 0;
+								var k = table1.DecodeKey(e.getKey());
+								var v = table1.DecodeValue(valueBytes).getInt1();
+								e.getKey().ReadIndex = 0;
+								Simulate.logger.info("=== {}:{}", k, v);
+							}
+						}
 					}
 					Assert.assertEquals(0, sum);
 				}

@@ -1,6 +1,5 @@
 package Zeze.Util;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -31,36 +30,25 @@ public class ConsistentHash<TNode> {
 	}
 
 	public synchronized void add(String nodeKey, TNode node) {
-		if (null == node)
+		if (node == null || !nodes.add(node))
 			return;
-
-		if (!nodes.add(node))
-			return;
-
-		if (nodeKey == null)
-			nodeKey = "";
+		nodeKey = nodeKey != null ? nodeKey + '#' : "#";
 
 		for (int i = 0; i < numberOfReplicas; ++i) {
-			var hash = Zeze.Transaction.Bean.Hash32(nodeKey + "#" + i);
+			var hash = Zeze.Transaction.Bean.Hash32(nodeKey + i);
 			var conflict = circle.putIfAbsent(hash, node);
-			if (null != conflict) {
-				logger.warn("hash conflict! add=" + nodeKey + " i=" + i + " exist=" + conflict);
-			}
+			if (conflict != null)
+				logger.warn("hash conflict! key={}{} value={} exist={}", nodeKey, i, node, conflict);
 		}
 	}
 
 	public synchronized void remove(String nodeKey, TNode node) {
-		if (null == node)
+		if (node == null || !nodes.remove(node))
 			return;
-
-		if (!nodes.remove(node))
-			return;
-
-		if (nodeKey == null)
-			nodeKey = "";
+		nodeKey = nodeKey != null ? nodeKey + '#' : "#";
 
 		for (int i = 0; i < numberOfReplicas; ++i) {
-			var hash = Zeze.Transaction.Bean.Hash32(nodeKey + "#" + i);
+			var hash = Zeze.Transaction.Bean.Hash32(nodeKey + i);
 			circle.remove(hash, node);
 		}
 	}

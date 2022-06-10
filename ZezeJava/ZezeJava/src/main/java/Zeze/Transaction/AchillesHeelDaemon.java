@@ -145,7 +145,7 @@ public class AchillesHeelDaemon extends Thread {
 				try {
 					this.wait(1000);
 				} catch (InterruptedException e) {
-					logger.warn(e);
+					logger.warn("", e);
 				}
 			}
 		} catch (Throwable ex) {

@@ -53,6 +53,12 @@ public class ProviderDistribute {
 		return serviceNamePrefix + moduleId;
 	}
 
+	public ServiceInfo ChoiceIndex(Agent.SubscribeState providers, int index) {
+		var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
+		var n = list.size();
+		return n > 0 ? list.get((int)((index & 0xffff_ffffL) % n)) : null;
+	}
+
 	public ServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash) {
 		var consistentHash = ConsistentHashs.get(providers.getServiceName());
 		if (null == consistentHash)
@@ -160,14 +166,14 @@ public class ProviderDistribute {
 		}
 	}
 
-	public boolean ChoiceProvider(String serviceNamePrefix, int moduleId, int hash, OutLong provider) {
+	public boolean ChoiceProvider(String serviceNamePrefix, int moduleId, int index, OutLong provider) {
 		var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
 
 		var volatileProviders = Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
 		if (volatileProviders == null)
 			return false;
 
-		var serviceInfo = ChoiceHash(volatileProviders, hash);
+		var serviceInfo = ChoiceIndex(volatileProviders, index);
 		if (serviceInfo == null)
 			return false;
 

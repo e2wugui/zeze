@@ -36,8 +36,10 @@ import Zeze.Util.LongList;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
 import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -90,6 +92,17 @@ import org.w3c.dom.Element;
  * 原则是：总按最新的gs-list通告。中间不一致的ready全部忽略。
  */
 public final class ServiceManagerServer implements Closeable {
+	static {
+		System.setProperty("log4j.configurationFile", "log4j2.xml");
+		var levelProp = System.getProperty("logLevel");
+		var level = Level.INFO;
+		if ("trace".equalsIgnoreCase(levelProp))
+			level = Level.TRACE;
+		else if ("debug".equalsIgnoreCase(levelProp))
+			level = Level.DEBUG;
+		((LoggerContext)LogManager.getContext(false)).getConfiguration().getRootLogger().setLevel(level);
+	}
+
 	private static final Logger logger = LogManager.getLogger(ServiceManagerServer.class);
 
 	// ServiceInfo.Name -> ServiceState
@@ -254,23 +267,33 @@ public final class ServiceManagerServer implements Closeable {
 				return;
 			var notify = new NotifyServiceList();
 			notify.Argument = new ServiceInfos(ServiceName, this, ++SerialId);
-			logger.debug("StartNotify {}", notify.Argument);
 			var notifyBytes = notify.Encode();
-
+			var sb = new StringBuilder();
 			if (notifySimple) {
 				for (var it = Simple.keyIterator(); it.hasNext(); ) {
 					var s = ServiceManager.Server.GetSocket(it.next());
-					if (s != null)
+					if (s != null) {
 						s.Send(notifyBytes);
+						sb.append(s.getSessionId()).append(',');
+					}
 				}
 			}
-
+			var n = sb.length();
+			if (n > 0)
+				sb.setCharAt(n - 1, ';');
+			else
+				sb.append(';');
 			for (var it = ReadyCommit.entryIterator(); it.moveToNext(); ) {
 				it.value().setReady(false);
 				var s = ServiceManager.Server.GetSocket(it.key());
-				if (s != null)
+				if (s != null) {
 					s.Send(notifyBytes);
+					sb.append(s.getSessionId()).append(',');
+				}
 			}
+			if (sb.length() > 1)
+				logger.info("NotifyServiceList {} => {}", notify.Argument, sb);
+
 			if (!ReadyCommit.isEmpty()) {
 				// 只有两段公告模式需要回应处理。
 				if (NotifyTimeoutTask != null)
@@ -286,18 +309,34 @@ public final class ServiceManagerServer implements Closeable {
 		}
 
 		public synchronized void NotifySimpleOnRegister(ServiceInfo info) {
+			var sb = new StringBuilder();
 			for (var it = Simple.keyIterator(); it.hasNext(); ) {
+				var sessionId = it.next();
+				sb.append(sessionId).append(',');
 				var r = new Register();
 				r.Argument = info;
-				r.Send(ServiceManager.Server.GetSocket(it.next()));
+				r.Send(ServiceManager.Server.GetSocket(sessionId));
+			}
+			var n = sb.length();
+			if (n > 0) {
+				sb.setLength(n - 1);
+				logger.info("NotifySimpleOnRegister {} {} => {}", info.getServiceName(), info.getServiceIdentity(), sb);
 			}
 		}
 
 		public synchronized void NotifySimpleOnUnRegister(ServiceInfo info) {
+			var sb = new StringBuilder();
 			for (var it = Simple.keyIterator(); it.hasNext(); ) {
+				var sessionId = it.next();
+				sb.append(sessionId).append(',');
 				var r = new UnRegister();
 				r.Argument = info;
-				r.Send(ServiceManager.Server.GetSocket(it.next()));
+				r.Send(ServiceManager.Server.GetSocket(sessionId));
+			}
+			var n = sb.length();
+			if (n > 0) {
+				sb.setLength(n - 1);
+				logger.info("NotifySimpleOnUnRegister {} {} => {}", info.getServiceName(), info.getServiceIdentity(), sb);
 			}
 		}
 
@@ -311,16 +350,28 @@ public final class ServiceManagerServer implements Closeable {
 			current.setExtraInfo(info.getExtraInfo());
 
 			// 简单广播。
+			var sb = new StringBuilder();
 			for (var it = Simple.keyIterator(); it.hasNext(); ) {
+				var sessionId = it.next();
+				sb.append(sessionId).append(',');
 				var r = new Update();
 				r.Argument = current;
-				r.Send(ServiceManager.Server.GetSocket(it.next()));
+				r.Send(ServiceManager.Server.GetSocket(sessionId));
 			}
+			var n = sb.length();
+			if (n > 0)
+				sb.setCharAt(n - 1, ';');
+			else
+				sb.append(';');
 			for (var it = ReadyCommit.keyIterator(); it.hasNext(); ) {
+				var sessionId = it.next();
+				sb.append(sessionId).append(',');
 				var r = new Update();
 				r.Argument = current;
-				r.Send(ServiceManager.Server.GetSocket(it.next()));
+				r.Send(ServiceManager.Server.GetSocket(sessionId));
 			}
+			if (sb.length() > 1)
+				logger.info("UpdateAndNotify {} {} => {}", info.getServiceName(), info.getServiceIdentity(), sb);
 			return 0;
 		}
 
@@ -489,10 +540,6 @@ public final class ServiceManagerServer implements Closeable {
 		}
 	}
 
-	static {
-		System.setProperty("log4j.configurationFile", "log4j2.xml");
-	}
-
 	private void AddLoadObserver(String ip, int port, AsyncSocket sender) {
 		if (ip.isEmpty() || port == 0)
 			return;
@@ -505,9 +552,9 @@ public final class ServiceManagerServer implements Closeable {
 
 		// 允许重复登录，断线重连Agent不好原子实现重发。
 		if (session.getRegisters().add(r.Argument))
-			logger.info("Register {}, {}", r.Argument.getServiceName(), r.Argument.getServiceIdentity());
+			logger.info("{}: Register {}, {}", r.getSender(), r.Argument.getServiceName(), r.Argument.getServiceIdentity());
 		else
-			logger.info("already Registered {}, {}", r.Argument.getServiceName(), r.Argument.getServiceIdentity());
+			logger.info("{}: already Registered {}, {}", r.getSender(), r.Argument.getServiceName(), r.Argument.getServiceIdentity());
 		var state = ServerStates.computeIfAbsent(r.Argument.getServiceName(), name -> new ServerState(this, name));
 
 		// 【警告】
@@ -527,6 +574,7 @@ public final class ServiceManagerServer implements Closeable {
 	}
 
 	private long ProcessUpdate(Update r) {
+		logger.info("{}: Update {}, {}", r.getSender(), r.Argument.getServiceName(), r.Argument.getServiceIdentity());
 		var session = (Session)r.getSender().getUserState();
 		if (!session.Registers.containsKey(r.Argument))
 			return Update.ServiceNotRegister;
@@ -562,6 +610,7 @@ public final class ServiceManagerServer implements Closeable {
 	}
 
 	private long ProcessUnRegister(UnRegister r) {
+		logger.info("{}: UnRegister {}, {}", r.getSender(), r.Argument.getServiceName(), r.Argument.getServiceIdentity());
 		if (UnRegisterNow(r.getSender().getSessionId(), r.Argument) != null) {
 			// ignore TryRemove failed.
 			var session = (Session)r.getSender().getUserState();
@@ -575,6 +624,7 @@ public final class ServiceManagerServer implements Closeable {
 	}
 
 	private long ProcessSubscribe(Subscribe r) {
+		logger.info("{}: Subscribe {}, {}", r.getSender(), r.Argument.getServiceName(), r.Argument.getSubscribeType());
 		var session = (Session)r.getSender().getUserState();
 		session.getSubscribes().putIfAbsent(r.Argument.getServiceName(), r.Argument);
 		var state = ServerStates.computeIfAbsent(r.Argument.getServiceName(),
@@ -600,6 +650,7 @@ public final class ServiceManagerServer implements Closeable {
 	}
 
 	private long ProcessUnSubscribe(UnSubscribe r) {
+		logger.info("{}: ProcessUnSubscribe {}, {}", r.getSender(), r.Argument.getServiceName(), r.Argument.getSubscribeType());
 		var session = (Session)r.getSender().getUserState();
 		var sub = session.getSubscribes().remove(r.Argument.getServiceName());
 		if (sub != null) {
@@ -818,12 +869,14 @@ public final class ServiceManagerServer implements Closeable {
 
 		@Override
 		public void OnSocketAccept(AsyncSocket so) throws Throwable {
+			logger.info("OnSocketAccept: {} sessionId={}", so, so.getSessionId());
 			so.setUserState(new Session(ServiceManager, so.getSessionId()));
 			super.OnSocketAccept(so);
 		}
 
 		@Override
 		public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
+			logger.info("OnSocketClose: {} sessionId={}", so, so.getSessionId());
 			var session = (Session)so.getUserState();
 			if (session != null)
 				session.OnClose();

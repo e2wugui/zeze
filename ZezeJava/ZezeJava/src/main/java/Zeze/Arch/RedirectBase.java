@@ -8,6 +8,7 @@ import Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest;
 import Zeze.Builtin.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action0;

@@ -7,7 +7,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Services.GlobalCacheManagerServer;
 import Zeze.Services.ServiceManager.AutoKey;
-import Zeze.Util.Func1;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

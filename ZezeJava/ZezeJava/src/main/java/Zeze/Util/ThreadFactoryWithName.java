@@ -27,7 +27,7 @@ public class ThreadFactoryWithName implements ThreadFactory {
 	}
 
 	public ThreadFactoryWithName(String poolName) {
-		namePrefix = poolName + "-thread-";
+		namePrefix = poolName + '-';
 	}
 
 	@Override

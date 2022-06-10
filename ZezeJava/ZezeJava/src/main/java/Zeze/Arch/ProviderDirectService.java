@@ -1,7 +1,6 @@
 package Zeze.Arch;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.ProviderDirect.AnnounceProviderInfo;
@@ -40,7 +39,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		if (null != conn) {
 			conn.Stop();
 			ProviderByLoadName.remove(connName);
-			ProviderByServerId.remove(Integer.valueOf(pm.getServiceIdentity()));
+			ProviderByServerId.remove(Long.parseLong(pm.getServiceIdentity()));
 			ss.SetServiceIdentityReadyState(pm.getServiceIdentity(), null);
 			getConfig().RemoveConnector(conn);
 		}
