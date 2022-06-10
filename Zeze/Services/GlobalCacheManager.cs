@@ -90,7 +90,7 @@ namespace Zeze.Services
 
             public int MaxNetPing = 1500;
             public int ServerProcessTime = 1000;
-            public int ServerReleaseTimeout = 5 * 1000;
+            public int ServerReleaseTimeout = 10 * 1000;
 
             public void Parse(XmlElement self)
             {

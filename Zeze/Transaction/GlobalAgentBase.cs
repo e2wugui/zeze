@@ -27,7 +27,7 @@ namespace Zeze.Transaction
 
 		public GlobalAgentBase()
 		{
-			Config = new AchillesHeelConfig(1000, 1000, 5 * 1000);
+			Config = new AchillesHeelConfig(1000, 1000, 10 * 1000);
 		}
 
 		public void Initialize(int maxNetPing, int serverProcessTime, int serverReleaseTimeout)
