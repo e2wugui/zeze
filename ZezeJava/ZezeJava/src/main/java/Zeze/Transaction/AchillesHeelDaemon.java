@@ -133,15 +133,18 @@ public class AchillesHeelDaemon extends Thread {
 					}
 
 					var idle = now - agent.getActiveTime();
-					if (idle > config.ServerDaemonTimeout)
+					if (idle > config.ServerDaemonTimeout) {
+						logger.debug("ServerDaemonTimeout=" + config.ServerDaemonTimeout);
 						agent.startRelease(Zeze, i, null);
-					else if (idle > config.ServerKeepAliveIdleTimeout)
+					} else if (idle > config.ServerKeepAliveIdleTimeout) {
+						logger.debug("ServerKeepAliveIdleTimeout=" + config.ServerKeepAliveIdleTimeout);
 						agent.keepAlive();
+					}
 				}
 				try {
 					this.wait(1000);
 				} catch (InterruptedException e) {
-					logger.warn("", e);
+					logger.warn(e);
 				}
 			}
 		} catch (Throwable ex) {

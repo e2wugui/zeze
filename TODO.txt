@@ -10,6 +10,7 @@ ServiceConf.Acceptor ip="@internal" "@external"
 Task
 Universe
 Zege
+raft.agent 永远尝试会造成大量服务不可用风险。
 
 【2022/7/11】
 
