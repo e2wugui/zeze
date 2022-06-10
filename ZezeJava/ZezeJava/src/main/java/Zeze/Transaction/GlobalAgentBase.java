@@ -9,7 +9,7 @@ import Zeze.Util.Task;
 
 public abstract class GlobalAgentBase {
 	private AchillesHeelConfig config;
-	private volatile long activeTime;
+	private volatile long activeTime = System.currentTimeMillis();
 
 	public final long getActiveTime() {
 		return activeTime;
