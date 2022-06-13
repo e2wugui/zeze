@@ -27,7 +27,7 @@ public final class Redirect_Zeze_Game_Rank extends Zeze.Game.Rank {
 
     @Override
     public Zeze.Arch.RedirectFuture<Long> updateRank(int arg0, Zeze.Builtin.Game.Rank.BConcurrentKey arg1, long arg2, long arg3, Zeze.Net.Binary arg4) {
-        var _t_ = _redirect_.ChoiceHash(this, arg0);
+        var _t_ = _redirect_.ChoiceHash(this, arg0, getConcurrentLevel(arg1.getRankType()));
         if (_t_ == null) { // local: loop-back
             return _redirect_.RunFuture(Zeze.Transaction.TransactionLevel.Serializable,
                 () -> super.updateRank(arg0, arg1, arg2, arg3, arg4));

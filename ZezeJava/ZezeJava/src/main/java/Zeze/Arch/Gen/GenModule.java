@@ -294,22 +294,23 @@ public final class GenModule {
 	}
 
 	// 根据转发类型选择目标服务器，如果目标服务器是自己，直接调用基类方法完成工作。
-	private void ChoiceTargetRunLoopback(StringBuilderCs sb, MethodOverride methodOverride, String returnName) {
-		if (methodOverride.annotation instanceof RedirectHash)
-			sb.AppendLine("        var _t_ = _redirect_.ChoiceHash(this, {});", methodOverride.hashOrServerIdParameter.getName());
-		else if (methodOverride.annotation instanceof RedirectToServer)
-			sb.AppendLine("        var _t_ = _redirect_.ChoiceServer(this, {});", methodOverride.hashOrServerIdParameter.getName());
-		else if (methodOverride.annotation instanceof RedirectAll)
+	private void ChoiceTargetRunLoopback(StringBuilderCs sb, MethodOverride m, String returnName) {
+		if (m.annotation instanceof RedirectHash)
+			sb.AppendLine("        var _t_ = _redirect_.ChoiceHash(this, {}, {});",
+					m.hashOrServerIdParameter.getName(), m.getConcurrentLevelSource());
+		else if (m.annotation instanceof RedirectToServer)
+			sb.AppendLine("        var _t_ = _redirect_.ChoiceServer(this, {});", m.hashOrServerIdParameter.getName());
+		else if (m.annotation instanceof RedirectAll)
 			return; // RedirectAll 不在这里选择目标服务器。后面发送的时候直接查找所有可用服务器并进行广播。
 
 		sb.AppendLine("        if (_t_ == null) { // local: loop-back");
 		if (returnName.equals("void")) {
-			sb.AppendLine("            _redirect_.RunVoid(Zeze.Transaction.TransactionLevel.{},", methodOverride.transactionLevel);
-			sb.AppendLine("                () -> super.{}({}));", methodOverride.method.getName(), methodOverride.GetBaseCallString());
+			sb.AppendLine("            _redirect_.RunVoid(Zeze.Transaction.TransactionLevel.{},", m.transactionLevel);
+			sb.AppendLine("                () -> super.{}({}));", m.method.getName(), m.GetBaseCallString());
 			sb.AppendLine("            return;");
 		} else {
-			sb.AppendLine("            return _redirect_.RunFuture(Zeze.Transaction.TransactionLevel.{},", methodOverride.transactionLevel);
-			sb.AppendLine("                () -> super.{}({}));", methodOverride.method.getName(), methodOverride.GetBaseCallString());
+			sb.AppendLine("            return _redirect_.RunFuture(Zeze.Transaction.TransactionLevel.{},", m.transactionLevel);
+			sb.AppendLine("                () -> super.{}({}));", m.method.getName(), m.GetBaseCallString());
 		}
 		sb.AppendLine("        }");
 		sb.AppendLine();

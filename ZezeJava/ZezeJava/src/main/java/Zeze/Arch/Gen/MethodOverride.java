@@ -10,6 +10,7 @@ import java.util.Arrays;
 import Zeze.Arch.RedirectAll;
 import Zeze.Arch.RedirectAllFuture;
 import Zeze.Arch.RedirectFuture;
+import Zeze.Arch.RedirectHash;
 import Zeze.Arch.RedirectResult;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Transaction.TransactionLevel;
@@ -115,5 +116,15 @@ final class MethodOverride {
 		return annotation instanceof RedirectToServer
 				? "Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeToServer"
 				: "Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeWithHash";
+	}
+
+	String getConcurrentLevelSource() {
+		if (annotation instanceof RedirectHash hash) {
+			var source = hash.ConcurrentLevelSource();
+			if (null == source || source.isEmpty())
+				return "1";
+			return source;
+		}
+		throw new RuntimeException("No ConcurrentLevelSource");
 	}
 }

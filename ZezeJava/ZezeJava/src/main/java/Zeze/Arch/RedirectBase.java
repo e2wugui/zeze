@@ -57,7 +57,7 @@ public class RedirectBase {
 		 */
 	}
 
-	public AsyncSocket ChoiceHash(IModule module, int hash) {
+	public AsyncSocket ChoiceHash(IModule module, int hash, int dataConcurrentLevel) {
 		var subscribes = ProviderApp.Zeze.getServiceManagerAgent().getSubscribeStates();
 		var serviceName = ProviderDistribute.MakeServiceName(ProviderApp.ServerServiceNamePrefix, module.getId());
 
@@ -76,6 +76,27 @@ public class RedirectBase {
 		return ProviderApp.ProviderDirectService.GetSocket(providerModuleState.SessionId);
 	}
 
+	private void AddMiss(ModuleRedirectAllResult miss, int i, long rc) {
+		var hashResult = new BModuleRedirectAllHash();
+		hashResult.setReturnCode(rc);
+		miss.Argument.getHashs().put(i, hashResult);
+	}
+
+	private void AddTransmits(LongHashMap<ModuleRedirectAllRequest> transmits, long provider, int index, ModuleRedirectAllRequest req) {
+		var exist = transmits.get(provider);
+		if (exist == null) {
+			exist = new ModuleRedirectAllRequest();
+			exist.Argument.setModuleId(req.Argument.getModuleId());
+			exist.Argument.setHashCodeConcurrentLevel(req.Argument.getHashCodeConcurrentLevel());
+			exist.Argument.setMethodFullName(req.Argument.getMethodFullName());
+			exist.Argument.setSourceProvider(req.Argument.getSourceProvider());
+			exist.Argument.setSessionId(req.Argument.getSessionId());
+			exist.Argument.setParams(req.Argument.getParams());
+			transmits.put(provider, exist);
+		}
+		exist.Argument.getHashCodes().add(index);
+	}
+
 	public <T extends RedirectResult> RedirectAllFuture<T> RedirectAll(IModule module, ModuleRedirectAllRequest req,
 																	   RedirectAllContext<T> ctx) {
 		var future = ctx.getFuture();
@@ -87,25 +108,28 @@ public class RedirectBase {
 		LongHashMap<ModuleRedirectAllRequest> transmits = new LongHashMap<>(); // <sessionId, request>
 		var miss = new ModuleRedirectAllResult();
 		var provider = new OutLong();
-		for (int i = 0; i < req.Argument.getHashCodeConcurrentLevel(); ++i) {
-			if (ProviderApp.Distribute.ChoiceProvider(req.Argument.getServiceNamePrefix(),
-					req.Argument.getModuleId(), i, provider)) {
-				var exist = transmits.get(provider.Value);
-				if (exist == null) {
-					exist = new ModuleRedirectAllRequest();
-					exist.Argument.setModuleId(req.Argument.getModuleId());
-					exist.Argument.setHashCodeConcurrentLevel(req.Argument.getHashCodeConcurrentLevel());
-					exist.Argument.setMethodFullName(req.Argument.getMethodFullName());
-					exist.Argument.setSourceProvider(req.Argument.getSourceProvider());
-					exist.Argument.setSessionId(req.Argument.getSessionId());
-					exist.Argument.setParams(req.Argument.getParams());
-					transmits.put(provider.Value, exist);
+		var serviceName = ProviderDistribute.MakeServiceName(req.Argument.getServiceNamePrefix(), req.Argument.getModuleId());
+		var consistent = ProviderApp.Distribute.getConsistentHash(serviceName);
+		if (null == consistent) {
+			for (int i = 0; i < req.Argument.getHashCodeConcurrentLevel(); ++i)
+				AddMiss(miss, i, Zeze.Transaction.Procedure.ProviderNotExist);
+		} else {
+			for (int i = 0; i < req.Argument.getHashCodeConcurrentLevel(); ++i) {
+				var target = ProviderApp.Distribute.ChoiceDataIndex(consistent, i, req.Argument.getHashCodeConcurrentLevel());
+				if (null == target) {
+					AddMiss(miss, i, Zeze.Transaction.Procedure.ProviderNotExist);
+					continue;
 				}
-				exist.Argument.getHashCodes().add(i);
-			} else {
-				var hashResult = new BModuleRedirectAllHash();
-				hashResult.setReturnCode(Zeze.Transaction.Procedure.ProviderNotExist);
-				miss.Argument.getHashs().put(i, hashResult);
+				if (target.getServiceIdentity().equals(String.valueOf(ProviderApp.Zeze.getConfig().getServerId()))) {
+					AddTransmits(transmits, 0, i, req);
+					continue; // loop-back
+				}
+				if (target.getLocalState() == null) {
+					AddMiss(miss, i, Zeze.Transaction.Procedure.ProviderNotExist);
+					continue; // not ready
+				}
+				var providerModuleState = (ProviderModuleState)target.getLocalState();
+				AddTransmits(transmits, providerModuleState.SessionId, i, req);
 			}
 		}
 

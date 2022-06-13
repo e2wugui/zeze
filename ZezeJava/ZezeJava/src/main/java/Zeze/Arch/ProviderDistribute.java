@@ -5,6 +5,7 @@ import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import Zeze.Net.Service;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.ServiceInfo;
 import Zeze.Util.ConsistentHash;
@@ -53,17 +54,37 @@ public class ProviderDistribute {
 		return serviceNamePrefix + moduleId;
 	}
 
-	public ServiceInfo ChoiceIndex(Agent.SubscribeState providers, int index) {
-		var list = providers.getServiceInfos().getServiceInfoListSortedByIdentity();
-		var n = list.size();
-		return n > 0 ? list.get((int)((index & 0xffff_ffffL) % n)) : null;
+	public Zeze.Util.ConsistentHash<ServiceInfo> getConsistentHash(String name) {
+		return ConsistentHashs.get(name);
 	}
 
-	public ServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash) {
+	private int calc_hash(int src) {
+		return ByteBuffer.calc_hashnr(src);
+	}
+
+	// ChoiceDataIndex 用于RedirectAll或者那些移植数据分块索引的地方。
+	public ServiceInfo ChoiceDataIndex(Zeze.Util.ConsistentHash<ServiceInfo> consistentHash, int dataIndex, int dataConcurrentLevel) {
+		if (consistentHash.getNodes().size() > dataConcurrentLevel)
+			throw new RuntimeException("too many server");
+		return consistentHash.get(calc_hash(dataIndex));
+	}
+
+	public ServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash, int dataConcurrentLevel) {
 		var consistentHash = ConsistentHashs.get(providers.getServiceName());
 		if (null == consistentHash)
 			return null;
-		return consistentHash.get(hash);
+		if (dataConcurrentLevel == 1)
+			return consistentHash.get(hash);
+
+		if (consistentHash.getNodes().size() > dataConcurrentLevel)
+			throw new RuntimeException("too many server");
+
+		var dataIndex = hash % dataConcurrentLevel;
+		return consistentHash.get(calc_hash(dataIndex));
+	}
+
+	public ServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash) {
+		return ChoiceHash(providers, hash,1);
 	}
 
 	public boolean ChoiceHash(Agent.SubscribeState providers, int hash, OutLong provider) {
@@ -164,30 +185,6 @@ public class ProviderDistribute {
 			}
 			return false;
 		}
-	}
-
-	public boolean ChoiceProvider(String serviceNamePrefix, int moduleId, int index, OutLong provider) {
-		var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
-
-		var volatileProviders = Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
-		if (volatileProviders == null)
-			return false;
-
-		var serviceInfo = ChoiceIndex(volatileProviders, index);
-		if (serviceInfo == null)
-			return false;
-
-		var providerModuleState = (ProviderModuleState)serviceInfo.getLocalState();
-		if (providerModuleState == null) {
-			if (String.valueOf(Zeze.getConfig().getServerId()).equals(serviceInfo.getServiceIdentity())) {
-				provider.Value = 0;
-				return true;
-			}
-			return false;
-		}
-
-		provider.Value = providerModuleState.SessionId;
-		return true;
 	}
 
 	public boolean ChoiceProviderByServerId(String serviceNamePrefix, int moduleId, int serverId, OutLong provider) {

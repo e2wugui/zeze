@@ -138,12 +138,12 @@ namespace Zeze.Arch
 					if (false == providers.LocalStates.TryGetValue(target.ServiceIdentity, out var localState))
 					{
 						AddMiss(miss, i, Zeze.Transaction.Procedure.ProviderNotExist);
-						continue;
+						continue; // not ready
 					}
 					if (localState is not ProviderModuleState state)
 					{
 						AddMiss(miss, i, Zeze.Transaction.Procedure.ProviderNotExist);
-						continue; // not ready
+						continue; // invalid state
 					}
 					AddTransmits(transmits, state.SessionId, i, req);
 				}

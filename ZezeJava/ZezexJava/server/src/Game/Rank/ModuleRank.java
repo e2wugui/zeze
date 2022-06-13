@@ -39,7 +39,7 @@ public class ModuleRank extends AbstractModule {
 	/**
 	 * 根据 value 设置到排行榜中
 	 */
-	@RedirectHash
+	@RedirectHash(ConcurrentLevelSource="GetConcurrentLevel(arg1.getRankType())")
 	protected void UpdateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Binary valueEx) {
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		int maxCount = GetRankComputeCount(keyHint.getRankType());
