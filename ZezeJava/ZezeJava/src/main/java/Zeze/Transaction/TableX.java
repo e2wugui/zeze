@@ -197,19 +197,18 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						rpc.SendResult();
 						return 0;
 				}
+				//logger.Warn("ReduceShare checkpoint begin. id={0} {1}", r, tkey);
+				FlushWhenReduce(r, () -> {
+					logger.debug("Reduce SendResult 4 {}", r);
+					rpc.SendResult();
+				});
+				//logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
 			} finally {
 				r.ExitFairLock();
 			}
 		} finally {
 			lockey.ExitWriteLock();
 		}
-		//logger.Warn("ReduceShare checkpoint begin. id={0} {1}", r, tkey);
-		final var fr = r;
-		FlushWhenReduce(r, () -> {
-			logger.debug("Reduce SendResult 4 {}", fr);
-			rpc.SendResult();
-		});
-		//logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
 		return 0;
 	}
 
@@ -291,6 +290,13 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						rpc.SendResult();
 						return 0;
 				}
+				//logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", r, tkey);
+				rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+				FlushWhenReduce(r, () -> {
+					logger.debug("Reduce SendResult 4 {}", r);
+					rpc.SendResult();
+				});
+				//logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
 			} finally {
 				r.ExitFairLock();
 			}
@@ -298,14 +304,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		finally {
 			lockey.ExitWriteLock();
 		}
-		//logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", r, tkey);
-		rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-		final var fr = r;
-		FlushWhenReduce(r, () -> {
-			logger.debug("Reduce SendResult 4 {}", fr);
-			rpc.SendResult();
-		});
-		//logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
 		return 0;
 	}
 
