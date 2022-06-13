@@ -62,7 +62,7 @@ public class ProviderDistribute {
 		return ByteBuffer.calc_hashnr(src);
 	}
 
-	// ChoiceDataIndex 用于RedirectAll或者那些移植数据分块索引的地方。
+	// ChoiceDataIndex 用于RedirectAll或者那些已知数据分块索引的地方。
 	public ServiceInfo ChoiceDataIndex(Zeze.Util.ConsistentHash<ServiceInfo> consistentHash, int dataIndex, int dataConcurrentLevel) {
 		if (consistentHash.getNodes().size() > dataConcurrentLevel)
 			throw new RuntimeException("too many server");

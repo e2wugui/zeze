@@ -11,6 +11,7 @@ Task
 Universe
 Zege
 raft.agent 永远尝试会造成大量服务不可用风险。
+java ServiceInfo.LocalState
 
 【2022/7/11】
 
