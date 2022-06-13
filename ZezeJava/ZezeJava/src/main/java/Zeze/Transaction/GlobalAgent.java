@@ -161,7 +161,7 @@ public final class GlobalAgent implements IGlobalAgent {
 			    logger.Warn("Acquire ResultCode={0} {1}", rpc.ResultCode, rpc.Result);
 			}
 			*/
-			if (false == rpc.isTimeout())
+			if (!rpc.isTimeout())
 				agent.setActiveTime(System.currentTimeMillis()); // Acquire.Response
 
 			if (rpc.getResultCode() == GlobalCacheManagerServer.AcquireModifyFailed

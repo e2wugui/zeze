@@ -232,7 +232,8 @@ public class Schemas implements Serializable {
 							ValueName = bean.Name;
 							Value = bean;
 						}, UpdateVariable);
-			} else if (other.Value != null) {
+			}
+			if (other.Value != null) {
 				throw new IllegalStateException("(this.Value == null && other.Value != null) Impossible!");
 			}
 

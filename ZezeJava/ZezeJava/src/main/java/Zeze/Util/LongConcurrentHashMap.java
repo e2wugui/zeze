@@ -458,7 +458,7 @@ public final class LongConcurrentHashMap<V> implements LongMap<V> {
 			int n, i;
 			if (tab == null || (n = tab.length) == 0 || (f = tabAt(tab, i = hash & (n - 1))) == null)
 				break;
-			else if (f.val == null) // MOVED
+			if (f.val == null) // MOVED
 				tab = helpTransfer(tab, f);
 			else {
 				V oldVal = null;

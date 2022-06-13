@@ -45,11 +45,10 @@ public class PMap1<K, V> extends PMap<K, V> {
 			var mapLog = (LogMap1<K, V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
 			return mapLog.Put(key, value);
-		} else {
-			var exist = _map.get(key);
-			_map = _map.plus(key, value);
-			return exist;
 		}
+		var exist = _map.get(key);
+		_map = _map.plus(key, value);
+		return exist;
 	}
 
 	@Override
@@ -87,12 +86,11 @@ public class PMap1<K, V> extends PMap<K, V> {
 			var mapLog = (LogMap1<K, V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
 			return mapLog.Remove((K)key);
-		} else {
-			//noinspection SuspiciousMethodCalls
-			var exist = _map.get(key);
-			_map = _map.minus(key);
-			return exist;
 		}
+		//noinspection SuspiciousMethodCalls
+		var exist = _map.get(key);
+		_map = _map.minus(key);
+		return exist;
 	}
 
 	@Override
@@ -105,15 +103,14 @@ public class PMap1<K, V> extends PMap<K, V> {
 			var mapLog = (LogMap1<K, V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
 			return mapLog.Remove(item.getKey(), item.getValue());
-		} else {
-			var old = _map;
-			var exist = old.get(item.getKey());
-			if (null != exist && exist.equals(item.getValue())) {
-				_map = _map.minus(item.getKey());
-				return true;
-			}
-			return false;
 		}
+		var old = _map;
+		var exist = old.get(item.getKey());
+		if (null != exist && exist.equals(item.getValue())) {
+			_map = _map.minus(item.getKey());
+			return true;
+		}
+		return false;
 	}
 
 	@Override

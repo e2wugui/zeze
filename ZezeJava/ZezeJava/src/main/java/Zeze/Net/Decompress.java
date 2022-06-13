@@ -10,7 +10,6 @@ public final class Decompress implements Codec {
 	private int hpos = 0;
 
 	public static class UncompressException extends CodecException {
-		private static final long serialVersionUID = -3837317279182358389L;
 	}
 
 	public Decompress(Codec sink) {
@@ -44,106 +43,103 @@ public final class Decompress implements Codec {
 	}
 
 	private int bitCompute() {
-		long val = ((long)rem << (32 - pos)) & 0xffffffffL;
+		long val = ((long)rem << (32 - pos)) & 0xffff_ffffL;
 		if (off < 0) {
-			if (val < 0x80000000L)
+			if (val < 0x8000_0000L)
 				return 8;
-			else if (val < 0xc0000000L)
+			if (val < 0xc000_0000L)
 				return 9;
-			else if (val < 0xe0000000L)
+			if (val < 0xe000_0000L)
 				return 16;
-			else if (val < 0xf0000000L)
+			if (val < 0xf000_0000L)
 				return 12;
-			else
-				return 10;
-		} else {
-			if (val < 0x80000000L)
-				return 1;
-			else if (val < 0xc0000000L)
-				return 4;
-			else if (val < 0xe0000000L)
-				return 6;
-			else if (val < 0xf0000000L)
-				return 8;
-			else if (val < 0xf8000000L)
-				return 10;
-			else if (val < 0xfc000000L)
-				return 12;
-			else if (val < 0xfe000000L)
-				return 14;
-			else if (val < 0xff000000L)
-				return 16;
-			else if (val < 0xff800000L)
-				return 18;
-			else if (val < 0xffc00000L)
-				return 20;
-			else if (val < 0xffe00000L)
-				return 22;
-			else if (val < 0xfff00000L)
-				return 24;
-			else
-				return 32;
+			return 10;
 		}
+		if (val < 0x8000_0000L)
+			return 1;
+		if (val < 0xc000_0000L)
+			return 4;
+		if (val < 0xe000_0000L)
+			return 6;
+		if (val < 0xf000_0000L)
+			return 8;
+		if (val < 0xf800_0000L)
+			return 10;
+		if (val < 0xfc00_0000L)
+			return 12;
+		if (val < 0xfe00_0000L)
+			return 14;
+		if (val < 0xff00_0000L)
+			return 16;
+		if (val < 0xff80_0000L)
+			return 18;
+		if (val < 0xffc0_0000L)
+			return 20;
+		if (val < 0xffe0_0000L)
+			return 22;
+		if (val < 0xfff0_0000L)
+			return 24;
+		return 32;
 	}
 
 	private void process() throws CodecException {
-		long val = ((long)rem << (32 - pos)) & 0xffffffffL;
+		long val = ((long)rem << (32 - pos)) & 0xffff_ffffL;
 		if (off < 0) {
-			if (val < 0x80000000L) {
+			if (val < 0x8000_0000L) {
 				output((byte)(val >> 24));
 				pos -= 8;
-			} else if (val < 0xc0000000L) {
+			} else if (val < 0xc000_0000L) {
 				output((byte)((val >> 23) | 0x80));
 				pos -= 9;
-			} else if (val < 0xe0000000L) {
-				off = (int)(((val >> 16) & 0x1fff) + 320);
+			} else if (val < 0xe000_0000L) {
+				off = (((int)val >> 16) & 0x1fff) + 320;
 				pos -= 16;
-			} else if (val < 0xf0000000L) {
-				off = (int)(((val >> 20) & 0xff) + 64);
+			} else if (val < 0xf000_0000L) {
+				off = (((int)val >> 20) & 0xff) + 64;
 				pos -= 12;
 			} else {
-				off = (int)((val >> 22) & 0x3f);
+				off = ((int)val >> 22) & 0x3f;
 				pos -= 10;
 				if (off == 0)
 					off = -1;
 			}
 		} else {
 			int len;
-			if (val < 0x80000000L) {
+			if (val < 0x8000_0000L) {
 				len = 3;
 				pos -= 1;
-			} else if (val < 0xc0000000L) {
-				len = (int)(4 | ((val >> 28) & 3));
+			} else if (val < 0xc000_0000L) {
+				len = 0x4 | (((int)val >> 28) & 0x3);
 				pos -= 4;
-			} else if (val < 0xe0000000L) {
-				len = (int)(8 | ((val >> 26) & 7));
+			} else if (val < 0xe000_0000L) {
+				len = 0x8 | (((int)val >> 26) & 0x7);
 				pos -= 6;
-			} else if (val < 0xf0000000L) {
-				len = (int)(16 | ((val >> 24) & 15));
+			} else if (val < 0xf000_0000L) {
+				len = 0x10 | (((int)val >> 24) & 0xf);
 				pos -= 8;
-			} else if (val < 0xf8000000L) {
-				len = (int)(32 | ((val >> 22) & 31));
+			} else if (val < 0xf800_0000L) {
+				len = 0x20 | (((int)val >> 22) & 0x1f);
 				pos -= 10;
-			} else if (val < 0xfc000000L) {
-				len = (int)(64 | ((val >> 20) & 63));
+			} else if (val < 0xfc00_0000L) {
+				len = 0x40 | (((int)val >> 20) & 0x3f);
 				pos -= 12;
-			} else if (val < 0xfe000000L) {
-				len = (int)(128 | ((val >> 18) & 127));
+			} else if (val < 0xfe00_0000L) {
+				len = 0x80 | (((int)val >> 18) & 0x7f);
 				pos -= 14;
-			} else if (val < 0xff000000L) {
-				len = (int)(256 | ((val >> 16) & 255));
+			} else if (val < 0xff00_0000L) {
+				len = 0x100 | (((int)val >> 16) & 0xff);
 				pos -= 16;
-			} else if (val < 0xff800000L) {
-				len = (int)(512 | ((val >> 14) & 511));
+			} else if (val < 0xff80_0000L) {
+				len = 0x200 | (((int)val >> 14) & 0x1ff);
 				pos -= 18;
-			} else if (val < 0xffc00000L) {
-				len = (int)(1024 | ((val >> 12) & 1023));
+			} else if (val < 0xffc0_0000L) {
+				len = 0x400 | (((int)val >> 12) & 0x3ff);
 				pos -= 20;
-			} else if (val < 0xffe00000L) {
-				len = (int)(2048 | ((val >> 10) & 2047));
+			} else if (val < 0xffe0_0000L) {
+				len = 0x800 | (((int)val >> 10) & 0x7ff);
 				pos -= 22;
-			} else if (val < 0xfff00000L) {
-				len = (int)(4096 | ((val >> 8) & 4095));
+			} else if (val < 0xfff0_0000L) {
+				len = 0x1000 | (((int)val >> 8) & 0xfff);
 				pos -= 24;
 			} else
 				throw new UncompressException();

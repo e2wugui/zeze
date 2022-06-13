@@ -39,8 +39,8 @@ public final class Test {
 				if (log == null)
 					return _i;
 				return ((LogInt)log).Value;
-			} else
-				return _i;
+			}
+			return _i;
 		}
 
 		public void setI(int value) {
@@ -63,8 +63,8 @@ public final class Test {
 				if (log == null)
 					return _l;
 				return ((LogLong)log).Value;
-			} else
-				return _l;
+			}
+			return _l;
 		}
 
 		public void setL(long value) {
@@ -192,8 +192,8 @@ public final class Test {
 				if (log == null)
 					return _i;
 				return ((LogInt)log).Value;
-			} else
-				return _i;
+			}
+			return _i;
 		}
 
 		public void setI(int value) {

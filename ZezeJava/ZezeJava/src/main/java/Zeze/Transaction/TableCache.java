@@ -1,16 +1,14 @@
 package Zeze.Transaction;
 
-import Zeze.Services.*;
-import Zeze.*;
-import java.util.*;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
-
-import Zeze.Util.Func1;
+import Zeze.Application;
+import Zeze.Services.GlobalCacheManagerServer;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import Zeze.Util.Task;
 
 // MESI？
 

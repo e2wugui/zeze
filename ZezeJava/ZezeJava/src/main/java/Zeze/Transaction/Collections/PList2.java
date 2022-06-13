@@ -150,9 +150,7 @@ public class PList2<V extends Bean> extends PList<V> {
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
 			return listLog.AddAll(items);
 		}
-		else {
-			_list = _list.plusAll(items);
-		}
+		_list = _list.plusAll(items);
 		return true;
 	}
 
@@ -167,11 +165,9 @@ public class PList2<V extends Bean> extends PList<V> {
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
 			return listLog.RemoveAll((Collection<? extends V>)c);
 		}
-		else {
-			var oldV = _list;
-			_list = _list.minusAll(c);
-			return oldV != _list;
-		}
+		var oldV = _list;
+		_list = _list.minusAll(c);
+		return oldV != _list;
 	}
 
 	@Override
