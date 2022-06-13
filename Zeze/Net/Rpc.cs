@@ -156,7 +156,7 @@ namespace Zeze.Net
 
         private bool SendResultDone = false; // XXX ugly
 
-        public virtual void SendResult(Binary result = null)
+        public override void SendResult(Binary result = null)
         {
             if (SendResultDone)
             {

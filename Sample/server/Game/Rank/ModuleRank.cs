@@ -35,7 +35,7 @@ namespace Game.Rank
         /// <param name="roleId"></param>
         /// <param name="value"></param>
         /// <returns>Procudure.Success...</returns>
-        [RedirectHash()]
+        [RedirectHash("GetConcurrentLevel(keyHint.RankType)")]
         protected virtual async Task<long> UpdateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx)
         {
             int concurrentLevel = GetConcurrentLevel(keyHint.RankType);
@@ -142,7 +142,7 @@ namespace Game.Rank
             return result;
         }
 
-        private async Task<Rank> GetRank(BConcurrentKey keyHint)
+        public async Task<Rank> GetRankDirect(BConcurrentKey keyHint)
         {
             var Rank = Ranks.GetOrAdd(keyHint, (key) => new Rank());
             using (await Rank.Mutex.LockAsync())
@@ -200,37 +200,18 @@ namespace Game.Rank
             return Rank;
         }
 
-        /// <summary>
-        /// ModuleRedirectAll 实现要求：
-        /// 1）第一个参数是调用会话id；
-        /// 2）第二个参数是hash-index；
-        /// 3）然后是实现自定义输入参数；
-        /// 4）最后是结果回调,
-        ///    a) 第一参数是会话id，
-        ///    b) 第二参数hash-index，
-        ///    c) 第三个参数是returnCode，
-        ///    d) 剩下的是自定义参数。
-        /// </summary>
-        protected async Task<long> GetRank(long sessionId, int hash, BConcurrentKey keyHint,
-            System.Action<long, int, long, BRankList> onHashResult)
+        protected async Task<BRankList> GetRankAll(int hash, BConcurrentKey key)
         {
-            // 根据hash获取分组rank。
-            int concurrentLevel = GetConcurrentLevel(keyHint.RankType);
-            var concurrentKey = new BConcurrentKey(
-                keyHint.RankType, hash % concurrentLevel,
-                keyHint.TimeType, keyHint.Year, keyHint.Offset);
-            onHashResult(sessionId, hash, Procedure.Success, await _trank.GetOrAddAsync(concurrentKey));
-            return Procedure.Success;
+            var concurrentKey = new BConcurrentKey(key.RankType, hash, key.TimeType, key.Year, key.Offset);
+            return await _trank.GetOrAddAsync(concurrentKey);
         }
 
         // 属性参数是获取总的并发分组数量的代码，直接复制到生成代码中。
         // 需要注意在子类上下文中可以编译通过。可以是常量。
-        //[RedirectAll()]
-        public virtual void GetRank(BConcurrentKey keyHint,
-            System.Action<long, int, long, BRankList> onHashResult,
-            Action<RedirectAll> onHashEnd
-            )
+        [RedirectAll("GetConcurrentLevel(keyHint.RankType)")]
+        public virtual Task<RedirectAll<BRankList>> GetRankAll(BConcurrentKey keyHint)
         {
+            return null;
         }
 
         /// <summary>
@@ -279,18 +260,24 @@ namespace Game.Rank
                 session.SendResponseWhileCommit(r);
                 return Procedure.LogicError;
             }
-            /* 
-            //异步方式获取rank
-            GetRankAsync(protocol.Argument.RankType, (rank) =>
+            // 下面使用RedirectAll的方式查询并合并结果。
+            // 目前没有使用本地get-cache，这种机制参考GetRankDirect的实现。
+            var current = new BRankList();
+            int countNeed = GetRankCount(r.Argument.RankType);
+            if (countNeed > 0)
             {
-                result.Argument.RankList.AddRange(rank.TableValue.RankList);
-                session.SendResponse(result);
-            });
-            /*/
-            // 同步方式获取rank
-            r.Result.RankList.AddRange((await GetRank(
-                NewRankKey(r.Argument.RankType, r.Argument.TimeType)
-                )).TableValue.RankList);
+                var result = await GetRankAll(NewRankKey(r.Argument.RankType, r.Argument.TimeType));
+                foreach (var hr in result.HashResults)
+                {
+                    current = Merge(current, hr.Value);
+                    if (current.RankList.Count > countNeed)
+                    {
+                        // 合并中间结果超过需要的数量可以先删除。
+                        current.RankList.RemoveRange(countNeed, current.RankList.Count - countNeed);
+                    }
+                }
+            }
+            r.Result.RankList.AddRange(current.RankList);
             session.SendResponseWhileCommit(r);
             // */
             return Procedure.Success;

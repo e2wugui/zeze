@@ -453,7 +453,7 @@ namespace Zeze.Services
             // 在目前没有问题，因为r.Argument主要记录在state.ServiceInfos中，
             // 另外它也被Session引用（用于连接关闭时，自动注销）。
             // 这是专用程序，不是一个库，以后有修改时，小心就是了。
-            r.Argument.LocalState = r.Sender.SessionId;
+            r.Argument.SessionId = r.Sender.SessionId;
 
             // AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
             var current = state.ServiceInfos.AddOrUpdate(r.Argument.ServiceIdentity, r.Argument, (key, value) => r.Argument);
@@ -487,7 +487,7 @@ namespace Zeze.Services
                 if (state.ServiceInfos.TryGetValue(info.ServiceIdentity, out var current))
                 {
                     // 这里存在一个时间窗口，可能使得重复的注销会成功。注销一般比较特殊，忽略这个问题。
-                    long? existSessionId = current.LocalState as long?;
+                    long? existSessionId = current.SessionId as long?;
                     if (existSessionId == null || sessionId == existSessionId.Value)
                     {
                         // 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
@@ -847,7 +847,7 @@ namespace Zeze.Services.ServiceManager
             }
 
             // 服务准备好。
-            public ConcurrentDictionary<string, object> ServiceIdentityReadyStates { get; } = new();
+            public ConcurrentDictionary<string, object> LocalStates { get; } = new();
 
             public SubscribeState(Agent ag, SubscribeInfo info)
             {
@@ -865,7 +865,7 @@ namespace Zeze.Services.ServiceManager
 
                 foreach (var pending in p.SortedIdentity)
                 {
-                    if (!ServiceIdentityReadyStates.ContainsKey(pending.ServiceIdentity))
+                    if (!LocalStates.ContainsKey(pending.ServiceIdentity))
                         return false;
                 }
                 var r = new ReadyServiceList();
@@ -879,20 +879,15 @@ namespace Zeze.Services.ServiceManager
             {
                 if (null == state)
                 {
-                    ServiceIdentityReadyStates.TryRemove(identity, out var _);
+                    LocalStates.TryRemove(identity, out var _);
                 }
                 else
                 {
-                    ServiceIdentityReadyStates[identity] = state;
+                    LocalStates[identity] = state;
                 }
 
                 lock (this)
                 {
-                    // 把 state 复制到当前版本的服务列表中。允许列表不变，服务状态改变。
-                    if (ServiceInfos != null && ServiceInfos.TryGetServiceInfo(identity, out var info))
-                    {
-                        info.LocalState = state;
-                    }
                     // 尝试发送Ready，如果有pending.
                     TrySendReadyServiceList();
                 }
@@ -900,13 +895,6 @@ namespace Zeze.Services.ServiceManager
 
             private void PrepareAndTriggerOnChanged()
             {
-                foreach (var info in ServiceInfos.SortedIdentity)
-                {
-                    if (ServiceIdentityReadyStates.TryGetValue(info.ServiceIdentity, out var state))
-                    {
-                        info.LocalState = state;
-                    }
-                }
                 Task.Run(() => Agent.OnChanged?.Invoke(this));
             }
 
@@ -934,8 +922,6 @@ namespace Zeze.Services.ServiceManager
                 lock (this)
                 {
                     info = ServiceInfos.Insert(info);
-                    if (ServiceIdentityReadyStates.TryGetValue(info.ServiceIdentity, out var local))
-                        info.LocalState = local;
                     if (Agent.OnUpdate != null)
                         Task.Run(() => Agent.OnUpdate.Invoke(this, info));
                     else
@@ -1124,7 +1110,7 @@ namespace Zeze.Services.ServiceManager
             {
                 ServiceName = serviceName,
                 SubscribeType = type,
-                LocalState = state,
+                LocalState = state
             });
         }
 
@@ -1557,9 +1543,9 @@ namespace Zeze.Services.ServiceManager
         // 服务扩展信息，可选。
         public Binary ExtraInfo { get; internal set; } = Binary.Empty;
 
-        // ServiceManager或者ServiceManager.Agent用来保存本地状态，不是协议一部分，不会被系列化。
-        // 算是一个简单的策略，不怎么优美。一般仅设置一次，线程保护由使用者自己管理。
-        public object LocalState { get; internal set; }
+        // ServiceManager，不是协议一部分，不会被系列化。
+        // 算是一个简单的策略，不怎么优美。
+        public object SessionId { get; internal set; }
 
         public ServiceInfo()
         {
@@ -1681,6 +1667,8 @@ namespace Zeze.Services.ServiceManager
 
         public string ServiceName { get; set; }
         public int SubscribeType { get; set; }
+
+        // 目前这个用来给LinkdApp用来保存订阅的状态，不系列化。
         public object LocalState { get; set; }
 
         public override void Decode(ByteBuffer bb)

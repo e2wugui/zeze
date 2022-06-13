@@ -137,10 +137,19 @@ namespace Zeze.Arch.Gen
 
         public string GetConcurrentLevelSource()
         {
-            if (OverrideType != OverrideType.RedirectAll)
-                throw new Exception("is not RedirectAll");
-            var attr = Attribute as RedirectAllAttribute;
-            return attr.GetConcurrentLevelSource;
+            if (OverrideType == OverrideType.RedirectToServer)
+                throw new Exception("No GetConcurrentLevelSource");
+            if (OverrideType == OverrideType.RedirectAll)
+            {
+                return (Attribute as RedirectAllAttribute).GetConcurrentLevelSource;
+            }
+            else
+            {
+                var source = (Attribute as RedirectHashAttribute).GetConcurrentLevelSource;
+                if (string.IsNullOrEmpty(source))
+                    return "1";
+                return source;
+            }
         }
     }
 }

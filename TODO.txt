@@ -23,6 +23,21 @@ raft.agent 永远尝试会造成大量服务不可用风险。
 ------------------------------------------------------------------------------------------------------------------------------
 tag 1.0.0 Stable? ^_^
 ------------------------------------------------------------------------------------------------------------------------------
+RedirectHash & RedirectAll & ChoiceHash - 单点数据分块支持与一致性Hash算法修改（原方案有问题：数据分块不能在服务器选择之后保持独立性）
+	DataConcurrentLevel：数据分块数量。
+	1. DataConcurrentLevel大于1 服务器选择：
+	var ha = hash(account);
+	var di = ha % DataConcurrentLevel; // account被分成Level个集合，每个集合访问一块数据
+	var h = hash(di); // 不再考虑原始hash，参见后面第2.点。
+	var server = ConsientHash(h);
+	问题：
+	   DataConcurrentLevel个数据块的访问是不是被分割成独立集合，每个集合在一个server内访问？
+	2. DataConcurrentLevel=1服务器选择。
+	var ha = hash(account);
+	var server = ConsientHash(ha);
+	问题：
+	   相同的account在一个server上。这个显然没问题了。
+ServiceManager.Agent Remove ServiceInfo.LocalState
 【重大BUG】 即使锁内。Record.Global.State 可能没有提升到需要水平。需要重新_check_。
 一致性hash负载分配算法, 【c# 没有TreeMap.tailMap。】
 Table.WalkKey

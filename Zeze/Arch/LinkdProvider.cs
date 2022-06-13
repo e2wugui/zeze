@@ -191,26 +191,25 @@ namespace Zeze.Arch
             var linkSession = link.UserState as LinkdUserSession;
 
             provider = 0;
-            if (false == LinkdApp.Zeze.ServiceManagerAgent.SubscribeStates.TryGetValue(
-                serviceName, out var volatileProviders))
+            if (false == LinkdApp.Zeze.ServiceManagerAgent.SubscribeStates.TryGetValue(serviceName, out var providers))
                 return false;
 
             // 这里保存的 ProviderModuleState 是该moduleId的第一个bind请求去订阅时记录下来的，
             // 这里仅使用里面的ChoiceType和ConfigType。这两个参数对于相同的moduleId都是一样的。
             // 如果需要某个provider.SessionId，需要查询 ServiceInfoListSortedByIdentity 里的ServiceInfo.LocalState。
-            var providerModuleState = volatileProviders.SubscribeInfo.LocalState as ProviderModuleState;
+            var providerModuleState = providers.SubscribeInfo.LocalState as ProviderModuleState;
 
             switch (providerModuleState.ChoiceType)
             {
                 case BModule.ChoiceTypeHashAccount:
-                    return LinkdApp.LinkdProvider.Distribute.ChoiceHash(volatileProviders,
+                    return LinkdApp.LinkdProvider.Distribute.ChoiceHash(providers,
                         Zeze.Serialize.ByteBuffer.calc_hashnr(linkSession.Account), out provider);
 
                 case BModule.ChoiceTypeHashRoleId:
                     var roleId = linkSession.RoleId;
                     if (null != roleId)
                     {
-                        return LinkdApp.LinkdProvider.Distribute.ChoiceHash(volatileProviders,
+                        return LinkdApp.LinkdProvider.Distribute.ChoiceHash(providers,
                             Zeze.Serialize.ByteBuffer.calc_hashnr(roleId.Value), out provider);
                     }
                     else
@@ -219,11 +218,11 @@ namespace Zeze.Arch
                     }
 
                 case BModule.ChoiceTypeFeedFullOneByOne:
-                    return LinkdApp.LinkdProvider.Distribute.ChoiceFeedFullOneByOne(volatileProviders, out provider);
+                    return LinkdApp.LinkdProvider.Distribute.ChoiceFeedFullOneByOne(providers, out provider);
             }
 
             // default
-            if (LinkdApp.LinkdProvider.Distribute.ChoiceLoad(volatileProviders, out provider))
+            if (LinkdApp.LinkdProvider.Distribute.ChoiceLoad(providers, out provider))
             {
                 // 这里不判断null，如果失败让这次选择失败，否则选中了，又没有Bind以后更不好处理。
                 var providerSocket = LinkdApp.LinkdProviderService.GetSocket(provider);

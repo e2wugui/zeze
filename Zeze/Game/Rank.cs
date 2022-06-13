@@ -137,7 +137,7 @@ namespace Zeze.Game
         /// <param name="roleId"></param>
         /// <param name="value"></param>
         /// <returns>Procudure.Success...</returns>
-        [RedirectHash()]
+        [RedirectHash("GetConcurrentLevel(keyHint.RankType)")]
         protected virtual async Task<long> UpdateRank(int hash, BConcurrentKey keyHint,
             long roleId, long value, Zeze.Net.Binary valueEx)
         {

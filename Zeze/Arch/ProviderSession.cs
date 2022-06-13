@@ -13,7 +13,7 @@ namespace Zeze.Arch
 		public long SessionId { get; internal set; }
 		public int ServerId { get; internal set; }
 
-		private volatile BLoad Load_ = new BLoad();
+		private volatile BLoad Load_ = new();
 		public BLoad Load { get { return Load_; } set { Load_ = value; } }
 		public string ServerLoadIp { get; set; } = "";
 		public int ServerLoadPort { get; set; }

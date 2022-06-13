@@ -47,20 +47,22 @@ namespace Zeze.Arch
 			*/
 		}
 
-		public AsyncSocket ChoiceHash(IModule module, int hash)
+		public AsyncSocket ChoiceHash(IModule module, int hash, int dataConcurrentLevel = 1)
 		{
 			var subscribes = ProviderApp.Zeze.ServiceManagerAgent.SubscribeStates;
 			var serviceName = ProviderDistribute.MakeServiceName(ProviderApp.ServerServiceNamePrefix, module.Id);
 
-			if (!subscribes.TryGetValue(serviceName, out var servers))
+			if (!subscribes.TryGetValue(serviceName, out var providers))
 				return null;
 
-			var serviceInfo = ProviderApp.Distribute.ChoiceHash(servers, hash);
+			var serviceInfo = ProviderApp.Distribute.ChoiceHash(providers, hash, dataConcurrentLevel);
 			if (serviceInfo == null || serviceInfo.ServiceIdentity.Equals(ProviderApp.Zeze.Config.ServerId.ToString()))
 				return null;
 
-			var providerModuleState = (ProviderModuleState)serviceInfo.LocalState;
-			if (providerModuleState == null)
+			if (false == providers.LocalStates.TryGetValue(serviceInfo.ServiceIdentity, out var localState))
+				return null;
+
+			if (localState is not ProviderModuleState providerModuleState)
 				return null;
 
 			return ProviderApp.ProviderDirectService.GetSocket(providerModuleState.SessionId);
@@ -110,25 +112,41 @@ namespace Zeze.Arch
 			miss.Argument.ServerId = 0; // 在这里没法知道逻辑服务器id，错误报告就不提供这个了。
 			miss.ResultCode = ModuleRedirect.ResultCodeLinkdNoProvider;
 
-			for (int i = 0; i < req.Argument.HashCodeConcurrentLevel; ++i)
+			if (false == ProviderApp.Distribute.TryGetProviders(req.Argument.ServiceNamePrefix, req.Argument.ModuleId, out var providers)
+				|| providers.ServiceInfos.SortedIdentity.Count == 0)
 			{
-				var target = ProviderApp.Distribute.ChoiceProvider(req.Argument.ServiceNamePrefix, req.Argument.ModuleId, i);
-				if (null == target)
-                {
-                    AddMiss(miss, i, Zeze.Transaction.Procedure.ProviderNotExist);
-					continue; // miss
-				}
-				if (target.ServiceIdentity.Equals(ProviderApp.Zeze.Config.ServerId.ToString()))
+				// 全部miss。
+				for (int i = 0; i < req.Argument.HashCodeConcurrentLevel; ++i)
+					AddMiss(miss, i, Zeze.Transaction.Procedure.ProviderNotExist);
+			}
+			else
+            {
+				for (int i = 0; i < req.Argument.HashCodeConcurrentLevel; ++i)
 				{
-                    AddTransmits(transmits, 0, i, req);
-					continue; // loop-back
+					var target = ProviderApp.Distribute.ChoiceDataIndex(providers, i, req.Argument.HashCodeConcurrentLevel);
+					if (null == target)
+					{
+						AddMiss(miss, i, Zeze.Transaction.Procedure.ProviderNotExist);
+						continue;
+					}
+
+					if (target.ServiceIdentity.Equals(ProviderApp.Zeze.Config.ServerId.ToString()))
+					{
+						AddTransmits(transmits, 0, i, req);
+						continue; // loop-back
+					}
+					if (false == providers.LocalStates.TryGetValue(target.ServiceIdentity, out var localState))
+					{
+						AddMiss(miss, i, Zeze.Transaction.Procedure.ProviderNotExist);
+						continue;
+					}
+					if (localState is not ProviderModuleState state)
+					{
+						AddMiss(miss, i, Zeze.Transaction.Procedure.ProviderNotExist);
+						continue; // not ready
+					}
+					AddTransmits(transmits, state.SessionId, i, req);
 				}
-                if (target.LocalState is not ProviderModuleState state)
-                {
-                    AddMiss(miss, i, Zeze.Transaction.Procedure.ProviderNotExist);
-                    continue; // not ready
-                }
-                AddTransmits(transmits, state.SessionId, i, req);
 			}
 
 			// 转发给provider

@@ -1,186 +1,217 @@
 ﻿public class Redirect_Game_Rank : Game.Rank.ModuleRank
 {
-    public override async System.Threading.Tasks.Task<Zeze.Arch.RedirectAll> TestAllNoResult(int param)
+    public override async System.Threading.Tasks.Task<Zeze.Arch.RedirectAll<Game.Rank.BRankList>> GetRankAll(Game.Rank.BConcurrentKey keyHint)
     {
         // RedirectAll
         var reqall1 = new Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest();
         reqall1.Argument.ModuleId = 9;
-        reqall1.Argument.HashCodeConcurrentLevel = 100;
+        reqall1.Argument.HashCodeConcurrentLevel = GetConcurrentLevel(keyHint.RankType);
         // reqall1.Argument.HashCodes = // setup in linkd;
-        reqall1.Argument.MethodFullName = "Game.Rank:TestAllNoResult";
+        reqall1.Argument.MethodFullName = "Game.Rank:GetRankAll";
         reqall1.Argument.ServiceNamePrefix = App.Zeze.Redirect.ProviderApp.ServerServiceNamePrefix;
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();
-            _bb_.WriteInt(param);
+            keyHint.Encode(_bb_);
             reqall1.Argument.Params = new Zeze.Net.Binary(_bb_);
         }
-
-        var decoder2 = Zeze.Arch.Gen.VoidResult.Decoder;
-        var ctxall3 = new Zeze.Arch.RedirectAll(
+        var decoder2 = (Zeze.Net.Binary _params_) => 
+        {
+            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);
+            Game.Rank.BRankList result3 = new Game.Rank.BRankList();
+            result3.Decode(_bb_);
+            return result3;
+        };
+        var ctxall4 = new Zeze.Arch.RedirectAll<Game.Rank.BRankList>(
             reqall1.Argument.HashCodeConcurrentLevel, reqall1.Argument.MethodFullName,
             decoder2);
-        reqall1.Argument.SessionId = App.Zeze.Redirect.ProviderApp.ProviderDirectService.AddManualContextWithTimeout(ctxall3);
+        reqall1.Argument.SessionId = App.Zeze.Redirect.ProviderApp.ProviderDirectService.AddManualContextWithTimeout(ctxall4);
 
         App.Zeze.Redirect.RedirectAll(this, reqall1);
 
-        await ctxall3.Future.Task;
-        return ctxall3;
+        await ctxall4.Future.Task;
+        return ctxall4;
+    }
+
+    public override async System.Threading.Tasks.Task<Zeze.Arch.RedirectAll> TestAllNoResult(int param)
+    {
+        // RedirectAll
+        var reqall7 = new Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest();
+        reqall7.Argument.ModuleId = 9;
+        reqall7.Argument.HashCodeConcurrentLevel = 100;
+        // reqall7.Argument.HashCodes = // setup in linkd;
+        reqall7.Argument.MethodFullName = "Game.Rank:TestAllNoResult";
+        reqall7.Argument.ServiceNamePrefix = App.Zeze.Redirect.ProviderApp.ServerServiceNamePrefix;
+        {
+            var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();
+            _bb_.WriteInt(param);
+            reqall7.Argument.Params = new Zeze.Net.Binary(_bb_);
+        }
+        var decoder8 = Zeze.Arch.Gen.VoidResult.Decoder;
+        var ctxall9 = new Zeze.Arch.RedirectAll(
+            reqall7.Argument.HashCodeConcurrentLevel, reqall7.Argument.MethodFullName,
+            decoder8);
+        reqall7.Argument.SessionId = App.Zeze.Redirect.ProviderApp.ProviderDirectService.AddManualContextWithTimeout(ctxall9);
+
+        App.Zeze.Redirect.RedirectAll(this, reqall7);
+
+        await ctxall9.Future.Task;
+        return ctxall9;
     }
 
     public override async System.Threading.Tasks.Task<Zeze.Arch.RedirectAll<long>> TestAllResult(int param)
     {
         // RedirectAll
-        var reqall5 = new Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest();
-        reqall5.Argument.ModuleId = 9;
-        reqall5.Argument.HashCodeConcurrentLevel = 100;
-        // reqall5.Argument.HashCodes = // setup in linkd;
-        reqall5.Argument.MethodFullName = "Game.Rank:TestAllResult";
-        reqall5.Argument.ServiceNamePrefix = App.Zeze.Redirect.ProviderApp.ServerServiceNamePrefix;
+        var reqall11 = new Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest();
+        reqall11.Argument.ModuleId = 9;
+        reqall11.Argument.HashCodeConcurrentLevel = 100;
+        // reqall11.Argument.HashCodes = // setup in linkd;
+        reqall11.Argument.MethodFullName = "Game.Rank:TestAllResult";
+        reqall11.Argument.ServiceNamePrefix = App.Zeze.Redirect.ProviderApp.ServerServiceNamePrefix;
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();
             _bb_.WriteInt(param);
-            reqall5.Argument.Params = new Zeze.Net.Binary(_bb_);
+            reqall11.Argument.Params = new Zeze.Net.Binary(_bb_);
         }
-        var decoder6 = (Zeze.Net.Binary _params_) => 
+        var decoder12 = (Zeze.Net.Binary _params_) => 
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);
-            long result7;
-            result7 = _bb_.ReadLong();
-            return result7;
+            long result13;
+            result13 = _bb_.ReadLong();
+            return result13;
         };
-        var ctxall8 = new Zeze.Arch.RedirectAll<long>(
-            reqall5.Argument.HashCodeConcurrentLevel, reqall5.Argument.MethodFullName,
-            decoder6);
-        reqall5.Argument.SessionId = App.Zeze.Redirect.ProviderApp.ProviderDirectService.AddManualContextWithTimeout(ctxall8);
+        var ctxall14 = new Zeze.Arch.RedirectAll<long>(
+            reqall11.Argument.HashCodeConcurrentLevel, reqall11.Argument.MethodFullName,
+            decoder12);
+        reqall11.Argument.SessionId = App.Zeze.Redirect.ProviderApp.ProviderDirectService.AddManualContextWithTimeout(ctxall14);
 
-        App.Zeze.Redirect.RedirectAll(this, reqall5);
+        App.Zeze.Redirect.RedirectAll(this, reqall11);
 
-        await ctxall8.Future.Task;
-        return ctxall8;
+        await ctxall14.Future.Task;
+        return ctxall14;
     }
 
     public override async System.Threading.Tasks.Task<Zeze.Arch.RedirectAll<Game.Rank.ModuleRank.MyResult>> TestAllResultProcessing(int param, System.Func<Zeze.Arch.RedirectAll<Game.Rank.ModuleRank.MyResult>, System.Threading.Tasks.Task> processing)
     {
         // RedirectAll
-        var reqall13 = new Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest();
-        reqall13.Argument.ModuleId = 9;
-        reqall13.Argument.HashCodeConcurrentLevel = 100;
-        // reqall13.Argument.HashCodes = // setup in linkd;
-        reqall13.Argument.MethodFullName = "Game.Rank:TestAllResultProcessing";
-        reqall13.Argument.ServiceNamePrefix = App.Zeze.Redirect.ProviderApp.ServerServiceNamePrefix;
+        var reqall19 = new Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest();
+        reqall19.Argument.ModuleId = 9;
+        reqall19.Argument.HashCodeConcurrentLevel = 100;
+        // reqall19.Argument.HashCodes = // setup in linkd;
+        reqall19.Argument.MethodFullName = "Game.Rank:TestAllResultProcessing";
+        reqall19.Argument.ServiceNamePrefix = App.Zeze.Redirect.ProviderApp.ServerServiceNamePrefix;
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();
             _bb_.WriteInt(param);
-            reqall13.Argument.Params = new Zeze.Net.Binary(_bb_);
+            reqall19.Argument.Params = new Zeze.Net.Binary(_bb_);
         }
-        var decoder14 = (Zeze.Net.Binary _params_) => 
+        var decoder20 = (Zeze.Net.Binary _params_) => 
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);
-            Game.Rank.ModuleRank.MyResult result15 = default(Game.Rank.ModuleRank.MyResult);
-            var tmp16 = _bb_.ReadByteBuffer();
-            var tmp17 = new System.ReadOnlySpan<byte>(tmp16.Bytes, tmp16.ReadIndex, tmp16.Size);
-            result15 = System.Text.Json.JsonSerializer.Deserialize<Game.Rank.ModuleRank.MyResult> (tmp17);
-            return result15;
+            Game.Rank.ModuleRank.MyResult result21 = default(Game.Rank.ModuleRank.MyResult);
+            var tmp22 = _bb_.ReadByteBuffer();
+            var tmp23 = new System.ReadOnlySpan<byte>(tmp22.Bytes, tmp22.ReadIndex, tmp22.Size);
+            result21 = System.Text.Json.JsonSerializer.Deserialize<Game.Rank.ModuleRank.MyResult> (tmp23);
+            return result21;
         };
-        var ctxall18 = new Zeze.Arch.RedirectAll<Game.Rank.ModuleRank.MyResult>(
-            reqall13.Argument.HashCodeConcurrentLevel, reqall13.Argument.MethodFullName,
-            decoder14, processing);
-        reqall13.Argument.SessionId = App.Zeze.Redirect.ProviderApp.ProviderDirectService.AddManualContextWithTimeout(ctxall18);
+        var ctxall24 = new Zeze.Arch.RedirectAll<Game.Rank.ModuleRank.MyResult>(
+            reqall19.Argument.HashCodeConcurrentLevel, reqall19.Argument.MethodFullName,
+            decoder20, processing);
+        reqall19.Argument.SessionId = App.Zeze.Redirect.ProviderApp.ProviderDirectService.AddManualContextWithTimeout(ctxall24);
 
-        App.Zeze.Redirect.RedirectAll(this, reqall13);
+        App.Zeze.Redirect.RedirectAll(this, reqall19);
 
-        await ctxall18.Future.Task;
-        return ctxall18;
+        await ctxall24.Future.Task;
+        return ctxall24;
     }
 
     public override async System.Threading.Tasks.Task TestHash(int hash, int param, System.Action<int, int> result)
     {
         // RedirectHash
-        var _target_ = App.Zeze.Redirect.ChoiceHash(this, hash);
+        var _target_ = App.Zeze.Redirect.ChoiceHash(this, hash, 1);
         if (_target_ == null) {
             // local: loop-back
             await App.Zeze.NewProcedure(async () => { await base.TestHash(hash, param, result); return 0; }, "Game.Rank:TestHash").ExecuteAsync();
             return;
         }
 
-        var rpc23 = new Zeze.Builtin.ProviderDirect.ModuleRedirect();
-        rpc23.Argument.ModuleId = 9;
-        rpc23.Argument.RedirectType = Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeWithHash;
-        rpc23.Argument.HashCode = hash;
-        rpc23.Argument.MethodFullName = "Game.Rank:TestHash";
-        rpc23.Argument.ServiceNamePrefix = App.Zeze.Redirect.ProviderApp.ServerServiceNamePrefix;
+        var rpc29 = new Zeze.Builtin.ProviderDirect.ModuleRedirect();
+        rpc29.Argument.ModuleId = 9;
+        rpc29.Argument.RedirectType = Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeWithHash;
+        rpc29.Argument.HashCode = hash;
+        rpc29.Argument.MethodFullName = "Game.Rank:TestHash";
+        rpc29.Argument.ServiceNamePrefix = App.Zeze.Redirect.ProviderApp.ServerServiceNamePrefix;
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();
             _bb_.WriteInt(param);
-            rpc23.Argument.Params = new Zeze.Net.Binary(_bb_);
+            rpc29.Argument.Params = new Zeze.Net.Binary(_bb_);
         }
 
-        var future24 = new System.Threading.Tasks.TaskCompletionSource();
+        var future30 = new System.Threading.Tasks.TaskCompletionSource();
 
-        rpc23.Send(_target_, async (_) =>
+        rpc29.Send(_target_, async (_) =>
         {
-            if (rpc23.IsTimeout)
+            if (rpc29.IsTimeout)
             {
-                future24.TrySetException(new System.Exception("Game.Rank:TestHash Rpc Timeout."));
+                future30.TrySetException(new System.Exception("Game.Rank:TestHash Rpc Timeout."));
             }
-            else if (0 != rpc23.ResultCode)
+            else if (0 != rpc29.ResultCode)
             {
-                future24.TrySetException(new System.Exception($"Game.Rank:TestHash Rpc Error {rpc23.ResultCode}."));
+                future30.TrySetException(new System.Exception($"Game.Rank:TestHash Rpc Error {rpc29.ResultCode}."));
             }
             else
             {
-                var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(rpc23.Result.Params);
-                int tmp25;
-                tmp25 = _bb_.ReadInt();
-                int tmp26;
-                tmp26 = _bb_.ReadInt();
-                await App.Zeze.NewProcedure(async () => { result(tmp25, tmp26); return 0L; }, "ModuleRedirectResponse Procedure").CallAsync();
-                future24.TrySetResult();
+                var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(rpc29.Result.Params);
+                int tmp31;
+                tmp31 = _bb_.ReadInt();
+                int tmp32;
+                tmp32 = _bb_.ReadInt();
+                await App.Zeze.NewProcedure(async () => { result(tmp31, tmp32); return 0L; }, "ModuleRedirectResponse Procedure").CallAsync();
+                future30.TrySetResult();
             }
             return Zeze.Transaction.Procedure.Success;
         });
 
-        await future24.Task;
+        await future30.Task;
     }
 
     public override void TestHashNoWait(int hash, int param)
     {
         // RedirectHash
-        var _target_ = App.Zeze.Redirect.ChoiceHash(this, hash);
+        var _target_ = App.Zeze.Redirect.ChoiceHash(this, hash, 1);
         if (_target_ == null) {
             // local: loop-back
             App.Zeze.NewProcedure(async () => { base.TestHashNoWait(hash, param); return 0; }, "Game.Rank:TestHashNoWait").Execute();
             return;
         }
 
-        var rpc30 = new Zeze.Builtin.ProviderDirect.ModuleRedirect();
-        rpc30.Argument.ModuleId = 9;
-        rpc30.Argument.RedirectType = Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeWithHash;
-        rpc30.Argument.HashCode = hash;
-        rpc30.Argument.MethodFullName = "Game.Rank:TestHashNoWait";
-        rpc30.Argument.ServiceNamePrefix = App.Zeze.Redirect.ProviderApp.ServerServiceNamePrefix;
+        var rpc36 = new Zeze.Builtin.ProviderDirect.ModuleRedirect();
+        rpc36.Argument.ModuleId = 9;
+        rpc36.Argument.RedirectType = Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeWithHash;
+        rpc36.Argument.HashCode = hash;
+        rpc36.Argument.MethodFullName = "Game.Rank:TestHashNoWait";
+        rpc36.Argument.ServiceNamePrefix = App.Zeze.Redirect.ProviderApp.ServerServiceNamePrefix;
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();
             _bb_.WriteInt(param);
-            rpc30.Argument.Params = new Zeze.Net.Binary(_bb_);
+            rpc36.Argument.Params = new Zeze.Net.Binary(_bb_);
         }
 
-        var future31 = new System.Threading.Tasks.TaskCompletionSource();
+        var future37 = new System.Threading.Tasks.TaskCompletionSource();
 
-        rpc30.Send(_target_, async (_) =>
+        rpc36.Send(_target_, async (_) =>
         {
-            if (rpc30.IsTimeout)
+            if (rpc36.IsTimeout)
             {
-                future31.TrySetException(new System.Exception("Game.Rank:TestHashNoWait Rpc Timeout."));
+                future37.TrySetException(new System.Exception("Game.Rank:TestHashNoWait Rpc Timeout."));
             }
-            else if (0 != rpc30.ResultCode)
+            else if (0 != rpc36.ResultCode)
             {
-                future31.TrySetException(new System.Exception($"Game.Rank:TestHashNoWait Rpc Error {rpc30.ResultCode}."));
+                future37.TrySetException(new System.Exception($"Game.Rank:TestHashNoWait Rpc Error {rpc36.ResultCode}."));
             }
             else
             {
-                var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(rpc30.Result.Params);
-                future31.TrySetResult();
+                var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(rpc36.Result.Params);
+                future37.TrySetResult();
             }
             return Zeze.Transaction.Procedure.Success;
         });
@@ -190,54 +221,54 @@
     public override async System.Threading.Tasks.Task<long> TestHashResult(int hash, int param, System.Action<int, int> result)
     {
         // RedirectHash
-        var _target_ = App.Zeze.Redirect.ChoiceHash(this, hash);
+        var _target_ = App.Zeze.Redirect.ChoiceHash(this, hash, 1);
         if (_target_ == null) {
             // local: loop-back
-            var returnResult35 = default(long);
-            await App.Zeze.NewProcedure(async () => { returnResult35 = await base.TestHashResult(hash, param, result); return 0; }, "Game.Rank:TestHashResult").ExecuteAsync();
-            return returnResult35;
+            var returnResult41 = default(long);
+            await App.Zeze.NewProcedure(async () => { returnResult41 = await base.TestHashResult(hash, param, result); return 0; }, "Game.Rank:TestHashResult").ExecuteAsync();
+            return returnResult41;
         }
 
-        var rpc36 = new Zeze.Builtin.ProviderDirect.ModuleRedirect();
-        rpc36.Argument.ModuleId = 9;
-        rpc36.Argument.RedirectType = Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeWithHash;
-        rpc36.Argument.HashCode = hash;
-        rpc36.Argument.MethodFullName = "Game.Rank:TestHashResult";
-        rpc36.Argument.ServiceNamePrefix = App.Zeze.Redirect.ProviderApp.ServerServiceNamePrefix;
+        var rpc42 = new Zeze.Builtin.ProviderDirect.ModuleRedirect();
+        rpc42.Argument.ModuleId = 9;
+        rpc42.Argument.RedirectType = Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeWithHash;
+        rpc42.Argument.HashCode = hash;
+        rpc42.Argument.MethodFullName = "Game.Rank:TestHashResult";
+        rpc42.Argument.ServiceNamePrefix = App.Zeze.Redirect.ProviderApp.ServerServiceNamePrefix;
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();
             _bb_.WriteInt(param);
-            rpc36.Argument.Params = new Zeze.Net.Binary(_bb_);
+            rpc42.Argument.Params = new Zeze.Net.Binary(_bb_);
         }
 
-        var future37 = new System.Threading.Tasks.TaskCompletionSource<long>();
+        var future43 = new System.Threading.Tasks.TaskCompletionSource<long>();
 
-        rpc36.Send(_target_, async (_) =>
+        rpc42.Send(_target_, async (_) =>
         {
-            if (rpc36.IsTimeout)
+            if (rpc42.IsTimeout)
             {
-                future37.TrySetException(new System.Exception("Game.Rank:TestHashResult Rpc Timeout."));
+                future43.TrySetException(new System.Exception("Game.Rank:TestHashResult Rpc Timeout."));
             }
-            else if (0 != rpc36.ResultCode)
+            else if (0 != rpc42.ResultCode)
             {
-                future37.TrySetException(new System.Exception($"Game.Rank:TestHashResult Rpc Error {rpc36.ResultCode}."));
+                future43.TrySetException(new System.Exception($"Game.Rank:TestHashResult Rpc Error {rpc42.ResultCode}."));
             }
             else
             {
-                var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(rpc36.Result.Params);
-                int tmp38;
-                tmp38 = _bb_.ReadInt();
-                int tmp39;
-                tmp39 = _bb_.ReadInt();
-                await App.Zeze.NewProcedure(async () => { result(tmp38, tmp39); return 0L; }, "ModuleRedirectResponse Procedure").CallAsync();
-                long theResult40;
-                theResult40 = _bb_.ReadLong();
-                future37.TrySetResult(theResult40);
+                var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(rpc42.Result.Params);
+                int tmp44;
+                tmp44 = _bb_.ReadInt();
+                int tmp45;
+                tmp45 = _bb_.ReadInt();
+                await App.Zeze.NewProcedure(async () => { result(tmp44, tmp45); return 0L; }, "ModuleRedirectResponse Procedure").CallAsync();
+                long theResult46;
+                theResult46 = _bb_.ReadLong();
+                future43.TrySetResult(theResult46);
             }
             return Zeze.Transaction.Procedure.Success;
         });
 
-        return await future37.Task;
+        return await future43.Task;
     }
 
     public override async System.Threading.Tasks.Task TestToServer(int serverId, int param, System.Action<int, int> result)
@@ -250,44 +281,44 @@
             return;
         }
 
-        var rpc47 = new Zeze.Builtin.ProviderDirect.ModuleRedirect();
-        rpc47.Argument.ModuleId = 9;
-        rpc47.Argument.RedirectType = Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeToServer;
-        rpc47.Argument.HashCode = serverId;
-        rpc47.Argument.MethodFullName = "Game.Rank:TestToServer";
-        rpc47.Argument.ServiceNamePrefix = App.Zeze.Redirect.ProviderApp.ServerServiceNamePrefix;
+        var rpc53 = new Zeze.Builtin.ProviderDirect.ModuleRedirect();
+        rpc53.Argument.ModuleId = 9;
+        rpc53.Argument.RedirectType = Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeToServer;
+        rpc53.Argument.HashCode = serverId;
+        rpc53.Argument.MethodFullName = "Game.Rank:TestToServer";
+        rpc53.Argument.ServiceNamePrefix = App.Zeze.Redirect.ProviderApp.ServerServiceNamePrefix;
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();
             _bb_.WriteInt(param);
-            rpc47.Argument.Params = new Zeze.Net.Binary(_bb_);
+            rpc53.Argument.Params = new Zeze.Net.Binary(_bb_);
         }
 
-        var future48 = new System.Threading.Tasks.TaskCompletionSource();
+        var future54 = new System.Threading.Tasks.TaskCompletionSource();
 
-        rpc47.Send(_target_, async (_) =>
+        rpc53.Send(_target_, async (_) =>
         {
-            if (rpc47.IsTimeout)
+            if (rpc53.IsTimeout)
             {
-                future48.TrySetException(new System.Exception("Game.Rank:TestToServer Rpc Timeout."));
+                future54.TrySetException(new System.Exception("Game.Rank:TestToServer Rpc Timeout."));
             }
-            else if (0 != rpc47.ResultCode)
+            else if (0 != rpc53.ResultCode)
             {
-                future48.TrySetException(new System.Exception($"Game.Rank:TestToServer Rpc Error {rpc47.ResultCode}."));
+                future54.TrySetException(new System.Exception($"Game.Rank:TestToServer Rpc Error {rpc53.ResultCode}."));
             }
             else
             {
-                var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(rpc47.Result.Params);
-                int tmp49;
-                tmp49 = _bb_.ReadInt();
-                int tmp50;
-                tmp50 = _bb_.ReadInt();
-                await App.Zeze.NewProcedure(async () => { result(tmp49, tmp50); return 0L; }, "ModuleRedirectResponse Procedure").CallAsync();
-                future48.TrySetResult();
+                var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(rpc53.Result.Params);
+                int tmp55;
+                tmp55 = _bb_.ReadInt();
+                int tmp56;
+                tmp56 = _bb_.ReadInt();
+                await App.Zeze.NewProcedure(async () => { result(tmp55, tmp56); return 0L; }, "ModuleRedirectResponse Procedure").CallAsync();
+                future54.TrySetResult();
             }
             return Zeze.Transaction.Procedure.Success;
         });
 
-        await future48.Task;
+        await future54.Task;
     }
 
     public override void TestToServerNoWait(int serverId, System.Action<int, int> result, int param)
@@ -300,39 +331,39 @@
             return;
         }
 
-        var rpc56 = new Zeze.Builtin.ProviderDirect.ModuleRedirect();
-        rpc56.Argument.ModuleId = 9;
-        rpc56.Argument.RedirectType = Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeToServer;
-        rpc56.Argument.HashCode = serverId;
-        rpc56.Argument.MethodFullName = "Game.Rank:TestToServerNoWait";
-        rpc56.Argument.ServiceNamePrefix = App.Zeze.Redirect.ProviderApp.ServerServiceNamePrefix;
+        var rpc62 = new Zeze.Builtin.ProviderDirect.ModuleRedirect();
+        rpc62.Argument.ModuleId = 9;
+        rpc62.Argument.RedirectType = Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeToServer;
+        rpc62.Argument.HashCode = serverId;
+        rpc62.Argument.MethodFullName = "Game.Rank:TestToServerNoWait";
+        rpc62.Argument.ServiceNamePrefix = App.Zeze.Redirect.ProviderApp.ServerServiceNamePrefix;
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();
             _bb_.WriteInt(param);
-            rpc56.Argument.Params = new Zeze.Net.Binary(_bb_);
+            rpc62.Argument.Params = new Zeze.Net.Binary(_bb_);
         }
 
-        var future57 = new System.Threading.Tasks.TaskCompletionSource();
+        var future63 = new System.Threading.Tasks.TaskCompletionSource();
 
-        rpc56.Send(_target_, async (_) =>
+        rpc62.Send(_target_, async (_) =>
         {
-            if (rpc56.IsTimeout)
+            if (rpc62.IsTimeout)
             {
-                future57.TrySetException(new System.Exception("Game.Rank:TestToServerNoWait Rpc Timeout."));
+                future63.TrySetException(new System.Exception("Game.Rank:TestToServerNoWait Rpc Timeout."));
             }
-            else if (0 != rpc56.ResultCode)
+            else if (0 != rpc62.ResultCode)
             {
-                future57.TrySetException(new System.Exception($"Game.Rank:TestToServerNoWait Rpc Error {rpc56.ResultCode}."));
+                future63.TrySetException(new System.Exception($"Game.Rank:TestToServerNoWait Rpc Error {rpc62.ResultCode}."));
             }
             else
             {
-                var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(rpc56.Result.Params);
-                int tmp58;
-                tmp58 = _bb_.ReadInt();
-                int tmp59;
-                tmp59 = _bb_.ReadInt();
-                await App.Zeze.NewProcedure(async () => { result(tmp58, tmp59); return 0L; }, "ModuleRedirectResponse Procedure").CallAsync();
-                future57.TrySetResult();
+                var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(rpc62.Result.Params);
+                int tmp64;
+                tmp64 = _bb_.ReadInt();
+                int tmp65;
+                tmp65 = _bb_.ReadInt();
+                await App.Zeze.NewProcedure(async () => { result(tmp64, tmp65); return 0L; }, "ModuleRedirectResponse Procedure").CallAsync();
+                future63.TrySetResult();
             }
             return Zeze.Transaction.Procedure.Success;
         });
@@ -345,109 +376,124 @@
         var _target_ = App.Zeze.Redirect.ChoiceServer(this, serverId);
         if (_target_ == null) {
             // local: loop-back
-            var returnResult65 = default(long);
-            await App.Zeze.NewProcedure(async () => { returnResult65 = await base.TestToServerResult(serverId, param, result); return 0; }, "Game.Rank:TestToServerResult").ExecuteAsync();
-            return returnResult65;
+            var returnResult71 = default(long);
+            await App.Zeze.NewProcedure(async () => { returnResult71 = await base.TestToServerResult(serverId, param, result); return 0; }, "Game.Rank:TestToServerResult").ExecuteAsync();
+            return returnResult71;
         }
 
-        var rpc66 = new Zeze.Builtin.ProviderDirect.ModuleRedirect();
-        rpc66.Argument.ModuleId = 9;
-        rpc66.Argument.RedirectType = Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeToServer;
-        rpc66.Argument.HashCode = serverId;
-        rpc66.Argument.MethodFullName = "Game.Rank:TestToServerResult";
-        rpc66.Argument.ServiceNamePrefix = App.Zeze.Redirect.ProviderApp.ServerServiceNamePrefix;
+        var rpc72 = new Zeze.Builtin.ProviderDirect.ModuleRedirect();
+        rpc72.Argument.ModuleId = 9;
+        rpc72.Argument.RedirectType = Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeToServer;
+        rpc72.Argument.HashCode = serverId;
+        rpc72.Argument.MethodFullName = "Game.Rank:TestToServerResult";
+        rpc72.Argument.ServiceNamePrefix = App.Zeze.Redirect.ProviderApp.ServerServiceNamePrefix;
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();
             _bb_.WriteInt(param);
-            rpc66.Argument.Params = new Zeze.Net.Binary(_bb_);
+            rpc72.Argument.Params = new Zeze.Net.Binary(_bb_);
         }
 
-        var future67 = new System.Threading.Tasks.TaskCompletionSource<long>();
+        var future73 = new System.Threading.Tasks.TaskCompletionSource<long>();
 
-        rpc66.Send(_target_, async (_) =>
+        rpc72.Send(_target_, async (_) =>
         {
-            if (rpc66.IsTimeout)
+            if (rpc72.IsTimeout)
             {
-                future67.TrySetException(new System.Exception("Game.Rank:TestToServerResult Rpc Timeout."));
+                future73.TrySetException(new System.Exception("Game.Rank:TestToServerResult Rpc Timeout."));
             }
-            else if (0 != rpc66.ResultCode)
+            else if (0 != rpc72.ResultCode)
             {
-                future67.TrySetException(new System.Exception($"Game.Rank:TestToServerResult Rpc Error {rpc66.ResultCode}."));
+                future73.TrySetException(new System.Exception($"Game.Rank:TestToServerResult Rpc Error {rpc72.ResultCode}."));
             }
             else
             {
-                var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(rpc66.Result.Params);
-                int tmp68;
-                tmp68 = _bb_.ReadInt();
-                int tmp69;
-                tmp69 = _bb_.ReadInt();
-                await App.Zeze.NewProcedure(async () => { result(tmp68, tmp69); return 0L; }, "ModuleRedirectResponse Procedure").CallAsync();
-                long theResult70;
-                theResult70 = _bb_.ReadLong();
-                future67.TrySetResult(theResult70);
+                var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(rpc72.Result.Params);
+                int tmp74;
+                tmp74 = _bb_.ReadInt();
+                int tmp75;
+                tmp75 = _bb_.ReadInt();
+                await App.Zeze.NewProcedure(async () => { result(tmp74, tmp75); return 0L; }, "ModuleRedirectResponse Procedure").CallAsync();
+                long theResult76;
+                theResult76 = _bb_.ReadLong();
+                future73.TrySetResult(theResult76);
             }
             return Zeze.Transaction.Procedure.Success;
         });
 
-        return await future67.Task;
+        return await future73.Task;
     }
 
     protected override async System.Threading.Tasks.Task<long> UpdateRank(int hash, Game.Rank.BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx)
     {
         // RedirectHash
-        var _target_ = App.Zeze.Redirect.ChoiceHash(this, hash);
+        var _target_ = App.Zeze.Redirect.ChoiceHash(this, hash, GetConcurrentLevel(keyHint.RankType));
         if (_target_ == null) {
             // local: loop-back
-            var returnResult75 = default(long);
-            await App.Zeze.NewProcedure(async () => { returnResult75 = await base.UpdateRank(hash, keyHint, roleId, value, valueEx); return 0; }, "Game.Rank:UpdateRank").ExecuteAsync();
-            return returnResult75;
+            var returnResult81 = default(long);
+            await App.Zeze.NewProcedure(async () => { returnResult81 = await base.UpdateRank(hash, keyHint, roleId, value, valueEx); return 0; }, "Game.Rank:UpdateRank").ExecuteAsync();
+            return returnResult81;
         }
 
-        var rpc76 = new Zeze.Builtin.ProviderDirect.ModuleRedirect();
-        rpc76.Argument.ModuleId = 9;
-        rpc76.Argument.RedirectType = Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeWithHash;
-        rpc76.Argument.HashCode = hash;
-        rpc76.Argument.MethodFullName = "Game.Rank:UpdateRank";
-        rpc76.Argument.ServiceNamePrefix = App.Zeze.Redirect.ProviderApp.ServerServiceNamePrefix;
+        var rpc82 = new Zeze.Builtin.ProviderDirect.ModuleRedirect();
+        rpc82.Argument.ModuleId = 9;
+        rpc82.Argument.RedirectType = Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeWithHash;
+        rpc82.Argument.HashCode = hash;
+        rpc82.Argument.MethodFullName = "Game.Rank:UpdateRank";
+        rpc82.Argument.ServiceNamePrefix = App.Zeze.Redirect.ProviderApp.ServerServiceNamePrefix;
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Allocate();
             keyHint.Encode(_bb_);
             _bb_.WriteLong(roleId);
             _bb_.WriteLong(value);
             _bb_.WriteBinary(valueEx);
-            rpc76.Argument.Params = new Zeze.Net.Binary(_bb_);
+            rpc82.Argument.Params = new Zeze.Net.Binary(_bb_);
         }
 
-        var future77 = new System.Threading.Tasks.TaskCompletionSource<long>();
+        var future83 = new System.Threading.Tasks.TaskCompletionSource<long>();
 
-        rpc76.Send(_target_, async (_) =>
+        rpc82.Send(_target_, async (_) =>
         {
-            if (rpc76.IsTimeout)
+            if (rpc82.IsTimeout)
             {
-                future77.TrySetException(new System.Exception("Game.Rank:UpdateRank Rpc Timeout."));
+                future83.TrySetException(new System.Exception("Game.Rank:UpdateRank Rpc Timeout."));
             }
-            else if (0 != rpc76.ResultCode)
+            else if (0 != rpc82.ResultCode)
             {
-                future77.TrySetException(new System.Exception($"Game.Rank:UpdateRank Rpc Error {rpc76.ResultCode}."));
+                future83.TrySetException(new System.Exception($"Game.Rank:UpdateRank Rpc Error {rpc82.ResultCode}."));
             }
             else
             {
-                var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(rpc76.Result.Params);
-                long theResult78;
-                theResult78 = _bb_.ReadLong();
-                future77.TrySetResult(theResult78);
+                var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(rpc82.Result.Params);
+                long theResult84;
+                theResult84 = _bb_.ReadLong();
+                future83.TrySetResult(theResult84);
             }
             return Zeze.Transaction.Procedure.Success;
         });
 
-        return await future77.Task;
+        return await future83.Task;
     }
 
     public Redirect_Game_Rank(Game.App app) : base(app)
     {
-        var hName4 = new Zeze.Arch.RedirectHandle();
-        hName4.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
-        hName4.RequestHandle = async (_sessionId_, _hash_, _params_) =>
+        var hName5 = new Zeze.Arch.RedirectHandle();
+        hName5.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
+        hName5.RequestHandle = async (_sessionId_, _hash_, _params_) =>
+        {
+            var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);
+            Game.Rank.BConcurrentKey keyHint = new Game.Rank.BConcurrentKey();
+            keyHint.Decode(_bb_);
+            // WARNING reuse var _bb_ to encode result.
+            _bb_ = Zeze.Serialize.ByteBuffer.Allocate(1024);
+            var asyncResult6 = await base.GetRankAll(_hash_, keyHint);
+            asyncResult6.Encode(_bb_);
+            return new Zeze.Net.Binary(_bb_);
+        };
+        App.Zeze.Redirect.Handles.TryAdd("Game.Rank:GetRankAll", hName5);
+
+        var hName10 = new Zeze.Arch.RedirectHandle();
+        hName10.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
+        hName10.RequestHandle = async (_sessionId_, _hash_, _params_) =>
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);
             int param;
@@ -457,59 +503,59 @@
             await base.TestAllNoResult(_hash_, param);
             return new Zeze.Net.Binary(_bb_);
         };
-        App.Zeze.Redirect.Handles.TryAdd("Game.Rank:TestAllNoResult", hName4);
+        App.Zeze.Redirect.Handles.TryAdd("Game.Rank:TestAllNoResult", hName10);
 
-        var hName9 = new Zeze.Arch.RedirectHandle();
-        hName9.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
-        hName9.RequestHandle = async (_sessionId_, _hash_, _params_) =>
+        var hName15 = new Zeze.Arch.RedirectHandle();
+        hName15.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
+        hName15.RequestHandle = async (_sessionId_, _hash_, _params_) =>
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);
             int param;
             param = _bb_.ReadInt();
             // WARNING reuse var _bb_ to encode result.
             _bb_ = Zeze.Serialize.ByteBuffer.Allocate(1024);
-            var asyncResult10 = await base.TestAllResult(_hash_, param);
-            _bb_.WriteLong(asyncResult10);
+            var asyncResult16 = await base.TestAllResult(_hash_, param);
+            _bb_.WriteLong(asyncResult16);
             return new Zeze.Net.Binary(_bb_);
         };
-        App.Zeze.Redirect.Handles.TryAdd("Game.Rank:TestAllResult", hName9);
+        App.Zeze.Redirect.Handles.TryAdd("Game.Rank:TestAllResult", hName15);
 
-        var hName19 = new Zeze.Arch.RedirectHandle();
-        hName19.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
-        hName19.RequestHandle = async (_sessionId_, _hash_, _params_) =>
+        var hName25 = new Zeze.Arch.RedirectHandle();
+        hName25.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
+        hName25.RequestHandle = async (_sessionId_, _hash_, _params_) =>
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);
             int param;
             param = _bb_.ReadInt();
             // WARNING reuse var _bb_ to encode result.
             _bb_ = Zeze.Serialize.ByteBuffer.Allocate(1024);
-            var asyncResult20 = await base.TestAllResultProcessing(_hash_, param);
-            _bb_.WriteBytes(System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(asyncResult20, typeof(Game.Rank.ModuleRank.MyResult)));
+            var asyncResult26 = await base.TestAllResultProcessing(_hash_, param);
+            _bb_.WriteBytes(System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(asyncResult26, typeof(Game.Rank.ModuleRank.MyResult)));
             return new Zeze.Net.Binary(_bb_);
         };
-        App.Zeze.Redirect.Handles.TryAdd("Game.Rank:TestAllResultProcessing", hName19);
+        App.Zeze.Redirect.Handles.TryAdd("Game.Rank:TestAllResultProcessing", hName25);
 
-        var hName27 = new Zeze.Arch.RedirectHandle();
-        hName27.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
-        hName27.RequestHandle = async (_sessionId_, _HashOrServerId_, _params_) =>
+        var hName33 = new Zeze.Arch.RedirectHandle();
+        hName33.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
+        hName33.RequestHandle = async (_sessionId_, _HashOrServerId_, _params_) =>
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);
             int param;
             param = _bb_.ReadInt();
             // WARNING reuse var _bb_ to encode result.
             _bb_ = Zeze.Serialize.ByteBuffer.Allocate(1024);
-            System.Action<int, int> result = (tmp28, tmp29) =>
+            System.Action<int, int> result = (tmp34, tmp35) =>
             {
-                _bb_.WriteInt(tmp28);
-                _bb_.WriteInt(tmp29);
+                _bb_.WriteInt(tmp34);
+                _bb_.WriteInt(tmp35);
             };
             await base.TestHash(_HashOrServerId_, param, result);
             return new Zeze.Net.Binary(_bb_);
         };
-        App.Zeze.Redirect.Handles.TryAdd("Game.Rank:TestHash", hName27);
-        var hName32 = new Zeze.Arch.RedirectHandle();
-        hName32.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
-        hName32.RequestHandle = async (_sessionId_, _HashOrServerId_, _params_) =>
+        App.Zeze.Redirect.Handles.TryAdd("Game.Rank:TestHash", hName33);
+        var hName38 = new Zeze.Arch.RedirectHandle();
+        hName38.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
+        hName38.RequestHandle = async (_sessionId_, _HashOrServerId_, _params_) =>
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);
             int param;
@@ -519,84 +565,84 @@
             base.TestHashNoWait(_HashOrServerId_, param);
             return Zeze.Net.Binary.Empty;
         };
-        App.Zeze.Redirect.Handles.TryAdd("Game.Rank:TestHashNoWait", hName32);
-        var hName41 = new Zeze.Arch.RedirectHandle();
-        hName41.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
-        hName41.RequestHandle = async (_sessionId_, _HashOrServerId_, _params_) =>
+        App.Zeze.Redirect.Handles.TryAdd("Game.Rank:TestHashNoWait", hName38);
+        var hName47 = new Zeze.Arch.RedirectHandle();
+        hName47.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
+        hName47.RequestHandle = async (_sessionId_, _HashOrServerId_, _params_) =>
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);
             int param;
             param = _bb_.ReadInt();
             // WARNING reuse var _bb_ to encode result.
             _bb_ = Zeze.Serialize.ByteBuffer.Allocate(1024);
-            System.Action<int, int> result = (tmp42, tmp43) =>
+            System.Action<int, int> result = (tmp48, tmp49) =>
             {
-                _bb_.WriteInt(tmp42);
-                _bb_.WriteInt(tmp43);
+                _bb_.WriteInt(tmp48);
+                _bb_.WriteInt(tmp49);
             };
-            var asyncResult44 = await base.TestHashResult(_HashOrServerId_, param, result);
-            _bb_.WriteLong(asyncResult44);
+            var asyncResult50 = await base.TestHashResult(_HashOrServerId_, param, result);
+            _bb_.WriteLong(asyncResult50);
             return new Zeze.Net.Binary(_bb_);
         };
-        App.Zeze.Redirect.Handles.TryAdd("Game.Rank:TestHashResult", hName41);
-        var hName51 = new Zeze.Arch.RedirectHandle();
-        hName51.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
-        hName51.RequestHandle = async (_sessionId_, _HashOrServerId_, _params_) =>
+        App.Zeze.Redirect.Handles.TryAdd("Game.Rank:TestHashResult", hName47);
+        var hName57 = new Zeze.Arch.RedirectHandle();
+        hName57.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
+        hName57.RequestHandle = async (_sessionId_, _HashOrServerId_, _params_) =>
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);
             int param;
             param = _bb_.ReadInt();
             // WARNING reuse var _bb_ to encode result.
             _bb_ = Zeze.Serialize.ByteBuffer.Allocate(1024);
-            System.Action<int, int> result = (tmp52, tmp53) =>
+            System.Action<int, int> result = (tmp58, tmp59) =>
             {
-                _bb_.WriteInt(tmp52);
-                _bb_.WriteInt(tmp53);
+                _bb_.WriteInt(tmp58);
+                _bb_.WriteInt(tmp59);
             };
             await base.TestToServer(_HashOrServerId_, param, result);
             return new Zeze.Net.Binary(_bb_);
         };
-        App.Zeze.Redirect.Handles.TryAdd("Game.Rank:TestToServer", hName51);
-        var hName60 = new Zeze.Arch.RedirectHandle();
-        hName60.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
-        hName60.RequestHandle = async (_sessionId_, _HashOrServerId_, _params_) =>
+        App.Zeze.Redirect.Handles.TryAdd("Game.Rank:TestToServer", hName57);
+        var hName66 = new Zeze.Arch.RedirectHandle();
+        hName66.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
+        hName66.RequestHandle = async (_sessionId_, _HashOrServerId_, _params_) =>
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);
             int param;
             param = _bb_.ReadInt();
             // WARNING reuse var _bb_ to encode result.
             _bb_ = Zeze.Serialize.ByteBuffer.Allocate(1024);
-            System.Action<int, int> result = (tmp61, tmp62) =>
+            System.Action<int, int> result = (tmp67, tmp68) =>
             {
-                _bb_.WriteInt(tmp61);
-                _bb_.WriteInt(tmp62);
+                _bb_.WriteInt(tmp67);
+                _bb_.WriteInt(tmp68);
             };
             base.TestToServerNoWait(_HashOrServerId_, result, param);
             return Zeze.Net.Binary.Empty;
         };
-        App.Zeze.Redirect.Handles.TryAdd("Game.Rank:TestToServerNoWait", hName60);
-        var hName71 = new Zeze.Arch.RedirectHandle();
-        hName71.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
-        hName71.RequestHandle = async (_sessionId_, _HashOrServerId_, _params_) =>
+        App.Zeze.Redirect.Handles.TryAdd("Game.Rank:TestToServerNoWait", hName66);
+        var hName77 = new Zeze.Arch.RedirectHandle();
+        hName77.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
+        hName77.RequestHandle = async (_sessionId_, _HashOrServerId_, _params_) =>
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);
             int param;
             param = _bb_.ReadInt();
             // WARNING reuse var _bb_ to encode result.
             _bb_ = Zeze.Serialize.ByteBuffer.Allocate(1024);
-            System.Action<int, int> result = (tmp72, tmp73) =>
+            System.Action<int, int> result = (tmp78, tmp79) =>
             {
-                _bb_.WriteInt(tmp72);
-                _bb_.WriteInt(tmp73);
+                _bb_.WriteInt(tmp78);
+                _bb_.WriteInt(tmp79);
             };
-            var asyncResult74 = await base.TestToServerResult(_HashOrServerId_, param, result);
-            _bb_.WriteLong(asyncResult74);
+            var asyncResult80 = await base.TestToServerResult(_HashOrServerId_, param, result);
+            _bb_.WriteLong(asyncResult80);
             return new Zeze.Net.Binary(_bb_);
         };
-        App.Zeze.Redirect.Handles.TryAdd("Game.Rank:TestToServerResult", hName71);
-        var hName79 = new Zeze.Arch.RedirectHandle();
-        hName79.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
-        hName79.RequestHandle = async (_sessionId_, _HashOrServerId_, _params_) =>
+        App.Zeze.Redirect.Handles.TryAdd("Game.Rank:TestToServerResult", hName77);
+        var hName85 = new Zeze.Arch.RedirectHandle();
+        hName85.RequestTransactionLevel = Zeze.Transaction.TransactionLevel.Serializable;
+        hName85.RequestHandle = async (_sessionId_, _HashOrServerId_, _params_) =>
         {
             var _bb_ = Zeze.Serialize.ByteBuffer.Wrap(_params_);
             Game.Rank.BConcurrentKey keyHint = new Game.Rank.BConcurrentKey();
@@ -609,11 +655,11 @@
             valueEx = _bb_.ReadBinary();
             // WARNING reuse var _bb_ to encode result.
             _bb_ = Zeze.Serialize.ByteBuffer.Allocate(1024);
-            var asyncResult80 = await base.UpdateRank(_HashOrServerId_, keyHint, roleId, value, valueEx);
-            _bb_.WriteLong(asyncResult80);
+            var asyncResult86 = await base.UpdateRank(_HashOrServerId_, keyHint, roleId, value, valueEx);
+            _bb_.WriteLong(asyncResult86);
             return new Zeze.Net.Binary(_bb_);
         };
-        App.Zeze.Redirect.Handles.TryAdd("Game.Rank:UpdateRank", hName79);
+        App.Zeze.Redirect.Handles.TryAdd("Game.Rank:UpdateRank", hName85);
     }
 
 }

@@ -35,7 +35,7 @@
     protected override async System.Threading.Tasks.Task<long> UpdateRank(int hash, Zeze.Builtin.Game.Rank.BConcurrentKey keyHint, long roleId, long value, Zeze.Net.Binary valueEx)
     {
         // RedirectHash
-        var _target_ = App.Zeze.Redirect.ChoiceHash(this, hash);
+        var _target_ = App.Zeze.Redirect.ChoiceHash(this, hash, GetConcurrentLevel(keyHint.RankType));
         if (_target_ == null) {
             // local: loop-back
             var returnResult7 = default(long);

@@ -52,18 +52,51 @@ namespace Zeze.Arch
             }
         }
 
-        public ServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash)
+        public ServiceInfo ChoiceDataIndex(Agent.SubscribeState providers, int dataIndex, int dataConcurrentLevel)
+        {
+            /*
+            if (ConsistentHashs.TryGetValue(providers.ServiceName, out var consistentHash))
+            {
+                if (consistentHash.Nodes.Count > dataConcurrentLevel)
+                    throw new Exception("too many server"); // 服务器数量超过并发级别时，忽略更多的服务器。但一致性hash不容易做到。
+                return consistentHash.Get(calc_hash(dataIndex));
+            }
+            return null;
+             */
+            // TODO 下面的实现是临时的 see ChoiceHash
+            var list = providers.ServiceInfos.SortedIdentity;
+            if (list.Count == 0)
+                return null;
+            var servercount = Math.Min(dataConcurrentLevel, list.Count); // 服务器数量超过并发级别时，忽略更多的服务器。
+            return list[dataIndex % servercount];
+        }
+
+        public ServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash, int dataConcurrentLevel = 1)
         {
             /*
              ConsistentHash.Get 还没有实现。
             if (ConsistentHashs.TryGetValue(providers.ServiceName, out var consistentHash))
-                return consistentHash.Get(hash);
-            */
-
+            {
+                if (dataConcurrentLevel == 1)
+                    return consistentHash.Get(hash);
+                if (consistentHash.Nodes.Count > dataConcurrentLevel)
+                    throw new Exception("too many server"); // 服务器数量超过并发级别时，忽略更多的服务器。但一致性hash不容易做到。
+                var di = hash % dataConcurrentLevel;
+                return consistentHash.Get(calc_hash(di));
+            }
+            return null;
+             TODO 下面的实现是临时的 see ChoiceDataIndex
+             */
             var list = providers.ServiceInfos.SortedIdentity;
             if (list.Count == 0)
                 return null;
-            return list[hash % list.Count];
+
+            if (dataConcurrentLevel == 1)
+                return list[hash % list.Count];
+
+            var dataIndex = hash % dataConcurrentLevel;
+            var servercount = Math.Min(dataConcurrentLevel, list.Count); // 服务器数量超过并发级别时，忽略更多的服务器。
+            return list[dataIndex % servercount];
         }
 
         public bool ChoiceHash(Agent.SubscribeState providers, int hash, out long provider)
@@ -72,7 +105,9 @@ namespace Zeze.Arch
             var serviceInfo = ChoiceHash(providers, hash);
             if (null == serviceInfo)
                 return false;
-            if (serviceInfo.LocalState is not ProviderModuleState providerModuleState)
+            if (false == providers.LocalStates.TryGetValue(serviceInfo.ServiceIdentity, out var localState))
+                return false;
+            if (localState is not ProviderModuleState providerModuleState)
                 return false;
             provider = providerModuleState.SessionId;
             return true;
@@ -90,7 +125,9 @@ namespace Zeze.Arch
             // 新的provider在后面，从后面开始搜索。后面的可能是新的provider。
             for (int i = list.Count - 1; i >= 0; --i)
             {
-                if (list[i].LocalState is not ProviderModuleState providerModuleState)
+                if (false == providers.LocalStates.TryGetValue(list[i].ServiceIdentity, out var localState))
+                    continue;
+                if (localState is not ProviderModuleState providerModuleState)
                     continue;
                 if (ProviderService.GetSocket(providerModuleState.SessionId)?.UserState is not ProviderSession ps)
                     continue; // 这里发现关闭的服务，仅仅忽略.
@@ -142,7 +179,9 @@ namespace Zeze.Arch
                 {
                     var index = (int)((uint)FeedFullOneByOneIndex.Get() % (uint)list.Count); // current
                     var serviceinfo = list[index];
-                    if (serviceinfo.LocalState is not ProviderModuleState providerModuleState)
+                    if (false == providers.LocalStates.TryGetValue(list[i].ServiceIdentity, out var localState))
+                        continue;
+                    if (localState is not ProviderModuleState providerModuleState)
                         continue;
                     // 这里发现关闭的服务，仅仅忽略.
                     if (ProviderService.GetSocket(providerModuleState.SessionId)?.UserState is not ProviderSession ps)
@@ -161,46 +200,31 @@ namespace Zeze.Arch
             }
         }
 
-        public ServiceInfo ChoiceProvider(string prefix, int moduleId, int hash)
+        public bool TryGetProviders(string prefix, int moduleId, out Agent.SubscribeState providers)
         {
             var serviceName = MakeServiceName(prefix, moduleId);
-            if (false == Zeze.ServiceManagerAgent.SubscribeStates.TryGetValue(serviceName, out var volatileProviders))
-                return null;
-            return ChoiceHash(volatileProviders, hash);
-        }
-
-        public bool ChoiceProvider(string prefix, int moduleId, int hash, out long provider)
-        {
-            provider = 0;
-            var serviceInfo = ChoiceProvider(prefix, moduleId, hash);
-            if (null == serviceInfo)
-                return false;
-
-            var providerModuleState = (ProviderModuleState)serviceInfo.LocalState;
-            if (providerModuleState == null)
-                return false;
-            provider = providerModuleState.SessionId;
-            return true;
+            return Zeze.ServiceManagerAgent.SubscribeStates.TryGetValue(serviceName, out providers);
         }
 
         public bool ChoiceProviderByServerId(string serviceNamePrefix, int moduleId, int serverId, out long provider)
         {
-            var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
-            if (false == Zeze.ServiceManagerAgent.SubscribeStates.TryGetValue(
-                serviceName, out var volatileProviders))
-            {
-                provider = 0;
-                return false;
-            }
-            var si = volatileProviders.ServiceInfos.Find(serverId);
-            if (null != si)
-            {
-                var state = (ProviderModuleState)si.LocalState;
-                provider = state.SessionId;
-                return true;
-            }
             provider = 0;
-            return false;
+            var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
+            if (false == Zeze.ServiceManagerAgent.SubscribeStates.TryGetValue(serviceName, out var providers))
+                return false;
+
+            var serviceInfo = providers.ServiceInfos.Find(serverId);
+            if (null == serviceInfo)
+                return false;
+
+            if (false == providers.LocalStates.TryGetValue(serviceInfo.ServiceIdentity, out var localState))
+                return false;
+
+            if (localState is not ProviderModuleState providerModuleState)
+                return false;
+
+            provider = providerModuleState.SessionId;
+            return true;
         }
     }
 }

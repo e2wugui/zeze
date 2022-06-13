@@ -9,8 +9,11 @@ namespace Zeze.Arch
     [System.AttributeUsage(System.AttributeTargets.Method)]
     public class RedirectHashAttribute : System.Attribute
     {
-        public RedirectHashAttribute()
+        public string GetConcurrentLevelSource { get; }
+
+        public RedirectHashAttribute(string source = null)
         {
+            GetConcurrentLevelSource = source;
         }
     }
 

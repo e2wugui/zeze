@@ -144,7 +144,7 @@ namespace Zeze.Arch.Gen
             {
                 case OverrideType.RedirectHash:
                     sb.AppendLine($"        // RedirectHash");
-                    sb.AppendLine($"        var _target_ = App.Zeze.Redirect.ChoiceHash(this, {m.ParameterHashOrServer.Name});");
+                    sb.AppendLine($"        var _target_ = App.Zeze.Redirect.ChoiceHash(this, {m.ParameterHashOrServer.Name}, {m.GetConcurrentLevelSource()});");
                     break;
                 case OverrideType.RedirectToServer:
                     sb.AppendLine($"        // RedirectToServer");
