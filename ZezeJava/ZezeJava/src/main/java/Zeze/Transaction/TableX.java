@@ -12,6 +12,7 @@ import org.apache.logging.log4j.Logger;
 
 public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Table {
 	private static final Logger logger = LogManager.getLogger(TableX.class);
+	private static final Runnable none = () -> {};
 
 	public TableX(String name) {
 		super(name);
@@ -317,7 +318,6 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	@Override
 	void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex) {
-		Runnable none = () -> {};
 		for (var e : getCache().getDataMap().entrySet()) {
 			var gkey = EncodeGlobalKey(e.getKey());
 			if (getZeze().getGlobalAgent().GetGlobalCacheManagerHashIndex(gkey) != GlobalCacheManagerHashIndex) {

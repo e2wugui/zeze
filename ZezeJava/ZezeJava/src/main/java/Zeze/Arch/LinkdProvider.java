@@ -91,11 +91,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 		case BModule.ChoiceTypeHashRoleId:
 			var roleId = linkSession.getRoleId();
-			if (null != roleId) {
-				return Distribute.ChoiceHash(volatileProviders, ByteBuffer.calc_hashnr(roleId), provider);
-			} else {
-				return false;
-			}
+			return roleId != null && Distribute.ChoiceHash(volatileProviders, ByteBuffer.calc_hashnr(roleId), provider);
 
 		case BModule.ChoiceTypeFeedFullOneByOne:
 			return Distribute.ChoiceFeedFullOneByOne(volatileProviders, provider);

@@ -266,9 +266,16 @@ public final class Tasks {
 			var app = Simulate.getInstance().randApp().app; // 任何一个app都能查到相同的结果。
 			int sum = 0;
 			for (int key = 0; key < KeyBoundTrade; key++) {
-				var value = app.demo_Module1.getTable1().selectDirty((long)key);
-				if (value != null)
-					sum += value.getInt1();
+				try {
+					var value = app.demo_Module1.getTable1().selectDirty((long)key);
+					if (value != null)
+						sum += value.getInt1();
+				} catch (IllegalStateException e) {
+					if ("Acquire Failed".equals(e.getMessage()))
+						key--; // retry
+					else
+						throw e;
+				}
 			}
 			Assert.assertEquals(0, sum);
 		}

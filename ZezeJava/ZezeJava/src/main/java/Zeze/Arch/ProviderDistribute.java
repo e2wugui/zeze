@@ -23,21 +23,21 @@ public class ProviderDistribute {
 	public Service ProviderService;
 	private final AtomicInteger FeedFullOneByOneIndex = new AtomicInteger();
 
-	public ConcurrentHashMap<String, Zeze.Util.ConsistentHash<ServiceInfo>> ConsistentHashs = new ConcurrentHashMap<>();
+	public ConcurrentHashMap<String, ConsistentHash<ServiceInfo>> ConsistentHashes = new ConcurrentHashMap<>();
 
 	public void AddServer(Agent.SubscribeState state, ServiceInfo s) {
-		var consistentHash = ConsistentHashs.computeIfAbsent(s.getServiceName(), key -> new ConsistentHash<>());
+		var consistentHash = ConsistentHashes.computeIfAbsent(s.getServiceName(), key -> new ConsistentHash<>());
 		consistentHash.add(s.getServiceIdentity(), s);
 	}
 
 	public void RemoveServer(Agent.SubscribeState state, ServiceInfo s) {
-		var consistentHash = ConsistentHashs.get(s.getServiceName());
+		var consistentHash = ConsistentHashes.get(s.getServiceName());
 		if (null != consistentHash)
 			consistentHash.remove(s.getServiceIdentity(), s);
 	}
 
 	public void ApplyServers(Agent.SubscribeState ass) {
-		var consistentHash = ConsistentHashs.computeIfAbsent(ass.getServiceName(), key -> new ConsistentHash<>());
+		var consistentHash = ConsistentHashes.computeIfAbsent(ass.getServiceName(), key -> new ConsistentHash<>());
 		var nodes = consistentHash.getNodes();
 		var current = new HashSet<ServiceInfo>();
 		for (var node : ass.getServiceInfos().getServiceInfoListSortedByIdentity()) {
@@ -54,8 +54,8 @@ public class ProviderDistribute {
 		return serviceNamePrefix + moduleId;
 	}
 
-	public Zeze.Util.ConsistentHash<ServiceInfo> getConsistentHash(String name) {
-		return ConsistentHashs.get(name);
+	public ConsistentHash<ServiceInfo> getConsistentHash(String name) {
+		return ConsistentHashes.get(name);
 	}
 
 	private int calc_hash(int src) {
@@ -63,28 +63,30 @@ public class ProviderDistribute {
 	}
 
 	// ChoiceDataIndex 用于RedirectAll或者那些已知数据分块索引的地方。
-	public ServiceInfo ChoiceDataIndex(Zeze.Util.ConsistentHash<ServiceInfo> consistentHash, int dataIndex, int dataConcurrentLevel) {
+	public ServiceInfo ChoiceDataIndex(ConsistentHash<ServiceInfo> consistentHash, int dataIndex, int dataConcurrentLevel) {
+		if (consistentHash == null)
+			return null;
 		if (consistentHash.getNodes().size() > dataConcurrentLevel)
-			throw new RuntimeException("too many server");
+			throw new IllegalStateException("too many server: " + consistentHash.getNodes().size() + " > " + dataConcurrentLevel);
 		return consistentHash.get(calc_hash(dataIndex));
 	}
 
 	public ServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash, int dataConcurrentLevel) {
-		var consistentHash = ConsistentHashs.get(providers.getServiceName());
+		var consistentHash = ConsistentHashes.get(providers.getServiceName());
 		if (null == consistentHash)
 			return null;
-		if (dataConcurrentLevel == 1)
+		if (dataConcurrentLevel <= 1)
 			return consistentHash.get(hash);
 
 		if (consistentHash.getNodes().size() > dataConcurrentLevel)
-			throw new RuntimeException("too many server");
+			throw new IllegalStateException("too many server: " + consistentHash.getNodes().size() + " > " + dataConcurrentLevel);
 
-		var dataIndex = hash % dataConcurrentLevel;
+		var dataIndex = (int)((hash & 0xffff_ffffL) % dataConcurrentLevel);
 		return consistentHash.get(calc_hash(dataIndex));
 	}
 
 	public ServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash) {
-		return ChoiceHash(providers, hash,1);
+		return ChoiceHash(providers, hash, 1);
 	}
 
 	public boolean ChoiceHash(Agent.SubscribeState providers, int hash, OutLong provider) {
