@@ -201,18 +201,15 @@ namespace Zeze.Transaction
                         rpc.SendResult();
                         return 0;
                 }
+                rpc.Result.State = GlobalCacheManagerServer.StateShare;
+                await FlushWhenReduce(r);
+                logger.Debug("ReduceShare SendResult 4 {0}", r);
+                rpc.SendResult();
             }
             finally
             {
                 lockey.Release();
             }
-            //logger.Warn("ReduceShare checkpoint begin. id={0} {1}", r, tkey);
-            rpc.Result.State = GlobalCacheManagerServer.StateShare;
-            await FlushWhenReduce(r);
-            logger.Debug("ReduceShare SendResult 4 {0}", r);
-            // Must before SendResult
-            rpc.SendResult();
-            //logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
             return 0;
         }
 
@@ -296,18 +293,15 @@ namespace Zeze.Transaction
                         rpc.SendResult();
                         return 0;
                 }
+                rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+                await FlushWhenReduce(r);
+                logger.Debug("ReduceInvalid SendResult 4 {0} ", r);
+                rpc.SendResult();
             }
             finally
             {
                 lockey.Release();
             }
-            //logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", r, tkey);
-            rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-            await FlushWhenReduce(r);
-            logger.Debug("ReduceInvalid SendResult 4 {0} ", r);
-            // Must before SendResult
-            rpc.SendResult();
-            //logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
             return 0;
         }
 
@@ -333,15 +327,14 @@ namespace Zeze.Transaction
                 }
 
                 var tkey = new TableKey(Id, e.Key);
-                var lockey = await Zeze.Locks.Get(tkey).WriterLockAsync();
-                try
+                using (await Zeze.Locks.Get(tkey).WriterLockAsync())
                 {
-                    // 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
-                    e.Value.State = GlobalCacheManagerServer.StateInvalid;
-                }
-                finally
-                {
-                    lockey.Release();
+                    using (await e.Value.Mutex.LockAsync())
+                    {
+                        // 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
+                        e.Value.State = GlobalCacheManagerServer.StateInvalid;
+                        await FlushWhenReduce(e.Value);
+                    }
                 }
             }
             return 0;

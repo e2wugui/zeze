@@ -317,6 +317,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	@Override
 	void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex) {
+		Runnable none = () -> {};
 		for (var e : getCache().getDataMap().entrySet()) {
 			var gkey = EncodeGlobalKey(e.getKey());
 			if (getZeze().getGlobalAgent().GetGlobalCacheManagerHashIndex(gkey) != GlobalCacheManagerHashIndex) {
@@ -329,6 +330,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			try {
 				// 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
 				e.getValue().setState(GlobalCacheManagerServer.StateInvalid);
+				FlushWhenReduce(e.getValue(), none);
 			}
 			finally {
 				lockey.ExitWriteLock();
