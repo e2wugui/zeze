@@ -67,8 +67,8 @@ namespace Zeze.Arch
             var list = providers.ServiceInfos.SortedIdentity;
             if (list.Count == 0)
                 return null;
-            var servercount = Math.Min(dataConcurrentLevel, list.Count); // 服务器数量超过并发级别时，忽略更多的服务器。
-            return list[dataIndex % servercount];
+            var servercount = (uint)Math.Min(dataConcurrentLevel, list.Count); // 服务器数量超过并发级别时，忽略更多的服务器。
+            return list[(int)((uint)dataIndex % servercount)];
         }
 
         public ServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash, int dataConcurrentLevel = 1)
@@ -92,11 +92,11 @@ namespace Zeze.Arch
                 return null;
 
             if (dataConcurrentLevel == 1)
-                return list[hash % list.Count];
+                return list[(int)((uint)hash % (uint)list.Count)];
 
-            var dataIndex = hash % dataConcurrentLevel;
-            var servercount = Math.Min(dataConcurrentLevel, list.Count); // 服务器数量超过并发级别时，忽略更多的服务器。
-            return list[dataIndex % servercount];
+            var dataIndex = (uint)hash % (uint)dataConcurrentLevel;
+            var servercount = (uint)Math.Min(dataConcurrentLevel, list.Count); // 服务器数量超过并发级别时，忽略更多的服务器。
+            return list[(int)(dataIndex % servercount)];
         }
 
         public bool ChoiceHash(Agent.SubscribeState providers, int hash, out long provider)
