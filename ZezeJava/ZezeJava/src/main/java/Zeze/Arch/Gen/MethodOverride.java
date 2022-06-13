@@ -119,12 +119,7 @@ final class MethodOverride {
 	}
 
 	String getConcurrentLevelSource() {
-		if (annotation instanceof RedirectHash hash) {
-			var source = hash.ConcurrentLevelSource();
-			if (null == source || source.isEmpty())
-				return "1";
-			return source;
-		}
-		throw new RuntimeException("No ConcurrentLevelSource");
+		var source = ((RedirectHash)annotation).ConcurrentLevelSource();
+		return source != null && !source.isBlank() ? source : "1";
 	}
 }

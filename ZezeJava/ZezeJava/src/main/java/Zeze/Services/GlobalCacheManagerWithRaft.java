@@ -632,7 +632,7 @@ public class GlobalCacheManagerWithRaft
 
 	@Override
 	protected long ProcessLoginRequest(Login rpc) throws Throwable {
-		var session = Sessions.computeIfAbsent(rpc.Argument.getServerId(), serverId -> new CacheHolder((int)serverId));
+		var session = Sessions.computeIfAbsent(rpc.Argument.getServerId(), serverId -> new CacheHolder(this, (int)serverId));
 		if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.getGlobalCacheManagerHashIndex())) {
 			rpc.SendResultCode(LoginBindSocketFail);
 			return 0;
@@ -656,7 +656,7 @@ public class GlobalCacheManagerWithRaft
 
 	@Override
 	protected long ProcessReLoginRequest(ReLogin rpc) {
-		var session = Sessions.computeIfAbsent(rpc.Argument.getServerId(), serverId -> new CacheHolder((int)serverId));
+		var session = Sessions.computeIfAbsent(rpc.Argument.getServerId(), serverId -> new CacheHolder(this, (int)serverId));
 		if (!session.TryBindSocket(rpc.getSender(), rpc.Argument.getGlobalCacheManagerHashIndex())) {
 			rpc.SendResultCode(ReLoginBindSocketFail);
 			return 0;
@@ -701,7 +701,7 @@ public class GlobalCacheManagerWithRaft
 			return 0;
 		}
 
-		var session = Sessions.computeIfAbsent(rpc.Argument.getServerId(), serverId -> new CacheHolder((int)serverId));
+		var session = Sessions.computeIfAbsent(rpc.Argument.getServerId(), serverId -> new CacheHolder(this, (int)serverId));
 		if (session.GlobalCacheManagerHashIndex != rpc.Argument.getGlobalCacheManagerHashIndex()) {
 			// 多点验证
 			rpc.SendResultCode(CleanupErrorGlobalCacheManagerHashIndex);
@@ -752,14 +752,16 @@ public class GlobalCacheManagerWithRaft
 		}
 	}
 
-	final class CacheHolder {
+	private static final class CacheHolder {
+		final GlobalCacheManagerWithRaft globalRaft;
 		final int ServerId;
 		private long SessionId;
 		private int GlobalCacheManagerHashIndex;
 		private volatile long ActiveTime;
 		private volatile long LastErrorTime;
 
-		CacheHolder(int serverId) {
+		CacheHolder(GlobalCacheManagerWithRaft globalRaft, int serverId) {
+			this.globalRaft = globalRaft;
 			ServerId = serverId;
 		}
 
@@ -775,7 +777,7 @@ public class GlobalCacheManagerWithRaft
 			if (newSocket.getUserState() != null && newSocket.getUserState() != this)
 				return false; // 允许重复login|relogin，但不允许切换ServerId。
 
-			var socket = getRocks().getRaft().getServer().GetSocket(SessionId);
+			var socket = globalRaft.getRocks().getRaft().getServer().GetSocket(SessionId);
 			if (socket == null || socket == newSocket) {
 				// old socket not exist or has lost.
 				SessionId = newSocket.getSessionId();
@@ -793,7 +795,7 @@ public class GlobalCacheManagerWithRaft
 			if (oldSocket.getUserState() != this)
 				return false; // not bind to this
 
-			var socket = getRocks().getRaft().getServer().GetSocket(SessionId);
+			var socket = globalRaft.getRocks().getRaft().getServer().GetSocket(SessionId);
 			if (socket != null && socket != oldSocket)
 				return false; // not same socket
 
@@ -803,7 +805,7 @@ public class GlobalCacheManagerWithRaft
 
 		void SetError() {
 			long now = System.currentTimeMillis();
-			if (now - LastErrorTime > AchillesHeelConfig.GlobalForbidPeriod)
+			if (now - LastErrorTime > globalRaft.AchillesHeelConfig.GlobalForbidPeriod)
 				LastErrorTime = now;
 		}
 
@@ -831,26 +833,26 @@ public class GlobalCacheManagerWithRaft
 		boolean Reduce(Binary gkey, long fresh, ProtocolHandle<Rpc<ReduceParam, ReduceParam>> response) {
 			Reduce reduce = null;
 			try {
-				if (System.currentTimeMillis() - LastErrorTime < AchillesHeelConfig.GlobalForbidPeriod)
+				if (System.currentTimeMillis() - LastErrorTime < globalRaft.AchillesHeelConfig.GlobalForbidPeriod)
 					return false;
-				AsyncSocket peer = getRocks().getRaft().getServer().GetSocket(SessionId);
+				AsyncSocket peer = globalRaft.getRocks().getRaft().getServer().GetSocket(SessionId);
 				if (peer != null) {
 					reduce = new Reduce();
 					reduce.setResultCode(fresh);
 					reduce.Argument.setGlobalKey(gkey);
 					reduce.Argument.setState(StateInvalid);
 					if (ENABLE_PERF)
-						perf.onReduceBegin(reduce);
-					if (reduce.Send(peer, response, AchillesHeelConfig.ReduceTimeout))
+						globalRaft.perf.onReduceBegin(reduce);
+					if (reduce.Send(peer, response, globalRaft.AchillesHeelConfig.ReduceTimeout))
 						return true;
 					if (ENABLE_PERF)
-						perf.onReduceCancel(reduce);
+						globalRaft.perf.onReduceCancel(reduce);
 					logger.warn("Reduce send failed: {} peer={}, gkey={}", this, peer, gkey);
 				} else
 					logger.error("Reduce invalid: {} gkey={}", this, gkey);
 			} catch (RuntimeException ex) {
 				if (ENABLE_PERF && reduce != null)
-					perf.onReduceCancel(reduce);
+					globalRaft.perf.onReduceCancel(reduce);
 				// 这里的异常只应该是网络发送异常。
 				logger.error("Reduce Exception: " + this + " gkey=" + gkey, ex);
 			}
@@ -864,23 +866,23 @@ public class GlobalCacheManagerWithRaft
 		Reduce ReduceWaitLater(Binary gkey, long fresh) {
 			Reduce reduce = null;
 			try {
-				if (System.currentTimeMillis() - LastErrorTime < AchillesHeelConfig.GlobalForbidPeriod)
+				if (System.currentTimeMillis() - LastErrorTime < globalRaft.AchillesHeelConfig.GlobalForbidPeriod)
 					return null;
-				AsyncSocket peer = getRocks().getRaft().getServer().GetSocket(SessionId);
+				AsyncSocket peer = globalRaft.getRocks().getRaft().getServer().GetSocket(SessionId);
 				if (peer != null) {
 					reduce = new Reduce();
 					reduce.setResultCode(fresh);
 					reduce.Argument.setGlobalKey(gkey);
 					reduce.Argument.setState(StateInvalid);
 					if (ENABLE_PERF)
-						perf.onReduceBegin(reduce);
-					reduce.SendForWait(peer, AchillesHeelConfig.ReduceTimeout);
+						globalRaft.perf.onReduceBegin(reduce);
+					reduce.SendForWait(peer, globalRaft.AchillesHeelConfig.ReduceTimeout);
 					return reduce;
 				}
 				logger.error("ReduceWaitLater invalid: {} gkey={}", this, gkey);
 			} catch (RuntimeException ex) {
 				if (ENABLE_PERF && reduce != null)
-					perf.onReduceCancel(reduce);
+					globalRaft.perf.onReduceCancel(reduce);
 				// 这里的异常只应该是网络发送异常。
 				logger.error("ReduceWaitLater Exception: " + this + " gkey=" + gkey, ex);
 			}
