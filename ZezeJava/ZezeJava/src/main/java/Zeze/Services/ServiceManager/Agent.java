@@ -213,7 +213,13 @@ public final class Agent implements Closeable {
 
 		private void PrepareAndTriggerOnChanged() {
 			if (Agent.this.OnChanged != null) {
-				Task.run(() -> Agent.this.OnChanged.run(this), "ServiceManager.Agent.OnChanged");
+				getZeze().__GetInternalThreadPoolUnsafe().execute(() -> {
+					try {
+						Agent.this.OnChanged.run(this);
+					} catch (Throwable e) {
+						logger.error("", e);
+					}
+				});
 			}
 		}
 
@@ -226,27 +232,66 @@ public final class Agent implements Closeable {
 			exist.setPassivePort(info.getPassivePort());
 			exist.setExtraInfo(info.getExtraInfo());
 
-			if (Agent.this.OnUpdate != null)
-				Task.run(() -> Agent.this.OnUpdate.run(this, exist), "ServiceManager.Agent.OnUpdate");
-			else if (null != Agent.this.OnChanged)
-				Task.run(() -> Agent.this.OnChanged.run(this), "ServiceManager.Agent.OnUpdate.OnChanged");
+			if (Agent.this.OnUpdate != null) {
+				getZeze().__GetInternalThreadPoolUnsafe().execute(() -> {
+					try {
+						Agent.this.OnUpdate.run(this, exist);
+					} catch (Throwable e) {
+						logger.error(e);
+					}
+				});
+			} else if (null != Agent.this.OnChanged) {
+				getZeze().__GetInternalThreadPoolUnsafe().execute(() -> {
+					try {
+						Agent.this.OnChanged.run(this);
+					} catch (Throwable e) {
+						logger.error(e);
+					}
+				});
+			}
 		}
 
 		synchronized void OnRegister(ServiceInfo info) {
 			var info2 = ServiceInfos.Insert(info);
-			if (Agent.this.OnUpdate != null)
-				Task.run(() -> Agent.this.OnUpdate.run(this, info2), "ServiceManager.Agent.OnUpdate");
-			else if (null != Agent.this.OnChanged)
-				Task.run(() -> Agent.this.OnChanged.run(this), "ServiceManager.Agent.OnUpdate.OnChanged");
+			if (Agent.this.OnUpdate != null) {
+				getZeze().__GetInternalThreadPoolUnsafe().execute(() -> {
+					try {
+						Agent.this.OnUpdate.run(this, info2);
+					} catch (Throwable e) {
+						logger.error(e);
+					}
+				});
+			} else if (null != Agent.this.OnChanged) {
+				getZeze().__GetInternalThreadPoolUnsafe().execute(() -> {
+					try {
+						Agent.this.OnChanged.run(this);
+					} catch (Throwable e) {
+						logger.error(e);
+					}
+				});
+			}
 		}
 
 		synchronized void OnUnRegister(ServiceInfo info) {
 			var info2 = ServiceInfos.Remove(info);
 			if (null != info2) {
-				if (Agent.this.OnRemove != null)
-					Task.run(() -> Agent.this.OnRemove.run(this, info2), "ServiceManager.Agent.OnRemove");
-				else if (Agent.this.OnChanged != null)
-					Task.run(() -> Agent.this.OnChanged.run(this), "ServiceManager.Agent.OnRemove.OnChanged");
+				if (Agent.this.OnRemove != null) {
+					getZeze().__GetInternalThreadPoolUnsafe().execute(() -> {
+						try {
+							Agent.this.OnRemove.run(this, info2);
+						} catch (Throwable e) {
+							logger.error(e);
+						}
+					});
+				} else if (Agent.this.OnChanged != null) {
+					getZeze().__GetInternalThreadPoolUnsafe().execute(() -> {
+						try {
+							Agent.this.OnChanged.run(this);
+						} catch (Throwable e) {
+							logger.error(e);
+						}
+					});
+				}
 			}
 		}
 
@@ -263,7 +308,13 @@ public final class Agent implements Closeable {
 						|| infos.getSerialId() > getServiceInfosPending().getSerialId()) {
 					ServiceInfosPending = infos;
 					if (null != OnPrepare)
-						Task.run(() -> OnPrepare.run(this), "ServiceManager.Agent.OnPrepare");
+						getZeze().__GetInternalThreadPoolUnsafe().execute(() -> {
+							try {
+								OnPrepare.run(this);
+							} catch (Throwable e) {
+								logger.error(e);
+							}
+						});
 					TrySendReadyServiceList();
 				}
 				break;
@@ -520,7 +571,7 @@ public final class Agent implements Closeable {
 
 	private long ProcessKeepAlive(KeepAlive r) {
 		if (OnKeepAlive != null) {
-			Task.run(OnKeepAlive::run, "OnKeepAlive");
+			getZeze().__GetInternalThreadPoolUnsafe().execute(OnKeepAlive::run);
 		}
 		r.SendResultCode(KeepAlive.Success);
 		return Procedure.Success;
@@ -529,7 +580,13 @@ public final class Agent implements Closeable {
 	private long ProcessSetServerLoad(SetServerLoad setServerLoad) {
 		Loads.put(setServerLoad.Argument.getName(), setServerLoad.Argument);
 		if (null != OnSetServerLoad)
-			Task.run(() -> OnSetServerLoad.run(setServerLoad.Argument), "OnSetServerLoad");
+			getZeze().__GetInternalThreadPoolUnsafe().execute(() -> {
+				try {
+					OnSetServerLoad.run(setServerLoad.Argument);
+				} catch (Throwable e) {
+					logger.error(e);
+				}
+			});
 		return Procedure.Success;
 	}
 
