@@ -77,7 +77,7 @@ namespace Zeze.Transaction
 							}
 							if (idle > config.ServerKeepAliveIdleTimeout)
 							{
-								logger.Debug($"KeepAlive ServerKeepAliveIdleTimeout={config.ServerKeepAliveIdleTimeout}");
+								//logger.Debug($"KeepAlive ServerKeepAliveIdleTimeout={config.ServerKeepAliveIdleTimeout}");
 								agent.KeepAlive();
 								continue;
 							}

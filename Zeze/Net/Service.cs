@@ -323,7 +323,7 @@ namespace Zeze.Net
         ////////////////////////////////////////////////////////////////////////////////////////////////
         /// 协议工厂
         public class ProtocolFactoryHandle
-        { 
+        {
             public Func<Protocol> Factory { get; set; }
             public Func<Protocol, Task<long>> Handle { get; set; }
             public TransactionLevel TransactionLevel { get; set; } = TransactionLevel.Serializable;
@@ -432,7 +432,7 @@ namespace Zeze.Net
 
         private readonly ConcurrentDictionary<long, ManualContext> ManualContexts = new();
 
-        public long AddManualContextWithTimeout(ManualContext context, long timeout = 10*1000)
+        public long AddManualContextWithTimeout(ManualContext context, long timeout = 10 * 1000)
         {
             while (true)
             {
@@ -441,9 +441,7 @@ namespace Zeze.Net
                 {
                     context.SessionId = sessionId;
                     context.Service = this;
-                    Util.Scheduler.Schedule(
-                        (ThisTask) => TryRemoveManualContext<ManualContext>(sessionId)?.OnTimeout(),
-                        timeout);
+                    Util.Scheduler.Schedule((ThisTask) => TryRemoveManualContext<ManualContext>(sessionId, true), timeout);
                     return sessionId;
                 }
             }
@@ -458,8 +456,15 @@ namespace Zeze.Net
 
         public T TryRemoveManualContext<T>(long sessionId) where T : ManualContext
         {
+            return TryRemoveManualContext<T>(sessionId, false);
+        }
+
+        private T TryRemoveManualContext<T>(long sessionId, bool isTimeout) where T : ManualContext
+        {
             if (ManualContexts.TryRemove(sessionId, out var c))
             {
+                if (isTimeout)
+                    c.OnTimeout();
                 c.OnRemoved();
                 return (T)c;
             }

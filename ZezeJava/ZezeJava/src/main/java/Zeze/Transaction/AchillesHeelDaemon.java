@@ -138,7 +138,7 @@ public class AchillesHeelDaemon extends Thread {
 						logger.warn("StartRelease ServerDaemonTimeout=" + config.ServerDaemonTimeout);
 						agent.startRelease(Zeze, i, null);
 					} else if (idle > config.ServerKeepAliveIdleTimeout) {
-						logger.debug("KeeyAlive ServerKeepAliveIdleTimeout=" + config.ServerKeepAliveIdleTimeout);
+						//logger.debug("KeeyAlive ServerKeepAliveIdleTimeout=" + config.ServerKeepAliveIdleTimeout);
 						agent.keepAlive();
 					}
 				}

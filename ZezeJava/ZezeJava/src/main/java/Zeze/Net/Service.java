@@ -456,11 +456,7 @@ public class Service {
 			if (ManualContexts.putIfAbsent(sessionId, context) == null) {
 				context.setSessionId(sessionId);
 				context.setService(this);
-				Task.schedule(timeout, () -> {
-					ManualContext ctx = TryRemoveManualContext(sessionId);
-					if (ctx != null)
-						ctx.OnTimeout();
-				});
+				Task.schedule(timeout, () -> TryRemoveManualContext(sessionId, true));
 				return sessionId;
 			}
 		}
@@ -472,10 +468,16 @@ public class Service {
 	}
 
 	public final <T extends ManualContext> T TryRemoveManualContext(long sessionId) {
+		return TryRemoveManualContext(sessionId, false);
+	}
+
+	private final <T extends ManualContext> T TryRemoveManualContext(long sessionId, boolean isTimeout) {
 		@SuppressWarnings("unchecked")
 		var r = (T)ManualContexts.remove(sessionId);
 		if (r != null) {
 			try {
+				if (isTimeout)
+					r.OnTimeout();
 				r.OnRemoved();
 			} catch (Throwable skip) {
 				logger.error("ManualContext.OnRemoved", skip);
