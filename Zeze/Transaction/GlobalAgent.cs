@@ -165,7 +165,16 @@ namespace Zeze.Transaction
                 var rpc = new Acquire(gkey, state);
                 if (fresh)
                     rpc.ResultCode = GlobalCacheManagerServer.AcquireFreshSource;
-                await rpc.SendAsync(socket, agent.Config.AcquireTimeout);
+                try
+                {
+                    await rpc.SendAsync(socket, agent.Config.AcquireTimeout);
+                }
+                catch (Exception e)
+                {
+                    if (null == Transaction.Current)
+                        throw new Exception("GlobalAgent.Acquire Exception", e);
+                    Transaction.Current.ThrowAbort("GlobalAgent.Acquire Exception", e);
+                }
                 /*
                 if (rpc.ResultCode != 0) // 这个用来跟踪调试，正常流程使用Result.State检查结果。
                 {

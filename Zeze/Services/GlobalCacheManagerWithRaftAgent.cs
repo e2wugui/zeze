@@ -146,7 +146,18 @@ namespace Zeze.Services
                     rpc.ResultCode = GlobalCacheManagerServer.AcquireFreshSource;
                 rpc.Argument.GlobalKey = gkey;
                 rpc.Argument.State = state;
-                await agent.RaftClient.SendAsync(rpc);
+                rpc.Timeout = agent.Config.AcquireTimeout;
+                try
+                {
+                    await agent.RaftClient.SendAsync(rpc);
+                }
+                catch (Exception e)
+                {
+                    if (null == Transaction.Transaction.Current)
+                        throw new Exception("GlobalAgent.Acquire Exception", e);
+                    Transaction.Transaction.Current.ThrowAbort("GlobalAgent.Acquire Exception", e);
+                }
+
                 if (false == rpc.IsTimeout)
                     agent.SetActiveTime(Util.Time.NowUnixMillis);
                 if (rpc.ResultCode < 0)

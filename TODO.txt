@@ -10,13 +10,13 @@ ServiceConf.Acceptor ip="@internal" "@external"
 Task
 Universe
 Zege
-raft.agent 永远尝试会造成大量服务不可用风险。
 
 【2022/7/11】
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 1.0.0 Stable? ^_^
 ------------------------------------------------------------------------------------------------------------------------------
+raft.agent 永远尝试会造成大量服务不可用风险。
 java Remove ServiceInfo.LocalState
 1. BUG，ReduceInvalidAllLocalOnly 没有Flush。
 2. BUG，TableX.Load 发现 Invalid 再去Acquire并Storage.Load时，如果本地记录是脏的，数据就会被覆盖。

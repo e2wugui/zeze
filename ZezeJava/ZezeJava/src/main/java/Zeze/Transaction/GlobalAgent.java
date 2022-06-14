@@ -148,7 +148,7 @@ public final class GlobalAgent implements IGlobalAgent {
 				rpc.setResultCode(GlobalCacheManagerServer.AcquireFreshSource);
 			try {
 				rpc.SendForWait(socket, agent.getConfig().AcquireTimeout).get();
-			} catch (InterruptedException | ExecutionException e) {
+			} catch (Throwable e) {
 				var trans = Transaction.getCurrent();
 				if (trans == null)
 					throw new GoBackZeze("Acquire", e);

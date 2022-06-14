@@ -156,7 +156,16 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 				rpc.setResultCode(GlobalCacheManagerServer.AcquireFreshSource);
 			rpc.Argument.setGlobalKey(gkey);
 			rpc.Argument.setState(state);
-			agent.RaftClient.SendForWait(rpc).await();
+			rpc.setTimeout(agent.getConfig().AcquireTimeout);
+			try {
+				agent.RaftClient.SendForWait(rpc).await();
+			} catch (Throwable e) {
+				Transaction trans = Transaction.getCurrent();
+				if (trans == null)
+					throw new RuntimeException("Acquire Timeout");
+				trans.ThrowAbort("Acquire Timeout", null);
+				// never got here
+			}
 			if (!rpc.isTimeout())
 				agent.setActiveTime(System.currentTimeMillis()); // Acquire.Response
 

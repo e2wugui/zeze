@@ -23,7 +23,7 @@ namespace Zeze.Net
         public Func<Protocol, Task<long>> ResponseHandle { get; set; }
         public int Timeout { get; set; } = 5000;
 
-        public TaskCompletionSource<TResult> Future { get; private set; }
+        public TaskCompletionSource<TResult> Future { get; internal set; }
 
         public Rpc()
         {

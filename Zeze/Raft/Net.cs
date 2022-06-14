@@ -311,6 +311,10 @@ namespace Zeze.Raft
         /// </summary>
         public abstract UniqueRequestId Unique { get; set; }
         public abstract long SendTime { get; set; } // 不系列化，Agent本地只用。
+        public abstract int RaftTimeout { get; }
+        public abstract bool TrySetFutureException(Exception e);
+        public abstract Func<Protocol, Task<long>> RaftHandle { get; set; }
+        public abstract void SetIsTimeout(bool value);
     }
 
     public abstract class RaftRpc<TArgument, TResult> : Rpc<TArgument, TResult>, IRaftRpc
@@ -321,6 +325,24 @@ namespace Zeze.Raft
         public UniqueRequestId Unique { get; set; } = new UniqueRequestId();
         public long SendTime { get; set; }
         public bool Urgent { get; set; } = false;
+
+        // internal TaskCompletionSource<TResult>> RaftFuture; // 直接使用 Zeze.Net.Rpc.Future
+        public bool TrySetFutureException(Exception e)
+        {
+            if (base.Future != null)
+            {
+                base.Future.TrySetException(e);
+                return true; // 忽略结果，总是true。这里需要的语义是Future是否存在。
+            }
+            return false;
+        }
+
+        public int RaftTimeout => base.Timeout;
+        public Func<Protocol, Task<long>> RaftHandle { get; set; }
+        public void SetIsTimeout(bool value)
+        {
+            base.IsTimeout = value;
+        }
 
         public override bool Send(AsyncSocket socket)
         {
@@ -440,8 +462,9 @@ namespace Zeze.Raft
             rpc.Unique.ClientId = UniqueRequestIdGenerator.Name;
             rpc.CreateTime = Util.Time.NowUnixMillis;
             rpc.SendTime = rpc.CreateTime;
-            rpc.Timeout = RaftConfig.AppendEntriesTimeout;
-
+            if (rpc.Timeout == 0)
+                rpc.Timeout = RaftConfig.AppendEntriesTimeout;
+            rpc.RaftHandle = handle;
             rpc.Urgent = urgent;
             if (urgent)
             {
@@ -498,7 +521,7 @@ namespace Zeze.Raft
 
         private long SendForWaitHandle<TArgument, TResult>(
             Protocol p,
-            TaskCompletionSource<RaftRpc<TArgument, TResult>> future,
+            TaskCompletionSource<TResult> future,
             RaftRpc<TArgument, TResult> rpc)
             where TArgument : Bean, new()
             where TResult : Bean, new()
@@ -523,7 +546,7 @@ namespace Zeze.Raft
                     rpc.IsTimeout = false;
                 }
                 logger.Debug($"Agent Rpc={rpc.GetType().Name} RequestId={rpc.Unique.RequestId} ResultCode={rpc.ResultCode} Sender={rpc.Sender}");
-                future.SetResult(rpc);
+                future.SetResult(rpc.Result);
             }
             return Procedure.Success;
         }
@@ -543,10 +566,11 @@ namespace Zeze.Raft
             rpc.Unique.ClientId = UniqueRequestIdGenerator.Name;
             rpc.CreateTime = Util.Time.NowUnixMillis;
             rpc.SendTime = rpc.CreateTime;
-            rpc.Timeout = RaftConfig.AppendEntriesTimeout;
+            if (rpc.Timeout == 0)
+                rpc.Timeout = RaftConfig.AppendEntriesTimeout;
 
-            var future = new TaskCompletionSource<RaftRpc<TArgument, TResult>>(TaskCreationOptions.RunContinuationsAsynchronously);
-
+            var future = new TaskCompletionSource<TResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+            rpc.Future = future;
             rpc.Urgent = urgent;
             if (urgent)
             {
@@ -704,34 +728,63 @@ namespace Zeze.Raft
             // ReSendPendingRpc
             var now = Util.Time.NowUnixMillis;
             var leaderSocket = _Leader?.TryGetReadySocket();
-            if (null != leaderSocket)
+            var removed = new List<Protocol>(UrgentPending.Count + Pending.Count);
+            foreach (var rpc in UrgentPending.Values)
             {
-                foreach (var rpc in UrgentPending.Values)
+                var iraft = rpc as IRaftRpc;
+                if (iraft.RaftTimeout > 0 && now - iraft.CreateTime > iraft.RaftTimeout)
                 {
-                    var iraft = rpc as IRaftRpc;
-                    if (immediately || now - iraft.SendTime > RaftConfig.AppendEntriesTimeout + 1000)
-                    {
-                        logger.Debug($"{leaderSocket} {rpc}");
-
-                        iraft.SendTime = now;
-                        if (false == rpc.Send(leaderSocket))
-                            logger.Warn("SendRequest failed {0}", rpc);
-                    }
+                    if (UrgentPending.Remove(iraft.Unique.RequestId, out var r))
+                        removed.Add(r);
+                    continue;
                 }
-
-                foreach (var rpc in Pending.Values)
+                if (immediately || now - iraft.SendTime > RaftConfig.AppendEntriesTimeout + 1000)
                 {
-                    var iraft = rpc as IRaftRpc;
-                    if (immediately || now - iraft.SendTime > RaftConfig.AppendEntriesTimeout + 1000)
-                    {
-                        logger.Debug($"{leaderSocket} {rpc}");
+                    logger.Debug($"{leaderSocket} {rpc}");
 
-                        iraft.SendTime = now;
-                        if (false == rpc.Send(leaderSocket))
-                            logger.Warn("SendRequest failed {0}", rpc);
-                    }
+                    iraft.SendTime = now;
+                    if (false == rpc.Send(leaderSocket))
+                        logger.Info("SendRequest failed {0}", rpc);
                 }
             }
+
+            foreach (var rpc in Pending.Values)
+            {
+                var iraft = rpc as IRaftRpc;
+                if (iraft.RaftTimeout > 0 && now - iraft.CreateTime > iraft.RaftTimeout)
+                {
+                    if (Pending.Remove(iraft.Unique.RequestId, out var r))
+                        removed.Add(r);
+                    continue;
+                }
+                if (immediately || now - iraft.SendTime > RaftConfig.AppendEntriesTimeout + 1000)
+                {
+                    logger.Debug($"{leaderSocket} {rpc}");
+
+                    iraft.SendTime = now;
+                    if (false == rpc.Send(leaderSocket))
+                        logger.Info("SendRequest failed {0}", rpc);
+                }
+            }
+
+            Task.Run(() =>
+            {
+                foreach (var p in removed)
+                {
+                    var r = p as IRaftRpc;
+                    r.SetIsTimeout(true);
+                    if (r.TrySetFutureException(new Exception("Raft Timeout")))
+                        continue;
+                    try
+                    {
+                        r.RaftHandle?.Invoke(p);
+                    }
+                    catch (Exception e)
+                    {
+                        logger.Error(e);
+                    }
+                }
+            });
         }
 
         internal bool SetLeader(LeaderIs r, ConnectorEx newLeader)

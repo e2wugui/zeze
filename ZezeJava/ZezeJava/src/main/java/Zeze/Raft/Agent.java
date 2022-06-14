@@ -82,7 +82,8 @@ public final class Agent {
 	 * 发送Rpc请求。
 	 */
 	public <TArgument extends Bean, TResult extends Bean> void Send(RaftRpc<TArgument, TResult> rpc,
-																	ToLongFunction<Protocol<?>> handle, boolean urgent) {
+																	ToLongFunction<Protocol<?>> handle,
+																	boolean urgent) {
 		if (handle == null)
 			throw new NullPointerException();
 
@@ -95,10 +96,12 @@ public final class Agent {
 		rpc.getUnique().setClientId(UniqueRequestIdGenerator.getName());
 		rpc.setCreateTime(System.currentTimeMillis());
 		rpc.setSendTime(rpc.getCreateTime());
-		rpc.setTimeout(RaftConfig.getAppendEntriesTimeout());
+		if (rpc.getTimeout() == 0) // set default timeout
+			rpc.setTimeout(RaftConfig.getAppendEntriesTimeout());
 
 		rpc.setUrgent(urgent);
 		var pending = urgent ? UrgentPending : Pending;
+		rpc.Handle = handle;
 		if (pending.putIfAbsent(rpc.getUnique().getRequestId(), rpc) != null)
 			throw new IllegalStateException("duplicate requestId rpc=" + rpc);
 
@@ -178,12 +181,13 @@ public final class Agent {
 		rpc.getUnique().setClientId(UniqueRequestIdGenerator.getName());
 		rpc.setCreateTime(System.currentTimeMillis());
 		rpc.setSendTime(rpc.getCreateTime());
-		rpc.setTimeout(RaftConfig.getAppendEntriesTimeout());
+		if (rpc.getTimeout() == 0) // set default timeout
+			rpc.setTimeout(RaftConfig.getAppendEntriesTimeout());
 
 		var future = new TaskCompletionSource<RaftRpc<TArgument, TResult>>();
-
 		rpc.setUrgent(urgent);
 		var pending = urgent ? UrgentPending : Pending;
+		rpc.Future = future;
 		if (pending.putIfAbsent(rpc.getUnique().getRequestId(), rpc) != null)
 			throw new IllegalStateException("duplicate requestId rpc=" + rpc);
 
@@ -314,30 +318,49 @@ public final class Agent {
 			leader.Start();
 		// ReSendPendingRpc
 		var leaderSocket = leader != null ? leader.TryGetReadySocket() : null;
-		if (leaderSocket != null) {
-			long now = System.currentTimeMillis();
-			long timeout = RaftConfig.getAppendEntriesTimeout() + 1000;
-			int i = 0;
-			for (var rpc : UrgentPending) {
-				if (immediately || now - rpc.getSendTime() > timeout) {
-					logger.debug("ReSendU {}/{} {} {}", i, UrgentPending.size(), leaderSocket, rpc);
-					rpc.setSendTime(now);
-					if (!rpc.Send(leaderSocket))
-						logger.warn("SendRequest failed {}", rpc);
-				}
-				i++;
+		var removed = new ArrayList<RaftRpc<?, ?>>(UrgentPending.size() + Pending.size());
+		long now = System.currentTimeMillis();
+		long timeout = RaftConfig.getAppendEntriesTimeout() + 1000;
+		for (var rpc : UrgentPending) {
+			if (rpc.getTimeout() > 0 && now - rpc.getCreateTime() > rpc.getTimeout()) {
+				removed.add(UrgentPending.remove(rpc.getUnique().getRequestId()));
+				continue;
 			}
-			i = 0;
-			for (var rpc : Pending) {
-				if (immediately || now - rpc.getSendTime() > timeout) {
-					logger.debug("ReSend {}/{} {} {}", i, Pending.size(), leaderSocket, rpc);
-					rpc.setSendTime(now);
-					if (!rpc.Send(leaderSocket))
-						logger.warn("SendRequest failed {}", rpc);
-				}
-				i++;
+			if (immediately || now - rpc.getSendTime() > timeout) {
+				logger.debug("ReSendU {}/{} {}", UrgentPending.size(), leaderSocket, rpc);
+				rpc.setSendTime(now);
+				if (!rpc.Send(leaderSocket))
+					logger.info("SendRequest failed {}", rpc);
 			}
 		}
+		for (var rpc : Pending) {
+			if (rpc.getTimeout() > 0 && now - rpc.getCreateTime() > rpc.getTimeout()) {
+				removed.add(Pending.remove(rpc.getUnique().getRequestId()));
+				continue;
+			}
+			if (immediately || now - rpc.getSendTime() > timeout) {
+				logger.debug("ReSend {}/{} {}", Pending.size(), leaderSocket, rpc);
+				rpc.setSendTime(now);
+				if (!rpc.Send(leaderSocket))
+					logger.info("SendRequest failed {}", rpc);
+			}
+		}
+		Task.run(() -> {
+			for (var r : removed) {
+				if (null == r)
+					continue;
+				r.setIsTimeout(true);
+				if (null != r.Future) {
+					r.Future.SetException(new RuntimeException("Timeout"));
+				} else {
+					try {
+						r.Handle.applyAsLong(r);
+					} catch (Throwable e) {
+						logger.error("", e);
+					}
+				}
+			}
+		}, "Trigger Timeout RaftRpcs");
 	}
 
 	public synchronized boolean SetLeader(LeaderIs r, ConnectorEx newLeader) throws Throwable {
