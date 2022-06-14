@@ -73,40 +73,56 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		return false;
 	}
 
+	public boolean ChoiceHashWithoutBind(int moduleId, AsyncSocket link, int hash, OutLong provider) {
+		var serviceName = ProviderDistribute.MakeServiceName(getServerServiceNamePrefix(), moduleId);
+		var linkSession = (LinkdUserSession)link.getUserState();
+		provider.Value = 0L;
+		var providers = Distribute.Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
+		if (providers == null)
+			return false;
+		return Distribute.ChoiceHash(providers, hash, provider);
+	}
+
 	public boolean ChoiceProviderAndBind(int moduleId, AsyncSocket link, OutLong provider) {
 		var serviceName = ProviderDistribute.MakeServiceName(getServerServiceNamePrefix(), moduleId);
 		var linkSession = (LinkdUserSession)link.getUserState();
 		provider.Value = 0L;
-		var volatileProviders = Distribute.Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
-		if (volatileProviders == null)
+		var providers = Distribute.Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
+		if (providers == null)
 			return false;
 
 		// 这里保存的 ProviderModuleState 是该moduleId的第一个bind请求去订阅时记录下来的，
 		// 这里仅使用里面的ChoiceType和ConfigType。这两个参数对于相同的moduleId都是一样的。
 		// 如果需要某个provider.SessionId，需要查询 ServiceInfoListSortedByIdentity 里的ServiceInfo.LocalState。
-		var providerModuleState = (ProviderModuleState)volatileProviders.getSubscribeInfo().getLocalState();
+		var providerModuleState = (ProviderModuleState)providers.getSubscribeInfo().getLocalState();
 		switch (providerModuleState.ChoiceType) {
 		case BModule.ChoiceTypeHashAccount:
-			return Distribute.ChoiceHash(volatileProviders, ByteBuffer.calc_hashnr(linkSession.getAccount()), provider);
+			if (!Distribute.ChoiceHash(providers, ByteBuffer.calc_hashnr(linkSession.getAccount()), provider))
+				return false;
+			break; // bind static later
 
 		case BModule.ChoiceTypeHashRoleId:
 			var roleId = linkSession.getRoleId();
-			return roleId != null && Distribute.ChoiceHash(volatileProviders, ByteBuffer.calc_hashnr(roleId), provider);
+			if (roleId == null || !Distribute.ChoiceHash(providers, ByteBuffer.calc_hashnr(roleId), provider))
+				return false;
+			break; // bind static later
 
 		case BModule.ChoiceTypeFeedFullOneByOne:
-			return Distribute.ChoiceFeedFullOneByOne(volatileProviders, provider);
+			if (!Distribute.ChoiceFeedFullOneByOne(providers, provider))
+				return false;
+			break; // bind static later
+
+		default:
+			if (!Distribute.ChoiceLoad(providers, provider))
+				return false;
+			break; // bind static later
 		}
 
-		// default
-		if (Distribute.ChoiceLoad(volatileProviders, provider)) {
-			// 这里不判断null，如果失败让这次选择失败，否则选中了，又没有Bind以后更不好处理。
-			var providerSocket = LinkdApp.LinkdProviderService.GetSocket(provider.Value);
-			var providerSession = (LinkdProviderSession)providerSocket.getUserState();
-			linkSession.Bind(LinkdApp.LinkdProviderService, link, providerSession.getStaticBinds().keySet(), providerSocket);
-			return true;
-		}
-
-		return false;
+		// 这里不判断null，如果失败让这次选择失败，否则选中了，又没有Bind以后更不好处理。
+		var providerSocket = LinkdApp.LinkdProviderService.GetSocket(provider.Value);
+		var providerSession = (LinkdProviderSession)providerSocket.getUserState();
+		linkSession.Bind(LinkdApp.LinkdProviderService, link, providerSession.getStaticBinds().keySet(), providerSocket);
+		return true;
 	}
 
 	public void OnProviderClose(AsyncSocket provider) {

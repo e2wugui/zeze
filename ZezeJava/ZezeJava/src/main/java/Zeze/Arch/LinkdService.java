@@ -133,14 +133,16 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		}
 	}
 
-	@Override
-	public void DispatchUnknownProtocol(Zeze.Net.AsyncSocket so, int moduleId, int protocolId, Zeze.Serialize.ByteBuffer data) {
-		var linkSession = (LinkdUserSession)so.getUserState();
+	public LinkdUserSession getAuthedSession(Zeze.Net.AsyncSocket socket) {
+		var linkSession = (LinkdUserSession)socket.getUserState();
 		if (null == linkSession || !linkSession.isAuthed()) {
-			ReportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNotAuthed, "not authed.");
-			return;
+			ReportError(socket.getSessionId(), BReportError.FromLink, BReportError.CodeNotAuthed, "not authed.");
+			return null;
 		}
+		return linkSession;
+	}
 
+	public void setStableLinkSid(LinkdUserSession linkSession, Zeze.Net.AsyncSocket so, int moduleId, int protocolId, Zeze.Serialize.ByteBuffer data) {
 		if (moduleId == Zeze.Game.Online.ModuleId && protocolId == Zeze.Builtin.Game.Online.Login.ProtocolId_) {
 			var login = new Zeze.Builtin.Game.Online.Login();
 			login.Decode(Zeze.Serialize.ByteBuffer.Wrap(data));
@@ -150,7 +152,9 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 			login.Decode(Zeze.Serialize.ByteBuffer.Wrap(data));
 			SetStableLinkSid(linkSession.getAccount(), login.Argument.getClientId(), so);
 		}
+	}
 
+	public Dispatch createDispatch(LinkdUserSession linkSession, Zeze.Net.AsyncSocket so, int moduleId, int protocolId, Zeze.Serialize.ByteBuffer data) {
 		var dispatch = new Dispatch();
 		dispatch.Argument.setLinkSid(so.getSessionId());
 		dispatch.Argument.setAccount(linkSession.getAccount());
@@ -158,28 +162,45 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		dispatch.Argument.setProtocolData(new Zeze.Net.Binary(data.Copy()));
 		dispatch.Argument.setContext(linkSession.getContext());
 		dispatch.Argument.setContextx(linkSession.getContextx());
+		return dispatch;
+	}
 
+	public boolean findSend(LinkdUserSession linkSession, int moduleId, Dispatch dispatch) {
 		var provider = new Zeze.Util.OutLong();
 		if (linkSession.TryGetProvider(moduleId, provider)) {
 			var socket = LinkdApp.LinkdProviderService.GetSocket(provider.Value);
 			if (null != socket) {
-				socket.Send(dispatch);
-				return;
+				return socket.Send(dispatch);
 			}
 			// 原来绑定的provider找不到连接，尝试继续从静态绑定里面查找。
 			// 此时应该处于 UnBind 过程中。
 			//linkSession.UnBind(so, moduleId, null);
 		}
+		return false;
+	}
 
+	public boolean choiceBindSend(Zeze.Net.AsyncSocket so, int moduleId, Dispatch dispatch) {
+		var provider = new Zeze.Util.OutLong();
 		if (LinkdApp.LinkdProvider.ChoiceProviderAndBind(moduleId, so, provider)) {
 			var providerSocket = LinkdApp.LinkdProviderService.GetSocket(provider.Value);
 			if (null != providerSocket) {
 				// ChoiceProviderAndBind 内部已经处理了绑定。这里只需要发送。
-				providerSocket.Send(dispatch);
-				return;
+				return providerSocket.Send(dispatch);
 			}
 			// 找到provider但是发送之前连接关闭，当作没有找到处理。这个窗口很小，再次查找意义不大。
 		}
+		return false;
+	}
+
+	@Override
+	public void DispatchUnknownProtocol(Zeze.Net.AsyncSocket so, int moduleId, int protocolId, Zeze.Serialize.ByteBuffer data) {
+		var linkSession = getAuthedSession(so);
+		setStableLinkSid(linkSession, so, moduleId, protocolId, data);
+		var dispatch = createDispatch(linkSession, so, moduleId, protocolId, data);
+		if (findSend(linkSession, moduleId, dispatch))
+			return;
+		if (choiceBindSend(so, moduleId, dispatch))
+			return;
 		ReportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider, "no provider.");
 	}
 

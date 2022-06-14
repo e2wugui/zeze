@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <solution name="Zege" ModuleIdAllowRanges="10000-10999">
+	<import file="solution.xml"/>
 
 	<module name="Linkd" id="10000">
 		<bean name="BAuth">

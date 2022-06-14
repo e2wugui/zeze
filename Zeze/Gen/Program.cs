@@ -79,7 +79,8 @@ namespace Zeze.Gen
         {
             if (Solutions.ContainsKey(xmlfile))
                 return;
-
+            Console.WriteLine($"ImportSolution '{xmlfile}'");
+            Solutions.Add(xmlfile, null);
             XmlDocument doc = new XmlDocument();
             doc.Load(xmlfile);
             Solution solution = new Solution(doc.DocumentElement);
@@ -90,7 +91,7 @@ namespace Zeze.Gen
                     Console.WriteLine("WARN duplicate solution name: " + solution.Name + " in file: " + exist.Key + "," + xmlfile);
             }
             */
-            Solutions.Add(xmlfile, solution);
+            Solutions[xmlfile] = solution;
         }
         public static void Main(string[] args)
         {
