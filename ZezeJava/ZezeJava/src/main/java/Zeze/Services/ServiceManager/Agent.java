@@ -50,6 +50,16 @@ public final class Agent implements Closeable {
 		return SubscribeStates;
 	}
 
+	/*
+	public Object getLocalState(String serviceName, String identity) {
+		return SubscribeStates.get(serviceName).LocalStates.get(identity);
+	}
+
+	public Object getLocalState(ServiceInfo serviceInfo) {
+		return getLocalState(serviceInfo.getServiceName(), serviceInfo.getServiceIdentity());
+	}
+	*/
+
 	public final ConcurrentHashMap<String, ServerLoad> Loads = new ConcurrentHashMap<>();
 
 	public AgentClient getClient() {
@@ -123,7 +133,7 @@ public final class Agent implements Closeable {
 		 */
 		private boolean Committed = false;
 		// 服务准备好。
-		private final ConcurrentHashMap<String, Object> ServiceIdentityReadyStates = new ConcurrentHashMap<>();
+		public final ConcurrentHashMap<String, Object> LocalStates = new ConcurrentHashMap<>();
 
 		public SubscribeInfo getSubscribeInfo() {
 			return subscribeInfo;
@@ -175,7 +185,7 @@ public final class Agent implements Closeable {
 			}
 
 			for (var p : pending.getServiceInfoListSortedByIdentity()) {
-				if (!ServiceIdentityReadyStates.containsKey(p.getServiceIdentity())) {
+				if (!LocalStates.containsKey(p.getServiceIdentity())) {
 					return false;
 				}
 			}
@@ -190,29 +200,18 @@ public final class Agent implements Closeable {
 
 		public void SetServiceIdentityReadyState(String identity, Object state) {
 			if (null == state) {
-				ServiceIdentityReadyStates.remove(identity);
+				LocalStates.remove(identity);
 			} else {
-				ServiceIdentityReadyStates.put(identity, state);
+				LocalStates.put(identity, state);
 			}
 
 			synchronized (this) {
-				// 把 state 复制到当前版本的服务列表中。允许列表不变，服务状态改变。
-				if (null != ServiceInfos) {
-					ServiceInfo info = ServiceInfos.get(identity);
-					if (null != info)
-						info.setLocalState(state);
-				}
+				// 尝试发送Ready，如果有pending.
+				TrySendReadyServiceList();
 			}
-			// 尝试发送Ready，如果有pending.
-			TrySendReadyServiceList();
 		}
 
 		private void PrepareAndTriggerOnChanged() {
-			for (var info : getServiceInfos().getServiceInfoListSortedByIdentity()) {
-				var state = ServiceIdentityReadyStates.get(info.getServiceIdentity());
-				if (null != state) // 需要确认里面会不会存null。
-					info.setLocalState(state);
-			}
 			if (Agent.this.OnChanged != null) {
 				Task.run(() -> Agent.this.OnChanged.run(this), "ServiceManager.Agent.OnChanged");
 			}
@@ -235,9 +234,6 @@ public final class Agent implements Closeable {
 
 		synchronized void OnRegister(ServiceInfo info) {
 			var info2 = ServiceInfos.Insert(info);
-			var local = ServiceIdentityReadyStates.get(info2.getServiceIdentity());
-			if (null != local)
-				info2.setLocalState(local);
 			if (Agent.this.OnUpdate != null)
 				Task.run(() -> Agent.this.OnUpdate.run(this, info2), "ServiceManager.Agent.OnUpdate");
 			else if (null != Agent.this.OnChanged)

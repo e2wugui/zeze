@@ -26,9 +26,8 @@ public final class ServiceInfo extends Bean implements Comparable<ServiceInfo> {
 	// 服务扩展信息，可选。
 	private Binary ExtraInfo = Binary.Empty;
 
-	// ServiceManager或者ServiceManager.Agent用来保存本地状态，不是协议一部分，不会被系列化。
-	// 算是一个简单的策略，不怎么优美。一般仅设置一次，线程保护由使用者自己管理。
-	private Object LocalState;
+	// ServiceManager用来存储服务器的SessionId。算是一个优化吧。
+	public Long SessionId;
 
 	public String getServiceName() {
 		return ServiceName;
@@ -68,14 +67,6 @@ public final class ServiceInfo extends Bean implements Comparable<ServiceInfo> {
 
 	public void setExtraInfo(Binary value) {
 		ExtraInfo = value;
-	}
-
-	public Object getLocalState() {
-		return LocalState;
-	}
-
-	public void setLocalState(Object value) {
-		LocalState = value;
 	}
 
 	public ServiceInfo() {

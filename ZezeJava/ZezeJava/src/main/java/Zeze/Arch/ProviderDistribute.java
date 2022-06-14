@@ -95,7 +95,7 @@ public class ProviderDistribute {
 		if (serviceInfo == null)
 			return false;
 
-		var providerModuleState = (ProviderModuleState)serviceInfo.getLocalState();
+		var providerModuleState = (ProviderModuleState)providers.LocalStates.get(serviceInfo.getServiceIdentity());
 		if (providerModuleState == null)
 			return false;
 
@@ -114,7 +114,7 @@ public class ProviderDistribute {
 		// 新的provider在后面，从后面开始搜索。后面的可能是新的provider。
 		for (int i = list.size() - 1; i >= 0; --i) {
 			var serviceInfo = list.get(i);
-			var providerModuleState = (ProviderModuleState)serviceInfo.getLocalState();
+			var providerModuleState = (ProviderModuleState)providers.LocalStates.get(serviceInfo.getServiceIdentity());
 			if (providerModuleState == null) {
 				continue;
 			}
@@ -165,7 +165,7 @@ public class ProviderDistribute {
 			for (int i = 0; i < list.size(); ++i, FeedFullOneByOneIndex.incrementAndGet()) {
 				var index = Integer.remainderUnsigned(FeedFullOneByOneIndex.get(), list.size()); // current
 				var serviceInfo = list.get(index);
-				var providerModuleState = (ProviderModuleState)serviceInfo.getLocalState();
+				var providerModuleState = (ProviderModuleState)providers.LocalStates.get(serviceInfo.getServiceIdentity());
 				if (providerModuleState == null)
 					continue;
 				var providerSocket = ProviderService.GetSocket(providerModuleState.SessionId);
@@ -192,14 +192,14 @@ public class ProviderDistribute {
 	public boolean ChoiceProviderByServerId(String serviceNamePrefix, int moduleId, int serverId, OutLong provider) {
 		var serviceName = MakeServiceName(serviceNamePrefix, moduleId);
 
-		var volatileProviders = Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
-		if (volatileProviders == null) {
+		var providers = Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
+		if (providers == null) {
 			provider.Value = 0L;
 			return false;
 		}
-		var si = volatileProviders.getServiceInfos().findServiceInfoByServerId(serverId);
+		var si = providers.getServiceInfos().findServiceInfoByServerId(serverId);
 		if (si != null) {
-			var state = (ProviderModuleState)si.getLocalState();
+			var state = (ProviderModuleState)providers.LocalStates.get(si.getServiceIdentity());
 			provider.Value = state.SessionId;
 			return true;
 		}

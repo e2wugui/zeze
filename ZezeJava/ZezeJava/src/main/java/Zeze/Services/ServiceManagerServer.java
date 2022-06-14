@@ -563,7 +563,7 @@ public final class ServiceManagerServer implements Closeable {
 		// 在目前没有问题，因为r.Argument主要记录在state.ServiceInfos中，
 		// 另外它也被Session引用（用于连接关闭时，自动注销）。
 		// 这是专用程序，不是一个库，以后有修改时，小心就是了。
-		r.Argument.setLocalState(r.getSender().getSessionId());
+		r.Argument.SessionId = r.getSender().getSessionId();
 
 		// AddOrUpdate，否则重连重新注册很难恢复到正确的状态。
 		state.ServiceInfos.put(r.Argument.getServiceIdentity(), r.Argument);
@@ -596,7 +596,7 @@ public final class ServiceManagerServer implements Closeable {
 			var exist = state.ServiceInfos.get(info.getServiceIdentity());
 			if (exist != null) {
 				// 这里存在一个时间窗口，可能使得重复的注销会成功。注销一般比较特殊，忽略这个问题。
-				Long existSessionId = (Long)exist.getLocalState();
+				var existSessionId = exist.SessionId;
 				if (existSessionId == null || sessionId == existSessionId) {
 					// 有可能当前连接没有注销，新的注册已经AddOrUpdate，此时忽略当前连接的注销。
 					if (state.ServiceInfos.remove(info.getServiceIdentity(), exist)) {

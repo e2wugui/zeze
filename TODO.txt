@@ -11,13 +11,13 @@ Task
 Universe
 Zege
 raft.agent 永远尝试会造成大量服务不可用风险。
-java ServiceInfo.LocalState
 
 【2022/7/11】
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 1.0.0 Stable? ^_^
 ------------------------------------------------------------------------------------------------------------------------------
+java Remove ServiceInfo.LocalState
 1. BUG，ReduceInvalidAllLocalOnly 没有Flush。
 2. BUG，TableX.Load 发现 Invalid 再去Acquire并Storage.Load时，如果本地记录是脏的，数据就会被覆盖。
    刚才TableX.Load的问题造成的可能原因分析：本地数据被Daemon.Release，是没有刷新到后台的，

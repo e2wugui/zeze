@@ -64,27 +64,39 @@ public class ModuleRedirectRank extends TestCase {
 		}).await();
 
 		// RedirectHash
-		app1.Game_Rank.TestHash(0, 555).then(result -> {
-			assertEquals(0, result.hash);
+		var hash11 = Zeze.Serialize.ByteBuffer.calc_hashnr(127364);
+		System.out.println("11--->" + hash11);
+		app1.Game_Rank.TestHash(hash11, 555).then(result -> {
+			assertEquals(hash11, result.hash);
 			assertEquals(555, result.out);
-			assertEquals(0, result.serverId);
+			System.out.println("11--->" + result.serverId);
+			assertEquals(1, result.serverId);
 		}).await();
 
-		app1.Game_Rank.TestHash(1, 666).then(result -> {
-			assertEquals(1, result.hash);
+		var hash12 = Zeze.Serialize.ByteBuffer.calc_hashnr(100);
+		System.out.println("12--->" + hash12);
+		app1.Game_Rank.TestHash(hash12, 666).then(result -> {
+			assertEquals(hash12, result.hash);
 			assertEquals(666, result.out);
+			System.out.println("12--->" + result.serverId);
 			assertEquals(0, result.serverId);
 		}).await();
 
-		app2.Game_Rank.TestHash(0, 777).then(result -> {
-			assertEquals(0, result.hash);
+		var hash21 = Zeze.Serialize.ByteBuffer.calc_hashnr(127364);
+		System.out.println("21--->" + hash21);
+		app2.Game_Rank.TestHash(hash21, 777).then(result -> {
+			assertEquals(hash21, result.hash);
 			assertEquals(777, result.out);
-			assertEquals(0, result.serverId);
+			System.out.println("21--->" + result.serverId);
+			assertEquals(1, result.serverId);
 		}).await();
 
-		app2.Game_Rank.TestHash(1, 888).then(result -> {
-			assertEquals(1, result.hash);
+		var hash22 = Zeze.Serialize.ByteBuffer.calc_hashnr(100);
+		System.out.println("22--->" + hash22);
+		app2.Game_Rank.TestHash(hash22, 888).then(result -> {
+			assertEquals(hash22, result.hash);
 			assertEquals(888, result.out);
+			System.out.println("22--->" + result.serverId);
 			assertEquals(0, result.serverId);
 		}).await();
 

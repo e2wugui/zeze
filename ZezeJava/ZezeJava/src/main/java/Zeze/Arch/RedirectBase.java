@@ -67,7 +67,7 @@ public class RedirectBase {
 		if (serviceInfo == null || serviceInfo.getServiceIdentity().equals(String.valueOf(ProviderApp.Zeze.getConfig().getServerId())))
 			return null;
 
-		var providerModuleState = (ProviderModuleState)serviceInfo.getLocalState();
+		var providerModuleState = (ProviderModuleState)servers.LocalStates.get(serviceInfo.getServiceIdentity());
 		if (providerModuleState == null)
 			return null;
 
@@ -107,6 +107,7 @@ public class RedirectBase {
 		var miss = new ModuleRedirectAllResult();
 		var serviceName = ProviderDistribute.MakeServiceName(req.Argument.getServiceNamePrefix(), req.Argument.getModuleId());
 		var consistent = ProviderApp.Distribute.getConsistentHash(serviceName);
+		var providers = ProviderApp.Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
 		var localServiceIdentity = String.valueOf(ProviderApp.Zeze.getConfig().getServerId());
 		for (int i = 0; i < req.Argument.getHashCodeConcurrentLevel(); ++i) {
 			var target = ProviderApp.Distribute.ChoiceDataIndex(consistent, i, req.Argument.getHashCodeConcurrentLevel());
@@ -118,7 +119,7 @@ public class RedirectBase {
 				AddTransmits(transmits, 0, i, req);
 				continue; // loop-back
 			}
-			var localState = target.getLocalState();
+			var localState = providers.LocalStates.get(target.getServiceIdentity());
 			if (localState == null) {
 				AddMiss(miss, i, Procedure.ProviderNotExist);
 				continue; // not ready
