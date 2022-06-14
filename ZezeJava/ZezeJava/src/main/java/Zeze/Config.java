@@ -35,7 +35,6 @@ public final class Config {
 	private int CheckpointPeriod = 60000;
 	private Zeze.Transaction.CheckpointMode CheckpointMode = Zeze.Transaction.CheckpointMode.Table;
 	private Level ProcessReturnErrorLogLevel = Level.INFO;
-	private int InternalThreadPoolWorkerCount;
 	private int ServerId;
 	private String GlobalCacheManagerHostNameOrAddress = "";
 	// 分成多行配置，支持多HostNameOrAddress或者多raft.xml。
@@ -103,14 +102,6 @@ public final class Config {
 
 	public void setProcessReturnErrorLogLevel(Level value) {
 		ProcessReturnErrorLogLevel = value;
-	}
-
-	public int getInternalThreadPoolWorkerCount() {
-		return InternalThreadPoolWorkerCount;
-	}
-
-	public void setInternalThreadPoolWorkerCount(int value) {
-		InternalThreadPoolWorkerCount = value;
 	}
 
 	public int getServerId() {
@@ -323,9 +314,6 @@ public final class Config {
 		attr = self.getAttribute("ProcessReturnErrorLogLevel");
 		if (!attr.isEmpty())
 			setProcessReturnErrorLogLevel(Level.toLevel(attr));
-
-		attr = self.getAttribute("InternalThreadPoolWorkerCount");
-		setInternalThreadPoolWorkerCount(attr.length() > 0 ? Integer.parseInt(attr) : 0);
 
 		attr = self.getAttribute("WorkerThreads");
 		setWorkerThreads(attr.length() > 0 ? Integer.parseInt(attr) : -1);

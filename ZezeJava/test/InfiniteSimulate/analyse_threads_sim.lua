@@ -93,7 +93,7 @@ end
 local knowns = {
 	{ "在Load等待Record1锁",                           ".EnterFairLock(", ".Load(" },
 	{ "在Load等待Acquire(Share)回复",                  ".Acquire(", ".Load(" },
-	{ "在_lock_and_check_等待写锁",                    ".EnterWriteLock(", "._lock_and_check_(" },
+	{ "在_lock_and_check_等待Lockey写锁",              "Lockey.EnterWriteLock(", "._lock_and_check_(" },
 	{ "在_check_等待Record1锁",                        ".EnterFairLock(", "._check_(" },
 	{ "在_check_等待Acquire(Modify)回复",              ".Acquire(", "._check_(" },
 	{ "在ReduceInvalid等待Lockey写锁",                 ".EnterWriteLock(", ".ReduceInvalid(" },
@@ -103,7 +103,7 @@ local knowns = {
 	{ "在TableCache.CleanNow里等待下次循环",           ".CleanNow(TableCache.java:166)" },
 	{ "在__TryWaitFlushWhenReduce里等待sleep",         ".__TryWaitFlushWhenReduce(Application.java:341)" },
 	{ "在Checkpoint线程等待定时器",                    ".Object.wait(", ".Checkpoint.Run(" },
-	{ "在Selector等待NIO事件",                         ".Selector.run(Selector.java:67)" },
+	{ "在Selector线程等待NIO事件",                     ".Selector.run(Selector.java:67)" },
 	{ "AchillesHeelDaemon线程",                        "(AchillesHeelDaemon.java:146)" },
 	{ "等待所有任务完成(主线程)",                      ".WaitAllRunningTasksAndClear(App.java:68)" },
 }

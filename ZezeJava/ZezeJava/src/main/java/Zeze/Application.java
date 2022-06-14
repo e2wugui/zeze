@@ -3,9 +3,7 @@ package Zeze;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import Zeze.Arch.RedirectBase;
 import Zeze.Collections.Queue;
 import Zeze.Component.AutoKey;
@@ -45,7 +43,6 @@ public final class Application {
 	private final TaskOneByOneByKey TaskOneByOneByKey = new TaskOneByOneByKey();
 	private final Locks Locks = new Locks();
 	private final Agent ServiceManagerAgent;
-	private ExecutorService InternalThreadPool; // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
 	private AutoKey.Module autoKey;
 	private Zeze.Collections.Queue.Module queueModule;
 	private IGlobalAgent GlobalAgent;
@@ -116,10 +113,6 @@ public final class Application {
 
 	public IGlobalAgent getGlobalAgent() {
 		return GlobalAgent;
-	}
-
-	public ExecutorService __GetInternalThreadPoolUnsafe() {
-		return InternalThreadPool;
 	}
 
 	public Checkpoint getCheckpoint() {
@@ -227,9 +220,6 @@ public final class Application {
 
 		// Start Thread Pool
 		Task.tryInitThreadPool(this, null, null); // 确保Task线程池已经建立,如需定制,在Start前先手动初始化
-		int core = Conf.getInternalThreadPoolWorkerCount();
-		core = core > 0 ? core : Runtime.getRuntime().availableProcessors() * 30;
-		InternalThreadPool = Task.newFixedThreadPool(core, "ZezeInternalPool-" + Conf.getServerId());
 
 		if (getConfig().getServerId() >= 0) {
 			// 自动初始化的组件。
@@ -361,12 +351,6 @@ public final class Application {
 		if (autoKey != null) {
 			autoKey.UnRegisterZezeTables(this);
 			autoKey = null;
-		}
-		if (InternalThreadPool != null) {
-			InternalThreadPool.shutdown();
-			//noinspection ResultOfMethodCallIgnored
-			InternalThreadPool.awaitTermination(3, TimeUnit.SECONDS);
-			InternalThreadPool = null;
 		}
 		if (Conf != null)
 			Conf.ClearInUseAndIAmSureAppStopped(this, Databases);

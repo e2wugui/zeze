@@ -14,6 +14,9 @@ public abstract class RaftRpc<TArgument extends Bean, TResult extends Bean> exte
 	private long SendTime;
 	private boolean Urgent;
 
+	TaskCompletionSource<RaftRpc<TArgument, TResult>> Future;
+	ToLongFunction<Protocol<?>> Handle;
+
 	@Override
 	public long getCreateTime() {
 		return CreateTime;
@@ -51,9 +54,6 @@ public abstract class RaftRpc<TArgument extends Bean, TResult extends Bean> exte
 	public void setUrgent(boolean urgent) {
 		Urgent = urgent;
 	}
-
-	TaskCompletionSource<RaftRpc<TArgument, TResult>> Future;
-	ToLongFunction<Protocol<?>> Handle;
 
 	@Override
 	public boolean Send(AsyncSocket socket) {

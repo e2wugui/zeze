@@ -1,6 +1,5 @@
 package Zeze.Transaction;
 
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Application;
 import Zeze.Net.AsyncSocket;

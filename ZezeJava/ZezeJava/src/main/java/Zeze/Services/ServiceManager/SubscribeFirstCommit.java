@@ -11,6 +11,10 @@ public final class SubscribeFirstCommit extends Protocol<ServiceInfos> {
 		Argument = new ServiceInfos();
 	}
 
+	public SubscribeFirstCommit(ServiceInfos infos) {
+		Argument = infos;
+	}
+
 	@Override
 	public int getModuleId() {
 		return 0;

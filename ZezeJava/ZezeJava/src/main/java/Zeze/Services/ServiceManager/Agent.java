@@ -213,7 +213,7 @@ public final class Agent implements Closeable {
 
 		private void PrepareAndTriggerOnChanged() {
 			if (Agent.this.OnChanged != null) {
-				getZeze().__GetInternalThreadPoolUnsafe().execute(() -> {
+				Task.getCriticalThreadPool().execute(() -> {
 					try {
 						Agent.this.OnChanged.run(this);
 					} catch (Throwable e) {
@@ -233,7 +233,7 @@ public final class Agent implements Closeable {
 			exist.setExtraInfo(info.getExtraInfo());
 
 			if (Agent.this.OnUpdate != null) {
-				getZeze().__GetInternalThreadPoolUnsafe().execute(() -> {
+				Task.getCriticalThreadPool().execute(() -> {
 					try {
 						Agent.this.OnUpdate.run(this, exist);
 					} catch (Throwable e) {
@@ -241,7 +241,7 @@ public final class Agent implements Closeable {
 					}
 				});
 			} else if (null != Agent.this.OnChanged) {
-				getZeze().__GetInternalThreadPoolUnsafe().execute(() -> {
+				Task.getCriticalThreadPool().execute(() -> {
 					try {
 						Agent.this.OnChanged.run(this);
 					} catch (Throwable e) {
@@ -254,7 +254,7 @@ public final class Agent implements Closeable {
 		synchronized void OnRegister(ServiceInfo info) {
 			var info2 = ServiceInfos.Insert(info);
 			if (Agent.this.OnUpdate != null) {
-				getZeze().__GetInternalThreadPoolUnsafe().execute(() -> {
+				Task.getCriticalThreadPool().execute(() -> {
 					try {
 						Agent.this.OnUpdate.run(this, info2);
 					} catch (Throwable e) {
@@ -262,7 +262,7 @@ public final class Agent implements Closeable {
 					}
 				});
 			} else if (null != Agent.this.OnChanged) {
-				getZeze().__GetInternalThreadPoolUnsafe().execute(() -> {
+				Task.getCriticalThreadPool().execute(() -> {
 					try {
 						Agent.this.OnChanged.run(this);
 					} catch (Throwable e) {
@@ -276,7 +276,7 @@ public final class Agent implements Closeable {
 			var info2 = ServiceInfos.Remove(info);
 			if (null != info2) {
 				if (Agent.this.OnRemove != null) {
-					getZeze().__GetInternalThreadPoolUnsafe().execute(() -> {
+					Task.getCriticalThreadPool().execute(() -> {
 						try {
 							Agent.this.OnRemove.run(this, info2);
 						} catch (Throwable e) {
@@ -284,7 +284,7 @@ public final class Agent implements Closeable {
 						}
 					});
 				} else if (Agent.this.OnChanged != null) {
-					getZeze().__GetInternalThreadPoolUnsafe().execute(() -> {
+					Task.getCriticalThreadPool().execute(() -> {
 						try {
 							Agent.this.OnChanged.run(this);
 						} catch (Throwable e) {
@@ -308,7 +308,7 @@ public final class Agent implements Closeable {
 						|| infos.getSerialId() > getServiceInfosPending().getSerialId()) {
 					ServiceInfosPending = infos;
 					if (null != OnPrepare)
-						getZeze().__GetInternalThreadPoolUnsafe().execute(() -> {
+						Task.getCriticalThreadPool().execute(() -> {
 							try {
 								OnPrepare.run(this);
 							} catch (Throwable e) {
@@ -571,7 +571,7 @@ public final class Agent implements Closeable {
 
 	private long ProcessKeepAlive(KeepAlive r) {
 		if (OnKeepAlive != null) {
-			getZeze().__GetInternalThreadPoolUnsafe().execute(OnKeepAlive::run);
+			Task.getCriticalThreadPool().execute(OnKeepAlive);
 		}
 		r.SendResultCode(KeepAlive.Success);
 		return Procedure.Success;
@@ -580,7 +580,7 @@ public final class Agent implements Closeable {
 	private long ProcessSetServerLoad(SetServerLoad setServerLoad) {
 		Loads.put(setServerLoad.Argument.getName(), setServerLoad.Argument);
 		if (null != OnSetServerLoad)
-			getZeze().__GetInternalThreadPoolUnsafe().execute(() -> {
+			Task.getCriticalThreadPool().execute(() -> {
 				try {
 					OnSetServerLoad.run(setServerLoad.Argument);
 				} catch (Throwable e) {

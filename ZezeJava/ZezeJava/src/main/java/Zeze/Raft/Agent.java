@@ -1,7 +1,6 @@
 package Zeze.Raft;
 
 import java.util.ArrayList;
-import java.util.concurrent.ExecutorService;
 import java.util.function.ToLongFunction;
 import Zeze.Application;
 import Zeze.Config;
@@ -33,7 +32,6 @@ public final class Agent {
 	private NetClient Client;
 	private volatile ConnectorEx _Leader;
 	private final LongConcurrentHashMap<RaftRpc<?, ?>> Pending = new LongConcurrentHashMap<>();
-	private final ExecutorService InternalThreadPool;
 	private long Term;
 	public boolean DispatchProtocolToInternalThreadPool;
 
@@ -55,10 +53,6 @@ public final class Agent {
 
 	public ConnectorEx getLeader() {
 		return _Leader;
-	}
-
-	public ExecutorService getInternalThreadPool() {
-		return InternalThreadPool;
 	}
 
 	public long getTerm() {
@@ -105,13 +99,13 @@ public final class Agent {
 		if (pending.putIfAbsent(rpc.getUnique().getRequestId(), rpc) != null)
 			throw new IllegalStateException("duplicate requestId rpc=" + rpc);
 
-		rpc.setResponseHandle(p -> SendHandle(p, handle, rpc));
+		rpc.setResponseHandle(p -> SendHandle(p, rpc));
 		ConnectorEx leader = _Leader;
-		rpc.Send(leader != null ? leader.TryGetReadySocket() : null);
+		if (!rpc.Send(leader != null ? leader.TryGetReadySocket() : null))
+			logger.warn("Send failed: leader={}, rpc={}", leader, rpc);
 	}
 
 	private <TArgument extends Bean, TResult extends Bean> long SendHandle(Rpc<TArgument, TResult> p,
-																		   ToLongFunction<Protocol<?>> userHandle,
 																		   RaftRpc<TArgument, TResult> rpc) {
 		var net = (RaftRpc<TArgument, TResult>)p;
 		if (net.isTimeout() || IsRetryError(net.getResultCode()))
@@ -129,7 +123,7 @@ public final class Agent {
 				rpc.setIsTimeout(false);
 			logger.debug("Agent Rpc={} RequestId={} ResultCode={} Sender={}",
 					rpc.getClass().getSimpleName(), requestId, rpc.getResultCode(), rpc.getSender());
-			return userHandle.applyAsLong(rpc);
+			return rpc.Handle.applyAsLong(rpc);
 		}
 		return Procedure.Success;
 	}
@@ -142,7 +136,6 @@ public final class Agent {
 
 	@SuppressWarnings("SameReturnValue")
 	private <TArgument extends Bean, TResult extends Bean> long SendForWaitHandle(Rpc<TArgument, TResult> p,
-																				  TaskCompletionSource<RaftRpc<TArgument, TResult>> future,
 																				  RaftRpc<TArgument, TResult> rpc) {
 		var net = (RaftRpc<TArgument, TResult>)p;
 		if (net.isTimeout() || IsRetryError(net.getResultCode()))
@@ -160,7 +153,7 @@ public final class Agent {
 				rpc.setIsTimeout(false);
 			logger.debug("Agent Rpc={} RequestId={} ResultCode={} Sender={}",
 					rpc.getClass().getSimpleName(), requestId, rpc.getResultCode(), rpc.getSender());
-			future.SetResult(rpc);
+			rpc.Future.SetResult(rpc);
 		}
 		return Procedure.Success;
 	}
@@ -191,9 +184,10 @@ public final class Agent {
 		if (pending.putIfAbsent(rpc.getUnique().getRequestId(), rpc) != null)
 			throw new IllegalStateException("duplicate requestId rpc=" + rpc);
 
-		rpc.setResponseHandle(p -> SendForWaitHandle(p, future, rpc));
+		rpc.setResponseHandle(p -> SendForWaitHandle(p, rpc));
 		ConnectorEx leader = _Leader;
-		rpc.Send(leader != null ? leader.TryGetReadySocket() : null);
+		if (!rpc.Send(leader != null ? leader.TryGetReadySocket() : null))
+			logger.warn("Send failed: leader={}, rpc={}", leader, rpc);
 		return future;
 	}
 
@@ -211,12 +205,8 @@ public final class Agent {
 		if (Client == null)
 			return;
 
-		Application zeze = Client.getZeze();
 		Client.Stop();
 		Client = null;
-
-		if (zeze == null)
-			InternalThreadPool.shutdown();
 
 		_Leader = null;
 		Pending.clear();
@@ -228,7 +218,6 @@ public final class Agent {
 	}
 
 	public Agent(String name, Application zeze, RaftConfig raftConf) throws Throwable {
-		InternalThreadPool = zeze.__GetInternalThreadPoolUnsafe();
 		UniqueRequestIdGenerator = PersistentAtomicLong.getOrAdd(name + '.' + zeze.getConfig().getServerId());
 		Init(new NetClient(this, name, zeze), raftConf);
 	}
@@ -238,7 +227,6 @@ public final class Agent {
 	}
 
 	public Agent(String name, RaftConfig raftConf, Zeze.Config config) throws Throwable {
-		InternalThreadPool = Task.newFixedThreadPool(Runtime.getRuntime().availableProcessors() * 2, "RaftAgent");
 		if (config == null)
 			config = Config.Load();
 
@@ -318,12 +306,17 @@ public final class Agent {
 			leader.Start();
 		// ReSendPendingRpc
 		var leaderSocket = leader != null ? leader.TryGetReadySocket() : null;
-		var removed = new ArrayList<RaftRpc<?, ?>>(UrgentPending.size() + Pending.size());
+		ArrayList<RaftRpc<?, ?>> removed = null;
 		long now = System.currentTimeMillis();
 		long timeout = RaftConfig.getAppendEntriesTimeout() + 1000;
 		for (var rpc : UrgentPending) {
 			if (rpc.getTimeout() > 0 && now - rpc.getCreateTime() > rpc.getTimeout()) {
-				removed.add(UrgentPending.remove(rpc.getUnique().getRequestId()));
+				rpc = UrgentPending.remove(rpc.getUnique().getRequestId());
+				if (rpc != null) {
+					if (removed == null)
+						removed = new ArrayList<>();
+					removed.add(rpc);
+				}
 				continue;
 			}
 			if (immediately || now - rpc.getSendTime() > timeout) {
@@ -335,7 +328,12 @@ public final class Agent {
 		}
 		for (var rpc : Pending) {
 			if (rpc.getTimeout() > 0 && now - rpc.getCreateTime() > rpc.getTimeout()) {
-				removed.add(Pending.remove(rpc.getUnique().getRequestId()));
+				rpc = Pending.remove(rpc.getUnique().getRequestId());
+				if (rpc != null) {
+					if (removed == null)
+						removed = new ArrayList<>();
+					removed.add(rpc);
+				}
 				continue;
 			}
 			if (immediately || now - rpc.getSendTime() > timeout) {
@@ -345,10 +343,14 @@ public final class Agent {
 					logger.info("SendRequest failed {}", rpc);
 			}
 		}
-		if (DispatchProtocolToInternalThreadPool)
-			InternalThreadPool.execute(() -> trigger(removed));
-		else
-			Task.run(() -> trigger(removed), "Trigger Timeout RaftRpcs");
+		if (removed != null) {
+			logger.debug("Found {} RaftRpc timeout", removed.size());
+			var removed0 = removed;
+			if (DispatchProtocolToInternalThreadPool)
+				Task.getCriticalThreadPool().execute(() -> trigger(removed0));
+			else
+				Task.run(() -> trigger(removed0), "Trigger Timeout RaftRpcs");
+		}
 	}
 
 	private void trigger(ArrayList<RaftRpc<?, ?>> removed) {
@@ -415,7 +417,7 @@ public final class Agent {
 		@Override
 		public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> pfh) {
 			if (p.getTypeId() == LeaderIs.TypeId_ || Agent.DispatchProtocolToInternalThreadPool)
-				Agent.InternalThreadPool.execute(() -> Task.Call(() -> pfh.Handle.handle(p), "InternalRequest"));
+				Task.getCriticalThreadPool().execute(() -> Task.Call(() -> pfh.Handle.handle(p), "InternalRequest"));
 			else
 				Task.run(() -> pfh.Handle.handle(p), p);
 		}

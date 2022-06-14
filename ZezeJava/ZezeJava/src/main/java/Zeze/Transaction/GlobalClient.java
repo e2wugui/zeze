@@ -1,8 +1,11 @@
 package Zeze.Transaction;
 
-import Zeze.Net.*;
-import Zeze.*;
-import Zeze.Services.GlobalCacheManager.*;
+import Zeze.Application;
+import Zeze.Net.AsyncSocket;
+import Zeze.Net.Protocol;
+import Zeze.Services.GlobalCacheManager.Login;
+import Zeze.Services.GlobalCacheManager.ReLogin;
+import Zeze.Util.Task;
 
 public final class GlobalClient extends Zeze.Net.Service {
 	public GlobalClient(GlobalAgent agent, Application zeze) throws Throwable {
@@ -36,16 +39,14 @@ public final class GlobalClient extends Zeze.Net.Service {
 						// 4. 开始网络连接。
 						so.getConnector().Start();
 					});
-				}
-				else {
+				} else {
 					agent.getLoginTimes().incrementAndGet();
 					agent.setActiveTime(System.currentTimeMillis());
 					super.OnHandshakeDone(so);
 				}
 				return 0;
 			});
-		}
-		else {
+		} else {
 			var login = new Login();
 			login.Argument.ServerId = getZeze().getConfig().getServerId();
 			login.Argument.GlobalCacheManagerHashIndex = agent.getGlobalCacheManagerHashIndex();
@@ -55,8 +56,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 						login.isTimeout(), login.getResultCode());
 				if (login.isTimeout() || login.getResultCode() != 0) {
 					so.close();
-				}
-				else {
+				} else {
 					agent.setActiveTime(System.currentTimeMillis());
 					agent.getLoginTimes().incrementAndGet();
 					agent.initialize(login.Result.MaxNetPing, login.Result.ServerProcessTime, login.Result.ServerReleaseTimeout);
@@ -71,8 +71,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
 		// Reduce 很重要。必须得到执行，不能使用默认线程池(Task.Run),防止饥饿。
 		if (null != factoryHandle.Handle) {
-			getZeze().__GetInternalThreadPoolUnsafe().execute(
-					() -> Zeze.Util.Task.Call(() -> factoryHandle.Handle.handle(p), p));
+			Task.getCriticalThreadPool().execute(() -> Zeze.Util.Task.Call(() -> factoryHandle.Handle.handle(p), p));
 		}
 	}
 }

@@ -91,18 +91,20 @@ if not foundDeadLock then
 end
 
 local knowns = {
-	{ "在FindInCacheOrStorage等待Record1锁",           ".FindInCacheOrStorage(TableX.java:32)" },
-	{ "在FindInCacheOrStorage等待Acquire(Share)回复",  ".Acquire(GlobalCacheManagerWithRaftAgent.java:165)", ".FindInCacheOrStorage(TableX.java:43)" },
-	{ "在_lock_and_check_等待写锁",                    "._lock_and_check_(Transaction.java:506)", ".EnterWriteLock(Lockey.java:50)" },
-	{ "在_check_等待Record1锁",                        "._check_(Transaction.java:452)" },
-	{ "在_check_等待Acquire(Modify)回复",              "._check_(Transaction.java:472)" },
-	{ "在ReduceInvalid等待Lockey写锁",                 ".ReduceInvalid(TableX.java:193)" },
-	{ "在ReduceInvalid等待Record1锁",                  ".ReduceInvalid(TableX.java:204)" },
-	{ "在TableCache.CleanNow等待Acquire(Invalid)回复", ".Acquire(GlobalCacheManagerWithRaftAgent.java:165)", ".TryRemoveRecordUnderLocks(TableCache.java:214)" },
+	{ "在Load等待Record1锁",                           ".EnterFairLock(", ".Load(" },
+	{ "在Load等待Acquire(Share)回复",                  ".Acquire(", ".Load(" },
+	{ "在_lock_and_check_等待Lockey写锁",              "Lockey.EnterWriteLock(", "._lock_and_check_(" },
+	{ "在_check_等待Record1锁",                        ".EnterFairLock(", "._check_(" },
+	{ "在_check_等待Acquire(Modify)回复",              ".Acquire(", "._check_(" },
+	{ "在ReduceInvalid等待Lockey写锁",                 ".EnterWriteLock(", ".ReduceInvalid(" },
+	{ "在ReduceInvalid等待Record1锁",                  ".EnterFairLock(", ".ReduceInvalid(" },
+	{ "在ReduceInvalidAllLocalOnly等待Lockey写锁",     ".EnterWriteLock(", ".ReduceInvalidAllLocalOnly(" },
+	{ "在TableCache.CleanNow等待Acquire(Invalid)回复", ".Acquire(", ".CleanNow(" },
 	{ "在TableCache.CleanNow里等待下次循环",           ".CleanNow(TableCache.java:166)" },
 	{ "在__TryWaitFlushWhenReduce里等待sleep",         ".__TryWaitFlushWhenReduce(Application.java:341)" },
-	{ "在Checkpoint线程等待定时器",                    ".Checkpoint.Run(Checkpoint.java:141)" },
-	{ "在Selector等待NIO事件",                         ".Selector.run(Selector.java:67)" },
+	{ "在Checkpoint线程等待定时器",                    ".Object.wait(", ".Checkpoint.Run(" },
+	{ "在Selector线程等待NIO事件",                     ".Selector.run(Selector.java:67)" },
+	{ "AchillesHeelDaemon线程",                        "(AchillesHeelDaemon.java:146)" },
 	{ "永久等待(主线程)",                              ".Object.wait(", ".main(GlobalCacheManagerServer.java:" },
 }
 

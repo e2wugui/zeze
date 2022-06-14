@@ -28,6 +28,7 @@ public class Task implements Future<Long> {
 	static final Logger logger = LogManager.getLogger(Task.class);
 	private static ExecutorService threadPoolDefault;
 	private static ScheduledExecutorService threadPoolScheduled;
+	private static ExecutorService threadPoolCritical; // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
 	//	private static final ThreadPoolExecutor rpcResponseThreadPool
 	//			= (ThreadPoolExecutor)Executors.newCachedThreadPool(new ThreadFactoryWithName("ZezeRespPool"));
 	public static volatile Action4<Level, Throwable, Long, String> LogAction = Task::DefaultLogAction;
@@ -38,6 +39,10 @@ public class Task implements Future<Long> {
 
 	public static ScheduledExecutorService getScheduledThreadPool() {
 		return threadPoolScheduled;
+	}
+
+	public static ExecutorService getCriticalThreadPool() {
+		return threadPoolCritical;
 	}
 
 	public static ExecutorService newFixedThreadPool(int threadCount, String threadNamePrefix) {
@@ -61,6 +66,7 @@ public class Task implements Future<Long> {
 			throw new IllegalStateException("ThreadPool Has Inited.");
 		threadPoolDefault = pool;
 		threadPoolScheduled = scheduled;
+		threadPoolCritical = Executors.newCachedThreadPool(new ThreadFactoryWithName("ZezeCriticalPool"));
 	}
 
 	public static synchronized boolean tryInitThreadPool(Application app, ExecutorService pool,
@@ -82,6 +88,7 @@ public class Task implements Future<Long> {
 					new ThreadFactoryWithName("ZezeScheduledPool"));
 		} else
 			threadPoolScheduled = scheduled;
+		threadPoolCritical = Executors.newCachedThreadPool(new ThreadFactoryWithName("ZezeCriticalPool"));
 		return true;
 	}
 

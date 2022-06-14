@@ -106,6 +106,7 @@ public class AchillesHeelDaemon extends Thread {
 
 	public <T extends GlobalAgentBase> AchillesHeelDaemon(Application zeze, T[] agents) {
 		super("AchillesHeelDaemon");
+		setDaemon(true);
 		Zeze = zeze;
 		Agents = agents.clone();
 	}
