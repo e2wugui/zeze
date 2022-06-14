@@ -68,6 +68,8 @@ public class App extends Zeze.AppBase {
     public Zege.LinkdService LinkdService;
     public Zege.ProviderService ProviderService;
 
+    public Zege.Friend.ModuleFriend Zege_Friend;
+    public Zege.Message.ModuleMessage Zege_Message;
     public Zege.Linkd.ModuleLinkd Zege_Linkd;
 
     @Override
@@ -92,6 +94,16 @@ public class App extends Zeze.AppBase {
         ProviderService = new Zege.ProviderService(Zeze);
     }
     public synchronized void CreateModules() {
+        Zege_Friend = ReplaceModuleInstance(new Zege.Friend.ModuleFriend(this));
+        Zege_Friend.Initialize(this);
+        if (Modules.put(Zege_Friend.getFullName(), Zege_Friend) != null)
+            throw new RuntimeException("duplicate module name: Zege_Friend");
+
+        Zege_Message = ReplaceModuleInstance(new Zege.Message.ModuleMessage(this));
+        Zege_Message.Initialize(this);
+        if (Modules.put(Zege_Message.getFullName(), Zege_Message) != null)
+            throw new RuntimeException("duplicate module name: Zege_Message");
+
         Zege_Linkd = ReplaceModuleInstance(new Zege.Linkd.ModuleLinkd(this));
         Zege_Linkd.Initialize(this);
         if (Modules.put(Zege_Linkd.getFullName(), Zege_Linkd) != null)
@@ -102,6 +114,8 @@ public class App extends Zeze.AppBase {
 
     public synchronized void DestroyModules() {
         Zege_Linkd = null;
+        Zege_Message = null;
+        Zege_Friend = null;
         Modules.clear();
     }
 
@@ -115,12 +129,18 @@ public class App extends Zeze.AppBase {
     }
 
     public synchronized void StartModules() throws Throwable {
+        Zege_Friend.Start(this);
+        Zege_Message.Start(this);
         Zege_Linkd.Start(this);
     }
 
     public synchronized void StopModules() throws Throwable {
         if (Zege_Linkd != null)
             Zege_Linkd.Stop(this);
+        if (Zege_Message != null)
+            Zege_Message.Stop(this);
+        if (Zege_Friend != null)
+            Zege_Friend.Stop(this);
     }
 
     public synchronized void StartService() throws Throwable {

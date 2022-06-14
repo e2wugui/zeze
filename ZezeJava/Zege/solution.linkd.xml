@@ -39,6 +39,9 @@
 	</module>
 
 	<project name="linkd" gendir="." scriptdir="src" platform="java">
+		<module ref="Zege.Friend"/>
+		<module ref="Zege.Message"/>
+
 		<service name="LinkdService" handle="server" base="Zeze.Arch.LinkdService">
 			<module ref="Linkd"/>
 		</service>

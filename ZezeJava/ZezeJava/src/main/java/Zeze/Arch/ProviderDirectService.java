@@ -13,6 +13,7 @@ import Zeze.Net.ProtocolHandle;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.ServiceInfo;
 import Zeze.Services.ServiceManager.ServiceInfos;
+import Zeze.Services.ServiceManager.SubscribeInfo;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutObject;
 import Zeze.Util.Task;
@@ -129,7 +130,8 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 		// 需要把所有符合当前连接目标的Provider相关的服务信息都更新到当前连接的状态。
 		for (var ss : getZeze().getServiceManagerAgent().getSubscribeStates().values()) {
 			if (ss.getServiceName().startsWith(ProviderApp.ServerServiceNamePrefix)) {
-				var infos = ss.getServiceInfosPending();
+				var infos = ss.getSubscribeType() == SubscribeInfo.SubscribeTypeSimple
+						? ss.getServiceInfos() : ss.getServiceInfosPending();
 				if (null == infos)
 					continue;
 				var mid = Integer.parseInt(ss.getServiceName().split("#")[1]);
