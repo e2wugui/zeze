@@ -325,7 +325,7 @@ public final class Config {
 			setProcessReturnErrorLogLevel(Level.toLevel(attr));
 
 		attr = self.getAttribute("InternalThreadPoolWorkerCount");
-		setInternalThreadPoolWorkerCount(attr.length() > 0 ? Integer.parseInt(attr) : 10);
+		setInternalThreadPoolWorkerCount(attr.length() > 0 ? Integer.parseInt(attr) : 0);
 
 		attr = self.getAttribute("WorkerThreads");
 		setWorkerThreads(attr.length() > 0 ? Integer.parseInt(attr) : -1);
