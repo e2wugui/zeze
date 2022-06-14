@@ -3,13 +3,14 @@ package demo;
 import java.util.HashMap;
 import Zeze.AppBase;
 import Zeze.Application;
+import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.LoadConfig;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderDirectService;
 import Zeze.Arch.ProviderModuleBinds;
 import Zeze.Arch.ProviderService;
 import Zeze.Config;
-import Zeze.Game.Bag;
+import Zeze.Game.Online;
 import Zeze.Game.ProviderDirectWithTransmit;
 import Zeze.Game.ProviderImplementWithOnline;
 import Zeze.Game.Rank;
@@ -20,10 +21,10 @@ import Zeze.Net.ServiceConf;
 
 // 简单的无需读配置文件的App
 public class SimpleApp extends AppBase {
-	private final Application zeze;
-	private final ProviderApp providerApp;
+	private Application zeze;
+	private ProviderApp providerApp;
 
-	public Bag.Module bag;
+	// public Bag.Module bag;
 	public Rank rank;
 
 	public SimpleApp(int serverId) throws Throwable {
@@ -38,7 +39,7 @@ public class SimpleApp extends AppBase {
 		config.getServiceConfMap().put("Zeze.Services.ServiceManager.Agent", serviceConf);
 		serviceConf = new ServiceConf();
 		serviceConf.AddAcceptor(new Acceptor(providerPort, null));
-		config.getServiceConfMap().put("ProviderDirectService", serviceConf); // 提供Provider之间直连服务
+		config.getServiceConfMap().put("ServerDirect", serviceConf); // 提供Provider之间直连服务
 		config.setGlobalCacheManagerHostNameOrAddress(globalServerIp); // 连接本地GlobalServer
 		config.setGlobalCacheManagerPort(globalServerPort);
 		config.getDatabaseConfMap().put("", new Config.DatabaseConf()); // 默认内存数据库配置
@@ -47,10 +48,6 @@ public class SimpleApp extends AppBase {
 		config.setDefaultTableConf(tableConf);
 		config.setServerId(serverId); // 设置Provider服务器ID
 		zeze = new Application("SimpleApp", config);
-
-		providerApp = new ProviderApp(zeze, new ProviderImplementWithOnline(),
-				new ProviderService("ProviderService", zeze), "SimpleApp#", new ProviderDirectWithTransmit(),
-				new ProviderDirectService("ProviderDirectService", zeze), "Game.Linkd", new LoadConfig());
 	}
 
 	@Override
@@ -64,11 +61,18 @@ public class SimpleApp extends AppBase {
 	}
 
 	public void start() throws Throwable {
+		var provider = new ProviderImplementWithOnline();
+		providerApp = new ProviderApp(zeze, provider,
+				new ProviderService("Server", zeze), "SimpleApp#", new ProviderDirectWithTransmit(),
+				new ProviderDirectService("ServerDirect", zeze), "SimpleLinkd", new LoadConfig());
+		provider.Online = GenModule.Instance.ReplaceModuleInstance(this, new Online(this));
+		provider.Online.Initialize(this);
+
 		var modules = new HashMap<String, IModule>();
 
-		bag = new Bag.Module(zeze);
-		bag.Initialize(this);
-		modules.put(bag.getFullName(), bag);
+//		bag = new Bag.Module(zeze);
+//		bag.Initialize(this);
+//		modules.put(bag.getFullName(), bag);
 
 		rank = Rank.create(this);
 		rank.Initialize(this);
@@ -81,22 +85,34 @@ public class SimpleApp extends AppBase {
 //		}
 
 		zeze.Start();
+		((ProviderImplementWithOnline)providerApp.ProviderImplement).Online.Start();
 		providerApp.ProviderService.Start();
 		providerApp.ProviderDirectService.Start();
 		providerApp.StartLast(ProviderModuleBinds.Load(""), modules);
 	}
 
 	public void stop() throws Throwable {
-		providerApp.ProviderDirectService.Stop();
-		providerApp.ProviderService.Stop();
-		zeze.Stop();
+		if (providerApp != null) {
+			if (providerApp.ProviderImplement != null) {
+				var online = ((ProviderImplementWithOnline)providerApp.ProviderImplement).Online;
+				if (online != null)
+					online.Stop();
+			}
+			providerApp.ProviderDirectService.Stop();
+			providerApp.ProviderService.Stop();
+			providerApp = null;
+		}
 		if (rank != null) {
 			rank.UnRegister();
 			rank = null;
 		}
-		if (bag != null) {
-			bag.UnRegister();
-			bag = null;
+//		if (bag != null) {
+//			bag.UnRegister();
+//			bag = null;
+//		}
+		if (zeze != null) {
+			zeze.Stop();
+			zeze = null;
 		}
 	}
 }

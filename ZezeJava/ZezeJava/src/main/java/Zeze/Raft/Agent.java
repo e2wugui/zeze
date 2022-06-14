@@ -345,22 +345,27 @@ public final class Agent {
 					logger.info("SendRequest failed {}", rpc);
 			}
 		}
-		Task.run(() -> {
-			for (var r : removed) {
-				if (null == r)
-					continue;
-				r.setIsTimeout(true);
-				if (null != r.Future) {
-					r.Future.SetException(new RuntimeException("Timeout"));
-				} else {
-					try {
-						r.Handle.applyAsLong(r);
-					} catch (Throwable e) {
-						logger.error("", e);
-					}
+		if (DispatchProtocolToInternalThreadPool)
+			InternalThreadPool.execute(() -> trigger(removed));
+		else
+			Task.run(() -> trigger(removed), "Trigger Timeout RaftRpcs");
+	}
+
+	private void trigger(ArrayList<RaftRpc<?, ?>> removed) {
+		for (var r : removed) {
+			if (null == r)
+				continue;
+			r.setIsTimeout(true);
+			if (null != r.Future) {
+				r.Future.SetException(new RuntimeException("Timeout"));
+			} else {
+				try {
+					r.Handle.applyAsLong(r);
+				} catch (Throwable e) {
+					logger.error("", e);
 				}
 			}
-		}, "Trigger Timeout RaftRpcs");
+		}
 	}
 
 	public synchronized boolean SetLeader(LeaderIs r, ConnectorEx newLeader) throws Throwable {

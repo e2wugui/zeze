@@ -98,6 +98,7 @@ local knowns = {
 	{ "在_check_等待Acquire(Modify)回复",              ".Acquire(", "._check_(" },
 	{ "在ReduceInvalid等待Lockey写锁",                 ".EnterWriteLock(", ".ReduceInvalid(" },
 	{ "在ReduceInvalid等待Record1锁",                  ".EnterFairLock(", ".ReduceInvalid(" },
+	{ "在ReduceInvalidAllLocalOnly等待Lockey写锁",     ".EnterWriteLock(", ".ReduceInvalidAllLocalOnly(" },
 	{ "在TableCache.CleanNow等待Acquire(Invalid)回复", ".Acquire(", ".CleanNow(" },
 	{ "在TableCache.CleanNow里等待下次循环",           ".CleanNow(TableCache.java:166)" },
 	{ "在__TryWaitFlushWhenReduce里等待sleep",         ".__TryWaitFlushWhenReduce(Application.java:341)" },

@@ -27,15 +27,16 @@ public class TestRank extends TestCase {
 		System.out.println("------ setUp begin");
 		try {
 			for (int i = 0; i < APP_COUNT; i++)
-				apps[i] = new SimpleApp(SERVER_ID_BEGIN + i);
-			for (int i = 0; i < APP_COUNT; i++)
-				apps[i].start();
+				(apps[i] = new SimpleApp(SERVER_ID_BEGIN + i)).start();
 
 			System.out.println("Begin Thread.sleep");
 			Thread.sleep(2000); // wait connected
 			for (int i = 0; i < APP_COUNT; i++) {
-				System.out.format("End Thread.sleep app%d %s%n",
-						SERVER_ID_BEGIN + i, apps[i].getZeze().getServiceManagerAgent().getSubscribeStates().values());
+				System.out.format("End Thread.sleep app%d:%n", SERVER_ID_BEGIN + i);
+				apps[i].getZeze().getServiceManagerAgent().getSubscribeStates().forEach((name, state) -> {
+					System.out.format("  '%s':%n", name);
+					state.LocalStates.forEach((k, v) -> System.out.format("    { %s, %s }%n", k, v));
+				});
 			}
 		} catch (Throwable e) {
 			throw new RuntimeException(e);

@@ -12,7 +12,6 @@ import org.apache.logging.log4j.Logger;
 
 public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Table {
 	private static final Logger logger = LogManager.getLogger(TableX.class);
-	private static final Runnable none = () -> {};
 
 	public TableX(String name) {
 		super(name);

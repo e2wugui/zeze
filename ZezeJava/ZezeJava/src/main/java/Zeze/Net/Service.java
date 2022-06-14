@@ -476,7 +476,7 @@ public class Service {
 		return TryRemoveManualContext(sessionId, false);
 	}
 
-	private final <T extends ManualContext> T TryRemoveManualContext(long sessionId, boolean isTimeout) {
+	private <T extends ManualContext> T TryRemoveManualContext(long sessionId, boolean isTimeout) {
 		@SuppressWarnings("unchecked")
 		var r = (T)ManualContexts.remove(sessionId);
 		if (r != null) {

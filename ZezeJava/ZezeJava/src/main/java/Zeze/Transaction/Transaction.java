@@ -224,6 +224,10 @@ public final class Transaction {
 							case RedoAndReleaseLock:
 								checkResult = CheckResult.RedoAndReleaseLock;
 								break;
+
+							default: // case Completed:
+								if (e instanceof AssertionError)
+									throw (AssertionError)e;
 							}
 							// retry
 						} finally {
@@ -431,7 +435,6 @@ public final class Transaction {
 	private CheckResult _check_(boolean writeLock, RecordAccessed e) {
 		e.AtomicTupleRecord.Record.EnterFairLock();
 		try {
-			//noinspection IfStatementWithIdenticalBranches
 			if (writeLock) {
 				switch (e.AtomicTupleRecord.Record.getState()) {
 				case GlobalCacheManagerServer.StateRemoved:
@@ -459,17 +462,16 @@ public final class Transaction {
 					return e.AtomicTupleRecord.Timestamp != e.AtomicTupleRecord.Record.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
 				}
 				return e.AtomicTupleRecord.Timestamp != e.AtomicTupleRecord.Record.getTimestamp() ? CheckResult.Redo : CheckResult.Success; // impossible
-			} else {
-				switch (e.AtomicTupleRecord.Record.getState()) {
-				case GlobalCacheManagerServer.StateRemoved:
-					// 被从cache中清除，不持有该记录的Global锁，简单重做即可。
-					return CheckResult.Redo;
-
-				case GlobalCacheManagerServer.StateInvalid:
-					return CheckResult.RedoAndReleaseLock; // 发现Invalid，可能有Reduce请求或者被Cache清理，此时保险起见释放锁。
-				}
-				return e.AtomicTupleRecord.Timestamp != e.AtomicTupleRecord.Record.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
 			}
+			switch (e.AtomicTupleRecord.Record.getState()) {
+			case GlobalCacheManagerServer.StateRemoved:
+				// 被从cache中清除，不持有该记录的Global锁，简单重做即可。
+				return CheckResult.Redo;
+
+			case GlobalCacheManagerServer.StateInvalid:
+				return CheckResult.RedoAndReleaseLock; // 发现Invalid，可能有Reduce请求或者被Cache清理，此时保险起见释放锁。
+			}
+			return e.AtomicTupleRecord.Timestamp != e.AtomicTupleRecord.Record.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
 		} finally {
 			e.AtomicTupleRecord.Record.ExitFairLock();
 		}
@@ -624,7 +626,6 @@ public final class Transaction {
 		if (State != TransactionState.Running)
 			throw new IllegalStateException("Abort: State Is Not Running.");
 		State = TransactionState.Abort;
-		//noinspection ConstantConditions
 		GoBackZeze.Throw(msg, cause);
 	}
 
@@ -634,7 +635,6 @@ public final class Transaction {
 		State = TransactionState.RedoAndReleaseLock;
 		//noinspection ConstantConditions
 		ProcedureStatistics.getInstance().GetOrAdd(getTopProcedure().getActionName()).GetOrAdd(Procedure.RedoAndRelease).incrementAndGet();
-		//noinspection ConstantConditions
 		GoBackZeze.Throw(msg, cause);
 	}
 
@@ -642,7 +642,6 @@ public final class Transaction {
 		if (State != TransactionState.Running)
 			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running.");
 		State = TransactionState.Redo;
-		//noinspection ConstantConditions
 		GoBackZeze.Throw("Redo", null);
 	}
 

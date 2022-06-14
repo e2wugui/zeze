@@ -12,4 +12,10 @@ public class ProviderModuleState {
 		ChoiceType = choiceType;
 		ConfigType = configType;
 	}
+
+	@Override
+	public String toString() {
+		return "ProviderModuleState{" + "SessionId=" + SessionId + ", ModuleId=" + ModuleId +
+				", ChoiceType=" + ChoiceType + ", ConfigType=" + ConfigType + '}';
+	}
 }

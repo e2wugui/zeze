@@ -12,7 +12,6 @@ public final class RedirectAllContext<R extends RedirectResult> extends Service.
 	private final IntHashMap<R> hashResults = new IntHashMap<>(); // <hash, result>
 	private final Function<Binary, R> resultDecoder;
 	private final RedirectAllFutureImpl<R> future;
-	//private boolean timeout;
 
 	public RedirectAllContext(int concurrentLevel, Function<Binary, R> resultDecoder) {
 		this.concurrentLevel = concurrentLevel;
@@ -37,26 +36,9 @@ public final class RedirectAllContext<R extends RedirectResult> extends Service.
 		return hashResults.size() >= concurrentLevel || isTimeout();
 	}
 
-	/*
-	public boolean isTimeout() {
-		return timeout;
-	}
-	*/
-
-	/*
-	@Override
-	public synchronized void OnTimeout() throws Throwable { // 在OnRemoved之后触发
-		if (hashResults.size() < concurrentLevel && !timeout) {
-			timeout = true;
-			if (future != null)
-				future.allDone(this);
-		}
-	}
-	*/
-
 	@Override
 	public synchronized void OnRemoved() throws Throwable {
-		if (hashResults.size() >= concurrentLevel && future != null)
+		if (isCompleted() && future != null)
 			future.allDone(this);
 	}
 
