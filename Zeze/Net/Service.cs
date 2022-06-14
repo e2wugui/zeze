@@ -419,13 +419,9 @@ namespace Zeze.Net
             public long SessionId { get; internal set; }
             public object UserState { get; set; }
             public Service Service { get; set; }
+            public bool IsTimeout { get; internal set; } = false;
 
             public virtual void OnRemoved()
-            {
-            }
-
-            // after OnRemoved if Timeout
-            public virtual void OnTimeout()
             {
             }
         }
@@ -463,8 +459,7 @@ namespace Zeze.Net
         {
             if (ManualContexts.TryRemove(sessionId, out var c))
             {
-                if (isTimeout)
-                    c.OnTimeout();
+                c.IsTimeout = isTimeout;
                 c.OnRemoved();
                 return (T)c;
             }

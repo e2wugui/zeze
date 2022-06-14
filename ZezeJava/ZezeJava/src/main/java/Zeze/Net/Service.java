@@ -413,6 +413,7 @@ public class Service {
 	public abstract static class ManualContext {
 		private long SessionId;
 		private Object UserState;
+		private boolean IsTimeout;
 
 		public final long getSessionId() {
 			return SessionId;
@@ -433,16 +434,20 @@ public class Service {
 		public void OnRemoved() throws Throwable {
 		}
 
+		public boolean isTimeout() {
+			return IsTimeout;
+		}
+
+		void setIsTimeout(boolean value) {
+			IsTimeout = value;
+		}
+
 		private Service service;
 		public Service getService() {
 			return service;
 		}
 		public void setService(Service service) {
 			this.service = service;
-		}
-		// after OnRemoved if Timeout
-		@SuppressWarnings("RedundantThrows")
-		public void OnTimeout() throws Throwable {
 		}
 	}
 
@@ -476,8 +481,7 @@ public class Service {
 		var r = (T)ManualContexts.remove(sessionId);
 		if (r != null) {
 			try {
-				if (isTimeout)
-					r.OnTimeout();
+				r.setIsTimeout(isTimeout);
 				r.OnRemoved();
 			} catch (Throwable skip) {
 				logger.error("ManualContext.OnRemoved", skip);
