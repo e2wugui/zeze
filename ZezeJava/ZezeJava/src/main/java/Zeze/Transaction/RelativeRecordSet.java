@@ -353,24 +353,23 @@ public class RelativeRecordSet {
 		}
 	}
 
-	public static void FlushWhenReduce(Record r, Checkpoint checkpoint, Runnable after) {
+	public static void FlushWhenReduce(Record r, Checkpoint checkpoint) {
 		var rrs = r.getRelativeRecordSet();
 		while (rrs != null) {
 			r.EnterFairLock(); // 用来保护State的查看。
 			try {
 				if (r.getState() == GlobalCacheManagerServer.StateRemoved) {
-					after.run();
 					return;
 				}
 			} finally {
 				r.ExitFairLock();
 			}
 
-			rrs = _FlushWhenReduce(rrs, checkpoint, after);
+			rrs = _FlushWhenReduce(rrs, checkpoint);
 		}
 	}
 
-	private static RelativeRecordSet _FlushWhenReduce(RelativeRecordSet rrs, Checkpoint checkpoint, Runnable after) {
+	private static RelativeRecordSet _FlushWhenReduce(RelativeRecordSet rrs, Checkpoint checkpoint) {
 		rrs.Lock();
 		try {
 			if (rrs.getMergeTo() == null) {
@@ -378,7 +377,6 @@ public class RelativeRecordSet {
 					checkpoint.Flush(rrs);
 					rrs.Delete();
 				}
-				after.run();
 				return null;
 			}
 
@@ -389,7 +387,6 @@ public class RelativeRecordSet {
 			// 或者不判断这个，总是由上面的步骤中处理。
 			if (rrs.getMergeTo() == RelativeRecordSet.Deleted) {
 				// has flush
-				after.run();
 				return null;
 			}
 

@@ -199,10 +199,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						return 0;
 				}
 				//logger.Warn("ReduceShare checkpoint begin. id={0} {1}", r, tkey);
-				FlushWhenReduce(r, () -> {
-					logger.debug("Reduce SendResult 4 {}", r);
-					rpc.SendResult();
-				});
+				FlushWhenReduce(r);
+				logger.debug("Reduce SendResult 4 {}", r);
+				rpc.SendResult();
 				//logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
 			} finally {
 				r.ExitFairLock();
@@ -213,18 +212,16 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return 0;
 	}
 
-	private void FlushWhenReduce(Record r, Runnable after) {
+	private void FlushWhenReduce(Record r) {
 		switch (getZeze().getConfig().getCheckpointMode()) {
 			case Period:
-				getZeze().getCheckpoint().AddActionAndPulse(after);
-				break;
+				throw new RuntimeException("Global Can Not Work With CheckpointMode.Period.");
 
 			case Immediately:
-				after.run();
 				break;
 
 			case Table:
-				RelativeRecordSet.FlushWhenReduce(r, getZeze().getCheckpoint(), after);
+				RelativeRecordSet.FlushWhenReduce(r, getZeze().getCheckpoint());
 				break;
 		}
 	}
@@ -293,10 +290,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				}
 				//logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", r, tkey);
 				rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-				FlushWhenReduce(r, () -> {
-					logger.debug("Reduce SendResult 4 {}", r);
-					rpc.SendResult();
-				});
+				FlushWhenReduce(r);
+				logger.debug("Reduce SendResult 4 {}", r);
+				rpc.SendResult();
 				//logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
 			} finally {
 				r.ExitFairLock();
@@ -330,7 +326,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			try {
 				// 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
 				e.getValue().setState(GlobalCacheManagerServer.StateInvalid);
-				FlushWhenReduce(e.getValue(), none);
+				FlushWhenReduce(e.getValue());
 			}
 			finally {
 				lockey.ExitWriteLock();
