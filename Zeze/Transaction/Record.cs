@@ -330,5 +330,15 @@ namespace Zeze.Transaction
             get { return _LruNode; }
             set { _LruNode = value; }
         }
+        
+        public ConcurrentDictionary<K, Record<K, V>> GetAndSetLruNodeNull()
+        {
+            return Interlocked.Exchange(ref _LruNode, null);
+        }
+
+        public bool CompareAndSetLruNodeNull(ConcurrentDictionary<K, Record<K, V>> c)
+        {
+            return Interlocked.CompareExchange(ref _LruNode, null, c) == c;
+        }
     }
 }

@@ -117,31 +117,26 @@ namespace Zeze.Transaction
 
         public Record<K, V> GetOrAdd(K key, Func<K, Record<K, V>> valueFactory)
         {
-            bool isNew = false;
-            Record<K, V> result = DataMap.GetOrAdd(key,
-                (k) =>
-                {
-                    var r = valueFactory(k);
-                    var volatiletmp = LruHot;
-                    volatiletmp[k] = r; // replace: add or update see this.Remove
-                    r.LruNode = volatiletmp;
-                    isNew = true;
-                    return r;
-                });
+            var lruHot = LruHot;
+            var result = DataMap.GetOrAdd(key, k =>
+            {
+                var r = valueFactory(k);
+                lruHot[k] = r; // replace: add or update see this.Remove
+                r.LruNode = lruHot;
+                return r;
+            });
 
-            var volatileHot = LruHot;
-            if (false == isNew && result.LruNode != volatileHot)
+            if (result.LruNode != lruHot)
             {
                 // 旧纪录 && 优化热点执行调整
                 // 下面在发生LruHot变动+并发GetOrAdd时，哪个后执行，就调整到哪个node，不严格调整到真正的LruHot。
                 // 注意，这把锁仅用于这里，最好不要跟事务锁重合。
-                lock (result)
+                var oldNode = result.GetAndSetLruNodeNull();
+                if (oldNode != null)
                 {
-                    result.LruNode.TryRemove(key, out _);
-                    if (volatileHot.TryAdd(key, result)) // nevel fail
-                    {
-                        result.LruNode = volatileHot;
-                    }
+                    oldNode.TryRemove(key, out _);
+                    if (lruHot.TryAdd(key, result))
+                        result.LruNode = lruHot;
                 }
             }
             return result;
@@ -191,19 +186,14 @@ namespace Zeze.Transaction
                 foreach (var e in poll)
                 {
                     // concurrent see GetOrAdd
-                    lock (e.Value)
-                    {
-                        if (e.Value.LruNode != poll)
-                            continue; // 并发访问导致这个记录已经被迁移走。
-
-                        if (head.TryAdd(e.Key, e.Value))
-                            e.Value.LruNode = head;
-                    }
+                    var r = e.Value;
+                    if (r.CompareAndSetLruNodeNull(poll) && head.TryAdd(e.Key, r)) // 并发访问导致这个记录已经被迁移走。
+                        r.LruNode = head;                    
                 }
             }
         }
 
-        public void CleanNow(Zeze.Util.SchedulerTask ThisTask)
+        private void CleanNow(Zeze.Util.SchedulerTask ThisTask)
         {
             // 这个任务的执行时间可能很长，
             // 不直接使用 Scheduler 的定时任务，
@@ -261,7 +251,7 @@ namespace Zeze.Transaction
                 // see GetOrAdd
                 p.Value.State = GlobalCacheManagerServer.StateRemoved;
                 // 必须使用 Pair，有可能 LurNode 里面已经有新建的记录了。
-                p.Value.LruNode.TryRemove(p);
+                p.Value.LruNode?.TryRemove(p);
                 return true;
             }
             return false;

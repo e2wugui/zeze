@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace Zeze.Util
 {
@@ -22,6 +23,16 @@ namespace Zeze.Util
             {
                 Value = value;
                 LruNode = lruNode;
+            }
+
+            public ConcurrentDictionary<K, LruItem> GetAndSetLruNodeNull()
+            {
+                return Interlocked.Exchange(ref _LruNode, null);
+            }
+
+            public bool CompareAndSetLruNodeNull(ConcurrentDictionary<K, LruItem> c)
+            {
+                return Interlocked.CompareExchange(ref _LruNode, null, c) == c;
             }
         }
 
@@ -72,43 +83,29 @@ namespace Zeze.Util
             Util.Scheduler.Schedule(CleanNow, CleanPeriod);
         }
 
-        public V GetOrAdd(K k, Func<K, V> factory)
+        public V GetOrAdd(K key, Func<K, V> factory)
         {
-            bool isNew = false;
-            var lruItem = DataMap.GetOrAdd(k, (k) =>
+            var lruHot = LruHot;
+            var lruItem = DataMap.GetOrAdd(key, k =>
             {
-                V value = factory(k);
-                isNew = true;
-                var volatiletmp = LruHot;
-                var lruItem = new LruItem(value, volatiletmp);
-                volatiletmp[k] = lruItem; // MUST replace
+                var lruItem = new LruItem(factory(k), lruHot);
+                lruHot[k] = lruItem; // MUST replace
                 return lruItem;
             });
 
-            if (false == isNew)
-            {
-                AdjustLru(k, lruItem);
-            }
+            if (lruItem.LruNode != lruHot)
+                AdjustLru(key, lruItem, lruHot);
             return lruItem.Value;
         }
 
-        private void AdjustLru(K key, LruItem lruItem)
+        private void AdjustLru(K key, LruItem lruItem, ConcurrentDictionary<K, LruItem> curLruHot)
         {
-            var volatiletmp = LruHot;
-            if (lruItem.LruNode != volatiletmp)
+            var oldNode = lruItem.GetAndSetLruNodeNull();
+            if (oldNode != null)
             {
-                // 注意，这把锁仅用于这里，最好不要跟事务锁重合。
-                lock (lruItem)
-                {
-                    if (lruItem.LruNode != volatiletmp)
-                    {
-                        lruItem.LruNode.TryRemove(key, out _);
-                        if (volatiletmp.TryAdd(key, lruItem)) // nevel fail
-                        {
-                            lruItem.LruNode = volatiletmp;
-                        }
-                    }
-                }
+                oldNode.TryRemove(key, out _);
+                if (curLruHot.TryAdd(key, lruItem))
+                    lruItem.LruNode = curLruHot;
             }
         }
 
@@ -124,7 +121,11 @@ namespace Zeze.Util
             if (DataMap.TryGetValue(key, out var lruItem))
             {
                 if (adjustLru)
-                    AdjustLru(key, lruItem);
+                {
+                    var lruHot = LruHot;
+                    if (lruItem.LruNode != lruHot)
+                        AdjustLru(key, lruItem, lruHot);
+                }
                 value = lruItem.Value;
                 return true;
             }
@@ -168,7 +169,7 @@ namespace Zeze.Util
                 // 当对Key再次GetOrAdd时，LruNode里面可能已经存在旧的record。
                 // 1. GetOrAdd 需要 replace 更新
                 // 2. 必须使用 Pair，有可能 LurNode 里面已经有新建的记录了。
-                e.LruNode.TryRemove(KeyValuePair.Create(key, e));
+                e.LruNode?.TryRemove(KeyValuePair.Create(key, e));
                 value = e.Value;
                 return true;
             }
@@ -199,18 +200,14 @@ namespace Zeze.Util
                 foreach (var e in poll)
                 {
                     // concurrent see GetOrAdd
-                    lock (e.Value)
-                    {
-                        if (e.Value.LruNode != poll)
-                            continue; // 并发访问导致这个记录已经被迁移走。
-                        if (head.TryAdd(e.Key, e.Value))
-                            e.Value.LruNode = head;
-                    }
+                    var r = e.Value;
+                    if (r.CompareAndSetLruNodeNull(poll) && head.TryAdd(e.Key, r)) // 并发访问导致这个记录已经被迁移走。
+                        r.LruNode = head;                    
                 }
             }
         }
 
-        public void CleanNow(SchedulerTask taskNotUsed)
+        private void CleanNow(SchedulerTask taskNotUsed)
         {
             // 这个任务的执行时间可能很长，
             // 不直接使用 Scheduler 的定时任务，
