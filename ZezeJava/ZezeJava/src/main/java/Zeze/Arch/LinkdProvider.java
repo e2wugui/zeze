@@ -73,9 +73,8 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		return false;
 	}
 
-	public boolean ChoiceHashWithoutBind(int moduleId, AsyncSocket link, int hash, OutLong provider) {
+	public boolean ChoiceHashWithoutBind(int moduleId, int hash, OutLong provider) {
 		var serviceName = ProviderDistribute.MakeServiceName(getServerServiceNamePrefix(), moduleId);
-		var linkSession = (LinkdUserSession)link.getUserState();
 		provider.Value = 0L;
 		var providers = Distribute.Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
 		if (providers == null)

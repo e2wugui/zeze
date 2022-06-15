@@ -12,9 +12,9 @@ public class LinkdService extends LinkdServiceBase {
         super(zeze);
     }
 
-    private boolean ChoiceHashSend(int hash, Zeze.Net.AsyncSocket so, int moduleId, Dispatch dispatch) {
+    private boolean ChoiceHashSend(int hash, int moduleId, Dispatch dispatch) {
         var provider = new OutLong();
-        if (LinkdApp.LinkdProvider.ChoiceHashWithoutBind(moduleId, so, hash, provider)) {
+        if (LinkdApp.LinkdProvider.ChoiceHashWithoutBind(moduleId, hash, provider)) {
             var providerSocket = LinkdApp.LinkdProviderService.GetSocket(provider.Value);
             if (null != providerSocket) {
                 // ChoiceProviderAndBind 内部已经处理了绑定。这里只需要发送。
@@ -24,6 +24,7 @@ public class LinkdService extends LinkdServiceBase {
         return false;
     }
 
+    // 所有的群相关协议的参数的第一个变量必须都是Group: type==String，variable.id==1，
     private String DecodeGroup(Zeze.Serialize.ByteBuffer _o_) {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
@@ -31,6 +32,10 @@ public class LinkdService extends LinkdServiceBase {
             return _o_.ReadString(_t_);
         }
         throw new RuntimeException("Group Not Found.");
+    }
+
+    private boolean DispatchGroupProtocol(String group, int moduleId, Dispatch dispatch) {
+        return ChoiceHashSend(Hash(group), moduleId, dispatch);
     }
 
     private int Hash(String group) {
@@ -56,16 +61,17 @@ public class LinkdService extends LinkdServiceBase {
             case GetGroupMemberNode.ProtocolId_:
             case GetGroupRoot.ProtocolId_:
             case MoveDepartment.ProtocolId_:
-                if (ChoiceHashSend(Hash(DecodeGroup(data)), so, moduleId, dispatch))
-                    return;
+                if (DispatchGroupProtocol(DecodeGroup(data), moduleId, dispatch))
+                    return; // 失败尝试继续走默认流程?
+                break;
             }
             break;
 
         case ModuleMessage.ModuleId:
             switch (protocolId) {
             case SendDepartmentMessage.ProtocolId_:
-                if (ChoiceHashSend(Hash(DecodeGroup(data)), so, moduleId, dispatch))
-                    return;
+                if (DispatchGroupProtocol(DecodeGroup(data), moduleId, dispatch))
+                    return; // 失败尝试继续走默认流程?
                 break;
             }
             break;

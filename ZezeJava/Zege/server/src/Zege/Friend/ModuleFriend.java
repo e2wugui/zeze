@@ -13,7 +13,7 @@ public class ModuleFriend extends AbstractModule {
     public void Stop(Zege.App app) throws Throwable {
     }
 
-    public DepartmentTree<BManager, BMember, BDepartmentMember> getDepartmentTree(String group) {
+    public DepartmentTree<BManager, BMember, BDepartmentMember> getGroup(String group) {
         return App.DepartmentTrees.open(group + "@Zege.DepartmentTree", BManager.class, BMember.class, BDepartmentMember.class);
     }
 
@@ -27,11 +27,16 @@ public class ModuleFriend extends AbstractModule {
         var self = getFriends(session.getAccount());
         if (!App.Zege_User.contains(r.Argument.getAccount()))
             return Procedure.LogicError;
-        var peer = getFriends(r.Argument.getAccount());
-
-        self.getOrAdd(r.Argument.getAccount()).setAccount(r.Argument.getAccount());
-        peer.getOrAdd(session.getAccount()).setAccount(session.getAccount());
-
+        if (r.Argument.getAccount().endsWith("@group")) {
+            var peer = getGroup(r.Argument.getAccount()).getGroupMembers();
+            self.getOrAdd(r.Argument.getAccount()).setAccount(r.Argument.getAccount());
+            // 虽然互相添加的代码看起来一样，但group members bean类型和下面的好友bean类型不一样，所以需要分开写。
+            peer.getOrAdd(session.getAccount()).setAccount(session.getAccount());
+        } else {
+            var peer = getFriends(r.Argument.getAccount());
+            self.getOrAdd(r.Argument.getAccount()).setAccount(r.Argument.getAccount());
+            peer.getOrAdd(session.getAccount()).setAccount(session.getAccount());
+        }
         session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }
@@ -39,7 +44,7 @@ public class ModuleFriend extends AbstractModule {
     @Override
     protected long ProcessCreateDepartmentRequest(Zege.Friend.CreateDepartment r) {
         var session = ProviderUserSession.get(r);
-        var group = getDepartmentTree(r.Argument.getGroup());
+        var group = getGroup(r.Argument.getGroup());
         var out = new OutLong();
         r.setResultCode(group.createDepartment(r.Argument.getParentDepartment(), r.Argument.getName(), out));
         r.Result.setId(out.Value);
@@ -50,7 +55,7 @@ public class ModuleFriend extends AbstractModule {
     @Override
     protected long ProcessDeleteDepartmentRequest(Zege.Friend.DeleteDepartment r) {
         var session = ProviderUserSession.get(r);
-        var group = getDepartmentTree(r.Argument.getGroup());
+        var group = getGroup(r.Argument.getGroup());
         r.setResultCode(group.deleteDepartment(r.Argument.getId(), true));
         session.sendResponseWhileCommit(r);
         return Procedure.Success;
@@ -59,7 +64,7 @@ public class ModuleFriend extends AbstractModule {
     @Override
     protected long ProcessGetDepartmentNodeRequest(Zege.Friend.GetDepartmentNode r) {
         var session = ProviderUserSession.get(r);
-        var group = getDepartmentTree(r.Argument.getGroup());
+        var group = getGroup(r.Argument.getGroup());
         var department = group.getDepartmentTreeNode(r.Argument.getId());
         if (null == department)
             return ErrorCode(ErrorDepartmentNotFound);
@@ -93,7 +98,7 @@ public class ModuleFriend extends AbstractModule {
     @Override
     protected long ProcessMoveDepartmentRequest(Zege.Friend.MoveDepartment r) {
         var session = ProviderUserSession.get(r);
-        var group = getDepartmentTree(r.Argument.getGroup());
+        var group = getGroup(r.Argument.getGroup());
         r.setResultCode(group.moveDepartment(r.Argument.getId(), r.Argument.getNewParent()));
         session.sendResponseWhileCommit(r);
         return Procedure.Success;
@@ -102,7 +107,7 @@ public class ModuleFriend extends AbstractModule {
     @Override
     protected long ProcessGetGroupRootRequest(Zege.Friend.GetGroupRoot r) {
         var session = ProviderUserSession.get(r);
-        var group = getDepartmentTree(r.Argument.getGroup());
+        var group = getGroup(r.Argument.getGroup());
         var root = group.getRoot();
         r.Result.setRoot(root.getRoot());
         r.Result.getChilds().putAll(root.getChilds());
@@ -116,7 +121,7 @@ public class ModuleFriend extends AbstractModule {
     @Override
     protected long ProcessGetDepartmentMemberNodeRequest(Zege.Friend.GetDepartmentMemberNode r) {
         var session = ProviderUserSession.get(r);
-        var group = getDepartmentTree(r.Argument.getGroup());
+        var group = getGroup(r.Argument.getGroup());
         var node = r.Argument.getNodeId() == 0
                 ? group.getDepartmentMembers(r.Argument.getDepartmentId()).getFristNode()
                 : group.getDepartmentMembers(r.Argument.getDepartmentId()).getNode(r.Argument.getNodeId());
@@ -136,7 +141,7 @@ public class ModuleFriend extends AbstractModule {
     @Override
     protected long ProcessGetGroupMemberNodeRequest(Zege.Friend.GetGroupMemberNode r) {
         var session = ProviderUserSession.get(r);
-        var group = getDepartmentTree(r.Argument.getGroup());
+        var group = getGroup(r.Argument.getGroup());
         var node = r.Argument.getNodeId() == 0
                 ? group.getGroupMembers().getFristNode()
                 : group.getGroupMembers().getNode(r.Argument.getNodeId());
@@ -154,7 +159,7 @@ public class ModuleFriend extends AbstractModule {
     @Override
     protected long ProcessAddDepartmentMemberRequest(Zege.Friend.AddDepartmentMember r) {
         var session = ProviderUserSession.get(r);
-        var group = getDepartmentTree(r.Argument.getGroup());
+        var group = getGroup(r.Argument.getGroup());
         var groupMembers = group.getGroupMembers();
         if (r.Argument.getDepartmentId() == 0) {
             groupMembers.getOrAdd(r.Argument.getAccount()).setAccount(r.Argument.getAccount());

@@ -16,7 +16,7 @@ public class ModuleMessage extends AbstractModule {
     @TransactionLevelAnnotation(Level=TransactionLevel.None)
     protected long ProcessSendDepartmentMessageRequest(Zege.Message.SendDepartmentMessage r) {
         var session = ProviderUserSession.get(r);
-        var group = App.Zege_Friend.getDepartmentTree(r.Argument.getGroup());
+        var group = App.Zege_Friend.getGroup(r.Argument.getGroup());
 
         r.Argument.getMessage().setFrom(session.getAccount());
         r.Argument.getMessage().setGroup(r.Argument.getGroup());

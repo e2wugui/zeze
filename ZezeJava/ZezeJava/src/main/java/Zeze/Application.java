@@ -307,7 +307,8 @@ public final class Application {
 				}
 			}
 			// start last
-			AchillesHeelDaemon.start();
+			if (null != AchillesHeelDaemon)
+				AchillesHeelDaemon.start();
 			IsStart = true;
 		}
 	}

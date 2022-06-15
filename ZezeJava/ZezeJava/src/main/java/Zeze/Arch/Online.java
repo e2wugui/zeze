@@ -715,7 +715,6 @@ public class Online extends AbstractOnline {
                 }
             }
         }
-
     }
 
     @RedirectToServer
