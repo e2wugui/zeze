@@ -181,7 +181,11 @@ public class ConcurrentLruLike<K, V> {
 	}
 
 	private void TryPollLruQueue() {
-		var polls = new ArrayList<ConcurrentHashMap<K, LruItem<K, V>>>(LruQueue.size() - 8640);
+		var cap = LruQueue.size() - 8640;
+		if (cap <= 0)
+			return;
+
+		var polls = new ArrayList<ConcurrentHashMap<K, LruItem<K, V>>>(cap);
 		while (LruQueue.size() > 8640) {
 			// 大概，删除超过一天的节点。
 			var node =  LruQueue.poll();

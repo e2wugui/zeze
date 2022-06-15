@@ -168,7 +168,11 @@ namespace Zeze.Transaction
 
         private void TryPollLruQueue()
         {
-            var polls = new List<ConcurrentDictionary<K, Record<K, V>>>(LruQueue.Count - 8640);
+            var cap = LruQueue.Count - 8640;
+            if (cap <= 0)
+                return;
+
+            var polls = new List<ConcurrentDictionary<K, Record<K, V>>>(cap);
             while (LruQueue.Count > 8640)
             {
                 // 大概，删除超过一天的节点。
