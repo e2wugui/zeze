@@ -1,5 +1,6 @@
 package Zeze.Transaction;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -136,6 +137,31 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	}
 	*/
 
+	private void TryPollLruQueue() {
+		var polls = new ArrayList<ConcurrentHashMap<K, Record1<K, V>>>(LruQueue.size() - 8640);
+		while (LruQueue.size() > 8640) {
+			// 大概，删除超过一天的节点。
+			var node =  LruQueue.poll();
+			if (null == node)
+				break;
+			polls.add(node);
+		}
+
+		// 把被删除掉的node里面的记录迁移到当前最老(head)的node里面。
+		var head =  LruQueue.peek();
+		if (null == head)
+			throw new RuntimeException("Impossible!");
+		for (var poll : polls) {
+			for (var r : poll.entrySet()) {
+				if (r.getValue().getLruNode() != poll)
+					continue; // 并发访问导致这个记录已经被迁移走。
+
+				if (null == head.putIfAbsent(r.getKey(), r.getValue()))
+					r.getValue().setLruNode(head);
+			}
+		}
+	}
+
 	public final void CleanNow() {
 		// 这个任务的执行时间可能很长，
 		// 不直接使用 Scheduler 的定时任务，
@@ -143,8 +169,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 
 		if (getTable().getTableConf().getCacheCapacity() <= 0) {
 			TimerClean = Task.schedule(getTable().getTableConf().getCacheCleanPeriod(), this::CleanNow);
-			while (LruQueue.size() > 8640) // 大概，超过一天直接删除。
-				LruQueue.poll();
+			TryPollLruQueue();
 			return; // 容量不限
 		}
 
@@ -174,8 +199,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 					// skip
 				}
 			}
-			while (LruQueue.size() > 8640) // 大概，超过一天直接删除。
-				LruQueue.poll();
+			TryPollLruQueue();
 		} finally {
 			TimerClean = Task.schedule(getTable().getTableConf().getCacheCleanPeriod(), this::CleanNow);
 		}

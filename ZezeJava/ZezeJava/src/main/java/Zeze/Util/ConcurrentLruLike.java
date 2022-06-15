@@ -1,5 +1,6 @@
 package Zeze.Util;
 
+import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.BiPredicate;
@@ -179,12 +180,36 @@ public class ConcurrentLruLike<K, V> {
 		return lruItemRemoved.Value;
 	}
 
+	private void TryPollLruQueue() {
+		var polls = new ArrayList<ConcurrentHashMap<K, LruItem<K, V>>>(LruQueue.size() - 8640);
+		while (LruQueue.size() > 8640) {
+			// 大概，删除超过一天的节点。
+			var node =  LruQueue.poll();
+			if (null == node)
+				break;
+			polls.add(node);
+		}
+
+		// 把被删除掉的node里面的记录迁移到当前最老(head)的node里面。
+		var head =  LruQueue.peek();
+		if (null == head)
+			throw new RuntimeException("Impossible!");
+		for (var poll : polls) {
+			for (var r : poll.entrySet()) {
+				if (r.getValue().LruNode != poll)
+					continue; // 并发访问导致这个记录已经被迁移走。
+
+				if (null == head.putIfAbsent(r.getKey(), r.getValue()))
+					r.getValue().LruNode = head;
+			}
+		}
+	}
+
 	public final void CleanNow() {
 		try {
 			int capacity = Capacity;
 			if (capacity <= 0) {// 容量不限
-				while (LruQueue.size() > 8640) // 大概，超过一天直接删除。
-					LruQueue.poll();
+				TryPollLruQueue();
 				return;
 			}
 			while (DataMap.size() > capacity) { // 超出容量，循环尝试
@@ -216,8 +241,7 @@ public class ConcurrentLruLike<K, V> {
 					logger.error("CleanNow Interrupted", e);
 				}
 			}
-			while (LruQueue.size() > 8640) // 大概，超过一天直接删除。
-				LruQueue.poll();
+			TryPollLruQueue();
 		} finally {
 			Task.schedule(CleanPeriod, this::CleanNow);
 		}

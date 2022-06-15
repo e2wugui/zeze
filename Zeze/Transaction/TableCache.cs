@@ -129,13 +129,13 @@ namespace Zeze.Transaction
                     return r;
                 });
 
-            var volatiletmp = LruHot;
-            if (false == isNew && result.LruNode != volatiletmp)
+            var volatileHot = LruHot;
+            if (false == isNew && result.LruNode != volatileHot)
             {
                 result.LruNode.TryRemove(KeyValuePair.Create(key, result));
-                if (volatiletmp.TryAdd(key, result))
+                if (volatileHot.TryAdd(key, result))
                 {
-                    result.LruNode = volatiletmp;
+                    result.LruNode = volatileHot;
                 }
                 // else maybe fail in concurrent access.
                 // 并发访问导致重复的TryAdd，这里先这样写吧。可能会快点。
@@ -166,6 +166,33 @@ namespace Zeze.Transaction
         }
         */
 
+        private void TryPollLruQueue()
+        {
+            var polls = new List<ConcurrentDictionary<K, Record<K, V>>>(LruQueue.Count - 8640);
+            while (LruQueue.Count > 8640)
+            {
+                // 大概，删除超过一天的节点。
+                if (false == LruQueue.TryDequeue(out var node))
+                    break;
+                polls.Add(node);
+            }
+
+            // 把被删除掉的node里面的记录迁移到当前最老(head)的node里面。
+            if (false == LruQueue.TryPeek(out var head))
+                throw new Exception("Impossible!");
+            foreach (var poll in polls)
+            {
+                foreach (var r in poll.Values)
+                {
+                    if (r.LruNode != poll)
+                        continue; // 并发访问导致这个记录已经被迁移走。
+
+                    if (head.TryAdd(r.Key, r))
+                        r.LruNode = head;
+                }
+            }
+        }
+
         public void CleanNow(Zeze.Util.SchedulerTask ThisTask)
         {
             // 这个任务的执行时间可能很长，
@@ -175,8 +202,7 @@ namespace Zeze.Transaction
             if (Table.TableConf.CacheCapacity <= 0)
             {
                 TimerClean = Util.Scheduler.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
-                while (LruQueue.Count > 8640) // 大概，超过一天直接删除。
-                    LruQueue.TryDequeue(out var _);
+                TryPollLruQueue();
                 return; // 容量不限
             }
             try
@@ -207,8 +233,7 @@ namespace Zeze.Transaction
                     }
                     System.Threading.Thread.Sleep(Table.TableConf.CacheCleanPeriodWhenExceedCapacity);
                 }
-                while (LruQueue.Count > 8640) // 大概，超过一天直接删除。
-                    LruQueue.TryDequeue(out var _);
+                TryPollLruQueue();
             }
             finally
             {

@@ -170,6 +170,33 @@ namespace Zeze.Util
             return false;
         }
 
+        private void TryPollLruQueue()
+        {
+            var polls = new List<ConcurrentDictionary<K, LruItem>>(LruQueue.Count - 8640);
+            while (LruQueue.Count > 8640)
+            {
+                // 大概，删除超过一天的节点。
+                if (false == LruQueue.TryDequeue(out var node))
+                    break;
+                polls.Add(node);
+            }
+
+            // 把被删除掉的node里面的记录迁移到当前最老(head)的node里面。
+            if (false == LruQueue.TryPeek(out var head))
+                throw new Exception("Impossible!");
+            foreach (var poll in polls)
+            {
+                foreach (var r in poll)
+                {
+                    if (r.Value.LruNode != poll)
+                        continue; // 并发访问导致这个记录已经被迁移走。
+
+                    if (head.TryAdd(r.Key, r.Value))
+                        r.Value.LruNode = head;
+                }
+            }
+        }
+
         public void CleanNow(SchedulerTask taskNotUsed)
         {
             // 这个任务的执行时间可能很长，
@@ -179,8 +206,7 @@ namespace Zeze.Util
             if (Capacity <= 0)
             {
                 Scheduler.Schedule(CleanNow, CleanPeriod);
-                while (LruQueue.Count > 8640) // 大概，超过一天直接删除。
-                    LruQueue.TryDequeue(out var _);
+                TryPollLruQueue();
                 return; // 容量不限
             }
 
@@ -219,8 +245,7 @@ namespace Zeze.Util
                         ? CleanPeriodWhenExceedCapacity : 1000;
                     System.Threading.Thread.Sleep(sleepms);
                 }
-                while (LruQueue.Count > 8640) // 大概，超过一天直接删除。
-                    LruQueue.TryDequeue(out var _);
+                TryPollLruQueue();
             }
             finally
             {

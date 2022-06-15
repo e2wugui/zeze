@@ -304,6 +304,7 @@ namespace Zeze.Raft.RocksRaft
         {
             var (cphome, lastIncludedTerm, lastIncludedIndex) = await Checkpoint();
             var backupdir = Path.Combine(DbHome, "backup");
+            Directory.CreateDirectory(backupdir);
             Backup(cphome, backupdir);
             FileSystem.DeleteDirectory(cphome);
             ZipFile.CreateFromDirectory(backupdir, path);
