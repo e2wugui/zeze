@@ -205,6 +205,8 @@ namespace Zeze.Transaction
                     }
                     System.Threading.Thread.Sleep(Table.TableConf.CacheCleanPeriodWhenExceedCapacity);
                 }
+                while (LruQueue.Count > 8640) // 大概，超过一天直接删除。
+                    LruQueue.TryDequeue(out var _);
             }
             finally
             {

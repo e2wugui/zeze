@@ -35,14 +35,8 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	}
 
 	private final ConcurrentLinkedQueue<ConcurrentHashMap<K, Record1<K, V>>> LruQueue = new ConcurrentLinkedQueue<> ();
-	private ConcurrentLinkedQueue<ConcurrentHashMap<K, Record1<K, V>>> getLruQueue() {
-		return LruQueue;
-	}
 
 	private volatile ConcurrentHashMap<K, Record1<K, V>> LruHot;
-	private ConcurrentHashMap<K, Record1<K, V>> getLruHot() {
-		return LruHot;
-	}
 
 	private final TableX<K, V> Table;
 	public final TableX<K, V> getTable() {
@@ -56,7 +50,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		TimerNewHot = Task.schedule(table.getTableConf().getCacheNewLruHotPeriod(), table.getTableConf().getCacheNewLruHotPeriod(),
 				() -> {
 				// 访问很少的时候不创建新的热点。这个选项没什么意思。
-				if (getLruHot().size() > table.getTableConf().getCacheNewAccessHotThreshold()) {
+				if (LruHot.size() > table.getTableConf().getCacheNewAccessHotThreshold()) {
 					NewLruHot();
 				}
 		});
@@ -94,7 +88,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		var newLru = new ConcurrentHashMap<K, Record1<K, V>>(
 				GetLruInitialCapacity(), 0.75f, GetCacheConcurrencyLevel());
 		LruHot = newLru;
-		getLruQueue().add(newLru);
+		LruQueue.add(newLru);
 	}
 
 	public final Record1<K, V> GetOrAdd(K key, Zeze.Util.Factory<Record1<K, V>> valueFactory) {
@@ -102,16 +96,16 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		isNew.Value = false;
 		Record1<K, V> result = DataMap.computeIfAbsent(key, (k) -> {
 					var r = valueFactory.create();
-					var lruHot = getLruHot();
+					var lruHot = LruHot;
 					lruHot.put(k, r); // replace: add or update see this.Remove
 					r.setLruNode(lruHot);
 					isNew.Value = true;
 					return r;
 		});
 
-		if (!isNew.Value && result.getLruNode() != getLruHot()) {
+		if (!isNew.Value && result.getLruNode() != LruHot) {
 			result.getLruNode().remove(key, result);
-			var lruHot = getLruHot();
+			var lruHot = LruHot;
 			if (null == lruHot.putIfAbsent(key, result)) {
 				result.setLruNode(lruHot);
 			}
@@ -154,8 +148,8 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 
 		try {
 			while (DataMap.size() > getTable().getTableConf().getCacheCapacity()) { // 超出容量，循环尝试
-				var node = getLruQueue().peek();
-				if (null == node || node == getLruHot()) { // 热点。不回收。
+				var node = LruQueue.peek();
+				if (null == node || node == LruHot) { // 热点。不回收。
 					break;
 				}
 
@@ -166,7 +160,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 					}
 				}
 				if (node.size() == 0) {
-					getLruQueue().poll();
+					LruQueue.poll();
 				} else {
 					logger.warn("remain record when clean oldest lruNode.");
 				}
@@ -178,6 +172,8 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 					// skip
 				}
 			}
+			while (LruQueue.size() > 8640) // 大概，超过一天直接删除。
+				LruQueue.poll();
 		} finally {
 			TimerClean = Task.schedule(getTable().getTableConf().getCacheCleanPeriod(), this::CleanNow);
 		}

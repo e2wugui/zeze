@@ -217,6 +217,8 @@ namespace Zeze.Util
                         ? CleanPeriodWhenExceedCapacity : 1000;
                     System.Threading.Thread.Sleep(sleepms);
                 }
+                while (LruQueue.Count > 8640) // 大概，超过一天直接删除。
+                    LruQueue.TryDequeue(out var _);
             }
             finally
             {
