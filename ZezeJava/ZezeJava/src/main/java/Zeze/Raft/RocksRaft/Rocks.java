@@ -360,6 +360,8 @@ public final class Rocks extends StateMachine implements Closeable {
 		SnapshotResult result = new SnapshotResult();
 		var cpHome = Checkpoint(result);
 		var backupDir = Paths.get(getDbHome(), "backup").toString();
+		if (!new File(backupDir).mkdirs())
+			logger.error("create backup directory failed: {}", backupDir);
 		Backup(cpHome, backupDir);
 
 		LogSequence.deleteDirectory(new File(cpHome));
