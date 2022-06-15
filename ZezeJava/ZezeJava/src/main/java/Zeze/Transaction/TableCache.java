@@ -93,28 +93,25 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	}
 
 	public final Record1<K, V> GetOrAdd(K key, Zeze.Util.Factory<Record1<K, V>> valueFactory) {
-		final var isNew = new Zeze.Util.OutObject<Boolean>();
-		isNew.Value = false;
-		Record1<K, V> result = DataMap.computeIfAbsent(key, (k) -> {
-					var r = valueFactory.create();
-					var lruHot = LruHot;
-					lruHot.put(k, r); // replace: add or update see this.Remove
-					r.setLruNode(lruHot);
-					isNew.Value = true;
-					return r;
-		});
-
 		var lruHot = LruHot;
-		if (!isNew.Value && result.getLruNode() != lruHot) {
-			// 旧纪录 && 优化热点执行调整
-			// 下面在发生LruHot变动+并发GetOrAdd时，哪个后执行，就调整到哪个node，不严格调整到真正的LruHot。
-			synchronized (result) {
-				// concurrent see GetOrAdd
-				if (result.getLruNode() != lruHot) {
-					result.getLruNode().remove(key);
-					if (null == lruHot.putIfAbsent(key, result))
-						result.setLruNode(lruHot);
-				}
+		var result = DataMap.get(key);
+		if (result == null) { // slow-path
+			result = DataMap.computeIfAbsent(key, k -> {
+				var r = valueFactory.create();
+				lruHot.put(key, r); // replace: add or update see this.Remove
+				r.setLruNode(lruHot);
+				return r;
+			});
+		}
+
+		// 旧纪录 && 优化热点执行调整
+		// 下面在发生LruHot变动+并发GetOrAdd时，哪个后执行，就调整到哪个node，不严格调整到真正的LruHot。
+		if (result.getLruNode() != lruHot) {
+			var oldNode = result.getAndSetLruNodeNull();
+			if (oldNode != null) {
+				oldNode.remove(key);
+				if (lruHot.putIfAbsent(key, result) == null)
+					result.setLruNode(lruHot);
 			}
 		}
 		return result;
@@ -158,19 +155,16 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		if (null == head)
 			throw new RuntimeException("Impossible!");
 		for (var poll : polls) {
-			for (var r : poll.entrySet()) {
+			for (var e : poll.entrySet()) {
 				// concurrent see GetOrAdd
-				synchronized (r.getValue()) {
-					if (r.getValue().getLruNode() != poll)
-						continue; // 并发访问导致这个记录已经被迁移走。
-					if (null == head.putIfAbsent(r.getKey(), r.getValue()))
-						r.getValue().setLruNode(head);
-				}
+				var r = e.getValue();
+				if (r.compareAndSetLruNodeNull(poll) && head.putIfAbsent(e.getKey(), r) == null) // 并发访问导致这个记录已经被迁移走。
+					r.setLruNode(head);
 			}
 		}
 	}
 
-	public final void CleanNow() {
+	private void CleanNow() {
 		// 这个任务的执行时间可能很长，
 		// 不直接使用 Scheduler 的定时任务，
 		// 每次执行完重新调度。
@@ -233,7 +227,9 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			// see GetOrAdd
 			p.getValue().setState(GlobalCacheManagerServer.StateRemoved);
 			// 必须使用 Pair，有可能 LurNode 里面已经有新建的记录了。
-			p.getValue().getLruNode().remove(p.getKey(), p.getValue());
+			var oldNode = p.getValue().getLruNode();
+			if (oldNode != null)
+				oldNode.remove(p.getKey(), p.getValue());
 			getTable().RocksCacheRemove(p.getKey());
 			return true;
 		}

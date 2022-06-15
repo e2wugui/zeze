@@ -1,5 +1,7 @@
 package Zeze.Transaction;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManagerServer;
@@ -238,11 +240,32 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 		snapshotValue = null;
 	}
 
+	private static final VarHandle LRU_NODE_HANDLE;
+
+	static {
+		try {
+			LRU_NODE_HANDLE = MethodHandles.lookup().findVarHandle(Record1.class, "LruNode", ConcurrentHashMap.class);
+		} catch (ReflectiveOperationException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	private volatile ConcurrentHashMap<K, Record1<K, V>> LruNode;
+
 	public final ConcurrentHashMap<K, Record1<K, V>> getLruNode() {
 		return LruNode;
 	}
+
 	public final void setLruNode(ConcurrentHashMap<K, Record1<K, V>> value) {
 		LruNode = value;
+	}
+
+	@SuppressWarnings("unchecked")
+	public final ConcurrentHashMap<K, Record1<K, V>> getAndSetLruNodeNull() {
+		return (ConcurrentHashMap<K, Record1<K, V>>)LRU_NODE_HANDLE.getAndSet(this, null);
+	}
+
+	public final boolean compareAndSetLruNodeNull(ConcurrentHashMap<K, Record1<K, V>> c) {
+		return LRU_NODE_HANDLE.compareAndSet(this, c, null);
 	}
 }

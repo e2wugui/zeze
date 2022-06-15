@@ -1,5 +1,7 @@
 package Zeze.Util;
 
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -12,12 +14,31 @@ public class ConcurrentLruLike<K, V> {
 	private static final Logger logger = LogManager.getLogger(ConcurrentLruLike.class);
 
 	static final class LruItem<K, V> {
+		private static final VarHandle LRU_NODE_HANDLE;
+
+		static {
+			try {
+				LRU_NODE_HANDLE = MethodHandles.lookup().findVarHandle(LruItem.class, "LruNode", ConcurrentHashMap.class);
+			} catch (ReflectiveOperationException e) {
+				throw new RuntimeException(e);
+			}
+		}
+
 		final V Value;
 		volatile ConcurrentHashMap<K, LruItem<K, V>> LruNode;
 
 		LruItem(V value, ConcurrentHashMap<K, LruItem<K, V>> lruNode) {
 			Value = value;
 			LruNode = lruNode;
+		}
+
+		@SuppressWarnings("unchecked")
+		ConcurrentHashMap<K, LruItem<K, V>> getAndSetLruNodeNull() {
+			return (ConcurrentHashMap<K, LruItem<K, V>>)LRU_NODE_HANDLE.getAndSet(this, null);
+		}
+
+		boolean compareAndSetLruNodeNull(ConcurrentHashMap<K, LruItem<K, V>> c) {
+			return LRU_NODE_HANDLE.compareAndSet(this, c, null);
 		}
 	}
 
@@ -129,32 +150,26 @@ public class ConcurrentLruLike<K, V> {
 	}
 
 	private void adjustLru(K key, LruItem<K, V> lruItem, ConcurrentHashMap<K, LruItem<K, V>> curLruHot) {
-		if (lruItem.LruNode != curLruHot) {
-			// 注意，这把锁仅用于这里，最好不要跟事务锁重合。
-			synchronized (lruItem) {
-				if (lruItem.LruNode != curLruHot) {
-					lruItem.LruNode.remove(key);
-					if (curLruHot.putIfAbsent(key, lruItem) == null) // never fail
-						lruItem.LruNode = curLruHot;
-				}
-			}
+		var oldNode = lruItem.getAndSetLruNodeNull();
+		if (oldNode != null) {
+			oldNode.remove(key);
+			if (curLruHot.putIfAbsent(key, lruItem) == null)
+				lruItem.LruNode = curLruHot;
 		}
 	}
 
 	public final V GetOrAdd(K key, Factory<V> factory) {
-		var curLruHot = LruHot;
+		var lruHot = LruHot;
 		var lruItem = DataMap.get(key);
-		if (lruItem == null) {
-			V value = factory.create();
-			lruItem = new LruItem<>(value, curLruHot);
-			var oldLruItem = DataMap.putIfAbsent(key, lruItem);
-			if (oldLruItem == null) {
-				curLruHot.put(key, lruItem); // MUST replace
-				return value;
-			}
-			lruItem = oldLruItem;
+		if (lruItem == null) { // slow-path
+			lruItem = DataMap.computeIfAbsent(key, k -> {
+				var item = new LruItem<>(factory.create(), lruHot);
+				lruHot.put(key, item); // MUST replace
+				return item;
+			});
 		}
-		adjustLru(key, lruItem, curLruHot);
+		if (lruItem.LruNode != lruHot)
+			adjustLru(key, lruItem, lruHot);
 		return lruItem.Value;
 	}
 
@@ -166,8 +181,11 @@ public class ConcurrentLruLike<K, V> {
 		var lruItem = DataMap.get(key);
 		if (lruItem == null)
 			return null;
-		if (adjustLru)
-			adjustLru(key, lruItem, LruHot);
+		if (adjustLru) {
+			var lruHot = LruHot;
+			if (lruItem.LruNode != lruHot)
+				adjustLru(key, lruItem, lruHot);
+		}
 		return lruItem.Value;
 	}
 
@@ -180,7 +198,9 @@ public class ConcurrentLruLike<K, V> {
 		// 当对Key再次GetOrAdd时，LruNode里面可能已经存在旧的record。
 		// 1. GetOrAdd 需要 replace 更新
 		// 2. 必须使用 Pair，有可能 LurNode 里面已经有新建的记录了。
-		lruItemRemoved.LruNode.remove(key, lruItemRemoved);
+		var node = lruItemRemoved.LruNode;
+		if (node != null)
+			node.remove(key, lruItemRemoved);
 		return lruItemRemoved.Value;
 	}
 
@@ -192,30 +212,27 @@ public class ConcurrentLruLike<K, V> {
 		var polls = new ArrayList<ConcurrentHashMap<K, LruItem<K, V>>>(cap);
 		while (LruQueue.size() > 8640) {
 			// 大概，删除超过一天的节点。
-			var node =  LruQueue.poll();
+			var node = LruQueue.poll();
 			if (null == node)
 				break;
 			polls.add(node);
 		}
 
 		// 把被删除掉的node里面的记录迁移到当前最老(head)的node里面。
-		var head =  LruQueue.peek();
+		var head = LruQueue.peek();
 		if (null == head)
 			throw new RuntimeException("Impossible!");
 		for (var poll : polls) {
-			for (var r : poll.entrySet()) {
+			for (var e : poll.entrySet()) {
 				// concurrent see adjustLru
-				synchronized (r.getValue()) {
-					if (r.getValue().LruNode != poll)
-						continue; // 并发访问导致这个记录已经被迁移走。
-					if (null == head.putIfAbsent(r.getKey(), r.getValue()))
-						r.getValue().LruNode = head;
-				}
+				var r = e.getValue();
+				if (r.compareAndSetLruNodeNull(poll) && head.putIfAbsent(e.getKey(), r) == null) // 并发访问导致这个记录已经被迁移走。
+					r.LruNode = head;
 			}
 		}
 	}
 
-	public final void CleanNow() {
+	private void CleanNow() {
 		try {
 			int capacity = Capacity;
 			if (capacity <= 0) {// 容量不限
