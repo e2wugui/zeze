@@ -182,8 +182,11 @@ public class ConcurrentLruLike<K, V> {
 	public final void CleanNow() {
 		try {
 			int capacity = Capacity;
-			if (capacity <= 0) // 容量不限
+			if (capacity <= 0) {// 容量不限
+				while (LruQueue.size() > 8640) // 大概，超过一天直接删除。
+					LruQueue.poll();
 				return;
+			}
 			while (DataMap.size() > capacity) { // 超出容量，循环尝试
 				var node = LruQueue.peek();
 				if (node == LruHot || node == null) // 热点不回收

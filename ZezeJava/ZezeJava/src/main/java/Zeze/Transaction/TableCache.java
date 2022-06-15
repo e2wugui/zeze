@@ -143,6 +143,8 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 
 		if (getTable().getTableConf().getCacheCapacity() <= 0) {
 			TimerClean = Task.schedule(getTable().getTableConf().getCacheCleanPeriod(), this::CleanNow);
+			while (LruQueue.size() > 8640) // 大概，超过一天直接删除。
+				LruQueue.poll();
 			return; // 容量不限
 		}
 

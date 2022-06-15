@@ -179,6 +179,8 @@ namespace Zeze.Util
             if (Capacity <= 0)
             {
                 Scheduler.Schedule(CleanNow, CleanPeriod);
+                while (LruQueue.Count > 8640) // 大概，超过一天直接删除。
+                    LruQueue.TryDequeue(out var _);
                 return; // 容量不限
             }
 

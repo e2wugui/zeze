@@ -175,6 +175,8 @@ namespace Zeze.Transaction
             if (Table.TableConf.CacheCapacity <= 0)
             {
                 TimerClean = Util.Scheduler.Schedule(CleanNow, Table.TableConf.CacheCleanPeriod);
+                while (LruQueue.Count > 8640) // 大概，超过一天直接删除。
+                    LruQueue.TryDequeue(out var _);
                 return; // 容量不限
             }
             try
