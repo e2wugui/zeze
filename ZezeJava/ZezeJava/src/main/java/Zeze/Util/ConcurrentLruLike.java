@@ -129,11 +129,15 @@ public class ConcurrentLruLike<K, V> {
 	}
 
 	private void adjustLru(K key, LruItem<K, V> lruItem, ConcurrentHashMap<K, LruItem<K, V>> curLruHot) {
-		var itemLruNode = lruItem.LruNode;
-		if (itemLruNode != curLruHot) {
-			itemLruNode.remove(key, lruItem); // compare key and value
-			if (curLruHot.putIfAbsent(key, lruItem) == null) // maybe fail
-				lruItem.LruNode = curLruHot; // 这里可能会有潜在的并发问题,不过影响不大
+		if (lruItem.LruNode != curLruHot) {
+			// 注意，这把锁仅用于这里，最好不要跟事务锁重合。
+			synchronized (lruItem) {
+				if (lruItem.LruNode != curLruHot) {
+					lruItem.LruNode.remove(key);
+					if (curLruHot.putIfAbsent(key, lruItem) == null) // never fail
+						lruItem.LruNode = curLruHot;
+				}
+			}
 		}
 	}
 
@@ -200,11 +204,13 @@ public class ConcurrentLruLike<K, V> {
 			throw new RuntimeException("Impossible!");
 		for (var poll : polls) {
 			for (var r : poll.entrySet()) {
-				if (r.getValue().LruNode != poll)
-					continue; // 并发访问导致这个记录已经被迁移走。
-
-				if (null == head.putIfAbsent(r.getKey(), r.getValue()))
-					r.getValue().LruNode = head;
+				// concurrent see adjustLru
+				synchronized (r.getValue()) {
+					if (r.getValue().LruNode != poll)
+						continue; // 并发访问导致这个记录已经被迁移走。
+					if (null == head.putIfAbsent(r.getKey(), r.getValue()))
+						r.getValue().LruNode = head;
+				}
 			}
 		}
 	}

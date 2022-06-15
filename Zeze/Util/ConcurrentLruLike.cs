@@ -97,11 +97,17 @@ namespace Zeze.Util
             var volatiletmp = LruHot;
             if (lruItem.LruNode != volatiletmp)
             {
-                // compare key and value
-                lruItem.LruNode.TryRemove(KeyValuePair.Create(key, lruItem));
-                if (volatiletmp.TryAdd(key, lruItem)) // maybe fail
+                // 注意，这把锁仅用于这里，最好不要跟事务锁重合。
+                lock (lruItem)
                 {
-                    lruItem.LruNode = volatiletmp;
+                    if (lruItem.LruNode != volatiletmp)
+                    {
+                        lruItem.LruNode.TryRemove(key, out _);
+                        if (volatiletmp.TryAdd(key, lruItem)) // nevel fail
+                        {
+                            lruItem.LruNode = volatiletmp;
+                        }
+                    }
                 }
             }
         }
@@ -190,13 +196,16 @@ namespace Zeze.Util
                 throw new Exception("Impossible!");
             foreach (var poll in polls)
             {
-                foreach (var r in poll)
+                foreach (var e in poll)
                 {
-                    if (r.Value.LruNode != poll)
-                        continue; // 并发访问导致这个记录已经被迁移走。
-
-                    if (head.TryAdd(r.Key, r.Value))
-                        r.Value.LruNode = head;
+                    // concurrent see GetOrAdd
+                    lock (e.Value)
+                    {
+                        if (e.Value.LruNode != poll)
+                            continue; // 并发访问导致这个记录已经被迁移走。
+                        if (head.TryAdd(e.Key, e.Value))
+                            e.Value.LruNode = head;
+                    }
                 }
             }
         }

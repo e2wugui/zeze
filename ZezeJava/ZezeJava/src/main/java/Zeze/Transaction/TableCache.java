@@ -104,16 +104,18 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 					return r;
 		});
 
-		if (!isNew.Value && result.getLruNode() != LruHot) {
-			result.getLruNode().remove(key, result);
-			var lruHot = LruHot;
-			if (null == lruHot.putIfAbsent(key, result)) {
-				result.setLruNode(lruHot);
+		var lruHot = LruHot;
+		if (!isNew.Value && result.getLruNode() != lruHot) {
+			// 旧纪录 && 优化热点执行调整
+			// 下面在发生LruHot变动+并发GetOrAdd时，哪个后执行，就调整到哪个node，不严格调整到真正的LruHot。
+			synchronized (result) {
+				// concurrent see GetOrAdd
+				if (result.getLruNode() != lruHot) {
+					result.getLruNode().remove(key);
+					if (null == lruHot.putIfAbsent(key, result))
+						result.setLruNode(lruHot);
+				}
 			}
-			// else maybe fail in concurrent access.
-			// 并发访问导致重复的TryAdd，这里先这样写吧。可能会快点。
-			// LruHot[key] = result;
-			// result.LruNode = LruHot;
 		}
 		return result;
 	}
@@ -157,11 +159,13 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			throw new RuntimeException("Impossible!");
 		for (var poll : polls) {
 			for (var r : poll.entrySet()) {
-				if (r.getValue().getLruNode() != poll)
-					continue; // 并发访问导致这个记录已经被迁移走。
-
-				if (null == head.putIfAbsent(r.getKey(), r.getValue()))
-					r.getValue().setLruNode(head);
+				// concurrent see GetOrAdd
+				synchronized (r.getValue()) {
+					if (r.getValue().getLruNode() != poll)
+						continue; // 并发访问导致这个记录已经被迁移走。
+					if (null == head.putIfAbsent(r.getKey(), r.getValue()))
+						r.getValue().setLruNode(head);
+				}
 			}
 		}
 	}

@@ -132,15 +132,17 @@ namespace Zeze.Transaction
             var volatileHot = LruHot;
             if (false == isNew && result.LruNode != volatileHot)
             {
-                result.LruNode.TryRemove(KeyValuePair.Create(key, result));
-                if (volatileHot.TryAdd(key, result))
+                // 旧纪录 && 优化热点执行调整
+                // 下面在发生LruHot变动+并发GetOrAdd时，哪个后执行，就调整到哪个node，不严格调整到真正的LruHot。
+                // 注意，这把锁仅用于这里，最好不要跟事务锁重合。
+                lock (result)
                 {
-                    result.LruNode = volatileHot;
+                    result.LruNode.TryRemove(key, out _);
+                    if (volatileHot.TryAdd(key, result)) // nevel fail
+                    {
+                        result.LruNode = volatileHot;
+                    }
                 }
-                // else maybe fail in concurrent access.
-                // 并发访问导致重复的TryAdd，这里先这样写吧。可能会快点。
-                // volatiletmp[key] = result;
-                // result.LruNode = volatiletmp;
             }
             return result;
         }
@@ -186,13 +188,17 @@ namespace Zeze.Transaction
                 throw new Exception("Impossible!");
             foreach (var poll in polls)
             {
-                foreach (var r in poll.Values)
+                foreach (var e in poll)
                 {
-                    if (r.LruNode != poll)
-                        continue; // 并发访问导致这个记录已经被迁移走。
+                    // concurrent see GetOrAdd
+                    lock (e.Value)
+                    {
+                        if (e.Value.LruNode != poll)
+                            continue; // 并发访问导致这个记录已经被迁移走。
 
-                    if (head.TryAdd(r.Key, r))
-                        r.LruNode = head;
+                        if (head.TryAdd(e.Key, e.Value))
+                            e.Value.LruNode = head;
+                    }
                 }
             }
         }
