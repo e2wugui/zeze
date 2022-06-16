@@ -370,6 +370,10 @@ public final class Application {
 		return TaskOneByOneByKey;
 	}
 
+	public void runTaskOneByOneByKey(Object oneByOneKey, String actionName, FuncLong func) {
+		TaskOneByOneByKey.Execute(oneByOneKey, NewProcedure(func, actionName));
+	}
+
 	@Deprecated
 	public TaskCompletionSource<Long> Run(FuncLong func, String actionName, EventDispatcher.Mode mode, Object oneByOneKey) {
 		final var future = new TaskCompletionSource<Long>();
