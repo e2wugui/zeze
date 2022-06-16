@@ -371,11 +371,6 @@ public final class Application {
 	}
 
 	@Deprecated
-	public TaskCompletionSource<Long> Run(FuncLong func, String actionName, EventDispatcher.Mode mode) {
-		return Run(func, actionName, mode, null);
-	}
-
-	@Deprecated
 	public TaskCompletionSource<Long> Run(FuncLong func, String actionName, EventDispatcher.Mode mode, Object oneByOneKey) {
 		final var future = new TaskCompletionSource<Long>();
 		try {

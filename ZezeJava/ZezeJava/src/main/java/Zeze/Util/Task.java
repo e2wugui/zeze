@@ -158,14 +158,6 @@ public class Task implements Future<Long> {
 		return threadPoolDefault.submit(() -> Call(action, actionName));
 	}
 
-	@Deprecated
-	public static Task Run(Action0 action, String actionName) {
-		return new Task(threadPoolDefault.submit(() -> {
-			Call(action, actionName);
-			return 0L;
-		}));
-	}
-
 	public static Future<?> schedule(long initialDelay, Action0 action) {
 		return threadPoolScheduled.schedule(() -> {
 			try {
@@ -351,16 +343,6 @@ public class Task implements Future<Long> {
 		return threadPoolDefault.submit(() -> Call(func, p, actionWhenError, specialName));
 	}
 
-	@Deprecated
-	public static Task Run(FuncLong func, Protocol<?> p) {
-		return new Task(threadPoolDefault.submit(() -> Call(func, p, null)));
-	}
-
-	@Deprecated
-	public static Task Run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
-		return new Task(threadPoolDefault.submit(() -> Call(func, p, actionWhenError)));
-	}
-
 	public static long Call(Procedure procedure) {
 		return Call(procedure, null, null);
 	}
@@ -417,21 +399,6 @@ public class Task implements Future<Long> {
 		return threadPoolDefault.submit(() -> Call(func, p, null)); // rpcResponseThreadPool
 	}
 
-	@Deprecated
-	public static Task Run(Procedure procedure) {
-		return new Task(threadPoolDefault.submit(() -> Call(procedure, null, null)));
-	}
-
-	@Deprecated
-	public static Task Run(Procedure procedure, Protocol<?> from) {
-		return new Task(threadPoolDefault.submit(() -> Call(procedure, from, null)));
-	}
-
-	@Deprecated
-	public static Task Run(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError) {
-		return new Task(threadPoolDefault.submit(() -> Call(procedure, from, actionWhenError)));
-	}
-
 	public static void waitAll(Collection<Future<?>> tasks) {
 		for (var task : tasks) {
 			try {
@@ -443,28 +410,6 @@ public class Task implements Future<Long> {
 	}
 
 	public static void waitAll(Future<?>[] tasks) {
-		for (var task : tasks) {
-			try {
-				task.get();
-			} catch (InterruptedException | ExecutionException e) {
-				throw new RuntimeException(e);
-			}
-		}
-	}
-
-	@Deprecated
-	public static void WaitAll(Collection<Task> tasks) {
-		for (var task : tasks) {
-			try {
-				task.get();
-			} catch (InterruptedException | ExecutionException e) {
-				throw new RuntimeException(e);
-			}
-		}
-	}
-
-	@Deprecated
-	public static void WaitAll(Task[] tasks) {
 		for (var task : tasks) {
 			try {
 				task.get();
