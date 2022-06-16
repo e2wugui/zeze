@@ -146,8 +146,13 @@ public final class Tasks {
 	}
 
 	static void verify() {
-		for (var tf : taskFactorys)
-			tf.Factory.get().verify();
+		for (var tf : taskFactorys) {
+			try {
+				tf.Factory.get().verify();
+			} catch (Exception e) {
+				Simulate.logger.error("verify exception:", e);
+			}
+		}
 	}
 
 	static class Table1Long2Add1 extends Task {

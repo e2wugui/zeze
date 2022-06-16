@@ -49,6 +49,7 @@ public final class Simulate {
 
 	@After
 	public void After() throws Throwable {
+		logger.fatal("After");
 		for (var app : Apps)
 			app.Stop();
 		Apps.clear();
