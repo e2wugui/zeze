@@ -177,9 +177,20 @@ public class Program {
 				var id = tryParseLong(cmd[1]);
 				if (id > 0) {
 					addWindow(new DepartmentWindow(Group, id, findChildName(id)));
-				} else {
-					addWindow(new DepartmentWindow(Group, findChildId(cmd[1]), cmd[1]));
+					return true;
 				}
+				var child = findChildId(cmd[1]);
+				if (null != child) {
+					addWindow(new DepartmentWindow(Group, child, cmd[1]));
+					return true;
+				}
+				for (var m : MemberNode.getDepartmentMembers()) {
+					if (m.getAccount().equals(cmd[1])) {
+						addWindow(new ChatWindow(m.getAccount()));
+						return true;
+					}
+				}
+				System.out.println("open '" + cmd[1] + "' not found");
 				return true;
 			}
 			App.Instance.Zege_Message.send(Group, line, DepartmentId).await();
@@ -194,7 +205,7 @@ public class Program {
 			throw new RuntimeException("child not found with id=" + id);
 		}
 
-		public long findChildId(String name) {
+		public Long findChildId(String name) {
 			return Department.getChilds().get(name);
 		}
 
@@ -263,9 +274,22 @@ public class Program {
 				var id = tryParseLong(cmd[1]);
 				if (id > 0) {
 					addWindow(new DepartmentWindow(Group, id, findChildName(id)));
-				} else {
-					addWindow(new DepartmentWindow(Group, findChildId(cmd[1]), cmd[1]));
+					return true;
 				}
+
+				var child = findChildId(cmd[1]);
+				if (null != child) {
+					addWindow(new DepartmentWindow(Group, child, cmd[1]));
+					return true;
+				}
+
+				for (var m : MemberNode.getMembers()) {
+					if (m.getAccount().equals(cmd[1])) {
+						addWindow(new ChatWindow(m.getAccount()));
+						return true;
+					}
+				}
+				System.out.println("open '" + cmd[1] + "' not found");
 				return true;
 			}
 			App.Instance.Zege_Message.send(Group, line, 0).await();
@@ -280,7 +304,7 @@ public class Program {
 			throw new RuntimeException("child not found with id=" + id);
 		}
 
-		public long findChildId(String name) {
+		public Long findChildId(String name) {
 			return Root.getChilds().get(name);
 		}
 

@@ -1,5 +1,6 @@
 package Zege;
 
+import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Util.Task;
@@ -25,5 +26,13 @@ public class ClientService extends ClientServiceBase {
     public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) throws Throwable {
         ProtocolHandle<P> handle = factoryHandle.Handle;
         Task.run(() -> handle.handle(p), p);
+    }
+
+    @Override
+    public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
+        super.OnSocketClose(so, e);
+        if (null != e)
+            e.printStackTrace();
+        System.out.println("OnSocketClose");
     }
 }

@@ -26,15 +26,15 @@ open [friend] : 打开聊天窗口。friend为好友账号或者群号。
 
 四，/main/wanmei@group 群聊天窗口
 
-create 部门名 ：创建子部门
-open 子部门名 Or Id : 打开部门
+create 子部门名 ：创建子部门并进入改子部门窗口
+open 子部门名或Id或Member: 打开子部门窗口或者成员聊天窗口
 输入并回车：发送消息。当输入是命令时，优先执行命令。
 
 五，/main/wanmei@group/DepartmentName(Id) 部门聊天窗口
 
-create 部门名 ：创建子部门
+create 子部门名 ：创建子部门并进入改子部门窗口
 delete 删除当前部门，包含子部门。
 move 新的父部门Id ：移动当前部门到指定部门下面。
-open 子部门名或Id : 打开子部门
+open 子部门名或Id或Member: 打开子部门窗口或者成员聊天窗口
 add account: 添加成员到当前部门
 输入并回车：发送消息。当输入是命令时，优先执行命令。
