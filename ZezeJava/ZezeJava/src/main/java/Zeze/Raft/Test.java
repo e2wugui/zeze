@@ -238,6 +238,7 @@ public class Test {
 		for (int i = 0; i < concurrent; ++i) {
 			try {
 				var req = new AddCount();
+				req.setTimeout(3600_000);
 				tasks.add(Agent.SendForWait(req));
 				// logger.debug("+++++++ {} new AddCount {}", i, req.getUnique().getRequestId());
 				requests.add(req);
