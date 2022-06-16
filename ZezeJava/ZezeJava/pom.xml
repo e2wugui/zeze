@@ -83,7 +83,7 @@
 		<log4j-api.version>2.17.1</log4j-api.version>
 		<commons-dbcp2.version>2.9.0</commons-dbcp2.version>
 		<commons-pool2.version>2.11.1</commons-pool2.version>
-		<rocksdbjni.version>7.0.3</rocksdbjni.version>
+		<rocksdbjni.version>7.3.1</rocksdbjni.version>
 		<tikv.version>3.1.2</tikv.version>
 		<mysql-conncetor-java.version>8.0.28</mysql-conncetor-java.version>
 		<junit.version>4.13.2</junit.version>
