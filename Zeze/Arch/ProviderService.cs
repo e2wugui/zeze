@@ -40,7 +40,7 @@ namespace Zeze.Arch
 
         public void Kick(string linkName, long linkSid, int code, string desc)
         {
-            if (Links.TryGetValue(linkName, out var link))
+            if (linkSid != 0 && Links.TryGetValue(linkName, out var link))
                 ProviderImplement.SendKick(link.TryGetReadySocket(), linkSid, code, desc);
         }
 

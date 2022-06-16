@@ -778,7 +778,7 @@ namespace Zeze.Arch
             loginLocal.LoginVersion = loginVersionSerialId;
 
             var loginOnline = online.Logins.GetOrAdd(rpc.Argument.ClientId);
-            if (!loginOnline.LinkName.Equals(session.LinkName) || loginOnline.LinkSid == session.LinkSid)
+            if (!loginOnline.LinkName.Equals(session.LinkName) || loginOnline.LinkSid != session.LinkSid)
             {
                 ProviderApp.ProviderService.Kick(loginOnline.LinkName, loginOnline.LinkSid,
                         BKick.ErrorDuplicateLogin, $"duplicate login {session.Account}:{rpc.Argument.ClientId}");

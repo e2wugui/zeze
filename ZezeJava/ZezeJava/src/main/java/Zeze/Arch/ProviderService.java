@@ -45,6 +45,9 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 	}
 
 	public void kick(String linkName, long linkSid, int code, String desc) {
+		if (linkSid == 0)
+			return;
+
 		var link = Links.get(linkName);
 		if (null != link)
 			ProviderImplement.SendKick(link.TryGetReadySocket(), linkSid, code, desc);

@@ -745,7 +745,7 @@ public class Online extends AbstractOnline {
         loginLocal.setLoginVersion(loginVersionSerialId);
 
         var loginOnline = online.getLogins().getOrAdd(rpc.Argument.getClientId());
-        if (!loginOnline.getLinkName().equals(session.getLinkName()) || loginOnline.getLinkSid() == session.getLinkSid()) {
+        if (!loginOnline.getLinkName().equals(session.getLinkName()) || loginOnline.getLinkSid() != session.getLinkSid()) {
             ProviderApp.ProviderService.kick(loginOnline.getLinkName(), loginOnline.getLinkSid(),
                     BKick.ErrorDuplicateLogin, "duplicate login " + session.getAccount() + ":" + rpc.Argument.getClientId());
         }

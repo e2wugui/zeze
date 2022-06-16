@@ -4,8 +4,12 @@ import Zege.Friend.*;
 import Zege.Message.*;
 import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.Provider.Dispatch;
+import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.EmptyBean;
+import Zeze.Transaction.Record;
 import Zeze.Util.OutLong;
+import org.pcollections.Empty;
 
 public class LinkdService extends LinkdServiceBase {
     public LinkdService(Zeze.Application zeze) throws Throwable {
@@ -24,14 +28,53 @@ public class LinkdService extends LinkdServiceBase {
         return false;
     }
 
-    // 所有的群相关协议的参数的第一个变量必须都是Group: type==String，variable.id==1，
-    private String DecodeGroup(Zeze.Serialize.ByteBuffer _o_) {
-        int _t_ = _o_.ReadByte();
-        int _i_ = _o_.ReadTagSize(_t_);
-        if (_i_ == 1) {
-            return _o_.ReadString(_t_);
+    public static class GroupArgument extends Zeze.Transaction.Bean {
+        public String Group;
+
+        @Override
+        public void Encode(ByteBuffer bb) {
+            throw new UnsupportedOperationException();
         }
-        throw new RuntimeException("Group Not Found.");
+
+        @Override
+        public void Decode(ByteBuffer bb) {
+            int _t_ = bb.ReadByte();
+            int _i_ = bb.ReadTagSize(_t_);
+            if (_i_ == 1) {
+                Group = bb.ReadString(_t_);
+                return;
+            }
+            throw new RuntimeException("Group Not Found.");
+        }
+
+        @Override
+        protected void InitChildrenRootInfo(Record.RootInfo root) {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    public static class GroupRpc extends Rpc<GroupArgument, EmptyBean> {
+        @Override
+        public int getModuleId() {
+            return 0;
+        }
+
+        @Override
+        public int getProtocolId() {
+            return 0;
+        }
+
+        public GroupRpc() {
+            Argument = new GroupArgument();
+            Result = new EmptyBean();
+        }
+    }
+
+    // 所有的群相关协议的参数的第一个变量必须都是Group: type==String，variable.id==1，
+    private String DecodeGroup(Zeze.Serialize.ByteBuffer bb) {
+        var rpc = new GroupRpc();
+        rpc.Decode(bb);
+        return rpc.Argument.Group;
     }
 
     private boolean DispatchGroupProtocol(String group, int moduleId, Dispatch dispatch) {
