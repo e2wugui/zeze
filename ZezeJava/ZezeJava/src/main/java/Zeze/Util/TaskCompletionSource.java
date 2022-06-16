@@ -161,14 +161,4 @@ public class TaskCompletionSource<R> implements Future<R> {
 			throw new CompletionException(e);
 		}
 	}
-
-	@Deprecated // 这个方法跟Object.wait太像了,容易混淆用错,还是改用await吧
-	public void Wait() {
-		await();
-	}
-
-	@Deprecated // 这个方法跟Object.wait太像了,容易混淆用错,还是改用await吧
-	public boolean Wait(long timeout) {
-		return await(timeout);
-	}
 }

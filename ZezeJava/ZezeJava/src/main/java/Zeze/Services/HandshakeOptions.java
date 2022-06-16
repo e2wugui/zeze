@@ -1,6 +1,5 @@
 package Zeze.Services;
 
-import java.util.HashSet;
 import Zeze.Services.Handshake.Helper;
 import Zeze.Util.IntHashSet;
 
@@ -33,15 +32,6 @@ public class HandshakeOptions {
 			DhGroups = value;
 		else
 			DhGroups.clear();
-	}
-
-	@Deprecated
-	public final void setDhGroups(HashSet<Integer> value) {
-		DhGroups.clear();
-		if (value != null) {
-			for (Integer v : value)
-				DhGroups.add(v);
-		}
 	}
 
 	public final boolean getEnableEncrypt() {

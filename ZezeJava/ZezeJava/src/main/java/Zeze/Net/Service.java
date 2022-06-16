@@ -118,11 +118,6 @@ public class Service {
 		return SocketMap;
 	}
 
-	@Deprecated
-	public final LongConcurrentHashMap<AsyncSocket> getSocketMapInternal() {
-		return SocketMap;
-	}
-
 	/**
 	 * 只包含成功建立的连接：服务器Accept和客户端Connected的连接。
 	 *
