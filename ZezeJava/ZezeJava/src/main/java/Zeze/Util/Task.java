@@ -2,7 +2,6 @@ package Zeze.Util;
 
 import java.util.Calendar;
 import java.util.Collection;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -12,7 +11,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import Zeze.Application;
 import Zeze.IModule;
 import Zeze.Net.Protocol;
@@ -24,7 +22,7 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class Task implements Future<Long> {
+public final class Task {
 	static final Logger logger = LogManager.getLogger(Task.class);
 	private static ExecutorService threadPoolDefault;
 	private static ScheduledExecutorService threadPoolScheduled;
@@ -113,47 +111,6 @@ public class Task implements Future<Long> {
 		}
 	}
 
-	Future<?> future;
-
-	@Deprecated
-	public void Cancel() {
-		future.cancel(false);
-	}
-
-	@Deprecated
-	@Override
-	public boolean cancel(boolean mayInterruptIfRunning) {
-		return future.cancel(mayInterruptIfRunning);
-	}
-
-	@Deprecated
-	@Override
-	public boolean isCancelled() {
-		return future.isCancelled();
-	}
-
-	@Deprecated
-	@Override
-	public boolean isDone() {
-		return future.isDone();
-	}
-
-	@Deprecated
-	@Override
-	public Long get() throws InterruptedException, ExecutionException {
-		return (Long)future.get();
-	}
-
-	@Deprecated
-	@Override
-	public Long get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
-		return (Long)future.get(timeout, unit);
-	}
-
-	private Task(Future<?> future) {
-		this.future = future;
-	}
-
 	public static Future<?> run(Action0 action, String actionName) {
 		return threadPoolDefault.submit(() -> Call(action, actionName));
 	}
@@ -208,46 +165,6 @@ public class Task implements Future<Long> {
 				throw new RuntimeException(e);
 			}
 		}, initialDelay, TimeUnit.MILLISECONDS);
-	}
-
-	private static class SchedulerTask extends Task implements Callable<Integer>, Runnable {
-		private final SchedulerHandle SchedulerHandle;
-
-		SchedulerTask(SchedulerHandle handle) {
-			super(null);
-			SchedulerHandle = handle;
-		}
-
-		@Override
-		public void run() {
-			call();
-		}
-
-		@Override
-		public Integer call() {
-			try {
-				SchedulerHandle.handle(this);
-			} catch (AssertionError e) {
-				throw e;
-			} catch (Throwable ex) {
-				logger.error("SchedulerTask", ex);
-			}
-			return 0;
-		}
-	}
-
-	@Deprecated
-	public static Task schedule(SchedulerHandle s, long initialDelay) {
-		var task = new SchedulerTask(s);
-		task.future = threadPoolScheduled.schedule((Callable<Integer>)task, initialDelay, TimeUnit.MILLISECONDS);
-		return task;
-	}
-
-	@Deprecated
-	public static Task schedule(SchedulerHandle s, long initialDelay, long period) {
-		var task = new SchedulerTask(s);
-		task.future = threadPoolScheduled.scheduleWithFixedDelay(task, initialDelay, period, TimeUnit.MILLISECONDS);
-		return task;
 	}
 
 	public static void DefaultLogAction(Level level, Throwable ex, Long result, String msg) {
@@ -417,5 +334,8 @@ public class Task implements Future<Long> {
 				throw new RuntimeException(e);
 			}
 		}
+	}
+
+	private Task() {
 	}
 }
