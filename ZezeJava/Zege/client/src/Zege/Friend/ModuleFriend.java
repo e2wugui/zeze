@@ -10,7 +10,7 @@ public class ModuleFriend extends AbstractModule {
     public void Stop(Zege.App app) throws Throwable {
     }
 
-    public TaskCompletionSource<EmptyBean> add(String account) {
+    public TaskCompletionSource<EmptyBean> addFriend(String account) {
         var req = new AddFriend();
         req.Argument.setAccount(account);
         return req.SendForWait(App.Connector.TryGetReadySocket());

@@ -16,6 +16,7 @@ public class Program {
 	public static Counters counters = new Counters();
 
 	public static Program Instance = new Program();
+	private Benchmark benchmark;
 
 	private static String getComputerName() throws UnknownHostException {
 		InetAddress addr;
@@ -76,6 +77,10 @@ public class Program {
 				}
 			} while (!line.equals("exit"));
 		} finally {
+			if (null != benchmark) {
+				benchmark.stopAndJoin();
+				benchmark = null;
+			}
 			app.Stop();
 		}
 	}
@@ -118,8 +123,20 @@ public class Program {
 					return true;
 				}
 				break;
+			case "benchmark":
+				if (benchmark == null) {
+					benchmark = new Benchmark();
+					benchmark.start();
+				}
+				break;
+			case "benchmarkstop":
+				if (null != benchmark) {
+					benchmark.stopAndJoin();
+					benchmark = null;
+				}
+				break;
 			case "af":
-				App.Instance.Zege_Friend.add(cmd[1]).await();
+				App.Instance.Zege_Friend.addFriend(cmd[1]).await();
 				Program.this.refresh();
 				return true;
 			case "exit":
