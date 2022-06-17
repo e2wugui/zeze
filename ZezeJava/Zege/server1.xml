@@ -10,7 +10,12 @@ AutoKeyLocalStep: 自增长步长。server 实例数量上限。
 	CheckpointPeriod="60000"
 	ServerId="1"
 	>
-	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/> 先配一个内存数据库，调试。
+
+	<DatabaseConf
+		Name=""
+		DatabaseType="MySql"
+		DatabaseUrl="jdbc:mysql://localhost:3307/devtest?user=root&amp;password=devtest12345&amp;useSSL=false&amp;serverTimezone=UTC&amp;allowPublicKeyRetrieval=true"
+	/>
 
 	<ServiceConf Name="Server" InputBufferMaxProtocolSize="2097152" SocketLogLevel="Trace">
 	</ServiceConf>
