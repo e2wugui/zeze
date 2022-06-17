@@ -177,10 +177,11 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		// 不直接使用 Scheduler 的定时任务，
 		// 每次执行完重新调度。
 		try {
-			if (getTable().getTableConf().getCacheCapacity() > 0) {
+			var capacity = getTable().getTableConf().getCacheCapacity();
+			if (capacity > 0) {
 				var timeBegin = System.nanoTime();
 				int recordCount = 0, nodeCount = 0;
-				while (DataMap.size() > getTable().getTableConf().getCacheCapacity()) { // 超出容量，循环尝试
+				while (DataMap.size() > capacity) { // 超出容量，循环尝试
 					var node = LruQueue.peek();
 					if (null == node || node == LruHot) { // 热点。不回收。
 						break;
@@ -209,7 +210,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 				if (recordCount > 0 || nodeCount > 0) {
 					logger.info("{}: cleaned {} records, {} nodes, {} ms, result: {}/{}", Table.getName(),
 							recordCount, nodeCount, (System.nanoTime() - timeBegin) / 1_000_000,
-							DataMap.size(), getTable().getTableConf().getCacheCapacity());
+							DataMap.size(), capacity);
 				}
 			}
 			TryPollLruQueue();
@@ -274,9 +275,13 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			return false;
 
 		if (p.getValue().getState() != GlobalCacheManagerServer.StateInvalid) {
-			var r = p.getValue().Acquire(GlobalCacheManagerServer.StateInvalid, false);
-			if (r.ResultCode != 0 || r.ResultState != GlobalCacheManagerServer.StateInvalid) {
-				return false;
+			try {
+				var r = p.getValue().Acquire(GlobalCacheManagerServer.StateInvalid, false);
+				if (r.ResultCode != 0 || r.ResultState != GlobalCacheManagerServer.StateInvalid)
+					return false;
+			} catch (Throwable e) {
+				Remove(p); // 此时GlobalServer可能已经改成StateInvalid了, 无论如何还是当成已经Invalid保证安全
+				throw e;
 			}
 		}
 		return Remove(p);

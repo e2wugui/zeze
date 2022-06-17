@@ -287,12 +287,18 @@ namespace Zeze.Transaction
 
             if (p.Value.State != GlobalCacheManagerServer.StateInvalid)
             {
-                var task = p.Value.Acquire(GlobalCacheManagerServer.StateInvalid, false);
-                task.Wait();
-                var (ResultCode, ResultState) = task.Result;
-                if (ResultCode != 0 || ResultState != GlobalCacheManagerServer.StateInvalid)
+                try
                 {
-                    return false;
+                    var task = p.Value.Acquire(GlobalCacheManagerServer.StateInvalid, false);
+                    task.Wait();
+                    var (ResultCode, ResultState) = task.Result;
+                    if (ResultCode != 0 || ResultState != GlobalCacheManagerServer.StateInvalid)
+                        return false;
+                }
+                catch (Exception)
+                {
+                    Remove(p); // 此时GlobalServer可能已经改成StateInvalid了, 无论如何还是当成已经Invalid保证安全
+                    throw;
                 }
             }
             return Remove(p);
