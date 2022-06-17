@@ -96,10 +96,8 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean, TDepart
 		return module._tDepartmentTree.selectDirty(new BDepartmentKey(name, departmentId));
 	}
 
-	public BDepartmentRoot create(String root) {
-		var dRoot = module._tDepartment.getOrAdd(name);
-		dRoot.setRoot(root);
-		return dRoot;
+	public BDepartmentRoot create() {
+		return module._tDepartment.getOrAdd(name);
 	}
 
 	public long changeRoot(String oldRoot, String newRoot) {

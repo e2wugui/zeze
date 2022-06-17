@@ -31,7 +31,7 @@ public class ModuleUser extends AbstractModule {
         // 把用户加入默认群，并且把群加入用户好友列表。
         var defaultGroup = "wanmei@group";
         var group = App.Zege_Friend.getGroup(defaultGroup);
-        group.create("desktop-l17h5qd");
+        group.create();
         var member = new BMember();
         member.setAccount(account);
         group.getGroupMembers().put(account, member);

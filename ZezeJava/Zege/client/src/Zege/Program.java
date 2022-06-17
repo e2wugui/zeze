@@ -45,6 +45,7 @@ public class Program {
 		var app = App.Instance;
 		var linkIp = "127.0.0.1";
 		var linkPort = 5100;
+		var links = new ArrayList<String[]>();
 		for (int i = 0; i < args.length; ++i) {
 			switch (args[i]) {
 			case "-ip":
@@ -53,9 +54,17 @@ public class Program {
 			case "-port":
 				linkPort = Integer.parseInt(args[++i]);
 				break;
+			default:
+				links.add(args[i].split(":"));
+				break;
 			}
 		}
-		app.Start(linkIp, linkPort);
+		if (links.isEmpty()) {
+			app.Start(linkIp, linkPort);
+		} else {
+			var address = links.get(Zeze.Util.Random.getInstance().nextInt(links.size()));
+			app.Start(address[0], Integer.parseInt(address[1]));
+		}
 		try {
 			app.Connector.WaitReady();
 			var account = getComputerName().toLowerCase(Locale.ROOT);
