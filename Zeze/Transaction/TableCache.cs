@@ -295,10 +295,10 @@ namespace Zeze.Transaction
                     if (ResultCode != 0 || ResultState != GlobalCacheManagerServer.StateInvalid)
                         return false;
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
-                    Remove(p); // 此时GlobalServer可能已经改成StateInvalid了, 无论如何还是当成已经Invalid保证安全
-                    throw;
+                    logger.Error(e, "Acquire exception:");
+                    // 此时GlobalServer可能已经改成StateInvalid了, 无论如何还是当成已经Invalid保证安全
                 }
             }
             return Remove(p);
