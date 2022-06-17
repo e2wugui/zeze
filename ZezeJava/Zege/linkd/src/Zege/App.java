@@ -33,8 +33,8 @@ public class App extends Zeze.AppBase {
         return new LoadConfig();
     }
 
-    public void Start() throws Throwable {
-        var config = Config.Load("linkd.xml");
+    public void Start(String conf) throws Throwable {
+        var config = Config.Load(conf);
         CreateZeze(config);
         CreateService();
         LinkdProvider = new LinkdProvider();

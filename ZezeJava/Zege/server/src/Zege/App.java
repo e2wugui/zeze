@@ -38,8 +38,8 @@ public class App extends Zeze.AppBase {
         return new LoadConfig();
     }
 
-    public void Start() throws Throwable {
-        var config = Config.Load("server.xml");
+    public void Start(String conf) throws Throwable {
+        var config = Config.Load(conf);
         CreateZeze(config);
         CreateService();
 
