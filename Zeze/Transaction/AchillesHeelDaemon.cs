@@ -62,24 +62,31 @@ namespace Zeze.Transaction
 							if (null == config)
 								continue; // skip agent not login
 
-							if (agent.CheckReleaseTimeout(i, now, config.ServerReleaseTimeout))
+							var rr = agent.CheckReleaseTimeout(i, now, config.ServerReleaseTimeout);
+							if (rr == GlobalAgentBase.CheckReleaseResult.Timeout)
 							{
 								logger.Fatal("AchillesHeelDaemon global release timeout. index=" + i);
 								Process.GetCurrentProcess().Kill();
 							}
 
 							var idle = now - agent.GetActiveTime();
-							if (idle > config.ServerDaemonTimeout)
-							{
-								logger.Warn($"StartRelease ServerDaemonTimeout {config.ServerReleaseTimeout}");
-								agent.StartRelease(Zeze, i);
-								continue;
-							}
 							if (idle > config.ServerKeepAliveIdleTimeout)
 							{
 								//logger.Debug($"KeepAlive ServerKeepAliveIdleTimeout={config.ServerKeepAliveIdleTimeout}");
 								agent.KeepAlive();
-								continue;
+							}
+
+							if (idle > config.ServerDaemonTimeout)
+							{
+								if (rr != GlobalAgentBase.CheckReleaseResult.Releasing)
+                                {
+									// 这个判断只能避免正在Releasing时不要启动新的Release。
+									// 如果Global一直恢复不了，那么每ServerDaemonTimeout会再次尝试Release，
+									// 这里没法快速手段判断本Server是否存在从该Global获取的记录锁。
+									// 在Agent中增加获得的计数是个方案，但挺烦的。
+									logger.Warn($"StartRelease ServerDaemonTimeout {config.ServerReleaseTimeout}");
+									agent.StartRelease(Zeze, i);
+								}
 							}
 						}
 						Monitor.Wait(this, 1000);

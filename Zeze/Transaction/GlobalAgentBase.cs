@@ -39,18 +39,25 @@ namespace Zeze.Transaction
 
 		private readonly ConcurrentDictionary<int, Releaser> Releasers = new();
 
-		public bool CheckReleaseTimeout(int index, long now, int timeout)
+		public enum CheckReleaseResult
+		{
+			NoRelease,
+			Releasing,
+			Timeout,
+		}
+		public CheckReleaseResult CheckReleaseTimeout(int index, long now, int timeout)
 		{
 			if (false == Releasers.TryGetValue(index, out var r))
-				return false;
+				return CheckReleaseResult.NoRelease;
 
 			if (r.IsCompletedSuccessfully())
 			{
 				Releasers.TryRemove(index, out _);
-				return false;
+				SetActiveTime(Util.Time.NowUnixMillis);
+				return CheckReleaseResult.NoRelease;
 			}
 
-			return now - r.StartTime > timeout;
+			return now - r.StartTime > timeout ? CheckReleaseResult.Timeout : CheckReleaseResult.Releasing;
 		}
 
 		public class Releaser

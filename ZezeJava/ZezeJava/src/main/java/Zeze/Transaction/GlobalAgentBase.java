@@ -35,17 +35,25 @@ public abstract class GlobalAgentBase {
 
 	private final ConcurrentHashMap<Integer, Releaser> Releasers = new ConcurrentHashMap<>();
 
-	public boolean checkReleaseTimeout(int index, long now, int timeout) {
+	public enum CheckReleaseResult {
+		NoRelease,
+		Releasing,
+		Timeout,
+	}
+
+	public CheckReleaseResult checkReleaseTimeout(int index, long now, int timeout) {
 		var r = Releasers.get(index);
 		if (r == null)
-			return false;
+			return CheckReleaseResult.NoRelease;
 
 		if (r.isCompletedSuccessfully()) {
 			Releasers.remove(index);
-			return false;
+			// 每次成功Release，设置一次活动时间，阻止AchillesHeelDaemon马上再次触发Release。
+			setActiveTime(System.currentTimeMillis());
+			return CheckReleaseResult.NoRelease;
 		}
 
-		return now - r.StartTime > timeout;
+		return now - r.StartTime > timeout ? CheckReleaseResult.Timeout : CheckReleaseResult.Releasing;
 	}
 
 	public static class Releaser {
