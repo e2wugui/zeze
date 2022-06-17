@@ -270,6 +270,14 @@ namespace Zeze.Gen.cs
             if (id <= 0)
                 throw new Exception("invalid variable.id");
             Types.Type vt = type.ValueType;
+            if (type.Variable.Type == "array" && vt is TypeByte)
+            {
+                sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.BYTES)");
+                sw.WriteLine(prefix + $"    {varname} = {bufname}.ReadBytes();");
+                sw.WriteLine(prefix + "else");
+                sw.WriteLine(prefix + $"    {bufname}.SkipUnknownField(_t_);");
+                return;
+            }
             bool isFixSizeList;
             if (type.Variable.Type == "array")
                 isFixSizeList = true;

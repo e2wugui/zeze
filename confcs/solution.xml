@@ -71,6 +71,7 @@
 				<value bean="demo.Bean1"/>
 				<value bean="Simple"/>
 			</variable>
+			<variable id="28" name="arrayByte" type="array" value="byte"/>
 		</bean>
 		<beankey name="Key">
 			<enum name="Enum1" value="4"/>
