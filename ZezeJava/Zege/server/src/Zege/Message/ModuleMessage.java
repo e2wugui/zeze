@@ -1,5 +1,6 @@
 package Zege.Message;
 
+import Zege.Program;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
@@ -20,24 +21,27 @@ public class ModuleMessage extends AbstractModule {
 
         r.Argument.getMessage().setFrom(session.getAccount());
         r.Argument.getMessage().setGroup(r.Argument.getGroup());
-        r.Argument.getMessage().setDeparmentId(r.Argument.getDepartmentId());
+        r.Argument.getMessage().setDepartmentId(r.Argument.getDepartmentId());
 
         var notify = new NotifyMessage();
         notify.Argument = r.Argument.getMessage();
         if (0 == r.Argument.getDepartmentId()) {
             // group root
             group.getGroupMembers().walk((key, member) -> {
+                Program.counters.increment("GroupBroadcastMessage:" + r.Argument.getGroup() + "#" + r.Argument.getDepartmentId());
                 App.Provider.Online.sendWhileCommit(member.getAccount(), "PC", notify);
                 return true;
             });
         } else {
             // department
             group.getDepartmentMembers(r.Argument.getDepartmentId()).walk((key, member) -> {
+                Program.counters.increment("GroupBroadcastMessage:" + r.Argument.getGroup() + "#" + r.Argument.getDepartmentId());
                 App.Provider.Online.sendWhileCommit(member.getAccount(), "PC", notify);
                 return true;
             });
         }
         session.sendResponseWhileCommit(r);
+        Program.counters.increment("GroupMessage:" + r.Argument.getGroup() + "#" + r.Argument.getDepartmentId());
         return Procedure.Success;
     }
 
@@ -56,6 +60,7 @@ public class ModuleMessage extends AbstractModule {
         App.Provider.Online.sendWhileCommit(r.Argument.getFriend(), "PC", notify);
 
         session.sendResponseWhileCommit(r);
+        Program.counters.increment("FriendMessage");
         return Procedure.Success;
     }
 

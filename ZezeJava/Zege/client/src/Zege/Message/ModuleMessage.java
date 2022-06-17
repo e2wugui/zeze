@@ -1,5 +1,6 @@
 package Zege.Message;
 
+import Zege.Program;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.EmptyBean;
@@ -21,6 +22,7 @@ public class ModuleMessage extends AbstractModule {
             var bMsg = new BTextMessage();
             bMsg.setMessage(message);
             req.Argument.getMessage().setSecureMessage(new Binary(ByteBuffer.Encode(bMsg)));
+            Program.counters.increment("SendGroupMessage:" + req.Argument.getGroup() + "#" + req.Argument.getDepartmentId());
             return req.SendForWait(App.Connector.TryGetReadySocket());
         } else {
             var req = new SendMessage();
@@ -28,6 +30,7 @@ public class ModuleMessage extends AbstractModule {
             var bMsg = new BTextMessage();
             bMsg.setMessage(message);
             req.Argument.getMessage().setSecureMessage(new Binary(ByteBuffer.Encode(bMsg)));
+            Program.counters.increment("SendFriendMessage");
             return req.SendForWait(App.Connector.TryGetReadySocket());
         }
     }

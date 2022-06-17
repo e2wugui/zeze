@@ -10,8 +10,11 @@ import java.util.Locale;
 import Zege.Friend.*;
 import Zege.Message.*;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.Counters;
 
 public class Program {
+	public static Counters counters = new Counters();
+
 	public static Program Instance = new Program();
 
 	private static String getComputerName() throws UnknownHostException {
@@ -21,6 +24,15 @@ public class Program {
 	}
 
 	public synchronized static void main(String[] args) throws Throwable {
+		for (int i = 0; i < args.length; ++i) {
+			switch (args[i]) {
+			case "-perf":
+				counters.Enable = true;
+				counters.start();
+				break;
+			}
+		}
+
 		Instance.run(args);
 	}
 
@@ -125,10 +137,18 @@ public class Program {
 	}
 
 	public void OnMessage(NotifyMessage r) {
-		var current = Windows.get(Windows.size() - 1);
-		if (current.processNotifyMessage(r.Argument))
-			return;
-		Main.processNotifyMessage(r.Argument);
+		if (r.Argument.getGroup().isEmpty())
+			Program.counters.increment("RecvFriendMessage");
+		else
+			Program.counters.increment("RecvGroupMessage:" + r.Argument.getGroup() + "#" + r.Argument.getDepartmentId());
+
+		// benchmark 消息，不显示。
+		if (r.Argument.getSecureMessage().size() > 0) {
+			var current = Windows.get(Windows.size() - 1);
+			if (current.processNotifyMessage(r.Argument))
+				return;
+			Main.processNotifyMessage(r.Argument);
+		}
 	}
 
 	public class DepartmentWindow extends Window {
@@ -193,7 +213,8 @@ public class Program {
 				System.out.println("open '" + cmd[1] + "' not found");
 				return true;
 			}
-			App.Instance.Zege_Message.send(Group, line, DepartmentId).await();
+			if (!line.isEmpty()) // super处理了空行，这里本来不需要了，多判断一下吧。
+				App.Instance.Zege_Message.send(Group, line, DepartmentId).await();
 			return true;
 		}
 
@@ -211,7 +232,7 @@ public class Program {
 
 		@Override
 		public boolean processNotifyMessage(BMessage notify) {
-			if (notify.getGroup().equals(Group) && notify.getDeparmentId() == DepartmentId) {
+			if (notify.getGroup().equals(Group) && notify.getDepartmentId() == DepartmentId) {
 				var bb = ByteBuffer.Wrap(notify.getSecureMessage());
 				var bMsg = new BTextMessage();
 				bMsg.Decode(bb);
@@ -292,7 +313,8 @@ public class Program {
 				System.out.println("open '" + cmd[1] + "' not found");
 				return true;
 			}
-			App.Instance.Zege_Message.send(Group, line, 0).await();
+			if (!line.isEmpty()) // super处理了空行，这里本来不需要了，多判断一下吧。
+				App.Instance.Zege_Message.send(Group, line, 0).await();
 			return true;
 		}
 
@@ -310,7 +332,7 @@ public class Program {
 
 		@Override
 		public boolean processNotifyMessage(BMessage notify) {
-			if (notify.getGroup().equals(Group) && notify.getDeparmentId() == 0) {
+			if (notify.getGroup().equals(Group) && notify.getDepartmentId() == 0) {
 				var bb = ByteBuffer.Wrap(notify.getSecureMessage());
 				var bMsg = new BTextMessage();
 				bMsg.Decode(bb);
@@ -352,7 +374,8 @@ public class Program {
 			if (super.process(line))
 				return true;
 
-			App.Instance.Zege_Message.send(Target, line, 0).await();
+			if (!line.isEmpty()) // super处理了空行，这里本来不需要了，多判断一下吧。
+				App.Instance.Zege_Message.send(Target, line, 0).await();
 			return true;
 		}
 
@@ -458,7 +481,7 @@ public class Program {
 		public boolean processNotifyMessage(BMessage notify) {
 			var target = notify.getGroup().isEmpty() ? notify.getFrom() : notify.getGroup();
 			var list = ReceivedMessages.computeIfAbsent(
-					new MessageTarget(target, notify.getDeparmentId()),
+					new MessageTarget(target, notify.getDepartmentId()),
 					k -> new ArrayList<>());
 			list.add(notify);
 			return true;

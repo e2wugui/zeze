@@ -211,7 +211,7 @@
 			<variable id="3" name="SecureMessage" type="binary" />
 			<variable id="4" name="From"          type="string" /> 发送用户，服务器填写
 			<variable id="5" name="Group"         type="string" /> 群消息才填写，服务器填写，
-			<variable id="6" name="DeparmentId"   type="long" /> 群消息才填写，服务器填写。
+			<variable id="6" name="DepartmentId"   type="long" /> 群消息才填写，服务器填写。
 		</bean>
 		
 		<!-- 好友消息历史 -->
