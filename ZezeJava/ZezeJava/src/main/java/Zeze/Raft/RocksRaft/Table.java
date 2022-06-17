@@ -49,7 +49,7 @@ public final class Table<K, V extends Bean> {
 
 	public void Open() {
 		ColumnFamily = Rocks.OpenFamily(Name);
-		LruCache = new ConcurrentLruLike<>(CacheCapacity, LruTryRemoveCallback, 200, 2000, 1024);
+		LruCache = new ConcurrentLruLike<>(Name, CacheCapacity, LruTryRemoveCallback, 200, 2000, 1024);
 	}
 
 	public Rocks getRocks() {

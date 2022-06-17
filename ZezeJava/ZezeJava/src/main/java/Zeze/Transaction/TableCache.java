@@ -29,6 +29,7 @@ import org.apache.logging.log4j.Logger;
 */
 public class TableCache<K extends Comparable<K>, V extends Bean> {
 	private static final Logger logger = LogManager.getLogger(TableCache.class);
+	private static final int MAX_NODE_COUNT = 8640;
 
 	private final ConcurrentHashMap<K, Record1<K, V>> DataMap;
 	public final ConcurrentHashMap<K, Record1<K, V>> getDataMap() {
@@ -137,68 +138,78 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	*/
 
 	private void TryPollLruQueue() {
-		var cap = LruQueue.size() - 8640;
+		var cap = LruQueue.size() - MAX_NODE_COUNT;
 		if (cap <= 0)
 			return;
 
+		var timeBegin = System.nanoTime();
+		int recordCount = 0, nodeCount = 0;
 		var polls = new ArrayList<ConcurrentHashMap<K, Record1<K, V>>>(cap);
-		while (LruQueue.size() > 8640) {
+		while (LruQueue.size() > MAX_NODE_COUNT) {
 			// 大概，删除超过一天的节点。
-			var node =  LruQueue.poll();
+			var node = LruQueue.poll();
 			if (null == node)
 				break;
 			polls.add(node);
+			nodeCount++;
 		}
 
 		// 把被删除掉的node里面的记录迁移到当前最老(head)的node里面。
-		var head =  LruQueue.peek();
+		var head = LruQueue.peek();
 		if (null == head)
 			throw new RuntimeException("Impossible!");
 		for (var poll : polls) {
 			for (var e : poll.entrySet()) {
 				// concurrent see GetOrAdd
 				var r = e.getValue();
-				if (r.compareAndSetLruNodeNull(poll) && head.putIfAbsent(e.getKey(), r) == null) // 并发访问导致这个记录已经被迁移走。
+				if (r.compareAndSetLruNodeNull(poll) && head.putIfAbsent(e.getKey(), r) == null) { // 并发访问导致这个记录已经被迁移走。
 					r.setLruNode(head);
+					recordCount++;
+				}
 			}
 		}
+		logger.info("{}: shrank {} nodes, moved {} records, {} ms, result: {}/{}", Table.getName(),
+				nodeCount, recordCount, (System.nanoTime() - timeBegin) / 1_000_000, LruQueue.size(), MAX_NODE_COUNT);
 	}
 
 	private void CleanNow() {
 		// 这个任务的执行时间可能很长，
 		// 不直接使用 Scheduler 的定时任务，
 		// 每次执行完重新调度。
-
-		if (getTable().getTableConf().getCacheCapacity() <= 0) {
-			TimerClean = Task.schedule(getTable().getTableConf().getCacheCleanPeriod(), this::CleanNow);
-			TryPollLruQueue();
-			return; // 容量不限
-		}
-
 		try {
-			while (DataMap.size() > getTable().getTableConf().getCacheCapacity()) { // 超出容量，循环尝试
-				var node = LruQueue.peek();
-				if (null == node || node == LruHot) { // 热点。不回收。
-					break;
-				}
+			if (getTable().getTableConf().getCacheCapacity() > 0) {
+				var timeBegin = System.nanoTime();
+				int recordCount = 0, nodeCount = 0;
+				while (DataMap.size() > getTable().getTableConf().getCacheCapacity()) { // 超出容量，循环尝试
+					var node = LruQueue.peek();
+					if (null == node || node == LruHot) { // 热点。不回收。
+						break;
+					}
 
-				for (var e : node.entrySet()) {
-					if (!TryRemoveRecord(e)) {
-						// 出现回收不了，一般是批量修改数据，此时启动一次Checkpoint。
-						getTable().getZeze().CheckpointRun();
+					for (var e : node.entrySet()) {
+						if (!TryRemoveRecord(e)) {
+							// 出现回收不了，一般是批量修改数据，此时启动一次Checkpoint。
+							getTable().getZeze().CheckpointRun();
+						} else
+							recordCount++;
+					}
+					if (node.isEmpty()) {
+						LruQueue.poll();
+						nodeCount++;
+					} else {
+						logger.warn("remain record when clean oldest lruNode.");
+						try {
+							//noinspection BusyWait
+							Thread.sleep(getTable().getTableConf().getCacheCleanPeriodWhenExceedCapacity());
+						} catch (InterruptedException e) {
+							logger.error("CleanNow Interrupted", e);
+						}
 					}
 				}
-				if (node.size() == 0) {
-					LruQueue.poll();
-				} else {
-					logger.warn("remain record when clean oldest lruNode.");
-				}
-
-				try {
-					//noinspection BusyWait
-					Thread.sleep(getTable().getTableConf().getCacheCleanPeriodWhenExceedCapacity());
-				} catch (InterruptedException skip) {
-					// skip
+				if (recordCount > 0 || nodeCount > 0) {
+					logger.info("{}: cleaned {} records, {} nodes, {} ms, result: {}/{}", Table.getName(),
+							recordCount, nodeCount, (System.nanoTime() - timeBegin) / 1_000_000,
+							DataMap.size(), getTable().getTableConf().getCacheCapacity());
 				}
 			}
 			TryPollLruQueue();

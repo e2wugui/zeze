@@ -12,6 +12,7 @@ import org.apache.logging.log4j.Logger;
 
 public class ConcurrentLruLike<K, V> {
 	private static final Logger logger = LogManager.getLogger(ConcurrentLruLike.class);
+	private static final int MAX_NODE_COUNT = 8640;
 
 	static final class LruItem<K, V> {
 		private static final VarHandle LRU_NODE_HANDLE;
@@ -42,6 +43,7 @@ public class ConcurrentLruLike<K, V> {
 		}
 	}
 
+	private final String name;
 	private final ConcurrentHashMap<K, LruItem<K, V>> DataMap;
 	private final ConcurrentLinkedQueue<ConcurrentHashMap<K, LruItem<K, V>>> LruQueue = new ConcurrentLinkedQueue<>();
 	private volatile ConcurrentHashMap<K, LruItem<K, V>> LruHot;
@@ -100,24 +102,26 @@ public class ConcurrentLruLike<K, V> {
 		ContinueWhenTryRemoveCallbackFail = value;
 	}
 
-	public ConcurrentLruLike(int capacity) {
-		this(capacity, null, 200, 2000, 31);
+	public ConcurrentLruLike(String name, int capacity) {
+		this(name, capacity, null, 200, 2000, 31);
 	}
 
-	public ConcurrentLruLike(int capacity, BiPredicate<K, V> tryRemove) {
-		this(capacity, tryRemove, 200, 2000, 31);
+	public ConcurrentLruLike(String name, int capacity, BiPredicate<K, V> tryRemove) {
+		this(name, capacity, tryRemove, 200, 2000, 31);
 	}
 
-	public ConcurrentLruLike(int capacity, BiPredicate<K, V> tryRemove, int newLruHotPeriod) {
-		this(capacity, tryRemove, newLruHotPeriod, 2000, 31);
+	public ConcurrentLruLike(String name, int capacity, BiPredicate<K, V> tryRemove, int newLruHotPeriod) {
+		this(name, capacity, tryRemove, newLruHotPeriod, 2000, 31);
 	}
 
-	public ConcurrentLruLike(int capacity, BiPredicate<K, V> tryRemove, int newLruHotPeriod, int cleanPeriod) {
-		this(capacity, tryRemove, newLruHotPeriod, cleanPeriod, 31);
+	public ConcurrentLruLike(String name, int capacity, BiPredicate<K, V> tryRemove, int newLruHotPeriod,
+							 int cleanPeriod) {
+		this(name, capacity, tryRemove, newLruHotPeriod, cleanPeriod, 31);
 	}
 
-	public ConcurrentLruLike(int capacity, BiPredicate<K, V> tryRemove, int newLruHotPeriod, int cleanPeriod,
-							 int initialCapacity) {
+	public ConcurrentLruLike(String name, int capacity, BiPredicate<K, V> tryRemove, int newLruHotPeriod,
+							 int cleanPeriod, int initialCapacity) {
+		this.name = name;
 		DataMap = new ConcurrentHashMap<>(initialCapacity);
 		Capacity = capacity;
 		LruInitialCapacity = Math.min(initialCapacity / 5, 100000);
@@ -205,17 +209,20 @@ public class ConcurrentLruLike<K, V> {
 	}
 
 	private void TryPollLruQueue() {
-		var cap = LruQueue.size() - 8640;
+		var cap = LruQueue.size() - MAX_NODE_COUNT;
 		if (cap <= 0)
 			return;
 
+		var timeBegin = System.nanoTime();
+		int recordCount = 0, nodeCount = 0;
 		var polls = new ArrayList<ConcurrentHashMap<K, LruItem<K, V>>>(cap);
-		while (LruQueue.size() > 8640) {
+		while (LruQueue.size() > MAX_NODE_COUNT) {
 			// 大概，删除超过一天的节点。
 			var node = LruQueue.poll();
 			if (null == node)
 				break;
 			polls.add(node);
+			nodeCount++;
 		}
 
 		// 把被删除掉的node里面的记录迁移到当前最老(head)的node里面。
@@ -226,46 +233,57 @@ public class ConcurrentLruLike<K, V> {
 			for (var e : poll.entrySet()) {
 				// concurrent see adjustLru
 				var r = e.getValue();
-				if (r.compareAndSetLruNodeNull(poll) && head.putIfAbsent(e.getKey(), r) == null) // 并发访问导致这个记录已经被迁移走。
+				if (r.compareAndSetLruNodeNull(poll) && head.putIfAbsent(e.getKey(), r) == null) { // 并发访问导致这个记录已经被迁移走。
 					r.LruNode = head;
+					recordCount++;
+				}
 			}
 		}
+		logger.info("{}: shrank {} nodes, moved {} records, {} ms, result: {}/{}", name,
+				nodeCount, recordCount, (System.nanoTime() - timeBegin) / 1_000_000, LruQueue.size(), MAX_NODE_COUNT);
 	}
 
 	private void CleanNow() {
 		try {
 			int capacity = Capacity;
-			if (capacity <= 0) {// 容量不限
-				TryPollLruQueue();
-				return;
-			}
-			while (DataMap.size() > capacity) { // 超出容量，循环尝试
-				var node = LruQueue.peek();
-				if (node == LruHot || node == null) // 热点不回收
-					break;
+			if (capacity > 0) {
+				var timeBegin = System.nanoTime();
+				int recordCount = 0, nodeCount = 0;
+				while (DataMap.size() > capacity) { // 超出容量，循环尝试
+					var node = LruQueue.peek();
+					if (node == LruHot || node == null) // 热点不回收
+						break;
 
-				var tryRemoveCallback = TryRemoveCallback;
-				if (tryRemoveCallback != null) {
-					for (var e : node.entrySet()) {
-						if (!tryRemoveCallback.test(e.getKey(), e.getValue().Value)
-								&& !ContinueWhenTryRemoveCallbackFail)
-							break;
+					var tryRemoveCallback = TryRemoveCallback;
+					if (tryRemoveCallback != null) {
+						for (var e : node.entrySet()) {
+							if (!tryRemoveCallback.test(e.getKey(), e.getValue().Value)
+									&& !ContinueWhenTryRemoveCallbackFail)
+								break;
+							recordCount++;
+						}
+					} else {
+						recordCount += node.size();
+						for (var k : node.keySet())
+							remove(k);
 					}
-				} else {
-					for (var k : node.keySet())
-						remove(k);
+
+					if (node.isEmpty()) {
+						LruQueue.poll();
+						nodeCount++;
+					} else {
+						logger.warn("remain record when clean oldest lruNode.");
+						try {
+							//noinspection BusyWait
+							Thread.sleep(CleanPeriodWhenExceedCapacity);
+						} catch (InterruptedException e) {
+							logger.error("CleanNow Interrupted", e);
+						}
+					}
 				}
-
-				if (node.isEmpty())
-					LruQueue.poll();
-				else
-					logger.warn("remain record when clean oldest lruNode.");
-
-				try {
-					//noinspection BusyWait
-					Thread.sleep(CleanPeriodWhenExceedCapacity);
-				} catch (InterruptedException e) {
-					logger.error("CleanNow Interrupted", e);
+				if (recordCount > 0 || nodeCount > 0) {
+					logger.info("{}: cleaned {} records, {} nodes, {} ms, result: {}/{}", name, recordCount, nodeCount,
+							(System.nanoTime() - timeBegin) / 1_000_000, DataMap.size(), capacity);
 				}
 			}
 			TryPollLruQueue();

@@ -20,7 +20,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 
 	@Override
 	public void Start() throws Throwable {
-		StableLinkSids = new ConcurrentLruLike<>(1000000, this::TryLruRemove);
+		StableLinkSids = new ConcurrentLruLike<>(getName(), 1000000, this::TryLruRemove);
 		super.Start();
 	}
 

@@ -230,8 +230,8 @@ namespace Zeze.Transaction
                     else
                     {
                         logger.Warn($"remain record when clean oldest lrunode.");
+                        System.Threading.Thread.Sleep(Table.TableConf.CacheCleanPeriodWhenExceedCapacity);
                     }
-                    System.Threading.Thread.Sleep(Table.TableConf.CacheCleanPeriodWhenExceedCapacity);
                 }
                 TryPollLruQueue();
             }
