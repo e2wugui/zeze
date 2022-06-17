@@ -16,6 +16,7 @@
 			<Policies>
 				<SizeBasedTriggeringPolicy size="100 MB" />
 			</Policies>
+			<DefaultRolloverStrategy max="1000"/>
 		</RollingFile>
 
 		<RollingFile name="ErrorLog" fileName="${path}/${name}_error${ext}" filePattern="${path}/${name}_error.%d{yy-MM-dd}-%i${ext}">
@@ -24,6 +25,7 @@
 			<Policies>
 				<SizeBasedTriggeringPolicy size="100 MB" />
 			</Policies>
+			<DefaultRolloverStrategy max="1000"/>
 		</RollingFile>
 	</appenders>
 
