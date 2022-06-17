@@ -8,5 +8,5 @@ java -Dlogname=linkd -cp linkd/main:zeze/main:lib/*:. Zege.Program -zezeconf lin
 java -Dlogname=linkd -cp linkd/main:zeze/main:lib/*:. Zege.Program -zezeconf linkd1.xml &
 
 #start server
-java -Dlogname=server -cp server/main:zeze/main:lib/*:. Zege.Program -perf -zezeconf server.xml &
+java -Dlogname=server -cp server/main:zeze/main:lib/*:. Zege.Program -perf -zezeconf server0.xml &
 java -Dlogname=server -cp server/main:zeze/main:lib/*:. Zege.Program -perf -zezeconf server1.xml &

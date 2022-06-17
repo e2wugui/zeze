@@ -10,5 +10,5 @@ pscp -r server/build/classes/java/main lichenghua@10.12.7.140:/export/home/liche
 pscp start.sh lichenghua@10.12.7.140:/export/home/lichenghua/zege/
 pscp linkd.xml lichenghua@10.12.7.140:/export/home/lichenghua/zege/
 pscp linkd1.xml lichenghua@10.12.7.140:/export/home/lichenghua/zege/
-pscp server.xml lichenghua@10.12.7.140:/export/home/lichenghua/zege/
+pscp server0.xml lichenghua@10.12.7.140:/export/home/lichenghua/zege/
 pscp server1.xml lichenghua@10.12.7.140:/export/home/lichenghua/zege/
