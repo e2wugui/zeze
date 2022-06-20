@@ -3,11 +3,11 @@ public final class Redirect_Zeze_Arch_Online extends Zeze.Arch.Online {
     private final Zeze.Arch.RedirectBase _redirect_;
 
     @Override
-    protected void RedirectNotify(int arg0, String arg1) {
+    protected void redirectNotify(int arg0, String arg1) {
         var _t_ = _redirect_.ChoiceServer(this, arg0);
         if (_t_ == null) { // local: loop-back
             _redirect_.RunVoid(Zeze.Transaction.TransactionLevel.Serializable,
-                () -> super.RedirectNotify(arg0, arg1));
+                () -> super.redirectNotify(arg0, arg1));
             return;
         }
 
@@ -34,7 +34,7 @@ public final class Redirect_Zeze_Arch_Online extends Zeze.Arch.Online {
                 String arg1;
                 var _b_ = _params_.Wrap();
                 arg1 = _b_.ReadString();
-                super.RedirectNotify(_hash_, arg1);
+                super.redirectNotify(_hash_, arg1);
                 return null;
             }, _result_ -> Zeze.Net.Binary.Empty));
     }

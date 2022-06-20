@@ -27,16 +27,16 @@ public class TestTableNestAction {
 		var value2 = new OutInt();
 		demo.App.getInstance().Zeze.NewProcedure(() -> {
 
-			Transaction.getCurrent().RunWhileCommit(() -> {
+			Transaction.getCurrent().runWhileCommit(() -> {
 				value1.Value++; //1
 				System.out.println("value1:" + value1.Value);
 			});
 
 			demo.App.getInstance().Zeze.NewProcedure(() -> {
 
-				Transaction.getCurrent().RunWhileCommit(() -> value1.Value++);
+				Transaction.getCurrent().runWhileCommit(() -> value1.Value++);
 
-				Transaction.getCurrent().RunWhileRollback(() -> {
+				Transaction.getCurrent().runWhileRollback(() -> {
 					Assert.assertEquals(value1.Value, value2.Value + 1);
 					value2.Value++; // 1
 					System.out.println(value1.Value);
@@ -47,16 +47,16 @@ public class TestTableNestAction {
 
 			demo.App.getInstance().Zeze.NewProcedure(() -> {
 
-				Transaction.getCurrent().RunWhileCommit(() -> {
+				Transaction.getCurrent().runWhileCommit(() -> {
 					Assert.assertEquals(value1.Value, value2.Value);
 					value1.Value++; // 2
 				});
 
 				demo.App.getInstance().Zeze.NewProcedure(() -> {
 
-					Transaction.getCurrent().RunWhileCommit(() -> value1.Value++);
+					Transaction.getCurrent().runWhileCommit(() -> value1.Value++);
 
-					Transaction.getCurrent().RunWhileRollback(() -> {
+					Transaction.getCurrent().runWhileRollback(() -> {
 						Assert.assertEquals(value1.Value, value2.Value + 1);
 						value2.Value++; // 2
 						System.out.println(value1.Value);
@@ -68,7 +68,7 @@ public class TestTableNestAction {
 				return Procedure.Success;
 			}, "nest procedure2").Call();
 
-			Transaction.getCurrent().RunWhileCommit(() -> {
+			Transaction.getCurrent().runWhileCommit(() -> {
 				Assert.assertEquals(value1.Value, value2.Value);
 				value1.Value++; // 3
 			});

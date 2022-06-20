@@ -493,6 +493,45 @@ namespace Zeze.Arch
         }
 
         /// <summary>
+        /// 给账号所有的登录终端发送消息。
+        /// </summary>
+        /// <param name="account"></param>
+        /// <param name="p"></param>
+        public void SendAccount(string account, Protocol p)
+        {
+
+        }
+
+        /// <summary>
+        /// 给账号所有的登录终端发送消息。
+        /// </summary>
+        /// <param name="accounts"></param>
+        /// <param name="p"></param>
+        public void SendAccounts(ICollection<string> accounts, Protocol p)
+        { 
+        }
+
+        public void SendAccountWhileCommit(string account, Protocol p)
+        {
+            Transaction.Transaction.Current.RunWhileCommit(() => SendAccount(account, p));
+        }
+
+        public void SendAccountsWhileCommit(ICollection<string> accounts, Protocol p)
+        {
+            Transaction.Transaction.Current.RunWhileCommit(() => SendAccounts(accounts, p));
+        }
+
+        public void SendAccountWhileRollback(string account, Protocol p)
+        {
+            Transaction.Transaction.Current.RunWhileRollback(() => SendAccount(account, p));
+        }
+
+        public void SendAccountsWhileRollback(ICollection<string> accounts, Protocol p)
+        {
+            Transaction.Transaction.Current.RunWhileRollback(() => SendAccounts(accounts, p));
+        }
+
+        /// <summary>
         /// Func<senderAccount, senderClientId, target, result>
         /// sender: 查询发起者，结果发送给他。
         /// target: 查询目标。

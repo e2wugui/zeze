@@ -198,7 +198,7 @@ public class Online extends AbstractOnline {
 		localRemoveEvents.triggerEmbed(this, arg);
 		localRemoveEvents.triggerProcedure(ProviderApp.Zeze, this, arg);
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileCommit(()->localRemoveEvents.triggerThread(this, arg));
+		Transaction.getCurrent().runWhileCommit(()->localRemoveEvents.triggerThread(this, arg));
 	}
 
 	private void removeOnlineAndTrigger(long roleId) throws Throwable {
@@ -211,7 +211,7 @@ public class Online extends AbstractOnline {
 		logoutEvents.triggerEmbed(this, arg);
 		logoutEvents.triggerProcedure(ProviderApp.Zeze, this, arg);
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileCommit(()->logoutEvents.triggerThread(this, arg));
+		Transaction.getCurrent().runWhileCommit(()->logoutEvents.triggerThread(this, arg));
 	}
 
 	private void loginTrigger(long roleId) throws Throwable {
@@ -222,7 +222,7 @@ public class Online extends AbstractOnline {
 		loginEvents.triggerEmbed(this, arg);
 		loginEvents.triggerProcedure(ProviderApp.Zeze, this, arg);
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileCommit(() -> loginEvents.triggerThread(this, arg));
+		Transaction.getCurrent().runWhileCommit(() -> loginEvents.triggerThread(this, arg));
 	}
 
 	private void reloginTrigger(long roleId) throws Throwable {
@@ -233,7 +233,7 @@ public class Online extends AbstractOnline {
 		reloginEvents.triggerEmbed(this, arg);
 		reloginEvents.triggerProcedure(ProviderApp.Zeze, this, arg);
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileCommit(() -> reloginEvents.triggerThread(this, arg));
+		Transaction.getCurrent().runWhileCommit(() -> reloginEvents.triggerThread(this, arg));
 	}
 
 	public final void onLinkBroken(long roleId, BLinkBroken arg) throws Throwable {
@@ -255,7 +255,7 @@ public class Online extends AbstractOnline {
 
 		final long currentLoginVersionFinal = currentLoginVersion;
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileCommit(() -> {
+		Transaction.getCurrent().runWhileCommit(() -> {
 			// delay 10 minutes
 			Task.schedule(10 * 60 * 1000, () -> {
 				ProviderApp.Zeze.NewProcedure(() -> {
@@ -292,22 +292,22 @@ public class Online extends AbstractOnline {
 
 	public final void sendWhileCommit(long roleId, Protocol<?> p) {
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileCommit(() -> send(roleId, p));
+		Transaction.getCurrent().runWhileCommit(() -> send(roleId, p));
 	}
 
 	public final void sendWhileCommit(Iterable<Long> roleIds, Protocol<?> p) {
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileCommit(() -> send(roleIds, p));
+		Transaction.getCurrent().runWhileCommit(() -> send(roleIds, p));
 	}
 
 	public final void sendWhileRollback(long roleId, Protocol<?> p) {
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileRollback(() -> send(roleId, p));
+		Transaction.getCurrent().runWhileRollback(() -> send(roleId, p));
 	}
 
 	public final void sendWhileRollback(Iterable<Long> roleIds, Protocol<?> p) {
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileRollback(() -> send(roleIds, p));
+		Transaction.getCurrent().runWhileRollback(() -> send(roleIds, p));
 	}
 
 	private void send(long roleId, long typeId, Binary fullEncodedProtocol) {
@@ -341,7 +341,7 @@ public class Online extends AbstractOnline {
 		// 发送消息为了用上TaskOneByOne，只能一个一个发送，为了少改代码，先使用旧的GroupByLink接口。
 		var groups = groupByLink(roleIds);
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileCommit(() -> {
+		Transaction.getCurrent().runWhileCommit(() -> {
 			for (var group : groups) {
 				if (group.linkSocket == null)
 					continue; // skip not online
@@ -415,22 +415,22 @@ public class Online extends AbstractOnline {
 
 	public final void sendReliableNotifyWhileCommit(long roleId, String listenerName, Protocol<?> p) {
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileCommit(() -> sendReliableNotify(roleId, listenerName, p));
+		Transaction.getCurrent().runWhileCommit(() -> sendReliableNotify(roleId, listenerName, p));
 	}
 
 	public final void sendReliableNotifyWhileCommit(long roleId, String listenerName, int typeId, Binary fullEncodedProtocol) {
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileCommit(() -> sendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol));
+		Transaction.getCurrent().runWhileCommit(() -> sendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol));
 	}
 
 	public final void sendReliableNotifyWhileRollback(long roleId, String listenerName, Protocol<?> p) {
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileRollback(() -> sendReliableNotify(roleId, listenerName, p));
+		Transaction.getCurrent().runWhileRollback(() -> sendReliableNotify(roleId, listenerName, p));
 	}
 
 	public final void sendReliableNotifyWhileRollback(long roleId, String listenerName, int typeId, Binary fullEncodedProtocol) {
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileRollback(() -> sendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol));
+		Transaction.getCurrent().runWhileRollback(() -> sendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol));
 	}
 
 	public final void sendReliableNotify(long roleId, String listenerName, Protocol<?> p) {
@@ -633,7 +633,7 @@ public class Online extends AbstractOnline {
 		if (!transmitActions.containsKey(actionName))
 			throw new RuntimeException("Unknown Action Name: " + actionName);
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileCommit(() -> transmit(sender, actionName, roleId, parameter));
+		Transaction.getCurrent().runWhileCommit(() -> transmit(sender, actionName, roleId, parameter));
 	}
 
 	public final void transmitWhileCommit(long sender, String actionName, Iterable<Long> roleIds) {
@@ -644,7 +644,7 @@ public class Online extends AbstractOnline {
 		if (!transmitActions.containsKey(actionName))
 			throw new RuntimeException("Unknown Action Name: " + actionName);
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileCommit(() -> transmit(sender, actionName, roleIds, parameter));
+		Transaction.getCurrent().runWhileCommit(() -> transmit(sender, actionName, roleIds, parameter));
 	}
 
 	public final void transmitWhileRollback(long sender, String actionName, long roleId) {
@@ -655,7 +655,7 @@ public class Online extends AbstractOnline {
 		if (!transmitActions.containsKey(actionName))
 			throw new RuntimeException("Unknown Action Name: " + actionName);
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileRollback(() -> transmit(sender, actionName, roleId, parameter));
+		Transaction.getCurrent().runWhileRollback(() -> transmit(sender, actionName, roleId, parameter));
 	}
 
 	public final void transmitWhileRollback(long sender, String actionName, Iterable<Long> roleIds) {
@@ -666,7 +666,7 @@ public class Online extends AbstractOnline {
 		if (!transmitActions.containsKey(actionName))
 			throw new RuntimeException("Unknown Action Name: " + actionName);
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileRollback(() -> transmit(sender, actionName, roleIds, parameter));
+		Transaction.getCurrent().runWhileRollback(() -> transmit(sender, actionName, roleIds, parameter));
 	}
 
 	private void verifyLocal() {
@@ -756,7 +756,7 @@ public class Online extends AbstractOnline {
 		// see linkd::Zezex.Provider.ModuleProvider。ProcessBroadcast
 		session.sendResponseWhileCommit(rpc);
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileCommit(() -> {
+		Transaction.getCurrent().runWhileCommit(() -> {
 			var setUserState = new SetUserState();
 			setUserState.Argument.setLinkSid(session.getLinkSid());
 			setUserState.Argument.setContext(String.valueOf(rpc.Argument.getRoleId()));
@@ -806,7 +806,7 @@ public class Online extends AbstractOnline {
 		// 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
 		session.sendResponseWhileCommit(rpc);
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileCommit(() -> {
+		Transaction.getCurrent().runWhileCommit(() -> {
 			var setUserState = new SetUserState();
 			setUserState.Argument.setLinkSid(session.getLinkSid());
 			setUserState.Argument.setContext(String.valueOf(rpc.Argument.getRoleId()));
@@ -870,7 +870,7 @@ public class Online extends AbstractOnline {
 
 		// 先设置状态，再发送Logout结果。
 		//noinspection ConstantConditions
-		Transaction.getCurrent().RunWhileCommit(() -> {
+		Transaction.getCurrent().runWhileCommit(() -> {
 			var setUserState = new SetUserState();
 			setUserState.Argument.setLinkSid(session.getLinkSid());
 			rpc.getSender().Send(setUserState); // 直接使用link连接。

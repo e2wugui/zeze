@@ -182,7 +182,7 @@ public class ModuleTimer extends AbstractModule {
 
 				final var finalNodeId = nodeId;
 				//noinspection ConstantConditions
-				Transaction.getCurrent().RunWhileCommit(() -> ScheduleLocal(serverId, timerId, finalNodeId, delay, period, name));
+				Transaction.getCurrent().runWhileCommit(() -> ScheduleLocal(serverId, timerId, finalNodeId, delay, period, name));
 				return timerId;
 			}
 			nodeId = NodeIdGenerator.nextId();

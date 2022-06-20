@@ -113,14 +113,24 @@ public final class Transaction {
 		Savepoints.get(Savepoints.size() - 1).PutLog(log);
 	}
 
-	public void RunWhileCommit(Runnable action) {
+	public void runWhileCommit(Runnable action) {
 		VerifyRunning();
 		Savepoints.get(Savepoints.size() - 1).addCommitAction(action);
 	}
 
-	public void RunWhileRollback(Runnable action) {
+	public void runWhileRollback(Runnable action) {
 		VerifyRunning();
 		Savepoints.get(Savepoints.size() - 1).addRollbackAction(action);
+	}
+
+	@Deprecated
+	public void RunWhileCommit(Runnable action) {
+		runWhileCommit(action);
+	}
+
+	@Deprecated
+	public void RunWhileRollback(Runnable action) {
+		runWhileRollback(action);
 	}
 
 	private boolean AlwaysReleaseLockWhenRedo = false;

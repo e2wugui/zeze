@@ -92,33 +92,33 @@ public class ProviderUserSession {
 
 	@SuppressWarnings("ConstantConditions")
 	public final void sendResponseWhileCommit(int typeId, Binary fullEncodedProtocol) {
-		Transaction.getCurrent().RunWhileCommit(() -> sendResponse(typeId, fullEncodedProtocol));
+		Transaction.getCurrent().runWhileCommit(() -> sendResponse(typeId, fullEncodedProtocol));
 	}
 
 	@SuppressWarnings("ConstantConditions")
 	public final void sendResponseWhileCommit(Binary fullEncodedProtocol) {
-		Transaction.getCurrent().RunWhileCommit(() -> sendResponse(fullEncodedProtocol));
+		Transaction.getCurrent().runWhileCommit(() -> sendResponse(fullEncodedProtocol));
 	}
 
 	@SuppressWarnings("ConstantConditions")
 	public final void sendResponseWhileCommit(Protocol<?> p) {
-		Transaction.getCurrent().RunWhileCommit(() -> sendResponse(p));
+		Transaction.getCurrent().runWhileCommit(() -> sendResponse(p));
 	}
 
 	// 这个方法用来优化广播协议。不能用于Rpc，先隐藏。
 	@SuppressWarnings({"ConstantConditions", "unused"})
 	private void sendResponseWhileRollback(int typeId, Binary fullEncodedProtocol) {
-		Transaction.getCurrent().RunWhileRollback(() -> sendResponse(typeId, fullEncodedProtocol));
+		Transaction.getCurrent().runWhileCommit(() -> sendResponse(typeId, fullEncodedProtocol));
 	}
 
 	@SuppressWarnings({"ConstantConditions", "unused"})
 	private void sendResponseWhileRollback(Binary fullEncodedProtocol) {
-		Transaction.getCurrent().RunWhileRollback(() -> sendResponse(fullEncodedProtocol));
+		Transaction.getCurrent().runWhileCommit(() -> sendResponse(fullEncodedProtocol));
 	}
 
 	@SuppressWarnings("ConstantConditions")
 	public final void sendResponseWhileRollback(Protocol<?> p) {
-		Transaction.getCurrent().RunWhileRollback(() -> sendResponse(p));
+		Transaction.getCurrent().runWhileCommit(() -> sendResponse(p));
 	}
 
 	public static ProviderUserSession get(Protocol<?> context) {

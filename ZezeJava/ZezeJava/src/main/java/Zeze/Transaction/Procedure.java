@@ -125,7 +125,7 @@ public class Procedure {
 		currentT.getProcedureStack().add(this);
 		try {
 			if (null != RunWhileCommit)
-				currentT.RunWhileCommit(RunWhileCommit);
+				currentT.runWhileCommit(RunWhileCommit);
 			long result = Process();
 			currentT.VerifyRunning(); // 防止应用抓住了异常，通过return方式返回。
 

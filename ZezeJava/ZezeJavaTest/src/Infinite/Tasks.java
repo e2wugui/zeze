@@ -94,7 +94,7 @@ public final class Tasks {
 			if (result == 0) {
 				var txn = Transaction.getCurrent();
 				if (txn != null)
-					txn.RunWhileCommit(() -> getSuccessCounter(name).increment());
+					txn.runWhileCommit(() -> getSuccessCounter(name).increment());
 				else
 					getSuccessCounter(name).increment();
 			} else
@@ -257,7 +257,7 @@ public final class Tasks {
 			var r2 = v2.getInt1();
 			if (debugTradeSum) {
 				//noinspection ConstantConditions
-				Transaction.getCurrent().RunWhileCommit(() ->
+				Transaction.getCurrent().runWhileCommit(() ->
 						Simulate.logger.info("{} --- {}:{}-{}={} {}:{}+{}={}",
 								App.getZeze().getConfig().getServerId(), k1, m1, money, r1, k2, m2, money, r2));
 			}
