@@ -223,6 +223,7 @@ namespace Zeze.Services
                 {
                     using (await session.Mutex.LockAsync())
                     {
+                        session.Kick();
                         foreach (var e in session.Acquired)
                         {
                             // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
@@ -906,6 +907,19 @@ namespace Zeze.Services
             {
                 Acquired = new(config.ConcurrencyLevel, config.InitialCapacity);
             }
+
+            // not under lock
+            internal void Kick()
+            {
+                var peer = Instance.Server.GetSocket(SessionId);
+                if (null != peer)
+                {
+                    peer.UserState = null; // 来自这个Agent的所有请求都会失败。
+                    peer.Close(null); // 关闭连接，强制Agent重新登录。
+                }
+                SessionId = 0; // 清除网络状态。
+            }
+
 
             public async Task<bool> TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex, bool login)
             {

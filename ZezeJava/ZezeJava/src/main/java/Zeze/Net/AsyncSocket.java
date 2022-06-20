@@ -63,7 +63,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private final Selector selector;
 	private final SelectionKey selectionKey;
 	private volatile SocketAddress RemoteAddress; // 连接成功时设置
-	private Object UserState;
+	private volatile Object UserState;
 	private volatile boolean IsHandshakeDone;
 	private boolean closed;
 

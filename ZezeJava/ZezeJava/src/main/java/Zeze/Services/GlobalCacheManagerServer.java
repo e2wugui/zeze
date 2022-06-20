@@ -165,6 +165,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		Sessions.forEach(session -> {
 			if (now - session.getActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout) {
 				synchronized (session) {
+					session.kick();
 					for (var e : session.Acquired.entrySet()) {
 						// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
 						try {
@@ -761,6 +762,16 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		private volatile long ActiveTime;
 		private volatile long LastErrorTime;
 		private boolean Logined = false;
+
+		// not under lock
+		void kick() {
+			var peer = Instance.Server.GetSocket(SessionId);
+			if (null != peer) {
+				peer.setUserState(null); // 来自这个Agent的所有请求都会失败。
+				peer.close(); // 关闭连接，强制Agent重新登录。
+			}
+			SessionId = 0; // 清除网络状态。
+		}
 
 		long getActiveTime() {
 			return ActiveTime;

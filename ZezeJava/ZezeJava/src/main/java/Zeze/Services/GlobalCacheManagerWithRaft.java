@@ -126,6 +126,7 @@ public class GlobalCacheManagerWithRaft
 			Sessions.forEach(session -> {
 				if (now - session.getActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout) {
 					synchronized (session) {
+						session.kick();
 						var Acquired = ServerAcquiredTemplate.OpenTable(session.ServerId);
 						try {
 							Acquired.WalkKey(key -> {
@@ -761,6 +762,16 @@ public class GlobalCacheManagerWithRaft
 		private int GlobalCacheManagerHashIndex;
 		private volatile long ActiveTime;
 		private volatile long LastErrorTime;
+
+		// not under lock
+		void kick() {
+			var peer = globalRaft.getRocks().getRaft().getServer().GetSocket(SessionId);
+			if (null != peer) {
+				peer.setUserState(null); // 来自这个Agent的所有请求都会失败。
+				peer.close(); // 关闭连接，强制Agent重新登录。
+			}
+			SessionId = 0; // 清除网络状态。
+		}
 
 		CacheHolder(GlobalCacheManagerWithRaft globalRaft, int serverId) {
 			this.globalRaft = globalRaft;

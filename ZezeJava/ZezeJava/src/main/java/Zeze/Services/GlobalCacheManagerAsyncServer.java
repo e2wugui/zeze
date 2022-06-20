@@ -139,6 +139,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		Sessions.forEach(session -> {
 			if (now - session.getActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout) {
 				synchronized (session) {
+					session.kick();
 					var allReleaseFuture = new CountDownFuture();
 					for (var e : session.Acquired.entrySet()) {
 						// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
@@ -907,6 +908,16 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 
 		void setActiveTime(long value) {
 			ActiveTime = value;
+		}
+
+		// not under lock
+		void kick() {
+			var peer = Instance.Server.GetSocket(SessionId);
+			if (null != peer) {
+				peer.setUserState(null); // 来自这个Agent的所有请求都会失败。
+				peer.close(); // 关闭连接，强制Agent重新登录。
+			}
+			SessionId = 0; // 清除网络状态。
 		}
 
 		synchronized boolean TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex, boolean login) {

@@ -740,6 +740,7 @@ namespace Zeze.Services
                     {
                         using (await session.Mutex.LockAsync())
                         {
+                            session.Kick();
                             var Acquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
                             await Acquired.WalkKeyAsync(async (key) =>
                             {
@@ -781,6 +782,18 @@ namespace Zeze.Services
             public void SetActiveTime(long value)
             {
                 Interlocked.Exchange(ref ActiveTime, value);
+            }
+
+            // not under lock
+            internal void Kick()
+            {
+                var peer = GlobalInstance.Rocks.Raft.Server.GetSocket(SessionId);
+                if (null != peer)
+                {
+                    peer.UserState = null; // 来自这个Agent的所有请求都会失败。
+                    peer.Close(null); // 关闭连接，强制Agent重新登录。
+                }
+                SessionId = 0; // 清除网络状态。
             }
 
             public async Task<bool> TryBindSocket(AsyncSocket newSocket, int _GlobalCacheManagerHashIndex)
