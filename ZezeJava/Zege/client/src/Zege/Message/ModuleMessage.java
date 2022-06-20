@@ -19,17 +19,21 @@ public class ModuleMessage extends AbstractModule {
             var req = new SendDepartmentMessage();
             req.Argument.setGroup(target);
             req.Argument.setDepartmentId(departmentId);
-            var bMsg = new BTextMessage();
-            bMsg.setMessage(message);
-            req.Argument.getMessage().setSecureMessage(new Binary(ByteBuffer.Encode(bMsg)));
+            if (null != message) {
+                var bMsg = new BTextMessage();
+                bMsg.setMessage(message);
+                req.Argument.getMessage().setSecureMessage(new Binary(ByteBuffer.Encode(bMsg)));
+            }
             Program.counters.increment("SendGroupMessage:" + req.Argument.getGroup() + "#" + req.Argument.getDepartmentId());
             return req.SendForWait(App.Connector.TryGetReadySocket());
         } else {
             var req = new SendMessage();
             req.Argument.setFriend(target);
-            var bMsg = new BTextMessage();
-            bMsg.setMessage(message);
-            req.Argument.getMessage().setSecureMessage(new Binary(ByteBuffer.Encode(bMsg)));
+            if (null != message) {
+                var bMsg = new BTextMessage();
+                bMsg.setMessage(message);
+                req.Argument.getMessage().setSecureMessage(new Binary(ByteBuffer.Encode(bMsg)));
+            }
             Program.counters.increment("SendFriendMessage");
             return req.SendForWait(App.Connector.TryGetReadySocket());
         }
