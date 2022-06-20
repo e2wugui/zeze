@@ -1,5 +1,6 @@
 package Zeze.Util;
 
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -45,10 +46,11 @@ public class Counters {
 
 	private final HashMap<String, AtomicLong> reports = new HashMap<>(); // atomic 在这里仅为了能修改，不是为了线程安全。
 
+	static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 	private synchronized void report() {
 		var c = Calendar.getInstance();
 		var sb = new StringBuilder();
-		sb.append(c).append("counters: ").append(name).append("\n");
+		sb.append(dateFormat.format(c.getTime())).append("counters: ").append(name).append("\n");
 		var changed = false;
 		for (var e : counters.entrySet()) {
 			var prev = reports.computeIfAbsent(e.getKey(), key -> new AtomicLong());
