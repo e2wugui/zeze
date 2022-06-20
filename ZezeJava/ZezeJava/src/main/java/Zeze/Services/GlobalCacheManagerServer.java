@@ -164,12 +164,14 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 
 		Sessions.forEach(session -> {
 			if (now - session.getActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout) {
-				for (var e : session.Acquired.entrySet()) {
-					// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-					try {
-						Release(session, e.getKey(), false);
-					} catch (InterruptedException ex) {
-						logger.error("", ex);
+				synchronized (session) {
+					for (var e : session.Acquired.entrySet()) {
+						// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
+						try {
+							Release(session, e.getKey(), false);
+						} catch (InterruptedException ex) {
+							logger.error("", ex);
+						}
 					}
 				}
 			}

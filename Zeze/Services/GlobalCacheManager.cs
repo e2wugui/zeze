@@ -221,10 +221,13 @@ namespace Zeze.Services
             { 
                 if (now - session.GetActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout)
                 {
-                    foreach (var e in session.Acquired)
+                    using (await session.Mutex.LockAsync())
                     {
-                        // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-                        await ReleaseAsync(session, e.Key, false);
+                        foreach (var e in session.Acquired)
+                        {
+                            // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
+                            await ReleaseAsync(session, e.Key, false);
+                        }
                     }
                 }
             }
@@ -882,10 +885,11 @@ namespace Zeze.Services
             private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
             private long ActiveTime;
             private bool Logined = false;
+
             public long SessionId { get; private set; }
 
             public ConcurrentDictionary<Binary, int> Acquired { get; }
-            private Nito.AsyncEx.AsyncLock Mutex { get; } = new Nito.AsyncEx.AsyncLock();
+            public Nito.AsyncEx.AsyncLock Mutex { get; } = new Nito.AsyncEx.AsyncLock();
             public int GlobalCacheManagerHashIndex { get; private set; } // UnBind 的时候不会重置，会一直保留到下一次Bind。
 
             public long GetActiveTime()

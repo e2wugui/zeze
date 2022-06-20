@@ -125,18 +125,20 @@ public class GlobalCacheManagerWithRaft
 		if (Rocks.getRaft().isLeader()) {
 			Sessions.forEach(session -> {
 				if (now - session.getActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout) {
-					var Acquired = ServerAcquiredTemplate.OpenTable(session.ServerId);
-					try {
-						Acquired.WalkKey(key -> {
-							// 在循环中删除。这样虽然效率低些，但是能处理更多情况。
-							if (Rocks.getRaft().isLeader()) {
-								Release(session, key);
-								return true;
-							}
-							return false;
-						});
-					} catch (Throwable e) {
-						logger.error("AchillesHeelDaemon.Release", e);
+					synchronized (session) {
+						var Acquired = ServerAcquiredTemplate.OpenTable(session.ServerId);
+						try {
+							Acquired.WalkKey(key -> {
+								// 在循环中删除。这样虽然效率低些，但是能处理更多情况。
+								if (Rocks.getRaft().isLeader()) {
+									Release(session, key);
+									return true;
+								}
+								return false;
+							});
+						} catch (Throwable e) {
+							logger.error("AchillesHeelDaemon.Release", e);
+						}
 					}
 				}
 			});

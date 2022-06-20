@@ -738,18 +738,21 @@ namespace Zeze.Services
                 {
                     if (now - session.GetActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout)
                     {
-                        var Acquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
-                        await Acquired.WalkKeyAsync(async (key) =>
+                        using (await session.Mutex.LockAsync())
                         {
-                            // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-                            if (Rocks.Raft.IsLeader)
+                            var Acquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
+                            await Acquired.WalkKeyAsync(async (key) =>
                             {
-                                await Release(session, key, false);
-                                return true;
-                            }
-                            return false;
-                        });
-                        // skip allReleaseFuture result
+                                // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
+                                if (Rocks.Raft.IsLeader)
+                                {
+                                    await Release(session, key, false);
+                                    return true;
+                                }
+                                return false;
+                            });
+                            // skip allReleaseFuture result
+                        }
                     }
                 }
             }
@@ -768,7 +771,7 @@ namespace Zeze.Services
             public int GlobalCacheManagerHashIndex { get; private set; }
             public int ServerId { get; internal set; }
             public GlobalCacheManagerWithRaft GlobalInstance { get; set; }
-            private Nito.AsyncEx.AsyncLock Mutex { get; } = new();
+            public Nito.AsyncEx.AsyncLock Mutex { get; } = new();
 
             public long GetActiveTime()
             {

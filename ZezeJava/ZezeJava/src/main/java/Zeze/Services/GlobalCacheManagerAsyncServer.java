@@ -138,12 +138,14 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 
 		Sessions.forEach(session -> {
 			if (now - session.getActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout) {
-				var allReleaseFuture = new CountDownFuture();
-				for (var e : session.Acquired.entrySet()) {
-					// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-					ReleaseAsync(session, e.getKey(), allReleaseFuture.createOne());
+				synchronized (session) {
+					var allReleaseFuture = new CountDownFuture();
+					for (var e : session.Acquired.entrySet()) {
+						// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
+						ReleaseAsync(session, e.getKey(), allReleaseFuture.createOne());
+					}
+					// skip allReleaseFuture result
 				}
-				// skip allReleaseFuture result
 			}
 		});
 	}
