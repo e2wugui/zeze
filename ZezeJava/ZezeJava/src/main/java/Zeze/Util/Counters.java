@@ -46,8 +46,8 @@ public class Counters {
 
 	private final HashMap<String, AtomicLong> reports = new HashMap<>(); // atomic 在这里仅为了能修改，不是为了线程安全。
 
-	static SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 	private synchronized void report() {
+		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 		var c = Calendar.getInstance();
 		var sb = new StringBuilder();
 		sb.append(dateFormat.format(c.getTime())).append(name).append("\n");
