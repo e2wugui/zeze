@@ -326,14 +326,14 @@ namespace Zeze.Arch
                     login.ReliableNotifyIndex += 1; // after set notify.Argument
                     notify.Argument.Notifies.Add(fullEncodedProtocol);
 
-                    await SendInProcedure(new List<LoginKey>{new LoginKey(account, clientId) }, notify.TypeId, new Binary(notify.Encode()));
+                    await SendEmbed(new List<LoginKey>{new LoginKey(account, clientId) }, notify.TypeId, new Binary(notify.Encode()));
                     return Procedure.Success;
                 },
                 "SendReliableNotify." + listenerName
                 ));
         }
 
-        public class RoleOnLink
+        public class LoginOnLink
         {
             public string LinkName { get; set; } = ""; // empty when not online
             public AsyncSocket LinkSocket { get; set; } // null if not online
@@ -374,10 +374,10 @@ namespace Zeze.Arch
             }
         }
 
-        public async Task<ICollection<RoleOnLink>> GroupByLink(ICollection<LoginKey> logins)
+        public async Task<ICollection<LoginOnLink>> GroupByLink(ICollection<LoginKey> logins)
         {
-            var groups = new Dictionary<string, RoleOnLink>();
-            var groupNotOnline = new RoleOnLink(); // LinkName is Empty And Socket is null.
+            var groups = new Dictionary<string, LoginOnLink>();
+            var groupNotOnline = new LoginOnLink(); // LinkName is Empty And Socket is null.
             groups.Add(groupNotOnline.LinkName, groupNotOnline);
 
             foreach (var alogin in logins)
@@ -407,7 +407,7 @@ namespace Zeze.Arch
                 // 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
                 if (false == groups.TryGetValue(login.LinkName, out var group))
                 {
-                    group = new RoleOnLink()
+                    group = new LoginOnLink()
                     {
                         LinkName = login.LinkName,
                         LinkSocket = connector.Socket,
@@ -421,8 +421,7 @@ namespace Zeze.Arch
             return groups.Values;
         }
 
-        private async Task SendInProcedure(
-            ICollection<LoginKey> logins, long typeId, Binary fullEncodedProtocol)
+        public async Task SendEmbed(ICollection<LoginKey> logins, long typeId, Binary fullEncodedProtocol)
         {
             var groups = await GroupByLink(logins);
             Transaction.Transaction.Current.RunWhileCommit(() =>
@@ -441,23 +440,23 @@ namespace Zeze.Arch
             });
         }
 
-        private void Send(string account, string clientId, long typeId, Binary fullEncodedProtocol)
+        public void Send(string account, string clientId, long typeId, Binary fullEncodedProtocol)
         {
             var login = new LoginKey(account, clientId);
             ProviderApp.Zeze.TaskOneByOneByKey.Execute(login,
                 ProviderApp.Zeze.NewProcedure(async () =>
                 {
-                    await SendInProcedure(new List<LoginKey> { login }, typeId, fullEncodedProtocol);
+                    await SendEmbed(new List<LoginKey> { login }, typeId, fullEncodedProtocol);
                     return Procedure.Success;
                 }, "Onlines.Send"));
         }
 
-        private void Send(ICollection<LoginKey> logins, long typeId, Binary fullEncodedProtocol)
+        public void Send(ICollection<LoginKey> logins, long typeId, Binary fullEncodedProtocol)
         {
             ProviderApp.Zeze.TaskOneByOneByKey.ExecuteCyclicBarrier(logins,
                 ProviderApp.Zeze.NewProcedure(async () =>
                 {
-                    await SendInProcedure(logins, typeId, fullEncodedProtocol);
+                    await SendEmbed(logins, typeId, fullEncodedProtocol);
                     return Procedure.Success;
                 }, "Onlines.Send"));
         }
@@ -492,14 +491,100 @@ namespace Zeze.Arch
             Transaction.Transaction.Current.RunWhileRollback(() => Send(logins, p));
         }
 
+        public async Task<ICollection<LoginOnLink>> GroupAccountsByLink(ICollection<string> accounts)
+        {
+            var groups = new Dictionary<string, LoginOnLink>();
+            var groupNotOnline = new LoginOnLink(); // LinkName is Empty And Socket is null.
+            groups.Add(groupNotOnline.LinkName, groupNotOnline);
+
+            foreach (var account in accounts)
+            {
+                var online = await _tonline.GetAsync(account);
+                if (null == online)
+                {
+                    groupNotOnline.Logins.TryAdd(new LoginKey(account, ""), 0);
+                    continue;
+                }
+                foreach (var e in online.Logins)
+                {
+                    var alogin = new LoginKey(account, e.Key);
+                    if (false == ProviderApp.ProviderService.Links.TryGetValue(e.Value.LinkName, out var connector))
+                    {
+                        groupNotOnline.Logins.TryAdd(alogin, 0);
+                        continue;
+                    }
+
+                    if (false == connector.IsHandshakeDone)
+                    {
+                        groupNotOnline.Logins.TryAdd(alogin, 0);
+                        continue;
+                    }
+                    // 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
+                    if (false == groups.TryGetValue(e.Value.LinkName, out var group))
+                    {
+                        group = new LoginOnLink()
+                        {
+                            LinkName = e.Value.LinkName,
+                            LinkSocket = connector.Socket,
+                            // 上面online存在Login的时，下面version也肯定存在相应的Login。
+                            ServerId = (await _tversion.GetOrAddAsync(alogin.Account)).Logins.GetOrAdd(alogin.ClientId).ServerId,
+                        };
+                        groups.Add(group.LinkName, group);
+                    }
+                    group.Logins.TryAdd(alogin, e.Value.LinkSid);
+                }
+            }
+            return groups.Values;
+        }
+
+        public async Task SendAccountsEmbed(ICollection<string> accounts, long typeId, Binary fullEncodedProtocol, Func<LoginOnLink, bool> sender)
+        {
+            var groups = await GroupAccountsByLink(accounts);
+            Transaction.Transaction.Current.RunWhileCommit(() =>
+            {
+                if (null == sender)
+                {
+                    foreach (var group in groups)
+                    {
+                        if (group.LinkSocket == null)
+                            continue; // skip not online
+
+                        var send = new Send();
+                        send.Argument.ProtocolType = typeId;
+                        send.Argument.ProtocolWholeData = fullEncodedProtocol;
+                        send.Argument.LinkSids.UnionWith(group.Logins.Values);
+                        group.LinkSocket.Send(send);
+                    }
+                }
+                else
+                {
+                    foreach (var group in groups)
+                    {
+                        if (false == sender(group))
+                            break;
+                    }
+                }
+            });
+        }
+
         /// <summary>
         /// 给账号所有的登录终端发送消息。
         /// </summary>
         /// <param name="account"></param>
         /// <param name="p"></param>
-        public void SendAccount(string account, Protocol p)
+        public void SendAccount(string account, Protocol p, Func<LoginOnLink, bool> sender)
         {
+            SendAccount(account, p.TypeId, new Binary(p.Encode()), sender);
+        }
 
+        public void SendAccount(string account, long typeId, Binary fullEncodedProtocol, Func<LoginOnLink, bool> sender)
+        {
+            ProviderApp.Zeze.TaskOneByOneByKey.Execute(account,
+                ProviderApp.Zeze.NewProcedure(async () =>
+                {
+                    await SendAccountsEmbed(new List<string> { account }, typeId, fullEncodedProtocol, sender);
+                    return Procedure.Success;
+                }, "Onlines.Send"));
         }
 
         /// <summary>
@@ -507,28 +592,39 @@ namespace Zeze.Arch
         /// </summary>
         /// <param name="accounts"></param>
         /// <param name="p"></param>
-        public void SendAccounts(ICollection<string> accounts, Protocol p)
-        { 
+        public void SendAccounts(ICollection<string> accounts, Protocol p, Func<LoginOnLink, bool> sender)
+        {
+            SendAccounts(accounts, p.TypeId, new Binary(p.Encode()), sender);
         }
 
-        public void SendAccountWhileCommit(string account, Protocol p)
+        public void SendAccounts(ICollection<string> accounts, long typeId, Binary fullEncodedProtocol, Func<LoginOnLink, bool> sender)
         {
-            Transaction.Transaction.Current.RunWhileCommit(() => SendAccount(account, p));
+            ProviderApp.Zeze.TaskOneByOneByKey.ExecuteCyclicBarrier(accounts,
+                ProviderApp.Zeze.NewProcedure(async () =>
+                {
+                    await SendAccountsEmbed(accounts, typeId, fullEncodedProtocol, sender);
+                    return Procedure.Success;
+                }, "Onlines.Send"));
         }
 
-        public void SendAccountsWhileCommit(ICollection<string> accounts, Protocol p)
+        public void SendAccountWhileCommit(string account, Protocol p, Func<LoginOnLink, bool> sender)
         {
-            Transaction.Transaction.Current.RunWhileCommit(() => SendAccounts(accounts, p));
+            Transaction.Transaction.Current.RunWhileCommit(() => SendAccount(account, p, sender));
         }
 
-        public void SendAccountWhileRollback(string account, Protocol p)
+        public void SendAccountsWhileCommit(ICollection<string> accounts, Protocol p, Func<LoginOnLink, bool> sender)
         {
-            Transaction.Transaction.Current.RunWhileRollback(() => SendAccount(account, p));
+            Transaction.Transaction.Current.RunWhileCommit(() => SendAccounts(accounts, p, sender));
         }
 
-        public void SendAccountsWhileRollback(ICollection<string> accounts, Protocol p)
+        public void SendAccountWhileRollback(string account, Protocol p, Func<LoginOnLink, bool> sender)
         {
-            Transaction.Transaction.Current.RunWhileRollback(() => SendAccounts(accounts, p));
+            Transaction.Transaction.Current.RunWhileRollback(() => SendAccount(account, p, sender));
+        }
+
+        public void SendAccountsWhileRollback(ICollection<string> accounts, Protocol p, Func<LoginOnLink, bool> sender)
+        {
+            Transaction.Transaction.Current.RunWhileRollback(() => SendAccounts(accounts, p, sender));
         }
 
         /// <summary>

@@ -327,7 +327,7 @@ public class Online extends AbstractOnline {
                             login.setReliableNotifyIndex(login.getReliableNotifyIndex() + 1); // after set notify.Argument
                             notify.Argument.getNotifies().add(fullEncodedProtocol);
 
-                            sendInProcedure(List.of(new LoginKey(account, clientId))
+                            sendEmbed(List.of(new LoginKey(account, clientId))
                                     , notify.getTypeId(), new Binary(notify.Encode()));
                             return Procedure.Success;
                         },
@@ -335,9 +335,9 @@ public class Online extends AbstractOnline {
                 ));
     }
 
-    public Collection<RoleOnLink> groupByLink(Collection<LoginKey> logins) throws Throwable {
-        var groups = new HashMap<String, RoleOnLink>();
-        var groupNotOnline = new RoleOnLink(); // LinkName is Empty And Socket is null.
+    public Collection<LoginOnLink> groupByLink(Collection<LoginKey> logins) throws Throwable {
+        var groups = new HashMap<String, LoginOnLink>();
+        var groupNotOnline = new LoginOnLink(); // LinkName is Empty And Socket is null.
         groups.put(groupNotOnline.LinkName, groupNotOnline);
 
         for (var alogin : logins) {
@@ -364,7 +364,7 @@ public class Online extends AbstractOnline {
             // 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
             var group = groups.get(login.getLinkName());
             if (null == group) {
-                group = new RoleOnLink();
+                group = new LoginOnLink();
                 group.LinkName = login.getLinkName();
                 group.LinkSocket = connector.getSocket();
                 // 上面online存在Login的时，下面version也肯定存在相应的Login。
@@ -376,7 +376,7 @@ public class Online extends AbstractOnline {
         return groups.values();
     }
 
-    private void sendInProcedure(Collection<LoginKey> logins, long typeId, Binary fullEncodedProtocol) throws Throwable {
+    private void sendEmbed(Collection<LoginKey> logins, long typeId, Binary fullEncodedProtocol) throws Throwable {
         var groups = groupByLink(logins);
         Transaction.getCurrent().runWhileCommit(() -> {
             for (var group : groups) {
@@ -392,7 +392,7 @@ public class Online extends AbstractOnline {
         });
     }
 
-    public static class RoleOnLink {
+    public static class LoginOnLink {
         public String LinkName = ""; // empty when not online
         public AsyncSocket LinkSocket; // null if not online
         public int ServerId = -1;
@@ -430,21 +430,21 @@ public class Online extends AbstractOnline {
         }
     }
 
-    private void send(String account, String clientId, long typeId, Binary fullEncodedProtocol) {
+    public void send(String account, String clientId, long typeId, Binary fullEncodedProtocol) {
         var login = new LoginKey(account, clientId);
         ProviderApp.Zeze.getTaskOneByOneByKey().Execute(login,
                 ProviderApp.Zeze.NewProcedure(() -> {
-                    sendInProcedure(List.of(login), typeId, fullEncodedProtocol);
+                    sendEmbed(List.of(login), typeId, fullEncodedProtocol);
                     return Procedure.Success;
-                }, "Onlines.Send"));
+                }, "Online.send"));
     }
 
-    private void send(Collection<LoginKey> logins, long typeId, Binary fullEncodedProtocol) {
+    public void send(Collection<LoginKey> logins, long typeId, Binary fullEncodedProtocol) {
         ProviderApp.Zeze.getTaskOneByOneByKey().ExecuteCyclicBarrier(logins,
                 ProviderApp.Zeze.NewProcedure(() -> {
-                    sendInProcedure(logins, typeId, fullEncodedProtocol);
+                    sendEmbed(logins, typeId, fullEncodedProtocol);
                     return Procedure.Success;
-                }, "Onlines.Send"), null);
+                }, "Online.send"), null);
     }
 
     public void send(String account, String clientId, Protocol<?> p) {
@@ -471,13 +471,89 @@ public class Online extends AbstractOnline {
         Transaction.getCurrent().runWhileRollback(() -> send(logins, p));
     }
 
+    public Collection<LoginOnLink> groupAccountsByLink(Collection<String> accounts) throws Throwable {
+        var groups = new HashMap<String, LoginOnLink>();
+        var groupNotOnline = new LoginOnLink(); // LinkName is Empty And Socket is null.
+        groups.put(groupNotOnline.LinkName, groupNotOnline);
+
+        for (var account : accounts) {
+            var online = _tonline.get(account);
+            if (null == online) {
+                groupNotOnline.Logins.putIfAbsent(new LoginKey(account, ""), 0L);
+                continue;
+            }
+            for (var e : online.getLogins().entrySet()) {
+                var login = new LoginKey(account, e.getKey());
+                var connector = ProviderApp.ProviderService.getLinks().get(e.getValue().getLinkName());
+                if (null == connector) {
+                    groupNotOnline.Logins.putIfAbsent(login, 0L);
+                    continue;
+                }
+                if (!connector.isHandshakeDone()) {
+                    groupNotOnline.Logins.putIfAbsent(login, 0L);
+                    continue;
+                }
+                // 后面保存connector.Socket并使用，如果之后连接被关闭，以后发送协议失败。
+                var group = groups.get(e.getValue().getLinkName());
+                if (null == group) {
+                    group = new LoginOnLink();
+                    group.LinkName = e.getValue().getLinkName();
+                    group.LinkSocket = connector.getSocket();
+                    // 上面online存在Login的时，下面version也肯定存在相应的Login。
+                    group.ServerId = (_tversion.getOrAdd(account)).getLogins().getOrAdd(e.getKey()).getServerId();
+                    groups.putIfAbsent(group.LinkName, group);
+                }
+                group.Logins.putIfAbsent(login, e.getValue().getLinkSid());
+            }
+        }
+        return groups.values();
+    }
+
+    public void sendAccountsEmbed(Collection<String> accounts, long typeId, Binary fullEncodedProtocol, OnlineSend sender) throws Throwable {
+        var groups = groupAccountsByLink(accounts);
+        Transaction.getCurrent().runWhileCommit(() -> {
+            if (sender == null) {
+                for (var group : groups) {
+                    if (group.LinkSocket == null)
+                        continue; // skip not online
+                    var send = new Send();
+                    send.Argument.setProtocolType(typeId);
+                    send.Argument.setProtocolWholeData(fullEncodedProtocol);
+                    send.Argument.getLinkSids().addAll(group.Logins.values());
+                    group.LinkSocket.Send(send);
+                }
+            } else {
+                for (var group : groups) {
+                    if (!sender.send(group))
+                        break;
+                }
+            }
+        });
+    }
+
+    public void sendAccount(String account, long typeId, Binary fullEncodedProtocol, OnlineSend sender) {
+        ProviderApp.Zeze.getTaskOneByOneByKey().Execute(account,
+                ProviderApp.Zeze.NewProcedure(() -> {
+                    sendAccountsEmbed(List.of(account), typeId, fullEncodedProtocol, sender);
+                    return Procedure.Success;
+                }, "Online.sendAccount"));
+    }
+
+    public void sendAccounts(Collection<String> accounts, long typeId, Binary fullEncodedProtocol, OnlineSend sender) {
+        ProviderApp.Zeze.getTaskOneByOneByKey().ExecuteCyclicBarrier(accounts,
+                ProviderApp.Zeze.NewProcedure(() -> {
+                    sendAccountsEmbed(accounts, typeId, fullEncodedProtocol, sender);
+                    return Procedure.Success;
+                }, "Online.sendAccounts"), null);
+    }
+
     /**
      * 给账号所有的登录终端发送消息。
      * @param account
      * @param p
      */
-    public void sendAccount(String account, Protocol<?> p) {
-
+    public void sendAccount(String account, Protocol<?> p, OnlineSend sender) {
+        sendAccount(account, p.getTypeId(), new Binary(p.Encode()), sender);
     }
 
     /**
@@ -485,24 +561,24 @@ public class Online extends AbstractOnline {
      * @param accounts
      * @param p
      */
-    public void sendAccounts(Collection<String> accounts, Protocol<?> p) {
-
+    public void sendAccounts(Collection<String> accounts, Protocol<?> p, OnlineSend sender) {
+        sendAccounts(accounts, p.getTypeId(), new Binary(p.Encode()), sender);
     }
 
-    public void sendAccountWhileCommit(String account, Protocol<?> p) {
-        Transaction.getCurrent().runWhileCommit(() -> sendAccount(account, p));
+    public void sendAccountWhileCommit(String account, Protocol<?> p, OnlineSend sender) {
+        Transaction.getCurrent().runWhileCommit(() -> sendAccount(account, p, sender));
     }
 
-    public void sendAccountsWhileCommit(Collection<String> accounts, Protocol<?> p) {
-        Transaction.getCurrent().runWhileCommit(() -> sendAccounts(accounts, p));
+    public void sendAccountsWhileCommit(Collection<String> accounts, Protocol<?> p, OnlineSend sender) {
+        Transaction.getCurrent().runWhileCommit(() -> sendAccounts(accounts, p, sender));
     }
 
-    public void sendAccountWhileRollback(String account, Protocol<?> p) {
-        Transaction.getCurrent().runWhileRollback(() -> sendAccount(account, p));
+    public void sendAccountWhileRollback(String account, Protocol<?> p, OnlineSend sender) {
+        Transaction.getCurrent().runWhileRollback(() -> sendAccount(account, p, sender));
     }
 
-    public void sendAccountsWhileRollback(Collection<String> accounts, Protocol<?> p) {
-        Transaction.getCurrent().runWhileRollback(() -> sendAccounts(accounts, p));
+    public void sendAccountsWhileRollback(Collection<String> accounts, Protocol<?> p, OnlineSend sender) {
+        Transaction.getCurrent().runWhileRollback(() -> sendAccounts(accounts, p, sender));
     }
 
     /// <summary>

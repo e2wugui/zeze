@@ -327,7 +327,7 @@ namespace Zeze.Game
                     version.ReliableNotifyIndex += 1; // after set notify.Argument
                     notify.Argument.Notifies.Add(fullEncodedProtocol);
 
-                    await SendInProcedure(new List<long> { roleId }, notify.TypeId, new Binary(notify.Encode()));
+                    await SendEmbed(new List<long> { roleId }, notify.TypeId, new Binary(notify.Encode()));
                     return Procedure.Success;
                 },
                 "SendReliableNotify." + listenerName
@@ -385,7 +385,7 @@ namespace Zeze.Game
             return groups.Values;
         }
 
-        private async Task SendInProcedure(ICollection<long> roles, long typeId, Binary fullEncodedProtocol)
+        public async Task SendEmbed(ICollection<long> roles, long typeId, Binary fullEncodedProtocol)
         {
             // 发送消息为了用上TaskOneByOne，只能一个一个发送，为了少改代码，先使用旧的GroupByLink接口。
             var groups = await GroupByLink(roles);
@@ -405,18 +405,18 @@ namespace Zeze.Game
             });
         }
 
-        private void Send(long roleId, long typeId, Binary fullEncodedProtocol)
+        public void Send(long roleId, long typeId, Binary fullEncodedProtocol)
         {
             // 发送协议请求在另外的事务中执行。
             ProviderApp.Zeze.TaskOneByOneByKey.Execute(roleId, () =>
                 ProviderApp.Zeze.NewProcedure(async () =>
                 {
-                    await SendInProcedure(new List<long> { roleId }, typeId, fullEncodedProtocol);
+                    await SendEmbed(new List<long> { roleId }, typeId, fullEncodedProtocol);
                     return Procedure.Success;
                 }, "Onlines.Send"));
         }
 
-        private void Send(ICollection<long> roles, long typeId, Binary fullEncodedProtocol)
+        public void Send(ICollection<long> roles, long typeId, Binary fullEncodedProtocol)
         {
 
             // 发送协议请求在另外的事务中执行。
@@ -425,7 +425,7 @@ namespace Zeze.Game
                 ProviderApp.Zeze.TaskOneByOneByKey.ExecuteCyclicBarrier(roles,
                     ProviderApp.Zeze.NewProcedure(async () =>
                     {
-                        await SendInProcedure(roles, typeId, fullEncodedProtocol);
+                        await SendEmbed(roles, typeId, fullEncodedProtocol);
                         return Procedure.Success;
                     }, "Onlines.Send"));
             }

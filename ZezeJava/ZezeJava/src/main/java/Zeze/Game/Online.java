@@ -310,34 +310,34 @@ public class Online extends AbstractOnline {
 		Transaction.getCurrent().runWhileRollback(() -> send(roleIds, p));
 	}
 
-	private void send(long roleId, long typeId, Binary fullEncodedProtocol) {
+	public void send(long roleId, long typeId, Binary fullEncodedProtocol) {
 		// 发送协议请求在另外的事务中执行。
 		ProviderApp.Zeze.getTaskOneByOneByKey().Execute(roleId, () -> Task.Call(ProviderApp.Zeze.NewProcedure(() -> {
-			sendInProcedure(List.of(roleId), typeId, fullEncodedProtocol);
+			sendEmbed(List.of(roleId), typeId, fullEncodedProtocol);
 			return Procedure.Success;
 		}, "Game.Online.send"), null, null));
 	}
 
 	@SuppressWarnings("unused")
-	private void send(Collection<Long> roles, long typeId, Binary fullEncodedProtocol) {
+	public void send(Collection<Long> roles, long typeId, Binary fullEncodedProtocol) {
 		if (roles.size() > 0) {
 			ProviderApp.Zeze.getTaskOneByOneByKey().ExecuteCyclicBarrier(roles,
 					ProviderApp.Zeze.NewProcedure(() -> {
-						sendInProcedure(roles, typeId, fullEncodedProtocol);
+						sendEmbed(roles, typeId, fullEncodedProtocol);
 						return Procedure.Success;
 			}, "Game.Online.send"), null);
 		}
 	}
 
-	private void send(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
+	public void send(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
 		// 发送协议请求在另外的事务中执行。
 		Task.run(ProviderApp.Zeze.NewProcedure(() -> {
-			sendInProcedure(roleIds, typeId, fullEncodedProtocol);
+			sendEmbed(roleIds, typeId, fullEncodedProtocol);
 			return Procedure.Success;
 		}, "Game.Online.send"));
 	}
 
-	private void sendInProcedure(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
+	public void sendEmbed(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
 		// 发送消息为了用上TaskOneByOne，只能一个一个发送，为了少改代码，先使用旧的GroupByLink接口。
 		var groups = groupByLink(roleIds);
 		//noinspection ConstantConditions
@@ -471,7 +471,7 @@ public class Online extends AbstractOnline {
 					version.setReliableNotifyIndex(version.getReliableNotifyIndex() + 1); // after set notify.Argument
 					notify.Argument.getNotifies().add(fullEncodedProtocol);
 
-					sendInProcedure(List.of(roleId), notify.getTypeId(), new Binary(notify.Encode()));
+					sendEmbed(List.of(roleId), notify.getTypeId(), new Binary(notify.Encode()));
 					return Procedure.Success;
 				}, "Game.Online.sendReliableNotify." + listenerName), null);
 	}
