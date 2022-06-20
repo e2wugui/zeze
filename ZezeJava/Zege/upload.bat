@@ -12,3 +12,4 @@ pscp linkd.xml lichenghua@10.12.7.140:/export/home/lichenghua/zege/
 pscp linkd1.xml lichenghua@10.12.7.140:/export/home/lichenghua/zege/
 pscp server0.xml lichenghua@10.12.7.140:/export/home/lichenghua/zege/
 pscp server1.xml lichenghua@10.12.7.140:/export/home/lichenghua/zege/
+pscp log4j2.xml lichenghua@10.12.7.140:/export/home/lichenghua/zege/

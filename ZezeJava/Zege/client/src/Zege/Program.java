@@ -29,7 +29,6 @@ public class Program {
 			switch (args[i]) {
 			case "-perf":
 				counters.Enable = true;
-				counters.start();
 				break;
 			}
 		}
@@ -65,6 +64,8 @@ public class Program {
 			var address = links.get(Zeze.Util.Random.getInstance().nextInt(links.size()));
 			app.Start(address[0], Integer.parseInt(address[1]));
 		}
+		if (counters.Enable)
+			counters.start();
 		try {
 			app.Connector.WaitReady();
 			var account = getComputerName().toLowerCase(Locale.ROOT);
@@ -137,13 +138,13 @@ public class Program {
 					benchmark = new Benchmark();
 					benchmark.start();
 				}
-				break;
+				return true;
 			case "benchmarkstop":
 				if (null != benchmark) {
 					benchmark.stopAndJoin();
 					benchmark = null;
 				}
-				break;
+				return true;
 			case "af":
 				App.Instance.Zege_Friend.addFriend(cmd[1]).await();
 				Program.this.refresh();

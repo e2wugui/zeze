@@ -12,7 +12,6 @@ public class Program {
 			switch (args[i]) {
 			case "-perf":
 				counters.Enable = true;
-				counters.start();
 				break;
 			case "-zezeconf":
 				conf = args[++i];
@@ -21,6 +20,8 @@ public class Program {
 		}
 
 		Zege.App.Instance.Start(conf);
+		if (counters.Enable)
+			counters.start();
 		try {
 			Program.class.wait();
 		} finally {
