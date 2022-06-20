@@ -50,7 +50,7 @@ public class Counters {
 	private synchronized void report() {
 		var c = Calendar.getInstance();
 		var sb = new StringBuilder();
-		sb.append(dateFormat.format(c.getTime())).append("counters: ").append(name).append("\n");
+		sb.append(dateFormat.format(c.getTime())).append(name).append("\n");
 		var changed = false;
 		for (var e : counters.entrySet()) {
 			var prev = reports.computeIfAbsent(e.getKey(), key -> new AtomicLong());
