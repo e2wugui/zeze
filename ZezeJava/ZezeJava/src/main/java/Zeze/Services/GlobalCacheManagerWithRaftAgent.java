@@ -140,10 +140,11 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	public IGlobalAgent.AcquireResult Acquire(Binary gkey, int state, boolean fresh) {
 		if (Agents != null) {
 			var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
-
+			agent.verifyFastFail();
 			try {
 				agent.WaitLoginSuccess();
 			} catch (Throwable e) {
+				agent.setFastFail();
 				Transaction trans = Transaction.getCurrent();
 				if (trans == null)
 					throw new RuntimeException(e);
@@ -160,6 +161,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			try {
 				agent.RaftClient.SendForWait(rpc).await();
 			} catch (Throwable e) {
+				agent.setFastFail();
 				Transaction trans = Transaction.getCurrent();
 				if (trans == null)
 					throw new RuntimeException("Acquire Timeout");
@@ -201,6 +203,30 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		private final AtomicLong LoginTimes = new AtomicLong();
 		private volatile TaskCompletionSource<Boolean> LoginFuture = new TaskCompletionSource<>();
 		private boolean ActiveClose;
+		private volatile long LastErrorTime;
+
+		void verifyFastFail() {
+			synchronized (this) {
+				if (System.currentTimeMillis() - LastErrorTime < getConfig().ServerFastErrorPeriod)
+					ThrowException("GlobalAgent In FastErrorPeriod", null); // abort
+				// else continue
+			}
+		}
+
+		void setFastFail() {
+			var now = System.currentTimeMillis();
+			synchronized (this) {
+				if (now - LastErrorTime > getConfig().ServerFastErrorPeriod)
+					LastErrorTime = now;
+			}
+		}
+
+		private void ThrowException(String msg, Throwable cause) {
+			var txn = Transaction.getCurrent();
+			if (txn != null)
+				txn.ThrowAbort(msg, cause);
+			throw new RuntimeException(msg, cause);
+		}
 
 		public RaftAgent(GlobalCacheManagerWithRaftAgent global, Zeze.Application zeze,
 						 int _GlobalCacheManagerHashIndex) throws Throwable {

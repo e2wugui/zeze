@@ -63,25 +63,31 @@ public final class GlobalAgent implements IGlobalAgent {
 			throw new RuntimeException(msg, cause);
 		}
 
+		void verifyFastFail() {
+			synchronized (this) {
+				if (System.currentTimeMillis() - LastErrorTime < getConfig().ServerFastErrorPeriod)
+					ThrowException("GlobalAgent In FastErrorPeriod", null); // abort
+				// else continue
+			}
+		}
+
+		void setFastFail() {
+			var now = System.currentTimeMillis();
+			synchronized (this) {
+				if (now - LastErrorTime > getConfig().ServerFastErrorPeriod)
+					LastErrorTime = now;
+			}
+		}
+
 		public AsyncSocket Connect() {
 			try {
 				var so = connector.TryGetReadySocket();
 				if (so != null)
 					return so;
 
-				synchronized (this) {
-					if (System.currentTimeMillis() - LastErrorTime < getConfig().ServerFastErrorPeriod)
-						ThrowException("GlobalAgent In FastErrorPeriod", null); // abort
-					// else continue
-				}
-
 				return connector.WaitReady();
 			} catch (Throwable abort) {
-				var now = System.currentTimeMillis();
-				synchronized (this) {
-					if (now - LastErrorTime > getConfig().ServerFastErrorPeriod)
-						LastErrorTime = now;
-				}
+				setFastFail();
 				ThrowException("GlobalAgent Login Failed", abort);
 			}
 			return null; // never got here.
@@ -138,8 +144,8 @@ public final class GlobalAgent implements IGlobalAgent {
 	public AcquireResult Acquire(Binary gkey, int state, boolean fresh) {
 		if (Client != null) {
 			var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
+			agent.verifyFastFail();
 			var socket = agent.Connect();
-
 			// 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了），打断外面的事务。
 			// 一个请求异常不关闭连接，尝试继续工作。
 			var rpc = new Acquire(gkey, state);
@@ -148,6 +154,7 @@ public final class GlobalAgent implements IGlobalAgent {
 			try {
 				rpc.SendForWait(socket, agent.getConfig().AcquireTimeout).get();
 			} catch (Throwable e) {
+				agent.setFastFail(); // 一般是超时失败，此时必须进入快速失败模式。
 				var trans = Transaction.getCurrent();
 				if (trans == null)
 					throw new GoBackZeze("Acquire", e);

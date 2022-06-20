@@ -138,8 +138,16 @@ namespace Zeze.Services
             if (null != Agents)
             {
                 var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
-
-                await agent.WaitLoginSuccess();
+                agent.VerifyFastFail();
+                try
+                {
+                    await agent.WaitLoginSuccess();
+                }
+                catch (Exception )
+                {
+                    agent.SetFastFail();
+                    throw;
+                }
 
                 var rpc = new Acquire();
                 if (fresh)
@@ -153,6 +161,7 @@ namespace Zeze.Services
                 }
                 catch (Exception e)
                 {
+                    agent.SetFastFail();
                     if (null == Transaction.Transaction.Current)
                         throw new Exception("GlobalAgent.Acquire Exception", e);
                     Transaction.Transaction.Current.ThrowAbort("GlobalAgent.Acquire Exception", e);
@@ -189,6 +198,36 @@ namespace Zeze.Services
             public Zeze.Raft.Agent RaftClient { get; }
             public Util.AtomicLong LoginTimes { get; } = new Util.AtomicLong();
             public int GlobalCacheManagerHashIndex { get; }
+            private long LastErrorTime;
+
+            public void SetFastFail()
+            {
+                // 并发的等待，简单用个规则：在间隔期内不再设置。
+                long now = global::Zeze.Util.Time.NowUnixMillis;
+                lock (this)
+                {
+                    if (now - LastErrorTime > Config.ServerFastErrorPeriod)
+                        LastErrorTime = now;
+                }
+            }
+
+            public void VerifyFastFail()
+            {
+                long now = global::Zeze.Util.Time.NowUnixMillis;
+                lock (this)
+                {
+                    if (now - LastErrorTime < Config.ServerFastErrorPeriod)
+                        ThrowException("GlobalAgent.FastFail");
+                }
+            }
+
+            private static void ThrowException(string msg, Exception cause = null)
+            {
+                var txn = Transaction.Transaction.Current;
+                if (txn != null)
+                    txn.ThrowAbort(msg, cause);
+                throw new Exception(msg, cause);
+            }
 
             public RaftAgent(GlobalCacheManagerWithRaftAgent global,
                 Application zeze, int _GlobalCacheManagerHashIndex,

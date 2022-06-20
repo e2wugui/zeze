@@ -34,7 +34,7 @@ namespace Zeze.Transaction
             public Zeze.Util.AtomicLong LoginTimes { get; } = new();
             public int GlobalCacheManagerHashIndex { get; }
 
-            private readonly Zeze.Util.AtomicLong LastErrorTime = new();
+            private long LastErrorTime;
             public const long FastErrorPeriod = 2 * 1000;
 
             public Agent(GlobalClient client, string host, int port, int globalCacheManagerHashIndex)
@@ -67,14 +67,32 @@ namespace Zeze.Transaction
                 throw new Exception(msg, cause);
             }
 
+            public void SetFastFail()
+            {
+                // 并发的等待，简单用个规则：在间隔期内不再设置。
+                long now = global::Zeze.Util.Time.NowUnixMillis;
+                lock (this)
+                {
+                    if (now - LastErrorTime > Config.ServerFastErrorPeriod)
+                        LastErrorTime = now;
+                }
+            }
+
+            public void VerifyFastFail()
+            {
+                long now = global::Zeze.Util.Time.NowUnixMillis;
+                lock (this)
+                {
+                    if (now - LastErrorTime < Config.ServerFastErrorPeriod)
+                        ThrowException("GlobalAgent.FastFail");
+                }
+            }
+
             public async Task<AsyncSocket> ConnectAsync()
             {
                 var so = Connector.TryGetReadySocket();
                 if (null != so)
                     return so;
-
-                if (global::Zeze.Util.Time.NowUnixMillis - LastErrorTime.Get() < Config.ServerFastErrorPeriod)
-                    ThrowException("GlobalAgent.Connect: In Forbid Login Period");
 
                 try
                 {
@@ -82,13 +100,7 @@ namespace Zeze.Transaction
                 }
                 catch (Exception e)
                 {
-                    // 并发的等待，简单用个规则：在间隔期内不再设置。
-                    long now = global::Zeze.Util.Time.NowUnixMillis;
-                    lock (this)
-                    {
-                        if (now - LastErrorTime.Get() > Config.ServerFastErrorPeriod)
-                            LastErrorTime.GetAndSet(now);
-                    }
+                    SetFastFail();
                     ThrowException("GlobalAgent.Connect: Login Timeout", e);
                 }
                 return null; // never got here
@@ -158,6 +170,7 @@ namespace Zeze.Transaction
             if (null != Client)
             {
                 var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
+                agent.VerifyFastFail();
                 var socket = await agent.ConnectAsync();
 
                 // 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了），打断外面的事务。
@@ -171,6 +184,7 @@ namespace Zeze.Transaction
                 }
                 catch (Exception e)
                 {
+                    agent.SetFastFail(); // 一般是超时失败，此时必须进入快速失败模式。
                     if (null == Transaction.Current)
                         throw new Exception("GlobalAgent.Acquire Exception", e);
                     Transaction.Current.ThrowAbort("GlobalAgent.Acquire Exception", e);
