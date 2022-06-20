@@ -760,7 +760,7 @@ public class GlobalCacheManagerWithRaft
 		final int ServerId;
 		private long SessionId;
 		private int GlobalCacheManagerHashIndex;
-		private volatile long ActiveTime;
+		private volatile long ActiveTime = System.currentTimeMillis();
 		private volatile long LastErrorTime;
 
 		// not under lock

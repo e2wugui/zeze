@@ -884,7 +884,7 @@ namespace Zeze.Services
         public sealed class CacheHolder
         {
             private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-            private long ActiveTime;
+            private long ActiveTime = Time.NowUnixMillis;
             private bool Logined = false;
 
             public long SessionId { get; private set; }

@@ -759,7 +759,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		final ConcurrentHashMap<Binary, Integer> Acquired = new ConcurrentHashMap<>();
 		long SessionId;
 		int GlobalCacheManagerHashIndex;
-		private volatile long ActiveTime;
+		private volatile long ActiveTime = System.currentTimeMillis();;
 		private volatile long LastErrorTime;
 		private boolean Logined = false;
 

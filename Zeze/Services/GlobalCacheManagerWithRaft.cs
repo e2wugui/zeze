@@ -767,7 +767,7 @@ namespace Zeze.Services
 
         public sealed class CacheHolder
         {
-            private long ActiveTime;
+            private long ActiveTime = Time.NowUnixMillis;
             public long SessionId { get; private set; }
             public int GlobalCacheManagerHashIndex { get; private set; }
             public int ServerId { get; internal set; }
