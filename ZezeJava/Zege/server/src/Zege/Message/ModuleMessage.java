@@ -29,14 +29,14 @@ public class ModuleMessage extends AbstractModule {
             // group root
             group.getGroupMembers().walk((key, member) -> {
                 Program.counters.increment("GroupBroadcastMessage:" + r.Argument.getGroup() + "#" + r.Argument.getDepartmentId());
-                App.Provider.Online.sendWhileCommit(member.getAccount(), "PC", notify);
+                App.Provider.Online.sendAccountWhileCommit(member.getAccount(), notify, null);
                 return true;
             });
         } else {
             // department
             group.getDepartmentMembers(r.Argument.getDepartmentId()).walk((key, member) -> {
                 Program.counters.increment("GroupBroadcastMessage:" + r.Argument.getGroup() + "#" + r.Argument.getDepartmentId());
-                App.Provider.Online.sendWhileCommit(member.getAccount(), "PC", notify);
+                App.Provider.Online.sendAccountWhileCommit(member.getAccount(), notify, null);
                 return true;
             });
         }
@@ -57,7 +57,7 @@ public class ModuleMessage extends AbstractModule {
         r.Argument.getMessage().setFrom(session.getAccount());
         var notify = new NotifyMessage();
         notify.Argument = r.Argument.getMessage();
-        App.Provider.Online.sendWhileCommit(r.Argument.getFriend(), "PC", notify);
+        App.Provider.Online.sendAccountWhileCommit(r.Argument.getFriend(), notify, null);
 
         session.sendResponseWhileCommit(r);
         Program.counters.increment("FriendMessage");

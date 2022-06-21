@@ -45,6 +45,7 @@ public class Program {
 		var linkIp = "127.0.0.1";
 		var linkPort = 5100;
 		var links = new ArrayList<String[]>();
+		var clientId = "PC";
 		for (int i = 0; i < args.length; ++i) {
 			switch (args[i]) {
 			case "-ip":
@@ -52,6 +53,9 @@ public class Program {
 				break;
 			case "-port":
 				linkPort = Integer.parseInt(args[++i]);
+				break;
+			case "-app":
+				clientId = args[++i];
 				break;
 			default:
 				links.add(args[i].split(":"));
@@ -70,7 +74,7 @@ public class Program {
 			app.Connector.WaitReady();
 			var account = getComputerName().toLowerCase(Locale.ROOT);
 			app.Zege_Linkd.auth(account).await();
-			app.Zeze_Builtin_Online.login("PC").await();
+			app.Zeze_Builtin_Online.login(clientId).await();
 			Main = new MainWindow();
 			Windows.add(Main);
 			Self = account;
