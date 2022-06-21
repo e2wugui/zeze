@@ -167,12 +167,12 @@ public class ResetDB {
 			if (rmCfh == null)
 				continue;
 
-			RocksIterator iter = db.newIterator(rmCfh, ReadOptions);
-
-			for (iter.seekToFirst(); iter.isValid(); iter.next()) {
-				db.delete(rmCfh, iter.key());
-				logger.debug("table name:{}, iterator:{}:{}",
-					rmTable, BitConverter.toString(iter.key()), BitConverter.toString(iter.value()));
+			try (RocksIterator iter = db.newIterator(rmCfh, ReadOptions)) {
+				for (iter.seekToFirst(); iter.isValid(); iter.next()) {
+					db.delete(rmCfh, iter.key());
+					logger.debug("table name:{}, iterator:{}:{}",
+							rmTable, BitConverter.toString(iter.key()), BitConverter.toString(iter.value()));
+				}
 			}
 			db.dropColumnFamily(rmCfh);
 		}

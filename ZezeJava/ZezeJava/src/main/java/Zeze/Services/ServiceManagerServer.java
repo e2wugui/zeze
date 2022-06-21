@@ -743,8 +743,10 @@ public final class ServiceManagerServer implements Closeable {
 		if (Config.getStartNotifyDelay() > 0)
 			StartNotifyDelayTask = Task.schedule(Config.getStartNotifyDelay(), this::StartNotifyAll);
 
-		var options = new Options().setCreateIfMissing(true);
-
+		var options = new Options()
+				.setCreateIfMissing(true)
+				.setDbWriteBufferSize(64 << 20)
+				.setKeepLogFileNum(5);
 		AutoKeysDb = RocksDB.open(options, Paths.get(Config.getDbHome(), "autokeys").toString());
 		WriteOptions = new WriteOptions().setSync(true);
 

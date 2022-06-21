@@ -48,7 +48,10 @@ public class Test {
 
 	private void LogDump(String db) throws IOException, RocksDBException {
 		RocksDB.loadLibrary();
-		var options = new Options().setCreateIfMissing(true);
+		var options = new Options()
+				.setCreateIfMissing(true)
+				.setDbWriteBufferSize(64 << 20)
+				.setKeepLogFileNum(5);
 		try (var r1 = RocksDB.open(options, Paths.get(db, "logs").toString())) {
 			try (var it1 = r1.newIterator()) {
 				it1.seekToFirst();

@@ -293,8 +293,9 @@ public class LogSequence {
 						Files.createDirectories(Paths.get(dir));
 					} catch (FileAlreadyExistsException ignored) {
 					}
-					Db = Zeze.Raft.LogSequence.OpenDb(new Options().setCreateIfMissing(true),
-							Paths.get(dir, getDbName()).toString());
+					Db = Zeze.Raft.LogSequence.OpenDb(new Options().setCreateIfMissing(true)
+									.setDbWriteBufferSize(64 << 20).setKeepLogFileNum(5),
+									Paths.get(dir, getDbName()).toString());
 				}
 				return getDb();
 			}
@@ -379,7 +380,10 @@ public class LogSequence {
 
 	public LogSequence(Raft raft) throws RocksDBException {
 		Raft = raft;
-		var options = new Options().setCreateIfMissing(true);
+		var options = new Options()
+				.setCreateIfMissing(true)
+				.setDbWriteBufferSize(64 << 20)
+				.setKeepLogFileNum(5);
 
 		Rafts = OpenDb(options, Paths.get(Raft.getRaftConfig().getDbHome(), "rafts").toString());
 		{
@@ -822,8 +826,10 @@ public class LogSequence {
 				CancelPendingAppendLogFutures();
 				var logsDir = Paths.get(Raft.getRaftConfig().getDbHome(), "logs").toString();
 				deleteDirectory(new File(logsDir));
-				var options = new Options().setCreateIfMissing(true);
-
+				var options = new Options()
+						.setCreateIfMissing(true)
+						.setDbWriteBufferSize(64 << 20)
+						.setKeepLogFileNum(5);
 				Logs = OpenDb(options, logsDir);
 				var lastIncludedLog = RaftLog.Decode(r.Argument.getLastIncludedLog(),
 						Raft.getStateMachine()::LogFactory);
