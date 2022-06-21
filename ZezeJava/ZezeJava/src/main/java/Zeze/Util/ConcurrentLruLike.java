@@ -12,7 +12,8 @@ import org.apache.logging.log4j.Logger;
 
 public class ConcurrentLruLike<K, V> {
 	private static final Logger logger = LogManager.getLogger(ConcurrentLruLike.class);
-	private static final int MAX_NODE_COUNT = 8640;
+	private static final int MAX_NODE_COUNT = 8640; // 最大的LRU节点数量,超过时会触发shrink
+	private static final int SHRINK_NODE_COUNT = 8000; // shrink的目标节点数量
 
 	static final class LruItem<K, V> {
 		private static final VarHandle LRU_NODE_HANDLE;
@@ -134,7 +135,7 @@ public class ConcurrentLruLike<K, V> {
 				newLruHot();
 		});
 		// 下面这个任务的执行时间可能很长，不直接使用带period的schedule的定时任务，每次执行完重新调度。
-		Task.schedule(CleanPeriod, this::CleanNow);
+		Task.schedule(CleanPeriod, CleanPeriod, this::CleanNow);
 	}
 
 	public long WalkKey(TableWalkKey<K> callback) {
@@ -209,14 +210,13 @@ public class ConcurrentLruLike<K, V> {
 	}
 
 	private void TryPollLruQueue() {
-		var cap = LruQueue.size() - MAX_NODE_COUNT;
-		if (cap <= 0)
+		if (LruQueue.size() <= MAX_NODE_COUNT)
 			return;
 
 		var timeBegin = System.nanoTime();
 		int recordCount = 0, nodeCount = 0;
-		var polls = new ArrayList<ConcurrentHashMap<K, LruItem<K, V>>>(cap);
-		while (LruQueue.size() > MAX_NODE_COUNT) {
+		var polls = new ArrayList<ConcurrentHashMap<K, LruItem<K, V>>>(LruQueue.size() - SHRINK_NODE_COUNT);
+		while (LruQueue.size() > SHRINK_NODE_COUNT) {
 			// 大概，删除超过一天的节点。
 			var node = LruQueue.poll();
 			if (null == node)
@@ -227,8 +227,7 @@ public class ConcurrentLruLike<K, V> {
 
 		// 把被删除掉的node里面的记录迁移到当前最老(head)的node里面。
 		var head = LruQueue.peek();
-		if (null == head)
-			throw new RuntimeException("Impossible!");
+		assert head != null;
 		for (var poll : polls) {
 			for (var e : poll.entrySet()) {
 				// concurrent see adjustLru
@@ -244,51 +243,47 @@ public class ConcurrentLruLike<K, V> {
 	}
 
 	private void CleanNow() {
-		try {
-			int capacity = Capacity;
-			if (capacity > 0) {
-				var timeBegin = System.nanoTime();
-				int recordCount = 0, nodeCount = 0;
-				while (DataMap.size() > capacity) { // 超出容量，循环尝试
-					var node = LruQueue.peek();
-					if (node == LruHot || node == null) // 热点不回收
-						break;
+		int capacity = Capacity;
+		if (capacity > 0) {
+			var timeBegin = System.nanoTime();
+			int recordCount = 0, nodeCount = 0;
+			while (DataMap.size() > capacity) { // 超出容量，循环尝试
+				var node = LruQueue.peek();
+				if (node == LruHot || node == null) // 热点不回收
+					break;
 
-					var tryRemoveCallback = TryRemoveCallback;
-					if (tryRemoveCallback != null) {
-						for (var e : node.entrySet()) {
-							if (!tryRemoveCallback.test(e.getKey(), e.getValue().Value)
-									&& !ContinueWhenTryRemoveCallbackFail)
-								break;
-							recordCount++;
-						}
-					} else {
-						recordCount += node.size();
-						for (var k : node.keySet())
-							remove(k);
+				var tryRemoveCallback = TryRemoveCallback;
+				if (tryRemoveCallback != null) {
+					for (var e : node.entrySet()) {
+						if (!tryRemoveCallback.test(e.getKey(), e.getValue().Value)
+								&& !ContinueWhenTryRemoveCallbackFail)
+							break;
+						recordCount++;
 					}
-
-					if (node.isEmpty()) {
-						LruQueue.poll();
-						nodeCount++;
-					} else {
-						logger.warn("remain record when clean oldest lruNode.");
-						try {
-							//noinspection BusyWait
-							Thread.sleep(CleanPeriodWhenExceedCapacity);
-						} catch (InterruptedException e) {
-							logger.error("CleanNow Interrupted", e);
-						}
-					}
+				} else {
+					recordCount += node.size();
+					for (var k : node.keySet())
+						remove(k);
 				}
-				if (recordCount > 0 || nodeCount > 0) {
-					logger.info("{}: cleaned {} records, {} nodes, {} ms, result: {}/{}", name, recordCount, nodeCount,
-							(System.nanoTime() - timeBegin) / 1_000_000, DataMap.size(), capacity);
+
+				if (node.isEmpty()) {
+					LruQueue.poll();
+					nodeCount++;
+				} else {
+					logger.warn("remain record when clean oldest lruNode.");
+					try {
+						//noinspection BusyWait
+						Thread.sleep(CleanPeriodWhenExceedCapacity);
+					} catch (InterruptedException e) {
+						logger.error("CleanNow Interrupted", e);
+					}
 				}
 			}
-			TryPollLruQueue();
-		} finally {
-			Task.schedule(CleanPeriod, this::CleanNow);
+			if (recordCount > 0 || nodeCount > 0) {
+				logger.info("{}: cleaned {} records, {} nodes, {} ms, result: {}/{}", name, recordCount, nodeCount,
+						(System.nanoTime() - timeBegin) / 1_000_000, DataMap.size(), capacity);
+			}
 		}
+		TryPollLruQueue();
 	}
 }

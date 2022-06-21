@@ -235,7 +235,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 		K key = DecodeKey(bbKey);
 
-		//logger.Debug("Reduce NewState={0}", rpc.Argument.State);
+//		if (Name.equals("demo_Module1_tflush")) {
+//			logger.info("{}: Reduce NewState={} K={}", getZeze().getConfig().getServerId(), rpc.Argument.State, key);
+//		}
 
 		TableKey tkey = new TableKey(getId(), key);
 		Record1<K, V> r;
@@ -298,6 +300,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			}
 		}
 		finally {
+//			if (Name.equals("demo_Module1_tflush")) {
+//				logger.info("{}: Reduce Result={} {} K={}",
+//						getZeze().getConfig().getServerId(), rpc.getResultCode(), rpc.Result.State, key);
+//			}
 			lockey.ExitWriteLock();
 		}
 		return 0;

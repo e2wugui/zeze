@@ -43,15 +43,19 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 
 	@Override
 	public IGlobalAgent.AcquireResult Acquire(int state, boolean fresh) {
-		if (null == getTTable().TStorage) {
+		if (null == TTable.TStorage) {
 			// 不支持内存表cache同步。
 			return new IGlobalAgent.AcquireResult(0, state);
 		}
 
-		var gkey = getTTable().EncodeGlobalKey(getKey());
+		var gkey = TTable.EncodeGlobalKey(getKey());
 		logger.debug("Acquire NewState={} {}", state, this);
+//		if (TTable.getName().equals("demo_Module1_tflush")) {
+//			logger.info("{}: Acquire NewState={} {}{}",
+//					TTable.getZeze().getConfig().getServerId(), state, this, fresh ? " fresh" : "");
+//		}
 
-		var stat = TableStatistics.getInstance().GetOrAdd(getTTable().getId());
+		var stat = TableStatistics.getInstance().GetOrAdd(TTable.getId());
 		switch (state) {
 			case GlobalCacheManagerServer.StateInvalid:
 				stat.getGlobalAcquireInvalid().incrementAndGet();
@@ -66,7 +70,13 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 				break;
 		}
 
-		return getTTable().getZeze().getGlobalAgent().Acquire(gkey, state, fresh);
+		return TTable.getZeze().getGlobalAgent().Acquire(gkey, state, fresh);
+//		var r = TTable.getZeze().getGlobalAgent().Acquire(gkey, state, fresh);
+//		if (TTable.getName().equals("demo_Module1_tflush")) {
+//			logger.info("{}: Acquire Result={} {} {}",
+//					TTable.getZeze().getConfig().getServerId(), r.ResultCode, r.ResultState, this);
+//		}
+//		return r;
 	}
 
 	private long SavedTimestampForCheckpointPeriod;
