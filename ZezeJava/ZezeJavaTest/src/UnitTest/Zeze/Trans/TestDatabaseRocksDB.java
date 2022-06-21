@@ -14,7 +14,7 @@ import java.net.UnknownHostException;
 
 public class TestDatabaseRocksDB extends TestCase {
 
-	public final void test1() throws UnknownHostException {
+	public final void test1() throws Exception {
 		var hostName = InetAddress.getLocalHost().getHostName();
 		if (hostName.equals("DESKTOP-48A4UQ1")) // 这台电脑CPU不支持这个测试会触发rocksdbjni使用的BMI2指令集中的BZHI指令
 			return;
@@ -23,37 +23,39 @@ public class TestDatabaseRocksDB extends TestCase {
 		try {
 			Database.Table table = db.OpenTable("test_1");
 			{
-				var trans = db.BeginTransaction();
-				{
-					ByteBuffer key = ByteBuffer.Allocate();
-					key.WriteInt(1);
-					table.Remove(trans, key);
+				try (var trans = db.BeginTransaction()) {
+					{
+						ByteBuffer key = ByteBuffer.Allocate();
+						key.WriteInt(1);
+						table.Remove(trans, key);
+					}
+					{
+						ByteBuffer key = ByteBuffer.Allocate();
+						key.WriteInt(2);
+						table.Remove(trans, key);
+					}
+					trans.Commit();
 				}
-				{
-					ByteBuffer key = ByteBuffer.Allocate();
-					key.WriteInt(2);
-					table.Remove(trans, key);
-				}
-				trans.Commit();
 			}
 			Assert.assertEquals(0, table.Walk(this::PrintRecord));
 			{
-				var trans = db.BeginTransaction();
-				{
-					ByteBuffer key = ByteBuffer.Allocate();
-					key.WriteInt(1);
-					ByteBuffer value = ByteBuffer.Allocate();
-					value.WriteInt(1);
-					table.Replace(trans, key, value);
+				try (var trans = db.BeginTransaction()) {
+					{
+						ByteBuffer key = ByteBuffer.Allocate();
+						key.WriteInt(1);
+						ByteBuffer value = ByteBuffer.Allocate();
+						value.WriteInt(1);
+						table.Replace(trans, key, value);
+					}
+					{
+						ByteBuffer key = ByteBuffer.Allocate();
+						key.WriteInt(2);
+						ByteBuffer value = ByteBuffer.Allocate();
+						value.WriteInt(2);
+						table.Replace(trans, key, value);
+					}
+					trans.Commit();
 				}
-				{
-					ByteBuffer key = ByteBuffer.Allocate();
-					key.WriteInt(2);
-					ByteBuffer value = ByteBuffer.Allocate();
-					value.WriteInt(2);
-					table.Replace(trans, key, value);
-				}
-				trans.Commit();
 			}
 			{
 				ByteBuffer key = ByteBuffer.Allocate();

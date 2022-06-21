@@ -134,6 +134,7 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public void close() {
+			batch.close();
 		}
 	}
 

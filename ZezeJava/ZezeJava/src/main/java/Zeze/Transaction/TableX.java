@@ -26,22 +26,18 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	void RocksCachePut(K key, V value) {
-		var t = getZeze().getLocalRocksCacheDb().BeginTransaction();
-		LocalRocksCacheTable.Replace(t, EncodeKey(key), EncodeValue(value));
-		t.Commit();
-		try {
-			t.close();
+		try (var t = getZeze().getLocalRocksCacheDb().BeginTransaction()) {
+			LocalRocksCacheTable.Replace(t, EncodeKey(key), EncodeValue(value));
+			t.Commit();
 		} catch (Exception e) {
 			logger.error("", e);
 		}
 	}
 
 	void RocksCacheRemove(K key) {
-		var t = getZeze().getLocalRocksCacheDb().BeginTransaction();
-		LocalRocksCacheTable.Remove(t, EncodeKey(key));
-		t.Commit();
-		try {
-			t.close();
+		try (var t = getZeze().getLocalRocksCacheDb().BeginTransaction()) {
+			LocalRocksCacheTable.Remove(t, EncodeKey(key));
+			t.Commit();
 		} catch (Exception e) {
 			logger.error("", e);
 		}

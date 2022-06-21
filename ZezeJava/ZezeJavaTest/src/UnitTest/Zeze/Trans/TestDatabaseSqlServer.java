@@ -11,7 +11,7 @@ import org.junit.Assert;
 
 public class TestDatabaseSqlServer extends TestCase {
 
-	public final void test1() {
+	public final void test1() throws Exception {
 		System.out.println(System.getProperties().get("user.home"));
 		System.err.println("sqlserver jdbc 不能连接 vs 自带的 LocalDB(不用配置的）。所以这个测试先不管了。");
 		if (!TestDatabaseMySql.checkDriverClassExist("com.microsoft.sqlserver.jdbc.SQLServerDriver"))
@@ -27,37 +27,39 @@ public class TestDatabaseSqlServer extends TestCase {
 		DatabaseSqlServer sqlserver = new DatabaseSqlServer(databaseConf);
 		Database.Table table = sqlserver.OpenTable("test1");
 		{
-			var trans = sqlserver.BeginTransaction();
-			{
-				ByteBuffer key = ByteBuffer.Allocate();
-				key.WriteInt(1);
-				table.Remove(trans, key);
+			try (var trans = sqlserver.BeginTransaction()) {
+				{
+					ByteBuffer key = ByteBuffer.Allocate();
+					key.WriteInt(1);
+					table.Remove(trans, key);
+				}
+				{
+					ByteBuffer key = ByteBuffer.Allocate();
+					key.WriteInt(2);
+					table.Remove(trans, key);
+				}
+				trans.Commit();
 			}
-			{
-				ByteBuffer key = ByteBuffer.Allocate();
-				key.WriteInt(2);
-				table.Remove(trans, key);
-			}
-			trans.Commit();
 		}
 		Assert.assertEquals(0, table.Walk(this::PrintRecord));
 		{
-			var trans = sqlserver.BeginTransaction();
-			{
-				ByteBuffer key = ByteBuffer.Allocate();
-				key.WriteInt(1);
-				ByteBuffer value = ByteBuffer.Allocate();
-				value.WriteInt(1);
-				table.Replace(trans, key, value);
+			try (var trans = sqlserver.BeginTransaction()) {
+				{
+					ByteBuffer key = ByteBuffer.Allocate();
+					key.WriteInt(1);
+					ByteBuffer value = ByteBuffer.Allocate();
+					value.WriteInt(1);
+					table.Replace(trans, key, value);
+				}
+				{
+					ByteBuffer key = ByteBuffer.Allocate();
+					key.WriteInt(2);
+					ByteBuffer value = ByteBuffer.Allocate();
+					value.WriteInt(2);
+					table.Replace(trans, key, value);
+				}
+				trans.Commit();
 			}
-			{
-				ByteBuffer key = ByteBuffer.Allocate();
-				key.WriteInt(2);
-				ByteBuffer value = ByteBuffer.Allocate();
-				value.WriteInt(2);
-				table.Replace(trans, key, value);
-			}
-			trans.Commit();
 		}
 		{
 			ByteBuffer key = ByteBuffer.Allocate();
