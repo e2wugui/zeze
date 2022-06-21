@@ -815,7 +815,7 @@ public final class ByteBuffer {
 
 	@Override
 	public String toString() {
-		return BitConverter.toString(Bytes, ReadIndex, Size());
+		return BitConverter.toStringWithLimit(Bytes, ReadIndex, Size(), 16);
 	}
 
 	@Override

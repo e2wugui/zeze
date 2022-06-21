@@ -131,7 +131,10 @@ public class ResetDB {
 
 		final ColumnFamilyOptions CfOptions = new ColumnFamilyOptions();
 		final ReadOptions ReadOptions = new ReadOptions();
-		final DBOptions dbOptions = new DBOptions().setCreateIfMissing(true);
+		final DBOptions dbOptions = new DBOptions()
+				.setCreateIfMissing(true)
+				.setDbWriteBufferSize(64 << 20)
+				.setKeepLogFileNum(5);
 		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
 		// 用于存放key对应的表操作使用的类
 		ConcurrentHashMap<String, ColumnFamilyHandle> cfhMap = new ConcurrentHashMap<>();

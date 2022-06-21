@@ -107,6 +107,6 @@ public final class Binary implements Comparable<Binary> {
 
 	@Override
 	public String toString() {
-		return BitConverter.toString(_Bytes, Offset, Count);
+		return BitConverter.toStringWithLimit(_Bytes, Offset, Count, 16);
 	}
 }

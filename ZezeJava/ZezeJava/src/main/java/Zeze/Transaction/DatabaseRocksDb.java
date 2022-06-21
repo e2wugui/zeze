@@ -56,8 +56,10 @@ public class DatabaseRocksDb extends Database {
 	public DatabaseRocksDb(Config.DatabaseConf conf) {
 		super(conf);
 		logger.info("new: {}", conf.getDatabaseUrl());
-		var dbOptions = new DBOptions();
-		dbOptions.setCreateIfMissing(true);
+		var dbOptions = new DBOptions()
+				.setCreateIfMissing(true)
+				.setDbWriteBufferSize(64 << 20) // 总的写缓存大小(字节),对所有columns的总限制
+				.setKeepLogFileNum(5); // 保留"LOG.old.*"文件的数量
 		var dbHome = conf.getDatabaseUrl().isEmpty() ? "db" : conf.getDatabaseUrl();
 		try {
 			var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();

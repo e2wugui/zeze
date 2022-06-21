@@ -78,7 +78,10 @@ public final class Rocks extends StateMachine implements Closeable {
 	private final IntHashMap<Long> LastUpdated = new IntHashMap<>();
 	private final ConcurrentHashMap<String, ColumnFamilyHandle> Columns = new ConcurrentHashMap<>();
 	private final Options options = new Options();
-	private final DBOptions dbOptions = new DBOptions().setCreateIfMissing(true);
+	private final DBOptions dbOptions = new DBOptions()
+			.setCreateIfMissing(true)
+			.setDbWriteBufferSize(64 << 20)
+			.setKeepLogFileNum(5);
 	private final ColumnFamilyOptions cfOptions = new ColumnFamilyOptions();
 	private final WriteOptions writeOptions;
 	private final RocksMode rocksMode;

@@ -36,8 +36,10 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 		if (null != Db)
 			return;
 
-		DBOptions dbOptions = new DBOptions();
-		dbOptions.setCreateIfMissing(true);
+		var dbOptions = new DBOptions()
+				.setCreateIfMissing(true)
+				.setDbWriteBufferSize(64 << 20)
+				.setKeepLogFileNum(5);
 		var dbHome = super.getName();
 		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
 		org.rocksdb.Options options = new Options();
