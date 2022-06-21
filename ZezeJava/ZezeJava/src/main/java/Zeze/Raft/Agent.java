@@ -34,6 +34,7 @@ public final class Agent {
 	private final LongConcurrentHashMap<RaftRpc<?, ?>> Pending = new LongConcurrentHashMap<>();
 	private long Term;
 	public boolean DispatchProtocolToInternalThreadPool;
+	private int PendingLimit = 5000; // -1 no limit
 
 	// 加急请求ReSend时优先发送，多个请求不保证顺序。这个应该仅用于Login之类的特殊协议，一般来说只有一个。
 	private final LongConcurrentHashMap<RaftRpc<?, ?>> UrgentPending = new LongConcurrentHashMap<>();
@@ -41,6 +42,14 @@ public final class Agent {
 
 	public RaftConfig getRaftConfig() {
 		return RaftConfig;
+	}
+
+	public int getPendingLimit() {
+		return PendingLimit;
+	}
+
+	public void setPendingLimit(int value) {
+		PendingLimit = value;
 	}
 
 	public NetClient getClient() {
@@ -80,6 +89,8 @@ public final class Agent {
 																	boolean urgent) {
 		if (handle == null)
 			throw new NullPointerException();
+		if (PendingLimit > 0 && Pending.size() > PendingLimit) // UrgentPending不限制。
+			throw new RuntimeException("too many pending");
 
 		// 由于interface不能把setter弄成保护的，实际上外面可以修改。
 		// 简单检查一下吧。
@@ -165,6 +176,8 @@ public final class Agent {
 
 	public <TArgument extends Bean, TResult extends Bean> TaskCompletionSource<RaftRpc<TArgument, TResult>> SendForWait(
 			RaftRpc<TArgument, TResult> rpc, boolean urgent) {
+		if (PendingLimit > 0 && Pending.size() > PendingLimit) // UrgentPending不限制。
+			throw new RuntimeException("too many pending");
 		// 由于interface不能把setter弄成保护的，实际上外面可以修改。
 		// 简单检查一下吧。
 		if (rpc.getUnique().getRequestId() != 0)
@@ -322,8 +335,10 @@ public final class Agent {
 			if (immediately || now - rpc.getSendTime() > timeout) {
 				logger.debug("ReSendU {}/{} {}", UrgentPending.size(), leaderSocket, rpc);
 				rpc.setSendTime(now);
-				if (!rpc.Send(leaderSocket))
+				if (!rpc.Send(leaderSocket)) {
 					logger.info("SendRequest failed {}", rpc);
+					break;
+				}
 			}
 		}
 		for (var rpc : Pending) {
@@ -339,8 +354,10 @@ public final class Agent {
 			if (immediately || now - rpc.getSendTime() > timeout) {
 				logger.debug("ReSend {}/{} {}", Pending.size(), leaderSocket, rpc);
 				rpc.setSendTime(now);
-				if (!rpc.Send(leaderSocket))
+				if (!rpc.Send(leaderSocket)) {
 					logger.info("SendRequest failed {}", rpc);
+					break;
+				}
 			}
 		}
 		if (removed != null) {

@@ -435,6 +435,7 @@ namespace Zeze.Raft
         private readonly ConcurrentDictionary<long, Protocol> UrgentPending = new();
 
         public Action<Agent> OnSetLeader { get; set; }
+        public int PendingLimit { get; set; } = 5000; // -1 no limit
 
         /// <summary>
         /// 发送Rpc请求。
@@ -452,6 +453,8 @@ namespace Zeze.Raft
         {
             if (null == handle)
                 throw new ArgumentException("null == handle");
+            if (PendingLimit > 0 && Pending.Count > PendingLimit) // UrgentPending不限制。
+                throw new Exception("too many pending");
 
             // 由于interface不能把setter弄成保护的，实际上外面可以修改。
             // 简单检查一下吧。
@@ -561,6 +564,9 @@ namespace Zeze.Raft
             // 简单检查一下吧。
             if (rpc.Unique.RequestId != 0)
                 throw new Exception("RaftRpc.UniqueRequestId != 0. Need A Fresh RaftRpc");
+
+            if (PendingLimit > 0 && Pending.Count > PendingLimit) // UrgentPending不限制。
+                throw new Exception("too many pending");
 
             rpc.Unique.RequestId = UniqueRequestIdGenerator.Next();
             rpc.Unique.ClientId = UniqueRequestIdGenerator.Name;
@@ -744,7 +750,10 @@ namespace Zeze.Raft
 
                     iraft.SendTime = now;
                     if (false == rpc.Send(leaderSocket))
+                    {
                         logger.Info("SendRequest failed {0}", rpc);
+                        break;
+                    }
                 }
             }
 
@@ -763,7 +772,10 @@ namespace Zeze.Raft
 
                     iraft.SendTime = now;
                     if (false == rpc.Send(leaderSocket))
+                    {
                         logger.Info("SendRequest failed {0}", rpc);
+                        break;
+                    }
                 }
             }
 
