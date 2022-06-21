@@ -125,6 +125,7 @@ public class GlobalCacheManagerWithRaft
 		if (Rocks.getRaft().isLeader()) {
 			Sessions.forEach(session -> {
 				if (now - session.getActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout) {
+					logger.info("AchillesHeelDaemon.Release begin {}", session);
 					synchronized (session) {
 						session.kick();
 						var Acquired = ServerAcquiredTemplate.OpenTable(session.ServerId);
@@ -132,13 +133,15 @@ public class GlobalCacheManagerWithRaft
 							Acquired.WalkKey(key -> {
 								// 在循环中删除。这样虽然效率低些，但是能处理更多情况。
 								if (Rocks.getRaft().isLeader()) {
+									logger.info("AchillesHeelDaemon.Release table={} key={} session={}",
+											Acquired.getName(), key, session);
 									Release(session, key);
 									return true;
 								}
 								return false;
 							});
 						} catch (Throwable e) {
-							logger.error("AchillesHeelDaemon.Release", e);
+							logger.error("AchillesHeelDaemon.Release " + session + " exception", e);
 						}
 					}
 				}
@@ -158,20 +161,22 @@ public class GlobalCacheManagerWithRaft
 
 	@Override
 	protected long ProcessAcquireRequest(Acquire rpc) throws Throwable {
+		var sender = (CacheHolder)rpc.getSender().getUserState();
+		if (sender != null)
+			sender.setActiveTime(System.currentTimeMillis());
+
 		if (ENABLE_PERF)
 			perf.onAcquireBegin(rpc, rpc.Argument.getState());
 		rpc.Result.setGlobalKey(rpc.Argument.getGlobalKey());
 		rpc.Result.setState(rpc.Argument.getState()); // default success
 
 		long result;
-		if (rpc.getSender().getUserState() == null) {
+		if (sender == null) {
 			rpc.Result.setState(StateInvalid);
 			// 没有登录重做。登录是Agent自动流程的一部分，应该稍后重试。
 			rpc.SendResultCode(Zeze.Transaction.Procedure.RaftRetry);
 			result = 0;
 		} else {
-			var sender = (CacheHolder)rpc.getSender().getUserState();
-			sender.setActiveTime(System.currentTimeMillis());
 			var proc = new Procedure(Rocks, () -> {
 				switch (rpc.Argument.getState()) {
 				case StateInvalid: // release
@@ -743,7 +748,7 @@ public class GlobalCacheManagerWithRaft
 
 	@Override
 	protected long ProcessKeepAliveRequest(KeepAlive rpc) {
-		var sender = (CacheHolder)rpc.getUserState();
+		var sender = (CacheHolder)rpc.getSender().getUserState();
 		if (null == sender) {
 			rpc.SendResultCode(AcquireNotLogin);
 			return 0;

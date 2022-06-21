@@ -168,8 +168,9 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 				}
 			}
 		}
-		logger.info("{}: shrank {} nodes, moved {} records, {} ms, result: {}/{}", Table.getName(),
-				nodeCount, recordCount, (System.nanoTime() - timeBegin) / 1_000_000, LruQueue.size(), MAX_NODE_COUNT);
+		logger.info("({}){}: shrank {} nodes, moved {} records, {} ms, result: {}/{}",
+				Table.getZeze().getConfig().getServerId(), Table.getName(), nodeCount, recordCount,
+				(System.nanoTime() - timeBegin) / 1_000_000, LruQueue.size(), MAX_NODE_COUNT);
 	}
 
 	private void CleanNow() {
@@ -208,9 +209,9 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 					}
 				}
 				if (recordCount > 0 || nodeCount > 0) {
-					logger.info("{}: cleaned {} records, {} nodes, {} ms, result: {}/{}", Table.getName(),
-							recordCount, nodeCount, (System.nanoTime() - timeBegin) / 1_000_000,
-							DataMap.size(), capacity);
+					logger.info("({}){}: cleaned {} records, {} nodes, {} ms, result: {}/{}",
+							Table.getZeze().getConfig().getServerId(), Table.getName(), recordCount, nodeCount,
+							(System.nanoTime() - timeBegin) / 1_000_000, DataMap.size(), capacity);
 				}
 			}
 			TryPollLruQueue();
@@ -267,20 +268,20 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		// （修改为true的时也在记录锁（lockey）下）。
 		// 这里只是读取，就不加锁了。
 
-		if (p.getValue().getDirty()) {
-			return false;
-		}
-
-		if (p.getValue().isFreshAcquire())
+		var record = p.getValue();
+		if (record.getDirty())
 			return false;
 
-		if (p.getValue().getState() != GlobalCacheManagerServer.StateInvalid) {
+		if (record.isFreshAcquire())
+			return false;
+
+		if (record.getState() != GlobalCacheManagerServer.StateInvalid) {
 			try {
-				var r = p.getValue().Acquire(GlobalCacheManagerServer.StateInvalid, false);
+				var r = record.Acquire(GlobalCacheManagerServer.StateInvalid, false);
 				if (r.ResultCode != 0 || r.ResultState != GlobalCacheManagerServer.StateInvalid)
 					return false;
 			} catch (Throwable e) {
-				logger.error("Acquire exception:", e);
+				logger.error("Acquire(" + record.getTable().getName() + ':' + record.getKey() + ") exception:", e);
 				// 此时GlobalServer可能已经改成StateInvalid了, 无论如何还是当成已经Invalid保证安全
 			}
 		}

@@ -58,31 +58,21 @@ public class ProviderDistribute {
 		return ConsistentHashes.get(name);
 	}
 
-	private int calc_hash(int src) {
-		return ByteBuffer.calc_hashnr(src);
-	}
-
 	// ChoiceDataIndex 用于RedirectAll或者那些已知数据分块索引的地方。
 	public ServiceInfo ChoiceDataIndex(ConsistentHash<ServiceInfo> consistentHash, int dataIndex, int dataConcurrentLevel) {
 		if (consistentHash == null)
 			return null;
 		if (consistentHash.getNodes().size() > dataConcurrentLevel)
 			throw new IllegalStateException("too many server: " + consistentHash.getNodes().size() + " > " + dataConcurrentLevel);
-		return consistentHash.get(calc_hash(dataIndex));
+		return consistentHash.get(ByteBuffer.calc_hashnr(dataIndex));
 	}
 
 	public ServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash, int dataConcurrentLevel) {
 		var consistentHash = ConsistentHashes.get(providers.getServiceName());
-		if (null == consistentHash)
-			return null;
 		if (dataConcurrentLevel <= 1)
-			return consistentHash.get(hash);
+			return consistentHash != null ? consistentHash.get(hash) : null;
 
-		if (consistentHash.getNodes().size() > dataConcurrentLevel)
-			throw new IllegalStateException("too many server: " + consistentHash.getNodes().size() + " > " + dataConcurrentLevel);
-
-		var dataIndex = (int)((hash & 0xffff_ffffL) % dataConcurrentLevel);
-		return consistentHash.get(calc_hash(dataIndex));
+		return ChoiceDataIndex(consistentHash, (int)((hash & 0xffff_ffffL) % dataConcurrentLevel), dataConcurrentLevel);
 	}
 
 	public ServiceInfo ChoiceHash(Agent.SubscribeState providers, int hash) {

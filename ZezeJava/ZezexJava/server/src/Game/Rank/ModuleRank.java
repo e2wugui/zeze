@@ -452,7 +452,7 @@ public class ModuleRank extends AbstractModule {
 		public int serverId;
 	}
 
-	@RedirectToServer // 单发给某个serverId执行,可以是本服. 返回类型可以是void或RedirectFuture<自定义结果类型或Long(resultCode)>
+	@RedirectToServer // 单发给某个serverId执行(找不到或没连接会抛异常),可以是本服. 返回类型可以是void或RedirectFuture<自定义结果类型或Long(resultCode)>
 	public RedirectFuture<TestToServerResult> TestToServer(int serverId, int in) { // 首个参数serverId是固定必要的特殊参数,后面是自定义输入参数
 		TestToServerResult result = new TestToServerResult();
 		result.out = in;
@@ -480,7 +480,7 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	// 第一个参数hash是固定的特殊参数
-	@RedirectHash // 单发给某个hash值指定的server执行,可以是本服. 返回类型同ToServer
+	@RedirectHash // 单发给某个hash值指定的server执行,可能是本服,找不到hash节点也会在本服执行. 返回类型同ToServer
 	public RedirectFuture<TestHashResult> TestHash(int hash, int in) { // 首个参数hash是固定必要的特殊参数,后面是自定义输入参数
 		var f = new RedirectFuture<TestHashResult>();
 		Task.run(App.Zeze.NewProcedure(() -> {

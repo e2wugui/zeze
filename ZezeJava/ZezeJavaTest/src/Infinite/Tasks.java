@@ -325,10 +325,10 @@ public final class Tasks {
 							var valueBytes = e.getValue();
 							if (valueBytes != null) {
 								valueBytes.ReadIndex = 0;
+								e.getKey().ReadIndex = 0;
 								var k = table1.DecodeKey(e.getKey());
 								var v = table1.DecodeValue(valueBytes).getInt1();
-								e.getKey().ReadIndex = 0;
-								Simulate.logger.info("=== {}:{}", k, v);
+								// Simulate.logger.info("=== {}:{}", k, v);
 							}
 						}
 					}

@@ -197,7 +197,7 @@ public final class ByteBuffer {
 
 	private void EnsureRead(int size) {
 		if (ReadIndex + size > WriteIndex) {
-			throw new IllegalStateException("EnsureRead " + size);
+			throw new IllegalStateException("EnsureRead " + ReadIndex + '+' + size + " > " + WriteIndex);
 		}
 	}
 

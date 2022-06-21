@@ -16,7 +16,7 @@ public final class Redirect_Zeze_Arch_Online extends Zeze.Arch.Online {
         _a_.setModuleId(11100);
         _a_.setRedirectType(Zeze.Builtin.ProviderDirect.ModuleRedirect.RedirectTypeToServer);
         _a_.setHashCode(arg0);
-        _a_.setMethodFullName("Zeze.Arch.Online:RedirectNotify");
+        _a_.setMethodFullName("Zeze.Arch.Online:redirectNotify");
         _a_.setServiceNamePrefix(_redirect_.ProviderApp.ServerServiceNamePrefix);
         var _b_ = Zeze.Serialize.ByteBuffer.Allocate();
         _b_.WriteString(arg1);
@@ -29,7 +29,7 @@ public final class Redirect_Zeze_Arch_Online extends Zeze.Arch.Online {
         super(_app_);
         _redirect_ = _app_.getZeze().Redirect;
 
-        _app_.getZeze().Redirect.Handles.put("Zeze.Arch.Online:RedirectNotify", new Zeze.Arch.RedirectHandle(
+        _app_.getZeze().Redirect.Handles.put("Zeze.Arch.Online:redirectNotify", new Zeze.Arch.RedirectHandle(
             Zeze.Transaction.TransactionLevel.Serializable, (_hash_, _params_) -> {
                 String arg1;
                 var _b_ = _params_.Wrap();
