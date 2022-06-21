@@ -68,6 +68,10 @@ namespace Zeze.Services
             {
                 if (false == lockey.TryEnter())
                     return false;
+                // 这里不需要设置成StateRemoved。
+                // StateRemoved状态表示记录被删除了，而不是被从Cache中清除。
+                // AcquireStatePending是瞬时数据（不会被持久化）。
+                // 记录从Cache中清除后，可以再次从RocksDb中装载。
                 var cs = (CacheState)r.Value;
                 if (cs == null || cs.AcquireStatePending == GlobalCacheManagerServer.StateInvalid)
                     return GlobalStates.LruCache.TryRemove(key, out _);

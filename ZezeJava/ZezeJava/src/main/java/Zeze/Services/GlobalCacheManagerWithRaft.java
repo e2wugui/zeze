@@ -201,6 +201,10 @@ public class GlobalCacheManagerWithRaft
 		if (!lockey.tryLock())
 			return false;
 		try {
+			// 这里不需要设置成StateRemoved。
+			// StateRemoved状态表示记录被删除了，而不是被从Cache中清除。
+			// AcquireStatePending是瞬时数据（不会被持久化）。
+			// 记录从Cache中清除后，可以再次从RocksDb中装载。
 			var cs = (CacheState)r.getValue(); // null when record removed
 			if (cs == null || cs.getAcquireStatePending() == StateInvalid) {
 				GlobalStates.getLruCache().remove(key);
