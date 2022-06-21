@@ -759,6 +759,7 @@ namespace Zeze.Services
                                 }
                                 return false;
                             });
+                            session.SetActiveTime(Util.Time.NowUnixMillis);
                             // skip allReleaseFuture result
                         }
                     }

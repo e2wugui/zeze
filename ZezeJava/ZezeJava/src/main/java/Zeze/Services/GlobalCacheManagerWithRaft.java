@@ -142,6 +142,11 @@ public class GlobalCacheManagerWithRaft
 							});
 						} catch (Throwable e) {
 							logger.error("AchillesHeelDaemon.Release " + session + " exception", e);
+						} finally {
+							// server一直没有恢复，这个减少一点Release。
+							// 完善的做法是session已经全部release以后，删除掉。
+							// 但是删除session并发上复杂点。先这样了。
+							session.setActiveTime(System.currentTimeMillis());
 						}
 					}
 				}
