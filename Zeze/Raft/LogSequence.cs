@@ -380,7 +380,6 @@ namespace Zeze.Raft
             // must after set Raft.IsShutdown = false;
             CancelPendingAppendLogFutures();
 
-            SnapshotTimer?.Cancel();
             Logs?.RocksDb.Dispose();
             Logs = null;
             Rafts?.RocksDb.Dispose();
@@ -747,6 +746,7 @@ namespace Zeze.Raft
                 {
                     logger.Warn("What Happened! index={0} lastApplyable={1} LastApplied={2}",
                         index, lastApplyableLog.Index, LastApplied);
+                    // trySnapshot(); // 错误的时候不做这个尝试了。
                     return; // end?
                 }
 
@@ -761,6 +761,21 @@ namespace Zeze.Raft
                 // */
                 raftLog.LeaderFuture?.TrySetResult(0);
             }
+            trySnapshot();
+        }
+
+        private void trySnapshot()
+        {
+            var snapshotLogCount = Raft.RaftConfig.SnapshotLogCount;
+            if (snapshotLogCount > 0)
+            {
+                if (LastApplied - PrevSnapshotIndex > snapshotLogCount)
+                {
+                    PrevSnapshotIndex = LastApplied;
+                    _ = Util.Mission.CallAsync(Snapshot, "Snapshot");
+                }
+            }
+            // else disable
         }
 
         internal long? GetTestStateMachineCount()
@@ -885,30 +900,7 @@ namespace Zeze.Raft
         public const string SnapshotFileName = "snapshot.dat";
         public string SnapshotFullName => Path.Combine(Raft.RaftConfig.DbHome, SnapshotFileName);
 
-        private Util.SchedulerTask SnapshotTimer;
-
-        internal void StartSnapshotTimer()
-        {
-            SnapshotTimer?.Cancel();
-
-            if (Raft.RaftConfig.SnapshotHourOfDay >= 0 && Raft.RaftConfig.SnapshotHourOfDay < 24)
-            {
-                // 每天定点执行。
-                var now = DateTime.Now;
-                var firstTime = new DateTime(now.Year, now.Month, now.Day,
-                    Raft.RaftConfig.SnapshotHourOfDay, Raft.RaftConfig.SnapshotMinute, 0);
-                if (firstTime.CompareTo(now) < 0)
-                    firstTime = firstTime.AddDays(1);
-                var delay = Util.Time.DateTimeToUnixMillis(firstTime) - Util.Time.DateTimeToUnixMillis(now);
-                SnapshotTimer = Zeze.Util.Scheduler.Schedule(async (ThisTask) => await Snapshot(false), delay);
-            }
-            else
-            {
-                // 此时 SnapshotMinute 表示Period。
-                SnapshotTimer = Zeze.Util.Scheduler.Schedule(
-                    async (ThisTask) => await Snapshot(false), Raft.RaftConfig.SnapshotMinute * 60 * 1000);
-            }
-        }
+        private long PrevSnapshotIndex;
 
         public async Task EndReceiveInstallSnapshot(FileStream s, InstallSnapshot r)
         {
@@ -967,15 +959,11 @@ namespace Zeze.Raft
             }
         }
 
-        public async Task Snapshot(bool NeedNow = false)
+        public async Task Snapshot()
         {
             using (await Raft.Monitor.EnterAsync())
             {
                 if (Snapshotting || !InstallSnapshotting.IsEmpty)
-                {
-                    return;
-                }
-                if (LastApplied - FirstIndex < Raft.RaftConfig.SnapshotMinLogCount && false == NeedNow)
                 {
                     return;
                 }
@@ -995,8 +983,6 @@ namespace Zeze.Raft
                 using (await Raft.Monitor.EnterAsync())
                 {
                     Snapshotting = false;
-                    // restart
-                    StartSnapshotTimer();
                 }
             }
         }
@@ -1060,7 +1046,7 @@ namespace Zeze.Raft
                 // 这情况一般是snapshot文件被删除了。【注意】这种情况也许报错更好？
                 // 内部会判断，不会启动多个snapshot。
                 // 需要在新的线程启动，原因: 1. 此时在Raft锁内，2. Raft锁现在不能重复。
-                _ = Task.Run(async () => await Snapshot(true));
+                _ = Task.Run(async () => await Snapshot());
             }
         }
 

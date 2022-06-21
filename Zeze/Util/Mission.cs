@@ -85,6 +85,11 @@ namespace Zeze.Util
             logger.Log(ll, ex, $"Return={result}{module} {message}");
         }
 
+        public static async Task<long> CallAsync(Func<Task> aa, string actionName)
+        {
+            return await CallAsync(async () => { await aa(); return 0; }, actionName);
+        }
+
         public static async Task<long> CallAsync(Func<Task<long>> aa, string actionName)
         {
             try

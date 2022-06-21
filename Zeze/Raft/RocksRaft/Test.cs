@@ -542,7 +542,7 @@ AllLog=[{3: Putted:{4444:4444} Removed:[3],5: Putted:{4444:Bean1(I=0 L=0 Map1={}
             VerifyData(rocks, table, "Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
 
 			// 再次运行本测试，才会执行到 LoadSnapshot。
-			await rocks.Raft.LogSequence.Snapshot(true);
+			await rocks.Raft.LogSequence.Snapshot();
 		}
 	}
 }

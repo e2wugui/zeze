@@ -246,8 +246,6 @@ public final class Raft {
 		if ((new File(snapshot)).isFile())
 			sm.LoadSnapshot(snapshot);
 
-		_LogSequence.StartSnapshotTimer();
-
 		ArrayList<Raft> exits = processExits.get();
 		if (exits == null) {
 			if (processExits.compareAndSet(null, exits = new ArrayList<>())) {

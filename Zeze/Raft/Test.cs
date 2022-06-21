@@ -329,7 +329,7 @@ namespace Zeze.Raft
             {
                 if (index++ == randindex)
                 {
-                    test.Raft?.LogSequence.Snapshot(false);
+                    test.Raft?.LogSequence.Snapshot();
                     return;
                 }
             }
@@ -866,7 +866,6 @@ namespace Zeze.Raft
                 StateMachine = new TestStateMachine();
 
                 var raftConfig = RaftConfig.Load(RaftConfigFileName);
-                raftConfig.SnapshotMinLogCount = 10;
                 raftConfig.UniqueRequestExpiredDays = 1;
                 raftConfig.DbHome = Path.Combine(".", RaftName.Replace(':', '_'));
                 if (resetLog)

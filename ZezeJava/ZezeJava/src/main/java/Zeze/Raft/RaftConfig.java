@@ -27,16 +27,8 @@ public final class RaftConfig {
 	private int LeaderHeartbeatTimer = DefaultLeaderHeartbeatTimer; // 不精确 Heartbeat Idle 算法
 	private int ElectionRandomMax = 300;
 	private int MaxAppendEntriesCount = 500; // 限制每次复制日志时打包的最大数量
-	private int SnapshotMinLogCount = 10000; // 创建snapshot最小的日志数量。如果少于这个数，不会创建新的snapshot。当然实在需要的时候可以创建。see LogSequence.StartSnapshot
-	/**
-	 * 每天创建 snapshot 的时间，一般负载每天有个低估，
-	 * 在这个时候创建snapshot是比较合适的。
-	 * 如果需要其他定时模式，自己创建定时器，
-	 * 并调用LogSequence.StartSnapshot();
-	 * 同时把 SnapshotHourOfDay 配置成-1，关闭默认的定时器。
-	 */
-	private int SnapshotHourOfDay = 6;
-	private int SnapshotMinute = 0;
+
+	private int SnapshotLogCount = 100_0000; // -1 disable snapshot
 	private int BackgroundApplyCount = 500; // 需要的时间应小于LeaderHeartbeatTimer
 	private int UniqueRequestExpiredDays = 7;
 
@@ -109,28 +101,12 @@ public final class RaftConfig {
 		MaxAppendEntriesCount = value;
 	}
 
-	public int getSnapshotMinLogCount() {
-		return SnapshotMinLogCount;
+	public int getSnapshotLogCount() {
+		return SnapshotLogCount;
 	}
 
-	public void setSnapshotMinLogCount(int value) {
-		SnapshotMinLogCount = value;
-	}
-
-	public int getSnapshotHourOfDay() {
-		return SnapshotHourOfDay;
-	}
-
-	public void setSnapshotHourOfDay(int value) {
-		SnapshotHourOfDay = value;
-	}
-
-	public int getSnapshotMinute() {
-		return SnapshotMinute;
-	}
-
-	public void setSnapshotMinute(int value) {
-		SnapshotMinute = value;
+	public void setSnapshotLogCount(int value) {
+		SnapshotLogCount = value;
 	}
 
 	public int getBackgroundApplyCount() {
@@ -170,15 +146,9 @@ public final class RaftConfig {
 		attr = self.getAttribute("MaxAppendEntriesCount");
 		if (!attr.isEmpty())
 			MaxAppendEntriesCount = Integer.parseInt(attr);
-		attr = self.getAttribute("SnapshotMinLogCount");
+		attr = self.getAttribute("SnapshotLogCount");
 		if (!attr.isEmpty())
-			SnapshotMinLogCount = Integer.parseInt(attr);
-		attr = self.getAttribute("SnapshotHourOfDay");
-		if (!attr.isEmpty())
-			SnapshotHourOfDay = Integer.parseInt(attr);
-		attr = self.getAttribute("SnapshotMinute");
-		if (!attr.isEmpty())
-			SnapshotMinute = Integer.parseInt(attr);
+			SnapshotLogCount = Integer.parseInt(attr);
 		attr = self.getAttribute("ElectionRandomMax");
 		if (!attr.isEmpty())
 			ElectionRandomMax = Integer.parseInt(attr);
@@ -207,10 +177,6 @@ public final class RaftConfig {
 			throw new IllegalStateException("LeaderHeartbeatTimer < AppendEntriesTimeout + 200");
 		if (MaxAppendEntriesCount < 100)
 			MaxAppendEntriesCount = 100;
-		if (SnapshotMinute < 0)
-			SnapshotMinute = 0;
-		else if (SnapshotMinute > 59)
-			SnapshotMinute = 59;
 	}
 
 	public void Save() throws TransformerException {
@@ -223,12 +189,8 @@ public final class RaftConfig {
 			Self.setAttribute("ElectionRandomMax", String.valueOf(ElectionRandomMax));
 		if (MaxAppendEntriesCount != 500)
 			Self.setAttribute("MaxAppendEntriesCount", String.valueOf(MaxAppendEntriesCount));
-		if (SnapshotMinLogCount != 10000)
-			Self.setAttribute("SnapshotMinLogCount", String.valueOf(SnapshotMinLogCount));
-		if (SnapshotHourOfDay != 6)
-			Self.setAttribute("SnapshotHourOfDay", String.valueOf(SnapshotHourOfDay));
-		if (SnapshotMinute != 0)
-			Self.setAttribute("SnapshotMinute", String.valueOf(SnapshotMinute));
+		if (SnapshotLogCount != 100_0000)
+			Self.setAttribute("SnapshotLogCount", String.valueOf(SnapshotLogCount));
 		if (BackgroundApplyCount != 500)
 			Self.setAttribute("BackgroundApplyCount", String.valueOf(BackgroundApplyCount));
 		if (UniqueRequestExpiredDays != 7)

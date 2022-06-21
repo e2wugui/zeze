@@ -291,7 +291,7 @@ public class Test {
 		for (var test : Rafts.values()) {
 			if (index++ == randIndex) {
 				if (test.Raft != null)
-					test.Raft.getLogSequence().Snapshot(false);
+					test.Raft.getLogSequence().Snapshot();
 				return;
 			}
 		}
@@ -817,7 +817,6 @@ public class Test {
 				StateMachine = new TestStateMachine();
 
 				var raftConfig = RaftConfig.Load(RaftConfigFileName);
-				raftConfig.setSnapshotMinLogCount(10);
 				raftConfig.setUniqueRequestExpiredDays(1);
 				raftConfig.setDbHome(Paths.get(RaftName.replace(':', '_')).toString());
 				if (resetLog) {

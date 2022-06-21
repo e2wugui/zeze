@@ -180,8 +180,6 @@ namespace Zeze.Raft
             if (File.Exists(snapshot))
                 await StateMachine.LoadSnapshot(snapshot);
 
-            LogSequence.StartSnapshotTimer();
-
             AppDomain.CurrentDomain.ProcessExit += ProcessExit;
             TimerTask = Scheduler.Schedule(OnTimer, 10);
             return this;

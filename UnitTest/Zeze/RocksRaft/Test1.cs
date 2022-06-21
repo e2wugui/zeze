@@ -332,7 +332,7 @@ AllLog=[{6:OpLogs:[(1,0,2),(2,0,0)],7:OpLogs:[(2,0,)] Changed:{{1:Value=22}:0}}]
             VerifyData(rocks, "Bean1(I=0 L=0 Map1={} Bean2=Bean2(I=0) Map2={})");
 
 			// 再次运行本测试，才会执行到 LoadSnapshot。
-			rocks.Raft.LogSequence.Snapshot(true).Wait();
+			rocks.Raft.LogSequence.Snapshot().Wait();
 		}
 	}
 }

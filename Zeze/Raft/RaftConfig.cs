@@ -49,17 +49,8 @@ namespace Zeze.Raft
         /// 创建snapshot最小的日志数量。如果少于这个数，不会创建新的snapshot。
         /// 当然实在需要的时候可以创建。see LogSequence.StartSnapshot
         /// </summary>
-        public int SnapshotMinLogCount { get; set; } = 10000;
+        public int SnapshotLogCount { get; set; } = 1000000; // -1 disable snapshot
 
-        /// <summary>
-        /// 每天创建 snapshot 的时间，一般负载每天有个低估，
-        /// 在这个时候创建snapshot是比较合适的。
-        /// 如果需要其他定时模式，自己创建定时器，
-        /// 并调用LogSequence.StartSnapshot();
-        /// 同时把 SnapshotHourOfDay 配置成-1，关闭默认的定时器。
-        /// </summary>
-        public int SnapshotHourOfDay { get; set; } = 6;
-        public int SnapshotMinute { get; set; } = 0;
         // 需要的时间应小于LeaderHeartbeatTimer
         public int BackgroundApplyCount { get; set; } = 500;
 
@@ -82,12 +73,8 @@ namespace Zeze.Raft
             if (!string.IsNullOrEmpty(attr)) LeaderHeartbeatTimer = int.Parse(attr);
             attr = self.GetAttribute("MaxAppendEntriesCount");
             if (!string.IsNullOrEmpty(attr)) MaxAppendEntriesCount = int.Parse(attr);
-            attr = self.GetAttribute("SnapshotMinLogCount");
-            if (!string.IsNullOrEmpty(attr)) SnapshotMinLogCount = int.Parse(attr);
-            attr = self.GetAttribute("SnapshotHourOfDay");
-            if (!string.IsNullOrEmpty(attr)) SnapshotHourOfDay = int.Parse(attr);
-            attr = self.GetAttribute("SnapshotMinute");
-            if (!string.IsNullOrEmpty(attr)) SnapshotMinute = int.Parse(attr);
+            attr = self.GetAttribute("SnapshotLogCount");
+            if (!string.IsNullOrEmpty(attr)) SnapshotLogCount = int.Parse(attr);
             attr = self.GetAttribute("ElectionRandomMax");
             if (!string.IsNullOrEmpty(attr)) ElectionRandomMax = int.Parse(attr);
             attr = self.GetAttribute("BackgroundApplyCount");
@@ -120,11 +107,6 @@ namespace Zeze.Raft
 
             if (MaxAppendEntriesCount < 100)
                 MaxAppendEntriesCount = 100;
-
-            if (SnapshotMinute < 0)
-                SnapshotMinute = 0;
-            else if (SnapshotMinute > 59)
-                SnapshotMinute = 59;
         }
 
         internal void Save()
@@ -138,12 +120,8 @@ namespace Zeze.Raft
                 Self.SetAttribute("ElectionRandomMax", ElectionRandomMax.ToString());
             if (MaxAppendEntriesCount != 500)
                 Self.SetAttribute("MaxAppendEntriesCount", MaxAppendEntriesCount.ToString());
-            if (SnapshotMinLogCount != 10000)
-                Self.SetAttribute("SnapshotMinLogCount", SnapshotMinLogCount.ToString());
-            if (SnapshotHourOfDay != 6)
-                Self.SetAttribute("SnapshotHourOfDay", SnapshotHourOfDay.ToString());
-            if (SnapshotMinute != 0)
-                Self.SetAttribute("SnapshotMinute", SnapshotMinute.ToString());
+            if (SnapshotLogCount != 10000)
+                Self.SetAttribute("SnapshotLogCount", SnapshotLogCount.ToString());
             if (BackgroundApplyCount != 500)
                 Self.SetAttribute("BackgroundApplyCount", BackgroundApplyCount.ToString());
             if (UniqueRequestExpiredDays != 7)

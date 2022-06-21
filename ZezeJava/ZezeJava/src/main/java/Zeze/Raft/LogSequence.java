@@ -64,7 +64,7 @@ public class LogSequence {
 
 	// 是否有安装进程正在进行中，用来阻止新的创建请求。
 	private final ConcurrentHashMap<String, Server.ConnectorEx> InstallSnapshotting = new ConcurrentHashMap<>();
-	private Future<?> SnapshotTimer;
+	private long PrevSnapshotIndex;
 	private boolean Snapshotting = false; // 是否正在创建Snapshot过程中，用来阻止新的创建请求。
 
 	static {
@@ -362,8 +362,6 @@ public class LogSequence {
 		CancelPendingAppendLogFutures();
 
 		synchronized (Raft) {
-			if (SnapshotTimer != null)
-				SnapshotTimer.cancel(false);
 			if (Logs != null) {
 				Logs.close();
 				Logs = null;
@@ -643,6 +641,7 @@ public class LogSequence {
 			if (raftLog == null && (raftLog = ReadLog(index)) == null) {
 				logger.warn("What Happened! index={} lastApplicableLog={} LastApplied={}",
 						index, lastApplicableLog.getIndex(), LastApplied);
+				// trySnapshot(); // 错误的时候不做这个尝试了。
 				return; // end?
 			}
 
@@ -664,6 +663,18 @@ public class LogSequence {
 				future.SetResult(0);
 		}
 		// logger.debug($"{Raft.Name}-{Raft.IsLeader} CommitIndex={CommitIndex} RequestId={lastApplicableLog.Log.Unique.RequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
+		trySnapshot();
+	}
+
+	private void trySnapshot() {
+		var snapshotLogCount = Raft.getRaftConfig().getSnapshotLogCount();
+		if (snapshotLogCount > 0) {
+			if (LastApplied - PrevSnapshotIndex > snapshotLogCount) {
+				PrevSnapshotIndex = LastApplied;
+				Task.run(() -> Snapshot(), "Snapshot");
+			}
+		}
+		// else disable
 	}
 
 	public long GetTestStateMachineCount() {
@@ -775,30 +786,6 @@ public class LogSequence {
 		return Paths.get(Raft.getRaftConfig().getDbHome(), SnapshotFileName).toString();
 	}
 
-	@SuppressWarnings("deprecation")
-	public void StartSnapshotTimer() {
-		synchronized (Raft) {
-			if (SnapshotTimer != null)
-				SnapshotTimer.cancel(false);
-
-			RaftConfig raftConf = Raft.getRaftConfig();
-			if (raftConf.getSnapshotHourOfDay() >= 0 && raftConf.getSnapshotHourOfDay() < 24) {
-				// 每天定点执行。
-				Date now = new Date();
-				Date firstTime = new Date(now.getYear(), now.getMonth(), now.getDate(),
-						raftConf.getSnapshotHourOfDay(),
-						raftConf.getSnapshotMinute(), 0);
-				if (firstTime.getTime() < now.getTime())
-					firstTime.setTime(firstTime.getTime() + 86400_000);
-				var delay = firstTime.getTime() - now.getTime();
-				SnapshotTimer = Task.schedule(delay, () -> Snapshot(false));
-			} else {
-				// 此时 SnapshotMinute 表示Period。
-				SnapshotTimer = Task.schedule((long)raftConf.getSnapshotMinute() * 60 * 1000, () -> Snapshot(false));
-			}
-		}
-	}
-
 	public void EndReceiveInstallSnapshot(String path, InstallSnapshot r) throws Throwable {
 		LogsAvailable = false; // cancel RemoveLogBefore
 		var removeLogBeforeFuture = RemoveLogBeforeFuture;
@@ -854,14 +841,8 @@ public class LogSequence {
 	}
 
 	public void Snapshot() throws Throwable {
-		Snapshot(false);
-	}
-
-	public void Snapshot(boolean NeedNow) throws Throwable {
 		synchronized (Raft) {
 			if (getSnapshotting() || !getInstallSnapshotting().isEmpty())
-				return;
-			if (LastApplied - FirstIndex < Raft.getRaftConfig().getSnapshotMinLogCount() && !NeedNow)
 				return;
 
 			setSnapshotting(true);
@@ -877,9 +858,6 @@ public class LogSequence {
 			synchronized (Raft) {
 				setSnapshotting(false);
 			}
-
-			// restart
-			StartSnapshotTimer();
 		}
 	}
 
@@ -933,7 +911,7 @@ public class LogSequence {
 			// 这一般的情况是snapshot文件被删除了。
 			// 【注意】这种情况也许报错更好？
 			// 内部会判断，不会启动多个snapshot。
-			Snapshot(true);
+			Snapshot();
 		}
 	}
 
