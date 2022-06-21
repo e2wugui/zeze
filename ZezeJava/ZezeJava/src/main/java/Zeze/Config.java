@@ -551,18 +551,26 @@ public final class Config {
 		private int CacheConcurrencyLevel;
 		private int CacheInitialCapacity;
 		private int CacheNewAccessHotThreshold;
+		private float CacheFactor = 5.0f;
 
 		public String getName() {
 			return Name;
 		}
 
+		public int getRealCacheCapacity() {
+			return (int)(CacheCapacity * CacheFactor);
+		}
+
 		public int getCacheCapacity() {
 			return CacheCapacity;
 		}
-
 		public void setCacheCapacity(int value) {
 			CacheCapacity = value;
 		}
+		public float getCacheFactor() {
+			return CacheFactor;
+		}
+		public void setCacheFactor(float factor) { CacheFactor = factor; }
 
 		public int getCacheConcurrencyLevel() {
 			return CacheConcurrencyLevel;
@@ -664,6 +672,9 @@ public final class Config {
 			attr = self.getAttribute("CacheCleanPeriod");
 			if (!attr.isEmpty())
 				setCacheCleanPeriod(Integer.parseInt(attr));
+			attr = self.getAttribute("CacheFactor");
+			if (!attr.isEmpty())
+				setCacheFactor(Float.parseFloat(attr));
 
 			DatabaseName = self.getAttribute("DatabaseName");
 			DatabaseOldName = self.getAttribute("DatabaseOldName");

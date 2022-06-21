@@ -178,7 +178,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		// 不直接使用 Scheduler 的定时任务，
 		// 每次执行完重新调度。
 		try {
-			var capacity = getTable().getTableConf().getCacheCapacity();
+			var capacity = getTable().getTableConf().getRealCacheCapacity();
 			if (capacity > 0) {
 				var timeBegin = System.nanoTime();
 				int recordCount = 0, nodeCount = 0;

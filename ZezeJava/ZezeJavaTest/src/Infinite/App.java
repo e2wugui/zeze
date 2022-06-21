@@ -24,6 +24,7 @@ public class App {
 		tdef.setCacheCleanPeriodWhenExceedCapacity(100);
 		// 减少容量，实际使用记录数要超过一些。让TableCache.Cleanup能并发起来。
 		tdef.setCacheCapacity(Simulate.CacheCapacity);
+		tdef.setCacheFactor(1.0f);
 
 		var tflush = config.getTableConfMap().get("demo_Module1_tflush");
 		// 提高并发
@@ -32,6 +33,7 @@ public class App {
 		tflush.setCacheCleanPeriodWhenExceedCapacity(100);
 		// 减少容量，实际使用记录数要超过一些。让TableCache.Cleanup能并发起来。
 		tflush.setCacheCapacity(Tasks.tflushInt1Trade.CacheCapacity);
+		tflush.setCacheFactor(1.0f);
 	}
 
 	public int getServerId() {

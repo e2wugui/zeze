@@ -39,8 +39,10 @@ public class App extends Zeze.AppBase {
 
 	private void adjustTableConf(Config.TableConf conf) {
 		if (null != conf) {
-			if (conf.getCacheCapacity() < ABasicSimpleAddOneThread.AddCount)
+			if (conf.getRealCacheCapacity() < ABasicSimpleAddOneThread.AddCount) {
 				conf.setCacheCapacity(ABasicSimpleAddOneThread.AddCount);
+				conf.setCacheFactor(1.0f);
+			}
 			if (conf.getCacheConcurrencyLevel() < CBasicSimpleAddConcurrent.ConcurrentLevel)
 				conf.setCacheConcurrencyLevel(CBasicSimpleAddConcurrent.ConcurrentLevel);
 		}
