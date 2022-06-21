@@ -64,11 +64,14 @@ namespace Zeze.Services
 
         private bool GlobalLruTryRemoveCallback(Binary key, Record<Binary, CacheState> r)
         {
-            using (var lockey = Locks.Get(key))
+            using (var lockey = Locks.Get(key)) // 下面的TryEnter才可能加锁，如果没有加锁，这里的using也是安全的。
             {
                 if (false == lockey.TryEnter())
                     return false;
-                return GlobalStates.LruCache.TryRemove(key, out _);
+                var cs = (CacheState)r.Value;
+                if (cs == null || cs.AcquireStatePending == GlobalCacheManagerServer.StateInvalid)
+                    return GlobalStates.LruCache.TryRemove(key, out _);
+                return false;
             }
         }
 

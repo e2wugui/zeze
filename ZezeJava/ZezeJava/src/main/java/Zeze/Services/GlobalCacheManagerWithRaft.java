@@ -201,8 +201,12 @@ public class GlobalCacheManagerWithRaft
 		if (!lockey.tryLock())
 			return false;
 		try {
-			GlobalStates.getLruCache().remove(key);
-			return true;
+			var cs = (CacheState)r.getValue(); // null when record removed
+			if (cs == null || cs.getAcquireStatePending() == StateInvalid) {
+				GlobalStates.getLruCache().remove(key);
+				return true;
+			}
+			return false;
 		} finally {
 			lockey.unlock();
 		}
@@ -613,11 +617,12 @@ public class GlobalCacheManagerWithRaft
 			cs.getShare().remove(sender.ServerId); // always try remove
 
 			if (cs.getModify() == -1 && cs.getShare().size() == 0) {
-				// 安全的从global中删除，没有并发问题。
+				// 1. 安全的从global中删除，没有并发问题。
 				cs.setAcquireStatePending(StateRemoved);
 				GlobalStates.Remove(gkey);
-			} else
+			} else {
 				cs.setAcquireStatePending(StateInvalid);
+			}
 			var SenderAcquired = ServerAcquiredTemplate.OpenTable(sender.ServerId);
 			SenderAcquired.Remove(gkey);
 			lockey.PulseAll();
