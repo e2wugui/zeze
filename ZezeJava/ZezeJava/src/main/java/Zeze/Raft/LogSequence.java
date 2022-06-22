@@ -12,7 +12,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
@@ -667,7 +666,7 @@ public class LogSequence {
 		if (snapshotLogCount > 0) {
 			if (LastApplied - PrevSnapshotIndex > snapshotLogCount) {
 				PrevSnapshotIndex = LastApplied;
-				Task.run(() -> Snapshot(), "Snapshot");
+				Task.run(this::Snapshot, "Snapshot");
 			}
 		}
 		// else disable

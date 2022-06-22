@@ -46,13 +46,13 @@
 				<variable id="3" name="ServerReleaseTimeout" type="int"/>
 			</bean>
 
-			<rpc name="Acquire" argument="AcquireParam" result="ReduceParam" base="Zeze.Raft.RaftRpc" handle="server" />
+			<rpc name="Acquire" argument="AcquireParam" result="ReduceParam" base="Zeze.Raft.RaftRpc" handle="server" TransactionLevel="None" />
 			<rpc name="Reduce" argument="ReduceParam" result="ReduceParam" base="Zeze.Raft.RaftRpc" handle="client" />
-			<rpc name="Login" argument="LoginParam" result="AchillesHeelConfig" base="Zeze.Raft.RaftRpc" handle="server" />
-			<rpc name="ReLogin" argument="LoginParam" base="Zeze.Raft.RaftRpc" handle="server" />
-			<rpc name="NormalClose" handle="server" base="Zeze.Raft.RaftRpc" />
-			<rpc name="Cleanup" argument="AchillesHeel" base="Zeze.Raft.RaftRpc" handle="server" />
-			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" handle="server" />
+			<rpc name="Login" argument="LoginParam" result="AchillesHeelConfig" base="Zeze.Raft.RaftRpc" handle="server" TransactionLevel="None" />
+			<rpc name="ReLogin" argument="LoginParam" base="Zeze.Raft.RaftRpc" handle="server" TransactionLevel="None" />
+			<rpc name="NormalClose" handle="server" base="Zeze.Raft.RaftRpc" TransactionLevel="None" />
+			<rpc name="Cleanup" argument="AchillesHeel" base="Zeze.Raft.RaftRpc" handle="server" TransactionLevel="None" />
+			<rpc name="KeepAlive" base="Zeze.Raft.RaftRpc" handle="server" TransactionLevel="None" />
 		</module>
 
 		<!-- Rocks 测试模块 -->

@@ -137,7 +137,7 @@ public class AchillesHeelDaemon extends Thread {
 
 					var idle = now - agent.getActiveTime();
 					if (idle > config.ServerKeepAliveIdleTimeout) {
-						//logger.debug("KeeyAlive ServerKeepAliveIdleTimeout=" + config.ServerKeepAliveIdleTimeout);
+						//logger.debug("KeepAlive ServerKeepAliveIdleTimeout=" + config.ServerKeepAliveIdleTimeout);
 						agent.keepAlive();
 					}
 
