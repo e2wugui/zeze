@@ -18,6 +18,7 @@ import Zeze.Net.Binary;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Record;
@@ -48,11 +49,7 @@ public class Test {
 
 	private void LogDump(String db) throws IOException, RocksDBException {
 		RocksDB.loadLibrary();
-		var options = new Options()
-				.setCreateIfMissing(true)
-				.setDbWriteBufferSize(64 << 20)
-				.setKeepLogFileNum(5);
-		try (var r1 = RocksDB.open(options, Paths.get(db, "logs").toString())) {
+		try (var r1 = RocksDB.open(DatabaseRocksDb.getCommonOptions(), Paths.get(db, "logs").toString())) {
 			try (var it1 = r1.newIterator()) {
 				it1.seekToFirst();
 				var StateMachine = new TestStateMachine();

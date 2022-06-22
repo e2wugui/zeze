@@ -28,6 +28,7 @@ import Zeze.Services.ServiceManager.SubscribeInfo;
 import Zeze.Services.ServiceManager.UnRegister;
 import Zeze.Services.ServiceManager.UnSubscribe;
 import Zeze.Services.ServiceManager.Update;
+import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.LongConcurrentHashMap;
@@ -40,7 +41,6 @@ import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
-import org.rocksdb.Options;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.WriteOptions;
@@ -153,7 +153,6 @@ public final class ServiceManagerServer implements Closeable {
 	private NetServer Server;
 	private final AsyncSocket ServerSocket;
 	private final RocksDB AutoKeysDb;
-	private final WriteOptions WriteOptions;
 	private final ConcurrentHashMap<String, AutoKey> AutoKeys = new ConcurrentHashMap<>();
 	private volatile Future<?> StartNotifyDelayTask;
 
@@ -743,12 +742,7 @@ public final class ServiceManagerServer implements Closeable {
 		if (Config.getStartNotifyDelay() > 0)
 			StartNotifyDelayTask = Task.schedule(Config.getStartNotifyDelay(), this::StartNotifyAll);
 
-		var options = new Options()
-				.setCreateIfMissing(true)
-				.setDbWriteBufferSize(64 << 20)
-				.setKeepLogFileNum(5);
-		AutoKeysDb = RocksDB.open(options, Paths.get(Config.getDbHome(), "autokeys").toString());
-		WriteOptions = new WriteOptions().setSync(true);
+		AutoKeysDb = RocksDB.open(DatabaseRocksDb.getCommonOptions(), Paths.get(Config.getDbHome(), "autokeys").toString());
 
 		// 允许配置多个acceptor，如果有冲突，通过日志查看。
 		ServerSocket = Server.NewServerSocket(ipaddress, port, null);
@@ -824,7 +818,7 @@ public final class ServiceManagerServer implements Closeable {
 			var bb = ByteBuffer.Allocate(ByteBuffer.writeLongSize(current));
 			bb.WriteLong(current);
 			try {
-				SMS.AutoKeysDb.put(SMS.WriteOptions, getKey(), bb.Bytes);
+				SMS.AutoKeysDb.put(DatabaseRocksDb.getSyncWriteOptions(), getKey(), bb.Bytes);
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
 			}

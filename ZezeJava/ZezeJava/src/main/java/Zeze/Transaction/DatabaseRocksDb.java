@@ -24,14 +24,48 @@ import org.rocksdb.WriteOptions;
 public class DatabaseRocksDb extends Database {
 	private static final Logger logger = LogManager.getLogger(DatabaseRocksDb.class);
 
+	private static final Options commonOptions = new Options()
+			.setCreateIfMissing(true)
+			.setDbWriteBufferSize(64 << 20) // 总的写缓存大小(字节),对所有columns的总限制
+			.setKeepLogFileNum(5); // 保留"LOG.old.*"文件的数量
+	private static final DBOptions commonDbOptions = new DBOptions()
+			.setCreateIfMissing(true)
+			.setDbWriteBufferSize(64 << 20) // 总的写缓存大小(字节),对所有columns的总限制
+			.setKeepLogFileNum(5); // 保留"LOG.old.*"文件的数量
+	private static final ColumnFamilyOptions defaultCfOptions = new ColumnFamilyOptions();
+	private static final ReadOptions defaultReadOptions = new ReadOptions();
+	private static final WriteOptions defaultWriteOptions = new WriteOptions();
+	private static final WriteOptions syncWriteOptions = new WriteOptions().setSync(true);
+
 	private final RocksDB rocksDb;
-	private final WriteOptions writeOptions = new WriteOptions();
-	private final ReadOptions readOptions = new ReadOptions();
-	private final ColumnFamilyOptions cfOptions = new ColumnFamilyOptions();
 	private final ConcurrentHashMap<String, ColumnFamilyHandle> columnFamilies = new ConcurrentHashMap<>();
 
 	static {
 		RocksDB.loadLibrary();
+	}
+
+	public static Options getCommonOptions() {
+		return commonOptions;
+	}
+
+	public static DBOptions getCommonDbOptions() {
+		return commonDbOptions;
+	}
+
+	public static ColumnFamilyOptions getDefaultCfOptions() {
+		return defaultCfOptions;
+	}
+
+	public static ReadOptions getDefaultReadOptions() {
+		return defaultReadOptions;
+	}
+
+	public static WriteOptions getDefaultWriteOptions() {
+		return defaultWriteOptions;
+	}
+
+	public static WriteOptions getSyncWriteOptions() {
+		return syncWriteOptions;
 	}
 
 	public static RocksDB Open(DBOptions options, String path, List<ColumnFamilyDescriptor> columnFamilyDescriptors,
@@ -56,21 +90,18 @@ public class DatabaseRocksDb extends Database {
 	public DatabaseRocksDb(Config.DatabaseConf conf) {
 		super(conf);
 		logger.info("new: {}", conf.getDatabaseUrl());
-		var dbOptions = new DBOptions()
-				.setCreateIfMissing(true)
-				.setDbWriteBufferSize(64 << 20) // 总的写缓存大小(字节),对所有columns的总限制
-				.setKeepLogFileNum(5); // 保留"LOG.old.*"文件的数量
+
 		var dbHome = conf.getDatabaseUrl().isEmpty() ? "db" : conf.getDatabaseUrl();
 		try {
 			var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
-			for (var cf : RocksDB.listColumnFamilies(new Options(), dbHome))
-				columnFamilies.add(new ColumnFamilyDescriptor(cf, cfOptions));
+			for (var cf : RocksDB.listColumnFamilies(commonOptions, dbHome))
+				columnFamilies.add(new ColumnFamilyDescriptor(cf, defaultCfOptions));
 			if (columnFamilies.isEmpty())
-				columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(StandardCharsets.UTF_8), cfOptions));
+				columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(StandardCharsets.UTF_8), defaultCfOptions));
 
 			// DirectOperates 依赖 Db，所以只能在这里打开。要不然，放在Open里面更加合理。
 			var outHandles = new ArrayList<ColumnFamilyHandle>();
-			rocksDb = Open(dbOptions, dbHome, columnFamilies, outHandles);
+			rocksDb = Open(commonDbOptions, dbHome, columnFamilies, outHandles);
 
 			for (int i = 0; i < columnFamilies.size(); i++) {
 				var name = new String(columnFamilies.get(i).getName(), StandardCharsets.UTF_8);
@@ -122,7 +153,7 @@ public class DatabaseRocksDb extends Database {
 		@Override
 		public void Commit() {
 			try {
-				rocksDb.write(writeOptions, batch);
+				rocksDb.write(defaultWriteOptions, batch);
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
 			}
@@ -147,7 +178,7 @@ public class DatabaseRocksDb extends Database {
 				if (isNew != null)
 					isNew.Value = true;
 				return rocksDb.createColumnFamily(
-						new ColumnFamilyDescriptor(key.getBytes(StandardCharsets.UTF_8), cfOptions));
+						new ColumnFamilyDescriptor(key.getBytes(StandardCharsets.UTF_8), defaultCfOptions));
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
 			}
@@ -187,7 +218,7 @@ public class DatabaseRocksDb extends Database {
 		@Override
 		public ByteBuffer Find(ByteBuffer key) {
 			try {
-				var value = rocksDb.get(columnFamily, readOptions, key.Bytes, key.ReadIndex, key.WriteIndex);
+				var value = rocksDb.get(columnFamily, defaultReadOptions, key.Bytes, key.ReadIndex, key.WriteIndex);
 				return value != null ? ByteBuffer.Wrap(value) : null;
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
@@ -206,7 +237,7 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public long Walk(TableWalkHandleRaw callback) {
-			try (var it = rocksDb.newIterator(columnFamily, readOptions)) {
+			try (var it = rocksDb.newIterator(columnFamily, defaultReadOptions)) {
 				long countWalked = 0;
 				for (it.seekToFirst(); it.isValid(); it.next()) {
 					countWalked++;
@@ -219,7 +250,7 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public long WalkKey(TableWalkKeyRaw callback) {
-			try (var it = rocksDb.newIterator(columnFamily, readOptions)) {
+			try (var it = rocksDb.newIterator(columnFamily, defaultReadOptions)) {
 				long countWalked = 0;
 				for (it.seekToFirst(); it.isValid(); it.next()) {
 					countWalked++;
@@ -280,7 +311,7 @@ public class DatabaseRocksDb extends Database {
 
 				dv.Version = ++version;
 				dv.Data = data;
-				rocksDb.put(columnFamily, writeOptions, key.Copy(), dv.Encode());
+				rocksDb.put(columnFamily, defaultWriteOptions, key.Copy(), dv.Encode());
 				return KV.Create(version, true);
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);

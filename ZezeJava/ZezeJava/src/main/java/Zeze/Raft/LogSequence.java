@@ -16,6 +16,7 @@ import java.util.concurrent.Future;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.Task;
@@ -49,7 +50,7 @@ public class LogSequence {
 
 	private long LeaderActiveTime = System.currentTimeMillis(); // Leader, Follower
 
-	private WriteOptions WriteOptions = new WriteOptions().setSync(true);
+	private WriteOptions WriteOptions = DatabaseRocksDb.getSyncWriteOptions();
 	private RocksDB Logs;
 	private RocksDB Rafts;
 	private final ConcurrentHashMap<String, UniqueRequestSet> UniqueRequestSets = new ConcurrentHashMap<>();
@@ -293,8 +294,7 @@ public class LogSequence {
 						Files.createDirectories(Paths.get(dir));
 					} catch (FileAlreadyExistsException ignored) {
 					}
-					Db = Zeze.Raft.LogSequence.OpenDb(new Options().setCreateIfMissing(true)
-									.setDbWriteBufferSize(64 << 20).setKeepLogFileNum(5),
+					Db = Zeze.Raft.LogSequence.OpenDb(DatabaseRocksDb.getCommonOptions(),
 									Paths.get(dir, getDbName()).toString());
 				}
 				return getDb();
@@ -378,12 +378,8 @@ public class LogSequence {
 
 	public LogSequence(Raft raft) throws RocksDBException {
 		Raft = raft;
-		var options = new Options()
-				.setCreateIfMissing(true)
-				.setDbWriteBufferSize(64 << 20)
-				.setKeepLogFileNum(5);
 
-		Rafts = OpenDb(options, Paths.get(Raft.getRaftConfig().getDbHome(), "rafts").toString());
+		Rafts = OpenDb(DatabaseRocksDb.getCommonOptions(), Paths.get(Raft.getRaftConfig().getDbHome(), "rafts").toString());
 		{
 			// Read Term
 			var termKey = ByteBuffer.Allocate(1);
@@ -418,7 +414,7 @@ public class LogSequence {
 				NodeReady = ByteBuffer.Wrap(nodeReadyValue).ReadBool();
 		}
 
-		Logs = OpenDb(options, Paths.get(Raft.getRaftConfig().getDbHome(), "logs").toString());
+		Logs = OpenDb(DatabaseRocksDb.getCommonOptions(), Paths.get(Raft.getRaftConfig().getDbHome(), "logs").toString());
 		{
 			// Read Last Log Index
 			try (var itLast = Logs.newIterator()) {
@@ -813,11 +809,7 @@ public class LogSequence {
 				CancelPendingAppendLogFutures();
 				var logsDir = Paths.get(Raft.getRaftConfig().getDbHome(), "logs").toString();
 				deleteDirectory(new File(logsDir));
-				var options = new Options()
-						.setCreateIfMissing(true)
-						.setDbWriteBufferSize(64 << 20)
-						.setKeepLogFileNum(5);
-				Logs = OpenDb(options, logsDir);
+				Logs = OpenDb(DatabaseRocksDb.getCommonOptions(), logsDir);
 				var lastIncludedLog = RaftLog.Decode(r.Argument.getLastIncludedLog(),
 						Raft.getStateMachine()::LogFactory);
 				SaveLog(lastIncludedLog);

@@ -30,6 +30,7 @@ import Zeze.Raft.RocksRaft.Log1.LogShort;
 import Zeze.Raft.RocksRaft.Log1.LogString;
 import Zeze.Raft.StateMachine;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Util.FuncLong;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongConcurrentHashMap;
@@ -40,10 +41,7 @@ import org.rocksdb.BackupEngineOptions;
 import org.rocksdb.Checkpoint;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.ColumnFamilyOptions;
-import org.rocksdb.DBOptions;
 import org.rocksdb.Env;
-import org.rocksdb.Options;
 import org.rocksdb.RestoreOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
@@ -77,12 +75,6 @@ public final class Rocks extends StateMachine implements Closeable {
 	private final LongConcurrentHashMap<AtomicLong> AtomicLongs = new LongConcurrentHashMap<>();
 	private final IntHashMap<Long> LastUpdated = new IntHashMap<>();
 	private final ConcurrentHashMap<String, ColumnFamilyHandle> Columns = new ConcurrentHashMap<>();
-	private final Options options = new Options();
-	private final DBOptions dbOptions = new DBOptions()
-			.setCreateIfMissing(true)
-			.setDbWriteBufferSize(64 << 20)
-			.setKeepLogFileNum(5);
-	private final ColumnFamilyOptions cfOptions = new ColumnFamilyOptions();
 	private final WriteOptions writeOptions;
 	private final RocksMode rocksMode;
 	private RocksDB Storage;
@@ -110,7 +102,9 @@ public final class Rocks extends StateMachine implements Closeable {
 
 		AddFactory(new Changes(this).getTypeId(), () -> new Changes(this));
 
-		writeOptions = (new WriteOptions()).setSync(RocksDbWriteOptionSync);
+		writeOptions = RocksDbWriteOptionSync
+				? DatabaseRocksDb.getSyncWriteOptions()
+				: DatabaseRocksDb.getDefaultWriteOptions();
 		// 这个赋值是不必要的，new Raft(...)内部会赋值。有点奇怪。
 		setRaft(new Raft(this, raftName, raftConfig, config));
 		getRaft().addAtFatalKill(() -> {
@@ -131,7 +125,7 @@ public final class Rocks extends StateMachine implements Closeable {
 		// DirectOperates 依赖 Db，所以只能在这里打开。要不然，放在Open里面更加合理。
 		var columnFamilies = getColumnFamilies(dbName);
 		var outHandles = new ArrayList<ColumnFamilyHandle>();
-		Storage = RocksDB.open(dbOptions, dbName, columnFamilies, outHandles);
+		Storage = RocksDB.open(DatabaseRocksDb.getCommonDbOptions(), dbName, columnFamilies, outHandles);
 
 		Columns.clear();
 		for (int i = 0; i < columnFamilies.size(); i++) {
@@ -149,19 +143,19 @@ public final class Rocks extends StateMachine implements Closeable {
 		// 参考 Zeze.Transaction.DatabaseRocksDb
 		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
 		if (new File(dir).isDirectory()) {
-			for (var cf : RocksDB.listColumnFamilies(options, dir))
-				columnFamilies.add(new ColumnFamilyDescriptor(cf, cfOptions));
+			for (var cf : RocksDB.listColumnFamilies(DatabaseRocksDb.getCommonOptions(), dir))
+				columnFamilies.add(new ColumnFamilyDescriptor(cf, DatabaseRocksDb.getDefaultCfOptions()));
 		}
 		if (columnFamilies.isEmpty())
-			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(), cfOptions));
+			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(), DatabaseRocksDb.getDefaultCfOptions()));
 		return columnFamilies;
 	}
 
 	public ColumnFamilyHandle OpenFamily(String name) {
 		return Columns.computeIfAbsent(name, k -> {
 			try {
-				return Storage.createColumnFamily(
-						new ColumnFamilyDescriptor(k.getBytes(StandardCharsets.UTF_8), cfOptions));
+				return Storage.createColumnFamily(new ColumnFamilyDescriptor(
+						k.getBytes(StandardCharsets.UTF_8), DatabaseRocksDb.getDefaultCfOptions()));
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
 			}
@@ -294,7 +288,8 @@ public final class Rocks extends StateMachine implements Closeable {
 
 	public boolean Backup(String checkpointDir, String backupDir) throws RocksDBException {
 		var outHandles = new ArrayList<ColumnFamilyHandle>();
-		try (var src = RocksDB.open(dbOptions, checkpointDir, getColumnFamilies(checkpointDir), outHandles);
+		try (var src = RocksDB.open(DatabaseRocksDb.getCommonDbOptions(), checkpointDir,
+				getColumnFamilies(checkpointDir), outHandles);
 			 var backupOptions = new BackupEngineOptions(backupDir);
 			 var backup = BackupEngine.open(Env.getDefault(), backupOptions)) {
 			backup.createNewBackup(src, true);
@@ -398,10 +393,6 @@ public final class Rocks extends StateMachine implements Closeable {
 				Storage.close();
 				Storage = null;
 			}
-			writeOptions.close();
-			cfOptions.close();
-			dbOptions.close();
-			options.close();
 		}
 	}
 }

@@ -6,6 +6,7 @@ import java.util.function.BiPredicate;
 import java.util.function.Function;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
+import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Util.ConcurrentLruLike;
 import Zeze.Util.Func1;
 import Zeze.Util.Func2;
@@ -13,7 +14,6 @@ import Zeze.Util.Reflect;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDBException;
 
 public final class Table<K, V extends Bean> {
@@ -186,7 +186,8 @@ public final class Table<K, V extends Bean> {
 		keyEncodeFunc.accept(keyBB, key);
 		byte[] valueBytes;
 		try {
-			valueBytes = Rocks.getStorage().get(ColumnFamily, new ReadOptions(), keyBB.Bytes, 0, keyBB.Size());
+			valueBytes = Rocks.getStorage().get(ColumnFamily, DatabaseRocksDb.getDefaultReadOptions(),
+					keyBB.Bytes, 0, keyBB.Size());
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}

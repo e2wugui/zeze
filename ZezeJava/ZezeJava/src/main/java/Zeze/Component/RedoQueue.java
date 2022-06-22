@@ -9,6 +9,7 @@ import Zeze.Builtin.RedoQueue.RunTask;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.Procedure;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
@@ -36,21 +37,16 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 		if (null != Db)
 			return;
 
-		var dbOptions = new DBOptions()
-				.setCreateIfMissing(true)
-				.setDbWriteBufferSize(64 << 20)
-				.setKeepLogFileNum(5);
 		var dbHome = super.getName();
 		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
-		org.rocksdb.Options options = new Options();
-		for (var cf : RocksDB.listColumnFamilies(options, dbHome)) {
-			columnFamilies.add(new ColumnFamilyDescriptor(cf, CfOptions));
+		for (var cf : RocksDB.listColumnFamilies(DatabaseRocksDb.getCommonOptions(), dbHome)) {
+			columnFamilies.add(new ColumnFamilyDescriptor(cf, DatabaseRocksDb.getDefaultCfOptions()));
 		}
 		if (columnFamilies.isEmpty()) {
-			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(), CfOptions));
+			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(), DatabaseRocksDb.getDefaultCfOptions()));
 		}
 		var outHandles = new ArrayList<ColumnFamilyHandle>();
-		Db = RocksDB.open(dbOptions, dbHome, columnFamilies, outHandles);
+		Db = RocksDB.open(DatabaseRocksDb.getCommonDbOptions(), dbHome, columnFamilies, outHandles);
 		for (int i = 0; i< columnFamilies.size(); ++i){
 			var cf = columnFamilies.get(i);
 			var str = new String(cf.getName(), StandardCharsets.UTF_8);
@@ -95,7 +91,7 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 			var valueBytes = value.Copy();
 
 			// 保存完整的rpc请求，重新发送的时候不用再次打包。
-			Db.put(FamilyTaskQueue, WriteOptions, key.Copy(), valueBytes);
+			Db.put(FamilyTaskQueue, DatabaseRocksDb.getDefaultWriteOptions(), key.Copy(), valueBytes);
 			tryStartSendNextTask(task, null);
 		} catch (RocksDBException ex) {
 			throw new RuntimeException(ex);
@@ -118,7 +114,7 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 				// 最近加入的不是要发送的，从Db中读取。
 				var key = ByteBuffer.Allocate(16);
 				key.WriteLong(taskId);
-				var value = Db.get(FamilyTaskQueue, ReadOptions, key.Copy());
+				var value = Db.get(FamilyTaskQueue, DatabaseRocksDb.getDefaultReadOptions(), key.Copy());
 				if (null == value)
 					return; // error
 				rpc.Argument.Decode(ByteBuffer.Wrap(value));
@@ -145,7 +141,7 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 			LastDoneTaskId = rpc.Result.getTaskId();
 			var value = ByteBuffer.Allocate(16);
 			value.WriteLong(LastDoneTaskId);
-			Db.put(FamilyLastDoneTaskId, WriteOptions, LastDoneTaskIdKey, value.Copy());
+			Db.put(FamilyLastDoneTaskId, DatabaseRocksDb.getDefaultWriteOptions(), LastDoneTaskIdKey, value.Copy());
 			tryStartSendNextTask(null, rpc.getSender());
 			return 0L;
 		}
@@ -172,9 +168,6 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 	}
 
 	private RocksDB Db;
-	private final ColumnFamilyOptions CfOptions = new ColumnFamilyOptions();
-	public final WriteOptions WriteOptions = new WriteOptions();
-	public final ReadOptions ReadOptions = new ReadOptions();
 	private final ConcurrentHashMap<String, ColumnFamilyHandle> Families = new ConcurrentHashMap<>();
 	private ColumnFamilyHandle FamilyLastDoneTaskId;
 	private ColumnFamilyHandle FamilyTaskQueue;
@@ -185,7 +178,8 @@ public class RedoQueue extends Zeze.Services.HandshakeClient {
 	ColumnFamilyHandle getOrAddFamily(String name) {
 		return Families.computeIfAbsent(name, (key) -> {
 			try {
-				return Db.createColumnFamily(new ColumnFamilyDescriptor(key.getBytes(StandardCharsets.UTF_8), CfOptions));
+				return Db.createColumnFamily(new ColumnFamilyDescriptor(
+						key.getBytes(StandardCharsets.UTF_8), DatabaseRocksDb.getDefaultCfOptions()));
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
 			}

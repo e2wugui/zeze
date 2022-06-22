@@ -18,10 +18,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.ColumnFamilyOptions;
-import org.rocksdb.DBOptions;
-import org.rocksdb.Options;
-import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
@@ -129,55 +125,46 @@ public class ResetDB {
 	public void ResetRocksDB(Application app, Config.DatabaseConf dbConf, List<String> removeList) throws RocksDBException {
 		RocksDB.loadLibrary();
 
-		final ColumnFamilyOptions CfOptions = new ColumnFamilyOptions();
-		final ReadOptions ReadOptions = new ReadOptions();
-		final DBOptions dbOptions = new DBOptions()
-				.setCreateIfMissing(true)
-				.setDbWriteBufferSize(64 << 20)
-				.setKeepLogFileNum(5);
 		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
 		// 用于存放key对应的表操作使用的类
 		ConcurrentHashMap<String, ColumnFamilyHandle> cfhMap = new ConcurrentHashMap<>();
 
 		String path = dbConf.getDatabaseUrl().isEmpty() ? "db" : dbConf.getDatabaseUrl();
-		org.rocksdb.Options options = new Options();
-		for (var cf : RocksDB.listColumnFamilies(options, path)) {
-			columnFamilies.add(new ColumnFamilyDescriptor(cf, CfOptions));
+		for (var cf : RocksDB.listColumnFamilies(DatabaseRocksDb.getCommonOptions(), path)) {
+			columnFamilies.add(new ColumnFamilyDescriptor(cf, DatabaseRocksDb.getDefaultCfOptions()));
 		}
 		if (columnFamilies.isEmpty()) {
-			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(), CfOptions));
+			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(), DatabaseRocksDb.getDefaultCfOptions()));
 		}
 		var outHandles = new ArrayList<ColumnFamilyHandle>();
 
-		RocksDB db = RocksDB.open(dbOptions, path, columnFamilies, outHandles);
-
-		if (columnFamilies.size() > 0) {
-			for (int i = 0; i < columnFamilies.size(); i++) {
-				ColumnFamilyHandle cfh = outHandles.get(i);
-				String tableName = new String(columnFamilies.get(i).getName());
-				if (!cfhMap.containsKey(tableName)) {
-					cfhMap.put(tableName, cfh);
+		try (RocksDB db = RocksDB.open(DatabaseRocksDb.getCommonDbOptions(), path, columnFamilies, outHandles)) {
+			if (columnFamilies.size() > 0) {
+				for (int i = 0; i < columnFamilies.size(); i++) {
+					ColumnFamilyHandle cfh = outHandles.get(i);
+					String tableName = new String(columnFamilies.get(i).getName());
+					if (!cfhMap.containsKey(tableName)) {
+						cfhMap.put(tableName, cfh);
+					}
 				}
 			}
-		}
 
-		// 删除表
-		for (var rmTable : removeList) {
-			ColumnFamilyHandle rmCfh = cfhMap.get(rmTable);
-			if (rmCfh == null)
-				continue;
+			// 删除表
+			for (var rmTable : removeList) {
+				ColumnFamilyHandle rmCfh = cfhMap.get(rmTable);
+				if (rmCfh == null)
+					continue;
 
-			try (RocksIterator iter = db.newIterator(rmCfh, ReadOptions)) {
-				for (iter.seekToFirst(); iter.isValid(); iter.next()) {
-					db.delete(rmCfh, iter.key());
-					logger.debug("table name:{}, iterator:{}:{}",
-							rmTable, BitConverter.toString(iter.key()), BitConverter.toString(iter.value()));
+				try (RocksIterator iter = db.newIterator(rmCfh, DatabaseRocksDb.getDefaultReadOptions())) {
+					for (iter.seekToFirst(); iter.isValid(); iter.next()) {
+						db.delete(rmCfh, iter.key());
+						logger.debug("table name:{}, iterator:{}:{}",
+								rmTable, BitConverter.toString(iter.key()), BitConverter.toString(iter.value()));
+					}
 				}
+				db.dropColumnFamily(rmCfh);
 			}
-			db.dropColumnFamily(rmCfh);
 		}
-
-		db.close();
 	}
 
 	public void ResetMySql(Config config, String databaseName, List<String> removeList) {
