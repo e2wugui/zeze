@@ -40,7 +40,8 @@ class InstallSnapshotState {
 	}
 
 	public void TrySend(LogSequence ls, Server.ConnectorEx c) throws Throwable {
-		synchronized (ls.getRaft()) {
+		ls.getRaft().lock();
+		try {
 			if (!ls.getInstallSnapshotting().containsKey(c.getName()))
 				return; // 安装取消了。
 
@@ -64,6 +65,8 @@ class InstallSnapshotState {
 			Pending.setResultCode(Procedure.ErrorSendFail);
 			if (!Pending.Send(c.TryGetReadySocket(), p -> ProcessResult(ls, c, p), timeout))
 				ls.EndInstallSnapshot(c);
+		} finally {
+			ls.getRaft().unlock();
 		}
 	}
 
@@ -71,7 +74,8 @@ class InstallSnapshotState {
 	private long ProcessResult(LogSequence ls, Server.ConnectorEx c, Protocol<?> p) throws Throwable {
 		var r = (InstallSnapshot)p;
 
-		synchronized (ls.getRaft()) {
+		ls.getRaft().lock();
+		try {
 			if (r.isTimeout()) {
 				ls.EndInstallSnapshot(c);
 				return Procedure.Success;
@@ -99,6 +103,8 @@ class InstallSnapshotState {
 				File.seek(Offset = r.Result.getOffset());
 			}
 			TrySend(ls, c);
+		} finally {
+			ls.getRaft().unlock();
 		}
 		return Procedure.Success;
 	}

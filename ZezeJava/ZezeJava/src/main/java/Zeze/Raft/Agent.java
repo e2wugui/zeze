@@ -1,6 +1,8 @@
 package Zeze.Raft;
 
 import java.util.ArrayList;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.ToLongFunction;
 import Zeze.Application;
 import Zeze.Config;
@@ -39,6 +41,7 @@ public final class Agent {
 	// 加急请求ReSend时优先发送，多个请求不保证顺序。这个应该仅用于Login之类的特殊协议，一般来说只有一个。
 	private final LongConcurrentHashMap<RaftRpc<?, ?>> UrgentPending = new LongConcurrentHashMap<>();
 	private Action1<Agent> OnSetLeader;
+	private final Lock mutex = new ReentrantLock();
 
 	public RaftConfig getRaftConfig() {
 		return RaftConfig;
@@ -214,16 +217,21 @@ public final class Agent {
 		}
 	}
 
-	public synchronized void Stop() throws Throwable {
-		if (Client == null)
-			return;
+	public void Stop() throws Throwable {
+		mutex.lock();
+		try {
+			if (Client == null)
+				return;
 
-		Client.Stop();
-		Client = null;
+			Client.Stop();
+			Client = null;
 
-		_Leader = null;
-		Pending.clear();
-		UrgentPending.clear();
+			_Leader = null;
+			Pending.clear();
+			UrgentPending.clear();
+		} finally {
+			mutex.unlock();
+		}
 	}
 
 	public Agent(String name, Application zeze) throws Throwable {
@@ -387,20 +395,25 @@ public final class Agent {
 		}
 	}
 
-	public synchronized boolean SetLeader(LeaderIs r, ConnectorEx newLeader) throws Throwable {
-		if (r.Argument.getTerm() < Term) {
-			logger.warn("Skip LeaderIs {} {}", newLeader.getName(), r);
-			return false;
-		}
+	public boolean SetLeader(LeaderIs r, ConnectorEx newLeader) throws Throwable {
+		mutex.lock();
+		try {
+			if (r.Argument.getTerm() < Term) {
+				logger.warn("Skip LeaderIs {} {}", newLeader.getName(), r);
+				return false;
+			}
 
-		_Leader = newLeader; // change current Leader
-		Term = r.Argument.getTerm();
-		if (newLeader != null)
-			newLeader.Start(); // try connect immediately
-		Action1<Agent> onSetLeader = OnSetLeader;
-		if (onSetLeader != null)
-			onSetLeader.run(this);
-		return true;
+			_Leader = newLeader; // change current Leader
+			Term = r.Argument.getTerm();
+			if (newLeader != null)
+				newLeader.Start(); // try connect immediately
+			Action1<Agent> onSetLeader = OnSetLeader;
+			if (onSetLeader != null)
+				onSetLeader.run(this);
+			return true;
+		} finally {
+			mutex.unlock();
+		}
 	}
 
 	public static final class NetClient extends HandshakeClient {

@@ -1,6 +1,8 @@
 package Zeze.Raft.RocksRaft;
 
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
@@ -41,6 +43,7 @@ public final class Record<K> {
 	private Table<K, ?> Table;
 	private K Key;
 	private Bean Value;
+	Lock mutex = new ReentrantLock();
 
 	public Record(Class<K> keyClass) {
 		keyEncodeFunc = SerializeHelper.createEncodeFunc(keyClass);

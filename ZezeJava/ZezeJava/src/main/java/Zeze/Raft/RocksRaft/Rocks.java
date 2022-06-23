@@ -12,6 +12,8 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -216,7 +218,8 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	public void UpdateAtomicLongs(IntHashMap<Long> to) {
-		synchronized (getRaft()) {
+		getRaft().lock();
+		try {
 			for (var it = AtomicLongs.entryIterator(); it.moveToNext(); ) {
 				int index = (int)it.key();
 				var last = LastUpdated.get(index);
@@ -229,6 +232,8 @@ public final class Rocks extends StateMachine implements Closeable {
 					to.put(index, newest);
 				}
 			}
+		} finally {
+			getRaft().unlock();
 		}
 	}
 
@@ -274,7 +279,8 @@ public final class Rocks extends StateMachine implements Closeable {
 		// fast checkpoint, will stop application apply.
 		Raft raft = getRaft();
 		//noinspection SynchronizationOnLocalVariableOrMethodParameter
-		synchronized (raft) {
+		raft.lock();
+		try {
 			var lastAppliedLog = raft.getLogSequence().LastAppliedLogTermIndex();
 			result.LastIncludedIndex = lastAppliedLog.getIndex();
 			result.LastIncludedTerm = lastAppliedLog.getTerm();
@@ -282,6 +288,8 @@ public final class Rocks extends StateMachine implements Closeable {
 			try (var cp = Checkpoint.create(Storage)) {
 				cp.createCheckpoint(checkpointDir);
 			}
+		} finally {
+			raft.unlock();
 		}
 		return checkpointDir;
 	}
@@ -298,7 +306,8 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	public boolean Restore(String backupDir) throws RocksDBException {
-		synchronized (getRaft()) {
+		getRaft().lock();
+		try {
 			if (Storage != null) {
 				Storage.close(); // close current
 				Storage = null;
@@ -313,6 +322,8 @@ public final class Rocks extends StateMachine implements Closeable {
 
 			OpenDb(); // reopen
 			return true;
+		} finally {
+			getRaft().unlock();
 		}
 	}
 
@@ -379,20 +390,28 @@ public final class Rocks extends StateMachine implements Closeable {
 		Restore(backupDir);
 	}
 
+	private final Lock mutex = new ReentrantLock();
+
 	@Override
-	public synchronized void close() { // 简单保护一下。
+	public void close() { // 简单保护一下。
+		mutex.lock();
 		try {
-			Raft raft = getRaft();
-			if (raft != null)
-				raft.Shutdown();
-		} catch (Throwable e) {
-			throw new RuntimeException(e);
-		} finally {
-			setRaft(null);
-			if (Storage != null) {
-				Storage.close();
-				Storage = null;
+			try {
+				Raft raft = getRaft();
+				if (raft != null)
+					raft.Shutdown();
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			} finally {
+				setRaft(null);
+				if (Storage != null) {
+					Storage.close();
+					Storage = null;
+				}
+				writeOptions.close();
 			}
+		} finally {
+			mutex.unlock();
 		}
 	}
 }

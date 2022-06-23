@@ -700,17 +700,16 @@ public class Test {
 
 		@Override
 		public void LoadSnapshot(String path) throws IOException {
-			synchronized (getRaft()) {
-				_LoadSnapshot(path);
-				logger.info("{} LoadSnapshot Count={}", getRaft().getName(), Count);
-			}
+			_LoadSnapshot(path);
+			logger.info("{} LoadSnapshot Count={}", getRaft().getName(), Count);
 		}
 
 		// 这里没有处理重入，调用者需要保证。
 		@Override
 		public SnapshotResult Snapshot(String path) throws IOException, RocksDBException {
 			SnapshotResult result = new SnapshotResult();
-			synchronized (getRaft()) {
+			getRaft().lock();
+			try {
 				if (getRaft().getLogSequence() != null) {
 					var lastAppliedLog = getRaft().getLogSequence().LastAppliedLogTermIndex();
 					if (lastAppliedLog != null) {
@@ -726,6 +725,8 @@ public class Test {
 						result.success = true;
 					}
 				}
+			} finally {
+				getRaft().unlock();
 			}
 			return result;
 		}

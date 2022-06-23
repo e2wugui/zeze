@@ -12,6 +12,8 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
@@ -120,24 +122,33 @@ public class LogSequence {
 	}
 
 	public void CommitSnapshot(String path, long newFirstIndex) throws IOException, RocksDBException {
-		synchronized (Raft) {
+		Raft.lock();
+		try {
 			Files.move(Paths.get(path), Paths.get(getSnapshotFullName()), StandardCopyOption.REPLACE_EXISTING);
 			SaveFirstIndex(newFirstIndex);
 			StartRemoveLogOnlyBefore(newFirstIndex);
+		} finally {
+			Raft.unlock();
 		}
 	}
 
 	private RocksIterator NewLogsIterator() {
-		synchronized (Raft) {
+		Raft.lock();
+		try {
 			return Logs.newIterator();
+		} finally {
+			Raft.unlock();
 		}
 	}
 
 	private void StartRemoveLogOnlyBefore(long index) {
-		synchronized (Raft) {
+		Raft.lock();
+		try {
 			if (RemoveLogBeforeFuture != null || !LogsAvailable || Raft.IsShutdown)
 				return;
 			RemoveLogBeforeFuture = new TaskCompletionSource<>();
+		} finally {
+			Raft.unlock();
 		}
 
 		// 直接对 RocksDb 多线程访问，这里就不做多线程保护了。
@@ -285,8 +296,11 @@ public class LogSequence {
 			return state;
 		}
 
+		private final Lock mutex = new ReentrantLock();
+
 		private RocksDB OpenDb() throws IOException, RocksDBException {
-			synchronized (this) {
+			mutex.lock();
+			try {
 				if (null == getDb()) {
 					var dir = Paths.get(getLogSequence().Raft.getRaftConfig().getDbHome(), "unique").toString();
 					try {
@@ -297,13 +311,20 @@ public class LogSequence {
 									Paths.get(dir, getDbName()).toString());
 				}
 				return getDb();
+			} finally {
+				mutex.unlock();
 			}
 		}
 
-		public synchronized void Dispose() {
-			if (Db != null) {
-				Db.close();
-				Db = null;
+		public void Dispose() {
+			mutex.lock();
+			try {
+				if (Db != null) {
+					Db.close();
+					Db = null;
+				}
+			} finally {
+				mutex.unlock();
 			}
 		}
 	}
@@ -360,7 +381,8 @@ public class LogSequence {
 		// must after set Raft.IsShutdown = false;
 		CancelPendingAppendLogFutures();
 
-		synchronized (Raft) {
+		Raft.lock();
+		try {
 			if (Logs != null) {
 				Logs.close();
 				Logs = null;
@@ -372,6 +394,8 @@ public class LogSequence {
 			for (var db : UniqueRequestSets.values())
 				db.Dispose();
 			UniqueRequestSets.clear();
+		} finally {
+			Raft.unlock();
 		}
 	}
 
@@ -614,12 +638,15 @@ public class LogSequence {
 
 	private long BackgroundApply() throws Throwable {
 		while (!Raft.IsShutdown) {
-			synchronized (Raft) {
+			Raft.lock();
+			try {
 				// ReadLog Again，CommitIndex Maybe Grow.
 				var lastApplicableLog = ReadLog(CommitIndex);
 				TryApply(lastApplicableLog, Raft.getRaftConfig().getBackgroundApplyCount());
 				if (lastApplicableLog != null && LastApplied == lastApplicableLog.getIndex())
 					return 0; // 本次Apply结束。
+			} finally {
+				Raft.unlock();
 			}
 			Thread.yield();
 		}
@@ -678,7 +705,8 @@ public class LogSequence {
 	}
 
 	public void SendHeartbeatTo(Server.ConnectorEx connector) {
-		synchronized (Raft) {
+		Raft.lock();
+		try {
 			connector.setAppendLogActiveTime(System.currentTimeMillis());
 
 			if (!Raft.isLeader())
@@ -701,15 +729,20 @@ public class LogSequence {
 				if (heartbeat.isTimeout())
 					return 0; // skip
 
-				synchronized (Raft) {
+				Raft.lock();
+				try {
 					if (Raft.getLogSequence().TrySetTerm(heartbeat.Result.getTerm()) == SetTermResult.Newer) {
 						// new term found.
 						Raft.ConvertStateTo(Zeze.Raft.Raft.RaftState.Follower);
 						return Procedure.Success;
 					}
+				} finally {
+					Raft.unlock();
 				}
 				return 0;
 			}, Raft.getRaftConfig().getAppendEntriesTimeout());
+		} finally {
+			Raft.unlock();
 		}
 	}
 
@@ -724,7 +757,8 @@ public class LogSequence {
 
 	public void AppendLog(Log log, boolean WaitApply, AppendLogResult result) throws Throwable {
 		TaskCompletionSource<Integer> future = null;
-		synchronized (Raft) {
+		Raft.lock();
+		try {
 			if (!Raft.isLeader())
 				throw new RaftRetryException("not leader"); // 快速失败
 
@@ -757,6 +791,8 @@ public class LogSequence {
 				result.term = Term;
 				result.index = LastIndex;
 			}
+		} finally {
+			Raft.unlock();
 		}
 
 		if (WaitApply && !future.await(Raft.getRaftConfig().getAppendEntriesTimeout() * 2L + 1000)) {
@@ -786,7 +822,8 @@ public class LogSequence {
 		var removeLogBeforeFuture = RemoveLogBeforeFuture;
 		if (removeLogBeforeFuture != null)
 			removeLogBeforeFuture.await();
-		synchronized (Raft) {
+		Raft.lock();
+		try {
 			try {
 				// 6. If existing log entry has same index and term as snapshot's
 				// last included entry, retain log entries following it and reply
@@ -828,15 +865,20 @@ public class LogSequence {
 			} finally {
 				LogsAvailable = true;
 			}
+		} finally {
+			Raft.unlock();
 		}
 	}
 
 	public void Snapshot() throws Throwable {
-		synchronized (Raft) {
+		Raft.lock();
+		try {
 			if (getSnapshotting() || !getInstallSnapshotting().isEmpty())
 				return;
 
 			setSnapshotting(true);
+		} finally {
+			Raft.unlock();
 		}
 		try {
 			// 忽略Snapshot返回结果。肯定是重复调用导致的。
@@ -846,8 +888,11 @@ public class LogSequence {
 			logger.info("{} Snapshot Path={} LastIndex={} LastTerm={}",
 					Raft.getName(), path, result.LastIncludedIndex, result.LastIncludedTerm);
 		} finally {
-			synchronized (Raft) {
+			Raft.lock();
+			try {
 				setSnapshotting(false);
+			} finally {
+				Raft.unlock();
 			}
 		}
 	}
@@ -910,7 +955,8 @@ public class LogSequence {
 	private long ProcessAppendEntriesResult(Server.ConnectorEx connector, Protocol<?> p) throws Throwable {
 		// 这个rpc处理流程总是返回 Success，需要统计观察不同的分支的发生情况，再来定义不同的返回值。
 		var r = (AppendEntries)p;
-		synchronized (Raft) {
+		Raft.lock();
+		try {
 			if (r.isTimeout() && Raft.isLeader()) {
 				TrySendAppendEntries(connector, r); // timeout and resend
 				return Procedure.Success;
@@ -954,6 +1000,8 @@ public class LogSequence {
 				connector.setNextIndex(r.Result.getNextIndex()); // fast locate
 			TrySendAppendEntries(connector, r); //resend. use new NextIndex。
 			return Procedure.Success;
+		} finally {
+			Raft.unlock();
 		}
 	}
 

@@ -9,7 +9,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Net.Binary;
 import Zeze.Net.Connector;
 import Zeze.Net.Service;
@@ -39,10 +43,12 @@ public final class Raft {
 	private final ExecutorService ImportantThreadPool;
 	private final StateMachine StateMachine;
 	public volatile boolean IsShutdown = false;
+	private final Lock ReceiveSnapshottingLock = new ReentrantLock();
 	private final HashMap<Long, RandomAccessFile> ReceiveSnapshotting = new HashMap<>();
 	private volatile RaftState _State = RaftState.Follower;
 	private Future<?> TimerTask;
 	private long LowPrecisionTimer;
+	private final Lock AtFatalKillsLock = new ReentrantLock();
 	private final ArrayList<Action0> AtFatalKills = new ArrayList<>();
 
 	// Candidate
@@ -56,6 +62,9 @@ public final class Raft {
 
 	// Follower
 	private long LeaderLostTimeout;
+
+	private final Lock mutex = new ReentrantLock();
+	private final Condition condition = mutex.newCondition();
 
 	public String getName() {
 		return RaftConfig.getName();
@@ -71,6 +80,42 @@ public final class Raft {
 
 	public RaftConfig getRaftConfig() {
 		return RaftConfig;
+	}
+
+	public void lock() {
+		mutex.lock();
+	}
+
+	public void unlock() {
+		mutex.unlock();
+	}
+
+	public boolean tryLock() {
+		return mutex.tryLock();
+	}
+
+	public void await() {
+		try {
+			condition.await();
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public void await(long time) {
+		try {
+			condition.await(time, TimeUnit.MILLISECONDS);
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	public void signal() {
+		condition.signal();
+	}
+
+	public void signalAll() {
+		condition.signalAll();
 	}
 
 	public LogSequence getLogSequence() {
@@ -99,14 +144,18 @@ public final class Raft {
 	}
 
 	public void addAtFatalKill(Action0 action) {
-		synchronized (AtFatalKills) {
+		AtFatalKillsLock.lock();
+		try {
 			AtFatalKills.add(action);
+		} finally {
+			AtFatalKillsLock.unlock();
 		}
 	}
 
 	public void FatalKill() {
 		IsShutdown = true;
-		synchronized (AtFatalKills) {
+		AtFatalKillsLock.lock();
+		try {
 			for (Action0 action : AtFatalKills) {
 				try {
 					action.run();
@@ -114,6 +163,8 @@ public final class Raft {
 					logger.error("FatalKill", e);
 				}
 			}
+		} finally {
+			AtFatalKillsLock.unlock();
 		}
 		_LogSequence.Close();
 		LogManager.shutdown();
@@ -137,7 +188,8 @@ public final class Raft {
 	}
 
 	private void CancelAllReceiveSnapshotting() {
-		synchronized (ReceiveSnapshotting) {
+		ReceiveSnapshottingLock.lock();
+		try {
 			ReceiveSnapshotting.values().forEach(file -> {
 				try {
 					file.close();
@@ -146,11 +198,14 @@ public final class Raft {
 				}
 			});
 			ReceiveSnapshotting.clear();
+		} finally {
+			ReceiveSnapshottingLock.unlock();
 		}
 	}
 
 	public void Shutdown() throws Throwable {
-		synchronized (this) {
+		lock();
+		try {
 			// shutdown 只做一次。
 			if (IsShutdown)
 				return;
@@ -163,6 +218,8 @@ public final class Raft {
 				}
 			}
 			IsShutdown = true;
+		} finally {
+			unlock();
 		}
 		Server.Stop();
 
@@ -173,7 +230,8 @@ public final class Raft {
 		if (applyFuture != null)
 			applyFuture.await();
 
-		synchronized (this) {
+		lock();
+		try {
 			_LogSequence.CancelAllInstallSnapshot();
 			CancelAllReceiveSnapshotting();
 
@@ -183,6 +241,8 @@ public final class Raft {
 			}
 			ConvertStateTo(RaftState.Follower);
 			_LogSequence.Close();
+		} finally {
+			unlock();
 		}
 		ImportantThreadPool.shutdown(); // 需要停止线程。
 	}
@@ -254,6 +314,7 @@ public final class Raft {
 					public void run() {
 						ArrayList<Raft> exits = processExits.get();
 						//noinspection SynchronizationOnLocalVariableOrMethodParameter
+						// TODO LOCK
 						synchronized (exits) {
 							for (Raft raft : exits.toArray(new Raft[exits.size()])) {
 								try {
@@ -277,12 +338,18 @@ public final class Raft {
 		TimerTask = Task.schedule(10, this::OnTimer);
 	}
 
-	private synchronized long ProcessAppendEntries(AppendEntries r) throws Throwable {
-		return _LogSequence.FollowerOnAppendEntries(r);
+	private long ProcessAppendEntries(AppendEntries r) throws Throwable {
+		lock();
+		try {
+			return _LogSequence.FollowerOnAppendEntries(r);
+		} finally {
+			unlock();
+		}
 	}
 
 	private long ProcessInstallSnapshot(InstallSnapshot r) throws Throwable {
-		synchronized (this) {
+		lock();
+		try {
 			r.Result.setTerm(_LogSequence.getTerm());
 			if (r.Argument.getTerm() < _LogSequence.getTerm()) {
 				// 1. Reply immediately if term < currentTerm
@@ -297,6 +364,8 @@ public final class Raft {
 			}
 			LeaderId = r.Argument.getLeaderId();
 			_LogSequence.setLeaderActiveTime(System.currentTimeMillis());
+		} finally {
+			unlock();
 		}
 
 		// 2. Create new snapshot file if first chunk(offset is 0)
@@ -305,7 +374,8 @@ public final class Raft {
 		String path = Paths.get(RaftConfig.getDbHome(),
 				LogSequence.SnapshotFileName + ".installing." + r.Argument.getLastIncludedIndex()).toString();
 
-		synchronized (ReceiveSnapshotting) {
+		ReceiveSnapshottingLock.lock();
+		try {
 			RandomAccessFile outputFileStream = ReceiveSnapshotting.get(r.Argument.getLastIncludedIndex());
 			if (outputFileStream == null) {
 				if (r.Argument.getOffset() != 0) {
@@ -369,6 +439,8 @@ public final class Raft {
 					}
 				}
 			}
+		} finally {
+			ReceiveSnapshottingLock.unlock();
 		}
 		if (r.Argument.getDone()) {
 			// 剩下的处理流程在下面的函数里面。
@@ -399,11 +471,11 @@ public final class Raft {
 	 * 每个Raft使用一个固定Timer，根据不同的状态执行相应操作。
 	 * 【简化】不同状态下不管维护管理不同的Timer了。
 	 */
-	private synchronized void OnTimer() throws Throwable {
-		if (IsShutdown)
-			return;
-
+	private void OnTimer() throws Throwable {
+		lock();
 		try {
+			if (IsShutdown)
+				return;
 			long now = System.currentTimeMillis();
 			switch (getState()) {
 			case Follower:
@@ -428,6 +500,7 @@ public final class Raft {
 				OnLowPrecisionTimer();
 			}
 		} finally {
+			unlock();
 			TimerTask = Task.schedule(10, this::OnTimer);
 		}
 	}
@@ -441,19 +514,29 @@ public final class Raft {
 	 * true，IsLeader && LeaderReady;
 	 * false, !IsLeader
 	 */
-	synchronized boolean WaitLeaderReady() throws Exception {
-		var volatileTmp = LeaderReadyFuture; // 每次只等待一轮的选举，不考虑中间Leader发生变化。
-		while (isLeader()) {
-			if (volatileTmp.isDone())
-				return volatileTmp.get();
-			wait();
+	boolean WaitLeaderReady() throws Exception {
+		lock();
+		try {
+			var volatileTmp = LeaderReadyFuture; // 每次只等待一轮的选举，不考虑中间Leader发生变化。
+			while (isLeader()) {
+				if (volatileTmp.isDone())
+					return volatileTmp.get();
+				await();
+			}
+		} finally {
+			unlock();
 		}
 		return false;
 	}
 
-	public synchronized boolean isReadyLeader() throws Exception {
-		var volatileTmp = LeaderReadyFuture; // 每次只等待一轮的选举，不考虑中间Leader发生变化。
-		return isLeader() && volatileTmp.isDone() && volatileTmp.get();
+	public boolean isReadyLeader() throws Exception {
+		lock();
+		try {
+			var volatileTmp = LeaderReadyFuture; // 每次只等待一轮的选举，不考虑中间Leader发生变化。
+			return isLeader() && volatileTmp.isDone() && volatileTmp.get();
+		} finally {
+			unlock();
+		}
 	}
 
 	void ResetLeaderReadyAfterChangeState() {
@@ -526,30 +609,35 @@ public final class Raft {
 	}
 
 	@SuppressWarnings("SameReturnValue")
-	private synchronized long ProcessRequestVote(RequestVote r) throws Throwable {
-		// 不管任何状态重置下一次时间，使得每个node从大概一个时刻开始。
-		NextVoteTime = System.currentTimeMillis() + RaftConfig.getElectionTimeout();
+	private long ProcessRequestVote(RequestVote r) throws Throwable {
+		lock();
+		try {
+			// 不管任何状态重置下一次时间，使得每个node从大概一个时刻开始。
+			NextVoteTime = System.currentTimeMillis() + RaftConfig.getElectionTimeout();
 
-		if (_LogSequence.TrySetTerm(r.Argument.getTerm()) == LogSequence.SetTermResult.Newer)
-			ConvertStateTo(RaftState.Follower); // new term found.
-		// else continue process
+			if (_LogSequence.TrySetTerm(r.Argument.getTerm()) == LogSequence.SetTermResult.Newer)
+				ConvertStateTo(RaftState.Follower); // new term found.
+			// else continue process
 
-		// RequestVote RPC
-		// Receiver implementation:
-		// 1.Reply false if term < currentTerm(§5.1)
-		// 2.If votedFor is null or candidateId, and candidate's log is at
-		// least as up - to - date as receiver's log, grant vote(§5.2, §5.4)
+			// RequestVote RPC
+			// Receiver implementation:
+			// 1.Reply false if term < currentTerm(§5.1)
+			// 2.If votedFor is null or candidateId, and candidate's log is at
+			// least as up - to - date as receiver's log, grant vote(§5.2, §5.4)
 
-		r.Result.setTerm(_LogSequence.getTerm());
-		r.Result.setVoteGranted(r.Argument.getTerm() == _LogSequence.getTerm() &&
-				_LogSequence.CanVoteFor(r.Argument.getCandidateId()) && IsLastLogUpToDate(r.Argument));
+			r.Result.setTerm(_LogSequence.getTerm());
+			r.Result.setVoteGranted(r.Argument.getTerm() == _LogSequence.getTerm() &&
+					_LogSequence.CanVoteFor(r.Argument.getCandidateId()) && IsLastLogUpToDate(r.Argument));
 
-		if (r.Result.getVoteGranted())
-			_LogSequence.SetVoteFor(r.Argument.getCandidateId());
-		logger.info("{}: VoteFor={} Rpc={}", getName(), _LogSequence.getVoteFor(), r);
-		r.SendResultCode(0);
+			if (r.Result.getVoteGranted())
+				_LogSequence.SetVoteFor(r.Argument.getCandidateId());
+			logger.info("{}: VoteFor={} Rpc={}", getName(), _LogSequence.getVoteFor(), r);
+			r.SendResultCode(0);
 
-		return Procedure.Success;
+			return Procedure.Success;
+		} finally {
+			unlock();
+		}
 	}
 
 	@SuppressWarnings("SameReturnValue")
@@ -565,7 +653,8 @@ public final class Raft {
 		if (rpc.isTimeout() || rpc.getResultCode() != 0)
 			return 0; // skip error. re-vote later.
 
-		synchronized (this) {
+		lock();
+		try {
 			if (_LogSequence.getTerm() != rpc.Argument.getTerm() || getState() != RaftState.Candidate) {
 				// 结果回来时，上下文已经发生变化，忽略这个结果。
 				logger.info("{} NotOwner={} NotCandidate={}", getName(),
@@ -593,6 +682,8 @@ public final class Raft {
 					ConvertStateTo(RaftState.Leader);
 				}
 			}
+		} finally {
+			unlock();
 		}
 		return Procedure.Success;
 	}
