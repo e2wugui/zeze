@@ -1,5 +1,10 @@
 package Zeze.Transaction;
 
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
@@ -9,13 +14,6 @@ import org.tikv.common.key.Key;
 import org.tikv.kvproto.Kvrpcpb;
 import org.tikv.raw.RawKVClient;
 import org.tikv.shade.com.google.protobuf.ByteString;
-import org.tikv.shade.com.google.protobuf.Internal;
-
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 public class DatabaseTikv extends Database {
 	public static final int PAGE_SIZE = 512;
@@ -149,11 +147,11 @@ public class DatabaseTikv extends Database {
 		@Override
 		public final void Commit() {
 			if (!datas.isEmpty()) {
-				database.client.batchPutAtomic(datas);
+				database.client.batchPut(datas);
 				datas.clear();
 			}
 			if (!deleteKeys.isEmpty()) {
-				database.client.batchDeleteAtomic(deleteKeys);
+				database.client.batchDelete(deleteKeys);
 				deleteKeys.clear();
 			}
 		}
@@ -220,16 +218,8 @@ public class DatabaseTikv extends Database {
 
 		@Override
 		public ByteBuffer Find(ByteBuffer key) {
-			byte[] value;
-			try {
-				value = database.client.get(withKeySpace(keyPrefix, key)).toByteArray();
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			}
-			if (null == value || value == Internal.EMPTY_BYTE_ARRAY) {
-				return null;
-			}
-			return ByteBuffer.Wrap(value);
+			var result = database.client.get(withKeySpace(keyPrefix, key));
+			return result.isPresent() ? ByteBuffer.Wrap(result.get().toByteArray()) : null;
 		}
 
 		@Override

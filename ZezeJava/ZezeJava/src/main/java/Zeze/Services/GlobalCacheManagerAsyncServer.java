@@ -282,10 +282,11 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	}
 
 	private long ProcessAcquireRequest(Acquire rpc) {
+		var acquireState = rpc.Argument.State;
 		if (ENABLE_PERF)
-			perf.onAcquireBegin(rpc, rpc.Argument.State);
+			perf.onAcquireBegin(rpc, acquireState);
 		rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
-		rpc.Result.State = rpc.Argument.State; // default success
+		rpc.Result.State = acquireState; // default success
 
 		if (rpc.getSender().getUserState() == null) {
 			rpc.Result.State = StateInvalid;
@@ -294,7 +295,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			try {
 				var sender = (GlobalCacheManagerAsyncServer.CacheHolder)rpc.getSender().getUserState();
 				sender.setActiveTime(System.currentTimeMillis());
-				switch (rpc.Argument.State) {
+				switch (acquireState) {
 				case StateInvalid: // release
 					ReleaseAsync(rpc);
 					return 0;
@@ -316,7 +317,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			}
 		}
 		if (ENABLE_PERF)
-			perf.onAcquireEnd(rpc, rpc.Argument.State);
+			perf.onAcquireEnd(rpc, acquireState);
 		return 0;
 	}
 

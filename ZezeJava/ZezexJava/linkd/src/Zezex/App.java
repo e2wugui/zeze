@@ -4,9 +4,9 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.PersistentAtomicLong;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import Zeze.Arch.*;
 import Zeze.Config;
+import org.tikv.shade.com.fasterxml.jackson.databind.ObjectMapper;
 
 public final class App extends Zeze.AppBase {
 	public static final App Instance = new App();

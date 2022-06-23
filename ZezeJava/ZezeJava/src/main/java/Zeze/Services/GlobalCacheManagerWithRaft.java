@@ -168,14 +168,14 @@ public class GlobalCacheManagerWithRaft
 
 	@Override
 	protected long ProcessAcquireRequest(Acquire rpc) throws Throwable {
+		var acquireState = rpc.Argument.getState();
+		if (ENABLE_PERF)
+			perf.onAcquireBegin(rpc, acquireState);
 		var sender = (CacheHolder)rpc.getSender().getUserState();
 		if (sender != null)
 			sender.setActiveTime(System.currentTimeMillis());
-
-		if (ENABLE_PERF)
-			perf.onAcquireBegin(rpc, rpc.Argument.getState());
 		rpc.Result.setGlobalKey(rpc.Argument.getGlobalKey());
-		rpc.Result.setState(rpc.Argument.getState()); // default success
+		rpc.Result.setState(acquireState); // default success
 
 		long result;
 		if (sender == null) {
@@ -185,7 +185,7 @@ public class GlobalCacheManagerWithRaft
 			result = 0;
 		} else {
 			var proc = new Procedure(Rocks, () -> {
-				switch (rpc.Argument.getState()) {
+				switch (acquireState) {
 				case StateInvalid: // release
 					rpc.Result.setState(_Release(sender, rpc.Argument.getGlobalKey(), true));
 					rpc.setResultCode(0);
@@ -204,7 +204,7 @@ public class GlobalCacheManagerWithRaft
 			result = proc.Call();
 		}
 		if (ENABLE_PERF)
-			perf.onAcquireEnd(rpc, rpc.Argument.getState());
+			perf.onAcquireEnd(rpc, acquireState);
 		return result; // has handle all error.
 	}
 

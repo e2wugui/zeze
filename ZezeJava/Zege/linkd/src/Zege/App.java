@@ -9,10 +9,9 @@ import Zeze.Arch.LoadConfig;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Service;
-import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.PersistentAtomicLong;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.tikv.shade.com.fasterxml.jackson.databind.ObjectMapper;
 
 public class App extends Zeze.AppBase {
     public static App Instance = new App();

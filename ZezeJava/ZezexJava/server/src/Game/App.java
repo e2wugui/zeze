@@ -12,7 +12,7 @@ import Zeze.Game.ProviderDirectWithTransmit;
 import Zeze.Game.ProviderImplementWithOnline;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.PersistentAtomicLong;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.tikv.shade.com.fasterxml.jackson.databind.ObjectMapper;
 
 public final class App extends Zeze.AppBase {
 	public static final App Instance = new App();

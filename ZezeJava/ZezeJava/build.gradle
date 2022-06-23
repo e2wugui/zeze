@@ -7,7 +7,7 @@ dependencies {
     implementation 'org.apache.commons:commons-dbcp2:2.9.0'
     implementation 'org.apache.commons:commons-pool2:2.11.1'
     implementation 'org.rocksdb:rocksdbjni:7.3.1'
-    implementation 'org.tikv:tikv-client-java:3.1.2'
+    implementation 'org.tikv:tikv-client-java:3.3.0'
     implementation 'mysql:mysql-connector-java:8.0.28'
 }
 

@@ -305,10 +305,11 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	}
 
 	private long ProcessAcquireRequest(Acquire rpc) {
+		var acquireState = rpc.Argument.State;
 		if (ENABLE_PERF)
-			perf.onAcquireBegin(rpc, rpc.Argument.State);
+			perf.onAcquireBegin(rpc, acquireState);
 		rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
-		rpc.Result.State = rpc.Argument.State; // default success
+		rpc.Result.State = acquireState; // default success
 
 		long result = 0;
 		if (rpc.getSender().getUserState() == null) {
@@ -318,7 +319,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			try {
 				var sender = (CacheHolder)rpc.getSender().getUserState();
 				sender.setActiveTime(System.currentTimeMillis());
-				switch (rpc.Argument.State) {
+				switch (acquireState) {
 				case StateInvalid: // release
 					rpc.Result.State = Release(sender, rpc.Argument.GlobalKey, true); //await 方法内有等待
 					rpc.SendResultCode(0);
@@ -341,7 +342,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			}
 		}
 		if (ENABLE_PERF)
-			perf.onAcquireEnd(rpc, rpc.Argument.State);
+			perf.onAcquireEnd(rpc, acquireState);
 		return result;
 	}
 
