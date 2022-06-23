@@ -408,7 +408,6 @@ public final class Rocks extends StateMachine implements Closeable {
 					Storage.close();
 					Storage = null;
 				}
-				writeOptions.close();
 			}
 		} finally {
 			mutex.unlock();
