@@ -102,9 +102,9 @@ public final class Raft {
 		}
 	}
 
-	public void await(long time) {
+	public boolean await(long time) {
 		try {
-			condition.await(time, TimeUnit.MILLISECONDS);
+			return condition.await(time, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
 		}
@@ -313,8 +313,8 @@ public final class Raft {
 					@Override
 					public void run() {
 						ArrayList<Raft> exits = processExits.get();
-						//noinspection SynchronizationOnLocalVariableOrMethodParameter
 						// TODO LOCK
+						//noinspection SynchronizationOnLocalVariableOrMethodParameter
 						synchronized (exits) {
 							for (Raft raft : exits.toArray(new Raft[exits.size()])) {
 								try {

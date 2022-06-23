@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.LongAdder;
 public class Counters {
 	public static volatile boolean Enable = false;
 
-	private String name;
+	private final String name;
 	private final ConcurrentSkipListMap<String, LongAdder> counters = new ConcurrentSkipListMap<>();
 
 	public void increment(String name) {

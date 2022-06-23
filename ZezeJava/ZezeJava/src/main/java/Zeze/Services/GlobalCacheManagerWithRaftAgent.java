@@ -221,6 +221,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			}
 		}
 
+		@SuppressWarnings("SameParameterValue")
 		private void ThrowException(String msg, Throwable cause) {
 			var txn = Transaction.getCurrent();
 			if (txn != null)

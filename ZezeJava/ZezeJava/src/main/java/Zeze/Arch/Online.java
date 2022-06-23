@@ -31,6 +31,7 @@ import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+@SuppressWarnings("ConstantConditions")
 public class Online extends AbstractOnline {
     public static long GetSpecialTypeIdFromBean(Bean bean) {
         return bean.getTypeId();
@@ -549,8 +550,6 @@ public class Online extends AbstractOnline {
 
     /**
      * 给账号所有的登录终端发送消息。
-     * @param account
-     * @param p
      */
     public void sendAccount(String account, Protocol<?> p, OnlineSend sender) {
         sendAccount(account, p.getTypeId(), new Binary(p.Encode()), sender);
@@ -558,8 +557,6 @@ public class Online extends AbstractOnline {
 
     /**
      * 给账号所有的登录终端发送消息。
-     * @param accounts
-     * @param p
      */
     public void sendAccounts(Collection<String> accounts, Protocol<?> p, OnlineSend sender) {
         sendAccounts(accounts, p.getTypeId(), new Binary(p.Encode()), sender);

@@ -164,6 +164,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 
 		Sessions.forEach(session -> {
 			if (now - session.getActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout) {
+				//noinspection SynchronizationOnLocalVariableOrMethodParameter
 				synchronized (session) {
 					session.kick();
 					for (var e : session.Acquired.entrySet()) {
@@ -759,7 +760,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 		final ConcurrentHashMap<Binary, Integer> Acquired = new ConcurrentHashMap<>();
 		long SessionId;
 		int GlobalCacheManagerHashIndex;
-		private volatile long ActiveTime = System.currentTimeMillis();;
+		private volatile long ActiveTime = System.currentTimeMillis();
 		private volatile long LastErrorTime;
 		private boolean Logined = false;
 

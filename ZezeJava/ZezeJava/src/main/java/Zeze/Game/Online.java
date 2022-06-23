@@ -66,7 +66,7 @@ public class Online extends AbstractOnline {
 	public void setLocalBean(long roleId, String key, Bean bean) {
 		var bLocal = _tlocal.get(roleId);
 		if (null == bLocal)
-			throw new RuntimeException("roleid not online. " + roleId);
+			throw new RuntimeException("roleId not online. " + roleId);
 		var bAny = new BAny();
 		bAny.getAny().setBean(bean);
 		bLocal.getDatas().put(key, bAny);

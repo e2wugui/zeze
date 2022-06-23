@@ -788,15 +788,13 @@ public class Test {
 			}
 		}
 
-		public void StopRaft() throws Throwable {
-			synchronized (this) {
-				logger.debug("Raft {} Stop ...", RaftName);
-				// 在同一个进程中，没法模拟进程退出，
-				// 此时RocksDb应该需要关闭，否则重启会失败吧。
-				if (Raft != null) {
-					Raft.Shutdown();
-					Raft = null;
-				}
+		public synchronized void StopRaft() throws Throwable {
+			logger.debug("Raft {} Stop ...", RaftName);
+			// 在同一个进程中，没法模拟进程退出，
+			// 此时RocksDb应该需要关闭，否则重启会失败吧。
+			if (Raft != null) {
+				Raft.Shutdown();
+				Raft = null;
 			}
 		}
 
@@ -834,7 +832,7 @@ public class Test {
 			Files.createDirectories(Paths.get(raftConfig.getDbHome()));
 
 			Raft = new Raft(StateMachine, RaftName, raftConfig);
-			Raft.getLogSequence().getWriteOptions().setSync(false);
+			Raft.getLogSequence().setWriteOptions(DatabaseRocksDb.getDefaultWriteOptions());
 			Raft.getServer().AddFactoryHandle(AddCount.TypeId_,
 					new Service.ProtocolFactoryHandle<>(AddCount::new, this::ProcessAddCount));
 			Raft.getServer().AddFactoryHandle(GetCount.TypeId_,

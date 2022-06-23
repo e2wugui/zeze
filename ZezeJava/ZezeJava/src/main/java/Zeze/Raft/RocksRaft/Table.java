@@ -156,7 +156,6 @@ public final class Table<K, V extends Bean> {
 			tempVar.setTable(this);
 			tempVar.setKey(key);
 			var r = LruCache.GetOrAdd(key, () -> tempVar);
-			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			r.mutex.lock();
 			try {
 				if (r.getRemoved())

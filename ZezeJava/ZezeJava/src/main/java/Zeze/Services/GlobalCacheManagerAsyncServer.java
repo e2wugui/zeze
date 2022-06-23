@@ -138,6 +138,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 
 		Sessions.forEach(session -> {
 			if (now - session.getActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout) {
+				//noinspection SynchronizationOnLocalVariableOrMethodParameter
 				synchronized (session) {
 					session.kick();
 					var allReleaseFuture = new CountDownFuture();
@@ -898,7 +899,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		final ConcurrentHashMap<Binary, Integer> Acquired = new ConcurrentHashMap<>();
 		long SessionId;
 		int GlobalCacheManagerHashIndex;
-		private volatile long ActiveTime = System.currentTimeMillis();;
+		private volatile long ActiveTime = System.currentTimeMillis();
 		private volatile long LastErrorTime;
 		private boolean Logined = false;
 

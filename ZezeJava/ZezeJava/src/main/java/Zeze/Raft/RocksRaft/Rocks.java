@@ -113,7 +113,7 @@ public final class Rocks extends StateMachine implements Closeable {
 			if (Storage != null)
 				Storage.close();
 		});
-		getRaft().getLogSequence().getWriteOptions().setSync(RocksDbWriteOptionSync);
+		getRaft().getLogSequence().setWriteOptions(writeOptions);
 
 		// Raft 在有快照的时候，会调用LoadSnapshot-Restore-OpenDb。
 		// 如果Storage没有创建，需要主动打开。
@@ -278,7 +278,6 @@ public final class Rocks extends StateMachine implements Closeable {
 
 		// fast checkpoint, will stop application apply.
 		Raft raft = getRaft();
-		//noinspection SynchronizationOnLocalVariableOrMethodParameter
 		raft.lock();
 		try {
 			var lastAppliedLog = raft.getLogSequence().LastAppliedLogTermIndex();
