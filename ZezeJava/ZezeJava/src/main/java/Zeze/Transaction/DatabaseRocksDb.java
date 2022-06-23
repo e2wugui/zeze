@@ -132,11 +132,18 @@ public class DatabaseRocksDb extends Database {
 	}
 
 	private final class RocksDbTrans implements Transaction {
-		private final WriteBatch batch = new WriteBatch();
+		private WriteBatch batch;
+
+		private WriteBatch getBatch() {
+			var wb = batch;
+			if (wb == null)
+				batch = wb = new WriteBatch();
+			return wb;
+		}
 
 		void Put(byte[] key, byte[] value, ColumnFamilyHandle family) {
 			try {
-				batch.put(family, key, value);
+				getBatch().put(family, key, value);
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
 			}
@@ -144,7 +151,7 @@ public class DatabaseRocksDb extends Database {
 
 		void Remove(byte[] key, ColumnFamilyHandle family) {
 			try {
-				batch.delete(family, key);
+				getBatch().delete(family, key);
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
 			}
@@ -152,6 +159,8 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public void Commit() {
+			if (batch == null)
+				return;
 			try {
 				rocksDb.write(defaultWriteOptions, batch);
 			} catch (RocksDBException e) {
@@ -165,7 +174,10 @@ public class DatabaseRocksDb extends Database {
 
 		@Override
 		public void close() {
-			batch.close();
+			if (batch != null) {
+				batch.close();
+				batch = null;
+			}
 		}
 	}
 
