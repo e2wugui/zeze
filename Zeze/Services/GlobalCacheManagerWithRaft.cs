@@ -749,6 +749,7 @@ namespace Zeze.Services
                         {
                             session.Kick();
                             var Acquired = ServerAcquiredTemplate.OpenTableWithType(session.ServerId);
+                            logger.Info($"AchillesHeelDaemon.Release begin {session}");
                             await Acquired.WalkKeyAsync(async (key) =>
                             {
                                 // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
@@ -760,6 +761,7 @@ namespace Zeze.Services
                                 return false;
                             });
                             session.SetActiveTime(Util.Time.NowUnixMillis);
+                            logger.Info($"AchillesHeelDaemon.Release end {session}");
                             // skip allReleaseFuture result
                         }
                     }

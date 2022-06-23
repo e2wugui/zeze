@@ -167,13 +167,18 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 				//noinspection SynchronizationOnLocalVariableOrMethodParameter
 				synchronized (session) {
 					session.kick();
-					for (var e : session.Acquired.entrySet()) {
-						// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-						try {
-							Release(session, e.getKey(), false);
-						} catch (InterruptedException ex) {
-							logger.error("", ex);
+					if (!session.Acquired.isEmpty()) {
+						logger.info("AchillesHeelDaemon.Release begin {}", session);
+						for (var e : session.Acquired.entrySet()) {
+							// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
+							try {
+								Release(session, e.getKey(), false);
+							} catch (InterruptedException ex) {
+								logger.error("", ex);
+							}
 						}
+						session.setActiveTime(System.currentTimeMillis());
+						logger.info("AchillesHeelDaemon.Release end {}", session);
 					}
 				}
 			}

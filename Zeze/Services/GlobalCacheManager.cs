@@ -224,10 +224,16 @@ namespace Zeze.Services
                     using (await session.Mutex.LockAsync())
                     {
                         session.Kick();
-                        foreach (var e in session.Acquired)
+                        if (session.Acquired.Count > 0)
                         {
-                            // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-                            await ReleaseAsync(session, e.Key, false);
+                            logger.Info($"AchillesHeelDaemon.Release begin {session}");
+                            foreach (var e in session.Acquired)
+                            {
+                                // ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
+                                await ReleaseAsync(session, e.Key, false);
+                            }
+                            session.SetActiveTime(Util.Time.NowUnixMillis);
+                            logger.Info($"AchillesHeelDaemon.Release end {session}");
                         }
                     }
                 }

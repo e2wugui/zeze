@@ -141,12 +141,17 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				//noinspection SynchronizationOnLocalVariableOrMethodParameter
 				synchronized (session) {
 					session.kick();
-					var allReleaseFuture = new CountDownFuture();
-					for (var e : session.Acquired.entrySet()) {
-						// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-						ReleaseAsync(session, e.getKey(), allReleaseFuture.createOne());
+					if (!session.Acquired.isEmpty()) {
+						logger.info("AchillesHeelDaemon.Release begin {}", session);
+						var allReleaseFuture = new CountDownFuture();
+						for (var e : session.Acquired.entrySet()) {
+							// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
+							ReleaseAsync(session, e.getKey(), allReleaseFuture.createOne());
+						}
+						session.setActiveTime(System.currentTimeMillis());
+						logger.info("AchillesHeelDaemon.Release end {}", session);
+						// skip allReleaseFuture result
 					}
-					// skip allReleaseFuture result
 				}
 			}
 		});
@@ -901,7 +906,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		int GlobalCacheManagerHashIndex;
 		private volatile long ActiveTime = System.currentTimeMillis();
 		private volatile long LastErrorTime;
-		private boolean Logined = false;
+		private boolean Logined = false; // 改成State，也能表示已经kick过，下一次不再kick？
 
 		long getActiveTime() {
 			return ActiveTime;

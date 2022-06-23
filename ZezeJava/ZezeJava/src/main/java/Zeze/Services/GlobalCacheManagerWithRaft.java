@@ -140,6 +140,8 @@ public class GlobalCacheManagerWithRaft
 								}
 								return false;
 							});
+							session.setActiveTime(System.currentTimeMillis());
+							logger.info("AchillesHeelDaemon.Release end {}", session);
 						} catch (Throwable e) {
 							logger.error("AchillesHeelDaemon.Release " + session + " exception", e);
 						} finally {
