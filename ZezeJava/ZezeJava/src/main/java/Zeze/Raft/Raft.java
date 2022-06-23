@@ -542,7 +542,7 @@ public final class Raft {
 	void ResetLeaderReadyAfterChangeState() {
 		LeaderReadyFuture.SetResult(false);
 		LeaderReadyFuture = new TaskCompletionSource<>(); // prepare for next leader
-		notifyAll(); // has under lock(this)
+		signalAll(); // has under lock(this)
 	}
 
 	void SetLeaderReady(RaftLog heart) throws Throwable {
@@ -560,7 +560,7 @@ public final class Raft {
 					_LogSequence.getLastIndex(), _LogSequence.GetTestStateMachineCount());
 
 			LeaderReadyFuture.SetResult(true);
-			notifyAll(); // has under lock(this)
+			signalAll(); // has under lock(this)
 
 			Server.Foreach(allSocket -> {
 				// 本来这个通告发给Agent(client)即可，
