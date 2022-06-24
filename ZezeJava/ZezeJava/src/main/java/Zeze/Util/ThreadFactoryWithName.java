@@ -9,8 +9,8 @@ public class ThreadFactoryWithName implements ThreadFactory {
 	private static final Method unstartedMethod;
 	// private static final AtomicInteger poolNumber = new AtomicInteger(1);
 
-	private final AtomicInteger threadNumber = new AtomicInteger(1);
-	private final String namePrefix;
+	protected final AtomicInteger threadNumber = new AtomicInteger(1);
+	protected final String namePrefix;
 
 	static {
 		Object ofVirtual0 = null;

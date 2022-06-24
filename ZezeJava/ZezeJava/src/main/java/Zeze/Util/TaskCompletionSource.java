@@ -9,6 +9,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * @param <R> 为了性能优化考虑,R不能是ExecutionException,也不能是CancellationException
@@ -19,6 +21,8 @@ public class TaskCompletionSource<R> implements Future<R> {
 
 	@SuppressWarnings("unused")
 	private volatile Object result;
+	private final ReentrantLock lock = new ReentrantLock();
+	private final Condition cond = lock.newCondition();
 
 	static {
 		try {
@@ -36,8 +40,11 @@ public class TaskCompletionSource<R> implements Future<R> {
 		if (r == null)
 			r = NULL_RESULT;
 		if (RESULT.compareAndSet(this, null, r)) {
-			synchronized (this) {
-				notifyAll();
+			lock.lock();
+			try {
+				cond.signalAll();
+			} finally {
+				lock.unlock();
 			}
 			return true;
 		}
@@ -82,9 +89,12 @@ public class TaskCompletionSource<R> implements Future<R> {
 		Object r = result;
 		if (r == null) {
 			assert !Thread.currentThread().getName().startsWith("Selector");
-			synchronized (this) {
+			lock.lock();
+			try {
 				while ((r = result) == null)
-					wait();
+					cond.await();
+			} finally {
+				lock.unlock();
 			}
 		}
 		return toResult(r);
@@ -98,12 +108,16 @@ public class TaskCompletionSource<R> implements Future<R> {
 			if (timeout <= 0) // wait(0) == wait(), but get(0) != get()
 				throw new TimeoutException();
 			assert !Thread.currentThread().getName().startsWith("Selector");
-			synchronized (this) {
+			lock.lock();
+			try {
 				if ((r = result) == null) {
-					wait(timeout);
+					//noinspection ResultOfMethodCallIgnored
+					cond.await(timeout, TimeUnit.MILLISECONDS);
 					if ((r = result) == null)
 						throw new TimeoutException();
 				}
+			} finally {
+				lock.unlock();
 			}
 		}
 		return toResult(r);

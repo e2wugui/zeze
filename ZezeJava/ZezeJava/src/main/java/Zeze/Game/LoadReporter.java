@@ -76,10 +76,6 @@ public class LoadReporter {
 		loadServer.Port = Online.ProviderApp.DirectPort;
 		loadServer.Param = new Binary(bb);
 
-		try {
-			Online.ProviderApp.Zeze.getServiceManagerAgent().SetServerLoad(loadServer);
-		} catch (Throwable e) {
-			e.printStackTrace();
-		}
+		Online.ProviderApp.Zeze.getServiceManagerAgent().SetServerLoad(loadServer);
 	}
 }

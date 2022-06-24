@@ -3,6 +3,8 @@ package Zeze.Arch;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
 import java.util.ArrayList;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action1;
 import Zeze.Util.IntHashSet;
@@ -109,14 +111,19 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 	private volatile Action1<RedirectAllContext<R>> onAllDone;
 	private volatile RedirectAllContext<R> ctx;
 	private IntHashSet finishedHashes; // lazy-init
+	private final ReentrantLock lock = new ReentrantLock();
+	private final Condition cond = lock.newCondition();
 
 	private IntHashSet getFinishedHashes() {
 		var hashes = finishedHashes;
 		if (hashes == null) {
 			var newHashes = new IntHashSet();
-			synchronized (this) {
+			lock.lock();
+			try {
 				if ((hashes = finishedHashes) == null)
 					finishedHashes = hashes = newHashes;
+			} finally {
+				lock.unlock();
 			}
 		}
 		return hashes;
@@ -179,8 +186,11 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 				return Procedure.Success;
 			}, "RedirectAllFutureImpl.allDone").Call();
 		}
-		synchronized (this) {
-			notifyAll();
+		lock.lock();
+		try {
+			cond.signalAll();
+		} finally {
+			lock.unlock();
 		}
 	}
 
@@ -206,13 +216,16 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 	public RedirectAllFuture<R> await() {
 		var c = ctx;
 		if (c == null || !c.isCompleted()) {
-			synchronized (this) {
+			lock.lock();
+			try {
 				try {
 					while ((c = ctx) == null || !c.isCompleted())
-						wait();
+						cond.await();
 				} catch (InterruptedException e) {
 					throw new RuntimeException(e);
 				}
+			} finally {
+				lock.unlock();
 			}
 		}
 		return this;

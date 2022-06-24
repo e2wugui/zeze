@@ -118,7 +118,7 @@ public class ResetDB {
 		try {
 			context.Update();
 		} catch (Throwable e) {
-			e.printStackTrace();
+			logger.error("", e);
 		}
 	}
 
@@ -183,26 +183,26 @@ public class ResetDB {
 					}
 					stmt.close();
 					conn.close();
-				} catch(SQLException se){
+				} catch(SQLException se) {
 					// 处理 JDBC 错误
-					se.printStackTrace();
-				}catch(Exception e){
+					logger.error("", se);
+				} catch(Exception e) {
 					// 处理 Class.forName 错误
-					e.printStackTrace();
-				}finally{
+					logger.error("", e);
+				} finally {
 					// 关闭资源
-					try{
+					try {
 						if(stmt != null) {
 							stmt.close();
 						}
-					}catch(SQLException ignored){
+					} catch (SQLException ignored){
 					}// 什么都不做
-					try{
+					try {
 						if(conn != null) {
 							conn.close();
 						}
-					}catch(SQLException se){
-						se.printStackTrace();
+					} catch (SQLException se){
+						logger.error("", se);
 					}
 				}
 			}

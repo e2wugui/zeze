@@ -27,7 +27,7 @@ public class Selectors {
 			Selector[] tmp = SelectorList;
 			tmp = tmp == null ? new Selector[count] : Arrays.copyOf(tmp, tmp.length + count);
 			for (int i = tmp.length - count; i < tmp.length; i++) {
-				tmp[i] = new Selector("SelectorThread" + i);
+				tmp[i] = new Selector("Selector-" + i);
 				tmp[i].start();
 			}
 			SelectorList = tmp;

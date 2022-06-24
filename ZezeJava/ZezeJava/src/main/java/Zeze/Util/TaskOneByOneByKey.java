@@ -2,6 +2,8 @@ package Zeze.Util;
 
 import java.util.ArrayDeque;
 import java.util.Collection;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Transaction.Procedure;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -68,39 +70,44 @@ public final class TaskOneByOneByKey {
 	}
 
 	public static class Barrier {
-		public int Count;
-		public final Procedure Procedure;
-		public final Action0 CancelAction;
-		public boolean Canceled = false;
+		private final Procedure Procedure;
+		private final Action0 CancelAction;
+		private final ReentrantLock lock = new ReentrantLock();
+		private final Condition cond = lock.newCondition();
+		private int Count;
+		private boolean Canceled;
 
 		public Barrier(Procedure action, int count, Action0 cancel) {
-			Count = count;
-
 			Procedure = action;
 			CancelAction = cancel;
+			Count = count;
 		}
 
 		public void Reach() throws InterruptedException {
-			synchronized (this) {
+			lock.lock();
+			try {
 				if (Canceled)
 					return;
 
-				if (--Count > 0) {
-					this.wait();
-				} else {
+				if (--Count > 0)
+					cond.await();
+				else {
 					try {
 						Procedure.Call();
 					} catch (Throwable ex) {
 						logger.error(Procedure.getActionName() + " Run", ex);
 					} finally {
-						this.notifyAll();
+						cond.signalAll();
 					}
 				}
+			} finally {
+				lock.unlock();
 			}
 		}
 
 		public void Cancel() {
-			synchronized (this) {
+			lock.lock();
+			try {
 				if (Canceled)
 					return;
 
@@ -111,21 +118,21 @@ public final class TaskOneByOneByKey {
 				} catch (Throwable ex) {
 					logger.error(Procedure.getActionName() + " Canceled", ex);
 				} finally {
-					this.notifyAll();
+					cond.signalAll();
 				}
+			} finally {
+				lock.unlock();
 			}
 		}
 	}
 
-	public <T> void ExecuteCyclicBarrier(Collection<T> keys, Procedure procdure, Action0 cancel) {
-		if (keys.size() <= 0)
+	public <T> void ExecuteCyclicBarrier(Collection<T> keys, Procedure procedure, Action0 cancel) {
+		if (keys.isEmpty())
 			throw new RuntimeException("CyclicBarrier keys is empty.");
 
-		var barrier = new Barrier(procdure, keys.size(), cancel);
-		synchronized (this) {
-			for (var key : keys)
-				Execute(key, barrier::Reach, barrier.Procedure.getActionName(), barrier::Cancel);
-		}
+		var barrier = new Barrier(procedure, keys.size(), cancel);
+		for (var key : keys)
+			Execute(key, barrier::Reach, barrier.Procedure.getActionName(), barrier::Cancel);
 	}
 
 	public void Execute(Object key, Procedure procedure, Action0 cancel) {
@@ -208,11 +215,10 @@ public final class TaskOneByOneByKey {
 		for (var ts : concurrency)
 			ts.Shutdown(cancel);
 		try {
-			for (var ts : concurrency) {
+			for (var ts : concurrency)
 				ts.WaitComplete();
-			}
 		} catch (InterruptedException e) {
-			e.printStackTrace();
+			logger.error("Shutdown interrupted", e);
 		}
 	}
 
@@ -263,7 +269,7 @@ public final class TaskOneByOneByKey {
 		}
 
 		final class TaskFunc extends Task {
-			final Func0<?> func;
+			private final Func0<?> func;
 
 			TaskFunc(Func0<?> func, String name, Action0 cancel) {
 				super(name, cancel);
@@ -282,6 +288,8 @@ public final class TaskOneByOneByKey {
 			}
 		}
 
+		private final ReentrantLock lock = new ReentrantLock();
+		private final Condition cond = lock.newCondition();
 		private ArrayDeque<Task> queue = new ArrayDeque<>();
 		private boolean IsShutdown;
 
@@ -295,13 +303,16 @@ public final class TaskOneByOneByKey {
 
 		private void Execute(Task task) {
 			boolean submit = false;
-			synchronized (this) {
+			lock.lock();
+			try {
 				if (!IsShutdown) {
 					queue.addLast(task);
 					if (queue.size() != 1)
 						return;
 					submit = true;
 				}
+			} finally {
+				lock.unlock();
 			}
 			if (submit)
 				Zeze.Util.Task.getThreadPool().submit(task);
@@ -316,21 +327,25 @@ public final class TaskOneByOneByKey {
 
 		private void RunNext() {
 			Task task;
-			synchronized (this) {
+			lock.lock();
+			try {
 				queue.removeFirst();
 				if (queue.isEmpty()) {
 					if (IsShutdown)
-						notifyAll();
+						cond.signalAll();
 					return;
 				}
 				task = queue.peekFirst();
+			} finally {
+				lock.unlock();
 			}
 			Zeze.Util.Task.getThreadPool().submit(task);
 		}
 
 		void Shutdown(boolean cancel) {
 			ArrayDeque<Task> oldQueue;
-			synchronized (this) {
+			lock.lock();
+			try {
 				if (IsShutdown)
 					return;
 				IsShutdown = true;
@@ -339,6 +354,8 @@ public final class TaskOneByOneByKey {
 					return;
 				queue = new ArrayDeque<>(); // clear
 				queue.addLast(oldQueue.pollFirst()); // put back running task back
+			} finally {
+				lock.unlock();
 			}
 			for (Task task : oldQueue) {
 				if (task.cancel != null) {
@@ -351,9 +368,14 @@ public final class TaskOneByOneByKey {
 			}
 		}
 
-		synchronized void WaitComplete() throws InterruptedException {
-			while (!queue.isEmpty())
-				wait(); // wait running task
+		void WaitComplete() throws InterruptedException {
+			lock.lock();
+			try {
+				while (!queue.isEmpty())
+					cond.await(); // wait running task
+			} finally {
+				lock.unlock();
+			}
 		}
 	}
 }

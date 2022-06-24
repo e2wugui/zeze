@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -25,6 +26,7 @@ import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCanceledException;
 import Zeze.Util.TaskCompletionSource;
+import Zeze.Util.ThreadFactoryWithName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
@@ -82,11 +84,24 @@ public final class Raft {
 		return RaftConfig;
 	}
 
+//	private long lockTime = System.currentTimeMillis();
+//	private long unlockTime = System.currentTimeMillis();
+
 	public void lock() {
+//		var lockBefore = System.currentTimeMillis();
 		mutex.lock();
+//		lockTime = System.currentTimeMillis();
+//		if (lockTime - lockBefore > 500) {
+//			logger.warn("--- wait lock too long: " + (lockTime - lockBefore) + ", noLockTime: " + (lockTime - unlockTime), new Exception());
+//		}
 	}
 
 	public void unlock() {
+//		unlockTime = System.currentTimeMillis();
+//		var t = unlockTime - lockTime;
+//		if (t > 500) {
+//			logger.warn("--- lock time too long: " + t, new Exception());
+//		}
 		mutex.unlock();
 	}
 
@@ -96,6 +111,10 @@ public final class Raft {
 
 	public void await() {
 		try {
+//			var t = System.currentTimeMillis();
+//			if (t - lockTime > 500) {
+//				logger.warn("--- lock time too long: " + (t - lockTime), new Exception());
+//			}
 			condition.await();
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e);
@@ -292,7 +311,16 @@ public final class Raft {
 		if (RaftConfig.getNodes().size() < 3)
 			throw new IllegalStateException("Startup Nodes.Count Must >= 3.");
 
-		ImportantThreadPool = Task.newFixedThreadPool(5, "Raft");
+		ImportantThreadPool = Executors.newCachedThreadPool(new ThreadFactoryWithName("Raft") {
+			@Override
+			public Thread newThread(Runnable r) {
+				var t = new Thread(null, r, namePrefix + threadNumber.getAndIncrement(), 0);
+				t.setDaemon(true);
+				t.setPriority(Thread.NORM_PRIORITY + 1);
+				t.setUncaughtExceptionHandler((__, e) -> logger.error("fatal exception", e));
+				return t;
+			}
+		});
 		Zeze.Raft.Server.CreateAcceptor(Server, raftConf);
 		Zeze.Raft.Server.CreateConnector(Server, raftConf);
 
@@ -479,8 +507,10 @@ public final class Raft {
 			long now = System.currentTimeMillis();
 			switch (getState()) {
 			case Follower:
-				if (now - _LogSequence.getLeaderActiveTime() > LeaderLostTimeout)
+				if (now - _LogSequence.getLeaderActiveTime() > LeaderLostTimeout) {
+					logger.warn("LeaderLostTimeout: {} > {}", now - _LogSequence.getLeaderActiveTime(), LeaderLostTimeout);
 					ConvertStateTo(RaftState.Candidate);
+				}
 				break;
 			case Candidate:
 				if (now > NextVoteTime)

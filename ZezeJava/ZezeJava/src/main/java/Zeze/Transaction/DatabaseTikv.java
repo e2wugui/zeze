@@ -64,7 +64,11 @@ public class DatabaseTikv extends Database {
 			version++;
 			dv.Version = version;
 			dv.Data = data;
-			table.Replace(getDatabase().BeginTransaction(), key, ByteBuffer.Wrap(dv.Encode()));
+			try (var txn = getDatabase().BeginTransaction()) {
+				table.Replace(txn, key, ByteBuffer.Wrap(dv.Encode()));
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
 			return Zeze.Util.KV.Create(version, true);
 		}
 
@@ -115,12 +119,12 @@ public class DatabaseTikv extends Database {
 		try {
 			client.close();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error("", e);
 		}
 		try {
 			session.close();
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error("", e);
 		}
 		super.Close();
 	}

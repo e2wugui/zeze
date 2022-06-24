@@ -153,7 +153,8 @@ public class AchillesHeelDaemon extends Thread {
 					}
 				}
 				try {
-					this.wait(1000);
+					//noinspection BusyWait
+					Thread.sleep(1000);
 				} catch (InterruptedException e) {
 					logger.warn("", e);
 				}

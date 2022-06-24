@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
  所以数据库层就不要求很高的效率。马马虎虎就可以了。
 */
 public abstract class Database {
-	private static final Logger logger = LogManager.getLogger(Database.class);
+	protected static final Logger logger = LogManager.getLogger(Database.class);
 
 	private final ConcurrentHashMap<String, Zeze.Transaction.Table> tables = new ConcurrentHashMap<>();
 	public final ArrayList<Storage> storages = new ArrayList<>();
