@@ -23,6 +23,8 @@ public class AchillesHeelConfig {
 	public final int ServerFastErrorPeriod;
 	public final int GlobalForbidPeriod;
 
+	public final int LoginTimeout;
+
 	public AchillesHeelConfig(int maxNetPing, int serverProcessTime, int serverReleaseTimeout) {
 		ServerKeepAliveIdleTimeout = maxNetPing;
 		ServerDaemonTimeout = ReconnectTimer * 8;
@@ -35,5 +37,7 @@ public class AchillesHeelConfig {
 
 		ServerFastErrorPeriod = ServerDaemonTimeout / 2;
 		GlobalForbidPeriod = ServerDaemonTimeout / 2;
+
+		LoginTimeout = AcquireTimeout;
 	}
 }

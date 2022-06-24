@@ -47,8 +47,15 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		for (var agent : Agents)
 			agent.getRaftClient().getClient().Start();
 
-		for (var agent : Agents)
-			agent.WaitLoginSuccess();
+		for (var agent : Agents) {
+			// raft 登录需要选择leader，所以总是会起新的登录，第一次等待会失败，所以下面尝试两次。
+			for (int i = 0; i < 2; ++i) {
+				try {
+					agent.WaitLoginSuccess();
+				} catch (Throwable skip) {
+				}
+			}
+		}
 	}
 
 	@Override
@@ -315,7 +322,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 					return;
 				throw new RuntimeException("login fail.");
 			}
-			if (!volatileTmp.await(getConfig().AcquireTimeout))
+			if (!volatileTmp.await(getConfig().LoginTimeout))
 				throw new RuntimeException("login timeout.");
 			// 再次查看结果。
 			if (volatileTmp.isDone() && volatileTmp.get())

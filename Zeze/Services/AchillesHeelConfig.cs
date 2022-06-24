@@ -30,6 +30,8 @@ namespace Zeze.Services
 		public int ServerFastErrorPeriod { get; }
 		public int GlobalForbidPeriod { get; }
 
+		public int LoginTimeout { get; }
+
 		public AchillesHeelConfig(int maxNetPing, int serverProcessTime, int serverReleaseTimeout)
 		{
 			ServerKeepAliveIdleTimeout = maxNetPing;
@@ -43,6 +45,8 @@ namespace Zeze.Services
 
 			ServerFastErrorPeriod = ServerDaemonTimeout / 2;
 			GlobalForbidPeriod = ServerDaemonTimeout / 2;
+
+			LoginTimeout = AcquireTimeout;
 		}
 	}
 }

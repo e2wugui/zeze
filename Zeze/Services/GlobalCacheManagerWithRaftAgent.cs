@@ -43,7 +43,18 @@ namespace Zeze.Services
 
             foreach (var agent in Agents)
             {
-                await agent.WaitLoginSuccess();
+                // raft 登录需要选择leader，所以总是会起新的登录，第一次等待会失败，所以下面尝试两次。
+                for (int i = 0; i < 2; ++i)
+                {
+                    try
+                    {
+                        await agent.WaitLoginSuccess();
+                    }
+                    catch (Exception)
+                    {
+                        // skip
+                    }
+                }
             }
         }
 
@@ -290,7 +301,7 @@ namespace Zeze.Services
                         return;
                     throw new Exception("login fail");
                 }
-                await Task.WhenAny(volatiletmp.Task, Task.Delay(Config.AcquireTimeout));
+                await Task.WhenAny(volatiletmp.Task, Task.Delay(Config.LoginTimeout));
                 if (volatiletmp.Task.IsCompletedSuccessfully && volatiletmp.Task.Result)
                     return;
                 throw new Exception("login timeout");
