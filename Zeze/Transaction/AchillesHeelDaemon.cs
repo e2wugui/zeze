@@ -62,7 +62,7 @@ namespace Zeze.Transaction
 							if (null == config)
 								continue; // skip agent not login
 
-							var rr = agent.CheckReleaseTimeout(i, now, config.ServerReleaseTimeout);
+							var rr = agent.CheckReleaseTimeout(now, config.ServerReleaseTimeout);
 							if (rr == GlobalAgentBase.CheckReleaseResult.Timeout)
 							{
 								logger.Fatal("AchillesHeelDaemon global release timeout. index=" + i);
@@ -85,7 +85,7 @@ namespace Zeze.Transaction
 									// 这里没法快速手段判断本Server是否存在从该Global获取的记录锁。
 									// 在Agent中增加获得的计数是个方案，但挺烦的。
 									logger.Warn($"StartRelease ServerDaemonTimeout {config.ServerReleaseTimeout}");
-									agent.StartRelease(Zeze, i);
+									agent.StartRelease(Zeze);
 								}
 							}
 						}

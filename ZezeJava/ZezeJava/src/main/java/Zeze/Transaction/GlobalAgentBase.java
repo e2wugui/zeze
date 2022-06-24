@@ -10,6 +10,7 @@ import Zeze.Util.Task;
 public abstract class GlobalAgentBase {
 	private AchillesHeelConfig config;
 	private volatile long activeTime = System.currentTimeMillis();
+	protected int GlobalCacheManagerHashIndex;
 
 	public final long getActiveTime() {
 		return activeTime;
@@ -33,7 +34,7 @@ public abstract class GlobalAgentBase {
 
 	public abstract void keepAlive();
 
-	private final ConcurrentHashMap<Integer, Releaser> Releasers = new ConcurrentHashMap<>();
+	private volatile Releaser Releaser;
 
 	public enum CheckReleaseResult {
 		NoRelease,
@@ -41,13 +42,17 @@ public abstract class GlobalAgentBase {
 		Timeout,
 	}
 
-	public CheckReleaseResult checkReleaseTimeout(int index, long now, int timeout) {
-		var r = Releasers.get(index);
+	public boolean isReleasing() {
+		return Releaser != null;
+	}
+
+	public CheckReleaseResult checkReleaseTimeout(long now, int timeout) {
+		var r = Releaser;
 		if (r == null)
 			return CheckReleaseResult.NoRelease;
 
 		if (r.isCompletedSuccessfully()) {
-			Releasers.remove(index);
+			Releaser = null;
 			// 每次成功Release，设置一次活动时间，阻止AchillesHeelDaemon马上再次触发Release。
 			setActiveTime(System.currentTimeMillis());
 			return CheckReleaseResult.NoRelease;
@@ -95,7 +100,12 @@ public abstract class GlobalAgentBase {
 	// 1.【要并发，要快】启动线程池来执行，释放锁除了需要和应用互斥，没有其他IO操作，基本上都是cpu。
 	// 2. 超时没有释放完成，程序中止。see tryHalt。
 	// 3. 每个Global服务一个Releaser.
-	public void startRelease(Application zeze, int index, Runnable endAction) {
-		Releasers.put(index, new Releaser(zeze, index, endAction));
+	public void startRelease(Application zeze, Runnable endAction) {
+		synchronized (this) {
+			Releaser = new Releaser(zeze, GlobalCacheManagerHashIndex, endAction);
+		}
+		cancelPending();
 	}
+
+	protected abstract void cancelPending();
 }

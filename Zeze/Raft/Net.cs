@@ -735,12 +735,13 @@ namespace Zeze.Raft
             var now = Util.Time.NowUnixMillis;
             var leaderSocket = _Leader?.TryGetReadySocket();
             var removed = new List<Protocol>(UrgentPending.Count + Pending.Count);
-            foreach (var rpc in UrgentPending.Values)
+            foreach (var e in UrgentPending)
             {
+                var rpc = e.Value;
                 var iraft = rpc as IRaftRpc;
                 if (iraft.RaftTimeout > 0 && now - iraft.CreateTime > iraft.RaftTimeout)
                 {
-                    if (UrgentPending.Remove(iraft.Unique.RequestId, out var r))
+                    if (UrgentPending.Remove(e.Key, out var r))
                         removed.Add(r);
                     continue;
                 }
@@ -757,12 +758,13 @@ namespace Zeze.Raft
                 }
             }
 
-            foreach (var rpc in Pending.Values)
+            foreach (var e in Pending)
             {
+                var rpc = e.Value;
                 var iraft = rpc as IRaftRpc;
                 if (iraft.RaftTimeout > 0 && now - iraft.CreateTime > iraft.RaftTimeout)
                 {
-                    if (Pending.Remove(iraft.Unique.RequestId, out var r))
+                    if (Pending.Remove(e.Key, out var r))
                         removed.Add(r);
                     continue;
                 }
@@ -778,6 +780,14 @@ namespace Zeze.Raft
                     }
                 }
             }
+            Trigger(removed, "Timeout");
+        }
+
+
+        private void Trigger(List<Protocol> removed, string reason)
+        {
+            if (removed.Count == 0)
+                return;
 
             Task.Run(() =>
             {
@@ -785,7 +795,7 @@ namespace Zeze.Raft
                 {
                     var r = p as IRaftRpc;
                     r.SetIsTimeout(true);
-                    if (r.TrySetFutureException(new Exception("Raft Timeout")))
+                    if (r.TrySetFutureException(new Exception(reason)))
                         continue;
                     try
                     {
@@ -797,6 +807,22 @@ namespace Zeze.Raft
                     }
                 }
             });
+        }
+
+        public void CancelPending()
+        {
+            // 不包括UrgentPending
+            if (Pending.Count == 0)
+                return;
+
+            var removed = new List<Protocol>();
+            // Pending存在并发访问，这样写更可靠。
+            foreach (var e in Pending)
+            {
+                if (Pending.Remove(e.Key, out var r))
+                    removed.Add(r);
+            }
+            Trigger(removed, "Cancel");
         }
 
         internal bool SetLeader(LeaderIs r, ConnectorEx newLeader)

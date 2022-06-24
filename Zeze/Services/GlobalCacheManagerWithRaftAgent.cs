@@ -138,6 +138,13 @@ namespace Zeze.Services
             if (null != Agents)
             {
                 var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
+                if (agent.IsReleasing())
+                {
+                    agent.SetFastFail(); // 一般是超时失败，此时必须进入快速失败模式。
+                    if (null == Transaction.Transaction.Current)
+                        throw new Exception("GlobalAgent.Acquire Exception");
+                    Transaction.Transaction.Current.ThrowAbort("GlobalAgent.Acquire Exception");
+                }
                 agent.VerifyFastFail();
                 try
                 {
@@ -197,7 +204,6 @@ namespace Zeze.Services
             public GlobalCacheManagerWithRaftAgent GlobalCacheManagerWithRaftAgent { get; }
             public Zeze.Raft.Agent RaftClient { get; }
             public Util.AtomicLong LoginTimes { get; } = new Util.AtomicLong();
-            public int GlobalCacheManagerHashIndex { get; }
             private long LastErrorTime;
 
             public void SetFastFail()
@@ -234,9 +240,14 @@ namespace Zeze.Services
                 Zeze.Raft.RaftConfig raftconf = null)
             {
                 GlobalCacheManagerWithRaftAgent = global;
-                GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
+                base.GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
                 RaftClient = new Raft.Agent("Zeze.GlobalRaft.Agent", zeze, raftconf) { OnSetLeader = RaftOnSetLeader };
                 GlobalCacheManagerWithRaftAgent.RegisterProtocols(RaftClient.Client);
+            }
+
+            protected override void CancelPending()
+            {
+                RaftClient.CancelPending();
             }
 
             public override void KeepAlive()

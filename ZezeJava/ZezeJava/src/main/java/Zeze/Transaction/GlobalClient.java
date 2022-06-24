@@ -33,7 +33,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 					so.Close(new Exception("GlobalAgent.ReLogin Fail code=" + reLogin.getResultCode()));
 					so.getConnector().Stop();
 					// 2. 开始清理，由守护线程保护，必须成功。
-					agent.startRelease(getZeze(), agent.getGlobalCacheManagerHashIndex(), () -> {
+					agent.startRelease(getZeze(), () -> {
 						// 3. 重置登录次数，下一次连接成功，会发送Login。
 						agent.getLoginTimes().getAndSet(0);
 						// 4. 开始网络连接。

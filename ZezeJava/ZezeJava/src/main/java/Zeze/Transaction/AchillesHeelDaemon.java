@@ -129,7 +129,7 @@ public class AchillesHeelDaemon extends Thread {
 					if (null == config)
 						continue; // skip agent not login
 
-					var rr = agent.checkReleaseTimeout(i, now, config.ServerReleaseTimeout);
+					var rr = agent.checkReleaseTimeout(now, config.ServerReleaseTimeout);
 					if (rr == GlobalAgentBase.CheckReleaseResult.Timeout) {
 						logger.fatal("AchillesHeelDaemon global release timeout. index=" + i);
 						Runtime.getRuntime().halt(123123);
@@ -148,7 +148,7 @@ public class AchillesHeelDaemon extends Thread {
 							// 这里没法快速手段判断本Server是否存在从该Global获取的记录锁。
 							// 在Agent中增加获得的计数是个方案，但挺烦的。
 							logger.warn("StartRelease ServerDaemonTimeout=" + config.ServerDaemonTimeout);
-							agent.startRelease(Zeze, i, null);
+							agent.startRelease(Zeze,null);
 						}
 					}
 				}

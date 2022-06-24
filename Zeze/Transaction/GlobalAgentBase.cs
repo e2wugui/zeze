@@ -12,6 +12,7 @@ namespace Zeze.Transaction
 	public abstract class GlobalAgentBase
 	{
 		private long activeTime = Util.Time.NowUnixMillis;
+		public int GlobalCacheManagerHashIndex { get; protected set; }
 
 		public long GetActiveTime()
 		{
@@ -37,7 +38,7 @@ namespace Zeze.Transaction
 
 		public abstract void KeepAlive();
 
-		private readonly ConcurrentDictionary<int, Releaser> Releasers = new();
+		private volatile Releaser Releasing;
 
 		public enum CheckReleaseResult
 		{
@@ -45,19 +46,26 @@ namespace Zeze.Transaction
 			Releasing,
 			Timeout,
 		}
-		public CheckReleaseResult CheckReleaseTimeout(int index, long now, int timeout)
+
+		public bool IsReleasing()
 		{
-			if (false == Releasers.TryGetValue(index, out var r))
+			return Releasing != null;
+		}
+
+		public CheckReleaseResult CheckReleaseTimeout(long now, int timeout)
+		{
+			var tmp = Releasing;
+			if (null == tmp)
 				return CheckReleaseResult.NoRelease;
 
-			if (r.IsCompletedSuccessfully())
+			if (tmp.IsCompletedSuccessfully())
 			{
-				Releasers.TryRemove(index, out _);
+				Releasing = null;
 				SetActiveTime(Util.Time.NowUnixMillis);
 				return CheckReleaseResult.NoRelease;
 			}
 
-			return now - r.StartTime > timeout ? CheckReleaseResult.Timeout : CheckReleaseResult.Releasing;
+			return now - tmp.StartTime > timeout ? CheckReleaseResult.Timeout : CheckReleaseResult.Releasing;
 		}
 
 		public class Releaser
@@ -103,9 +111,15 @@ namespace Zeze.Transaction
 		// 1.【要并发，要快】启动线程池来执行，释放锁除了需要和应用互斥，没有其他IO操作，基本上都是cpu。
 		// 2. 超时没有释放完成，程序中止。see tryHalt。
 		// 3. 每个Global服务一个Releaser.
-		public void StartRelease(Application zeze, int index, Action endAction = null)
+		public void StartRelease(Application zeze, Action endAction = null)
 		{
-			Releasers[index] = new Releaser(zeze, index, endAction);
+			lock (this)
+            {
+				Releasing = new Releaser(zeze, GlobalCacheManagerHashIndex, endAction);
+			}
+			CancelPending();
 		}
+
+		protected abstract void CancelPending();
 	}
 }

@@ -321,6 +321,25 @@ public final class Agent {
 		ReSend(false);
 	}
 
+	public void CancelPending() {
+		// 不包括UrgentPending
+		if (Pending.size() == 0)
+			return;
+
+		var removed = new ArrayList<RaftRpc<?, ?>>();
+		// Pending存在并发访问，这样写更可靠。
+		for (var rpc : Pending) {
+			var r= Pending.remove(rpc.getUnique().getRequestId());
+			if (null != r)
+				removed.add(r);
+		}
+		logger.debug("Found {} RaftRpc cancel", removed.size());
+		if (DispatchProtocolToInternalThreadPool)
+			Task.getCriticalThreadPool().execute(() -> trigger(removed, "Cancel"));
+		else
+			Task.run(() -> trigger(removed, "Cancel"), "Trigger Timeout RaftRpcs");
+	}
+
 	private void ReSend(boolean immediately) {
 		ConnectorEx leader = _Leader;
 		if (leader != null)
@@ -379,12 +398,16 @@ public final class Agent {
 	}
 
 	private void trigger(ArrayList<RaftRpc<?, ?>> removed) {
+		trigger(removed, "Timeout");
+	}
+
+	private void trigger(ArrayList<RaftRpc<?, ?>> removed, String reason) {
 		for (var r : removed) {
 			if (null == r)
 				continue;
 			r.setIsTimeout(true);
 			if (null != r.Future) {
-				r.Future.SetException(new RuntimeException("Timeout"));
+				r.Future.SetException(new RuntimeException(reason));
 			} else {
 				try {
 					r.Handle.applyAsLong(r);

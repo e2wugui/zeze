@@ -12,6 +12,7 @@ import Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.GlobalAgentBase;
+import Zeze.Transaction.GoBackZeze;
 import Zeze.Transaction.IGlobalAgent;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
@@ -140,6 +141,13 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	public IGlobalAgent.AcquireResult Acquire(Binary gkey, int state, boolean fresh) {
 		if (Agents != null) {
 			var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
+			if (agent.isReleasing()) {
+				agent.setFastFail();
+				var trans = Transaction.getCurrent();
+				if (trans == null)
+					throw new GoBackZeze("Acquire In Releasing");
+				trans.ThrowAbort("Acquire In Releasing", null);
+			}
 			agent.verifyFastFail();
 			try {
 				agent.WaitLoginSuccess();
@@ -198,7 +206,6 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	// 4. Raft 高可用性，所以认为服务器永远不会关闭，就不需要处理服务器关闭时清理本地状态。
 	public static class RaftAgent extends GlobalAgentBase {
 		private final GlobalCacheManagerWithRaftAgent GlobalCacheManagerWithRaftAgent;
-		private final int GlobalCacheManagerHashIndex;
 		private final Zeze.Raft.Agent RaftClient;
 		private final AtomicLong LoginTimes = new AtomicLong();
 		private volatile TaskCompletionSource<Boolean> LoginFuture = new TaskCompletionSource<>();
@@ -235,6 +242,11 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		}
 
 		@Override
+		protected void cancelPending() {
+			RaftClient.CancelPending();
+		}
+
+		@Override
 		public void keepAlive() {
 			if (null == getConfig())
 				return; // not login
@@ -250,7 +262,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		public RaftAgent(GlobalCacheManagerWithRaftAgent global, Zeze.Application zeze,
 						 int _GlobalCacheManagerHashIndex, Zeze.Raft.RaftConfig raftConf) throws Throwable {
 			GlobalCacheManagerWithRaftAgent = global;
-			GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
+			super.GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
 			RaftClient = new Zeze.Raft.Agent("Zeze.GlobalRaft.Agent", zeze, raftConf);
 			RaftClient.setOnSetLeader(this::RaftOnSetLeader);
 			RaftClient.DispatchProtocolToInternalThreadPool = true;

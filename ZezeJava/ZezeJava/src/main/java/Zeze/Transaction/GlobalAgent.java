@@ -24,16 +24,20 @@ public final class GlobalAgent implements IGlobalAgent {
 	public static final class Agent extends GlobalAgentBase {
 		private final Connector connector;
 		private final AtomicLong LoginTimes = new AtomicLong();
-		private final int GlobalCacheManagerHashIndex;
 		private boolean ActiveClose;
 		private volatile long LastErrorTime;
 
 		public Agent(GlobalClient client, String host, int port, int _GlobalCacheManagerHashIndex) {
 			connector = new Zeze.Net.Connector(host, port, true);
 			connector.UserState = this;
-			GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
+			super.GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
 			connector.setMaxReconnectDelay(AchillesHeelConfig.ReconnectTimer);
 			client.getConfig().AddConnector(connector);
+		}
+
+		@Override
+		protected void cancelPending() {
+			// 非Raft版本没有Pending，不需要执行操作。以后如果实现了Pending，需要实现Cancel。
 		}
 
 		@Override
@@ -144,6 +148,13 @@ public final class GlobalAgent implements IGlobalAgent {
 	public AcquireResult Acquire(Binary gkey, int state, boolean fresh) {
 		if (Client != null) {
 			var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
+			if (agent.isReleasing()) {
+				agent.setFastFail();
+				var trans = Transaction.getCurrent();
+				if (trans == null)
+					throw new GoBackZeze("Acquire In Releasing");
+				trans.ThrowAbort("Acquire In Releasing", null);
+			}
 			agent.verifyFastFail();
 			var socket = agent.Connect();
 			// 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了），打断外面的事务。

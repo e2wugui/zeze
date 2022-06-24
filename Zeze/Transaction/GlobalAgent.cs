@@ -32,20 +32,24 @@ namespace Zeze.Transaction
             public bool ActiveClose { get; private set; } = false;
             public Connector Connector { get; private set; }
             public Zeze.Util.AtomicLong LoginTimes { get; } = new();
-            public int GlobalCacheManagerHashIndex { get; }
 
             private long LastErrorTime;
             public const long FastErrorPeriod = 2 * 1000;
 
             public Agent(GlobalClient client, string host, int port, int globalCacheManagerHashIndex)
             {
-                GlobalCacheManagerHashIndex = globalCacheManagerHashIndex;
+                base.GlobalCacheManagerHashIndex = globalCacheManagerHashIndex;
                 this.Connector = new Connector(host, port, true)
                 {
                     UserState = this
                 };
                 Connector.MaxReconnectDelay = AchillesHeelConfig.ReconnectTimer;
                 client.Config.AddConnector(this.Connector);
+            }
+
+            protected override void CancelPending()
+            {
+                // 非Raft版本没有Pending，不需要执行操作。以后如果实现了Pending，需要实现Cancel。
             }
 
             public override void KeepAlive()
@@ -170,6 +174,14 @@ namespace Zeze.Transaction
             if (null != Client)
             {
                 var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
+                if (agent.IsReleasing())
+                {
+                    agent.SetFastFail(); // 一般是超时失败，此时必须进入快速失败模式。
+                    if (null == Transaction.Current)
+                        throw new Exception("GlobalAgent.Acquire Exception");
+                    Transaction.Current.ThrowAbort("GlobalAgent.Acquire Exception");
+                }
+
                 agent.VerifyFastFail();
                 var socket = await agent.ConnectAsync();
 
@@ -375,7 +387,7 @@ namespace Zeze.Transaction
                         so.Close(new Exception("GlobalAgent.ReLogin Fail code=" + relogin.ResultCode));
                         so.Connector.Stop();
                         // 2. 开始清理，由守护线程保护，必须成功。
-                        agent.StartRelease(Zeze, agent.GlobalCacheManagerHashIndex, () =>
+                        agent.StartRelease(Zeze, () =>
                         {
                             // 3. 重置登录次数，下一次连接成功，会发送Login。
                             agent.LoginTimes.GetAndSet(0);
