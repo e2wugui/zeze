@@ -59,8 +59,9 @@ Zeze框架相关线程说明
 用途:
 1. 定时执行checkpoint相关任务
 ------------------------------------------------------------------------------
-线程名:   Raft-X
-          X: 序号(从1开始)
+线程名:   Raft-X-Y
+          X: 线程池序号(从1开始)
+          Y: 线程序号(从1开始)
 所有者:   Zeze.Raft.Raft.ImportantThreadPool
 获取方法: Zeze.Raft.Raft.getImportantThreadPool()
 线程数量: CachedThreadPool(自动缩放,最小0个,无上限,60秒闲置线程会回收)

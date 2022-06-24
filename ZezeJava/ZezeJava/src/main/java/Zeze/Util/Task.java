@@ -43,6 +43,7 @@ public final class Task {
 		return threadPoolCritical;
 	}
 
+	// 固定数量的线程池, 普通优先级, 自动支持虚拟线程, 用于处理普通任务
 	public static ExecutorService newFixedThreadPool(int threadCount, String threadNamePrefix) {
 		try {
 			//noinspection JavaReflectionMemberAccess
@@ -56,6 +57,20 @@ public final class Task {
 				new LinkedBlockingQueue<>(), new ThreadFactoryWithName(threadNamePrefix));
 	}
 
+	// 关键线程池, 普通优先级+1, 不使用虚拟线程, 线程数按需增长, 用于处理关键任务, 比普通任务的处理更及时
+	public static ExecutorService newCriticalThreadPool(String threadNamePrefix) {
+		return Executors.newCachedThreadPool(new ThreadFactoryWithName(threadNamePrefix) {
+			@Override
+			public Thread newThread(Runnable r) {
+				var t = new Thread(null, r, namePrefix + threadNumber.getAndIncrement(), 0);
+				t.setDaemon(true);
+				t.setPriority(Thread.NORM_PRIORITY + 1);
+				t.setUncaughtExceptionHandler((__, e) -> logger.error("fatal exception", e));
+				return t;
+			}
+		});
+	}
+
 	public static synchronized void initThreadPool(ExecutorService pool, ScheduledExecutorService scheduled) {
 		if (pool == null || scheduled == null)
 			throw new IllegalArgumentException();
@@ -64,7 +79,7 @@ public final class Task {
 			throw new IllegalStateException("ThreadPool Has Inited.");
 		threadPoolDefault = pool;
 		threadPoolScheduled = scheduled;
-		threadPoolCritical = Executors.newCachedThreadPool(new ThreadFactoryWithName("ZezeCriticalPool"));
+		threadPoolCritical = newCriticalThreadPool("ZezeCriticalPool");
 	}
 
 	public static synchronized boolean tryInitThreadPool(Application app, ExecutorService pool,
@@ -86,7 +101,7 @@ public final class Task {
 					new ThreadFactoryWithName("ZezeScheduledPool"));
 		} else
 			threadPoolScheduled = scheduled;
-		threadPoolCritical = Executors.newCachedThreadPool(new ThreadFactoryWithName("ZezeCriticalPool"));
+		threadPoolCritical = newCriticalThreadPool("ZezeCriticalPool");
 		return true;
 	}
 

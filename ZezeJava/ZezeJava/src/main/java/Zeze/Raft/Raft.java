@@ -8,9 +8,9 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -26,7 +26,6 @@ import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCanceledException;
 import Zeze.Util.TaskCompletionSource;
-import Zeze.Util.ThreadFactoryWithName;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.RocksDBException;
@@ -37,6 +36,7 @@ import org.rocksdb.RocksDBException;
 public final class Raft {
 	private static final Logger logger = LogManager.getLogger(Raft.class);
 	private static final AtomicReference<ArrayList<Raft>> processExits = new AtomicReference<>();
+	private static final AtomicLong threadPoolCounter = new AtomicLong();
 
 	private String LeaderId;
 	private final RaftConfig RaftConfig;
@@ -311,16 +311,7 @@ public final class Raft {
 		if (RaftConfig.getNodes().size() < 3)
 			throw new IllegalStateException("Startup Nodes.Count Must >= 3.");
 
-		ImportantThreadPool = Executors.newCachedThreadPool(new ThreadFactoryWithName("Raft") {
-			@Override
-			public Thread newThread(Runnable r) {
-				var t = new Thread(null, r, namePrefix + threadNumber.getAndIncrement(), 0);
-				t.setDaemon(true);
-				t.setPriority(Thread.NORM_PRIORITY + 1);
-				t.setUncaughtExceptionHandler((__, e) -> logger.error("fatal exception", e));
-				return t;
-			}
-		});
+		ImportantThreadPool = Task.newCriticalThreadPool("Raft-" + threadPoolCounter.incrementAndGet());
 		Zeze.Raft.Server.CreateAcceptor(Server, raftConf);
 		Zeze.Raft.Server.CreateConnector(Server, raftConf);
 
