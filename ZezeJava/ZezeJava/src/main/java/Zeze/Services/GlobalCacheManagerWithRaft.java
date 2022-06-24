@@ -133,8 +133,8 @@ public class GlobalCacheManagerWithRaft
 							Acquired.WalkKey(key -> {
 								// 在循环中删除。这样虽然效率低些，但是能处理更多情况。
 								if (Rocks.getRaft().isLeader()) {
-									logger.info("AchillesHeelDaemon.Release table={} key={} session={}",
-											Acquired.getName(), key, session);
+//									logger.info("AchillesHeelDaemon.Release table={} key={} session={}",
+//											Acquired.getName(), key, session);
 									Release(session, key);
 									return true;
 								}

@@ -18,12 +18,16 @@ public class ThreadFactoryWithName implements ThreadFactory {
 		try {
 			//noinspection JavaReflectionMemberAccess
 			ofVirtual0 = Thread.class.getMethod("ofVirtual", (Class<?>[])null).invoke(null);
-			unstartedMethod0 = Class.forName("java.lang.Thread.Builder").getMethod("unstarted", Runnable.class);
+			unstartedMethod0 = Class.forName("java.lang.Thread$Builder").getMethod("unstarted", Runnable.class);
 			Task.logger.info("ThreadFactoryWithName use virtual thread");
 		} catch (ReflectiveOperationException ignored) {
 		}
 		ofVirtual = ofVirtual0;
 		unstartedMethod = unstartedMethod0;
+	}
+
+	public static boolean isVirtualThreadEnabled() {
+		return unstartedMethod != null;
 	}
 
 	public ThreadFactoryWithName(String poolName) {

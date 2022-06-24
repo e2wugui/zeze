@@ -37,7 +37,7 @@ public final class Checkpoint {
 			Add(dbs);
 		CheckpointThread = new Thread(() -> Task.Call(this::Run, "Checkpoint.Run"), "Checkpoint-" + serverId);
 		CheckpointThread.setDaemon(true);
-		CheckpointThread.setPriority(Thread.NORM_PRIORITY + 1);
+		CheckpointThread.setPriority(Thread.NORM_PRIORITY + 2);
 		CheckpointThread.setUncaughtExceptionHandler((__, e) -> logger.error("fatal exception", e));
 	}
 

@@ -52,7 +52,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			for (int i = 0; i < 2; ++i) {
 				try {
 					agent.WaitLoginSuccess();
-				} catch (Throwable skip) {
+				} catch (Throwable ignored) {
 				}
 			}
 		}

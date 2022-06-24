@@ -10,6 +10,7 @@ ServiceConf.Acceptor ip="@internal" "@external"
 Task
 Universe
 Zege
+一些比较频繁使用的synchronized改造成Lock: AsyncSocket, GlobalAgent.Agent, GlobalCacheManagerWithRaftAgent.RaftAgent, Locks.Segment, GlobalLocks.Segment, ConsistentHash, AutoKey, EventDispatcher.Events, DatabaseMemory
 
 【2022/7/15】
 

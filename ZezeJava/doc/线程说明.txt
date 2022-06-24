@@ -66,7 +66,7 @@ Zeze框架相关线程说明
 获取方法: Zeze.Raft.Raft.getImportantThreadPool()
 线程数量: CachedThreadPool(自动缩放,最小0个,无上限,60秒闲置线程会回收)
 任务队列: SynchronousQueue
-优先级:   普通+1
+优先级:   普通+2
 后台线程: 是
 用途:
 1. 处理Raft相关的重要协议
@@ -74,7 +74,7 @@ Zeze框架相关线程说明
 线程名:   AchillesHeelDaemon
 所有者:   Zeze.Transaction.AchillesHeelDaemon
 线程数量: 1
-优先级:   普通+1
+优先级:   普通+2
 后台线程: 是
 用途:
 1. GlobalAgent的定时任务

@@ -15,7 +15,7 @@ public abstract class GlobalAgentBase {
 		return activeTime;
 	}
 
-	public final synchronized void setActiveTime(long value) {
+	public final void setActiveTime(long value) {
 		activeTime = value;
 	}
 

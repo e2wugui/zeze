@@ -31,6 +31,10 @@ public final class Task {
 	//			= (ThreadPoolExecutor)Executors.newCachedThreadPool(new ThreadFactoryWithName("ZezeRespPool"));
 	public static volatile Action4<Level, Throwable, Long, String> LogAction = Task::DefaultLogAction;
 
+	public static boolean isVirtualThreadEnabled() {
+		return ThreadFactoryWithName.isVirtualThreadEnabled();
+	}
+
 	public static ExecutorService getThreadPool() {
 		return threadPoolDefault;
 	}
@@ -64,7 +68,7 @@ public final class Task {
 			public Thread newThread(Runnable r) {
 				var t = new Thread(null, r, namePrefix + threadNumber.getAndIncrement(), 0);
 				t.setDaemon(true);
-				t.setPriority(Thread.NORM_PRIORITY + 1);
+				t.setPriority(Thread.NORM_PRIORITY + 2);
 				t.setUncaughtExceptionHandler((__, e) -> logger.error("fatal exception", e));
 				return t;
 			}

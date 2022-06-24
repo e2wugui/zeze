@@ -102,10 +102,10 @@ local knowns = {
 	{ "在TableCache.CleanNow等待Acquire(Invalid)回复", ".Acquire(", ".CleanNow(" },
 	{ "在TableCache.CleanNow里等待下次循环",           ".CleanNow(TableCache.java:166)" },
 	{ "在__TryWaitFlushWhenReduce里等待sleep",         ".__TryWaitFlushWhenReduce(Application.java:341)" },
-	{ "在Checkpoint线程等待定时器",                    ".Object.wait(", ".Checkpoint.Run(" },
+	{ "在Checkpoint线程等待定时器",                    ".await(", ".Checkpoint.Run(" },
 	{ "在Selector线程等待NIO事件",                     ".Selector.run(Selector.java:67)" },
-	{ "AchillesHeelDaemon线程",                        "(AchillesHeelDaemon.java:146)" },
-	{ "等待所有任务完成(主线程)",                      ".WaitAllRunningTasksAndClear(App.java:68)" },
+	{ "AchillesHeelDaemon线程",                        "(AchillesHeelDaemon.java:157)" },
+	{ "等待所有任务完成(主线程)",                      ".WaitAllRunningTasksAndClear(App.java:70)" },
 }
 
 local needKnowns = {
