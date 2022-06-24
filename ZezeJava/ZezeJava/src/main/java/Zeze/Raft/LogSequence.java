@@ -157,8 +157,8 @@ public class LogSequence {
 				try (var it = NewLogsIterator()) {
 					it.seekToFirst();
 					while (LogsAvailable && !Raft.IsShutdown && it.isValid()) {
-						var raftLog = RaftLog.Decode(new Binary(it.value()), Raft.getStateMachine()::LogFactory);
-						if (raftLog.getIndex() >= index) {
+						// 这里只需要log的Index，直接从key里面获取了。
+						if (ByteBuffer.Wrap(it.key()).ReadLong() >= index) {
 							RemoveLogBeforeFuture.SetResult(true);
 							return;
 						}

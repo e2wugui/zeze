@@ -168,7 +168,7 @@ public final class Raft {
 		}
 		_LogSequence.Close();
 		LogManager.shutdown();
-		System.exit(-1);
+		Runtime.getRuntime().halt(-1);
 	}
 
 	public void AppendLog(Log log) {

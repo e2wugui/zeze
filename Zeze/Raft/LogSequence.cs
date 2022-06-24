@@ -202,8 +202,7 @@ namespace Zeze.Raft
                     it.SeekToFirst();
                     while (LogsAvailable && false == Raft.IsShutdown && it.Valid())
                     {
-                        var raftLog = RaftLog.Decode(new Binary(it.Value()), Raft.StateMachine.LogFactory);
-                        if (raftLog.Index >= index)
+                        if (ByteBuffer.Wrap(it.Key()).ReadLong() >= index)
                         {
                             RemoveLogBeforeFuture.TrySetResult(true);
                             return;
