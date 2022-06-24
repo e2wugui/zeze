@@ -3,9 +3,13 @@ package Zeze.Raft;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 
-class UniqueRequestId implements Serializable {
+public class UniqueRequestId implements Serializable {
 	private String ClientId = "";
 	private long RequestId;
+
+	public String getClientId() {
+		return ClientId;
+	}
 
 	public void setClientId(String value) {
 		ClientId = value;

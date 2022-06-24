@@ -101,7 +101,9 @@ public final class Agent {
 			throw new IllegalStateException("RaftRpc.UniqueRequestId != 0. Need A Fresh RaftRpc");
 
 		rpc.getUnique().setRequestId(UniqueRequestIdGenerator.next());
-		rpc.getUnique().setClientId(UniqueRequestIdGenerator.getName());
+		// 外面可以设置clientId，默认使用Generator.getName();
+		if (rpc.getUnique().getClientId().isEmpty())
+			rpc.getUnique().setClientId(UniqueRequestIdGenerator.getName());
 		rpc.setCreateTime(System.currentTimeMillis());
 		rpc.setSendTime(rpc.getCreateTime());
 		if (rpc.getTimeout() == 0) // set default timeout
@@ -187,7 +189,9 @@ public final class Agent {
 			throw new IllegalStateException("RaftRpc.UniqueRequestId != 0. Need A Fresh RaftRpc");
 
 		rpc.getUnique().setRequestId(UniqueRequestIdGenerator.next());
-		rpc.getUnique().setClientId(UniqueRequestIdGenerator.getName());
+		// 外面在发送前可以设置clientId
+		if (rpc.getUnique().getClientId().isEmpty())
+			rpc.getUnique().setClientId(UniqueRequestIdGenerator.getName());
 		rpc.setCreateTime(System.currentTimeMillis());
 		rpc.setSendTime(rpc.getCreateTime());
 		if (rpc.getTimeout() == 0) // set default timeout

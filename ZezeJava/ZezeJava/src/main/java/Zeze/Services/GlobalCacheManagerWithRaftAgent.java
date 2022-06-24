@@ -165,6 +165,9 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 				rpc.setResultCode(GlobalCacheManagerServer.AcquireFreshSource);
 			rpc.Argument.setGlobalKey(gkey);
 			rpc.Argument.setState(state);
+			// 让协议包更小，这里仅仅把ServerId当作ClientId。
+			// Global是专用服务，用这个够区分了。
+			rpc.getUnique().setClientId(String.valueOf(getZeze().getConfig().getServerId()));
 			rpc.setTimeout(agent.getConfig().AcquireTimeout);
 			try {
 				agent.RaftClient.SendForWait(rpc).await();
@@ -263,7 +266,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 						 int _GlobalCacheManagerHashIndex, Zeze.Raft.RaftConfig raftConf) throws Throwable {
 			GlobalCacheManagerWithRaftAgent = global;
 			super.GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
-			RaftClient = new Zeze.Raft.Agent("Zeze.GlobalRaft.Agent", zeze, raftConf);
+			RaftClient = new Zeze.Raft.Agent("zeze.global.raft", zeze, raftConf);
 			RaftClient.setOnSetLeader(this::RaftOnSetLeader);
 			RaftClient.DispatchProtocolToInternalThreadPool = true;
 			getGlobalCacheManagerWithRaftAgent().RegisterProtocols(RaftClient.getClient());

@@ -462,7 +462,9 @@ namespace Zeze.Raft
                 throw new Exception("RaftRpc.UniqueRequestId != 0. Need A Fresh RaftRpc");
 
             rpc.Unique.RequestId = UniqueRequestIdGenerator.Next();
-            rpc.Unique.ClientId = UniqueRequestIdGenerator.Name;
+            // 外面在发送前可以设置clientId
+            if (rpc.Unique.ClientId.Length == 0)
+                rpc.Unique.ClientId = UniqueRequestIdGenerator.Name;
             rpc.CreateTime = Util.Time.NowUnixMillis;
             rpc.SendTime = rpc.CreateTime;
             if (rpc.Timeout == 0)
@@ -569,7 +571,9 @@ namespace Zeze.Raft
                 throw new Exception("too many pending");
 
             rpc.Unique.RequestId = UniqueRequestIdGenerator.Next();
-            rpc.Unique.ClientId = UniqueRequestIdGenerator.Name;
+            // 外面在发送前可以设置clientId
+            if (rpc.Unique.ClientId.Length == 0)
+                rpc.Unique.ClientId = UniqueRequestIdGenerator.Name;
             rpc.CreateTime = Util.Time.NowUnixMillis;
             rpc.SendTime = rpc.CreateTime;
             if (rpc.Timeout == 0)

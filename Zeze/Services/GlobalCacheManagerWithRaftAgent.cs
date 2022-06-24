@@ -162,6 +162,9 @@ namespace Zeze.Services
                 rpc.Argument.GlobalKey = gkey;
                 rpc.Argument.State = state;
                 rpc.Timeout = agent.Config.AcquireTimeout;
+                // 让协议包更小，这里仅仅把ServerId当作ClientId。
+                // Global是专用服务，用这个够区分了。
+                rpc.Unique.ClientId = Zeze.Config.ServerId.ToString();
                 try
                 {
                     await agent.RaftClient.SendAsync(rpc);
