@@ -250,6 +250,7 @@ namespace Zeze.Services
 
             protected override void CancelPending()
             {
+                LoginFuture?.TrySetCanceled();
                 RaftClient.CancelPending();
             }
 
@@ -282,19 +283,17 @@ namespace Zeze.Services
 
             public async Task WaitLoginSuccess()
             {
-                while (true)
+                var volatiletmp = LoginFuture;
+                if (volatiletmp.Task.IsCompleted)
                 {
-                    try
-                    {
-                        var volatiletmp = LoginFuture;
-                        if (volatiletmp.Task.IsCompletedSuccessfully && volatiletmp.Task.Result)
-                            return;
-                        await volatiletmp.Task;
-                    }
-                    catch (System.Exception)
-                    {
-                    }
+                    if (volatiletmp.Task.Result)
+                        return;
+                    throw new Exception("login fail");
                 }
+                await Task.WhenAny(volatiletmp.Task, Task.Delay(Config.AcquireTimeout));
+                if (volatiletmp.Task.IsCompletedSuccessfully && volatiletmp.Task.Result)
+                    return;
+                throw new Exception("login timeout");
             }
 
             private TaskCompletionSource<bool> StartNewLogin()

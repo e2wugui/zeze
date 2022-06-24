@@ -246,6 +246,10 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 
 		@Override
 		protected void cancelPending() {
+			var tmp = LoginFuture;
+			if (null != tmp) {
+				tmp.cancel(true);
+			}
 			RaftClient.CancelPending();
 		}
 
@@ -305,19 +309,23 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		}
 
 		public final void WaitLoginSuccess() throws ExecutionException, InterruptedException {
-			while (true) {
-				try {
-					var volatileTmp = LoginFuture;
-					if (volatileTmp.isDone() && volatileTmp.get())
-						return;
-					volatileTmp.await();
-				} catch (RuntimeException ignored) {
-				}
+			var volatileTmp = LoginFuture;
+			if (volatileTmp.isDone()) {
+				if (volatileTmp.get())
+					return;
+				throw new RuntimeException("login fail.");
 			}
+			if (!volatileTmp.await(getConfig().AcquireTimeout))
+				throw new RuntimeException("login timeout.");
+			// 再次查看结果。
+			if (volatileTmp.isDone() && volatileTmp.get())
+				return;
+			// 只等待一次，不成功则失败。
+			throw new RuntimeException("login timeout.");
 		}
 
 		private synchronized TaskCompletionSource<Boolean> StartNewLogin() {
-			LoginFuture.cancel(false); // 如果旧的Future上面有人在等，让他们失败。
+			LoginFuture.cancel(true); // 如果旧的Future上面有人在等，让他们失败。
 			return LoginFuture = new TaskCompletionSource<>();
 		}
 
