@@ -317,6 +317,7 @@ namespace Zeze.Transaction
 
         internal override async Task<int> ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex)
         {
+            var remain = new List<(TableKey, Record<K, V>)>(Cache.DataMap.Count);
             foreach (var e in Cache.DataMap)
             {
                 var gkey = EncodeGlobalKey(e.Key);
@@ -327,15 +328,52 @@ namespace Zeze.Transaction
                 }
 
                 var tkey = new TableKey(Id, e.Key);
-                using (await Zeze.Locks.Get(tkey).WriterLockAsync())
+                var lockey = Zeze.Locks.Get(tkey);
+                if (false == lockey.TryEnterWriteLock())
                 {
-                    using (await e.Value.Mutex.LockAsync())
+                    remain.Add((tkey, e.Value));
+                    continue;
+                }
+                try
+                {
+                    using (await e.Value.Mutex.LockAsync()) // TODO TryLock Need
                     {
                         // 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
                         e.Value.State = GlobalCacheManagerServer.StateInvalid;
                         await FlushWhenReduce(e.Value);
                     }
                 }
+                finally
+                {
+                    lockey.Dispose();
+                }
+            }
+            while (remain.Count > 0)
+            {
+                var remain2 = new List<(TableKey, Record<K, V>)>(remain.Count);
+                foreach (var e in remain)
+                {
+                    var lockey = Zeze.Locks.Get(e.Item1);
+                    if (false == lockey.TryEnterWriteLock())
+                    {
+                        remain2.Add(e);
+                        continue;
+                    }
+                    try
+                    {
+                        using (await e.Item2.Mutex.LockAsync()) // TODO TryLock Need
+                        {
+                            // 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
+                            e.Item2.State = GlobalCacheManagerServer.StateInvalid;
+                            await FlushWhenReduce(e.Item2);
+                        }
+                    }
+                    finally
+                    {
+                        lockey.Dispose();
+                    }
+                }
+                remain = remain2;
             }
             return 0;
         }

@@ -1,12 +1,16 @@
 package Zeze.Transaction;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Services.GlobalCacheManagerServer;
 import Zeze.Services.ServiceManager.AutoKey;
+import Zeze.Util.KV;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -315,6 +319,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	@Override
 	void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex) {
+		var remain = new ArrayList<KV<Lockey, Record1<K, V>>>(getCache().getDataMap().size());
 		for (var e : getCache().getDataMap().entrySet()) {
 			var gkey = EncodeGlobalKey(e.getKey());
 			if (getZeze().getGlobalAgent().GetGlobalCacheManagerHashIndex(gkey) != GlobalCacheManagerHashIndex) {
@@ -323,15 +328,52 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 			TableKey tkey = new TableKey(getId(), e.getKey());
 			Lockey lockey = getZeze().getLocks().Get(tkey);
-			lockey.EnterWriteLock();
+			if (!lockey.TryEnterWriteLock(0)) {
+				remain.add(KV.Create(lockey, e.getValue()));
+				continue;
+			}
 			try {
-				// 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
-				e.getValue().setState(GlobalCacheManagerServer.StateInvalid);
-				FlushWhenReduce(e.getValue());
+				if (!e.getValue().TryEnterFairLock()) {
+					remain.add(KV.Create(lockey, e.getValue()));
+					continue;
+				}
+				try {
+					// 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
+					e.getValue().setState(GlobalCacheManagerServer.StateInvalid);
+					FlushWhenReduce(e.getValue());
+				} finally {
+					e.getValue().ExitFairLock();
+				}
 			}
 			finally {
 				lockey.ExitWriteLock();
 			}
+		}
+
+		while (!remain.isEmpty()) {
+			var remain2 = new ArrayList<KV<Lockey, Record1<K, V>>>(remain.size());
+			for (var e : remain) {
+				if (!e.getKey().TryEnterWriteLock(0)) {
+					remain2.add(e);
+					continue;
+				}
+
+				try {
+					if (!e.getValue().TryEnterFairLock()) {
+						remain2.add(e);
+						continue;
+					}
+					try {
+						e.getValue().setState(GlobalCacheManagerServer.StateInvalid);
+						FlushWhenReduce(e.getValue());
+					} finally {
+						e.getValue().ExitFairLock();
+					}
+				} finally {
+					e.getKey().ExitWriteLock();
+				}
+			}
+			remain = remain2;
 		}
 	}
 
