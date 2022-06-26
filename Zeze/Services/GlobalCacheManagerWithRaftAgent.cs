@@ -255,7 +255,7 @@ namespace Zeze.Services
             {
                 GlobalCacheManagerWithRaftAgent = global;
                 base.GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
-                RaftClient = new Raft.Agent("Zeze.GlobalRaft.Agent", zeze, raftconf) { OnSetLeader = RaftOnSetLeader };
+                RaftClient = new Raft.Agent("global.raft", zeze, raftconf) { OnSetLeader = RaftOnSetLeader };
                 GlobalCacheManagerWithRaftAgent.RegisterProtocols(RaftClient.Client);
             }
 
