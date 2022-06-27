@@ -474,7 +474,7 @@ public final class Agent {
 		@Override
 		public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> pfh) {
 			// 虚拟线程创建太多Critical线程反而容易卡,以后考虑跑另个虚拟线程池里
-			if ((p.getTypeId() == LeaderIs.TypeId_ || Agent.DispatchProtocolToInternalThreadPool) && !Task.isVirtualThreadEnabled())
+			if (p.getTypeId() == LeaderIs.TypeId_ || Agent.DispatchProtocolToInternalThreadPool)
 				Task.getCriticalThreadPool().execute(() -> Task.Call(() -> pfh.Handle.handle(p), "InternalRequest"));
 			else
 				Task.run(() -> pfh.Handle.handle(p), p);

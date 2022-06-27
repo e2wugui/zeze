@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.locks.ReentrantLock;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -14,6 +15,7 @@ public class ConsistentHash<TNode> {
 	private final TreeMap<Integer, TNode> circle = new TreeMap<>();
 	private final HashSet<TNode> nodes = new HashSet<>();
 	private final Set<TNode> nodesView = Collections.unmodifiableSet(nodes);
+	private final ReentrantLock lock = new ReentrantLock();
 
 	public ConsistentHash() {
 		this(128);
@@ -29,37 +31,52 @@ public class ConsistentHash<TNode> {
 		return nodesView;
 	}
 
-	public synchronized void add(String nodeKey, TNode node) {
-		if (node == null || !nodes.add(node))
-			return;
-		nodeKey = nodeKey != null ? nodeKey + '#' : "#";
+	public void add(String nodeKey, TNode node) {
+		lock.lock();
+		try {
+			if (node == null || !nodes.add(node))
+				return;
+			nodeKey = nodeKey != null ? nodeKey + '#' : "#";
 
-		for (int i = 0; i < numberOfReplicas; ++i) {
-			var hash = Zeze.Transaction.Bean.Hash32(nodeKey + i);
-			var conflict = circle.putIfAbsent(hash, node);
-			if (conflict != null)
-				logger.warn("hash conflict! key={}{} value={} exist={}", nodeKey, i, node, conflict);
+			for (int i = 0; i < numberOfReplicas; ++i) {
+				var hash = Zeze.Transaction.Bean.Hash32(nodeKey + i);
+				var conflict = circle.putIfAbsent(hash, node);
+				if (conflict != null)
+					logger.warn("hash conflict! key={}{} value={} exist={}", nodeKey, i, node, conflict);
+			}
+		} finally {
+			lock.unlock();
 		}
 	}
 
-	public synchronized void remove(String nodeKey, TNode node) {
-		if (node == null || !nodes.remove(node))
-			return;
-		nodeKey = nodeKey != null ? nodeKey + '#' : "#";
+	public void remove(String nodeKey, TNode node) {
+		lock.lock();
+		try {
+			if (node == null || !nodes.remove(node))
+				return;
+			nodeKey = nodeKey != null ? nodeKey + '#' : "#";
 
-		for (int i = 0; i < numberOfReplicas; ++i) {
-			var hash = Zeze.Transaction.Bean.Hash32(nodeKey + i);
-			circle.remove(hash, node);
+			for (int i = 0; i < numberOfReplicas; ++i) {
+				var hash = Zeze.Transaction.Bean.Hash32(nodeKey + i);
+				circle.remove(hash, node);
+			}
+		} finally {
+			lock.unlock();
 		}
 	}
 
-	public synchronized TNode get(int hash) {
-		var e = circle.ceilingEntry(hash);
-		if (e == null) {
-			e = circle.firstEntry();
-			if (e == null)
-				return null;
+	public TNode get(int hash) {
+		lock.lock();
+		try {
+			var e = circle.ceilingEntry(hash);
+			if (e == null) {
+				e = circle.firstEntry();
+				if (e == null)
+					return null;
+			}
+			return e.getValue();
+		} finally {
+			lock.unlock();
 		}
-		return e.getValue();
 	}
 }

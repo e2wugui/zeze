@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.LongSupplier;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Action0;
@@ -44,6 +45,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 	}
 
+	private final ReentrantLock lock = new ReentrantLock();
 	private long SessionId = nextSessionId(); // 只在setSessionId里修改
 	private final Service Service;
 	private final Acceptor Acceptor;
@@ -354,9 +356,14 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		});
 	}
 
-	public synchronized void SubmitAction(Action0 callback) {
-		_operates.offer(callback);
-		interestOps(0, SelectionKey.OP_WRITE); // try
+	public void SubmitAction(Action0 callback) {
+		lock.lock();
+		try {
+			_operates.offer(callback);
+			interestOps(0, SelectionKey.OP_WRITE); // try
+		} finally {
+			lock.unlock();
+		}
 	}
 
 	private void interestOps(int remove, int add) {
@@ -498,12 +505,15 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			if (bufSize <= 0) {
 				// 时间窗口
 				// 必须和把Operate加入队列同步！否则可能会出现，刚加入操作没有被处理，但是OP_WRITE又被Remove的问题。
-				synchronized (this) {
+				lock.lock();
+				try {
 					if (_operates.isEmpty()) {
 						// 真的没有等待处理的操作了，去掉事件，返回。以后新的操作在下一次doWrite时处理。
 						interestOps(SelectionKey.OP_WRITE, 0);
 						return;
 					}
+				} finally {
+					lock.unlock();
 				}
 				// 发现数据，继续尝试处理。
 			} else {
@@ -529,10 +539,13 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	public void Close(Throwable ex) {
-		synchronized (this) {
+		lock.lock();
+		try {
 			if (closed)
 				return;
 			closed = true; // 阻止递归关闭
+		} finally {
+			lock.unlock();
 		}
 
 		if (ENABLE_PROTOCOL_LOG)

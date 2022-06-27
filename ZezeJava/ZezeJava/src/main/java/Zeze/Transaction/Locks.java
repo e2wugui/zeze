@@ -1,5 +1,8 @@
 package Zeze.Transaction;
 
+import java.util.concurrent.locks.ReentrantLock;
+import Zeze.Util.WeakHashSet;
+
 /**
  * <p>
  * Locks原来使用 单个容器管理锁，效率太低：
@@ -17,11 +20,9 @@ public final class Locks {
 	private final Segment[] segments;
 
 	/* ---------------- hash算法和映射规则都是来自 ConcurrentHashMap. -------------- */
+
 	/**
 	 * Returns the segment that should be used for key with given hash.
-	 *
-	 * @param lockey the Lockey
-	 * @return the segment
 	 */
 	private Segment segmentFor(Lockey lockey) {
 		/*
@@ -64,43 +65,49 @@ public final class Locks {
 			++sShift;
 			sSize <<= 1;
 		}
-		this.segmentShift = 32 - sShift;
-		this.segmentMask = sSize - 1;
-		this.segments = new Segment[sSize];
-		for (int i = 0; i < this.segments.length; ++i) {
-			this.segments[i] = new Segment();
+		segmentShift = 32 - sShift;
+		segmentMask = sSize - 1;
+		segments = new Segment[sSize];
+		for (int i = 0; i < segments.length; ++i) {
+			segments[i] = new Segment();
 		}
 	}
 
 	/* ------------- 实现 --------------- */
-	private final static class Segment {
-		private final Zeze.Util.WeakHashSet<Lockey> locks = new Zeze.Util.WeakHashSet<>();
+	private static final class Segment {
+		private final WeakHashSet<Lockey> locks = new WeakHashSet<>();
+		private final ReentrantLock lock = new ReentrantLock();
 
-		public Segment() {
-		}
-
-		public synchronized boolean Contains(Lockey key) {
-			// 需要sync，get不是线程安全的
-			return locks.get(key) != null;
-		}
-
-		public synchronized Lockey Get(Lockey key) {
-			Lockey exist = locks.get(key);
-			if (null != exist) {
-				return exist;
+		public boolean Contains(Lockey key) {
+			lock.lock();
+			try {
+				// 需要lock，get不是线程安全的
+				return locks.get(key) != null;
+			} finally {
+				lock.unlock();
 			}
+		}
 
-			locks.add(key);
-			return key.Alloc();
+		public Lockey Get(Lockey key) {
+			lock.lock();
+			try {
+				Lockey exist = locks.get(key);
+				if (exist != null)
+					return exist;
+				locks.add(key);
+				return key.Alloc();
+			} finally {
+				lock.unlock();
+			}
 		}
 	}
 
 	public boolean Contains(Lockey lockey) {
-		return this.segmentFor(lockey).Contains(lockey);
+		return segmentFor(lockey).Contains(lockey);
 	}
 
 	public Lockey Get(Lockey lockey) {
-		return this.segmentFor(lockey).Get(lockey);
+		return segmentFor(lockey).Get(lockey);
 	}
 
 	public Lockey Get(TableKey tkey) {

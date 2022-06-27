@@ -1,107 +1,107 @@
 package Zeze.Transaction;
 
-import Zeze.Config.DatabaseConf;
-import Zeze.Serialize.*;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantLock;
+import Zeze.Config.DatabaseConf;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.KV;
 
 /**
- Zeze.Transaction.Table.storage 为 null 时，就表示内存表了。这个实现是为了测试 checkpoint 流程。
-*/
+ * Zeze.Transaction.Table.storage 为 null 时，就表示内存表了。这个实现是为了测试 checkpoint 流程。
+ */
 public final class DatabaseMemory extends Database {
 	private static final ProceduresMemory ProceduresMemory = new ProceduresMemory();
+	private static final byte[] Removed = new byte[0];
+	private static final ConcurrentHashMap<String, ConcurrentHashMap<String, TableMemory>> databaseTables = new ConcurrentHashMap<>();
+	private static final ReentrantLock lock = new ReentrantLock();
+
 	public DatabaseMemory(DatabaseConf conf) {
 		super(conf);
 		setDirectOperates(ProceduresMemory);
 	}
 
-	public static class ProceduresMemory implements Operates {
-		@Override
-		public final int ClearInUse(int localId, String global) {
-			return 0;
-		}
-		@Override
-		public final void SetInUse(int localId, String global) {
-		}
-
+	public static final class ProceduresMemory implements Operates {
 		private final HashMap<ByteBuffer, DataWithVersion> DataWithVersions = new HashMap<>();
 
 		@Override
-		public DataWithVersion GetDataWithVersion(ByteBuffer key) {
-			synchronized (DataWithVersions) {
-				var exist = DataWithVersions.get(key);
-				if (null == exist)
-					return null;
-				var copy = new DataWithVersion();
-				copy.Data = ByteBuffer.Wrap(exist.Data.Copy());
-				copy.Version = exist.Version;
-				return copy;
-			}
+		public int ClearInUse(int localId, String global) {
+			return 0;
 		}
 
 		@Override
-		public final Zeze.Util.KV<Long, Boolean>  SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
-			synchronized (DataWithVersions) {
-				var exist = DataWithVersions.get(key);
-				if (null != exist) {
-					if (exist.Version != version) {
-						return Zeze.Util.KV.Create(exist.Version, false);
-					}
-					exist.Data = ByteBuffer.Wrap(data.Copy());
-					++exist.Version;
-					return Zeze.Util.KV.Create(exist.Version, true);
-				}
-				DataWithVersion tempVar = new DataWithVersion();
-				tempVar.Data = ByteBuffer.Wrap(data.Copy());
-				tempVar.Version = version;
-				DataWithVersions.put(ByteBuffer.Wrap(key.Copy()), tempVar);
-				return Zeze.Util.KV.Create(version, true);
+		public void SetInUse(int localId, String global) {
+		}
+
+		@Override
+		public synchronized DataWithVersion GetDataWithVersion(ByteBuffer key) {
+			var exist = DataWithVersions.get(key);
+			if (exist == null)
+				return null;
+			var copy = new DataWithVersion();
+			copy.Data = ByteBuffer.Wrap(exist.Data.Copy());
+			copy.Version = exist.Version;
+			return copy;
+		}
+
+		@Override
+		public synchronized KV<Long, Boolean> SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
+			var exist = DataWithVersions.get(key);
+			if (exist != null) {
+				if (exist.Version != version)
+					return KV.Create(exist.Version, false);
+				exist.Data = ByteBuffer.Wrap(data.Copy());
+				return KV.Create(++exist.Version, true);
 			}
+			DataWithVersion tempVar = new DataWithVersion();
+			tempVar.Data = ByteBuffer.Wrap(data.Copy());
+			tempVar.Version = version;
+			DataWithVersions.put(ByteBuffer.Wrap(key.Copy()), tempVar);
+			return KV.Create(version, true);
 		}
 	}
 
-	public final static byte[] NullBytes = new byte[0];
-
-	public class MemTrans implements Transaction {
+	public final class MemTrans implements Transaction {
 		private final ConcurrentHashMap<String, ConcurrentHashMap<ByteBuffer, byte[]>> batch = new ConcurrentHashMap<>();
 
-		public MemTrans() {
-		}
-
 		@Override
-		public final void Commit() {
+		public void Commit() {
 			// 整个db同步。
-			synchronized (DatabaseMemory.databaseTables) {
+			lock.lock();
+			try {
 				for (var e : batch.entrySet()) {
-					final var db = databaseTables.computeIfAbsent(DatabaseMemory.this.getDatabaseUrl(), url -> new ConcurrentHashMap<>());
-					final var table = db.computeIfAbsent(e.getKey(), tn -> new TableMemory(DatabaseMemory.this, tn));
+					var db = databaseTables.computeIfAbsent(getDatabaseUrl(), url -> new ConcurrentHashMap<>());
+					var table = db.computeIfAbsent(e.getKey(), tn -> new TableMemory(DatabaseMemory.this, tn));
 					//if (e.getValue().size() > 2)
 					//	System.err.println("commit for: " + e.getKey() + " keys:" + e.getValue().keySet());
 					for (var r : e.getValue().entrySet()) {
-						if (r.getValue() == NullBytes) {
+						if (r.getValue() == Removed)
 							table.Map.remove(r.getKey());
-						} else {
+						else
 							table.Map.put(r.getKey(), r.getValue());
-						}
 					}
 				}
+			} finally {
+				lock.unlock();
 			}
 		}
 
 		@Override
-		public final void Rollback() {
+		public void Rollback() {
 		}
 
 		@Override
-		public final void close() {
+		public void close() {
 		}
 
-		public final void Remove(String tableName, ByteBuffer key) {
+		public void Remove(String tableName, ByteBuffer key) {
 			var table = batch.computeIfAbsent(tableName, tn -> new ConcurrentHashMap<>());
-			table.put(ByteBuffer.Wrap(key.Copy()), NullBytes);
+			table.put(ByteBuffer.Wrap(key.Copy()), Removed);
 		}
 
-		public final void Replace(String tableName, ByteBuffer key, ByteBuffer value) {
+		public void Replace(String tableName, ByteBuffer key, ByteBuffer value) {
 			var table = batch.computeIfAbsent(tableName, tn -> new ConcurrentHashMap<>());
 			table.put(ByteBuffer.Wrap(key.Copy()), value.Copy());
 		}
@@ -111,17 +111,19 @@ public final class DatabaseMemory extends Database {
 		// 多表原子查询。
 		public Map<String, Map<ByteBuffer, ByteBuffer>> Finds(Map<String, Set<ByteBuffer>> tableKeys) {
 			var result = new HashMap<String, Map<ByteBuffer, ByteBuffer>>();
-			synchronized (DatabaseMemory.databaseTables) {
+			lock.lock();
+			try {
 				for (var tks : tableKeys.entrySet()) {
-					final var tableName = tks.getKey();
-					final var db = databaseTables.computeIfAbsent(DatabaseMemory.this.getDatabaseUrl(), url -> new ConcurrentHashMap<>());
-					final var table = db.computeIfAbsent(tableName, tn -> new TableMemory(DatabaseMemory.this, tn));
-					final var tableFinds = new HashMap<ByteBuffer, ByteBuffer>();
+					var tableName = tks.getKey();
+					var db = databaseTables.computeIfAbsent(getDatabaseUrl(), __ -> new ConcurrentHashMap<>());
+					var table = db.computeIfAbsent(tableName, tn -> new TableMemory(DatabaseMemory.this, tn));
+					var tableFinds = new HashMap<ByteBuffer, ByteBuffer>();
 					result.put(tableName, tableFinds);
-					for (var key : tks.getValue()) {
+					for (var key : tks.getValue())
 						tableFinds.put(key, table.Find(key)); // also put null value
-					}
 				}
+			} finally {
+				lock.unlock();
 			}
 			return result;
 		}
@@ -129,13 +131,15 @@ public final class DatabaseMemory extends Database {
 		// 单表原子查询
 		public Map<ByteBuffer, ByteBuffer> Finds(String tableName, Set<ByteBuffer> keys) {
 			var result = new HashMap<ByteBuffer, ByteBuffer>();
-			synchronized (DatabaseMemory.databaseTables) {
+			lock.lock();
+			try {
 				//System.err.println("finds for: " + tableName + " keys.size=" +keys.size());
-				final var db = databaseTables.computeIfAbsent(DatabaseMemory.this.getDatabaseUrl(), url -> new ConcurrentHashMap<>());
-				final var table = db.computeIfAbsent(tableName, tn -> new TableMemory(DatabaseMemory.this, tn));
-				for (var key : keys) {
+				var db = databaseTables.computeIfAbsent(getDatabaseUrl(), __ -> new ConcurrentHashMap<>());
+				var table = db.computeIfAbsent(tableName, tn -> new TableMemory(DatabaseMemory.this, tn));
+				for (var key : keys)
 					result.put(key, table.Find(key)); // also put null value
-				}
+			} finally {
+				lock.unlock();
 			}
 			return result;
 		}
@@ -146,29 +150,16 @@ public final class DatabaseMemory extends Database {
 		return new MemTrans();
 	}
 
-	private final static ConcurrentHashMap<String, ConcurrentHashMap<String, TableMemory>> databaseTables = new ConcurrentHashMap<>();
-
 	@Override
 	public Database.Table OpenTable(String name) {
-		var tables = databaseTables.computeIfAbsent(getDatabaseUrl(),
-				(urlNotUsed) -> new java.util.concurrent.ConcurrentHashMap<>());
-
+		var tables = databaseTables.computeIfAbsent(getDatabaseUrl(), __ -> new ConcurrentHashMap<>());
 		return tables.computeIfAbsent(name, tableName -> new TableMemory(this, tableName));
 	}
 
-	public final static class TableMemory implements Database.Table {
+	public static final class TableMemory implements Database.Table {
 		private final DatabaseMemory DatabaseReal;
-		public DatabaseMemory getDatabaseReal() {
-			return DatabaseReal;
-		}
-		@Override
-		public Database getDatabase() {
-			return getDatabaseReal();
-		}
 		private final String Name;
-		public String getName() {
-			return Name;
-		}
+		private final ConcurrentHashMap<ByteBuffer, byte[]> Map = new ConcurrentHashMap<>();
 
 		public TableMemory(DatabaseMemory db, String name) {
 			DatabaseReal = db;
@@ -176,30 +167,33 @@ public final class DatabaseMemory extends Database {
 		}
 
 		@Override
+		public Database getDatabase() {
+			return DatabaseReal;
+		}
+
+		public String getName() {
+			return Name;
+		}
+
+		@Override
 		public boolean isNew() {
 			return true;
 		}
 
-		final ConcurrentHashMap<ByteBuffer, byte[]> Map = new ConcurrentHashMap<>();
-
 		@Override
 		public ByteBuffer Find(ByteBuffer key) {
 			var value = Map.get(key);
-			if (null != value)
-				return ByteBuffer.Wrap(ByteBuffer.Copy(value));
-			return null;
+			return value != null ? ByteBuffer.Wrap(ByteBuffer.Copy(value)) : null;
 		}
 
 		@Override
 		public void Remove(Transaction t, ByteBuffer key) {
-			var mt = (MemTrans)t;
-			mt.Remove(Name, key);
+			((MemTrans)t).Remove(Name, key);
 		}
 
 		@Override
 		public void Replace(Transaction t, ByteBuffer key, ByteBuffer value) {
-			var mt = (MemTrans)t;
-			mt.Replace(Name, key, value);
+			((MemTrans)t).Replace(Name, key, value);
 		}
 
 		@Override
@@ -207,10 +201,9 @@ public final class DatabaseMemory extends Database {
 			// 不允许并发？
 			long count = 0;
 			for (var e : Map.entrySet()) {
-				++count;
-				if (!callback.handle(e.getKey().Copy(), e.getValue().clone())) {
+				count++;
+				if (!callback.handle(e.getKey().Copy(), e.getValue().clone()))
 					break;
-				}
 			}
 			return count;
 		}
@@ -220,10 +213,9 @@ public final class DatabaseMemory extends Database {
 			// 不允许并发？
 			long count = 0;
 			for (var e : Map.entrySet()) {
-				++count;
-				if (!callback.handle(e.getKey().Copy())) {
+				count++;
+				if (!callback.handle(e.getKey().Copy()))
 					break;
-				}
 			}
 			return count;
 		}

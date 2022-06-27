@@ -1,5 +1,6 @@
 package Zeze.Services;
 
+import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Net.Binary;
 import Zeze.Util.WeakHashSet;
 
@@ -23,9 +24,6 @@ public final class GlobalLocks {
 
 	/**
 	 * Returns the segment that should be used for key with given hash.
-	 *
-	 * @param lockey the Lockey
-	 * @return the segment
 	 */
 	private Segment segmentFor(GlobalLockey lockey) {
 		/*
@@ -76,22 +74,29 @@ public final class GlobalLocks {
 	/* ------------- 实现 --------------- */
 	private final static class Segment {
 		private final WeakHashSet<GlobalLockey> locks = new WeakHashSet<>();
+		private final ReentrantLock lock = new ReentrantLock();
 
-		public Segment() {
+		public boolean Contains(GlobalLockey key) {
+			lock.lock();
+			try {
+				// 需要lock，get不是线程安全的
+				return locks.get(key) != null;
+			} finally {
+				lock.unlock();
+			}
 		}
 
-		public synchronized boolean Contains(GlobalLockey key) {
-			// 需要sync，get不是线程安全的
-			return locks.get(key) != null;
-		}
-
-		public synchronized GlobalLockey Get(GlobalLockey key) {
-			GlobalLockey exist = locks.get(key);
-			if (exist != null)
-				return exist;
-
-			locks.add(key);
-			return key.Alloc();
+		public GlobalLockey Get(GlobalLockey key) {
+			lock.lock();
+			try {
+				GlobalLockey exist = locks.get(key);
+				if (exist != null)
+					return exist;
+				locks.add(key);
+				return key.Alloc();
+			} finally {
+				lock.unlock();
+			}
 		}
 	}
 

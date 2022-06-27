@@ -223,19 +223,15 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		private volatile long LastErrorTime;
 
 		void verifyFastFail() {
-			synchronized (this) {
-				if (System.currentTimeMillis() - LastErrorTime < getConfig().ServerFastErrorPeriod)
-					ThrowException("GlobalAgent In FastErrorPeriod", null); // abort
-				// else continue
-			}
+			if (System.currentTimeMillis() - LastErrorTime < getConfig().ServerFastErrorPeriod)
+				ThrowException("GlobalAgent In FastErrorPeriod", null); // abort
+			// else continue
 		}
 
 		void setFastFail() {
 			var now = System.currentTimeMillis();
-			synchronized (this) {
-				if (now - LastErrorTime > getConfig().ServerFastErrorPeriod)
-					LastErrorTime = now;
-			}
+			if (now - LastErrorTime > getConfig().ServerFastErrorPeriod)
+				LastErrorTime = now;
 		}
 
 		@SuppressWarnings("SameParameterValue")

@@ -1,6 +1,7 @@
 package Zeze.Util;
 
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Application;
 import org.apache.logging.log4j.LogManager;
@@ -29,33 +30,27 @@ public class EventDispatcher {
 
 	public static final class Events extends ArrayList<EventHandle> {
 		private final ReentrantLock lock = new ReentrantLock();
-		private final ArrayList<EventHandle> delayRemoves = new ArrayList<>();
+		private final ConcurrentLinkedQueue<EventHandle> delayRemoves = new ConcurrentLinkedQueue<>();
 
-		public synchronized void remove(EventHandle handle) {
-			if (lock.isLocked() || !lock.tryLock()) // 任何线程持有锁(包括当前线程),或者尝试获取锁失败(有小概率恰好被抢走)
-				delayRemoves.add(handle);
-			else {
+		public void remove(EventHandle handle) {
+			delayRemoves.offer(handle);
+			do {
+				if (lock.isLocked() || !lock.tryLock()) // 任何线程持有锁(包括当前线程),或者尝试获取锁失败(有小概率恰好被抢走)
+					return;
 				try {
-					if (!delayRemoves.isEmpty()) {
-						for (EventHandle h : delayRemoves)
-							super.remove(h);
-						delayRemoves.clear();
-					}
-					super.remove(handle);
+					for (EventHandle h; (h = delayRemoves.poll()) != null; )
+						super.remove(h);
 				} finally {
 					lock.unlock();
 				}
-			}
+			} while (!delayRemoves.isEmpty());
 		}
 
-		public synchronized void tryRemoveDelay() {
-			if (delayRemoves.isEmpty()) // fast path
-				return;
-			if (!lock.isLocked() && lock.tryLock()) {
+		public void tryRemoveDelay() {
+			if (!delayRemoves.isEmpty() && !lock.isLocked() && lock.tryLock()) {
 				try {
-					for (EventHandle h : delayRemoves)
+					for (EventHandle h; (h = delayRemoves.poll()) != null; )
 						super.remove(h);
-					delayRemoves.clear();
 				} finally {
 					lock.unlock();
 				}
