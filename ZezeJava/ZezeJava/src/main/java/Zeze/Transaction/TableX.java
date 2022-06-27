@@ -1,9 +1,7 @@
 package Zeze.Transaction;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;

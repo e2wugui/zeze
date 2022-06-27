@@ -6,10 +6,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import Zeze.Application;
 import Zeze.IModule;
@@ -57,8 +54,7 @@ public final class Task {
 		} catch (ReflectiveOperationException ignored) {
 		}
 
-		return new ThreadPoolExecutor(threadCount, threadCount, 0, TimeUnit.NANOSECONDS,
-				new LinkedBlockingQueue<>(), new ThreadFactoryWithName(threadNamePrefix));
+		return Executors.newFixedThreadPool(threadCount, new ThreadFactoryWithName(threadNamePrefix));
 	}
 
 	// 关键线程池, 普通优先级+1, 不使用虚拟线程, 线程数按需增长, 用于处理关键任务, 比普通任务的处理更及时
@@ -87,7 +83,7 @@ public final class Task {
 	}
 
 	public static synchronized boolean tryInitThreadPool(Application app, ExecutorService pool,
-														 ScheduledThreadPoolExecutor scheduled) {
+														 ScheduledExecutorService scheduled) {
 		if (threadPoolDefault != null || threadPoolScheduled != null)
 			return false;
 
@@ -101,7 +97,7 @@ public final class Task {
 		if (scheduled == null) {
 			int workerThreads = app == null ? 120 : (app.getConfig().getScheduledThreads() > 0
 					? app.getConfig().getScheduledThreads() : Runtime.getRuntime().availableProcessors() * 15);
-			threadPoolScheduled = new ScheduledThreadPoolExecutor(workerThreads,
+			threadPoolScheduled = Executors.newScheduledThreadPool(workerThreads,
 					new ThreadFactoryWithName("ZezeScheduledPool"));
 		} else
 			threadPoolScheduled = scheduled;

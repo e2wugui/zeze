@@ -23,7 +23,7 @@ public class ProviderDistribute {
 	public Service ProviderService;
 	private final AtomicInteger FeedFullOneByOneIndex = new AtomicInteger();
 
-	public ConcurrentHashMap<String, ConsistentHash<ServiceInfo>> ConsistentHashes = new ConcurrentHashMap<>();
+	public final ConcurrentHashMap<String, ConsistentHash<ServiceInfo>> ConsistentHashes = new ConcurrentHashMap<>();
 
 	public void AddServer(Agent.SubscribeState state, ServiceInfo s) {
 		var consistentHash = ConsistentHashes.computeIfAbsent(s.getServiceName(), key -> new ConsistentHash<>());

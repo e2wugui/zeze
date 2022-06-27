@@ -43,7 +43,7 @@ public final class Record<K> {
 	private Table<K, ?> Table;
 	private K Key;
 	private Bean Value;
-	Lock mutex = new ReentrantLock();
+	final Lock mutex = new ReentrantLock();
 
 	public Record(Class<K> keyClass) {
 		keyEncodeFunc = SerializeHelper.createEncodeFunc(keyClass);

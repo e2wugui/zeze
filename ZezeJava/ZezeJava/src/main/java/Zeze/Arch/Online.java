@@ -398,12 +398,12 @@ public class Online extends AbstractOnline {
         public AsyncSocket LinkSocket; // null if not online
         public int ServerId = -1;
         public long ProviderSessionId;
-        public HashMap<LoginKey, Long> Logins = new HashMap<>();
+        public final HashMap<LoginKey, Long> Logins = new HashMap<>();
     }
 
     public static class LoginKey {
-        public String Account;
-        public String ClientId;
+        public final String Account;
+        public final String ClientId;
 
         public LoginKey(String account, String clientId) {
             Account = account;
@@ -584,7 +584,7 @@ public class Online extends AbstractOnline {
     /// target: 查询目标。
     /// result: 返回值，int，按普通事务处理过程返回值处理。
     /// </summary>
-    public ConcurrentHashMap<String, Func4<String, String, String, Binary, Long>> TransmitActions = new ConcurrentHashMap<>();
+    public final ConcurrentHashMap<String, Func4<String, String, String, Binary, Long>> TransmitActions = new ConcurrentHashMap<>();
 
     /// <summary>
     /// 转发查询请求给RoleId。
@@ -607,7 +607,7 @@ public class Online extends AbstractOnline {
 
     public static class RoleOnServer {
         public int ServerId = -1; // empty when not online
-        public HashSet<String> Accounts = new HashSet<>();
+        public final HashSet<String> Accounts = new HashSet<>();
 
         public void addAll(HashSet<String> accounts) {
             Accounts.addAll(accounts);

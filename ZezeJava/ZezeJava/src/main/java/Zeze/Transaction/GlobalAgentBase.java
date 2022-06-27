@@ -61,10 +61,10 @@ public abstract class GlobalAgentBase {
 	}
 
 	public static class Releaser {
-		public int GlobalIndex;
-		public long StartTime = System.currentTimeMillis();
-		public ArrayList<Future<Boolean>> Tasks = new ArrayList<>();
-		public Runnable EndAction;
+		public final int GlobalIndex;
+		public final long StartTime = System.currentTimeMillis();
+		public final ArrayList<Future<Boolean>> Tasks = new ArrayList<>();
+		public final Runnable EndAction;
 
 		public final boolean isCompletedSuccessfully() {
 			try {
