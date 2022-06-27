@@ -235,7 +235,7 @@ public final class Application {
 
 			// Open RocksCache
 			var dbConf = new Config.DatabaseConf();
-			dbConf.setName("zeze_rocks_cache_" + getConfig().getServerId());
+			dbConf.setName("zeze_cache_" + getConfig().getServerId());
 			dbConf.setDatabaseUrl(dbConf.getName());
 			deleteDirectory(new File(dbConf.getDatabaseUrl()));
 			dbConf.setDatabaseType(Config.DbType.RocksDb);
