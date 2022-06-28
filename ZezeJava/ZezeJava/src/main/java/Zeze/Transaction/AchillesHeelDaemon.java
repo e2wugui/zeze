@@ -132,6 +132,7 @@ public class AchillesHeelDaemon extends Thread {
 					var rr = agent.checkReleaseTimeout(now, config.ServerReleaseTimeout);
 					if (rr == GlobalAgentBase.CheckReleaseResult.Timeout) {
 						logger.fatal("AchillesHeelDaemon global release timeout. index=" + i);
+						LogManager.shutdown();
 						Runtime.getRuntime().halt(123123);
 					}
 
@@ -162,6 +163,7 @@ public class AchillesHeelDaemon extends Thread {
 		} catch (Throwable ex) {
 			// 这个线程不准出错。
 			logger.fatal("AchillesHeelDaemon ", ex);
+			LogManager.shutdown();
 			Runtime.getRuntime().halt(321321);
 		}
 	}

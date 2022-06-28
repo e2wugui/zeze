@@ -217,6 +217,7 @@ public final class Checkpoint {
 					db.Cleanup();
 			} catch (Throwable e) {
 				logger.fatal("CheckpointPeriod Cleanup Exception", e);
+				LogManager.shutdown();
 				Runtime.getRuntime().halt(54321);
 			}
 		} catch (Throwable e) {
@@ -295,6 +296,7 @@ public final class Checkpoint {
 				}
 			} catch (Throwable e) {
 				logger.fatal("Flush Cleanup Exception", e);
+				LogManager.shutdown();
 				Runtime.getRuntime().halt(54321);
 			}
 		} catch (Throwable e) {

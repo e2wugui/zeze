@@ -336,6 +336,7 @@ public final class Transaction {
 				}
 			} catch (Throwable e) {
 				logger.fatal("Transaction._final_commit_ " + procedure, e);
+				LogManager.shutdown();
 				Runtime.getRuntime().halt(54321);
 			}
 		});
