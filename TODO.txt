@@ -10,6 +10,9 @@ ServiceConf.Acceptor ip="@internal" "@external"
 Task
 Universe
 Zege
+AchillesHeelDaemon：安全级别从jvm级别提升到操作系统。保留线程守护，增加进程守护。两个守护兼容：
+  gs启动的时候检查mmap，发现自己是daemon启动的，就开启进程守护（向mmap报告和读取命令），否则还是原来的线程守护。
+Bean 依赖环检测。允许容器依赖环。
 
 【2022/7/15】
 
