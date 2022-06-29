@@ -105,6 +105,7 @@ namespace Zeze.Raft.RocksRaft
             AddFactory(new Changes(this).TypeId, () => new Changes(this));
 
             WriteOptions = new WriteOptions().SetSync(RocksDbWriteOptionSync);
+            AppDomain.CurrentDomain.ProcessExit += ProcessExit;
         }
 
         public async Task<Rocks> OpenAsync(
@@ -287,8 +288,8 @@ namespace Zeze.Raft.RocksRaft
 
         public void Dispose()
         {
+            AppDomain.CurrentDomain.ProcessExit -= ProcessExit;
             GC.SuppressFinalize(this);
-
             DisposeAsync().Wait();
         }
 
@@ -349,6 +350,11 @@ namespace Zeze.Raft.RocksRaft
         public static void RegisterLog<T>() where T : Log, new()
         {
             Log.Factorys.TryAdd(new T().TypeId, () => new T());
+        }
+
+        private void ProcessExit(object sender, EventArgs e)
+        {
+            Dispose();
         }
     }
 }
