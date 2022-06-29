@@ -997,7 +997,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					if (ENABLE_PERF)
 						Instance.perf.onReduceCancel(reduce);
 				}
-				logger.warn("Send Reduce failed. SessionId={}, peer={}, gkey={}", SessionId, peer, gkey);
+				logger.debug("Send Reduce failed. SessionId={}, peer={}, gkey={}", SessionId, peer, gkey);
 			} catch (Throwable ex) {
 				// 这里的异常只应该是网络发送异常。
 				logger.error("ReduceWaitLater Exception " + gkey, ex);

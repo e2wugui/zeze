@@ -849,7 +849,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					if (ENABLE_PERF)
 						Instance.perf.onReduceCancel(reduce);
 				}
-				logger.warn("Send Reduce failed. SessionId={}, peer={}, gkey={}", SessionId, peer, gkey);
+				logger.debug("Send Reduce failed. SessionId={}, peer={}, gkey={}", SessionId, peer, gkey);
 			} catch (Exception ex) {
 				// 这里的异常只应该是网络发送异常。
 				logger.error("Reduce Exception " + gkey, ex);
@@ -886,6 +886,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					}
 					return reduce;
 				}
+				logger.debug("Send Reduce failed. SessionId={}, peer={}, gkey={}", SessionId, peer, gkey);
 			} catch (Throwable ex) {
 				// 这里的异常只应该是网络发送异常。
 				logger.error("ReduceWaitLater Exception " + gkey, ex);
