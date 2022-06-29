@@ -197,17 +197,14 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 	@Override
 	public void SendResult(Binary result) {
 		if (SendResultDone) {
-			logger.log(getService().getSocketOptions().getSocketLogLevel(), "Rpc.SendResult Done {} {}",
-					getSender().getSocket(), this);
+			logger.error("Rpc.SendResult Already Done: " + getSender().getSocket() + " " + this, new Exception());
 			return;
 		}
 		SendResultDone = true;
 		ResultEncoded = result;
 		IsRequest = false;
-		if (!super.Send(getSender())) {
-			logger.log(getService().getSocketOptions().getSocketLogLevel(), "Rpc.SendResult Failed {} {}",
-					getSender().getSocket(), this);
-		}
+		if (!super.Send(getSender()))
+			logger.warn("Rpc.SendResult Failed: {} {}", getSender().getSocket(), this);
 	}
 
 	@Override

@@ -20,6 +20,7 @@ import java.util.function.LongSupplier;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Action0;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.Str;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -164,7 +165,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			if (recvBufSize != null)
 				ss.setReceiveBufferSize(recvBufSize);
 			ss.bind(localEP, service.getSocketOptions().getBacklog());
-			logger.info("listen {}", localEP);
+			logger.info("Listen: {}", localEP);
 
 			selector = Selectors.getInstance().choice();
 			selectionKey = selector.register(ssc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
@@ -194,11 +195,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			SocketChannel sc = null;
 			try {
 				sc = ((ServerSocketChannel)channel).accept();
-				if (sc != null) {
-					if (ENABLE_PROTOCOL_LOG)
-						logger.log(LEVEL_PROTOCOL_LOG, "OPEN({}): accepted", SessionId);
+				if (sc != null)
 					Service.OnSocketAccept(new AsyncSocket(Service, sc, Acceptor));
-				}
 			} catch (Throwable e) {
 				if (sc != null)
 					sc.close();
@@ -209,8 +207,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			try {
 				SocketChannel sc = (SocketChannel)channel;
 				if (sc.finishConnect()) {
-					if (ENABLE_PROTOCOL_LOG)
-						logger.log(LEVEL_PROTOCOL_LOG, "OPEN({}): connected", SessionId);
 					// 先修改事件，防止doConnectSuccess发送数据注册了新的事件导致OP_CONNECT重新触发。
 					// 虽然实际上在回调中应该不会唤醒Selector重入。
 					doConnectSuccess(sc);
@@ -227,12 +223,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	@Override
 	public void doException(SelectionKey key, Throwable e) {
 		Close(e);
-		if (!logger.isEnabled(Service.getSocketOptions().getSocketLogLevel())) {
-			if (e instanceof IOException)
-				logger.info("AsyncSocket.doException {}: {}", this, e);
-			else
-				logger.error("AsyncSocket.doException " + this, e);
-		}
 	}
 
 	/**
@@ -260,6 +250,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		selector = Selectors.getInstance().choice();
 		selectionKey = selector.register(sc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
 		selector.register(sc, SelectionKey.OP_READ, this);
+		logger.info("Accept: {}", this);
 	}
 
 	/**
@@ -267,6 +258,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	 */
 	private void doConnectSuccess(SocketChannel sc) throws Throwable {
 		RemoteAddress = sc.socket().getRemoteSocketAddress();
+		logger.info("Connect: {}", this);
 		if (Connector != null)
 			Connector.OnSocketConnected(this);
 		Service.OnSocketConnected(this);
@@ -383,19 +375,18 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		ByteBuffer.VerifyArrayIndex(bytes, offset, length);
 
 		if (closed) {
-			logger.error("Send to closed socket. len={}", length);
+			logger.error("Send to closed socket: " + this + " len=" + length, new Exception());
 			return false;
 		}
 		if (_outputBufferListCountSum.addAndGet(length) > Service.getSocketOptions().getOutputBufferMaxSize()) {
 			_outputBufferListCountSum.addAndGet(-length);
-			logger.error("Send overflow. {}+{} > {}",
-					_outputBufferListCountSum.get(), length, Service.getSocketOptions().getOutputBufferMaxSize());
+			logger.error(Str.format("Send overflow: {} {}+{} > {}", this, _outputBufferListCountSum.get(), length,
+					Service.getSocketOptions().getOutputBufferMaxSize()), new Exception());
 			return false;
 		}
 		try {
 			SubmitAction(() -> { // 进selector线程调用
 				Codec codec = outputCodecChain;
-				// logger.info("send --- {}: {}", RemoteAddress, BitConverter.toString(bytes, offset, length));
 				if (codec != null) {
 					// 压缩加密等 codec 链操作。
 					ByteBuffer codecBuf = outputCodecBuffer.getBuffer(); // codec对buffer的引用一定是不可变的
@@ -407,7 +398,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					if (deltaLen != 0)
 						_outputBufferListCountSum.getAndAdd(deltaLen);
 					_outputBufferListSending.addLast(java.nio.ByteBuffer.wrap(codecBuf.Bytes, codecBuf.ReadIndex, newLen));
-					// logger.info("SEND --- {}: {}", RemoteAddress, codecBuf);
 					codecBuf.FreeInternalBuffer();
 				} else
 					_outputBufferListSending.addLast(java.nio.ByteBuffer.wrap(bytes, offset, length));
@@ -455,7 +445,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		buffer.clear();
 		int BytesTransferred = sc.read(buffer);
 		if (BytesTransferred > 0) {
-			// logger.info("RECV --- {}: {}", sc.getRemoteAddress(), BitConverter.toString(buffer.array(), 0, BytesTransferred));
 			ByteBuffer codecBuf = inputCodecBuffer.getBuffer(); // codec对buffer的引用一定是不可变的
 			Codec codec = inputCodecChain;
 			if (codec != null) {
@@ -463,7 +452,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				codecBuf.EnsureWrite(BytesTransferred);
 				codec.update(buffer.array(), 0, BytesTransferred);
 				codec.flush();
-				// logger.info("recv --- {}: {}", sc.getRemoteAddress(), codecBuf);
 				Service.OnSocketProcessInputBuffer(this, codecBuf);
 			} else if (codecBuf.Size() > 0) {
 				// 上次解析有剩余数据（不完整的协议），把新数据加入。
@@ -548,14 +536,13 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			lock.unlock();
 		}
 
-		if (ENABLE_PROTOCOL_LOG)
-			logger.log(LEVEL_PROTOCOL_LOG, "CLOSE({}): {}", SessionId, ex);
 		if (ex != null) {
 			if (ex instanceof IOException)
-				logger.log(Service.getSocketOptions().getSocketLogLevel(), "Close " + this + ": " + ex);
+				logger.info("Close: {} {}", this, ex);
 			else
-				logger.log(Service.getSocketOptions().getSocketLogLevel(), "Close " + this, ex);
-		}
+				logger.warn("Close: " + this, ex);
+		} else
+			logger.debug("Close: {}", this);
 		if (Connector != null) {
 			try {
 				Connector.OnSocketClose(this, ex);
@@ -603,7 +590,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public String toString() {
 		SocketAddress localAddress = getLocalAddress();
 		SocketAddress remoteAddress = RemoteAddress;
-		return (localAddress != null ? localAddress : (Acceptor != null ? Acceptor.getName() : "")) + "-" + // 如果有localAddress则表示还没close
+		return "[" + SessionId + ']' +
+				(localAddress != null ? localAddress : (Acceptor != null ? Acceptor.getName() : "")) + "-" + // 如果有localAddress则表示还没close
 				(remoteAddress != null ? remoteAddress : (Connector != null ? Connector.getName() : "")); // 如果有RemoteAddress则表示曾经连接成功过
 	}
 }
