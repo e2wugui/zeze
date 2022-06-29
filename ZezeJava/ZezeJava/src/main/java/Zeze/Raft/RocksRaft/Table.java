@@ -291,7 +291,7 @@ public final class Table<K, V extends Bean> {
 		case Changes.Record.Edit:
 			r = GetOrLoad(key);
 			if (r.getValue() == null) {
-				logger.fatal("editing bug record not exist.");
+				logger.fatal("editing bug record not exist. key=" + key, new Exception());
 				Rocks.getRaft().FatalKill();
 			}
 			for (var log : rLog.getLogBean())
@@ -299,7 +299,7 @@ public final class Table<K, V extends Bean> {
 			break;
 
 		default:
-			logger.fatal("unknown Changes.Record.State.");
+			logger.fatal("unknown Changes.Record.State. state=" + rLog.getState(), new Exception());
 			Rocks.getRaft().FatalKill();
 			return null;
 		}
