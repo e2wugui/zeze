@@ -534,7 +534,6 @@ public class Test {
 							raft.Raft.getLogSequence().Close();
 						}
 					}
-					LogManager.shutdown();
 					System.exit(-1);
 					/*
 					for (var raft : Rafts.Values)

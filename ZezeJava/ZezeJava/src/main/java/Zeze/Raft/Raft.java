@@ -11,7 +11,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -23,6 +22,7 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
 import Zeze.Util.ConcurrentHashSet;
+import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCanceledException;
 import Zeze.Util.TaskCompletionSource;
@@ -35,7 +35,6 @@ import org.rocksdb.RocksDBException;
  */
 public final class Raft {
 	private static final Logger logger = LogManager.getLogger(Raft.class);
-	private static final AtomicReference<ArrayList<Raft>> processExits = new AtomicReference<>();
 	private static final AtomicLong threadPoolCounter = new AtomicLong();
 
 	private String LeaderId;
@@ -228,18 +227,11 @@ public final class Raft {
 			// shutdown 只做一次。
 			if (IsShutdown)
 				return;
-
-			ArrayList<Raft> exits = processExits.get();
-			if (exits != null) {
-				//noinspection SynchronizationOnLocalVariableOrMethodParameter
-				synchronized (exits) {
-					exits.remove(this);
-				}
-			}
 			IsShutdown = true;
 		} finally {
 			unlock();
 		}
+		ShutdownHook.remove(this);
 		Server.Stop();
 
 		var removeLogBeforeFuture = _LogSequence.RemoveLogBeforeFuture;
@@ -325,34 +317,11 @@ public final class Raft {
 		if ((new File(snapshot)).isFile())
 			sm.LoadSnapshot(snapshot);
 
-		ArrayList<Raft> exits = processExits.get();
-		if (exits == null) {
-			if (processExits.compareAndSet(null, exits = new ArrayList<>())) {
-				Runtime.getRuntime().addShutdownHook(new Thread("RaftShutdown") {
-					@Override
-					public void run() {
-						ArrayList<Raft> exits = processExits.get();
-						// TODO LOCK
-						//noinspection SynchronizationOnLocalVariableOrMethodParameter
-						synchronized (exits) {
-							for (Raft raft : exits.toArray(new Raft[exits.size()])) {
-								try {
-									raft.Shutdown();
-								} catch (Throwable e) {
-									logger.error("ShutdownHook", e);
-								}
-							}
-						}
-						LogManager.shutdown();
-					}
-				});
-			} else
-				exits = processExits.get();
-		}
-		//noinspection SynchronizationOnLocalVariableOrMethodParameter
-		synchronized (exits) {
-			exits.add(this);
-		}
+		ShutdownHook.add(this, () -> {
+			logger.info("Raft {} ShutdownHook begin", getName());
+			Shutdown();
+			logger.info("Raft {} ShutdownHook end", getName());
+		});
 
 		TimerTask = Task.schedule(10, this::OnTimer);
 	}

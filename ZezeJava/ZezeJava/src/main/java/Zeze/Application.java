@@ -25,6 +25,7 @@ import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.FuncLong;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.ShutdownHook;
 import Zeze.Util.Str;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
@@ -76,22 +77,21 @@ public final class Application {
 		Conf.CreateDatabase(this, Databases);
 		ServiceManagerAgent = new Agent(this);
 		ResetDB = new ResetDB();
+		ShutdownHook.add(this, () -> {
+			logger.info("zeze({}) ShutdownHook begin", SolutionName);
+			Stop();
+			logger.info("zeze({}) ShutdownHook end", SolutionName);
+		});
 	}
 
 	public Application() {
 		SolutionName = "";
 		Conf = null;
 		ServiceManagerAgent = null;
-		Runtime.getRuntime().addShutdownHook(new Thread("zeze.ShutdownHook") {
-			@Override
-			public void run() {
-				logger.info("zeze stop start ... from ShutdownHook.");
-				try {
-					Stop();
-				} catch (Throwable e) {
-					logger.error("Stop Exception in ShutdownHook", e);
-				}
-			}
+		ShutdownHook.add(this, () -> {
+			logger.info("zeze ShutdownHook begin");
+			Stop();
+			logger.info("zeze ShutdownHook end");
 		});
 	}
 
@@ -316,6 +316,7 @@ public final class Application {
 	public synchronized void Stop() throws Throwable {
 		if (!IsStart)
 			return;
+		ShutdownHook.remove(this);
 
 		if (null != AchillesHeelDaemon) {
 			AchillesHeelDaemon.stopAndJoin();

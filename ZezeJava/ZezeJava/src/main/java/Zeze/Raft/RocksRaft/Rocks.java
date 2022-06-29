@@ -36,6 +36,7 @@ import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Util.FuncLong;
 import Zeze.Util.IntHashMap;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.ShutdownHook;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.rocksdb.BackupEngine;
@@ -119,6 +120,12 @@ public final class Rocks extends StateMachine implements Closeable {
 		// 如果Storage没有创建，需要主动打开。
 		if (Storage == null)
 			OpenDb();
+
+		ShutdownHook.add(this, () -> {
+			logger.info("Rocks {} ShutdownHook begin", raftName);
+			close();
+			logger.info("Rocks {} ShutdownHook end", raftName);
+		});
 	}
 
 	private void OpenDb() throws RocksDBException {
@@ -394,6 +401,7 @@ public final class Rocks extends StateMachine implements Closeable {
 
 	@Override
 	public void close() { // 简单保护一下。
+		ShutdownHook.remove(this);
 		mutex.lock();
 		try {
 			try {

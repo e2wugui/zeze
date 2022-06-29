@@ -419,7 +419,6 @@ public class TestGlobalCacheMgrWithRaft {
 				System.out.println("___________________________________________");
 				System.out.println("___________________________________________");
 
-				LogManager.shutdown();
 				System.exit(-1);
 			}
 			// 等待失败的节点恢复正常
