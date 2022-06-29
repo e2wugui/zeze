@@ -20,6 +20,7 @@ import java.util.function.LongSupplier;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Action0;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.ShutdownHook;
 import Zeze.Util.Str;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -31,6 +32,10 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	static final Level LEVEL_PROTOCOL_LOG = Level.INFO;
 	private static final AtomicLong SessionIdGen = new AtomicLong();
 	private static LongSupplier SessionIdGenFunc;
+
+	static {
+		ShutdownHook.init();
+	}
 
 	public static void setSessionIdGenFunc(LongSupplier seed) {
 		SessionIdGenFunc = seed;
@@ -165,7 +170,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			if (recvBufSize != null)
 				ss.setReceiveBufferSize(recvBufSize);
 			ss.bind(localEP, service.getSocketOptions().getBacklog());
-			logger.info("Listen: {}", localEP);
+			logger.info("Listen: {} for {}:{}", localEP, service.getClass().getName(), service.getName());
 
 			selector = Selectors.getInstance().choice();
 			selectionKey = selector.register(ssc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
@@ -250,7 +255,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		selector = Selectors.getInstance().choice();
 		selectionKey = selector.register(sc, 0, this); // 先获取key,因为有小概率出现事件处理比赋值更先执行
 		selector.register(sc, SelectionKey.OP_READ, this);
-		logger.info("Accept: {}", this);
+		logger.info("Accept: {} for {}:{}", this, service.getClass().getName(), service.getName());
 	}
 
 	/**
@@ -258,7 +263,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	 */
 	private void doConnectSuccess(SocketChannel sc) throws Throwable {
 		RemoteAddress = sc.socket().getRemoteSocketAddress();
-		logger.info("Connect: {}", this);
+		logger.info("Connect: {} for {}:{}", this, Service.getClass().getName(), Service.getName());
 		if (Connector != null)
 			Connector.OnSocketConnected(this);
 		Service.OnSocketConnected(this);

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<configuration status="WARN" monitorInterval="30">
+<configuration status="WARN" monitorInterval="30" shutdownHook="disable">
 	<Properties>
 		<Property name="path">log</Property>
 		<Property name="name">linkd</Property>

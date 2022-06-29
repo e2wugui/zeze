@@ -28,8 +28,13 @@ public final class ShutdownHook {
 					}
 				}
 				logger.info("ShutdownHook end");
+				LogManager.shutdown();
 			}
 		});
+	}
+
+	public static void init() {
+		// 只用来确保上面的static块已执行
 	}
 
 	public static void add(Action0 action) {

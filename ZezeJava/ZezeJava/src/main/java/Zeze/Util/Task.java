@@ -28,6 +28,10 @@ public final class Task {
 	//			= (ThreadPoolExecutor)Executors.newCachedThreadPool(new ThreadFactoryWithName("ZezeRespPool"));
 	public static volatile Action4<Level, Throwable, Long, String> LogAction = Task::DefaultLogAction;
 
+	static {
+		ShutdownHook.init();
+	}
+
 	public static boolean isVirtualThreadEnabled() {
 		return ThreadFactoryWithName.isVirtualThreadEnabled();
 	}

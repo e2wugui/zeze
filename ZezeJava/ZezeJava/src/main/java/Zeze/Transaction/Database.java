@@ -1,13 +1,14 @@
 package Zeze.Transaction;
 
-import Zeze.Serialize.*;
-import Zeze.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Application;
 import Zeze.Config.DatabaseConf;
-
-import java.util.*;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.ShutdownHook;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  数据访问的效率主要来自TableCache的命中。根据以往的经验，命中率是很高的。
@@ -15,6 +16,10 @@ import java.util.concurrent.ConcurrentHashMap;
 */
 public abstract class Database {
 	protected static final Logger logger = LogManager.getLogger(Database.class);
+
+	static {
+		ShutdownHook.init();
+	}
 
 	private final ConcurrentHashMap<String, Zeze.Transaction.Table> tables = new ConcurrentHashMap<>();
 	public final ArrayList<Storage> storages = new ArrayList<>();
