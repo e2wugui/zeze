@@ -199,7 +199,7 @@ namespace Zeze.Arch
 				// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
 				Zeze.TaskOneByOneByKey.Execute(
 					r.Argument.HashCode, factoryHandle.Handle, p, r.Argument.MethodFullName,
-					(p, code) => p.SendResultCode(code));
+					(p, code) => p.TrySendResultCode(code));
 
 				return;
 			}
@@ -208,13 +208,13 @@ namespace Zeze.Arch
 			{
 				var r = (ModuleRedirectAllResult)p;
 				// 总是不启用存储过程，内部处理redirect时根据Redirect.Handle配置决定是否在存储过程中执行。
-				_ = Mission.CallAsync(factoryHandle.Handle, p, (p, code) => p.SendResultCode(code), r.Argument.MethodFullName);
+				_ = Mission.CallAsync(factoryHandle.Handle, p, (p, code) => p.TrySendResultCode(code), r.Argument.MethodFullName);
 
 				return;
 			}
 			// 所有的ProviderDirectService都不启用存储过程。
 			// 按收到顺序处理，不并发。这样也避免线程切换。
-			_ = Mission.CallAsync(factoryHandle.Handle, p, (p, code) => p.SendResultCode(code));
+			_ = Mission.CallAsync(factoryHandle.Handle, p, (p, code) => p.TrySendResultCode(code));
 		}
 
 		public override void DispatchRpcResponse(Protocol rpc, Func<Protocol, Task<long>> responseHandle, ProtocolFactoryHandle factoryHandle)

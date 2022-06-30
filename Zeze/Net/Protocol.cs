@@ -100,6 +100,13 @@ namespace Zeze.Net
 			SendResult(result);
 		}
 
+		// 用于Rpc发送结果。
+		// Rpc会重载实现。
+		public virtual bool TrySendResultCode(long code)
+		{
+			return false;
+		}
+
 		// always true for Protocol, Rpc Will override
 		public bool IsRequest { get; set; } = true;
 		public long ResultCode { get; set; }

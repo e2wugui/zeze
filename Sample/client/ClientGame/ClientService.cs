@@ -19,7 +19,7 @@ namespace ClientGame
 
         public override void DispatchProtocol2(object key, Protocol p, ProtocolFactoryHandle factoryHandle)
         {
-            Zeze.TaskOneByOneByKey.Execute(key, factoryHandle.Handle, p, (p, code) => p.SendResultCode(code));
+            Zeze.TaskOneByOneByKey.Execute(key, factoryHandle.Handle, p, (p, code) => p.TrySendResultCode(code));
         }
 
         public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)

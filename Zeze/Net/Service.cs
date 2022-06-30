@@ -271,12 +271,12 @@ namespace Zeze.Net
                     Zeze.TaskOneByOneByKey.Execute(key, Zeze.NewProcedure(
                             () => factoryHandle.Handle(p), p.GetType().FullName,
                             factoryHandle.TransactionLevel, p.UserState),
-                            p, (p, code) => p.SendResultCode(code)
+                            p, (p, code) => p.TrySendResultCode(code)
                         );
                 }
                 else
                 {
-                    Zeze.TaskOneByOneByKey.Execute(key, factoryHandle.Handle, p, (p, code) => p.SendResultCode(code));
+                    Zeze.TaskOneByOneByKey.Execute(key, factoryHandle.Handle, p, (p, code) => p.TrySendResultCode(code));
                 }
             }
             else

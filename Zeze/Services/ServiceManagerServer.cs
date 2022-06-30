@@ -786,7 +786,7 @@ namespace Zeze.Services
 
             public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
             {
-                _ = Mission.CallAsync(factoryHandle.Handle, p, (_, code) => p.SendResultCode(code));
+                _ = Mission.CallAsync(factoryHandle.Handle, p, (_, code) => p.TrySendResultCode(code));
             }
         }
 
@@ -1482,7 +1482,7 @@ namespace Zeze.Services.ServiceManager
 
             public override void DispatchProtocol(Protocol p, ProtocolFactoryHandle factoryHandle)
             {
-                _ = Mission.CallAsync(factoryHandle.Handle, p, (_, code) => p.SendResultCode(code));
+                _ = Mission.CallAsync(factoryHandle.Handle, p, (_, code) => p.TrySendResultCode(code));
             }
 
         }

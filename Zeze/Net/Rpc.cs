@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using NLog;
 using Zeze.Serialize;
 using Zeze.Transaction;
 using Zeze.Util;
@@ -160,7 +161,7 @@ namespace Zeze.Net
         {
             if (SendResultDone)
             {
-                logger.Log(Service.SocketOptions.SocketLogLevel, $"Rpc.SendResult Done {Sender.Socket} {this}");
+                logger.Log(LogLevel.Error, $"Rpc.SendResult Already Done {Sender.Socket} {this}");
                 return;
             }
             SendResultDone = true;
@@ -171,6 +172,15 @@ namespace Zeze.Net
             {
                 logger.Log(Service.SocketOptions.SocketLogLevel, $"Rpc.SendResult Failed {Sender.Socket} {this}");
             }
+        }
+
+        public override bool TrySendResultCode(long code)
+        {
+            if (SendResultDone)
+                return false;
+            ResultCode = code;
+            SendResult();
+            return true;
         }
 
         internal override void Dispatch(Service service, Service.ProtocolFactoryHandle factoryHandle)

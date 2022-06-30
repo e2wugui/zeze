@@ -78,7 +78,7 @@ namespace Zeze.Component
 				var r = p as RunTask;
 				var proc = Zeze.NewProcedure(async () => await factoryHandle.Handle(p),
 					$"RedoQueue={r.Argument.QueueName} RunTask={r.Argument.TaskType}");
-				_ = Mission.CallAsync(proc, p, (p, code) => p.SendResultCode(code)); // error result
+				_ = Mission.CallAsync(proc, p, (p, code) => p.TrySendResultCode(code)); // error result
 			}
 		}
 	}

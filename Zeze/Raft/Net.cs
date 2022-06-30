@@ -181,7 +181,7 @@ namespace Zeze.Raft
                 //【防止重复的请求】
                 // see Log.cs::LogSequence.TryApply
                 TaskOneByOne.Execute(iraftrpc.Unique, async (p) => await ProcessReqeust(p, factoryHandle),
-                    p, (p, code) => p.SendResultCode(code), () => p.SendResultCode(Procedure.RaftRetry));
+                    p, (p, code) => p.TrySendResultCode(code), () => p.TrySendResultCode(Procedure.RaftRetry));
                 return;
             }
 
