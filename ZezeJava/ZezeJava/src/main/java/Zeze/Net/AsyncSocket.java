@@ -28,8 +28,8 @@ import org.apache.logging.log4j.Logger;
 
 public final class AsyncSocket implements SelectorHandle, Closeable {
 	static final Logger logger = LogManager.getLogger(AsyncSocket.class);
-	static final boolean ENABLE_PROTOCOL_LOG = false; // 仅自己调试时临时打开
-	static final Level LEVEL_PROTOCOL_LOG = Level.INFO;
+	static final boolean ENABLE_PROTOCOL_LOG = System.getProperty("protocolLog") != null;
+	static final Level LEVEL_PROTOCOL_LOG = Level.toLevel(System.getProperty("protocolLog"), Level.INFO);
 	private static final AtomicLong SessionIdGen = new AtomicLong();
 	private static LongSupplier SessionIdGenFunc;
 
