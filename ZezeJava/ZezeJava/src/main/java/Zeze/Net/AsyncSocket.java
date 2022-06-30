@@ -73,7 +73,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private volatile SocketAddress RemoteAddress; // 连接成功时设置
 	private volatile Object UserState;
 	private volatile boolean IsHandshakeDone;
-	private boolean closed;
+	private byte closed;
 
 	public long getSessionId() {
 		return SessionId;
@@ -148,7 +148,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	public boolean isClosed() {
-		return closed;
+		return closed != 0;
 	}
 
 	/**
@@ -379,8 +379,12 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public boolean Send(byte[] bytes, int offset, int length) {
 		ByteBuffer.VerifyArrayIndex(bytes, offset, length);
 
-		if (closed) {
-			logger.error("Send to closed socket: " + this + " len=" + length, new Exception());
+		if (closed != 0) {
+			if (closed < 100) { // 注意不能超过byte最大值
+				closed++;
+				logger.error("Send to closed socket: " + this + " len=" + length, new Exception());
+			} else
+				logger.error("Send to closed socket: {} len={}", this, length);
 			return false;
 		}
 		if (_outputBufferListCountSum.addAndGet(length) > Service.getSocketOptions().getOutputBufferMaxSize()) {
@@ -534,9 +538,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public void Close(Throwable ex) {
 		lock.lock();
 		try {
-			if (closed)
+			if (closed != 0)
 				return;
-			closed = true; // 阻止递归关闭
+			closed = 1; // 阻止递归关闭
 		} finally {
 			lock.unlock();
 		}
