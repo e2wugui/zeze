@@ -289,10 +289,10 @@ public class Service {
 			if (factoryHandle.Level != TransactionLevel.None) {
 				Zeze.getTaskOneByOneByKey().Execute(key, () ->
 						Task.Call(Zeze.NewProcedure(() -> factoryHandle.Handle.handle(p), p.getClass().getName(),
-								factoryHandle.Level, p.getUserState()), p, Protocol::SendResultCode));
+								factoryHandle.Level, p.getUserState()), p, Protocol::trySendResultCode));
 			} else {
 				Zeze.getTaskOneByOneByKey().Execute(key,
-						() -> Task.Call(() -> factoryHandle.Handle.handle(p), p, Protocol::SendResultCode));
+						() -> Task.Call(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode));
 			}
 		} else
 			logger.warn("DispatchProtocol2: Protocol Handle Not Found: {}", p);

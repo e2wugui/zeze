@@ -50,6 +50,6 @@ public final class AgentClient extends Zeze.Services.HandshakeClient {
 
 	@Override
 	public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
-		Task.Call(() -> factoryHandle.Handle.handle(p), p, Protocol::SendResultCode);
+		Task.Call(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode);
 	}
 }

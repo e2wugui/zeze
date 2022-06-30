@@ -195,7 +195,7 @@ public final class Server extends HandshakeBoth {
 			}
 			TrySendLeaderIs(p.getSender());
 			return 0L;
-		}, p, Protocol::SendResultCode);
+		}, p, Protocol::trySendResultCode);
 	}
 
 	@Override
