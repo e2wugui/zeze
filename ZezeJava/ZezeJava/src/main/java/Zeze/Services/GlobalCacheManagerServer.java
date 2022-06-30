@@ -8,15 +8,16 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
+import Zeze.Net.RpcTimeoutException;
 import Zeze.Net.Service;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Acquire;
 import Zeze.Services.GlobalCacheManager.Cleanup;
+import Zeze.Services.GlobalCacheManager.GlobalKeyState;
 import Zeze.Services.GlobalCacheManager.KeepAlive;
 import Zeze.Services.GlobalCacheManager.Login;
 import Zeze.Services.GlobalCacheManager.NormalClose;
-import Zeze.Services.GlobalCacheManager.GlobalKeyState;
 import Zeze.Services.GlobalCacheManager.ReLogin;
 import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Transaction.TransactionLevel;
@@ -680,8 +681,13 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 							} catch (Throwable ex) {
 								reduce.getKey().SetError();
 								// 等待失败不再看作成功。
-								logger.error(String.format("Reduce %s AcquireState=%d CacheState=%s arg=%s",
-										sender, StateModify, cs, reduce.getValue().Argument), ex);
+								if (Task.getRootCause(ex) instanceof RpcTimeoutException) {
+									logger.warn("Reduce Timeout {} AcquireState={} CacheState={} arg={}",
+											sender, StateModify, cs, reduce.getValue().Argument);
+								} else {
+									logger.error(String.format("Reduce %s AcquireState=%d CacheState=%s arg=%s",
+											sender, StateModify, cs, reduce.getValue().Argument), ex);
+								}
 							}
 						}
 						errorFreshAcquire.Value = freshAcquire;
@@ -849,7 +855,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					if (ENABLE_PERF)
 						Instance.perf.onReduceCancel(reduce);
 				}
-				logger.debug("Send Reduce failed. SessionId={}, peer={}, gkey={}", SessionId, peer, gkey);
+				logger.warn("Send Reduce failed. SessionId={}, peer={}, gkey={}", SessionId, peer, gkey);
 			} catch (Exception ex) {
 				// 这里的异常只应该是网络发送异常。
 				logger.error("Reduce Exception " + gkey, ex);
@@ -886,7 +892,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					}
 					return reduce;
 				}
-				logger.debug("Send Reduce failed. SessionId={}, peer={}, gkey={}", SessionId, peer, gkey);
+				logger.warn("Send Reduce failed. SessionId={}, peer={}, gkey={}", SessionId, peer, gkey);
 			} catch (Throwable ex) {
 				// 这里的异常只应该是网络发送异常。
 				logger.error("ReduceWaitLater Exception " + gkey, ex);

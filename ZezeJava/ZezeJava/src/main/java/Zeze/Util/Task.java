@@ -229,6 +229,15 @@ public final class Task {
 		return Call(func, p, actionWhenError, null);
 	}
 
+	public static Throwable getRootCause(Throwable e) {
+		for (; ; ) {
+			var c = e.getCause();
+			if (c == null)
+				return e;
+			e = c;
+		}
+	}
+
 	public static long Call(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String aName) {
 		boolean IsRequestSaved = p.isRequest(); // 记住这个，以后可能会被改变。
 		try {
@@ -241,17 +250,13 @@ public final class Task {
 			throw e;
 		} catch (Throwable ex) {
 			long errorCode;
-			for (Throwable rootEx = ex, cause; ; rootEx = cause) {
-				if ((cause = rootEx.getCause()) == null) {
-					if (rootEx instanceof TaskCanceledException)
-						errorCode = Procedure.CancelException;
-					else if (rootEx instanceof RaftRetryException)
-						errorCode = Procedure.RaftRetry;
-					else
-						errorCode = Procedure.Exception;
-					break;
-				}
-			}
+			var rootEx = getRootCause(ex);
+			if (rootEx instanceof TaskCanceledException)
+				errorCode = Procedure.CancelException;
+			else if (rootEx instanceof RaftRetryException)
+				errorCode = Procedure.RaftRetry;
+			else
+				errorCode = Procedure.Exception;
 
 			if (IsRequestSaved && actionWhenError != null) {
 				try {

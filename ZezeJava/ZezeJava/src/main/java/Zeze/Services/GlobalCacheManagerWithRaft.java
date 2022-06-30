@@ -17,6 +17,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
+import Zeze.Net.RpcTimeoutException;
 import Zeze.Raft.RaftConfig;
 import Zeze.Raft.RocksRaft.Procedure;
 import Zeze.Raft.RocksRaft.Record;
@@ -538,8 +539,13 @@ public class GlobalCacheManagerWithRaft
 							}
 							session.SetError();
 							// 等待失败不再看作成功。
-							logger.error(String.format("Reduce %s=>%s AcquireState=%d CacheState=%s arg=%s",
-									sender, session, StateModify, cs, reduce.Argument), ex);
+							if (Task.getRootCause(ex) instanceof RpcTimeoutException) {
+								logger.warn("Reduce Timeout {}=>{} AcquireState={} CacheState={} arg={}",
+										sender, session, StateModify, cs, reduce.Argument);
+							} else {
+								logger.error(String.format("Reduce %s=>%s AcquireState=%d CacheState=%s arg=%s",
+										sender, session, StateModify, cs, reduce.Argument), ex);
+							}
 						}
 					}
 					lockey.Enter();
@@ -883,7 +889,7 @@ public class GlobalCacheManagerWithRaft
 						globalRaft.perf.onReduceCancel(reduce);
 					logger.warn("Reduce send failed: {} peer={}, gkey={}", this, peer, gkey);
 				} else
-					logger.error("Reduce invalid: {} gkey={}", this, gkey);
+					logger.warn("Reduce invalid: {} gkey={}", this, gkey);
 			} catch (RuntimeException ex) {
 				if (ENABLE_PERF && reduce != null)
 					globalRaft.perf.onReduceCancel(reduce);
@@ -913,7 +919,7 @@ public class GlobalCacheManagerWithRaft
 					reduce.SendForWait(peer, globalRaft.AchillesHeelConfig.ReduceTimeout);
 					return reduce;
 				}
-				logger.error("ReduceWaitLater invalid: {} gkey={}", this, gkey);
+				logger.warn("ReduceWaitLater invalid: {} gkey={}", this, gkey);
 			} catch (RuntimeException ex) {
 				if (ENABLE_PERF && reduce != null)
 					globalRaft.perf.onReduceCancel(reduce);
@@ -926,7 +932,7 @@ public class GlobalCacheManagerWithRaft
 
 		@Override
 		public String toString() {
-			return String.format("%s@%s", SessionId, ServerId);
+			return SessionId + "@" + ServerId;
 		}
 	}
 }
