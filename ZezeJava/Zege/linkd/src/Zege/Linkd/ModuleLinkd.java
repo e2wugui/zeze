@@ -21,7 +21,7 @@ public class ModuleLinkd extends AbstractModule {
             return 0;
         }
 
-        if (false == linkSession.TrySetAccount(rpc.Argument.getAccount()))
+        if (!linkSession.TrySetAccount(rpc.Argument.getAccount()))
         {
             App.LinkdService.ReportError(rpc.getSender().getSessionId(),
                     BReportError.FromLink, BReportError.CodeNotAuthed,
@@ -50,7 +50,7 @@ public class ModuleLinkd extends AbstractModule {
                 }))) {
             App.LinkdService.ReportError(rpc.getSender().getSessionId(), BReportError.FromLink,
                     BReportError.CodeNoProvider, "no provider.");
-        };
+        }
         return 0;
     }
 

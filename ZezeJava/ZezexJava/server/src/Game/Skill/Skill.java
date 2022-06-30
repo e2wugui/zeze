@@ -1,7 +1,7 @@
 package Game.Skill;
 
 public class Skill {
-	private final BSkill Bean;
+	public final BSkill Bean;
 
 	public Skill(BSkill bean) {
 		this.Bean = bean;

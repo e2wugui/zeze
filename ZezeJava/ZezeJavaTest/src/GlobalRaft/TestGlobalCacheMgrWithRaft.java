@@ -431,7 +431,9 @@ public class TestGlobalCacheMgrWithRaft {
 
 	private void WaitExceptCountGrow(@SuppressWarnings("SameParameterValue") long growCount) throws InterruptedException {
 		long oldExpectCount = this.ExpectCount.get();
+		//noinspection ConditionalBreakInInfiniteLoop
 		while (true) {
+			//noinspection BusyWait
 			Thread.sleep(10);
 			if (this.ExpectCount.get() - oldExpectCount > growCount)
 				break;
@@ -456,7 +458,7 @@ public class TestGlobalCacheMgrWithRaft {
 			}
 		}
 
-		public void Stop() throws IOException {
+		public void Stop() {
 			synchronized (this) {
 				logger.debug("GlobalCacheManagerWithRaft {} Stop ...", RaftName);
 				if (GlobalCacheManagerWithRaft != null) {
@@ -483,6 +485,7 @@ public class TestGlobalCacheMgrWithRaft {
 						}  catch (BindException | RuntimeException be) {
 							if (!(be instanceof BindException) && !(be.getCause() instanceof BindException) || ++i > 30)
 								throw be;
+							//noinspection BusyWait
 							Thread.sleep(100);
 						}
 					}
@@ -494,12 +497,12 @@ public class TestGlobalCacheMgrWithRaft {
 		}
 
 		@Override
-		public SnapshotResult Snapshot(String path) throws Throwable {
+		public SnapshotResult Snapshot(String path) {
 			return null;
 		}
 
 		@Override
-		public void LoadSnapshot(String path) throws Throwable {
+		public void LoadSnapshot(String path) {
 			System.out.println("1111111111111111111111");
 		}
 	}

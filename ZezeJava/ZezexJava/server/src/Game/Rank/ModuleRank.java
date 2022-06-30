@@ -473,7 +473,7 @@ public class ModuleRank extends AbstractModule {
 		public String _string = "";
 		public byte[] _bytes = ByteBuffer.Empty;
 		public Binary _binary = Binary.Empty;
-		public EmptyBean bean = new EmptyBean(); // 使用Bean自己的序列化,需要序列化的引用类型成员在构造后不能为null
+		public final EmptyBean bean = new EmptyBean(); // 使用Bean自己的序列化,需要序列化的引用类型成员在构造后不能为null
 		public Date date = new Date(); // 使用JDK自带的序列化
 		public transient String str; // 不会序列化transient
 		protected Object obj; // 不会序列化非public

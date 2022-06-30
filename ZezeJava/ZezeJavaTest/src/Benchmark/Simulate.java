@@ -17,7 +17,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 
-@SuppressWarnings({"unused", "FieldCanBeLocal", "FieldMayBeFinal"})
+@SuppressWarnings({"unused", "FieldCanBeLocal", "FieldMayBeFinal", "CanBeFinal"})
 public class Simulate {
 	static {
 		System.setProperty("log4j.configurationFile", "log4j2.xml");

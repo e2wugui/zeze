@@ -19,7 +19,7 @@ public class TestGlobal extends TestCase {
 		private static volatile int lastInt = -1;
 		private final int oldInt;
 		private final int appId;
-		private boolean eq;
+		private final boolean eq;
 
 		public PrintLog(Bean bean, demo.Module1.Value value, int appId) {
 			super(bean, 0, value);

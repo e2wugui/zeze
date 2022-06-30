@@ -4,14 +4,14 @@ package Zege;
 import Zeze.Util.Counters;
 
 public class Program {
-	public static Counters counters = new Counters();
+	public static final Counters counters = new Counters();
 
 	public synchronized static void main(String[] args) throws Throwable {
 		var conf = "linkd.xml";
 		for (int i = 0; i < args.length; ++i) {
 			switch (args[i]) {
 			case "-perf":
-				counters.Enable = true;
+				Counters.Enable = true;
 				break;
 			case "-zezeconf":
 				conf = args[++i];
@@ -20,7 +20,7 @@ public class Program {
 		}
 
 		Zege.App.Instance.Start(conf);
-		if (counters.Enable)
+		if (Counters.Enable)
 			counters.start();
 		try {
 			Program.class.wait();

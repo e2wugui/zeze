@@ -14,7 +14,7 @@ import Zeze.Util.PersistentAtomicLong;
 import org.tikv.shade.com.fasterxml.jackson.databind.ObjectMapper;
 
 public class App extends Zeze.AppBase {
-    public static App Instance = new App();
+    public static final App Instance = new App();
     public static App getInstance() {
         return Instance;
     }

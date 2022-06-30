@@ -9,7 +9,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Record;
 import Zeze.Util.OutLong;
-import org.pcollections.Empty;
 
 public class LinkdService extends LinkdServiceBase {
     public LinkdService(Zeze.Application zeze) throws Throwable {

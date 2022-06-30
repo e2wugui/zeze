@@ -13,9 +13,9 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Counters;
 
 public class Program {
-	public static Counters counters = new Counters();
+	public static final Counters counters = new Counters();
 
-	public static Program Instance = new Program();
+	public static final Program Instance = new Program();
 	private Benchmark benchmark;
 
 	private static String getComputerName() throws UnknownHostException {
@@ -28,7 +28,7 @@ public class Program {
 		for (int i = 0; i < args.length; ++i) {
 			switch (args[i]) {
 			case "-perf":
-				counters.Enable = true;
+				Counters.Enable = true;
 				break;
 			}
 		}
@@ -36,7 +36,7 @@ public class Program {
 		Instance.run(args);
 	}
 
-	private ArrayList<Window> Windows = new ArrayList<>();
+	private final ArrayList<Window> Windows = new ArrayList<>();
 	private MainWindow Main;
 	public String Self;
 
@@ -68,7 +68,7 @@ public class Program {
 			var address = links.get(Zeze.Util.Random.getInstance().nextInt(links.size()));
 			app.Start(address[0], Integer.parseInt(address[1]));
 		}
-		if (counters.Enable)
+		if (Counters.Enable)
 			counters.start();
 		try {
 			app.Connector.WaitReady();
@@ -80,7 +80,7 @@ public class Program {
 			Self = account;
 			refresh();
 			var console = new BufferedReader(new InputStreamReader(System.in));
-			String line = "";
+			String line;
 			do {
 				line = console.readLine();
 				try {
@@ -183,9 +183,9 @@ public class Program {
 	}
 
 	public class DepartmentWindow extends Window {
-		public String Group;
-		public String DepartmentName;
-		public long DepartmentId;
+		public final String Group;
+		public final String DepartmentName;
+		public final long DepartmentId;
 		public BDepartmentNode Department;
 		public long MemberNodeId;
 		public BDepartmentMemberNode MemberNode;
@@ -293,7 +293,7 @@ public class Program {
 	}
 
 	public class GroupWindow extends Window {
-		public String Group;
+		public final String Group;
 		public BGroup Root;
 		public long MemberNodeId;
 		public BMemberNode MemberNode;
@@ -393,7 +393,7 @@ public class Program {
 	}
 
 	public class ChatWindow extends Window {
-		public String Target;
+		public final String Target;
 		public ChatWindow(String target) {
 			this.Target = target;
 			Name = "chat:" + target;
@@ -433,8 +433,8 @@ public class Program {
 	}
 
 	public static class MessageTarget {
-		public String Name;
-		public long   Id;
+		public final String Name;
+		public final long   Id;
 
 		@Override
 		public int hashCode() {
@@ -506,7 +506,7 @@ public class Program {
 			}
 		}
 
-		private HashMap<MessageTarget, ArrayList<BMessage>> ReceivedMessages = new HashMap<>();
+		private final HashMap<MessageTarget, ArrayList<BMessage>> ReceivedMessages = new HashMap<>();
 
 		@Override
 		public boolean processNotifyMessage(BMessage notify) {

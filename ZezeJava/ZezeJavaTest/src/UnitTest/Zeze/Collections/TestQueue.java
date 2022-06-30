@@ -41,7 +41,7 @@ public class TestQueue {
 	}
 
 	@Test
-	public final void test2_QueueWalk() throws Throwable {
+	public final void test2_QueueWalk() {
 		var queueModule = demo.App.getInstance().Zeze.getQueueModule();
 		var queue = queueModule.open("test1", MyBean.class);
 		var i = new AtomicInteger(0);
@@ -87,7 +87,7 @@ public class TestQueue {
 	}
 
 	@Test
-	public final void test5_QueueWalk() throws Throwable {
+	public final void test5_QueueWalk() {
 		var queueModule = demo.App.getInstance().Zeze.getQueueModule();
 		var queue = queueModule.open("test1", MyBean.class);
 		var i = new AtomicInteger(0);

@@ -99,8 +99,8 @@ public final class Task {
 			threadPoolDefault = pool;
 
 		if (scheduled == null) {
-			int workerThreads = app == null ? 120 : (app.getConfig().getScheduledThreads() > 0
-					? app.getConfig().getScheduledThreads() : Runtime.getRuntime().availableProcessors() * 15);
+			int workerThreads = app == null ? 8 : (app.getConfig().getScheduledThreads() > 0
+					? app.getConfig().getScheduledThreads() : Runtime.getRuntime().availableProcessors());
 			threadPoolScheduled = Executors.newScheduledThreadPool(workerThreads,
 					new ThreadFactoryWithName("ZezeScheduledPool"));
 		} else
