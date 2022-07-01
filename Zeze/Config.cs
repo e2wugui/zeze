@@ -218,6 +218,9 @@ namespace Zeze
                 Application.logger.Warn("CheckpointMode.Period Cannot Work With Global. Change To CheckpointMode.Table Now.");
                 CheckpointMode = Transaction.CheckpointMode.Table;
             }
+            if (CheckpointMode == Transaction.CheckpointMode.Immediately)
+                throw new NotImplementedException("Disable!");
+
             attr = self.GetAttribute("DonotCheckSchemasWhenTableIsNew");
             if (attr.Length > 0)
                 DonotCheckSchemasWhenTableIsNew = bool.Parse(attr);
