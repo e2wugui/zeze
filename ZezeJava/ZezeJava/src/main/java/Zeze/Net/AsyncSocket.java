@@ -422,12 +422,12 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		if (ENABLE_PROTOCOL_LOG) {
 			if (protocol.isRequest()) {
 				if (protocol instanceof Rpc)
-					logger.log(LEVEL_PROTOCOL_LOG, "SEND({}) {}({}): {}", SessionId, protocol.getClass().getSimpleName(),
+					logger.log(LEVEL_PROTOCOL_LOG, "SEND[{}] {}({}): {}", SessionId, protocol.getClass().getSimpleName(),
 							((Rpc<?, ?>)protocol).getSessionId(), protocol.Argument);
 				else
-					logger.log(LEVEL_PROTOCOL_LOG, "SEND({}) {}: {}", SessionId, protocol.getClass().getSimpleName(), protocol.Argument);
+					logger.log(LEVEL_PROTOCOL_LOG, "SEND[{}] {}: {}", SessionId, protocol.getClass().getSimpleName(), protocol.Argument);
 			} else
-				logger.log(LEVEL_PROTOCOL_LOG, "SEND({}) {}({})> {}", SessionId, protocol.getClass().getSimpleName(),
+				logger.log(LEVEL_PROTOCOL_LOG, "SEND[{}] {}({})> {}", SessionId, protocol.getClass().getSimpleName(),
 						((Rpc<?, ?>)protocol).getSessionId(), protocol.getResultBean());
 		}
 		return Send(protocol.Encode());

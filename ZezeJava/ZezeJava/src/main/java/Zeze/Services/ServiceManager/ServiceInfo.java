@@ -166,6 +166,6 @@ public final class ServiceInfo extends Bean implements Comparable<ServiceInfo> {
 	@Override
 	public String toString() {
 		return "ServiceInfo{" + "ServiceName='" + ServiceName + '\'' + ", ServiceIdentity='" + ServiceIdentity + '\'' +
-				", PassiveIp='" + PassiveIp + '\'' + ", PassivePort=" + PassivePort + '}';
+				", PassiveIp='" + PassiveIp + '\'' + ", PassivePort=" + PassivePort + ", ExtraInfo=" + ExtraInfo + '}';
 	}
 }

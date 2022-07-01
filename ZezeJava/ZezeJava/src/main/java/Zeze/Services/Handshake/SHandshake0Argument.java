@@ -33,4 +33,9 @@ public class SHandshake0Argument extends Bean {
 	protected void InitChildrenRootInfo(Record.RootInfo root) {
 		throw new UnsupportedOperationException();
 	}
+
+	@Override
+	public String toString() {
+		return "SHandshake0Argument{" + "EnableEncrypt=" + EnableEncrypt + '}';
+	}
 }

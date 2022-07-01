@@ -38,4 +38,10 @@ public final class SHandshakeArgument extends Bean {
 	public void setPreAllocSize(int size) {
 		_PRE_ALLOC_SIZE_ = size;
 	}
+
+	@Override
+	public String toString() {
+		return "SHandshakeArgument{" + "dh_data=[" + (dh_data != null ? dh_data.length : -1) +
+				"], s2cNeedCompress=" + s2cNeedCompress + ", c2sNeedCompress=" + c2sNeedCompress + '}';
+	}
 }

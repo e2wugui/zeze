@@ -35,4 +35,10 @@ public final class CHandshakeArgument extends Bean {
 	public void setPreAllocSize(int size) {
 		_PRE_ALLOC_SIZE_ = size;
 	}
+
+	@Override
+	public String toString() {
+		return "CHandshakeArgument{dh_group=" + dh_group + ", dh_data=["
+				+ (dh_data != null ? dh_data.length : -1) + "]}";
+	}
 }

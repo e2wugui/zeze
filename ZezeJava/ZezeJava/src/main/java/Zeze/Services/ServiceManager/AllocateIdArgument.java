@@ -6,16 +6,20 @@ import Zeze.Transaction.Record;
 
 public final class AllocateIdArgument extends Bean {
 	private String Name;
+	private int Count;
+
 	public String getName() {
 		return Name;
 	}
+
 	public void setName(String value) {
 		Name = value;
 	}
-	private int Count;
+
 	public int getCount() {
 		return Count;
 	}
+
 	public void setCount(int value) {
 		Count = value;
 	}
@@ -47,5 +51,10 @@ public final class AllocateIdArgument extends Bean {
 	@Override
 	public void setPreAllocSize(int size) {
 		_PRE_ALLOC_SIZE_ = size;
+	}
+
+	@Override
+	public String toString() {
+		return "AllocateIdArgument{" + "Name='" + Name + '\'' + ", Count=" + Count + '}';
 	}
 }

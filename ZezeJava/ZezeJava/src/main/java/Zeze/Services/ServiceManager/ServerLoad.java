@@ -44,4 +44,9 @@ public final class ServerLoad extends Bean {
 	public void setPreAllocSize(int size) {
 		_PRE_ALLOC_SIZE_ = size;
 	}
+
+	@Override
+	public String toString() {
+		return "ServerLoad{" + "Ip='" + Ip + '\'' + ", Port=" + Port + ", Param=" + Param + '}';
+	}
 }

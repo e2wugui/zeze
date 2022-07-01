@@ -43,7 +43,8 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 
 	@Override
 	public IGlobalAgent.AcquireResult Acquire(int state, boolean fresh) {
-		if (null == TTable.TStorage) {
+		IGlobalAgent agent;
+		if (null == TTable.TStorage || (agent = TTable.getZeze().getGlobalAgent()) == null) {
 			// 不支持内存表cache同步。
 			return IGlobalAgent.AcquireResult.getSuccessResult(state);
 		}
@@ -70,11 +71,8 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 				break;
 		}
 
-		var agent = TTable.getZeze().getGlobalAgent();
-		if (agent != null)
-			return agent.Acquire(gkey, state, fresh);
-		return IGlobalAgent.AcquireResult.getSuccessResult(state);
-//		var r = TTable.getZeze().getGlobalAgent().Acquire(gkey, state, fresh);
+		return agent.Acquire(gkey, state, fresh);
+//		var r = agent.Acquire(gkey, state, fresh);
 //		if (TTable.getName().equals("demo_Module1_tflush")) {
 //			logger.info("{}: Acquire Result={} {} {}",
 //					TTable.getZeze().getConfig().getServerId(), r.ResultCode, r.ResultState, this);
