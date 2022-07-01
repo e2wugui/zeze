@@ -4,6 +4,7 @@ import Zeze.Builtin.Provider.Send;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
+import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Transaction;
 
@@ -72,7 +73,7 @@ public class ProviderUserSession {
 		send.Argument.setProtocolWholeData(fullEncodedProtocol);
 
 		if (null != getLink() && !getLink().isClosed()) {
-			getLink().Send(send);
+			getLink().Send(send.Encode()); // 调用Encode后的方法避免重复协议日志
 			return;
 		}
 		// 可能发生了重连，尝试再次查找发送。网络断开以后，已经不可靠了，先这样写着吧。
@@ -80,13 +81,25 @@ public class ProviderUserSession {
 		if (null != link) {
 			if (link.isHandshakeDone()) {
 				setLink(link.getSocket());
-				link.getSocket().Send(send);
+				link.getSocket().Send(send.Encode()); // 调用Encode后的方法避免重复协议日志
 			}
 		}
 	}
 
 	public final void sendResponse(Protocol<?> p) {
 		p.setRequest(false);
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
+			if (p.isRequest()) {
+				if (p instanceof Rpc)
+					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "PSEND[{}] {}({}): {}", LinkSid,
+							p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.Argument);
+				else
+					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "PSEND[{}] {}: {}", LinkSid,
+							p.getClass().getSimpleName(), p.Argument);
+			} else
+				AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "PSEND[{}] {}({})> {}", LinkSid,
+						p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.getResultBean());
+		}
 		sendResponse(p.getTypeId(), new Binary(p.Encode()));
 	}
 

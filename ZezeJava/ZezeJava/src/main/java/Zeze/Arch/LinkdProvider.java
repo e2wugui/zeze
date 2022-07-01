@@ -242,13 +242,17 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 	@Override
 	protected long ProcessSend(Send protocol) {
+		var ptype = protocol.Argument.getProtocolType();
+		var pdata = protocol.Argument.getProtocolWholeData();
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
+			logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "SEND[{}]: {}:{} [{}]", protocol.Argument.getLinkSids(),
+					Protocol.GetModuleId(ptype), Protocol.GetProtocolId(ptype), pdata.size());
+		}
 		for (var linkSid : protocol.Argument.getLinkSids()) {
 			var link = LinkdApp.LinkdService.GetSocket(linkSid);
-			var ptype = protocol.Argument.getProtocolType();
-			logger.debug("Send {} {}", Protocol.GetModuleId(ptype), Protocol.GetProtocolId(ptype));
 			// ProtocolId现在是hash值，显示出来也不好看，以后加配置换成名字。
 			if (link != null) {
-				link.Send(protocol.Argument.getProtocolWholeData());
+				link.Send(pdata);
 			}
 		}
 		return Procedure.Success;
@@ -256,13 +260,19 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 	@Override
 	protected long ProcessBroadcast(Broadcast protocol) throws Throwable {
+		var ptype = protocol.Argument.getProtocolType();
+		var pdata = protocol.Argument.getProtocolWholeData();
+		if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
+			logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "SEND[*{}]: {}:{} [{}]", LinkdApp.LinkdService.getSocketCount(),
+					Protocol.GetModuleId(ptype), Protocol.GetProtocolId(ptype), pdata.size());
+		}
 		LinkdApp.LinkdService.Foreach((socket) -> {
 			// auth 通过就允许发送广播。
 			// 如果要实现 role.login 才允许，Provider 增加 SetLogin 协议给内部server调用。
 			// 这些广播一般是重要通告，只要登录客户端就允许收到，然后进入世界的时候才显示。这样处理就不用这个状态了。
 			var linkSession = (LinkdUserSession)socket.getUserState();
 			if (linkSession != null && linkSession.getAccount() == null && !linkSession.getContext().isEmpty()) {
-				socket.Send(protocol.Argument.getProtocolWholeData());
+				socket.Send(pdata);
 			}
 		});
 		return Procedure.Success;

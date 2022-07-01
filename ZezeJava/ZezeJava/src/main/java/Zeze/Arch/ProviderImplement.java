@@ -7,6 +7,7 @@ import Zeze.Builtin.Provider.BModule;
 import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Builtin.Provider.Kick;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.Rpc;
 import Zeze.Services.ServiceManager.Agent;
 import Zeze.Services.ServiceManager.SubscribeInfo;
 import Zeze.Transaction.Procedure;
@@ -98,8 +99,21 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 
 			var session = new ProviderUserSession(ProviderApp.ProviderService, p.Argument.getAccount(),
 					p.Argument.getContext(), p.getSender(), p.Argument.getLinkSid());
-
 			p2.setUserState(session);
+
+			if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
+				if (p2.isRequest()) {
+					if (p2 instanceof Rpc)
+						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "DISP[{}] {}({}): {}", p.Argument.getLinkSid(),
+								p2.getClass().getSimpleName(), ((Rpc<?, ?>)p2).getSessionId(), p2.Argument);
+					else
+						AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "DISP[{}] {}: {}", p.Argument.getLinkSid(),
+								p2.getClass().getSimpleName(), p2.Argument);
+				} else
+					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "DISP[{}] {}({})>{} {}", p.Argument.getLinkSid(),
+							p2.getClass().getSimpleName(), ((Rpc<?, ?>)p2).getSessionId(), p2.getResultCode(), p2.getResultBean());
+			}
+
 			Transaction txn = Transaction.getCurrent();
 			if (txn != null) {
 				// 已经在事务中，嵌入执行。此时忽略p2的NoProcedure配置。

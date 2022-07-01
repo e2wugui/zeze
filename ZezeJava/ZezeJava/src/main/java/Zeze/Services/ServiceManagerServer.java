@@ -285,7 +285,7 @@ public final class ServiceManagerServer implements Closeable {
 				}
 			}
 			if (sb.length() > 1)
-				logger.info("NotifyServiceList {} => sid({})", notify.Argument, sb);
+				AsyncSocket.logger.info("SEND[{}]: NotifyServiceList: {}", sb, notify.Argument);
 
 			if (!ReadyCommit.isEmpty()) {
 				// 只有两段公告模式需要回应处理。

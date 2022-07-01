@@ -214,6 +214,10 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 				}
 				p.Dispatch(service, factoryHandle);
 			} else {
+				if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
+					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RECV[{}] {}:{} [{}]",
+							so.getSessionId(), moduleId, protocolId, bb.Size());
+				}
 				int savedWriteIndex = bb.WriteIndex;
 				bb.WriteIndex = endReadIndex;
 				service.DispatchUnknownProtocol(so, moduleId, protocolId, bb); // 这里只能临时读bb,不能持有Bytes引用
