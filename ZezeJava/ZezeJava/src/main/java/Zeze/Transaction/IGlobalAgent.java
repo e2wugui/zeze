@@ -5,6 +5,17 @@ import Zeze.Net.Binary;
 
 public interface IGlobalAgent extends Closeable {
 	class AcquireResult {
+		private static final AcquireResult[] successResults = new AcquireResult[4];
+
+		static {
+			for (int i = 0; i < successResults.length; i++)
+				successResults[i] = new AcquireResult(0, i);
+		}
+
+		public static AcquireResult getSuccessResult(int state) {
+			return successResults[state];
+		}
+
 		public final long ResultCode;
 		public final int ResultState;
 
@@ -15,5 +26,6 @@ public interface IGlobalAgent extends Closeable {
 	}
 
 	AcquireResult Acquire(Binary gkey, int state, boolean fresh);
+
 	int GetGlobalCacheManagerHashIndex(Binary gkey);
 }

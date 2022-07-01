@@ -185,10 +185,12 @@ public final class GlobalAgent implements IGlobalAgent {
 				trans.ThrowAbort("GlobalAgent.Acquire Failed", null);
 				// never got here
 			}
-			return new AcquireResult(rpc.getResultCode(), rpc.Result.State);
+			var rc = rpc.getResultCode();
+			state = rpc.Result.State;
+			return rc == 0 ? AcquireResult.getSuccessResult(state) : new AcquireResult(rc, state);
 		}
 		logger.debug("Acquire local ++++++");
-		return new AcquireResult(0, state);
+		return AcquireResult.getSuccessResult(state);
 	}
 
 	public int ProcessReduceRequest(Reduce rpc) {

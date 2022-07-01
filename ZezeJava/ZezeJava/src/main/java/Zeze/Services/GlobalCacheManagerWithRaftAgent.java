@@ -145,7 +145,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	}
 
 	@Override
-	public IGlobalAgent.AcquireResult Acquire(Binary gkey, int state, boolean fresh) {
+	public AcquireResult Acquire(Binary gkey, int state, boolean fresh) {
 		if (Agents != null) {
 			var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
 			if (agent.isReleasing()) {
@@ -204,10 +204,12 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 				trans.ThrowAbort("GlobalAgent.Acquire Failed", null);
 				// never got here
 			}
-			return new IGlobalAgent.AcquireResult(rpc.getResultCode(), rpc.Result.getState());
+			var rc = rpc.getResultCode();
+			state = rpc.Result.getState();
+			return rc == 0 ? AcquireResult.getSuccessResult(state) : new AcquireResult(rc, state);
 		}
 		logger.debug("Acquire local ++++++");
-		return new IGlobalAgent.AcquireResult(0, state);
+		return AcquireResult.getSuccessResult(state);
 	}
 
 	// 1. 【Login|ReLogin|NormalClose】会被Raft.Agent重发处理，这要求GlobalRaft能处理重复请求。
