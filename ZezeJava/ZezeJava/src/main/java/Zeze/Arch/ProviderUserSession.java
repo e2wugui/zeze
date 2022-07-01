@@ -91,13 +91,13 @@ public class ProviderUserSession {
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
 			if (p.isRequest()) {
 				if (p instanceof Rpc)
-					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "PSEND[{}] {}({}): {}", LinkSid,
+					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RESP[{}] {}({}): {}", LinkSid,
 							p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.Argument);
 				else
-					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "PSEND[{}] {}: {}", LinkSid,
+					AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RESP[{}] {}: {}", LinkSid,
 							p.getClass().getSimpleName(), p.Argument);
 			} else
-				AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "PSEND[{}] {}({})> {}", LinkSid,
+				AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "RESP[{}] {}({})> {}", LinkSid,
 						p.getClass().getSimpleName(), ((Rpc<?, ?>)p).getSessionId(), p.getResultBean());
 		}
 		sendResponse(p.getTypeId(), new Binary(p.Encode()));

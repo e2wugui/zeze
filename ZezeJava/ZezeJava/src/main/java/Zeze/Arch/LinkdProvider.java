@@ -8,14 +8,12 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.SubscribeInfo;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 /**
  * Linkd上处理Provider协议的模块。
  */
 public class LinkdProvider extends AbstractLinkdProvider {
-	private static final Logger logger = LogManager.getLogger(LinkdProvider.class);
+//	private static final Logger logger = LogManager.getLogger(LinkdProvider.class);
 
 	public LinkdApp LinkdApp;
 	public ProviderDistribute Distribute;
@@ -245,7 +243,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		var ptype = protocol.Argument.getProtocolType();
 		var pdata = protocol.Argument.getProtocolWholeData();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
-			logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "SEND[{}]: {}:{} [{}]", protocol.Argument.getLinkSids(),
+			AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "SENT[{}]: {}:{} [{}]", protocol.Argument.getLinkSids(),
 					Protocol.GetModuleId(ptype), Protocol.GetProtocolId(ptype), pdata.size());
 		}
 		for (var linkSid : protocol.Argument.getLinkSids()) {
@@ -263,7 +261,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		var ptype = protocol.Argument.getProtocolType();
 		var pdata = protocol.Argument.getProtocolWholeData();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
-			logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "SEND[*{}]: {}:{} [{}]", LinkdApp.LinkdService.getSocketCount(),
+			AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "BROC[{}]: {}:{} [{}]", LinkdApp.LinkdService.getSocketCount(),
 					Protocol.GetModuleId(ptype), Protocol.GetProtocolId(ptype), pdata.size());
 		}
 		LinkdApp.LinkdService.Foreach((socket) -> {
