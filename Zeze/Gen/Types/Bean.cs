@@ -21,7 +21,19 @@ namespace Zeze.Gen.Types
 			return this;
 		}
 
-		public override void Depends(HashSet<Type> includes)
+        public override void DetectCircle(HashSet<Type> circle)
+        {
+			if (circle.Contains(this))
+				throw new Exception($"DetectCircle @{FullName}");
+			circle.Add(this);
+
+			foreach (var v in Variables)
+            {
+				v.VariableType.DetectCircle(circle);
+            }
+        }
+
+        public override void Depends(HashSet<Type> includes)
 		{
 			if (includes.Add(this))
 				foreach (Variable var in Variables)

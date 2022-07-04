@@ -32,6 +32,8 @@
 			<variable id="2" name="long2" type="long"/> com aa
 			<variable id="3" name="string3" type="string"/> com aa
 			<variable id="4" name="removed" type="Removed2"/> com aa
+			<!-- <variable id="5" name="DenyCircle" type="Simple"/> com aa -->
+			<variable id="6" name="AllowCircle" type="list[Simple]"/> com aa
 		</bean>
 		<bean name="Value">
 			<enum name="Enum1" value="4"/>

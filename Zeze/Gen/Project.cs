@@ -220,9 +220,15 @@ namespace Zeze.Gen
                 }
             }
             foreach (var b in _AllBeans)
+            {
                 AllBeans[b.FullName] = b;
+                b.DetectCircle(new HashSet<Types.Type>());
+            }
             foreach (var b in _AllBeanKeys)
+            {
                 AllBeanKeys[b.FullName] = b;
+                b.DetectCircle(new HashSet<Types.Type>());
+            }
 
             if (Platform.Length == 0)
                 Platform = "cs";

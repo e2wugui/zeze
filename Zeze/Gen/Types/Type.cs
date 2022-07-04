@@ -31,6 +31,10 @@ namespace Zeze.Gen.Types
 		/////////////////////////////////////////////////////////////////////////////
 		public static SortedDictionary<string, Type> Types { get; private set; } = new SortedDictionary<string, Type>();
 
+		public virtual void DetectCircle(HashSet<Type> circle)
+        {
+        }
+
 		public static void Add(global::Zeze.Gen.ModuleSpace space, Type type)
 		{
             string fullName = space.Path(".", type.Name);
