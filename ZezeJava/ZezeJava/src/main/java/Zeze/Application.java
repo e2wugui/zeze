@@ -55,6 +55,10 @@ public final class Application {
 	public RedirectBase Redirect;
 	private ResetDB ResetDB;
 
+	public Zeze.Transaction.AchillesHeelDaemon getAchillesHeelDaemon() {
+		return AchillesHeelDaemon;
+	}
+
 	/**
 	 * 本地Rocks缓存数据库虽然也用了Database接口，但它不给用户提供事务操作的表。
 	 * 1. 不需要加入到Databases里面。

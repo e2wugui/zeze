@@ -16,89 +16,112 @@ namespace Zeze.Transaction
 	public class AchillesHeelDaemon
 	{
 		private static readonly NLog.Logger logger = NLog.LogManager.GetCurrentClassLogger();
-		private readonly Application Zeze;
-		private readonly GlobalAgentBase[] Agents;
-		private readonly Thread Thread;
+		public readonly Application Zeze;
 
-		public AchillesHeelConfig GetConfig(int index)
+		private ThreadDaemon Daemon;
+
+		public void Start()
+        {
+			Daemon?.Start();
+        }
+
+		public void StopAndJoin()
 		{
-			return Agents[index].Config;
+			Daemon?.StopAndJoin();
 		}
 
 		public AchillesHeelDaemon(Application zeze, GlobalAgentBase[] agents)
 		{
 			Zeze = zeze;
-			Agents = new GlobalAgentBase[agents.Length];
-			for (int i = 0; i < agents.Length; ++i)
-				Agents[i] = agents[i];
-			Thread = new Thread(Run);
+			Daemon = new ThreadDaemon(this, agents);
 		}
 
-		public void Start()
-        {
-			Thread.Start();
-        }
-
-		private volatile bool Running = true;
-
-		public void StopAndJoin()
+		public void setProcessDaemonActiveTime(int index, long value)
 		{
-			Running = false;
-			Thread.Join();
 		}
-		public void Run()
+
+		class ThreadDaemon
 		{
-			try
+			public readonly AchillesHeelDaemon AchillesHeelDaemon;
+			private readonly GlobalAgentBase[] Agents;
+			private readonly Thread Thread;
+
+			public ThreadDaemon(AchillesHeelDaemon achilles, GlobalAgentBase[] agents)
 			{
-				lock (this)
+				AchillesHeelDaemon = achilles;
+				Agents = new GlobalAgentBase[agents.Length];
+				for (int i = 0; i < agents.Length; ++i)
+					Agents[i] = agents[i];
+				Thread = new Thread(Run);
+			}
+
+			public void Start()
+			{
+				Thread.Start();
+			}
+
+			private volatile bool Running = true;
+
+			public void StopAndJoin()
+			{
+				Running = false;
+				Thread.Join();
+			}
+			public void Run()
+			{
+				try
 				{
-					while (Running)
+					lock (this)
 					{
-						var now = Util.Time.NowUnixMillis;
-						for (int i = 0; i < Agents.Length; ++i)
+						while (Running)
 						{
-							var agent = Agents[i];
-							var config = agent.Config;
-							if (null == config)
-								continue; // skip agent not login
-
-							var rr = agent.CheckReleaseTimeout(now, config.ServerReleaseTimeout);
-							if (rr == GlobalAgentBase.CheckReleaseResult.Timeout)
+							var now = Util.Time.NowUnixMillis;
+							for (int i = 0; i < Agents.Length; ++i)
 							{
-								logger.Fatal("AchillesHeelDaemon global release timeout. index=" + i);
-								Process.GetCurrentProcess().Kill();
-							}
+								var agent = Agents[i];
+								var config = agent.Config;
+								if (null == config)
+									continue; // skip agent not login
 
-							var idle = now - agent.GetActiveTime();
-							if (idle > config.ServerKeepAliveIdleTimeout)
-							{
-								//logger.Debug($"KeepAlive ServerKeepAliveIdleTimeout={config.ServerKeepAliveIdleTimeout}");
-								agent.KeepAlive();
-							}
+								var rr = agent.CheckReleaseTimeout(now, config.ServerReleaseTimeout);
+								if (rr == GlobalAgentBase.CheckReleaseResult.Timeout)
+								{
+									logger.Fatal("AchillesHeelDaemon global release timeout. index=" + i);
+									Process.GetCurrentProcess().Kill();
+								}
 
-							if (idle > config.ServerDaemonTimeout)
-							{
-								if (rr != GlobalAgentBase.CheckReleaseResult.Releasing)
-                                {
-									// 这个判断只能避免正在Releasing时不要启动新的Release。
-									// 如果Global一直恢复不了，那么每ServerDaemonTimeout会再次尝试Release，
-									// 这里没法快速手段判断本Server是否存在从该Global获取的记录锁。
-									// 在Agent中增加获得的计数是个方案，但挺烦的。
-									logger.Warn($"StartRelease ServerDaemonTimeout {config.ServerReleaseTimeout}");
-									agent.StartRelease(Zeze);
+								var idle = now - agent.GetActiveTime();
+								if (idle > config.ServerKeepAliveIdleTimeout)
+								{
+									//logger.Debug($"KeepAlive ServerKeepAliveIdleTimeout={config.ServerKeepAliveIdleTimeout}");
+									agent.KeepAlive();
+								}
+
+								if (idle > config.ServerDaemonTimeout)
+								{
+									if (rr != GlobalAgentBase.CheckReleaseResult.Releasing)
+									{
+										// 这个判断只能避免正在Releasing时不要启动新的Release。
+										// 如果Global一直恢复不了，那么每ServerDaemonTimeout会再次尝试Release，
+										// 这里没法快速手段判断本Server是否存在从该Global获取的记录锁。
+										// 在Agent中增加获得的计数是个方案，但挺烦的。
+										logger.Warn($"StartRelease ServerDaemonTimeout {config.ServerReleaseTimeout}");
+										agent.StartRelease(this.AchillesHeelDaemon.Zeze);
+									}
 								}
 							}
+							Monitor.Wait(this, 1000);
 						}
-						Monitor.Wait(this, 1000);
 					}
 				}
-			}
-			catch (Exception ex)
-			{
-				// 这个线程不准出错。
-				logger.Fatal(ex, "AchillesHeelDaemon ");
-				Process.GetCurrentProcess().Kill();
+				catch (Exception ex)
+				{
+					// 这个线程不准出错。
+					logger.Fatal(ex, "AchillesHeelDaemon ");
+					Process.GetCurrentProcess().Kill();
+				}
 			}
 		}
+
 	}
 }

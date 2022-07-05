@@ -273,6 +273,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 
 		public RaftAgent(GlobalCacheManagerWithRaftAgent global, Zeze.Application zeze,
 						 int _GlobalCacheManagerHashIndex, Zeze.Raft.RaftConfig raftConf) throws Throwable {
+			super(zeze);
 			GlobalCacheManagerWithRaftAgent = global;
 			super.GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
 			RaftClient = new Zeze.Raft.Agent("global.raft", zeze, raftConf);

@@ -95,76 +95,99 @@ import org.apache.logging.log4j.Logger;
  * *. 原来的思路参见 zeze/GlobalCacheManager/Cleanup.txt。在这个基础上增加了KeepAlive。
  */
 
-public class AchillesHeelDaemon extends Thread {
+public class AchillesHeelDaemon {
 	private static final Logger logger = LogManager.getLogger(AchillesHeelDaemon.class);
 	private final Application Zeze;
-	private final GlobalAgentBase[] Agents;
 
-	public final AchillesHeelConfig getConfig(int index) {
-		return Agents[index].getConfig();
-	}
+	private ThreadDaemon Daemon;
 
 	public <T extends GlobalAgentBase> AchillesHeelDaemon(Application zeze, T[] agents) {
-		super("AchillesHeelDaemon");
-		setDaemon(true);
 		Zeze = zeze;
-		Agents = agents.clone();
+		Daemon = new ThreadDaemon(agents);
 	}
-
-	private volatile boolean Running = true;
 
 	public void stopAndJoin() throws InterruptedException {
-		Running = false;
-		this.join();
+		if (null != Daemon) {
+			Daemon.Running = false;
+			Daemon.join();
+		}
 	}
 
-	@Override
-	public synchronized void run() {
-		try {
-			while (Running) {
-				var now = System.currentTimeMillis();
-				for (int i = 0; i < Agents.length; ++i) {
-					var agent = Agents[i];
-					var config = agent.getConfig();
-					if (null == config)
-						continue; // skip agent not login
+	public void start() {
+		if (null != Daemon)
+			Daemon.start();
+	}
 
-					var rr = agent.checkReleaseTimeout(now, config.ServerReleaseTimeout);
-					if (rr == GlobalAgentBase.CheckReleaseResult.Timeout) {
-						logger.fatal("AchillesHeelDaemon global release timeout. index=" + i);
-						LogManager.shutdown();
-						Runtime.getRuntime().halt(123123);
-					}
+	public void setProcessDaemonActiveTime(int index, long value) {
+	}
 
-					var idle = now - agent.getActiveTime();
-					if (idle > config.ServerKeepAliveIdleTimeout) {
-						//logger.debug("KeepAlive ServerKeepAliveIdleTimeout=" + config.ServerKeepAliveIdleTimeout);
-						agent.keepAlive();
-					}
+	static class ProcessDaemonMMap {
 
-					if (idle > config.ServerDaemonTimeout) {
-						if (rr != GlobalAgentBase.CheckReleaseResult.Releasing) {
-							// 这个判断只能避免正在Releasing时不要启动新的Release。
-							// 如果Global一直恢复不了，那么每ServerDaemonTimeout会再次尝试Release，
-							// 这里没法快速手段判断本Server是否存在从该Global获取的记录锁。
-							// 在Agent中增加获得的计数是个方案，但挺烦的。
-							logger.warn("StartRelease ServerDaemonTimeout=" + config.ServerDaemonTimeout);
-							agent.startRelease(Zeze,null);
+	}
+
+	class ThreadDaemon extends Thread {
+		private final GlobalAgentBase[] Agents;
+
+		public final AchillesHeelConfig getConfig(int index) {
+			return Agents[index].getConfig();
+		}
+
+		public <T extends GlobalAgentBase> ThreadDaemon(T[] agents) {
+			super("AchillesHeelDaemon");
+			setDaemon(true);
+			Agents = agents.clone();
+		}
+
+		private volatile boolean Running = true;
+
+		@Override
+		public synchronized void run() {
+			try {
+				while (Running) {
+					var now = System.currentTimeMillis();
+					for (int i = 0; i < Agents.length; ++i) {
+						var agent = Agents[i];
+						var config = agent.getConfig();
+						if (null == config)
+							continue; // skip agent not login
+
+						var rr = agent.checkReleaseTimeout(now, config.ServerReleaseTimeout);
+						if (rr == GlobalAgentBase.CheckReleaseResult.Timeout) {
+							logger.fatal("AchillesHeelDaemon global release timeout. index=" + i);
+							LogManager.shutdown();
+							Runtime.getRuntime().halt(123123);
+						}
+
+						var idle = now - agent.getActiveTime();
+						if (idle > config.ServerKeepAliveIdleTimeout) {
+							//logger.debug("KeepAlive ServerKeepAliveIdleTimeout=" + config.ServerKeepAliveIdleTimeout);
+							agent.keepAlive();
+						}
+
+						if (idle > config.ServerDaemonTimeout) {
+							if (rr != GlobalAgentBase.CheckReleaseResult.Releasing) {
+								// 这个判断只能避免正在Releasing时不要启动新的Release。
+								// 如果Global一直恢复不了，那么每ServerDaemonTimeout会再次尝试Release，
+								// 这里没法快速手段判断本Server是否存在从该Global获取的记录锁。
+								// 在Agent中增加获得的计数是个方案，但挺烦的。
+								logger.warn("StartRelease ServerDaemonTimeout=" + config.ServerDaemonTimeout);
+								agent.startRelease(Zeze, null);
+							}
 						}
 					}
+					try {
+						//noinspection BusyWait
+						Thread.sleep(1000);
+					} catch (InterruptedException e) {
+						logger.warn("", e);
+					}
 				}
-				try {
-					//noinspection BusyWait
-					Thread.sleep(1000);
-				} catch (InterruptedException e) {
-					logger.warn("", e);
-				}
+			} catch (Throwable ex) {
+				// 这个线程不准出错。
+				logger.fatal("AchillesHeelDaemon ", ex);
+				LogManager.shutdown();
+				Runtime.getRuntime().halt(321321);
 			}
-		} catch (Throwable ex) {
-			// 这个线程不准出错。
-			logger.fatal("AchillesHeelDaemon ", ex);
-			LogManager.shutdown();
-			Runtime.getRuntime().halt(321321);
 		}
 	}
 }

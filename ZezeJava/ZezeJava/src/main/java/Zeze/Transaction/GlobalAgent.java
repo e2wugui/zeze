@@ -27,7 +27,8 @@ public final class GlobalAgent implements IGlobalAgent {
 		private boolean ActiveClose;
 		private volatile long LastErrorTime;
 
-		public Agent(GlobalClient client, String host, int port, int _GlobalCacheManagerHashIndex) {
+		public Agent(Zeze.Application zeze, GlobalClient client, String host, int port, int _GlobalCacheManagerHashIndex) {
+			super(zeze);
 			connector = new Zeze.Net.Connector(host, port, true);
 			connector.UserState = this;
 			super.GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;
@@ -253,7 +254,7 @@ public final class GlobalAgent implements IGlobalAgent {
 		Agents = new Agent[hostNameOrAddress.length];
 		for (int i = 0; i < hostNameOrAddress.length; i++) {
 			var hp = hostNameOrAddress[i].split(":", -1);
-			Agents[i] = new Agent(Client, hp[0], hp.length > 1 ? Integer.parseInt(hp[1]) : port, i);
+			Agents[i] = new Agent(Zeze, Client, hp[0], hp.length > 1 ? Integer.parseInt(hp[1]) : port, i);
 		}
 
 		Client.Start();

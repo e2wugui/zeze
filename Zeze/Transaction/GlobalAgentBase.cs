@@ -11,6 +11,7 @@ namespace Zeze.Transaction
 {
 	public abstract class GlobalAgentBase
 	{
+		public readonly Application Zeze;
 		private long activeTime = Util.Time.NowUnixMillis;
 		public int GlobalCacheManagerHashIndex { get; protected set; }
 
@@ -22,16 +23,18 @@ namespace Zeze.Transaction
 		public void SetActiveTime(long value)
 		{
 			Interlocked.Exchange(ref activeTime, value);
+			Zeze.AchillesHeelDaemon.setProcessDaemonActiveTime(GlobalCacheManagerHashIndex, value);
 		}
 
 		public AchillesHeelConfig Config { get; private set; }
 
-		public GlobalAgentBase()
-		{
-			Config = new AchillesHeelConfig(1000, 1000, 10 * 1000);
-		}
+		public GlobalAgentBase(Application zeze)
+        {
+            Config = new AchillesHeelConfig(1000, 1000, 10 * 1000);
+            Zeze = zeze;
+        }
 
-		public void Initialize(int maxNetPing, int serverProcessTime, int serverReleaseTimeout)
+        public void Initialize(int maxNetPing, int serverProcessTime, int serverReleaseTimeout)
 		{
 			Config = new AchillesHeelConfig(maxNetPing, serverProcessTime, serverReleaseTimeout);
 		}

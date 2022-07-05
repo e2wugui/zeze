@@ -36,7 +36,8 @@ namespace Zeze.Transaction
             private long LastErrorTime;
             public const long FastErrorPeriod = 2 * 1000;
 
-            public Agent(GlobalClient client, string host, int port, int globalCacheManagerHashIndex)
+            public Agent(Application zeze, GlobalClient client, string host, int port, int globalCacheManagerHashIndex)
+                : base(zeze)
             {
                 base.GlobalCacheManagerHashIndex = globalCacheManagerHashIndex;
                 this.Connector = new Connector(host, port, true)
@@ -331,9 +332,9 @@ namespace Zeze.Transaction
                 {
                     var hp = hostNameOrAddress[i].Split(':');
                     if (hp.Length > 1)
-                        Agents[i] = new Agent(Client, hp[0], int.Parse(hp[1]), i);
+                        Agents[i] = new Agent(Zeze, Client, hp[0], int.Parse(hp[1]), i);
                     else
-                        Agents[i] = new Agent(Client, hp[0], port, i);
+                        Agents[i] = new Agent(Zeze, Client, hp[0], port, i);
                 }
                 Client.Start();
             }

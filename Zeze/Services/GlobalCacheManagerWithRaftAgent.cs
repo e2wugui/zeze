@@ -252,6 +252,7 @@ namespace Zeze.Services
             public RaftAgent(GlobalCacheManagerWithRaftAgent global,
                 Application zeze, int _GlobalCacheManagerHashIndex,
                 Zeze.Raft.RaftConfig raftconf = null)
+                : base(zeze)
             {
                 GlobalCacheManagerWithRaftAgent = global;
                 base.GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex;

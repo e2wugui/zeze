@@ -20,7 +20,7 @@ namespace Zeze
         public Agent ServiceManagerAgent { get; private set; }
         public Zeze.Arch.RedirectBase Redirect { get; set; }
         internal IGlobalAgent GlobalAgent { get; private set; }
-        private AchillesHeelDaemon AchillesHeelDaemon { get; set; }
+        public AchillesHeelDaemon AchillesHeelDaemon { get; private set; }
 
         public Component.AutoKey.Module AutoKeys { get; private set; }
         public Collections.Queue.Module Queues { get; private set; }
