@@ -113,6 +113,14 @@ public final class Transaction {
 		Savepoints.get(Savepoints.size() - 1).PutLog(log);
 	}
 
+	public static void whileCommit(Runnable action) {
+		getCurrent().runWhileCommit(action);
+	}
+
+	public static void whileRollback(Runnable action) {
+		getCurrent().runWhileRollback(action);
+	}
+
 	public void runWhileCommit(Runnable action) {
 		VerifyRunning();
 		Savepoints.get(Savepoints.size() - 1).addCommitAction(action);
@@ -377,6 +385,7 @@ public final class Transaction {
 		for (var e : getAccessedRecords().entrySet()) {
 			e.getValue().AtomicTupleRecord.Record.setNotFresh();
 		}
+		Savepoints.clear(); // 这里可以安全的清除日志，这样如果 rollback_action 需要读取数据，将读到原始的。
 		State = TransactionState.Completed;
 		if (executeRollbackAction) {
 			_trigger_rollback_actions_(procedure);

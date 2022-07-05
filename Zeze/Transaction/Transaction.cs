@@ -142,6 +142,16 @@ namespace Zeze.Transaction
 
         private List<Action> LastRollbackActions;
 
+        public static void WhileRollback(Action action)
+        {
+            Current.RunWhileRollback(action);
+        }
+
+        public static void WhileCommit(Action action)
+        {
+            Current.RunWhileCommit(action);
+        }
+
         public void RunWhileCommit(Action action)
         {
             VerifyRunning();
@@ -413,6 +423,7 @@ namespace Zeze.Transaction
             {
                 e.Value.Origin.SetNotFresh();
             }
+            Savepoints.Clear(); // 这里可以安全的清除日志，这样如果 rollback_action 需要读取数据，将读到原始的。
             State = TransactionState.Completed;
             if (null != LastRollbackActions)
             {
