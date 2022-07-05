@@ -31,7 +31,7 @@ meta.beans['EmptyBean'] = {
 }
 {{- end}}
 {{ for module in modules }}
-require('{{toname(module.full_name)}}').__reg__(meta)
+require('{{toname(module.full_name ?? module.name)}}').__reg__(meta)
 {{- end }}
 {{- for module in modules }}
 package.loaded['{{toname(module.full_name)}}'] = nil
