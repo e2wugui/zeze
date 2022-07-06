@@ -52,8 +52,8 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 	 */
 	public int EncodeN() {
 		int c = 0;
-		for (var e : changed.entrySet()) {
-			if (e.getValue().TryEncodeN(changed, encoded)) {
+		for (var v : changed.values()) {
+			if (v.TryEncodeN(changed, encoded)) {
 				++c;
 			}
 		}
@@ -84,8 +84,8 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 		snapshot.putAll(encoded);
 		encoded.clear();
 		int cc = snapshot.size();
-		for (var e : snapshot.entrySet()) {
-			e.getValue().setSavedTimestampForCheckpointPeriod(e.getValue().getTimestamp());
+		for (var v : snapshot.values()) {
+			v.setSavedTimestampForCheckpointPeriod(v.getTimestamp());
 		}
 		return cc;
 	}
@@ -97,8 +97,8 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 	 * @return flush record count
 	 */
 	public int Flush(Database.Transaction t, Database.Transaction lct) {
-		for (var e : snapshot.entrySet()) {
-			e.getValue().Flush(t, lct);
+		for (var v : snapshot.values()) {
+			v.Flush(t, lct);
 		}
 		return snapshot.size();
 	}
@@ -108,8 +108,8 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 	 * 没有拥有任何锁。
 	 */
 	public void Cleanup() {
-		for (var e : snapshot.entrySet()) {
-			e.getValue().Cleanup();
+		for (var v : snapshot.values()) {
+			v.Cleanup();
 		}
 		snapshot.clear();
 	}

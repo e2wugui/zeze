@@ -212,9 +212,9 @@ public final class DatabaseMemory extends Database {
 		public long WalkKey(TableWalkKeyRaw callback) {
 			// 不允许并发？
 			long count = 0;
-			for (var e : Map.entrySet()) {
+			for (var k : Map.keySet()) {
 				count++;
-				if (!callback.handle(e.getKey().Copy()))
+				if (!callback.handle(k.Copy()))
 					break;
 			}
 			return count;

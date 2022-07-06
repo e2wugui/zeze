@@ -811,8 +811,8 @@ public class Online extends AbstractOnline {
 
         if (null == online) {
             // remove all
-            for (var loginLocal : local.getLogins().entrySet())
-                RemoveLocalAndTrigger(account, loginLocal.getKey());
+            for (var loginKey : local.getLogins().keySet())
+                RemoveLocalAndTrigger(account, loginKey);
         } else {
             // 在全局数据中查找login-local，删除不存在或者版本不匹配的。
             for (var loginLocal : local.getLogins().entrySet()) {

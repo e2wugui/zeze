@@ -140,9 +140,9 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					if (!session.Acquired.isEmpty()) {
 						logger.info("AchillesHeelDaemon.Release begin {}", session);
 						var allReleaseFuture = new CountDownFuture();
-						for (var e : session.Acquired.entrySet()) {
+						for (var k : session.Acquired.keySet()) {
 							// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-							ReleaseAsync(session, e.getKey(), allReleaseFuture.createOne());
+							ReleaseAsync(session, k, allReleaseFuture.createOne());
 						}
 						session.setActiveTime(System.currentTimeMillis());
 						logger.info("AchillesHeelDaemon.Release end {}", session);
@@ -198,9 +198,9 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		// XXX verify danger
 		Task.schedule(5 * 60 * 1000, () -> { // delay 5 mins
 			var allReleaseFuture = new CountDownFuture();
-			for (var e : session.Acquired.entrySet()) {
+			for (var k : session.Acquired.keySet()) {
 				// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-				ReleaseAsync(session, e.getKey(), allReleaseFuture.createOne());
+				ReleaseAsync(session, k, allReleaseFuture.createOne());
 			}
 			allReleaseFuture.then(__ -> rpc.SendResultCode(0));
 		});
@@ -218,9 +218,9 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		session.setActiveTime(System.currentTimeMillis());
 		// new login, 比如逻辑服务器重启。release old acquired.
 		var allReleaseFuture = new CountDownFuture();
-		for (var e : session.Acquired.entrySet()) {
+		for (var k : session.Acquired.keySet()) {
 			// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-			ReleaseAsync(session, e.getKey(), allReleaseFuture.createOne());
+			ReleaseAsync(session, k, allReleaseFuture.createOne());
 		}
 		rpc.Result.MaxNetPing = Config.MaxNetPing;
 		rpc.Result.ServerProcessTime = Config.ServerProcessTime;
@@ -255,9 +255,9 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			return 0;
 		}
 		var allReleaseFuture = new CountDownFuture();
-		for (var e : session.Acquired.entrySet()) {
+		for (var k : session.Acquired.keySet()) {
 			// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-			ReleaseAsync(session, e.getKey(), allReleaseFuture.createOne());
+			ReleaseAsync(session, k, allReleaseFuture.createOne());
 		}
 		allReleaseFuture.then(__ -> {
 			rpc.SendResultCode(0);

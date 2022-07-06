@@ -77,8 +77,8 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		}
 
 		if (isManaged()) {
-			for (var p : m.entrySet()) {
-				p.getValue().InitRootInfo(RootInfo, this);
+			for (var v : m.values()) {
+				v.InitRootInfo(RootInfo, this);
 			}
 			var txn = Transaction.getCurrent();
 			assert txn != null;
@@ -151,8 +151,8 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 		@SuppressWarnings("unchecked")
 		var log = (LogMap2<K, V>)_log;
 		var tmp = _map;
-		for (var put : log.getReplaced().entrySet())
-			put.getValue().InitRootInfo(RootInfo, this);
+		for (var put : log.getReplaced().values())
+			put.InitRootInfo(RootInfo, this);
 		tmp = tmp.plusAll(log.getReplaced()).minusAll(log.getRemoved());
 
 		// apply changed

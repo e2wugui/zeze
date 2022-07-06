@@ -831,8 +831,8 @@ public final class ServiceManagerServer implements Closeable {
 
 	private void StartNotifyAll() {
 		StartNotifyDelayTask = null;
-		for (var e : ServerStates.entrySet())
-			e.getValue().StartReadyCommitNotify(true);
+		for (var v : ServerStates.values())
+			v.StartReadyCommitNotify(true);
 	}
 
 	public synchronized void Stop() throws Throwable {

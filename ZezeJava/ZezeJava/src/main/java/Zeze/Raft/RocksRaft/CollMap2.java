@@ -68,8 +68,8 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 		@SuppressWarnings("unchecked")
 		var log = (LogMap2<K, V>)_log;
 		var tmp = _map;
-		for (var put : log.getPutted().entrySet())
-			put.getValue().InitRootInfo(getRootInfo(), this);
+		for (var put : log.getPutted().values())
+			put.InitRootInfo(getRootInfo(), this);
 		tmp = tmp.plusAll(log.getPutted()).minusAll(log.getRemoved());
 
 		// apply changed

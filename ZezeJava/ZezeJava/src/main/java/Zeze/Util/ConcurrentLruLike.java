@@ -140,8 +140,8 @@ public class ConcurrentLruLike<K, V> {
 
 	public long WalkKey(TableWalkKey<K> callback) {
 		long cw = 0;
-		for (var e : DataMap.entrySet()) {
-			if (!callback.handle(e.getKey()))
+		for (var k : DataMap.keySet()) {
+			if (!callback.handle(k))
 				return cw;
 			++cw;
 		}

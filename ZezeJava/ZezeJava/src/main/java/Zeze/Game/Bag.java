@@ -168,15 +168,15 @@ public class Bag {
 			}
 		}
 
-		for (var item : bean.getItems().entrySet()) {
-			if (item.getValue().getId() == itemAdd.getId()) {
-				int numberNew = item.getValue().getNumber() + itemAdd.getNumber();
+		for (var item : bean.getItems().values()) {
+			if (item.getId() == itemAdd.getId()) {
+				int numberNew = item.getNumber() + itemAdd.getNumber();
 				if (numberNew > pileMax) {
-					item.getValue().setNumber(pileMax);
+					item.setNumber(pileMax);
 					itemAdd.setNumber(numberNew - pileMax);
 					continue;
 				}
-				item.getValue().setNumber(numberNew);
+				item.setNumber(numberNew);
 				return 0; // all pile done
 			}
 		}

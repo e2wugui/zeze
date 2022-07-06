@@ -330,10 +330,10 @@ public final class Transaction {
 			try {
 				lastSp.MergeActions(Actions, true);
 				lastSp.Commit();
-				for (var e : AccessedRecords.entrySet()) {
-					e.getValue().AtomicTupleRecord.Record.setNotFresh();
-					if (e.getValue().Dirty) {
-						e.getValue().AtomicTupleRecord.Record.Commit(e.getValue());
+				for (var v : AccessedRecords.values()) {
+					v.AtomicTupleRecord.Record.setNotFresh();
+					if (v.Dirty) {
+						v.AtomicTupleRecord.Record.Commit(v);
 					}
 				}
 			} catch (Throwable e) {
@@ -381,8 +381,8 @@ public final class Transaction {
 	}
 
 	private void finalRollback(Procedure procedure, boolean executeRollbackAction) {
-		for (var e : AccessedRecords.entrySet()) {
-			e.getValue().AtomicTupleRecord.Record.setNotFresh();
+		for (var ra : AccessedRecords.values()) {
+			ra.AtomicTupleRecord.Record.setNotFresh();
 		}
 		Savepoints.clear(); // 这里可以安全的清除日志，这样如果 rollback_action 需要读取数据，将读到原始的。
 		State = TransactionState.Completed;

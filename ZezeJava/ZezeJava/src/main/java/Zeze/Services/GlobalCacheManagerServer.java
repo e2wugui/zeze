@@ -165,10 +165,10 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					session.kick();
 					if (!session.Acquired.isEmpty()) {
 						logger.info("AchillesHeelDaemon.Release begin {}", session);
-						for (var e : session.Acquired.entrySet()) {
+						for (var k : session.Acquired.keySet()) {
 							// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
 							try {
-								Release(session, e.getKey(), false);
+								Release(session, k, false);
 							} catch (InterruptedException ex) {
 								logger.error("", ex);
 							}
@@ -225,9 +225,9 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 
 		// XXX verify danger
 		Task.schedule(5 * 60 * 1000, () -> { // delay 5 mins
-			for (var e : session.Acquired.entrySet()) {
+			for (var k : session.Acquired.keySet()) {
 				// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-				Release(session, e.getKey(), false);
+				Release(session, k, false);
 			}
 			rpc.SendResultCode(0);
 		});
@@ -243,9 +243,9 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			return 0;
 		}
 		// new login, 比如逻辑服务器重启。release old acquired.
-		for (var e : session.Acquired.entrySet()) {
+		for (var k : session.Acquired.keySet()) {
 			// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-			Release(session, e.getKey(), false);
+			Release(session, k, false);
 		}
 		session.setActiveTime(System.currentTimeMillis());
 		rpc.Result.MaxNetPing = Config.MaxNetPing;
@@ -280,9 +280,9 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			rpc.SendResultCode(NormalCloseUnbindFail);
 			return 0;
 		}
-		for (var e : session.Acquired.entrySet()) {
+		for (var k : session.Acquired.keySet()) {
 			// ConcurrentDictionary 可以在循环中删除。这样虽然效率低些，但是能处理更多情况。
-			Release(session, e.getKey(), false);
+			Release(session, k, false);
 		}
 		rpc.SendResultCode(0);
 		logger.info("After NormalClose global.Count={}", global.size());
