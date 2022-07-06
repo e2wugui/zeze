@@ -118,7 +118,8 @@ public class GlobalCacheManagerWithRaft
 
 	private void AchillesHeelDaemon() {
 		var now = System.currentTimeMillis();
-		if (Rocks.getRaft().isLeader()) {
+		var raft = Rocks.getRaft();
+		if (raft != null && raft.isLeader()) {
 			Sessions.forEach(session -> {
 				if (now - session.getActiveTime() > AchillesHeelConfig.GlobalDaemonTimeout) {
 					logger.info("AchillesHeelDaemon.Release begin {}", session);

@@ -156,9 +156,9 @@ public final class Transaction {
 	}
 
 	public void Commit() {
-		int lastIndex = Savepoints.size() - 1;
-		if (lastIndex > 0)
-			Savepoints.get(lastIndex - 1).MergeFrom(Savepoints.remove(lastIndex), true); // 嵌套事务，把日志合并到上一层。
+		int saveSize = Savepoints.size();
+		if (saveSize > 1)
+			Savepoints.get(saveSize - 2).MergeCommitFrom(Savepoints.remove(saveSize - 1)); // 嵌套事务，把日志合并到上一层。
 		// else // 最外层存储过程提交在 Perform 中处理
 	}
 
@@ -166,9 +166,8 @@ public final class Transaction {
 		int lastIndex = Savepoints.size() - 1;
 		Savepoint last = Savepoints.remove(lastIndex);
 		last.Rollback();
-
 		if (lastIndex > 0)
-			Savepoints.get(lastIndex - 1).MergeFrom(last, false);
+			Savepoints.get(lastIndex - 1).MergeRollbackFrom(last); // 嵌套事务，把日志合并到上一层。
 		else
 			LastRollbackActions = last.getRollbackActions(); // 最后一个Savepoint Rollback的时候需要保存一下，用来触发回调。ugly。
 	}

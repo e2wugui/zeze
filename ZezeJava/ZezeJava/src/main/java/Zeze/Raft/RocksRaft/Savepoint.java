@@ -19,11 +19,13 @@ public final class Savepoint {
 	}
 
 	public LongHashMap<Log>.Iterator logIterator() {
-		return Logs != null ? Logs.iterator() : null;
+		var logs = Logs;
+		return logs != null ? logs.iterator() : null;
 	}
 
 	public Log GetLog(long logKey) {
-		return Logs != null ? Logs.get(logKey) : null;
+		var logs = Logs;
+		return logs != null ? logs.get(logKey) : null;
 	}
 
 	public void PutLog(Log log) {
@@ -36,9 +38,11 @@ public final class Savepoint {
 
 	public Savepoint BeginSavepoint() {
 		var sp = new Savepoint();
-		if (Logs != null) {
-			sp.Logs = new LongHashMap<>(Logs);
-			sp.Logs.foreachUpdate((__, v) -> v.BeginSavepoint());
+		var logs = Logs;
+		if (logs != null) {
+			var newLogs = new LongHashMap<>(logs);
+			newLogs.foreachUpdate((__, v) -> v.BeginSavepoint());
+			sp.Logs = newLogs;
 		}
 		return sp;
 	}
@@ -65,16 +69,24 @@ public final class Savepoint {
 		getRollbackActionsForAdd().add(action);
 	}
 
-	public void MergeFrom(Savepoint next, boolean isCommit) {
-		if (isCommit) {
-			if (next.Logs != null)
-				next.Logs.foreachValue(log -> log.EndSavepoint(this));
-			if (next.CommitActions != null)
-				getCommitActionsForAdd().addAll(next.CommitActions);
-		} else if (next.RollbackActions != null)
-			getCommitActionsForAdd().addAll(next.RollbackActions);
-		if (next.RollbackActions != null)
-			getRollbackActionsForAdd().addAll(next.RollbackActions);
+	public void MergeCommitFrom(Savepoint next) {
+		var nextLogs = next.Logs;
+		if (nextLogs != null)
+			nextLogs.foreachValue(log -> log.EndSavepoint(this));
+		var nextCommitActions = next.CommitActions;
+		if (nextCommitActions != null)
+			getCommitActionsForAdd().addAll(nextCommitActions);
+		var nextRollbackActions = next.RollbackActions;
+		if (nextRollbackActions != null)
+			getRollbackActionsForAdd().addAll(nextRollbackActions);
+	}
+
+	public void MergeRollbackFrom(Savepoint next) {
+		var nextRollbackActions = next.RollbackActions;
+		if (nextRollbackActions != null) {
+			getCommitActionsForAdd().addAll(nextRollbackActions);
+			getRollbackActionsForAdd().addAll(nextRollbackActions);
+		}
 	}
 
 	public void Rollback() {

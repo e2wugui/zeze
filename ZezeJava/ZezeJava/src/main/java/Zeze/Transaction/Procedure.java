@@ -27,6 +27,7 @@ public class Procedure {
 	public static final long RaftRetry = -15;
 	public static final long RaftApplied = -16;
 	public static final long RaftExpired = -17;
+	public static final long Closed = -18;
 	// >0 用户自定义。
 
 	private static final Logger logger = LogManager.getLogger(Procedure.class);

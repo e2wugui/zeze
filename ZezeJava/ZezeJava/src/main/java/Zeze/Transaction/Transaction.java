@@ -76,25 +76,20 @@ public final class Transaction {
 	}
 
 	public void Commit() {
-		int lastIndex = Savepoints.size() - 1;
-		if (lastIndex > 0) {
-			// 嵌套事务，把日志合并到上一层。
-			Savepoint last = Savepoints.get(lastIndex);
-			Savepoints.remove(lastIndex);
-			Savepoints.get(lastIndex - 1).MergeFrom(last, true);
-		}
+		int saveSize = Savepoints.size();
+		if (saveSize > 1)
+			Savepoints.get(saveSize - 2).MergeCommitFrom(Savepoints.remove(saveSize - 1)); // 嵌套事务，把日志合并到上一层。
+		// else // 最外层存储过程提交在 Perform 中处理
 	}
 
 	public void Rollback() {
-		// 嵌套事务，把日志合并到上一层。
 		int lastIndex = Savepoints.size() - 1;
-		Savepoint last = Savepoints.get(lastIndex);
-		Savepoints.remove(lastIndex);
-		if (lastIndex > 0) {
-			Savepoints.get(lastIndex - 1).MergeFrom(last, false);
-		} else {
-			last.MergeActions(Actions, false);
-		}
+		Savepoint last = Savepoints.remove(lastIndex);
+		// last.Rollback();
+		if (lastIndex > 0)
+			Savepoints.get(lastIndex - 1).MergeRollbackFrom(last); // 嵌套事务，把日志合并到上一层。
+		else
+			last.MergeRollbackActions(Actions);
 	}
 
 	public Log LogGetOrAdd(long logKey, Supplier<Log> logFactory) {
@@ -159,9 +154,12 @@ public final class Transaction {
 	 */
 	public long Perform(Procedure procedure) {
 		try {
+			var checkPoint = procedure.getZeze().getCheckpoint();
+			if (checkPoint == null)
+				return Procedure.Closed;
 			for (int tryCount = 0; tryCount < 256; ++tryCount) { // 最多尝试次数
 				// 默认在锁内重复尝试，除非CheckResult.RedoAndReleaseLock，否则由于CheckResult.Redo保持锁会导致死锁。
-				procedure.getZeze().getCheckpoint().EnterFlushReadLock();
+				checkPoint.EnterFlushReadLock();
 				try {
 					for (; tryCount < 256; ++tryCount) { // 最多尝试次数
 						CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
@@ -273,7 +271,7 @@ public final class Transaction {
 						}
 					}
 				} finally {
-					procedure.getZeze().getCheckpoint().ExitFlushReadLock();
+					checkPoint.ExitFlushReadLock();
 				}
 				//logger.Debug("Checkpoint.WaitRun {0}", procedure);
 				// 实现Fresh队列以后删除Sleep。
@@ -328,7 +326,7 @@ public final class Transaction {
 		var lastSp = Savepoints.get(Savepoints.size() - 1);
 		RelativeRecordSet.TryUpdateAndCheckpoint(this, procedure, () -> {
 			try {
-				lastSp.MergeActions(Actions, true);
+				lastSp.MergeCommitActions(Actions);
 				lastSp.Commit();
 				for (var v : AccessedRecords.values()) {
 					v.AtomicTupleRecord.Record.setNotFresh();

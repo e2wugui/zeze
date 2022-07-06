@@ -9,11 +9,13 @@ public final class Savepoint {
 	private ArrayList<Action> actions;
 
 	public LongHashMap<Log>.Iterator logIterator() {
-		return Logs != null ? Logs.iterator() : null;
+		var logs = Logs;
+		return logs != null ? logs.iterator() : null;
 	}
 
 	public Log GetLog(long logKey) {
-		return Logs != null ? Logs.get(logKey) : null;
+		var logs = Logs;
+		return logs != null ? logs.get(logKey) : null;
 	}
 
 	public void PutLog(Log log) {
@@ -21,14 +23,16 @@ public final class Savepoint {
 		if (logs == null)
 			Logs = logs = new LongHashMap<>();
 		logs.put(log.getLogKey(), log);
-		// Newly.put(log.LogKey, log);
+		// Newly.put(log.getLogKey(), log);
 	}
 
 	public Savepoint BeginSavepoint() {
 		var sp = new Savepoint();
-		if (Logs != null) {
-			sp.Logs = new LongHashMap<>(Logs);
-			sp.Logs.foreachUpdate((__, v) -> v.BeginSavepoint());
+		var logs = Logs;
+		if (logs != null) {
+			var newLogs = new LongHashMap<>(logs);
+			newLogs.foreachUpdate((__, v) -> v.BeginSavepoint());
+			sp.Logs = newLogs;
 		}
 		return sp;
 	}
@@ -64,38 +68,51 @@ public final class Savepoint {
 		getActionsForAdd().add(new Action(ActionType.ROLLBACK, action));
 	}
 
-	public void MergeFrom(Savepoint next, boolean isCommit) {
-		if (isCommit) {
-			if (next.Logs != null)
-				next.Logs.foreachValue(log -> log.EndSavepoint(this));
-			if (next.actions != null)
-				getActionsForAdd().addAll(next.actions);
-		} else if (next.actions != null) {
-			for (Action action : next.actions) {
-				if (action.actionType == ActionType.NESTED_ROLLBACK) {
-					getActionsForAdd().add(action);
-				} else if (action.actionType == ActionType.ROLLBACK) {
+	public void MergeCommitFrom(Savepoint next) {
+		var nextLogs = next.Logs;
+		if (nextLogs != null)
+			nextLogs.foreachValue(log -> log.EndSavepoint(this));
+		var nextActions = next.actions;
+		if (nextActions != null)
+			getActionsForAdd().addAll(nextActions);
+	}
+
+	public void MergeRollbackFrom(Savepoint next) {
+		var nextActions = next.actions;
+		if (nextActions != null) {
+			for (Action action : nextActions) {
+				if (action.actionType == ActionType.ROLLBACK)
 					action.actionType = ActionType.NESTED_ROLLBACK;
-					getActionsForAdd().add(action);
-				}
+				else if (action.actionType != ActionType.NESTED_ROLLBACK)
+					continue;
+				getActionsForAdd().add(action);
 			}
 		}
 	}
 
-	public void MergeActions(ArrayList<Action> transactionActions, boolean isCommit) {
-		if (actions != null) {
-			for (Action action : actions) {
-				if (action.actionType == ActionType.NESTED_ROLLBACK ||
-						action.actionType == ActionType.ROLLBACK && !isCommit ||
-						action.actionType == ActionType.COMMIT && isCommit) {
+	public void MergeCommitActions(ArrayList<Action> transactionActions) {
+		var a = actions;
+		if (a != null) {
+			for (Action action : a) {
+				if (action.actionType == ActionType.COMMIT || action.actionType == ActionType.NESTED_ROLLBACK)
 					transactionActions.add(action);
-				}
+			}
+		}
+	}
+
+	public void MergeRollbackActions(ArrayList<Action> transactionActions) {
+		var a = actions;
+		if (a != null) {
+			for (Action action : a) {
+				if (action.actionType == ActionType.ROLLBACK || action.actionType == ActionType.NESTED_ROLLBACK)
+					transactionActions.add(action);
 			}
 		}
 	}
 
 	public void Commit() {
-		if (Logs != null)
-			Logs.foreachValue(Log::Commit);
+		var logs = Logs;
+		if (logs != null)
+			logs.foreachValue(Log::Commit);
 	}
 }
