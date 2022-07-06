@@ -8,90 +8,102 @@ import Zeze.Services.GlobalCacheManagerServer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
+public final class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 	private static final Logger logger = LogManager.getLogger(Record1.class);
+	private static final VarHandle LRU_NODE_HANDLE;
 
-	private final K Key;
-	final K getKey() {
-		return Key;
+	static {
+		try {
+			LRU_NODE_HANDLE = MethodHandles.lookup().findVarHandle(Record1.class, "LruNode", ConcurrentHashMap.class);
+		} catch (ReflectiveOperationException e) {
+			throw new RuntimeException(e);
+		}
 	}
-	@Override
-	public final Object getObjectKey() { return Key; }
 
 	private final TableX<K, V> TTable;
-	final TableX<K, V> getTTable() {
-		return TTable;
+	private final K Key;
+	private ByteBuffer snapshotKey;
+	private ByteBuffer snapshotValue;
+	private long SavedTimestampForCheckpointPeriod;
+	private boolean ExistInBackDatabase;
+	private boolean ExistInBackDatabaseSavedForFlushRemove;
+	private volatile ConcurrentHashMap<K, Record1<K, V>> LruNode;
+
+	public Record1(TableX<K, V> table, K key, V value) {
+		super(value);
+		TTable = table;
+		Key = key;
 	}
 
 	@Override
 	public Table getTable() {
-		return getTTable();
+		return TTable;
 	}
 
-	public Record1(TableX<K, V> table, K key, V value) {
-		super(value);
-		this.TTable = table;
-		this.Key = key;
+	@Override
+	public K getObjectKey() {
+		return Key;
+	}
+
+	void setSavedTimestampForCheckpointPeriod(long value) {
+		SavedTimestampForCheckpointPeriod = value;
+	}
+
+	void setExistInBackDatabase(boolean value) {
+		ExistInBackDatabase = value;
+	}
+
+	ConcurrentHashMap<K, Record1<K, V>> getLruNode() {
+		return LruNode;
+	}
+
+	void setLruNode(ConcurrentHashMap<K, Record1<K, V>> value) {
+		LruNode = value;
+	}
+
+	@SuppressWarnings("unchecked")
+	public ConcurrentHashMap<K, Record1<K, V>> getAndSetLruNodeNull() {
+		return (ConcurrentHashMap<K, Record1<K, V>>)LRU_NODE_HANDLE.getAndSet(this, null);
+	}
+
+	public boolean compareAndSetLruNodeNull(ConcurrentHashMap<K, Record1<K, V>> c) {
+		return LRU_NODE_HANDLE.compareAndSet(this, c, null);
 	}
 
 	@Override
 	public String toString() {
-		return String.format("T=%s K=%s S=%d T=%d",
-				TTable.getName(), Key, getState(), getTimestamp()); // V {Value}";
+		return String.format("T=%s K=%s S=%d T=%d", TTable.getName(), Key, getState(), getTimestamp()); // V {Value}";
 		// 记录的log可能在Transaction.AddRecordAccessed之前进行，不能再访问了。
 	}
 
 	@Override
 	public IGlobalAgent.AcquireResult Acquire(int state, boolean fresh) {
 		IGlobalAgent agent;
-		if (null == TTable.TStorage || (agent = TTable.getZeze().getGlobalAgent()) == null) {
+		if (null == TTable.GetStorage() || (agent = TTable.getZeze().getGlobalAgent()) == null) {
 			// 不支持内存表cache同步。
 			return IGlobalAgent.AcquireResult.getSuccessResult(state);
 		}
 
-		var gkey = TTable.EncodeGlobalKey(getKey());
+		var gkey = TTable.EncodeGlobalKey(Key);
 		logger.debug("Acquire NewState={} {}", state, this);
-//		if (TTable.getName().equals("demo_Module1_tflush")) {
-//			logger.info("{}: Acquire NewState={} {}{}",
-//					TTable.getZeze().getConfig().getServerId(), state, this, fresh ? " fresh" : "");
-//		}
 
 		var stat = TableStatistics.getInstance().GetOrAdd(TTable.getId());
 		switch (state) {
-			case GlobalCacheManagerServer.StateInvalid:
-				stat.getGlobalAcquireInvalid().incrementAndGet();
-				break;
+		case GlobalCacheManagerServer.StateInvalid:
+			stat.getGlobalAcquireInvalid().incrementAndGet();
+			break;
 
-			case GlobalCacheManagerServer.StateShare:
-				stat.getGlobalAcquireShare().incrementAndGet();
-				break;
+		case GlobalCacheManagerServer.StateShare:
+			stat.getGlobalAcquireShare().incrementAndGet();
+			break;
 
-			case GlobalCacheManagerServer.StateModify:
-				stat.getGlobalAcquireModify().incrementAndGet();
-				break;
+		case GlobalCacheManagerServer.StateModify:
+			stat.getGlobalAcquireModify().incrementAndGet();
+			break;
 		}
 
 		return agent.Acquire(gkey, state, fresh);
-//		var r = agent.Acquire(gkey, state, fresh);
-//		if (TTable.getName().equals("demo_Module1_tflush")) {
-//			logger.info("{}: Acquire Result={} {} {}",
-//					TTable.getZeze().getConfig().getServerId(), r.ResultCode, r.ResultState, this);
-//		}
-//		return r;
 	}
-
-	private long SavedTimestampForCheckpointPeriod;
-	final long getSavedTimestampForCheckpointPeriod() {
-		return SavedTimestampForCheckpointPeriod;
-	}
-	final void setSavedTimestampForCheckpointPeriod(long value) {
-		SavedTimestampForCheckpointPeriod = value;
-	}
-	private boolean ExistInBackDatabase;
-	final void setExistInBackDatabase(boolean value) {
-		ExistInBackDatabase = value;
-	}
-	private boolean ExistInBackDatabaseSavedForFlushRemove;
 
 	@Override
 	public void Commit(Zeze.Transaction.RecordAccessed accessed) {
@@ -105,38 +117,34 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 
 	@Override
 	public void SetDirty() {
-		switch (getTTable().getZeze().getCheckpoint().getCheckpointMode()) {
-			case Period:
-				setDirty(true);
-				if (getTTable().TStorage != null) {
-					getTTable().TStorage.OnRecordChanged(this);
-				}
-				break;
-			case Table:
-				setDirty(true);
-				break;
-			case Immediately:
-				// 立即模式需要马上保存到RocksCache中。
-				// 为了支持事务，需要在Checkpoint中实现。
-				break;
+		switch (TTable.getZeze().getCheckpoint().getCheckpointMode()) {
+		case Period:
+			setDirty(true);
+			if (TTable.GetStorage() != null) {
+				TTable.GetStorage().OnRecordChanged(this);
+			}
+			break;
+		case Table:
+			setDirty(true);
+			break;
+		case Immediately:
+			// 立即模式需要马上保存到RocksCache中。
+			// 为了支持事务，需要在Checkpoint中实现。
+			break;
 		}
 	}
 
-	private ByteBuffer snapshotKey;
-	private ByteBuffer snapshotValue;
-
-	public final boolean TryEncodeN(ConcurrentHashMap<K, Record1<K, V>> changed, ConcurrentHashMap<K, Record1<K, V>> encoded) {
-		Lockey lockey = getTable().getZeze().getLocks().Get(new TableKey(getTTable().getId(), getKey()));
+	public boolean TryEncodeN(ConcurrentHashMap<K, Record1<K, V>> changed, ConcurrentHashMap<K, Record1<K, V>> encoded) {
+		Lockey lockey = TTable.getZeze().getLocks().Get(new TableKey(TTable.getId(), Key));
 		if (!lockey.TryEnterReadLock(0)) {
 			return false;
 		}
 		try {
 			Encode0();
-			encoded.put(getKey(), this);
-			changed.remove(getKey());
+			encoded.put(Key, this);
+			changed.remove(Key);
 			return true;
-		}
-		finally {
+		} finally {
 			lockey.ExitReadLock();
 		}
 	}
@@ -153,8 +161,8 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 		SavedTimestampForCheckpointPeriod = getTimestamp();
 
 		// 可能编码多次：TryEncodeN 记录读锁；Snapshot FlushWriteLock;
-		snapshotKey = getTTable().EncodeKey(getKey());
-		snapshotValue = StrongDirtyValue != null ? getTTable().EncodeValue((V)StrongDirtyValue) : null;
+		snapshotKey = TTable.EncodeKey(Key);
+		snapshotValue = StrongDirtyValue != null ? TTable.EncodeValue((V)StrongDirtyValue) : null;
 
 		// 【注意】
 		// 这个标志本来应该在真正写到Database之后修改才是最合适的；
@@ -180,13 +188,6 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 		ExistInBackDatabase = null != snapshotValue;
 	}
 
-	/*
-	internal void Snapshot()
-	{
-
-	}
-	*/
-
 	@Override
 	public void Flush(Database.Transaction t, Database.Transaction lct) {
 		if (!getDirty())
@@ -194,21 +195,20 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 
 		if (null != snapshotValue) {
 			// changed
-			if (getTTable().TStorage != null) {
-				getTTable().TStorage.getDatabaseTable().Replace(t, snapshotKey, snapshotValue);
+			if (TTable.GetStorage() != null) {
+				TTable.GetStorage().getDatabaseTable().Replace(t, snapshotKey, snapshotValue);
 			}
 			if (null != lct) {
-				getTTable().getLocalRocksCacheTable().Replace(lct, snapshotKey, snapshotValue);
+				TTable.getLocalRocksCacheTable().Replace(lct, snapshotKey, snapshotValue);
 			}
-		}
-		else {
+		} else {
 			// removed
 			if (ExistInBackDatabaseSavedForFlushRemove) { // 优化，仅在后台db存在时才去删除。
-				if (TTable.TStorage != null) {
-					TTable.TStorage.getDatabaseTable().Remove(t, snapshotKey);
+				if (TTable.GetStorage() != null) {
+					TTable.GetStorage().getDatabaseTable().Remove(t, snapshotKey);
 				}
 				if (null != lct) {
-					getTTable().getLocalRocksCacheTable().Remove(lct, snapshotKey);
+					TTable.getLocalRocksCacheTable().Remove(lct, snapshotKey);
 				}
 			}
 
@@ -216,9 +216,9 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 			// 这个违背了OldTable不修改的原则，但没办法了。
 			// XXX 从旧表中删除，使用独立临时事务。
 			// 如果要纳入完整事务，有点麻烦。这里反正是个例外，那就再例外一次了。
-			if (null != getTTable().getOldTable()) {
-				try (var transTmp = getTTable().getOldTable().getDatabase().BeginTransaction()) {
-					getTTable().getOldTable().Remove(transTmp, snapshotKey);
+			if (null != TTable.getOldTable()) {
+				try (var transTmp = TTable.getOldTable().getDatabase().BeginTransaction()) {
+					TTable.getOldTable().Remove(transTmp, snapshotKey);
 					transTmp.Commit();
 				} catch (Exception e) {
 					logger.error("Commit Exception", e);
@@ -229,14 +229,14 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 
 	@Override
 	public void Cleanup() {
-		this.setDatabaseTransactionTmp(null);
+		setDatabaseTransactionTmp(null);
 
-		if (getTable().getZeze().getCheckpoint().getCheckpointMode() == CheckpointMode.Period) {
-			TableKey tkey = new TableKey(getTable().getId(), getKey());
-			Lockey lockey = getTable().getZeze().getLocks().Get(tkey);
+		if (TTable.getZeze().getCheckpoint().getCheckpointMode() == CheckpointMode.Period) {
+			TableKey tkey = new TableKey(TTable.getId(), Key);
+			Lockey lockey = TTable.getZeze().getLocks().Get(tkey);
 			lockey.EnterWriteLock();
 			try {
-				if (getSavedTimestampForCheckpointPeriod() == super.getTimestamp()) {
+				if (SavedTimestampForCheckpointPeriod == getTimestamp()) {
 					setDirty(false);
 				}
 				snapshotKey = null;
@@ -249,34 +249,5 @@ public class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 		// CheckpointMode.Table
 		snapshotKey = null;
 		snapshotValue = null;
-	}
-
-	private static final VarHandle LRU_NODE_HANDLE;
-
-	static {
-		try {
-			LRU_NODE_HANDLE = MethodHandles.lookup().findVarHandle(Record1.class, "LruNode", ConcurrentHashMap.class);
-		} catch (ReflectiveOperationException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	private volatile ConcurrentHashMap<K, Record1<K, V>> LruNode;
-
-	public final ConcurrentHashMap<K, Record1<K, V>> getLruNode() {
-		return LruNode;
-	}
-
-	public final void setLruNode(ConcurrentHashMap<K, Record1<K, V>> value) {
-		LruNode = value;
-	}
-
-	@SuppressWarnings("unchecked")
-	public final ConcurrentHashMap<K, Record1<K, V>> getAndSetLruNodeNull() {
-		return (ConcurrentHashMap<K, Record1<K, V>>)LRU_NODE_HANDLE.getAndSet(this, null);
-	}
-
-	public final boolean compareAndSetLruNodeNull(ConcurrentHashMap<K, Record1<K, V>> c) {
-		return LRU_NODE_HANDLE.compareAndSet(this, c, null);
 	}
 }

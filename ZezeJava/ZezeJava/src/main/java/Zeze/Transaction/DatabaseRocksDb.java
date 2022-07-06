@@ -8,8 +8,6 @@ import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
 import Zeze.Util.OutObject;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
@@ -22,8 +20,6 @@ import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 
 public class DatabaseRocksDb extends Database {
-	private static final Logger logger = LogManager.getLogger(DatabaseRocksDb.class);
-
 	private static final Options commonOptions = new Options()
 			.setCreateIfMissing(true)
 			.setDbWriteBufferSize(64 << 20) // 总的写缓存大小(字节),对所有columns的总限制

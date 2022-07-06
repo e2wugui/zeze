@@ -133,7 +133,7 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 		if (log != null) {
 			@SuppressWarnings("unchecked")
 			var currentLog = (LogMap1<K, V>)log;
-			currentLog.setValue(this.getValue());
+			currentLog.setValue(getValue());
 			currentLog.MergeChangeNote(this);
 		} else
 			currentSp.getLogs().put(getLogKey(), this);

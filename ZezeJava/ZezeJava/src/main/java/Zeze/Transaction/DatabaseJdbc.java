@@ -3,12 +3,8 @@ package Zeze.Transaction;
 import java.sql.SQLException;
 import Zeze.Config.DatabaseConf;
 import org.apache.commons.dbcp2.BasicDataSource;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public abstract class DatabaseJdbc extends Database {
-	private static final Logger logger = LogManager.getLogger(DatabaseMySql.class);
-
 	protected final BasicDataSource dataSource;
 
 	public DatabaseJdbc(DatabaseConf conf) {
@@ -17,7 +13,7 @@ public abstract class DatabaseJdbc extends Database {
 		dataSource = new BasicDataSource();
 		var dbcpConf = conf.getDbcpConf();
 
-		BasicDataSource pool = this.dataSource;// 连接池
+		BasicDataSource pool = dataSource;// 连接池
 
 		// must present
 		pool.setUrl(conf.getDatabaseUrl());

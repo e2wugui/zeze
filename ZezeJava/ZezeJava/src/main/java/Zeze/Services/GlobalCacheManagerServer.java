@@ -887,7 +887,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					}
 					return reduce;
 				}
-				logger.warn("Send Reduce failed. SessionId={}, peer={}, gkey={}", SessionId, peer, gkey);
+				logger.warn("Send Reduce failed. SessionId={}, gkey={}", SessionId, gkey);
 			} catch (Throwable ex) {
 				// 这里的异常只应该是网络发送异常。
 				logger.error("ReduceWaitLater Exception " + gkey, ex);

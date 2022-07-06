@@ -224,7 +224,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	}
 
 	private boolean TryRemoveRecordUnderLock(Map.Entry<K, Record1<K, V>> p) {
-		var storage = Table.TStorage;
+		var storage = Table.GetStorage();
 		if (null == storage) {
 				/* 不支持内存表cache同步。
 				if (p.Value.Acquire(GlobalCacheManager.StateInvalid) != GlobalCacheManager.StateInvalid)
@@ -255,7 +255,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 				if (r.ResultCode != 0 || r.ResultState != GlobalCacheManagerServer.StateInvalid)
 					return false;
 			} catch (Throwable e) {
-				logger.error("Acquire(" + record.getTable().getName() + ':' + record.getKey() + ") exception:", e);
+				logger.error("Acquire(" + record.getTable().getName() + ':' + record.getObjectKey() + ") exception:", e);
 				// 此时GlobalServer可能已经改成StateInvalid了, 无论如何还是当成已经Invalid保证安全
 			}
 		}

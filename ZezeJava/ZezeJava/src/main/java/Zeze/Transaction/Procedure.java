@@ -30,12 +30,23 @@ public class Procedure {
 	// >0 用户自定义。
 
 	private static final Logger logger = LogManager.getLogger(Procedure.class);
+	public static volatile Action4<Throwable, Long, Procedure, String> LogAction = Procedure::DefaultLogAction;
+
+	public static void DefaultLogAction(Throwable ex, Long result, Procedure p, String message) {
+		var ll = ex != null ? org.apache.logging.log4j.Level.ERROR
+				: result != 0 ? p.Zeze.getConfig().getProcessReturnErrorLogLevel()
+				: org.apache.logging.log4j.Level.TRACE;
+
+		String module = result > 0 ? "@" + IModule.GetModuleId(result) + ":" + IModule.GetErrorCode(result) : "";
+		logger.log(ll, () -> "Procedure=" + p + " Return=" + result + module + message + " UserState=" + p.UserState, ex);
+	}
 
 	private final Application Zeze;
 	private final TransactionLevel Level;
 	private FuncLong Action;
 	private String ActionName;
 	private Object UserState;
+	public Runnable RunWhileCommit;
 
 	// 用于继承方式实现 Procedure。
 	public Procedure(Application app) {
@@ -92,18 +103,6 @@ public class Procedure {
 		UserState = value;
 	}
 
-	public static volatile Action4<Throwable, Long, Procedure, String> LogAction = Procedure::DefaultLogAction;
-    public Runnable RunWhileCommit;
-
-	public static void DefaultLogAction(Throwable ex, Long result, Procedure p, String message) {
-		var ll = ex != null ? org.apache.logging.log4j.Level.ERROR
-				: result != 0 ? p.Zeze.getConfig().getProcessReturnErrorLogLevel()
-				: org.apache.logging.log4j.Level.TRACE;
-
-		String module = result > 0 ? "@" + IModule.GetModuleId(result) + ":" + IModule.GetErrorCode(result) : "";
-		logger.log(ll, () -> "Procedure=" + p + " Return=" + result + module + message + " UserState=" + p.UserState, ex);
-	}
-
 	/**
 	 * 创建 Savepoint 并执行。
 	 * 嵌套 Procedure 实现，
@@ -124,8 +123,9 @@ public class Procedure {
 		currentT.Begin();
 		currentT.getProcedureStack().add(this);
 		try {
-			if (null != RunWhileCommit)
-				currentT.runWhileCommit(RunWhileCommit);
+			var runWhileCommit = RunWhileCommit;
+			if (runWhileCommit != null)
+				currentT.runWhileCommit(runWhileCommit);
 			long result = Process();
 			currentT.VerifyRunning(); // 防止应用抓住了异常，通过return方式返回。
 
@@ -170,7 +170,7 @@ public class Procedure {
 
 	@Override
 	public String toString() {
-		// GetType().FullName 仅在用继承的方式实现 Procedure 才有意义。
+		// getClass().getName() 仅在用继承的方式实现 Procedure 才有意义。
 		return Action != null ? ActionName : getClass().getName();
 	}
 }

@@ -1,10 +1,12 @@
 package Zeze.Transaction;
 
-import Zeze.Serialize.*;
-import Zeze.Config.DatabaseConf;
-
+import java.nio.charset.StandardCharsets;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import Zeze.Config.DatabaseConf;
+import Zeze.Serialize.ByteBuffer;
 
 public final class DatabaseSqlServer extends DatabaseJdbc {
 	public DatabaseSqlServer(DatabaseConf conf) {
@@ -17,13 +19,11 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 		return new TableSqlServer(this, name);
 	}
 
-	public final static class OperatesSqlServer implements Operates {
+	public static final class OperatesSqlServer implements Operates {
 		private final DatabaseSqlServer DatabaseReal;
-		public DatabaseSqlServer getDatabaseReal() {
+
+		public DatabaseSqlServer getDatabase() {
 			return DatabaseReal;
-		}
-		public Database getDatabase() {
-			return getDatabaseReal();
 		}
 
 		@Override
@@ -32,8 +32,8 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				connection.setAutoCommit(true);
 				try (var cmd = connection.prepareCall("{CALL _ZezeSetInUse_(?, ?, ?)}")) {
 					cmd.setInt(1, localId);
-					cmd.setBytes(2, global.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-					cmd.registerOutParameter(3, java.sql.Types.INTEGER);
+					cmd.setBytes(2, global.getBytes(StandardCharsets.UTF_8));
+					cmd.registerOutParameter(3, Types.INTEGER);
 					cmd.executeUpdate();
 					switch (cmd.getInt(3)) {
 						case 0:
@@ -54,7 +54,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 							throw new RuntimeException("Unknown ReturnValue");
 					}
 				}
-			} catch (java.sql.SQLException e) {
+			} catch (SQLException e) {
 				throw new RuntimeException(e);
 			}
 		}
@@ -65,13 +65,13 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				connection.setAutoCommit(true);
 				try (var cmd = connection.prepareCall("{CALL _ZezeClearInUse_(?, ?, ?)}")) {
 					cmd.setInt(1, localId);
-					cmd.setBytes(2, global.getBytes(java.nio.charset.StandardCharsets.UTF_8));
-					cmd.registerOutParameter(3, java.sql.Types.INTEGER);
+					cmd.setBytes(2, global.getBytes(StandardCharsets.UTF_8));
+					cmd.registerOutParameter(3, Types.INTEGER);
 					cmd.executeUpdate();
 					// Clear 不报告错误，直接返回。
 					return cmd.getInt(3);
 				}
-			} catch (java.sql.SQLException e) {
+			} catch (SQLException e) {
 				throw new RuntimeException(e);
 			}
 		}
@@ -93,7 +93,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 						return null;
 					}
 				}
-			} catch (java.sql.SQLException e) {
+			} catch (SQLException e) {
 				throw new RuntimeException(e);
 			}
 		}
@@ -109,9 +109,9 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				try (var cmd = connection.prepareCall("{CALL _ZezeSaveDataWithSameVersion_(?, ?, ?)}")) {
 					cmd.setBytes(1, key.Copy());
 					cmd.setBytes(2, data.Copy());
-					cmd.registerOutParameter(3, java.sql.Types.BIGINT);
+					cmd.registerOutParameter(3, Types.BIGINT);
 					cmd.setLong(3, version);
-					cmd.registerOutParameter(4, java.sql.Types.INTEGER); // return code
+					cmd.registerOutParameter(4, Types.INTEGER); // return code
 					cmd.executeUpdate();
 					switch (cmd.getInt(4)) {
 						case 0:
@@ -122,7 +122,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 							throw new RuntimeException("Procedure SaveDataWithSameVersion Exec Error.");
 					}
 				}
-			} catch (java.sql.SQLException e) {
+			} catch (SQLException e) {
 				throw new RuntimeException(e);
 			}
 		}
@@ -296,26 +296,25 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					cmd.executeUpdate();
 				}
 				connection.commit();
-			} catch (java.sql.SQLException e) {
+			} catch (SQLException e) {
 				throw new RuntimeException(e);
 			}
 		}
 	}
 
-	public final static class TableSqlServer implements Database.Table {
+	public static final class TableSqlServer implements Database.Table {
 		private final DatabaseSqlServer DatabaseReal;
-		public DatabaseSqlServer getDatabaseReal() {
+		private final String Name;
+		private final boolean isNew;
+
+		@Override
+		public DatabaseSqlServer getDatabase() {
 			return DatabaseReal;
 		}
-		@Override
-		public Database getDatabase() {
-			return getDatabaseReal();
-		}
-		private final String Name;
+
 		public String getName() {
 			return Name;
 		}
-		private final boolean isNew;
 
 		@Override
 		public boolean isNew() {
@@ -331,7 +330,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				DatabaseMetaData meta = connection.getMetaData();
 				ResultSet resultSet = meta.getTables(null, null, Name, new String[] {"TABLE"});
 				isNew = resultSet.next();
-			} catch (java.sql.SQLException e) {
+			} catch (SQLException e) {
 				throw new RuntimeException(e);
 			}
 
@@ -343,7 +342,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				try (var cmd = connection.prepareStatement(sql)) {
 					cmd.executeUpdate();
 				}
-			} catch (java.sql.SQLException e) {
+			} catch (SQLException e) {
 				throw new RuntimeException(e);
 			}
 		}
@@ -369,7 +368,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 						return null;
 					}
 				}
-			} catch (java.sql.SQLException e) {
+			} catch (SQLException e) {
 				throw new RuntimeException(e);
 			}
 		}
@@ -381,7 +380,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 			try (var cmd = my.Connection.prepareStatement(sql)) {
 				cmd.setBytes(1, key.Copy());
 				cmd.executeUpdate();
-			} catch (java.sql.SQLException e) {
+			} catch (SQLException e) {
 				throw new RuntimeException(e);
 			}
 		}
@@ -399,7 +398,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 				cmd.setBytes(3, keyCopy);
 				cmd.setBytes(4, valueCopy);
 				cmd.executeUpdate();
-			} catch (java.sql.SQLException e) {
+			} catch (SQLException e) {
 				throw new RuntimeException(e);
 			}
 		}
@@ -424,7 +423,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					}
 					return count;
 				}
-			} catch (java.sql.SQLException e) {
+			} catch (SQLException e) {
 				throw new RuntimeException(e);
 			}
 		}
@@ -448,7 +447,7 @@ public final class DatabaseSqlServer extends DatabaseJdbc {
 					}
 					return count;
 				}
-			} catch (java.sql.SQLException e) {
+			} catch (SQLException e) {
 				throw new RuntimeException(e);
 			}
 		}

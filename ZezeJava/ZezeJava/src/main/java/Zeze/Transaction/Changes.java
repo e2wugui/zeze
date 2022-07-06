@@ -4,18 +4,22 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Collections.Collection;
+import Zeze.Transaction.Collections.LogBean;
 import Zeze.Util.LongHashMap;
-import Zeze.Transaction.Collections.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public final class Changes {
+	private static final Logger logger = LogManager.getLogger(Changes.class);
+
 	private final LongHashMap<LogBean> Beans = new LongHashMap<>(); // 收集日志时,记录所有Bean修改. key is Bean.ObjectId
 	private final HashMap<TableKey, Record> Records = new HashMap<>(); // 收集记录的修改,以后需要序列化传输.
-//	private Transaction transaction;
+	public final IdentityHashMap<Table, HashSet<ChangeListener>> Listeners = new IdentityHashMap<>();
+	// private Transaction transaction;
 
 	public Changes(Transaction t) {
-//		transaction = t;
+		// transaction = t;
 		// 建立脏记录的表的监听者的快照，以后收集日志和通知监听者都使用这个快照，避免由于监听者发生变化造成收集和通知不一致。
 		for (var ar : t.getAccessedRecords().values()) {
 			if (ar.Dirty) {
@@ -138,8 +142,6 @@ public final class Changes {
 		}
 	}
 
-	public final IdentityHashMap<Table, HashSet<ChangeListener>> Listeners = new IdentityHashMap<>();
-
 	public void Collect(Bean recent, Log log) {
 		// is table has listener
 		if (null == Listeners.get(recent.RootInfo.getRecord().getTable()))
@@ -195,23 +197,18 @@ public final class Changes {
 		return sb.toString();
 	}
 
-	private static final Logger logger = LogManager.getLogger(Changes.class);
-
 	public void NotifyListener() {
 		for (var e : Records.entrySet()) {
 			var listeners = Listeners.get(e.getValue().Table);
 			if (null != listeners) {
-				for (var l : listeners)
-				{
+				for (var l : listeners) {
 					try {
 						l.OnChanged(e.getKey().getKey(), e.getValue());
 					} catch (Throwable ex) {
 						logger.error("", ex);
 					}
 				}
-			}
-			else
-			{
+			} else {
 				logger.error("Impossible! Record Log Exist But No Listener");
 			}
 		}

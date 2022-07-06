@@ -522,7 +522,7 @@ public class ModuleRank extends AbstractModule {
 			throw new Exception("not bug, only for test");
 		case 4: // local async
 		case 5: // remote async
-			var future = RedirectAllFuture.<TestToAllResult>async(); // 启用异步方式,之后在result.send()时回复结果,如果不调用async()则默认在方法返回时自动同步回复结果
+			var future = RedirectAllFuture.<TestToAllResult>async(); // 启用异步方式,之后在future.asyncResult()时回复结果
 			Task.run(App.Zeze.NewProcedure(() -> {
 				future.asyncResult(new TestToAllResult(in));
 				return Procedure.Success;

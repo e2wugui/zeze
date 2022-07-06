@@ -5,9 +5,8 @@ import java.util.List;
 import Zeze.Util.LongHashMap;
 
 public final class Savepoint {
-	// private static final Logger logger = LogManager.getLogger(Savepoint.class);
 	private final LongHashMap<Log> Logs = new LongHashMap<>();
-	// private readonly Dictionary<long, Log> Newly = new Dictionary<>(); // 当前Savepoint新加的，用来实现Rollback，先不实现。
+	// private final HashMap<Long, Log> Newly = new HashMap<>(); // 当前Savepoint新加的，用来实现Rollback，先不实现。
 
 	public LongHashMap<Log> getLogs() {
 		return Logs;
@@ -33,7 +32,7 @@ public final class Savepoint {
 
 	public void PutLog(Log log) {
 		Logs.put(log.getLogKey(), log);
-		//newly[log.LogKey] = log;
+		// Newly.put(log.LogKey, log);
 	}
 
 	public Log GetLog(long logKey) {
@@ -50,12 +49,12 @@ public final class Savepoint {
 		if (isCommit) {
 			other.Logs.foreachValue((log) -> log.EndSavepoint(this));
 			actions.addAll(other.actions);
-		} else{
+		} else {
 
 			for (Action action : other.actions) {
 				if (action.actionType == ActionType.NESTED_ROLLBACK) {
 					actions.add(action);
-				} else if (action.actionType == ActionType.ROLLBACK){
+				} else if (action.actionType == ActionType.ROLLBACK) {
 					action.actionType = ActionType.NESTED_ROLLBACK;
 					actions.add(action);
 				}
@@ -68,23 +67,23 @@ public final class Savepoint {
 			if (action.actionType == ActionType.NESTED_ROLLBACK) {
 				transactionActions.add(action);
 			} else if (action.actionType == ActionType.ROLLBACK && !isCommit ||
-					action.actionType == ActionType.COMMIT && isCommit){
+					action.actionType == ActionType.COMMIT && isCommit) {
 				transactionActions.add(action);
 			}
 		}
 	}
 
 	public void addCommitAction(Runnable action) {
-		this.actions.add(new Action(ActionType.COMMIT, action));
+		actions.add(new Action(ActionType.COMMIT, action));
 	}
 
 	public void addRollbackAction(Runnable action) {
-		this.actions.add(new Action(ActionType.ROLLBACK, action));
+		actions.add(new Action(ActionType.ROLLBACK, action));
 	}
 
 	@SuppressWarnings("unused")
 	private void clearActions() {
-		this.actions.clear();
+		actions.clear();
 	}
 
 	public void Commit() {

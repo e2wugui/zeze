@@ -76,7 +76,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 			}
 		}
 
-		if (this.isManaged()) {
+		if (isManaged()) {
 			for (var p : m.entrySet()) {
 				p.getValue().InitRootInfo(RootInfo, this);
 			}

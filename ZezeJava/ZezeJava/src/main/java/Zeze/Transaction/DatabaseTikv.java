@@ -29,22 +29,19 @@ public class DatabaseTikv extends Database {
 		setDirectOperates(new OperatesTikv(this));
 	}
 
-	public final static class OperatesTikv implements Operates {
-		private final DatabaseTikv DatabaseReal;
+	public static final class OperatesTikv implements Operates {
 		private static final String name = "zeze.OperatesTikv.Schemas";
+
+		private final DatabaseTikv DatabaseReal;
 		private final Table table;
-
-		public DatabaseTikv getDatabaseReal() {
-			return DatabaseReal;
-		}
-
-		public Database getDatabase() {
-			return getDatabaseReal();
-		}
 
 		public OperatesTikv(DatabaseTikv database) {
 			DatabaseReal = database;
 			table = database.OpenTable(name);
+		}
+
+		public DatabaseTikv getDatabase() {
+			return DatabaseReal;
 		}
 
 		@Override
@@ -104,7 +101,7 @@ public class DatabaseTikv extends Database {
 			public final byte[] Encode() {
 				int dataSize = Data.Size();
 				var bb = ByteBuffer.Allocate(ByteBuffer.writeUIntSize(dataSize) + dataSize + ByteBuffer.writeLongSize(Version));
-				this.Encode(bb);
+				Encode(bb);
 				return bb.Bytes;
 			}
 		}
@@ -181,20 +178,15 @@ public class DatabaseTikv extends Database {
 		return new TikvTable(this, name);
 	}
 
-	public final static class TikvTable implements Table {
+	public static final class TikvTable implements Table {
 		private final DatabaseTikv database;
-
-		public DatabaseTikv getDatabaseReal() {
-			return database;
-		}
-
-		@Override
-		public Database getDatabase() {
-			return database;
-		}
-
 		private final String name;
 		private final ByteBuffer keyPrefix;
+
+		@Override
+		public DatabaseTikv getDatabase() {
+			return database;
+		}
 
 		public String getName() {
 			return name;
@@ -213,7 +205,7 @@ public class DatabaseTikv extends Database {
 			var nameUtf8 = name.getBytes(StandardCharsets.UTF_8);
 			keyPrefix = ByteBuffer.Allocate(nameUtf8.length + 1);
 			keyPrefix.Append(nameUtf8);
-			keyPrefix.WriteByte((byte) 0);
+			keyPrefix.WriteByte((byte)0);
 		}
 
 		@Override
@@ -228,13 +220,13 @@ public class DatabaseTikv extends Database {
 
 		@Override
 		public void Remove(Transaction t, ByteBuffer key) {
-			TikvTrans trans = ((TikvTrans) t);
+			TikvTrans trans = ((TikvTrans)t);
 			trans.delete(withKeySpace(keyPrefix, key));
 		}
 
 		@Override
 		public void Replace(Transaction t, ByteBuffer key, ByteBuffer value) {
-			TikvTrans trans = ((TikvTrans) t);
+			TikvTrans trans = ((TikvTrans)t);
 			trans.put(withKeySpace(keyPrefix, key), ByteString.copyFrom(value.Bytes, value.ReadIndex, value.Size()));
 		}
 

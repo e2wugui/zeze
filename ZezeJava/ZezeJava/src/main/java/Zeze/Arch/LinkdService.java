@@ -1,69 +1,25 @@
 package Zeze.Arch;
 
+import Zeze.Builtin.LinkdBase.BReportError;
+import Zeze.Builtin.LinkdBase.ReportError;
+import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Util.ConcurrentLruLike;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import Zeze.Builtin.LinkdBase.*;
-import Zeze.Builtin.Provider.*;
 
 public class LinkdService extends Zeze.Services.HandshakeServer {
 	private static final Logger logger = LogManager.getLogger(LinkdService.class);
 
-	public LinkdApp LinkdApp;
-
-	public LinkdService(String name, Zeze.Application zeze) throws Throwable {
-		super(name, zeze);
-	}
-
-	@Override
-	public void Start() throws Throwable {
-		StableLinkSids = new ConcurrentLruLike<>(getName(), 1000000, this::TryLruRemove);
-		super.Start();
-	}
-
-	public void ReportError(long linkSid, int from, int code, String desc) {
-		var link = this.GetSocket(linkSid);
-		if (null != link) {
-			var error = new ReportError();
-			error.Argument.setFrom(from);
-			error.Argument.setCode(code);
-			error.Argument.setDesc(desc);
-			error.Send(link);
-
-			switch (from) {
-				case BReportError.FromLink:
-					//noinspection SwitchStatementWithTooFewBranches
-					switch (code) {
-						case BReportError.CodeNoProvider:
-							// 没有服务时，不断开连接，允许客户端重试。
-							return;
-					}
-					break;
-
-				case BReportError.FromProvider:
-					break;
-			}
-			// 延迟关闭。等待客户端收到错误以后主动关闭，或者超时。
-			Zeze.Util.Task.schedule(2000, () -> {
-				var so = this.GetSocket(linkSid);
-				if (so != null)
-					so.close();
-			});
-		}
-	}
-
-	static class StableLinkSidKey
-	{
+	private static final class StableLinkSidKey {
 		// 同一个账号同一个ClientId只允许一个登录。
 		// ClientId 可能的分配方式：每个手机Client分配一个，所有电脑Client分配一个。
 		public final String Account;
 		public final String ClientId;
 
-		public StableLinkSidKey(String account, String clientId)
-		{
+		public StableLinkSidKey(String account, String clientId) {
 			Account = account;
 			ClientId = clientId;
 		}
@@ -89,13 +45,55 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		}
 	}
 
-	public static class StableLinkSid {
-		public boolean Removed = false;
+	private static final class StableLinkSid {
+		public boolean Removed;
 		public long LinkSid;
 		public AsyncSocket AuthedSocket;
 	}
 
+	public LinkdApp LinkdApp;
 	private ConcurrentLruLike<StableLinkSidKey, StableLinkSid> StableLinkSids;
+
+	public LinkdService(String name, Zeze.Application zeze) throws Throwable {
+		super(name, zeze);
+	}
+
+	@Override
+	public void Start() throws Throwable {
+		StableLinkSids = new ConcurrentLruLike<>(getName(), 1_000_000, this::TryLruRemove);
+		super.Start();
+	}
+
+	public void ReportError(long linkSid, int from, int code, String desc) {
+		var link = this.GetSocket(linkSid);
+		if (null != link) {
+			var error = new ReportError();
+			error.Argument.setFrom(from);
+			error.Argument.setCode(code);
+			error.Argument.setDesc(desc);
+			error.Send(link);
+
+			switch (from) {
+			case BReportError.FromLink:
+				//noinspection SwitchStatementWithTooFewBranches
+				switch (code) {
+				case BReportError.CodeNoProvider:
+					// 没有服务时，不断开连接，允许客户端重试。
+					return;
+				}
+				break;
+
+			case BReportError.FromProvider:
+				break;
+			}
+			// 延迟关闭。等待客户端收到错误以后主动关闭，或者超时。
+			Zeze.Util.Task.schedule(2000, () -> {
+				var so = this.GetSocket(linkSid);
+				if (so != null)
+					so.close();
+			});
+		}
+	}
 
 	private boolean TryLruRemove(StableLinkSidKey key, StableLinkSid value) {
 		var exist = StableLinkSids.remove(key);
@@ -211,8 +209,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 				var isRequestSaved = p.isRequest();
 				var result = factoryHandle.Handle.handle(p); // 不启用新的Task，直接在io-thread里面执行。
 				Zeze.Util.Task.LogAndStatistics(null, result, p, isRequestSaved);
-			}
-			catch (Throwable ex) {
+			} catch (Throwable ex) {
 				p.getSender().Close(ex); // link 在异常时关闭连接。
 			}
 		} else {

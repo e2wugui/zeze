@@ -98,8 +98,7 @@ import org.apache.logging.log4j.Logger;
 public class AchillesHeelDaemon {
 	private static final Logger logger = LogManager.getLogger(AchillesHeelDaemon.class);
 	private final Application Zeze;
-
-	private ThreadDaemon Daemon;
+	private final ThreadDaemon Daemon;
 
 	public <T extends GlobalAgentBase> AchillesHeelDaemon(Application zeze, T[] agents) {
 		Zeze = zeze;

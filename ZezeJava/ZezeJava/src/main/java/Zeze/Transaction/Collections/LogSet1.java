@@ -126,7 +126,7 @@ public class LogSet1<V> extends LogSet<V> {
 		if (log != null) {
 			@SuppressWarnings("unchecked")
 			var currentLog = (LogSet1<V>)log;
-			currentLog.setValue(this.getValue());
+			currentLog.setValue(getValue());
 			currentLog.Merge(this);
 		} else
 			currentSp.getLogs().put(getLogKey(), this);

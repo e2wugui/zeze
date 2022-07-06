@@ -141,7 +141,7 @@ public class PList1<V> extends PList<V> {
 			}
 		}
 
-		if (this.isManaged()) {
+		if (isManaged()) {
 			var txn = Transaction.getCurrent();
 			assert txn != null;
 			txn.VerifyRecordAccessed(this);
@@ -157,7 +157,7 @@ public class PList1<V> extends PList<V> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public boolean removeAll(Collection<?> c) {
-		if (this.isManaged()) {
+		if (isManaged()) {
 			var txn = Transaction.getCurrent();
 			assert txn != null;
 			txn.VerifyRecordAccessed(this);

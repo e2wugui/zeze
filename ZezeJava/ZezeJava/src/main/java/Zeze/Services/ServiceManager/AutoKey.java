@@ -2,54 +2,48 @@ package Zeze.Services.ServiceManager;
 
 public final class AutoKey {
 	private final String Name;
-	public String getName() {
-		return Name;
-	}
-	private long Current;
-	public long getCurrent() {
-		return Current;
-	}
-	private void setCurrent(long value) {
-		Current = value;
-	}
-	private int Count;
-	public int getCount() {
-		return Count;
-	}
-	private void setCount(int value) {
-		Count = value;
-	}
 	private final Agent Agent;
-	public Agent getAgent() {
-		return Agent;
-	}
+	private int Count;
+	private long Current;
 
 	public AutoKey(String name, Agent agent) {
 		Name = name;
 		Agent = agent;
 	}
 
+	public String getName() {
+		return Name;
+	}
+
+	public Agent getAgent() {
+		return Agent;
+	}
+
+	public int getCount() {
+		return Count;
+	}
+
+	public long getCurrent() {
+		return Current;
+	}
+
 	public synchronized long Next() {
-		if (getCount() <= 0) {
+		if (Count <= 0) {
 			Allocate();
+			if (Count <= 0)
+				throw new IllegalStateException("AllocateId failed for " + Name);
 		}
 
-		if (getCount() <= 0) {
-			throw new IllegalStateException("AllocateId failed for " + getName());
-		}
-
-		var tmp = getCurrent();
-		setCount(getCount() - 1);
-		setCurrent(getCurrent() + 1);
-		return tmp;
+		Count--;
+		return Current++;
 	}
 
 	private void Allocate() {
 		var r = new AllocateId();
-		r.Argument.setName(getName());
+		r.Argument.setName(Name);
 		r.Argument.setCount(1024);
-		r.SendAndWaitCheckResultCode(getAgent().getClient().getSocket());
-		setCurrent(r.Result.getStartId());
-		setCount(r.Result.getCount());
+		r.SendAndWaitCheckResultCode(Agent.getClient().getSocket());
+		Current = r.Result.getStartId();
+		Count = r.Result.getCount();
 	}
 }

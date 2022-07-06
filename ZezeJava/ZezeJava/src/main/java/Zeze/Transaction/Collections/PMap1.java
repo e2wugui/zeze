@@ -62,7 +62,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 			}
 		}
 
-		if (this.isManaged()) {
+		if (isManaged()) {
 			var txn = Transaction.getCurrent();
 			assert txn != null;
 			txn.VerifyRecordAccessed(this);

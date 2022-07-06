@@ -157,7 +157,7 @@ public class LogList1<V> extends LogList<V> {
 		if (log != null) {
 			@SuppressWarnings("unchecked")
 			var currentLog = (LogList1<V>)log;
-			currentLog.setValue(this.getValue());
+			currentLog.setValue(getValue());
 			currentLog.Merge(this);
 		} else
 			currentSp.getLogs().put(getLogKey(), this);

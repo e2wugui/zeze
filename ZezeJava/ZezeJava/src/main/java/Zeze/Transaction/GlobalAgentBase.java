@@ -7,10 +7,20 @@ import Zeze.Services.AchillesHeelConfig;
 import Zeze.Util.Task;
 
 public abstract class GlobalAgentBase {
-	public Zeze.Application Zeze;
+	public final Zeze.Application Zeze;
 	private AchillesHeelConfig config;
 	private volatile long activeTime = System.currentTimeMillis();
 	protected int GlobalCacheManagerHashIndex;
+	private volatile Releaser Releaser;
+
+	public GlobalAgentBase(Zeze.Application zeze) {
+		Zeze = zeze;
+		config = new AchillesHeelConfig(1500, 1000, 10 * 1000);
+	}
+
+	public final AchillesHeelConfig getConfig() {
+		return config;
+	}
 
 	public final long getActiveTime() {
 		return activeTime;
@@ -18,34 +28,23 @@ public abstract class GlobalAgentBase {
 
 	public final void setActiveTime(long value) {
 		activeTime = value;
-		Zeze.getAchillesHeelDaemon().setProcessDaemonActiveTime(GlobalCacheManagerHashIndex, value);
+		var ahd = Zeze.getAchillesHeelDaemon();
+		if (ahd != null)
+			ahd.setProcessDaemonActiveTime(GlobalCacheManagerHashIndex, value);
 	}
 
-	public final AchillesHeelConfig getConfig() {
-		return config;
-	}
-
-	public GlobalAgentBase(Zeze.Application zeze) {
-		Zeze = zeze;
-		config = new AchillesHeelConfig(1500, 1000, 10 * 1000);
+	public boolean isReleasing() {
+		return Releaser != null;
 	}
 
 	public final void initialize(int maxNetPing, int serverProcessTime, int serverReleaseTimeout) {
 		config = new AchillesHeelConfig(maxNetPing, serverProcessTime, serverReleaseTimeout);
 	}
 
-	public abstract void keepAlive();
-
-	private volatile Releaser Releaser;
-
 	public enum CheckReleaseResult {
 		NoRelease,
 		Releasing,
 		Timeout,
-	}
-
-	public boolean isReleasing() {
-		return Releaser != null;
 	}
 
 	public CheckReleaseResult checkReleaseTimeout(long now, int timeout) {
@@ -98,6 +97,7 @@ public abstract class GlobalAgentBase {
 			}
 		}
 	}
+
 	// 开始释放本地锁。
 	// 1.【要并发，要快】启动线程池来执行，释放锁除了需要和应用互斥，没有其他IO操作，基本上都是cpu。
 	// 2. 超时没有释放完成，程序中止。see tryHalt。
@@ -110,4 +110,6 @@ public abstract class GlobalAgentBase {
 	}
 
 	protected abstract void cancelPending();
+
+	public abstract void keepAlive();
 }

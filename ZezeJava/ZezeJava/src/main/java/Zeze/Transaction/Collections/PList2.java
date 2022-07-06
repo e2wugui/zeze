@@ -138,7 +138,7 @@ public class PList2<V extends Bean> extends PList<V> {
 
 	@Override
 	public boolean addAll(Collection<? extends V> items) {
-		if (this.isManaged()) {
+		if (isManaged()) {
 			for (var item : items) {
 				item.InitRootInfo(RootInfo, this);
 			}
@@ -157,7 +157,7 @@ public class PList2<V extends Bean> extends PList<V> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public boolean removeAll(Collection<?> c) {
-		if (this.isManaged()) {
+		if (isManaged()) {
 			var txn = Transaction.getCurrent();
 			assert txn != null;
 			txn.VerifyRecordAccessed(this);

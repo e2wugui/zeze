@@ -72,7 +72,7 @@ public final class GlobalLocks {
 	}
 
 	/* ------------- 实现 --------------- */
-	private final static class Segment {
+	private static final class Segment {
 		private final WeakHashSet<GlobalLockey> locks = new WeakHashSet<>();
 		private final ReentrantLock lock = new ReentrantLock();
 
