@@ -51,7 +51,7 @@ public abstract class Log implements Serializable {
 	}
 
 	public void EndSavepoint(Savepoint currentSp) {
-		currentSp.getLogs().put(getLogKey(), this);
+		currentSp.PutLog(this);
 	}
 
 	public Log BeginSavepoint() {

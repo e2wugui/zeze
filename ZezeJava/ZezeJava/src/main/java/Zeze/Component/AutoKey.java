@@ -126,7 +126,7 @@ public class AutoKey {
 
 		@Override
 		public void EndSavepoint(Savepoint currentsp) {
-			currentsp.getLogs().put(getLogKey(), this);
+			currentsp.PutLog(this);
 		}
 
 		@Override

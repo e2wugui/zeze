@@ -98,14 +98,14 @@ public class LogMap1<K, V> extends LogMap<K, V> {
 
 	@Override
 	public void EndSavepoint(Savepoint currentSp) {
-		var log = currentSp.getLogs().get(getLogKey());
+		var log = currentSp.GetLog(getLogKey());
 		if (log != null) {
 			@SuppressWarnings("unchecked")
 			var currentLog = (LogMap1<K, V>)log;
 			currentLog.setValue(this.getValue());
 			currentLog.MergeChangeNote(this);
 		} else
-			currentSp.getLogs().put(getLogKey(), this);
+			currentSp.PutLog(this);
 	}
 
 	private void MergeChangeNote(LogMap1<K, V> another) {

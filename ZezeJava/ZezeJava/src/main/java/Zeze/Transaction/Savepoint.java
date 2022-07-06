@@ -1,15 +1,36 @@
 package Zeze.Transaction;
 
 import java.util.ArrayList;
-import java.util.List;
 import Zeze.Util.LongHashMap;
 
 public final class Savepoint {
-	private final LongHashMap<Log> Logs = new LongHashMap<>();
-	// private final HashMap<Long, Log> Newly = new HashMap<>(); // 当前Savepoint新加的，用来实现Rollback，先不实现。
+	private LongHashMap<Log> Logs;
+	// private final LongHashMap<Log> Newly = new LongHashMap<>(); // 当前Savepoint新加的，用来实现Rollback，先不实现。
+	private ArrayList<Action> actions;
 
-	public LongHashMap<Log> getLogs() {
-		return Logs;
+	public LongHashMap<Log>.Iterator logIterator() {
+		return Logs != null ? Logs.iterator() : null;
+	}
+
+	public Log GetLog(long logKey) {
+		return Logs != null ? Logs.get(logKey) : null;
+	}
+
+	public void PutLog(Log log) {
+		var logs = Logs;
+		if (logs == null)
+			Logs = logs = new LongHashMap<>();
+		logs.put(log.getLogKey(), log);
+		// Newly.put(log.LogKey, log);
+	}
+
+	public Savepoint BeginSavepoint() {
+		var sp = new Savepoint();
+		if (Logs != null) {
+			sp.Logs = new LongHashMap<>(Logs);
+			sp.Logs.foreachUpdate((__, v) -> v.BeginSavepoint());
+		}
+		return sp;
 	}
 
 	public enum ActionType {
@@ -18,7 +39,7 @@ public final class Savepoint {
 		NESTED_ROLLBACK
 	}
 
-	public static class Action {
+	public static final class Action {
 		public ActionType actionType;
 		public final Runnable action;
 
@@ -28,68 +49,53 @@ public final class Savepoint {
 		}
 	}
 
-	private final ArrayList<Action> actions = new ArrayList<>();
-
-	public void PutLog(Log log) {
-		Logs.put(log.getLogKey(), log);
-		// Newly.put(log.LogKey, log);
+	private ArrayList<Action> getActionsForAdd() {
+		var a = actions;
+		if (a == null)
+			actions = a = new ArrayList<>();
+		return a;
 	}
 
-	public Log GetLog(long logKey) {
-		return Logs.get(logKey);
+	public void addCommitAction(Runnable action) {
+		getActionsForAdd().add(new Action(ActionType.COMMIT, action));
 	}
 
-	public Savepoint Duplicate() {
-		Savepoint sp = new Savepoint();
-		Logs.foreachValue((log) -> sp.Logs.put(log.getLogKey(), log.BeginSavepoint()));
-		return sp;
+	public void addRollbackAction(Runnable action) {
+		getActionsForAdd().add(new Action(ActionType.ROLLBACK, action));
 	}
 
-	public void MergeFrom(Savepoint other, boolean isCommit) {
+	public void MergeFrom(Savepoint next, boolean isCommit) {
 		if (isCommit) {
-			other.Logs.foreachValue((log) -> log.EndSavepoint(this));
-			actions.addAll(other.actions);
-		} else {
-
-			for (Action action : other.actions) {
+			if (next.Logs != null)
+				next.Logs.foreachValue(log -> log.EndSavepoint(this));
+			if (next.actions != null)
+				getActionsForAdd().addAll(next.actions);
+		} else if (next.actions != null) {
+			for (Action action : next.actions) {
 				if (action.actionType == ActionType.NESTED_ROLLBACK) {
-					actions.add(action);
+					getActionsForAdd().add(action);
 				} else if (action.actionType == ActionType.ROLLBACK) {
 					action.actionType = ActionType.NESTED_ROLLBACK;
-					actions.add(action);
+					getActionsForAdd().add(action);
 				}
 			}
 		}
 	}
 
-	public void MergeActions(List<Action> transactionActions, boolean isCommit) {
-		for (Action action : actions) {
-			if (action.actionType == ActionType.NESTED_ROLLBACK) {
-				transactionActions.add(action);
-			} else if (action.actionType == ActionType.ROLLBACK && !isCommit ||
-					action.actionType == ActionType.COMMIT && isCommit) {
-				transactionActions.add(action);
+	public void MergeActions(ArrayList<Action> transactionActions, boolean isCommit) {
+		if (actions != null) {
+			for (Action action : actions) {
+				if (action.actionType == ActionType.NESTED_ROLLBACK ||
+						action.actionType == ActionType.ROLLBACK && !isCommit ||
+						action.actionType == ActionType.COMMIT && isCommit) {
+					transactionActions.add(action);
+				}
 			}
 		}
 	}
 
-	public void addCommitAction(Runnable action) {
-		actions.add(new Action(ActionType.COMMIT, action));
-	}
-
-	public void addRollbackAction(Runnable action) {
-		actions.add(new Action(ActionType.ROLLBACK, action));
-	}
-
-	@SuppressWarnings("unused")
-	private void clearActions() {
-		actions.clear();
-	}
-
 	public void Commit() {
-		Logs.foreachValue(Log::Commit);
-	}
-
-	public void Rollback() {
+		if (Logs != null)
+			Logs.foreachValue(Log::Commit);
 	}
 }

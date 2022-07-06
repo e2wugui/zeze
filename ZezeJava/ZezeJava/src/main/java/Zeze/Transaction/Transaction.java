@@ -12,11 +12,6 @@ public final class Transaction {
 	private static final Logger logger = LogManager.getLogger(Transaction.class);
 	private static final ThreadLocal<Transaction> threadLocal = new ThreadLocal<>();
 
-	public static Transaction getCurrent() {
-		var t = threadLocal.get();
-		return t != null && t.Created ? t : null;
-	}
-
 	public static Transaction Create(Locks locks) {
 		var t = threadLocal.get();
 		if (t == null)
@@ -27,7 +22,14 @@ public final class Transaction {
 	}
 
 	public static void Destroy() {
-		threadLocal.get().ReuseTransaction();
+		var t = threadLocal.get();
+		if (t != null)
+			t.ReuseTransaction();
+	}
+
+	public static Transaction getCurrent() {
+		var t = threadLocal.get();
+		return t != null && t.Created ? t : null;
 	}
 
 	private final ArrayList<Lockey> holdLocks = new ArrayList<>(); // 读写锁的话需要一个包装类，用来记录当前维持的是哪个锁。
@@ -65,11 +67,12 @@ public final class Transaction {
 		Locks = null;
 		State = TransactionState.Running;
 		Created = false;
+		AlwaysReleaseLockWhenRedo = false;
 	}
 
 	public void Begin() {
 		var saveSize = Savepoints.size();
-		Savepoints.add(saveSize > 0 ? Savepoints.get(saveSize - 1).Duplicate() : new Savepoint());
+		Savepoints.add(saveSize > 0 ? Savepoints.get(saveSize - 1).BeginSavepoint() : new Savepoint());
 	}
 
 	public void Commit() {
@@ -166,8 +169,9 @@ public final class Transaction {
 							var result = procedure.Call();
 							switch (State) {
 							case Running:
-								if ((result == Procedure.Success && Savepoints.size() != 1)
-										|| (result != Procedure.Success && !Savepoints.isEmpty())) {
+								var saveSize = Savepoints.size();
+								if ((result == Procedure.Success && saveSize != 1)
+										|| (result != Procedure.Success && saveSize > 0)) {
 									// 这个错误不应该重做
 									logger.fatal("Transaction.Perform:{}. savepoints.Count != 1.", procedure);
 									finalRollback(procedure);
@@ -321,11 +325,11 @@ public final class Transaction {
 	private void finalCommit(Procedure procedure) {
 		// 下面不允许失败了，因为最终提交失败，数据可能不一致，而且没法恢复。
 		// 可以在最终提交里可以实现每事务checkpoint。
-		var lastsp = Savepoints.get(Savepoints.size() - 1);
+		var lastSp = Savepoints.get(Savepoints.size() - 1);
 		RelativeRecordSet.TryUpdateAndCheckpoint(this, procedure, () -> {
 			try {
-				lastsp.MergeActions(Actions, true);
-				lastsp.Commit();
+				lastSp.MergeActions(Actions, true);
+				lastSp.Commit();
 				for (var e : AccessedRecords.entrySet()) {
 					e.getValue().AtomicTupleRecord.Record.setNotFresh();
 					if (e.getValue().Dirty) {
@@ -347,13 +351,18 @@ public final class Transaction {
 		// collect logs and notify listeners
 		try {
 			var cc = new Changes(this);
-			lastsp.getLogs().foreachValue((log) -> {
-				// 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
-				if (log.getBelong() != null && log.getBelong().isManaged()) {
-					// 第一个参数Owner为null，表示bean属于record，到达root了。
-					cc.Collect(log.getBelong(), log);
+			var it = lastSp.logIterator();
+			if (it != null) {
+				while (it.moveToNext()) {
+					var log = it.value();
+					var logBelong = log.getBelong();
+					// 这里都是修改操作的日志，没有Owner的日志是特殊测试目的加入的，简单忽略即可。
+					if (logBelong != null && logBelong.isManaged()) {
+						// 第一个参数Owner为null，表示bean属于record，到达root了。
+						cc.Collect(logBelong, log);
+					}
 				}
-			});
+			}
 
 			for (var ar : AccessedRecords.values()) {
 				if (ar.Dirty)
@@ -487,24 +496,28 @@ public final class Transaction {
 
 	private CheckResult _lock_and_check_(TransactionLevel level) {
 		boolean allRead = true;
-		if (!Savepoints.isEmpty()) {
+		var saveSize = Savepoints.size();
+		if (saveSize > 0) {
 			// 全部 Rollback 时 Count 为 0；最后提交时 Count 必须为 1；
 			// 其他情况属于Begin,Commit,Rollback不匹配。外面检查。
-			for (var it = Savepoints.get(Savepoints.size() - 1).getLogs().iterator(); it.moveToNext(); ) {
-				// 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
-				// 现在不会有这种情况，保留给未来扩展需要。
-				Log log = it.value();
-				if (log.getBean() == null)
-					continue;
+			var it = Savepoints.get(saveSize - 1).logIterator();
+			if (it != null) {
+				while (it.moveToNext()) {
+					// 特殊日志。不是 bean 的修改日志，当然也不会修改 Record。
+					// 现在不会有这种情况，保留给未来扩展需要。
+					Log log = it.value();
+					if (log.getBean() == null)
+						continue;
 
-				TableKey tkey = log.getBean().getTableKey();
-				var record = AccessedRecords.get(tkey);
-				if (record != null) {
-					record.Dirty = true;
-					allRead = false;
-				} else {
-					// 只有测试代码会把非 Managed 的 Bean 的日志加进来。
-					logger.fatal("impossible! record not found.");
+					TableKey tkey = log.getBean().getTableKey();
+					var record = AccessedRecords.get(tkey);
+					if (record != null) {
+						record.Dirty = true;
+						allRead = false;
+					} else {
+						// 只有测试代码会把非 Managed 的 Bean 的日志加进来。
+						logger.fatal("impossible! record not found.");
+					}
 				}
 			}
 		}

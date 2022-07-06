@@ -92,14 +92,14 @@ public class LogSet1<V> extends LogSet<V> {
 
 	@Override
 	public void EndSavepoint(Savepoint currentSp) {
-		var log = currentSp.getLogs().get(getLogKey());
+		var log = currentSp.GetLog(getLogKey());
 		if (log != null) {
 			@SuppressWarnings("unchecked")
 			var currentLog = (LogSet1<V>)log;
 			currentLog.setValue(this.getValue());
 			currentLog.Merge(this);
 		} else
-			currentSp.getLogs().put(getLogKey(), this);
+			currentSp.PutLog(this);
 	}
 
 	public final void Merge(LogSet1<V> from) {
