@@ -862,8 +862,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 								logger.warn("Reduce Timeout {} AcquireState={} CacheState={} arg={}",
 										rpc.getSender().getUserState(), StateModify, cs, reduce.Argument);
 							} else {
-								logger.error(String.format("Reduce %s AcquireState=%d CacheState=%s arg=%s",
-										rpc.getSender().getUserState(), StateModify, cs, reduce.Argument), ex);
+								logger.error("Reduce {} AcquireState={} CacheState={} arg={}",
+										rpc.getSender().getUserState(), StateModify, cs, reduce.Argument, ex);
 							}
 						}
 					}
@@ -1001,7 +1001,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				logger.warn("Send Reduce failed. SessionId={}, peer={}, gkey={}", SessionId, peer, gkey);
 			} catch (Throwable ex) {
 				// 这里的异常只应该是网络发送异常。
-				logger.error("ReduceWaitLater Exception " + gkey, ex);
+				logger.error("ReduceWaitLater Exception {}", gkey, ex);
 			}
 			SetError();
 			return null;

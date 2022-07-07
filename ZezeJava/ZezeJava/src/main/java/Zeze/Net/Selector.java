@@ -48,14 +48,14 @@ class Selector extends Thread {
 				join();
 				break;
 			} catch (Throwable ex) {
-				logger.error(getClass().getName() + " close skip.", ex);
+				logger.error("{} close skip.", getClass().getName(), ex);
 			}
 		}
 
 		try {
 			selector.close();
 		} catch (Throwable e) {
-			logger.error(getClass().getName() + " selector.close skip.", e);
+			logger.error("{} selector.close skip.", getClass().getName(), e);
 		}
 	}
 
@@ -77,7 +77,7 @@ class Selector extends Thread {
 								handle.doException(key, e);
 							} catch (Throwable e3) {
 								logger.error("Selector.run", e);
-								logger.error("SelectorHandle.doException: " + e, e3);
+								logger.error("SelectorHandle.doException: {}", e, e3);
 							}
 						} else
 							logger.error("Selector.run", e);

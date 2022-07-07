@@ -95,7 +95,7 @@ public final class TaskOneByOneByKey {
 					try {
 						Procedure.Call();
 					} catch (Throwable ex) {
-						logger.error(Procedure.getActionName() + " Run", ex);
+						logger.error("{} Run", Procedure.getActionName(), ex);
 					} finally {
 						cond.signalAll();
 					}
@@ -116,7 +116,7 @@ public final class TaskOneByOneByKey {
 					if (null != CancelAction)
 						CancelAction.run();
 				} catch (Throwable ex) {
-					logger.error(Procedure.getActionName() + " Canceled", ex);
+					logger.error("{} Canceled", Procedure.getActionName(), ex);
 				} finally {
 					cond.signalAll();
 				}
@@ -261,7 +261,7 @@ public final class TaskOneByOneByKey {
 				try {
 					action.run();
 				} catch (Throwable e) {
-					logger.error("TaskOneByOne: " + name, e);
+					logger.error("TaskOneByOne: {}", name, e);
 				} finally {
 					RunNext();
 				}
@@ -281,7 +281,7 @@ public final class TaskOneByOneByKey {
 				try {
 					func.call();
 				} catch (Throwable e) {
-					logger.error("TaskOneByOne: " + name, e);
+					logger.error("TaskOneByOne: {}", name, e);
 				} finally {
 					RunNext();
 				}

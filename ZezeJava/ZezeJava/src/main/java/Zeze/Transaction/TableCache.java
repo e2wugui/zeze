@@ -255,7 +255,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 				if (r.ResultCode != 0 || r.ResultState != GlobalCacheManagerServer.StateInvalid)
 					return false;
 			} catch (Throwable e) {
-				logger.error("Acquire(" + record.getTable().getName() + ':' + record.getObjectKey() + ") exception:", e);
+				logger.error("Acquire({}:{}) exception:", record.getTable().getName(), record.getObjectKey(), e);
 				// 此时GlobalServer可能已经改成StateInvalid了, 无论如何还是当成已经Invalid保证安全
 			}
 		}

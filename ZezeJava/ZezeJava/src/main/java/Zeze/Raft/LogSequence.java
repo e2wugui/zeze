@@ -208,7 +208,7 @@ public class LogSequence {
 			try {
 				return RocksDB.open(options, path);
 			} catch (RocksDBException e) {
-				logger.info("RocksDB.open " + path, e);
+				logger.info("RocksDB.open {}", path, e);
 				lastE = e;
 				try {
 					Thread.sleep(1000);

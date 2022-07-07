@@ -37,7 +37,7 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 					var result = factoryHandle.Handle.handle(p);
 					Task.LogAndStatistics(null, result, p, isRequestSaved);
 				} catch (Throwable ex) {
-					logger.error("Protocol.Handle Exception: " + p, ex);
+					logger.error("Protocol.Handle Exception: {}", p, ex);
 				}
 			}
 		} else

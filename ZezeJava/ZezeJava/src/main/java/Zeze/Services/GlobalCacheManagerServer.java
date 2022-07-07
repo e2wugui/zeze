@@ -680,8 +680,8 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 									logger.warn("Reduce Timeout {} AcquireState={} CacheState={} arg={}",
 											sender, StateModify, cs, reduce.getValue().Argument);
 								} else {
-									logger.error(String.format("Reduce %s AcquireState=%d CacheState=%s arg=%s",
-											sender, StateModify, cs, reduce.getValue().Argument), ex);
+									logger.error("Reduce {} AcquireState={} CacheState={} arg={}",
+											sender, StateModify, cs, reduce.getValue().Argument, ex);
 								}
 							}
 						}
@@ -853,7 +853,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 				logger.warn("Send Reduce failed. SessionId={}, peer={}, gkey={}", SessionId, peer, gkey);
 			} catch (Exception ex) {
 				// 这里的异常只应该是网络发送异常。
-				logger.error("Reduce Exception " + gkey, ex);
+				logger.error("Reduce Exception {}", gkey, ex);
 			}
 			SetError();
 			return false;
@@ -890,7 +890,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 				logger.warn("Send Reduce failed. SessionId={}, gkey={}", SessionId, gkey);
 			} catch (Throwable ex) {
 				// 这里的异常只应该是网络发送异常。
-				logger.error("ReduceWaitLater Exception " + gkey, ex);
+				logger.error("ReduceWaitLater Exception {}", gkey, ex);
 			}
 			SetError();
 			return null;

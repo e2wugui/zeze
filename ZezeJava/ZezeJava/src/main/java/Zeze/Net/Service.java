@@ -225,7 +225,7 @@ public class Service {
 
 	@SuppressWarnings("RedundantThrows")
 	public void OnSocketAcceptError(AsyncSocket listener, Throwable e) throws Throwable {
-		logger.error("OnSocketAcceptError: " + listener, e);
+		logger.error("OnSocketAcceptError: {}", listener, e);
 	}
 
 	/**

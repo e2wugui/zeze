@@ -24,7 +24,7 @@ public final class ShutdownHook {
 					try {
 						entry.getValue().run();
 					} catch (Throwable e) {
-						logger.error("action(" + entry.getKey() + ").run exception:", e);
+						logger.error("action({}).run exception:", entry.getKey(), e);
 					}
 				}
 				logger.info("ShutdownHook end");

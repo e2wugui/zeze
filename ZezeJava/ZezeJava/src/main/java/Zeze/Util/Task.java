@@ -115,7 +115,7 @@ public final class Task {
 		} catch (AssertionError e) {
 			throw e;
 		} catch (Throwable ex) {
-			logger.error(name != null ? name : action != null ? action.getClass().getName() : "", ex);
+			logger.error("{}", name != null ? name : action != null ? action.getClass().getName() : "", ex);
 		}
 	}
 
@@ -125,7 +125,7 @@ public final class Task {
 		} catch (AssertionError e) {
 			throw e;
 		} catch (Throwable ex) {
-			logger.error(name != null ? name : func != null ? func.getClass().getName() : "", ex);
+			logger.error("{}", name != null ? name : func != null ? func.getClass().getName() : "", ex);
 			return Procedure.Exception;
 		}
 	}
@@ -315,7 +315,7 @@ public final class Task {
 					logger.error("ActionWhenError Exception", e);
 				}
 			}
-			logger.error(procedure.getActionName(), ex);
+			logger.error("{}", procedure.getActionName(), ex);
 			return Procedure.Exception;
 		}
 	}

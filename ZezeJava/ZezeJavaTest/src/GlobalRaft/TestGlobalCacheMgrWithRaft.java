@@ -1,6 +1,5 @@
 package GlobalRaft;
 
-import java.io.IOException;
 import java.net.BindException;
 import java.net.InetAddress;
 import java.util.ArrayList;
@@ -9,6 +8,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Config;
+import Zeze.Raft.StateMachine;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManagerWithRaft;
 import Zeze.Services.ServiceManagerServer;
@@ -21,7 +21,6 @@ import demo.App;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import Zeze.Raft.StateMachine;
 
 public class TestGlobalCacheMgrWithRaft {
 	private static final Logger logger = LogManager.getLogger(TestGlobalCacheMgrWithRaft.class);
@@ -67,7 +66,7 @@ public class TestGlobalCacheMgrWithRaft {
 
 		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
 			try {
-				logger.error("uncaught fatal exception for thread: " + t.getName(), e);
+				logger.error("uncaught fatal exception for thread: {}", t.getName(), e);
 			} catch (Throwable ex) {
 				ex.printStackTrace();
 			} finally {
@@ -82,9 +81,11 @@ public class TestGlobalCacheMgrWithRaft {
 		String ip = null;
 		int port = 5001;
 
+		//noinspection ConstantConditions
 		InetAddress address = (ip != null && !ip.isBlank()) ? InetAddress.getByName(ip) : null;
 
 		var config = new Zeze.Config().AddCustomize(new ServiceManagerServer.Conf()).LoadAndParse();
+		//noinspection ConstantConditions
 		new ServiceManagerServer(address, port, config);
 
 		GlobalRaft.RaftConfig globalRaftConfig = GlobalRaft.RaftConfig.Load(ConfigFileName);
@@ -374,6 +375,7 @@ public class TestGlobalCacheMgrWithRaft {
 		}
 	}
 
+	@SuppressWarnings("UnusedReturnValue")
 	private boolean CheckCurrentCount(String testName) throws Throwable {
 		return CheckCurrentCount(testName, true);
 	}
@@ -410,7 +412,7 @@ public class TestGlobalCacheMgrWithRaft {
 				fa.Action.run();
 				fa.Count++;
 			} catch (Throwable e) {
-				logger.error("FailAction " + fa.Name, e);
+				logger.error("FailAction {}", fa.Name, e);
 				System.out.println("___________________________________________");
 				System.out.println("___________________________________________");
 				System.out.println("___________________________________________");

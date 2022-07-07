@@ -21,7 +21,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Action0;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.ShutdownHook;
-import Zeze.Util.Str;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -382,15 +381,15 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		if (closed != 0) {
 			if (closed < 100) { // 注意不能超过byte最大值
 				closed++;
-				logger.error("Send to closed socket: " + this + " len=" + length, new Exception());
+				logger.error("Send to closed socket: {} len={}", this, length, new Exception());
 			} else
 				logger.error("Send to closed socket: {} len={}", this, length);
 			return false;
 		}
 		if (_outputBufferListCountSum.addAndGet(length) > Service.getSocketOptions().getOutputBufferMaxSize()) {
 			_outputBufferListCountSum.addAndGet(-length);
-			logger.error(Str.format("Send overflow: {} {}+{} > {}", this, _outputBufferListCountSum.get(), length,
-					Service.getSocketOptions().getOutputBufferMaxSize()), new Exception());
+			logger.error("Send overflow: {} {}+{} > {}", this, _outputBufferListCountSum.get(), length,
+					Service.getSocketOptions().getOutputBufferMaxSize(), new Exception());
 			return false;
 		}
 		try {
@@ -549,7 +548,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			if (ex instanceof IOException)
 				logger.info("Close: {} {}", this, ex);
 			else
-				logger.warn("Close: " + this, ex);
+				logger.warn("Close: {}", this, ex);
 		} else
 			logger.debug("Close: {}", this);
 		if (Connector != null) {

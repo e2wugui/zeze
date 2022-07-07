@@ -140,7 +140,7 @@ public class GlobalCacheManagerWithRaft
 							session.setActiveTime(System.currentTimeMillis());
 							logger.info("AchillesHeelDaemon.Release end {}", session);
 						} catch (Throwable e) {
-							logger.error("AchillesHeelDaemon.Release " + session + " exception", e);
+							logger.error("AchillesHeelDaemon.Release {} exception", session, e);
 						} finally {
 							// server一直没有恢复，这个减少一点Release。
 							// 完善的做法是session已经全部release以后，删除掉。
@@ -539,8 +539,8 @@ public class GlobalCacheManagerWithRaft
 								logger.warn("Reduce Timeout {}=>{} AcquireState={} CacheState={} arg={}",
 										sender, session, StateModify, cs, reduce.Argument);
 							} else {
-								logger.error(String.format("Reduce %s=>%s AcquireState=%d CacheState=%s arg=%s",
-										sender, session, StateModify, cs, reduce.Argument), ex);
+								logger.error("Reduce {}=>{} AcquireState={} CacheState={} arg={}",
+										sender, session, StateModify, cs, reduce.Argument, ex);
 							}
 						}
 					}
@@ -890,7 +890,7 @@ public class GlobalCacheManagerWithRaft
 				if (ENABLE_PERF && reduce != null)
 					globalRaft.perf.onReduceCancel(reduce);
 				// 这里的异常只应该是网络发送异常。
-				logger.error("Reduce Exception: " + this + " gkey=" + gkey, ex);
+				logger.error("Reduce Exception: {} gkey={}", this, gkey, ex);
 			}
 			SetError();
 			return false;
@@ -920,7 +920,7 @@ public class GlobalCacheManagerWithRaft
 				if (ENABLE_PERF && reduce != null)
 					globalRaft.perf.onReduceCancel(reduce);
 				// 这里的异常只应该是网络发送异常。
-				logger.error("ReduceWaitLater Exception: " + this + " gkey=" + gkey, ex);
+				logger.error("ReduceWaitLater Exception: {} gkey={}", this, gkey, ex);
 			}
 			SetError();
 			return null;

@@ -16,7 +16,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class ProviderService extends Zeze.Services.HandshakeClient {
-	private static final Logger logger = LogManager.getLogger(ProviderService.class);
+	// private static final Logger logger = LogManager.getLogger(ProviderService.class);
 
 	public ProviderApp ProviderApp;
 	private final ConcurrentHashMap<String, Connector> Links = new ConcurrentHashMap<>();

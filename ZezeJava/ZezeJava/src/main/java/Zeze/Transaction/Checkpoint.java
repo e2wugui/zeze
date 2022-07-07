@@ -241,14 +241,14 @@ public final class Checkpoint {
 				try {
 					t.close();
 				} catch (Throwable ex) {
-					logger.error("CheckpointPeriod close Exception transaction=" + t, ex);
+					logger.error("CheckpointPeriod close Exception transaction={}", t, ex);
 				}
 			}
 			if (localCacheTransaction != null) {
 				try {
 					localCacheTransaction.close();
 				} catch (Throwable ex) {
-					logger.error("CheckpointPeriod close Exception transaction=" + localCacheTransaction, ex);
+					logger.error("CheckpointPeriod close Exception transaction={}", localCacheTransaction, ex);
 				}
 			}
 		}
@@ -320,14 +320,14 @@ public final class Checkpoint {
 				try {
 					t.close();
 				} catch (Throwable e) {
-					logger.error("Flush close Exception transaction=" + t, e);
+					logger.error("Flush close Exception transaction={}", t, e);
 				}
 			}
 			if (null != localCacheTransaction) {
 				try {
 					localCacheTransaction.close();
 				} catch (Throwable e) {
-					logger.error("Flush close Exception transaction=" + localCacheTransaction, e);
+					logger.error("Flush close Exception transaction={}", localCacheTransaction, e);
 				}
 			}
 		}

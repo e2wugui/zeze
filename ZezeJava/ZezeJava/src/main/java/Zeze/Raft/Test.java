@@ -97,7 +97,7 @@ public class Test {
 
 		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
 			try {
-				logger.error("uncaught fatal exception for thread: " + t.getName(), e);
+				logger.error("uncaught fatal exception for thread: {}", t.getName(), e);
 			} catch (Throwable ex) {
 				ex.printStackTrace();
 			} finally {
@@ -520,7 +520,7 @@ public class Test {
 					fa.Action.run();
 					fa.Count++;
 				} catch (Throwable ex) {
-					logger.error("FailAction " + fa.Name, ex);
+					logger.error("FailAction {}", fa.Name, ex);
 					System.out.println("___________________________________________");
 					System.out.println("___________________________________________");
 					System.out.println("___________________________________________");

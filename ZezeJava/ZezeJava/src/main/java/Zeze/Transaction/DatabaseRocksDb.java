@@ -70,7 +70,7 @@ public class DatabaseRocksDb extends Database {
 			try {
 				return RocksDB.open(options, path, columnFamilyDescriptors, columnFamilyHandles);
 			} catch (RocksDBException e) {
-				logger.warn("RocksDB.open " + path + " failed:", e);
+				logger.warn("RocksDB.open {} failed:", path, e);
 				if (++i >= 10)
 					throw e;
 				try {
