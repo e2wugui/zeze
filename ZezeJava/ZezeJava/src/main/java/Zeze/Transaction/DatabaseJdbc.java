@@ -45,7 +45,7 @@ public abstract class DatabaseJdbc extends Database {
 		try {
 			dataSource.close();
 		} catch (SQLException skip) {
-			logger.error(skip);
+			logger.error("", skip);
 		}
 	}
 

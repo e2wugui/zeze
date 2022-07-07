@@ -36,9 +36,9 @@ public class TestGlobal extends TestCase {
 		@Override
 		public void Commit() {
 			if (eq) {
-				logger.debug("xxxeq " + oldInt + " " + appId);
+				logger.debug("xxxeq {} {}", oldInt, appId);
 			} else {
-				//logger.debug("xxx " + oldInt + " " + appId);
+				//logger.debug("xxx {} {}", oldInt, appId);
 			}
 
 			lastInt = oldInt;

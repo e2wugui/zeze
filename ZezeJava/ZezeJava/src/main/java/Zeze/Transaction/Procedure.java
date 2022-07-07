@@ -39,7 +39,7 @@ public class Procedure {
 				: org.apache.logging.log4j.Level.TRACE;
 
 		String module = result > 0 ? "@" + IModule.GetModuleId(result) + ":" + IModule.GetErrorCode(result) : "";
-		logger.log(ll, () -> "Procedure=" + p + " Return=" + result + module + message + " UserState=" + p.UserState, ex);
+		logger.log(ll, "Procedure={} Return={}{}{} UserState={}", p, result, module, message, p.UserState, ex);
 	}
 
 	private final Application Zeze;
@@ -145,7 +145,7 @@ public class Procedure {
 			// 单独抓住这个异常，是为了能原样抛出，并且使用不同的级别记录日志。
 			// 对状态正确性没有影响。
 			currentT.Rollback();
-			logger.debug(gobackzeze);
+			logger.debug("", gobackzeze);
 			throw gobackzeze;
 		} catch (Throwable e) {
 			currentT.Rollback();

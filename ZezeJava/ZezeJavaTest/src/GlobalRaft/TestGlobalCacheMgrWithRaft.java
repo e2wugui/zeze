@@ -389,7 +389,7 @@ public class TestGlobalCacheMgrWithRaft {
 			report.append(String.format("%n---------------------------------------"));
 			report.append(String.format("%n%s, Expect=%d,Now=%d,Errors=%s", testName, expectCount, currentCount, GetErrorsString()));
 			report.append(String.format("%n---------------------------------------"));
-			logger.log(level, report.toString());
+			logger.log(level, "{}", report.toString());
 			if (resetFlag) {
 				ExpectCount.getAndSet(currentCount);
 				ClearCurrentCount();

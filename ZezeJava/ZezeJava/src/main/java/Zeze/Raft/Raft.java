@@ -91,7 +91,7 @@ public final class Raft {
 		mutex.lock();
 //		lockTime = System.currentTimeMillis();
 //		if (lockTime - lockBefore > 500) {
-//			logger.warn("--- wait lock too long: " + (lockTime - lockBefore) + ", noLockTime: " + (lockTime - unlockTime), new Exception());
+//			logger.warn("--- wait lock too long: {}, noLockTime: {}", lockTime - lockBefore, lockTime - unlockTime, new Exception());
 //		}
 	}
 
@@ -99,7 +99,7 @@ public final class Raft {
 //		unlockTime = System.currentTimeMillis();
 //		var t = unlockTime - lockTime;
 //		if (t > 500) {
-//			logger.warn("--- lock time too long: " + t, new Exception());
+//			logger.warn("--- lock time too long: {}", t, new Exception());
 //		}
 		mutex.unlock();
 	}
@@ -112,7 +112,7 @@ public final class Raft {
 		try {
 //			var t = System.currentTimeMillis();
 //			if (t - lockTime > 500) {
-//				logger.warn("--- lock time too long: " + (t - lockTime), new Exception());
+//				logger.warn("--- lock time too long: {}", t - lockTime, new Exception());
 //			}
 			condition.await();
 		} catch (InterruptedException e) {

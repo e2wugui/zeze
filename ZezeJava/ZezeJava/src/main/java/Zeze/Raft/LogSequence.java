@@ -20,7 +20,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DatabaseRocksDb;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.LongConcurrentHashMap;
-import Zeze.Util.Str;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
@@ -772,7 +771,7 @@ public class LogSequence {
 			if (WaitApply) {
 				raftLog.setLeaderFuture(future = new TaskCompletionSource<>());
 				if (LeaderAppendLogs.putIfAbsent(raftLog.getIndex(), raftLog) != null) {
-					logger.fatal("LeaderAppendLogs.TryAdd Fail. Index=" + raftLog.getIndex(), new Exception());
+					logger.fatal("LeaderAppendLogs.TryAdd Fail. Index={}", raftLog.getIndex(), new Exception());
 					Raft.FatalKill();
 				}
 			}
@@ -995,8 +994,8 @@ public class LogSequence {
 				// leader snapshot，follower 完全没法匹配了，后续的 TrySendAppendEntries 将启动 InstallSnapshot。
 				connector.setNextIndex(FirstIndex);
 			} else if (r.Result.getNextIndex() >= LastIndex) {
-				logger.fatal(Str.format("Impossible r.Result.NextIndex({}) >= LastIndex({}) there must be a bug.",
-						r.Result.getNextIndex(), LastIndex), new Exception());
+				logger.fatal("Impossible r.Result.NextIndex({}) >= LastIndex({}) there must be a bug.",
+						r.Result.getNextIndex(), LastIndex, new Exception());
 				Raft.FatalKill();
 			} else
 				connector.setNextIndex(r.Result.getNextIndex()); // fast locate
@@ -1129,8 +1128,8 @@ public class LogSequence {
 				Raft.ConvertStateTo(Zeze.Raft.Raft.RaftState.Follower);
 				break;
 			case Leader:
-				logger.fatal(Str.format("Receive AppendEntries from another leader={} with same term={}, there must be a bug. this={}",
-						r.Argument.getLeaderId(), Term, Raft.getLeaderId()), new Exception());
+				logger.fatal("Receive AppendEntries from another leader={} with same term={}, there must be a bug. this={}",
+						r.Argument.getLeaderId(), Term, Raft.getLeaderId(), new Exception());
 				Raft.FatalKill();
 				return 0;
 			}
@@ -1177,8 +1176,8 @@ public class LogSequence {
 		for (; entryIndex < r.Argument.getEntries().size(); ++entryIndex, ++copyLogIndex) {
 			var copyLog = RaftLog.Decode(r.Argument.getEntries().get(entryIndex), Raft.getStateMachine()::LogFactory);
 			if (copyLog.getIndex() != copyLogIndex) {
-				logger.fatal(Str.format("copyLog.Index({}) != copyLogIndex({}) Leader={} this={}",
-						copyLog.getIndex(), copyLogIndex, r.Argument.getLeaderId(), Raft.getName()), new Exception());
+				logger.fatal("copyLog.Index({}) != copyLogIndex({}) Leader={} this={}",
+						copyLog.getIndex(), copyLogIndex, r.Argument.getLeaderId(), Raft.getName(), new Exception());
 				Raft.FatalKill();
 			}
 			if (copyLog.getIndex() < FirstIndex)
@@ -1195,8 +1194,8 @@ public class LogSequence {
 				// delete the existing entry and all that follow it(§5.3)
 				// raft.pdf 5.3
 				if (conflictCheck.getIndex() <= CommitIndex) {
-					logger.fatal(Str.format("{} truncate committed entries: {} <= {}", Raft.getName(),
-							conflictCheck.getIndex(), CommitIndex), new Exception());
+					logger.fatal("{} truncate committed entries: {} <= {}", Raft.getName(),
+							conflictCheck.getIndex(), CommitIndex, new Exception());
 					Raft.FatalKill();
 				}
 				RemoveLogAndCancelStart(conflictCheck.getIndex(), LastIndex);
@@ -1242,9 +1241,9 @@ public class LogSequence {
 			return;
 
 		logger.info("================= logs ======================");
-		logger.info(logs);
+		logger.info("{}", logs);
 		logger.info("================= copies ======================");
-		logger.info(copies);
+		logger.info("{}", copies);
 		Raft.FatalKill();
 	}
 }

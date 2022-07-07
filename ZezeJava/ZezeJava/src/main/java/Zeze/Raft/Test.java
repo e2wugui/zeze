@@ -220,7 +220,7 @@ public class Test {
 			report.append(String.format("%n%s,Expect=%d,Now=%d,Errors=%s",
 					stepName, expectCount, CurrentCount, GetErrorsString()));
 			report.append(String.format("%n-------------------------------------------"));
-			logger.log(level, report.toString());
+			logger.log(level, "{}", report.toString());
 
 			if (resetExpectCount) {
 				ExpectCount.getAndSet(CurrentCount); // 下一个测试重新开始。

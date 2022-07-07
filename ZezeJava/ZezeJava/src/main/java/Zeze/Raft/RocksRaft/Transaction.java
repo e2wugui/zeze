@@ -315,7 +315,7 @@ public final class Transaction {
 				try {
 					action.run();
 				} catch (Throwable ex) {
-					logger.error(() -> "Commit Procedure " + procedure + " Action " + action.getClass().getName(), ex);
+					logger.error("Commit Procedure {} Action {}", procedure, action.getClass().getName(), ex);
 				}
 			}
 			commitActions.clear();
@@ -329,7 +329,7 @@ public final class Transaction {
 				try {
 					action.run();
 				} catch (Throwable ex) {
-					logger.error(() -> "Commit Procedure " + procedure + " Action " + action.getClass().getName(), ex);
+					logger.error("Commit Procedure {} Action {}", procedure, action.getClass().getName(), ex);
 				}
 			}
 			LastRollbackActions = null;

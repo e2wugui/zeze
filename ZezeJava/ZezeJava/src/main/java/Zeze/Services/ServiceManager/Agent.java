@@ -237,7 +237,7 @@ public final class Agent implements Closeable {
 					try {
 						Agent.this.OnUpdate.run(this, exist);
 					} catch (Throwable e) {
-						logger.error(e);
+						logger.error("", e);
 					}
 				});
 			} else if (null != Agent.this.OnChanged) {
@@ -245,7 +245,7 @@ public final class Agent implements Closeable {
 					try {
 						Agent.this.OnChanged.run(this);
 					} catch (Throwable e) {
-						logger.error(e);
+						logger.error("", e);
 					}
 				});
 			}
@@ -258,7 +258,7 @@ public final class Agent implements Closeable {
 					try {
 						Agent.this.OnUpdate.run(this, info2);
 					} catch (Throwable e) {
-						logger.error(e);
+						logger.error("", e);
 					}
 				});
 			} else if (null != Agent.this.OnChanged) {
@@ -266,7 +266,7 @@ public final class Agent implements Closeable {
 					try {
 						Agent.this.OnChanged.run(this);
 					} catch (Throwable e) {
-						logger.error(e);
+						logger.error("", e);
 					}
 				});
 			}
@@ -280,7 +280,7 @@ public final class Agent implements Closeable {
 						try {
 							Agent.this.OnRemove.run(this, info2);
 						} catch (Throwable e) {
-							logger.error(e);
+							logger.error("", e);
 						}
 					});
 				} else if (Agent.this.OnChanged != null) {
@@ -288,7 +288,7 @@ public final class Agent implements Closeable {
 						try {
 							Agent.this.OnChanged.run(this);
 						} catch (Throwable e) {
-							logger.error(e);
+							logger.error("", e);
 						}
 					});
 				}
@@ -312,7 +312,7 @@ public final class Agent implements Closeable {
 							try {
 								OnPrepare.run(this);
 							} catch (Throwable e) {
-								logger.error(e);
+								logger.error("", e);
 							}
 						});
 					TrySendReadyServiceList();
@@ -337,7 +337,7 @@ public final class Agent implements Closeable {
 			if (ServiceInfosPending == null)
 				return; // 并发过来的Commit，只需要处理一个。
 			if (r.Argument.SerialId != ServiceInfosPending.getSerialId()) {
-				logger.warn("OnCommit " + getServiceName() + " " + r.Argument.SerialId + " != " + ServiceInfosPending.getSerialId());
+				logger.warn("OnCommit {} {} != {}", getServiceName(), r.Argument.SerialId, ServiceInfosPending.getSerialId());
 			}
 			setServiceInfos(ServiceInfosPending);
 			ServiceInfosPending = null;
@@ -425,7 +425,7 @@ public final class Agent implements Closeable {
 				var r = new Register();
 				r.Argument = info;
 				r.SendAndWaitCheckResultCode(Client.getSocket());
-				logger.debug("RegisterService " + info);
+				logger.debug("RegisterService {}", info);
 			} catch (Throwable e) {
 				getRegisters().remove(info, info); // rollback
 				throw e;
@@ -484,7 +484,7 @@ public final class Agent implements Closeable {
 			var r = new Subscribe();
 			r.Argument = info;
 			r.SendAndWaitCheckResultCode(Client.getSocket());
-			logger.debug("SubscribeService " + info);
+			logger.debug("SubscribeService {}", info);
 		}
 		return subState;
 	}
@@ -584,7 +584,7 @@ public final class Agent implements Closeable {
 				try {
 					OnSetServerLoad.run(setServerLoad.Argument);
 				} catch (Throwable e) {
-					logger.error(e);
+					logger.error("", e);
 				}
 			});
 		return Procedure.Success;

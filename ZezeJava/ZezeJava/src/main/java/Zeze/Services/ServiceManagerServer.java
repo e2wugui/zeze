@@ -435,10 +435,10 @@ public final class ServiceManagerServer implements Closeable {
 
 		public synchronized void SetReady(ReadyServiceList p, Session session) {
 			if (p.Argument.SerialId != SerialId) {
-				logger.debug("Ready Skip: SerialId Not Equal." + p.Argument.SerialId + " Now=" + SerialId);
+				logger.debug("Ready Skip: SerialId Not Equal. {} Now={}", p.Argument.SerialId, SerialId);
 				return;
 			}
-			//logger.debug("Ready:" + p.Argument.SerialId + " Now=" + SerialId);
+			// logger.debug("Ready:{} Now={}", p.Argument.SerialId, SerialId);
 			var subscribeState = ReadyCommit.get(session.getSessionId());
 			if (subscribeState == null)
 				return;
@@ -544,11 +544,11 @@ public final class ServiceManagerServer implements Closeable {
 
 		// 允许重复登录，断线重连Agent不好原子实现重发。
 		if (session.getRegisters().add(r.Argument)) {
-			logger.info("{}: Register {} id={}",
-					r.getSender(), r.Argument.getServiceName(), r.Argument.getServiceIdentity());
+			logger.info("{}: Register {} id={} ip={} port={}", r.getSender(), r.Argument.getServiceName(),
+					r.Argument.getServiceIdentity(), r.Argument.getPassiveIp(), r.Argument.getPassivePort());
 		} else {
-			logger.info("{}: already Registered {} id={}",
-					r.getSender(), r.Argument.getServiceName(), r.Argument.getServiceIdentity());
+			logger.info("{}: already Registered {} id={} ip={} port={}", r.getSender(), r.Argument.getServiceName(),
+					r.Argument.getServiceIdentity(), r.Argument.getPassiveIp(), r.Argument.getPassivePort());
 		}
 		var state = ServerStates.computeIfAbsent(r.Argument.getServiceName(), name -> new ServerState(this, name));
 
@@ -569,8 +569,8 @@ public final class ServiceManagerServer implements Closeable {
 	}
 
 	private long ProcessUpdate(Update r) {
-		logger.info("{}: Update {} id={}",
-				r.getSender(), r.Argument.getServiceName(), r.Argument.getServiceIdentity());
+		logger.info("{}: Update {} id={} ip={} port={}", r.getSender(), r.Argument.getServiceName(),
+				r.Argument.getServiceIdentity(), r.Argument.getPassiveIp(), r.Argument.getPassivePort());
 		var session = (Session)r.getSender().getUserState();
 		if (!session.Registers.containsKey(r.Argument))
 			return Update.ServiceNotRegister;

@@ -152,14 +152,14 @@ public class AchillesHeelDaemon {
 
 						var rr = agent.checkReleaseTimeout(now, config.ServerReleaseTimeout);
 						if (rr == GlobalAgentBase.CheckReleaseResult.Timeout) {
-							logger.fatal("AchillesHeelDaemon global release timeout. index=" + i);
+							logger.fatal("AchillesHeelDaemon global release timeout. index={}", i);
 							LogManager.shutdown();
 							Runtime.getRuntime().halt(123123);
 						}
 
 						var idle = now - agent.getActiveTime();
 						if (idle > config.ServerKeepAliveIdleTimeout) {
-							//logger.debug("KeepAlive ServerKeepAliveIdleTimeout=" + config.ServerKeepAliveIdleTimeout);
+							//logger.debug("KeepAlive ServerKeepAliveIdleTimeout={}", config.ServerKeepAliveIdleTimeout);
 							agent.keepAlive();
 						}
 
@@ -169,7 +169,7 @@ public class AchillesHeelDaemon {
 								// 如果Global一直恢复不了，那么每ServerDaemonTimeout会再次尝试Release，
 								// 这里没法快速手段判断本Server是否存在从该Global获取的记录锁。
 								// 在Agent中增加获得的计数是个方案，但挺烦的。
-								logger.warn("StartRelease ServerDaemonTimeout=" + config.ServerDaemonTimeout);
+								logger.warn("StartRelease ServerDaemonTimeout={}", config.ServerDaemonTimeout);
 								agent.startRelease(Zeze, null);
 							}
 						}
