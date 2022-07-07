@@ -12,6 +12,24 @@ allprojects {
     idea {
         module {
             downloadSources = true
+            excludeDirs += files(
+                    'doc',
+                    'gradle',
+                    'test',
+                    'Zege/127.0.0.1_5556',
+                    'Zege/127.0.0.1_5557',
+                    'Zege/127.0.0.1_5558',
+                    'Zege/autokeys',
+                    'Zege/log',
+                    'ZezeJava/autokeys',
+                    'ZezeJava/lib',
+                    'ZezeJava/target',
+                    'ZezeJavaTest/dbhome',
+                    'ZezeJavaTest/lib',
+                    'ZezeJavaTest/log',
+                    'gradlew',
+                    'gradlew.bat',
+            )
         }
     }
 
