@@ -135,8 +135,16 @@ public final class Task {
 		}
 	}
 
-	public static Future<?> run(Action0 action, String actionName) {
-		return threadPoolDefault.submit(() -> Call(action, actionName));
+	public static Future<?> run(Action0 action, String name) {
+		return threadPoolDefault.submit(() -> {
+			try {
+				action.run();
+			} catch (AssertionError e) {
+				throw e;
+			} catch (Throwable ex) {
+				logger.error("{}", name != null ? name : action != null ? action.getClass().getName() : "", ex);
+			}
+		});
 	}
 
 	public static Future<?> schedule(long initialDelay, Action0 action) {
@@ -224,7 +232,7 @@ public final class Task {
 	}
 
 	public static void LogAndStatistics(long result, Protocol<?> p, boolean IsRequestSaved) {
-		LogAndStatistics(null, result, p, IsRequestSaved);
+		LogAndStatistics(null, result, p, IsRequestSaved, null);
 	}
 
 	public static void LogAndStatistics(Throwable ex, long result, Protocol<?> p, boolean IsRequestSaved) {
@@ -247,7 +255,7 @@ public final class Task {
 	}
 
 	public static long Call(FuncLong func, Protocol<?> p) {
-		return Call(func, p, null);
+		return Call(func, p, null, null);
 	}
 
 	public static long Call(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
@@ -298,11 +306,11 @@ public final class Task {
 	}
 
 	public static Future<Long> run(FuncLong func, Protocol<?> p) {
-		return threadPoolDefault.submit(() -> Call(func, p, null));
+		return threadPoolDefault.submit(() -> Call(func, p, null, null));
 	}
 
 	public static Future<Long> run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
-		return threadPoolDefault.submit(() -> Call(func, p, actionWhenError));
+		return threadPoolDefault.submit(() -> Call(func, p, actionWhenError, null));
 	}
 
 	public static Future<Long> run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName) {
@@ -362,7 +370,7 @@ public final class Task {
 	}
 
 	public static Future<Long> runRpcResponse(FuncLong func, Protocol<?> p) {
-		return threadPoolDefault.submit(() -> Call(func, p, null)); // rpcResponseThreadPool
+		return threadPoolDefault.submit(() -> Call(func, p, null, null)); // rpcResponseThreadPool
 	}
 
 	public static void waitAll(Collection<Future<?>> tasks) {

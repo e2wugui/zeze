@@ -10,6 +10,7 @@ import org.apache.logging.log4j.Logger;
 
 public final class Record1<K extends Comparable<K>, V extends Bean> extends Record {
 	private static final Logger logger = LogManager.getLogger(Record1.class);
+	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 	private static final VarHandle LRU_NODE_HANDLE;
 
 	static {
@@ -79,14 +80,11 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	@Override
 	public IGlobalAgent.AcquireResult Acquire(int state, boolean fresh) {
 		IGlobalAgent agent;
-		if (null == TTable.GetStorage() || (agent = TTable.getZeze().getGlobalAgent()) == null) {
-			// 不支持内存表cache同步。
+		if (TTable.GetStorage() == null || (agent = TTable.getZeze().getGlobalAgent()) == null) // 不支持内存表cache同步。
 			return IGlobalAgent.AcquireResult.getSuccessResult(state);
-		}
 
-		var gkey = TTable.EncodeGlobalKey(Key);
-		logger.debug("Acquire NewState={} {}", state, this);
-
+		if (isDebugEnabled)
+			logger.debug("Acquire NewState={} {}", state, this);
 		var stat = TableStatistics.getInstance().GetOrAdd(TTable.getId());
 		switch (state) {
 		case GlobalCacheManagerServer.StateInvalid:
@@ -102,7 +100,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 			break;
 		}
 
-		return agent.Acquire(gkey, state, fresh);
+		return agent.Acquire(TTable.EncodeGlobalKey(Key), state, fresh);
 	}
 
 	@Override
@@ -149,7 +147,6 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		}
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public void Encode0() {
 		if (!getDirty())
@@ -162,7 +159,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 
 		// 可能编码多次：TryEncodeN 记录读锁；Snapshot FlushWriteLock;
 		snapshotKey = TTable.EncodeKey(Key);
-		snapshotValue = StrongDirtyValue != null ? TTable.EncodeValue((V)StrongDirtyValue) : null;
+		snapshotValue = StrongDirtyValue != null ? ByteBuffer.Encode(StrongDirtyValue) : null;
 
 		// 【注意】
 		// 这个标志本来应该在真正写到Database之后修改才是最合适的；

@@ -896,10 +896,11 @@ public final class ByteBuffer {
 	*/
 
 	public static void VerifyArrayIndex(byte[] bytes, int offset, int length) {
-		int endIndex;
-		if (offset < 0 || offset > bytes.length
-				|| (endIndex = offset + length) < 0 || endIndex > bytes.length || offset > endIndex)
-			throw new IllegalArgumentException(String.format("%d,%d,%d", bytes.length, offset, length));
+		int bytesLen = bytes.length;
+		long offsetL = offset & 0xffff_ffffL;
+		long endIndexL = (offset + length) & 0xffff_ffffL;
+		if (endIndexL > bytesLen || offsetL > endIndexL)
+			throw new IllegalArgumentException(String.format("%d,%d,%d", bytesLen, offset, length));
 	}
 
 	public static ByteBuffer Encode(Serializable sa) {
@@ -917,8 +918,7 @@ public final class ByteBuffer {
 			s.Encode(this);
 	}
 
-	public <T extends Serializable> void Decode(Collection<T> c,
-												Supplier<T> factory) {
+	public <T extends Serializable> void Decode(Collection<T> c, Supplier<T> factory) {
 		for (int n = ReadUInt(); n > 0; n--) {
 			T v = factory.get();
 			v.Decode(this);

@@ -1,8 +1,8 @@
 package Zeze.Transaction;
 
 import java.util.ArrayList;
-import java.util.Map;
 import Zeze.Application;
+import Zeze.Component.DelayRemove;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Reduce;
@@ -14,6 +14,7 @@ import org.apache.logging.log4j.Logger;
 
 public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Table {
 	private static final Logger logger = LogManager.getLogger(TableX.class);
+	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 
 	private AutoKey autoKey;
 	private TableCache<K, V> Cache;
@@ -36,7 +37,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@Override
-	Storage<K, V> GetStorage() {
+	final Storage<K, V> GetStorage() {
 		return TStorage;
 	}
 
@@ -44,29 +45,29 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return OldTable;
 	}
 
-	DatabaseRocksDb.Table getLocalRocksCacheTable() {
+	final DatabaseRocksDb.Table getLocalRocksCacheTable() {
 		return LocalRocksCacheTable;
 	}
 
-	public int getCacheSize() {
+	public final int getCacheSize() {
 		return Cache != null ? Cache.getDataMap().size() : 0;
 	}
 
-	void RocksCachePut(K key, V value) {
+	final void RocksCachePut(K key, V value) {
 		try (var t = getZeze().getLocalRocksCacheDb().BeginTransaction()) {
-			LocalRocksCacheTable.Replace(t, EncodeKey(key), EncodeValue(value));
+			LocalRocksCacheTable.Replace(t, EncodeKey(key), ByteBuffer.Encode(value));
 			t.Commit();
 		} catch (Exception e) {
-			logger.error("", e);
+			logger.error("RocksCachePut exception:", e);
 		}
 	}
 
-	void RocksCacheRemove(K key) {
+	final void RocksCacheRemove(K key) {
 		try (var t = getZeze().getLocalRocksCacheDb().BeginTransaction()) {
 			LocalRocksCacheTable.Remove(t, EncodeKey(key));
 			t.Commit();
 		} catch (Exception e) {
-			logger.error("", e);
+			logger.error("RocksCacheRemove exception:", e);
 		}
 	}
 
@@ -74,21 +75,20 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	private AtomicTupleRecord<K, V> Load(K key) {
 		var tkey = new TableKey(getId(), key);
 		while (true) {
-			Record1<K, V> r = Cache.GetOrAdd(key, () -> new Record1<>(this, key, null));
+			var r = Cache.GetOrAdd(key, () -> new Record1<>(this, key, null));
 			r.EnterFairLock(); // 对同一个记录，不允许重入。
 			V strongRef = null;
 			try {
-				if (r.getState() == GlobalCacheManagerServer.StateRemoved) {
+				if (r.getState() == GlobalCacheManagerServer.StateRemoved)
 					continue; // 正在被删除，重新 GetOrAdd 一次。以后 _lock_check_ 里面会再次检查这个状态。
-				}
 
 				if (r.getState() == GlobalCacheManagerServer.StateShare
 						|| r.getState() == GlobalCacheManagerServer.StateModify) {
 					var beforeTimestamp = r.getTimestamp(); // read timestamp before read value。see Record1.Commit
 					strongRef = (V)r.getSoftValue();
-					if (null == strongRef && !r.getDirty()) {
+					if (strongRef == null && !r.getDirty()) {
 						var find = LocalRocksCacheTable.Find(EncodeKey(key));
-						if (null != find) {
+						if (find != null) {
 							strongRef = DecodeValue(find);
 							strongRef.InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
 							r.setSoftValue(strongRef);
@@ -101,7 +101,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				r.setState(acquire.ResultState);
 				if (r.getState() == GlobalCacheManagerServer.StateInvalid) {
 					var txn = Transaction.getCurrent();
-					if (null == txn)
+					if (txn == null)
 						throw new IllegalStateException("Acquire Failed");
 					txn.ThrowRedoAndReleaseLock(tkey + ":" + r, null);
 				}
@@ -110,20 +110,19 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				r.setFreshAcquire();
 				var beforeTimestamp = r.getTimestamp();
 
-				if (null != TStorage) {
+				if (TStorage != null) {
 					TableStatistics.getInstance().GetOrAdd(getId()).getStorageFindCount().increment();
 					strongRef = TStorage.Find(key, this);
-					if (null != strongRef) {
+					if (strongRef != null)
 						RocksCachePut(key, strongRef);
-					}
 					r.setSoftValue(strongRef); // r.Value still maybe null
 					// 【注意】这个变量不管 OldTable 中是否存在的情况。
-					r.setExistInBackDatabase(null != strongRef);
+					r.setExistInBackDatabase(strongRef != null);
 
 					// 当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
-					if (null == strongRef && null != OldTable) {
-						ByteBuffer old = OldTable.Find(EncodeKey(key));
-						if (null != old) {
+					if (strongRef == null && null != OldTable) {
+						var old = OldTable.Find(EncodeKey(key));
+						if (old != null) {
 							strongRef = DecodeValue(old);
 							r.setSoftValue(strongRef);
 							// 从旧表装载时，马上设为脏，使得可以写入新表。
@@ -132,11 +131,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							r.SetDirty();
 						}
 					}
-					if (null != strongRef) {
+					if (strongRef != null)
 						strongRef.InitRootInfo(r.CreateRootInfoIfNeed(tkey), null);
-					}
 				}
-				logger.debug("Load {}", r);
+				if (isDebugEnabled)
+					logger.debug("Load {}", r);
 				return new AtomicTupleRecord<>(r, strongRef, beforeTimestamp);
 			} finally {
 				r.ExitFairLock();
@@ -145,34 +144,33 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@Override
-	public int ReduceShare(Reduce rpc, ByteBuffer bbKey) {
+	public final int ReduceShare(Reduce rpc, ByteBuffer bbKey) {
 		var fresh = rpc.getResultCode();
 		rpc.setResultCode(0);
-
 		rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
 		rpc.Result.State = rpc.Argument.State;
+		if (isDebugEnabled)
+			logger.debug("Reduce NewState={}", rpc);
 
 		K key = DecodeKey(bbKey);
-
-		logger.debug("Reduce NewState={}", rpc);
-
-		TableKey tkey = new TableKey(getId(), key);
-		Record1<K, V> r;
-		Lockey lockey = getZeze().getLocks().Get(tkey);
+		var lockey = getZeze().getLocks().Get(new TableKey(getId(), key));
 		lockey.EnterWriteLock();
 		try {
-			r = Cache.Get(key);
-			logger.debug("Reduce NewState={} {}", rpc.Argument.State, r);
-			if (null == r) {
+			var r = Cache.Get(key);
+			if (isDebugEnabled)
+				logger.debug("Reduce NewState={} {}", rpc.Argument.State, r);
+			if (r == null) {
 				rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-				logger.debug("Reduce SendResult 1 r=null");
+				if (isDebugEnabled)
+					logger.debug("Reduce SendResult 1 r=null");
 				rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
 				return 0;
 			}
 			r.EnterFairLock();
 			try {
 				if (fresh != GlobalCacheManagerServer.AcquireFreshSource && r.isFreshAcquire()) {
-					logger.debug("Reduce SendResult fresh {}", r);
+					if (isDebugEnabled)
+						logger.debug("Reduce SendResult fresh {}", r);
 					rpc.Result.State = GlobalCacheManagerServer.StateReduceErrorFreshAcquire;
 					rpc.SendResult();
 					return 0;
@@ -186,7 +184,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 					if (r.getDirty())
 						break;
-					logger.debug("Reduce SendResult 2 {}", r);
+					if (isDebugEnabled)
+						logger.debug("Reduce SendResult 2 {}", r);
 					rpc.SendResult();
 					return 0;
 
@@ -195,7 +194,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					rpc.setResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsShare);
 					if (r.getDirty())
 						break;
-					logger.debug("Reduce SendResult 3 {}", r);
+					if (isDebugEnabled)
+						logger.debug("Reduce SendResult 3 {}", r);
 					rpc.SendResult();
 					return 0;
 
@@ -204,15 +204,19 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					rpc.Result.State = GlobalCacheManagerServer.StateShare;
 					if (r.getDirty())
 						break;
-					logger.debug("Reduce SendResult * {}", r);
+					if (isDebugEnabled)
+						logger.debug("Reduce SendResult * {}", r);
 					rpc.SendResult();
 					return 0;
 				}
-				//logger.Warn("ReduceShare checkpoint begin. id={0} {1}", r, tkey);
+				// if (isDebugEnabled)
+				// logger.warn("ReduceShare checkpoint begin. id={} {}", r, tkey);
 				FlushWhenReduce(r);
-				logger.debug("Reduce SendResult 4 {}", r);
+				if (isDebugEnabled)
+					logger.debug("Reduce SendResult 4 {}", r);
 				rpc.SendResult();
-				//logger.Warn("ReduceShare checkpoint end. id={0} {1}", r, tkey);
+				// if (isDebugEnabled)
+				// logger.warn("ReduceShare checkpoint end. id={} {}", r, tkey);
 			} finally {
 				r.ExitFairLock();
 			}
@@ -237,32 +241,31 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@Override
-	public int ReduceInvalid(Reduce rpc, ByteBuffer bbKey) {
+	public final int ReduceInvalid(Reduce rpc, ByteBuffer bbKey) {
 		var fresh = rpc.getResultCode();
 		rpc.setResultCode(0);
-
 		rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
 		rpc.Result.State = rpc.Argument.State;
 
 		K key = DecodeKey(bbKey);
-
-		TableKey tkey = new TableKey(getId(), key);
-		Record1<K, V> r;
-		Lockey lockey = getZeze().getLocks().Get(tkey);
+		var lockey = getZeze().getLocks().Get(new TableKey(getId(), key));
 		lockey.EnterWriteLock();
 		try {
-			r = Cache.Get(key);
-			logger.debug("Reduce NewState={} {}", rpc.Argument.State, r);
-			if (null == r) {
+			var r = Cache.Get(key);
+			if (isDebugEnabled)
+				logger.debug("Reduce NewState={} {}", rpc.Argument.State, r);
+			if (r == null) {
 				rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-				logger.debug("Reduce SendResult 1 r=null");
+				if (isDebugEnabled)
+					logger.debug("Reduce SendResult 1 r=null");
 				rpc.SendResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
 				return 0;
 			}
 			r.EnterFairLock();
 			try {
 				if (fresh != GlobalCacheManagerServer.AcquireFreshSource && r.isFreshAcquire()) {
-					logger.debug("Reduce SendResult fresh {}", r);
+					if (isDebugEnabled)
+						logger.debug("Reduce SendResult fresh {}", r);
 					rpc.Result.State = GlobalCacheManagerServer.StateReduceErrorFreshAcquire;
 					rpc.SendResult();
 					return 0;
@@ -275,7 +278,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					rpc.setResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
 					if (r.getDirty())
 						break;
-					logger.debug("Reduce SendResult 2 {}", r);
+					if (isDebugEnabled)
+						logger.debug("Reduce SendResult 2 {}", r);
 					rpc.SendResult();
 					return 0;
 
@@ -284,7 +288,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					// 不删除记录，让TableCache.CleanNow处理。
 					if (r.getDirty())
 						break;
-					logger.debug("Reduce SendResult 3 {}", r);
+					if (isDebugEnabled)
+						logger.debug("Reduce SendResult 3 {}", r);
 					rpc.SendResult();
 					return 0;
 
@@ -292,16 +297,20 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					r.setState(GlobalCacheManagerServer.StateInvalid);
 					if (r.getDirty())
 						break;
-					logger.debug("Reduce SendResult * {}", r);
+					if (isDebugEnabled)
+						logger.debug("Reduce SendResult * {}", r);
 					rpc.SendResult();
 					return 0;
 				}
-				//logger.Warn("ReduceInvalid checkpoint begin. id={0} {1}", r, tkey);
+				// if (isDebugEnabled)
+				// logger.warn("ReduceInvalid checkpoint begin. id={} {}", r, tkey);
 				rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
 				FlushWhenReduce(r);
-				logger.debug("Reduce SendResult 4 {}", r);
+				if (isDebugEnabled)
+					logger.debug("Reduce SendResult 4 {}", r);
 				rpc.SendResult();
-				//logger.Warn("ReduceInvalid checkpoint end. id={0} {1}", r, tkey);
+				// if (isDebugEnabled)
+				// logger.warn("ReduceInvalid checkpoint end. id={} {}", r, tkey);
 			} finally {
 				r.ExitFairLock();
 			}
@@ -311,7 +320,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return 0;
 	}
 
-	public Binary EncodeGlobalKey(K key) {
+	public final Binary EncodeGlobalKey(K key) {
 		var bb = ByteBuffer.Allocate();
 		bb.WriteInt4(getId());
 		var bbKey = EncodeKey(key);
@@ -320,31 +329,32 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@Override
-	void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex) {
+	final void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex) {
+		var globalAgent = getZeze().getGlobalAgent();
+		var locks = getZeze().getLocks();
 		var remain = new ArrayList<KV<Lockey, Record1<K, V>>>(Cache.getDataMap().size());
 		for (var e : Cache.getDataMap().entrySet()) {
-			var gkey = EncodeGlobalKey(e.getKey());
-			if (getZeze().getGlobalAgent().GetGlobalCacheManagerHashIndex(gkey) != GlobalCacheManagerHashIndex) {
+			var k = e.getKey();
+			if (globalAgent.GetGlobalCacheManagerHashIndex(EncodeGlobalKey(k)) != GlobalCacheManagerHashIndex)
 				continue;
-			}
 
-			TableKey tkey = new TableKey(getId(), e.getKey());
-			Lockey lockey = getZeze().getLocks().Get(tkey);
+			var v = e.getValue();
+			var lockey = locks.Get(new TableKey(getId(), k));
 			if (!lockey.TryEnterWriteLock(0)) {
-				remain.add(KV.Create(lockey, e.getValue()));
+				remain.add(KV.Create(lockey, v));
 				continue;
 			}
 			try {
-				if (!e.getValue().TryEnterFairLock()) {
-					remain.add(KV.Create(lockey, e.getValue()));
+				if (!v.TryEnterFairLock()) {
+					remain.add(KV.Create(lockey, v));
 					continue;
 				}
 				try {
 					// 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
-					e.getValue().setState(GlobalCacheManagerServer.StateInvalid);
-					FlushWhenReduce(e.getValue());
+					v.setState(GlobalCacheManagerServer.StateInvalid);
+					FlushWhenReduce(v);
 				} finally {
-					e.getValue().ExitFairLock();
+					v.ExitFairLock();
 				}
 			} finally {
 				lockey.ExitWriteLock();
@@ -354,24 +364,25 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		while (!remain.isEmpty()) {
 			var remain2 = new ArrayList<KV<Lockey, Record1<K, V>>>(remain.size());
 			for (var e : remain) {
-				if (!e.getKey().TryEnterWriteLock(0)) {
+				var k = e.getKey();
+				if (!k.TryEnterWriteLock(0)) {
 					remain2.add(e);
 					continue;
 				}
-
 				try {
-					if (!e.getValue().TryEnterFairLock()) {
+					var v = e.getValue();
+					if (!v.TryEnterFairLock()) {
 						remain2.add(e);
 						continue;
 					}
 					try {
-						e.getValue().setState(GlobalCacheManagerServer.StateInvalid);
-						FlushWhenReduce(e.getValue());
+						v.setState(GlobalCacheManagerServer.StateInvalid);
+						FlushWhenReduce(v);
 					} finally {
-						e.getValue().ExitFairLock();
+						v.ExitFairLock();
 					}
 				} finally {
-					e.getKey().ExitWriteLock();
+					k.ExitWriteLock();
 				}
 			}
 			remain = remain2;
@@ -379,43 +390,40 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final V get(K key) {
-		Transaction currentT = Transaction.getCurrent();
-		TableKey tkey = new TableKey(getId(), key);
-
+		var currentT = Transaction.getCurrent();
 		assert currentT != null;
-		Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
-		if (null != cr) {
+
+		var tkey = new TableKey(getId(), key);
+		var cr = currentT.GetRecordAccessed(tkey);
+		if (cr != null) {
 			@SuppressWarnings("unchecked")
 			var r = (V)cr.NewestValue();
 			return r;
 		}
 
 		var r = Load(key);
-		currentT.AddRecordAccessed(r.Record.CreateRootInfoIfNeed(tkey), new Zeze.Transaction.RecordAccessed(r));
+		currentT.AddRecordAccessed(r.Record.CreateRootInfoIfNeed(tkey), new RecordAccessed(r));
 		return r.StrongRef;
 	}
 
 	public final V getOrAdd(K key) {
-		Transaction currentT = Transaction.getCurrent();
-		TableKey tkey = new TableKey(getId(), key);
-
+		var currentT = Transaction.getCurrent();
 		assert currentT != null;
-		Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
-		if (null != cr) {
+
+		var tkey = new TableKey(getId(), key);
+		var cr = currentT.GetRecordAccessed(tkey);
+		if (cr != null) {
 			@SuppressWarnings("unchecked")
 			V crv = (V)cr.NewestValue();
-			if (null != crv) {
+			if (crv != null)
 				return crv;
-			}
 			// add
 		} else {
 			var r = Load(key);
-			cr = new Zeze.Transaction.RecordAccessed(r);
+			cr = new RecordAccessed(r);
 			currentT.AddRecordAccessed(r.Record.CreateRootInfoIfNeed(tkey), cr);
-
-			if (null != r.StrongRef) {
+			if (r.StrongRef != null)
 				return r.StrongRef;
-			}
 			// add
 		}
 
@@ -426,14 +434,14 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final boolean tryAdd(K key, V value) {
-		if (null != get(key)) {
+		if (get(key) != null)
 			return false;
-		}
 
-		Transaction currentT = Transaction.getCurrent();
-		TableKey tkey = new TableKey(getId(), key);
+		var currentT = Transaction.getCurrent();
 		assert currentT != null;
-		Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
+
+		var tkey = new TableKey(getId(), key);
+		var cr = currentT.GetRecordAccessed(tkey);
 		value.InitRootInfo(cr.AtomicTupleRecord.Record.CreateRootInfoIfNeed(tkey), null);
 		cr.Put(currentT, value);
 		return true;
@@ -447,55 +455,53 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final void put(K key, V value) {
-		Transaction currentT = Transaction.getCurrent();
-		TableKey tkey = new TableKey(getId(), key);
-
+		var currentT = Transaction.getCurrent();
 		assert currentT != null;
-		Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
-		if (null != cr) {
+
+		var tkey = new TableKey(getId(), key);
+		var cr = currentT.GetRecordAccessed(tkey);
+		if (cr != null) {
 			value.InitRootInfo(cr.AtomicTupleRecord.Record.CreateRootInfoIfNeed(tkey), null);
 			cr.Put(currentT, value);
 			return;
 		}
 		var r = Load(key);
-		cr = new Zeze.Transaction.RecordAccessed(r);
+		cr = new RecordAccessed(r);
 		cr.Put(currentT, value);
 		currentT.AddRecordAccessed(r.Record.CreateRootInfoIfNeed(tkey), cr);
 	}
 
 	// 几乎和Put一样，还是独立开吧。
 	public final void remove(K key) {
-		Transaction currentT = Transaction.getCurrent();
-		TableKey tkey = new TableKey(getId(), key);
-
+		var currentT = Transaction.getCurrent();
 		assert currentT != null;
-		Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
-		if (null != cr) {
+
+		var tkey = new TableKey(getId(), key);
+		var cr = currentT.GetRecordAccessed(tkey);
+		if (cr != null) {
 			cr.Put(currentT, null);
 			return;
 		}
 
 		var r = Load(key);
-		cr = new Zeze.Transaction.RecordAccessed(r);
+		cr = new RecordAccessed(r);
 		cr.Put(currentT, null);
 		currentT.AddRecordAccessed(r.Record.CreateRootInfoIfNeed(tkey), cr);
 	}
 
 	@Override
-	Storage<?, ?> Open(Application app, Database database) {
-		if (null != TStorage) {
+	final Storage<?, ?> Open(Application app, Database database) {
+		if (TStorage != null)
 			throw new IllegalStateException("table has opened: " + getName());
-		}
+
 		setZeze(app);
 		setDatabase(database);
 
-		if (isAutoKey()) {
+		if (isAutoKey())
 			autoKey = app.getServiceManagerAgent().GetAutoKey(getName());
-		}
 
-		super.setTableConf(app.getConfig().GetTableConf(getName()));
+		setTableConf(app.getConfig().GetTableConf(getName()));
 		Cache = new TableCache<>(app, this);
-
 		TStorage = isMemory() ? null : new Storage<>(this, database, getName());
 		OldTable = getTableConf().getDatabaseOldMode() == 1
 				? app.GetDatabase(getTableConf().getDatabaseOldName()).OpenTable(getName()) : null;
@@ -504,7 +510,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	@Override
-	void Close() {
+	final void Close() {
 		if (TStorage != null) {
 			TStorage.Close();
 			TStorage = null;
@@ -520,20 +526,12 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	public abstract K DecodeKey(ByteBuffer bb);
 
-	public void delayRemove(K key) {
-		Zeze.Component.DelayRemove.remove(this, key);
+	public final void delayRemove(K key) {
+		DelayRemove.remove(this, key);
 	}
-
-	public abstract V NewValue();
 
 	@Override
-	public Bean NewBeanValue() {
-		return NewValue();
-	}
-
-	public final ByteBuffer EncodeValue(V sa) {
-		return ByteBuffer.Encode(sa);
-	}
+	public abstract V NewValue();
 
 	/**
 	 * 解码系列化的数据到对象。
@@ -562,20 +560,18 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 
 	private boolean invokeCallback(byte[] key, byte[] value, TableWalkHandle<K, V> callback) {
 		K k = DecodeKey(ByteBuffer.Wrap(key));
-		TableKey tkey = new TableKey(getId(), k);
-		Lockey lockey = getZeze().getLocks().Get(tkey);
+		var lockey = getZeze().getLocks().Get(new TableKey(getId(), k));
 		lockey.EnterReadLock();
 		try {
-			Record1<K, V> r = Cache.Get(k);
-			if (null != r && r.getState() != GlobalCacheManagerServer.StateRemoved) {
+			var r = Cache.Get(k);
+			if (r != null && r.getState() != GlobalCacheManagerServer.StateRemoved) {
 				if (r.getState() == GlobalCacheManagerServer.StateShare
 						|| r.getState() == GlobalCacheManagerServer.StateModify) {
 					// 拥有正确的状态：
 					@SuppressWarnings("unchecked")
 					var strongRef = (V)r.getSoftValue();
-					if (strongRef == null) {
+					if (strongRef == null)
 						return true; // 已经被删除，但是还没有checkpoint的记录看不到。
-					}
 					return callback.handle(r.getObjectKey(), strongRef);
 				}
 				// else GlobalCacheManager.StateInvalid
@@ -585,17 +581,16 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			lockey.ExitReadLock();
 		}
 		// 缓存中不存在或者正在被删除，使用数据库中的数据。
-		V v = DecodeValue(ByteBuffer.Wrap(value));
-		return callback.handle(k, v);
+		return callback.handle(k, DecodeValue(ByteBuffer.Wrap(value)));
 	}
 
 	public final long Walk(TableWalkHandle<K, V> callback, Runnable afterLock) {
-		if (Transaction.getCurrent() != null) {
+		if (Transaction.getCurrent() != null)
 			throw new IllegalStateException("must be called without transaction");
-		}
+
 		return TStorage.getDatabaseTable().Walk((key, value) -> {
 			if (invokeCallback(key, value, callback)) {
-				if (null != afterLock)
+				if (afterLock != null)
 					afterLock.run();
 				return true;
 			}
@@ -608,10 +603,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final long WalkDatabaseKey(TableWalkKey<K> callback) {
-		return TStorage.getDatabaseTable().WalkKey((key) -> {
-			K k = DecodeKey(ByteBuffer.Wrap(key));
-			return callback.handle(k);
-		});
+		return TStorage.getDatabaseTable().WalkKey(key -> callback.handle(DecodeKey(ByteBuffer.Wrap(key))));
 	}
 
 	/**
@@ -651,33 +643,29 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	}
 
 	public final long WalkCache(TableWalkHandle<K, V> callback, Runnable afterLock) {
-		if (Transaction.getCurrent() != null) {
+		if (Transaction.getCurrent() != null)
 			throw new IllegalStateException("must be called without transaction");
-		}
+
 		int count = 0;
-		for (Map.Entry<K, Record1<K, V>> entry : Cache.getDataMap().entrySet()) {
-			K k = entry.getKey();
-			Record1<K, V> r = entry.getValue();
-			TableKey tkey = new TableKey(getId(), k);
-			Lockey lockey = getZeze().getLocks().Get(tkey);
+		for (var entry : Cache.getDataMap().entrySet()) {
+			var r = entry.getValue();
+			var lockey = getZeze().getLocks().Get(new TableKey(getId(), entry.getKey()));
 			lockey.EnterReadLock();
 			try {
 				if (r.getState() == GlobalCacheManagerServer.StateShare
 						|| r.getState() == GlobalCacheManagerServer.StateModify) {
 					@SuppressWarnings("unchecked")
 					var strongRef = (V)r.getSoftValue();
-					if (strongRef == null) {
+					if (strongRef == null)
 						continue;
-					}
 					count++;
-					if (!callback.handle(r.getObjectKey(), strongRef)) {
+					if (!callback.handle(r.getObjectKey(), strongRef))
 						break;
-					}
 				}
 			} finally {
 				lockey.ExitLock();
 			}
-			if (null != afterLock)
+			if (afterLock != null)
 				afterLock.run();
 		}
 		return count;
@@ -694,15 +682,15 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 	 * @param key record key
 	 * @return record value
 	 */
+	@SuppressWarnings("unchecked")
 	public final V selectCopy(K key) {
-		TableKey tkey = new TableKey(getId(), key);
-		Transaction currentT = Transaction.getCurrent();
-		if (null != currentT) {
-			Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
-			if (null != cr) {
-				@SuppressWarnings("unchecked")
-				var r = (V)(cr.NewestValue() == null ? null : cr.NewestValue().CopyBean());
-				return r;
+		var tkey = new TableKey(getId(), key);
+		var currentT = Transaction.getCurrent();
+		if (currentT != null) {
+			var cr = currentT.GetRecordAccessed(tkey);
+			if (cr != null) {
+				var v = cr.NewestValue();
+				return v != null ? (V)v.CopyBean() : null;
 			}
 			currentT.SetAlwaysReleaseLockWhenRedo();
 		}
@@ -710,33 +698,26 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var lockey = getZeze().getLocks().Get(tkey);
 		lockey.EnterReadLock();
 		try {
-			var r = Load(key);
-			if (null == r.StrongRef)
-				return null;
-			@SuppressWarnings("unchecked")
-			var v = (V)r.StrongRef.CopyBean();
-			return v;
+			var v = Load(key).StrongRef;
+			return v != null ? (V)v.CopyBean() : null;
 		} finally {
 			lockey.ExitReadLock();
 		}
 	}
 
+	@SuppressWarnings("unchecked")
 	public final V selectDirty(K key) {
-		TableKey tkey = new TableKey(getId(), key);
-		Transaction currentT = Transaction.getCurrent();
-		if (null != currentT) {
-			Zeze.Transaction.RecordAccessed cr = currentT.GetRecordAccessed(tkey);
-			if (null != cr) {
-				@SuppressWarnings("unchecked")
-				var r = (V)(cr.NewestValue() == null ? null : cr.NewestValue());
-				return r;
-			}
+		var currentT = Transaction.getCurrent();
+		if (currentT != null) {
+			var cr = currentT.GetRecordAccessed(new TableKey(getId(), key));
+			if (cr != null)
+				return (V)cr.NewestValue();
 		}
 		return Load(key).StrongRef;
 	}
 
 	@Override
-	public boolean isNew() {
+	public final boolean isNew() {
 		return TStorage == null // memory table always return true
 				|| TStorage.getDatabaseTable().isNew();
 	}

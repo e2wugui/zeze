@@ -61,7 +61,7 @@ public abstract class Table {
 
 	public abstract boolean isNew();
 
-	public abstract Bean NewBeanValue();
+	public abstract Bean NewValue();
 
 	public boolean isMemory() {
 		return true;
@@ -75,15 +75,9 @@ public abstract class Table {
 		return 0; // 新增属性。为了增加顺利，提供默认实现。子类必须提供新的实现。
 	}
 
-	public int ReduceShare(Reduce rpc, ByteBuffer bbKey) {
-		throw new UnsupportedOperationException();
-	}
+	public abstract int ReduceShare(Reduce rpc, ByteBuffer bbKey);
 
-	public int ReduceInvalid(Reduce rpc, ByteBuffer bbKey) {
-		throw new UnsupportedOperationException();
-	}
+	public abstract int ReduceInvalid(Reduce rpc, ByteBuffer bbKey);
 
-	void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex) {
-		throw new UnsupportedOperationException();
-	}
+	abstract void ReduceInvalidAllLocalOnly(int GlobalCacheManagerHashIndex);
 }
