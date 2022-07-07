@@ -431,7 +431,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					continue; // concurrent release
 
 				cs.AcquireStatePending = StateShare;
-				SerialIdGenerator.incrementAndGet();
+				SerialIdGenerator.getAndIncrement();
 
 				var gKey = cs.GlobalKey;
 				if (cs.Modify != null) {
@@ -560,7 +560,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					continue; // concurrent release
 
 				cs.AcquireStatePending = StateModify;
-				SerialIdGenerator.incrementAndGet();
+				SerialIdGenerator.getAndIncrement();
 
 				var gKey = cs.GlobalKey;
 				if (cs.Modify != null) {

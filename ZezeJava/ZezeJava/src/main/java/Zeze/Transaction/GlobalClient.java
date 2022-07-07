@@ -40,7 +40,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 						so.getConnector().Start();
 					});
 				} else {
-					agent.getLoginTimes().incrementAndGet();
+					agent.getLoginTimes().getAndIncrement();
 					agent.setActiveTime(System.currentTimeMillis());
 					super.OnHandshakeDone(so);
 				}
@@ -58,7 +58,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 					so.close();
 				} else {
 					agent.setActiveTime(System.currentTimeMillis());
-					agent.getLoginTimes().incrementAndGet();
+					agent.getLoginTimes().getAndIncrement();
 					agent.initialize(login.Result.MaxNetPing, login.Result.ServerProcessTime, login.Result.ServerReleaseTimeout);
 					super.OnHandshakeDone(so);
 				}

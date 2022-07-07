@@ -512,7 +512,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				}
 
 				cs.AcquireStatePending = StateShare;
-				SerialIdGenerator.incrementAndGet();
+				SerialIdGenerator.getAndIncrement();
 			}
 
 			var gKey = cs.GlobalKey;
@@ -671,7 +671,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				}
 
 				cs.AcquireStatePending = StateModify;
-				SerialIdGenerator.incrementAndGet();
+				SerialIdGenerator.getAndIncrement();
 			}
 
 			var gKey = cs.GlobalKey;

@@ -1,78 +1,92 @@
 package Zeze.Transaction;
 
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 import Zeze.Util.LongConcurrentHashMap;
 
-public class TableStatistics {
+public final class TableStatistics {
 	// 为了使用的地方可以方便访问，定义成全局的。
 	// 这里的tableId也是全局分配的，即时起多个Zeze.Application，也是没问题的。see Table.cs
-	private final static TableStatistics Instance = new TableStatistics();
+	private static final TableStatistics Instance = new TableStatistics();
+
 	public static TableStatistics getInstance() {
 		return Instance;
 	}
 
-	private final LongConcurrentHashMap<Statistics> Tables = new LongConcurrentHashMap<> ();
-	public final LongConcurrentHashMap<Statistics> getTables() {
+	private final LongConcurrentHashMap<Statistics> Tables = new LongConcurrentHashMap<>();
+
+	private TableStatistics() {
+	}
+
+	public LongConcurrentHashMap<Statistics> getTables() {
 		return Tables;
 	}
 
-	public final Statistics GetOrAdd(int id) {
-		return getTables().computeIfAbsent(id, (key) -> new Statistics());
+	public Statistics GetOrAdd(int id) {
+		return getTables().computeIfAbsent(id, __ -> new Statistics());
 	}
 
-	public static class Statistics {
-		private final AtomicLong ReadLockTimes = new AtomicLong();
-		public final AtomicLong getReadLockTimes() {
+	public static final class Statistics {
+		private final LongAdder ReadLockTimes = new LongAdder();
+		private final LongAdder WriteLockTimes = new LongAdder();
+		private final LongAdder StorageFindCount = new LongAdder();
+		// 这两个统计用来观察cache清理的影响，
+		private final LongAdder TryReadLockTimes = new LongAdder();
+		private final LongAdder TryWriteLockTimes = new LongAdder();
+		// global acquire 的次数，即时没有开启cache-sync，也会有一点点计数，因为没人抢，所以以后总是成功了。
+		private final LongAdder GlobalAcquireShare = new LongAdder();
+		private final LongAdder GlobalAcquireModify = new LongAdder();
+		private final LongAdder GlobalAcquireInvalid = new LongAdder();
+
+		public LongAdder getReadLockTimes() {
 			return ReadLockTimes;
 		}
-		private final AtomicLong WriteLockTimes = new AtomicLong();
-		public final AtomicLong getWriteLockTimes() {
+
+		public LongAdder getWriteLockTimes() {
 			return WriteLockTimes;
 		}
-		private final AtomicLong StorageFindCount = new AtomicLong();
-		public final AtomicLong getStorageFindCount() {
+
+		public LongAdder getStorageFindCount() {
 			return StorageFindCount;
 		}
 
-		// 这两个统计用来观察cache清理的影响，
-		private final AtomicLong TryReadLockTimes = new AtomicLong();
-		public final AtomicLong getTryReadLockTimes() {
+		public LongAdder getTryReadLockTimes() {
 			return TryReadLockTimes;
 		}
-		private final AtomicLong TryWriteLockTimes = new AtomicLong();
-		public final AtomicLong getTryWriteLockTimes() {
+
+		public LongAdder getTryWriteLockTimes() {
 			return TryWriteLockTimes;
 		}
 
-		// global acquire 的次数，即时没有开启cache-sync，也会有一点点计数，因为没人抢，所以以后总是成功了。
-		private final AtomicLong GlobalAcquireShare = new AtomicLong();
-		public final AtomicLong getGlobalAcquireShare() {
+		public LongAdder getGlobalAcquireShare() {
 			return GlobalAcquireShare;
 		}
-		private final AtomicLong GlobalAcquireModify = new AtomicLong();
-		public final AtomicLong getGlobalAcquireModify() {
+
+		public LongAdder getGlobalAcquireModify() {
 			return GlobalAcquireModify;
 		}
-		private final AtomicLong GlobalAcquireInvalid = new AtomicLong();
-		public final AtomicLong getGlobalAcquireInvalid() {
+
+		public LongAdder getGlobalAcquireInvalid() {
 			return GlobalAcquireInvalid;
 		}
 
 		// 虽然有锁升级存在，但数量很少，忽略掉后，就可以把读写访问加起来当作总的查找次数。
-		public final long getTableFindCount() {
-			return getReadLockTimes().get() + getWriteLockTimes().get();
+		public long getTableFindCount() {
+			return getReadLockTimes().sum() + getWriteLockTimes().sum();
 		}
-		public final double getTableCacheHit() {
+
+		public double getTableCacheHit() {
 			double total = getTableFindCount();
-			return (total - getStorageFindCount().get()) / total;
+			return (total - getStorageFindCount().sum()) / total;
 		}
-		public final double getGlobalAcquireShareHit() {
+
+		public double getGlobalAcquireShareHit() {
 			double total = getTableFindCount();
-			return (total - getGlobalAcquireShare().get()) / total;
+			return (total - getGlobalAcquireShare().sum()) / total;
 		}
-		public final double getGlobalAcquireModifyHit() {
+
+		public double getGlobalAcquireModifyHit() {
 			double total = getTableFindCount();
-			return (total - getGlobalAcquireModify().get()) / total;
+			return (total - getGlobalAcquireModify().sum()) / total;
 		}
 	}
 }

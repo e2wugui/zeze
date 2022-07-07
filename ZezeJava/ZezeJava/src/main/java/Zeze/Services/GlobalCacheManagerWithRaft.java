@@ -274,7 +274,7 @@ public class GlobalCacheManagerWithRaft
 
 			cs.setAcquireStatePending(StateShare);
 			//Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
-			SerialId.incrementAndGet();
+			SerialId.getAndIncrement();
 			var SenderAcquired = ServerAcquiredTemplate.OpenTable(sender.ServerId);
 			if (cs.getModify() != -1) {
 				if (cs.getModify() == sender.ServerId) {
@@ -407,7 +407,7 @@ public class GlobalCacheManagerWithRaft
 
 			cs.setAcquireStatePending(StateModify);
 			//Rocks.AtomicLongIncrementAndGet(GlobalSerialIdAtomicLongIndex);
-			SerialId.incrementAndGet();
+			SerialId.getAndIncrement();
 			var SenderAcquired = ServerAcquiredTemplate.OpenTable(sender.ServerId);
 			if (cs.getModify() != -1) {
 				if (cs.getModify() == sender.ServerId) {

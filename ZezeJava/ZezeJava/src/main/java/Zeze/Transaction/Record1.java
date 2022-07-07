@@ -90,15 +90,15 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		var stat = TableStatistics.getInstance().GetOrAdd(TTable.getId());
 		switch (state) {
 		case GlobalCacheManagerServer.StateInvalid:
-			stat.getGlobalAcquireInvalid().incrementAndGet();
+			stat.getGlobalAcquireInvalid().increment();
 			break;
 
 		case GlobalCacheManagerServer.StateShare:
-			stat.getGlobalAcquireShare().incrementAndGet();
+			stat.getGlobalAcquireShare().increment();
 			break;
 
 		case GlobalCacheManagerServer.StateModify:
-			stat.getGlobalAcquireModify().incrementAndGet();
+			stat.getGlobalAcquireModify().increment();
 			break;
 		}
 

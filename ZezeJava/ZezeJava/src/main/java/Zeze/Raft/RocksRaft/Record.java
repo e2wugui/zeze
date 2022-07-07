@@ -30,10 +30,10 @@ public final class Record<K> {
 
 	public static final int StateNew = 0;
 	public static final int StateLoad = 1;
-	private static final AtomicLong _TimestampGen = new AtomicLong();
+	private static final AtomicLong _TimestampGen = new AtomicLong(1);
 
 	public static long getNextTimestamp() {
-		return _TimestampGen.incrementAndGet();
+		return _TimestampGen.getAndIncrement();
 	}
 
 	private final BiConsumer<ByteBuffer, K> keyEncodeFunc;

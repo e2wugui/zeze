@@ -360,7 +360,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 						// 这里不记录future失败，等待raft通知新的Leader启动新的Login。让外面等待的线程一直等待。
 					} else {
 						setActiveTime(System.currentTimeMillis());
-						LoginTimes.incrementAndGet();
+						LoginTimes.getAndIncrement();
 						this.initialize(login.Result.getMaxNetPing(), login.Result.getServerProcessTime(), login.Result.getServerReleaseTimeout());
 						future.SetResult(true);
 					}
@@ -377,7 +377,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 						// 这里不记录future失败，等待raft通知新的Leader启动新的Login。让外面等待的线程一直等待。
 					} else {
 						setActiveTime(System.currentTimeMillis());
-						LoginTimes.incrementAndGet();
+						LoginTimes.getAndIncrement();
 						future.SetResult(true);
 					}
 					return 0;

@@ -182,7 +182,7 @@ public final class Transaction {
 										// 正常一次成功的不统计，用来观察redo多不多。
 										// 失败在 Procedure.cs 中的统计。
 										if (tryCount > 0) {
-											ProcedureStatistics.getInstance().GetOrAdd("Zeze.Transaction.TryCount").GetOrAdd(tryCount).incrementAndGet();
+											ProcedureStatistics.getInstance().GetOrAdd("Zeze.Transaction.TryCount").GetOrAdd(tryCount).increment();
 										}
 										return Procedure.Success;
 									}
@@ -252,9 +252,7 @@ public final class Transaction {
 							// retry
 						} finally {
 							if (checkResult == CheckResult.RedoAndReleaseLock) {
-								for (var holdLock : holdLocks) {
-									holdLock.ExitLock();
-								}
+								holdLocks.forEach(Lockey::ExitLock);
 								holdLocks.clear();
 							}
 							// retry 可能保持已有的锁，清除记录和保存点。
@@ -266,7 +264,7 @@ public final class Transaction {
 						}
 
 						if (checkResult == CheckResult.RedoAndReleaseLock) {
-							//logger.Debug("CheckResult.RedoAndReleaseLock break {0}", procedure);
+							// logger.debug("CheckResult.RedoAndReleaseLock break {}", procedure);
 							break;
 						}
 					}
@@ -285,9 +283,7 @@ public final class Transaction {
 			finalRollback(procedure);
 			return Procedure.TooManyTry;
 		} finally {
-			for (var holdLock : holdLocks) {
-				holdLock.ExitLock();
-			}
+			holdLocks.forEach(Lockey::ExitLock);
 			holdLocks.clear();
 		}
 	}
@@ -335,7 +331,7 @@ public final class Transaction {
 					}
 				}
 			} catch (Throwable e) {
-				logger.fatal("Transaction._final_commit_ " + procedure, e);
+				logger.fatal("Transaction.finalCommit {}", procedure, e);
 				LogManager.shutdown();
 				Runtime.getRuntime().halt(54321);
 			}
@@ -635,7 +631,7 @@ public final class Transaction {
 			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running.");
 		State = TransactionState.RedoAndReleaseLock;
 		//noinspection ConstantConditions
-		ProcedureStatistics.getInstance().GetOrAdd(getTopProcedure().getActionName()).GetOrAdd(Procedure.RedoAndRelease).incrementAndGet();
+		ProcedureStatistics.getInstance().GetOrAdd(getTopProcedure().getActionName()).GetOrAdd(Procedure.RedoAndRelease).increment();
 		GoBackZeze.Throw(msg, cause);
 	}
 

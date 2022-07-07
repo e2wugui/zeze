@@ -9,16 +9,12 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.Record;
 
 public final class ServiceInfos extends Bean {
-	public static class ServiceInfoComparer implements Comparator<ServiceInfo> {
-
-		@Override
-		public int compare(ServiceInfo o1, ServiceInfo o2) {
-			if (o1.getServiceIdentity().startsWith("@"))
-				return o1.getServiceIdentity().compareTo(o2.getServiceIdentity());
-			return Integer.compare(Integer.parseInt(o1.getServiceIdentity()), Integer.parseInt(o2.getServiceIdentity()));
-		}
-	}
-	private static final Comparator<ServiceInfo> Comparer = new ServiceInfoComparer();
+	private static final Comparator<ServiceInfo> Comparer = (si1, si2) -> {
+		String id1 = si1.getServiceIdentity();
+		String id2 = si2.getServiceIdentity();
+		int c = Integer.compare(id1.length(), id2.length());
+		return c != 0 ? c : id1.compareTo(id2);
+	};
 
 	// ServiceList maybe empty. need a ServiceName
 	private String ServiceName;

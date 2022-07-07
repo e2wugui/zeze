@@ -2,7 +2,6 @@ package Zeze.Transaction;
 
 import Zeze.Application;
 import Zeze.IModule;
-import Zeze.Util.Action4;
 import Zeze.Util.FuncLong;
 import Zeze.Util.TaskCanceledException;
 import org.apache.logging.log4j.LogManager;
@@ -30,16 +29,26 @@ public class Procedure {
 	public static final long Closed = -18;
 	// >0 用户自定义。
 
-	private static final Logger logger = LogManager.getLogger(Procedure.class);
-	public static volatile Action4<Throwable, Long, Procedure, String> LogAction = Procedure::DefaultLogAction;
+	public interface ILogAction {
+		void run(Throwable ex, long result, Procedure p, String message);
+	}
 
-	public static void DefaultLogAction(Throwable ex, Long result, Procedure p, String message) {
-		var ll = ex != null ? org.apache.logging.log4j.Level.ERROR
-				: result != 0 ? p.Zeze.getConfig().getProcessReturnErrorLogLevel()
-				: org.apache.logging.log4j.Level.TRACE;
+	private static final Logger logger = LogManager.getLogger(Procedure.class);
+	public static ILogAction LogAction = Procedure::DefaultLogAction;
+
+	public static void DefaultLogAction(Throwable ex, long result, Procedure p, String message) {
+		org.apache.logging.log4j.Level level;
+		if (ex != null)
+			level = org.apache.logging.log4j.Level.ERROR;
+		else if (result != 0)
+			level = p.Zeze.getConfig().getProcessReturnErrorLogLevel();
+		else if (logger.isTraceEnabled())
+			level = org.apache.logging.log4j.Level.TRACE;
+		else
+			return;
 
 		String module = result > 0 ? "@" + IModule.GetModuleId(result) + ":" + IModule.GetErrorCode(result) : "";
-		logger.log(ll, "Procedure={} Return={}{}{} UserState={}", p, result, module, message, p.UserState, ex);
+		logger.log(level, "Procedure={} Return={}{}{} UserState={}", p, result, module, message, p.UserState, ex);
 	}
 
 	private final Application Zeze;
@@ -47,7 +56,7 @@ public class Procedure {
 	private FuncLong Action;
 	private String ActionName;
 	private Object UserState;
-	public Runnable RunWhileCommit;
+//	public Runnable RunWhileCommit;
 
 	// 用于继承方式实现 Procedure。
 	public Procedure(Application app) {
@@ -124,22 +133,24 @@ public class Procedure {
 		currentT.Begin();
 		currentT.getProcedureStack().add(this);
 		try {
-			var runWhileCommit = RunWhileCommit;
-			if (runWhileCommit != null)
-				currentT.runWhileCommit(runWhileCommit);
+//			var runWhileCommit = RunWhileCommit;
+//			if (runWhileCommit != null) {
+//				RunWhileCommit = null;
+//				currentT.runWhileCommit(runWhileCommit);
+//			}
 			long result = Process();
 			currentT.VerifyRunning(); // 防止应用抓住了异常，通过return方式返回。
 
 			if (result == Success) {
 				currentT.Commit();
-				ProcedureStatistics.getInstance().GetOrAdd(ActionName).GetOrAdd(result).incrementAndGet();
+				ProcedureStatistics.getInstance().GetOrAdd(ActionName).GetOrAdd(result).increment();
 				return Success;
 			}
 			currentT.Rollback();
 			var tmpLogAction = LogAction;
 			if (tmpLogAction != null)
 				tmpLogAction.run(null, result, this, "");
-			ProcedureStatistics.getInstance().GetOrAdd(ActionName).GetOrAdd(result).incrementAndGet();
+			ProcedureStatistics.getInstance().GetOrAdd(ActionName).GetOrAdd(result).increment();
 			return result;
 		} catch (GoBackZeze gobackzeze) {
 			// 单独抓住这个异常，是为了能原样抛出，并且使用不同的级别记录日志。
@@ -152,7 +163,7 @@ public class Procedure {
 			var tmpLogAction = LogAction;
 			if (tmpLogAction != null)
 				tmpLogAction.run(e, Exception, this, "");
-			ProcedureStatistics.getInstance().GetOrAdd(ActionName).GetOrAdd(Exception).incrementAndGet();
+			ProcedureStatistics.getInstance().GetOrAdd(ActionName).GetOrAdd(Exception).increment();
 			// 验证状态：Running状态将吃掉所有异常。
 			currentT.VerifyRunning();
 			// 对于 unit test 的异常特殊处理，与unit test框架能搭配工作

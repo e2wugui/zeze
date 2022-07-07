@@ -29,7 +29,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public static final Logger logger = LogManager.getLogger(AsyncSocket.class);
 	public static final Level LEVEL_PROTOCOL_LOG = Level.toLevel(System.getProperty("protocolLog"), Level.OFF);
 	public static final boolean ENABLE_PROTOCOL_LOG = LEVEL_PROTOCOL_LOG != Level.OFF;
-	private static final AtomicLong SessionIdGen = new AtomicLong();
+	private static final AtomicLong SessionIdGen = new AtomicLong(1);
 	private static LongSupplier SessionIdGenFunc;
 
 	static {
@@ -41,13 +41,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	private static long nextSessionId() {
-		if (SessionIdGenFunc == null)
-			return SessionIdGen.incrementAndGet();
-		try {
-			return SessionIdGenFunc.getAsLong();
-		} catch (Throwable e) {
-			throw new RuntimeException(e);
-		}
+		var genFunc = SessionIdGenFunc;
+		return genFunc != null ? genFunc.getAsLong() : SessionIdGen.getAndIncrement();
 	}
 
 	private final ReentrantLock lock = new ReentrantLock();

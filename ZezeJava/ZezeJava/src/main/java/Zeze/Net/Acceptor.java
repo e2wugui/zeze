@@ -14,10 +14,6 @@ public class Acceptor {
 		Port = port;
 	}
 
-	public void setPort(int port) {
-		Port = port;
-	}
-
 	public Acceptor(Element self) {
 		Ip = self.getAttribute("Ip");
 		String attr = self.getAttribute("Port");
@@ -30,6 +26,10 @@ public class Acceptor {
 
 	public final int getPort() {
 		return Port;
+	}
+
+	public final void setPort(int port) {
+		Port = port;
 	}
 
 	public final String getName() {
@@ -53,8 +53,8 @@ public class Acceptor {
 	public final synchronized void Start() {
 		if (Socket == null)
 			Socket = Ip.isEmpty()
-					? getService().NewServerSocket(new InetSocketAddress(Port), this)
-					: getService().NewServerSocket(Ip, Port, this);
+					? Service.NewServerSocket(new InetSocketAddress(Port), this)
+					: Service.NewServerSocket(Ip, Port, this);
 	}
 
 	public final synchronized void Stop() {

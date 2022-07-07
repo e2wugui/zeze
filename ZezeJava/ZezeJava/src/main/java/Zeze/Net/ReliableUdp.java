@@ -154,7 +154,7 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 		private final ReliableUdpHandle Handle;
 		private final SocketAddress Peer;
 		private final LongConcurrentHashMap<Packet> SendWindow = new LongConcurrentHashMap<>();
-		private final AtomicLong SerialIdGenerator = new AtomicLong();
+		private final AtomicLong SerialIdGenerator = new AtomicLong(1);
 		private final LongConcurrentHashMap<Packet> RecvWindow = new LongConcurrentHashMap<>();
 
 		private long LastDispatchedSerialId;
@@ -170,7 +170,7 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 			if (length > MaxPacketLength)
 				throw new IllegalArgumentException("length > MaxPacketLength: " + MaxPacketLength);
 
-			var serialId = SerialIdGenerator.incrementAndGet();
+			var serialId = SerialIdGenerator.getAndIncrement();
 			var packet = new Packet(serialId, bytes, offset, length);
 			SendWindow.put(packet.SerialId, packet);
 

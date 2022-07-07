@@ -27,7 +27,7 @@ import org.apache.logging.log4j.Logger;
 
 public class Service {
 	protected static final Logger logger = LogManager.getLogger(Service.class);
-	private static final AtomicLong StaticSessionIdAtomicLong = new AtomicLong();
+	private static final AtomicLong StaticSessionIdAtomicLong = new AtomicLong(1);
 
 	private final String Name;
 	private final Application Zeze;
@@ -107,7 +107,7 @@ public class Service {
 
 	public final long NextSessionId() {
 		LongSupplier gen = SessionIdGenerator;
-		return gen != null ? gen.getAsLong() : StaticSessionIdAtomicLong.incrementAndGet();
+		return gen != null ? gen.getAsLong() : StaticSessionIdAtomicLong.getAndIncrement();
 	}
 
 	public final int getSocketCount() {

@@ -72,8 +72,8 @@ public final class Tasks {
 			var runCount = getRunCounter(name).sum();
 			var successCount = getSuccessCounter(name).sum();
 			var stats = ProcedureStatistics.getInstance().GetOrAdd(name);
-			var abortCount = stats.GetOrAdd(Procedure.AbortException).get();
-			var tooManyTry = stats.GetOrAdd(Procedure.TooManyTry).get();
+			var abortCount = stats.GetOrAdd(Procedure.AbortException).sum();
+			var tooManyTry = stats.GetOrAdd(Procedure.TooManyTry).sum();
 			Simulate.logger.info("  totalCount({})={}", name, runCount);
 			Simulate.logger.info("successCount({})={}", name, successCount);
 			if (abortCount != 0)
@@ -326,8 +326,8 @@ public final class Tasks {
 							if (valueBytes != null) {
 								valueBytes.ReadIndex = 0;
 								e.getKey().ReadIndex = 0;
-								var k = table1.DecodeKey(e.getKey());
-								var v = table1.DecodeValue(valueBytes).getInt1();
+								// var k = table1.DecodeKey(e.getKey());
+								// var v = table1.DecodeValue(valueBytes).getInt1();
 								// Simulate.logger.info("=== {}:{}", k, v);
 							}
 						}

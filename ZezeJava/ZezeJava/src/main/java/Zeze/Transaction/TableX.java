@@ -111,7 +111,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				var beforeTimestamp = r.getTimestamp();
 
 				if (null != TStorage) {
-					TableStatistics.getInstance().GetOrAdd(getId()).getStorageFindCount().incrementAndGet();
+					TableStatistics.getInstance().GetOrAdd(getId()).getStorageFindCount().increment();
 					strongRef = TStorage.Find(key, this);
 					if (null != strongRef) {
 						RocksCachePut(key, strongRef);

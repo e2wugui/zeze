@@ -13,8 +13,8 @@ import Zeze.Services.GlobalCacheManagerServer;
  * 一个事务内访问的记录的集合。如果事务没有没提交，需要合并集合。
  */
 public final class RelativeRecordSet {
-	public static final AtomicLong IdGenerator = new AtomicLong();
-	public static final RelativeRecordSet Deleted = new RelativeRecordSet();
+	private static final AtomicLong IdGenerator = new AtomicLong(1);
+	private static final RelativeRecordSet Deleted = new RelativeRecordSet();
 	private static final ConcurrentHashMap<RelativeRecordSet, RelativeRecordSet> RelativeRecordSetMap = new ConcurrentHashMap<>();
 
 	private final ReentrantLock mutex = new ReentrantLock(true);
@@ -26,7 +26,7 @@ public final class RelativeRecordSet {
 	private volatile RelativeRecordSet MergeTo; // 不为null表示发生了变化，其中 == Deleted 表示被删除（已经Flush了）。
 
 	public RelativeRecordSet() {
-		Id = IdGenerator.incrementAndGet();
+		Id = IdGenerator.getAndIncrement();
 	}
 
 	public HashSet<Record> getRecordSet() {
@@ -74,13 +74,10 @@ public final class RelativeRecordSet {
 	public void Delete() {
 		if (RecordSet != null) { // 孤立记录不需要更新。
 			// Flush完成以后，清除关联集合，
-			for (var r : RecordSet) {
-				r.setRelativeRecordSet(new RelativeRecordSet());
-			}
+			RecordSet.forEach(r -> r.setRelativeRecordSet(new RelativeRecordSet()));
 			MergeTo = Deleted;
 		}
 	}
-
 
 	public void Lock() {
 		mutex.lock();
@@ -119,13 +116,14 @@ public final class RelativeRecordSet {
 		boolean allCheckpointWhenCommit = true;
 
 		var RelativeRecordSets = new TreeMap<Long, RelativeRecordSet>();
-		HashSet<Record> transAccessRecords = new HashSet<>();
+		var transAccessRecords = new HashSet<Record>();
 		boolean allRead = true;
 		for (var ar : trans.getAccessedRecords().values()) {
 			if (ar.Dirty)
 				allRead = false;
 
-			if (ar.AtomicTupleRecord.Record.getTable().getTableConf().getCheckpointWhenCommit()) {
+			var record = ar.AtomicTupleRecord.Record;
+			if (record.getTable().getTableConf().getCheckpointWhenCommit()) {
 				// 修改了需要马上提交的记录。
 				if (ar.Dirty) {
 					needFlushNow = true;
@@ -134,8 +132,8 @@ public final class RelativeRecordSet {
 				allCheckpointWhenCommit = false;
 			}
 			// 读写都需要收集。
-			transAccessRecords.add(ar.AtomicTupleRecord.Record);
-			final var volatileRrs = ar.AtomicTupleRecord.Record.getRelativeRecordSet();
+			transAccessRecords.add(record);
+			var volatileRrs = record.getRelativeRecordSet();
 			RelativeRecordSets.put(volatileRrs.Id, volatileRrs);
 		}
 
@@ -200,9 +198,7 @@ public final class RelativeRecordSet {
 			// else
 			// 本次事务没有访问任何数据。
 		} finally {
-			for (var rrs : LockedRelativeRecordSets) {
-				rrs.UnLock();
-			}
+			LockedRelativeRecordSets.forEach(RelativeRecordSet::UnLock);
 		}
 	}
 
@@ -228,10 +224,10 @@ public final class RelativeRecordSet {
 		if (largest.RecordSet != null || !allRead) {
 			// merge 孤立记录。
 			for (var ar : trans.getAccessedRecords().values()) {
-				if (ar.AtomicTupleRecord.Record.getRelativeRecordSet().RecordSet == null
-						|| ar.AtomicTupleRecord.Record.getRelativeRecordSet() == largest /* is self. urgly */) {
-					largest.Merge(ar.AtomicTupleRecord.Record); // 合并孤立记录。这里包含largest是孤立记录的情况。
-				}
+				var record = ar.AtomicTupleRecord.Record;
+				var rrs = record.getRelativeRecordSet();
+				if (rrs.RecordSet == null || rrs == largest /* is self. ugly */)
+					largest.Merge(record); // 合并孤立记录。这里包含largest是孤立记录的情况。
 			}
 		}
 

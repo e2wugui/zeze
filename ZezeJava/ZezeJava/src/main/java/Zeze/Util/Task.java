@@ -12,6 +12,7 @@ import Zeze.Application;
 import Zeze.IModule;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolErrorHandle;
+import Zeze.Net.Service;
 import Zeze.Raft.RaftRetryException;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.ProcedureStatistics;
@@ -20,13 +21,17 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public final class Task {
+	public interface ILogAction {
+		void run(Throwable ex, long result, Protocol<?> p, String actionName);
+	}
+
 	static final Logger logger = LogManager.getLogger(Task.class);
 	private static ExecutorService threadPoolDefault;
 	private static ScheduledExecutorService threadPoolScheduled;
 	private static ExecutorService threadPoolCritical; // 用来执行内部的一些重要任务，和系统默认 ThreadPool 分开，防止饥饿。
-	//	private static final ThreadPoolExecutor rpcResponseThreadPool
+	// private static final ThreadPoolExecutor rpcResponseThreadPool
 	//			= (ThreadPoolExecutor)Executors.newCachedThreadPool(new ThreadFactoryWithName("ZezeRespPool"));
-	public static volatile Action4<Level, Throwable, Long, String> LogAction = Task::DefaultLogAction;
+	public static ILogAction LogAction = Task::DefaultLogAction;
 
 	static {
 		ShutdownHook.init();
@@ -186,13 +191,36 @@ public final class Task {
 		}, initialDelay, TimeUnit.MILLISECONDS);
 	}
 
-	public static void DefaultLogAction(Level level, Throwable ex, Long result, String msg) {
+	public static void DefaultLogAction(Throwable ex, long result, Protocol<?> p, String actionName) {
 		// exception -> Error
-		// 0 != result -> level from parameter
+		// 0 != result -> level from p or Info
 		// others -> Trace
-		Level ll = (ex != null) ? Level.ERROR : (result != 0) ? level : Level.TRACE;
-		final var module = result > 0 ? "@" + IModule.GetModuleId(result) + ":" + IModule.GetErrorCode(result) : "";
-		logger.log(ll, () -> msg + " Return=" + result + module, ex);
+		Level level;
+		if (ex != null)
+			level = Level.ERROR;
+		else if (result != 0) {
+			Service s;
+			Application zeze;
+			if (p != null && (s = p.getService()) != null && (zeze = s.getZeze()) != null)
+				level = zeze.getConfig().getProcessReturnErrorLogLevel();
+			else {
+				if (!logger.isDebugEnabled())
+					return;
+				level = Level.DEBUG;
+			}
+		} else {
+			if (!logger.isTraceEnabled())
+				return;
+			level = Level.TRACE;
+		}
+		Object userState;
+		String userStateStr = p != null && (userState = p.getUserState()) != null ? " UserState=" + userState : "";
+
+		if (result > 0) {
+			logger.log(level, "Action={}{} Return={}@{}:{}", actionName, userStateStr, result,
+					IModule.GetModuleId(result), IModule.GetErrorCode(result), ex);
+		} else
+			logger.log(level, "Action={}{} Return={}", actionName, userStateStr, result, ex);
 	}
 
 	public static void LogAndStatistics(long result, Protocol<?> p, boolean IsRequestSaved) {
@@ -204,21 +232,18 @@ public final class Task {
 	}
 
 	public static void LogAndStatistics(Throwable ex, long result, Protocol<?> p, boolean IsRequestSaved, String aName) {
-		final var actionName = null != aName ? aName : IsRequestSaved ? p.getClass().getName() : p.getClass().getName() + ":Response";
-		var logLevel = p != null && p.getService() != null && p.getService().getZeze() != null
-				? p.getService().getZeze().getConfig().getProcessReturnErrorLogLevel()
-				: Level.TRACE;
+		var actionName = null != aName ? aName : IsRequestSaved ? p.getClass().getName() : p.getClass().getName() + ":Response";
 		var tmpVolatile = LogAction;
 		if (tmpVolatile != null) {
 			try {
-				tmpVolatile.run(logLevel, ex, result, "Action=" + actionName + (p != null ? " UserState=" + p.getUserState() : ""));
+				tmpVolatile.run(ex, result, p, actionName);
 			} catch (AssertionError e) {
 				throw e;
 			} catch (Throwable e) {
-				logger.error("LogAction Exception", e);
+				logger.error("LogAndStatistics Exception", e);
 			}
 		}
-		ProcedureStatistics.getInstance().GetOrAdd(actionName).GetOrAdd(result).incrementAndGet();
+		ProcedureStatistics.getInstance().GetOrAdd(actionName).GetOrAdd(result).increment();
 	}
 
 	public static long Call(FuncLong func, Protocol<?> p) {

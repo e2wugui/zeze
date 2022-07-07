@@ -25,10 +25,10 @@ public abstract class Record {
 
 	// 时戳生成器，运行时状态，需要持久化时，再考虑保存到数据库。
 	// 0 保留给不存在记录的的时戳。
-	private static final AtomicLong _TimestampGen = new AtomicLong();
+	private static final AtomicLong _TimestampGen = new AtomicLong(1);
 
 	public static long getNextTimestamp() {
-		return _TimestampGen.incrementAndGet();
+		return _TimestampGen.getAndIncrement();
 	}
 
 	private final ReentrantLock FairLock = new ReentrantLock(true);

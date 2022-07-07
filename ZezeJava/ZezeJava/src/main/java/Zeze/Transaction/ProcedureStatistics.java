@@ -1,7 +1,7 @@
 package Zeze.Transaction;
 
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -30,24 +30,24 @@ public final class ProcedureStatistics {
 	}
 
 	public Statistics GetOrAdd(String procedureName) {
-		return Procedures.computeIfAbsent(procedureName, key -> new Statistics());
+		return Procedures.computeIfAbsent(procedureName, __ -> new Statistics());
 	}
 
 	public static final class Statistics {
-		private final LongConcurrentHashMap<AtomicLong> Results = new LongConcurrentHashMap<>();
+		private final LongConcurrentHashMap<LongAdder> Results = new LongConcurrentHashMap<>();
 
-		public LongConcurrentHashMap<AtomicLong> getResults() {
+		public LongConcurrentHashMap<LongAdder> getResults() {
 			return Results;
 		}
 
-		public AtomicLong GetOrAdd(long result) {
-			return Results.computeIfAbsent(result, key -> new AtomicLong());
+		public LongAdder GetOrAdd(long result) {
+			return Results.computeIfAbsent(result, __ -> new LongAdder());
 		}
 
 		public long GetTotalCount() {
 			long total = 0;
 			for (var v : Results)
-				total += v.get();
+				total += v.sum();
 			return total;
 		}
 
