@@ -48,6 +48,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 
 	private static final boolean ENABLE_PERF = true;
 	private static final Logger logger = LogManager.getLogger(GlobalCacheManagerAsyncServer.class);
+	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 	private static final GlobalCacheManagerAsyncServer Instance = new GlobalCacheManagerAsyncServer();
 
 	public static GlobalCacheManagerAsyncServer getInstance() {
@@ -358,7 +359,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				switch (cs.AcquireStatePending) {
 				case StateShare:
 				case StateModify:
-					logger.debug("Release 0 {} {} {}", sender, gKey, cs);
+					if (isDebugEnabled)
+						logger.debug("Release 0 {} {} {}", sender, gKey, cs);
 					break;
 				case StateRemoving:
 					// release 不会导致死锁，等待即可。
@@ -413,7 +415,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				switch (cs.AcquireStatePending) {
 				case StateShare:
 				case StateModify:
-					logger.debug("Release 0 {} {} {}", sender, gKey, cs);
+					if (isDebugEnabled)
+						logger.debug("Release 0 {} {} {}", sender, gKey, cs);
 					rpc.Result.State = cs.GetSenderCacheState(sender);
 					rpc.SendResultCode(0);
 					if (ENABLE_PERF)
@@ -479,7 +482,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 						if (cs.Modify == null)
 							throw new IllegalStateException("CacheState state error");
 						if (cs.Modify == sender) {
-							logger.debug("1 {} {} {}", sender, StateShare, cs);
+							if (isDebugEnabled)
+								logger.debug("1 {} {} {}", sender, StateShare, cs);
 							rpc.Result.State = StateInvalid;
 							rpc.SendResultCode(AcquireShareDeadLockFound);
 							if (ENABLE_PERF)
@@ -489,7 +493,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 						break;
 					case StateModify:
 						if (cs.Modify == sender || cs.Share.contains(sender)) {
-							logger.debug("2 {} {} {}", sender, StateShare, cs);
+							if (isDebugEnabled)
+								logger.debug("2 {} {} {}", sender, StateShare, cs);
 							rpc.Result.State = StateInvalid;
 							rpc.SendResultCode(AcquireShareDeadLockFound);
 							if (ENABLE_PERF)
@@ -500,7 +505,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					case StateRemoving:
 						break;
 					}
-					logger.debug("3 {} {} {}", sender, StateShare, cs);
+					if (isDebugEnabled)
+						logger.debug("3 {} {} {}", sender, StateShare, cs);
 					state.stage = 1;
 					cs.lock.leaveAndWaitNotify();
 					return;
@@ -523,7 +529,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 						// 又重启连上。更新一下。应该是不需要的。
 						sender.Acquired.put(gKey, StateModify);
 						cs.AcquireStatePending = StateInvalid;
-						logger.debug("4 {} {} {}", sender, StateShare, cs);
+						if (isDebugEnabled)
+							logger.debug("4 {} {} {}", sender, StateShare, cs);
 						rpc.Result.State = StateModify;
 						rpc.SendResultCode(AcquireShareAlreadyIsModify);
 						if (ENABLE_PERF)
@@ -539,7 +546,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 						cs.lock.enter(cs.lock::notifyAllWait);
 						return 0;
 					}) != null) {
-						logger.debug("5 {} {} {}", sender, StateShare, cs);
+						if (isDebugEnabled)
+							logger.debug("5 {} {} {}", sender, StateShare, cs);
 						state.stage = 2;
 						cs.lock.leaveAndWaitNotify();
 						return;
@@ -592,7 +600,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				cs.Share.add(sender);
 				cs.AcquireStatePending = StateInvalid;
 				cs.lock.notifyAllWait();
-				logger.debug("6 {} {} {}", sender, StateShare, cs);
+				if (isDebugEnabled)
+					logger.debug("6 {} {} {}", sender, StateShare, cs);
 				rpc.SendResultCode(0);
 				if (ENABLE_PERF)
 					perf.onAcquireEnd(rpc, StateShare);
@@ -603,7 +612,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			cs.Share.add(sender);
 			cs.AcquireStatePending = StateInvalid;
 			cs.lock.notifyAllWait();
-			logger.debug("7 {} {} {}", sender, StateShare, cs);
+			if (isDebugEnabled)
+				logger.debug("7 {} {} {}", sender, StateShare, cs);
 			rpc.SendResultCode(0);
 			if (ENABLE_PERF)
 				perf.onAcquireEnd(rpc, StateShare);
@@ -638,7 +648,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 							throw new IllegalStateException("CacheState state error");
 
 						if (cs.Modify == sender) {
-							logger.debug("1 {} {} {}", sender, StateModify, cs);
+							if (isDebugEnabled)
+								logger.debug("1 {} {} {}", sender, StateModify, cs);
 							rpc.Result.State = StateInvalid;
 							rpc.SendResultCode(AcquireModifyDeadLockFound);
 							if (ENABLE_PERF)
@@ -648,7 +659,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 						break;
 					case StateModify:
 						if (cs.Modify == sender || cs.Share.contains(sender)) {
-							logger.debug("2 {} {} {}", sender, StateModify, cs);
+							if (isDebugEnabled)
+								logger.debug("2 {} {} {}", sender, StateModify, cs);
 							rpc.Result.State = StateInvalid;
 							rpc.SendResultCode(AcquireModifyDeadLockFound);
 							if (ENABLE_PERF)
@@ -659,7 +671,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					case StateRemoving:
 						break;
 					}
-					logger.debug("3 {} {} {}", sender, StateModify, cs);
+					if (isDebugEnabled)
+						logger.debug("3 {} {} {}", sender, StateModify, cs);
 					state.stage = 1;
 					cs.lock.leaveAndWaitNotify();
 					return;
@@ -678,7 +691,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			if (cs.Modify != null || state.stage == 2) {
 				if (state.stage != 2) {
 					if (cs.Modify == sender) {
-						logger.debug("4 {} {} {}", sender, StateModify, cs);
+						if (isDebugEnabled)
+							logger.debug("4 {} {} {}", sender, StateModify, cs);
 						// 已经是Modify又申请，可能是sender异常关闭，又重启连上。
 						// 更新一下。应该是不需要的。
 						sender.Acquired.put(gKey, StateModify);
@@ -698,7 +712,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 						cs.lock.enter(cs.lock::notifyAllWait);
 						return 0;
 					}) != null) {
-						logger.debug("5 {} {} {}", sender, StateModify, cs);
+						if (isDebugEnabled)
+							logger.debug("5 {} {} {}", sender, StateModify, cs);
 						state.stage = 2;
 						cs.lock.leaveAndWaitNotify();
 						return;
@@ -743,7 +758,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				cs.Share.remove(sender);
 				cs.AcquireStatePending = StateInvalid;
 				cs.lock.notifyAllWait();
-				logger.debug("6 {} {} {}", sender, StateModify, cs);
+				if (isDebugEnabled)
+					logger.debug("6 {} {} {}", sender, StateModify, cs);
 				rpc.SendResultCode(0);
 				if (ENABLE_PERF)
 					perf.onAcquireEnd(rpc, StateModify);
@@ -802,7 +818,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					cs.Modify = sender;
 					cs.AcquireStatePending = StateInvalid;
 					cs.lock.notifyAllWait();
-					logger.debug("8 {} {} {}", sender, StateModify, cs);
+					if (isDebugEnabled)
+						logger.debug("8 {} {} {}", sender, StateModify, cs);
 					rpc.SendResultCode(0);
 				} else {
 					// senderIsShare 在失败的时候，Acquired 没有变化，不需要更新。
@@ -830,7 +847,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			// 1. share是空的, 可以直接升为Modify
 			// 2. sender是share, 而且reducePending的size是0
 			if (!cs.Share.isEmpty() && (!senderIsShare || !reducePending.isEmpty())) {
-				logger.debug("7 {} {} {}", sender, StateModify, cs);
+				if (isDebugEnabled)
+					logger.debug("7 {} {} {}", sender, StateModify, cs);
 				allReduceFuture.then(__ -> {
 					// 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，
 					// 应该也会等待所有任务结束（包括错误）。

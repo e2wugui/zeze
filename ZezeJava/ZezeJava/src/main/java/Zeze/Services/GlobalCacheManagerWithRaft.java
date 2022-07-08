@@ -46,6 +46,7 @@ public class GlobalCacheManagerWithRaft
 
 	private static final boolean ENABLE_PERF = true;
 	private static final Logger logger = LogManager.getLogger(GlobalCacheManagerWithRaft.class);
+	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 	public static final int GlobalSerialIdAtomicLongIndex = 0;
 
 	private final Rocks Rocks;
@@ -248,14 +249,16 @@ public class GlobalCacheManagerWithRaft
 						throw new IllegalStateException("CacheState state error");
 
 					if (cs.getModify() == sender.ServerId) {
-						logger.debug("1 {} {} {}", sender, StateShare, cs);
+						if (isDebugEnabled)
+							logger.debug("1 {} {} {}", sender, StateShare, cs);
 						rpc.Result.setState(StateInvalid);
 						return AcquireShareDeadLockFound; // 事务数据没有改变，回滚
 					}
 					break;
 				case StateModify:
 					if (cs.getModify() == sender.ServerId || cs.getShare().Contains(sender.ServerId)) {
-						logger.debug("2 {} {} {}", sender, StateShare, cs);
+						if (isDebugEnabled)
+							logger.debug("2 {} {} {}", sender, StateShare, cs);
 						rpc.Result.setState(StateInvalid);
 						return AcquireShareDeadLockFound; // 事务数据没有改变，回滚
 					}
@@ -263,7 +266,8 @@ public class GlobalCacheManagerWithRaft
 				case StateRemoving:
 					break;
 				}
-				logger.debug("3 {} {} {}", sender, StateShare, cs);
+				if (isDebugEnabled)
+					logger.debug("3 {} {} {}", sender, StateShare, cs);
 				lockey.Wait();
 				if (cs.getModify() != -1 && cs.getShare().size() != 0)
 					throw new IllegalStateException("CacheState state error");
@@ -282,7 +286,8 @@ public class GlobalCacheManagerWithRaft
 					// 又重启连上。更新一下。应该是不需要的。
 					SenderAcquired.Put(globalTableKey, newAcquiredState(StateModify));
 					cs.setAcquireStatePending(StateInvalid);
-					logger.debug("4 {} {} {}", sender, StateShare, cs);
+					if (isDebugEnabled)
+						logger.debug("4 {} {} {}", sender, StateShare, cs);
 					rpc.Result.setState(StateModify);
 					rpc.setResultCode(AcquireShareAlreadyIsModify);
 					return 0; // 可以忽略的错误，数据有改变，需要提交事务。
@@ -301,7 +306,8 @@ public class GlobalCacheManagerWithRaft
 					}
 					return 0;
 				})) {
-					logger.debug("5 {} {} {}", sender, StateShare, cs);
+					if (isDebugEnabled)
+						logger.debug("5 {} {} {}", sender, StateShare, cs);
 					lockey.Wait();
 				}
 
@@ -344,7 +350,8 @@ public class GlobalCacheManagerWithRaft
 				cs.setModify(-1);
 				cs.getShare().add(sender.ServerId);
 				cs.setAcquireStatePending(StateInvalid);
-				logger.debug("6 {} {} {}", sender, StateShare, cs);
+				if (isDebugEnabled)
+					logger.debug("6 {} {} {}", sender, StateShare, cs);
 				lockey.PulseAll();
 				return 0; // 成功也会自动发送结果.
 			}
@@ -352,7 +359,8 @@ public class GlobalCacheManagerWithRaft
 			SenderAcquired.Put(globalTableKey, newAcquiredState(StateShare));
 			cs.getShare().add(sender.ServerId);
 			cs.setAcquireStatePending(StateInvalid);
-			logger.debug("7 {} {} {}", sender, StateShare, cs);
+			if (isDebugEnabled)
+				logger.debug("7 {} {} {}", sender, StateShare, cs);
 			lockey.PulseAll();
 			return 0; // 成功也会自动发送结果.
 		}
@@ -382,14 +390,16 @@ public class GlobalCacheManagerWithRaft
 						throw new IllegalStateException("CacheState state error");
 					}
 					if (cs.getModify() == sender.ServerId) {
-						logger.debug("1 {} {} {}", sender, StateModify, cs);
+						if (isDebugEnabled)
+							logger.debug("1 {} {} {}", sender, StateModify, cs);
 						rpc.Result.setState(StateInvalid);
 						return AcquireModifyDeadLockFound; // 事务数据没有改变，回滚
 					}
 					break;
 				case StateModify:
 					if (cs.getModify() == sender.ServerId || cs.getShare().Contains(sender.ServerId)) {
-						logger.debug("2 {} {} {}", sender, StateModify, cs);
+						if (isDebugEnabled)
+							logger.debug("2 {} {} {}", sender, StateModify, cs);
 						rpc.Result.setState(StateInvalid);
 						return AcquireModifyDeadLockFound; // 事务数据没有改变，回滚
 					}
@@ -397,7 +407,8 @@ public class GlobalCacheManagerWithRaft
 				case StateRemoving:
 					break;
 				}
-				logger.debug("3 {} {} {}", sender, StateModify, cs);
+				if (isDebugEnabled)
+					logger.debug("3 {} {} {}", sender, StateModify, cs);
 				lockey.Wait();
 				if (cs.getModify() != -1 && cs.getShare().size() != 0)
 					throw new IllegalStateException("CacheState state error");
@@ -415,7 +426,8 @@ public class GlobalCacheManagerWithRaft
 					// 更新一下。应该是不需要的。
 					SenderAcquired.Put(globalTableKey, newAcquiredState(StateModify));
 					cs.setAcquireStatePending(StateInvalid);
-					logger.debug("4 {} {} {}", sender, StateModify, cs);
+					if (isDebugEnabled)
+						logger.debug("4 {} {} {}", sender, StateModify, cs);
 					lockey.PulseAll();
 					rpc.setResultCode(AcquireModifyAlreadyIsModify);
 					return 0; // 可以忽略的错误，数据有改变，需要提交事务。
@@ -434,7 +446,8 @@ public class GlobalCacheManagerWithRaft
 					}
 					return 0;
 				})) {
-					logger.debug("5 {} {} {}", sender, StateModify, cs);
+					if (isDebugEnabled)
+						logger.debug("5 {} {} {}", sender, StateModify, cs);
 					lockey.Wait();
 				}
 
@@ -472,7 +485,8 @@ public class GlobalCacheManagerWithRaft
 				cs.setAcquireStatePending(StateInvalid);
 				lockey.PulseAll();
 
-				logger.debug("6 {} {} {}", sender, StateModify, cs);
+				if (isDebugEnabled)
+					logger.debug("6 {} {} {}", sender, StateModify, cs);
 				return 0;
 			}
 
@@ -552,7 +566,8 @@ public class GlobalCacheManagerWithRaft
 						lockey.Exit();
 					}
 				}, "GlobalCacheManagerWithRaft.AcquireModify.WaitReduce");
-				logger.debug("7 {} {} {}", sender, StateModify, cs);
+				if (isDebugEnabled)
+					logger.debug("7 {} {} {}", sender, StateModify, cs);
 				lockey.Wait();
 			}
 
@@ -591,7 +606,8 @@ public class GlobalCacheManagerWithRaft
 			SenderAcquired.Put(globalTableKey, newAcquiredState(StateModify));
 			cs.setModify(sender.ServerId);
 			cs.setAcquireStatePending(StateInvalid);
-			logger.debug("8 {} {} {}", sender, StateModify, cs);
+			if (isDebugEnabled)
+				logger.debug("8 {} {} {}", sender, StateModify, cs);
 			lockey.PulseAll();
 			return 0; // 成功也会自动发送结果.
 		}
@@ -616,7 +632,8 @@ public class GlobalCacheManagerWithRaft
 				switch (cs.getAcquireStatePending()) {
 				case StateShare:
 				case StateModify:
-					logger.debug("Release 0 {} {} {}", sender, gkey, cs);
+					if (isDebugEnabled)
+						logger.debug("Release 0 {} {} {}", sender, gkey, cs);
 					if (noWait)
 						return GetSenderCacheState(cs, sender);
 					break;

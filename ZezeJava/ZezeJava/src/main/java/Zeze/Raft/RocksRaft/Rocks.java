@@ -52,7 +52,8 @@ import org.rocksdb.WriteBatch;
 import org.rocksdb.WriteOptions;
 
 public final class Rocks extends StateMachine implements Closeable {
-	public static final Logger logger = LogManager.getLogger(Rocks.class);
+	static final Logger logger = LogManager.getLogger(Rocks.class);
+	static final boolean isDebugEnabled = logger.isDebugEnabled();
 
 	public static void RegisterLog(Supplier<Log> s) {
 		Log.Register(s);

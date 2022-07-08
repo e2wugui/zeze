@@ -20,6 +20,7 @@ import org.apache.logging.log4j.Logger;
 
 public final class GlobalAgent implements IGlobalAgent {
 	private static final Logger logger = LogManager.getLogger(GlobalAgent.class);
+	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 
 	public static final class Agent extends GlobalAgentBase {
 		private final Connector connector;
@@ -190,7 +191,8 @@ public final class GlobalAgent implements IGlobalAgent {
 			state = rpc.Result.State;
 			return rc == 0 ? AcquireResult.getSuccessResult(state) : new AcquireResult(rc, state);
 		}
-		logger.debug("Acquire local ++++++");
+		if (isDebugEnabled)
+			logger.debug("Acquire local ++++++");
 		return AcquireResult.getSuccessResult(state);
 	}
 

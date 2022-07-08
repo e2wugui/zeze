@@ -17,6 +17,7 @@ import org.apache.logging.log4j.Logger;
  */
 public abstract class Database {
 	protected static final Logger logger = LogManager.getLogger(Database.class);
+	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 
 	static {
 		ShutdownHook.init();
@@ -91,7 +92,8 @@ public abstract class Database {
 			for (var storage : storages) {
 				countEncodeN += storage.EncodeN();
 			}
-			logger.debug("Checkpoint EncodeN {}@{}", i, countEncodeN);
+			if (isDebugEnabled)
+				logger.debug("Checkpoint EncodeN {}@{}", i, countEncodeN);
 		}
 	}
 

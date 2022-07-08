@@ -22,6 +22,7 @@ import org.apache.logging.log4j.Logger;
 
 public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerWithRaftAgent implements IGlobalAgent {
 	private static final Logger logger = LogManager.getLogger(GlobalCacheManagerWithRaftAgent.class);
+	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 
 	private final Zeze.Application zz;
 	public RaftAgent[] Agents;
@@ -208,7 +209,8 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			state = rpc.Result.getState();
 			return rc == 0 ? AcquireResult.getSuccessResult(state) : new AcquireResult(rc, state);
 		}
-		logger.debug("Acquire local ++++++");
+		if (isDebugEnabled)
+			logger.debug("Acquire local ++++++");
 		return AcquireResult.getSuccessResult(state);
 	}
 

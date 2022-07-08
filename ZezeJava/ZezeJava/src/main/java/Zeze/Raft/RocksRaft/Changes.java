@@ -201,7 +201,8 @@ public final class Changes extends Zeze.Raft.Log {
 	@Override
 	public void Apply(RaftLog holder, StateMachine stateMachine) {
 		if (holder.getLeaderFuture() != null) {
-			Rocks.logger.debug("{} LeaderApply", rocks.getRaft().getName());
+			if (Rocks.isDebugEnabled)
+				Rocks.logger.debug("{} LeaderApply", rocks.getRaft().getName());
 			transaction.LeaderApply(this);
 		} else {
 			// Rocks.logger.debug("{} FollowerApply", rocks.getRaft().getName());

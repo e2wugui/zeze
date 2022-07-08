@@ -32,6 +32,7 @@ import org.rocksdb.WriteOptions;
 
 public class LogSequence {
 	static final Logger logger = LogManager.getLogger(LogSequence.class);
+	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 	public static final String SnapshotFileName = "snapshot.dat";
 
 	private final Raft Raft;
@@ -308,7 +309,7 @@ public class LogSequence {
 					} catch (FileAlreadyExistsException ignored) {
 					}
 					Db = Zeze.Raft.LogSequence.OpenDb(DatabaseRocksDb.getCommonOptions(),
-									Paths.get(dir, getDbName()).toString());
+							Paths.get(dir, getDbName()).toString());
 				}
 				return getDb();
 			} finally {
@@ -514,8 +515,9 @@ public class LogSequence {
 		var value = log.Encode();
 		Logs.put(WriteOptions, key.Bytes, 0, key.WriteIndex, value.Bytes, 0, value.WriteIndex);
 
-		logger.debug("{}-{} RequestId={} Index={} Count={}", Raft.getName(), Raft.isLeader(),
-				log.getLog().getUnique().getRequestId(), log.getIndex(), GetTestStateMachineCount());
+		if (isDebugEnabled)
+			logger.debug("{}-{} RequestId={} Index={} Count={}", Raft.getName(), Raft.isLeader(),
+					log.getLog().getUnique().getRequestId(), log.getIndex(), GetTestStateMachineCount());
 	}
 
 	private void SaveLogRaw(long index, Binary rawValue) throws RocksDBException {
@@ -524,8 +526,9 @@ public class LogSequence {
 		Logs.put(WriteOptions, key.Bytes, 0, key.WriteIndex,
 				rawValue.InternalGetBytesUnsafe(), rawValue.getOffset(), rawValue.size());
 
-		logger.debug("{}-{} RequestId=? Index={} Count={}",
-				Raft.getName(), Raft.isLeader(), index, GetTestStateMachineCount());
+		if (isDebugEnabled)
+			logger.debug("{}-{} RequestId=? Index={} Count={}",
+					Raft.getName(), Raft.isLeader(), index, GetTestStateMachineCount());
 	}
 
 	private byte[] ReadLogBytes(long index) throws RocksDBException {
@@ -673,7 +676,7 @@ public class LogSequence {
 				OpenUniqueRequests(raftLog.getLog().getCreateTime()).Apply(raftLog);
 			LastApplied = raftLog.getIndex(); // 循环可能退出，在这里修改。
 			//*
-			if (LastIndex - LastApplied < 10) {
+			if (isDebugEnabled && LastIndex - LastApplied < 10) {
 				logger.debug("{}-{} {} RequestId={} LastIndex={} LastApplied={} Count={}",
 						Raft.getName(), Raft.isLeader(), Raft.getRaftConfig().getDbHome(),
 						raftLog.getLog().getUnique().getRequestId(), LastIndex, LastApplied,
@@ -684,6 +687,7 @@ public class LogSequence {
 			if (future != null)
 				future.SetResult(0);
 		}
+		// if (isDebugEnabled)
 		// logger.debug($"{Raft.Name}-{Raft.IsLeader} CommitIndex={CommitIndex} RequestId={lastApplicableLog.Log.Unique.RequestId} LastIndex={LastIndex} LastApplied={LastApplied} Count={GetTestStateMachineCount()}");
 		trySnapshot();
 	}
@@ -1155,8 +1159,9 @@ public class LogSequence {
 			r.Result.setNextIndex(r.Argument.getPrevLogIndex() > LastIndex ? LastIndex + 1 : 0);
 
 			r.SendResult();
-			logger.debug("this={} Leader={} Index={} prevLog mismatch",
-					Raft.getName(), r.Argument.getLeaderId(), r.Argument.getPrevLogIndex());
+			if (isDebugEnabled)
+				logger.debug("this={} Leader={} Index={} prevLog mismatch",
+						Raft.getName(), r.Argument.getLeaderId(), r.Argument.getPrevLogIndex());
 			return Procedure.Success;
 		}
 
@@ -1222,7 +1227,8 @@ public class LogSequence {
 			TryStartApplyTask(ReadLog(CommitIndex));
 		}
 		r.Result.setSuccess(true);
-		logger.debug("{}: {}", Raft.getName(), r);
+		if (isDebugEnabled)
+			logger.debug("{}: {}", Raft.getName(), r);
 		r.SendResultCode(0);
 
 		return Procedure.Success;

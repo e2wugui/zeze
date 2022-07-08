@@ -26,6 +26,7 @@ import org.apache.logging.log4j.Logger;
 
 public final class Agent {
 	private static final Logger logger = LogManager.getLogger(Agent.class);
+	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 
 	// 保证在Raft-Server检查UniqueRequestId唯一性过期前唯一即可。
 	// 使用持久化是为了避免短时间重启，Id重复。
@@ -137,8 +138,9 @@ public final class Agent {
 
 			if (rpc.getResultCode() == Procedure.RaftApplied)
 				rpc.setIsTimeout(false);
-			logger.debug("Agent Rpc={} RequestId={} ResultCode={} Sender={}",
-					rpc.getClass().getSimpleName(), requestId, rpc.getResultCode(), rpc.getSender());
+			if (isDebugEnabled)
+				logger.debug("Agent Rpc={} RequestId={} ResultCode={} Sender={}",
+						rpc.getClass().getSimpleName(), requestId, rpc.getResultCode(), rpc.getSender());
 			return rpc.Handle.applyAsLong(rpc);
 		}
 		return Procedure.Success;
@@ -167,8 +169,9 @@ public final class Agent {
 
 			if (rpc.getResultCode() == Procedure.RaftApplied)
 				rpc.setIsTimeout(false);
-			logger.debug("Agent Rpc={} RequestId={} ResultCode={} Sender={}",
-					rpc.getClass().getSimpleName(), requestId, rpc.getResultCode(), rpc.getSender());
+			if (isDebugEnabled)
+				logger.debug("Agent Rpc={} RequestId={} ResultCode={} Sender={}",
+						rpc.getClass().getSimpleName(), requestId, rpc.getResultCode(), rpc.getSender());
 			rpc.Future.SetResult(rpc);
 		}
 		return Procedure.Success;
@@ -333,11 +336,12 @@ public final class Agent {
 		var removed = new ArrayList<RaftRpc<?, ?>>();
 		// Pending存在并发访问，这样写更可靠。
 		for (var rpc : Pending) {
-			var r= Pending.remove(rpc.getUnique().getRequestId());
+			var r = Pending.remove(rpc.getUnique().getRequestId());
 			if (null != r)
 				removed.add(r);
 		}
-		logger.debug("Found {} RaftRpc cancel", removed.size());
+		if (isDebugEnabled)
+			logger.debug("Found {} RaftRpc cancel", removed.size());
 		if (DispatchProtocolToInternalThreadPool)
 			Task.getCriticalThreadPool().execute(() -> trigger(removed, "Cancel"));
 		else
@@ -364,7 +368,8 @@ public final class Agent {
 				continue;
 			}
 			if (immediately || now - rpc.getSendTime() > timeout) {
-				logger.debug("ReSendU {}/{} {}", UrgentPending.size(), leaderSocket, rpc);
+				if (isDebugEnabled)
+					logger.debug("ReSendU {}/{} {}", UrgentPending.size(), leaderSocket, rpc);
 				rpc.setSendTime(now);
 				if (!rpc.Send(leaderSocket)) {
 					logger.info("SendRequest failed {}", rpc);
@@ -383,7 +388,8 @@ public final class Agent {
 				continue;
 			}
 			if (immediately || now - rpc.getSendTime() > timeout) {
-				logger.debug("ReSend {}/{} {}", Pending.size(), leaderSocket, rpc);
+				if (isDebugEnabled)
+					logger.debug("ReSend {}/{} {}", Pending.size(), leaderSocket, rpc);
 				rpc.setSendTime(now);
 				if (!rpc.Send(leaderSocket)) {
 					logger.info("SendRequest failed {}", rpc);
@@ -392,7 +398,8 @@ public final class Agent {
 			}
 		}
 		if (removed != null) {
-			logger.debug("Found {} RaftRpc timeout", removed.size());
+			if (isDebugEnabled)
+				logger.debug("Found {} RaftRpc timeout", removed.size());
 			var removed0 = removed;
 			if (DispatchProtocolToInternalThreadPool)
 				Task.getCriticalThreadPool().execute(() -> trigger(removed0));
