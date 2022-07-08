@@ -154,12 +154,12 @@ public final class Transaction {
 	 */
 	public long Perform(Procedure procedure) {
 		try {
-			var checkPoint = procedure.getZeze().getCheckpoint();
-			if (checkPoint == null)
+			var checkpoint = procedure.getZeze().getCheckpoint();
+			if (checkpoint == null)
 				return Procedure.Closed;
 			for (int tryCount = 0; tryCount < 256; ++tryCount) { // 最多尝试次数
 				// 默认在锁内重复尝试，除非CheckResult.RedoAndReleaseLock，否则由于CheckResult.Redo保持锁会导致死锁。
-				checkPoint.EnterFlushReadLock();
+				checkpoint.EnterFlushReadLock();
 				try {
 					for (; tryCount < 256; ++tryCount) { // 最多尝试次数
 						CheckResult checkResult = CheckResult.Redo; // 用来决定是否释放锁，除非 _lock_and_check_ 明确返回需要释放锁，否则都不释放。
@@ -192,7 +192,7 @@ public final class Transaction {
 								break; // retry
 
 							case Abort:
-								logger.debug("Transaction.Perform: Abort");
+								logger.warn("Transaction.Perform: Abort");
 								finalRollback(procedure);
 								return Procedure.AbortException;
 
@@ -233,7 +233,7 @@ public final class Transaction {
 								break;
 
 							case Abort:
-								logger.debug("Transaction.Perform: Abort");
+								logger.warn("Transaction.Perform: Abort", e);
 								finalRollback(procedure);
 								return Procedure.AbortException;
 
@@ -269,7 +269,7 @@ public final class Transaction {
 						}
 					}
 				} finally {
-					checkPoint.ExitFlushReadLock();
+					checkpoint.ExitFlushReadLock();
 				}
 				//logger.Debug("Checkpoint.WaitRun {0}", procedure);
 				// 实现Fresh队列以后删除Sleep。

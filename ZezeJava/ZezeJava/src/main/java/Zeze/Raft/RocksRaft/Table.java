@@ -152,10 +152,12 @@ public final class Table<K, V extends Bean> {
 	private Record<K> GetOrLoad(K key, Bean putValue) {
 		TableKey tkey = new TableKey(Name, key);
 		while (true) {
-			Record<K> tempVar = new Record<>(keyEncodeFunc);
-			tempVar.setTable(this);
-			tempVar.setKey(key);
-			var r = LruCache.GetOrAdd(key, () -> tempVar);
+			var r = LruCache.GetOrAdd(key, () -> {
+				var newR = new Record<>(keyEncodeFunc);
+				newR.setTable(this);
+				newR.setKey(key);
+				return newR;
+			});
 			r.mutex.lock();
 			try {
 				if (r.getRemoved())
@@ -291,7 +293,7 @@ public final class Table<K, V extends Bean> {
 		case Changes.Record.Edit:
 			r = GetOrLoad(key);
 			if (r.getValue() == null) {
-				logger.fatal("editing bug record not exist. key={}", key, new Exception());
+				logger.fatal("editing bug record not exist. table={} key={}", Name, key, new Exception());
 				Rocks.getRaft().FatalKill();
 			}
 			for (var log : rLog.getLogBean())
@@ -299,7 +301,8 @@ public final class Table<K, V extends Bean> {
 			break;
 
 		default:
-			logger.fatal("unknown Changes.Record.State. state={}", rLog.getState(), new Exception());
+			logger.fatal("unknown Changes.Record.State. table={} key={} state={}",
+					Name, key, rLog.getState(), new Exception());
 			Rocks.getRaft().FatalKill();
 			return null;
 		}

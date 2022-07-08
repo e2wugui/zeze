@@ -1096,7 +1096,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				raftConf = args[++i];
 				break;
 			case "-tryNextSync":
-				AsyncLock.tryNextSync = true;
+				System.setProperty("AsyncLock.tryNextSync", "true");
 				break;
 			default:
 				throw new IllegalArgumentException("unknown argument: " + args[i]);

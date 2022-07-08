@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 // 异步锁. 暂不支持重入
 public final class AsyncLock {
-	public static boolean tryNextSync = false;
+	public static final boolean tryNextSync = "true".equalsIgnoreCase(System.getProperty("AsyncLock.tryNextSync"));
 	private static final VarHandle stateHandle;
 
 	static {

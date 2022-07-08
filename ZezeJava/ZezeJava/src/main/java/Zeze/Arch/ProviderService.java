@@ -12,8 +12,6 @@ import Zeze.Services.ServiceManager.ServiceInfo;
 import Zeze.Services.ServiceManager.ServiceInfos;
 import Zeze.Util.OutObject;
 import Zeze.Util.TaskCompletionSource;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class ProviderService extends Zeze.Services.HandshakeClient {
 	// private static final Logger logger = LogManager.getLogger(ProviderService.class);
