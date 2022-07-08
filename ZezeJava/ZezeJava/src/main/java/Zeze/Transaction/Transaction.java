@@ -175,7 +175,7 @@ public final class Transaction {
 									finalRollback(procedure);
 									return Procedure.ErrorSavepoint;
 								}
-								checkResult = _lock_and_check_(procedure.getTransactionLevel());
+								checkResult = lockAndCheck(procedure.getTransactionLevel());
 								if (checkResult == CheckResult.Success) {
 									if (result == Procedure.Success) {
 										finalCommit(procedure);
@@ -224,7 +224,7 @@ public final class Transaction {
 									finalRollback(procedure);
 									throw (AssertionError)e;
 								}
-								checkResult = _lock_and_check_(procedure.getTransactionLevel());
+								checkResult = lockAndCheck(procedure.getTransactionLevel());
 								if (checkResult == CheckResult.Success) {
 									finalRollback(procedure, true);
 									return Procedure.Exception;
@@ -480,7 +480,7 @@ public final class Transaction {
 		}
 	}
 
-	private CheckResult _lock_and_check_(Map.Entry<TableKey, RecordAccessed> e) {
+	private CheckResult lockAndCheck(Map.Entry<TableKey, RecordAccessed> e) {
 		Lockey lockey = Locks.Get(e.getKey());
 		boolean writeLock = e.getValue().Dirty;
 		lockey.EnterLock(writeLock);
@@ -488,7 +488,7 @@ public final class Transaction {
 		return _check_(writeLock, e.getValue());
 	}
 
-	private CheckResult _lock_and_check_(TransactionLevel level) {
+	private CheckResult lockAndCheck(TransactionLevel level) {
 		boolean allRead = true;
 		var saveSize = Savepoints.size();
 		if (saveSize > 0) {
@@ -522,7 +522,7 @@ public final class Transaction {
 		boolean conflict = false; // 冲突了，也继续加锁，为重做做准备！！！
 		if (holdLocks.isEmpty()) {
 			for (var e : AccessedRecords.entrySet()) {
-				var r = _lock_and_check_(e);
+				var r = lockAndCheck(e);
 				switch (r) {
 				case Success:
 					break;
@@ -543,7 +543,7 @@ public final class Transaction {
 		while (null != e) {
 			// 如果 holdLocks 全部被对比完毕，直接锁定它
 			if (index >= n) {
-				var r = _lock_and_check_(e);
+				var r = lockAndCheck(e);
 				switch (r) {
 				case Success:
 					break;
