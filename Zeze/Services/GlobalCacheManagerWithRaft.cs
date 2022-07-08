@@ -739,7 +739,7 @@ namespace Zeze.Services
         private async Task AchillesHeelDaemon(SchedulerTask ThisTask)
         {
             var now = Util.Time.NowUnixMillis;
-            if (Rocks.Raft.IsLeader)
+            if (Rocks.Raft is { IsLeader: true }) // Rocks.Raft maybe null
             {
                 foreach (var session in Sessions.Values)
                 {

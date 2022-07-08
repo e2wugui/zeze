@@ -183,7 +183,10 @@ namespace Zeze.Transaction
                 for (int tryCount = 0; tryCount < 256; ++tryCount) // 最多尝试次数
                 {
                     // 默认在锁内重复尝试，除非CheckResult.RedoAndReleaseLock，否则由于CheckResult.Redo保持锁会导致死锁。
-                    procedure.Zeze.Checkpoint.EnterFlushReadLock();
+                    var checkpoint = procedure.Zeze.Checkpoint;
+                    if (checkpoint == null)
+                        return Procedure.Closed;
+                    checkpoint.EnterFlushReadLock();
                     try
                     {
                         for (/* out loop */; tryCount < 256; ++tryCount) // 最多尝试次数
@@ -313,7 +316,7 @@ namespace Zeze.Transaction
                     }
                     finally
                     {
-                        procedure.Zeze.Checkpoint.ExitFlushReadLock();
+                        checkpoint.ExitFlushReadLock();
                     }
                     //logger.Debug("Checkpoint.WaitRun {0}", procedure);
 

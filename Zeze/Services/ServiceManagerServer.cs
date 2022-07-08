@@ -1906,9 +1906,10 @@ namespace Zeze.Services.ServiceManager
     {
         public int Compare(ServiceInfo x, ServiceInfo y)
         {
-            if (x.ServiceIdentity.StartsWith("@"))
-                return x.ServiceIdentity.CompareTo(y.ServiceIdentity);
-            return int.Parse(x.ServiceIdentity).CompareTo(int.Parse(y.ServiceIdentity));
+            string id1 = x.ServiceIdentity;
+            string id2 = y.ServiceIdentity;
+            int c = id1.Length.CompareTo(id2.Length);
+            return c != 0 ? c : String.Compare(id1, id2, StringComparison.Ordinal);
         }
     }
 
