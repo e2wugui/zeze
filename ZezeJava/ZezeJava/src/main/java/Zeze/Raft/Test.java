@@ -48,7 +48,7 @@ public class Test {
 
 	private void LogDump(String db) throws IOException, RocksDBException {
 		RocksDB.loadLibrary();
-		try (var r1 = RocksDB.open(DatabaseRocksDb.getCommonOptions(), Paths.get(db, "logs").toString())) {
+		try (var r1 = RocksDB.openReadOnly(DatabaseRocksDb.getCommonOptions(), Paths.get(db, "logs").toString())) {
 			try (var it1 = r1.newIterator()) {
 				it1.seekToFirst();
 				var StateMachine = new TestStateMachine();

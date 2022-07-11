@@ -1,7 +1,9 @@
 package Zeze.Util;
 
 public class BitConverter {
-	private static final char[] hexDigits = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+	public static int num2Hex(int n) {
+		return n + (n < 10 ? '0' : ('A' - 10)); // JIT(c1,c2)会内联; JIT(c2)会用cmp,cmovl指令消除分支,比查表快
+	}
 
 	public static String toString(byte[] bytes, int offset, int len) {
 		var sb = new StringBuilder();
@@ -9,8 +11,8 @@ public class BitConverter {
 			int b = bytes[i + offset];
 			if (i > 0)
 				sb.append('-');
-			sb.append(hexDigits[(b >> 4) & 0xf]);
-			sb.append(hexDigits[b & 0xf]);
+			sb.append((char)num2Hex((b >> 4) & 0xf));
+			sb.append((char)num2Hex(b & 0xf));
 		}
 		return sb.toString();
 	}
@@ -25,8 +27,8 @@ public class BitConverter {
 			int b = bytes[i + offset];
 			if (i > 0)
 				sb.append('-');
-			sb.append(hexDigits[(b >> 4) & 0xf]);
-			sb.append(hexDigits[b & 0xf]);
+			sb.append((char)num2Hex((b >> 4) & 0xf));
+			sb.append((char)num2Hex(b & 0xf));
 		}
 		if (len > limit)
 			sb.append("...[+").append(len - limit).append(']');
