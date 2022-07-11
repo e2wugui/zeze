@@ -33,6 +33,8 @@ namespace Zeze.Gen.Types
 			{
 				v.VariableType.DetectCircle(circle);
 			}
+
+			circle.Remove(this);
 		}
 
 		public override void Depends(HashSet<Type> includes)

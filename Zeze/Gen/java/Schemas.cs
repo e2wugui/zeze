@@ -51,6 +51,17 @@ namespace Zeze.Gen.java
                     continue;
 
                 if (type.IsKeyable)
+                    sw.WriteLine($"        AddBean_{((Types.BeanKey)type).FullName.Replace('.', '_')}();");
+                else
+                    sw.WriteLine($"        AddBean_{((Types.Bean)type).FullName.Replace('.', '_')}();");
+            }
+            sw.WriteLine("    }");
+            foreach (var type in Depends)
+            {
+                if (!type.IsBean)
+                    continue;
+
+                if (type.IsKeyable)
                 {
                     var beanKey = type as Types.BeanKey;
                     GenAddBean(sw, beanKey.FullName, true, beanKey.Variables);
@@ -61,33 +72,33 @@ namespace Zeze.Gen.java
                     GenAddBean(sw, bean.FullName, false, bean.Variables);
                 }
             }
-            sw.WriteLine("    }");
             sw.WriteLine("}");
         }
 
         void GenAddBean(StreamWriter sw, string name, bool isBeanKey, List<Types.Variable> vars)
         {
-            sw.WriteLine($"        {{");
-            sw.WriteLine($"            var bean = new Zeze.Schemas.Bean(\"{name}\", {isBeanKey.ToString().ToLower()});");
+            sw.WriteLine();
+            sw.WriteLine($"    private void AddBean_{name.Replace('.', '_')}() {{");
+            sw.WriteLine($"        var bean = new Zeze.Schemas.Bean(\"{name}\", {isBeanKey.ToString().ToLower()});");
             foreach (var v in vars)
             {
-                sw.WriteLine($"            {{");
-                sw.WriteLine($"                var var = new Zeze.Schemas.Variable();");
-                sw.WriteLine($"                var.Id = {v.Id};");
-                sw.WriteLine($"                var.Name = \"{v.Name}\";");
-                sw.WriteLine($"                var.TypeName = \"{GetFullName(v.VariableType)}\";");
+                sw.WriteLine($"        {{");
+                sw.WriteLine($"            var var = new Zeze.Schemas.Variable();");
+                sw.WriteLine($"            var.Id = {v.Id};");
+                sw.WriteLine($"            var.Name = \"{v.Name}\";");
+                sw.WriteLine($"            var.TypeName = \"{GetFullName(v.VariableType)}\";");
                 if (v.VariableType is Types.TypeCollection collection)
-                    sw.WriteLine($"                var.ValueName = \"{GetFullName(collection.ValueType)}\";");
+                    sw.WriteLine($"            var.ValueName = \"{GetFullName(collection.ValueType)}\";");
                 else if (v.VariableType is Types.TypeMap map)
                 {
-                    sw.WriteLine($"                var.KeyName = \"{GetFullName(map.KeyType)}\";");
-                    sw.WriteLine($"                var.ValueName = \"{GetFullName(map.ValueType)}\";");
+                    sw.WriteLine($"            var.KeyName = \"{GetFullName(map.KeyType)}\";");
+                    sw.WriteLine($"            var.ValueName = \"{GetFullName(map.ValueType)}\";");
                 }
-                sw.WriteLine($"                bean.AddVariable(var);");
-                sw.WriteLine($"            }}");
+                sw.WriteLine($"            bean.AddVariable(var);");
+                sw.WriteLine($"        }}");
             }
-            sw.WriteLine($"            AddBean(bean);");
-            sw.WriteLine($"        }}");
+            sw.WriteLine($"        AddBean(bean);");
+            sw.WriteLine($"    }}");
         }
     }
 }
