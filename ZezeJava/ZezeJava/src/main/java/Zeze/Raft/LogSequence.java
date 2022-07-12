@@ -453,8 +453,10 @@ public class LogSequence {
 				if (FirstIndex == -1) { // never snapshot
 					try (var itFirst = Logs.newIterator(DatabaseRocksDb.getDefaultReadOptions())) {
 						itFirst.seekToFirst();
-						FirstIndex = RaftLog.Decode(new Binary(itFirst.value()),
-								Raft.getStateMachine()::LogFactory).getIndex();
+						if (itFirst.isValid()) {
+							FirstIndex = RaftLog.Decode(new Binary(itFirst.value()),
+									Raft.getStateMachine()::LogFactory).getIndex();
+						}
 					}
 				}
 				LastApplied = FirstIndex;
