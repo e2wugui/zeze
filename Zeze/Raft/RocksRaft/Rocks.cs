@@ -135,7 +135,7 @@ namespace Zeze.Raft.RocksRaft
         private async Task OpenDb()
         {
             var options = new DbOptions().SetCreateIfMissing(true);
-            var dbName = Path.Combine(DbHome, "rocksraft");
+            var dbName = Path.Combine(DbHome, "statemachine");
 
             var columns = new ColumnFamilies();
             if (Directory.Exists(dbName))

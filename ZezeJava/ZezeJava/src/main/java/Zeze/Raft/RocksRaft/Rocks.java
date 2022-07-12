@@ -67,7 +67,7 @@ public final class Rocks extends StateMachine implements Closeable {
 		Log.Register(LogLong::new);
 		Log.Register(LogFloat::new);
 		Log.Register(LogDouble::new);
-		Log.Register(LogString::new);
+		Log.Register(LogString::new);r
 		Log.Register(LogBinary::new);
 		Log.Register(LogBean::new);
 		// Log1.LogBeanKey 在生成代码里面注册。
@@ -130,7 +130,7 @@ public final class Rocks extends StateMachine implements Closeable {
 	}
 
 	private void OpenDb() throws RocksDBException {
-		var dbName = Paths.get(getDbHome(), "rocksraft").toString();
+		var dbName = Paths.get(getDbHome(), "statemachine").toString();
 
 		// DirectOperates 依赖 Db，所以只能在这里打开。要不然，放在Open里面更加合理。
 		var columnFamilies = getColumnFamilies(dbName);
