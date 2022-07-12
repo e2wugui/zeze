@@ -861,7 +861,7 @@ public class LogSequence {
 				long t = System.nanoTime();
 				Raft.getStateMachine().LoadSnapshot(getSnapshotFullName());
 				logger.info("{} EndReceiveInstallSnapshot Path={} time={}ms",
-						Raft.getName(), path, System.nanoTime() - t);
+						Raft.getName(), path, (System.nanoTime() - t) / 1_000_000);
 			} finally {
 				LogsAvailable = true;
 			}

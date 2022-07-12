@@ -314,8 +314,11 @@ public final class Raft {
 		RegisterInternalRpc();
 
 		var snapshot = _LogSequence.getSnapshotFullName();
-		if ((new File(snapshot)).isFile())
+		if (new File(snapshot).isFile()) {
+			long t = System.nanoTime();
 			sm.LoadSnapshot(snapshot);
+			logger.info("Raft {} LoadSnapshot time={}ms", getName(), (System.nanoTime() - t) / 1_000_000);
+		}
 
 		ShutdownHook.add(this, () -> {
 			logger.info("Raft {} ShutdownHook begin", getName());
