@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.List;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.AcquiredState;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.CacheState;
 import Zeze.Serialize.ByteBuffer;

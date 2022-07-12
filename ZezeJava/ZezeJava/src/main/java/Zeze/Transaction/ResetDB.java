@@ -157,7 +157,7 @@ public class ResetDB {
 
 				try (RocksIterator iter = db.newIterator(rmCfh, DatabaseRocksDb.getDefaultReadOptions())) {
 					for (iter.seekToFirst(); iter.isValid(); iter.next()) {
-						db.delete(rmCfh, iter.key());
+						db.delete(rmCfh, DatabaseRocksDb.getDefaultWriteOptions(), iter.key());
 						logger.debug("table name:{}, iterator:{}:{}",
 								rmTable, BitConverter.toString(iter.key()), BitConverter.toString(iter.value()));
 					}

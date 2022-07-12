@@ -233,7 +233,8 @@ public final class Transaction {
 								break;
 
 							case Abort:
-								logger.warn("Transaction.Perform: Abort", e);
+								if (!"GlobalAgent.Acquire Failed".equals(e.getMessage()))
+									logger.warn("Transaction.Perform: Abort", e);
 								finalRollback(procedure);
 								return Procedure.AbortException;
 

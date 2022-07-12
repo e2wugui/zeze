@@ -937,6 +937,11 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 	}
 
 	public static void main(String[] args) throws Throwable {
+		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+			e.printStackTrace();
+			logger.fatal("uncaught exception in {}:", t, e);
+		});
+
 		String ip = null;
 		int port = 5555;
 		String raftName = null;
