@@ -191,7 +191,7 @@ public final class Table<K, V extends Bean> {
 		byte[] valueBytes;
 		try {
 			valueBytes = Rocks.getStorage().get(ColumnFamily, DatabaseRocksDb.getDefaultReadOptions(),
-					keyBB.Bytes, 0, keyBB.Size());
+					keyBB.Bytes, 0, keyBB.WriteIndex);
 		} catch (RocksDBException e) {
 			throw new RuntimeException(e);
 		}
@@ -293,7 +293,8 @@ public final class Table<K, V extends Bean> {
 		case Changes.Record.Edit:
 			r = GetOrLoad(key);
 			if (r.getValue() == null) {
-				logger.fatal("editing bug record not exist. table={} key={}", Name, key, new Exception());
+				logger.fatal("editing bug record not exist. table={} key={} state={}",
+						Name, key, r.getState(), new Exception());
 				Rocks.getRaft().FatalKill();
 			}
 			for (var log : rLog.getLogBean())

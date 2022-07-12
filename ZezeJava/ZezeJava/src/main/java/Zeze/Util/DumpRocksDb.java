@@ -40,7 +40,7 @@ public final class DumpRocksDb {
 			return;
 		}
 		var inputDbPath = args[0];
-		var columnFamilyName = argCount > 2 ? args[0] : "default";
+		var columnFamilyName = argCount > 2 ? args[1] : "default";
 		var outputTxtFile = argCount == 1 ? null : argCount == 2 ? args[1] : args[2];
 		Action3<OutputStream, byte[], byte[]> dumpAction = "true".equals(System.getProperty("raftLog"))
 				? DumpRocksDb::dumpRaftLog
@@ -60,23 +60,23 @@ public final class DumpRocksDb {
 			return;
 		}
 
-		List<ColumnFamilyDescriptor> selectCfd = null;
-		for (var cf : columnFamilies) {
-			if (new String(cf.getName(), StandardCharsets.UTF_8).equals(columnFamilyName)) {
-				selectCfd = List.of(cf);
+		int selectCfIndex = -1;
+		for (int i = 0, n = columnFamilies.size(); i < n; i++) {
+			if (new String(columnFamilies.get(i).getName(), StandardCharsets.UTF_8).equals(columnFamilyName)) {
+				selectCfIndex = i;
 				break;
 			}
 		}
-		if (selectCfd == null) {
+		if (selectCfIndex < 0) {
 			System.out.println("ERROR: not found column family name: '" + columnFamilyName + "'");
 			return;
 		}
 
 		System.out.println("INFO: dumping column family '" + columnFamilyName + "' to '" + outputTxtFile + "'");
 		var t = System.currentTimeMillis();
-		var outHandles = new ArrayList<ColumnFamilyHandle>(1);
-		try (var rocksDb = RocksDB.openReadOnly(new DBOptions(), inputDbPath, selectCfd, outHandles);
-			 var it = rocksDb.newIterator(outHandles.get(0), new ReadOptions());
+		var outHandles = new ArrayList<ColumnFamilyHandle>(columnFamilies.size());
+		try (var rocksDb = RocksDB.openReadOnly(new DBOptions(), inputDbPath, columnFamilies, outHandles);
+			 var it = rocksDb.newIterator(outHandles.get(selectCfIndex), new ReadOptions());
 			 var os = new BufferedOutputStream(new FileOutputStream(outputTxtFile))) {
 			long n = 0;
 			for (it.seekToFirst(); it.isValid(); it.next()) {

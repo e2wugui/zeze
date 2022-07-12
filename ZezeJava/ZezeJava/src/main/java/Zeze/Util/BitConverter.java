@@ -2,7 +2,7 @@ package Zeze.Util;
 
 public class BitConverter {
 	public static int num2Hex(int n) {
-		return n + (n < 10 ? '0' : ('A' - 10)); // JIT(c1,c2)会内联; JIT(c2)会用cmp,cmovl指令消除分支,比查表快
+		return n + '0' + (((9 - n) >> 31) & ('A' - '9' - 1)); // 无分支,比查表快
 	}
 
 	public static String toString(byte[] bytes, int offset, int len) {

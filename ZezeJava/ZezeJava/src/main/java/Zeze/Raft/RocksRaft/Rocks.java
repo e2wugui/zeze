@@ -67,7 +67,7 @@ public final class Rocks extends StateMachine implements Closeable {
 		Log.Register(LogLong::new);
 		Log.Register(LogFloat::new);
 		Log.Register(LogDouble::new);
-		Log.Register(LogString::new);r
+		Log.Register(LogString::new);
 		Log.Register(LogBinary::new);
 		Log.Register(LogBean::new);
 		// Log1.LogBeanKey 在生成代码里面注册。
