@@ -797,7 +797,7 @@ namespace Zeze.Services
             // not under lock
             internal void Kick()
             {
-                var peer = GlobalInstance.Rocks.Raft.Server.GetSocket(SessionId);
+                var peer = GlobalInstance.Rocks.Raft?.Server.GetSocket(SessionId);
                 if (null != peer)
                 {
                     peer.UserState = null; // 来自这个Agent的所有请求都会失败。
