@@ -4,20 +4,25 @@ import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.AcquiredState;
 import Zeze.Builtin.GlobalCacheManagerWithRaft.CacheState;
 import Zeze.Serialize.ByteBuffer;
 import org.rocksdb.ColumnFamilyDescriptor;
 import org.rocksdb.ColumnFamilyHandle;
 import org.rocksdb.ColumnFamilyOptions;
+import org.rocksdb.CompactionOptions;
 import org.rocksdb.DBOptions;
+import org.rocksdb.LiveFileMetaData;
 import org.rocksdb.Options;
 import org.rocksdb.ReadOptions;
 import org.rocksdb.RocksDB;
+import org.rocksdb.SstFileMetaData;
 import static Zeze.Transaction.Bean.Hash32;
 import static Zeze.Util.BitConverter.num2Hex;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 public final class DumpRocksDb {
 	public static void main(String[] args) throws Throwable {
@@ -35,13 +40,16 @@ public final class DumpRocksDb {
 		if (argCount < 1) {
 			System.out.println("usage: java -cp ... " + DumpRocksDb.class.getName() +
 					" inputDbPath [[columnFamilyName] outputTxtFile] [options]");
-			System.out.println("options: -raftLog   decode raft logs for global server");
+			System.out.println("options: -meta      list database meta data");
+			System.out.println("         -compact   compact all the database files");
+			System.out.println("         -compact1  compact all the level-0 files to level-1");
+			System.out.println("         -raftLog   decode raft logs for global server");
 			return;
 		}
 		var inputDbPath = args[0];
-		var columnFamilyName = argCount > 2 ? args[1] : "default";
+		var columnFamilyName = argCount > 2 ? args[1] : null;
 		var outputTxtFile = argCount == 1 ? null : argCount == 2 ? args[1] : args[2];
-		Action3<OutputStream, byte[], byte[]> dumpAction = "true".equals(System.getProperty("raftLog"))
+		Action3<OutputStream, byte[], byte[]> dumpAction = "true".equalsIgnoreCase(System.getProperty("raftLog"))
 				? DumpRocksDb::dumpRaftLog
 				: DumpRocksDb::dumpRawKV;
 
@@ -50,18 +58,98 @@ public final class DumpRocksDb {
 		for (var cf : RocksDB.listColumnFamilies(new Options(), inputDbPath))
 			columnFamilies.add(new ColumnFamilyDescriptor(cf, cfOptions));
 		if (columnFamilies.isEmpty())
-			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(StandardCharsets.UTF_8), cfOptions));
+			columnFamilies.add(new ColumnFamilyDescriptor("default".getBytes(UTF_8), cfOptions));
+
+		if ("true".equalsIgnoreCase(System.getProperty("meta"))) {
+			var outHandles = new ArrayList<ColumnFamilyHandle>(columnFamilies.size());
+			var levelCount = new int[8];
+			var levelSize = new long[8];
+			long totalCount = 0, totalSize = 0;
+			try (var rocksDb = RocksDB.openReadOnly(new DBOptions(), inputDbPath, columnFamilies, outHandles)) {
+				System.out.println("lvl fileName     size  seqNumMin  seqNumMax reads entry delete columnFamilyName");
+				System.out.println("-------------------------------------------------------------------------------");
+				var metaList = rocksDb.getLiveFilesMetaData();
+				metaList.sort(
+						Comparator.comparingInt(LiveFileMetaData::level).thenComparing(SstFileMetaData::fileName));
+				for (var meta : metaList) {
+					var fileName = meta.fileName();
+					if (fileName.startsWith("/"))
+						fileName = fileName.substring(1);
+					System.out.format("%d %10s%9d %10d %10d %5d %5d %6d %s\n", meta.level(), fileName, meta.size(),
+							meta.smallestSeqno(), meta.largestSeqno(), meta.numReadsSampled(), meta.numEntries(),
+							meta.numDeletions(), new String(meta.columnFamilyName(), UTF_8));
+					levelCount[meta.level()]++;
+					levelSize[meta.level()] += meta.size();
+					totalCount++;
+					totalSize += meta.size();
+				}
+				System.out.println("-------------------------------------------------------------------------------");
+			}
+			for (int i = 0; i < levelCount.length; i++) {
+				var n = levelCount[i];
+				if (n != 0)
+					System.out.format("count(L%d)  =%6d %,15d bytes\n", i, n, levelSize[i]);
+			}
+			System.out.format("count(ALL) =%6d %,15d bytes\n", totalCount, totalSize);
+			return;
+		}
+
+		if ("true".equalsIgnoreCase(System.getProperty("compact"))) {
+			System.out.println("INFO: compacting database in '" + inputDbPath + "' ...");
+			var t = System.currentTimeMillis();
+			var outHandles = new ArrayList<ColumnFamilyHandle>(columnFamilies.size());
+			try (var rocksDb = RocksDB.open(new DBOptions(), inputDbPath, columnFamilies, outHandles)) {
+				var selColName = columnFamilyName != null ? columnFamilyName.getBytes(UTF_8) : null;
+				for (int i = 0; i < columnFamilies.size(); i++) {
+					var cf = columnFamilies.get(i);
+					if (selColName != null && !Arrays.equals(selColName, cf.getName()))
+						continue;
+					System.out.println("INFO: compacting '" + new String(cf.getName(), UTF_8) + "' ...");
+					rocksDb.compactRange(outHandles.get(i));
+				}
+			}
+			System.out.println("INFO: done! " + (System.currentTimeMillis() - t) + " ms");
+			return;
+		}
+
+		if ("true".equalsIgnoreCase(System.getProperty("compact1"))) {
+			System.out.println("INFO: compacting level-0 to level-1 in '" + inputDbPath + "' ...");
+			var t = System.currentTimeMillis();
+			var outHandles = new ArrayList<ColumnFamilyHandle>(columnFamilies.size());
+			try (var rocksDb = RocksDB.open(new DBOptions(), inputDbPath, columnFamilies, outHandles)) {
+				var cOptions = new CompactionOptions();
+				var fileList = new ArrayList<String>();
+				var selColName = columnFamilyName != null ? columnFamilyName.getBytes(UTF_8) : null;
+				for (int i = 0; i < columnFamilies.size(); i++) {
+					var cf = columnFamilies.get(i);
+					if (selColName != null && !Arrays.equals(selColName, cf.getName()))
+						continue;
+					for (var meta : rocksDb.getLiveFilesMetaData())
+						if (meta.level() == 0 && Arrays.equals(meta.columnFamilyName(), cf.getName()))
+							fileList.add(meta.fileName());
+					if (!fileList.isEmpty()) {
+						System.out.println("INFO: compacting '" + new String(cf.getName(), UTF_8) + "' ...");
+						rocksDb.compactFiles(cOptions, outHandles.get(i), fileList, 1, -1, null);
+						fileList.clear();
+					}
+				}
+			}
+			System.out.println("INFO: done! " + (System.currentTimeMillis() - t) + " ms");
+			return;
+		}
 
 		if (outputTxtFile == null) {
 			System.out.println("INFO: found " + columnFamilies.size() + " column families:");
 			for (var cf : columnFamilies)
-				System.out.println(new String(cf.getName(), StandardCharsets.UTF_8));
+				System.out.println(new String(cf.getName(), UTF_8));
 			return;
 		}
 
 		int selectCfIndex = -1;
+		if (columnFamilyName == null)
+			columnFamilyName = "default";
 		for (int i = 0, n = columnFamilies.size(); i < n; i++) {
-			if (new String(columnFamilies.get(i).getName(), StandardCharsets.UTF_8).equals(columnFamilyName)) {
+			if (new String(columnFamilies.get(i).getName(), UTF_8).equals(columnFamilyName)) {
 				selectCfIndex = i;
 				break;
 			}
@@ -71,7 +159,7 @@ public final class DumpRocksDb {
 			return;
 		}
 
-		System.out.println("INFO: dumping column family '" + columnFamilyName + "' to '" + outputTxtFile + "'");
+		System.out.println("INFO: dumping column family '" + columnFamilyName + "' to '" + outputTxtFile + "' ...");
 		var t = System.currentTimeMillis();
 		var outHandles = new ArrayList<ColumnFamilyHandle>(columnFamilies.size());
 		try (var rocksDb = RocksDB.openReadOnly(new DBOptions(), inputDbPath, columnFamilies, outHandles);
@@ -88,7 +176,7 @@ public final class DumpRocksDb {
 	}
 
 	private static void dump(OutputStream os, String fmt, Object... params) throws IOException {
-		os.write(String.format(fmt, params).getBytes(StandardCharsets.UTF_8));
+		os.write(String.format(fmt, params).getBytes(UTF_8));
 	}
 
 	private static void dumpRawKV(OutputStream os, byte[] key, byte[] value) throws IOException {
