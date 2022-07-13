@@ -254,7 +254,7 @@ public final class Table<K, V extends Bean> {
 	}
 
 	public boolean Walk(Func2<K, V, Boolean> callback) throws Throwable {
-		try (var it = Rocks.getStorage().newIterator(ColumnFamily)) {
+		try (var it = Rocks.getStorage().newIterator(ColumnFamily, DatabaseRocksDb.getDefaultReadOptions())) {
 			for (it.seekToFirst(); it.isValid(); it.next()) {
 				var key = keyDecodeFunc.apply(ByteBuffer.Wrap(it.key()));
 				var value = NewValue();
@@ -267,7 +267,7 @@ public final class Table<K, V extends Bean> {
 	}
 
 	public boolean WalkKey(Func1<K, Boolean> callback) throws Throwable {
-		try (var it = Rocks.getStorage().newIterator(ColumnFamily)) {
+		try (var it = Rocks.getStorage().newIterator(ColumnFamily, DatabaseRocksDb.getDefaultReadOptions())) {
 			for (it.seekToFirst(); it.isValid(); it.next()) {
 				var key = keyDecodeFunc.apply(ByteBuffer.Wrap(it.key()));
 				if (!callback.call(key))

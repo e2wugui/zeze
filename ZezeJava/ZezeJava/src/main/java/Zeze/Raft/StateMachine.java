@@ -78,6 +78,10 @@ public abstract class StateMachine {
 		public boolean success;
 		public long LastIncludedIndex;
 		public long LastIncludedTerm;
+		public long checkPointNanoTime;
+		public long backupNanoTime;
+		public long zipNanoTime;
+		public long totalNanoTime;
 	}
 
 	/**

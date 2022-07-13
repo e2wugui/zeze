@@ -409,9 +409,9 @@ public final class Test {
 	}
 
 	public void Test_1() throws Throwable {
-		LogSequence.deleteDirectory(new File("127.0.0.1_6000"));
-		LogSequence.deleteDirectory(new File("127.0.0.1_6001"));
-		LogSequence.deleteDirectory(new File("127.0.0.1_6002"));
+		LogSequence.deletedDirectoryAndCheck(new File("127.0.0.1_6000"));
+		LogSequence.deletedDirectoryAndCheck(new File("127.0.0.1_6001"));
+		LogSequence.deletedDirectoryAndCheck(new File("127.0.0.1_6002"));
 
 		Rocks.RegisterLog(() -> new LogMap1<>(Integer.class, Integer.class));
 		Rocks.RegisterLog(() -> new LogMap2<>(Integer.class, Bean1.class));

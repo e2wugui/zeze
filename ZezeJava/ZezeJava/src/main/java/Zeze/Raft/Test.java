@@ -49,19 +49,17 @@ public class Test {
 	private void LogDump(String db) throws IOException, RocksDBException {
 		RocksDB.loadLibrary();
 		try (var r1 = RocksDB.openReadOnly(DatabaseRocksDb.getCommonOptions(), Paths.get(db, "logs").toString())) {
-			try (var it1 = r1.newIterator()) {
-				it1.seekToFirst();
+			try (var it1 = r1.newIterator(DatabaseRocksDb.getDefaultReadOptions())) {
 				var StateMachine = new TestStateMachine();
 				var snapshot = Paths.get(db, LogSequence.SnapshotFileName).toString();
 				if (new File(snapshot).isFile())
 					StateMachine._LoadSnapshot(snapshot);
 				try (var dumpFile = new FileOutputStream(db + ".txt")) {
 					dumpFile.write(String.format("SnapshotCount = %d\n", StateMachine.getCount()).getBytes(StandardCharsets.UTF_8));
-					while (it1.isValid()) {
+					for (it1.seekToFirst(); it1.isValid(); it1.next()) {
 						var l1 = RaftLog.Decode(new Binary(it1.value()), StateMachine::LogFactory);
 						dumpFile.write(l1.toString().getBytes(StandardCharsets.UTF_8));
 						dumpFile.write('\n');
-						it1.next();
 					}
 				}
 			}
@@ -119,7 +117,7 @@ public class Test {
 			// every node need a private config-file.
 			var confPath = Files.createTempFile("", ".xml");
 			Files.copy(Paths.get(raftConfigStart.getXmlFileName()), confPath, StandardCopyOption.REPLACE_EXISTING);
-			Rafts.computeIfAbsent(node.getName(), nodeName-> new TestRaft(nodeName, confPath.toString()));
+			Rafts.computeIfAbsent(node.getName(), nodeName -> new TestRaft(nodeName, confPath.toString()));
 		}
 
 		for (var raft : Rafts.values())
@@ -817,16 +815,9 @@ public class Test {
 				logger.warn("- Reset Log {} -", raftConfig.getDbHome());
 				logger.warn("------------------------------------------------");
 				// 只删除日志相关数据库。保留重复请求数据库。
-				var logsDir = Paths.get(raftConfig.getDbHome(), "logs").toString();
-				if (new File(logsDir).isDirectory())
-					LogSequence.deleteDirectory(new File(logsDir));
-				var raftsDir = Paths.get(raftConfig.getDbHome(), "rafts").toString();
-				if (new File(raftsDir).isDirectory())
-					LogSequence.deleteDirectory(new File(raftsDir));
-				var snapshotFile = Paths.get(raftConfig.getDbHome(), "snapshot.dat").toString();
-				if ((new File(snapshotFile)).isFile())
-					//noinspection ResultOfMethodCallIgnored
-					(new File(snapshotFile)).delete();
+				LogSequence.deletedDirectoryAndCheck(new File(raftConfig.getDbHome(), "logs"));
+				LogSequence.deletedDirectoryAndCheck(new File(raftConfig.getDbHome(), "rafts"));
+				LogSequence.deletedDirectoryAndCheck(new File(raftConfig.getDbHome(), "snapshot.dat"));
 			}
 			Files.createDirectories(Paths.get(raftConfig.getDbHome()));
 

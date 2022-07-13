@@ -301,7 +301,7 @@ public final class Rocks extends StateMachine implements Closeable {
 		return checkpointDir;
 	}
 
-	public boolean Backup(String checkpointDir, String backupDir) throws RocksDBException {
+	public void Backup(String checkpointDir, String backupDir) throws RocksDBException {
 		var outHandles = new ArrayList<ColumnFamilyHandle>();
 		try (var src = RocksDB.open(DatabaseRocksDb.getCommonDbOptions(), checkpointDir,
 				getColumnFamilies(checkpointDir), outHandles);
@@ -309,10 +309,9 @@ public final class Rocks extends StateMachine implements Closeable {
 			 var backup = BackupEngine.open(Env.getDefault(), backupOptions)) {
 			backup.createNewBackup(src, true);
 		}
-		return true;
 	}
 
-	public boolean Restore(String backupDir) throws RocksDBException {
+	public void Restore(String backupDir) throws RocksDBException {
 		getRaft().lock();
 		try {
 			if (Storage != null) {
@@ -328,7 +327,6 @@ public final class Rocks extends StateMachine implements Closeable {
 			}
 
 			OpenDb(); // reopen
-			return true;
 		} finally {
 			getRaft().unlock();
 		}
@@ -373,26 +371,38 @@ public final class Rocks extends StateMachine implements Closeable {
 
 	@Override
 	public SnapshotResult Snapshot(String path) throws RocksDBException, IOException {
+		long t0 = System.nanoTime();
 		SnapshotResult result = new SnapshotResult();
 		var cpHome = Checkpoint(result);
+
+		long t1 = System.nanoTime();
 		var backupDir = Paths.get(getDbHome(), "backup").toString();
 		var backupFile = new File(backupDir);
 		if (!backupFile.isDirectory() && !backupFile.mkdirs())
 			logger.error("create backup directory failed: {}", backupDir);
 		Backup(cpHome, backupDir);
 
+		long t2 = System.nanoTime();
 		LogSequence.deleteDirectory(new File(cpHome));
 		createZipFromDirectory(backupDir, path);
+
+		long t3 = System.nanoTime();
 		getRaft().getLogSequence().CommitSnapshot(path, result.LastIncludedIndex);
+
 		result.success = true;
+		result.checkPointNanoTime = t1 - t0;
+		result.backupNanoTime = t2 - t1;
+		result.zipNanoTime = t3 - t2;
+		result.totalNanoTime = System.nanoTime() - t0;
 		return result;
 	}
 
 	@Override
 	public void LoadSnapshot(String path) throws RocksDBException, IOException {
 		var backupDir = Paths.get(getDbHome(), "backup").toString();
-		if (Files.getLastModifiedTime(Paths.get(path)).compareTo(Files.getLastModifiedTime(Paths.get(backupDir))) > 0) {
-			LogSequence.deleteDirectory(new File(backupDir));
+		var backupFile = new File(backupDir);
+		if (!backupFile.isDirectory() || new File(path).lastModified() > backupFile.lastModified()) {
+			LogSequence.deletedDirectoryAndCheck(backupFile, 100);
 			extractZipToDirectory(path, backupDir);
 		}
 		Restore(backupDir);

@@ -1072,6 +1072,11 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 	}
 
 	public static void main(String[] args) throws Throwable {
+		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+			e.printStackTrace();
+			logger.fatal("uncaught exception in {}:", t, e);
+		});
+
 		String ip = null;
 		int port = 5555;
 		int threadCount = 0;

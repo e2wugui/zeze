@@ -226,7 +226,7 @@ public class DatabaseRocksDb extends Database {
 		@Override
 		public ByteBuffer Find(ByteBuffer key) {
 			try {
-				var value = rocksDb.get(columnFamily, defaultReadOptions, key.Bytes, key.ReadIndex, key.WriteIndex);
+				var value = rocksDb.get(columnFamily, defaultReadOptions, key.Bytes, key.ReadIndex, key.Size());
 				return value != null ? ByteBuffer.Wrap(value) : null;
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
@@ -304,7 +304,7 @@ public class DatabaseRocksDb extends Database {
 		@Override
 		public synchronized DataWithVersion GetDataWithVersion(ByteBuffer key) {
 			try {
-				return DVRocks.Decode(rocksDb.get(columnFamily, key.Copy()));
+				return DVRocks.Decode(rocksDb.get(columnFamily, defaultReadOptions, key.Bytes, key.ReadIndex, key.Size()));
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
 			}
@@ -313,13 +313,15 @@ public class DatabaseRocksDb extends Database {
 		@Override
 		public synchronized KV<Long, Boolean> SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
 			try {
-				var dv = DVRocks.Decode(rocksDb.get(columnFamily, key.Copy()));
+				var dv = DVRocks.Decode(rocksDb.get(columnFamily, defaultReadOptions, key.Bytes, key.ReadIndex, key.Size()));
 				if (dv.Version != version)
 					return KV.Create(version, false);
 
 				dv.Version = ++version;
 				dv.Data = data;
-				rocksDb.put(columnFamily, defaultWriteOptions, key.Copy(), dv.Encode());
+				var value = dv.Encode();
+				rocksDb.put(columnFamily, defaultWriteOptions, key.Bytes, key.ReadIndex, key.Size(),
+						value, 0, value.length);
 				return KV.Create(version, true);
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);

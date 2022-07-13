@@ -805,10 +805,13 @@ public class GlobalCacheManagerWithRaft
 
 		// not under lock
 		void kick() {
-			var peer = globalRaft.getRocks().getRaft().getServer().GetSocket(SessionId);
-			if (null != peer) {
-				peer.setUserState(null); // 来自这个Agent的所有请求都会失败。
-				peer.close(); // 关闭连接，强制Agent重新登录。
+			var raft = globalRaft.getRocks().getRaft();
+			if (raft != null) {
+				var peer = raft.getServer().GetSocket(SessionId);
+				if (peer != null) {
+					peer.setUserState(null); // 来自这个Agent的所有请求都会失败。
+					peer.close(); // 关闭连接，强制Agent重新登录。
+				}
 			}
 			SessionId = 0; // 清除网络状态。
 		}

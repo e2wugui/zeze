@@ -757,47 +757,26 @@ public final class ServiceManagerServer implements Closeable {
 
 	public static final class AutoKey {
 		private final ServiceManagerServer SMS;
-		private final String Name;
 		private final byte[] Key;
 		private long Current;
 
-		public String getName() {
-			return Name;
-		}
-
-		private byte[] getKey() {
-			return Key;
-		}
-
-		private long getCurrent() {
-			return Current;
-		}
-
-		private void setCurrent(long value) {
-			Current = value;
-		}
-
 		public AutoKey(String name, ServiceManagerServer sms) {
-			Name = name;
 			SMS = sms;
 			byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
 			var bb = ByteBuffer.Allocate(ByteBuffer.writeUIntSize(nameBytes.length) + nameBytes.length);
 			bb.WriteBytes(nameBytes);
 			Key = bb.Bytes;
-			byte[] value;
 			try {
-				value = SMS.AutoKeysDb.get(getKey());
+				byte[] value = SMS.AutoKeysDb.get(DatabaseRocksDb.getDefaultReadOptions(), Key);
+				if (value != null)
+					Current = ByteBuffer.Wrap(value).ReadLong();
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
-			}
-			if (value != null) {
-				bb = ByteBuffer.Wrap(value);
-				setCurrent(bb.ReadLong());
 			}
 		}
 
 		public synchronized void Allocate(AllocateId rpc) {
-			rpc.Result.setStartId(getCurrent());
+			rpc.Result.setStartId(Current);
 
 			var count = rpc.Argument.getCount();
 
@@ -807,12 +786,12 @@ public final class ServiceManagerServer implements Closeable {
 			else if (count > 10000)
 				count = 10000;
 
-			setCurrent(getCurrent() + count);
-			long current = getCurrent();
+			long current = Current + count;
+			Current = current;
 			var bb = ByteBuffer.Allocate(ByteBuffer.writeLongSize(current));
 			bb.WriteLong(current);
 			try {
-				SMS.AutoKeysDb.put(DatabaseRocksDb.getSyncWriteOptions(), getKey(), bb.Bytes);
+				SMS.AutoKeysDb.put(DatabaseRocksDb.getSyncWriteOptions(), Key, bb.Bytes);
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);
 			}
@@ -890,6 +869,11 @@ public final class ServiceManagerServer implements Closeable {
 	}
 
 	public static void main(String[] args) throws Throwable {
+		Thread.setDefaultUncaughtExceptionHandler((t, e) -> {
+			e.printStackTrace();
+			logger.fatal("uncaught exception in {}:", t, e);
+		});
+
 		String ip = null;
 		int port = 5001;
 
