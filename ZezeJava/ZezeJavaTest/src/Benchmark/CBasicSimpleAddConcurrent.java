@@ -8,7 +8,7 @@ import java.util.ArrayList;
 import java.util.concurrent.Future;
 
 public class CBasicSimpleAddConcurrent extends TestCase {
-    public final static int AddCount = 1_000_000;
+    public final static int AddCount = 5_000_000;
     public final static int ConcurrentLevel = 1_000;
 
     public void testBenchmark() throws Throwable {
