@@ -79,6 +79,21 @@ namespace Zeze.Serialize
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Wraps(byte[] bytes)
+        {
+            Wraps(bytes, 0, bytes.Length);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Wraps(byte[] bytes, int offset, int length)
+        {
+            VerifyArrayIndex(bytes, offset, length);
+            Bytes = bytes;
+            ReadIndex = offset;
+            WriteIndex = offset + length;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Append(byte b)
         {
             EnsureWrite(1);
@@ -1275,6 +1290,8 @@ namespace Zeze.Serialize
 
         public void SkipUnknownField(int type1, int type2, int count)
         {
+            type1 |= 0x10; // ensure high bits not zero
+            type2 |= 0x10; // ensure high bits not zero
             while (--count >= 0)
             {
                 SkipUnknownField(type1);
@@ -1300,14 +1317,21 @@ namespace Zeze.Serialize
                     ReadIndex += 8;
                     return;
                 case VECTOR2:
-                case VECTOR2INT:
                     EnsureRead(8);
                     ReadIndex += 8;
                     return;
+                case VECTOR2INT:
+                    ReadLong();
+                    ReadLong();
+                    return;
                 case VECTOR3:
-                case VECTOR3INT:
                     EnsureRead(12);
                     ReadIndex += 12;
+                    return;
+                case VECTOR3INT:
+                    ReadLong();
+                    ReadLong();
+                    ReadLong();
                     return;
                 case VECTOR4:
                     EnsureRead(16);
@@ -1330,8 +1354,6 @@ namespace Zeze.Serialize
                 case BEAN:
                     while ((t = ReadByte()) != 0)
                     {
-                        if (t == 1)
-                            continue;
                         if ((t & ID_MASK) == 0xf0)
                             ReadUInt();
                         SkipUnknownField(t);

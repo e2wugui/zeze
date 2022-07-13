@@ -35,9 +35,7 @@ public class Vector3 extends Vector2 {
 
 	@Override
 	public boolean isZero() {
-		return (Float.floatToRawIntBits(getX()) |
-				Float.floatToRawIntBits(getY()) |
-				Float.floatToRawIntBits(z)) == 0;
+		return getX() == 0 & getY() == 0 & z == 0;
 	}
 
 	@Override

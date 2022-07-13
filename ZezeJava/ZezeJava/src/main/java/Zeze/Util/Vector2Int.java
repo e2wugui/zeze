@@ -31,26 +31,26 @@ public class Vector2Int implements Serializable {
 	}
 
 	public boolean isZero() {
-		return (x | y) != 0;
+		return (x | y) == 0;
 	}
 
 	@Override
 	public void Encode(ByteBuffer bb) {
-		bb.WriteInt4(x);
-		bb.WriteInt4(y);
+		bb.WriteInt(x);
+		bb.WriteInt(y);
 	}
 
 	@Override
 	public void Decode(ByteBuffer bb) {
-		x = bb.ReadInt4();
-		y = bb.ReadInt4();
+		x = bb.ReadInt();
+		y = bb.ReadInt();
 	}
 
 	public void Decode(ByteBuffer bb, int type) {
 		type &= ByteBuffer.TAG_MASK;
 		if (type == ByteBuffer.VECTOR2INT) {
-			x = bb.ReadInt4();
-			y = bb.ReadInt4();
+			x = bb.ReadInt();
+			y = bb.ReadInt();
 		} else
 			bb.SkipUnknownField(type);
 	}

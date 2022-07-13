@@ -38,10 +38,7 @@ public class Vector4 extends Vector3 {
 
 	@Override
 	public boolean isZero() {
-		return (Float.floatToRawIntBits(getX()) |
-				Float.floatToRawIntBits(getY()) |
-				Float.floatToRawIntBits(getZ()) |
-				Float.floatToRawIntBits(w)) == 0;
+		return getX() == 0 & getY() == 0 & getZ() == 0 & w == 0;
 	}
 
 	@Override

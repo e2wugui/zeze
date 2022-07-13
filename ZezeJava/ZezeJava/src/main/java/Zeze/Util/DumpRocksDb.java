@@ -24,6 +24,17 @@ import static Zeze.Transaction.Bean.Hash32;
 import static Zeze.Util.BitConverter.num2Hex;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+/*
+导出RocksDB的所有记录到文本文件的工具, 可指定column(table)名, 默认是"default"
+只提供数据库目录参数时会列出所有的column名
+默认的导出方式输出转换为字符串的二进制key-value数据
+raft的logs数据库支持特殊的导出方式(-raftLog),输出更加可读的信息
+
+附带列出数据库meta信息(所有在用的sst文件列表)功能(-meta)
+附带压缩整理数据库功能(只有此功能会写数据库,其它均为只读), 可指定column(table)名, 默认是所有的column
+其中有两种压缩方法, 一种是compactRange(-compact), 另一种是compactFiles(-compact1)
+二者都整理log文件到sst中, 后者还会把0级文件整理合并到1级文件
+*/
 public final class DumpRocksDb {
 	public static void main(String[] args) throws Throwable {
 		int argCount = args.length;
@@ -41,18 +52,16 @@ public final class DumpRocksDb {
 			System.out.println("usage: java -cp ... " + DumpRocksDb.class.getName() +
 					" inputDbPath [[columnFamilyName] outputTxtFile] [options]");
 			System.out.println("options: -meta      list database meta data");
-			System.out.println("         -compact   compact all the database files");
-			System.out.println("         -compact1  compact all the level-0 files to level-1");
-			System.out.println("         -raftLog   decode raft logs for global server");
+			System.out.println("         -compact   compact database files");
+			System.out.println("         -compact1  compact level-0 files to level-1");
+			System.out.println("         -longKey   decode key as long");
+			System.out.println("         -beanValue decode value as bean");
+			System.out.println("         -raftLog   decode value as raft logs for global server");
 			return;
 		}
 		var inputDbPath = args[0];
 		var columnFamilyName = argCount > 2 ? args[1] : null;
 		var outputTxtFile = argCount == 1 ? null : argCount == 2 ? args[1] : args[2];
-		Action3<OutputStream, byte[], byte[]> dumpAction = "true".equalsIgnoreCase(System.getProperty("raftLog"))
-				? DumpRocksDb::dumpRaftLog
-				: DumpRocksDb::dumpRawKV;
-
 		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
 		var cfOptions = new ColumnFamilyOptions();
 		for (var cf : RocksDB.listColumnFamilies(new Options(), inputDbPath))
@@ -95,7 +104,7 @@ public final class DumpRocksDb {
 		}
 
 		if ("true".equalsIgnoreCase(System.getProperty("compact"))) {
-			System.out.println("INFO: compacting database in '" + inputDbPath + "' ...");
+			System.out.println("INFO: compact database in '" + inputDbPath + "'");
 			var t = System.currentTimeMillis();
 			var outHandles = new ArrayList<ColumnFamilyHandle>(columnFamilies.size());
 			try (var rocksDb = RocksDB.open(new DBOptions(), inputDbPath, columnFamilies, outHandles)) {
@@ -113,7 +122,11 @@ public final class DumpRocksDb {
 		}
 
 		if ("true".equalsIgnoreCase(System.getProperty("compact1"))) {
-			System.out.println("INFO: compacting level-0 to level-1 in '" + inputDbPath + "' ...");
+			if (columnFamilyName != null) {
+				System.out.println("INFO: compact column family '" + columnFamilyName +
+						"' from level-0 to level-1 in '" + inputDbPath + "'");
+			} else
+				System.out.println("INFO: compact database from level-0 to level-1 in '" + inputDbPath + "'");
 			var t = System.currentTimeMillis();
 			var outHandles = new ArrayList<ColumnFamilyHandle>(columnFamilies.size());
 			try (var rocksDb = RocksDB.open(new DBOptions(), inputDbPath, columnFamilies, outHandles)) {
@@ -124,9 +137,10 @@ public final class DumpRocksDb {
 					var cf = columnFamilies.get(i);
 					if (selColName != null && !Arrays.equals(selColName, cf.getName()))
 						continue;
-					for (var meta : rocksDb.getLiveFilesMetaData())
+					for (var meta : rocksDb.getLiveFilesMetaData()) {
 						if (meta.level() == 0 && Arrays.equals(meta.columnFamilyName(), cf.getName()))
 							fileList.add(meta.fileName());
+					}
 					if (!fileList.isEmpty()) {
 						System.out.println("INFO: compacting '" + new String(cf.getName(), UTF_8) + "' ...");
 						rocksDb.compactFiles(cOptions, outHandles.get(i), fileList, 1, -1, null);
@@ -139,9 +153,15 @@ public final class DumpRocksDb {
 		}
 
 		if (outputTxtFile == null) {
-			System.out.println("INFO: found " + columnFamilies.size() + " column families:");
-			for (var cf : columnFamilies)
-				System.out.println(new String(cf.getName(), UTF_8));
+			var outHandles = new ArrayList<ColumnFamilyHandle>(columnFamilies.size());
+			try (var ignored = RocksDB.openReadOnly(new DBOptions(), inputDbPath, columnFamilies, outHandles)) {
+				System.out.println("        ID columnFamilyName");
+				System.out.println("---------------------------");
+				for (var cfh : outHandles)
+					System.out.format("%10d %s\n", cfh.getID(), new String(cfh.getName(), UTF_8));
+				System.out.println("---------------------------");
+				System.out.format("total:%4d column families\n", outHandles.size());
+			}
 			return;
 		}
 
@@ -155,7 +175,7 @@ public final class DumpRocksDb {
 			}
 		}
 		if (selectCfIndex < 0) {
-			System.out.println("ERROR: not found column family name: '" + columnFamilyName + "'");
+			System.out.println("ERROR: not found column family '" + columnFamilyName + "'");
 			return;
 		}
 
@@ -166,8 +186,18 @@ public final class DumpRocksDb {
 			 var it = rocksDb.newIterator(outHandles.get(selectCfIndex), new ReadOptions());
 			 var os = new BufferedOutputStream(new FileOutputStream(outputTxtFile))) {
 			long n = 0;
+			var key = ByteBuffer.Wrap(ByteBuffer.Empty);
+			var value = ByteBuffer.Wrap(ByteBuffer.Empty);
+			var raftLog = "true".equalsIgnoreCase(System.getProperty("raftLog"));
+			var longKey = "true".equalsIgnoreCase(System.getProperty("longKey"));
+			var beanValue = "true".equalsIgnoreCase(System.getProperty("beanValue"));
 			for (it.seekToFirst(); it.isValid(); it.next()) {
-				dumpAction.run(os, it.key(), it.value());
+				key.wraps(it.key());
+				value.wraps(it.value());
+				if (raftLog)
+					dumpRaftLog(os, key, value);
+				else
+					dumpKV(os, key, value, longKey, beanValue);
 				n++;
 			}
 			os.flush();
@@ -179,70 +209,78 @@ public final class DumpRocksDb {
 		os.write(String.format(fmt, params).getBytes(UTF_8));
 	}
 
-	private static void dumpRawKV(OutputStream os, byte[] key, byte[] value) throws IOException {
-		os.write('\'');
-		dumpBytes(os, key);
-		os.write('\'');
+	private static void dumpKV(OutputStream os, ByteBuffer key, ByteBuffer value, boolean longKey, boolean beanValue)
+			throws IOException {
+		if (longKey)
+			dump(os, "%d", key.ReadLong());
+		else {
+			os.write('\'');
+			dumpBytes(os, key.Bytes);
+			os.write('\'');
+		}
 		os.write(':');
 		os.write(' ');
-		os.write('\'');
-		dumpBytes(os, value);
-		os.write('\'');
+		if (beanValue)
+			dumpVar(os, value, ByteBuffer.BEAN);
+		else {
+			os.write('\'');
+			dumpBytes(os, value.Bytes);
+			os.write('\'');
+		}
 		os.write('\n');
 	}
 
-	private static void dumpRaftLog(OutputStream os, byte[] key, byte[] value) throws Throwable {
-		dump(os, "%d: ", ByteBuffer.Wrap(key).ReadLong());
-		var bb = ByteBuffer.Wrap(value);
-		dump(os, "{term:%d, index:%d, log:", bb.ReadLong(), bb.ReadLong());
-		var logType = bb.ReadInt4();
+	private static void dumpRaftLog(OutputStream os, ByteBuffer key, ByteBuffer value) throws Throwable {
+		dump(os, "%d: ", key.ReadLong());
+		dump(os, "{term:%d, index:%d, log:", value.ReadLong(), value.ReadLong());
+		var logType = value.ReadInt4();
 		if (logType == logTypeChanges) {
-			int recordCount = bb.ReadUInt();
+			int recordCount = value.ReadUInt();
 			if (recordCount > 0)
 				dump(os, "changes");
 			for (int i = 0; i < recordCount; i++) {
-				var tableTId = bb.ReadUInt();
-				var tableTName = bb.ReadString();
-				var keyName = bb.ReadString();
-				var keyBytes = bb.ReadBytes();
-				var state = bb.ReadLong();
+				var tableTId = value.ReadUInt();
+				var tableTName = value.ReadString();
+				var keyName = value.ReadString();
+				var keyBytes = value.ReadBytes();
+				var state = value.ReadLong();
 				dump(os, "{table:%d:%s, key:%s:'%s', s:%d", tableTId, tableTName, keyName, toStr(keyBytes), state);
 				if (state == 1) { // Put
 					if (tableTName.equals("Global")) {
 						var cs = new CacheState();
-						cs.Decode(bb);
+						cs.Decode(value);
 						dump(os, ", modify:%d, share=%s}", cs.getModify(), cs.getShare());
 					} else if (tableTName.equals("Session")) {
 						var as = new AcquiredState();
-						as.Decode(bb);
+						as.Decode(value);
 						dump(os, ", state:%d}", as.getState());
 					} else
 						throw new UnsupportedOperationException("unknown table template name: " + tableTName);
 				} else if (state == 2) { // Edit
 					dump(os, ", edit");
-					for (var logBeanCount = bb.ReadUInt(); logBeanCount > 0; logBeanCount--)
-						logBeanDecoder.run(os, bb);
+					for (var logBeanCount = value.ReadUInt(); logBeanCount > 0; logBeanCount--)
+						logBeanDecoder.run(os, value);
 				} else if (state != 0) // Remove
 					throw new UnsupportedOperationException("unknown state: " + state);
 				os.write('}');
 			}
-			int atomicCount = bb.ReadUInt();
+			int atomicCount = value.ReadUInt();
 			if (atomicCount > 0) {
 				dump(os, " atomics:{");
 				for (int i = 0; i < atomicCount; i++)
-					dump(os, i == 0 ? "%d:%d" : ",%d:%d", bb.ReadUInt(), bb.ReadLong());
+					dump(os, i == 0 ? "%d:%d" : ",%d:%d", value.ReadUInt(), value.ReadLong());
 				os.write('}');
 			}
 		} else if (logType == logTypeHeartbeat) {
-			dump(os, "heartbeat{clientId:'%s', reqId:%d, ctime:%d, rpcRes:'%s', op=%d, info='%s'}", bb.ReadString(),
-					bb.ReadLong(), bb.ReadLong(), toStr(bb.ReadBytes()), bb.ReadLong(), bb.ReadString());
+			dump(os, "heartbeat{clientId:'%s', reqId:%d, ctime:%d, rpcRes:'%s', op=%d, info='%s'}", value.ReadString(),
+					value.ReadLong(), value.ReadLong(), toStr(value.ReadBytes()), value.ReadLong(), value.ReadString());
 		} else
 			throw new UnsupportedOperationException("unknown raft log type: " + logType);
 		os.write('\n');
 	}
 
 	private static void dumpBytes(OutputStream os, byte[] bytes) throws IOException {
-		for (int b : bytes) {
+		for (var b : bytes) {
 			if (b >= 0x20 && b <= 0x7e) {
 				if (b == '\'' || b == '\\')
 					os.write('\\');
@@ -269,6 +307,84 @@ public final class DumpRocksDb {
 			}
 		}
 		return sb.toString();
+	}
+
+	private static void dumpVar(OutputStream os, ByteBuffer bb, int type) throws IOException {
+		switch (type & ByteBuffer.TAG_MASK) {
+		case ByteBuffer.INTEGER:
+			dump(os, "%d", bb.ReadLong());
+			return;
+		case ByteBuffer.FLOAT:
+			dump(os, "%ff", bb.ReadFloat());
+			return;
+		case ByteBuffer.DOUBLE:
+			dump(os, "%fd", bb.ReadDouble());
+			return;
+		case ByteBuffer.VECTOR2:
+			dump(os, "V2{%f,%f}", bb.ReadFloat(), bb.ReadFloat());
+			return;
+		case ByteBuffer.VECTOR2INT:
+			dump(os, "V2I{%d,%d}", bb.ReadLong(), bb.ReadLong());
+			return;
+		case ByteBuffer.VECTOR3:
+			dump(os, "V3{%f,%f,%f}", bb.ReadFloat(), bb.ReadFloat(), bb.ReadFloat());
+			return;
+		case ByteBuffer.VECTOR3INT:
+			dump(os, "V3I{%d,%d,%d}", bb.ReadLong(), bb.ReadLong(), bb.ReadLong());
+			return;
+		case ByteBuffer.VECTOR4:
+			dump(os, "V4{%f,%f,%f,%f}", bb.ReadFloat(), bb.ReadFloat(), bb.ReadFloat(), bb.ReadFloat());
+			return;
+		case ByteBuffer.BYTES:
+			os.write('\'');
+			dumpBytes(os, bb.ReadBytes());
+			os.write('\'');
+			return;
+		case ByteBuffer.LIST:
+			os.write('[');
+			int t = bb.ReadByte();
+			for (int i = 0, n = bb.ReadTagSize(t); i < n; i++) {
+				if (i != 0)
+					os.write(',');
+				dumpVar(os, bb, t);
+			}
+			os.write(']');
+			return;
+		case ByteBuffer.MAP:
+			os.write('(');
+			int kt = bb.ReadByte() & 0xff;
+			int vt = kt & 0xf;
+			kt >>= 4;
+			for (int i = 0, n = bb.ReadUInt(); i < n; i++) {
+				if (i != 0)
+					os.write(',');
+				dumpVar(os, bb, kt);
+				os.write(':');
+				dumpVar(os, bb, vt);
+			}
+			os.write(')');
+			return;
+		case ByteBuffer.DYNAMIC:
+			dump(os, "D%d", bb.ReadLong());
+			//noinspection fallthrough
+		case ByteBuffer.BEAN:
+			os.write('{');
+			for (int varId = 0; (t = bb.ReadByte()) != 0; ) {
+				if (varId != 0)
+					os.write(',');
+				if (t == 1) {
+					dump(os, "P:");
+					continue;
+				}
+				varId += bb.ReadTagSize(t);
+				dump(os, "%d:", varId);
+				dumpVar(os, bb, t);
+			}
+			os.write('}');
+			return;
+		default:
+			throw new IllegalStateException("unknown var type: " + type);
+		}
 	}
 
 	private static final int logTypeChanges = Hash32("Zeze.Raft.RocksRaft.Changes");

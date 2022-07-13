@@ -35,7 +35,7 @@ public class Vector3Int extends Vector2Int {
 
 	@Override
 	public boolean isZero() {
-		return (getX() | getY() | z) != 0;
+		return (getX() | getY() | z) == 0;
 	}
 
 	@Override

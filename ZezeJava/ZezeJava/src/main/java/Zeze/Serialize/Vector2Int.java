@@ -31,7 +31,7 @@ public class Vector2Int implements Serializable {
 	}
 
 	public boolean isZero() {
-		return (x | y) != 0;
+		return (x | y) == 0;
 	}
 
 	@Override

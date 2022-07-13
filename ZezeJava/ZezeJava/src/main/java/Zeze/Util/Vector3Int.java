@@ -36,29 +36,29 @@ public class Vector3Int implements Serializable {
 	}
 
 	public boolean isZero() {
-		return (x | y | z) != 0;
+		return (x | y | z) == 0;
 	}
 
 	@Override
 	public void Encode(ByteBuffer bb) {
-		bb.WriteInt4(x);
-		bb.WriteInt4(y);
-		bb.WriteInt4(z);
+		bb.WriteInt(x);
+		bb.WriteInt(y);
+		bb.WriteInt(z);
 	}
 
 	@Override
 	public void Decode(ByteBuffer bb) {
-		x = bb.ReadInt4();
-		y = bb.ReadInt4();
-		z = bb.ReadInt4();
+		x = bb.ReadInt();
+		y = bb.ReadInt();
+		z = bb.ReadInt();
 	}
 
 	public void Decode(ByteBuffer bb, int type) {
 		type &= ByteBuffer.TAG_MASK;
 		if (type == ByteBuffer.VECTOR3INT) {
-			x = bb.ReadInt4();
-			y = bb.ReadInt4();
-			z = bb.ReadInt4();
+			x = bb.ReadInt();
+			y = bb.ReadInt();
+			z = bb.ReadInt();
 		} else
 			bb.SkipUnknownField(type);
 	}
