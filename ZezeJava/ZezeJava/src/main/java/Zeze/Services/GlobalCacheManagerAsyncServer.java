@@ -799,7 +799,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			}
 			boolean senderIsShare = senderIsShareTmp;
 
-			var errorFreshAcquire = new OutObject<Boolean>();
+			var errorFreshAcquire = new OutObject<>(Boolean.FALSE);
 			Action0 lastStage = () -> {
 				// 移除成功的。
 				for (var it = reduceSucceed.iterator(); it.moveToNext(); ) {

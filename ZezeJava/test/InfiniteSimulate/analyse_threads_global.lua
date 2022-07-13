@@ -106,6 +106,7 @@ local knowns = {
 	{ "在Selector线程等待NIO事件",                     ".Selector.run(Selector.java:67)" },
 	{ "AchillesHeelDaemon线程",                        "(AchillesHeelDaemon.java:146)" },
 	{ "永久等待(主线程)",                              ".Object.wait(", ".main(GlobalCacheManagerServer.java:" },
+	{ "永久等待(主线程)",                              ".Object.wait(", ".main(GlobalCacheManagerAsyncServer.java:" },
 }
 
 local needKnowns = {

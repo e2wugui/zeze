@@ -667,7 +667,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 				// 两种情况不需要发reduce
 				// 1. share是空的, 可以直接升为Modify
 				// 2. sender是share, 而且reducePending的size是0
-				var errorFreshAcquire = new OutObject<Boolean>();
+				var errorFreshAcquire = new OutObject<>(Boolean.FALSE);
 				if (!cs.Share.isEmpty() && (!senderIsShare || !reducePending.isEmpty())) {
 					Task.run(() -> {
 						// 一个个等待是否成功。WaitAll 碰到错误不知道怎么处理的，

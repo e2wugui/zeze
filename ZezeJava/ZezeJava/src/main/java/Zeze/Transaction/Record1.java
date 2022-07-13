@@ -115,7 +115,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 
 	@Override
 	public void SetDirty() {
-		switch (TTable.getZeze().getCheckpoint().getCheckpointMode()) {
+		switch (TTable.getZeze().getConfig().getCheckpointMode()) {
 		case Period:
 			setDirty(true);
 			if (TTable.GetStorage() != null) {
@@ -228,7 +228,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	public void Cleanup() {
 		setDatabaseTransactionTmp(null);
 
-		if (TTable.getZeze().getCheckpoint().getCheckpointMode() == CheckpointMode.Period) {
+		if (TTable.getZeze().getConfig().getCheckpointMode() == CheckpointMode.Period) {
 			TableKey tkey = new TableKey(TTable.getId(), Key);
 			Lockey lockey = TTable.getZeze().getLocks().Get(tkey);
 			lockey.EnterWriteLock();
