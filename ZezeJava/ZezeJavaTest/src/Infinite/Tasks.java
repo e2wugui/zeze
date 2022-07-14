@@ -9,6 +9,7 @@ import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DatabaseMemory;
+import Zeze.Transaction.GoBackZeze;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.ProcedureStatistics;
 import Zeze.Transaction.Transaction;
@@ -184,12 +185,20 @@ public final class Tasks {
 			var success = getSuccessCounter(name).sum();
 			var sum = 0L;
 			for (var it = getKeyCounters(name).keyIterator(); it.hasNext(); ) {
-				var key = it.next();
-				var v1 = app.demo_Module1.getTable1().selectDirty(key);
-				if (v1 == null)
-					Simulate.logger.warn("app.demo_Module1.getTable1().selectDirty({}) = null", key);
-				else
-					sum += v1.getLong2();
+				for (int tryCount = 10; ; ) {
+					try {
+						var key = it.next();
+						var v1 = app.demo_Module1.getTable1().selectDirty(key);
+						if (v1 == null)
+							Simulate.logger.warn("app.demo_Module1.getTable1().selectDirty({}) = null", key);
+						else
+							sum += v1.getLong2();
+						break;
+					} catch (GoBackZeze e) {
+						if (--tryCount <= 0)
+							throw e;
+					}
+				}
 			}
 			Assert.assertEquals(success, sum);
 			Simulate.logger.debug("{}.verify OK!", name);
@@ -271,15 +280,23 @@ public final class Tasks {
 			var app = Simulate.getInstance().randApp().app; // 任何一个app都能查到相同的结果。
 			int sum = 0;
 			for (int key = 0; key < KeyBoundTrade; key++) {
-				try {
-					var value = app.demo_Module1.getTable1().selectDirty((long)key);
-					if (value != null)
-						sum += value.getInt1();
-				} catch (IllegalStateException e) {
-					if ("Acquire Failed".equals(e.getMessage()))
-						key--; // retry
-					else
-						throw e;
+				for (int tryCount = 10; ; ) {
+					try {
+						try {
+							var value = app.demo_Module1.getTable1().selectDirty((long)key);
+							if (value != null)
+								sum += value.getInt1();
+						} catch (IllegalStateException e) {
+							if ("Acquire Failed".equals(e.getMessage()))
+								key--; // retry
+							else
+								throw e;
+						}
+						break;
+					} catch (GoBackZeze e) {
+						if (--tryCount <= 0)
+							throw e;
+					}
 				}
 			}
 			Assert.assertEquals(0, sum);

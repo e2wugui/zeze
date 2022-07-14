@@ -88,6 +88,9 @@ public final class Simulate {
 		simulate.Before();
 		try {
 			simulate.testMain();
+		} catch (Throwable e) {
+			logger.fatal("main exception:", e);
+			throw e;
 		} finally {
 			simulate.After();
 		}
