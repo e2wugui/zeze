@@ -197,6 +197,12 @@ public final class Tasks {
 					} catch (GoBackZeze e) {
 						if (--tryCount <= 0)
 							throw e;
+						try {
+							//noinspection BusyWait
+							Thread.sleep(200);
+						} catch (InterruptedException ex) {
+							throw new RuntimeException(ex);
+						}
 					}
 				}
 			}
@@ -296,6 +302,12 @@ public final class Tasks {
 					} catch (GoBackZeze e) {
 						if (--tryCount <= 0)
 							throw e;
+						try {
+							//noinspection BusyWait
+							Thread.sleep(200);
+						} catch (InterruptedException ex) {
+							throw new RuntimeException(ex);
+						}
 					}
 				}
 			}
