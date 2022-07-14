@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
+import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Net.RpcTimeoutException;
@@ -933,6 +934,16 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 			if (session != null)
 				session.TryUnBindSocket(so); // unbind when login
 			super.OnSocketClose(so, e);
+		}
+
+		@Override
+		public <P extends Protocol<?>> void DispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
+																ProtocolFactoryHandle<?> factoryHandle) {
+			try {
+				responseHandle.handle(rpc);
+			} catch (Throwable e) {
+				logger.error("DispatchRpcResponse exception:", e);
+			}
 		}
 	}
 

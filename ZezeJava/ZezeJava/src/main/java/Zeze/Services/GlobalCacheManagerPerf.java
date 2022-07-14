@@ -2,6 +2,7 @@ package Zeze.Services;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import Zeze.Net.Protocol;
@@ -134,6 +135,12 @@ public class GlobalCacheManagerPerf {
 				.append(reduces.size()).append('\n');
 		for (var e : others.entrySet())
 			sb.append(e.getKey()).append(" = ").append(e.getValue().sum()).append('\n');
+		var es = Task.getThreadPool();
+		if (es instanceof ThreadPoolExecutor) {
+			var queueSize = ((ThreadPoolExecutor)es).getQueue().size();
+			if (queueSize != 0)
+				sb.append("ThreadPoolQueueSize = ").append(queueSize).append('\n');
+		}
 		logger.info("{}\n{}", perfName, sb.toString());
 
 		for (int i = 0; i < ACQUIRE_STATE_COUNT; i++) {

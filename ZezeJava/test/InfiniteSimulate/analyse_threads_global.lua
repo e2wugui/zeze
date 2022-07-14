@@ -107,6 +107,10 @@ local knowns = {
 	{ "AchillesHeelDaemon线程",                        "(AchillesHeelDaemon.java:146)" },
 	{ "永久等待(主线程)",                              ".Object.wait(", ".main(GlobalCacheManagerServer.java:" },
 	{ "永久等待(主线程)",                              ".Object.wait(", ".main(GlobalCacheManagerAsyncServer.java:" },
+	{ "在AcquireShare中等待Reduce回复",                ".AcquireShare(GlobalCacheManagerServer.java:467)" },
+	{ "在AcquireModify中等待Reduce回复",               ".AcquireModify(GlobalCacheManagerServer.java:711)" },
+	{ "在AcquireShare中等待AcquireStatePending",       ".AcquireShare(GlobalCacheManagerServer.java:431)" },
+	{ "在Release中等待AcquireStatePending",            ".Release(GlobalCacheManagerServer.java:370)" },
 }
 
 local needKnowns = {
