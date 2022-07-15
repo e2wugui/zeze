@@ -130,11 +130,14 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		case Immediately:
 			// 立即模式需要马上保存到RocksCache中。
 			// 为了支持事务，需要在Checkpoint中实现。
+			// TODO 需要在事务提交的Flush事务中一起执行。
+			/*
 			if (null == value) {
 				TTable.RocksCacheRemove(Key);
 			} else {
 				TTable.RocksCachePut(Key, (V)value);
 			}
+			*/
 			break;
 		}
 	}
