@@ -16,6 +16,7 @@ import Zeze.Transaction.Transaction;
 import Zeze.Util.FuncLong;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.Random;
+import org.apache.logging.log4j.Level;
 import org.junit.Assert;
 
 public final class Tasks {
@@ -170,8 +171,17 @@ public final class Tasks {
 
 		@Override
 		long process() {
-			var value = App.demo_Module1.getTable1().getOrAdd(Keys.iterator().next());
-			value.setLong2(value.getLong2() + 1);
+			var key = Keys.iterator().next();
+			var value = App.demo_Module1.getTable1().getOrAdd(key);
+			var oldV = value.getLong2();
+			value.setLong2(oldV + 1);
+			var newV = value.getLong2();
+			Transaction.whileCommit(() -> {
+				var newV2 = App.demo_Module1.getTable1().getOrAdd(key).getLong2();
+				var level = oldV + 1 != newV || newV != newV2 ? Level.ERROR : Level.INFO;
+				if (level == Level.ERROR || debugTradeSum)
+					Simulate.logger.log(level, "--- key:{}, value:{}->{}->{}", key, oldV, newV, newV2);
+			});
 			return 0L;
 		}
 
@@ -191,8 +201,12 @@ public final class Tasks {
 						var v1 = app.demo_Module1.getTable1().selectDirty(key);
 						if (v1 == null)
 							Simulate.logger.warn("app.demo_Module1.getTable1().selectDirty({}) = null", key);
-						else
-							sum += v1.getLong2();
+						else {
+							var v = v1.getLong2();
+							sum += v;
+							if (debugTradeSum)
+								Simulate.logger.info("--- key:{} value:{}", key, v);
+						}
 						break;
 					} catch (GoBackZeze e) {
 						if (--tryCount <= 0)
@@ -206,6 +220,8 @@ public final class Tasks {
 					}
 				}
 			}
+			if (success != sum)
+				Simulate.logger.error("Table1Long2Add1 verify failed: {} != {}", success, sum);
 			Assert.assertEquals(success, sum);
 			Simulate.logger.debug("{}.verify OK!", name);
 		}
