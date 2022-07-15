@@ -116,8 +116,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						TableStatistics.getInstance().GetOrAdd(getId()).getStorageFindCount().increment();
 					}
 					strongRef = TStorage.Find(key, this);
-					if (strongRef != null)
+					if (strongRef != null) {
 						RocksCachePut(key, strongRef);
+					} else {
+						RocksCacheRemove(key);
+					}
 					r.setSoftValue(strongRef); // r.Value still maybe null
 					// 【注意】这个变量不管 OldTable 中是否存在的情况。
 					r.setExistInBackDatabase(strongRef != null);
@@ -131,7 +134,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 							// 从旧表装载时，马上设为脏，使得可以写入新表。
 							// TODO CheckpointMode.Immediately
 							// 需要马上保存，否则，直到这个记录被访问才有机会保存。
-							r.SetDirty();
+							r.SetDirty(strongRef);
 						}
 					}
 					if (strongRef != null)

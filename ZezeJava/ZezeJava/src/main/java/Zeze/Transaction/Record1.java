@@ -111,12 +111,12 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 			setSoftValue(accessed.CommittedPutLog.getValue());
 		}
 		setTimestamp(getNextTimestamp()); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
-		SetDirty();
+		SetDirty(getSoftValue());
 		//System.out.println("commit: " + this + " put=" + accessed.CommittedPutLog + " atr=" + accessed.AtomicTupleRecord);
 	}
 
 	@Override
-	public void SetDirty() {
+	public void SetDirty(Bean value) {
 		switch (TTable.getZeze().getConfig().getCheckpointMode()) {
 		case Period:
 			setDirty(true);
@@ -130,6 +130,11 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		case Immediately:
 			// 立即模式需要马上保存到RocksCache中。
 			// 为了支持事务，需要在Checkpoint中实现。
+			if (null == value) {
+				TTable.RocksCacheRemove(Key);
+			} else {
+				TTable.RocksCachePut(Key, (V)value);
+			}
 			break;
 		}
 	}

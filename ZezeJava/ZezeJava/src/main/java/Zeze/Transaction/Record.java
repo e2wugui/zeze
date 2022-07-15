@@ -156,7 +156,7 @@ public abstract class Record {
 
 	public abstract Object getObjectKey();
 
-	public abstract void SetDirty();
+	public abstract void SetDirty(Bean value);
 
 	public abstract IGlobalAgent.AcquireResult Acquire(int state, boolean fresh);
 
