@@ -78,7 +78,7 @@ namespace UnitTest.Zeze.Trans
             try
             {
                 // 只删除一个app里面的记录就够了。
-                Assert.IsTrue(Procedure.Success == app1.Zeze.NewProcedure(async () =>
+                Assert.AreEqual(Procedure.Success, app1.Zeze.NewProcedure(async () =>
                 {
                     await app1.demo_Module1.Table1.RemoveAsync(6785);
                     return Procedure.Success;
