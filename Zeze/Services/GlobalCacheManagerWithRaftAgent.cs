@@ -19,15 +19,9 @@ namespace Zeze.Services
             Stop();
         }
 
-        public GlobalCacheManagerWithRaftAgent(Application zeze)
+        public GlobalCacheManagerWithRaftAgent(Application zeze, string[] hosts)
         {
             Zeze = zeze;
-        }
-
-        public async Task Start(string[] hosts)
-        {
-            if (null != Agents)
-                return;
 
             Agents = new RaftAgent[hosts.Length];
             for (int i = 0; i < hosts.Length; ++i)
@@ -35,7 +29,10 @@ namespace Zeze.Services
                 var raftconf = Raft.RaftConfig.Load(hosts[i]);
                 Agents[i] = new RaftAgent(this, Zeze, i, raftconf);
             }
+        }
 
+        public async Task Start()
+        {
             foreach (var agent in Agents)
             {
                 agent.RaftClient.Client.Start();

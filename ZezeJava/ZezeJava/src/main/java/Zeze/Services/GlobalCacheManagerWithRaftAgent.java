@@ -27,24 +27,21 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	private final Zeze.Application zz;
 	public RaftAgent[] Agents;
 
-	public GlobalCacheManagerWithRaftAgent(Zeze.Application zeze) {
+	public GlobalCacheManagerWithRaftAgent(Zeze.Application zeze, String[] hosts) throws Throwable {
 		zz = zeze;
-	}
-
-	public final Zeze.Application getZeze() {
-		return zz;
-	}
-
-	public final synchronized void Start(String[] hosts) throws Throwable {
-		if (Agents != null)
-			return;
 
 		Agents = new RaftAgent[hosts.length];
 		for (int i = 0; i < hosts.length; ++i) {
 			var raftConf = Zeze.Raft.RaftConfig.Load(hosts[i]);
 			Agents[i] = new RaftAgent(this, zz, i, raftConf);
 		}
+	}
 
+	public final Zeze.Application getZeze() {
+		return zz;
+	}
+
+	public final synchronized void Start() throws Throwable {
 		for (var agent : Agents)
 			agent.getRaftClient().getClient().Start();
 

@@ -278,69 +278,61 @@ namespace Zeze.Transaction
 
         public Zeze.Application Zeze { get;  }
 
-        public GlobalAgent(Zeze.Application app)
+        public GlobalAgent(Zeze.Application app, string[] hostNameOrAddress, int port)
         {
             Zeze = app;
+
+            Client = new GlobalClient(this, Zeze);
+            Client.AddFactoryHandle(new Reduce().TypeId, new Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new Reduce(),
+                Handle = ProcessReduceRequest,
+                TransactionLevel = TransactionLevel.None
+            });
+            Client.AddFactoryHandle(new Acquire().TypeId, new Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new Acquire(),
+                TransactionLevel = TransactionLevel.None
+                // 同步方式调用，不需要设置Handle: Response Timeout 
+            });
+            Client.AddFactoryHandle(new Login().TypeId, new Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new Login(),
+                TransactionLevel = TransactionLevel.None
+            });
+            Client.AddFactoryHandle(new ReLogin().TypeId, new Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new ReLogin(),
+                TransactionLevel = TransactionLevel.None
+            });
+            Client.AddFactoryHandle(new NormalClose().TypeId, new Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new NormalClose(),
+                TransactionLevel = TransactionLevel.None
+            });
+            Client.AddFactoryHandle(new KeepAlive().TypeId, new Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new KeepAlive(),
+                TransactionLevel = TransactionLevel.None
+            });
+
+            Agents = new Agent[hostNameOrAddress.Length];
+            for (int i = 0; i < hostNameOrAddress.Length; ++i)
+            {
+                var hp = hostNameOrAddress[i].Split(':');
+                if (hp.Length > 1)
+                    Agents[i] = new Agent(Zeze, Client, hp[0], int.Parse(hp[1]), i);
+                else
+                    Agents[i] = new Agent(Zeze, Client, hp[0], port, i);
+            }
         }
 
-        public void Start(string[] hostNameOrAddress, int port)
+        public async Task Start()
         {
-            lock (this)
-            {
-                if (null != Client)
-                    return;
-
-                Client = new GlobalClient(this, Zeze);
-                // Raft Need. Zeze-App 自动启用持久化的全局唯一的Rpc.SessionId生成器。
-                //Client.SessionIdGenerator = Zeze.ServiceManagerAgent.GetAutoKey(Client.Name).Next;
-
-                Client.AddFactoryHandle(new Reduce().TypeId, new Service.ProtocolFactoryHandle()
-                {
-                    Factory = () => new Reduce(),
-                    Handle = ProcessReduceRequest,
-                    TransactionLevel = TransactionLevel.None
-                });
-                Client.AddFactoryHandle(new Acquire().TypeId, new Service.ProtocolFactoryHandle()
-                {
-                    Factory = () => new Acquire(),
-                    TransactionLevel = TransactionLevel.None
-                    // 同步方式调用，不需要设置Handle: Response Timeout 
-                });
-                Client.AddFactoryHandle(new Login().TypeId, new Service.ProtocolFactoryHandle()
-                {
-                    Factory = ()=>new Login(),
-                    TransactionLevel = TransactionLevel.None
-                });
-                Client.AddFactoryHandle(new ReLogin().TypeId, new Service.ProtocolFactoryHandle()
-                {
-                    Factory = () => new ReLogin(),
-                    TransactionLevel = TransactionLevel.None
-                });
-                Client.AddFactoryHandle(new NormalClose().TypeId, new Service.ProtocolFactoryHandle()
-                {
-                    Factory = () => new NormalClose(),
-                    TransactionLevel = TransactionLevel.None
-                });
-                Client.AddFactoryHandle(new KeepAlive().TypeId, new Service.ProtocolFactoryHandle()
-                {
-                    Factory = () => new KeepAlive(),
-                    TransactionLevel = TransactionLevel.None
-                });
-
-                Agents = new Agent[hostNameOrAddress.Length];
-                for (int i = 0; i < hostNameOrAddress.Length; ++i)
-                {
-                    var hp = hostNameOrAddress[i].Split(':');
-                    if (hp.Length > 1)
-                        Agents[i] = new Agent(Zeze, Client, hp[0], int.Parse(hp[1]), i);
-                    else
-                        Agents[i] = new Agent(Zeze, Client, hp[0], port, i);
-                }
-                Client.Start();
-            }
+            Client.Start();
             foreach (var agent in Agents)
             {
-                agent.ConnectAsync().Wait(3 * 1000);
+                await agent.ConnectAsync();
             }
         }
 

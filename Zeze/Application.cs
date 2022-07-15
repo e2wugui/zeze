@@ -198,17 +198,17 @@ namespace Zeze
                     var israft = hosts[0].EndsWith(".xml");
                     if (false == israft)
                     {
-                        var impl = new GlobalAgent(this);
-                        impl.Start(hosts, Config.GlobalCacheManagerPort);
+                        var impl = new GlobalAgent(this, hosts, Config.GlobalCacheManagerPort);
                         GlobalAgent = impl;
                         AchillesHeelDaemon = new AchillesHeelDaemon(this, impl.Agents);
+                        await impl.Start();
                     }
                     else
                     {
-                        var impl = new Zeze.Services.GlobalCacheManagerWithRaftAgent(this);
-                        await impl.Start(hosts);
+                        var impl = new Zeze.Services.GlobalCacheManagerWithRaftAgent(this, hosts);
                         GlobalAgent = impl;
                         AchillesHeelDaemon = new AchillesHeelDaemon(this, impl.Agents);
+                        await impl.Start();
                     }
                 }
 

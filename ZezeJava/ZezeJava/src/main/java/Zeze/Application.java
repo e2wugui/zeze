@@ -264,15 +264,15 @@ public final class Application {
 			if (hosts.length > 0) {
 				var isRaft = hosts[0].endsWith(".xml");
 				if (!isRaft) {
-					var impl = new GlobalAgent(this);
-					impl.Start(hosts, Conf.getGlobalCacheManagerPort());
+					var impl = new GlobalAgent(this, hosts, Conf.getGlobalCacheManagerPort());
 					GlobalAgent = impl;
 					AchillesHeelDaemon = new AchillesHeelDaemon(this, impl.Agents);
+					impl.Start();
 				} else {
-					var impl = new GlobalCacheManagerWithRaftAgent(this);
-					impl.Start(hosts);
+					var impl = new GlobalCacheManagerWithRaftAgent(this, hosts);
 					GlobalAgent = impl;
 					AchillesHeelDaemon = new AchillesHeelDaemon(this, impl.Agents);
+					impl.Start();
 				}
 			}
 

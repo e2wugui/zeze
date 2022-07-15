@@ -116,8 +116,28 @@ public final class GlobalAgent implements IGlobalAgent {
 	private GlobalClient Client;
 	public Agent[] Agents;
 
-	public GlobalAgent(Application app) {
+	public GlobalAgent(Application app, String[] hostNameOrAddress, int port) throws Throwable {
 		Zeze = app;
+
+		Client = new GlobalClient(this, Zeze);
+		Client.AddFactoryHandle(Reduce.TypeId_,
+				new Service.ProtocolFactoryHandle<>(Reduce::new, this::ProcessReduceRequest, TransactionLevel.None));
+		Client.AddFactoryHandle(Acquire.TypeId_,
+				new Service.ProtocolFactoryHandle<>(Acquire::new, null, TransactionLevel.None));
+		Client.AddFactoryHandle(Login.TypeId_,
+				new Service.ProtocolFactoryHandle<>(Login::new, null, TransactionLevel.None));
+		Client.AddFactoryHandle(ReLogin.TypeId_,
+				new Service.ProtocolFactoryHandle<>(ReLogin::new, null, TransactionLevel.None));
+		Client.AddFactoryHandle(NormalClose.TypeId_,
+				new Service.ProtocolFactoryHandle<>(NormalClose::new, null, TransactionLevel.None));
+		Client.AddFactoryHandle(KeepAlive.TypeId_,
+				new Service.ProtocolFactoryHandle<>(KeepAlive::new, null, TransactionLevel.None));
+
+		Agents = new Agent[hostNameOrAddress.length];
+		for (int i = 0; i < hostNameOrAddress.length; i++) {
+			var hp = hostNameOrAddress[i].split(":", -1);
+			Agents[i] = new Agent(Zeze, Client, hp[0], hp.length > 1 ? Integer.parseInt(hp[1]) : port, i);
+		}
 	}
 
 	public Application getZeze() {
@@ -235,30 +255,7 @@ public final class GlobalAgent implements IGlobalAgent {
 		}
 	}
 
-	public synchronized void Start(String[] hostNameOrAddress, int port) throws Throwable {
-		if (Client != null)
-			return;
-
-		Client = new GlobalClient(this, Zeze);
-		Client.AddFactoryHandle(Reduce.TypeId_,
-				new Service.ProtocolFactoryHandle<>(Reduce::new, this::ProcessReduceRequest, TransactionLevel.None));
-		Client.AddFactoryHandle(Acquire.TypeId_,
-				new Service.ProtocolFactoryHandle<>(Acquire::new, null, TransactionLevel.None));
-		Client.AddFactoryHandle(Login.TypeId_,
-				new Service.ProtocolFactoryHandle<>(Login::new, null, TransactionLevel.None));
-		Client.AddFactoryHandle(ReLogin.TypeId_,
-				new Service.ProtocolFactoryHandle<>(ReLogin::new, null, TransactionLevel.None));
-		Client.AddFactoryHandle(NormalClose.TypeId_,
-				new Service.ProtocolFactoryHandle<>(NormalClose::new, null, TransactionLevel.None));
-		Client.AddFactoryHandle(KeepAlive.TypeId_,
-				new Service.ProtocolFactoryHandle<>(KeepAlive::new, null, TransactionLevel.None));
-
-		Agents = new Agent[hostNameOrAddress.length];
-		for (int i = 0; i < hostNameOrAddress.length; i++) {
-			var hp = hostNameOrAddress[i].split(":", -1);
-			Agents[i] = new Agent(Zeze, Client, hp[0], hp.length > 1 ? Integer.parseInt(hp[1]) : port, i);
-		}
-
+	public synchronized void Start() throws Throwable {
 		Client.Start();
 
 		for (var agent : Agents) {
