@@ -164,56 +164,51 @@ public final class GlobalAgent implements IGlobalAgent {
 
 	@Override
 	public AcquireResult Acquire(Binary gkey, int state, boolean fresh) {
-		if (Client != null) {
-			var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
-			if (agent.isReleasing()) {
-				agent.setFastFail();
-				var trans = Transaction.getCurrent();
-				if (trans == null)
-					throw new GoBackZeze("Acquire In Releasing");
-				trans.ThrowAbort("Acquire In Releasing", null);
-			}
-			agent.verifyFastFail();
-			var socket = agent.Connect();
-			// 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了），打断外面的事务。
-			// 一个请求异常不关闭连接，尝试继续工作。
-			var rpc = new Acquire(gkey, state);
-			if (fresh)
-				rpc.setResultCode(GlobalCacheManagerServer.AcquireFreshSource);
-			try {
-				rpc.SendForWait(socket, agent.getConfig().AcquireTimeout).get();
-			} catch (Throwable e) {
-				agent.setFastFail(); // 一般是超时失败，此时必须进入快速失败模式。
-				var trans = Transaction.getCurrent();
-				if (trans == null)
-					throw new GoBackZeze("Acquire", e);
-				trans.ThrowAbort("Acquire", e);
-				// never got here
-			}
+		var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
+		if (agent.isReleasing()) {
+			agent.setFastFail();
+			var trans = Transaction.getCurrent();
+			if (trans == null)
+				throw new GoBackZeze("Acquire In Releasing");
+			trans.ThrowAbort("Acquire In Releasing", null);
+		}
+		agent.verifyFastFail();
+		var socket = agent.Connect();
+		// 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了），打断外面的事务。
+		// 一个请求异常不关闭连接，尝试继续工作。
+		var rpc = new Acquire(gkey, state);
+		if (fresh)
+			rpc.setResultCode(GlobalCacheManagerServer.AcquireFreshSource);
+		try {
+			rpc.SendForWait(socket, agent.getConfig().AcquireTimeout).get();
+		} catch (Throwable e) {
+			agent.setFastFail(); // 一般是超时失败，此时必须进入快速失败模式。
+			var trans = Transaction.getCurrent();
+			if (trans == null)
+				throw new GoBackZeze("Acquire", e);
+			trans.ThrowAbort("Acquire", e);
+			// never got here
+		}
 			/*
 			if (rpc.ResultCode != 0) // 这个用来跟踪调试，正常流程使用Result.State检查结果。
 			{
 			    logger.Warn("Acquire ResultCode={0} {1}", rpc.ResultCode, rpc.Result);
 			}
 			*/
-			if (!rpc.isTimeout())
-				agent.setActiveTime(System.currentTimeMillis()); // Acquire.Response
+		if (!rpc.isTimeout())
+			agent.setActiveTime(System.currentTimeMillis()); // Acquire.Response
 
-			if (rpc.getResultCode() == GlobalCacheManagerServer.AcquireModifyFailed
-					|| rpc.getResultCode() == GlobalCacheManagerServer.AcquireShareFailed) {
-				var trans = Transaction.getCurrent();
-				if (trans == null)
-					throw new GoBackZeze("GlobalAgent.Acquire Failed");
-				trans.ThrowAbort("GlobalAgent.Acquire Failed", null);
-				// never got here
-			}
-			var rc = rpc.getResultCode();
-			state = rpc.Result.State;
-			return rc == 0 ? AcquireResult.getSuccessResult(state) : new AcquireResult(rc, state);
+		if (rpc.getResultCode() == GlobalCacheManagerServer.AcquireModifyFailed
+				|| rpc.getResultCode() == GlobalCacheManagerServer.AcquireShareFailed) {
+			var trans = Transaction.getCurrent();
+			if (trans == null)
+				throw new GoBackZeze("GlobalAgent.Acquire Failed");
+			trans.ThrowAbort("GlobalAgent.Acquire Failed", null);
+			// never got here
 		}
-		if (isDebugEnabled)
-			logger.debug("Acquire local ++++++");
-		return AcquireResult.getSuccessResult(state);
+		var rc = rpc.getResultCode();
+		state = rpc.Result.State;
+		return rc == 0 ? AcquireResult.getSuccessResult(state) : new AcquireResult(rc, state);
 	}
 
 	public int ProcessReduceRequest(Reduce rpc) {

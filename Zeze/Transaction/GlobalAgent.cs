@@ -172,62 +172,57 @@ namespace Zeze.Transaction
 
         public async Task<(long, int)> Acquire(Binary gkey, int state, bool fresh)
         {
-            if (null != Client)
+            var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
+            if (agent.IsReleasing())
             {
-                var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
-                if (agent.IsReleasing())
-                {
-                    agent.SetFastFail(); // 一般是超时失败，此时必须进入快速失败模式。
-                    if (null == Transaction.Current)
-                        throw new Exception("GlobalAgent.Acquire Exception");
-                    Transaction.Current.ThrowAbort("GlobalAgent.Acquire Exception");
-                }
+                agent.SetFastFail(); // 一般是超时失败，此时必须进入快速失败模式。
+                if (null == Transaction.Current)
+                    throw new Exception("GlobalAgent.Acquire Exception");
+                Transaction.Current.ThrowAbort("GlobalAgent.Acquire Exception");
+            }
 
-                agent.VerifyFastFail();
-                var socket = await agent.ConnectAsync();
+            agent.VerifyFastFail();
+            var socket = await agent.ConnectAsync();
 
-                // 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了），打断外面的事务。
-                // 一个请求异常不关闭连接，尝试继续工作。
-                var rpc = new Acquire(gkey, state);
-                if (fresh)
-                    rpc.ResultCode = GlobalCacheManagerServer.AcquireFreshSource;
-                try
-                {
-                    await rpc.SendAsync(socket, agent.Config.AcquireTimeout);
-                }
-                catch (Exception e)
-                {
-                    agent.SetFastFail(); // 一般是超时失败，此时必须进入快速失败模式。
-                    if (null == Transaction.Current)
-                        throw new Exception("GlobalAgent.Acquire Exception", e);
-                    Transaction.Current.ThrowAbort("GlobalAgent.Acquire Exception", e);
-                }
-                /*
-                if (rpc.ResultCode != 0) // 这个用来跟踪调试，正常流程使用Result.State检查结果。
-                {
-                    logger.Warn("Acquire ResultCode={0} {1}", rpc.ResultCode, rpc.Result);
-                }
-                */
-                if (false == rpc.IsTimeout)
-                    agent.SetActiveTime(Util.Time.NowUnixMillis);
+            // 请求处理错误抛出异常（比如网络或者GlobalCacheManager已经不存在了），打断外面的事务。
+            // 一个请求异常不关闭连接，尝试继续工作。
+            var rpc = new Acquire(gkey, state);
+            if (fresh)
+                rpc.ResultCode = GlobalCacheManagerServer.AcquireFreshSource;
+            try
+            {
+                await rpc.SendAsync(socket, agent.Config.AcquireTimeout);
+            }
+            catch (Exception e)
+            {
+                agent.SetFastFail(); // 一般是超时失败，此时必须进入快速失败模式。
+                if (null == Transaction.Current)
+                    throw new Exception("GlobalAgent.Acquire Exception", e);
+                Transaction.Current.ThrowAbort("GlobalAgent.Acquire Exception", e);
+            }
+            /*
+            if (rpc.ResultCode != 0) // 这个用来跟踪调试，正常流程使用Result.State检查结果。
+            {
+                logger.Warn("Acquire ResultCode={0} {1}", rpc.ResultCode, rpc.Result);
+            }
+            */
+            if (false == rpc.IsTimeout)
+                agent.SetActiveTime(Util.Time.NowUnixMillis);
 
-                if (rpc.ResultCode < 0)
-                {
+            if (rpc.ResultCode < 0)
+            {
+                Transaction.Current.ThrowAbort("GlobalAgent.Acquire Failed");
+                // never got here
+            }
+            switch (rpc.ResultCode)
+            {
+                case GlobalCacheManagerServer.AcquireModifyFailed:
+                case GlobalCacheManagerServer.AcquireShareFailed:
                     Transaction.Current.ThrowAbort("GlobalAgent.Acquire Failed");
                     // never got here
-                }
-                switch (rpc.ResultCode)
-                {
-                    case GlobalCacheManagerServer.AcquireModifyFailed:
-                    case GlobalCacheManagerServer.AcquireShareFailed:
-                        Transaction.Current.ThrowAbort("GlobalAgent.Acquire Failed");
-                        // never got here
-                        break;
-                }
-                return (rpc.ResultCode, rpc.Result.State);
+                    break;
             }
-            logger.Debug("Acquire local ++++++");
-            return (0, state);
+            return (rpc.ResultCode, rpc.Result.State);
         }
 
         public async Task<long> ProcessReduceRequest(Zeze.Net.Protocol p)

@@ -143,67 +143,62 @@ namespace Zeze.Services
 
         public async Task<(long, int)> Acquire(Binary gkey, int state, bool fresh)
         {
-            if (null != Agents)
+            var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
+            if (agent.IsReleasing())
             {
-                var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
-                if (agent.IsReleasing())
-                {
-                    agent.SetFastFail(); // 一般是超时失败，此时必须进入快速失败模式。
-                    if (null == Transaction.Transaction.Current)
-                        throw new Exception("GlobalAgent.Acquire Exception");
-                    Transaction.Transaction.Current.ThrowAbort("GlobalAgent.Acquire Exception");
-                }
-                agent.VerifyFastFail();
-                try
-                {
-                    await agent.WaitLoginSuccess();
-                }
-                catch (Exception )
-                {
-                    agent.SetFastFail();
-                    throw;
-                }
+                agent.SetFastFail(); // 一般是超时失败，此时必须进入快速失败模式。
+                if (null == Transaction.Transaction.Current)
+                    throw new Exception("GlobalAgent.Acquire Exception");
+                Transaction.Transaction.Current.ThrowAbort("GlobalAgent.Acquire Exception");
+            }
+            agent.VerifyFastFail();
+            try
+            {
+                await agent.WaitLoginSuccess();
+            }
+            catch (Exception )
+            {
+                agent.SetFastFail();
+                throw;
+            }
 
-                var rpc = new Acquire();
-                if (fresh)
-                    rpc.ResultCode = GlobalCacheManagerServer.AcquireFreshSource;
-                rpc.Argument.GlobalKey = gkey;
-                rpc.Argument.State = state;
-                rpc.Timeout = agent.Config.AcquireTimeout;
-                // 让协议包更小，这里仅仅把ServerId当作ClientId。
-                // Global是专用服务，用这个够区分了。
-                rpc.Unique.ClientId = Zeze.Config.ServerId.ToString();
-                try
-                {
-                    await agent.RaftClient.SendAsync(rpc);
-                }
-                catch (Exception e)
-                {
-                    agent.SetFastFail();
-                    if (null == Transaction.Transaction.Current)
-                        throw new Exception("GlobalAgent.Acquire Exception", e);
-                    Transaction.Transaction.Current.ThrowAbort("GlobalAgent.Acquire Exception", e);
-                }
+            var rpc = new Acquire();
+            if (fresh)
+                rpc.ResultCode = GlobalCacheManagerServer.AcquireFreshSource;
+            rpc.Argument.GlobalKey = gkey;
+            rpc.Argument.State = state;
+            rpc.Timeout = agent.Config.AcquireTimeout;
+            // 让协议包更小，这里仅仅把ServerId当作ClientId。
+            // Global是专用服务，用这个够区分了。
+            rpc.Unique.ClientId = Zeze.Config.ServerId.ToString();
+            try
+            {
+                await agent.RaftClient.SendAsync(rpc);
+            }
+            catch (Exception e)
+            {
+                agent.SetFastFail();
+                if (null == Transaction.Transaction.Current)
+                    throw new Exception("GlobalAgent.Acquire Exception", e);
+                Transaction.Transaction.Current.ThrowAbort("GlobalAgent.Acquire Exception", e);
+            }
 
-                if (false == rpc.IsTimeout)
-                    agent.SetActiveTime(Util.Time.NowUnixMillis);
-                if (rpc.ResultCode < 0)
-                {
+            if (false == rpc.IsTimeout)
+                agent.SetActiveTime(Util.Time.NowUnixMillis);
+            if (rpc.ResultCode < 0)
+            {
+                Transaction.Transaction.Current.ThrowAbort("GlobalAgent.Acquire Failed");
+                // never got here
+            }
+            switch (rpc.ResultCode)
+            {
+                case GlobalCacheManagerServer.AcquireModifyFailed:
+                case GlobalCacheManagerServer.AcquireShareFailed:
                     Transaction.Transaction.Current.ThrowAbort("GlobalAgent.Acquire Failed");
                     // never got here
-                }
-                switch (rpc.ResultCode)
-                {
-                    case GlobalCacheManagerServer.AcquireModifyFailed:
-                    case GlobalCacheManagerServer.AcquireShareFailed:
-                        Transaction.Transaction.Current.ThrowAbort("GlobalAgent.Acquire Failed");
-                        // never got here
-                        break;
-                }
-                return (rpc.ResultCode, rpc.Result.State);
+                    break;
             }
-            logger.Debug("Acquire local ++++++");
-            return (0, state);
+            return (rpc.ResultCode, rpc.Result.State);
         }
 
         // 1. 【Login|ReLogin|NormalClose】会被Raft.Agent重发处理，这要求GlobalRaft能处理重复请求。

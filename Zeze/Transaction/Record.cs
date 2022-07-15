@@ -139,7 +139,7 @@ namespace Zeze.Transaction
 
         internal async override Task<(long, int)> Acquire(int state, bool fresh)
         {
-            if (null == TTable.TStorage)
+            if (null == TTable.TStorage || null == TTable.Zeze.GlobalAgent)
             {
                 // 不支持内存表cache同步。
                 return (0, state);

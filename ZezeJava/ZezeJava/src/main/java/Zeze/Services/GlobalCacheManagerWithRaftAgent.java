@@ -144,71 +144,66 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 
 	@Override
 	public AcquireResult Acquire(Binary gkey, int state, boolean fresh) {
-		if (Agents != null) {
-			var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
-			if (agent.isReleasing()) {
-				agent.setFastFail();
-				var trans = Transaction.getCurrent();
-				if (trans == null)
-					throw new GoBackZeze("Acquire In Releasing");
-				trans.ThrowAbort("Acquire In Releasing", null);
-			}
-			agent.verifyFastFail();
-			try {
-				agent.WaitLoginSuccess();
-			} catch (Throwable e) {
-				agent.setFastFail();
-				Transaction trans = Transaction.getCurrent();
-				if (trans == null)
-					throw new RuntimeException(e);
-				trans.ThrowAbort("WaitLoginSuccess", e);
-				// never got here
-			}
-
-			var rpc = new Acquire();
-			if (fresh)
-				rpc.setResultCode(GlobalCacheManagerServer.AcquireFreshSource);
-			rpc.Argument.setGlobalKey(gkey);
-			rpc.Argument.setState(state);
-			// 让协议包更小，这里仅仅把ServerId当作ClientId。
-			// Global是专用服务，用这个够区分了。
-			rpc.getUnique().setClientId(String.valueOf(getZeze().getConfig().getServerId()));
-			rpc.setTimeout(agent.getConfig().AcquireTimeout);
-			try {
-				agent.RaftClient.SendForWait(rpc).await();
-			} catch (Throwable e) {
-				agent.setFastFail();
-				Transaction trans = Transaction.getCurrent();
-				if (trans == null)
-					throw new RuntimeException("Acquire Timeout");
-				trans.ThrowAbort("Acquire Timeout", null);
-				// never got here
-			}
-			if (!rpc.isTimeout())
-				agent.setActiveTime(System.currentTimeMillis()); // Acquire.Response
-
-			if (rpc.getResultCode() < 0) {
-				Transaction trans = Transaction.getCurrent();
-				if (trans == null)
-					throw new IllegalStateException("GlobalAgent.Acquire Failed");
-				trans.ThrowAbort("GlobalAgent.Acquire Failed", null);
-				// never got here
-			}
-			if (rpc.getResultCode() == GlobalCacheManagerServer.AcquireModifyFailed
-					|| rpc.getResultCode() == GlobalCacheManagerServer.AcquireShareFailed) {
-				Transaction trans = Transaction.getCurrent();
-				if (trans == null)
-					throw new IllegalStateException("GlobalAgent.Acquire Failed");
-				trans.ThrowAbort("GlobalAgent.Acquire Failed", null);
-				// never got here
-			}
-			var rc = rpc.getResultCode();
-			state = rpc.Result.getState();
-			return rc == 0 ? AcquireResult.getSuccessResult(state) : new AcquireResult(rc, state);
+		var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
+		if (agent.isReleasing()) {
+			agent.setFastFail();
+			var trans = Transaction.getCurrent();
+			if (trans == null)
+				throw new GoBackZeze("Acquire In Releasing");
+			trans.ThrowAbort("Acquire In Releasing", null);
 		}
-		if (isDebugEnabled)
-			logger.debug("Acquire local ++++++");
-		return AcquireResult.getSuccessResult(state);
+		agent.verifyFastFail();
+		try {
+			agent.WaitLoginSuccess();
+		} catch (Throwable e) {
+			agent.setFastFail();
+			Transaction trans = Transaction.getCurrent();
+			if (trans == null)
+				throw new RuntimeException(e);
+			trans.ThrowAbort("WaitLoginSuccess", e);
+			// never got here
+		}
+
+		var rpc = new Acquire();
+		if (fresh)
+			rpc.setResultCode(GlobalCacheManagerServer.AcquireFreshSource);
+		rpc.Argument.setGlobalKey(gkey);
+		rpc.Argument.setState(state);
+		// 让协议包更小，这里仅仅把ServerId当作ClientId。
+		// Global是专用服务，用这个够区分了。
+		rpc.getUnique().setClientId(String.valueOf(getZeze().getConfig().getServerId()));
+		rpc.setTimeout(agent.getConfig().AcquireTimeout);
+		try {
+			agent.RaftClient.SendForWait(rpc).await();
+		} catch (Throwable e) {
+			agent.setFastFail();
+			Transaction trans = Transaction.getCurrent();
+			if (trans == null)
+				throw new RuntimeException("Acquire Timeout");
+			trans.ThrowAbort("Acquire Timeout", null);
+			// never got here
+		}
+		if (!rpc.isTimeout())
+			agent.setActiveTime(System.currentTimeMillis()); // Acquire.Response
+
+		if (rpc.getResultCode() < 0) {
+			Transaction trans = Transaction.getCurrent();
+			if (trans == null)
+				throw new IllegalStateException("GlobalAgent.Acquire Failed");
+			trans.ThrowAbort("GlobalAgent.Acquire Failed", null);
+			// never got here
+		}
+		if (rpc.getResultCode() == GlobalCacheManagerServer.AcquireModifyFailed
+				|| rpc.getResultCode() == GlobalCacheManagerServer.AcquireShareFailed) {
+			Transaction trans = Transaction.getCurrent();
+			if (trans == null)
+				throw new IllegalStateException("GlobalAgent.Acquire Failed");
+			trans.ThrowAbort("GlobalAgent.Acquire Failed", null);
+			// never got here
+		}
+		var rc = rpc.getResultCode();
+		state = rpc.Result.getState();
+		return rc == 0 ? AcquireResult.getSuccessResult(state) : new AcquireResult(rc, state);
 	}
 
 	// 1. 【Login|ReLogin|NormalClose】会被Raft.Agent重发处理，这要求GlobalRaft能处理重复请求。
