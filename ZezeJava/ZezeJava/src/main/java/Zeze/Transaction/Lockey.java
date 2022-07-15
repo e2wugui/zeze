@@ -1,7 +1,9 @@
 package Zeze.Transaction;
 
+import java.security.spec.NamedParameterSpec;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import Zeze.Util.Macro;
 
 public final class Lockey implements Comparable<Lockey> {
 	private final TableKey TableKey;
@@ -31,8 +33,9 @@ public final class Lockey implements Comparable<Lockey> {
 
 	public void EnterReadLock() {
 		// if (!rwLock.IsReadLockHeld) // 第一次才计数. java 没有这个，那么每次访问都统计。
-		TableStatistics.getInstance().GetOrAdd(TableKey.getId()).getReadLockTimes().increment();
-
+		if (Macro.EnableStatistics) {
+			TableStatistics.getInstance().GetOrAdd(TableKey.getId()).getReadLockTimes().increment();
+		}
 		// logger.debug("EnterReadLock {}", TableKey);
 		rwLock.readLock().lock();
 	}
@@ -43,9 +46,10 @@ public final class Lockey implements Comparable<Lockey> {
 	}
 
 	public void EnterWriteLock() {
-		if (!rwLock.isWriteLockedByCurrentThread()) // 第一次才计数
-			TableStatistics.getInstance().GetOrAdd(TableKey.getId()).getWriteLockTimes().increment();
-
+		if (Macro.EnableStatistics) {
+			if (!rwLock.isWriteLockedByCurrentThread()) // 第一次才计数
+				TableStatistics.getInstance().GetOrAdd(TableKey.getId()).getWriteLockTimes().increment();
+		}
 		// logger.debug("EnterWriteLock {}", TableKey);
 		rwLock.writeLock().lock();
 	}
@@ -57,8 +61,9 @@ public final class Lockey implements Comparable<Lockey> {
 
 	public boolean TryEnterReadLock(int millisecondsTimeout) {
 		// if (!rwLock.IsReadLockHeld) // 第一次才计数，即时失败了也计数，根据观察情况再决定采用那种方案。
-		TableStatistics.getInstance().GetOrAdd(TableKey.getId()).getTryReadLockTimes().increment();
-
+		if (Macro.EnableStatistics) {
+			TableStatistics.getInstance().GetOrAdd(TableKey.getId()).getTryReadLockTimes().increment();
+		}
 		try {
 			return rwLock.readLock().tryLock(millisecondsTimeout, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException e) {
@@ -67,9 +72,10 @@ public final class Lockey implements Comparable<Lockey> {
 	}
 
 	public boolean TryEnterWriteLock(int millisecondsTimeout) {
-		if (!rwLock.isWriteLockedByCurrentThread()) // 第一次才计数，即时失败了也计数，根据观察情况再决定采用那种方案。
-			TableStatistics.getInstance().GetOrAdd(TableKey.getId()).getTryWriteLockTimes().increment();
-
+		if (Macro.EnableStatistics) {
+			if (!rwLock.isWriteLockedByCurrentThread()) // 第一次才计数，即时失败了也计数，根据观察情况再决定采用那种方案。
+				TableStatistics.getInstance().GetOrAdd(TableKey.getId()).getTryWriteLockTimes().increment();
+		}
 		try {
 			return rwLock.writeLock().tryLock(millisecondsTimeout, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException e) {

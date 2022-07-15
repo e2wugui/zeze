@@ -251,7 +251,9 @@ public final class Task {
 				logger.error("LogAndStatistics Exception", e);
 			}
 		}
-		ProcedureStatistics.getInstance().GetOrAdd(actionName).GetOrAdd(result).increment();
+		if (Macro.EnableStatistics) {
+			ProcedureStatistics.getInstance().GetOrAdd(actionName).GetOrAdd(result).increment();
+		}
 	}
 
 	public static long Call(FuncLong func, Protocol<?> p) {

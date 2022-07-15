@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Supplier;
 import Zeze.Services.GlobalCacheManagerServer;
+import Zeze.Util.Macro;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -182,7 +183,9 @@ public final class Transaction {
 										// 正常一次成功的不统计，用来观察redo多不多。
 										// 失败在 Procedure.cs 中的统计。
 										if (tryCount > 0) {
-											ProcedureStatistics.getInstance().GetOrAdd("Zeze.Transaction.TryCount").GetOrAdd(tryCount).increment();
+											if (Macro.EnableStatistics) {
+												ProcedureStatistics.getInstance().GetOrAdd("Zeze.Transaction.TryCount").GetOrAdd(tryCount).increment();
+											}
 										}
 										return Procedure.Success;
 									}
@@ -633,7 +636,9 @@ public final class Transaction {
 			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running.");
 		State = TransactionState.RedoAndReleaseLock;
 		//noinspection ConstantConditions
-		ProcedureStatistics.getInstance().GetOrAdd(getTopProcedure().getActionName()).GetOrAdd(Procedure.RedoAndRelease).increment();
+		if (Macro.EnableStatistics) {
+			ProcedureStatistics.getInstance().GetOrAdd(getTopProcedure().getActionName()).GetOrAdd(Procedure.RedoAndRelease).increment();
+		}
 		GoBackZeze.Throw(msg, cause);
 	}
 

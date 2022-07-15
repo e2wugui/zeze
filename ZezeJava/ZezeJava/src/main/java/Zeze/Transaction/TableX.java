@@ -9,6 +9,7 @@ import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Services.GlobalCacheManagerServer;
 import Zeze.Services.ServiceManager.AutoKey;
 import Zeze.Util.KV;
+import Zeze.Util.Macro;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -111,7 +112,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				var beforeTimestamp = r.getTimestamp();
 
 				if (TStorage != null) {
-					TableStatistics.getInstance().GetOrAdd(getId()).getStorageFindCount().increment();
+					if (Macro.EnableStatistics) {
+						TableStatistics.getInstance().GetOrAdd(getId()).getStorageFindCount().increment();
+					}
 					strongRef = TStorage.Find(key, this);
 					if (strongRef != null)
 						RocksCachePut(key, strongRef);

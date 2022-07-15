@@ -3,6 +3,7 @@ package Zeze.Transaction;
 import Zeze.Application;
 import Zeze.IModule;
 import Zeze.Util.FuncLong;
+import Zeze.Util.Macro;
 import Zeze.Util.TaskCanceledException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -143,14 +144,18 @@ public class Procedure {
 
 			if (result == Success) {
 				currentT.Commit();
-				ProcedureStatistics.getInstance().GetOrAdd(ActionName).GetOrAdd(result).increment();
+				if (Macro.EnableStatistics) {
+					ProcedureStatistics.getInstance().GetOrAdd(ActionName).GetOrAdd(result).increment();
+				}
 				return Success;
 			}
 			currentT.Rollback();
 			var tmpLogAction = LogAction;
 			if (tmpLogAction != null)
 				tmpLogAction.run(null, result, this, "");
-			ProcedureStatistics.getInstance().GetOrAdd(ActionName).GetOrAdd(result).increment();
+			if (Macro.EnableStatistics) {
+				ProcedureStatistics.getInstance().GetOrAdd(ActionName).GetOrAdd(result).increment();
+			}
 			return result;
 		} catch (GoBackZeze gobackzeze) {
 			// 单独抓住这个异常，是为了能原样抛出，并且使用不同的级别记录日志。
@@ -163,7 +168,9 @@ public class Procedure {
 			var tmpLogAction = LogAction;
 			if (tmpLogAction != null)
 				tmpLogAction.run(e, Exception, this, "");
-			ProcedureStatistics.getInstance().GetOrAdd(ActionName).GetOrAdd(Exception).increment();
+			if (Macro.EnableStatistics) {
+				ProcedureStatistics.getInstance().GetOrAdd(ActionName).GetOrAdd(Exception).increment();
+			}
 			// 验证状态：Running状态将吃掉所有异常。
 			currentT.VerifyRunning();
 			// 对于 unit test 的异常特殊处理，与unit test框架能搭配工作

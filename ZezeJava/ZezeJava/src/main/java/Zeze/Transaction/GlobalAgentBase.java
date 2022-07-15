@@ -28,9 +28,7 @@ public abstract class GlobalAgentBase {
 
 	public final void setActiveTime(long value) {
 		activeTime = value;
-		var ahd = Zeze.getAchillesHeelDaemon();
-		if (ahd != null)
-			ahd.setProcessDaemonActiveTime(GlobalCacheManagerHashIndex, value);
+		Zeze.getAchillesHeelDaemon().setProcessDaemonActiveTime(GlobalCacheManagerHashIndex, value);
 	}
 
 	public boolean isReleasing() {

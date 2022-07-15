@@ -5,6 +5,7 @@ import java.lang.invoke.VarHandle;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManagerServer;
+import Zeze.Util.Macro;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -85,21 +86,22 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 
 		if (isDebugEnabled)
 			logger.debug("Acquire NewState={} {}", state, this);
-		var stat = TableStatistics.getInstance().GetOrAdd(TTable.getId());
-		switch (state) {
-		case GlobalCacheManagerServer.StateInvalid:
-			stat.getGlobalAcquireInvalid().increment();
-			break;
+		if (Macro.EnableStatistics) {
+			var stat = TableStatistics.getInstance().GetOrAdd(TTable.getId());
+			switch (state) {
+			case GlobalCacheManagerServer.StateInvalid:
+				stat.getGlobalAcquireInvalid().increment();
+				break;
 
-		case GlobalCacheManagerServer.StateShare:
-			stat.getGlobalAcquireShare().increment();
-			break;
+			case GlobalCacheManagerServer.StateShare:
+				stat.getGlobalAcquireShare().increment();
+				break;
 
-		case GlobalCacheManagerServer.StateModify:
-			stat.getGlobalAcquireModify().increment();
-			break;
+			case GlobalCacheManagerServer.StateModify:
+				stat.getGlobalAcquireModify().increment();
+				break;
+			}
 		}
-
 		return agent.Acquire(TTable.EncodeGlobalKey(Key), state, fresh);
 	}
 
