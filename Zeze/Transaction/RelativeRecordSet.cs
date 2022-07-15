@@ -27,8 +27,6 @@ namespace Zeze.Transaction
         public readonly static AtomicLong IdGenerator = new();
         public readonly static RelativeRecordSet Deleted = new();
 
-        private readonly static ConcurrentDictionary<RelativeRecordSet, RelativeRecordSet> RelativeRecordSetMap = new();
-
         public RelativeRecordSet()
         {
             Id = IdGenerator.IncrementAndGet();
@@ -217,7 +215,7 @@ namespace Zeze.Transaction
                     else if (mergedSet.RecordSet != null) // mergedSet 合并结果是孤立的，不需要Flush。
                     {
                         // 本次事务没有包含任何需要马上提交的记录，留给 Period 提交。
-                        RelativeRecordSetMap[mergedSet] = mergedSet;
+                        procedure.Zeze.Checkpoint.RelativeRecordSetMap[mergedSet] = mergedSet;
                     }
                 }
                 // else
@@ -362,20 +360,21 @@ namespace Zeze.Transaction
             return true;
         }
 
-        internal static async Task FlushWhenCheckpoint()
+        internal static async Task FlushWhenCheckpoint(Checkpoint checkpoint)
         {
-            foreach (var rrs in RelativeRecordSetMap.Keys)
+            var rrsmap = checkpoint.RelativeRecordSetMap;
+            foreach (var rrs in rrsmap.Keys)
             {
                 using var lockrrs = await rrs.LockAsync();
                 if (rrs.MergeTo != null)
                 {
-                    RelativeRecordSetMap.TryRemove(rrs, out var _);
+                    rrsmap.TryRemove(rrs, out var _);
                     continue;
                 }
 
                 await Checkpoint.Flush(rrs);
                 rrs.Delete();
-                RelativeRecordSetMap.TryRemove(rrs, out var _);
+                rrsmap.TryRemove(rrs, out var _);
             }
         }
 
@@ -442,10 +441,10 @@ namespace Zeze.Transaction
             return sb.ToString();
         }
 
-        public static string RelativeRecordSetMapToString()
+        public static string RelativeRecordSetMapToString(Checkpoint checkpoint)
         {
             var sb = new StringBuilder();
-            Zeze.Serialize.ByteBuffer.BuildString(sb, RelativeRecordSetMap.Keys);
+            Zeze.Serialize.ByteBuffer.BuildString(sb, checkpoint.RelativeRecordSetMap.Keys);
             return sb.ToString();
         }
     }

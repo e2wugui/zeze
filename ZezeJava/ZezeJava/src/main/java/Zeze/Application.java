@@ -324,7 +324,6 @@ public final class Application {
 
 		if (null != AchillesHeelDaemon) {
 			AchillesHeelDaemon.stopAndJoin();
-			AchillesHeelDaemon = null;
 		}
 
 		if (GlobalAgent != null) {

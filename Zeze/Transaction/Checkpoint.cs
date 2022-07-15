@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
+using System.Collections.Concurrent;
 
 namespace Zeze.Transaction
 {
@@ -15,6 +16,7 @@ namespace Zeze.Transaction
         private HashSet<Database> Databases { get; } = new HashSet<Database>();
 
         private ReaderWriterLockSlim FlushReadWriteLock { get; } = new ReaderWriterLockSlim();
+        internal readonly ConcurrentDictionary<RelativeRecordSet, RelativeRecordSet> RelativeRecordSetMap = new();
 
         private volatile bool _IsRunning;
         public bool IsRunning
@@ -98,7 +100,7 @@ namespace Zeze.Transaction
                     break;
 
                 case CheckpointMode.Table:
-                    await RelativeRecordSet.FlushWhenCheckpoint();
+                    await RelativeRecordSet.FlushWhenCheckpoint(this);
                     break;
             }
         }
@@ -125,7 +127,7 @@ namespace Zeze.Transaction
                             break;
 
                         case CheckpointMode.Table:
-                            RelativeRecordSet.FlushWhenCheckpoint().Wait();
+                            RelativeRecordSet.FlushWhenCheckpoint(this).Wait();
                             break;
                     }
                     lock (this)
@@ -146,7 +148,7 @@ namespace Zeze.Transaction
                     break;
 
                 case CheckpointMode.Table:
-                    RelativeRecordSet.FlushWhenCheckpoint().Wait();
+                    RelativeRecordSet.FlushWhenCheckpoint(this).Wait();
                     break;
             }
             logger.Fatal("final checkpoint end.");

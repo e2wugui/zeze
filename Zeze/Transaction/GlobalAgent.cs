@@ -335,9 +335,6 @@ namespace Zeze.Transaction
         {
             lock (this)
             {
-                if (null == Client)
-                    return;
-
                 foreach (var agent in Agents)
                 {
                     agent.Close();

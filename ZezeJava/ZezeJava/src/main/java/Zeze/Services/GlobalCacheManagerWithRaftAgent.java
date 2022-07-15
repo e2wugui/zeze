@@ -68,12 +68,8 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	}
 
 	public final synchronized void Stop() throws Throwable {
-		if (Agents == null)
-			return;
-
 		for (var agent : Agents)
 			agent.Close();
-		Agents = null;
 	}
 
 	public static class ReduceBridge extends Zeze.Services.GlobalCacheManager.Reduce {

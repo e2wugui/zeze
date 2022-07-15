@@ -57,14 +57,10 @@ namespace Zeze.Services
 
         public void Stop()
         {
-            if (null == Agents)
-                return;
-
             foreach (var agent in Agents)
             {
                 agent.Close();
             }
-            Agents = null;
         }
 
         public class ReduceBridge : GlobalCacheManager.Reduce

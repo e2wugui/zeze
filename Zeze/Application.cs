@@ -260,8 +260,6 @@ namespace Zeze
                     return;
 
                 AchillesHeelDaemon?.StopAndJoin();
-                AchillesHeelDaemon = null;
-
                 GlobalAgent?.Dispose(); // 关闭时需要生成新的SessionId，这个现在使用AutoKey，需要事务支持。
 
                 _checkpoint?.StopAndJoin();

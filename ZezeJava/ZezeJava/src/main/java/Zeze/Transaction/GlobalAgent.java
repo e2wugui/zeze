@@ -264,11 +264,8 @@ public final class GlobalAgent implements IGlobalAgent {
 	}
 
 	public synchronized void Stop() throws Throwable {
-		if (Client == null)
-			return;
 		for (var agent : Agents)
 			agent.Close();
 		Client.Stop();
-		Client = null;
 	}
 }
