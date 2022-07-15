@@ -33,7 +33,7 @@
 		<logger name="org" level="INFO" />
 		<logger name="io.netty" level="INFO" />
 
-		<root level="TRACE">
+		<root level="INFO">
 			<appender-ref ref="Console" />
 			<appender-ref ref="AllLog" />
 			<appender-ref ref="ErrorLog" />

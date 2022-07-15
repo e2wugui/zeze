@@ -18,6 +18,10 @@ public final class DatabaseMemory extends Database {
 	private static final ConcurrentHashMap<String, ConcurrentHashMap<String, TableMemory>> databaseTables = new ConcurrentHashMap<>();
 	private static final ReentrantLock lock = new ReentrantLock();
 
+	public static void clear() {
+		databaseTables.clear();
+	}
+
 	public DatabaseMemory(DatabaseConf conf) {
 		super(conf);
 		setDirectOperates(ProceduresMemory);
