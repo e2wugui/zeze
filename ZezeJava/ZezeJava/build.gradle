@@ -2,13 +2,15 @@ apply from: '../build.gradle'
 
 dependencies {
     implementation 'org.pcollections:pcollections:3.1.4'
-    implementation 'org.apache.logging.log4j:log4j-api:2.17.1'
-    implementation 'org.apache.logging.log4j:log4j-core:2.17.1'
+    implementation 'org.slf4j:slf4j-api:1.7.36'
+    implementation 'org.apache.logging.log4j:log4j-api:2.18.0'
+    implementation 'org.apache.logging.log4j:log4j-core:2.18.0'
+    implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.18.0'
     implementation 'org.apache.commons:commons-dbcp2:2.9.0'
     implementation 'org.apache.commons:commons-pool2:2.11.1'
     implementation 'org.rocksdb:rocksdbjni:7.3.1'
     implementation 'org.tikv:tikv-client-java:3.3.0'
-    implementation 'mysql:mysql-connector-java:8.0.28'
+    implementation 'mysql:mysql-connector-java:8.0.29'
 }
 
 task startServiceManager(type: JavaExec) {
