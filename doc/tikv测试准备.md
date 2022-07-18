@@ -2,10 +2,10 @@
 
 1. 下载 CentOS7 光盘镜像: https://mirrors.aliyun.com/centos/ 选择最新的7.x版本, 进入isos/x86_64子目录, 下载 CentOS-7-x86_64-Minimal- 开头的iso镜像文件
 2. 下载安装 Virtual Box: https://www.virtualbox.org/wiki/Downloads
-3. 启动 Virtual Box, 新建虚拟机, 内存至少2G, 推荐4G或更多, 网络配置成"网络地址转换(NAT)"和"仅主机(Host-Only)网络"双网卡, 前者用于访问互联网, 后者用于跟主机互连
-4. 存储设置里, IDE控制器里增加 CentOS7 光盘镜像, SATA控制器里增加新硬盘, 至少8G, 推荐16G或更多
-5. 启动虚拟机, 安装 CentOS7, 安装时建议不创建swap分区, 建议只分256M的boot分区并把其它空间都分配到根分区, 别忘开启网络, 安装过程中设置root密码并增加一个普通权限的账号, 安装完成后重启
-6. 重启后光盘已自动卸载, 进入系统后登录root账号, 查看虚拟机的IP地址(ip address), 其中"10.0."开头的是用于访问互联网的NAT地址, "192.168."开头的用于跟主机连接的IP地址, 然后退出登录(exit)
+3. 启动 Virtual Box, 新建虚拟机, 内存至少4G, 网络配置成"网络地址转换(NAT)"和"仅主机(Host-Only)网络"双网卡, 前者用于访问互联网, 后者用于跟主机互连
+4. 存储设置里, IDE控制器里增加 CentOS7 光盘镜像, SATA控制器里增加新硬盘, 至少8G, 推荐16G以上
+5. 启动虚拟机, 安装 CentOS7, 需要注意的是6G以下内存需要创建swap分区作为内存的补充, 至少分256M的boot分区, 其它空间都分配给根分区, 别忘开启网络, 安装过程中设置root密码并增加一个普通权限的账号
+6. 安装完成并重启后光盘会自动卸载, 进入系统后登录root账号, 查看虚拟机的IP地址(ip address), 其中"10.0."开头的用于访问互联网的NAT地址, "192.168."开头的用于跟主机连接的IP地址, 然后退出登录(exit)
 7. 主机启动SSH客户端, 连接"192.168."开头的IP地址, 22端口, 使用普通权限的账号和密码登录
 
 ##### 安装TiKV
@@ -32,7 +32,7 @@ nohup ./tikv-server --pd-endpoints="192.168.56.101:2379" --addr="192.168.56.101:
 4. 以上的TiKV仅在单机启动服务用于测试, 如需分布式部署, 应参考官方文档(https://tikv.org/docs/6.1/deploy/install/production/)使用TiUP管理工具更加方便可靠
 
 ##### 测试TiKV
-Java客户端的测试代码:
+1. Java客户端的测试代码:
 ```
 // 依赖 'org.tikv:tikv-client-java:3.3.0' 和 'org.slf4j:slf4j-api:1.7.36'
 TiSession session = TiSession.create(TiConfiguration.createRawDefault("192.168.56.101:2379")); // 改成自己虚拟机用于跟主机连接的IP地址
@@ -41,3 +41,6 @@ client.put(ByteString.copyFromUtf8("key"), ByteString.copyFromUtf8("Hello, World
 var v = client.get(ByteString.copyFromUtf8("key"));
 System.out.println(v.isPresent() ? v.get().toStringUtf8() : null); // 输出"Hello, World!"即表示安装成功
 ```
+2. 3个tikv-server组成了高可用性的一组raft节点, 可以尝试停止其中1个tikv-server, 测试依然成功
+3. 如果停止2个或3个tikv-server, 则测试无法成功, 客户端从pd-server得到错误信息"peer is not leader for region 2, leader may None"
+4. pd-server也可以分布式, 客户端连接某个pd-server时会得到其leader的地址端口, 如果不是当前连接的pd-server, 则再连接leader的pd-server才能继续访问服务
