@@ -135,9 +135,10 @@ public final class TestDatabaseTikv extends TestCase {
 					kvs.put(ks.getBytes(StandardCharsets.UTF_8), ("v" + ks).getBytes(StandardCharsets.UTF_8));
 				}
 
-				long t = System.currentTimeMillis();
+				var t = System.currentTimeMillis();
 				batchWrite(session, kvs.entrySet());
-				System.out.println("batchWrite: " + (System.currentTimeMillis() - t) + " ms");
+				var t2 = System.currentTimeMillis();
+				System.out.println(t2 + " batchWrite: " + (t2 - t) + " ms");
 
 				t = System.currentTimeMillis();
 				long version = session.getTimestamp().getVersion();
@@ -150,13 +151,15 @@ public final class TestDatabaseTikv extends TestCase {
 					assertEquals('v', vs.charAt(0));
 					assertEquals(ks, vs.substring(1));
 				}
-				System.out.println("readAll: " + (System.currentTimeMillis() - t) + " ms");
+				t2 = System.currentTimeMillis();
+				System.out.println(t2 + " readAll: " + (t2 - t) + " ms");
 			}
 		}
 	}
 
 	public void testTxnPerf() throws Exception {
 		var t = System.currentTimeMillis();
+		System.out.println(t + " begin");
 		var ts = new Thread[10];
 		for (int i = 0; i < 10; i++) {
 			int j = i;
@@ -171,6 +174,60 @@ public final class TestDatabaseTikv extends TestCase {
 		}
 		for (int i = 0; i < 10; i++)
 			ts[i].join();
-		System.out.println("end " + (System.currentTimeMillis() - t) + " ms");
+		var t2 = System.currentTimeMillis();
+		System.out.println(t2 + " end " + (t2 - t) + " ms");
+	}
+
+	public void runRawPerf(int base) throws Exception {
+		try (TiSession session = TiSession.create(TiConfiguration.createRawDefault(serverAddr))) {
+			try (RawKVClient client = session.createRawClient()) {
+				var kvs = new HashMap<ByteString, ByteString>();
+				for (int i = 0; i < 1000; i++) {
+					var ks = String.valueOf(base + i);
+					kvs.put(ByteString.copyFromUtf8(ks), ByteString.copyFromUtf8("v" + ks));
+				}
+
+				var t = System.currentTimeMillis();
+				client.batchPut(kvs);
+				var t2 = System.currentTimeMillis();
+				System.out.println(t2 + " batchPut end: " + (t2 - t) + " ms");
+
+				t = System.currentTimeMillis();
+				for (int i = 0; i < 1000; i++) {
+					var ks = String.valueOf(base + i);
+					var ov = client.get(ByteString.copyFromUtf8(ks));
+					assertNotNull(ov);
+					assertTrue(ov.isPresent());
+					var v = ov.get();
+					assertTrue(v.size() > 1);
+					var vs = v.toString(StandardCharsets.UTF_8);
+					assertEquals('v', vs.charAt(0));
+					assertEquals(ks, vs.substring(1));
+				}
+				t2 = System.currentTimeMillis();
+				System.out.println(t2 + " getAll: " + (t2 - t) + " ms");
+			}
+		}
+	}
+
+	public void testRawPerf() throws Exception {
+		var t = System.currentTimeMillis();
+		System.out.println(t + " begin");
+		var ts = new Thread[10];
+		for (int i = 0; i < 10; i++) {
+			int j = i;
+			ts[i] = new Thread(() -> {
+				try {
+					runRawPerf(j * 10000);
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			});
+			ts[i].start();
+		}
+		for (int i = 0; i < 10; i++)
+			ts[i].join();
+		var t2 = System.currentTimeMillis();
+		System.out.println(t2 + " end " + (t2 - t) + " ms");
 	}
 }
