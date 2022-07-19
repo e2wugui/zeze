@@ -11,9 +11,13 @@ import java.net.SocketTimeoutException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -61,6 +65,7 @@ public class Daemon {
 			try {
 				var cmd = (GlobalOn)Daemon.receiveCommand(UdpSocket);
 				Monitor.setConfig(cmd.GlobalIndex, cmd.GlobalConfig);
+				sendCommand(UdpSocket, cmd.Peer, new CommonResult(cmd.ReliableSerialNo, 0));
 			} catch (SocketTimeoutException ex) {
 				// skip
 			}
@@ -76,7 +81,7 @@ public class Daemon {
 		if (cmd.command() != Register.Command)
 			throw new RuntimeException("Not Register Command. is " + cmd.command());
 		var reg = (Register)cmd;
-		Daemon.sendCommand(UdpSocket, cmd.Peer, new CommonResult());
+		Daemon.sendCommand(UdpSocket, cmd.Peer, new CommonResult(reg.ReliableSerialNo, 0));
 		SubprocessSocketAddress = cmd.Peer;
 		Monitor = new Monitor(reg);
 	}
@@ -92,15 +97,59 @@ public class Daemon {
 		Runtime.getRuntime().halt(-1);
 	}
 
+	public static class PendingPacket {
+		public DatagramSocket Socket;
+		public DatagramPacket Packet;
+		public long SendTime;
+
+		public PendingPacket(DatagramSocket socket, DatagramPacket packet) {
+			Socket = socket;
+			Packet = packet;
+			SendTime = System.currentTimeMillis();
+		}
+	}
+
+	private static ConcurrentHashMap<Long, PendingPacket> Pending = new ConcurrentHashMap<>();
+	private static volatile Future<?> Timer;
+
 	public static void sendCommand(DatagramSocket socket, SocketAddress peer, Command cmd) throws IOException {
 		var bb = ByteBuffer.Allocate();
 		bb.WriteInt(cmd.command());
 		cmd.Encode(bb);
 		var p = new DatagramPacket(bb.Bytes, 0, bb.Size(), peer);
+		if (cmd.ReliableSerialNo != 0) {
+			if (null != Pending.putIfAbsent(cmd.ReliableSerialNo, new PendingPacket(socket, p)))
+				throw new RuntimeException("Duplicate ReliableSerialNo=" + cmd.ReliableSerialNo);
+
+			// auto start Timer
+			if (null == Timer) {
+				synchronized (Pending) {
+					if (null == Timer) {
+						Timer = Task.schedule(1000, 1000, () -> {
+							var now = System.currentTimeMillis();
+							for (var pending : Pending.values()) {
+								if (now - pending.SendTime > 1000) {
+									pending.Socket.send(pending.Packet);
+									pending.SendTime = now;
+								}
+							}
+						});
+						Zeze.Util.ShutdownHook.add(() -> Timer.cancel(false));
+					}
+				}
+			}
+		}
 		socket.send(p);
 	}
 
 	public static Command receiveCommand(DatagramSocket socket) throws IOException {
+		var cmd = _receiveCommand(socket);
+		if (cmd.ReliableSerialNo != 0)
+			Pending.remove(cmd.ReliableSerialNo);
+		return cmd;
+	}
+
+	private static Command _receiveCommand(DatagramSocket socket) throws IOException {
 		var buf = new byte[1024];
 		var p = new DatagramPacket(buf, buf.length);
 		socket.setSoTimeout(200);
@@ -198,6 +247,24 @@ public class Daemon {
 	public static abstract class Command implements Serializable {
 		public abstract int command();
 		public SocketAddress Peer;
+		public long ReliableSerialNo;
+
+		private static AtomicLong Seed = new AtomicLong();
+
+		public void setReliableSerialNo() {
+			while (ReliableSerialNo == 0)
+				ReliableSerialNo = Seed.incrementAndGet();
+		}
+
+		@Override
+		public void Encode(ByteBuffer bb) {
+			bb.WriteLong(ReliableSerialNo);
+		}
+
+		@Override
+		public void Decode(ByteBuffer bb) {
+			ReliableSerialNo = bb.ReadLong();
+		}
 	}
 
 	// 精简版本配置。仅传递Daemon需要的参数过来。
@@ -227,12 +294,14 @@ public class Daemon {
 		public Register(int c, String name) {
 			GlobalCount = c;
 			MMapFileName = name;
+			setReliableSerialNo(); // enable reliable
 		}
 
 		public Register(ByteBuffer bb, SocketAddress peer) {
 			Decode(bb);
 			Peer = peer;
 		}
+
 		@Override
 		public int command() {
 			return command();
@@ -240,12 +309,14 @@ public class Daemon {
 
 		@Override
 		public void Encode(ByteBuffer bb) {
+			super.Encode(bb);
 			bb.WriteInt(GlobalCount);
 			bb.WriteString(MMapFileName);
 		}
 
 		@Override
 		public void Decode(ByteBuffer bb) {
+			super.Decode(bb);
 			GlobalCount = bb.ReadInt();
 			MMapFileName = bb.ReadString();
 		}
@@ -261,6 +332,7 @@ public class Daemon {
 			GlobalIndex = index;
 			GlobalConfig.ServerDaemonTimeout = server;
 			GlobalConfig.ServerReleaseTimeout = release;
+			setReliableSerialNo(); // enable reliable
 		}
 
 		public GlobalOn(ByteBuffer bb, SocketAddress peer) {
@@ -275,12 +347,14 @@ public class Daemon {
 
 		@Override
 		public void Encode(ByteBuffer bb) {
+			super.Encode(bb);
 			bb.WriteInt(GlobalIndex);
 			GlobalConfig.Encode(bb);
 		}
 
 		@Override
 		public void Decode(ByteBuffer bb) {
+			super.Decode(bb);
 			GlobalIndex = bb.ReadInt();
 			GlobalConfig.Decode(bb);
 		}
@@ -291,8 +365,9 @@ public class Daemon {
 
 		public int Code;
 
-		public CommonResult() {
-
+		public CommonResult(long serial, int code) {
+			ReliableSerialNo = serial;
+			Code = code;
 		}
 
 		public CommonResult(ByteBuffer bb, SocketAddress peer) {
@@ -307,11 +382,13 @@ public class Daemon {
 
 		@Override
 		public void Encode(ByteBuffer bb) {
+			super.Encode(bb);
 			bb.WriteInt(Code);
 		}
 
 		@Override
 		public void Decode(ByteBuffer bb) {
+			super.Decode(bb);
 			Code = bb.ReadInt();
 		}
 	}

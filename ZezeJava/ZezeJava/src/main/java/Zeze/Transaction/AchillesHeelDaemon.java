@@ -151,7 +151,6 @@ public class AchillesHeelDaemon {
 				Daemon.sendCommand(PD.UdpSocket, PD.DaemonSocketAddress,
 						new Daemon.GlobalOn(agent.GlobalCacheManagerHashIndex,
 								config.ServerDaemonTimeout, config.ServerReleaseTimeout));
-				// TODO 可靠传输
 			} catch (IOException e) {
 				logger.error(e);
 			}
@@ -182,21 +181,7 @@ public class AchillesHeelDaemon {
 			DaemonSocketAddress = new InetSocketAddress("127.0.0.1", peer);
 
 			LastReportTime = new long[Agents.length];
-			while (true) {
-				// 这个循环处理Udp不可靠。
-				// 实际上几乎不会失败了。
-				// 这个时候处于注册阶段，不会出现命令并发。先简单这样写。
-				Daemon.sendCommand(UdpSocket, DaemonSocketAddress, new Daemon.Register(Agents.length, FileName.toString()));
-				try {
-					var result = Daemon.receiveCommand(UdpSocket);
-					if (result.command() != Daemon.CommonResult.Command)
-						throw new RuntimeException("RegisterResult Need.");
-					break;
-				} catch (SocketTimeoutException ex) {
-					// skip and continue;
-					continue;
-				}
-			}
+			Daemon.sendCommand(UdpSocket, DaemonSocketAddress, new Daemon.Register(Agents.length, FileName.toString()));
 		}
 
 		private long[] LastReportTime;
