@@ -23,7 +23,7 @@ public class TestProcessDaemon {
 		}
 	}
 
-	private static void subProcess(int peer) throws IOException {
+	private static void subProcess(int peer) throws Exception {
 		var udp = new DatagramSocket(0, InetAddress.getLoopbackAddress());
 		var port = udp.getLocalPort();
 		var sendBuf = String.valueOf(port).getBytes(StandardCharsets.UTF_8);
@@ -35,6 +35,7 @@ public class TestProcessDaemon {
 		var message = new String(p.getData(), 0, p.getLength(), StandardCharsets.UTF_8);
 		System.out.println(message);
 		System.out.println("subprocess exit");
+		//Thread.sleep(2000);
 	}
 
 	private static void daemonProcess() throws IOException, InterruptedException {
@@ -59,6 +60,7 @@ public class TestProcessDaemon {
 		var hello = "hello".getBytes(StandardCharsets.UTF_8);
 		p = new DatagramPacket(hello, hello.length, new InetSocketAddress("127.0.0.1", peer));
 		udp.send(p);
+		//sub.destroy();
 		System.out.println("waitFor=" + sub.waitFor());
 		System.out.println("daemonprocess exit");
 	}
