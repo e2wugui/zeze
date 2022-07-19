@@ -58,7 +58,7 @@ public class TestProcessDaemon {
 		var hello = "hello".getBytes(StandardCharsets.UTF_8);
 		p = new DatagramPacket(hello, hello.length, new InetSocketAddress("127.0.0.1", peer));
 		udp.send(p);
-		sub.waitFor();
+		System.out.println("waitFor=" + sub.waitFor());
 		System.out.println("err:");
 		System.out.println(new String(sub.getErrorStream().readAllBytes()));
 		System.out.println("daemonprocess exit");
