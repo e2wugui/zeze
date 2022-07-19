@@ -158,9 +158,9 @@ public class AchillesHeelDaemon {
 		}
 	}
 
-	public void setProcessDaemonActiveTime(int index, long value) {
+	public void setProcessDaemonActiveTime(GlobalAgentBase agent, long value) {
 		if (null != PD)
-			PD.setActiveTime(index, value);
+			PD.setActiveTime(agent, value);
 	}
 
 	class ProcessDaemon extends Thread {
@@ -180,6 +180,8 @@ public class AchillesHeelDaemon {
 			Channel = File.getChannel();
 			MMap = Channel.map(FileChannel.MapMode.READ_WRITE, 0, Channel.size());
 			DaemonSocketAddress = new InetSocketAddress("127.0.0.1", peer);
+
+			LastReportTime = new long[Agents.length];
 			while (true) {
 				// 这个循环处理Udp不可靠。
 				// 实际上几乎不会失败了。
@@ -197,12 +199,19 @@ public class AchillesHeelDaemon {
 			}
 		}
 
-		public void setActiveTime(int index, long value) {
+		private long[] LastReportTime;
+
+		public void setActiveTime(GlobalAgentBase agent, long value) {
+			// 优化！活动时间设置很频繁，降低报告频率。
+			if (agent.getActiveTime() - LastReportTime[agent.GlobalCacheManagerHashIndex] < 1000)
+				return;
+			LastReportTime[agent.GlobalCacheManagerHashIndex] = agent.getActiveTime();
+
 			var bb = ByteBuffer.Allocate();
 			bb.WriteLong8(value);
 
 			try (var lock = Channel.lock()) {
-				MMap.position(index * 8);
+				MMap.position(agent.GlobalCacheManagerHashIndex * 8);
 				MMap.put(bb.Bytes, bb.ReadIndex, bb.Size());
 			} catch (Throwable ex) {
 				logger.error(ex);
