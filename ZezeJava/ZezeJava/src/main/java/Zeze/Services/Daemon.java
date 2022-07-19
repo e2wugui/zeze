@@ -42,13 +42,11 @@ public class Daemon {
 
 		try {
 			while (true) {
-				waitRegisterAndCreateMonitor();
-				logger.info("Application Register Ok!");
-				Monitor.start();
 				var exitCode = mainRun();
 				if (0 == exitCode)
 					break;
-				logger.warn("Application Restart Now. ExitCode=" + exitCode);
+				joinMonitors();
+				logger.warn("Subprocess Restart! ExitCode=" + exitCode);
 				Subprocess = pb.start();
 			}
 		} catch (Throwable ex) {
@@ -59,42 +57,71 @@ public class Daemon {
 		}
 	}
 
-	private static int mainRun() throws Exception {
+	private static int mainRun() {
 		while (true) {
-			// 轮询：等待Global配置以及等待子进程退出。
 			try {
-				var cmd = (GlobalOn)Daemon.receiveCommand(UdpSocket);
-				Monitor.setConfig(cmd.GlobalIndex, cmd.GlobalConfig);
-				sendCommand(UdpSocket, cmd.Peer, new CommonResult(cmd.ReliableSerialNo, 0));
-			} catch (SocketTimeoutException ex) {
-				// skip
-			}
-			if (Subprocess.waitFor(1, TimeUnit.MILLISECONDS)) {
-				return Subprocess.exitValue();
+				// 轮询：等待Global配置以及等待子进程退出。
+				try {
+					var cmd = Daemon.receiveCommand(UdpSocket);
+					switch (cmd.command()) {
+					case Register.Command:
+						var reg = (Register)cmd;
+						var code = 0;
+						var monitor = new Monitor(reg);
+						if (null == Monitors.putIfAbsent(reg.ServerId, monitor))
+							monitor.start();
+						else
+							code = 1;
+						Daemon.sendCommand(UdpSocket, cmd.Peer, new CommonResult(reg.ReliableSerialNo, code));
+						logger.info("Register! Server={} code={}", reg.ServerId, code);
+						break;
+
+					case GlobalOn.Command:
+						var on = (GlobalOn)cmd;
+						Monitors.get(on.ServerId).setConfig(on.GlobalIndex, on.GlobalConfig);
+						sendCommand(UdpSocket, cmd.Peer, new CommonResult(cmd.ReliableSerialNo, 0));
+						logger.info("GlobalOn! Server={} ServerDaemonTimeout={} ServerReleaseTimeout={}",
+								on.ServerId,
+								on.GlobalConfig.ServerDaemonTimeout,
+								on.GlobalConfig.ServerReleaseTimeout);
+						break;
+					}
+				} catch (SocketTimeoutException ex) {
+					// skip
+				}
+				if (Subprocess.waitFor(1, TimeUnit.MILLISECONDS)) {
+					return Subprocess.exitValue();
+				}
+			} catch (Throwable ex) {
+				logger.fatal("", ex);
+				fatalExit();
+				return -1; // never get here
 			}
 		}
 	}
 
-	public static void waitRegisterAndCreateMonitor() throws Exception {
-		// 注册的命令包和Global数量相关，需要设置到最大。
-		var cmd = Daemon.receiveCommand(UdpSocket);
-		if (cmd.command() != Register.Command)
-			throw new RuntimeException("Not Register Command. is " + cmd.command());
-		var reg = (Register)cmd;
-		Daemon.sendCommand(UdpSocket, cmd.Peer, new CommonResult(reg.ReliableSerialNo, 0));
-		SubprocessSocketAddress = cmd.Peer;
-		Monitor = new Monitor(reg);
-	}
-
-	private static Monitor Monitor;
+	// Key Is ServerId。每个Server对应一个Monitor。
+	// 正常使用是一个Daemon对应一个Server。
+	// 写成支持多个Server是为了跑Simulate测试。
+	private static ConcurrentHashMap<Integer, Monitor> Monitors = new ConcurrentHashMap<>();
 	private static DatagramSocket UdpSocket;
-	private static SocketAddress SubprocessSocketAddress;
 	private static Process Subprocess;
 
 	public static void fatalExit() {
 		Subprocess.destroy();
 		LogManager.shutdown();
 		Runtime.getRuntime().halt(-1);
+	}
+
+	public static void joinMonitors() throws InterruptedException {
+		for (var monitor : Monitors.values())
+			monitor.stopAndJoin();
+		Monitors.clear();
+	}
+
+	public static void destroySubprocess() throws InterruptedException {
+		Subprocess.destroy();
+		joinMonitors();
 	}
 
 	public static class PendingPacket {
@@ -168,12 +195,17 @@ public class Daemon {
 	public static class Monitor extends Thread {
 		public File FileName;
 
+		public final int ServerId;
+		public final SocketAddress PeerSocketAddress;
+
 		private RandomAccessFile File;
 		private FileChannel Channel;
 		private MappedByteBuffer MMap;
 		private AchillesHeelConfig [] GlobalConfigs;
 
 		public Monitor(Register reg) throws Exception {
+			ServerId = reg.ServerId;
+			PeerSocketAddress = reg.Peer;
 			GlobalConfigs = new AchillesHeelConfig[reg.GlobalCount];
 			FileName = new File(reg.MMapFileName);
 			File = new RandomAccessFile(FileName, "r");
@@ -221,13 +253,13 @@ public class Daemon {
 
 						var idle = now - activeTime;
 						if (idle > config.ServerReleaseTimeout) {
-							Daemon.Subprocess.destroy();
+							Daemon.destroySubprocess();
 							// daemon main will restart subprocess!
 						} else if (idle > config.ServerDaemonTimeout) {
 							// 在Server执行Release期间，命令可能重复发送。
 							// 重复命令的处理由Server完成，
 							// 这里重发也是需要的，刚好解决Udp不可靠性。
-							Daemon.sendCommand(UdpSocket, SubprocessSocketAddress, new Release(i));
+							Daemon.sendCommand(UdpSocket, PeerSocketAddress, new Release(i));
 						}
 						Thread.sleep(1000);
 					}
@@ -288,10 +320,12 @@ public class Daemon {
 	public static class Register extends Command {
 		public final static int Command = 0;
 
+		public int ServerId;
 		public int GlobalCount;
 		public String MMapFileName;
 
-		public Register(int c, String name) {
+		public Register(int serverId, int c, String name) {
+			ServerId = serverId;
 			GlobalCount = c;
 			MMapFileName = name;
 			setReliableSerialNo(); // enable reliable
@@ -310,6 +344,7 @@ public class Daemon {
 		@Override
 		public void Encode(ByteBuffer bb) {
 			super.Encode(bb);
+			bb.WriteInt(ServerId);
 			bb.WriteInt(GlobalCount);
 			bb.WriteString(MMapFileName);
 		}
@@ -317,6 +352,7 @@ public class Daemon {
 		@Override
 		public void Decode(ByteBuffer bb) {
 			super.Decode(bb);
+			ServerId = bb.ReadInt();
 			GlobalCount = bb.ReadInt();
 			MMapFileName = bb.ReadString();
 		}
@@ -325,10 +361,12 @@ public class Daemon {
 	public static class GlobalOn extends Command {
 		public final static int Command = 1;
 
+		public int ServerId;
 		public int GlobalIndex;
 		public AchillesHeelConfig GlobalConfig = new AchillesHeelConfig();
 
-		public GlobalOn(int index, int server, int release) {
+		public GlobalOn(int serverId, int index, int server, int release) {
+			ServerId = serverId;
 			GlobalIndex = index;
 			GlobalConfig.ServerDaemonTimeout = server;
 			GlobalConfig.ServerReleaseTimeout = release;
@@ -348,6 +386,7 @@ public class Daemon {
 		@Override
 		public void Encode(ByteBuffer bb) {
 			super.Encode(bb);
+			bb.WriteInt(ServerId);
 			bb.WriteInt(GlobalIndex);
 			GlobalConfig.Encode(bb);
 		}
@@ -355,6 +394,7 @@ public class Daemon {
 		@Override
 		public void Decode(ByteBuffer bb) {
 			super.Decode(bb);
+			ServerId = bb.ReadInt();
 			GlobalIndex = bb.ReadInt();
 			GlobalConfig.Decode(bb);
 		}

@@ -149,8 +149,11 @@ public class AchillesHeelDaemon {
 			try {
 				var config = agent.getConfig();
 				Daemon.sendCommand(PD.UdpSocket, PD.DaemonSocketAddress,
-						new Daemon.GlobalOn(agent.GlobalCacheManagerHashIndex,
-								config.ServerDaemonTimeout, config.ServerReleaseTimeout));
+						new Daemon.GlobalOn(
+								Zeze.getConfig().getServerId(),
+								agent.GlobalCacheManagerHashIndex,
+								config.ServerDaemonTimeout,
+								config.ServerReleaseTimeout));
 			} catch (IOException e) {
 				logger.error(e);
 			}
@@ -181,7 +184,8 @@ public class AchillesHeelDaemon {
 			DaemonSocketAddress = new InetSocketAddress("127.0.0.1", peer);
 
 			LastReportTime = new long[Agents.length];
-			Daemon.sendCommand(UdpSocket, DaemonSocketAddress, new Daemon.Register(Agents.length, FileName.toString()));
+			Daemon.sendCommand(UdpSocket, DaemonSocketAddress,
+					new Daemon.Register(Zeze.getConfig().getServerId(), Agents.length, FileName.toString()));
 		}
 
 		private long[] LastReportTime;

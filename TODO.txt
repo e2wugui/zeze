@@ -11,14 +11,18 @@ Task
 Universe
 Zege
 DatagramChannel
+Http In Linkd
+Immediately Record1::SetDirty(rockscache保存）OldTable::TableX::Load
+Arch.Online Login+Login 中间补充触发一个Logout事件。程序退出的时候怎么办？难道也要补？还有程序异常退出呢？
+
+【2022/7/15】
+
+------------------------------------------------------------------------------------------------------------------------------
+tag 1.0.1 AchillesHeelDaemon.ProcessDaemon
+------------------------------------------------------------------------------------------------------------------------------
 DatagramSocket
 AchillesHeelDaemon：安全级别从jvm级别提升到操作系统。保留线程守护，增加进程守护。两个守护兼容：
   gs启动的时候检查mmap，发现自己是daemon启动的，就开启进程守护（向mmap报告和读取命令），否则还是原来的线程守护。
-Http In Linkd
-Immediately Record1::SetDirty(rockscache保存）OldTable::TableX::Load
-Arch.Online Login+Login 中间补充触发一个Logout事件。
-
-【2022/7/15】
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 1.0.0 Stable? ^_^
