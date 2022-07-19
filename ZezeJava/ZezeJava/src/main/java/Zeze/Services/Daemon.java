@@ -50,7 +50,7 @@ public class Daemon {
 				Subprocess = pb.start();
 			}
 		} catch (Throwable ex) {
-			logger.error("", ex);
+			logger.error("Daemon.main", ex);
 		} finally {
 			// 退出的时候，确保销毁服务进程。
 			Subprocess.destroy();
@@ -79,7 +79,7 @@ public class Daemon {
 					case GlobalOn.Command:
 						var on = (GlobalOn)cmd;
 						Monitors.get(on.ServerId).setConfig(on.GlobalIndex, on.GlobalConfig);
-						sendCommand(UdpSocket, cmd.Peer, new CommonResult(cmd.ReliableSerialNo, 0));
+						sendCommand(UdpSocket, cmd.Peer, new CommonResult(on.ReliableSerialNo, 0));
 						logger.info("GlobalOn! Server={} ServerDaemonTimeout={} ServerReleaseTimeout={}",
 								on.ServerId,
 								on.GlobalConfig.ServerDaemonTimeout,
@@ -93,7 +93,7 @@ public class Daemon {
 					return Subprocess.exitValue();
 				}
 			} catch (Throwable ex) {
-				logger.fatal("", ex);
+				logger.fatal("Daemon.mainRun", ex);
 				fatalExit();
 				return -1; // never get here
 			}
@@ -136,7 +136,7 @@ public class Daemon {
 		}
 	}
 
-	private static ConcurrentHashMap<Long, PendingPacket> Pending = new ConcurrentHashMap<>();
+	private static final ConcurrentHashMap<Long, PendingPacket> Pending = new ConcurrentHashMap<>();
 	private static volatile Future<?> Timer;
 
 	public static void sendCommand(DatagramSocket socket, SocketAddress peer, Command cmd) throws IOException {
@@ -144,7 +144,7 @@ public class Daemon {
 		bb.WriteInt(cmd.command());
 		cmd.Encode(bb);
 		var p = new DatagramPacket(bb.Bytes, 0, bb.Size(), peer);
-		if (cmd.ReliableSerialNo != 0) {
+		if (cmd.isRequest()) {
 			if (null != Pending.putIfAbsent(cmd.ReliableSerialNo, new PendingPacket(socket, p)))
 				throw new RuntimeException("Duplicate ReliableSerialNo=" + cmd.ReliableSerialNo);
 
@@ -184,10 +184,10 @@ public class Daemon {
 		var bb = ByteBuffer.Wrap(buf, 0, p.getLength());
 		var cmd = bb.ReadInt();
 		switch (cmd) {
-		case Register.Command -> new Register(bb, p.getSocketAddress());
-		case CommonResult.Command -> new CommonResult(bb, p.getSocketAddress());
-		case GlobalOn.Command -> new GlobalOn(bb, p.getSocketAddress());
-		case Release.Command -> new Release(bb, p.getSocketAddress());
+		case Register.Command: return new Register(bb, p.getSocketAddress());
+		case CommonResult.Command: return new CommonResult(bb, p.getSocketAddress());
+		case GlobalOn.Command: return new GlobalOn(bb, p.getSocketAddress());
+		case Release.Command: return new Release(bb, p.getSocketAddress());
 		}
 		throw new RuntimeException("Unknown Command =" + cmd);
 	}
@@ -208,9 +208,9 @@ public class Daemon {
 			PeerSocketAddress = reg.Peer;
 			GlobalConfigs = new AchillesHeelConfig[reg.GlobalCount];
 			FileName = new File(reg.MMapFileName);
-			File = new RandomAccessFile(FileName, "r");
+			File = new RandomAccessFile(FileName, "rw");
 			Channel = File.getChannel();
-			MMap = Channel.map(FileChannel.MapMode.READ_ONLY, 0, Channel.size());
+			MMap = Channel.map(FileChannel.MapMode.READ_WRITE, 0, Channel.size());
 		}
 
 		public synchronized AchillesHeelConfig getConfig(int index) {
@@ -229,13 +229,17 @@ public class Daemon {
 		private volatile boolean Running = true;
 
 		private ByteBuffer copyMMap() throws IOException {
-			var lock = Channel.lock();
-			try {
-				var copy = new byte[GlobalConfigs.length * 8];
-				MMap.get(copy, 0, copy.length);
-				return ByteBuffer.Wrap(copy);
-			} finally {
-				lock.release();
+			synchronized (Channel) {
+				// Channel.lock 对同一个进程不能并发。
+				var lock = Channel.lock();
+				try {
+					var copy = new byte[GlobalConfigs.length * 8];
+					MMap.position(0);
+					MMap.get(copy, 0, copy.length);
+					return ByteBuffer.Wrap(copy);
+				} finally {
+					lock.release();
+				}
 			}
 		}
 
@@ -265,7 +269,7 @@ public class Daemon {
 					}
 				}
 			} catch (Throwable ex) {
-				logger.error(ex);
+				logger.fatal("Monitor.run", ex);
 				Daemon.fatalExit();
 			}
 		}
@@ -283,9 +287,16 @@ public class Daemon {
 
 		private static AtomicLong Seed = new AtomicLong();
 
+		private boolean isRequest = false;
+
+		public boolean isRequest() {
+			return isRequest;
+		}
+
 		public void setReliableSerialNo() {
 			while (ReliableSerialNo == 0)
 				ReliableSerialNo = Seed.incrementAndGet();
+			isRequest = true;
 		}
 
 		@Override
@@ -338,7 +349,7 @@ public class Daemon {
 
 		@Override
 		public int command() {
-			return command();
+			return Command;
 		}
 
 		@Override

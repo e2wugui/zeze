@@ -14,6 +14,7 @@ DatagramChannel
 Http In Linkd
 Immediately Record1::SetDirty(rockscache保存）OldTable::TableX::Load
 Arch.Online Login+Login 中间补充触发一个Logout事件。程序退出的时候怎么办？难道也要补？还有程序异常退出呢？
+checkpoint concurrent
 
 【2022/7/15】
 

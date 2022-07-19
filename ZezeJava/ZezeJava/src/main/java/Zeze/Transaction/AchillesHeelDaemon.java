@@ -199,11 +199,14 @@ public class AchillesHeelDaemon {
 			var bb = ByteBuffer.Allocate();
 			bb.WriteLong8(value);
 
-			try (var lock = Channel.lock()) {
-				MMap.position(agent.GlobalCacheManagerHashIndex * 8);
-				MMap.put(bb.Bytes, bb.ReadIndex, bb.Size());
-			} catch (Throwable ex) {
-				logger.error(ex);
+			// TODO 不同的GlobalAgent能并发起来。由于上面的低频率报告优化，这个不是很必要了。
+			synchronized (Channel) {
+				try (var lock = Channel.lock()) {
+					MMap.position(agent.GlobalCacheManagerHashIndex * 8);
+					MMap.put(bb.Bytes, bb.ReadIndex, bb.Size());
+				} catch (Throwable ex) {
+					logger.error("setActiveTime", ex);
+				}
 			}
 		}
 
@@ -275,12 +278,12 @@ public class AchillesHeelDaemon {
 			try {
 				Channel.close();
 			} catch (IOException e) {
-				logger.error(e);
+				logger.error("channel.close", e);
 			}
 			try {
 				File.close();
 			} catch (IOException e) {
-				logger.error(e);
+				logger.error("file.close", e);
 			}
 		}
 	}
@@ -337,7 +340,7 @@ public class AchillesHeelDaemon {
 						//noinspection BusyWait
 						Thread.sleep(1000);
 					} catch (InterruptedException e) {
-						logger.warn("", e);
+						logger.warn("sleep", e);
 					}
 				}
 			} catch (Throwable ex) {
