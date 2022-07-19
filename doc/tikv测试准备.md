@@ -10,13 +10,13 @@
 
 ##### 安装TiKV
 
-1. 下载tikv已编译好的linux端服务程序(https://download.pingcap.org/tidb-latest-linux-amd64.tar.gz)
+1. 下载 TiDB-community-server 的Linux端软件包: https://pingcap.com/zh/product-community
 2. 以下均在SSH客户端已登录虚拟机的环境, 先进入root账号(su)
 3. 可先更新所有已安装的软件(yum upgrade), 然后安装Zmodem工具(yum install lrzsz)和其它需要的工具(如net-tools等)
 4. 用vim修改"/etc/security/limits.conf", 增加一行"* hard nofile 100000"
 5. 关闭防火墙(systemctl disable firewalld.service)
 6. 退出root账号, 用vim修改"~/.bash_profile", 增加一行"ulimit -n 100000"
-7. 重启虚拟机后, SSH客户端重新登录, 在home目录中创建tikv目录, 进入tikv目录后用rz命令上传主机下载好的tikv压缩包中的"pd-server"和"tikv-server"
+7. 重启虚拟机后, SSH客户端重新登录, 在home目录中创建tikv目录, 进入tikv目录后用rz命令上传主机下载好的tikv压缩包中的"pd-server"和"tikv-server"两个可执行程序文件
 8. 给上传的2个程序增加可执行权限(chmod +x *)
 
 ##### 启动TiKV
