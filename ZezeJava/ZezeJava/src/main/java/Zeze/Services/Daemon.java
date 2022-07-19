@@ -76,7 +76,7 @@ public class Daemon {
 		if (cmd.command() != Register.Command)
 			throw new RuntimeException("Not Register Command. is " + cmd.command());
 		var reg = (Register)cmd;
-		Daemon.sendCommand(UdpSocket, new RegisterResult(), cmd.Peer);
+		Daemon.sendCommand(UdpSocket, cmd.Peer, new CommonResult());
 		SubprocessSocketAddress = cmd.Peer;
 		Monitor = new Monitor(reg);
 	}
@@ -92,7 +92,7 @@ public class Daemon {
 		Runtime.getRuntime().halt(-1);
 	}
 
-	public static void sendCommand(DatagramSocket socket, Command cmd, SocketAddress peer) throws IOException {
+	public static void sendCommand(DatagramSocket socket, SocketAddress peer, Command cmd) throws IOException {
 		var bb = ByteBuffer.Allocate();
 		bb.WriteInt(cmd.command());
 		cmd.Encode(bb);
@@ -109,7 +109,7 @@ public class Daemon {
 		var cmd = bb.ReadInt();
 		switch (cmd) {
 		case Register.Command -> new Register(bb, p.getSocketAddress());
-		case RegisterResult.Command -> new RegisterResult(bb, p.getSocketAddress());
+		case CommonResult.Command -> new CommonResult(bb, p.getSocketAddress());
 		case GlobalOn.Command -> new GlobalOn(bb, p.getSocketAddress());
 		case Release.Command -> new Release(bb, p.getSocketAddress());
 		}
@@ -178,7 +178,7 @@ public class Daemon {
 							// 在Server执行Release期间，命令可能重复发送。
 							// 重复命令的处理由Server完成，
 							// 这里重发也是需要的，刚好解决Udp不可靠性。
-							Daemon.sendCommand(UdpSocket, new Release(i), SubprocessSocketAddress);
+							Daemon.sendCommand(UdpSocket, SubprocessSocketAddress, new Release(i));
 						}
 						Thread.sleep(1000);
 					}
@@ -286,16 +286,16 @@ public class Daemon {
 		}
 	}
 
-	public static class RegisterResult extends Command {
+	public static class CommonResult extends Command {
 		public final static int Command = 2;
 
 		public int Code;
 
-		public RegisterResult() {
+		public CommonResult() {
 
 		}
 
-		public RegisterResult(ByteBuffer bb, SocketAddress peer) {
+		public CommonResult(ByteBuffer bb, SocketAddress peer) {
 			Decode(bb);
 			Peer = peer;
 		}

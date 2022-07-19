@@ -1,13 +1,10 @@
 package Zeze.Transaction;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.net.SocketAddress;
 import java.net.SocketTimeoutException;
 import java.nio.MappedByteBuffer;
@@ -137,22 +134,24 @@ public class AchillesHeelDaemon {
 			TD.join();
 		}
 		if (null != PD)
-			PD.close();
+			PD.stopAndJoin();
 	}
 
 	public void start() {
 		if (null != TD)
 			TD.start();
+		if (null != PD)
+			PD.start();
 	}
 
 	public void onInitialize(GlobalAgentBase agent) {
 		if (null != PD) {
 			try {
-				// 必须可靠。TODO 增加Result，没有收到回应重发。
 				var config = agent.getConfig();
-				Daemon.sendCommand(PD.UdpSocket,
-						new Daemon.GlobalOn(agent.GlobalCacheManagerHashIndex, config.ServerDaemonTimeout, config.ServerReleaseTimeout),
-						PD.DaemonSocketAddress);
+				Daemon.sendCommand(PD.UdpSocket, PD.DaemonSocketAddress,
+						new Daemon.GlobalOn(agent.GlobalCacheManagerHashIndex,
+								config.ServerDaemonTimeout, config.ServerReleaseTimeout));
+				// TODO 可靠传输
 			} catch (IOException e) {
 				logger.error(e);
 			}
@@ -164,7 +163,7 @@ public class AchillesHeelDaemon {
 			PD.setActiveTime(index, value);
 	}
 
-	class ProcessDaemon {
+	class ProcessDaemon extends Thread {
 		private DatagramSocket UdpSocket;
 		private java.io.File FileName;
 		private RandomAccessFile File;
@@ -184,10 +183,11 @@ public class AchillesHeelDaemon {
 			while (true) {
 				// 这个循环处理Udp不可靠。
 				// 实际上几乎不会失败了。
-				Daemon.sendCommand(UdpSocket, new Daemon.Register(Agents.length, FileName.toString()), DaemonSocketAddress);
+				// 这个时候处于注册阶段，不会出现命令并发。先简单这样写。
+				Daemon.sendCommand(UdpSocket, DaemonSocketAddress, new Daemon.Register(Agents.length, FileName.toString()));
 				try {
 					var result = Daemon.receiveCommand(UdpSocket);
-					if (result.command() != Daemon.RegisterResult.Command)
+					if (result.command() != Daemon.CommonResult.Command)
 						throw new RuntimeException("RegisterResult Need.");
 					break;
 				} catch (SocketTimeoutException ex) {
@@ -209,7 +209,71 @@ public class AchillesHeelDaemon {
 			}
 		}
 
-		public void close() {
+		private volatile boolean Running = true;
+
+		@Override
+		public void run() {
+			try {
+				while (Running) {
+					try {
+						var cmd = Daemon.receiveCommand(UdpSocket);
+						switch (cmd.command()) {
+						case Daemon.Release.Command:
+							var r = (Daemon.Release)cmd;
+							var agent = Agents[r.GlobalIndex];
+							var config = agent.getConfig();
+							var rr = agent.checkReleaseTimeout(
+									System.currentTimeMillis(), config.ServerReleaseTimeout);
+							if (rr == GlobalAgentBase.CheckReleaseResult.Timeout) {
+								// 本地发现超时，先自杀，不用等进程守护来杀。
+								logger.fatal("ProcessDaemon.AchillesHeelDaemon global release timeout. index={}", r.GlobalIndex);
+								LogManager.shutdown();
+								Runtime.getRuntime().halt(123123);
+							}
+							if (rr != GlobalAgentBase.CheckReleaseResult.Releasing) {
+								// 这个判断只能避免正在Releasing时不要启动新的Release。
+								// 如果Global一直恢复不了，那么每ServerDaemonTimeout会再次尝试Release，
+								// 这里没法快速手段判断本Server是否存在从该Global获取的记录锁。
+								// 在Agent中增加获得的计数是个方案，但挺烦的。
+								logger.warn("ProcessDaemon.StartRelease ServerDaemonTimeout={}", config.ServerDaemonTimeout);
+								agent.startRelease(Zeze, null);
+							}
+							break;
+						}
+					} catch (SocketTimeoutException ex) {
+						// skip
+					}
+					// 执行KeepAlive
+					var now = System.currentTimeMillis();
+					for (int i = 0; i < Agents.length; ++i) {
+						var agent = Agents[i];
+						var config = agent.getConfig();
+						if (null == config)
+							continue; // skip agent not login
+
+						var idle = now - agent.getActiveTime();
+						if (idle > config.ServerKeepAliveIdleTimeout) {
+							//logger.debug("KeepAlive ServerKeepAliveIdleTimeout={}", config.ServerKeepAliveIdleTimeout);
+							agent.keepAlive();
+						}
+					}
+				}
+			} catch (Throwable ex) {
+				// 这个线程不准出错。除了里面应该忽略的。
+				logger.fatal("ProcessDaemon.AchillesHeelDaemon ", ex);
+				LogManager.shutdown();
+				Runtime.getRuntime().halt(321321);
+			}
+		}
+
+		public void stopAndJoin() {
+			Running = false;
+			try {
+				join();
+			} catch (InterruptedException e) {
+				logger.error("ProcessDaemon.stopAndJoin", e);
+			}
+
 			try {
 				Channel.close();
 			} catch (IOException e) {
