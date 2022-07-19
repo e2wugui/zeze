@@ -37,6 +37,7 @@ public abstract class GlobalAgentBase {
 
 	public final void initialize(int maxNetPing, int serverProcessTime, int serverReleaseTimeout) {
 		config = new AchillesHeelConfig(maxNetPing, serverProcessTime, serverReleaseTimeout);
+		Zeze.getAchillesHeelDaemon().onInitialize(this);
 	}
 
 	public enum CheckReleaseResult {

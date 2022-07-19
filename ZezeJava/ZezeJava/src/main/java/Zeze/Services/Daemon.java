@@ -7,11 +7,11 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketAddress;
+import java.net.SocketTimeoutException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import org.apache.logging.log4j.LogManager;
@@ -19,43 +19,73 @@ import org.apache.logging.log4j.Logger;
 
 public class Daemon {
 	public final static String PropertyNamePort = "Zeze.ProcessDaemon.Port";
-	public final static String PropertyNameMMap = "Zeze.ProcessDaemon.MMap";
 
 	private static final Logger logger = LogManager.getLogger(Daemon.class);
 
 	public static void main(String args[]) throws Exception {
-		var maxGlobalCount = 1024;
-		var transferArgStart = 0;
-		if (args[0].equals("-MaxGlobalCount")) {
-			maxGlobalCount = Integer.parseInt(args[1]);
-			transferArgStart = 2;
-		}
-		var monitor = new Monitor(maxGlobalCount);
+		// udp for subprocess register
+		UdpSocket = new DatagramSocket(0, InetAddress.getLoopbackAddress());
+
 		var command = new ArrayList<String>();
 		command.add("java");
-		command.add("-D" + PropertyNamePort + "=" + monitor.UdpSocket.getLocalPort());
-		command.add("-D" + PropertyNameMMap + "=" + monitor.FileName);
-		for (int i = transferArgStart; i < args.length; ++i)
+		command.add("-D" + PropertyNamePort + "=" + UdpSocket.getLocalPort());
+		for (int i = 0; i < args.length; ++i)
 			command.add(args[i]);
 
 		var pb = new ProcessBuilder(command);
 		pb.inheritIO();
 		Subprocess = pb.start();
-		monitor.start();
 
-		while (true) {
-			monitor.waitApplicationReady();
-			logger.info("Application Register Ok!");
-			var exitCode = Subprocess.waitFor();
-			if (exitCode == 0)
-				break;
-			logger.warn("Application Restart Now. ExitCode=" + exitCode);
-			Subprocess = pb.start();
+		try {
+			while (true) {
+				waitRegisterAndCreateMonitor();
+				logger.info("Application Register Ok!");
+				Monitor.start();
+				var exitCode = mainRun();
+				if (0 == exitCode)
+					break;
+				logger.warn("Application Restart Now. ExitCode=" + exitCode);
+				Subprocess = pb.start();
+			}
+		} catch (Throwable ex) {
+			logger.error("", ex);
+		} finally {
+			// 退出的时候，确保销毁服务进程。
+			Subprocess.destroy();
 		}
-		monitor.stopAndJoin();
 	}
 
+	private static int mainRun() throws Exception {
+		while (true) {
+			// 轮询：等待Global配置以及等待子进程退出。
+			try {
+				var cmd = (GlobalOn)Daemon.receiveCommand(UdpSocket);
+				Monitor.setConfig(cmd.GlobalIndex, cmd.GlobalConfig);
+			} catch (SocketTimeoutException ex) {
+				// skip
+			}
+			if (Subprocess.waitFor(1, TimeUnit.MILLISECONDS)) {
+				return Subprocess.exitValue();
+			}
+		}
+	}
+
+	public static void waitRegisterAndCreateMonitor() throws Exception {
+		// 注册的命令包和Global数量相关，需要设置到最大。
+		var cmd = Daemon.receiveCommand(UdpSocket);
+		if (cmd.command() != Register.Command)
+			throw new RuntimeException("Not Register Command. is " + cmd.command());
+		var reg = (Register)cmd;
+		Daemon.sendCommand(UdpSocket, new RegisterResult(), cmd.Peer);
+		SubprocessSocketAddress = cmd.Peer;
+		Monitor = new Monitor(reg);
+	}
+
+	private static Monitor Monitor;
+	private static DatagramSocket UdpSocket;
+	private static SocketAddress SubprocessSocketAddress;
 	private static Process Subprocess;
+
 	public static void fatalExit() {
 		Subprocess.destroy();
 		LogManager.shutdown();
@@ -73,37 +103,41 @@ public class Daemon {
 	public static Command receiveCommand(DatagramSocket socket) throws IOException {
 		var buf = new byte[1024];
 		var p = new DatagramPacket(buf, buf.length);
+		socket.setSoTimeout(200);
 		socket.receive(p);
 		var bb = ByteBuffer.Wrap(buf, 0, p.getLength());
 		var cmd = bb.ReadInt();
 		switch (cmd) {
 		case Register.Command -> new Register(bb, p.getSocketAddress());
 		case RegisterResult.Command -> new RegisterResult(bb, p.getSocketAddress());
+		case GlobalOn.Command -> new GlobalOn(bb, p.getSocketAddress());
 		case Release.Command -> new Release(bb, p.getSocketAddress());
 		}
 		throw new RuntimeException("Unknown Command =" + cmd);
 	}
 
 	public static class Monitor extends Thread {
-		public DatagramSocket UdpSocket;
 		public File FileName;
 
 		private RandomAccessFile File;
 		private FileChannel Channel;
 		private MappedByteBuffer MMap;
-		private ArrayList<AchillesHeelConfig> GlobalConfigs;
-		private SocketAddress SubprocessSocketAddress;
+		private AchillesHeelConfig [] GlobalConfigs;
 
-		public Monitor(int globalCount) throws Exception {
-			// udp for subprocess register
-			UdpSocket = new DatagramSocket(0, InetAddress.getLoopbackAddress());
-
-			// mmap for subprocess report Global ActiveTime
-			FileName = Files.createTempFile("zeze", ".mmap").toFile();
-			File = new RandomAccessFile(FileName, "rw");
-			File.setLength(8 * globalCount + 4);
+		public Monitor(Register reg) throws Exception {
+			GlobalConfigs = new AchillesHeelConfig[reg.GlobalCount];
+			FileName = new File(reg.MMapFileName);
+			File = new RandomAccessFile(FileName, "r");
 			Channel = File.getChannel();
-			MMap = Channel.map(FileChannel.MapMode.READ_WRITE, 0, Channel.size());
+			MMap = Channel.map(FileChannel.MapMode.READ_ONLY, 0, Channel.size());
+		}
+
+		public synchronized AchillesHeelConfig getConfig(int index) {
+			return GlobalConfigs[index];
+		}
+
+		public synchronized void setConfig(int index, AchillesHeelConfig config) {
+			GlobalConfigs[index] = config;
 		}
 
 		public void close() throws IOException {
@@ -111,25 +145,14 @@ public class Daemon {
 			File.close();
 		}
 
-		public void waitApplicationReady() throws Exception {
-			var cmd = Daemon.receiveCommand(UdpSocket);
-			if (cmd.command() != Register.Command)
-				throw new RuntimeException("Not Register Command. is " + cmd.command());
-			var reg = (Register)cmd;
-			Daemon.sendCommand(UdpSocket, new RegisterResult(), cmd.Peer);
-			GlobalConfigs = reg.GlobalConfigs;
-			SubprocessSocketAddress = cmd.Peer;
-		}
-
 		private volatile boolean Running = true;
 
 		private ByteBuffer copyMMap() throws IOException {
 			var lock = Channel.lock();
 			try {
-				var mmap = MMap.array();
-				var bb = ByteBuffer.Wrap(mmap);
-				var count = bb.ReadInt4();
-				return ByteBuffer.Wrap(Arrays.copyOf(mmap, count * 8 + 4));
+				var copy = new byte[GlobalConfigs.length * 8];
+				MMap.get(copy, 0, copy.length);
+				return ByteBuffer.Wrap(copy);
 			} finally {
 				lock.release();
 			}
@@ -140,11 +163,13 @@ public class Daemon {
 			try {
 				while (Running) {
 					var bb = copyMMap();
-					var count = bb.ReadInt4();
 					var now = System.currentTimeMillis();
-					for (int i = 0; i < count; ++i) {
+					for (int i = 0; i < GlobalConfigs.length; ++i) {
 						var activeTime = bb.ReadLong8();
-						var config = GlobalConfigs.get(i);
+						var config = getConfig(i);
+						if (null == config)
+							continue; // skip not ready global
+
 						var idle = now - activeTime;
 						if (idle > config.ServerReleaseTimeout) {
 							Daemon.Subprocess.destroy();
@@ -195,14 +220,50 @@ public class Daemon {
 
 	public static class Register extends Command {
 		public final static int Command = 0;
-		public int Port;
-		public ArrayList<AchillesHeelConfig> GlobalConfigs = new ArrayList<>();
 
-		public Register() {
+		public int GlobalCount;
+		public String MMapFileName;
 
+		public Register(int c, String name) {
+			GlobalCount = c;
+			MMapFileName = name;
 		}
 
 		public Register(ByteBuffer bb, SocketAddress peer) {
+			Decode(bb);
+			Peer = peer;
+		}
+		@Override
+		public int command() {
+			return command();
+		}
+
+		@Override
+		public void Encode(ByteBuffer bb) {
+			bb.WriteInt(GlobalCount);
+			bb.WriteString(MMapFileName);
+		}
+
+		@Override
+		public void Decode(ByteBuffer bb) {
+			GlobalCount = bb.ReadInt();
+			MMapFileName = bb.ReadString();
+		}
+	}
+
+	public static class GlobalOn extends Command {
+		public final static int Command = 1;
+
+		public int GlobalIndex;
+		public AchillesHeelConfig GlobalConfig = new AchillesHeelConfig();
+
+		public GlobalOn(int index, int server, int release) {
+			GlobalIndex = index;
+			GlobalConfig.ServerDaemonTimeout = server;
+			GlobalConfig.ServerReleaseTimeout = release;
+		}
+
+		public GlobalOn(ByteBuffer bb, SocketAddress peer) {
 			Decode(bb);
 			Peer = peer;
 		}
@@ -214,26 +275,19 @@ public class Daemon {
 
 		@Override
 		public void Encode(ByteBuffer bb) {
-			bb.WriteInt(Port);
-			bb.WriteInt(GlobalConfigs.size());
-			for (var config : GlobalConfigs)
-				config.Encode(bb);
+			bb.WriteInt(GlobalIndex);
+			GlobalConfig.Encode(bb);
 		}
 
 		@Override
 		public void Decode(ByteBuffer bb) {
-			Port = bb.ReadInt();
-			GlobalConfigs.clear();
-			for (int count = bb.ReadInt(); count > 0; --count) {
-				var config = new AchillesHeelConfig();
-				config.Decode(bb);
-				GlobalConfigs.add(config);
-			}
+			GlobalIndex = bb.ReadInt();
+			GlobalConfig.Decode(bb);
 		}
 	}
 
 	public static class RegisterResult extends Command {
-		public final static int Command = 1;
+		public final static int Command = 2;
 
 		public int Code;
 
@@ -263,7 +317,7 @@ public class Daemon {
 	}
 
 	public static class Release extends Command {
-		public final static int Command = 2;
+		public final static int Command = 3;
 
 		public int GlobalIndex;
 

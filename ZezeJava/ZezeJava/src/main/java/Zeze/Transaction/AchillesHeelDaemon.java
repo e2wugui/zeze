@@ -1,7 +1,22 @@
 package Zeze.Transaction;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.SocketAddress;
+import java.net.SocketTimeoutException;
+import java.nio.MappedByteBuffer;
+import java.nio.channels.FileChannel;
+import java.nio.file.Files;
 import Zeze.Application;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.AchillesHeelConfig;
+import Zeze.Services.Daemon;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -98,43 +113,125 @@ import org.apache.logging.log4j.Logger;
 public class AchillesHeelDaemon {
 	private static final Logger logger = LogManager.getLogger(AchillesHeelDaemon.class);
 	private final Application Zeze;
-	private final ThreadDaemon Daemon;
+	private final GlobalAgentBase[] Agents;
 
-	public <T extends GlobalAgentBase> AchillesHeelDaemon(Application zeze, T[] agents) {
+	private final ThreadDaemon TD;
+	private final ProcessDaemon PD;
+
+	public <T extends GlobalAgentBase> AchillesHeelDaemon(Application zeze, T[] agents) throws Exception {
 		Zeze = zeze;
-		Daemon = new ThreadDaemon(agents);
-	}
-
-	public void stopAndJoin() throws InterruptedException {
-		if (null != Daemon) {
-			Daemon.Running = false;
-			Daemon.join();
+		Agents = agents.clone();
+		var peerPort = System.getProperty(Daemon.PropertyNamePort);
+		if (null != peerPort) {
+			PD = new ProcessDaemon(Integer.parseInt(peerPort));
+			TD = null;
+		} else {
+			PD = null;
+			TD = new ThreadDaemon();
 		}
 	}
 
+	public void stopAndJoin() throws InterruptedException {
+		if (null != TD) {
+			TD.Running = false;
+			TD.join();
+		}
+		if (null != PD)
+			PD.close();
+	}
+
 	public void start() {
-		if (null != Daemon)
-			Daemon.start();
+		if (null != TD)
+			TD.start();
+	}
+
+	public void onInitialize(GlobalAgentBase agent) {
+		if (null != PD) {
+			try {
+				// 必须可靠。TODO 增加Result，没有收到回应重发。
+				var config = agent.getConfig();
+				Daemon.sendCommand(PD.UdpSocket,
+						new Daemon.GlobalOn(agent.GlobalCacheManagerHashIndex, config.ServerDaemonTimeout, config.ServerReleaseTimeout),
+						PD.DaemonSocketAddress);
+			} catch (IOException e) {
+				logger.error(e);
+			}
+		}
 	}
 
 	public void setProcessDaemonActiveTime(int index, long value) {
+		if (null != PD)
+			PD.setActiveTime(index, value);
 	}
 
-	static class ProcessDaemonMMap {
+	class ProcessDaemon {
+		private DatagramSocket UdpSocket;
+		private java.io.File FileName;
+		private RandomAccessFile File;
+		private FileChannel Channel;
+		private MappedByteBuffer MMap;
+		private SocketAddress DaemonSocketAddress;
 
+		public ProcessDaemon(int peer) throws Exception {
+			UdpSocket = new DatagramSocket(0, InetAddress.getLoopbackAddress());
+
+			FileName = Files.createTempFile("zeze", ".mmap").toFile();
+			File = new RandomAccessFile(FileName, "rw");
+			File.setLength(8 * Agents.length);
+			Channel = File.getChannel();
+			MMap = Channel.map(FileChannel.MapMode.READ_WRITE, 0, Channel.size());
+			DaemonSocketAddress = new InetSocketAddress("127.0.0.1", peer);
+			while (true) {
+				// 这个循环处理Udp不可靠。
+				// 实际上几乎不会失败了。
+				Daemon.sendCommand(UdpSocket, new Daemon.Register(Agents.length, FileName.toString()), DaemonSocketAddress);
+				try {
+					var result = Daemon.receiveCommand(UdpSocket);
+					if (result.command() != Daemon.RegisterResult.Command)
+						throw new RuntimeException("RegisterResult Need.");
+					break;
+				} catch (SocketTimeoutException ex) {
+					// skip and continue;
+					continue;
+				}
+			}
+		}
+
+		public void setActiveTime(int index, long value) {
+			var bb = ByteBuffer.Allocate();
+			bb.WriteLong8(value);
+
+			try (var lock = Channel.lock()) {
+				MMap.position(index * 8);
+				MMap.put(bb.Bytes, bb.ReadIndex, bb.Size());
+			} catch (Throwable ex) {
+				logger.error(ex);
+			}
+		}
+
+		public void close() {
+			try {
+				Channel.close();
+			} catch (IOException e) {
+				logger.error(e);
+			}
+			try {
+				File.close();
+			} catch (IOException e) {
+				logger.error(e);
+			}
+		}
 	}
 
 	class ThreadDaemon extends Thread {
-		private final GlobalAgentBase[] Agents;
 
 		public final AchillesHeelConfig getConfig(int index) {
 			return Agents[index].getConfig();
 		}
 
-		public <T extends GlobalAgentBase> ThreadDaemon(T[] agents) {
+		public <T extends GlobalAgentBase> ThreadDaemon() {
 			super("AchillesHeelDaemon");
 			setDaemon(true);
-			Agents = agents.clone();
 		}
 
 		private volatile boolean Running = true;
