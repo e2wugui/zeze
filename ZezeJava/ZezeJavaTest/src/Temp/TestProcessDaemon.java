@@ -41,42 +41,15 @@ public class TestProcessDaemon {
 		var udp = new DatagramSocket(0, InetAddress.getLoopbackAddress());
 		var port = udp.getLocalPort();
 		System.out.println("exec begin");
-		var sub = Runtime.getRuntime().exec(new String[] {
+		var pb = new ProcessBuilder(
 				"java",
 				"-cp",
 				"C:/Users/10501/Desktop/code/zeze/ZezeJava/ZezeJavaTest/build/classes/java/main",
 				"-D" + ProcessDaemonPort + "=" + port,
 				"-D" + ProcessDaemonMMap + "=" + "",
 				"Temp.TestProcessDaemon"
-		});
-		var tout = new Thread(() -> {
-			try {
-				sub.getInputStream().transferTo(System.out);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		});
-		var terr = new Thread(() -> {
-			try {
-				sub.getErrorStream().transferTo(System.err);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		});
-		var tin = new Thread(() -> {
-			try {
-				System.in.transferTo(sub.getOutputStream());
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		});
-		tout.setDaemon(true);
-		tout.start();
-		terr.setDaemon(true);
-		terr.start();
-		tin.setDaemon(true);
-		tin.start();
-
+		);
+		var sub = pb.inheritIO().start();
 		System.out.println("exec end");
 		var buf = new byte[1024];
 		var p = new DatagramPacket(buf, buf.length);
