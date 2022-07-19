@@ -49,6 +49,34 @@ public class TestProcessDaemon {
 				"-D" + ProcessDaemonMMap + "=" + "",
 				"Temp.TestProcessDaemon"
 		});
+		var tout = new Thread(() -> {
+			try {
+				sub.getInputStream().transferTo(System.out);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		});
+		var terr = new Thread(() -> {
+			try {
+				sub.getErrorStream().transferTo(System.err);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		});
+		var tin = new Thread(() -> {
+			try {
+				System.in.transferTo(sub.getOutputStream());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		});
+		tout.setDaemon(true);
+		tout.start();
+		terr.setDaemon(true);
+		terr.start();
+		tin.setDaemon(true);
+		tin.start();
+
 		System.out.println("exec end");
 		var buf = new byte[1024];
 		var p = new DatagramPacket(buf, buf.length);
@@ -59,8 +87,6 @@ public class TestProcessDaemon {
 		p = new DatagramPacket(hello, hello.length, new InetSocketAddress("127.0.0.1", peer));
 		udp.send(p);
 		System.out.println("waitFor=" + sub.waitFor());
-		System.out.println("err:");
-		System.out.println(new String(sub.getErrorStream().readAllBytes()));
 		System.out.println("daemonprocess exit");
 	}
 }
