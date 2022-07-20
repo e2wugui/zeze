@@ -82,6 +82,8 @@ public final class TestDatabaseTikv extends TestCase {
 			long commitTS = session.getTimestamp().getVersion();
 			tpc.commitPrimaryKey(bo, pKey, commitTS);
 			var it2 = es.iterator();
+			if (!it2.hasNext())
+				throw new IllegalStateException(); // impossible
 			it2.next();
 			tpc.commitSecondaryKeys(new Iterator<>() {
 				@Override

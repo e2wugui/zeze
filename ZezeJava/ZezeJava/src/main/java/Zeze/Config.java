@@ -437,7 +437,7 @@ public final class Config {
 		}
 	}
 
-	public final static class DbcpConf {
+	public static final class DbcpConf {
 		public String DriverClassName;
 		public Integer InitialSize;
 		public Integer MaxTotal;
@@ -479,11 +479,12 @@ public final class Config {
 		}
 	}
 
-	public final static class DatabaseConf {
+	public static final class DatabaseConf {
 		private String Name = "";
 		private DbType DatabaseType = DbType.Memory;
 		private String DatabaseUrl = "";
 		private DbcpConf DbcpConf; // only valid when jdbc: mysql, sqlserver,
+		private boolean distTxn; // 是否启用分布式事务(目前仅TiKV支持)
 
 		public String getName() {
 			return Name;
@@ -517,6 +518,14 @@ public final class Config {
 			DbcpConf = conf;
 		}
 
+		public boolean isDistTxn() {
+			return distTxn;
+		}
+
+		public void setDistTxn(boolean distTxn) {
+			this.distTxn = distTxn;
+		}
+
 		public DatabaseConf() {
 		}
 
@@ -548,13 +557,14 @@ public final class Config {
 				throw new UnsupportedOperationException("unknown database type.");
 			}
 			DatabaseUrl = self.getAttribute("DatabaseUrl");
+			distTxn = "true".equalsIgnoreCase(self.getAttribute("distTxn"));
 
 			if (conf.getDatabaseConfMap().putIfAbsent(getName(), this) != null)
 				throw new IllegalStateException("Duplicate Database '" + getName() + "'");
 		}
 	}
 
-	public final static class TableConf {
+	public static final class TableConf {
 		private String Name;
 		private int CacheCapacity = 20000;
 		private int CacheConcurrencyLevel;
@@ -573,13 +583,18 @@ public final class Config {
 		public int getCacheCapacity() {
 			return CacheCapacity;
 		}
+
 		public void setCacheCapacity(int value) {
 			CacheCapacity = value;
 		}
+
 		public float getCacheFactor() {
 			return CacheFactor;
 		}
-		public void setCacheFactor(float factor) { CacheFactor = factor; }
+
+		public void setCacheFactor(float factor) {
+			CacheFactor = factor;
+		}
 
 		public int getCacheConcurrencyLevel() {
 			return CacheConcurrencyLevel;
