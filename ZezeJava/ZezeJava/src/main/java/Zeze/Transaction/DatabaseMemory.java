@@ -3,8 +3,7 @@ package Zeze.Transaction;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import Zeze.Config.DatabaseConf;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.KV;
@@ -15,11 +14,16 @@ import Zeze.Util.KV;
 public final class DatabaseMemory extends Database {
 	private static final ProceduresMemory ProceduresMemory = new ProceduresMemory();
 	private static final byte[] Removed = ByteBuffer.Empty;
-	private static final ConcurrentHashMap<String, ConcurrentHashMap<String, TableMemory>> databaseTables = new ConcurrentHashMap<>();
-	private static final ReentrantLock lock = new ReentrantLock();
+	private static final HashMap<String, HashMap<String, TableMemory>> databaseTables = new HashMap<>();
+	private static final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
 
 	public static void clear() {
-		databaseTables.clear();
+		lock.writeLock().lock();
+		try {
+			databaseTables.clear();
+		} finally {
+			lock.writeLock().unlock();
+		}
 	}
 
 	public DatabaseMemory(DatabaseConf conf) {
@@ -68,15 +72,15 @@ public final class DatabaseMemory extends Database {
 	}
 
 	public final class MemTrans implements Transaction {
-		private final ConcurrentHashMap<String, ConcurrentHashMap<ByteBuffer, byte[]>> batch = new ConcurrentHashMap<>();
+		private final HashMap<String, HashMap<ByteBuffer, byte[]>> batch = new HashMap<>();
 
 		@Override
 		public void Commit() {
 			// 整个db同步。
-			lock.lock();
+			lock.writeLock().lock();
 			try {
 				for (var e : batch.entrySet()) {
-					var db = databaseTables.computeIfAbsent(getDatabaseUrl(), url -> new ConcurrentHashMap<>());
+					var db = databaseTables.computeIfAbsent(getDatabaseUrl(), __ -> new HashMap<>());
 					var table = db.computeIfAbsent(e.getKey(), TableMemory::new);
 					//if (e.getValue().size() > 2)
 					//	System.err.println("commit for: " + e.getKey() + " keys:" + e.getValue().keySet());
@@ -88,7 +92,7 @@ public final class DatabaseMemory extends Database {
 					}
 				}
 			} finally {
-				lock.unlock();
+				lock.writeLock().unlock();
 			}
 		}
 
@@ -101,51 +105,11 @@ public final class DatabaseMemory extends Database {
 		}
 
 		public void Remove(String tableName, ByteBuffer key) {
-			var table = batch.computeIfAbsent(tableName, tn -> new ConcurrentHashMap<>());
-			table.put(ByteBuffer.Wrap(key.Copy()), Removed);
+			batch.computeIfAbsent(tableName, __ -> new HashMap<>()).put(ByteBuffer.Wrap(key.Copy()), Removed);
 		}
 
 		public void Replace(String tableName, ByteBuffer key, ByteBuffer value) {
-			var table = batch.computeIfAbsent(tableName, tn -> new ConcurrentHashMap<>());
-			table.put(ByteBuffer.Wrap(key.Copy()), value.Copy());
-		}
-
-		// 仅支持从一个db原子的查询数据。
-
-		// 多表原子查询。
-		public Map<String, Map<ByteBuffer, ByteBuffer>> Finds(Map<String, Set<ByteBuffer>> tableKeys) {
-			var result = new HashMap<String, Map<ByteBuffer, ByteBuffer>>();
-			lock.lock();
-			try {
-				for (var tks : tableKeys.entrySet()) {
-					var tableName = tks.getKey();
-					var db = databaseTables.computeIfAbsent(getDatabaseUrl(), __ -> new ConcurrentHashMap<>());
-					var table = db.computeIfAbsent(tableName, TableMemory::new);
-					var tableFinds = new HashMap<ByteBuffer, ByteBuffer>();
-					result.put(tableName, tableFinds);
-					for (var key : tks.getValue())
-						tableFinds.put(key, table.Find(key)); // also put null value
-				}
-			} finally {
-				lock.unlock();
-			}
-			return result;
-		}
-
-		// 单表原子查询
-		public Map<ByteBuffer, ByteBuffer> Finds(String tableName, Set<ByteBuffer> keys) {
-			var result = new HashMap<ByteBuffer, ByteBuffer>();
-			lock.lock();
-			try {
-				//System.err.println("finds for: " + tableName + " keys.size=" +keys.size());
-				var db = databaseTables.computeIfAbsent(getDatabaseUrl(), __ -> new ConcurrentHashMap<>());
-				var table = db.computeIfAbsent(tableName, TableMemory::new);
-				for (var key : keys)
-					result.put(key, table.Find(key)); // also put null value
-			} finally {
-				lock.unlock();
-			}
-			return result;
+			batch.computeIfAbsent(tableName, __ -> new HashMap<>()).put(ByteBuffer.Wrap(key.Copy()), value.Copy());
 		}
 	}
 
@@ -156,13 +120,56 @@ public final class DatabaseMemory extends Database {
 
 	@Override
 	public Database.Table OpenTable(String name) {
-		var tables = databaseTables.computeIfAbsent(getDatabaseUrl(), __ -> new ConcurrentHashMap<>());
-		return tables.computeIfAbsent(name, TableMemory::new);
+		lock.writeLock().lock();
+		try {
+			var tables = databaseTables.computeIfAbsent(getDatabaseUrl(), __ -> new HashMap<>());
+			return tables.computeIfAbsent(name, TableMemory::new);
+		} finally {
+			lock.writeLock().unlock();
+		}
 	}
 
-	private final class TableMemory implements Database.Table {
+	// 仅支持从一个db原子的查询数据。
+
+	// 多表原子查询。
+	public Map<String, Map<ByteBuffer, ByteBuffer>> Finds(Map<String, Set<ByteBuffer>> tableKeys) {
+		var result = new HashMap<String, Map<ByteBuffer, ByteBuffer>>();
+		lock.readLock().lock();
+		try {
+			for (var tks : tableKeys.entrySet()) {
+				var tableName = tks.getKey();
+				var db = databaseTables.get(getDatabaseUrl());
+				var table = db != null ? db.get(tableName) : null;
+				var tableFinds = new HashMap<ByteBuffer, ByteBuffer>();
+				result.put(tableName, tableFinds);
+				for (var key : tks.getValue())
+					tableFinds.put(key, table != null ? table.Find(key) : null); // also put null value
+			}
+		} finally {
+			lock.readLock().unlock();
+		}
+		return result;
+	}
+
+	// 单表原子查询
+	public Map<ByteBuffer, ByteBuffer> Finds(String tableName, Set<ByteBuffer> keys) {
+		var result = new HashMap<ByteBuffer, ByteBuffer>();
+		//System.err.println("finds for: " + tableName + " keys.size=" +keys.size());
+		var db = databaseTables.get(getDatabaseUrl());
+		var table = db != null ? db.get(tableName) : null;
+		lock.readLock().lock();
+		try {
+			for (var key : keys)
+				result.put(key, table != null ? table.Find(key) : null); // also put null value
+		} finally {
+			lock.readLock().unlock();
+		}
+		return result;
+	}
+
+	public final class TableMemory implements Database.Table {
 		private final String Name;
-		private final ConcurrentHashMap<ByteBuffer, byte[]> Map = new ConcurrentHashMap<>();
+		private final HashMap<ByteBuffer, byte[]> Map = new HashMap<>();
 
 		public TableMemory(String name) {
 			Name = name;
@@ -184,8 +191,13 @@ public final class DatabaseMemory extends Database {
 
 		@Override
 		public ByteBuffer Find(ByteBuffer key) {
-			var value = Map.get(key);
-			return value != null ? ByteBuffer.Wrap(ByteBuffer.Copy(value)) : null;
+			lock.readLock().lock();
+			try {
+				var value = Map.get(key);
+				return value != null ? ByteBuffer.Wrap(ByteBuffer.Copy(value)) : null;
+			} finally {
+				lock.readLock().unlock();
+			}
 		}
 
 		@Override
@@ -200,11 +212,20 @@ public final class DatabaseMemory extends Database {
 
 		@Override
 		public long Walk(TableWalkHandleRaw callback) {
-			// 不允许并发？
+			ByteBuffer[] keys;
+			byte[][] values;
+			lock.readLock().lock();
+			try {
+				var n = Map.size();
+				keys = Map.keySet().toArray(new ByteBuffer[n]);
+				values = Map.values().toArray(new byte[n][]);
+			} finally {
+				lock.readLock().unlock();
+			}
 			long count = 0;
-			for (var e : Map.entrySet()) {
+			for (int i = 0, n = keys.length; i < n; i++) {
 				count++;
-				if (!callback.handle(e.getKey().Copy(), e.getValue().clone()))
+				if (!callback.handle(keys[i].Copy(), values[i].clone()))
 					break;
 			}
 			return count;
@@ -212,11 +233,17 @@ public final class DatabaseMemory extends Database {
 
 		@Override
 		public long WalkKey(TableWalkKeyRaw callback) {
-			// 不允许并发？
+			ByteBuffer[] keys;
+			lock.readLock().lock();
+			try {
+				keys = Map.keySet().toArray(new ByteBuffer[Map.size()]);
+			} finally {
+				lock.readLock().unlock();
+			}
 			long count = 0;
-			for (var k : Map.keySet()) {
+			for (var key : keys) {
 				count++;
-				if (!callback.handle(k.Copy()))
+				if (!callback.handle(key.Copy()))
 					break;
 			}
 			return count;

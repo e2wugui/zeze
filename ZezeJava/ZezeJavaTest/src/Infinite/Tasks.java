@@ -15,6 +15,7 @@ import Zeze.Transaction.ProcedureStatistics;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.FuncLong;
 import Zeze.Util.LongConcurrentHashMap;
+import Zeze.Util.OutLong;
 import Zeze.Util.Random;
 import org.apache.logging.log4j.Level;
 import org.junit.Assert;
@@ -220,8 +221,14 @@ public final class Tasks {
 					}
 				}
 			}
-			if (success != sum)
-				Simulate.logger.error("Table1Long2Add1 verify failed: {} != {}", success, sum);
+			if (success != sum) {
+				var a = new OutLong();
+				app.demo_Module1.getTable1().Walk((k, v) -> {
+					a.Value += v.getLong2();
+					return true;
+				});
+				Simulate.logger.error("Table1Long2Add1 verify failed: {} != {} (walk:{})", success, sum, a.Value);
+			}
 			Assert.assertEquals(success, sum);
 			Simulate.logger.debug("{}.verify OK!", name);
 		}
@@ -300,7 +307,7 @@ public final class Tasks {
 			super.verify();
 
 			var app = Simulate.getInstance().randApp().app; // 任何一个app都能查到相同的结果。
-			int sum = 0;
+			long sum = 0;
 			for (int key = 0; key < KeyBoundTrade; key++) {
 				for (int tryCount = 10; ; ) {
 					try {
@@ -357,31 +364,27 @@ public final class Tasks {
 					}
 				}
 			}
-			try (var t = table1.getDatabase().BeginTransaction()) {
-				if (t instanceof DatabaseMemory.MemTrans) {
-					int sum = 0;
-					var all = ((DatabaseMemory.MemTrans)t).Finds(table1.getName(), keys);
-					for (var valueBytes : all.values()) {
-						if (valueBytes != null)
-							sum += table1.DecodeValue(valueBytes).getInt1();
-					}
-					if (debugTradeSum && sum != 0) {
-						for (var e : all.entrySet()) {
-							var valueBytes = e.getValue();
-							if (valueBytes != null) {
-								valueBytes.ReadIndex = 0;
-								e.getKey().ReadIndex = 0;
-								// var k = table1.DecodeKey(e.getKey());
-								// var v = table1.DecodeValue(valueBytes).getInt1();
-								// Simulate.logger.info("=== {}:{}", k, v);
-							}
+			var db = table1.getDatabase();
+			if (db instanceof DatabaseMemory) {
+				long sum = 0;
+				var all = ((DatabaseMemory)db).Finds(table1.getName(), keys);
+				for (var valueBytes : all.values()) {
+					if (valueBytes != null)
+						sum += table1.DecodeValue(valueBytes).getInt1();
+				}
+				if (debugTradeSum && sum != 0) {
+					for (var e : all.entrySet()) {
+						var valueBytes = e.getValue();
+						if (valueBytes != null) {
+							valueBytes.ReadIndex = 0;
+							e.getKey().ReadIndex = 0;
+							// var k = table1.DecodeKey(e.getKey());
+							// var v = table1.DecodeValue(valueBytes).getInt1();
+							// Simulate.logger.info("=== {}:{}", k, v);
 						}
 					}
-					Assert.assertEquals(0, sum);
 				}
-			} catch (Exception e) {
-				Simulate.logger.error(tflushInt1TradeConcurrentVerify.class.getName(), e);
-				Assert.fail();
+				Assert.assertEquals(0, sum);
 			}
 			return 0L;
 		}

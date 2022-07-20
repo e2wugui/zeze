@@ -2,6 +2,7 @@ package Zeze.Transaction;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -28,7 +29,8 @@ public final class Checkpoint {
 	private volatile boolean IsRunning;
 	private ArrayList<Runnable> actionCurrent;
 	private volatile ArrayList<Runnable> actionPending = new ArrayList<>();
-	ExecutorService FlushThreadPool;
+	final ExecutorService FlushThreadPool;
+	final ConcurrentHashMap<RelativeRecordSet, RelativeRecordSet> RelativeRecordSetMap = new ConcurrentHashMap<>();
 
 	public Checkpoint(Zeze.Application zeze, CheckpointMode mode, int serverId) {
 		this(zeze, mode, null, serverId);
@@ -37,8 +39,7 @@ public final class Checkpoint {
 	public Checkpoint(Zeze.Application zeze, CheckpointMode mode, Iterable<Database> dbs, int serverId) {
 		Zeze = zeze;
 		var concurrent = Zeze.getConfig().getCheckpointModeTableFlushConcurrent();
-		if (concurrent > 1)
-			FlushThreadPool = Executors.newFixedThreadPool(concurrent);
+		FlushThreadPool = concurrent > 1 ? Executors.newFixedThreadPool(concurrent) : null;
 
 		Mode = mode;
 		if (dbs != null)
@@ -52,7 +53,10 @@ public final class Checkpoint {
 	public CheckpointMode getCheckpointMode() {
 		return Mode;
 	}
-	public Application getZeze() { return Zeze; }
+
+	public Application getZeze() {
+		return Zeze;
+	}
 
 	public void EnterFlushReadLock() {
 		if (Mode == CheckpointMode.Period) {
@@ -204,9 +208,12 @@ public final class Checkpoint {
 	}
 
 	private void CheckpointPeriod() {
+		logger.info("CheckpointPeriod({}) begin", Zeze.getConfig().getServerId());
+		long time0 = System.nanoTime();
 		// encodeN
 		for (var db : Databases)
 			db.EncodeN();
+		long time1 = System.nanoTime();
 		// snapshot
 		final var w = FlushReadWriteLock.writeLock();
 		w.lock();
@@ -218,6 +225,7 @@ public final class Checkpoint {
 		} finally {
 			w.unlock();
 		}
+		long time2 = System.nanoTime(), time3 = time2, time4 = time2;
 		// flush
 		var n = Databases.size();
 		var dts = new Database.Transaction[n];
@@ -227,10 +235,12 @@ public final class Checkpoint {
 				dts[i] = Databases.get(i).BeginTransaction();
 			for (int i = 0; i < n; i++)
 				Databases.get(i).Flush(dts[i], localCacheTransaction);
+			time3 = System.nanoTime();
 			for (var v : dts)
 				v.Commit();
 			if (localCacheTransaction != null)
 				localCacheTransaction.Commit();
+			time4 = System.nanoTime();
 			// cleanup
 			try {
 				for (var db : Databases)
@@ -271,6 +281,12 @@ public final class Checkpoint {
 					logger.error("CheckpointPeriod close Exception transaction={}", localCacheTransaction, ex);
 				}
 			}
+			logger.info("CheckpointPeriod({}) end ({}+{}+{}+{} = {} ms)", Zeze.getConfig().getServerId(),
+					(time1 - time0) / 1_000_000,
+					(time2 - time1) / 1_000_000,
+					(time3 - time2) / 1_000_000,
+					(time4 - time3) / 1_000_000,
+					(System.nanoTime() - time0) / 1_000_000);
 		}
 	}
 
