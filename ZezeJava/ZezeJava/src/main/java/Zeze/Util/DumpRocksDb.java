@@ -40,7 +40,7 @@ public final class DumpRocksDb {
 		int argCount = args.length;
 		for (; argCount > 0; argCount--) {
 			var arg = args[argCount - 1];
-			if (!arg.startsWith("-"))
+			if (!arg.startsWith("-") || arg.length() <= 1)
 				break;
 			int p = arg.indexOf('=', 1);
 			if (p >= 0)
@@ -49,16 +49,16 @@ public final class DumpRocksDb {
 				System.setProperty(arg.substring(1), "true");
 		}
 		if (argCount < 1) {
-			System.out.println("usage: java -cp ... " + DumpRocksDb.class.getName() +
+			System.err.println("usage: java -cp ... " + DumpRocksDb.class.getName() +
 					" inputDbPath [[columnFamilyName] outputTxtFile] [options]");
-			System.out.println("options: -meta          list database meta data");
-			System.out.println("         -compact       compact database files");
-			System.out.println("         -compact1      compact level-0 files to level-1");
-			System.out.println("         -key=long      decode key as long");
-			System.out.println("              string    decode key as string");
-			System.out.println("              bean      decode key as bean");
-			System.out.println("         -value=bean    decode value as bean");
-			System.out.println("                raftLog decode value as raft logs for global server");
+			System.err.println("options: -meta          list database meta data");
+			System.err.println("         -compact       compact database files");
+			System.err.println("         -compact1      compact level-0 files to level-1");
+			System.err.println("         -key=long      decode key as long");
+			System.err.println("              string    decode key as string");
+			System.err.println("              bean      decode key as bean");
+			System.err.println("         -value=bean    decode value as bean");
+			System.err.println("                raftLog decode value as raft logs for global server");
 			return;
 		}
 		var inputDbPath = args[0];
@@ -106,7 +106,7 @@ public final class DumpRocksDb {
 		}
 
 		if ("true".equalsIgnoreCase(System.getProperty("compact"))) {
-			System.out.println("INFO: compact database in '" + inputDbPath + "'");
+			System.err.println("INFO: compact database in '" + inputDbPath + "'");
 			var t = System.currentTimeMillis();
 			var outHandles = new ArrayList<ColumnFamilyHandle>(columnFamilies.size());
 			try (var rocksDb = RocksDB.open(new DBOptions(), inputDbPath, columnFamilies, outHandles)) {
@@ -115,20 +115,20 @@ public final class DumpRocksDb {
 					var cf = columnFamilies.get(i);
 					if (selColName != null && !Arrays.equals(selColName, cf.getName()))
 						continue;
-					System.out.println("INFO: compacting '" + new String(cf.getName(), UTF_8) + "' ...");
+					System.err.println("INFO: compacting '" + new String(cf.getName(), UTF_8) + "' ...");
 					rocksDb.compactRange(outHandles.get(i));
 				}
 			}
-			System.out.println("INFO: done! " + (System.currentTimeMillis() - t) + " ms");
+			System.err.println("INFO: done! " + (System.currentTimeMillis() - t) + " ms");
 			return;
 		}
 
 		if ("true".equalsIgnoreCase(System.getProperty("compact1"))) {
 			if (columnFamilyName != null) {
-				System.out.println("INFO: compact column family '" + columnFamilyName +
+				System.err.println("INFO: compact column family '" + columnFamilyName +
 						"' from level-0 to level-1 in '" + inputDbPath + "'");
 			} else
-				System.out.println("INFO: compact database from level-0 to level-1 in '" + inputDbPath + "'");
+				System.err.println("INFO: compact database from level-0 to level-1 in '" + inputDbPath + "'");
 			var t = System.currentTimeMillis();
 			var outHandles = new ArrayList<ColumnFamilyHandle>(columnFamilies.size());
 			try (var rocksDb = RocksDB.open(new DBOptions(), inputDbPath, columnFamilies, outHandles)) {
@@ -144,13 +144,13 @@ public final class DumpRocksDb {
 							fileList.add(meta.fileName());
 					}
 					if (!fileList.isEmpty()) {
-						System.out.println("INFO: compacting '" + new String(cf.getName(), UTF_8) + "' ...");
+						System.err.println("INFO: compacting '" + new String(cf.getName(), UTF_8) + "' ...");
 						rocksDb.compactFiles(cOptions, outHandles.get(i), fileList, 1, -1, null);
 						fileList.clear();
 					}
 				}
 			}
-			System.out.println("INFO: done! " + (System.currentTimeMillis() - t) + " ms");
+			System.err.println("INFO: done! " + (System.currentTimeMillis() - t) + " ms");
 			return;
 		}
 
@@ -177,11 +177,11 @@ public final class DumpRocksDb {
 			}
 		}
 		if (selectCfIndex < 0) {
-			System.out.println("ERROR: not found column family '" + columnFamilyName + "'");
+			System.err.println("ERROR: not found column family '" + columnFamilyName + "'");
 			return;
 		}
 
-		System.out.println("INFO: dumping column family '" + columnFamilyName + "' to '" + outputTxtFile + "' ...");
+		System.err.println("INFO: dumping column family '" + columnFamilyName + "' to '" + outputTxtFile + "' ...");
 		var t = System.currentTimeMillis();
 		Action2<OutputStream, ByteBuffer> keyDumper, valueDumper;
 		switch (System.getProperty("key", "")) {
@@ -210,7 +210,7 @@ public final class DumpRocksDb {
 		var outHandles = new ArrayList<ColumnFamilyHandle>(columnFamilies.size());
 		try (var rocksDb = RocksDB.openReadOnly(new DBOptions(), inputDbPath, columnFamilies, outHandles);
 			 var it = rocksDb.newIterator(outHandles.get(selectCfIndex), new ReadOptions());
-			 var os = new BufferedOutputStream(new FileOutputStream(outputTxtFile))) {
+			 var os = outputTxtFile.equals("-") ? System.out : new BufferedOutputStream(new FileOutputStream(outputTxtFile))) {
 			long n = 0;
 			var key = ByteBuffer.Wrap(ByteBuffer.Empty);
 			var value = ByteBuffer.Wrap(ByteBuffer.Empty);
@@ -225,7 +225,7 @@ public final class DumpRocksDb {
 				n++;
 			}
 			os.flush();
-			System.out.println("INFO: dumped " + n + " records, " + (System.currentTimeMillis() - t) + " ms");
+			System.err.println("INFO: dumped " + n + " records, " + (System.currentTimeMillis() - t) + " ms");
 		}
 	}
 

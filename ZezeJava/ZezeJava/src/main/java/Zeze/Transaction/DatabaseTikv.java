@@ -23,25 +23,25 @@ import org.tikv.txn.KVClient;
 import org.tikv.txn.TwoPhaseCommitter;
 
 public class DatabaseTikv extends Database {
-	private final TiConfiguration conf;
+	private final TiConfiguration config;
 	private final TiSession session;
 	private final RawKVClient client;
 	private final KVClient txnClient;
-	private final boolean distTxn;
-	private volatile long version;
+	private final boolean distTxn; // 是否启用分布式事务. 注意两种模式的数据不能互通
+	private volatile long version; // only for distTxn
 
 	public DatabaseTikv(Config.DatabaseConf conf) {
 		super(conf);
 		distTxn = conf.isDistTxn();
-		this.conf = distTxn
-				? TiConfiguration.createDefault(conf.getDatabaseUrl())
-				: TiConfiguration.createRawDefault(conf.getDatabaseUrl());
-		session = TiSession.create(this.conf);
 		if (distTxn) {
+			config = TiConfiguration.createDefault(getDatabaseUrl());
+			session = TiSession.create(config);
 			client = null;
 			txnClient = session.createKVClient();
 			version = session.getTimestamp().getVersion();
 		} else {
+			config = TiConfiguration.createRawDefault(getDatabaseUrl());
+			session = TiSession.create(config);
 			client = session.createRawClient();
 			txnClient = null;
 		}
@@ -76,17 +76,11 @@ public class DatabaseTikv extends Database {
 		super.Close();
 	}
 
-	public final class OperatesTikv implements Operates {
-		private static final String name = "zeze.OperatesTikv.Schemas";
+	private final class OperatesTikv implements Operates {
 		private final Table table;
 
 		public OperatesTikv() {
-			table = OpenTable(name);
-		}
-
-		@Override
-		public int ClearInUse(int localId, String global) {
-			return 0;
+			table = OpenTable("zeze.OperatesTikv.Schemas");
 		}
 
 		@Override
@@ -120,6 +114,11 @@ public class DatabaseTikv extends Database {
 		@Override
 		public void SetInUse(int localId, String global) {
 		}
+
+		@Override
+		public int ClearInUse(int localId, String global) {
+			return 0;
+		}
 	}
 
 	private static final class DVTikv extends DataWithVersion implements Zeze.Serialize.Serializable {
@@ -143,7 +142,7 @@ public class DatabaseTikv extends Database {
 		}
 	}
 
-	public final class TikvTable implements Table {
+	private final class TikvTable implements Table {
 		private final byte[] keyPrefix;
 
 		@Override
@@ -208,7 +207,7 @@ public class DatabaseTikv extends Database {
 			var endKey = Key.toRawKey(keyPrefix).nextPrefix().toByteString();
 			Iterator<Kvrpcpb.KvPair> it;
 			if (distTxn)
-				it = new ConcreteScanIterator(conf, session.getRegionStoreClientBuilder(), startKey, endKey, version);
+				it = new ConcreteScanIterator(config, session.getRegionStoreClientBuilder(), startKey, endKey, version);
 			else
 				it = client.scan0(startKey, endKey);
 			while (it.hasNext()) {
@@ -231,7 +230,7 @@ public class DatabaseTikv extends Database {
 			var endKey = Key.toRawKey(keyPrefix).nextPrefix().toByteString();
 			Iterator<Kvrpcpb.KvPair> it;
 			if (distTxn)
-				it = new ConcreteScanIterator(conf, session.getRegionStoreClientBuilder(), startKey, endKey, version);
+				it = new ConcreteScanIterator(config, session.getRegionStoreClientBuilder(), startKey, endKey, version);
 			else
 				it = client.scan0(startKey, endKey);
 			while (it.hasNext()) {
@@ -264,7 +263,7 @@ public class DatabaseTikv extends Database {
 		}
 	}
 
-	public final class TikvTrans implements Transaction {
+	private final class TikvTrans implements Transaction {
 		private Map<ByteString, ByteString> datas;
 		private List<ByteString> deleteKeys;
 
@@ -318,7 +317,7 @@ public class DatabaseTikv extends Database {
 		}
 	}
 
-	public final class TikvDistTrans implements Transaction {
+	private final class TikvDistTrans implements Transaction {
 		private Map<ByteBuffer, byte[]> datas;
 
 		private Map<ByteBuffer, byte[]> getDatas() {
@@ -338,11 +337,12 @@ public class DatabaseTikv extends Database {
 
 		@Override
 		public void Commit() {
-			var es = datas.entrySet();
+			var es = datas.entrySet(); // 注意要求对es两次遍历的顺序一致
 			var it = es.iterator();
 			if (!it.hasNext())
 				return;
-			try (var tpc = new TwoPhaseCommitter(session, session.getTimestamp().getVersion())) {
+			long ver = version;
+			try (var tpc = new TwoPhaseCommitter(session, ver)) {
 				var bo = ConcreteBackOffer.newCustomBackOff(1000);
 				var e = it.next();
 				var pKey = e.getKey().Copy();
@@ -360,8 +360,8 @@ public class DatabaseTikv extends Database {
 					}
 				}, 1000);
 
-				long commitTS = session.getTimestamp().getVersion();
-				tpc.commitPrimaryKey(bo, pKey, commitTS);
+				ver = session.getTimestamp().getVersion();
+				tpc.commitPrimaryKey(bo, pKey, ver);
 				var it2 = es.iterator();
 				if (!it2.hasNext())
 					throw new IllegalStateException(); // impossible
@@ -376,11 +376,11 @@ public class DatabaseTikv extends Database {
 					public ByteWrapper next() {
 						return new ByteWrapper(it2.next().getKey().Copy());
 					}
-				}, commitTS, 1000);
+				}, ver, 1000);
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			} finally {
-				version = session.getTimestamp().getVersion();
+				version = ver;
 			}
 		}
 

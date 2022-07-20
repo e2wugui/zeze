@@ -635,8 +635,8 @@ public final class Transaction {
 		if (State != TransactionState.Running)
 			throw new IllegalStateException("RedoAndReleaseLock: State Is Not Running.");
 		State = TransactionState.RedoAndReleaseLock;
-		//noinspection ConstantConditions
 		if (Macro.EnableStatistics) {
+			//noinspection ConstantConditions
 			ProcedureStatistics.getInstance().GetOrAdd(getTopProcedure().getActionName()).GetOrAdd(Procedure.RedoAndRelease).increment();
 		}
 		GoBackZeze.Throw(msg, cause);

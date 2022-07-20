@@ -11,7 +11,7 @@ public class TestProcessDaemon {
 	public final static String ProcessDaemonPort = "Zeze.ProcessDaemon.Port";
 	public final static String ProcessDaemonMMap = "Zeze.ProcessDaemon.MMap";
 
-	public static void main(String args[]) throws Exception {
+	public static void main(String[] args) throws Exception {
 		var port = System.getProperties().get(ProcessDaemonPort);
 		System.out.println("Start...");
 		if (null != port) {
@@ -62,6 +62,6 @@ public class TestProcessDaemon {
 		udp.send(p);
 		//sub.destroy();
 		System.out.println("waitFor=" + sub.waitFor());
-		System.out.println("daemonprocess exit");
+		System.out.println("daemonProcess exit");
 	}
 }

@@ -12,7 +12,6 @@ import java.nio.channels.FileChannel;
 import java.nio.file.Files;
 import Zeze.Application;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Services.AchillesHeelConfig;
 import Zeze.Services.Daemon;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -155,7 +154,7 @@ public class AchillesHeelDaemon {
 								config.ServerDaemonTimeout,
 								config.ServerReleaseTimeout));
 			} catch (IOException e) {
-				logger.error(e);
+				logger.error("", e);
 			}
 		}
 	}
@@ -165,30 +164,27 @@ public class AchillesHeelDaemon {
 			PD.setActiveTime(agent, value);
 	}
 
-	class ProcessDaemon extends Thread {
-		private DatagramSocket UdpSocket;
-		private java.io.File FileName;
-		private RandomAccessFile File;
-		private FileChannel Channel;
-		private MappedByteBuffer MMap;
-		private SocketAddress DaemonSocketAddress;
+	private final class ProcessDaemon extends Thread {
+		private final DatagramSocket UdpSocket = new DatagramSocket(0, InetAddress.getLoopbackAddress());
+		private final RandomAccessFile File;
+		private final FileChannel Channel;
+		private final MappedByteBuffer MMap;
+		private final SocketAddress DaemonSocketAddress;
+		private final long[] LastReportTime;
+		private volatile boolean Running = true;
 
 		public ProcessDaemon(int peer) throws Exception {
-			UdpSocket = new DatagramSocket(0, InetAddress.getLoopbackAddress());
-
-			FileName = Files.createTempFile("zeze", ".mmap").toFile();
-			File = new RandomAccessFile(FileName, "rw");
-			File.setLength(8 * Agents.length);
+			var fileName = Files.createTempFile("zeze", ".mmap").toFile();
+			File = new RandomAccessFile(fileName, "rw");
+			File.setLength(8L * Agents.length);
 			Channel = File.getChannel();
 			MMap = Channel.map(FileChannel.MapMode.READ_WRITE, 0, Channel.size());
 			DaemonSocketAddress = new InetSocketAddress("127.0.0.1", peer);
 
 			LastReportTime = new long[Agents.length];
 			Daemon.sendCommand(UdpSocket, DaemonSocketAddress,
-					new Daemon.Register(Zeze.getConfig().getServerId(), Agents.length, FileName.toString()));
+					new Daemon.Register(Zeze.getConfig().getServerId(), Agents.length, fileName.toString()));
 		}
-
-		private long[] LastReportTime;
 
 		public void setActiveTime(GlobalAgentBase agent, long value) {
 			// 优化！活动时间设置很频繁，降低报告频率。
@@ -205,7 +201,7 @@ public class AchillesHeelDaemon {
 
 			// TODO 不同的GlobalAgent能并发起来。由于上面的低频率报告优化，这个不是很必要了。
 			synchronized (Channel) {
-				try (var lock = Channel.lock()) {
+				try (var ignored = Channel.lock()) {
 					MMap.position(agent.GlobalCacheManagerHashIndex * 8);
 					MMap.put(bb.Bytes, bb.ReadIndex, bb.Size());
 				} catch (Throwable ex) {
@@ -214,14 +210,13 @@ public class AchillesHeelDaemon {
 			}
 		}
 
-		private volatile boolean Running = true;
-
 		@Override
 		public void run() {
 			try {
 				while (Running) {
 					try {
 						var cmd = Daemon.receiveCommand(UdpSocket);
+						//noinspection SwitchStatementWithTooFewBranches
 						switch (cmd.command()) {
 						case Daemon.Release.Command:
 							var r = (Daemon.Release)cmd;
@@ -250,8 +245,7 @@ public class AchillesHeelDaemon {
 					}
 					// 执行KeepAlive
 					var now = System.currentTimeMillis();
-					for (int i = 0; i < Agents.length; ++i) {
-						var agent = Agents[i];
+					for (GlobalAgentBase agent : Agents) {
 						var config = agent.getConfig();
 						if (null == config)
 							continue; // skip agent not login
@@ -292,18 +286,13 @@ public class AchillesHeelDaemon {
 		}
 	}
 
-	class ThreadDaemon extends Thread {
+	private final class ThreadDaemon extends Thread {
+		private volatile boolean Running = true;
 
-		public final AchillesHeelConfig getConfig(int index) {
-			return Agents[index].getConfig();
-		}
-
-		public <T extends GlobalAgentBase> ThreadDaemon() {
+		public ThreadDaemon() {
 			super("AchillesHeelDaemon");
 			setDaemon(true);
 		}
-
-		private volatile boolean Running = true;
 
 		@Override
 		public synchronized void run() {

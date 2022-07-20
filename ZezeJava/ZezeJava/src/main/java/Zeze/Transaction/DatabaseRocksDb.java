@@ -320,8 +320,7 @@ public class DatabaseRocksDb extends Database {
 				dv.Version = ++version;
 				dv.Data = data;
 				var value = dv.Encode();
-				rocksDb.put(columnFamily, defaultWriteOptions, key.Bytes, key.ReadIndex, key.Size(),
-						value, 0, value.length);
+				rocksDb.put(columnFamily, defaultWriteOptions, key.Bytes, key.ReadIndex, key.Size(), value, 0, value.length);
 				return KV.Create(version, true);
 			} catch (RocksDBException e) {
 				throw new RuntimeException(e);

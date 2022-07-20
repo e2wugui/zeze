@@ -14,7 +14,7 @@ import Zeze.Util.KV;
  */
 public final class DatabaseMemory extends Database {
 	private static final ProceduresMemory ProceduresMemory = new ProceduresMemory();
-	private static final byte[] Removed = new byte[0];
+	private static final byte[] Removed = ByteBuffer.Empty;
 	private static final ConcurrentHashMap<String, ConcurrentHashMap<String, TableMemory>> databaseTables = new ConcurrentHashMap<>();
 	private static final ReentrantLock lock = new ReentrantLock();
 
@@ -27,7 +27,7 @@ public final class DatabaseMemory extends Database {
 		setDirectOperates(ProceduresMemory);
 	}
 
-	public static final class ProceduresMemory implements Operates {
+	private static final class ProceduresMemory implements Operates {
 		private final HashMap<ByteBuffer, DataWithVersion> DataWithVersions = new HashMap<>();
 
 		@Override
@@ -77,7 +77,7 @@ public final class DatabaseMemory extends Database {
 			try {
 				for (var e : batch.entrySet()) {
 					var db = databaseTables.computeIfAbsent(getDatabaseUrl(), url -> new ConcurrentHashMap<>());
-					var table = db.computeIfAbsent(e.getKey(), tn -> new TableMemory(DatabaseMemory.this, tn));
+					var table = db.computeIfAbsent(e.getKey(), TableMemory::new);
 					//if (e.getValue().size() > 2)
 					//	System.err.println("commit for: " + e.getKey() + " keys:" + e.getValue().keySet());
 					for (var r : e.getValue().entrySet()) {
@@ -120,7 +120,7 @@ public final class DatabaseMemory extends Database {
 				for (var tks : tableKeys.entrySet()) {
 					var tableName = tks.getKey();
 					var db = databaseTables.computeIfAbsent(getDatabaseUrl(), __ -> new ConcurrentHashMap<>());
-					var table = db.computeIfAbsent(tableName, tn -> new TableMemory(DatabaseMemory.this, tn));
+					var table = db.computeIfAbsent(tableName, TableMemory::new);
 					var tableFinds = new HashMap<ByteBuffer, ByteBuffer>();
 					result.put(tableName, tableFinds);
 					for (var key : tks.getValue())
@@ -139,7 +139,7 @@ public final class DatabaseMemory extends Database {
 			try {
 				//System.err.println("finds for: " + tableName + " keys.size=" +keys.size());
 				var db = databaseTables.computeIfAbsent(getDatabaseUrl(), __ -> new ConcurrentHashMap<>());
-				var table = db.computeIfAbsent(tableName, tn -> new TableMemory(DatabaseMemory.this, tn));
+				var table = db.computeIfAbsent(tableName, TableMemory::new);
 				for (var key : keys)
 					result.put(key, table.Find(key)); // also put null value
 			} finally {
@@ -157,22 +157,20 @@ public final class DatabaseMemory extends Database {
 	@Override
 	public Database.Table OpenTable(String name) {
 		var tables = databaseTables.computeIfAbsent(getDatabaseUrl(), __ -> new ConcurrentHashMap<>());
-		return tables.computeIfAbsent(name, tableName -> new TableMemory(this, tableName));
+		return tables.computeIfAbsent(name, TableMemory::new);
 	}
 
-	public static final class TableMemory implements Database.Table {
-		private final DatabaseMemory DatabaseReal;
+	private final class TableMemory implements Database.Table {
 		private final String Name;
 		private final ConcurrentHashMap<ByteBuffer, byte[]> Map = new ConcurrentHashMap<>();
 
-		public TableMemory(DatabaseMemory db, String name) {
-			DatabaseReal = db;
+		public TableMemory(String name) {
 			Name = name;
 		}
 
 		@Override
-		public Database getDatabase() {
-			return DatabaseReal;
+		public DatabaseMemory getDatabase() {
+			return DatabaseMemory.this;
 		}
 
 		public String getName() {

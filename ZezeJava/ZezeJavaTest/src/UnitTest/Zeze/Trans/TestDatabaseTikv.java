@@ -10,6 +10,7 @@ import org.tikv.common.BytePairWrapper;
 import org.tikv.common.ByteWrapper;
 import org.tikv.common.TiConfiguration;
 import org.tikv.common.TiSession;
+import org.tikv.common.operation.iterator.ConcreteScanIterator;
 import org.tikv.common.util.ConcreteBackOffer;
 import org.tikv.raw.RawKVClient;
 import org.tikv.shade.com.google.protobuf.ByteString;
@@ -57,105 +58,107 @@ public final class TestDatabaseTikv extends TestCase {
 		}
 	}
 
-	private void batchWrite(TiSession session, Iterable<Map.Entry<byte[], byte[]>> es) throws Exception {
+	// 返回更新的version, 注意要求对es两次遍历的顺序一致
+	private long txnBatchWrite(TiSession session, Iterable<Map.Entry<byte[], byte[]>> es, long version) throws Exception {
 		var it = es.iterator();
-		if (!it.hasNext())
-			return;
-		try (var tpc = new TwoPhaseCommitter(session, session.getTimestamp().getVersion())) {
-			var bo = ConcreteBackOffer.newCustomBackOff(1000);
-			var e = it.next();
-			var pKey = e.getKey();
-			tpc.prewritePrimaryKey(bo, pKey, e.getValue());
-			tpc.prewriteSecondaryKeys(pKey, new Iterator<>() {
-				@Override
-				public boolean hasNext() {
-					return it.hasNext();
-				}
+		if (it.hasNext()) {
+			try (var tpc = new TwoPhaseCommitter(session, version)) {
+				var bo = ConcreteBackOffer.newCustomBackOff(1000);
+				var e = it.next();
+				var pKey = e.getKey();
+				tpc.prewritePrimaryKey(bo, pKey, e.getValue());
+				tpc.prewriteSecondaryKeys(pKey, new Iterator<>() {
+					@Override
+					public boolean hasNext() {
+						return it.hasNext();
+					}
 
-				@Override
-				public BytePairWrapper next() {
-					var e = it.next();
-					return new BytePairWrapper(e.getKey(), e.getValue());
-				}
-			}, 1000);
+					@Override
+					public BytePairWrapper next() {
+						var e = it.next();
+						return new BytePairWrapper(e.getKey(), e.getValue());
+					}
+				}, 1000);
 
-			long commitTS = session.getTimestamp().getVersion();
-			tpc.commitPrimaryKey(bo, pKey, commitTS);
-			var it2 = es.iterator();
-			if (!it2.hasNext())
-				throw new IllegalStateException(); // impossible
-			it2.next();
-			tpc.commitSecondaryKeys(new Iterator<>() {
-				@Override
-				public boolean hasNext() {
-					return it2.hasNext();
-				}
+				version = session.getTimestamp().getVersion();
+				tpc.commitPrimaryKey(bo, pKey, version);
+				var it2 = es.iterator();
+				if (!it2.hasNext())
+					throw new IllegalStateException(); // impossible
+				it2.next();
+				tpc.commitSecondaryKeys(new Iterator<>() {
+					@Override
+					public boolean hasNext() {
+						return it2.hasNext();
+					}
 
-				@Override
-				public ByteWrapper next() {
-					return new ByteWrapper(it2.next().getKey());
-				}
-			}, commitTS, 1000);
+					@Override
+					public ByteWrapper next() {
+						return new ByteWrapper(it2.next().getKey());
+					}
+				}, version, 1000);
+			}
 		}
+		return version;
 	}
 
 	public void testTxn() throws Exception {
-		try (TiSession session = TiSession.create(TiConfiguration.createDefault(serverAddr))) {
-			try (KVClient kvClient = session.createKVClient()) {
-				var key1 = "key1".getBytes(StandardCharsets.UTF_8);
-				var key2 = "key2".getBytes(StandardCharsets.UTF_8);
-				var val1 = "val1".getBytes(StandardCharsets.UTF_8);
-				var val2 = "val2".getBytes(StandardCharsets.UTF_8);
-				var key1b = ByteString.copyFrom(key1);
-				var key2b = ByteString.copyFrom(key2);
+		try (TiSession session = TiSession.create(TiConfiguration.createDefault(serverAddr));
+			 KVClient kvClient = session.createKVClient()) {
+			var key1 = "key1".getBytes(StandardCharsets.UTF_8);
+			var key2 = "key2".getBytes(StandardCharsets.UTF_8);
+			var val1 = "val1".getBytes(StandardCharsets.UTF_8);
+			var val2 = "val2".getBytes(StandardCharsets.UTF_8);
+			var key1b = ByteString.copyFrom(key1);
+			var key2b = ByteString.copyFrom(key2);
 
-				batchWrite(session, Map.of(key1, val1, key2, val2).entrySet());
+			long version = session.getTimestamp().getVersion();
+			System.out.println("key1: " + kvClient.get(key1b, version));
+			System.out.println("key2: " + kvClient.get(key2b, version));
 
-				long version = session.getTimestamp().getVersion();
+			version = txnBatchWrite(session, Map.of(key1, val2, key2, val1).entrySet(), version);
+			version = txnBatchWrite(session, Map.of(key1, val1, key2, val2).entrySet(), version);
 
-				ByteString val = kvClient.get(key1b, version);
-				assertNotNull(val);
-				assertEquals("val1", val.toString(StandardCharsets.UTF_8));
+			ByteString val = kvClient.get(key1b, version);
+			assertNotNull(val);
+			assertEquals("val1", val.toString(StandardCharsets.UTF_8));
 
-				var kvMap = new HashMap<ByteString, ByteString>();
-				var kvPairs = kvClient.scan(ByteString.copyFrom(key1), ByteString.copyFromUtf8("key3"), version);
-				kvPairs.forEach(kv -> kvMap.put(kv.getKey(), kv.getValue()));
-				assertNotNull(kvMap.get(key1b));
-				assertNotNull(kvMap.get(key2b));
-				assertEquals("val1", kvMap.get(key1b).toString(StandardCharsets.UTF_8));
-				assertEquals("val2", kvMap.get(key2b).toString(StandardCharsets.UTF_8));
-			}
+			var kvMap = new HashMap<ByteString, ByteString>();
+			var kvPairs = kvClient.scan(ByteString.copyFrom(key1), ByteString.copyFromUtf8("key3"), version);
+			kvPairs.forEach(kv -> kvMap.put(kv.getKey(), kv.getValue()));
+			assertNotNull(kvMap.get(key1b));
+			assertNotNull(kvMap.get(key2b));
+			assertEquals("val1", kvMap.get(key1b).toString(StandardCharsets.UTF_8));
+			assertEquals("val2", kvMap.get(key2b).toString(StandardCharsets.UTF_8));
 		}
 	}
 
 	public void runTxnPerf(int base) throws Exception {
-		try (TiSession session = TiSession.create(TiConfiguration.createDefault(serverAddr))) {
-			try (KVClient kvClient = session.createKVClient()) {
-				var kvs = new HashMap<byte[], byte[]>();
-				for (int i = 0; i < 1000; i++) {
-					var ks = String.valueOf(base + i);
-					kvs.put(ks.getBytes(StandardCharsets.UTF_8), ("v" + ks).getBytes(StandardCharsets.UTF_8));
-				}
-
-				var t = System.currentTimeMillis();
-				batchWrite(session, kvs.entrySet());
-				var t2 = System.currentTimeMillis();
-				System.out.println(t2 + " batchWrite: " + (t2 - t) + " ms");
-
-				t = System.currentTimeMillis();
-				long version = session.getTimestamp().getVersion();
-				for (int i = 0; i < 1000; i++) {
-					var ks = String.valueOf(base + i);
-					var v = kvClient.get(ByteString.copyFromUtf8(ks), version);
-					assertNotNull(v);
-					assertTrue(v.size() > 1);
-					var vs = v.toString(StandardCharsets.UTF_8);
-					assertEquals('v', vs.charAt(0));
-					assertEquals(ks, vs.substring(1));
-				}
-				t2 = System.currentTimeMillis();
-				System.out.println(t2 + " readAll: " + (t2 - t) + " ms");
+		try (TiSession session = TiSession.create(TiConfiguration.createDefault(serverAddr));
+			 KVClient kvClient = session.createKVClient()) {
+			var kvs = new HashMap<byte[], byte[]>();
+			for (int i = 0; i < 1000; i++) {
+				var ks = String.valueOf(base + i);
+				kvs.put(("t" + ks).getBytes(StandardCharsets.UTF_8), ("v" + ks).getBytes(StandardCharsets.UTF_8));
 			}
+
+			var t = System.currentTimeMillis();
+			long version = txnBatchWrite(session, kvs.entrySet(), session.getTimestamp().getVersion());
+			var t2 = System.currentTimeMillis();
+			System.out.println(t2 + " batchWrite: " + (t2 - t) + " ms");
+
+			t = System.currentTimeMillis();
+			for (int i = 0; i < 1000; i++) {
+				var ks = String.valueOf(base + i);
+				var v = kvClient.get(ByteString.copyFromUtf8("t" + ks), version);
+				assertNotNull(v);
+				assertTrue(v.size() > 1);
+				var vs = v.toString(StandardCharsets.UTF_8);
+				assertEquals('v', vs.charAt(0));
+				assertEquals(ks, vs.substring(1));
+			}
+			t2 = System.currentTimeMillis();
+			System.out.println(t2 + " readAll: " + (t2 - t) + " ms");
 		}
 	}
 
@@ -181,34 +184,33 @@ public final class TestDatabaseTikv extends TestCase {
 	}
 
 	public void runRawPerf(int base) throws Exception {
-		try (TiSession session = TiSession.create(TiConfiguration.createRawDefault(serverAddr))) {
-			try (RawKVClient client = session.createRawClient()) {
-				var kvs = new HashMap<ByteString, ByteString>();
-				for (int i = 0; i < 1000; i++) {
-					var ks = String.valueOf(base + i);
-					kvs.put(ByteString.copyFromUtf8(ks), ByteString.copyFromUtf8("v" + ks));
-				}
-
-				var t = System.currentTimeMillis();
-				client.batchPut(kvs);
-				var t2 = System.currentTimeMillis();
-				System.out.println(t2 + " batchPut end: " + (t2 - t) + " ms");
-
-				t = System.currentTimeMillis();
-				for (int i = 0; i < 1000; i++) {
-					var ks = String.valueOf(base + i);
-					var ov = client.get(ByteString.copyFromUtf8(ks));
-					assertNotNull(ov);
-					assertTrue(ov.isPresent());
-					var v = ov.get();
-					assertTrue(v.size() > 1);
-					var vs = v.toString(StandardCharsets.UTF_8);
-					assertEquals('v', vs.charAt(0));
-					assertEquals(ks, vs.substring(1));
-				}
-				t2 = System.currentTimeMillis();
-				System.out.println(t2 + " getAll: " + (t2 - t) + " ms");
+		try (TiSession session = TiSession.create(TiConfiguration.createRawDefault(serverAddr));
+			 RawKVClient client = session.createRawClient()) {
+			var kvs = new HashMap<ByteString, ByteString>();
+			for (int i = 0; i < 1000; i++) {
+				var ks = String.valueOf(base + i);
+				kvs.put(ByteString.copyFromUtf8("r" + ks), ByteString.copyFromUtf8("v" + ks));
 			}
+
+			var t = System.currentTimeMillis();
+			client.batchPut(kvs);
+			var t2 = System.currentTimeMillis();
+			System.out.println(t2 + " batchPut end: " + (t2 - t) + " ms");
+
+			t = System.currentTimeMillis();
+			for (int i = 0; i < 1000; i++) {
+				var ks = String.valueOf(base + i);
+				var ov = client.get(ByteString.copyFromUtf8("r" + ks));
+				assertNotNull(ov);
+				assertTrue(ov.isPresent());
+				var v = ov.get();
+				assertTrue(v.size() > 1);
+				var vs = v.toString(StandardCharsets.UTF_8);
+				assertEquals('v', vs.charAt(0));
+				assertEquals(ks, vs.substring(1));
+			}
+			t2 = System.currentTimeMillis();
+			System.out.println(t2 + " getAll: " + (t2 - t) + " ms");
 		}
 	}
 
@@ -231,5 +233,29 @@ public final class TestDatabaseTikv extends TestCase {
 			ts[i].join();
 		var t2 = System.currentTimeMillis();
 		System.out.println(t2 + " end " + (t2 - t) + " ms");
+	}
+
+	public void testRawScan() throws Exception {
+		try (TiSession session = TiSession.create(TiConfiguration.createRawDefault(serverAddr));
+			 RawKVClient client = session.createRawClient()) {
+			var it = client.scan0(ByteString.copyFromUtf8("k1"), ByteString.copyFromUtf8("k3"));
+			while (it.hasNext()) {
+				var e = it.next();
+				System.out.println(e.getKey() + " : " + e.getValue());
+			}
+		}
+	}
+
+	public void testTxnScan() throws Exception {
+		var config = TiConfiguration.createDefault(serverAddr);
+		try (TiSession session = TiSession.create(config)) {
+			var it = new ConcreteScanIterator(config, session.getRegionStoreClientBuilder(),
+					ByteString.copyFromUtf8("key1"), ByteString.copyFromUtf8("key3"),
+					session.getTimestamp().getVersion());
+			while (it.hasNext()) {
+				var e = it.next();
+				System.out.println(e.getKey() + " : " + e.getValue());
+			}
+		}
 	}
 }

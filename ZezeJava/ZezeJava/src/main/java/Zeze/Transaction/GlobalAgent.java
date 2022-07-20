@@ -20,7 +20,6 @@ import org.apache.logging.log4j.Logger;
 
 public final class GlobalAgent implements IGlobalAgent {
 	private static final Logger logger = LogManager.getLogger(GlobalAgent.class);
-	private static final boolean isDebugEnabled = logger.isDebugEnabled();
 
 	public static final class Agent extends GlobalAgentBase {
 		private final Connector connector;
@@ -113,7 +112,7 @@ public final class GlobalAgent implements IGlobalAgent {
 	}
 
 	private final Application Zeze;
-	private GlobalClient Client;
+	private final GlobalClient Client;
 	public Agent[] Agents;
 
 	public GlobalAgent(Application app, String[] hostNameOrAddress, int port) throws Throwable {
@@ -190,9 +189,8 @@ public final class GlobalAgent implements IGlobalAgent {
 			// never got here
 		}
 			/*
-			if (rpc.ResultCode != 0) // 这个用来跟踪调试，正常流程使用Result.State检查结果。
-			{
-			    logger.Warn("Acquire ResultCode={0} {1}", rpc.ResultCode, rpc.Result);
+			if (rpc.ResultCode != 0) { // 这个用来跟踪调试，正常流程使用Result.State检查结果。
+			    logger.warn("Acquire ResultCode={} {}", rpc.ResultCode, rpc.Result);
 			}
 			*/
 		if (!rpc.isTimeout())

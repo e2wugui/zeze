@@ -11,6 +11,7 @@ import java.net.SocketTimeoutException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -26,15 +27,14 @@ public class Daemon {
 
 	private static final Logger logger = LogManager.getLogger(Daemon.class);
 
-	public static void main(String args[]) throws Exception {
+	public static void main(String[] args) throws Exception {
 		// udp for subprocess register
 		UdpSocket = new DatagramSocket(0, InetAddress.getLoopbackAddress());
 
 		var command = new ArrayList<String>();
 		command.add("java");
 		command.add("-D" + PropertyNamePort + "=" + UdpSocket.getLocalPort());
-		for (int i = 0; i < args.length; ++i)
-			command.add(args[i]);
+		Collections.addAll(command, args);
 
 		var pb = new ProcessBuilder(command);
 		pb.inheritIO();
@@ -103,7 +103,7 @@ public class Daemon {
 	// Key Is ServerId。每个Server对应一个Monitor。
 	// 正常使用是一个Daemon对应一个Server。
 	// 写成支持多个Server是为了跑Simulate测试。
-	private static ConcurrentHashMap<Integer, Monitor> Monitors = new ConcurrentHashMap<>();
+	private static final ConcurrentHashMap<Integer, Monitor> Monitors = new ConcurrentHashMap<>();
 	private static DatagramSocket UdpSocket;
 	private static Process Subprocess;
 
@@ -198,10 +198,10 @@ public class Daemon {
 		public final int ServerId;
 		public final SocketAddress PeerSocketAddress;
 
-		private RandomAccessFile File;
-		private FileChannel Channel;
-		private MappedByteBuffer MMap;
-		private AchillesHeelConfig [] GlobalConfigs;
+		private final RandomAccessFile File;
+		private final FileChannel Channel;
+		private final MappedByteBuffer MMap;
+		private final AchillesHeelConfig[] GlobalConfigs;
 
 		public Monitor(Register reg) throws Exception {
 			ServerId = reg.ServerId;
@@ -265,6 +265,7 @@ public class Daemon {
 							// 这里重发也是需要的，刚好解决Udp不可靠性。
 							Daemon.sendCommand(UdpSocket, PeerSocketAddress, new Release(i));
 						}
+						//noinspection BusyWait
 						Thread.sleep(1000);
 					}
 				}
@@ -281,21 +282,22 @@ public class Daemon {
 	}
 
 	public static abstract class Command implements Serializable {
-		public abstract int command();
+		private static final AtomicLong Seed = new AtomicLong();
+
 		public SocketAddress Peer;
 		public long ReliableSerialNo;
+		private boolean isRequest;
 
-		private static AtomicLong Seed = new AtomicLong();
-
-		private boolean isRequest = false;
+		public abstract int command();
 
 		public boolean isRequest() {
 			return isRequest;
 		}
 
 		public void setReliableSerialNo() {
-			while (ReliableSerialNo == 0)
+			do
 				ReliableSerialNo = Seed.incrementAndGet();
+			while (ReliableSerialNo == 0);
 			isRequest = true;
 		}
 
