@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Services.GlobalCacheManagerServer;
@@ -313,20 +315,47 @@ public final class RelativeRecordSet {
 		return true;
 	}
 
-	public static void FlushWhenCheckpoint(Checkpoint checkpoint) {
-		for (var rrs : RelativeRecordSetMap.keySet()) {
-			rrs.Lock();
-			try {
-				if (rrs.MergeTo != null) {
-					RelativeRecordSetMap.remove(rrs);
-					continue;
-				}
-
-				checkpoint.Flush(rrs);
-				rrs.Delete();
+	private static void FlushAndDelete(Checkpoint checkpoint, RelativeRecordSet rrs) {
+		rrs.Lock();
+		try {
+			if (rrs.MergeTo != null) {
 				RelativeRecordSetMap.remove(rrs);
-			} finally {
-				rrs.UnLock();
+				return;
+			}
+
+			checkpoint.Flush(rrs);
+			rrs.Delete();
+			RelativeRecordSetMap.remove(rrs);
+		} finally {
+			rrs.UnLock();
+		}
+	}
+
+	public static void FlushWhenCheckpoint(Checkpoint checkpoint) {
+		// default is 1
+		var concurrent = checkpoint.getZeze().getConfig().getCheckpointModeTableFlushConcurrent();
+		if (concurrent < 2) {
+			for (var rrs : RelativeRecordSetMap.keySet()) {
+				FlushAndDelete(checkpoint, rrs);
+			}
+			return;
+		}
+
+		// concurrent flush
+		var pool = Executors.newFixedThreadPool(concurrent);
+		try {
+			for (var rrs : RelativeRecordSetMap.keySet()) {
+				pool.execute(() -> FlushAndDelete(checkpoint, rrs));
+			}
+		} finally {
+			pool.shutdown();
+			while (true) {
+				try {
+					pool.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
+					break;
+				} catch (InterruptedException ex) {
+					// skip
+				}
 			}
 		}
 	}

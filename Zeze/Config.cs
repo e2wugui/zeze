@@ -29,6 +29,8 @@ namespace Zeze
         public int WorkerThreads { get; set; }
         public int CompletionPortThreads { get; set; }
         public int CheckpointPeriod { get; set; } = 60000; // 60 seconds
+        public int CheckpointModeTableFlushConcurrent { get; set; } = 1
+
         public Transaction.CheckpointMode CheckpointMode { get; set; }
             = Transaction.CheckpointMode.Table;
 
@@ -194,6 +196,10 @@ namespace Zeze
             GlobalCacheManagerHostNameOrAddress = self.GetAttribute("GlobalCacheManagerHostNameOrAddress");
             string attr = self.GetAttribute("GlobalCacheManagerPort");
             GlobalCacheManagerPort = attr.Length > 0 ? int.Parse(attr) : 0;
+
+            attr = self.GetAttribute("CheckpointModeTableFlushConcurrent");
+            if (attr.Length > 0)
+                CheckpointModeTableFlushConcurrent = int.Parse(attr);
 
             attr = self.GetAttribute("ProcessReturnErrorLogLevel");
             if (attr.Length > 0)

@@ -360,21 +360,35 @@ namespace Zeze.Transaction
             return true;
         }
 
+        private static async Task FlushAndDelete(Checkpoint checkpoint, RelativeRecordSet rrs)
+        {
+            using var lockrrs = await rrs.LockAsync();
+            if (rrs.MergeTo != null)
+            {
+                checkpoint.RelativeRecordSetMap.TryRemove(rrs, out var _);
+                return;
+            }
+
+            await Checkpoint.Flush(rrs);
+            rrs.Delete();
+            checkpoint.RelativeRecordSetMap.TryRemove(rrs, out var _);
+        }
+
         internal static async Task FlushWhenCheckpoint(Checkpoint checkpoint)
         {
-            var rrsmap = checkpoint.RelativeRecordSetMap;
-            foreach (var rrs in rrsmap.Keys)
+            if (checkpoint.Zeze.Config.CheckpointModeTableFlushConcurrent < 2)
             {
-                using var lockrrs = await rrs.LockAsync();
-                if (rrs.MergeTo != null)
+                foreach (var rrs in checkpoint.RelativeRecordSetMap.Keys)
                 {
-                    rrsmap.TryRemove(rrs, out var _);
-                    continue;
+                    await FlushAndDelete(checkpoint, rrs);
                 }
+                return;
+            }
 
-                await Checkpoint.Flush(rrs);
-                rrs.Delete();
-                rrsmap.TryRemove(rrs, out var _);
+            // flush concurrent。need a threadpool
+            foreach (var rrs in checkpoint.RelativeRecordSetMap.Keys)
+            {
+                _ = FlushAndDelete(checkpoint, rrs);
             }
         }
 

@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Linq;
 using System.Collections.Concurrent;
+using Zeze.Util;
 
 namespace Zeze.Transaction
 {
@@ -28,14 +29,17 @@ namespace Zeze.Transaction
 
         public CheckpointMode CheckpointMode { get; }
         private Thread CheckpointThread;
+        public Application Zeze { get; }
 
-        public Checkpoint(CheckpointMode mode)
+        public Checkpoint(Application zeze, CheckpointMode mode)
         {
+            Zeze = zeze;
             CheckpointMode = mode;
         }
 
-        public Checkpoint(CheckpointMode mode, IEnumerable<Database> dbs)
+        public Checkpoint(Application zeze, CheckpointMode mode, IEnumerable<Database> dbs)
         {
+            Zeze = zeze;
             CheckpointMode = mode;
             Add(dbs);
         }
@@ -70,7 +74,7 @@ namespace Zeze.Transaction
 
                 IsRunning = true;
                 Period = period;
-                CheckpointThread = new(() => Zeze.Util.Mission.Call(Run, "Checkpoint.Run"));
+                CheckpointThread = new(() => Mission.Call(Run, "Checkpoint.Run"));
                 CheckpointThread.Name = "CheckpointThread";
                 CheckpointThread.Start();
             }

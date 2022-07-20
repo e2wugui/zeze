@@ -33,6 +33,7 @@ public final class Config {
 	private int WorkerThreads;
 	private int CompletionPortThreads;
 	private int CheckpointPeriod = 60000;
+	private int CheckpointModeTableFlushConcurrent = 1;
 	private Zeze.Transaction.CheckpointMode CheckpointMode = Zeze.Transaction.CheckpointMode.Table;
 	private Level ProcessReturnErrorLogLevel = Level.INFO;
 	private int ServerId;
@@ -87,6 +88,10 @@ public final class Config {
 	public void setCheckpointPeriod(int value) {
 		CheckpointPeriod = value;
 	}
+
+	public int getCheckpointModeTableFlushConcurrent() { return CheckpointModeTableFlushConcurrent; }
+
+	public void setCheckpointModeTableFlushConcurrent(int value) { CheckpointModeTableFlushConcurrent = value; }
 
 	public Zeze.Transaction.CheckpointMode getCheckpointMode() {
 		return CheckpointMode;
@@ -310,6 +315,10 @@ public final class Config {
 		setGlobalCacheManagerHostNameOrAddress(self.getAttribute("GlobalCacheManagerHostNameOrAddress"));
 		String attr = self.getAttribute("GlobalCacheManagerPort");
 		setGlobalCacheManagerPort(attr.length() > 0 ? Integer.parseInt(attr) : 0);
+
+		attr = self.getAttribute("CheckpointModeTableFlushConcurrent");
+		if (!attr.isEmpty())
+			CheckpointModeTableFlushConcurrent = Integer.parseInt(attr);
 
 		attr = self.getAttribute("ProcessReturnErrorLogLevel");
 		if (!attr.isEmpty())

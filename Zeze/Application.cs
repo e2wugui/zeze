@@ -83,7 +83,7 @@ namespace Zeze
             //ThreadPool.SetMaxThreads(workerMax, ioMax);
 
             Config.CreateDatabase(this, Databases);
-            _checkpoint = new Checkpoint(Config.CheckpointMode, Databases.Values);
+            _checkpoint = new Checkpoint(this, Config.CheckpointMode, Databases.Values);
             ServiceManagerAgent = new Agent(this);
         }
 

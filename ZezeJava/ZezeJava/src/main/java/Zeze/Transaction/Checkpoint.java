@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import Zeze.Application;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
@@ -44,6 +45,7 @@ public final class Checkpoint {
 	public CheckpointMode getCheckpointMode() {
 		return Mode;
 	}
+	public Application getZeze() { return Zeze; }
 
 	public void EnterFlushReadLock() {
 		if (Mode == CheckpointMode.Period) {
