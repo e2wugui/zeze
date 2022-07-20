@@ -13,18 +13,25 @@ Zege
 DatagramChannel
 Http In Linkd
 Immediately Record1::SetDirty(rockscache保存）OldTable::TableX::Load
-Arch.Online Login+Login 中间补充触发一个Logout事件。程序退出的时候怎么办？难道也要补？还有程序异常退出呢？
 CheckpointMode.Table.Flush 在后台数据库的一个事务内提交多个rrs。
+AchillesHeelDaemon.ProcessDaemon for c# 重新实现一次当作review。
 
-【2022/7/15】
-
+【2022/8/15】
 ------------------------------------------------------------------------------------------------------------------------------
 tag 1.0.1 AchillesHeelDaemon.ProcessDaemon
 ------------------------------------------------------------------------------------------------------------------------------
+Arch.Online Login+Logout 中间补充触发一个Logout事件?
+	程序退出的时候怎么办？难道也要补？还有程序异常退出呢？
+	由于实现可靠的Login+Logout匹配难度太大，
+	逻辑还是需要处理Logout丢失的问题：一般在处理Login时发现上一个还没有Logout，自动完成相应处理。
 checkpoint concurrent：Config.CheckpointModeTableFlushConcurrent
-DatagramSocket
+DatagramSocket Test
+Exec Test
 AchillesHeelDaemon：安全级别从jvm级别提升到操作系统。保留线程守护，增加进程守护。两个守护兼容：
   gs启动的时候检查mmap，发现自己是daemon启动的，就开启进程守护（向mmap报告和读取命令），否则还是原来的线程守护。
+
+
+【2022/7/15】
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 1.0.0 Stable? ^_^

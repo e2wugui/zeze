@@ -134,7 +134,24 @@ namespace Zeze.Arch
             Transaction.Transaction.Current.RunWhileCommit(() => LocalRemoveEvents.TriggerThread(this, arg));
         }
 
-        private async Task RemoveOnlineAndTrigger(string account, string clientId)
+        private async Task LogoutTriggerExtra(string account, string clientId)
+        {
+            var bOnlines = await _tonline.GetAsync(account);
+            bOnlines.Logins.TryGetValue(clientId, out var onlineData);
+
+            var arg = new LogoutEventArgument()
+            {
+                Account = account,
+                ClientId = clientId,
+                OnlineData = onlineData?.Copy(),
+            };
+
+            await LogoutEvents.TriggerEmbed(this, arg);
+            await LogoutEvents.TriggerProcedure(ProviderApp.Zeze, this, arg);
+            Transaction.Transaction.Current.RunWhileCommit(() => LogoutEvents.TriggerThread(this, arg));
+        }
+
+        private async Task LogoutTrigger(string account, string clientId)
         {
             var bOnlines = await _tonline.GetAsync(account);
             bOnlines.Logins.Remove(clientId, out var onlineData);
@@ -225,7 +242,7 @@ namespace Zeze.Arch
                             && version.Logins.TryGetValue(clientId, out var loginVersion)
                             && loginVersion.LoginVersion == currentLoginVersion)
                         {
-                            await RemoveOnlineAndTrigger(account, clientId);
+                            await LogoutTrigger(account, clientId);
                         }
                         return Procedure.Success;
                     }, "Onlines.OnLinkBroken").CallAsync();
@@ -901,11 +918,15 @@ namespace Zeze.Arch
             var loginLocal = local.Logins.GetOrAdd(rpc.Argument.ClientId);
             var loginVersion = version.Logins.GetOrAdd(rpc.Argument.ClientId);
 
-            // login exist && not local
-            if (loginVersion.LoginVersion != 0 && loginVersion.LoginVersion != loginLocal.LoginVersion)
+            if (loginVersion.LoginVersion != 0)
             {
-                // nowait
-                _ = RedirectNotify(loginVersion.ServerId, session.Account);
+                // login exist
+                await LogoutTriggerExtra(session.Account, rpc.Argument.ClientId);
+                if (loginVersion.LoginVersion != loginLocal.LoginVersion)
+                {
+                    // not local
+                    _ = RedirectNotify(loginVersion.ServerId, session.Account);
+                }
             }
             var loginVersionSerialId = account.LastLoginVersion + 1;
             account.LastLoginVersion = loginVersionSerialId;
@@ -971,11 +992,17 @@ namespace Zeze.Arch
 
             var loginLocal = local.Logins.GetOrAdd(rpc.Argument.ClientId);
             var loginVersion = version.Logins.GetOrAdd(rpc.Argument.ClientId);
-            // login exist && not local
-            if (loginVersion.LoginVersion != 0 && loginVersion.LoginVersion != loginLocal.LoginVersion)
+
+            if (loginVersion.LoginVersion != 0)
             {
-                // nowait
-                _ = RedirectNotify(loginVersion.ServerId, session.Account);
+                // login exist
+                // relogin 不需要补充 Logout？
+                // await LogoutTriggerExtra(session.Account, rpc.Argument.ClientId);
+                if (loginVersion.LoginVersion != loginLocal.LoginVersion)
+                {
+                    // not local
+                    _ = RedirectNotify(loginVersion.ServerId, session.Account);
+                }
             }
             var loginVersionSerialId = account.LastLoginVersion + 1;
             account.LastLoginVersion = loginVersionSerialId;
@@ -1036,7 +1063,7 @@ namespace Zeze.Arch
             if (null != local)
                 await RemoveLocalAndTrigger(session.Account, clientId);
             if (null != online)
-                await RemoveOnlineAndTrigger(session.Account, clientId);
+                await LogoutTrigger(session.Account, clientId);
 
             // 先设置状态，再发送Logout结果。
             Transaction.Transaction.Current.RunWhileCommit(() =>

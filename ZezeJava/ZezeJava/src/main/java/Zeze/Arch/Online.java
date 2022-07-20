@@ -158,9 +158,9 @@ public class Online extends AbstractOnline {
         Transaction.getCurrent().runWhileCommit(() -> LocalRemoveEvents.triggerThread(this, arg));
     }
 
-    private void RemoveOnlineAndTrigger(String account, String clientId) throws Throwable {
-        var bOnlines = _tonline.get(account);
-        var onlineData = bOnlines.getLogins().remove(clientId);
+    private void LogoutTriggerExtra(String account, String clientId) throws Throwable {
+        var bOnline = _tonline.get(account);
+        var onlineData = bOnline.getLogins().get(clientId);
 
         var arg = new LogoutEventArgument();
         arg.Account = account;
@@ -168,7 +168,22 @@ public class Online extends AbstractOnline {
         if (null != onlineData)
             arg.OnlineData = onlineData.Copy();
 
-        if (bOnlines.getLogins().isEmpty())
+        LogoutEvents.triggerEmbed(this, arg);
+        LogoutEvents.triggerProcedure(ProviderApp.Zeze, this, arg);
+        Transaction.getCurrent().runWhileCommit(() -> LogoutEvents.triggerThread(this, arg));
+    }
+
+    private void LogoutTrigger(String account, String clientId) throws Throwable {
+        var bOnline = _tonline.get(account);
+        var onlineData = bOnline.getLogins().remove(clientId);
+
+        var arg = new LogoutEventArgument();
+        arg.Account = account;
+        arg.ClientId = clientId;
+        if (null != onlineData)
+            arg.OnlineData = onlineData.Copy();
+
+        if (bOnline.getLogins().isEmpty())
             _tonline.remove(account); // remove first
 
         LogoutEvents.triggerEmbed(this, arg);
@@ -241,7 +256,7 @@ public class Online extends AbstractOnline {
                 if (null != online) {
                     var loginVersion = version.getLogins().get(clientId);
                     if (null != loginVersion && loginVersion.getLoginVersion() == finalCurrentLoginVersion)
-                        RemoveOnlineAndTrigger(account, clientId);
+                        LogoutTrigger(account, clientId);
                 }
                 return Procedure.Success;
             }, "Onlines.OnLinkBroken").Call();
@@ -841,10 +856,13 @@ public class Online extends AbstractOnline {
         var loginLocal = local.getLogins().getOrAdd(rpc.Argument.getClientId());
         var loginVersion = version.getLogins().getOrAdd(rpc.Argument.getClientId());
 
-        // login exist && not local
-        if (loginVersion.getLoginVersion() != 0 && loginVersion.getLoginVersion() != loginLocal.getLoginVersion()) {
-            // nowait
-            redirectNotify(loginVersion.getServerId(), session.getAccount());
+        if (loginVersion.getLoginVersion() != 0) {
+            // login exist
+            LogoutTriggerExtra(session.getAccount(), rpc.Argument.getClientId());
+            if (loginVersion.getLoginVersion() != loginLocal.getLoginVersion()) {
+                // not local
+                redirectNotify(loginVersion.getServerId(), session.getAccount());
+            }
         }
         var loginVersionSerialId = account.getLastLoginVersion() + 1;
         account.setLastLoginVersion(loginVersionSerialId);
@@ -909,7 +927,7 @@ public class Online extends AbstractOnline {
         if (null != local)
             RemoveLocalAndTrigger(session.getAccount(), clientId);
         if (null != online)
-            RemoveOnlineAndTrigger(session.getAccount(), clientId);
+            LogoutTrigger(session.getAccount(), clientId);
 
         // 先设置状态，再发送Logout结果。
         Transaction.getCurrent().runWhileCommit(() -> {
@@ -987,10 +1005,15 @@ public class Online extends AbstractOnline {
 
         var loginLocal = local.getLogins().getOrAdd(rpc.Argument.getClientId());
         var loginVersion = version.getLogins().getOrAdd(rpc.Argument.getClientId());
-        // login exist && not local
-        if (loginVersion.getLoginVersion() != 0 && loginVersion.getLoginVersion() != loginLocal.getLoginVersion()) {
-            // nowait
-            redirectNotify(loginVersion.getServerId(), session.getAccount());
+
+        if (loginVersion.getLoginVersion() != 0) {
+            // login exist
+            // relogin 不需要补充 Logout？
+            // LogoutTriggerExtra(session.getAccount(), rpc.Argument.getClientId());
+            if (loginVersion.getLoginVersion() != loginLocal.getLoginVersion()) {
+                // not local
+                redirectNotify(loginVersion.getServerId(), session.getAccount());
+            }
         }
         var loginVersionSerialId = account.getLastLoginVersion() + 1;
         account.setLastLoginVersion(loginVersionSerialId);

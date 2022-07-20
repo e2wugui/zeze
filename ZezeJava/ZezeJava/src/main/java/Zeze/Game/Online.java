@@ -201,7 +201,18 @@ public class Online extends AbstractOnline {
 		Transaction.getCurrent().runWhileCommit(()->localRemoveEvents.triggerThread(this, arg));
 	}
 
-	private void removeOnlineAndTrigger(long roleId) throws Throwable {
+	private void logoutTriggerExtra(long roleId) throws Throwable {
+		var arg = new LogoutEventArgument();
+		arg.RoleId = roleId;
+		arg.OnlineData = _tonline.get(roleId).Copy();
+
+		logoutEvents.triggerEmbed(this, arg);
+		logoutEvents.triggerProcedure(ProviderApp.Zeze, this, arg);
+		//noinspection ConstantConditions
+		Transaction.getCurrent().runWhileCommit(()->logoutEvents.triggerThread(this, arg));
+	}
+
+	private void logoutTrigger(long roleId) throws Throwable {
 		var arg = new LogoutEventArgument();
 		arg.RoleId = roleId;
 		arg.OnlineData = _tonline.get(roleId).Copy();
@@ -268,7 +279,7 @@ public class Online extends AbstractOnline {
 					var online = _tonline.get(roleId);
 					var version = _tversion.getOrAdd(roleId);
 					if (null != online && version.getLoginVersion() == currentLoginVersionFinal) {
-						removeOnlineAndTrigger(roleId);
+						logoutTrigger(roleId);
 					}
 					return Procedure.Success;
 				}, "Game.Online.onLinkBroken").Call();
@@ -724,9 +735,14 @@ public class Online extends AbstractOnline {
 		var online = _tonline.getOrAdd(rpc.Argument.getRoleId());
 		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
 		var version = _tversion.getOrAdd(rpc.Argument.getRoleId());
-		// login exist && not local
-		if (version.getLoginVersion() != 0 && version.getLoginVersion() != local.getLoginVersion()) {
-			redirectNotify(version.getServerId(), rpc.Argument.getRoleId());
+
+		if (version.getLoginVersion() != 0) {
+			// login exist
+			logoutTriggerExtra(rpc.Argument.getRoleId());
+			if (version.getLoginVersion() != local.getLoginVersion()) {
+				// not local
+				redirectNotify(version.getServerId(), rpc.Argument.getRoleId());
+			}
 		}
 		var loginVersion = account.getLastLoginVersion() + 1;
 		account.setLastLoginVersion(loginVersion);
@@ -782,9 +798,14 @@ public class Online extends AbstractOnline {
 		var local = _tlocal.getOrAdd(rpc.Argument.getRoleId());
 		var version = _tversion.getOrAdd(rpc.Argument.getRoleId());
 
-		// login exist && not local
-		if (version.getLoginVersion() != 0 && version.getLoginVersion() != local.getLoginVersion()) {
-			redirectNotify(version.getServerId(), rpc.Argument.getRoleId());
+		if (version.getLoginVersion() != 0) {
+			// login exist
+			// relogin 不需要补充 Logout？
+			// logoutTriggerExtra(rpc.Argument.getRoleId());
+			if (version.getLoginVersion() != local.getLoginVersion()) {
+				// not local
+				redirectNotify(version.getServerId(), rpc.Argument.getRoleId());
+			}
 		}
 		var loginVersion = account.getLastLoginVersion() + 1;
 		account.setLastLoginVersion(loginVersion);
@@ -866,7 +887,7 @@ public class Online extends AbstractOnline {
 		if (null != local)
 			removeLocalAndTrigger(session.getRoleId());
 		if (null != online)
-			removeOnlineAndTrigger(session.getRoleId());
+			logoutTrigger(session.getRoleId());
 
 		// 先设置状态，再发送Logout结果。
 		//noinspection ConstantConditions

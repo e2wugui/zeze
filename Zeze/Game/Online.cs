@@ -155,7 +155,20 @@ namespace Zeze.Game
             Transaction.Transaction.Current.RunWhileCommit(() => LocalRemoveEvents.TriggerThread(this, arg));
         }
 
-        private async Task RemoveOnlineAndTrigger(long roleId)
+        private async Task LogoutTriggerExtra(long roleId)
+        {
+            var arg = new LogoutEventArgument()
+            {
+                RoleId = roleId,
+                OnlineData = (await _tonline.GetAsync(roleId)).Copy(),
+            };
+
+            await LogoutEvents.TriggerEmbed(this, arg);
+            await LogoutEvents.TriggerProcedure(ProviderApp.Zeze, this, arg);
+            Transaction.Transaction.Current.RunWhileCommit(() => LogoutEvents.TriggerThread(this, arg));
+        }
+
+        private async Task LogoutTrigger(long roleId)
         {
             var arg = new LogoutEventArgument()
             {
@@ -232,7 +245,7 @@ namespace Zeze.Game
                         var version = await _tversion.GetOrAddAsync(roleId);
                         if (null != online && version.LoginVersion == currentLoginVersion)
                         {
-                            await RemoveOnlineAndTrigger(roleId);
+                            await LogoutTrigger(roleId);
                         }
                         return Procedure.Success;
                     }, "Onlines.OnLinkBroken").CallAsync();
@@ -712,11 +725,15 @@ namespace Zeze.Game
             var local = await _tlocal.GetOrAddAsync(rpc.Argument.RoleId);
             var version = await _tversion.GetOrAddAsync(rpc.Argument.RoleId);
 
-            // login exist && not local
-            if (version.LoginVersion != 0 && version.LoginVersion != local.LoginVersion)
+            if (version.LoginVersion != 0)
             {
-                // nowait
-                _ = RedirectNotify(version.ServerId, rpc.Argument.RoleId);
+                // login exist
+                await LogoutTriggerExtra(rpc.Argument.RoleId);
+                if (version.LoginVersion != local.LoginVersion)
+                {
+                    // not local
+                    _ = RedirectNotify(version.ServerId, rpc.Argument.RoleId);
+                }
             }
             var loginVersion = account.LastLoginVersion + 1;
             account.LastLoginVersion = loginVersion;
@@ -785,11 +802,16 @@ namespace Zeze.Game
             var local = await _tlocal.GetOrAddAsync(rpc.Argument.RoleId);
             var version = await _tversion.GetOrAddAsync(rpc.Argument.RoleId);
 
-            // login exist && not local
-            if (version.LoginVersion != 0 && version.LoginVersion != local.LoginVersion)
+            if (version.LoginVersion != 0)
             {
-                // nowait
-                _ = RedirectNotify(version.ServerId, rpc.Argument.RoleId);
+                // login exist
+                // relogin 不需要补充 Logout？
+                // await LogoutTriggerExtra(rpc.Argument.RoleId);
+                if (version.LoginVersion != local.LoginVersion)
+                {
+                    // not local
+                    _ = RedirectNotify(version.ServerId, rpc.Argument.RoleId);
+                }
             }
             var loginVersion = account.LastLoginVersion + 1;
             account.LastLoginVersion = loginVersion;
@@ -846,7 +868,7 @@ namespace Zeze.Game
             if (null != local)
                 await RemoveLocalAndTrigger(session.RoleId.Value);
             if (null != online)
-                await RemoveOnlineAndTrigger(session.RoleId.Value);
+                await LogoutTrigger(session.RoleId.Value);
 
             // 先设置状态，再发送Logout结果。
             Transaction.Transaction.Current.RunWhileCommit(() =>
