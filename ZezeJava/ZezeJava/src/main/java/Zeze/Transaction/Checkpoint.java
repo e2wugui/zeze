@@ -2,6 +2,8 @@ package Zeze.Transaction;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
@@ -26,6 +28,7 @@ public final class Checkpoint {
 	private volatile boolean IsRunning;
 	private ArrayList<Runnable> actionCurrent;
 	private volatile ArrayList<Runnable> actionPending = new ArrayList<>();
+	ExecutorService FlushThreadPool;
 
 	public Checkpoint(Zeze.Application zeze, CheckpointMode mode, int serverId) {
 		this(zeze, mode, null, serverId);
@@ -33,6 +36,10 @@ public final class Checkpoint {
 
 	public Checkpoint(Zeze.Application zeze, CheckpointMode mode, Iterable<Database> dbs, int serverId) {
 		Zeze = zeze;
+		var concurrent = Zeze.getConfig().getCheckpointModeTableFlushConcurrent();
+		if (concurrent > 1)
+			FlushThreadPool = Executors.newFixedThreadPool(concurrent);
+
 		Mode = mode;
 		if (dbs != null)
 			Add(dbs);
@@ -161,6 +168,17 @@ public final class Checkpoint {
 		case Table:
 			RelativeRecordSet.FlushWhenCheckpoint(this);
 			break;
+		}
+		if (null != FlushThreadPool) {
+			FlushThreadPool.shutdown();
+			while (true) {
+				try {
+					if (FlushThreadPool.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS))
+						break;
+				} catch (InterruptedException ex) {
+					// skip
+				}
+			}
 		}
 		logger.info("final checkpoint end.");
 	}

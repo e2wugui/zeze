@@ -1,5 +1,6 @@
 package Zeze.Transaction;
 
+import java.io.Flushable;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.TreeMap;
@@ -332,30 +333,14 @@ public final class RelativeRecordSet {
 	}
 
 	public static void FlushWhenCheckpoint(Checkpoint checkpoint) {
-		// default is 1
-		var concurrent = checkpoint.getZeze().getConfig().getCheckpointModeTableFlushConcurrent();
-		if (concurrent < 2) {
+		if (checkpoint.FlushThreadPool == null) {
 			for (var rrs : RelativeRecordSetMap.keySet()) {
 				FlushAndDelete(checkpoint, rrs);
 			}
-			return;
-		}
-
-		// concurrent flush
-		var pool = Executors.newFixedThreadPool(concurrent);
-		try {
+		} else {
+			// concurrent flush
 			for (var rrs : RelativeRecordSetMap.keySet()) {
-				pool.execute(() -> FlushAndDelete(checkpoint, rrs));
-			}
-		} finally {
-			pool.shutdown();
-			while (true) {
-				try {
-					pool.awaitTermination(Long.MAX_VALUE, TimeUnit.MILLISECONDS);
-					break;
-				} catch (InterruptedException ex) {
-					// skip
-				}
+				checkpoint.FlushThreadPool.execute(() -> FlushAndDelete(checkpoint, rrs));
 			}
 		}
 	}
