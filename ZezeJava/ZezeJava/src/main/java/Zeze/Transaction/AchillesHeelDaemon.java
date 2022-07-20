@@ -194,6 +194,10 @@ public class AchillesHeelDaemon {
 			// 优化！活动时间设置很频繁，降低报告频率。
 			if (agent.getActiveTime() - LastReportTime[agent.GlobalCacheManagerHashIndex] < 1000)
 				return;
+			//*
+			if (Zeze.getConfig().getServerId() == 0)
+				return;
+			// */
 			LastReportTime[agent.GlobalCacheManagerHashIndex] = agent.getActiveTime();
 
 			var bb = ByteBuffer.Allocate();
