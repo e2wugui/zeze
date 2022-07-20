@@ -14,7 +14,7 @@
 	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
 	<DatabaseConf Name="" DatabaseType="SqlServer" DatabaseUrl="Server=(localdb)\MSSQLLocalDB;Integrated Security=true"/>
 	<DatabaseConf Name="" DatabaseType="MySql" DatabaseUrl="jdbc:mysql://localhost:3306/mysql?user=root&amp;password=123"/>
-	<DatabaseConf Name="" DatabaseType="Tikv" DatabaseUrl="172.21.15.68:2379"/>
+	<DatabaseConf Name="" DatabaseType="Tikv" DatabaseUrl="10.12.7.140:5389"/>
 	-->
 	<DatabaseConf Name="" DatabaseType="Memory" DatabaseUrl=""/>
 
