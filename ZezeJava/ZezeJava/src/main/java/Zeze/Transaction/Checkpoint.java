@@ -2,7 +2,6 @@ package Zeze.Transaction;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -10,6 +9,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import Zeze.Application;
+import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.Task;
 import Zeze.Util.TaskCompletionSource;
 import org.apache.logging.log4j.LogManager;
@@ -30,7 +30,7 @@ public final class Checkpoint {
 	private ArrayList<Runnable> actionCurrent;
 	private volatile ArrayList<Runnable> actionPending = new ArrayList<>();
 	final ExecutorService FlushThreadPool;
-	final ConcurrentHashMap<RelativeRecordSet, RelativeRecordSet> RelativeRecordSetMap = new ConcurrentHashMap<>();
+	final ConcurrentHashSet<RelativeRecordSet> RelativeRecordSetMap = new ConcurrentHashSet<>();
 
 	public Checkpoint(Zeze.Application zeze, CheckpointMode mode, int serverId) {
 		this(zeze, mode, null, serverId);

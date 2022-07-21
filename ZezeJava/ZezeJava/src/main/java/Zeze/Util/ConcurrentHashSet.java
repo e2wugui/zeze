@@ -19,4 +19,9 @@ public class ConcurrentHashSet<T> extends ConcurrentHashMap<T, Object> implement
 	public Iterator<T> iterator() {
 		return keySet().iterator();
 	}
+
+	@Override
+	public String toString() {
+		return keySet().toString();
+	}
 }

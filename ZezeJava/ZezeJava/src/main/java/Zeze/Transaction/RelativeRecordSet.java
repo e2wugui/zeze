@@ -16,16 +16,12 @@ public final class RelativeRecordSet {
 	private static final RelativeRecordSet Deleted = new RelativeRecordSet();
 
 	private final ReentrantLock mutex = new ReentrantLock(true);
-	private final long Id;
+	private final long Id = IdGenerator.getAndIncrement();
 	// 采用链表，可以O(1)处理Merge，但是由于Merge的时候需要更新Record所属的关联集合，
 	// 所以避免不了遍历，那就使用HashSet，遍历吧。
 	// 可做的小优化：把Count小的关联集合Merge到大的里面。
 	private HashSet<Record> RecordSet;
 	private volatile RelativeRecordSet MergeTo; // 不为null表示发生了变化，其中 == Deleted 表示被删除（已经Flush了）。
-
-	public RelativeRecordSet() {
-		Id = IdGenerator.getAndIncrement();
-	}
 
 	public HashSet<Record> getRecordSet() {
 		return RecordSet;
@@ -190,7 +186,7 @@ public final class RelativeRecordSet {
 				} else if (mergedSet.RecordSet != null) {
 					// mergedSet 合并结果是孤立的，不需要Flush。
 					// 本次事务没有包含任何需要马上提交的记录，留给 Period 提交。
-					procedure.getZeze().getCheckpoint().RelativeRecordSetMap.put(mergedSet, mergedSet);
+					procedure.getZeze().getCheckpoint().RelativeRecordSetMap.add(mergedSet);
 				}
 			}
 			// else
@@ -314,13 +310,10 @@ public final class RelativeRecordSet {
 	private static void FlushAndDelete(Checkpoint checkpoint, RelativeRecordSet rrs) {
 		rrs.Lock();
 		try {
-			if (rrs.MergeTo != null) {
-				checkpoint.RelativeRecordSetMap.remove(rrs);
-				return;
+			if (rrs.MergeTo == null) {
+				checkpoint.Flush(rrs);
+				rrs.Delete();
 			}
-
-			checkpoint.Flush(rrs);
-			rrs.Delete();
 			checkpoint.RelativeRecordSetMap.remove(rrs);
 		} finally {
 			rrs.UnLock();
@@ -329,12 +322,12 @@ public final class RelativeRecordSet {
 
 	public static void FlushWhenCheckpoint(Checkpoint checkpoint) {
 		if (checkpoint.FlushThreadPool == null) {
-			for (var rrs : checkpoint.RelativeRecordSetMap.keySet()) {
+			for (var rrs : checkpoint.RelativeRecordSetMap) {
 				FlushAndDelete(checkpoint, rrs);
 			}
 		} else {
 			// concurrent flush
-			for (var rrs : checkpoint.RelativeRecordSetMap.keySet()) {
+			for (var rrs : checkpoint.RelativeRecordSetMap) {
 				checkpoint.FlushThreadPool.execute(() -> FlushAndDelete(checkpoint, rrs));
 			}
 		}
@@ -401,6 +394,6 @@ public final class RelativeRecordSet {
 	}
 
 	public static String RelativeRecordSetMapToString(Checkpoint checkpoint) {
-		return checkpoint.RelativeRecordSetMap.keySet().toString();
+		return checkpoint.RelativeRecordSetMap.toString();
 	}
 }
