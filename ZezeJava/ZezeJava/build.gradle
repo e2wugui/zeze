@@ -11,6 +11,8 @@ dependencies {
     implementation 'org.rocksdb:rocksdbjni:7.3.1'
     implementation 'org.tikv:tikv-client-java:3.3.0'
     implementation 'mysql:mysql-connector-java:8.0.29'
+    implementation 'org.apache.rocketmq:rocketmq-client:4.9.4' // X 0718
+    implementation 'javax:javaee-api:8.0.1' // X 0718
 }
 
 task startServiceManager(type: JavaExec) {
