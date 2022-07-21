@@ -170,6 +170,8 @@ public final class Tasks {
 			}, Table1Long2Add1.class.getName() + ".prepare").Call();
 		}
 
+		static LongAdder commitCount = new LongAdder();
+
 		@Override
 		long process() {
 			var key = Keys.iterator().next();
@@ -181,7 +183,9 @@ public final class Tasks {
 				var newV2 = App.demo_Module1.getTable1().getOrAdd(key).getLong2();
 				var level = oldV + 1 != newV || newV != newV2 ? Level.ERROR : Level.INFO;
 				if (level == Level.ERROR || debugTradeSum)
-					Simulate.logger.log(level, "--- key:{}, value:{}->{}->{}", key, oldV, newV, newV2);
+					Simulate.logger.log(level, "{} --- key:{}, value:{}->{}->{}",
+							App.getZeze().getConfig().getServerId(), key, oldV, newV, newV2);
+				commitCount.increment();
 			});
 			return 0L;
 		}
@@ -227,7 +231,8 @@ public final class Tasks {
 					a.Value += v.getLong2();
 					return true;
 				});
-				Simulate.logger.error("Table1Long2Add1 verify failed: {} != {} (walk:{})", success, sum, a.Value);
+				Simulate.logger.error("Table1Long2Add1 verify failed: {} != {} (walk:{}, commitCount:{})",
+						success, sum, a.Value, commitCount.sum());
 			}
 			Assert.assertEquals(success, sum);
 			Simulate.logger.debug("{}.verify OK!", name);

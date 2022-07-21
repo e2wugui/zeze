@@ -257,9 +257,11 @@ public class Daemon {
 
 						var idle = now - activeTime;
 						if (idle > config.ServerReleaseTimeout) {
+							logger.info("destroySubprocess {} - {} > {}", now, activeTime, config.ServerReleaseTimeout);
 							Daemon.destroySubprocess();
 							// daemon main will restart subprocess!
 						} else if (idle > config.ServerDaemonTimeout) {
+							logger.info("sendCommand Release-{} {} - {} > {}", i, now, activeTime, config.ServerDaemonTimeout);
 							// 在Server执行Release期间，命令可能重复发送。
 							// 重复命令的处理由Server完成，
 							// 这里重发也是需要的，刚好解决Udp不可靠性。

@@ -85,9 +85,9 @@ public class DatabaseRocksDb extends Database {
 
 	public DatabaseRocksDb(Config.DatabaseConf conf) {
 		super(conf);
-		logger.info("new: {}", conf.getDatabaseUrl());
+		logger.info("new: {}", getDatabaseUrl());
 
-		var dbHome = conf.getDatabaseUrl().isEmpty() ? "db" : conf.getDatabaseUrl();
+		var dbHome = getDatabaseUrl().isEmpty() ? "db" : getDatabaseUrl();
 		try {
 			var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
 			for (var cf : RocksDB.listColumnFamilies(commonOptions, dbHome))

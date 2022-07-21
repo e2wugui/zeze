@@ -403,20 +403,31 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 
 		logger.info("ReduceInvalidAllLocalOnly Remain=" + remain.size());
-		for (var e : remain) {
-			e.getKey().EnterWriteLock();
-			try {
-				var v = e.getValue();
-				v.EnterFairLock();
-				try {
-					v.setState(GlobalCacheManagerServer.StateInvalid);
-					FlushWhenReduce(v);
-				} finally {
-					v.ExitFairLock();
+		while (!remain.isEmpty()) {
+			var remain2 = new ArrayList<KV<Lockey, Record1<K, V>>>(remain.size());
+			for (var e : remain) {
+				var k = e.getKey();
+				if (!k.TryEnterWriteLock(0)) {
+					remain2.add(e);
+					continue;
 				}
-			} finally {
-				e.getKey().ExitWriteLock();
+				try {
+					var v = e.getValue();
+					if (!v.TryEnterFairLock()) {
+						remain2.add(e);
+						continue;
+					}
+					try {
+						v.setState(GlobalCacheManagerServer.StateInvalid);
+						FlushWhenReduce(v);
+					} finally {
+						v.ExitFairLock();
+					}
+				} finally {
+					k.ExitWriteLock();
+				}
 			}
+			remain = remain2;
 		}
 	}
 

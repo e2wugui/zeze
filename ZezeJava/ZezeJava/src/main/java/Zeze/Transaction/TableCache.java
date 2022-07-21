@@ -179,6 +179,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 					logger.warn("remain record when clean oldest lruNode.");
 					// 出现回收不了，一般是批量修改数据，此时启动一次Checkpoint。
 					Table.getZeze().getCheckpoint().RunOnce();
+					//noinspection BusyWait
 					Thread.sleep(Table.getTableConf().getCacheCleanPeriodWhenExceedCapacity());
 				}
 			}
@@ -218,8 +219,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	}
 
 	private boolean TryRemoveRecordUnderLock(Map.Entry<K, Record1<K, V>> p) {
-		var storage = Table.GetStorage();
-		if (null == storage) {
+		if (Table.GetStorage() == null) {
 				/* 不支持内存表cache同步。
 				if (p.Value.Acquire(GlobalCacheManager.StateInvalid) != GlobalCacheManager.StateInvalid)
 				    return false;

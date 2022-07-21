@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.TreeMap;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
@@ -346,7 +345,7 @@ public final class RelativeRecordSet {
 		@Override
 		public Iterator<Record> iterator() {
 			return new Iterator<>() {
-				Iterator<RelativeRecordSet> it = SortedRrs.values().iterator();
+				final Iterator<RelativeRecordSet> it = SortedRrs.values().iterator();
 				Iterator<Record> rrs;
 
 				@Override
@@ -391,9 +390,7 @@ public final class RelativeRecordSet {
 				}
 				SortedRrs.clear();
 			} finally {
-				for (var rrs : locks) {
-					rrs.UnLock();
-				}
+				locks.forEach(RelativeRecordSet::UnLock);
 			}
 		}
 	}
@@ -412,14 +409,12 @@ public final class RelativeRecordSet {
 			// concurrent flush
 			for (var rrs : checkpoint.RelativeRecordSetMap) {
 				if (flushSet.add(rrs) >= flushLimit) {
-					final var finalFlushSet = flushSet;
-					pool.execute(() -> finalFlushSet.flush());
+					pool.execute(flushSet::flush);
 					flushSet = new FlushSet(checkpoint);
 				}
 			}
 			if (flushSet.size() > 0) {
-				final var finalFlushSet = flushSet;
-				pool.execute(() -> finalFlushSet.flush());
+				pool.execute(flushSet::flush);
 			}
 		}
 	}

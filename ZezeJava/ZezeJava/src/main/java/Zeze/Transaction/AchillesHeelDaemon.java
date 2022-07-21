@@ -221,6 +221,7 @@ public class AchillesHeelDaemon {
 						switch (cmd.command()) {
 						case Daemon.Release.Command:
 							var r = (Daemon.Release)cmd;
+							logger.info("receiveCommand {}", r.GlobalIndex);
 							var agent = Agents[r.GlobalIndex];
 							var config = agent.getConfig();
 							var rr = agent.checkReleaseTimeout(
