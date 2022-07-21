@@ -87,7 +87,7 @@ public abstract class GlobalAgentBase {
 			for (var database : zeze.getDatabases().values()) {
 				for (var table : database.getTables()) {
 					if (!table.isMemory()) {
-						Tasks.add(Task.getThreadPool().submit(() -> {
+						Tasks.add(Task.getCriticalThreadPool().submit(() -> {
 							table.ReduceInvalidAllLocalOnly(index);
 							return true;
 						}));

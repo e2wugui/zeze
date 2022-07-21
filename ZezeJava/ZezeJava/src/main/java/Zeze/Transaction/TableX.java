@@ -373,6 +373,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		var globalAgent = getZeze().getGlobalAgent();
 		var locks = getZeze().getLocks();
 		var remain = new ArrayList<KV<Lockey, Record1<K, V>>>(Cache.getDataMap().size());
+		logger.info("ReduceInvalidAllLocalOnly CacheSize=" + Cache.getDataMap().size());
 		for (var e : Cache.getDataMap().entrySet()) {
 			var k = e.getKey();
 			if (globalAgent.GetGlobalCacheManagerHashIndex(EncodeGlobalKey(k)) != GlobalCacheManagerHashIndex)
@@ -401,31 +402,21 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			}
 		}
 
-		while (!remain.isEmpty()) {
-			var remain2 = new ArrayList<KV<Lockey, Record1<K, V>>>(remain.size());
-			for (var e : remain) {
-				var k = e.getKey();
-				if (!k.TryEnterWriteLock(0)) {
-					remain2.add(e);
-					continue;
-				}
+		logger.info("ReduceInvalidAllLocalOnly Remain=" + remain.size());
+		for (var e : remain) {
+			e.getKey().EnterWriteLock();
+			try {
+				var v = e.getValue();
+				v.EnterFairLock();
 				try {
-					var v = e.getValue();
-					if (!v.TryEnterFairLock()) {
-						remain2.add(e);
-						continue;
-					}
-					try {
-						v.setState(GlobalCacheManagerServer.StateInvalid);
-						FlushWhenReduce(v);
-					} finally {
-						v.ExitFairLock();
-					}
+					v.setState(GlobalCacheManagerServer.StateInvalid);
+					FlushWhenReduce(v);
 				} finally {
-					k.ExitWriteLock();
+					v.ExitFairLock();
 				}
+			} finally {
+				e.getKey().ExitWriteLock();
 			}
-			remain = remain2;
 		}
 	}
 

@@ -7,7 +7,7 @@ import junit.framework.TestCase;
 import org.junit.Assert;
 
 public class CBasicSimpleAddConcurrent extends TestCase {
-    public final static int AddCount = 5_000_000;
+    public final static int AddCount = 40_000_000;
     public final static int ConcurrentLevel = 1_000;
 
     public void testBenchmark() throws Throwable {
