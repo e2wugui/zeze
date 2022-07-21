@@ -320,6 +320,8 @@ public final class Application {
 	public synchronized void Stop() throws Throwable {
 		if (!IsStart)
 			return;
+		IsStart = false;
+
 		ShutdownHook.remove(this);
 
 		if (null != AchillesHeelDaemon) {
@@ -359,7 +361,6 @@ public final class Application {
 		}
 		if (Conf != null)
 			Conf.ClearInUseAndIAmSureAppStopped(this, Databases);
-		IsStart = false;
 	}
 
 	public synchronized void CheckAndRemoveTable(Schemas other) throws RocksDBException {

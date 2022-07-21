@@ -2,7 +2,10 @@ package Zeze.Transaction;
 
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.TreeMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import Zeze.Services.GlobalCacheManagerServer;
@@ -307,6 +310,7 @@ public final class RelativeRecordSet {
 		return true;
 	}
 
+	/*
 	private static void FlushAndDelete(Checkpoint checkpoint, RelativeRecordSet rrs) {
 		rrs.Lock();
 		try {
@@ -319,16 +323,103 @@ public final class RelativeRecordSet {
 			rrs.UnLock();
 		}
 	}
+	*/
 
-	public static void FlushWhenCheckpoint(Checkpoint checkpoint) {
-		if (checkpoint.FlushThreadPool == null) {
-			for (var rrs : checkpoint.RelativeRecordSetMap) {
-				FlushAndDelete(checkpoint, rrs);
+	static class FlushSet implements Iterable<Record> {
+		private final Checkpoint Checkpoint;
+		private final TreeMap<Long, RelativeRecordSet> SortedRrs = new TreeMap<>();
+
+		public FlushSet(Checkpoint cp) {
+			Checkpoint = cp;
+		}
+
+		public int add(RelativeRecordSet rrs) {
+			if (null != SortedRrs.putIfAbsent(rrs.Id, rrs))
+				throw new RuntimeException("duplicate rrs");
+			return SortedRrs.size();
+		}
+
+		public int size() {
+			return SortedRrs.size();
+		}
+
+		@Override
+		public Iterator<Record> iterator() {
+			return new Iterator<>() {
+				Iterator<RelativeRecordSet> it = SortedRrs.values().iterator();
+				Iterator<Record> rrs;
+
+				@Override
+				public boolean hasNext() {
+					if (null != rrs && rrs.hasNext())
+						return true;
+					while (it.hasNext()) {
+						var n = it.next();
+						if (n.MergeTo == null) {
+							// normal rrs
+							rrs = n.getRecordSet().iterator();
+							if (rrs.hasNext())
+								return true;
+							// continue when rrs is empty
+						}
+						// continue: Merged Or Deleted
+					}
+					// nothing
+					return false;
+				}
+
+				@Override
+				public Record next() {
+					return rrs.next();
+				}
+			};
+		}
+
+		public void flush() {
+			var locks = new ArrayList<RelativeRecordSet>(SortedRrs.size());
+			try {
+				for (var rrs : SortedRrs.values()) {
+					rrs.Lock();
+					locks.add(rrs);
+				}
+
+				Checkpoint.Flush(this);
+				for (var rrs : SortedRrs.values()) {
+					if (rrs.MergeTo == null)
+						rrs.Delete(); // normal rrs: not merged and not deleted.
+					Checkpoint.RelativeRecordSetMap.remove(rrs);
+				}
+				SortedRrs.clear();
+			} finally {
+				for (var rrs : locks) {
+					rrs.UnLock();
+				}
 			}
+		}
+	}
+
+	public static void FlushWhenCheckpoint(Checkpoint checkpoint, ExecutorService pool) {
+		var flushSet = new FlushSet(checkpoint);
+		var flushLimit = checkpoint.getZeze().getConfig().getCheckpointModeTableFlushSetCount();
+		if (pool == null) {
+			for (var rrs : checkpoint.RelativeRecordSetMap) {
+				if (flushSet.add(rrs) >= flushLimit)
+					flushSet.flush();
+			}
+			if (flushSet.size() > 0)
+				flushSet.flush();
 		} else {
 			// concurrent flush
 			for (var rrs : checkpoint.RelativeRecordSetMap) {
-				checkpoint.FlushThreadPool.execute(() -> FlushAndDelete(checkpoint, rrs));
+				if (flushSet.add(rrs) >= flushLimit) {
+					final var finalFlushSet = flushSet;
+					pool.execute(() -> finalFlushSet.flush());
+					flushSet = new FlushSet(checkpoint);
+				}
+			}
+			if (flushSet.size() > 0) {
+				final var finalFlushSet = flushSet;
+				pool.execute(() -> finalFlushSet.flush());
 			}
 		}
 	}

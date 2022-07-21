@@ -207,7 +207,7 @@ namespace Zeze.Transaction
             }
             try
             {
-                while (DataMap.Count > Table.TableConf.CacheCapacity) // 超出容量，循环尝试
+                while (DataMap.Count > Table.TableConf.CacheCapacity && Table.Zeze.IsStart) // 超出容量，循环尝试
                 {
                     if (false == LruQueue.TryPeek(out var node))
                         break;
@@ -217,11 +217,7 @@ namespace Zeze.Transaction
 
                     foreach (var e in node)
                     {
-                        if (false == TryRemoveRecord(e))
-                        {
-                            // 出现回收不了，一般是批量修改数据，此时启动一次Checkpoint。
-                            Table.Zeze.CheckpointNow().Wait();
-                        }
+                        TryRemoveRecord(e);
                     }
                     if (node.IsEmpty)
                     {
@@ -229,6 +225,8 @@ namespace Zeze.Transaction
                     }
                     else
                     {
+                        // 出现回收不了，一般是批量修改数据，此时启动一次Checkpoint。
+                        Table.Zeze.Checkpoint.CheckpointNow().Wait();
                         logger.Warn($"remain record when clean oldest lrunode.");
                         System.Threading.Thread.Sleep(Table.TableConf.CacheCleanPeriodWhenExceedCapacity);
                     }

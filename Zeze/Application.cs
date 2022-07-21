@@ -258,6 +258,7 @@ namespace Zeze
 
                 if (false == IsStart)
                     return;
+                IsStart = false;
 
                 AchillesHeelDaemon?.StopAndJoin();
                 GlobalAgent?.Dispose(); // 关闭时需要生成新的SessionId，这个现在使用AutoKey，需要事务支持。
@@ -274,7 +275,6 @@ namespace Zeze
                 Config = null;
 
                 Config?.ClearInUseAndIAmSureAppStopped(this, Databases);
-                IsStart = false;
             }
         }
  

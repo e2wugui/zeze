@@ -13,13 +13,14 @@ Zege
 DatagramChannel
 Http In Linkd
 Immediately Record1::SetDirty(rockscache保存）OldTable::TableX::Load
-CheckpointMode.Table.Flush 在后台数据库的一个事务内提交多个rrs。
 AchillesHeelDaemon.ProcessDaemon for c# 重新实现一次当作review。
 
 【2022/8/15】
 ------------------------------------------------------------------------------------------------------------------------------
 tag 1.0.1 AchillesHeelDaemon.ProcessDaemon
 ------------------------------------------------------------------------------------------------------------------------------
+TableCache Checkpoint 时机修改；java 不捕捉 sleep 异常，此时一般是程序退出；while 增加 App.isStart() 判断。
+CheckpointMode.Table.Flush 在后台数据库的一个事务内提交多个rrs。【RelativeRecordSet.FlushSet】
 Arch.Online Login+Logout 中间补充触发一个Logout事件?
 	程序退出的时候怎么办？难道也要补？还有程序异常退出呢？
 	由于实现可靠的Login+Logout匹配难度太大，

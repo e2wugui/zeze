@@ -121,7 +121,7 @@ public final class Checkpoint {
 			break;
 
 		case Table:
-			RelativeRecordSet.FlushWhenCheckpoint(this);
+			RelativeRecordSet.FlushWhenCheckpoint(this, null);
 			break;
 		}
 	}
@@ -146,7 +146,7 @@ public final class Checkpoint {
 					break;
 
 				case Table:
-					RelativeRecordSet.FlushWhenCheckpoint(this);
+					RelativeRecordSet.FlushWhenCheckpoint(this, FlushThreadPool);
 					break;
 
 				default:
@@ -170,7 +170,7 @@ public final class Checkpoint {
 			break;
 
 		case Table:
-			RelativeRecordSet.FlushWhenCheckpoint(this);
+			RelativeRecordSet.FlushWhenCheckpoint(this, FlushThreadPool);
 			break;
 		}
 		if (null != FlushThreadPool) {

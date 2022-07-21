@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -269,7 +270,7 @@ namespace Zeze.Transaction
         private static async Task LockRRS(List<(RelativeRecordSet, IDisposable)> locked,
             SortedDictionary<long, RelativeRecordSet> sortedrrs, HashSet<Record> transAccessRecords)
         {
-            LabelLockRelativeRecordSets:
+        LabelLockRelativeRecordSets:
             {
                 int index = 0;
                 int n = locked.Count;
@@ -360,6 +361,7 @@ namespace Zeze.Transaction
             return true;
         }
 
+        /*
         private static async Task FlushAndDelete(Checkpoint checkpoint, RelativeRecordSet rrs)
         {
             using var lockrrs = await rrs.LockAsync();
@@ -373,23 +375,142 @@ namespace Zeze.Transaction
             rrs.Delete();
             checkpoint.RelativeRecordSetMap.TryRemove(rrs, out var _);
         }
+        */
 
-        internal static async Task FlushWhenCheckpoint(Checkpoint checkpoint)
+        class FlushSet : IEnumerable<Record>
         {
-            if (checkpoint.Zeze.Config.CheckpointModeTableFlushConcurrent < 2)
+            private readonly Checkpoint Checkpoint;
+            private readonly SortedDictionary<long, RelativeRecordSet> SortedRrs = new();
+            private readonly List<IDisposable> Locks = new();
+
+            public FlushSet(Checkpoint cp)
+            {
+                Checkpoint = cp;
+            }
+
+            public int Add(RelativeRecordSet rrs)
+            {
+                if (false == SortedRrs.TryAdd(rrs.Id, rrs))
+                    throw new Exception("duplicate rrs");
+                return SortedRrs.Count;
+            }
+
+            public int Count => SortedRrs.Count;
+
+            class Iterator : IEnumerator<Record>
+            {
+                private readonly IEnumerator<RelativeRecordSet> It;
+                private IEnumerator<Record> Rrs;
+
+                public Iterator(FlushSet fs)
+                {
+                    It = fs.SortedRrs.Values.GetEnumerator();
+                }
+
+                public Record Current => Rrs.Current;
+
+                object IEnumerator.Current => Rrs.Current;
+
+                public bool MoveNext()
+                {
+                    if (null != Rrs && Rrs.MoveNext())
+                        return true;
+                    while (It.MoveNext())
+                    {
+                        var n = It.Current;
+                        if (n.MergeTo == null)
+                        {
+                            // normal rrs
+                            Rrs = n.RecordSet.GetEnumerator();
+                            if (Rrs.MoveNext())
+                                return true;
+                            // continue when rrs is empty
+                        }
+                        // continue: Merged Or Deleted
+                    }
+                    // nothing
+                    return false;
+                }
+
+                public void Reset()
+                {
+                    It.Reset();
+                    Rrs = null;
+                }
+
+                public void Dispose()
+                {
+                    It.Dispose();
+                    Rrs?.Dispose();
+                    Rrs = null;
+                }
+            }
+
+            public IEnumerator<Record> GetEnumerator()
+            {
+                return new Iterator(this);
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return new Iterator(this);
+            }
+
+            public async Task FlushAsync()
+            {
+                try
+                {
+                    foreach (var rrs in SortedRrs.Values)
+                    {
+                        Locks.Add(await rrs.LockAsync());
+                    }
+                    await Checkpoint.Flush(this);
+                    foreach (var rrs in SortedRrs.Values)
+                    {
+                        if (rrs.MergeTo == null)
+                            rrs.Delete(); // normal rrs: not merged and not deleted.
+                        Checkpoint.RelativeRecordSetMap.TryRemove(rrs, out _);
+                    }
+                    SortedRrs.Clear();
+                }
+                finally
+                {
+                    foreach (var lck in Locks)
+                    {
+                        lck.Dispose();
+                    }
+                    Locks.Clear();
+                }
+            }
+        }
+
+        internal static async Task FlushWhenCheckpoint(Checkpoint checkpoint, bool synchronously)
+        {
+            var flushLimit = checkpoint.Zeze.Config.CheckpointModeTableFlushSetCount;
+            var flushSet = new FlushSet(checkpoint);
+            if (synchronously || checkpoint.Zeze.Config.CheckpointModeTableFlushConcurrent < 2)
             {
                 foreach (var rrs in checkpoint.RelativeRecordSetMap.Keys)
                 {
-                    await FlushAndDelete(checkpoint, rrs);
+                    if (flushSet.Add(rrs) >= flushLimit)
+                        await flushSet.FlushAsync();
                 }
+                if (flushSet.Count > 0)
+                    await flushSet.FlushAsync();
                 return;
             }
 
-            // flush concurrent。need a threadpool
+            // flush async
             foreach (var rrs in checkpoint.RelativeRecordSetMap.Keys)
             {
-                _ = FlushAndDelete(checkpoint, rrs);
+                if (flushSet.Add(rrs) >= flushLimit)
+                {
+                    _ = flushSet.FlushAsync();
+                    flushSet = new FlushSet(checkpoint);
+                }
             }
+            if (flushSet.Count > 0)
+                _ = flushSet.FlushAsync();
         }
 
         internal static async Task FlushWhenReduce(Record r)

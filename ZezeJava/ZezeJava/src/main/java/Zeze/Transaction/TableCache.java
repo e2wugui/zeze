@@ -154,7 +154,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 				(System.nanoTime() - timeBegin) / 1_000_000, LruQueue.size(), MAX_NODE_COUNT);
 	}
 
-	private void CleanNow() {
+	private void CleanNow() throws Throwable {
 		// 这个任务的执行时间可能很长，
 		// 不直接使用 Scheduler 的定时任务，
 		// 每次执行完重新调度。
@@ -162,17 +162,14 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		if (capacity > 0) {
 			var timeBegin = System.nanoTime();
 			int recordCount = 0, nodeCount = 0;
-			while (DataMap.size() > capacity) { // 超出容量，循环尝试
+			while (DataMap.size() > capacity && Table.getZeze().isStart()) { // 超出容量，循环尝试
 				var node = LruQueue.peek();
 				if (null == node || node == LruHot) { // 热点。不回收。
 					break;
 				}
 
 				for (var e : node.entrySet()) {
-					if (!TryRemoveRecord(e)) {
-						// 出现回收不了，一般是批量修改数据，此时启动一次Checkpoint。
-						Table.getZeze().CheckpointRun();
-					} else
+					if (TryRemoveRecord(e))
 						recordCount++;
 				}
 				if (node.isEmpty()) {
@@ -180,12 +177,9 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 					nodeCount++;
 				} else {
 					logger.warn("remain record when clean oldest lruNode.");
-					try {
-						//noinspection BusyWait
-						Thread.sleep(Table.getTableConf().getCacheCleanPeriodWhenExceedCapacity());
-					} catch (InterruptedException e) {
-						logger.error("CleanNow Interrupted", e);
-					}
+					// 出现回收不了，一般是批量修改数据，此时启动一次Checkpoint。
+					Table.getZeze().getCheckpoint().RunOnce();
+					Thread.sleep(Table.getTableConf().getCacheCleanPeriodWhenExceedCapacity());
 				}
 			}
 			if (recordCount > 0 || nodeCount > 0) {

@@ -104,7 +104,7 @@ namespace Zeze.Transaction
                     break;
 
                 case CheckpointMode.Table:
-                    await RelativeRecordSet.FlushWhenCheckpoint(this);
+                    await RelativeRecordSet.FlushWhenCheckpoint(this, true);
                     break;
             }
         }
@@ -131,7 +131,7 @@ namespace Zeze.Transaction
                             break;
 
                         case CheckpointMode.Table:
-                            RelativeRecordSet.FlushWhenCheckpoint(this).Wait();
+                            RelativeRecordSet.FlushWhenCheckpoint(this, false).Wait();
                             break;
                     }
                     lock (this)
@@ -152,7 +152,7 @@ namespace Zeze.Transaction
                     break;
 
                 case CheckpointMode.Table:
-                    RelativeRecordSet.FlushWhenCheckpoint(this).Wait();
+                    RelativeRecordSet.FlushWhenCheckpoint(this, true).Wait();
                     break;
             }
             logger.Fatal("final checkpoint end.");

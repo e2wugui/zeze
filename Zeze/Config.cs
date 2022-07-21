@@ -29,8 +29,8 @@ namespace Zeze
         public int WorkerThreads { get; set; }
         public int CompletionPortThreads { get; set; }
         public int CheckpointPeriod { get; set; } = 60000; // 60 seconds
-        public int CheckpointModeTableFlushConcurrent { get; set; } = 1
-
+        public int CheckpointModeTableFlushConcurrent { get; set; } = 2;
+        public int CheckpointModeTableFlushSetCount { get; set; } = 100;
         public Transaction.CheckpointMode CheckpointMode { get; set; }
             = Transaction.CheckpointMode.Table;
 
@@ -200,6 +200,10 @@ namespace Zeze
             attr = self.GetAttribute("CheckpointModeTableFlushConcurrent");
             if (attr.Length > 0)
                 CheckpointModeTableFlushConcurrent = int.Parse(attr);
+
+            attr = self.GetAttribute("CheckpointModeTableFlushSetCount");
+            if (attr.Length > 0)
+                CheckpointModeTableFlushSetCount = int.Parse(attr);
 
             attr = self.GetAttribute("ProcessReturnErrorLogLevel");
             if (attr.Length > 0)
