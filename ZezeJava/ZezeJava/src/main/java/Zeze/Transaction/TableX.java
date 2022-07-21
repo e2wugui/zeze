@@ -402,8 +402,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			}
 		}
 
-		logger.info("ReduceInvalidAllLocalOnly Remain=" + remain.size());
 		while (!remain.isEmpty()) {
+			logger.info("ReduceInvalidAllLocalOnly Remain=" + remain.size());
 			var remain2 = new ArrayList<KV<Lockey, Record1<K, V>>>(remain.size());
 			for (var e : remain) {
 				var k = e.getKey();
