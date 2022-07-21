@@ -90,6 +90,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			for (var table : tables) {
 				if (table == this)
 					continue; // skip self
+				if (null == table.Cache)
+					continue;
 				var r = table.Cache.Get(key);
 				if (null != r)
 					assert r.getState() == GlobalCacheManagerServer.StateInvalid;
@@ -98,6 +100,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			for (var table : tables) {
 				if (table == this)
 					continue; // skip self
+				if (null == table.Cache)
+					continue;
 				var r = table.Cache.Get(key);
 				if (null != r)
 					assert r.getState() == GlobalCacheManagerServer.StateShare || r.getState() == GlobalCacheManagerServer.StateInvalid;
