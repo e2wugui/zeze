@@ -11,8 +11,8 @@ import Zeze.Util.KV;
 /**
  * Zeze.Transaction.Table.storage 为 null 时，就表示内存表了。这个实现是为了测试 checkpoint 流程。
  */
-public final class DatabaseMemory extends Database {
-	private static final ProceduresMemory ProceduresMemory = new ProceduresMemory();
+public final class DatabaseMemory extends Database implements Database.Operates {
+	private static final HashMap<ByteBuffer, DataWithVersion> DataWithVersions = new HashMap<>();
 	private static final byte[] Removed = ByteBuffer.Empty;
 	private static final HashMap<String, HashMap<String, TableMemory>> databaseTables = new HashMap<>();
 	private static final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
@@ -28,47 +28,43 @@ public final class DatabaseMemory extends Database {
 
 	public DatabaseMemory(DatabaseConf conf) {
 		super(conf);
-		setDirectOperates(ProceduresMemory);
+		setDirectOperates(this);
 	}
 
-	private static final class ProceduresMemory implements Operates {
-		private final HashMap<ByteBuffer, DataWithVersion> DataWithVersions = new HashMap<>();
+	@Override
+	public int ClearInUse(int localId, String global) {
+		return 0;
+	}
 
-		@Override
-		public int ClearInUse(int localId, String global) {
-			return 0;
-		}
+	@Override
+	public void SetInUse(int localId, String global) {
+	}
 
-		@Override
-		public void SetInUse(int localId, String global) {
-		}
+	@Override
+	public synchronized DataWithVersion GetDataWithVersion(ByteBuffer key) {
+		var exist = DataWithVersions.get(key);
+		if (exist == null)
+			return null;
+		var copy = new DataWithVersion();
+		copy.Data = ByteBuffer.Wrap(exist.Data.Copy());
+		copy.Version = exist.Version;
+		return copy;
+	}
 
-		@Override
-		public synchronized DataWithVersion GetDataWithVersion(ByteBuffer key) {
-			var exist = DataWithVersions.get(key);
-			if (exist == null)
-				return null;
-			var copy = new DataWithVersion();
-			copy.Data = ByteBuffer.Wrap(exist.Data.Copy());
-			copy.Version = exist.Version;
-			return copy;
+	@Override
+	public synchronized KV<Long, Boolean> SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
+		var exist = DataWithVersions.get(key);
+		if (exist != null) {
+			if (exist.Version != version)
+				return KV.Create(exist.Version, false);
+			exist.Data = ByteBuffer.Wrap(data.Copy());
+			return KV.Create(++exist.Version, true);
 		}
-
-		@Override
-		public synchronized KV<Long, Boolean> SaveDataWithSameVersion(ByteBuffer key, ByteBuffer data, long version) {
-			var exist = DataWithVersions.get(key);
-			if (exist != null) {
-				if (exist.Version != version)
-					return KV.Create(exist.Version, false);
-				exist.Data = ByteBuffer.Wrap(data.Copy());
-				return KV.Create(++exist.Version, true);
-			}
-			DataWithVersion tempVar = new DataWithVersion();
-			tempVar.Data = ByteBuffer.Wrap(data.Copy());
-			tempVar.Version = version;
-			DataWithVersions.put(ByteBuffer.Wrap(key.Copy()), tempVar);
-			return KV.Create(version, true);
-		}
+		DataWithVersion tempVar = new DataWithVersion();
+		tempVar.Data = ByteBuffer.Wrap(data.Copy());
+		tempVar.Version = version;
+		DataWithVersions.put(ByteBuffer.Wrap(key.Copy()), tempVar);
+		return KV.Create(version, true);
 	}
 
 	public final class MemTrans implements Transaction {
@@ -79,16 +75,16 @@ public final class DatabaseMemory extends Database {
 			// 整个db同步。
 			lock.writeLock().lock();
 			try {
+				var db = databaseTables.computeIfAbsent(getDatabaseUrl(), __ -> new HashMap<>());
 				for (var e : batch.entrySet()) {
-					var db = databaseTables.computeIfAbsent(getDatabaseUrl(), __ -> new HashMap<>());
-					var table = db.computeIfAbsent(e.getKey(), TableMemory::new);
 					//if (e.getValue().size() > 2)
 					//	System.err.println("commit for: " + e.getKey() + " keys:" + e.getValue().keySet());
+					var map = db.computeIfAbsent(e.getKey(), TableMemory::new).Map;
 					for (var r : e.getValue().entrySet()) {
 						if (r.getValue() == Removed)
-							table.Map.remove(r.getKey());
+							map.remove(r.getKey());
 						else
-							table.Map.put(r.getKey(), r.getValue());
+							map.put(r.getKey(), r.getValue());
 					}
 				}
 			} finally {
@@ -132,18 +128,27 @@ public final class DatabaseMemory extends Database {
 	// 仅支持从一个db原子的查询数据。
 
 	// 多表原子查询。
-	public Map<String, Map<ByteBuffer, ByteBuffer>> Finds(Map<String, Set<ByteBuffer>> tableKeys) {
-		var result = new HashMap<String, Map<ByteBuffer, ByteBuffer>>();
+	public HashMap<String, Map<ByteBuffer, ByteBuffer>> Finds(Map<String, Set<ByteBuffer>> tableKeys) {
+		var result = new HashMap<String, Map<ByteBuffer, ByteBuffer>>(tableKeys.size());
+		for (var tks : tableKeys.entrySet())
+			result.put(tks.getKey(), new HashMap<>(tks.getValue().size()));
 		lock.readLock().lock();
 		try {
+			var db = databaseTables.get(getDatabaseUrl());
 			for (var tks : tableKeys.entrySet()) {
 				var tableName = tks.getKey();
-				var db = databaseTables.get(getDatabaseUrl());
 				var table = db != null ? db.get(tableName) : null;
-				var tableFinds = new HashMap<ByteBuffer, ByteBuffer>();
-				result.put(tableName, tableFinds);
-				for (var key : tks.getValue())
-					tableFinds.put(key, table != null ? table.Find(key) : null); // also put null value
+				var map = table != null ? table.Map : null;
+				var tableFinds = result.get(tableName);
+				for (var key : tks.getValue()) {
+					ByteBuffer value = null;
+					if (map != null) {
+						var v = map.get(key);
+						if (v != null)
+							value = ByteBuffer.Wrap(ByteBuffer.Copy(v));
+					}
+					tableFinds.put(key, value); // also put null value
+				}
 			}
 		} finally {
 			lock.readLock().unlock();
@@ -152,15 +157,23 @@ public final class DatabaseMemory extends Database {
 	}
 
 	// 单表原子查询
-	public Map<ByteBuffer, ByteBuffer> Finds(String tableName, Set<ByteBuffer> keys) {
-		var result = new HashMap<ByteBuffer, ByteBuffer>();
-		//System.err.println("finds for: " + tableName + " keys.size=" +keys.size());
-		var db = databaseTables.get(getDatabaseUrl());
-		var table = db != null ? db.get(tableName) : null;
+	public HashMap<ByteBuffer, ByteBuffer> Finds(String tableName, Set<ByteBuffer> keys) {
+		var result = new HashMap<ByteBuffer, ByteBuffer>(keys.size());
+		// System.err.println("finds for: " + tableName + " keys.size=" + keys.size());
 		lock.readLock().lock();
 		try {
-			for (var key : keys)
-				result.put(key, table != null ? table.Find(key) : null); // also put null value
+			var db = databaseTables.get(getDatabaseUrl());
+			var table = db != null ? db.get(tableName) : null;
+			var map = table != null ? table.Map : null;
+			for (var key : keys) {
+				ByteBuffer value = null;
+				if (map != null) {
+					var v = map.get(key);
+					if (v != null)
+						value = ByteBuffer.Wrap(ByteBuffer.Copy(v));
+				}
+				result.put(key, value); // also put null value
+			}
 		} finally {
 			lock.readLock().unlock();
 		}
@@ -214,16 +227,21 @@ public final class DatabaseMemory extends Database {
 		public long Walk(TableWalkHandleRaw callback) {
 			ByteBuffer[] keys;
 			byte[][] values;
+			int i = 0, n;
 			lock.readLock().lock();
 			try {
-				var n = Map.size();
-				keys = Map.keySet().toArray(new ByteBuffer[n]);
-				values = Map.values().toArray(new byte[n][]);
+				n = Map.size();
+				keys = new ByteBuffer[n];
+				values = new byte[n][];
+				for (var e : Map.entrySet()) {
+					keys[i] = e.getKey();
+					values[i++] = e.getValue();
+				}
 			} finally {
 				lock.readLock().unlock();
 			}
 			long count = 0;
-			for (int i = 0, n = keys.length; i < n; i++) {
+			for (i = 0; i < n; i++) {
 				count++;
 				if (!callback.handle(keys[i].Copy(), values[i].clone()))
 					break;
