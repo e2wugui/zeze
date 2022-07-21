@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 import java.util.ArrayList;
+import java.util.function.Function;
 import Zeze.Application;
 import Zeze.Component.DelayRemove;
 import Zeze.Net.Binary;
@@ -72,6 +73,38 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 	}
 
+	public Zeze.Util.Func0<ArrayList<TableX<K, V>>> GetSimulateTables;
+
+	private void VerifyGlobalRecordState(K key, boolean isModify) {
+		if (GetSimulateTables == null)
+			return;
+
+		ArrayList<TableX<K, V>> tables = null;
+		try {
+			tables = GetSimulateTables.call();
+		} catch (Throwable ex) {
+			throw new RuntimeException(ex);
+		}
+
+		if (isModify) {
+			for (var table : tables) {
+				if (table == this)
+					continue; // skip self
+				var r = table.Cache.Get(key);
+				if (null != r)
+					assert r.getState() == GlobalCacheManagerServer.StateInvalid;
+			}
+		} else {
+			for (var table : tables) {
+				if (table == this)
+					continue; // skip self
+				var r = table.Cache.Get(key);
+				if (null != r)
+					assert r.getState() == GlobalCacheManagerServer.StateShare || r.getState() == GlobalCacheManagerServer.StateInvalid;
+			}
+		}
+	}
+
 	@SuppressWarnings("unchecked")
 	private AtomicTupleRecord<K, V> Load(K key) {
 		var tkey = new TableKey(getId(), key);
@@ -106,6 +139,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						throw new IllegalStateException("Acquire Failed");
 					txn.ThrowRedoAndReleaseLock(tkey + ":" + r, null);
 				}
+				VerifyGlobalRecordState(key, r.getState() == GlobalCacheManagerServer.StateModify);
 
 				r.setTimestamp(Record.getNextTimestamp());
 				r.setFreshAcquire();

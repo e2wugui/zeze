@@ -43,8 +43,20 @@ public final class Simulate {
 		After();
 		for (int serverId = 0; serverId < AppCount; serverId++)
 			Apps.add(new App(serverId));
+
 		for (var app : Apps)
 			app.Start();
+
+		var allTFlush = new ArrayList<Zeze.Transaction.TableX<Long, demo.Module1.Value>>();
+		var allTable1 = new ArrayList<Zeze.Transaction.TableX<Long, demo.Module1.Value>>();
+		for (var app : Apps) {
+			allTFlush.add(app.app.demo_Module1.getTflush());
+			allTable1.add(app.app.demo_Module1.getTable1());
+		}
+		for (var app : Apps) {
+			app.app.demo_Module1.getTflush().GetSimulateTables = () -> allTFlush;
+			app.app.demo_Module1.getTable1().GetSimulateTables = () -> allTable1;
+		}
 	}
 
 	@After
