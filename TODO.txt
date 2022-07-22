@@ -16,7 +16,7 @@ Immediately Record1::SetDirty(rockscache保存）OldTable::TableX::Load
 AchillesHeelDaemon.ProcessDaemon for c# 重新实现一次当作review。
 	MemoryMappedFile 未映射到磁盘上的现有文件的内存映射文件
 	Mutex 跨进程锁，不需要用文件锁。
-	UdpClent UDP，感觉这个是比较新的高级包装，不知道有没有UDPSocket的类。
+	UdpClent UDP，感觉这个是比较新的高级包装，不知道有没有UDPSocket的类。SocketError.TimedOut
 	exec 还不知道用什么，由于c#运行环境不大一样，可能比较特殊。
 
 【2022/8/15】
