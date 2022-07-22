@@ -1,7 +1,7 @@
 package Zeze.Transaction;
 
 import java.util.ArrayList;
-import java.util.function.Function;
+import java.util.function.Supplier;
 import Zeze.Application;
 import Zeze.Component.DelayRemove;
 import Zeze.Net.Binary;
@@ -11,6 +11,7 @@ import Zeze.Services.GlobalCacheManagerServer;
 import Zeze.Services.ServiceManager.AutoKey;
 import Zeze.Util.KV;
 import Zeze.Util.Macro;
+import Zeze.Util.Str;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -73,38 +74,28 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 	}
 
-	public Zeze.Util.Func0<ArrayList<TableX<K, V>>> GetSimulateTables;
+	public Supplier<ArrayList<TableX<K, V>>> GetSimulateTables;
 
 	private void VerifyGlobalRecordState(K key, boolean isModify) {
-		if (GetSimulateTables == null)
+		var getSimulateTables = GetSimulateTables;
+		if (getSimulateTables == null)
 			return;
 
-		ArrayList<TableX<K, V>> tables = null;
+		ArrayList<TableX<K, V>> tables;
 		try {
-			tables = GetSimulateTables.call();
+			tables = getSimulateTables.get();
 		} catch (Throwable ex) {
 			throw new RuntimeException(ex);
 		}
 
-		if (isModify) {
-			for (var table : tables) {
-				if (table == this)
-					continue; // skip self
-				if (null == table.Cache)
-					continue;
-				var r = table.Cache.Get(key);
-				if (null != r)
-					assert r.getState() == GlobalCacheManagerServer.StateInvalid;
-			}
-		} else {
-			for (var table : tables) {
-				if (table == this)
-					continue; // skip self
-				if (null == table.Cache)
-					continue;
-				var r = table.Cache.Get(key);
-				if (null != r)
-					assert r.getState() == GlobalCacheManagerServer.StateShare || r.getState() == GlobalCacheManagerServer.StateInvalid;
+		var checkState = isModify ? GlobalCacheManagerServer.StateInvalid : GlobalCacheManagerServer.StateShare;
+		for (var table : tables) {
+			if (table == this || table.Cache == null)
+				continue; // skip self
+			var r = table.Cache.Get(key);
+			if (r != null && r.getState() > checkState) {
+				throw new AssertionError(Str.format("verify failed: serverId={}, table={}, key={}, state={}, isModify={}",
+						getZeze().getConfig().getServerId(), getName(), key, r.getState(), isModify));
 			}
 		}
 	}

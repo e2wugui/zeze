@@ -221,11 +221,13 @@ public final class Application {
 	public synchronized void Start() throws Throwable {
 		if (IsStart)
 			return;
+		var serverId = Conf != null ? Conf.getServerId() : -1;
+		logger.info("Start ServerId={}", serverId);
 
 		// Start Thread Pool
 		Task.tryInitThreadPool(this, null, null); // 确保Task线程池已经建立,如需定制,在Start前先手动初始化
 
-		if (getConfig().getServerId() >= 0) {
+		if (serverId >= 0) {
 			// 自动初始化的组件。
 			autoKey = new AutoKey.Module(this);
 			queueModule = new Queue.Module(this);
@@ -235,11 +237,11 @@ public final class Application {
 
 			// Set Database InUse
 			for (var db : Databases.values())
-				db.getDirectOperates().SetInUse(Conf.getServerId(), Conf.getGlobalCacheManagerHostNameOrAddress());
+				db.getDirectOperates().SetInUse(serverId, Conf.getGlobalCacheManagerHostNameOrAddress());
 
 			// Open RocksCache
 			var dbConf = new Config.DatabaseConf();
-			dbConf.setName("zeze_cache_" + getConfig().getServerId());
+			dbConf.setName("zeze_cache_" + serverId);
 			dbConf.setDatabaseUrl(dbConf.getName());
 			deleteDirectory(new File(dbConf.getDatabaseUrl()));
 			dbConf.setDatabaseType(Config.DbType.RocksDb);
@@ -248,13 +250,13 @@ public final class Application {
 		}
 
 		// Start ServiceManager
-		var serviceManagerConf = Conf.GetServiceConf(Agent.DefaultServiceName);
+		var serviceManagerConf = Conf != null ? Conf.GetServiceConf(Agent.DefaultServiceName) : null;
 		if (serviceManagerConf != null && ServiceManagerAgent != null) {
 			ServiceManagerAgent.getClient().Start();
 			ServiceManagerAgent.WaitConnectorReady();
 		}
 
-		if (getConfig().getServerId() >= 0) {
+		if (serverId >= 0) {
 			// Open Databases
 			for (var db : Databases.values())
 				db.Open(this);
@@ -277,7 +279,7 @@ public final class Application {
 			}
 
 			// Checkpoint
-			_checkpoint = new Checkpoint(this, Conf.getCheckpointMode(), Databases.values(), Conf.getServerId());
+			_checkpoint = new Checkpoint(this, Conf.getCheckpointMode(), Databases.values(), serverId);
 			_checkpoint.Start(Conf.getCheckpointPeriod()); // 定时模式可以和其他模式混用。
 
 			/////////////////////////////////////////////////////
@@ -286,7 +288,7 @@ public final class Application {
 			if (Schemas != null) {
 				Schemas.Compile();
 				var keyOfSchemas = ByteBuffer.Allocate(24);
-				keyOfSchemas.WriteString("zeze.Schemas." + Conf.getServerId());
+				keyOfSchemas.WriteString("zeze.Schemas." + serverId);
 				while (true) {
 					var dataVersion = defaultDb.getDirectOperates().GetDataWithVersion(keyOfSchemas);
 					long version = 0;
@@ -321,6 +323,7 @@ public final class Application {
 		if (!IsStart)
 			return;
 		IsStart = false;
+		logger.info("Stop ServerId={}", Conf != null ? Conf.getServerId() : -1);
 
 		ShutdownHook.remove(this);
 
