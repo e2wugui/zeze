@@ -191,10 +191,6 @@ public class AchillesHeelDaemon {
 			var reportDiff = agent.getActiveTime() - LastReportTime[agent.GlobalCacheManagerHashIndex];
 			if (reportDiff < 1000)
 				return;
-			//*
-			if (reportDiff < 9000 && Zeze.getConfig().getServerId() == 0)
-				return;
-			// */
 			LastReportTime[agent.GlobalCacheManagerHashIndex] = agent.getActiveTime();
 
 			var bb = ByteBuffer.Allocate();
