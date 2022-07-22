@@ -21,7 +21,7 @@ import org.apache.logging.log4j.Level;
 import org.junit.Assert;
 
 public final class Tasks {
-	private static final boolean debugTradeSum = false;
+	public static final boolean debugTradeSum = false;
 	private static final ConcurrentHashMap<String, LongConcurrentHashMap<LongAdder>> CounterKey = new ConcurrentHashMap<>();
 	private static final ConcurrentHashMap<String, LongAdder> CounterRun = new ConcurrentHashMap<>();
 	private static final ConcurrentHashMap<String, LongAdder> CounterSuccess = new ConcurrentHashMap<>();
@@ -40,6 +40,12 @@ public final class Tasks {
 
 	static LongAdder getSuccessCounter(String name) {
 		return CounterSuccess.computeIfAbsent(name, __ -> new LongAdder());
+	}
+
+	static void clearAllCounters() {
+		CounterKey.clear();
+		CounterRun.clear();
+		CounterSuccess.clear();
 	}
 
 	// 所有以long为key的记录访问可以使用这个基类。

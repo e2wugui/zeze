@@ -1,10 +1,11 @@
 package Infinite;
 
 public class TwoTestBug {
-	public static void main(String args[]) throws Throwable {
-		var i = 0;
+	public static void main(String[] args) throws Throwable {
+		int i = 0;
 		try {
-			while (true) {
+			//noinspection InfiniteLoopStatement
+			for (; ; i++) {
 				Simulate.logger.fatal("----------- CBasicSimpleAddConcurrent " + i + " -----------");
 				var test1 = new CBasicSimpleAddConcurrent();
 				try {
@@ -13,6 +14,7 @@ public class TwoTestBug {
 					Simulate.logger.fatal("CBasicSimpleAddConcurrent", ex);
 				}
 				Simulate.logger.fatal("----------- Simulate " + i + " -----------");
+				Tasks.clearAllCounters();
 				var simulate = new Simulate();
 				simulate.Infinite = false;
 				simulate.Before();
