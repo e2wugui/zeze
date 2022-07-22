@@ -86,6 +86,8 @@
 		<rocksdbjni.version>7.3.1</rocksdbjni.version>
 		<tikv.version>3.3.0</tikv.version>
 		<mysql-conncetor-java.version>8.0.28</mysql-conncetor-java.version>
+		<rocketmq-client.version>4.9.4</rocketmq-client.version>
+		<javaee-api.version>8.0.1</javaee-api.version>
 		<junit.version>4.13.2</junit.version>
 	</properties>
 
@@ -144,6 +146,20 @@
 			<groupId>mysql</groupId>
 			<artifactId>mysql-connector-java</artifactId>
 			<version>${mysql-conncetor-java.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.rocketmq</groupId>
+			<artifactId>rocketmq-client</artifactId>
+			<version>${rocketmq-client.version}</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>javax</groupId>
+			<artifactId>javaee-api</artifactId>
+			<version>${javaee-api.version}</version>
+			<scope>provided</scope>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/junit/junit -->
