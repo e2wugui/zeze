@@ -26,6 +26,7 @@ public class TwoTestBug {
 				} finally {
 					simulate.After();
 				}
+				++i;
 			}
 		} finally {
 			Simulate.logger.fatal("----------- End " + i + " -----------");
