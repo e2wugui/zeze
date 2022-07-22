@@ -46,6 +46,8 @@ public final class Tasks {
 		CounterKey.clear();
 		CounterRun.clear();
 		CounterSuccess.clear();
+		Table1Long2Add1.commitCount.reset();
+		tflushInt1TradeConcurrentVerify.keys = null;
 	}
 
 	// 所有以long为key的记录访问可以使用这个基类。
