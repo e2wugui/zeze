@@ -1,5 +1,7 @@
 package Infinite;
 
+import Benchmark.CBasicSimpleAddConcurrent;
+
 public class TwoTestBug {
 	public static void main(String[] args) throws Throwable {
 		int i = 0;
@@ -26,7 +28,6 @@ public class TwoTestBug {
 				} finally {
 					simulate.After();
 				}
-				++i;
 			}
 		} finally {
 			Simulate.logger.fatal("----------- End " + i + " -----------");
