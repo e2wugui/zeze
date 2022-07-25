@@ -3,6 +3,8 @@
 /ConfigEditor/bin
 /ConfigEditor/obj
 /ConfigEditor/Output
+/Daemon/bin
+/Daemon/obj
 /Gen/bin
 /Gen/obj
 /GlobalCacheManager/bin

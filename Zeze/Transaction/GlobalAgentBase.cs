@@ -23,7 +23,7 @@ namespace Zeze.Transaction
 		public void SetActiveTime(long value)
 		{
 			Interlocked.Exchange(ref activeTime, value);
-			Zeze.AchillesHeelDaemon.setProcessDaemonActiveTime(GlobalCacheManagerHashIndex, value);
+			Zeze.AchillesHeelDaemon.setProcessDaemonActiveTime(this, value);
 		}
 
 		public AchillesHeelConfig Config { get; private set; }
@@ -37,6 +37,7 @@ namespace Zeze.Transaction
         public void Initialize(int maxNetPing, int serverProcessTime, int serverReleaseTimeout)
 		{
 			Config = new AchillesHeelConfig(maxNetPing, serverProcessTime, serverReleaseTimeout);
+			Zeze.AchillesHeelDaemon.onInitialize(this);
 		}
 
 		public abstract void KeepAlive();

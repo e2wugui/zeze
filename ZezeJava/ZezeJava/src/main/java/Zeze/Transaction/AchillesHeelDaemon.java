@@ -108,13 +108,13 @@ import org.apache.logging.log4j.Logger;
 
 public class AchillesHeelDaemon {
 	private static final Logger logger = LogManager.getLogger(AchillesHeelDaemon.class);
+
 	private final Application Zeze;
 	private final GlobalAgentBase[] Agents;
-
 	private final ThreadDaemon TD;
 	private final ProcessDaemon PD;
 
-	public <T extends GlobalAgentBase> AchillesHeelDaemon(Application zeze, T[] agents) throws Exception {
+	public AchillesHeelDaemon(Application zeze, GlobalAgentBase[] agents) throws Exception {
 		Zeze = zeze;
 		Agents = agents.clone();
 		var peerPort = System.getProperty(Daemon.PropertyNamePort);
@@ -127,20 +127,20 @@ public class AchillesHeelDaemon {
 		}
 	}
 
+	public void start() {
+		if (TD != null)
+			TD.start();
+		if (PD != null)
+			PD.start();
+	}
+
 	public void stopAndJoin() throws InterruptedException {
-		if (null != TD) {
+		if (TD != null) {
 			TD.Running = false;
 			TD.join();
 		}
-		if (null != PD)
+		if (PD != null)
 			PD.stopAndJoin();
-	}
-
-	public void start() {
-		if (null != TD)
-			TD.start();
-		if (null != PD)
-			PD.start();
 	}
 
 	public void onInitialize(GlobalAgentBase agent) {
@@ -182,6 +182,7 @@ public class AchillesHeelDaemon {
 			DaemonSocketAddress = new InetSocketAddress("127.0.0.1", peer);
 
 			LastReportTime = new long[Agents.length];
+			UdpSocket.setSoTimeout(200);
 			Daemon.sendCommand(UdpSocket, DaemonSocketAddress,
 					new Daemon.Register(Zeze.getConfig().getServerId(), Agents.length, fileName.toString()));
 		}
@@ -193,14 +194,13 @@ public class AchillesHeelDaemon {
 				return;
 			LastReportTime[agent.GlobalCacheManagerHashIndex] = agent.getActiveTime();
 
-			var bb = ByteBuffer.Allocate();
+			var bb = ByteBuffer.Allocate(8);
 			bb.WriteLong8(value);
 
 			// TODO 不同的GlobalAgent能并发起来。由于上面的低频率报告优化，这个不是很必要了。
 			synchronized (Channel) {
 				try (var ignored = Channel.lock()) {
-					MMap.position(agent.GlobalCacheManagerHashIndex * 8);
-					MMap.put(bb.Bytes, bb.ReadIndex, bb.Size());
+					MMap.put(agent.GlobalCacheManagerHashIndex * 8, bb.Bytes, 0, 8);
 				} catch (Throwable ex) {
 					logger.error("setActiveTime", ex);
 				}
@@ -336,7 +336,7 @@ public class AchillesHeelDaemon {
 				}
 			} catch (Throwable ex) {
 				// 这个线程不准出错。
-				logger.fatal("AchillesHeelDaemon ", ex);
+				logger.fatal("AchillesHeelDaemon", ex);
 				LogManager.shutdown();
 				Runtime.getRuntime().halt(321321);
 			}

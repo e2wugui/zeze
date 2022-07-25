@@ -18,18 +18,29 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class Daemon {
-	public final static String PropertyNamePort = "Zeze.ProcessDaemon.Port";
-
+	public static final String PropertyNamePort = "Zeze.ProcessDaemon.Port";
 	private static final Logger logger = LogManager.getLogger(Daemon.class);
+
+	// Key Is ServerId。每个Server对应一个Monitor。
+	// 正常使用是一个Daemon对应一个Server。
+	// 写成支持多个Server是为了跑Simulate测试。
+	private static final ConcurrentHashMap<Integer, Monitor> Monitors = new ConcurrentHashMap<>();
+	private static DatagramSocket UdpSocket;
+	private static Process Subprocess;
+
+	private static final ConcurrentHashMap<Long, PendingPacket> Pending = new ConcurrentHashMap<>();
+	private static volatile Future<?> Timer;
 
 	public static void main(String[] args) throws Exception {
 		// udp for subprocess register
 		UdpSocket = new DatagramSocket(0, InetAddress.getLoopbackAddress());
+		UdpSocket.setSoTimeout(200);
 
 		var command = new ArrayList<String>();
 		command.add("java");
@@ -46,7 +57,7 @@ public class Daemon {
 				if (0 == exitCode)
 					break;
 				joinMonitors();
-				logger.warn("Subprocess Restart! ExitCode=" + exitCode);
+				logger.warn("Subprocess Restart! ExitCode={}", exitCode);
 				Subprocess = pb.start();
 			}
 		} catch (Throwable ex) {
@@ -62,17 +73,19 @@ public class Daemon {
 			try {
 				// 轮询：等待Global配置以及等待子进程退出。
 				try {
-					var cmd = Daemon.receiveCommand(UdpSocket);
+					var cmd = receiveCommand(UdpSocket);
 					switch (cmd.command()) {
 					case Register.Command:
 						var reg = (Register)cmd;
 						var code = 0;
-						var monitor = new Monitor(reg);
-						if (null == Monitors.putIfAbsent(reg.ServerId, monitor))
-							monitor.start();
-						else
+						if (Monitors.containsKey(reg.ServerId))
 							code = 1;
-						Daemon.sendCommand(UdpSocket, cmd.Peer, new CommonResult(reg.ReliableSerialNo, code));
+						else {
+							var monitor = new Monitor(reg);
+							Monitors.put(reg.ServerId, monitor);
+							monitor.start();
+						}
+						sendCommand(UdpSocket, cmd.Peer, new CommonResult(reg.ReliableSerialNo, code));
 						logger.info("Register! Server={} code={}", reg.ServerId, code);
 						break;
 
@@ -100,13 +113,6 @@ public class Daemon {
 		}
 	}
 
-	// Key Is ServerId。每个Server对应一个Monitor。
-	// 正常使用是一个Daemon对应一个Server。
-	// 写成支持多个Server是为了跑Simulate测试。
-	private static final ConcurrentHashMap<Integer, Monitor> Monitors = new ConcurrentHashMap<>();
-	private static DatagramSocket UdpSocket;
-	private static Process Subprocess;
-
 	public static void fatalExit() {
 		Subprocess.destroy();
 		LogManager.shutdown();
@@ -125,8 +131,8 @@ public class Daemon {
 	}
 
 	public static class PendingPacket {
-		public DatagramSocket Socket;
-		public DatagramPacket Packet;
+		public final DatagramSocket Socket;
+		public final DatagramPacket Packet;
 		public long SendTime;
 
 		public PendingPacket(DatagramSocket socket, DatagramPacket packet) {
@@ -135,9 +141,6 @@ public class Daemon {
 			SendTime = System.currentTimeMillis();
 		}
 	}
-
-	private static final ConcurrentHashMap<Long, PendingPacket> Pending = new ConcurrentHashMap<>();
-	private static volatile Future<?> Timer;
 
 	public static void sendCommand(DatagramSocket socket, SocketAddress peer, Command cmd) throws IOException {
 		var bb = ByteBuffer.Allocate();
@@ -161,7 +164,7 @@ public class Daemon {
 								}
 							}
 						});
-						Zeze.Util.ShutdownHook.add(() -> Timer.cancel(false));
+						ShutdownHook.add(() -> Timer.cancel(false));
 					}
 				}
 			}
@@ -179,15 +182,18 @@ public class Daemon {
 	private static Command _receiveCommand(DatagramSocket socket) throws IOException {
 		var buf = new byte[1024];
 		var p = new DatagramPacket(buf, buf.length);
-		socket.setSoTimeout(200);
 		socket.receive(p);
 		var bb = ByteBuffer.Wrap(buf, 0, p.getLength());
 		var cmd = bb.ReadInt();
 		switch (cmd) {
-		case Register.Command: return new Register(bb, p.getSocketAddress());
-		case CommonResult.Command: return new CommonResult(bb, p.getSocketAddress());
-		case GlobalOn.Command: return new GlobalOn(bb, p.getSocketAddress());
-		case Release.Command: return new Release(bb, p.getSocketAddress());
+		case Register.Command:
+			return new Register(bb, p.getSocketAddress());
+		case CommonResult.Command:
+			return new CommonResult(bb, p.getSocketAddress());
+		case GlobalOn.Command:
+			return new GlobalOn(bb, p.getSocketAddress());
+		case Release.Command:
+			return new Release(bb, p.getSocketAddress());
 		}
 		throw new RuntimeException("Unknown Command =" + cmd);
 	}
@@ -202,6 +208,8 @@ public class Daemon {
 		private final FileChannel Channel;
 		private final MappedByteBuffer MMap;
 		private final AchillesHeelConfig[] GlobalConfigs;
+
+		private volatile boolean Running = true;
 
 		public Monitor(Register reg) throws Exception {
 			ServerId = reg.ServerId;
@@ -225,8 +233,6 @@ public class Daemon {
 			Channel.close();
 			File.close();
 		}
-
-		private volatile boolean Running = true;
 
 		private ByteBuffer copyMMap() throws IOException {
 			synchronized (Channel) {
@@ -258,14 +264,14 @@ public class Daemon {
 						var idle = now - activeTime;
 						if (idle > config.ServerReleaseTimeout) {
 							logger.info("destroySubprocess {} - {} > {}", now, activeTime, config.ServerReleaseTimeout);
-							Daemon.destroySubprocess();
+							destroySubprocess();
 							// daemon main will restart subprocess!
 						} else if (idle > config.ServerDaemonTimeout) {
 							logger.info("sendCommand Release-{} {} - {} > {}", i, now, activeTime, config.ServerDaemonTimeout);
 							// 在Server执行Release期间，命令可能重复发送。
 							// 重复命令的处理由Server完成，
 							// 这里重发也是需要的，刚好解决Udp不可靠性。
-							Daemon.sendCommand(UdpSocket, PeerSocketAddress, new Release(i));
+							sendCommand(UdpSocket, PeerSocketAddress, new Release(i));
 						}
 						//noinspection BusyWait
 						Thread.sleep(1000);
@@ -273,7 +279,7 @@ public class Daemon {
 				}
 			} catch (Throwable ex) {
 				logger.fatal("Monitor.run", ex);
-				Daemon.fatalExit();
+				fatalExit();
 			}
 		}
 
@@ -333,7 +339,7 @@ public class Daemon {
 	}
 
 	public static class Register extends Command {
-		public final static int Command = 0;
+		public static final int Command = 0;
 
 		public int ServerId;
 		public int GlobalCount;
@@ -374,11 +380,11 @@ public class Daemon {
 	}
 
 	public static class GlobalOn extends Command {
-		public final static int Command = 1;
+		public static final int Command = 1;
 
 		public int ServerId;
 		public int GlobalIndex;
-		public AchillesHeelConfig GlobalConfig = new AchillesHeelConfig();
+		public final AchillesHeelConfig GlobalConfig = new AchillesHeelConfig();
 
 		public GlobalOn(int serverId, int index, int server, int release) {
 			ServerId = serverId;
@@ -416,7 +422,7 @@ public class Daemon {
 	}
 
 	public static class CommonResult extends Command {
-		public final static int Command = 2;
+		public static final int Command = 2;
 
 		public int Code;
 
@@ -449,7 +455,7 @@ public class Daemon {
 	}
 
 	public static class Release extends Command {
-		public final static int Command = 3;
+		public static final int Command = 3;
 
 		public int GlobalIndex;
 
