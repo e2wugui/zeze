@@ -82,6 +82,7 @@ public class AchillesHeelDaemon
         readonly Thread Thread;
         internal readonly UdpClient UdpSocket = new(new IPEndPoint(IPAddress.Loopback, 0));
         internal readonly IPEndPoint DaemonSocketAddress;
+        readonly string FileName;
         readonly MemoryMappedFile MMap;
         readonly MemoryMappedViewAccessor MMapAccessor;
         readonly long[] LastReportTime;
@@ -90,14 +91,16 @@ public class AchillesHeelDaemon
         public ProcessDaemon(AchillesHeelDaemon ahd, int peer)
         {
             AchillesHeelDaemon = ahd;
-            var fileName = Path.GetTempFileName();
-            MMap = MemoryMappedFile.CreateFromFile(fileName);
+            FileName = Path.GetTempFileName();
+            File.WriteAllBytes(FileName, new byte[8 * ahd.Agents.Length]);
+            // File.DeleteOnExit(fileName);
+            MMap = MemoryMappedFile.CreateFromFile(FileName);
             MMapAccessor = MMap.CreateViewAccessor(0, 8L * ahd.Agents.Length);
             DaemonSocketAddress = new IPEndPoint(IPAddress.Loopback, peer);
             LastReportTime = new long[ahd.Agents.Length];
             UdpSocket.Client.SendTimeout = 200;
             Daemon.SendCommand(UdpSocket, DaemonSocketAddress,
-                new Daemon.Register(ahd.Zeze.Config.ServerId, ahd.Agents.Length, fileName));
+                new Daemon.Register(ahd.Zeze.Config.ServerId, ahd.Agents.Length, FileName));
             Thread = new Thread(Run);
         }
 
@@ -158,6 +161,15 @@ public class AchillesHeelDaemon
             catch (Exception e)
             {
                 logger.Error(e, "UdpSocket.Dispose");
+            }
+
+            try
+            {
+                File.Delete(FileName); // try delete
+            }
+            catch (Exception)
+            {
+                // ignored
             }
         }
 

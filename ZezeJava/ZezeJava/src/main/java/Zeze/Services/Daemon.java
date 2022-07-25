@@ -209,7 +209,8 @@ public class Daemon {
 	private static class Monitor extends Thread {
 		private final SocketAddress PeerSocketAddress;
 		private final AtomicReferenceArray<AchillesHeelConfig> GlobalConfigs;
-		private final RandomAccessFile File;
+		private final String fileName;
+		private final RandomAccessFile raf;
 		private final FileChannel Channel;
 		private final MappedByteBuffer MMap;
 		private volatile boolean Running = true;
@@ -217,8 +218,9 @@ public class Daemon {
 		public Monitor(Register reg) throws Exception {
 			PeerSocketAddress = reg.Peer;
 			GlobalConfigs = new AtomicReferenceArray<>(reg.GlobalCount);
-			File = new RandomAccessFile(new File(reg.MMapFileName), "rw");
-			Channel = File.getChannel();
+			fileName = reg.MMapFileName;
+			raf = new RandomAccessFile(new File(fileName), "rw");
+			Channel = raf.getChannel();
 			MMap = Channel.map(FileChannel.MapMode.READ_WRITE, 0, Channel.size());
 		}
 
@@ -279,11 +281,24 @@ public class Daemon {
 			}
 		}
 
-		public void stopAndJoin() throws InterruptedException, IOException {
+		public void stopAndJoin() throws InterruptedException {
 			Running = false;
 			join();
-			Channel.close();
-			File.close();
+			try {
+				Channel.close();
+			} catch (Exception e) {
+				logger.error("Channel.close", e);
+			}
+			try {
+				raf.close();
+			} catch (Exception e) {
+				logger.error("File.close", e);
+			}
+			try {
+				//noinspection ResultOfMethodCallIgnored
+				new File(fileName).delete(); // try delete
+			} catch (Exception ignored) {
+			}
 		}
 	}
 

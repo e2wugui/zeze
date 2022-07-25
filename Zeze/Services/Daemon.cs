@@ -4,6 +4,7 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Net;
 using System.Net.Sockets;
@@ -235,6 +236,7 @@ public static class Daemon
     {
         readonly IPEndPoint PeerSocketAddress;
         readonly AchillesHeelConfig?[] GlobalConfigs;
+        readonly string FileName;
         readonly MemoryMappedFile MMap;
         readonly MemoryMappedViewAccessor MMapAccessor;
         readonly Thread thread;
@@ -244,7 +246,8 @@ public static class Daemon
         {
             PeerSocketAddress = reg.Peer!;
             GlobalConfigs = new AchillesHeelConfig[reg.GlobalCount];
-            MMap = MemoryMappedFile.CreateFromFile(reg.MMapFileName);
+            FileName = reg.MMapFileName;
+            MMap = MemoryMappedFile.CreateFromFile(FileName);
             MMapAccessor = MMap.CreateViewAccessor(0, reg.GlobalCount * 8);
             thread = new Thread(Run);
         }
@@ -317,8 +320,33 @@ public static class Daemon
         {
             Running = false;
             thread.Join();
-            MMapAccessor.Dispose();
-            MMap.Dispose();
+
+            try
+            {
+                MMapAccessor.Dispose();
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "MMapAccessor.Dispose");
+            }
+
+            try
+            {
+                MMap.Dispose();
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "MMap.Dispose");
+            }
+
+            try
+            {
+                File.Delete(FileName); // try delete
+            }
+            catch (Exception)
+            {
+                // ignored
+            }
         }
     }
 

@@ -1,5 +1,6 @@
 package Zeze.Transaction;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.net.DatagramSocket;
@@ -162,7 +163,8 @@ public class AchillesHeelDaemon {
 	private final class ProcessDaemon extends Thread {
 		private final DatagramSocket UdpSocket = new DatagramSocket(0, InetAddress.getLoopbackAddress());
 		private final SocketAddress DaemonSocketAddress;
-		private final RandomAccessFile File;
+		private final String FileName;
+		private final RandomAccessFile raf;
 		private final FileChannel Channel;
 		private final MappedByteBuffer MMap;
 		private final long[] LastReportTime = new long[Agents.length];
@@ -170,14 +172,16 @@ public class AchillesHeelDaemon {
 
 		public ProcessDaemon(int peer) throws Exception {
 			DaemonSocketAddress = new InetSocketAddress("127.0.0.1", peer);
-			var fileName = Files.createTempFile("zeze", ".mmap").toFile();
-			File = new RandomAccessFile(fileName, "rw");
-			File.setLength(8L * Agents.length);
-			Channel = File.getChannel();
+			var file = Files.createTempFile("zeze", ".mmap").toFile();
+			file.deleteOnExit();
+			FileName = file.getAbsolutePath();
+			raf = new RandomAccessFile(FileName, "rw");
+			raf.setLength(8L * Agents.length);
+			Channel = raf.getChannel();
 			MMap = Channel.map(FileChannel.MapMode.READ_WRITE, 0, Channel.size());
 			UdpSocket.setSoTimeout(200);
 			Daemon.sendCommand(UdpSocket, DaemonSocketAddress,
-					new Daemon.Register(Zeze.getConfig().getServerId(), Agents.length, fileName.toString()));
+					new Daemon.Register(Zeze.getConfig().getServerId(), Agents.length, FileName));
 		}
 
 		public void setActiveTime(GlobalAgentBase agent, long value) {
@@ -268,7 +272,7 @@ public class AchillesHeelDaemon {
 				logger.error("Channel.close", e);
 			}
 			try {
-				File.close();
+				raf.close();
 			} catch (Exception e) {
 				logger.error("File.close", e);
 			}
@@ -276,6 +280,11 @@ public class AchillesHeelDaemon {
 				UdpSocket.close();
 			} catch (Exception e) {
 				logger.error("UdpSocket.close", e);
+			}
+			try {
+				//noinspection ResultOfMethodCallIgnored
+				new File(FileName).delete(); // try delete
+			} catch (Exception ignored) {
 			}
 		}
 	}
