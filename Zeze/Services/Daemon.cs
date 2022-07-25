@@ -42,9 +42,10 @@ public static class Daemon
             {
                 [PropertyNamePort] = ((IPEndPoint)UdpSocket.Client.LocalEndPoint!).Port.ToString()
             },
-            RedirectStandardInput = true,
             RedirectStandardOutput = true,
-            RedirectStandardError = true
+            RedirectStandardError = true,
+            CreateNoWindow = true,
+            UseShellExecute = false
         };
         for (var i = 1; i < args.Length; i++)
             startInfo.ArgumentList.Add(args[i]);
@@ -54,6 +55,10 @@ public static class Daemon
             while (true)
             {
                 Subprocess = Process.Start(startInfo)!;
+                Subprocess.OutputDataReceived += (_, eventArgs) => Console.WriteLine(eventArgs.Data);
+                Subprocess.ErrorDataReceived += (_, eventArgs) => Console.Error.WriteLine(eventArgs.Data);
+                Subprocess.BeginOutputReadLine();
+                Subprocess.BeginErrorReadLine();
                 var exitCode = MainRun();
                 if (exitCode == 0)
                     break;
