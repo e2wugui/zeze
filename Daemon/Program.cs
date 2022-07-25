@@ -1,9 +1,9 @@
-using Zeze.Services;
+namespace Daemon;
 
-public sealed class Program
+public static class Program
 {
     public static void Main(string[] args)
     {
-        Daemon.Main(args);
+        Zeze.Services.Daemon.Main(args);
     }
 }

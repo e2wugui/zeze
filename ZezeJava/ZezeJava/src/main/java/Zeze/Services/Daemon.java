@@ -16,6 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReferenceArray;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Util.ShutdownHook;
@@ -34,7 +35,7 @@ public class Daemon {
 	private static DatagramSocket UdpSocket;
 	private static Process Subprocess;
 
-	private static final ConcurrentHashMap<Long, PendingPacket> Pending = new ConcurrentHashMap<>();
+	private static final ConcurrentHashMap<Long, PendingPacket> Pendings = new ConcurrentHashMap<>();
 	private static volatile Future<?> Timer;
 
 	public static void main(String[] args) throws Exception {
@@ -49,22 +50,22 @@ public class Daemon {
 
 		var pb = new ProcessBuilder(command);
 		pb.inheritIO();
-		Subprocess = pb.start();
 
 		try {
 			while (true) {
+				Subprocess = pb.start();
 				var exitCode = mainRun();
-				if (0 == exitCode)
+				if (exitCode == 0)
 					break;
 				joinMonitors();
 				logger.warn("Subprocess Restart! ExitCode={}", exitCode);
-				Subprocess = pb.start();
 			}
 		} catch (Throwable ex) {
 			logger.error("Daemon.main", ex);
 		} finally {
 			// 退出的时候，确保销毁服务进程。
-			Subprocess.destroy();
+			if (Subprocess != null)
+				Subprocess.destroy();
 		}
 	}
 
@@ -91,20 +92,25 @@ public class Daemon {
 
 					case GlobalOn.Command:
 						var on = (GlobalOn)cmd;
-						Monitors.get(on.ServerId).setConfig(on.GlobalIndex, on.GlobalConfig);
-						sendCommand(UdpSocket, cmd.Peer, new CommonResult(on.ReliableSerialNo, 0));
-						logger.info("GlobalOn! Server={} ServerDaemonTimeout={} ServerReleaseTimeout={}",
-								on.ServerId,
-								on.GlobalConfig.ServerDaemonTimeout,
-								on.GlobalConfig.ServerReleaseTimeout);
+						code = 0;
+						var monitor = Monitors.get(on.ServerId);
+						if (monitor != null) {
+							monitor.setConfig(on.GlobalIndex, on.GlobalConfig);
+							logger.info("GlobalOn! Server={} ServerDaemonTimeout={} ServerReleaseTimeout={}",
+									on.ServerId, on.GlobalConfig.ServerDaemonTimeout, on.GlobalConfig.ServerReleaseTimeout);
+						} else {
+							logger.warn("GlobalOn! not found serverId={} ServerDaemonTimeout={} ServerReleaseTimeout={}",
+									on.ServerId, on.GlobalConfig.ServerDaemonTimeout, on.GlobalConfig.ServerReleaseTimeout);
+							code = 1;
+						}
+						sendCommand(UdpSocket, cmd.Peer, new CommonResult(on.ReliableSerialNo, code));
 						break;
 					}
 				} catch (SocketTimeoutException ex) {
 					// skip
 				}
-				if (Subprocess.waitFor(1, TimeUnit.MILLISECONDS)) {
+				if (Subprocess.waitFor(0, TimeUnit.MILLISECONDS))
 					return Subprocess.exitValue();
-				}
 			} catch (Throwable ex) {
 				logger.fatal("Daemon.mainRun", ex);
 				fatalExit();
@@ -113,54 +119,53 @@ public class Daemon {
 		}
 	}
 
-	public static void fatalExit() {
+	private static void fatalExit() {
 		Subprocess.destroy();
 		LogManager.shutdown();
 		Runtime.getRuntime().halt(-1);
 	}
 
-	public static void joinMonitors() throws InterruptedException {
+	private static void joinMonitors() throws InterruptedException, IOException {
 		for (var monitor : Monitors.values())
 			monitor.stopAndJoin();
 		Monitors.clear();
 	}
 
-	public static void destroySubprocess() throws InterruptedException {
+	private static void destroySubprocess() throws InterruptedException, IOException {
 		Subprocess.destroy();
 		joinMonitors();
 	}
 
-	public static class PendingPacket {
+	private static final class PendingPacket {
 		public final DatagramSocket Socket;
 		public final DatagramPacket Packet;
-		public long SendTime;
+		public long SendTime = System.currentTimeMillis();
 
 		public PendingPacket(DatagramSocket socket, DatagramPacket packet) {
 			Socket = socket;
 			Packet = packet;
-			SendTime = System.currentTimeMillis();
 		}
 	}
 
 	public static void sendCommand(DatagramSocket socket, SocketAddress peer, Command cmd) throws IOException {
-		var bb = ByteBuffer.Allocate();
+		var bb = ByteBuffer.Allocate(5);
 		bb.WriteInt(cmd.command());
 		cmd.Encode(bb);
-		var p = new DatagramPacket(bb.Bytes, 0, bb.Size(), peer);
+		var p = new DatagramPacket(bb.Bytes, 0, bb.WriteIndex, peer);
 		if (cmd.isRequest()) {
-			if (null != Pending.putIfAbsent(cmd.ReliableSerialNo, new PendingPacket(socket, p)))
+			if (Pendings.putIfAbsent(cmd.ReliableSerialNo, new PendingPacket(socket, p)) != null)
 				throw new RuntimeException("Duplicate ReliableSerialNo=" + cmd.ReliableSerialNo);
 
 			// auto start Timer
-			if (null == Timer) {
-				synchronized (Pending) {
-					if (null == Timer) {
+			if (Timer == null) {
+				synchronized (Pendings) {
+					if (Timer == null) {
 						Timer = Task.schedule(1000, 1000, () -> {
 							var now = System.currentTimeMillis();
-							for (var pending : Pending.values()) {
+							for (var pending : Pendings.values()) {
 								if (now - pending.SendTime > 1000) {
-									pending.Socket.send(pending.Packet);
 									pending.SendTime = now;
+									pending.Socket.send(pending.Packet);
 								}
 							}
 						});
@@ -173,65 +178,56 @@ public class Daemon {
 	}
 
 	public static Command receiveCommand(DatagramSocket socket) throws IOException {
-		var cmd = _receiveCommand(socket);
-		if (cmd.ReliableSerialNo != 0)
-			Pending.remove(cmd.ReliableSerialNo);
-		return cmd;
-	}
-
-	private static Command _receiveCommand(DatagramSocket socket) throws IOException {
 		var buf = new byte[1024];
 		var p = new DatagramPacket(buf, buf.length);
 		socket.receive(p);
 		var bb = ByteBuffer.Wrap(buf, 0, p.getLength());
-		var cmd = bb.ReadInt();
-		switch (cmd) {
+		var c = bb.ReadInt();
+		Command cmd;
+		//noinspection EnhancedSwitchMigration
+		switch (c) {
 		case Register.Command:
-			return new Register(bb, p.getSocketAddress());
+			cmd = new Register(bb, p.getSocketAddress());
+			break;
 		case CommonResult.Command:
-			return new CommonResult(bb, p.getSocketAddress());
+			cmd = new CommonResult(bb, p.getSocketAddress());
+			break;
 		case GlobalOn.Command:
-			return new GlobalOn(bb, p.getSocketAddress());
+			cmd = new GlobalOn(bb, p.getSocketAddress());
+			break;
 		case Release.Command:
-			return new Release(bb, p.getSocketAddress());
+			cmd = new Release(bb, p.getSocketAddress());
+			break;
+		default:
+			throw new RuntimeException("Unknown Command =" + c);
 		}
-		throw new RuntimeException("Unknown Command =" + cmd);
+		if (cmd.ReliableSerialNo != 0)
+			Pendings.remove(cmd.ReliableSerialNo);
+		return cmd;
 	}
 
-	public static class Monitor extends Thread {
-		public File FileName;
-
-		public final int ServerId;
-		public final SocketAddress PeerSocketAddress;
-
+	private static class Monitor extends Thread {
+		private final SocketAddress PeerSocketAddress;
+		private final AtomicReferenceArray<AchillesHeelConfig> GlobalConfigs;
 		private final RandomAccessFile File;
 		private final FileChannel Channel;
 		private final MappedByteBuffer MMap;
-		private final AchillesHeelConfig[] GlobalConfigs;
-
 		private volatile boolean Running = true;
 
 		public Monitor(Register reg) throws Exception {
-			ServerId = reg.ServerId;
 			PeerSocketAddress = reg.Peer;
-			GlobalConfigs = new AchillesHeelConfig[reg.GlobalCount];
-			FileName = new File(reg.MMapFileName);
-			File = new RandomAccessFile(FileName, "rw");
+			GlobalConfigs = new AtomicReferenceArray<>(reg.GlobalCount);
+			File = new RandomAccessFile(new File(reg.MMapFileName), "rw");
 			Channel = File.getChannel();
 			MMap = Channel.map(FileChannel.MapMode.READ_WRITE, 0, Channel.size());
 		}
 
-		public synchronized AchillesHeelConfig getConfig(int index) {
-			return GlobalConfigs[index];
+		public AchillesHeelConfig getConfig(int index) {
+			return GlobalConfigs.get(index);
 		}
 
-		public synchronized void setConfig(int index, AchillesHeelConfig config) {
-			GlobalConfigs[index] = config;
-		}
-
-		public void close() throws IOException {
-			Channel.close();
-			File.close();
+		public void setConfig(int index, AchillesHeelConfig config) {
+			GlobalConfigs.set(index, config);
 		}
 
 		private ByteBuffer copyMMap() throws IOException {
@@ -239,7 +235,7 @@ public class Daemon {
 				// Channel.lock 对同一个进程不能并发。
 				var lock = Channel.lock();
 				try {
-					var copy = new byte[GlobalConfigs.length * 8];
+					var copy = new byte[GlobalConfigs.length() * 8];
 					MMap.position(0);
 					MMap.get(copy, 0, copy.length);
 					return ByteBuffer.Wrap(copy);
@@ -255,10 +251,10 @@ public class Daemon {
 				while (Running) {
 					var bb = copyMMap();
 					var now = System.currentTimeMillis();
-					for (int i = 0; i < GlobalConfigs.length; ++i) {
+					for (int i = 0; i < GlobalConfigs.length(); ++i) {
 						var activeTime = bb.ReadLong8();
 						var config = getConfig(i);
-						if (null == config)
+						if (config == null)
 							continue; // skip not ready global
 
 						var idle = now - activeTime;
@@ -283,9 +279,11 @@ public class Daemon {
 			}
 		}
 
-		public void stopAndJoin() throws InterruptedException {
+		public void stopAndJoin() throws InterruptedException, IOException {
 			Running = false;
 			join();
+			Channel.close();
+			File.close();
 		}
 	}
 

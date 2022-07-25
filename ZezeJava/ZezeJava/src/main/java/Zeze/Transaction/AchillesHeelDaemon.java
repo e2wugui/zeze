@@ -118,7 +118,7 @@ public class AchillesHeelDaemon {
 		Zeze = zeze;
 		Agents = agents.clone();
 		var peerPort = System.getProperty(Daemon.PropertyNamePort);
-		if (null != peerPort) {
+		if (peerPort != null) {
 			PD = new ProcessDaemon(Integer.parseInt(peerPort));
 			TD = null;
 		} else {
@@ -134,25 +134,20 @@ public class AchillesHeelDaemon {
 			PD.start();
 	}
 
-	public void stopAndJoin() throws InterruptedException {
-		if (TD != null) {
-			TD.Running = false;
-			TD.join();
-		}
+	public void stopAndJoin() {
+		if (TD != null)
+			TD.stopAndJoin();
 		if (PD != null)
 			PD.stopAndJoin();
 	}
 
 	public void onInitialize(GlobalAgentBase agent) {
-		if (null != PD) {
+		if (PD != null) {
 			try {
 				var config = agent.getConfig();
 				Daemon.sendCommand(PD.UdpSocket, PD.DaemonSocketAddress,
-						new Daemon.GlobalOn(
-								Zeze.getConfig().getServerId(),
-								agent.GlobalCacheManagerHashIndex,
-								config.ServerDaemonTimeout,
-								config.ServerReleaseTimeout));
+						new Daemon.GlobalOn(Zeze.getConfig().getServerId(), agent.GlobalCacheManagerHashIndex,
+								config.ServerDaemonTimeout, config.ServerReleaseTimeout));
 			} catch (IOException e) {
 				logger.error("", e);
 			}
@@ -160,28 +155,26 @@ public class AchillesHeelDaemon {
 	}
 
 	public void setProcessDaemonActiveTime(GlobalAgentBase agent, long value) {
-		if (null != PD)
+		if (PD != null)
 			PD.setActiveTime(agent, value);
 	}
 
 	private final class ProcessDaemon extends Thread {
 		private final DatagramSocket UdpSocket = new DatagramSocket(0, InetAddress.getLoopbackAddress());
+		private final SocketAddress DaemonSocketAddress;
 		private final RandomAccessFile File;
 		private final FileChannel Channel;
 		private final MappedByteBuffer MMap;
-		private final SocketAddress DaemonSocketAddress;
-		private final long[] LastReportTime;
+		private final long[] LastReportTime = new long[Agents.length];
 		private volatile boolean Running = true;
 
 		public ProcessDaemon(int peer) throws Exception {
+			DaemonSocketAddress = new InetSocketAddress("127.0.0.1", peer);
 			var fileName = Files.createTempFile("zeze", ".mmap").toFile();
 			File = new RandomAccessFile(fileName, "rw");
 			File.setLength(8L * Agents.length);
 			Channel = File.getChannel();
 			MMap = Channel.map(FileChannel.MapMode.READ_WRITE, 0, Channel.size());
-			DaemonSocketAddress = new InetSocketAddress("127.0.0.1", peer);
-
-			LastReportTime = new long[Agents.length];
 			UdpSocket.setSoTimeout(200);
 			Daemon.sendCommand(UdpSocket, DaemonSocketAddress,
 					new Daemon.Register(Zeze.getConfig().getServerId(), Agents.length, fileName.toString()));
@@ -220,8 +213,7 @@ public class AchillesHeelDaemon {
 							logger.info("receiveCommand {}", r.GlobalIndex);
 							var agent = Agents[r.GlobalIndex];
 							var config = agent.getConfig();
-							var rr = agent.checkReleaseTimeout(
-									System.currentTimeMillis(), config.ServerReleaseTimeout);
+							var rr = agent.checkReleaseTimeout(System.currentTimeMillis(), config.ServerReleaseTimeout);
 							if (rr == GlobalAgentBase.CheckReleaseResult.Timeout) {
 								// 本地发现超时，先自杀，不用等进程守护来杀。
 								logger.fatal("ProcessDaemon.AchillesHeelDaemon global release timeout. index={}", r.GlobalIndex);
@@ -233,7 +225,7 @@ public class AchillesHeelDaemon {
 								// 如果Global一直恢复不了，那么每ServerDaemonTimeout会再次尝试Release，
 								// 这里没法快速手段判断本Server是否存在从该Global获取的记录锁。
 								// 在Agent中增加获得的计数是个方案，但挺烦的。
-								logger.warn("ProcessDaemon.StartRelease ServerDaemonTimeout={}", config.ServerDaemonTimeout);
+								logger.warn("ProcessDaemon.startRelease ServerDaemonTimeout={}", config.ServerDaemonTimeout);
 								agent.startRelease(Zeze, null);
 							}
 							break;
@@ -245,7 +237,7 @@ public class AchillesHeelDaemon {
 					var now = System.currentTimeMillis();
 					for (GlobalAgentBase agent : Agents) {
 						var config = agent.getConfig();
-						if (null == config)
+						if (config == null)
 							continue; // skip agent not login
 
 						var idle = now - agent.getActiveTime();
@@ -267,19 +259,23 @@ public class AchillesHeelDaemon {
 			Running = false;
 			try {
 				join();
-			} catch (InterruptedException e) {
-				logger.error("ProcessDaemon.stopAndJoin", e);
+			} catch (Exception e) {
+				logger.error("ProcessDaemon.join", e);
 			}
-
 			try {
 				Channel.close();
-			} catch (IOException e) {
-				logger.error("channel.close", e);
+			} catch (Exception e) {
+				logger.error("Channel.close", e);
 			}
 			try {
 				File.close();
-			} catch (IOException e) {
-				logger.error("file.close", e);
+			} catch (Exception e) {
+				logger.error("File.close", e);
+			}
+			try {
+				UdpSocket.close();
+			} catch (Exception e) {
+				logger.error("UdpSocket.close", e);
 			}
 		}
 	}
@@ -293,14 +289,14 @@ public class AchillesHeelDaemon {
 		}
 
 		@Override
-		public synchronized void run() {
+		public void run() {
 			try {
 				while (Running) {
 					var now = System.currentTimeMillis();
-					for (int i = 0; i < Agents.length; ++i) {
+					for (int i = 0; i < Agents.length; i++) {
 						var agent = Agents[i];
 						var config = agent.getConfig();
-						if (null == config)
+						if (config == null)
 							continue; // skip agent not login
 
 						var rr = agent.checkReleaseTimeout(now, config.ServerReleaseTimeout);
@@ -322,7 +318,7 @@ public class AchillesHeelDaemon {
 								// 如果Global一直恢复不了，那么每ServerDaemonTimeout会再次尝试Release，
 								// 这里没法快速手段判断本Server是否存在从该Global获取的记录锁。
 								// 在Agent中增加获得的计数是个方案，但挺烦的。
-								logger.warn("StartRelease ServerDaemonTimeout={}", config.ServerDaemonTimeout);
+								logger.warn("startRelease ServerDaemonTimeout={}", config.ServerDaemonTimeout);
 								agent.startRelease(Zeze, null);
 							}
 						}
@@ -339,6 +335,15 @@ public class AchillesHeelDaemon {
 				logger.fatal("AchillesHeelDaemon", ex);
 				LogManager.shutdown();
 				Runtime.getRuntime().halt(321321);
+			}
+		}
+
+		public void stopAndJoin() {
+			Running = false;
+			try {
+				join();
+			} catch (InterruptedException e) {
+				logger.error("ThreadDaemon.join", e);
 			}
 		}
 	}

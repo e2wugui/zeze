@@ -60,13 +60,13 @@ public class AchillesHeelDaemon
             try
             {
                 var config = agent.Config;
-                Daemon.sendCommand(PD.UdpSocket, PD.DaemonSocketAddress,
+                Daemon.SendCommand(PD.UdpSocket, PD.DaemonSocketAddress,
                     new Daemon.GlobalOn(Zeze.Config.ServerId, agent.GlobalCacheManagerHashIndex,
                         config.ServerDaemonTimeout, config.ServerReleaseTimeout));
             }
             catch (IOException e)
             {
-                logger.Error(e, string.Empty);
+                logger.Error(e, "");
             }
         }
     }
@@ -96,7 +96,7 @@ public class AchillesHeelDaemon
             DaemonSocketAddress = new IPEndPoint(IPAddress.Loopback, peer);
             LastReportTime = new long[ahd.Agents.Length];
             UdpSocket.Client.SendTimeout = 200;
-            Daemon.sendCommand(UdpSocket, DaemonSocketAddress,
+            Daemon.SendCommand(UdpSocket, DaemonSocketAddress,
                 new Daemon.Register(ahd.Zeze.Config.ServerId, ahd.Agents.Length, fileName));
             Thread = new Thread(Run);
         }
@@ -116,6 +116,51 @@ public class AchillesHeelDaemon
             MMapAccessor.WriteArray(agent.GlobalCacheManagerHashIndex * 8, bb.Bytes, 0, 8);
         }
 
+        public void Start()
+        {
+            Thread.Start();
+        }
+
+        public void StopAndJoin()
+        {
+            Running = false;
+            try
+            {
+                Thread.Join();
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "ProcessDaemon.StopAndJoin");
+            }
+
+            try
+            {
+                MMapAccessor.Dispose();
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "MMapAccessor.Dispose");
+            }
+
+            try
+            {
+                MMap.Dispose();
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "MMap.Dispose");
+            }
+
+            try
+            {
+                UdpSocket.Dispose();
+            }
+            catch (Exception e)
+            {
+                logger.Error(e, "UdpSocket.Dispose");
+            }
+        }
+
         void Run()
         {
             try
@@ -124,8 +169,7 @@ public class AchillesHeelDaemon
                 {
                     try
                     {
-                        var cmd = Daemon.receiveCommand(UdpSocket);
-                        //noinspection SwitchStatementWithTooFewBranches
+                        var cmd = Daemon.ReceiveCommand(UdpSocket);
                         switch (cmd.command())
                         {
                             case Daemon.Release.Command:
@@ -133,8 +177,7 @@ public class AchillesHeelDaemon
                                 logger.Info($"receiveCommand {r.GlobalIndex}");
                                 var agent = AchillesHeelDaemon.Agents[r.GlobalIndex];
                                 var config = agent.Config;
-                                var rr = agent.CheckReleaseTimeout(
-                                    Time.NowUnixMillis, config.ServerReleaseTimeout);
+                                var rr = agent.CheckReleaseTimeout(Time.NowUnixMillis, config.ServerReleaseTimeout);
                                 if (rr == GlobalAgentBase.CheckReleaseResult.Timeout)
                                 {
                                     // 本地发现超时，先自杀，不用等进程守护来杀。
@@ -166,13 +209,13 @@ public class AchillesHeelDaemon
                     foreach (var agent in AchillesHeelDaemon.Agents)
                     {
                         var config = agent.Config;
-                        if (null == config)
+                        if (config == null)
                             continue; // skip agent not login
 
                         var idle = now - agent.GetActiveTime();
                         if (idle > config.ServerKeepAliveIdleTimeout)
                         {
-                            //logger.debug("KeepAlive ServerKeepAliveIdleTimeout={}", config.ServerKeepAliveIdleTimeout);
+                            //logger.Debug($"KeepAlive ServerKeepAliveIdleTimeout={config.ServerKeepAliveIdleTimeout}");
                             agent.KeepAlive();
                         }
                     }
@@ -184,42 +227,6 @@ public class AchillesHeelDaemon
                 logger.Fatal(ex, "ProcessDaemon.AchillesHeelDaemon");
                 LogManager.Shutdown();
                 Process.GetCurrentProcess().Kill();
-            }
-        }
-
-        public void Start()
-        {
-            Thread.Start();
-        }
-
-        public void StopAndJoin()
-        {
-            Running = false;
-            try
-            {
-                Thread.Join();
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "ProcessDaemon.stopAndJoin");
-            }
-
-            try
-            {
-                MMapAccessor.Dispose();
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "MMapAccessor.Dispose");
-            }
-
-            try
-            {
-                MMap.Dispose();
-            }
-            catch (Exception e)
-            {
-                logger.Error(e, "MMap.Dispose");
             }
         }
     }
@@ -249,59 +256,56 @@ public class AchillesHeelDaemon
 
         void Run()
         {
-            lock (this)
+            try
             {
-                try
+                while (Running)
                 {
-                    while (Running)
+                    var now = Time.NowUnixMillis;
+                    for (var i = 0; i < AchillesHeelDaemon.Agents.Length; i++)
                     {
-                        var now = Time.NowUnixMillis;
-                        for (var i = 0; i < AchillesHeelDaemon.Agents.Length; i++)
+                        var agent = AchillesHeelDaemon.Agents[i];
+                        var config = agent.Config;
+                        if (config == null)
+                            continue; // skip agent not login
+
+                        var rr = agent.CheckReleaseTimeout(now, config.ServerReleaseTimeout);
+                        if (rr == GlobalAgentBase.CheckReleaseResult.Timeout)
                         {
-                            var agent = AchillesHeelDaemon.Agents[i];
-                            var config = agent.Config;
-                            if (config == null)
-                                continue; // skip agent not login
-
-                            var rr = agent.CheckReleaseTimeout(now, config.ServerReleaseTimeout);
-                            if (rr == GlobalAgentBase.CheckReleaseResult.Timeout)
-                            {
-                                logger.Fatal($"AchillesHeelDaemon global release timeout. index={i}");
-                                LogManager.Shutdown();
-                                Process.GetCurrentProcess().Kill();
-                            }
-
-                            var idle = now - agent.GetActiveTime();
-                            if (idle > config.ServerKeepAliveIdleTimeout)
-                            {
-                                // logger.Debug($"KeepAlive ServerKeepAliveIdleTimeout={config.ServerKeepAliveIdleTimeout}");
-                                agent.KeepAlive();
-                            }
-
-                            if (idle > config.ServerDaemonTimeout)
-                            {
-                                if (rr != GlobalAgentBase.CheckReleaseResult.Releasing)
-                                {
-                                    // 这个判断只能避免正在Releasing时不要启动新的Release。
-                                    // 如果Global一直恢复不了，那么每ServerDaemonTimeout会再次尝试Release，
-                                    // 这里没法快速手段判断本Server是否存在从该Global获取的记录锁。
-                                    // 在Agent中增加获得的计数是个方案，但挺烦的。
-                                    logger.Warn($"StartRelease ServerDaemonTimeout {config.ServerReleaseTimeout}");
-                                    agent.StartRelease(AchillesHeelDaemon.Zeze);
-                                }
-                            }
+                            logger.Fatal($"AchillesHeelDaemon global release timeout. index={i}");
+                            LogManager.Shutdown();
+                            Process.GetCurrentProcess().Kill();
                         }
 
-                        Monitor.Wait(this, 1000);
+                        var idle = now - agent.GetActiveTime();
+                        if (idle > config.ServerKeepAliveIdleTimeout)
+                        {
+                            //logger.Debug($"KeepAlive ServerKeepAliveIdleTimeout={config.ServerKeepAliveIdleTimeout}");
+                            agent.KeepAlive();
+                        }
+
+                        if (idle > config.ServerDaemonTimeout)
+                        {
+                            if (rr != GlobalAgentBase.CheckReleaseResult.Releasing)
+                            {
+                                // 这个判断只能避免正在Releasing时不要启动新的Release。
+                                // 如果Global一直恢复不了，那么每ServerDaemonTimeout会再次尝试Release，
+                                // 这里没法快速手段判断本Server是否存在从该Global获取的记录锁。
+                                // 在Agent中增加获得的计数是个方案，但挺烦的。
+                                logger.Warn($"StartRelease ServerDaemonTimeout {config.ServerReleaseTimeout}");
+                                agent.StartRelease(AchillesHeelDaemon.Zeze);
+                            }
+                        }
                     }
+
+                    Thread.Sleep(1000);
                 }
-                catch (Exception ex)
-                {
-                    // 这个线程不准出错。
-                    logger.Fatal(ex, "AchillesHeelDaemon");
-                    LogManager.Shutdown();
-                    Process.GetCurrentProcess().Kill();
-                }
+            }
+            catch (Exception ex)
+            {
+                // 这个线程不准出错。
+                logger.Fatal(ex, "AchillesHeelDaemon");
+                LogManager.Shutdown();
+                Process.GetCurrentProcess().Kill();
             }
         }
     }

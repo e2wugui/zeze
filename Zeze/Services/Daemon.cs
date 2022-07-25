@@ -23,10 +23,10 @@ public static class Daemon
     // 正常使用是一个Daemon对应一个Server。
     // 写成支持多个Server是为了跑Simulate测试。
     static readonly ConcurrentDictionary<int, Monitor> Monitors = new();
-    static UdpClient? UdpSocket;
+    static UdpClient UdpSocket = null!;
     static Process? Subprocess;
 
-    static readonly ConcurrentDictionary<long, PendingPacket> Pending = new();
+    static readonly ConcurrentDictionary<long, PendingPacket> Pendings = new();
     static volatile SchedulerTask? Timer;
 
     public static void Main(string[] args)
@@ -48,18 +48,16 @@ public static class Daemon
         for (var i = 1; i < args.Length; i++)
             startInfo.ArgumentList.Add(args[i]);
 
-        Subprocess = Process.Start(startInfo)!;
-
         try
         {
             while (true)
             {
-                var exitCode = mainRun();
-                if (0 == exitCode)
-                    break;
-                joinMonitors();
-                logger.Warn($"Subprocess Restart! ExitCode={exitCode}");
                 Subprocess = Process.Start(startInfo)!;
+                var exitCode = MainRun();
+                if (exitCode == 0)
+                    break;
+                JoinMonitors();
+                logger.Warn($"Subprocess Restart! ExitCode={exitCode}");
             }
         }
         catch (Exception ex)
@@ -69,11 +67,11 @@ public static class Daemon
         finally
         {
             // 退出的时候，确保销毁服务进程。
-            Subprocess.Kill();
+            Subprocess?.Kill();
         }
     }
 
-    static int mainRun()
+    static int MainRun()
     {
         while (true)
         {
@@ -82,7 +80,7 @@ public static class Daemon
                 // 轮询：等待Global配置以及等待子进程退出。
                 try
                 {
-                    var cmd = receiveCommand(UdpSocket!);
+                    var cmd = ReceiveCommand(UdpSocket);
                     switch (cmd.command())
                     {
                         case Register.Command:
@@ -93,22 +91,33 @@ public static class Daemon
                             else
                             {
                                 var monitor = new Monitor(reg);
-                                monitor.thread = new Thread(monitor.run);
                                 Monitors[reg.ServerId] = monitor;
-                                monitor.thread.Start();
+                                monitor.Start();
                             }
 
-                            sendCommand(UdpSocket!, cmd.Peer!, new CommonResult(reg.ReliableSerialNo, code));
+                            SendCommand(UdpSocket, cmd.Peer!, new CommonResult(reg.ReliableSerialNo, code));
                             logger.Info($"Register! Server={reg.ServerId} code={code}");
                             break;
 
                         case GlobalOn.Command:
                             var on = (GlobalOn)cmd;
-                            Monitors[on.ServerId].setConfig(on.GlobalIndex, on.GlobalConfig);
-                            sendCommand(UdpSocket!, cmd.Peer!, new CommonResult(on.ReliableSerialNo, 0));
-                            logger.Info($"GlobalOn! Server={on.ServerId}" +
-                                        $" ServerDaemonTimeout={on.GlobalConfig.ServerDaemonTimeout}" +
-                                        $" ServerReleaseTimeout={on.GlobalConfig.ServerReleaseTimeout}");
+                            code = 0;
+                            if (Monitors.TryGetValue(on.ServerId, out var mon))
+                            {
+                                mon.SetConfig(on.GlobalIndex, on.GlobalConfig);
+                                logger.Info($"GlobalOn! Server={on.ServerId}" +
+                                            $" ServerDaemonTimeout={on.GlobalConfig.ServerDaemonTimeout}" +
+                                            $" ServerReleaseTimeout={on.GlobalConfig.ServerReleaseTimeout}");
+                            }
+                            else
+                            {
+                                logger.Warn($"GlobalOn! not found ServerId={on.ServerId}" +
+                                            $" ServerDaemonTimeout={on.GlobalConfig.ServerDaemonTimeout}" +
+                                            $" ServerReleaseTimeout={on.GlobalConfig.ServerReleaseTimeout}");
+                                code = 1;
+                            }
+
+                            SendCommand(UdpSocket, cmd.Peer!, new CommonResult(on.ReliableSerialNo, code));
                             break;
                     }
                 }
@@ -118,47 +127,45 @@ public static class Daemon
                 }
 
                 if (Subprocess!.WaitForExit(1))
-                {
                     return Subprocess.ExitCode;
-                }
             }
             catch (Exception ex)
             {
                 logger.Fatal(ex, "Daemon.mainRun");
-                fatalExit();
+                FatalExit();
                 return -1; // never get here
             }
         }
     }
 
-    public static void fatalExit()
+    static void FatalExit()
     {
-        Subprocess?.Kill();
+        Subprocess!.Kill();
         LogManager.Shutdown();
         Process.GetCurrentProcess().Kill();
     }
 
-    public static void joinMonitors()
+    static void JoinMonitors()
     {
         foreach (var monitor in Monitors.Values)
-            monitor.stopAndJoin();
+            monitor.StopAndJoin();
         Monitors.Clear();
     }
 
-    public static void destroySubprocess()
+    static void DestroySubprocess()
     {
-        Subprocess?.Kill();
-        joinMonitors();
+        Subprocess!.Kill();
+        JoinMonitors();
     }
 
-    public class PendingPacket
+    sealed class PendingPacket
     {
         public readonly UdpClient Socket;
         public readonly IPEndPoint Peer;
-        public readonly byte[] Packet;
+        public readonly ByteBuffer Packet;
         public long SendTime = Time.NowUnixMillis;
 
-        public PendingPacket(UdpClient socket, IPEndPoint peer, byte[] packet)
+        public PendingPacket(UdpClient socket, IPEndPoint peer, ByteBuffer packet)
         {
             Socket = socket;
             Peer = peer;
@@ -166,33 +173,33 @@ public static class Daemon
         }
     }
 
-    public static void sendCommand(UdpClient socket, IPEndPoint peer, Command cmd)
+    public static void SendCommand(UdpClient socket, IPEndPoint peer, Command cmd)
     {
-        var bb = ByteBuffer.Allocate();
+        var bb = ByteBuffer.Allocate(5);
         bb.WriteInt(cmd.command());
         cmd.Encode(bb);
-        var p = bb.Copy();
-        if (cmd.IsRequest())
+        if (cmd.IsRequest)
         {
-            if (!Pending.TryAdd(cmd.ReliableSerialNo, new PendingPacket(socket, peer, p)))
+            if (!Pendings.TryAdd(cmd.ReliableSerialNo, new PendingPacket(socket, peer, bb)))
                 throw new Exception("Duplicate ReliableSerialNo=" + cmd.ReliableSerialNo);
 
             // auto start Timer
-            if (null == Timer)
+            if (Timer == null)
             {
-                lock (Pending)
+                lock (Pendings)
                 {
-                    if (null == Timer)
+                    // ReSharper disable once ConvertIfStatementToNullCoalescingAssignment
+                    if (Timer == null)
                     {
                         Timer = Scheduler.Schedule(_ =>
                         {
                             var now = Time.NowUnixMillis;
-                            foreach (var pending in Pending.Values)
+                            foreach (var pending in Pendings.Values)
                             {
                                 if (now - pending.SendTime > 1000)
                                 {
-                                    pending.Socket.Send(pending.Packet, pending.Peer);
                                     pending.SendTime = now;
+                                    pending.Socket.Send(pending.Packet.Bytes.AsSpan(0, pending.Packet.WriteIndex), pending.Peer);
                                 }
                             }
                         }, 1000, 1000);
@@ -202,107 +209,88 @@ public static class Daemon
             }
         }
 
-        socket.Send(p, peer);
+        socket.Send(bb.Bytes.AsSpan(0, bb.WriteIndex), peer);
     }
 
-    public static Command receiveCommand(UdpClient socket)
-    {
-        var cmd = _receiveCommand(socket);
-        if (cmd.ReliableSerialNo != 0)
-            Pending.Remove(cmd.ReliableSerialNo, out _);
-        return cmd;
-    }
-
-    static Command _receiveCommand(UdpClient socket)
+    public static Command ReceiveCommand(UdpClient socket)
     {
         var peer = new IPEndPoint(IPAddress.Any, 0);
         var buf = socket.Receive(ref peer);
         var bb = ByteBuffer.Wrap(buf);
-        var cmd = bb.ReadInt();
-        switch (cmd)
+        var c = bb.ReadInt();
+        Command cmd = c switch
         {
-            case Register.Command:
-                return new Register(bb, peer);
-            case CommonResult.Command:
-                return new CommonResult(bb, peer);
-            case GlobalOn.Command:
-                return new GlobalOn(bb, peer);
-            case Release.Command:
-                return new Release(bb, peer);
-        }
-
-        throw new Exception("Unknown Command =" + cmd);
+            Register.Command => new Register(bb, peer),
+            CommonResult.Command => new CommonResult(bb, peer),
+            GlobalOn.Command => new GlobalOn(bb, peer),
+            Release.Command => new Release(bb, peer),
+            _ => throw new Exception("Unknown Command =" + c)
+        };
+        if (cmd.ReliableSerialNo != 0)
+            Pendings.Remove(cmd.ReliableSerialNo, out _);
+        return cmd;
     }
 
-    public sealed class Monitor
+    sealed class Monitor
     {
-        public readonly int ServerId;
-        public readonly IPEndPoint PeerSocketAddress;
+        readonly IPEndPoint PeerSocketAddress;
+        readonly AchillesHeelConfig?[] GlobalConfigs;
         readonly MemoryMappedFile MMap;
         readonly MemoryMappedViewAccessor MMapAccessor;
-        readonly AchillesHeelConfig?[] GlobalConfigs;
-        internal Thread? thread;
+        readonly Thread thread;
         volatile bool Running = true;
 
         public Monitor(Register reg)
         {
-            ServerId = reg.ServerId;
             PeerSocketAddress = reg.Peer!;
             GlobalConfigs = new AchillesHeelConfig[reg.GlobalCount];
-
             MMap = MemoryMappedFile.CreateFromFile(reg.MMapFileName);
             MMapAccessor = MMap.CreateViewAccessor(0, reg.GlobalCount * 8);
+            thread = new Thread(Run);
         }
 
-        public AchillesHeelConfig? getConfig(int index)
+        AchillesHeelConfig? GetConfig(int index)
         {
-            lock (this)
-            {
-                return GlobalConfigs[index];
-            }
+            return Volatile.Read(ref GlobalConfigs[index]);
         }
 
-        public void setConfig(int index, AchillesHeelConfig config)
+        internal void SetConfig(int index, AchillesHeelConfig config)
         {
-            lock (this)
-            {
-                GlobalConfigs[index] = config;
-            }
+            Volatile.Write(ref GlobalConfigs[index], config);
         }
 
-        public void Dispose()
+        internal void Start()
         {
-            MMapAccessor.Dispose();
-            MMap.Dispose();
+            thread.Start();
         }
 
-        ByteBuffer copyMMap()
+        ByteBuffer CopyMMap()
         {
             var copy = new byte[GlobalConfigs.Length * 8];
             MMapAccessor.ReadArray(0, copy, 0, copy.Length);
             return ByteBuffer.Wrap(copy);
         }
 
-        public void run()
+        void Run()
         {
             try
             {
                 while (Running)
                 {
-                    var bb = copyMMap();
+                    var bb = CopyMMap();
                     var now = Time.NowUnixMillis;
                     for (var i = 0; i < GlobalConfigs.Length; ++i)
                     {
                         var activeTime = bb.ReadLong8();
-                        var config = getConfig(i);
-                        if (null == config)
+                        var config = GetConfig(i);
+                        if (config == null)
                             continue; // skip not ready global
 
                         var idle = now - activeTime;
                         if (idle > config.ServerReleaseTimeout)
                         {
                             logger.Info($"destroySubprocess {now} - {activeTime} > {config.ServerReleaseTimeout}");
-                            destroySubprocess();
+                            DestroySubprocess();
                             // daemon main will restart subprocess!
                         }
                         else if (idle > config.ServerDaemonTimeout)
@@ -311,10 +299,9 @@ public static class Daemon
                             // 在Server执行Release期间，命令可能重复发送。
                             // 重复命令的处理由Server完成，
                             // 这里重发也是需要的，刚好解决Udp不可靠性。
-                            sendCommand(UdpSocket!, PeerSocketAddress, new Release(i));
+                            SendCommand(UdpSocket, PeerSocketAddress, new Release(i));
                         }
 
-                        //noinspection BusyWait
                         Thread.Sleep(1000);
                     }
                 }
@@ -322,14 +309,16 @@ public static class Daemon
             catch (Exception ex)
             {
                 logger.Fatal(ex, "Monitor.run");
-                fatalExit();
+                FatalExit();
             }
         }
 
-        public void stopAndJoin()
+        public void StopAndJoin()
         {
             Running = false;
-            thread?.Join();
+            thread.Join();
+            MMapAccessor.Dispose();
+            MMap.Dispose();
         }
     }
 
@@ -339,21 +328,16 @@ public static class Daemon
 
         public IPEndPoint? Peer;
         public long ReliableSerialNo;
-        bool isRequest;
+        public bool IsRequest { get; private set; }
 
         public abstract int command();
 
-        public bool IsRequest()
-        {
-            return isRequest;
-        }
-
-        protected void setReliableSerialNo()
+        protected void SetReliableSerialNo()
         {
             do
                 ReliableSerialNo = Interlocked.Increment(ref Seed);
             while (ReliableSerialNo == 0);
-            isRequest = true;
+            IsRequest = true;
         }
 
         public virtual void Encode(ByteBuffer bb)
@@ -399,13 +383,14 @@ public static class Daemon
             ServerId = serverId;
             GlobalCount = c;
             MMapFileName = name;
-            setReliableSerialNo(); // enable reliable
+            SetReliableSerialNo(); // enable reliable
         }
 
         public Register(ByteBuffer bb, IPEndPoint peer)
         {
-            Decode(bb);
             Peer = peer;
+            MMapFileName = "";
+            Decode(bb);
         }
 
         public override int command()
@@ -444,7 +429,7 @@ public static class Daemon
             GlobalIndex = index;
             GlobalConfig.ServerDaemonTimeout = server;
             GlobalConfig.ServerReleaseTimeout = release;
-            setReliableSerialNo(); // enable reliable
+            SetReliableSerialNo(); // enable reliable
         }
 
         public GlobalOn(ByteBuffer bb, IPEndPoint peer)
