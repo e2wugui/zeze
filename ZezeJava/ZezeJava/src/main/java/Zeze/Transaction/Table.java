@@ -58,6 +58,7 @@ public abstract class Table {
 	abstract void Close();
 
 	abstract Storage<?, ?> GetStorage();
+	abstract Database.Table getOldTable();
 
 	public abstract boolean isNew();
 

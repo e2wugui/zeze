@@ -55,6 +55,7 @@ public abstract class Record {
 	private long acquireTime;
 
 	private Database.Transaction DatabaseTransactionTmp;
+	private Database.Transaction DatabaseTransactionOldTmp;
 
 	public Record(Bean value) {
 		State = Zeze.Services.GlobalCacheManagerServer.StateInvalid;
@@ -141,9 +142,14 @@ public abstract class Record {
 	final Database.Transaction getDatabaseTransactionTmp() {
 		return DatabaseTransactionTmp;
 	}
+	final Database.Transaction getDatabaseTransactionOldTmp() { return DatabaseTransactionOldTmp; }
 
 	final void setDatabaseTransactionTmp(Database.Transaction value) {
 		DatabaseTransactionTmp = value;
+	}
+
+	final void setDatabaseTransactionOldTmp(Database.Transaction value) {
+		DatabaseTransactionOldTmp = value;
 	}
 
 	public final RootInfo CreateRootInfoIfNeed(TableKey tkey) {
@@ -156,7 +162,7 @@ public abstract class Record {
 
 	public abstract Object getObjectKey();
 
-	public abstract void SetDirty(Bean value);
+	public abstract void SetDirty();
 
 	public abstract IGlobalAgent.AcquireResult Acquire(int state, boolean fresh);
 

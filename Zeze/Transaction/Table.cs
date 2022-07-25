@@ -53,6 +53,7 @@ namespace Zeze.Transaction
         public ChangeListenerMap ChangeListenerMap { get; } = new ChangeListenerMap();
 
         public abstract Storage Storage { get; }
+        internal abstract Database.TableAsync OldTable { get; set; }
 
         public abstract bool IsNew { get; }
         public abstract ByteBuffer EncodeKey(object key);
@@ -110,16 +111,36 @@ namespace Zeze.Transaction
                         r.ExistInBackDatabase = null != r.Value;
 
                         // 当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
+                        // see Record1.Flush
                         if (null == r.Value && null != OldTable)
                         {
-                            ByteBuffer old = await OldTable.FindAsync(EncodeKey(key));
+                            var encodedKey = EncodeKey(key);
+                            var old = await OldTable.FindAsync(encodedKey);
                             if (null != old)
                             {
                                 r.Value = DecodeValue(old);
                                 // 从旧表装载时，马上设为脏，使得可以写入新表。
-                                // TODO CheckpointMode.Immediately
                                 // 需要马上保存，否则，直到这个记录被访问才有机会保存。
                                 r.SetDirty();
+                                // Immediately 需要特别在此单独处理。
+                                if (Zeze.Checkpoint.CheckpointMode == CheckpointMode.Immediately)
+                                {
+                                    var t = OldTable.Database.BeginTransaction().ITransaction;
+                                    try
+                                    {
+                                        await OldTable.ReplaceAsync(t, encodedKey, old);
+                                        t.Commit();
+                                    }
+                                    catch (Exception)
+                                    {
+                                        t.Rollback();
+                                        throw;
+                                    }
+                                    finally
+                                    {
+                                        t.Dispose();
+                                    }
+                                }
                             }
                         }
                         if (null != r.Value)
@@ -491,7 +512,7 @@ namespace Zeze.Transaction
             return TStorage;
         }
 
-        internal Database.TableAsync OldTable { get; private set; }
+        override internal Database.TableAsync OldTable { get; set; }
         internal Storage<K, V> TStorage { get; private set; }
         public Database Database { get; private set; }
         public override Storage Storage => TStorage;

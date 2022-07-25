@@ -2,6 +2,7 @@ package Zeze.Transaction;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Application;
 import Zeze.Config.DatabaseConf;
@@ -110,10 +111,10 @@ public abstract class Database {
 		logger.info("Checkpoint Encode0 And Snapshot countEncode0={} countSnapshot={}", countEncode0, countSnapshot);
 	}
 
-	public final void Flush(Transaction trans, Database.Transaction lct) {
+	public final void Flush(Database.Transaction t, HashMap<Database, Transaction> tss, Database.Transaction lct) {
 		int countFlush = 0;
 		for (var storage : storages) {
-			countFlush += storage.Flush(trans, lct);
+			countFlush += storage.Flush(t, tss, lct);
 		}
 		logger.info("Checkpoint Flush count={}", countFlush);
 	}

@@ -109,12 +109,12 @@ namespace Zeze.Transaction
             //logger.Info("Checkpoint Encode0 And Snapshot countEncode0={0} countSnapshot={1}", countEncode0, countSnapshot);
         }
 
-        internal async Task Flush(ITransaction trans)
+        internal async Task Flush(ITransaction trans, Dictionary<Database, Database.TransactionAsync> tss)
         {
             int countFlush = 0;
             foreach (Storage storage in storages)
             {
-                countFlush += await storage.Flush(trans);
+                countFlush += await storage.Flush(trans, tss);
             }
             //logger.Info("Checkpoint Flush count={0}", countFlush);
         }

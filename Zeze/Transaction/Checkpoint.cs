@@ -213,11 +213,13 @@ namespace Zeze.Transaction
             {
                 foreach (var db in Databases)
                 {
-                    dts[db] = db.BeginTransaction();
+                    var t = db.BeginTransaction();
+                    if (false == dts.TryAdd(db, t))
+                        t.Dispose();
                 }
                 foreach (var e in dts)
                 {
-                    await e.Key.Flush(e.Value.ITransaction);
+                    await e.Key.Flush(e.Value.ITransaction, dts);
                 }
                 foreach (var e in dts)
                 {
@@ -286,13 +288,23 @@ namespace Zeze.Transaction
                     if (r.Table.IsMemory)
                         continue;
 
-                    Database database = r.Table.Storage.TableAsync.Database;
+                    var database = r.Table.Storage.TableAsync.Database;
                     if (false == dts.TryGetValue(database, out var t))
                     {
                         t = database.BeginTransaction();
                         dts.Add(database, t);
                     }
                     r.DatabaseTransactionTmp = t.ITransaction;
+                    var oldDb = r.Table.OldTable?.Database;
+                    if (null != oldDb)
+                    {
+                        if (false == dts.TryGetValue(oldDb, out var oldT))
+                        {
+                            oldT = oldDb.BeginTransaction();
+                            dts.Add(oldDb, oldT);
+                        }
+                        r.DatabaseTransactionOldTmp = oldT.ITransaction;
+                    }
                 }
                 // 编码
                 foreach (var r in rs)

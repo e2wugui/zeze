@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -227,16 +228,15 @@ public final class Checkpoint {
 		}
 		long time2 = System.nanoTime(), time3 = time2, time4 = time2;
 		// flush
-		var n = Databases.size();
-		var dts = new Database.Transaction[n];
+		var dts = new HashMap<Database, Database.Transaction>();
 		Database.Transaction localCacheTransaction = Zeze.getLocalRocksCacheDb().BeginTransaction();
 		try {
-			for (int i = 0; i < n; i++)
-				dts[i] = Databases.get(i).BeginTransaction();
-			for (int i = 0; i < n; i++)
-				Databases.get(i).Flush(dts[i], localCacheTransaction);
+			for (var db : Databases)
+				dts.computeIfAbsent(db, Database::BeginTransaction);
+			for (var db : Databases)
+				db.Flush(dts.get(db), dts, localCacheTransaction);
 			time3 = System.nanoTime();
-			for (var v : dts)
+			for (var v : dts.values())
 				v.Commit();
 			if (localCacheTransaction != null)
 				localCacheTransaction.Commit();
@@ -251,7 +251,7 @@ public final class Checkpoint {
 				Runtime.getRuntime().halt(54321);
 			}
 		} catch (Throwable e) {
-			for (var t : dts) {
+			for (var t : dts.values()) {
 				try {
 					t.Rollback();
 				} catch (Throwable ex) {
@@ -267,7 +267,7 @@ public final class Checkpoint {
 			}
 			throw e;
 		} finally {
-			for (var t : dts) {
+			for (var t : dts.values()) {
 				try {
 					t.close();
 				} catch (Throwable ex) {
@@ -309,6 +309,10 @@ public final class Checkpoint {
 				if (r.getTable().GetStorage() != null) {
 					var database = r.getTable().GetStorage().getDatabaseTable().getDatabase();
 					r.setDatabaseTransactionTmp(dts.computeIfAbsent(database, Database::BeginTransaction));
+					if (null != r.getTable().getOldTable()) {
+						database = r.getTable().getOldTable().getDatabase();
+						r.setDatabaseTransactionOldTmp(dts.computeIfAbsent(database, Database::BeginTransaction));
+					}
 				}
 			}
 			// 编码

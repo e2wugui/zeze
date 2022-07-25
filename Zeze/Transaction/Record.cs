@@ -89,10 +89,12 @@ namespace Zeze.Transaction
         internal abstract Task<(long, int)> Acquire(int state, bool fresh);
 
         internal abstract void Encode0();
+        internal abstract Task Flush(Database.ITransaction t, Dictionary<Database, Database.TransactionAsync> tss);
         internal abstract Task Flush(Database.ITransaction t);
         internal abstract Task Cleanup();
 
         internal Database.ITransaction DatabaseTransactionTmp { get; set; }
+        internal Database.ITransaction DatabaseTransactionOldTmp { get; set; }
         internal abstract void SetDirty();
         internal Nito.AsyncEx.AsyncLock Mutex = new();
 
@@ -193,7 +195,9 @@ namespace Zeze.Transaction
                     Dirty = true;
                     break;
                 case CheckpointMode.Immediately:
-                    // do nothing
+                    // 立即模式需要马上保存到RocksCache中。在下面两个地方保存：
+                    // 1. 在public void Flush(Iterable<Record> rs)流程中直接保存。
+                    // 2. TableX.Load。
                     break;
             }
         }
@@ -267,6 +271,17 @@ namespace Zeze.Transaction
         }
         */
 
+        internal override async Task Flush(Database.ITransaction t, Dictionary<Database, Database.TransactionAsync> tss)
+        {
+            if (null != tss && null != TTable.OldTable)
+            {
+                // will clear in Cleanup.
+                if (tss.TryGetValue(TTable.OldTable.Database, out var tmp))
+                    DatabaseTransactionOldTmp = tmp.ITransaction;
+            }
+            await Flush(t);
+        }
+
         internal override async Task Flush(Database.ITransaction t)
         {
             if (false == Dirty)
@@ -285,20 +300,17 @@ namespace Zeze.Transaction
 
                 // 需要同步删除OldTable，否则下一次查找又会找到。
                 // 这个违背了OldTable不修改的原则，但没办法了。
-                // XXX 从旧表中删除，使用独立临时事务。
-                // 如果要纳入完整事务，有点麻烦。这里反正是个例外，那就再例外一次了。
-                if (null != TTable.OldTable)
+                if (null != DatabaseTransactionOldTmp)
                 {
-                    using var transTmp = TTable.OldTable.Database.BeginTransaction();
-                    await TTable.OldTable.RemoveAsync(transTmp.ITransaction, snapshotKey);
-                    await transTmp.CommitAsync();
+                    await TTable.OldTable.RemoveAsync(DatabaseTransactionOldTmp, snapshotKey);
                 }
             }
         }
 
         internal override async Task Cleanup()
         {
-            this.DatabaseTransactionTmp = null;
+            DatabaseTransactionTmp = null;
+            DatabaseTransactionOldTmp = null;
 
             if (TTable.Zeze.Checkpoint.CheckpointMode == CheckpointMode.Period)
             {

@@ -2,6 +2,7 @@ package Zeze.Transaction;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManagerServer;
@@ -111,12 +112,12 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 			setSoftValue(accessed.CommittedPutLog.getValue());
 		}
 		setTimestamp(getNextTimestamp()); // 必须在 Value = 之后设置。防止出现新的事务得到新的Timestamp，但是数据时旧的。
-		SetDirty(getSoftValue());
+		SetDirty();
 		//System.out.println("commit: " + this + " put=" + accessed.CommittedPutLog + " atr=" + accessed.AtomicTupleRecord);
 	}
 
 	@Override
-	public void SetDirty(Bean value) {
+	public void SetDirty() {
 		switch (TTable.getZeze().getConfig().getCheckpointMode()) {
 		case Period:
 			setDirty(true);
@@ -128,16 +129,9 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 			setDirty(true);
 			break;
 		case Immediately:
-			// 立即模式需要马上保存到RocksCache中。
-			// 为了支持事务，需要在Checkpoint中实现。
-			// TODO 需要在事务提交的Flush事务中一起执行。
-			/*
-			if (null == value) {
-				TTable.RocksCacheRemove(Key);
-			} else {
-				TTable.RocksCachePut(Key, (V)value);
-			}
-			*/
+			// 立即模式需要马上保存到RocksCache中。在下面两个地方保存：
+			// 1. 在public void Flush(Iterable<Record> rs)流程中直接保存。
+			// 2. TableX.Load。
 			break;
 		}
 	}
@@ -195,6 +189,14 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		ExistInBackDatabase = null != snapshotValue;
 	}
 
+	public void Flush(Database.Transaction t, HashMap<Database, Database.Transaction> tss, Database.Transaction lct) {
+		if (null != TTable.getOldTable()) {
+			// will clear in Cleanup.
+			setDatabaseTransactionOldTmp(tss.get(TTable.getOldTable().getDatabase()));
+		}
+		Flush(t, lct);
+	}
+
 	@Override
 	public void Flush(Database.Transaction t, Database.Transaction lct) {
 		if (!getDirty())
@@ -221,15 +223,8 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 
 			// 需要同步删除OldTable，否则下一次查找又会找到。
 			// 这个违背了OldTable不修改的原则，但没办法了。
-			// XXX 从旧表中删除，使用独立临时事务。
-			// 如果要纳入完整事务，有点麻烦。这里反正是个例外，那就再例外一次了。
-			if (null != TTable.getOldTable()) {
-				try (var transTmp = TTable.getOldTable().getDatabase().BeginTransaction()) {
-					TTable.getOldTable().Remove(transTmp, snapshotKey);
-					transTmp.Commit();
-				} catch (Exception e) {
-					logger.error("Commit Exception", e);
-				}
+			if (null != getDatabaseTransactionOldTmp()) {
+				TTable.getOldTable().Remove(getDatabaseTransactionOldTmp(), snapshotKey);
 			}
 		}
 	}
@@ -237,6 +232,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	@Override
 	public void Cleanup() {
 		setDatabaseTransactionTmp(null);
+		setDatabaseTransactionOldTmp(null);
 
 		if (TTable.getZeze().getConfig().getCheckpointMode() == CheckpointMode.Period) {
 			TableKey tkey = new TableKey(TTable.getId(), Key);

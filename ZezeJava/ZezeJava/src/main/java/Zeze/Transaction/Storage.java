@@ -1,5 +1,6 @@
 package Zeze.Transaction;
 
+import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Serialize.ByteBuffer;
 
@@ -96,9 +97,9 @@ public final class Storage<K extends Comparable<K>, V extends Bean> {
 	 *
 	 * @return flush record count
 	 */
-	public int Flush(Database.Transaction t, Database.Transaction lct) {
+	public int Flush(Database.Transaction t, HashMap<Database, Database.Transaction> tss, Database.Transaction lct) {
 		for (var v : snapshot.values()) {
-			v.Flush(t, lct);
+			v.Flush(t, tss, lct);
 		}
 		return snapshot.size();
 	}

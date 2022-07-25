@@ -17,7 +17,7 @@ namespace Zeze.Transaction
 
 		public abstract int Snapshot();
 
-		public abstract Task<int> Flush(Database.ITransaction t);
+		public abstract Task<int> Flush(Database.ITransaction t, Dictionary<Database, Database.TransactionAsync> tss);
 
 		public abstract Task Cleanup();
 
@@ -108,11 +108,11 @@ namespace Zeze.Transaction
         /// 没有拥有任何锁。
         /// </summary>
         /// <returns></returns>
-        public override async Task<int> Flush(Database.ITransaction t)
+        public override async Task<int> Flush(Database.ITransaction t, Dictionary<Database, Database.TransactionAsync> tss)
         {
             foreach (var e in snapshot)
             {
-                await e.Value.Flush(t);
+                await e.Value.Flush(t, tss);
             }
             return snapshot.Count;
         }

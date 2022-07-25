@@ -44,6 +44,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		return TStorage;
 	}
 
+	@Override
 	final Database.Table getOldTable() {
 		return OldTable;
 	}
@@ -155,15 +156,41 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					r.setExistInBackDatabase(strongRef != null);
 
 					// 当记录删除时需要同步删除 OldTable，否则下一次又会从 OldTable 中找到。
+					// see Record1.Flush
 					if (strongRef == null && null != OldTable) {
-						var old = OldTable.Find(EncodeKey(key));
+						var ekey = EncodeKey(key);
+						var old = OldTable.Find(ekey);
 						if (old != null) {
 							strongRef = DecodeValue(old);
 							r.setSoftValue(strongRef);
 							// 从旧表装载时，马上设为脏，使得可以写入新表。
-							// TODO CheckpointMode.Immediately
-							// 需要马上保存，否则，直到这个记录被访问才有机会保存。
-							r.SetDirty(strongRef);
+							// 否则直到被修改前，都不会被保存到当前数据库中。
+							r.SetDirty();
+							// Immediately 需要特别在此单独处理。
+							if (getZeze().getConfig().getCheckpointMode() == CheckpointMode.Immediately) {
+								var lct = getZeze().getLocalRocksCacheDb().BeginTransaction();
+								var t = getOldTable().getDatabase().BeginTransaction();
+								try {
+									OldTable.Replace(t, ekey, old);
+									LocalRocksCacheTable.Replace(lct, ekey, old);
+									lct.Commit();
+									t.Commit();
+								} catch (Throwable ex) {
+									lct.Rollback();
+									t.Rollback();
+								} finally {
+									try {
+										lct.close();
+									} catch (Exception e) {
+										logger.error(e);
+									}
+									try {
+										t.close();
+									} catch (Exception e) {
+										logger.error(e);
+									}
+								}
+							}
 						}
 					}
 					if (strongRef != null)

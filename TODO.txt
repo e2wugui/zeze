@@ -12,13 +12,14 @@ Universe
 Zege
 DatagramChannel
 Http In Linkd
-Immediately Record1::SetDirty(rockscache保存）OldTable::TableX::Load
 
 【2022/8/15】
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 1.0.1 AchillesHeelDaemon.ProcessDaemon
 ------------------------------------------------------------------------------------------------------------------------------
+Immediately TableX::Load 立即保存。
+Also Delete OldTable When Record Deleted 【in transaction】
 AchillesHeelDaemon.ProcessDaemon for c# 重新实现一次当作review。【张路】
 	MemoryMappedFile 未映射到磁盘上的现有文件的内存映射文件
 	Mutex 跨进程锁，不需要用文件锁。
