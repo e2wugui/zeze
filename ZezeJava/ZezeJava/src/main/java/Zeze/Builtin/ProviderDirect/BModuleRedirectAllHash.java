@@ -8,7 +8,7 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
     private long _ReturnCode;
     private Zeze.Net.Binary _Params;
 
-    private Object __zeze_map_key__;
+    private transient Object __zeze_map_key__;
 
     @Override
     public Object getMapKey() {

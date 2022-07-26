@@ -18,7 +18,7 @@ public final class BAny extends Zeze.Transaction.Bean {
         }
 
 
-    private Object __zeze_map_key__;
+    private transient Object __zeze_map_key__;
 
     @Override
     public Object getMapKey() {

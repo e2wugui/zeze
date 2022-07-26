@@ -11,7 +11,7 @@ public final class BVersion extends Zeze.Transaction.Bean {
     private long _ReliableNotifyConfirmIndex;
     private int _ServerId;
 
-    private Object __zeze_map_key__;
+    private transient Object __zeze_map_key__;
 
     @Override
     public Object getMapKey() {

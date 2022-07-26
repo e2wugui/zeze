@@ -8,7 +8,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
     private String _LinkName;
     private long _LinkSid;
 
-    private Object __zeze_map_key__;
+    private transient Object __zeze_map_key__;
 
     @Override
     public Object getMapKey() {

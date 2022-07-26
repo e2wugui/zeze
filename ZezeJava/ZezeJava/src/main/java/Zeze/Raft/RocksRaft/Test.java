@@ -19,7 +19,7 @@ public final class Test {
 		private final Bean2 _bean2;
 		private final CollMap2<Integer, Bean1> _map2;
 
-		private Object _Int32MapKey_;
+		private transient Object _Int32MapKey_;
 
 		@Override
 		public Object getMapKey() {

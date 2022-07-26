@@ -12,11 +12,13 @@ import java.util.TreeMap;
 import Zeze.Util.Json;
 import Zeze.Util.JsonReader;
 import Zeze.Util.JsonWriter;
-import junit.framework.TestCase;
+import demo.Module1.Value;
 import org.junit.Assert;
+import org.junit.Ignore;
+import org.junit.Test;
 
 @SuppressWarnings({"unused", "TextBlockMigration"})
-public final class TestJson extends TestCase {
+public final class TestJson {
 	static class A {
 		int a;
 	}
@@ -30,6 +32,7 @@ public final class TestJson extends TestCase {
 		C c;
 	}
 
+	@Test
 	public void test1() throws ReflectiveOperationException {
 		byte[] buf = "{a:[{x:1,y:2},{x:3,y:4},{x:5,y:6}]}".getBytes();
 		Object obj = JsonReader.local().buf(buf).parse();
@@ -37,6 +40,7 @@ public final class TestJson extends TestCase {
 		Assert.assertEquals("{a=[{x=1, y=2}, {x=3, y=4}, {x=5, y=6}]}", obj.toString());
 	}
 
+	@Test
 	public void test2() throws ReflectiveOperationException {
 		C c = JsonReader.local().buf("{a:{a:1,b:2}}").parse(C.class);
 		Assert.assertNotNull(c);
@@ -65,6 +69,7 @@ public final class TestJson extends TestCase {
 		Assert.assertEquals(8, ((B)c.a).b);
 	}
 
+	@Test
 	public void test3() {
 		C c = new C();
 		c.a.a = 1;
@@ -73,6 +78,7 @@ public final class TestJson extends TestCase {
 		Assert.assertEquals("{\"a\":{\"a\":1,\"b\":-1}}", json);
 	}
 
+	@Test
 	public void test4() {
 		C c = new C();
 		c.a.a = 1;
@@ -86,6 +92,7 @@ public final class TestJson extends TestCase {
 				"}", json);
 	}
 
+	@Test
 	public void test5() {
 		C c = new C();
 		c.a.a = 1;
@@ -94,6 +101,7 @@ public final class TestJson extends TestCase {
 		Assert.assertEquals("{a:{a:1,b:-1}}", json);
 	}
 
+	@Test
 	public void test6() {
 		C c = new C();
 		c.a.a = 1;
@@ -102,6 +110,7 @@ public final class TestJson extends TestCase {
 		Assert.assertEquals("{\"a\":{\"a\":1,\"b\":-1},\"c\":null}", json);
 	}
 
+	@Test
 	public void test7() {
 		System.out.println(System.getProperty("java.version"));
 		System.out.println(Json.getClassMeta(Inet4Address.class));
@@ -111,6 +120,7 @@ public final class TestJson extends TestCase {
 		final HashMap<Integer, Integer> m = new HashMap<>();
 	}
 
+	@Test
 	public void test8() throws ReflectiveOperationException {
 		D d = new D();
 		d.m.put(123, 456);
@@ -128,6 +138,7 @@ public final class TestJson extends TestCase {
 		E e;
 	}
 
+	@Test
 	public void test9() {
 		E e = new E();
 		e.a = 123;
@@ -156,6 +167,7 @@ public final class TestJson extends TestCase {
 		F2 f2;
 	}
 
+	@Test
 	@SuppressWarnings("null")
 	public void testA() throws ReflectiveOperationException {
 		G g = JsonReader.local().buf("{\"set1\":[123,456],\"set2\":[789],\"set3\":[],\"e1\":{\"1\":[]},\"f2\":[222]}")
@@ -169,6 +181,7 @@ public final class TestJson extends TestCase {
 		Assert.assertEquals(222, ((Number)g.f2.get(0)).intValue());
 	}
 
+	@Test
 	public void testB() {
 		int[] a = new int[]{1, 2, 3};
 		String[] b = new String[]{"a", "b", "c"};
@@ -227,6 +240,7 @@ public final class TestJson extends TestCase {
 				"}", json);
 	}
 
+	@Test
 	public void testC() {
 		var s = String.format("%X", JsonWriter.umulHigh(0x8000_0000_0000_0001L, 0x8000_0000_0000_0000L));
 		Assert.assertEquals("3FFFFFFFFFFFFFFF", s);
@@ -234,6 +248,13 @@ public final class TestJson extends TestCase {
 			s = String.format("%X", JsonWriter.umulHigh9(0x8000_0000_0000_0001L, 0x8000_0000_0000_0000L));
 			Assert.assertEquals("4000000000000000", s);
 		}
+	}
+
+	@Test
+	@Ignore
+	public void testD() {
+		var v = new Value();
+		System.out.println(JsonWriter.local().clear().setPrettyFormat(true).setWriteNull(true).write(v));
 	}
 
 	public static void main(String[] args) throws ReflectiveOperationException {

@@ -7,8 +7,8 @@ import Zeze.Serialize.ByteBuffer;
 public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	private Bean _Bean;
 	private long _TypeId;
-	private final ToLongFunction<Bean> GetSpecialTypeIdFromBean;
-	private final LongFunction<Bean> CreateBeanFromSpecialTypeId;
+	private transient final ToLongFunction<Bean> GetSpecialTypeIdFromBean;
+	private transient final LongFunction<Bean> CreateBeanFromSpecialTypeId;
 
 	public DynamicBean(int variableId, ToLongFunction<Bean> get, LongFunction<Bean> create) {
 		super(variableId);

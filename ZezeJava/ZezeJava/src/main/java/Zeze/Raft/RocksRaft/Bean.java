@@ -10,10 +10,10 @@ public abstract class Bean implements Serializable {
 	public static final int ObjectIdStep = 4096;
 	public static final int MaxVariableId = ObjectIdStep - 1;
 
-	private final long ObjectId = ObjectIdGenerator.addAndGet(ObjectIdStep);
-	private Bean Parent;
-	public int VariableId;
-	private Record.RootInfo RootInfo;
+	private transient final long ObjectId = ObjectIdGenerator.addAndGet(ObjectIdStep);
+	private transient Bean Parent;
+	public transient int VariableId;
+	private transient Record.RootInfo RootInfo;
 
 	public Bean() {
 	}

@@ -6,6 +6,9 @@ import java.lang.reflect.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import Zeze.Net.Binary;
+import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.DynamicBean;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import sun.misc.Unsafe;
@@ -269,8 +272,11 @@ public final class Json {
 					if (offset != (int)offset)
 						throw new IllegalStateException("unexpected offset(" + offset + ") from field: "
 								+ fieldName + " in " + klass.getName());
-					put(j++, new FieldMeta(type, (int)offset, ensureNotNull(fieldName), fieldClass, fieldCtor,
-							keyReader));
+					String fn = fieldName;
+					if (fn.charAt(0) == '_' && (Zeze.Transaction.Bean.class.isAssignableFrom(klass)
+							|| Zeze.Raft.RocksRaft.Bean.class.isAssignableFrom(klass)))
+						fn = fn.substring(1); // 特殊规则: 忽略字段前的下划线前缀
+					put(j++, new FieldMeta(type, (int)offset, ensureNotNull(fn), fieldClass, fieldCtor, keyReader));
 				}
 			}
 		}
@@ -434,5 +440,39 @@ public final class Json {
 	}
 
 	private Json() {
+	}
+
+	static {
+		Json.getClassMeta(ByteBuffer.class).setParser((reader, classMeta, obj) -> {
+			byte[] data = reader.parseByteString();
+			if (obj == null)
+				return ByteBuffer.Wrap(data);
+			obj.wraps(data);
+			return obj;
+		});
+		Json.getClassMeta(ByteBuffer.class).setWriter((writer, classMeta, obj) -> {
+			if (obj == null)
+				writer.write(null);
+			else
+				writer.write(obj.Bytes, obj.ReadIndex, obj.Size(), false);
+		});
+
+		Json.getClassMeta(Binary.class).setParser((reader, classMeta, obj) -> new Binary(reader.parseByteString()));
+		Json.getClassMeta(Binary.class).setWriter((writer, classMeta, obj) -> {
+			if (obj == null)
+				writer.write(null);
+			else
+				writer.write(obj.InternalGetBytesUnsafe(), obj.getOffset(), obj.size(), false);
+		});
+
+		Json.getClassMeta(DynamicBean.class).setParser((reader, classMeta, obj) -> {
+			if (obj != null) {
+				var p = reader.pos();
+				reader.parse0(obj, classMeta);
+				obj.setBean(obj.getCreateBeanFromSpecialTypeId().apply(obj.getTypeId()));
+				reader.pos(p).parse0(obj, classMeta);
+			}
+			return obj;
+		});
 	}
 }

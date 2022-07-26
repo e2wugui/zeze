@@ -17,7 +17,7 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
     private final Zeze.Raft.RocksRaft.CollMap2<Integer, Zeze.Builtin.TestRocks.Value> _MapBean;
     private Zeze.Builtin.TestRocks.BeanKey _Beankey;
 
-    private Object __zeze_map_key__;
+    private transient Object __zeze_map_key__;
 
     @Override
     public Object getMapKey() {

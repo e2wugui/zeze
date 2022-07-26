@@ -17,7 +17,7 @@ public final class BModule extends Zeze.Transaction.Bean {
     private int _ConfigType;
     private int _SubscribeType;
 
-    private Object __zeze_map_key__;
+    private transient Object __zeze_map_key__;
 
     @Override
     public Object getMapKey() {

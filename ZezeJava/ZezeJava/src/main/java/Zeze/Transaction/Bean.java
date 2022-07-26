@@ -17,18 +17,18 @@ public abstract class Bean implements Serializable {
 		return _objectIdGen.addAndGet(ObjectIdStep);
 	}
 
-	private final long ObjectId = getNextObjectId();
+	private transient final long ObjectId = getNextObjectId();
 
-	protected Record.RootInfo RootInfo;
+	protected transient Record.RootInfo RootInfo;
 
 	// Parent VariableId 是 ChangeListener 需要的属性。
 	// Parent 和 TableKey 一起初始化，仅在被Table管理以后才设置。
-	private Bean Parent;
+	private transient Bean Parent;
 
 	// VariableId 初始化分两部分：
 	// 1. Bean 包含的 Bean 在构造的时候初始化，同时初始化容器的LogKey（包含 VariableId）
 	// 2. Bean 加入容器时，由容器初始化。使用容器所在Bean的LogKey中的VariableId初始化。
-	public int VariableId;
+	public transient int VariableId;
 
 	public Bean() {
 	}
