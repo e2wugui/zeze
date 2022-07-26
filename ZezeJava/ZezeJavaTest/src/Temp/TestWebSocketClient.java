@@ -30,7 +30,7 @@ public class TestWebSocketClient extends WebSocketClient {
 	}
 
 	public TestWebSocketClient(int port) throws URISyntaxException {
-		super(new URI("ws://127.0.0.1:" + port), new Draft_6455());
+		super(new URI("ws://127.0.0.1:" + port), new Draft_6455()); // 使用BIO网络API,启动1个读线程和1个写线程
 	}
 
 	@Override

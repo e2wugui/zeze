@@ -31,7 +31,7 @@ public class TestWebSocketServer extends WebSocketServer {
 	}
 
 	public TestWebSocketServer(int port) {
-		super(new InetSocketAddress(port), 1, List.of(new Draft_6455()));
+		super(new InetSocketAddress(port), 1, List.of(new Draft_6455())); // 启动1个NIO selector线程和可指定的N个工作线程
 	}
 
 	@Override

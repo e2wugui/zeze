@@ -685,7 +685,7 @@ public final class JsonWriter {
 		}
 	}
 
-	static long umulHigh(long a, long b) { // for JDK8-
+	public static long umulHigh(long a, long b) { // for JDK8-
 		long a1 = a >> 32;
 		long a2 = a & 0xffff_ffffL;
 		long b1 = b >> 32;
@@ -698,7 +698,7 @@ public final class JsonWriter {
 		return a1 * b1 + c0 + (c1 >> 32);
 	}
 
-	static long umulHigh9(long a, long b) { // for JDK9+
+	public static long umulHigh9(long a, long b) { // for JDK9+
 		long r = Math.multiplyHigh(a, b);
 		r += (b & (a >> 63));
 		r += (a & (b >> 63));
