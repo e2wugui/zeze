@@ -12,6 +12,7 @@ import org.java_websocket.server.WebSocketServer;
 
 // gradle: implementation 'org.java-websocket:Java-WebSocket:1.5.3'
 // ref: https://github.com/TooTallNate/Java-WebSocket/blob/master/src/main/example/ChatServer.java
+// run: java -cp .;lib/*;build/classes/java/main Temp.TestWebSocketServer
 public class TestWebSocketServer extends WebSocketServer {
 	public static void main(String[] args) throws Exception {
 		var s = new TestWebSocketServer(8887);
@@ -35,37 +36,38 @@ public class TestWebSocketServer extends WebSocketServer {
 
 	@Override
 	public void onStart() {
-		System.out.println("Server started on port: " + getPort());
+		System.out.println("onStart: port=" + getPort());
 		setConnectionLostTimeout(100);
 	}
 
 	@Override
-	public void onOpen(WebSocket ws, ClientHandshake handshake) {
-		ws.send("Welcome to the server!"); // 单发
-		broadcast("new connection: " + handshake.getResourceDescriptor()); // 广播
-		System.out.println(ws.getRemoteSocketAddress().getAddress().getHostAddress() + " entered the room!");
+	public void onOpen(WebSocket ws, ClientHandshake ch) {
+		System.out.println("onOpen: ws=" + ws.getRemoteSocketAddress() + ", desc=" + ch.getResourceDescriptor());
+		ws.send("Hello From Server"); // 单发
+		broadcast("Welcome: " + ch.getResourceDescriptor()); // 广播
 	}
 
 	@Override
 	public void onClose(WebSocket ws, int code, String reason, boolean remote) {
-		broadcast(ws + " has left the room!");
-		System.out.println(ws + " has left the room!");
+		System.out.println("onClose: ws=" + ws.getRemoteSocketAddress()
+				+ ", code=" + code + ", reason=" + reason + ", remote=" + remote);
 	}
 
 	@Override
 	public void onError(WebSocket ws, Exception ex) { // 非单个连接引起的异常时ws为null
+		System.out.println("onError: ws=" + (ws != null ? ws.getRemoteSocketAddress() : "null"));
 		ex.printStackTrace();
+		if (ws != null)
+			ws.close();
 	}
 
 	@Override
 	public void onMessage(WebSocket ws, String message) {
-		broadcast(message);
-		System.out.println(ws + ": " + message);
+		System.out.println("onMessage: ws=" + ws.getRemoteSocketAddress() + ", message=" + message);
 	}
 
 	@Override
-	public void onMessage(WebSocket ws, ByteBuffer message) {
-		broadcast(message.array());
-		System.out.println(ws + ": " + message);
+	public void onMessage(WebSocket ws, ByteBuffer bytes) {
+		System.out.println("onMessage: ws=" + ws.getRemoteSocketAddress() + ", bytes=" + bytes);
 	}
 }
