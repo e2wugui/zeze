@@ -197,7 +197,8 @@ public class AchillesHeelDaemon {
 			// TODO 不同的GlobalAgent能并发起来。由于上面的低频率报告优化，这个不是很必要了。
 			synchronized (Channel) {
 				try (var ignored = Channel.lock()) {
-					MMap.put(agent.GlobalCacheManagerHashIndex * 8, bb.Bytes, 0, 8);
+					MMap.position(agent.GlobalCacheManagerHashIndex * 8);
+					MMap.put(bb.Bytes, 0, 8);
 				} catch (Throwable ex) {
 					logger.error("setActiveTime", ex);
 				}
