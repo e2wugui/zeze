@@ -4,17 +4,17 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.LoadConfig;
+import Zeze.Arch.Online;
 import Zeze.Arch.ProviderApp;
+import Zeze.Arch.ProviderDirect;
 import Zeze.Arch.ProviderModuleBinds;
+import Zeze.Arch.ProviderWithOnline;
 import Zeze.Collections.DepartmentTree;
 import Zeze.Collections.LinkedMap;
 import Zeze.Config;
-import Zeze.Arch.Online;
-import Zeze.Arch.ProviderDirect;
-import Zeze.Arch.ProviderWithOnline;
 import Zeze.Net.AsyncSocket;
+import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
-import org.tikv.shade.com.fasterxml.jackson.databind.ObjectMapper;
 
 public class App extends Zeze.AppBase {
     public static final App Instance = new App();
@@ -31,7 +31,8 @@ public class App extends Zeze.AppBase {
     private LoadConfig LoadConfig() {
         try {
             byte[] bytes = Files.readAllBytes(Paths.get("linkd.json"));
-            return new ObjectMapper().readValue(bytes, LoadConfig.class);
+            return new JsonReader().buf(bytes).parse(LoadConfig.class);
+            // return new ObjectMapper().readValue(bytes, LoadConfig.class);
         } catch (Exception e) {
             // e.printStackTrace();
         }

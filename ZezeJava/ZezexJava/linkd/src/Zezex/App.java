@@ -2,11 +2,13 @@ package Zezex;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import Zeze.Net.AsyncSocket;
-import Zeze.Util.PersistentAtomicLong;
-import Zeze.Arch.*;
+import Zeze.Arch.LinkdApp;
+import Zeze.Arch.LinkdProvider;
+import Zeze.Arch.LoadConfig;
 import Zeze.Config;
-import org.tikv.shade.com.fasterxml.jackson.databind.ObjectMapper;
+import Zeze.Net.AsyncSocket;
+import Zeze.Util.JsonReader;
+import Zeze.Util.PersistentAtomicLong;
 
 public final class App extends Zeze.AppBase {
 	public static final App Instance = new App();
@@ -20,7 +22,8 @@ public final class App extends Zeze.AppBase {
 	private LoadConfig LoadConfig() {
 		try {
 			byte[] bytes = Files.readAllBytes(Paths.get("linkd.json"));
-			return new ObjectMapper().readValue(bytes, LoadConfig.class);
+			return new JsonReader().buf(bytes).parse(LoadConfig.class);
+			// return new ObjectMapper().readValue(bytes, LoadConfig.class);
 		} catch (Exception e) {
 			// e.printStackTrace();
 		}

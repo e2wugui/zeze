@@ -11,8 +11,8 @@ import Zeze.Game.Online;
 import Zeze.Game.ProviderDirectWithTransmit;
 import Zeze.Game.ProviderImplementWithOnline;
 import Zeze.Net.AsyncSocket;
+import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
-import org.tikv.shade.com.fasterxml.jackson.databind.ObjectMapper;
 
 public final class App extends Zeze.AppBase {
 	public static final App Instance = new App();
@@ -37,7 +37,8 @@ public final class App extends Zeze.AppBase {
 	private LoadConfig LoadConfig() {
 		try {
 			byte[] bytes = Files.readAllBytes(Paths.get("linkd.json"));
-			return new ObjectMapper().readValue(bytes, LoadConfig.class);
+			return new JsonReader().buf(bytes).parse(LoadConfig.class);
+			// return new ObjectMapper().readValue(bytes, LoadConfig.class);
 		} catch (Exception e) {
 			// e.printStackTrace();
 		}

@@ -13,6 +13,7 @@ dependencies {
     implementation 'mysql:mysql-connector-java:8.0.29'
     implementation 'org.apache.rocketmq:rocketmq-client:4.9.4' // X 0718
     implementation 'javax:javaee-api:8.0.1' // X 0718
+    implementation 'org.jetbrains:annotations:23.0.0'
 }
 
 task startServiceManager(type: JavaExec) {

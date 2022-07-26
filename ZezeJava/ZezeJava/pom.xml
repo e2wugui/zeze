@@ -88,6 +88,7 @@
 		<mysql-conncetor-java.version>8.0.28</mysql-conncetor-java.version>
 		<rocketmq-client.version>4.9.4</rocketmq-client.version>
 		<javaee-api.version>8.0.1</javaee-api.version>
+		<annotations.version>23.0.0</annotations.version>
 		<junit.version>4.13.2</junit.version>
 	</properties>
 
@@ -160,6 +161,12 @@
 			<artifactId>javaee-api</artifactId>
 			<version>${javaee-api.version}</version>
 			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.jetbrains</groupId>
+			<artifactId>annotations</artifactId>
+			<version>${annotations.version}</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/junit/junit -->
