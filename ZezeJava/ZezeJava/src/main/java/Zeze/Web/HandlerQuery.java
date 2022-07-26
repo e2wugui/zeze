@@ -9,18 +9,18 @@ public class HandlerQuery implements HttpHandler {
 	@Override
 	public void handle(HttpExchange exchange) throws IOException {
 		try {
-			HashMap<String, String> httpRequest = null;
+			HashMap<String, String> req = null;
 			switch (exchange.getRequestMethod()) {
 			case "GET":
-				httpRequest = HttpService.parseQuery(exchange.getRequestURI().getQuery());
+				req = HttpService.parseQuery(exchange.getRequestURI().getQuery());
 				break;
 
 			case "POST":
-				httpRequest = HttpService.parseQuery(HttpService.readRequestBody(exchange));
+				req = HttpService.parseQuery(HttpService.readRequestBody(exchange));
 				break;
 			}
 
-			HttpService.sendErrorResponse(exchange, httpRequest.toString());
+			HttpService.sendErrorResponse(exchange, req.toString());
 
 		} catch (Throwable ex) {
 			HttpService.sendErrorResponse(exchange, ex);

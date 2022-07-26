@@ -16,7 +16,7 @@ import com.sun.net.httpserver.HttpServer;
 
 public class HttpService {
 	public static void sendErrorResponse(HttpExchange exchange, String message) throws IOException {
-		exchange.getResponseHeaders().put("Content-Type", List.of("text/plain; charset=UTF-8"));
+		exchange.getResponseHeaders().put("Content-Type", List.of("text/plain; charset=utf-8"));
 		exchange.sendResponseHeaders(200, 0);
 		try (var body = exchange.getResponseBody()) {
 			body.write(message.getBytes(StandardCharsets.UTF_8));

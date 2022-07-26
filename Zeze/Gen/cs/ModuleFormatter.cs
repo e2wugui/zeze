@@ -205,7 +205,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine("}");
         }
 
-        public void GenEmptyProtocolHandles(StreamWriter sw, string namePrefix = "", bool shortIf = true)
+        public void GenEmptyProtocolHandles(StreamWriter sw, bool shortIf = true)
         {
             if (module.ReferenceService != null)
             {
@@ -216,7 +216,7 @@ namespace Zeze.Gen.cs
                     {
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
                         {
-                            sw.WriteLine($"        protected override async System.Threading.Tasks.Task<long> Process{namePrefix}" + rpc.Name + "Request(Zeze.Net.Protocol _p)");
+                            sw.WriteLine($"        protected override async System.Threading.Tasks.Task<long> Process" + rpc.Name + "Request(Zeze.Net.Protocol _p)");
                             sw.WriteLine("        {");
                             sw.WriteLine($"            var p = _p as {(shortIf ? rpc.ShortNameIf(module) : rpc.FullName)};");
                             sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
@@ -227,7 +227,7 @@ namespace Zeze.Gen.cs
                     }
                     if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
                     {
-                        sw.WriteLine($"        protected override async System.Threading.Tasks.Task<long> Process{namePrefix}" + p.Name + "(Zeze.Net.Protocol _p)");
+                        sw.WriteLine($"        protected override async System.Threading.Tasks.Task<long> Process" + p.Name + "(Zeze.Net.Protocol _p)");
                         sw.WriteLine("        {");
                         sw.WriteLine($"            var p = _p as {(shortIf ? p.ShortNameIf(module) : p.FullName)};");
                         sw.WriteLine("            return Zeze.Transaction.Procedure.NotImplement;");
@@ -263,16 +263,16 @@ namespace Zeze.Gen.cs
             sw.WriteLine("}");
         }
 
-        public void GenEnums(StreamWriter sw, string namePrefix = "")
+        public void GenEnums(StreamWriter sw)
         {
             // declare enums
             if (module.Enums.Count > 0)
                 sw.WriteLine();
             foreach (Types.Enum e in module.Enums)
-                sw.WriteLine($"        public const int {namePrefix}{e.Name} = {e.Value};{e.Comment}");
+                sw.WriteLine($"        public const int {e.Name} = {e.Value};{e.Comment}");
         }
 
-        public void GenAbstractProtocolHandles(StreamWriter sw, string namePrefix = "")
+        public void GenAbstractProtocolHandles(StreamWriter sw)
         {
             if (module.ReferenceService != null)
             {
@@ -284,14 +284,14 @@ namespace Zeze.Gen.cs
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
                         {
                             sw.WriteLine();
-                            sw.WriteLine($"        protected abstract System.Threading.Tasks.Task<long>  Process{namePrefix}" + rpc.Name + "Request(Zeze.Net.Protocol p);");
+                            sw.WriteLine($"        protected abstract System.Threading.Tasks.Task<long>  Process" + rpc.Name + "Request(Zeze.Net.Protocol p);");
                         }
                         continue;
                     }
                     if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
                     {
                         sw.WriteLine();
-                        sw.WriteLine($"        protected abstract System.Threading.Tasks.Task<long>  Process{namePrefix}" + p.Name + "(Zeze.Net.Protocol p);");
+                        sw.WriteLine($"        protected abstract System.Threading.Tasks.Task<long>  Process" + p.Name + "(Zeze.Net.Protocol p);");
                     }
                 }
             }

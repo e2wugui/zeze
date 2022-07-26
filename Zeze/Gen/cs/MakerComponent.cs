@@ -95,7 +95,7 @@ namespace Zeze.Gen.cs
                 sw.WriteLine($"        public override bool IsBuiltin => true;");
                 sw.WriteLine();
 
-                foreach (var mf in mfs) mf.GenEnums(sw, mfs.Count > 1 ? mf.module.Name : "");
+                foreach (var mf in mfs) mf.GenEnums(sw);
                 foreach (var mf in mfs) mf.DefineZezeTables(sw);
                 sw.WriteLine();
 
@@ -131,7 +131,7 @@ namespace Zeze.Gen.cs
 
                 // gen abstract protocol handles
                 // 如果模块嵌套，仅传入Module.Name不够。但一般够用了。
-                foreach (var mf in mfs) mf.GenAbstractProtocolHandles(sw, mfs.Count > 1 ? mf.module.Name : "");
+                foreach (var mf in mfs) mf.GenAbstractProtocolHandles(sw);
 
                 sw.WriteLine("    }");
                 sw.WriteLine("}");
@@ -145,7 +145,7 @@ namespace Zeze.Gen.cs
                 sw.WriteLine($"{{");
                 sw.WriteLine($"    public class {Project.Name} : Abstract{Project.Name}");
                 sw.WriteLine($"    {{");
-                foreach (var mf in mfs) mf.GenEmptyProtocolHandles(sw, mfs.Count > 1 ? mf.module.Name : "", false);
+                foreach (var mf in mfs) mf.GenEmptyProtocolHandles(sw, false);
                 sw.WriteLine($"    }}");
                 sw.WriteLine($"}}");
             }

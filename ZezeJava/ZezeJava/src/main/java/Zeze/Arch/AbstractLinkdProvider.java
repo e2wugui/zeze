@@ -66,6 +66,19 @@ public abstract class AbstractLinkdProvider extends Zeze.IModule {
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessUnBindRequest", Zeze.Transaction.TransactionLevel.Serializable);
             service.AddFactoryHandle(47281107578964L, factoryHandle); // 11008, 2107584596
         }
+        var _reflect = new Zeze.Util.Reflect(this.getClass());
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Web.RequestJson>();
+            factoryHandle.Factory = Zeze.Builtin.Web.RequestJson::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessRequestJsonRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            service.AddFactoryHandle(47685215163543L, factoryHandle); // 11102, -1806723945
+        }
+        {
+            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Web.RequestQuery>();
+            factoryHandle.Factory = Zeze.Builtin.Web.RequestQuery::new;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessRequestQueryRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            service.AddFactoryHandle(47686709906514L, factoryHandle); // 11102, -311980974
+        }
     }
 
     public void UnRegisterProtocols(Zeze.Net.Service service) {
@@ -77,6 +90,8 @@ public abstract class AbstractLinkdProvider extends Zeze.IModule {
         service.getFactorys().remove(47281569047175L);
         service.getFactorys().remove(47280110454586L);
         service.getFactorys().remove(47281107578964L);
+        service.getFactorys().remove(47685215163543L);
+        service.getFactorys().remove(47686709906514L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {

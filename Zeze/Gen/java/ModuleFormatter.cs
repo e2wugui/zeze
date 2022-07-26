@@ -24,7 +24,7 @@ namespace Zeze.Gen.java
 
         FileChunkGen FileChunkGen;
 
-        public bool GenEmptyProtocolHandles(StreamWriter sw, string namePrefix = "", bool shortIf = true)
+        public bool GenEmptyProtocolHandles(StreamWriter sw, bool shortIf = true)
         {
             bool written = false;
             if (module.ReferenceService != null)
@@ -40,7 +40,7 @@ namespace Zeze.Gen.java
                                 sw.WriteLine();
                             written = true;
                             sw.WriteLine("    @Override");
-                            sw.WriteLine($"    protected long Process{namePrefix}{rpc.Name}Request({rpc.Space.Path(".", rpc.Name)} r) {{");
+                            sw.WriteLine($"    protected long Process{rpc.Name}Request({rpc.Space.Path(".", rpc.Name)} r) {{");
                             sw.WriteLine($"        return Zeze.Transaction.Procedure.NotImplement;");
                             sw.WriteLine("    }");
                         }
@@ -53,7 +53,7 @@ namespace Zeze.Gen.java
                                 sw.WriteLine();
                             written = true;
                             sw.WriteLine("    @Override");
-                            sw.WriteLine($"    protected long Process{namePrefix}{p.Name}({p.Space.Path(".", p.Name)} p) {{");
+                            sw.WriteLine($"    protected long Process{p.Name}({p.Space.Path(".", p.Name)} p) {{");
                             sw.WriteLine("        return Zeze.Transaction.Procedure.NotImplement;");
                             sw.WriteLine("    }");
                         }
@@ -460,15 +460,15 @@ namespace Zeze.Gen.java
             sw.WriteLine("}");
         }
 
-        public void GenEnums(StreamWriter sw, string namePrefix = "")
+        public void GenEnums(StreamWriter sw)
         {
             foreach (Types.Enum e in module.Enums)
-                sw.WriteLine("    public static final int " + namePrefix + e.Name + " = " + e.Value + ";" + e.Comment);
+                sw.WriteLine("    public static final int " + e.Name + " = " + e.Value + ";" + e.Comment);
             if (module.Enums.Count > 0)
                 sw.WriteLine();
         }
 
-        public void GenAbstractProtocolHandles(StreamWriter sw, string namePrefix = "", bool postBlankLine = true)
+        public void GenAbstractProtocolHandles(StreamWriter sw, bool postBlankLine = true)
         {
             var protocols = GetProcessProtocols();
             if (!postBlankLine && protocols.Count > 0)
@@ -476,9 +476,9 @@ namespace Zeze.Gen.java
             foreach (Protocol p in protocols)
             {
                 if (p is Rpc rpc)
-                    sw.WriteLine($"    protected abstract long Process{namePrefix}{rpc.Name}Request({rpc.Space.Path(".", rpc.Name)} r) throws Throwable;");
+                    sw.WriteLine($"    protected abstract long Process{rpc.Name}Request({rpc.Space.Path(".", rpc.Name)} r) throws Throwable;");
                 else
-                    sw.WriteLine($"    protected abstract long Process{namePrefix}{p.Name}({p.Space.Path(".", p.Name)} p) throws Throwable;");
+                    sw.WriteLine($"    protected abstract long Process{p.Name}({p.Space.Path(".", p.Name)} p) throws Throwable;");
             }
             if (postBlankLine && protocols.Count > 0)
                 sw.WriteLine();
