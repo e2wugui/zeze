@@ -99,7 +99,7 @@ namespace Zeze.Gen.java
                 foreach (var mf in mfs) mf.DefineZezeTables(sw);
 
                 sw.WriteLine("    public void RegisterProtocols(Zeze.Net.Service service) {");
-                foreach (var mf in mfs) mf.RegisterProtocols(sw, "service");
+                for (var i = 0; i < mfs.Count; ++i) mfs[i].RegisterProtocols(sw, i == 0, "service");
                 sw.WriteLine("    }");
                 sw.WriteLine();
 

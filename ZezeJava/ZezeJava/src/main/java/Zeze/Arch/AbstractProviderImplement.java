@@ -49,7 +49,6 @@ public abstract class AbstractProviderImplement extends Zeze.IModule {
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessUnBindRequest", Zeze.Transaction.TransactionLevel.Serializable);
             service.AddFactoryHandle(47281107578964L, factoryHandle); // 11008, 2107584596
         }
-        var _reflect = new Zeze.Util.Reflect(this.getClass());
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Web.RequestJson>();
             factoryHandle.Factory = Zeze.Builtin.Web.RequestJson::new;

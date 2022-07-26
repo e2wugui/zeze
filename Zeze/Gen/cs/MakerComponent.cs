@@ -101,7 +101,7 @@ namespace Zeze.Gen.cs
 
                 sw.WriteLine("        public void RegisterProtocols(Zeze.Net.Service service)");
                 sw.WriteLine("        {");
-                foreach (var mf in mfs) mf.RegisterProtocols(sw, "service");
+                for (var i = 0; i < mfs.Count; ++i) mfs[i].RegisterProtocols(sw, i == 0, "service");
                 sw.WriteLine("        }");
                 sw.WriteLine();
 

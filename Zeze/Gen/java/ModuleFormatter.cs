@@ -257,7 +257,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("    }");
         }
 
-        public void RegisterProtocols(StreamWriter sw, string serviceVarName = null)
+        public void RegisterProtocols(StreamWriter sw, bool isFirst = true, string serviceVarName = null)
         {
             Service serv = module.ReferenceService;
             if (serv != null)
@@ -269,7 +269,7 @@ namespace Zeze.Gen.java
                 {
                     if (p is Rpc rpc)
                     {
-                        if (!defReflect)
+                        if (!defReflect && isFirst)
                         {
                             defReflect = true;
                             sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(this.getClass());");
@@ -288,7 +288,7 @@ namespace Zeze.Gen.java
                     }
                     if (0 != (p.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags))
                     {
-                        if (!defReflect)
+                        if (!defReflect && isFirst)
                         {
                             defReflect = true;
                             sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(this.getClass());");

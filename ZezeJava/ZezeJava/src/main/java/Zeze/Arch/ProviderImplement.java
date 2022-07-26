@@ -155,4 +155,14 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 		//var linkSession = (ProviderService.LinkSession)protocol.getSender().getUserState();
 		return Procedure.Success;
 	}
+
+	@Override
+	protected long ProcessRequestJsonRequest(Zeze.Builtin.Web.RequestJson r) throws Throwable {
+		return 0;
+	}
+
+	@Override
+	protected long ProcessRequestQueryRequest(Zeze.Builtin.Web.RequestQuery r) throws Throwable {
+		return 0;
+	}
 }

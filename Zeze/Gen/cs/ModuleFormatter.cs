@@ -99,10 +99,11 @@ namespace Zeze.Gen.cs
             }
         }
 
-        public void RegisterProtocols(StreamWriter sw, string serviceVarName = null)
+        public void RegisterProtocols(StreamWriter sw, bool isFirst = true, string serviceVarName = null)
         {
             sw.WriteLine("            // register protocol factory and handles");
-            sw.WriteLine("            var _reflect = new Zeze.Util.Reflect(this.GetType());");
+            if (isFirst)
+                sw.WriteLine("            var _reflect = new Zeze.Util.Reflect(this.GetType());");
             Service serv = module.ReferenceService;
             if (serv != null)
             {
