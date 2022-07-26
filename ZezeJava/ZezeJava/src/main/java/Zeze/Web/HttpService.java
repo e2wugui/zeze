@@ -20,9 +20,9 @@ public class HttpService {
 		// 但对于大负载，单个后台线程会不会忙不过来？
 		server.setExecutor(null);
 		server.createContext("/hello", new HelloHandler());
-		server.createContext("/handler/json", new HandlerJson());
-		server.createContext("/handler/protocol", new HandlerProtocol());
-		server.createContext("/handler/query", new HandlerQuery());
+		server.createContext("/json", new HandlerJson());
+		server.createContext("/protocol", new HandlerProtocol());
+		server.createContext("/query", new HandlerQuery());
 		server.start();
 	}
 
