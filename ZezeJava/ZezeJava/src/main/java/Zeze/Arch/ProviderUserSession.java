@@ -17,7 +17,7 @@ public class ProviderUserSession {
 	private final String Account;
 	private final String Context;
 	private final long LinkSid;
-	private final String LinkName;
+	private String LinkName;
 	private AsyncSocket Link;
 
 	public ProviderUserSession(ProviderService service, String account, String context, AsyncSocket link, long linkSid) {
@@ -25,7 +25,6 @@ public class ProviderUserSession {
 		Account = account;
 		Context = context;
 		LinkSid = linkSid;
-		LinkName = service.GetLinkName(link);
 		Link = link;
 	}
 
@@ -51,7 +50,7 @@ public class ProviderUserSession {
 	}
 
 	public final String getLinkName() {
-		return LinkName;
+		return LinkName != null ? LinkName : (LinkName = service.GetLinkName(Link));
 	}
 
 	public final AsyncSocket getLink() {
