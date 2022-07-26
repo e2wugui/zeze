@@ -2,6 +2,7 @@ package Zeze.Web;
 
 import java.io.IOException;
 import java.util.HashMap;
+import Zeze.Builtin.Web.RequestQuery;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
@@ -20,7 +21,21 @@ public class HandlerQuery implements HttpHandler {
 				break;
 			}
 
-			HttpService.sendErrorResponse(exchange, req.toString());
+			var agent = new RequestQuery();
+			agent.Argument.setCookie(""); // todo
+			agent.Argument.getQuery().putAll(req);
+
+			// TODO choice server
+			if (!agent.Send(HttpService.LinkdApp.LinkdProviderService.GetSocket(), (p) -> {
+				if (agent.isTimeout())
+					HttpService.sendErrorResponse(exchange, "timeout");
+				else {
+					HttpService.sendResponse(exchange, agent.Result);
+				}
+				return 0;
+			})) {
+				HttpService.sendErrorResponse(exchange, "dispatch error");
+			}
 
 		} catch (Throwable ex) {
 			HttpService.sendErrorResponse(exchange, ex);

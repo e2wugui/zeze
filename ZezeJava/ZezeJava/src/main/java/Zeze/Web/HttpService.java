@@ -10,11 +10,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import Zeze.Arch.LinkdApp;
+import Zeze.Builtin.Web.BHttpResponse;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
+import org.apache.http.HttpResponse;
 
 public class HttpService {
+	public static Zeze.Arch.LinkdApp LinkdApp;
+
+	public static void sendResponse(HttpExchange exchange, BHttpResponse response) {
+
+	}
+
 	public static void sendErrorResponse(HttpExchange exchange, String message) throws IOException {
 		exchange.getResponseHeaders().put("Content-Type", List.of("text/plain; charset=utf-8"));
 		exchange.sendResponseHeaders(200, 0);

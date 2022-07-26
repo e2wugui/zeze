@@ -3,6 +3,7 @@ package Zeze.Web;
 import java.io.IOException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import Zeze.Builtin.Web.RequestJson;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
@@ -28,8 +29,21 @@ public class HandlerJson implements HttpHandler {
 				break;
 			}
 
-			HttpService.sendErrorResponse(exchange, json);
+			var agent = new RequestJson();
+			agent.Argument.setCookie(""); // todo
+			agent.Argument.setJson(json);
 
+			// TODO choice server
+			if (!agent.Send(HttpService.LinkdApp.LinkdProviderService.GetSocket(), (p) -> {
+				if (agent.isTimeout())
+					HttpService.sendErrorResponse(exchange, "timeout");
+				else {
+					HttpService.sendResponse(exchange, agent.Result);
+				}
+				return 0;
+			})) {
+				HttpService.sendErrorResponse(exchange, "dispatch error");
+			}
 		} catch (Throwable ex) {
 			HttpService.sendErrorResponse(exchange, ex);
 		}
