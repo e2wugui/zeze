@@ -82,7 +82,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
     public BDepartmentRoot(int _varId_) {
         super(_varId_);
         _Root = "";
-        _Managers = new Zeze.Transaction.Collections.PMap1<>(String.class, Zeze.Transaction.DynamicBean.class);
+        _Managers = new Zeze.Transaction.Collections.PMap1<>(String.class, Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId);
         _Managers.VariableId = 2;
         _Childs = new Zeze.Transaction.Collections.PMap1<>(String.class, Long.class);
         _Childs.VariableId = 4;

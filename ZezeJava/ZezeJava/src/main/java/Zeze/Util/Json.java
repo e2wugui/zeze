@@ -6,9 +6,14 @@ import java.lang.reflect.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiFunction;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.Bean;
+import Zeze.Transaction.Collections.PList1;
+import Zeze.Transaction.Collections.PMap1;
 import Zeze.Transaction.DynamicBean;
+import Zeze.Transaction.EmptyBean;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import sun.misc.Unsafe;
@@ -66,13 +71,13 @@ public final class Json {
 
 	public interface Parser<T> {
 		@Nullable
-		T parse(@NotNull JsonReader reader, @NotNull ClassMeta<T> classMeta, @Nullable T obj)
+		T parse(@NotNull JsonReader reader, @NotNull ClassMeta<T> classMeta, @Nullable T obj, @Nullable Object parent)
 				throws ReflectiveOperationException;
 
 		@SuppressWarnings("unchecked")
-		default @Nullable T parse0(@NotNull JsonReader reader, @NotNull ClassMeta<?> classMeta, @Nullable Object obj)
-				throws ReflectiveOperationException {
-			return parse(reader, (ClassMeta<T>)classMeta, (T)obj);
+		default @Nullable T parse0(@NotNull JsonReader reader, @NotNull ClassMeta<?> classMeta, @Nullable Object obj,
+								   @Nullable Object parent) throws ReflectiveOperationException {
+			return parse(reader, (ClassMeta<T>)classMeta, (T)obj, parent);
 		}
 	}
 
@@ -99,6 +104,7 @@ public final class Json {
 	public static final class ClassMeta<T> {
 		private static final @NotNull HashMap<Class<?>, Integer> typeMap = new HashMap<>(32);
 		private static final @NotNull HashMap<Type, KeyReader> keyReaderMap = new HashMap<>(16);
+		public static BiFunction<Class<?>, Field, String> fieldNameFilter;
 		private final FieldMeta[] valueTable;
 		final FieldMeta[] fieldMetas;
 		final @NotNull Class<T> klass;
@@ -137,6 +143,10 @@ public final class Json {
 			keyReaderMap.put(Double.class, JsonReader::parseDoubleKey);
 			keyReaderMap.put(String.class, JsonReader::parseStringKey);
 			keyReaderMap.put(Object.class, JsonReader::parseStringKey);
+		}
+
+		static boolean isInKeyReaderMap(Class<?> klass) {
+			return keyReaderMap.containsKey(klass);
 		}
 
 		static boolean isAbstract(@NotNull Class<?> klass) {
@@ -260,8 +270,20 @@ public final class Json {
 							v = typeMap.get(fieldClass = ensureNotNull((Class<?>)subTypes[1]));
 							type = TYPE_MAP_FLAG + (v != null ? v & 0xf : TYPE_CUSTOM);
 							keyReader = keyReaderMap.get(subTypes[0]);
-							if (keyReader == null)
-								keyReader = JsonReader::parseStringKey;
+							if (keyReader == null) {
+								Class<?> keyClass = (Class<?>)subTypes[0];
+								if (isAbstract(keyClass))
+									throw new IllegalStateException("unsupported abstract key class for field: "
+											+ fieldName + " in " + klass.getName());
+								Constructor<?> keyCtor = getDefCtor(keyClass);
+								if (keyCtor == null)
+									throw new IllegalStateException("key class does not have default constructor for" +
+											" field: " + fieldName + " in " + klass.getName());
+								keyReader = (jr, b) -> {
+									String keyStr = JsonReader.parseStringKey(jr, b);
+									return ensureNotNull(new JsonReader().buf(keyStr).parse(keyCtor.newInstance()));
+								};
+							}
 						} else {
 							type = TYPE_MAP_FLAG + TYPE_OBJECT;
 							keyReader = JsonReader::parseStringKey;
@@ -272,11 +294,9 @@ public final class Json {
 					if (offset != (int)offset)
 						throw new IllegalStateException("unexpected offset(" + offset + ") from field: "
 								+ fieldName + " in " + klass.getName());
-					String fn = fieldName;
-					if (fn.charAt(0) == '_' && (Zeze.Transaction.Bean.class.isAssignableFrom(klass)
-							|| Zeze.Raft.RocksRaft.Bean.class.isAssignableFrom(klass)))
-						fn = fn.substring(1); // 特殊规则: 忽略字段前的下划线前缀
-					put(j++, new FieldMeta(type, (int)offset, ensureNotNull(fn), fieldClass, fieldCtor, keyReader));
+					final String fn = fieldNameFilter != null ? fieldNameFilter.apply(c, field) : fieldName;
+					put(j++, new FieldMeta(type, (int)offset, fn != null ? fn : fieldName, fieldClass, fieldCtor,
+							keyReader));
 				}
 			}
 		}
@@ -443,8 +463,19 @@ public final class Json {
 	}
 
 	static {
-		Json.getClassMeta(ByteBuffer.class).setParser((reader, classMeta, obj) -> {
-			byte[] data = reader.parseByteString();
+		ClassMeta.fieldNameFilter = (klass, field) -> {
+			final String fn = field.getName();
+			if (fn.charAt(0) == '_' &&
+					(Zeze.Transaction.Bean.class.isAssignableFrom(klass) // bean
+							|| Zeze.Raft.RocksRaft.Bean.class.isAssignableFrom(klass) // RocksRaft bean
+							|| (Zeze.Serialize.Serializable.class.isAssignableFrom(klass)
+							&& Comparable.class.isAssignableFrom(klass)))) // beankey
+				return fn.substring(1); // 特殊规则: 忽略字段前的下划线前缀
+			return fn;
+		};
+
+		Json.getClassMeta(ByteBuffer.class).setParser((reader, classMeta, obj, parent) -> {
+			final byte[] data = reader.parseByteString();
 			if (obj == null)
 				return ByteBuffer.Wrap(data);
 			obj.wraps(data);
@@ -457,7 +488,8 @@ public final class Json {
 				writer.write(obj.Bytes, obj.ReadIndex, obj.Size(), false);
 		});
 
-		Json.getClassMeta(Binary.class).setParser((reader, classMeta, obj) -> new Binary(reader.parseByteString()));
+		Json.getClassMeta(Binary.class).setParser((reader, classMeta, obj, parent) ->
+				new Binary(reader.parseByteString()));
 		Json.getClassMeta(Binary.class).setWriter((writer, classMeta, obj) -> {
 			if (obj == null)
 				writer.write(null);
@@ -465,11 +497,18 @@ public final class Json {
 				writer.write(obj.InternalGetBytesUnsafe(), obj.getOffset(), obj.size(), false);
 		});
 
-		Json.getClassMeta(DynamicBean.class).setParser((reader, classMeta, obj) -> {
+		Json.getClassMeta(DynamicBean.class).setParser((reader, classMeta, obj, parent) -> {
+			if (obj == null) {
+				if (parent instanceof PList1)
+					obj = (DynamicBean)((PList1<?>)parent).getValueCodecFuncs().decoder.apply(null);
+				else if (parent instanceof PMap1)
+					obj = (DynamicBean)((PMap1<?, ?>)parent).getValueCodecFuncs().decoder.apply(null);
+			}
 			if (obj != null) {
-				var p = reader.pos();
+				int p = reader.pos();
 				reader.parse0(obj, classMeta);
-				obj.setBean(obj.getCreateBeanFromSpecialTypeId().apply(obj.getTypeId()));
+				Bean bean = obj.getCreateBeanFromSpecialTypeId().apply(obj.getTypeId());
+				obj.setBean(bean != null ? bean : new EmptyBean());
 				reader.pos(p).parse0(obj, classMeta);
 			}
 			return obj;

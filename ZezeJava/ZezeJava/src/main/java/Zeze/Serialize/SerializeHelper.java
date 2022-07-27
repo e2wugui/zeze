@@ -3,9 +3,14 @@ package Zeze.Serialize;
 import java.util.HashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.LongFunction;
+import java.util.function.ToLongFunction;
 import Zeze.Net.Binary;
+import Zeze.Transaction.Bean;
+import Zeze.Transaction.DynamicBean;
 
 public final class SerializeHelper {
+	@SuppressWarnings("ClassCanBeRecord")
 	public static final class CodecFuncs<T> {
 		public final BiConsumer<ByteBuffer, T> encoder;
 		public final Function<ByteBuffer, T> decoder;
@@ -43,6 +48,12 @@ public final class SerializeHelper {
 		codecs.put(Double.class, doubleCodec);
 		codecs.put(String.class, new CodecFuncs<>(ByteBuffer::WriteString, ByteBuffer::ReadString));
 		codecs.put(Binary.class, new CodecFuncs<>(ByteBuffer::WriteBinary, ByteBuffer::ReadBinary));
+		codecs.put(Vector2.class, new CodecFuncs<>((bb, obj) -> obj.Encode(bb), ByteBuffer::ReadVector2));
+		codecs.put(Vector2Int.class, new CodecFuncs<>((bb, obj) -> obj.Encode(bb), ByteBuffer::ReadVector2Int));
+		codecs.put(Vector3.class, new CodecFuncs<>((bb, obj) -> obj.Encode(bb), ByteBuffer::ReadVector3));
+		codecs.put(Vector3Int.class, new CodecFuncs<>((bb, obj) -> obj.Encode(bb), ByteBuffer::ReadVector3Int));
+		codecs.put(Vector4.class, new CodecFuncs<>((bb, obj) -> obj.Encode(bb), ByteBuffer::ReadVector4));
+		codecs.put(Quaternion.class, new CodecFuncs<>((bb, obj) -> obj.Encode(bb), ByteBuffer::ReadQuaternion));
 	}
 
 	public static <T> BiConsumer<ByteBuffer, T> createEncodeFunc(Class<T> cls) {
@@ -92,6 +103,15 @@ public final class SerializeHelper {
 					((Serializable)obj).Decode(bb);
 					return obj;
 				});
+	}
+
+	public static CodecFuncs<DynamicBean> createCodec(ToLongFunction<Bean> get, LongFunction<Bean> create) {
+		return new CodecFuncs<>((bb, obj) -> obj.Encode(bb), bb -> {
+			var bean = new DynamicBean(0, get, create);
+			if (bb != null) // for creating DynamicBean by json decoder
+				bean.Decode(bb);
+			return bean;
+		});
 	}
 
 	private SerializeHelper() {

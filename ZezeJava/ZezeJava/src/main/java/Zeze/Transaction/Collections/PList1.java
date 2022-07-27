@@ -1,6 +1,8 @@
 package Zeze.Transaction.Collections;
 
 import java.util.Collection;
+import java.util.function.LongFunction;
+import java.util.function.ToLongFunction;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Serialize.ByteBuffer;
@@ -19,9 +21,19 @@ public class PList1<V> extends PList<V> {
 		logTypeId = Zeze.Transaction.Bean.Hash32("Zeze.Transaction.LogList1<" + Reflect.GetStableName(valueClass) + '>');
 	}
 
+	@SuppressWarnings("unchecked")
+	public PList1(ToLongFunction<Bean> get, LongFunction<Bean> create) { // only for DynamicBean value
+		valueCodecFuncs = (SerializeHelper.CodecFuncs<V>)SerializeHelper.createCodec(get, create);
+		logTypeId = Zeze.Transaction.Bean.Hash32("Zeze.Transaction.LogList1<Zeze.Transaction.DynamicBean>");
+	}
+
 	private PList1(int logTypeId, SerializeHelper.CodecFuncs<V> valueCodecFuncs) {
 		this.valueCodecFuncs = valueCodecFuncs;
 		this.logTypeId = logTypeId;
+	}
+
+	public SerializeHelper.CodecFuncs<V> getValueCodecFuncs() {
+		return valueCodecFuncs;
 	}
 
 	@Override

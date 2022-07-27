@@ -102,21 +102,30 @@ namespace Zeze.Gen.java
         public void Visit(TypeList type)
         {
             string typeName = TypeName.GetNameOmitted(type) + "<>";
-            sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}({BoxingName.GetBoxingName(type.ValueType)}.class);");
+            if (type.ValueType is TypeDynamic valueType)
+                sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}({GetAndCreateDynamicBean(valueType)});");
+            else
+                sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}({BoxingName.GetBoxingName(type.ValueType)}.class);");
             sw.WriteLine(prefix + variable.NamePrivate + $".VariableId = {variable.Id};");
         }
 
         public void Visit(TypeSet type)
         {
             string typeName = TypeName.GetNameOmitted(type) + "<>";
-            sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}({BoxingName.GetBoxingName(type.ValueType)}.class);");
+            if (type.ValueType is TypeDynamic valueType)
+                sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}({GetAndCreateDynamicBean(valueType)});");
+            else
+                sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}({BoxingName.GetBoxingName(type.ValueType)}.class);");
             sw.WriteLine(prefix + variable.NamePrivate + $".VariableId = {variable.Id};");
         }
 
         public void Visit(TypeMap type)
         {
             string typeName = TypeName.GetNameOmitted(type) + "<>";
-            sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}({BoxingName.GetBoxingName(type.KeyType)}.class, {BoxingName.GetBoxingName(type.ValueType)}.class);");
+            if (type.ValueType is TypeDynamic valueType)
+                sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}({BoxingName.GetBoxingName(type.KeyType)}.class, {GetAndCreateDynamicBean(valueType)});");
+            else
+                sw.WriteLine(prefix + variable.NamePrivate + $" = new {typeName}({BoxingName.GetBoxingName(type.KeyType)}.class, {BoxingName.GetBoxingName(type.ValueType)}.class);");
             sw.WriteLine(prefix + variable.NamePrivate + $".VariableId = {variable.Id};");
             /*
             var key = TypeName.GetName(type.KeyType);
@@ -140,19 +149,21 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "();");
         }
 
-        public void Visit(TypeDynamic type)
+        string GetAndCreateDynamicBean(TypeDynamic type)
         {
             if (string.IsNullOrEmpty(type.DynamicParams.CreateBeanFromSpecialTypeId)) // 判断一个就够了。
             {
-                sw.WriteLine(prefix + variable.NamePrivate + " = new Zeze.Transaction.DynamicBean"
-                    + $"({variable.Id}, {beanName}::GetSpecialTypeIdFromBean_{variable.NameUpper1}, "
-                    + $"{beanName}::CreateBeanFromSpecialTypeId_{variable.NameUpper1});");
+                return $"{beanName}::GetSpecialTypeIdFromBean_{variable.NameUpper1}, " +
+                       $"{beanName}::CreateBeanFromSpecialTypeId_{variable.NameUpper1}";
             }
-            else
-            {
-                sw.WriteLine(prefix + variable.NamePrivate + " = new Zeze.Transaction.DynamicBean"
-                    + $"({variable.Id}, {type.DynamicParams.GetSpecialTypeIdFromBean}, {type.DynamicParams.CreateBeanFromSpecialTypeId});");
-            }
+            return $"{type.DynamicParams.GetSpecialTypeIdFromBean}, " +
+                   $"{type.DynamicParams.CreateBeanFromSpecialTypeId}";
+        }
+
+        public void Visit(TypeDynamic type)
+        {
+            sw.WriteLine(prefix + variable.NamePrivate + " = new Zeze.Transaction.DynamicBean" +
+                    $"({variable.Id}, {GetAndCreateDynamicBean(type)});");
         }
 
         public void Visit(TypeQuaternion type)

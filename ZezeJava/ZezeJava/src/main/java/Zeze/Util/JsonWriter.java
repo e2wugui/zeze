@@ -459,21 +459,30 @@ public final class JsonWriter {
 				buf[pos++] = '{';
 				if ((flags & FLAG_PRETTY_FORMAT) == 0) {
 					for (Entry<?, ?> e : ((Map<?, ?>)obj).entrySet()) {
-						if (e.getValue() == null && (flags & FLAG_WRITE_NULL) == 0)
+						Object value = e.getValue();
+						if (value == null && (flags & FLAG_WRITE_NULL) == 0)
 							continue;
 						if (comma)
 							buf[pos++] = ',';
-						s = String.valueOf(e.getKey());
-						ensure(s.length() * 6 + 3); // "xxxxxx":
-						write(s, noQuote);
+						Object k = e.getKey();
+						if (k == null || Json.ClassMeta.isInKeyReaderMap(k.getClass())) {
+							s = String.valueOf(k);
+							ensure(s.length() * 6 + 3); // "xxxxxx":
+							write(s, noQuote && s.indexOf(':') < 0);
+						} else {
+							byte[] keyStr = new JsonWriter().setFlags(FLAG_NO_QUOTE_KEY).write(k).toBytes();
+							ensure(keyStr.length * 6 + 3); // "xxxxxx":
+							write(keyStr, false);
+						}
 						buf[pos++] = ':';
-						write(e.getValue());
+						write(value);
 						comma = true;
 					}
 					ensure(2);
 				} else {
 					for (Entry<?, ?> e : ((Map<?, ?>)obj).entrySet()) {
-						if (e.getValue() == null && (flags & FLAG_WRITE_NULL) == 0)
+						Object value = e.getValue();
+						if (value == null && (flags & FLAG_WRITE_NULL) == 0)
 							continue;
 						if (comma)
 							buf[pos++] = ',';
@@ -482,12 +491,19 @@ public final class JsonWriter {
 							comma = true;
 						}
 						writeNewLineTabs();
-						s = String.valueOf(e.getKey());
-						ensure(s.length() * 6 + 4); // "xxxxxx":_
-						write(s, noQuote);
+						Object k = e.getKey();
+						if (k == null || Json.ClassMeta.isInKeyReaderMap(k.getClass())) {
+							s = String.valueOf(k);
+							ensure(s.length() * 6 + 4); // "xxxxxx":_
+							write(s, noQuote && s.indexOf(':') < 0);
+						} else {
+							byte[] keyStr = new JsonWriter().setFlags(FLAG_NO_QUOTE_KEY).write(k).toBytes();
+							ensure(keyStr.length * 6 + 4); // "xxxxxx":_
+							write(keyStr, false);
+						}
 						buf[pos++] = ':';
 						buf[pos++] = ' ';
-						write(e.getValue());
+						write(value);
 					}
 					if (comma) {
 						tabs--;

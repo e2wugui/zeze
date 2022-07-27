@@ -1,6 +1,8 @@
 package Zeze.Transaction.Collections;
 
 import java.util.Map;
+import java.util.function.LongFunction;
+import java.util.function.ToLongFunction;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
 import Zeze.Transaction.Bean;
@@ -21,11 +23,23 @@ public class PMap1<K, V> extends PMap<K, V> {
 				+ Reflect.GetStableName(keyClass) + ", " + Reflect.GetStableName(valueClass) + '>');
 	}
 
+	@SuppressWarnings("unchecked")
+	public PMap1(Class<K> keyClass, ToLongFunction<Bean> get, LongFunction<Bean> create) { // only for DynamicBean value
+		keyCodecFuncs = SerializeHelper.createCodec(keyClass);
+		valueCodecFuncs = (SerializeHelper.CodecFuncs<V>)SerializeHelper.createCodec(get, create);
+		logTypeId = Zeze.Transaction.Bean.Hash32("Zeze.Transaction.Collections.LogMap1<"
+				+ Reflect.GetStableName(keyClass) + ", Zeze.Transaction.DynamicBean>");
+	}
+
 	private PMap1(int logTypeId, SerializeHelper.CodecFuncs<K> keyCodecFuncs,
 				  SerializeHelper.CodecFuncs<V> valueCodecFuncs) {
 		this.keyCodecFuncs = keyCodecFuncs;
 		this.valueCodecFuncs = valueCodecFuncs;
 		this.logTypeId = logTypeId;
+	}
+
+	public SerializeHelper.CodecFuncs<V> getValueCodecFuncs() {
+		return valueCodecFuncs;
 	}
 
 	@Override
@@ -70,8 +84,7 @@ public class PMap1<K, V> extends PMap<K, V> {
 			var mapLog = (LogMap1<K, V>)txn.LogGetOrAdd(
 					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
 			mapLog.PutAll(m);
-		}
-		else {
+		} else {
 			_map = _map.plusAll(m);
 		}
 	}

@@ -354,7 +354,7 @@ public final class JsonReader {
 		Parser<T> parser = classMeta.parser;
 		if (parser != null) {
 			for (int b = skipNext(); b != ']'; b = skipVar(']'))
-				c.add(parser.parse(this, classMeta, null));
+				c.add(parser.parse(this, classMeta, null, null));
 		} else {
 			if (classMeta.isAbstract)
 				throw new InstantiationException("abstract element class: " + elemClass.getName());
@@ -408,7 +408,7 @@ public final class JsonReader {
 		}
 		Parser<? super T> parser = classMeta.parser;
 		if (parser != null)
-			return (T)parser.parse0(this, classMeta, obj);
+			return (T)parser.parse0(this, classMeta, obj, null);
 		if (obj != null)
 			return parse0(obj, classMeta);
 		if (classMeta.isAbstract)
@@ -476,7 +476,7 @@ public final class JsonReader {
 						subClassMeta = getClassMeta(subClass);
 					Parser<?> parser = subClassMeta.parser;
 					if (parser != null) {
-						Object newSubObj = parser.parse0(this, subClassMeta, subObj);
+						Object newSubObj = parser.parse0(this, subClassMeta, subObj, obj);
 						if (newSubObj != subObj) {
 							if (newSubObj != null && !fm.klass.isAssignableFrom(newSubObj.getClass()))
 								throw new InstantiationException("incompatible type(" + newSubObj.getClass()
@@ -491,7 +491,7 @@ public final class JsonReader {
 						fm.classMeta = subClassMeta = getClassMeta(fm.klass);
 					Parser<?> parser = subClassMeta.parser;
 					if (parser != null)
-						subObj = parser.parse0(this, subClassMeta, null);
+						subObj = parser.parse0(this, subClassMeta, null, obj);
 					else {
 						if (subClassMeta.isAbstract)
 							throw new InstantiationException(
@@ -547,7 +547,7 @@ public final class JsonReader {
 							if (parser == null)
 								throw new InstantiationException("abstract Collection field: " + fm.getName() + " in "
 										+ classMeta.klass.getName());
-							Object c2 = parser.parse0(this, cm, null);
+							Object c2 = parser.parse0(this, cm, null, obj);
 							if (c2 != null && !fm.klass.isAssignableFrom(c2.getClass()))
 								throw new InstantiationException(
 										"incompatible type(" + c2.getClass() + ") for Collection field: " + fm.getName()
@@ -610,7 +610,7 @@ public final class JsonReader {
 						Parser<?> parser = subClassMeta.parser;
 						if (parser != null) {
 							for (; b != ']'; b = skipVar(']'))
-								c.add(parser.parse0(this, subClassMeta, null));
+								c.add(parser.parse0(this, subClassMeta, null, c));
 						} else {
 							if (subClassMeta.isAbstract)
 								throw new InstantiationException(
@@ -641,7 +641,7 @@ public final class JsonReader {
 							if (parser == null)
 								throw new InstantiationException(
 										"abstract Map field: " + fm.getName() + " in " + classMeta.klass.getName());
-							Object m2 = parser.parse0(this, cm, null);
+							Object m2 = parser.parse0(this, cm, null, obj);
 							if (m2 != null && !fm.klass.isAssignableFrom(m2.getClass()))
 								throw new InstantiationException("incompatible type(" + m2.getClass()
 										+ ") for Map field: " + fm.getName() + " in " + classMeta.klass.getName());
@@ -730,7 +730,7 @@ public final class JsonReader {
 							for (; b != '}'; b = skipVar('}')) {
 								Object k = keyParser.parse(this, b);
 								skipColon();
-								m.put(k, parser.parse0(this, subClassMeta, null));
+								m.put(k, parser.parse0(this, subClassMeta, null, m));
 							}
 						} else {
 							if (subClassMeta.isAbstract)
