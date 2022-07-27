@@ -8,6 +8,8 @@ public abstract class AbstractLinkdProvider extends Zeze.IModule {
     @Override public int getId() { return ModuleId; }
     @Override public boolean isBuiltin() { return true; }
 
+    protected final Zeze.Builtin.Web.tSessions _tSessions = new Zeze.Builtin.Web.tSessions();
+
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(this.getClass());
         {
@@ -67,22 +69,10 @@ public abstract class AbstractLinkdProvider extends Zeze.IModule {
             service.AddFactoryHandle(47281107578964L, factoryHandle); // 11008, 2107584596
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Web.AuthJson>();
-            factoryHandle.Factory = Zeze.Builtin.Web.AuthJson::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessAuthJsonRequest", Zeze.Transaction.TransactionLevel.Serializable);
-            service.AddFactoryHandle(47684610866360L, factoryHandle); // 11102, 1883946168
-        }
-        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Web.AuthOk>();
             factoryHandle.Factory = Zeze.Builtin.Web.AuthOk::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessAuthOkRequest", Zeze.Transaction.TransactionLevel.Serializable);
             service.AddFactoryHandle(47682994316792L, factoryHandle); // 11102, 267396600
-        }
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Web.AuthQuery>();
-            factoryHandle.Factory = Zeze.Builtin.Web.AuthQuery::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessAuthQueryRequest", Zeze.Transaction.TransactionLevel.Serializable);
-            service.AddFactoryHandle(47684129009271L, factoryHandle); // 11102, 1402089079
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Web.RequestJson>();
@@ -107,17 +97,17 @@ public abstract class AbstractLinkdProvider extends Zeze.IModule {
         service.getFactorys().remove(47281569047175L);
         service.getFactorys().remove(47280110454586L);
         service.getFactorys().remove(47281107578964L);
-        service.getFactorys().remove(47684610866360L);
         service.getFactorys().remove(47682994316792L);
-        service.getFactorys().remove(47684129009271L);
         service.getFactorys().remove(47685215163543L);
         service.getFactorys().remove(47686709906514L);
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
+        zeze.AddTable(zeze.getConfig().GetTableConf(_tSessions.getName()).getDatabaseName(), _tSessions);
     }
 
     public void UnRegisterZezeTables(Zeze.Application zeze) {
+        zeze.RemoveTable(zeze.getConfig().GetTableConf(_tSessions.getName()).getDatabaseName(), _tSessions);
     }
 
     public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {

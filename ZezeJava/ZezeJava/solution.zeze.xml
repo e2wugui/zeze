@@ -774,16 +774,20 @@
 
 			<rpc name="RequestJson" argument="BRequestJson" result="BHttpResponse" handle="server" />
 			<rpc name="RequestQuery" argument="BRequestQuery" result="BHttpResponse" handle="server" />
-			<rpc name="AuthJson" argument="BRequestJson" result="BHttpResponse" handle="server" />
-			<rpc name="AuthQuery" argument="BRequestQuery" result="BHttpResponse" handle="server" />
 
 			<bean name="BAuthOk">
-				<variable id="1" name="Account" type="string"/>
-				<variable id="2" name="Cookie" type="list[string]"/>
+				<variable id="1" name="ServletName" type="string"/>
+				<variable id="2" name="Account" type="string"/>
+				<variable id="3" name="Cookie" type="list[string]"/>
 			</bean>
 
 			<rpc name="AuthOk" argument="BAuthOk" result="BHttpResponse" handle="server" />
 
+			<bean name="BSession">
+				<variable id="1" name="Account" type="string"/>
+			</bean>
+
+			<table name="tSessions" key="string" value="BSession"/> key is sessionid in cookie
 		</module>
 
 		<!--

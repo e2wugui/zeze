@@ -7,13 +7,13 @@ import Zeze.Net.Binary;
 
 public abstract class HttpServlet {
 
-	public void handle(RequestJson r) throws Throwable {
+	public void handle(Web web, RequestJson r) throws Throwable {
 		r.Result.setContentType("text/plain; charset=utf-8");
 		r.Result.setBody(new Binary("Not Implement.".getBytes(StandardCharsets.UTF_8)));
 		r.SendResult();
 	}
 
-	public void handle(RequestQuery r) throws Throwable {
+	public void handle(Web web, RequestQuery r) throws Throwable {
 		r.Result.setContentType("text/plain; charset=utf-8");
 		r.Result.setBody(new Binary("Not Implement.".getBytes(StandardCharsets.UTF_8)));
 		r.SendResult();

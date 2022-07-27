@@ -15,6 +15,7 @@ import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
+import Zeze.Web.Statistics;
 import Zeze.Web.Web;
 
 public class App extends Zeze.AppBase {
@@ -55,6 +56,7 @@ public class App extends Zeze.AppBase {
         LinkedMaps = new LinkedMap.Module(Zeze);
         DepartmentTrees = new DepartmentTree.Module(Zeze, LinkedMaps);
         Web = new Web(ProviderApp);
+        new Statistics(Web);
 
         CreateModules();
         Zeze.Start(); // 启动数据库

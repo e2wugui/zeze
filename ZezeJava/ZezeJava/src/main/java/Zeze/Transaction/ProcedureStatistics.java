@@ -44,6 +44,13 @@ public final class ProcedureStatistics {
 			return Results.computeIfAbsent(result, __ -> new LongAdder());
 		}
 
+
+		public void buildString(String prefix, StringBuilder sb, String end) {
+			for (var it = Results.entryIterator(); it.moveToNext(); ) {
+				sb.append(prefix).append(it.key()).append("=").append(it.value().sum()).append(end);
+			}
+		}
+
 		public long GetTotalCount() {
 			long total = 0;
 			for (var v : Results)

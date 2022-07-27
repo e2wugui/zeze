@@ -50,6 +50,9 @@ public class HttpService {
 	}
 
 	public static void parseQuery(String query, Map<String, String> result) {
+		if (null == query)
+			return;
+
 		var items = query.split("&");
 		for (var item : items) {
 			var pair = item.split("=");

@@ -88,5 +88,23 @@ public final class TableStatistics {
 			double total = getTableFindCount();
 			return (total - getGlobalAcquireModify().sum()) / total;
 		}
+
+		public void buildString(String prefix, StringBuilder sb, String end) {
+			sb.append(prefix).append("CacheHit=").append(getTableCacheHit()).append(end);
+			sb.append(prefix).append("AcquireShare=").append(getGlobalAcquireShareHit()).append(end);
+			sb.append(prefix).append("AcquireShare=").append(getGlobalAcquireModifyHit()).append(end);
+
+			sb.append(prefix).append("AcquireShare=").append(getGlobalAcquireShare().sum()).append(end);
+			sb.append(prefix).append("AcquireModify=").append(getGlobalAcquireModify().sum()).append(end);
+			sb.append(prefix).append("AcquireInvalid=").append(getGlobalAcquireInvalid().sum()).append(end);
+
+			sb.append(prefix).append("StorageFind=").append(getStorageFindCount().sum()).append(end);
+			sb.append(prefix).append("TableFind=").append(getTableFindCount()).append(end);
+
+			sb.append(prefix).append("ReadLocks").append(getReadLockTimes().sum()).append(end);
+			sb.append(prefix).append("WriteLocks").append(getReadLockTimes().sum()).append(end);
+			sb.append(prefix).append("TryReadLocks").append(getTryReadLockTimes().sum()).append(end);
+			sb.append(prefix).append("TryWriteLocks").append(getTryWriteLockTimes().sum()).append(end);
+		}
 	}
 }
