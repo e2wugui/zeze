@@ -55,7 +55,7 @@ public class Web extends AbstractWeb {
             servlet.handle(this, r);
         } catch (Throwable ex) {
             try (var out = new ByteArrayOutputStream();
-                 var ps = new PrintStream(out)) {
+                 var ps = new PrintStream(out, false, StandardCharsets.UTF_8)) {
                 ex.printStackTrace(ps);
                 r.Result.setContentType("text/plain; charset=utf-8");
                 r.Result.setBody(new Binary(out.toByteArray()));
@@ -93,7 +93,7 @@ public class Web extends AbstractWeb {
             servlet.handle(this, r);
         } catch (Throwable ex) {
             try (var out = new ByteArrayOutputStream();
-                    var ps = new PrintStream(out)) {
+                    var ps = new PrintStream(out, false, StandardCharsets.UTF_8)) {
                 ex.printStackTrace(ps);
                 r.Result.setContentType("text/plain; charset=utf-8");
                 r.Result.setBody(new Binary(out.toByteArray()));

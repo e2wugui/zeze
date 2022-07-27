@@ -15,8 +15,14 @@ import com.sun.net.httpserver.HttpHandler;
 
 public class HandlerRoot implements HttpHandler {
 
-	private String getPath0(String path) {
-		return path.split("/")[0];
+	private static String getPath0(String path) {
+		int i = path.indexOf('/');
+		if (i > 0)
+			return path.substring(0, i);
+		if (i < 0)
+			return path;
+		i = path.indexOf('/', 1);
+		return i > 0 ? path.substring(1, i) : path.substring(1);
 	}
 
 	@Override
@@ -79,7 +85,7 @@ public class HandlerRoot implements HttpHandler {
 		}
 	}
 
-	private void handleAuthOk(HttpExchange exchange, String servletName, String account, List<String> cookie) throws IOException {
+	private static void handleAuthOk(HttpExchange exchange, String servletName, String account, List<String> cookie) throws IOException {
 		var authOk = new AuthOk();
 		authOk.Argument.setServletName(servletName);
 		authOk.Argument.setAccount(account);
@@ -88,7 +94,7 @@ public class HandlerRoot implements HttpHandler {
 		choiceProviderAndDispatch(exchange, authOk);
 	}
 
-	private void choiceProviderAndDispatch(HttpExchange exchange, Rpc<?, BHttpResponse> agent) throws IOException {
+	private static void choiceProviderAndDispatch(HttpExchange exchange, Rpc<?, BHttpResponse> agent) throws IOException {
 		var linkApp = HttpService.linkdApp;
 		var linkProvider = linkApp.LinkdProvider;
 		var serviceName = linkProvider.MakeServiceName(HttpService.WebModuleId);
@@ -114,8 +120,8 @@ public class HandlerRoot implements HttpHandler {
 		}
 	}
 
-	private RequestJson handleJson(HttpExchange exchange) throws IOException {
-		String json = null;
+	private static RequestJson handleJson(HttpExchange exchange) throws IOException {
+		String json;
 		switch (exchange.getRequestMethod()) {
 		case "GET":
 			var query = exchange.getRequestURI().getQuery();
@@ -147,7 +153,7 @@ public class HandlerRoot implements HttpHandler {
 		return agent;
 	}
 
-	private RequestQuery handleQuery(HttpExchange exchange) throws IOException {
+	private static RequestQuery handleQuery(HttpExchange exchange) throws IOException {
 		var agent = new RequestQuery();
 		switch (exchange.getRequestMethod()) {
 		case "GET":
