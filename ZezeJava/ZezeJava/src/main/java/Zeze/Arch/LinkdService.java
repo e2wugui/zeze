@@ -7,6 +7,7 @@ import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
 import Zeze.Util.ConcurrentLruLike;
+import Zeze.Web.AbstractWeb;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -192,7 +193,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 
 	@Override
 	public void DispatchUnknownProtocol(Zeze.Net.AsyncSocket so, int moduleId, int protocolId, Zeze.Serialize.ByteBuffer data) {
-		if (moduleId == AbstractProviderImplement.ModuleId) {
+		if (moduleId == AbstractWeb.ModuleId) {
 			ReportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider, "not a public provider.");
 			return;
 		}

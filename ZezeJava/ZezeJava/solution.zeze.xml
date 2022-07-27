@@ -843,9 +843,10 @@
 	</component>
 
 	<!-- Provider 在Linkd上的客户端支持组件 -->
-	<component name="LinkdProvider" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">
+	<component name="LinkdProvider" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java" PresentModuleFullName="Zeze.Builtin.Provider">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.Provider"/>
+			<module ref="Zeze.Builtin.Web"/>
 		</service>
 	</component>
 

@@ -7,15 +7,13 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import Zeze.Arch.LinkdApp;
 import Zeze.Builtin.Web.BHttpResponse;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
 public class HttpService {
-	public static Zeze.Arch.LinkdApp LinkdApp;
-
+	public static Zeze.Arch.LinkdApp linkdApp;
 	public final static int WebModuleId = AbstractWeb.ModuleId;
 
 	public static void sendResponse(HttpExchange exchange, BHttpResponse response) throws IOException {
@@ -70,14 +68,20 @@ public class HttpService {
 		}
 	}
 
-	public final static ExecutorService Executor = Executors.newFixedThreadPool(100);
-	public static void main(String args[]) throws IOException {
-		var addr = new InetSocketAddress(80);
-		var server = HttpServer.create(addr, 100);
+	private HttpServer HttpServer;
+
+	public HttpService(LinkdApp app, int port) throws IOException {
+		linkdApp = app;
+		var addr = new InetSocketAddress(port);
+		HttpServer = HttpServer.create(addr, 100);
 		// 对Linkd来说，所有的请求处理都是异步的，设置Executor不是很必要。
 		// 但对于大负载，单个后台线程会不会忙不过来？
-		server.setExecutor(null);
-		server.createContext("/", new HandlerRoot());
-		server.start();
+		HttpServer.setExecutor(null);
+		HttpServer.createContext("/", new HandlerRoot());
+		HttpServer.start();
+	}
+
+	public void stop() {
+		HttpServer.stop(10);
 	}
 }

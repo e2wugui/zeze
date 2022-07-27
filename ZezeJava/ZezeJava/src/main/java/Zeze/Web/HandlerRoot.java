@@ -49,14 +49,14 @@ public class HandlerRoot implements HttpHandler {
 			agent.Argument.setJson(json);
 
 			// HttpService.sendErrorResponse(exchange, json + "@" + HttpService.parseServletName(exchange));
-			var linkApp = HttpService.LinkdApp;
+			var linkApp = HttpService.linkdApp;
 			var linkProvider = linkApp.LinkdProvider;
 			var serviceName = linkProvider.MakeServiceName(HttpService.WebModuleId);
 			var services = linkApp.Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);;
 			var hash = exchange.getRemoteAddress().getAddress().hashCode();
 			var provider = new OutLong();
 			if (linkProvider.Distribute.ChoiceHash(services, hash, provider)) {
-				if (!agent.Send(HttpService.LinkdApp.LinkdProviderService.GetSocket(provider.Value), (p) -> {
+				if (!agent.Send(HttpService.linkdApp.LinkdProviderService.GetSocket(provider.Value), (p) -> {
 					if (agent.isTimeout()) {
 						HttpService.sendErrorResponse(exchange, "timeout.");
 					} else if (agent.getResultCode() != 0) {
@@ -97,7 +97,7 @@ public class HandlerRoot implements HttpHandler {
 
 			// HttpService.sendErrorResponse(exchange, agent.Argument.getQuery() + "@" + HttpService.parseServletName(exchange));
 
-			var linkApp = HttpService.LinkdApp;
+			var linkApp = HttpService.linkdApp;
 			var linkProvider = linkApp.LinkdProvider;
 			var serviceName = linkProvider.MakeServiceName(HttpService.WebModuleId);
 			var services = linkApp.Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);;

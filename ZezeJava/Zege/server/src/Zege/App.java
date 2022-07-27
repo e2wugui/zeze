@@ -15,6 +15,7 @@ import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
+import Zeze.Web.Web;
 
 public class App extends Zeze.AppBase {
     public static final App Instance = new App();
@@ -27,6 +28,7 @@ public class App extends Zeze.AppBase {
     public ProviderWithOnline Provider;
     public LinkedMap.Module LinkedMaps;
     public DepartmentTree.Module DepartmentTrees;
+    public Web Web;
 
     private LoadConfig LoadConfig() {
         try {
@@ -52,11 +54,13 @@ public class App extends Zeze.AppBase {
         Provider.Online = GenModule.Instance.ReplaceModuleInstance(this, new Online(this));
         LinkedMaps = new LinkedMap.Module(Zeze);
         DepartmentTrees = new DepartmentTree.Module(Zeze, LinkedMaps);
+        Web = new Web(ProviderApp);
 
         CreateModules();
         Zeze.Start(); // 启动数据库
         StartModules(); // 启动模块，装载配置什么的。
         Provider.Online.Start();
+        Web.Start();
 
         PersistentAtomicLong socketSessionIdGen = PersistentAtomicLong.getOrAdd("Zege.Server." + Zeze.getConfig().getServerId());
         AsyncSocket.setSessionIdGenFunc(socketSessionIdGen::next);

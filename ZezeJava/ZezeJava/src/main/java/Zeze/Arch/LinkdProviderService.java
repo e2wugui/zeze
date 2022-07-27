@@ -6,6 +6,7 @@ import Zeze.Builtin.Provider.Bind;
 import Zeze.Builtin.Provider.Subscribe;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
+import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Service;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -19,6 +20,12 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 
 	public LinkdProviderService(String name, Zeze.Application zeze) throws Throwable {
 		super(name, zeze);
+	}
+
+	@Override
+	public <P extends Protocol<?>> void DispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
+															ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
+		Task.runRpcResponse(() -> responseHandle.handle(rpc), rpc);
 	}
 
 	// 重载需要的方法。

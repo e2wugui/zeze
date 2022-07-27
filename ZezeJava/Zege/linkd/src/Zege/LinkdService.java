@@ -10,6 +10,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Record;
 import Zeze.Util.OutLong;
+import Zeze.Web.AbstractWeb;
 
 public class LinkdService extends LinkdServiceBase {
     public LinkdService(Zeze.Application zeze) throws Throwable {
@@ -87,7 +88,7 @@ public class LinkdService extends LinkdServiceBase {
 
     @Override
     public void DispatchUnknownProtocol(Zeze.Net.AsyncSocket so, int moduleId, int protocolId, Zeze.Serialize.ByteBuffer data) {
-        if (moduleId == AbstractProviderImplement.ModuleId) {
+        if (moduleId == AbstractWeb.ModuleId) {
             ReportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider, "not a public provider.");
             return;
         }

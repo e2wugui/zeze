@@ -12,6 +12,7 @@ import Zeze.Net.Service;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
+import Zeze.Web.HttpService;
 
 public class App extends Zeze.AppBase {
     public static final App Instance = new App();
@@ -21,6 +22,7 @@ public class App extends Zeze.AppBase {
 
     public Zeze.Arch.LinkdApp LinkdApp;
     public Zeze.Arch.LinkdProvider LinkdProvider;
+    public HttpService HttpService;
 
     private LoadConfig LoadConfig() {
         try {
@@ -49,9 +51,11 @@ public class App extends Zeze.AppBase {
         AsyncSocket.setSessionIdGenFunc(PersistentAtomicLong.getOrAdd(LinkdApp.GetName())::next);
         StartService(); // 启动网络
         LinkdApp.RegisterService(null);
+        HttpService = new HttpService(LinkdApp, 80);
     }
 
     public void Stop() throws Throwable {
+        HttpService.stop();
         StopService(); // 关闭网络
         StopModules(); // 关闭模块，卸载配置什么的。
         if (Zeze != null)
