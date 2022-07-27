@@ -5,31 +5,36 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BRequestJson extends Zeze.Transaction.Bean {
-    private String _Cookie;
+    private String _ServletName;
+    private final Zeze.Transaction.Collections.PList1<String> _Cookie;
     private String _Json;
 
-    public String getCookie() {
+    public String getServletName() {
         if (!isManaged())
-            return _Cookie;
+            return _ServletName;
         var txn = Zeze.Transaction.Transaction.getCurrent();
         if (txn == null)
-            return _Cookie;
+            return _ServletName;
         txn.VerifyRecordAccessed(this, true);
-        var log = (Log__Cookie)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.Value : _Cookie;
+        var log = (Log__ServletName)txn.GetLog(this.getObjectId() + 1);
+        return log != null ? log.Value : _ServletName;
     }
 
-    public void setCookie(String value) {
+    public void setServletName(String value) {
         if (value == null)
             throw new IllegalArgumentException();
         if (!isManaged()) {
-            _Cookie = value;
+            _ServletName = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__Cookie(this, 1, value));
+        txn.PutLog(new Log__ServletName(this, 1, value));
+    }
+
+    public Zeze.Transaction.Collections.PList1<String> getCookie() {
+        return _Cookie;
     }
 
     public String getJson() {
@@ -39,7 +44,7 @@ public final class BRequestJson extends Zeze.Transaction.Bean {
         if (txn == null)
             return _Json;
         txn.VerifyRecordAccessed(this, true);
-        var log = (Log__Json)txn.GetLog(this.getObjectId() + 2);
+        var log = (Log__Json)txn.GetLog(this.getObjectId() + 3);
         return log != null ? log.Value : _Json;
     }
 
@@ -53,7 +58,7 @@ public final class BRequestJson extends Zeze.Transaction.Bean {
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__Json(this, 2, value));
+        txn.PutLog(new Log__Json(this, 3, value));
     }
 
     public BRequestJson() {
@@ -62,12 +67,17 @@ public final class BRequestJson extends Zeze.Transaction.Bean {
 
     public BRequestJson(int _varId_) {
         super(_varId_);
-        _Cookie = "";
+        _ServletName = "";
+        _Cookie = new Zeze.Transaction.Collections.PList1<>(String.class);
+        _Cookie.VariableId = 2;
         _Json = "";
     }
 
     public void Assign(BRequestJson other) {
-        setCookie(other.getCookie());
+        setServletName(other.getServletName());
+        getCookie().clear();
+        for (var e : other.getCookie())
+            getCookie().add(e);
         setJson(other.getJson());
     }
 
@@ -99,11 +109,11 @@ public final class BRequestJson extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__Cookie extends Zeze.Transaction.Logs.LogString {
-        public Log__Cookie(BRequestJson bean, int varId, String value) { super(bean, varId, value); }
+    private static final class Log__ServletName extends Zeze.Transaction.Logs.LogString {
+        public Log__ServletName(BRequestJson bean, int varId, String value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BRequestJson)getBelong())._Cookie = Value; }
+        public void Commit() { ((BRequestJson)getBelong())._ServletName = Value; }
     }
 
     private static final class Log__Json extends Zeze.Transaction.Logs.LogString {
@@ -125,7 +135,14 @@ public final class BRequestJson extends Zeze.Transaction.Bean {
     public void BuildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Web.BRequestJson: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("Cookie").append('=').append(getCookie()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ServletName").append('=').append(getServletName()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Cookie").append("=[").append(System.lineSeparator());
+        level += 4;
+        for (var _item_ : getCookie()) {
+            sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(_item_).append(',').append(System.lineSeparator());
+        }
+        level -= 4;
+        sb.append(Zeze.Util.Str.indent(level)).append(']').append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Json").append('=').append(getJson()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -147,16 +164,26 @@ public final class BRequestJson extends Zeze.Transaction.Bean {
     public void Encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getCookie();
+            String _x_ = getServletName();
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
         {
+            var _x_ = getCookie();
+            int _n_ = _x_.size();
+            if (_n_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.LIST);
+                _o_.WriteListType(_n_, ByteBuffer.BYTES);
+                for (var _v_ : _x_)
+                    _o_.WriteString(_v_);
+            }
+        }
+        {
             String _x_ = getJson();
             if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
             }
         }
@@ -168,10 +195,20 @@ public final class BRequestJson extends Zeze.Transaction.Bean {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setCookie(_o_.ReadString(_t_));
+            setServletName(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
+            var _x_ = getCookie();
+            _x_.clear();
+            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
+                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
+                    _x_.add(_o_.ReadString(_t_));
+            } else
+                _o_.SkipUnknownField(_t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
+        if (_i_ == 3) {
             setJson(_o_.ReadString(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
@@ -183,6 +220,7 @@ public final class BRequestJson extends Zeze.Transaction.Bean {
 
     @Override
     protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
+        _Cookie.InitRootInfo(root, this);
     }
 
     @Override
@@ -199,8 +237,9 @@ public final class BRequestJson extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _Cookie = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
-                case 2: _Json = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                case 1: _ServletName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                case 2: _Cookie.FollowerApply(vlog); break;
+                case 3: _Json = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
             }
         }
     }

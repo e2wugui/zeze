@@ -754,28 +754,43 @@
 
 		<module name="Web" id="11102">
 			<bean name="BRequestJson">
-				<variable id="1" name="Cookie" type="string"/>
-				<variable id="2" name="Json" type="string"/> 
+				<variable id="1" name="ServletName" type="string"/> 
+				<variable id="2" name="Cookie" type="list[string]"/>
+				<variable id="3" name="Json" type="string"/> 
 			</bean>
 
 			<bean name="BRequestQuery">
-				<variable id="1" name="Cookie" type="string"/>
-				<variable id="2" name="Query" type="map[string, string]"/> 
+				<variable id="1" name="ServletName" type="string"/>
+				<variable id="2" name="Cookie" type="list[string]"/>
+				<variable id="3" name="Query" type="map[string, string]"/> 
 			</bean>
 
 			<bean name="BHttpResponse">
-				<variable id="1" name="ContentType" type="string"/> 
-				<variable id="2" name="Body" type="binary"/> 
-				<variable id="3" name="Cookie" type="string"/> do not set if empty
+				<variable id="1" name="ContentType" type="string"/>
+				<variable id="2" name="Body" type="binary"/>
+				<variable id="3" name="Cookie" type="list[string]"/>
 				TODO ... more http data
 			</bean>
 
 			<rpc name="RequestJson" argument="BRequestJson" result="BHttpResponse" handle="server" />
 			<rpc name="RequestQuery" argument="BRequestQuery" result="BHttpResponse" handle="server" />
+			<rpc name="AuthJson" argument="BRequestJson" result="BHttpResponse" handle="server" />
+			<rpc name="AuthQuery" argument="BRequestQuery" result="BHttpResponse" handle="server" />
+
+			<bean name="BAuthOk">
+				<variable id="1" name="Account" type="string"/>
+				<variable id="2" name="Cookie" type="list[string]"/>
+			</bean>
+
+			<rpc name="AuthOk" argument="BAuthOk" result="BHttpResponse" handle="server" />
 
 		</module>
 
-		<!-- next 11103 -->
+		<!--
+		next module.id
+		<module name="" id="11103">
+		</module>
+		-->
 
 	</module> Builtin
 
@@ -828,17 +843,21 @@
 	</component>
 
 	<!-- Provider 在Linkd上的客户端支持组件 -->
-	<component name="LinkdProvider" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java" PresentModuleFullName="Zeze.Builtin.Provider">
+	<component name="LinkdProvider" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">
 		<service name="" handle="client">
 			<module ref="Zeze.Builtin.Provider"/>
-			<module ref="Zeze.Builtin.Web"/>
 		</service>
 	</component>
 
 	<!-- Provider 为客户端协议服务。协议通过Linkd转发 -->
-	<component name="ProviderImplement" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java" PresentModuleFullName="Zeze.Builtin.Provider">
+	<component name="ProviderImplement" gendir="src/main/java" genrelativedir="Zeze/Arch" platform="zeze+java">
 		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Provider"/>
+		</service>
+	</component>
+
+	<component name="Web" gendir="src/main/java" genrelativedir="Zeze/Web" platform="zeze+java">
+		<service name="" handle="server">
 			<module ref="Zeze.Builtin.Web"/>
 		</service>
 	</component>

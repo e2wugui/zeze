@@ -14,6 +14,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Str;
+import Zeze.Web.WebModule;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -154,15 +155,5 @@ public abstract class ProviderImplement extends AbstractProviderImplement {
 	protected long ProcessAnnounceLinkInfo(AnnounceLinkInfo protocol) {
 		//var linkSession = (ProviderService.LinkSession)protocol.getSender().getUserState();
 		return Procedure.Success;
-	}
-
-	@Override
-	protected long ProcessRequestJsonRequest(Zeze.Builtin.Web.RequestJson r) throws Throwable {
-		return 0;
-	}
-
-	@Override
-	protected long ProcessRequestQueryRequest(Zeze.Builtin.Web.RequestQuery r) throws Throwable {
-		return 0;
 	}
 }

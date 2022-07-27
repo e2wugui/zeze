@@ -2,6 +2,7 @@ package Zege;
 
 import Zege.Friend.*;
 import Zege.Message.*;
+import Zeze.Arch.AbstractProviderImplement;
 import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Net.Rpc;
@@ -86,6 +87,11 @@ public class LinkdService extends LinkdServiceBase {
 
     @Override
     public void DispatchUnknownProtocol(Zeze.Net.AsyncSocket so, int moduleId, int protocolId, Zeze.Serialize.ByteBuffer data) {
+        if (moduleId == AbstractProviderImplement.ModuleId) {
+            ReportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider, "not a public provider.");
+            return;
+        }
+
         var linkSession = getAuthedSession(so);
         setStableLinkSid(linkSession, so, moduleId, protocolId, data);
 

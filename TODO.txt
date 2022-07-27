@@ -11,22 +11,33 @@ Task
 Universe
 Zege
 DatagramChannel
-Http In Linkd（java基于HttpServer或者更高级的包装类-感觉有新的了）
-简单的Web服务器，侧重和Server的交互。逻辑由Server实现，Linkd只管转发。
-1. 简单查询(Request,Response)
-   是否KeepAlive由Http协议自己支持，上层只处理简单查询。
-   用途，在线管理系统。
-2. WebSocket，不是很了解，需要调研。关键：linkd是否需要侵入管理这个长连接。
-   长连接应用。
-3. 少量文件的下载
-   提供js文件下载，用来实现基于js的交互系统。
-   可以利用js(ts.ByteBuffer)实现Zeze.Protocol.Encode/Decode。
 
 【2022/8/15】
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 1.0.1 AchillesHeelDaemon.ProcessDaemon
 ------------------------------------------------------------------------------------------------------------------------------
+Http In Linkd（java基于HttpServer或者更高级的包装类-感觉有新的了）
+	简单的Web服务器，侧重和Server的交互。逻辑由Server实现，Linkd只管转发。
+	1. 简单查询(Request,Response)
+	   是否KeepAlive由Http协议自己支持，上层只处理简单查询。
+	   用途，在线管理系统。
+	2. WebSocket，不是很了解，需要调研。关键：linkd是否需要侵入管理这个长连接。
+	   长连接应用。
+	3. 少量文件的下载
+	   提供js文件下载，用来实现基于js的交互系统。
+	   可以利用js(ts.ByteBuffer)实现Zeze.Protocol.Encode/Decode。
+	4. Linkd 本来是全透明的，所有请求转发给Server即可。
+	   为了某些系统中，Server不包含Auth信息，有专门的Auth服务器提供验证服务。
+	   需要Linkd可以Auth请求，所以定义一个Auth的Handler用于这种情况。
+	   这个Handler通过回调处理，回调不是必要的。
+	5. 多WebApp支持。url-path的第一级为appname；需要传递url-path给Server；
+	   每个WebApp包含自己的Auth？、Session，Servlet注册。
+	   /webappname/servletpath.../query[.serverid]
+	   /webappname/servletpath.../json[.serverid]
+	   /webappname/servletpath.../queryauth[.serverid]
+	   /webappname/servletpath.../jsonauth[.serverid]
+
 Immediately TableX::Load 立即保存。
 Also Delete OldTable When Record Deleted 【in transaction】
 AchillesHeelDaemon.ProcessDaemon for c# 重新实现一次当作review。【张路】
@@ -44,7 +55,7 @@ checkpoint concurrent：Config.CheckpointModeTableFlushConcurrent
 DatagramSocket Test
 Exec Test
 AchillesHeelDaemon：安全级别从jvm级别提升到操作系统。保留线程守护，增加进程守护。两个守护兼容：
-  gs启动的时候检查mmap，发现自己是daemon启动的，就开启进程守护（向mmap报告和读取命令），否则还是原来的线程守护。
+	gs启动的时候检查mmap，发现自己是daemon启动的，就开启进程守护（向mmap报告和读取命令），否则还是原来的线程守护。
 
 【2022/7/15】
 

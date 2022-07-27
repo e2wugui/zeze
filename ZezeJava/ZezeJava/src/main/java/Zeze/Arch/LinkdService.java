@@ -192,6 +192,10 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 
 	@Override
 	public void DispatchUnknownProtocol(Zeze.Net.AsyncSocket so, int moduleId, int protocolId, Zeze.Serialize.ByteBuffer data) {
+		if (moduleId == AbstractProviderImplement.ModuleId) {
+			ReportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider, "not a public provider.");
+			return;
+		}
 		var linkSession = getAuthedSession(so);
 		setStableLinkSid(linkSession, so, moduleId, protocolId, data);
 		var dispatch = createDispatch(linkSession, so, moduleId, protocolId, data);

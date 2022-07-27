@@ -80,8 +80,12 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		return Distribute.ChoiceHash(providers, hash, provider);
 	}
 
+	public String MakeServiceName(int moduleId) {
+		return ProviderDistribute.MakeServiceName(getServerServiceNamePrefix(), moduleId);
+	}
+
 	public boolean ChoiceProviderAndBind(int moduleId, AsyncSocket link, OutLong provider) {
-		var serviceName = ProviderDistribute.MakeServiceName(getServerServiceNamePrefix(), moduleId);
+		var serviceName = MakeServiceName(moduleId);
 		var linkSession = (LinkdUserSession)link.getUserState();
 		provider.Value = 0L;
 		var providers = Distribute.Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
