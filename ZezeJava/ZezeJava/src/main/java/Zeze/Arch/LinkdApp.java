@@ -1,7 +1,11 @@
 package Zeze.Arch;
 
+import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Builtin.Provider.BLoad;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Util.ConcurrentHashSet;
+import Zeze.Web.HttpAuth;
+import Zeze.Web.HttpServlet;
 
 public class LinkdApp {
 	public final String LinkdServiceName;
@@ -12,6 +16,7 @@ public class LinkdApp {
 	// 现在内部可以自动设置两个参数，但有点不够可靠，生产环境最好手动设置。
 	public final String ProviderIp;
 	public final int ProviderPort;
+	public ConcurrentHashMap<String, HttpAuth> WebAuth = new ConcurrentHashMap<>();
 
 	public LinkdApp(String linkdServiceName,
 					Zeze.Application zeze, LinkdProvider linkdProvider,

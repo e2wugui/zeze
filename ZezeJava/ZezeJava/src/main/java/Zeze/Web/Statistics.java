@@ -12,15 +12,17 @@ public class Statistics {
 		web.Servlets.put("/zeze/auth", new HttpServlet() {
 			// 只实现query参数模式。
 			@Override
-			public void handle(Web web, RequestQuery r) throws Throwable {
+			public boolean handle(Web web, RequestQuery r) throws Throwable {
 				Statistics.this.auth(web, r);
+				return true;
 			}
 		});
 		web.Servlets.put("/zeze/stats", new HttpServlet() {
 			// 只实现query参数模式。
 			@Override
-			public void handle(Web web, RequestQuery r) throws Throwable {
+			public boolean handle(Web web, RequestQuery r) throws Throwable {
 				Statistics.this.handle(web, r);
+				return true;
 			}
 		});
 	}
