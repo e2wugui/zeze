@@ -1,12 +1,16 @@
 package Zeze.Web;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Arch.ProviderApp;
 import Zeze.Net.Binary;
 
 public class Web extends AbstractWeb {
 
     public final ProviderApp ProviderApp;
+    public ConcurrentHashMap<String, HttpServlet> Handles = new ConcurrentHashMap<>();
 
     public Web(ProviderApp app) {
         ProviderApp = app;
@@ -31,7 +35,7 @@ public class Web extends AbstractWeb {
     @Override
     protected long ProcessAuthJsonRequest(Zeze.Builtin.Web.AuthJson r) {
         r.Result.setContentType("text/plain; charset=utf-8");
-        r.Result.setBody(new Binary("hello world ProcessAuthJsonRequest".getBytes(StandardCharsets.UTF_8)));
+        r.Result.setBody(new Binary("Handle Not Found".getBytes(StandardCharsets.UTF_8)));
         r.SendResult();
         return 0;
     }
@@ -50,18 +54,48 @@ public class Web extends AbstractWeb {
     }
 
     @Override
-    protected long ProcessRequestJsonRequest(Zeze.Builtin.Web.RequestJson r) {
-        r.Result.setContentType("text/plain; charset=utf-8");
-        r.Result.setBody(new Binary("hello world ProcessRequestJsonRequest".getBytes(StandardCharsets.UTF_8)));
-        r.SendResult();
+    protected long ProcessRequestJsonRequest(Zeze.Builtin.Web.RequestJson r) throws Throwable {
+        var handle = Handles.get(r.Argument.getServletName());
+        if (null == handle) {
+            r.Result.setContentType("text/plain; charset=utf-8");
+            r.Result.setBody(new Binary("Handle Not Found".getBytes(StandardCharsets.UTF_8)));
+            r.SendResult();
+            return 0;
+        }
+        try {
+            handle.handle(r);
+        } catch (Throwable ex) {
+            try (var out = new ByteArrayOutputStream();
+                 var ps = new PrintStream(out)) {
+                ex.printStackTrace(ps);
+                r.Result.setContentType("text/plain; charset=utf-8");
+                r.Result.setBody(new Binary(out.toByteArray()));
+                r.SendResult();
+            }
+        }
         return 0;
     }
 
     @Override
-    protected long ProcessRequestQueryRequest(Zeze.Builtin.Web.RequestQuery r) {
-        r.Result.setContentType("text/plain; charset=utf-8");
-        r.Result.setBody(new Binary("hello world ProcessRequestQueryRequest".getBytes(StandardCharsets.UTF_8)));
-        r.SendResult();
+    protected long ProcessRequestQueryRequest(Zeze.Builtin.Web.RequestQuery r) throws Throwable {
+        var handle = Handles.get(r.Argument.getServletName());
+        if (null == handle) {
+            r.Result.setContentType("text/plain; charset=utf-8");
+            r.Result.setBody(new Binary("Handle Not Found".getBytes(StandardCharsets.UTF_8)));
+            r.SendResult();
+            return 0;
+        }
+        try {
+            handle.handle(r);
+        } catch (Throwable ex) {
+            try (var out = new ByteArrayOutputStream();
+                    var ps = new PrintStream(out)) {
+                ex.printStackTrace(ps);
+                r.Result.setContentType("text/plain; charset=utf-8");
+                r.Result.setBody(new Binary(out.toByteArray()));
+                r.SendResult();
+            }
+        }
         return 0;
     }
 }

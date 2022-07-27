@@ -28,12 +28,9 @@ public class HttpService {
 	}
 
 	public static String parseServletName(HttpExchange exchange) {
-		return exchange.getRequestURI().getPath();
-		/*
 		var path = exchange.getRequestURI().getPath();
 		var last = path.lastIndexOf('/');
 		return path.substring(0, last);
-		*/
 	}
 
 	public static void sendErrorResponse(HttpExchange exchange, String message) throws IOException {
