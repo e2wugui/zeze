@@ -7,6 +7,11 @@ local message_init = require('msg.message_init')
 local message = {}
 
 message.EmptyBean = message_init.EmptyBean
+message.vector2 = message_init.vector2
+message.vector2int = message_init.vector2int
+message.vector3 = message_init.vector3
+message.vector3int = message_init.vector3int
+message.vector4 = message_init.vector4
 {{_set = [solution.name]}}
 {{- 
 modules_list = []
