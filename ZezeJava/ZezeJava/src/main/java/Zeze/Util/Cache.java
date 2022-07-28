@@ -7,41 +7,46 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
+import java.util.function.Function;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.DatabaseRocksDb;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
-public class LocalCache<T extends Serializable> {
+public class Cache {
 	private String name;
 	private RocksDB db;
-	private ConcurrentLruLike<Long, T> lru;
+	private ConcurrentLruLike<Long, CacheObject> lru;
 	private volatile long todayDays;
-	private volatile FileOutputStream file;
+	private volatile FileOutputStream todayFile;
+	private Function<Integer, CacheObject> factory;
 
 	/**
 	 * 创建LocalCache
 	 * @param name Cache名字，直接作为目录名字，需要注意有些字符可能不能用。
 	 */
-	public LocalCache(String name) {
+	public Cache(String name, int lruCapacity, Function<Integer, CacheObject> factory) throws RocksDBException {
 		this.name = name;
-		new File(name).mkdir();
+		this.factory = factory;
 
+		new File(name).mkdir();
+		db = RocksDB.open(name);
+		lru = new ConcurrentLruLike<>(name, lruCapacity);
 		// 每天6:30尝试删除旧的项。
 		Task.scheduleAt(6, 30, this::tryRemove);
 	}
 
-	public void close() throws Exception {
-		if (null != file)
-			file.close();
+	public void close() throws IOException {
+		if (null != todayFile)
+			todayFile.close();
 
 		db.close();
 		db = null;
 		lru = null;
 	}
 
-	public T get(long id) throws Exception {
+	public CacheObject get(long id) throws RocksDBException {
 		var value = lru.get(id);
 		if (null != value)
 			return value;
@@ -51,13 +56,17 @@ public class LocalCache<T extends Serializable> {
 		var bytes = db.get(DatabaseRocksDb.getDefaultReadOptions(), key.Bytes, 0, key.WriteIndex);
 		if (null == bytes)
 			return null;
+
 		var bb = ByteBuffer.Wrap(bytes);
-		return null;
+		value = factory.apply(bb.ReadInt());
+		value.Decode(bb);
+		return value;
 	}
 
-	public void put(long id, T value) throws Exception {
+	public void put(long id, CacheObject value) throws RocksDBException, IOException {
 		lru.getOrAdd(id, () -> value);
 		var bb = ByteBuffer.Allocate();
+		bb.WriteInt(value.cacheId());
 		value.Encode(bb);
 		var key = ByteBuffer.Allocate(9);
 		key.WriteLong(id);
@@ -74,14 +83,14 @@ public class LocalCache<T extends Serializable> {
 			synchronized (this) {
 				if (todayDays != nowDays) {
 					todayDays = nowDays;
-					if (null != file)
-						file.close();
-					file = new FileOutputStream(Paths.get(name, "days_" + todayDays).toFile());
+					if (null != todayFile)
+						todayFile.close();
+					todayFile = new FileOutputStream(Paths.get(name, "days_" + todayDays).toFile());
 				}
-				return file;
+				return todayFile;
 			}
 		}
-		return file;
+		return todayFile;
 	}
 
 	private void tryRemove() throws IOException, RocksDBException {
