@@ -328,33 +328,11 @@ public final class Task {
 	}
 
 	public static Future<Long> run(FuncLong func, Protocol<?> p) {
-		return run(func, p, DispatchMode.Normal);
-	}
-
-	public static Future<Long> run(FuncLong func, Protocol<?> p, DispatchMode mode) {
-		if (mode == DispatchMode.Direct) {
-			final var future = new TaskCompletionSource<Long>();
-			future.SetResult(Call(func, p, null, null));
-			return future;
-		}
-
-		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
-		return pool.submit(() -> Call(func, p, null, null));
+		return run(func, p, null, null, DispatchMode.Normal);
 	}
 
 	public static Future<Long> run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
-		return run(func, p, actionWhenError, DispatchMode.Normal);
-	}
-
-	public static Future<Long> run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, DispatchMode mode) {
-		if (mode == DispatchMode.Direct) {
-			final var future = new TaskCompletionSource<Long>();
-			future.SetResult(Call(func, p, actionWhenError, null));
-			return future;
-		}
-
-		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
-		return pool.submit(() -> Call(func, p, actionWhenError, null));
+		return run(func, p, actionWhenError, null, DispatchMode.Normal);
 	}
 
 	public static Future<Long> run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName) {
@@ -409,33 +387,11 @@ public final class Task {
 	}
 
 	public static Future<Long> run(Procedure procedure) {
-		return run(procedure, DispatchMode.Normal);
-	}
-
-	public static Future<Long> run(Procedure procedure, DispatchMode mode) {
-		if (mode == DispatchMode.Direct) {
-			final var future = new TaskCompletionSource<Long>();
-			future.SetResult(Call(procedure, null, null));
-			return future;
-		}
-
-		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
-		return pool.submit(() -> Call(procedure, null, null));
+		return run(procedure, null, null, DispatchMode.Normal);
 	}
 
 	public static Future<Long> run(Procedure procedure, Protocol<?> from) {
-		return run(procedure, from, DispatchMode.Normal);
-	}
-
-	public static Future<Long> run(Procedure procedure, Protocol<?> from, DispatchMode mode) {
-		if (mode == DispatchMode.Direct) {
-			final var future = new TaskCompletionSource<Long>();
-			future.SetResult(Call(procedure, from, null));
-			return future;
-		}
-
-		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
-		return pool.submit(() -> Call(procedure, from, null));
+		return run(procedure, from, null, DispatchMode.Normal);
 	}
 
 	public static Future<Long> run(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError) {

@@ -192,7 +192,7 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			return;
 		}
 		// 所有的Direct都不启用存储过程。
-		Zeze.Util.Task.run(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode, factoryHandle.Mode);
+		Zeze.Util.Task.run(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode, null, factoryHandle.Mode);
 		//super.DispatchProtocol(p, factoryHandle);
 	}
 

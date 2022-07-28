@@ -316,9 +316,9 @@ public class Service {
 			TransactionLevel level = factoryHandle.Level;
 			Application zeze = Zeze;
 			if (zeze != null && level != TransactionLevel.None)
-				Task.run(zeze.NewProcedure(() -> handle.handle(p), p.getClass().getName(), level, p.getUserState()), p, factoryHandle.Mode);
+				Task.run(zeze.NewProcedure(() -> handle.handle(p), p.getClass().getName(), level, p.getUserState()), p, null, factoryHandle.Mode);
 			else
-				Task.run(() -> handle.handle(p), p, factoryHandle.Mode);
+				Task.run(() -> handle.handle(p), p, null, null, factoryHandle.Mode);
 		} else
 			logger.warn("DispatchProtocol: Protocol Handle Not Found: {}", p);
 	}

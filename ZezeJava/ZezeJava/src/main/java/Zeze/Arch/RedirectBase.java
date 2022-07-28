@@ -184,7 +184,7 @@ public class RedirectBase {
 		Task.run(ProviderApp.Zeze.NewProcedure(() -> {
 			func.call().then(future::SetResult);
 			return Procedure.Success;
-		}, "Redirect Loop Back", level, null), DispatchMode.Normal);
+		}, "Redirect Loop Back", level, null), null, null, DispatchMode.Normal);
 		return future;
 	}
 
@@ -200,6 +200,6 @@ public class RedirectBase {
 		Task.run(ProviderApp.Zeze.NewProcedure(() -> {
 			action.run();
 			return Procedure.Success;
-		}, "Redirect Loop Back", level, null), DispatchMode.Normal);
+		}, "Redirect Loop Back", level, null), null, null, DispatchMode.Normal);
 	}
 }

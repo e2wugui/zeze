@@ -346,7 +346,7 @@ public class Online extends AbstractOnline {
 		Task.run(ProviderApp.Zeze.NewProcedure(() -> {
 			sendEmbed(roleIds, typeId, fullEncodedProtocol);
 			return Procedure.Success;
-		}, "Game.Online.send"), DispatchMode.Normal);
+		}, "Game.Online.send"), null, null, DispatchMode.Normal);
 	}
 
 	public void sendEmbed(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
@@ -634,7 +634,7 @@ public class Online extends AbstractOnline {
 		Task.run(ProviderApp.Zeze.NewProcedure(() -> {
 			transmitInProcedure(sender, actionName, roleIds, bb != null ? new Binary(bb) : null);
 			return Procedure.Success;
-		}, "Game.Online.transmit"), null, null);
+		}, "Game.Online.transmit"), null, null, DispatchMode.Normal);
 	}
 
 	public final void transmitWhileCommit(long sender, String actionName, long roleId) {

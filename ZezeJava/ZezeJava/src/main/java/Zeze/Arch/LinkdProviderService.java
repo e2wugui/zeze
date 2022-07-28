@@ -35,7 +35,7 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 			if (p.getTypeId() == Bind.TypeId_ || p.getTypeId() == Subscribe.TypeId_) {
 				// Bind 的处理需要同步等待ServiceManager的订阅成功，时间比较长，
 				// 不要直接在io-thread里面执行。
-				Task.run(() -> factoryHandle.Handle.handle(p), p, factoryHandle.Mode);
+				Task.run(() -> factoryHandle.Handle.handle(p), p, null, factoryHandle.Mode);
 			} else {
 				// 不启用新的Task，直接在io-thread里面执行。因为其他协议都是立即处理的，
 				// 直接执行，少一次线程切换。
