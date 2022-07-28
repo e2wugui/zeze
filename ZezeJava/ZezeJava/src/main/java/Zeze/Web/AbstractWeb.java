@@ -11,7 +11,7 @@ public abstract class AbstractWeb extends Zeze.IModule {
     protected final Zeze.Builtin.Web.tSessions _tSessions = new Zeze.Builtin.Web.tSessions();
 
     public void RegisterProtocols(Zeze.Net.Service service) {
-        var _reflect = new Zeze.Util.Reflect(this.getClass());
+        var _reflect = new Zeze.Util.Reflect(getClass());
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Web.AuthOk>();
             factoryHandle.Factory = Zeze.Builtin.Web.AuthOk::new;
@@ -35,7 +35,7 @@ public abstract class AbstractWeb extends Zeze.IModule {
         }
     }
 
-    public void UnRegisterProtocols(Zeze.Net.Service service) {
+    public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47682994316792L);
         service.getFactorys().remove(47685215163543L);
         service.getFactorys().remove(47686709906514L);
@@ -49,7 +49,7 @@ public abstract class AbstractWeb extends Zeze.IModule {
         zeze.RemoveTable(zeze.getConfig().GetTableConf(_tSessions.getName()).getDatabaseName(), _tSessions);
     }
 
-    public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
+    public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
     protected abstract long ProcessAuthOkRequest(Zeze.Builtin.Web.AuthOk r) throws Throwable;

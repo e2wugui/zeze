@@ -11,7 +11,7 @@ public class Queue<V extends Bean> {
 	private static final BeanFactory beanFactory = new BeanFactory();
 
 	public static long GetSpecialTypeIdFromBean(Bean bean) {
-		return beanFactory.GetSpecialTypeIdFromBean(bean);
+		return BeanFactory.GetSpecialTypeIdFromBean(bean);
 	}
 
 	public static Bean CreateBeanFromSpecialTypeId(long typeId) {

@@ -51,7 +51,7 @@ public abstract class AbstractProviderImplement extends Zeze.IModule {
         }
     }
 
-    public void UnRegisterProtocols(Zeze.Net.Service service) {
+    public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47281374674071L);
         service.getFactorys().remove(47279114253990L);
         service.getFactorys().remove(47280285301785L);
@@ -66,7 +66,7 @@ public abstract class AbstractProviderImplement extends Zeze.IModule {
     public void UnRegisterZezeTables(Zeze.Application zeze) {
     }
 
-    public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
+    public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
     protected abstract long ProcessAnnounceLinkInfo(Zeze.Builtin.Provider.AnnounceLinkInfo p) throws Throwable;

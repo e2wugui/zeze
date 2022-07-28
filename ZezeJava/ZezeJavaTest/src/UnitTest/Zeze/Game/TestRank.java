@@ -3,6 +3,7 @@ package UnitTest.Zeze.Game;
 import java.util.function.LongUnaryOperator;
 import Zeze.Builtin.Game.Rank.BConcurrentKey;
 import Zeze.Builtin.Game.Rank.BRankValue;
+import Zeze.Game.Rank;
 import Zeze.Net.Binary;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.ConcurrentHashSet;
@@ -64,7 +65,7 @@ public class TestRank extends TestCase {
 
 			app.rank.funcConcurrentLevel = rankType -> CONC_LEVEL;
 			int concLevel = app.rank.getConcurrentLevel(RANK_TYPE);
-			var rankKey = app.rank.newRankKey(RANK_TYPE, BConcurrentKey.TimeTypeTotal);
+			var rankKey = Rank.newRankKey(RANK_TYPE, BConcurrentKey.TimeTypeTotal);
 			LongUnaryOperator roleId2Value = roleId -> roleId * 10;
 
 			for (int hash = 0; hash < concLevel; hash++) {

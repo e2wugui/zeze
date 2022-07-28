@@ -11,7 +11,7 @@ public abstract class AbstractTestRocks extends Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
     }
 
-    public void UnRegisterProtocols(Zeze.Net.Service service) {
+    public static void UnRegisterProtocols(Zeze.Net.Service service) {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -20,7 +20,7 @@ public abstract class AbstractTestRocks extends Zeze.IModule {
     public void UnRegisterZezeTables(Zeze.Application zeze) {
     }
 
-    public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
+    public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
         rocks.RegisterTableTemplate("tRocks", int.class, Zeze.Builtin.TestRocks.Value.class);
         Zeze.Raft.RocksRaft.Rocks.RegisterLog(() -> new Zeze.Raft.RocksRaft.LogSet1<>(Integer.class));
         Zeze.Raft.RocksRaft.Rocks.RegisterLog(() -> new Zeze.Raft.RocksRaft.LogSet1<>(Zeze.Builtin.TestRocks.BeanKey.class));

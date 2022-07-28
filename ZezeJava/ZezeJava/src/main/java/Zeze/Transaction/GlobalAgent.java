@@ -61,7 +61,7 @@ public final class GlobalAgent implements IGlobalAgent {
 			return GlobalCacheManagerHashIndex;
 		}
 
-		private void ThrowException(String msg, Throwable cause) {
+		private static void ThrowException(String msg, Throwable cause) {
 			var txn = Transaction.getCurrent();
 			if (txn != null)
 				txn.ThrowAbort(msg, cause);

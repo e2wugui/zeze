@@ -50,7 +50,7 @@ public class ProviderUserSession {
 	}
 
 	public final String getLinkName() {
-		return LinkName != null ? LinkName : (LinkName = service.GetLinkName(Link));
+		return LinkName != null ? LinkName : (LinkName = ProviderService.GetLinkName(Link));
 	}
 
 	public final AsyncSocket getLink() {

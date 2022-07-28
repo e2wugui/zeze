@@ -46,7 +46,7 @@ public class Test {
 	private final ArrayList<FailAction> FailActions = new ArrayList<>();
 	private boolean Running = true;
 
-	private void LogDump(String db) throws IOException, RocksDBException {
+	private static void LogDump(String db) throws IOException, RocksDBException {
 		RocksDB.loadLibrary();
 		try (var r1 = RocksDB.openReadOnly(DatabaseRocksDb.getCommonOptions(), Paths.get(db, "logs").toString())) {
 			try (var it1 = r1.newIterator(DatabaseRocksDb.getDefaultReadOptions())) {

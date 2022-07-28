@@ -10,7 +10,7 @@ public final class BeanFactory {
 	private volatile LongHashMap<MethodHandle> readingFactory;
 
 	@SuppressWarnings("unchecked")
-	public <T extends Bean> T invoke(MethodHandle methodHandle) {
+	public static <T extends Bean> T invoke(MethodHandle methodHandle) {
 		try {
 			return (T)methodHandle.invoke();
 		} catch (Throwable e) {
@@ -35,7 +35,7 @@ public final class BeanFactory {
 		return beanCtor;
 	}
 
-	public long GetSpecialTypeIdFromBean(Bean bean) {
+	public static long GetSpecialTypeIdFromBean(Bean bean) {
 		return bean.getTypeId();
 	}
 

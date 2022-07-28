@@ -7,6 +7,13 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.xml.parsers.DocumentBuilderFactory;
 import Zeze.Net.ServiceConf;
+import Zeze.Transaction.CheckpointMode;
+import Zeze.Transaction.Database;
+import Zeze.Transaction.DatabaseMemory;
+import Zeze.Transaction.DatabaseMySql;
+import Zeze.Transaction.DatabaseRocksDb;
+import Zeze.Transaction.DatabaseSqlServer;
+import Zeze.Transaction.DatabaseTikv;
 import org.apache.logging.log4j.Level;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -35,7 +42,7 @@ public final class Config {
 	private int CheckpointPeriod = 60000;
 	private int CheckpointModeTableFlushConcurrent = 2;
 	private int CheckpointModeTableFlushSetCount = 100;
-	private Zeze.Transaction.CheckpointMode CheckpointMode = Zeze.Transaction.CheckpointMode.Table;
+	private CheckpointMode checkpointMode = CheckpointMode.Table;
 	private Level ProcessReturnErrorLogLevel = Level.INFO;
 	private int ServerId;
 	private String GlobalCacheManagerHostNameOrAddress = "";
@@ -98,12 +105,12 @@ public final class Config {
 
 	public void setCheckpointModeTableFlushSetCount(int value) { CheckpointModeTableFlushSetCount = value; }
 
-	public Zeze.Transaction.CheckpointMode getCheckpointMode() {
-		return CheckpointMode;
+	public CheckpointMode getCheckpointMode() {
+		return checkpointMode;
 	}
 
-	public void setCheckpointMode(Zeze.Transaction.CheckpointMode value) {
-		CheckpointMode = value;
+	public void setCheckpointMode(CheckpointMode value) {
+		checkpointMode = value;
 	}
 
 	public Level getProcessReturnErrorLogLevel() {
@@ -216,32 +223,32 @@ public final class Config {
 		return DatabaseConfMap;
 	}
 
-	private Zeze.Transaction.Database CreateDatabase(Application zeze, DatabaseConf conf) {
+	private static Database CreateDatabase(Application zeze, DatabaseConf conf) {
 		switch (conf.DatabaseType) {
 		case Memory:
-			return new Zeze.Transaction.DatabaseMemory(conf);
+			return new DatabaseMemory(conf);
 		case MySql:
-			return new Zeze.Transaction.DatabaseMySql(conf);
+			return new DatabaseMySql(conf);
 		case SqlServer:
-			return new Zeze.Transaction.DatabaseSqlServer(conf);
+			return new DatabaseSqlServer(conf);
 		case Tikv:
-			return new Zeze.Transaction.DatabaseTikv(conf);
+			return new DatabaseTikv(conf);
 		case RocksDb:
 			if (!zeze.getConfig().getGlobalCacheManagerHostNameOrAddress().isEmpty())
 				throw new IllegalStateException("RocksDb Can Not Work With GlobalCacheManager.");
-			return new Zeze.Transaction.DatabaseRocksDb(conf);
+			return new DatabaseRocksDb(conf);
 		default:
 			throw new UnsupportedOperationException("unknown database type.");
 		}
 	}
 
-	public void CreateDatabase(Application zeze, HashMap<String, Zeze.Transaction.Database> map) {
+	public void CreateDatabase(Application zeze, HashMap<String, Database> map) {
 		// add other database
 		for (var db : getDatabaseConfMap().values())
 			map.put(db.Name, CreateDatabase(zeze, db));
 	}
 
-	public void ClearInUseAndIAmSureAppStopped(Application zeze, HashMap<String, Zeze.Transaction.Database> databases) {
+	public void ClearInUseAndIAmSureAppStopped(Application zeze, HashMap<String, Database> databases) {
 		if (databases == null) {
 			databases = new HashMap<>();
 			CreateDatabase(zeze, databases);
@@ -352,12 +359,12 @@ public final class Config {
 
 		attr = self.getAttribute("CheckpointMode");
 		if (!attr.isEmpty())
-			setCheckpointMode(Zeze.Transaction.CheckpointMode.valueOf(attr));
-		if (CheckpointMode == Zeze.Transaction.CheckpointMode.Period && !GlobalCacheManagerHostNameOrAddress.isEmpty()) {
+			setCheckpointMode(CheckpointMode.valueOf(attr));
+		if (checkpointMode == CheckpointMode.Period && !GlobalCacheManagerHostNameOrAddress.isEmpty()) {
 			Application.logger.warn("CheckpointMode.Period Cannot Work With Global. Change To CheckpointMode.Table Now.");
-			CheckpointMode = Zeze.Transaction.CheckpointMode.Table;
+			checkpointMode = CheckpointMode.Table;
 		}
-		if (CheckpointMode == Zeze.Transaction.CheckpointMode.Immediately)
+		if (checkpointMode == CheckpointMode.Immediately)
 			throw new UnsupportedOperationException();
 
 		attr = self.getAttribute("AutoResetTable");
@@ -457,17 +464,17 @@ public final class Config {
 		public String UserName;
 		public String Password;
 
-		private String EmptyToNullString(String attr) {
+		private static String EmptyToNullString(String attr) {
 			var trim = attr.trim();
 			return trim.isEmpty() ? null : trim;
 		}
 
-		private Integer EmptyToNullInteger(String attr) {
+		private static Integer EmptyToNullInteger(String attr) {
 			var str = EmptyToNullString(attr);
 			return str == null ? null : Integer.parseInt(str);
 		}
 
-		private Long EmptyToNullLong(String attr) {
+		private static Long EmptyToNullLong(String attr) {
 			var str = EmptyToNullString(attr);
 			return str == null ? null : Long.parseLong(str);
 		}

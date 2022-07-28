@@ -14,7 +14,7 @@ public abstract class AbstractQueue extends Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
     }
 
-    public void UnRegisterProtocols(Zeze.Net.Service service) {
+    public static void UnRegisterProtocols(Zeze.Net.Service service) {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -27,6 +27,6 @@ public abstract class AbstractQueue extends Zeze.IModule {
         zeze.RemoveTable(zeze.getConfig().GetTableConf(_tQueues.getName()).getDatabaseName(), _tQueues);
     }
 
-    public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
+    public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 }

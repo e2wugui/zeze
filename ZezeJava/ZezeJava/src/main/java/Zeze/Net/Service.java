@@ -223,7 +223,7 @@ public class Service {
 		OnHandshakeDone(so);
 	}
 
-	@SuppressWarnings("RedundantThrows")
+	@SuppressWarnings({"RedundantThrows", "MethodMayBeStatic"})
 	public void OnSocketAcceptError(AsyncSocket listener, Throwable e) throws Throwable {
 		logger.error("OnSocketAcceptError: {}", listener, e);
 	}
@@ -492,7 +492,7 @@ public class Service {
 			action.run(socket);
 	}
 
-	public final String GetOneNetworkInterfaceIpAddress() {
+	public static String GetOneNetworkInterfaceIpAddress() {
 		try {
 			Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
 			while (interfaces.hasMoreElements()) {

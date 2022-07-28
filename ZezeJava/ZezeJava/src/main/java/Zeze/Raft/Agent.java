@@ -146,7 +146,7 @@ public final class Agent {
 		return Procedure.Success;
 	}
 
-	private boolean IsRetryError(long error) {
+	private static boolean IsRetryError(long error) {
 		return error == Procedure.CancelException ||
 				error == Procedure.RaftRetry ||
 				error == Procedure.DuplicateRequest;
@@ -408,11 +408,11 @@ public final class Agent {
 		}
 	}
 
-	private void trigger(ArrayList<RaftRpc<?, ?>> removed) {
+	private static void trigger(ArrayList<RaftRpc<?, ?>> removed) {
 		trigger(removed, "Timeout");
 	}
 
-	private void trigger(ArrayList<RaftRpc<?, ?>> removed, String reason) {
+	private static void trigger(ArrayList<RaftRpc<?, ?>> removed, String reason) {
 		for (var r : removed) {
 			if (null == r)
 				continue;

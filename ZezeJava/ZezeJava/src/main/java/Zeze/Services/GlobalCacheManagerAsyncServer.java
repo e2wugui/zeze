@@ -121,7 +121,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				new Service.ProtocolFactoryHandle<>(Cleanup::new, this::ProcessCleanup));
 
 		Server.AddFactoryHandle(KeepAlive.TypeId_,
-				new Service.ProtocolFactoryHandle<>(KeepAlive::new, this::ProcessKeepAliveRequest));
+				new Service.ProtocolFactoryHandle<>(KeepAlive::new, GlobalCacheManagerAsyncServer::ProcessKeepAliveRequest));
 
 		ServerSocket = Server.NewServerSocket(ipaddress, port, null);
 
@@ -267,7 +267,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		return 0;
 	}
 
-	private long ProcessKeepAliveRequest(KeepAlive rpc) {
+	private static long ProcessKeepAliveRequest(KeepAlive rpc) {
 		if (rpc.getSender().getUserState() == null) {
 			rpc.SendResultCode(AcquireNotLogin);
 			return 0;

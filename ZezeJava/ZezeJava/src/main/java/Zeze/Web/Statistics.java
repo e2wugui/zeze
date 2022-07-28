@@ -12,7 +12,7 @@ public class Statistics {
 			// 只实现query参数模式。
 			@Override
 			public boolean handle(Web web, RequestQuery r) {
-				Statistics.this.auth(web, r);
+				Statistics.auth(web, r);
 				return true;
 			}
 		});
@@ -20,13 +20,13 @@ public class Statistics {
 			// 只实现query参数模式。
 			@Override
 			public boolean handle(Web web, RequestQuery r) {
-				Statistics.this.handle(web, r);
+				Statistics.handle(web, r);
 				return true;
 			}
 		});
 	}
 
-	public void auth(Web web, RequestQuery r) {
+	public static void auth(Web web, RequestQuery r) {
 		// 默认实现并不验证密码，只是把参数account的值保存到会话中。
 		// 当应用需要实现Auth时，继承这个类，并重载auth方法。
 		var ss = web.getSession(r.Argument.getCookie());
@@ -35,7 +35,7 @@ public class Statistics {
 		r.SendResult();
 	}
 
-	public void handle(Web web, RequestQuery r) {
+	public static void handle(Web web, RequestQuery r) {
 		var sb = new StringBuilder();
 
 		sb.append("Procedures:\n");

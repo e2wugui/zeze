@@ -22,12 +22,12 @@ import org.rocksdb.WriteOptions;
 public class DatabaseRocksDb extends Database {
 	private static final Options commonOptions = new Options()
 			.setCreateIfMissing(true)
-			.setDbWriteBufferSize(64 << 20) // 总的写缓存大小(字节),对所有columns的总限制
-			.setKeepLogFileNum(5); // 保留"LOG.old.*"文件的数量
+			.setDbWriteBufferSize(64 << 20) // total write buffer bytes, include all the columns
+			.setKeepLogFileNum(5); // reserve "LOG.old.*" file count
 	private static final DBOptions commonDbOptions = new DBOptions()
 			.setCreateIfMissing(true)
-			.setDbWriteBufferSize(64 << 20) // 总的写缓存大小(字节),对所有columns的总限制
-			.setKeepLogFileNum(5); // 保留"LOG.old.*"文件的数量
+			.setDbWriteBufferSize(64 << 20) // total write buffer bytes, include all the columns
+			.setKeepLogFileNum(5); // reserve "LOG.old.*" file count
 	private static final ColumnFamilyOptions defaultCfOptions = new ColumnFamilyOptions();
 	private static final ReadOptions defaultReadOptions = new ReadOptions();
 	private static final WriteOptions defaultWriteOptions = new WriteOptions();

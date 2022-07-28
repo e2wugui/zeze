@@ -440,7 +440,7 @@ public final class Transaction {
 		RedoAndReleaseLock
 	}
 
-	private CheckResult _check_(boolean writeLock, RecordAccessed e) {
+	private static CheckResult _check_(boolean writeLock, RecordAccessed e) {
 		e.AtomicTupleRecord.Record.EnterFairLock();
 		try {
 			if (writeLock) {

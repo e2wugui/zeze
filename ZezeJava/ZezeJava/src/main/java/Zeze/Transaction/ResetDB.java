@@ -23,10 +23,9 @@ import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 
 public class ResetDB {
-
 	public static final Logger logger = LogManager.getLogger(ResetDB.class);
 
-	public void CheckAndRemoveTable(Schemas other, Application app) throws RocksDBException {
+	public static void CheckAndRemoveTable(Schemas other, Application app) throws RocksDBException {
 		logger.debug("reset db start!");
 		if (!app.getConfig().autoResetTable())
 			return;
@@ -77,7 +76,7 @@ public class ResetDB {
 		defaultDb.getDirectOperates().SaveDataWithSameVersion(keyOfSchemas, newData, version);
 	}
 
-	public void CheckCompatible(Schemas other, Application app, List<String> removeList) {
+	public static void CheckCompatible(Schemas other, Application app, List<String> removeList) {
 		if (null == other) {
 			return;
 		}
@@ -122,7 +121,7 @@ public class ResetDB {
 		}
 	}
 
-	public void ResetRocksDB(Application app, Config.DatabaseConf dbConf, List<String> removeList) throws RocksDBException {
+	public static void ResetRocksDB(Application app, Config.DatabaseConf dbConf, List<String> removeList) throws RocksDBException {
 		RocksDB.loadLibrary();
 
 		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
@@ -167,7 +166,7 @@ public class ResetDB {
 		}
 	}
 
-	public void ResetMySql(Config config, String databaseName, List<String> removeList) {
+	public static void ResetMySql(Config config, String databaseName, List<String> removeList) {
 		for (var conf : config.getDatabaseConfMap().values()) {
 			if (conf.getName().equals(databaseName)) {
 				Connection conn = null;

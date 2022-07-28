@@ -30,7 +30,7 @@ public class RedirectBase {
 		ProviderApp = app;
 	}
 
-	public <T extends IModule> T ReplaceModuleInstance(Zeze.AppBase userApp, T module) {
+	public static <T extends IModule> T ReplaceModuleInstance(Zeze.AppBase userApp, T module) {
 		return GenModule.Instance.ReplaceModuleInstance(userApp, module);
 	}
 
@@ -74,13 +74,13 @@ public class RedirectBase {
 		return ProviderApp.ProviderDirectService.GetSocket(providerModuleState.SessionId);
 	}
 
-	private void AddMiss(ModuleRedirectAllResult miss, int i, @SuppressWarnings("SameParameterValue") long rc) {
+	private static void AddMiss(ModuleRedirectAllResult miss, int i, @SuppressWarnings("SameParameterValue") long rc) {
 		var hashResult = new BModuleRedirectAllHash();
 		hashResult.setReturnCode(rc);
 		miss.Argument.getHashs().put(i, hashResult);
 	}
 
-	private void AddTransmits(LongHashMap<ModuleRedirectAllRequest> transmits, long provider, int index, ModuleRedirectAllRequest req) {
+	private static void AddTransmits(LongHashMap<ModuleRedirectAllRequest> transmits, long provider, int index, ModuleRedirectAllRequest req) {
 		var exist = transmits.get(provider);
 		if (exist == null) {
 			exist = new ModuleRedirectAllRequest();
@@ -110,7 +110,7 @@ public class RedirectBase {
 		var providers = ProviderApp.Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
 		var localServiceIdentity = String.valueOf(ProviderApp.Zeze.getConfig().getServerId());
 		for (int i = 0; i < req.Argument.getHashCodeConcurrentLevel(); ++i) {
-			var target = ProviderApp.Distribute.ChoiceDataIndex(consistent, i, req.Argument.getHashCodeConcurrentLevel());
+			var target = ProviderDistribute.ChoiceDataIndex(consistent, i, req.Argument.getHashCodeConcurrentLevel());
 			if (null == target) {
 				AddMiss(miss, i, Procedure.ProviderNotExist);
 				continue;

@@ -17,7 +17,7 @@ public abstract class AbstractBag extends Zeze.IModule {
     protected final Zeze.Builtin.Game.Bag.tItemClasses _tItemClasses = new Zeze.Builtin.Game.Bag.tItemClasses();
 
     public void RegisterProtocols(Zeze.Net.Service service) {
-        var _reflect = new Zeze.Util.Reflect(this.getClass());
+        var _reflect = new Zeze.Util.Reflect(getClass());
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Game.Bag.Destroy>();
             factoryHandle.Factory = Zeze.Builtin.Game.Bag.Destroy::new;
@@ -34,7 +34,7 @@ public abstract class AbstractBag extends Zeze.IModule {
         }
     }
 
-    public void UnRegisterProtocols(Zeze.Net.Service service) {
+    public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47307869964755L);
         service.getFactorys().remove(47308274693689L);
     }
@@ -49,7 +49,7 @@ public abstract class AbstractBag extends Zeze.IModule {
         zeze.RemoveTable(zeze.getConfig().GetTableConf(_tItemClasses.getName()).getDatabaseName(), _tItemClasses);
     }
 
-    public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
+    public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
     protected abstract long ProcessDestroyRequest(Zeze.Builtin.Game.Bag.Destroy r) throws Throwable;

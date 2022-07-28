@@ -23,7 +23,7 @@ public abstract class AbstractOnline extends Zeze.IModule {
     protected final Zeze.Builtin.Online.tversion _tversion = new Zeze.Builtin.Online.tversion();
 
     public void RegisterProtocols(Zeze.Net.Service service) {
-        var _reflect = new Zeze.Util.Reflect(this.getClass());
+        var _reflect = new Zeze.Util.Reflect(getClass());
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Online.Login>();
             factoryHandle.Factory = Zeze.Builtin.Online.Login::new;
@@ -54,7 +54,7 @@ public abstract class AbstractOnline extends Zeze.IModule {
         }
     }
 
-    public void UnRegisterProtocols(Zeze.Net.Service service) {
+    public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47676933001134L);
         service.getFactorys().remove(47676519983553L);
         service.getFactorys().remove(47678187220010L);
@@ -75,7 +75,7 @@ public abstract class AbstractOnline extends Zeze.IModule {
         zeze.RemoveTable(zeze.getConfig().GetTableConf(_tversion.getName()).getDatabaseName(), _tversion);
     }
 
-    public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
+    public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
     protected abstract long ProcessLoginRequest(Zeze.Builtin.Online.Login r) throws Throwable;

@@ -11,7 +11,7 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean, TDepart
 	private static final BeanFactory beanFactory = new BeanFactory();
 
 	public static long GetSpecialTypeIdFromBean(Bean bean) {
-		return beanFactory.GetSpecialTypeIdFromBean(bean);
+		return BeanFactory.GetSpecialTypeIdFromBean(bean);
 	}
 
 	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
@@ -113,7 +113,7 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean, TDepart
 		var dRoot = module._tDepartment.getOrAdd(name);
 		return (TManager)dRoot.getManagers().computeIfAbsent(name, key -> {
 			var value = new DynamicBean(0, DepartmentTree::GetSpecialTypeIdFromBean, DepartmentTree::CreateBeanFromSpecialTypeId);
-			value.setBean(beanFactory.invoke(managerConstructor));
+			value.setBean(BeanFactory.invoke(managerConstructor));
 			return value;
 		}).getBean();
 	}
@@ -126,7 +126,7 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean, TDepart
 		var d = getDepartmentTreeNode(departmentId);
 		return (TManager)d.getManagers().computeIfAbsent(name, key -> {
 			var value = new DynamicBean(0, DepartmentTree::GetSpecialTypeIdFromBean, DepartmentTree::CreateBeanFromSpecialTypeId);
-			value.setBean(beanFactory.invoke(managerConstructor));
+			value.setBean(BeanFactory.invoke(managerConstructor));
 			return value;
 		}).getBean();
 	}

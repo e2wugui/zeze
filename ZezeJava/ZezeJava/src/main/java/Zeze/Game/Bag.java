@@ -22,14 +22,14 @@ public class Bag {
 	// 物品加入包裹时，自动注册；
 	// 注册的Bean.ClassName会被持久化保存下来。
 	// Module.Start的时候自动装载注册的ClassName。
-	private final static Zeze.Collections.BeanFactory BeanFactory = new BeanFactory();
+	private final static BeanFactory beanFactory = new BeanFactory();
 
 	public static long GetSpecialTypeIdFromBean(Bean bean) {
 		return BeanFactory.GetSpecialTypeIdFromBean(bean);
 	}
 
 	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
-		return BeanFactory.CreateBeanFromSpecialTypeId(typeId);
+		return beanFactory.CreateBeanFromSpecialTypeId(typeId);
 	}
 
 	private final Module module;
@@ -210,7 +210,7 @@ public class Bag {
 		return -1;
 	}
 
-	private int GetItemPileMax(int itemId) {
+	private static int GetItemPileMax(int itemId) {
 		var tmp = funcItemPileMax;
 		if (null == tmp)
 			return 1;
@@ -347,7 +347,7 @@ public class Bag {
 		}
 
 		public void register(Class<? extends Bean> cls) {
-			BeanFactory.register(cls);
+			beanFactory.register(cls);
 			_tItemClasses.getOrAdd(1).getItemClasses().add(cls.getName());
 		}
 
@@ -357,7 +357,7 @@ public class Bag {
 			if (0L != zeze.NewProcedure(() -> {
 				var classes = _tItemClasses.getOrAdd(1);
 				for (var cls : classes.getItemClasses()) {
-					BeanFactory.register((Class<? extends Bean>)Class.forName(cls));
+					beanFactory.register((Class<? extends Bean>)Class.forName(cls));
 				}
 				return 0L;
 			}, "").Call()) {

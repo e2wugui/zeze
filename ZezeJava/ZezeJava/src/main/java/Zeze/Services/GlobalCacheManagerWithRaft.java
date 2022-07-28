@@ -665,7 +665,7 @@ public class GlobalCacheManagerWithRaft
 		}
 	}
 
-	private int GetSenderCacheState(CacheState cs, CacheHolder sender) {
+	private static int GetSenderCacheState(CacheState cs, CacheHolder sender) {
 		if (cs.getModify() == sender.ServerId)
 			return StateModify;
 		if (cs.getShare().Contains(sender.ServerId))

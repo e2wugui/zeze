@@ -11,7 +11,7 @@ public abstract class AbstractProviderDirect extends Zeze.IModule {
     public static final int ErrorTransmitParameterFactoryNotFound = 1;
 
     public void RegisterProtocols(Zeze.Net.Service service) {
-        var _reflect = new Zeze.Util.Reflect(this.getClass());
+        var _reflect = new Zeze.Util.Reflect(getClass());
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.ProviderDirect.AnnounceProviderInfo>();
             factoryHandle.Factory = Zeze.Builtin.ProviderDirect.AnnounceProviderInfo::new;
@@ -56,7 +56,7 @@ public abstract class AbstractProviderDirect extends Zeze.IModule {
         }
     }
 
-    public void UnRegisterProtocols(Zeze.Net.Service service) {
+    public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47286041114986L);
         service.getFactorys().remove(47284402955566L);
         service.getFactorys().remove(47286816262188L);
@@ -71,7 +71,7 @@ public abstract class AbstractProviderDirect extends Zeze.IModule {
     public void UnRegisterZezeTables(Zeze.Application zeze) {
     }
 
-    public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
+    public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
     protected abstract long ProcessAnnounceProviderInfoRequest(Zeze.Builtin.ProviderDirect.AnnounceProviderInfo r) throws Throwable;

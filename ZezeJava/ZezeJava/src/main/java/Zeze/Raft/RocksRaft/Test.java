@@ -249,7 +249,7 @@ public final class Test {
 		}
 	}
 
-	private void Remove1(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
+	private static void Remove1(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
 		rocks.NewProcedure(() -> {
 			table.Remove(1);
 
@@ -270,7 +270,7 @@ public final class Test {
 		}).Call();
 	}
 
-	private void Update(Table<Integer, Bean1> table, int num) {
+	private static void Update(Table<Integer, Bean1> table, int num) {
 		var value = table.GetOrAdd(1);
 
 		// 本层Bean变量修改日志
@@ -290,7 +290,7 @@ public final class Test {
 		bean1.setI(5 + num);
 	}
 
-	private void VerifyChanges(String expected) {
+	private static void VerifyChanges(String expected) {
 		Transaction.getCurrent().RunWhileCommit(() -> {
 			var Changes = Transaction.getCurrent().getChanges();
 			var sb = new StringBuilder();
@@ -302,7 +302,7 @@ public final class Test {
 		});
 	}
 
-	private void VerifyData(Rocks rocks, Table<Integer, Bean1> table, String expected) throws Throwable {
+	private static void VerifyData(Rocks rocks, Table<Integer, Bean1> table, String expected) throws Throwable {
 		rocks.NewProcedure(() -> {
 			var value = table.GetOrAdd(1);
 			var current = value.toString();
@@ -314,7 +314,7 @@ public final class Test {
 		}).Call();
 	}
 
-	private void PutAndEdit(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
+	private static void PutAndEdit(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
 		rocks.NewProcedure(() -> {
 			Update(table, 0);
 			VerifyChanges("{(tRocksRaft#0,1):State=1 PutValue=Bean1(0 I=1 L=0 Map1={3:3} Bean2=Bean2(I=2) Map2={4:Bean1(4 I=5 L=0 Map1={} Bean2=Bean2(I=0) Map2={})})\n" +
@@ -324,7 +324,7 @@ public final class Test {
 		}).Call();
 	}
 
-	private void Edit(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
+	private static void Edit(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
 		rocks.NewProcedure(() -> {
 			Update(table, 10);
 			VerifyChanges("{(tRocksRaft#0,1):State=2 PutValue=null\n" +
@@ -334,7 +334,7 @@ public final class Test {
 		}).Call();
 	}
 
-	private void EditAndPut(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
+	private static void EditAndPut(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
 		rocks.NewProcedure(() -> {
 			Update(table, 20);
 			// 重新put，将会让上面的修改树作废。但所有的日志树都可以从All中看到。
@@ -347,7 +347,7 @@ public final class Test {
 		}).Call();
 	}
 
-	private void EditInContainer(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
+	private static void EditInContainer(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
 		rocks.NewProcedure(() -> {
 			var value = table.GetOrAdd(1);
 			var edit = value.getMap2().get(14);
@@ -359,7 +359,7 @@ public final class Test {
 		}).Call();
 	}
 
-	private void NestProcedure(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
+	private static void NestProcedure(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
 		rocks.NewProcedure(() -> {
 			var value = table.Get(1);
 			value.getBean2().setI(3333);
@@ -379,7 +379,7 @@ public final class Test {
 		}).Call();
 	}
 
-	private void NestProcedureContainer(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
+	private static void NestProcedureContainer(Rocks rocks, Table<Integer, Bean1> table) throws Throwable {
 		rocks.NewProcedure(() -> {
 			rocks.NewProcedure(() -> {
 				var value = table.Get(1);
@@ -397,7 +397,7 @@ public final class Test {
 		}).Call();
 	}
 
-	private Rocks GetLeader(List<Rocks> rocks, Rocks skip) throws InterruptedException {
+	private static Rocks GetLeader(List<Rocks> rocks, Rocks skip) throws InterruptedException {
 		while (true) {
 			for (var rock : rocks) {
 				if (rock != skip && rock.isLeader())
@@ -408,7 +408,7 @@ public final class Test {
 		}
 	}
 
-	public void Test_1() throws Throwable {
+	public static void Test_1() throws Throwable {
 		LogSequence.deletedDirectoryAndCheck(new File("127.0.0.1_6000"));
 		LogSequence.deletedDirectoryAndCheck(new File("127.0.0.1_6001"));
 		LogSequence.deletedDirectoryAndCheck(new File("127.0.0.1_6002"));
@@ -438,7 +438,7 @@ public final class Test {
 		}
 	}
 
-	private void RunLeader(Rocks rocks) throws Throwable {
+	private static void RunLeader(Rocks rocks) throws Throwable {
 		var table = rocks.<Integer, Bean1>GetTableTemplate("tRocksRaft").OpenTable(0);
 		Remove1(rocks, table);
 
@@ -467,7 +467,7 @@ public final class Test {
 	public static void main(String[] args) throws Throwable {
 		Task.initThreadPool(Task.newFixedThreadPool(5, "test"),
 				Executors.newScheduledThreadPool(3, new ThreadFactoryWithName("test-sch")));
-		new Test().Test_1();
+		Test_1();
 		System.out.println("main end!");
 	}
 }

@@ -11,7 +11,7 @@ public abstract class AbstractRedoQueueServer extends Zeze.IModule {
     protected final Zeze.Builtin.RedoQueue.tQueueLastTaskId _tQueueLastTaskId = new Zeze.Builtin.RedoQueue.tQueueLastTaskId();
 
     public void RegisterProtocols(Zeze.Net.Service service) {
-        var _reflect = new Zeze.Util.Reflect(this.getClass());
+        var _reflect = new Zeze.Util.Reflect(getClass());
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.RedoQueue.RunTask>();
             factoryHandle.Factory = Zeze.Builtin.RedoQueue.RunTask::new;
@@ -21,7 +21,7 @@ public abstract class AbstractRedoQueueServer extends Zeze.IModule {
         }
     }
 
-    public void UnRegisterProtocols(Zeze.Net.Service service) {
+    public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47289120801215L);
     }
 
@@ -33,7 +33,7 @@ public abstract class AbstractRedoQueueServer extends Zeze.IModule {
         zeze.RemoveTable(zeze.getConfig().GetTableConf(_tQueueLastTaskId.getName()).getDatabaseName(), _tQueueLastTaskId);
     }
 
-    public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
+    public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
     protected abstract long ProcessRunTaskRequest(Zeze.Builtin.RedoQueue.RunTask r) throws Throwable;

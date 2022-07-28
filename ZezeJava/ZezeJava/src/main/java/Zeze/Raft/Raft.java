@@ -593,7 +593,7 @@ public final class Raft {
 		return candidate.getNodeReady() && IsLastLogUpToDate(last, candidate);
 	}
 
-	private boolean IsLastLogUpToDate(RaftLog last, RequestVoteArgument candidate) {
+	private static boolean IsLastLogUpToDate(RaftLog last, RequestVoteArgument candidate) {
 		if (candidate.getLastLogTerm() > last.getTerm())
 			return true;
 		if (candidate.getLastLogTerm() < last.getTerm())
@@ -634,7 +634,7 @@ public final class Raft {
 	}
 
 	@SuppressWarnings("SameReturnValue")
-	private long ProcessLeaderIs(LeaderIs r) {
+	private static long ProcessLeaderIs(LeaderIs r) {
 		// 这个协议是发送给Agent(Client)的，
 		// 为了简单，不做区分。
 		// Raft也会收到，忽略。
@@ -807,6 +807,6 @@ public final class Raft {
 		Server.AddFactoryHandle(InstallSnapshot.TypeId_,
 				new Service.ProtocolFactoryHandle<>(InstallSnapshot::new, this::ProcessInstallSnapshot));
 		Server.AddFactoryHandle(LeaderIs.TypeId_,
-				new Service.ProtocolFactoryHandle<>(LeaderIs::new, this::ProcessLeaderIs));
+				new Service.ProtocolFactoryHandle<>(LeaderIs::new, Raft::ProcessLeaderIs));
 	}
 }

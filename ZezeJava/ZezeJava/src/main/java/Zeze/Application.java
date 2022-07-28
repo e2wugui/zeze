@@ -53,7 +53,6 @@ public final class Application {
 	private Schemas Schemas;
 	private boolean IsStart;
 	public RedirectBase Redirect;
-	private ResetDB ResetDB;
 
 	public Zeze.Transaction.AchillesHeelDaemon getAchillesHeelDaemon() {
 		return AchillesHeelDaemon;
@@ -80,7 +79,6 @@ public final class Application {
 		Conf = config != null ? config : Config.Load();
 		Conf.CreateDatabase(this, Databases);
 		ServiceManagerAgent = new Agent(this);
-		ResetDB = new ResetDB();
 		ShutdownHook.add(this, () -> {
 			logger.info("zeze({}) ShutdownHook begin", SolutionName);
 			Stop();
@@ -199,7 +197,7 @@ public final class Application {
 		return new Procedure(this, action, actionName, level, userState);
 	}
 
-	void deleteDirectory(File directoryToBeDeleted) throws IOException, InterruptedException {
+	static void deleteDirectory(File directoryToBeDeleted) throws IOException, InterruptedException {
 		File[] allContents = directoryToBeDeleted.listFiles();
 		if (allContents != null) {
 			for (File file : allContents) {

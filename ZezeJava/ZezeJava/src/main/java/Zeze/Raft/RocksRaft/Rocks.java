@@ -149,7 +149,7 @@ public final class Rocks extends StateMachine implements Closeable {
 			table.Open();
 	}
 
-	private ArrayList<ColumnFamilyDescriptor> getColumnFamilies(String dir) throws RocksDBException {
+	private static ArrayList<ColumnFamilyDescriptor> getColumnFamilies(String dir) throws RocksDBException {
 		// 参考 Zeze.Transaction.DatabaseRocksDb
 		var columnFamilies = new ArrayList<ColumnFamilyDescriptor>();
 		if (new File(dir).isDirectory()) {
@@ -301,7 +301,7 @@ public final class Rocks extends StateMachine implements Closeable {
 		return checkpointDir;
 	}
 
-	public void Backup(String checkpointDir, String backupDir) throws RocksDBException {
+	public static void Backup(String checkpointDir, String backupDir) throws RocksDBException {
 		var outHandles = new ArrayList<ColumnFamilyHandle>();
 		try (var src = RocksDB.open(DatabaseRocksDb.getCommonDbOptions(), checkpointDir,
 				getColumnFamilies(checkpointDir), outHandles);

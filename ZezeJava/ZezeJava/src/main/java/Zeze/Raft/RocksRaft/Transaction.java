@@ -308,7 +308,7 @@ public final class Transaction {
 			autoResponse.SendResult();
 	}
 
-	private void _trigger_commit_actions_(Procedure procedure, Savepoint last) {
+	private static void _trigger_commit_actions_(Procedure procedure, Savepoint last) {
 		var commitActions = last.getCommitActions();
 		if (commitActions != null) {
 			for (var action : commitActions) {

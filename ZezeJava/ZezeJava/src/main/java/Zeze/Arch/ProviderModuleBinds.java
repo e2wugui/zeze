@@ -129,7 +129,7 @@ public class ProviderModuleBinds {
 			return Providers;
 		}
 
-		private int GetChoiceType(Element self) {
+		private static int GetChoiceType(Element self) {
 			switch (self.getAttribute("ChoiceType")) {
 			case "ChoiceTypeHashAccount":
 				return BModule.ChoiceTypeHashAccount;
@@ -143,7 +143,7 @@ public class ProviderModuleBinds {
 		}
 
 		// 这个订阅类型目前用于动态绑定的模块，所以默认为SubscribeTypeSimple。
-		private int GetSubscribeType(Element self) {
+		private static int GetSubscribeType(Element self) {
 			//noinspection SwitchStatementWithTooFewBranches
 			switch (self.getAttribute("SubscribeType")) {
 			case "SubscribeTypeReadyCommit":

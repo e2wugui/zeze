@@ -272,7 +272,7 @@ namespace Zeze.Gen.java
                         if (!defReflect && isFirst)
                         {
                             defReflect = true;
-                            sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(this.getClass());");
+                            sw.WriteLine("        var _reflect = new Zeze.Util.Reflect(getClass());");
                         }
                         // rpc 可能作为客户端发送也需要factory，所以总是注册factory。
                         string fullName = rpc.Space.Path(".", rpc.Name);

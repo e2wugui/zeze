@@ -402,7 +402,7 @@ public final class Agent implements Closeable {
 		return reg;
 	}
 
-	private void Verify(String identity) {
+	private static void Verify(String identity) {
 		if (!identity.startsWith("@")) {
 			//noinspection ResultOfMethodCallIgnored
 			Integer.parseInt(identity);

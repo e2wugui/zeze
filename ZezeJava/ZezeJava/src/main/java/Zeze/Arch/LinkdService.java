@@ -4,8 +4,10 @@ import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.LinkdBase.ReportError;
 import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Net.Service;
+import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.ConcurrentLruLike;
 import Zeze.Web.AbstractWeb;
 import org.apache.logging.log4j.LogManager;
@@ -132,7 +134,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		}
 	}
 
-	public LinkdUserSession getAuthedSession(Zeze.Net.AsyncSocket socket) {
+	public LinkdUserSession getAuthedSession(AsyncSocket socket) {
 		var linkSession = (LinkdUserSession)socket.getUserState();
 		if (null == linkSession || !linkSession.isAuthed()) {
 			ReportError(socket.getSessionId(), BReportError.FromLink, BReportError.CodeNotAuthed, "not authed.");
@@ -141,24 +143,24 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		return linkSession;
 	}
 
-	public void setStableLinkSid(LinkdUserSession linkSession, Zeze.Net.AsyncSocket so, int moduleId, int protocolId, Zeze.Serialize.ByteBuffer data) {
+	public void setStableLinkSid(LinkdUserSession linkSession, AsyncSocket so, int moduleId, int protocolId, ByteBuffer data) {
 		if (moduleId == Zeze.Game.Online.ModuleId && protocolId == Zeze.Builtin.Game.Online.Login.ProtocolId_) {
 			var login = new Zeze.Builtin.Game.Online.Login();
-			login.Decode(Zeze.Serialize.ByteBuffer.Wrap(data));
+			login.Decode(ByteBuffer.Wrap(data));
 			SetStableLinkSid(linkSession.getAccount(), String.valueOf(login.Argument.getRoleId()), so);
 		} else if (moduleId == Zeze.Arch.Online.ModuleId && protocolId == Zeze.Builtin.Online.Login.ProtocolId_) {
 			var login = new Zeze.Builtin.Online.Login();
-			login.Decode(Zeze.Serialize.ByteBuffer.Wrap(data));
+			login.Decode(ByteBuffer.Wrap(data));
 			SetStableLinkSid(linkSession.getAccount(), login.Argument.getClientId(), so);
 		}
 	}
 
-	public Dispatch createDispatch(LinkdUserSession linkSession, Zeze.Net.AsyncSocket so, int moduleId, int protocolId, Zeze.Serialize.ByteBuffer data) {
+	public static Dispatch createDispatch(LinkdUserSession linkSession, AsyncSocket so, int moduleId, int protocolId, ByteBuffer data) {
 		var dispatch = new Dispatch();
 		dispatch.Argument.setLinkSid(so.getSessionId());
 		dispatch.Argument.setAccount(linkSession.getAccount());
 		dispatch.Argument.setProtocolType(Protocol.MakeTypeId(moduleId, protocolId));
-		dispatch.Argument.setProtocolData(new Zeze.Net.Binary(data.Copy()));
+		dispatch.Argument.setProtocolData(new Binary(data.Copy()));
 		dispatch.Argument.setContext(linkSession.getContext());
 		dispatch.Argument.setContextx(linkSession.getContextx());
 		return dispatch;
@@ -178,7 +180,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 		return false;
 	}
 
-	public boolean choiceBindSend(Zeze.Net.AsyncSocket so, int moduleId, Dispatch dispatch) {
+	public boolean choiceBindSend(AsyncSocket so, int moduleId, Dispatch dispatch) {
 		var provider = new Zeze.Util.OutLong();
 		if (LinkdApp.LinkdProvider.ChoiceProviderAndBind(moduleId, so, provider)) {
 			var providerSocket = LinkdApp.LinkdProviderService.GetSocket(provider.Value);
@@ -192,7 +194,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	}
 
 	@Override
-	public void DispatchUnknownProtocol(Zeze.Net.AsyncSocket so, int moduleId, int protocolId, Zeze.Serialize.ByteBuffer data) {
+	public void DispatchUnknownProtocol(AsyncSocket so, int moduleId, int protocolId, ByteBuffer data) {
 		if (moduleId == AbstractWeb.ModuleId) {
 			ReportError(so.getSessionId(), BReportError.FromLink, BReportError.CodeNoProvider, "not a public provider.");
 			return;
@@ -230,7 +232,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	}
 
 	@Override
-	public void OnSocketClose(Zeze.Net.AsyncSocket so, Throwable e) throws Throwable {
+	public void OnSocketClose(AsyncSocket so, Throwable e) throws Throwable {
 		super.OnSocketClose(so, e);
 		if (so.getUserState() != null) {
 			((LinkdUserSession)so.getUserState()).OnClose(LinkdApp.LinkdProviderService);

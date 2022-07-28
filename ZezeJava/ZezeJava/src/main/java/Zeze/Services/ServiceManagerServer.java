@@ -422,7 +422,7 @@ public final class ServiceManagerServer implements Closeable {
 		}
 
 		@SuppressWarnings("unused")
-		<T> boolean SequenceEqual(List<T> a, List<T> b) {
+		static <T> boolean SequenceEqual(List<T> a, List<T> b) {
 			int size = a.size();
 			if (size != b.size())
 				return false;

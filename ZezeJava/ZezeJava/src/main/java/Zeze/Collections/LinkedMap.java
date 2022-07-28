@@ -15,7 +15,7 @@ public class LinkedMap<V extends Bean> {
 	private static final BeanFactory beanFactory = new BeanFactory();
 
 	public static long GetSpecialTypeIdFromBean(Bean bean) {
-		return beanFactory.GetSpecialTypeIdFromBean(bean);
+		return BeanFactory.GetSpecialTypeIdFromBean(bean);
 	}
 
 	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
@@ -130,7 +130,7 @@ public class LinkedMap<V extends Bean> {
 		var value = get(id);
 		if (null != value)
 			return value;
-		value = beanFactory.invoke(valueConstructor);
+		value = BeanFactory.invoke(valueConstructor);
 		put(id, value);
 		return value;
 	}

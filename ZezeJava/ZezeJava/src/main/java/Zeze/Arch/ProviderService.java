@@ -34,11 +34,11 @@ public class ProviderService extends Zeze.Services.HandshakeClient {
 	 * 这里要求 linkName 在所有 provider 中都一样。
 	 * 使用 Connector 配置得到名字，只要保证配置一样。
 	 */
-	public String GetLinkName(AsyncSocket sender) {
+	public static String GetLinkName(AsyncSocket sender) {
 		return sender.getConnector().getName();
 	}
 
-	public String GetLinkName(ServiceInfo serviceInfo) {
+	public static String GetLinkName(ServiceInfo serviceInfo) {
 		return serviceInfo.getPassiveIp() + ":" + serviceInfo.getPassivePort();
 	}
 

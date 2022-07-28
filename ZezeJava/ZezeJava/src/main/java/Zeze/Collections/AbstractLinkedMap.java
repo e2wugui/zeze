@@ -15,7 +15,7 @@ public abstract class AbstractLinkedMap extends Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
     }
 
-    public void UnRegisterProtocols(Zeze.Net.Service service) {
+    public static void UnRegisterProtocols(Zeze.Net.Service service) {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -30,6 +30,6 @@ public abstract class AbstractLinkedMap extends Zeze.IModule {
         zeze.RemoveTable(zeze.getConfig().GetTableConf(_tValueIdToNodeId.getName()).getDatabaseName(), _tValueIdToNodeId);
     }
 
-    public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
+    public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 }

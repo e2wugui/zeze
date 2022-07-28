@@ -59,7 +59,7 @@ public class ProviderDistribute {
 	}
 
 	// ChoiceDataIndex 用于RedirectAll或者那些已知数据分块索引的地方。
-	public ServiceInfo ChoiceDataIndex(ConsistentHash<ServiceInfo> consistentHash, int dataIndex, int dataConcurrentLevel) {
+	public static ServiceInfo ChoiceDataIndex(ConsistentHash<ServiceInfo> consistentHash, int dataIndex, int dataConcurrentLevel) {
 		if (consistentHash == null)
 			return null;
 		if (consistentHash.getNodes().size() > dataConcurrentLevel)

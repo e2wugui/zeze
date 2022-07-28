@@ -88,7 +88,7 @@ public abstract class AbstractLinkdProvider extends Zeze.IModule {
         }
     }
 
-    public void UnRegisterProtocols(Zeze.Net.Service service) {
+    public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47279202608226L);
         service.getFactorys().remove(47279114253990L);
         service.getFactorys().remove(47282408036866L);
@@ -110,7 +110,7 @@ public abstract class AbstractLinkdProvider extends Zeze.IModule {
         zeze.RemoveTable(zeze.getConfig().GetTableConf(_tSessions.getName()).getDatabaseName(), _tSessions);
     }
 
-    public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
+    public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
     protected abstract long ProcessAnnounceProviderInfo(Zeze.Builtin.Provider.AnnounceProviderInfo p) throws Throwable;

@@ -22,10 +22,10 @@ import org.apache.logging.log4j.Logger;
 
 public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerWithRaftAgent implements IGlobalAgent {
 	private static final Logger logger = LogManager.getLogger(GlobalCacheManagerWithRaftAgent.class);
-	private static final boolean isDebugEnabled = logger.isDebugEnabled();
+	// private static final boolean isDebugEnabled = logger.isDebugEnabled();
 
 	private final Zeze.Application zz;
-	public RaftAgent[] Agents;
+	public final RaftAgent[] Agents;
 
 	public GlobalCacheManagerWithRaftAgent(Zeze.Application zeze, String[] hosts) throws Throwable {
 		zz = zeze;
@@ -227,7 +227,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		}
 
 		@SuppressWarnings("SameParameterValue")
-		private void ThrowException(String msg, Throwable cause) {
+		private static void ThrowException(String msg, Throwable cause) {
 			var txn = Transaction.getCurrent();
 			if (txn != null)
 				txn.ThrowAbort(msg, cause);

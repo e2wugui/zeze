@@ -158,7 +158,7 @@ public final class GenModule {
 		}
 	}
 
-	private String GenModuleCode(String genClassName, IModule module, List<MethodOverride> overrides, AppBase userApp) throws Throwable {
+	private static String GenModuleCode(String genClassName, IModule module, List<MethodOverride> overrides, AppBase userApp) throws Throwable {
 		var sb = new StringBuilderCs();
 		sb.AppendLine("// auto-generated @" + "formatter:off");
 		sb.AppendLine("public final class {} extends {} {", genClassName, module.getClass().getName());
@@ -294,7 +294,7 @@ public final class GenModule {
 	}
 
 	// 根据转发类型选择目标服务器，如果目标服务器是自己，直接调用基类方法完成工作。
-	private void ChoiceTargetRunLoopback(StringBuilderCs sb, MethodOverride m, String returnName) {
+	private static void ChoiceTargetRunLoopback(StringBuilderCs sb, MethodOverride m, String returnName) {
 		if (m.annotation instanceof RedirectHash)
 			sb.AppendLine("        var _t_ = _redirect_.ChoiceHash(this, {}, {});",
 					m.hashOrServerIdParameter.getName(), m.getConcurrentLevelSource());
@@ -316,8 +316,8 @@ public final class GenModule {
 		sb.AppendLine();
 	}
 
-	private void GenRedirectAll(StringBuilderCs sb, StringBuilderCs sbHandles,
-								IModule module, MethodOverride m) throws Throwable {
+	private static void GenRedirectAll(StringBuilderCs sb, StringBuilderCs sbHandles,
+									   IModule module, MethodOverride m) throws Throwable {
 		sb.Append("        var _c_ = new Zeze.Arch.RedirectAllContext<>({}, ", m.hashOrServerIdParameter.getName());
 		if (m.resultTypeName != null) {
 			sb.AppendLine("_params_ -> {");

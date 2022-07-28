@@ -64,19 +64,19 @@ public class Rank extends AbstractRank {
 		app.getZeze().getServiceManagerAgent().RegisterService(name, identity, providerDirectIp, providerDirectPort);
 	}
 
-	public final BConcurrentKey newRankKey(int rankType, int timeType) {
+	public static BConcurrentKey newRankKey(int rankType, int timeType) {
 		return newRankKey(System.currentTimeMillis(), rankType, timeType, 0);
 	}
 
-	public final BConcurrentKey newRankKey(int rankType, int timeType, long customizeId) {
+	public static BConcurrentKey newRankKey(int rankType, int timeType, long customizeId) {
 		return newRankKey(System.currentTimeMillis(), rankType, timeType, customizeId);
 	}
 
-	public final BConcurrentKey newRankKey(long time, int rankType, int timeType) {
+	public static BConcurrentKey newRankKey(long time, int rankType, int timeType) {
 		return newRankKey(time, rankType, timeType, 0);
 	}
 
-	public final BConcurrentKey newRankKey(long time, int rankType, int timeType, long customizeId) {
+	public static BConcurrentKey newRankKey(long time, int rankType, int timeType, long customizeId) {
 		var c = Calendar.getInstance();
 		c.setTimeInMillis(time);
 		var year = c.get(Calendar.YEAR); // 后面根据TimeType可能覆盖这个值。
@@ -115,7 +115,7 @@ public class Rank extends AbstractRank {
 		return new BConcurrentKey(rankType, 0, timeType, year, offset);
 	}
 
-	public int getSimpleChineseSeason(Calendar c) {
+	public static int getSimpleChineseSeason(Calendar c) {
 		//@formatter:off
 		var month = c.get(Calendar.MONTH);
 		if (month < 3) return 4; // 12,1,2
@@ -210,7 +210,7 @@ public class Rank extends AbstractRank {
 		return RedirectFuture.finish(0L);
 	}
 
-	private BRankList merge(BRankList left, BRankList right) {
+	private static BRankList merge(BRankList left, BRankList right) {
 		BRankList result = new BRankList();
 		int indexLeft = 0;
 		int indexRight = 0;
@@ -280,7 +280,7 @@ public class Rank extends AbstractRank {
 		return merge(datas, countNeed);
 	}
 
-	private BRankList merge(Collection<BRankList> datas, int countNeed) {
+	private static BRankList merge(Collection<BRankList> datas, int countNeed) {
 		var size = datas.size();
 		if (0 == size)
 			return new BRankList();

@@ -6,6 +6,7 @@ import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.LoadConfig;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderModuleBinds;
+import Zeze.Arch.RedirectBase;
 import Zeze.Config;
 import Zeze.Game.Online;
 import Zeze.Game.ProviderDirectWithTransmit;
@@ -27,7 +28,7 @@ public final class App extends Zeze.AppBase {
 
 	@Override
 	public <T extends Zeze.IModule> T ReplaceModuleInstance(T module) {
-		return Zeze.Redirect.ReplaceModuleInstance(this, module);
+		return RedirectBase.ReplaceModuleInstance(this, module);
 	}
 
 	public ProviderImplementWithOnline getProvider() {

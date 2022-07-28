@@ -9,7 +9,7 @@ public abstract class AbstractGlobalCacheManagerWithRaftAgent extends Zeze.IModu
     @Override public boolean isBuiltin() { return true; }
 
     public void RegisterProtocols(Zeze.Net.Service service) {
-        var _reflect = new Zeze.Util.Reflect(this.getClass());
+        var _reflect = new Zeze.Util.Reflect(getClass());
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire>();
             factoryHandle.Factory = Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire::new;
@@ -55,7 +55,7 @@ public abstract class AbstractGlobalCacheManagerWithRaftAgent extends Zeze.IModu
         }
     }
 
-    public void UnRegisterProtocols(Zeze.Net.Service service) {
+    public static void UnRegisterProtocols(Zeze.Net.Service service) {
         service.getFactorys().remove(47251404755902L);
         service.getFactorys().remove(47253156226169L);
         service.getFactorys().remove(47249886857671L);
@@ -71,7 +71,7 @@ public abstract class AbstractGlobalCacheManagerWithRaftAgent extends Zeze.IModu
     public void UnRegisterZezeTables(Zeze.Application zeze) {
     }
 
-    public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
+    public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
     protected abstract long ProcessReduceRequest(Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce r) throws Throwable;

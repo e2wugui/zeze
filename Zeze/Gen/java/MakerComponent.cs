@@ -103,7 +103,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine("    }");
                 sw.WriteLine();
 
-                sw.WriteLine("    public void UnRegisterProtocols(Zeze.Net.Service service) {");
+                sw.WriteLine("    public static void UnRegisterProtocols(Zeze.Net.Service service) {");
                 foreach (var mf in mfs) mf.UnRegisterProtocols(sw, "service");
                 sw.WriteLine("    }");
                 sw.WriteLine();
@@ -118,7 +118,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine("    }");
                 sw.WriteLine();
 
-                sw.WriteLine("    public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {");
+                sw.WriteLine("    public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {");
                 foreach (var mf in mfs) mf.RegisterRocksTables(sw);
                 sw.WriteLine("    }");
 

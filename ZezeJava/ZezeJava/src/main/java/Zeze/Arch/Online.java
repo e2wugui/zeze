@@ -660,7 +660,7 @@ public class Online extends AbstractOnline {
         return groups.values();
     }
 
-    private RoleOnServer merge(RoleOnServer current, RoleOnServer m) {
+    private static RoleOnServer merge(RoleOnServer current, RoleOnServer m) {
         if (null == current)
             return m;
         current.addAll(m.Accounts);

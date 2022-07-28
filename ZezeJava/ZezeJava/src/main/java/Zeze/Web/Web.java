@@ -13,7 +13,7 @@ import Zeze.Net.Binary;
 public class Web extends AbstractWeb {
 
     public final ProviderApp ProviderApp;
-    public ConcurrentHashMap<String, HttpServlet> Servlets = new ConcurrentHashMap<>();
+    public final ConcurrentHashMap<String, HttpServlet> Servlets = new ConcurrentHashMap<>();
     private AutoKey AutoKey;
 
     public Web(ProviderApp app) {

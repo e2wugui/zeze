@@ -13,7 +13,7 @@ public abstract class AbstractRank extends Zeze.IModule {
     public void RegisterProtocols(Zeze.Net.Service service) {
     }
 
-    public void UnRegisterProtocols(Zeze.Net.Service service) {
+    public static void UnRegisterProtocols(Zeze.Net.Service service) {
     }
 
     public void RegisterZezeTables(Zeze.Application zeze) {
@@ -24,6 +24,6 @@ public abstract class AbstractRank extends Zeze.IModule {
         zeze.RemoveTable(zeze.getConfig().GetTableConf(_trank.getName()).getDatabaseName(), _trank);
     }
 
-    public void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
+    public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 }
