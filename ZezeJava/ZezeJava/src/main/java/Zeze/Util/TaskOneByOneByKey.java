@@ -140,6 +140,10 @@ public final class TaskOneByOneByKey {
 		Execute(key.hashCode(), procedure, cancel, mode);
 	}
 
+	public void Execute(int key, Action0 action) {
+		Execute(key, action, null, null, DispatchMode.Normal);
+	}
+
 	public void Execute(int key, Action0 action, DispatchMode mode) {
 		Execute(key, action, null, null, mode);
 	}
@@ -152,6 +156,10 @@ public final class TaskOneByOneByKey {
 		if (action == null)
 			throw new NullPointerException();
 		concurrency[Hash(key) & hashMask].Execute(action, name, cancel, mode);
+	}
+
+	public void Execute(int key, Func0<?> func) {
+		Execute(key, func, null, null, DispatchMode.Normal);
 	}
 
 	public void Execute(int key, Func0<?> func, DispatchMode mode) {
@@ -168,12 +176,20 @@ public final class TaskOneByOneByKey {
 		concurrency[Hash(key) & hashMask].Execute(func, name, cancel, mode);
 	}
 
+	public void Execute(int key, Procedure procedure) {
+		Execute(key, procedure, null, DispatchMode.Normal);
+	}
+
 	public void Execute(int key, Procedure procedure, DispatchMode mode) {
 		Execute(key, procedure, null, mode);
 	}
 
 	public void Execute(int key, Procedure procedure, Action0 cancel, DispatchMode mode) {
 		concurrency[Hash(key) & hashMask].Execute(procedure::Call, procedure.getActionName(), cancel, mode);
+	}
+
+	public void Execute(long key, Action0 action) {
+		Execute(Long.hashCode(key), action, DispatchMode.Normal);
 	}
 
 	public void Execute(long key, Action0 action, DispatchMode mode) {
@@ -188,6 +204,10 @@ public final class TaskOneByOneByKey {
 		Execute(Long.hashCode(key), action, name, cancel, mode);
 	}
 
+	public void Execute(long key, Func0<?> func) {
+		Execute(Long.hashCode(key), func, DispatchMode.Normal);
+	}
+
 	public void Execute(long key, Func0<?> func, DispatchMode mode) {
 		Execute(Long.hashCode(key), func, mode);
 	}
@@ -198,6 +218,10 @@ public final class TaskOneByOneByKey {
 
 	public void Execute(long key, Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
 		Execute(Long.hashCode(key), func, name, cancel, mode);
+	}
+
+	public void Execute(long key, Procedure procedure) {
+		Execute(Long.hashCode(key), procedure, DispatchMode.Normal);
 	}
 
 	public void Execute(long key, Procedure procedure, DispatchMode mode) {
