@@ -19,9 +19,9 @@ tag 1.0.2 AchillesHeelDaemon.ProcessDaemon & Simple Web & RelativeRecordSet.Flus
 ------------------------------------------------------------------------------------------------------------------------------
 @DispatchMode
 	这是一个协议处理函数的注解，用来控制协议的调度方式（仅用于Java）：
-	•	在Io线程中直接执行。
 	•	在普通线程池中执行。默认是这种。
 	•	在重要线程池中执行。
+	•	在调用者线程执行。
 	协议的线程调度方式除了用这个注解单独控制。还可以在Zeze.Net.Service子类中重载DispatchProtocol,DispatchRpcResponse等控制。
 	重载会覆盖默认实现，优先级比注解高。默认实现按注解方式调度协议的执行。
 
