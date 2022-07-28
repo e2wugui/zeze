@@ -25,6 +25,6 @@ public class ClientService extends ClientServiceBase {
     @Override
     public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) throws Throwable {
         ProtocolHandle<P> handle = factoryHandle.Handle;
-        Task.run(() -> handle.handle(p), p, factoryHandle.Mode);
+        Task.run(() -> handle.handle(p), p, null, null, factoryHandle.Mode);
     }
 }

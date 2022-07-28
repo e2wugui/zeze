@@ -17,6 +17,7 @@ public abstract class AbstractProviderDirect extends Zeze.IModule {
             factoryHandle.Factory = Zeze.Builtin.ProviderDirect.AnnounceProviderInfo::new;
             factoryHandle.Handle = this::ProcessAnnounceProviderInfoRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessAnnounceProviderInfoRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessAnnounceProviderInfoRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47286041114986L, factoryHandle); // 11009, -1548813974
         }
         {
@@ -24,6 +25,7 @@ public abstract class AbstractProviderDirect extends Zeze.IModule {
             factoryHandle.Factory = Zeze.Builtin.ProviderDirect.ModuleRedirect::new;
             factoryHandle.Handle = this::ProcessModuleRedirectRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessModuleRedirectRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessModuleRedirectRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47284402955566L, factoryHandle); // 11009, 1107993902
         }
         {
@@ -31,6 +33,7 @@ public abstract class AbstractProviderDirect extends Zeze.IModule {
             factoryHandle.Factory = Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest::new;
             factoryHandle.Handle = this::ProcessModuleRedirectAllRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessModuleRedirectAllRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessModuleRedirectAllRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47286816262188L, factoryHandle); // 11009, -773666772
         }
         {
@@ -38,6 +41,7 @@ public abstract class AbstractProviderDirect extends Zeze.IModule {
             factoryHandle.Factory = Zeze.Builtin.ProviderDirect.ModuleRedirectAllResult::new;
             factoryHandle.Handle = this::ProcessModuleRedirectAllResult;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessModuleRedirectAllResult", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessModuleRedirectAllResult", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47283400371444L, factoryHandle); // 11009, 105409780
         }
         {
@@ -45,6 +49,7 @@ public abstract class AbstractProviderDirect extends Zeze.IModule {
             factoryHandle.Factory = Zeze.Builtin.ProviderDirect.Transmit::new;
             factoryHandle.Handle = this::ProcessTransmit;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessTransmit", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessTransmit", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47284197108752L, factoryHandle); // 11009, 902147088
         }
         {
@@ -52,6 +57,7 @@ public abstract class AbstractProviderDirect extends Zeze.IModule {
             factoryHandle.Factory = Zeze.Builtin.ProviderDirect.TransmitAccount::new;
             factoryHandle.Handle = this::ProcessTransmitAccount;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessTransmitAccount", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessTransmitAccount", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47284247217006L, factoryHandle); // 11009, 952255342
         }
     }

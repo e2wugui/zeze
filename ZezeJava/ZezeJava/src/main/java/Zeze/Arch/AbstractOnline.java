@@ -29,6 +29,7 @@ public abstract class AbstractOnline extends Zeze.IModule {
             factoryHandle.Factory = Zeze.Builtin.Online.Login::new;
             factoryHandle.Handle = this::ProcessLoginRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessLoginRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessLoginRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47676933001134L, factoryHandle); // 11100, -1498951762
         }
         {
@@ -36,6 +37,7 @@ public abstract class AbstractOnline extends Zeze.IModule {
             factoryHandle.Factory = Zeze.Builtin.Online.Logout::new;
             factoryHandle.Handle = this::ProcessLogoutRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessLogoutRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessLogoutRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47676519983553L, factoryHandle); // 11100, -1911969343
         }
         {
@@ -43,6 +45,7 @@ public abstract class AbstractOnline extends Zeze.IModule {
             factoryHandle.Factory = Zeze.Builtin.Online.ReliableNotifyConfirm::new;
             factoryHandle.Handle = this::ProcessReliableNotifyConfirmRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessReliableNotifyConfirmRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReliableNotifyConfirmRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47678187220010L, factoryHandle); // 11100, -244732886
         }
         {
@@ -50,6 +53,7 @@ public abstract class AbstractOnline extends Zeze.IModule {
             factoryHandle.Factory = Zeze.Builtin.Online.ReLogin::new;
             factoryHandle.Handle = this::ProcessReLoginRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessReLoginRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReLoginRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47675064884515L, factoryHandle); // 11100, 927898915
         }
     }

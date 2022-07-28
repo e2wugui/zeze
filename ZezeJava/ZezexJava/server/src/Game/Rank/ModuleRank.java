@@ -491,7 +491,7 @@ public class ModuleRank extends AbstractModule {
 			result.serverId = App.Zeze.getConfig().getServerId();
 			f.SetResult(result); // 异步完成
 			return Procedure.Success;
-		}, "TestHashAsync"), DispatchMode.Normal);
+		}, "TestHashAsync"), null, null, DispatchMode.Normal);
 		return f;
 	}
 
@@ -527,7 +527,7 @@ public class ModuleRank extends AbstractModule {
 			Task.run(App.Zeze.NewProcedure(() -> {
 				future.asyncResult(new TestToAllResult(in));
 				return Procedure.Success;
-			}, "TestToAllAsync"), DispatchMode.Normal);
+			}, "TestToAllAsync"), null, null, DispatchMode.Normal);
 			return future;
 		}
 		throw new UnsupportedOperationException();

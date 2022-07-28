@@ -17,6 +17,7 @@ public abstract class AbstractRedoQueueServer extends Zeze.IModule {
             factoryHandle.Factory = Zeze.Builtin.RedoQueue.RunTask::new;
             factoryHandle.Handle = this::ProcessRunTaskRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessRunTaskRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessRunTaskRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47289120801215L, factoryHandle); // 11010, 1530872255
         }
     }

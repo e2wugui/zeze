@@ -65,7 +65,7 @@ public class App {
 		}
 		Tasks.getRunCounter(name).increment();
 		RunningTasks.add(task.IsProcedure()
-				? Task.run(app.Zeze.NewProcedure(task, name), DispatchMode.Normal)
+				? Task.run(app.Zeze.NewProcedure(task, name), null, null, DispatchMode.Normal)
 				: Task.run(task::call, name, DispatchMode.Normal));
 	}
 

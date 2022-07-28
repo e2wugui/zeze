@@ -15,6 +15,7 @@ public abstract class AbstractGlobalCacheManagerWithRaft extends Zeze.IModule {
             factoryHandle.Factory = Zeze.Builtin.GlobalCacheManagerWithRaft.Acquire::new;
             factoryHandle.Handle = this::ProcessAcquireRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessAcquireRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessAcquireRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47251404755902L, factoryHandle); // 11001, -1825434690
         }
         {
@@ -22,6 +23,7 @@ public abstract class AbstractGlobalCacheManagerWithRaft extends Zeze.IModule {
             factoryHandle.Factory = Zeze.Builtin.GlobalCacheManagerWithRaft.Cleanup::new;
             factoryHandle.Handle = this::ProcessCleanupRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessCleanupRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessCleanupRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47253156226169L, factoryHandle); // 11001, -73964423
         }
         {
@@ -29,6 +31,7 @@ public abstract class AbstractGlobalCacheManagerWithRaft extends Zeze.IModule {
             factoryHandle.Factory = Zeze.Builtin.GlobalCacheManagerWithRaft.KeepAlive::new;
             factoryHandle.Handle = this::ProcessKeepAliveRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessKeepAliveRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessKeepAliveRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47249886857671L, factoryHandle); // 11001, 951634375
         }
         {
@@ -36,6 +39,7 @@ public abstract class AbstractGlobalCacheManagerWithRaft extends Zeze.IModule {
             factoryHandle.Factory = Zeze.Builtin.GlobalCacheManagerWithRaft.Login::new;
             factoryHandle.Handle = this::ProcessLoginRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessLoginRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessLoginRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47251261574418L, factoryHandle); // 11001, -1968616174
         }
         {
@@ -43,12 +47,14 @@ public abstract class AbstractGlobalCacheManagerWithRaft extends Zeze.IModule {
             factoryHandle.Factory = Zeze.Builtin.GlobalCacheManagerWithRaft.NormalClose::new;
             factoryHandle.Handle = this::ProcessNormalCloseRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessNormalCloseRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessNormalCloseRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47249192987366L, factoryHandle); // 11001, 257764070
         }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce>();
             factoryHandle.Factory = Zeze.Builtin.GlobalCacheManagerWithRaft.Reduce::new;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessReduceRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReduceRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47250386526035L, factoryHandle); // 11001, 1451302739
         }
         {
@@ -56,6 +62,7 @@ public abstract class AbstractGlobalCacheManagerWithRaft extends Zeze.IModule {
             factoryHandle.Factory = Zeze.Builtin.GlobalCacheManagerWithRaft.ReLogin::new;
             factoryHandle.Handle = this::ProcessReLoginRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessReLoginRequest", Zeze.Transaction.TransactionLevel.None);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessReLoginRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47251807618150L, factoryHandle); // 11001, -1422572442
         }
     }

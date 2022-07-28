@@ -17,6 +17,7 @@ public abstract class AbstractWeb extends Zeze.IModule {
             factoryHandle.Factory = Zeze.Builtin.Web.AuthOk::new;
             factoryHandle.Handle = this::ProcessAuthOkRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessAuthOkRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessAuthOkRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47682994316792L, factoryHandle); // 11102, 267396600
         }
         {
@@ -24,6 +25,7 @@ public abstract class AbstractWeb extends Zeze.IModule {
             factoryHandle.Factory = Zeze.Builtin.Web.RequestJson::new;
             factoryHandle.Handle = this::ProcessRequestJsonRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessRequestJsonRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessRequestJsonRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47685215163543L, factoryHandle); // 11102, -1806723945
         }
         {
@@ -31,6 +33,7 @@ public abstract class AbstractWeb extends Zeze.IModule {
             factoryHandle.Factory = Zeze.Builtin.Web.RequestQuery::new;
             factoryHandle.Handle = this::ProcessRequestQueryRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessRequestQueryRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessRequestQueryRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47686709906514L, factoryHandle); // 11102, -311980974
         }
     }

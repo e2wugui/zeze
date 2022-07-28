@@ -23,6 +23,7 @@ public abstract class AbstractBag extends Zeze.IModule {
             factoryHandle.Factory = Zeze.Builtin.Game.Bag.Destroy::new;
             factoryHandle.Handle = this::ProcessDestroyRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessDestroyRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessDestroyRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47307869964755L, factoryHandle); // 11014, -1194800685
         }
         {
@@ -30,6 +31,7 @@ public abstract class AbstractBag extends Zeze.IModule {
             factoryHandle.Factory = Zeze.Builtin.Game.Bag.Move::new;
             factoryHandle.Handle = this::ProcessMoveRequest;
             factoryHandle.Level = _reflect.getTransactionLevel("ProcessMoveRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessMoveRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47308274693689L, factoryHandle); // 11014, -790071751
         }
     }

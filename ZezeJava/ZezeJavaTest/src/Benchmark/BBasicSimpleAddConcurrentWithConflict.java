@@ -18,7 +18,7 @@ public class BBasicSimpleAddConcurrentWithConflict  extends TestCase {
             System.out.println("benchmark start...");
             var b = new Zeze.Util.Benchmark();
             for (int i = 0; i < AddCount; ++i) {
-                tasks.add(Zeze.Util.Task.run(App.Instance.Zeze.NewProcedure(this::Add, "Add"), DispatchMode.Normal));
+                tasks.add(Zeze.Util.Task.run(App.Instance.Zeze.NewProcedure(this::Add, "Add"), null, null, DispatchMode.Normal));
             }
             //b.Report(this.getClass().getName(), AddCount);
             for (var task : tasks) {
