@@ -109,7 +109,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 	private void SetStableLinkSid(String account, String clientId, AsyncSocket client) {
 		var key = new StableLinkSidKey(account, clientId);
 		while (true) {
-			var stable = StableLinkSids.GetOrAdd(key, StableLinkSid::new);
+			var stable = StableLinkSids.getOrAdd(key, StableLinkSid::new);
 			//noinspection SynchronizationOnLocalVariableOrMethodParameter
 			synchronized (stable) {
 				if (stable.Removed)

@@ -152,7 +152,7 @@ public final class Table<K, V extends Bean> {
 	private Record<K> GetOrLoad(K key, Bean putValue) {
 		TableKey tkey = new TableKey(Name, key);
 		while (true) {
-			var r = LruCache.GetOrAdd(key, () -> {
+			var r = LruCache.getOrAdd(key, () -> {
 				var newR = new Record<>(keyEncodeFunc);
 				newR.setTable(this);
 				newR.setKey(key);

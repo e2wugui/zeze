@@ -15,9 +15,20 @@ DatagramChannel
 【2022/8/15】
 
 ------------------------------------------------------------------------------------------------------------------------------
-tag 1.0.1 AchillesHeelDaemon.ProcessDaemon & Simple Web & RelativeRecordSet.FlushSet
+tag 1.0.2 AchillesHeelDaemon.ProcessDaemon & Simple Web & RelativeRecordSet.FlushSet
 ------------------------------------------------------------------------------------------------------------------------------
+@DispatchMode
+	这是一个协议处理函数的注解，用来控制协议的调度方式（仅用于Java）：
+	•	在Io线程中直接执行。
+	•	在普通线程池中执行。默认是这种。
+	•	在重要线程池中执行。
+	协议的线程调度方式除了用这个注解单独控制。还可以在Zeze.Net.Service子类中重载DispatchProtocol,DispatchRpcResponse等控制。
+	重载会覆盖默认实现，优先级比注解高。默认实现按注解方式调度协议的执行。
+
 Http In Linkd（java基于HttpServer或者更高级的包装类-感觉有新的了）
+	a) 去掉json,query对path的入侵
+	b) 流支持
+	c) HttpExchange，HttpServlet
 	简单的Web服务器，侧重和Server的交互。逻辑由Server实现，Linkd只管转发。
 	1. 简单查询(Request,Response)
 	   是否KeepAlive由Http协议自己支持，上层只处理简单查询。
@@ -38,6 +49,9 @@ Http In Linkd（java基于HttpServer或者更高级的包装类-感觉有新的�
 	   /webappname/servletpath.../queryauth[.serverid]
 	   /webappname/servletpath.../jsonauth[.serverid]
 
+------------------------------------------------------------------------------------------------------------------------------
+tag 1.0.1 AchillesHeelDaemon.ProcessDaemon & RelativeRecordSet.FlushSet
+------------------------------------------------------------------------------------------------------------------------------
 Immediately TableX::Load 立即保存。
 Also Delete OldTable When Record Deleted 【in transaction】
 AchillesHeelDaemon.ProcessDaemon for c# 重新实现一次当作review。【张路】

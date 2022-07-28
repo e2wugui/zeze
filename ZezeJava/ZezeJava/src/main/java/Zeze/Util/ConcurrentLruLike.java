@@ -163,7 +163,7 @@ public class ConcurrentLruLike<K, V> {
 		}
 	}
 
-	public final V GetOrAdd(K key, Factory<V> factory) {
+	public final V getOrAdd(K key, Factory<V> factory) {
 		var lruHot = LruHot;
 		var lruItem = DataMap.get(key);
 		if (lruItem == null) { // slow-path
