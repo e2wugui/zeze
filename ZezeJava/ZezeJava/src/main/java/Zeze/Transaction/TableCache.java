@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import Zeze.Application;
-import Zeze.Services.GlobalCacheManagerServer;
+import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -207,7 +207,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			// 这里有个时间窗口：先删除DataMap再去掉Lru引用，
 			// 当对Key再次GetOrAdd时，LruNode里面可能已经存在旧的record。
 			// see GetOrAdd
-			p.getValue().setState(GlobalCacheManagerServer.StateRemoved);
+			p.getValue().setState(GlobalCacheManagerConst.StateRemoved);
 			// 必须使用 Pair，有可能 LurNode 里面已经有新建的记录了。
 			var oldNode = p.getValue().getLruNode();
 			if (oldNode != null)
@@ -243,17 +243,21 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		if (record.isFreshAcquire())
 			return false;
 
-		if (record.getState() != GlobalCacheManagerServer.StateInvalid) {
+		var acquireInvalid = record.getState() != GlobalCacheManagerConst.StateInvalid;
+		if (!Remove(p))
+			return false;
+
+		if (acquireInvalid) {
 			try {
-				var r = record.Acquire(GlobalCacheManagerServer.StateInvalid, false);
-				if (r.ResultCode != 0 || r.ResultState != GlobalCacheManagerServer.StateInvalid)
+				var r = record.Acquire(GlobalCacheManagerConst.StateInvalid, false);
+				if (r.ResultCode != 0 || r.ResultState != GlobalCacheManagerConst.StateInvalid)
 					return false;
 			} catch (Throwable e) {
 				logger.error("Acquire({}:{}) exception:", record.getTable().getName(), record.getObjectKey(), e);
 				// 此时GlobalServer可能已经改成StateInvalid了, 无论如何还是当成已经Invalid保证安全
 			}
 		}
-		return Remove(p);
+		return true;
 	}
 
 	private boolean TryRemoveRecord(Map.Entry<K, Record1<K, V>> p) {

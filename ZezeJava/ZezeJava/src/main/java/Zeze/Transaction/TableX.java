@@ -7,13 +7,17 @@ import Zeze.Component.DelayRemove;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Reduce;
-import Zeze.Services.GlobalCacheManagerServer;
+import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Services.ServiceManager.AutoKey;
 import Zeze.Util.KV;
 import Zeze.Util.Macro;
 import Zeze.Util.Str;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import static Zeze.Services.GlobalCacheManagerConst.StateInvalid;
+import static Zeze.Services.GlobalCacheManagerConst.StateShare;
+import static Zeze.Services.GlobalCacheManagerConst.StateModify;
+import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
 
 public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Table {
 	private static final Logger logger = LogManager.getLogger(TableX.class);
@@ -82,21 +86,16 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		if (getSimulateTables == null)
 			return;
 
-		ArrayList<TableX<K, V>> tables;
-		try {
-			tables = getSimulateTables.get();
-		} catch (Throwable ex) {
-			throw new RuntimeException(ex);
-		}
-
-		var checkState = isModify ? GlobalCacheManagerServer.StateInvalid : GlobalCacheManagerServer.StateShare;
-		for (var table : tables) {
+		var checkState = isModify ? StateInvalid : StateShare;
+		for (var table : getSimulateTables.get()) {
 			if (table == this || table.Cache == null)
 				continue; // skip self
 			var r = table.Cache.Get(key);
 			if (r != null && r.getState() > checkState) {
-				throw new AssertionError(Str.format("verify failed: serverId={}, table={}, key={}, state={}, isModify={}",
-						getZeze().getConfig().getServerId(), getName(), key, r.getState(), isModify));
+				throw new AssertionError(
+						Str.format("verify failed: serverId={}/{}, table={}, key={}, state={}, isModify={}",
+								getZeze().getConfig().getServerId(), table.getZeze().getConfig().getServerId(),
+								getName(), key, r.getState(), isModify));
 			}
 		}
 	}
@@ -109,11 +108,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			r.EnterFairLock(); // 对同一个记录，不允许重入。
 			V strongRef = null;
 			try {
-				if (r.getState() == GlobalCacheManagerServer.StateRemoved)
+				if (r.getState() == StateRemoved)
 					continue; // 正在被删除，重新 GetOrAdd 一次。以后 _lock_check_ 里面会再次检查这个状态。
 
-				if (r.getState() == GlobalCacheManagerServer.StateShare
-						|| r.getState() == GlobalCacheManagerServer.StateModify) {
+				if (r.getState() == StateShare
+						|| r.getState() == StateModify) {
 					var beforeTimestamp = r.getTimestamp(); // read timestamp before read value。see Record1.Commit
 					strongRef = (V)r.getSoftValue();
 					if (strongRef == null && !r.getDirty()) {
@@ -127,15 +126,15 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					return new AtomicTupleRecord<>(r, strongRef, beforeTimestamp);
 				}
 
-				var acquire = r.Acquire(GlobalCacheManagerServer.StateShare, false);
+				var acquire = r.Acquire(StateShare, false);
 				r.setState(acquire.ResultState);
-				if (r.getState() == GlobalCacheManagerServer.StateInvalid) {
+				if (r.getState() == StateInvalid) {
 					var txn = Transaction.getCurrent();
 					if (txn == null)
 						throw new IllegalStateException("Acquire Failed");
 					txn.ThrowRedoAndReleaseLock(tkey + ":" + r, null);
 				}
-				VerifyGlobalRecordState(key, r.getState() == GlobalCacheManagerServer.StateModify);
+				VerifyGlobalRecordState(key, r.getState() == StateModify);
 
 				r.setTimestamp(Record.getNextTimestamp());
 				r.setFreshAcquire();
@@ -222,27 +221,27 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			if (isDebugEnabled)
 				logger.debug("Reduce NewState={} {}", rpc.Argument.State, r);
 			if (r == null) {
-				rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+				rpc.Result.State = StateInvalid;
 				if (isDebugEnabled)
 					logger.debug("Reduce SendResult 1 r=null");
-				rpc.SendResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
+				rpc.SendResultCode(GlobalCacheManagerConst.ReduceShareAlreadyIsInvalid);
 				return 0;
 			}
 			r.EnterFairLock();
 			try {
-				if (fresh != GlobalCacheManagerServer.AcquireFreshSource && r.isFreshAcquire()) {
+				if (fresh != GlobalCacheManagerConst.AcquireFreshSource && r.isFreshAcquire()) {
 					if (isDebugEnabled)
 						logger.debug("Reduce SendResult fresh {}", r);
-					rpc.Result.State = GlobalCacheManagerServer.StateReduceErrorFreshAcquire;
+					rpc.Result.State = GlobalCacheManagerConst.StateReduceErrorFreshAcquire;
 					rpc.SendResult();
 					return 0;
 				}
 				r.setNotFresh(); // 被降级不再新鲜。
 				switch (r.getState()) {
-				case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
-				case GlobalCacheManagerServer.StateInvalid:
-					rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-					rpc.setResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsInvalid);
+				case StateRemoved: // impossible! safe only.
+				case StateInvalid:
+					rpc.Result.State = StateInvalid;
+					rpc.setResultCode(GlobalCacheManagerConst.ReduceShareAlreadyIsInvalid);
 
 					if (r.getDirty())
 						break;
@@ -251,9 +250,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					rpc.SendResult();
 					return 0;
 
-				case GlobalCacheManagerServer.StateShare:
-					rpc.Result.State = GlobalCacheManagerServer.StateShare;
-					rpc.setResultCode(GlobalCacheManagerServer.ReduceShareAlreadyIsShare);
+				case StateShare:
+					rpc.Result.State = StateShare;
+					rpc.setResultCode(GlobalCacheManagerConst.ReduceShareAlreadyIsShare);
 					if (r.getDirty())
 						break;
 					if (isDebugEnabled)
@@ -261,9 +260,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					rpc.SendResult();
 					return 0;
 
-				case GlobalCacheManagerServer.StateModify:
-					r.setState(GlobalCacheManagerServer.StateShare); // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
-					rpc.Result.State = GlobalCacheManagerServer.StateShare;
+				case StateModify:
+					r.setState(StateShare); // 马上修改状态。事务如果要写会再次请求提升(Acquire)。
+					rpc.Result.State = StateShare;
 					if (r.getDirty())
 						break;
 					if (isDebugEnabled)
@@ -317,27 +316,27 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			if (isDebugEnabled)
 				logger.debug("Reduce NewState={} {}", rpc.Argument.State, r);
 			if (r == null) {
-				rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+				rpc.Result.State = StateInvalid;
 				if (isDebugEnabled)
 					logger.debug("Reduce SendResult 1 r=null");
-				rpc.SendResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
+				rpc.SendResultCode(GlobalCacheManagerConst.ReduceInvalidAlreadyIsInvalid);
 				return 0;
 			}
 			r.EnterFairLock();
 			try {
-				if (fresh != GlobalCacheManagerServer.AcquireFreshSource && r.isFreshAcquire()) {
+				if (fresh != GlobalCacheManagerConst.AcquireFreshSource && r.isFreshAcquire()) {
 					if (isDebugEnabled)
 						logger.debug("Reduce SendResult fresh {}", r);
-					rpc.Result.State = GlobalCacheManagerServer.StateReduceErrorFreshAcquire;
+					rpc.Result.State = GlobalCacheManagerConst.StateReduceErrorFreshAcquire;
 					rpc.SendResult();
 					return 0;
 				}
 				r.setNotFresh(); // 被降级不再新鲜。
 				switch (r.getState()) {
-				case GlobalCacheManagerServer.StateRemoved: // impossible! safe only.
-				case GlobalCacheManagerServer.StateInvalid:
-					rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
-					rpc.setResultCode(GlobalCacheManagerServer.ReduceInvalidAlreadyIsInvalid);
+				case StateRemoved: // impossible! safe only.
+				case StateInvalid:
+					rpc.Result.State = StateInvalid;
+					rpc.setResultCode(GlobalCacheManagerConst.ReduceInvalidAlreadyIsInvalid);
 					if (r.getDirty())
 						break;
 					if (isDebugEnabled)
@@ -345,8 +344,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					rpc.SendResult();
 					return 0;
 
-				case GlobalCacheManagerServer.StateShare:
-					r.setState(GlobalCacheManagerServer.StateInvalid);
+				case StateShare:
+					r.setState(StateInvalid);
 					// 不删除记录，让TableCache.CleanNow处理。
 					if (r.getDirty())
 						break;
@@ -355,8 +354,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					rpc.SendResult();
 					return 0;
 
-				case GlobalCacheManagerServer.StateModify:
-					r.setState(GlobalCacheManagerServer.StateInvalid);
+				case StateModify:
+					r.setState(StateInvalid);
 					if (r.getDirty())
 						break;
 					if (isDebugEnabled)
@@ -366,7 +365,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				}
 				// if (isDebugEnabled)
 				// logger.warn("ReduceInvalid checkpoint begin. id={} {}", r, tkey);
-				rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+				rpc.Result.State = StateInvalid;
 				FlushWhenReduce(r);
 				if (isDebugEnabled)
 					logger.debug("Reduce SendResult 4 {}", r);
@@ -414,7 +413,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				}
 				try {
 					// 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
-					v.setState(GlobalCacheManagerServer.StateInvalid);
+					v.setState(StateInvalid);
 					FlushWhenReduce(v);
 				} finally {
 					v.ExitFairLock();
@@ -440,7 +439,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 						continue;
 					}
 					try {
-						v.setState(GlobalCacheManagerServer.StateInvalid);
+						v.setState(StateInvalid);
 						FlushWhenReduce(v);
 					} finally {
 						v.ExitFairLock();
@@ -628,9 +627,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		lockey.EnterReadLock();
 		try {
 			var r = Cache.Get(k);
-			if (r != null && r.getState() != GlobalCacheManagerServer.StateRemoved) {
-				if (r.getState() == GlobalCacheManagerServer.StateShare
-						|| r.getState() == GlobalCacheManagerServer.StateModify) {
+			if (r != null && r.getState() != StateRemoved) {
+				if (r.getState() == StateShare
+						|| r.getState() == StateModify) {
 					// 拥有正确的状态：
 					@SuppressWarnings("unchecked")
 					var strongRef = (V)r.getSoftValue();
@@ -716,8 +715,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			var lockey = getZeze().getLocks().Get(new TableKey(getId(), entry.getKey()));
 			lockey.EnterReadLock();
 			try {
-				if (r.getState() == GlobalCacheManagerServer.StateShare
-						|| r.getState() == GlobalCacheManagerServer.StateModify) {
+				if (r.getState() == StateShare
+						|| r.getState() == StateModify) {
 					@SuppressWarnings("unchecked")
 					var strongRef = (V)r.getSoftValue();
 					if (strongRef == null)

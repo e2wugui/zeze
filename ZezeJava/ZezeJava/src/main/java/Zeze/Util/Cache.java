@@ -7,29 +7,31 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
-import java.util.function.Function;
+import java.util.function.IntFunction;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DatabaseRocksDb;
 import org.rocksdb.RocksDB;
 import org.rocksdb.RocksDBException;
 
 public class Cache {
-	private String name;
+	private final String name;
+	private final IntFunction<CacheObject> factory;
 	private RocksDB db;
 	private ConcurrentLruLike<Long, CacheObject> lru;
 	private volatile long todayDays;
 	private volatile FileOutputStream todayFile;
-	private Function<Integer, CacheObject> factory;
 
 	/**
 	 * 创建LocalCache
+	 *
 	 * @param name Cache名字，直接作为目录名字，需要注意有些字符可能不能用。
 	 */
-	public Cache(String name, int lruCapacity, Function<Integer, CacheObject> factory) throws RocksDBException {
+	public Cache(String name, int lruCapacity, IntFunction<CacheObject> factory) throws RocksDBException {
 		this.name = name;
 		this.factory = factory;
 
-		new File(name).mkdir();
+		//noinspection ResultOfMethodCallIgnored
+		new File(name).mkdirs();
 		db = RocksDB.open(name);
 		lru = new ConcurrentLruLike<>(name, lruCapacity);
 		// 每天6:30尝试删除旧的项。
@@ -95,12 +97,15 @@ public class Cache {
 	private void tryRemove() throws IOException, RocksDBException {
 		var prefix = "days_";
 		var nowDays = System.currentTimeMillis() / (24 * 60 * 60 * 1000);
-		for (var file : new File(name).listFiles()) {
-			if (file.getName().startsWith(prefix)) {
-				var days = Long.parseLong(file.getName().substring(prefix.length()));
-				// a month ago && not today
-				if (nowDays - days > 30 && days != todayDays)
-					tryRemove(file);
+		var files = new File(name).listFiles();
+		if (files != null) {
+			for (var file : files) {
+				if (file.getName().startsWith(prefix)) {
+					var days = Long.parseLong(file.getName().substring(prefix.length()));
+					// a month ago && not today
+					if (nowDays - days > 30 && days != todayDays)
+						tryRemove(file);
+				}
 			}
 		}
 	}

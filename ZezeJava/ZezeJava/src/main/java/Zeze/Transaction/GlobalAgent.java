@@ -14,7 +14,7 @@ import Zeze.Services.GlobalCacheManager.Login;
 import Zeze.Services.GlobalCacheManager.NormalClose;
 import Zeze.Services.GlobalCacheManager.ReLogin;
 import Zeze.Services.GlobalCacheManager.Reduce;
-import Zeze.Services.GlobalCacheManagerServer;
+import Zeze.Services.GlobalCacheManagerConst;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -177,7 +177,7 @@ public final class GlobalAgent implements IGlobalAgent {
 		// 一个请求异常不关闭连接，尝试继续工作。
 		var rpc = new Acquire(gkey, state);
 		if (fresh)
-			rpc.setResultCode(GlobalCacheManagerServer.AcquireFreshSource);
+			rpc.setResultCode(GlobalCacheManagerConst.AcquireFreshSource);
 		try {
 			rpc.SendForWait(socket, agent.getConfig().AcquireTimeout).get();
 		} catch (Throwable e) {
@@ -196,8 +196,8 @@ public final class GlobalAgent implements IGlobalAgent {
 		if (!rpc.isTimeout())
 			agent.setActiveTime(System.currentTimeMillis()); // Acquire.Response
 
-		if (rpc.getResultCode() == GlobalCacheManagerServer.AcquireModifyFailed
-				|| rpc.getResultCode() == GlobalCacheManagerServer.AcquireShareFailed) {
+		if (rpc.getResultCode() == GlobalCacheManagerConst.AcquireModifyFailed
+				|| rpc.getResultCode() == GlobalCacheManagerConst.AcquireShareFailed) {
 			var trans = Transaction.getCurrent();
 			if (trans == null)
 				throw new GoBackZeze("GlobalAgent.Acquire Failed");
@@ -211,7 +211,7 @@ public final class GlobalAgent implements IGlobalAgent {
 
 	public int ProcessReduceRequest(Reduce rpc) {
 		switch (rpc.Argument.State) {
-		case GlobalCacheManagerServer.StateInvalid: {
+		case GlobalCacheManagerConst.StateInvalid: {
 			var bb = ByteBuffer.Wrap(rpc.Argument.GlobalKey);
 			var tableId = bb.ReadInt4();
 			var table1 = Zeze.GetTable(tableId);
@@ -220,13 +220,13 @@ public final class GlobalAgent implements IGlobalAgent {
 						tableId, Zeze.getConfig().getServerId());
 				// 本地没有找到表格看作成功。
 				rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
-				rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+				rpc.Result.State = GlobalCacheManagerConst.StateInvalid;
 				rpc.SendResultCode(0);
 				return 0;
 			}
 			return table1.ReduceInvalid(rpc, bb);
 		}
-		case GlobalCacheManagerServer.StateShare: {
+		case GlobalCacheManagerConst.StateShare: {
 			var bb = ByteBuffer.Wrap(rpc.Argument.GlobalKey);
 			var tableId = bb.ReadInt4();
 			var table = Zeze.GetTable(tableId);
@@ -235,7 +235,7 @@ public final class GlobalAgent implements IGlobalAgent {
 						tableId, Zeze.getConfig().getServerId());
 				// 本地没有找到表格看作成功。
 				rpc.Result.GlobalKey = rpc.Argument.GlobalKey;
-				rpc.Result.State = GlobalCacheManagerServer.StateInvalid;
+				rpc.Result.State = GlobalCacheManagerConst.StateInvalid;
 				rpc.SendResultCode(0);
 				return 0;
 			}
@@ -243,7 +243,7 @@ public final class GlobalAgent implements IGlobalAgent {
 		}
 		default:
 			rpc.Result = rpc.Argument;
-			rpc.SendResultCode(GlobalCacheManagerServer.ReduceErrorState);
+			rpc.SendResultCode(GlobalCacheManagerConst.ReduceErrorState);
 			return 0;
 		}
 	}

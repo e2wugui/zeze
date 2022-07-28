@@ -599,9 +599,9 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				cs.Modify = null;
 				cs.Share.add(sender);
 				cs.AcquireStatePending = StateInvalid;
-				cs.lock.notifyAllWait();
 				if (isDebugEnabled)
 					logger.debug("6 {} {} {}", sender, StateShare, cs);
+				cs.lock.notifyAllWait();
 				rpc.SendResultCode(0);
 				if (ENABLE_PERF)
 					perf.onAcquireEnd(rpc, StateShare);
@@ -611,9 +611,9 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			sender.Acquired.put(gKey, StateShare);
 			cs.Share.add(sender);
 			cs.AcquireStatePending = StateInvalid;
-			cs.lock.notifyAllWait();
 			if (isDebugEnabled)
 				logger.debug("7 {} {} {}", sender, StateShare, cs);
+			cs.lock.notifyAllWait();
 			rpc.SendResultCode(0);
 			if (ENABLE_PERF)
 				perf.onAcquireEnd(rpc, StateShare);
@@ -757,9 +757,9 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				cs.Modify = sender;
 				cs.Share.remove(sender);
 				cs.AcquireStatePending = StateInvalid;
-				cs.lock.notifyAllWait();
 				if (isDebugEnabled)
 					logger.debug("6 {} {} {}", sender, StateModify, cs);
+				cs.lock.notifyAllWait();
 				rpc.SendResultCode(0);
 				if (ENABLE_PERF)
 					perf.onAcquireEnd(rpc, StateModify);
@@ -817,9 +817,9 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					sender.Acquired.put(gKey, StateModify);
 					cs.Modify = sender;
 					cs.AcquireStatePending = StateInvalid;
-					cs.lock.notifyAllWait();
 					if (isDebugEnabled)
 						logger.debug("8 {} {} {}", sender, StateModify, cs);
+					cs.lock.notifyAllWait();
 					rpc.SendResultCode(0);
 				} else {
 					// senderIsShare 在失败的时候，Acquired 没有变化，不需要更新。
@@ -867,12 +867,9 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 								break;
 							default:
 								cacheHolder.SetError();
+								logger.error("Reduce result state={}", reduce.Result.State);
 								break;
 							}
-							if (reduce.Result.State == StateInvalid)
-								reduceSucceed.add(cacheHolder);
-							else
-								cacheHolder.SetError();
 						} catch (Throwable ex) {
 							cacheHolder.SetError();
 							// 等待失败不再看作成功。

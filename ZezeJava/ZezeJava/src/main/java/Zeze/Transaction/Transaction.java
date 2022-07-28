@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Supplier;
-import Zeze.Services.GlobalCacheManagerServer;
+import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.Macro;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -415,7 +415,7 @@ public final class Transaction {
 		if (IsRead)
 			return; // allow read
 
-		if (bean.RootInfo.getRecord().getState() == GlobalCacheManagerServer.StateRemoved) {
+		if (bean.RootInfo.getRecord().getState() == GlobalCacheManagerConst.StateRemoved) {
 			ThrowRedo(); // 这个错误需要redo。不是逻辑错误。
 		}
 		var ra = GetRecordAccessed(bean.getTableKey());
@@ -445,38 +445,38 @@ public final class Transaction {
 		try {
 			if (writeLock) {
 				switch (e.AtomicTupleRecord.Record.getState()) {
-				case GlobalCacheManagerServer.StateRemoved:
+				case GlobalCacheManagerConst.StateRemoved:
 					// 被从cache中清除，不持有该记录的Global锁，简单重做即可。
 					return CheckResult.Redo;
 
-				case GlobalCacheManagerServer.StateInvalid:
+				case GlobalCacheManagerConst.StateInvalid:
 					return CheckResult.RedoAndReleaseLock; // 写锁发现Invalid，可能有Reduce请求。
 
-				case GlobalCacheManagerServer.StateModify:
+				case GlobalCacheManagerConst.StateModify:
 					return e.AtomicTupleRecord.Timestamp != e.AtomicTupleRecord.Record.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
 
-				case GlobalCacheManagerServer.StateShare:
+				case GlobalCacheManagerConst.StateShare:
 					// 这里可能死锁：另一个先获得提升的请求要求本机Reduce，但是本机Checkpoint无法进行下去，被当前事务挡住了。
 					// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
 					var acquire = e.AtomicTupleRecord.Record.Acquire(
-							GlobalCacheManagerServer.StateModify, e.AtomicTupleRecord.Record.isFresh());
-					if (acquire.ResultState != GlobalCacheManagerServer.StateModify) {
+							GlobalCacheManagerConst.StateModify, e.AtomicTupleRecord.Record.isFresh());
+					if (acquire.ResultState != GlobalCacheManagerConst.StateModify) {
 						e.AtomicTupleRecord.Record.setNotFresh(); // 抢失败不再新鲜。
 						logger.debug("Acquire Failed. Maybe DeadLock Found {}", e.AtomicTupleRecord);
-						e.AtomicTupleRecord.Record.setState(GlobalCacheManagerServer.StateInvalid); // 这里保留StateShare更好吗？
+						e.AtomicTupleRecord.Record.setState(GlobalCacheManagerConst.StateInvalid); // 这里保留StateShare更好吗？
 						return CheckResult.RedoAndReleaseLock;
 					}
-					e.AtomicTupleRecord.Record.setState(GlobalCacheManagerServer.StateModify);
+					e.AtomicTupleRecord.Record.setState(GlobalCacheManagerConst.StateModify);
 					return e.AtomicTupleRecord.Timestamp != e.AtomicTupleRecord.Record.getTimestamp() ? CheckResult.Redo : CheckResult.Success;
 				}
 				return e.AtomicTupleRecord.Timestamp != e.AtomicTupleRecord.Record.getTimestamp() ? CheckResult.Redo : CheckResult.Success; // impossible
 			}
 			switch (e.AtomicTupleRecord.Record.getState()) {
-			case GlobalCacheManagerServer.StateRemoved:
+			case GlobalCacheManagerConst.StateRemoved:
 				// 被从cache中清除，不持有该记录的Global锁，简单重做即可。
 				return CheckResult.Redo;
 
-			case GlobalCacheManagerServer.StateInvalid:
+			case GlobalCacheManagerConst.StateInvalid:
 				return CheckResult.RedoAndReleaseLock; // 发现Invalid，可能有Reduce请求或者被Cache清理，此时保险起见释放锁。
 			}
 			return e.AtomicTupleRecord.Timestamp != e.AtomicTupleRecord.Record.getTimestamp() ? CheckResult.Redo : CheckResult.Success;

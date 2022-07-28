@@ -688,6 +688,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 									break;
 								default:
 									reduce.getKey().SetError();
+									logger.error("Reduce result state={}", reduce.getValue().Result.State);
 									break;
 								}
 							} catch (Throwable ex) {

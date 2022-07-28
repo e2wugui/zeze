@@ -239,11 +239,9 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 		context.IsTimeout = false; // not need
 		context.IsRequest = false;
 
-		if (context.Future != null) {
-			context.Future.SetResult(context.Result);
-			return; // SendForWait，设置结果唤醒等待者。
-		}
-		if (context.ResponseHandle != null)
+		if (context.Future != null)
+			context.Future.SetResult(context.Result); // SendForWait，设置结果唤醒等待者。
+		else if (context.ResponseHandle != null)
 			service.DispatchRpcResponse(context, context.ResponseHandle, factoryHandle);
 	}
 

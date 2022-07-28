@@ -535,7 +535,7 @@ public class GlobalCacheManagerWithRaft
 
 							default:
 								session.SetError();
-								logger.warn("Reduce {}=>{} AcquireState={} CacheState={} res={}",
+								logger.error("Reduce {}=>{} AcquireState={} CacheState={} res={}",
 										sender, session, StateModify, cs, reduce.Result);
 								break;
 							}

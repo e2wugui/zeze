@@ -7,7 +7,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
-import Zeze.Services.GlobalCacheManagerServer;
+import Zeze.Services.GlobalCacheManagerConst;
 
 /**
  * see zeze/README.md -> 18) 事务提交模式
@@ -424,7 +424,7 @@ public final class RelativeRecordSet {
 		while (rrs != null) {
 			r.EnterFairLock(); // 用来保护State的查看。
 			try {
-				if (r.getState() == GlobalCacheManagerServer.StateRemoved) {
+				if (r.getState() == GlobalCacheManagerConst.StateRemoved) {
 					return;
 				}
 			} finally {

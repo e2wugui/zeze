@@ -94,7 +94,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	@Override
 	protected long ProcessReduceRequest(Reduce rpc) {
 		switch (rpc.Argument.getState()) {
-		case GlobalCacheManagerServer.StateInvalid: {
+		case GlobalCacheManagerConst.StateInvalid: {
 			var bb = ByteBuffer.Wrap(rpc.Argument.getGlobalKey());
 			var tableId = bb.ReadInt4();
 			var table = zz.GetTable(tableId);
@@ -103,14 +103,14 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 						tableId, zz.getConfig().getServerId());
 				// 本地没有找到表格看作成功。
 				rpc.Result.setGlobalKey(rpc.Argument.getGlobalKey());
-				rpc.Result.setState(GlobalCacheManagerServer.StateInvalid);
+				rpc.Result.setState(GlobalCacheManagerConst.StateInvalid);
 				rpc.SendResultCode(0);
 				return 0;
 			}
 			return table.ReduceInvalid(new ReduceBridge(rpc), bb);
 		}
 
-		case GlobalCacheManagerServer.StateShare: {
+		case GlobalCacheManagerConst.StateShare: {
 			var bb = ByteBuffer.Wrap(rpc.Argument.getGlobalKey());
 			var tableId = bb.ReadInt4();
 			var table = zz.GetTable(tableId);
@@ -119,7 +119,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 						tableId, zz.getConfig().getServerId());
 				// 本地没有找到表格看作成功。
 				rpc.Result.setGlobalKey(rpc.Argument.getGlobalKey());
-				rpc.Result.setState(GlobalCacheManagerServer.StateInvalid);
+				rpc.Result.setState(GlobalCacheManagerConst.StateInvalid);
 				rpc.SendResultCode(0);
 				return 0;
 			}
@@ -128,7 +128,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 
 		default:
 			rpc.Result = rpc.Argument;
-			rpc.SendResultCode(GlobalCacheManagerServer.ReduceErrorState);
+			rpc.SendResultCode(GlobalCacheManagerConst.ReduceErrorState);
 			return 0;
 		}
 	}
@@ -162,7 +162,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 
 		var rpc = new Acquire();
 		if (fresh)
-			rpc.setResultCode(GlobalCacheManagerServer.AcquireFreshSource);
+			rpc.setResultCode(GlobalCacheManagerConst.AcquireFreshSource);
 		rpc.Argument.setGlobalKey(gkey);
 		rpc.Argument.setState(state);
 		// 让协议包更小，这里仅仅把ServerId当作ClientId。
@@ -189,8 +189,8 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 			trans.ThrowAbort("GlobalAgent.Acquire Failed", null);
 			// never got here
 		}
-		if (rpc.getResultCode() == GlobalCacheManagerServer.AcquireModifyFailed
-				|| rpc.getResultCode() == GlobalCacheManagerServer.AcquireShareFailed) {
+		if (rpc.getResultCode() == GlobalCacheManagerConst.AcquireModifyFailed
+				|| rpc.getResultCode() == GlobalCacheManagerConst.AcquireShareFailed) {
 			Transaction trans = Transaction.getCurrent();
 			if (trans == null)
 				throw new IllegalStateException("GlobalAgent.Acquire Failed");

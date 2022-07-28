@@ -5,7 +5,7 @@ import java.lang.invoke.VarHandle;
 import java.util.HashMap;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Services.GlobalCacheManagerServer;
+import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.Macro;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -90,15 +90,15 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 		if (Macro.EnableStatistics) {
 			var stat = TableStatistics.getInstance().GetOrAdd(TTable.getId());
 			switch (state) {
-			case GlobalCacheManagerServer.StateInvalid:
+			case GlobalCacheManagerConst.StateInvalid:
 				stat.getGlobalAcquireInvalid().increment();
 				break;
 
-			case GlobalCacheManagerServer.StateShare:
+			case GlobalCacheManagerConst.StateShare:
 				stat.getGlobalAcquireShare().increment();
 				break;
 
-			case GlobalCacheManagerServer.StateModify:
+			case GlobalCacheManagerConst.StateModify:
 				stat.getGlobalAcquireModify().increment();
 				break;
 			}
