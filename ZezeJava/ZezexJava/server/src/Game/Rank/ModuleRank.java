@@ -14,6 +14,7 @@ import Zeze.Arch.RedirectResult;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
@@ -490,7 +491,7 @@ public class ModuleRank extends AbstractModule {
 			result.serverId = App.Zeze.getConfig().getServerId();
 			f.SetResult(result); // 异步完成
 			return Procedure.Success;
-		}, "TestHashAsync"));
+		}, "TestHashAsync"), DispatchMode.Normal);
 		return f;
 	}
 
@@ -526,7 +527,7 @@ public class ModuleRank extends AbstractModule {
 			Task.run(App.Zeze.NewProcedure(() -> {
 				future.asyncResult(new TestToAllResult(in));
 				return Procedure.Success;
-			}, "TestToAllAsync"));
+			}, "TestToAllAsync"), DispatchMode.Normal);
 			return future;
 		}
 		throw new UnsupportedOperationException();

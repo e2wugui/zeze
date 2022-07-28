@@ -8,6 +8,7 @@ import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Service;
 import Zeze.Services.HandshakeBoth;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
@@ -217,7 +218,7 @@ public final class Server extends HandshakeBoth {
 			//【防止重复的请求】
 			// see Log.java::LogSequence.TryApply
 			TaskOneByOne.Execute(raftRpc.getUnique(), () -> ProcessRequest(p, factoryHandle),
-					p.getClass().getName(), () -> p.SendResultCode(Procedure.RaftRetry));
+					p.getClass().getName(), () -> p.SendResultCode(Procedure.RaftRetry), factoryHandle.Mode);
 			return;
 		}
 
@@ -259,6 +260,6 @@ public final class Server extends HandshakeBoth {
 			} finally {
 				Raft.unlock();
 			}
-		}, "Raft.LeaderIs.Me");
+		}, "Raft.LeaderIs.Me", DispatchMode.Normal);
 	}
 }

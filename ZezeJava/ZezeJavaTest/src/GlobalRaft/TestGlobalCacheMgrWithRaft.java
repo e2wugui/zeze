@@ -12,6 +12,7 @@ import Zeze.Raft.StateMachine;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManagerWithRaft;
 import Zeze.Services.ServiceManagerServer;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action0;
 import Zeze.Util.LongHashMap;
@@ -225,7 +226,7 @@ public class TestGlobalCacheMgrWithRaft {
 			globalRafts[2].Start();
 		}));
 
-		Task.run(this::RandomTriggerFailActions, "RandomTriggerFailActions");
+		Task.run(this::RandomTriggerFailActions, "RandomTriggerFailActions", DispatchMode.Normal);
 
 		var testName = "RealConcurrentDoRequest";
 		var lastExpectCount = ExpectCount.get();

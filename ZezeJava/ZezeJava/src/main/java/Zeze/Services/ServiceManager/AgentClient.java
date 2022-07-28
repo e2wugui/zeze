@@ -2,6 +2,7 @@ package Zeze.Services.ServiceManager;
 
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Util.Task;
 
 public final class AgentClient extends Zeze.Services.HandshakeClient {
@@ -34,7 +35,7 @@ public final class AgentClient extends Zeze.Services.HandshakeClient {
 		super.OnHandshakeDone(sender);
 		if (Socket == null) {
 			Socket = sender;
-			Task.run(agent::OnConnected, "ServiceManager.Agent.OnConnected");
+			Task.run(agent::OnConnected, "ServiceManager.Agent.OnConnected", DispatchMode.Normal);
 		} else {
 			Agent.logger.error("Has Connected.");
 		}

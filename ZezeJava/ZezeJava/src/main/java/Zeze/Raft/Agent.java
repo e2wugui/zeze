@@ -13,6 +13,7 @@ import Zeze.Net.Rpc;
 import Zeze.Net.Service;
 import Zeze.Services.HandshakeClient;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.Action1;
 import Zeze.Util.LongConcurrentHashMap;
@@ -345,7 +346,7 @@ public final class Agent {
 		if (DispatchProtocolToInternalThreadPool)
 			Task.getCriticalThreadPool().execute(() -> trigger(removed, "Cancel"));
 		else
-			Task.run(() -> trigger(removed, "Cancel"), "Trigger Timeout RaftRpcs");
+			Task.run(() -> trigger(removed, "Cancel"), "Trigger Timeout RaftRpcs", DispatchMode.Normal);
 	}
 
 	private void ReSend(boolean immediately) {
@@ -404,7 +405,7 @@ public final class Agent {
 			if (DispatchProtocolToInternalThreadPool)
 				Task.getCriticalThreadPool().execute(() -> trigger(removed0));
 			else
-				Task.run(() -> trigger(removed0), "Trigger Timeout RaftRpcs");
+				Task.run(() -> trigger(removed0), "Trigger Timeout RaftRpcs", DispatchMode.Normal);
 		}
 	}
 
@@ -484,7 +485,7 @@ public final class Agent {
 			if (p.getTypeId() == LeaderIs.TypeId_ || Agent.DispatchProtocolToInternalThreadPool)
 				Task.getCriticalThreadPool().execute(() -> Task.Call(() -> pfh.Handle.handle(p), "InternalRequest"));
 			else
-				Task.run(() -> pfh.Handle.handle(p), p);
+				Task.run(() -> pfh.Handle.handle(p), p, DispatchMode.Normal);
 		}
 	}
 }

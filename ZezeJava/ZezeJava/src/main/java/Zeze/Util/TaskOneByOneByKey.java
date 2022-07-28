@@ -4,6 +4,7 @@ import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,32 +42,32 @@ public final class TaskOneByOneByKey {
 		hashMask = capacity - 1;
 	}
 
-	public void Execute(Object key, Action0 action) {
-		Execute(key.hashCode(), action);
+	public void Execute(Object key, Action0 action, DispatchMode mode) {
+		Execute(key.hashCode(), action, mode);
 	}
 
-	public void Execute(Object key, Action0 action, String name) {
-		Execute(key.hashCode(), action, name);
+	public void Execute(Object key, Action0 action, String name, DispatchMode mode) {
+		Execute(key.hashCode(), action, name, mode);
 	}
 
-	public void Execute(Object key, Action0 action, String name, Action0 cancel) {
-		Execute(key.hashCode(), action, name, cancel);
+	public void Execute(Object key, Action0 action, String name, Action0 cancel, DispatchMode mode) {
+		Execute(key.hashCode(), action, name, cancel, mode);
 	}
 
-	public void Execute(Object key, Func0<?> func) {
-		Execute(key.hashCode(), func);
+	public void Execute(Object key, Func0<?> func, DispatchMode mode) {
+		Execute(key.hashCode(), func, mode);
 	}
 
-	public void Execute(Object key, Func0<?> func, String name) {
-		Execute(key.hashCode(), func, name);
+	public void Execute(Object key, Func0<?> func, String name, DispatchMode mode) {
+		Execute(key.hashCode(), func, name, mode);
 	}
 
-	public void Execute(Object key, Func0<?> func, String name, Action0 cancel) {
-		Execute(key.hashCode(), func, name, cancel);
+	public void Execute(Object key, Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
+		Execute(key.hashCode(), func, name, cancel, mode);
 	}
 
-	public void Execute(Object key, Procedure procedure) {
-		Execute(key.hashCode(), procedure);
+	public void Execute(Object key, Procedure procedure, DispatchMode mode) {
+		Execute(key.hashCode(), procedure, mode);
 	}
 
 	public static class Barrier {
@@ -126,85 +127,85 @@ public final class TaskOneByOneByKey {
 		}
 	}
 
-	public <T> void ExecuteCyclicBarrier(Collection<T> keys, Procedure procedure, Action0 cancel) {
+	public <T> void ExecuteCyclicBarrier(Collection<T> keys, Procedure procedure, Action0 cancel, DispatchMode mode) {
 		if (keys.isEmpty())
 			throw new RuntimeException("CyclicBarrier keys is empty.");
 
 		var barrier = new Barrier(procedure, keys.size(), cancel);
 		for (var key : keys)
-			Execute(key, barrier::Reach, barrier.Procedure.getActionName(), barrier::Cancel);
+			Execute(key, barrier::Reach, barrier.Procedure.getActionName(), barrier::Cancel, mode);
 	}
 
-	public void Execute(Object key, Procedure procedure, Action0 cancel) {
-		Execute(key.hashCode(), procedure, cancel);
+	public void Execute(Object key, Procedure procedure, Action0 cancel, DispatchMode mode) {
+		Execute(key.hashCode(), procedure, cancel, mode);
 	}
 
-	public void Execute(int key, Action0 action) {
-		Execute(key, action, null, null);
+	public void Execute(int key, Action0 action, DispatchMode mode) {
+		Execute(key, action, null, null, mode);
 	}
 
-	public void Execute(int key, Action0 action, String name) {
-		Execute(key, action, name, null);
+	public void Execute(int key, Action0 action, String name, DispatchMode mode) {
+		Execute(key, action, name, null, mode);
 	}
 
-	public void Execute(int key, Action0 action, String name, Action0 cancel) {
+	public void Execute(int key, Action0 action, String name, Action0 cancel, DispatchMode mode) {
 		if (action == null)
 			throw new NullPointerException();
-		concurrency[Hash(key) & hashMask].Execute(action, name, cancel);
+		concurrency[Hash(key) & hashMask].Execute(action, name, cancel, mode);
 	}
 
-	public void Execute(int key, Func0<?> func) {
-		Execute(key, func, null, null);
+	public void Execute(int key, Func0<?> func, DispatchMode mode) {
+		Execute(key, func, null, null, mode);
 	}
 
-	public void Execute(int key, Func0<?> func, String name) {
-		Execute(key, func, name, null);
+	public void Execute(int key, Func0<?> func, String name, DispatchMode mode) {
+		Execute(key, func, name, null, mode);
 	}
 
-	public void Execute(int key, Func0<?> func, String name, Action0 cancel) {
+	public void Execute(int key, Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
 		if (func == null)
 			throw new NullPointerException();
-		concurrency[Hash(key) & hashMask].Execute(func, name, cancel);
+		concurrency[Hash(key) & hashMask].Execute(func, name, cancel, mode);
 	}
 
-	public void Execute(int key, Procedure procedure) {
-		Execute(key, procedure, null);
+	public void Execute(int key, Procedure procedure, DispatchMode mode) {
+		Execute(key, procedure, null, mode);
 	}
 
-	public void Execute(int key, Procedure procedure, Action0 cancel) {
-		concurrency[Hash(key) & hashMask].Execute(procedure::Call, procedure.getActionName(), cancel);
+	public void Execute(int key, Procedure procedure, Action0 cancel, DispatchMode mode) {
+		concurrency[Hash(key) & hashMask].Execute(procedure::Call, procedure.getActionName(), cancel, mode);
 	}
 
-	public void Execute(long key, Action0 action) {
-		Execute(Long.hashCode(key), action);
+	public void Execute(long key, Action0 action, DispatchMode mode) {
+		Execute(Long.hashCode(key), action, mode);
 	}
 
-	public void Execute(long key, Action0 action, String name) {
-		Execute(Long.hashCode(key), action, name);
+	public void Execute(long key, Action0 action, String name, DispatchMode mode) {
+		Execute(Long.hashCode(key), action, name, mode);
 	}
 
-	public void Execute(long key, Action0 action, String name, Action0 cancel) {
-		Execute(Long.hashCode(key), action, name, cancel);
+	public void Execute(long key, Action0 action, String name, Action0 cancel, DispatchMode mode) {
+		Execute(Long.hashCode(key), action, name, cancel, mode);
 	}
 
-	public void Execute(long key, Func0<?> func) {
-		Execute(Long.hashCode(key), func);
+	public void Execute(long key, Func0<?> func, DispatchMode mode) {
+		Execute(Long.hashCode(key), func, mode);
 	}
 
-	public void Execute(long key, Func0<?> func, String name) {
-		Execute(Long.hashCode(key), func, name);
+	public void Execute(long key, Func0<?> func, String name, DispatchMode mode) {
+		Execute(Long.hashCode(key), func, name, mode);
 	}
 
-	public void Execute(long key, Func0<?> func, String name, Action0 cancel) {
-		Execute(Long.hashCode(key), func, name, cancel);
+	public void Execute(long key, Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
+		Execute(Long.hashCode(key), func, name, cancel, mode);
 	}
 
-	public void Execute(long key, Procedure procedure) {
-		Execute(Long.hashCode(key), procedure);
+	public void Execute(long key, Procedure procedure, DispatchMode mode) {
+		Execute(Long.hashCode(key), procedure, mode);
 	}
 
-	public void Execute(long key, Procedure procedure, Action0 cancel) {
-		Execute(Long.hashCode(key), procedure, cancel);
+	public void Execute(long key, Procedure procedure, Action0 cancel, DispatchMode mode) {
+		Execute(Long.hashCode(key), procedure, cancel, mode);
 	}
 
 	public void Shutdown() {
@@ -241,18 +242,20 @@ public final class TaskOneByOneByKey {
 		static abstract class Task implements Runnable {
 			final String name;
 			final Action0 cancel;
+			final DispatchMode mode;
 
-			Task(String name, Action0 cancel) {
+			Task(String name, Action0 cancel, DispatchMode mode) {
 				this.name = name;
 				this.cancel = cancel;
+				this.mode = mode;
 			}
 		}
 
 		final class TaskAction extends Task {
 			final Action0 action;
 
-			TaskAction(Action0 action, String name, Action0 cancel) {
-				super(name != null ? name : action.getClass().getName(), cancel);
+			TaskAction(Action0 action, String name, Action0 cancel, DispatchMode mode) {
+				super(name != null ? name : action.getClass().getName(), cancel, mode);
 				this.action = action;
 			}
 
@@ -271,8 +274,8 @@ public final class TaskOneByOneByKey {
 		final class TaskFunc extends Task {
 			private final Func0<?> func;
 
-			TaskFunc(Func0<?> func, String name, Action0 cancel) {
-				super(name, cancel);
+			TaskFunc(Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
+				super(name, cancel, mode);
 				this.func = func;
 			}
 
@@ -293,12 +296,12 @@ public final class TaskOneByOneByKey {
 		private ArrayDeque<Task> queue = new ArrayDeque<>();
 		private boolean IsShutdown;
 
-		void Execute(Action0 action, String name, Action0 cancel) {
-			Execute(new TaskAction(action, name, cancel));
+		void Execute(Action0 action, String name, Action0 cancel, DispatchMode mode) {
+			Execute(new TaskAction(action, name, cancel, mode));
 		}
 
-		void Execute(Func0<?> func, String name, Action0 cancel) {
-			Execute(new TaskFunc(func, name, cancel));
+		void Execute(Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
+			Execute(new TaskFunc(func, name, cancel, mode));
 		}
 
 		private void Execute(Task task) {
@@ -314,9 +317,12 @@ public final class TaskOneByOneByKey {
 			} finally {
 				lock.unlock();
 			}
-			if (submit)
-				Zeze.Util.Task.getThreadPool().submit(task);
-			else if (task.cancel != null) {
+			if (submit) {
+				var threadPool = task.mode == DispatchMode.Critical
+						? Zeze.Util.Task.getCriticalThreadPool()
+						: Zeze.Util.Task.getThreadPool();
+				threadPool.submit(task);
+			} else if (task.cancel != null) {
 				try {
 					task.cancel.run();
 				} catch (Throwable e) {
@@ -339,7 +345,10 @@ public final class TaskOneByOneByKey {
 			} finally {
 				lock.unlock();
 			}
-			Zeze.Util.Task.getThreadPool().submit(task);
+			var threadPool = task.mode == DispatchMode.Critical
+					? Zeze.Util.Task.getCriticalThreadPool()
+					: Zeze.Util.Task.getThreadPool();
+			threadPool.submit(task);
 		}
 
 		void Shutdown(boolean cancel) {

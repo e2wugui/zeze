@@ -25,7 +25,7 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 	@Override
 	public <P extends Protocol<?>> void DispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
 															ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
-		Task.runRpcResponse(() -> responseHandle.handle(rpc), rpc);
+		Task.runRpcResponse(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
 	}
 
 	// 重载需要的方法。
@@ -35,7 +35,7 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 			if (p.getTypeId() == Bind.TypeId_ || p.getTypeId() == Subscribe.TypeId_) {
 				// Bind 的处理需要同步等待ServiceManager的订阅成功，时间比较长，
 				// 不要直接在io-thread里面执行。
-				Task.run(() -> factoryHandle.Handle.handle(p), p);
+				Task.run(() -> factoryHandle.Handle.handle(p), p, factoryHandle.Mode);
 			} else {
 				// 不启用新的Task，直接在io-thread里面执行。因为其他协议都是立即处理的，
 				// 直接执行，少一次线程切换。

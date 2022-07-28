@@ -282,6 +282,7 @@ namespace Zeze.Gen.java
                         if ((rpc.HandleFlags & serviceHandleFlags & Program.HandleCSharpFlags) != 0)
                             sw.WriteLine($"            factoryHandle.Handle = this::Process{rpc.Name}Request;");
                         sw.WriteLine($"            factoryHandle.Level = _reflect.getTransactionLevel(\"Process{rpc.Name}Request\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel});");
+                        sw.WriteLine($"            factoryHandle.Mode = _reflect.getDispatchMode(\"Process{rpc.Name}Request\", Zeze.Transaction.DispatchMode.Normal);");
                         sw.WriteLine($"            {serviceVar}.AddFactoryHandle({rpc.TypeId}L, factoryHandle); // {rpc.Space.Id}, {rpc.Id}");
                         sw.WriteLine("        }");
                         continue;
@@ -299,6 +300,7 @@ namespace Zeze.Gen.java
                         sw.WriteLine($"            factoryHandle.Factory = {fullName}::new;");
                         sw.WriteLine($"            factoryHandle.Handle = this::Process{p.Name};");
                         sw.WriteLine($"            factoryHandle.Level = _reflect.getTransactionLevel(\"Process{p.Name}\", Zeze.Transaction.TransactionLevel.{p.TransactionLevel});");
+                        sw.WriteLine($"            factoryHandle.Mode = _reflect.getDispatchMode(\"Process{p.Name}\", Zeze.Transaction.DispatchMode.Normal);");
                         sw.WriteLine($"            {serviceVar}.AddFactoryHandle({p.TypeId}L, factoryHandle); // {p.Space.Id}, {p.Id}");
                         sw.WriteLine("        }");
                     }

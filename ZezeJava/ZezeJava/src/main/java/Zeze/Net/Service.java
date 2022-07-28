@@ -15,6 +15,7 @@ import java.util.function.Predicate;
 import Zeze.Application;
 import Zeze.Config;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action1;
 import Zeze.Util.Factory;
@@ -279,9 +280,9 @@ public class Service {
 															ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
 		if (Zeze != null && factoryHandle.Level != TransactionLevel.None) {
 			Task.runRpcResponse(Zeze.NewProcedure(() -> responseHandle.handle(rpc), rpc.getClass().getName() + ":Response",
-					factoryHandle.Level, rpc.getUserState()));
+					factoryHandle.Level, rpc.getUserState()), factoryHandle.Mode);
 		} else
-			Task.runRpcResponse(() -> responseHandle.handle(rpc), rpc);
+			Task.runRpcResponse(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
 	}
 
 	public <P extends Protocol<?>> void DispatchProtocol2(Object key, P p, ProtocolFactoryHandle<P> factoryHandle) {
@@ -289,10 +290,12 @@ public class Service {
 			if (factoryHandle.Level != TransactionLevel.None) {
 				Zeze.getTaskOneByOneByKey().Execute(key, () ->
 						Task.Call(Zeze.NewProcedure(() -> factoryHandle.Handle.handle(p), p.getClass().getName(),
-								factoryHandle.Level, p.getUserState()), p, Protocol::trySendResultCode));
+								factoryHandle.Level, p.getUserState()), p, Protocol::trySendResultCode),
+						factoryHandle.Mode);
 			} else {
 				Zeze.getTaskOneByOneByKey().Execute(key,
-						() -> Task.Call(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode));
+						() -> Task.Call(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode),
+						factoryHandle.Mode);
 			}
 		} else
 			logger.warn("DispatchProtocol2: Protocol Handle Not Found: {}", p);
@@ -313,9 +316,9 @@ public class Service {
 			TransactionLevel level = factoryHandle.Level;
 			Application zeze = Zeze;
 			if (zeze != null && level != TransactionLevel.None)
-				Task.run(zeze.NewProcedure(() -> handle.handle(p), p.getClass().getName(), level, p.getUserState()), p);
+				Task.run(zeze.NewProcedure(() -> handle.handle(p), p.getClass().getName(), level, p.getUserState()), p, factoryHandle.Mode);
 			else
-				Task.run(() -> handle.handle(p), p);
+				Task.run(() -> handle.handle(p), p, factoryHandle.Mode);
 		} else
 			logger.warn("DispatchProtocol: Protocol Handle Not Found: {}", p);
 	}
@@ -337,6 +340,7 @@ public class Service {
 		public Factory<P> Factory;
 		public ProtocolHandle<P> Handle;
 		public TransactionLevel Level = TransactionLevel.Serializable;
+		public DispatchMode Mode = DispatchMode.Normal;
 
 		public ProtocolFactoryHandle() {
 		}
@@ -354,6 +358,13 @@ public class Service {
 			Factory = factory;
 			Handle = handle;
 			Level = level;
+		}
+
+		public ProtocolFactoryHandle(Factory<P> factory, ProtocolHandle<P> handle, TransactionLevel level, DispatchMode mode) {
+			Factory = factory;
+			Handle = handle;
+			Level = level;
+			Mode = mode;
 		}
 	}
 

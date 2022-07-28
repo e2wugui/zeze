@@ -21,6 +21,7 @@ import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
@@ -348,7 +349,7 @@ public class Online extends AbstractOnline {
                             return Procedure.Success;
                         },
                         "SendReliableNotify." + listenerName
-                ));
+                ), DispatchMode.Normal);
     }
 
     public Collection<LoginOnLink> groupByLink(Collection<LoginKey> logins) throws Throwable {
@@ -452,7 +453,7 @@ public class Online extends AbstractOnline {
                 ProviderApp.Zeze.NewProcedure(() -> {
                     sendEmbed(List.of(login), typeId, fullEncodedProtocol);
                     return Procedure.Success;
-                }, "Online.send"));
+                }, "Online.send"), DispatchMode.Normal);
     }
 
     public void send(Collection<LoginKey> logins, long typeId, Binary fullEncodedProtocol) {
@@ -460,7 +461,7 @@ public class Online extends AbstractOnline {
                 ProviderApp.Zeze.NewProcedure(() -> {
                     sendEmbed(logins, typeId, fullEncodedProtocol);
                     return Procedure.Success;
-                }, "Online.send"), null);
+                }, "Online.send"), null, DispatchMode.Normal);
     }
 
     public void send(String account, String clientId, Protocol<?> p) {
@@ -552,7 +553,7 @@ public class Online extends AbstractOnline {
                 ProviderApp.Zeze.NewProcedure(() -> {
                     sendAccountsEmbed(List.of(account), typeId, fullEncodedProtocol, sender);
                     return Procedure.Success;
-                }, "Online.sendAccount"));
+                }, "Online.sendAccount"), DispatchMode.Normal);
     }
 
     public void sendAccounts(Collection<String> accounts, long typeId, Binary fullEncodedProtocol, OnlineSend sender) {
@@ -560,7 +561,7 @@ public class Online extends AbstractOnline {
                 ProviderApp.Zeze.NewProcedure(() -> {
                     sendAccountsEmbed(accounts, typeId, fullEncodedProtocol, sender);
                     return Procedure.Success;
-                }, "Online.sendAccounts"), null);
+                }, "Online.sendAccounts"), null, DispatchMode.Normal);
     }
 
     /**

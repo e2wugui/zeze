@@ -863,7 +863,8 @@ public final class ServiceManagerServer implements Closeable {
 		public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
 			if (factoryHandle.Handle != null) {
 				oneByOneByKey.Execute(p.getSender(),
-						() -> Task.Call(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode));
+						() -> Task.Call(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode),
+						factoryHandle.Mode);
 			}
 		}
 	}

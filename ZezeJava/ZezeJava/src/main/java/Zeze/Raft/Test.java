@@ -19,6 +19,7 @@ import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DatabaseRocksDb;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Record;
@@ -155,7 +156,7 @@ public class Test {
 					logger.error("Test._Run", ex);
 				}
 			}
-		}, "DumpWorker");
+		}, "DumpWorker", DispatchMode.Normal);
 		try {
 			RunTrace();
 		} finally {
@@ -448,7 +449,7 @@ public class Test {
 			}
 		}));
 		// Start Background FailActions
-		Task.run(this::RandomTriggerFailActions, "RandomTriggerFailActions");
+		Task.run(this::RandomTriggerFailActions, "RandomTriggerFailActions", DispatchMode.Normal);
 		var testName = "RealConcurrentDoRequest";
 		var lastExpectCount = ExpectCount.get();
 		while (true) {

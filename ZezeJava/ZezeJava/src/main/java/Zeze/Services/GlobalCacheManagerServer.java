@@ -21,6 +21,7 @@ import Zeze.Services.GlobalCacheManager.Login;
 import Zeze.Services.GlobalCacheManager.NormalClose;
 import Zeze.Services.GlobalCacheManager.ReLogin;
 import Zeze.Services.GlobalCacheManager.Reduce;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.KV;
@@ -706,7 +707,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 							// 需要唤醒等待任务结束的，但没法指定，只能全部唤醒。
 							cs.notifyAll(); //notify
 						}
-					}, "GlobalCacheManager.AcquireModify.WaitReduce");
+					}, "GlobalCacheManager.AcquireModify.WaitReduce", DispatchMode.Normal);
 					if (isDebugEnabled)
 						logger.debug("7 {} {} {}", sender, StateModify, cs);
 					cs.wait(); //await 等通知

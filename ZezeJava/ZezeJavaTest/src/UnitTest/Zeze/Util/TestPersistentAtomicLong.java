@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Util;
 
+import Zeze.Transaction.DispatchMode;
 import junit.framework.TestCase;
 import org.junit.Assert;
 import Zeze.Util.PersistentAtomicLong;
@@ -16,8 +17,8 @@ public class TestPersistentAtomicLong extends TestCase {
 		var p1 = PersistentAtomicLong.getOrAdd("TestPersistentAtomicLong", 10);
 		var p2 = PersistentAtomicLong.getOrAdd("TestPersistentAtomicLong", 10);
 		var jobs = new ArrayList<Future<?>>();
-		jobs.add(Task.run(() -> Alloc(p1), "Alloc1"));
-		jobs.add(Task.run(() -> Alloc(p2), "Alloc2"));
+		jobs.add(Task.run(() -> Alloc(p1), "Alloc1", DispatchMode.Normal));
+		jobs.add(Task.run(() -> Alloc(p2), "Alloc2", DispatchMode.Normal));
 		Task.waitAll(jobs);
 	}
 

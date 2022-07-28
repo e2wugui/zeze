@@ -2,6 +2,7 @@ package UnitTest.Zeze.Trans;
 
 import java.util.concurrent.Future;
 import Zeze.Config;
+import Zeze.Transaction.DispatchMode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -72,8 +73,8 @@ public class TestGlobal extends TestCase {
 
 			Future<?>[] task2 = new Future[2];
 			int count = 2000;
-			task2[0] = Zeze.Util.Task.run(() -> ConcurrentAdd(app1, count, 1), "TestGlobal.ConcurrentAdd1");
-			task2[1] = Zeze.Util.Task.run(() -> ConcurrentAdd(app2, count, 2), "TestGlobal.ConcurrentAdd2");
+			task2[0] = Zeze.Util.Task.run(() -> ConcurrentAdd(app1, count, 1), "TestGlobal.ConcurrentAdd1", DispatchMode.Normal);
+			task2[1] = Zeze.Util.Task.run(() -> ConcurrentAdd(app2, count, 2), "TestGlobal.ConcurrentAdd2", DispatchMode.Normal);
 			try {
 				task2[0].get();
 				task2[1].get();

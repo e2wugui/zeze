@@ -18,6 +18,7 @@ import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.DatabaseRocksDb;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.Task;
@@ -183,7 +184,7 @@ public class LogSequence {
 				RemoveLogBeforeFuture.SetResult(false);
 				RemoveLogBeforeFuture = null;
 			}
-		}, "RemoveLogBefore" + index);
+		}, "RemoveLogBefore" + index, DispatchMode.Normal);
 	}
 
 	/*
@@ -693,7 +694,7 @@ public class LogSequence {
 		if (snapshotLogCount > 0) {
 			if (LastApplied - PrevSnapshotIndex > snapshotLogCount) {
 				PrevSnapshotIndex = LastApplied;
-				Task.run(this::Snapshot, "Snapshot");
+				Task.run(this::Snapshot, "Snapshot", DispatchMode.Normal);
 			}
 		}
 		// else disable

@@ -14,6 +14,7 @@ import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolErrorHandle;
 import Zeze.Net.Service;
 import Zeze.Raft.RaftRetryException;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.ProcedureStatistics;
 import org.apache.logging.log4j.Level;
@@ -135,8 +136,23 @@ public final class Task {
 		}
 	}
 
-	public static Future<?> run(Action0 action, String name) {
-		return threadPoolDefault.submit(() -> {
+	public static Future<?> run(Action0 action, String name, DispatchMode mode) {
+		if (mode == DispatchMode.Direct) {
+			final var future = new TaskCompletionSource<Long>();
+			try {
+				action.run();
+				future.SetResult(0L);
+			} catch (AssertionError e) {
+				throw e;
+			} catch (Throwable ex) {
+				future.SetException(ex);
+				logger.error("{}", name != null ? name : action != null ? action.getClass().getName() : "", ex);
+			}
+			return future;
+		}
+
+		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
+		return pool.submit(() -> {
 			try {
 				action.run();
 			} catch (AssertionError e) {
@@ -307,16 +323,37 @@ public final class Task {
 		}
 	}
 
-	public static Future<Long> run(FuncLong func, Protocol<?> p) {
-		return threadPoolDefault.submit(() -> Call(func, p, null, null));
+	public static Future<Long> run(FuncLong func, Protocol<?> p, DispatchMode mode) {
+		if (mode == DispatchMode.Direct) {
+			final var future = new TaskCompletionSource<Long>();
+			future.SetResult(Call(func, p, null, null));
+			return future;
+		}
+
+		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
+		return pool.submit(() -> Call(func, p, null, null));
 	}
 
-	public static Future<Long> run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
-		return threadPoolDefault.submit(() -> Call(func, p, actionWhenError, null));
+	public static Future<Long> run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, DispatchMode mode) {
+		if (mode == DispatchMode.Direct) {
+			final var future = new TaskCompletionSource<Long>();
+			future.SetResult(Call(func, p, actionWhenError, null));
+			return future;
+		}
+
+		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
+		return pool.submit(() -> Call(func, p, actionWhenError, null));
 	}
 
-	public static Future<Long> run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName) {
-		return threadPoolDefault.submit(() -> Call(func, p, actionWhenError, specialName));
+	public static Future<Long> run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName, DispatchMode mode) {
+		if (mode == DispatchMode.Direct) {
+			final var future = new TaskCompletionSource<Long>();
+			future.SetResult(Call(func, p, actionWhenError, specialName));
+			return future;
+		}
+
+		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
+		return pool.submit(() -> Call(func, p, actionWhenError, specialName));
 	}
 
 	public static long Call(Procedure procedure) {
@@ -355,24 +392,59 @@ public final class Task {
 		}
 	}
 
-	public static Future<Long> run(Procedure procedure) {
-		return threadPoolDefault.submit(() -> Call(procedure, null, null));
+	public static Future<Long> run(Procedure procedure, DispatchMode mode) {
+		if (mode == DispatchMode.Direct) {
+			final var future = new TaskCompletionSource<Long>();
+			future.SetResult(Call(procedure, null, null));
+			return future;
+		}
+
+		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
+		return pool.submit(() -> Call(procedure, null, null));
 	}
 
-	public static Future<Long> run(Procedure procedure, Protocol<?> from) {
-		return threadPoolDefault.submit(() -> Call(procedure, from, null));
+	public static Future<Long> run(Procedure procedure, Protocol<?> from, DispatchMode mode) {
+		if (mode == DispatchMode.Direct) {
+			final var future = new TaskCompletionSource<Long>();
+			future.SetResult(Call(procedure, from, null));
+			return future;
+		}
+
+		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
+		return pool.submit(() -> Call(procedure, from, null));
 	}
 
-	public static Future<Long> run(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError) {
-		return threadPoolDefault.submit(() -> Call(procedure, from, actionWhenError));
+	public static Future<Long> run(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError, DispatchMode mode) {
+		if (mode == DispatchMode.Direct) {
+			final var future = new TaskCompletionSource<Long>();
+			future.SetResult(Call(procedure, from, actionWhenError));
+			return future;
+		}
+
+		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
+		return pool.submit(() -> Call(procedure, from, actionWhenError));
 	}
 
-	public static Future<Long> runRpcResponse(Procedure procedure) {
-		return threadPoolDefault.submit(() -> Call(procedure, null, null)); // rpcResponseThreadPool
+	public static Future<Long> runRpcResponse(Procedure procedure, DispatchMode mode) {
+		if (mode == DispatchMode.Direct) {
+			final var future = new TaskCompletionSource<Long>();
+			future.SetResult(Call(procedure, null, null));
+			return future;
+		}
+
+		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
+		return pool.submit(() -> Call(procedure, null, null)); // rpcResponseThreadPool
 	}
 
-	public static Future<Long> runRpcResponse(FuncLong func, Protocol<?> p) {
-		return threadPoolDefault.submit(() -> Call(func, p, null, null)); // rpcResponseThreadPool
+	public static Future<Long> runRpcResponse(FuncLong func, Protocol<?> p, DispatchMode mode) {
+		if (mode == DispatchMode.Direct) {
+			final var future = new TaskCompletionSource<Long>();
+			future.SetResult(Call(func, p, null, null));
+			return future;
+		}
+
+		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
+		return pool.submit(() -> Call(func, p, null, null)); // rpcResponseThreadPool
 	}
 
 	public static void waitAll(Collection<Future<?>> tasks) {

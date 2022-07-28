@@ -7,6 +7,7 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import Zeze.Net.Binary;
 import Zeze.Serialize.Serializable;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 
 public class Reflect {
@@ -36,6 +37,15 @@ public class Reflect {
 
 		var annotation = method.getAnnotation(TransactionLevelAnnotation.class);
 		return annotation != null ? annotation.Level() : def;
+	}
+
+	public DispatchMode getDispatchMode(String methodName, DispatchMode def) {
+		var method = Methods.get(methodName);
+		if (null == method)
+			return def;
+
+		var annotation = method.getAnnotation(DispatchModeAnnotation.class);
+		return annotation != null ? annotation.Mode() : def;
 	}
 
 	public static String GetStableName(Class<?> cls) {

@@ -14,6 +14,7 @@ import Zeze.Transaction.AchillesHeelDaemon;
 import Zeze.Transaction.Checkpoint;
 import Zeze.Transaction.Database;
 import Zeze.Transaction.DatabaseRocksDb;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.GlobalAgent;
 import Zeze.Transaction.IGlobalAgent;
 import Zeze.Transaction.Locks;
@@ -377,7 +378,7 @@ public final class Application {
 	}
 
 	public void runTaskOneByOneByKey(Object oneByOneKey, String actionName, FuncLong func) {
-		TaskOneByOneByKey.Execute(oneByOneKey, NewProcedure(func, actionName));
+		TaskOneByOneByKey.Execute(oneByOneKey, NewProcedure(func, actionName), DispatchMode.Normal);
 	}
 
 	@Deprecated
@@ -396,9 +397,9 @@ public final class Application {
 			case RunThread:
 				if (oneByOneKey != null) {
 					getTaskOneByOneByKey().Execute(oneByOneKey,
-							() -> future.SetResult(NewProcedure(func, actionName).Call()), actionName);
+							() -> future.SetResult(NewProcedure(func, actionName).Call()), actionName, DispatchMode.Normal);
 				} else
-					Task.run(() -> future.SetResult(NewProcedure(func, actionName).Call()), actionName);
+					Task.run(() -> future.SetResult(NewProcedure(func, actionName).Call()), actionName, DispatchMode.Normal);
 				break;
 			}
 		} catch (Throwable e) {

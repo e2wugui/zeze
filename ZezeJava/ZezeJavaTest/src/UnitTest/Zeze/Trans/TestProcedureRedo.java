@@ -1,5 +1,6 @@
 package UnitTest.Zeze.Trans;
 
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.OutLong;
@@ -58,7 +59,7 @@ public class TestProcedureRedo {
             });
             return Procedure.Success;
 
-        }, "TestProcedureRedoTask1"));
+        }, "TestProcedureRedoTask1"), DispatchMode.Normal);
 
         var ftask2 = Task.run(App.getInstance().Zeze.NewProcedure(()  -> {
 
@@ -73,7 +74,7 @@ public class TestProcedureRedo {
             Transaction.getCurrent().runWhileCommit(() -> System.out.println("task2 suss"));
             return Procedure.Success;
 
-        }, "TestProcedureRedoTask2"));
+        }, "TestProcedureRedoTask2"), DispatchMode.Normal);
 
         ftask2.get();
         ftask1.get();

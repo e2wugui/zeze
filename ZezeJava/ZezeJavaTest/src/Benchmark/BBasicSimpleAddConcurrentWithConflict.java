@@ -1,5 +1,6 @@
 package Benchmark;
 
+import Zeze.Transaction.DispatchMode;
 import demo.App;
 import junit.framework.TestCase;
 import org.junit.Assert;
@@ -17,7 +18,7 @@ public class BBasicSimpleAddConcurrentWithConflict  extends TestCase {
             System.out.println("benchmark start...");
             var b = new Zeze.Util.Benchmark();
             for (int i = 0; i < AddCount; ++i) {
-                tasks.add(Zeze.Util.Task.run(App.Instance.Zeze.NewProcedure(this::Add, "Add")));
+                tasks.add(Zeze.Util.Task.run(App.Instance.Zeze.NewProcedure(this::Add, "Add"), DispatchMode.Normal));
             }
             //b.Report(this.getClass().getName(), AddCount);
             for (var task : tasks) {

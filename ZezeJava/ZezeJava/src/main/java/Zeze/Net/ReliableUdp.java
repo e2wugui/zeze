@@ -13,6 +13,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashSet;
 import org.apache.logging.log4j.LogManager;
@@ -202,7 +203,7 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 	// 如果执行的操作没有阻塞，可以直接在网络线程中执行。
 	// 重载当然也可以实现其他模式，加到自己的队列什么的。
 	public void Dispatch(Session session, Packet packet) {
-		Zeze.Util.Task.run(() -> session.Handle.handle(session, packet), "ReliableUdp.DefaultDispatch");
+		Zeze.Util.Task.run(() -> session.Handle.handle(session, packet), "ReliableUdp.DefaultDispatch", DispatchMode.Normal);
 		// session.Handle.handle(session, packet); // 直接在网络线程中执行。
 	}
 

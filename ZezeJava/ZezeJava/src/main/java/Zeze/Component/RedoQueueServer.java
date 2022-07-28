@@ -4,6 +4,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
@@ -68,10 +69,12 @@ public class RedoQueueServer extends AbstractRedoQueueServer {
 
 		@Override
 		public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) {
-			Task.run(getZeze().NewProcedure(() -> {
-				Transaction.whileCommit(() -> p.SendResultCode(p.getResultCode()));
-				return factoryHandle.Handle.handle(p);
-			}, p.getClass().getName(), TransactionLevel.Serializable, p.getUserState()), p, Protocol::trySendResultCode);
+			Task.run(getZeze().NewProcedure(
+					() -> {
+						Transaction.whileCommit(() -> p.SendResultCode(p.getResultCode()));
+						return factoryHandle.Handle.handle(p);},
+					p.getClass().getName(), TransactionLevel.Serializable, p.getUserState()), p,
+					Protocol::trySendResultCode, DispatchMode.Normal);
 		}
 	}
 }

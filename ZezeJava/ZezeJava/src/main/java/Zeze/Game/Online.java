@@ -32,6 +32,7 @@ import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
@@ -326,7 +327,7 @@ public class Online extends AbstractOnline {
 		ProviderApp.Zeze.getTaskOneByOneByKey().Execute(roleId, () -> Task.Call(ProviderApp.Zeze.NewProcedure(() -> {
 			sendEmbed(List.of(roleId), typeId, fullEncodedProtocol);
 			return Procedure.Success;
-		}, "Game.Online.send"), null, null));
+		}, "Game.Online.send"), null, null), DispatchMode.Normal);
 	}
 
 	@SuppressWarnings("unused")
@@ -336,7 +337,7 @@ public class Online extends AbstractOnline {
 					ProviderApp.Zeze.NewProcedure(() -> {
 						sendEmbed(roles, typeId, fullEncodedProtocol);
 						return Procedure.Success;
-			}, "Game.Online.send"), null);
+			}, "Game.Online.send"), null, DispatchMode.Normal);
 		}
 	}
 
@@ -345,7 +346,7 @@ public class Online extends AbstractOnline {
 		Task.run(ProviderApp.Zeze.NewProcedure(() -> {
 			sendEmbed(roleIds, typeId, fullEncodedProtocol);
 			return Procedure.Success;
-		}, "Game.Online.send"));
+		}, "Game.Online.send"), DispatchMode.Normal);
 	}
 
 	public void sendEmbed(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {

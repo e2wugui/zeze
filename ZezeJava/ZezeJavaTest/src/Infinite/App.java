@@ -3,6 +3,7 @@ package Infinite;
 import java.util.ArrayList;
 import java.util.concurrent.Future;
 import Zeze.Config;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Util.Random;
 import Zeze.Util.Task;
 
@@ -63,7 +64,9 @@ public class App {
 			Tasks.getKeyCounter(name, key).increment();
 		}
 		Tasks.getRunCounter(name).increment();
-		RunningTasks.add(task.IsProcedure() ? Task.run(app.Zeze.NewProcedure(task, name)) : Task.run(task::call, name));
+		RunningTasks.add(task.IsProcedure()
+				? Task.run(app.Zeze.NewProcedure(task, name), DispatchMode.Normal)
+				: Task.run(task::call, name, DispatchMode.Normal));
 	}
 
 	public void WaitAllRunningTasksAndClear() {

@@ -26,6 +26,7 @@ import Zeze.Raft.RocksRaft.RocksMode;
 import Zeze.Raft.RocksRaft.Table;
 import Zeze.Raft.RocksRaft.TableTemplate;
 import Zeze.Raft.RocksRaft.Transaction;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Util.IdentityHashSet;
 import Zeze.Util.KV;
 import Zeze.Util.LongConcurrentHashMap;
@@ -565,7 +566,7 @@ public class GlobalCacheManagerWithRaft
 					} finally {
 						lockey.Exit();
 					}
-				}, "GlobalCacheManagerWithRaft.AcquireModify.WaitReduce");
+				}, "GlobalCacheManagerWithRaft.AcquireModify.WaitReduce", DispatchMode.Normal);
 				if (isDebugEnabled)
 					logger.debug("7 {} {} {}", sender, StateModify, cs);
 				lockey.Wait();

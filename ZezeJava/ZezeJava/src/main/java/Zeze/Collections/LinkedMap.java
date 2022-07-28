@@ -9,6 +9,7 @@ import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeId;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeKey;
 import Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TableWalkHandle;
 
 public class LinkedMap<V extends Bean> {
@@ -251,7 +252,7 @@ public class LinkedMap<V extends Bean> {
 				module._tLinkedMaps.remove(name);
 				return 0;
 			}, name + ".clear.root").Call();
-		}, name + ".clear");
+		}, name + ".clear", DispatchMode.Normal);
 	}
 
 	@SuppressWarnings("unchecked")

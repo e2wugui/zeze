@@ -1,6 +1,7 @@
 package UnitTest.Zeze.Trans;
 
 import java.util.concurrent.Future;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Transaction;
 import demo.App;
 import org.junit.After;
@@ -24,7 +25,7 @@ public class TestTransactionLevelSerialiable {
 	@Test
 	public final void Test2() throws Throwable {
 		App.Instance.Zeze.NewProcedure(this::init, "test_init").Call();
-		Zeze.Util.Task.run(this::verify_task, "verify_task");
+		Zeze.Util.Task.run(this::verify_task, "verify_task", DispatchMode.Normal);
 		try {
 			Future<?>[] tasks = new Future[200000];
 			for (int i = 0; i < tasks.length; ++i) {

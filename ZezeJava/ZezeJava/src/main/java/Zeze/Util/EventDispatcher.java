@@ -2,6 +2,7 @@ package Zeze.Util;
 
 import java.util.concurrent.ConcurrentLinkedQueue;
 import Zeze.Application;
+import Zeze.Transaction.DispatchMode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -80,7 +81,7 @@ public class EventDispatcher {
 	// 启动新的线程执行。
 	public void triggerThread(Object sender, EventArgument arg) {
 		for (EventHandle handle : runThreadEvents)
-			Task.run(() -> handle.invoke(sender, arg), "EventDispatch." + name + ".runAsync");
+			Task.run(() -> handle.invoke(sender, arg), "EventDispatch." + name + ".runAsync", DispatchMode.Normal);
 	}
 
 	// 嵌入当前线程执行，所有错误都报告出去，如果需要对错误进行特别处理，需要自己遍历Handles手动触发。

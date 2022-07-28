@@ -6,6 +6,7 @@ import Game.LongSet.ModuleLongSet;
 import Game.LongSet.NameValue;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Component.AutoKey;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
@@ -26,7 +27,7 @@ public class ModuleTimer extends AbstractModule {
 	public void Start(Game.App app) throws Throwable {
 		NodeIdGenerator = app.Zeze.GetAutoKey("Game.Timer.NodeIdGenerator");
 		TimerIdGenerator = app.Zeze.GetAutoKey("Game.Timer.TimerIdGenerator");
-		Zeze.Util.Task.run(this::LoadTimerLocal, "LoadTimerLocal");
+		Zeze.Util.Task.run(this::LoadTimerLocal, "LoadTimerLocal", DispatchMode.Normal);
 	}
 
 	public void Stop(Game.App app) throws Throwable {

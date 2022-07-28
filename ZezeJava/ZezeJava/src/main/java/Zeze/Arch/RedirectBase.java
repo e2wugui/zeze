@@ -8,6 +8,7 @@ import Zeze.Builtin.ProviderDirect.ModuleRedirectAllRequest;
 import Zeze.Builtin.ProviderDirect.ModuleRedirectAllResult;
 import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action0;
@@ -183,7 +184,7 @@ public class RedirectBase {
 		Task.run(ProviderApp.Zeze.NewProcedure(() -> {
 			func.call().then(future::SetResult);
 			return Procedure.Success;
-		}, "Redirect Loop Back", level, null));
+		}, "Redirect Loop Back", level, null), DispatchMode.Normal);
 		return future;
 	}
 
@@ -199,6 +200,6 @@ public class RedirectBase {
 		Task.run(ProviderApp.Zeze.NewProcedure(() -> {
 			action.run();
 			return Procedure.Success;
-		}, "Redirect Loop Back", level, null));
+		}, "Redirect Loop Back", level, null), DispatchMode.Normal);
 	}
 }

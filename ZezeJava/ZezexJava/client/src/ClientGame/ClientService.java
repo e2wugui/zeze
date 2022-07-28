@@ -12,18 +12,19 @@ public class ClientService extends ClientServiceBase {
     @Override
     public <P extends Protocol<?>> void DispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
                                                             ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
-        Task.runRpcResponse(() -> responseHandle.handle(rpc), rpc);
+        Task.runRpcResponse(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
     }
 
     @Override
     public final <P extends Protocol<?>> void DispatchProtocol2(Object key, P p, ProtocolFactoryHandle<P> factoryHandle) {
         getZeze().getTaskOneByOneByKey().Execute(key,
-                () -> Task.Call(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode));
+                () -> Task.Call(() -> factoryHandle.Handle.handle(p), p, Protocol::trySendResultCode),
+                factoryHandle.Mode);
     }
 
     @Override
     public <P extends Protocol<?>> void DispatchProtocol(P p, ProtocolFactoryHandle<P> factoryHandle) throws Throwable {
         ProtocolHandle<P> handle = factoryHandle.Handle;
-        Task.run(() -> handle.handle(p), p);
+        Task.run(() -> handle.handle(p), p, factoryHandle.Mode);
     }
 }
