@@ -80,7 +80,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 	}
 
 	@Override
-	public IGlobalAgent.AcquireResult Acquire(int state, boolean fresh) {
+	public IGlobalAgent.AcquireResult Acquire(int state, boolean fresh, boolean noWait) {
 		IGlobalAgent agent;
 		if (TTable.GetStorage() == null || (agent = TTable.getZeze().getGlobalAgent()) == null) // 不支持内存表cache同步。
 			return IGlobalAgent.AcquireResult.getSuccessResult(state);
@@ -103,7 +103,7 @@ public final class Record1<K extends Comparable<K>, V extends Bean> extends Reco
 				break;
 			}
 		}
-		return agent.Acquire(TTable.EncodeGlobalKey(Key), state, fresh);
+		return agent.Acquire(TTable.EncodeGlobalKey(Key), state, fresh, noWait);
 	}
 
 	@Override

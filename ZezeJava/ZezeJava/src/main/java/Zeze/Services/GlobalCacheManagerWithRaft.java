@@ -651,18 +651,16 @@ public class GlobalCacheManagerWithRaft
 			if (cs.getModify() == sender.ServerId)
 				cs.setModify(-1);
 			cs.getShare().remove(sender.ServerId); // always try remove
+			ServerAcquiredTemplate.OpenTable(sender.ServerId).Remove(gkey);
 
 			if (cs.getModify() == -1 && cs.getShare().size() == 0) {
 				// 1. 安全的从global中删除，没有并发问题。
 				cs.setAcquireStatePending(StateRemoved);
 				GlobalStates.Remove(gkey);
-			} else {
+			} else
 				cs.setAcquireStatePending(StateInvalid);
-			}
-			var SenderAcquired = ServerAcquiredTemplate.OpenTable(sender.ServerId);
-			SenderAcquired.Remove(gkey);
 			lockey.PulseAll();
-			return GetSenderCacheState(cs, sender);
+			return StateInvalid;
 		}
 	}
 

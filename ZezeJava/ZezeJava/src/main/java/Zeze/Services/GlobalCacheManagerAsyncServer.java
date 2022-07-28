@@ -348,7 +348,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			if (state.stage == 1) {
 				if (cs.Modify != null && !cs.Share.isEmpty())
 					throw new IllegalStateException("CacheState state error");
-			} else if (state.stage == 0 && cs.AcquireStatePending == StateRemoved) {
+			} else if (cs.AcquireStatePending == StateRemoved && state.stage == 0) {
 				// 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
 				cs.lock.leave();
 				ReleaseAsync(sender, gKey, future); // retry
@@ -380,6 +380,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			if (cs.Modify == sender)
 				cs.Modify = null;
 			cs.Share.remove(sender); // always try remove
+			sender.Acquired.remove(gKey);
 
 			if (cs.Modify == null && cs.Share.isEmpty()) {
 				// 安全的从global中删除，没有并发问题。
@@ -387,7 +388,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				global.remove(gKey);
 			} else
 				cs.AcquireStatePending = StateInvalid;
-			sender.Acquired.remove(gKey);
 			cs.lock.notifyAllWait();
 			future.finishOne();
 		});
@@ -402,7 +402,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			if (state.stage == 1) {
 				if (cs.Modify != null && !cs.Share.isEmpty())
 					throw new IllegalStateException("CacheState state error");
-			} else if (state.stage == 0 && cs.AcquireStatePending == StateRemoved) {
+			} else if (cs.AcquireStatePending == StateRemoved && state.stage == 0) {
 				// 这个是不可能的，因为有Release请求进来意味着肯定有拥有者(share or modify)，此时不可能进入StateRemoved。
 				cs.lock.leave();
 				ReleaseAsync(rpc); // retry
@@ -441,6 +441,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 			if (cs.Modify == sender)
 				cs.Modify = null;
 			cs.Share.remove(sender); // always try remove
+			sender.Acquired.remove(gKey);
 
 			if (cs.Modify == null && cs.Share.isEmpty()) {
 				// 安全的从global中删除，没有并发问题。
@@ -448,9 +449,8 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 				global.remove(gKey);
 			} else
 				cs.AcquireStatePending = StateInvalid;
-			sender.Acquired.remove(gKey);
 			cs.lock.notifyAllWait();
-			rpc.Result.State = cs.GetSenderCacheState(sender);
+			rpc.Result.State = StateInvalid;
 			rpc.SendResultCode(0);
 			if (ENABLE_PERF)
 				perf.onAcquireEnd(rpc, StateInvalid);

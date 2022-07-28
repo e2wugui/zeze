@@ -202,7 +202,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 	}
 
 	// under lockey.writeLock and record.fairLock
-	private boolean Remove(Map.Entry<K, Record1<K, V>> p) {
+	private void Remove(Map.Entry<K, Record1<K, V>> p) {
 		if (DataMap.remove(p.getKey(), p.getValue())) {
 			// 这里有个时间窗口：先删除DataMap再去掉Lru引用，
 			// 当对Key再次GetOrAdd时，LruNode里面可能已经存在旧的record。
@@ -213,18 +213,18 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			if (oldNode != null)
 				oldNode.remove(p.getKey(), p.getValue());
 			Table.RocksCacheRemove(p.getKey());
-			return true;
-		}
-		return true; // 没有删除成功，仍然返回true。
+		} else
+			p.getValue().setState(GlobalCacheManagerConst.StateRemoved); // 也确保已删除状态
 	}
 
 	private boolean TryRemoveRecordUnderLock(Map.Entry<K, Record1<K, V>> p) {
 		if (Table.GetStorage() == null) {
-				/* 不支持内存表cache同步。
-				if (p.Value.Acquire(GlobalCacheManager.StateInvalid) != GlobalCacheManager.StateInvalid)
-				    return false;
-				*/
-			return Remove(p);
+			/* 不支持内存表cache同步。
+			if (p.Value.Acquire(GlobalCacheManager.StateInvalid) != GlobalCacheManager.StateInvalid)
+				return false;
+			*/
+			Remove(p);
+			return true;
 		}
 		// 这个变量的修改操作在不同 CheckpointMode 下并发模式不同。
 		// case CheckpointMode.Immediately
@@ -243,20 +243,16 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		if (record.isFreshAcquire())
 			return false;
 
-		var acquireInvalid = record.getState() != GlobalCacheManagerConst.StateInvalid;
-		if (!Remove(p))
-			return false;
-
-		if (acquireInvalid) {
+		if (record.getState() != GlobalCacheManagerConst.StateInvalid) {
 			try {
-				var r = record.Acquire(GlobalCacheManagerConst.StateInvalid, false);
-				if (r.ResultCode != 0 || r.ResultState != GlobalCacheManagerConst.StateInvalid)
-					return false;
+				record.Acquire(GlobalCacheManagerConst.StateInvalid, false, true);
 			} catch (Throwable e) {
 				logger.error("Acquire({}:{}) exception:", record.getTable().getName(), record.getObjectKey(), e);
 				// 此时GlobalServer可能已经改成StateInvalid了, 无论如何还是当成已经Invalid保证安全
 			}
 		}
+
+		Remove(p);
 		return true;
 	}
 

@@ -378,6 +378,7 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 				if (cs.Modify == sender)
 					cs.Modify = null;
 				cs.Share.remove(sender); // always try remove
+				sender.Acquired.remove(gKey);
 
 				if (cs.Modify == null && cs.Share.isEmpty()) {
 					// 安全的从global中删除，没有并发问题。
@@ -385,9 +386,8 @@ public final class GlobalCacheManagerServer implements GlobalCacheManagerConst {
 					global.remove(gKey);
 				} else
 					cs.AcquireStatePending = StateInvalid;
-				sender.Acquired.remove(gKey);
 				cs.notifyAll(); //notify
-				return cs.GetSenderCacheState(sender);
+				return StateInvalid;
 			} //notify
 		}
 	}

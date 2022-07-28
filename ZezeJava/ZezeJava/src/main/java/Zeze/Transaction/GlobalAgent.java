@@ -162,7 +162,7 @@ public final class GlobalAgent implements IGlobalAgent {
 	}
 
 	@Override
-	public AcquireResult Acquire(Binary gkey, int state, boolean fresh) {
+	public AcquireResult Acquire(Binary gkey, int state, boolean fresh, boolean noWait) {
 		var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
 		if (agent.isReleasing()) {
 			agent.setFastFail();
@@ -179,6 +179,10 @@ public final class GlobalAgent implements IGlobalAgent {
 		if (fresh)
 			rpc.setResultCode(GlobalCacheManagerConst.AcquireFreshSource);
 		try {
+			if (noWait) {
+				rpc.Send(socket);
+				return null;
+			}
 			rpc.SendForWait(socket, agent.getConfig().AcquireTimeout).get();
 		} catch (Throwable e) {
 			agent.setFastFail(); // 一般是超时失败，此时必须进入快速失败模式。

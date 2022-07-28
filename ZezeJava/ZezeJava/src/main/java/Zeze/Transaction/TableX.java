@@ -11,13 +11,12 @@ import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Services.ServiceManager.AutoKey;
 import Zeze.Util.KV;
 import Zeze.Util.Macro;
-import Zeze.Util.Str;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import static Zeze.Services.GlobalCacheManagerConst.StateInvalid;
-import static Zeze.Services.GlobalCacheManagerConst.StateShare;
 import static Zeze.Services.GlobalCacheManagerConst.StateModify;
 import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
+import static Zeze.Services.GlobalCacheManagerConst.StateShare;
 
 public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Table {
 	private static final Logger logger = LogManager.getLogger(TableX.class);
@@ -91,11 +90,10 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			if (table == this || table.Cache == null)
 				continue; // skip self
 			var r = table.Cache.Get(key);
-			if (r != null && r.getState() > checkState) {
-				throw new AssertionError(
-						Str.format("verify failed: serverId={}/{}, table={}, key={}, state={}, isModify={}",
-								getZeze().getConfig().getServerId(), table.getZeze().getConfig().getServerId(),
-								getName(), key, r.getState(), isModify));
+			if (r != null && r.getState() > checkState && r.getState() != StateRemoved) {
+				logger.error("VerifyGlobalRecordState failed: serverId={}/{}, table={}, key={}, state={}, isModify={}",
+						getZeze().getConfig().getServerId(), table.getZeze().getConfig().getServerId(),
+						getName(), key, r.getState(), isModify);
 			}
 		}
 	}
@@ -126,7 +124,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 					return new AtomicTupleRecord<>(r, strongRef, beforeTimestamp);
 				}
 
-				var acquire = r.Acquire(StateShare, false);
+				var acquire = r.Acquire(StateShare, false, false);
 				r.setState(acquire.ResultState);
 				if (r.getState() == StateInvalid) {
 					var txn = Transaction.getCurrent();

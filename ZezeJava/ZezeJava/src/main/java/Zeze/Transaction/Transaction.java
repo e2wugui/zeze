@@ -458,8 +458,8 @@ public final class Transaction {
 				case GlobalCacheManagerConst.StateShare:
 					// 这里可能死锁：另一个先获得提升的请求要求本机Reduce，但是本机Checkpoint无法进行下去，被当前事务挡住了。
 					// 通过 GlobalCacheManager 检查死锁，返回失败;需要重做并释放锁。
-					var acquire = e.AtomicTupleRecord.Record.Acquire(
-							GlobalCacheManagerConst.StateModify, e.AtomicTupleRecord.Record.isFresh());
+					var acquire = e.AtomicTupleRecord.Record.Acquire(GlobalCacheManagerConst.StateModify,
+							e.AtomicTupleRecord.Record.isFresh(), false);
 					if (acquire.ResultState != GlobalCacheManagerConst.StateModify) {
 						e.AtomicTupleRecord.Record.setNotFresh(); // 抢失败不再新鲜。
 						logger.debug("Acquire Failed. Maybe DeadLock Found {}", e.AtomicTupleRecord);

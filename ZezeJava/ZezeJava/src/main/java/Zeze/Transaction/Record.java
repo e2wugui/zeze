@@ -143,7 +143,10 @@ public abstract class Record {
 	final Database.Transaction getDatabaseTransactionTmp() {
 		return DatabaseTransactionTmp;
 	}
-	final Database.Transaction getDatabaseTransactionOldTmp() { return DatabaseTransactionOldTmp; }
+
+	final Database.Transaction getDatabaseTransactionOldTmp() {
+		return DatabaseTransactionOldTmp;
+	}
 
 	final void setDatabaseTransactionTmp(Database.Transaction value) {
 		DatabaseTransactionTmp = value;
@@ -165,7 +168,7 @@ public abstract class Record {
 
 	public abstract void SetDirty();
 
-	public abstract IGlobalAgent.AcquireResult Acquire(int state, boolean fresh);
+	public abstract IGlobalAgent.AcquireResult Acquire(int state, boolean fresh, boolean noWait);
 
 	public abstract void Encode0();
 

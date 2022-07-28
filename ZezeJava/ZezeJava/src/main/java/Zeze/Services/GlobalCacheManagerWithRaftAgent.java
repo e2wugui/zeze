@@ -139,7 +139,7 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 	}
 
 	@Override
-	public AcquireResult Acquire(Binary gkey, int state, boolean fresh) {
+	public AcquireResult Acquire(Binary gkey, int state, boolean fresh, boolean noWait) {
 		var agent = Agents[GetGlobalCacheManagerHashIndex(gkey)]; // hash
 		if (agent.isReleasing()) {
 			agent.setFastFail();
@@ -170,7 +170,10 @@ public class GlobalCacheManagerWithRaftAgent extends AbstractGlobalCacheManagerW
 		rpc.getUnique().setClientId(String.valueOf(getZeze().getConfig().getServerId()));
 		rpc.setTimeout(agent.getConfig().AcquireTimeout);
 		try {
-			agent.RaftClient.SendForWait(rpc).await();
+			var future = agent.RaftClient.SendForWait(rpc);
+			if (noWait)
+				return null;
+			future.await();
 		} catch (Throwable e) {
 			agent.setFastFail();
 			Transaction trans = Transaction.getCurrent();

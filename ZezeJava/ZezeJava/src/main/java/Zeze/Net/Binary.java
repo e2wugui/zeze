@@ -102,7 +102,7 @@ public final class Binary implements Comparable<Binary> {
 
 	@Override
 	public int hashCode() {
-		return ByteBuffer.calc_hashnr(_Bytes, getOffset(), size());
+		return ByteBuffer.calc_hashnr(_Bytes, Offset, Count);
 	}
 
 	@Override
