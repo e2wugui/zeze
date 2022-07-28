@@ -136,6 +136,10 @@ public final class Task {
 		}
 	}
 
+	public static Future<?> run(Action0 action, String name) {
+		return run(action, name, DispatchMode.Normal);
+	}
+
 	public static Future<?> run(Action0 action, String name, DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			final var future = new TaskCompletionSource<Long>();
@@ -323,6 +327,10 @@ public final class Task {
 		}
 	}
 
+	public static Future<Long> run(FuncLong func, Protocol<?> p) {
+		return run(func, p, DispatchMode.Normal);
+	}
+
 	public static Future<Long> run(FuncLong func, Protocol<?> p, DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			final var future = new TaskCompletionSource<Long>();
@@ -334,6 +342,10 @@ public final class Task {
 		return pool.submit(() -> Call(func, p, null, null));
 	}
 
+	public static Future<Long> run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
+		return run(func, p, actionWhenError, DispatchMode.Normal);
+	}
+
 	public static Future<Long> run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			final var future = new TaskCompletionSource<Long>();
@@ -343,6 +355,10 @@ public final class Task {
 
 		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
 		return pool.submit(() -> Call(func, p, actionWhenError, null));
+	}
+
+	public static Future<Long> run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName) {
+		return run(func, p, actionWhenError, specialName, DispatchMode.Normal);
 	}
 
 	public static Future<Long> run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName, DispatchMode mode) {
@@ -392,6 +408,10 @@ public final class Task {
 		}
 	}
 
+	public static Future<Long> run(Procedure procedure) {
+		return run(procedure, DispatchMode.Normal);
+	}
+
 	public static Future<Long> run(Procedure procedure, DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			final var future = new TaskCompletionSource<Long>();
@@ -401,6 +421,10 @@ public final class Task {
 
 		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
 		return pool.submit(() -> Call(procedure, null, null));
+	}
+
+	public static Future<Long> run(Procedure procedure, Protocol<?> from) {
+		return run(procedure, from, DispatchMode.Normal);
 	}
 
 	public static Future<Long> run(Procedure procedure, Protocol<?> from, DispatchMode mode) {
@@ -414,6 +438,10 @@ public final class Task {
 		return pool.submit(() -> Call(procedure, from, null));
 	}
 
+	public static Future<Long> run(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError) {
+		return run(procedure, from, actionWhenError, DispatchMode.Normal);
+	}
+
 	public static Future<Long> run(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError, DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			final var future = new TaskCompletionSource<Long>();
@@ -425,6 +453,10 @@ public final class Task {
 		return pool.submit(() -> Call(procedure, from, actionWhenError));
 	}
 
+	public static Future<Long> runRpcResponse(Procedure procedure) {
+		return runRpcResponse(procedure, DispatchMode.Normal);
+	}
+
 	public static Future<Long> runRpcResponse(Procedure procedure, DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			final var future = new TaskCompletionSource<Long>();
@@ -434,6 +466,10 @@ public final class Task {
 
 		var pool = mode == DispatchMode.Critical ? threadPoolCritical : threadPoolDefault;
 		return pool.submit(() -> Call(procedure, null, null)); // rpcResponseThreadPool
+	}
+
+	public static Future<Long> runRpcResponse(FuncLong func, Protocol<?> p) {
+		return runRpcResponse(func, p, DispatchMode.Normal);
 	}
 
 	public static Future<Long> runRpcResponse(FuncLong func, Protocol<?> p, DispatchMode mode) {
