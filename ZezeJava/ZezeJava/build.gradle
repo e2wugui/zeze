@@ -1,19 +1,27 @@
 apply from: '../build.gradle'
 
 dependencies {
-    implementation 'org.pcollections:pcollections:3.1.4'
-    implementation 'org.slf4j:slf4j-api:1.7.36'
+    // required dependencies
     implementation 'org.apache.logging.log4j:log4j-api:2.18.0'
     implementation 'org.apache.logging.log4j:log4j-core:2.18.0'
-    implementation 'org.apache.logging.log4j:log4j-slf4j-impl:2.18.0'
-    implementation 'org.apache.commons:commons-dbcp2:2.9.0'
-    implementation 'org.apache.commons:commons-pool2:2.11.1'
-    implementation 'org.rocksdb:rocksdbjni:7.4.3'
-    implementation 'org.tikv:tikv-client-java:3.3.0'
-    implementation 'mysql:mysql-connector-java:8.0.29'
-    implementation 'org.apache.rocketmq:rocketmq-client:4.9.4' // X 0718
-    implementation 'javax:javaee-api:8.0.1' // X 0718
     implementation 'org.jetbrains:annotations:23.0.0'
+    implementation 'org.pcollections:pcollections:3.1.4'
+    implementation 'org.rocksdb:rocksdbjni:7.4.3'
+
+    // optional dependencies
+    // for tikv
+    compileOnly 'org.tikv:tikv-client-java:3.3.0'
+    // runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
+    // runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.18.0'
+
+    // for jdbc(mysql,sqlserver)
+    compileOnly 'org.apache.commons:commons-dbcp2:2.9.0'
+    compileOnly 'org.apache.commons:commons-pool2:2.11.1'
+    compileOnly 'mysql:mysql-connector-java:8.0.30'
+
+    // for rocketmq
+    compileOnly 'org.apache.rocketmq:rocketmq-client:4.9.4' // X 0718
+    compileOnly 'javax:javaee-api:8.0.1' // X 0718
 }
 
 task startServiceManager(type: JavaExec) {
@@ -21,7 +29,7 @@ task startServiceManager(type: JavaExec) {
     classpath += sourceSets.main.runtimeClasspath
     classpath += files('.')
     mainClass = 'Zeze.Services.ServiceManagerServer'
-    allJvmArgs = [ '-Dlogname=ServiceManagerServer' ]
+    allJvmArgs = ['-Dlogname=ServiceManagerServer']
 }
 
 task startGlobalCacheManager(type: JavaExec) {
@@ -29,7 +37,7 @@ task startGlobalCacheManager(type: JavaExec) {
     classpath += sourceSets.main.runtimeClasspath
     classpath += files('.')
     mainClass = 'Zeze.Services.GlobalCacheManagerServer'
-    allJvmArgs = [ '-Dlogname=GlobalCacheManagerServer' ]
+    allJvmArgs = ['-Dlogname=GlobalCacheManagerServer']
 }
 
 task startGlobalCacheManagerAsync(type: JavaExec) {
@@ -37,5 +45,5 @@ task startGlobalCacheManagerAsync(type: JavaExec) {
     classpath += sourceSets.main.runtimeClasspath
     classpath += files('.')
     mainClass = 'Zeze.Services.GlobalCacheManagerAsyncServer'
-    allJvmArgs = [ '-Dlogname=GlobalCacheManagerAsyncServer' ]
+    allJvmArgs = ['-Dlogname=GlobalCacheManagerAsyncServer']
 }

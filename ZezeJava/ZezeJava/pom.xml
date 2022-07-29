@@ -78,28 +78,21 @@
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>11</maven.compiler.source>
 		<maven.compiler.target>11</maven.compiler.target>
-		<pcollectons.version>3.1.4</pcollectons.version>
-		<log4j-core.version>2.17.1</log4j-core.version>
 		<log4j-api.version>2.17.1</log4j-api.version>
-		<commons-dbcp2.version>2.9.0</commons-dbcp2.version>
-		<commons-pool2.version>2.11.1</commons-pool2.version>
+		<log4j-core.version>2.17.1</log4j-core.version>
+		<annotations.version>23.0.0</annotations.version>
+		<pcollectons.version>3.1.4</pcollectons.version>
 		<rocksdbjni.version>7.4.3</rocksdbjni.version>
 		<tikv.version>3.3.0</tikv.version>
-		<mysql-conncetor-java.version>8.0.28</mysql-conncetor-java.version>
+		<commons-dbcp2.version>2.9.0</commons-dbcp2.version>
+		<commons-pool2.version>2.11.1</commons-pool2.version>
+		<mysql-conncetor-java.version>8.0.30</mysql-conncetor-java.version>
 		<rocketmq-client.version>4.9.4</rocketmq-client.version>
 		<javaee-api.version>8.0.1</javaee-api.version>
-		<annotations.version>23.0.0</annotations.version>
 		<junit.version>4.13.2</junit.version>
 	</properties>
 
 	<dependencies>
-		<!-- https://mvnrepository.com/artifact/org.pcollections/pcollections -->
-		<dependency>
-			<groupId>org.pcollections</groupId>
-			<artifactId>pcollections</artifactId>
-			<version>${pcollectons.version}</version>
-		</dependency>
-
 		<!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-api -->
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
@@ -114,18 +107,17 @@
 			<version>${log4j-core.version}</version>
 		</dependency>
 
-		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-dbcp2 -->
 		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-dbcp2</artifactId>
-			<version>${commons-dbcp2.version}</version>
+			<groupId>org.jetbrains</groupId>
+			<artifactId>annotations</artifactId>
+			<version>${annotations.version}</version>
 		</dependency>
 
-		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-pool2 -->
+		<!-- https://mvnrepository.com/artifact/org.pcollections/pcollections -->
 		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-pool2</artifactId>
-			<version>${commons-pool2.version}</version>
+			<groupId>org.pcollections</groupId>
+			<artifactId>pcollections</artifactId>
+			<version>${pcollectons.version}</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/org.rocksdb/rocksdbjni -->
@@ -140,6 +132,23 @@
 			<groupId>org.tikv</groupId>
 			<artifactId>tikv-client-java</artifactId>
 			<version>${tikv.version}</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-dbcp2 -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-dbcp2</artifactId>
+			<version>${commons-dbcp2.version}</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<!-- https://mvnrepository.com/artifact/org.apache.commons/commons-pool2 -->
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-pool2</artifactId>
+			<version>${commons-pool2.version}</version>
+			<scope>provided</scope>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/mysql/mysql-connector-java -->
@@ -147,6 +156,7 @@
 			<groupId>mysql</groupId>
 			<artifactId>mysql-connector-java</artifactId>
 			<version>${mysql-conncetor-java.version}</version>
+			<scope>provided</scope>
 		</dependency>
 
 		<dependency>
@@ -161,12 +171,6 @@
 			<artifactId>javaee-api</artifactId>
 			<version>${javaee-api.version}</version>
 			<scope>provided</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.jetbrains</groupId>
-			<artifactId>annotations</artifactId>
-			<version>${annotations.version}</version>
 		</dependency>
 
 		<!-- https://mvnrepository.com/artifact/junit/junit -->

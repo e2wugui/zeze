@@ -5,8 +5,24 @@ dependencies {
     implementation project(":ZezexJava:client")
     implementation project(":ZezexJava:linkd")
     implementation project(":ZezexJava:server")
+
+    // for test
     implementation 'junit:junit:4.13.2'
+
+    // for tikv
+    implementation 'org.tikv:tikv-client-java:3.3.0'
+    runtimeOnly 'org.slf4j:slf4j-api:1.7.36'
+    runtimeOnly 'org.apache.logging.log4j:log4j-slf4j-impl:2.18.0'
+
+    // for jdbc(mysql,sqlserver)
+    implementation 'org.apache.commons:commons-dbcp2:2.9.0'
+    implementation 'org.apache.commons:commons-pool2:2.11.1'
+    implementation 'mysql:mysql-connector-java:8.0.30'
+
+    // for websocket
     implementation 'org.java-websocket:Java-WebSocket:1.5.3'
+
+    // for log4j2
     implementation 'com.lmax:disruptor:3.4.4'
 }
 
