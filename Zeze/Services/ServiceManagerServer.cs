@@ -160,7 +160,9 @@ namespace Zeze.Services
             if (ip.Length == 0 || port == 0)
                 return;
             var host = ip + ":" + port;
-            Loads.GetOrAdd(host, (key) => new LoadObservers(this)).Observers.Add(sender.SessionId);
+            var loadObservers = Loads.GetOrAdd(host, _ => new LoadObservers(this));
+            lock (loadObservers)
+                loadObservers.Observers.Add(sender.SessionId);
         }
 
         private Task<long> ProcessSetServerLoad(Protocol _p)

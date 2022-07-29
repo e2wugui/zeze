@@ -536,7 +536,11 @@ public final class ServiceManagerServer implements Closeable {
 		if (ip.isEmpty() || port == 0)
 			return;
 		var host = ip + ":" + port;
-		Loads.computeIfAbsent(host, (key) -> new LoadObservers(this)).Observers.add(sender.getSessionId());
+		var loadObservers = Loads.computeIfAbsent(host, __ -> new LoadObservers(this));
+		//noinspection SynchronizationOnLocalVariableOrMethodParameter
+		synchronized (loadObservers) {
+			loadObservers.Observers.add(sender.getSessionId());
+		}
 	}
 
 	private long ProcessRegister(Register r) {

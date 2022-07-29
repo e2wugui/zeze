@@ -14,6 +14,8 @@ local files = {
 	{ 5, "test/Raft/raft.5x6node.bat" },
 	{ 2, "test/GlobalRaft/service&global_raft3.bat" },
 	{ 2, "test/InfiniteSimulate/simulate.bat" },
+	{ 2, "test/InfiniteSimulate/simulate - Bug.bat" },
+	{ 3, "test/InfiniteSimulate/simulate - ProcessDaemon.bat" },
 	{ 2, "test/GlobalRaft/service&global_raft3.bat" },
 	{ 2, "test/GlobalCacheManagerWithRaft/global_raft.bat" },
 }
