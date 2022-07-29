@@ -465,6 +465,7 @@ namespace Zeze.Services
                 if (cs.Modify == sender)
                     cs.Modify = null;
                 cs.Share.Remove(sender); // always try remove
+                sender.Acquired.TryRemove(gkey, out _);
 
                 if (cs.Modify == null && cs.Share.Count == 0)
                 {
@@ -476,9 +477,8 @@ namespace Zeze.Services
                 {
                     cs.AcquireStatePending = StateInvalid;
                 }
-                sender.Acquired.TryRemove(gkey, out var _);
                 cs.Monitor.PulseAll();
-                return cs.GetSenderCacheState(sender);
+                return StateInvalid;
             }
         }
 
@@ -803,6 +803,7 @@ namespace Zeze.Services
                                         break;
                                     default:
                                         reduce.Key.SetError();
+                                        logger.Error("Reduce result state={0}", reduce.Value.Result.State);
                                         break;
                                 }
                                 Perf?.OnReduceEnd(reduce.Value);

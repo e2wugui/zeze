@@ -398,6 +398,8 @@ namespace Zeze.Services
                                         break;
                                     default:
                                         reduce.Key.SetError();
+                                        logger.Error("Reduce {0}=>{1} AcquireState={2} CacheState={3} res={4}",
+                                            sender, reduce.Key, GlobalCacheManagerServer.StateModify, cs, reduce.Value.Result);
                                         break;
                                 }
                             }
@@ -509,6 +511,7 @@ namespace Zeze.Services
                 if (cs.Modify == sender.ServerId)
                     cs.Modify = -1;
                 cs.Share.Remove(sender.ServerId); // always try remove
+                await ServerAcquiredTemplate.OpenTableWithType(sender.ServerId).RemoveAsync(gkey);
 
                 if (cs.Modify == -1 && cs.Share.Count == 0)
                 {
@@ -520,11 +523,9 @@ namespace Zeze.Services
                 {
                     cs.AcquireStatePending = GlobalCacheManagerServer.StateInvalid;
                 }
-                var SenderAcquired = ServerAcquiredTemplate.OpenTableWithType(sender.ServerId);
-                await SenderAcquired.RemoveAsync(gkey);
                 logger.Debug($"Release {gkey} {cs}");
                 lockey.PulseAll();
-                return GetSenderCacheState(cs, sender);
+                return GlobalCacheManagerServer.StateInvalid;
             }
         }
 

@@ -227,7 +227,7 @@ namespace Zeze.Transaction
                     {
                         // 出现回收不了，一般是批量修改数据，此时启动一次Checkpoint。
                         Table.Zeze.Checkpoint.CheckpointNow().Wait();
-                        logger.Warn($"remain record when clean oldest lrunode.");
+                        logger.Warn($"remain {node.Count} records when clean oldest lrunode.");
                         System.Threading.Thread.Sleep(Table.TableConf.CacheCleanPeriodWhenExceedCapacity);
                     }
                 }
