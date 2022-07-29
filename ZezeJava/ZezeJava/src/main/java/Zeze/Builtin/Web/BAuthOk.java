@@ -5,32 +5,11 @@ import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BAuthOk extends Zeze.Transaction.Bean {
-    private String _ServletName;
+    private final Zeze.Builtin.Web.BRequest _Request;
     private String _Account;
-    private final Zeze.Transaction.Collections.PList1<String> _Cookie;
 
-    public String getServletName() {
-        if (!isManaged())
-            return _ServletName;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        if (txn == null)
-            return _ServletName;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ServletName)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.Value : _ServletName;
-    }
-
-    public void setServletName(String value) {
-        if (value == null)
-            throw new IllegalArgumentException();
-        if (!isManaged()) {
-            _ServletName = value;
-            return;
-        }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ServletName(this, 1, value));
+    public Zeze.Builtin.Web.BRequest getRequest(){
+        return _Request;
     }
 
     public String getAccount() {
@@ -57,28 +36,19 @@ public final class BAuthOk extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__Account(this, 2, value));
     }
 
-    public Zeze.Transaction.Collections.PList1<String> getCookie() {
-        return _Cookie;
-    }
-
     public BAuthOk() {
          this(0);
     }
 
     public BAuthOk(int _varId_) {
         super(_varId_);
-        _ServletName = "";
+        _Request = new Zeze.Builtin.Web.BRequest(1);
         _Account = "";
-        _Cookie = new Zeze.Transaction.Collections.PList1<>(String.class);
-        _Cookie.VariableId = 3;
     }
 
     public void Assign(BAuthOk other) {
-        setServletName(other.getServletName());
+        getRequest().Assign(other.getRequest());
         setAccount(other.getAccount());
-        getCookie().clear();
-        for (var e : other.getCookie())
-            getCookie().add(e);
     }
 
     public BAuthOk CopyIfManaged() {
@@ -109,13 +79,6 @@ public final class BAuthOk extends Zeze.Transaction.Bean {
         return TYPEID;
     }
 
-    private static final class Log__ServletName extends Zeze.Transaction.Logs.LogString {
-        public Log__ServletName(BAuthOk bean, int varId, String value) { super(bean, varId, value); }
-
-        @Override
-        public void Commit() { ((BAuthOk)getBelong())._ServletName = Value; }
-    }
-
     private static final class Log__Account extends Zeze.Transaction.Logs.LogString {
         public Log__Account(BAuthOk bean, int varId, String value) { super(bean, varId, value); }
 
@@ -135,15 +98,10 @@ public final class BAuthOk extends Zeze.Transaction.Bean {
     public void BuildString(StringBuilder sb, int level) {
         sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Web.BAuthOk: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ServletName").append('=').append(getServletName()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Account").append('=').append(getAccount()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Cookie").append("=[").append(System.lineSeparator());
-        level += 4;
-        for (var _item_ : getCookie()) {
-            sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(_item_).append(',').append(System.lineSeparator());
-        }
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append(']').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Request").append('=').append(System.lineSeparator());
+        getRequest().BuildString(sb, level + 4);
+        sb.append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Account").append('=').append(getAccount()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -164,27 +122,20 @@ public final class BAuthOk extends Zeze.Transaction.Bean {
     public void Encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getServletName();
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
-            }
+            int _a_ = _o_.WriteIndex;
+            int _j_ = _o_.WriteTag(_i_, 1, ByteBuffer.BEAN);
+            int _b_ = _o_.WriteIndex;
+            getRequest().Encode(_o_);
+            if (_b_ + 1 == _o_.WriteIndex)
+                _o_.WriteIndex = _a_;
+            else
+                _i_ = _j_;
         }
         {
             String _x_ = getAccount();
             if (!_x_.isEmpty()) {
                 _i_ = _o_.WriteTag(_i_, 2, ByteBuffer.BYTES);
                 _o_.WriteString(_x_);
-            }
-        }
-        {
-            var _x_ = getCookie();
-            int _n_ = _x_.size();
-            if (_n_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.LIST);
-                _o_.WriteListType(_n_, ByteBuffer.BYTES);
-                for (var _v_ : _x_)
-                    _o_.WriteString(_v_);
             }
         }
         _o_.WriteByte(0);
@@ -195,21 +146,11 @@ public final class BAuthOk extends Zeze.Transaction.Bean {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setServletName(_o_.ReadString(_t_));
+            _o_.ReadBean(getRequest(), _t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
             setAccount(_o_.ReadString(_t_));
-            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
-        }
-        if (_i_ == 3) {
-            var _x_ = getCookie();
-            _x_.clear();
-            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
-                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadString(_t_));
-            } else
-                _o_.SkipUnknownField(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -220,11 +161,13 @@ public final class BAuthOk extends Zeze.Transaction.Bean {
 
     @Override
     protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Cookie.InitRootInfo(root, this);
+        _Request.InitRootInfo(root, this);
     }
 
     @Override
     public boolean NegativeCheck() {
+        if (getRequest().NegativeCheck())
+            return true;
         return false;
     }
 
@@ -237,9 +180,8 @@ public final class BAuthOk extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ServletName = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                case 1: _Request.FollowerApply(vlog); break;
                 case 2: _Account = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
-                case 3: _Cookie.FollowerApply(vlog); break;
             }
         }
     }

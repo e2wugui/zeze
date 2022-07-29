@@ -1,14 +1,13 @@
 package Zeze.Web;
 
-import Zeze.Builtin.Web.RequestJson;
-import Zeze.Builtin.Web.RequestQuery;
+import java.util.Map;
 
 public abstract class HttpAuth {
-	public String auth(String path0, RequestJson r) throws Throwable {
+	public String auth(String path0, Map<String, String> params) throws Throwable {
 		return null;
 	}
 
-	public String auth(String path0, RequestQuery r) throws Throwable {
+	public String auth(String path0, String json) throws Throwable {
 		return null;
 	}
 }

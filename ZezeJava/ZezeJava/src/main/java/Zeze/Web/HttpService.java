@@ -5,10 +5,15 @@ import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import Zeze.Arch.LinkdApp;
-import Zeze.Builtin.Web.BHttpResponse;
+import Zeze.Builtin.Web.BHeader;
+import Zeze.Builtin.Web.BRequest;
+import Zeze.Builtin.Web.BResponse;
+import Zeze.Net.Binary;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
@@ -17,51 +22,11 @@ public class HttpService {
 	public static final int WebModuleId = AbstractWeb.ModuleId;
 	public static final int RequestBodyMaxSize = 1024 * 1024;
 
-	public static void sendResponse(HttpExchange exchange, BHttpResponse response) throws IOException {
-		var headers = exchange.getResponseHeaders();
-		headers.put("Content-Type", List.of(response.getContentType()));
-		headers.put("Set-Cookie2", response.getCookie());
 
-		var bytes = response.getBody().InternalGetBytesUnsafe();
-		var len = bytes.length;
-		exchange.sendResponseHeaders(200, len > 0 ? len : -1);
-		if (len > 0) {
-			try (var body = exchange.getResponseBody()) {
-				body.write(bytes);
-			}
-		}
-	}
-
-	public static String parseServletName(HttpExchange exchange) {
-		var path = exchange.getRequestURI().getPath();
-		var last = path.lastIndexOf('/');
-		return path.substring(0, last);
-	}
-
-	public static void sendErrorResponse(HttpExchange exchange, String message) throws IOException {
-		exchange.getResponseHeaders().put("Content-Type", List.of("text/plain; charset=utf-8"));
-
-		var bytes = message.getBytes(StandardCharsets.UTF_8);
-		var len = bytes.length;
-		exchange.sendResponseHeaders(200, len > 0 ? len : -1);
-		if (len > 0) {
-			try (var body = exchange.getResponseBody()) {
-				body.write(bytes);
-			}
-		}
-	}
-
-	public static void sendErrorResponse(HttpExchange exchange, Throwable ex) throws IOException {
-		exchange.getResponseHeaders().put("Content-Type", List.of("text/plain; charset=UTF-8"));
-		exchange.sendResponseHeaders(200, 0);
-		try (var body = exchange.getResponseBody()) {
-			ex.printStackTrace(new PrintStream(body, false, StandardCharsets.UTF_8));
-		}
-	}
-
-	public static void parseQuery(String query, Map<String, String> result) {
+	public static Map<String, String> parseQuery(String query) {
+		var result = new HashMap<String, String>();
 		if (null == query)
-			return;
+			return result;
 
 		var items = query.split("&");
 		for (var item : items) {
@@ -74,6 +39,7 @@ public class HttpService {
 			var val = URLDecoder.decode(item.substring(i), StandardCharsets.UTF_8);
 			result.put(key,val);
 		}
+		return result;
 	}
 
 	public static String readRequestBody(HttpExchange exchange) throws IOException {

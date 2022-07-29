@@ -1,23 +1,15 @@
 package Zeze.Web;
 
 import java.nio.charset.StandardCharsets;
-import Zeze.Builtin.Web.RequestJson;
-import Zeze.Builtin.Web.RequestQuery;
-import Zeze.Net.Binary;
+import Zeze.Builtin.Web.BStream;
 
 public abstract class HttpServlet {
 
-	public boolean handle(Web web, RequestJson r) throws Throwable {
-		r.Result.setContentType("text/plain; charset=utf-8");
-		r.Result.setBody(new Binary("Not Implement.".getBytes(StandardCharsets.UTF_8)));
-		r.SendResult();
-		return false;
+	public void onRequest(HttpExchange r) throws Throwable {
+		r.putResponseHeader("Content-Type", "text/plain; charset=utf-8");
+		r.sendResponseHeaders(200, "Not Implement.".getBytes(StandardCharsets.UTF_8), true);
 	}
 
-	public boolean handle(Web web, RequestQuery r) throws Throwable {
-		r.Result.setContentType("text/plain; charset=utf-8");
-		r.Result.setBody(new Binary("Not Implement.".getBytes(StandardCharsets.UTF_8)));
-		r.SendResult();
-		return false;
+	public void onUpload(HttpExchange r, BStream s) throws Throwable {
 	}
 }

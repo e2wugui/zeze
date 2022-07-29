@@ -1,5 +1,9 @@
 package Zeze.Util;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import org.apache.logging.log4j.message.ParameterizedMessageFactory;
 
 public final class Str {
@@ -44,5 +48,15 @@ public final class Str {
 			if (strs[i] != null && !strs[i].isEmpty())
 				newStrs[j++] = strs[i];
 		return newStrs;
+	}
+
+	public static String stacktrace(Throwable ex) {
+		try (var out = new ByteArrayOutputStream();
+			 var ps = new PrintStream(out, false, StandardCharsets.UTF_8)) {
+			ex.printStackTrace(ps);
+			return new String(out.toByteArray(), StandardCharsets.UTF_8);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 	}
 }

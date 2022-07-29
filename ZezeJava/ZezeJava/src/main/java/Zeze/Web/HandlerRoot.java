@@ -1,14 +1,13 @@
 package Zeze.Web;
 
 import java.io.IOException;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
+import java.util.Map;
 import Zeze.Builtin.Web.AuthOk;
-import Zeze.Builtin.Web.BHttpResponse;
-import Zeze.Builtin.Web.RequestJson;
-import Zeze.Builtin.Web.RequestQuery;
+import Zeze.Builtin.Web.Request;
+import Zeze.Builtin.Web.RequestInputStream;
+import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
+import Zeze.Transaction.Bean;
 import Zeze.Util.OutLong;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
@@ -25,154 +24,124 @@ public class HandlerRoot implements HttpHandler {
 		return i > 0 ? path.substring(1, i) : path.substring(1);
 	}
 
+	public static String LinkdAuthName = "/linkd.auth";
 	@Override
 	public void handle(HttpExchange exchange) throws IOException {
+		var x = new LinkdHttpExchange(exchange);
 		try {
 			var path = exchange.getRequestURI().getPath();
-			if (path.endsWith("/jsonauth")) {
-				var agent = handleJson(exchange);
-				if (null != agent) {
-					var path0 = getPath0(agent.Argument.getServletName());
+			if (path.endsWith(LinkdAuthName)) {
+				var query = parseQuery(x);
+				if (null != query) {
+					var path0 = getPath0(path);
 					var localAuth = HttpService.linkdApp.WebAuth.get(path0);
 					if (null != localAuth) {
-						var account = localAuth.auth(path0, agent);
+						var account = localAuth.auth(path0, query);
 						if (null != account)
-							handleAuthOk(exchange, agent.Argument.getServletName(), account, agent.Argument.getCookie());
+							handleAuthOk(x, path, account);
 						else
-							HttpService.sendErrorResponse(exchange, "auth fail.");
+							x.sendErrorResponse("auth fail.");
 						return; // done
 					}
-					choiceProviderAndDispatch(exchange, agent);
 				}
-				return; // done
 			}
-
-			if (path.endsWith("/json")) {
-				var agent = handleJson(exchange);
-				if (null != agent)
-					choiceProviderAndDispatch(exchange, agent);
-				return; // done
-			}
-
-			if (path.endsWith("/queryauth")) {
-				var agent = handleQuery(exchange);
-				if (null != agent) {
-					var path0 = getPath0(agent.Argument.getServletName());
-					var localAuth = HttpService.linkdApp.WebAuth.get(path0);
-					if (null != localAuth) {
-						var account = localAuth.auth(path0, agent);
-						if (null != account)
-							handleAuthOk(exchange, agent.Argument.getServletName(), account, agent.Argument.getCookie());
-						else
-							HttpService.sendErrorResponse(exchange, "auth fail.");
-						return; // done
-					}
-					choiceProviderAndDispatch(exchange, agent);
-				}
-				return; // done
-			}
-
-			if (path.endsWith("/query")) {
-				var agent = handleQuery(exchange);
-				if (null != agent)
-					choiceProviderAndDispatch(exchange, agent);
-				return; // done
-			}
-
-			HttpService.sendErrorResponse(exchange, "Unknown Proxy Method.");
+			// dispatch request to server
+			var req = new Request();
+			x.fillRequest(req.Argument);
+			choiceProviderAndDispatch(x, req, (p) -> processRequestResult(x, req));
 		} catch (Throwable ex) {
-			HttpService.sendErrorResponse(exchange, ex);
+			x.sendErrorResponse(ex);
 		}
 	}
 
-	private static void handleAuthOk(HttpExchange exchange, String servletName, String account, List<String> cookie) throws IOException {
+	private void handleAuthOk(LinkdHttpExchange x, String servletName, String account) throws IOException {
 		var authOk = new AuthOk();
-		authOk.Argument.setServletName(servletName);
+		x.fillRequest(authOk.Argument.getRequest());
 		authOk.Argument.setAccount(account);
-		authOk.Argument.getCookie().addAll(cookie);
 
-		choiceProviderAndDispatch(exchange, authOk);
+		choiceProviderAndDispatch(x, authOk, (p) -> {
+			return 0;
+		});
 	}
 
-	private static void choiceProviderAndDispatch(HttpExchange exchange, Rpc<?, BHttpResponse> agent) throws IOException {
+	private <A extends Bean, R extends Bean> void choiceProviderAndDispatch(
+			LinkdHttpExchange x, Rpc<A, R> req, ProtocolHandle<Rpc<A, R>> resultHandle) throws IOException {
+
 		var linkApp = HttpService.linkdApp;
 		var linkProvider = linkApp.LinkdProvider;
 		var serviceName = linkProvider.MakeServiceName(HttpService.WebModuleId);
 		var services = linkApp.Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
-		var hash = exchange.getRemoteAddress().getAddress().hashCode();
+		var hash = x.exchange.getRemoteAddress().getAddress().hashCode();
 		var provider = new OutLong();
-		if (linkProvider.Distribute.ChoiceHash(services, hash, provider)) {
-			if (!agent.Send(linkApp.LinkdProviderService.GetSocket(provider.Value), (p) -> {
-				// process http response
-				if (agent.isTimeout()) {
-					HttpService.sendErrorResponse(exchange, "timeout.");
-				} else if (agent.getResultCode() != 0) {
-					HttpService.sendErrorResponse(exchange, "ResultCode=" + agent.getResultCode());
-				} else {
-					HttpService.sendResponse(exchange, agent.Result);
-				}
-				return 0;
-			})) {
-				HttpService.sendErrorResponse(exchange, "Distribute error.");
-			}
-		} else {
-			HttpService.sendErrorResponse(exchange, "Provider Not Found.");
+		if (!linkProvider.Distribute.ChoiceHash(services, hash, provider)) {
+			x.sendErrorResponse("Provider Not Found.");
+			x.close();
+			return;
+		}
+		if (!req.Send(linkApp.LinkdProviderService.GetSocket(provider.Value), resultHandle)) {
+			x.sendErrorResponse("Distribute error.");
+			x.close();
+			return;
 		}
 	}
 
-	private static RequestJson handleJson(HttpExchange exchange) throws IOException {
-		String json;
-		switch (exchange.getRequestMethod()) {
-		case "GET":
-			var query = exchange.getRequestURI().getQuery();
-			// 只允许一个参数，并且是json=
-			if (!query.startsWith("json=") || query.contains("&")) {
-				HttpService.sendErrorResponse(exchange, "JSON PARAMETER, ERROR FORMAT!");
-				return null;
-			}
-			json = URLDecoder.decode(query.substring(5), StandardCharsets.UTF_8);
-			break;
-
-		case "POST":
-			json = HttpService.readRequestBody(exchange);
-			// RequestBody 应该是不需要close的吧？
-			break;
-
-		default:
-			HttpService.sendErrorResponse(exchange, "Unknown Method.");
-			return null;
+	private long processRequestResult(LinkdHttpExchange x, Request req) throws IOException {
+		// process http response
+		if (req.isTimeout()) {
+			x.sendErrorResponse("timeout.");
+			x.close();
+			return 0;
+		}
+		if (req.getResultCode() != 0) {
+			x.sendErrorResponse("ResultCode=" + req.getResultCode()
+					+ "\nMessage=" + req.Result.getMessage()
+					+ "\n" + req.Result.getStacktrace());
+			x.close();
+			return 0;
+		}
+		x.sendResponse(req.Result);
+		if (req.Result.isFinish()) {
+			x.closeOutputStream();
 		}
 
-		var agent = new RequestJson();
-		agent.Argument.setServletName(HttpService.parseServletName(exchange));
-		var cookie = exchange.getRequestHeaders().get("Cookie");
-		if (null != cookie)
-			agent.Argument.getCookie().addAll(cookie);
-		agent.Argument.setJson(json);
-
-		return agent;
+		if (!x.isInputStreamClosed()) {
+			var input = new RequestInputStream();
+			x.fillInput(input.Argument);
+			choiceProviderAndDispatch(x, input, (p) -> processRequestInputResult(x, input));
+		}
+		return 0;
 	}
 
-	private static RequestQuery handleQuery(HttpExchange exchange) throws IOException {
-		var agent = new RequestQuery();
-		switch (exchange.getRequestMethod()) {
-		case "GET":
-			HttpService.parseQuery(exchange.getRequestURI().getQuery(), agent.Argument.getQuery());
-			break;
-
-		case "POST":
-			HttpService.parseQuery(HttpService.readRequestBody(exchange), agent.Argument.getQuery());
-			break;
-
-		default:
-			HttpService.sendErrorResponse(exchange, "Unknown Method.");
-			return null;
+	private long processRequestInputResult(LinkdHttpExchange x, RequestInputStream req) throws IOException {
+		if (req.isTimeout()) {
+			x.close();
+			return 0;
 		}
 
-		agent.Argument.setServletName(HttpService.parseServletName(exchange));
-		var cookie = exchange.getRequestHeaders().get("Cookie");
-		if (null != cookie)
-			agent.Argument.getCookie().addAll(cookie);
-		return agent;
+		if (req.getResultCode() != 0) {
+			x.close();
+			return 0;
+		}
+
+		if (!x.isInputStreamClosed()) {
+			var input2 = new RequestInputStream();
+			x.fillInput(input2.Argument);
+			choiceProviderAndDispatch(x, input2, (p) -> processRequestInputResult(x, input2));
+		}
+		return 0;
+	}
+
+	private static Map<String, String> parseQuery(LinkdHttpExchange x) throws IOException {
+		switch (x.exchange.getRequestMethod()) {
+		case "GET":
+			return HttpService.parseQuery(x.exchange.getRequestURI().getQuery());
+
+		case "POST":
+			return HttpService.parseQuery(HttpService.readRequestBody(x.exchange));
+
+		default:
+			x.sendErrorResponse("Unknown Method.");
+			return null;
+		}
 	}
 }

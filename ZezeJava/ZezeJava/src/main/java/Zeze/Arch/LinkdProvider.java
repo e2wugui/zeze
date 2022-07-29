@@ -2,6 +2,7 @@ package Zeze.Arch;
 
 import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.Provider.*;
+import Zeze.Builtin.Web.CloseExchange;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
@@ -313,5 +314,15 @@ public class LinkdProvider extends AbstractLinkdProvider {
 		LinkdApp.LinkdProviderService.ProviderSessions.put(session.getServerLoadName(), session);
 
 		return Zeze.Transaction.Procedure.Success;
+	}
+
+	@Override
+	protected long ProcessCloseExchangeRequest(Zeze.Builtin.Web.CloseExchange r) throws Throwable {
+		return 0; // todo
+	}
+
+	@Override
+	protected long ProcessResponseOutputStreamRequest(Zeze.Builtin.Web.ResponseOutputStream r) throws Throwable {
+		return 0; // todo
 	}
 }

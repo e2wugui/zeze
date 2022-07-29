@@ -1,8 +1,5 @@
 package Zeze.Web;
 
-import java.nio.charset.StandardCharsets;
-import Zeze.Builtin.Web.RequestQuery;
-import Zeze.Net.Binary;
 import Zeze.Transaction.ProcedureStatistics;
 import Zeze.Transaction.TableStatistics;
 
@@ -11,31 +8,30 @@ public class Statistics {
 		web.Servlets.put("/zeze/auth", new HttpServlet() {
 			// 只实现query参数模式。
 			@Override
-			public boolean handle(Web web, RequestQuery r) {
-				Statistics.auth(web, r);
-				return true;
+			public void onRequest(HttpExchange r) {
+				Statistics.auth(r);
 			}
 		});
 		web.Servlets.put("/zeze/stats", new HttpServlet() {
 			// 只实现query参数模式。
 			@Override
-			public boolean handle(Web web, RequestQuery r) {
-				Statistics.handle(web, r);
-				return true;
+			public void onRequest(HttpExchange r) {
+				Statistics.handle(r);
 			}
 		});
 	}
 
-	public static void auth(Web web, RequestQuery r) {
+	public static void auth(HttpExchange r) {
 		// 默认实现并不验证密码，只是把参数account的值保存到会话中。
 		// 当应用需要实现Auth时，继承这个类，并重载auth方法。
-		var ss = web.getSession(r.Argument.getCookie());
-		var account = r.Argument.getQuery().get("account");
-		r.Result.getCookie().add(web.putSession(account));
-		r.SendResult();
+		var ss = r.web.getSession(r.getRequestHeaders().get("").getValues());
+		var query = HttpService.parseQuery(r.getRequest().Argument.getQuery());
+		var account = query.get("account");
+		r.putResponseHeader("", r.web.putSession(account));
+		r.sendResponseHeaders(200, new byte[0],true);
 	}
 
-	public static void handle(Web web, RequestQuery r) {
+	public static void handle(HttpExchange r) {
 		var sb = new StringBuilder();
 
 		sb.append("Procedures:\n");
@@ -50,8 +46,6 @@ public class Statistics {
 			it.value().buildString("        ", sb, "\n");
 		}
 
-		r.Result.setContentType("text/plain; charset=utf-8");
-		r.Result.setBody(new Binary(sb.toString().getBytes(StandardCharsets.UTF_8)));
-		r.SendResult();
+		r.sendTextResult(sb.toString());
 	}
 }

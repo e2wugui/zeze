@@ -4,33 +4,31 @@ package Zeze.Builtin.Web;
 import Zeze.Serialize.ByteBuffer;
 
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
-public final class BHttpResponse extends Zeze.Transaction.Bean {
-    private String _ContentType;
+public final class BStream extends Zeze.Transaction.Bean {
+    private long _ExchangeId;
     private Zeze.Net.Binary _Body;
-    private final Zeze.Transaction.Collections.PList1<String> _Cookie; // TODO ... more http data
+    private boolean _Finish;
 
-    public String getContentType() {
+    public long getExchangeId() {
         if (!isManaged())
-            return _ContentType;
+            return _ExchangeId;
         var txn = Zeze.Transaction.Transaction.getCurrent();
         if (txn == null)
-            return _ContentType;
+            return _ExchangeId;
         txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ContentType)txn.GetLog(this.getObjectId() + 1);
-        return log != null ? log.Value : _ContentType;
+        var log = (Log__ExchangeId)txn.GetLog(this.getObjectId() + 1);
+        return log != null ? log.Value : _ExchangeId;
     }
 
-    public void setContentType(String value) {
-        if (value == null)
-            throw new IllegalArgumentException();
+    public void setExchangeId(long value) {
         if (!isManaged()) {
-            _ContentType = value;
+            _ExchangeId = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__ContentType(this, 1, value));
+        txn.PutLog(new Log__ExchangeId(this, 1, value));
     }
 
     public Zeze.Net.Binary getBody() {
@@ -57,42 +55,55 @@ public final class BHttpResponse extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__Body(this, 2, value));
     }
 
-    public Zeze.Transaction.Collections.PList1<String> getCookie() {
-        return _Cookie;
+    public boolean isFinish() {
+        if (!isManaged())
+            return _Finish;
+        var txn = Zeze.Transaction.Transaction.getCurrent();
+        if (txn == null)
+            return _Finish;
+        txn.VerifyRecordAccessed(this, true);
+        var log = (Log__Finish)txn.GetLog(this.getObjectId() + 3);
+        return log != null ? log.Value : _Finish;
     }
 
-    public BHttpResponse() {
+    public void setFinish(boolean value) {
+        if (!isManaged()) {
+            _Finish = value;
+            return;
+        }
+        var txn = Zeze.Transaction.Transaction.getCurrent();
+        assert txn != null;
+        txn.VerifyRecordAccessed(this);
+        txn.PutLog(new Log__Finish(this, 3, value));
+    }
+
+    public BStream() {
          this(0);
     }
 
-    public BHttpResponse(int _varId_) {
+    public BStream(int _varId_) {
         super(_varId_);
-        _ContentType = "";
         _Body = Zeze.Net.Binary.Empty;
-        _Cookie = new Zeze.Transaction.Collections.PList1<>(String.class);
-        _Cookie.VariableId = 3;
     }
 
-    public void Assign(BHttpResponse other) {
-        setContentType(other.getContentType());
+    public void Assign(BStream other) {
+        setExchangeId(other.getExchangeId());
         setBody(other.getBody());
-        getCookie().clear();
-        for (var e : other.getCookie())
-            getCookie().add(e);
+        setFinish(other.isFinish());
     }
 
-    public BHttpResponse CopyIfManaged() {
+    public BStream CopyIfManaged() {
         return isManaged() ? Copy() : this;
     }
 
-    public BHttpResponse Copy() {
-        var copy = new BHttpResponse();
+    public BStream Copy() {
+        var copy = new BStream();
         copy.Assign(this);
         return copy;
     }
 
-    public static void Swap(BHttpResponse a, BHttpResponse b) {
-        BHttpResponse save = a.Copy();
+    public static void Swap(BStream a, BStream b) {
+        BStream save = a.Copy();
         a.Assign(b);
         b.Assign(save);
     }
@@ -102,25 +113,32 @@ public final class BHttpResponse extends Zeze.Transaction.Bean {
         return Copy();
     }
 
-    public static final long TYPEID = -6610665185330746407L;
+    public static final long TYPEID = 6767831806810414082L;
 
     @Override
     public long getTypeId() {
         return TYPEID;
     }
 
-    private static final class Log__ContentType extends Zeze.Transaction.Logs.LogString {
-        public Log__ContentType(BHttpResponse bean, int varId, String value) { super(bean, varId, value); }
+    private static final class Log__ExchangeId extends Zeze.Transaction.Logs.LogLong {
+        public Log__ExchangeId(BStream bean, int varId, long value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BHttpResponse)getBelong())._ContentType = Value; }
+        public void Commit() { ((BStream)getBelong())._ExchangeId = Value; }
     }
 
     private static final class Log__Body extends Zeze.Transaction.Logs.LogBinary {
-        public Log__Body(BHttpResponse bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
+        public Log__Body(BStream bean, int varId, Zeze.Net.Binary value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BHttpResponse)getBelong())._Body = Value; }
+        public void Commit() { ((BStream)getBelong())._Body = Value; }
+    }
+
+    private static final class Log__Finish extends Zeze.Transaction.Logs.LogBool {
+        public Log__Finish(BStream bean, int varId, boolean value) { super(bean, varId, value); }
+
+        @Override
+        public void Commit() { ((BStream)getBelong())._Finish = Value; }
     }
 
     @Override
@@ -133,17 +151,11 @@ public final class BHttpResponse extends Zeze.Transaction.Bean {
 
     @Override
     public void BuildString(StringBuilder sb, int level) {
-        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Web.BHttpResponse: {").append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Zeze.Builtin.Web.BStream: {").append(System.lineSeparator());
         level += 4;
-        sb.append(Zeze.Util.Str.indent(level)).append("ContentType").append('=').append(getContentType()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("ExchangeId").append('=').append(getExchangeId()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Body").append('=').append(getBody()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("Cookie").append("=[").append(System.lineSeparator());
-        level += 4;
-        for (var _item_ : getCookie()) {
-            sb.append(Zeze.Util.Str.indent(level)).append("Item").append('=').append(_item_).append(',').append(System.lineSeparator());
-        }
-        level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append(']').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Finish").append('=').append(isFinish()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -164,10 +176,10 @@ public final class BHttpResponse extends Zeze.Transaction.Bean {
     public void Encode(ByteBuffer _o_) {
         int _i_ = 0;
         {
-            String _x_ = getContentType();
-            if (!_x_.isEmpty()) {
-                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.BYTES);
-                _o_.WriteString(_x_);
+            long _x_ = getExchangeId();
+            if (_x_ != 0) {
+                _i_ = _o_.WriteTag(_i_, 1, ByteBuffer.INTEGER);
+                _o_.WriteLong(_x_);
             }
         }
         {
@@ -178,13 +190,10 @@ public final class BHttpResponse extends Zeze.Transaction.Bean {
             }
         }
         {
-            var _x_ = getCookie();
-            int _n_ = _x_.size();
-            if (_n_ != 0) {
-                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.LIST);
-                _o_.WriteListType(_n_, ByteBuffer.BYTES);
-                for (var _v_ : _x_)
-                    _o_.WriteString(_v_);
+            boolean _x_ = isFinish();
+            if (_x_) {
+                _i_ = _o_.WriteTag(_i_, 3, ByteBuffer.INTEGER);
+                _o_.WriteByte(1);
             }
         }
         _o_.WriteByte(0);
@@ -195,7 +204,7 @@ public final class BHttpResponse extends Zeze.Transaction.Bean {
         int _t_ = _o_.ReadByte();
         int _i_ = _o_.ReadTagSize(_t_);
         if (_i_ == 1) {
-            setContentType(_o_.ReadString(_t_));
+            setExchangeId(_o_.ReadLong(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
@@ -203,13 +212,7 @@ public final class BHttpResponse extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
-            var _x_ = getCookie();
-            _x_.clear();
-            if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.LIST) {
-                for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
-                    _x_.add(_o_.ReadString(_t_));
-            } else
-                _o_.SkipUnknownField(_t_);
+            setFinish(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {
@@ -220,11 +223,12 @@ public final class BHttpResponse extends Zeze.Transaction.Bean {
 
     @Override
     protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
-        _Cookie.InitRootInfo(root, this);
     }
 
     @Override
     public boolean NegativeCheck() {
+        if (getExchangeId() < 0)
+            return true;
         return false;
     }
 
@@ -237,9 +241,9 @@ public final class BHttpResponse extends Zeze.Transaction.Bean {
         for (var it = vars.iterator(); it.moveToNext(); ) {
             var vlog = it.value();
             switch (vlog.getVariableId()) {
-                case 1: _ContentType = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
+                case 1: _ExchangeId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
                 case 2: _Body = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
-                case 3: _Cookie.FollowerApply(vlog); break;
+                case 3: _Finish = ((Zeze.Transaction.Logs.LogBool)vlog).Value; break;
             }
         }
     }

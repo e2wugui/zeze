@@ -14,6 +14,8 @@ public class Web extends AbstractWeb {
 
     public final ProviderApp ProviderApp;
     public final ConcurrentHashMap<String, HttpServlet> Servlets = new ConcurrentHashMap<>();
+    final ConcurrentHashMap<Long, HttpExchange> Exchanges = new ConcurrentHashMap<>();
+
     private AutoKey AutoKey;
 
     public Web(ProviderApp app) {
@@ -43,24 +45,51 @@ public class Web extends AbstractWeb {
     }
 
     @Override
-    protected long ProcessRequestJsonRequest(Zeze.Builtin.Web.RequestJson r) throws Throwable {
-        var servlet = Servlets.get(r.Argument.getServletName());
-        if (null == servlet) {
-            r.Result.setContentType("text/plain; charset=utf-8");
-            r.Result.setBody(new Binary("Servlet Not Found.".getBytes(StandardCharsets.UTF_8)));
-            r.SendResult();
+    protected long ProcessRequestRequest(Zeze.Builtin.Web.Request r) throws Throwable {
+        var x = new HttpExchange(this, r);
+        if (null != Exchanges.putIfAbsent(r.Argument.getExchangeId(), x)) {
+            // 重复的ExchangeId的错误，不能（不需要）直接关闭x，否则将会删除已经存在的Exchange。
+            var error = ErrorCode(DuplicateExchangeId);
+            r.Result.setMessage("DuplicateExchangeId");
+            r.SendResultCode(error);
+            return error;
+        }
+        var servlet = Servlets.get(r.Argument.getPath());
+        if (null == servlet)
+            return x.close(ErrorCode(UnknownPath404), "UnknownPath404", null);
+
+        try {
+            servlet.onRequest(x);
+            return 0;
+        } catch (Throwable ex) {
+            return x.close(ErrorCode(ServletException), "ServletException", ex);
+        }
+    }
+
+    @Override
+    protected long ProcessCloseExchangeRequest(Zeze.Builtin.Web.CloseExchange r) throws Throwable {
+        Exchanges.remove(r.Argument.getExchangeId());
+        r.SendResult();
+        return 0;
+    }
+
+    @Override
+    protected long ProcessRequestInputStreamRequest(Zeze.Builtin.Web.RequestInputStream r) throws Throwable {
+        var x = Exchanges.get(r.Argument.getExchangeId());
+        if (null == x) {
+            r.SendResultCode(ErrorCode(ExchangeIdNotFound));
             return 0;
         }
+
+        var servlet = Servlets.get(x.request.Argument.getPath());
+        if (null == servlet)
+            return x.close(ErrorCode(UnknownPath404), "UnknownPath404", null);
+
         try {
-            servlet.handle(this, r);
+            servlet.onUpload(x, r.Argument);
+            r.SendResult();
         } catch (Throwable ex) {
-            try (var out = new ByteArrayOutputStream();
-                 var ps = new PrintStream(out, false, StandardCharsets.UTF_8)) {
-                ex.printStackTrace(ps);
-                r.Result.setContentType("text/plain; charset=utf-8");
-                r.Result.setBody(new Binary(out.toByteArray()));
-                r.SendResult();
-            }
+            r.SendResultCode(ErrorCode(OnUploadException));
         }
         return 0;
     }
@@ -78,28 +107,5 @@ public class Web extends AbstractWeb {
                 return _tSessions.get(c.substring(CookieSessionName.length()));
         }
         return null;
-    }
-
-    @Override
-    protected long ProcessRequestQueryRequest(Zeze.Builtin.Web.RequestQuery r) throws Throwable {
-        var servlet = Servlets.get(r.Argument.getServletName());
-        if (null == servlet) {
-            r.Result.setContentType("text/plain; charset=utf-8");
-            r.Result.setBody(new Binary("Servlet Not Found.".getBytes(StandardCharsets.UTF_8)));
-            r.SendResult();
-            return 0;
-        }
-        try {
-            servlet.handle(this, r);
-        } catch (Throwable ex) {
-            try (var out = new ByteArrayOutputStream();
-                    var ps = new PrintStream(out, false, StandardCharsets.UTF_8)) {
-                ex.printStackTrace(ps);
-                r.Result.setContentType("text/plain; charset=utf-8");
-                r.Result.setBody(new Binary(out.toByteArray()));
-                r.SendResult();
-            }
-        }
-        return 0;
     }
 }

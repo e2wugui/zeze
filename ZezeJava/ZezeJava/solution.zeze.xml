@@ -753,35 +753,75 @@
 		</module> Online 11100
 
 		<module name="Web" id="11102">
-			<bean name="BRequestJson">
-				<variable id="1" name="ServletName" type="string"/> 
-				<variable id="2" name="Cookie" type="list[string]"/>
-				<variable id="3" name="Json" type="string"/> 
+			<!--
+			多数情况下，Http请求处理一个rpc完成。当需要处理上传大文件或下载大文件时，使用流接口处理。
+			1. 普通请求
+               linkd -> Rpc Request -> server 
+			2. 上传文件
+			   linkd -> Rpc Request -> server
+			   linkd -> Rpc RequestInputStream -> server
+			   ... until Finish
+			3. 下载文件
+			   linkd -> Rpc Request -> server
+			   server -> Rpc ResponseOutputStream -> linkd
+			   ... until Finish
+			4. 上传下载可以同时进行，但一般不会有这种应用。
+			-->
+
+			<rpc name="Request" argument="BRequest" result="BResponse" handle="server" />
+			<rpc name="RequestInputStream" argument="BStream" handle="server" />
+			<rpc name="ResponseOutputStream" argument="BStream" handle="client" />
+
+			<enum name="DuplicateExchangeId" value="1"/>
+			<enum name="UnknownPath404" value="2"/>
+			<enum name="ServletException" value="3"/>
+			<enum name="ExchangeIdNotFound" value="4"/>
+			<enum name="OnUploadException" value="5"/>
+
+			<bean name="BHeader">
+				<variable id="1" name="Values" type="list[string]"/> 
 			</bean>
 
-			<bean name="BRequestQuery">
-				<variable id="1" name="ServletName" type="string"/>
-				<variable id="2" name="Cookie" type="list[string]"/>
-				<variable id="3" name="Query" type="map[string, string]"/> 
+			<bean name="BRequest">
+				<variable id="1" name="ExchangeId" type="long"/> 
+				<variable id="2" name="Method" type="string"/> 
+				<variable id="3" name="Path" type="string"/> 
+				<variable id="4" name="Query" type="string"/>
+				<variable id="5" name="Headers" type="map[string, BHeader]"/>
+				<variable id="6" name="Body" type="binary"/>
+				<variable id="7" name="RemainInputStream" type="bool"/>
 			</bean>
 
-			<bean name="BHttpResponse">
-				<variable id="1" name="ContentType" type="string"/>
+			<bean name="BResponse">
+				<variable id="1" name="Code" type="int"/>
+				<variable id="2" name="Headers" type="map[string, BHeader]"/>
+				<variable id="3" name="Body" type="binary"/>
+				<variable id="4" name="Finish" type="bool"/>
+
+				<!-- error report -->
+				<variable id="5" name="Message"    type="string"/>
+				<variable id="6" name="Stacktrace" type="string"/>
+			</bean>
+
+			<bean name="BStream">
+				<variable id="1" name="ExchangeId" type="long"/> 
 				<variable id="2" name="Body" type="binary"/>
-				<variable id="3" name="Cookie" type="list[string]"/>
-				TODO ... more http data
+				<variable id="3" name="Finish" type="bool"/>
 			</bean>
 
-			<rpc name="RequestJson" argument="BRequestJson" result="BHttpResponse" handle="server" />
-			<rpc name="RequestQuery" argument="BRequestQuery" result="BHttpResponse" handle="server" />
+			<bean name="BCloseExchange">
+				<variable id="1" name="ExchangeId" type="long"/> 
+			</bean>
 
+			<rpc name="CloseExchange" argument="BCloseExchange" handle="server,client" />
+
+			<!-- 用于linkd拦截auth，通常这个请求不会使用输入输出流，但也是允许的。-->
 			<bean name="BAuthOk">
-				<variable id="1" name="ServletName" type="string"/>
+				<variable id="1" name="Request" type="BRequest"/>
 				<variable id="2" name="Account" type="string"/>
-				<variable id="3" name="Cookie" type="list[string]"/>
 			</bean>
 
-			<rpc name="AuthOk" argument="BAuthOk" result="BHttpResponse" handle="server" />
+			<rpc name="AuthOk" argument="BAuthOk" result="BResponse" handle="server" />
 
 			<bean name="BSession">
 				<variable id="1" name="Account" type="string"/>
@@ -791,7 +831,9 @@
 		</module>
 
 		<!--
-		next module.id
+		可用id范围 [11016, 11100) [11103, 12000]
+		<module name="" id="11016">
+		</module>
 		<module name="" id="11103">
 		</module>
 		-->
