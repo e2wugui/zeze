@@ -6,10 +6,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import Zeze.Application;
-import Zeze.Services.GlobalCacheManagerConst;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import static Zeze.Services.GlobalCacheManagerConst.StateInvalid;
+import static Zeze.Services.GlobalCacheManagerConst.StateRemoved;
 
 // MESI？
 
@@ -176,7 +177,7 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 					LruQueue.poll();
 					nodeCount++;
 				} else {
-					logger.warn("remain record when clean oldest lruNode.");
+					logger.info("remain {} records when clean oldest lruNode", node.size());
 					// 出现回收不了，一般是批量修改数据，此时启动一次Checkpoint。
 					Table.getZeze().getCheckpoint().RunOnce();
 					//noinspection BusyWait
@@ -207,14 +208,14 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 			// 这里有个时间窗口：先删除DataMap再去掉Lru引用，
 			// 当对Key再次GetOrAdd时，LruNode里面可能已经存在旧的record。
 			// see GetOrAdd
-			p.getValue().setState(GlobalCacheManagerConst.StateRemoved);
+			p.getValue().setState(StateRemoved);
 			// 必须使用 Pair，有可能 LurNode 里面已经有新建的记录了。
 			var oldNode = p.getValue().getLruNode();
 			if (oldNode != null)
 				oldNode.remove(p.getKey(), p.getValue());
 			Table.RocksCacheRemove(p.getKey());
 		} else
-			p.getValue().setState(GlobalCacheManagerConst.StateRemoved); // 也确保已删除状态
+			p.getValue().setState(StateRemoved); // 也确保已删除状态
 	}
 
 	private boolean TryRemoveRecordUnderLock(Map.Entry<K, Record1<K, V>> p) {
@@ -243,9 +244,10 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		if (record.isFreshAcquire())
 			return false;
 
-		if (record.getState() != GlobalCacheManagerConst.StateInvalid) {
+		if (record.getState() != StateInvalid) {
+			record.setState(StateInvalid); // 先本地改成Invalid,避免TableX.VerifyGlobalRecordState验证失败
 			try {
-				record.Acquire(GlobalCacheManagerConst.StateInvalid, false, true);
+				record.Acquire(StateInvalid, false, true);
 			} catch (Throwable e) {
 				logger.error("Acquire({}:{}) exception:", record.getTable().getName(), record.getObjectKey(), e);
 				// 此时GlobalServer可能已经改成StateInvalid了, 无论如何还是当成已经Invalid保证安全

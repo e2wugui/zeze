@@ -78,9 +78,9 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 		}
 	}
 
-	public Supplier<ArrayList<TableX<K, V>>> GetSimulateTables;
+	public Supplier<ArrayList<TableX<K, V>>> GetSimulateTables; // only for temp debug
 
-	private void VerifyGlobalRecordState(K key, boolean isModify) {
+	private void VerifyGlobalRecordState(K key, boolean isModify) { // only for temp debug
 		var getSimulateTables = GetSimulateTables;
 		if (getSimulateTables == null)
 			return;
@@ -94,6 +94,8 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 				logger.error("VerifyGlobalRecordState failed: serverId={}/{}, table={}, key={}, state={}, isModify={}",
 						getZeze().getConfig().getServerId(), table.getZeze().getConfig().getServerId(),
 						getName(), key, r.getState(), isModify);
+				LogManager.shutdown();
+				Runtime.getRuntime().halt(-1);
 			}
 		}
 	}
