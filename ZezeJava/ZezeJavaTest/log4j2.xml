@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<configuration status="WARN" monitorInterval="30" shutdownHook="disable">
+<Configuration status="WARN" monitorInterval="30" shutdownHook="disable">
 	<Properties>
 		<Property name="path">log</Property>
 		<Property name="name">${sys:logname:-zeze}</Property>
 		<Property name="ext">.log</Property>
 	</Properties>
-	<appenders>
-		<console name="Console" target="SYSTEM_OUT">
+	<Appenders>
+		<Console name="Console" target="SYSTEM_OUT">
 			<PatternLayout pattern="%d{HH:mm:ss.SSS} %5p [%t] %c{1}: %m%n" />
-		</console>
+		</Console>
 
-		<RollingFile name="AllLog" fileName="${path}/${name}${ext}" filePattern="${path}/${name}.%d{yy-MM-dd}-%i${ext}">
+		<RollingFile name="AllLog" fileName="${path}/${name}${ext}" filePattern="${path}/${name}.%d{yy-MM-dd}-%i${ext}" immediateFlush="false">
 			<PatternLayout charset="UTF-8" pattern="%d{yy-MM-dd HH:mm:ss.SSS} %5p [%t] %c{1}: %m%n" />
 			<Policies>
 				<SizeBasedTriggeringPolicy size="100 MB" />
@@ -19,7 +19,7 @@
 			<DefaultRolloverStrategy max="1000"/>
 		</RollingFile>
 
-		<RollingFile name="ErrorLog" fileName="${path}/${name}_error${ext}" filePattern="${path}/${name}_error.%d{yy-MM-dd}-%i${ext}">
+		<RollingFile name="ErrorLog" fileName="${path}/${name}_error${ext}" filePattern="${path}/${name}_error.%d{yy-MM-dd}-%i${ext}" immediateFlush="false">
 			<ThresholdFilter level="WARN" onMatch="ACCEPT" onMismatch="DENY" />
 			<PatternLayout charset="UTF-8" pattern="%d{yy-MM-dd HH:mm:ss.SSS} %5p [%t] %c{1}: %m%n" />
 			<Policies>
@@ -27,16 +27,16 @@
 			</Policies>
 			<DefaultRolloverStrategy max="1000"/>
 		</RollingFile>
-	</appenders>
+	</Appenders>
 
-	<loggers>
-		<logger name="org" level="INFO" />
-		<logger name="io.netty" level="INFO" />
+	<Loggers>
+		<Logger name="org" level="INFO" />
+		<Logger name="io.netty" level="INFO" />
 
-		<root level="INFO">
-			<appender-ref ref="Console" />
-			<appender-ref ref="AllLog" />
-			<appender-ref ref="ErrorLog" />
-		</root>
-	</loggers>
-</configuration>
+		<Root level="INFO" includeLocation="false">
+			<AppenderRef ref="Console" />
+			<AppenderRef ref="AllLog" />
+			<AppenderRef ref="ErrorLog" />
+		</Root>
+	</Loggers>
+</Configuration>

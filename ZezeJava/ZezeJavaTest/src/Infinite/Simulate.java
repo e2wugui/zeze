@@ -10,6 +10,10 @@ import org.junit.Test;
 
 @SuppressWarnings("NewClassNamingConvention")
 public final class Simulate {
+	static {
+		System.setProperty("log4j2.contextSelector", "org.apache.logging.log4j.core.async.AsyncLoggerContextSelector");
+	}
+
 	static final Logger logger = LogManager.getLogger(Simulate.class);
 
 	public final static int AppCount = 10;

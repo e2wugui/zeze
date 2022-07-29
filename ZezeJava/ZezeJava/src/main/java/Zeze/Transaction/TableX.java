@@ -90,10 +90,11 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			if (table == this || table.Cache == null)
 				continue; // skip self
 			var r = table.Cache.Get(key);
-			if (r != null && r.getState() > checkState && r.getState() != StateRemoved) {
+			int rs;
+			if (r != null && (rs = r.getState()) > checkState && rs != StateRemoved) {
 				logger.error("VerifyGlobalRecordState failed: serverId={}/{}, table={}, key={}, state={}, isModify={}",
 						getZeze().getConfig().getServerId(), table.getZeze().getConfig().getServerId(),
-						getName(), key, r.getState(), isModify);
+						getName(), key, rs, isModify);
 				LogManager.shutdown();
 				Runtime.getRuntime().halt(-1);
 			}

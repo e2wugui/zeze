@@ -12,17 +12,16 @@ import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
-import Zeze.Net.RpcTimeoutException;
 import Zeze.Net.Selectors;
 import Zeze.Net.Service;
 import Zeze.Raft.RaftConfig;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.GlobalCacheManager.Acquire;
 import Zeze.Services.GlobalCacheManager.Cleanup;
+import Zeze.Services.GlobalCacheManager.GlobalKeyState;
 import Zeze.Services.GlobalCacheManager.KeepAlive;
 import Zeze.Services.GlobalCacheManager.Login;
 import Zeze.Services.GlobalCacheManager.NormalClose;
-import Zeze.Services.GlobalCacheManager.GlobalKeyState;
 import Zeze.Services.GlobalCacheManager.ReLogin;
 import Zeze.Services.GlobalCacheManager.Reduce;
 import Zeze.Util.Action0;
@@ -322,7 +321,7 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 		private final AtomicInteger counter = new AtomicInteger(1);
 
 		public CountDownFuture createOne() {
-			counter.incrementAndGet();
+			counter.getAndIncrement();
 			return this;
 		}
 
@@ -856,7 +855,11 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 					for (var e : reducePending) {
 						var cacheHolder = e.getKey();
 						var reduce = e.getValue();
-						try {
+						if (reduce.isTimeout()) { // 等待失败不再看作成功。
+							cacheHolder.SetError();
+							logger.warn("Reduce Timeout {} AcquireState={} CacheState={} arg={}",
+									rpc.getSender().getUserState(), StateModify, cs, reduce.Argument);
+						} else {
 							switch (reduce.Result.State) {
 							case StateInvalid:
 								reduceSucceed.add(cacheHolder);
@@ -869,16 +872,6 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 								cacheHolder.SetError();
 								logger.error("Reduce result state={}", reduce.Result.State);
 								break;
-							}
-						} catch (Throwable ex) {
-							cacheHolder.SetError();
-							// 等待失败不再看作成功。
-							if (Task.getRootCause(ex) instanceof RpcTimeoutException) {
-								logger.warn("Reduce Timeout {} AcquireState={} CacheState={} arg={}",
-										rpc.getSender().getUserState(), StateModify, cs, reduce.Argument);
-							} else {
-								logger.error("Reduce {} AcquireState={} CacheState={} arg={}",
-										rpc.getSender().getUserState(), StateModify, cs, reduce.Argument, ex);
 							}
 						}
 					}
