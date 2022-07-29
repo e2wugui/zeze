@@ -25,6 +25,8 @@ public class Cache {
 	 * 创建LocalCache
 	 *
 	 * @param name Cache名字，直接作为目录名字，需要注意有些字符可能不能用。
+	 * @param lruCapacity 解码后的对象lru容量。
+	 * @param factory 根据id创建对象实例的工厂。
 	 */
 	public Cache(String name, int lruCapacity, IntFunction<CacheObject> factory) throws RocksDBException {
 		this.name = name;
@@ -47,7 +49,7 @@ public class Cache {
 		lru = null;
 	}
 
-	public CacheObject get(long id) throws RocksDBException {
+	public CacheObject get(long id) throws RocksDBException, IOException {
 		var value = lru.get(id);
 		if (null != value)
 			return value;
@@ -61,7 +63,10 @@ public class Cache {
 		var bb = ByteBuffer.Wrap(bytes);
 		value = factory.apply(bb.ReadInt());
 		value.Decode(bb);
-		return value;
+
+		// 当出现并发get重复从db读取时，这里的getOrAdd会忽略后面读到的value，返回已经存在的。
+		var tmpLambda = value;
+		return lru.getOrAdd(id, () -> tmpLambda);
 	}
 
 	public void put(long id, CacheObject value) throws RocksDBException, IOException {
