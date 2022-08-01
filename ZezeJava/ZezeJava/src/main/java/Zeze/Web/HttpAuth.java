@@ -30,8 +30,10 @@ public abstract class HttpAuth extends HandlerDispatch {
 				x.sendErrorResponse("auth fail.");
 			}
 		} catch (Throwable ex) {
-			if (null != xout)
+			if (null != xout) {
 				xout.sendErrorResponse(ex);
+				xout.close(); // 一般发生在 dispatch 前，直接关闭。
+			}
 		}
 	}
 

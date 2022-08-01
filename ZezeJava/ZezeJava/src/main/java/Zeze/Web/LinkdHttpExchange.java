@@ -9,12 +9,19 @@ import Zeze.Builtin.Web.BHeader;
 import Zeze.Builtin.Web.BRequest;
 import Zeze.Builtin.Web.BResponse;
 import Zeze.Builtin.Web.BStream;
+import Zeze.Builtin.Web.CloseExchange;
 import Zeze.Net.Binary;
+import Zeze.Net.ProtocolHandle;
+import Zeze.Net.Rpc;
+import Zeze.Transaction.Bean;
 import Zeze.Util.PersistentAtomicLong;
 import com.sun.net.httpserver.HttpExchange;
 
 public class LinkdHttpExchange {
 	final long exchangeId;
+	long provider;
+
+	private long activeTime = System.currentTimeMillis();
 
 	final HttpService service;
 	final HttpExchange exchange;
@@ -30,10 +37,24 @@ public class LinkdHttpExchange {
 		return requestBodyClosed;
 	}
 
+	protected <A extends Bean, R extends Bean> void ReDispatch(
+			Rpc<A, R> req, ProtocolHandle<Rpc<A, R>> resultHandle) throws IOException {
+
+		if (!req.Send(service.LinkdApp.LinkdProviderService.GetSocket(provider), resultHandle)) {
+			close(true); // 重新派发错误时，尝试通知server。
+			return;
+		}
+	}
+
 	public void closeResponseBody() throws IOException {
 		exchange.getResponseBody().close();
 		responseBodyClosed = true;
 		tryClose();
+	}
+
+	public void tryCloseIfTimeout(long now) {
+		if (now - activeTime > 10 * 1000)
+			close(true);
 	}
 
 	public void closeRequestBody() throws IOException {
@@ -44,7 +65,7 @@ public class LinkdHttpExchange {
 
 	private void tryClose() {
 		if (requestBodyClosed && responseBodyClosed)
-			close();
+			close(); // 正常关闭。
 	}
 
 	public LinkdHttpExchange(HttpService s, HttpExchange x) {
@@ -56,8 +77,18 @@ public class LinkdHttpExchange {
 	}
 
 	public void close() {
-		if (null != service.Exchanges.remove(exchangeId))
+		close(false);
+	}
+
+	public void close(boolean closeServer) {
+		if (null != service.Exchanges.remove(exchangeId)) {
 			exchange.close();
+			if (closeServer) {
+				var ce = new CloseExchange();
+				ce.Argument.setExchangeId(exchangeId);
+				ce.Send(service.LinkdApp.LinkdProviderService.GetSocket(provider)); // no wait; no check error.
+			}
+		}
 	}
 
 	public void fillInput(BStream s) throws IOException {
@@ -91,6 +122,7 @@ public class LinkdHttpExchange {
 	}
 
 	private Binary tryReadInputBody() throws IOException {
+		activeTime = System.currentTimeMillis();
 		// 本质上linkd是异步的，需要HttpServer也是异步的。
 		// 由于Jdk自带HttpServer是同步的，下面的写法尝试最小化阻塞时间。
 		// 但不能避免阻塞，考虑使用【zp的支持异步的HttpServer】。
@@ -112,12 +144,14 @@ public class LinkdHttpExchange {
 	}
 
 	public void sendResponse(BStream stream) throws IOException {
+		activeTime = System.currentTimeMillis();
 		exchange.getResponseBody().write(stream.getBody().InternalGetBytesUnsafe());
 		if (stream.isFinish())
 			closeResponseBody();
 	}
 
 	public void sendResponse(BResponse response) throws IOException {
+		activeTime = System.currentTimeMillis();
 		var headers = exchange.getResponseHeaders();
 		for (var e : response.getHeaders()) {
 			var list = new ArrayList(e.getValue().getValues().size());

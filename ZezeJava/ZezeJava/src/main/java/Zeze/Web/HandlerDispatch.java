@@ -27,8 +27,10 @@ public class HandlerDispatch implements HttpHandler {
 			x.fillRequest(req.Argument);
 			choiceProviderAndDispatch(x, req, (p) -> processRequestResult(x, req));
 		} catch (Throwable ex) {
-			if (null != xout)
+			if (null != xout) {
 				xout.sendErrorResponse(ex);
+				xout.close(); // 一般发生在 dispatch 之前，直接关闭。
+			}
 		}
 	}
 
@@ -43,12 +45,13 @@ public class HandlerDispatch implements HttpHandler {
 		var provider = new OutLong();
 		if (!linkProvider.Distribute.ChoiceHash(services, hash, provider)) {
 			x.sendErrorResponse("Provider Not Found.");
-			x.close();
+			x.close(); // 请求还没有转给server，直接关闭。
 			return;
 		}
+		x.provider = provider.Value; // 保存选中的server，重新派发或者报错时再次使用。
 		if (!req.Send(linkApp.LinkdProviderService.GetSocket(provider.Value), resultHandle)) {
 			x.sendErrorResponse("Distribute error.");
-			x.close();
+			x.close(); // 请求还没有转给server，直接关闭。
 			return;
 		}
 	}
@@ -57,14 +60,14 @@ public class HandlerDispatch implements HttpHandler {
 		// process http response
 		if (req.isTimeout()) {
 			x.sendErrorResponse("timeout.");
-			x.close();
+			x.close(true); // timeout，尝试通知server关闭。
 			return 0;
 		}
 		if (req.getResultCode() != 0) {
 			x.sendErrorResponse("ResultCode=" + req.getResultCode()
 					+ "\nMessage=" + req.Result.getMessage()
 					+ "\n" + req.Result.getStacktrace());
-			x.close();
+			x.close(); // server 返回错误，直接关闭。
 			return 0;
 		}
 		x.sendResponse(req.Result);
@@ -75,26 +78,26 @@ public class HandlerDispatch implements HttpHandler {
 		if (!x.isRequestBodyClosed()) {
 			var input = new RequestInputStream();
 			x.fillInput(input.Argument);
-			choiceProviderAndDispatch(x, input, (p) -> processRequestInputResult(x, input));
+			x.ReDispatch(input, (p) -> processRequestInputResult(x, input));
 		}
 		return 0;
 	}
 
 	protected long processRequestInputResult(LinkdHttpExchange x, RequestInputStream req) throws IOException {
 		if (req.isTimeout()) {
-			x.close();
+			x.close(true); // timeout 尝试通知server关闭
 			return 0;
 		}
 
 		if (req.getResultCode() != 0) {
-			x.close();
+			x.close(); // server返回错误，直接关闭。
 			return 0;
 		}
 
 		if (!x.isRequestBodyClosed()) {
 			var input2 = new RequestInputStream();
 			x.fillInput(input2.Argument);
-			choiceProviderAndDispatch(x, input2, (p) -> processRequestInputResult(x, input2));
+			x.ReDispatch(input2, (p) -> processRequestInputResult(x, input2));
 		}
 		return 0;
 	}

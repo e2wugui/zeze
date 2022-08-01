@@ -13,6 +13,7 @@ import Zeze.Builtin.Web.CloseExchange;
 import Zeze.Builtin.Web.ResponseOutputStream;
 import Zeze.IModule;
 import Zeze.Util.PersistentAtomicLong;
+import Zeze.Util.Task;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
@@ -88,9 +89,16 @@ public class HttpService {
 
 	public void start() {
 		httpServer.start();
+		Task.schedule(2000, 2000, this::timer);
 	}
 
 	public void stop() {
 		httpServer.stop(10);
+	}
+
+	private void timer() {
+		var now = System.currentTimeMillis();
+		for (var x : Exchanges.values())
+			x.tryCloseIfTimeout(now);
 	}
 }
