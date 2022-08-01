@@ -6,7 +6,7 @@ dependencies {
     implementation 'org.apache.logging.log4j:log4j-core:2.18.0'
     implementation 'org.jetbrains:annotations:23.0.0'
     implementation 'org.pcollections:pcollections:3.1.4'
-    implementation 'org.rocksdb:rocksdbjni:7.4.3'
+    implementation 'org.rocksdb:rocksdbjni:7.4.4'
 
     // optional dependencies
     // for tikv

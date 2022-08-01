@@ -42,34 +42,6 @@ public final class TaskOneByOneByKey {
 		hashMask = capacity - 1;
 	}
 
-	public void Execute(Object key, Action0 action, DispatchMode mode) {
-		Execute(key.hashCode(), action, mode);
-	}
-
-	public void Execute(Object key, Action0 action, String name, DispatchMode mode) {
-		Execute(key.hashCode(), action, name, mode);
-	}
-
-	public void Execute(Object key, Action0 action, String name, Action0 cancel, DispatchMode mode) {
-		Execute(key.hashCode(), action, name, cancel, mode);
-	}
-
-	public void Execute(Object key, Func0<?> func, DispatchMode mode) {
-		Execute(key.hashCode(), func, mode);
-	}
-
-	public void Execute(Object key, Func0<?> func, String name, DispatchMode mode) {
-		Execute(key.hashCode(), func, name, mode);
-	}
-
-	public void Execute(Object key, Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
-		Execute(key.hashCode(), func, name, cancel, mode);
-	}
-
-	public void Execute(Object key, Procedure procedure, DispatchMode mode) {
-		Execute(key.hashCode(), procedure, mode);
-	}
-
 	public static class Barrier {
 		private final Procedure Procedure;
 		private final Action0 CancelAction;
@@ -136,6 +108,54 @@ public final class TaskOneByOneByKey {
 			Execute(key, barrier::Reach, barrier.Procedure.getActionName(), barrier::Cancel, mode);
 	}
 
+	public void Execute(Object key, Action0 action) {
+		Execute(key.hashCode(), action, DispatchMode.Normal);
+	}
+
+	public void Execute(Object key, Action0 action, DispatchMode mode) {
+		Execute(key.hashCode(), action, mode);
+	}
+
+	public void Execute(Object key, Action0 action, String name) {
+		Execute(key.hashCode(), action, name, DispatchMode.Normal);
+	}
+
+	public void Execute(Object key, Action0 action, String name, DispatchMode mode) {
+		Execute(key.hashCode(), action, name, mode);
+	}
+
+	public void Execute(Object key, Action0 action, String name, Action0 cancel, DispatchMode mode) {
+		Execute(key.hashCode(), action, name, cancel, mode);
+	}
+
+	public void Execute(Object key, Func0<?> func) {
+		Execute(key.hashCode(), func, DispatchMode.Normal);
+	}
+
+	public void Execute(Object key, Func0<?> func, DispatchMode mode) {
+		Execute(key.hashCode(), func, mode);
+	}
+
+	public void Execute(Object key, Func0<?> func, String name) {
+		Execute(key.hashCode(), func, name, DispatchMode.Normal);
+	}
+
+	public void Execute(Object key, Func0<?> func, String name, DispatchMode mode) {
+		Execute(key.hashCode(), func, name, mode);
+	}
+
+	public void Execute(Object key, Func0<?> func, String name, Action0 cancel, DispatchMode mode) {
+		Execute(key.hashCode(), func, name, cancel, mode);
+	}
+
+	public void Execute(Object key, Procedure procedure) {
+		Execute(key.hashCode(), procedure, DispatchMode.Normal);
+	}
+
+	public void Execute(Object key, Procedure procedure, DispatchMode mode) {
+		Execute(key.hashCode(), procedure, mode);
+	}
+
 	public void Execute(Object key, Procedure procedure, Action0 cancel, DispatchMode mode) {
 		Execute(key.hashCode(), procedure, cancel, mode);
 	}
@@ -146,6 +166,10 @@ public final class TaskOneByOneByKey {
 
 	public void Execute(int key, Action0 action, DispatchMode mode) {
 		Execute(key, action, null, null, mode);
+	}
+
+	public void Execute(int key, Action0 action, String name) {
+		Execute(key, action, name, null, DispatchMode.Normal);
 	}
 
 	public void Execute(int key, Action0 action, String name, DispatchMode mode) {
@@ -164,6 +188,10 @@ public final class TaskOneByOneByKey {
 
 	public void Execute(int key, Func0<?> func, DispatchMode mode) {
 		Execute(key, func, null, null, mode);
+	}
+
+	public void Execute(int key, Func0<?> func, String name) {
+		Execute(key, func, name, null, DispatchMode.Normal);
 	}
 
 	public void Execute(int key, Func0<?> func, String name, DispatchMode mode) {
@@ -196,6 +224,10 @@ public final class TaskOneByOneByKey {
 		Execute(Long.hashCode(key), action, mode);
 	}
 
+	public void Execute(long key, Action0 action, String name) {
+		Execute(Long.hashCode(key), action, name, DispatchMode.Normal);
+	}
+
 	public void Execute(long key, Action0 action, String name, DispatchMode mode) {
 		Execute(Long.hashCode(key), action, name, mode);
 	}
@@ -210,6 +242,10 @@ public final class TaskOneByOneByKey {
 
 	public void Execute(long key, Func0<?> func, DispatchMode mode) {
 		Execute(Long.hashCode(key), func, mode);
+	}
+
+	public void Execute(long key, Func0<?> func, String name) {
+		Execute(Long.hashCode(key), func, name, DispatchMode.Normal);
 	}
 
 	public void Execute(long key, Func0<?> func, String name, DispatchMode mode) {
