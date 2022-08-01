@@ -13,19 +13,12 @@ public abstract class AbstractWeb extends Zeze.IModule {
     public static final int ServletException = 3;
     public static final int ExchangeIdNotFound = 4;
     public static final int OnUploadException = 5;
+    public static final int OnDownloadException = 5;
 
     protected final Zeze.Builtin.Web.tSessions _tSessions = new Zeze.Builtin.Web.tSessions();
 
     public void RegisterProtocols(Zeze.Net.Service service) {
         var _reflect = new Zeze.Util.Reflect(getClass());
-        {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Web.AuthOk>();
-            factoryHandle.Factory = Zeze.Builtin.Web.AuthOk::new;
-            factoryHandle.Handle = this::ProcessAuthOkRequest;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessAuthOkRequest", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessAuthOkRequest", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47682994316792L, factoryHandle); // 11102, 267396600
-        }
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Web.CloseExchange>();
             factoryHandle.Factory = Zeze.Builtin.Web.CloseExchange::new;
@@ -60,7 +53,6 @@ public abstract class AbstractWeb extends Zeze.IModule {
     }
 
     public static void UnRegisterProtocols(Zeze.Net.Service service) {
-        service.getFactorys().remove(47682994316792L);
         service.getFactorys().remove(47683263889294L);
         service.getFactorys().remove(47686903989781L);
         service.getFactorys().remove(47684633737525L);
@@ -78,7 +70,6 @@ public abstract class AbstractWeb extends Zeze.IModule {
     public static void RegisterRocksTables(Zeze.Raft.RocksRaft.Rocks rocks) {
     }
 
-    protected abstract long ProcessAuthOkRequest(Zeze.Builtin.Web.AuthOk r) throws Throwable;
     protected abstract long ProcessCloseExchangeRequest(Zeze.Builtin.Web.CloseExchange r) throws Throwable;
     protected abstract long ProcessRequestRequest(Zeze.Builtin.Web.Request r) throws Throwable;
     protected abstract long ProcessRequestInputStreamRequest(Zeze.Builtin.Web.RequestInputStream r) throws Throwable;

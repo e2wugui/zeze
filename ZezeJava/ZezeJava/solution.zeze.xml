@@ -777,6 +777,7 @@
 			<enum name="ServletException" value="3"/>
 			<enum name="ExchangeIdNotFound" value="4"/>
 			<enum name="OnUploadException" value="5"/>
+			<enum name="OnDownloadException" value="5"/>
 
 			<bean name="BHeader">
 				<variable id="1" name="Values" type="list[string]"/> 
@@ -790,6 +791,9 @@
 				<variable id="5" name="Headers" type="map[string, BHeader]"/>
 				<variable id="6" name="Body" type="binary"/>
 				<variable id="7" name="RemainInputStream" type="bool"/>
+				linkd 拦截处理验证信息后，还会转发请求给server。
+				验证过后的账号填写在这里。server读取并处理后续流程。
+				<variable id="8" name="AuthedAccount" type="string"/>
 			</bean>
 
 			<bean name="BResponse">
@@ -814,14 +818,6 @@
 			</bean>
 
 			<rpc name="CloseExchange" argument="BCloseExchange" handle="server,client" />
-
-			<!-- 用于linkd拦截auth，通常这个请求不会使用输入输出流，但也是允许的。-->
-			<bean name="BAuthOk">
-				<variable id="1" name="Request" type="BRequest"/>
-				<variable id="2" name="Account" type="string"/>
-			</bean>
-
-			<rpc name="AuthOk" argument="BAuthOk" result="BResponse" handle="server" />
 
 			<bean name="BSession">
 				<variable id="1" name="Account" type="string"/>

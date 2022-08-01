@@ -12,6 +12,7 @@ import Zeze.Net.Service;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
+import Zeze.Util.Task;
 import Zeze.Web.HttpService;
 
 public class App extends Zeze.AppBase {
@@ -51,7 +52,11 @@ public class App extends Zeze.AppBase {
         AsyncSocket.setSessionIdGenFunc(PersistentAtomicLong.getOrAdd(LinkdApp.GetName())::next);
         StartService(); // 启动网络
         LinkdApp.RegisterService(null);
-        HttpService = new HttpService(LinkdApp, 80);
+
+        HttpService = new HttpService(LinkdApp, 80, Task.getThreadPool());
+        // 如果需要拦截验证请求在linkd处理。在这里注册，
+        // HttpService.interceptAuthContext("/myapp/myauth", new MyHttpAuth(HttpService));
+        HttpService.start();
     }
 
     public void Stop() throws Throwable {

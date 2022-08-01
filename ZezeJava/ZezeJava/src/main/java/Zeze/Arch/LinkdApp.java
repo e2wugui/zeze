@@ -16,6 +16,8 @@ public class LinkdApp {
 	public final int ProviderPort;
 	public final ConcurrentHashMap<String, HttpAuth> WebAuth = new ConcurrentHashMap<>();
 
+	public Zeze.Web.HttpService HttpService; // 可选模块，需要自己初始化。但是内部实现需要这个引用。所以定义在这里了。
+
 	public LinkdApp(String linkdServiceName,
 					Zeze.Application zeze, LinkdProvider linkdProvider,
 					LinkdProviderService linkdProviderService, LinkdService linkdService,

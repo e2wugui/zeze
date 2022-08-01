@@ -9,6 +9,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.SubscribeInfo;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
+import Zeze.Web.HttpService;
 
 /**
  * Linkd上处理Provider协议的模块。
@@ -318,11 +319,21 @@ public class LinkdProvider extends AbstractLinkdProvider {
 
 	@Override
 	protected long ProcessCloseExchangeRequest(Zeze.Builtin.Web.CloseExchange r) throws Throwable {
-		return 0; // todo
+		if (null == LinkdApp.HttpService) {
+			r.SendResultCode(ErrorCode(Zeze.Web.Web.ModuleId, Zeze.Web.Web.ExchangeIdNotFound));
+			return 0;
+		}
+
+		return LinkdApp.HttpService.InternalCloseExchange(r);
 	}
 
 	@Override
 	protected long ProcessResponseOutputStreamRequest(Zeze.Builtin.Web.ResponseOutputStream r) throws Throwable {
-		return 0; // todo
+		if (null == LinkdApp.HttpService) {
+			r.SendResultCode(ErrorCode(Zeze.Web.Web.ModuleId, Zeze.Web.Web.ExchangeIdNotFound));
+			return 0;
+		}
+
+		return LinkdApp.HttpService.InternalResponseOutputStream(r);
 	}
 }

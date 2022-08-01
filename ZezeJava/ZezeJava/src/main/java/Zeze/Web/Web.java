@@ -6,15 +6,22 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Arch.ProviderApp;
+import Zeze.Arch.ProviderService;
 import Zeze.Builtin.Web.BSession;
 import Zeze.Component.AutoKey;
 import Zeze.Net.Binary;
+import Zeze.Net.Protocol;
 
 public class Web extends AbstractWeb {
 
     public final ProviderApp ProviderApp;
     public final ConcurrentHashMap<String, HttpServlet> Servlets = new ConcurrentHashMap<>();
-    final ConcurrentHashMap<Long, HttpExchange> Exchanges = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, ConcurrentHashMap<Long, HttpExchange>> LinkExchanges = new ConcurrentHashMap<>();
+
+    final ConcurrentHashMap<Long, HttpExchange> Exchanges(Protocol context) {
+        var linkName = ProviderService.GetLinkName(context.getSender());
+        return LinkExchanges.computeIfAbsent(linkName, (k) -> new ConcurrentHashMap<>());
+    }
 
     private AutoKey AutoKey;
 
@@ -40,14 +47,9 @@ public class Web extends AbstractWeb {
     }
 
     @Override
-    protected long ProcessAuthOkRequest(Zeze.Builtin.Web.AuthOk r) {
-        return Zeze.Transaction.Procedure.NotImplement;
-    }
-
-    @Override
     protected long ProcessRequestRequest(Zeze.Builtin.Web.Request r) throws Throwable {
         var x = new HttpExchange(this, r);
-        if (null != Exchanges.putIfAbsent(r.Argument.getExchangeId(), x)) {
+        if (null != Exchanges(r).putIfAbsent(r.Argument.getExchangeId(), x)) {
             // 重复的ExchangeId的错误，不能（不需要）直接关闭x，否则将会删除已经存在的Exchange。
             var error = ErrorCode(DuplicateExchangeId);
             r.Result.setMessage("DuplicateExchangeId");
@@ -68,14 +70,14 @@ public class Web extends AbstractWeb {
 
     @Override
     protected long ProcessCloseExchangeRequest(Zeze.Builtin.Web.CloseExchange r) throws Throwable {
-        Exchanges.remove(r.Argument.getExchangeId());
+        Exchanges(r).remove(r.Argument.getExchangeId());
         r.SendResult();
         return 0;
     }
 
     @Override
     protected long ProcessRequestInputStreamRequest(Zeze.Builtin.Web.RequestInputStream r) throws Throwable {
-        var x = Exchanges.get(r.Argument.getExchangeId());
+        var x = Exchanges(r).get(r.Argument.getExchangeId());
         if (null == x) {
             r.SendResultCode(ErrorCode(ExchangeIdNotFound));
             return 0;
@@ -87,6 +89,8 @@ public class Web extends AbstractWeb {
 
         try {
             servlet.onUpload(x, r.Argument);
+            if (r.Argument.isFinish())
+                x.closeRequestBody();
             r.SendResult();
         } catch (Throwable ex) {
             r.SendResultCode(ErrorCode(OnUploadException));

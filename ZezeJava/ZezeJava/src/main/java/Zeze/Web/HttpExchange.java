@@ -3,19 +3,19 @@ package Zeze.Web;
 /**
  * HttpExchange 我们自己的包装和Jdk.HttpServer里面同名。下面用Linkd.HttpExchange表示Jdk的对象。
  * Server.HttpExchange 生命期管理:
- * 1. 正常请求结束，sendResponseHeaders with finish == true. auto call close(0)。
- * 2. ResponseOutputStream 结束，sendResponseBody or sendResponseBodyAsync with finish == true. auto call close(0).
+ * 1. 正常请求结束，sendResponseHeaders with finish == true. auto call closeResponseBody()。
+ * 2. ResponseOutputStream 结束，sendResponseBody or sendResponseBodyAsync with finish == true. auto call closeResponseBody().
  * 3. state==Requesting时发生异常，把 Stacktrace 发送给linkd并在浏览器中显示。
  * 4. state==Streaming时发生异常，close(Procedure.Exception)
  * 5. 处理函数（目前只有sendResponseBodyAsync的回调）返回非0值，close(errorcode)
- * 6. close with error != 0 时发送CloseExchange给linkd。
+ * 6. close with error != 0 || null != ex 时发送CloseExchange给linkd。
  *
  * Linkd.HttpExchange 生命期管理：
- * 1. 正常请求结束，收到Request.Result并且finish == true. auto call close(0);
- * 2. InputStream 读取完毕，设置 Flags += 1; if (Flags == 3) close(0);
- * 3. ResponseOutputStream with finish == true; Flags += 2; if (Flags == 3) close(0);
+ * 1. 正常请求结束，收到Request.Result并且finish == true. auto call closeResponseBody();
+ * 2. InputStream 读取完毕，设置 closeRequestBody();
+ * 3. ResponseOutputStream with finish == true; closeResponseBody();
  * 4. IdleTimeout: close(Procedure.Timeout);
- * 5. close with error != 0 时发送CloseExchange给server。
+ * 5. close with error != 0 || null != ex 时发送CloseExchange给server。
  *
  * 上传文件流
  * linkd 收到 Request.Result 后，如果InputStream还有数据，将主动读取并打包到InputStreamRequestInputStream，发送给server。
@@ -63,23 +63,25 @@ public class HttpExchange {
 		return request;
 	}
 
-	public final int FlagInputClosed = 1;
-	public final int FlagOutputClosed = 2;
-	public final int FlagStreamClosed = FlagInputClosed + FlagOutputClosed;
-	private int Flags = 0;
+	private boolean requestBodyClosed = false;
+	private boolean responseBodyClosed = false;
 
-	public void endUpload() {
-		setFlagsAndTryClose(FlagInputClosed);
+	void closeRequestBody() {
+		requestBodyClosed = true;
+		tryClose();
 	}
 
-	private void setFlagsAndTryClose(int flag) {
-		Flags += flag;
-		if ((Flags & FlagStreamClosed) == FlagStreamClosed)
+	private void closeResponseBody() {
+		tryClose();
+	}
+
+	private void tryClose() {
+		if (requestBodyClosed && responseBodyClosed)
 			close(0, null, null);
 	}
 
 	long close(long error, String msg, Throwable ex) {
-		if (null == web.Exchanges.remove(this.request.Argument.getExchangeId()))
+		if (null == web.Exchanges(request).remove(this.request.Argument.getExchangeId()))
 			return error;
 
 		if (error != 0 || null != ex)
@@ -135,7 +137,7 @@ public class HttpExchange {
 		request.SendResult();
 		state = State.ResponseHeadersSent;
 		if (finish)
-			close(0, null, null);
+			closeResponseBody();
 	}
 
 	public void sendResponseBody(byte[] body, boolean finish) {
@@ -150,7 +152,7 @@ public class HttpExchange {
 		if (stream.getResultCode() != 0)
 			throw new IllegalStateException("Stream.ResultCode=" + stream.getResultCode());
 		if (finish)
-			setFlagsAndTryClose(FlagOutputClosed);
+			closeResponseBody();
 	}
 
 	public void sendResponseBodyAsync(byte[] body, boolean finish, Zeze.Util.Func2<HttpExchange, Long, Long> sendDone) {
@@ -173,7 +175,7 @@ public class HttpExchange {
 			}
 		});
 		if (finish)
-			setFlagsAndTryClose(FlagOutputClosed);
+			closeResponseBody();
 	}
 
 	public void sendTextResult(String text) {

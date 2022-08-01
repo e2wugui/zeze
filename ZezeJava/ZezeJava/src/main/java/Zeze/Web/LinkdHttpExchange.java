@@ -10,42 +10,54 @@ import Zeze.Builtin.Web.BRequest;
 import Zeze.Builtin.Web.BResponse;
 import Zeze.Builtin.Web.BStream;
 import Zeze.Net.Binary;
+import Zeze.Util.PersistentAtomicLong;
 import com.sun.net.httpserver.HttpExchange;
 
 public class LinkdHttpExchange {
-	final long exchangeId = 0; // todo generate
+	final long exchangeId;
+
+	final HttpService service;
 	final HttpExchange exchange;
-	public final int FlagInputClosed = 1;
-	public final int FlagOutputClosed = 2;
-	public final int FlagStreamClosed = FlagInputClosed + FlagOutputClosed;
 
-	private int Flags = 0;
+	private boolean responseBodyClosed = false;
+	private boolean requestBodyClosed = false;
 
-	public boolean isInputStreamClosed() {
-		return (FlagStreamClosed & FlagInputClosed) != 0;
+	public boolean isRequestBodyClosed() {
+		return responseBodyClosed;
 	}
 
-	public boolean isOutputStreamClosed() {
-		return (FlagStreamClosed & FlagOutputClosed) != 0;
+	public boolean isResponseBodyClosed() {
+		return requestBodyClosed;
 	}
 
-	public void closeOutputStream() {
-		setFlagsAndTryClose(FlagOutputClosed);
+	public void closeResponseBody() throws IOException {
+		exchange.getResponseBody().close();
+		responseBodyClosed = true;
+		tryClose();
 	}
 
-	public LinkdHttpExchange(HttpExchange x) {
+	public void closeRequestBody() throws IOException {
+		exchange.getRequestBody().close();
+		requestBodyClosed = true;
+		tryClose();
+	}
+
+	private void tryClose() {
+		if (requestBodyClosed && responseBodyClosed)
+			close();
+	}
+
+	public LinkdHttpExchange(HttpService s, HttpExchange x) {
+		exchangeId = s.ExchangeIdPal.next();
+		if (null != s.Exchanges.putIfAbsent(exchangeId, this))
+			throw new RuntimeException("Impossible! duplicate exchangeId.");
 		exchange = x;
+		service = s;
 	}
 
 	public void close() {
-		exchange.close();
-		// todo LinkdHttpExchangeManager
-	}
-
-	private void setFlagsAndTryClose(int flag) {
-		Flags += flag;
-		if ((Flags & FlagStreamClosed) == FlagStreamClosed)
-			close();
+		if (null != service.Exchanges.remove(exchangeId))
+			exchange.close();
 	}
 
 	public void fillInput(BStream s) throws IOException {
@@ -79,9 +91,10 @@ public class LinkdHttpExchange {
 	}
 
 	private Binary tryReadInputBody() throws IOException {
-		// 本质上linkd跟异步的HttpServer才是最匹配的。
+		// 本质上linkd是异步的，需要HttpServer也是异步的。
 		// 由于Jdk自带HttpServer是同步的，下面的写法尝试最小化阻塞时间。
 		// 但不能避免阻塞，考虑使用【zp的支持异步的HttpServer】。
+		// 目前使用设置Executor到HttpServe中，用多线程版本。
 		var inputStream= exchange.getRequestBody();
 		var available = inputStream.available();
 		if (available > 8192)
@@ -94,9 +107,14 @@ public class LinkdHttpExchange {
 		if (size >= 0)
 			return new Binary(body, 0, size);
 
-		inputStream.close();
-		setFlagsAndTryClose(FlagInputClosed);
+		closeRequestBody();
 		return null;
+	}
+
+	public void sendResponse(BStream stream) throws IOException {
+		exchange.getResponseBody().write(stream.getBody().InternalGetBytesUnsafe());
+		if (stream.isFinish())
+			closeResponseBody();
 	}
 
 	public void sendResponse(BResponse response) throws IOException {
@@ -113,8 +131,7 @@ public class LinkdHttpExchange {
 		body.write(bytes);
 
 		if (response.isFinish()) {
-			body.close();
-			setFlagsAndTryClose(FlagOutputClosed);
+			closeResponseBody();
 		}
 	}
 
@@ -128,7 +145,7 @@ public class LinkdHttpExchange {
 			try (var body = exchange.getResponseBody()) {
 				body.write(bytes);
 			} finally {
-				setFlagsAndTryClose(FlagOutputClosed);
+				closeResponseBody();
 			}
 		}
 	}
@@ -139,7 +156,7 @@ public class LinkdHttpExchange {
 		try (var body = exchange.getResponseBody()) {
 			ex.printStackTrace(new PrintStream(body, false, StandardCharsets.UTF_8));
 		} finally {
-			setFlagsAndTryClose(FlagOutputClosed);
+			closeResponseBody();
 		}
 	}
 }

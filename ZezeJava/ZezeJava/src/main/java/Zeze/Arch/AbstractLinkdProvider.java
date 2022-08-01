@@ -13,6 +13,7 @@ public abstract class AbstractLinkdProvider extends Zeze.IModule {
     public static final int ServletException = 3;
     public static final int ExchangeIdNotFound = 4;
     public static final int OnUploadException = 5;
+    public static final int OnDownloadException = 5;
 
     protected final Zeze.Builtin.Web.tSessions _tSessions = new Zeze.Builtin.Web.tSessions();
 
@@ -83,13 +84,6 @@ public abstract class AbstractLinkdProvider extends Zeze.IModule {
             service.AddFactoryHandle(47281107578964L, factoryHandle); // 11008, 2107584596
         }
         {
-            var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Web.AuthOk>();
-            factoryHandle.Factory = Zeze.Builtin.Web.AuthOk::new;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessAuthOkRequest", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessAuthOkRequest", Zeze.Transaction.DispatchMode.Normal);
-            service.AddFactoryHandle(47682994316792L, factoryHandle); // 11102, 267396600
-        }
-        {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Web.CloseExchange>();
             factoryHandle.Factory = Zeze.Builtin.Web.CloseExchange::new;
             factoryHandle.Handle = this::ProcessCloseExchangeRequest;
@@ -130,7 +124,6 @@ public abstract class AbstractLinkdProvider extends Zeze.IModule {
         service.getFactorys().remove(47281569047175L);
         service.getFactorys().remove(47280110454586L);
         service.getFactorys().remove(47281107578964L);
-        service.getFactorys().remove(47682994316792L);
         service.getFactorys().remove(47683263889294L);
         service.getFactorys().remove(47686903989781L);
         service.getFactorys().remove(47684633737525L);

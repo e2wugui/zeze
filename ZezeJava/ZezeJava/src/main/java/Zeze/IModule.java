@@ -18,9 +18,13 @@ public abstract class IModule {
 	}
 
 	public final long ErrorCode(int code) {
+		return ErrorCode(getId(), code);
+	}
+
+	public static final long ErrorCode(int moduleId, int code) {
 		if (code < 0)
 			throw new IllegalArgumentException("code must greater than 0.");
-		return Zeze.Net.Protocol.MakeTypeId(getId(), code);
+		return Zeze.Net.Protocol.MakeTypeId(moduleId, code);
 	}
 
 	public static int GetModuleId(long result) {

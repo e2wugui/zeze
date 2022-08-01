@@ -1,27 +1,50 @@
 package Zeze.Web;
 
 import java.io.IOException;
-import java.io.PrintStream;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import Zeze.Arch.LinkdApp;
-import Zeze.Builtin.Web.BHeader;
-import Zeze.Builtin.Web.BRequest;
-import Zeze.Builtin.Web.BResponse;
-import Zeze.Net.Binary;
+import Zeze.Builtin.Web.CloseExchange;
+import Zeze.Builtin.Web.ResponseOutputStream;
+import Zeze.IModule;
+import Zeze.Util.PersistentAtomicLong;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
 public class HttpService {
-	public static Zeze.Arch.LinkdApp linkdApp;
-	public static final int WebModuleId = AbstractWeb.ModuleId;
 	public static final int RequestBodyMaxSize = 1024 * 1024;
 
+	public final Zeze.Arch.LinkdApp LinkdApp;
+
+	final ConcurrentHashMap<Long, LinkdHttpExchange> Exchanges = new ConcurrentHashMap<>();
+
+	final PersistentAtomicLong ExchangeIdPal;
+
+	public long InternalCloseExchange(CloseExchange r) {
+		Exchanges.remove(r.Argument.getExchangeId());
+		r.SendResult();
+		return 0;
+	}
+
+	public long InternalResponseOutputStream(ResponseOutputStream r) {
+		var x = Exchanges.get(r.Argument.getExchangeId());
+		if (null == x) {
+			r.SendResultCode(IModule.ErrorCode(Web.ModuleId, Web.ExchangeIdNotFound));
+			return 0;
+		}
+		try {
+			x.sendResponse(r.Argument);
+			r.SendResult();
+		} catch (Throwable ex) {
+			r.SendResultCode(IModule.ErrorCode(Web.ModuleId, Web.OnDownloadException));
+		}
+		return 0;
+	}
 
 	public static Map<String, String> parseQuery(String query) {
 		var result = new HashMap<String, String>();
@@ -50,14 +73,20 @@ public class HttpService {
 
 	private final HttpServer httpServer;
 
-	public HttpService(LinkdApp app, int port) throws IOException {
-		linkdApp = app;
+	public HttpService(LinkdApp app, int port, Executor executor) throws IOException {
+		LinkdApp = app;
 		var addr = new InetSocketAddress(port);
 		httpServer = HttpServer.create(addr, 100);
-		// 对Linkd来说，所有的请求处理都是异步的，设置Executor不是很必要。
-		// 但对于大负载，单个后台线程会不会忙不过来？
-		httpServer.setExecutor(null);
-		httpServer.createContext("/", new HandlerRoot());
+		httpServer.setExecutor(executor);
+		httpServer.createContext("/", new HandlerDispatch(this));
+		ExchangeIdPal = PersistentAtomicLong.getOrAdd(app.GetName() + ".http");
+	}
+
+	public void interceptAuthContext(String path, HttpAuth auth) {
+		httpServer.createContext(path, auth);
+	}
+
+	public void start() {
 		httpServer.start();
 	}
 
