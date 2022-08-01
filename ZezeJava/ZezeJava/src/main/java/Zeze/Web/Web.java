@@ -1,15 +1,11 @@
 package Zeze.Web;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderService;
 import Zeze.Builtin.Web.BSession;
 import Zeze.Component.AutoKey;
-import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
 
 public class Web extends AbstractWeb {
@@ -18,7 +14,7 @@ public class Web extends AbstractWeb {
     public final ConcurrentHashMap<String, HttpServlet> Servlets = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, ConcurrentHashMap<Long, HttpExchange>> LinkExchanges = new ConcurrentHashMap<>();
 
-    final ConcurrentHashMap<Long, HttpExchange> Exchanges(Protocol context) {
+    final ConcurrentHashMap<Long, HttpExchange> Exchanges(Protocol<?> context) {
         var linkName = ProviderService.GetLinkName(context.getSender());
         return LinkExchanges.computeIfAbsent(linkName, (k) -> new ConcurrentHashMap<>());
     }
@@ -47,7 +43,7 @@ public class Web extends AbstractWeb {
     }
 
     @Override
-    protected long ProcessRequestRequest(Zeze.Builtin.Web.Request r) throws Throwable {
+    protected long ProcessRequestRequest(Zeze.Builtin.Web.Request r) {
         var x = new HttpExchange(this, r);
         if (null != Exchanges(r).putIfAbsent(r.Argument.getExchangeId(), x)) {
             // 重复的ExchangeId的错误，不能（不需要）直接关闭x，否则将会删除已经存在的Exchange。
@@ -69,14 +65,14 @@ public class Web extends AbstractWeb {
     }
 
     @Override
-    protected long ProcessCloseExchangeRequest(Zeze.Builtin.Web.CloseExchange r) throws Throwable {
+    protected long ProcessCloseExchangeRequest(Zeze.Builtin.Web.CloseExchange r) {
         Exchanges(r).remove(r.Argument.getExchangeId());
         r.SendResult();
         return 0;
     }
 
     @Override
-    protected long ProcessRequestInputStreamRequest(Zeze.Builtin.Web.RequestInputStream r) throws Throwable {
+    protected long ProcessRequestInputStreamRequest(Zeze.Builtin.Web.RequestInputStream r) {
         var x = Exchanges(r).get(r.Argument.getExchangeId());
         if (null == x) {
             r.SendResultCode(ErrorCode(ExchangeIdNotFound));

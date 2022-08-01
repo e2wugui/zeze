@@ -1,6 +1,6 @@
 package Zeze.Web;
 
-/**
+/*
  * HttpExchange 我们自己的包装和Jdk.HttpServer里面同名。下面用Linkd.HttpExchange表示Jdk的对象。
  * Server.HttpExchange 生命期管理:
  * 1. 正常请求结束，sendResponseHeaders with finish == true. auto call closeResponseBody()。
@@ -124,7 +124,6 @@ public class HttpExchange {
 	/**
 	 * @param code http result code
 	 * @param body maybe null
-	 * @param finish
 	 */
 	public void sendResponseHeaders(int code, byte[] body, boolean finish) {
 		if (state != State.Requesting)

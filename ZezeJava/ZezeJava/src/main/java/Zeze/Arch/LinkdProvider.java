@@ -2,14 +2,12 @@ package Zeze.Arch;
 
 import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Builtin.Provider.*;
-import Zeze.Builtin.Web.CloseExchange;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Protocol;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.SubscribeInfo;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
-import Zeze.Web.HttpService;
 
 /**
  * Linkd上处理Provider协议的模块。

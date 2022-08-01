@@ -14,7 +14,6 @@ import Zeze.Net.Binary;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Transaction.Bean;
-import Zeze.Util.PersistentAtomicLong;
 import com.sun.net.httpserver.HttpExchange;
 
 public class LinkdHttpExchange {
@@ -42,7 +41,6 @@ public class LinkdHttpExchange {
 
 		if (!req.Send(service.LinkdApp.LinkdProviderService.GetSocket(provider), resultHandle)) {
 			close(true); // 重新派发错误时，尝试通知server。
-			return;
 		}
 	}
 
@@ -102,8 +100,6 @@ public class LinkdHttpExchange {
 	/**
 	 * 注意填充req时不会重置其中的变量，所以要求req必须是新创建的Rpc的Argument。
 	 * 不能重用Rpc和BRequest。
-	 * @param req
-	 * @throws IOException
 	 */
 	public void fillRequest(BRequest req) throws IOException {
 		req.setMethod(exchange.getRequestMethod());
@@ -154,7 +150,7 @@ public class LinkdHttpExchange {
 		activeTime = System.currentTimeMillis();
 		var headers = exchange.getResponseHeaders();
 		for (var e : response.getHeaders()) {
-			var list = new ArrayList(e.getValue().getValues().size());
+			var list = new ArrayList<String>(e.getValue().getValues().size());
 			list.addAll(e.getValue().getValues());
 			headers.put(e.getKey(), list);
 		}

@@ -54,7 +54,7 @@ public final class Str {
 		try (var out = new ByteArrayOutputStream();
 			 var ps = new PrintStream(out, false, StandardCharsets.UTF_8)) {
 			ex.printStackTrace(ps);
-			return new String(out.toByteArray(), StandardCharsets.UTF_8);
+			return out.toString(StandardCharsets.UTF_8);
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}

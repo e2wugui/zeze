@@ -132,16 +132,6 @@ public final class Transaction {
 		Savepoints.get(Savepoints.size() - 1).addRollbackAction(action);
 	}
 
-	@Deprecated
-	public void RunWhileCommit(Runnable action) {
-		runWhileCommit(action);
-	}
-
-	@Deprecated
-	public void RunWhileRollback(Runnable action) {
-		runWhileRollback(action);
-	}
-
 	void SetAlwaysReleaseLockWhenRedo() {
 		AlwaysReleaseLockWhenRedo = true;
 		if (!holdLocks.isEmpty())

@@ -23,13 +23,11 @@ import Zeze.Transaction.ResetDB;
 import Zeze.Transaction.Table;
 import Zeze.Transaction.TableKey;
 import Zeze.Transaction.TransactionLevel;
-import Zeze.Util.EventDispatcher;
 import Zeze.Util.FuncLong;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Str;
 import Zeze.Util.Task;
-import Zeze.Util.TaskCompletionSource;
 import Zeze.Util.TaskOneByOneByKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -379,32 +377,5 @@ public final class Application {
 
 	public void runTaskOneByOneByKey(Object oneByOneKey, String actionName, FuncLong func) {
 		TaskOneByOneByKey.Execute(oneByOneKey, NewProcedure(func, actionName), DispatchMode.Normal);
-	}
-
-	@Deprecated
-	public TaskCompletionSource<Long> Run(FuncLong func, String actionName, EventDispatcher.Mode mode, Object oneByOneKey) {
-		final var future = new TaskCompletionSource<Long>();
-		try {
-			switch (mode) {
-			case RunEmbed:
-				future.SetResult(func.call());
-				break;
-
-			case RunProcedure:
-				future.SetResult(NewProcedure(func, actionName).Call());
-				break;
-
-			case RunThread:
-				if (oneByOneKey != null) {
-					getTaskOneByOneByKey().Execute(oneByOneKey,
-							() -> future.SetResult(NewProcedure(func, actionName).Call()), actionName, DispatchMode.Normal);
-				} else
-					Task.run(() -> future.SetResult(NewProcedure(func, actionName).Call()), actionName, DispatchMode.Normal);
-				break;
-			}
-		} catch (Throwable e) {
-			future.SetException(e);
-		}
-		return future;
 	}
 }

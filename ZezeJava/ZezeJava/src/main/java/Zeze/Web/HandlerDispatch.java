@@ -52,7 +52,6 @@ public class HandlerDispatch implements HttpHandler {
 		if (!req.Send(linkApp.LinkdProviderService.GetSocket(provider.Value), resultHandle)) {
 			x.sendErrorResponse("Distribute error.");
 			x.close(); // 请求还没有转给server，直接关闭。
-			return;
 		}
 	}
 
