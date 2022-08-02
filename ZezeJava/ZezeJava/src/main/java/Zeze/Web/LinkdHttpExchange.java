@@ -5,6 +5,7 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiConsumer;
 import Zeze.Builtin.Web.BHeader;
 import Zeze.Builtin.Web.BRequest;
 import Zeze.Builtin.Web.BResponse;
@@ -27,6 +28,12 @@ public class LinkdHttpExchange {
 
 	private boolean responseBodyClosed = false;
 	private boolean requestBodyClosed = false;
+
+	// HttpServer提供InputStream，为了判断是否读取完成需要多读一次。
+	// 为了避免这个额外的读取（导致转给Server的Rpc多一次）。
+	// 使用下面的两个变量，当提供了Content-Length并且requestTransferLength等于它时，马上设置Finish。
+	private int postContentLength = -1;
+	private int requestTransferLength; // 已经传输的长度。
 
 	public boolean isRequestBodyClosed() {
 		return responseBodyClosed;
@@ -91,10 +98,10 @@ public class LinkdHttpExchange {
 
 	public void fillInput(BStream s) throws IOException {
 		s.setExchangeId(exchangeId);
-		var body = tryReadInputBody();
-		if (null != body)
+		tryReadInputBody((finish, body) -> {
+			s.setFinish(finish);
 			s.setBody(body);
-		s.setFinish(null == body);
+		});
 	}
 
 	/**
@@ -114,13 +121,25 @@ public class LinkdHttpExchange {
 			req.getHeaders().put(e.getKey(), header);
 		}
 
-		var body = tryReadInputBody();
-		if (null != body)
+		var method = exchange.getRequestMethod();
+		switch (method) {
+		case "GET": case "HEAD":
+			closeRequestBody();
+			return;
+		case "POST":
+			var cl = exchange.getRequestHeaders().getFirst("Content-Length");
+			if (null != cl)
+				postContentLength = Integer.parseInt(cl);
+			break;
+		}
+
+		tryReadInputBody((finish, body) -> {
+			req.setFinish(finish);
 			req.setBody(body);
-		req.setRemainInputStream(null == body);
+		});
 	}
 
-	private Binary tryReadInputBody() throws IOException {
+	private void tryReadInputBody(BiConsumer<Boolean, Binary> c) throws IOException {
 		activeTime = System.currentTimeMillis();
 		// 本质上linkd是异步的，需要HttpServer也是异步的。
 		// 由于Jdk自带HttpServer是同步的，下面的写法尝试最小化阻塞时间。
@@ -135,11 +154,13 @@ public class LinkdHttpExchange {
 
 		var body = new byte[available];
 		var size = inputStream.read(body);
-		if (size >= 0)
-			return new Binary(body, 0, size);
-
-		closeRequestBody();
-		return null;
+		if (size >= 0) {
+			requestTransferLength += size;
+			c.accept(postContentLength != -1 && requestTransferLength >= postContentLength, new Binary(body, 0, size));
+		} else {
+			closeRequestBody();
+			c.accept(true, Binary.Empty);
+		}
 	}
 
 	public void sendResponse(BStream stream) throws IOException {

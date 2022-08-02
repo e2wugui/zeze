@@ -15,7 +15,7 @@ DatagramChannel
 【2022/8/15】
 
 ------------------------------------------------------------------------------------------------------------------------------
-tag 1.0.2 AchillesHeelDaemon.ProcessDaemon & Simple Web & RelativeRecordSet.FlushSet
+tag 1.0.2 Simple Web; @DispatchMode
 ------------------------------------------------------------------------------------------------------------------------------
 @DispatchMode
 	这是一个协议处理函数的注解，用来控制协议的调度方式（仅用于Java）：
@@ -26,6 +26,10 @@ tag 1.0.2 AchillesHeelDaemon.ProcessDaemon & Simple Web & RelativeRecordSet.Flus
 	重载会覆盖默认实现，优先级比注解高。默认实现按注解方式调度协议的执行。
 
 Http In Linkd（java基于HttpServer或者更高级的包装类-感觉有新的了）
+	GET 马上关闭InputStream。
+	POST 已知Content-Length，记录已读取长度，比较Length，在读够时马上设置Finish，避免判断eof还需要读取一次(read==-1）。
+	BUG Server.HttpExchange 没有关闭。
+	WAINING Linkd.CloseOutputStream 多调用了一次。
 	a) 去掉json,query对path的入侵
 	b) 流支持
 	c) HttpExchange，HttpServlet

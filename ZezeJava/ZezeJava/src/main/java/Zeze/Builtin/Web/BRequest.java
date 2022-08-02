@@ -11,7 +11,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
     private String _Query;
     private final Zeze.Transaction.Collections.PMap2<String, Zeze.Builtin.Web.BHeader> _Headers;
     private Zeze.Net.Binary _Body;
-    private boolean _RemainInputStream; // linkd 拦截处理验证信息后，还会转发请求给server。				验证过后的账号填写在这里。server读取并处理后续流程。
+    private boolean _Finish; // linkd 拦截处理验证信息后，还会转发请求给server。				验证过后的账号填写在这里。server读取并处理后续流程。
     private String _AuthedAccount;
 
     public long getExchangeId() {
@@ -136,26 +136,26 @@ public final class BRequest extends Zeze.Transaction.Bean {
         txn.PutLog(new Log__Body(this, 6, value));
     }
 
-    public boolean isRemainInputStream() {
+    public boolean isFinish() {
         if (!isManaged())
-            return _RemainInputStream;
+            return _Finish;
         var txn = Zeze.Transaction.Transaction.getCurrent();
         if (txn == null)
-            return _RemainInputStream;
+            return _Finish;
         txn.VerifyRecordAccessed(this, true);
-        var log = (Log__RemainInputStream)txn.GetLog(this.getObjectId() + 7);
-        return log != null ? log.Value : _RemainInputStream;
+        var log = (Log__Finish)txn.GetLog(this.getObjectId() + 7);
+        return log != null ? log.Value : _Finish;
     }
 
-    public void setRemainInputStream(boolean value) {
+    public void setFinish(boolean value) {
         if (!isManaged()) {
-            _RemainInputStream = value;
+            _Finish = value;
             return;
         }
         var txn = Zeze.Transaction.Transaction.getCurrent();
         assert txn != null;
         txn.VerifyRecordAccessed(this);
-        txn.PutLog(new Log__RemainInputStream(this, 7, value));
+        txn.PutLog(new Log__Finish(this, 7, value));
     }
 
     public String getAuthedAccount() {
@@ -206,7 +206,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
         for (var e : other.getHeaders().entrySet())
             getHeaders().put(e.getKey(), e.getValue().Copy());
         setBody(other.getBody());
-        setRemainInputStream(other.isRemainInputStream());
+        setFinish(other.isFinish());
         setAuthedAccount(other.getAuthedAccount());
     }
 
@@ -273,11 +273,11 @@ public final class BRequest extends Zeze.Transaction.Bean {
         public void Commit() { ((BRequest)getBelong())._Body = Value; }
     }
 
-    private static final class Log__RemainInputStream extends Zeze.Transaction.Logs.LogBool {
-        public Log__RemainInputStream(BRequest bean, int varId, boolean value) { super(bean, varId, value); }
+    private static final class Log__Finish extends Zeze.Transaction.Logs.LogBool {
+        public Log__Finish(BRequest bean, int varId, boolean value) { super(bean, varId, value); }
 
         @Override
-        public void Commit() { ((BRequest)getBelong())._RemainInputStream = Value; }
+        public void Commit() { ((BRequest)getBelong())._Finish = Value; }
     }
 
     private static final class Log__AuthedAccount extends Zeze.Transaction.Logs.LogString {
@@ -316,7 +316,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append(']').append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("Body").append('=').append(getBody()).append(',').append(System.lineSeparator());
-        sb.append(Zeze.Util.Str.indent(level)).append("RemainInputStream").append('=').append(isRemainInputStream()).append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Finish").append('=').append(isFinish()).append(',').append(System.lineSeparator());
         sb.append(Zeze.Util.Str.indent(level)).append("AuthedAccount").append('=').append(getAuthedAccount()).append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
@@ -385,7 +385,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
             }
         }
         {
-            boolean _x_ = isRemainInputStream();
+            boolean _x_ = isFinish();
             if (_x_) {
                 _i_ = _o_.WriteTag(_i_, 7, ByteBuffer.INTEGER);
                 _o_.WriteByte(1);
@@ -440,7 +440,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 7) {
-            setRemainInputStream(_o_.ReadBool(_t_));
+            setFinish(_o_.ReadBool(_t_));
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 8) {
@@ -480,7 +480,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
                 case 4: _Query = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
                 case 5: _Headers.FollowerApply(vlog); break;
                 case 6: _Body = ((Zeze.Transaction.Logs.LogBinary)vlog).Value; break;
-                case 7: _RemainInputStream = ((Zeze.Transaction.Logs.LogBool)vlog).Value; break;
+                case 7: _Finish = ((Zeze.Transaction.Logs.LogBool)vlog).Value; break;
                 case 8: _AuthedAccount = ((Zeze.Transaction.Logs.LogString)vlog).Value; break;
             }
         }

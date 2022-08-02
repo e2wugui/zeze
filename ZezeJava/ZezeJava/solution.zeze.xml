@@ -790,7 +790,7 @@
 				<variable id="4" name="Query" type="string"/>
 				<variable id="5" name="Headers" type="map[string, BHeader]"/>
 				<variable id="6" name="Body" type="binary"/>
-				<variable id="7" name="RemainInputStream" type="bool"/>
+				<variable id="7" name="Finish" type="bool"/>
 				linkd 拦截处理验证信息后，还会转发请求给server。
 				验证过后的账号填写在这里。server读取并处理后续流程。
 				<variable id="8" name="AuthedAccount" type="string"/>
