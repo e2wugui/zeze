@@ -55,6 +55,11 @@ public class HandlerDispatch implements HttpHandler {
 		}
 	}
 
+	private int internalErrorToHttpCode(long error) {
+		if (error == Web.UnknownPath404) return 404;
+		return 200;
+	}
+
 	protected long processRequestResult(LinkdHttpExchange x, Request req) throws IOException {
 		// process http response
 		if (req.isTimeout()) {
@@ -63,7 +68,8 @@ public class HandlerDispatch implements HttpHandler {
 			return 0;
 		}
 		if (req.getResultCode() != 0) {
-			x.sendErrorResponse("ResultCode=" + req.getResultCode()
+			x.sendErrorResponse(internalErrorToHttpCode(req.getResultCode()),
+					"ResultCode=" + req.getResultCode()
 					+ "\nMessage=" + req.Result.getMessage()
 					+ "\n" + req.Result.getStacktrace());
 			x.close(); // server 返回错误，直接关闭。

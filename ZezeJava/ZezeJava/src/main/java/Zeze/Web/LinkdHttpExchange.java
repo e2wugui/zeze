@@ -169,11 +169,15 @@ public class LinkdHttpExchange {
 	}
 
 	public void sendErrorResponse(String message) throws IOException {
+		sendErrorResponse(200, message);
+	}
+
+	public void sendErrorResponse(int code, String message) throws IOException {
 		exchange.getResponseHeaders().put("Content-Type", List.of("text/plain; charset=utf-8"));
 
 		var bytes = message.getBytes(StandardCharsets.UTF_8);
 		var len = bytes.length;
-		exchange.sendResponseHeaders(200, len > 0 ? len : -1);
+		exchange.sendResponseHeaders(code, len > 0 ? len : -1);
 		if (len > 0) {
 			try (var body = exchange.getResponseBody()) {
 				body.write(bytes);
