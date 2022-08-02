@@ -373,4 +373,12 @@ public final class Application {
 	public void runTaskOneByOneByKey(Object oneByOneKey, String actionName, FuncLong func) {
 		TaskOneByOneByKey.Execute(oneByOneKey, NewProcedure(func, actionName), DispatchMode.Normal);
 	}
+
+	public void runTaskOneByOneByKey(int oneByOneKey, String actionName, FuncLong func) {
+		TaskOneByOneByKey.Execute(oneByOneKey, NewProcedure(func, actionName), DispatchMode.Normal);
+	}
+
+	public void runTaskOneByOneByKey(long oneByOneKey, String actionName, FuncLong func) {
+		TaskOneByOneByKey.Execute(oneByOneKey, NewProcedure(func, actionName), DispatchMode.Normal);
+	}
 }
