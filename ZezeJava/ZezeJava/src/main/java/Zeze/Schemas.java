@@ -663,7 +663,7 @@ public class Schemas implements Serializable {
 
 		for (var table : Tables.values()) {
 			var zTable = app.GetTableSlow(table.Name);
-			if (null != zTable && zTable.isNew() && app.getConfig().autoResetTable())
+			if (zTable == null || zTable.isNew() || app.getConfig().autoResetTable())
 				continue;
 			var otherTable = other.Tables.get(table.Name);
 			if (null != otherTable) {
