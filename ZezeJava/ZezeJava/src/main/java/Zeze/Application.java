@@ -298,8 +298,7 @@ public final class Application {
 							SchemasPrevious = null;
 							logger.error("Schemas Implement Changed?", ex);
 						}
-						ResetDB.CheckAndRemoveTable(SchemasPrevious, this);
-						Schemas.CheckCompatible(SchemasPrevious, this);
+						ResetDB.checkAndRemoveTable(SchemasPrevious, this);
 						version = dataVersion.Version;
 					}
 					var newData = ByteBuffer.Allocate(1024);
@@ -361,10 +360,6 @@ public final class Application {
 		}
 		if (Conf != null)
 			Conf.ClearInUseAndIAmSureAppStopped(this, Databases);
-	}
-
-	public synchronized void CheckAndRemoveTable(Schemas other) throws RocksDBException {
-		ResetDB.CheckAndRemoveTable(other, this);
 	}
 
 	public void CheckpointRun() {
