@@ -20,7 +20,8 @@ namespace Zeze.Transaction
 
         // 会被系列化，实际上由LogBean管理。
         private readonly int _TypeId;
-        public virtual int TypeId => _TypeId; public int VariableId { get; set; }
+        public virtual int TypeId => _TypeId;
+        public int VariableId { get; set; }
 
         public Log()
         {
@@ -39,7 +40,7 @@ namespace Zeze.Transaction
         public abstract void Encode(ByteBuffer bb);
         public abstract void Decode(ByteBuffer bb);
 
-        public static ConcurrentDictionary<int, Func<Log>> Factorys { get; } = new ConcurrentDictionary<int, Func<Log>>();
+        public static ConcurrentDictionary<int, Func<Log>> Factorys { get; } = new();
 
         public static Log Create(int typeId)
         {
