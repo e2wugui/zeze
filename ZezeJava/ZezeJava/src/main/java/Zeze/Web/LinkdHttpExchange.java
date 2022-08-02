@@ -102,9 +102,12 @@ public class LinkdHttpExchange {
 	 * 不能重用Rpc和BRequest。
 	 */
 	public void fillRequest(BRequest req) throws IOException {
+		req.setExchangeId(exchangeId);
 		req.setMethod(exchange.getRequestMethod());
 		req.setPath(exchange.getRequestURI().getPath());
-		req.setQuery(exchange.getRequestURI().getQuery());
+		var query = exchange.getRequestURI().getQuery();
+		if (null != query)
+			req.setQuery(query);
 		for (var e : exchange.getRequestHeaders().entrySet()) {
 			var header = new BHeader();
 			header.getValues().addAll(e.getValue());

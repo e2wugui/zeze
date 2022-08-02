@@ -26,6 +26,7 @@ package Zeze.Web;
  */
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 import Zeze.Builtin.Web.BHeader;
 import Zeze.Builtin.Web.CloseExchange;
@@ -84,6 +85,7 @@ public class HttpExchange {
 		if (null == web.Exchanges(request).remove(this.request.Argument.getExchangeId()))
 			return error;
 
+		logger.info("close: " + error + " " + msg + "/" + request.Argument.getPath(), ex);
 		if (error != 0 || null != ex)
 			logger.error(msg, ex);
 
@@ -114,7 +116,21 @@ public class HttpExchange {
 		return request.Result.getHeaders();
 	}
 
-	public void putResponseHeader(String key, String ... values) {
+	public List<String> getRequestCookie() {
+		return getRequestHeader("Cookie");
+	}
+
+	public List<String> getRequestHeader(String key) {
+		var header = getResponseHeaders().get(key);
+		if (null == header)
+			return null;
+		return header.getValues();
+	}
+	public void setResponseCookie(String ... values) {
+		setResponseHeader("Set-Cookie", values);
+	}
+
+	public void setResponseHeader(String key, String ... values) {
 		var header = new BHeader();
 		for (var v : values)
 			header.getValues().add(v);
@@ -177,8 +193,8 @@ public class HttpExchange {
 			closeResponseBody();
 	}
 
-	public void sendTextResult(String text) {
-		putResponseHeader("Content-Type", "text/plain; charset=utf-8");
+	public void sendTextResponse(String text) {
+		setResponseHeader("Content-Type", "text/plain; charset=utf-8");
 		sendResponseHeaders(200, text.getBytes(StandardCharsets.UTF_8), true);
 	}
 }

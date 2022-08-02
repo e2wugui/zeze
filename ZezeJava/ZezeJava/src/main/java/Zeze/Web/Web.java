@@ -7,8 +7,11 @@ import Zeze.Arch.ProviderService;
 import Zeze.Builtin.Web.BSession;
 import Zeze.Component.AutoKey;
 import Zeze.Net.Protocol;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class Web extends AbstractWeb {
+    private static final Logger logger = LogManager.getLogger(Web.class);
 
     public final ProviderApp ProviderApp;
     public final ConcurrentHashMap<String, HttpServlet> Servlets = new ConcurrentHashMap<>();
@@ -102,6 +105,8 @@ public class Web extends AbstractWeb {
     }
 
     public BSession getSession(List<String> cookie) {
+        if (cookie == null)
+            return null;
         for (var c : cookie) {
             if (c.startsWith(CookieSessionName))
                 return _tSessions.get(c.substring(CookieSessionName.length()));

@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
 import Zeze.Arch.LinkdApp;
 import Zeze.Builtin.Web.CloseExchange;
 import Zeze.Builtin.Web.ResponseOutputStream;
@@ -87,12 +88,15 @@ public class HttpService {
 		httpServer.createContext(path, auth);
 	}
 
+	private Future<?> Timer;
+
 	public void start() {
 		httpServer.start();
-		Task.schedule(2000, 2000, this::timer);
+		Timer = Task.schedule(2000, 2000, this::timer);
 	}
 
 	public void stop() {
+		Timer.cancel(true);
 		httpServer.stop(10);
 	}
 
