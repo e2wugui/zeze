@@ -29,6 +29,7 @@ public final class Redirect_Zeze_Game_Online extends Zeze.Game.Online {
         return _f_;
     }
 
+    @SuppressWarnings({"unchecked", "RedundantSuppression"})
     public Redirect_Zeze_Game_Online(Zeze.AppBase _app_) {
         super(_app_);
         _redirect_ = _app_.getZeze().Redirect;

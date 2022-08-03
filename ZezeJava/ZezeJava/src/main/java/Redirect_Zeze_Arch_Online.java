@@ -25,6 +25,7 @@ public final class Redirect_Zeze_Arch_Online extends Zeze.Arch.Online {
         _p_.Send(_t_, null);
     }
 
+    @SuppressWarnings({"unchecked", "RedundantSuppression"})
     public Redirect_Zeze_Arch_Online(Zeze.AppBase _app_) {
         super(_app_);
         _redirect_ = _app_.getZeze().Redirect;

@@ -1,6 +1,7 @@
 package Zeze.Arch.Gen;
 
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
@@ -15,7 +16,6 @@ import Zeze.Arch.RedirectResult;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Serialize.Serializable;
 import Zeze.Transaction.TransactionLevel;
-import Zeze.Util.KV;
 import Zeze.Util.TransactionLevelAnnotation;
 
 final class MethodOverride {
@@ -26,7 +26,7 @@ final class MethodOverride {
 	final Parameter hashOrServerIdParameter;
 	final ArrayList<Parameter> inputParameters = new ArrayList<>();
 	final String resultTypeName;
-	final ArrayList<KV<Class<?>, String>> resultTypeNames = new ArrayList<>();
+	final ArrayList<Field> resultFields = new ArrayList<>();
 	final Class<?> resultType;
 	boolean returnTypeHasResultCode;
 
@@ -82,7 +82,7 @@ final class MethodOverride {
 						if (field.getName().equals("resultCode") && field.getType() == long.class)
 							returnTypeHasResultCode = true;
 						else
-							resultTypeNames.add(KV.Create(field.getType(), field.getName()));
+							resultFields.add(field);
 					}
 				}
 			}
@@ -100,7 +100,7 @@ final class MethodOverride {
 			if (!first)
 				sb.append(", ");
 			first = false;
-			sb.append(Gen.Instance.GetTypeName(p.getType())).append(' ').append(p.getName());
+			sb.append(Gen.Instance.GetTypeName(p.getParameterizedType())).append(' ').append(p.getName());
 		}
 		return sb.toString();
 	}

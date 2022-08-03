@@ -3,6 +3,7 @@ package Game.Rank;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import Game.App;
 import Zeze.Arch.ProviderUserSession;
@@ -549,15 +550,15 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	@RedirectToServer
-	public void TestToServerNoResult(int serverId) {
+	public void TestToServerNoResult(int serverId, List<Long> longList) {
 	}
 
 	@RedirectHash
-	public void TestHashNoResult(int hash) {
+	public void TestHashNoResult(int hash, BRankList rankList) {
 	}
 
 	@RedirectAll
-	public void TestAllNoResult(int hash) {
+	public void TestAllNoResult(int hash, Object obj) {
 	}
 
 	// ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off

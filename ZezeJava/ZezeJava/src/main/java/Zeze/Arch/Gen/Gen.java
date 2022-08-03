@@ -1,6 +1,7 @@
 package Zeze.Arch.Gen;
 
 import java.lang.reflect.Parameter;
+import java.lang.reflect.Type;
 import java.util.HashMap;
 import java.util.List;
 import java.util.function.Supplier;
@@ -144,20 +145,25 @@ final class Gen {
 		);
 	}
 
-	String GetTypeName(Class<?> type) {
-		var kn = Serializer.get(type);
-		return kn != null ? kn.TypeName.get() : type.getTypeName().replace('$', '.');
+	String GetTypeName(Type type) {
+		if (type instanceof Class) {
+			var kn = Serializer.get(type);
+			return kn != null ? kn.TypeName.get() : type.getTypeName().replace('$', '.');
+		}
+		return type.toString(); // ParameterizedType
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	void GenLocalVariable(StringBuilderCs sb, String prefix, Class<?> type, String varName) throws Throwable {
+	void GenLocalVariable(StringBuilderCs sb, String prefix, Parameter param) throws Throwable {
+		var type = param.getType();
+		var name = param.getName();
 		var kn = Serializer.get(type);
 		if (kn != null)
-			kn.Define.run(sb, prefix, varName);
+			kn.Define.run(sb, prefix, name);
 		else if (Serializable.class.isAssignableFrom(type))
-			sb.AppendLine("{}var {} = new {}();", prefix, varName, type.getTypeName());
+			sb.AppendLine("{}var {} = new {}();", prefix, name, type.getTypeName());
 		else
-			sb.AppendLine("{}{} {} = null;", prefix, type.getTypeName(), varName);
+			sb.AppendLine("{}{} {};", prefix, GetTypeName(param.getParameterizedType()), name);
 	}
 
 	void GenEncode(StringBuilderCs sb, String prefix, String bbName, Class<?> type, String varName) throws Throwable {
@@ -177,7 +183,7 @@ final class Gen {
 		}
 	}
 
-	void GenDecode(StringBuilderCs sb, String prefix, String bbName, Class<?> type, String varName) throws Throwable {
+	void GenDecode(StringBuilderCs sb, String prefix, String bbName, Class<?> type, Type paramType, String varName) throws Throwable {
 		var kn = Serializer.get(type);
 		if (kn != null)
 			kn.Decoder.run(sb, prefix, varName, bbName);
@@ -188,7 +194,10 @@ final class Gen {
 			sb.AppendLine("{}    var _bo_ = {}.ReadByteBuffer();", prefix, bbName);
 			sb.AppendLine("{}    try (var _bs_ = new java.io.ByteArrayInputStream(_bo_.Bytes, _bo_.ReadIndex, _bo_.Size());", prefix);
 			sb.AppendLine("{}         var _os_ = new java.io.ObjectInputStream(_bs_)) {", prefix);
-			sb.AppendLine("{}        {} = ({})_os_.readObject();", prefix, varName, GetTypeName(type));
+			if (type == Object.class)
+				sb.AppendLine("{}        {} = _os_.readObject();", prefix, varName);
+			else
+				sb.AppendLine("{}        {} = ({})_os_.readObject();", prefix, varName, GetTypeName(paramType));
 			sb.AppendLine("{}    } catch (java.io.IOException _e_) {", prefix);
 			sb.AppendLine("{}        throw new RuntimeException(_e_);", prefix);
 			sb.AppendLine("{}    }", prefix);
@@ -205,6 +214,6 @@ final class Gen {
 	@SuppressWarnings("SameParameterValue")
 	void GenDecode(StringBuilderCs sb, String prefix, String bbName, List<Parameter> parameters) throws Throwable {
 		for (Parameter p : parameters)
-			GenDecode(sb, prefix, bbName, p.getType(), p.getName());
+			GenDecode(sb, prefix, bbName, p.getType(), p.getParameterizedType(), p.getName());
 	}
 }
