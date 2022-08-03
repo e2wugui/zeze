@@ -40,7 +40,7 @@ public class ModuleRank extends AbstractModule {
 	/**
 	 * 根据 value 设置到排行榜中
 	 */
-	@RedirectHash(ConcurrentLevelSource="GetConcurrentLevel(arg1.getRankType())")
+	@RedirectHash(ConcurrentLevelSource = "GetConcurrentLevel(arg1.getRankType())")
 	protected void UpdateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Binary valueEx) {
 		int concurrentLevel = GetConcurrentLevel(keyHint.getRankType());
 		int maxCount = GetRankComputeCount(keyHint.getRankType());
@@ -112,7 +112,7 @@ public class ModuleRank extends AbstractModule {
 
 	private final ConcurrentHashMap<BConcurrentKey, Rank> Ranks = new ConcurrentHashMap<>();
 
-	private BRankList Merge(BRankList left, BRankList right) {
+	private static BRankList Merge(BRankList left, BRankList right) {
 		BRankList result = new BRankList();
 		int indexLeft = 0;
 		int indexRight = 0;
@@ -294,7 +294,7 @@ public class ModuleRank extends AbstractModule {
 	 * 决定了最大的并发度，改变的时候，旧数据全部失效，需要清除，重建。
 	 * 一般选择一个足够大，但是又不能太大的数据。
 	 */
-	public final int GetConcurrentLevel(int rankType) {
+	public static int GetConcurrentLevel(int rankType) {
 		//noinspection SwitchStatementWithTooFewBranches
 		switch (rankType) {
 		case BConcurrentKey.RankTypeGold:
@@ -304,7 +304,7 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	// 为排行榜设置需要的数量。【有默认值】
-	public final int GetRankCount(int rankType) {
+	public static int GetRankCount(int rankType) {
 		//noinspection SwitchStatementWithTooFewBranches
 		switch (rankType) {
 		case BConcurrentKey.RankTypeGold:
@@ -314,7 +314,7 @@ public class ModuleRank extends AbstractModule {
 	}
 
 	// 排行榜中间数据的数量。【有默认值】
-	public final int GetRankComputeCount(int rankType) {
+	public static int GetRankComputeCount(int rankType) {
 		//noinspection SwitchStatementWithTooFewBranches
 		switch (rankType) {
 		case BConcurrentKey.RankTypeGold:
@@ -384,19 +384,19 @@ public class ModuleRank extends AbstractModule {
 		return Procedure.Success;
 	}
 
-	public final BConcurrentKey NewRankKey(int rankType, int timeType) {
+	public static BConcurrentKey NewRankKey(int rankType, int timeType) {
 		return NewRankKey(System.currentTimeMillis(), rankType, timeType, 0);
 	}
 
-	public final BConcurrentKey NewRankKey(int rankType, int timeType, long customizeId) {
+	public static BConcurrentKey NewRankKey(int rankType, int timeType, long customizeId) {
 		return NewRankKey(System.currentTimeMillis(), rankType, timeType, customizeId);
 	}
 
-	public final BConcurrentKey NewRankKey(long time, int rankType, int timeType) {
+	public static BConcurrentKey NewRankKey(long time, int rankType, int timeType) {
 		return NewRankKey(time, rankType, timeType, 0);
 	}
 
-	public final BConcurrentKey NewRankKey(long time, int rankType, int timeType, long customizeId) {
+	public static BConcurrentKey NewRankKey(long time, int rankType, int timeType, long customizeId) {
 		var c = Calendar.getInstance();
 		c.setTimeInMillis(time);
 		var year = c.get(Calendar.YEAR); // 后面根据TimeType可能覆盖这个值。
@@ -435,7 +435,7 @@ public class ModuleRank extends AbstractModule {
 		return new BConcurrentKey(rankType, 0, timeType, year, offset);
 	}
 
-	public int GetSimpleChineseSeason(Calendar c) {
+	public static int GetSimpleChineseSeason(Calendar c) {
 		//@formatter:off
 		var month = c.get(Calendar.MONTH);
 		if (month < 3) return 4; // 12,1,2
@@ -541,6 +541,11 @@ public class ModuleRank extends AbstractModule {
 	@RedirectHash
 	public RedirectFuture<Long> TestHashLongResult(int hash) { // 可以没有自定义输入参数,但必须至少有hash参数
 		return RedirectFuture.finish(Procedure.Success);
+	}
+
+	@RedirectToServer // 返回结果可以是Bean类型,其中如果有setResultCode(long)方法则会自动设置成resultCode
+	public RedirectFuture<BRankList> TestToServerBeanResult(int serverId) { // 可以没有自定义输入参数,但必须至少有serverId参数
+		return RedirectFuture.finish(new BRankList());
 	}
 
 	@RedirectToServer

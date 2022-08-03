@@ -19,6 +19,7 @@ import Zeze.Arch.RedirectFuture;
 import Zeze.Arch.RedirectHash;
 import Zeze.Arch.RedirectToServer;
 import Zeze.IModule;
+import Zeze.Serialize.Serializable;
 import Zeze.Util.InMemoryJavaCompiler;
 import Zeze.Util.StringBuilderCs;
 
@@ -223,17 +224,31 @@ public final class GenModule {
 				if (m.resultType == Long.class)
 					sb.AppendLine("            _f_.SetResult(_rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode());");
 				else {
-					sb.AppendLine("            var _r_ = new {}();", m.resultTypeName);
-					if (m.returnTypeHasResultCode)
-						sb.AppendLine("            _r_.resultCode = _rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode();");
-					if (!m.resultTypeNames.isEmpty()) {
-						sb.AppendLine("            var _param_ = _rpc_.Result.getParams();");
-						sb.AppendLine("            if (_param_.size() > 0) {");
-						sb.AppendLine("                var _bb_ = _param_.Wrap();");
-						for (var typeName : m.resultTypeNames)
-							Gen.Instance.GenDecode(sb, "                ", "_bb_", typeName.getKey(), "_r_." + typeName.getValue());
+					if (!m.returnTypeHasResultCode) {
+						sb.AppendLine("            if (_rpc_.isTimeout()) {");
+						sb.AppendLine("                _f_.SetResult(null);");
+						sb.AppendLine("                return Zeze.Transaction.Procedure.Success;");
+						sb.AppendLine("            }");
 					}
-					sb.AppendLine("            }");
+					sb.AppendLine("            var _r_ = new {}();", m.resultTypeName);
+					if (Serializable.class.isAssignableFrom(m.resultType)) {
+						sb.AppendLine("            var _param_ = _rpc_.Result.getParams();");
+						sb.AppendLine("            if (_param_.size() > 0)");
+						sb.AppendLine("                _r_.Decode(_param_.Wrap());");
+						if (m.returnTypeHasResultCode)
+							sb.AppendLine("            _r_.setResultCode(_rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode());");
+					} else {
+						if (!m.resultTypeNames.isEmpty()) {
+							sb.AppendLine("            var _param_ = _rpc_.Result.getParams();");
+							sb.AppendLine("            if (_param_.size() > 0) {");
+							sb.AppendLine("                var _bb_ = _param_.Wrap();");
+							for (var typeName : m.resultTypeNames)
+								Gen.Instance.GenDecode(sb, "                ", "_bb_", typeName.getKey(), "_r_." + typeName.getValue());
+							sb.AppendLine("            }");
+						}
+						if (m.returnTypeHasResultCode)
+							sb.AppendLine("            _r_.resultCode = _rpc_.isTimeout() ? Zeze.Transaction.Procedure.Timeout : _rpc_.getResultCode();");
+					}
 					sb.AppendLine("            _f_.SetResult(_r_);");
 				}
 				sb.AppendLine("            return Zeze.Transaction.Procedure.Success;");
@@ -266,7 +281,18 @@ public final class GenModule {
 				sbHandles.AppendLine("                return super.{}(_hash_{}{});", methodNameHash, sep, normalCall);
 			}
 			sbHandles.Append("            }, _result_ -> ");
-			if (!m.resultTypeNames.isEmpty()) {
+			if (m.resultType != null && Serializable.class.isAssignableFrom(m.resultType)) {
+				sbHandles.AppendLine("{");
+				sbHandles.AppendLine("                var _r_ = ({})_result_;", m.resultTypeName);
+				sbHandles.AppendLine("                int _s_ = _r_.getPreAllocSize();");
+				sbHandles.AppendLine("                var _b_ = Zeze.Serialize.ByteBuffer.Allocate(Math.min(_s_, 65536));");
+				sbHandles.AppendLine("                _r_.Encode(_b_);");
+				sbHandles.AppendLine("                int _t_ = _b_.WriteIndex;");
+				sbHandles.AppendLine("                if (_t_ > _s_)");
+				sbHandles.AppendLine("                    _r_.setPreAllocSize(_t_);");
+				sbHandles.AppendLine("                return new Zeze.Net.Binary(_b_);");
+				sbHandles.Append("            }");
+			} else if (!m.resultTypeNames.isEmpty()) {
 				sbHandles.AppendLine("{");
 				sbHandles.AppendLine("                var _r_ = ({})_result_;", m.resultTypeName);
 				sbHandles.AppendLine("                var _b_ = Zeze.Serialize.ByteBuffer.Allocate();");

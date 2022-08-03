@@ -13,6 +13,7 @@ import Zeze.Arch.RedirectFuture;
 import Zeze.Arch.RedirectHash;
 import Zeze.Arch.RedirectResult;
 import Zeze.Arch.RedirectToServer;
+import Zeze.Serialize.Serializable;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.KV;
 import Zeze.Util.TransactionLevelAnnotation;
@@ -26,7 +27,7 @@ final class MethodOverride {
 	final ArrayList<Parameter> inputParameters = new ArrayList<>();
 	final String resultTypeName;
 	final ArrayList<KV<Class<?>, String>> resultTypeNames = new ArrayList<>();
-	Class<?> resultType;
+	final Class<?> resultType;
 	boolean returnTypeHasResultCode;
 
 	MethodOverride(Method method, Annotation annotation) {
@@ -55,25 +56,35 @@ final class MethodOverride {
 						throw new RuntimeException("RedirectAll Result Type Must Extend RedirectResult: "
 								+ method.getDeclaringClass().getName() + "::" + method.getName());
 					}
-				}
+				} else
+					resultType = null;
 			} else if (rpType.getRawType() == RedirectFuture.class)
 				resultType = (Class<?>)rpType.getActualTypeArguments()[0];
-		}
+			else
+				resultType = null;
+		} else
+			resultType = null;
 
-		if (resultType == null) {
-			if (annotation instanceof RedirectAll) {
-				resultTypeName = null;
-				return;
-			}
-			resultType = Long.class;
-		}
-		resultTypeName = toShort(resultType.getName()).replace('$', '.');
-		for (var field : resultType.getFields()) {
-			if ((field.getModifiers() & ~Modifier.VOLATILE) == Modifier.PUBLIC) { // 只允许public和可选的volatile
-				if (field.getName().equals("resultCode") && field.getType() == long.class)
+		if (resultType == null)
+			resultTypeName = null;
+		else {
+			resultTypeName = toShort(resultType.getName()).replace('$', '.');
+			if (Serializable.class.isAssignableFrom(resultType)) {
+				try {
+					resultType.getMethod("setResultCode", long.class);
 					returnTypeHasResultCode = true;
-				else
-					resultTypeNames.add(KV.Create(field.getType(), field.getName()));
+				} catch (NoSuchMethodException e) {
+					returnTypeHasResultCode = false;
+				}
+			} else {
+				for (var field : resultType.getFields()) {
+					if ((field.getModifiers() & ~Modifier.VOLATILE) == Modifier.PUBLIC) { // 只允许public和可选的volatile
+						if (field.getName().equals("resultCode") && field.getType() == long.class)
+							returnTypeHasResultCode = true;
+						else
+							resultTypeNames.add(KV.Create(field.getType(), field.getName()));
+					}
+				}
 			}
 		}
 	}

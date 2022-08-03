@@ -62,9 +62,13 @@ public class ProviderDirect extends AbstractProviderDirect {
 		}
 		if (result instanceof RedirectFuture) {
 			((RedirectFuture<?>)result).then(r -> {
-				rpc.Result.setParams(handle.ResultEncoder.apply(r));
-				// rpc 成功了，具体handle结果还需要看ReturnCode。
-				rpc.SendResultCode(Procedure.Success);
+				if (r instanceof Long)
+					rpc.SendResultCode((Long)r);
+				else {
+					rpc.Result.setParams(handle.ResultEncoder.apply(r));
+					// rpc 成功了，具体handle结果还需要看ReturnCode。
+					rpc.SendResultCode(Procedure.Success);
+				}
 			});
 		} else
 			rpc.SendResultCode(Procedure.Success);
