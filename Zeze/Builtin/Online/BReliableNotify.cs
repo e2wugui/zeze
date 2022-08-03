@@ -186,6 +186,11 @@ namespace Zeze.Builtin.Online
             _Notifies.InitRootInfo(root, this);
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+            _Notifies.ResetRootInfo();
+        }
+
         public override bool NegativeCheck()
         {
             if (ReliableNotifyIndex < 0) return true;

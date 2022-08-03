@@ -241,6 +241,10 @@ namespace Zeze.Builtin.Provider
         {
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+        }
+
         public override bool NegativeCheck()
         {
             if (Linksid < 0) return true;

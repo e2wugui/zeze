@@ -443,7 +443,14 @@ namespace Zeze.Services.Handshake
 
         protected override void InitChildrenRootInfo(Record.RootInfo root)
         {
+            throw new NotImplementedException();
         }
+
+        protected override void ResetChildrenRootInfo()
+        {
+            throw new NotImplementedException();
+        }
+
     }
 
     public sealed class SHandshakeArgument : Bean
@@ -468,7 +475,14 @@ namespace Zeze.Services.Handshake
 
         protected override void InitChildrenRootInfo(Record.RootInfo root)
         {
+            throw new NotImplementedException();
         }
+
+        protected override void ResetChildrenRootInfo()
+        {
+            throw new NotImplementedException();
+        }
+
     }
 
     public sealed class CHandshake : Protocol<CHandshakeArgument>
@@ -532,6 +546,11 @@ namespace Zeze.Services.Handshake
         }
 
         protected override void InitChildrenRootInfo(Record.RootInfo root)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void ResetChildrenRootInfo()
         {
             throw new NotImplementedException();
         }

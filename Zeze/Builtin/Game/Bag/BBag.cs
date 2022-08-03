@@ -199,6 +199,11 @@ namespace Zeze.Builtin.Game.Bag
             _Items.InitRootInfo(root, this);
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+            _Items.ResetRootInfo();
+        }
+
         public override bool NegativeCheck()
         {
             if (Capacity < 0) return true;

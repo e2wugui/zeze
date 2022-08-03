@@ -152,6 +152,11 @@ namespace Zeze.Builtin.Online
             _Logins.InitRootInfo(root, this);
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+            _Logins.ResetRootInfo();
+        }
+
         public override bool NegativeCheck()
         {
             foreach (var _v_ in Logins.Values)

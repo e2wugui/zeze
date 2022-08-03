@@ -179,6 +179,11 @@ namespace Zeze.Builtin.Collections.Queue
             _Value.InitRootInfo(root, this);
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+            _Value.ResetRootInfo();
+        }
+
         public override bool NegativeCheck()
         {
             if (Timestamp < 0) return true;

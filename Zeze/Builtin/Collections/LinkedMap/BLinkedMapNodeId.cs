@@ -139,6 +139,10 @@ namespace Zeze.Builtin.Collections.LinkedMap
         {
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+        }
+
         public override bool NegativeCheck()
         {
             if (NodeId < 0) return true;

@@ -389,6 +389,11 @@ namespace Zeze.Builtin.ProviderDirect
             _Hashs.InitRootInfo(root, this);
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+            _Hashs.ResetRootInfo();
+        }
+
         public override bool NegativeCheck()
         {
             if (ModuleId < 0) return true;

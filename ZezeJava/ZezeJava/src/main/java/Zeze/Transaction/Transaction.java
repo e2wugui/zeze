@@ -116,7 +116,7 @@ public final class Transaction {
 
 	private final List<Runnable> RedoActions = new ArrayList<>();
 
-	private void TriggerRedoActions() {
+	private void triggerRedoActions() {
 		for (var a : RedoActions)
 			a.run(); // redo action 的回调不处理异常。向外面抛出并中断事务。
 	}
@@ -267,7 +267,7 @@ public final class Transaction {
 							AccessedRecords.clear();
 							Savepoints.clear();
 							Actions.clear();
-							TriggerRedoActions();
+							triggerRedoActions();
 							RedoActions.clear();
 
 							State = TransactionState.Running; // prepare to retry

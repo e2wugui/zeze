@@ -235,6 +235,11 @@ namespace Zeze.Builtin.Provider
             _linkSids.InitRootInfo(root, this);
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+            _linkSids.ResetRootInfo();
+        }
+
         public override bool NegativeCheck()
         {
             foreach (var _v_ in LinkSids)

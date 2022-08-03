@@ -91,7 +91,11 @@ namespace Zeze.Transaction.Collections
         {
         }
 
-		public override Bean CopyBean()
+        protected override void ResetChildrenRootInfo()
+        {
+        }
+
+        public override Bean CopyBean()
 		{
             var copy = new CollSet1<V>
             {

@@ -335,6 +335,11 @@ namespace Zeze.Builtin.ProviderDirect
             _TargetAccounts.InitRootInfo(root, this);
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+            _TargetAccounts.ResetRootInfo();
+        }
+
         public override bool NegativeCheck()
         {
             return false;

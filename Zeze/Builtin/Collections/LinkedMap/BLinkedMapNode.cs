@@ -235,6 +235,11 @@ namespace Zeze.Builtin.Collections.LinkedMap
             _Values.InitRootInfo(root, this);
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+            _Values.ResetRootInfo();
+        }
+
         public override bool NegativeCheck()
         {
             if (PrevNodeId < 0) return true;

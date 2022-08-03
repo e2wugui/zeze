@@ -129,6 +129,10 @@ namespace Zeze.Transaction.Collections
 		{ 
 		}
 
+		protected override void ResetChildrenRootInfo()
+		{
+		}
+
 		public override Bean CopyBean()
 		{
 			var copy = new CollMap1<K, V>();

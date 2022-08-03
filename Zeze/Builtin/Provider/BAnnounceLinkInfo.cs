@@ -91,6 +91,10 @@ namespace Zeze.Builtin.Provider
         {
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+        }
+
         public override bool NegativeCheck()
         {
             return false;

@@ -190,6 +190,10 @@ namespace Zeze.Builtin.DelayRemove
         {
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+        }
+
         public override bool NegativeCheck()
         {
             return false;

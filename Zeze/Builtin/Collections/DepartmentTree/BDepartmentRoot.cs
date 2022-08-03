@@ -321,6 +321,12 @@ namespace Zeze.Builtin.Collections.DepartmentTree
             _Childs.InitRootInfo(root, this);
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+            _Managers.ResetRootInfo();
+            _Childs.ResetRootInfo();
+        }
+
         public override bool NegativeCheck()
         {
             if (NextDepartmentId < 0) return true;

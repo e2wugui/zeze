@@ -152,6 +152,11 @@ namespace Zeze.Builtin.Provider
             _modules.InitRootInfo(root, this);
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+            _modules.ResetRootInfo();
+        }
+
         public override bool NegativeCheck()
         {
             foreach (var _v_ in Modules.Values)

@@ -331,6 +331,10 @@ namespace Zeze.Builtin.RedoQueue
         {
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+        }
+
         public override bool NegativeCheck()
         {
             if (TaskType < 0) return true;

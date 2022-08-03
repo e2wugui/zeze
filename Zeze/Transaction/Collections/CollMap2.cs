@@ -168,6 +168,14 @@ namespace Zeze.Transaction.Collections
 			}
 		}
 
+		protected override void ResetChildrenRootInfo()
+		{
+			foreach (var v in _map.Values)
+			{
+				v.ResetRootInfo();
+			}
+		}
+
 		public override Bean CopyBean()
 		{
 			var copy = new CollMap2<K, V>();

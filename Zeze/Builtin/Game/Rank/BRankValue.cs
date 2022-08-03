@@ -235,6 +235,10 @@ namespace Zeze.Builtin.Game.Rank
         {
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+        }
+
         public override bool NegativeCheck()
         {
             if (RoleId < 0) return true;

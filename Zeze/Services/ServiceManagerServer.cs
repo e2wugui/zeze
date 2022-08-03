@@ -1517,6 +1517,11 @@ namespace Zeze.Services.ServiceManager
             throw new NotImplementedException();
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+            throw new NotImplementedException();
+        }
+
         public override string ToString()
         {
             return $"Ip={Ip} Port={Port} Param={BitConverter.ToString(Param.Bytes, Param.Offset, Param.Count)}";
@@ -1586,6 +1591,11 @@ namespace Zeze.Services.ServiceManager
         }
 
         protected override void InitChildrenRootInfo(Record.RootInfo root)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void ResetChildrenRootInfo()
         {
             throw new NotImplementedException();
         }
@@ -1686,6 +1696,11 @@ namespace Zeze.Services.ServiceManager
         }
 
         protected override void InitChildrenRootInfo(Record.RootInfo root)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void ResetChildrenRootInfo()
         {
             throw new NotImplementedException();
         }
@@ -1829,6 +1844,11 @@ namespace Zeze.Services.ServiceManager
             throw new NotImplementedException();
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+            throw new NotImplementedException();
+        }
+
         public override string ToString()
         {
             var sb = new StringBuilder();
@@ -1873,7 +1893,13 @@ namespace Zeze.Services.ServiceManager
         {
             throw new NotImplementedException();
         }
+
+        protected override void ResetChildrenRootInfo()
+        {
+            throw new NotImplementedException();
+        }
     }
+
     public sealed class ReadyServiceList : Protocol<ServiceListVersion>
     {
         public readonly static int ProtocolId_ = Bean.Hash32(typeof(ReadyServiceList).FullName);
@@ -1962,6 +1988,11 @@ namespace Zeze.Services.ServiceManager
         {
             throw new NotImplementedException();
         }
+
+        protected override void ResetChildrenRootInfo()
+        {
+            throw new NotImplementedException();
+        }
     }
 
     public sealed class AllocateIdResult : Bean
@@ -1985,6 +2016,11 @@ namespace Zeze.Services.ServiceManager
         }
 
         protected override void InitChildrenRootInfo(Record.RootInfo root)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void ResetChildrenRootInfo()
         {
             throw new NotImplementedException();
         }

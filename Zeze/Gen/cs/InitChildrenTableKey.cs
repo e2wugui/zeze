@@ -19,5 +19,20 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
         }
+
+        public static void MakeReset(Bean bean, StreamWriter sw, string prefix)
+        {
+            sw.WriteLine(prefix + "protected override void ResetChildrenRootInfo()");
+            sw.WriteLine(prefix + "{");
+            foreach (Variable v in bean.Variables)
+            {
+                if (v.VariableType.IsNormalBean || v.VariableType.IsCollection)
+                    sw.WriteLine(prefix + "    " + v.NamePrivate + ".ResetRootInfo();");
+                else if (v.VariableType is TypeDynamic)
+                    sw.WriteLine(prefix + "    " + v.NamePrivate + ".ResetRootInfo();");
+            }
+            sw.WriteLine(prefix + "}");
+            sw.WriteLine();
+        }
     }
 }

@@ -188,6 +188,10 @@ namespace Zeze.Builtin.Game.Online
         {
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+        }
+
         public override bool NegativeCheck()
         {
             if (LinkSid < 0) return true;

@@ -329,6 +329,11 @@ namespace Zeze.Builtin.Online
             _ReliableNotifyMark.InitRootInfo(root, this);
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+            _ReliableNotifyMark.ResetRootInfo();
+        }
+
         public override bool NegativeCheck()
         {
             if (LoginVersion < 0) return true;

@@ -280,6 +280,10 @@ namespace Zeze.Builtin.Collections.Queue
         {
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+        }
+
         public override bool NegativeCheck()
         {
             if (HeadNodeId < 0) return true;

@@ -141,6 +141,11 @@ namespace Zeze.Builtin.Game.Rank
             _RankList.InitRootInfo(root, this);
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+            _RankList.ResetRootInfo();
+        }
+
         public override bool NegativeCheck()
         {
             foreach (var _v_ in RankList)

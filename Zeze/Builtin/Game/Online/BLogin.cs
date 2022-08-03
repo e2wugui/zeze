@@ -139,6 +139,10 @@ namespace Zeze.Builtin.Game.Online
         {
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+        }
+
         public override bool NegativeCheck()
         {
             if (RoleId < 0) return true;

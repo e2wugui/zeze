@@ -188,6 +188,11 @@ namespace Zeze.Builtin.Collections.Queue
             _Values.InitRootInfo(root, this);
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+            _Values.ResetRootInfo();
+        }
+
         public override bool NegativeCheck()
         {
             if (NextNodeId < 0) return true;

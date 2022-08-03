@@ -282,6 +282,11 @@ namespace Zeze.Builtin.Game.Online
             _Roles.InitRootInfo(root, this);
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+            _Roles.ResetRootInfo();
+        }
+
         public override bool NegativeCheck()
         {
             foreach (var _v_ in Roles)

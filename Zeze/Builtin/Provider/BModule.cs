@@ -243,6 +243,10 @@ namespace Zeze.Builtin.Provider
         {
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+        }
+
         public override bool NegativeCheck()
         {
             if (ChoiceType < 0) return true;

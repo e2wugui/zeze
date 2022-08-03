@@ -188,6 +188,10 @@ namespace Zeze.Builtin.Online
         {
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+        }
+
         public override bool NegativeCheck()
         {
             if (ReliableNotifyConfirmIndex < 0) return true;

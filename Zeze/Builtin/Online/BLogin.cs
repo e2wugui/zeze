@@ -141,6 +141,10 @@ namespace Zeze.Builtin.Online
         {
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+        }
+
         public override bool NegativeCheck()
         {
             return false;

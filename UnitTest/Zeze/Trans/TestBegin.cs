@@ -27,6 +27,10 @@ namespace UnitTest.Zeze.Trans
             {
             }
 
+            protected override void ResetChildrenRootInfo()
+            {
+            }
+
             public int _i;
 
             class MyLog : Log<int>

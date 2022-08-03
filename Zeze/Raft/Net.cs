@@ -908,6 +908,11 @@ namespace Zeze.Raft
             throw new NotImplementedException();
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+            throw new NotImplementedException();
+        }
+
         public override string ToString()
         {
             return $"(Term={Term} CandidateId={CandidateId} LastLogIndex={LastLogIndex} LastLogTerm={LastLogTerm})";
@@ -932,6 +937,11 @@ namespace Zeze.Raft
         }
 
         protected override void InitChildrenRootInfo(Record.RootInfo root)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void ResetChildrenRootInfo()
         {
             throw new NotImplementedException();
         }
@@ -1001,6 +1011,11 @@ namespace Zeze.Raft
             throw new NotImplementedException();
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+            throw new NotImplementedException();
+        }
+
         public override string ToString()
         {
             return $"(Term={Term} LeaderId={LeaderId} PrevLogIndex={PrevLogIndex} PrevLogTerm={PrevLogTerm} LeaderCommit={LeaderCommit})";
@@ -1028,6 +1043,11 @@ namespace Zeze.Raft
         }
 
         protected override void InitChildrenRootInfo(Record.RootInfo root)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void ResetChildrenRootInfo()
         {
             throw new NotImplementedException();
         }
@@ -1093,6 +1113,11 @@ namespace Zeze.Raft
             throw new NotImplementedException();
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+            throw new NotImplementedException();
+        }
+
         public override string ToString()
         {
             return $"(Term={Term} LeaderId={LeaderId} LastIncludedIndex={LastIncludedIndex} LastIncludedTerm={LastIncludedTerm} Offset={Offset} Done={Done})";
@@ -1120,6 +1145,11 @@ namespace Zeze.Raft
         }
 
         protected override void InitChildrenRootInfo(Record.RootInfo root)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void ResetChildrenRootInfo()
         {
             throw new NotImplementedException();
         }
@@ -1167,6 +1197,11 @@ namespace Zeze.Raft
         }
 
         protected override void InitChildrenRootInfo(Record.RootInfo root)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void ResetChildrenRootInfo()
         {
             throw new NotImplementedException();
         }

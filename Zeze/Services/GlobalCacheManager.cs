@@ -1085,6 +1085,11 @@ namespace Zeze.Services.GlobalCacheManager
             throw new NotImplementedException();
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+            throw new NotImplementedException();
+        }
+
         public override string ToString()
         {
             return GlobalKey + ":" + State;
@@ -1153,6 +1158,12 @@ namespace Zeze.Services.GlobalCacheManager
         {
             throw new NotImplementedException();
         }
+
+        protected override void ResetChildrenRootInfo()
+        {
+            throw new NotImplementedException();
+        }
+
     }
 
     public sealed class AchillesHeelConfigFromGlobal : Bean
@@ -1179,6 +1190,12 @@ namespace Zeze.Services.GlobalCacheManager
         {
             throw new NotImplementedException();
         }
+
+        protected override void ResetChildrenRootInfo()
+        {
+            throw new NotImplementedException();
+        }
+
     }
 
     public sealed class Login : Rpc<LoginParam, AchillesHeelConfigFromGlobal>
@@ -1245,6 +1262,11 @@ namespace Zeze.Services.GlobalCacheManager
         }
 
         protected override void InitChildrenRootInfo(Record.RootInfo root)
+        {
+            throw new NotImplementedException();
+        }
+
+        protected override void ResetChildrenRootInfo()
         {
             throw new NotImplementedException();
         }

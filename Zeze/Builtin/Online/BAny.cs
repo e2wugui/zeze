@@ -134,6 +134,11 @@ namespace Zeze.Builtin.Online
             _Any.InitRootInfo(root, this);
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+            _Any.ResetRootInfo();
+        }
+
         public override bool NegativeCheck()
         {
             return false;

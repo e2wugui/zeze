@@ -186,6 +186,10 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
         {
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+        }
+
         public override bool NegativeCheck()
         {
             if (ServerId < 0) return true;

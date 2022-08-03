@@ -215,6 +215,14 @@ namespace Zeze.Transaction.Collections
 			}
 		}
 
+		protected override void ResetChildrenRootInfo()
+		{
+			foreach (var v in _list)
+			{
+				v.ResetRootInfo();
+			}
+		}
+
 		public override Bean CopyBean()
 		{
             var copy = new CollList2<E>

@@ -74,6 +74,10 @@ namespace UnitTest.Zeze.Net
             protected override void InitChildrenRootInfo(Record.RootInfo root)
             {
             }
+
+            protected override void ResetChildrenRootInfo()
+            {
+            }
         }
         public class Hello : Rpc<Param, Param>
         {

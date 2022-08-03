@@ -240,6 +240,10 @@ namespace Zeze.Builtin.LinkdBase
         {
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+        }
+
         public override bool NegativeCheck()
         {
             if (From < 0) return true;

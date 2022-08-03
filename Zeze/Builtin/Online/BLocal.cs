@@ -201,6 +201,11 @@ namespace Zeze.Builtin.Online
             _Datas.InitRootInfo(root, this);
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+            _Datas.ResetRootInfo();
+        }
+
         public override bool NegativeCheck()
         {
             if (LoginVersion < 0) return true;

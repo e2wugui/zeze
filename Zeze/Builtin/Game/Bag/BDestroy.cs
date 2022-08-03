@@ -188,6 +188,10 @@ namespace Zeze.Builtin.Game.Bag
         {
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+        }
+
         public override bool NegativeCheck()
         {
             if (Position < 0) return true;

@@ -734,6 +734,11 @@ namespace Zeze.Raft
                 throw new NotImplementedException();
             }
 
+            protected override void ResetChildrenRootInfo()
+            {
+                throw new NotImplementedException();
+            }
+
             public override string ToString()
             {
                 return $"Count={Count}";

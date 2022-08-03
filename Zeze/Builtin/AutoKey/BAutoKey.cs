@@ -139,6 +139,10 @@ namespace Zeze.Builtin.AutoKey
         {
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+        }
+
         public override bool NegativeCheck()
         {
             if (NextId < 0) return true;

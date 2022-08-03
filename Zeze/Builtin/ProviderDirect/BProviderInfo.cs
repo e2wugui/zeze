@@ -235,6 +235,10 @@ namespace Zeze.Builtin.ProviderDirect
         {
         }
 
+        protected override void ResetChildrenRootInfo()
+        {
+        }
+
         public override bool NegativeCheck()
         {
             if (Port < 0) return true;
