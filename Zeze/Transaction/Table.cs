@@ -369,6 +369,28 @@ namespace Zeze.Transaction
                     lockey.Dispose();
                 }
             }
+            if (remain.Count > 0)
+            {
+                foreach (var e in remain)
+                {
+                    var lockey = Zeze.Locks.Get(e.Item1);
+                    await lockey.WriterLockAsync();
+                    try
+                    {
+                        using (await e.Item2.Mutex.LockAsync())
+                        {
+                            // 只是需要设置Invalid，放弃资源，后面的所有访问都需要重新获取。
+                            e.Item2.State = GlobalCacheManagerServer.StateInvalid;
+                            await FlushWhenReduce(e.Item2);
+                        }
+                    }
+                    finally
+                    {
+                        lockey.Dispose();
+                    }
+                }
+            }
+            /*
             while (remain.Count > 0)
             {
                 var remain2 = new List<(TableKey, Record<K, V>)>(remain.Count);
@@ -396,6 +418,7 @@ namespace Zeze.Transaction
                 }
                 remain = remain2;
             }
+            */
             return 0;
         }
 
