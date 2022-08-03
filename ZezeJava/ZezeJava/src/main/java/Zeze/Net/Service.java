@@ -310,15 +310,18 @@ public class Service {
 		if (handle != null) {
 			if (IsHandshakeProtocol(p.getTypeId())) {
 				// handshake protocol call direct in io-thread.
-				Task.Call(() -> handle.handle(p), p);
+				Task.Call(() -> handle.handle(p), p, Protocol::trySendResultCode);
 				return;
 			}
 			TransactionLevel level = factoryHandle.Level;
 			Application zeze = Zeze;
 			if (zeze != null && level != TransactionLevel.None)
-				Task.run(zeze.NewProcedure(() -> handle.handle(p), p.getClass().getName(), level, p.getUserState()), p, null, factoryHandle.Mode);
+				Task.run(zeze.NewProcedure(() -> handle.handle(p),
+						p.getClass().getName(), level, p.getUserState()), p,
+						Protocol::trySendResultCode, factoryHandle.Mode);
 			else
-				Task.run(() -> handle.handle(p), p, null, null, factoryHandle.Mode);
+				Task.run(() -> handle.handle(p), p,
+						Protocol::trySendResultCode, null, factoryHandle.Mode);
 		} else
 			logger.warn("DispatchProtocol: Protocol Handle Not Found: {}", p);
 	}

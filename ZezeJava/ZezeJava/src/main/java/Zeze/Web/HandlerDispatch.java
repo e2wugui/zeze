@@ -76,10 +76,6 @@ public class HandlerDispatch implements HttpHandler {
 			return 0;
 		}
 		x.sendResponse(req.Result);
-		if (req.Result.isFinish()) {
-			x.closeResponseBody();
-		}
-
 		if (!x.isRequestBodyClosed()) {
 			var input = new RequestInputStream();
 			x.fillInput(input.Argument);

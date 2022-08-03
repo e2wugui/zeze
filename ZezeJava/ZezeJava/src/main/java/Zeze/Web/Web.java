@@ -50,20 +50,21 @@ public class Web extends AbstractWeb {
         var x = new HttpExchange(this, r);
         if (null != Exchanges(r).putIfAbsent(r.Argument.getExchangeId(), x)) {
             // 重复的ExchangeId的错误，不能（不需要）直接关闭x，否则将会删除已经存在的Exchange。
-            var error = ErrorCode(DuplicateExchangeId);
             r.Result.setMessage("DuplicateExchangeId");
-            r.SendResultCode(error);
-            return error;
+            return ErrorCode(DuplicateExchangeId);
         }
         var servlet = Servlets.get(r.Argument.getPath());
         if (null == servlet)
-            return x.close(ErrorCode(UnknownPath404), "UnknownPath404", null);
+            return x.close(ErrorCode(UnknownPath404), "UnknownPath404", null, false);
 
         try {
             servlet.onRequest(x);
+            if (r.Argument.isFinish())
+                x.closeRequestBody();
+            // r.SendResult 在 HttpExchange.sendResponseHeaders中调用。
             return 0;
         } catch (Throwable ex) {
-            return x.close(ErrorCode(ServletException), "ServletException", ex);
+            return x.close(ErrorCode(ServletException), "ServletException", ex, false);
         }
     }
 
@@ -78,23 +79,22 @@ public class Web extends AbstractWeb {
     protected long ProcessRequestInputStreamRequest(Zeze.Builtin.Web.RequestInputStream r) {
         var x = Exchanges(r).get(r.Argument.getExchangeId());
         if (null == x) {
-            r.SendResultCode(ErrorCode(ExchangeIdNotFound));
-            return 0;
+            return ErrorCode(ExchangeIdNotFound);
         }
 
         var servlet = Servlets.get(x.request.Argument.getPath());
         if (null == servlet)
-            return x.close(ErrorCode(UnknownPath404), "UnknownPath404", null);
+            return x.close(ErrorCode(UnknownPath404), "UnknownPath404", null, false);
 
         try {
             servlet.onUpload(x, r.Argument);
             if (r.Argument.isFinish())
                 x.closeRequestBody();
-            r.SendResult();
+            r.SendResult(); // onUpload 只处理数据，在这里发送结果。这个跟servlet.onRequest处理不同。
+            return 0;
         } catch (Throwable ex) {
-            r.SendResultCode(ErrorCode(OnUploadException));
+            return x.close(ErrorCode(OnUploadException), "OnUploadException", ex, false);
         }
-        return 0;
     }
 
     private static final String CookieSessionName = "ZEZEWEBSESSIONID=";

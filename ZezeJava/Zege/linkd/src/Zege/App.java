@@ -23,7 +23,6 @@ public class App extends Zeze.AppBase {
 
     public Zeze.Arch.LinkdApp LinkdApp;
     public Zeze.Arch.LinkdProvider LinkdProvider;
-    public HttpService HttpService;
 
     private LoadConfig LoadConfig() {
         try {
@@ -53,14 +52,14 @@ public class App extends Zeze.AppBase {
         StartService(); // 启动网络
         LinkdApp.RegisterService(null);
 
-        HttpService = new HttpService(LinkdApp, 80, Task.getThreadPool());
+        LinkdApp.HttpService = new HttpService(LinkdApp, 80, Task.getThreadPool());
         // 如果需要拦截验证请求在linkd处理。在这里注册，
         // HttpService.interceptAuthContext("/myapp/myauth", new MyHttpAuth(HttpService));
-        HttpService.start();
+        LinkdApp.HttpService.start();
     }
 
     public void Stop() throws Throwable {
-        HttpService.stop();
+        LinkdApp.HttpService.stop();
         StopService(); // 关闭网络
         StopModules(); // 关闭模块，卸载配置什么的。
         if (Zeze != null)

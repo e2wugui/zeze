@@ -68,24 +68,30 @@ public class HttpExchange {
 	private boolean responseBodyClosed = false;
 
 	void closeRequestBody() {
+		if (requestBodyClosed)
+			return;
 		requestBodyClosed = true;
 		tryClose();
 	}
 
 	private void closeResponseBody() {
+		if (responseBodyClosed)
+			return;
+		responseBodyClosed = true;
 		tryClose();
 	}
 
 	private void tryClose() {
+		//logger.info("tryClose " + requestBodyClosed + " " + responseBodyClosed, new RuntimeException());
 		if (requestBodyClosed && responseBodyClosed)
-			close(0, null, null);
+			close(0, null, null, false);
 	}
 
-	long close(long error, String msg, Throwable ex) {
+	long close(long error, String msg, Throwable ex, boolean notifyLinkd) {
 		if (null == web.Exchanges(request).remove(this.request.Argument.getExchangeId()))
 			return error;
 
-		logger.info("close: " + error + " " + msg + "/" + request.Argument.getPath(), ex);
+		logger.debug("close: " + error + " " + msg + request.Argument.getPath(), ex);
 		if (error != 0 || null != ex)
 			logger.error(msg, ex);
 
@@ -97,13 +103,13 @@ public class HttpExchange {
 				request.Result.setStacktrace(Str.stacktrace(ex));
 			request.Result.setFinish(true);
 			request.SendResultCode(error);
-		} else if (error != 0 || null != ex) {
+		} else if (notifyLinkd) {
 			// 其他过程(现在只有sendResponseBody)通过专门的Rpc报告错误。
 			var ce = new CloseExchange();
 			ce.Argument.setExchangeId(request.Argument.getExchangeId());
 			ce.Send(request.getSender()); // no wait
 		}
-		return error;
+		return 0;
 	}
 
 	public Map<String, BHeader> getRequestHeaders() {
@@ -151,6 +157,7 @@ public class HttpExchange {
 		request.Result.setFinish(finish);
 		request.SendResult();
 		state = State.ResponseHeadersSent;
+		request.SendResult();
 		if (finish)
 			closeResponseBody();
 	}
@@ -182,10 +189,10 @@ public class HttpExchange {
 			try {
 				var rc = sendDone.call(this, stream.getResultCode());
 				if (rc != 0)
-					close(rc, "sendDone.callback return error.", null);
+					close(rc, "sendDone.callback return error.", null, true);
 				return rc;
 			} catch (Throwable ex) {
-				close(Procedure.Exception, "sendDone.callback throw exception.", ex);
+				close(Procedure.Exception, "sendDone.callback throw exception.", ex, true);
 				return Procedure.Exception;
 			}
 		});

@@ -16,8 +16,12 @@ import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Transaction.Bean;
 import com.sun.net.httpserver.HttpExchange;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class LinkdHttpExchange {
+	private static final Logger logger = LogManager.getLogger(LinkdHttpExchange.class);
+
 	final long exchangeId;
 	long provider;
 
@@ -52,6 +56,8 @@ public class LinkdHttpExchange {
 	}
 
 	public void closeResponseBody() throws IOException {
+		if (responseBodyClosed)
+			return;
 		exchange.getResponseBody().close();
 		responseBodyClosed = true;
 		tryClose();
@@ -63,12 +69,15 @@ public class LinkdHttpExchange {
 	}
 
 	public void closeRequestBody() throws IOException {
+		if (requestBodyClosed)
+			return;
 		exchange.getRequestBody().close();
 		requestBodyClosed = true;
 		tryClose();
 	}
 
 	private void tryClose() {
+		//logger.info("tryClose " + exchange.getRequestURI().getPath() + " " + requestBodyClosed + " " + responseBodyClosed, new RuntimeException());
 		if (requestBodyClosed && responseBodyClosed)
 			close(); // 正常关闭。
 	}
@@ -124,8 +133,10 @@ public class LinkdHttpExchange {
 		var method = exchange.getRequestMethod();
 		switch (method) {
 		case "GET": case "HEAD":
+			req.setFinish(true);
 			closeRequestBody();
-			return;
+			return; // done
+
 		case "POST":
 			var cl = exchange.getRequestHeaders().getFirst("Content-Length");
 			if (null != cl)
