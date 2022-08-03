@@ -12,49 +12,39 @@ Universe
 Zege
 DatagramChannel
 InitRootInfo 可回滚
-	1）Bean.isManaged
-	原来：=> RootInfo != null;
-	修改：=> RootInfo != null || Transaction.Current?.GetLog(RootInfoLogKey) != null;
-	      *** GetLog 只要存在就表示isManaged，除了内部回滚，没有setRootInfo(null)的操作。
+	1. Transaction.WhileRedo
+		内部用，这个行为不可预测，不开放给应用。
 
 	2）Bean.InitRootInfo
-	原来：=> 
+	public final void InitRootInfo(Record.RootInfo rootInfo, Bean parent) {
 		if (isManaged())
 			throw new HasManagedException();
 		RootInfo = rootInfo;
-		setParent(parent);
+		Parent = parent;
 		InitChildrenRootInfo(rootInfo);
-	修改：=>
-		if (isManaged())
-			throw new HasManagedException();
-		Transaction.Current.PutLog(RootInfoLogKey, new RootInfoLog(rootInfo, parent));
-		InitChildrenRootInfo(rootInfo); // 仍然需要递归，为树内每个节点都记录Log。
-		---
-		RootInfoLogKey => this.getObjectId() + RootInfoVariableId;
-		// RootInfoVariableId暂定为varid的最大值，用户可以用的范围少一。修改Gen保留这个值？
-
-	3）新建class RootInfoLog
-	class RootInfoLog extends Log {
-		private RootInfo rootInfo;
-		private Bean parent;
-
-		public RootInfoLog(Bean belong, RootInfo rootInfo, Bean parent) {
-			setBelong(belong);
-			setVariableId(RootInfoVariableId); 
-			this.rootInfo = rootInfo;
-			this.parent = parent;
-		}
-
-		@Override
-		public void Commit() {
-			getBelong().RootInfo = rootInfo;
-			getBelong().Parent = parent;
-		}
+		Transaction.WhileRedo(ResetRootInfo);
 	}
 
-	4）容器和InitRootInfo
-	   容器也是使用InitRootInfo设置，是不是不用改了？
-	   有一点需要注意：即RootInfoLogKey的来源？即容器是以自己作为belong还是自己的所在的bean作为belong？
+	3）Bean.ResetRootInfo
+	private void Bean.ResetRootInfo() {
+		RootInfo = null;
+		Parent = null;
+		// 需要生成一个新的，区别是去调用ResetRootInfo。
+		// 这个不能重用InitRootInfo。
+		// 看看还有什么更简单的办法。
+		ResetChildrenRootInfo(rootInfo);
+	}
+
+	4）分析
+	   a）
+	   昨天的Log方式，本来想的是能对将要被管理的Bean的并发有一定的很受限的保护。
+	   现在WhileRedo方式，原则上不对自己新建的Bean又传递给多个存储过程的情况进行保护了。
+	   保护不完。
+	   b）
+	   ResetRootInfo 是否会导致树里面的分支重复重置？
+	   由于Redo的时候，Log没有Commit，新加入容器的Bean还没有生效，我认为是不会重复重置的，但对这个情况需要确认。
+	   即使重复重置，由于都是简单的set null，也不会有致命问题。
+	   大家分析看看。
 
 	
 【2022/8/15】

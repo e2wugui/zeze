@@ -49,10 +49,6 @@ public abstract class Bean implements Serializable {
 		return Parent;
 	}
 
-	private void setParent(Bean value) {
-		Parent = value;
-	}
-
 	public final int getVariableId() {
 		return VariableId;
 	}
@@ -80,7 +76,7 @@ public abstract class Bean implements Serializable {
 		if (isManaged())
 			throw new HasManagedException();
 		RootInfo = rootInfo;
-		setParent(parent);
+		Parent = parent;
 		InitChildrenRootInfo(rootInfo);
 	}
 
