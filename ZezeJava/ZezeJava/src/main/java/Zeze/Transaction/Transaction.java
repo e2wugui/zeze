@@ -122,7 +122,9 @@ public final class Transaction {
 	}
 
 	static void whileRedo(Runnable action) {
-		getCurrent().RedoActions.add(action);
+		var current = getCurrent();
+		if (null != current)
+			current.RedoActions.add(action);
 	}
 
 	public static void whileCommit(Runnable action) {
