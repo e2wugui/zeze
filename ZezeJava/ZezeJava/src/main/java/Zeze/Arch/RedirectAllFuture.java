@@ -30,8 +30,16 @@ public interface RedirectAllFuture<R extends RedirectResult> {
 		throw new IllegalStateException();
 	}
 
+	default RedirectAllFuture<R> OnResult(Action1<R> onResult) {
+		throw new IllegalStateException();
+	}
+
 	// 只用于RedirectAll方法返回的future. 同一future的情况下,此方法不会跟onResult并发,只会回调一次
 	default RedirectAllFuture<R> onAllDone(Action1<RedirectAllContext<R>> onAllDone) throws Throwable {
+		throw new IllegalStateException();
+	}
+
+	default RedirectAllFuture<R> OnAllDone(Action1<RedirectAllContext<R>> onAllDone) {
 		throw new IllegalStateException();
 	}
 
@@ -175,6 +183,17 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 		return this;
 	}
 
+	@Override
+	public RedirectAllFuture<R> OnResult(Action1<R> onResult) {
+		try {
+			return onResult(onResult);
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Throwable e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	void allDone(RedirectAllContext<R> ctx) throws Throwable {
 		if (this.ctx == null)
 			this.ctx = ctx;
@@ -210,6 +229,17 @@ final class RedirectAllFutureImpl<R extends RedirectResult> implements RedirectA
 			return Procedure.Success;
 		}, "RedirectAllFutureImpl.onAllDone").Call();
 		return this;
+	}
+
+	@Override
+	public RedirectAllFuture<R> OnAllDone(Action1<RedirectAllContext<R>> onAllDone) {
+		try {
+			return onAllDone(onAllDone);
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Throwable e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override

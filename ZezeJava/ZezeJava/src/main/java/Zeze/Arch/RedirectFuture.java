@@ -56,6 +56,16 @@ public class RedirectFuture<R> extends TaskCompletionSource<R> {
 		return this;
 	}
 
+	public RedirectFuture<R> Then(Action1<R> onResult) {
+		try {
+			return then(onResult);
+		} catch (RuntimeException e) {
+			throw e;
+		} catch (Throwable e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 	@Override
 	public RedirectFuture<R> await() {
 		super.await();
