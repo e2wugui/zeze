@@ -75,6 +75,11 @@ final class RequestVoteArgument extends Bean {
 	}
 
 	@Override
+	protected void ResetChildrenRootInfo() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
 	public String toString() {
 		return String.format("(Term=%d CandidateId=%s LastLogIndex=%d LastLogTerm=%d NodeReady=%b)",
 				Term, CandidateId, LastLogIndex, LastLogTerm, NodeReady);

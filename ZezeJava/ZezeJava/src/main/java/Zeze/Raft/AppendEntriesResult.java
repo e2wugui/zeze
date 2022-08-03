@@ -53,6 +53,11 @@ final class AppendEntriesResult extends Bean {
 	}
 
 	@Override
+	protected void ResetChildrenRootInfo() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
 	public String toString() {
 		return String.format("(Term=%d Success=%b NextIndex=%d)", Term, Success, NextIndex);
 	}

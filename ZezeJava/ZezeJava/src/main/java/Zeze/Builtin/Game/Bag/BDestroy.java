@@ -183,6 +183,10 @@ public final class BDestroy extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getPosition() < 0)
             return true;

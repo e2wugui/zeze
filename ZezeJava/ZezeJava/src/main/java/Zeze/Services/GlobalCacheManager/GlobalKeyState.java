@@ -27,6 +27,11 @@ public class GlobalKeyState extends Bean {
 	}
 
 	@Override
+	protected void ResetChildrenRootInfo() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
 	public String toString() {
 		return GlobalKey + ":" + State;
 	}

@@ -223,6 +223,10 @@ public final class BLoad extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getOnline() < 0)
             return true;

@@ -226,6 +226,10 @@ public final class BStream extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getExchangeId() < 0)
             return true;

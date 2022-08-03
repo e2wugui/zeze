@@ -264,6 +264,11 @@ public final class BAccount extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+        _Roles.ResetRootInfo();
+    }
+
+    @Override
     public boolean NegativeCheck() {
         for (var _v_ : getRoles()) {
             if (_v_ < 0)

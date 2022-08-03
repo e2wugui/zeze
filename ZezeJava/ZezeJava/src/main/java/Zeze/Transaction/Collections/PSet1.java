@@ -135,6 +135,10 @@ public class PSet1<V> extends PSet<V> {
 	}
 
 	@Override
+	protected void ResetChildrenRootInfo() {
+	}
+
+	@Override
 	public Bean CopyBean() {
 		var copy = new PSet1<>(logTypeId, valueCodecFuncs);
 		copy._set = _set;

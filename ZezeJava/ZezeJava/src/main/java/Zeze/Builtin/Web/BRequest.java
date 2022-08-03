@@ -459,6 +459,11 @@ public final class BRequest extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+        _Headers.ResetRootInfo();
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getExchangeId() < 0)
             return true;

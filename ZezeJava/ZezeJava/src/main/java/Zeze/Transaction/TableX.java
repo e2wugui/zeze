@@ -424,6 +424,26 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			}
 		}
 
+		if (!remain.isEmpty()) {
+			logger.info("ReduceInvalidAllLocalOnly Remain=" + remain.size());
+			for (var e : remain) {
+				var k = e.getKey();
+				k.EnterWriteLock();
+				try {
+					var v = e.getValue();
+					v.EnterFairLock();
+					try {
+						v.setState(StateInvalid);
+						FlushWhenReduce(v);
+					} finally {
+						v.ExitFairLock();
+					}
+				} finally {
+					k.ExitWriteLock();
+				}
+			}
+		}
+		/*
 		while (!remain.isEmpty()) {
 			logger.info("ReduceInvalidAllLocalOnly Remain=" + remain.size());
 			var remain2 = new ArrayList<KV<Lockey, Record1<K, V>>>(remain.size());
@@ -451,6 +471,7 @@ public abstract class TableX<K extends Comparable<K>, V extends Bean> extends Ta
 			}
 			remain = remain2;
 		}
+		*/
 	}
 
 	public final V get(K key) {

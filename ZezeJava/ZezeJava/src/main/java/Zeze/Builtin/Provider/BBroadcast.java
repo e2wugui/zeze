@@ -226,6 +226,10 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getProtocolType() < 0)
             return true;

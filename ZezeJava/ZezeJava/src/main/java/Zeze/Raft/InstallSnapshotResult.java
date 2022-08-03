@@ -46,6 +46,11 @@ final class InstallSnapshotResult extends Bean {
 	}
 
 	@Override
+	protected void ResetChildrenRootInfo() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
 	public String toString() {
 		return String.format("(Term=%d Offset=%d)", Term, Offset);
 	}

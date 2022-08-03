@@ -220,6 +220,11 @@ public final class BLinkedMapNode extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+        _Values.ResetRootInfo();
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getPrevNodeId() < 0)
             return true;

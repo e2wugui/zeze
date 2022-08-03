@@ -162,6 +162,10 @@ public class PMap1<K, V> extends PMap<K, V> {
 	}
 
 	@Override
+	protected void ResetChildrenRootInfo() {
+	}
+
+	@Override
 	public Bean CopyBean() {
 		var copy = new PMap1<>(logTypeId, keyCodecFuncs, valueCodecFuncs);
 		copy._map = _map;

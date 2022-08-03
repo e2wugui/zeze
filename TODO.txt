@@ -11,6 +11,12 @@ Task
 Universe
 Zege
 DatagramChannel
+	
+【2022/8/15】
+
+------------------------------------------------------------------------------------------------------------------------------
+tag 1.0.2 ResetRootInfo While Redo; Simple Web; @DispatchMode
+------------------------------------------------------------------------------------------------------------------------------
 InitRootInfo 可回滚
 	1. Transaction.WhileRedo
 		内部用，这个行为不可预测，不开放给应用。
@@ -22,7 +28,7 @@ InitRootInfo 可回滚
 		RootInfo = rootInfo;
 		Parent = parent;
 		InitChildrenRootInfo(rootInfo);
-		Transaction.WhileRedo(ResetRootInfo);
+		Transaction.WhileRedo(ResetRootInfo); // new
 	}
 
 	3）Bean.ResetRootInfo
@@ -50,12 +56,6 @@ InitRootInfo 可回滚
 	   WhileRedo方式更加有的放矢，即只解决传入的Bean重做的时候RootInfo没有重置倒是重做失败的问题。
 	   不进行功能扩展了。
 
-	
-【2022/8/15】
-
-------------------------------------------------------------------------------------------------------------------------------
-tag 1.0.2 Simple Web; @DispatchMode
-------------------------------------------------------------------------------------------------------------------------------
 @DispatchMode
 	这是一个协议处理函数的注解，用来控制协议的调度方式（仅用于Java）：
 	•	在普通线程池中执行。默认是这种。

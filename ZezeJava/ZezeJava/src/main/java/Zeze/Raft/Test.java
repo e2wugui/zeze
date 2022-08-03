@@ -620,6 +620,11 @@ public class Test {
 		}
 
 		@Override
+		protected void ResetChildrenRootInfo() {
+			throw new UnsupportedOperationException();
+		}
+
+		@Override
 		public String toString() {
 			return "Count=" + Count;
 		}

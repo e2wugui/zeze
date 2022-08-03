@@ -137,6 +137,10 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getNextId() < 0)
             return true;

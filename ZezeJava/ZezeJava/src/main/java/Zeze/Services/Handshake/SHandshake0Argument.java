@@ -35,6 +35,11 @@ public class SHandshake0Argument extends Bean {
 	}
 
 	@Override
+	protected void ResetChildrenRootInfo() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
 	public String toString() {
 		return "SHandshake0Argument{" + "EnableEncrypt=" + EnableEncrypt + '}';
 	}

@@ -177,6 +177,11 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+        _Values.ResetRootInfo();
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getNextNodeId() < 0)
             return true;

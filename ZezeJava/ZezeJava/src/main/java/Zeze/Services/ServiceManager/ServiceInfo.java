@@ -132,6 +132,11 @@ public final class ServiceInfo extends Bean implements Comparable<ServiceInfo> {
 	}
 
 	@Override
+	protected void ResetChildrenRootInfo() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 17;

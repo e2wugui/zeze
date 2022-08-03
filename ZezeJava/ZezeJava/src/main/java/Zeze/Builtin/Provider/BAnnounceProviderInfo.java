@@ -275,6 +275,10 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getProviderDirectPort() < 0)
             return true;

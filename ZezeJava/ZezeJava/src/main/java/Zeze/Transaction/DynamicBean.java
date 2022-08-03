@@ -138,6 +138,11 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 		_Bean.InitRootInfo(root, this);
 	}
 
+	@Override
+	protected void ResetChildrenRootInfo() {
+		_Bean.ResetChildrenRootInfo();
+	}
+
 	private static final class LogV extends Log1<DynamicBean, Bean> {
 		private final long SpecialTypeId;
 

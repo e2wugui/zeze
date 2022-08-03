@@ -364,6 +364,10 @@ public final class BDispatch extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getLinkSid() < 0)
             return true;

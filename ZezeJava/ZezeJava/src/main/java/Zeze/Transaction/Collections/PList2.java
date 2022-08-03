@@ -222,6 +222,12 @@ public class PList2<V extends Bean> extends PList<V> {
 	}
 
 	@Override
+	protected void ResetChildrenRootInfo() {
+		for (var v : _list)
+			v.ResetRootInfo();
+	}
+
+	@Override
 	public Bean CopyBean() {
 		var copy = new PList2<V>(logTypeId, valueFactory);
 		copy._list = _list;

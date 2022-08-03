@@ -104,6 +104,11 @@ final class AppendEntriesArgument extends Bean {
 	}
 
 	@Override
+	protected void ResetChildrenRootInfo() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
 	public String toString() {
 		return String.format("(Term=%d LeaderId=%s PrevLogIndex=%d PrevLogTerm=%d LeaderCommit=%d)",
 				Term, LeaderId, PrevLogIndex, PrevLogTerm, LeaderCommit);

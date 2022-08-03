@@ -1,6 +1,7 @@
 package Zeze.Transaction;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Supplier;
@@ -64,6 +65,7 @@ public final class Transaction {
 		ProcedureStack.clear();
 		Savepoints.clear();
 		Actions.clear();
+		RedoActions.clear();
 		AccessedRecords.clear();
 		Locks = null;
 		State = TransactionState.Running;
@@ -110,6 +112,17 @@ public final class Transaction {
 	public void PutLog(Log log) {
 		VerifyRunning();
 		Savepoints.get(Savepoints.size() - 1).PutLog(log);
+	}
+
+	private final List<Runnable> RedoActions = new ArrayList<>();
+
+	private void TriggerRedoActions() {
+		for (var a : RedoActions)
+			a.run(); // redo action 的回调不处理异常。向外面抛出并中断事务。
+	}
+
+	static void whileRedo(Runnable action) {
+		getCurrent().RedoActions.add(action);
 	}
 
 	public static void whileCommit(Runnable action) {
@@ -254,6 +267,8 @@ public final class Transaction {
 							AccessedRecords.clear();
 							Savepoints.clear();
 							Actions.clear();
+							TriggerRedoActions();
+							RedoActions.clear();
 
 							State = TransactionState.Running; // prepare to retry
 						}

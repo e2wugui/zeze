@@ -144,6 +144,11 @@ public final class BHeader extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+        _Values.ResetRootInfo();
+    }
+
+    @Override
     public boolean NegativeCheck() {
         return false;
     }

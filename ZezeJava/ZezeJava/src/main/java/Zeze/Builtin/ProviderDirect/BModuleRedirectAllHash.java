@@ -195,6 +195,10 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getReturnCode() < 0)
             return true;

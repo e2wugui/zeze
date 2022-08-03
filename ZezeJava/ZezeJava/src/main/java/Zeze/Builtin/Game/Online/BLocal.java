@@ -186,6 +186,11 @@ public final class BLocal extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+        _Datas.ResetRootInfo();
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getLoginVersion() < 0)
             return true;

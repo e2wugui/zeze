@@ -56,6 +56,11 @@ final class LeaderIsArgument extends Bean {
 	}
 
 	@Override
+	protected void ResetChildrenRootInfo() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
 	public int hashCode() {
 		final int _prime_ = 31;
 		return Long.hashCode(Term) * _prime_ + LeaderId.hashCode();

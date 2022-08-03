@@ -186,6 +186,11 @@ public final class BBag extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+        _Items.ResetRootInfo();
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getCapacity() < 0)
             return true;

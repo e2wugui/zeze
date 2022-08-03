@@ -134,6 +134,11 @@ public final class BRankList extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+        _RankList.ResetRootInfo();
+    }
+
+    @Override
     public boolean NegativeCheck() {
         for (var _v_ : getRankList()) {
             if (_v_.NegativeCheck())

@@ -52,6 +52,11 @@ public final class AllocateIdResult extends Bean {
 		throw new UnsupportedOperationException();
 	}
 
+	@Override
+	protected void ResetChildrenRootInfo() {
+		throw new UnsupportedOperationException();
+	}
+
 	private static int _PRE_ALLOC_SIZE_ = 16;
 
 	@Override

@@ -316,6 +316,11 @@ public final class BVersion extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+        _ReliableNotifyMark.ResetRootInfo();
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getLoginVersion() < 0)
             return true;

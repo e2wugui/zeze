@@ -269,6 +269,10 @@ public final class BMove extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getPositionFrom() < 0)
             return true;

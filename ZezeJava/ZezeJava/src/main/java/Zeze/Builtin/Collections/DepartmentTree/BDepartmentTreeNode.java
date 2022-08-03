@@ -291,6 +291,12 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+        _Childs.ResetRootInfo();
+        _Managers.ResetRootInfo();
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getParentDepartment() < 0)
             return true;

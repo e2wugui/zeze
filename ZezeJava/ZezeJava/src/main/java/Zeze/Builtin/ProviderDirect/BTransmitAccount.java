@@ -316,6 +316,11 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+        _TargetAccounts.ResetRootInfo();
+    }
+
+    @Override
     public boolean NegativeCheck() {
         return false;
     }

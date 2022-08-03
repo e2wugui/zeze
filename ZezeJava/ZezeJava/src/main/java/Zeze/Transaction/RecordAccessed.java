@@ -46,6 +46,11 @@ public final class RecordAccessed extends Bean {
 	}
 
 	@Override
+	protected void ResetChildrenRootInfo() {
+
+	}
+
+	@Override
 	public void Encode(ByteBuffer bb) {
 	}
 

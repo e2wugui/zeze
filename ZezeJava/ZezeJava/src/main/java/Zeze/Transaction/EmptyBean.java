@@ -18,6 +18,10 @@ public class EmptyBean extends Bean {
 	}
 
 	@Override
+	protected void ResetChildrenRootInfo() {
+	}
+
+	@Override
 	public Bean CopyBean() {
 		return new EmptyBean();
 	}

@@ -226,6 +226,10 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getPort() < 0)
             return true;

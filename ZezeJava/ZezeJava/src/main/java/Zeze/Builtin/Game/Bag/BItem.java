@@ -225,6 +225,11 @@ public final class BItem extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+        _Item.ResetRootInfo();
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getId() < 0)
             return true;

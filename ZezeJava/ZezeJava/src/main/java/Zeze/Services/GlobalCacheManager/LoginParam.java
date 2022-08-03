@@ -31,6 +31,11 @@ public class LoginParam extends Bean {
 	}
 
 	@Override
+	protected void ResetChildrenRootInfo() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
 	public int getPreAllocSize() {
 		return 5 + 5;
 	}

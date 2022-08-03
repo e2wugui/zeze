@@ -175,6 +175,11 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+        _Notifies.ResetRootInfo();
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getReliableNotifyIndex() < 0)
             return true;

@@ -223,6 +223,10 @@ public final class AchillesHeelConfig extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getMaxNetPing() < 0)
             return true;

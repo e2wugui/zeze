@@ -139,6 +139,11 @@ public final class BAny extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+        _Any.ResetRootInfo();
+    }
+
+    @Override
     public boolean NegativeCheck() {
         return false;
     }

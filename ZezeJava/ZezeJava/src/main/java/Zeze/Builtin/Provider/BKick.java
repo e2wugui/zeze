@@ -232,6 +232,10 @@ public final class BKick extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getLinksid() < 0)
             return true;

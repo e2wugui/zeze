@@ -231,6 +231,10 @@ public final class BReportError extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getFrom() < 0)
             return true;

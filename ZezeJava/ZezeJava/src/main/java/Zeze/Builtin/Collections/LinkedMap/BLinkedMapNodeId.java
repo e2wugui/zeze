@@ -137,6 +137,10 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getNodeId() < 0)
             return true;

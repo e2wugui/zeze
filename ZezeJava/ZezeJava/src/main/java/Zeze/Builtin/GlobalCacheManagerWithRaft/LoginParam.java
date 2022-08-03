@@ -180,6 +180,10 @@ public final class LoginParam extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getServerId() < 0)
             return true;

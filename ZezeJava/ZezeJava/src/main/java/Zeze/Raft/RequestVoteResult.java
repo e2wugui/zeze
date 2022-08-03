@@ -42,6 +42,11 @@ final class RequestVoteResult extends Bean {
 	}
 
 	@Override
+	protected void ResetChildrenRootInfo() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
 	public String toString() {
 		return String.format("(Term=%d VoteGranted=%b)", Term, VoteGranted);
 	}

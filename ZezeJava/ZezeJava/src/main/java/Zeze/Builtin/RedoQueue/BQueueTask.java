@@ -315,6 +315,10 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getTaskType() < 0)
             return true;

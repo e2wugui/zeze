@@ -361,6 +361,11 @@ public final class BModuleRedirectAllResult extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+        _Hashs.ResetRootInfo();
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getModuleId() < 0)
             return true;

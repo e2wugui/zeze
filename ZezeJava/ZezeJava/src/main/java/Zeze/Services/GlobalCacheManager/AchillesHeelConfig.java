@@ -27,4 +27,9 @@ public class AchillesHeelConfig extends Bean {
 	protected void InitChildrenRootInfo(Record.RootInfo root) {
 		throw new UnsupportedOperationException();
 	}
+	@Override
+	protected void ResetChildrenRootInfo() {
+		throw new UnsupportedOperationException();
+	}
+
 }

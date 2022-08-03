@@ -115,6 +115,11 @@ final class InstallSnapshotArgument extends Bean {
 	}
 
 	@Override
+	protected void ResetChildrenRootInfo() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
 	public String toString() {
 		return String.format("(Term=%d LeaderId=%s LastIncludedIndex=%d LastIncludedTerm=%d Offset=%d Done=%b)",
 				Term, LeaderId, LastIncludedIndex, LastIncludedTerm, Offset, Done);

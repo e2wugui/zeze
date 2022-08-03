@@ -21,6 +21,10 @@ public class MyBean extends Bean {
 	protected void InitChildrenRootInfo(Record.RootInfo root) {
 	}
 
+	@Override
+	protected void ResetChildrenRootInfo() {
+	}
+
 	public int _i;
 
 	private static class MyLog extends Zeze.Transaction.Logs.LogInt {

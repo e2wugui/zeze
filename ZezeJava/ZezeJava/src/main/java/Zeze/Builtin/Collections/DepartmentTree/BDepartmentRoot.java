@@ -291,6 +291,12 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+        _Managers.ResetRootInfo();
+        _Childs.ResetRootInfo();
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getNextDepartmentId() < 0)
             return true;

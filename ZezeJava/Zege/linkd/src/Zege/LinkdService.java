@@ -52,6 +52,12 @@ public class LinkdService extends LinkdServiceBase {
         protected void InitChildrenRootInfo(Record.RootInfo root) {
             throw new UnsupportedOperationException();
         }
+
+        @Override
+        protected void ResetChildrenRootInfo() {
+            throw new UnsupportedOperationException();
+        }
+
     }
 
     public static class GroupRpc extends Rpc<GroupArgument, EmptyBean> {

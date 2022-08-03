@@ -367,6 +367,11 @@ public final class BResponse extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+        _Headers.ResetRootInfo();
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getCode() < 0)
             return true;

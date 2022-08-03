@@ -143,6 +143,11 @@ public final class BSubscribe extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+        _modules.ResetRootInfo();
+    }
+
+    @Override
     public boolean NegativeCheck() {
         for (var _v_ : getModules().values()) {
             if (_v_.NegativeCheck())

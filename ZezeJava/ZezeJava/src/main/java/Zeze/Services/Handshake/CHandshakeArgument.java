@@ -22,6 +22,12 @@ public final class CHandshakeArgument extends Bean {
 
 	@Override
 	protected void InitChildrenRootInfo(Record.RootInfo root) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	protected void ResetChildrenRootInfo() {
+		throw new UnsupportedOperationException();
 	}
 
 	private static int _PRE_ALLOC_SIZE_ = 16;

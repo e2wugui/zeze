@@ -54,6 +54,11 @@ public final class SubscribeInfo extends Bean {
 	}
 
 	@Override
+	protected void ResetChildrenRootInfo() {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
 	public String toString() {
 		return getServiceName() + ":" + getSubscribeType();
 	}

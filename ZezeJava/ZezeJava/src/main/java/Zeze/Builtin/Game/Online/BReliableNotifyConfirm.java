@@ -180,6 +180,10 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getReliableNotifyConfirmIndex() < 0)
             return true;

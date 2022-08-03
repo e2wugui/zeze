@@ -137,6 +137,10 @@ public final class BLogin extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getRoleId() < 0)
             return true;

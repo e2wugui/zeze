@@ -137,6 +137,10 @@ public final class BAccount extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getLastLoginVersion() < 0)
             return true;

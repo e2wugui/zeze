@@ -243,6 +243,10 @@ public final class BModule extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getChoiceType() < 0)
             return true;

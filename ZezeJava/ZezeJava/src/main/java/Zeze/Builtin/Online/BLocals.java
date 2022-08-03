@@ -143,6 +143,11 @@ public final class BLocals extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+        _Logins.ResetRootInfo();
+    }
+
+    @Override
     public boolean NegativeCheck() {
         for (var _v_ : getLogins().values()) {
             if (_v_.NegativeCheck())

@@ -183,6 +183,10 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getState() < 0)
             return true;

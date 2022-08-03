@@ -266,6 +266,10 @@ public final class BQueue extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getHeadNodeId() < 0)
             return true;

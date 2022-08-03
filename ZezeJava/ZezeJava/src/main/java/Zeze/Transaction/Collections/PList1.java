@@ -219,6 +219,10 @@ public class PList1<V> extends PList<V> {
 	}
 
 	@Override
+	protected void ResetChildrenRootInfo() {
+	}
+
+	@Override
 	public Bean CopyBean() {
 		var copy = new PList1<>(logTypeId, valueCodecFuncs);
 		copy._list = _list;

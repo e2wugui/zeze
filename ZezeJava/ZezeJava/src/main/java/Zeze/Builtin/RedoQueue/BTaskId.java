@@ -137,6 +137,10 @@ public final class BTaskId extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getTaskId() < 0)
             return true;

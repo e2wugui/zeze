@@ -170,6 +170,11 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
     }
 
     @Override
+    protected void ResetChildrenRootInfo() {
+        _Value.ResetRootInfo();
+    }
+
+    @Override
     public boolean NegativeCheck() {
         if (getTimestamp() < 0)
             return true;
