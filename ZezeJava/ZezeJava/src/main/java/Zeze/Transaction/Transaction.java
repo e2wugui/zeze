@@ -122,9 +122,12 @@ public final class Transaction {
 	}
 
 	static void whileRedo(Runnable action) {
+		// 这个目前仅用来重置Bean.RootInfo。
+		// 而RootInfo的设置可能在事务外使用，此时忽略action的执行。
 		var current = getCurrent();
-		if (null != current)
+		if (null != current) {
 			current.RedoActions.add(action);
+		}
 	}
 
 	public static void whileCommit(Runnable action) {

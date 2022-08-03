@@ -27,6 +27,7 @@ public class TestProcedureRedo {
         App.getInstance().Stop();
     }
 
+    private static int counter = 0;
     @Test
     public final void testProcedureRedo() throws Throwable{
         App.getInstance().Zeze.NewProcedure(()  -> {
@@ -42,15 +43,12 @@ public class TestProcedureRedo {
         var outLong2 = new OutLong();
         var ftask1 = Task.run(App.getInstance().Zeze.NewProcedure(()  -> {
 
+            counter += 1;
+            System.out.println("task1 counter " + counter);
             var v = App.getInstance().demo_Module1.getTable1().getOrAdd(6785L);
             long vLong = v.getLong2();
 
-            try {
-                Thread.sleep(1000);
-            } catch (Exception ignore) {
-
-            }
-
+            Thread.sleep(1000);
             outLong2.Value = v.getMap15().get(vLong);
 
             Transaction.getCurrent().runWhileCommit(() -> {
@@ -63,6 +61,7 @@ public class TestProcedureRedo {
 
         var ftask2 = Task.run(App.getInstance().Zeze.NewProcedure(()  -> {
 
+            Thread.sleep(100);
             var v = App.getInstance().demo_Module1.getTable1().getOrAdd(6785L);
             long vInt = v.getLong2();
 
