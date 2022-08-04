@@ -38,7 +38,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 			_Bean = value;
 			return;
 		}
-		value.InitRootInfo(RootInfo, this);
+		value.initRootInfo(RootInfo, this);
 		value.setVariableId(1); // 只有一个变量
 		var txn = Transaction.getCurrent();
 		assert txn != null;
@@ -94,7 +94,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 			_Bean = bean;
 			return;
 		}
-		bean.InitRootInfo(RootInfo, this);
+		bean.initRootInfo(RootInfo, this);
 		bean.setVariableId(1); // 只有一个变量
 		var txn = Transaction.getCurrent();
 		assert txn != null;

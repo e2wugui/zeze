@@ -32,7 +32,7 @@ public class PList2<V extends Bean> extends PList<V> {
 		}
 
 		if (isManaged()) {
-			item.InitRootInfo(RootInfo, this);
+			item.initRootInfo(RootInfo, this);
 			var txn = Transaction.getCurrent();
 			assert txn != null;
 			txn.VerifyRecordAccessed(this);
@@ -87,7 +87,7 @@ public class PList2<V extends Bean> extends PList<V> {
 		}
 
 		if (isManaged()) {
-			item.InitRootInfo(RootInfo, this);
+			item.initRootInfo(RootInfo, this);
 			var txn = Transaction.getCurrent();
 			assert txn != null;
 			txn.VerifyRecordAccessed(this);
@@ -108,7 +108,7 @@ public class PList2<V extends Bean> extends PList<V> {
 		}
 
 		if (isManaged()) {
-			item.InitRootInfo(RootInfo, this);
+			item.initRootInfo(RootInfo, this);
 			var txn = Transaction.getCurrent();
 			assert txn != null;
 			txn.VerifyRecordAccessed(this);
@@ -140,7 +140,7 @@ public class PList2<V extends Bean> extends PList<V> {
 	public boolean addAll(Collection<? extends V> items) {
 		if (isManaged()) {
 			for (var item : items) {
-				item.InitRootInfo(RootInfo, this);
+				item.initRootInfo(RootInfo, this);
 			}
 			var txn = Transaction.getCurrent();
 			assert txn != null;
