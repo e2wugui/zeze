@@ -1,19 +1,17 @@
 package Zeze.Services.RocketMQ;
 
 import javax.jms.JMSException;
-import javax.jms.Topic;
 
-public class ZezeTopic implements Topic {
+public class ZezeTopic implements javax.jms.Topic {
 
 	private String name;
-	private String type;
+
+	public ZezeTopic(String name) {
+		this.name = name;
+	}
 
 	@Override
 	public String getTopicName() throws JMSException {
-		return this.name;
-	}
-
-	public String getTypeName() throws JMSException {
-		return this.type;
+		return name;
 	}
 }
