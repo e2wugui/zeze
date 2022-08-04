@@ -316,7 +316,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	}
 
 	@Override
-	protected long ProcessCloseExchangeRequest(Zeze.Builtin.Web.CloseExchange r) throws Throwable {
+	protected long ProcessCloseExchangeRequest(Zeze.Builtin.Web.CloseExchange r) {
 		if (null == LinkdApp.HttpService) {
 			r.SendResultCode(ErrorCode(Zeze.Web.Web.ModuleId, Zeze.Web.Web.ExchangeIdNotFound));
 			return 0;
@@ -326,7 +326,7 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	}
 
 	@Override
-	protected long ProcessResponseOutputStreamRequest(Zeze.Builtin.Web.ResponseOutputStream r) throws Throwable {
+	protected long ProcessResponseOutputStreamRequest(Zeze.Builtin.Web.ResponseOutputStream r) {
 		if (null == LinkdApp.HttpService) {
 			r.SendResultCode(ErrorCode(Zeze.Web.Web.ModuleId, Zeze.Web.Web.ExchangeIdNotFound));
 			return 0;

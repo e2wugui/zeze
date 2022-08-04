@@ -55,7 +55,7 @@ public class HandlerDispatch implements HttpHandler {
 		}
 	}
 
-	private int internalErrorToHttpCode(long error) {
+	private static int internalErrorToHttpCode(long error) {
 		if (error == Web.UnknownPath404) return 404;
 		return 200;
 	}

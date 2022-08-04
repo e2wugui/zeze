@@ -24,7 +24,7 @@ public class LinkdProviderService extends Zeze.Services.HandshakeServer {
 
 	@Override
 	public <P extends Protocol<?>> void DispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
-															ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
+															ProtocolFactoryHandle<?> factoryHandle) {
 		Task.runRpcResponse(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
 	}
 

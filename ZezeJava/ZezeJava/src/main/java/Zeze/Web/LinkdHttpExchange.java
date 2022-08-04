@@ -16,11 +16,9 @@ import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Transaction.Bean;
 import com.sun.net.httpserver.HttpExchange;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 public class LinkdHttpExchange {
-	private static final Logger logger = LogManager.getLogger(LinkdHttpExchange.class);
+	// private static final Logger logger = LogManager.getLogger(LinkdHttpExchange.class);
 
 	final long exchangeId;
 	long provider;
@@ -48,7 +46,7 @@ public class LinkdHttpExchange {
 	}
 
 	protected <A extends Bean, R extends Bean> void ReDispatch(
-			Rpc<A, R> req, ProtocolHandle<Rpc<A, R>> resultHandle) throws IOException {
+			Rpc<A, R> req, ProtocolHandle<Rpc<A, R>> resultHandle) {
 
 		if (!req.Send(service.LinkdApp.LinkdProviderService.GetSocket(provider), resultHandle)) {
 			close(true); // 重新派发错误时，尝试通知server。

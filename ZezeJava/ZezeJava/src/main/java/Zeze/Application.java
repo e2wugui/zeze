@@ -31,7 +31,6 @@ import Zeze.Util.Task;
 import Zeze.Util.TaskOneByOneByKey;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.rocksdb.RocksDBException;
 
 public final class Application {
 	static final Logger logger = LogManager.getLogger(Application.class);

@@ -49,7 +49,7 @@ public class Cache {
 		lru = null;
 	}
 
-	public CacheObject get(long id) throws RocksDBException, IOException {
+	public CacheObject get(long id) throws RocksDBException {
 		var value = lru.get(id);
 		if (null != value)
 			return value;
