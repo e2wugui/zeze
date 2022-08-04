@@ -66,7 +66,7 @@ public class SimpleApp extends AppBase {
 		providerApp = new ProviderApp(zeze, provider,
 				new ProviderService("Server", zeze), "SimpleApp#", new ProviderDirectWithTransmit(),
 				new ProviderDirectService("ServerDirect", zeze), "SimpleLinkd", new LoadConfig());
-		provider.Online = GenModule.Instance.ReplaceModuleInstance(this, new Online(this));
+		provider.Online = Online.create(this);
 		provider.Online.Initialize(this);
 
 		var modules = new HashMap<String, IModule>();

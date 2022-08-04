@@ -39,6 +39,36 @@ namespace Zeze.Arch.Gen
             return false;
         }
 
+        public static M CreateRedirectModule<M, T>(T userApp, M module, string genClassName)
+            where T : AppBase
+            where M : IModule
+        {
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                Type replaceModuleType = null;
+                try
+                {
+                    replaceModuleType = assembly.GetType(genClassName);
+                }
+                catch (Exception)
+                {
+                    continue;
+                }
+                if (null != replaceModuleType)
+                    return (M)Activator.CreateInstance(replaceModuleType, userApp);
+            }
+            throw new Exception($"RedirectOverride Not Found: {genClassName}");
+        }
+
+        public static M CreateRedirectModule<M, T>(T userApp, M module)
+            where T : AppBase
+            where M : IModule
+        {
+            var moduleName = module.FullName.Replace('.', '_');
+            var genClassName = $"Redirect_{moduleName}";
+            return CreateRedirectModule(userApp, module, genClassName);
+        }
+
         public M ReplaceModuleInstance<T, M>(T userApp, M module)
             where T : AppBase
             where M : IModule
@@ -61,33 +91,19 @@ namespace Zeze.Arch.Gen
 
                 overrides.Sort((a, b) => a.Method.Name.CompareTo(b.Method.Name));
 
-                string genClassName = $"Redirect_{module.FullName.Replace('.', '_')}";
+                var genClassName = $"Redirect_{module.FullName.Replace('.', '_')}";
                 if (null == GenRedirect)
                 {
                     //Console.WriteLine($"'{module.FullName}' Replaced.");
                     // from Game.App.Start. try load new module instance.
-                    foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-                    {
-                        Type replaceModuleType = null;
-                        try
-                        {
-                            replaceModuleType = assembly.GetType(genClassName);
-                        }
-                        catch (Exception)
-                        {
-                            continue;
-                        }
-                        if (null != replaceModuleType)
-                            return (M)Activator.CreateInstance(replaceModuleType, userApp);
-                    }
-                    throw new Exception($"RedirectOverride Not Found: {genClassName}");
+                    return CreateRedirectModule(userApp, module, genClassName);
                 }
 
-                string srcFileName = System.IO.Path.Combine(GenRedirect,
+                var srcFileName = System.IO.Path.Combine(GenRedirect,
                     module.FullName.Replace('.', System.IO.Path.DirectorySeparatorChar), $"Module{module.Name}.cs");
 
-                long srcLastWriteTimeTicks = System.IO.File.GetLastWriteTime(srcFileName).Ticks;
-                string genFileName = System.IO.Path.Combine(GenRedirect, genClassName + ".cs");
+                var srcLastWriteTimeTicks = System.IO.File.GetLastWriteTime(srcFileName).Ticks;
+                var genFileName = System.IO.Path.Combine(GenRedirect, genClassName + ".cs");
 
                 if (false == System.IO.File.Exists(genFileName)
                     || System.IO.File.GetLastWriteTime(genFileName).Ticks != srcLastWriteTimeTicks)

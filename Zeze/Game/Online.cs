@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Zeze.Arch;
+using Zeze.Arch.Gen;
 using Zeze.Builtin.Game.Online;
 using Zeze.Builtin.Provider;
 using Zeze.Builtin.ProviderDirect;
@@ -31,12 +32,17 @@ namespace Zeze.Game
         public LoadReporter LoadReporter { get; }
         public taccount TableAccount => _taccount;
 
+        public static Online Create(AppBase app)
+        {
+            return GenModule.CreateRedirectModule(app, new Online());
+        }
+
         internal Online()
         { 
             // for gen
         }
 
-        public Online(AppBase app)
+        protected Online(AppBase app)
         {
             if (app == null)
                 throw new ArgumentException("app is null");

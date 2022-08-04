@@ -66,7 +66,7 @@ namespace Game
             ProviderDirectWithTransmit = new ProviderDirectWithTransmit();
             ProviderApp = new Zeze.Arch.ProviderApp(Zeze, ProviderImplementWithOnline, Server, "Game.Server.Module#",
                 ProviderDirectWithTransmit, ServerDirect, "Game.Linkd", global::Zeze.Arch.LoadConfig.Load("load.json"));
-            ProviderImplementWithOnline.Online = ReplaceModuleInstance(new Online(this));
+            ProviderImplementWithOnline.Online = Online.Create(this);
             ProviderImplementWithOnline.Online.Initialize();
             ProviderImplementWithOnline.Online.Register();
 

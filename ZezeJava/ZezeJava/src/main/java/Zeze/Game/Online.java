@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.AppBase;
+import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.ProviderApp;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Arch.RedirectFuture;
@@ -39,6 +40,7 @@ import Zeze.Transaction.Transaction;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.OutLong;
 import Zeze.Util.Random;
+import Zeze.Util.RedirectGenMain;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -128,7 +130,19 @@ public class Online extends AbstractOnline {
 	private final ConcurrentHashMap<String, TransmitAction> transmitActions = new ConcurrentHashMap<>();
 	public final LoadReporter LoadReporter;
 
-	public Online(AppBase app) {
+	public static Online create(AppBase app) {
+		return GenModule.createRedirectModule(Online.class, app);
+	}
+
+	@Deprecated // 仅供内部使用, 正常创建应该调用 Rank.create(app)
+	public Online() {
+		if (StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass() != RedirectGenMain.class)
+			throw new IllegalCallerException();
+		ProviderApp = null;
+		LoadReporter = null;
+	}
+
+	protected Online(AppBase app) {
 		if (app != null) {
 			this.ProviderApp = app.getZeze().Redirect.ProviderApp;
 			RegisterProtocols(ProviderApp.ProviderService);
@@ -153,8 +167,10 @@ public class Online extends AbstractOnline {
 
 	@Override
 	public void UnRegister() {
-		UnRegisterProtocols(ProviderApp.ProviderService);
-		UnRegisterZezeTables(ProviderApp.Zeze);
+		if (null != ProviderApp) {
+			UnRegisterProtocols(ProviderApp.ProviderService);
+			UnRegisterZezeTables(ProviderApp.Zeze);
+		}
 	}
 
 	public final ConcurrentHashMap<String, TransmitAction> getTransmitActions() {

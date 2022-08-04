@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Zeze.Arch;
+using Zeze.Arch.Gen;
 using Zeze.Builtin.Game.Rank;
 
 namespace Zeze.Game
@@ -18,7 +19,7 @@ namespace Zeze.Game
 
         public static Rank Create(AppBase app)
         {
-            return null;// GenModule.CreateRedirectModule(typeof(Rank), app);
+            return GenModule.CreateRedirectModule(app, new Rank());
 	    }
 
         // 用来手动命令行生成 Redirect 代码时构造基础类型。

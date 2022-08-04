@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicLong;
 import Zeze.AppBase;
+import Zeze.Arch.Gen.GenModule;
 import Zeze.Builtin.Online.*;
 import Zeze.Builtin.Provider.BKick;
 import Zeze.Builtin.Provider.BLinkBroken;
@@ -15,6 +16,7 @@ import Zeze.Builtin.Provider.Broadcast;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Builtin.Provider.SetUserState;
 import Zeze.Builtin.ProviderDirect.TransmitAccount;
+import Zeze.Game.Rank;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
@@ -28,6 +30,7 @@ import Zeze.Transaction.Transaction;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.Func4;
 import Zeze.Util.OutObject;
+import Zeze.Util.RedirectGenMain;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -43,9 +46,21 @@ public class Online extends AbstractOnline {
     }
 
     public final ProviderApp ProviderApp;
-    //public LoadReporter LoadReporter { get; }
+    //public final LoadReporter LoadReporter;
+
     public taccount getTableAccount() {
         return _taccount;
+    }
+
+    public static Online create(AppBase app) {
+        return GenModule.createRedirectModule(Online.class, app);
+    }
+
+    @Deprecated // 仅供内部使用, 正常创建应该调用 Rank.create(app)
+    public Online() {
+        if (StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass() != RedirectGenMain.class)
+            throw new IllegalCallerException();
+        ProviderApp = null;
     }
 
     public Online(AppBase app) {
@@ -61,8 +76,10 @@ public class Online extends AbstractOnline {
 
     @Override
     public void UnRegister() {
-        UnRegisterZezeTables(ProviderApp.Zeze);
-        UnRegisterProtocols(ProviderApp.ProviderService);
+        if (null != ProviderApp) {
+            UnRegisterZezeTables(ProviderApp.Zeze);
+            UnRegisterProtocols(ProviderApp.ProviderService);
+        }
     }
 
     private Future<?> VerifyLocalTimer;
