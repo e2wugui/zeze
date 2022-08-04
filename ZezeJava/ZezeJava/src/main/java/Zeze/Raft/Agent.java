@@ -15,6 +15,7 @@ import Zeze.Services.HandshakeClient;
 import Zeze.Transaction.Bean;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
+import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action1;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutObject;
@@ -278,8 +279,8 @@ public final class Agent {
 		for (var node : RaftConfig.getNodes().values())
 			Client.getConfig().AddConnector(new ConnectorEx(node.getHost(), node.getPort()));
 
-		Client.AddFactoryHandle(LeaderIs.TypeId_,
-				new Service.ProtocolFactoryHandle<>(LeaderIs::new, this::ProcessLeaderIs));
+		Client.AddFactoryHandle(LeaderIs.TypeId_, new Service.ProtocolFactoryHandle<>(
+				LeaderIs::new, this::ProcessLeaderIs, TransactionLevel.Serializable, DispatchMode.Normal));
 
 		// ugly
 		Task.schedule(1000, 1000, this::ReSend);

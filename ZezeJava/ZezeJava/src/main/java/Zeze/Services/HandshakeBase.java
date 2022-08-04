@@ -13,6 +13,7 @@ import Zeze.Services.Handshake.CHandshakeDone;
 import Zeze.Services.Handshake.Helper;
 import Zeze.Services.Handshake.SHandshake;
 import Zeze.Services.Handshake.SHandshake0;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashSet;
@@ -44,7 +45,6 @@ public class HandshakeBase extends Service {
 		super(name, app);
 	}
 
-
 	@Override
 	public boolean IsHandshakeProtocol(long typeId) {
 		return HandshakeProtocols.contains(typeId);
@@ -53,10 +53,10 @@ public class HandshakeBase extends Service {
 	protected final void AddHandshakeServerFactoryHandle() {
 		HandshakeProtocols.add(CHandshake.TypeId_);
 		AddFactoryHandle(CHandshake.TypeId_, new Service.ProtocolFactoryHandle<>(
-				CHandshake::new, this::ProcessCHandshake, TransactionLevel.None));
+				CHandshake::new, this::ProcessCHandshake, TransactionLevel.None, DispatchMode.Normal));
 		HandshakeProtocols.add(CHandshakeDone.TypeId_);
 		AddFactoryHandle(CHandshakeDone.TypeId_, new Service.ProtocolFactoryHandle<>(
-				CHandshakeDone::new, this::ProcessCHandshakeDone, TransactionLevel.None));
+				CHandshakeDone::new, this::ProcessCHandshakeDone, TransactionLevel.None, DispatchMode.Normal));
 	}
 
 	private long ProcessCHandshakeDone(CHandshakeDone p) throws Throwable {
@@ -109,11 +109,11 @@ public class HandshakeBase extends Service {
 
 	protected final void AddHandshakeClientFactoryHandle() {
 		HandshakeProtocols.add(SHandshake.TypeId_);
-		AddFactoryHandle(SHandshake.TypeId_, new Service.ProtocolFactoryHandle<>(SHandshake::new
-				, this::ProcessSHandshake, TransactionLevel.None));
+		AddFactoryHandle(SHandshake.TypeId_, new Service.ProtocolFactoryHandle<>(
+				SHandshake::new, this::ProcessSHandshake, TransactionLevel.None, DispatchMode.Normal));
 		HandshakeProtocols.add(SHandshake0.TypeId_);
-		AddFactoryHandle(SHandshake0.TypeId_, new Service.ProtocolFactoryHandle<>(SHandshake0::new
-				, this::ProcessSHandshake0, TransactionLevel.None));
+		AddFactoryHandle(SHandshake0.TypeId_, new Service.ProtocolFactoryHandle<>(
+				SHandshake0::new, this::ProcessSHandshake0, TransactionLevel.None, DispatchMode.Normal));
 	}
 
 	private long ProcessSHandshake0(SHandshake0 p) {

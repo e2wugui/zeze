@@ -134,7 +134,7 @@ public class Online extends AbstractOnline {
 		return GenModule.createRedirectModule(Online.class, app);
 	}
 
-	@Deprecated // 仅供内部使用, 正常创建应该调用 Rank.create(app)
+	@Deprecated // 仅供内部使用, 正常创建应该调用 Online.create(app)
 	public Online() {
 		if (StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass() != RedirectGenMain.class)
 			throw new IllegalCallerException();

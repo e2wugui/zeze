@@ -11,7 +11,6 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 	private Object UserState;
 	private long ResultCode;
 	public TArgument Argument;
-	public Binary ArgumentEncoded;
 
 	public AsyncSocket getSender() {
 		return Sender;
@@ -122,8 +121,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 	}
 
 	public boolean Send(Service service) {
-		AsyncSocket so = service.GetSocket();
-		return so != null && Send(so);
+		return Send(service.GetSocket());
 	}
 
 	// 用于Rpc发送结果。
@@ -229,7 +227,6 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 
 	@Override
 	public String toString() {
-		return String.format("%s ResultCode=%d%n\tArgument=%s",
-				getClass().getName(), getResultCode(), Argument);
+		return String.format("%s ResultCode=%d%n\tArgument=%s", getClass().getName(), getResultCode(), Argument);
 	}
 }

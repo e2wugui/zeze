@@ -16,7 +16,6 @@ import Zeze.Builtin.Provider.Broadcast;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Builtin.Provider.SetUserState;
 import Zeze.Builtin.ProviderDirect.TransmitAccount;
-import Zeze.Game.Rank;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
@@ -56,7 +55,7 @@ public class Online extends AbstractOnline {
         return GenModule.createRedirectModule(Online.class, app);
     }
 
-    @Deprecated // 仅供内部使用, 正常创建应该调用 Rank.create(app)
+    @Deprecated // 仅供内部使用, 正常创建应该调用 Online.create(app)
     public Online() {
         if (StackWalker.getInstance(StackWalker.Option.RETAIN_CLASS_REFERENCE).getCallerClass() != RedirectGenMain.class)
             throw new IllegalCallerException();

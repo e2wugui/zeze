@@ -24,6 +24,8 @@ import Zeze.Services.GlobalCacheManager.Login;
 import Zeze.Services.GlobalCacheManager.NormalClose;
 import Zeze.Services.GlobalCacheManager.ReLogin;
 import Zeze.Services.GlobalCacheManager.Reduce;
+import Zeze.Transaction.DispatchMode;
+import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action0;
 import Zeze.Util.Action1;
 import Zeze.Util.AsyncLock;
@@ -100,27 +102,21 @@ public final class GlobalCacheManagerAsyncServer implements GlobalCacheManagerCo
 
 		Server = new ServerService(config);
 
-		Server.AddFactoryHandle(Acquire.TypeId_,
-				new Service.ProtocolFactoryHandle<>(Acquire::new, this::ProcessAcquireRequest));
-
-		Server.AddFactoryHandle(Reduce.TypeId_,
-				new Service.ProtocolFactoryHandle<>(Reduce::new));
-
-		Server.AddFactoryHandle(Login.TypeId_,
-				new Service.ProtocolFactoryHandle<>(Login::new, this::ProcessLogin));
-
-		Server.AddFactoryHandle(ReLogin.TypeId_,
-				new Service.ProtocolFactoryHandle<>(ReLogin::new, this::ProcessReLogin));
-
-		Server.AddFactoryHandle(NormalClose.TypeId_,
-				new Service.ProtocolFactoryHandle<>(NormalClose::new, this::ProcessNormalClose));
-
+		Server.AddFactoryHandle(Acquire.TypeId_, new Service.ProtocolFactoryHandle<>(
+				Acquire::new, this::ProcessAcquireRequest, TransactionLevel.None, DispatchMode.Direct));
+		Server.AddFactoryHandle(Reduce.TypeId_, new Service.ProtocolFactoryHandle<>(
+				Reduce::new, null, TransactionLevel.None, DispatchMode.Direct));
+		Server.AddFactoryHandle(Login.TypeId_, new Service.ProtocolFactoryHandle<>(
+				Login::new, this::ProcessLogin, TransactionLevel.None, DispatchMode.Direct));
+		Server.AddFactoryHandle(ReLogin.TypeId_, new Service.ProtocolFactoryHandle<>(
+				ReLogin::new, this::ProcessReLogin, TransactionLevel.None, DispatchMode.Direct));
+		Server.AddFactoryHandle(NormalClose.TypeId_, new Service.ProtocolFactoryHandle<>(
+				NormalClose::new, this::ProcessNormalClose, TransactionLevel.None, DispatchMode.Direct));
 		// 临时注册到这里，安全起见应该起一个新的Service，并且仅绑定到 localhost。
-		Server.AddFactoryHandle(Cleanup.TypeId_,
-				new Service.ProtocolFactoryHandle<>(Cleanup::new, this::ProcessCleanup));
-
-		Server.AddFactoryHandle(KeepAlive.TypeId_,
-				new Service.ProtocolFactoryHandle<>(KeepAlive::new, GlobalCacheManagerAsyncServer::ProcessKeepAliveRequest));
+		Server.AddFactoryHandle(Cleanup.TypeId_, new Service.ProtocolFactoryHandle<>(
+				Cleanup::new, this::ProcessCleanup, TransactionLevel.None, DispatchMode.Direct));
+		Server.AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
+				KeepAlive::new, GlobalCacheManagerAsyncServer::ProcessKeepAliveRequest, TransactionLevel.None, DispatchMode.Direct));
 
 		ServerSocket = Server.NewServerSocket(ipaddress, port, null);
 

@@ -7,7 +7,9 @@ import Zeze.Net.Binary;
 import Zeze.Net.Connector;
 import Zeze.Net.Service;
 import Zeze.Net.Service.ProtocolFactoryHandle;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
+import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action1;
 import Zeze.Util.Action2;
 import Zeze.Util.OutObject;
@@ -127,6 +129,7 @@ public final class Agent implements Closeable {
 		public String toString() {
 			return subscribeInfo.getSubscribeType() + " " + ServiceInfos;
 		}
+
 		/**
 		 * 刚初始化时为false，任何修改ServiceInfos都会设置成true。 用来处理Subscribe返回的第一份数据和Commit可能乱序的问题。
 		 * 目前的实现不会发生乱序。
@@ -639,38 +642,28 @@ public final class Agent implements Closeable {
 				? new AgentClient(this, config)
 				: new AgentClient(this, config, netServiceName);
 
-		Client.AddFactoryHandle(Register.TypeId_,
-				new ProtocolFactoryHandle<>(Register::new, this::ProcessRegister));
-
-		Client.AddFactoryHandle(UnRegister.TypeId_,
-				new ProtocolFactoryHandle<>(UnRegister::new, this::ProcessUnRegister));
-
-		Client.AddFactoryHandle(Update.TypeId_,
-				new Service.ProtocolFactoryHandle<>(Update::new, this::ProcessUpdate));
-
-		Client.AddFactoryHandle(Subscribe.TypeId_,
-				new ProtocolFactoryHandle<>(Subscribe::new));
-
-		Client.AddFactoryHandle(UnSubscribe.TypeId_,
-				new ProtocolFactoryHandle<>(UnSubscribe::new));
-
-		Client.AddFactoryHandle(NotifyServiceList.TypeId_,
-				new ProtocolFactoryHandle<>(NotifyServiceList::new, this::ProcessNotifyServiceList));
-
-		Client.AddFactoryHandle(CommitServiceList.TypeId_,
-				new ProtocolFactoryHandle<>(CommitServiceList::new, this::ProcessCommitServiceList));
-
-		Client.AddFactoryHandle(KeepAlive.TypeId_,
-				new ProtocolFactoryHandle<>(KeepAlive::new, this::ProcessKeepAlive));
-
-		Client.AddFactoryHandle(SubscribeFirstCommit.TypeId_,
-				new Service.ProtocolFactoryHandle<>(SubscribeFirstCommit::new, this::ProcessSubscribeFirstCommit));
-
-		Client.AddFactoryHandle(AllocateId.TypeId_,
-				new ProtocolFactoryHandle<>(AllocateId::new));
-
-		Client.AddFactoryHandle(SetServerLoad.TypeId_,
-				new ProtocolFactoryHandle<>(SetServerLoad::new, this::ProcessSetServerLoad));
+		Client.AddFactoryHandle(Register.TypeId_, new ProtocolFactoryHandle<>(
+				Register::new, this::ProcessRegister, TransactionLevel.None, DispatchMode.Direct));
+		Client.AddFactoryHandle(UnRegister.TypeId_, new ProtocolFactoryHandle<>(
+				UnRegister::new, this::ProcessUnRegister, TransactionLevel.None, DispatchMode.Direct));
+		Client.AddFactoryHandle(Update.TypeId_, new ProtocolFactoryHandle<>(
+				Update::new, this::ProcessUpdate, TransactionLevel.None, DispatchMode.Direct));
+		Client.AddFactoryHandle(Subscribe.TypeId_, new ProtocolFactoryHandle<>(
+				Subscribe::new, null, TransactionLevel.None, DispatchMode.Direct));
+		Client.AddFactoryHandle(UnSubscribe.TypeId_, new ProtocolFactoryHandle<>(
+				UnSubscribe::new, null, TransactionLevel.None, DispatchMode.Direct));
+		Client.AddFactoryHandle(NotifyServiceList.TypeId_, new ProtocolFactoryHandle<>(
+				NotifyServiceList::new, this::ProcessNotifyServiceList, TransactionLevel.None, DispatchMode.Direct));
+		Client.AddFactoryHandle(CommitServiceList.TypeId_, new ProtocolFactoryHandle<>(
+				CommitServiceList::new, this::ProcessCommitServiceList, TransactionLevel.None, DispatchMode.Direct));
+		Client.AddFactoryHandle(KeepAlive.TypeId_, new ProtocolFactoryHandle<>(
+				KeepAlive::new, this::ProcessKeepAlive, TransactionLevel.None, DispatchMode.Direct));
+		Client.AddFactoryHandle(SubscribeFirstCommit.TypeId_, new ProtocolFactoryHandle<>(
+				SubscribeFirstCommit::new, this::ProcessSubscribeFirstCommit, TransactionLevel.None, DispatchMode.Direct));
+		Client.AddFactoryHandle(AllocateId.TypeId_, new ProtocolFactoryHandle<>(
+				AllocateId::new, null, TransactionLevel.None, DispatchMode.Direct));
+		Client.AddFactoryHandle(SetServerLoad.TypeId_, new ProtocolFactoryHandle<>(
+				SetServerLoad::new, this::ProcessSetServerLoad, TransactionLevel.None, DispatchMode.Direct));
 	}
 
 	@Override

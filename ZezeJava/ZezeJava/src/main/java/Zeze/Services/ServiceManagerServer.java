@@ -29,7 +29,9 @@ import Zeze.Services.ServiceManager.UnRegister;
 import Zeze.Services.ServiceManager.UnSubscribe;
 import Zeze.Services.ServiceManager.Update;
 import Zeze.Transaction.DatabaseRocksDb;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
+import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.LongHashSet;
@@ -710,32 +712,24 @@ public final class ServiceManagerServer implements Closeable {
 
 		Server = new NetServer(this, config);
 
-		Server.AddFactoryHandle(Register.TypeId_,
-				new Service.ProtocolFactoryHandle<>(Register::new, this::ProcessRegister));
-
-		Server.AddFactoryHandle(Update.TypeId_,
-				new Service.ProtocolFactoryHandle<>(Update::new, this::ProcessUpdate));
-
-		Server.AddFactoryHandle(UnRegister.TypeId_,
-				new Service.ProtocolFactoryHandle<>(UnRegister::new, this::ProcessUnRegister));
-
-		Server.AddFactoryHandle(Subscribe.TypeId_,
-				new Service.ProtocolFactoryHandle<>(Subscribe::new, this::ProcessSubscribe));
-
-		Server.AddFactoryHandle(UnSubscribe.TypeId_,
-				new Service.ProtocolFactoryHandle<>(UnSubscribe::new, this::ProcessUnSubscribe));
-
-		Server.AddFactoryHandle(ReadyServiceList.TypeId_,
-				new Service.ProtocolFactoryHandle<>(ReadyServiceList::new, this::ProcessReadyServiceList));
-
-		Server.AddFactoryHandle(KeepAlive.TypeId_,
-				new Service.ProtocolFactoryHandle<>(KeepAlive::new));
-
-		Server.AddFactoryHandle(AllocateId.TypeId_,
-				new Service.ProtocolFactoryHandle<>(AllocateId::new, this::ProcessAllocateId));
-
-		Server.AddFactoryHandle(SetServerLoad.TypeId_,
-				new Service.ProtocolFactoryHandle<>(SetServerLoad::new, this::ProcessSetLoad));
+		Server.AddFactoryHandle(Register.TypeId_, new Service.ProtocolFactoryHandle<>(
+				Register::new, this::ProcessRegister, TransactionLevel.None, DispatchMode.Critical));
+		Server.AddFactoryHandle(Update.TypeId_, new Service.ProtocolFactoryHandle<>(
+				Update::new, this::ProcessUpdate, TransactionLevel.None, DispatchMode.Critical));
+		Server.AddFactoryHandle(UnRegister.TypeId_, new Service.ProtocolFactoryHandle<>(
+				UnRegister::new, this::ProcessUnRegister, TransactionLevel.None, DispatchMode.Critical));
+		Server.AddFactoryHandle(Subscribe.TypeId_, new Service.ProtocolFactoryHandle<>(
+				Subscribe::new, this::ProcessSubscribe, TransactionLevel.None, DispatchMode.Critical));
+		Server.AddFactoryHandle(UnSubscribe.TypeId_, new Service.ProtocolFactoryHandle<>(
+				UnSubscribe::new, this::ProcessUnSubscribe, TransactionLevel.None, DispatchMode.Critical));
+		Server.AddFactoryHandle(ReadyServiceList.TypeId_, new Service.ProtocolFactoryHandle<>(
+				ReadyServiceList::new, this::ProcessReadyServiceList, TransactionLevel.None, DispatchMode.Critical));
+		Server.AddFactoryHandle(KeepAlive.TypeId_, new Service.ProtocolFactoryHandle<>(
+				KeepAlive::new, null, TransactionLevel.None, DispatchMode.Direct));
+		Server.AddFactoryHandle(AllocateId.TypeId_, new Service.ProtocolFactoryHandle<>(
+				AllocateId::new, this::ProcessAllocateId, TransactionLevel.None, DispatchMode.Critical));
+		Server.AddFactoryHandle(SetServerLoad.TypeId_, new Service.ProtocolFactoryHandle<>(
+				SetServerLoad::new, this::ProcessSetLoad, TransactionLevel.None, DispatchMode.Critical));
 
 		if (Config.getStartNotifyDelay() > 0)
 			StartNotifyDelayTask = Task.schedule(Config.getStartNotifyDelay(), this::StartNotifyAll);

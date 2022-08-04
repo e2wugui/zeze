@@ -19,7 +19,9 @@ import Zeze.Net.Connector;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Bean;
+import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
+import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action0;
 import Zeze.Util.ConcurrentHashSet;
 import Zeze.Util.ShutdownHook;
@@ -800,13 +802,13 @@ public final class Raft {
 	}
 
 	private void RegisterInternalRpc() {
-		Server.AddFactoryHandle(RequestVote.TypeId_,
-				new Service.ProtocolFactoryHandle<>(RequestVote::new, this::ProcessRequestVote));
-		Server.AddFactoryHandle(AppendEntries.TypeId_,
-				new Service.ProtocolFactoryHandle<>(AppendEntries::new, this::ProcessAppendEntries));
-		Server.AddFactoryHandle(InstallSnapshot.TypeId_,
-				new Service.ProtocolFactoryHandle<>(InstallSnapshot::new, this::ProcessInstallSnapshot));
-		Server.AddFactoryHandle(LeaderIs.TypeId_,
-				new Service.ProtocolFactoryHandle<>(LeaderIs::new, Raft::ProcessLeaderIs));
+		Server.AddFactoryHandle(RequestVote.TypeId_, new Service.ProtocolFactoryHandle<>(
+				RequestVote::new, this::ProcessRequestVote, TransactionLevel.Serializable, DispatchMode.Normal));
+		Server.AddFactoryHandle(AppendEntries.TypeId_, new Service.ProtocolFactoryHandle<>(
+				AppendEntries::new, this::ProcessAppendEntries, TransactionLevel.Serializable, DispatchMode.Normal));
+		Server.AddFactoryHandle(InstallSnapshot.TypeId_, new Service.ProtocolFactoryHandle<>(
+				InstallSnapshot::new, this::ProcessInstallSnapshot, TransactionLevel.Serializable, DispatchMode.Normal));
+		Server.AddFactoryHandle(LeaderIs.TypeId_, new Service.ProtocolFactoryHandle<>(
+				LeaderIs::new, Raft::ProcessLeaderIs, TransactionLevel.Serializable, DispatchMode.Normal));
 	}
 }
