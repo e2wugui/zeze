@@ -62,6 +62,12 @@ namespace Zeze.Transaction
 
         public bool IsManaged => RootInfo != null;
 
+        public void InitRootInfoWithRedo(Record.RootInfo rootInfo, Bean parent)
+        {
+            InitRootInfo(rootInfo, parent);
+            Transaction.WhileRedo(ResetRootInfo);
+        }
+
         public void InitRootInfo(Record.RootInfo rootInfo, Bean parent)
         {
             if (IsManaged)
@@ -71,7 +77,6 @@ namespace Zeze.Transaction
             this.RootInfo = rootInfo;
             this.Parent = parent;
             InitChildrenRootInfo(rootInfo);
-            Transaction.WhileRedo(ResetRootInfo);
         }
 
         public void ResetRootInfo()
@@ -232,7 +237,7 @@ namespace Zeze.Transaction
                     Bean_ = value;
                     return;
                 }
-                value.InitRootInfo(RootInfo, this);
+                value.InitRootInfoWithRedo(RootInfo, this);
                 value.VariableId = 1; // 只有一个变量
                 var txn = Transaction.Current;
                 txn.VerifyRecordAccessed(this);
@@ -288,7 +293,7 @@ namespace Zeze.Transaction
                 Bean_ = bean;
                 return;
             }
-            bean.InitRootInfo(RootInfo, this);
+            bean.InitRootInfoWithRedo(RootInfo, this);
             bean.VariableId = 1; // 只有一个变量
             var txn = Transaction.Current;
             txn.VerifyRecordAccessed(this);

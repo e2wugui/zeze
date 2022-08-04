@@ -478,7 +478,7 @@ namespace Zeze.Transaction
             var currentT = Transaction.Current;
             var tkey = new TableKey(Id, key);
             var cr = currentT.GetRecordAccessed(tkey);
-            value.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
+            value.InitRootInfoWithRedo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
             cr.Put(currentT, value);
             return true;
         }
@@ -497,7 +497,7 @@ namespace Zeze.Transaction
             var cr = currentT.GetRecordAccessed(tkey);
             if (null != cr)
             {
-                value.InitRootInfo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
+                value.InitRootInfoWithRedo(cr.Origin.CreateRootInfoIfNeed(tkey), null);
                 cr.Put(currentT, value);
                 return;
             }

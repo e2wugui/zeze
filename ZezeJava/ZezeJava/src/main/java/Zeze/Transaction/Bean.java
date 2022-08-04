@@ -72,7 +72,7 @@ public abstract class Bean implements Serializable {
 		return RootInfo != null;
 	}
 
-	public final void initRootInfo(Record.RootInfo rootInfo, Bean parent) {
+	public final void InitRootInfoWithRedo(Record.RootInfo rootInfo, Bean parent) {
 		InitRootInfo(rootInfo, parent);
 		Transaction.whileRedo(this::ResetRootInfo);
 	}

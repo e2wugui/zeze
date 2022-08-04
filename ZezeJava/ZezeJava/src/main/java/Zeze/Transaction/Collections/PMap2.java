@@ -51,7 +51,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 		value.setMapKey(key);
 		if (isManaged()) {
-			value.initRootInfo(RootInfo, this);
+			value.InitRootInfoWithRedo(RootInfo, this);
 			var txn = Transaction.getCurrent();
 			assert txn != null;
 			txn.VerifyRecordAccessed(this);
@@ -78,7 +78,7 @@ public class PMap2<K, V extends Bean> extends PMap<K, V> {
 
 		if (isManaged()) {
 			for (var v : m.values()) {
-				v.initRootInfo(RootInfo, this);
+				v.InitRootInfoWithRedo(RootInfo, this);
 			}
 			var txn = Transaction.getCurrent();
 			assert txn != null;

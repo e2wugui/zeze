@@ -18,7 +18,7 @@ namespace Zeze.Transaction.Collections
 
 				if (this.IsManaged)
 				{
-					value.InitRootInfo(RootInfo, this);
+					value.InitRootInfoWithRedo(RootInfo, this);
 					var txn = Transaction.Current;
 					txn.VerifyRecordAccessed(this);
 					var log = (LogList1<E>)txn.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
@@ -39,7 +39,7 @@ namespace Zeze.Transaction.Collections
 
 			if (IsManaged)
 			{
-				item.InitRootInfo(RootInfo, this);
+				item.InitRootInfoWithRedo(RootInfo, this);
 				var txn = Transaction.Current;
 				txn.VerifyRecordAccessed(this);
 				var listLog = (LogList2<E>)txn.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
@@ -62,7 +62,7 @@ namespace Zeze.Transaction.Collections
 			if (IsManaged)
 			{
 				foreach (var item in items)
-					item.InitRootInfo(RootInfo, this);
+					item.InitRootInfoWithRedo(RootInfo, this);
 				var txn = Transaction.Current;
 				txn.VerifyRecordAccessed(this); 
 				var listLog = (LogList2<E>)txn.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
@@ -130,7 +130,7 @@ namespace Zeze.Transaction.Collections
 			
 			if (IsManaged)
 			{
-				item.InitRootInfo(RootInfo, this);
+				item.InitRootInfoWithRedo(RootInfo, this);
 				var txn = Transaction.Current;
 				txn.VerifyRecordAccessed(this);
 				var listLog = (LogList2<E>)txn.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);

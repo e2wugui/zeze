@@ -23,7 +23,7 @@ namespace Zeze.Transaction.Collections
 
 				if (this.IsManaged)
 				{
-					value.InitRootInfo(RootInfo, this);
+					value.InitRootInfoWithRedo(RootInfo, this);
 					var txn = Transaction.Current;
 					txn.VerifyRecordAccessed(this);
 					var log = (LogMap2<K, V>)txn.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
@@ -51,7 +51,7 @@ namespace Zeze.Transaction.Collections
 			PropertyMapKey?.SetValue(value, key);
 			if (IsManaged)
 			{
-				value.InitRootInfo(RootInfo, this);
+				value.InitRootInfoWithRedo(RootInfo, this);
 				var txn = Transaction.Current;
 				txn.VerifyRecordAccessed(this);
 				var maplog = (LogMap2<K, V>)txn.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
@@ -82,7 +82,7 @@ namespace Zeze.Transaction.Collections
 			PropertyMapKey?.SetValue(value, key);
 			if (IsManaged)
             {
-				value.InitRootInfo(RootInfo, this);
+				value.InitRootInfoWithRedo(RootInfo, this);
 				var txn = Transaction.Current;
 				txn.VerifyRecordAccessed(this);
 				var maplog = (LogMap2<K, V>)txn.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
@@ -192,7 +192,7 @@ namespace Zeze.Transaction.Collections
 
 			if (this.IsManaged)
 			{
-				item.Value.InitRootInfo(RootInfo, this);
+				item.Value.InitRootInfoWithRedo(RootInfo, this);
 				var txn = Transaction.Current;
 				txn.VerifyRecordAccessed(this);
 				var log = (LogMap2<K, V>)txn.LogGetOrAdd(Parent.ObjectId + VariableId, CreateLogBean);
@@ -218,7 +218,7 @@ namespace Zeze.Transaction.Collections
 			{
 				foreach (var p in pairs)
 				{
-					p.Value.InitRootInfo(RootInfo, this);
+					p.Value.InitRootInfoWithRedo(RootInfo, this);
 				}
 				var txn = Transaction.Current;
 				txn.VerifyRecordAccessed(this);
@@ -245,7 +245,7 @@ namespace Zeze.Transaction.Collections
 			{
 				foreach (var p in pairs)
 				{
-					p.Value.InitRootInfo(RootInfo, this);
+					p.Value.InitRootInfoWithRedo(RootInfo, this);
 				}
 				var txn = Transaction.Current;
 				txn.VerifyRecordAccessed(this);
