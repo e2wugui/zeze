@@ -8,20 +8,19 @@ import javax.jms.Destination;
 import javax.jms.ExceptionListener;
 import javax.jms.JMSException;
 import javax.jms.ServerSessionPool;
-import javax.jms.Session;
 import javax.jms.Topic;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.impl.MQClientManager;
 import org.apache.rocketmq.client.impl.factory.MQClientInstance;
 
-public class ZezeConnection implements javax.jms.Connection {
+public class Connection implements javax.jms.Connection {
 	private String clientID;
-	private ClientConfig clientConfig = new ClientConfig();
+	private org.apache.rocketmq.client.ClientConfig clientConfig = new org.apache.rocketmq.client.ClientConfig();
 	private MQClientInstance clientInstance;
-	private List<ZezeSession> sessionList = new ArrayList();
+	private List<Session> sessionList = new ArrayList();
 	private int sendTimeout = 0;
 
-	public ZezeConnection(String nameServerAddress, String clientID, String instanceName) {
+	public Connection(String nameServerAddress, String clientID, String instanceName) {
 		this.clientID = clientID;
 		this.clientConfig.setNamesrvAddr(nameServerAddress);
 		this.clientConfig.setInstanceName(instanceName);
@@ -30,27 +29,27 @@ public class ZezeConnection implements javax.jms.Connection {
 	}
 
 	@Override
-	public Session createSession(boolean transacted, int acknowledgeMode) throws JMSException {
+	public javax.jms.Session createSession(boolean transacted, int acknowledgeMode) throws JMSException {
 		if (transacted) {
 			// TODO:
 		}
-		if (acknowledgeMode == Session.AUTO_ACKNOWLEDGE) {
+		if (acknowledgeMode == javax.jms.Session.AUTO_ACKNOWLEDGE) {
 			// TODO:
 		}
 
-		ZezeSession session = new ZezeSession(this, acknowledgeMode, transacted);
+		Session session = new Session(this, acknowledgeMode, transacted);
 		sessionList.add(session);
 		return session;
 	}
 
 	@Override
-	public Session createSession(int sessionMode) throws JMSException {
-		return createSession(sessionMode == Session.SESSION_TRANSACTED, sessionMode);
+	public javax.jms.Session createSession(int sessionMode) throws JMSException {
+		return createSession(sessionMode == javax.jms.Session.SESSION_TRANSACTED, sessionMode);
 	}
 
 	@Override
-	public Session createSession() throws JMSException {
-		return createSession(false, Session.AUTO_ACKNOWLEDGE);
+	public javax.jms.Session createSession() throws JMSException {
+		return createSession(false, javax.jms.Session.AUTO_ACKNOWLEDGE);
 	}
 
 	@Override
@@ -126,7 +125,7 @@ public class ZezeConnection implements javax.jms.Connection {
 		this.sendTimeout = sendTimeout;
 	}
 
-	public ClientConfig getClientConfig() {
+	public org.apache.rocketmq.client.ClientConfig getClientConfig() {
 		return clientConfig;
 	}
 

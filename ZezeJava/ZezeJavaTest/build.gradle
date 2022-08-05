@@ -23,6 +23,10 @@ dependencies {
 
     // for log4j2
     implementation 'com.lmax:disruptor:3.4.4'
+
+    // for rocketMQ
+    implementation 'org.apache.rocketmq:rocketmq-client:4.9.4'
+    implementation 'javax:javaee-api:8.0.1'
 }
 
 sourceSets {

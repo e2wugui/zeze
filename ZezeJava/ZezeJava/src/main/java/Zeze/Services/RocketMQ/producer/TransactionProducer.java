@@ -6,17 +6,17 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import javax.jms.Destination;
-import Zeze.Services.RocketMQ.ZezeSession;
+import Zeze.Services.RocketMQ.Session;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.producer.TransactionListener;
 import org.jetbrains.annotations.NotNull;
 
-public class ZezeTransactionProducer extends ZezeMessageProducer {
+public class TransactionProducer extends MessageProducer {
 
 	TransactionListener transactionListener;
 	ExecutorService executorService;
 
-	public ZezeTransactionProducer(ZezeSession session, int producerId, Destination destination, int sendTimeout) {
+	public TransactionProducer(Session session, int producerId, Destination destination, int sendTimeout) {
 		super();
 		super.producer = new org.apache.rocketmq.client.producer.TransactionMQProducer("producer" + producerId);
 		super.producerID = producerId;

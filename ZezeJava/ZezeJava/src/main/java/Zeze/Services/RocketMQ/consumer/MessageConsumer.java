@@ -4,44 +4,32 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.jms.Destination;
 import javax.jms.JMSException;
-import javax.jms.Message;
 import javax.jms.MessageListener;
-import Zeze.Services.RocketMQ.ZezeSession;
-import Zeze.Services.RocketMQ.ZezeTopic;
-import Zeze.Services.RocketMQ.msg.ZezeMessage;
-import org.apache.rocketmq.client.ClientConfig;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext;
-import org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus;
-import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext;
-import org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently;
-import org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly;
-import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.common.consumer.ConsumeFromWhere;
-import org.apache.rocketmq.common.message.MessageExt;
-import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
+import Zeze.Services.RocketMQ.Session;
+import Zeze.Services.RocketMQ.Topic;
+import Zeze.Services.RocketMQ.msg.Message;
 
-public class ZezeMessageConsumer implements javax.jms.MessageConsumer {
+public class MessageConsumer implements javax.jms.MessageConsumer {
 
 	org.apache.rocketmq.client.consumer.DefaultMQPushConsumer consumer;
-	private ZezeSession session;
+	private Session session;
 	private final Destination destination; // default destination
 	private final String selector;
 	private final AtomicReference<javax.jms.MessageListener> messageListener = new AtomicReference<>();
 	private int consumerId;
 
-	public ZezeMessageConsumer(ZezeSession session, Destination destination, int consumerId, String selector) throws JMSException {
+	public MessageConsumer(Session session, Destination destination, int consumerId, String selector) throws JMSException {
 		this.consumer = new org.apache.rocketmq.client.consumer.DefaultMQPushConsumer("consumer" + consumerId);
 		this.session = session;
 		this.destination = destination;
 		this.selector = selector;
 		this.consumerId = consumerId;
 
-		ClientConfig clientConfig = session.getConnection().getClientConfig();
+		org.apache.rocketmq.client.ClientConfig clientConfig = session.getConnection().getClientConfig();
 		this.consumer.setNamesrvAddr(clientConfig.getNamesrvAddr());
 		try {
-			this.consumer.subscribe(((ZezeTopic)destination).getTopicName(), "*");
-		} catch (MQClientException e) {
+			this.consumer.subscribe(((Topic)destination).getTopicName(), "*");
+		} catch (org.apache.rocketmq.client.exception.MQClientException e) {
 			// TODO: exception handling
 			System.out.println(e.getErrorMessage());
 		}
@@ -63,17 +51,17 @@ public class ZezeMessageConsumer implements javax.jms.MessageConsumer {
 	}
 
 	@Override
-	public Message receive() throws JMSException {
+	public javax.jms.Message receive() throws JMSException {
 		return null;
 	}
 
 	@Override
-	public Message receive(long timeout) throws JMSException {
+	public javax.jms.Message receive(long timeout) throws JMSException {
 		return null;
 	}
 
 	@Override
-	public Message receiveNoWait() throws JMSException {
+	public javax.jms.Message receiveNoWait() throws JMSException {
 		return null;
 	}
 
@@ -83,86 +71,86 @@ public class ZezeMessageConsumer implements javax.jms.MessageConsumer {
 	}
 
 	public void start() {
-		if (messageListener.get() instanceof ZezeMessageListenerConcurrently) {
-			this.consumer.registerMessageListener(new MessageListenerConcurrently() {
+		if (messageListener.get() instanceof MessageListenerConcurrently) {
+			this.consumer.registerMessageListener(new org.apache.rocketmq.client.consumer.listener.MessageListenerConcurrently() {
 				@Override
-				public ConsumeConcurrentlyStatus consumeMessage(List<MessageExt> msgs, ConsumeConcurrentlyContext context) {
+				public org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus consumeMessage(List<org.apache.rocketmq.common.message.MessageExt> msgs, org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyContext context) {
 					try {
-						for (MessageExt msg : msgs) {
-							messageListener.get().onMessage(new ZezeMessage(msg));
+						for (org.apache.rocketmq.common.message.MessageExt msg : msgs) {
+							messageListener.get().onMessage(new Message(msg));
 						}
 					} catch (Exception e) {
 						e.printStackTrace();
-						return ConsumeConcurrentlyStatus.RECONSUME_LATER;
+						return org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus.RECONSUME_LATER;
 					}
-					return ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
+					return org.apache.rocketmq.client.consumer.listener.ConsumeConcurrentlyStatus.CONSUME_SUCCESS;
 				}
 			});
 		}
-		if (messageListener.get() instanceof ZezeMessageListenerOrderly) {
-			this.consumer.registerMessageListener(new MessageListenerOrderly() {
+		if (messageListener.get() instanceof MessageListenerOrderly) {
+			this.consumer.registerMessageListener(new org.apache.rocketmq.client.consumer.listener.MessageListenerOrderly() {
 				@Override
-				public ConsumeOrderlyStatus consumeMessage(List<MessageExt> msgs, ConsumeOrderlyContext context) {
+				public org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus consumeMessage(List<org.apache.rocketmq.common.message.MessageExt> msgs, org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyContext context) {
 					try {
 						int i = 0;
-						for (MessageExt msg : msgs) {
+						for (org.apache.rocketmq.common.message.MessageExt msg : msgs) {
 							System.out.println("consumeMessage " + i++);
-							messageListener.get().onMessage(new ZezeMessage(msg));
+							messageListener.get().onMessage(new Message(msg));
 						}
 					} catch (Exception e) {
 						e.printStackTrace();
-						return ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT;
+						return org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus.SUSPEND_CURRENT_QUEUE_A_MOMENT;
 					}
-					return ConsumeOrderlyStatus.SUCCESS;
+					return org.apache.rocketmq.client.consumer.listener.ConsumeOrderlyStatus.SUCCESS;
 				}
 			});
 		}
 		try {
 			this.consumer.start();
-		} catch (MQClientException e) {
+		} catch (org.apache.rocketmq.client.exception.MQClientException e) {
 			// TODO: exception handling
 			System.out.println(e.getErrorMessage());
 		}
 	}
 
 	@Deprecated // maybe we don't need this method
-	public void subscribe(ZezeTopic topic) throws JMSException {
+	public void subscribe(Topic topic) throws JMSException {
 		try {
 			this.consumer.subscribe(topic.getTopicName(), this.selector);
-		} catch (MQClientException e) {
+		} catch (org.apache.rocketmq.client.exception.MQClientException e) {
 			// TODO: exception handling
 			System.out.println(e.getErrorMessage());
 		}
 	}
 
 	@Deprecated // maybe we don't need this method
-	public void unsubscribe(ZezeTopic topic) throws JMSException, MQClientException {
+	public void unsubscribe(Topic topic) throws JMSException {
 		this.consumer.unsubscribe(topic.getTopicName());
 	}
 
 	// default: CLUSTERING
 	public void useClusteringMessageModel() {
-		this.consumer.setMessageModel(MessageModel.CLUSTERING);
+		this.consumer.setMessageModel(org.apache.rocketmq.common.protocol.heartbeat.MessageModel.CLUSTERING);
 	}
 
 	// default: CLUSTERING
 	public void useBroadcastMessageModel() {
-		this.consumer.setMessageModel(MessageModel.BROADCASTING);
+		this.consumer.setMessageModel(org.apache.rocketmq.common.protocol.heartbeat.MessageModel.BROADCASTING);
 	}
 
 	// default: CONSUME_FROM_LAST_OFFSET
 	public void setConsumeFromLastOffset() {
-		this.consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
+		this.consumer.setConsumeFromWhere(org.apache.rocketmq.common.consumer.ConsumeFromWhere.CONSUME_FROM_LAST_OFFSET);
 	}
 
 	// default: CONSUME_FROM_LAST_OFFSET
 	public void setConsumeFromFirstOffset() {
-		this.consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
+		this.consumer.setConsumeFromWhere(org.apache.rocketmq.common.consumer.ConsumeFromWhere.CONSUME_FROM_FIRST_OFFSET);
 	}
 
 	// default: CONSUME_FROM_LAST_OFFSET
 	public void setConsumeFromTimestamp() {
-		this.consumer.setConsumeFromWhere(ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
+		this.consumer.setConsumeFromWhere(org.apache.rocketmq.common.consumer.ConsumeFromWhere.CONSUME_FROM_TIMESTAMP);
 	}
 
 	// default: 20

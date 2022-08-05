@@ -1,14 +1,12 @@
 package Zeze.Services.RocketMQ.msg;
 
-import java.io.IOException;
 import java.util.Enumeration;
 import java.util.Map;
 import javax.jms.DeliveryMode;
 import javax.jms.Destination;
 import javax.jms.JMSException;
-import org.apache.rocketmq.common.message.MessageExt;
 
-public class ZezeMessage implements javax.jms.Message {
+public class Message implements javax.jms.Message {
 
 	private String messageID; // TODO: use unique message ID
 	private long timestamp;
@@ -25,10 +23,10 @@ public class ZezeMessage implements javax.jms.Message {
 
 	org.apache.rocketmq.common.message.MessageExt message;
 
-	public ZezeMessage() {
+	public Message() {
 	}
 
-	public ZezeMessage(MessageExt message) {
+	public Message(org.apache.rocketmq.common.message.MessageExt message) {
 		this.message = message;
 		body = message.getBody();
 	}

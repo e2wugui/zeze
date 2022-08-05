@@ -5,27 +5,22 @@ import javax.jms.BytesMessage;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.MapMessage;
-import javax.jms.Message;
-import javax.jms.MessageConsumer;
 import javax.jms.MessageListener;
-import javax.jms.MessageProducer;
 import javax.jms.ObjectMessage;
 import javax.jms.Queue;
 import javax.jms.QueueBrowser;
 import javax.jms.StreamMessage;
 import javax.jms.TemporaryQueue;
 import javax.jms.TemporaryTopic;
-import javax.jms.TextMessage;
-import javax.jms.Topic;
 import javax.jms.TopicSubscriber;
-import Zeze.Services.RocketMQ.consumer.ZezeMessageConsumer;
-import Zeze.Services.RocketMQ.msg.ZezeMessage;
-import Zeze.Services.RocketMQ.msg.ZezeTextMessage;
-import Zeze.Services.RocketMQ.producer.ZezeMessageProducer;
-import Zeze.Services.RocketMQ.producer.ZezeTransactionProducer;
+import Zeze.Services.RocketMQ.consumer.MessageConsumer;
+import Zeze.Services.RocketMQ.msg.Message;
+import Zeze.Services.RocketMQ.msg.TextMessage;
+import Zeze.Services.RocketMQ.producer.MessageProducer;
+import Zeze.Services.RocketMQ.producer.TransactionProducer;
 
-public class ZezeSession implements javax.jms.Session {
-	private ZezeConnection connection;
+public class Session implements javax.jms.Session {
+	private Connection connection;
 	private int acknowledgeMode;
 	private boolean transacted;
 
@@ -33,7 +28,7 @@ public class ZezeSession implements javax.jms.Session {
 	private MessageListener messageListener;
 	private int nextProducerId = 0;
 
-	public ZezeSession(ZezeConnection connection, int acknowledgeMode, boolean transacted) {
+	public Session(Connection connection, int acknowledgeMode, boolean transacted) {
 		this.connection = connection;
 		this.acknowledgeMode = acknowledgeMode;
 		this.transacted = transacted;
@@ -50,8 +45,8 @@ public class ZezeSession implements javax.jms.Session {
 	}
 
 	@Override
-	public Message createMessage() throws JMSException {
-		return new ZezeMessage();
+	public javax.jms.Message createMessage() throws JMSException {
+		return new Message();
 	}
 
 	@Override
@@ -70,13 +65,13 @@ public class ZezeSession implements javax.jms.Session {
 	}
 
 	@Override
-	public TextMessage createTextMessage() throws JMSException {
-		return new ZezeTextMessage();
+	public javax.jms.TextMessage createTextMessage() throws JMSException {
+		return new TextMessage();
 	}
 
 	@Override
-	public TextMessage createTextMessage(String text) throws JMSException {
-		return new ZezeTextMessage(text);
+	public javax.jms.TextMessage createTextMessage(String text) throws JMSException {
+		return new TextMessage(text);
 	}
 
 	@Override
@@ -125,37 +120,37 @@ public class ZezeSession implements javax.jms.Session {
 	}
 
 	@Override
-	public MessageProducer createProducer(Destination destination) throws JMSException {
-		return new ZezeMessageProducer(this, nextProducerId++, destination, connection.getSendTimeout());
+	public javax.jms.MessageProducer createProducer(Destination destination) throws JMSException {
+		return new MessageProducer(this, nextProducerId++, destination, connection.getSendTimeout());
 	}
 
-	public MessageProducer createTransactionProducer(Destination destination) throws JMSException {
-		return new ZezeTransactionProducer(this, nextProducerId++, destination, connection.getSendTimeout());
+	public javax.jms.MessageProducer createTransactionProducer(Destination destination) throws JMSException {
+		return new TransactionProducer(this, nextProducerId++, destination, connection.getSendTimeout());
 	}
 
 	@Override
-	public MessageConsumer createConsumer(Destination destination) throws JMSException {
+	public javax.jms.MessageConsumer createConsumer(Destination destination) throws JMSException {
 		return createConsumer(destination, (String)null);
 	}
 
 	@Override
-	public MessageConsumer createConsumer(Destination destination, String messageSelector) throws JMSException {
+	public javax.jms.MessageConsumer createConsumer(Destination destination, String messageSelector) throws JMSException {
 		return createConsumer(destination, messageSelector, false);
 	}
 
 	@Override
-	public MessageConsumer createConsumer(Destination destination, String messageSelector, boolean noLocal) throws JMSException {
+	public javax.jms.MessageConsumer createConsumer(Destination destination, String messageSelector, boolean noLocal) throws JMSException {
 		// TODO: what does noLocal mean?
-		return new ZezeMessageConsumer(this, destination, 1, messageSelector);
+		return new MessageConsumer(this, destination, 1, messageSelector);
 	}
 
 	@Override
-	public MessageConsumer createSharedConsumer(Topic topic, String sharedSubscriptionName) throws JMSException {
+	public javax.jms.MessageConsumer createSharedConsumer(javax.jms.Topic topic, String sharedSubscriptionName) throws JMSException {
 		return null;
 	}
 
 	@Override
-	public MessageConsumer createSharedConsumer(Topic topic, String sharedSubscriptionName, String messageSelector) throws JMSException {
+	public javax.jms.MessageConsumer createSharedConsumer(javax.jms.Topic topic, String sharedSubscriptionName, String messageSelector) throws JMSException {
 		return null;
 	}
 
@@ -165,37 +160,37 @@ public class ZezeSession implements javax.jms.Session {
 	}
 
 	@Override
-	public Topic createTopic(String topicName) throws JMSException {
-		return new ZezeTopic(topicName);
+	public javax.jms.Topic createTopic(String topicName) throws JMSException {
+		return new Topic(topicName);
 	}
 
 	@Override
-	public TopicSubscriber createDurableSubscriber(Topic topic, String name) throws JMSException {
+	public TopicSubscriber createDurableSubscriber(javax.jms.Topic topic, String name) throws JMSException {
 		return null;
 	}
 
 	@Override
-	public TopicSubscriber createDurableSubscriber(Topic topic, String name, String messageSelector, boolean noLocal) throws JMSException {
+	public TopicSubscriber createDurableSubscriber(javax.jms.Topic topic, String name, String messageSelector, boolean noLocal) throws JMSException {
 		return null;
 	}
 
 	@Override
-	public MessageConsumer createDurableConsumer(Topic topic, String name) throws JMSException {
+	public javax.jms.MessageConsumer createDurableConsumer(javax.jms.Topic topic, String name) throws JMSException {
 		return null;
 	}
 
 	@Override
-	public MessageConsumer createDurableConsumer(Topic topic, String name, String messageSelector, boolean noLocal) throws JMSException {
+	public javax.jms.MessageConsumer createDurableConsumer(javax.jms.Topic topic, String name, String messageSelector, boolean noLocal) throws JMSException {
 		return null;
 	}
 
 	@Override
-	public MessageConsumer createSharedDurableConsumer(Topic topic, String name) throws JMSException {
+	public javax.jms.MessageConsumer createSharedDurableConsumer(javax.jms.Topic topic, String name) throws JMSException {
 		return null;
 	}
 
 	@Override
-	public MessageConsumer createSharedDurableConsumer(Topic topic, String name, String messageSelector) throws JMSException {
+	public javax.jms.MessageConsumer createSharedDurableConsumer(javax.jms.Topic topic, String name, String messageSelector) throws JMSException {
 		return null;
 	}
 
@@ -224,7 +219,7 @@ public class ZezeSession implements javax.jms.Session {
 
 	}
 
-	public ZezeConnection getConnection() {
+	public Connection getConnection() {
 		return connection;
 	}
 }

@@ -1,34 +1,32 @@
 package Zeze.Services.RocketMQ;
 
 import java.util.UUID;
-import javax.jms.Connection;
 import javax.jms.JMSContext;
 import javax.jms.JMSException;
-import Zeze.Services.RocketMQ.ZezeConnection;
 
-public class ZezeConnectionFactory implements javax.jms.ConnectionFactory {
+public class ConnectionFactory implements javax.jms.ConnectionFactory {
 
 	private String nameServerAddress;
 	private String clientId;
 
-	public ZezeConnectionFactory(String nameServerAddress) {
+	public ConnectionFactory(String nameServerAddress) {
 		this.nameServerAddress = nameServerAddress;
 		this.clientId = UUID.randomUUID().toString();
 	}
 
-	public ZezeConnectionFactory(String nameServerAddress, String clientId) {
+	public ConnectionFactory(String nameServerAddress, String clientId) {
 		this.nameServerAddress = nameServerAddress;
 		this.clientId = clientId;
 	}
 
 	@Override
-	public Connection createConnection() throws JMSException {
+	public javax.jms.Connection createConnection() throws JMSException {
 		return createConnection(null, null);
 	}
 
 	@Override
-	public Connection createConnection(String userName, String password) throws JMSException {
-		return new ZezeConnection(nameServerAddress, clientId, "clientInstance" + clientId);
+	public javax.jms.Connection createConnection(String userName, String password) throws JMSException {
+		return new Connection(nameServerAddress, clientId, "clientInstance" + clientId);
 	}
 
 	@Deprecated
@@ -59,8 +57,8 @@ public class ZezeConnectionFactory implements javax.jms.ConnectionFactory {
 		return null;
 	}
 
-	private Connection createZezeConnection(String userName, String password) {
+	private javax.jms.Connection createZezeConnection(String userName, String password) {
 		final String instanceName = UUID.randomUUID().toString();
-		return new ZezeConnection(nameServerAddress, clientId, instanceName);
+		return new Connection(nameServerAddress, clientId, instanceName);
 	}
 }

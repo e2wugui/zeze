@@ -2,11 +2,11 @@ package Zeze.Services.RocketMQ;
 
 import javax.jms.JMSException;
 
-public class ZezeTopic implements javax.jms.Topic {
+public class Topic implements javax.jms.Topic {
 
 	private String name;
 
-	public ZezeTopic(String name) {
+	public Topic(String name) {
 		this.name = name;
 	}
 

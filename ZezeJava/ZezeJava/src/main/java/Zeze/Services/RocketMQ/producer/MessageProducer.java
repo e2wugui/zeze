@@ -5,37 +5,34 @@ import javax.jms.Destination;
 import javax.jms.IllegalStateException;
 import javax.jms.JMSException;
 import javax.jms.Message;
-import Zeze.Services.RocketMQ.ZezeSession;
-import Zeze.Services.RocketMQ.ZezeTopic;
-import org.apache.rocketmq.client.ClientConfig;
-import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.client.producer.SendResult;
-import org.apache.rocketmq.remoting.common.RemotingHelper;
+import Zeze.Services.RocketMQ.Session;
+import Zeze.Services.RocketMQ.Topic;
 
-public class ZezeMessageProducer implements javax.jms.MessageProducer {
+public class MessageProducer implements javax.jms.MessageProducer {
 
 	org.apache.rocketmq.client.producer.DefaultMQProducer producer;
-	protected ZezeSession session;
+	protected Session session;
 	protected Destination destination; // default destination
 	protected int deliveryMode;
 	protected boolean disableMessageID;
 	protected boolean disableMessageTimestamp;
 	protected int priority;
 	protected long timeToLive;
+	protected long deliveryDelay;
 	protected boolean closed;
 	protected int producerID;
 
-	public ZezeMessageProducer() {
+	public MessageProducer() {
 	}
 
-	public ZezeMessageProducer(ZezeSession session, int producerId, Destination destination, int sendTimeout) {
+	public MessageProducer(Session session, int producerId, Destination destination, int sendTimeout) {
 		this.producer = new org.apache.rocketmq.client.producer.DefaultMQProducer("producer" + producerId);
 		this.producerID = producerId;
 		this.session = session;
 		this.destination = destination;
 
 //		this.producer.setSendMsgTimeout(sendTimeout); // Fixme: fix sendTimeout
-		ClientConfig clientConfig = session.getConnection().getClientConfig();
+		org.apache.rocketmq.client.ClientConfig clientConfig = session.getConnection().getClientConfig();
 		this.producer.setNamesrvAddr(clientConfig.getNamesrvAddr());
 	}
 
@@ -71,10 +68,11 @@ public class ZezeMessageProducer implements javax.jms.MessageProducer {
 			throw new UnsupportedOperationException("Destination is null");
 		}
 
-		ZezeTopic topic = (ZezeTopic)destination; // TODO: only support Topic destination now
-		SendResult sendResult = null;
+		Topic topic = (Topic)destination; // TODO: only support Topic destination now
 		try {
-			sendResult = producer.send(new org.apache.rocketmq.common.message.Message("TopicTest" /* Topic */, "TagA" /* Tag */, ("Hello RocketMQ ").getBytes(RemotingHelper.DEFAULT_CHARSET) /* Message body */
+			org.apache.rocketmq.common.message.Message msg = new org.apache.rocketmq.common.message.Message();
+			msg.getDelayTimeLevel();
+			org.apache.rocketmq.client.producer.SendResult sendResult = producer.send(new org.apache.rocketmq.common.message.Message("TopicTest" /* Topic */, "TagA" /* Tag */, ("Hello RocketMQ ").getBytes(org.apache.rocketmq.remoting.common.RemotingHelper.DEFAULT_CHARSET) /* Message body */
 			));
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -151,20 +149,17 @@ public class ZezeMessageProducer implements javax.jms.MessageProducer {
 		return this.timeToLive;
 	}
 
-	@Deprecated
 	@Override
 	public void setDeliveryDelay(long deliveryDelay) throws JMSException {
-		// we won't use this
+		this.deliveryDelay = deliveryDelay;
 	}
 
-	@Deprecated
 	@Override
 	public long getDeliveryDelay() throws JMSException {
-		// we won't use this
-		return 0;
+		return this.deliveryDelay;
 	}
 
-	public void setTheSameProducerGroupAs(ZezeMessageProducer producer) {
+	public void setTheSameProducerGroupAs(MessageProducer producer) {
 		this.setProducerGroup(producer.producer.getProducerGroup());
 	}
 
@@ -211,7 +206,7 @@ public class ZezeMessageProducer implements javax.jms.MessageProducer {
 	public void start() {
 		try {
 			this.producer.start();
-		} catch (MQClientException e) {
+		} catch (org.apache.rocketmq.client.exception.MQClientException e) {
 			// TODO: exception handling
 			System.out.println(e.getErrorMessage());
 		}

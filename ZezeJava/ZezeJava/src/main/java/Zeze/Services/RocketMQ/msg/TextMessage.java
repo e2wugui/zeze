@@ -1,16 +1,15 @@
 package Zeze.Services.RocketMQ.msg;
 
 import javax.jms.JMSException;
-import Zeze.Services.RocketMQ.msg.ZezeMessage;
 
-public class ZezeTextMessage extends ZezeMessage implements javax.jms.TextMessage {
+public class TextMessage extends Message implements javax.jms.TextMessage {
 
 	protected String text;
 
-	public ZezeTextMessage() {
+	public TextMessage() {
 	}
 
-	public ZezeTextMessage(String text) {
+	public TextMessage(String text) {
 		this.text = text;
 		super.setBody(text.getBytes());
 	}
