@@ -1,6 +1,10 @@
 package Zeze.Web;
 
+import java.security.MessageDigest;
+import java.util.ArrayList;
+import java.util.List;
 import Zeze.Builtin.Web.BStream;
+import Zeze.Net.Binary;
 import Zeze.Transaction.ProcedureStatistics;
 import Zeze.Transaction.TableStatistics;
 
@@ -43,16 +47,47 @@ public class Statistics {
 		});
 
 		web.Servlets.put("/zeze/echo", new HttpServlet() {
+			// 由于HttpClient发送完Request前不会读取Response，所以这里没法实现成边读边写的模式。
+			// 现在上传数据保存在HttpServlet中，所以这个请求不能并发。
+			List<Binary> uploadData = new ArrayList<>();
+			int downloadIndex = 0;
+
+			MessageDigest md5;
 			@Override
 			public void onRequest(HttpExchange r) throws Throwable {
 				var ctype = "Content-Type";
 				r.setResponseHeader(ctype, r.getRequestHeader(ctype));
-				r.sendResponseHeaders(200, r.getRequest().getBody().InternalGetBytesUnsafe(), r.getRequest().isFinish());
+				var data = r.getRequest().getBody();
+				r.sendResponseHeaders(200, data.InternalGetBytesUnsafe(), r.getRequest().isFinish());
+				md5 = MessageDigest.getInstance("md5");
+				md5.update(data.InternalGetBytesUnsafe());
+				HttpExchange.logger.info("new echo: " + r.getRequest().getExchangeId());
 			}
 
 			@Override
 			public void onUpload(HttpExchange r, BStream s) throws Throwable {
-				r.sendResponseBody(s.getBody().InternalGetBytesUnsafe(), s.isFinish());
+				md5.update(s.getBody().InternalGetBytesUnsafe());
+				uploadData.add(s.getBody());
+				if (s.isFinish()) {
+					HttpExchange.logger.info(Zeze.Util.BitConverter.toString(md5.digest()), new Exception());
+					if (uploadData.size() > downloadIndex) {
+						var data = uploadData.get(downloadIndex++);
+						r.sendResponseBodyAsync(data.InternalGetBytesUnsafe(),
+								uploadData.size() == downloadIndex, this::processResponseResult);
+					}
+				}
+			}
+
+			private long processResponseResult(HttpExchange r, long rc) {
+				if (rc == 0 && downloadIndex < uploadData.size()) {
+					var data = uploadData.get(downloadIndex++);
+					r.sendResponseBodyAsync(data.InternalGetBytesUnsafe(),
+							uploadData.size() == downloadIndex, this::processResponseResult);
+					return 0;
+				}
+				uploadData.clear();
+				downloadIndex = 0;
+				return rc;
 			}
 		});
 	}

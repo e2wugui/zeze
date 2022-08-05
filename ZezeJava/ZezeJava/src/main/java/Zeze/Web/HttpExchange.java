@@ -40,7 +40,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class HttpExchange {
-	private static final Logger logger = LogManager.getLogger(HttpExchange.class);
+	static final Logger logger = LogManager.getLogger(HttpExchange.class);
 
 	public final Web web;
 
@@ -103,7 +103,7 @@ public class HttpExchange {
 			if (null != ex)
 				request.Result.setStacktrace(Str.stacktrace(ex));
 			request.Result.setFinish(true);
-			request.SendResultCode(error);
+			request.trySendResultCode(error);
 		} else if (notifyLinkd) {
 			// 其他过程(现在只有sendResponseBody)通过专门的Rpc报告错误。
 			var ce = new CloseExchange();
@@ -138,10 +138,12 @@ public class HttpExchange {
 	}
 
 	public void setResponseHeader(String key, List<String> values) {
-		var header = new BHeader();
-		for (var v : values)
-			header.getValues().add(v);
-		getResponseHeaders().put(key, header);
+		if (null != values) {
+			var header = new BHeader();
+			for (var v : values)
+				header.getValues().add(v);
+			getResponseHeaders().put(key, header);
+		}
 	}
 
 	public void setResponseHeader(String key, String ... values) {
@@ -165,7 +167,6 @@ public class HttpExchange {
 		request.Result.setFinish(finish);
 		request.SendResult();
 		state = State.ResponseHeadersSent;
-		request.SendResult();
 		if (finish)
 			closeResponseBody();
 	}
