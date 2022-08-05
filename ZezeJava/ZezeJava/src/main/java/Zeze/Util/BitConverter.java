@@ -1,20 +1,24 @@
 package Zeze.Util;
 
+import java.nio.charset.StandardCharsets;
+
 public class BitConverter {
 	public static int num2Hex(int n) {
 		return n + '0' + (((9 - n) >> 31) & ('A' - '9' - 1)); // 无分支,比查表快
 	}
 
 	public static String toString(byte[] bytes, int offset, int len) {
-		var sb = new StringBuilder();
-		for (int i = 0; i < len; i++) {
-			int b = bytes[i + offset];
+		if (len <= 0)
+			return "";
+		var str = new byte[len * 3 - 1];
+		for (int i = 0, j = 0; i < len; i++) {
 			if (i > 0)
-				sb.append('-');
-			sb.append((char)num2Hex((b >> 4) & 0xf));
-			sb.append((char)num2Hex(b & 0xf));
+				str[j++] = '-';
+			int b = bytes[offset + i];
+			str[j++] = (byte)num2Hex((b >> 4) & 0xf);
+			str[j++] = (byte)num2Hex(b & 0xf);
 		}
-		return sb.toString();
+		return new String(str, StandardCharsets.UTF_8);
 	}
 
 	public static String toString(byte[] bytes) {
@@ -22,27 +26,23 @@ public class BitConverter {
 	}
 
 	public static String toStringWithLimit(byte[] bytes, int offset, int len, int limit) {
-		var sb = new StringBuilder();
-		for (int i = 0, n = Math.min(len, limit); i < n; i++) {
+		if (limit < 0)
+			limit = 0;
+		if (len <= limit)
+			return toString(bytes, offset, len);
+		var sb = new StringBuilder(limit * 3 + 16);
+		for (int i = 0; i < limit; i++) {
 			int b = bytes[i + offset];
 			if (i > 0)
 				sb.append('-');
 			sb.append((char)num2Hex((b >> 4) & 0xf));
 			sb.append((char)num2Hex(b & 0xf));
 		}
-		if (len > limit)
-			sb.append("...[+").append(len - limit).append(']');
+		sb.append("...[+").append(len - limit).append(']');
 		return sb.toString();
 	}
 
 	public static String toStringWithLimit(byte[] bytes, int limit) {
 		return toStringWithLimit(bytes, 0, bytes.length, limit);
-	}
-
-	public static void main(String[] args) {
-		var bytes = new byte[256];
-		for (int i = 0; i < bytes.length; ++i)
-			bytes[i] = (byte)i;
-		System.out.println(BitConverter.toStringWithLimit(bytes, 16));
 	}
 }

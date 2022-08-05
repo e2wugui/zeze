@@ -3,6 +3,7 @@ package Zeze.Web;
 import java.io.IOException;
 import Zeze.Builtin.Web.Request;
 import Zeze.Builtin.Web.RequestInputStream;
+import Zeze.IModule;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Rpc;
 import Zeze.Transaction.Bean;
@@ -11,7 +12,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 public class HandlerDispatch implements HttpHandler {
-	public final HttpService Service;
+	protected final HttpService Service;
 
 	public HandlerDispatch(HttpService httpService) {
 		Service = httpService;
@@ -36,7 +37,6 @@ public class HandlerDispatch implements HttpHandler {
 
 	protected <A extends Bean, R extends Bean> void choiceProviderAndDispatch(
 			LinkdHttpExchange x, Rpc<A, R> req, ProtocolHandle<Rpc<A, R>> resultHandle) throws IOException {
-
 		var linkApp = Service.LinkdApp;
 		var linkProvider = linkApp.LinkdProvider;
 		var serviceName = linkProvider.MakeServiceName(Web.ModuleId);
@@ -56,8 +56,17 @@ public class HandlerDispatch implements HttpHandler {
 	}
 
 	private static int internalErrorToHttpCode(long error) {
-		if (error == Web.UnknownPath404) return 404;
-		return 200;
+		int code = IModule.GetErrorCode(error);
+		switch (code) {
+		case 0:
+			return 200;
+		case Web.UnknownPath404:
+			return 404;
+		case Web.ServletException:
+			return 500;
+		default:
+			return 510 + code;
+		}
 	}
 
 	protected long processRequestResult(LinkdHttpExchange x, Request req) throws IOException {
@@ -70,8 +79,8 @@ public class HandlerDispatch implements HttpHandler {
 		if (req.getResultCode() != 0) {
 			x.sendErrorResponse(internalErrorToHttpCode(req.getResultCode()),
 					"ResultCode=" + req.getResultCode()
-					+ "\nMessage=" + req.Result.getMessage()
-					+ "\n" + req.Result.getStacktrace());
+							+ "\nMessage=" + req.Result.getMessage()
+							+ "\n" + req.Result.getStacktrace());
 			x.close(); // server 返回错误，直接关闭。
 			return 0;
 		}
@@ -84,6 +93,7 @@ public class HandlerDispatch implements HttpHandler {
 		return 0;
 	}
 
+	@SuppressWarnings("MethodMayBeStatic")
 	protected long processRequestInputResult(LinkdHttpExchange x, RequestInputStream req) throws IOException {
 		if (req.isTimeout()) {
 			x.close(true); // timeout 尝试通知server关闭

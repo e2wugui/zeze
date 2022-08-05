@@ -28,6 +28,7 @@ import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.Func4;
+import Zeze.Util.IntHashMap;
 import Zeze.Util.OutObject;
 import Zeze.Util.RedirectGenMain;
 import Zeze.Util.Task;
@@ -646,8 +647,8 @@ public class Online extends AbstractOnline {
         }
     }
 
-    public Collection<RoleOnServer> groupByServer(Collection<String> accounts) {
-        var groups = new HashMap<Integer, RoleOnServer>();
+    public IntHashMap<RoleOnServer> groupByServer(Collection<String> accounts) {
+        var groups = new IntHashMap<RoleOnServer>();
         var groupNotOnline = new RoleOnServer(); // LinkName is Empty And Socket is null.
         groups.put(groupNotOnline.ServerId, groupNotOnline);
 
@@ -674,7 +675,7 @@ public class Online extends AbstractOnline {
             }
             group.Accounts.add(account);
         }
-        return groups.values();
+        return groups;
     }
 
     private static RoleOnServer merge(RoleOnServer current, RoleOnServer m) {
@@ -693,7 +694,8 @@ public class Online extends AbstractOnline {
 
         var groups = groupByServer(accounts);
         RoleOnServer groupLocal = null;
-        for (var group : groups) {
+        for (var it = groups.iterator(); it.moveToNext(); ) {
+            var group = it.value();
             if (group.ServerId == -1 || group.ServerId == ProviderApp.Zeze.getConfig().getServerId()) {
                 // loopback 就是当前gs.
                 // 对于不在线的角色，直接在本机运行。

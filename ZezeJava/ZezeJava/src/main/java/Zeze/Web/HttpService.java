@@ -6,26 +6,26 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import Zeze.Arch.LinkdApp;
 import Zeze.Builtin.Web.CloseExchange;
 import Zeze.Builtin.Web.ResponseOutputStream;
 import Zeze.IModule;
+import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.PersistentAtomicLong;
 import Zeze.Util.Task;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
 public class HttpService {
-	public static final int RequestBodyMaxSize = 1024 * 1024;
+	private static final int RequestBodyMaxSize = 1024 * 1024;
 
-	public final Zeze.Arch.LinkdApp LinkdApp;
-
-	final ConcurrentHashMap<Long, LinkdHttpExchange> Exchanges = new ConcurrentHashMap<>();
-
+	public final LinkdApp LinkdApp;
+	final LongConcurrentHashMap<LinkdHttpExchange> Exchanges = new LongConcurrentHashMap<>();
 	final PersistentAtomicLong ExchangeIdPal;
+	private final HttpServer httpServer;
+	private Future<?> Timer;
 
 	public long InternalCloseExchange(CloseExchange r) {
 		Exchanges.remove(r.Argument.getExchangeId());
@@ -62,7 +62,7 @@ public class HttpService {
 				i = item.length();
 			var key = URLDecoder.decode(item.substring(0, i), StandardCharsets.UTF_8);
 			var val = URLDecoder.decode(item.substring(i), StandardCharsets.UTF_8);
-			result.put(key,val);
+			result.put(key, val);
 		}
 		return result;
 	}
@@ -72,8 +72,6 @@ public class HttpService {
 			return new String(body.readNBytes(RequestBodyMaxSize), StandardCharsets.UTF_8);
 		}
 	}
-
-	private final HttpServer httpServer;
 
 	public HttpService(LinkdApp app, int port, Executor executor) throws IOException {
 		LinkdApp = app;
@@ -88,8 +86,6 @@ public class HttpService {
 		httpServer.createContext(path, auth);
 	}
 
-	private Future<?> Timer;
-
 	public void start() {
 		httpServer.start();
 		Timer = Task.schedule(2000, 2000, this::timer);
@@ -102,7 +98,7 @@ public class HttpService {
 
 	private void timer() {
 		var now = System.currentTimeMillis();
-		for (var x : Exchanges.values())
+		for (var x : Exchanges)
 			x.tryCloseIfTimeout(now);
 	}
 }

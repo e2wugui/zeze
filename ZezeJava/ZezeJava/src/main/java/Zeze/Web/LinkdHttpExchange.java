@@ -20,12 +20,12 @@ import com.sun.net.httpserver.HttpExchange;
 public class LinkdHttpExchange {
 	// private static final Logger logger = LogManager.getLogger(LinkdHttpExchange.class);
 
-	final long exchangeId;
+	private final long exchangeId;
 	long provider;
 
 	private long activeTime = System.currentTimeMillis();
 
-	final HttpService service;
+	private final HttpService service;
 	final HttpExchange exchange;
 
 	private boolean responseBodyClosed = false;
@@ -130,7 +130,8 @@ public class LinkdHttpExchange {
 
 		var method = exchange.getRequestMethod();
 		switch (method) {
-		case "GET": case "HEAD":
+		case "GET":
+		case "HEAD":
 			req.setFinish(true);
 			closeRequestBody();
 			return; // done
@@ -154,7 +155,7 @@ public class LinkdHttpExchange {
 		// 由于Jdk自带HttpServer是同步的，下面的写法尝试最小化阻塞时间。
 		// 但不能避免阻塞，考虑使用【zp的支持异步的HttpServer】。
 		// 目前使用设置Executor到HttpServe中，用多线程版本。
-		var inputStream= exchange.getRequestBody();
+		var inputStream = exchange.getRequestBody();
 		var available = inputStream.available();
 		if (available > 8192)
 			available = 8192; // 跟Server之间是包转发，最多一次读取这么多。

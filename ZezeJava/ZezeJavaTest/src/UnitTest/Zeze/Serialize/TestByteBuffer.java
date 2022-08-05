@@ -11,6 +11,14 @@ import demo.Module1.Value;
 import junit.framework.TestCase;
 
 public class TestByteBuffer extends TestCase {
+	public void testBitConverter() {
+		var bytes = new byte[256];
+		for (int i = 0; i < bytes.length; ++i)
+			bytes[i] = (byte)i;
+		assertEquals("00-01-02-03-04-05-06-07-08-09", BitConverter.toStringWithLimit(bytes, 0, 10, 10));
+		assertEquals("00-01-02-03-04-05-06-07-08-09...[+246]", BitConverter.toStringWithLimit(bytes, 10));
+	}
+
 	public void testBytes() {
 		ByteBuffer bb = ByteBuffer.Allocate();
 		byte[] v = new byte[0];

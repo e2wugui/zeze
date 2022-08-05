@@ -8,6 +8,7 @@ import Zeze.Arch.RedirectToServer;
 import Zeze.Component.AutoKey;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
 import org.apache.logging.log4j.LogManager;
@@ -97,7 +98,7 @@ public class ModuleTimer extends AbstractModule {
 		CancelTimerLocal(serverId, timerId, index.getNodeId(), _tNodes.get(index.getNodeId()));
 	}
 
-	private final ConcurrentHashMap<Long, Future<?>> TimersLocal = new ConcurrentHashMap<>();
+	private final LongConcurrentHashMap<Future<?>> TimersLocal = new LongConcurrentHashMap<>();
 
 	private void CancelTimerLocal(int serverId, long nodeId, long timerId, Node node) {
 
