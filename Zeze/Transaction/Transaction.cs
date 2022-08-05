@@ -252,6 +252,7 @@ namespace Zeze.Transaction
                                         checkResult = CheckResult.RedoAndReleaseLock;
                                         break; // retry
                                 }
+                                TriggerRedoActions();
                                 // retry clear in finally
                             }
                             catch (Exception e)
@@ -301,6 +302,7 @@ namespace Zeze.Transaction
                                 // retry
                                 if (AlwaysReleaseLockWhenRedo && checkResult == CheckResult.Redo)
                                     checkResult = CheckResult.RedoAndReleaseLock;
+                                TriggerRedoActions();
                             }
                             finally
                             {
@@ -315,8 +317,7 @@ namespace Zeze.Transaction
                                 // retry 可能保持已有的锁，清除记录和保存点。
                                 AccessedRecords.Clear();
                                 Savepoints.Clear();
-                                TriggerRedoActions();
-                                RedoActions.Clear();
+                                 RedoActions.Clear();
 
                                 State = TransactionState.Running; // prepare to retry
                             }
