@@ -21,14 +21,13 @@ InitRootInfo 可回滚
 	1. Transaction.WhileRedo
 		内部用，这个行为不可预测，不开放给应用。
 
-	2）Bean.InitRootInfo
-	public final void InitRootInfo(Record.RootInfo rootInfo, Bean parent) {
-		if (isManaged())
-			throw new HasManagedException();
-		RootInfo = rootInfo;
-		Parent = parent;
-		InitChildrenRootInfo(rootInfo);
-		Transaction.WhileRedo(ResetRootInfo); // new
+	2）Bean.InitRootInfoWithRedo
+	// 这个方法仅在把用户创建的Bean加入到Zeze内变成受管理状态时调用。
+	// PList2 PMap2 中所有的InitRootInfo替换成这个方法。
+	// TableX 除了Load，GetOrAdd之外的主要是外部传入的Value的InitRootInfo替换成这个方法。
+	public final void InitRootInfoWithRedo(Record.RootInfo rootInfo, Bean parent) {
+		InitRootInfo(rootInfo, parent);
+		Transaction.WhileRedo(ResetRootInfo);
 	}
 
 	3）Bean.ResetRootInfo
