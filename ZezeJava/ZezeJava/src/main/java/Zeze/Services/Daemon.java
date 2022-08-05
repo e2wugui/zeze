@@ -12,13 +12,13 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReferenceArray;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Serializable;
+import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.ShutdownHook;
 import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
@@ -31,11 +31,11 @@ public class Daemon {
 	// Key Is ServerId。每个Server对应一个Monitor。
 	// 正常使用是一个Daemon对应一个Server。
 	// 写成支持多个Server是为了跑Simulate测试。
-	private static final ConcurrentHashMap<Integer, Monitor> Monitors = new ConcurrentHashMap<>();
+	private static final LongConcurrentHashMap<Monitor> Monitors = new LongConcurrentHashMap<>();
 	private static DatagramSocket UdpSocket;
 	private static Process Subprocess;
 
-	private static final ConcurrentHashMap<Long, PendingPacket> Pendings = new ConcurrentHashMap<>();
+	private static final LongConcurrentHashMap<PendingPacket> Pendings = new LongConcurrentHashMap<>();
 	private static volatile Future<?> Timer;
 
 	public static void main(String[] args) throws Exception {
@@ -125,13 +125,13 @@ public class Daemon {
 		Runtime.getRuntime().halt(-1);
 	}
 
-	private static void joinMonitors() throws InterruptedException, IOException {
-		for (var monitor : Monitors.values())
+	private static void joinMonitors() throws InterruptedException {
+		for (var monitor : Monitors)
 			monitor.stopAndJoin();
 		Monitors.clear();
 	}
 
-	private static void destroySubprocess() throws InterruptedException, IOException {
+	private static void destroySubprocess() throws InterruptedException {
 		Subprocess.destroy();
 		joinMonitors();
 	}
@@ -162,7 +162,7 @@ public class Daemon {
 					if (Timer == null) {
 						Timer = Task.schedule(1000, 1000, () -> {
 							var now = System.currentTimeMillis();
-							for (var pending : Pendings.values()) {
+							for (var pending : Pendings) {
 								if (now - pending.SendTime > 1000) {
 									pending.SendTime = now;
 									pending.Socket.send(pending.Packet);

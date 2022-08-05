@@ -38,6 +38,7 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TableWalkHandle;
 import Zeze.Transaction.Transaction;
 import Zeze.Util.EventDispatcher;
+import Zeze.Util.IntHashMap;
 import Zeze.Util.OutLong;
 import Zeze.Util.Random;
 import Zeze.Util.RedirectGenMain;
@@ -558,8 +559,8 @@ public class Online extends AbstractOnline {
 		final HashSet<Long> roles = new HashSet<>();
 	}
 
-	public final Collection<RoleOnServer> groupByServerId(Iterable<Long> roleIds) {
-		var groups = new HashMap<Integer, RoleOnServer>();
+	public final IntHashMap<RoleOnServer> groupByServerId(Iterable<Long> roleIds) {
+		var groups = new IntHashMap<RoleOnServer>();
 		var groupNotOnline = new RoleOnServer(); // LinkName is Empty And Socket is null.
 		groups.put(-1, groupNotOnline);
 
@@ -580,7 +581,7 @@ public class Online extends AbstractOnline {
 			}
 			group.roles.add(roleId);
 		}
-		return groups.values();
+		return groups;
 	}
 
 	private static RoleOnServer merge(RoleOnServer current, RoleOnServer m) {
@@ -599,7 +600,8 @@ public class Online extends AbstractOnline {
 
 		var groups = groupByServerId(roleIds);
 		RoleOnServer groupLocal = null;
-		for (var group : groups) {
+		for (var it = groups.iterator(); it.moveToNext(); ) {
+			var group = it.value();
 			if (group.ServerId == -1 || group.ServerId == ProviderApp.Zeze.getConfig().getServerId()) {
 				// loopback 就是当前gs.
 				groupLocal = merge(groupLocal, group);

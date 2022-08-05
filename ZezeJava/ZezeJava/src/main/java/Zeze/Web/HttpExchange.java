@@ -7,7 +7,7 @@ package Zeze.Web;
  * 2. ResponseOutputStream 结束，sendResponseBody or sendResponseBodyAsync with finish == true. auto call closeResponseBody().
  * 3. state==Requesting时发生异常，把 Stacktrace 发送给linkd并在浏览器中显示。
  * 4. state==Streaming时发生异常，close(Procedure.Exception)
- * 5. 处理函数（目前只有sendResponseBodyAsync的回调）返回非0值，close(errorcode)
+ * 5. 处理函数（目前只有sendResponseBodyAsync的回调）返回非0值，close(errorCode)
  * 6. close with error != 0 || null != ex 时发送CloseExchange给linkd。
  *
  * Linkd.HttpExchange 生命期管理：
@@ -41,32 +41,31 @@ import org.apache.logging.log4j.Logger;
 
 public class HttpExchange {
 	static final Logger logger = LogManager.getLogger(HttpExchange.class);
+	private static final byte Requesting = 0;
+	private static final byte ResponseHeadersSent = 1;
 
-	public final Web web;
-
-	public enum State {
-		Requesting,
-		ResponseHeadersSent,
-	}
-
-	final Request request;
-	State state = State.Requesting;
+	private final Web web;
+	private final Request request;
+	private byte state;
+	private boolean requestBodyClosed;
+	private boolean responseBodyClosed;
 
 	public HttpExchange(Web web, Request r) {
 		this.web = web;
-		this.request = r;
+		request = r;
 	}
 
-	public String getRequestMethod() {
+	public final Web getWeb() {
+		return web;
+	}
+
+	public final String getRequestMethod() {
 		return request.Argument.getMethod();
 	}
 
-	public BRequest getRequest() {
+	public final BRequest getRequest() {
 		return request.Argument;
 	}
-
-	private boolean requestBodyClosed = false;
-	private boolean responseBodyClosed = false;
 
 	void closeRequestBody() {
 		if (requestBodyClosed)
@@ -89,14 +88,14 @@ public class HttpExchange {
 	}
 
 	long close(long error, String msg, Throwable ex, boolean notifyLinkd) {
-		if (null == web.Exchanges(request).remove(this.request.Argument.getExchangeId()))
+		if (null == web.Exchanges(request).remove(request.Argument.getExchangeId()))
 			return error;
 
 		logger.debug("close: " + error + " " + msg + request.Argument.getPath(), ex);
 		if (error != 0 || null != ex)
 			logger.error(msg, ex);
 
-		if (state == State.Requesting) {
+		if (state == Requesting) {
 			// 请求处理过程中的错误通过Rpc.Result报告。
 			if (null != msg)
 				request.Result.setMessage(msg);
@@ -133,7 +132,8 @@ public class HttpExchange {
 			return null;
 		return header.getValues();
 	}
-	public void setResponseCookie(String ... values) {
+
+	public void setResponseCookie(String... values) {
 		setResponseHeader("Set-Cookie", values);
 	}
 
@@ -146,7 +146,7 @@ public class HttpExchange {
 		}
 	}
 
-	public void setResponseHeader(String key, String ... values) {
+	public void setResponseHeader(String key, String... values) {
 		var header = new BHeader();
 		for (var v : values)
 			header.getValues().add(v);
@@ -158,7 +158,7 @@ public class HttpExchange {
 	 * @param body maybe null
 	 */
 	public void sendResponseHeaders(int code, byte[] body, boolean finish) {
-		if (state != State.Requesting)
+		if (state != Requesting)
 			throw new IllegalStateException("Not In State.Requesting.");
 
 		request.Result.setCode(code);
@@ -166,13 +166,13 @@ public class HttpExchange {
 			request.Result.setBody(new Binary(body));
 		request.Result.setFinish(finish);
 		request.SendResult();
-		state = State.ResponseHeadersSent;
+		state = ResponseHeadersSent;
 		if (finish)
 			closeResponseBody();
 	}
 
 	public void sendResponseBody(byte[] body, boolean finish) {
-		if (state != State.ResponseHeadersSent)
+		if (state != ResponseHeadersSent)
 			throw new IllegalStateException("Not In State.ResponseHeadersSent.");
 
 		final var stream = new ResponseOutputStream();
@@ -186,8 +186,12 @@ public class HttpExchange {
 			closeResponseBody();
 	}
 
-	public void sendResponseBodyAsync(byte[] body, boolean finish, Zeze.Util.Func2<HttpExchange, Long, Long> sendDone) {
-		if (state != State.ResponseHeadersSent)
+	interface ISendDone {
+		long call(HttpExchange he, long resultCode);
+	}
+
+	public void sendResponseBodyAsync(byte[] body, boolean finish, ISendDone sendDone) {
+		if (state != ResponseHeadersSent)
 			throw new IllegalStateException("Not In State.ResponseHeadersSent.");
 
 		final var stream = new ResponseOutputStream();

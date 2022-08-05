@@ -16,10 +16,10 @@ public class Statistics {
 			public void onRequest(HttpExchange r) {
 				// 默认实现并不验证密码，只是把参数account的值保存到会话中。
 				// 当应用需要实现Auth时，继承这个类，并重载auth方法。
-				var ss = r.web.getSession(r.getRequestCookie());
+				// var ss = r.getWeb().getSession(r.getRequestCookie());
 				var query = HttpService.parseQuery(r.getRequest().getQuery());
 				var account = query.get("account");
-				r.setResponseCookie(r.web.putSession(account));
+				r.setResponseCookie(r.getWeb().putSession(account));
 				r.sendTextResponse("auth ok!");
 			}
 		});
@@ -49,10 +49,10 @@ public class Statistics {
 		web.Servlets.put("/zeze/echo", new HttpServlet() {
 			// 由于HttpClient发送完Request前不会读取Response，所以这里没法实现成边读边写的模式。
 			// 现在上传数据保存在HttpServlet中，所以这个请求不能并发。
-			List<Binary> uploadData = new ArrayList<>();
+			final List<Binary> uploadData = new ArrayList<>();
 			int downloadIndex = 0;
-
 			MessageDigest md5;
+
 			@Override
 			public void onRequest(HttpExchange r) throws Throwable {
 				var ctype = "Content-Type";
@@ -65,7 +65,7 @@ public class Statistics {
 			}
 
 			@Override
-			public void onUpload(HttpExchange r, BStream s) throws Throwable {
+			public void onUpload(HttpExchange r, BStream s) {
 				md5.update(s.getBody().InternalGetBytesUnsafe());
 				uploadData.add(s.getBody());
 				if (s.isFinish()) {
