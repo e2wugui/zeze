@@ -218,6 +218,7 @@ public final class Transaction {
 							// retry clear in finally
 							if (AlwaysReleaseLockWhenRedo && checkResult == CheckResult.Redo)
 								checkResult = CheckResult.RedoAndReleaseLock;
+							triggerRedoActions();
 						} catch (Throwable e) {
 							// Procedure.Call 里面已经处理了异常。只有 unit test 或者重做或者内部错误会到达这里。
 							// 在 unit test 下，异常日志会被记录两次。
@@ -262,6 +263,7 @@ public final class Transaction {
 								if (e instanceof AssertionError)
 									throw (AssertionError)e;
 							}
+							triggerRedoActions();
 							// retry
 						} finally {
 							if (checkResult == CheckResult.RedoAndReleaseLock) {
@@ -272,7 +274,6 @@ public final class Transaction {
 							AccessedRecords.clear();
 							Savepoints.clear();
 							Actions.clear();
-							triggerRedoActions();
 							RedoActions.clear();
 
 							State = TransactionState.Running; // prepare to retry
