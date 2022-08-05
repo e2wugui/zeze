@@ -1,5 +1,6 @@
 package Zeze.Web;
 
+import Zeze.Builtin.Web.BStream;
 import Zeze.Transaction.ProcedureStatistics;
 import Zeze.Transaction.TableStatistics;
 
@@ -12,7 +13,7 @@ public class Statistics {
 				// 默认实现并不验证密码，只是把参数account的值保存到会话中。
 				// 当应用需要实现Auth时，继承这个类，并重载auth方法。
 				var ss = r.web.getSession(r.getRequestCookie());
-				var query = HttpService.parseQuery(r.getRequest().Argument.getQuery());
+				var query = HttpService.parseQuery(r.getRequest().getQuery());
 				var account = query.get("account");
 				r.setResponseCookie(r.web.putSession(account));
 				r.sendTextResponse("auth ok!");
@@ -38,6 +39,20 @@ public class Statistics {
 				}
 
 				r.sendTextResponse(sb.toString());
+			}
+		});
+
+		web.Servlets.put("/zeze/echo", new HttpServlet() {
+			@Override
+			public void onRequest(HttpExchange r) throws Throwable {
+				var ctype = "Content-Type";
+				r.setResponseHeader(ctype, r.getRequestHeader(ctype));
+				r.sendResponseHeaders(200, r.getRequest().getBody().InternalGetBytesUnsafe(), r.getRequest().isFinish());
+			}
+
+			@Override
+			public void onUpload(HttpExchange r, BStream s) throws Throwable {
+				r.sendResponseBody(s.getBody().InternalGetBytesUnsafe(), s.isFinish());
 			}
 		});
 	}

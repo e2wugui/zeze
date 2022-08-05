@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import Zeze.Builtin.Web.BHeader;
+import Zeze.Builtin.Web.BRequest;
 import Zeze.Builtin.Web.CloseExchange;
 import Zeze.Builtin.Web.Request;
 import Zeze.Builtin.Web.ResponseOutputStream;
@@ -60,8 +61,8 @@ public class HttpExchange {
 		return request.Argument.getMethod();
 	}
 
-	public Request getRequest() {
-		return request;
+	public BRequest getRequest() {
+		return request.Argument;
 	}
 
 	private boolean requestBodyClosed = false;
@@ -134,6 +135,13 @@ public class HttpExchange {
 	}
 	public void setResponseCookie(String ... values) {
 		setResponseHeader("Set-Cookie", values);
+	}
+
+	public void setResponseHeader(String key, List<String> values) {
+		var header = new BHeader();
+		for (var v : values)
+			header.getValues().add(v);
+		getResponseHeaders().put(key, header);
 	}
 
 	public void setResponseHeader(String key, String ... values) {
