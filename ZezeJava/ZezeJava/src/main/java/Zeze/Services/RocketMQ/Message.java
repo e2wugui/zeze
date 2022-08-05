@@ -20,13 +20,14 @@ public class Message implements javax.jms.Message {
 	private Map<String, Object> properties = new java.util.HashMap<String, Object>();
 	//	protected transient Callback acknowledgeCallback;// may would be used?
 	private byte[] body;
+	private String transactionId;
 
-	org.apache.rocketmq.common.message.MessageExt message;
+	org.apache.rocketmq.common.message.Message message;
 
 	public Message() {
 	}
 
-	public Message(org.apache.rocketmq.common.message.MessageExt message) {
+	public Message(org.apache.rocketmq.common.message.Message message) {
 		this.message = message;
 		body = message.getBody();
 	}
@@ -314,5 +315,13 @@ public class Message implements javax.jms.Message {
 
 	public void setBody(byte[] content) {
 		this.body = content;
+	}
+
+	public String getTransactionId() {
+		return transactionId;
+	}
+
+	public void setTransactionId(String transactionId) {
+		this.transactionId = transactionId;
 	}
 }

@@ -66,12 +66,14 @@ public class MessageProducer implements javax.jms.MessageProducer {
 			throw new UnsupportedOperationException("Destination is null");
 		}
 
-		Topic topic = (Topic)destination; // TODO: only support Topic destination now
+		// Topic topic = (Topic)destination; // TODO: only support Topic destination now
+		message.setJMSDestination(destination);
 		try {
-			org.apache.rocketmq.common.message.Message msg = new org.apache.rocketmq.common.message.Message();
-			msg.getDelayTimeLevel();
-			org.apache.rocketmq.client.producer.SendResult sendResult = producer.send(new org.apache.rocketmq.common.message.Message("TopicTest" /* Topic */, "TagA" /* Tag */, ("Hello RocketMQ ").getBytes(org.apache.rocketmq.remoting.common.RemotingHelper.DEFAULT_CHARSET) /* Message body */
-			));
+			org.apache.rocketmq.common.message.Message msg = createRmqMessage(message);
+
+			// TODO: deal with message delay time
+//			msg.setDelayTimeLevel(1);
+			org.apache.rocketmq.client.producer.SendResult sendResult = producer.send(msg);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -220,6 +222,20 @@ public class MessageProducer implements javax.jms.MessageProducer {
 
 	public void setProducerID(int producerID) {
 		this.producerID = producerID;
+	}
+
+	protected org.apache.rocketmq.common.message.Message createRmqMessage(Message message) throws JMSException {
+		return createRmqMessage((Zeze.Services.RocketMQ.Message)message);
+	}
+
+	protected org.apache.rocketmq.common.message.Message createRmqMessage(Zeze.Services.RocketMQ.Message message) throws JMSException {
+		org.apache.rocketmq.common.message.Message msg = new org.apache.rocketmq.common.message.Message();
+
+		msg.setBody(message.getBody());
+		msg.setTransactionId(message.getTransactionId());
+		msg.setTopic(((javax.jms.Topic)message.getJMSDestination()).getTopicName()); // FIXME: maybe error caused here
+
+		return msg;
 	}
 
 	protected void checkClosed() throws IllegalStateException {

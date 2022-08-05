@@ -19,8 +19,8 @@ dependencies {
     compileOnly 'mysql:mysql-connector-java:8.0.30'
 
     // for rocketmq
-    compileOnly 'org.apache.rocketmq:rocketmq-client:4.9.4' // X 0718
-    compileOnly 'javax:javaee-api:8.0.1' // X 0718
+    compileOnly 'org.apache.rocketmq:rocketmq-client:4.9.4'
+    compileOnly 'javax:javaee-api:8.0.1'
 }
 
 task startServiceManager(type: JavaExec) {

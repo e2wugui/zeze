@@ -45,6 +45,16 @@ public class TransactionProducer extends MessageProducer {
 		super.start();
 	}
 
+	public void sendMessageInTransaction(Message message) {
+		// TODO:
+//		this.producer.sendMessageInTransaction(new org.apache.rocketmq.common.message.Message());
+	}
+
+	public void sendMessageInTransaction(Message message, Object arg) {
+		// TODO:
+//		this.producer.sendMessageInTransaction(new org.apache.rocketmq.common.message.Message(), arg);
+	}
+
 	public void setTransactionListener(TransactionListener transaction) {
 		this.transactionListener = transaction;
 	}
