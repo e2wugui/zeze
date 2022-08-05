@@ -1,12 +1,10 @@
-package Zeze.Services.RocketMQ.producer;
+package Zeze.Services.RocketMQ;
 
 import javax.jms.CompletionListener;
 import javax.jms.Destination;
 import javax.jms.IllegalStateException;
 import javax.jms.JMSException;
 import javax.jms.Message;
-import Zeze.Services.RocketMQ.Session;
-import Zeze.Services.RocketMQ.Topic;
 
 public class MessageProducer implements javax.jms.MessageProducer {
 

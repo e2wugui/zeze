@@ -1,4 +1,4 @@
-package Zeze.Services.RocketMQ.msg;
+package Zeze.Services.RocketMQ;
 
 import java.util.Enumeration;
 import java.util.Map;

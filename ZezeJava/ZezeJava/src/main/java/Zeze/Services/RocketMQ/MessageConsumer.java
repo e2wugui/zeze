@@ -1,13 +1,10 @@
-package Zeze.Services.RocketMQ.consumer;
+package Zeze.Services.RocketMQ;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.MessageListener;
-import Zeze.Services.RocketMQ.Session;
-import Zeze.Services.RocketMQ.Topic;
-import Zeze.Services.RocketMQ.msg.Message;
 
 public class MessageConsumer implements javax.jms.MessageConsumer {
 

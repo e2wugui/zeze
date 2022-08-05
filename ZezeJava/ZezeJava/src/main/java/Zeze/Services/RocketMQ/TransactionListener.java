@@ -1,6 +1,6 @@
-package Zeze.Services.RocketMQ.producer;
+package Zeze.Services.RocketMQ;
 
-import Zeze.Services.RocketMQ.msg.Message;
+import Zeze.Services.RocketMQ.Message;
 
 public abstract class TransactionListener implements org.apache.rocketmq.client.producer.TransactionListener {
 	@Override

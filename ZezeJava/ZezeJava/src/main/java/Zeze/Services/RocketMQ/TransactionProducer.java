@@ -1,4 +1,4 @@
-package Zeze.Services.RocketMQ.producer;
+package Zeze.Services.RocketMQ;
 
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
@@ -6,7 +6,6 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import javax.jms.Destination;
-import Zeze.Services.RocketMQ.Session;
 import org.apache.rocketmq.client.ClientConfig;
 import org.apache.rocketmq.client.producer.TransactionListener;
 import org.jetbrains.annotations.NotNull;

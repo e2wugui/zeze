@@ -1,9 +1,8 @@
-package Zeze.Services.RocketMQ.consumer;
+package Zeze.Services.RocketMQ;
 
 import javax.jms.MessageListener;
-import Zeze.Services.RocketMQ.msg.Message;
 
-public abstract class MessageListenerConcurrently implements MessageListener {
+public abstract class MessageListenerOrderly implements MessageListener {
 
 	@Override
 	public void onMessage(javax.jms.Message message) {

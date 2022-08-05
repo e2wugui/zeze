@@ -13,11 +13,6 @@ import javax.jms.StreamMessage;
 import javax.jms.TemporaryQueue;
 import javax.jms.TemporaryTopic;
 import javax.jms.TopicSubscriber;
-import Zeze.Services.RocketMQ.consumer.MessageConsumer;
-import Zeze.Services.RocketMQ.msg.Message;
-import Zeze.Services.RocketMQ.msg.TextMessage;
-import Zeze.Services.RocketMQ.producer.MessageProducer;
-import Zeze.Services.RocketMQ.producer.TransactionProducer;
 
 public class Session implements javax.jms.Session {
 	private Connection connection;

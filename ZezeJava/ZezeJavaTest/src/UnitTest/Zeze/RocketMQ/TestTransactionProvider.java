@@ -5,9 +5,9 @@ import Zeze.Services.RocketMQ.Connection;
 import Zeze.Services.RocketMQ.ConnectionFactory;
 import Zeze.Services.RocketMQ.Session;
 import Zeze.Services.RocketMQ.Topic;
-import Zeze.Services.RocketMQ.msg.Message;
-import Zeze.Services.RocketMQ.producer.TransactionListener;
-import Zeze.Services.RocketMQ.producer.TransactionProducer;
+import Zeze.Services.RocketMQ.Message;
+import Zeze.Services.RocketMQ.TransactionListener;
+import Zeze.Services.RocketMQ.TransactionProducer;
 
 public class TestTransactionProvider {
 	public static void main(String[] args) throws JMSException {

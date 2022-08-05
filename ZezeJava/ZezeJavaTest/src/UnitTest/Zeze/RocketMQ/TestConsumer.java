@@ -5,9 +5,9 @@ import Zeze.Services.RocketMQ.Connection;
 import Zeze.Services.RocketMQ.ConnectionFactory;
 import Zeze.Services.RocketMQ.Session;
 import Zeze.Services.RocketMQ.Topic;
-import Zeze.Services.RocketMQ.consumer.MessageConsumer;
-import Zeze.Services.RocketMQ.consumer.MessageListenerConcurrently;
-import Zeze.Services.RocketMQ.msg.Message;
+import Zeze.Services.RocketMQ.MessageConsumer;
+import Zeze.Services.RocketMQ.MessageListenerConcurrently;
+import Zeze.Services.RocketMQ.Message;
 import org.apache.rocketmq.client.exception.MQClientException;
 
 public class TestConsumer {
