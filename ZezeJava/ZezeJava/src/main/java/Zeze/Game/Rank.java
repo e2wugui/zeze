@@ -162,7 +162,7 @@ public class Rank extends AbstractRank {
 	/**
 	 * 根据 value 设置到排行榜中
 	 */
-	@RedirectHash(ConcurrentLevelSource="getConcurrentLevel(arg1.getRankType())")
+	@RedirectHash(ConcurrentLevelSource="getConcurrentLevel(keyHint.getRankType())")
 	public RedirectFuture<Long> updateRank(int hash, BConcurrentKey keyHint, long roleId, long value, Binary valueEx) {
 		int concurrentLevel = getConcurrentLevel(keyHint.getRankType());
 		int maxCount = getComputeCount(keyHint.getRankType());

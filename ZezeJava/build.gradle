@@ -44,8 +44,9 @@ allprojects {
         targetCompatibility = 17
         options.encoding = 'utf-8'
         options.incremental = true
-        options.fork = true
         options.failOnError = true
+        options.debugOptions.debugLevel = "source,lines,vars"
+        options.compilerArgs += "-parameters"
     }
 }
 
