@@ -69,7 +69,7 @@ public class Statistics {
 				md5.update(s.getBody().InternalGetBytesUnsafe());
 				uploadData.add(s.getBody());
 				if (s.isFinish()) {
-					HttpExchange.logger.info(Zeze.Util.BitConverter.toString(md5.digest()), new Exception());
+					//HttpExchange.logger.info(Zeze.Util.BitConverter.toString(md5.digest()), new Exception());
 					if (uploadData.size() > downloadIndex) {
 						var data = uploadData.get(downloadIndex++);
 						r.sendResponseBodyAsync(data.InternalGetBytesUnsafe(),
