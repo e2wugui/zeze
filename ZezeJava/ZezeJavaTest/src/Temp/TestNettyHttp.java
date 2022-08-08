@@ -29,9 +29,15 @@ import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
+import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.util.AsciiString;
 import io.netty.util.ReferenceCountUtil;
 
+/*                                   - DefaultHttpObject = DefaultHttpMessage ====== DefaultHttpRequest/Response = DefaultFullHttpRequest/Response
+                                    /                    / /- HttpRequest/Response <                             /
+           DecoderResultProvider - HttpObject - HttpMessage ------ FullHttpMessage - FullHttpRequest/Response ---
+ReferenceCounted - ByteBufHolder - HttpContent - LastHttpContent /
+*/
 public class TestNettyHttp {
 	static class Handler extends ChannelInboundHandlerAdapter {
 		private static final byte[] RES_BODY = "Hello, World!".getBytes(StandardCharsets.UTF_8);
@@ -60,11 +66,8 @@ public class TestNettyHttp {
 					ReferenceCountUtil.release(msg);
 				}
 			}
-		}
-
-		@Override
-		public void channelReadComplete(ChannelHandlerContext ctx) {
-			ctx.flush();
+			if (msg instanceof LastHttpContent)
+				ctx.flush();
 		}
 
 		@Override
