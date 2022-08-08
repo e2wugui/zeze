@@ -41,6 +41,8 @@ public class HandlerDispatch implements HttpHandler {
 		var linkProvider = linkApp.LinkdProvider;
 		var serviceName = linkProvider.MakeServiceName(Web.ModuleId);
 		var services = linkApp.Zeze.getServiceManagerAgent().getSubscribeStates().get(serviceName);
+		if (services == null)
+			throw new UnsupportedOperationException("not found service name: " + serviceName);
 		var hash = x.exchange.getRemoteAddress().getAddress().hashCode();
 		var provider = new OutLong();
 		if (!linkProvider.Distribute.ChoiceHash(services, hash, provider)) {

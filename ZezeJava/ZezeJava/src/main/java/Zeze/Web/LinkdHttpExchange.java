@@ -38,11 +38,11 @@ public class LinkdHttpExchange {
 	private int requestTransferLength; // 已经传输的长度。
 
 	public boolean isRequestBodyClosed() {
-		return responseBodyClosed;
+		return requestBodyClosed;
 	}
 
 	public boolean isResponseBodyClosed() {
-		return requestBodyClosed;
+		return responseBodyClosed;
 	}
 
 	protected <A extends Bean, R extends Bean> void ReDispatch(
@@ -166,7 +166,10 @@ public class LinkdHttpExchange {
 		var size = inputStream.read(body);
 		if (size >= 0) {
 			requestTransferLength += size;
-			c.accept(postContentLength != -1 && requestTransferLength >= postContentLength, new Binary(body, 0, size));
+			var finish = postContentLength != -1 && requestTransferLength >= postContentLength;
+			if (finish)
+				closeRequestBody();
+			c.accept(finish, new Binary(body, 0, size));
 		} else {
 			closeRequestBody();
 			c.accept(true, Binary.Empty);
