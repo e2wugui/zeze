@@ -23,7 +23,9 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
@@ -88,6 +90,8 @@ public class TestNettyHttp {
 			loopGroup = new NioEventLoopGroup();
 			serverChannelClass = NioServerSocketChannel.class;
 		}
+		//HttpContent
+		//HttpObjectAggregator
 		var format = new SimpleDateFormat("E, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH);
 		loopGroup.next().scheduleWithFixedDelay(() -> Handler.date = format.format(new Date()), 0, 1, TimeUnit.SECONDS);
 		var addr = new InetSocketAddress(Integer.getInteger("port", 80));

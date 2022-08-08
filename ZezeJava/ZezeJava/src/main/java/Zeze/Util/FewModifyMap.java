@@ -4,12 +4,17 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class FewModifyMap<K, V> implements Map<K, V>, Cloneable, java.io.Serializable {
 	private transient volatile Map<K, V> read;
-	private final HashMap<K, V> write;
+	private final Map<K, V> write;
+
+	protected FewModifyMap(boolean sorted) {
+		write = new TreeMap<>();
+	}
 
 	public FewModifyMap() {
 		write = new HashMap<>();
@@ -27,7 +32,7 @@ public class FewModifyMap<K, V> implements Map<K, V>, Cloneable, java.io.Seriali
 		write = new HashMap<>(m);
 	}
 
-	private Map<K, V> prepareRead() {
+	protected Map<K, V> prepareRead() {
 		var r = read;
 		if (r == null) {
 			synchronized (write) {
