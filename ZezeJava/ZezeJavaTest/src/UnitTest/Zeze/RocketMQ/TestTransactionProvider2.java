@@ -25,9 +25,12 @@ class inputPasswordTransaction extends TransactionListener {
 	public State sendHalfMessage(Message message, Object arg) {
 		try {
 			userLogin.inputAndCheckPassword();
-		}catch (Exception e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			return State.ROLLBACK_MESSAGE;
+		}
+		if (userLogin.isLogin) {
+			return State.COMMIT_MESSAGE;
 		}
 		return State.UNKNOW;
 	}
