@@ -6,7 +6,9 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import javax.jms.Destination;
+import javax.jms.JMSException;
 import org.apache.rocketmq.client.ClientConfig;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.TransactionListener;
 import org.jetbrains.annotations.NotNull;
 
@@ -45,14 +47,17 @@ public class TransactionProducer extends MessageProducer {
 		super.start();
 	}
 
-	public void sendMessageInTransaction(Message message) {
-		// TODO:
-//		this.producer.sendMessageInTransaction(new org.apache.rocketmq.common.message.Message());
+	public void sendMessageInTransaction(Message message) throws JMSException {
+		sendMessageInTransaction(message, null);
 	}
 
-	public void sendMessageInTransaction(Message message, Object arg) {
-		// TODO:
-//		this.producer.sendMessageInTransaction(new org.apache.rocketmq.common.message.Message(), arg);
+	public void sendMessageInTransaction(Message message, Object arg) throws JMSException {
+		try {
+			this.producer.sendMessageInTransaction(createRmqMessage(message), arg);
+		} catch (Exception e) {
+			throw new JMSException(e.getMessage());
+		}
+
 	}
 
 	public void setTransactionListener(TransactionListener transaction) {
