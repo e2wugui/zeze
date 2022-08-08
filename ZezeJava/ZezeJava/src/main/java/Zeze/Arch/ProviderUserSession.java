@@ -39,8 +39,15 @@ public class ProviderUserSession {
 	public final String getAccount() {
 		return Account;
 	}
-	public final String getContext() { return Context; }
-	public final boolean isLogin() { return null == Context || Context.isEmpty(); }
+
+	public final String getContext() {
+		return Context;
+	}
+
+	public final boolean isLogin() {
+		return null == Context || Context.isEmpty();
+	}
+
 	public final Long getRoleId() {
 		return Context.isEmpty() ? null : Long.parseLong(Context);
 	}
@@ -102,35 +109,31 @@ public class ProviderUserSession {
 		sendResponse(p.getTypeId(), new Binary(p.Encode()));
 	}
 
-	@SuppressWarnings("ConstantConditions")
 	public final void sendResponseWhileCommit(int typeId, Binary fullEncodedProtocol) {
-		Transaction.getCurrent().runWhileCommit(() -> sendResponse(typeId, fullEncodedProtocol));
+		Transaction.whileCommit(() -> sendResponse(typeId, fullEncodedProtocol));
 	}
 
-	@SuppressWarnings("ConstantConditions")
 	public final void sendResponseWhileCommit(Binary fullEncodedProtocol) {
-		Transaction.getCurrent().runWhileCommit(() -> sendResponse(fullEncodedProtocol));
+		Transaction.whileCommit(() -> sendResponse(fullEncodedProtocol));
 	}
 
-	@SuppressWarnings("ConstantConditions")
 	public final void sendResponseWhileCommit(Protocol<?> p) {
-		Transaction.getCurrent().runWhileCommit(() -> sendResponse(p));
+		Transaction.whileCommit(() -> sendResponse(p));
 	}
 
 	// 这个方法用来优化广播协议。不能用于Rpc，先隐藏。
-	@SuppressWarnings({"ConstantConditions", "unused"})
+	@SuppressWarnings("unused")
 	private void sendResponseWhileRollback(int typeId, Binary fullEncodedProtocol) {
-		Transaction.getCurrent().runWhileCommit(() -> sendResponse(typeId, fullEncodedProtocol));
+		Transaction.whileCommit(() -> sendResponse(typeId, fullEncodedProtocol));
 	}
 
-	@SuppressWarnings({"ConstantConditions", "unused"})
+	@SuppressWarnings("unused")
 	private void sendResponseWhileRollback(Binary fullEncodedProtocol) {
-		Transaction.getCurrent().runWhileCommit(() -> sendResponse(fullEncodedProtocol));
+		Transaction.whileCommit(() -> sendResponse(fullEncodedProtocol));
 	}
 
-	@SuppressWarnings("ConstantConditions")
 	public final void sendResponseWhileRollback(Protocol<?> p) {
-		Transaction.getCurrent().runWhileCommit(() -> sendResponse(p));
+		Transaction.whileCommit(() -> sendResponse(p));
 	}
 
 	public static ProviderUserSession get(Protocol<?> context) {

@@ -19,6 +19,7 @@ public class TestTableNestAction {
 		demo.App.getInstance().Stop();
 	}
 
+	@SuppressWarnings("ConstantConditions")
 	@Test
 	public final void testNestProcedure() throws Throwable {
 		var value1 = new OutInt();

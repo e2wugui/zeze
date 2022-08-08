@@ -24,12 +24,12 @@ public class TestTransactionLevelSerialiable {
 
 	@Test
 	public final void Test2() throws Throwable {
-		App.Instance.Zeze.NewProcedure(this::init, "test_init").Call();
+		App.Instance.Zeze.NewProcedure(TestTransactionLevelSerialiable::init, "test_init").Call();
 		Zeze.Util.Task.run(this::verify_task, "verify_task", DispatchMode.Normal);
 		try {
 			Future<?>[] tasks = new Future[200000];
 			for (int i = 0; i < tasks.length; ++i) {
-				tasks[i] = Zeze.Util.Task.run(App.Instance.Zeze.NewProcedure(this::trade, "test_trade"), null, null);
+				tasks[i] = Zeze.Util.Task.run(App.Instance.Zeze.NewProcedure(TestTransactionLevelSerialiable::trade, "test_trade"), null, null);
 			}
 			Zeze.Util.Task.waitAll(tasks);
 		} finally {
@@ -39,20 +39,20 @@ public class TestTransactionLevelSerialiable {
 
 	private void verify_task() throws Throwable {
 		while (InTest) {
-			App.Instance.Zeze.NewProcedure(this::verify, "test_verify").Call();
+			App.Instance.Zeze.NewProcedure(TestTransactionLevelSerialiable::verify, "test_verify").Call();
 		}
 	}
 
-	private long verify() {
+	private static long verify() {
 		var v1 = App.Instance.demo_Module1.getTable1().getOrAdd(1L);
 		var v2 = App.Instance.demo_Module1.getTable1().getOrAdd(2L);
 		final var total = v1.getInt1() + v2.getInt1();
 		// 必须在事务成功时verify，执行过程中是可能失败的。
-		Transaction.getCurrent().runWhileCommit(() -> Assert.assertEquals(total, 100_000));
+		Transaction.whileCommit(() -> Assert.assertEquals(total, 100_000));
 		return 0;
 	}
 
-	private long init() {
+	private static long init() {
 		var v1 = App.Instance.demo_Module1.getTable1().getOrAdd(1L);
 		var v2 = App.Instance.demo_Module1.getTable1().getOrAdd(2L);
 		v1.setInt1(100_000);
@@ -60,7 +60,7 @@ public class TestTransactionLevelSerialiable {
 		return 0;
 	}
 
-	private long trade() {
+	private static long trade() {
 		var v1 = App.Instance.demo_Module1.getTable1().getOrAdd(1L);
 		var v2 = App.Instance.demo_Module1.getTable1().getOrAdd(2L);
 		var money = Zeze.Util.Random.getInstance().nextInt(1000);

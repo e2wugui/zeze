@@ -307,10 +307,8 @@ public final class Tasks {
 			var r1 = v1.getInt1();
 			var r2 = v2.getInt1();
 			if (debugTradeSum) {
-				//noinspection ConstantConditions
-				Transaction.getCurrent().runWhileCommit(() ->
-						Simulate.logger.info("{} --- {}:{}-{}={} {}:{}+{}={}",
-								App.getZeze().getConfig().getServerId(), k1, m1, money, r1, k2, m2, money, r2));
+				Transaction.whileCommit(() -> Simulate.logger.info("{} --- {}:{}-{}={} {}:{}+{}={}",
+						App.getZeze().getConfig().getServerId(), k1, m1, money, r1, k2, m2, money, r2));
 			}
 			return 0L;
 		}

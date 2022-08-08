@@ -155,6 +155,7 @@ public class Online extends AbstractOnline {
 	}
 
 	private Future<?> VerifyLocalTimer;
+
 	public void Start() {
 		LoadReporter.Start();
 		VerifyLocalTimer = Task.scheduleAt(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
@@ -164,7 +165,8 @@ public class Online extends AbstractOnline {
 	public void Stop() {
 		LoadReporter.Stop();
 		if (null != VerifyLocalTimer)
-			VerifyLocalTimer.cancel(false);	}
+			VerifyLocalTimer.cancel(false);
+	}
 
 	@Override
 	public void UnRegister() {
@@ -215,8 +217,7 @@ public class Online extends AbstractOnline {
 
 		localRemoveEvents.triggerEmbed(this, arg);
 		localRemoveEvents.triggerProcedure(ProviderApp.Zeze, this, arg);
-		//noinspection ConstantConditions
-		Transaction.getCurrent().runWhileCommit(()->localRemoveEvents.triggerThread(this, arg));
+		Transaction.whileCommit(() -> localRemoveEvents.triggerThread(this, arg));
 	}
 
 	private void logoutTriggerExtra(long roleId) throws Throwable {
@@ -226,8 +227,7 @@ public class Online extends AbstractOnline {
 
 		logoutEvents.triggerEmbed(this, arg);
 		logoutEvents.triggerProcedure(ProviderApp.Zeze, this, arg);
-		//noinspection ConstantConditions
-		Transaction.getCurrent().runWhileCommit(()->logoutEvents.triggerThread(this, arg));
+		Transaction.whileCommit(() -> logoutEvents.triggerThread(this, arg));
 	}
 
 	private void logoutTrigger(long roleId) throws Throwable {
@@ -239,8 +239,7 @@ public class Online extends AbstractOnline {
 
 		logoutEvents.triggerEmbed(this, arg);
 		logoutEvents.triggerProcedure(ProviderApp.Zeze, this, arg);
-		//noinspection ConstantConditions
-		Transaction.getCurrent().runWhileCommit(()->logoutEvents.triggerThread(this, arg));
+		Transaction.whileCommit(() -> logoutEvents.triggerThread(this, arg));
 	}
 
 	private void loginTrigger(long roleId) throws Throwable {
@@ -250,8 +249,7 @@ public class Online extends AbstractOnline {
 		LoginTimes.incrementAndGet();
 		loginEvents.triggerEmbed(this, arg);
 		loginEvents.triggerProcedure(ProviderApp.Zeze, this, arg);
-		//noinspection ConstantConditions
-		Transaction.getCurrent().runWhileCommit(() -> loginEvents.triggerThread(this, arg));
+		Transaction.whileCommit(() -> loginEvents.triggerThread(this, arg));
 	}
 
 	private void reloginTrigger(long roleId) throws Throwable {
@@ -261,8 +259,7 @@ public class Online extends AbstractOnline {
 		LoginTimes.incrementAndGet();
 		reloginEvents.triggerEmbed(this, arg);
 		reloginEvents.triggerProcedure(ProviderApp.Zeze, this, arg);
-		//noinspection ConstantConditions
-		Transaction.getCurrent().runWhileCommit(() -> reloginEvents.triggerThread(this, arg));
+		Transaction.whileCommit(() -> reloginEvents.triggerThread(this, arg));
 	}
 
 	public final void onLinkBroken(long roleId, BLinkBroken arg) throws Throwable {
@@ -283,8 +280,7 @@ public class Online extends AbstractOnline {
 		}
 
 		final long currentLoginVersionFinal = currentLoginVersion;
-		//noinspection ConstantConditions
-		Transaction.getCurrent().runWhileCommit(() -> {
+		Transaction.whileCommit(() -> {
 			// delay 10 minutes
 			Task.schedule(10 * 60 * 1000, () -> {
 				ProviderApp.Zeze.NewProcedure(() -> {
@@ -320,23 +316,19 @@ public class Online extends AbstractOnline {
 	}
 
 	public final void sendWhileCommit(long roleId, Protocol<?> p) {
-		//noinspection ConstantConditions
-		Transaction.getCurrent().runWhileCommit(() -> send(roleId, p));
+		Transaction.whileCommit(() -> send(roleId, p));
 	}
 
 	public final void sendWhileCommit(Iterable<Long> roleIds, Protocol<?> p) {
-		//noinspection ConstantConditions
-		Transaction.getCurrent().runWhileCommit(() -> send(roleIds, p));
+		Transaction.whileCommit(() -> send(roleIds, p));
 	}
 
 	public final void sendWhileRollback(long roleId, Protocol<?> p) {
-		//noinspection ConstantConditions
-		Transaction.getCurrent().runWhileRollback(() -> send(roleId, p));
+		Transaction.whileRollback(() -> send(roleId, p));
 	}
 
 	public final void sendWhileRollback(Iterable<Long> roleIds, Protocol<?> p) {
-		//noinspection ConstantConditions
-		Transaction.getCurrent().runWhileRollback(() -> send(roleIds, p));
+		Transaction.whileRollback(() -> send(roleIds, p));
 	}
 
 	public void send(long roleId, long typeId, Binary fullEncodedProtocol) {
@@ -354,7 +346,7 @@ public class Online extends AbstractOnline {
 					ProviderApp.Zeze.NewProcedure(() -> {
 						sendEmbed(roles, typeId, fullEncodedProtocol);
 						return Procedure.Success;
-			}, "Game.Online.send"), null, DispatchMode.Normal);
+					}, "Game.Online.send"), null, DispatchMode.Normal);
 		}
 	}
 
@@ -369,8 +361,7 @@ public class Online extends AbstractOnline {
 	public void sendEmbed(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
 		// 发送消息为了用上TaskOneByOne，只能一个一个发送，为了少改代码，先使用旧的GroupByLink接口。
 		var groups = groupByLink(roleIds);
-		//noinspection ConstantConditions
-		Transaction.getCurrent().runWhileCommit(() -> {
+		Transaction.whileCommit(() -> {
 			for (var group : groups) {
 				if (group.linkSocket == null)
 					continue; // skip not online
@@ -388,7 +379,7 @@ public class Online extends AbstractOnline {
 		String linkName = "";
 		AsyncSocket linkSocket;
 		int serverId = -1;
-//		long providerSessionId;
+		//		long providerSessionId;
 		final HashMap<Long, Long> roles = new HashMap<>();
 	}
 
@@ -443,23 +434,19 @@ public class Online extends AbstractOnline {
 	}
 
 	public final void sendReliableNotifyWhileCommit(long roleId, String listenerName, Protocol<?> p) {
-		//noinspection ConstantConditions
-		Transaction.getCurrent().runWhileCommit(() -> sendReliableNotify(roleId, listenerName, p));
+		Transaction.whileCommit(() -> sendReliableNotify(roleId, listenerName, p));
 	}
 
 	public final void sendReliableNotifyWhileCommit(long roleId, String listenerName, int typeId, Binary fullEncodedProtocol) {
-		//noinspection ConstantConditions
-		Transaction.getCurrent().runWhileCommit(() -> sendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol));
+		Transaction.whileCommit(() -> sendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol));
 	}
 
 	public final void sendReliableNotifyWhileRollback(long roleId, String listenerName, Protocol<?> p) {
-		//noinspection ConstantConditions
-		Transaction.getCurrent().runWhileRollback(() -> sendReliableNotify(roleId, listenerName, p));
+		Transaction.whileRollback(() -> sendReliableNotify(roleId, listenerName, p));
 	}
 
 	public final void sendReliableNotifyWhileRollback(long roleId, String listenerName, int typeId, Binary fullEncodedProtocol) {
-		//noinspection ConstantConditions
-		Transaction.getCurrent().runWhileRollback(() -> sendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol));
+		Transaction.whileRollback(() -> sendReliableNotify(roleId, listenerName, typeId, fullEncodedProtocol));
 	}
 
 	public final void sendReliableNotify(long roleId, String listenerName, Protocol<?> p) {
@@ -476,33 +463,32 @@ public class Online extends AbstractOnline {
 	 * @param fullEncodedProtocol 协议必须先编码，因为会跨事务。
 	 */
 	public final void sendReliableNotify(long roleId, String listenerName, long typeId, Binary fullEncodedProtocol) {
-		ProviderApp.Zeze.getTaskOneByOneByKey().Execute(listenerName,
-				ProviderApp.Zeze.NewProcedure(() -> {
-					BOnline online = _tonline.get(roleId);
-					if (online == null) {
-						return Procedure.Success;
-					}
-					var version = _tversion.getOrAdd(roleId);
-					if (!version.getReliableNotifyMark().contains(listenerName)) {
-						return Procedure.Success; // 相关数据装载的时候要同步设置这个。
-					}
+		ProviderApp.Zeze.runTaskOneByOneByKey(listenerName, "Game.Online.sendReliableNotify." + listenerName, () -> {
+			BOnline online = _tonline.get(roleId);
+			if (online == null) {
+				return Procedure.Success;
+			}
+			var version = _tversion.getOrAdd(roleId);
+			if (!version.getReliableNotifyMark().contains(listenerName)) {
+				return Procedure.Success; // 相关数据装载的时候要同步设置这个。
+			}
 
-					// 先保存在再发送，然后客户端还会确认。
-					// see Game.Login.Module: CLogin CReLogin CReliableNotifyConfirm 的实现。
-					var queue = openQueue(roleId);
-					var bNotify = new BNotify();
-					bNotify.setFullEncodedProtocol(fullEncodedProtocol);
-					queue.add(bNotify);
+			// 先保存在再发送，然后客户端还会确认。
+			// see Game.Login.Module: CLogin CReLogin CReliableNotifyConfirm 的实现。
+			var queue = openQueue(roleId);
+			var bNotify = new BNotify();
+			bNotify.setFullEncodedProtocol(fullEncodedProtocol);
+			queue.add(bNotify);
 
-					// 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
-					var notify = new SReliableNotify();
-					notify.Argument.setReliableNotifyIndex(version.getReliableNotifyIndex());
-					version.setReliableNotifyIndex(version.getReliableNotifyIndex() + 1); // after set notify.Argument
-					notify.Argument.getNotifies().add(fullEncodedProtocol);
+			// 不直接发送协议，是因为客户端需要识别ReliableNotify并进行处理（计数）。
+			var notify = new SReliableNotify();
+			notify.Argument.setReliableNotifyIndex(version.getReliableNotifyIndex());
+			version.setReliableNotifyIndex(version.getReliableNotifyIndex() + 1); // after set notify.Argument
+			notify.Argument.getNotifies().add(fullEncodedProtocol);
 
-					sendEmbed(List.of(roleId), notify.getTypeId(), new Binary(notify.Encode()));
-					return Procedure.Success;
-				}, "Game.Online.sendReliableNotify." + listenerName), null);
+			sendEmbed(List.of(roleId), notify.getTypeId(), new Binary(notify.Encode()));
+			return Procedure.Success;
+		});
 	}
 
 	private void broadcast(long typeId, Binary fullEncodedProtocol, int time) {
@@ -662,8 +648,7 @@ public class Online extends AbstractOnline {
 	public final void transmitWhileCommit(long sender, String actionName, long roleId, Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new RuntimeException("Unknown Action Name: " + actionName);
-		//noinspection ConstantConditions
-		Transaction.getCurrent().runWhileCommit(() -> transmit(sender, actionName, roleId, parameter));
+		Transaction.whileCommit(() -> transmit(sender, actionName, roleId, parameter));
 	}
 
 	public final void transmitWhileCommit(long sender, String actionName, Iterable<Long> roleIds) {
@@ -673,8 +658,7 @@ public class Online extends AbstractOnline {
 	public final void transmitWhileCommit(long sender, String actionName, Iterable<Long> roleIds, Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new RuntimeException("Unknown Action Name: " + actionName);
-		//noinspection ConstantConditions
-		Transaction.getCurrent().runWhileCommit(() -> transmit(sender, actionName, roleIds, parameter));
+		Transaction.whileCommit(() -> transmit(sender, actionName, roleIds, parameter));
 	}
 
 	public final void transmitWhileRollback(long sender, String actionName, long roleId) {
@@ -684,8 +668,7 @@ public class Online extends AbstractOnline {
 	public final void transmitWhileRollback(long sender, String actionName, long roleId, Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new RuntimeException("Unknown Action Name: " + actionName);
-		//noinspection ConstantConditions
-		Transaction.getCurrent().runWhileRollback(() -> transmit(sender, actionName, roleId, parameter));
+		Transaction.whileRollback(() -> transmit(sender, actionName, roleId, parameter));
 	}
 
 	public final void transmitWhileRollback(long sender, String actionName, Iterable<Long> roleIds) {
@@ -695,8 +678,7 @@ public class Online extends AbstractOnline {
 	public final void transmitWhileRollback(long sender, String actionName, Iterable<Long> roleIds, Serializable parameter) {
 		if (!transmitActions.containsKey(actionName))
 			throw new RuntimeException("Unknown Action Name: " + actionName);
-		//noinspection ConstantConditions
-		Transaction.getCurrent().runWhileRollback(() -> transmit(sender, actionName, roleIds, parameter));
+		Transaction.whileRollback(() -> transmit(sender, actionName, roleIds, parameter));
 	}
 
 	private void verifyLocal() {
@@ -706,14 +688,14 @@ public class Online extends AbstractOnline {
 					// 先得到roleId
 					roleId.Value = k;
 					return true;
-					},
+				},
 				() -> {
 					// 锁外执行事务
 					try {
 						ProviderApp.Zeze.NewProcedure(() -> {
 							tryRemoveLocal(roleId.Value);
 							return 0L;
-							}, "VerifyLocal:" + roleId.Value).Call();
+						}, "VerifyLocal:" + roleId.Value).Call();
 					} catch (Throwable e) {
 						logger.error("", e);
 					}
@@ -790,8 +772,7 @@ public class Online extends AbstractOnline {
 		// 先提交结果再设置状态。
 		// see linkd::Zezex.Provider.ModuleProvider。ProcessBroadcast
 		session.sendResponseWhileCommit(rpc);
-		//noinspection ConstantConditions
-		Transaction.getCurrent().runWhileCommit(() -> {
+		Transaction.whileCommit(() -> {
 			var setUserState = new SetUserState();
 			setUserState.Argument.setLinkSid(session.getLinkSid());
 			setUserState.Argument.setContext(String.valueOf(rpc.Argument.getRoleId()));
@@ -845,8 +826,7 @@ public class Online extends AbstractOnline {
 		// 先发结果，再发送同步数据（ReliableNotifySync）。
 		// 都使用 WhileCommit，如果成功，按提交的顺序发送，失败全部不会发送。
 		session.sendResponseWhileCommit(rpc);
-		//noinspection ConstantConditions
-		Transaction.getCurrent().runWhileCommit(() -> {
+		Transaction.whileCommit(() -> {
 			var setUserState = new SetUserState();
 			setUserState.Argument.setLinkSid(session.getLinkSid());
 			setUserState.Argument.setContext(String.valueOf(rpc.Argument.getRoleId()));
@@ -909,8 +889,7 @@ public class Online extends AbstractOnline {
 			logoutTrigger(session.getRoleId());
 
 		// 先设置状态，再发送Logout结果。
-		//noinspection ConstantConditions
-		Transaction.getCurrent().runWhileCommit(() -> {
+		Transaction.whileCommit(() -> {
 			var setUserState = new SetUserState();
 			setUserState.Argument.setLinkSid(session.getLinkSid());
 			rpc.getSender().Send(setUserState); // 直接使用link连接。

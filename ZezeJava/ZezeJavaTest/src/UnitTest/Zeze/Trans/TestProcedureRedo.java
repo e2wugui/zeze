@@ -51,7 +51,7 @@ public class TestProcedureRedo {
             Thread.sleep(1000);
             outLong2.Value = v.getMap15().get(vLong);
 
-            Transaction.getCurrent().runWhileCommit(() -> {
+            Transaction.whileCommit(() -> {
                 System.out.println("value=" + outLong2.Value);
                 System.out.println("task1 suss");
             });
@@ -70,7 +70,7 @@ public class TestProcedureRedo {
             v.setLong2(2L);
             v.getMap15().put(2L, 200L);
 
-            Transaction.getCurrent().runWhileCommit(() -> System.out.println("task2 suss"));
+            Transaction.whileCommit(() -> System.out.println("task2 suss"));
             return Procedure.Success;
 
         }, "TestProcedureRedoTask2"), null, null, DispatchMode.Normal);

@@ -6,10 +6,10 @@ import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
 
 public class ModuleUser extends AbstractModule {
-    public void Start(Zege.App app) throws Throwable {
+    public void Start(Zege.App app) {
     }
 
-    public void Stop(Zege.App app) throws Throwable {
+    public void Stop(Zege.App app) {
     }
 
     public boolean contains(String account) {
@@ -25,7 +25,7 @@ public class ModuleUser extends AbstractModule {
         if (user.getCreateTime() == 0) {
             user.setCreateTime(System.currentTimeMillis());
         }
-        Transaction.getCurrent().runWhileCommit(r::SendResult);
+        Transaction.whileCommit(r::SendResult);
 
         // 【准备测试数据】
         // 把用户加入默认群，并且把群加入用户好友列表。
