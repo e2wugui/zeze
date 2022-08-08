@@ -65,6 +65,8 @@ public class TestTransactionProvider {
 		TransactionProducer producer = (TransactionProducer)session.createTransactionProducer(new Topic("TopicTest"));
 		producer.setTransactionListener(new BankAddBalanceTransaction(bankA));
 		producer.start();
-		producer.sendMessageInTransaction(new TextMessage("Hello World"));
+		TextMessage message = (TextMessage)session.createTextMessage("Hello World");
+		producer.sendMessageInTransaction(message);
+		producer.shutdown();
 	}
 }

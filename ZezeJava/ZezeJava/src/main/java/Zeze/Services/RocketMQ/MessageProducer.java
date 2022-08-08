@@ -233,8 +233,11 @@ public class MessageProducer implements javax.jms.MessageProducer {
 
 		msg.setBody(message.getBody());
 		msg.setTransactionId(message.getTransactionId());
-		msg.setTopic(((javax.jms.Topic)message.getJMSDestination()).getTopicName()); // FIXME: maybe error caused here
-
+		Topic topic = (Topic)message.getJMSDestination();
+		if (topic == null)
+			msg.setTopic(((Topic)destination).getTopicName());
+		else
+			msg.setTopic(topic.getTopicName());
 		return msg;
 	}
 

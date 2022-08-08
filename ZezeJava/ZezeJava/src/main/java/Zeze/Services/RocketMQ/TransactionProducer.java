@@ -57,7 +57,6 @@ public class TransactionProducer extends MessageProducer {
 		} catch (Exception e) {
 			throw new JMSException(e.getMessage());
 		}
-
 	}
 
 	public void setTransactionListener(TransactionListener transaction) {
