@@ -58,10 +58,21 @@ public class Netty {
 		var netty = new Netty();
 		try {
 			var http = new HttpServer();
-			http.addHandler("/hello",
+			http.addHandler("/hello", // 显示一个文本结果。
 					8192, TransactionLevel.Serializable, DispatchMode.Normal,
 					(x) -> {
-						x.sendFullResponsePlainText(HttpResponseStatus.OK, "hello " + Calendar.getInstance());
+						var sb = new StringBuilder();
+						sb.append("uri=").append(x.uri()).append("\n");
+						sb.append("path=").append(x.path()).append("\n");
+						sb.append("query=").append(x.query()).append("\n");
+						for (var header : x.headers())
+							sb.append(header.getKey()).append("=").append(header.getValue()).append("\n");
+						x.sendPlainText(HttpResponseStatus.OK, sb.toString());
+					});
+			http.addHandler("/exp", // 抛异常
+					8192, TransactionLevel.Serializable, DispatchMode.Normal,
+					(x) -> {
+						throw new UnsupportedOperationException();
 					});
 			netty.addServer(http, 80);
 			netty.start();

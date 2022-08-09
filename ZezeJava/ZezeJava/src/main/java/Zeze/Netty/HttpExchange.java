@@ -42,12 +42,14 @@ public class HttpExchange {
 		return request.uri();
 	}
 
+	private String path;
 	public String path() {
-		var uri = uri();
-		var i = uri.indexOf('?');
-		if (i >= 0)
-			return uri.substring(0, i);
-		return uri;
+		if (path == null) {
+			var uri = uri();
+			var i = uri.indexOf('?');
+			path = i >= 0 ? uri.substring(0, i) : uri;
+		}
+		return path;
 	}
 
 	public String query() {
@@ -92,7 +94,7 @@ public class HttpExchange {
 			if (locateHandler())
 				handler.FullRequestHandle.onFullRequest(this);
 			else
-				sendFullResponse404();
+				send404();
 			close(); // todo 生命期管理
 
 			return; // done
@@ -101,7 +103,7 @@ public class HttpExchange {
 		if (msg instanceof HttpRequest) {
 			request = (HttpRequest)msg;
 			if (!locateHandler()) {
-				sendFullResponse404();
+				send404();
 				close();
 			} else if (handler.isStreamMode()) {
 				handler.BeginStreamHandle.onBeginStream(this, 0, 0); // todo from to
@@ -125,7 +127,7 @@ public class HttpExchange {
 
 			totalContentSize += c.content().readableBytes();
 			if (totalContentSize > handler.MaxContentLength) {
-				sendFullResponse404(); // todo error
+				send404(); // todo error
 				close();
 
 				return; // done
@@ -141,12 +143,11 @@ public class HttpExchange {
 			return; // done
 		}
 
-		sendFullResponse404(); // todo error
+		send404(); // todo error
 	}
 
 	private boolean locateHandler() {
-		handler = server.handlers.get(request.uri());
-		handler = server.handlers.entrySet().iterator().next().getValue();
+		handler = server.handlers.get(path());
 		return null != handler;
 	}
 
@@ -157,45 +158,45 @@ public class HttpExchange {
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// send response
-	public void sendFullResponse(HttpResponseStatus status, String contentType, ByteBuf content) {
+	public void send(HttpResponseStatus status, String contentType, ByteBuf content) {
 		var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, content, false);
 		res.headers().add(HttpHeaderNames.CONTENT_TYPE, contentType);
 		context.write(res);
 	}
 
-	public void sendFullResponse(HttpResponseStatus status, String contentType, String content) {
-		sendFullResponse(status, contentType, Unpooled.wrappedBuffer(content.getBytes(StandardCharsets.UTF_8)));
+	public void send(HttpResponseStatus status, String contentType, String content) {
+		send(status, contentType, Unpooled.wrappedBuffer(content.getBytes(StandardCharsets.UTF_8)));
 	}
 
-	public void sendFullResponsePlainText(HttpResponseStatus status, String text) {
-		sendFullResponse(status, "text/plain; charset=utf-8", text);
+	public void sendPlainText(HttpResponseStatus status, String text) {
+		send(status, "text/plain; charset=utf-8", text);
 	}
 
-	public void sendFullResponseHtml(HttpResponseStatus status, String html) {
-		sendFullResponse(status, "text/html; charset=utf-8", html);
+	public void sendHtml(HttpResponseStatus status, String html) {
+		send(status, "text/html; charset=utf-8", html);
 	}
 
-	public void sendFullResponseXml(HttpResponseStatus status, String html) {
-		sendFullResponse(status, "text/xml; charset=utf-8", html);
+	public void sendXml(HttpResponseStatus status, String html) {
+		send(status, "text/xml; charset=utf-8", html);
 	}
 
-	public void sendFullResponseGif(HttpResponseStatus status, ByteBuf gif) {
-		sendFullResponse(status, "image/gif", gif);
+	public void sendGif(HttpResponseStatus status, ByteBuf gif) {
+		send(status, "image/gif", gif);
 	}
 
-	public void sendFullResponseJpeg(HttpResponseStatus status, ByteBuf jpeg) {
-		sendFullResponse(status, "image/jpeg", jpeg);
+	public void sendJpeg(HttpResponseStatus status, ByteBuf jpeg) {
+		send(status, "image/jpeg", jpeg);
 	}
 
-	public void sendFullResponsePng(HttpResponseStatus status, ByteBuf png) {
-		sendFullResponse(status, "image/png", png);
+	public void sendPng(HttpResponseStatus status, ByteBuf png) {
+		send(status, "image/png", png);
 	}
 
-	public void sendFullResponse404() {
-		sendFullResponsePlainText(HttpResponseStatus.NOT_FOUND, "404");
+	public void send404() {
+		sendPlainText(HttpResponseStatus.NOT_FOUND, "404");
 	}
 
-	public void sendFullResponse500(Throwable ex) {
-		sendFullResponsePlainText(HttpResponseStatus.OK, Str.stacktrace(ex));
+	public void send500(Throwable ex) {
+		sendPlainText(HttpResponseStatus.OK, Str.stacktrace(ex));
 	}
 }

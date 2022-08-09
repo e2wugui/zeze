@@ -57,7 +57,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> {
 		public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
 			var x = exchanges.remove(ctx);
 			if (null != x) {
-				x.sendFullResponse500(cause);
+				x.send500(cause);
 				ctx.flush(); // todo xxx
 				x.close(); // todo 生命期管理
 			}
