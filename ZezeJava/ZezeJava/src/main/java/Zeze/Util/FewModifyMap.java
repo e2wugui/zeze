@@ -4,17 +4,12 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
 public class FewModifyMap<K, V> implements Map<K, V>, Cloneable, java.io.Serializable {
 	private transient volatile Map<K, V> read;
-	private final Map<K, V> write;
-
-	protected FewModifyMap(boolean sorted) {
-		write = new TreeMap<>();
-	}
+	private final HashMap<K, V> write;
 
 	public FewModifyMap() {
 		write = new HashMap<>();
@@ -28,16 +23,13 @@ public class FewModifyMap<K, V> implements Map<K, V>, Cloneable, java.io.Seriali
 		write = new HashMap<>(initialCapacity, loadFactor);
 	}
 
-	public FewModifyMap(Map<? extends K, ? extends V> m) {
-		write = new HashMap<>(m);
-	}
-
 	protected Map<K, V> prepareRead() {
 		var r = read;
 		if (r == null) {
 			synchronized (write) {
-				if ((r = read) == null)
+				if ((r = read) == null) {
 					read = r = Map.copyOf(write);
+				}
 			}
 		}
 		return r;
@@ -205,14 +197,8 @@ public class FewModifyMap<K, V> implements Map<K, V>, Cloneable, java.io.Seriali
 		}
 	}
 
-	@SuppressWarnings("MethodDoesntCallSuperMethod")
 	@Override
-	public FewModifyMap<K, V> clone() throws CloneNotSupportedException {
-		if (getClass() == FewModifyMap.class) {
-			synchronized (write) {
-				return new FewModifyMap<>(write);
-			}
-		}
-		throw new CloneNotSupportedException();
+	public FewModifyMap<K, V> clone() {
+		throw new UnsupportedOperationException();
 	}
 }
