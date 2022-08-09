@@ -42,6 +42,7 @@ public class HttpExchange {
 		return request.uri();
 	}
 
+	// 保存path，优化！
 	private String path;
 	public String path() {
 		if (path == null) {
@@ -52,6 +53,7 @@ public class HttpExchange {
 		return path;
 	}
 
+	// 一般是会使用一次，不保存中间值
 	public String query() {
 		var uri = uri();
 		var i = uri.indexOf('?');
@@ -64,6 +66,7 @@ public class HttpExchange {
 		return request.headers();
 	}
 
+	// 对称的话，这里应该返回Netty.ByteBuf。不熟悉，先用这个。
 	public ByteBuffer content() {
 		if (null == contentFull) {
 			switch (contents.size()) {

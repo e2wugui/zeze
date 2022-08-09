@@ -55,6 +55,9 @@ public class Netty {
 	}
 
 	public static void main(String args[]) throws InterruptedException {
+		/**
+		 * 运行，用浏览器访问 127.0.0.1/hello;127.0.0.1/exp;127.0.0.1/404
+		 */
 		var netty = new Netty();
 		try {
 			var http = new HttpServer();
