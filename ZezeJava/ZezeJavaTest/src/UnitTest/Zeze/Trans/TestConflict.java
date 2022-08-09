@@ -26,7 +26,7 @@ public class TestConflict {
 		Assert.assertEquals(Procedure.Success, demo.App.getInstance().Zeze.NewProcedure(this::ProcRemove, "ProcRemove").Call());
 		Future<?>[] tasks = new Future[2000];
 		for (int i = 0; i < 2000; ++i) {
-			tasks[i]=Zeze.Util.Task.run(demo.App.getInstance().Zeze.NewProcedure(this::ProcAdd, "ProcAdd"), null, null);
+			tasks[i]=Zeze.Util.Task.runUnsafe(demo.App.getInstance().Zeze.NewProcedure(this::ProcAdd, "ProcAdd"), null, null);
 		}
 		for (Future<?> task : tasks) {
 			try {

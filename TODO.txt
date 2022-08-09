@@ -11,14 +11,16 @@ Task
 Universe
 Zege
 DatagramChannel
-	
+
 【2022/8/15】
 
 ------------------------------------------------------------------------------------------------------------------------------
-tag 1.0.3 Netty-Web
+tag 1.0.3 Netty-Web；Task；Vector2
 ------------------------------------------------------------------------------------------------------------------------------
 RedirectBase.RunVoid 前面的if分支漏了return
 Netty-Web see zeze.docx::Web（Netty）
+Task: void run; void runWhileCommit; future runUnsafe
+Vector2 可修改，支持事务。
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 1.0.2 ResetRootInfo While Redo; Simple Web; @DispatchMode

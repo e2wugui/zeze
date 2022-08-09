@@ -41,7 +41,7 @@ public class TestProcedureRedo {
         }, "TestProcedureRedoFirst").Call();
 
         var outLong2 = new OutLong();
-        var ftask1 = Task.run(App.getInstance().Zeze.NewProcedure(()  -> {
+        var ftask1 = Task.runUnsafe(App.getInstance().Zeze.NewProcedure(()  -> {
 
             counter += 1;
             System.out.println("task1 counter " + counter);
@@ -59,7 +59,7 @@ public class TestProcedureRedo {
 
         }, "TestProcedureRedoTask1"), null, null, DispatchMode.Normal);
 
-        var ftask2 = Task.run(App.getInstance().Zeze.NewProcedure(()  -> {
+        var ftask2 = Task.runUnsafe(App.getInstance().Zeze.NewProcedure(()  -> {
 
             Thread.sleep(100);
             var v = App.getInstance().demo_Module1.getTable1().getOrAdd(6785L);

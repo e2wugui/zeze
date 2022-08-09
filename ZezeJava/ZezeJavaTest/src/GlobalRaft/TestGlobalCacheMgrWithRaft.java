@@ -285,12 +285,12 @@ public class TestGlobalCacheMgrWithRaft {
 		AtomicInteger finalCount1 = new AtomicInteger();
 		AtomicInteger finalCount2 = new AtomicInteger();
 
-		task2[0] = Zeze.Util.Task.run(App1.Zeze.NewProcedure(() -> {
+		task2[0] = Zeze.Util.Task.runUnsafe(App1.Zeze.NewProcedure(() -> {
 					finalCount1.set(TestConcurrency(App1, count, 1));
 					return Procedure.Success;
 				}, testName), null, null);
 
-		task2[1] = Zeze.Util.Task.run(App2.Zeze.NewProcedure(() -> {
+		task2[1] = Zeze.Util.Task.runUnsafe(App2.Zeze.NewProcedure(() -> {
 				finalCount2.set(TestConcurrency(App2, count, 2));
 				return Procedure.Success;
 			}, testName), null, null);
@@ -312,7 +312,7 @@ public class TestGlobalCacheMgrWithRaft {
 	private int TestConcurrency(App app, int count, int appId) {
 		Future<?>[] tasks = new Future[count];
 		for (int i = 0; i < tasks.length; i++) {
-			tasks[i] = Zeze.Util.Task.run(app.Zeze.NewProcedure(() -> {
+			tasks[i] = Zeze.Util.Task.runUnsafe(app.Zeze.NewProcedure(() -> {
 				var v = app.demo_Module1.getTable1().getOrAdd(99L);
 				v.setInt1(v.getInt1() + 1);
 

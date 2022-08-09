@@ -17,6 +17,7 @@ import Zeze.Raft.RaftRetryException;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.ProcedureStatistics;
+import Zeze.Transaction.Transaction;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -136,11 +137,27 @@ public final class Task {
 		}
 	}
 
-	public static Future<?> run(Action0 action, String name) {
-		return run(action, name, DispatchMode.Normal);
+	public static void run(Action0 action, String name) {
+		runUnsafe(action, name);
 	}
 
-	public static Future<?> run(Action0 action, String name, DispatchMode mode) {
+	public static void runWhileCommit(Action0 action, String name) {
+		Transaction.whileCommit(() -> runUnsafe(action, name));
+	}
+
+	public static Future<?> runUnsafe(Action0 action, String name) {
+		return runUnsafe(action, name, DispatchMode.Normal);
+	}
+
+	public static void run(Action0 action, String name, DispatchMode mode) {
+		runUnsafe(action, name, mode);
+	}
+
+	public static void runWhileCommit(Action0 action, String name, DispatchMode mode) {
+		Transaction.whileCommit(() -> runUnsafe(action, name, mode));
+	}
+
+	public static Future<?> runUnsafe(Action0 action, String name, DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			final var future = new TaskCompletionSource<Long>();
 			try {
@@ -327,19 +344,51 @@ public final class Task {
 		}
 	}
 
-	public static Future<Long> run(FuncLong func, Protocol<?> p) {
-		return run(func, p, null, null, DispatchMode.Normal);
+	public static void run(FuncLong func, Protocol<?> p) {
+		runUnsafe(func, p);
 	}
 
-	public static Future<Long> run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
-		return run(func, p, actionWhenError, null, DispatchMode.Normal);
+	public static void runWhileCommit(FuncLong func, Protocol<?> p) {
+		Transaction.whileCommit(() -> runUnsafe(func, p));
 	}
 
-	public static Future<Long> run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName) {
-		return run(func, p, actionWhenError, specialName, DispatchMode.Normal);
+	public static Future<Long> runUnsafe(FuncLong func, Protocol<?> p) {
+		return runUnsafe(func, p, null, null, DispatchMode.Normal);
 	}
 
-	public static Future<Long> run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName, DispatchMode mode) {
+	public static void run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
+		runUnsafe(func, p, actionWhenError);
+	}
+
+	public static void runWhileCommit(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
+		Transaction.whileCommit(() -> runUnsafe(func, p, actionWhenError));
+	}
+
+	public static Future<Long> runUnsafe(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
+		return runUnsafe(func, p, actionWhenError, null, DispatchMode.Normal);
+	}
+
+	public static void run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName) {
+		runUnsafe(func, p, actionWhenError, specialName);
+	}
+
+	public static void runWhileCommit(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName) {
+		Transaction.whileCommit(() -> runUnsafe(func, p, actionWhenError, specialName));
+	}
+
+	public static Future<Long> runUnsafe(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName) {
+		return runUnsafe(func, p, actionWhenError, specialName, DispatchMode.Normal);
+	}
+
+	public static void run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName, DispatchMode mode) {
+		runUnsafe(func, p, actionWhenError, specialName, mode);
+	}
+
+	public static void runWhileCommit(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName, DispatchMode mode) {
+		Transaction.whileCommit(() -> runUnsafe(func, p, actionWhenError, specialName, mode));
+	}
+
+	public static Future<Long> runUnsafe(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName, DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			final var future = new TaskCompletionSource<Long>();
 			future.SetResult(Call(func, p, actionWhenError, specialName));
@@ -386,19 +435,51 @@ public final class Task {
 		}
 	}
 
-	public static Future<Long> run(Procedure procedure) {
-		return run(procedure, null, null, DispatchMode.Normal);
+	public static void run(Procedure procedure) {
+		runUnsafe(procedure);
 	}
 
-	public static Future<Long> run(Procedure procedure, Protocol<?> from) {
-		return run(procedure, from, null, DispatchMode.Normal);
+	public static void runWhileCommit(Procedure procedure) {
+		Transaction.whileCommit(() -> runUnsafe(procedure));
 	}
 
-	public static Future<Long> run(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError) {
-		return run(procedure, from, actionWhenError, DispatchMode.Normal);
+	public static Future<Long> runUnsafe(Procedure procedure) {
+		return runUnsafe(procedure, null, null, DispatchMode.Normal);
 	}
 
-	public static Future<Long> run(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError, DispatchMode mode) {
+	public static void run(Procedure procedure, Protocol<?> from) {
+		runUnsafe(procedure, from);
+	}
+
+	public static void runWhileCommit(Procedure procedure, Protocol<?> from) {
+		Transaction.whileCommit(() -> runUnsafe(procedure, from));
+	}
+
+	public static Future<Long> runUnsafe(Procedure procedure, Protocol<?> from) {
+		return runUnsafe(procedure, from, null, DispatchMode.Normal);
+	}
+
+	public static void run(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError) {
+		runUnsafe(procedure, from, actionWhenError);
+	}
+
+	public static void runWhileCommit(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError) {
+		Transaction.whileCommit(() -> runUnsafe(procedure, from, actionWhenError));
+	}
+
+	public static Future<Long> runUnsafe(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError) {
+		return runUnsafe(procedure, from, actionWhenError, DispatchMode.Normal);
+	}
+
+	public static void run(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError, DispatchMode mode) {
+		runUnsafe(procedure, from, actionWhenError, mode);
+	}
+
+	public static void runWhileCommit(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError, DispatchMode mode) {
+		Transaction.whileCommit(() -> runUnsafe(procedure, from, actionWhenError, mode));
+	}
+
+	public static Future<Long> runUnsafe(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError, DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			final var future = new TaskCompletionSource<Long>();
 			future.SetResult(Call(procedure, from, actionWhenError));
@@ -409,11 +490,27 @@ public final class Task {
 		return pool.submit(() -> Call(procedure, from, actionWhenError));
 	}
 
-	public static Future<Long> runRpcResponse(Procedure procedure) {
-		return runRpcResponse(procedure, DispatchMode.Normal);
+	public static void runRpcResponse(Procedure procedure) {
+		runRpcResponseUnsafe(procedure);
 	}
 
-	public static Future<Long> runRpcResponse(Procedure procedure, DispatchMode mode) {
+	public static void runRpcResponseWhileCommit(Procedure procedure) {
+		Transaction.whileCommit(() -> runRpcResponseUnsafe(procedure));
+	}
+
+	public static Future<Long> runRpcResponseUnsafe(Procedure procedure) {
+		return runRpcResponseUnsafe(procedure, DispatchMode.Normal);
+	}
+
+	public static void runRpcResponse(Procedure procedure, DispatchMode mode) {
+		runRpcResponseUnsafe(procedure, mode);
+	}
+
+	public static void runRpcResponseWhileCommit(Procedure procedure, DispatchMode mode) {
+		Transaction.whileCommit(() -> runRpcResponseUnsafe(procedure, mode));
+	}
+
+	public static Future<Long> runRpcResponseUnsafe(Procedure procedure, DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			final var future = new TaskCompletionSource<Long>();
 			future.SetResult(Call(procedure, null, null));
@@ -424,11 +521,27 @@ public final class Task {
 		return pool.submit(() -> Call(procedure, null, null)); // rpcResponseThreadPool
 	}
 
-	public static Future<Long> runRpcResponse(FuncLong func, Protocol<?> p) {
-		return runRpcResponse(func, p, DispatchMode.Normal);
+	public static void runRpcResponse(FuncLong func, Protocol<?> p) {
+		runRpcResponseUnsafe(func, p);
 	}
 
-	public static Future<Long> runRpcResponse(FuncLong func, Protocol<?> p, DispatchMode mode) {
+	public static void runRpcResponseWhileCommit(FuncLong func, Protocol<?> p) {
+		Transaction.whileCommit(() -> runRpcResponseUnsafe(func, p));
+	}
+
+	public static Future<Long> runRpcResponseUnsafe(FuncLong func, Protocol<?> p) {
+		return runRpcResponseUnsafe(func, p, DispatchMode.Normal);
+	}
+
+	public static void runRpcResponse(FuncLong func, Protocol<?> p, DispatchMode mode) {
+		runRpcResponseUnsafe(func, p, mode);
+	}
+
+	public static void runRpcResponseWhileCommit(FuncLong func, Protocol<?> p, DispatchMode mode) {
+		Transaction.whileCommit(() -> runRpcResponseUnsafe(func, p, mode));
+	}
+
+	public static Future<Long> runRpcResponseUnsafe(FuncLong func, Protocol<?> p, DispatchMode mode) {
 		if (mode == DispatchMode.Direct) {
 			final var future = new TaskCompletionSource<Long>();
 			future.SetResult(Call(func, p, null, null));

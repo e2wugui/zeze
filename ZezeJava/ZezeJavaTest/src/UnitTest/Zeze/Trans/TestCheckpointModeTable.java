@@ -39,7 +39,7 @@ public class TestCheckpointModeTable{
 		int sum = 0; {
 			Future<?>[] tasks = new Future[1000];
 			for (int i = 0; i < tasks.length; ++i) {
-				tasks[i] = Zeze.Util.Task.run(demo.App.getInstance().Zeze.NewProcedure(this::Add, "TestCheckpointModeTable.Add"), null, null);
+				tasks[i] = Zeze.Util.Task.runUnsafe(demo.App.getInstance().Zeze.NewProcedure(this::Add, "TestCheckpointModeTable.Add"), null, null);
 			}
 			for (Future<?> task : tasks) {
 				try {
@@ -55,7 +55,7 @@ public class TestCheckpointModeTable{
 		{
 			Future<?>[] tasks = new Future[1000];
 			for (int i = 0; i < tasks.length; ++i) {
-				tasks[i] = Zeze.Util.Task.run(demo.App.getInstance().Zeze.NewProcedure(this::Add2, "TestCheckpointModeTable.Add2"), null, null);
+				tasks[i] = Zeze.Util.Task.runUnsafe(demo.App.getInstance().Zeze.NewProcedure(this::Add2, "TestCheckpointModeTable.Add2"), null, null);
 			}
 			for (Future<?> task : tasks) {
 				try {

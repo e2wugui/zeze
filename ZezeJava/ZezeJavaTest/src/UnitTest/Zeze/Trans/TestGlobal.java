@@ -73,8 +73,8 @@ public class TestGlobal extends TestCase {
 
 			Future<?>[] task2 = new Future[2];
 			int count = 2000;
-			task2[0] = Zeze.Util.Task.run(() -> ConcurrentAdd(app1, count, 1), "TestGlobal.ConcurrentAdd1", DispatchMode.Normal);
-			task2[1] = Zeze.Util.Task.run(() -> ConcurrentAdd(app2, count, 2), "TestGlobal.ConcurrentAdd2", DispatchMode.Normal);
+			task2[0] = Zeze.Util.Task.runUnsafe(() -> ConcurrentAdd(app1, count, 1), "TestGlobal.ConcurrentAdd1", DispatchMode.Normal);
+			task2[1] = Zeze.Util.Task.runUnsafe(() -> ConcurrentAdd(app2, count, 2), "TestGlobal.ConcurrentAdd2", DispatchMode.Normal);
 			try {
 				task2[0].get();
 				task2[1].get();
@@ -103,7 +103,7 @@ public class TestGlobal extends TestCase {
 	private void ConcurrentAdd(demo.App app, int count, int appId) {
 		Future<?>[] tasks = new Future[count];
 		for (int i = 0; i < tasks.length; ++i) {
-			tasks[i] = Zeze.Util.Task.run(app.Zeze.NewProcedure(() -> {
+			tasks[i] = Zeze.Util.Task.runUnsafe(app.Zeze.NewProcedure(() -> {
 				demo.Module1.Value b = app.demo_Module1.getTable1().getOrAdd(6785L);
 				b.setInt1(b.getInt1() + 1);
 				PrintLog log = new PrintLog(b, b, appId);
