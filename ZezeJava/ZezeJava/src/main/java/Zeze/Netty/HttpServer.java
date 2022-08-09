@@ -31,24 +31,17 @@ public class HttpServer extends ChannelInitializer<SocketChannel> {
 
 		@Override
 		public void channelReadComplete(ChannelHandlerContext ctx) {
-			try {
-				ctx.flush();
-			} finally {
-				var x = exchanges.remove(ctx);
-				if (null != x)
-					x.close();
-			}
+			ctx.flush();
 		}
 
 		@Override
 		public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-			try {
-				ctx.close();
-			} finally {
-				var x = exchanges.remove(ctx);
-				if (null != x)
-					x.close();
+			var x = exchanges.remove(ctx);
+			if (null != x) {
+				x.sendFullResponse500(cause);
+				x.close(); // todo 生命期管理
 			}
+			ctx.close();
 		}
 
 	}

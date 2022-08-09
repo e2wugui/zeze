@@ -195,6 +195,7 @@ public class RedirectBase {
 			} catch (Throwable e) {
 				logger.error("", e);
 			}
+			return;
 		}
 
 		Task.run(ProviderApp.Zeze.NewProcedure(() -> {
