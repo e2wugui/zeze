@@ -4,11 +4,12 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 import Zeze.Util.Str;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
@@ -27,8 +28,8 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 public class HttpExchange {
 	private boolean sending = false;
 
-	private HttpServer server;
-	private ChannelHandlerContext context;
+	private final HttpServer server;
+	private final ChannelHandlerContext context;
 
 	public HttpExchange(HttpServer server, ChannelHandlerContext context) {
 		this.server = server;
@@ -37,7 +38,7 @@ public class HttpExchange {
 
 	private HttpRequest request;
 	private HttpHandler handler;
-	private List<HttpContent> contents = new ArrayList<>();
+	private final List<HttpContent> contents = new ArrayList<>();
 	private int totalContentSize;
 	private ByteBuffer contentFull;
 
@@ -97,15 +98,14 @@ public class HttpExchange {
 	}
 
 	void channelRead(Object msg) {
-		if (msg instanceof FullHttpRequest) {
-			var full = (FullHttpRequest)msg;
+		if (msg instanceof FullHttpRequest full) {
 			request = full;
 			contents.add(full);
 			if (locateHandler())
 				handler.FullRequestHandle.onFullRequest(this);
 			else
 				send404();
-			close();
+			tryClose();
 
 			return; // done
 		}
@@ -114,7 +114,7 @@ public class HttpExchange {
 			request = (HttpRequest)msg;
 			if (!locateHandler()) {
 				send404();
-				close();
+				tryClose();
 			} else if (handler.isStreamMode()) {
 				fireBeginStream();
 			}
@@ -122,14 +122,13 @@ public class HttpExchange {
 			return; // done
 		}
 
-		if (msg instanceof HttpContent) {
+		if (msg instanceof HttpContent c) {
 			// 此时 request,handler 已经设置好。
-			var c = (HttpContent)msg;
 			if (handler.isStreamMode()) {
 				handler.StreamContentHandle.onStreamContent(this, c);
 				if (msg instanceof LastHttpContent) {
 					handler.EndStreamHandle.onEndStream(this);
-					close();
+					tryClose();
 				}
 
 				return; // done
@@ -138,7 +137,7 @@ public class HttpExchange {
 			totalContentSize += c.content().readableBytes();
 			if (totalContentSize > handler.MaxContentLength) {
 				send500("content-length too big! allow max=" + handler.MaxContentLength);
-				close();
+				tryClose();
 
 				return; // done
 			}
@@ -147,7 +146,7 @@ public class HttpExchange {
 			if (msg instanceof LastHttpContent) {
 				// 在content()方法里面处理合并。这里直接触发即可。
 				handler.FullRequestHandle.onFullRequest(this);
-				close();
+				tryClose();
 			}
 
 			return; // done
@@ -156,7 +155,7 @@ public class HttpExchange {
 		send500("internal error. unknown message!");
 	}
 
-	private final int parse(String r) {
+	private static int parse(String r) {
 		if (r.isEmpty() || r.equals("*"))
 			return -1;
 		return Integer.parseInt(r);
@@ -191,7 +190,12 @@ public class HttpExchange {
 		return null != handler;
 	}
 
-	void close() {
+	public void close() {
+		sending = false;
+		tryClose();
+	}
+
+	private void tryClose() {
 		if (sending)
 			return;
 
@@ -251,29 +255,24 @@ public class HttpExchange {
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////
 	// 流接口功能最大化，不做任何校验：状态校验，不正确的流起始Response（headers）等。
-	public void beginTrunk(HttpResponseStatus status, HttpHeaders headers, Consumer<HttpExchange> callback) {
+	public void beginThunk(HttpResponseStatus status, HttpHeaders headers) {
 		sending = true;
 		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, headers);
 		headers.set(HttpHeaderNames.TRANSFER_ENCODING, "chunked");
-		var future = context.write(res, context.newPromise());
-		future.addListener((ChannelFutureListener)future1 -> callback.accept(this)); // todo remove need?
+		headers.remove(HttpHeaderNames.CONTENT_LENGTH);
+		context.write(res);
 	}
 
-	public void sendTrunk(byte[] data, Consumer<HttpExchange> callback) {
-		var nsize = (data.length + "\r\n").getBytes(StandardCharsets.UTF_8);
-		var nbuf = ByteBufAllocator.DEFAULT.buffer(data.length + nsize.length);
-		nbuf.writeBytes(nsize);
-		nbuf.writeBytes(data);
-		var future = context.write(new DefaultHttpContent(nbuf), context.newPromise());
-		future.addListener((ChannelFutureListener)future1 -> callback.accept(this)); // todo remove need?
+	public void sendThunk(byte[] data, BiConsumer<HttpExchange, ChannelFuture> callback) {
+		var buf = ByteBufAllocator.DEFAULT.ioBuffer(data.length);
+		buf.writeBytes(data);
+		var future = context.write(new DefaultHttpContent(buf), context.newPromise());
+		future.addListener((ChannelFutureListener)future1 -> callback.accept(this, future1));
 	}
 
-	public void endTrunk() {
-		var trunk = ("0\r\n\r\n").getBytes(StandardCharsets.UTF_8);
-		var buf = ByteBufAllocator.DEFAULT.buffer(trunk.length);
-		buf.writeBytes(trunk);
-		context.write(new DefaultHttpContent(buf));
+	public void endThunk() {
+		context.write(new DefaultHttpContent(ByteBufAllocator.DEFAULT.ioBuffer(0)));
 		sending = false;
-		close();
+		tryClose();
 	}
 }

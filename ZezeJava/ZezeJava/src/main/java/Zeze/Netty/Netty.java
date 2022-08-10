@@ -6,6 +6,7 @@ import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Str;
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
@@ -85,7 +86,15 @@ public class Netty {
 					(x) -> {
 						var headers = new DefaultHttpHeaders();
 						headers.add(HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=utf-8");
-						x.beginTrunk(HttpResponseStatus.OK, headers, Netty::sendTrunk);
+						x.beginThunk(HttpResponseStatus.OK, headers);
+						sendTrunk(x);
+						/*
+						try {
+							Thread.sleep(2000);
+						} catch (InterruptedException e) {
+							throw new RuntimeException(e);
+						}
+						*/
 					});
 			netty.addServer(http, 80);
 			netty.start();
@@ -97,16 +106,22 @@ public class Netty {
 		}
 	}
 	private static int trunkCount;
-	private static void processSendTrunkResult(HttpExchange x) {
-		System.out.println("sent: " + trunkCount + Str.stacktrace(new Exception()));
-		if (trunkCount > 3)
-			x.endTrunk();
-		else
-			sendTrunk(x);
+	private static void processSendTrunkResult(HttpExchange x, ChannelFuture f) {
+		System.out.println("sent: " + trunkCount);
+		if (f.isSuccess()) {
+			if (trunkCount > 3)
+				x.endThunk();
+			else
+				sendTrunk(x);
+			return;
+		}
+		System.out.println("error: " + Str.stacktrace(f.cause()));
+		System.out.flush();
+		x.close();
 	}
 
 	private static void sendTrunk(HttpExchange x) {
 		trunkCount++;
-		x.sendTrunk(("content " + trunkCount + "\r\n").getBytes(StandardCharsets.UTF_8), Netty::processSendTrunkResult);
+		x.sendThunk(("content " + trunkCount + "-").getBytes(StandardCharsets.UTF_8), Netty::processSendTrunkResult);
 	}
 }
