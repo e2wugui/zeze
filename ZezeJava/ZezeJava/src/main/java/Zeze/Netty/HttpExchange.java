@@ -4,12 +4,15 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 import Zeze.Util.Str;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.DefaultHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
@@ -18,6 +21,7 @@ import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import org.apache.http.HttpResponseFactory;
 
 public class HttpExchange {
 	private HttpServer server;
@@ -89,12 +93,6 @@ public class HttpExchange {
 		return contentFull;
 	}
 
-	private final int parse(String r) {
-		if (r.isEmpty() || r.equals("*"))
-			return -1;
-		return Integer.parseInt(r);
-	}
-
 	void channelRead(Object msg) {
 		if (msg instanceof FullHttpRequest) {
 			var full = (FullHttpRequest)msg;
@@ -115,27 +113,7 @@ public class HttpExchange {
 				send404();
 				close();
 			} else if (handler.isStreamMode()) {
-				var from = -1;
-				var to = -1;
-				var size = -1;
-				var range = request.headers().get(HttpHeaderNames.CONTENT_RANGE);
-				if (null != range) {
-					var aunit = range.trim().split(" ");
-					if (aunit.length > 1) {
-						var asize = aunit[1].split("/");
-						if (asize.length > 0) {
-							var arange = asize[0].split("-");
-							if (arange.length > 0)
-								from = parse(arange[0]);
-							if (arange.length > 1)
-								to = parse(arange[1]);
-						}
-						if (asize.length > 1) {
-							size = parse(asize[1]);
-						}
-					}
-				}
-				handler.BeginStreamHandle.onBeginStream(this, from, to, size);
+				fireBeginStream();
 			}
 
 			return; // done
@@ -173,6 +151,36 @@ public class HttpExchange {
 		}
 
 		send500("internal error. unknown message!");
+	}
+
+	private final int parse(String r) {
+		if (r.isEmpty() || r.equals("*"))
+			return -1;
+		return Integer.parseInt(r);
+	}
+
+	private void fireBeginStream() {
+		var from = -1;
+		var to = -1;
+		var size = -1;
+		var range = request.headers().get(HttpHeaderNames.CONTENT_RANGE);
+		if (null != range) {
+			var aunit = range.trim().split(" ");
+			if (aunit.length > 1) {
+				var asize = aunit[1].split("/");
+				if (asize.length > 0) {
+					var arange = asize[0].split("-");
+					if (arange.length > 0)
+						from = parse(arange[0]);
+					if (arange.length > 1)
+						to = parse(arange[1]);
+				}
+				if (asize.length > 1) {
+					size = parse(asize[1]);
+				}
+			}
+		}
+		handler.BeginStreamHandle.onBeginStream(this, from, to, size);
 	}
 
 	private boolean locateHandler() {
@@ -233,5 +241,24 @@ public class HttpExchange {
 
 	public void send500(String text) {
 		sendPlainText(HttpResponseStatus.INTERNAL_SERVER_ERROR, text);
+	}
+
+	/////////////////////////////////////////////////////////////////////////////////////////////////
+	// 流接口功能最大化，不做任何校验：状态校验，不正确的流起始Response（headers）等。
+	public void beginSendStream(HttpResponseStatus status, HttpHeaders headers) {
+		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, headers);
+		context.write(res);
+	}
+
+	public void sendStreamContent(HttpContent c, Consumer<HttpExchange> callback) {
+		// howto callback?
+		context.write(c);
+	}
+
+	public void endSendStream() {
+		// todo howto end?
+		// var last = new LastHttpContent();
+		//context.write(last);
+		close();
 	}
 }

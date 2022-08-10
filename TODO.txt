@@ -14,20 +14,6 @@ DatagramChannel
 Vector2 完善。@张路
 Bean 初始化构造函数（varid构造改成方法初始化，仅给内部使用）@张路
 
-Netty-Web 生命期管理规则。
-1. Exception HttpServer.java::Handler::exceptionCaught，来自Netty错误报告。
-    a) x = exchanges.remove(ctx);
-    b) 可配置的x.send500(cause) stacktrace。
-    c) netty-ctx.flush();
-    d) finally netty-ctx.close();
-
-2. HttpExchange.close() 用于请求正常处理完毕时关闭
-	void close() {
-		if (null != server.exchanges.remove(context)) {
-			context.flush();
-			context.close();
-		}
-	}
 
 【2022/8/15】
 
@@ -36,6 +22,24 @@ tag 1.0.3 Netty-Web；Task；Vector2
 ------------------------------------------------------------------------------------------------------------------------------
 RedirectBase.RunVoid 前面的if分支漏了return
 Netty-Web see zeze.docx::Web（Netty）
+	beginSendStream();
+	sendStreamContent();
+	endSendStream();
+
+	Netty-Web 生命期管理规则。
+	1. Exception HttpServer.java::Handler::exceptionCaught，来自Netty错误报告。
+	    a) x = exchanges.remove(ctx);
+	    b) 可配置的x.send500(cause) stacktrace。
+	    c) netty-ctx.flush();
+	    d) finally netty-ctx.close();
+
+	2. HttpExchange.close() 用于请求正常处理完毕时关闭
+		void close() {
+			if (null != server.exchanges.remove(context)) {
+				context.flush();
+				context.close();
+			}
+		}
 Task: void run; void runWhileCommit; future runUnsafe
 
 ------------------------------------------------------------------------------------------------------------------------------
