@@ -66,7 +66,7 @@ public class Netty {
 		try {
 			var http = new HttpServer();
 			http.addHandler("/hello", // 显示一个文本结果。
-					8192, TransactionLevel.Serializable, DispatchMode.Normal,
+					8192, TransactionLevel.Serializable, DispatchMode.Direct,
 					(x) -> {
 						var sb = new StringBuilder();
 						sb.append("uri=").append(x.uri()).append("\n");
@@ -77,12 +77,12 @@ public class Netty {
 						x.sendPlainText(HttpResponseStatus.OK, sb.toString());
 					});
 			http.addHandler("/ex", // 抛异常
-					8192, TransactionLevel.Serializable, DispatchMode.Normal,
+					8192, TransactionLevel.Serializable, DispatchMode.Direct,
 					(x) -> {
 						throw new UnsupportedOperationException();
 					});
 			http.addHandler("/stream",
-					8192, TransactionLevel.Serializable, DispatchMode.Normal,
+					8192, TransactionLevel.Serializable, DispatchMode.Direct,
 					(x) -> {
 						var headers = new DefaultHttpHeaders();
 						headers.add(HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=utf-8");

@@ -4,5 +4,5 @@ import io.netty.handler.codec.http.HttpContent;
 
 @FunctionalInterface
 public interface HttpStreamContentHandle {
-	void onStreamContent(HttpExchange x, HttpContent c) throws Throwable;
+	void onStreamContent(HttpExchange x, HttpContent c) throws Exception;
 }

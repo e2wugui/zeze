@@ -5,7 +5,10 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiConsumer;
+import Zeze.Transaction.Procedure;
+import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Str;
+import Zeze.Util.Task;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
@@ -97,12 +100,24 @@ public class HttpExchange {
 		return contentFull;
 	}
 
-	void channelRead(Object msg) throws Throwable {
+	private void fireFullRequestHandle() throws Exception {
+		if (server.Zeze != null && handler.Level != TransactionLevel.None) {
+			Task.run(server.Zeze.NewProcedure(
+					() -> {
+						handler.FullRequestHandle.onFullRequest(this);
+						return Procedure.Success;
+					}, "fireFullRequestHandle"), null, null, handler.Mode);
+		} else {
+			handler.FullRequestHandle.onFullRequest(this);
+		}
+	}
+
+	void channelRead(Object msg) throws Exception {
 		if (msg instanceof FullHttpRequest full) {
 			request = full;
 			contents.add(full);
 			if (locateHandler())
-				handler.FullRequestHandle.onFullRequest(this);
+				fireFullRequestHandle();
 			else
 				send404();
 			tryClose();
@@ -125,9 +140,9 @@ public class HttpExchange {
 		if (msg instanceof HttpContent c) {
 			// 此时 request,handler 已经设置好。
 			if (handler.isStreamMode()) {
-				handler.StreamContentHandle.onStreamContent(this, c);
+				fireStreamContentHandle(c);
 				if (msg instanceof LastHttpContent) {
-					handler.EndStreamHandle.onEndStream(this);
+					fireEndStreamHandle();
 					tryClose();
 				}
 
@@ -145,7 +160,7 @@ public class HttpExchange {
 			contents.add(c);
 			if (msg instanceof LastHttpContent) {
 				// 在content()方法里面处理合并。这里直接触发即可。
-				handler.FullRequestHandle.onFullRequest(this);
+				fireFullRequestHandle();
 				tryClose();
 			}
 
@@ -161,7 +176,31 @@ public class HttpExchange {
 		return Integer.parseInt(r);
 	}
 
-	private void fireBeginStream() throws Throwable {
+	private void fireStreamContentHandle(HttpContent c) throws Exception {
+		if (server.Zeze != null && handler.Level != TransactionLevel.None) {
+			Task.run(server.Zeze.NewProcedure(
+					() -> {
+						handler.StreamContentHandle.onStreamContent(this, c);
+						return Procedure.Success;
+					}, "fireFullRequestHandle"), null, null, handler.Mode);
+		} else {
+			handler.StreamContentHandle.onStreamContent(this, c);
+		}
+	}
+
+	private void fireEndStreamHandle() throws Exception {
+		if (server.Zeze != null && handler.Level != TransactionLevel.None) {
+			Task.run(server.Zeze.NewProcedure(
+					() -> {
+						handler.EndStreamHandle.onEndStream(this);
+						return Procedure.Success;
+					}, "fireFullRequestHandle"), null, null, handler.Mode);
+		} else {
+			handler.EndStreamHandle.onEndStream(this);
+		}
+	}
+
+	private void fireBeginStream() throws Exception {
 		var from = -1;
 		var to = -1;
 		var size = -1;
@@ -182,7 +221,18 @@ public class HttpExchange {
 				}
 			}
 		}
-		handler.BeginStreamHandle.onBeginStream(this, from, to, size);
+		if (server.Zeze != null && handler.Level != TransactionLevel.None) {
+			final var ffrom = from;
+			final var fto = to;
+			final var fsize = size;
+			Task.run(server.Zeze.NewProcedure(
+					() -> {
+						handler.BeginStreamHandle.onBeginStream(this, ffrom, fto, fsize);
+						return Procedure.Success;
+					}, "fireFullRequestHandle"), null, null, handler.Mode);
+		} else {
+			handler.BeginStreamHandle.onBeginStream(this, from, to, size);
+		}
 	}
 
 	private boolean locateHandler() {

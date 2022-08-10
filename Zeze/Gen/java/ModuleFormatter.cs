@@ -513,14 +513,14 @@ namespace Zeze.Gen.java
         {
             foreach (var s in module.Servlets.Values)
             {
-                sw.WriteLine($"    protected abstract void OnServlet{s.Name}(Zeze.Netty.HttpExchange x) throws Throwable;");
+                sw.WriteLine($"    protected abstract void OnServlet{s.Name}(Zeze.Netty.HttpExchange x) throws Exception;");
             }
 
             foreach (var s in module.ServletStreams.Values)
             {
-                sw.WriteLine($"    protected abstract void OnServletBeginStream{s.Name}(Zeze.Netty.HttpExchange x, int from, int to, int size) throws Throwable;");
-                sw.WriteLine($"    protected abstract void OnServletStreamContent{s.Name}(Zeze.Netty.HttpExchange x, io.netty.handler.codec.http.HttpContent c) throws Throwable;");
-                sw.WriteLine($"    protected abstract void OnServletEndStream{s.Name}(Zeze.Netty.HttpExchange x) throws Throwable;");
+                sw.WriteLine($"    protected abstract void OnServletBeginStream{s.Name}(Zeze.Netty.HttpExchange x, int from, int to, int size) throws Exception;");
+                sw.WriteLine($"    protected abstract void OnServletStreamContent{s.Name}(Zeze.Netty.HttpExchange x, io.netty.handler.codec.http.HttpContent c) throws Exception;");
+                sw.WriteLine($"    protected abstract void OnServletEndStream{s.Name}(Zeze.Netty.HttpExchange x) throws Exception;");
             }
         }
 
@@ -540,7 +540,7 @@ namespace Zeze.Gen.java
                 var path = module.WebPathBase.Length > 0 ? module.WebPathBase + s.Name : module.Path("/", s.Name);
                 sw.WriteLine($"        App.HttpServer.addHandler(\"{path}\", -1,");
                 sw.WriteLine($"                _reflect.getTransactionLevel(\"OnServletBeginStream{s.Name}\", Zeze.Transaction.TransactionLevel.{s.TransactionLevel}),");
-                sw.WriteLine($"                _reflect.getDispatchMode(\"OnServletBeginStream{s.Name}\", Zeze.Transaction.DispatchMode.Normal),");
+                sw.WriteLine($"                _reflect.getDispatchMode(\"OnServletBeginStream{s.Name}\", Zeze.Transaction.DispatchMode.Direct),");
                 sw.WriteLine($"                this::OnServletBeginStream{s.Name}, this::OnServletStreamContent{s.Name}, this::OnServletEndStream{s.Name});");
             }
         }

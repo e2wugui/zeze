@@ -12,6 +12,8 @@ import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 
 public class HttpServer extends ChannelInitializer<SocketChannel> {
+	public final Zeze.Application Zeze;
+
 	ConcurrentHashMap<ChannelHandlerContext, HttpExchange> exchanges = new ConcurrentHashMap<>();
 	FewModifyMap<String, HttpHandler> handlers = new FewModifyMap<>();
 
@@ -25,6 +27,14 @@ public class HttpServer extends ChannelInitializer<SocketChannel> {
 						   int maxContentLength, TransactionLevel level, DispatchMode mode,
 						   HttpBeginStreamHandle beginStream, HttpStreamContentHandle streamContent, HttpEndStreamHandle endStream) {
 		addHandler(path, new HttpHandler(maxContentLength, level, mode, beginStream, streamContent, endStream));
+	}
+
+	public HttpServer() {
+		Zeze = null;
+	}
+
+	public HttpServer(Zeze.Application zeze) {
+		Zeze = zeze;
 	}
 
 	public void addHandler(String path, HttpHandler handler) {
@@ -47,7 +57,9 @@ public class HttpServer extends ChannelInitializer<SocketChannel> {
 		public void channelRead(ChannelHandlerContext ctx, Object msg) {
 			try {
 				exchanges.computeIfAbsent(ctx, (k) -> new HttpExchange(HttpServer.this, k)).channelRead(msg);
-			} catch (Throwable e) {
+			} catch (RuntimeException r) {
+				throw r;
+			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
 		}
