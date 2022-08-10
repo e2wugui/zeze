@@ -82,13 +82,24 @@ namespace Zeze.Gen
             return null;
         }
 
-        public Dictionary<string, Module> Modules { get; private set; } = new Dictionary<string, Module>();
-        public SortedDictionary<string, Types.Bean> Beans { get; private set; } = new SortedDictionary<string, Types.Bean>();
-        public SortedDictionary<string, Types.BeanKey> BeanKeys { get; private set; } = new SortedDictionary<string, Types.BeanKey>();
-        public SortedDictionary<string, Protocol> Protocols { get; private set; } = new SortedDictionary<string, Protocol>();
-        public SortedDictionary<string, Table> Tables { get; private set; } = new SortedDictionary<string, Table>();
+        public Dictionary<string, Module> Modules { get; private set; } = new();
+        public SortedDictionary<string, Types.Bean> Beans { get; private set; } = new();
+        public SortedDictionary<string, Types.BeanKey> BeanKeys { get; private set; } = new();
+        public SortedDictionary<string, Protocol> Protocols { get; private set; } = new();
+        public SortedDictionary<string, Table> Tables { get; private set; } = new();
+        public SortedDictionary<string, Servlet> Servlets { get; private set; } = new();
+        public SortedDictionary<string, ServletStream> ServletStreams { get; private set; } = new();
+        public List<Types.Enum> Enums { get; private set; } = new();
 
-        public List<Types.Enum> Enums { get; private set; } = new List<Types.Enum>();
+        public void Add(ServletStream ss)
+        {
+            ServletStreams.Add(ss.Name, ss);
+        }
+
+        public void Add(Servlet servlet)
+        {
+            Servlets.Add(servlet.Name, servlet);
+        }
 
         public void Add(Types.Enum e)
         {

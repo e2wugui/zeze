@@ -2,5 +2,5 @@ package Zeze.Netty;
 
 @FunctionalInterface
 public interface HttpEndStreamHandle {
-	void onEndStream(HttpExchange x);
+	void onEndStream(HttpExchange x) throws Throwable;
 }

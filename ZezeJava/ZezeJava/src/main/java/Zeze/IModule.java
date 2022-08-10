@@ -7,6 +7,10 @@ public abstract class IModule {
 
 	public abstract int getId();
 
+	public String getWebPathBase() {
+		return "";
+	}
+
 	public boolean isBuiltin() {
 		return false;
 	}

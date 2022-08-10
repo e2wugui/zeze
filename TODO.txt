@@ -14,12 +14,19 @@ DatagramChannel
 Vector2 完善。@张路
 Bean 初始化构造函数（varid构造改成方法初始化，仅给内部使用）@张路
 
-
 【2022/8/15】
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 1.0.3 Netty-Web；Task；Vector2
 ------------------------------------------------------------------------------------------------------------------------------
+AsyncSocket 如果outputbuf不为空，关闭时增加一个closing状态，等待全部写完然后自动关闭。
+	closing状态不准再写入新数据。closing状态连接从Service中注销（这个需要权衡）。
+	closeGracefully();
+	哦，从service中去掉，外面就看不到了，这样closing状态可以省略（但是可能有地方记住了socket的引用，
+	这样还需要提前触发原来的OnSocketClose的回调）。
+	最终的结果就是连接已经不再可用，仅仅等待flush完成或者超时，真正关闭。
+	考虑一下。应用得到OnSocketClose，但是连接还在写数据，可能会造成点小麻烦。应用层如果要时序的话。细节还是有几点。
+	【closeGracefully还是提前从Service中注销并且触发OnSocketClose，不引入closing状态】
 RedirectBase.RunVoid 前面的if分支漏了return
 Netty-Web see zeze.docx::Web（Netty）
 	Netty-Web 生命期管理规则。

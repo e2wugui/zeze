@@ -30,6 +30,7 @@ public class App extends Zeze.AppBase {
     public LinkedMap.Module LinkedMaps;
     public DepartmentTree.Module DepartmentTrees;
     public Web Web;
+    public Zeze.Netty.HttpServer HttpServer;
 
     private LoadConfig LoadConfig() {
         try {

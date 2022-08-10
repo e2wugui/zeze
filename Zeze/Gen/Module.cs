@@ -10,6 +10,8 @@ namespace Zeze.Gen
         public Service ReferenceService => _ReferenceService;
         Service _ReferenceService;
 
+        public readonly string WebPathBase;
+
         public void SetReferenceService(Service service)
         {
             _ReferenceService = service;
@@ -28,6 +30,9 @@ namespace Zeze.Gen
             space.Modules.Add(Name, this);
             Program.AddNamedObject(Path(".", $"Module{Name}"), this);
             Program.AddNamedObject(Path(".", "AbstractModule"), this);
+            WebPathBase = self.GetAttribute("WebPathBase");
+            if (false == WebPathBase.EndsWith("/"))
+                WebPathBase += "/";
 
             XmlNodeList childNodes = self.ChildNodes;
             foreach (XmlNode node in childNodes)
@@ -65,6 +70,12 @@ namespace Zeze.Gen
                         // 所以再次没法引入本Project.Service中已经包含的协议。
                         // 这个功能用来引入在其他Project.Module中定义的协议。
                         // 【注意】引入的协议保留原来的moduleid，逻辑如果需要判断moduleid的话自己特殊处理。
+                        break;
+                    case "servlet":
+                        new Servlet(this, e);
+                        break;
+                    case "servletstream":
+                        new ServletStream(this, e);
                         break;
                     default:
                         throw new Exception("unknown nodename=" + e.Name + " in module=" + Path());

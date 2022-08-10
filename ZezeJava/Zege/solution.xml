@@ -55,6 +55,9 @@
 		<bean name="BTokenPhoneMessage">
 			<variable id="1" name="Message" type="string" />
 		</bean>
+
+		<servlet name="Query"/>
+		<servletstream name="Upload"/>
 	</module>
 
 	<module name="Friend" id="2">

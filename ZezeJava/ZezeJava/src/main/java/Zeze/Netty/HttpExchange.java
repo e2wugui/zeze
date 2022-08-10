@@ -97,7 +97,7 @@ public class HttpExchange {
 		return contentFull;
 	}
 
-	void channelRead(Object msg) {
+	void channelRead(Object msg) throws Throwable {
 		if (msg instanceof FullHttpRequest full) {
 			request = full;
 			contents.add(full);
@@ -161,7 +161,7 @@ public class HttpExchange {
 		return Integer.parseInt(r);
 	}
 
-	private void fireBeginStream() {
+	private void fireBeginStream() throws Throwable {
 		var from = -1;
 		var to = -1;
 		var size = -1;

@@ -2,8 +2,10 @@ package Zege.User;
 
 import Zege.Friend.BFriend;
 import Zege.Friend.BMember;
+import Zeze.Netty.HttpExchange;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.Transaction;
+import io.netty.handler.codec.http.HttpContent;
 
 public class ModuleUser extends AbstractModule {
     public void Start(Zege.App app) {
@@ -39,6 +41,26 @@ public class ModuleUser extends AbstractModule {
         friend.setAccount(defaultGroup);
         App.Zege_Friend.getFriends(account).put(friend.getAccount(), friend);
         return Procedure.Success;
+    }
+
+    @Override
+    protected void OnServletQuery(HttpExchange x) {
+
+    }
+
+    @Override
+    protected void OnServletBeginStreamUpload(HttpExchange x, int from, int to, int size) {
+
+    }
+
+    @Override
+    protected void OnServletStreamContentUpload(HttpExchange x, HttpContent c) {
+
+    }
+
+    @Override
+    protected void OnServletEndStreamUpload(HttpExchange x) {
+
     }
 
     // ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off

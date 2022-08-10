@@ -45,7 +45,11 @@ public class HttpServer extends ChannelInitializer<SocketChannel> {
 
 		@Override
 		public void channelRead(ChannelHandlerContext ctx, Object msg) {
-			exchanges.computeIfAbsent(ctx, (k) -> new HttpExchange(HttpServer.this, k)).channelRead(msg);
+			try {
+				exchanges.computeIfAbsent(ctx, (k) -> new HttpExchange(HttpServer.this, k)).channelRead(msg);
+			} catch (Throwable e) {
+				throw new RuntimeException(e);
+			}
 		}
 
 		@Override

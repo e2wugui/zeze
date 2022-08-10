@@ -440,6 +440,8 @@ namespace Zeze.Gen.java
             RegisterProtocols(sw);
             sw.WriteLine("        // register table");
             RegisterZezeTables(sw);
+            sw.WriteLine("        // register servlet");
+            RegisterHttpServlet(sw);
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
@@ -497,12 +499,50 @@ namespace Zeze.Gen.java
             sw.WriteLine($"    @Override public String getFullName() {{ return \"{module.Path()}\"; }}");
             sw.WriteLine($"    @Override public String getName() {{ return \"{moduleName}\"; }}");
             sw.WriteLine($"    @Override public int getId() {{ return ModuleId; }}");
+            sw.WriteLine($"    @Override public String getWebPathBase() {{ return \"{module.WebPathBase}\";}}");
             sw.WriteLine();
             // declare enums
             GenEnums(sw);
             GenAbstractProtocolHandles(sw);
+            GenAbstractHttpHandles(sw);
             ModuleGen(sw);
             sw.WriteLine("}");
+        }
+
+        public void GenAbstractHttpHandles(StreamWriter sw)
+        {
+            foreach (var s in module.Servlets.Values)
+            {
+                sw.WriteLine($"    protected abstract void OnServlet{s.Name}(Zeze.Netty.HttpExchange x) throws Throwable;");
+            }
+
+            foreach (var s in module.ServletStreams.Values)
+            {
+                sw.WriteLine($"    protected abstract void OnServletBeginStream{s.Name}(Zeze.Netty.HttpExchange x, int from, int to, int size) throws Throwable;");
+                sw.WriteLine($"    protected abstract void OnServletStreamContent{s.Name}(Zeze.Netty.HttpExchange x, io.netty.handler.codec.http.HttpContent c) throws Throwable;");
+                sw.WriteLine($"    protected abstract void OnServletEndStream{s.Name}(Zeze.Netty.HttpExchange x) throws Throwable;");
+            }
+        }
+
+        public void RegisterHttpServlet(StreamWriter sw)
+        { 
+            foreach (var s in module.Servlets.Values)
+            {
+                var path = module.WebPathBase.Length > 0 ? module.WebPathBase + s.Name : module.Path("/", s.Name);
+                sw.WriteLine($"        App.HttpServer.addHandler(\"{path}\", {s.MaxContentLength},");
+                sw.WriteLine($"                _reflect.getTransactionLevel(\"OnServlet{s.Name}\", Zeze.Transaction.TransactionLevel.{s.TransactionLevel}),");
+                sw.WriteLine($"                _reflect.getDispatchMode(\"OnServlet{s.Name}\", Zeze.Transaction.DispatchMode.Normal),");
+                sw.WriteLine($"                this::OnServlet{s.Name});");
+            }
+
+            foreach (var s in module.ServletStreams.Values)
+            {
+                var path = module.WebPathBase.Length > 0 ? module.WebPathBase + s.Name : module.Path("/", s.Name);
+                sw.WriteLine($"        App.HttpServer.addHandler(\"{path}\", -1,");
+                sw.WriteLine($"                _reflect.getTransactionLevel(\"OnServletBeginStream{s.Name}\", Zeze.Transaction.TransactionLevel.{s.TransactionLevel}),");
+                sw.WriteLine($"                _reflect.getDispatchMode(\"OnServletBeginStream{s.Name}\", Zeze.Transaction.DispatchMode.Normal),");
+                sw.WriteLine($"                this::OnServletBeginStream{s.Name}, this::OnServletStreamContent{s.Name}, this::OnServletEndStream{s.Name});");
+            }
         }
 
         List<Protocol> GetProcessProtocols()
