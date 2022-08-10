@@ -1,9 +1,10 @@
 package Zeze.Netty;
 
-import java.util.Calendar;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.Str;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -15,6 +16,8 @@ import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import io.netty.handler.codec.http.DefaultHttpHeaders;
+import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class Netty {
@@ -72,10 +75,17 @@ public class Netty {
 							sb.append(header.getKey()).append("=").append(header.getValue()).append("\n");
 						x.sendPlainText(HttpResponseStatus.OK, sb.toString());
 					});
-			http.addHandler("/exp", // 抛异常
+			http.addHandler("/ex", // 抛异常
 					8192, TransactionLevel.Serializable, DispatchMode.Normal,
 					(x) -> {
 						throw new UnsupportedOperationException();
+					});
+			http.addHandler("/stream",
+					8192, TransactionLevel.Serializable, DispatchMode.Normal,
+					(x) -> {
+						var headers = new DefaultHttpHeaders();
+						headers.add(HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=utf-8");
+						x.beginTrunk(HttpResponseStatus.OK, headers, Netty::sendTrunk);
 					});
 			netty.addServer(http, 80);
 			netty.start();
@@ -85,5 +95,18 @@ public class Netty {
 		} finally {
 			netty.stop();
 		}
+	}
+	private static int trunkCount;
+	private static void processSendTrunkResult(HttpExchange x) {
+		System.out.println("sent: " + trunkCount + Str.stacktrace(new Exception()));
+		if (trunkCount > 3)
+			x.endTrunk();
+		else
+			sendTrunk(x);
+	}
+
+	private static void sendTrunk(HttpExchange x) {
+		trunkCount++;
+		x.sendTrunk(("content " + trunkCount + "\r\n").getBytes(StandardCharsets.UTF_8), Netty::processSendTrunkResult);
 	}
 }

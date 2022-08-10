@@ -7,12 +7,14 @@ import java.util.List;
 import java.util.function.Consumer;
 import Zeze.Util.Str;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
+import io.netty.handler.codec.http.DefaultHttpContent;
 import io.netty.handler.codec.http.DefaultHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
-import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
@@ -21,9 +23,10 @@ import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpHeaderNames;
-import org.apache.http.HttpResponseFactory;
 
 public class HttpExchange {
+	private boolean sending = false;
+
 	private HttpServer server;
 	private ChannelHandlerContext context;
 
@@ -189,6 +192,9 @@ public class HttpExchange {
 	}
 
 	void close() {
+		if (sending)
+			return;
+
 		if (null != server.exchanges.remove(context)) {
 			context.flush();
 			context.close();
@@ -245,20 +251,29 @@ public class HttpExchange {
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////
 	// 流接口功能最大化，不做任何校验：状态校验，不正确的流起始Response（headers）等。
-	public void beginSendStream(HttpResponseStatus status, HttpHeaders headers) {
+	public void beginTrunk(HttpResponseStatus status, HttpHeaders headers, Consumer<HttpExchange> callback) {
+		sending = true;
 		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, headers);
-		context.write(res);
+		headers.set(HttpHeaderNames.TRANSFER_ENCODING, "chunked");
+		var future = context.write(res, context.newPromise());
+		future.addListener((ChannelFutureListener)future1 -> callback.accept(this)); // todo remove need?
 	}
 
-	public void sendStreamContent(HttpContent c, Consumer<HttpExchange> callback) {
-		// howto callback?
-		context.write(c);
+	public void sendTrunk(byte[] data, Consumer<HttpExchange> callback) {
+		var nsize = (data.length + "\r\n").getBytes(StandardCharsets.UTF_8);
+		var nbuf = ByteBufAllocator.DEFAULT.buffer(data.length + nsize.length);
+		nbuf.writeBytes(nsize);
+		nbuf.writeBytes(data);
+		var future = context.write(new DefaultHttpContent(nbuf), context.newPromise());
+		future.addListener((ChannelFutureListener)future1 -> callback.accept(this)); // todo remove need?
 	}
 
-	public void endSendStream() {
-		// todo howto end?
-		// var last = new LastHttpContent();
-		//context.write(last);
+	public void endTrunk() {
+		var trunk = ("0\r\n\r\n").getBytes(StandardCharsets.UTF_8);
+		var buf = ByteBufAllocator.DEFAULT.buffer(trunk.length);
+		buf.writeBytes(trunk);
+		context.write(new DefaultHttpContent(buf));
+		sending = false;
 		close();
 	}
 }

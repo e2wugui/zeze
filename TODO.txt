@@ -22,10 +22,6 @@ tag 1.0.3 Netty-Web；Task；Vector2
 ------------------------------------------------------------------------------------------------------------------------------
 RedirectBase.RunVoid 前面的if分支漏了return
 Netty-Web see zeze.docx::Web（Netty）
-	beginSendStream();
-	sendStreamContent();
-	endSendStream();
-
 	Netty-Web 生命期管理规则。
 	1. Exception HttpServer.java::Handler::exceptionCaught，来自Netty错误报告。
 	    a) x = exchanges.remove(ctx);
