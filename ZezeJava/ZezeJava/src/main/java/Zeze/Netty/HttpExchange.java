@@ -89,6 +89,12 @@ public class HttpExchange {
 		return contentFull;
 	}
 
+	private final int parse(String r) {
+		if (r.isEmpty() || r.equals("*"))
+			return -1;
+		return Integer.parseInt(r);
+	}
+
 	void channelRead(Object msg) {
 		if (msg instanceof FullHttpRequest) {
 			var full = (FullHttpRequest)msg;
@@ -98,7 +104,7 @@ public class HttpExchange {
 				handler.FullRequestHandle.onFullRequest(this);
 			else
 				send404();
-			close(); // todo 生命期管理
+			close();
 
 			return; // done
 		}
@@ -109,7 +115,27 @@ public class HttpExchange {
 				send404();
 				close();
 			} else if (handler.isStreamMode()) {
-				handler.BeginStreamHandle.onBeginStream(this, 0, 0); // todo from to
+				var from = -1;
+				var to = -1;
+				var size = -1;
+				var range = request.headers().get(HttpHeaderNames.CONTENT_RANGE);
+				if (null != range) {
+					var aunit = range.trim().split(" ");
+					if (aunit.length > 1) {
+						var asize = aunit[1].split("/");
+						if (asize.length > 0) {
+							var arange = asize[0].split("-");
+							if (arange.length > 0)
+								from = parse(arange[0]);
+							if (arange.length > 1)
+								to = parse(arange[1]);
+						}
+						if (asize.length > 1) {
+							size = parse(asize[1]);
+						}
+					}
+				}
+				handler.BeginStreamHandle.onBeginStream(this, from, to, size);
 			}
 
 			return; // done
@@ -130,7 +156,7 @@ public class HttpExchange {
 
 			totalContentSize += c.content().readableBytes();
 			if (totalContentSize > handler.MaxContentLength) {
-				send404(); // todo error
+				send500("content-length too big! allow max=" + handler.MaxContentLength);
 				close();
 
 				return; // done
@@ -146,7 +172,7 @@ public class HttpExchange {
 			return; // done
 		}
 
-		send404(); // todo error
+		send500("internal error. unknown message!");
 	}
 
 	private boolean locateHandler() {
