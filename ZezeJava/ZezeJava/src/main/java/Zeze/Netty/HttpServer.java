@@ -12,7 +12,7 @@ import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 
 public class HttpServer extends ChannelInitializer<SocketChannel> {
-	private ConcurrentHashMap<ChannelHandlerContext, HttpExchange> exchanges = new ConcurrentHashMap<>();
+	ConcurrentHashMap<ChannelHandlerContext, HttpExchange> exchanges = new ConcurrentHashMap<>();
 	FewModifyMap<String, HttpHandler> handlers = new FewModifyMap<>();
 
 	public void addHandler(String path,
@@ -55,13 +55,15 @@ public class HttpServer extends ChannelInitializer<SocketChannel> {
 
 		@Override
 		public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-			var x = exchanges.remove(ctx);
-			if (null != x) {
-				x.send500(cause);
-				ctx.flush(); // todo xxx
-				x.close(); // todo 生命期管理
+			try {
+				var x = exchanges.remove(ctx);
+				if (null != x) {
+					x.send500(cause); // 需要可配置，或者根据Debug|Release选择。
+					ctx.flush();
+				}
+			} finally {
+				ctx.close();
 			}
-			ctx.close();
 		}
 
 	}

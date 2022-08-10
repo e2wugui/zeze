@@ -155,8 +155,10 @@ public class HttpExchange {
 	}
 
 	void close() {
-		context.flush();
-		context.close();
+		if (null != server.exchanges.remove(context)) {
+			context.flush();
+			context.close();
+		}
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -200,6 +202,10 @@ public class HttpExchange {
 	}
 
 	public void send500(Throwable ex) {
-		sendPlainText(HttpResponseStatus.OK, Str.stacktrace(ex));
+		sendPlainText(HttpResponseStatus.INTERNAL_SERVER_ERROR, Str.stacktrace(ex));
+	}
+
+	public void send500(String text) {
+		sendPlainText(HttpResponseStatus.INTERNAL_SERVER_ERROR, text);
 	}
 }
