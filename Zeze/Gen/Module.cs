@@ -31,7 +31,7 @@ namespace Zeze.Gen
             Program.AddNamedObject(Path(".", $"Module{Name}"), this);
             Program.AddNamedObject(Path(".", "AbstractModule"), this);
             WebPathBase = self.GetAttribute("WebPathBase");
-            if (false == WebPathBase.EndsWith("/"))
+            if (WebPathBase.Length > 0 && false == WebPathBase.EndsWith("/"))
                 WebPathBase += "/";
 
             XmlNodeList childNodes = self.ChildNodes;
