@@ -40,7 +40,7 @@ public final class ModuleLinkd extends AbstractModule {
 		var linkSession = (LinkdUserSession)protocol.getSender().getUserState();
 		if (null == linkSession) {
 			// handshake 完成之前不可能回收得到 keepalive，先这样处理吧。
-			protocol.getSender().Close(null);
+			protocol.getSender().close();
 			return Zeze.Transaction.Procedure.LogicError;
 		}
 		linkSession.KeepAlive(App.LinkdService);

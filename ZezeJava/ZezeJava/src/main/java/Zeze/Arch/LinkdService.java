@@ -120,7 +120,7 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 
 				// Must Close Before Reuse LinkSid
 				if (null != stable.AuthedSocket)
-					stable.AuthedSocket.Close(null);
+					stable.AuthedSocket.close();
 				if (stable.LinkSid != 0) {
 					// Reuse Old LinkSid
 					client.setSessionId(stable.LinkSid);
@@ -217,11 +217,11 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 				var result = factoryHandle.Handle.handle(p); // 不启用新的Task，直接在io-thread里面执行。
 				Zeze.Util.Task.LogAndStatistics(null, result, p, isRequestSaved);
 			} catch (Throwable ex) {
-				p.getSender().Close(ex); // link 在异常时关闭连接。
+				p.getSender().close(ex); // link 在异常时关闭连接。
 			}
 		} else {
 			logger.warn("Protocol Handle Not Found: {}", p);
-			p.getSender().Close(null);
+			p.getSender().close();
 		}
 	}
 

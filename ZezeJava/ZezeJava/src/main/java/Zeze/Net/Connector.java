@@ -172,7 +172,7 @@ public class Connector {
 				return;
 			}
 		}
-		so.Close(new Exception("not owner?"));
+		so.close(new Exception("not owner?"));
 	}
 
 	public synchronized void Start() {

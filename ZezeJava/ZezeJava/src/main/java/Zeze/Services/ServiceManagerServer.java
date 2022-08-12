@@ -505,7 +505,7 @@ public final class ServiceManagerServer implements Closeable {
 								r.SendAndWaitCheckResultCode(s);
 							} catch (Throwable ex) {
 								if (s != null)
-									s.Close(null);
+									s.close();
 								logger.error("ServiceManager.KeepAlive", ex);
 							}
 						});
@@ -818,7 +818,7 @@ public final class ServiceManagerServer implements Closeable {
 		Future<?> startNotifyDelayTask = StartNotifyDelayTask;
 		if (startNotifyDelayTask != null)
 			startNotifyDelayTask.cancel(false);
-		ServerSocket.Close(null);
+		ServerSocket.close();
 		Server.Stop();
 		Server = null;
 

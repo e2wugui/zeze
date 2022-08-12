@@ -69,7 +69,7 @@ public class HandshakeBase extends Service {
 		try {
 			int group = p.Argument.dh_group;
 			if (!getConfig().getHandshakeOptions().getDhGroups().contains(group)) {
-				p.getSender().Close(new UnsupportedOperationException("dhGroup Not Supported"));
+				p.getSender().close(new UnsupportedOperationException("dhGroup Not Supported"));
 				return 0L;
 			}
 
@@ -102,7 +102,7 @@ public class HandshakeBase extends Service {
 
 			return 0L;
 		} catch (Throwable ex) {
-			p.getSender().Close(ex);
+			p.getSender().close(ex);
 			return 0L;
 		}
 	}
@@ -125,7 +125,7 @@ public class HandshakeBase extends Service {
 				OnHandshakeDone(p.getSender());
 			}
 		} catch (Throwable ex) {
-			p.getSender().Close(ex);
+			p.getSender().close(ex);
 		}
 		return 0L;
 	}
@@ -153,9 +153,9 @@ public class HandshakeBase extends Service {
 				p.getSender().SubmitAction(() -> OnHandshakeDone(p.getSender())); // must after SetInputSecurityCodec and SetOutputSecurityCodec
 				return 0;
 			}
-			p.getSender().Close(new IllegalStateException("handshake lost context."));
+			p.getSender().close(new IllegalStateException("handshake lost context."));
 		} catch (Throwable ex) {
-			p.getSender().Close(ex);
+			p.getSender().close(ex);
 		} finally {
 			if (null != ctx && null != ctx.timeoutTask)
 				ctx.timeoutTask.cancel(false);
@@ -174,11 +174,11 @@ public class HandshakeBase extends Service {
 			(new Zeze.Services.Handshake.CHandshake(getConfig().getHandshakeOptions().getDhGroup(), response)).Send(so);
 			ctx.timeoutTask = Zeze.Util.Task.schedule(5000, () -> {
 				if (null != DHContext.remove(so.getSessionId())) {
-					so.Close(new Exception("Handshake Timeout"));
+					so.close(new Exception("Handshake Timeout"));
 				}
 			});
 		} catch (Throwable ex) {
-			so.Close(ex);
+			so.close(ex);
 		}
 	}
 }

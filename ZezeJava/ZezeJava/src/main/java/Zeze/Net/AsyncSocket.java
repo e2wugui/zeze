@@ -21,6 +21,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Util.Action0;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.ShutdownHook;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -67,7 +68,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private volatile SocketAddress RemoteAddress; // 连接成功时设置
 	private volatile Object UserState;
 	private volatile boolean IsHandshakeDone;
-	private byte closed;
+	private int closed;
 
 	public long getSessionId() {
 		return SessionId;
@@ -215,13 +216,13 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 				e = ex;
 			}
 			Service.OnSocketConnectError(this, e);
-			Close(e); // if OnSocketConnectError throw Exception, this will close in doException
+			close(e); // if OnSocketConnectError throw Exception, this will close in doException
 		}
 	}
 
 	@Override
 	public void doException(SelectionKey key, Throwable e) {
-		Close(e);
+		close(e);
 	}
 
 	/**
@@ -407,7 +408,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			});
 			return true;
 		} catch (Throwable ex) {
-			Close(ex);
+			close(ex);
 			return false;
 		}
 	}
@@ -529,23 +530,18 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 	}
 
-	public void Close(Throwable ex) {
-		lock.lock();
-		try {
-			if (closed != 0)
-				return;
-			closed = 1; // 阻止递归关闭
-		} finally {
-			lock.unlock();
-		}
+	// 优雅的关闭一般用于正常流程，不提供异常参数。
+	public void closeGracefully() {
+		if (0 != closedState(Integer.MAX_VALUE))
+			return;
 
-		if (ex != null) {
-			if (ex instanceof IOException)
-				logger.info("Close: {} {}", this, ex);
-			else
-				logger.warn("Close: {}", this, ex);
-		} else
-			logger.debug("Close: {}", this);
+		// 提前触发回调。
+		trigger(null);
+		Task.schedule(120 * 1000, this::realClose); // 最多给2分钟清空输出队列。
+		SubmitAction(this::realClose);
+	}
+
+	private void trigger(Throwable ex) {
 		if (Connector != null) {
 			try {
 				Connector.OnSocketClose(this, ex);
@@ -558,6 +554,21 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		} catch (Throwable e) {
 			logger.error("Service.OnSocketClose", e);
 		}
+	}
+
+	private int closedState(int magic) {
+		lock.lock();
+		try {
+			if (closed != 0)
+				return closed;
+			closed = magic; // 阻止递归关闭
+			return 0;
+		} finally {
+			lock.unlock();
+		}
+	}
+
+	private void realClose() {
 		try {
 			selectionKey.channel().close();
 		} catch (Throwable e) {
@@ -572,9 +583,25 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			selectionKey.selector().wakeup(); // Acceptor的socket需要selector在select开始时执行,所以wakeup一下尽早触发下次select
 	}
 
+	public void close(Throwable ex) {
+		if (0 != closedState(1))
+			return;
+
+		if (ex != null) {
+			if (ex instanceof IOException)
+				logger.info("Close: {} {}", this, ex);
+			else
+				logger.warn("Close: {}", this, ex);
+		} else
+			logger.debug("Close: {}", this);
+
+		trigger(ex);
+		realClose();
+	}
+
 	@Override
 	public void close() {
-		Close(null);
+		close(null);
 	}
 
 	public void setSessionId(long newSessionId) {

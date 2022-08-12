@@ -30,7 +30,7 @@ public final class GlobalClient extends Zeze.Net.Service {
 				} else if (reLogin.getResultCode() != 0) {
 					// 清理本地已经分配的记录锁。
 					// 1. 关闭网络。下面两行有点重复，就这样了。
-					so.Close(new Exception("GlobalAgent.ReLogin Fail code=" + reLogin.getResultCode()));
+					so.close(new Exception("GlobalAgent.ReLogin Fail code=" + reLogin.getResultCode()));
 					so.getConnector().Stop();
 					// 2. 开始清理，由守护线程保护，必须成功。
 					agent.startRelease(getZeze(), () -> {
