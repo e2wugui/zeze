@@ -518,7 +518,7 @@ namespace Zeze.Gen.java
 
             foreach (var s in module.ServletStreams.Values)
             {
-                sw.WriteLine($"    protected abstract void OnServletBeginStream{s.Name}(Zeze.Netty.HttpExchange x, int from, int to, int size) throws Exception;");
+                sw.WriteLine($"    protected abstract void OnServletBeginStream{s.Name}(Zeze.Netty.HttpExchange x, long from, long to, long size) throws Exception;");
                 sw.WriteLine($"    protected abstract void OnServletStreamContent{s.Name}(Zeze.Netty.HttpExchange x, io.netty.handler.codec.http.HttpContent c) throws Exception;");
                 sw.WriteLine($"    protected abstract void OnServletEndStream{s.Name}(Zeze.Netty.HttpExchange x) throws Exception;");
             }

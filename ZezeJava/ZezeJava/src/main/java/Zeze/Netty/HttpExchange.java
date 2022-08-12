@@ -1,12 +1,18 @@
 package Zeze.Netty;
 
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 import java.util.function.BiConsumer;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.OutInt;
+import Zeze.Util.OutLong;
 import Zeze.Util.Str;
 import Zeze.Util.Task;
 import io.netty.buffer.ByteBuf;
@@ -16,6 +22,7 @@ import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.DefaultFileRegion;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpContent;
 import io.netty.handler.codec.http.DefaultHttpResponse;
@@ -28,6 +35,7 @@ import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.util.AsciiString;
 import io.netty.util.AttributeMap;
 
 public class HttpExchange {
@@ -130,20 +138,19 @@ public class HttpExchange {
 		if (msg instanceof FullHttpRequest full) {
 			request = full;
 			contents.add(full);
-			if (locateHandler())
+			if (locateHandler()) {
 				fireFullRequestHandle();
-			else
-				send404();
-			tryClose();
-
+				tryClose();
+			} else {
+				trySendFile();
+			}
 			return; // done
 		}
 
 		if (msg instanceof HttpRequest) {
 			request = (HttpRequest)msg;
 			if (!locateHandler()) {
-				send404();
-				tryClose();
+				trySendFile();
 			} else if (handler.isStreamMode()) {
 				fireBeginStream();
 			}
@@ -184,10 +191,10 @@ public class HttpExchange {
 		send500("internal error. unknown message!");
 	}
 
-	private static int parse(String r) {
+	private static long parse(String r) {
 		if (r.isEmpty() || r.equals("*"))
 			return -1;
-		return Integer.parseInt(r);
+		return Long.parseLong(r);
 	}
 
 	private void fireStreamContentHandle(HttpContent c) throws Exception {
@@ -214,11 +221,11 @@ public class HttpExchange {
 		}
 	}
 
-	private void fireBeginStream() throws Exception {
-		var from = -1;
-		var to = -1;
-		var size = -1;
-		var range = request.headers().get(HttpHeaderNames.CONTENT_RANGE);
+	private void parseRange(AsciiString headerName, OutLong from, OutLong to, OutLong size) {
+		from.Value = -1;
+		to.Value = -1;
+		size.Value = -1;
+		var range = headers().get(headerName);
 		if (null != range) {
 			var aunit = range.trim().split(" ");
 			if (aunit.length > 1) {
@@ -226,26 +233,30 @@ public class HttpExchange {
 				if (asize.length > 0) {
 					var arange = asize[0].split("-");
 					if (arange.length > 0)
-						from = parse(arange[0]);
+						from.Value = parse(arange[0]);
 					if (arange.length > 1)
-						to = parse(arange[1]);
+						to.Value = parse(arange[1]);
 				}
 				if (asize.length > 1) {
-					size = parse(asize[1]);
+					size.Value = parse(asize[1]);
 				}
 			}
 		}
+	}
+
+	private void fireBeginStream() throws Exception {
+		var from = new OutLong();
+		var to = new OutLong();
+		var size = new OutLong();
+		parseRange(HttpHeaderNames.CONTENT_RANGE, from, to, size);
 		if (server.Zeze != null && handler.Level != TransactionLevel.None) {
-			final var ffrom = from;
-			final var fto = to;
-			final var fsize = size;
 			Task.run(server.Zeze.NewProcedure(
 					() -> {
-						handler.BeginStreamHandle.onBeginStream(this, ffrom, fto, fsize);
+						handler.BeginStreamHandle.onBeginStream(this, from.Value, to.Value, size.Value);
 						return Procedure.Success;
 					}, "fireFullRequestHandle"), null, null, handler.Mode);
 		} else {
-			handler.BeginStreamHandle.onBeginStream(this, from, to, size);
+			handler.BeginStreamHandle.onBeginStream(this, from.Value, to.Value, size.Value);
 		}
 	}
 
@@ -303,6 +314,79 @@ public class HttpExchange {
 
 	public void sendPng(HttpResponseStatus status, ByteBuf png) {
 		send(status, "image/png", png);
+	}
+
+	public static final String HTTP_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
+
+	public void trySendFile() throws Exception {
+		if (null == server.FileHome) {
+			send404();
+			tryClose();
+			return; // done
+		}
+
+		var file = Path.of(server.FileHome, path()).toFile();
+		if (!file.exists() || !file.isHidden() || file.isFile()) {
+			send404();
+			tryClose();
+			return; // done
+		}
+
+		// 检查 IF_MODIFIED_SINCE
+		String ifModifiedSince = headers().get(HttpHeaderNames.IF_MODIFIED_SINCE);
+		SimpleDateFormat dateFormatter = new SimpleDateFormat(HTTP_DATE_FORMAT);
+		if (ifModifiedSince != null && !ifModifiedSince.isEmpty()) {
+			var ifModifiedSinceDate = dateFormatter.parse(ifModifiedSince).getTime();
+			if (file.lastModified() == ifModifiedSinceDate) {
+				// 文件未改变。
+				var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_MODIFIED);
+				var time = Calendar.getInstance();
+				res.headers().set(HttpHeaderNames.DATE, dateFormatter.format(time.getTime()));
+				context.write(res);
+				tryClose();
+				return; // done
+			}
+		}
+
+		var raf = new RandomAccessFile(file, "r");
+		var from = new OutLong();
+		var to = new OutLong();
+		var size = new OutLong(); // not used
+		parseRange(HttpHeaderNames.RANGE, from, to, size);
+		if (from.Value == -1)
+			from.Value = 0;
+		if (to.Value == -1)
+			to.Value = raf.length();
+		var downloadLength = to.Value - from.Value;
+		if (downloadLength < 0) {
+			send500("error download range. length < 0.");
+			tryClose();
+			return; // done
+		}
+
+		var response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+		response.headers().set(HttpHeaderNames.CONTENT_LENGTH, downloadLength);
+
+		// 设置时间头。
+		Calendar time = Calendar.getInstance();
+		response.headers().set(HttpHeaderNames.DATE, dateFormatter.format(time.getTime()));
+		// 设置 cache 控制相关头。
+		time.add(Calendar.SECOND, server.FileCacheSeconds);
+		response.headers().set(HttpHeaderNames.EXPIRES, dateFormatter.format(time.getTime()));
+		response.headers().set(HttpHeaderNames.CACHE_CONTROL, "private, max-age=" + server.FileCacheSeconds);
+		response.headers().set(HttpHeaderNames.LAST_MODIFIED, dateFormatter.format(file.lastModified()));
+
+		// send headers
+		context.write(response);
+
+		if (!HttpMethod.HEAD.equals(method())) {
+			// send file content
+			context.write(new DefaultFileRegion(raf.getChannel(), from.Value, downloadLength)).addListener(ChannelFutureListener.CLOSE);
+			// 发文件任务全部交给Netty，并且发送完毕时关闭。
+			return; // done
+		}
+
+		tryClose(); // 没有进行中的流发送任务，直接关闭。关闭会flush然后close。
 	}
 
 	public void send404() {

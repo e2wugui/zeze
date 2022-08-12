@@ -17,6 +17,9 @@ public class HttpServer extends ChannelInitializer<SocketChannel> {
 	ConcurrentHashMap<ChannelHandlerContext, HttpExchange> exchanges = new ConcurrentHashMap<>();
 	FewModifyMap<String, HttpHandler> handlers = new FewModifyMap<>();
 
+	String FileHome;
+	int FileCacheSeconds = 10 * 60;
+
 	public void addHandler(String path,
 						   int maxContentLength, TransactionLevel level, DispatchMode mode,
 						   HttpFullRequestHandle fullHandle) {
@@ -33,8 +36,10 @@ public class HttpServer extends ChannelInitializer<SocketChannel> {
 		Zeze = null;
 	}
 
-	public HttpServer(Zeze.Application zeze) {
+	public HttpServer(Zeze.Application zeze, String fileHome, int fileCacheSeconds) {
 		Zeze = zeze;
+		FileHome = fileHome;
+		FileCacheSeconds = fileCacheSeconds;
 	}
 
 	public void addHandler(String path, HttpHandler handler) {

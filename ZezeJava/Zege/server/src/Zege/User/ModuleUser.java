@@ -49,7 +49,7 @@ public class ModuleUser extends AbstractModule {
     }
 
     @Override
-    protected void OnServletBeginStreamUpload(HttpExchange x, int from, int to, int size) {
+    protected void OnServletBeginStreamUpload(HttpExchange x, long from, long to, long size) {
 
     }
 
