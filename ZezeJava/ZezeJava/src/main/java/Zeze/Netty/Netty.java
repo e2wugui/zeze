@@ -86,7 +86,7 @@ public class Netty {
 					(x) -> {
 						var headers = new DefaultHttpHeaders();
 						headers.add(HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=utf-8");
-						x.beginThunk(HttpResponseStatus.OK, headers);
+						x.beginStream(HttpResponseStatus.OK, headers);
 						sendTrunk(x);
 						/*
 						try {
@@ -110,7 +110,7 @@ public class Netty {
 		System.out.println("sent: " + trunkCount);
 		if (f.isSuccess()) {
 			if (trunkCount > 3)
-				x.endThunk();
+				x.endStream();
 			else
 				sendTrunk(x);
 			return;
@@ -122,6 +122,6 @@ public class Netty {
 
 	private static void sendTrunk(HttpExchange x) {
 		trunkCount++;
-		x.sendThunk(("content " + trunkCount + "-").getBytes(StandardCharsets.UTF_8), Netty::processSendTrunkResult);
+		x.sendSteam(("content " + trunkCount + "-").getBytes(StandardCharsets.UTF_8), Netty::processSendTrunkResult);
 	}
 }

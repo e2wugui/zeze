@@ -12,6 +12,7 @@ import Zeze.Util.Task;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -27,6 +28,7 @@ import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.util.AttributeMap;
 
 public class HttpExchange {
 	private boolean sending = false;
@@ -44,6 +46,18 @@ public class HttpExchange {
 	private final List<HttpContent> contents = new ArrayList<>();
 	private int totalContentSize;
 	private ByteBuffer contentFull;
+
+	public HttpRequest request() {
+		return request;
+	}
+
+	public Channel channel() {
+		return context.channel();
+	}
+
+	public AttributeMap attributes() {
+		return context.channel();
+	}
 
 	public HttpMethod method() {
 		return request.method();
@@ -305,7 +319,7 @@ public class HttpExchange {
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////
 	// 流接口功能最大化，不做任何校验：状态校验，不正确的流起始Response（headers）等。
-	public void beginThunk(HttpResponseStatus status, HttpHeaders headers) {
+	public void beginStream(HttpResponseStatus status, HttpHeaders headers) {
 		sending = true;
 		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, headers);
 		headers.set(HttpHeaderNames.TRANSFER_ENCODING, "chunked");
@@ -313,14 +327,14 @@ public class HttpExchange {
 		context.write(res);
 	}
 
-	public void sendThunk(byte[] data, BiConsumer<HttpExchange, ChannelFuture> callback) {
+	public void sendSteam(byte[] data, BiConsumer<HttpExchange, ChannelFuture> callback) {
 		var buf = ByteBufAllocator.DEFAULT.ioBuffer(data.length);
 		buf.writeBytes(data);
 		var future = context.write(new DefaultHttpContent(buf), context.newPromise());
 		future.addListener((ChannelFutureListener)future1 -> callback.accept(this, future1));
 	}
 
-	public void endThunk() {
+	public void endStream() {
 		context.write(new DefaultHttpContent(ByteBufAllocator.DEFAULT.ioBuffer(0)));
 		sending = false;
 		tryClose();
