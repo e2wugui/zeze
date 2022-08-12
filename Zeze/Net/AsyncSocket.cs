@@ -578,7 +578,13 @@ namespace Zeze.Net
                 realClose = _outputBufferListSending == null;
             }
             if (realClose)
+            {
                 RealClose();
+            }
+            else
+            {
+                Scheduler.Schedule((ThisTask) => RealClose(), 120 * 1000);
+            }
         }
 
         private void Trigger()
