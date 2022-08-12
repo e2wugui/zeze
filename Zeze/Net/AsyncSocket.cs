@@ -22,6 +22,8 @@ namespace Zeze.Net
         private int _outputBufferListCountSum;
         private List<ArraySegment<byte>> _outputBufferListSending; // 正在发送的 buffers.
         private int _outputBufferListSendingCountSum;
+        private int _closedState;
+
         public Service Service { get; private set; }
         public Connector Connector { get; }
         public Acceptor Acceptor { get; }
@@ -220,7 +222,7 @@ namespace Zeze.Net
             {
                 lock (this)
                 {
-                    if (null == Socket)
+                    if (_closedState != 0)
                         return false;
                     if (null != outputCodecChain)
                     {
@@ -473,6 +475,7 @@ namespace Zeze.Net
 
         private void BeginSendAsync(int _bytesTransferred)
         {
+            var realClose = false;
             lock (this)
             {
                 // 听说 BeginSend 成功回调的时候，所有数据都会被发送，这样的话就可以直接清除_outputBufferSending，而不用这么麻烦。
@@ -541,8 +544,16 @@ namespace Zeze.Net
                     eventArgsSend.BufferList = _outputBufferListSending;
                     if (false == Socket.SendAsync(eventArgsSend))
                         ProcessSend(eventArgsSend);
+
+                }
+                else
+                {
+                    // 输出buffer全部清空，并且处于关闭状态，锁外执行真正的Close。
+                    realClose = _closedState == int.MaxValue;
                 }
             }
+            if (realClose)
+                RealClose();
         }
 
         public void Close(Exception e)
@@ -553,18 +564,25 @@ namespace Zeze.Net
             Dispose();
         }
 
-        public void Dispose()
+        public void CloseGracefully()
         {
-            Socket tmp = null; 
+            if (0 != ClosedState(int.MaxValue))
+                return;
 
+            Trigger();
+
+            var realClose = false;
             lock (this)
             {
-                if (Socket == null)
-                    return;
-                tmp = Socket;
-                Socket = null; // 阻止递归Dispose
+                // 如果当前输出buffer已经是空的，马上关闭。否则等到刷新完成关闭（see BeginSendAsync）。
+                realClose = _outputBufferListSending == null;
             }
+            if (realClose)
+                RealClose();
+        }
 
+        private void Trigger()
+        {
             // 在锁外回调。
             try
             {
@@ -582,9 +600,25 @@ namespace Zeze.Net
             {
                 logger.Error(e);
             }
+        }
+
+        private int ClosedState(int state)
+        {
+            lock (this)
+            {
+                if (_closedState != 0)
+                    return _closedState;
+                _closedState = state;
+                return 0;
+            }
+        }
+ 
+        private void RealClose()
+        {
             try
             {
-                tmp?.Dispose();
+                Socket?.Dispose();
+                Socket = null;
             }
             catch (Exception e)
             {
@@ -599,6 +633,15 @@ namespace Zeze.Net
             {
                 logger.Error(e);
             }
+        }
+
+        public void Dispose()
+        {
+            if (0 != ClosedState(1))
+                return;
+
+            Trigger();
+            RealClose();
         }
 
         public void SetSessionId(long newSessionId)
