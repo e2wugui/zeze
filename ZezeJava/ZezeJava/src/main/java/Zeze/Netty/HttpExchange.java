@@ -221,16 +221,17 @@ public class HttpExchange {
 		}
 	}
 
-	private void parseRange(AsciiString headerName, OutLong from, OutLong to, OutLong size) {
+	private void parseRange(AsciiString headerName, String firstSplit, OutLong from, OutLong to, OutLong size) {
 		from.Value = -1;
 		to.Value = -1;
 		size.Value = -1;
 		var range = headers().get(headerName);
 		if (null != range) {
-			var aunit = range.trim().split(" ");
+			var aunit = range.trim().split(firstSplit);
 			if (aunit.length > 1) {
 				var asize = aunit[1].split("/");
 				if (asize.length > 0) {
+					//如果 asize[0] == ”*“；下面的代码能处理这种情况，不用特别判断。
 					var arange = asize[0].split("-");
 					if (arange.length > 0)
 						from.Value = parse(arange[0]);
@@ -248,7 +249,7 @@ public class HttpExchange {
 		var from = new OutLong();
 		var to = new OutLong();
 		var size = new OutLong();
-		parseRange(HttpHeaderNames.CONTENT_RANGE, from, to, size);
+		parseRange(HttpHeaderNames.CONTENT_RANGE, "=", from, to, size);
 		if (server.Zeze != null && handler.Level != TransactionLevel.None) {
 			Task.run(server.Zeze.NewProcedure(
 					() -> {
@@ -352,7 +353,7 @@ public class HttpExchange {
 		var from = new OutLong();
 		var to = new OutLong();
 		var size = new OutLong(); // not used
-		parseRange(HttpHeaderNames.RANGE, from, to, size);
+		parseRange(HttpHeaderNames.RANGE, " ", from, to, size);
 		if (from.Value == -1)
 			from.Value = 0;
 		if (to.Value == -1)
@@ -366,7 +367,7 @@ public class HttpExchange {
 
 		var response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
 		response.headers().set(HttpHeaderNames.CONTENT_LENGTH, downloadLength);
-
+		response.headers().set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from.Value + "-" + to.Value + "/" + raf.length());
 		// 设置时间头。
 		Calendar time = Calendar.getInstance();
 		response.headers().set(HttpHeaderNames.DATE, dateFormatter.format(time.getTime()));
