@@ -76,14 +76,18 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
     }
 
     public BDepartmentTreeNode() {
-         this(0);
-    }
-
-    public BDepartmentTreeNode(int _varId_) {
-        super(_varId_);
         _Childs = new Zeze.Transaction.Collections.PMap1<>(String.class, Long.class);
         _Childs.VariableId = 2;
         _Name = "";
+        _Managers = new Zeze.Transaction.Collections.PMap1<>(String.class, Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId);
+        _Managers.VariableId = 4;
+    }
+
+    public BDepartmentTreeNode(long _ParentDepartment_, String _Name_) {
+        _ParentDepartment = _ParentDepartment_;
+        _Childs = new Zeze.Transaction.Collections.PMap1<>(String.class, Long.class);
+        _Childs.VariableId = 2;
+        _Name = _Name_;
         _Managers = new Zeze.Transaction.Collections.PMap1<>(String.class, Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId);
         _Managers.VariableId = 4;
     }

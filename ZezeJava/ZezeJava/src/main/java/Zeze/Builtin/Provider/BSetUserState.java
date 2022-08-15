@@ -80,13 +80,14 @@ public final class BSetUserState extends Zeze.Transaction.Bean {
     }
 
     public BSetUserState() {
-         this(0);
-    }
-
-    public BSetUserState(int _varId_) {
-        super(_varId_);
         _context = "";
         _contextx = Zeze.Net.Binary.Empty;
+    }
+
+    public BSetUserState(long _linkSid_, String _context_, Zeze.Net.Binary _contextx_) {
+        _linkSid = _linkSid_;
+        _context = _context_;
+        _contextx = _contextx_;
     }
 
     public void Assign(BSetUserState other) {

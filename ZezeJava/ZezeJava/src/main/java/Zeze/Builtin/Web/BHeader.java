@@ -24,11 +24,6 @@ public final class BHeader extends Zeze.Transaction.Bean {
     }
 
     public BHeader() {
-         this(0);
-    }
-
-    public BHeader(int _varId_) {
-        super(_varId_);
         _Values = new Zeze.Transaction.Collections.PList1<>(String.class);
         _Values.VariableId = 1;
     }

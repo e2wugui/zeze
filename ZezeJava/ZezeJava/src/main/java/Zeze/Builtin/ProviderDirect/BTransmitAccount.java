@@ -112,17 +112,21 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
     }
 
     public BTransmitAccount() {
-         this(0);
-    }
-
-    public BTransmitAccount(int _varId_) {
-        super(_varId_);
         _ActionName = "";
         _Parameter = Zeze.Net.Binary.Empty;
         _TargetAccounts = new Zeze.Transaction.Collections.PSet1<>(String.class);
         _TargetAccounts.VariableId = 3;
         _SenderAccount = "";
         _SenderClientId = "";
+    }
+
+    public BTransmitAccount(String _ActionName_, Zeze.Net.Binary _Parameter_, String _SenderAccount_, String _SenderClientId_) {
+        _ActionName = _ActionName_;
+        _Parameter = _Parameter_;
+        _TargetAccounts = new Zeze.Transaction.Collections.PSet1<>(String.class);
+        _TargetAccounts.VariableId = 3;
+        _SenderAccount = _SenderAccount_;
+        _SenderClientId = _SenderClientId_;
     }
 
     public void Assign(BTransmitAccount other) {

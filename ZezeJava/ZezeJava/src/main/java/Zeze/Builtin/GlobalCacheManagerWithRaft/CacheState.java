@@ -44,12 +44,14 @@ public final class CacheState extends Zeze.Raft.RocksRaft.Bean {
     }
 
     public CacheState() {
-         this(0);
+        _Modify = -1;
+        _Share = new Zeze.Raft.RocksRaft.CollSet1<>(Integer.class);
+        _Share.VariableId = 3;
     }
 
-    public CacheState(int _varId_) {
-        super(_varId_);
-        _Modify = -1;
+    public CacheState(int _AcquireStatePending_, int _Modify_) {
+        _AcquireStatePending = _AcquireStatePending_;
+        _Modify = _Modify_;
         _Share = new Zeze.Raft.RocksRaft.CollSet1<>(Integer.class);
         _Share.VariableId = 3;
     }

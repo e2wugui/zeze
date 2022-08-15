@@ -32,12 +32,11 @@ public final class BNotify extends Zeze.Transaction.Bean {
     }
 
     public BNotify() {
-         this(0);
+        _FullEncodedProtocol = Zeze.Net.Binary.Empty;
     }
 
-    public BNotify(int _varId_) {
-        super(_varId_);
-        _FullEncodedProtocol = Zeze.Net.Binary.Empty;
+    public BNotify(Zeze.Net.Binary _FullEncodedProtocol_) {
+        _FullEncodedProtocol = _FullEncodedProtocol_;
     }
 
     public void Assign(BNotify other) {

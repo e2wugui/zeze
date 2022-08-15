@@ -153,15 +153,19 @@ public final class BDispatch extends Zeze.Transaction.Bean {
     }
 
     public BDispatch() {
-         this(0);
-    }
-
-    public BDispatch(int _varId_) {
-        super(_varId_);
         _account = "";
         _protocolData = Zeze.Net.Binary.Empty;
         _context = "";
         _contextx = Zeze.Net.Binary.Empty;
+    }
+
+    public BDispatch(long _linkSid_, String _account_, long _protocolType_, Zeze.Net.Binary _protocolData_, String _context_, Zeze.Net.Binary _contextx_) {
+        _linkSid = _linkSid_;
+        _account = _account_;
+        _protocolType = _protocolType_;
+        _protocolData = _protocolData_;
+        _context = _context_;
+        _contextx = _contextx_;
     }
 
     public void Assign(BDispatch other) {

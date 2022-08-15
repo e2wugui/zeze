@@ -151,14 +151,18 @@ public final class BModuleRedirectArgument extends Zeze.Transaction.Bean {
     }
 
     public BModuleRedirectArgument() {
-         this(0);
-    }
-
-    public BModuleRedirectArgument(int _varId_) {
-        super(_varId_);
         _MethodFullName = "";
         _Params = Zeze.Net.Binary.Empty;
         _ServiceNamePrefix = "";
+    }
+
+    public BModuleRedirectArgument(int _ModuleId_, int _HashCode_, int _RedirectType_, String _MethodFullName_, Zeze.Net.Binary _Params_, String _ServiceNamePrefix_) {
+        _ModuleId = _ModuleId_;
+        _HashCode = _HashCode_;
+        _RedirectType = _RedirectType_;
+        _MethodFullName = _MethodFullName_;
+        _Params = _Params_;
+        _ServiceNamePrefix = _ServiceNamePrefix_;
     }
 
     public void Assign(BModuleRedirectArgument other) {

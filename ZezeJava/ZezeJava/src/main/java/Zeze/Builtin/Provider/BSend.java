@@ -60,14 +60,16 @@ public final class BSend extends Zeze.Transaction.Bean {
     }
 
     public BSend() {
-         this(0);
-    }
-
-    public BSend(int _varId_) {
-        super(_varId_);
         _linkSids = new Zeze.Transaction.Collections.PSet1<>(Long.class);
         _linkSids.VariableId = 1;
         _protocolWholeData = Zeze.Net.Binary.Empty;
+    }
+
+    public BSend(long _protocolType_, Zeze.Net.Binary _protocolWholeData_) {
+        _linkSids = new Zeze.Transaction.Collections.PSet1<>(Long.class);
+        _linkSids.VariableId = 1;
+        _protocolType = _protocolType_;
+        _protocolWholeData = _protocolWholeData_;
     }
 
     public void Assign(BSend other) {

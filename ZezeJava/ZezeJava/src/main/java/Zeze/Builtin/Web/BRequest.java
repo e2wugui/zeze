@@ -183,11 +183,6 @@ public final class BRequest extends Zeze.Transaction.Bean {
     }
 
     public BRequest() {
-         this(0);
-    }
-
-    public BRequest(int _varId_) {
-        super(_varId_);
         _Method = "";
         _Path = "";
         _Query = "";
@@ -195,6 +190,18 @@ public final class BRequest extends Zeze.Transaction.Bean {
         _Headers.VariableId = 5;
         _Body = Zeze.Net.Binary.Empty;
         _AuthedAccount = "";
+    }
+
+    public BRequest(long _ExchangeId_, String _Method_, String _Path_, String _Query_, Zeze.Net.Binary _Body_, boolean _Finish_, String _AuthedAccount_) {
+        _ExchangeId = _ExchangeId_;
+        _Method = _Method_;
+        _Path = _Path_;
+        _Query = _Query_;
+        _Headers = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Web.BHeader.class);
+        _Headers.VariableId = 5;
+        _Body = _Body_;
+        _Finish = _Finish_;
+        _AuthedAccount = _AuthedAccount_;
     }
 
     public void Assign(BRequest other) {

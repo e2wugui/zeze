@@ -12,11 +12,6 @@ public final class BItemClasses extends Zeze.Transaction.Bean {
     }
 
     public BItemClasses() {
-         this(0);
-    }
-
-    public BItemClasses(int _varId_) {
-        super(_varId_);
         _ItemClasses = new Zeze.Transaction.Collections.PSet1<>(String.class);
         _ItemClasses.VariableId = 1;
     }

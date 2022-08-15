@@ -78,12 +78,13 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean {
     }
 
     public BModuleRedirectResult() {
-         this(0);
+        _Params = Zeze.Net.Binary.Empty;
     }
 
-    public BModuleRedirectResult(int _varId_) {
-        super(_varId_);
-        _Params = Zeze.Net.Binary.Empty;
+    public BModuleRedirectResult(int _ModuleId_, int _ServerId_, Zeze.Net.Binary _Params_) {
+        _ModuleId = _ModuleId_;
+        _ServerId = _ServerId_;
+        _Params = _Params_;
     }
 
     public void Assign(BModuleRedirectResult other) {

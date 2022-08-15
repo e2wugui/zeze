@@ -76,11 +76,12 @@ public final class BLoad extends Zeze.Transaction.Bean {
     }
 
     public BLoad() {
-         this(0);
     }
 
-    public BLoad(int _varId_) {
-        super(_varId_);
+    public BLoad(int _Online_, int _ProposeMaxOnline_, int _OnlineNew_) {
+        _Online = _Online_;
+        _ProposeMaxOnline = _ProposeMaxOnline_;
+        _OnlineNew = _OnlineNew_;
     }
 
     public void Assign(BLoad other) {

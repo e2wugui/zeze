@@ -30,11 +30,10 @@ public final class BCloseExchange extends Zeze.Transaction.Bean {
     }
 
     public BCloseExchange() {
-         this(0);
     }
 
-    public BCloseExchange(int _varId_) {
-        super(_varId_);
+    public BCloseExchange(long _ExchangeId_) {
+        _ExchangeId = _ExchangeId_;
     }
 
     public void Assign(BCloseExchange other) {

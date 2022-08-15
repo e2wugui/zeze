@@ -207,11 +207,6 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
     }
 
     public Value() {
-         this(0);
-    }
-
-    public Value(int _varId_) {
-        super(_varId_);
         _String = "";
         _Binary = Zeze.Net.Binary.Empty;
         _SetInt = new Zeze.Raft.RocksRaft.CollSet1<>(Integer.class);
@@ -223,6 +218,24 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
         _MapBean = new Zeze.Raft.RocksRaft.CollMap2<>(Integer.class, Zeze.Builtin.TestRocks.Value.class);
         _MapBean.VariableId = 10;
         _Beankey = new Zeze.Builtin.TestRocks.BeanKey();
+    }
+
+    public Value(int _Int_, boolean _Bool_, float _Float_, double _double_, String _String_, Zeze.Net.Binary _Binary_, Zeze.Builtin.TestRocks.BeanKey _Beankey_) {
+        _Int = _Int_;
+        _Bool = _Bool_;
+        _Float = _Float_;
+        _double = _double_;
+        _String = _String_;
+        _Binary = _Binary_;
+        _SetInt = new Zeze.Raft.RocksRaft.CollSet1<>(Integer.class);
+        _SetInt.VariableId = 7;
+        _SetBeankey = new Zeze.Raft.RocksRaft.CollSet1<>(Zeze.Builtin.TestRocks.BeanKey.class);
+        _SetBeankey.VariableId = 8;
+        _MapInt = new Zeze.Raft.RocksRaft.CollMap1<>(Integer.class, Integer.class);
+        _MapInt.VariableId = 9;
+        _MapBean = new Zeze.Raft.RocksRaft.CollMap2<>(Integer.class, Zeze.Builtin.TestRocks.Value.class);
+        _MapBean.VariableId = 10;
+        _Beankey = _Beankey_;
     }
 
     public void Assign(Value other) {

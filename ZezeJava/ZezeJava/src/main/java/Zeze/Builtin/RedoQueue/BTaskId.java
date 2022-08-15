@@ -30,11 +30,10 @@ public final class BTaskId extends Zeze.Transaction.Bean {
     }
 
     public BTaskId() {
-         this(0);
     }
 
-    public BTaskId(int _varId_) {
-        super(_varId_);
+    public BTaskId(long _TaskId_) {
+        _TaskId = _TaskId_;
     }
 
     public void Assign(BTaskId other) {

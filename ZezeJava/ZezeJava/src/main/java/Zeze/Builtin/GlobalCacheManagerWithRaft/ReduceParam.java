@@ -55,12 +55,12 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
     }
 
     public ReduceParam() {
-         this(0);
+        _GlobalKey = Zeze.Net.Binary.Empty;
     }
 
-    public ReduceParam(int _varId_) {
-        super(_varId_);
-        _GlobalKey = Zeze.Net.Binary.Empty;
+    public ReduceParam(Zeze.Net.Binary _GlobalKey_, int _State_) {
+        _GlobalKey = _GlobalKey_;
+        _State = _State_;
     }
 
     public void Assign(ReduceParam other) {

@@ -35,11 +35,12 @@ public final class BQueueNode extends Zeze.Transaction.Bean {
     }
 
     public BQueueNode() {
-         this(0);
+        _Values = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Collections.Queue.BQueueNodeValue.class);
+        _Values.VariableId = 2;
     }
 
-    public BQueueNode(int _varId_) {
-        super(_varId_);
+    public BQueueNode(long _NextNodeId_) {
+        _NextNodeId = _NextNodeId_;
         _Values = new Zeze.Transaction.Collections.PList2<>(Zeze.Builtin.Collections.Queue.BQueueNodeValue.class);
         _Values.VariableId = 2;
     }

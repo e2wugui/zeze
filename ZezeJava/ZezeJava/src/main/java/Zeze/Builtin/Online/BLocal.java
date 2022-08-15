@@ -47,11 +47,12 @@ public final class BLocal extends Zeze.Transaction.Bean {
     }
 
     public BLocal() {
-         this(0);
+        _Datas = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Online.BAny.class);
+        _Datas.VariableId = 2;
     }
 
-    public BLocal(int _varId_) {
-        super(_varId_);
+    public BLocal(long _LoginVersion_) {
+        _LoginVersion = _LoginVersion_;
         _Datas = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Online.BAny.class);
         _Datas.VariableId = 2;
     }

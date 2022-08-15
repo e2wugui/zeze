@@ -32,12 +32,11 @@ public final class BSession extends Zeze.Transaction.Bean {
     }
 
     public BSession() {
-         this(0);
+        _Account = "";
     }
 
-    public BSession(int _varId_) {
-        super(_varId_);
-        _Account = "";
+    public BSession(String _Account_) {
+        _Account = _Account_;
     }
 
     public void Assign(BSession other) {

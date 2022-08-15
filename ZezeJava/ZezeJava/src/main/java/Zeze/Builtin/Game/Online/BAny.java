@@ -35,11 +35,6 @@ public final class BAny extends Zeze.Transaction.Bean {
     }
 
     public BAny() {
-         this(0);
-    }
-
-    public BAny(int _varId_) {
-        super(_varId_);
         _Any = new Zeze.Transaction.DynamicBean(1, Zeze.Game.Online::GetSpecialTypeIdFromBean, Zeze.Game.Online::CreateBeanFromSpecialTypeId);
     }
 

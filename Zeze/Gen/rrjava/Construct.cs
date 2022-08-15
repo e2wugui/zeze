@@ -12,15 +12,43 @@ namespace Zeze.Gen.rrjava
 		public static void Make(Bean bean, StreamWriter sw, string prefix)
 		{
             sw.WriteLine(prefix + "public " + bean.Name + "() {");
-            sw.WriteLine(prefix + "     this(0);");
-            sw.WriteLine(prefix + "}");
-            sw.WriteLine();
-            sw.WriteLine(prefix + "public " + bean.Name + "(int _varId_) {");
-            sw.WriteLine(prefix + "    super(_varId_);");
-            foreach (Variable var in bean.Variables)
+            var hasImmutable = false;
+            foreach (var var in bean.Variables)
+            {
+                if (var.VariableType.IsImmutable)
+                    hasImmutable = true;
                 var.VariableType.Accept(new Construct(sw, var, prefix + "    "));
+            }
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
+            if (hasImmutable)
+            {
+                sw.Write(prefix + "public " + bean.Name + '(');
+                var first = true;
+                foreach (var var in bean.Variables)
+                {
+                    if (var.VariableType.IsImmutable)
+                    {
+                        if (first)
+                            first = false;
+                        else
+                            sw.Write(", ");
+                        sw.Write($"{TypeName.GetName(var.VariableType)} {var.NamePrivate}_");
+                    }
+                }
+
+                sw.WriteLine(") {");
+                foreach (var var in bean.Variables)
+                {
+                    if (var.VariableType.IsImmutable)
+                        sw.WriteLine($"{prefix}    {var.NamePrivate} = {var.NamePrivate}_;");
+                    else
+                        var.VariableType.Accept(new Construct(sw, var, prefix + "    "));
+                }
+
+                sw.WriteLine(prefix + "}");
+                sw.WriteLine();
+            }
         }
 
         public Construct(StreamWriter sw, Variable variable, string prefix)
@@ -43,7 +71,8 @@ namespace Zeze.Gen.rrjava
         public void Visit(Bean type)
         {
             string typeName = TypeName.GetName(type);
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "(" + variable.Id + ");");
+            sw.WriteLine(prefix + variable.NamePrivate + " = new " + typeName + "();");
+            sw.WriteLine(prefix + variable.NamePrivate + $".VariableId = {variable.Id};");
         }
 
         public void Visit(BeanKey type)

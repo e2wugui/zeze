@@ -78,12 +78,13 @@ public final class AchillesHeel extends Zeze.Transaction.Bean {
     }
 
     public AchillesHeel() {
-         this(0);
+        _SecureKey = "";
     }
 
-    public AchillesHeel(int _varId_) {
-        super(_varId_);
-        _SecureKey = "";
+    public AchillesHeel(int _ServerId_, String _SecureKey_, int _GlobalCacheManagerHashIndex_) {
+        _ServerId = _ServerId_;
+        _SecureKey = _SecureKey_;
+        _GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex_;
     }
 
     public void Assign(AchillesHeel other) {

@@ -85,15 +85,18 @@ public final class BTransmit extends Zeze.Transaction.Bean {
     }
 
     public BTransmit() {
-         this(0);
-    }
-
-    public BTransmit(int _varId_) {
-        super(_varId_);
         _ActionName = "";
         _Roles = new Zeze.Transaction.Collections.PSet1<>(Long.class);
         _Roles.VariableId = 2;
         _Parameter = Zeze.Net.Binary.Empty;
+    }
+
+    public BTransmit(String _ActionName_, long _Sender_, Zeze.Net.Binary _Parameter_) {
+        _ActionName = _ActionName_;
+        _Roles = new Zeze.Transaction.Collections.PSet1<>(Long.class);
+        _Roles.VariableId = 2;
+        _Sender = _Sender_;
+        _Parameter = _Parameter_;
     }
 
     public void Assign(BTransmit other) {

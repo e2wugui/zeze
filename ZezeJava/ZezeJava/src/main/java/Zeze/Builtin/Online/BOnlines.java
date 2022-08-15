@@ -12,11 +12,6 @@ public final class BOnlines extends Zeze.Transaction.Bean {
     }
 
     public BOnlines() {
-         this(0);
-    }
-
-    public BOnlines(int _varId_) {
-        super(_varId_);
         _Logins = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Online.BOnline.class);
         _Logins.VariableId = 1;
     }

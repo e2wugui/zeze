@@ -6,11 +6,6 @@ import Zeze.Serialize.ByteBuffer;
 @SuppressWarnings({"UnusedAssignment", "RedundantIfStatement", "SwitchStatementWithTooFewBranches", "RedundantSuppression"})
 public final class BAnnounceLinkInfo extends Zeze.Transaction.Bean {
     public BAnnounceLinkInfo() {
-         this(0);
-    }
-
-    public BAnnounceLinkInfo(int _varId_) {
-        super(_varId_);
     }
 
     public void Assign(BAnnounceLinkInfo other) {

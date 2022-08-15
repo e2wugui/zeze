@@ -46,11 +46,11 @@ public final class BQueueNodeValue extends Zeze.Transaction.Bean {
     }
 
     public BQueueNodeValue() {
-         this(0);
+        _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.Queue::GetSpecialTypeIdFromBean, Zeze.Collections.Queue::CreateBeanFromSpecialTypeId);
     }
 
-    public BQueueNodeValue(int _varId_) {
-        super(_varId_);
+    public BQueueNodeValue(long _Timestamp_) {
+        _Timestamp = _Timestamp_;
         _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.Queue::GetSpecialTypeIdFromBean, Zeze.Collections.Queue::CreateBeanFromSpecialTypeId);
     }
 

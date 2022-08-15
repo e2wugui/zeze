@@ -133,16 +133,21 @@ public final class BResponse extends Zeze.Transaction.Bean {
     }
 
     public BResponse() {
-         this(0);
-    }
-
-    public BResponse(int _varId_) {
-        super(_varId_);
         _Headers = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Web.BHeader.class);
         _Headers.VariableId = 2;
         _Body = Zeze.Net.Binary.Empty;
         _Message = "";
         _Stacktrace = "";
+    }
+
+    public BResponse(int _Code_, Zeze.Net.Binary _Body_, boolean _Finish_, String _Message_, String _Stacktrace_) {
+        _Code = _Code_;
+        _Headers = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Web.BHeader.class);
+        _Headers.VariableId = 2;
+        _Body = _Body_;
+        _Finish = _Finish_;
+        _Message = _Message_;
+        _Stacktrace = _Stacktrace_;
     }
 
     public void Assign(BResponse other) {

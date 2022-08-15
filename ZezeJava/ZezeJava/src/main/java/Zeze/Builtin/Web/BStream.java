@@ -78,12 +78,13 @@ public final class BStream extends Zeze.Transaction.Bean {
     }
 
     public BStream() {
-         this(0);
+        _Body = Zeze.Net.Binary.Empty;
     }
 
-    public BStream(int _varId_) {
-        super(_varId_);
-        _Body = Zeze.Net.Binary.Empty;
+    public BStream(long _ExchangeId_, Zeze.Net.Binary _Body_, boolean _Finish_) {
+        _ExchangeId = _ExchangeId_;
+        _Body = _Body_;
+        _Finish = _Finish_;
     }
 
     public void Assign(BStream other) {

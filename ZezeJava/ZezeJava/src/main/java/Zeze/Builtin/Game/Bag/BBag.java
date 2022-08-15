@@ -35,11 +35,12 @@ public final class BBag extends Zeze.Transaction.Bean {
     }
 
     public BBag() {
-         this(0);
+        _Items = new Zeze.Transaction.Collections.PMap2<>(Integer.class, Zeze.Builtin.Game.Bag.BItem.class);
+        _Items.VariableId = 2;
     }
 
-    public BBag(int _varId_) {
-        super(_varId_);
+    public BBag(int _Capacity_) {
+        _Capacity = _Capacity_;
         _Items = new Zeze.Transaction.Collections.PMap2<>(Integer.class, Zeze.Builtin.Game.Bag.BItem.class);
         _Items.VariableId = 2;
     }

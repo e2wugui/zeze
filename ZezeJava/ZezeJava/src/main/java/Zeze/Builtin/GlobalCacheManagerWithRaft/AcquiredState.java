@@ -30,11 +30,10 @@ public final class AcquiredState extends Zeze.Raft.RocksRaft.Bean {
     }
 
     public AcquiredState() {
-         this(0);
     }
 
-    public AcquiredState(int _varId_) {
-        super(_varId_);
+    public AcquiredState(int _State_) {
+        _State = _State_;
     }
 
     public void Assign(AcquiredState other) {

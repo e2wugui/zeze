@@ -105,14 +105,16 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
     }
 
     public BAnnounceProviderInfo() {
-         this(0);
-    }
-
-    public BAnnounceProviderInfo(int _varId_) {
-        super(_varId_);
         _ServiceNamePrefix = "";
         _ServiceIndentity = "";
         _ProviderDirectIp = "";
+    }
+
+    public BAnnounceProviderInfo(String _ServiceNamePrefix_, String _ServiceIndentity_, String _ProviderDirectIp_, int _ProviderDirectPort_) {
+        _ServiceNamePrefix = _ServiceNamePrefix_;
+        _ServiceIndentity = _ServiceIndentity_;
+        _ProviderDirectIp = _ProviderDirectIp_;
+        _ProviderDirectPort = _ProviderDirectPort_;
     }
 
     public void Assign(BAnnounceProviderInfo other) {

@@ -12,11 +12,6 @@ public final class BSubscribe extends Zeze.Transaction.Bean {
     }
 
     public BSubscribe() {
-         this(0);
-    }
-
-    public BSubscribe(int _varId_) {
-        super(_varId_);
         _modules = new Zeze.Transaction.Collections.PMap2<>(Integer.class, Zeze.Builtin.Provider.BModule.class);
         _modules.VariableId = 1;
     }

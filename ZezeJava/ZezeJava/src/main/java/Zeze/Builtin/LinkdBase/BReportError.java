@@ -83,12 +83,13 @@ public final class BReportError extends Zeze.Transaction.Bean {
     }
 
     public BReportError() {
-         this(0);
+        _desc = "";
     }
 
-    public BReportError(int _varId_) {
-        super(_varId_);
-        _desc = "";
+    public BReportError(int _from_, int _code_, String _desc_) {
+        _from = _from_;
+        _code = _code_;
+        _desc = _desc_;
     }
 
     public void Assign(BReportError other) {

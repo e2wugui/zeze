@@ -30,11 +30,10 @@ public final class BLogin extends Zeze.Transaction.Bean {
     }
 
     public BLogin() {
-         this(0);
     }
 
-    public BLogin(int _varId_) {
-        super(_varId_);
+    public BLogin(long _RoleId_) {
+        _RoleId = _RoleId_;
     }
 
     public void Assign(BLogin other) {

@@ -84,12 +84,13 @@ public final class BKick extends Zeze.Transaction.Bean {
     }
 
     public BKick() {
-         this(0);
+        _desc = "";
     }
 
-    public BKick(int _varId_) {
-        super(_varId_);
-        _desc = "";
+    public BKick(long _linksid_, int _code_, String _desc_) {
+        _linksid = _linksid_;
+        _code = _code_;
+        _desc = _desc_;
     }
 
     public void Assign(BKick other) {

@@ -30,11 +30,10 @@ public final class BAutoKey extends Zeze.Transaction.Bean {
     }
 
     public BAutoKey() {
-         this(0);
     }
 
-    public BAutoKey(int _varId_) {
-        super(_varId_);
+    public BAutoKey(long _NextId_) {
+        _NextId = _NextId_;
     }
 
     public void Assign(BAutoKey other) {

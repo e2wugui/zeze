@@ -35,13 +35,14 @@ public final class BReliableNotify extends Zeze.Transaction.Bean {
     }
 
     public BReliableNotify() {
-         this(0);
-    }
-
-    public BReliableNotify(int _varId_) {
-        super(_varId_);
         _Notifies = new Zeze.Transaction.Collections.PList1<>(Zeze.Net.Binary.class);
         _Notifies.VariableId = 1;
+    }
+
+    public BReliableNotify(long _ReliableNotifyIndex_) {
+        _Notifies = new Zeze.Transaction.Collections.PList1<>(Zeze.Net.Binary.class);
+        _Notifies.VariableId = 1;
+        _ReliableNotifyIndex = _ReliableNotifyIndex_;
     }
 
     public void Assign(BReliableNotify other) {

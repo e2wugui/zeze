@@ -78,12 +78,13 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
     }
 
     public BReliableNotifyConfirm() {
-         this(0);
+        _ClientId = "";
     }
 
-    public BReliableNotifyConfirm(int _varId_) {
-        super(_varId_);
-        _ClientId = "";
+    public BReliableNotifyConfirm(String _ClientId_, long _ReliableNotifyConfirmIndex_, boolean _Sync_) {
+        _ClientId = _ClientId_;
+        _ReliableNotifyConfirmIndex = _ReliableNotifyConfirmIndex_;
+        _Sync = _Sync_;
     }
 
     public void Assign(BReliableNotifyConfirm other) {

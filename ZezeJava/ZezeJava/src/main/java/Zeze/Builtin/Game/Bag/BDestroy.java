@@ -55,12 +55,12 @@ public final class BDestroy extends Zeze.Transaction.Bean {
     }
 
     public BDestroy() {
-         this(0);
+        _BagName = "";
     }
 
-    public BDestroy(int _varId_) {
-        super(_varId_);
-        _BagName = "";
+    public BDestroy(String _BagName_, int _Position_) {
+        _BagName = _BagName_;
+        _Position = _Position_;
     }
 
     public void Assign(BDestroy other) {

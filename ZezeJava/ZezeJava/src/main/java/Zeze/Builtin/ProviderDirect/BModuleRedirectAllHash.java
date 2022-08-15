@@ -67,12 +67,12 @@ public final class BModuleRedirectAllHash extends Zeze.Transaction.Bean {
     }
 
     public BModuleRedirectAllHash() {
-         this(0);
+        _Params = Zeze.Net.Binary.Empty;
     }
 
-    public BModuleRedirectAllHash(int _varId_) {
-        super(_varId_);
-        _Params = Zeze.Net.Binary.Empty;
+    public BModuleRedirectAllHash(long _ReturnCode_, Zeze.Net.Binary _Params_) {
+        _ReturnCode = _ReturnCode_;
+        _Params = _Params_;
     }
 
     public void Assign(BModuleRedirectAllHash other) {

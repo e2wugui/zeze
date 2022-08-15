@@ -32,12 +32,11 @@ public final class BLogin extends Zeze.Transaction.Bean {
     }
 
     public BLogin() {
-         this(0);
+        _ClientId = "";
     }
 
-    public BLogin(int _varId_) {
-        super(_varId_);
-        _ClientId = "";
+    public BLogin(String _ClientId_) {
+        _ClientId = _ClientId_;
     }
 
     public void Assign(BLogin other) {

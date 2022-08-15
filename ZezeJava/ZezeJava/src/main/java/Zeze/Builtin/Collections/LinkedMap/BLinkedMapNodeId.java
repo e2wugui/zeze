@@ -30,11 +30,10 @@ public final class BLinkedMapNodeId extends Zeze.Transaction.Bean {
     }
 
     public BLinkedMapNodeId() {
-         this(0);
     }
 
-    public BLinkedMapNodeId(int _varId_) {
-        super(_varId_);
+    public BLinkedMapNodeId(long _NodeId_) {
+        _NodeId = _NodeId_;
     }
 
     public void Assign(BLinkedMapNodeId other) {

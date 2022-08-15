@@ -67,12 +67,12 @@ public final class BOnline extends Zeze.Transaction.Bean {
     }
 
     public BOnline() {
-         this(0);
+        _LinkName = "";
     }
 
-    public BOnline(int _varId_) {
-        super(_varId_);
-        _LinkName = "";
+    public BOnline(String _LinkName_, long _LinkSid_) {
+        _LinkName = _LinkName_;
+        _LinkSid = _LinkSid_;
     }
 
     public void Assign(BOnline other) {

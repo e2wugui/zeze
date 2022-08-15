@@ -99,11 +99,13 @@ public final class BQueue extends Zeze.Transaction.Bean {
     }
 
     public BQueue() {
-         this(0);
     }
 
-    public BQueue(int _varId_) {
-        super(_varId_);
+    public BQueue(long _HeadNodeId_, long _TailNodeId_, long _Count_, long _LastNodeId_) {
+        _HeadNodeId = _HeadNodeId_;
+        _TailNodeId = _TailNodeId_;
+        _Count = _Count_;
+        _LastNodeId = _LastNodeId_;
     }
 
     public void Assign(BQueue other) {

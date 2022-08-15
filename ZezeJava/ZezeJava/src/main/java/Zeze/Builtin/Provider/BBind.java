@@ -20,11 +20,6 @@ public final class BBind extends Zeze.Transaction.Bean {
     }
 
     public BBind() {
-         this(0);
-    }
-
-    public BBind(int _varId_) {
-        super(_varId_);
         _modules = new Zeze.Transaction.Collections.PMap2<>(Integer.class, Zeze.Builtin.Provider.BModule.class);
         _modules.VariableId = 1;
         _linkSids = new Zeze.Transaction.Collections.PSet1<>(Long.class);

@@ -12,11 +12,6 @@ public final class BVersions extends Zeze.Transaction.Bean {
     }
 
     public BVersions() {
-         this(0);
-    }
-
-    public BVersions(int _varId_) {
-        super(_varId_);
         _Logins = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Online.BVersion.class);
         _Logins.VariableId = 1;
     }

@@ -81,11 +81,12 @@ public final class BItem extends Zeze.Transaction.Bean {
     }
 
     public BItem() {
-         this(0);
+        _Item = new Zeze.Transaction.DynamicBean(3, Zeze.Game.Bag::GetSpecialTypeIdFromBean, Zeze.Game.Bag::CreateBeanFromSpecialTypeId);
     }
 
-    public BItem(int _varId_) {
-        super(_varId_);
+    public BItem(int _Id_, int _Number_) {
+        _Id = _Id_;
+        _Number = _Number_;
         _Item = new Zeze.Transaction.DynamicBean(3, Zeze.Game.Bag::GetSpecialTypeIdFromBean, Zeze.Game.Bag::CreateBeanFromSpecialTypeId);
     }
 

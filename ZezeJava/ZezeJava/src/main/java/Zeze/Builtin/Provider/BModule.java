@@ -96,11 +96,12 @@ public final class BModule extends Zeze.Transaction.Bean {
     }
 
     public BModule() {
-         this(0);
     }
 
-    public BModule(int _varId_) {
-        super(_varId_);
+    public BModule(int _ChoiceType_, int _ConfigType_, int _SubscribeType_) {
+        _ChoiceType = _ChoiceType_;
+        _ConfigType = _ConfigType_;
+        _SubscribeType = _SubscribeType_;
     }
 
     public void Assign(BModule other) {

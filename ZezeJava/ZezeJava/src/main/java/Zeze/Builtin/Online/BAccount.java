@@ -30,11 +30,10 @@ public final class BAccount extends Zeze.Transaction.Bean {
     }
 
     public BAccount() {
-         this(0);
     }
 
-    public BAccount(int _varId_) {
-        super(_varId_);
+    public BAccount(long _LastLoginVersion_) {
+        _LastLoginVersion = _LastLoginVersion_;
     }
 
     public void Assign(BAccount other) {

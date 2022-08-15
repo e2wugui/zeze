@@ -53,11 +53,11 @@ public final class LoginParam extends Zeze.Transaction.Bean {
     }
 
     public LoginParam() {
-         this(0);
     }
 
-    public LoginParam(int _varId_) {
-        super(_varId_);
+    public LoginParam(int _ServerId_, int _GlobalCacheManagerHashIndex_) {
+        _ServerId = _ServerId_;
+        _GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex_;
     }
 
     public void Assign(LoginParam other) {

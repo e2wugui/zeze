@@ -76,11 +76,12 @@ public final class AchillesHeelConfig extends Zeze.Transaction.Bean {
     }
 
     public AchillesHeelConfig() {
-         this(0);
     }
 
-    public AchillesHeelConfig(int _varId_) {
-        super(_varId_);
+    public AchillesHeelConfig(int _MaxNetPing_, int _ServerProcessTime_, int _ServerReleaseTimeout_) {
+        _MaxNetPing = _MaxNetPing_;
+        _ServerProcessTime = _ServerProcessTime_;
+        _ServerReleaseTimeout = _ServerReleaseTimeout_;
     }
 
     public void Assign(AchillesHeelConfig other) {

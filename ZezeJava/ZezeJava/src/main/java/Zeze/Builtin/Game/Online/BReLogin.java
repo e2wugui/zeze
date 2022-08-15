@@ -53,11 +53,11 @@ public final class BReLogin extends Zeze.Transaction.Bean {
     }
 
     public BReLogin() {
-         this(0);
     }
 
-    public BReLogin(int _varId_) {
-        super(_varId_);
+    public BReLogin(long _RoleId_, long _ReliableNotifyConfirmIndex_) {
+        _RoleId = _RoleId_;
+        _ReliableNotifyConfirmIndex = _ReliableNotifyConfirmIndex_;
     }
 
     public void Assign(BReLogin other) {

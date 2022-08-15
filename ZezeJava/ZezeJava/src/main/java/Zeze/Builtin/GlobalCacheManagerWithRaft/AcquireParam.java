@@ -55,12 +55,12 @@ public final class AcquireParam extends Zeze.Transaction.Bean {
     }
 
     public AcquireParam() {
-         this(0);
+        _GlobalKey = Zeze.Net.Binary.Empty;
     }
 
-    public AcquireParam(int _varId_) {
-        super(_varId_);
-        _GlobalKey = Zeze.Net.Binary.Empty;
+    public AcquireParam(Zeze.Net.Binary _GlobalKey_, int _State_) {
+        _GlobalKey = _GlobalKey_;
+        _State = _State_;
     }
 
     public void Assign(AcquireParam other) {

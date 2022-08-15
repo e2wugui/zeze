@@ -78,12 +78,13 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
     }
 
     public BProviderInfo() {
-         this(0);
+        _Ip = "";
     }
 
-    public BProviderInfo(int _varId_) {
-        super(_varId_);
-        _Ip = "";
+    public BProviderInfo(String _Ip_, int _Port_, int _ServerId_) {
+        _Ip = _Ip_;
+        _Port = _Port_;
+        _ServerId = _ServerId_;
     }
 
     public void Assign(BProviderInfo other) {

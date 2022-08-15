@@ -101,12 +101,14 @@ public final class BMove extends Zeze.Transaction.Bean {
     }
 
     public BMove() {
-         this(0);
+        _BagName = "";
     }
 
-    public BMove(int _varId_) {
-        super(_varId_);
-        _BagName = "";
+    public BMove(String _BagName_, int _PositionFrom_, int _PositionTo_, int _number_) {
+        _BagName = _BagName_;
+        _PositionFrom = _PositionFrom_;
+        _PositionTo = _PositionTo_;
+        _number = _number_;
     }
 
     public void Assign(BMove other) {

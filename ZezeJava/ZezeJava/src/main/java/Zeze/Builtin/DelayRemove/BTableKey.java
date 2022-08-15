@@ -57,13 +57,13 @@ public final class BTableKey extends Zeze.Transaction.Bean {
     }
 
     public BTableKey() {
-         this(0);
-    }
-
-    public BTableKey(int _varId_) {
-        super(_varId_);
         _TableName = "";
         _EncodedKey = Zeze.Net.Binary.Empty;
+    }
+
+    public BTableKey(String _TableName_, Zeze.Net.Binary _EncodedKey_) {
+        _TableName = _TableName_;
+        _EncodedKey = _EncodedKey_;
     }
 
     public void Assign(BTableKey other) {

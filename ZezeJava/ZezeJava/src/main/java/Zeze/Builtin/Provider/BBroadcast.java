@@ -78,12 +78,13 @@ public final class BBroadcast extends Zeze.Transaction.Bean {
     }
 
     public BBroadcast() {
-         this(0);
+        _protocolWholeData = Zeze.Net.Binary.Empty;
     }
 
-    public BBroadcast(int _varId_) {
-        super(_varId_);
-        _protocolWholeData = Zeze.Net.Binary.Empty;
+    public BBroadcast(long _protocolType_, Zeze.Net.Binary _protocolWholeData_, int _time_) {
+        _protocolType = _protocolType_;
+        _protocolWholeData = _protocolWholeData_;
+        _time = _time_;
     }
 
     public void Assign(BBroadcast other) {
