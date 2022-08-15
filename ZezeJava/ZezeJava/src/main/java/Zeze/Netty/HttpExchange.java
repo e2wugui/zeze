@@ -342,6 +342,7 @@ public class HttpExchange {
 			if (file.lastModified() == ifModifiedSinceDate) {
 				// 文件未改变。
 				var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_MODIFIED);
+				res.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
 				var time = Calendar.getInstance();
 				res.headers().set(HttpHeaderNames.DATE, dateFormatter.format(time.getTime()));
 				context.write(res);
@@ -366,21 +367,22 @@ public class HttpExchange {
 			return; // done
 		}
 
-		var response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-		response.headers().set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(file.getName()));
-		response.headers().set(HttpHeaderNames.CONTENT_LENGTH, downloadLength);
-		response.headers().set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from.Value + "-" + to.Value + "/" + raf.length());
+		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+		res.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
+		res.headers().set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(file.getName()));
+		res.headers().set(HttpHeaderNames.CONTENT_LENGTH, downloadLength);
+		res.headers().set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from.Value + "-" + to.Value + "/" + raf.length());
 		// 设置时间头。
 		Calendar time = Calendar.getInstance();
-		response.headers().set(HttpHeaderNames.DATE, dateFormatter.format(time.getTime()));
+		res.headers().set(HttpHeaderNames.DATE, dateFormatter.format(time.getTime()));
 		// 设置 cache 控制相关头。
 		time.add(Calendar.SECOND, server.FileCacheSeconds);
-		response.headers().set(HttpHeaderNames.EXPIRES, dateFormatter.format(time.getTime()));
-		response.headers().set(HttpHeaderNames.CACHE_CONTROL, "private, max-age=" + server.FileCacheSeconds);
-		response.headers().set(HttpHeaderNames.LAST_MODIFIED, dateFormatter.format(file.lastModified()));
+		res.headers().set(HttpHeaderNames.EXPIRES, dateFormatter.format(time.getTime()));
+		res.headers().set(HttpHeaderNames.CACHE_CONTROL, "private, max-age=" + server.FileCacheSeconds);
+		res.headers().set(HttpHeaderNames.LAST_MODIFIED, dateFormatter.format(file.lastModified()));
 
 		// send headers
-		context.write(response);
+		context.write(res);
 
 		if (!HttpMethod.HEAD.equals(method())) {
 			// send file content
