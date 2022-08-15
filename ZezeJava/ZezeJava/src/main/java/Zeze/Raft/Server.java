@@ -247,7 +247,7 @@ public final class Server extends HandshakeBoth {
 		super.OnHandshakeDone(so);
 
 		// 没有判断是否和其他Raft-Node的连接。
-		Task.run(() -> {
+		Task.runUnsafe(() -> {
 			Raft.lock();
 			try {
 				if (Raft.isReadyLeader()) {

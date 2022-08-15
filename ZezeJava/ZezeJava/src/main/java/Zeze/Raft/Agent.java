@@ -486,7 +486,7 @@ public final class Agent {
 			if (p.getTypeId() == LeaderIs.TypeId_ || Agent.DispatchProtocolToInternalThreadPool)
 				Task.getCriticalThreadPool().execute(() -> Task.Call(() -> pfh.Handle.handle(p), "InternalRequest"));
 			else
-				Task.run(() -> pfh.Handle.handle(p), p, null, null, DispatchMode.Normal);
+				Task.runUnsafe(() -> pfh.Handle.handle(p), p, null, null, DispatchMode.Normal);
 		}
 	}
 }

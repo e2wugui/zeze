@@ -279,18 +279,18 @@ public class Service {
 	public <P extends Protocol<?>> void DispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
 															ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
 		if (Zeze != null && factoryHandle.Level != TransactionLevel.None) {
-			Task.runRpcResponse(Zeze.NewProcedure(() -> responseHandle.handle(rpc), rpc.getClass().getName() + ":Response",
+			Task.runRpcResponseUnsafe(Zeze.NewProcedure(() -> responseHandle.handle(rpc), rpc.getClass().getName() + ":Response",
 					factoryHandle.Level, rpc.getUserState()), factoryHandle.Mode);
 		} else
-			Task.runRpcResponse(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
+			Task.runRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
 	}
 
 	public <P extends Protocol<?>> void DispatchProtocol2(Object key, P p, ProtocolFactoryHandle<P> factoryHandle) {
 		if (factoryHandle.Handle != null) {
 			if (factoryHandle.Level != TransactionLevel.None) {
 				Zeze.getTaskOneByOneByKey().Execute(key, () ->
-						Task.Call(Zeze.NewProcedure(() -> factoryHandle.Handle.handle(p), p.getClass().getName(),
-								factoryHandle.Level, p.getUserState()), p, Protocol::trySendResultCode),
+								Task.Call(Zeze.NewProcedure(() -> factoryHandle.Handle.handle(p), p.getClass().getName(),
+										factoryHandle.Level, p.getUserState()), p, Protocol::trySendResultCode),
 						factoryHandle.Mode);
 			} else {
 				Zeze.getTaskOneByOneByKey().Execute(key,
@@ -315,12 +315,13 @@ public class Service {
 			}
 			TransactionLevel level = factoryHandle.Level;
 			Application zeze = Zeze;
+			// 为了避免redirect时死锁,这里一律不在whileCommit时执行
 			if (zeze != null && level != TransactionLevel.None)
-				Task.run(zeze.NewProcedure(() -> handle.handle(p),
-						p.getClass().getName(), level, p.getUserState()), p,
+				Task.runUnsafe(zeze.NewProcedure(() -> handle.handle(p),
+								p.getClass().getName(), level, p.getUserState()), p,
 						Protocol::trySendResultCode, factoryHandle.Mode);
 			else
-				Task.run(() -> handle.handle(p), p,
+				Task.runUnsafe(() -> handle.handle(p), p,
 						Protocol::trySendResultCode, null, factoryHandle.Mode);
 		} else
 			logger.warn("DispatchProtocol: Protocol Handle Not Found: {}", p);
@@ -452,9 +453,11 @@ public class Service {
 		}
 
 		private Service service;
+
 		public Service getService() {
 			return service;
 		}
+
 		public void setService(Service service) {
 			this.service = service;
 		}
