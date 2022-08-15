@@ -25,6 +25,7 @@ import io.netty.channel.DefaultFileRegion;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpContent;
 import io.netty.handler.codec.http.DefaultHttpResponse;
+import io.netty.handler.codec.http.DefaultLastHttpContent;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpHeaderValues;
@@ -433,7 +434,7 @@ public class HttpExchange {
 	}
 
 	public void endStream() {
-		context.write(new DefaultHttpContent(ByteBufAllocator.DEFAULT.ioBuffer(0)));
+		context.write(new DefaultLastHttpContent());
 		sending = false;
 		tryClose();
 	}

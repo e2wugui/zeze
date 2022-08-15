@@ -89,6 +89,7 @@ public class Netty {
 						var headers = new DefaultHttpHeaders();
 						headers.add(HttpHeaderNames.CONTENT_TYPE, "text/plain; charset=utf-8");
 						x.beginStream(HttpResponseStatus.OK, headers);
+						trunkCount = 0;
 						sendTrunk(x);
 						/*
 						try {
