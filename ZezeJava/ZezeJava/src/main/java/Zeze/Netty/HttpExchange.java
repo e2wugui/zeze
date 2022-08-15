@@ -293,7 +293,7 @@ public class HttpExchange {
 		var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, content, false);
 		res.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
 		res.headers().add(HttpHeaderNames.CONTENT_TYPE, contentType);
-		context.write(res);
+		context.writeAndFlush(res);
 	}
 
 	public void send(HttpResponseStatus status, String contentType, String content) {
@@ -351,7 +351,7 @@ public class HttpExchange {
 				res.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
 				var time = Calendar.getInstance();
 				res.headers().set(HttpHeaderNames.DATE, dateFormatter.format(time.getTime()));
-				context.write(res);
+				context.writeAndFlush(res);
 				tryClose();
 				return; // done
 			}
@@ -388,7 +388,7 @@ public class HttpExchange {
 		res.headers().set(HttpHeaderNames.LAST_MODIFIED, dateFormatter.format(file.lastModified()));
 
 		// send headers
-		context.write(res);
+		context.writeAndFlush(res);
 
 		if (!HttpMethod.HEAD.equals(method())) {
 			// send file content
@@ -419,7 +419,7 @@ public class HttpExchange {
 		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, headers);
 		headers.set(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED);
 		headers.remove(HttpHeaderNames.CONTENT_LENGTH);
-		context.write(res);
+		context.writeAndFlush(res);
 	}
 
 	public void sendStream(byte[] data, BiConsumer<HttpExchange, ChannelFuture> callback) {
