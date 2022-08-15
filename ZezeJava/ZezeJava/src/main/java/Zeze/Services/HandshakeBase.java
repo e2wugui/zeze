@@ -172,7 +172,7 @@ public class HandshakeBase extends Service {
 
 			byte[] response = Helper.generateDHResponse(getConfig().getHandshakeOptions().getDhGroup(), ctx.dhRandom).toByteArray();
 			(new Zeze.Services.Handshake.CHandshake(getConfig().getHandshakeOptions().getDhGroup(), response)).Send(so);
-			ctx.timeoutTask = Zeze.Util.Task.schedule(5000, () -> {
+			ctx.timeoutTask = Zeze.Util.Task.scheduleUnsafe(5000, () -> {
 				if (null != DHContext.remove(so.getSessionId())) {
 					so.close(new Exception("Handshake Timeout"));
 				}

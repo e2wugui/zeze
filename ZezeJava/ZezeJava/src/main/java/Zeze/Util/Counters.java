@@ -41,7 +41,7 @@ public class Counters {
 		if (null != future)
 			future.cancel(false);
 		this.period = period;
-		future = Task.schedule(period, period, this::report);
+		future = Task.scheduleUnsafe(period, period, this::report);
 	}
 
 	private final HashMap<String, AtomicLong> reports = new HashMap<>(); // atomic 在这里仅为了能修改，不是为了线程安全。

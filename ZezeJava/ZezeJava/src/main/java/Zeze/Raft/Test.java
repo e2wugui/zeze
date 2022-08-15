@@ -377,7 +377,7 @@ public class Test {
 		logger.fatal(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 		logger.fatal(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>");
 
-		SnapshotTimer = Task.schedule(60 * 1000, 60 * 1000, this::RandomSnapshotTimer);
+		SnapshotTimer = Task.scheduleUnsafe(60 * 1000, 60 * 1000, this::RandomSnapshotTimer);
 
 		SetLogLevel(Level.INFO);
 

@@ -176,7 +176,7 @@ public class ReliableUdp implements SelectorHandle, Closeable {
 			SendWindow.put(packet.SerialId, packet);
 
 			// start auto resend timer.
-			packet.ResendTimerTask = Zeze.Util.Task.schedule(3000, 3000, () -> sendTo(Peer, packet));
+			packet.ResendTimerTask = Zeze.Util.Task.scheduleUnsafe(3000, 3000, () -> sendTo(Peer, packet));
 			sendTo(Peer, packet);
 			return true;
 		}

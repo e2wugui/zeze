@@ -160,7 +160,7 @@ public class Daemon {
 			if (Timer == null) {
 				synchronized (Pendings) {
 					if (Timer == null) {
-						Timer = Task.schedule(1000, 1000, () -> {
+						Timer = Task.scheduleUnsafe(1000, 1000, () -> {
 							var now = System.currentTimeMillis();
 							for (var pending : Pendings) {
 								if (now - pending.SendTime > 1000) {

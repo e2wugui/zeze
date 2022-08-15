@@ -158,7 +158,7 @@ public class Online extends AbstractOnline {
 
 	public void Start() {
 		LoadReporter.Start();
-		VerifyLocalTimer = Task.scheduleAt(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
+		VerifyLocalTimer = Task.scheduleAtUnsafe(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
 		ProviderApp.BuiltinModules.put(this.getFullName(), this);
 	}
 
@@ -701,7 +701,7 @@ public class Online extends AbstractOnline {
 					}
 				});
 		// 随机开始时间，避免验证操作过于集中。3:10 - 5:10
-		VerifyLocalTimer = Task.scheduleAt(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
+		VerifyLocalTimer = Task.scheduleAtUnsafe(3 + Random.getInstance().nextInt(3), 10, this::verifyLocal);
 	}
 
 	private void tryRemoveLocal(long roleId) throws Throwable {

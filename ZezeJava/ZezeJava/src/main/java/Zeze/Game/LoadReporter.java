@@ -25,7 +25,7 @@ public class LoadReporter {
 		TimeoutDelaySeconds = delaySeconds;
 		if (null != TimerTask)
 			TimerTask.cancel(false);
-		TimerTask = Zeze.Util.Task.schedule(TimeoutDelaySeconds * 1000L, this::OnTimerTask);
+		TimerTask = Zeze.Util.Task.scheduleUnsafe(TimeoutDelaySeconds * 1000L, this::OnTimerTask);
 	}
 
 	public final void Stop() {

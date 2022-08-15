@@ -138,23 +138,24 @@ public final class Task {
 	}
 
 	public static void run(Action0 action, String name) {
-		runUnsafe(action, name);
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> runUnsafe(action, name));
+		else
+			runUnsafe(action, name);
 	}
 
-	public static void runWhileCommit(Action0 action, String name) {
-		Transaction.whileCommit(() -> runUnsafe(action, name));
-	}
-
+	// 注意: 以Unsafe结尾的方法在事务中也会立即异步执行,即使之后该事务redo或rollback也无法撤销,很可能不是想要的结果,所以小心使用
 	public static Future<?> runUnsafe(Action0 action, String name) {
 		return runUnsafe(action, name, DispatchMode.Normal);
 	}
 
 	public static void run(Action0 action, String name, DispatchMode mode) {
-		runUnsafe(action, name, mode);
-	}
-
-	public static void runWhileCommit(Action0 action, String name, DispatchMode mode) {
-		Transaction.whileCommit(() -> runUnsafe(action, name, mode));
+		Transaction t;
+		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
+			t.runWhileCommit(() -> runUnsafe(action, name, mode));
+		else
+			runUnsafe(action, name, mode);
 	}
 
 	public static Future<?> runUnsafe(Action0 action, String name, DispatchMode mode) {
@@ -184,7 +185,15 @@ public final class Task {
 		});
 	}
 
-	public static Future<?> schedule(long initialDelay, Action0 action) {
+	public static void schedule(long initialDelay, Action0 action) {
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> scheduleUnsafe(initialDelay, action));
+		else
+			scheduleUnsafe(initialDelay, action);
+	}
+
+	public static Future<?> scheduleUnsafe(long initialDelay, Action0 action) {
 		return threadPoolScheduled.schedule(() -> {
 			try {
 				action.run();
@@ -196,7 +205,15 @@ public final class Task {
 		}, initialDelay, TimeUnit.MILLISECONDS);
 	}
 
-	public static Future<?> scheduleAt(int hour, int minute, Action0 action) {
+	public static void scheduleAt(int hour, int minute, Action0 action) {
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> scheduleAtUnsafe(hour, minute, action));
+		else
+			scheduleAtUnsafe(hour, minute, action);
+	}
+
+	public static Future<?> scheduleAtUnsafe(int hour, int minute, Action0 action) {
 		var firstTime = Calendar.getInstance();
 		firstTime.set(Calendar.HOUR_OF_DAY, hour);
 		firstTime.set(Calendar.MINUTE, minute);
@@ -205,10 +222,18 @@ public final class Task {
 		if (firstTime.before(Calendar.getInstance())) // 如果第一次的时间比当前时间早，推到明天。
 			firstTime.add(Calendar.DAY_OF_MONTH, 1); // tomorrow!
 		var delay = firstTime.getTime().getTime() - System.currentTimeMillis();
-		return schedule(delay, action);
+		return scheduleUnsafe(delay, action);
 	}
 
-	public static Future<?> schedule(long initialDelay, long period, Action0 action) {
+	public static void schedule(int hour, int minute, Action0 action) {
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> scheduleUnsafe(hour, minute, action));
+		else
+			scheduleUnsafe(hour, minute, action);
+	}
+
+	public static Future<?> scheduleUnsafe(long initialDelay, long period, Action0 action) {
 		return threadPoolScheduled.scheduleWithFixedDelay(() -> {
 			try {
 				action.run();
@@ -220,7 +245,15 @@ public final class Task {
 		}, initialDelay, period, TimeUnit.MILLISECONDS);
 	}
 
-	public static <R> Future<R> schedule(long initialDelay, Func0<R> func) {
+	public static <R> void schedule(long initialDelay, Func0<R> func) {
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> scheduleUnsafe(initialDelay, func));
+		else
+			scheduleUnsafe(initialDelay, func);
+	}
+
+	public static <R> Future<R> scheduleUnsafe(long initialDelay, Func0<R> func) {
 		return threadPoolScheduled.schedule(() -> {
 			try {
 				return func.call();
@@ -345,11 +378,11 @@ public final class Task {
 	}
 
 	public static void run(FuncLong func, Protocol<?> p) {
-		runUnsafe(func, p);
-	}
-
-	public static void runWhileCommit(FuncLong func, Protocol<?> p) {
-		Transaction.whileCommit(() -> runUnsafe(func, p));
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> runUnsafe(func, p));
+		else
+			runUnsafe(func, p);
 	}
 
 	public static Future<Long> runUnsafe(FuncLong func, Protocol<?> p) {
@@ -357,11 +390,11 @@ public final class Task {
 	}
 
 	public static void run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
-		runUnsafe(func, p, actionWhenError);
-	}
-
-	public static void runWhileCommit(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
-		Transaction.whileCommit(() -> runUnsafe(func, p, actionWhenError));
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> runUnsafe(func, p, actionWhenError));
+		else
+			runUnsafe(func, p, actionWhenError);
 	}
 
 	public static Future<Long> runUnsafe(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError) {
@@ -369,11 +402,11 @@ public final class Task {
 	}
 
 	public static void run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName) {
-		runUnsafe(func, p, actionWhenError, specialName);
-	}
-
-	public static void runWhileCommit(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName) {
-		Transaction.whileCommit(() -> runUnsafe(func, p, actionWhenError, specialName));
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> runUnsafe(func, p, actionWhenError, specialName));
+		else
+			runUnsafe(func, p, actionWhenError, specialName);
 	}
 
 	public static Future<Long> runUnsafe(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName) {
@@ -381,11 +414,11 @@ public final class Task {
 	}
 
 	public static void run(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName, DispatchMode mode) {
-		runUnsafe(func, p, actionWhenError, specialName, mode);
-	}
-
-	public static void runWhileCommit(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName, DispatchMode mode) {
-		Transaction.whileCommit(() -> runUnsafe(func, p, actionWhenError, specialName, mode));
+		Transaction t;
+		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
+			t.runWhileCommit(() -> runUnsafe(func, p, actionWhenError, specialName, mode));
+		else
+			runUnsafe(func, p, actionWhenError, specialName, mode);
 	}
 
 	public static Future<Long> runUnsafe(FuncLong func, Protocol<?> p, ProtocolErrorHandle actionWhenError, String specialName, DispatchMode mode) {
@@ -436,11 +469,11 @@ public final class Task {
 	}
 
 	public static void run(Procedure procedure) {
-		runUnsafe(procedure);
-	}
-
-	public static void runWhileCommit(Procedure procedure) {
-		Transaction.whileCommit(() -> runUnsafe(procedure));
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> runUnsafe(procedure));
+		else
+			runUnsafe(procedure);
 	}
 
 	public static Future<Long> runUnsafe(Procedure procedure) {
@@ -448,11 +481,11 @@ public final class Task {
 	}
 
 	public static void run(Procedure procedure, Protocol<?> from) {
-		runUnsafe(procedure, from);
-	}
-
-	public static void runWhileCommit(Procedure procedure, Protocol<?> from) {
-		Transaction.whileCommit(() -> runUnsafe(procedure, from));
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> runUnsafe(procedure, from));
+		else
+			runUnsafe(procedure, from);
 	}
 
 	public static Future<Long> runUnsafe(Procedure procedure, Protocol<?> from) {
@@ -460,11 +493,11 @@ public final class Task {
 	}
 
 	public static void run(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError) {
-		runUnsafe(procedure, from, actionWhenError);
-	}
-
-	public static void runWhileCommit(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError) {
-		Transaction.whileCommit(() -> runUnsafe(procedure, from, actionWhenError));
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> runUnsafe(procedure, from, actionWhenError));
+		else
+			runUnsafe(procedure, from, actionWhenError);
 	}
 
 	public static Future<Long> runUnsafe(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError) {
@@ -472,11 +505,11 @@ public final class Task {
 	}
 
 	public static void run(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError, DispatchMode mode) {
-		runUnsafe(procedure, from, actionWhenError, mode);
-	}
-
-	public static void runWhileCommit(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError, DispatchMode mode) {
-		Transaction.whileCommit(() -> runUnsafe(procedure, from, actionWhenError, mode));
+		Transaction t;
+		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
+			t.runWhileCommit(() -> runUnsafe(procedure, from, actionWhenError, mode));
+		else
+			runUnsafe(procedure, from, actionWhenError, mode);
 	}
 
 	public static Future<Long> runUnsafe(Procedure procedure, Protocol<?> from, Action2<Protocol<?>, Long> actionWhenError, DispatchMode mode) {
@@ -491,11 +524,11 @@ public final class Task {
 	}
 
 	public static void runRpcResponse(Procedure procedure) {
-		runRpcResponseUnsafe(procedure);
-	}
-
-	public static void runRpcResponseWhileCommit(Procedure procedure) {
-		Transaction.whileCommit(() -> runRpcResponseUnsafe(procedure));
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> runRpcResponseUnsafe(procedure));
+		else
+			runRpcResponseUnsafe(procedure);
 	}
 
 	public static Future<Long> runRpcResponseUnsafe(Procedure procedure) {
@@ -503,11 +536,11 @@ public final class Task {
 	}
 
 	public static void runRpcResponse(Procedure procedure, DispatchMode mode) {
-		runRpcResponseUnsafe(procedure, mode);
-	}
-
-	public static void runRpcResponseWhileCommit(Procedure procedure, DispatchMode mode) {
-		Transaction.whileCommit(() -> runRpcResponseUnsafe(procedure, mode));
+		Transaction t;
+		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
+			t.runWhileCommit(() -> runRpcResponseUnsafe(procedure, mode));
+		else
+			runRpcResponseUnsafe(procedure, mode);
 	}
 
 	public static Future<Long> runRpcResponseUnsafe(Procedure procedure, DispatchMode mode) {
@@ -522,11 +555,11 @@ public final class Task {
 	}
 
 	public static void runRpcResponse(FuncLong func, Protocol<?> p) {
-		runRpcResponseUnsafe(func, p);
-	}
-
-	public static void runRpcResponseWhileCommit(FuncLong func, Protocol<?> p) {
-		Transaction.whileCommit(() -> runRpcResponseUnsafe(func, p));
+		var t = Transaction.getCurrent();
+		if (t != null && t.isRunning())
+			t.runWhileCommit(() -> runRpcResponseUnsafe(func, p));
+		else
+			runRpcResponseUnsafe(func, p);
 	}
 
 	public static Future<Long> runRpcResponseUnsafe(FuncLong func, Protocol<?> p) {
@@ -534,11 +567,11 @@ public final class Task {
 	}
 
 	public static void runRpcResponse(FuncLong func, Protocol<?> p, DispatchMode mode) {
-		runRpcResponseUnsafe(func, p, mode);
-	}
-
-	public static void runRpcResponseWhileCommit(FuncLong func, Protocol<?> p, DispatchMode mode) {
-		Transaction.whileCommit(() -> runRpcResponseUnsafe(func, p, mode));
+		Transaction t;
+		if (mode != DispatchMode.Direct && (t = Transaction.getCurrent()) != null && t.isRunning())
+			t.runWhileCommit(() -> runRpcResponseUnsafe(func, p, mode));
+		else
+			runRpcResponseUnsafe(func, p, mode);
 	}
 
 	public static Future<Long> runRpcResponseUnsafe(FuncLong func, Protocol<?> p, DispatchMode mode) {

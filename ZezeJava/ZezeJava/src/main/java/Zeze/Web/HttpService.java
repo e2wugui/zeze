@@ -88,7 +88,7 @@ public class HttpService {
 
 	public void start() {
 		httpServer.start();
-		Timer = Task.schedule(2000, 2000, this::timer);
+		Timer = Task.scheduleUnsafe(2000, 2000, this::timer);
 	}
 
 	public void stop() {

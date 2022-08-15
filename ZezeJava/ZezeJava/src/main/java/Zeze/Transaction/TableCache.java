@@ -40,13 +40,13 @@ public class TableCache<K extends Comparable<K>, V extends Bean> {
 		DataMap = new ConcurrentHashMap<>(GetCacheInitialCapacity());
 		NewLruHot();
 		var newLruHotPeriod = table.getTableConf().getCacheNewLruHotPeriod();
-		TimerNewHot = Task.schedule(newLruHotPeriod, newLruHotPeriod, () -> {
+		TimerNewHot = Task.scheduleUnsafe(newLruHotPeriod, newLruHotPeriod, () -> {
 			// 访问很少的时候不创建新的热点。这个选项没什么意思。
 			if (LruHot.size() > table.getTableConf().getCacheNewAccessHotThreshold())
 				NewLruHot();
 		});
 		var cleanPeriod = Table.getTableConf().getCacheCleanPeriod();
-		TimerClean = Task.schedule(cleanPeriod, cleanPeriod, this::CleanNow);
+		TimerClean = Task.scheduleUnsafe(cleanPeriod, cleanPeriod, this::CleanNow);
 	}
 
 	public final ConcurrentHashMap<K, Record1<K, V>> getDataMap() {

@@ -165,7 +165,7 @@ public class LinkdUserSession {
 		if (KeepAliveTask != null) {
 			KeepAliveTask.cancel(false);
 		}
-		KeepAliveTask = Task.schedule(3000_000, () -> {
+		KeepAliveTask = Task.scheduleUnsafe(3000_000, () -> {
 			var link = linkdService.GetSocket(getSessionId());
 			if (link != null)
 				link.close();

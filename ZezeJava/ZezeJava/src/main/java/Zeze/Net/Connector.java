@@ -160,7 +160,7 @@ public class Connector {
 			return;
 
 		ReConnectDelay = ReConnectDelay > 0 ? Math.min(ReConnectDelay * 2, MaxReconnectDelay) : 1000;
-		ReconnectTask = Zeze.Util.Task.schedule(ReConnectDelay, this::Start);
+		ReconnectTask = Zeze.Util.Task.scheduleUnsafe(ReConnectDelay, this::Start);
 	}
 
 	// 需要逻辑相关的握手行为时，重载这个方式。

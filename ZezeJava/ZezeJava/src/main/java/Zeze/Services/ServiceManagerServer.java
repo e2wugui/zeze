@@ -293,7 +293,7 @@ public final class ServiceManagerServer implements Closeable {
 				// 只有两段公告模式需要回应处理。
 				if (NotifyTimeoutTask != null)
 					NotifyTimeoutTask.cancel(false);
-				NotifyTimeoutTask = Task.schedule(ServiceManager.Config.getRetryNotifyDelayWhenNotAllReady(),
+				NotifyTimeoutTask = Task.scheduleUnsafe(ServiceManager.Config.getRetryNotifyDelayWhenNotAllReady(),
 						() -> {
 							// NotifyTimeoutTask 会在下面两种情况下被修改：
 							// 1. 在 Notify.ReadyCommit 完成以后会被清空。
@@ -494,7 +494,7 @@ public final class ServiceManagerServer implements Closeable {
 			ServiceManager = sm;
 			SessionId = ssid;
 			if (ServiceManager.Config.getKeepAlivePeriod() > 0) {
-				KeepAliveTimerTask = Task.schedule(
+				KeepAliveTimerTask = Task.scheduleUnsafe(
 						Random.getInstance().nextInt(ServiceManager.Config.getKeepAlivePeriod()),
 						ServiceManager.Config.getKeepAlivePeriod(),
 						() -> {
@@ -732,7 +732,7 @@ public final class ServiceManagerServer implements Closeable {
 				SetServerLoad::new, this::ProcessSetLoad, TransactionLevel.None, DispatchMode.Critical));
 
 		if (Config.getStartNotifyDelay() > 0)
-			StartNotifyDelayTask = Task.schedule(Config.getStartNotifyDelay(), this::StartNotifyAll);
+			StartNotifyDelayTask = Task.scheduleUnsafe(Config.getStartNotifyDelay(), this::StartNotifyAll);
 
 		AutoKeysDb = RocksDB.open(DatabaseRocksDb.getCommonOptions(), Paths.get(Config.getDbHome(), "autokeys").toString());
 

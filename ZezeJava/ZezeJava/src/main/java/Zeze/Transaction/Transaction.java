@@ -55,6 +55,10 @@ public final class Transaction {
 		return AccessedRecords;
 	}
 
+	public boolean isRunning() {
+		return State == TransactionState.Running;
+	}
+
 	public Procedure getTopProcedure() {
 		var stackSize = ProcedureStack.size();
 		return stackSize > 0 ? ProcedureStack.get(stackSize - 1) : null;

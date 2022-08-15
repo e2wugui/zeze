@@ -8,9 +8,11 @@ import Zeze.Arch.RedirectToServer;
 import Zeze.Component.AutoKey;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.Action2;
 import Zeze.Util.LongConcurrentHashMap;
 import Zeze.Util.OutLong;
 import Zeze.Util.OutObject;
+import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -28,7 +30,7 @@ public class ModuleTimer extends AbstractModule {
 	public void Start(Game.App app) throws Throwable {
 		NodeIdGenerator = app.Zeze.GetAutoKey("Game.Timer.NodeIdGenerator");
 		TimerIdGenerator = app.Zeze.GetAutoKey("Game.Timer.TimerIdGenerator");
-		Zeze.Util.Task.run(this::LoadTimerLocal, "LoadTimerLocal", DispatchMode.Normal);
+		Task.run(this::LoadTimerLocal, "LoadTimerLocal", DispatchMode.Normal);
 	}
 
 	public void Stop(Game.App app) throws Throwable {
@@ -36,13 +38,13 @@ public class ModuleTimer extends AbstractModule {
 
 	// 保存所有可用的timer处理回调，由于可能需要把timer的触发派发到其他服务器执行，必须静态注册。
 	// 一般在Module.Initialize中注册即可。
-	private final ConcurrentHashMap<String, Zeze.Util.Action2<Long, String>> TimerHandles = new ConcurrentHashMap<>();
+	private final ConcurrentHashMap<String, Action2<Long, String>> TimerHandles = new ConcurrentHashMap<>();
 
 	public static void removeTimerHandle(String name) {
 		Game.App.Instance.Game_Timer.TimerHandles.remove(name);
 	}
 
-	public static void addTimerHandle(String name, Zeze.Util.Action2<Long, String> action) {
+	public static void addTimerHandle(String name, Action2<Long, String> action) {
 		if (null != Game.App.Instance.Game_Timer.TimerHandles.putIfAbsent(name, action))
 			throw new RuntimeException("duplicate timer handle name of: " + name);
 	}
@@ -192,21 +194,21 @@ public class ModuleTimer extends AbstractModule {
 
 	private void ScheduleLocal(int serverId, long timerId, long nodeId, long delay, long period, String name) {
 		if (period > 0) {
-			TimersLocal.put(timerId, Zeze.Util.Task.schedule(delay, period, () -> TriggerTimerLocal(serverId, timerId, nodeId, name)));
+			TimersLocal.put(timerId, Task.scheduleUnsafe(delay, period, () -> TriggerTimerLocal(serverId, timerId, nodeId, name)));
 		} else {
-			TimersLocal.put(timerId, Zeze.Util.Task.schedule(delay, () -> TriggerTimerLocal(serverId, timerId, nodeId, name)));
+			TimersLocal.put(timerId, Task.scheduleUnsafe(delay, () -> TriggerTimerLocal(serverId, timerId, nodeId, name)));
 		}
 	}
 
 	private long TriggerTimerLocal(int serverId, long timerId, long nodeId, String name) {
 		var handle = TimerHandles.get(name);
 		if (handle != null) {
-			Zeze.Util.Task.Call(App.Zeze.NewProcedure(() -> {
+			Task.Call(App.Zeze.NewProcedure(() -> {
 				handle.run(timerId, name);
 				return 0L;
 			}, "TriggerTimerLocal"));
 		}
-		Zeze.Util.Task.Call(App.Zeze.NewProcedure(() -> {
+		Task.Call(App.Zeze.NewProcedure(() -> {
 			var index = _tIndexs.get(timerId);
 			if (index != null) {
 				var node = _tNodes.get(index.getNodeId());
@@ -233,7 +235,7 @@ public class ModuleTimer extends AbstractModule {
 	private long LoadTimerLocal() {
 		var serverId = App.Zeze.getConfig().getServerId();
 		final var out = new OutObject<NodeRoot>();
-		Zeze.Util.Task.Call(App.Zeze.NewProcedure(() ->
+		Task.Call(App.Zeze.NewProcedure(() ->
 		{
 			var root = _tNodeRoot.getOrAdd(serverId);
 			// 本地每次load都递增。用来处理和接管的并发。
@@ -258,7 +260,7 @@ public class ModuleTimer extends AbstractModule {
 		final var first = new OutLong();
 		final var last = new OutLong();
 
-		var result = Zeze.Util.Task.Call(App.Zeze.NewProcedure(() ->
+		var result = Task.Call(App.Zeze.NewProcedure(() ->
 		{
 			var src = _tNodeRoot.get(serverId);
 			if (src == null || src.getHeadNodeId() == 0 || src.getTailNodeId() == 0)
@@ -304,7 +306,7 @@ public class ModuleTimer extends AbstractModule {
 			for (var timer : node.getTimers().values()) {
 				ScheduleLocal(serverId, timer.getTimerId(), first, timer.getDelay(), timer.getPeriod(), timer.getName());
 				if (serverId != App.Zeze.getConfig().getServerId()) {
-					Zeze.Util.Task.Call(App.Zeze.NewProcedure(() -> {
+					Task.Call(App.Zeze.NewProcedure(() -> {
 						var index = _tIndexs.get(timer.getTimerId());
 						index.setServerId(serverId);
 						return 0L;

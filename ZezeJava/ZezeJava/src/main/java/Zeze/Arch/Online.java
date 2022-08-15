@@ -86,7 +86,7 @@ public class Online extends AbstractOnline {
 
 	public void Start() {
 		//LoadReporter.StartTimerTask();
-		VerifyLocalTimer = Task.scheduleAt(3 + Zeze.Util.Random.getInstance().nextInt(3), 10, this::verifyLocal); // at 3:10 - 6:10
+		VerifyLocalTimer = Task.scheduleAtUnsafe(3 + Zeze.Util.Random.getInstance().nextInt(3), 10, this::verifyLocal); // at 3:10 - 6:10
 		ProviderApp.BuiltinModules.put(this.getFullName(), this);
 	}
 
@@ -818,7 +818,7 @@ public class Online extends AbstractOnline {
 					}
 				});
 		// 随机开始时间，避免验证操作过于集中。3:10 - 5:10
-		VerifyLocalTimer = Zeze.Util.Task.scheduleAt(3 + Zeze.Util.Random.getInstance().nextInt(3), 10, this::verifyLocal); // at 3:10 - 6:10
+		VerifyLocalTimer = Zeze.Util.Task.scheduleAtUnsafe(3 + Zeze.Util.Random.getInstance().nextInt(3), 10, this::verifyLocal); // at 3:10 - 6:10
 	}
 
 	private static final Logger logger = LogManager.getLogger(Online.class);
