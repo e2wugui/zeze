@@ -49,7 +49,8 @@ namespace Zeze.Arch
                         break;
                 }
                 // 延迟关闭。等待客户端收到错误以后主动关闭，或者超时。
-                Scheduler.Schedule((ThisTask) => this.GetSocket(linkSid)?.Dispose(), 2000);
+                // 虽然使用了写完关闭(CloseGracefully)方法，但是等待一下，尽量让客户端主动关闭，有利于减少 TCP_TIME_WAIT?
+                Scheduler.Schedule((ThisTask) => this.GetSocket(linkSid)?.CloseGracefully(), 2000);
             }
         }
 
