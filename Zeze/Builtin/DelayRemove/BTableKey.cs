@@ -72,14 +72,16 @@ namespace Zeze.Builtin.DelayRemove
             }
         }
 
-        public BTableKey() : this(0)
-        {
-        }
-
-        public BTableKey(int _varId_) : base(_varId_)
+        public BTableKey()
         {
             _TableName = "";
             _EncodedKey = Zeze.Net.Binary.Empty;
+        }
+
+        public BTableKey(string _TableName_, Zeze.Net.Binary _EncodedKey_)
+        {
+            _TableName = _TableName_;
+            _EncodedKey = _EncodedKey_;
         }
 
         public void Assign(BTableKey other)

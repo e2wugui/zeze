@@ -70,12 +70,14 @@ namespace Zeze.Builtin.Game.Online
             }
         }
 
-        public BReLogin() : this(0)
+        public BReLogin()
         {
         }
 
-        public BReLogin(int _varId_) : base(_varId_)
+        public BReLogin(long _RoleId_, long _ReliableNotifyConfirmIndex_)
         {
+            _RoleId = _RoleId_;
+            _ReliableNotifyConfirmIndex = _ReliableNotifyConfirmIndex_;
         }
 
         public void Assign(BReLogin other)

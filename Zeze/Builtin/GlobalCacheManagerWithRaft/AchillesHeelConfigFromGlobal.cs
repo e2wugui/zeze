@@ -97,12 +97,15 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             }
         }
 
-        public AchillesHeelConfigFromGlobal() : this(0)
+        public AchillesHeelConfigFromGlobal()
         {
         }
 
-        public AchillesHeelConfigFromGlobal(int _varId_) : base(_varId_)
+        public AchillesHeelConfigFromGlobal(int _MaxNetPing_, int _ServerProcessTime_, int _ServerReleaseTimeout_)
         {
+            _MaxNetPing = _MaxNetPing_;
+            _ServerProcessTime = _ServerProcessTime_;
+            _ServerReleaseTimeout = _ServerReleaseTimeout_;
         }
 
         public void Assign(AchillesHeelConfigFromGlobal other)

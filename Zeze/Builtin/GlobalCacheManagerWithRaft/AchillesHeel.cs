@@ -98,13 +98,16 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             }
         }
 
-        public AchillesHeel() : this(0)
-        {
-        }
-
-        public AchillesHeel(int _varId_) : base(_varId_)
+        public AchillesHeel()
         {
             _SecureKey = "";
+        }
+
+        public AchillesHeel(int _ServerId_, string _SecureKey_, int _GlobalCacheManagerHashIndex_)
+        {
+            _ServerId = _ServerId_;
+            _SecureKey = _SecureKey_;
+            _GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex_;
         }
 
         public void Assign(AchillesHeel other)

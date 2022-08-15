@@ -98,13 +98,16 @@ namespace Zeze.Builtin.Game.Rank
             }
         }
 
-        public BRankValue() : this(0)
-        {
-        }
-
-        public BRankValue(int _varId_) : base(_varId_)
+        public BRankValue()
         {
             _ValueEx = Zeze.Net.Binary.Empty;
+        }
+
+        public BRankValue(long _RoleId_, long _Value_, Zeze.Net.Binary _ValueEx_)
+        {
+            _RoleId = _RoleId_;
+            _Value = _Value_;
+            _ValueEx = _ValueEx_;
         }
 
         public void Assign(BRankValue other)

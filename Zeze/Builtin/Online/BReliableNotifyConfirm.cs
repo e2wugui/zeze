@@ -98,13 +98,16 @@ namespace Zeze.Builtin.Online
             }
         }
 
-        public BReliableNotifyConfirm() : this(0)
-        {
-        }
-
-        public BReliableNotifyConfirm(int _varId_) : base(_varId_)
+        public BReliableNotifyConfirm()
         {
             _ClientId = "";
+        }
+
+        public BReliableNotifyConfirm(string _ClientId_, long _ReliableNotifyConfirmIndex_, bool _Sync_)
+        {
+            _ClientId = _ClientId_;
+            _ReliableNotifyConfirmIndex = _ReliableNotifyConfirmIndex_;
+            _Sync = _Sync_;
         }
 
         public void Assign(BReliableNotifyConfirm other)

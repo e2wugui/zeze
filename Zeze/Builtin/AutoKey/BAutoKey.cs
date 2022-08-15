@@ -43,12 +43,13 @@ namespace Zeze.Builtin.AutoKey
             }
         }
 
-        public BAutoKey() : this(0)
+        public BAutoKey()
         {
         }
 
-        public BAutoKey(int _varId_) : base(_varId_)
+        public BAutoKey(long _NextId_)
         {
+            _NextId = _NextId_;
         }
 
         public void Assign(BAutoKey other)

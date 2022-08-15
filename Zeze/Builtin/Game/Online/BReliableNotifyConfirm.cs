@@ -70,12 +70,14 @@ namespace Zeze.Builtin.Game.Online
             }
         }
 
-        public BReliableNotifyConfirm() : this(0)
+        public BReliableNotifyConfirm()
         {
         }
 
-        public BReliableNotifyConfirm(int _varId_) : base(_varId_)
+        public BReliableNotifyConfirm(long _ReliableNotifyConfirmIndex_, bool _Sync_)
         {
+            _ReliableNotifyConfirmIndex = _ReliableNotifyConfirmIndex_;
+            _Sync = _Sync_;
         }
 
         public void Assign(BReliableNotifyConfirm other)

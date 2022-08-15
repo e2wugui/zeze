@@ -21,11 +21,7 @@ namespace Zeze.Builtin.Game.Bag
         public Zeze.Transaction.Collections.CollSet1<string> ItemClasses => _ItemClasses;
         System.Collections.Generic.IReadOnlySet<string> Zeze.Builtin.Game.Bag.BItemClassesReadOnly.ItemClasses => _ItemClasses;
 
-        public BItemClasses() : this(0)
-        {
-        }
-
-        public BItemClasses(int _varId_) : base(_varId_)
+        public BItemClasses()
         {
             _ItemClasses = new Zeze.Transaction.Collections.CollSet1<string>() { VariableId = 1 };
         }

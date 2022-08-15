@@ -98,13 +98,16 @@ namespace Zeze.Builtin.ProviderDirect
             }
         }
 
-        public BProviderInfo() : this(0)
-        {
-        }
-
-        public BProviderInfo(int _varId_) : base(_varId_)
+        public BProviderInfo()
         {
             _Ip = "";
+        }
+
+        public BProviderInfo(string _Ip_, int _Port_, int _ServerId_)
+        {
+            _Ip = _Ip_;
+            _Port = _Port_;
+            _ServerId = _ServerId_;
         }
 
         public void Assign(BProviderInfo other)

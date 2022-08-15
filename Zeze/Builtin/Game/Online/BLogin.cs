@@ -43,12 +43,13 @@ namespace Zeze.Builtin.Game.Online
             }
         }
 
-        public BLogin() : this(0)
+        public BLogin()
         {
         }
 
-        public BLogin(int _varId_) : base(_varId_)
+        public BLogin(long _RoleId_)
         {
+            _RoleId = _RoleId_;
         }
 
         public void Assign(BLogin other)

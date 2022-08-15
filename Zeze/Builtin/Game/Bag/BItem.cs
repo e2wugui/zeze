@@ -92,12 +92,15 @@ namespace Zeze.Builtin.Game.Bag
         public Zeze.Transaction.DynamicBean Item => _Item;
         Zeze.Transaction.DynamicBeanReadOnly Zeze.Builtin.Game.Bag.BItemReadOnly.Item => Item;
 
-        public BItem() : this(0)
+        public BItem()
         {
+            _Item = new Zeze.Transaction.DynamicBean(3, Zeze.Game.Bag.GetSpecialTypeIdFromBean, Zeze.Game.Bag.CreateBeanFromSpecialTypeId);
         }
 
-        public BItem(int _varId_) : base(_varId_)
+        public BItem(int _Id_, int _Number_)
         {
+            _Id = _Id_;
+            _Number = _Number_;
             _Item = new Zeze.Transaction.DynamicBean(3, Zeze.Game.Bag.GetSpecialTypeIdFromBean, Zeze.Game.Bag.CreateBeanFromSpecialTypeId);
         }
 

@@ -103,13 +103,16 @@ namespace Zeze.Builtin.LinkdBase
             }
         }
 
-        public BReportError() : this(0)
-        {
-        }
-
-        public BReportError(int _varId_) : base(_varId_)
+        public BReportError()
         {
             _desc = "";
+        }
+
+        public BReportError(int _from_, int _code_, string _desc_)
+        {
+            _from = _from_;
+            _code = _code_;
+            _desc = _desc_;
         }
 
         public void Assign(BReportError other)

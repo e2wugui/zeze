@@ -71,13 +71,15 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             }
         }
 
-        public ReduceParam() : this(0)
-        {
-        }
-
-        public ReduceParam(int _varId_) : base(_varId_)
+        public ReduceParam()
         {
             _GlobalKey = Zeze.Net.Binary.Empty;
+        }
+
+        public ReduceParam(Zeze.Net.Binary _GlobalKey_, int _State_)
+        {
+            _GlobalKey = _GlobalKey_;
+            _State = _State_;
         }
 
         public void Assign(ReduceParam other)

@@ -43,12 +43,13 @@ namespace Zeze.Builtin.Collections.LinkedMap
             }
         }
 
-        public BLinkedMapNodeId() : this(0)
+        public BLinkedMapNodeId()
         {
         }
 
-        public BLinkedMapNodeId(int _varId_) : base(_varId_)
+        public BLinkedMapNodeId(long _NodeId_)
         {
+            _NodeId = _NodeId_;
         }
 
         public void Assign(BLinkedMapNodeId other)

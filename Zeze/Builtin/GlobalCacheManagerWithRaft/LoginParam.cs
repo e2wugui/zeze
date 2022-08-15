@@ -70,12 +70,14 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             }
         }
 
-        public LoginParam() : this(0)
+        public LoginParam()
         {
         }
 
-        public LoginParam(int _varId_) : base(_varId_)
+        public LoginParam(int _ServerId_, int _GlobalCacheManagerHashIndex_)
         {
+            _ServerId = _ServerId_;
+            _GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex_;
         }
 
         public void Assign(LoginParam other)

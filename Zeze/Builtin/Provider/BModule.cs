@@ -107,12 +107,15 @@ namespace Zeze.Builtin.Provider
             }
         }
 
-        public BModule() : this(0)
+        public BModule()
         {
         }
 
-        public BModule(int _varId_) : base(_varId_)
+        public BModule(int _ChoiceType_, int _ConfigType_, int _SubscribeType_)
         {
+            _ChoiceType = _ChoiceType_;
+            _ConfigType = _ConfigType_;
+            _SubscribeType = _SubscribeType_;
         }
 
         public void Assign(BModule other)

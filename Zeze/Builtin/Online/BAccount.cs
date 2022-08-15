@@ -43,12 +43,13 @@ namespace Zeze.Builtin.Online
             }
         }
 
-        public BAccount() : this(0)
+        public BAccount()
         {
         }
 
-        public BAccount(int _varId_) : base(_varId_)
+        public BAccount(long _LastLoginVersion_)
         {
+            _LastLoginVersion = _LastLoginVersion_;
         }
 
         public void Assign(BAccount other)

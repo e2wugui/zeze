@@ -31,12 +31,13 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             }
         }
 
-        public AcquiredState() : this(0)
+        public AcquiredState()
         {
         }
 
-        public AcquiredState(int _varId_) : base(_varId_)
+        public AcquiredState(int _State_)
         {
+            _State = _State_;
         }
 
         public void Assign(AcquiredState other)

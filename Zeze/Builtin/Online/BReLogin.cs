@@ -71,13 +71,15 @@ namespace Zeze.Builtin.Online
             }
         }
 
-        public BReLogin() : this(0)
-        {
-        }
-
-        public BReLogin(int _varId_) : base(_varId_)
+        public BReLogin()
         {
             _ClientId = "";
+        }
+
+        public BReLogin(string _ClientId_, long _ReliableNotifyConfirmIndex_)
+        {
+            _ClientId = _ClientId_;
+            _ReliableNotifyConfirmIndex = _ReliableNotifyConfirmIndex_;
         }
 
         public void Assign(BReLogin other)

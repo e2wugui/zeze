@@ -16,11 +16,7 @@ namespace Zeze.Builtin.Provider
     public sealed class BAnnounceLinkInfo : Zeze.Transaction.Bean, BAnnounceLinkInfoReadOnly
     {
 
-        public BAnnounceLinkInfo() : this(0)
-        {
-        }
-
-        public BAnnounceLinkInfo(int _varId_) : base(_varId_)
+        public BAnnounceLinkInfo()
         {
         }
 

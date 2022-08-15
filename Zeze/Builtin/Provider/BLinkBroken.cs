@@ -156,15 +156,20 @@ namespace Zeze.Builtin.Provider
             }
         }
 
-        public BLinkBroken() : this(0)
-        {
-        }
-
-        public BLinkBroken(int _varId_) : base(_varId_)
+        public BLinkBroken()
         {
             _account = "";
             _context = "";
             _contextx = Zeze.Net.Binary.Empty;
+        }
+
+        public BLinkBroken(string _account_, long _linkSid_, int _reason_, string _context_, Zeze.Net.Binary _contextx_)
+        {
+            _account = _account_;
+            _linkSid = _linkSid_;
+            _reason = _reason_;
+            _context = _context_;
+            _contextx = _contextx_;
         }
 
         public void Assign(BLinkBroken other)

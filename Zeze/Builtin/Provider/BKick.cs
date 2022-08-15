@@ -104,13 +104,16 @@ namespace Zeze.Builtin.Provider
             }
         }
 
-        public BKick() : this(0)
-        {
-        }
-
-        public BKick(int _varId_) : base(_varId_)
+        public BKick()
         {
             _desc = "";
+        }
+
+        public BKick(long _linksid_, int _code_, string _desc_)
+        {
+            _linksid = _linksid_;
+            _code = _code_;
+            _desc = _desc_;
         }
 
         public void Assign(BKick other)

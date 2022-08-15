@@ -193,11 +193,7 @@ namespace Zeze.Builtin.TestRocks
             }
         }
 
-        public Value() : this(0)
-        {
-        }
-
-        public Value(int _varId_) : base(_varId_)
+        public Value()
         {
             _String = "";
             _Binary = Zeze.Net.Binary.Empty;
@@ -206,6 +202,21 @@ namespace Zeze.Builtin.TestRocks
             _MapInt = new Zeze.Raft.RocksRaft.CollMap1<int, int>() { VariableId = 9 };
             _MapBean = new Zeze.Raft.RocksRaft.CollMap2<int, Zeze.Builtin.TestRocks.Value>() { VariableId = 10 };
             _Beankey = new Zeze.Builtin.TestRocks.BeanKey();
+        }
+
+        public Value(int _Int_, bool _Bool_, float _Float_, double _double_, string _String_, Zeze.Net.Binary _Binary_, Zeze.Builtin.TestRocks.BeanKey _Beankey_)
+        {
+            _Int = _Int_;
+            _Bool = _Bool_;
+            _Float = _Float_;
+            _double = _double_;
+            _String = _String_;
+            _Binary = _Binary_;
+            _SetInt = new Zeze.Raft.RocksRaft.CollSet1<int>() { VariableId = 7 };
+            _SetBeankey = new Zeze.Raft.RocksRaft.CollSet1<Zeze.Builtin.TestRocks.BeanKey>() { VariableId = 8 };
+            _MapInt = new Zeze.Raft.RocksRaft.CollMap1<int, int>() { VariableId = 9 };
+            _MapBean = new Zeze.Raft.RocksRaft.CollMap2<int, Zeze.Builtin.TestRocks.Value>() { VariableId = 10 };
+            _Beankey = _Beankey_;
         }
 
         public void Assign(Value other)

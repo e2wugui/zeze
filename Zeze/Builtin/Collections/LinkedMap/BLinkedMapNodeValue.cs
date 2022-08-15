@@ -64,13 +64,15 @@ namespace Zeze.Builtin.Collections.LinkedMap
         public Zeze.Transaction.DynamicBean Value => _Value;
         Zeze.Transaction.DynamicBeanReadOnly Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValueReadOnly.Value => Value;
 
-        public BLinkedMapNodeValue() : this(0)
-        {
-        }
-
-        public BLinkedMapNodeValue(int _varId_) : base(_varId_)
+        public BLinkedMapNodeValue()
         {
             _Id = "";
+            _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.LinkedMap.GetSpecialTypeIdFromBean, Zeze.Collections.LinkedMap.CreateBeanFromSpecialTypeId);
+        }
+
+        public BLinkedMapNodeValue(string _Id_)
+        {
+            _Id = _Id_;
             _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.LinkedMap.GetSpecialTypeIdFromBean, Zeze.Collections.LinkedMap.CreateBeanFromSpecialTypeId);
         }
 

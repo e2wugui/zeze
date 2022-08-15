@@ -129,13 +129,18 @@ namespace Zeze.Builtin.Game.Online
             }
         }
 
-        public BVersion() : this(0)
-        {
-        }
-
-        public BVersion(int _varId_) : base(_varId_)
+        public BVersion()
         {
             _ReliableNotifyMark = new Zeze.Transaction.Collections.CollSet1<string>() { VariableId = 2 };
+        }
+
+        public BVersion(long _LoginVersion_, long _ReliableNotifyConfirmIndex_, long _ReliableNotifyIndex_, int _ServerId_)
+        {
+            _LoginVersion = _LoginVersion_;
+            _ReliableNotifyMark = new Zeze.Transaction.Collections.CollSet1<string>() { VariableId = 2 };
+            _ReliableNotifyConfirmIndex = _ReliableNotifyConfirmIndex_;
+            _ReliableNotifyIndex = _ReliableNotifyIndex_;
+            _ServerId = _ServerId_;
         }
 
         public void Assign(BVersion other)

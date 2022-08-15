@@ -22,11 +22,7 @@ namespace Zeze.Builtin.Online
         public Zeze.Transaction.Collections.CollMap2<string, Zeze.Builtin.Online.BOnline> Logins => _Logins;
         System.Collections.Generic.IReadOnlyDictionary<string,Zeze.Builtin.Online.BOnlineReadOnly> Zeze.Builtin.Online.BOnlinesReadOnly.Logins => _LoginsReadOnly;
 
-        public BOnlines() : this(0)
-        {
-        }
-
-        public BOnlines(int _varId_) : base(_varId_)
+        public BOnlines()
         {
             _Logins = new Zeze.Transaction.Collections.CollMap2<string, Zeze.Builtin.Online.BOnline>() { VariableId = 1 };
             _LoginsReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Builtin.Online.BOnlineReadOnly,Zeze.Builtin.Online.BOnline>(_Logins);

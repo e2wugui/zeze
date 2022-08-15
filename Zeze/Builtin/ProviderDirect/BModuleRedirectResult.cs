@@ -98,13 +98,16 @@ namespace Zeze.Builtin.ProviderDirect
             }
         }
 
-        public BModuleRedirectResult() : this(0)
-        {
-        }
-
-        public BModuleRedirectResult(int _varId_) : base(_varId_)
+        public BModuleRedirectResult()
         {
             _Params = Zeze.Net.Binary.Empty;
+        }
+
+        public BModuleRedirectResult(int _ModuleId_, int _ServerId_, Zeze.Net.Binary _Params_)
+        {
+            _ModuleId = _ModuleId_;
+            _ServerId = _ServerId_;
+            _Params = _Params_;
         }
 
         public void Assign(BModuleRedirectResult other)

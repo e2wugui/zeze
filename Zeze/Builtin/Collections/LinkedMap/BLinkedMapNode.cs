@@ -75,12 +75,15 @@ namespace Zeze.Builtin.Collections.LinkedMap
         public Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue> Values => _Values;
         System.Collections.Generic.IReadOnlyList<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValueReadOnly> Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeReadOnly.Values => _Values;
 
-        public BLinkedMapNode() : this(0)
+        public BLinkedMapNode()
         {
+            _Values = new Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue>() { VariableId = 3 };
         }
 
-        public BLinkedMapNode(int _varId_) : base(_varId_)
+        public BLinkedMapNode(long _PrevNodeId_, long _NextNodeId_)
         {
+            _PrevNodeId = _PrevNodeId_;
+            _NextNodeId = _NextNodeId_;
             _Values = new Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Collections.LinkedMap.BLinkedMapNodeValue>() { VariableId = 3 };
         }
 

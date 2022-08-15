@@ -44,13 +44,14 @@ namespace Zeze.Builtin.Online
             }
         }
 
-        public BLogin() : this(0)
-        {
-        }
-
-        public BLogin(int _varId_) : base(_varId_)
+        public BLogin()
         {
             _ClientId = "";
+        }
+
+        public BLogin(string _ClientId_)
+        {
+            _ClientId = _ClientId_;
         }
 
         public void Assign(BLogin other)

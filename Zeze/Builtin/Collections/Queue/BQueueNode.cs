@@ -48,12 +48,14 @@ namespace Zeze.Builtin.Collections.Queue
         public Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Collections.Queue.BQueueNodeValue> Values => _Values;
         System.Collections.Generic.IReadOnlyList<Zeze.Builtin.Collections.Queue.BQueueNodeValueReadOnly> Zeze.Builtin.Collections.Queue.BQueueNodeReadOnly.Values => _Values;
 
-        public BQueueNode() : this(0)
+        public BQueueNode()
         {
+            _Values = new Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Collections.Queue.BQueueNodeValue>() { VariableId = 2 };
         }
 
-        public BQueueNode(int _varId_) : base(_varId_)
+        public BQueueNode(long _NextNodeId_)
         {
+            _NextNodeId = _NextNodeId_;
             _Values = new Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Collections.Queue.BQueueNodeValue>() { VariableId = 2 };
         }
 

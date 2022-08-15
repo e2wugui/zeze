@@ -153,14 +153,19 @@ namespace Zeze.Builtin.RedoQueue
             }
         }
 
-        public BQueueTask() : this(0)
-        {
-        }
-
-        public BQueueTask(int _varId_) : base(_varId_)
+        public BQueueTask()
         {
             _QueueName = "";
             _TaskParam = Zeze.Net.Binary.Empty;
+        }
+
+        public BQueueTask(string _QueueName_, int _TaskType_, long _TaskId_, Zeze.Net.Binary _TaskParam_, long _PrevTaskId_)
+        {
+            _QueueName = _QueueName_;
+            _TaskType = _TaskType_;
+            _TaskId = _TaskId_;
+            _TaskParam = _TaskParam_;
+            _PrevTaskId = _PrevTaskId_;
         }
 
         public void Assign(BQueueTask other)

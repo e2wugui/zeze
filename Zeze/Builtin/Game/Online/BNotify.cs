@@ -44,13 +44,14 @@ namespace Zeze.Builtin.Game.Online
             }
         }
 
-        public BNotify() : this(0)
-        {
-        }
-
-        public BNotify(int _varId_) : base(_varId_)
+        public BNotify()
         {
             _FullEncodedProtocol = Zeze.Net.Binary.Empty;
+        }
+
+        public BNotify(Zeze.Net.Binary _FullEncodedProtocol_)
+        {
+            _FullEncodedProtocol = _FullEncodedProtocol_;
         }
 
         public void Assign(BNotify other)

@@ -36,13 +36,16 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
 
         public Zeze.Raft.RocksRaft.CollSet1<int> Share => _Share;
 
-        public CacheState() : this(0)
-        {
-        }
-
-        public CacheState(int _varId_) : base(_varId_)
+        public CacheState()
         {
             _Modify = -1;
+            _Share = new Zeze.Raft.RocksRaft.CollSet1<int>() { VariableId = 3 };
+        }
+
+        public CacheState(int _AcquireStatePending_, int _Modify_)
+        {
+            _AcquireStatePending = _AcquireStatePending_;
+            _Modify = _Modify_;
             _Share = new Zeze.Raft.RocksRaft.CollSet1<int>() { VariableId = 3 };
         }
 

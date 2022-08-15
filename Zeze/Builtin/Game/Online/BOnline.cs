@@ -71,13 +71,15 @@ namespace Zeze.Builtin.Game.Online
             }
         }
 
-        public BOnline() : this(0)
-        {
-        }
-
-        public BOnline(int _varId_) : base(_varId_)
+        public BOnline()
         {
             _LinkName = "";
+        }
+
+        public BOnline(string _LinkName_, long _LinkSid_)
+        {
+            _LinkName = _LinkName_;
+            _LinkSid = _LinkSid_;
         }
 
         public void Assign(BOnline other)

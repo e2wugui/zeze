@@ -51,12 +51,15 @@ namespace Zeze.Builtin.Online
         public Zeze.Transaction.Collections.CollMap2<string, Zeze.Builtin.Online.BAny> Datas => _Datas;
         System.Collections.Generic.IReadOnlyDictionary<string,Zeze.Builtin.Online.BAnyReadOnly> Zeze.Builtin.Online.BLocalReadOnly.Datas => _DatasReadOnly;
 
-        public BLocal() : this(0)
+        public BLocal()
         {
+            _Datas = new Zeze.Transaction.Collections.CollMap2<string, Zeze.Builtin.Online.BAny>() { VariableId = 2 };
+            _DatasReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Builtin.Online.BAnyReadOnly,Zeze.Builtin.Online.BAny>(_Datas);
         }
 
-        public BLocal(int _varId_) : base(_varId_)
+        public BLocal(long _LoginVersion_)
         {
+            _LoginVersion = _LoginVersion_;
             _Datas = new Zeze.Transaction.Collections.CollMap2<string, Zeze.Builtin.Online.BAny>() { VariableId = 2 };
             _DatasReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Builtin.Online.BAnyReadOnly,Zeze.Builtin.Online.BAny>(_Datas);
         }

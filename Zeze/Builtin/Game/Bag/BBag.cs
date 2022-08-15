@@ -49,12 +49,15 @@ namespace Zeze.Builtin.Game.Bag
         public Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.Game.Bag.BItem> Items => _Items;
         System.Collections.Generic.IReadOnlyDictionary<int,Zeze.Builtin.Game.Bag.BItemReadOnly> Zeze.Builtin.Game.Bag.BBagReadOnly.Items => _ItemsReadOnly;
 
-        public BBag() : this(0)
+        public BBag()
         {
+            _Items = new Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.Game.Bag.BItem>() { VariableId = 2 };
+            _ItemsReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.Game.Bag.BItemReadOnly,Zeze.Builtin.Game.Bag.BItem>(_Items);
         }
 
-        public BBag(int _varId_) : base(_varId_)
+        public BBag(int _Capacity_)
         {
+            _Capacity = _Capacity_;
             _Items = new Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.Game.Bag.BItem>() { VariableId = 2 };
             _ItemsReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.Game.Bag.BItemReadOnly,Zeze.Builtin.Game.Bag.BItem>(_Items);
         }

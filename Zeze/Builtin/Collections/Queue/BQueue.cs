@@ -124,12 +124,16 @@ namespace Zeze.Builtin.Collections.Queue
             }
         }
 
-        public BQueue() : this(0)
+        public BQueue()
         {
         }
 
-        public BQueue(int _varId_) : base(_varId_)
+        public BQueue(long _HeadNodeId_, long _TailNodeId_, long _Count_, long _LastNodeId_)
         {
+            _HeadNodeId = _HeadNodeId_;
+            _TailNodeId = _TailNodeId_;
+            _Count = _Count_;
+            _LastNodeId = _LastNodeId_;
         }
 
         public void Assign(BQueue other)

@@ -133,17 +133,22 @@ namespace Zeze.Builtin.ProviderDirect
             }
         }
 
-        public BTransmitAccount() : this(0)
-        {
-        }
-
-        public BTransmitAccount(int _varId_) : base(_varId_)
+        public BTransmitAccount()
         {
             _ActionName = "";
             _Parameter = Zeze.Net.Binary.Empty;
             _TargetAccounts = new Zeze.Transaction.Collections.CollSet1<string>() { VariableId = 3 };
             _SenderAccount = "";
             _SenderClientId = "";
+        }
+
+        public BTransmitAccount(string _ActionName_, Zeze.Net.Binary _Parameter_, string _SenderAccount_, string _SenderClientId_)
+        {
+            _ActionName = _ActionName_;
+            _Parameter = _Parameter_;
+            _TargetAccounts = new Zeze.Transaction.Collections.CollSet1<string>() { VariableId = 3 };
+            _SenderAccount = _SenderAccount_;
+            _SenderClientId = _SenderClientId_;
         }
 
         public void Assign(BTransmitAccount other)

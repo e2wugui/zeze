@@ -71,13 +71,15 @@ namespace Zeze.Builtin.Game.Bag
             }
         }
 
-        public BDestroy() : this(0)
-        {
-        }
-
-        public BDestroy(int _varId_) : base(_varId_)
+        public BDestroy()
         {
             _BagName = "";
+        }
+
+        public BDestroy(string _BagName_, int _Position_)
+        {
+            _BagName = _BagName_;
+            _Position = _Position_;
         }
 
         public void Assign(BDestroy other)

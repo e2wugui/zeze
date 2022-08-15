@@ -38,11 +38,7 @@ namespace Zeze.Builtin.Game.Online
         public Zeze.Transaction.DynamicBean Any => _Any;
         Zeze.Transaction.DynamicBeanReadOnly Zeze.Builtin.Game.Online.BAnyReadOnly.Any => Any;
 
-        public BAny() : this(0)
-        {
-        }
-
-        public BAny(int _varId_) : base(_varId_)
+        public BAny()
         {
             _Any = new Zeze.Transaction.DynamicBean(1, Zeze.Game.Online.GetSpecialTypeIdFromBean, Zeze.Game.Online.CreateBeanFromSpecialTypeId);
         }

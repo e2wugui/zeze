@@ -30,11 +30,7 @@ namespace Zeze.Builtin.Provider
         public Zeze.Transaction.Collections.CollSet1<long> LinkSids => _linkSids;
         System.Collections.Generic.IReadOnlySet<long> Zeze.Builtin.Provider.BBindReadOnly.LinkSids => _linkSids;
 
-        public BBind() : this(0)
-        {
-        }
-
-        public BBind(int _varId_) : base(_varId_)
+        public BBind()
         {
             _modules = new Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.Provider.BModule>() { VariableId = 1 };
             _modulesReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.Provider.BModuleReadOnly,Zeze.Builtin.Provider.BModule>(_modules);

@@ -71,13 +71,15 @@ namespace Zeze.Builtin.GlobalCacheManagerWithRaft
             }
         }
 
-        public AcquireParam() : this(0)
-        {
-        }
-
-        public AcquireParam(int _varId_) : base(_varId_)
+        public AcquireParam()
         {
             _GlobalKey = Zeze.Net.Binary.Empty;
+        }
+
+        public AcquireParam(Zeze.Net.Binary _GlobalKey_, int _State_)
+        {
+            _GlobalKey = _GlobalKey_;
+            _State = _State_;
         }
 
         public void Assign(AcquireParam other)

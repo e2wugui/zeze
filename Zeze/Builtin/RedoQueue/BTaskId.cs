@@ -43,12 +43,13 @@ namespace Zeze.Builtin.RedoQueue
             }
         }
 
-        public BTaskId() : this(0)
+        public BTaskId()
         {
         }
 
-        public BTaskId(int _varId_) : base(_varId_)
+        public BTaskId(long _TaskId_)
         {
+            _TaskId = _TaskId_;
         }
 
         public void Assign(BTaskId other)

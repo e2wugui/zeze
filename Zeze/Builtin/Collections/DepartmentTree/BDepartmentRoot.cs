@@ -97,15 +97,21 @@ namespace Zeze.Builtin.Collections.DepartmentTree
         public Zeze.Transaction.Collections.CollMap1<string, long> Childs => _Childs;
         System.Collections.Generic.IReadOnlyDictionary<string,long> Zeze.Builtin.Collections.DepartmentTree.BDepartmentRootReadOnly.Childs => _ChildsReadOnly;
 
-        public BDepartmentRoot() : this(0)
-        {
-        }
-
-        public BDepartmentRoot(int _varId_) : base(_varId_)
+        public BDepartmentRoot()
         {
             _Root = "";
             _Managers = new Zeze.Transaction.Collections.CollMap1<string, Zeze.Transaction.DynamicBean>() { VariableId = 2 };
             _ManagersReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Transaction.DynamicBean,Zeze.Transaction.DynamicBean>(_Managers);
+            _Childs = new Zeze.Transaction.Collections.CollMap1<string, long>() { VariableId = 4 };
+            _ChildsReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<string,long,long>(_Childs);
+        }
+
+        public BDepartmentRoot(string _Root_, long _NextDepartmentId_)
+        {
+            _Root = _Root_;
+            _Managers = new Zeze.Transaction.Collections.CollMap1<string, Zeze.Transaction.DynamicBean>() { VariableId = 2 };
+            _ManagersReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<string,Zeze.Transaction.DynamicBean,Zeze.Transaction.DynamicBean>(_Managers);
+            _NextDepartmentId = _NextDepartmentId_;
             _Childs = new Zeze.Transaction.Collections.CollMap1<string, long>() { VariableId = 4 };
             _ChildsReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<string,long,long>(_Childs);
         }

@@ -127,15 +127,19 @@ namespace Zeze.Builtin.Provider
             }
         }
 
-        public BAnnounceProviderInfo() : this(0)
-        {
-        }
-
-        public BAnnounceProviderInfo(int _varId_) : base(_varId_)
+        public BAnnounceProviderInfo()
         {
             _ServiceNamePrefix = "";
             _ServiceIndentity = "";
             _ProviderDirectIp = "";
+        }
+
+        public BAnnounceProviderInfo(string _ServiceNamePrefix_, string _ServiceIndentity_, string _ProviderDirectIp_, int _ProviderDirectPort_)
+        {
+            _ServiceNamePrefix = _ServiceNamePrefix_;
+            _ServiceIndentity = _ServiceIndentity_;
+            _ProviderDirectIp = _ProviderDirectIp_;
+            _ProviderDirectPort = _ProviderDirectPort_;
         }
 
         public void Assign(BAnnounceProviderInfo other)

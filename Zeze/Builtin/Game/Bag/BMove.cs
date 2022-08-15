@@ -125,13 +125,17 @@ namespace Zeze.Builtin.Game.Bag
             }
         }
 
-        public BMove() : this(0)
-        {
-        }
-
-        public BMove(int _varId_) : base(_varId_)
+        public BMove()
         {
             _BagName = "";
+        }
+
+        public BMove(string _BagName_, int _PositionFrom_, int _PositionTo_, int _number_)
+        {
+            _BagName = _BagName_;
+            _PositionFrom = _PositionFrom_;
+            _PositionTo = _PositionTo_;
+            _number = _number_;
         }
 
         public void Assign(BMove other)

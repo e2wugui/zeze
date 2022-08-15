@@ -158,13 +158,20 @@ namespace Zeze.Builtin.ProviderDirect
         public Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash> Hashs => _Hashs;
         System.Collections.Generic.IReadOnlyDictionary<int,Zeze.Builtin.ProviderDirect.BModuleRedirectAllHashReadOnly> Zeze.Builtin.ProviderDirect.BModuleRedirectAllResultReadOnly.Hashs => _HashsReadOnly;
 
-        public BModuleRedirectAllResult() : this(0)
-        {
-        }
-
-        public BModuleRedirectAllResult(int _varId_) : base(_varId_)
+        public BModuleRedirectAllResult()
         {
             _MethodFullName = "";
+            _Hashs = new Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash>() { VariableId = 6 };
+            _HashsReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.ProviderDirect.BModuleRedirectAllHashReadOnly,Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash>(_Hashs);
+        }
+
+        public BModuleRedirectAllResult(int _ModuleId_, int _ServerId_, long _SourceProvider_, string _MethodFullName_, long _SessionId_)
+        {
+            _ModuleId = _ModuleId_;
+            _ServerId = _ServerId_;
+            _SourceProvider = _SourceProvider_;
+            _MethodFullName = _MethodFullName_;
+            _SessionId = _SessionId_;
             _Hashs = new Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash>() { VariableId = 6 };
             _HashsReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.ProviderDirect.BModuleRedirectAllHashReadOnly,Zeze.Builtin.ProviderDirect.BModuleRedirectAllHash>(_Hashs);
         }

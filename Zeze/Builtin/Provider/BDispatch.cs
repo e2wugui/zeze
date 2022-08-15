@@ -182,16 +182,22 @@ namespace Zeze.Builtin.Provider
             }
         }
 
-        public BDispatch() : this(0)
-        {
-        }
-
-        public BDispatch(int _varId_) : base(_varId_)
+        public BDispatch()
         {
             _account = "";
             _protocolData = Zeze.Net.Binary.Empty;
             _context = "";
             _contextx = Zeze.Net.Binary.Empty;
+        }
+
+        public BDispatch(long _linkSid_, string _account_, long _protocolType_, Zeze.Net.Binary _protocolData_, string _context_, Zeze.Net.Binary _contextx_)
+        {
+            _linkSid = _linkSid_;
+            _account = _account_;
+            _protocolType = _protocolType_;
+            _protocolData = _protocolData_;
+            _context = _context_;
+            _contextx = _contextx_;
         }
 
         public void Assign(BDispatch other)

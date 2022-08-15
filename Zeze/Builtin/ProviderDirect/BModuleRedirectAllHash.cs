@@ -73,13 +73,15 @@ namespace Zeze.Builtin.ProviderDirect
             }
         }
 
-        public BModuleRedirectAllHash() : this(0)
-        {
-        }
-
-        public BModuleRedirectAllHash(int _varId_) : base(_varId_)
+        public BModuleRedirectAllHash()
         {
             _Params = Zeze.Net.Binary.Empty;
+        }
+
+        public BModuleRedirectAllHash(long _ReturnCode_, Zeze.Net.Binary _Params_)
+        {
+            _ReturnCode = _ReturnCode_;
+            _Params = _Params_;
         }
 
         public void Assign(BModuleRedirectAllHash other)

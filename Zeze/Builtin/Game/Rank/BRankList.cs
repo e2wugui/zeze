@@ -21,11 +21,7 @@ namespace Zeze.Builtin.Game.Rank
         public Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Game.Rank.BRankValue> RankList => _RankList;
         System.Collections.Generic.IReadOnlyList<Zeze.Builtin.Game.Rank.BRankValueReadOnly> Zeze.Builtin.Game.Rank.BRankListReadOnly.RankList => _RankList;
 
-        public BRankList() : this(0)
-        {
-        }
-
-        public BRankList(int _varId_) : base(_varId_)
+        public BRankList()
         {
             _RankList = new Zeze.Transaction.Collections.CollList2<Zeze.Builtin.Game.Rank.BRankValue>() { VariableId = 1 };
         }

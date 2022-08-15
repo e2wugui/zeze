@@ -63,12 +63,14 @@ namespace Zeze.Builtin.Collections.Queue
         public Zeze.Transaction.DynamicBean Value => _Value;
         Zeze.Transaction.DynamicBeanReadOnly Zeze.Builtin.Collections.Queue.BQueueNodeValueReadOnly.Value => Value;
 
-        public BQueueNodeValue() : this(0)
+        public BQueueNodeValue()
         {
+            _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.Queue.GetSpecialTypeIdFromBean, Zeze.Collections.Queue.CreateBeanFromSpecialTypeId);
         }
 
-        public BQueueNodeValue(int _varId_) : base(_varId_)
+        public BQueueNodeValue(long _Timestamp_)
         {
+            _Timestamp = _Timestamp_;
             _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.Queue.GetSpecialTypeIdFromBean, Zeze.Collections.Queue.CreateBeanFromSpecialTypeId);
         }
 

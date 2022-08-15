@@ -22,11 +22,7 @@ namespace Zeze.Builtin.Provider
         public Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.Provider.BModule> Modules => _modules;
         System.Collections.Generic.IReadOnlyDictionary<int,Zeze.Builtin.Provider.BModuleReadOnly> Zeze.Builtin.Provider.BSubscribeReadOnly.Modules => _modulesReadOnly;
 
-        public BSubscribe() : this(0)
-        {
-        }
-
-        public BSubscribe(int _varId_) : base(_varId_)
+        public BSubscribe()
         {
             _modules = new Zeze.Transaction.Collections.CollMap2<int, Zeze.Builtin.Provider.BModule>() { VariableId = 1 };
             _modulesReadOnly = new Zeze.Transaction.Collections.CollMapReadOnly<int,Zeze.Builtin.Provider.BModuleReadOnly,Zeze.Builtin.Provider.BModule>(_modules);

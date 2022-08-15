@@ -104,15 +104,19 @@ namespace Zeze.Builtin.ProviderDirect
             }
         }
 
-        public BTransmit() : this(0)
-        {
-        }
-
-        public BTransmit(int _varId_) : base(_varId_)
+        public BTransmit()
         {
             _ActionName = "";
             _Roles = new Zeze.Transaction.Collections.CollSet1<long>() { VariableId = 2 };
             _Parameter = Zeze.Net.Binary.Empty;
+        }
+
+        public BTransmit(string _ActionName_, long _Sender_, Zeze.Net.Binary _Parameter_)
+        {
+            _ActionName = _ActionName_;
+            _Roles = new Zeze.Transaction.Collections.CollSet1<long>() { VariableId = 2 };
+            _Sender = _Sender_;
+            _Parameter = _Parameter_;
         }
 
         public void Assign(BTransmit other)

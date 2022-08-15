@@ -103,14 +103,18 @@ namespace Zeze.Builtin.Game.Online
             }
         }
 
-        public BAccount() : this(0)
-        {
-        }
-
-        public BAccount(int _varId_) : base(_varId_)
+        public BAccount()
         {
             _Name = "";
             _Roles = new Zeze.Transaction.Collections.CollList1<long>() { VariableId = 2 };
+        }
+
+        public BAccount(string _Name_, long _LastLoginRoleId_, long _LastLoginVersion_)
+        {
+            _Name = _Name_;
+            _Roles = new Zeze.Transaction.Collections.CollList1<long>() { VariableId = 2 };
+            _LastLoginRoleId = _LastLoginRoleId_;
+            _LastLoginVersion = _LastLoginVersion_;
         }
 
         public void Assign(BAccount other)

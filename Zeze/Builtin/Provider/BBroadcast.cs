@@ -98,13 +98,16 @@ namespace Zeze.Builtin.Provider
             }
         }
 
-        public BBroadcast() : this(0)
-        {
-        }
-
-        public BBroadcast(int _varId_) : base(_varId_)
+        public BBroadcast()
         {
             _protocolWholeData = Zeze.Net.Binary.Empty;
+        }
+
+        public BBroadcast(long _protocolType_, Zeze.Net.Binary _protocolWholeData_, int _time_)
+        {
+            _protocolType = _protocolType_;
+            _protocolWholeData = _protocolWholeData_;
+            _time = _time_;
         }
 
         public void Assign(BBroadcast other)
