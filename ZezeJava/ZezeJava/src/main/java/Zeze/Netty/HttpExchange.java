@@ -366,6 +366,7 @@ public class HttpExchange {
 		}
 
 		var response = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+		response.headers().set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(file.getName()));
 		response.headers().set(HttpHeaderNames.CONTENT_LENGTH, downloadLength);
 		response.headers().set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from.Value + "-" + to.Value + "/" + raf.length());
 		// 设置时间头。
