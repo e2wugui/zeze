@@ -2,6 +2,8 @@ package Zeze.Net;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.VarHandle;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -30,10 +32,18 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public static final Logger logger = LogManager.getLogger(AsyncSocket.class);
 	public static final Level LEVEL_PROTOCOL_LOG = Level.toLevel(System.getProperty("protocolLog"), Level.OFF);
 	public static final boolean ENABLE_PROTOCOL_LOG = LEVEL_PROTOCOL_LOG != Level.OFF;
+	private static final VarHandle closedHandle;
+	private static final byte SEND_CLOSE_DETAIL_MAX = 100; // 必须小于REAL_CLOSED
+	private static final byte REAL_CLOSED = Byte.MAX_VALUE;
 	private static final AtomicLong SessionIdGen = new AtomicLong(1);
 	private static LongSupplier SessionIdGenFunc;
 
 	static {
+		try {
+			closedHandle = MethodHandles.lookup().findVarHandle(AsyncSocket.class, "closed", byte.class);
+		} catch (ReflectiveOperationException e) {
+			throw new RuntimeException(e);
+		}
 		ShutdownHook.init();
 	}
 
@@ -68,7 +78,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	private volatile SocketAddress RemoteAddress; // 连接成功时设置
 	private volatile Object UserState;
 	private volatile boolean IsHandshakeDone;
-	private int closed;
+	@SuppressWarnings("unused")
+	private volatile byte closed;
+	private boolean closePending;
 
 	public long getSessionId() {
 		return SessionId;
@@ -348,11 +360,14 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		});
 	}
 
-	public void SubmitAction(Action0 callback) {
+	public boolean SubmitAction(Action0 callback) {
 		lock.lock();
 		try {
+			if (closed != 0)
+				return false;
 			_operates.offer(callback);
 			interestOps(0, SelectionKey.OP_WRITE); // try
+			return true;
 		} finally {
 			lock.unlock();
 		}
@@ -374,9 +389,10 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	public boolean Send(byte[] bytes, int offset, int length) {
 		ByteBuffer.VerifyArrayIndex(bytes, offset, length);
 
-		if (closed != 0) {
-			if (closed < 100) { // 注意不能超过byte最大值
-				closed++;
+		byte c = closed;
+		if (c != 0) {
+			if (c < SEND_CLOSE_DETAIL_MAX) {
+				closedHandle.compareAndSet(this, c, c + 1);
 				logger.error("Send to closed socket: {} len={}", this, length, new Exception());
 			} else
 				logger.error("Send to closed socket: {} len={}", this, length);
@@ -389,7 +405,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			return false;
 		}
 		try {
-			SubmitAction(() -> { // 进selector线程调用
+			if (SubmitAction(() -> { // 进selector线程调用
 				Codec codec = outputCodecChain;
 				if (codec != null) {
 					// 压缩加密等 codec 链操作。
@@ -405,12 +421,13 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					codecBuf.FreeInternalBuffer();
 				} else
 					_outputBufferListSending.addLast(java.nio.ByteBuffer.wrap(bytes, offset, length));
-			});
-			return true;
+			}))
+				return true;
+			logger.error("Send to closed socket: {} len={}", this, length, new Exception());
 		} catch (Throwable ex) {
 			close(ex);
-			return false;
 		}
+		return false;
 	}
 
 	public boolean Send(Protocol<?> protocol) {
@@ -502,6 +519,8 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 					if (_operates.isEmpty()) {
 						// 真的没有等待处理的操作了，去掉事件，返回。以后新的操作在下一次doWrite时处理。
 						interestOps(SelectionKey.OP_WRITE, 0);
+						if (closePending)
+							realClose();
 						return;
 					}
 				} finally {
@@ -530,17 +549,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 	}
 
-	// 优雅的关闭一般用于正常流程，不提供异常参数。
-	public void closeGracefully() {
-		if (0 != closedState(Integer.MAX_VALUE))
-			return;
-
-		// 提前触发回调。
-		trigger(null);
-		Task.schedule(120 * 1000, this::realClose); // 最多给2分钟清空输出队列。
-		SubmitAction(this::realClose);
-	}
-
 	private void trigger(Throwable ex) {
 		if (Connector != null) {
 			try {
@@ -556,19 +564,9 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 	}
 
-	private int closedState(int magic) {
-		lock.lock();
-		try {
-			if (closed != 0)
-				return closed;
-			closed = magic; // 阻止递归关闭
-			return 0;
-		} finally {
-			lock.unlock();
-		}
-	}
-
 	private void realClose() {
+		if ((byte)closedHandle.getAndSet(this, REAL_CLOSED) == REAL_CLOSED) // 阻止递归关闭
+			return;
 		try {
 			selectionKey.channel().close();
 		} catch (Throwable e) {
@@ -583,20 +581,40 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 			selectionKey.selector().wakeup(); // Acceptor的socket需要selector在select开始时执行,所以wakeup一下尽早触发下次select
 	}
 
-	public void close(Throwable ex) {
-		if (0 != closedState(1))
-			return;
+	private boolean close(Throwable ex, boolean gracefully) {
+		if (!closedHandle.compareAndSet(this, (byte)0, (byte)1)) // 阻止递归关闭
+			return false;
 
 		if (ex != null) {
 			if (ex instanceof IOException)
-				logger.info("Close: {} {}", this, ex);
+				logger.info("close: {} {}", this, ex);
 			else
-				logger.warn("Close: {}", this, ex);
+				logger.warn("close: {}", this, ex);
 		} else
-			logger.debug("Close: {}", this);
+			logger.debug("close{}: {}", gracefully ? " gracefully" : "", this);
 
 		trigger(ex);
-		realClose();
+		if (gracefully) {
+			lock.lock();
+			try {
+				closePending = true;
+				interestOps(0, SelectionKey.OP_WRITE); // try
+			} finally {
+				lock.unlock();
+			}
+			Task.schedule(120 * 1000, this::realClose); // 最多给2分钟清空输出队列。
+		} else
+			realClose();
+		return true;
+	}
+
+	// 优雅的关闭一般用于正常流程，不提供异常参数。
+	public boolean closeGracefully() {
+		return close(null, true);
+	}
+
+	public boolean close(Throwable ex) {
+		return close(ex, false);
 	}
 
 	@Override
