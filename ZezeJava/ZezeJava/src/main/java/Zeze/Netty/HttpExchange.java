@@ -434,7 +434,7 @@ public class HttpExchange {
 	}
 
 	public void endStream() {
-		context.write(new DefaultLastHttpContent());
+		context.writeAndFlush(new DefaultLastHttpContent());
 		sending = false;
 		tryClose();
 	}
