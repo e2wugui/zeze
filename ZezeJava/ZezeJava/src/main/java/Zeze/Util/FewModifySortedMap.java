@@ -10,7 +10,7 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import org.jetbrains.annotations.NotNull;
 
-public class FewModifySortedMap<K, V> implements SortedMap<K, V>, Cloneable, java.io.Serializable {
+public class FewModifySortedMap<K, V> implements SortedMap<K, V>, java.io.Serializable {
 	private transient volatile SortedMap<K, V> read;
 	private final TreeMap<K, V> write;
 

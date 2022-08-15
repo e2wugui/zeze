@@ -7,7 +7,7 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-public class FewModifyMap<K, V> implements Map<K, V>, Cloneable, java.io.Serializable {
+public class FewModifyMap<K, V> implements Map<K, V>, java.io.Serializable {
 	private transient volatile Map<K, V> read;
 	private final HashMap<K, V> write;
 

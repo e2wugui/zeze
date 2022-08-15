@@ -10,7 +10,8 @@ import java.util.HashMap;
 import java.util.Properties;
 
 public class Mimes {
-	public final static String Mimes =
+	@SuppressWarnings("TextBlockMigration")
+	public static final String Mimes = //@formatter:off
 			".tif=image/tiff\n" +
 			".001=application/x-001\n" +
 			".301=application/x-301\n" +
@@ -353,9 +354,9 @@ public class Mimes {
 			".x_t=application/x-x_t\n" +
 			".ipa=application/vnd.iphone\n" +
 			".apk=application/vnd.android.package-archive\n" +
-			".xap=application/x-silverlight-app\n";
+			".xap=application/x-silverlight-app\n"; //@formatter:on
 
-	public final static HashMap<String, String> MimesMap = new HashMap<>();
+	public static final HashMap<String, String> MimesMap = new HashMap<>();
 
 	private static void load(InputStream input) throws IOException {
 		var p = new Properties();
@@ -400,7 +401,7 @@ public class Mimes {
 		return MimeDefault;
 	}
 
-	public static void main(String args[]) {
+	public static void main(String[] args) {
 		System.out.println(MimesMap);
 	}
 }

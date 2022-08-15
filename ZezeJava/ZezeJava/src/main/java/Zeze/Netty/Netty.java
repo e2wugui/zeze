@@ -22,13 +22,14 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class Netty {
-	private EventLoopGroup eventLoopGroup;
+	private final EventLoopGroup eventLoopGroup;
 
 	public Netty() {
 		this(Runtime.getRuntime().availableProcessors());
 	}
 
-	private Class<? extends ServerChannel> serverChannelClass;
+	private final Class<? extends ServerChannel> serverChannelClass;
+
 	public Netty(int nThreads) {
 		if (Epoll.isAvailable()) {
 			eventLoopGroup = new EpollEventLoopGroup(nThreads);
@@ -55,11 +56,12 @@ public class Netty {
 
 	public void stop() throws InterruptedException {
 		eventLoopGroup.shutdownGracefully();
-		eventLoopGroup.awaitTermination(Integer.MAX_VALUE, TimeUnit.MILLISECONDS);
+		//noinspection ResultOfMethodCallIgnored
+		eventLoopGroup.awaitTermination(Integer.MAX_VALUE, TimeUnit.SECONDS);
 	}
 
-	public static void main(String args[]) throws InterruptedException {
-		/**
+	public static void main(String[] args) throws InterruptedException {
+		/*
 		 * 运行，用浏览器访问 127.0.0.1/hello;127.0.0.1/exp;127.0.0.1/404
 		 */
 		var netty = new Netty();
@@ -98,14 +100,18 @@ public class Netty {
 					});
 			netty.addServer(http, 80);
 			netty.start();
+			//noinspection InfiniteLoopStatement
 			while (true) {
+				//noinspection BusyWait
 				Thread.sleep(1000);
 			}
 		} finally {
 			netty.stop();
 		}
 	}
+
 	private static int trunkCount;
+
 	private static void processSendTrunkResult(HttpExchange x, ChannelFuture f) {
 		System.out.println("sent: " + trunkCount);
 		if (f.isSuccess()) {

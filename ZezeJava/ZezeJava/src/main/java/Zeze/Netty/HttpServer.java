@@ -10,13 +10,12 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
-import io.netty.handler.stream.ChunkedWriteHandler;
 
 public class HttpServer extends ChannelInitializer<SocketChannel> {
 	public final Zeze.Application Zeze;
 
-	ConcurrentHashMap<ChannelHandlerContext, HttpExchange> exchanges = new ConcurrentHashMap<>();
-	FewModifyMap<String, HttpHandler> handlers = new FewModifyMap<>();
+	final ConcurrentHashMap<ChannelHandlerContext, HttpExchange> exchanges = new ConcurrentHashMap<>();
+	final FewModifyMap<String, HttpHandler> handlers = new FewModifyMap<>();
 
 	String FileHome;
 	int FileCacheSeconds = 10 * 60;

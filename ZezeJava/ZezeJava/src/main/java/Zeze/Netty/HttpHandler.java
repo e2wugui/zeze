@@ -1,9 +1,7 @@
 package Zeze.Netty;
 
-import javax.validation.constraints.Max;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
-import io.netty.handler.codec.http.HttpContent;
 
 public class HttpHandler {
 	public int MaxContentLength = 8192; // -1 表示不限制，按流处理。

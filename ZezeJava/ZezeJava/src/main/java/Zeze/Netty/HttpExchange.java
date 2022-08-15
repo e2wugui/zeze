@@ -77,6 +77,7 @@ public class HttpExchange {
 
 	// 保存path，优化！
 	private String path;
+
 	public String path() {
 		if (path == null) {
 			var uri = uri();
@@ -136,7 +137,8 @@ public class HttpExchange {
 
 	void channelRead(Object msg) throws Exception {
 		if (msg instanceof FullHttpRequest) {
-			FullHttpRequest full = (FullHttpRequest)msg;
+			//noinspection PatternVariableCanBeUsed
+			var full = (FullHttpRequest)msg;
 			request = full;
 			contents.add(full);
 			if (locateHandler()) {
@@ -161,7 +163,8 @@ public class HttpExchange {
 
 		if (msg instanceof HttpContent) {
 			// 此时 request,handler 已经设置好。
-			HttpContent c = (HttpContent)msg;
+			//noinspection PatternVariableCanBeUsed
+			var c = (HttpContent)msg;
 			if (handler.isStreamMode()) {
 				fireStreamContentHandle(c);
 				if (msg instanceof LastHttpContent) {
