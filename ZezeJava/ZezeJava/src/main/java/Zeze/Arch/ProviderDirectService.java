@@ -56,6 +56,8 @@ public class ProviderDirectService extends Zeze.Services.HandshakeBoth {
 			SetReady(ss, pm, ps, mid, m);
 			return;
 		}
+		if (pm.getServiceIdentity().startsWith("@")) // from linkd
+			return;
 		var serverId = Integer.parseInt(pm.getServiceIdentity());
 		if (serverId < getZeze().getConfig().getServerId())
 			return;
