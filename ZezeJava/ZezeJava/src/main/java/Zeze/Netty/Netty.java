@@ -122,6 +122,6 @@ public class Netty {
 
 	private static void sendTrunk(HttpExchange x) {
 		trunkCount++;
-		x.sendSteam(("content " + trunkCount + "-").getBytes(StandardCharsets.UTF_8), Netty::processSendTrunkResult);
+		x.sendStream(("content " + trunkCount + "-").getBytes(StandardCharsets.UTF_8), Netty::processSendTrunkResult);
 	}
 }

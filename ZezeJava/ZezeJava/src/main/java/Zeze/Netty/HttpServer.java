@@ -10,6 +10,7 @@ import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
+import io.netty.handler.stream.ChunkedWriteHandler;
 
 public class HttpServer extends ChannelInitializer<SocketChannel> {
 	public final Zeze.Application Zeze;
@@ -50,10 +51,11 @@ public class HttpServer extends ChannelInitializer<SocketChannel> {
 	@Override
 	protected void initChannel(SocketChannel ch) {
 		ch.pipeline()
-				.addLast("encoder", new HttpResponseEncoder())
+				.addLast("encoder", new ChunkedWriteHandler())
 				.addLast("decoder", new HttpRequestDecoder(
 						4096, 8192, 8192, false))
 				.addLast("handler", new Handler());
+
 	}
 
 	public class Handler extends ChannelInboundHandlerAdapter {

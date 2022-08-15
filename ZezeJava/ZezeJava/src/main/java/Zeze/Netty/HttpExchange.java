@@ -11,7 +11,6 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
-import Zeze.Util.OutInt;
 import Zeze.Util.OutLong;
 import Zeze.Util.Str;
 import Zeze.Util.Task;
@@ -28,6 +27,7 @@ import io.netty.handler.codec.http.DefaultHttpContent;
 import io.netty.handler.codec.http.DefaultHttpResponse;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpContent;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -285,6 +285,7 @@ public class HttpExchange {
 	// send response
 	public void send(HttpResponseStatus status, String contentType, ByteBuf content) {
 		var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, content, false);
+		res.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
 		res.headers().add(HttpHeaderNames.CONTENT_TYPE, contentType);
 		context.write(res);
 	}
@@ -408,14 +409,18 @@ public class HttpExchange {
 	public void beginStream(HttpResponseStatus status, HttpHeaders headers) {
 		sending = true;
 		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, headers);
-		headers.set(HttpHeaderNames.TRANSFER_ENCODING, "chunked");
+		headers.set(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED);
 		headers.remove(HttpHeaderNames.CONTENT_LENGTH);
 		context.write(res);
 	}
 
-	public void sendSteam(byte[] data, BiConsumer<HttpExchange, ChannelFuture> callback) {
+	public void sendStream(byte[] data, BiConsumer<HttpExchange, ChannelFuture> callback) {
+		sendStream(data, 0, data.length, callback);
+	}
+
+	public void sendStream(byte[] data, int offset, int count, BiConsumer<HttpExchange, ChannelFuture> callback) {
 		var buf = ByteBufAllocator.DEFAULT.ioBuffer(data.length);
-		buf.writeBytes(data);
+		buf.writeBytes(data, offset, count);
 		var future = context.write(new DefaultHttpContent(buf), context.newPromise());
 		future.addListener((ChannelFutureListener)future1 -> callback.accept(this, future1));
 	}
