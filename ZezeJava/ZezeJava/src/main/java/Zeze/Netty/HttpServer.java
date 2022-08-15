@@ -51,7 +51,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> {
 	@Override
 	protected void initChannel(SocketChannel ch) {
 		ch.pipeline()
-				.addLast("encoder", new ChunkedWriteHandler())
+				.addLast("encoder", new HttpResponseEncoder())
 				.addLast("decoder", new HttpRequestDecoder(
 						4096, 8192, 8192, false))
 				.addLast("handler", new Handler());
