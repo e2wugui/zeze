@@ -386,7 +386,7 @@ public class HttpExchange {
 
 		if (!HttpMethod.HEAD.equals(method())) {
 			// send file content
-			context.write(new DefaultFileRegion(raf.getChannel(), from.Value, downloadLength)).addListener(ChannelFutureListener.CLOSE);
+			context.writeAndFlush(new DefaultFileRegion(raf.getChannel(), from.Value, downloadLength)).addListener(ChannelFutureListener.CLOSE);
 			// 发文件任务全部交给Netty，并且发送完毕时关闭。
 			return; // done
 		}
@@ -423,7 +423,7 @@ public class HttpExchange {
 	public void sendStream(byte[] data, int offset, int count, BiConsumer<HttpExchange, ChannelFuture> callback) {
 		var buf = ByteBufAllocator.DEFAULT.ioBuffer(data.length);
 		buf.writeBytes(data, offset, count);
-		var future = context.write(new DefaultHttpContent(buf), context.newPromise());
+		var future = context.writeAndFlush(new DefaultHttpContent(buf), context.newPromise());
 		future.addListener((ChannelFutureListener)future1 -> callback.accept(this, future1));
 	}
 

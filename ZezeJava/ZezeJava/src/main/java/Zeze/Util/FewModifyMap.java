@@ -198,7 +198,7 @@ public class FewModifyMap<K, V> implements Map<K, V>, Cloneable, java.io.Seriali
 	}
 
 	@Override
-	public FewModifyMap<K, V> clone() {
-		throw new UnsupportedOperationException();
+	public FewModifyMap<K, V> clone() throws CloneNotSupportedException {
+		throw new CloneNotSupportedException();
 	}
 }

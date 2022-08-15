@@ -228,7 +228,7 @@ public class FewModifySortedMap<K, V> implements SortedMap<K, V>, Cloneable, jav
 	}
 
 	@Override
-	public FewModifySortedMap<K, V> clone() {
-		throw new UnsupportedOperationException();
+	public FewModifySortedMap<K, V> clone() throws CloneNotSupportedException {
+		throw new CloneNotSupportedException();
 	}
 }

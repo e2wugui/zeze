@@ -549,21 +549,6 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		}
 	}
 
-	private void trigger(Throwable ex) {
-		if (Connector != null) {
-			try {
-				Connector.OnSocketClose(this, ex);
-			} catch (Throwable e) {
-				logger.error("Connector.OnSocketClose", e);
-			}
-		}
-		try {
-			Service.OnSocketClose(this, ex);
-		} catch (Throwable e) {
-			logger.error("Service.OnSocketClose", e);
-		}
-	}
-
 	private void realClose() {
 		if ((byte)closedHandle.getAndSet(this, REAL_CLOSED) == REAL_CLOSED) // 阻止递归关闭
 			return;
@@ -593,7 +578,19 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 		} else
 			logger.debug("close{}: {}", gracefully ? " gracefully" : "", this);
 
-		trigger(ex);
+		if (Connector != null) {
+			try {
+				Connector.OnSocketClose(this, ex);
+			} catch (Throwable e) {
+				logger.error("Connector.OnSocketClose", e);
+			}
+		}
+		try {
+			Service.OnSocketClose(this, ex);
+		} catch (Throwable e) {
+			logger.error("Service.OnSocketClose", e);
+		}
+
 		if (gracefully) {
 			lock.lock();
 			try {
