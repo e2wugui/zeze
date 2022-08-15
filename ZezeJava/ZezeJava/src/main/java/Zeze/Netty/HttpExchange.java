@@ -135,7 +135,8 @@ public class HttpExchange {
 	}
 
 	void channelRead(Object msg) throws Exception {
-		if (msg instanceof FullHttpRequest full) {
+		if (msg instanceof FullHttpRequest) {
+			FullHttpRequest full = (FullHttpRequest)msg;
 			request = full;
 			contents.add(full);
 			if (locateHandler()) {
@@ -158,8 +159,9 @@ public class HttpExchange {
 			return; // done
 		}
 
-		if (msg instanceof HttpContent c) {
+		if (msg instanceof HttpContent) {
 			// 此时 request,handler 已经设置好。
+			HttpContent c = (HttpContent)msg;
 			if (handler.isStreamMode()) {
 				fireStreamContentHandle(c);
 				if (msg instanceof LastHttpContent) {

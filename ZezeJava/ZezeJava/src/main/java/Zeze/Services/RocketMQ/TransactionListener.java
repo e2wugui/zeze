@@ -16,20 +16,26 @@ public abstract class TransactionListener implements org.apache.rocketmq.client.
 
 	@Override
 	public org.apache.rocketmq.client.producer.LocalTransactionState executeLocalTransaction(org.apache.rocketmq.common.message.Message msg, Object arg) {
-		return switch (sendHalfMessage(new Message(msg), arg)) {
-			case COMMIT_MESSAGE -> LocalTransactionState.COMMIT_MESSAGE;
-			case ROLLBACK_MESSAGE -> LocalTransactionState.ROLLBACK_MESSAGE;
-			default -> LocalTransactionState.UNKNOW;
-		};
+		switch (sendHalfMessage(new Message(msg), arg)) {
+		case COMMIT_MESSAGE:
+			return LocalTransactionState.COMMIT_MESSAGE;
+		case ROLLBACK_MESSAGE:
+			return LocalTransactionState.ROLLBACK_MESSAGE;
+		default:
+			return LocalTransactionState.UNKNOW;
+		}
 	}
 
 	@Override
 	public org.apache.rocketmq.client.producer.LocalTransactionState checkLocalTransaction(org.apache.rocketmq.common.message.MessageExt msg) {
-		return switch (checkTransaction(new Message(msg))) {
-			case COMMIT_MESSAGE -> LocalTransactionState.COMMIT_MESSAGE;
-			case ROLLBACK_MESSAGE -> LocalTransactionState.ROLLBACK_MESSAGE;
-			default -> LocalTransactionState.UNKNOW;
-		};
+		switch (checkTransaction(new Message(msg))) {
+		case COMMIT_MESSAGE:
+			return LocalTransactionState.COMMIT_MESSAGE;
+		case ROLLBACK_MESSAGE:
+			return LocalTransactionState.ROLLBACK_MESSAGE;
+		default:
+			return LocalTransactionState.UNKNOW;
+		}
 	}
 
 	public abstract TransactionListener.State sendHalfMessage(Message message, Object arg);
