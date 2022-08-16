@@ -15,7 +15,7 @@ DatagramChannel
 【2022/9/15】
 
 ------------------------------------------------------------------------------------------------------------------------------
-tag 1.0.4 Bean Construct With Parameter; Task.run；Vector2
+tag 1.0.4 Bean Construct With Parameter; Task.run auto detect transaction；Vector2 ... java support
 ------------------------------------------------------------------------------------------------------------------------------
 Vector2 完善。@张路
 Task.run 默认判断是否事务中，自动whileCommit。去掉Task.runWhileCommit。@张路
