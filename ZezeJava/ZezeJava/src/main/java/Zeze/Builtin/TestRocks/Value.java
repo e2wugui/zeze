@@ -218,7 +218,11 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
         _Bool = _Bool_;
         _Float = _Float_;
         _double = _double_;
+        if (_String_ == null)
+            throw new IllegalArgumentException();
         _String = _String_;
+        if (_Binary_ == null)
+            throw new IllegalArgumentException();
         _Binary = _Binary_;
         _SetInt = new Zeze.Raft.RocksRaft.CollSet1<>(Integer.class);
         _SetInt.VariableId = 7;
@@ -228,6 +232,8 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
         _MapInt.VariableId = 9;
         _MapBean = new Zeze.Raft.RocksRaft.CollMap2<>(Integer.class, Zeze.Builtin.TestRocks.Value.class);
         _MapBean.VariableId = 10;
+        if (_Beankey_ == null)
+            throw new IllegalArgumentException();
         _Beankey = _Beankey_;
     }
 

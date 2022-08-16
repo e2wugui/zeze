@@ -56,7 +56,11 @@ public final class BTableKey extends Zeze.Transaction.Bean {
     }
 
     public BTableKey(String _TableName_, Zeze.Net.Binary _EncodedKey_) {
+        if (_TableName_ == null)
+            throw new IllegalArgumentException();
         _TableName = _TableName_;
+        if (_EncodedKey_ == null)
+            throw new IllegalArgumentException();
         _EncodedKey = _EncodedKey_;
     }
 

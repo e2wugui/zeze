@@ -16,6 +16,8 @@ public final class BeanKey implements Serializable, Comparable<BeanKey> {
 
     public BeanKey(int _Id_, String _Name_) {
         this._Id = _Id_;
+        if (_Name_ == null)
+            throw new IllegalArgumentException();
         this._Name = _Name_;
     }
 

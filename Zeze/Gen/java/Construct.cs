@@ -42,7 +42,14 @@ namespace Zeze.Gen.java
                 foreach (var var in bean.Variables)
                 {
                     if (var.VariableType.IsImmutable)
+                    {
+                        if (!var.VariableType.IsJavaPrimitive)
+                        {
+                            sw.WriteLine($"{prefix}    if ({var.NamePrivate}_ == null)");
+                            sw.WriteLine($"{prefix}        throw new IllegalArgumentException();");
+                        }
                         sw.WriteLine($"{prefix}    {var.NamePrivate} = {var.NamePrivate}_;");
+                    }
                     else
                         var.VariableType.Accept(new Construct(sw, var, prefix + "    ", bean.Name));
                 }
@@ -197,32 +204,32 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeQuaternion type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + TypeName.GetName(type) + "();");
+            sw.WriteLine(prefix + variable.NamePrivate + " = " + TypeName.GetName(type) + ".ZERO;");
         }
 
         public void Visit(TypeVector2 type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + TypeName.GetName(type) + "();");
+            sw.WriteLine(prefix + variable.NamePrivate + " = " + TypeName.GetName(type) + ".ZERO;");
         }
 
         public void Visit(TypeVector2Int type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + TypeName.GetName(type) + "();");
+            sw.WriteLine(prefix + variable.NamePrivate + " = " + TypeName.GetName(type) + ".ZERO;");
         }
 
         public void Visit(TypeVector3 type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + TypeName.GetName(type) + "();");
+            sw.WriteLine(prefix + variable.NamePrivate + " = " + TypeName.GetName(type) + ".ZERO;");
         }
 
         public void Visit(TypeVector3Int type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + TypeName.GetName(type) + "();");
+            sw.WriteLine(prefix + variable.NamePrivate + " = " + TypeName.GetName(type) + ".ZERO;");
         }
 
         public void Visit(TypeVector4 type)
         {
-            sw.WriteLine(prefix + variable.NamePrivate + " = new " + TypeName.GetName(type) + "();");
+            sw.WriteLine(prefix + variable.NamePrivate + " = " + TypeName.GetName(type) + ".ZERO;");
         }
     }
 }

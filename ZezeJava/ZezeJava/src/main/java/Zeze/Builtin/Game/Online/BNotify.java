@@ -33,6 +33,8 @@ public final class BNotify extends Zeze.Transaction.Bean {
     }
 
     public BNotify(Zeze.Net.Binary _FullEncodedProtocol_) {
+        if (_FullEncodedProtocol_ == null)
+            throw new IllegalArgumentException();
         _FullEncodedProtocol = _FullEncodedProtocol_;
     }
 

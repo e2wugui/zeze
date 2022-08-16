@@ -63,6 +63,8 @@ public final class BSend extends Zeze.Transaction.Bean {
         _linkSids = new Zeze.Transaction.Collections.PSet1<>(Long.class);
         _linkSids.VariableId = 1;
         _protocolType = _protocolType_;
+        if (_protocolWholeData_ == null)
+            throw new IllegalArgumentException();
         _protocolWholeData = _protocolWholeData_;
     }
 

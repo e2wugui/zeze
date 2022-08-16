@@ -73,6 +73,8 @@ public final class BProviderInfo extends Zeze.Transaction.Bean {
     }
 
     public BProviderInfo(String _Ip_, int _Port_, int _ServerId_) {
+        if (_Ip_ == null)
+            throw new IllegalArgumentException();
         _Ip = _Ip_;
         _Port = _Port_;
         _ServerId = _ServerId_;

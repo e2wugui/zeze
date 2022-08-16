@@ -129,9 +129,15 @@ public final class BResponse extends Zeze.Transaction.Bean {
         _Code = _Code_;
         _Headers = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Web.BHeader.class);
         _Headers.VariableId = 2;
+        if (_Body_ == null)
+            throw new IllegalArgumentException();
         _Body = _Body_;
         _Finish = _Finish_;
+        if (_Message_ == null)
+            throw new IllegalArgumentException();
         _Message = _Message_;
+        if (_Stacktrace_ == null)
+            throw new IllegalArgumentException();
         _Stacktrace = _Stacktrace_;
     }
 

@@ -172,8 +172,14 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
         _HashCodes.VariableId = 3;
         _SourceProvider = _SourceProvider_;
         _SessionId = _SessionId_;
+        if (_MethodFullName_ == null)
+            throw new IllegalArgumentException();
         _MethodFullName = _MethodFullName_;
+        if (_Params_ == null)
+            throw new IllegalArgumentException();
         _Params = _Params_;
+        if (_ServiceNamePrefix_ == null)
+            throw new IllegalArgumentException();
         _ServiceNamePrefix = _ServiceNamePrefix_;
     }
 

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using Zeze.Gen.Types;
+using Type = Zeze.Gen.Types.Type;
 
 namespace Zeze.Gen.rrjava
 {
@@ -325,34 +326,48 @@ namespace Zeze.Gen.rrjava
                 throw new Exception("invalid variable.id");
         }
 
+        private void VisitVector(Type type, string typeName)
+        {
+            if (id > 0)
+            {
+                sw.WriteLine(prefix + "var _x_ = " + varname + ';');
+                sw.WriteLine(prefix + "if (_x_ != null && !_x_.isZero()) {");
+                sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
+                sw.WriteLine(prefix + "    " + bufname + ".Write" + typeName + "(_x_);");
+                sw.WriteLine(prefix + "}");
+            }
+            else
+                sw.WriteLine(prefix + varname + ".Encode(" + bufname + ");");
+        }
+
         public void Visit(TypeQuaternion type)
         {
-            throw new NotImplementedException();
+            VisitVector(type, "Quaternion");
         }
 
         public void Visit(TypeVector2 type)
         {
-            throw new NotImplementedException();
+            VisitVector(type, "Vector2");
         }
 
         public void Visit(TypeVector2Int type)
         {
-            throw new NotImplementedException();
+            VisitVector(type, "Vector2Int");
         }
 
         public void Visit(TypeVector3 type)
         {
-            throw new NotImplementedException();
+            VisitVector(type, "Vector3");
         }
 
         public void Visit(TypeVector3Int type)
         {
-            throw new NotImplementedException();
+            VisitVector(type, "Vector3Int");
         }
 
         public void Visit(TypeVector4 type)
         {
-            throw new NotImplementedException();
+            VisitVector(type, "Vector4");
         }
     }
 }

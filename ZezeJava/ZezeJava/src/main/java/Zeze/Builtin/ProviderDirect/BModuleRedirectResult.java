@@ -75,6 +75,8 @@ public final class BModuleRedirectResult extends Zeze.Transaction.Bean {
     public BModuleRedirectResult(int _ModuleId_, int _ServerId_, Zeze.Net.Binary _Params_) {
         _ModuleId = _ModuleId_;
         _ServerId = _ServerId_;
+        if (_Params_ == null)
+            throw new IllegalArgumentException();
         _Params = _Params_;
     }
 

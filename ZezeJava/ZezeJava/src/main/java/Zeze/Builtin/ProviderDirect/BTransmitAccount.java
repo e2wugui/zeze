@@ -109,11 +109,19 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
     }
 
     public BTransmitAccount(String _ActionName_, Zeze.Net.Binary _Parameter_, String _SenderAccount_, String _SenderClientId_) {
+        if (_ActionName_ == null)
+            throw new IllegalArgumentException();
         _ActionName = _ActionName_;
+        if (_Parameter_ == null)
+            throw new IllegalArgumentException();
         _Parameter = _Parameter_;
         _TargetAccounts = new Zeze.Transaction.Collections.PSet1<>(String.class);
         _TargetAccounts.VariableId = 3;
+        if (_SenderAccount_ == null)
+            throw new IllegalArgumentException();
         _SenderAccount = _SenderAccount_;
+        if (_SenderClientId_ == null)
+            throw new IllegalArgumentException();
         _SenderClientId = _SenderClientId_;
     }
 

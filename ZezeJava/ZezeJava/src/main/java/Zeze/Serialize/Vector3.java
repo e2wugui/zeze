@@ -1,12 +1,9 @@
 package Zeze.Serialize;
 
 public class Vector3 extends Vector2 {
-	public final float z;
+	public static final Vector3 ZERO = new Vector3(0, 0, 0);
 
-	public Vector3() {
-		super(0, 0);
-		z = 0;
-	}
+	public final float z;
 
 	public Vector3(float x, float y, float z) {
 		super(x, y);

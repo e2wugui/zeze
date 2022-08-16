@@ -53,6 +53,8 @@ public final class BReLogin extends Zeze.Transaction.Bean {
     }
 
     public BReLogin(String _ClientId_, long _ReliableNotifyConfirmIndex_) {
+        if (_ClientId_ == null)
+            throw new IllegalArgumentException();
         _ClientId = _ClientId_;
         _ReliableNotifyConfirmIndex = _ReliableNotifyConfirmIndex_;
     }

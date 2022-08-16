@@ -31,6 +31,7 @@ namespace Zeze.Gen.Types
 		public override string Name => "string";
         public override bool IsImmutable => true; // xxx language depends
 		public override bool IsNeedNegativeCheck => false;
+		public override bool IsJavaPrimitive => false;
 
 		internal TypeString(SortedDictionary<string, Type> types)
 		{

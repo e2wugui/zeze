@@ -292,32 +292,32 @@ namespace Zeze.Gen.rrjava
 
         public void Visit(TypeQuaternion type)
         {
-            throw new NotImplementedException();
+            sw.WriteLine(prefix + AssignText($"{bufname}.ReadQuaternion({GetVarName()})") + ';');
         }
 
         public void Visit(TypeVector2 type)
         {
-            throw new NotImplementedException();
+            sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector2({GetVarName()})") + ';');
         }
 
         public void Visit(TypeVector2Int type)
         {
-            throw new NotImplementedException();
+            sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector2Int({GetVarName()})") + ';');
         }
 
         public void Visit(TypeVector3 type)
         {
-            throw new NotImplementedException();
+            sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector3({GetVarName()})") + ';');
         }
 
         public void Visit(TypeVector3Int type)
         {
-            throw new NotImplementedException();
+            sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector3Int({GetVarName()})") + ';');
         }
 
         public void Visit(TypeVector4 type)
         {
-            throw new NotImplementedException();
+            sw.WriteLine(prefix + AssignText($"{bufname}.ReadVector4({GetVarName()})") + ';');
         }
     }
 }

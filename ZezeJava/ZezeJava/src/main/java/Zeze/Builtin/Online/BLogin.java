@@ -33,6 +33,8 @@ public final class BLogin extends Zeze.Transaction.Bean {
     }
 
     public BLogin(String _ClientId_) {
+        if (_ClientId_ == null)
+            throw new IllegalArgumentException();
         _ClientId = _ClientId_;
     }
 

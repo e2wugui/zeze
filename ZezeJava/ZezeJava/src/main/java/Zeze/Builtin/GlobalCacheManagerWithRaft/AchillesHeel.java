@@ -74,6 +74,8 @@ public final class AchillesHeel extends Zeze.Transaction.Bean {
 
     public AchillesHeel(int _ServerId_, String _SecureKey_, int _GlobalCacheManagerHashIndex_) {
         _ServerId = _ServerId_;
+        if (_SecureKey_ == null)
+            throw new IllegalArgumentException();
         _SecureKey = _SecureKey_;
         _GlobalCacheManagerHashIndex = _GlobalCacheManagerHashIndex_;
     }

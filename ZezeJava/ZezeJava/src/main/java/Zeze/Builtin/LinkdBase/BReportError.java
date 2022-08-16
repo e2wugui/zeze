@@ -80,6 +80,8 @@ public final class BReportError extends Zeze.Transaction.Bean {
     public BReportError(int _from_, int _code_, String _desc_) {
         _from = _from_;
         _code = _code_;
+        if (_desc_ == null)
+            throw new IllegalArgumentException();
         _desc = _desc_;
     }
 

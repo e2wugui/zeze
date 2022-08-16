@@ -98,6 +98,7 @@ namespace Zeze.Gen.Types
 		public ModuleSpace Space { get; private set; }
 
 		public override bool IsImmutable => false;
+		public override bool IsJavaPrimitive => false;
 		public override string Name => _name;
 		public string NamePinyin => Program.ToPinyin(Name);
 		private string _name;

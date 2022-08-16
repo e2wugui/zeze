@@ -119,32 +119,32 @@ namespace Zeze.Gen.rrjava
 
         public void Visit(Types.TypeQuaternion type)
         {
-            throw new NotImplementedException();
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).Value; break;");
         }
 
         public void Visit(Types.TypeVector2 type)
         {
-            throw new NotImplementedException();
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).Value; break;");
         }
 
         public void Visit(Types.TypeVector2Int type)
         {
-            throw new NotImplementedException();
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).Value; break;");
         }
 
         public void Visit(Types.TypeVector3 type)
         {
-            throw new NotImplementedException();
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).Value; break;");
         }
 
         public void Visit(Types.TypeVector3Int type)
         {
-            throw new NotImplementedException();
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).Value; break;");
         }
 
         public void Visit(Types.TypeVector4 type)
         {
-            throw new NotImplementedException();
+            sw.WriteLine(prefix + $"    case {var.Id}: {var.NamePrivate} = (({Property.GetLogName(type)})vlog).Value; break;");
         }
 
         public FollowerApply(Types.Variable var, StreamWriter sw, string prefix)

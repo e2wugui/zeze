@@ -116,9 +116,13 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
     }
 
     public BQueueTask(String _QueueName_, int _TaskType_, long _TaskId_, Zeze.Net.Binary _TaskParam_, long _PrevTaskId_) {
+        if (_QueueName_ == null)
+            throw new IllegalArgumentException();
         _QueueName = _QueueName_;
         _TaskType = _TaskType_;
         _TaskId = _TaskId_;
+        if (_TaskParam_ == null)
+            throw new IllegalArgumentException();
         _TaskParam = _TaskParam_;
         _PrevTaskId = _PrevTaskId_;
     }

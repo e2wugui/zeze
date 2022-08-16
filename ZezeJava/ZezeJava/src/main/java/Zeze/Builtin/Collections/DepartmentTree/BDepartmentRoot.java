@@ -78,6 +78,8 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
     }
 
     public BDepartmentRoot(String _Root_, long _NextDepartmentId_) {
+        if (_Root_ == null)
+            throw new IllegalArgumentException();
         _Root = _Root_;
         _Managers = new Zeze.Transaction.Collections.PMap1<>(String.class, Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId);
         _Managers.VariableId = 2;

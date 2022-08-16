@@ -2,13 +2,10 @@ package Zeze.Serialize;
 
 @SuppressWarnings("rawtypes")
 public class Vector2 implements Comparable, Cloneable {
+	public static final Vector2 ZERO = new Vector2(0, 0);
+
 	public final float x;
 	public final float y;
-
-	public Vector2() {
-		x = 0;
-		y = 0;
-	}
 
 	public Vector2(float x, float y) {
 		this.x = x;

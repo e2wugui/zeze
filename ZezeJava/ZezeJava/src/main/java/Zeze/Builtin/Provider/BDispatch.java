@@ -143,10 +143,18 @@ public final class BDispatch extends Zeze.Transaction.Bean {
 
     public BDispatch(long _linkSid_, String _account_, long _protocolType_, Zeze.Net.Binary _protocolData_, String _context_, Zeze.Net.Binary _contextx_) {
         _linkSid = _linkSid_;
+        if (_account_ == null)
+            throw new IllegalArgumentException();
         _account = _account_;
         _protocolType = _protocolType_;
+        if (_protocolData_ == null)
+            throw new IllegalArgumentException();
         _protocolData = _protocolData_;
+        if (_context_ == null)
+            throw new IllegalArgumentException();
         _context = _context_;
+        if (_contextx_ == null)
+            throw new IllegalArgumentException();
         _contextx = _contextx_;
     }
 

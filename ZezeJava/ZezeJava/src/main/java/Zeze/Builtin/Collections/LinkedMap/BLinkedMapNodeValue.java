@@ -50,6 +50,8 @@ public final class BLinkedMapNodeValue extends Zeze.Transaction.Bean {
     }
 
     public BLinkedMapNodeValue(String _Id_) {
+        if (_Id_ == null)
+            throw new IllegalArgumentException();
         _Id = _Id_;
         _Value = new Zeze.Transaction.DynamicBean(2, Zeze.Collections.LinkedMap::GetSpecialTypeIdFromBean, Zeze.Collections.LinkedMap::CreateBeanFromSpecialTypeId);
     }

@@ -42,7 +42,14 @@ namespace Zeze.Gen.java
             {
                 sw.WriteLine("    public " + beanKey.Name + "(" + ParamName.GetParamList(beanKey.Variables) + ") {");
                 foreach (Variable v in beanKey.Variables)
+                {
+                    if (!v.VariableType.IsJavaPrimitive)
+                    {
+                        sw.WriteLine($"        if ({v.NamePrivate}_ == null)");
+                        sw.WriteLine($"            throw new IllegalArgumentException();");
+                    }
                     sw.WriteLine("        this." + v.NamePrivate + " = " + v.NamePrivate + "_;");
+                }
                 sw.WriteLine("    }");
                 sw.WriteLine();
             }

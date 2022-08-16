@@ -114,32 +114,32 @@ namespace Zeze.Gen.rrjava
 
         public void Visit(TypeQuaternion type)
         {
-            throw new System.NotImplementedException();
+            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
         }
 
         public void Visit(TypeVector2 type)
         {
-            throw new System.NotImplementedException();
+            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
         }
 
         public void Visit(TypeVector2Int type)
         {
-            throw new System.NotImplementedException();
+            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
         }
 
         public void Visit(TypeVector3 type)
         {
-            throw new System.NotImplementedException();
+            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
         }
 
         public void Visit(TypeVector3Int type)
         {
-            throw new System.NotImplementedException();
+            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
         }
 
         public void Visit(TypeVector4 type)
         {
-            throw new System.NotImplementedException();
+            sw.WriteLine(prefix + var.Setter($"other.{var.Getter}") + ";");
         }
     }
 }

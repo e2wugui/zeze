@@ -173,13 +173,23 @@ public final class BRequest extends Zeze.Transaction.Bean {
 
     public BRequest(long _ExchangeId_, String _Method_, String _Path_, String _Query_, Zeze.Net.Binary _Body_, boolean _Finish_, String _AuthedAccount_) {
         _ExchangeId = _ExchangeId_;
+        if (_Method_ == null)
+            throw new IllegalArgumentException();
         _Method = _Method_;
+        if (_Path_ == null)
+            throw new IllegalArgumentException();
         _Path = _Path_;
+        if (_Query_ == null)
+            throw new IllegalArgumentException();
         _Query = _Query_;
         _Headers = new Zeze.Transaction.Collections.PMap2<>(String.class, Zeze.Builtin.Web.BHeader.class);
         _Headers.VariableId = 5;
+        if (_Body_ == null)
+            throw new IllegalArgumentException();
         _Body = _Body_;
         _Finish = _Finish_;
+        if (_AuthedAccount_ == null)
+            throw new IllegalArgumentException();
         _AuthedAccount = _AuthedAccount_;
     }
 

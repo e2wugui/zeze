@@ -15,6 +15,8 @@ public final class BDepartmentKey implements Serializable, Comparable<BDepartmen
     }
 
     public BDepartmentKey(String _Owner_, long _DepartmentId_) {
+        if (_Owner_ == null)
+            throw new IllegalArgumentException();
         this._Owner = _Owner_;
         this._DepartmentId = _DepartmentId_;
     }

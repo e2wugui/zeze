@@ -77,7 +77,11 @@ public final class BSetUserState extends Zeze.Transaction.Bean {
 
     public BSetUserState(long _linkSid_, String _context_, Zeze.Net.Binary _contextx_) {
         _linkSid = _linkSid_;
+        if (_context_ == null)
+            throw new IllegalArgumentException();
         _context = _context_;
+        if (_contextx_ == null)
+            throw new IllegalArgumentException();
         _contextx = _contextx_;
     }
 

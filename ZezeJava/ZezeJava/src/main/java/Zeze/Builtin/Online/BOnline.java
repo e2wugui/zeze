@@ -65,6 +65,8 @@ public final class BOnline extends Zeze.Transaction.Bean {
     }
 
     public BOnline(String _LinkName_, long _LinkSid_) {
+        if (_LinkName_ == null)
+            throw new IllegalArgumentException();
         _LinkName = _LinkName_;
         _LinkSid = _LinkSid_;
     }

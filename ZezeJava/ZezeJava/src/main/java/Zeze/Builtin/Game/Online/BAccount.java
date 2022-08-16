@@ -80,6 +80,8 @@ public final class BAccount extends Zeze.Transaction.Bean {
     }
 
     public BAccount(String _Name_, long _LastLoginRoleId_, long _LastLoginVersion_) {
+        if (_Name_ == null)
+            throw new IllegalArgumentException();
         _Name = _Name_;
         _Roles = new Zeze.Transaction.Collections.PList1<>(Long.class);
         _Roles.VariableId = 2;

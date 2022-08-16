@@ -41,7 +41,14 @@ namespace Zeze.Gen.rrjava
                 foreach (var var in bean.Variables)
                 {
                     if (var.VariableType.IsImmutable)
+                    {
+                        if (!var.VariableType.IsJavaPrimitive)
+                        {
+                            sw.WriteLine($"{prefix}    if ({var.NamePrivate}_ == null)");
+                            sw.WriteLine($"{prefix}        throw new IllegalArgumentException();");
+                        }
                         sw.WriteLine($"{prefix}    {var.NamePrivate} = {var.NamePrivate}_;");
+                    }
                     else
                         var.VariableType.Accept(new Construct(sw, var, prefix + "    "));
                 }
@@ -157,32 +164,32 @@ namespace Zeze.Gen.rrjava
 
         public void Visit(TypeQuaternion type)
         {
-            throw new System.NotImplementedException();
+            sw.WriteLine(prefix + variable.NamePrivate + " = " + TypeName.GetName(type) + ".ZERO;");
         }
 
         public void Visit(TypeVector2 type)
         {
-            throw new System.NotImplementedException();
+            sw.WriteLine(prefix + variable.NamePrivate + " = " + TypeName.GetName(type) + ".ZERO;");
         }
 
         public void Visit(TypeVector2Int type)
         {
-            throw new System.NotImplementedException();
+            sw.WriteLine(prefix + variable.NamePrivate + " = " + TypeName.GetName(type) + ".ZERO;");
         }
 
         public void Visit(TypeVector3 type)
         {
-            throw new System.NotImplementedException();
+            sw.WriteLine(prefix + variable.NamePrivate + " = " + TypeName.GetName(type) + ".ZERO;");
         }
 
         public void Visit(TypeVector3Int type)
         {
-            throw new System.NotImplementedException();
+            sw.WriteLine(prefix + variable.NamePrivate + " = " + TypeName.GetName(type) + ".ZERO;");
         }
 
         public void Visit(TypeVector4 type)
         {
-            throw new System.NotImplementedException();
+            sw.WriteLine(prefix + variable.NamePrivate + " = " + TypeName.GetName(type) + ".ZERO;");
         }
     }
 }

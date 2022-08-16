@@ -83,10 +83,14 @@ public final class BTransmit extends Zeze.Transaction.Bean {
     }
 
     public BTransmit(String _ActionName_, long _Sender_, Zeze.Net.Binary _Parameter_) {
+        if (_ActionName_ == null)
+            throw new IllegalArgumentException();
         _ActionName = _ActionName_;
         _Roles = new Zeze.Transaction.Collections.PSet1<>(Long.class);
         _Roles.VariableId = 2;
         _Sender = _Sender_;
+        if (_Parameter_ == null)
+            throw new IllegalArgumentException();
         _Parameter = _Parameter_;
     }
 

@@ -73,6 +73,8 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
     }
 
     public BReliableNotifyConfirm(String _ClientId_, long _ReliableNotifyConfirmIndex_, boolean _Sync_) {
+        if (_ClientId_ == null)
+            throw new IllegalArgumentException();
         _ClientId = _ClientId_;
         _ReliableNotifyConfirmIndex = _ReliableNotifyConfirmIndex_;
         _Sync = _Sync_;

@@ -81,6 +81,8 @@ public final class BKick extends Zeze.Transaction.Bean {
     public BKick(long _linksid_, int _code_, String _desc_) {
         _linksid = _linksid_;
         _code = _code_;
+        if (_desc_ == null)
+            throw new IllegalArgumentException();
         _desc = _desc_;
     }
 

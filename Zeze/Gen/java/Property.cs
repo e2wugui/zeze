@@ -250,32 +250,32 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeQuaternion type)
         {
-            WriteProperty(type);
+            WriteProperty(type, true);
         }
 
         public void Visit(TypeVector2 type)
         {
-            WriteProperty(type);
+            WriteProperty(type, true);
         }
 
         public void Visit(TypeVector2Int type)
         {
-            WriteProperty(type);
+            WriteProperty(type, true);
         }
 
         public void Visit(TypeVector3 type)
         {
-            WriteProperty(type);
+            WriteProperty(type, true);
         }
 
         public void Visit(TypeVector3Int type)
         {
-            WriteProperty(type);
+            WriteProperty(type, true);
         }
 
         public void Visit(TypeVector4 type)
         {
-            WriteProperty(type);
+            WriteProperty(type, true);
         }
     }
 }

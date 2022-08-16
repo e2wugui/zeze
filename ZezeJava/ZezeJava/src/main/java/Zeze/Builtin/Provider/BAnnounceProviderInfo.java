@@ -99,8 +99,14 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
     }
 
     public BAnnounceProviderInfo(String _ServiceNamePrefix_, String _ServiceIndentity_, String _ProviderDirectIp_, int _ProviderDirectPort_) {
+        if (_ServiceNamePrefix_ == null)
+            throw new IllegalArgumentException();
         _ServiceNamePrefix = _ServiceNamePrefix_;
+        if (_ServiceIndentity_ == null)
+            throw new IllegalArgumentException();
         _ServiceIndentity = _ServiceIndentity_;
+        if (_ProviderDirectIp_ == null)
+            throw new IllegalArgumentException();
         _ProviderDirectIp = _ProviderDirectIp_;
         _ProviderDirectPort = _ProviderDirectPort_;
     }

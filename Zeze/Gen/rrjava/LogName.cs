@@ -93,35 +93,34 @@ namespace Zeze.Gen.rrjava
 
         public void Visit(TypeQuaternion type)
         {
-            throw new NotImplementedException();
+            Name = "Zeze.Raft.RocksRaft.Log1.LogQuaternion";
         }
 
         public void Visit(TypeVector2 type)
         {
-            throw new NotImplementedException();
+            Name = "Zeze.Raft.RocksRaft.Log1.LogVector2";
         }
 
         public void Visit(TypeVector2Int type)
         {
-            throw new NotImplementedException();
+            Name = "Zeze.Raft.RocksRaft.Log1.LogVector2Int";
         }
 
         public void Visit(TypeVector3 type)
         {
-            throw new NotImplementedException();
+            Name = "Zeze.Raft.RocksRaft.Log1.LogVector3";
         }
 
         public void Visit(TypeVector3Int type)
         {
-            throw new NotImplementedException();
+            Name = "Zeze.Raft.RocksRaft.Log1.LogVector3Int";
         }
 
         public void Visit(TypeVector4 type)
         {
-            throw new NotImplementedException();
+            Name = "Zeze.Raft.RocksRaft.Log1.LogVector4";
         }
 
         public string Name { get; set; }
-
     }
 }

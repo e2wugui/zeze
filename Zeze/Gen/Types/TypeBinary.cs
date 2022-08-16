@@ -32,6 +32,7 @@ namespace Zeze.Gen.Types
         public override bool IsImmutable => true;
         public override bool IsKeyable => true;
         public override bool IsNeedNegativeCheck => false;
+        public override bool IsJavaPrimitive => false;
 
         internal TypeBinary(SortedDictionary<string, Type> types)
 		{

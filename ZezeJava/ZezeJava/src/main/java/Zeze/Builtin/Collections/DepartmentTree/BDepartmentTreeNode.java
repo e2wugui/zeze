@@ -81,6 +81,8 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
         _ParentDepartment = _ParentDepartment_;
         _Childs = new Zeze.Transaction.Collections.PMap1<>(String.class, Long.class);
         _Childs.VariableId = 2;
+        if (_Name_ == null)
+            throw new IllegalArgumentException();
         _Name = _Name_;
         _Managers = new Zeze.Transaction.Collections.PMap1<>(String.class, Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId);
         _Managers.VariableId = 4;

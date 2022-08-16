@@ -15,6 +15,8 @@ public final class BLinkedMapNodeKey implements Serializable, Comparable<BLinked
     }
 
     public BLinkedMapNodeKey(String _Name_, long _NodeId_) {
+        if (_Name_ == null)
+            throw new IllegalArgumentException();
         this._Name = _Name_;
         this._NodeId = _NodeId_;
     }

@@ -33,6 +33,8 @@ public final class BSession extends Zeze.Transaction.Bean {
     }
 
     public BSession(String _Account_) {
+        if (_Account_ == null)
+            throw new IllegalArgumentException();
         _Account = _Account_;
     }
 

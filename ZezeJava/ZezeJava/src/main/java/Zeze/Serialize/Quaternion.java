@@ -1,9 +1,7 @@
 package Zeze.Serialize;
 
 public class Quaternion extends Vector4 {
-	public Quaternion() {
-		super(0, 0, 0, 0);
-	}
+	public static final Quaternion ZERO = new Quaternion(0, 0, 0, 0);
 
 	public Quaternion(float x, float y, float z, float w) {
 		super(x, y, z, w);

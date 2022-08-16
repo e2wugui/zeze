@@ -16,7 +16,11 @@ public final class BLinkedMapKey implements Serializable, Comparable<BLinkedMapK
     }
 
     public BLinkedMapKey(String _Name_, String _ValueId_) {
+        if (_Name_ == null)
+            throw new IllegalArgumentException();
         this._Name = _Name_;
+        if (_ValueId_ == null)
+            throw new IllegalArgumentException();
         this._ValueId = _ValueId_;
     }
 

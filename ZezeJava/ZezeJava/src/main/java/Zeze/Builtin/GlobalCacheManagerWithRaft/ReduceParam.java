@@ -53,6 +53,8 @@ public final class ReduceParam extends Zeze.Transaction.Bean {
     }
 
     public ReduceParam(Zeze.Net.Binary _GlobalKey_, int _State_) {
+        if (_GlobalKey_ == null)
+            throw new IllegalArgumentException();
         _GlobalKey = _GlobalKey_;
         _State = _State_;
     }

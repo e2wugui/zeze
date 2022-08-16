@@ -9,6 +9,7 @@ namespace Zeze.Gen.Types
         public override string Name => "dynamic";
 
         public override bool IsImmutable => false;
+        public override bool IsJavaPrimitive => false;
         public override bool IsNeedNegativeCheck
         {
             get

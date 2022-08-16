@@ -121,10 +121,16 @@ public final class BLinkBroken extends Zeze.Transaction.Bean {
     }
 
     public BLinkBroken(String _account_, long _linkSid_, int _reason_, String _context_, Zeze.Net.Binary _contextx_) {
+        if (_account_ == null)
+            throw new IllegalArgumentException();
         _account = _account_;
         _linkSid = _linkSid_;
         _reason = _reason_;
+        if (_context_ == null)
+            throw new IllegalArgumentException();
         _context = _context_;
+        if (_contextx_ == null)
+            throw new IllegalArgumentException();
         _contextx = _contextx_;
     }
 

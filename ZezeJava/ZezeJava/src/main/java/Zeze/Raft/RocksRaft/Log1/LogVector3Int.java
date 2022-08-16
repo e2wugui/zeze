@@ -1,11 +1,12 @@
-package Zeze.Transaction.Logs;
+package Zeze.Raft.RocksRaft.Log1;
 
+import Zeze.Raft.RocksRaft.Bean;
+import Zeze.Raft.RocksRaft.Log;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.Vector2Int;
 import Zeze.Serialize.Vector3Int;
-import Zeze.Transaction.Bean;
-import Zeze.Transaction.Log;
 
-public abstract class LogVector3Int extends Log {
+public class LogVector3Int extends Log {
 	private static final int TYPE_ID = Zeze.Transaction.Bean.Hash32("Zeze.Raft.RocksRaft.Log<vector3int>");
 
 	public Vector3Int Value;
@@ -15,7 +16,7 @@ public abstract class LogVector3Int extends Log {
 	}
 
 	public LogVector3Int(Bean belong, int varId, Vector3Int value) {
-		super(TYPE_ID);
+		this();
 		setBelong(belong);
 		setVariableId(varId);
 		Value = value;
@@ -33,6 +34,6 @@ public abstract class LogVector3Int extends Log {
 
 	@Override
 	public String toString() {
-		return String.valueOf(Value);
+		return "Value=" + Value;
 	}
 }

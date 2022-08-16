@@ -1,11 +1,12 @@
-package Zeze.Transaction.Logs;
+package Zeze.Raft.RocksRaft.Log1;
 
+import Zeze.Raft.RocksRaft.Bean;
+import Zeze.Raft.RocksRaft.Log;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.Quaternion;
-import Zeze.Transaction.Bean;
-import Zeze.Transaction.Log;
+import Zeze.Serialize.Vector4;
 
-public abstract class LogQuaternion extends Log {
+public class LogQuaternion extends Log {
 	private static final int TYPE_ID = Zeze.Transaction.Bean.Hash32("Zeze.Raft.RocksRaft.Log<quaternion>");
 
 	public Quaternion Value;
@@ -15,7 +16,7 @@ public abstract class LogQuaternion extends Log {
 	}
 
 	public LogQuaternion(Bean belong, int varId, Quaternion value) {
-		super(TYPE_ID);
+		this();
 		setBelong(belong);
 		setVariableId(varId);
 		Value = value;
@@ -33,6 +34,6 @@ public abstract class LogQuaternion extends Log {
 
 	@Override
 	public String toString() {
-		return String.valueOf(Value);
+		return "Value=" + Value;
 	}
 }
