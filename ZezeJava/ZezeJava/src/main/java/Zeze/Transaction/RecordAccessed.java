@@ -10,7 +10,7 @@ public final class RecordAccessed extends Bean {
 
 		@Override
 		public long getLogKey() {
-			return getBean().getObjectId();
+			return getBean().objectId();
 		}
 
 		@Override
@@ -29,7 +29,7 @@ public final class RecordAccessed extends Bean {
 
 	public Bean NewestValue() {
 		//noinspection ConstantConditions
-		var log = Transaction.getCurrent().GetLog(getObjectId());
+		var log = Transaction.getCurrent().GetLog(objectId());
 		return log instanceof PutLog ? ((PutLog)log).getValue() : AtomicTupleRecord.StrongRef;
 	}
 

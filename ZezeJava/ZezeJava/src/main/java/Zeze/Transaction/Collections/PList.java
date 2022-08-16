@@ -43,12 +43,10 @@ public abstract class PList<V> extends Collection implements List<V> {
 
 	protected final PVector<V> getList() {
 		if (isManaged()) {
-			var txn = Transaction.getCurrent();
-			if (txn == null) {
+			var txn = Transaction.getCurrentVerifyRead(this);
+			if (txn == null)
 				return _list;
-			}
-			txn.VerifyRecordAccessed(this, true);
-			Log log = txn.GetLog(getParent().getObjectId() + getVariableId());
+			Log log = txn.GetLog(parent().objectId() + variableId());
 			if (log == null)
 				return _list;
 			@SuppressWarnings("unchecked")

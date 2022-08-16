@@ -11,11 +11,10 @@ public final class LoginParam extends Zeze.Transaction.Bean {
     public int getServerId() {
         if (!isManaged())
             return _ServerId;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ServerId;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ServerId)txn.GetLog(this.getObjectId() + 1);
+        var log = (Log__ServerId)txn.GetLog(objectId() + 1);
         return log != null ? log.Value : _ServerId;
     }
 
@@ -24,20 +23,17 @@ public final class LoginParam extends Zeze.Transaction.Bean {
             _ServerId = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__ServerId(this, 1, value));
     }
 
     public int getGlobalCacheManagerHashIndex() {
         if (!isManaged())
             return _GlobalCacheManagerHashIndex;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _GlobalCacheManagerHashIndex;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__GlobalCacheManagerHashIndex)txn.GetLog(this.getObjectId() + 2);
+        var log = (Log__GlobalCacheManagerHashIndex)txn.GetLog(objectId() + 2);
         return log != null ? log.Value : _GlobalCacheManagerHashIndex;
     }
 
@@ -46,9 +42,7 @@ public final class LoginParam extends Zeze.Transaction.Bean {
             _GlobalCacheManagerHashIndex = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__GlobalCacheManagerHashIndex(this, 2, value));
     }
 
@@ -82,14 +76,14 @@ public final class LoginParam extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public LoginParam CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = 8338257265267188489L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -111,8 +105,7 @@ public final class LoginParam extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -128,12 +121,12 @@ public final class LoginParam extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

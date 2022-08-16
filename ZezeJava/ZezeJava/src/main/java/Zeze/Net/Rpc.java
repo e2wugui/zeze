@@ -269,13 +269,13 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 	}
 
 	@Override
-	public int getPreAllocSize() {
-		return 1 + 9 + 9 + (IsRequest ? Argument.getPreAllocSize() : Result.getPreAllocSize());
+	public int preAllocSize() {
+		return 1 + 9 + 9 + (IsRequest ? Argument.preAllocSize() : Result.preAllocSize());
 	}
 
 	@Override
-	public void setPreAllocSize(int size) {
-		(IsRequest ? Argument : Result).setPreAllocSize(size - 1 - 1 - 1);
+	public void preAllocSize(int size) {
+		(IsRequest ? Argument : Result).preAllocSize(size - 1 - 1 - 1);
 	}
 
 	@Override

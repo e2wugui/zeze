@@ -43,7 +43,7 @@ public abstract class Log implements Serializable {
 	}
 
 	public final long getLogKey() {
-		return Belong.getObjectId() + getVariableId();
+		return Belong.objectId() + VariableId;
 	}
 
 	public void Collect(Changes changes, Bean recent, Log vlog) {

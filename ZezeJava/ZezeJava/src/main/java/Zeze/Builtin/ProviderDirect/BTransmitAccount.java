@@ -14,11 +14,10 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
     public String getActionName() {
         if (!isManaged())
             return _ActionName;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ActionName;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ActionName)txn.GetLog(this.getObjectId() + 1);
+        var log = (Log__ActionName)txn.GetLog(objectId() + 1);
         return log != null ? log.Value : _ActionName;
     }
 
@@ -29,20 +28,17 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
             _ActionName = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__ActionName(this, 1, value));
     }
 
     public Zeze.Net.Binary getParameter() {
         if (!isManaged())
             return _Parameter;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Parameter;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__Parameter)txn.GetLog(this.getObjectId() + 2);
+        var log = (Log__Parameter)txn.GetLog(objectId() + 2);
         return log != null ? log.Value : _Parameter;
     }
 
@@ -53,9 +49,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
             _Parameter = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__Parameter(this, 2, value));
     }
 
@@ -66,11 +60,10 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
     public String getSenderAccount() {
         if (!isManaged())
             return _SenderAccount;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _SenderAccount;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__SenderAccount)txn.GetLog(this.getObjectId() + 4);
+        var log = (Log__SenderAccount)txn.GetLog(objectId() + 4);
         return log != null ? log.Value : _SenderAccount;
     }
 
@@ -81,20 +74,17 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
             _SenderAccount = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__SenderAccount(this, 4, value));
     }
 
     public String getSenderClientId() {
         if (!isManaged())
             return _SenderClientId;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _SenderClientId;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__SenderClientId)txn.GetLog(this.getObjectId() + 5);
+        var log = (Log__SenderClientId)txn.GetLog(objectId() + 5);
         return log != null ? log.Value : _SenderClientId;
     }
 
@@ -105,9 +95,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
             _SenderClientId = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__SenderClientId(this, 5, value));
     }
 
@@ -156,14 +144,14 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public BTransmitAccount CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = 2637210793748287339L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -199,8 +187,7 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -225,12 +212,12 @@ public final class BTransmitAccount extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

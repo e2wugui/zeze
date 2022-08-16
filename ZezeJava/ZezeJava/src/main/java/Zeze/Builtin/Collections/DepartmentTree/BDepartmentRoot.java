@@ -8,7 +8,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
     private String _Root; // 群主
     private final Zeze.Transaction.Collections.PMap1<String, Zeze.Transaction.DynamicBean> _Managers;
         public static long GetSpecialTypeIdFromBean_Managers(Zeze.Transaction.Bean bean) {
-            var _typeId_ = bean.getTypeId();
+            var _typeId_ = bean.typeId();
             if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
                 return Zeze.Transaction.EmptyBean.TYPEID;
             throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot:Managers");
@@ -24,11 +24,10 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
     public String getRoot() {
         if (!isManaged())
             return _Root;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Root;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__Root)txn.GetLog(this.getObjectId() + 1);
+        var log = (Log__Root)txn.GetLog(objectId() + 1);
         return log != null ? log.Value : _Root;
     }
 
@@ -39,9 +38,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
             _Root = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__Root(this, 1, value));
     }
 
@@ -52,11 +49,10 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
     public long getNextDepartmentId() {
         if (!isManaged())
             return _NextDepartmentId;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _NextDepartmentId;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__NextDepartmentId)txn.GetLog(this.getObjectId() + 3);
+        var log = (Log__NextDepartmentId)txn.GetLog(objectId() + 3);
         return log != null ? log.Value : _NextDepartmentId;
     }
 
@@ -65,9 +61,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
             _NextDepartmentId = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__NextDepartmentId(this, 3, value));
     }
 
@@ -120,14 +114,14 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public BDepartmentRoot CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = 50884757418508709L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -149,8 +143,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -188,12 +181,12 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

@@ -11,11 +11,10 @@ public final class BTableKey extends Zeze.Transaction.Bean {
     public String getTableName() {
         if (!isManaged())
             return _TableName;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _TableName;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__TableName)txn.GetLog(this.getObjectId() + 1);
+        var log = (Log__TableName)txn.GetLog(objectId() + 1);
         return log != null ? log.Value : _TableName;
     }
 
@@ -26,20 +25,17 @@ public final class BTableKey extends Zeze.Transaction.Bean {
             _TableName = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__TableName(this, 1, value));
     }
 
     public Zeze.Net.Binary getEncodedKey() {
         if (!isManaged())
             return _EncodedKey;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _EncodedKey;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__EncodedKey)txn.GetLog(this.getObjectId() + 2);
+        var log = (Log__EncodedKey)txn.GetLog(objectId() + 2);
         return log != null ? log.Value : _EncodedKey;
     }
 
@@ -50,9 +46,7 @@ public final class BTableKey extends Zeze.Transaction.Bean {
             _EncodedKey = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__EncodedKey(this, 2, value));
     }
 
@@ -88,14 +82,14 @@ public final class BTableKey extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public BTableKey CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = 6060766480176216446L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -117,8 +111,7 @@ public final class BTableKey extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -134,12 +127,12 @@ public final class BTableKey extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

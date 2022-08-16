@@ -84,7 +84,7 @@ public class Vector4 implements Serializable {
 	}
 
 	@Override
-	public int getPreAllocSize() {
+	public int preAllocSize() {
 		return 16;
 	}
 

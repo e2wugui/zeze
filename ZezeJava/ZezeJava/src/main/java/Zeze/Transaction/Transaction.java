@@ -34,6 +34,17 @@ public final class Transaction {
 		return t != null && t.Created ? t : null;
 	}
 
+	public static Transaction getCurrentVerifyRead(Bean bean) {
+		return getCurrent();
+	}
+
+	public static Transaction getCurrentVerifyWrite(Bean bean) {
+		var t = getCurrent();
+		if (t != null)
+			t.VerifyRecordForWrite(bean);
+		return t;
+	}
+
 	private final ArrayList<Lockey> holdLocks = new ArrayList<>(); // 读写锁的话需要一个包装类，用来记录当前维持的是哪个锁。
 	private final ArrayList<Procedure> ProcedureStack = new ArrayList<>(); // 嵌套存储过程栈。
 	private final ArrayList<Savepoint> Savepoints = new ArrayList<>();
@@ -422,23 +433,16 @@ public final class Transaction {
 		return AccessedRecords.get(key);
 	}
 
-	public void VerifyRecordAccessed(Bean bean) {
-		VerifyRecordAccessed(bean, false);
-	}
-
-	public void VerifyRecordAccessed(Bean bean, @SuppressWarnings("unused") boolean IsRead) {
-		if (IsRead)
-			return; // allow read
-
+	public void VerifyRecordForWrite(Bean bean) {
 		if (bean.RootInfo.getRecord().getState() == GlobalCacheManagerConst.StateRemoved) {
 			ThrowRedo(); // 这个错误需要redo。不是逻辑错误。
 		}
-		var ra = GetRecordAccessed(bean.getTableKey());
+		var ra = GetRecordAccessed(bean.tableKey());
 		if (ra == null) {
-			throw new IllegalStateException("VerifyRecordAccessed: Record Not Control Under Current Transaction. " + bean.getTableKey());
+			throw new IllegalStateException("VerifyRecordAccessed: Record Not Control Under Current Transaction. " + bean.tableKey());
 		}
 		if (bean.RootInfo.getRecord() != ra.AtomicTupleRecord.Record) {
-			throw new IllegalStateException("VerifyRecordAccessed: Record Reloaded. " + bean.getTableKey());
+			throw new IllegalStateException("VerifyRecordAccessed: Record Reloaded. " + bean.tableKey());
 		}
 		// 事务结束后可能会触发Listener，此时Commit已经完成，Timestamp已经改变，
 		// 这种情况下不做RedoCheck，当然Listener的访问数据是只读的。
@@ -523,7 +527,7 @@ public final class Transaction {
 					if (log.getBean() == null)
 						continue;
 
-					TableKey tkey = log.getBean().getTableKey();
+					TableKey tkey = log.getBean().tableKey();
 					var record = AccessedRecords.get(tkey);
 					if (record != null) {
 						record.Dirty = true;

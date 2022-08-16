@@ -14,11 +14,10 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
     public String getQueueName() {
         if (!isManaged())
             return _QueueName;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _QueueName;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__QueueName)txn.GetLog(this.getObjectId() + 1);
+        var log = (Log__QueueName)txn.GetLog(objectId() + 1);
         return log != null ? log.Value : _QueueName;
     }
 
@@ -29,20 +28,17 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
             _QueueName = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__QueueName(this, 1, value));
     }
 
     public int getTaskType() {
         if (!isManaged())
             return _TaskType;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _TaskType;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__TaskType)txn.GetLog(this.getObjectId() + 2);
+        var log = (Log__TaskType)txn.GetLog(objectId() + 2);
         return log != null ? log.Value : _TaskType;
     }
 
@@ -51,20 +47,17 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
             _TaskType = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__TaskType(this, 2, value));
     }
 
     public long getTaskId() {
         if (!isManaged())
             return _TaskId;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _TaskId;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__TaskId)txn.GetLog(this.getObjectId() + 3);
+        var log = (Log__TaskId)txn.GetLog(objectId() + 3);
         return log != null ? log.Value : _TaskId;
     }
 
@@ -73,20 +66,17 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
             _TaskId = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__TaskId(this, 3, value));
     }
 
     public Zeze.Net.Binary getTaskParam() {
         if (!isManaged())
             return _TaskParam;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _TaskParam;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__TaskParam)txn.GetLog(this.getObjectId() + 4);
+        var log = (Log__TaskParam)txn.GetLog(objectId() + 4);
         return log != null ? log.Value : _TaskParam;
     }
 
@@ -97,20 +87,17 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
             _TaskParam = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__TaskParam(this, 4, value));
     }
 
     public long getPrevTaskId() {
         if (!isManaged())
             return _PrevTaskId;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _PrevTaskId;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__PrevTaskId)txn.GetLog(this.getObjectId() + 5);
+        var log = (Log__PrevTaskId)txn.GetLog(objectId() + 5);
         return log != null ? log.Value : _PrevTaskId;
     }
 
@@ -119,9 +106,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
             _PrevTaskId = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__PrevTaskId(this, 5, value));
     }
 
@@ -163,14 +148,14 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public BQueueTask CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = 3220291684741669511L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -213,8 +198,7 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -233,12 +217,12 @@ public final class BQueueTask extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

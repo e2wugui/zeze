@@ -13,11 +13,10 @@ public final class BMove extends Zeze.Transaction.Bean {
     public String getBagName() {
         if (!isManaged())
             return _BagName;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _BagName;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__BagName)txn.GetLog(this.getObjectId() + 1);
+        var log = (Log__BagName)txn.GetLog(objectId() + 1);
         return log != null ? log.Value : _BagName;
     }
 
@@ -28,20 +27,17 @@ public final class BMove extends Zeze.Transaction.Bean {
             _BagName = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__BagName(this, 1, value));
     }
 
     public int getPositionFrom() {
         if (!isManaged())
             return _PositionFrom;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _PositionFrom;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__PositionFrom)txn.GetLog(this.getObjectId() + 2);
+        var log = (Log__PositionFrom)txn.GetLog(objectId() + 2);
         return log != null ? log.Value : _PositionFrom;
     }
 
@@ -50,20 +46,17 @@ public final class BMove extends Zeze.Transaction.Bean {
             _PositionFrom = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__PositionFrom(this, 2, value));
     }
 
     public int getPositionTo() {
         if (!isManaged())
             return _PositionTo;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _PositionTo;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__PositionTo)txn.GetLog(this.getObjectId() + 3);
+        var log = (Log__PositionTo)txn.GetLog(objectId() + 3);
         return log != null ? log.Value : _PositionTo;
     }
 
@@ -72,20 +65,17 @@ public final class BMove extends Zeze.Transaction.Bean {
             _PositionTo = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__PositionTo(this, 3, value));
     }
 
     public int getNumber() {
         if (!isManaged())
             return _number;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _number;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__number)txn.GetLog(this.getObjectId() + 4);
+        var log = (Log__number)txn.GetLog(objectId() + 4);
         return log != null ? log.Value : _number;
     }
 
@@ -94,9 +84,7 @@ public final class BMove extends Zeze.Transaction.Bean {
             _number = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__number(this, 4, value));
     }
 
@@ -135,14 +123,14 @@ public final class BMove extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public BMove CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = -7346236832819011963L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -178,8 +166,7 @@ public final class BMove extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -197,12 +184,12 @@ public final class BMove extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

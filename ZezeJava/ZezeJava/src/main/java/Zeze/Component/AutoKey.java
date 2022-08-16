@@ -39,11 +39,12 @@ public class AutoKey {
 	private volatile Range range;
 	private final long logKey;
 
+	@SuppressWarnings("deprecation")
 	private AutoKey(Module module, String name) {
 		this.module = module;
 		this.name = name;
 		// 详细参考Bean的Log的用法。这里只有一个variable。
-		logKey = Zeze.Transaction.Bean.getNextObjectId();
+		logKey = Zeze.Transaction.Bean.nextObjectId();
 	}
 
 	public long nextId() {

@@ -19,8 +19,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "public String toString() {");
             sw.WriteLine(prefix + "    var sb = new StringBuilder();");
             sw.WriteLine(prefix + "    BuildString(sb, 0);");
-            sw.WriteLine(prefix + "    sb.append(System.lineSeparator());");
-            sw.WriteLine(prefix + "    return sb.toString();");
+            sw.WriteLine(prefix + "    return sb.append(System.lineSeparator()).toString();");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
             sw.WriteLine(prefix + "@Override");

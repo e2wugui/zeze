@@ -14,9 +14,10 @@ public abstract class CollSet<V> extends Collection implements Iterable<V> {
 
 	protected final org.pcollections.PSet<V> getSet() {
 		if (isManaged()) {
-			if (Transaction.getCurrent() == null)
+			var t = Transaction.getCurrent();
+			if (t == null)
 				return _set;
-			Log log = Transaction.getCurrent().GetLog(getParent().getObjectId() + getVariableId());
+			Log log = t.GetLog(parent().objectId() + variableId());
 			if (log == null)
 				return _set;
 			@SuppressWarnings("unchecked")

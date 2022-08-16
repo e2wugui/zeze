@@ -36,7 +36,7 @@ public class LoginParam extends Bean {
 	}
 
 	@Override
-	public int getPreAllocSize() {
+	public int preAllocSize() {
 		return 5 + 5;
 	}
 

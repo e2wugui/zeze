@@ -256,7 +256,7 @@ public final class Transaction {
 					if (log.getBelong() == null)
 						continue;
 
-					TableKey tkey = log.getBelong().getTableKey();
+					TableKey tkey = log.getBelong().tableKey();
 					var record = AccessedRecords.get(tkey);
 					if (record != null) {
 						record.setDirty(true);

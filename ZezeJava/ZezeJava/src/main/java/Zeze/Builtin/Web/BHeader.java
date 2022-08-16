@@ -10,12 +10,12 @@ public final class BHeader extends Zeze.Transaction.Bean {
     private transient Object __zeze_map_key__;
 
     @Override
-    public Object getMapKey() {
+    public Object mapKey() {
         return __zeze_map_key__;
     }
 
     @Override
-    public void setMapKey(Object value) {
+    public void mapKey(Object value) {
         __zeze_map_key__ = value;
     }
 
@@ -51,14 +51,14 @@ public final class BHeader extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public BHeader CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = -1798266087121028059L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -66,8 +66,7 @@ public final class BHeader extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -88,12 +87,12 @@ public final class BHeader extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

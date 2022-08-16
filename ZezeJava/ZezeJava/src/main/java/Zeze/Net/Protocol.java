@@ -88,17 +88,17 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 	}
 
 	@Override
-	public int getPreAllocSize() {
-		return 9 + Argument.getPreAllocSize();
+	public int preAllocSize() {
+		return 9 + Argument.preAllocSize();
 	}
 
 	@Override
-	public void setPreAllocSize(int size) {
-		Argument.setPreAllocSize(size - 1);
+	public void preAllocSize(int size) {
+		Argument.preAllocSize(size - 1);
 	}
 
 	public final ByteBuffer Encode() {
-		int preAllocSize = getPreAllocSize();
+		int preAllocSize = preAllocSize();
 
 		ByteBuffer bb = ByteBuffer.Allocate(Math.min(HEADER_SIZE + preAllocSize, 65536));
 		bb.WriteInt4(getModuleId());
@@ -109,7 +109,7 @@ public abstract class Protocol<TArgument extends Bean> implements Serializable {
 
 		int size = bb.Size() - saveSize - 4;
 		if (size > preAllocSize)
-			setPreAllocSize(size);
+			preAllocSize(size);
 		return bb;
 	}
 

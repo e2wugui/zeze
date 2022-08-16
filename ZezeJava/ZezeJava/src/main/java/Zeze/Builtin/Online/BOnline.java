@@ -11,23 +11,22 @@ public final class BOnline extends Zeze.Transaction.Bean {
     private transient Object __zeze_map_key__;
 
     @Override
-    public Object getMapKey() {
+    public Object mapKey() {
         return __zeze_map_key__;
     }
 
     @Override
-    public void setMapKey(Object value) {
+    public void mapKey(Object value) {
         __zeze_map_key__ = value;
     }
 
     public String getLinkName() {
         if (!isManaged())
             return _LinkName;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _LinkName;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__LinkName)txn.GetLog(this.getObjectId() + 1);
+        var log = (Log__LinkName)txn.GetLog(objectId() + 1);
         return log != null ? log.Value : _LinkName;
     }
 
@@ -38,20 +37,17 @@ public final class BOnline extends Zeze.Transaction.Bean {
             _LinkName = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__LinkName(this, 1, value));
     }
 
     public long getLinkSid() {
         if (!isManaged())
             return _LinkSid;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _LinkSid;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__LinkSid)txn.GetLog(this.getObjectId() + 2);
+        var log = (Log__LinkSid)txn.GetLog(objectId() + 2);
         return log != null ? log.Value : _LinkSid;
     }
 
@@ -60,9 +56,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
             _LinkSid = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__LinkSid(this, 2, value));
     }
 
@@ -97,14 +91,14 @@ public final class BOnline extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public BOnline CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = -7786403987996508020L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -126,8 +120,7 @@ public final class BOnline extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -143,12 +136,12 @@ public final class BOnline extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

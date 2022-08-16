@@ -20,12 +20,10 @@ public abstract class PSet<V> extends Collection implements Set<V> {
 
 	protected final org.pcollections.PSet<V> getSet() {
 		if (isManaged()) {
-			var txn = Transaction.getCurrent();
-			if (txn == null) {
+			var txn = Transaction.getCurrentVerifyRead(this);
+			if (txn == null)
 				return _set;
-			}
-			txn.VerifyRecordAccessed(this, true);
-			Log log = txn.GetLog(getParent().getObjectId() + getVariableId());
+			Log log = txn.GetLog(parent().objectId() + variableId());
 			if (log == null)
 				return _set;
 			@SuppressWarnings("unchecked")

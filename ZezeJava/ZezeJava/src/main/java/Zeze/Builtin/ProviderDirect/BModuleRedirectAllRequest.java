@@ -17,11 +17,10 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
     public int getModuleId() {
         if (!isManaged())
             return _ModuleId;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ModuleId;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ModuleId)txn.GetLog(this.getObjectId() + 1);
+        var log = (Log__ModuleId)txn.GetLog(objectId() + 1);
         return log != null ? log.Value : _ModuleId;
     }
 
@@ -30,20 +29,17 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
             _ModuleId = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__ModuleId(this, 1, value));
     }
 
     public int getHashCodeConcurrentLevel() {
         if (!isManaged())
             return _HashCodeConcurrentLevel;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _HashCodeConcurrentLevel;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__HashCodeConcurrentLevel)txn.GetLog(this.getObjectId() + 2);
+        var log = (Log__HashCodeConcurrentLevel)txn.GetLog(objectId() + 2);
         return log != null ? log.Value : _HashCodeConcurrentLevel;
     }
 
@@ -52,9 +48,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
             _HashCodeConcurrentLevel = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__HashCodeConcurrentLevel(this, 2, value));
     }
 
@@ -65,11 +59,10 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
     public long getSourceProvider() {
         if (!isManaged())
             return _SourceProvider;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _SourceProvider;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__SourceProvider)txn.GetLog(this.getObjectId() + 4);
+        var log = (Log__SourceProvider)txn.GetLog(objectId() + 4);
         return log != null ? log.Value : _SourceProvider;
     }
 
@@ -78,20 +71,17 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
             _SourceProvider = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__SourceProvider(this, 4, value));
     }
 
     public long getSessionId() {
         if (!isManaged())
             return _SessionId;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _SessionId;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__SessionId)txn.GetLog(this.getObjectId() + 5);
+        var log = (Log__SessionId)txn.GetLog(objectId() + 5);
         return log != null ? log.Value : _SessionId;
     }
 
@@ -100,20 +90,17 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
             _SessionId = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__SessionId(this, 5, value));
     }
 
     public String getMethodFullName() {
         if (!isManaged())
             return _MethodFullName;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _MethodFullName;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__MethodFullName)txn.GetLog(this.getObjectId() + 6);
+        var log = (Log__MethodFullName)txn.GetLog(objectId() + 6);
         return log != null ? log.Value : _MethodFullName;
     }
 
@@ -124,20 +111,17 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
             _MethodFullName = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__MethodFullName(this, 6, value));
     }
 
     public Zeze.Net.Binary getParams() {
         if (!isManaged())
             return _Params;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Params;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__Params)txn.GetLog(this.getObjectId() + 7);
+        var log = (Log__Params)txn.GetLog(objectId() + 7);
         return log != null ? log.Value : _Params;
     }
 
@@ -148,20 +132,17 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
             _Params = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__Params(this, 7, value));
     }
 
     public String getServiceNamePrefix() {
         if (!isManaged())
             return _ServiceNamePrefix;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ServiceNamePrefix;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ServiceNamePrefix)txn.GetLog(this.getObjectId() + 8);
+        var log = (Log__ServiceNamePrefix)txn.GetLog(objectId() + 8);
         return log != null ? log.Value : _ServiceNamePrefix;
     }
 
@@ -172,9 +153,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
             _ServiceNamePrefix = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__ServiceNamePrefix(this, 8, value));
     }
 
@@ -228,14 +207,14 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public BModuleRedirectAllRequest CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = -1938324199607833342L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -292,8 +271,7 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -321,12 +299,12 @@ public final class BModuleRedirectAllRequest extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

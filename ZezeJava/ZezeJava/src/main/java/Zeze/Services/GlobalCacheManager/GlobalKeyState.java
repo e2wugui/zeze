@@ -39,12 +39,12 @@ public class GlobalKeyState extends Bean {
 	private static int _PRE_ALLOC_SIZE_ = 16;
 
 	@Override
-	public int getPreAllocSize() {
+	public int preAllocSize() {
 		return _PRE_ALLOC_SIZE_;
 	}
 
 	@Override
-	public void setPreAllocSize(int size) {
+	public void preAllocSize(int size) {
 		_PRE_ALLOC_SIZE_ = size;
 	}
 }

@@ -43,7 +43,7 @@ namespace Zeze.Gen.java
             sw.WriteLine("}");
         }
 
-        private void GenDynamicSpecialMethod(StreamWriter sw, string prefix, Types.Variable var, TypeDynamic type, bool isCollection)
+        private void GenDynamicSpecialMethod(StreamWriter sw, string prefix, Variable var, TypeDynamic type, bool isCollection)
         {
             if (false == isCollection)
             {
@@ -56,7 +56,7 @@ namespace Zeze.Gen.java
             }
 
             sw.WriteLine($"{prefix}public static long GetSpecialTypeIdFromBean_{var.NameUpper1}(Zeze.Transaction.Bean bean) {{");
-            sw.WriteLine($"{prefix}    var _typeId_ = bean.getTypeId();");
+            sw.WriteLine($"{prefix}    var _typeId_ = bean.typeId();");
             sw.WriteLine($"{prefix}    if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)");
             sw.WriteLine($"{prefix}        return Zeze.Transaction.EmptyBean.TYPEID;");
             foreach (var real in type.RealBeans)
@@ -64,7 +64,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine($"{prefix}    if (_typeId_ == {real.Value.TypeId}L)");
                 sw.WriteLine($"{prefix}        return {real.Key}L; // {real.Value.FullName}");
             }
-            sw.WriteLine($"{prefix}    throw new RuntimeException(\"Unknown Bean! dynamic@{(var.Bean as Bean).FullName}:{var.Name}\");");
+            sw.WriteLine($"{prefix}    throw new RuntimeException(\"Unknown Bean! dynamic@{((Bean)var.Bean).FullName}:{var.Name}\");");
             sw.WriteLine($"{prefix}}}");
             sw.WriteLine();
             sw.WriteLine($"{prefix}public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_{var.NameUpper1}(long typeId) {{");
@@ -151,14 +151,14 @@ namespace Zeze.Gen.java
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
-            sw.WriteLine("    public Zeze.Transaction.Bean CopyBean() {");
+            sw.WriteLine("    public " + bean.Name + " CopyBean() {");
             sw.WriteLine("        return Copy();");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public static final long TYPEID = " + bean.TypeId + "L;");
             sw.WriteLine();
             sw.WriteLine("    @Override");
-            sw.WriteLine("    public long getTypeId() {");
+            sw.WriteLine("    public long typeId() {");
             sw.WriteLine("        return TYPEID;");
             sw.WriteLine("    }");
             sw.WriteLine();

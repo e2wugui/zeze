@@ -29,12 +29,12 @@ namespace Zeze.Gen.rrjava
                 sw.WriteLine($"{prefix}private transient Object __zeze_map_key__;");
                 sw.WriteLine();
                 sw.WriteLine($"{prefix}@Override");
-                sw.WriteLine($"{prefix}public Object getMapKey() {{");
+                sw.WriteLine($"{prefix}public Object mapKey() {{");
                 sw.WriteLine($"{prefix}    return __zeze_map_key__;");
                 sw.WriteLine($"{prefix}}}");
                 sw.WriteLine();
                 sw.WriteLine($"{prefix}@Override");
-                sw.WriteLine($"{prefix}public void setMapKey(Object value) {{");
+                sw.WriteLine($"{prefix}public void mapKey(Object value) {{");
                 sw.WriteLine($"{prefix}    __zeze_map_key__ = value;");
                 sw.WriteLine($"{prefix}}}");
                 sw.WriteLine();
@@ -95,7 +95,7 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + "    var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();");
             sw.WriteLine(prefix + "    if (txn == null)");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "    var log = txn.GetLog(getObjectId() + " + var.Id + ");");
+            sw.WriteLine(prefix + "    var log = txn.GetLog(objectId() + " + var.Id + ");");
             sw.WriteLine(prefix + "    if (log == null)");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + $"    return (({GetLogName(type)})log).Value;");
@@ -112,7 +112,6 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + "        return;");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();");
-            sw.WriteLine(prefix + "    assert txn != null;");
             sw.WriteLine(prefix + $"    txn.PutLog(new {GetLogName(type)}(this, {var.Id}, value));"); //
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
@@ -128,7 +127,7 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + "    var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();");
             sw.WriteLine(prefix + "    if (txn == null)");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "    var log = txn.GetLog(getObjectId() + " + var.Id + ");");
+            sw.WriteLine(prefix + "    var log = txn.GetLog(objectId() + " + var.Id + ");");
             sw.WriteLine(prefix + "    if (null == log)");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
             sw.WriteLine(prefix + $"    return (({GetLogName(type)})log).Value;");
@@ -142,7 +141,6 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine(prefix + "        return;");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();");
-            sw.WriteLine(prefix + "    assert txn != null;");
             sw.WriteLine(prefix + $"    txn.PutLog(new {GetSimpleLogName(type)}({typeName}.class, this, {var.Id}, value));"); //
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
@@ -246,32 +244,32 @@ namespace Zeze.Gen.rrjava
 
         public void Visit(TypeQuaternion type)
         {
-            throw new System.NotImplementedException();
+            WriteProperty(type);
         }
 
         public void Visit(TypeVector2 type)
         {
-            throw new System.NotImplementedException();
+            WriteProperty(type);
         }
 
         public void Visit(TypeVector2Int type)
         {
-            throw new System.NotImplementedException();
+            WriteProperty(type);
         }
 
         public void Visit(TypeVector3 type)
         {
-            throw new System.NotImplementedException();
+            WriteProperty(type);
         }
 
         public void Visit(TypeVector3Int type)
         {
-            throw new System.NotImplementedException();
+            WriteProperty(type);
         }
 
         public void Visit(TypeVector4 type)
         {
-            throw new System.NotImplementedException();
+            WriteProperty(type);
         }
     }
 }

@@ -22,14 +22,14 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	public final Bean getBean() {
 		if (!isManaged())
 			return _Bean;
-		var txn = Transaction.getCurrent();
+		var txn = Transaction.getCurrentVerifyRead(this);
 		if (txn == null)
 			return _Bean;
-		txn.VerifyRecordAccessed(this, true);
-		var log = (LogV)txn.GetLog(getObjectId() + 1);
+		var log = (LogV)txn.GetLog(objectId() + 1);
 		return log != null ? log.getValue() : _Bean;
 	}
 
+	@SuppressWarnings("deprecation")
 	public final void setBean(Bean value) {
 		if (value == null)
 			throw new NullPointerException();
@@ -39,10 +39,8 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 			return;
 		}
 		value.InitRootInfoWithRedo(RootInfo, this);
-		value.setVariableId(1); // 只有一个变量
-		var txn = Transaction.getCurrent();
-		assert txn != null;
-		txn.VerifyRecordAccessed(this);
+		value.variableId(1); // 只有一个变量
+		var txn = Transaction.getCurrentVerifyWrite(this);
 		txn.PutLog(new LogV(this, value));
 	}
 
@@ -50,13 +48,17 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	public long getTypeId() {
 		if (!isManaged())
 			return _TypeId;
-		var txn = Transaction.getCurrent();
+		var txn = Transaction.getCurrentVerifyRead(this);
 		if (txn == null)
 			return _TypeId;
-		txn.VerifyRecordAccessed(this, true);
 		// 不能独立设置，总是设置Bean时一起Commit，所以这里访问Bean的Log。
-		var log = (LogV)txn.GetLog(getObjectId() + 1);
+		var log = (LogV)txn.GetLog(objectId() + 1);
 		return log != null ? log.SpecialTypeId : _TypeId;
+	}
+
+	@Override
+	public long typeId() {
+		return getTypeId();
 	}
 
 	public final ToLongFunction<Bean> getGetSpecialTypeIdFromBean() {
@@ -81,13 +83,14 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	@Override
-	public Bean CopyBean() {
-		var copy = new DynamicBean(getVariableId(), GetSpecialTypeIdFromBean, CreateBeanFromSpecialTypeId);
+	public DynamicBean CopyBean() {
+		var copy = new DynamicBean(variableId(), GetSpecialTypeIdFromBean, CreateBeanFromSpecialTypeId);
 		copy._Bean = getBean().CopyBean();
 		copy._TypeId = getTypeId();
 		return copy;
 	}
 
+	@SuppressWarnings("deprecation")
 	private void SetBeanWithSpecialTypeId(long specialTypeId, Bean bean) {
 		if (!isManaged()) {
 			_TypeId = specialTypeId;
@@ -95,10 +98,8 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 			return;
 		}
 		bean.InitRootInfoWithRedo(RootInfo, this);
-		bean.setVariableId(1); // 只有一个变量
-		var txn = Transaction.getCurrent();
-		assert txn != null;
-		txn.VerifyRecordAccessed(this);
+		bean.variableId(1); // 只有一个变量
+		var txn = Transaction.getCurrentVerifyWrite(this);
 		txn.PutLog(new LogV(specialTypeId, this, bean));
 	}
 
@@ -124,13 +125,13 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 	}
 
 	@Override
-	public int getPreAllocSize() {
-		return 9 + getBean().getPreAllocSize();
+	public int preAllocSize() {
+		return 9 + getBean().preAllocSize();
 	}
 
 	@Override
-	public void setPreAllocSize(int size) {
-		getBean().setPreAllocSize(size - 1);
+	public void preAllocSize(int size) {
+		getBean().preAllocSize(size - 1);
 	}
 
 	@Override
@@ -163,7 +164,7 @@ public class DynamicBean extends Bean implements DynamicBeanReadOnly {
 
 		@Override
 		public long getLogKey() {
-			return getBean().getObjectId() + 1;
+			return getBean().objectId() + 1;
 		}
 
 		@Override

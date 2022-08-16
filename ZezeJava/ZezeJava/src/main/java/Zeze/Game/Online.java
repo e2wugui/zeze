@@ -48,7 +48,7 @@ import org.apache.logging.log4j.Logger;
 
 public class Online extends AbstractOnline {
 	public static long GetSpecialTypeIdFromBean(Bean bean) {
-		return bean.getTypeId();
+		return bean.typeId();
 	}
 
 	public static Bean CreateBeanFromSpecialTypeId(long typeId) {
@@ -627,11 +627,11 @@ public class Online extends AbstractOnline {
 			throw new RuntimeException("Unknown Action Name: " + actionName);
 		ByteBuffer bb;
 		if (parameter != null) {
-			int preSize = parameter.getPreAllocSize();
+			int preSize = parameter.preAllocSize();
 			bb = ByteBuffer.Allocate(preSize);
 			parameter.Encode(bb);
 			if (bb.WriteIndex > preSize)
-				parameter.setPreAllocSize(bb.WriteIndex);
+				parameter.preAllocSize(bb.WriteIndex);
 		} else
 			bb = null;
 		// 发送协议请求在另外的事务中执行。

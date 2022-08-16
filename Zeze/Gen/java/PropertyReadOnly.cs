@@ -11,7 +11,7 @@ namespace Zeze.Gen.java
 
         public static void Make(Bean bean, StreamWriter sw, string prefix)
         {
-            sw.WriteLine($"{prefix}public long getTypeId();");
+            sw.WriteLine($"{prefix}public long typeId();");
             sw.WriteLine($"{prefix}public void Encode(Zeze.Serialize.ByteBuffer _os_);");
             sw.WriteLine($"{prefix}public boolean NegativeCheck();");
             sw.WriteLine($"{prefix}public Zeze.Transaction.Bean CopyBean();");

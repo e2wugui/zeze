@@ -20,23 +20,22 @@ public final class BModule extends Zeze.Transaction.Bean {
     private transient Object __zeze_map_key__;
 
     @Override
-    public Object getMapKey() {
+    public Object mapKey() {
         return __zeze_map_key__;
     }
 
     @Override
-    public void setMapKey(Object value) {
+    public void mapKey(Object value) {
         __zeze_map_key__ = value;
     }
 
     public int getChoiceType() {
         if (!isManaged())
             return _ChoiceType;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ChoiceType;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ChoiceType)txn.GetLog(this.getObjectId() + 1);
+        var log = (Log__ChoiceType)txn.GetLog(objectId() + 1);
         return log != null ? log.Value : _ChoiceType;
     }
 
@@ -45,20 +44,17 @@ public final class BModule extends Zeze.Transaction.Bean {
             _ChoiceType = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__ChoiceType(this, 1, value));
     }
 
     public int getConfigType() {
         if (!isManaged())
             return _ConfigType;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ConfigType;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ConfigType)txn.GetLog(this.getObjectId() + 2);
+        var log = (Log__ConfigType)txn.GetLog(objectId() + 2);
         return log != null ? log.Value : _ConfigType;
     }
 
@@ -67,20 +63,17 @@ public final class BModule extends Zeze.Transaction.Bean {
             _ConfigType = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__ConfigType(this, 2, value));
     }
 
     public int getSubscribeType() {
         if (!isManaged())
             return _SubscribeType;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _SubscribeType;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__SubscribeType)txn.GetLog(this.getObjectId() + 3);
+        var log = (Log__SubscribeType)txn.GetLog(objectId() + 3);
         return log != null ? log.Value : _SubscribeType;
     }
 
@@ -89,9 +82,7 @@ public final class BModule extends Zeze.Transaction.Bean {
             _SubscribeType = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__SubscribeType(this, 3, value));
     }
 
@@ -127,14 +118,14 @@ public final class BModule extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public BModule CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = 5883923521926593765L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -163,8 +154,7 @@ public final class BModule extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -181,12 +171,12 @@ public final class BModule extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

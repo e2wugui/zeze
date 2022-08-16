@@ -23,7 +23,7 @@ public class CollSet1<V> extends CollSet<V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var setLog = (LogSet1<V>)Transaction.getCurrent().LogGetOrAdd(
-					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::CreateLogBean);
 			return setLog.Add(item);
 		}
 		var newSet = _set.plus(item);
@@ -38,7 +38,7 @@ public class CollSet1<V> extends CollSet<V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var setLog = (LogSet1<V>)Transaction.getCurrent().LogGetOrAdd(
-					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::CreateLogBean);
 			return setLog.Remove(item);
 		}
 		var newSet = _set.minus(item);
@@ -53,7 +53,7 @@ public class CollSet1<V> extends CollSet<V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var setLog = (LogSet1<V>)Transaction.getCurrent().LogGetOrAdd(
-					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::CreateLogBean);
 			setLog.Clear();
 		} else
 			_set = org.pcollections.Empty.set();
@@ -62,9 +62,9 @@ public class CollSet1<V> extends CollSet<V> {
 	@Override
 	public LogBean CreateLogBean() {
 		var log = new LogSet1<>(logTypeId, valueCodecFuncs);
-		log.setBelong(getParent());
+		log.setBelong(parent());
 		log.setThis(this);
-		log.setVariableId(getVariableId());
+		log.setVariableId(variableId());
 		log.setValue(_set);
 		return log;
 	}

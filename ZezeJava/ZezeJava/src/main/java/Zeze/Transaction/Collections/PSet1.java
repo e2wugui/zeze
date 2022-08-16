@@ -30,12 +30,9 @@ public class PSet1<V> extends PSet<V> {
 		}
 
 		if (isManaged()) {
-			var txn = Transaction.getCurrent();
-			assert txn != null;
-			txn.VerifyRecordAccessed(this);
 			@SuppressWarnings("unchecked")
-			var setLog = (LogSet1<V>)txn.LogGetOrAdd(
-					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
+					parent().objectId() + variableId(), this::CreateLogBean);
 			return setLog.Add(item);
 		}
 		var newSet = _set.plus(item);
@@ -49,11 +46,8 @@ public class PSet1<V> extends PSet<V> {
 	@Override
 	public boolean remove(Object item) {
 		if (isManaged()) {
-			var txn = Transaction.getCurrent();
-			assert txn != null;
-			txn.VerifyRecordAccessed(this);
-			var setLog = (LogSet1<V>)txn.LogGetOrAdd(
-					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
+					parent().objectId() + variableId(), this::CreateLogBean);
 			return setLog.Remove((V)item);
 		}
 		var newSet = _set.minus(item);
@@ -66,12 +60,9 @@ public class PSet1<V> extends PSet<V> {
 	@Override
 	public boolean addAll(Collection<? extends V> c) {
 		if (isManaged()) {
-			var txn = Transaction.getCurrent();
-			assert txn != null;
-			txn.VerifyRecordAccessed(this);
 			@SuppressWarnings("unchecked")
-			var setLog = (LogSet1<V>)txn.LogGetOrAdd(
-					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
+					parent().objectId() + variableId(), this::CreateLogBean);
 			return setLog.AddAll(c);
 		}
 		var newSet = _set.plusAll(c);
@@ -85,11 +76,8 @@ public class PSet1<V> extends PSet<V> {
 	@Override
 	public boolean removeAll(Collection<?> c) {
 		if (isManaged()) {
-			var txn = Transaction.getCurrent();
-			assert txn != null;
-			txn.VerifyRecordAccessed(this);
-			var setLog = (LogSet1<V>)txn.LogGetOrAdd(
-					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
+					parent().objectId() + variableId(), this::CreateLogBean);
 			return setLog.RemoveAll((Collection<? extends V>)c);
 		}
 		var newSet = _set.minusAll(c);
@@ -102,12 +90,9 @@ public class PSet1<V> extends PSet<V> {
 	@Override
 	public void clear() {
 		if (isManaged()) {
-			var txn = Transaction.getCurrent();
-			assert txn != null;
-			txn.VerifyRecordAccessed(this);
 			@SuppressWarnings("unchecked")
-			var setLog = (LogSet1<V>)txn.LogGetOrAdd(
-					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+			var setLog = (LogSet1<V>)Transaction.getCurrentVerifyWrite(this).LogGetOrAdd(
+					parent().objectId() + variableId(), this::CreateLogBean);
 			setLog.Clear();
 		} else
 			_set = org.pcollections.Empty.set();
@@ -116,9 +101,9 @@ public class PSet1<V> extends PSet<V> {
 	@Override
 	public LogBean CreateLogBean() {
 		var log = new LogSet1<>(logTypeId, valueCodecFuncs);
-		log.setBelong(getParent());
+		log.setBelong(parent());
 		log.setThis(this);
-		log.setVariableId(getVariableId());
+		log.setVariableId(variableId());
 		log.setValue(_set);
 		return log;
 	}
@@ -139,7 +124,7 @@ public class PSet1<V> extends PSet<V> {
 	}
 
 	@Override
-	public Bean CopyBean() {
+	public PSet1<V> CopyBean() {
 		var copy = new PSet1<>(logTypeId, valueCodecFuncs);
 		copy._set = _set;
 		return copy;

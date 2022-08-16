@@ -253,7 +253,7 @@ public final class TestJson extends TestCase {
 		var e = v2.getMap26().iterator().next();
 		assertEquals(Key.class, e.getKey().getClass());
 		assertEquals(123, e.getKey().getS());
-		assertEquals(Simple.TYPEID, e.getValue().getTypeId());
+		assertEquals(Simple.TYPEID, e.getValue().typeId());
 		assertEquals(Simple.class, e.getValue().getBean().getClass());
 		assertEquals(456, ((Simple)e.getValue().getBean()).getInt1());
 	}

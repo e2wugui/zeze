@@ -15,11 +15,10 @@ public final class BDispatch extends Zeze.Transaction.Bean {
     public long getLinkSid() {
         if (!isManaged())
             return _linkSid;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _linkSid;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__linkSid)txn.GetLog(this.getObjectId() + 1);
+        var log = (Log__linkSid)txn.GetLog(objectId() + 1);
         return log != null ? log.Value : _linkSid;
     }
 
@@ -28,20 +27,17 @@ public final class BDispatch extends Zeze.Transaction.Bean {
             _linkSid = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__linkSid(this, 1, value));
     }
 
     public String getAccount() {
         if (!isManaged())
             return _account;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _account;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__account)txn.GetLog(this.getObjectId() + 2);
+        var log = (Log__account)txn.GetLog(objectId() + 2);
         return log != null ? log.Value : _account;
     }
 
@@ -52,20 +48,17 @@ public final class BDispatch extends Zeze.Transaction.Bean {
             _account = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__account(this, 2, value));
     }
 
     public long getProtocolType() {
         if (!isManaged())
             return _protocolType;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _protocolType;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__protocolType)txn.GetLog(this.getObjectId() + 3);
+        var log = (Log__protocolType)txn.GetLog(objectId() + 3);
         return log != null ? log.Value : _protocolType;
     }
 
@@ -74,20 +67,17 @@ public final class BDispatch extends Zeze.Transaction.Bean {
             _protocolType = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__protocolType(this, 3, value));
     }
 
     public Zeze.Net.Binary getProtocolData() {
         if (!isManaged())
             return _protocolData;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _protocolData;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__protocolData)txn.GetLog(this.getObjectId() + 4);
+        var log = (Log__protocolData)txn.GetLog(objectId() + 4);
         return log != null ? log.Value : _protocolData;
     }
 
@@ -98,20 +88,17 @@ public final class BDispatch extends Zeze.Transaction.Bean {
             _protocolData = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__protocolData(this, 4, value));
     }
 
     public String getContext() {
         if (!isManaged())
             return _context;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _context;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__context)txn.GetLog(this.getObjectId() + 5);
+        var log = (Log__context)txn.GetLog(objectId() + 5);
         return log != null ? log.Value : _context;
     }
 
@@ -122,20 +109,17 @@ public final class BDispatch extends Zeze.Transaction.Bean {
             _context = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__context(this, 5, value));
     }
 
     public Zeze.Net.Binary getContextx() {
         if (!isManaged())
             return _contextx;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _contextx;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__contextx)txn.GetLog(this.getObjectId() + 6);
+        var log = (Log__contextx)txn.GetLog(objectId() + 6);
         return log != null ? log.Value : _contextx;
     }
 
@@ -146,9 +130,7 @@ public final class BDispatch extends Zeze.Transaction.Bean {
             _contextx = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__contextx(this, 6, value));
     }
 
@@ -194,14 +176,14 @@ public final class BDispatch extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public BDispatch CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = -496680173908943081L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -251,8 +233,7 @@ public final class BDispatch extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -272,12 +253,12 @@ public final class BDispatch extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

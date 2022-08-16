@@ -146,26 +146,26 @@ public final class Changes {
 		Bean belong = log.getBelong();
 		if (belong == null) {
 			// 记录可能存在多个修改日志树。收集的时候全部保留，后面会去掉不需要的。see Transaction._final_commit_
-			var r = Records.get(recent.getTableKey());
+			var r = Records.get(recent.tableKey());
 			if (r == null) {
 				r = new Record(recent.RootInfo.getRecord().getTable());
-				Records.put(recent.getTableKey(), r);
+				Records.put(recent.tableKey(), r);
 			}
 			r.getLogBeans().put(recent, (LogBean)log);
 			return; // root
 		}
 
-		var logBean = Beans.get(belong.getObjectId());
+		var logBean = Beans.get(belong.objectId());
 		if (logBean == null) {
 			if (belong instanceof Collection) {
 				// 容器使用共享的日志。需要先去查询，没有的话才创建。
 				//noinspection ConstantConditions
 				logBean = (LogBean)Transaction.getCurrent().GetLog(
-						belong.getParent().getObjectId() + belong.getVariableId());
+						belong.parent().objectId() + belong.variableId());
 			}
 			if (logBean == null)
 				logBean = belong.CreateLogBean();
-			Beans.put(belong.getObjectId(), logBean);
+			Beans.put(belong.objectId(), logBean);
 		}
 		logBean.Collect(this, belong, log);
 	}
@@ -175,7 +175,7 @@ public final class Changes {
 		if (null == Listeners.get(ar.AtomicTupleRecord.Record.getTable()))
 			return;
 
-		var tkey = ar.getTableKey();
+		var tkey = ar.tableKey();
 		var r = Records.get(tkey);
 		if (r == null) {
 			// put record only

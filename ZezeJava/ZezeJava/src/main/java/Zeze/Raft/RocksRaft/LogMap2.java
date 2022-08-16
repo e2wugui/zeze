@@ -46,7 +46,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 	public void Encode(ByteBuffer bb) {
 		if (getValue() != null) {
 			for (var c : Changed) {
-				Object pkey = c.getThis().getMapKey();
+				Object pkey = c.getThis().mapKey();
 				//noinspection SuspiciousMethodCalls
 				if (!getPutted().containsKey(pkey) && !getRemoved().contains(pkey))
 					ChangedWithKey.put((K)pkey, c);

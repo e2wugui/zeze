@@ -10,7 +10,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
     private String _Name;
     private final Zeze.Transaction.Collections.PMap1<String, Zeze.Transaction.DynamicBean> _Managers;
         public static long GetSpecialTypeIdFromBean_Managers(Zeze.Transaction.Bean bean) {
-            var _typeId_ = bean.getTypeId();
+            var _typeId_ = bean.typeId();
             if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
                 return Zeze.Transaction.EmptyBean.TYPEID;
             throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Collections.DepartmentTree.BDepartmentTreeNode:Managers");
@@ -24,11 +24,10 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
     public long getParentDepartment() {
         if (!isManaged())
             return _ParentDepartment;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ParentDepartment;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ParentDepartment)txn.GetLog(this.getObjectId() + 1);
+        var log = (Log__ParentDepartment)txn.GetLog(objectId() + 1);
         return log != null ? log.Value : _ParentDepartment;
     }
 
@@ -37,9 +36,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
             _ParentDepartment = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__ParentDepartment(this, 1, value));
     }
 
@@ -50,11 +47,10 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
     public String getName() {
         if (!isManaged())
             return _Name;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Name;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__Name)txn.GetLog(this.getObjectId() + 3);
+        var log = (Log__Name)txn.GetLog(objectId() + 3);
         return log != null ? log.Value : _Name;
     }
 
@@ -65,9 +61,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
             _Name = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__Name(this, 3, value));
     }
 
@@ -120,14 +114,14 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public BDepartmentTreeNode CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = 2712461973987809351L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -149,8 +143,7 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -188,12 +181,12 @@ public final class BDepartmentTreeNode extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

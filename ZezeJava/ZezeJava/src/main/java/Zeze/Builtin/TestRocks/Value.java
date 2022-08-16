@@ -20,12 +20,12 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
     private transient Object __zeze_map_key__;
 
     @Override
-    public Object getMapKey() {
+    public Object mapKey() {
         return __zeze_map_key__;
     }
 
     @Override
-    public void setMapKey(Object value) {
+    public void mapKey(Object value) {
         __zeze_map_key__ = value;
     }
 
@@ -35,7 +35,7 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
         if (txn == null)
             return _Int;
-        var log = txn.GetLog(getObjectId() + 1);
+        var log = txn.GetLog(objectId() + 1);
         if (log == null)
             return _Int;
         return ((Zeze.Raft.RocksRaft.Log1.LogInt)log).Value;
@@ -47,7 +47,6 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
             return;
         }
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        assert txn != null;
         txn.PutLog(new Zeze.Raft.RocksRaft.Log1.LogInt(this, 1, value));
     }
 
@@ -57,7 +56,7 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
         if (txn == null)
             return _Bool;
-        var log = txn.GetLog(getObjectId() + 2);
+        var log = txn.GetLog(objectId() + 2);
         if (log == null)
             return _Bool;
         return ((Zeze.Raft.RocksRaft.Log1.LogBool)log).Value;
@@ -69,7 +68,6 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
             return;
         }
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        assert txn != null;
         txn.PutLog(new Zeze.Raft.RocksRaft.Log1.LogBool(this, 2, value));
     }
 
@@ -79,7 +77,7 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
         if (txn == null)
             return _Float;
-        var log = txn.GetLog(getObjectId() + 3);
+        var log = txn.GetLog(objectId() + 3);
         if (log == null)
             return _Float;
         return ((Zeze.Raft.RocksRaft.Log1.LogFloat)log).Value;
@@ -91,7 +89,6 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
             return;
         }
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        assert txn != null;
         txn.PutLog(new Zeze.Raft.RocksRaft.Log1.LogFloat(this, 3, value));
     }
 
@@ -101,7 +98,7 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
         if (txn == null)
             return _double;
-        var log = txn.GetLog(getObjectId() + 4);
+        var log = txn.GetLog(objectId() + 4);
         if (log == null)
             return _double;
         return ((Zeze.Raft.RocksRaft.Log1.LogDouble)log).Value;
@@ -113,7 +110,6 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
             return;
         }
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        assert txn != null;
         txn.PutLog(new Zeze.Raft.RocksRaft.Log1.LogDouble(this, 4, value));
     }
 
@@ -123,7 +119,7 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
         if (txn == null)
             return _String;
-        var log = txn.GetLog(getObjectId() + 5);
+        var log = txn.GetLog(objectId() + 5);
         if (log == null)
             return _String;
         return ((Zeze.Raft.RocksRaft.Log1.LogString)log).Value;
@@ -137,7 +133,6 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
             return;
         }
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        assert txn != null;
         txn.PutLog(new Zeze.Raft.RocksRaft.Log1.LogString(this, 5, value));
     }
 
@@ -147,7 +142,7 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
         if (txn == null)
             return _Binary;
-        var log = txn.GetLog(getObjectId() + 6);
+        var log = txn.GetLog(objectId() + 6);
         if (log == null)
             return _Binary;
         return ((Zeze.Raft.RocksRaft.Log1.LogBinary)log).Value;
@@ -161,7 +156,6 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
             return;
         }
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        assert txn != null;
         txn.PutLog(new Zeze.Raft.RocksRaft.Log1.LogBinary(this, 6, value));
     }
 
@@ -188,7 +182,7 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
         if (txn == null)
             return _Beankey;
-        var log = txn.GetLog(getObjectId() + 11);
+        var log = txn.GetLog(objectId() + 11);
         if (null == log)
             return _Beankey;
         return ((Zeze.Raft.RocksRaft.Log1.LogBeanKey<Zeze.Builtin.TestRocks.BeanKey>)log).Value;
@@ -202,7 +196,6 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
             return;
         }
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        assert txn != null;
         txn.PutLog(new Zeze.Raft.RocksRaft.Log1.LogBeanKey<>(Zeze.Builtin.TestRocks.BeanKey.class, this, 11, value));
     }
 
@@ -277,14 +270,14 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
     }
 
     @Override
-    public Zeze.Raft.RocksRaft.Bean CopyBean() {
+    public Value CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = 7725276190606291579L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -292,8 +285,7 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -354,12 +346,12 @@ public final class Value extends Zeze.Raft.RocksRaft.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

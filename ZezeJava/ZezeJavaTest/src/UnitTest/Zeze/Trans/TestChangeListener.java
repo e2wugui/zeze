@@ -378,8 +378,8 @@ public class TestChangeListener {
 				Assert.assertNull(newValue);
 				return;
 			}
-			Assert.assertEquals(newValue.getTypeId(), current.getDynamic14().getTypeId());
-			if (newValue.getTypeId() == demo.Module1.Simple.TYPEID) {
+			Assert.assertEquals(newValue.typeId(), current.getDynamic14().typeId());
+			if (newValue.typeId() == demo.Module1.Simple.TYPEID) {
 				demo.Module1.Simple newSimple = newValue instanceof demo.Module1.Simple ? (demo.Module1.Simple)newValue : null;
 				Zeze.Transaction.Bean tempVar = current.getDynamic14().getBean();
 				demo.Module1.Simple currentSimple = tempVar instanceof demo.Module1.Simple ? (demo.Module1.Simple)tempVar : null;

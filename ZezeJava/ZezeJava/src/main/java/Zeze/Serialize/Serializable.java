@@ -5,10 +5,10 @@ public interface Serializable {
 
 	void Decode(ByteBuffer bb);
 
-	default int getPreAllocSize() {
+	default int preAllocSize() {
 		return 16;
 	}
 
-	default void setPreAllocSize(int size) {
+	default void preAllocSize(int size) {
 	}
 }

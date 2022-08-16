@@ -13,11 +13,10 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
     public String getServiceNamePrefix() {
         if (!isManaged())
             return _ServiceNamePrefix;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ServiceNamePrefix;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ServiceNamePrefix)txn.GetLog(this.getObjectId() + 1);
+        var log = (Log__ServiceNamePrefix)txn.GetLog(objectId() + 1);
         return log != null ? log.Value : _ServiceNamePrefix;
     }
 
@@ -28,20 +27,17 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
             _ServiceNamePrefix = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__ServiceNamePrefix(this, 1, value));
     }
 
     public String getServiceIndentity() {
         if (!isManaged())
             return _ServiceIndentity;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ServiceIndentity;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ServiceIndentity)txn.GetLog(this.getObjectId() + 2);
+        var log = (Log__ServiceIndentity)txn.GetLog(objectId() + 2);
         return log != null ? log.Value : _ServiceIndentity;
     }
 
@@ -52,20 +48,17 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
             _ServiceIndentity = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__ServiceIndentity(this, 2, value));
     }
 
     public String getProviderDirectIp() {
         if (!isManaged())
             return _ProviderDirectIp;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ProviderDirectIp;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ProviderDirectIp)txn.GetLog(this.getObjectId() + 3);
+        var log = (Log__ProviderDirectIp)txn.GetLog(objectId() + 3);
         return log != null ? log.Value : _ProviderDirectIp;
     }
 
@@ -76,20 +69,17 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
             _ProviderDirectIp = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__ProviderDirectIp(this, 3, value));
     }
 
     public int getProviderDirectPort() {
         if (!isManaged())
             return _ProviderDirectPort;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ProviderDirectPort;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ProviderDirectPort)txn.GetLog(this.getObjectId() + 4);
+        var log = (Log__ProviderDirectPort)txn.GetLog(objectId() + 4);
         return log != null ? log.Value : _ProviderDirectPort;
     }
 
@@ -98,9 +88,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
             _ProviderDirectPort = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__ProviderDirectPort(this, 4, value));
     }
 
@@ -141,14 +129,14 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public BAnnounceProviderInfo CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = 4964769950995033065L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -184,8 +172,7 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -203,12 +190,12 @@ public final class BAnnounceProviderInfo extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

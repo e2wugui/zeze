@@ -26,9 +26,10 @@ public abstract class CollMap<K, V> extends Collection implements Iterable<Map.E
 
 	protected final org.pcollections.PMap<K, V> getMap() {
 		if (isManaged()) {
-			if (Transaction.getCurrent() == null)
+			var t = Transaction.getCurrent();
+			if (t == null)
 				return _map;
-			var log = Transaction.getCurrent().GetLog(getParent().getObjectId() + getVariableId());
+			var log = t.GetLog(parent().objectId() + variableId());
 			if (log == null)
 				return _map;
 			@SuppressWarnings("unchecked")

@@ -88,14 +88,14 @@ namespace Zeze.Gen.rrjava
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    @Override");
-            sw.WriteLine("    public Zeze.Raft.RocksRaft.Bean CopyBean() {");
+            sw.WriteLine("    public " + bean.Name + " CopyBean() {");
             sw.WriteLine("        return Copy();");
             sw.WriteLine("    }");
             sw.WriteLine();
             sw.WriteLine("    public static final long TYPEID = " + bean.TypeId + "L;");
             sw.WriteLine();
             sw.WriteLine("    @Override");
-            sw.WriteLine("    public long getTypeId() {");
+            sw.WriteLine("    public long typeId() {");
             sw.WriteLine("        return TYPEID;");
             sw.WriteLine("    }");
             sw.WriteLine();

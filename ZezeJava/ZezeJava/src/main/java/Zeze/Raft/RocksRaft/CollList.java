@@ -21,9 +21,10 @@ public abstract class CollList<V> extends Collection implements Iterable<V> {
 
 	protected final PVector<V> getList() {
 		if (isManaged()) {
-			if (Transaction.getCurrent() == null)
+			var t = Transaction.getCurrent();
+			if (t == null)
 				return _list;
-			Log log = Transaction.getCurrent().GetLog(getParent().getObjectId() + getVariableId());
+			Log log = t.GetLog(parent().objectId() + variableId());
 			if (log == null)
 				return _list;
 			@SuppressWarnings("unchecked")

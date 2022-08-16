@@ -9,7 +9,7 @@ public final class BItem extends Zeze.Transaction.Bean {
     private int _Number;
     private final Zeze.Transaction.DynamicBean _Item;
         public static long GetSpecialTypeIdFromBean_Item(Zeze.Transaction.Bean bean) {
-            var _typeId_ = bean.getTypeId();
+            var _typeId_ = bean.typeId();
             if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
                 return Zeze.Transaction.EmptyBean.TYPEID;
             throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Game.Bag.BItem:Item");
@@ -23,23 +23,22 @@ public final class BItem extends Zeze.Transaction.Bean {
     private transient Object __zeze_map_key__;
 
     @Override
-    public Object getMapKey() {
+    public Object mapKey() {
         return __zeze_map_key__;
     }
 
     @Override
-    public void setMapKey(Object value) {
+    public void mapKey(Object value) {
         __zeze_map_key__ = value;
     }
 
     public int getId() {
         if (!isManaged())
             return _Id;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Id;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__Id)txn.GetLog(this.getObjectId() + 1);
+        var log = (Log__Id)txn.GetLog(objectId() + 1);
         return log != null ? log.Value : _Id;
     }
 
@@ -48,20 +47,17 @@ public final class BItem extends Zeze.Transaction.Bean {
             _Id = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__Id(this, 1, value));
     }
 
     public int getNumber() {
         if (!isManaged())
             return _Number;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Number;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__Number)txn.GetLog(this.getObjectId() + 2);
+        var log = (Log__Number)txn.GetLog(objectId() + 2);
         return log != null ? log.Value : _Number;
     }
 
@@ -70,9 +66,7 @@ public final class BItem extends Zeze.Transaction.Bean {
             _Number = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__Number(this, 2, value));
     }
 
@@ -113,14 +107,14 @@ public final class BItem extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public BItem CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = 8937000213993683283L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -142,8 +136,7 @@ public final class BItem extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -162,12 +155,12 @@ public final class BItem extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

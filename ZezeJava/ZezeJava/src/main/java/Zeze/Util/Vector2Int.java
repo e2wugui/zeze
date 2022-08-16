@@ -68,7 +68,7 @@ public class Vector2Int implements Serializable {
 	}
 
 	@Override
-	public int getPreAllocSize() {
+	public int preAllocSize() {
 		return 8;
 	}
 

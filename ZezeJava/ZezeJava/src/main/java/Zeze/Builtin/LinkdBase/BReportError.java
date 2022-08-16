@@ -17,11 +17,10 @@ public final class BReportError extends Zeze.Transaction.Bean {
     public int getFrom() {
         if (!isManaged())
             return _from;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _from;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__from)txn.GetLog(this.getObjectId() + 1);
+        var log = (Log__from)txn.GetLog(objectId() + 1);
         return log != null ? log.Value : _from;
     }
 
@@ -30,20 +29,17 @@ public final class BReportError extends Zeze.Transaction.Bean {
             _from = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__from(this, 1, value));
     }
 
     public int getCode() {
         if (!isManaged())
             return _code;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _code;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__code)txn.GetLog(this.getObjectId() + 2);
+        var log = (Log__code)txn.GetLog(objectId() + 2);
         return log != null ? log.Value : _code;
     }
 
@@ -52,20 +48,17 @@ public final class BReportError extends Zeze.Transaction.Bean {
             _code = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__code(this, 2, value));
     }
 
     public String getDesc() {
         if (!isManaged())
             return _desc;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _desc;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__desc)txn.GetLog(this.getObjectId() + 3);
+        var log = (Log__desc)txn.GetLog(objectId() + 3);
         return log != null ? log.Value : _desc;
     }
 
@@ -76,9 +69,7 @@ public final class BReportError extends Zeze.Transaction.Bean {
             _desc = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__desc(this, 3, value));
     }
 
@@ -115,14 +106,14 @@ public final class BReportError extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public BReportError CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = -947669033141460287L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -151,8 +142,7 @@ public final class BReportError extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -169,12 +159,12 @@ public final class BReportError extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

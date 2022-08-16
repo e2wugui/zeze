@@ -102,7 +102,7 @@ public final class Record<K> {
 	}
 
 	public RootInfo CreateRootInfoIfNeed(TableKey tkey) {
-		var cur = Value != null ? Value.getRootInfo() : null;
+		var cur = Value != null ? Value.rootInfo() : null;
 		return cur != null ? cur : new RootInfo(this, tkey);
 	}
 
@@ -116,12 +116,12 @@ public final class Record<K> {
 		var keyBB = ByteBuffer.Allocate();
 		keyEncodeFunc.accept(keyBB, Key);
 		if (Value != null) {
-			int preAllocSize = Value.getPreAllocSize();
+			int preAllocSize = Value.preAllocSize();
 			ByteBuffer valueBB = ByteBuffer.Allocate(Math.min(preAllocSize, 65536));
 			Value.Encode(valueBB);
 			int size = valueBB.WriteIndex;
 			if (size > preAllocSize)
-				Value.setPreAllocSize(size);
+				Value.preAllocSize(size);
 			batch.put(Table.getColumnFamily(), keyBB.Copy(), valueBB.Copy());
 		} else
 			batch.delete(Table.getColumnFamily(), keyBB.Copy());

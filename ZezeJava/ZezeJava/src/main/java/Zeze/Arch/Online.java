@@ -35,10 +35,9 @@ import Zeze.Util.Task;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-@SuppressWarnings("ConstantConditions")
 public class Online extends AbstractOnline {
 	public static long GetSpecialTypeIdFromBean(Bean bean) {
-		return bean.getTypeId();
+		return bean.typeId();
 	}
 
 	public static Bean CreateBeanFromSpecialTypeId(long typeId) {

@@ -284,12 +284,12 @@ public final class GenModule {
 			if (m.resultType != null && Serializable.class.isAssignableFrom(m.resultType)) {
 				sbHandles.AppendLine("{");
 				sbHandles.AppendLine("                var _r_ = ({})_result_;", m.resultTypeName);
-				sbHandles.AppendLine("                int _s_ = _r_.getPreAllocSize();");
+				sbHandles.AppendLine("                int _s_ = _r_.preAllocSize();");
 				sbHandles.AppendLine("                var _b_ = Zeze.Serialize.ByteBuffer.Allocate(Math.min(_s_, 65536));");
 				sbHandles.AppendLine("                _r_.Encode(_b_);");
 				sbHandles.AppendLine("                int _t_ = _b_.WriteIndex;");
 				sbHandles.AppendLine("                if (_t_ > _s_)");
-				sbHandles.AppendLine("                    _r_.setPreAllocSize(_t_);");
+				sbHandles.AppendLine("                    _r_.preAllocSize(_t_);");
 				sbHandles.AppendLine("                return new Zeze.Net.Binary(_b_);");
 				sbHandles.Append("            }");
 			} else if (!m.resultFields.isEmpty()) {

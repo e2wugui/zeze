@@ -22,14 +22,14 @@ public class EmptyBean extends Bean {
 	}
 
 	@Override
-	public Bean CopyBean() {
+	public EmptyBean CopyBean() {
 		return new EmptyBean();
 	}
 
 	public static final long TYPEID = 0; // 用0，而不是Bean.Hash("")，可能0更好吧。
 
 	@Override
-	public long getTypeId() {
+	public long typeId() {
 		return TYPEID;
 	}
 
@@ -39,7 +39,7 @@ public class EmptyBean extends Bean {
 	}
 
 	@Override
-	public int getPreAllocSize() {
+	public int preAllocSize() {
 		return 1;
 	}
 }

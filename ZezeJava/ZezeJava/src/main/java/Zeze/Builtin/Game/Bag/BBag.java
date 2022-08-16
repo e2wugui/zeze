@@ -11,11 +11,10 @@ public final class BBag extends Zeze.Transaction.Bean {
     public int getCapacity() {
         if (!isManaged())
             return _Capacity;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Capacity;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__Capacity)txn.GetLog(this.getObjectId() + 1);
+        var log = (Log__Capacity)txn.GetLog(objectId() + 1);
         return log != null ? log.Value : _Capacity;
     }
 
@@ -24,9 +23,7 @@ public final class BBag extends Zeze.Transaction.Bean {
             _Capacity = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__Capacity(this, 1, value));
     }
 
@@ -69,14 +66,14 @@ public final class BBag extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public BBag CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = -5051317137860806350L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -91,8 +88,7 @@ public final class BBag extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -119,12 +115,12 @@ public final class BBag extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

@@ -16,12 +16,12 @@ namespace Zeze.Gen.java
                 sw.WriteLine($"{prefix}private transient Object __zeze_map_key__;");
                 sw.WriteLine();
                 sw.WriteLine($"{prefix}@Override");
-                sw.WriteLine($"{prefix}public Object getMapKey() {{");
+                sw.WriteLine($"{prefix}public Object mapKey() {{");
                 sw.WriteLine($"{prefix}    return __zeze_map_key__;");
                 sw.WriteLine($"{prefix}}}");
                 sw.WriteLine();
                 sw.WriteLine($"{prefix}@Override");
-                sw.WriteLine($"{prefix}public void setMapKey(Object value) {{");
+                sw.WriteLine($"{prefix}public void mapKey(Object value) {{");
                 sw.WriteLine($"{prefix}    __zeze_map_key__ = value;");
                 sw.WriteLine($"{prefix}}}");
                 sw.WriteLine();
@@ -49,11 +49,10 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "public " + typeName + " " + var.Getter + " {");
             sw.WriteLine(prefix + "    if (!isManaged())");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "    var txn = Zeze.Transaction.Transaction.getCurrent();");
+            sw.WriteLine(prefix + "    var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);");
             sw.WriteLine(prefix + "    if (txn == null)");
             sw.WriteLine(prefix + "        return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "    txn.VerifyRecordAccessed(this, true);");
-            sw.WriteLine(prefix + "    var log = (Log_" + var.NamePrivate + ")txn.GetLog(this.getObjectId() + " + var.Id + ");");
+            sw.WriteLine(prefix + "    var log = (Log_" + var.NamePrivate + ")txn.GetLog(objectId() + " + var.Id + ");");
             sw.WriteLine(prefix + "    return log != null ? log.Value : " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
@@ -68,9 +67,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "        " + var.NamePrivate + " = value;");
             sw.WriteLine(prefix + "        return;");
             sw.WriteLine(prefix + "    }");
-            sw.WriteLine(prefix + "    var txn = Zeze.Transaction.Transaction.getCurrent();");
-            sw.WriteLine(prefix + "    assert txn != null;");
-            sw.WriteLine(prefix + "    txn.VerifyRecordAccessed(this);");
+            sw.WriteLine(prefix + "    var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);");
             sw.WriteLine(prefix + "    txn.PutLog(new Log_" + var.NamePrivate + $"(this, {var.Id}, value));"); //
             sw.WriteLine(prefix + "}");
             sw.WriteLine();
@@ -200,10 +197,9 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "    {");
             sw.WriteLine(prefix + "        if (!IsManaged)");
             sw.WriteLine(prefix + "            return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.getCurrent();");
+            sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);");
             sw.WriteLine(prefix + "        if (txn == null) return " + var.NamePrivate + ";");
-            sw.WriteLine(prefix + "        txn.VerifyRecordAccessed(this, true);");
-            sw.WriteLine(prefix + "        var log = (Log_" + var.NamePrivate + ")txn.GetLog(this.getObjectId() + " + var.Id + ");");
+            sw.WriteLine(prefix + "        var log = (Log_" + var.NamePrivate + ")txn.GetLog(objectId() + " + var.Id + ");");
             sw.WriteLine(prefix + "        return log != null ? log.Value : " + var.NamePrivate + ";");
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "    private set");
@@ -217,9 +213,7 @@ namespace Zeze.Gen.java
             sw.WriteLine(prefix + "        }");
             sw.WriteLine(prefix + "        value.InitRootInfo(RootInfo, this);");
             sw.WriteLine(prefix + "        value.VariableId = " + var.Id + ";");
-            sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.getCurrent();");
-            sw.WriteLine(prefix + "        assert txn != null;");
-            sw.WriteLine(prefix + "        txn.VerifyRecordAccessed(this);");
+            sw.WriteLine(prefix + "        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);");
             sw.WriteLine(prefix + "        txn.PutLog(new Log_" + var.NamePrivate + "(this, value));"); //
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
@@ -232,6 +226,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + "public " + rname + " " + pname + "{");
                 sw.WriteLine(prefix + "    return (" + rname + ")" + var.Getter + ".getBean();");
                 sw.WriteLine(prefix + "}");
+                sw.WriteLine();
                 sw.WriteLine(prefix + $"public void {var.Setter($"{rname} value")} {{");
                 sw.WriteLine(prefix + "    " + var.Getter + ".setBean(value);");
                 sw.WriteLine(prefix + "}");
@@ -255,32 +250,32 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeQuaternion type)
         {
-            WriteSimpleProperty(type);
+            WriteProperty(type);
         }
 
         public void Visit(TypeVector2 type)
         {
-            WriteSimpleProperty(type);
+            WriteProperty(type);
         }
 
         public void Visit(TypeVector2Int type)
         {
-            WriteSimpleProperty(type);
+            WriteProperty(type);
         }
 
         public void Visit(TypeVector3 type)
         {
-            WriteSimpleProperty(type);
+            WriteProperty(type);
         }
 
         public void Visit(TypeVector3Int type)
         {
-            WriteSimpleProperty(type);
+            WriteProperty(type);
         }
 
         public void Visit(TypeVector4 type)
         {
-            WriteSimpleProperty(type);
+            WriteProperty(type);
         }
     }
 }

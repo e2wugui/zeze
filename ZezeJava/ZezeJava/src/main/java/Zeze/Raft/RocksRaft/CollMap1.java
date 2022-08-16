@@ -28,7 +28,7 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().LogGetOrAdd(
-					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::CreateLogBean);
 			mapLog.Add(key, value);
 		} else
 			_map = _map.plus(key, value);
@@ -39,7 +39,7 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().LogGetOrAdd(
-					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::CreateLogBean);
 			mapLog.Put(key, value);
 		} else
 			_map = _map.plus(key, value);
@@ -50,7 +50,7 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().LogGetOrAdd(
-					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::CreateLogBean);
 			mapLog.Remove(key);
 		} else
 			_map = _map.minus(key);
@@ -61,7 +61,7 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap1<K, V>)Transaction.getCurrent().LogGetOrAdd(
-					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::CreateLogBean);
 			mapLog.Clear();
 		} else
 			_map = org.pcollections.Empty.map();
@@ -83,9 +83,9 @@ public class CollMap1<K, V> extends CollMap<K, V> {
 	@Override
 	public LogBean CreateLogBean() {
 		var log = new LogMap1<>(logTypeId, keyCodecFuncs, valueCodecFuncs);
-		log.setBelong(getParent());
+		log.setBelong(parent());
 		log.setThis(this);
-		log.setVariableId(getVariableId());
+		log.setVariableId(variableId());
 		log.setValue(_map);
 		return log;
 	}

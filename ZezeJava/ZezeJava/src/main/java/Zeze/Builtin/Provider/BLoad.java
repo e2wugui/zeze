@@ -12,11 +12,10 @@ public final class BLoad extends Zeze.Transaction.Bean {
     public int getOnline() {
         if (!isManaged())
             return _Online;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Online;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__Online)txn.GetLog(this.getObjectId() + 1);
+        var log = (Log__Online)txn.GetLog(objectId() + 1);
         return log != null ? log.Value : _Online;
     }
 
@@ -25,20 +24,17 @@ public final class BLoad extends Zeze.Transaction.Bean {
             _Online = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__Online(this, 1, value));
     }
 
     public int getProposeMaxOnline() {
         if (!isManaged())
             return _ProposeMaxOnline;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ProposeMaxOnline;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ProposeMaxOnline)txn.GetLog(this.getObjectId() + 2);
+        var log = (Log__ProposeMaxOnline)txn.GetLog(objectId() + 2);
         return log != null ? log.Value : _ProposeMaxOnline;
     }
 
@@ -47,20 +43,17 @@ public final class BLoad extends Zeze.Transaction.Bean {
             _ProposeMaxOnline = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__ProposeMaxOnline(this, 2, value));
     }
 
     public int getOnlineNew() {
         if (!isManaged())
             return _OnlineNew;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _OnlineNew;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__OnlineNew)txn.GetLog(this.getObjectId() + 3);
+        var log = (Log__OnlineNew)txn.GetLog(objectId() + 3);
         return log != null ? log.Value : _OnlineNew;
     }
 
@@ -69,9 +62,7 @@ public final class BLoad extends Zeze.Transaction.Bean {
             _OnlineNew = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__OnlineNew(this, 3, value));
     }
 
@@ -107,14 +98,14 @@ public final class BLoad extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public BLoad CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = 8972064501607813483L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -143,8 +134,7 @@ public final class BLoad extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -161,12 +151,12 @@ public final class BLoad extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

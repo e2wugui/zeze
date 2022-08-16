@@ -13,11 +13,13 @@ public abstract class Bean implements Serializable {
 
 	private static final AtomicLong _objectIdGen = new AtomicLong();
 
-	public static long getNextObjectId() {
+	// 这个方法应该仅用于内部。
+	@Deprecated
+	public static long nextObjectId() {
 		return _objectIdGen.addAndGet(ObjectIdStep);
 	}
 
-	private transient final long ObjectId = getNextObjectId();
+	private transient final long ObjectId = nextObjectId();
 
 	protected transient Record.RootInfo RootInfo;
 
@@ -37,24 +39,25 @@ public abstract class Bean implements Serializable {
 		VariableId = variableId;
 	}
 
-	public final long getObjectId() {
+	public final long objectId() {
 		return ObjectId;
 	}
 
-	public final TableKey getTableKey() {
+	public final TableKey tableKey() {
 		return RootInfo == null ? null : RootInfo.getTableKey();
 	}
 
-	public final Bean getParent() {
+	public final Bean parent() {
 		return Parent;
 	}
 
-	public final int getVariableId() {
+	public final int variableId() {
 		return VariableId;
 	}
 
 	// 这个方法应该仅用于内部。
-	public final void setVariableId(int value) {
+	@Deprecated
+	public final void variableId(int value) {
 		VariableId = value;
 	}
 
@@ -113,7 +116,7 @@ public abstract class Bean implements Serializable {
 	// 默认实现是 ClassName.HashCode()，也可以手动指定一个值。
 	// Gen的时候会全局判断是否出现重复冲突。如果出现冲突，则手动指定一个。
 	// 这个方法在Gen的时候总是覆盖(override)，提供默认实现是为了方便内部Bean的实现。
-	public long getTypeId() {
+	public long typeId() {
 		return Hash64(getClass().getName());
 	}
 
@@ -134,11 +137,11 @@ public abstract class Bean implements Serializable {
 		return (int)(hash64 ^ (hash64 >> 32));
 	}
 
-	public Object getMapKey() {
+	public Object mapKey() {
 		throw new UnsupportedOperationException();
 	}
 
-	public void setMapKey(Object mapKey) {
+	public void mapKey(Object mapKey) {
 		throw new UnsupportedOperationException();
 	}
 

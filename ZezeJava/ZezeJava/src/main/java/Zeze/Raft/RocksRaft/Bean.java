@@ -22,23 +22,23 @@ public abstract class Bean implements Serializable {
 		VariableId = varId;
 	}
 
-	public final long getObjectId() {
+	public final long objectId() {
 		return ObjectId;
 	}
 
-	public final Bean getParent() {
+	public final Bean parent() {
 		return Parent;
 	}
 
-	public final int getVariableId() {
+	public final int variableId() {
 		return VariableId;
 	}
 
-	public final void setVariableId(int value) {
+	public final void variableId(int value) {
 		VariableId = value;
 	}
 
-	public final Record.RootInfo getRootInfo() {
+	public final Record.RootInfo rootInfo() {
 		return RootInfo;
 	}
 
@@ -46,15 +46,15 @@ public abstract class Bean implements Serializable {
 		return RootInfo != null;
 	}
 
-	public final TableKey getTableKey() {
+	public final TableKey tableKey() {
 		return RootInfo != null ? RootInfo.getTableKey() : null;
 	}
 
-	public Object getMapKey() {
+	public Object mapKey() {
 		throw new UnsupportedOperationException();
 	}
 
-	public void setMapKey(Object mapKey) {
+	public void mapKey(Object mapKey) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -89,7 +89,7 @@ public abstract class Bean implements Serializable {
 
 	public abstract void LeaderApplyNoRecursive(Log log);
 
-	public long getTypeId() {
+	public long typeId() {
 		return Zeze.Transaction.Bean.Hash64(getClass().getName());
 	}
 

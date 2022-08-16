@@ -41,7 +41,7 @@ public abstract class Log implements Serializable {
 	}
 
 	public long getLogKey() {
-		return Bean.getObjectId() + getVariableId();
+		return Bean.objectId() + getVariableId();
 	}
 
 	public final Bean getBean() {

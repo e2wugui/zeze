@@ -30,12 +30,12 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 
 	@Override
 	public void put(K key, V value) {
-		value.setMapKey(key);
+		value.mapKey(key);
 		if (isManaged()) {
-			value.InitRootInfo(getRootInfo(), this);
+			value.InitRootInfo(rootInfo(), this);
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap2<K, V>)Transaction.getCurrent().LogGetOrAdd(
-					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::CreateLogBean);
 			mapLog.Put(key, value);
 		} else
 			_map = _map.plus(key, value);
@@ -46,7 +46,7 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap2<K, V>)Transaction.getCurrent().LogGetOrAdd(
-					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::CreateLogBean);
 			mapLog.Remove(key);
 		} else
 			_map = _map.minus(key);
@@ -57,7 +57,7 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var mapLog = (LogMap2<K, V>)Transaction.getCurrent().LogGetOrAdd(
-					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::CreateLogBean);
 			mapLog.Clear();
 		} else
 			_map = org.pcollections.Empty.map();
@@ -69,7 +69,7 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 		var log = (LogMap2<K, V>)_log;
 		var tmp = _map;
 		for (var put : log.getPutted().values())
-			put.InitRootInfo(getRootInfo(), this);
+			put.InitRootInfo(rootInfo(), this);
 		tmp = tmp.plusAll(log.getPutted()).minusAll(log.getRemoved());
 
 		// apply changed
@@ -92,9 +92,9 @@ public class CollMap2<K, V extends Bean> extends CollMap<K, V> {
 	@Override
 	public LogBean CreateLogBean() {
 		var log = new LogMap2<K, V>(logTypeId, keyCodecFuncs, valueFactory);
-		log.setBelong(getParent());
+		log.setBelong(parent());
 		log.setThis(this);
-		log.setVariableId(getVariableId());
+		log.setVariableId(variableId());
 		log.setValue(_map);
 		return log;
 	}

@@ -22,12 +22,12 @@ public final class Test {
 		private transient Object _Int32MapKey_;
 
 		@Override
-		public Object getMapKey() {
+		public Object mapKey() {
 			return _Int32MapKey_;
 		}
 
 		@Override
-		public void setMapKey(Object mapKey) {
+		public void mapKey(Object mapKey) {
 			_Int32MapKey_ = mapKey;
 		}
 
@@ -35,7 +35,7 @@ public final class Test {
 			if (isManaged()) {
 				if (Transaction.getCurrent() == null)
 					return _i;
-				var log = Transaction.getCurrent().GetLog(getObjectId() + 1);
+				var log = Transaction.getCurrent().GetLog(objectId() + 1);
 				if (log == null)
 					return _i;
 				return ((LogInt)log).Value;
@@ -59,7 +59,7 @@ public final class Test {
 			if (isManaged()) {
 				if (Transaction.getCurrent() == null)
 					return _l;
-				var log = Transaction.getCurrent().GetLog(getObjectId() + 2);
+				var log = Transaction.getCurrent().GetLog(objectId() + 2);
 				if (log == null)
 					return _l;
 				return ((LogLong)log).Value;
@@ -133,11 +133,11 @@ public final class Test {
 
 		public Bean1() {
 			_map1 = new CollMap1<>(Integer.class, Integer.class);
-			_map1.setVariableId(3);
+			_map1.variableId(3);
 			_bean2 = new Bean2();
-			_bean2.setVariableId(4);
+			_bean2.variableId(4);
 			_map2 = new CollMap2<>(Integer.class, Bean1.class);
-			_map2.setVariableId(5);
+			_map2.variableId(5);
 		}
 
 		@Override
@@ -188,7 +188,7 @@ public final class Test {
 			if (isManaged()) {
 				if (Transaction.getCurrent() == null)
 					return _i;
-				var log = Transaction.getCurrent().GetLog(getObjectId() + 1);
+				var log = Transaction.getCurrent().GetLog(objectId() + 1);
 				if (log == null)
 					return _i;
 				return ((LogInt)log).Value;

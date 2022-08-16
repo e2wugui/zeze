@@ -23,10 +23,10 @@ public class CollList2<V extends Bean> extends CollList<V> {
 	@Override
 	public boolean add(V item) {
 		if (isManaged()) {
-			item.InitRootInfo(getRootInfo(), this);
+			item.InitRootInfo(rootInfo(), this);
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrent().LogGetOrAdd(
-					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::CreateLogBean);
 			return listLog.Add(item);
 		}
 		var newList = _list.plus(item);
@@ -41,7 +41,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrent().LogGetOrAdd(
-					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::CreateLogBean);
 			return listLog.Remove(item);
 		}
 		var newList = _list.minus(item);
@@ -56,7 +56,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrent().LogGetOrAdd(
-					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::CreateLogBean);
 			listLog.Clear();
 		} else
 			_list = org.pcollections.Empty.vector();
@@ -65,10 +65,10 @@ public class CollList2<V extends Bean> extends CollList<V> {
 	@Override
 	public V set(int index, V item) {
 		if (isManaged()) {
-			item.InitRootInfo(getRootInfo(), this);
+			item.InitRootInfo(rootInfo(), this);
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrent().LogGetOrAdd(
-					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::CreateLogBean);
 			return listLog.Set(index, item);
 		}
 		var old = _list.get(index);
@@ -79,10 +79,10 @@ public class CollList2<V extends Bean> extends CollList<V> {
 	@Override
 	public void add(int index, V item) {
 		if (isManaged()) {
-			item.InitRootInfo(getRootInfo(), this);
+			item.InitRootInfo(rootInfo(), this);
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrent().LogGetOrAdd(
-					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::CreateLogBean);
 			listLog.Add(index, item);
 		} else
 			_list = _list.plus(index, item);
@@ -93,7 +93,7 @@ public class CollList2<V extends Bean> extends CollList<V> {
 		if (isManaged()) {
 			@SuppressWarnings("unchecked")
 			var listLog = (LogList2<V>)Transaction.getCurrent().LogGetOrAdd(
-					getParent().getObjectId() + getVariableId(), this::CreateLogBean);
+					parent().objectId() + variableId(), this::CreateLogBean);
 			return listLog.Remove(index);
 		}
 		var old = _list.get(index);
@@ -104,9 +104,9 @@ public class CollList2<V extends Bean> extends CollList<V> {
 	@Override
 	public LogBean CreateLogBean() {
 		var log = new LogList2<V>(logTypeId, valueFactory);
-		log.setBelong(getParent());
+		log.setBelong(parent());
 		log.setThis(this);
-		log.setVariableId(getVariableId());
+		log.setVariableId(variableId());
 		log.setValue(_list);
 		return log;
 	}
@@ -120,12 +120,12 @@ public class CollList2<V extends Bean> extends CollList<V> {
 		for (var opLog : log.getOpLogs()) {
 			switch (opLog.op) {
 			case LogList1.OpLog.OP_MODIFY:
-				opLog.value.InitRootInfo(getRootInfo(), this);
+				opLog.value.InitRootInfo(rootInfo(), this);
 				tmp = tmp.with(opLog.index, opLog.value);
 				newest.add(opLog.index);
 				break;
 			case LogList1.OpLog.OP_ADD:
-				opLog.value.InitRootInfo(getRootInfo(), this);
+				opLog.value.InitRootInfo(rootInfo(), this);
 				tmp = tmp.plus(opLog.index, opLog.value);
 				newest.add(opLog.index);
 				break;

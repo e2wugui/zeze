@@ -11,11 +11,10 @@ public final class AcquireParam extends Zeze.Transaction.Bean {
     public Zeze.Net.Binary getGlobalKey() {
         if (!isManaged())
             return _GlobalKey;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _GlobalKey;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__GlobalKey)txn.GetLog(this.getObjectId() + 1);
+        var log = (Log__GlobalKey)txn.GetLog(objectId() + 1);
         return log != null ? log.Value : _GlobalKey;
     }
 
@@ -26,20 +25,17 @@ public final class AcquireParam extends Zeze.Transaction.Bean {
             _GlobalKey = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__GlobalKey(this, 1, value));
     }
 
     public int getState() {
         if (!isManaged())
             return _State;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _State;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__State)txn.GetLog(this.getObjectId() + 2);
+        var log = (Log__State)txn.GetLog(objectId() + 2);
         return log != null ? log.Value : _State;
     }
 
@@ -48,9 +44,7 @@ public final class AcquireParam extends Zeze.Transaction.Bean {
             _State = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__State(this, 2, value));
     }
 
@@ -85,14 +79,14 @@ public final class AcquireParam extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public AcquireParam CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = 8991661748018394550L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -114,8 +108,7 @@ public final class AcquireParam extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -131,12 +124,12 @@ public final class AcquireParam extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

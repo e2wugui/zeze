@@ -51,7 +51,7 @@ public class LogMap2<K, V extends Bean> extends LogMap1<K, V> {
 			built = true;
 			for (var c : Changed) {
 				@SuppressWarnings("unchecked")
-				K pkey = (K)c.getThis().getMapKey();
+				K pkey = (K)c.getThis().mapKey();
 				if (!getReplaced().containsKey(pkey) && !getRemoved().contains(pkey))
 					ChangedWithKey.put(pkey, c);
 			}

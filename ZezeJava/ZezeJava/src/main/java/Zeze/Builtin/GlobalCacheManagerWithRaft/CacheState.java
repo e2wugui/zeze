@@ -23,7 +23,7 @@ public final class CacheState extends Zeze.Raft.RocksRaft.Bean {
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
         if (txn == null)
             return _Modify;
-        var log = txn.GetLog(getObjectId() + 2);
+        var log = txn.GetLog(objectId() + 2);
         if (log == null)
             return _Modify;
         return ((Zeze.Raft.RocksRaft.Log1.LogInt)log).Value;
@@ -35,7 +35,6 @@ public final class CacheState extends Zeze.Raft.RocksRaft.Bean {
             return;
         }
         var txn = Zeze.Raft.RocksRaft.Transaction.getCurrent();
-        assert txn != null;
         txn.PutLog(new Zeze.Raft.RocksRaft.Log1.LogInt(this, 2, value));
     }
 
@@ -81,14 +80,14 @@ public final class CacheState extends Zeze.Raft.RocksRaft.Bean {
     }
 
     @Override
-    public Zeze.Raft.RocksRaft.Bean CopyBean() {
+    public CacheState CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = 1756306680643652334L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -96,8 +95,7 @@ public final class CacheState extends Zeze.Raft.RocksRaft.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -120,12 +118,12 @@ public final class CacheState extends Zeze.Raft.RocksRaft.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

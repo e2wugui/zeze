@@ -7,7 +7,7 @@ import Zeze.Serialize.ByteBuffer;
 public final class BAny extends Zeze.Transaction.Bean {
     private final Zeze.Transaction.DynamicBean _Any;
         public static long GetSpecialTypeIdFromBean_Any(Zeze.Transaction.Bean bean) {
-            var _typeId_ = bean.getTypeId();
+            var _typeId_ = bean.typeId();
             if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
                 return Zeze.Transaction.EmptyBean.TYPEID;
             throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Game.Online.BAny:Any");
@@ -21,12 +21,12 @@ public final class BAny extends Zeze.Transaction.Bean {
     private transient Object __zeze_map_key__;
 
     @Override
-    public Object getMapKey() {
+    public Object mapKey() {
         return __zeze_map_key__;
     }
 
     @Override
-    public void setMapKey(Object value) {
+    public void mapKey(Object value) {
         __zeze_map_key__ = value;
     }
 
@@ -59,14 +59,14 @@ public final class BAny extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public BAny CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = 5085416693215220301L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -74,8 +74,7 @@ public final class BAny extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -92,12 +91,12 @@ public final class BAny extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

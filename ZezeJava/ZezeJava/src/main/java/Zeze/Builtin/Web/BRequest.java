@@ -17,11 +17,10 @@ public final class BRequest extends Zeze.Transaction.Bean {
     public long getExchangeId() {
         if (!isManaged())
             return _ExchangeId;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ExchangeId;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ExchangeId)txn.GetLog(this.getObjectId() + 1);
+        var log = (Log__ExchangeId)txn.GetLog(objectId() + 1);
         return log != null ? log.Value : _ExchangeId;
     }
 
@@ -30,20 +29,17 @@ public final class BRequest extends Zeze.Transaction.Bean {
             _ExchangeId = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__ExchangeId(this, 1, value));
     }
 
     public String getMethod() {
         if (!isManaged())
             return _Method;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Method;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__Method)txn.GetLog(this.getObjectId() + 2);
+        var log = (Log__Method)txn.GetLog(objectId() + 2);
         return log != null ? log.Value : _Method;
     }
 
@@ -54,20 +50,17 @@ public final class BRequest extends Zeze.Transaction.Bean {
             _Method = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__Method(this, 2, value));
     }
 
     public String getPath() {
         if (!isManaged())
             return _Path;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Path;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__Path)txn.GetLog(this.getObjectId() + 3);
+        var log = (Log__Path)txn.GetLog(objectId() + 3);
         return log != null ? log.Value : _Path;
     }
 
@@ -78,20 +71,17 @@ public final class BRequest extends Zeze.Transaction.Bean {
             _Path = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__Path(this, 3, value));
     }
 
     public String getQuery() {
         if (!isManaged())
             return _Query;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Query;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__Query)txn.GetLog(this.getObjectId() + 4);
+        var log = (Log__Query)txn.GetLog(objectId() + 4);
         return log != null ? log.Value : _Query;
     }
 
@@ -102,9 +92,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
             _Query = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__Query(this, 4, value));
     }
 
@@ -115,11 +103,10 @@ public final class BRequest extends Zeze.Transaction.Bean {
     public Zeze.Net.Binary getBody() {
         if (!isManaged())
             return _Body;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Body;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__Body)txn.GetLog(this.getObjectId() + 6);
+        var log = (Log__Body)txn.GetLog(objectId() + 6);
         return log != null ? log.Value : _Body;
     }
 
@@ -130,20 +117,17 @@ public final class BRequest extends Zeze.Transaction.Bean {
             _Body = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__Body(this, 6, value));
     }
 
     public boolean isFinish() {
         if (!isManaged())
             return _Finish;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Finish;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__Finish)txn.GetLog(this.getObjectId() + 7);
+        var log = (Log__Finish)txn.GetLog(objectId() + 7);
         return log != null ? log.Value : _Finish;
     }
 
@@ -152,20 +136,17 @@ public final class BRequest extends Zeze.Transaction.Bean {
             _Finish = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__Finish(this, 7, value));
     }
 
     public String getAuthedAccount() {
         if (!isManaged())
             return _AuthedAccount;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _AuthedAccount;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__AuthedAccount)txn.GetLog(this.getObjectId() + 8);
+        var log = (Log__AuthedAccount)txn.GetLog(objectId() + 8);
         return log != null ? log.Value : _AuthedAccount;
     }
 
@@ -176,9 +157,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
             _AuthedAccount = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__AuthedAccount(this, 8, value));
     }
 
@@ -234,14 +213,14 @@ public final class BRequest extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public BRequest CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = -8704897348167290545L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -298,8 +277,7 @@ public final class BRequest extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -332,12 +310,12 @@ public final class BRequest extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

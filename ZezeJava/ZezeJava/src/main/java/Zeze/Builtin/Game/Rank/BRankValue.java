@@ -12,11 +12,10 @@ public final class BRankValue extends Zeze.Transaction.Bean {
     public long getRoleId() {
         if (!isManaged())
             return _RoleId;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _RoleId;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__RoleId)txn.GetLog(this.getObjectId() + 1);
+        var log = (Log__RoleId)txn.GetLog(objectId() + 1);
         return log != null ? log.Value : _RoleId;
     }
 
@@ -25,20 +24,17 @@ public final class BRankValue extends Zeze.Transaction.Bean {
             _RoleId = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__RoleId(this, 1, value));
     }
 
     public long getValue() {
         if (!isManaged())
             return _Value;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Value;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__Value)txn.GetLog(this.getObjectId() + 2);
+        var log = (Log__Value)txn.GetLog(objectId() + 2);
         return log != null ? log.Value : _Value;
     }
 
@@ -47,20 +43,17 @@ public final class BRankValue extends Zeze.Transaction.Bean {
             _Value = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__Value(this, 2, value));
     }
 
     public Zeze.Net.Binary getValueEx() {
         if (!isManaged())
             return _ValueEx;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ValueEx;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ValueEx)txn.GetLog(this.getObjectId() + 3);
+        var log = (Log__ValueEx)txn.GetLog(objectId() + 3);
         return log != null ? log.Value : _ValueEx;
     }
 
@@ -71,9 +64,7 @@ public final class BRankValue extends Zeze.Transaction.Bean {
             _ValueEx = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__ValueEx(this, 3, value));
     }
 
@@ -110,14 +101,14 @@ public final class BRankValue extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public BRankValue CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = 2276228832088785165L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -146,8 +137,7 @@ public final class BRankValue extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -164,12 +154,12 @@ public final class BRankValue extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

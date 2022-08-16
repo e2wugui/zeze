@@ -42,7 +42,7 @@ public class MyBean extends Bean {
 		var txn = Transaction.getCurrent();
 		if (null == txn)
 			return _i;
-		MyBean.MyLog log = (MyBean.MyLog)txn.GetLog(this.getObjectId());
+		MyBean.MyLog log = (MyBean.MyLog)txn.GetLog(this.objectId());
 		return (null != log) ? log.Value : _i;
 	}
 

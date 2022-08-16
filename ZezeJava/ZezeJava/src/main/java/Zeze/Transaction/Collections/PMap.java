@@ -38,12 +38,10 @@ public abstract class PMap<K, V> extends Collection implements Map<K, V>, Iterab
 
 	protected final org.pcollections.PMap<K, V> getMap() {
 		if (isManaged()) {
-			var txn = Transaction.getCurrent();
-			if (txn == null) {
+			var txn = Transaction.getCurrentVerifyRead(this);
+			if (txn == null)
 				return _map;
-			}
-			txn.VerifyRecordAccessed(this, true);
-			var log = txn.GetLog(getParent().getObjectId() + getVariableId());
+			var log = txn.GetLog(parent().objectId() + variableId());
 			if (log == null)
 				return _map;
 			@SuppressWarnings("unchecked")

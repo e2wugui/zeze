@@ -76,7 +76,7 @@ public class Vector3Int implements Serializable {
 	}
 
 	@Override
-	public int getPreAllocSize() {
+	public int preAllocSize() {
 		return 12;
 	}
 

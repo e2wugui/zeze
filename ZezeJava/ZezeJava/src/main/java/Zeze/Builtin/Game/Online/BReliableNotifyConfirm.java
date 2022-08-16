@@ -11,11 +11,10 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
     public long getReliableNotifyConfirmIndex() {
         if (!isManaged())
             return _ReliableNotifyConfirmIndex;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ReliableNotifyConfirmIndex;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ReliableNotifyConfirmIndex)txn.GetLog(this.getObjectId() + 1);
+        var log = (Log__ReliableNotifyConfirmIndex)txn.GetLog(objectId() + 1);
         return log != null ? log.Value : _ReliableNotifyConfirmIndex;
     }
 
@@ -24,20 +23,17 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
             _ReliableNotifyConfirmIndex = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__ReliableNotifyConfirmIndex(this, 1, value));
     }
 
     public boolean isSync() {
         if (!isManaged())
             return _Sync;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Sync;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__Sync)txn.GetLog(this.getObjectId() + 2);
+        var log = (Log__Sync)txn.GetLog(objectId() + 2);
         return log != null ? log.Value : _Sync;
     }
 
@@ -46,9 +42,7 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
             _Sync = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__Sync(this, 2, value));
     }
 
@@ -82,14 +76,14 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public BReliableNotifyConfirm CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = -6588057877320371892L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -111,8 +105,7 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -128,12 +121,12 @@ public final class BReliableNotifyConfirm extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

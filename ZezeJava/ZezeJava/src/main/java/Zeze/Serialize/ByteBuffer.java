@@ -996,11 +996,11 @@ public final class ByteBuffer {
 	}
 
 	public static ByteBuffer Encode(Serializable sa) {
-		int preAllocSize = sa.getPreAllocSize();
+		int preAllocSize = sa.preAllocSize();
 		ByteBuffer bb = Allocate(Math.min(preAllocSize, 65536));
 		sa.Encode(bb);
 		if (preAllocSize < bb.WriteIndex)
-			sa.setPreAllocSize(bb.WriteIndex);
+			sa.preAllocSize(bb.WriteIndex);
 		return bb;
 	}
 

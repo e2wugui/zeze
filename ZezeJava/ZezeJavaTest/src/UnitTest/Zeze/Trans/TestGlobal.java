@@ -31,7 +31,7 @@ public class TestGlobal extends TestCase {
 
 		@Override
 		public long getLogKey() {
-			return this.getBean().getObjectId() + 100;
+			return this.getBean().objectId() + 100;
 		}
 
 		@Override

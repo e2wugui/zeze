@@ -10,11 +10,10 @@ public final class BCloseExchange extends Zeze.Transaction.Bean {
     public long getExchangeId() {
         if (!isManaged())
             return _ExchangeId;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _ExchangeId;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__ExchangeId)txn.GetLog(this.getObjectId() + 1);
+        var log = (Log__ExchangeId)txn.GetLog(objectId() + 1);
         return log != null ? log.Value : _ExchangeId;
     }
 
@@ -23,9 +22,7 @@ public final class BCloseExchange extends Zeze.Transaction.Bean {
             _ExchangeId = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__ExchangeId(this, 1, value));
     }
 
@@ -57,14 +54,14 @@ public final class BCloseExchange extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public BCloseExchange CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = 2158529094627834211L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -79,8 +76,7 @@ public final class BCloseExchange extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -95,12 +91,12 @@ public final class BCloseExchange extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 

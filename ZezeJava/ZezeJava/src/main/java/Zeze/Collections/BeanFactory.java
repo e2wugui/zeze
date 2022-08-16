@@ -29,14 +29,14 @@ public final class BeanFactory {
 			throw new RuntimeException(e);
 		}
 		synchronized (writingFactory) {
-			writingFactory.putIfAbsent(bean.getTypeId(), beanCtor);
+			writingFactory.putIfAbsent(bean.typeId(), beanCtor);
 		}
 		readingFactory = null;
 		return beanCtor;
 	}
 
 	public static long GetSpecialTypeIdFromBean(Bean bean) {
-		return bean.getTypeId();
+		return bean.typeId();
 	}
 
 	public Bean CreateBeanFromSpecialTypeId(long typeId) {

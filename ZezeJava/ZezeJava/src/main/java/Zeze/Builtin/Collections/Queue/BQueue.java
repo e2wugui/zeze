@@ -13,11 +13,10 @@ public final class BQueue extends Zeze.Transaction.Bean {
     public long getHeadNodeId() {
         if (!isManaged())
             return _HeadNodeId;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _HeadNodeId;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__HeadNodeId)txn.GetLog(this.getObjectId() + 1);
+        var log = (Log__HeadNodeId)txn.GetLog(objectId() + 1);
         return log != null ? log.Value : _HeadNodeId;
     }
 
@@ -26,20 +25,17 @@ public final class BQueue extends Zeze.Transaction.Bean {
             _HeadNodeId = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__HeadNodeId(this, 1, value));
     }
 
     public long getTailNodeId() {
         if (!isManaged())
             return _TailNodeId;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _TailNodeId;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__TailNodeId)txn.GetLog(this.getObjectId() + 2);
+        var log = (Log__TailNodeId)txn.GetLog(objectId() + 2);
         return log != null ? log.Value : _TailNodeId;
     }
 
@@ -48,20 +44,17 @@ public final class BQueue extends Zeze.Transaction.Bean {
             _TailNodeId = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__TailNodeId(this, 2, value));
     }
 
     public long getCount() {
         if (!isManaged())
             return _Count;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _Count;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__Count)txn.GetLog(this.getObjectId() + 3);
+        var log = (Log__Count)txn.GetLog(objectId() + 3);
         return log != null ? log.Value : _Count;
     }
 
@@ -70,20 +63,17 @@ public final class BQueue extends Zeze.Transaction.Bean {
             _Count = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__Count(this, 3, value));
     }
 
     public long getLastNodeId() {
         if (!isManaged())
             return _LastNodeId;
-        var txn = Zeze.Transaction.Transaction.getCurrent();
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyRead(this);
         if (txn == null)
             return _LastNodeId;
-        txn.VerifyRecordAccessed(this, true);
-        var log = (Log__LastNodeId)txn.GetLog(this.getObjectId() + 4);
+        var log = (Log__LastNodeId)txn.GetLog(objectId() + 4);
         return log != null ? log.Value : _LastNodeId;
     }
 
@@ -92,9 +82,7 @@ public final class BQueue extends Zeze.Transaction.Bean {
             _LastNodeId = value;
             return;
         }
-        var txn = Zeze.Transaction.Transaction.getCurrent();
-        assert txn != null;
-        txn.VerifyRecordAccessed(this);
+        var txn = Zeze.Transaction.Transaction.getCurrentVerifyWrite(this);
         txn.PutLog(new Log__LastNodeId(this, 4, value));
     }
 
@@ -132,14 +120,14 @@ public final class BQueue extends Zeze.Transaction.Bean {
     }
 
     @Override
-    public Zeze.Transaction.Bean CopyBean() {
+    public BQueue CopyBean() {
         return Copy();
     }
 
     public static final long TYPEID = -4684745065046332255L;
 
     @Override
-    public long getTypeId() {
+    public long typeId() {
         return TYPEID;
     }
 
@@ -175,8 +163,7 @@ public final class BQueue extends Zeze.Transaction.Bean {
     public String toString() {
         var sb = new StringBuilder();
         BuildString(sb, 0);
-        sb.append(System.lineSeparator());
-        return sb.toString();
+        return sb.append(System.lineSeparator()).toString();
     }
 
     @Override
@@ -194,12 +181,12 @@ public final class BQueue extends Zeze.Transaction.Bean {
     private static int _PRE_ALLOC_SIZE_ = 16;
 
     @Override
-    public int getPreAllocSize() {
+    public int preAllocSize() {
         return _PRE_ALLOC_SIZE_;
     }
 
     @Override
-    public void setPreAllocSize(int size) {
+    public void preAllocSize(int size) {
         _PRE_ALLOC_SIZE_ = size;
     }
 
