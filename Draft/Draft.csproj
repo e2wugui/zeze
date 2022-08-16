@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Nito.AsyncEx" Version="5.1.2" />
+    <PackageReference Include="Portable.BouncyCastle" Version="1.9.0" />
   </ItemGroup>
 
 </Project>

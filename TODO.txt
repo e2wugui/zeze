@@ -10,6 +10,17 @@ ServiceConf.Acceptor ip="@internal" "@external"
 Task
 Universe
 Zege
+	公开群不加密，公开私有可以切换，切换不会重新加密解密消息历史。
+	项目管理
+	文档，批注，多人编辑
+	帮我看看有什么问题。
+	1. 任意CA签发的证书，默认提供一个不是权威的。
+	2. 创建账号，上传public-key并签字，verify-sign之后，把pub跟账号绑定。
+	3. 验证账号，签字随机串，服务器用绑定的pub验证签字。
+	4. 增加绑定新的pub，同时用新旧pri签字，服务器都验证通过，绑定新增pub。同时不会作废旧的pub，用来读取消息历史。
+	5. 小问题：x509 只支持rsa吗？
+	6. 看看这个设想对不对，可不可实现。Self Sign Cert：不验证chain; 自己构建的 Linux Root Ca，可以发布根证书到服务器，可选验证chain; 权威Ca，需要验证chain。
+
 DatagramChannel
 
 【2022/9/15】

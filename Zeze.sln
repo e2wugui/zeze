@@ -36,6 +36,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "server", "Sample\server\ser
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Daemon", "Daemon\Daemon.csproj", "{3B8A8550-F719-43A9-87E8-F99B65AEE298}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Zege", "Zege\Zege.csproj", "{23619ED2-D674-4C96-B444-B3E7B8E671DD}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -202,6 +204,24 @@ Global
 		{3B8A8550-F719-43A9-87E8-F99B65AEE298}.Release|x64.Build.0 = Release|Any CPU
 		{3B8A8550-F719-43A9-87E8-F99B65AEE298}.Release|x86.ActiveCfg = Release|Any CPU
 		{3B8A8550-F719-43A9-87E8-F99B65AEE298}.Release|x86.Build.0 = Release|Any CPU
+		{23619ED2-D674-4C96-B444-B3E7B8E671DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{23619ED2-D674-4C96-B444-B3E7B8E671DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{23619ED2-D674-4C96-B444-B3E7B8E671DD}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{23619ED2-D674-4C96-B444-B3E7B8E671DD}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{23619ED2-D674-4C96-B444-B3E7B8E671DD}.Debug|x64.Build.0 = Debug|Any CPU
+		{23619ED2-D674-4C96-B444-B3E7B8E671DD}.Debug|x64.Deploy.0 = Debug|Any CPU
+		{23619ED2-D674-4C96-B444-B3E7B8E671DD}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{23619ED2-D674-4C96-B444-B3E7B8E671DD}.Debug|x86.Build.0 = Debug|Any CPU
+		{23619ED2-D674-4C96-B444-B3E7B8E671DD}.Debug|x86.Deploy.0 = Debug|Any CPU
+		{23619ED2-D674-4C96-B444-B3E7B8E671DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{23619ED2-D674-4C96-B444-B3E7B8E671DD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{23619ED2-D674-4C96-B444-B3E7B8E671DD}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{23619ED2-D674-4C96-B444-B3E7B8E671DD}.Release|x64.ActiveCfg = Release|Any CPU
+		{23619ED2-D674-4C96-B444-B3E7B8E671DD}.Release|x64.Build.0 = Release|Any CPU
+		{23619ED2-D674-4C96-B444-B3E7B8E671DD}.Release|x64.Deploy.0 = Release|Any CPU
+		{23619ED2-D674-4C96-B444-B3E7B8E671DD}.Release|x86.ActiveCfg = Release|Any CPU
+		{23619ED2-D674-4C96-B444-B3E7B8E671DD}.Release|x86.Build.0 = Release|Any CPU
+		{23619ED2-D674-4C96-B444-B3E7B8E671DD}.Release|x86.Deploy.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
