@@ -38,6 +38,7 @@ namespace Zeze.Gen.cs
 
             Construct.Make(beanKey, sw, "        ");
             // params construct
+            if (beanKey.Variables.Count > 0)
             {
                 sw.WriteLine("        public " + beanKey.Name + "(" + ParamName.GetParamList(beanKey.Variables) + ")");
                 sw.WriteLine("        {");

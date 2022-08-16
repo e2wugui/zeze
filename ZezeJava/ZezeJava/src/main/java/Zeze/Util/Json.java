@@ -41,6 +41,10 @@ public final class Json {
 		Object parse(@NotNull JsonReader jr, int b) throws ReflectiveOperationException;
 	}
 
+	interface Creator<T> {
+		T create() throws ReflectiveOperationException;
+	}
+
 	static final class FieldMeta {
 		final int hash; // for FieldMetaMap
 		final int type; // defined above
@@ -49,10 +53,10 @@ public final class Json {
 		transient @Nullable ClassMeta<?> classMeta; // from klass, lazy assigned
 		transient @Nullable FieldMeta next; // for FieldMetaMap
 		final byte[] name; // field name
-		final @Nullable Constructor<?> ctor; // for TYPE_LIST_FLAG/TYPE_MAP_FLAG
+		final @Nullable Creator<?> ctor; // for TYPE_LIST_FLAG/TYPE_MAP_FLAG
 		final @Nullable KeyReader keyParser; // for TYPE_MAP_FLAG
 
-		FieldMeta(int type, int offset, @NotNull String name, @NotNull Class<?> klass, @Nullable Constructor<?> ctor,
+		FieldMeta(int type, int offset, @NotNull String name, @NotNull Class<?> klass, @Nullable Creator<?> ctor,
 				  @Nullable KeyReader keyReader) {
 			this.name = name.getBytes(StandardCharsets.UTF_8);
 			this.hash = getKeyHash(this.name, 0, this.name.length);
@@ -108,7 +112,7 @@ public final class Json {
 		private final FieldMeta[] valueTable;
 		final FieldMeta[] fieldMetas;
 		final @NotNull Class<T> klass;
-		final @Nullable Constructor<T> ctor;
+		final @NotNull Creator<T> ctor;
 		final boolean isAbstract;
 		transient @Nullable Parser<T> parser; // user custom parser
 		transient @Nullable Writer<T> writer; // user custom writer
@@ -154,11 +158,14 @@ public final class Json {
 		}
 
 		@SuppressWarnings("unchecked")
-		private static <T> @Nullable Constructor<T> getDefCtor(@NotNull Class<T> klass) {
-			for (Constructor<?> c : klass.getDeclaredConstructors())
-				if (c.getParameterCount() == 0)
-					return (Constructor<T>)setAccessible(c);
-			return null;
+		private static <T> @NotNull Creator<T> getDefCtor(@NotNull Class<T> klass) {
+			for (Constructor<?> c : klass.getDeclaredConstructors()) {
+				if (c.getParameterCount() == 0) {
+					setAccessible(c);
+					return () -> (T)c.newInstance((Object[])null);
+				}
+			}
+			return () -> (T)unsafe.allocateInstance(klass);
 		}
 
 		private static @Nullable Class<?> getCollectionSubClass(Type geneType) { // X<T>, X extends Y<T>, X implements Y<T>
@@ -231,7 +238,7 @@ public final class Json {
 					if (fieldName.startsWith("this$")) // closure field
 						continue;
 					Class<?> fieldClass = ensureNotNull(field.getType());
-					Constructor<?> fieldCtor = null;
+					Creator<?> fieldCtor = null;
 					KeyReader keyReader = null;
 					Integer v = typeMap.get(fieldClass);
 					int type;
@@ -275,13 +282,10 @@ public final class Json {
 								if (isAbstract(keyClass))
 									throw new IllegalStateException("unsupported abstract key class for field: "
 											+ fieldName + " in " + klass.getName());
-								Constructor<?> keyCtor = getDefCtor(keyClass);
-								if (keyCtor == null)
-									throw new IllegalStateException("key class does not have default constructor for" +
-											" field: " + fieldName + " in " + klass.getName());
+								Creator<?> keyCtor = getDefCtor(keyClass);
 								keyReader = (jr, b) -> {
 									String keyStr = JsonReader.parseStringKey(jr, b);
-									return ensureNotNull(new JsonReader().buf(keyStr).parse(keyCtor.newInstance()));
+									return ensureNotNull(new JsonReader().buf(keyStr).parse(keyCtor.create()));
 								};
 							}
 						} else {

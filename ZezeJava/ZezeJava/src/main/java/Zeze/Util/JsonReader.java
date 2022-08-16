@@ -1,6 +1,5 @@
 package Zeze.Util;
 
-import java.lang.reflect.Constructor;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -115,12 +114,6 @@ public final class JsonReader {
 		}
 		ss[idx] = s = newByteString(buf, pos, end);
 		return s;
-	}
-
-	@SuppressWarnings({"unchecked", "null"})
-	public static <T> @NotNull T allocObj(@NotNull ClassMeta<T> classMeta) throws ReflectiveOperationException {
-		Constructor<T> ctor = classMeta.ctor;
-		return ctor != null ? ctor.newInstance((Object[])null) : (T)unsafe.allocateInstance(classMeta.klass);
 	}
 
 	private byte[] buf; // only support utf-8 encoding
@@ -359,7 +352,7 @@ public final class JsonReader {
 			if (classMeta.isAbstract)
 				throw new InstantiationException("abstract element class: " + elemClass.getName());
 			for (int b = skipNext(); b != ']'; b = skipVar(']'))
-				c.add(parse0(allocObj(classMeta), classMeta));
+				c.add(parse0(classMeta.ctor.create(), classMeta));
 		}
 		pos++;
 		return c;
@@ -413,7 +406,7 @@ public final class JsonReader {
 			return parse0(obj, classMeta);
 		if (classMeta.isAbstract)
 			throw new InstantiationException("abstract class: " + classMeta.klass.getName());
-		return parse0((T)allocObj(classMeta), classMeta);
+		return parse0((T)classMeta.ctor.create(), classMeta);
 	}
 
 	public <T> @NotNull T parse0(@NotNull T obj, @NotNull ClassMeta<?> classMeta) throws ReflectiveOperationException {
@@ -496,7 +489,7 @@ public final class JsonReader {
 						if (subClassMeta.isAbstract)
 							throw new InstantiationException(
 									"abstract field: " + fm.getName() + " in " + classMeta.klass.getName());
-						subObj = parse0(allocObj(subClassMeta), subClassMeta);
+						subObj = parse0(subClassMeta.ctor.create(), subClassMeta);
 					}
 					unsafe.putObject(obj, offset, subObj);
 				}
@@ -535,11 +528,10 @@ public final class JsonReader {
 					@SuppressWarnings("unchecked")
 					Collection<Object> c = (Collection<Object>)unsafe.getObject(obj, offset);
 					if (c == null) {
-						Constructor<?> ctor = fm.ctor;
+						Creator<?> ctor = fm.ctor;
 						if (ctor != null) {
 							@SuppressWarnings("unchecked")
-							Collection<Object> c2 = ensureNotNull(
-									(Collection<Object>)ctor.newInstance((Object[])null));
+							Collection<Object> c2 = ensureNotNull((Collection<Object>)ctor.create());
 							unsafe.putObject(obj, offset, c = c2);
 						} else {
 							ClassMeta<?> cm = getClassMeta(fm.klass);
@@ -616,7 +608,7 @@ public final class JsonReader {
 								throw new InstantiationException(
 										"abstract element class: " + fm.getName() + " in " + classMeta.klass.getName());
 							for (; b != ']'; b = skipVar(']'))
-								c.add(parse0(allocObj(subClassMeta), subClassMeta));
+								c.add(parse0(subClassMeta.ctor.create(), subClassMeta));
 						}
 						break;
 					}
@@ -629,11 +621,10 @@ public final class JsonReader {
 					@SuppressWarnings("unchecked")
 					Map<Object, Object> m = (Map<Object, Object>)unsafe.getObject(obj, offset);
 					if (m == null) {
-						Constructor<?> ctor = fm.ctor;
+						Creator<?> ctor = fm.ctor;
 						if (ctor != null) {
 							@SuppressWarnings("unchecked")
-							Map<Object, Object> m2 = ensureNotNull(
-									(Map<Object, Object>)ctor.newInstance((Object[])null));
+							Map<Object, Object> m2 = ensureNotNull((Map<Object, Object>)ctor.create());
 							unsafe.putObject(obj, offset, m = m2);
 						} else {
 							ClassMeta<?> cm = getClassMeta(fm.klass);
@@ -739,7 +730,7 @@ public final class JsonReader {
 							for (; b != '}'; b = skipVar('}')) {
 								Object k = keyParser.parse(this, b);
 								skipColon();
-								m.put(k, parse0(allocObj(subClassMeta), subClassMeta));
+								m.put(k, parse0(subClassMeta.ctor.create(), subClassMeta));
 							}
 						}
 						break;

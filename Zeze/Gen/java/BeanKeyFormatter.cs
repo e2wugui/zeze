@@ -39,6 +39,7 @@ namespace Zeze.Gen.java
 
             Construct.Make(beanKey, sw, "    ");
             // params construct
+            if (beanKey.Variables.Count > 0)
             {
                 sw.WriteLine("    public " + beanKey.Name + "(" + ParamName.GetParamList(beanKey.Variables) + ") {");
                 foreach (Variable v in beanKey.Variables)

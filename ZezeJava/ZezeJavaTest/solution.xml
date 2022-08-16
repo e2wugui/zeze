@@ -78,6 +78,8 @@
 		<beankey name="VectorKey">
 			<variable id="1" name="v" type="vector3int"/>
 		</beankey>
+		<beankey name="EmptyKey">
+		</beankey>
 
 		<protocol name="Protocol4" argument="Value" handle="server,clientscript"/>
 		<protocol name="Protocol3" argument="demo.Module2.Value" handle="server,clientscript"/>
