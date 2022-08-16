@@ -1,9 +1,11 @@
 package Zeze.Serialize;
 
 public class Vector3Int extends Vector2Int {
-	private int z;
+	public final int z;
 
 	public Vector3Int() {
+		super(0, 0);
+		z = 0;
 	}
 
 	public Vector3Int(int x, int y, int z) {
@@ -18,36 +20,32 @@ public class Vector3Int extends Vector2Int {
 
 	public Vector3Int(Vector3 v3) {
 		super(v3);
-		z = (int)v3.getZ();
+		z = (int)v3.z;
 	}
 
 	public Vector3Int(Vector2Int v2) {
 		super(v2);
+		z = 0;
 	}
 
 	public Vector3Int(Vector2 v2) {
 		super(v2);
-	}
-
-	public int getZ() {
-		return z;
+		z = 0;
 	}
 
 	@Override
 	public boolean isZero() {
-		return (getX() | getY() | z) == 0;
+		return (x | y | z) == 0;
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
-		super.Encode(bb);
-		bb.WriteInt(z);
-	}
-
-	@Override
-	public void Decode(ByteBuffer bb) {
-		super.Decode(bb);
-		z = bb.ReadInt();
+	public int compareTo(Object o) {
+		Vector3Int v = (Vector3Int)o;
+		int c = Integer.compare(x, v.x);
+		if (c != 0)
+			return c;
+		c = Integer.compare(y, v.y);
+		return c != 0 ? c : Integer.compare(z, v.z);
 	}
 
 	@Override
@@ -57,7 +55,7 @@ public class Vector3Int extends Vector2Int {
 		if (o == null || o.getClass() != Vector3Int.class)
 			return false;
 		Vector3Int v = (Vector3Int)o;
-		return getX() == v.getX() && getY() == v.getY() && z == v.z;
+		return x == v.x && y == v.y && z == v.z;
 	}
 
 	@Override
@@ -66,7 +64,12 @@ public class Vector3Int extends Vector2Int {
 	}
 
 	@Override
+	public Vector3Int clone() {
+		return (Vector3Int)super.clone();
+	}
+
+	@Override
 	public String toString() {
-		return "Vector3Int(" + getX() + ',' + getY() + ',' + z + ')';
+		return "Vector3Int(" + x + ',' + y + ',' + z + ')';
 	}
 }

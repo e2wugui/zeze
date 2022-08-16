@@ -48,12 +48,12 @@ public final class SerializeHelper {
 		codecs.put(Double.class, doubleCodec);
 		codecs.put(String.class, new CodecFuncs<>(ByteBuffer::WriteString, ByteBuffer::ReadString));
 		codecs.put(Binary.class, new CodecFuncs<>(ByteBuffer::WriteBinary, ByteBuffer::ReadBinary));
-		codecs.put(Vector2.class, new CodecFuncs<>((bb, obj) -> obj.Encode(bb), ByteBuffer::ReadVector2));
-		codecs.put(Vector2Int.class, new CodecFuncs<>((bb, obj) -> obj.Encode(bb), ByteBuffer::ReadVector2Int));
-		codecs.put(Vector3.class, new CodecFuncs<>((bb, obj) -> obj.Encode(bb), ByteBuffer::ReadVector3));
-		codecs.put(Vector3Int.class, new CodecFuncs<>((bb, obj) -> obj.Encode(bb), ByteBuffer::ReadVector3Int));
-		codecs.put(Vector4.class, new CodecFuncs<>((bb, obj) -> obj.Encode(bb), ByteBuffer::ReadVector4));
-		codecs.put(Quaternion.class, new CodecFuncs<>((bb, obj) -> obj.Encode(bb), ByteBuffer::ReadQuaternion));
+		codecs.put(Vector2.class, new CodecFuncs<>(ByteBuffer::WriteVector2, ByteBuffer::ReadVector2));
+		codecs.put(Vector2Int.class, new CodecFuncs<>(ByteBuffer::WriteVector2Int, ByteBuffer::ReadVector2Int));
+		codecs.put(Vector3.class, new CodecFuncs<>(ByteBuffer::WriteVector3, ByteBuffer::ReadVector3));
+		codecs.put(Vector3Int.class, new CodecFuncs<>(ByteBuffer::WriteVector3Int, ByteBuffer::ReadVector3Int));
+		codecs.put(Vector4.class, new CodecFuncs<>(ByteBuffer::WriteVector4, ByteBuffer::ReadVector4));
+		codecs.put(Quaternion.class, new CodecFuncs<>(ByteBuffer::WriteQuaternion, ByteBuffer::ReadQuaternion));
 	}
 
 	public static <T> BiConsumer<ByteBuffer, T> createEncodeFunc(Class<T> cls) {

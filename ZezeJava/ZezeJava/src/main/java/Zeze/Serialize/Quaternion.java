@@ -2,6 +2,7 @@ package Zeze.Serialize;
 
 public class Quaternion extends Vector4 {
 	public Quaternion() {
+		super(0, 0, 0, 0);
 	}
 
 	public Quaternion(float x, float y, float z, float w) {
@@ -29,7 +30,12 @@ public class Quaternion extends Vector4 {
 	}
 
 	@Override
+	public Quaternion clone() {
+		return (Quaternion)super.clone();
+	}
+
+	@Override
 	public String toString() {
-		return "Quaternion(" + getX() + ',' + getY() + ',' + getZ() + ',' + getW() + ')';
+		return "Quaternion(" + x + ',' + y + ',' + z + ',' + w + ')';
 	}
 }

@@ -1,9 +1,11 @@
 package Zeze.Serialize;
 
 public class Vector4 extends Vector3 {
-	private float w;
+	public final float w;
 
 	public Vector4() {
+		super(0, 0, 0);
+		w = 0;
 	}
 
 	public Vector4(float x, float y, float z, float w) {
@@ -18,39 +20,40 @@ public class Vector4 extends Vector3 {
 
 	public Vector4(Vector3 v3) {
 		super(v3);
+		w = 0;
 	}
 
 	public Vector4(Vector3Int v3) {
 		super(v3);
+		w = 0;
 	}
 
 	public Vector4(Vector2 v2) {
 		super(v2);
+		w = 0;
 	}
 
 	public Vector4(Vector2Int v2) {
 		super(v2);
-	}
-
-	public float getW() {
-		return w;
+		w = 0;
 	}
 
 	@Override
 	public boolean isZero() {
-		return getX() == 0 & getY() == 0 & getZ() == 0 & w == 0;
+		return x == 0 & y == 0 & z == 0 & w == 0;
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
-		super.Encode(bb);
-		bb.WriteFloat(w);
-	}
-
-	@Override
-	public void Decode(ByteBuffer bb) {
-		super.Decode(bb);
-		w = bb.ReadFloat();
+	public int compareTo(Object o) {
+		Vector4 v = (Vector4)o;
+		int c = Float.compare(x, v.x);
+		if (c != 0)
+			return c;
+		c = Float.compare(y, v.y);
+		if (c != 0)
+			return c;
+		c = Float.compare(z, v.z);
+		return c != 0 ? c : Float.compare(w, v.w);
 	}
 
 	@Override
@@ -60,7 +63,7 @@ public class Vector4 extends Vector3 {
 		if (o == null || o.getClass() != Vector4.class && o.getClass() != Quaternion.class)
 			return false;
 		Vector4 v = (Vector4)o;
-		return getX() == v.getX() && getY() == v.getY() && getZ() == v.getZ() && w == v.w;
+		return x == v.x && y == v.y && z == v.z && w == v.w;
 	}
 
 	@Override
@@ -69,7 +72,12 @@ public class Vector4 extends Vector3 {
 	}
 
 	@Override
+	public Vector4 clone() {
+		return (Vector4)super.clone();
+	}
+
+	@Override
 	public String toString() {
-		return "Vector4(" + getX() + ',' + getY() + ',' + getZ() + ',' + w + ')';
+		return "Vector4(" + x + ',' + y + ',' + z + ',' + w + ')';
 	}
 }

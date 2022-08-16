@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Zeze.Gen.Types;
 
 namespace Zeze.Gen.java
@@ -93,32 +89,32 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeQuaternion type)
         {
-            Name = $"Zeze.Transaction.Logs.LogBeanKey<{TypeName.GetName(type)}>";
+            Name = "Zeze.Transaction.Logs.LogQuaternion";
         }
 
         public void Visit(TypeVector2 type)
         {
-            Name = $"Zeze.Transaction.Logs.LogBeanKey<{TypeName.GetName(type)}>";
+            Name = "Zeze.Transaction.Logs.LogVector2";
         }
 
         public void Visit(TypeVector2Int type)
         {
-            Name = $"Zeze.Transaction.Logs.LogBeanKey<{TypeName.GetName(type)}>";
+            Name = "Zeze.Transaction.Logs.LogVector2Int";
         }
 
         public void Visit(TypeVector3 type)
         {
-            Name = $"Zeze.Transaction.Logs.LogBeanKey<{TypeName.GetName(type)}>";
+            Name = "Zeze.Transaction.Logs.LogVector3";
         }
 
         public void Visit(TypeVector3Int type)
         {
-            Name = $"Zeze.Transaction.Logs.LogBeanKey<{TypeName.GetName(type)}>";
+            Name = "Zeze.Transaction.Logs.LogVector3Int";
         }
 
         public void Visit(TypeVector4 type)
         {
-            Name = $"Zeze.Transaction.Logs.LogBeanKey<{TypeName.GetName(type)}>";
+            Name = "Zeze.Transaction.Logs.LogVector4";
         }
 
         public string Name { get; set; }

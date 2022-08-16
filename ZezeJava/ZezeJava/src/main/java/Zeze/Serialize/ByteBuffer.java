@@ -578,6 +578,87 @@ public final class ByteBuffer {
 		}
 	}
 
+	public void WriteVector2(Vector2 v) {
+		EnsureWrite(8);
+		int x = Float.floatToRawIntBits(v.x);
+		int y = Float.floatToRawIntBits(v.y);
+		byte[] bytes = Bytes;
+		int i = WriteIndex;
+		bytes[i] = (byte)x;
+		bytes[i + 1] = (byte)(x >> 8);
+		bytes[i + 2] = (byte)(x >> 16);
+		bytes[i + 3] = (byte)(x >> 24);
+		bytes[i + 4] = (byte)y;
+		bytes[i + 5] = (byte)(y >> 8);
+		bytes[i + 6] = (byte)(y >> 16);
+		bytes[i + 7] = (byte)(y >> 24);
+		WriteIndex = i + 8;
+	}
+
+	public void WriteVector3(Vector3 v) {
+		EnsureWrite(12);
+		int x = Float.floatToRawIntBits(v.x);
+		int y = Float.floatToRawIntBits(v.y);
+		int z = Float.floatToRawIntBits(v.z);
+		byte[] bytes = Bytes;
+		int i = WriteIndex;
+		bytes[i] = (byte)x;
+		bytes[i + 1] = (byte)(x >> 8);
+		bytes[i + 2] = (byte)(x >> 16);
+		bytes[i + 3] = (byte)(x >> 24);
+		bytes[i + 4] = (byte)y;
+		bytes[i + 5] = (byte)(y >> 8);
+		bytes[i + 6] = (byte)(y >> 16);
+		bytes[i + 7] = (byte)(y >> 24);
+		bytes[i + 8] = (byte)z;
+		bytes[i + 9] = (byte)(z >> 8);
+		bytes[i + 10] = (byte)(z >> 16);
+		bytes[i + 11] = (byte)(z >> 24);
+		WriteIndex = i + 12;
+	}
+
+	public void WriteVector4(Vector4 v) {
+		EnsureWrite(16);
+		int x = Float.floatToRawIntBits(v.x);
+		int y = Float.floatToRawIntBits(v.y);
+		int z = Float.floatToRawIntBits(v.z);
+		int w = Float.floatToRawIntBits(v.w);
+		byte[] bytes = Bytes;
+		int i = WriteIndex;
+		bytes[i] = (byte)x;
+		bytes[i + 1] = (byte)(x >> 8);
+		bytes[i + 2] = (byte)(x >> 16);
+		bytes[i + 3] = (byte)(x >> 24);
+		bytes[i + 4] = (byte)y;
+		bytes[i + 5] = (byte)(y >> 8);
+		bytes[i + 6] = (byte)(y >> 16);
+		bytes[i + 7] = (byte)(y >> 24);
+		bytes[i + 8] = (byte)z;
+		bytes[i + 9] = (byte)(z >> 8);
+		bytes[i + 10] = (byte)(z >> 16);
+		bytes[i + 11] = (byte)(z >> 24);
+		bytes[i + 12] = (byte)w;
+		bytes[i + 13] = (byte)(w >> 8);
+		bytes[i + 14] = (byte)(w >> 16);
+		bytes[i + 15] = (byte)(w >> 24);
+		WriteIndex = i + 16;
+	}
+
+	public void WriteQuaternion(Quaternion v) {
+		WriteVector4(v);
+	}
+
+	public void WriteVector2Int(Vector2Int v) {
+		WriteInt(v.x);
+		WriteInt(v.y);
+	}
+
+	public void WriteVector3Int(Vector3Int v) {
+		WriteInt(v.x);
+		WriteInt(v.y);
+		WriteInt(v.z);
+	}
+
 	public long ReadLong1() {
 		EnsureRead(1);
 		return Bytes[ReadIndex++] & 0xff;
@@ -975,8 +1056,7 @@ public final class ByteBuffer {
 			return ReadFloat() != 0;
 		if (type == DOUBLE)
 			return ReadDouble() != 0;
-		SkipUnknownField(type);
-		return false;
+		throw new IllegalStateException("can not ReadBool for type=" + type);
 	}
 
 	public byte ReadByte(int type) {
@@ -987,8 +1067,7 @@ public final class ByteBuffer {
 			return (byte)ReadFloat();
 		if (type == DOUBLE)
 			return (byte)ReadDouble();
-		SkipUnknownField(type);
-		return 0;
+		throw new IllegalStateException("can not ReadByte for type=" + type);
 	}
 
 	public short ReadShort(int type) {
@@ -999,8 +1078,7 @@ public final class ByteBuffer {
 			return (short)ReadFloat();
 		if (type == DOUBLE)
 			return (short)ReadDouble();
-		SkipUnknownField(type);
-		return 0;
+		throw new IllegalStateException("can not ReadShort for type=" + type);
 	}
 
 	public int ReadInt(int type) {
@@ -1011,8 +1089,7 @@ public final class ByteBuffer {
 			return (int)ReadFloat();
 		if (type == DOUBLE)
 			return (int)ReadDouble();
-		SkipUnknownField(type);
-		return 0;
+		throw new IllegalStateException("can not ReadInt for type=" + type);
 	}
 
 	public long ReadLong(int type) {
@@ -1023,8 +1100,7 @@ public final class ByteBuffer {
 			return (long)ReadFloat();
 		if (type == DOUBLE)
 			return (long)ReadDouble();
-		SkipUnknownField(type);
-		return 0;
+		throw new IllegalStateException("can not ReadLong for type=" + type);
 	}
 
 	public float ReadFloat(int type) {
@@ -1035,8 +1111,7 @@ public final class ByteBuffer {
 			return (float)ReadDouble();
 		if (type == INTEGER)
 			return ReadLong();
-		SkipUnknownField(type);
-		return 0;
+		throw new IllegalStateException("can not ReadFloat for type=" + type);
 	}
 
 	public double ReadDouble(int type) {
@@ -1047,60 +1122,75 @@ public final class ByteBuffer {
 			return ReadFloat();
 		if (type == INTEGER)
 			return ReadLong();
-		SkipUnknownField(type);
-		return 0;
+		throw new IllegalStateException("can not ReadDouble for type=" + type);
 	}
 
 	public Binary ReadBinary(int type) {
 		type &= TAG_MASK;
 		if (type == BYTES)
 			return ReadBinary();
-		SkipUnknownField(type);
-		return Binary.Empty;
+		throw new IllegalStateException("can not ReadBinary for type=" + type);
 	}
 
 	public String ReadString(int type) {
 		type &= TAG_MASK;
 		if (type == BYTES)
 			return ReadString();
-		SkipUnknownField(type);
-		return "";
+		throw new IllegalStateException("can not ReadString for type=" + type);
 	}
 
 	public Vector2 ReadVector2() {
-		var r = new Vector2();
-		r.Decode(this);
-		return r;
+		EnsureRead(8);
+		int i = ReadIndex;
+		float x = ToFloat(Bytes, i);
+		float y = ToFloat(Bytes, i + 4);
+		ReadIndex = i + 8;
+		return new Vector2(x, y);
 	}
 
 	public Vector3 ReadVector3() {
-		var r = new Vector3();
-		r.Decode(this);
-		return r;
+		EnsureRead(12);
+		int i = ReadIndex;
+		float x = ToFloat(Bytes, i);
+		float y = ToFloat(Bytes, i + 4);
+		float z = ToFloat(Bytes, i + 8);
+		ReadIndex = i + 12;
+		return new Vector3(x, y, z);
 	}
 
 	public Vector4 ReadVector4() {
-		var r = new Vector4();
-		r.Decode(this);
-		return r;
+		EnsureRead(16);
+		int i = ReadIndex;
+		float x = ToFloat(Bytes, i);
+		float y = ToFloat(Bytes, i + 4);
+		float z = ToFloat(Bytes, i + 8);
+		float w = ToFloat(Bytes, i + 12);
+		ReadIndex = i + 16;
+		return new Vector4(x, y, z, w);
 	}
 
 	public Quaternion ReadQuaternion() {
-		var r = new Quaternion();
-		r.Decode(this);
-		return r;
+		EnsureRead(16);
+		int i = ReadIndex;
+		float x = ToFloat(Bytes, i);
+		float y = ToFloat(Bytes, i + 4);
+		float z = ToFloat(Bytes, i + 8);
+		float w = ToFloat(Bytes, i + 12);
+		ReadIndex = i + 16;
+		return new Quaternion(x, y, z, w);
 	}
 
 	public Vector2Int ReadVector2Int() {
-		var r = new Vector2Int();
-		r.Decode(this);
-		return r;
+		int x = ReadInt();
+		int y = ReadInt();
+		return new Vector2Int(x, y);
 	}
 
 	public Vector3Int ReadVector3Int() {
-		var r = new Vector3Int();
-		r.Decode(this);
-		return r;
+		int x = ReadInt();
+		int y = ReadInt();
+		int z = ReadInt();
+		return new Vector3Int(x, y, z);
 	}
 
 	public Vector2 ReadVector2(int type) {
@@ -1115,8 +1205,7 @@ public final class ByteBuffer {
 			return new Vector2(ReadVector2Int());
 		if (type == VECTOR3INT)
 			return new Vector3(ReadVector3Int());
-		SkipUnknownField(type);
-		return new Vector2();
+		throw new IllegalStateException("can not ReadVector2 for type=" + type);
 	}
 
 	public Vector3 ReadVector3(int type) {
@@ -1131,8 +1220,7 @@ public final class ByteBuffer {
 			return new Vector3(ReadVector3Int());
 		if (type == VECTOR2INT)
 			return new Vector3(ReadVector2Int());
-		SkipUnknownField(type);
-		return new Vector3();
+		throw new IllegalStateException("can not ReadVector3 for type=" + type);
 	}
 
 	public Vector4 ReadVector4(int type) {
@@ -1147,8 +1235,7 @@ public final class ByteBuffer {
 			return new Vector4(ReadVector3Int());
 		if (type == VECTOR2INT)
 			return new Vector4(ReadVector2Int());
-		SkipUnknownField(type);
-		return new Vector4();
+		throw new IllegalStateException("can not ReadVector4 for type=" + type);
 	}
 
 	public Quaternion ReadQuaternion(int type) {
@@ -1163,8 +1250,7 @@ public final class ByteBuffer {
 			return new Quaternion(ReadVector3Int());
 		if (type == VECTOR2INT)
 			return new Quaternion(ReadVector2Int());
-		SkipUnknownField(type);
-		return new Quaternion();
+		throw new IllegalStateException("can not ReadQuaternion for type=" + type);
 	}
 
 	public Vector2Int ReadVector2Int(int type) {
@@ -1179,8 +1265,7 @@ public final class ByteBuffer {
 			return new Vector3Int(ReadVector3());
 		if (type == VECTOR4)
 			return new Vector3Int(ReadVector4());
-		SkipUnknownField(type);
-		return new Vector2Int();
+		throw new IllegalStateException("can not ReadVector2Int for type=" + type);
 	}
 
 	public Vector3Int ReadVector3Int(int type) {
@@ -1195,8 +1280,7 @@ public final class ByteBuffer {
 			return new Vector3Int(ReadVector2());
 		if (type == VECTOR4)
 			return new Vector3Int(ReadVector4());
-		SkipUnknownField(type);
-		return new Vector3Int();
+		throw new IllegalStateException("can not ReadVector3Int for type=" + type);
 	}
 
 	public <T extends Serializable> T ReadBean(T bean, int type) {
@@ -1207,7 +1291,7 @@ public final class ByteBuffer {
 			ReadLong();
 			bean.Decode(this);
 		} else
-			SkipUnknownField(type);
+			throw new IllegalStateException("can not ReadBean(" + bean.getClass().getName() + ") for type=" + type);
 		return bean;
 	}
 
@@ -1224,8 +1308,7 @@ public final class ByteBuffer {
 				return dynBean;
 			}
 		}
-		SkipUnknownField(type);
-		return dynBean;
+		throw new IllegalStateException("can not ReadDynamic for type=" + type);
 	}
 
 	public void SkipUnknownField(int type, int count) {

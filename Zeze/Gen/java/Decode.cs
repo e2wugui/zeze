@@ -271,12 +271,6 @@ namespace Zeze.Gen.java
             switch (type)
             {
                 case TypeDynamic:
-                case TypeVector2:
-                case TypeVector3:
-                case TypeVector4:
-                case TypeVector2Int:
-                case TypeVector3Int:
-                case TypeQuaternion:
                     return true;
             }
             return false;

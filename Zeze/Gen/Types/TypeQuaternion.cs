@@ -36,6 +36,6 @@ namespace Zeze.Gen.Types
 		public override string Name => "quaternion";
 		public override bool IsNeedNegativeCheck => false;
 
-		public override bool IsImmutable => false;
+		public override bool IsImmutable => true;
 	}
 }

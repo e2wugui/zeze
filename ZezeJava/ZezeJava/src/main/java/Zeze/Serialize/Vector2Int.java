@@ -1,10 +1,13 @@
 package Zeze.Serialize;
 
-public class Vector2Int implements Serializable {
-	private int x;
-	private int y;
+@SuppressWarnings("rawtypes")
+public class Vector2Int implements Comparable, Cloneable {
+	public final int x;
+	public final int y;
 
 	public Vector2Int() {
+		x = 0;
+		y = 0;
 	}
 
 	public Vector2Int(int x, int y) {
@@ -13,21 +16,13 @@ public class Vector2Int implements Serializable {
 	}
 
 	public Vector2Int(Vector2Int v2) {
-		x = v2.getX();
-		y = v2.getY();
+		x = v2.x;
+		y = v2.y;
 	}
 
 	public Vector2Int(Vector2 v2) {
-		x = (int)v2.getX();
-		y = (int)v2.getY();
-	}
-
-	public int getX() {
-		return x;
-	}
-
-	public int getY() {
-		return y;
+		x = (int)v2.x;
+		y = (int)v2.y;
 	}
 
 	public boolean isZero() {
@@ -35,15 +30,10 @@ public class Vector2Int implements Serializable {
 	}
 
 	@Override
-	public void Encode(ByteBuffer bb) {
-		bb.WriteInt(x);
-		bb.WriteInt(y);
-	}
-
-	@Override
-	public void Decode(ByteBuffer bb) {
-		x = bb.ReadInt();
-		y = bb.ReadInt();
+	public int compareTo(Object o) {
+		Vector2Int v = (Vector2Int)o;
+		int c = Integer.compare(x, v.x);
+		return c != 0 ? c : Integer.compare(y, v.y);
 	}
 
 	@Override
@@ -59,6 +49,15 @@ public class Vector2Int implements Serializable {
 	@Override
 	public int hashCode() {
 		return x ^ y;
+	}
+
+	@Override
+	public Vector2Int clone() {
+		try {
+			return (Vector2Int)super.clone();
+		} catch (CloneNotSupportedException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Override

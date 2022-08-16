@@ -222,7 +222,7 @@ namespace Zeze.Gen.java
                 sw.WriteLine(prefix + bufname + ".WriteString(" + varname + ");");
         }
 
-        void EncodeElement(Types.Type type, string prefix, string varName)
+        void EncodeElement(Type type, string prefix, string varName)
         {
             switch (type)
             {
@@ -250,13 +250,25 @@ namespace Zeze.Gen.java
                 case Bean:
                 case BeanKey:
                 case TypeDynamic:
-                case TypeVector2:
-                case TypeVector2Int:
-                case TypeVector3:
-                case TypeVector3Int:
-                case TypeVector4:
-                case TypeQuaternion:
                     sw.WriteLine(prefix + varName + ".Encode(" + bufname + ");");
+                    break;
+                case TypeVector2:
+                    sw.WriteLine(prefix + bufname + ".WriteVector2(" + varName + ");");
+                    break;
+                case TypeVector2Int:
+                    sw.WriteLine(prefix + bufname + ".WriteVector2Int(" + varName + ");");
+                    break;
+                case TypeVector3:
+                    sw.WriteLine(prefix + bufname + ".WriteVector3(" + varName + ");");
+                    break;
+                case TypeVector3Int:
+                    sw.WriteLine(prefix + bufname + ".WriteVector3Int(" + varName + ");");
+                    break;
+                case TypeVector4:
+                    sw.WriteLine(prefix + bufname + ".WriteVector4(" + varName + ");");
+                    break;
+                case TypeQuaternion:
+                    sw.WriteLine(prefix + bufname + ".WriteQuaternion(" + varName + ");");
                     break;
                 default:
                     throw new Exception("invalid collection element type: " + type);
@@ -267,7 +279,7 @@ namespace Zeze.Gen.java
         {
             if (id <= 0)
                 throw new Exception("invalid variable.id");
-            Types.Type vt = type.ValueType;
+            Type vt = type.ValueType;
             sw.WriteLine(prefix + "var _x_ = " + varname + ';');
             sw.WriteLine(prefix + "int _n_ = _x_.size();");
             sw.WriteLine(prefix + "if (_n_ != 0) {");
@@ -301,8 +313,8 @@ namespace Zeze.Gen.java
         {
             if (id <= 0)
                 throw new Exception("invalid variable.id");
-            Types.Type kt = type.KeyType;
-            Types.Type vt = type.ValueType;
+            Type kt = type.KeyType;
+            Type vt = type.ValueType;
             sw.WriteLine(prefix + "var _x_ = " + varname + ';');
             sw.WriteLine(prefix + "int _n_ = _x_.size();");
             sw.WriteLine(prefix + "if (_n_ != 0) {");
@@ -379,14 +391,14 @@ namespace Zeze.Gen.java
             }
         }
 
-        private void VisitVector(Type type)
+        private void VisitVector(Type type, string typeName)
         {
             if (id > 0)
             {
                 sw.WriteLine(prefix + "var _x_ = " + varname + ';');
                 sw.WriteLine(prefix + "if (_x_ != null && !_x_.isZero()) {");
                 sw.WriteLine(prefix + "    _i_ = " + bufname + ".WriteTag(_i_, " + id + ", " + TypeTagName.GetName(type) + ");");
-                sw.WriteLine(prefix + "    _x_.Encode(" + bufname + ");");
+                sw.WriteLine(prefix + "    " + bufname + ".Write" + typeName + "(_x_);");
                 sw.WriteLine(prefix + "}");
             }
             else
@@ -395,32 +407,32 @@ namespace Zeze.Gen.java
 
         public void Visit(TypeQuaternion type)
         {
-            VisitVector(type);
+            VisitVector(type, "Quaternion");
         }
 
         public void Visit(TypeVector2 type)
         {
-            VisitVector(type);
+            VisitVector(type, "Vector2");
         }
 
         public void Visit(TypeVector2Int type)
         {
-            VisitVector(type);
+            VisitVector(type, "Vector2Int");
         }
 
         public void Visit(TypeVector3 type)
         {
-            VisitVector(type);
+            VisitVector(type, "Vector3");
         }
 
         public void Visit(TypeVector3Int type)
         {
-            VisitVector(type);
+            VisitVector(type, "Vector3Int");
         }
 
         public void Visit(TypeVector4 type)
         {
-            VisitVector(type);
+            VisitVector(type, "Vector4");
         }
     }
 }
