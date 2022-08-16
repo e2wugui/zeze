@@ -1,14 +1,15 @@
 package UnitTest.Zeze.Trans;
 
 import UnitTest.Zeze.MyBean;
+import Zeze.Serialize.Vector2;
+import Zeze.Transaction.Procedure;
+import Zeze.Transaction.Record1;
+import Zeze.Transaction.TableKey;
+import demo.App;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-
-import Zeze.Transaction.Procedure;
-import Zeze.Transaction.Record1;
-import Zeze.Transaction.TableKey;
 
 public class TestProcdure {
 	private final MyBean bean = new MyBean();
@@ -64,5 +65,30 @@ public class TestProcdure {
 		Assert.assertEquals(rc, Procedure.Success);
 		// 最后一个 Call，事务外，bean 已经没法访问事务支持的属性了。直接访问内部变量。
 		Assert.assertEquals(bean._i, 123);
+	}
+
+	@Test
+	public final void testVector() throws Throwable {
+		App.getInstance().Zeze.NewProcedure(() -> {
+			var v = App.getInstance().demo_Module1.getTable1().getOrAdd(999L);
+			v.setVector2(new Vector2(1, 2));
+			Assert.assertEquals(new Vector2(1, 2), v.getVector2());
+			return 0;
+		}, "testVector1").Call();
+
+		App.getInstance().Zeze.NewProcedure(() -> {
+			var v = App.getInstance().demo_Module1.getTable1().getOrAdd(999L);
+			Assert.assertEquals(new Vector2(1, 2), v.getVector2());
+			v.setVector2(new Vector2(3, 4));
+			Assert.assertEquals(new Vector2(3, 4), v.getVector2());
+			return Procedure.LogicError;
+		}, "testVector2").Call();
+
+		App.getInstance().Zeze.NewProcedure(() -> {
+			var v = App.getInstance().demo_Module1.getTable1().getOrAdd(999L);
+			Assert.assertEquals(new Vector2(1, 2), v.getVector2());
+			App.getInstance().demo_Module1.getTable1().remove(999L);
+			return 0;
+		}, "testVector3").Call();
 	}
 }

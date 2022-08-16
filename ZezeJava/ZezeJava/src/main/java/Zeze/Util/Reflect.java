@@ -6,11 +6,46 @@ import java.lang.invoke.MethodType;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import Zeze.Net.Binary;
+import Zeze.Serialize.Quaternion;
 import Zeze.Serialize.Serializable;
+import Zeze.Serialize.Vector2;
+import Zeze.Serialize.Vector2Int;
+import Zeze.Serialize.Vector3;
+import Zeze.Serialize.Vector3Int;
+import Zeze.Serialize.Vector4;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 
 public class Reflect {
+	private static final HashMap<Class<?>, String> stableNameMap = new HashMap<>(32);
+
+	static {
+		stableNameMap.put(boolean.class, "bool");
+		stableNameMap.put(Boolean.class, "bool");
+		stableNameMap.put(byte.class, "byte");
+		stableNameMap.put(Byte.class, "byte");
+		stableNameMap.put(short.class, "short");
+		stableNameMap.put(Short.class, "short");
+		stableNameMap.put(int.class, "int");
+		stableNameMap.put(Integer.class, "int");
+		stableNameMap.put(long.class, "long");
+		stableNameMap.put(Long.class, "long");
+		stableNameMap.put(float.class, "float");
+		stableNameMap.put(Float.class, "float");
+		stableNameMap.put(double.class, "double");
+		stableNameMap.put(Double.class, "double");
+		stableNameMap.put(Binary.class, "binary");
+		stableNameMap.put(String.class, "string");
+		stableNameMap.put(char.class, "char");
+		stableNameMap.put(Character.class, "char");
+		stableNameMap.put(Vector2.class, "vector2");
+		stableNameMap.put(Vector3.class, "vector3");
+		stableNameMap.put(Vector4.class, "vector4");
+		stableNameMap.put(Quaternion.class, "quaternion");
+		stableNameMap.put(Vector2Int.class, "vector2int");
+		stableNameMap.put(Vector3Int.class, "vector3int");
+	}
+
 	private final HashMap<String, Method> Methods = new HashMap<>();
 
 	public Reflect(Class<?> cls) {
@@ -50,29 +85,11 @@ public class Reflect {
 
 	public static String GetStableName(Class<?> cls) {
 		// 支持的 Zeze/Gen/Types/ 类型。
-		if (cls == boolean.class || cls == Boolean.class)
-			return "bool";
-		if (cls == Byte.class)
-			return "byte";
-		if (cls == Short.class)
-			return "short";
-		if (cls == Integer.class)
-			return "int";
-		if (cls == Long.class)
-			return "long";
-		if (cls == Float.class)
-			return "float";
-		if (cls == Double.class)
-			return "double";
-		if (cls == Binary.class)
-			return "binary";
-		if (cls == String.class)
-			return "string";
-		if (cls.isPrimitive())
-			return cls.getName();
+		var name = stableNameMap.get(cls);
+		if (name != null)
+			return name;
 		if (Serializable.class.isAssignableFrom(cls))
 			return cls.getName();
-
 		throw new UnsupportedOperationException("Unsupported type: " + cls.getName());
 	}
 
