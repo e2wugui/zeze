@@ -52,6 +52,55 @@ namespace Draft
             return signer.VerifySignature(signature);
         }
 
+        public byte[] Encrypt(byte[] data)
+        {
+            // 这是用c#的证书加密数据的实现，来自微软文档的例子。
+            // 最好转换成BouncyCastle模式，统一api使用。
+            // 实在不行，BouncyCastle提供了把它的证书转换成c#的证书格式来用。
+            byte[] pkcs12Bytes = new byte[12];
+            X509Certificate2 cert = new X509Certificate2(pkcs12Bytes);
+            var rsaPublicKey = (RSA)cert.PublicKey.Key;
+
+            using (Aes aes = Aes.Create())
+            {
+                // Create instance of Aes for
+                // symetric encryption of the data.
+                aes.KeySize = 256;
+                aes.Mode = CipherMode.CBC;
+                using (ICryptoTransform transform = aes.CreateEncryptor())
+                {
+                    RSAPKCS1KeyExchangeFormatter keyFormatter = new RSAPKCS1KeyExchangeFormatter(rsaPublicKey);
+                    // aes.Key 需要自己设置一个吧？还是说下面这个函数顺带生成了一个随机的？
+                    byte[] keyEncrypted = keyFormatter.CreateKeyExchange(aes.Key, aes.GetType());
+                    // keyEncrypted, aed.IV 都需要返回打包。
+                    return transform.TransformFinalBlock(data, 0, data.Length);
+                }
+            }
+        }
+
+        public byte[] Decrypt(byte[] keyEncrypted, byte[] IV, byte[] encryptedData)
+        {
+            // 这是用c#的证书加密数据的实现，来自微软文档的例子。
+            // 最好转换成BouncyCastle模式，统一api使用。
+            // 实在不行，BouncyCastle提供了把它的证书转换成c#的证书格式来用。
+            byte[] pkcs12Bytes = new byte[12];
+            X509Certificate2 cert = new X509Certificate2(pkcs12Bytes);
+            var rsaPrivateKey = cert.GetDSAPrivateKey();
+            byte[] KeyDecrypted = rsaPrivateKey.Decrypt(keyEncrypted, RSAEncryptionPadding.Pkcs1);
+            // Create instance of Aes for
+            // symetric decryption of the data.
+            using (Aes aes = Aes.Create())
+            {
+                aes.KeySize = 256;
+                aes.Mode = CipherMode.CBC;
+
+                using (ICryptoTransform transform = aes.CreateDecryptor(KeyDecrypted, IV))
+                {
+                    return transform.TransformFinalBlock(encryptedData, 0, encryptedData.Length);
+                }
+            }
+        }
+
         public void Generate()
         {
             // Generate RSA key pair
