@@ -28,6 +28,8 @@ namespace Draft
             var data = Encoding.UTF8.GetBytes("data");
             var signature = cert.SignData(alias, data, 0, data.Length);
             var verify = cert.VerifySign(alias, data, 0, data.Length, signature);
+            using var fsignature = new FileStream("signature", FileMode.Create, FileAccess.Write, FileShare.None);
+            fsignature.Write(signature, 0, signature.Length);
             Console.WriteLine("verify=" + verify);
         }
     }
