@@ -36,6 +36,7 @@ namespace Draft
                 var verify = cert.VerifySign(alias, data, 0, data.Length, signature);
                 using var fsignature = new FileStream("signature", FileMode.Create, FileAccess.Write, FileShare.None);
                 fsignature.Write(signature, 0, signature.Length);
+                // 拷贝fsignature到java运行目录，用java版本VerifySign验证。
                 Console.WriteLine("verify=" + verify);
             }
 
@@ -52,9 +53,11 @@ namespace Draft
             // decrypt data from java encrypt
             if (File.Exists("e.data"))
             {
+                // 下面三个文件从java那边拷贝过来。
                 var edata = File.ReadAllBytes("e.data");
                 var iv = File.ReadAllBytes("iv");
                 var ekey = File.ReadAllBytes("ekey");
+
                 var cert = new CertificateStore(fileName, passwd);
                 var data = cert.Decrypt(alias, ekey, iv, edata, 0, edata.Length);
                 if (Zeze.Serialize.ByteBuffer.Equals(data, Encoding.UTF8.GetBytes("data")))
