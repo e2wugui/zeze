@@ -85,7 +85,7 @@ namespace Draft
             // 实在不行，BouncyCastle提供了把它的证书转换成c#的证书格式来用。
             byte[] pkcs12Bytes = new byte[12];
             X509Certificate2 cert = new X509Certificate2(pkcs12Bytes);
-            var rsaPrivateKey = cert.GetDSAPrivateKey();
+            var rsaPrivateKey = cert.GetRSAPrivateKey();
             byte[] KeyDecrypted = rsaPrivateKey.Decrypt(keyEncrypted, RSAEncryptionPadding.Pkcs1);
             // Create instance of Aes for
             // symetric decryption of the data.
