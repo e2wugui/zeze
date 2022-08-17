@@ -1,6 +1,9 @@
 ﻿using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Encodings;
+using Org.BouncyCastle.Crypto.Engines;
 using Org.BouncyCastle.Crypto.Generators;
+using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Prng;
 using Org.BouncyCastle.Math;
 using Org.BouncyCastle.Pkcs;
@@ -23,14 +26,40 @@ namespace Draft
             var fileName = "test.pkcs12";
             var passwd = "123";
             var alias = "test";
-            CertificateStore.Generate(fileName, passwd, alias);
-            var cert = new CertificateStore(fileName, passwd);
-            var data = Encoding.UTF8.GetBytes("data");
-            var signature = cert.SignData(alias, data, 0, data.Length);
-            var verify = cert.VerifySign(alias, data, 0, data.Length, signature);
-            using var fsignature = new FileStream("signature", FileMode.Create, FileAccess.Write, FileShare.None);
-            fsignature.Write(signature, 0, signature.Length);
-            Console.WriteLine("verify=" + verify);
+
+            // sign verify test
+            {
+                CertificateStore.Generate(fileName, passwd, alias);
+                var cert = new CertificateStore(fileName, passwd);
+                var data = Encoding.UTF8.GetBytes("data");
+                var signature = cert.SignData(alias, data, 0, data.Length);
+                var verify = cert.VerifySign(alias, data, 0, data.Length, signature);
+                using var fsignature = new FileStream("signature", FileMode.Create, FileAccess.Write, FileShare.None);
+                fsignature.Write(signature, 0, signature.Length);
+                Console.WriteLine("verify=" + verify);
+            }
+
+            // encrypt decrypt test
+            {
+                var data = Encoding.UTF8.GetBytes("data");
+                var cert = new CertificateStore(fileName, passwd);
+                var edata = cert.Encrypt(alias, data, 0, data.Length, out var iv, out var keye);
+                var dataout = cert.Decrypt(alias, keye, iv, edata, 0, edata.Length);
+                if (Zeze.Serialize.ByteBuffer.Equals(data, dataout))
+                    Console.WriteLine("encrypt-decrypt ok");
+            }
+
+            // decrypt data from java encrypt
+            if (File.Exists("e.data"))
+            {
+                var edata = File.ReadAllBytes("e.data");
+                var iv = File.ReadAllBytes("iv");
+                var ekey = File.ReadAllBytes("ekey");
+                var cert = new CertificateStore(fileName, passwd);
+                var data = cert.Decrypt(alias, ekey, iv, edata, 0, edata.Length);
+                if (Zeze.Serialize.ByteBuffer.Equals(data, Encoding.UTF8.GetBytes("data")))
+                    Console.WriteLine("decrypt data from java encrypt ok");
+            }
         }
     }
 
@@ -63,51 +92,37 @@ namespace Draft
             return signer.VerifySignature(signature);
         }
 
-        public byte[] Encrypt(byte[] data, int offset, int count)
+        public byte[] Encrypt(string alias, byte[] data, int offset, int count, out byte[] IV, out byte[] keyEncrypted)
         {
-            // 这是用c#的证书加密数据的实现，来自微软文档的例子。
-            // 最好转换成BouncyCastle模式，统一api使用。
-            // 实在不行，BouncyCastle提供了把它的证书转换成c#的证书格式来用。
-            byte[] pkcs12Bytes = new byte[12];
-            X509Certificate2 cert = new X509Certificate2(pkcs12Bytes);
-            var rsaPublicKey = (RSA)cert.PublicKey.Key;
-
+            var rsaPublicKey = Store.GetCertificate(alias).Certificate.GetPublicKey();
             using (Aes aes = Aes.Create())
             {
-                // Create instance of Aes for
-                // symetric encryption of the data.
                 aes.KeySize = 256;
                 aes.Mode = CipherMode.CBC;
                 using (ICryptoTransform transform = aes.CreateEncryptor())
                 {
-                    RSAPKCS1KeyExchangeFormatter keyFormatter = new RSAPKCS1KeyExchangeFormatter(rsaPublicKey);
-                    // aes.Key 需要自己设置一个吧？还是说下面这个函数顺带生成了一个随机的？
-                    byte[] keyEncrypted = keyFormatter.CreateKeyExchange(aes.Key, aes.GetType());
-                    // keyEncrypted, aed.IV 都需要返回打包。
-                    return transform.TransformFinalBlock(data, offset, data.Length);
+                    var pkcs1 = new Pkcs1Encoding(new RsaBlindedEngine());
+                    pkcs1.Init(true, new ParametersWithRandom(rsaPublicKey, new SecureRandom()));
+                    keyEncrypted = pkcs1.ProcessBlock(aes.Key, 0, aes.Key.Length);
+                    IV = aes.IV;
+                    return transform.TransformFinalBlock(data, offset, count);
                 }
             }
         }
 
-        public byte[] Decrypt(byte[] keyEncrypted, byte[] IV, byte[] encryptedData)
+        public byte[] Decrypt(string alias, byte[] keyEncrypted, byte[] IV, byte[] data, int offset, int count)
         {
-            // 这是用c#的证书加密数据的实现，来自微软文档的例子。
-            // 最好转换成BouncyCastle模式，统一api使用。
-            // 实在不行，BouncyCastle提供了把它的证书转换成c#的证书格式来用。
-            byte[] pkcs12Bytes = new byte[12];
-            X509Certificate2 cert = new X509Certificate2(pkcs12Bytes);
-            var rsaPrivateKey = cert.GetRSAPrivateKey();
-            byte[] KeyDecrypted = rsaPrivateKey.Decrypt(keyEncrypted, RSAEncryptionPadding.Pkcs1);
-            // Create instance of Aes for
-            // symetric decryption of the data.
+            var rsaPrivateKey = Store.GetKey(alias).Key;
+            var pkcs1 = new Pkcs1Encoding(new RsaEngine());
+            pkcs1.Init(false, rsaPrivateKey);
+            byte[] KeyDecrypted = pkcs1.ProcessBlock(keyEncrypted, 0, keyEncrypted.Length);
             using (Aes aes = Aes.Create())
             {
                 aes.KeySize = 256;
                 aes.Mode = CipherMode.CBC;
-
                 using (ICryptoTransform transform = aes.CreateDecryptor(KeyDecrypted, IV))
                 {
-                    return transform.TransformFinalBlock(encryptedData, 0, encryptedData.Length);
+                    return transform.TransformFinalBlock(data, offset, count);
                 }
             }
         }
