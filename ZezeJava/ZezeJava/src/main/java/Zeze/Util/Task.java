@@ -205,6 +205,22 @@ public final class Task {
 		}, initialDelay, TimeUnit.MILLISECONDS);
 	}
 
+	public static <R> Future<R> scheduleUnsafe(long initialDelay, Func0<R> func) {
+		return threadPoolScheduled.schedule(() -> {
+			try {
+				return func.call();
+			} catch (AssertionError e) {
+				throw e;
+			} catch (Exception | Error e) {
+				logger.error("schedule", e);
+				throw e;
+			} catch (Throwable e) {
+				logger.error("schedule", e);
+				throw new RuntimeException(e);
+			}
+		}, initialDelay, TimeUnit.MILLISECONDS);
+	}
+
 	public static void scheduleAt(int hour, int minute, Action0 action) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
@@ -225,12 +241,12 @@ public final class Task {
 		return scheduleUnsafe(delay, action);
 	}
 
-	public static void schedule(int hour, int minute, Action0 action) {
+	public static void schedule(long initialDelay, long period, Action0 action) {
 		var t = Transaction.getCurrent();
 		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> scheduleUnsafe(hour, minute, action));
+			t.runWhileCommit(() -> scheduleUnsafe(initialDelay, period, action));
 		else
-			scheduleUnsafe(hour, minute, action);
+			scheduleUnsafe(initialDelay, period, action);
 	}
 
 	public static Future<?> scheduleUnsafe(long initialDelay, long period, Action0 action) {
@@ -243,30 +259,6 @@ public final class Task {
 				logger.error("schedule", e);
 			}
 		}, initialDelay, period, TimeUnit.MILLISECONDS);
-	}
-
-	public static <R> void schedule(long initialDelay, Func0<R> func) {
-		var t = Transaction.getCurrent();
-		if (t != null && t.isRunning())
-			t.runWhileCommit(() -> scheduleUnsafe(initialDelay, func));
-		else
-			scheduleUnsafe(initialDelay, func);
-	}
-
-	public static <R> Future<R> scheduleUnsafe(long initialDelay, Func0<R> func) {
-		return threadPoolScheduled.schedule(() -> {
-			try {
-				return func.call();
-			} catch (AssertionError e) {
-				throw e;
-			} catch (Exception | Error e) {
-				logger.error("schedule", e);
-				throw e;
-			} catch (Throwable e) {
-				logger.error("schedule", e);
-				throw new RuntimeException(e);
-			}
-		}, initialDelay, TimeUnit.MILLISECONDS);
 	}
 
 	public static void DefaultLogAction(Throwable ex, long result, Protocol<?> p, String actionName) {
