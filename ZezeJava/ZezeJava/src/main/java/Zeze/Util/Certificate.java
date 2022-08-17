@@ -52,7 +52,7 @@ public class Certificate {
 		// todo encryptor 初始化。
 		var opmode = 0; // ?
 		var key = new byte[32]; // todo random gen
-		var keyEncrypted = encryptAesKey(key, 0, key.length)
+		var keyEncrypted = encryptAesKey(key, 0, key.length);
 		// encryptor.init(opmode, key);
 		return encryptor.doFinal(data, offset, count);
 	}
