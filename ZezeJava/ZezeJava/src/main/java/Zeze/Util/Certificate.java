@@ -39,7 +39,7 @@ public class Certificate {
 		keyStore.load(new FileInputStream("receiver_keytore.p12"), "changeit".toCharArray());
 		var certificate = keyStore.getCertificate("receiverKeyPair");
 		var publicKey = (RSAPublicKey)certificate.getPublicKey(); // todo 强制转换，java public key 带算法的。
-		var cipher = Cipher.getInstance("RSA");
+		var cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
 		cipher.init(Cipher.ENCRYPT_MODE, publicKey);
 		// c# 加密Key使用 RSAPKCS1KeyExchangeFormatter 创建的。
 		return cipher.doFinal(key, offset, count);

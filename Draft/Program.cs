@@ -1,8 +1,6 @@
-﻿using Org.BouncyCastle.Asn1;
-using Org.BouncyCastle.Asn1.X509;
+﻿using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Generators;
-using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Prng;
 using Org.BouncyCastle.Math;
 using Org.BouncyCastle.Pkcs;
@@ -13,6 +11,7 @@ using System.Collections;
 using System.Runtime.ConstrainedExecution;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Threading;
 
 namespace Draft
@@ -21,22 +20,32 @@ namespace Draft
     {
         public static void Main(string[] args)
         {
+            var fileName = "test.pkcs12";
+            var passwd = "123";
+            var alias = "test";
+            CertificateStore.Generate(fileName, passwd, alias);
+            var cert = new CertificateStore(fileName, passwd);
+            var data = Encoding.UTF8.GetBytes("data");
+            var signature = cert.SignData(alias, data, 0, data.Length);
+            var verify = cert.VerifySign(alias, data, 0, data.Length, signature);
+            Console.WriteLine("verify=" + verify);
         }
     }
 
-    public class CertStore
+    public class CertificateStore
     {
         private Pkcs12Store Store;
 
-        public CertStore()
+        public CertificateStore(string fileName, string passwd)
         {
-            Store = new();
+            using var fs = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
+            Store = new(fs, passwd.ToArray());
         }
 
         public byte[] SignData(string alias, byte[] data, int offset, int count)
         {
-            var key = Store.GetKey(alias)?.Key;
-            var signer = SignerUtilities.GetSigner("");
+            var key = Store.GetKey(alias).Key;
+            var signer = SignerUtilities.GetSigner("SHA256WithRSA");
             signer.Init(true, key);
             signer.BlockUpdate(data, offset, count);
             return signer.GenerateSignature();
@@ -44,9 +53,9 @@ namespace Draft
 
         public bool VerifySign(string alias, byte[] data, int offset, int count, byte[] signature)
         {
-            var cert = Store.GetCertificate(alias)?.Certificate;
+            var cert = Store.GetCertificate(alias).Certificate;
             var key = cert.GetPublicKey();
-            var signer = SignerUtilities.GetSigner("");
+            var signer = SignerUtilities.GetSigner("SHA256WithRSA");
             signer.Init(false, key);
             signer.BlockUpdate(data, offset, count);
             return signer.VerifySignature(signature);
@@ -101,7 +110,7 @@ namespace Draft
             }
         }
 
-        public void Generate()
+        public static void Generate(string fileName, string passwd, string alias)
         {
             // 自签字证书生成。
             // Generate RSA key pair
@@ -145,8 +154,11 @@ namespace Draft
 
             //创建证书，如果需要cer格式的证书，到这里就可以了。如果是pfx格式的就需要加上访问密码
             var cert = gen.Generate(keyPair.Private);
-            Store.SetCertificateEntry("alias", new X509CertificateEntry(cert));
-
+            var store = new Pkcs12Store();
+            store.SetKeyEntry(alias, new AsymmetricKeyEntry(keyPair.Private), new X509CertificateEntry[] { new X509CertificateEntry(cert) });
+            using var fs = new FileStream(fileName, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
+            store.Save(fs, passwd.ToArray(), new SecureRandom());
+            
             /*
             string password = "213978863940714";
             byte[] pkcs12Bytes = DotNetUtilities.ToX509Certificate(x509Certificate).Export(X509ContentType.Pfx, password);
