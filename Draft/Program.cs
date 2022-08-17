@@ -42,7 +42,7 @@ namespace Draft
             return signer.GenerateSignature();
         }
 
-        public bool VerifySigned(string alias, byte[] data, int offset, int count, byte[] signature)
+        public bool VerifySign(string alias, byte[] data, int offset, int count, byte[] signature)
         {
             var cert = Store.GetCertificate(alias)?.Certificate;
             var key = cert.GetPublicKey();
@@ -52,7 +52,7 @@ namespace Draft
             return signer.VerifySignature(signature);
         }
 
-        public byte[] Encrypt(byte[] data)
+        public byte[] Encrypt(byte[] data, int offset, int count)
         {
             // 这是用c#的证书加密数据的实现，来自微软文档的例子。
             // 最好转换成BouncyCastle模式，统一api使用。
@@ -73,7 +73,7 @@ namespace Draft
                     // aes.Key 需要自己设置一个吧？还是说下面这个函数顺带生成了一个随机的？
                     byte[] keyEncrypted = keyFormatter.CreateKeyExchange(aes.Key, aes.GetType());
                     // keyEncrypted, aed.IV 都需要返回打包。
-                    return transform.TransformFinalBlock(data, 0, data.Length);
+                    return transform.TransformFinalBlock(data, offset, data.Length);
                 }
             }
         }
