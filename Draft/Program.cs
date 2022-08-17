@@ -29,7 +29,8 @@ namespace Draft
 
             // sign verify test
             {
-                CertificateStore.Generate(fileName, passwd, alias);
+                if (!File.Exists(fileName))
+                    CertificateStore.Generate(fileName, passwd, alias);
                 var cert = new CertificateStore(fileName, passwd);
                 var data = Encoding.UTF8.GetBytes("data");
                 var signature = cert.SignData(alias, data, 0, data.Length);
