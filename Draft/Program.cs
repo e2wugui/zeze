@@ -106,7 +106,7 @@ namespace Draft
                 using (ICryptoTransform transform = aes.CreateEncryptor())
                 {
                     var pkcs1 = new Pkcs1Encoding(new RsaBlindedEngine());
-                    pkcs1.Init(true, new ParametersWithRandom(rsaPublicKey, new SecureRandom()));
+                    pkcs1.Init(true, rsaPublicKey);
                     keyEncrypted = pkcs1.ProcessBlock(aes.Key, 0, aes.Key.Length);
                     IV = aes.IV;
                     return transform.TransformFinalBlock(data, offset, count);
