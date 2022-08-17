@@ -103,6 +103,7 @@ namespace Draft
 
         public void Generate()
         {
+            // 自签字证书生成。
             // Generate RSA key pair
             var rsaGenerator = new RsaKeyPairGenerator();
             rsaGenerator.Init(new KeyGenerationParameters(new SecureRandom(new MyCryptoApiRandomGenerator()), 2048));
