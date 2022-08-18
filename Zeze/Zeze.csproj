@@ -28,6 +28,7 @@
     <PackageReference Include="MySql.Data" Version="8.0.28" />
     <PackageReference Include="Nito.AsyncEx" Version="5.1.2" />
     <PackageReference Include="NLog" Version="4.7.14" />
+    <PackageReference Include="Portable.BouncyCastle" Version="1.9.0" />
     <PackageReference Include="RocksDB" Version="7.0.2.26646" />
     <PackageReference Include="Scriban" Version="5.4.1" />
     <PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
