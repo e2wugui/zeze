@@ -1,17 +1,21 @@
 package Zeze.Util;
 
 import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
+import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.Signature;
-import java.security.cert.Certificate;
+import java.security.interfaces.RSAKey;
 import java.util.Arrays;
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
@@ -19,14 +23,36 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-public class Cert {
-	// 对数据签字
-	public static byte[] sign(PrivateKey privateKey, byte[] data)
+// 生成KeyStore: keytool -genkeypair -keyalg RSA -keysize 2048 -alias test -keystore test.ks -storetype pkcs12 -storepass 123456 -validity 365 -dname "cn=CommonName, ou=OrgName, o=Org, c=Country"
+// 查看KeyStore: keytool -list -keystore test.ks -storepass 123456 -v
+// 参考: https://docs.oracle.com/en/java/javase/11/tools/keytool.html
+// 参考: https://docs.oracle.com/en/java/javase/11/docs/specs/security/standard-names.html
+public final class Cert {
+	// 从输入流加载KeyStore(PKCS12格式的二进制密钥存储格式,有密码加密,包含私钥和公钥证书)
+	public static KeyStore loadKeyStore(InputStream inputStream, String passwd)
+			throws GeneralSecurityException, IOException {
+		var keyStore = KeyStore.getInstance("pkcs12");
+		keyStore.load(inputStream, passwd.toCharArray());
+		return keyStore;
+	}
+
+	// 从KeyStore里获取公钥
+	public static PublicKey getPublicKey(KeyStore keyStore, String alias) throws KeyStoreException {
+		return keyStore.getCertificate(alias).getPublicKey();
+	}
+
+	// 从KeyStore里获取私钥
+	public static PrivateKey getPrivateKey(KeyStore keyStore, String passwd, String alias)
 			throws GeneralSecurityException {
+		return (PrivateKey)keyStore.getKey(alias, passwd.toCharArray());
+	}
+
+	// 使用RSA私钥对数据签名
+	public static byte[] sign(PrivateKey privateKey, byte[] data) throws GeneralSecurityException {
 		return sign(privateKey, data, 0, data.length);
 	}
 
-	// 对数据签字
+	// 使用RSA私钥对数据签名
 	public static byte[] sign(PrivateKey privateKey, byte[] data, int offset, int count)
 			throws GeneralSecurityException {
 		var signer = Signature.getInstance("SHA256WithRSA");
@@ -35,43 +61,40 @@ public class Cert {
 		return signer.sign();
 	}
 
-	// 验证签字
-	public static boolean verifySign(Certificate cert, byte[] data, byte[] signature)
+	// 使用RSA公钥验证签名
+	public static boolean verifySign(PublicKey publicKey, byte[] data, byte[] signature)
 			throws GeneralSecurityException {
-		return verifySign(cert, data, 0, data.length, signature);
+		return verifySign(publicKey, data, 0, data.length, signature);
 	}
 
-	// 验证签字
-	public static boolean verifySign(Certificate cert, byte[] data, int offset, int count, byte[] signature)
+	// 使用RSA公钥验证签名
+	public static boolean verifySign(PublicKey publicKey, byte[] data, int offset, int count, byte[] signature)
 			throws GeneralSecurityException {
 		var signer = Signature.getInstance("SHA256WithRSA");
-		signer.initVerify(cert);
+		signer.initVerify(publicKey);
 		signer.update(data, offset, count);
 		return signer.verify(signature);
 	}
 
-	// PublicKey-Rsa加密小块数据
-	public static byte[] encryptRsa(Certificate cert, byte[] data)
-			throws GeneralSecurityException {
-		return encryptRsa(cert, data, 0, data.length);
+	// 使用RSA公钥加密小块数据(data长度不超过:RSA位数/8-11)
+	public static byte[] encryptRsa(PublicKey publicKey, byte[] data) throws GeneralSecurityException {
+		return encryptRsa(publicKey, data, 0, data.length);
 	}
 
-	// PublicKey-Rsa加密小块数据
-	public static byte[] encryptRsa(Certificate cert, byte[] data, int offset, int size)
+	// 使用RSA公钥加密小块数据(size不超过:RSA位数/8-11)
+	public static byte[] encryptRsa(PublicKey publicKey, byte[] data, int offset, int size)
 			throws GeneralSecurityException {
-		var publicKey = cert.getPublicKey();
 		var cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
 		cipher.init(Cipher.ENCRYPT_MODE, publicKey);
 		return cipher.doFinal(data, offset, size);
 	}
 
-	// PrivateKey-Rsa解密小块数据
-	public static byte[] decryptRsa(PrivateKey privateKey, byte[] data)
-			throws GeneralSecurityException {
+	// 使用RSA私钥解密小块数据
+	public static byte[] decryptRsa(PrivateKey privateKey, byte[] data) throws GeneralSecurityException {
 		return decryptRsa(privateKey, data, 0, data.length);
 	}
 
-	// PrivateKey-Rsa解密小块数据
+	// 使用RSA私钥解密小块数据
 	public static byte[] decryptRsa(PrivateKey privateKey, byte[] data, int offset, int size)
 			throws GeneralSecurityException {
 		var cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
@@ -79,13 +102,12 @@ public class Cert {
 		return cipher.doFinal(data, offset, size);
 	}
 
-	// PrivateKey-Rsa解密小块数据,NoPadding
-	public static byte[] decryptRsaNoPadding(PrivateKey privateKey, byte[] data)
-			throws GeneralSecurityException {
+	// 使用RSA私钥解密小块数据(不处理padding的原始数据)
+	public static byte[] decryptRsaNoPadding(PrivateKey privateKey, byte[] data) throws GeneralSecurityException {
 		return decryptRsaNoPadding(privateKey, data, 0, data.length);
 	}
 
-	// PrivateKey-Rsa解密小块数据,NoPadding
+	// 使用RSA私钥解密小块数据(不处理padding的原始数据)
 	public static byte[] decryptRsaNoPadding(PrivateKey privateKey, byte[] data, int offset, int size)
 			throws GeneralSecurityException {
 		var cipher = Cipher.getInstance("RSA/ECB/NoPadding");
@@ -93,32 +115,31 @@ public class Cert {
 		return cipher.doFinal(data, offset, size);
 	}
 
-	// 创建安全的AesKey
+	// 创建安全随机的AES密钥(固定256位)
 	public static SecretKey generateAesKey() throws NoSuchAlgorithmException {
-		var KEY_SIZE = 256;
 		var keyGenerator = KeyGenerator.getInstance("AES");
-		keyGenerator.init(KEY_SIZE);
+		keyGenerator.init(256);
 		return keyGenerator.generateKey();
 	}
 
-	// 使用自定义的AesKey
-	public static SecretKey createAesKey(byte[] key) {
+	// 加载自定义的AES密钥
+	public static SecretKey loadAesKey(byte[] key) {
 		return new SecretKeySpec(key, "AES");
 	}
 
-	// Aes加密
-	public static byte[] encryptAes(SecretKey key, byte[] iv, byte[] data)
-			throws GeneralSecurityException {
-		return encryptAes(key, iv, data, 0, data.length);
-	}
-
+	// 创建安全随机的IV(固定128位)
 	public static byte[] generateAesIv() {
 		var iv = new byte[16];
 		new SecureRandom().nextBytes(iv);
 		return iv;
 	}
 
-	// Aes加密
+	// 使用AES加密数据(CBC模式需要提供IV,带padding)
+	public static byte[] encryptAes(SecretKey key, byte[] iv, byte[] data) throws GeneralSecurityException {
+		return encryptAes(key, iv, data, 0, data.length);
+	}
+
+	// 使用AES加密数据(CBC模式需要提供IV,带padding)
 	public static byte[] encryptAes(SecretKey key, byte[] iv, byte[] data, int offset, int size)
 			throws GeneralSecurityException {
 		var cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
@@ -126,13 +147,12 @@ public class Cert {
 		return cipher.doFinal(data, offset, size);
 	}
 
-	// Aes解密
-	public static byte[] decryptAes(SecretKey key, byte[] iv, byte[] data)
-			throws GeneralSecurityException {
+	// 使用AES解密数据(CBC模式需要提供IV,带padding)
+	public static byte[] decryptAes(SecretKey key, byte[] iv, byte[] data) throws GeneralSecurityException {
 		return decryptAes(key, iv, data, 0, data.length);
 	}
 
-	// Aes解密
+	// 使用AES解密数据(CBC模式需要提供IV,带padding)
 	public static byte[] decryptAes(SecretKey key, byte[] iv, byte[] data, int offset, int size)
 			throws GeneralSecurityException {
 		var cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
@@ -140,36 +160,38 @@ public class Cert {
 		return cipher.doFinal(data, offset, size);
 	}
 
+	private Cert() {
+	}
+
 	public static void main(String[] args) throws Exception {
 		var pkcs12File = "test.pkcs12";
-		var passwd = "123".toCharArray();
+		var passwd = "123";
 		var alias = "test";
 
-		var keyStore = KeyStore.getInstance("pkcs12");
-		keyStore.load(new FileInputStream(pkcs12File), passwd);
+		var keyStore = loadKeyStore(new FileInputStream(pkcs12File), passwd);
+		var publicKey = getPublicKey(keyStore, alias);
+		var privateKey = getPrivateKey(keyStore, passwd, alias);
+
 		var data = "data".getBytes(StandardCharsets.UTF_8);
 		var signature = Files.readAllBytes(Path.of("signature"));
-		var cert = keyStore.getCertificate(alias);
-		var privateKey = (PrivateKey)keyStore.getKey(alias, passwd);
-		var verify = verifySign(cert, data, signature);
+		var verify = verifySign(publicKey, data, signature);
 		System.out.println("signature.len = " + signature.length);
 		System.out.println("verify=" + verify);
 
 		var signature2 = sign(privateKey, data);
-		var verify2 = verifySign(cert, data, signature2);
+		var verify2 = verifySign(publicKey, data, signature2);
 		System.out.println("signature2.len = " + signature2.length);
 		System.out.println("verify2=" + verify2);
 
 		var aesKey = generateAesKey();
 		var aesKeyData = aesKey.getEncoded();
-		var aesKeyEnc = encryptRsa(cert, aesKeyData);
+		var aesKeyEnc = encryptRsa(publicKey, aesKeyData);
 		var aesKeyDec = decryptRsa(privateKey, aesKeyEnc);
 		System.out.println("aesKeyEnc.len = " + aesKeyEnc.length);
 		System.out.println("aesKeyDec.len = " + aesKeyDec.length);
 		System.out.println("compare AES key = " + Arrays.equals(aesKeyData, aesKeyDec));
 
-		byte[] iv = new byte[16];
-		new SecureRandom().nextBytes(iv);
+		byte[] iv = generateAesIv();
 		var dataEnc = encryptAes(aesKey, iv, data);
 		var dataDec = decryptAes(aesKey, iv, dataEnc);
 		System.out.println("dataEnc.len = " + dataEnc.length);
@@ -191,8 +213,11 @@ public class Cert {
 		System.out.println(BitConverter.toString(aesKeyDec));
 		iv = new byte[]{0x0E, (byte)0x8A, (byte)0xF9, 0x2E, (byte)0xCF, (byte)0xD1, 0x2A, (byte)0x81, 0x3A, (byte)0xE6, (byte)0xBA, 0x6E, 0x49, 0x1C, (byte)0xA4, 0x07};
 		dataEnc = new byte[]{0x1E, 0x50, 0x16, 0x39, 0x40, (byte)0xE4, (byte)0xA6, 0x67, 0x5F, 0x23, (byte)0xF7, (byte)0x83, (byte)0xBF, 0x22, (byte)0xE8, 0x1E};
-		dataDec = decryptAes(createAesKey(aesKeyDec), iv, dataEnc, 0, dataEnc.length);
+		dataDec = decryptAes(loadAesKey(aesKeyDec), iv, dataEnc, 0, dataEnc.length);
 		System.out.println("compare data = " + Arrays.equals(data, dataDec));
+
+		var publicKeyData = ((RSAKey)publicKey).getModulus().toByteArray();
+		System.out.println("rsa modulus = [" + publicKeyData.length + "] " + BitConverter.toString(publicKeyData));
 
 //		var priKey = cert.keyStore.getKey("test", "123".toCharArray());
 //		var cert1 = cert.keyStore.getCertificate("test");
