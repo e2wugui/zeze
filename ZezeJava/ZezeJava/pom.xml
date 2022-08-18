@@ -71,6 +71,10 @@
 					<target>11</target>
 					<debuglevel>source,lines,vars</debuglevel>
 					<parameters>true</parameters>
+					<compilerArgs>
+						<arg>--add-exports</arg>
+						<arg>java.base/sun.security.x509=ALL-UNNAMED</arg>
+					</compilerArgs>
 				</configuration>
 			</plugin>
 		</plugins>

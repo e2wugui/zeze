@@ -32,7 +32,7 @@ public class TestCert
         Assert.AreEqual(256, signature2.Length);
         Assert.IsTrue(verify2);
 
-        var aesKey = GenerateAesKey();
+        using var aesKey = GenerateAesKey();
         var aesKeyData = aesKey.Key;
         var aesKeyEnc = EncryptRsa(publicKey, aesKeyData);
         var aesKeyDec = DecryptRsa(privateKey, aesKeyEnc);
@@ -75,7 +75,8 @@ public class TestCert
         Console.WriteLine(BitConverter.ToString(aesKeyDec));
         iv = new byte[] { 0x0E, 0x8A, 0xF9, 0x2E, 0xCF, 0xD1, 0x2A, 0x81, 0x3A, 0xE6, 0xBA, 0x6E, 0x49, 0x1C, 0xA4, 0x07 };
         dataEnc = new byte[] { 0x1E, 0x50, 0x16, 0x39, 0x40, 0xE4, 0xA6, 0x67, 0x5F, 0x23, 0xF7, 0x83, 0xBF, 0x22, 0xE8, 0x1E };
-        dataDec = DecryptAes(LoadAesKey(aesKeyDec), iv, dataEnc);
+        using var aesKey2 = LoadAesKey(aesKeyDec);
+        dataDec = DecryptAes(aesKey2, iv, dataEnc);
         Assert.IsTrue(data.SequenceEqual(dataDec));
 
         var publicKeyData = ((RsaKeyParameters)publicKey).Modulus.ToByteArray();

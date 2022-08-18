@@ -25,6 +25,10 @@ dependencies {
     compileOnly 'javax:javaee-api:8.0.1'
 }
 
+tasks.withType(JavaCompile) {
+    options.compilerArgs += ["--add-exports", "java.base/sun.security.x509=ALL-UNNAMED"]
+}
+
 task startServiceManager(type: JavaExec) {
     classpath = configurations.runtimeClasspath
     classpath += sourceSets.main.runtimeClasspath
