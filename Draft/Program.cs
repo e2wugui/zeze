@@ -168,7 +168,7 @@ namespace Draft
             gen.SetPublicKey(keyPair.Public);
 
             //设置证书的加密算法
-            gen.SetSignatureAlgorithm("SHA1WithRSA");
+            gen.SetSignatureAlgorithm("SHA256WithRSA");
             gen.AddExtension(X509Extensions.BasicConstraints, true, new BasicConstraints(false));
             gen.AddExtension(X509Extensions.AuthorityKeyIdentifier, true,
                 new AuthorityKeyIdentifier(SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(keyPair.Public)));
