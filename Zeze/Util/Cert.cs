@@ -1,10 +1,17 @@
+using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Security.Cryptography;
+using Org.BouncyCastle.Asn1;
+using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Encodings;
 using Org.BouncyCastle.Crypto.Engines;
+using Org.BouncyCastle.Crypto.Generators;
+using Org.BouncyCastle.Math;
 using Org.BouncyCastle.Pkcs;
 using Org.BouncyCastle.Security;
+using Org.BouncyCastle.X509;
 
 namespace Zeze.Util;
 
@@ -27,6 +34,45 @@ public static class Cert
     {
         return keyStore.GetKey(alias).Key;
     }
+
+    // 生成RSA密钥对(公钥+私钥)
+    public static AsymmetricCipherKeyPair GenerateRsaKeyPair()
+    {
+        var keyPairGen = new RsaKeyPairGenerator();
+        keyPairGen.Init(new KeyGenerationParameters(new SecureRandom(), 2048));
+        return keyPairGen.GenerateKeyPair();
+    }
+
+#pragma warning disable CS0618 // Obsolete
+    // 为RSA公钥和私钥生成自签名的公钥证书并连同私钥保存到用密码加密的KeyStore输出流
+    public static void SaveKeyStore(Stream outputStream, string passwd, string alias, AsymmetricKeyParameter publicKey,
+        AsymmetricKeyParameter privateKey, string commonName, int validDays)
+    {
+        var attributes = new Dictionary<DerObjectIdentifier, string>
+        {
+            [X509Name.CN] = commonName
+        };
+        var ordering = new List<DerObjectIdentifier> { X509Name.CN }; // 这里是证书颁发者的信息
+
+        var rand = new SecureRandom();
+        var gen = new X509V3CertificateGenerator();
+        gen.SetSerialNumber(BigInteger.ProbablePrime(120, rand)); // 设置证书序列号
+        gen.SetIssuerDN(new X509Name(ordering, attributes)); // 设置颁发者dn信息
+        gen.SetNotBefore(DateTime.Today.Subtract(new TimeSpan(1, 0, 0, 0))); // 设置证书生效时间
+        gen.SetNotAfter(DateTime.Today.AddDays(validDays)); // 设置证书失效时间
+        gen.SetSubjectDN(new X509Name(ordering, attributes)); // 设置接受者dn信息
+        gen.SetPublicKey(publicKey); // 设置证书的公钥
+        gen.SetSignatureAlgorithm("SHA256WithRSA"); // 设置证书的加密算法
+        gen.AddExtension(X509Extensions.BasicConstraints, true, new BasicConstraints(false));
+        gen.AddExtension(X509Extensions.AuthorityKeyIdentifier, true,
+            new AuthorityKeyIdentifier(SubjectPublicKeyInfoFactory.CreateSubjectPublicKeyInfo(publicKey)));
+
+        var cert = gen.Generate(privateKey); // 创建证书，如果需要cer格式的证书，到这里就可以了。如果是pfx格式的就需要加上访问密码
+        var store = new Pkcs12Store();
+        store.SetKeyEntry(alias, new AsymmetricKeyEntry(privateKey), new X509CertificateEntry[] { new(cert) });
+        store.Save(outputStream, passwd.ToCharArray(), rand);
+    }
+#pragma warning restore CS0618 // Obsolete
 
     // 使用RSA私钥对数据签名
     public static byte[] Sign(AsymmetricKeyParameter privateKey, byte[] data)

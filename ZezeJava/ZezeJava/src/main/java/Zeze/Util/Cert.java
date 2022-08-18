@@ -1,5 +1,6 @@
 package Zeze.Util;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -11,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.GeneralSecurityException;
+import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.KeyStore;
@@ -23,6 +25,8 @@ import java.security.Signature;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.interfaces.RSAKey;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Arrays;
 import java.util.Date;
 import javax.crypto.Cipher;
@@ -70,6 +74,16 @@ public final class Cert {
 		return (PrivateKey)keyStore.getKey(alias, passwd.toCharArray());
 	}
 
+	// 从二进制编码加载RSA公钥(二进制编码即PublicKey.getEncoded()的结果)
+	public static PublicKey loadPublicKey(byte[] encodedPublicKey) throws GeneralSecurityException {
+		return KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(encodedPublicKey));
+	}
+
+	// 从二进制编码加载RSA私钥(二进制编码即PrivateKey.getEncoded()的结果)
+	public static PrivateKey loadPrivateKey(byte[] encodedPrivateKey) throws GeneralSecurityException {
+		return KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(encodedPrivateKey));
+	}
+
 	// 生成RSA密钥对(公钥+私钥)
 	public static KeyPair generateRsaKeyPair() throws NoSuchAlgorithmException {
 		var keyPairGen = KeyPairGenerator.getInstance("RSA");
@@ -77,10 +91,11 @@ public final class Cert {
 		return keyPairGen.generateKeyPair();
 	}
 
-	// 为RSA密钥对(公钥+私钥)生成自签名的公钥证书并连同私钥保存到用密码加密的KeyStore输出流
+	// 为RSA公钥和私钥生成自签名的公钥证书并连同私钥保存到用密码加密的KeyStore输出流
 	// 注意: 调用该方法需要给JVM参数加: --add-opens java.base/sun.security.x509=ALL-UNNAMED
-	public static void saveKeyStore(OutputStream outputStream, String passwd, String alias, KeyPair keyPair,
-									String commonName, int validDays) throws GeneralSecurityException, IOException {
+	public static void saveKeyStore(OutputStream outputStream, String passwd, String alias, PublicKey publicKey,
+									PrivateKey privateKey, String commonName, int validDays)
+			throws GeneralSecurityException, IOException {
 		var certInfo = new X509CertInfo();
 		var owner = new X500Name("CN=" + commonName);
 		certInfo.set(X509CertInfo.VERSION, new CertificateVersion(CertificateVersion.V3));
@@ -98,19 +113,19 @@ public final class Cert {
 		var now = System.currentTimeMillis();
 		var endTime = now + validDays * 86400_000L;
 		certInfo.set(X509CertInfo.VALIDITY, new CertificateValidity(new Date(now), new Date(endTime)));
-		certInfo.set(X509CertInfo.KEY, new CertificateX509Key(keyPair.getPublic()));
+		certInfo.set(X509CertInfo.KEY, new CertificateX509Key(publicKey));
 		var algoId = AlgorithmId.get("1.2.840.113549.1.1.11"); // SHA256withRSA
 		certInfo.set(X509CertInfo.ALGORITHM_ID, new CertificateAlgorithmId(algoId));
 		certInfo.set(CertificateAlgorithmId.NAME + '.' + CertificateAlgorithmId.ALGORITHM, algoId);
 
 		var cert = new X509CertImpl(certInfo);
-		cert.sign(keyPair.getPrivate(), "SHA256withRSA");
-		cert.verify(keyPair.getPublic());
+		cert.sign(privateKey, "SHA256withRSA");
+		cert.verify(publicKey);
 
 		var keyStore = KeyStore.getInstance("pkcs12");
 		keyStore.load(null, null);
 		keyStore.setCertificateEntry(alias, cert);
-		keyStore.setKeyEntry(alias, keyPair.getPrivate(), null, new Certificate[]{cert});
+		keyStore.setKeyEntry(alias, privateKey, null, new Certificate[]{cert});
 		keyStore.store(outputStream, passwd.toCharArray());
 	}
 
@@ -234,16 +249,25 @@ public final class Cert {
 		var pkcs12File = "test.pkcs12";
 		var passwd = "123";
 		var alias = "test";
+		var data = "data".getBytes(StandardCharsets.UTF_8);
+
+		if (!new File(pkcs12File).exists()) {
+			var keyPair = generateRsaKeyPair();
+			try (var fs = new FileOutputStream(pkcs12File)) {
+				saveKeyStore(fs, passwd, alias, keyPair.getPublic(), keyPair.getPrivate(), "test", 365);
+			}
+		}
 
 		var keyStore = loadKeyStore(new FileInputStream(pkcs12File), passwd);
 		var publicKey = getPublicKey(keyStore, alias);
 		var privateKey = getPrivateKey(keyStore, passwd, alias);
 
-		var data = "data".getBytes(StandardCharsets.UTF_8);
-		var signature = Files.readAllBytes(Path.of("signature"));
-		var verify = verifySign(publicKey, data, signature);
-		System.out.println("signature.len = " + signature.length);
-		System.out.println("verify=" + verify);
+		if (new File("signature").exists()) {
+			var signature = Files.readAllBytes(Path.of("signature"));
+			var verify = verifySign(publicKey, data, signature);
+			System.out.println("signature.len = " + signature.length);
+			System.out.println("verify=" + verify);
+		}
 
 		var signature2 = sign(privateKey, data);
 		var verify2 = verifySign(publicKey, data, signature2);
@@ -311,10 +335,18 @@ public final class Cert {
 		var publicKeyData = ((RSAKey)publicKey).getModulus().toByteArray();
 		System.out.println("rsa modulus = [" + publicKeyData.length + "] " + BitConverter.toString(publicKeyData));
 
-		// --add-opens java.base/sun.security.x509=ALL-UNNAMED
 		var t = System.currentTimeMillis();
 		var keyPair = generateRsaKeyPair();
-		saveKeyStore(new FileOutputStream("save.ks"), "123456", "test", keyPair, "test", 365);
-		System.out.println("OK " + (System.currentTimeMillis() - t));
+		System.out.println("generateRsaKeyPair: " + (System.currentTimeMillis() - t) + " ms");
+		var encodedPublicKey = keyPair.getPublic().getEncoded();
+		publicKey = loadPublicKey(encodedPublicKey);
+		System.out.println("compare encoded public key = " + Arrays.equals(encodedPublicKey, publicKey.getEncoded()));
+		var encodedPrivateKey = keyPair.getPrivate().getEncoded();
+		privateKey = loadPrivateKey(encodedPrivateKey);
+		System.out.println("compare encoded private key = " + Arrays.equals(encodedPrivateKey, privateKey.getEncoded()));
+		System.out.println("verify key pair = " + ((RSAKey)publicKey).getModulus().equals(((RSAKey)privateKey).getModulus()));
+
+		// --add-opens java.base/sun.security.x509=ALL-UNNAMED
+		saveKeyStore(new FileOutputStream("save.ks"), "123456", "test", keyPair.getPublic(), keyPair.getPrivate(), "test", 365);
 	}
 }

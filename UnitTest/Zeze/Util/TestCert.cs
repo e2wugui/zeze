@@ -16,16 +16,27 @@ public class TestCert
         const string pkcs12File = "test.pkcs12";
         const string passwd = "123";
         const string alias = "test";
+        var data = Encoding.UTF8.GetBytes("data");
 
-        var keyStore = LoadKeyStore(new FileStream(pkcs12File, FileMode.Open, FileAccess.Read, FileShare.Read), passwd);
+        if (!File.Exists(pkcs12File))
+        {
+            using var fs1 = new FileStream(pkcs12File, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite);
+            var keyPair = GenerateRsaKeyPair();
+            SaveKeyStore(fs1, passwd, alias, keyPair.Public, keyPair.Private, "test", 365);
+        }
+
+        using var fs2 = new FileStream(pkcs12File, FileMode.Open, FileAccess.Read, FileShare.Read);
+        var keyStore = LoadKeyStore(fs2, passwd);
         var publicKey = GetPublicKey(keyStore, alias);
         var privateKey = GetPrivateKey(keyStore, alias);
 
-        var data = Encoding.UTF8.GetBytes("data");
-        var signature = File.ReadAllBytes("signature");
-        var verify = VerifySign(publicKey, data, signature);
-        Assert.AreEqual(256, signature.Length);
-        Assert.IsTrue(verify);
+        if (File.Exists("signature"))
+        {
+            var signature = File.ReadAllBytes("signature");
+            var verify = VerifySign(publicKey, data, signature);
+            Assert.AreEqual(256, signature.Length);
+            Assert.IsTrue(verify);
+        }
 
         var signature2 = Sign(privateKey, data);
         var verify2 = VerifySign(publicKey, data, signature2);
