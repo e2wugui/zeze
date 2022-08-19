@@ -1,8 +1,8 @@
 ﻿namespace Zege
 {
-    public partial class App : Application
+    public partial class UiApp : Application
     {
-        public App()
+        public UiApp()
         {
             InitializeComponent();
 

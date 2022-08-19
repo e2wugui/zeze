@@ -63,6 +63,16 @@ public class ModuleUser extends AbstractModule {
 
     }
 
+    @Override
+    protected long ProcessCreateRequest(Zege.User.Create r) {
+        return Zeze.Transaction.Procedure.NotImplement;
+    }
+
+    @Override
+    protected long ProcessCreateWithCertRequest(Zege.User.CreateWithCert r) {
+        return Zeze.Transaction.Procedure.NotImplement;
+    }
+
     // ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
     public ModuleUser(Zege.App app) {
         super(app);

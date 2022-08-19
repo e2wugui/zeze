@@ -14,8 +14,8 @@
 			<variable id="3" name="CreateTime" type="long" />
 			<variable id="4" name="NickName"   type="string" /> 不唯一
 
-			<!-- 验证 -->
-			<variable id="20" name="SecureKeys" type="map" key="int" value="binary" />
+			<!-- 证书 -->
+			<variable id="20" name="Cert" type="binary" />
 
 			<!-- 实名 -->
 			<enum name="RealFlagIdentityCard" value="1" />
@@ -48,7 +48,7 @@
 		<!-- Rsa 签字验证 -->
 		<bean name="BTokenRsa">
 			<variable id="1" name="Sign" type="binary" />
-			<variable id="2" name="SecureKeyIndex" type="int" />
+			<variable id="2" name="SecureIndex" type="int" />
 		</bean>
 
 		<!-- 短信验证 -->
@@ -56,6 +56,34 @@
 			<variable id="1" name="Message" type="string" />
 		</bean>
 
+		<!-- protocol -->
+		<enum name="RCAccountExist" value="1"/>
+		<enum name="RCCertInvalid" value="1"/>
+
+		<bean name="CreateArgument">
+			<variable id="1" name="Account" type="string" />
+			<variable id="2" name="RsaPublicKey" type="binary" />
+		</bean>
+		<bean name="CreateResult">
+			<variable id="1" name="Cert" type="binary" /> der format
+		</bean>
+		<rpc name="Create" argument="CreateArgument" result="CreateResult" handle="server" />
+
+		<bean name="CreateWithCertArgument">
+			<variable id="1" name="Account" type="string" /> 用来确认。客户端可简化为自动填充。
+			<variable id="2" name="Cert" type="binary" /> der format
+		</bean>
+		<rpc name="CreateWithCert" argument="CreateWithCertArgument" handle="server" />
+
+		<bean name="ChallengeArgument">
+			<variable id="1" name="RandomData" type="binary" />
+		</bean>
+		<bean name="ChallengeResult">
+			<variable id="1" name="Signed" type="binary" />
+		</bean>
+		<rpc name="Challenge" argument="ChallengeArgument" result="ChallengeResult" handle="client" />
+
+		<!-- servlet demo. delete me -->
 		<servlet name="Query"/>
 		<servletstream name="Upload"/>
 	</module>
@@ -282,6 +310,16 @@
 	</project>
 
 	<project name="client" gendir="." scriptdir="src" platform="java" BuiltinNG="true">
+		<service name="ClientService" handle="client" base="Zeze.Services.HandshakeClient">
+			<module ref="Zeze.Builtin.Online"/>
+			<module ref="Zeze.Builtin.LinkdBase"/>
+			<module ref="Zege.Linkd"/>
+			<module ref="Friend"/>
+			<module ref="Message"/>
+		</service>
+	</project>
+
+	<project name="Zege" gendir="../.." platform="cs" BuiltinNG="true">
 		<service name="ClientService" handle="client" base="Zeze.Services.HandshakeClient">
 			<module ref="Zeze.Builtin.Online"/>
 			<module ref="Zeze.Builtin.LinkdBase"/>

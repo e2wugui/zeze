@@ -48,4 +48,14 @@
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <ProjectReference Include="..\Zeze\Zeze.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Compile Update="UiApp.xaml.cs">
+	    <DependentUpon>UiApp.xaml</DependentUpon>
+	  </Compile>
+	</ItemGroup>
+
 </Project>
