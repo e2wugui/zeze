@@ -415,7 +415,7 @@ public final class Json {
 		return null;
 	}
 
-	static <T extends AccessibleObject> @NotNull T setAccessible(@NotNull T ao) {
+	public static <T extends AccessibleObject> @NotNull T setAccessible(@NotNull T ao) {
 		unsafe.putBoolean(ao, OVERRIDE_OFFSET, true);
 		return ao;
 	}
