@@ -109,11 +109,10 @@ public static class Cert
 
     public static X509Certificate2 CreateFromCertAndPrivateKey(char[] pemCert, RSA rsaForPrivateKey)
     {
-        var passwd = "";
-        return X509Certificate2.CreateFromEncryptedPem(
-            pemCert,
-            PemEncoding.Write("InternalPem", rsaForPrivateKey.ExportEncryptedPkcs8PrivateKey(passwd.ToCharArray(), null)),
-            passwd);
+        var passwd = "".ToCharArray(); // 内部转换临时参数
+        var pkcs8Bytes = rsaForPrivateKey.ExportEncryptedPkcs8PrivateKey(passwd,
+            new PbeParameters(PbeEncryptionAlgorithm.Aes256Cbc, HashAlgorithmName.SHA256, iterationCount: 100_000));
+        return X509Certificate2.CreateFromEncryptedPem(pemCert, PemEncoding.Write("RSA PRIVATE KEY", pkcs8Bytes), passwd);
     }
 
     // 从输入流加载KeyStore(PKCS12格式的二进制密钥存储格式,有密码加密,包含私钥和公钥证书)
