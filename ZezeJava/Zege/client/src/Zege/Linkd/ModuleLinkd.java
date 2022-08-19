@@ -20,6 +20,11 @@ public class ModuleLinkd extends AbstractModule {
         return a.SendForWait(App.Connector.TryGetReadySocket());
     }
 
+    @Override
+    protected long ProcessChallengeRequest(Zege.Linkd.Challenge r) {
+        return Zeze.Transaction.Procedure.NotImplement;
+    }
+
     // ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
     public ModuleLinkd(Zege.App app) {
         super(app);

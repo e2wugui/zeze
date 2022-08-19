@@ -44,11 +44,6 @@ public class ModuleUser extends AbstractModule {
     }
 
     @Override
-    protected void OnServletQuery(HttpExchange x) {
-
-    }
-
-    @Override
     protected void OnServletBeginStreamUpload(HttpExchange x, long from, long to, long size) {
 
     }
@@ -71,6 +66,21 @@ public class ModuleUser extends AbstractModule {
     @Override
     protected long ProcessCreateWithCertRequest(Zege.User.CreateWithCert r) {
         return Zeze.Transaction.Procedure.NotImplement;
+    }
+
+    @Override
+    protected long ProcessVerifyChallengeResultRequest(Zege.User.VerifyChallengeResult r) {
+        return Zeze.Transaction.Procedure.NotImplement;
+    }
+
+    @Override
+    protected void OnServletCreate(HttpExchange x) throws Exception {
+
+    }
+
+    @Override
+    protected void OnServletCreateWithCert(HttpExchange x) throws Exception {
+
     }
 
     // ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off

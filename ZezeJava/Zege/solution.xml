@@ -56,7 +56,11 @@
 			<variable id="1" name="Message" type="string" />
 		</bean>
 
-		<!-- protocol -->
+		<!--
+		http sevlet
+		这里定义成rpc，用来说明参数。
+		以后需要直接支持rpc时，去掉注释。并实现。
+		-->
 		<enum name="RCAccountExist" value="1"/>
 		<enum name="RCCertInvalid" value="1"/>
 
@@ -75,16 +79,17 @@
 		</bean>
 		<rpc name="CreateWithCert" argument="CreateWithCertArgument" handle="server" />
 
-		<bean name="ChallengeArgument">
+		<bean name="VerifyChallengeResultArgument">
 			<variable id="1" name="RandomData" type="binary" />
+			<variable id="2" name="Signed" type="binary" />
 		</bean>
-		<bean name="ChallengeResult">
-			<variable id="1" name="Signed" type="binary" />
-		</bean>
-		<rpc name="Challenge" argument="ChallengeArgument" result="ChallengeResult" handle="client" />
 
-		<!-- servlet demo. delete me -->
-		<servlet name="Query"/>
+		<rpc name="VerifyChallengeResult" argument="VerifyChallengeResultArgument" handle="server" />
+
+		<servlet name="Create"/>
+		<servlet name="CreateWithCert"/>
+
+		<!-- demo delete me -->
 		<servletstream name="Upload"/>
 	</module>
 
@@ -296,7 +301,7 @@
 		<module ref="CommonModule"/>
 		-->
 		<!-- service 生成到 solution 名字空间下 -->
-		<service name="Server" handle="server" base="Zeze.Arch.ProviderService">
+		<service name="Server" handle="server,servlet" base="Zeze.Arch.ProviderService">
 			<module ref="User"/>
 			<module ref="Friend"/>
 			<module ref="Message"/>
@@ -316,6 +321,7 @@
 			<module ref="Zege.Linkd"/>
 			<module ref="Friend"/>
 			<module ref="Message"/>
+			<module ref="User"/>
 		</service>
 	</project>
 
@@ -326,6 +332,7 @@
 			<module ref="Zege.Linkd"/>
 			<module ref="Friend"/>
 			<module ref="Message"/>
+			<module ref="User"/>
 		</service>
 	</project>
 

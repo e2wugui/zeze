@@ -14,14 +14,7 @@
           "Gen.dll": {}
         }
       },
-      "BouncyCastle.NetCore/1.8.5": {
-        "runtime": {
-          "lib/netstandard2.0/BouncyCastle.Crypto.dll": {
-            "assemblyVersion": "1.8.5.0",
-            "fileVersion": "1.8.19031.1"
-          }
-        }
-      },
+      "BouncyCastle.NetCore/1.8.5": {},
       "Google.Protobuf/3.14.0": {
         "dependencies": {
           "System.Memory": "4.5.4",
@@ -220,6 +213,14 @@
           "lib/netstandard2.0/NLog.dll": {
             "assemblyVersion": "4.0.0.0",
             "fileVersion": "4.7.14.740"
+          }
+        }
+      },
+      "Portable.BouncyCastle/1.9.0": {
+        "runtime": {
+          "lib/netstandard2.0/BouncyCastle.Crypto.dll": {
+            "assemblyVersion": "1.9.0.0",
+            "fileVersion": "1.9.0.1"
           }
         }
       },
@@ -529,6 +530,7 @@
           "MySql.Data": "8.0.28",
           "NLog": "4.7.14",
           "Nito.AsyncEx": "5.1.2",
+          "Portable.BouncyCastle": "1.9.0",
           "RocksDB": "7.0.2.26646",
           "Scriban": "5.4.1",
           "System.Collections.Immutable": "6.0.0",
@@ -693,6 +695,13 @@
       "sha512": "sha512-R1Nn+Zi2mSiKf82zII+8ZhGTr66CmCDLlpDq/0N0Y22TDrioYeP6t3XWzJVTi3OXaHJ/jiXId/okXQu8e0g3uw==",
       "path": "nlog/4.7.14",
       "hashPath": "nlog.4.7.14.nupkg.sha512"
+    },
+    "Portable.BouncyCastle/1.9.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-eZZBCABzVOek+id9Xy04HhmgykF0wZg9wpByzrWN7q8qEI0Qen9b7tfd7w8VA3dOeesumMG7C5ZPy0jk7PSRHw==",
+      "path": "portable.bouncycastle/1.9.0",
+      "hashPath": "portable.bouncycastle.1.9.0.nupkg.sha512"
     },
     "RocksDB/7.0.2.26646": {
       "type": "package",

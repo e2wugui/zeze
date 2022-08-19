@@ -230,6 +230,7 @@ namespace Zeze.Gen
         public static int HandleClientFlag = 2;
         public static int HandleScriptServerFlag = 8;
         public static int HandleScriptClientFlag = 16;
+        public static int HandleServletFlag = 32;
         public static int HandleCSharpFlags = HandleServerFlag | HandleClientFlag; // 底层语言。如果c++需要生成协议之类的，也是用这个。
         public static int HandleScriptFlags = HandleScriptServerFlag | HandleScriptClientFlag;
 
@@ -245,6 +246,7 @@ namespace Zeze.Gen
                     case "client": f |= HandleClientFlag; break;
                     case "serverscript": f |= HandleScriptServerFlag; break;
                     case "clientscript": f |= HandleScriptClientFlag; break;
+                    case "servlet": f |= HandleServletFlag; break;
                     default: throw new Exception("unknown handle: " + handle);
                 }
             }

@@ -515,7 +515,7 @@ namespace Zeze.Gen.java
             if (serv == null)
                 return;
 
-            if ((serv.HandleFlags & Program.HandleServerFlag) == 0)
+            if ((serv.HandleFlags & Program.HandleServletFlag) == 0)
                 return;
 
             foreach (var s in module.Servlets.Values)
@@ -537,7 +537,7 @@ namespace Zeze.Gen.java
             if (serv == null)
                 return;
 
-            if ((serv.HandleFlags & Program.HandleServerFlag) == 0)
+            if ((serv.HandleFlags & Program.HandleServletFlag) == 0)
                 return;
 
             foreach (var s in module.Servlets.Values)

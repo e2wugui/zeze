@@ -36,6 +36,15 @@
 		</bean>
 
 		<protocol name="KeepAlive" argument="BKeepAlive" handle="server,client"/>
+
+		<bean name="ChallengeArgument">
+			<variable id="1" name="RandomData" type="binary" />
+		</bean>
+		<bean name="ChallengeResult">
+			<variable id="1" name="Signed" type="binary" />
+		</bean>
+		<rpc name="Challenge" argument="ChallengeArgument" result="ChallengeResult" handle="client" />
+
 	</module>
 
 	<project name="linkd" gendir="." scriptdir="src" platform="java">
@@ -44,6 +53,7 @@
 
 		<service name="LinkdService" handle="server" base="Zeze.Arch.LinkdService">
 			<module ref="Linkd"/>
+			<module ref="Zege.User"/>
 		</service>
 
 		<service name="ProviderService" handle="client"  base="Zeze.Arch.LinkdProviderService">
