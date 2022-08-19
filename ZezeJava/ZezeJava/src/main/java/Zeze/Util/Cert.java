@@ -60,8 +60,13 @@ public final class Cert {
 	public static KeyStore loadKeyStore(InputStream inputStream, String passwd)
 			throws GeneralSecurityException, IOException {
 		var keyStore = KeyStore.getInstance("pkcs12");
-		keyStore.load(inputStream, passwd.toCharArray());
+		keyStore.load(inputStream, passwd != null ? passwd.toCharArray() : null);
 		return keyStore;
+	}
+
+	// 从KeyStore里获取公钥证书
+	public static Certificate getCertificate(KeyStore keyStore, String alias) throws KeyStoreException {
+		return keyStore.getCertificate(alias);
 	}
 
 	// 从KeyStore里获取公钥
@@ -73,6 +78,11 @@ public final class Cert {
 	public static PrivateKey getPrivateKey(KeyStore keyStore, String passwd, String alias)
 			throws GeneralSecurityException {
 		return (PrivateKey)keyStore.getKey(alias, passwd != null ? passwd.toCharArray() : null);
+	}
+
+	// 从二进制编码加载X509公钥证书(二进制编码即Certificate.getEncoded()的结果)
+	public static X509CertImpl loadCertificate(byte[] encodedCertificate) throws GeneralSecurityException {
+		return new X509CertImpl(encodedCertificate);
 	}
 
 	// 从二进制编码加载RSA公钥(二进制编码即PublicKey.getEncoded()的结果)
@@ -119,14 +129,14 @@ public final class Cert {
 		certInfo.set(CertificateAlgorithmId.NAME + '.' + CertificateAlgorithmId.ALGORITHM, algoId);
 
 		var cert = new X509CertImpl(certInfo);
-		cert.sign(privateKey, "SHA256withRSA");
-		cert.verify(publicKey);
+		cert.sign(privateKey, "SHA256withRSA"); // 自签名
+		cert.verify(publicKey); // 此行可选
 
 		var keyStore = KeyStore.getInstance("pkcs12");
 		keyStore.load(null, null);
-		keyStore.setCertificateEntry(alias, cert);
+		// keyStore.setCertificateEntry(alias, cert);
 		keyStore.setKeyEntry(alias, privateKey, null, new Certificate[]{cert});
-		keyStore.store(outputStream, passwd.toCharArray());
+		keyStore.store(outputStream, passwd != null ? passwd.toCharArray() : null);
 	}
 
 	// 使用RSA私钥对数据签名
