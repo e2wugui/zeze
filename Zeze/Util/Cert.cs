@@ -107,8 +107,9 @@ public static class Cert
         return RSA.Create(2048);
     }
 
-    public static X509Certificate2 CreateFromCertAndPrivateKey(char[] pemCert, RSA rsaForPrivateKey, string passwd)
+    public static X509Certificate2 CreateFromCertAndPrivateKey(char[] pemCert, RSA rsaForPrivateKey)
     {
+        var passwd = "";
         return X509Certificate2.CreateFromEncryptedPem(
             pemCert,
             PemEncoding.Write("InternalPem", rsaForPrivateKey.ExportEncryptedPkcs8PrivateKey(passwd.ToCharArray(), null)),
