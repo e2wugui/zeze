@@ -511,6 +511,13 @@ namespace Zeze.Gen.java
 
         public void GenAbstractHttpHandles(StreamWriter sw)
         {
+            Service serv = module.ReferenceService;
+            if (serv == null)
+                return;
+
+            if ((serv.HandleFlags & Program.HandleServerFlag) == 0)
+                return;
+
             foreach (var s in module.Servlets.Values)
             {
                 sw.WriteLine($"    protected abstract void OnServlet{s.Name}(Zeze.Netty.HttpExchange x) throws Exception;");
@@ -525,7 +532,14 @@ namespace Zeze.Gen.java
         }
 
         public void RegisterHttpServlet(StreamWriter sw)
-        { 
+        {
+            Service serv = module.ReferenceService;
+            if (serv == null)
+                return;
+
+            if ((serv.HandleFlags & Program.HandleServerFlag) == 0)
+                return;
+
             foreach (var s in module.Servlets.Values)
             {
                 var path = module.WebPathBase.Length > 0 ? module.WebPathBase + s.Name : "/" + module.Path("/", s.Name);

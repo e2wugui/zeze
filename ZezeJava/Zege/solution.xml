@@ -316,7 +316,6 @@
 			<module ref="Zege.Linkd"/>
 			<module ref="Friend"/>
 			<module ref="Message"/>
-			<module ref="User"/>
 		</service>
 	</project>
 
@@ -327,7 +326,6 @@
 			<module ref="Zege.Linkd"/>
 			<module ref="Friend"/>
 			<module ref="Message"/>
-			<module ref="User"/>
 		</service>
 	</project>
 
