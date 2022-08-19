@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Runtime.ConstrainedExecution;
+using System.Security;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using Org.BouncyCastle.Asn1;
@@ -99,6 +100,19 @@ public static class Cert
             data = copy;
         }
         return cert.GetRSAPrivateKey().Decrypt(data, RSAEncryptionPadding.Pkcs1);
+    }
+
+    public static RSA GenerateRsa()
+    {
+        return RSA.Create(2048);
+    }
+
+    public static X509Certificate2 CreateFromCertAndPrivateKey(char[] pemCert, RSA rsaForPrivateKey, string passwd)
+    {
+        return X509Certificate2.CreateFromEncryptedPem(
+            pemCert,
+            PemEncoding.Write("InternalPem", rsaForPrivateKey.ExportEncryptedPkcs8PrivateKey(passwd.ToCharArray(), null)),
+            passwd);
     }
 
     // 从输入流加载KeyStore(PKCS12格式的二进制密钥存储格式,有密码加密,包含私钥和公钥证书)
