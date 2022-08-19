@@ -3,7 +3,6 @@ package Zeze.Raft.RocksRaft.Log1;
 import Zeze.Raft.RocksRaft.Bean;
 import Zeze.Raft.RocksRaft.Log;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Serialize.Vector2;
 import Zeze.Serialize.Vector3;
 
 public class LogVector3 extends Log {

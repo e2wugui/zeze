@@ -3,7 +3,6 @@ package Zeze.Transaction.Collections;
 import java.util.Collection;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Serialize.SerializeHelper;
-import Zeze.Transaction.Bean;
 import Zeze.Transaction.Log;
 import Zeze.Transaction.Record;
 import Zeze.Transaction.Transaction;

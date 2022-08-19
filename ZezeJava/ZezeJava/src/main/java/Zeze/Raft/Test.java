@@ -359,7 +359,7 @@ public class Test {
 			var leader = GetLeader();
 			var StartDelay = leader.Raft.getRaftConfig().getElectionTimeoutMax();
 			leader.StopRaft();
-			Task.schedule(StartDelay, () -> leader.StartRaft());
+			Task.schedule(StartDelay, leader::StartRaft);
 		}
 		TestConcurrent("TestLeaderNodeRestartRaft", 1);
 

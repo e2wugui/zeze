@@ -101,8 +101,8 @@ public class Reflect {
 		return cls.getName() + '<' + GetStableName(tplCls1) + ", " + GetStableName(tplCls2) + '>';
 	}
 
+	@SuppressWarnings("unchecked")
 	public static <T> T cast(Object obj) {
-		//noinspection unchecked
 		return (T)obj;
 	}
 }
