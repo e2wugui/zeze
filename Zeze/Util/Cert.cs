@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
+using System.Runtime.ConstrainedExecution;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.Crypto;
@@ -17,6 +20,87 @@ namespace Zeze.Util;
 
 public static class Cert
 {
+    public static X509Certificate2 CreateFromPkcs12(Stream pkcs12Stream, string passwd)
+    {
+        var pkcs12Bytes = new byte[pkcs12Stream.Length];
+        var offset = 0;
+        while (offset < pkcs12Bytes.Length)
+        {
+            var rc = pkcs12Stream.Read(pkcs12Bytes, offset, pkcs12Bytes.Length - offset);
+            if (rc == 0)
+                break;
+            offset += rc;
+        }
+        return new(pkcs12Bytes, passwd);
+    }
+
+    public static X509Certificate2 CreateFromPkcs12(byte[] pkcs12Bytes, string passwd)
+    {
+        return new(pkcs12Bytes, passwd);
+    }
+
+    // 使用RSA私钥对数据签名
+    public static byte[] Sign(X509Certificate2 cert, byte[] data)
+    {
+        return cert.GetRSAPrivateKey().SignData(data, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+    }
+
+    // 使用RSA私钥对数据签名
+    public static byte[] Sign(X509Certificate2 cert, byte[] data, int offset, int count)
+    {
+        return cert.GetRSAPrivateKey().SignData(data, offset, count, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+    }
+
+    // 使用RSA公钥验证签名
+    public static bool VerifySign(X509Certificate2 cert, byte[] data, byte[] signature)
+    {
+        return cert.GetRSAPublicKey().VerifyData(data, signature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+    }
+
+    // 使用RSA公钥验证签名
+    public static bool VerifySign(X509Certificate2 cert, byte[] data, int offset, int count, byte[] signature)
+    {
+        return cert.GetRSAPublicKey().VerifyData(data, offset, count, signature, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+    }
+
+    // 使用RSA公钥加密小块数据(data长度不超过:RSA位数/8-11)
+    public static byte[] EncryptRsa(X509Certificate2 cert, byte[] data)
+    {
+        return cert.GetRSAPublicKey().Encrypt(data, RSAEncryptionPadding.Pkcs1);
+    }
+
+    // 使用RSA公钥加密小块数据(size不超过:RSA位数/8-11)
+    public static byte[] EncryptRsa(X509Certificate2 cert, byte[] data, int offset, int size)
+    {
+        if (data.Length != size)
+        {
+            // 如果需要处理的数据不是完整的数组长度，这里不做offset合法性判断。
+            var copy = new byte[size];
+            Buffer.BlockCopy(data, offset, copy, 0, size);
+            data = copy;
+        }
+        return cert.GetRSAPublicKey().Encrypt(data, RSAEncryptionPadding.Pkcs1);
+    }
+
+    // 使用RSA私钥解密小块数据
+    public static byte[] DecryptRsa(X509Certificate2 cert, byte[] data)
+    {
+        return cert.GetRSAPrivateKey().Decrypt(data, RSAEncryptionPadding.Pkcs1);
+    }
+
+    // 使用RSA私钥解密小块数据
+    public static byte[] DecryptRsa(X509Certificate2 cert, byte[] data, int offset, int size)
+    {
+        if (data.Length != size)
+        {
+            // 如果需要处理的数据不是完整的数组长度，这里不做offset合法性判断。
+            var copy = new byte[size];
+            Buffer.BlockCopy(data, offset, copy, 0, size);
+            data = copy;
+        }
+        return cert.GetRSAPrivateKey().Decrypt(data, RSAEncryptionPadding.Pkcs1);
+    }
+
     // 从输入流加载KeyStore(PKCS12格式的二进制密钥存储格式,有密码加密,包含私钥和公钥证书)
     public static Pkcs12Store LoadKeyStore(Stream inputStream, string passwd)
     {
