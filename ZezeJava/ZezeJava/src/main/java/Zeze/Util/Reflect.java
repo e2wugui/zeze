@@ -100,4 +100,9 @@ public class Reflect {
 	public static String GetStableName(Class<?> cls, Class<?> tplCls1, Class<?> tplCls2) {
 		return cls.getName() + '<' + GetStableName(tplCls1) + ", " + GetStableName(tplCls2) + '>';
 	}
+
+	public static <T> T cast(Object obj) {
+		//noinspection unchecked
+		return (T)obj;
+	}
 }

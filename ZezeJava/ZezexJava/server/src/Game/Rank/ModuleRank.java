@@ -549,6 +549,16 @@ public class ModuleRank extends AbstractModule {
 		return RedirectFuture.finish(new BRankList());
 	}
 
+	public static class GenericResult<T> {
+		public long resultCode;
+		public T obj;
+	}
+
+	@RedirectHash
+	public RedirectFuture<GenericResult<BRankList>> TestHashGenericResult(int serverId) {
+		return RedirectFuture.finish(new GenericResult<>());
+	}
+
 	@RedirectToServer
 	public void TestToServerNoResult(int serverId, List<Long> longList) {
 	}

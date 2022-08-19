@@ -45,4 +45,28 @@ public class BitConverter {
 	public static String toStringWithLimit(byte[] bytes, int limit) {
 		return toStringWithLimit(bytes, 0, bytes.length, limit);
 	}
+
+	// 十六进制字符串转成二进制数组. 大小写的A~F都支持,忽略其它字符
+	public static byte[] toBytes(String hex) {
+		final long MASK = 0x007E_0000_007E_03FFL; // 0~9;A~F;a~f
+		int s = hex.length();
+		int n = 0;
+		for (int i = 0; i < s; i++) {
+			int c = (hex.charAt(i) - '0') & 0xffff;
+			if (c < 64)
+				n += (MASK >> c) & 1;
+		}
+		byte[] b = new byte[n >> 1];
+		for (int i = 0, j = 0, v = 1; i < s; i++) {
+			int c = (hex.charAt(i) - '0') & 0xffff;
+			if (c < 64 & ((MASK >> c) & 1) != 0) {
+				v = (v << 4) + (c & 0xf) + ((c >> 4) & 1) * 9;
+				if (v > 0xff) {
+					b[j++] = (byte)v;
+					v = 1;
+				}
+			}
+		}
+		return b;
+	}
 }

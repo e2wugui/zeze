@@ -6,6 +6,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import Zeze.Arch.RedirectAll;
@@ -27,7 +28,8 @@ final class MethodOverride {
 	final ArrayList<Parameter> inputParameters = new ArrayList<>();
 	final String resultTypeName;
 	final ArrayList<Field> resultFields = new ArrayList<>();
-	final Class<?> resultType;
+	final Type resultType;
+	final Class<?> resultClass;
 	boolean returnTypeHasResultCode;
 
 	MethodOverride(Method method, Annotation annotation) {
@@ -51,33 +53,44 @@ final class MethodOverride {
 			var rpType = (ParameterizedType)rType;
 			if (annotation instanceof RedirectAll) {
 				if (rpType.getRawType() == RedirectAllFuture.class) {
-					resultType = (Class<?>)rpType.getActualTypeArguments()[0];
-					if (!RedirectResult.class.isAssignableFrom(resultType)) {
+					resultType = rpType.getActualTypeArguments()[0];
+					resultClass = (Class<?>)(resultType instanceof Class ?
+							resultType : ((ParameterizedType)resultType).getRawType());
+					if (!RedirectResult.class.isAssignableFrom(resultClass)) {
 						throw new RuntimeException("RedirectAll Result Type Must Extend RedirectResult: "
 								+ method.getDeclaringClass().getName() + "::" + method.getName());
 					}
-				} else
+				} else {
 					resultType = null;
-			} else if (rpType.getRawType() == RedirectFuture.class)
-				resultType = (Class<?>)rpType.getActualTypeArguments()[0];
-			else
+					resultClass = null;
+				}
+			} else if (rpType.getRawType() == RedirectFuture.class) {
+				resultType = rpType.getActualTypeArguments()[0];
+				resultClass = (Class<?>)(resultType instanceof Class ?
+						resultType : ((ParameterizedType)resultType).getRawType());
+			} else {
 				resultType = null;
-		} else
+				resultClass = null;
+			}
+		} else {
 			resultType = null;
+			resultClass = null;
+		}
 
 		if (resultType == null)
 			resultTypeName = null;
 		else {
-			resultTypeName = toShort(resultType.getName()).replace('$', '.');
-			if (Serializable.class.isAssignableFrom(resultType)) {
+			resultTypeName = toShort((resultType == resultClass ?
+					resultClass.getName() : resultType.toString()).replace('$', '.'));
+			if (Serializable.class.isAssignableFrom(resultClass)) {
 				try {
-					resultType.getMethod("setResultCode", long.class);
+					resultClass.getMethod("setResultCode", long.class);
 					returnTypeHasResultCode = true;
 				} catch (NoSuchMethodException e) {
 					returnTypeHasResultCode = false;
 				}
 			} else {
-				for (var field : resultType.getFields()) {
+				for (var field : resultClass.getFields()) {
 					if ((field.getModifiers() & ~Modifier.VOLATILE) == Modifier.PUBLIC) { // 只允许public和可选的volatile
 						if (field.getName().equals("resultCode") && field.getType() == long.class)
 							returnTypeHasResultCode = true;

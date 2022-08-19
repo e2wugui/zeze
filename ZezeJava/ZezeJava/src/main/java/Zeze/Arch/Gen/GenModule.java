@@ -231,7 +231,7 @@ public final class GenModule {
 						sb.AppendLine("            }");
 					}
 					sb.AppendLine("            var _r_ = new {}();", m.resultTypeName);
-					if (Serializable.class.isAssignableFrom(m.resultType)) {
+					if (Serializable.class.isAssignableFrom(m.resultClass)) {
 						sb.AppendLine("            var _param_ = _rpc_.Result.getParams();");
 						sb.AppendLine("            if (_param_.size() > 0)");
 						sb.AppendLine("                _r_.Decode(_param_.Wrap());");
@@ -281,7 +281,7 @@ public final class GenModule {
 				sbHandles.AppendLine("                return super.{}(_hash_{}{});", methodNameHash, sep, normalCall);
 			}
 			sbHandles.Append("            }, _result_ -> ");
-			if (m.resultType != null && Serializable.class.isAssignableFrom(m.resultType)) {
+			if (m.resultType != null && Serializable.class.isAssignableFrom(m.resultClass)) {
 				sbHandles.AppendLine("{");
 				sbHandles.AppendLine("                var _r_ = ({})_result_;", m.resultTypeName);
 				sbHandles.AppendLine("                int _s_ = _r_.preAllocSize();");

@@ -150,7 +150,7 @@ final class Gen {
 			var kn = Serializer.get(type);
 			return kn != null ? kn.TypeName.get() : type.getTypeName().replace('$', '.');
 		}
-		return type.toString(); // ParameterizedType
+		return type.toString().replace('$', '.'); // ParameterizedType
 	}
 
 	@SuppressWarnings("SameParameterValue")
@@ -195,7 +195,7 @@ final class Gen {
 			sb.AppendLine("{}    try (var _bs_ = new java.io.ByteArrayInputStream(_bo_.Bytes, _bo_.ReadIndex, _bo_.Size());", prefix);
 			sb.AppendLine("{}         var _os_ = new java.io.ObjectInputStream(_bs_)) {", prefix);
 			if (type == Object.class)
-				sb.AppendLine("{}        {} = _os_.readObject();", prefix, varName);
+				sb.AppendLine("{}        {} = Zeze.Util.Reflect.cast(_os_.readObject());", prefix, varName);
 			else
 				sb.AppendLine("{}        {} = ({})_os_.readObject();", prefix, varName, GetTypeName(paramType));
 			sb.AppendLine("{}    } catch (java.io.IOException _e_) {", prefix);

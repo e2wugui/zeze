@@ -85,6 +85,11 @@ public final class Cert {
 		return new X509CertImpl(encodedCertificate);
 	}
 
+	// 从二进制或PEM编码的输入流加载X509公钥证书
+	public static X509CertImpl loadCertificate(InputStream encodedCertificate) throws GeneralSecurityException {
+		return new X509CertImpl(encodedCertificate);
+	}
+
 	// 从二进制编码加载RSA公钥(二进制编码即PublicKey.getEncoded()的结果)
 	public static PublicKey loadPublicKey(byte[] encodedPublicKey) throws GeneralSecurityException {
 		return KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(encodedPublicKey));

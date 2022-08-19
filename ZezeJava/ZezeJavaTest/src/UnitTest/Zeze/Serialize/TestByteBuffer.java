@@ -17,6 +17,9 @@ public class TestByteBuffer extends TestCase {
 			bytes[i] = (byte)i;
 		assertEquals("00-01-02-03-04-05-06-07-08-09", BitConverter.toStringWithLimit(bytes, 0, 10, 10));
 		assertEquals("00-01-02-03-04-05-06-07-08-09...[+246]", BitConverter.toStringWithLimit(bytes, 10));
+
+		String s = "01-23-45-67-89-ab-cd-ef-AB-CD-EF";
+		assertEquals(s.toUpperCase(), BitConverter.toString(BitConverter.toBytes(s)));
 	}
 
 	public void testBytes() {
