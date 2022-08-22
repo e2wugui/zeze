@@ -51,6 +51,7 @@ public final class Cert {
 			var m = Module.class.getDeclaredMethod("implAddOpensToAllUnnamed", String.class);
 			Json.setAccessible(m); // force accessible
 			m.invoke(Certificate.class.getModule(), "sun.security.x509"); // --add-opens java.base/sun.security.x509=ALL-UNNAMED
+			// m.invoke(Certificate.class.getModule(), "sun.security.rsa"); // --add-opens java.base/sun.security.rsa=ALL-UNNAMED
 		} catch (ReflectiveOperationException e) {
 			throw new RuntimeException(e);
 		}
@@ -94,6 +95,12 @@ public final class Cert {
 	public static PublicKey loadPublicKey(byte[] encodedPublicKey) throws GeneralSecurityException {
 		return KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(encodedPublicKey));
 	}
+
+	// 从二进制编码加载RSA公钥(二进制编码即PublicKey.getEncoded()的结果)
+	// 编译和运行时需要: --add-exports/--add-opens java.base/sun.security.rsa=ALL-UNNAMED
+//	public static PublicKey loadPublicKey1(byte[] encodedPublicKey) throws InvalidKeyException {
+//		return sun.security.rsa.RSAPublicKeyImpl.newKey(sun.security.rsa.RSAUtil.KeyType.RSA, "PKCS#1", encodedPublicKey);
+//	}
 
 	// 从二进制编码加载RSA私钥(二进制编码即PrivateKey.getEncoded()的结果)
 	public static PrivateKey loadPrivateKey(byte[] encodedPrivateKey) throws GeneralSecurityException {

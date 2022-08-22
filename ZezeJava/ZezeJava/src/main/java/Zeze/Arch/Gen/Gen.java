@@ -39,7 +39,7 @@ final class Gen {
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteBool({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = {}.ReadBool();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.AppendLine("{}boolean {};", prefix, varName),
-				() -> "boolean")
+				() -> "Boolean")
 		);
 		Serializer.put(boolean.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteBool({});", prefix, bbName, varName),
@@ -51,7 +51,7 @@ final class Gen {
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteLong({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = (byte){}.ReadLong();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.AppendLine("{}byte {1};", prefix, varName),
-				() -> "byte")
+				() -> "Byte")
 		);
 		Serializer.put(byte.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteLong({});", prefix, bbName, varName),
@@ -63,7 +63,7 @@ final class Gen {
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteLong({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = (short){}.ReadLong();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.AppendLine("{}short {};", prefix, varName),
-				() -> "short")
+				() -> "Short")
 		);
 		Serializer.put(short.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteLong({});", prefix, bbName, varName),
@@ -75,7 +75,7 @@ final class Gen {
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteLong({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = (int){}.ReadLong();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.AppendLine("{}int {};", prefix, varName),
-				() -> "int")
+				() -> "Integer")
 		);
 		Serializer.put(int.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteLong({});", prefix, bbName, varName),
@@ -87,7 +87,7 @@ final class Gen {
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteLong({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = {}.ReadLong();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.AppendLine("{}long {};", prefix, varName),
-				() -> "long")
+				() -> "Long")
 		);
 		Serializer.put(long.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteLong({});", prefix, bbName, varName),
@@ -99,7 +99,7 @@ final class Gen {
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteFloat({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = {}.ReadFloat();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.AppendLine("{}float {};", prefix, varName),
-				() -> "float")
+				() -> "Float")
 		);
 		Serializer.put(float.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteFloat({});", prefix, bbName, varName),
@@ -111,7 +111,7 @@ final class Gen {
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteDouble({});", prefix, bbName, varName),
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{} = {}.ReadDouble();", prefix, varName, bbName),
 				(sb, prefix, varName) -> sb.AppendLine("{}double {};", prefix, varName),
-				() -> "double")
+				() -> "Double")
 		);
 		Serializer.put(double.class, new KnownSerializer(
 				(sb, prefix, varName, bbName) -> sb.AppendLine("{}{}.WriteDouble({});", prefix, bbName, varName),

@@ -15,6 +15,7 @@ import Zeze.Arch.RedirectResult;
 import Zeze.Arch.RedirectToServer;
 import Zeze.Net.Binary;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Serialize.Serializable;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Transaction.Procedure;
@@ -549,13 +550,14 @@ public class ModuleRank extends AbstractModule {
 		return RedirectFuture.finish(new BRankList());
 	}
 
-	public static class GenericResult<T> {
+	public static class GenericResult<T extends Serializable> {
 		public long resultCode;
-		public T obj;
+		public T ser;
+		public Object obj;
 	}
 
 	@RedirectHash
-	public RedirectFuture<GenericResult<BRankList>> TestHashGenericResult(int serverId) {
+	public RedirectFuture<GenericResult<BRankList>> TestHashGenericResult(int serverId, Long arg) {
 		return RedirectFuture.finish(new GenericResult<>());
 	}
 
