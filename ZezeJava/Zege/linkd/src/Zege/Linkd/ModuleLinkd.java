@@ -37,7 +37,9 @@ public class ModuleLinkd extends AbstractModule {
                 c.getSender(), v.getModuleId(),
                 (providerSocket) -> v.Send(providerSocket, (r_) -> {
                     if (!v.isTimeout() && v.getResultCode() == 0) {
-                        ((LinkdUserSession)c.getSender().getUserState()).setAuthed();
+                        var linkSession = (LinkdUserSession)c.getSender().getUserState();
+                        linkSession.setAccount(c.Result.getAccount());
+                        linkSession.setAuthed();
                         new ChallengeOk().Send(c.getSender()); // skip result
                     } else
                         App.LinkdService.ReportError(

@@ -279,7 +279,8 @@ public class Service {
 	public <P extends Protocol<?>> void DispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
 															ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
 		if (Zeze != null && factoryHandle.Level != TransactionLevel.None) {
-			Task.runRpcResponseUnsafe(Zeze.NewProcedure(() -> responseHandle.handle(rpc), rpc.getClass().getName() + ":Response",
+			Task.runRpcResponseUnsafe(Zeze.NewProcedure(
+					() -> responseHandle.handle(rpc), rpc.getClass().getName() + ":Response",
 					factoryHandle.Level, rpc.getUserState()), factoryHandle.Mode);
 		} else
 			Task.runRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);

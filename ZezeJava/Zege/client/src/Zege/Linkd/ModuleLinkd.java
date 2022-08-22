@@ -77,16 +77,23 @@ public class ModuleLinkd extends AbstractModule {
         var passwd = "123".toCharArray();
         keyStore.setKeyEntry(account, rsa.getPrivate(), passwd, new Certificate[] { cert });
         keyStore.store(new FileOutputStream(fileName), passwd);
+
+        // skip result
+        new ChallengeMe().Send(App.Connector.TryGetReadySocket());
     }
 
     @Override
     protected long ProcessChallengeRequest(Zege.Linkd.Challenge r) throws GeneralSecurityException, IOException {
         r.Result.setAccount(account);
+        var file = account + ".pkcs12";
+        if (!Files.exists(Path.of(file))) {
+            r.SendResultCode(1);
+            return 0; // done
+        }
 
-        var keyStore = KeyStore.getInstance("pkcs12");
-        var passwd = "123".toCharArray();
-        keyStore.load(new FileInputStream(account + ".pkcs12"), passwd);
-        var privateKey = (PrivateKey)keyStore.getKey(account, passwd);
+        var passwd = "123";
+        var keyStore = Cert.loadKeyStore(new FileInputStream(file), passwd);
+        var privateKey = Cert.getPrivateKey(keyStore, passwd, account);
 
         var signed = Cert.sign(privateKey, r.Argument.getRandomData().bytesUnsafe());
         r.Result.setSigned(new Binary(signed));

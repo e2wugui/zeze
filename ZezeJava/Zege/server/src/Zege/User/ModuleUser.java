@@ -49,6 +49,7 @@ public class ModuleUser extends AbstractModule {
         user.setAccount(account);
         var publicKey = Cert.loadPublicKey(r.Argument.getRsaPublicKey().bytesUnsafe());
         var passwd = "123";
+        // todo verify client has private key。
         var keyStore = App.FakeCa;
         var privateKey = Cert.getPrivateKey(keyStore, passwd, "ZegeFakeCa");
         var cert = Cert.generate(account, publicKey, "ZegeFakeCa", privateKey, 10000);
@@ -109,7 +110,9 @@ public class ModuleUser extends AbstractModule {
 
     @Override
     protected long ProcessPrepareRequest(Zege.User.Prepare r) {
-        // todo 在数据库中创建账号，保护一段时间。
+        var account = r.Argument.getAccount();
+        var user = _tUser.getOrAdd(account);
+        // todo 记住random，用来在create时verify客户端拥有privateKey。
         var rands = new byte[64];
         Random.getInstance().nextBytes(rands);
         r.Result.setRandomData(new Binary(rands));

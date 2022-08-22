@@ -6,9 +6,12 @@ import Zeze.Builtin.Provider.Dispatch;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
 import Zeze.Net.Protocol;
+import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
+import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentLruLike;
+import Zeze.Util.Task;
 import Zeze.Web.AbstractWeb;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -224,6 +227,12 @@ public class LinkdService extends Zeze.Services.HandshakeServer {
 			logger.warn("Protocol Handle Not Found: {}", p);
 			p.getSender().close();
 		}
+	}
+
+	@Override
+	public <P extends Protocol<?>> void DispatchRpcResponse(P rpc, ProtocolHandle<P> responseHandle,
+															ProtocolFactoryHandle<?> factoryHandle) throws Throwable {
+		Task.runRpcResponseUnsafe(() -> responseHandle.handle(rpc), rpc, factoryHandle.Mode);
 	}
 
 	@Override
