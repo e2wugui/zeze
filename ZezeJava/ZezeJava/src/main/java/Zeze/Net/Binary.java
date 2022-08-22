@@ -51,8 +51,12 @@ public final class Binary implements Comparable<Binary> {
 		this(ByteBuffer.Encode(_s_).Copy());
 	}
 
-	public byte[] InternalGetBytesUnsafe() {
+	public byte[] bytesUnsafe() {
 		return _Bytes;
+	}
+
+	public byte[] toBytes() {
+		return Arrays.copyOfRange(_Bytes, Offset, Offset + Count);
 	}
 
 	public void writeToFile(RandomAccessFile file) throws IOException {

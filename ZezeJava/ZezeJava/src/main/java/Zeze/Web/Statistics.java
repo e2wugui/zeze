@@ -58,21 +58,21 @@ public class Statistics {
 				var ctype = "Content-Type";
 				r.setResponseHeader(ctype, r.getRequestHeader(ctype));
 				var data = r.getRequest().getBody();
-				r.sendResponseHeaders(200, data.InternalGetBytesUnsafe(), r.getRequest().isFinish());
+				r.sendResponseHeaders(200, data.bytesUnsafe(), r.getRequest().isFinish());
 				md5 = MessageDigest.getInstance("md5");
-				md5.update(data.InternalGetBytesUnsafe());
+				md5.update(data.bytesUnsafe());
 				HttpExchange.logger.info("new echo: " + r.getRequest().getExchangeId());
 			}
 
 			@Override
 			public void onUpload(HttpExchange r, BStream s) {
-				md5.update(s.getBody().InternalGetBytesUnsafe());
+				md5.update(s.getBody().bytesUnsafe());
 				uploadData.add(s.getBody());
 				if (s.isFinish()) {
 					//HttpExchange.logger.info(Zeze.Util.BitConverter.toString(md5.digest()), new Exception());
 					if (uploadData.size() > downloadIndex) {
 						var data = uploadData.get(downloadIndex++);
-						r.sendResponseBodyAsync(data.InternalGetBytesUnsafe(),
+						r.sendResponseBodyAsync(data.bytesUnsafe(),
 								uploadData.size() == downloadIndex, this::processResponseResult);
 					}
 				}
@@ -81,7 +81,7 @@ public class Statistics {
 			private long processResponseResult(HttpExchange r, long rc) {
 				if (rc == 0 && downloadIndex < uploadData.size()) {
 					var data = uploadData.get(downloadIndex++);
-					r.sendResponseBodyAsync(data.InternalGetBytesUnsafe(),
+					r.sendResponseBodyAsync(data.bytesUnsafe(),
 							uploadData.size() == downloadIndex, this::processResponseResult);
 					return 0;
 				}

@@ -450,7 +450,7 @@ public final class AsyncSocket implements SelectorHandle, Closeable {
 	}
 
 	public boolean Send(Binary binary) {
-		return Send(binary.InternalGetBytesUnsafe(), binary.getOffset(), binary.size());
+		return Send(binary.bytesUnsafe(), binary.getOffset(), binary.size());
 	}
 
 	public boolean Send(String str) {

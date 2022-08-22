@@ -254,7 +254,7 @@ public abstract class Rpc<TArgument extends Bean, TResult extends Bean> extends 
 		if (IsRequest)
 			Argument.Encode(bb);
 		else if (ResultEncoded != null)
-			bb.Append(ResultEncoded.InternalGetBytesUnsafe(), ResultEncoded.getOffset(), ResultEncoded.size());
+			bb.Append(ResultEncoded.bytesUnsafe(), ResultEncoded.getOffset(), ResultEncoded.size());
 		else
 			Result.Encode(bb);
 	}

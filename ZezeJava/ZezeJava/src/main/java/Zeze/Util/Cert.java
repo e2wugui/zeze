@@ -17,6 +17,7 @@ import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Date;
@@ -115,8 +116,39 @@ public final class Cert {
 	}
 
 	// 为RSA公钥和私钥生成自签名的公钥证书并连同私钥保存到用密码加密的KeyStore输出流
-	public static void saveKeyStore(OutputStream outputStream, String passwd, String alias, PublicKey publicKey,
-									PrivateKey privateKey, String commonName, int validDays)
+	public static X509Certificate generate(String ownerName, PublicKey publicKey, String issuer, PrivateKey privateKey, int validDays)
+			throws GeneralSecurityException, IOException {
+		var certInfo = new X509CertInfo();
+		var owner = new X500Name("CN=" + ownerName);
+		certInfo.set(X509CertInfo.VERSION, new CertificateVersion(CertificateVersion.V3));
+		certInfo.set(X509CertInfo.SERIAL_NUMBER, new CertificateSerialNumber(new BigInteger(160, new SecureRandom())));
+		try {
+			certInfo.set(X509CertInfo.SUBJECT, new CertificateSubjectName(owner));
+		} catch (CertificateException ignore) {
+			certInfo.set(X509CertInfo.SUBJECT, owner);
+		}
+		var issuerX = new X500Name("CN=", issuer);
+		try {
+			certInfo.set(X509CertInfo.ISSUER, new CertificateIssuerName(issuerX));
+		} catch (CertificateException ignore) {
+			certInfo.set(X509CertInfo.ISSUER, issuerX);
+		}
+		var now = System.currentTimeMillis();
+		var endTime = now + validDays * 86400_000L;
+		certInfo.set(X509CertInfo.VALIDITY, new CertificateValidity(new Date(now), new Date(endTime)));
+		certInfo.set(X509CertInfo.KEY, new CertificateX509Key(publicKey));
+		var algoId = AlgorithmId.get("1.2.840.113549.1.1.11"); // SHA256withRSA
+		certInfo.set(X509CertInfo.ALGORITHM_ID, new CertificateAlgorithmId(algoId));
+		certInfo.set(CertificateAlgorithmId.NAME + '.' + CertificateAlgorithmId.ALGORITHM, algoId);
+
+		var cert = new X509CertImpl(certInfo);
+		cert.sign(privateKey, "SHA256withRSA"); // 自签名
+		// cert.verify(publicKey); // 此行可选
+		return cert;
+	}
+
+	public static void generate(OutputStream outputStream, String passwd, String alias, PublicKey publicKey,
+								PrivateKey privateKey, String commonName, int validDays)
 			throws GeneralSecurityException, IOException {
 		var certInfo = new X509CertInfo();
 		var owner = new X500Name("CN=" + commonName);

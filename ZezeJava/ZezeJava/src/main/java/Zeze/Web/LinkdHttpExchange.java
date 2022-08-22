@@ -178,7 +178,7 @@ public class LinkdHttpExchange {
 
 	public void sendResponse(BStream stream) throws IOException {
 		activeTime = System.currentTimeMillis();
-		exchange.getResponseBody().write(stream.getBody().InternalGetBytesUnsafe());
+		exchange.getResponseBody().write(stream.getBody().bytesUnsafe());
 		if (stream.isFinish())
 			closeResponseBody();
 	}
@@ -192,7 +192,7 @@ public class LinkdHttpExchange {
 			headers.put(e.getKey(), list);
 		}
 
-		var bytes = response.getBody().InternalGetBytesUnsafe();
+		var bytes = response.getBody().bytesUnsafe();
 		exchange.sendResponseHeaders(response.getCode(), 0);
 		var body = exchange.getResponseBody();
 		body.write(bytes);

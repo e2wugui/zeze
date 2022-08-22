@@ -523,7 +523,7 @@ public class LogSequence {
 		var key = ByteBuffer.Allocate(9);
 		key.WriteLong(index);
 		Logs.put(WriteOptions, key.Bytes, 0, key.WriteIndex,
-				rawValue.InternalGetBytesUnsafe(), rawValue.getOffset(), rawValue.size());
+				rawValue.bytesUnsafe(), rawValue.getOffset(), rawValue.size());
 
 		if (isDebugEnabled)
 			logger.debug("{}-{} RequestId=? Index={} Count={}",

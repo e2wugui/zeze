@@ -1,7 +1,25 @@
 package Zege.Linkd;
 
-import java.util.concurrent.Future;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.UnrecoverableKeyException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import Zege.User.Create;
+import Zege.User.ModuleUser;
+import Zege.User.Prepare;
 import Zeze.Net.Binary;
+import Zeze.Transaction.Procedure;
+import Zeze.Util.Cert;
 import Zeze.Util.TaskCompletionSource;
 
 public class ModuleLinkd extends AbstractModule {
@@ -18,28 +36,69 @@ public class ModuleLinkd extends AbstractModule {
 
     private String account;
     private TaskCompletionSource<Boolean> authFuture;
-    public void setAccount(String account) {
-        this.account = account;
-        authFuture = new TaskCompletionSource<>();
-    }
 
     public void waitAuthed() {
         authFuture.await();
     }
 
+    public void create(String account) throws GeneralSecurityException, IOException {
+        this.account = account;
+        authFuture = new TaskCompletionSource<>();
+
+        var fileName = account + ".pkcs12";
+        if (Files.exists(Path.of(fileName)))
+            return; // 已经注册。先简单用文件是否存在判断一下。
+
+        var p = new Prepare();
+        p.Argument.setAccount(account);
+        p.SendForWait(App.Connector.TryGetReadySocket()).await();
+        if (p.getResultCode() == ModuleUser.RCAccountExist)
+            return; // done
+
+        if (p.getResultCode() != 0)
+            throw new RuntimeException("Create Error! rc=" + p.getResultCode());
+
+        var c = new Create();
+
+        var rsa = Cert.generateRsaKeyPair();
+        var sign = Cert.sign(rsa.getPrivate(), p.Result.getRandomData().bytesUnsafe());
+
+        c.Argument.setAccount(account);
+        c.Argument.setRsaPublicKey(new Binary(rsa.getPrivate().getEncoded()));
+        c.Argument.setSigned(new Binary(sign));
+
+        c.SendForWait(App.Connector.TryGetReadySocket()).await();
+        if (c.getResultCode() != 0 && c.getResultCode() != ModuleUser.RCAccountExist)
+            throw new RuntimeException("Create Error! rc=" + c.getResultCode());
+
+        var keyStore = KeyStore.getInstance("pkcs12");
+        var cert = Cert.loadCertificate(c.Result.getCert().bytesUnsafe());
+        var passwd = "123".toCharArray();
+        keyStore.setKeyEntry(account, rsa.getPrivate(), passwd, new Certificate[] { cert });
+        keyStore.store(new FileOutputStream(fileName), passwd);
+    }
+
     @Override
-    protected long ProcessChallengeRequest(Zege.Linkd.Challenge r) {
+    protected long ProcessChallengeRequest(Zege.Linkd.Challenge r) throws GeneralSecurityException, IOException {
         r.Result.setAccount(account);
-        // r.Argument.getRandomData(); // todo sign
-        var signed = Binary.Empty;
-        r.Result.setSigned(signed);
+
+        var keyStore = KeyStore.getInstance("pkcs12");
+        var passwd = "123".toCharArray();
+        keyStore.load(new FileInputStream(account + ".pkcs12"), passwd);
+        var privateKey = (PrivateKey)keyStore.getKey(account, passwd);
+
+        var signed = Cert.sign(privateKey, r.Argument.getRandomData().bytesUnsafe());
+        r.Result.setSigned(new Binary(signed));
         r.SendResult();
+
         return 0;
     }
 
     @Override
     protected long ProcessChallengeOkRequest(Zege.Linkd.ChallengeOk r) {
-        return Zeze.Transaction.Procedure.NotImplement;
+        authFuture.SetResult(true);
+        r.SendResult();
+        return Procedure.Success;
     }
 
     // ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off

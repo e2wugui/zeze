@@ -498,7 +498,7 @@ public final class Json {
 			if (obj == null)
 				writer.write(null);
 			else
-				writer.write(obj.InternalGetBytesUnsafe(), obj.getOffset(), obj.size(), false);
+				writer.write(obj.bytesUnsafe(), obj.getOffset(), obj.size(), false);
 		});
 
 		Json.getClassMeta(DynamicBean.class).setParser((reader, classMeta, obj, parent) -> {
