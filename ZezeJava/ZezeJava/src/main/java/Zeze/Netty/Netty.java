@@ -1,69 +1,108 @@
 package Zeze.Netty;
 
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.TimeUnit;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Str;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.ServerChannel;
 import io.netty.channel.epoll.Epoll;
+import io.netty.channel.epoll.EpollChannelOption;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.HttpHeaderNames;
+import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.util.concurrent.Future;
 
 public class Netty {
+	private static final DateFormat dateFormat = new SimpleDateFormat("E, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH);
+	private static long lastSecond;
+	private static String lastDateStr;
+	private static final Class<? extends ServerChannel> serverChannelClass =
+			Epoll.isAvailable() ? EpollServerSocketChannel.class : NioServerSocketChannel.class;
+
 	private final EventLoopGroup eventLoopGroup;
+
+	public static String getDate() {
+		var timestamp = System.currentTimeMillis();
+		var second = timestamp / 1000;
+		if (second == lastSecond)
+			return lastDateStr;
+		var date = new Date(timestamp);
+		String dateStr;
+		synchronized (dateFormat) {
+			lastDateStr = dateStr = dateFormat.format(date);
+		}
+		lastSecond = second;
+		return dateStr;
+	}
+
+	public static String getDate(Date date) {
+		synchronized (dateFormat) {
+			return dateFormat.format(date);
+		}
+	}
+
+	public static Date parseDate(String dateStr) throws ParseException {
+		synchronized (dateFormat) {
+			return dateFormat.parse(dateStr);
+		}
+	}
+
+	public static HttpHeaders setDate(HttpHeaders headers) {
+		headers.set(HttpHeaderNames.DATE, getDate());
+		return headers;
+	}
+
+	public static long getLastDateSecond() {
+		return lastSecond;
+	}
 
 	public Netty() {
 		this(Runtime.getRuntime().availableProcessors());
 	}
 
-	private final Class<? extends ServerChannel> serverChannelClass;
-
 	public Netty(int nThreads) {
-		if (Epoll.isAvailable()) {
-			eventLoopGroup = new EpollEventLoopGroup(nThreads);
-			serverChannelClass = EpollServerSocketChannel.class;
-		} else {
-			eventLoopGroup = new NioEventLoopGroup(nThreads);
-			serverChannelClass = NioServerSocketChannel.class;
-		}
+		eventLoopGroup = Epoll.isAvailable() ? new EpollEventLoopGroup(nThreads) : new NioEventLoopGroup(nThreads);
 	}
 
 	// 各种选项可配置。ServerBootstrapConfig?
-	public void addServer(ChannelInitializer<SocketChannel> handler, int port) {
-		new ServerBootstrap().group(eventLoopGroup)
+	public ChannelFuture startServer(ChannelHandler handler, int port) {
+		var b = new ServerBootstrap();
+		if (eventLoopGroup instanceof EpollEventLoopGroup)
+			b.option(EpollChannelOption.SO_REUSEPORT, true);
+		return b.group(eventLoopGroup)
 				.option(ChannelOption.SO_BACKLOG, 8192)
 				.option(ChannelOption.SO_REUSEADDR, true)
+				.childOption(ChannelOption.SO_REUSEADDR, true)
 				.channel(serverChannelClass)
 				.childHandler(handler)
 				.bind(port);
 	}
 
-	public void start() {
-		// 好像不用做什么。
+	public Future<?> stopAsync() {
+		return eventLoopGroup.shutdownGracefully();
 	}
 
 	public void stop() throws InterruptedException {
-		eventLoopGroup.shutdownGracefully();
-		//noinspection ResultOfMethodCallIgnored
-		eventLoopGroup.awaitTermination(Integer.MAX_VALUE, TimeUnit.SECONDS);
+		stopAsync().sync();
 	}
 
 	public static void main(String[] args) throws InterruptedException {
-		/*
-		 * 运行，用浏览器访问 127.0.0.1/hello;127.0.0.1/exp;127.0.0.1/404
-		 */
+		// 运行，用浏览器访问 127.0.0.1/hello;127.0.0.1/exp;127.0.0.1/404
 		var netty = new Netty();
 		try {
 			var http = new HttpServer();
@@ -99,13 +138,8 @@ public class Netty {
 						}
 						*/
 					});
-			netty.addServer(http, 80);
-			netty.start();
-			//noinspection InfiniteLoopStatement
-			while (true) {
-				//noinspection BusyWait
-				Thread.sleep(1000);
-			}
+			var future = netty.startServer(http, 80);
+			future.sync().channel().closeFuture().sync(); // 同步等待直到被停止
 		} finally {
 			netty.stop();
 		}

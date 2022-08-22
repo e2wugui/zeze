@@ -82,24 +82,24 @@ public final class Cert {
 		return (PrivateKey)keyStore.getKey(alias, passwd != null ? passwd.toCharArray() : null);
 	}
 
-	// 从二进制编码加载X509公钥证书(二进制编码即Certificate.getEncoded()的结果)
-	public static X509CertImpl loadCertificate(byte[] encodedCertificate) throws GeneralSecurityException {
+	// 以DER二进制编码加载X509公钥证书(此二进制编码即Certificate.getEncoded()的结果)
+	public static X509Certificate loadCertificate(byte[] encodedCertificate) throws GeneralSecurityException {
 		return new X509CertImpl(encodedCertificate);
 	}
 
-	// 从二进制或PEM编码的输入流加载X509公钥证书
-	public static X509CertImpl loadCertificate(InputStream encodedCertificate) throws GeneralSecurityException {
+	// 从DER或PEM编码的输入流加载X509公钥证书
+	public static X509Certificate loadCertificate(InputStream encodedCertificate) throws GeneralSecurityException {
 		return new X509CertImpl(encodedCertificate);
 	}
 
-	// 从二进制编码加载RSA公钥(二进制编码即PublicKey.getEncoded()的结果)
+	// 以PKCS#8的二进制编码加载RSA公钥(此二进制编码即PublicKey.getEncoded()的结果)
 	public static PublicKey loadPublicKey(byte[] encodedPublicKey) throws GeneralSecurityException {
 		return KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(encodedPublicKey));
 	}
 
-	// 从二进制编码加载RSA公钥(二进制编码即PublicKey.getEncoded()的结果)
+	// 以PKCS#1的二进制编码加载RSA公钥(此二进制编码即PublicKey.getEncoded()的结果)
 	// 编译和运行时需要: --add-exports/--add-opens java.base/sun.security.rsa=ALL-UNNAMED
-//	public static PublicKey loadPublicKey1(byte[] encodedPublicKey) throws InvalidKeyException {
+//	public static PublicKey loadPublicKeyByPkcs1(byte[] encodedPublicKey) throws InvalidKeyException {
 //		return sun.security.rsa.RSAPublicKeyImpl.newKey(sun.security.rsa.RSAUtil.KeyType.RSA, "PKCS#1", encodedPublicKey);
 //	}
 
@@ -115,65 +115,43 @@ public final class Cert {
 		return keyPairGen.generateKeyPair();
 	}
 
-	// 为RSA公钥和私钥生成自签名的公钥证书并连同私钥保存到用密码加密的KeyStore输出流
-	public static X509Certificate generate(String ownerName, PublicKey publicKey, String issuer, PrivateKey privateKey, int validDays)
+	// 用owner的公钥为owner生成证书,并用issuer的私钥为证书签名,返回该证书
+	public static X509Certificate generate(String ownerName, PublicKey publicKey, String issuerName,
+										   PrivateKey privateKey, int validDays)
 			throws GeneralSecurityException, IOException {
 		var certInfo = new X509CertInfo();
-		var owner = new X500Name("CN=" + ownerName);
 		certInfo.set(X509CertInfo.VERSION, new CertificateVersion(CertificateVersion.V3));
 		certInfo.set(X509CertInfo.SERIAL_NUMBER, new CertificateSerialNumber(new BigInteger(160, new SecureRandom())));
+		var owner = new X500Name("CN=" + ownerName);
 		try {
 			certInfo.set(X509CertInfo.SUBJECT, new CertificateSubjectName(owner));
 		} catch (CertificateException ignore) {
 			certInfo.set(X509CertInfo.SUBJECT, owner);
 		}
-		var issuerX = new X500Name("CN=" + issuer);
+		var issuer = new X500Name("CN=" + issuerName);
 		try {
-			certInfo.set(X509CertInfo.ISSUER, new CertificateIssuerName(issuerX));
+			certInfo.set(X509CertInfo.ISSUER, new CertificateIssuerName(issuer));
 		} catch (CertificateException ignore) {
-			certInfo.set(X509CertInfo.ISSUER, issuerX);
+			certInfo.set(X509CertInfo.ISSUER, issuer);
 		}
-		var now = System.currentTimeMillis();
-		var endTime = now + validDays * 86400_000L;
-		certInfo.set(X509CertInfo.VALIDITY, new CertificateValidity(new Date(now), new Date(endTime)));
+		var nowTime = System.currentTimeMillis();
+		var endTime = nowTime + validDays * 86400_000L;
+		certInfo.set(X509CertInfo.VALIDITY, new CertificateValidity(new Date(nowTime), new Date(endTime)));
 		certInfo.set(X509CertInfo.KEY, new CertificateX509Key(publicKey));
 		var algoId = AlgorithmId.get("1.2.840.113549.1.1.11"); // SHA256withRSA
 		certInfo.set(X509CertInfo.ALGORITHM_ID, new CertificateAlgorithmId(algoId));
 		certInfo.set(CertificateAlgorithmId.NAME + '.' + CertificateAlgorithmId.ALGORITHM, algoId);
 
 		var cert = new X509CertImpl(certInfo);
-		cert.sign(privateKey, "SHA256withRSA"); // 自签名
-		// cert.verify(publicKey); // 此行可选
+		cert.sign(privateKey, "SHA256withRSA");
 		return cert;
 	}
 
-	public static void generate(OutputStream outputStream, String passwd, String alias, PublicKey publicKey,
-								PrivateKey privateKey, String commonName, int validDays)
+	// 为RSA公钥和私钥生成自签名的公钥证书并连同私钥保存到用密码加密的KeyStore输出流
+	public static void saveKeyStore(OutputStream outputStream, String passwd, String alias, PublicKey publicKey,
+									PrivateKey privateKey, String ownerName, int validDays)
 			throws GeneralSecurityException, IOException {
-		var certInfo = new X509CertInfo();
-		var owner = new X500Name("CN=" + commonName);
-		certInfo.set(X509CertInfo.VERSION, new CertificateVersion(CertificateVersion.V3));
-		certInfo.set(X509CertInfo.SERIAL_NUMBER, new CertificateSerialNumber(new BigInteger(64, new SecureRandom())));
-		try {
-			certInfo.set(X509CertInfo.SUBJECT, new CertificateSubjectName(owner));
-		} catch (CertificateException ignore) {
-			certInfo.set(X509CertInfo.SUBJECT, owner);
-		}
-		try {
-			certInfo.set(X509CertInfo.ISSUER, new CertificateIssuerName(owner));
-		} catch (CertificateException ignore) {
-			certInfo.set(X509CertInfo.ISSUER, owner);
-		}
-		var now = System.currentTimeMillis();
-		var endTime = now + validDays * 86400_000L;
-		certInfo.set(X509CertInfo.VALIDITY, new CertificateValidity(new Date(now), new Date(endTime)));
-		certInfo.set(X509CertInfo.KEY, new CertificateX509Key(publicKey));
-		var algoId = AlgorithmId.get("1.2.840.113549.1.1.11"); // SHA256withRSA
-		certInfo.set(X509CertInfo.ALGORITHM_ID, new CertificateAlgorithmId(algoId));
-		certInfo.set(CertificateAlgorithmId.NAME + '.' + CertificateAlgorithmId.ALGORITHM, algoId);
-
-		var cert = new X509CertImpl(certInfo);
-		cert.sign(privateKey, "SHA256withRSA"); // 自签名
+		var cert = generate(ownerName, publicKey, ownerName, privateKey, validDays);
 		cert.verify(publicKey); // 此行可选
 
 		var keyStore = KeyStore.getInstance("pkcs12");

@@ -1,12 +1,12 @@
 package Zeze.Netty;
 
+import java.io.Closeable;
+import java.io.File;
 import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.function.BiConsumer;
 import Zeze.Transaction.Procedure;
@@ -28,33 +28,33 @@ import io.netty.handler.codec.http.DefaultHttpResponse;
 import io.netty.handler.codec.http.DefaultLastHttpContent;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpContent;
+import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
+import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
-import io.netty.handler.codec.http.HttpHeaders;
-import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.util.AsciiString;
 import io.netty.util.AttributeMap;
+import io.netty.util.ReferenceCounted;
 
-public class HttpExchange {
-	private boolean sending = false;
-
+public class HttpExchange implements Closeable {
 	private final HttpServer server;
 	private final ChannelHandlerContext context;
+	private HttpRequest request;
+	private HttpHandler handler;
+	private final List<HttpContent> contents = new ArrayList<>(); // 只用于非流模式
+	private long totalContentSize;
+	private ByteBuffer contentFull;
+	private String path; // 保存path，优化！
+	private boolean sending = false;
 
 	public HttpExchange(HttpServer server, ChannelHandlerContext context) {
 		this.server = server;
 		this.context = context;
 	}
-
-	private HttpRequest request;
-	private HttpHandler handler;
-	private final List<HttpContent> contents = new ArrayList<>();
-	private int totalContentSize;
-	private ByteBuffer contentFull;
 
 	public HttpRequest request() {
 		return request;
@@ -76,9 +76,6 @@ public class HttpExchange {
 		return request.uri();
 	}
 
-	// 保存path，优化！
-	private String path;
-
 	public String path() {
 		if (path == null) {
 			var uri = uri();
@@ -86,6 +83,19 @@ public class HttpExchange {
 			path = i >= 0 ? uri.substring(0, i) : uri;
 		}
 		return path;
+	}
+
+	public String filePath() {
+		var path = path();
+		var i = path.lastIndexOf(':'); // 过滤掉盘符,避免访问非法路径
+		if (i < 0)
+			i = 0;
+		for (int e = path.length(); i < e; i++) {
+			var c = path.charAt(i);
+			if (c != '.' && c != '/' && c != '\\') // 过滤掉前面的特殊符号,避免访问非法路径
+				break;
+		}
+		return path.substring(i);
 	}
 
 	// 一般是会使用一次，不保存中间值
@@ -104,61 +114,70 @@ public class HttpExchange {
 	// 对称的话，这里应该返回Netty.ByteBuf。不熟悉，先用这个。
 	public ByteBuffer content() {
 		if (null == contentFull) {
-			switch (contents.size()) {
-			case 0:
-				contentFull = ByteBuffer.allocate(0);
-				break;
-			case 1:
-				var c0 = contents.get(0).content();
-				contentFull = ByteBuffer.wrap(c0.array(), c0.arrayOffset(), c0.readableBytes());
-				break;
-			default:
-				contentFull = ByteBuffer.allocate(totalContentSize);
-				for (var ci : contents) {
-					var cc = ci.content();
-					contentFull.put(cc.array(), cc.arrayOffset(), cc.readableBytes());
+			synchronized (this) {
+				switch (contents.size()) {
+				case 0:
+					contentFull = ByteBuffer.allocate(0);
+					break;
+				case 1:
+					var c0 = contents.get(0).content();
+					contentFull = ByteBuffer.wrap(c0.array(), c0.arrayOffset(), c0.readableBytes());
+					break;
+				default:
+					contentFull = ByteBuffer.allocate((int)totalContentSize); // 非流模式限制不会超过int最大值
+					for (var ci : contents) {
+						var cc = ci.content();
+						contentFull.put(cc.array(), cc.arrayOffset(), cc.readableBytes());
+					}
+					break;
 				}
-				break;
 			}
 		}
 		return contentFull;
 	}
 
 	private void fireFullRequestHandle() throws Exception {
-		if (server.Zeze != null && handler.Level != TransactionLevel.None) {
-			Task.run(server.Zeze.NewProcedure(
-					() -> {
-						handler.FullRequestHandle.onFullRequest(this);
-						return Procedure.Success;
-					}, "fireFullRequestHandle"), null, null, handler.Mode);
+		if (server.zeze != null && handler.Level != TransactionLevel.None) {
+			Task.run(server.zeze.NewProcedure(() -> {
+				//noinspection ConstantConditions
+				handler.FullRequestHandle.onFullRequest(this);
+				return Procedure.Success;
+			}, "fireFullRequestHandle"), null, null, handler.Mode);
 		} else {
+			//noinspection ConstantConditions
 			handler.FullRequestHandle.onFullRequest(this);
 		}
 	}
 
 	void channelRead(Object msg) throws Exception {
 		if (msg instanceof FullHttpRequest) {
-			//noinspection PatternVariableCanBeUsed
-			var full = (FullHttpRequest)msg;
+			var full = ((FullHttpRequest)msg).retain();
 			request = full;
-			contents.add(full);
-			if (locateHandler()) {
-				fireFullRequestHandle();
+			if (!locateHandler())
+				trySendFile();
+			else if (handler.isStreamMode()) {
+				fireBeginStream();
+				fireStreamContentHandle(full);
+				fireEndStreamHandle();
 				tryClose();
 			} else {
-				trySendFile();
+				synchronized (this) {
+					contents.add(full.retain());
+				}
+				fireFullRequestHandle();
+				tryClose();
 			}
 			return; // done
 		}
 
 		if (msg instanceof HttpRequest) {
 			request = (HttpRequest)msg;
-			if (!locateHandler()) {
+			if (request instanceof ReferenceCounted)
+				((ReferenceCounted)request).retain();
+			if (!locateHandler())
 				trySendFile();
-			} else if (handler.isStreamMode()) {
+			else if (handler.isStreamMode())
 				fireBeginStream();
-			}
-
 			return; // done
 		}
 
@@ -166,35 +185,35 @@ public class HttpExchange {
 			// 此时 request,handler 已经设置好。
 			//noinspection PatternVariableCanBeUsed
 			var c = (HttpContent)msg;
+			totalContentSize += c.content().readableBytes();
+			if (totalContentSize > handler.MaxContentLength) {
+				send500("content-length too big! allow max=" + handler.MaxContentLength);
+				tryClose();
+				return; // done
+			}
+
 			if (handler.isStreamMode()) {
 				fireStreamContentHandle(c);
 				if (msg instanceof LastHttpContent) {
 					fireEndStreamHandle();
 					tryClose();
 				}
-
 				return; // done
 			}
 
-			totalContentSize += c.content().readableBytes();
-			if (totalContentSize > handler.MaxContentLength) {
-				send500("content-length too big! allow max=" + handler.MaxContentLength);
-				tryClose();
-
-				return; // done
+			synchronized (this) {
+				contents.add(c.retain());
 			}
-
-			contents.add(c);
 			if (msg instanceof LastHttpContent) {
 				// 在content()方法里面处理合并。这里直接触发即可。
 				fireFullRequestHandle();
 				tryClose();
 			}
-
 			return; // done
 		}
 
-		send500("internal error. unknown message!");
+		send500("internal error. unknown message=" + (msg != null ? msg.getClass() : null));
+		tryClose();
 	}
 
 	private static long parse(String r) {
@@ -204,25 +223,27 @@ public class HttpExchange {
 	}
 
 	private void fireStreamContentHandle(HttpContent c) throws Exception {
-		if (server.Zeze != null && handler.Level != TransactionLevel.None) {
-			Task.run(server.Zeze.NewProcedure(
-					() -> {
-						handler.StreamContentHandle.onStreamContent(this, c);
-						return Procedure.Success;
-					}, "fireFullRequestHandle"), null, null, handler.Mode);
+		if (server.zeze != null && handler.Level != TransactionLevel.None) {
+			Task.run(server.zeze.NewProcedure(() -> {
+				//noinspection ConstantConditions
+				handler.StreamContentHandle.onStreamContent(this, c);
+				return Procedure.Success;
+			}, "fireStreamContentHandle"), null, null, handler.Mode);
 		} else {
+			//noinspection ConstantConditions
 			handler.StreamContentHandle.onStreamContent(this, c);
 		}
 	}
 
 	private void fireEndStreamHandle() throws Exception {
-		if (server.Zeze != null && handler.Level != TransactionLevel.None) {
-			Task.run(server.Zeze.NewProcedure(
-					() -> {
-						handler.EndStreamHandle.onEndStream(this);
-						return Procedure.Success;
-					}, "fireFullRequestHandle"), null, null, handler.Mode);
+		if (server.zeze != null && handler.Level != TransactionLevel.None) {
+			Task.run(server.zeze.NewProcedure(() -> {
+				//noinspection ConstantConditions
+				handler.EndStreamHandle.onEndStream(this);
+				return Procedure.Success;
+			}, "fireEndStreamHandle"), null, null, handler.Mode);
 		} else {
+			//noinspection ConstantConditions
 			handler.EndStreamHandle.onEndStream(this);
 		}
 	}
@@ -237,7 +258,7 @@ public class HttpExchange {
 			if (aunit.length > 1) {
 				var asize = aunit[1].split("/");
 				if (asize.length > 0) {
-					//如果 asize[0] == ”*“；下面的代码能处理这种情况，不用特别判断。
+					//如果 asize[0] == "*"；下面的代码能处理这种情况，不用特别判断。
 					var arange = asize[0].split("-");
 					if (arange.length > 0)
 						from.Value = parse(arange[0]);
@@ -256,85 +277,88 @@ public class HttpExchange {
 		var to = new OutLong();
 		var size = new OutLong();
 		parseRange(HttpHeaderNames.CONTENT_RANGE, "=", from, to, size);
-		if (server.Zeze != null && handler.Level != TransactionLevel.None) {
-			Task.run(server.Zeze.NewProcedure(
-					() -> {
-						handler.BeginStreamHandle.onBeginStream(this, from.Value, to.Value, size.Value);
-						return Procedure.Success;
-					}, "fireFullRequestHandle"), null, null, handler.Mode);
+		if (server.zeze != null && handler.Level != TransactionLevel.None) {
+			Task.run(server.zeze.NewProcedure(() -> {
+				//noinspection ConstantConditions
+				handler.BeginStreamHandle.onBeginStream(this, from.Value, to.Value, size.Value);
+				return Procedure.Success;
+			}, "fireBeginStream"), null, null, handler.Mode);
 		} else {
+			//noinspection ConstantConditions
 			handler.BeginStreamHandle.onBeginStream(this, from.Value, to.Value, size.Value);
 		}
 	}
 
 	private boolean locateHandler() {
-		handler = server.handlers.get(path());
-		return null != handler;
+		return (handler = server.handlers.get(path())) != null;
 	}
 
-	public void close() {
+	@Override
+	public synchronized void close() {
 		sending = false;
 		tryClose();
+		if (!contents.isEmpty()) {
+			for (var c : contents)
+				c.release();
+			contents.clear();
+		}
+		var r = request;
+		if (r != null) {
+			request = null;
+			if (r instanceof ReferenceCounted)
+				((ReferenceCounted)r).release();
+		}
 	}
 
 	private void tryClose() {
 		if (sending)
 			return;
 
-		if (null != server.exchanges.remove(context)) {
-			context.flush();
-			context.close();
-		}
+		if (null != server.exchanges.remove(context))
+			context.flush().close();
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// send response
-	public void send(HttpResponseStatus status, String contentType, ByteBuf content) {
+	public ChannelFuture send(HttpResponseStatus status, String contentType, ByteBuf content) {
 		var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, content, false);
-		res.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
-		res.headers().add(HttpHeaderNames.CONTENT_TYPE, contentType);
-		context.writeAndFlush(res);
+		res.headers()
+				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
+				.set(HttpHeaderNames.CONTENT_TYPE, contentType);
+		return context.writeAndFlush(res);
 	}
 
-	public void send(HttpResponseStatus status, String contentType, String content) {
-		send(status, contentType, Unpooled.wrappedBuffer(content.getBytes(StandardCharsets.UTF_8)));
+	public ChannelFuture send(HttpResponseStatus status, String contentType, String content) {
+		return send(status, contentType, Unpooled.wrappedBuffer(content.getBytes(StandardCharsets.UTF_8)));
 	}
 
-	public void sendPlainText(HttpResponseStatus status, String text) {
-		send(status, "text/plain; charset=utf-8", text);
+	public ChannelFuture sendPlainText(HttpResponseStatus status, String text) {
+		return send(status, "text/plain; charset=utf-8", text);
 	}
 
-	public void sendHtml(HttpResponseStatus status, String html) {
-		send(status, "text/html; charset=utf-8", html);
+	public ChannelFuture sendHtml(HttpResponseStatus status, String html) {
+		return send(status, "text/html; charset=utf-8", html);
 	}
 
-	public void sendXml(HttpResponseStatus status, String html) {
-		send(status, "text/xml; charset=utf-8", html);
+	public ChannelFuture sendXml(HttpResponseStatus status, String xml) {
+		return send(status, "text/xml; charset=utf-8", xml);
 	}
 
-	public void sendGif(HttpResponseStatus status, ByteBuf gif) {
-		send(status, "image/gif", gif);
+	public ChannelFuture sendGif(HttpResponseStatus status, ByteBuf gif) {
+		return send(status, "image/gif", gif);
 	}
 
-	public void sendJpeg(HttpResponseStatus status, ByteBuf jpeg) {
-		send(status, "image/jpeg", jpeg);
+	public ChannelFuture sendJpeg(HttpResponseStatus status, ByteBuf jpeg) {
+		return send(status, "image/jpeg", jpeg);
 	}
 
-	public void sendPng(HttpResponseStatus status, ByteBuf png) {
-		send(status, "image/png", png);
+	public ChannelFuture sendPng(HttpResponseStatus status, ByteBuf png) {
+		return send(status, "image/png", png);
 	}
-
-	public static final String HTTP_DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
 
 	public void trySendFile() throws Exception {
-		if (null == server.FileHome) {
-			send404();
-			tryClose();
-			return; // done
-		}
-
-		var file = Path.of(server.FileHome, path()).toFile();
-		if (!file.exists() || !file.isHidden() || file.isFile()) {
+		var file = new File(server.fileHome, filePath());
+		if (!file.isFile() || file.isHidden()) {
 			send404();
 			tryClose();
 			return; // done
@@ -342,15 +366,14 @@ public class HttpExchange {
 
 		// 检查 IF_MODIFIED_SINCE
 		String ifModifiedSince = headers().get(HttpHeaderNames.IF_MODIFIED_SINCE);
-		SimpleDateFormat dateFormatter = new SimpleDateFormat(HTTP_DATE_FORMAT);
 		if (ifModifiedSince != null && !ifModifiedSince.isEmpty()) {
-			var ifModifiedSinceDate = dateFormatter.parse(ifModifiedSince).getTime();
+			var ifModifiedSinceDate = Netty.parseDate(ifModifiedSince).getTime();
 			if (file.lastModified() == ifModifiedSinceDate) {
 				// 文件未改变。
 				var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_MODIFIED);
-				res.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
-				var time = Calendar.getInstance();
-				res.headers().set(HttpHeaderNames.DATE, dateFormatter.format(time.getTime()));
+				res.headers()
+						.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
+						.set(HttpHeaderNames.DATE, Netty.getDate());
 				context.writeAndFlush(res);
 				tryClose();
 				return; // done
@@ -374,18 +397,15 @@ public class HttpExchange {
 		}
 
 		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-		res.headers().set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE);
-		res.headers().set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(file.getName()));
-		res.headers().set(HttpHeaderNames.CONTENT_LENGTH, downloadLength);
-		res.headers().set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from.Value + "-" + to.Value + "/" + raf.length());
-		// 设置时间头。
-		Calendar time = Calendar.getInstance();
-		res.headers().set(HttpHeaderNames.DATE, dateFormatter.format(time.getTime()));
-		// 设置 cache 控制相关头。
-		time.add(Calendar.SECOND, server.FileCacheSeconds);
-		res.headers().set(HttpHeaderNames.EXPIRES, dateFormatter.format(time.getTime()));
-		res.headers().set(HttpHeaderNames.CACHE_CONTROL, "private, max-age=" + server.FileCacheSeconds);
-		res.headers().set(HttpHeaderNames.LAST_MODIFIED, dateFormatter.format(file.lastModified()));
+		res.headers()
+				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
+				.set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(file.getName()))
+				.set(HttpHeaderNames.CONTENT_LENGTH, downloadLength)
+				.set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from.Value + "-" + to.Value + "/" + raf.length())
+				.set(HttpHeaderNames.DATE, Netty.getDate()) // 设置时间头。
+				.set(HttpHeaderNames.EXPIRES, Netty.getDate(new Date((Netty.getLastDateSecond() + server.fileCacheSeconds) * 1000L)))
+				.set(HttpHeaderNames.CACHE_CONTROL, "private, max-age=" + server.fileCacheSeconds)
+				.set(HttpHeaderNames.LAST_MODIFIED, Netty.getDate(new Date(file.lastModified())));
 
 		// send headers
 		context.writeAndFlush(res);
@@ -400,16 +420,16 @@ public class HttpExchange {
 		tryClose(); // 没有进行中的流发送任务，直接关闭。关闭会flush然后close。
 	}
 
-	public void send404() {
-		sendPlainText(HttpResponseStatus.NOT_FOUND, "404");
+	public ChannelFuture send404() {
+		return sendPlainText(HttpResponseStatus.NOT_FOUND, "404");
 	}
 
-	public void send500(Throwable ex) {
-		sendPlainText(HttpResponseStatus.INTERNAL_SERVER_ERROR, Str.stacktrace(ex));
+	public ChannelFuture send500(Throwable ex) {
+		return sendPlainText(HttpResponseStatus.INTERNAL_SERVER_ERROR, Str.stacktrace(ex));
 	}
 
-	public void send500(String text) {
-		sendPlainText(HttpResponseStatus.INTERNAL_SERVER_ERROR, text);
+	public ChannelFuture send500(String text) {
+		return sendPlainText(HttpResponseStatus.INTERNAL_SERVER_ERROR, text);
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////
@@ -417,8 +437,8 @@ public class HttpExchange {
 	public void beginStream(HttpResponseStatus status, HttpHeaders headers) {
 		sending = true;
 		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, headers);
-		headers.set(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED);
 		headers.remove(HttpHeaderNames.CONTENT_LENGTH);
+		headers.set(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED);
 		context.writeAndFlush(res);
 	}
 

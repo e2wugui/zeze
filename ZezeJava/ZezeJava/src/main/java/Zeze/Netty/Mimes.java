@@ -1,13 +1,14 @@
 package Zeze.Netty;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.FileInputStream;
+import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.Reader;
+import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Properties;
+import Zeze.Util.StringSpan;
 
 public class Mimes {
 	@SuppressWarnings("TextBlockMigration")
@@ -125,6 +126,7 @@ public class Mimes {
 			".jpg=image/jpeg\n" +
 			".jpg=application/x-jpg\n" +
 			".js=application/x-javascript\n" +
+			".json=application/json\n" +
 			".jsp=text/html\n" +
 			".la1=audio/x-liquid-file\n" +
 			".lar=application/x-laplayer-reg\n" +
@@ -356,52 +358,42 @@ public class Mimes {
 			".apk=application/vnd.android.package-archive\n" +
 			".xap=application/x-silverlight-app\n"; //@formatter:on
 
-	public static final HashMap<String, String> MimesMap = new HashMap<>();
+	private static final String MimeDefault = "application/octet-stream";
+	private static final HashMap<String, String> MimesMap = new HashMap<>();
 
-	private static void load(InputStream input) throws IOException {
+	private static void load(Reader input) throws IOException {
 		var p = new Properties();
 		p.load(input);
-		for (var keyO : p.keySet()) {
-			var key = keyO.toString();
-			MimesMap.put(key, p.getProperty(key));
-		}
+		for (var e : p.entrySet())
+			MimesMap.put(String.valueOf(e.getKey()), String.valueOf(e.getValue()));
 	}
 
 	static {
 		try {
 			// load default
-			load(new ByteArrayInputStream(Mimes.getBytes(StandardCharsets.UTF_8)));
+			load(new StringReader(Mimes));
 			// try load config
 			var file = new File("mimes.properties");
-			if (file.exists()) {
-				load(new FileInputStream(file));
-			}
+			if (file.exists())
+				load(new FileReader(file, StandardCharsets.UTF_8));
 		} catch (IOException skip) {
 			skip.printStackTrace();
 		}
 	}
 
-	static final String MimeDefault = "application/octet-stream";
-
 	// 注意：扩展名包含字符'.'
-	public static String fromFileExtension(String extName) {
+	public static String fromFileExtension(Object extName) {
+		//noinspection SuspiciousMethodCalls
 		var mime = MimesMap.get(extName);
-		if (mime != null)
-			return mime;
-		return MimeDefault;
+		return mime != null ? mime : MimeDefault;
 	}
 
 	public static String fromFileName(String file) {
 		if (file != null) {
-			var index = file.lastIndexOf(".");
-			if (index != -1) {
-				return fromFileExtension(file.substring(index));
-			}
+			var index = file.lastIndexOf('.');
+			if (index >= 0)
+				return fromFileExtension(new StringSpan(file, index, file.length() - index));
 		}
 		return MimeDefault;
-	}
-
-	public static void main(String[] args) {
-		System.out.println(MimesMap);
 	}
 }

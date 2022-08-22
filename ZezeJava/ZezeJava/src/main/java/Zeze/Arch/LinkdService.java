@@ -9,7 +9,6 @@ import Zeze.Net.Protocol;
 import Zeze.Net.ProtocolHandle;
 import Zeze.Net.Service;
 import Zeze.Serialize.ByteBuffer;
-import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.ConcurrentLruLike;
 import Zeze.Util.Task;
 import Zeze.Web.AbstractWeb;

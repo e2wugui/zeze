@@ -25,7 +25,7 @@ public class TestCert extends TestCase {
 		if (!new File(pkcs12File).exists()) {
 			var keyPair = generateRsaKeyPair();
 			try (var fs = new FileOutputStream(pkcs12File)) {
-				generate(fs, passwd, alias, keyPair.getPublic(), keyPair.getPrivate(), "test", 365);
+				saveKeyStore(fs, passwd, alias, keyPair.getPublic(), keyPair.getPrivate(), "test", 365);
 			}
 		}
 
