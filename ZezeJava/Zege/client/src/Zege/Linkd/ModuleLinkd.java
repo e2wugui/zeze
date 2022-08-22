@@ -64,7 +64,7 @@ public class ModuleLinkd extends AbstractModule {
         var sign = Cert.sign(rsa.getPrivate(), p.Result.getRandomData().bytesUnsafe());
 
         c.Argument.setAccount(account);
-        c.Argument.setRsaPublicKey(new Binary(rsa.getPrivate().getEncoded()));
+        c.Argument.setRsaPublicKey(new Binary(rsa.getPublic().getEncoded()));
         c.Argument.setSigned(new Binary(sign));
 
         c.SendForWait(App.Connector.TryGetReadySocket()).await();
@@ -72,6 +72,7 @@ public class ModuleLinkd extends AbstractModule {
             throw new RuntimeException("Create Error! rc=" + c.getResultCode());
 
         var keyStore = KeyStore.getInstance("pkcs12");
+        keyStore.load(null, null);
         var cert = Cert.loadCertificate(c.Result.getCert().bytesUnsafe());
         var passwd = "123".toCharArray();
         keyStore.setKeyEntry(account, rsa.getPrivate(), passwd, new Certificate[] { cert });

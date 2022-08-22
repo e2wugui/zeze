@@ -127,7 +127,7 @@ public final class Cert {
 		} catch (CertificateException ignore) {
 			certInfo.set(X509CertInfo.SUBJECT, owner);
 		}
-		var issuerX = new X500Name("CN=", issuer);
+		var issuerX = new X500Name("CN=" + issuer);
 		try {
 			certInfo.set(X509CertInfo.ISSUER, new CertificateIssuerName(issuerX));
 		} catch (CertificateException ignore) {

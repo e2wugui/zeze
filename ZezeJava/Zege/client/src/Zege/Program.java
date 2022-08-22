@@ -72,6 +72,7 @@ public class Program {
 		if (Counters.Enable)
 			counters.start();
 		try {
+			app.Connector.WaitReady();
 			app.Zege_Linkd.create(account);
 			app.Zege_Linkd.waitAuthed();
 			app.Zeze_Builtin_Online.login(clientId).await();

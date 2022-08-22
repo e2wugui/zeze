@@ -2,11 +2,17 @@ package Zege;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import Zege.User.Create;
+import Zege.User.CreateWithCert;
+import Zege.User.Prepare;
+import Zege.User.VerifyChallengeResult;
 import Zeze.Arch.LinkdApp;
 import Zeze.Arch.LinkdProvider;
 import Zeze.Arch.LoadConfig;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
+import Zeze.Net.Service;
+import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
 
@@ -42,14 +48,30 @@ public class App extends Zeze.AppBase {
 
         // 直接发送Server-Provider支持的Rpc，但这个Rpc没有通过普通的Service注册。
         // 需要特别处理，由于Server接受任何支持的Rpc，但Rpc-Result要特别注册。
-        // 已改成让linkd引入User模块，直接支持User的协议并且直接转发的方式处理。
-        // 新的方式让linkd明确知道User模块的协议。
-        /*
-        var factoryHandle = new Service.ProtocolFactoryHandle<>();
-        factoryHandle.Factory = Auth::new;
-        factoryHandle.Level = TransactionLevel.None;
-        ProviderService.AddFactoryHandle(Auth.TypeId_, factoryHandle);
-        */
+        {
+            var factoryHandle = new Service.ProtocolFactoryHandle<>();
+            factoryHandle.Factory = Prepare::new;
+            factoryHandle.Level = TransactionLevel.None;
+            ProviderService.AddFactoryHandle(Prepare.TypeId_, factoryHandle);
+        }
+        {
+            var factoryHandle = new Service.ProtocolFactoryHandle<>();
+            factoryHandle.Factory = Create::new;
+            factoryHandle.Level = TransactionLevel.None;
+            ProviderService.AddFactoryHandle(Create.TypeId_, factoryHandle);
+        }
+        {
+            var factoryHandle = new Service.ProtocolFactoryHandle<>();
+            factoryHandle.Factory = CreateWithCert::new;
+            factoryHandle.Level = TransactionLevel.None;
+            ProviderService.AddFactoryHandle(CreateWithCert.TypeId_, factoryHandle);
+        }
+        {
+            var factoryHandle = new Service.ProtocolFactoryHandle<>();
+            factoryHandle.Factory = VerifyChallengeResult::new;
+            factoryHandle.Level = TransactionLevel.None;
+            ProviderService.AddFactoryHandle(VerifyChallengeResult.TypeId_, factoryHandle);
+        }
         AsyncSocket.setSessionIdGenFunc(PersistentAtomicLong.getOrAdd(LinkdApp.GetName())::next);
         StartService(); // 启动网络
         LinkdApp.RegisterService(null);

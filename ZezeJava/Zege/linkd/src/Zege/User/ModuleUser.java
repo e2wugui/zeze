@@ -1,6 +1,5 @@
 package Zege.User;
 
-import Zeze.Arch.LinkdUserSession;
 import Zeze.Builtin.LinkdBase.BReportError;
 import Zeze.Net.Rpc;
 import Zeze.Transaction.Bean;

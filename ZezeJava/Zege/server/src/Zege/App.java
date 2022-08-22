@@ -1,7 +1,15 @@
 package Zege;
 
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.GeneralSecurityException;
+import java.security.KeyStore;
+import java.security.cert.Certificate;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Arch.LoadConfig;
 import Zeze.Arch.Online;
@@ -13,6 +21,8 @@ import Zeze.Collections.DepartmentTree;
 import Zeze.Collections.LinkedMap;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
+import Zeze.Netty.HttpServer;
+import Zeze.Util.Cert;
 import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
 import Zeze.Web.Statistics;
@@ -43,10 +53,28 @@ public class App extends Zeze.AppBase {
         return new LoadConfig();
     }
 
+    public KeyStore FakeCa;
+    private void createFakeCa() throws IOException, GeneralSecurityException {
+        var file = "ZegeFakeCa.pkcs12";
+        var passwd = "123";
+        if (Files.exists(Path.of(file))) {
+            FakeCa = Cert.loadKeyStore(new FileInputStream(file), passwd);
+        } else {
+            var rsa = Cert.generateRsaKeyPair();
+            var cert = Cert.generate("ZegeFakeCa", rsa.getPublic(), "ZegeFakeCa", rsa.getPrivate(), 100000);
+            FakeCa = KeyStore.getInstance("pkcs12");
+            FakeCa.load(null, null);
+            FakeCa.setKeyEntry("ZegeFakeCa", rsa.getPrivate(), passwd.toCharArray(), new Certificate[]{ cert });
+            FakeCa.store(new FileOutputStream(file), passwd.toCharArray());
+        }
+    }
+
     public void Start(String conf) throws Throwable {
         var config = Config.Load(conf);
         CreateZeze(config);
         CreateService();
+
+        HttpServer = new HttpServer(Zeze, null, 600);
 
         Provider = new ProviderWithOnline();
         ProviderDirect = new ProviderDirect();
@@ -64,6 +92,8 @@ public class App extends Zeze.AppBase {
         StartModules(); // 启动模块，装载配置什么的。
         Provider.Online.Start();
         Web.Start();
+
+        createFakeCa();
 
         PersistentAtomicLong socketSessionIdGen = PersistentAtomicLong.getOrAdd("Zege.Server." + Zeze.getConfig().getServerId());
         AsyncSocket.setSessionIdGenFunc(socketSessionIdGen::next);

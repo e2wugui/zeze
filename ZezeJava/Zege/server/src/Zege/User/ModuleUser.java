@@ -49,7 +49,7 @@ public class ModuleUser extends AbstractModule {
         user.setAccount(account);
         var publicKey = Cert.loadPublicKey(r.Argument.getRsaPublicKey().bytesUnsafe());
         var passwd = "123";
-        var keyStore = Cert.loadKeyStore(new FileInputStream("ZegeFakeCa.pkcs12"), passwd);
+        var keyStore = App.FakeCa;
         var privateKey = Cert.getPrivateKey(keyStore, passwd, "ZegeFakeCa");
         var cert = Cert.generate(account, publicKey, "ZegeFakeCa", privateKey, 10000);
         var certEncoded = new Binary(cert.getEncoded());
