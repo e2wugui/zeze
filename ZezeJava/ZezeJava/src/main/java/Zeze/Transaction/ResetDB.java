@@ -3,6 +3,7 @@ package Zeze.Transaction;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import Zeze.Application;
@@ -55,6 +56,15 @@ public class ResetDB {
 				if (rmTable == null) {
 					continue;
 				}
+				Database.Table databaseTable = rmTable.GetStorage().getDatabaseTable();
+				AtomicBoolean empty = new AtomicBoolean(true);
+				databaseTable.Walk((key, value) -> {
+					empty.set(false);
+					return false;
+				});
+				if (empty.get()) {
+					continue;
+				}
 				String[] strs = otherTable.Name.split("_", 3);
 				String moduleName = "_" + strs[1] + "_";
 				removeModules.putIfAbsent(moduleName, 1);
@@ -75,6 +85,9 @@ public class ResetDB {
 	private static void removeTable(Database db, List<String> removeList) {
 		for (var rmTable : removeList) {
 			Table table = db.GetTable(rmTable);
+			if (table == null) {
+				continue;
+			}
 			Database.Transaction transaction = db.BeginTransaction();
 			Database.Table databaseTable = table.GetStorage().getDatabaseTable();
 			AtomicInteger count = new AtomicInteger();
