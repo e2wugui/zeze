@@ -62,6 +62,8 @@ public class Program {
 				break;
 			}
 		}
+		var account = getComputerName().toLowerCase(Locale.ROOT);
+		app.Zege_Linkd.setAccount(account);
 		if (links.isEmpty()) {
 			app.Start(linkIp, linkPort);
 		} else {
@@ -71,9 +73,7 @@ public class Program {
 		if (Counters.Enable)
 			counters.start();
 		try {
-			app.Connector.WaitReady();
-			var account = getComputerName().toLowerCase(Locale.ROOT);
-			app.Zege_Linkd.auth(account).await();
+			app.Zege_Linkd.waitAuthed();
 			app.Zeze_Builtin_Online.login(clientId).await();
 			Main = new MainWindow();
 			Windows.add(Main);

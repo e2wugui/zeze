@@ -2,18 +2,13 @@ package Zege;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import Zege.Linkd.Auth;
 import Zeze.Arch.LinkdApp;
 import Zeze.Arch.LinkdProvider;
 import Zeze.Arch.LoadConfig;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
-import Zeze.Net.Service;
-import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
-import Zeze.Util.Task;
-import Zeze.Web.HttpService;
 
 public class App extends Zeze.AppBase {
     public static final App Instance = new App();
@@ -44,18 +39,28 @@ public class App extends Zeze.AppBase {
         CreateModules();
         Zeze.Start(); // 启动数据库
         StartModules(); // 启动模块，装载配置什么的。
+
+        // 直接发送Server-Provider支持的Rpc，但这个Rpc没有通过普通的Service注册。
+        // 需要特别处理，由于Server接受任何支持的Rpc，但Rpc-Result要特别注册。
+        // 已改成让linkd引入User模块，直接支持User的协议并且直接转发的方式处理。
+        // 新的方式让linkd明确知道User模块的协议。
+        /*
         var factoryHandle = new Service.ProtocolFactoryHandle<>();
         factoryHandle.Factory = Auth::new;
         factoryHandle.Level = TransactionLevel.None;
         ProviderService.AddFactoryHandle(Auth.TypeId_, factoryHandle);
+        */
         AsyncSocket.setSessionIdGenFunc(PersistentAtomicLong.getOrAdd(LinkdApp.GetName())::next);
         StartService(); // 启动网络
         LinkdApp.RegisterService(null);
 
+        // 基于linkd转发的Web服务，考虑移除，需要在Server实现Web请使用基于Netty-Http的Web。
+        /*
         LinkdApp.HttpService = new HttpService(LinkdApp, 80, Task.getThreadPool());
         // 如果需要拦截验证请求在linkd处理。在这里注册，
         // HttpService.interceptAuthContext("/myapp/myauth", new MyHttpAuth(HttpService));
         LinkdApp.HttpService.start();
+        */
     }
 
     public void Stop() throws Throwable {

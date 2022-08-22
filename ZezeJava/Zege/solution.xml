@@ -5,8 +5,6 @@
 	<import file="../ZezeJava/solution.zeze.xml"/>
 
 	<module name="User" id="1">
-		修改 id 必须同时修改 solution.linkd.xml:Zezex.Linkd.BAuth.ProviderUserModuleId. Linkd转发需要知道。
-
 		<bean name="BUser">
 			<!-- 基本信息 -->
 			<variable id="1" name="Account"    type="string" />
@@ -43,8 +41,6 @@
 		<table name="tIdentiryCard" key="string" value="BAccount" /> key is identirycard
 		<table name="tPhone"        key="string" value="BAccounts" /> key is phone
 
-		<protocolref ref="Zege.Linkd.Auth" />
-
 		<!-- Rsa 签字验证 -->
 		<bean name="BTokenRsa">
 			<variable id="1" name="Sign" type="binary" />
@@ -56,36 +52,45 @@
 			<variable id="1" name="Message" type="string" />
 		</bean>
 
-		<!--
-		http sevlet
-		这里定义成rpc，用来说明参数。
-		以后需要直接支持rpc时，去掉注释。并实现。
-		-->
+		<!-- protocol -->
 		<enum name="RCAccountExist" value="1"/>
 		<enum name="RCCertInvalid" value="1"/>
 
-		<bean name="CreateArgument">
+		<bean name="BPrepare">
+			<variable id="1" name="Account"  type="string" />
+		</bean>
+
+		<bean name="BPrepareResult">
+			<variable id="1" name="RandomData" type="binary" />
+		</bean>
+
+		<rpc name="Prepare" argument="BPrepare" result="BPrepareResult" handle="server" />
+
+		<bean name="BCreateArgument">
 			<variable id="1" name="Account" type="string" />
 			<variable id="2" name="RsaPublicKey" type="binary" />
+			<variable id="3" name="Signed" type="binary" />
 		</bean>
-		<bean name="CreateResult">
+		<bean name="BCreateResult">
 			<variable id="1" name="Cert" type="binary" /> der format
 		</bean>
-		<rpc name="Create" argument="CreateArgument" result="CreateResult" handle="server" />
+		<rpc name="Create" argument="BCreateArgument" result="BCreateResult" handle="server" />
 
-		<bean name="CreateWithCertArgument">
+		<bean name="BCreateWithCertArgument">
 			<variable id="1" name="Account" type="string" /> 用来确认。客户端可简化为自动填充。
 			<variable id="2" name="Cert" type="binary" /> der format
+			<variable id="3" name="Signed" type="binary" />
 		</bean>
-		<rpc name="CreateWithCert" argument="CreateWithCertArgument" handle="server" />
+		<rpc name="CreateWithCert" argument="BCreateWithCertArgument" handle="server" />
 
-		<bean name="VerifyChallengeResultArgument">
-			<variable id="1" name="RandomData" type="binary" />
-			<variable id="2" name="Signed" type="binary" />
+		<bean name="BVerifyChallengeResultArgument">
+			<variable id="1" name="Account" type="string" />
+			<variable id="2" name="RandomData" type="binary" />
+			<variable id="3" name="Signed" type="binary" />
 		</bean>
+		<rpc name="VerifyChallengeResult" argument="BVerifyChallengeResultArgument" handle="server" />
 
-		<rpc name="VerifyChallengeResult" argument="VerifyChallengeResultArgument" handle="server" />
-
+		<servlet name="Prepare"/>
 		<servlet name="Create"/>
 		<servlet name="CreateWithCert"/>
 
