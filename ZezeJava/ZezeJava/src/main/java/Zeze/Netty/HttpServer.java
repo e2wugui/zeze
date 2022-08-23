@@ -100,7 +100,16 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 
 		@Override
 		public void userEventTriggered(ChannelHandlerContext ctx, Object evt) {
-			if (evt == ChannelInputShutdownReadComplete.INSTANCE || evt == ChannelInputShutdownEvent.INSTANCE) {
+			if (evt == ChannelInputShutdownEvent.INSTANCE) {
+				var he = exchanges.get(ctx);
+				if (he != null)
+					he.close(HttpExchange.CLOSE_PASSIVE, null);
+				else if (!ctx.channel().closeFuture().isDone()) {
+					Netty.logger.info("disconnect: {}", ctx.channel().remoteAddress());
+					ctx.close();
+				}
+			} else if (evt == ChannelInputShutdownReadComplete.INSTANCE && !ctx.channel().closeFuture().isDone()) {
+				Netty.logger.info("inputClose: {}", ctx.channel().remoteAddress());
 				var he = exchanges.get(ctx);
 				if (he != null)
 					he.channelReadClosed();

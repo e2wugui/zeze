@@ -41,10 +41,11 @@ public class HttpExchange {
 	static final int CHECK_IDLE_INTERVAL = 5; // 检查连接状态间隔(秒)
 	static final int IDLE_TIMEOUT = 60; // 主动断开的超时时间(秒)
 
-	private static final int CLOSE_FINISH = 0; // 正常结束HttpExchange,不关闭连接
-	private static final int CLOSE_ON_FLUSH = 1; // 结束HttpExchange,发送完时关闭连接
-	private static final int CLOSE_FORCE = 2; // 结束HttpExchange,不等发送完强制关闭连接
-	private static final int CLOSE_TIMEOUT = 3; // 同上,只是因idle超时而关闭
+	static final int CLOSE_FINISH = 0; // 正常结束HttpExchange,不关闭连接
+	static final int CLOSE_ON_FLUSH = 1; // 结束HttpExchange,发送完时关闭连接
+	static final int CLOSE_FORCE = 2; // 结束HttpExchange,不等发送完强制关闭连接
+	static final int CLOSE_TIMEOUT = 3; // 同上,只是因idle超时而关闭
+	static final int CLOSE_PASSIVE = 4; // 同上,只是因远程主动关闭而关闭
 
 	private final HttpServer server;
 	private final ChannelHandlerContext context;
@@ -194,7 +195,8 @@ public class HttpExchange {
 						totalContentSize, handler.MaxContentLength, context.channel().remoteAddress());
 				closeConnectionNow();
 			} else if (handler.isStreamMode()) {
-				fireStreamContentHandle(c);
+				if (n > 0)
+					fireStreamContentHandle(c);
 				if (msg instanceof LastHttpContent)
 					fireEndStreamHandle();
 			} else {
@@ -315,17 +317,23 @@ public class HttpExchange {
 			context.close();
 	}
 
-	private void close(int method, ChannelFuture future) {
+	void close(int method, ChannelFuture future) {
 		var removed = server.exchanges.remove(context) != null;
 		if (method != CLOSE_FINISH) {
 			willCloseConnection = true;
 			Netty.logger.info("close({}): {}", method, context.channel().remoteAddress());
 		}
-		if (method >= CLOSE_FORCE) { // or CLOSE_TIMEOUT
-			context.channel().eventLoop().execute(() -> {
+		if (method >= CLOSE_FORCE) { // or CLOSE_TIMEOUT or CLOSE_PASSIVE
+			var eventLoop = context.channel().eventLoop();
+			if (eventLoop.inEventLoop()) {
 				context.flush();
 				closeInEventLoop();
-			});
+			} else {
+				eventLoop.execute(() -> {
+					context.flush();
+					closeInEventLoop();
+				});
+			}
 		} else if (removed) {
 			(future != null ? future : context.writeAndFlush(Unpooled.EMPTY_BUFFER))
 					.addListener(__ -> closeInEventLoop());
@@ -439,7 +447,8 @@ public class HttpExchange {
 		var future = context.write(res);
 
 		if (downloadLength > 0) {
-			close(context.writeAndFlush(new DefaultFileRegion(raf.getChannel(), from.Value, downloadLength)));
+			future = context.writeAndFlush(new DefaultFileRegion(raf.getChannel(), from.Value, downloadLength));
+			close(future.addListener(__ -> raf.close()));
 			// 发文件任务全部交给Netty，并且发送完毕时关闭。
 		} else {
 			context.flush();

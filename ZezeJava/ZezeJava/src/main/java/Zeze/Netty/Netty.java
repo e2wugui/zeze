@@ -32,7 +32,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class Netty implements Closeable {
-	static final Logger logger = LogManager.getLogger(HttpExchange.class);
+	static final Logger logger = LogManager.getLogger(Netty.class);
 	private static final ZoneId zoneId = ZoneId.of("GMT");
 	private static long lastSecond;
 	private static String lastDateStr;
