@@ -10,7 +10,8 @@ public class ProviderWithOnline extends ProviderImplement {
 	protected long ProcessLinkBroken(LinkBroken p) throws Throwable {
 		// 目前仅需设置online状态。
 		if (!p.Argument.getContext().isEmpty()) {
-			Online.OnLinkBroken(p.Argument.getAccount(), p.Argument.getContext(), p.Argument);
+			Online.OnLinkBroken(p.Argument.getAccount(), p.Argument.getContext(),
+					ProviderService.GetLinkName(p.getSender()), p.Argument.getLinkSid());
 		}
 		return Procedure.Success;
 	}

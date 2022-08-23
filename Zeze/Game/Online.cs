@@ -215,13 +215,13 @@ namespace Zeze.Game
             _LoginTimes.IncrementAndGet();
         }
 
-        public async Task OnLinkBroken(long roleId, BLinkBroken arg)
+        public async Task OnLinkBroken(long roleId, string linkName, long linkSid)
         {
             long currentLoginVersion = 0;
             {
                 var online = await _tonline.GetAsync(roleId);
                 // skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
-                if (null == online || online.LinkSid != arg.LinkSid)
+                if (null == online || false == online.LinkName.Equals(linkName) || online.LinkSid != linkSid)
                     return;
                 var version = await _tversion.GetOrAddAsync(roleId);
 
@@ -359,7 +359,8 @@ namespace Zeze.Game
             public AsyncSocket LinkSocket { get; set; } // null if not online
             public int ServerId { get; set; } = -1;
             public long ProviderSessionId { get; set; }
-            public Dictionary<long, long> Roles { get; } = new();
+            public Dictionary<long, long> Roles { get; } = new(); // roleid -> linksid
+            public Dictionary<long, long> Contexts { get; } = new(); // linksid -> roleid
         }
 
         public async Task<ICollection<RoleOnLink>> GroupByLink(ICollection<long> roleIds)
@@ -400,8 +401,27 @@ namespace Zeze.Game
                     groups.Add(group.LinkName, group);
                 }
                 group.Roles.TryAdd(roleId, online.LinkSid);
+                group.Contexts.TryAdd(online.LinkSid, roleId);
             }
             return groups.Values;
+        }
+
+        private async Task<long> TriggerLinkBroken(string linkName, ICollection<long> errorSids, Dictionary<long, long> context)
+        {
+            foreach (var sid in errorSids)
+            {
+                if (context.TryGetValue(sid, out var roleId))
+                    await OnLinkBroken(roleId, linkName, sid);
+            }
+            return 0;
+        }
+
+        public void Send(AsyncSocket to, Dictionary<long, long> context, Send send)
+        {
+            send.Send(to, async (rpc) => await TriggerLinkBroken(
+                ProviderService.GetLinkName(to),
+                send.IsTimeout ? send.Argument.LinkSids : send.Result.ErrorLinkSids,
+                context));
         }
 
         public async Task SendEmbed(ICollection<long> roles, long typeId, Binary fullEncodedProtocol)
@@ -419,7 +439,7 @@ namespace Zeze.Game
                         send.Argument.ProtocolType = typeId;
                         send.Argument.ProtocolWholeData = fullEncodedProtocol;
                         send.Argument.LinkSids.UnionWith(group.Roles.Values);
-                        group.LinkSocket.Send(send);
+                        Send(group.LinkSocket, group.Contexts, send);
                 }
             });
         }

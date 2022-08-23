@@ -1,7 +1,7 @@
 // auto-generated @formatter:off
 package Zeze.Builtin.Provider;
 
-public class Send extends Zeze.Net.Protocol<Zeze.Builtin.Provider.BSend> {
+public class Send extends Zeze.Net.Rpc<Zeze.Builtin.Provider.BSend, Zeze.Builtin.Provider.BSendResult> {
     public static final int ModuleId_ = 11008;
     public static final int ProtocolId_ = -2067963426; // 2227003870
     public static final long TypeId_ = Zeze.Net.Protocol.MakeTypeId(ModuleId_, ProtocolId_); // 47281226998238
@@ -18,5 +18,6 @@ public class Send extends Zeze.Net.Protocol<Zeze.Builtin.Provider.BSend> {
 
     public Send() {
         Argument = new Zeze.Builtin.Provider.BSend();
+        Result = new Zeze.Builtin.Provider.BSendResult();
     }
 }

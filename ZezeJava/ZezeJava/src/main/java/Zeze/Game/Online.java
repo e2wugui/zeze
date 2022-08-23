@@ -262,12 +262,12 @@ public class Online extends AbstractOnline {
 		Transaction.whileCommit(() -> reloginEvents.triggerThread(this, arg));
 	}
 
-	public final void onLinkBroken(long roleId, BLinkBroken arg) throws Throwable {
+	public final void onLinkBroken(long roleId, String linkName, long linkSid) throws Throwable {
 		long currentLoginVersion;
 		{
 			var online = _tonline.get(roleId);
 			// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
-			if (online == null || online.getLinkSid() != arg.getLinkSid())
+			if (online == null || !online.getLinkName().equals(linkName) || online.getLinkSid() != linkSid)
 				return;
 			var version = _tversion.getOrAdd(roleId);
 			var local = _tlocal.get(roleId);
@@ -356,6 +356,22 @@ public class Online extends AbstractOnline {
 		}, "Game.Online.send"), null, null, DispatchMode.Normal);
 	}
 
+	private long triggerLinkBroken(String linkName, Collection<Long> errorSids, HashMap<Long, Long> context) throws Throwable {
+		for (var sid : errorSids) {
+			var roleId = context.get(sid);
+			if (null != roleId)
+				onLinkBroken(roleId, linkName, sid);
+		}
+		return 0;
+	}
+
+	public void send(AsyncSocket to, HashMap<Long, Long> contexts, Send send) {
+		send.Send(to, (rpc) -> triggerLinkBroken(
+			Zeze.Arch.ProviderService.GetLinkName(to),
+			send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(),
+			contexts));
+	}
+
 	public void sendEmbed(Iterable<Long> roleIds, long typeId, Binary fullEncodedProtocol) {
 		// 发送消息为了用上TaskOneByOne，只能一个一个发送，为了少改代码，先使用旧的GroupByLink接口。
 		var groups = groupByLink(roleIds);
@@ -368,7 +384,7 @@ public class Online extends AbstractOnline {
 				send.Argument.setProtocolType(typeId);
 				send.Argument.setProtocolWholeData(fullEncodedProtocol);
 				send.Argument.getLinkSids().addAll(group.roles.values());
-				group.linkSocket.Send(send);
+				send(group.linkSocket, group.contexts, send);
 			}
 		});
 	}
@@ -378,7 +394,8 @@ public class Online extends AbstractOnline {
 		AsyncSocket linkSocket;
 		int serverId = -1;
 		//		long providerSessionId;
-		final HashMap<Long, Long> roles = new HashMap<>();
+		final HashMap<Long, Long> roles = new HashMap<>(); // roleid -> linksid
+		final HashMap<Long, Long> contexts = new HashMap<>(); // linksid -> roleid
 	}
 
 	public final Collection<RoleOnLink> groupByLink(Iterable<Long> roleIds) {
@@ -413,6 +430,7 @@ public class Online extends AbstractOnline {
 				groups.put(group.linkName, group);
 			}
 			group.roles.putIfAbsent(roleId, online.getLinkSid());
+			group.contexts.putIfAbsent(online.getLinkSid(), roleId);
 		}
 		return groups.values();
 	}

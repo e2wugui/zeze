@@ -37,6 +37,11 @@ namespace Zeze.Arch
                 Handle = ProcessLinkBroken,
                 TransactionLevel = _reflect.GetTransactionLevel("ProcessLinkBrokenp", Zeze.Transaction.TransactionLevel.Serializable),
             });
+            service.AddFactoryHandle(47281226998238, new Zeze.Net.Service.ProtocolFactoryHandle()
+            {
+                Factory = () => new Zeze.Builtin.Provider.Send(),
+                TransactionLevel = _reflect.GetTransactionLevel("ProcessSendRequest", Zeze.Transaction.TransactionLevel.Serializable),
+            });
             service.AddFactoryHandle(47280110454586, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Builtin.Provider.Subscribe(),
@@ -55,6 +60,7 @@ namespace Zeze.Arch
             service.Factorys.TryRemove(47279114253990, out var _);
             service.Factorys.TryRemove(47280285301785, out var _);
             service.Factorys.TryRemove(47281652939086, out var _);
+            service.Factorys.TryRemove(47281226998238, out var _);
             service.Factorys.TryRemove(47280110454586, out var _);
             service.Factorys.TryRemove(47281107578964, out var _);
         }

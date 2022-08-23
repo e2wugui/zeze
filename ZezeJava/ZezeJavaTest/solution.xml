@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 
 <solution name="demo" ModuleIdAllowRanges="1-3,5">
+	<import file="demo2.xml"/>
 
 	<bean name="Bean1">
 		<enum name="Enum1" value="4"/>
@@ -118,6 +119,8 @@
 		<!-- service 生成到 solution 名字空间下 -->
 		<service name="Server" handle="server" base="Zeze.Services.HandshakeServer">
 			<module ref="Module1"/>
+			<module ref="M6"/>
+			<module ref="demo.M6.M7"/>
 		</service>
 	</project>
 

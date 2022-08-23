@@ -205,7 +205,7 @@ namespace Zeze.Arch
             _LoginTimes.IncrementAndGet();
         }
 
-        public async Task OnLinkBroken(string account, string clientId, BLinkBroken arg)
+        public async Task OnLinkBroken(string account, string clientId, long linkSid, string linkName)
         {
             long currentLoginVersion = 0;
             {
@@ -213,7 +213,7 @@ namespace Zeze.Arch
                 if (false == online.Logins.TryGetValue(clientId, out var loginOnline))
                     return;
                 // skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
-                if (loginOnline.LinkSid != arg.LinkSid)
+                if (false == loginOnline.LinkName.Equals(linkName) || loginOnline.LinkSid != linkSid)
                     return;
 
                 var version = await _tversion.GetOrAddAsync(account);
@@ -363,6 +363,7 @@ namespace Zeze.Arch
             public int ServerId { get; set; } = -1;
             public long ProviderSessionId { get; set; }
             public Dictionary<LoginKey, long> Logins { get; } = new();
+            public Dictionary<long, (string, string)> Contexts { get; } = new(); // linkSid -> (account, clientId)
         }
 
         public class LoginKey
@@ -440,8 +441,27 @@ namespace Zeze.Arch
                     groups.Add(group.LinkName, group);
                 }
                 group.Logins.TryAdd(alogin, login.LinkSid);
+                group.Contexts.TryAdd(login.LinkSid, (alogin.Account, alogin.ClientId)); // 忽略Try错误，或者更严格点，使用Add？
             }
             return groups.Values;
+        }
+
+        private async Task<long> TriggerLinkBroken(string linkName, ICollection<long> errorSids, Dictionary<long, (string, string)> context)
+        {
+            foreach (var sid in errorSids)
+            {
+                if (context.TryGetValue(sid, out var ctx))
+                    await OnLinkBroken(ctx.Item1, ctx.Item2, sid, linkName);
+            }
+            return 0;
+        }
+
+        public void Send(AsyncSocket to, Dictionary<long, (string, string)> context, Send send)
+        {
+            send.Send(to, async (rpc) => await TriggerLinkBroken(
+                ProviderService.GetLinkName(to),
+                send.IsTimeout ? send.Argument.LinkSids : send.Result.ErrorLinkSids,
+                context));
         }
 
         public async Task SendEmbed(ICollection<LoginKey> logins, long typeId, Binary fullEncodedProtocol)
@@ -458,7 +478,7 @@ namespace Zeze.Arch
                     send.Argument.ProtocolType = typeId;
                     send.Argument.ProtocolWholeData = fullEncodedProtocol;
                     send.Argument.LinkSids.UnionWith(group.Logins.Values);
-                    group.LinkSocket.Send(send);
+                    Send(group.LinkSocket, group.Contexts, send);
                 }
             });
         }
@@ -576,7 +596,7 @@ namespace Zeze.Arch
                         send.Argument.ProtocolType = typeId;
                         send.Argument.ProtocolWholeData = fullEncodedProtocol;
                         send.Argument.LinkSids.UnionWith(group.Logins.Values);
-                        group.LinkSocket.Send(send);
+                        Send(group.LinkSocket, group.Contexts, send);
                     }
                 }
                 else

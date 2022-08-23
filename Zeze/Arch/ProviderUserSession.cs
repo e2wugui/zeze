@@ -41,6 +41,26 @@ namespace Zeze.Arch
             SendResponse(Zeze.Serialize.ByteBuffer.Wrap(fullEncodedProtocol).ReadInt4(), fullEncodedProtocol);
         }
 
+        private void SendOnline(AsyncSocket link, Send send)
+        {
+            if (Service.ProviderApp.ProviderImplement is ProviderImplementWithOnline arch)
+            {
+                var context = new Dictionary<long, (string, string)>();
+                context.Add(LinkSid, (Account, Context));
+                arch.Online.Send(link, context, send);
+            }
+            else if (Service.ProviderApp.ProviderImplement is Game.ProviderImplementWithOnline game)
+            {
+                var context = new Dictionary<long, long>();
+                context.Add(LinkSid, RoleId.Value);
+                game.Online.Send(link, context, send);
+            }
+            else
+            {
+                link.Send(send);
+            }
+        }
+
         public void SendResponse(long typeId, Zeze.Net.Binary fullEncodedProtocol)
         {
             var send = new Send();
@@ -50,7 +70,7 @@ namespace Zeze.Arch
 
             if (null != Link && null != Link.Socket)
             {
-                Link.Send(send);
+                SendOnline(Link, send);
                 return;
             }
             // 可能发生了重连，尝试再次查找发送。网络断开以后，已经不可靠了，先这样写着吧。
@@ -59,7 +79,7 @@ namespace Zeze.Arch
                 if (link.IsHandshakeDone)
                 {
                     Link = link.Socket;
-                    link.Socket.Send(send);
+                    SendOnline(Link, send);
                 }
             }
         }

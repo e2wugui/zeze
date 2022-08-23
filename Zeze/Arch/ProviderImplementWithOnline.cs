@@ -20,7 +20,7 @@ namespace Zeze.Arch
             // 目前仅需设置online状态。
             if (false == string.IsNullOrEmpty(p.Argument.Context))
             {
-                await Online.OnLinkBroken(p.Argument.Account, p.Argument.Context, p.Argument);
+                await Online.OnLinkBroken(p.Argument.Account, p.Argument.Context, p.Argument.LinkSid, ProviderService.GetLinkName(p.Sender));
             }
             return Procedure.Success;
         }

@@ -13,7 +13,8 @@
 			<variable id="4" name="NickName"   type="string" /> 不唯一
 
 			<!-- 证书 -->
-			<variable id="20" name="Cert" type="binary" />
+			<variable id="20" name="LastCertIndex" type="int" default="-1" />
+			<variable id="21" name="CertsMap"      type="map[int, binary]" />
 
 			<!-- 实名 -->
 			<enum name="RealFlagIdentityCard" value="1" />
@@ -40,17 +41,6 @@
 		<table name="tUser"         key="string" value="BUser" /> key is account
 		<table name="tIdentiryCard" key="string" value="BAccount" /> key is identirycard
 		<table name="tPhone"        key="string" value="BAccounts" /> key is phone
-
-		<!-- Rsa 签字验证 -->
-		<bean name="BTokenRsa">
-			<variable id="1" name="Sign" type="binary" />
-			<variable id="2" name="SecureIndex" type="int" />
-		</bean>
-
-		<!-- 短信验证 -->
-		<bean name="BTokenPhoneMessage">
-			<variable id="1" name="Message" type="string" />
-		</bean>
 
 		<!-- protocol -->
 		<enum name="RCAccountExist" value="1"/>
@@ -174,7 +164,7 @@
 			<variable id="2" name="Managers" type="map[string,BManager]"/> 管理员
 			<variable id="4" name="Childs" type="map" key="string" value="long" /> name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
 		</bean>
-		<rpc name="GetGroupRoot"      argument="BDepartmentId" result="BGroup" handle="server"/>
+		<rpc name="GetGroupRoot" argument="BDepartmentId" result="BGroup" handle="server"/>
 
 		<bean name="BMemberNode">
 			<variable id="1" name="PrevNodeId" type="long"/>
@@ -212,9 +202,9 @@
 
 	<module name="Message" id="3">
 		<bean name="BMessageRoot">
-			<variable id="1" name="NextMessageId" type="long" />
+			<variable id="1" name="NextMessageId"  type="long" />
 			<variable id="2" name="FirstMessageId" type="long" />
-			<variable id="3" name="LastMessageId" type="long" />
+			<variable id="3" name="LastMessageId"  type="long" />
 
 			多个客户端同时登录时，一个设置，其他得到已读通知。
 			已读的条件是消息同步发送给客户端就算已读？
@@ -247,18 +237,18 @@
 			<enum name="TypeText"   value="0"/> 文本聊天消息，加密的
 			<enum name="TypeEmoji"  value="1"/> 自定义表情消息，加密的
 
-			<variable id="1" name="MessageType" type="int" />
+			<variable id="1" name="MessageType"    type="int" />
 			<variable id="2" name="SecureKeyIndex" type="int" />
-			<variable id="3" name="SecureMessage" type="binary" />
-			<variable id="4" name="From"          type="string" /> 发送用户，服务器填写
-			<variable id="5" name="Group"         type="string" /> 群消息才填写，服务器填写，
+			<variable id="3" name="SecureMessage"  type="binary" />
+			<variable id="4" name="From"           type="string" /> 发送用户，服务器填写
+			<variable id="5" name="Group"          type="string" /> 群消息才填写，服务器填写，
 			<variable id="6" name="DepartmentId"   type="long" /> 群消息才填写，服务器填写。
 		</bean>
 		
 		<!-- 好友消息历史 -->
 		<beankey name="BFriendMessageKey">
-			<variable id="1" name="Owner" type="string" />
-			<variable id="2" name="Friend" type="string" />
+			<variable id="1" name="Owner"     type="string" />
+			<variable id="2" name="Friend"    type="string" />
 			<variable id="3" name="MessageId" type="long" />
 		</beankey>
 		<beankey name="BFriendKey">

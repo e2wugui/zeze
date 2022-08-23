@@ -1,6 +1,7 @@
 package Zeze.Game;
 
 import Zeze.Arch.ProviderImplement;
+import Zeze.Arch.ProviderService;
 import Zeze.Builtin.Provider.LinkBroken;
 import Zeze.Transaction.Procedure;
 
@@ -12,7 +13,7 @@ public class ProviderImplementWithOnline extends ProviderImplement {
 		// 目前仅需设置online状态。
 		if (!p.Argument.getContext().isEmpty()) {
 			var roleId = Long.parseLong(p.Argument.getContext());
-			Online.onLinkBroken(roleId, p.Argument);
+			Online.onLinkBroken(roleId, ProviderService.GetLinkName(p.getSender()), p.Argument.getLinkSid());
 		}
 		return Procedure.Success;
 	}

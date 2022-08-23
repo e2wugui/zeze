@@ -274,7 +274,11 @@
 				<variable name="protocolWholeData" id="3" type="binary"/> 完整的协议打包，包括了 type, size
 			</bean>
 
-			<protocol name="Send" argument="BSend" handle="client"/>
+			<bean name="BSendResult">
+				<variable name="ErrorLinkSids" id="1" type="set" value="long"/>
+			</bean>
+
+			<rpc name="Send" argument="BSend" result="BSendResult" handle="client"/>
 
 			<bean name="BBroadcast">
 				<variable name="protocolType"      id="1" type="long"/>

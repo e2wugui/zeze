@@ -54,9 +54,9 @@ public abstract class AbstractLinkdProvider extends Zeze.IModule {
         {
             var factoryHandle = new Zeze.Net.Service.ProtocolFactoryHandle<Zeze.Builtin.Provider.Send>();
             factoryHandle.Factory = Zeze.Builtin.Provider.Send::new;
-            factoryHandle.Handle = this::ProcessSend;
-            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSend", Zeze.Transaction.TransactionLevel.Serializable);
-            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSend", Zeze.Transaction.DispatchMode.Normal);
+            factoryHandle.Handle = this::ProcessSendRequest;
+            factoryHandle.Level = _reflect.getTransactionLevel("ProcessSendRequest", Zeze.Transaction.TransactionLevel.Serializable);
+            factoryHandle.Mode = _reflect.getDispatchMode("ProcessSendRequest", Zeze.Transaction.DispatchMode.Normal);
             service.AddFactoryHandle(47281226998238L, factoryHandle); // 11008, -2067963426
         }
         {
@@ -145,7 +145,7 @@ public abstract class AbstractLinkdProvider extends Zeze.IModule {
     protected abstract long ProcessBindRequest(Zeze.Builtin.Provider.Bind r) throws Throwable;
     protected abstract long ProcessBroadcast(Zeze.Builtin.Provider.Broadcast p) throws Throwable;
     protected abstract long ProcessKick(Zeze.Builtin.Provider.Kick p) throws Throwable;
-    protected abstract long ProcessSend(Zeze.Builtin.Provider.Send p) throws Throwable;
+    protected abstract long ProcessSendRequest(Zeze.Builtin.Provider.Send r) throws Throwable;
     protected abstract long ProcessSetUserState(Zeze.Builtin.Provider.SetUserState p) throws Throwable;
     protected abstract long ProcessSubscribeRequest(Zeze.Builtin.Provider.Subscribe r) throws Throwable;
     protected abstract long ProcessUnBindRequest(Zeze.Builtin.Provider.UnBind r) throws Throwable;

@@ -86,7 +86,11 @@ namespace Zeze.Gen
         public void Depends(HashSet<Module> unique, List<Module> ordered)
         {
             if (false == unique.Add(this))
-                throw new Exception("Module ref duplicate: " + Path());
+            {
+                //throw new Exception("Module ref duplicate: " + Path());
+                return;
+            }
+
             ordered.Add(this);
 
             foreach (Module module in this.Modules.Values)

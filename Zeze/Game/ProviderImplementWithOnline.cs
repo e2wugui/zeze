@@ -21,7 +21,7 @@ namespace Zeze.Game
             if (false == string.IsNullOrEmpty(p.Argument.Context))
             {
                 var roleId = long.Parse(p.Argument.Context);
-                await Online.OnLinkBroken(roleId, p.Argument);
+                await Online.OnLinkBroken(roleId, ProviderService.GetLinkName(p.Sender), p.Argument.LinkSid);
             }
             return Procedure.Success;
         }
