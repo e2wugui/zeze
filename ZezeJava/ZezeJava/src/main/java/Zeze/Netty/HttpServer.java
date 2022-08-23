@@ -4,10 +4,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.FewModifyMap;
-import io.netty.buffer.ByteBuf;
+import Zeze.Util.Task;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
+import io.netty.channel.socket.ChannelInputShutdownEvent;
+import io.netty.channel.socket.ChannelInputShutdownReadComplete;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
@@ -21,15 +25,19 @@ public class HttpServer extends ChannelInitializer<SocketChannel> {
 	final ConcurrentHashMap<ChannelHandlerContext, HttpExchange> exchanges = new ConcurrentHashMap<>();
 
 	public HttpServer() {
-		zeze = null;
-		fileHome = null;
-		fileCacheSeconds = 10 * 60;
+		this(null, null, 10 * 60);
 	}
 
 	public HttpServer(Zeze.Application zeze, String fileHome, int fileCacheSeconds) {
 		this.zeze = zeze;
 		this.fileHome = fileHome;
 		this.fileCacheSeconds = fileCacheSeconds;
+
+		Task.schedule(HttpExchange.CHECK_IDLE_INTERVAL * 1000, HttpExchange.CHECK_IDLE_INTERVAL * 1000, () -> {
+			for (HttpExchange he : exchanges.values())
+				if (he.addReadIdleTimeAndCheckTimeout())
+					he.close();
+		});
 	}
 
 	public void addHandler(String path, int maxContentLength, TransactionLevel level, DispatchMode mode,
@@ -67,6 +75,17 @@ public class HttpServer extends ChannelInitializer<SocketChannel> {
 				throw new RuntimeException(e);
 			} finally {
 				ReferenceCountUtil.release(msg);
+			}
+		}
+
+		@Override
+		public void userEventTriggered(ChannelHandlerContext ctx, Object evt) {
+			if (evt == ChannelInputShutdownReadComplete.INSTANCE || evt == ChannelInputShutdownEvent.INSTANCE) {
+				var he = exchanges.get(ctx);
+				if (he != null)
+					he.channelReadClosed();
+				else
+					ctx.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
 			}
 		}
 

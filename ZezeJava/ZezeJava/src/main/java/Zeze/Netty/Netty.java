@@ -88,6 +88,7 @@ public class Netty {
 				.option(ChannelOption.SO_BACKLOG, 8192)
 				.option(ChannelOption.SO_REUSEADDR, true)
 				.childOption(ChannelOption.SO_REUSEADDR, true)
+				.childOption(ChannelOption.ALLOW_HALF_CLOSURE, true)
 				.channel(serverChannelClass)
 				.childHandler(handler)
 				.bind(port);

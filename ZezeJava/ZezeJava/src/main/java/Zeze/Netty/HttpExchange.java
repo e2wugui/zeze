@@ -3,7 +3,6 @@ package Zeze.Netty;
 import java.io.Closeable;
 import java.io.File;
 import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
@@ -41,14 +40,19 @@ import io.netty.util.AttributeMap;
 import io.netty.util.ReferenceCounted;
 
 public class HttpExchange implements Closeable {
+	static final int CHECK_IDLE_INTERVAL = 5; // 检查连接间隔(秒)
+	static final int IDLE_TIMEOUT = 120; // 超时 检查连接间隔(秒)
+
 	private final HttpServer server;
 	private final ChannelHandlerContext context;
 	private HttpRequest request;
 	private HttpHandler handler;
 	private final List<HttpContent> contents = new ArrayList<>(); // 只用于非流模式
 	private long totalContentSize;
-	private ByteBuffer contentFull;
+	private ByteBuf contentFull;
 	private String path; // 保存path，优化！
+	private int idleTime; // 当前统计的idle时间(秒)
+	private int outBufHash;
 	private boolean sending = false;
 
 	public HttpExchange(HttpServer server, ChannelHandlerContext context) {
@@ -111,32 +115,42 @@ public class HttpExchange implements Closeable {
 		return request.headers();
 	}
 
-	// 对称的话，这里应该返回Netty.ByteBuf。不熟悉，先用这个。
-	public ByteBuffer content() {
-		if (null == contentFull) {
-			synchronized (this) {
-				switch (contents.size()) {
-				case 0:
-					contentFull = ByteBuffer.allocate(0);
-					break;
-				case 1:
-					var c0 = contents.get(0).content();
-					contentFull = ByteBuffer.wrap(c0.array(), c0.arrayOffset(), c0.readableBytes());
-					break;
-				default:
-					contentFull = ByteBuffer.allocate((int)totalContentSize); // 非流模式限制不会超过int最大值
-					for (var ci : contents) {
-						var cc = ci.content();
-						contentFull.put(cc.array(), cc.arrayOffset(), cc.readableBytes());
-					}
-					break;
-				}
-			}
-		}
+	public ByteBuf content() {
 		return contentFull;
 	}
 
+	boolean addReadIdleTimeAndCheckTimeout() {
+		if ((idleTime += CHECK_IDLE_INTERVAL) < IDLE_TIMEOUT / 2) // 前半段IDLE_TIMEOUT期间只判断读超时
+			return false;
+
+		var outBuf = context.channel().unsafe().outboundBuffer();
+		if (outBuf != null) {
+			int hash = System.identityHashCode(outBuf.current()) ^ Long.hashCode(outBuf.currentProgress());
+			if (hash != outBufHash) { // 后半段IDLE_TIMEOUT期间每次都判断写buffer的状态是否有变化,有变化则重新idle计时
+				outBufHash = hash;
+				idleTime = 0;
+				return false;
+			}
+		}
+		return idleTime >= IDLE_TIMEOUT; // 至少有IDLE_TIMEOUT的时间没有任何读写了,就返回true
+	}
+
 	private void fireFullRequestHandle() throws Exception {
+		switch (contents.size()) {
+		case 0:
+			contentFull = Unpooled.EMPTY_BUFFER;
+			break;
+		case 1:
+			contentFull = contents.get(0).content();
+			break;
+		default:
+			var cbuf = context.alloc().compositeBuffer();
+			for (var ci : contents)
+				cbuf.addComponent(ci.content());
+			contentFull = cbuf;
+			break;
+		}
+
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
 			Task.run(server.zeze.NewProcedure(() -> {
 				//noinspection ConstantConditions
@@ -150,6 +164,8 @@ public class HttpExchange implements Closeable {
 	}
 
 	void channelRead(Object msg) throws Exception {
+		idleTime = 0;
+
 		if (msg instanceof FullHttpRequest) {
 			var full = ((FullHttpRequest)msg).retain();
 			request = full;
@@ -161,9 +177,7 @@ public class HttpExchange implements Closeable {
 				fireEndStreamHandle();
 				tryClose();
 			} else {
-				synchronized (this) {
-					contents.add(full.retain());
-				}
+				contents.add(full.retain());
 				fireFullRequestHandle();
 				tryClose();
 			}
@@ -201,9 +215,7 @@ public class HttpExchange implements Closeable {
 				return; // done
 			}
 
-			synchronized (this) {
-				contents.add(c.retain());
-			}
+			contents.add(c.retain());
 			if (msg instanceof LastHttpContent) {
 				// 在content()方法里面处理合并。这里直接触发即可。
 				fireFullRequestHandle();
@@ -214,6 +226,10 @@ public class HttpExchange implements Closeable {
 
 		send500("internal error. unknown message=" + (msg != null ? msg.getClass() : null));
 		tryClose();
+	}
+
+	void channelReadClosed() {
+
 	}
 
 	private static long parse(String r) {
@@ -294,14 +310,17 @@ public class HttpExchange implements Closeable {
 	}
 
 	@Override
-	public synchronized void close() {
+	public void close() {
 		sending = false;
 		tryClose();
-		if (!contents.isEmpty()) {
-			for (var c : contents)
-				c.release();
-			contents.clear();
-		}
+		context.channel().eventLoop().execute(() -> {
+			if (!contents.isEmpty()) {
+				for (var c : contents)
+					c.release();
+				contents.clear();
+			}
+			contentFull.release();
+		});
 		var r = request;
 		if (r != null) {
 			request = null;
