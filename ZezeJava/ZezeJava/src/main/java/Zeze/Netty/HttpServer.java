@@ -18,11 +18,14 @@ import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.util.ReferenceCountUtil;
 
 public class HttpServer extends ChannelInitializer<SocketChannel> {
+	private static final int WRITE_PENDING_LIMIT = 64 * 1024; // 写缓冲区的限制大小,超过会立即断开连接,写大量内容需要考虑分片
+
 	final Zeze.Application zeze;
 	final String fileHome;
 	final int fileCacheSeconds;
 	final FewModifyMap<String, HttpHandler> handlers = new FewModifyMap<>();
 	final ConcurrentHashMap<ChannelHandlerContext, HttpExchange> exchanges = new ConcurrentHashMap<>();
+	private Netty netty;
 
 	public HttpServer() {
 		this(null, null, 10 * 60);
@@ -34,16 +37,17 @@ public class HttpServer extends ChannelInitializer<SocketChannel> {
 		this.fileCacheSeconds = fileCacheSeconds;
 	}
 
-	public void start() {
-		Task.schedule(HttpExchange.CHECK_IDLE_INTERVAL * 1000, HttpExchange.CHECK_IDLE_INTERVAL * 1000, () -> {
-			for (HttpExchange he : exchanges.values())
-				if (he.addReadIdleTimeAndCheckTimeout())
-					he.close();
-		});
+	public synchronized void start(Netty netty, int port) {
+		if (this.netty != null)
+			throw new IllegalStateException("already started");
+		this.netty = netty;
+		netty.startServer(this, port);
+		Task.schedule(HttpExchange.CHECK_IDLE_INTERVAL * 1000, HttpExchange.CHECK_IDLE_INTERVAL * 1000,
+				() -> exchanges.values().forEach(HttpExchange::checkTimeout));
 	}
 
 	public void addHandler(String path, int maxContentLength, TransactionLevel level, DispatchMode mode,
-						   HttpFullRequestHandle fullHandle) {
+						   HttpEndStreamHandle fullHandle) {
 		addHandler(path, new HttpHandler(maxContentLength, level, mode, fullHandle));
 	}
 
@@ -60,10 +64,12 @@ public class HttpServer extends ChannelInitializer<SocketChannel> {
 
 	@Override
 	protected void initChannel(SocketChannel ch) {
+		Netty.logger.info("accept {}", ch.remoteAddress());
 		ch.pipeline()
 				.addLast("encoder", new HttpResponseEncoder())
 				.addLast("decoder", new HttpRequestDecoder(4096, 8192, 8192, false))
 				.addLast("handler", new Handler());
+		ch.config().setWriteBufferHighWaterMark(WRITE_PENDING_LIMIT);
 	}
 
 	public class Handler extends ChannelInboundHandlerAdapter {
@@ -92,15 +98,23 @@ public class HttpServer extends ChannelInitializer<SocketChannel> {
 		}
 
 		@Override
+		public void channelWritabilityChanged(ChannelHandlerContext ctx) {
+			var channel = ctx.channel();
+			Netty.logger.error("write buffer overflow {} > {} from {}",
+					channel.unsafe().outboundBuffer().totalPendingWriteBytes(),
+					channel.config().getWriteBufferHighWaterMark(), channel.remoteAddress());
+			ctx.flush().close();
+		}
+
+		@Override
 		public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
 			try {
+				Netty.logger.error("exceptionCaught from {}", ctx.channel().remoteAddress(), cause);
 				var x = exchanges.get(ctx);
-				if (x != null) {
+				if (x != null)
 					x.send500(cause); // 需要可配置，或者根据Debug|Release选择。
-					x.close();
-				}
 			} finally {
-				ctx.close();
+				ctx.flush().close();
 			}
 		}
 	}

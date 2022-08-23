@@ -1,11 +1,10 @@
 package Zeze.Netty;
 
-import java.io.Closeable;
 import java.io.File;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.function.BiConsumer;
 import Zeze.Transaction.Procedure;
@@ -25,7 +24,6 @@ import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpContent;
 import io.netty.handler.codec.http.DefaultHttpResponse;
 import io.netty.handler.codec.http.DefaultLastHttpContent;
-import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
@@ -39,21 +37,26 @@ import io.netty.util.AsciiString;
 import io.netty.util.AttributeMap;
 import io.netty.util.ReferenceCounted;
 
-public class HttpExchange implements Closeable {
-	static final int CHECK_IDLE_INTERVAL = 5; // 检查连接间隔(秒)
-	static final int IDLE_TIMEOUT = 120; // 超时 检查连接间隔(秒)
+public class HttpExchange {
+	static final int CHECK_IDLE_INTERVAL = 5; // 检查连接状态间隔(秒)
+	static final int IDLE_TIMEOUT = 60; // 主动断开的超时时间(秒)
+
+	private static final int CLOSE_FINISH = 0; // 正常结束HttpExchange,不关闭连接
+	private static final int CLOSE_ON_FLUSH = 1; // 结束HttpExchange,发送完时关闭连接
+	private static final int CLOSE_FORCE = 2; // 结束HttpExchange,不等发送完强制关闭连接
+	private static final int CLOSE_TIMEOUT = 3; // 同上,只是因idle超时而关闭
 
 	private final HttpServer server;
 	private final ChannelHandlerContext context;
+	private final List<ByteBuf> contents = new LinkedList<>(); // 只用于非流模式
 	private HttpRequest request;
 	private HttpHandler handler;
-	private final List<HttpContent> contents = new ArrayList<>(); // 只用于非流模式
 	private long totalContentSize;
 	private ByteBuf contentFull;
 	private String path; // 保存path，优化！
 	private int idleTime; // 当前统计的idle时间(秒)
 	private int outBufHash;
-	private boolean sending = false;
+	private boolean willCloseConnection;
 
 	public HttpExchange(HttpServer server, ChannelHandlerContext context) {
 		this.server = server;
@@ -119,20 +122,23 @@ public class HttpExchange implements Closeable {
 		return contentFull;
 	}
 
-	boolean addReadIdleTimeAndCheckTimeout() {
-		if ((idleTime += CHECK_IDLE_INTERVAL) < IDLE_TIMEOUT / 2) // 前半段IDLE_TIMEOUT期间只判断读超时
-			return false;
-
+	void checkTimeout() {
+		// 这里为了减小开销, 前半段IDLE_TIMEOUT期间只判断读超时
+		if ((idleTime += CHECK_IDLE_INTERVAL) < IDLE_TIMEOUT / 2)
+			return;
+		// 后半段IDLE_TIMEOUT期间每次再判断写buffer的状态是否有变化,有变化则重新idle计时
 		var outBuf = context.channel().unsafe().outboundBuffer();
 		if (outBuf != null) {
 			int hash = System.identityHashCode(outBuf.current()) ^ Long.hashCode(outBuf.currentProgress());
-			if (hash != outBufHash) { // 后半段IDLE_TIMEOUT期间每次都判断写buffer的状态是否有变化,有变化则重新idle计时
+			if (hash != outBufHash) {
 				outBufHash = hash;
 				idleTime = 0;
-				return false;
+				return;
 			}
 		}
-		return idleTime >= IDLE_TIMEOUT; // 至少有IDLE_TIMEOUT的时间没有任何读写了,就返回true
+		// 到这里至少有IDLE_TIMEOUT的时间没有任何读写了,那就强制关闭吧
+		if (idleTime >= IDLE_TIMEOUT)
+			close(CLOSE_TIMEOUT, null);
 	}
 
 	private void fireFullRequestHandle() throws Exception {
@@ -141,95 +147,72 @@ public class HttpExchange implements Closeable {
 			contentFull = Unpooled.EMPTY_BUFFER;
 			break;
 		case 1:
-			contentFull = contents.get(0).content();
+			contentFull = contents.get(0);
+			contents.clear();
 			break;
 		default:
-			var cbuf = context.alloc().compositeBuffer();
-			for (var ci : contents)
-				cbuf.addComponent(ci.content());
-			contentFull = cbuf;
+			contentFull = context.alloc().compositeBuffer().addComponents(contents);
+			contents.clear();
 			break;
 		}
 
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
 			Task.run(server.zeze.NewProcedure(() -> {
-				//noinspection ConstantConditions
-				handler.FullRequestHandle.onFullRequest(this);
+				handler.EndStreamHandle.onEndStream(this);
 				return Procedure.Success;
 			}, "fireFullRequestHandle"), null, null, handler.Mode);
-		} else {
-			//noinspection ConstantConditions
-			handler.FullRequestHandle.onFullRequest(this);
-		}
+		} else
+			handler.EndStreamHandle.onEndStream(this);
 	}
 
 	void channelRead(Object msg) throws Exception {
 		idleTime = 0;
-
-		if (msg instanceof FullHttpRequest) {
-			var full = ((FullHttpRequest)msg).retain();
-			request = full;
-			if (!locateHandler())
-				trySendFile();
-			else if (handler.isStreamMode()) {
-				fireBeginStream();
-				fireStreamContentHandle(full);
-				fireEndStreamHandle();
-				tryClose();
-			} else {
-				contents.add(full.retain());
-				fireFullRequestHandle();
-				tryClose();
-			}
-			return; // done
-		}
+		boolean handled = false;
 
 		if (msg instanceof HttpRequest) {
+			if (msg instanceof ReferenceCounted)
+				((ReferenceCounted)msg).retain();
 			request = (HttpRequest)msg;
-			if (request instanceof ReferenceCounted)
-				((ReferenceCounted)request).retain();
-			if (!locateHandler())
+			if (!locateHandler()) {
 				trySendFile();
-			else if (handler.isStreamMode())
+				return;
+			}
+			if (handler.isStreamMode())
 				fireBeginStream();
-			return; // done
+			handled = true;
 		}
 
 		if (msg instanceof HttpContent) {
-			// 此时 request,handler 已经设置好。
 			//noinspection PatternVariableCanBeUsed
 			var c = (HttpContent)msg;
-			totalContentSize += c.content().readableBytes();
+			var n = c.content().readableBytes();
+			totalContentSize += n;
 			if (totalContentSize > handler.MaxContentLength) {
-				send500("content-length too big! allow max=" + handler.MaxContentLength);
-				tryClose();
-				return; // done
-			}
-
-			if (handler.isStreamMode()) {
+				Netty.logger.error("totalContentSize {} > {} from {}",
+						totalContentSize, handler.MaxContentLength, context.channel().remoteAddress());
+				closeConnectionNow();
+			} else if (handler.isStreamMode()) {
 				fireStreamContentHandle(c);
-				if (msg instanceof LastHttpContent) {
+				if (msg instanceof LastHttpContent)
 					fireEndStreamHandle();
-					tryClose();
-				}
-				return; // done
+			} else {
+				if (n > 0)
+					contents.add(c.content().retain());
+				if (msg instanceof LastHttpContent)
+					fireFullRequestHandle();
 			}
-
-			contents.add(c.retain());
-			if (msg instanceof LastHttpContent) {
-				// 在content()方法里面处理合并。这里直接触发即可。
-				fireFullRequestHandle();
-				tryClose();
-			}
-			return; // done
+			return;
 		}
 
-		send500("internal error. unknown message=" + (msg != null ? msg.getClass() : null));
-		tryClose();
+		if (!handled) {
+			Netty.logger.error("unknown message type={} from {}",
+					(msg != null ? msg.getClass() : null), context.channel().remoteAddress());
+			closeConnectionNow();
+		}
 	}
 
 	void channelReadClosed() {
-
+		willCloseConnection = true;
 	}
 
 	private static long parse(String r) {
@@ -240,9 +223,14 @@ public class HttpExchange implements Closeable {
 
 	private void fireStreamContentHandle(HttpContent c) throws Exception {
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
+			c.retain();
 			Task.run(server.zeze.NewProcedure(() -> {
-				//noinspection ConstantConditions
-				handler.StreamContentHandle.onStreamContent(this, c);
+				try {
+					//noinspection ConstantConditions
+					handler.StreamContentHandle.onStreamContent(this, c);
+				} finally {
+					c.release();
+				}
 				return Procedure.Success;
 			}, "fireStreamContentHandle"), null, null, handler.Mode);
 		} else {
@@ -254,14 +242,11 @@ public class HttpExchange implements Closeable {
 	private void fireEndStreamHandle() throws Exception {
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
 			Task.run(server.zeze.NewProcedure(() -> {
-				//noinspection ConstantConditions
 				handler.EndStreamHandle.onEndStream(this);
 				return Procedure.Success;
 			}, "fireEndStreamHandle"), null, null, handler.Mode);
-		} else {
-			//noinspection ConstantConditions
+		} else
 			handler.EndStreamHandle.onEndStream(this);
-		}
 	}
 
 	private void parseRange(AsciiString headerName, String firstSplit, OutLong from, OutLong to, OutLong size) {
@@ -309,32 +294,58 @@ public class HttpExchange implements Closeable {
 		return (handler = server.handlers.get(path())) != null;
 	}
 
-	@Override
-	public void close() {
-		sending = false;
-		tryClose();
-		context.channel().eventLoop().execute(() -> {
-			if (!contents.isEmpty()) {
-				for (var c : contents)
-					c.release();
-				contents.clear();
-			}
+	private void closeInEventLoop() {
+		if (!contents.isEmpty()) {
+			for (var c : contents)
+				c.release();
+			contents.clear();
+		}
+		if (contentFull != null) {
 			contentFull.release();
-		});
-		var r = request;
-		if (r != null) {
+			contentFull = null;
+		}
+		if (request != null) {
+			if (request instanceof ReferenceCounted)
+				((ReferenceCounted)request).release();
 			request = null;
-			if (r instanceof ReferenceCounted)
-				((ReferenceCounted)r).release();
+		}
+		if (willCloseConnection)
+			context.close();
+	}
+
+	private void close(int method, ChannelFuture future) {
+		var removed = server.exchanges.remove(context) != null;
+		if (method != CLOSE_FINISH) {
+			willCloseConnection = true;
+			Netty.logger.info("close({}): {}", method, context.channel().remoteAddress());
+		}
+		if (method >= CLOSE_FORCE) { // or CLOSE_TIMEOUT
+			context.channel().eventLoop().execute(() -> {
+				context.flush();
+				closeInEventLoop();
+			});
+		} else if (removed) {
+			(future != null ? future : context.writeAndFlush(Unpooled.EMPTY_BUFFER))
+					.addListener(__ -> closeInEventLoop());
+		} else if (method == CLOSE_ON_FLUSH) {
+			(future != null ? future : context.writeAndFlush(Unpooled.EMPTY_BUFFER))
+					.addListener(__ -> context.close());
 		}
 	}
 
-	private void tryClose() {
-		if (sending)
-			return;
+	// 正常结束HttpExchange,不关闭连接
+	public void close(ChannelFuture future) {
+		close(CLOSE_FINISH, future);
+	}
 
-		if (null != server.exchanges.remove(context))
-			context.flush().close();
+	// 结束HttpExchange,发送完时关闭连接
+	public void closeConnectionOnFlush(ChannelFuture future) {
+		close(CLOSE_ON_FLUSH, future);
+	}
+
+	// 结束HttpExchange,不等发送完强制关闭连接
+	public void closeConnectionNow() {
+		close(CLOSE_FORCE, null);
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -378,9 +389,8 @@ public class HttpExchange implements Closeable {
 	public void trySendFile() throws Exception {
 		var file = new File(server.fileHome, filePath());
 		if (!file.isFile() || file.isHidden()) {
-			send404();
-			tryClose();
-			return; // done
+			close(send404());
+			return;
 		}
 
 		// 检查 IF_MODIFIED_SINCE
@@ -393,9 +403,8 @@ public class HttpExchange implements Closeable {
 				res.headers()
 						.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
 						.set(HttpHeaderNames.DATE, Netty.getDate());
-				context.writeAndFlush(res);
-				tryClose();
-				return; // done
+				close(context.writeAndFlush(res));
+				return;
 			}
 		}
 
@@ -409,11 +418,8 @@ public class HttpExchange implements Closeable {
 		if (to.Value == -1)
 			to.Value = raf.length();
 		var downloadLength = to.Value - from.Value;
-		if (downloadLength < 0) {
-			send500("error download range. length < 0.");
-			tryClose();
-			return; // done
-		}
+		if (downloadLength < 0 || HttpMethod.HEAD.equals(method()))
+			downloadLength = 0;
 
 		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
 		res.headers()
@@ -422,21 +428,19 @@ public class HttpExchange implements Closeable {
 				.set(HttpHeaderNames.CONTENT_LENGTH, downloadLength)
 				.set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from.Value + "-" + to.Value + "/" + raf.length())
 				.set(HttpHeaderNames.DATE, Netty.getDate()) // 设置时间头。
-				.set(HttpHeaderNames.EXPIRES, Netty.getDate(new Date((Netty.getLastDateSecond() + server.fileCacheSeconds) * 1000L)))
+				.set(HttpHeaderNames.EXPIRES,
+						Netty.getDate(new Date((Netty.getLastDateSecond() + server.fileCacheSeconds) * 1000L)))
 				.set(HttpHeaderNames.CACHE_CONTROL, "private, max-age=" + server.fileCacheSeconds)
 				.set(HttpHeaderNames.LAST_MODIFIED, Netty.getDate(new Date(file.lastModified())));
+		var future = context.write(res);
 
-		// send headers
-		context.writeAndFlush(res);
-
-		if (!HttpMethod.HEAD.equals(method())) {
-			// send file content
-			context.writeAndFlush(new DefaultFileRegion(raf.getChannel(), from.Value, downloadLength)).addListener(ChannelFutureListener.CLOSE);
+		if (downloadLength > 0) {
+			close(context.writeAndFlush(new DefaultFileRegion(raf.getChannel(), from.Value, downloadLength)));
 			// 发文件任务全部交给Netty，并且发送完毕时关闭。
-			return; // done
+		} else {
+			context.flush();
+			close(future);
 		}
-
-		tryClose(); // 没有进行中的流发送任务，直接关闭。关闭会flush然后close。
 	}
 
 	public ChannelFuture send404() {
@@ -454,7 +458,6 @@ public class HttpExchange implements Closeable {
 	/////////////////////////////////////////////////////////////////////////////////////////////////
 	// 流接口功能最大化，不做任何校验：状态校验，不正确的流起始Response（headers）等。
 	public void beginStream(HttpResponseStatus status, HttpHeaders headers) {
-		sending = true;
 		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, headers);
 		headers.remove(HttpHeaderNames.CONTENT_LENGTH);
 		headers.set(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED);
@@ -473,8 +476,6 @@ public class HttpExchange implements Closeable {
 	}
 
 	public void endStream() {
-		context.writeAndFlush(new DefaultLastHttpContent());
-		sending = false;
-		tryClose();
+		close(context.writeAndFlush(new DefaultLastHttpContent()));
 	}
 }

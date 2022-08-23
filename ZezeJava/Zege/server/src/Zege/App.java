@@ -22,6 +22,7 @@ import Zeze.Collections.LinkedMap;
 import Zeze.Config;
 import Zeze.Net.AsyncSocket;
 import Zeze.Netty.HttpServer;
+import Zeze.Netty.Netty;
 import Zeze.Util.Cert;
 import Zeze.Util.JsonReader;
 import Zeze.Util.PersistentAtomicLong;
@@ -88,7 +89,7 @@ public class App extends Zeze.AppBase {
         Zeze.Start(); // 启动数据库
         StartModules(); // 启动模块，装载配置什么的。
         Provider.Online.Start();
-        HttpServer.start();
+        HttpServer.start(new Netty(1), 80); //TODO: 从配置里读线程数和端口
 
         createFakeCa();
 

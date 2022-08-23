@@ -26,8 +26,11 @@ import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.util.concurrent.Future;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class Netty {
+	static final Logger logger = LogManager.getLogger(HttpExchange.class);
 	private static final DateFormat dateFormat = new SimpleDateFormat("E, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH);
 	private static long lastSecond;
 	private static String lastDateStr;
@@ -84,7 +87,7 @@ public class Netty {
 		var b = new ServerBootstrap();
 		if (eventLoopGroup instanceof EpollEventLoopGroup)
 			b.option(EpollChannelOption.SO_REUSEPORT, true);
-		return b.group(eventLoopGroup)
+		var future = b.group(eventLoopGroup)
 				.option(ChannelOption.SO_BACKLOG, 8192)
 				.option(ChannelOption.SO_REUSEADDR, true)
 				.childOption(ChannelOption.SO_REUSEADDR, true)
@@ -92,6 +95,8 @@ public class Netty {
 				.channel(serverChannelClass)
 				.childHandler(handler)
 				.bind(port);
+		logger.info("start server on port: {}", port);
+		return future;
 	}
 
 	public Future<?> stopAsync() {
@@ -159,7 +164,7 @@ public class Netty {
 		}
 		System.out.println("error: " + Str.stacktrace(f.cause()));
 		System.out.flush();
-		x.close();
+		x.closeConnectionNow();
 	}
 
 	private static void sendTrunk(HttpExchange x) {
