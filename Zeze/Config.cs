@@ -50,7 +50,7 @@ namespace Zeze
         public bool FastRedoWhenConflict { get; set; } = false;
         public ConcurrentDictionary<string, ICustomize> Customize { get; }
             = new ConcurrentDictionary<string, ICustomize>();
-
+        public int OnlineLogoutDelay { get; set; } = 60 * 10 * 1000; // 10 minutes
         public bool DonotCheckSchemasWhenTableIsNew { get; set; } = false;
 
         /// <summary>
@@ -196,6 +196,10 @@ namespace Zeze
             GlobalCacheManagerHostNameOrAddress = self.GetAttribute("GlobalCacheManagerHostNameOrAddress");
             string attr = self.GetAttribute("GlobalCacheManagerPort");
             GlobalCacheManagerPort = attr.Length > 0 ? int.Parse(attr) : 0;
+
+            attr = self.GetAttribute("OnlineLogoutDelay");
+            if (attr.Length > 0)
+                OnlineLogoutDelay = int.Parse(attr);
 
             attr = self.GetAttribute("CheckpointModeTableFlushConcurrent");
             if (attr.Length > 0)

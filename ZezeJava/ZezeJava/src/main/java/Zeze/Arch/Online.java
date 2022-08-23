@@ -257,28 +257,29 @@ public class Online extends AbstractOnline {
 				RemoveLocalAndTrigger(account, clientId); // 本机数据已经过时，马上删除。
 		}
 		final var finalCurrentLoginVersion = currentLoginVersion;
-		Transaction.whileCommit(() -> Task.schedule(10 * 60 * 1000, () -> {
-			// TryRemove
-			ProviderApp.Zeze.NewProcedure(() ->
-			{
-				// local online 独立判断version分别尝试删除。
-				var local = _tlocal.get(account);
-				if (null != local) {
-					var loginLocal = local.getLogins().get(clientId);
-					if (null != loginLocal && loginLocal.getLoginVersion() == finalCurrentLoginVersion)
-						RemoveLocalAndTrigger(account, clientId);
-				}
-				// 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
-				var online = _tonline.get(account);
-				var version = _tversion.getOrAdd(account);
-				if (null != online) {
-					var loginVersion = version.getLogins().get(clientId);
-					if (null != loginVersion && loginVersion.getLoginVersion() == finalCurrentLoginVersion)
-						LogoutTrigger(account, clientId);
-				}
-				return Procedure.Success;
-			}, "Onlines.OnLinkBroken").Call();
-		}));
+		Transaction.whileCommit(() -> Task.schedule(ProviderApp.Zeze.getConfig().getOnlineLogoutDelay(),
+				() -> {
+					// TryRemove
+					ProviderApp.Zeze.NewProcedure(() ->
+					{
+						// local online 独立判断version分别尝试删除。
+						var local = _tlocal.get(account);
+						if (null != local) {
+							var loginLocal = local.getLogins().get(clientId);
+							if (null != loginLocal && loginLocal.getLoginVersion() == finalCurrentLoginVersion)
+								RemoveLocalAndTrigger(account, clientId);
+						}
+						// 如果玩家在延迟期间建立了新的登录，下面版本号判断会失败。
+						var online = _tonline.get(account);
+						var version = _tversion.getOrAdd(account);
+						if (null != online) {
+							var loginVersion = version.getLogins().get(clientId);
+							if (null != loginVersion && loginVersion.getLoginVersion() == finalCurrentLoginVersion)
+								LogoutTrigger(account, clientId);
+						}
+						return Procedure.Success;
+					}, "Onlines.OnLinkBroken").Call();
+				}));
 	}
 
 	public void addReliableNotifyMark(String account, String clientId, String listenerName) throws Throwable {

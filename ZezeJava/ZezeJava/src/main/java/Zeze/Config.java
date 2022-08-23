@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.xml.parsers.DocumentBuilderFactory;
+import Zeze.Game.Online;
 import Zeze.Net.ServiceConf;
 import Zeze.Transaction.CheckpointMode;
 import Zeze.Transaction.Database;
@@ -62,11 +63,21 @@ public final class Config {
 	private final ConcurrentHashMap<String, ServiceConf> ServiceConfMap = new ConcurrentHashMap<>();
 	private ServiceConf DefaultServiceConf = new ServiceConf();
 
+	private int OnlineLogoutDelay = 60 * 10 * 1000; // 10 minutes
+
 	public Config() {
 	}
 
 	public String getName() {
 		return name;
+	}
+
+	public int getOnlineLogoutDelay() {
+		return OnlineLogoutDelay;
+	}
+
+	public void setOnlineLogoutDelay(int delay) {
+		OnlineLogoutDelay = delay;
 	}
 
 	public int getScheduledThreads() {
@@ -327,6 +338,10 @@ public final class Config {
 		setGlobalCacheManagerHostNameOrAddress(self.getAttribute("GlobalCacheManagerHostNameOrAddress"));
 		String attr = self.getAttribute("GlobalCacheManagerPort");
 		setGlobalCacheManagerPort(attr.length() > 0 ? Integer.parseInt(attr) : 0);
+
+		attr = self.getAttribute("OnlineLogoutDelay");
+		if (!attr.isEmpty())
+			OnlineLogoutDelay = Integer.parseInt(attr);
 
 		attr = self.getAttribute("CheckpointModeTableFlushConcurrent");
 		if (!attr.isEmpty())

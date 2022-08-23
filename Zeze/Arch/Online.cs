@@ -252,7 +252,7 @@ namespace Zeze.Arch
                         }
                         return Procedure.Success;
                     }, "Onlines.OnLinkBroken").CallAsync();
-                }, 10 * 60 * 1000);
+                }, ProviderApp.Zeze.Config.OnlineLogoutDelay);
             });
         }
 
