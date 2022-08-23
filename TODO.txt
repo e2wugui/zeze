@@ -15,12 +15,10 @@ Zege
 	文档，批注，多人编辑。
 DatagramChannel
 
-Linkd重启，Server还在给它发送Send。此时，linkd发现Client不在线，补发LinkBroken缺少context的问题。
-
 【2022/9/15】
 
 ------------------------------------------------------------------------------------------------------------------------------
-tag 1.0.5 Certificate; Zege go; Netty-Web More;
+tag 1.0.6 Zege Go;
 ------------------------------------------------------------------------------------------------------------------------------
 Zege-Server
 	1. 验证：linkd 发送 Challange Rpc; 验证完成再发送 ChallangeOk；
@@ -33,6 +31,13 @@ Zege-Server
 	   对照这个就能了解整个登录和创建账号流程了。
 	4. server 的prepare/create不完善，上面创建好了以后，重新登录不成功有可能也是server的问题。	   
 	5. 你了解了challange,prepare,create流程以后，把server/client的实现完善一下。
+
+------------------------------------------------------------------------------------------------------------------------------
+tag 1.0.5 Certificate; Netty-Web More; Change Protocol Provider.Send To Rpc And Report Error;
+------------------------------------------------------------------------------------------------------------------------------
+Linkd重启，Server还在给它发送Send。此时，linkd发现Client不在线，补发LinkBroken缺少context的问题。
+	*** 实际方案是 ***
+	Send从Protocol改成Rpc，当Linkd发现发送失败时，通过Send.Result返回结果给Server并处理。
 
 Netty-Web @张路
 	1. close 确认 sending标志；遵守netty计数规则释放资源。
