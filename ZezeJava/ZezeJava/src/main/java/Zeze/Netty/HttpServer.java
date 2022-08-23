@@ -32,7 +32,9 @@ public class HttpServer extends ChannelInitializer<SocketChannel> {
 		this.zeze = zeze;
 		this.fileHome = fileHome;
 		this.fileCacheSeconds = fileCacheSeconds;
+	}
 
+	public void start() {
 		Task.schedule(HttpExchange.CHECK_IDLE_INTERVAL * 1000, HttpExchange.CHECK_IDLE_INTERVAL * 1000, () -> {
 			for (HttpExchange he : exchanges.values())
 				if (he.addReadIdleTimeAndCheckTimeout())

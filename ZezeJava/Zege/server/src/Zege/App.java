@@ -92,6 +92,7 @@ public class App extends Zeze.AppBase {
         StartModules(); // 启动模块，装载配置什么的。
         Provider.Online.Start();
         Web.Start();
+        HttpServer.start();
 
         createFakeCa();
 
