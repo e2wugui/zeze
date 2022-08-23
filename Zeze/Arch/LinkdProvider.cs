@@ -98,17 +98,20 @@ namespace Zeze.Arch
             return Task.FromResult(Zeze.Transaction.Procedure.Success);
         }
 
-        protected override Task<long> ProcessSend(Zeze.Net.Protocol _p)
+        protected override Task<long> ProcessSendRequest(Zeze.Net.Protocol _p)
         {
-            var protocol = _p as Send;
-            foreach (var linkSid in protocol.Argument.LinkSids)
+            var r = _p as Send;
+            foreach (var linkSid in r.Argument.LinkSids)
             {
                 var link = LinkdApp.LinkdService.GetSocket(linkSid);
-                logger.Debug("Send {0} {1}", Zeze.Net.Protocol.GetModuleId(protocol.Argument.ProtocolType),
-                    Zeze.Net.Protocol.GetProtocolId(protocol.Argument.ProtocolType));
+                logger.Debug("Send {0} {1}", Zeze.Net.Protocol.GetModuleId(r.Argument.ProtocolType),
+                    Zeze.Net.Protocol.GetProtocolId(r.Argument.ProtocolType));
                 // ProtocolId现在是hash值，显示出来也不好看，以后加配置换成名字。
-                link?.Send(protocol.Argument.ProtocolWholeData);
+                if (null != link && link.Send(r.Argument.ProtocolWholeData))
+                    continue;
+                r.Result.ErrorLinkSids.Add(linkSid);
             }
+            r.SendResult();
             return Task.FromResult(Zeze.Transaction.Procedure.Success);
         }
 

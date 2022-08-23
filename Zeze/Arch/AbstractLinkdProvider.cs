@@ -41,8 +41,8 @@ namespace Zeze.Arch
             service.AddFactoryHandle(47281226998238, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
                 Factory = () => new Zeze.Builtin.Provider.Send(),
-                Handle = ProcessSend,
-                TransactionLevel = _reflect.GetTransactionLevel("ProcessSendp", Zeze.Transaction.TransactionLevel.Serializable),
+                Handle = ProcessSendRequest,
+                TransactionLevel = _reflect.GetTransactionLevel("ProcessSendRequest", Zeze.Transaction.TransactionLevel.Serializable),
             });
             service.AddFactoryHandle(47281569047175, new Zeze.Net.Service.ProtocolFactoryHandle()
             {
@@ -98,7 +98,7 @@ namespace Zeze.Arch
 
         protected abstract System.Threading.Tasks.Task<long>  ProcessKick(Zeze.Net.Protocol p);
 
-        protected abstract System.Threading.Tasks.Task<long>  ProcessSend(Zeze.Net.Protocol p);
+        protected abstract System.Threading.Tasks.Task<long>  ProcessSendRequest(Zeze.Net.Protocol p);
 
         protected abstract System.Threading.Tasks.Task<long>  ProcessSetUserState(Zeze.Net.Protocol p);
 

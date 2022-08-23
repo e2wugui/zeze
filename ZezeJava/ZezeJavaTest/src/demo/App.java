@@ -95,6 +95,8 @@ public class App extends Zeze.AppBase {
 
     public demo.Module1.ModuleModule1 demo_Module1;
     public demo.Module1.Module11.ModuleModule11 demo_Module1_Module11;
+    public demo.M6.ModuleM6 demo_M6;
+    public demo.M6.M7.ModuleM7 demo_M6_M7;
 
     @Override
     public Zeze.Application getZeze() {
@@ -127,10 +129,22 @@ public class App extends Zeze.AppBase {
         if (Modules.put(demo_Module1_Module11.getFullName(), demo_Module1_Module11) != null)
             throw new RuntimeException("duplicate module name: demo_Module1_Module11");
 
+        demo_M6 = ReplaceModuleInstance(new demo.M6.ModuleM6(this));
+        demo_M6.Initialize(this);
+        if (Modules.put(demo_M6.getFullName(), demo_M6) != null)
+            throw new RuntimeException("duplicate module name: demo_M6");
+
+        demo_M6_M7 = ReplaceModuleInstance(new demo.M6.M7.ModuleM7(this));
+        demo_M6_M7.Initialize(this);
+        if (Modules.put(demo_M6_M7.getFullName(), demo_M6_M7) != null)
+            throw new RuntimeException("duplicate module name: demo_M6_M7");
+
         Zeze.setSchemas(new demo.Schemas());
     }
 
     public synchronized void DestroyModules() {
+        demo_M6_M7 = null;
+        demo_M6 = null;
         demo_Module1_Module11 = null;
         demo_Module1 = null;
         Modules.clear();
@@ -147,9 +161,15 @@ public class App extends Zeze.AppBase {
     public synchronized void StartModules() throws Throwable {
         demo_Module1.Start(this);
         demo_Module1_Module11.Start(this);
+        demo_M6.Start(this);
+        demo_M6_M7.Start(this);
     }
 
     public synchronized void StopModules() throws Throwable {
+        if (demo_M6_M7 != null)
+            demo_M6_M7.Stop(this);
+        if (demo_M6 != null)
+            demo_M6.Stop(this);
         if (demo_Module1_Module11 != null)
             demo_Module1_Module11.Stop(this);
         if (demo_Module1 != null)

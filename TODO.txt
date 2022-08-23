@@ -11,16 +11,35 @@ Task
 Universe
 Zege
 	公开群不加密，公开私有可以切换，切换不会重新加密解密消息历史。
-	项目管理
-	文档，批注，多人编辑
-
+	项目管理。
+	文档，批注，多人编辑。
 DatagramChannel
+
+Linkd重启，Server还在给它发送Send。此时，linkd发现Client不在线，补发LinkBroken缺少context的问题。
 
 【2022/9/15】
 
 ------------------------------------------------------------------------------------------------------------------------------
-tag 1.0.5 Certificate; 
+tag 1.0.5 Certificate; Zege go; Netty-Web More;
 ------------------------------------------------------------------------------------------------------------------------------
+Zege-Server
+	1. 验证：linkd 发送 Challange Rpc; 验证完成再发送 ChallangeOk；
+	   问题：验证失败应该也发送一个结果，所以ChallangeOk改成ChallangeResult？
+	2. client 现在只有第一次登录会成功，本地yourcomputername.pkcs12文件存在以后不能成功登录。
+	3. client登录流程在：client/src/Zege/Program.
+		app.Connector.WaitReady();
+		app.Zege_Linkd.create(account);
+		app.Zege_Linkd.waitAuthed();
+	   对照这个就能了解整个登录和创建账号流程了。
+	4. server 的prepare/create不完善，上面创建好了以后，重新登录不成功有可能也是server的问题。	   
+	5. 你了解了challange,prepare,create流程以后，把server/client的实现完善一下。
+
+Netty-Web @张路
+	1. close 确认 sending标志；遵守netty计数规则释放资源。
+	2. KeepAlive & Idle Timeout。
+	3. HttpExchange 不考虑多线程访问？
+	4. 对上层掩盖连接，基于请求(HttpExchange)进行处理。
+
 Zege 加密基础（基于证书）
 	1. 任意CA签发的证书，默认提供一个不是权威的。
 	2. 创建账号，上传public-key并签字，verify-sign之后，把pub跟账号绑定。

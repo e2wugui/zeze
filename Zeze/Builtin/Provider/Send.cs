@@ -2,7 +2,7 @@
 
 namespace Zeze.Builtin.Provider
 {
-    public sealed class Send : Zeze.Net.Protocol<Zeze.Builtin.Provider.BSend>
+    public sealed class Send : Zeze.Net.Rpc<Zeze.Builtin.Provider.BSend, Zeze.Builtin.Provider.BSendResult>
     {
         public const int ModuleId_ = 11008;
         public const int ProtocolId_ = -2067963426; // 2227003870
@@ -10,9 +10,5 @@ namespace Zeze.Builtin.Provider
 
         public override int ModuleId => ModuleId_;
         public override int ProtocolId => ProtocolId_;
-
-        public Send()
-        {
-        }
     }
 }

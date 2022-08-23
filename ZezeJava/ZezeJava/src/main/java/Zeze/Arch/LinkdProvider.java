@@ -8,6 +8,7 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.SubscribeInfo;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
+import Zeze.Util.Task;
 
 /**
  * Linkd上处理Provider协议的模块。
@@ -243,20 +244,21 @@ public class LinkdProvider extends AbstractLinkdProvider {
 	}
 
 	@Override
-	protected long ProcessSend(Send protocol) {
-		var ptype = protocol.Argument.getProtocolType();
-		var pdata = protocol.Argument.getProtocolWholeData();
+	protected long ProcessSendRequest(Send r) {
+		var ptype = r.Argument.getProtocolType();
+		var pdata = r.Argument.getProtocolWholeData();
 		if (AsyncSocket.ENABLE_PROTOCOL_LOG) {
-			AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "SENT[{}]: {}:{} [{}]", protocol.Argument.getLinkSids(),
+			AsyncSocket.logger.log(AsyncSocket.LEVEL_PROTOCOL_LOG, "SENT[{}]: {}:{} [{}]", r.Argument.getLinkSids(),
 					Protocol.GetModuleId(ptype), Protocol.GetProtocolId(ptype), pdata.size());
 		}
-		for (var linkSid : protocol.Argument.getLinkSids()) {
+		for (var linkSid : r.Argument.getLinkSids()) {
 			var link = LinkdApp.LinkdService.GetSocket(linkSid);
 			// ProtocolId现在是hash值，显示出来也不好看，以后加配置换成名字。
-			if (link != null) {
-				link.Send(pdata);
-			}
+			if (link != null && link.Send(pdata))
+				continue;
+			r.Result.getErrorLinkSids().add(linkSid);
 		}
+		r.SendResult();
 		return Procedure.Success;
 	}
 

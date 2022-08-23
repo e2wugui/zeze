@@ -1,5 +1,6 @@
 package Zeze.Arch;
 
+import java.util.HashMap;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Net.AsyncSocket;
 import Zeze.Net.Binary;
@@ -7,6 +8,7 @@ import Zeze.Net.Protocol;
 import Zeze.Net.Rpc;
 import Zeze.Serialize.ByteBuffer;
 import Zeze.Transaction.Transaction;
+import Zeze.Util.KV;
 
 /**
  * 用户登录会话。
@@ -72,6 +74,20 @@ public class ProviderUserSession {
 		sendResponse(ByteBuffer.Wrap(fullEncodedProtocol).ReadInt4(), fullEncodedProtocol);
 	}
 
+	private void sendOnline(AsyncSocket link, Send send) {
+		if (service.ProviderApp.ProviderImplement instanceof Zeze.Arch.ProviderWithOnline arch) {
+			var context = new HashMap<Long, KV<String, String>>();
+			context.put(LinkSid, KV.Create(Account, Context));
+			arch.Online.send(link, context, send);
+		} else if (service.ProviderApp.ProviderImplement instanceof Zeze.Game.ProviderImplementWithOnline game) {
+			var context = new HashMap<Long, Long>();
+			context.put(LinkSid, getRoleId());
+			game.Online.send(link, context, send);
+		} else {
+			link.Send(send);
+		}
+	}
+
 	public final void sendResponse(long typeId, Binary fullEncodedProtocol) {
 		var send = new Send();
 		send.Argument.getLinkSids().add(getLinkSid());
@@ -79,7 +95,7 @@ public class ProviderUserSession {
 		send.Argument.setProtocolWholeData(fullEncodedProtocol);
 
 		if (null != getLink() && !getLink().isClosed()) {
-			getLink().Send(send.Encode()); // 调用Encode后的方法避免重复协议日志
+			sendOnline(getLink(), send);
 			return;
 		}
 		// 可能发生了重连，尝试再次查找发送。网络断开以后，已经不可靠了，先这样写着吧。
@@ -87,7 +103,7 @@ public class ProviderUserSession {
 		if (null != link) {
 			if (link.isHandshakeDone()) {
 				setLink(link.getSocket());
-				link.getSocket().Send(send.Encode()); // 调用Encode后的方法避免重复协议日志
+				sendOnline(getLink(), send);
 			}
 		}
 	}

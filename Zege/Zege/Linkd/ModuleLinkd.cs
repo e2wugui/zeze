@@ -17,5 +17,16 @@ namespace Zege.Linkd
             return Zeze.Transaction.Procedure.NotImplement;
         }
 
+        protected override async Task<long> ProcessChallengeOkRequest(Zeze.Net.Protocol _p)
+        {
+            var p = _p as ChallengeOk;
+            return Zeze.Transaction.Procedure.NotImplement;
+        }
+
+        protected override async Task<long> ProcessChallengeRequest(Zeze.Net.Protocol _p)
+        {
+            var p = _p as Challenge;
+            return Zeze.Transaction.Procedure.NotImplement;
+        }
     }
 }

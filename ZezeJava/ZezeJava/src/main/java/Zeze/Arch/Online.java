@@ -11,7 +11,6 @@ import Zeze.AppBase;
 import Zeze.Arch.Gen.GenModule;
 import Zeze.Builtin.Online.*;
 import Zeze.Builtin.Provider.BKick;
-import Zeze.Builtin.Provider.BLinkBroken;
 import Zeze.Builtin.Provider.Broadcast;
 import Zeze.Builtin.Provider.Send;
 import Zeze.Builtin.Provider.SetUserState;
@@ -29,6 +28,7 @@ import Zeze.Transaction.Transaction;
 import Zeze.Util.EventDispatcher;
 import Zeze.Util.Func4;
 import Zeze.Util.IntHashMap;
+import Zeze.Util.KV;
 import Zeze.Util.OutObject;
 import Zeze.Util.RedirectGenMain;
 import Zeze.Util.Task;
@@ -231,7 +231,7 @@ public class Online extends AbstractOnline {
 		_LoginTimes.incrementAndGet();
 	}
 
-	public void OnLinkBroken(String account, String clientId, BLinkBroken arg) throws Throwable {
+	public void OnLinkBroken(String account, String clientId, String linkName, long linkSid) throws Throwable {
 		long currentLoginVersion;
 		{
 			var online = _tonline.get(account);
@@ -239,7 +239,7 @@ public class Online extends AbstractOnline {
 			if (null == loginOnline)
 				return;
 			// skip not owner: 仅仅检查LinkSid是不充分的。后面继续检查LoginVersion。
-			if (loginOnline.getLinkSid() != arg.getLinkSid())
+			if (!loginOnline.getLinkName().equals(linkName) || loginOnline.getLinkSid() != linkSid)
 				return;
 
 			var version = _tversion.getOrAdd(account);
@@ -401,6 +401,23 @@ public class Online extends AbstractOnline {
 		return groups.values();
 	}
 
+	private long triggerLinkBroken(String linkName, Collection<Long> errorSids, HashMap<Long, KV<String, String>> contexts)
+			throws Throwable {
+		for (var sid : errorSids) {
+			var ctx = contexts.get(sid);
+			if (null != ctx)
+				OnLinkBroken(ctx.getKey(), ctx.getValue(), linkName, sid);
+		}
+		return 0;
+	}
+
+	public void send(AsyncSocket to, HashMap<Long, KV<String, String>> contexts, Send send) {
+		send.Send(to, (rpc) -> triggerLinkBroken(
+				Zeze.Arch.ProviderService.GetLinkName(to),
+				send.isTimeout() ? send.Argument.getLinkSids() : send.Result.getErrorLinkSids(),
+				contexts));
+	}
+
 	private void sendEmbed(Collection<LoginKey> logins, long typeId, Binary fullEncodedProtocol) throws Throwable {
 		var groups = groupByLink(logins);
 		Transaction.whileCommit(() -> {
@@ -412,7 +429,7 @@ public class Online extends AbstractOnline {
 				send.Argument.setProtocolType(typeId);
 				send.Argument.setProtocolWholeData(fullEncodedProtocol);
 				send.Argument.getLinkSids().addAll(group.Logins.values());
-				group.LinkSocket.Send(send);
+				send(group.LinkSocket, group.Contexts, send);
 			}
 		});
 	}
@@ -423,6 +440,7 @@ public class Online extends AbstractOnline {
 		public int ServerId = -1;
 		public long ProviderSessionId;
 		public final HashMap<LoginKey, Long> Logins = new HashMap<>();
+		public final HashMap<Long, KV<String, String>> Contexts = new HashMap<>();
 	}
 
 	public static class LoginKey {
@@ -528,6 +546,7 @@ public class Online extends AbstractOnline {
 					groups.putIfAbsent(group.LinkName, group);
 				}
 				group.Logins.putIfAbsent(login, e.getValue().getLinkSid());
+				group.Contexts.putIfAbsent(e.getValue().getLinkSid(), KV.Create(login.Account, login.ClientId));
 			}
 		}
 		return groups.values();
@@ -544,7 +563,7 @@ public class Online extends AbstractOnline {
 					send.Argument.setProtocolType(typeId);
 					send.Argument.setProtocolWholeData(fullEncodedProtocol);
 					send.Argument.getLinkSids().addAll(group.Logins.values());
-					group.LinkSocket.Send(send);
+					send(group.LinkSocket, group.Contexts, send);
 				}
 			} else {
 				for (var group : groups) {
