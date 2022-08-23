@@ -39,7 +39,6 @@ public class App extends Zeze.AppBase {
     public ProviderWithOnline Provider;
     public LinkedMap.Module LinkedMaps;
     public DepartmentTree.Module DepartmentTrees;
-    public Web Web;
     public Zeze.Netty.HttpServer HttpServer;
 
     private LoadConfig LoadConfig() {
@@ -84,14 +83,11 @@ public class App extends Zeze.AppBase {
         Provider.Online = GenModule.Instance.ReplaceModuleInstance(this, new Online(this));
         LinkedMaps = new LinkedMap.Module(Zeze);
         DepartmentTrees = new DepartmentTree.Module(Zeze, LinkedMaps);
-        Web = new Web(ProviderApp);
-        new Statistics(Web);
 
         CreateModules();
         Zeze.Start(); // 启动数据库
         StartModules(); // 启动模块，装载配置什么的。
         Provider.Online.Start();
-        Web.Start();
         HttpServer.start();
 
         createFakeCa();
