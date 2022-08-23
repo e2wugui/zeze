@@ -183,6 +183,8 @@ public class HttpExchange {
 		}
 
 		if (msg instanceof HttpContent) {
+			if (handler == null)
+				return;
 			//noinspection PatternVariableCanBeUsed
 			var c = (HttpContent)msg;
 			var n = c.content().readableBytes();
@@ -352,14 +354,18 @@ public class HttpExchange {
 	// send response
 	public ChannelFuture send(HttpResponseStatus status, String contentType, ByteBuf content) {
 		var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, content, false);
-		res.headers()
+		var len = content.readableBytes();
+		var headers = Netty.setDate(res.headers())
 				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
-				.set(HttpHeaderNames.CONTENT_TYPE, contentType);
+				.set(HttpHeaderNames.CONTENT_LENGTH, len);
+		if (len > 0)
+			headers.set(HttpHeaderNames.CONTENT_TYPE, contentType);
 		return context.writeAndFlush(res);
 	}
 
 	public ChannelFuture send(HttpResponseStatus status, String contentType, String content) {
-		return send(status, contentType, Unpooled.wrappedBuffer(content.getBytes(StandardCharsets.UTF_8)));
+		return send(status, contentType, content == null || content.isEmpty() ? Unpooled.EMPTY_BUFFER
+				: Unpooled.wrappedBuffer(content.getBytes(StandardCharsets.UTF_8)));
 	}
 
 	public ChannelFuture sendPlainText(HttpResponseStatus status, String text) {
@@ -396,13 +402,12 @@ public class HttpExchange {
 		// 检查 IF_MODIFIED_SINCE
 		String ifModifiedSince = headers().get(HttpHeaderNames.IF_MODIFIED_SINCE);
 		if (ifModifiedSince != null && !ifModifiedSince.isEmpty()) {
-			var ifModifiedSinceDate = Netty.parseDate(ifModifiedSince).getTime();
-			if (file.lastModified() == ifModifiedSinceDate) {
+			if (file.lastModified() == Netty.parseDate(ifModifiedSince)) {
 				// 文件未改变。
 				var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_MODIFIED);
-				res.headers()
+				Netty.setDate(res.headers())
 						.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
-						.set(HttpHeaderNames.DATE, Netty.getDate());
+						.set(HttpHeaderNames.CONTENT_LENGTH, 0);
 				close(context.writeAndFlush(res));
 				return;
 			}
@@ -422,12 +427,11 @@ public class HttpExchange {
 			downloadLength = 0;
 
 		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
-		res.headers()
+		Netty.setDate(res.headers())
 				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
 				.set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(file.getName()))
 				.set(HttpHeaderNames.CONTENT_LENGTH, downloadLength)
 				.set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from.Value + "-" + to.Value + "/" + raf.length())
-				.set(HttpHeaderNames.DATE, Netty.getDate()) // 设置时间头。
 				.set(HttpHeaderNames.EXPIRES,
 						Netty.getDate(new Date((Netty.getLastDateSecond() + server.fileCacheSeconds) * 1000L)))
 				.set(HttpHeaderNames.CACHE_CONTROL, "private, max-age=" + server.fileCacheSeconds)
@@ -444,7 +448,7 @@ public class HttpExchange {
 	}
 
 	public ChannelFuture send404() {
-		return sendPlainText(HttpResponseStatus.NOT_FOUND, "404");
+		return sendPlainText(HttpResponseStatus.NOT_FOUND, null);
 	}
 
 	public ChannelFuture send500(Throwable ex) {

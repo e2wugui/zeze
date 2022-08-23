@@ -1,11 +1,13 @@
 package Zeze.Netty;
 
+import java.io.Closeable;
 import java.nio.charset.StandardCharsets;
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
-import java.util.Locale;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Str;
@@ -29,9 +31,9 @@ import io.netty.util.concurrent.Future;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-public class Netty {
+public class Netty implements Closeable {
 	static final Logger logger = LogManager.getLogger(HttpExchange.class);
-	private static final DateFormat dateFormat = new SimpleDateFormat("E, dd MMM yyyy HH:mm:ss z", Locale.ENGLISH);
+	private static final ZoneId zoneId = ZoneId.of("GMT");
 	private static long lastSecond;
 	private static String lastDateStr;
 	private static final Class<? extends ServerChannel> serverChannelClass =
@@ -44,25 +46,20 @@ public class Netty {
 		var second = timestamp / 1000;
 		if (second == lastSecond)
 			return lastDateStr;
-		var date = new Date(timestamp);
-		String dateStr;
-		synchronized (dateFormat) {
-			lastDateStr = dateStr = dateFormat.format(date);
-		}
+		var dateStr = DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(
+				LocalDateTime.ofEpochSecond(second, 0, ZoneOffset.UTC), zoneId));
+		lastDateStr = dateStr;
 		lastSecond = second;
 		return dateStr;
 	}
 
 	public static String getDate(Date date) {
-		synchronized (dateFormat) {
-			return dateFormat.format(date);
-		}
+		return DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(
+				LocalDateTime.ofEpochSecond(date.getTime() / 1000, 0, ZoneOffset.UTC), zoneId));
 	}
 
-	public static Date parseDate(String dateStr) throws ParseException {
-		synchronized (dateFormat) {
-			return dateFormat.parse(dateStr);
-		}
+	public static long parseDate(String dateStr) {
+		return LocalDateTime.parse(dateStr, DateTimeFormatter.RFC_1123_DATE_TIME).toEpochSecond(ZoneOffset.UTC);
 	}
 
 	public static HttpHeaders setDate(HttpHeaders headers) {
@@ -80,6 +77,10 @@ public class Netty {
 
 	public Netty(int nThreads) {
 		eventLoopGroup = Epoll.isAvailable() ? new EpollEventLoopGroup(nThreads) : new NioEventLoopGroup(nThreads);
+	}
+
+	public EventLoopGroup getEventLoopGroup() {
+		return eventLoopGroup;
 	}
 
 	// 各种选项可配置。ServerBootstrapConfig?
@@ -103,15 +104,18 @@ public class Netty {
 		return eventLoopGroup.shutdownGracefully();
 	}
 
-	public void stop() throws InterruptedException {
-		stopAsync().sync();
+	@Override
+	public void close() {
+		try {
+			stopAsync().sync();
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e);
+		}
 	}
 
 	public static void main(String[] args) throws InterruptedException {
 		// 运行，用浏览器访问 127.0.0.1/hello;127.0.0.1/exp;127.0.0.1/404
-		var netty = new Netty();
-		try {
-			var http = new HttpServer();
+		try (var netty = new Netty(); var http = new HttpServer()) {
 			http.addHandler("/hello", // 显示一个文本结果。
 					8192, TransactionLevel.Serializable, DispatchMode.Direct,
 					(x) -> {
@@ -144,10 +148,8 @@ public class Netty {
 						}
 						*/
 					});
-			var future = netty.startServer(http, 80);
+			var future = http.start(netty, 80);
 			future.sync().channel().closeFuture().sync(); // 同步等待直到被停止
-		} finally {
-			netty.stop();
 		}
 	}
 

@@ -1,11 +1,14 @@
 package Zeze.Netty;
 
+import java.io.Closeable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.FewModifyMap;
-import Zeze.Util.Task;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -17,7 +20,7 @@ import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.util.ReferenceCountUtil;
 
-public class HttpServer extends ChannelInitializer<SocketChannel> {
+public class HttpServer extends ChannelInitializer<SocketChannel> implements Closeable {
 	private static final int WRITE_PENDING_LIMIT = 64 * 1024; // 写缓冲区的限制大小,超过会立即断开连接,写大量内容需要考虑分片
 
 	final Zeze.Application zeze;
@@ -25,7 +28,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> {
 	final int fileCacheSeconds;
 	final FewModifyMap<String, HttpHandler> handlers = new FewModifyMap<>();
 	final ConcurrentHashMap<ChannelHandlerContext, HttpExchange> exchanges = new ConcurrentHashMap<>();
-	private Netty netty;
+	private Future<?> scheduler;
 
 	public HttpServer() {
 		this(null, null, 10 * 60);
@@ -37,13 +40,22 @@ public class HttpServer extends ChannelInitializer<SocketChannel> {
 		this.fileCacheSeconds = fileCacheSeconds;
 	}
 
-	public synchronized void start(Netty netty, int port) {
-		if (this.netty != null)
+	public synchronized ChannelFuture start(Netty netty, int port) {
+		if (scheduler != null)
 			throw new IllegalStateException("already started");
-		this.netty = netty;
-		netty.startServer(this, port);
-		Task.schedule(HttpExchange.CHECK_IDLE_INTERVAL * 1000, HttpExchange.CHECK_IDLE_INTERVAL * 1000,
-				() -> exchanges.values().forEach(HttpExchange::checkTimeout));
+		scheduler = netty.getEventLoopGroup().scheduleWithFixedDelay(
+				() -> exchanges.values().forEach(HttpExchange::checkTimeout),
+				HttpExchange.CHECK_IDLE_INTERVAL, HttpExchange.CHECK_IDLE_INTERVAL, TimeUnit.SECONDS);
+		return netty.startServer(this, port);
+	}
+
+	@Override
+	public synchronized void close() {
+		if (scheduler == null)
+			return;
+		scheduler.cancel(true);
+		scheduler = null;
+		exchanges.values().forEach(HttpExchange::closeConnectionNow);
 	}
 
 	public void addHandler(String path, int maxContentLength, TransactionLevel level, DispatchMode mode,
