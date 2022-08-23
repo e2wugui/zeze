@@ -203,7 +203,7 @@ public class ProviderModuleBinds {
 
 	private ProviderModuleBinds(Element self) {
 		if (!self.getNodeName().equals("ProviderModuleBinds")) {
-			throw new RuntimeException("is it a ProviderModuleBinds config.");
+			throw new RuntimeException("is it a ProviderModuleBinds config?");
 		}
 
 		NodeList childNodes = self.getChildNodes();

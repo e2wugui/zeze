@@ -75,14 +75,14 @@ public class ProviderUserSession {
 	}
 
 	private void sendOnline(AsyncSocket link, Send send) {
-		if (service.ProviderApp.ProviderImplement instanceof Zeze.Arch.ProviderWithOnline arch) {
+		if (service.ProviderApp.ProviderImplement instanceof Zeze.Arch.ProviderWithOnline) {
 			var context = new HashMap<Long, KV<String, String>>();
 			context.put(LinkSid, KV.Create(Account, Context));
-			arch.Online.send(link, context, send);
-		} else if (service.ProviderApp.ProviderImplement instanceof Zeze.Game.ProviderImplementWithOnline game) {
+			((ProviderWithOnline)service.ProviderApp.ProviderImplement).Online.send(link, context, send);
+		} else if (service.ProviderApp.ProviderImplement instanceof Zeze.Game.ProviderImplementWithOnline) {
 			var context = new HashMap<Long, Long>();
 			context.put(LinkSid, getRoleId());
-			game.Online.send(link, context, send);
+			((Zeze.Game.ProviderImplementWithOnline)service.ProviderApp.ProviderImplement).Online.send(link, context, send);
 		} else {
 			link.Send(send);
 		}
