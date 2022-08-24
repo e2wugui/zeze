@@ -10,8 +10,8 @@ import Zeze.Util.FewModifyMap;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
+import io.netty.channel.ChannelHandler.Sharable;
 import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.socket.ChannelInputShutdownEvent;
 import io.netty.channel.socket.ChannelInputShutdownReadComplete;
@@ -20,6 +20,7 @@ import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.util.ReferenceCountUtil;
 
+@Sharable
 public class HttpServer extends ChannelInitializer<SocketChannel> implements Closeable {
 	private static final int WRITE_PENDING_LIMIT = 64 * 1024; // 写缓冲区的限制大小,超过会立即断开连接,写大量内容需要考虑分片
 
@@ -56,6 +57,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		scheduler.cancel(true);
 		scheduler = null;
 		exchanges.values().forEach(HttpExchange::closeConnectionNow);
+		exchanges.clear();
 	}
 
 	public void addHandler(String path, int maxContentLength, TransactionLevel level, DispatchMode mode,
@@ -70,73 +72,75 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	}
 
 	public void addHandler(String path, HttpHandler handler) {
-		if (null != handlers.putIfAbsent(path, handler))
+		if (handlers.putIfAbsent(path, handler) != null)
 			throw new RuntimeException("add handler: duplicate path=" + path);
 	}
 
 	@Override
 	protected void initChannel(SocketChannel ch) {
+		if (ch.pipeline().get("encoder") != null)
+			return;
 		Netty.logger.info("accept {}", ch.remoteAddress());
 		ch.pipeline()
 				.addLast("encoder", new HttpResponseEncoder())
 				.addLast("decoder", new HttpRequestDecoder(4096, 8192, 8192, false))
-				.addLast("handler", new Handler());
+				.addLast("handler", this);
 		ch.config().setWriteBufferHighWaterMark(WRITE_PENDING_LIMIT);
 	}
 
-	public class Handler extends ChannelInboundHandlerAdapter {
-		@Override
-		public void channelRead(ChannelHandlerContext ctx, Object msg) {
-			try {
-				exchanges.computeIfAbsent(ctx, c -> new HttpExchange(HttpServer.this, c)).channelRead(msg);
-			} catch (RuntimeException r) {
-				throw r;
-			} catch (Exception e) {
-				throw new RuntimeException(e);
-			} finally {
-				ReferenceCountUtil.release(msg);
-			}
+	@Override
+	public void channelRead(ChannelHandlerContext ctx, Object msg) {
+		try {
+			exchanges.computeIfAbsent(ctx, c -> new HttpExchange(this, c)).channelRead(msg);
+		} catch (RuntimeException r) {
+			throw r;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		} finally {
+			ReferenceCountUtil.release(msg);
 		}
+	}
 
-		@Override
-		public void userEventTriggered(ChannelHandlerContext ctx, Object evt) {
-			if (evt == ChannelInputShutdownEvent.INSTANCE) {
-				var he = exchanges.get(ctx);
-				if (he != null)
-					he.close(HttpExchange.CLOSE_PASSIVE, null);
-				else if (!ctx.channel().closeFuture().isDone()) {
-					Netty.logger.info("disconnect: {}", ctx.channel().remoteAddress());
-					ctx.close();
-				}
-			} else if (evt == ChannelInputShutdownReadComplete.INSTANCE && !ctx.channel().closeFuture().isDone()) {
-				Netty.logger.info("inputClose: {}", ctx.channel().remoteAddress());
-				var he = exchanges.get(ctx);
-				if (he != null)
-					he.channelReadClosed();
-				else
-					ctx.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
+	@Override
+	public void userEventTriggered(ChannelHandlerContext ctx, Object evt) throws Exception {
+		if (evt == ChannelInputShutdownEvent.INSTANCE) {
+			var x = exchanges.get(ctx);
+			if (x != null)
+				x.close(HttpExchange.CLOSE_PASSIVE, null);
+			else if (!ctx.channel().closeFuture().isDone()) {
+				Netty.logger.info("disconnect: {}", ctx.channel().remoteAddress());
+				ctx.close();
 			}
+		} else if (evt == ChannelInputShutdownReadComplete.INSTANCE && !ctx.channel().closeFuture().isDone()) {
+			Netty.logger.info("inputClose: {}", ctx.channel().remoteAddress());
+			var x = exchanges.get(ctx);
+			if (x != null)
+				x.channelReadClosed();
+			else
+				ctx.writeAndFlush(Unpooled.EMPTY_BUFFER).addListener(ChannelFutureListener.CLOSE);
 		}
+		super.userEventTriggered(ctx, evt);
+	}
 
-		@Override
-		public void channelWritabilityChanged(ChannelHandlerContext ctx) {
-			var channel = ctx.channel();
-			Netty.logger.error("write buffer overflow {} > {} from {}",
-					channel.unsafe().outboundBuffer().totalPendingWriteBytes(),
-					channel.config().getWriteBufferHighWaterMark(), channel.remoteAddress());
+	@Override
+	public void channelWritabilityChanged(ChannelHandlerContext ctx) throws Exception {
+		var channel = ctx.channel();
+		Netty.logger.error("write buffer overflow {} > {} from {}",
+				channel.unsafe().outboundBuffer().totalPendingWriteBytes(),
+				channel.config().getWriteBufferHighWaterMark(), channel.remoteAddress());
+		ctx.flush().close();
+		super.channelWritabilityChanged(ctx);
+	}
+
+	@Override
+	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+		try {
+			Netty.logger.error("exceptionCaught from {}", ctx.channel().remoteAddress(), cause);
+			var x = exchanges.get(ctx);
+			if (x != null)
+				x.send500(cause); // 需要可配置，或者根据Debug|Release选择。
+		} finally {
 			ctx.flush().close();
-		}
-
-		@Override
-		public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-			try {
-				Netty.logger.error("exceptionCaught from {}", ctx.channel().remoteAddress(), cause);
-				var x = exchanges.get(ctx);
-				if (x != null)
-					x.send500(cause); // 需要可配置，或者根据Debug|Release选择。
-			} finally {
-				ctx.flush().close();
-			}
 		}
 	}
 }

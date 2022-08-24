@@ -1,29 +1,25 @@
 package Zeze.Netty;
 
 import java.io.File;
-import java.io.RandomAccessFile;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
-import java.util.Date;
+import java.nio.file.OpenOption;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.function.BiConsumer;
+import java.util.regex.Pattern;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
-import Zeze.Util.OutLong;
 import Zeze.Util.Str;
 import Zeze.Util.Task;
 import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.DefaultFileRegion;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpContent;
 import io.netty.handler.codec.http.DefaultHttpResponse;
-import io.netty.handler.codec.http.DefaultLastHttpContent;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpHeaderNames;
 import io.netty.handler.codec.http.HttpHeaderValues;
@@ -35,7 +31,7 @@ import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.util.AsciiString;
 import io.netty.util.AttributeMap;
-import io.netty.util.ReferenceCounted;
+import io.netty.util.ReferenceCountUtil;
 
 public class HttpExchange {
 	static final int CHECK_IDLE_INTERVAL = 5; // 检查连接状态间隔(秒)
@@ -46,6 +42,9 @@ public class HttpExchange {
 	static final int CLOSE_FORCE = 2; // 结束HttpExchange,不等发送完强制关闭连接
 	static final int CLOSE_TIMEOUT = 3; // 同上,只是因idle超时而关闭
 	static final int CLOSE_PASSIVE = 4; // 同上,只是因远程主动关闭而关闭
+
+	private static final Pattern rangePattern = Pattern.compile("[ =\\-/]");
+	private static final OpenOption[] emptyOpenOptions = new OpenOption[0];
 
 	private final HttpServer server;
 	private final ChannelHandlerContext context;
@@ -64,8 +63,9 @@ public class HttpExchange {
 		this.context = context;
 	}
 
-	public HttpRequest request() {
-		return request;
+	// 通常不需要获取context,只给特殊需要时使用netty内部的方法
+	public ChannelHandlerContext getContext() {
+		return context;
 	}
 
 	public Channel channel() {
@@ -76,17 +76,13 @@ public class HttpExchange {
 		return context.channel();
 	}
 
-	public HttpMethod method() {
-		return request.method();
-	}
-
-	public String uri() {
-		return request.uri();
+	public HttpRequest request() {
+		return request;
 	}
 
 	public String path() {
 		if (path == null) {
-			var uri = uri();
+			var uri = request.uri();
 			var i = uri.indexOf('?');
 			path = i >= 0 ? uri.substring(0, i) : uri;
 		}
@@ -108,15 +104,9 @@ public class HttpExchange {
 
 	// 一般是会使用一次，不保存中间值
 	public String query() {
-		var uri = uri();
+		var uri = request.uri();
 		var i = uri.indexOf('?');
-		if (i >= 0)
-			return uri.substring(i);
-		return null;
-	}
-
-	public HttpHeaders headers() {
-		return request.headers();
+		return i >= 0 ? uri.substring(i) : null;
 	}
 
 	public ByteBuf content() {
@@ -171,11 +161,9 @@ public class HttpExchange {
 		boolean handled = false;
 
 		if (msg instanceof HttpRequest) {
-			if (msg instanceof ReferenceCounted)
-				((ReferenceCounted)msg).retain();
-			request = (HttpRequest)msg;
+			request = ReferenceCountUtil.retain((HttpRequest)msg);
 			if (!locateHandler()) {
-				trySendFile();
+				sendFile(filePath());
 				return;
 			}
 			if (handler.isStreamMode())
@@ -184,7 +172,7 @@ public class HttpExchange {
 		}
 
 		if (msg instanceof HttpContent) {
-			if (handler == null)
+			if (request == null || handler == null) // 缺失上文的msg,有少数情况会出现,忽略吧
 				return;
 			//noinspection PatternVariableCanBeUsed
 			var c = (HttpContent)msg;
@@ -219,12 +207,6 @@ public class HttpExchange {
 		willCloseConnection = true;
 	}
 
-	private static long parse(String r) {
-		if (r.isEmpty() || r.equals("*"))
-			return -1;
-		return Long.parseLong(r);
-	}
-
 	private void fireStreamContentHandle(HttpContent c) throws Exception {
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
 			c.retain();
@@ -253,44 +235,52 @@ public class HttpExchange {
 			handler.EndStreamHandle.onEndStream(this);
 	}
 
-	private void parseRange(AsciiString headerName, String firstSplit, OutLong from, OutLong to, OutLong size) {
-		from.Value = -1;
-		to.Value = -1;
-		size.Value = -1;
-		var range = headers().get(headerName);
-		if (null != range) {
-			var aunit = range.trim().split(firstSplit);
-			if (aunit.length > 1) {
-				var asize = aunit[1].split("/");
-				if (asize.length > 0) {
-					//如果 asize[0] == "*"；下面的代码能处理这种情况，不用特别判断。
-					var arange = asize[0].split("-");
-					if (arange.length > 0)
-						from.Value = parse(arange[0]);
-					if (arange.length > 1)
-						to.Value = parse(arange[1]);
-				}
-				if (asize.length > 1) {
-					size.Value = parse(asize[1]);
+	// 下载请求/上传回复: range: bytes=[from]-[to] 范围是[from,to)
+	// 上传请求/下载回复: content-range: bytes from-to/size 范围是[from,to]
+	// 回复: [from, to, size]
+	// 参考: https://www.jianshu.com/p/acca9656e250
+	private long[] parseRange(AsciiString headerName) {
+		long[] r = new long[]{-1, -1, -1};
+		var range = request.headers().get(headerName);
+		if (range != null) {
+			var p = range.indexOf(',');
+			if (p >= 0)
+				range = range.substring(0, p); // 暂不支持",",只下载第1段
+			var ss = rangePattern.split(range);
+			var sn = ss.length;
+			if (sn > 1) {
+				r[0] = parse(ss[1]);
+				if (sn > 2) {
+					r[1] = parse(ss[2]);
+					if (sn > 3)
+						r[2] = parse(ss[3]);
 				}
 			}
+		}
+		return r;
+	}
+
+	private static long parse(String s) {
+		if (s.isEmpty())
+			return -1;
+		try {
+			return Long.parseLong(s);
+		} catch (Exception ignored) {
+			return -1;
 		}
 	}
 
 	private void fireBeginStream() throws Exception {
-		var from = new OutLong();
-		var to = new OutLong();
-		var size = new OutLong();
-		parseRange(HttpHeaderNames.CONTENT_RANGE, "=", from, to, size);
+		var r = parseRange(HttpHeaderNames.CONTENT_RANGE);
 		if (server.zeze != null && handler.Level != TransactionLevel.None) {
 			Task.run(server.zeze.NewProcedure(() -> {
 				//noinspection ConstantConditions
-				handler.BeginStreamHandle.onBeginStream(this, from.Value, to.Value, size.Value);
+				handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]);
 				return Procedure.Success;
 			}, "fireBeginStream"), null, null, handler.Mode);
 		} else {
 			//noinspection ConstantConditions
-			handler.BeginStreamHandle.onBeginStream(this, from.Value, to.Value, size.Value);
+			handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]);
 		}
 	}
 
@@ -309,16 +299,15 @@ public class HttpExchange {
 			contentFull = null;
 		}
 		if (request != null) {
-			if (request instanceof ReferenceCounted)
-				((ReferenceCounted)request).release();
+			ReferenceCountUtil.release(request);
 			request = null;
 		}
 		if (willCloseConnection)
 			context.close();
 	}
 
-	void close(int method, ChannelFuture future) {
-		var removed = server.exchanges.remove(context) != null;
+	void close(int method, ChannelFuture cf) {
+		var removed = server.exchanges.remove(context, this);
 		if (method != CLOSE_FINISH) {
 			willCloseConnection = true;
 			Netty.logger.info("close({}): {}", method, context.channel().remoteAddress());
@@ -334,13 +323,10 @@ public class HttpExchange {
 					closeInEventLoop();
 				});
 			}
-		} else if (removed) {
-			(future != null ? future : context.writeAndFlush(Unpooled.EMPTY_BUFFER))
-					.addListener(__ -> closeInEventLoop());
-		} else if (method == CLOSE_ON_FLUSH) {
-			(future != null ? future : context.writeAndFlush(Unpooled.EMPTY_BUFFER))
-					.addListener(__ -> context.close());
-		}
+		} else if (removed)
+			(cf != null ? cf : context.writeAndFlush(Unpooled.EMPTY_BUFFER)).addListener(__ -> closeInEventLoop());
+		else if (method == CLOSE_ON_FLUSH)
+			(cf != null ? cf : context.writeAndFlush(Unpooled.EMPTY_BUFFER)).addListener(__ -> context.close());
 	}
 
 	// 正常结束HttpExchange,不关闭连接
@@ -400,60 +386,47 @@ public class HttpExchange {
 		return send(status, "image/png", png);
 	}
 
-	public void trySendFile() throws Exception {
-		var file = new File(server.fileHome, filePath());
+	public void sendFile(String filePath) throws Exception {
+		var file = new File(server.fileHome, filePath);
 		if (!file.isFile() || file.isHidden()) {
 			close(send404());
 			return;
 		}
 
-		// 检查 IF_MODIFIED_SINCE
-		String ifModifiedSince = headers().get(HttpHeaderNames.IF_MODIFIED_SINCE);
-		if (ifModifiedSince != null && !ifModifiedSince.isEmpty()) {
-			if (file.lastModified() == Netty.parseDate(ifModifiedSince)) {
-				// 文件未改变。
-				var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_MODIFIED);
-				Netty.setDate(res.headers())
-						.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
-						.set(HttpHeaderNames.CONTENT_LENGTH, 0);
-				close(context.writeAndFlush(res));
-				return;
-			}
+		// 检查 if-modified-since
+		var lastModified = file.lastModified() / 1000;
+		var ifModifiedSince = request.headers().get(HttpHeaderNames.IF_MODIFIED_SINCE);
+		if (ifModifiedSince != null && !ifModifiedSince.isEmpty() && lastModified == Netty.parseDate(ifModifiedSince)) {
+			var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.NOT_MODIFIED, // 文件未改变
+					Unpooled.EMPTY_BUFFER, false);
+			Netty.setDate(res.headers())
+					.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
+					.set(HttpHeaderNames.CONTENT_LENGTH, 0);
+			close(context.writeAndFlush(res));
+			return;
 		}
 
-		var raf = new RandomAccessFile(file, "r");
-		var from = new OutLong();
-		var to = new OutLong();
-		var size = new OutLong(); // not used
-		parseRange(HttpHeaderNames.RANGE, " ", from, to, size);
-		if (from.Value == -1)
-			from.Value = 0;
-		if (to.Value == -1)
-			to.Value = raf.length();
-		var downloadLength = to.Value - from.Value;
-		if (downloadLength < 0 || HttpMethod.HEAD.equals(method()))
-			downloadLength = 0;
+		var fc = FileChannel.open(file.toPath(), emptyOpenOptions);
+		var fsize = fc.size();
+		var r = parseRange(HttpHeaderNames.RANGE);
+		var from = Math.max(r[0], 0);
+		var to = r[1];
+		var contentLen = Math.max((to >= 0 ? to : fsize) - from, 0L);
 
-		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK);
+		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK, false);
 		Netty.setDate(res.headers())
 				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
-				.set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(file.getName()))
-				.set(HttpHeaderNames.CONTENT_LENGTH, downloadLength)
-				.set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from.Value + "-" + to.Value + "/" + raf.length())
-				.set(HttpHeaderNames.EXPIRES,
-						Netty.getDate(new Date((Netty.getLastDateSecond() + server.fileCacheSeconds) * 1000L)))
+				.set(HttpHeaderNames.CONTENT_TYPE, Mimes.fromFileName(filePath))
+				.set(HttpHeaderNames.CONTENT_LENGTH, contentLen)
+				.set(HttpHeaderNames.CONTENT_RANGE, "bytes " + from + '-' + (from + contentLen - 1) + '/' + fsize)
+				.set(HttpHeaderNames.EXPIRES, Netty.getDate(Netty.getLastDateSecond() + server.fileCacheSeconds))
 				.set(HttpHeaderNames.CACHE_CONTROL, "private, max-age=" + server.fileCacheSeconds)
-				.set(HttpHeaderNames.LAST_MODIFIED, Netty.getDate(new Date(file.lastModified())));
-		var future = context.write(res);
+				.set(HttpHeaderNames.LAST_MODIFIED, Netty.getDate(lastModified));
+		context.write(res, context.voidPromise());
 
-		if (downloadLength > 0) {
-			future = context.writeAndFlush(new DefaultFileRegion(raf.getChannel(), from.Value, downloadLength));
-			close(future.addListener(__ -> raf.close()));
-			// 发文件任务全部交给Netty，并且发送完毕时关闭。
-		} else {
-			context.flush();
-			close(future);
-		}
+		if (contentLen > 0 && !HttpMethod.HEAD.equals(request.method())) // 发文件任务全部交给Netty，并且发送完毕时关闭。
+			context.write(new DefaultFileRegion(fc, from, contentLen), context.voidPromise());
+		close(context.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT).addListener(__ -> fc.close()));
 	}
 
 	public ChannelFuture send404() {
@@ -470,25 +443,24 @@ public class HttpExchange {
 
 	/////////////////////////////////////////////////////////////////////////////////////////////////
 	// 流接口功能最大化，不做任何校验：状态校验，不正确的流起始Response（headers）等。
-	public void beginStream(HttpResponseStatus status, HttpHeaders headers) {
+	public ChannelFuture beginStream(HttpResponseStatus status, HttpHeaders headers) {
 		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, headers);
 		headers.remove(HttpHeaderNames.CONTENT_LENGTH);
 		headers.set(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED);
-		context.writeAndFlush(res);
+		return context.writeAndFlush(res);
 	}
 
-	public void sendStream(byte[] data, BiConsumer<HttpExchange, ChannelFuture> callback) {
-		sendStream(data, 0, data.length, callback);
+	// 发送后data内容在回调前不能修改
+	public ChannelFuture sendStream(byte[] data) {
+		return sendStream(data, 0, data.length);
 	}
 
-	public void sendStream(byte[] data, int offset, int count, BiConsumer<HttpExchange, ChannelFuture> callback) {
-		var buf = ByteBufAllocator.DEFAULT.ioBuffer(data.length);
-		buf.writeBytes(data, offset, count);
-		var future = context.writeAndFlush(new DefaultHttpContent(buf), context.newPromise());
-		future.addListener((ChannelFutureListener)future1 -> callback.accept(this, future1));
+	// 发送后data内容在回调前不能修改
+	public ChannelFuture sendStream(byte[] data, int offset, int count) {
+		return context.writeAndFlush(new DefaultHttpContent(Unpooled.wrappedBuffer(data, offset, count)));
 	}
 
 	public void endStream() {
-		close(context.writeAndFlush(new DefaultLastHttpContent()));
+		close(context.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT));
 	}
 }

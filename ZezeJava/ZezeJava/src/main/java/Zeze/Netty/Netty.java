@@ -7,7 +7,6 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.Date;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Str;
@@ -53,9 +52,9 @@ public class Netty implements Closeable {
 		return dateStr;
 	}
 
-	public static String getDate(Date date) {
+	public static String getDate(long epochSecond) {
 		return DateTimeFormatter.RFC_1123_DATE_TIME.format(ZonedDateTime.of(
-				LocalDateTime.ofEpochSecond(date.getTime() / 1000, 0, ZoneOffset.UTC), zoneId));
+				LocalDateTime.ofEpochSecond(epochSecond, 0, ZoneOffset.UTC), zoneId));
 	}
 
 	public static long parseDate(String dateStr) {
@@ -114,16 +113,18 @@ public class Netty implements Closeable {
 	}
 
 	public static void main(String[] args) throws InterruptedException {
+		// ResourceLeakDetector.setLevel(ResourceLeakDetector.Level.PARANOID);
+
 		// 运行，用浏览器访问 127.0.0.1/hello;127.0.0.1/exp;127.0.0.1/404
 		try (var netty = new Netty(); var http = new HttpServer()) {
 			http.addHandler("/hello", // 显示一个文本结果。
 					8192, TransactionLevel.Serializable, DispatchMode.Direct,
 					(x) -> {
 						var sb = new StringBuilder();
-						sb.append("uri=").append(x.uri()).append("\n");
+						sb.append("uri=").append(x.request().uri()).append("\n");
 						sb.append("path=").append(x.path()).append("\n");
 						sb.append("query=").append(x.query()).append("\n");
-						for (var header : x.headers())
+						for (var header : x.request().headers())
 							sb.append(header.getKey()).append("=").append(header.getValue()).append("\n");
 						x.sendPlainText(HttpResponseStatus.OK, sb.toString());
 					});
@@ -155,22 +156,20 @@ public class Netty implements Closeable {
 
 	private static int trunkCount;
 
-	private static void processSendTrunkResult(HttpExchange x, ChannelFuture f) {
-		System.out.println("sent: " + trunkCount);
-		if (f.isSuccess()) {
-			if (trunkCount > 3)
-				x.endStream();
-			else
-				sendTrunk(x);
-			return;
-		}
-		System.out.println("error: " + Str.stacktrace(f.cause()));
-		System.out.flush();
-		x.closeConnectionNow();
-	}
-
 	private static void sendTrunk(HttpExchange x) {
 		trunkCount++;
-		x.sendStream(("content " + trunkCount + "-").getBytes(StandardCharsets.UTF_8), Netty::processSendTrunkResult);
+		x.sendStream(("content " + trunkCount + "-").getBytes(StandardCharsets.UTF_8)).addListener(future -> {
+			System.out.println("sent: " + trunkCount);
+			if (future.isSuccess()) {
+				if (trunkCount > 3)
+					x.endStream();
+				else
+					sendTrunk(x);
+				return;
+			}
+			System.out.println("error: " + Str.stacktrace(future.cause()));
+			System.out.flush();
+			x.closeConnectionNow();
+		});
 	}
 }

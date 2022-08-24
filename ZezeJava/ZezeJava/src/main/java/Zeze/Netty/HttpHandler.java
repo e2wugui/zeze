@@ -17,7 +17,7 @@ public class HttpHandler {
 
 	public HttpHandler(long maxContentLength, TransactionLevel level, DispatchMode mode,
 					   HttpEndStreamHandle fullHandle) {
-		MaxContentLength = Math.min(maxContentLength, Integer.MAX_VALUE); // 非流模式最大支持2G-1字节
+		MaxContentLength = Math.min(maxContentLength & Long.MAX_VALUE, Integer.MAX_VALUE); // 非流模式最大支持2G-1字节
 		Level = level;
 		Mode = mode;
 		BeginStreamHandle = null;
@@ -28,7 +28,7 @@ public class HttpHandler {
 	public HttpHandler(long maxContentLength, TransactionLevel level, DispatchMode mode,
 					   HttpBeginStreamHandle beginStream, HttpStreamContentHandle streamContent,
 					   HttpEndStreamHandle endStream) {
-		MaxContentLength = maxContentLength;
+		MaxContentLength = maxContentLength >= 0 ? maxContentLength : Long.MAX_VALUE;
 		Level = level;
 		Mode = mode;
 		BeginStreamHandle = beginStream;
