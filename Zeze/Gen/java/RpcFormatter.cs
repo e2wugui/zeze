@@ -38,7 +38,7 @@ namespace Zeze.Gen.java
             sw.WriteLine();
             // declare enums
             foreach (Types.Enum e in rpc.Enums)
-                sw.WriteLine("    public static final int " + e.Name + " = " + e.Value + ";" + e.Comment);
+                sw.WriteLine($"    public static final {TypeName.GetName(Types.Type.Compile(e.Type))} " + e.Name + " = " + e.Value + ";" + e.Comment);
             if (rpc.Enums.Count > 0)
                 sw.WriteLine();
             sw.WriteLine($"    public {rpc.Name}() {{");

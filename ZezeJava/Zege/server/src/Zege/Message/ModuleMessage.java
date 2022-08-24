@@ -4,6 +4,7 @@ import Zege.Program;
 import Zeze.Arch.ProviderUserSession;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
+import Zeze.Util.OutLong;
 import Zeze.Util.TransactionLevelAnnotation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -114,18 +115,14 @@ public class ModuleMessage extends AbstractModule {
 
         // 准备消息范围
         var messageRoot = _tFriendMessage.getOrAdd(new BFriendKey(session.getAccount(), r.Argument.getFriend()));
-        var from = (r.Argument.getMessageIdFrom() >= 0) ? r.Argument.getMessageIdFrom() : messageRoot.getFirstMessageId();
-        var to = (r.Argument.getMessageIdTo() >= 0) ? r.Argument.getMessageIdTo() : messageRoot.getLastMessageId();
-        if (to > messageRoot.getLastMessageId())
-            to = messageRoot.getLastMessageId();
-        if (to < from)
+        var from = new OutLong(r.Argument.getMessageIdFrom());
+        var to = new OutLong(r.Argument.getMessageIdTo());
+        if (!caculateMessageRange(from, to, messageRoot))
             return ErrorCode(eMessageRange);
-        if (to - from > 20) // todo config max count
-            to = from + 20;
 
         // 提取消息历史
-        for (; from <= to; ++from) {
-            var message = _tFriendMessages.get(new BFriendMessageKey(session.getAccount(), r.Argument.getFriend(), from));
+        for (; from.Value <= to.Value; ++from.Value) {
+            var message = _tFriendMessages.get(new BFriendMessageKey(session.getAccount(), r.Argument.getFriend(), from.Value));
             if (null != message)
                 r.Result.getMessages().add(message);
             else
@@ -133,6 +130,23 @@ public class ModuleMessage extends AbstractModule {
         }
         session.sendResponseWhileCommit(r);
         return Procedure.Success;
+    }
+
+    private boolean caculateMessageRange(OutLong from, OutLong to, BMessageRoot messageRoot) {
+        if (from.Value == eGetMessageFromAboutRead)
+            from.Value = Math.max(from.Value, messageRoot.getMessageIdHashRead() - 3); // todo config
+        else if (from.Value == eGetMessageFromAboutLast)
+            from.Value = Math.max(from.Value, messageRoot.getLastMessageId() - 20); // todo config
+        else
+            from.Value = Math.max(from.Value, messageRoot.getFirstMessageId());
+
+        if (to.Value == eGetMessageToAuto || to.Value > messageRoot.getLastMessageId())
+            to.Value = messageRoot.getLastMessageId();
+        if (to.Value < from.Value)
+            return false;
+        if (to.Value - from.Value > 20) // todo config max count
+            to.Value = from.Value + 20;
+        return true;
     }
 
     @Override
@@ -151,18 +165,14 @@ public class ModuleMessage extends AbstractModule {
 
         // 准备消息范围
         var messageRoot = _tDepartementMessage.getOrAdd(departmentKey);
-        var from = (r.Argument.getMessageIdFrom() >= 0) ? r.Argument.getMessageIdFrom() : messageRoot.getFirstMessageId();
-        var to = (r.Argument.getMessageIdTo() >= 0) ? r.Argument.getMessageIdTo() : messageRoot.getLastMessageId();
-        if (to > messageRoot.getLastMessageId())
-            to = messageRoot.getLastMessageId();
-        if (to < from)
+        var from = new OutLong(r.Argument.getMessageIdFrom());
+        var to = new OutLong(r.Argument.getMessageIdTo());
+        if (!caculateMessageRange(from, to, messageRoot))
             return ErrorCode(eMessageRange);
-        if (to - from > 20) // todo config max count
-            to = from + 20;
 
         // 提取消息历史
-        for (; from <= to; ++from) {
-            var message = _tDepartementMessages.get(new BDepartmentMessageKey(departmentKey, from));
+        for (; from.Value <= to.Value; ++from.Value) {
+            var message = _tDepartementMessages.get(new BDepartmentMessageKey(departmentKey, from.Value));
             if (null != message)
                 r.Result.getMessages().add(message);
             else
@@ -185,11 +195,13 @@ public class ModuleMessage extends AbstractModule {
 
         // 检查消息范围
         var messageRoot = _tFriendMessage.getOrAdd(new BFriendKey(session.getAccount(), r.Argument.getFriend()));
-        if (r.Argument.getMessageIdHashRead() < messageRoot.getFirstMessageId()
+        if (r.Argument.getMessageIdHashRead() < messageRoot.getMessageIdHashRead()
                 || r.Argument.getMessageIdHashRead() > messageRoot.getLastMessageId())
-            return ErrorCode(eMessageRange);
+            return ErrorCode(eMessageRange); // 已读消息只能推进
 
         messageRoot.setMessageIdHashRead(r.Argument.getMessageIdHashRead());
+
+        // todo 广播已读消息Id给当前登录的所有客户端。
         session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }
@@ -210,11 +222,13 @@ public class ModuleMessage extends AbstractModule {
 
         // 检查消息范围
         var messageRoot = _tDepartementMessage.getOrAdd(departmentKey);
-        if (r.Argument.getMessageIdHashRead() < messageRoot.getFirstMessageId()
+        if (r.Argument.getMessageIdHashRead() < messageRoot.getMessageIdHashRead()
                 || r.Argument.getMessageIdHashRead() > messageRoot.getLastMessageId())
-            return ErrorCode(eMessageRange);
+            return ErrorCode(eMessageRange); // 已读消息只能推进
 
         messageRoot.setMessageIdHashRead(r.Argument.getMessageIdHashRead());
+
+        // todo 广播已读消息Id给当前登录的所有客户端。
         session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }

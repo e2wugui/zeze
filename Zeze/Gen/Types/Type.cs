@@ -46,6 +46,13 @@ namespace Zeze.Gen.Types
 			Types.Add(fullName, type);
 		}
 
+		public static Type Compile(string name)
+		{
+			if (Types.TryGetValue(name, out var type))
+				return type;
+			throw new Exception("simple type compile not found=" + name);
+		}
+
 		public static Type Compile(global::Zeze.Gen.ModuleSpace space, string name)
 		{
 			return Compile(space, name, null, null, null);

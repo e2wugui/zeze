@@ -34,7 +34,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine();
             // declare enums
             foreach (Types.Enum e in p.Enums)
-                sw.WriteLine("        public const int " + e.Name + " = " + e.Value + ";" + e.Comment);
+                sw.WriteLine($"        public const {TypeName.GetName(Types.Type.Compile(e.Type))} " + e.Name + " = " + e.Value + ";" + e.Comment);
             if (p.Enums.Count > 0)
                 sw.WriteLine();
             sw.WriteLine("        public " + p.Name + "()");

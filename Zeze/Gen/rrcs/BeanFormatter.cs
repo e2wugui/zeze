@@ -34,7 +34,7 @@ namespace Zeze.Gen.rrcs
         {
             // declare enums
             foreach (Enum e in bean.Enums)
-                sw.WriteLine("        public const int " + e.Name + " = " + e.Value + ";" + e.Comment);
+                sw.WriteLine($"        public const {TypeName.GetName(Type.Compile(e.Type))} " + e.Name + " = " + e.Value + ";" + e.Comment);
             if (bean.Enums.Count > 0)
                 sw.WriteLine();
 

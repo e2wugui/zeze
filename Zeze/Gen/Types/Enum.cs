@@ -13,12 +13,17 @@ namespace Zeze.Gen.Types
 
 		public string Value { get; private set; }
 		public string Comment { get; private set; } = "";
+		public string Type { get; private set; }
 
 		public Enum(XmlElement self)
 		{
 			Name = self.GetAttribute("name").Trim();
 			Value = self.GetAttribute("value").Trim();
 			Comment = self.GetAttribute("description").Trim();
+			Type = self.GetAttribute("type").Trim();
+			if (Type.Length == 0)
+				Type = "int";
+
 			if (Comment.Length == 0)
 			{
 				Comment = self.GetAttribute("comment").Trim();

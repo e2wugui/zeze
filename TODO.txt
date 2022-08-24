@@ -20,10 +20,11 @@ DatagramChannel
 ------------------------------------------------------------------------------------------------------------------------------
 tag 1.0.6 Zege Encrypt，Message Server Side History;
 ------------------------------------------------------------------------------------------------------------------------------
-Zege-Server
-	创建账号和登录
+Zege
+	创建账号和登录。
 	Friend 完善：参数检查，权限相关。
 	消息历史基本完工：保存和读取和设置已读。
+	caculateMessageRange: eGetMessageFromAboutRead, eGetMessageFromAboutLast, eGetMessageToAuto, ...
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 1.0.5 Certificate; Netty-Web More; Change Protocol Provider.Send To Rpc And Report Error;

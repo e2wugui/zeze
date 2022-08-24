@@ -36,7 +36,7 @@ namespace Zeze.Gen.java
             // declare enums
             foreach (Types.Enum e in p.Enums)
             {
-                sw.WriteLine("    public static final int " + e.Name + " = " + e.Value + ";" + e.Comment);
+                sw.WriteLine($"    public static final {TypeName.GetName(Types.Type.Compile(e.Type))} " + e.Name + " = " + e.Value + ";" + e.Comment);
             }
             if (p.Enums.Count > 0)
             {

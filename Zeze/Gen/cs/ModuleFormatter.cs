@@ -270,7 +270,7 @@ namespace Zeze.Gen.cs
             if (module.Enums.Count > 0)
                 sw.WriteLine();
             foreach (Types.Enum e in module.Enums)
-                sw.WriteLine($"        public const int {e.Name} = {e.Value};{e.Comment}");
+                sw.WriteLine($"        public const {TypeName.GetName(Types.Type.Compile(e.Type))} {e.Name} = {e.Value};{e.Comment}");
         }
 
         public void GenAbstractProtocolHandles(StreamWriter sw)

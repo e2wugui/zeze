@@ -28,7 +28,7 @@ namespace Zeze.Gen.java
 
             // declare enums
             foreach (Enum e in beanKey.Enums)
-                sw.WriteLine("    public static final int " + e.Name + " = " + e.Value + ";" + e.Comment);
+                sw.WriteLine($"    public static final {TypeName.GetName(Type.Compile(e.Type))} " + e.Name + " = " + e.Value + ";" + e.Comment);
             if (beanKey.Enums.Count > 0)
                 sw.WriteLine();
 

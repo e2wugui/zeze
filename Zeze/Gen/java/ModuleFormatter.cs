@@ -467,7 +467,7 @@ namespace Zeze.Gen.java
         public void GenEnums(StreamWriter sw)
         {
             foreach (Types.Enum e in module.Enums)
-                sw.WriteLine("    public static final int " + e.Name + " = " + e.Value + ";" + e.Comment);
+                sw.WriteLine($"    public static final {TypeName.GetName(Types.Type.Compile(e.Type))} " + e.Name + " = " + e.Value + ";" + e.Comment);
             if (module.Enums.Count > 0)
                 sw.WriteLine();
         }
