@@ -25,6 +25,7 @@ Zege
 	Friend 完善：参数检查，权限相关。
 	消息历史基本完工：保存和读取和设置已读。
 	caculateMessageRange: eGetMessageFromAboutRead, eGetMessageFromAboutLast, eGetMessageToAuto, ...
+	Friend 协议参数和数据库结构分开定义。
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 1.0.5 Certificate; Netty-Web More; Change Protocol Provider.Send To Rpc And Report Error;

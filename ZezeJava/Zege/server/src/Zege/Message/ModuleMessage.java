@@ -54,14 +54,14 @@ public class ModuleMessage extends AbstractModule {
             // group root
             group.getGroupMembers().walk((key, member) -> {
                 Program.counters.increment("GroupBroadcastMessage:" + r.Argument.getGroup() + "#" + r.Argument.getDepartmentId());
-                App.Provider.Online.sendAccountWhileCommit(member.getAccount(), notify, null);
+                App.Provider.Online.sendAccountWhileCommit(key, notify, null);
                 return true;
             });
         } else {
             // department
             group.getDepartmentMembers(r.Argument.getDepartmentId()).walk((key, member) -> {
                 Program.counters.increment("GroupBroadcastMessage:" + r.Argument.getGroup() + "#" + r.Argument.getDepartmentId());
-                App.Provider.Online.sendAccountWhileCommit(member.getAccount(), notify, null);
+                App.Provider.Online.sendAccountWhileCommit(key, notify, null);
                 return true;
             });
         }

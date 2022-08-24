@@ -13,8 +13,8 @@
 			<variable id="4" name="NickName"   type="string" /> 不唯一
 
 			<!-- 证书 -->
-			<variable id="20" name="LastCertIndex" type="int" default="-1" />
-			<variable id="21" name="CertsMap"      type="map[int, binary]" />
+			<variable id="20" name="LastCertIndex" type="int" default="-1" /> 给客户端分配Index用，递增。客户端对自己需要保存所有证书和Key。
+			<variable id="21" name="Cert"          type="binary" />
 
 			<!-- 实名 -->
 			<enum name="RealFlagIdentityCard" value="1" />
@@ -62,7 +62,8 @@
 			<variable id="3" name="Signed" type="binary" />
 		</bean>
 		<bean name="BCreateResult">
-			<variable id="1" name="Cert" type="binary" /> der format
+			<variable id="1" name="LastCertIndex" type="int" /> last cert index
+			<variable id="2" name="Cert" type="binary" /> der format
 		</bean>
 		<rpc name="Create" argument="BCreateArgument" result="BCreateResult" handle="server" />
 
@@ -94,41 +95,59 @@
 		<enum name="ErrorMemberNodeNotFound" value="3"/>
 		<enum name="ErrorDeparmentMemberNotInGroup" value="4"/>
 
-		<!-- 好友列表用 Zeze.Collections.LinkedMap -->
+		<!-- 好友列表用 Zeze.Collections.LinkedMap 下面时自定义数据结构的定义 -->
 		<bean name="BFriend">
-			<variable id="1" name="Account" type="string"/>
-			<variable id="2" name="Nick" type="string"/>
+			<variable id="1" name="Nick" type="string"/>
 		</bean>
 
-		<bean name="BAccount">
-			<variable id="1" name="Account" type="string"/>
-		</bean>
-
-		<bean name="BNodeId">
-			<variable id="1" name="NodeId" type="long"/>
-		</bean>
-
+		<!--
 		<bean name="BFriendNode">
 			<variable id="1" name="PrevNodeId" type="long"/>
 			<variable id="2" name="NextNodeId" type="long"/>
 			<variable id="3" name="Friends"    type="list[BFriend]"/>
 		</bean>
+		-->
 
-		<rpc name="AddFriend" argument="BAccount" handle="server"/>
-		<rpc name="GetFriendNode" argument="BNodeId" result="BFriendNode" handle="server"/>
+		<!-- 协议：读取好友节点 -->
+		<bean name="BAddFriend">
+			<variable id="1" name="Account" type="string"/>
+			<variable id="2" name="Nick" type="string"/>
+		</bean>
 
-		<!-- 部门树用 Zeze.Collections.DepartmentTree -->
+		<rpc name="AddFriend" argument="BAddFriend" handle="server"/>
+
+		<bean name="BNodeId">
+			<variable id="1" name="NodeId" type="long"/>
+		</bean>
+
+		<bean name="BGetFriend">
+			<variable id="1" name="Account" type="string"/>
+			<variable id="2" name="Nick" type="string"/>
+			<variable id="3" name="LastCertIndex" type="int"/>
+			<variable id="4" name="Cert" type="binary"/>
+		</bean>
+
+		<bean name="BGetFriendNode">
+			<variable id="1" name="PrevNodeId" type="long"/>
+			<variable id="2" name="NextNodeId" type="long"/>
+			<variable id="3" name="Friends"    type="list[BGetFriend]"/>
+		</bean>
+
+		<rpc name="GetFriendNode" argument="BNodeId" result="BGetFriendNode" handle="server"/>
+
+		<!-- 部门树用 Zeze.Collections.DepartmentTree 下面时自定义数据结构的定义 -->
 		<bean name="BManager">
 		</bean>
 
 		<bean name="BMember">
-			<variable id="1" name="Account" type="string"/>
+			<variable id="1" name="Nick" type="string"/>
 		</bean>
 
 		<bean name="BDepartmentMember">
-			<variable id="1" name="Account" type="string"/>
+			<variable id="1" name="Nick" type="string"/>
 		</bean>
 
+		<!-- 协议：群及部门管理 -->
 		<bean name="BDepartment">
 			<variable id="1" name="Group" type="string"/>
 			<variable id="2" name="Name" type="string"/>
@@ -166,6 +185,7 @@
 		</bean>
 		<rpc name="GetGroupRoot" argument="BDepartmentId" result="BGroup" handle="server"/>
 
+		<!--
 		<bean name="BMemberNode">
 			<variable id="1" name="PrevNodeId" type="long"/>
 			<variable id="2" name="NextNodeId" type="long"/>
@@ -177,20 +197,47 @@
 			<variable id="2" name="NextNodeId" type="long"/>
 			<variable id="3" name="DepartmentMembers" type="list[BDepartmentMember]"/>
 		</bean>
-
+		-->
 		<bean name="BGroupNodeId">
 			<variable id="1" name="Group" type="string"/>
 			<variable id="2" name="NodeId" type="long"/>
 		</bean>
 
-		<rpc name="GetGroupMemberNode" argument="BGroupNodeId" result="BMemberNode" handle="server"/>
+		<bean name="BGetMember">
+			<variable id="1" name="Account" type="string"/>
+			<variable id="2" name="Nick" type="string"/>
+			<variable id="3" name="LastCertIndex" type="int"/>
+			<variable id="4" name="Cert" type="binary"/>
+		</bean>
+
+		<bean name="BGetMemberNode">
+			<variable id="1" name="PrevNodeId" type="long"/>
+			<variable id="2" name="NextNodeId" type="long"/>
+			<variable id="3" name="Members"    type="list[BGetMember]"/>
+		</bean>
+
+		<rpc name="GetGroupMemberNode" argument="BGroupNodeId" result="BGetMemberNode" handle="server"/>
+
+		<bean name="BGetDepartmentMember">
+			<variable id="1" name="Account" type="string"/>
+			<variable id="2" name="Nick" type="string"/>
+			<variable id="3" name="LastCertIndex" type="int"/>
+			<variable id="4" name="Cert" type="binary"/>
+		</bean>
+
+		<bean name="BGetDepartmentMemberNode">
+			<variable id="1" name="PrevNodeId" type="long"/>
+			<variable id="2" name="NextNodeId" type="long"/>
+			<variable id="3" name="DepartmentMembers" type="list[BGetDepartmentMember]"/>
+		</bean>
 
 		<bean name="BDepartmentNodeId">
 			<variable id="1" name="Group" type="string"/>
 			<variable id="2" name="DepartmentId" type="long"/>
 			<variable id="3" name="NodeId" type="long"/>
 		</bean>
-		<rpc name="GetDepartmentMemberNode" argument="BDepartmentNodeId" result="BDepartmentMemberNode" handle="server"/>
+
+		<rpc name="GetDepartmentMemberNode" argument="BDepartmentNodeId" result="BGetDepartmentMemberNode" handle="server"/>
 
 		<bean name="BAddDepartmentMember">
 			<variable id="1" name="Group" type="string"/>

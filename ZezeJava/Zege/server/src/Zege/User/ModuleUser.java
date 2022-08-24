@@ -20,6 +20,10 @@ public class ModuleUser extends AbstractModule {
     public void Stop(Zege.App app) {
     }
 
+    public BUser getAccount(String account) {
+        return _tUser.get(account);
+    }
+
     public boolean contains(String account) {
         return _tUser.get(account) != null;
     }
@@ -54,8 +58,9 @@ public class ModuleUser extends AbstractModule {
         var privateKey = Cert.getPrivateKey(keyStore, passwd, "ZegeFakeCa");
         var cert = Cert.generate(account, publicKey, "ZegeFakeCa", privateKey, 10000);
         var certEncoded = new Binary(cert.getEncoded());
+        user.setCert(certEncoded);
+        r.Result.setLastCertIndex(user.getLastCertIndex());
         user.setLastCertIndex(user.getLastCertIndex() + 1);
-        user.getCertsMap().put(user.getLastCertIndex(), certEncoded);
         r.Result.setCert(certEncoded);
 
         Transaction.whileCommit(r::SendResult);
@@ -74,7 +79,7 @@ public class ModuleUser extends AbstractModule {
         // 【注意】这条协议是linkd直接转发过来的，没有Session。
         var account = r.Argument.getAccount();
         var user = _tUser.getOrAdd(account);
-        var cert = Cert.loadCertificate(user.getCertsMap().get(user.getLastCertIndex()).bytesUnsafe());
+        var cert = Cert.loadCertificate(user.getCert().bytesUnsafe());
         if (!Cert.verifySign(cert.getPublicKey(), r.Argument.getRandomData().bytesUnsafe(), r.Argument.getSigned().bytesUnsafe()))
             r.setResultCode(1);
         Transaction.whileCommit(r::SendResult);
@@ -86,11 +91,9 @@ public class ModuleUser extends AbstractModule {
             var group = App.Zege_Friend.getGroup(defaultGroup);
             group.create();
             var member = new BMember();
-            member.setAccount(account);
             group.getGroupMembers().put(account, member);
             var friend = new BFriend();
-            friend.setAccount(defaultGroup);
-            App.Zege_Friend.getFriends(account).put(friend.getAccount(), friend);
+            App.Zege_Friend.getFriends(account).put(defaultGroup, friend);
         }
         return Procedure.Success;
     }

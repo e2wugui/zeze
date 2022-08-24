@@ -103,7 +103,7 @@ public class Program {
 	public class Window {
 		public String Name;
 
-		public long tryParseLong(String value) {
+		public static long tryParseLong(String value) {
 			try {
 				return Long.parseLong(value);
 			} catch (Exception ex) {
@@ -189,7 +189,7 @@ public class Program {
 		public final long DepartmentId;
 		public BDepartmentNode Department;
 		public long MemberNodeId;
-		public BDepartmentMemberNode MemberNode;
+		public BGetDepartmentMemberNode MemberNode;
 
 		public DepartmentWindow(String group, long id, String name) {
 			this.Group = group;
@@ -297,7 +297,7 @@ public class Program {
 		public final String Group;
 		public BGroup Root;
 		public long MemberNodeId;
-		public BMemberNode MemberNode;
+		public BGetMemberNode MemberNode;
 
 		public GroupWindow(String group) {
 			this.Group = group;
@@ -465,9 +465,9 @@ public class Program {
 		}
 
 		public long NodeId;
-		public BFriendNode Node;
+		public BGetFriendNode Node;
 
-		public BFriend find(String value) {
+		public BGetFriend find(String value) {
 			for (var friend : Node.getFriends()) {
 				if (friend.getAccount().equals(value))
 					return friend;

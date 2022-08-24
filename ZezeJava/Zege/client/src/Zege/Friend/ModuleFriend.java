@@ -16,28 +16,28 @@ public class ModuleFriend extends AbstractModule {
         return req.SendForWait(App.Connector.TryGetReadySocket());
     }
 
-    public BFriendNode getFriendNode(long nodeId) {
+    public BGetFriendNode getFriendNode(long nodeId) {
         var req = new GetFriendNode();
         req.Argument.setNodeId(nodeId);
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
-        return req.getResultCode() == 0 ? req.Result : new BFriendNode();
+        return req.getResultCode() == 0 ? req.Result : new BGetFriendNode();
     }
 
-    public BMemberNode getGroupMemberNode(String group, long nodeId) {
+    public BGetMemberNode getGroupMemberNode(String group, long nodeId) {
         var req = new GetGroupMemberNode();
         req.Argument.setGroup(group);
         req.Argument.setNodeId(nodeId);
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
-        return req.getResultCode() == 0 ? req.Result : new BMemberNode();
+        return req.getResultCode() == 0 ? req.Result : new BGetMemberNode();
     }
 
-    public BDepartmentMemberNode getDepartmentMemberNode(String group, long departmentId, long nodeId) {
+    public BGetDepartmentMemberNode getDepartmentMemberNode(String group, long departmentId, long nodeId) {
         var req = new GetDepartmentMemberNode();
         req.Argument.setGroup(group);
         req.Argument.setDepartmentId(departmentId);
         req.Argument.setNodeId(nodeId);
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
-        return req.getResultCode() == 0 ? req.Result : new BDepartmentMemberNode();
+        return req.getResultCode() == 0 ? req.Result : new BGetDepartmentMemberNode();
     }
 
     public BGroup getGroupRoot(String group) {

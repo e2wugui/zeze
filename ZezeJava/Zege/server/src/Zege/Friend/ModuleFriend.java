@@ -29,13 +29,13 @@ public class ModuleFriend extends AbstractModule {
             return Procedure.LogicError;
         if (r.Argument.getAccount().endsWith("@group")) {
             var peer = getGroup(r.Argument.getAccount()).getGroupMembers();
-            self.getOrAdd(r.Argument.getAccount()).setAccount(r.Argument.getAccount());
+            self.getOrAdd(r.Argument.getAccount()).setNick(r.Argument.getNick());
             // 虽然互相添加的代码看起来一样，但group members bean类型和下面的好友bean类型不一样，所以需要分开写。
-            peer.getOrAdd(session.getAccount()).setAccount(session.getAccount());
+            peer.getOrAdd(session.getAccount());
         } else {
             var peer = getFriends(r.Argument.getAccount());
-            self.getOrAdd(r.Argument.getAccount()).setAccount(r.Argument.getAccount());
-            peer.getOrAdd(session.getAccount()).setAccount(session.getAccount());
+            self.getOrAdd(r.Argument.getAccount()).setNick(r.Argument.getNick());
+            peer.getOrAdd(session.getAccount());
         }
         session.sendResponseWhileCommit(r);
         return Procedure.Success;
@@ -89,7 +89,19 @@ public class ModuleFriend extends AbstractModule {
         r.Result.setNextNodeId(friendNode.getNextNodeId());
         r.Result.setPrevNodeId(friendNode.getPrevNodeId());
         for (var friend : friendNode.getValues()) {
-            r.Result.getFriends().add((BFriend)friend.getValue().getBean());
+            var get = new BGetFriend();
+
+            // fill from friend list
+            var data = (BFriend)friend.getValue().getBean();
+            get.setAccount(friend.getId());
+            get.setNick(data.getNick());
+
+            // fill from account
+            var account = App.Zege_User.getAccount(get.getAccount());
+            get.setLastCertIndex(account.getLastCertIndex());
+            get.setCert(account.getCert());
+
+            r.Result.getFriends().add(get);
         }
         session.sendResponseWhileCommit(r);
         return Procedure.Success;
@@ -131,8 +143,18 @@ public class ModuleFriend extends AbstractModule {
 
         r.Result.setNextNodeId(node.getNextNodeId());
         r.Result.setPrevNodeId(node.getPrevNodeId());
-        for (var friend : node.getValues()) {
-            r.Result.getDepartmentMembers().add((BDepartmentMember)friend.getValue().getBean());
+        for (var member : node.getValues()) {
+            var get = new BGetDepartmentMember();
+            get.setAccount(member.getId());
+
+            var data = (BDepartmentMember)member.getValue().getBean();
+            var account = App.Zege_User.getAccount(get.getAccount());
+
+            get.setNick(data.getNick());
+            get.setLastCertIndex(account.getLastCertIndex());
+            get.setCert(account.getCert());
+
+            r.Result.getDepartmentMembers().add(get);
         }
         session.sendResponseWhileCommit(r);
         return Procedure.Success;
@@ -149,8 +171,17 @@ public class ModuleFriend extends AbstractModule {
             return ErrorCode(ErrorMemberNodeNotFound);
         r.Result.setNextNodeId(node.getNextNodeId());
         r.Result.setPrevNodeId(node.getPrevNodeId());
-        for (var friend : node.getValues()) {
-            r.Result.getMembers().add((BMember)friend.getValue().getBean());
+        for (var member : node.getValues()) {
+            var get = new BGetMember();
+            get.setAccount(member.getId());
+
+            var data = (BMember)member.getValue().getBean();
+            var account = App.Zege_User.getAccount(get.getAccount());
+            get.setNick(data.getNick());
+            get.setLastCertIndex(account.getLastCertIndex());
+            get.setCert(account.getCert());
+
+            r.Result.getMembers().add(get);
         }
         session.sendResponseWhileCommit(r);
         return Procedure.Success;
@@ -162,11 +193,11 @@ public class ModuleFriend extends AbstractModule {
         var group = getGroup(r.Argument.getGroup());
         var groupMembers = group.getGroupMembers();
         if (r.Argument.getDepartmentId() == 0) {
-            groupMembers.getOrAdd(r.Argument.getAccount()).setAccount(r.Argument.getAccount());
+            groupMembers.getOrAdd(r.Argument.getAccount());
         } else {
             if (null == groupMembers.get(r.Argument.getAccount()))
                 return ErrorCode(ErrorDeparmentMemberNotInGroup);
-            group.getDepartmentMembers(r.Argument.getDepartmentId()).getOrAdd(r.Argument.getAccount()).setAccount(r.Argument.getAccount());
+            group.getDepartmentMembers(r.Argument.getDepartmentId()).getOrAdd(r.Argument.getAccount());
         }
         session.sendResponseWhileCommit(r);
         return Procedure.Success;

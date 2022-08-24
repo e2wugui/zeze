@@ -1,9 +1,9 @@
 package Zege;
 
-import Zege.Friend.BFriendNode;
+import Zege.Friend.BGetFriendNode;
 
 public class Benchmark extends Thread {
-	private BFriendNode friendNode;
+	private BGetFriendNode friendNode;
 	private volatile boolean running = true;
 
 	public void stopAndJoin() {
