@@ -21,16 +21,9 @@ DatagramChannel
 tag 1.0.6 Zege Encrypt，Message Server Side History;
 ------------------------------------------------------------------------------------------------------------------------------
 Zege-Server
-	1. 验证：linkd 发送 Challange Rpc; 验证完成再发送 ChallangeOk；
-	   问题：验证失败应该也发送一个结果，所以ChallangeOk改成ChallangeResult？
-	2. client 现在只有第一次登录会成功，本地yourcomputername.pkcs12文件存在以后不能成功登录。
-	3. client登录流程在：client/src/Zege/Program.
-		app.Connector.WaitReady();
-		app.Zege_Linkd.create(account);
-		app.Zege_Linkd.waitAuthed();
-	   对照这个就能了解整个登录和创建账号流程了。
-	4. server 的prepare/create不完善，上面创建好了以后，重新登录不成功有可能也是server的问题。	   
-	5. 你了解了challange,prepare,create流程以后，把server/client的实现完善一下。
+	创建账号和登录
+	Friend 完善：参数检查，权限相关。
+	消息历史基本完工：保存和读取和设置已读。
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 1.0.5 Certificate; Netty-Web More; Change Protocol Provider.Send To Rpc And Report Error;
