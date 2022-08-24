@@ -41,10 +41,14 @@ public class ModuleLinkd extends AbstractModule {
                         linkSession.setAccount(c.Result.getAccount());
                         linkSession.setAuthed();
                         new ChallengeOk().Send(c.getSender()); // skip result
-                    } else
+                    } else {
+                        var cr = new ChallengeOk();
+                        cr.setResultCode(1);
+                        c.Send(c.getSender()); // skip result
                         App.LinkdService.ReportError(
                                 c.getSender().getSessionId(), BReportError.FromLink,
                                 BReportError.CodeNotAuthed, "no provider.");
+                    }
                     return 0;
                 }))) {
             App.LinkdService.ReportError(
