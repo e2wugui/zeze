@@ -75,6 +75,8 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean, TDepart
 	}
 
 	public BDepartmentTreeNode getDepartmentTreeNode(long departmentId) {
+		if (departmentId == 0)
+			throw new RuntimeException("root can not access use this method.");
 		return module._tDepartmentTree.get(new BDepartmentKey(name, departmentId));
 	}
 

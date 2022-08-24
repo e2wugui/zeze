@@ -201,6 +201,12 @@
 	</module>
 
 	<module name="Message" id="3">
+		<enum name="eNotYourFriend"      value="1"/>
+		<enum name="eGroupNotExist"      value="2"/>
+		<enum name="eDepartmentNotExist" value="3"/>
+		<enum name="eMessageRange"       value="4"/>
+		
+
 		<bean name="BMessageRoot">
 			<variable id="1" name="NextMessageId"  type="long" />
 			<variable id="2" name="FirstMessageId" type="long" />
@@ -208,41 +214,41 @@
 
 			多个客户端同时登录时，一个设置，其他得到已读通知。
 			已读的条件是消息同步发送给客户端就算已读？
-			<variable id="4" name="LastReadedMessageId" type="long" />
+			<variable id="4" name="MessageIdHashRead" type="long" />
 
 			<variable id="5" name="MessageTotalBytes" type="long" />
 		</bean>
 
 		<bean name="BSystemMessage">
-		</bean>
-
-		<bean name="BTextMessage">
-			文本聊天消息，需要标准化嵌入式表情。
-			有最大大小。
-			<variable id="1" name="Message" type="string" />
-		</bean>
-
-		<bean name="BP2PMessage">
+			<variable id="1" name="Properties" type="map[string, string]"/>
 		</bean>
 
 		<bean name="BEmojiMessage">
-			有最大大小。需要标准化Type。
-			<variable id="1" name="Type" type="int" />
+			<enum name="eJpeg" value="1"/>
+			<enum name="ePng"  value="2"/>
+			<enum name="eGif"  value="3"/>
+
+			<variable id="1" name="Type"  type="int" />
 			<variable id="2" name="Image" type="binary" />
 		</bean>
 
-		<bean name="BMessage">
-			<enum name="TypeSystem" value="-1"/> 系统消息，不加密，SecureKeyIndex is -1
-			<enum name="TypeP2P"    value="-2"/> P2P协商消息，不加密，服务器要参与协商
-			<enum name="TypeText"   value="0"/> 文本聊天消息，加密的
-			<enum name="TypeEmoji"  value="1"/> 自定义表情消息，加密的
+		<bean name="BTextMessage">
+			<variable id="1" name="Properties" type="map[string, string]"/>
+			<variable id="2" name="Message"    type="string"/>
+		</bean>
 
-			<variable id="1" name="MessageType"    type="int" />
+		<bean name="BMessage">
+			<enum name="eTypeSystem" value="-1"/> 系统消息，不加密，SecureKeyIndex is -1; P2P协商消息，不加密，服务器要参与协商；BSystemMessage
+			<enum name="eTypeText"   value="0"/> 文本聊天消息，加密的，BTextMessage。
+			<enum name="eTypeEmoji"  value="1"/> 自定义表情消息，加密的，解密出来是系列化的BEmojiMessage。
+
+			<variable id="1" name="Type"           type="int" />
 			<variable id="2" name="SecureKeyIndex" type="int" />
-			<variable id="3" name="SecureMessage"  type="binary" />
+			<variable id="3" name="SecureMessage"  type="binary" /> eTypeSystem 时是未加密的。
 			<variable id="4" name="From"           type="string" /> 发送用户，服务器填写
 			<variable id="5" name="Group"          type="string" /> 群消息才填写，服务器填写，
 			<variable id="6" name="DepartmentId"   type="long" /> 群消息才填写，服务器填写。
+			<variable id="7" name="MessageId"      type="long" /> 服务器填写。简化读取消息时的数据结构定义。
 		</bean>
 		
 		<!-- 好友消息历史 -->
@@ -265,9 +271,8 @@
 			<variable id="2" name="DepartmentId" type="long" />
 		</beankey>
 		<beankey name="BDepartmentMessageKey">
-			<variable id="1" name="Group" type="string" />
-			<variable id="2" name="DepartmentId" type="long" />
-			<variable id="3" name="MessageId" type="long" />
+			<variable id="1" name="GroupDepartment" type="BDepartmentKey" /> 重用结构，节约内存
+			<variable id="2" name="MessageId" type="long" />
 		</beankey>
 		<table name="tDepartementMessage" key="BDepartmentKey" value="BMessageRoot" />
 		<table name="tDepartementMessages" key="BDepartmentMessageKey" value="BMessage" />
@@ -277,6 +282,7 @@
 			<variable id="2" name="Message" type="BMessage" />
 		</bean>
 
+		<!-- 发送消息。即时消息通知（电脑版？） -->
 		<rpc name="SendMessage" argument="BSendMessage" handle="server"/>
 
 		<bean name="BSendDepartmentMessage">
@@ -288,6 +294,39 @@
 		<rpc name="SendDepartmentMessage" argument="BSendDepartmentMessage" handle="server"/>
 
 		<rpc name="NotifyMessage" argument="BMessage" handle="client"/>
+
+		<!-- 消息浏览控制 -->
+		<bean name="BGetFriendMessage">
+			<variable id="1" name="Friend"        type="string" />
+			<variable id="2" name="MessageIdFrom" type="long" /> -1 means first
+			<variable id="3" name="MessageIdTo"   type="long" /> -1 means last
+		</bean>
+
+		<bean name="BGetMessageResult">
+			<variable id="1" name="Messages" type="list[BMessage]" />
+		</bean>
+
+		<bean name="BSetFriendMessageHasRead">
+			<variable id="1" name="Friend" type="string" />
+			<variable id="2" name="MessageIdHashRead" type="long" />
+		</bean>
+
+		<bean name="BSetGroupMessageHasRead">
+			<variable id="1" name="GroupDepartment" type="BDepartmentKey" />
+			<variable id="2" name="MessageIdHashRead" type="long" />
+		</bean>
+
+		<bean name="BGetGroupMessage">
+			<variable id="1" name="GroupDepartment" type="BDepartmentKey" />
+			<variable id="2" name="MessageIdFrom"   type="long" /> -1 means first
+			<variable id="3" name="MessageIdTo"     type="long" /> -1 means last
+		</bean>
+
+		<rpc name="GetFriendMessage" argument="BGetFriendMessage" result="BGetMessageResult" handle="server"/>
+		<rpc name="SetFriendMessageHasRead" argument="BSetFriendMessageHasRead" handle="server"/>
+
+		<rpc name="GetGroupMessage"  argument="BGetGroupMessage" result="BGetMessageResult" handle="server"/>
+		<rpc name="SetGroupMessageHasRead" argument="BSetGroupMessageHasRead" handle="server"/>
 	</module>
 
 	<project name="server" gendir="." scriptdir="src" platform="java" GenTables="">
