@@ -327,7 +327,7 @@ public final class Config {
 
 	public void Parse(Element self) {
 		if (!self.getNodeName().equals("zeze"))
-			throw new IllegalStateException("is it a zeze config.");
+			throw new IllegalStateException("is it a zeze config?");
 		String name = self.getAttribute("name");
 		if (name.length() > 0)
 			this.name = name;
