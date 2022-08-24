@@ -46,8 +46,10 @@ public class ModuleLinkd extends AbstractModule {
         authFuture = new TaskCompletionSource<>();
 
         var fileName = account + ".pkcs12";
-        if (Files.exists(Path.of(fileName)))
+        if (Files.exists(Path.of(fileName))) {
+            new ChallengeMe().Send(App.Connector.TryGetReadySocket());
             return; // 已经注册。先简单用文件是否存在判断一下。
+        }
 
         var p = new Prepare();
         p.Argument.setAccount(account);
