@@ -307,7 +307,8 @@
 		</bean>
 
 		<bean name="BGetMessageResult">
-			<variable id="1" name="Messages" type="list[BMessage]" />
+			<variable id="1" name="Messages"          type="list[BMessage]" />
+			<variable id="2" name="MessageIdHashRead" type="long" />
 		</bean>
 
 		<bean name="BSetFriendMessageHasRead">

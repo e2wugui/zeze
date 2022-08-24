@@ -121,6 +121,7 @@ public class ModuleMessage extends AbstractModule {
             return ErrorCode(eMessageRange);
 
         // 提取消息历史
+        r.Result.setMessageIdHashRead(messageRoot.getMessageIdHashRead());
         for (; from.Value <= to.Value; ++from.Value) {
             var message = _tFriendMessages.get(new BFriendMessageKey(session.getAccount(), r.Argument.getFriend(), from.Value));
             if (null != message)
@@ -171,6 +172,7 @@ public class ModuleMessage extends AbstractModule {
             return ErrorCode(eMessageRange);
 
         // 提取消息历史
+        r.Result.setMessageIdHashRead(messageRoot.getMessageIdHashRead());
         for (; from.Value <= to.Value; ++from.Value) {
             var message = _tDepartementMessages.get(new BDepartmentMessageKey(departmentKey, from.Value));
             if (null != message)
