@@ -85,7 +85,6 @@ public final class JsonWriter {
 			 0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 ,  0 , // 0x7x
 	}; //@formatter:on
 
-	private static final byte[] HC = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 	private static final byte[] EMPTY = new byte[0];
 
 	public interface BlockAllocator {
@@ -252,9 +251,11 @@ public final class JsonWriter {
 				int b = buffer[i];
 				if (b >= 0)
 					i++;
-				else if (b >= -0x20)
-					i += 3;
-				else
+				else if (b >= -0x20) {
+					b = (b >> 4) & 1;
+					i += 3 + b;
+					len += b;
+				} else
 					i += 2;
 			}
 			if (block == tail)
@@ -650,13 +651,21 @@ public final class JsonWriter {
 			byte[] buffer = block.buf;
 			for (int i = 0, n = block.len; i < n; ) {
 				int b = buffer[i];
-				if (b >= 0) {
+				if (b >= 0) { // 0xxx xxxx
 					res[p++] = (char)b;
 					i++;
-				} else if (b >= -0x20) {
-					res[p++] = (char)(((b & 0xf) << 12) + ((buffer[i + 1] & 0x3f) << 6) + (buffer[i + 2] & 0x3f));
-					i += 3;
-				} else {
+				} else if (b >= -0x20) { // 1110 xxxx  10xx xxxx  10xx xxxx
+					if (b >= -0x10) { // 1111 0xxx  10xx xxxx  10xx xxxx  10xx xxxx
+						b = ((b & 7) << 18) + ((buffer[i + 1] & 0x3f) << 12) + ((buffer[i + 2] & 0x3f) << 6) +
+								(buffer[i + 3] & 0x3f) - 0x10000;
+						res[p++] = (char)(0xd800 + ((b >> 10) & 0x3ff));
+						res[p++] = (char)(0xdc00 + (b & 0x3ff));
+						i += 4;
+					} else {
+						res[p++] = (char)(((b & 0xf) << 12) + ((buffer[i + 1] & 0x3f) << 6) + (buffer[i + 2] & 0x3f));
+						i += 3;
+					}
+				} else { // 110x xxxx  10xx xxxx
 					res[p++] = (char)(((b & 0x1f) << 6) + (buffer[i + 1] & 0x3f));
 					i += 2;
 				}
@@ -1132,6 +1141,10 @@ public final class JsonWriter {
 		}
 	}
 
+	public static int num2Hex(int n) {
+		return n + '0' + (((9 - n) >> 31) & ('A' - '9' - 1));
+	}
+
 	public void write(final byte[] str, final boolean noQuote) {
 		write(str, 0, str.length, noQuote);
 	}
@@ -1153,7 +1166,7 @@ public final class JsonWriter {
 					buf[pos++] = '0';
 					buf[pos++] = '0';
 					buf[pos++] = (byte)('0' + (c >> 4));
-					buf[pos++] = HC[c & 0xf];
+					buf[pos++] = (byte)num2Hex(c & 0xf);
 				}
 			}
 		}
@@ -1168,12 +1181,12 @@ public final class JsonWriter {
 	public void write(final @NotNull String str, final boolean noQuote) {
 		if (!noQuote)
 			buf[pos++] = '"';
-		for (int i = 0, n = str.length(); i < n; i++) {
-			final int c = str.charAt(i);
+		for (int i = 0, n = str.length(), d; i < n; i++) {
+			int c = str.charAt(i);
 			if (c < 0x80) {
 				byte b = ESCAPE[c];
 				if (b == 0)
-					buf[pos++] = (byte)c;
+					buf[pos++] = (byte)c; // 0xxx xxxx
 				else {
 					buf[pos++] = '\\';
 					buf[pos++] = b;
@@ -1181,15 +1194,22 @@ public final class JsonWriter {
 						buf[pos++] = '0';
 						buf[pos++] = '0';
 						buf[pos++] = (byte)('0' + (c >> 4));
-						buf[pos++] = HC[c & 0xf];
+						buf[pos++] = (byte)num2Hex(c & 0xf);
 					}
 				}
-			} else if (c < 0x800) { // 110x xxxx  10xx xxxx
-				buf[pos++] = (byte)(0xc0 + (c >> 6));
-				buf[pos++] = (byte)(0x80 + (c & 0x3f));
-			} else { // 1110 xxxx  10xx xxxx  10xx xxxx
-				buf[pos++] = (byte)(0xe0 + (c >> 12));
-				buf[pos++] = (byte)(0x80 + ((c >> 6) & 0x3f));
+			} else {
+				if (c < 0x800)
+					buf[pos++] = (byte)(0xc0 + (c >> 6)); // 110x xxxx  10xx xxxx
+				else {
+					if ((c & 0xfc00) == 0xd800 && i + 1 < n && ((d = str.charAt(i + 1)) & 0xfc00) == 0xdc00) { // UTF-16 surrogate
+						c = ((c & 0x3ff) << 10) + (d & 0x3ff) + 0x10000;
+						i++;
+						buf[pos++] = (byte)(0xf0 + (c >> 18)); // 1111 0xxx  10xx xxxx  10xx xxxx  10xx xxxx
+						buf[pos++] = (byte)(0x80 + ((c >> 12) & 0x3f));
+					} else
+						buf[pos++] = (byte)(0xe0 + (c >> 12)); // 1110 xxxx  10xx xxxx  10xx xxxx
+					buf[pos++] = (byte)(0x80 + ((c >> 6) & 0x3f));
+				}
 				buf[pos++] = (byte)(0x80 + (c & 0x3f));
 			}
 		}

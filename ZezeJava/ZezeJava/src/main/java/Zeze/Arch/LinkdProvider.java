@@ -8,7 +8,6 @@ import Zeze.Serialize.ByteBuffer;
 import Zeze.Services.ServiceManager.SubscribeInfo;
 import Zeze.Transaction.Procedure;
 import Zeze.Util.OutLong;
-import Zeze.Util.Task;
 
 /**
  * Linkd上处理Provider协议的模块。

@@ -1,6 +1,7 @@
 package UnitTest.Zeze.Util;
 
 import java.net.Inet4Address;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -258,6 +259,29 @@ public final class TestJson extends TestCase {
 		assertEquals(456, ((Simple)e.getValue().getBean()).getInt1());
 	}
 
+	public void testE() {
+		var b = JsonReader.local().buf("'\\u001F\\u03A0\\u9abf\\uD955\\udeaa'").parseByteString();
+		assertNotNull(b);
+		var s = new String(b, StandardCharsets.UTF_8);
+		assertEquals(10, b.length);
+		assertEquals(5, s.length());
+		assertEquals(0x1f, s.charAt(0));
+		assertEquals(0x3a0, s.charAt(1));
+		assertEquals(0x9abf, s.charAt(2));
+		assertEquals(0xd955, s.charAt(3));
+		assertEquals(0xdeaa, s.charAt(4));
+
+		JsonWriter.local().clear().write(s, true);
+		var c = JsonWriter.local().toChars();
+		assertEquals(15, JsonWriter.local().size()); // 6+2+3+4
+		assertEquals(10, c.length); // 6+1+1+2
+		assertEquals("\\u001F", new String(c, 0, 6));
+		assertEquals(0x3a0, c[6]);
+		assertEquals(0x9abf, c[7]);
+		assertEquals(0xd955, c[8]);
+		assertEquals(0xdeaa, c[9]);
+	}
+
 	public static void main(String[] args) throws ReflectiveOperationException {
 		var t = new TestJson();
 		t.test1();
@@ -273,6 +297,7 @@ public final class TestJson extends TestCase {
 		t.testB();
 		t.testC();
 		t.testD();
-		System.out.println(t.getClass().getSimpleName() + ": 13 tests OK!");
+		t.testE();
+		System.out.println(t.getClass().getSimpleName() + ": 14 tests OK!");
 	}
 }

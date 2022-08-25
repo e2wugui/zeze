@@ -831,20 +831,20 @@ public final class ByteBuffer {
 			for (int i = 0; i < cn; i++) {
 				int c = str.charAt(i);
 				if (c < 0x80)
-					buf[wi++] = (byte)c;                  // 0xxx xxxx
-				else if (c < 0x800) {
-					buf[wi++] = (byte)(0xc0 + (c >> 6));  // 110x xxxx  10xx xxxx
-					buf[wi++] = (byte)(0x80 + (c & 0x3f));
-				} else if ((c & 0xfc00) == 0xd800 && i + 1 < cn && ((bn = str.charAt(i + 1)) & 0xfc00) == 0xdc00) { // UTF-16 surrogate
-					c = ((c & 0x3ff) << 10) + (bn & 0x3ff) + 0x10000;
-					buf[wi++] = (byte)(0xf0 + (c >> 18)); // 1111 0xxx  10xx xxxx  10xx xxxx  10xx xxxx
-					buf[wi++] = (byte)(0x80 + ((c >> 12) & 0x3f));
-					buf[wi++] = (byte)(0x80 + ((c >> 6) & 0x3f));
-					buf[wi++] = (byte)(0x80 + (c & 0x3f));
-					i++;
-				} else {
-					buf[wi++] = (byte)(0xe0 + (c >> 12)); // 1110 xxxx  10xx xxxx  10xx xxxx
-					buf[wi++] = (byte)(0x80 + ((c >> 6) & 0x3f));
+					buf[wi++] = (byte)c; // 0xxx xxxx
+				else {
+					if (c < 0x800)
+						buf[wi++] = (byte)(0xc0 + (c >> 6)); // 110x xxxx  10xx xxxx
+					else {
+						if ((c & 0xfc00) == 0xd800 && i + 1 < cn && ((bn = str.charAt(i + 1)) & 0xfc00) == 0xdc00) { // UTF-16 surrogate
+							i++;
+							c = ((c & 0x3ff) << 10) + (bn & 0x3ff) + 0x10000;
+							buf[wi++] = (byte)(0xf0 + (c >> 18)); // 1111 0xxx  10xx xxxx  10xx xxxx  10xx xxxx
+							buf[wi++] = (byte)(0x80 + ((c >> 12) & 0x3f));
+						} else
+							buf[wi++] = (byte)(0xe0 + (c >> 12)); // 1110 xxxx  10xx xxxx  10xx xxxx
+						buf[wi++] = (byte)(0x80 + ((c >> 6) & 0x3f));
+					}
 					buf[wi++] = (byte)(0x80 + (c & 0x3f));
 				}
 			}

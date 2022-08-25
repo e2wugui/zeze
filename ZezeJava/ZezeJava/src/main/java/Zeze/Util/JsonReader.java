@@ -867,6 +867,15 @@ public final class JsonReader {
 		return v;
 	}
 
+	private static int parseHex(int b) {
+		return (b & 0xf) + (b >> 6) * 9; // 0~9:0x3X  A~F:0x4X  a~f:0x6X
+	}
+
+	private static int parseHex4(byte[] buffer, int p) {
+		return (parseHex(buffer[p]) << 12) + (parseHex(buffer[p + 1]) << 8)
+				+ (parseHex(buffer[p + 2]) << 4) + parseHex(buffer[p + 3]);
+	}
+
 	public byte[] parseByteString() {
 		final byte[] buffer = buf;
 		int p = pos, b, e = buffer[p];
@@ -882,16 +891,23 @@ public final class JsonReader {
 				break; // jump to the slow path below
 		}
 		int len = p - begin, n = len;
-		for (; (b = buffer[p++]) != e; len++)
+		while ((b = buffer[p++]) != e) {
 			if (b == '\\' && buffer[p++] == 'u') {
-				b = (parseHex(buffer[p]) << 12) + (parseHex(buffer[p + 1]) << 8) + (parseHex(buffer[p + 2]) << 4)
-						+ parseHex(buffer[p + 3]);
+				b = parseHex4(buffer, p);
 				p += 4;
-				if (b >= 0x800)
+				if (b >= 0x800) {
+					if ((b & 0xfc00) == 0xd800 && buffer[p] == '\\' && buffer[p + 1] == 'u'
+							&& (parseHex4(buffer, p + 2) & 0xfc00) == 0xdc00) {
+						p += 6;
+						len += 4;
+					} else
+						len += 3;
+				} else if (b >= 0x80)
 					len += 2;
-				else if (b >= 0x80)
+				else
 					len++;
 			}
+		}
 		byte[] t = new byte[len];
 		p = begin;
 		System.arraycopy(buffer, begin, t, 0, n);
@@ -902,27 +918,29 @@ public final class JsonReader {
 			}
 			if (b == '\\') {
 				if ((b = buffer[p++]) == 'u') {
-					b = (parseHex(buffer[p]) << 12) + (parseHex(buffer[p + 1]) << 8) + (parseHex(buffer[p + 2]) << 4)
-							+ parseHex(buffer[p + 3]);
+					b = parseHex4(buffer, p);
 					p += 4;
 					if (b >= 0x800) {
-						t[n++] = (byte)(0xe0 + (b >> 12));
+						if ((b & 0xfc00) == 0xd800 && buffer[p] == '\\' && buffer[p + 1] == 'u'
+								&& ((len = parseHex4(buffer, p + 2)) & 0xfc00) == 0xdc00) {
+							p += 6;
+							b = ((b & 0x3ff) << 10) + (len & 0x3ff) + 0x10000;
+							t[n++] = (byte)(0xf0 + (b >> 18)); // 1111 0xxx  10xx xxxx  10xx xxxx  10xx xxxx
+							t[n++] = (byte)(0x80 + ((b >> 12) & 0x3f));
+						} else
+							t[n++] = (byte)(0xe0 + (b >> 12)); // 1110 xxxx  10xx xxxx  10xx xxxx
 						t[n++] = (byte)(0x80 + ((b >> 6) & 0x3f));
 						t[n++] = (byte)(0x80 + (b & 0x3f));
 					} else if (b >= 0x80) {
-						t[n++] = (byte)(0xc0 + (b >> 6));
+						t[n++] = (byte)(0xc0 + (b >> 6)); // 110x xxxx  10xx xxxx
 						t[n++] = (byte)(0x80 + (b & 0x3f));
 					} else
-						t[n++] = (byte)b;
+						t[n++] = (byte)b; // 0xxx xxxx
 				} else
 					t[n++] = b >= 0x20 ? ESCAPE[b - 0x20] : (byte)(b & 0xff);
 			} else
 				t[n++] = (byte)b;
 		}
-	}
-
-	static int parseHex(int b) {
-		return b <= '9' ? b - '0' : (b | 0x20) - ('a' - 10); // A~F:0x4X | 0x20 = a~z:0x6X
 	}
 
 	public @Nullable String parseString() throws ReflectiveOperationException {
@@ -960,8 +978,7 @@ public final class JsonReader {
 			}
 			if (b == '\\') {
 				if ((b = buffer[p++]) == 'u') {
-					t[n++] = (char)((parseHex(buffer[p]) << 12) + (parseHex(buffer[p + 1]) << 8)
-							+ (parseHex(buffer[p + 2]) << 4) + parseHex(buffer[p + 3]));
+					t[n++] = (char)parseHex4(buffer, p);
 					p += 4;
 				} else
 					t[n++] = (char)(b >= 0x20 ? ESCAPE[b - 0x20] : b & 0xff);
@@ -1008,8 +1025,7 @@ public final class JsonReader {
 			}
 			if (b == '\\') {
 				if ((b = buffer[p++]) == 'u') {
-					t[n++] = (char)((parseHex(buffer[p]) << 12) + (parseHex(buffer[p + 1]) << 8)
-							+ (parseHex(buffer[p + 2]) << 4) + parseHex(buffer[p + 3]));
+					t[n++] = (char)parseHex4(buffer, p);
 					p += 4;
 				} else
 					t[n++] = (char)(b >= 0x20 ? ESCAPE[b - 0x20] : b);

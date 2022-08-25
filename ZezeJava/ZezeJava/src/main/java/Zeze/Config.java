@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.xml.parsers.DocumentBuilderFactory;
-import Zeze.Game.Online;
 import Zeze.Net.ServiceConf;
 import Zeze.Transaction.CheckpointMode;
 import Zeze.Transaction.Database;
