@@ -70,6 +70,23 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean, TDepart
 	// 2. 提供必要的辅助函数完成一些操作。
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+	// see checkManagePermission
+	public long checkParentManagePermission(String account, long departmentId) {
+		if (departmentId == 0) {
+			// root
+			var root = getRoot();
+			if (root.getRoot().equals(account))
+				return 0; // parent, 对于根节点定义成root，grant
+			return module.ErrorCode(Module.ErrorManagePermission);
+		}
+		var department = getDepartmentTreeNode(departmentId);
+		if (department == null)
+			return module.ErrorCode(Module.ErrorDepartmentNotExist);
+
+		// 开始检查parent
+		return checkManagePermission(account, department.getParentDepartment());
+	}
+
 	// 检查account是否拥有部门的管理权限。
 	// 规则：
 	// 如果部门拥有管理员，仅判断account是否管理员。
@@ -78,8 +95,7 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean, TDepart
 	// 其他：
 	// 当管理管理员设置时，这个方法允许本级部门管理添加新的管理员和删除管理员。
 	// 对于管理员的修改是否限定只能由上级操作？
-	// 对于这个限定，可以在调用这个方法时，传递departmentId.parentDepartmentId进来就可以实现。
-	// 所以这个由使用者自己决定。
+	// 对于这个限定，可以在调用这个checkParentManagePermission
 	public long checkManagePermission(String account, long departmentId) {
 		if (departmentId == 0) {
 			// root
