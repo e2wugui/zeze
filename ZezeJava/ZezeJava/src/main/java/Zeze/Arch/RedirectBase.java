@@ -10,6 +10,7 @@ import Zeze.IModule;
 import Zeze.Net.AsyncSocket;
 import Zeze.Transaction.DispatchMode;
 import Zeze.Transaction.Procedure;
+import Zeze.Transaction.Transaction;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Action0;
 import Zeze.Util.Func0;
@@ -170,7 +171,8 @@ public class RedirectBase {
 	}
 
 	public <T> RedirectFuture<T> RunFuture(TransactionLevel level, Func0<RedirectFuture<T>> func) {
-		if (level == TransactionLevel.None) {
+		Transaction t;
+		if (level == TransactionLevel.None || (t = Transaction.getCurrent()) != null && t.isRunning()) {
 			try {
 				return func.call();
 			} catch (Throwable e) {
@@ -190,7 +192,8 @@ public class RedirectBase {
 	}
 
 	public void RunVoid(TransactionLevel level, Action0 action) {
-		if (level == TransactionLevel.None) {
+		Transaction t;
+		if (level == TransactionLevel.None || (t = Transaction.getCurrent()) != null && t.isRunning()) {
 			try {
 				action.run();
 			} catch (Throwable e) {
