@@ -90,10 +90,14 @@
 	</module>
 
 	<module name="Friend" id="2">
-		<enum name="ErrorDepartmentNotFound" value="1"/>
-		<enum name="ErrorFriendNodeNotFound" value="2"/>
-		<enum name="ErrorMemberNodeNotFound" value="3"/>
-		<enum name="ErrorDeparmentMemberNotInGroup" value="4"/>
+		<enum name="eDepartmentNotFound"        value="1"/>
+		<enum name="eFriendNodeNotFound"        value="2"/>
+		<enum name="eMemberNodeNotFound"        value="3"/>
+		<enum name="eDeparmentMemberNotInGroup" value="4"/>
+		<enum name="eUserNotFound"              value="5"/>
+		<enum name="eManagePermission"          value="6"/>
+		<enum name="eNotGroupMember"            value="7"/>
+		
 
 		<!-- 好友列表用 Zeze.Collections.LinkedMap 下面时自定义数据结构的定义 -->
 		<bean name="BFriend">

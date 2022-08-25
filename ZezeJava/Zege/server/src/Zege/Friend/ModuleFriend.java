@@ -25,14 +25,19 @@ public class ModuleFriend extends AbstractModule {
     protected long ProcessAddFriendRequest(Zege.Friend.AddFriend r) {
         var session = ProviderUserSession.get(r);
         var self = getFriends(session.getAccount());
+
+        // 参数检查
         if (!App.Zege_User.contains(r.Argument.getAccount()))
-            return Procedure.LogicError;
+            return ErrorCode(eUserNotFound);
+
         if (r.Argument.getAccount().endsWith("@group")) {
+            // 添加群，todo，如果目标需要群主批准，需要走审批流程
             var peer = getGroup(r.Argument.getAccount()).getGroupMembers();
             self.getOrAdd(r.Argument.getAccount()).setNick(r.Argument.getNick());
             // 虽然互相添加的代码看起来一样，但group members bean类型和下面的好友bean类型不一样，所以需要分开写。
             peer.getOrAdd(session.getAccount());
         } else {
+            // 添加好友，双向添加。todo 审批流程
             var peer = getFriends(r.Argument.getAccount());
             self.getOrAdd(r.Argument.getAccount()).setNick(r.Argument.getNick());
             peer.getOrAdd(session.getAccount());
@@ -41,14 +46,47 @@ public class ModuleFriend extends AbstractModule {
         return Procedure.Success;
     }
 
+    private long checkManagePermission(String account, DepartmentTree<BManager, BMember, BDepartmentMember> group, long departmentId) {
+        if (departmentId == 0) {
+            // root
+            var root = group.getRoot();
+            if (root.getManagers().containsKey(account) || root.getRoot().equals(account))
+                return 0; // grant
+            return ErrorCode(eManagePermission);
+        }
+
+        var department = group.getDepartmentTreeNode(departmentId);
+        if (department == null)
+            return ErrorCode(eDepartmentNotFound);
+
+        if (department.getManagers().isEmpty()) // 当前部门没有管理员，使用父部门的设置(递归)。
+            return checkManagePermission(account, group, department.getParentDepartment());
+
+        if (department.getManagers().containsKey(account))
+            return 0; // grant
+
+        // 当设置了管理员，不再递归。遵守权限不越级规则。
+        return ErrorCode(eManagePermission);
+    }
+
     @Override
     protected long ProcessCreateDepartmentRequest(Zege.Friend.CreateDepartment r) {
         var session = ProviderUserSession.get(r);
         var group = getGroup(r.Argument.getGroup());
+
+        // permission
+        r.setResultCode(checkManagePermission(session.getAccount(), group, r.Argument.getParentDepartment()));
+        if (r.getResultCode() != 0)
+            return r.getResultCode();
+
+        // create
         var out = new OutLong();
         r.setResultCode(group.createDepartment(r.Argument.getParentDepartment(), r.Argument.getName(), out));
         r.Result.setId(out.Value);
+
         session.sendResponseWhileCommit(r);
+        // todo 创建部门客户端自己根据rpc结果更新数据？这样的话需要在Result里带上新创建的部门的数据。
+        // todo 或者重新刷新一次parent-department？
         return Procedure.Success;
     }
 
@@ -56,8 +94,16 @@ public class ModuleFriend extends AbstractModule {
     protected long ProcessDeleteDepartmentRequest(Zege.Friend.DeleteDepartment r) {
         var session = ProviderUserSession.get(r);
         var group = getGroup(r.Argument.getGroup());
+        // permission
+        r.setResultCode(checkManagePermission(session.getAccount(), group, r.Argument.getId()));
+        if (r.getResultCode() != 0)
+            return r.getResultCode();
+
+        // delete
         r.setResultCode(group.deleteDepartment(r.Argument.getId(), true));
         session.sendResponseWhileCommit(r);
+
+        // 客户端根据rpc结果自己修改（同步）部门树。
         return Procedure.Success;
     }
 
@@ -67,7 +113,12 @@ public class ModuleFriend extends AbstractModule {
         var group = getGroup(r.Argument.getGroup());
         var department = group.getDepartmentTreeNode(r.Argument.getId());
         if (null == department)
-            return ErrorCode(ErrorDepartmentNotFound);
+            return ErrorCode(eDepartmentNotFound);
+
+        // 读取组织架构，只验证是否群成员。
+        if (group.getGroupMembers().get(session.getAccount()) == null)
+            return ErrorCode(eNotGroupMember);
+
         r.Result.setParentDepartment(department.getParentDepartment());
         r.Result.setName(department.getName());
         r.Result.getChilds().putAll(department.getChilds());
@@ -84,7 +135,7 @@ public class ModuleFriend extends AbstractModule {
         var friends = getFriends(session.getAccount());
         var friendNode = r.Argument.getNodeId() == 0 ? friends.getFristNode() : friends.getNode(r.Argument.getNodeId());
         if (null == friendNode)
-            return ErrorCode(ErrorFriendNodeNotFound);
+            return ErrorCode(eFriendNodeNotFound);
 
         r.Result.setNextNodeId(friendNode.getNextNodeId());
         r.Result.setPrevNodeId(friendNode.getPrevNodeId());
@@ -111,8 +162,22 @@ public class ModuleFriend extends AbstractModule {
     protected long ProcessMoveDepartmentRequest(Zege.Friend.MoveDepartment r) {
         var session = ProviderUserSession.get(r);
         var group = getGroup(r.Argument.getGroup());
+
+        // permission 验证被移动部门管理权限
+        r.setResultCode(checkManagePermission(session.getAccount(), group, r.Argument.getId()));
+        if (r.getResultCode() != 0)
+            return r.getResultCode();
+
+        // 验证拥有目标部门管理权限，
+        // 这两个验证谁先谁后都可以。
+        r.setResultCode(checkManagePermission(session.getAccount(), group, r.Argument.getNewParent()));
+        if (r.getResultCode() != 0)
+            return r.getResultCode();
+
+        // 执行移动。
         r.setResultCode(group.moveDepartment(r.Argument.getId(), r.Argument.getNewParent()));
         session.sendResponseWhileCommit(r);
+        // 客户端根据rpc结果自己修改（同步）部门树。
         return Procedure.Success;
     }
 
@@ -121,6 +186,11 @@ public class ModuleFriend extends AbstractModule {
         var session = ProviderUserSession.get(r);
         var group = getGroup(r.Argument.getGroup());
         var root = group.getRoot();
+
+        // 读取组织架构，只验证是否群成员。
+        if (group.getGroupMembers().get(session.getAccount()) == null)
+            return ErrorCode(eNotGroupMember);
+
         r.Result.setRoot(root.getRoot());
         r.Result.getChilds().putAll(root.getChilds());
         for (var manager : root.getManagers()) {
@@ -134,12 +204,17 @@ public class ModuleFriend extends AbstractModule {
     protected long ProcessGetDepartmentMemberNodeRequest(Zege.Friend.GetDepartmentMemberNode r) {
         var session = ProviderUserSession.get(r);
         var group = getGroup(r.Argument.getGroup());
+        // 读取组织架构，只验证是否群成员。
+        // todo 需求：秘密部门增加验证部门成员
+        if (group.getGroupMembers().get(session.getAccount()) == null)
+            return ErrorCode(eNotGroupMember);
+
         var node = r.Argument.getNodeId() == 0
                 ? group.getDepartmentMembers(r.Argument.getDepartmentId()).getFristNode()
                 : group.getDepartmentMembers(r.Argument.getDepartmentId()).getNode(r.Argument.getNodeId());
 
         if (null == node)
-            return ErrorCode(ErrorMemberNodeNotFound);
+            return ErrorCode(eMemberNodeNotFound);
 
         r.Result.setNextNodeId(node.getNextNodeId());
         r.Result.setPrevNodeId(node.getPrevNodeId());
@@ -164,11 +239,15 @@ public class ModuleFriend extends AbstractModule {
     protected long ProcessGetGroupMemberNodeRequest(Zege.Friend.GetGroupMemberNode r) {
         var session = ProviderUserSession.get(r);
         var group = getGroup(r.Argument.getGroup());
+        // 读取组织架构，只验证是否群成员。
+        if (group.getGroupMembers().get(session.getAccount()) == null)
+            return ErrorCode(eNotGroupMember);
+
         var node = r.Argument.getNodeId() == 0
                 ? group.getGroupMembers().getFristNode()
                 : group.getGroupMembers().getNode(r.Argument.getNodeId());
         if (null == node)
-            return ErrorCode(ErrorMemberNodeNotFound);
+            return ErrorCode(eMemberNodeNotFound);
         r.Result.setNextNodeId(node.getNextNodeId());
         r.Result.setPrevNodeId(node.getPrevNodeId());
         for (var member : node.getValues()) {
@@ -191,12 +270,17 @@ public class ModuleFriend extends AbstractModule {
     protected long ProcessAddDepartmentMemberRequest(Zege.Friend.AddDepartmentMember r) {
         var session = ProviderUserSession.get(r);
         var group = getGroup(r.Argument.getGroup());
+
+        r.setResultCode(checkManagePermission(session.getAccount(), group, r.Argument.getDepartmentId()));
+        if (r.getResultCode() != 0)
+            return r.getResultCode();
+
         var groupMembers = group.getGroupMembers();
         if (r.Argument.getDepartmentId() == 0) {
             groupMembers.getOrAdd(r.Argument.getAccount());
         } else {
             if (null == groupMembers.get(r.Argument.getAccount()))
-                return ErrorCode(ErrorDeparmentMemberNotInGroup);
+                return ErrorCode(eDeparmentMemberNotInGroup);
             group.getDepartmentMembers(r.Argument.getDepartmentId()).getOrAdd(r.Argument.getAccount());
         }
         session.sendResponseWhileCommit(r);
