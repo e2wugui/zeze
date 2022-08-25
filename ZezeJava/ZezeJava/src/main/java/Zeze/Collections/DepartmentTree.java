@@ -70,6 +70,16 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean, TDepart
 	// 2. 提供必要的辅助函数完成一些操作。
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+	// 检查account是否拥有部门的管理权限。
+	// 规则：
+	// 如果部门拥有管理员，仅判断account是否管理员。
+	// 如果部门没有管理员，则递归检查父部门的管理员设置。
+	// 递归直到根为止。
+	// 其他：
+	// 当管理管理员设置时，这个方法允许本级部门管理添加新的管理员和删除管理员。
+	// 对于管理员的修改是否限定只能由上级操作？
+	// 对于这个限定，可以在调用这个方法时，传递departmentId.parentDepartmentId进来就可以实现。
+	// 所以这个由使用者自己决定。
 	public long checkManagePermission(String account, long departmentId) {
 		if (departmentId == 0) {
 			// root
