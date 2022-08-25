@@ -90,7 +90,7 @@ public class ModuleUser extends AbstractModule {
             var defaultGroup = "wanmei@group";
             _tUser.getOrAdd(defaultGroup);
             var group = App.Zege_Friend.getGroup(defaultGroup);
-            group.create();
+            group.create().setRoot(account);
             var member = new BMember();
             group.getGroupMembers().put(account, member);
             var friend = new BFriend();
