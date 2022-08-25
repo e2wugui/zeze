@@ -1,5 +1,6 @@
 package Zege.Friend;
 
+import Zeze.IModule;
 import Zeze.Transaction.EmptyBean;
 import Zeze.Util.TaskCompletionSource;
 
@@ -54,7 +55,10 @@ public class ModuleFriend extends AbstractModule {
         req.Argument.setName(name);
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
         if (req.getResultCode() != 0)
-            throw new RuntimeException("createDepartment faild.");
+            throw new RuntimeException("createDepartment faild. "
+                    + " module=" + IModule.GetModuleId(req.getResultCode())
+                    + " ecode=" + IModule.GetErrorCode(req.getResultCode())
+            );
         return req.Result;
     }
 
@@ -64,7 +68,10 @@ public class ModuleFriend extends AbstractModule {
         req.Argument.setId(id);
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
         if (req.getResultCode() != 0)
-            throw new RuntimeException("DeleteDepartment code=" + req.getResultCode());
+            throw new RuntimeException("DeleteDepartment faild. "
+                    + " module=" + IModule.GetModuleId(req.getResultCode())
+                    + " ecode=" + IModule.GetErrorCode(req.getResultCode())
+            );
     }
 
     public BDepartmentNode getDepartmentNode(String group, long id) {
@@ -82,7 +89,10 @@ public class ModuleFriend extends AbstractModule {
         req.Argument.setNewParent(newParent);
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
         if (req.getResultCode() != 0)
-            throw new RuntimeException("MoveDepartment code=" + req.getResultCode());
+            throw new RuntimeException("MoveDepartment faild. "
+                    + " module=" + IModule.GetModuleId(req.getResultCode())
+                    + " ecode=" + IModule.GetErrorCode(req.getResultCode())
+            );
     }
 
     public void addDepartmentMember(String group, long departmentId, String account) {
@@ -92,7 +102,10 @@ public class ModuleFriend extends AbstractModule {
         req.Argument.setAccount(account);
         req.SendForWait(App.Connector.TryGetReadySocket()).await();
         if (req.getResultCode() != 0)
-            throw new RuntimeException("AddDepartmentMember code=" + req.getResultCode());
+            throw new RuntimeException("AddDepartmentMember faild. "
+                    + " module=" + IModule.GetModuleId(req.getResultCode())
+                    + " ecode=" + IModule.GetErrorCode(req.getResultCode())
+            );
     }
     // ZEZE_FILE_CHUNK {{{ GEN MODULE @formatter:off
     public ModuleFriend(Zege.App app) {
