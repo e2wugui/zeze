@@ -65,10 +65,9 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 		addHandler(path, new HttpHandler(maxContentLength, level, mode, fullHandle));
 	}
 
-	public void addHandler(String path, TransactionLevel level, DispatchMode mode,
-						   HttpBeginStreamHandle beginStream, HttpStreamContentHandle streamContent,
-						   HttpEndStreamHandle endStream) {
-		addHandler(path, new HttpHandler(-1, level, mode, beginStream, streamContent, endStream));
+	public void addHandler(String path, TransactionLevel level, DispatchMode mode, HttpBeginStreamHandle beginStream,
+						   HttpStreamContentHandle streamContent, HttpEndStreamHandle endStream) {
+		addHandler(path, new HttpHandler(level, mode, beginStream, streamContent, endStream));
 	}
 
 	public void addHandler(String path, HttpHandler handler) {

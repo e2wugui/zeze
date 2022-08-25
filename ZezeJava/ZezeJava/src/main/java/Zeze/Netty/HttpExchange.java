@@ -4,14 +4,13 @@ import java.io.File;
 import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.OpenOption;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.regex.Pattern;
 import Zeze.Transaction.Procedure;
 import Zeze.Transaction.TransactionLevel;
 import Zeze.Util.Str;
 import Zeze.Util.Task;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.CompositeByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -46,17 +45,15 @@ public class HttpExchange {
 	private static final Pattern rangePattern = Pattern.compile("[ =\\-/]");
 	private static final OpenOption[] emptyOpenOptions = new OpenOption[0];
 
-	private final HttpServer server;
-	private final ChannelHandlerContext context;
-	private final List<ByteBuf> contents = new LinkedList<>(); // 只用于非流模式
-	private HttpRequest request;
-	private HttpHandler handler;
-	private long totalContentSize;
-	private ByteBuf contentFull;
-	private String path; // 保存path，优化！
-	private int idleTime; // 当前统计的idle时间(秒)
-	private int outBufHash;
-	private boolean willCloseConnection;
+	private final HttpServer server; // 所属的HttpServer对象,每个对象管理监听端口的所有连接
+	private final ChannelHandlerContext context; // netty的连接上下文,每个连接可能会依次绑定到多个HttpExchange对象
+	private HttpRequest request; // 收到完整HTTP header部分会赋值
+	private HttpHandler handler; // 收到完整HTTP header部分会查找对应handler并赋值
+	private ByteBuf content = Unpooled.EMPTY_BUFFER; // 当前收集的HTTP body部分, 只用于非流模式
+	private int outBufHash; // 用于判断输出buffer是否有变化
+	private short idleTime; // 当前统计的idle时间(秒)
+	private boolean willCloseConnection; // true表示close时会关闭连接
+	private boolean inStreamMode; // 是否在流模式过程中
 
 	public HttpExchange(HttpServer server, ChannelHandlerContext context) {
 		this.server = server;
@@ -64,7 +61,7 @@ public class HttpExchange {
 	}
 
 	// 通常不需要获取context,只给特殊需要时使用netty内部的方法
-	public ChannelHandlerContext getContext() {
+	public ChannelHandlerContext context() {
 		return context;
 	}
 
@@ -80,13 +77,20 @@ public class HttpExchange {
 		return request;
 	}
 
+	public ByteBuf content() {
+		return content;
+	}
+
 	public String path() {
-		if (path == null) {
-			var uri = request.uri();
-			var i = uri.indexOf('?');
-			path = i >= 0 ? uri.substring(0, i) : uri;
-		}
-		return path;
+		var uri = request.uri();
+		var i = uri.indexOf('?');
+		return i >= 0 ? uri.substring(0, i) : uri;
+	}
+
+	public String query() {
+		var uri = request.uri();
+		var i = uri.indexOf('?');
+		return i >= 0 ? uri.substring(i + 1) : null;
 	}
 
 	public String filePath() {
@@ -102,15 +106,142 @@ public class HttpExchange {
 		return path.substring(i);
 	}
 
-	// 一般是会使用一次，不保存中间值
-	public String query() {
-		var uri = request.uri();
-		var i = uri.indexOf('?');
-		return i >= 0 ? uri.substring(i) : null;
+	void channelRead(Object msg) throws Exception {
+		idleTime = 0;
+
+		if (msg instanceof HttpRequest) {
+			request = ReferenceCountUtil.retain((HttpRequest)msg);
+			handler = server.handlers.get(path());
+			if (handler == null) {
+				sendFile(filePath());
+				return;
+			}
+			if (handler.isStreamMode()) {
+				fireBeginStream();
+				inStreamMode = true;
+			}
+			if (!(msg instanceof HttpContent))
+				return;
+		} else if (!(msg instanceof HttpContent)) {
+			Netty.logger.error("unknown message type = {} from {}",
+					(msg != null ? msg.getClass() : null), context.channel().remoteAddress());
+			closeConnectionNow();
+			return;
+		} else if (request == null || handler == null) // 缺失上文的msg,可能很罕见,忽略吧
+			return;
+
+		var c = (HttpContent)msg;
+		var b = c.content();
+		var n = b.readableBytes();
+		if (n > 0) {
+			if (handler.isStreamMode())
+				fireStreamContentHandle(c);
+			else {
+				if (content.readableBytes() + n > handler.MaxContentLength) {
+					Netty.logger.error("content size = {} + {} > {} from {}", content.readableBytes(), n,
+							handler.MaxContentLength, context.channel().remoteAddress());
+					closeConnectionNow();
+					return;
+				}
+				b.retain();
+				if (content == Unpooled.EMPTY_BUFFER)
+					content = b;
+				else if (content instanceof CompositeByteBuf)
+					((CompositeByteBuf)content).addComponent(true, b);
+				else
+					content = context.alloc().compositeBuffer().addComponent(true, content).addComponent(true, b);
+			}
+		}
+		if (c instanceof LastHttpContent) {
+			inStreamMode = false;
+			fireEndStreamHandle(); // 流模式和非流模式通用
+		}
 	}
 
-	public ByteBuf content() {
-		return contentFull;
+	private void fireBeginStream() throws Exception {
+		var r = parseRange(HttpHeaderNames.CONTENT_RANGE);
+		if (server.zeze != null && handler.Level != TransactionLevel.None) {
+			Task.run(server.zeze.NewProcedure(() -> {
+				//noinspection ConstantConditions
+				handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]);
+				return Procedure.Success;
+			}, "fireBeginStream"), null, null, handler.Mode);
+		} else {
+			//noinspection ConstantConditions
+			handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]);
+		}
+	}
+
+	private void fireStreamContentHandle(HttpContent c) throws Exception {
+		var handle = handler.StreamContentHandle;
+		if (handle == null)
+			return;
+		if (server.zeze != null && handler.Level != TransactionLevel.None) {
+			c.retain();
+			Task.run(server.zeze.NewProcedure(() -> {
+				try {
+					handle.onStreamContent(this, c);
+				} finally {
+					c.release();
+				}
+				return Procedure.Success;
+			}, "fireStreamContentHandle"), null, null, handler.Mode);
+		} else
+			handle.onStreamContent(this, c);
+	}
+
+	private void fireEndStreamHandle() throws Exception {
+		if (server.zeze != null && handler.Level != TransactionLevel.None) {
+			Task.run(server.zeze.NewProcedure(() -> {
+				handler.EndStreamHandle.onEndStream(this);
+				return Procedure.Success;
+			}, "fireEndStreamHandle"), null, null, handler.Mode);
+		} else
+			handler.EndStreamHandle.onEndStream(this);
+	}
+
+	// 下载请求/上传回复: range: bytes=[from]-[to] 范围是[from,to)
+	// 上传请求/下载回复: content-range: bytes from-to/size 范围是[from,to]
+	// 参考: https://www.jianshu.com/p/acca9656e250
+	// 返回: [from, to, size]
+	private long[] parseRange(AsciiString headerName) {
+		long[] r = new long[]{-1, -1, -1};
+		var headers = request.headers();
+		var range = headers.get(headerName);
+		if (range != null) {
+			var p = range.indexOf(',');
+			if (p >= 0)
+				range = range.substring(0, p); // 暂不支持",",只下载第1段
+			var ss = rangePattern.split(range);
+			var sn = ss.length;
+			if (sn > 1) {
+				r[0] = parse(ss[1]);
+				if (sn > 2) {
+					r[1] = parse(ss[2]);
+					if (sn > 3)
+						r[2] = parse(ss[3]);
+				}
+			}
+		} else if (headerName == HttpHeaderNames.CONTENT_RANGE) { // 如果没找到content-range可能只用content-length大小上传
+			var len = headers.get(HttpHeaderNames.CONTENT_LENGTH);
+			if (len != null) {
+				var n = Integer.parseInt(len);
+				r[0] = 0;
+				r[1] = n - 1;
+				r[2] = n;
+			}
+		}
+		return r;
+	}
+
+	private static long parse(String s) {
+		if (s.isEmpty())
+			return -1;
+		try {
+			return Long.parseLong(s);
+		} catch (Exception ignored) {
+			return -1;
+		}
 	}
 
 	void checkTimeout() {
@@ -132,171 +263,22 @@ public class HttpExchange {
 			close(CLOSE_TIMEOUT, null);
 	}
 
-	private void fireFullRequestHandle() throws Exception {
-		switch (contents.size()) {
-		case 0:
-			contentFull = Unpooled.EMPTY_BUFFER;
-			break;
-		case 1:
-			contentFull = contents.get(0);
-			contents.clear();
-			break;
-		default:
-			contentFull = context.alloc().compositeBuffer().addComponents(contents);
-			contents.clear();
-			break;
-		}
-
-		if (server.zeze != null && handler.Level != TransactionLevel.None) {
-			Task.run(server.zeze.NewProcedure(() -> {
-				handler.EndStreamHandle.onEndStream(this);
-				return Procedure.Success;
-			}, "fireFullRequestHandle"), null, null, handler.Mode);
-		} else
-			handler.EndStreamHandle.onEndStream(this);
-	}
-
-	void channelRead(Object msg) throws Exception {
-		idleTime = 0;
-		boolean handled = false;
-
-		if (msg instanceof HttpRequest) {
-			request = ReferenceCountUtil.retain((HttpRequest)msg);
-			if (!locateHandler()) {
-				sendFile(filePath());
-				return;
-			}
-			if (handler.isStreamMode())
-				fireBeginStream();
-			handled = true;
-		}
-
-		if (msg instanceof HttpContent) {
-			if (request == null || handler == null) // 缺失上文的msg,有少数情况会出现,忽略吧
-				return;
-			//noinspection PatternVariableCanBeUsed
-			var c = (HttpContent)msg;
-			var n = c.content().readableBytes();
-			totalContentSize += n;
-			if (totalContentSize > handler.MaxContentLength) {
-				Netty.logger.error("totalContentSize {} > {} from {}",
-						totalContentSize, handler.MaxContentLength, context.channel().remoteAddress());
-				closeConnectionNow();
-			} else if (handler.isStreamMode()) {
-				if (n > 0)
-					fireStreamContentHandle(c);
-				if (msg instanceof LastHttpContent)
-					fireEndStreamHandle();
-			} else {
-				if (n > 0)
-					contents.add(c.content().retain());
-				if (msg instanceof LastHttpContent)
-					fireFullRequestHandle();
-			}
-			return;
-		}
-
-		if (!handled) {
-			Netty.logger.error("unknown message type={} from {}",
-					(msg != null ? msg.getClass() : null), context.channel().remoteAddress());
-			closeConnectionNow();
-		}
-	}
-
 	void channelReadClosed() {
 		willCloseConnection = true;
 	}
 
-	private void fireStreamContentHandle(HttpContent c) throws Exception {
-		if (server.zeze != null && handler.Level != TransactionLevel.None) {
-			c.retain();
-			Task.run(server.zeze.NewProcedure(() -> {
-				try {
-					//noinspection ConstantConditions
-					handler.StreamContentHandle.onStreamContent(this, c);
-				} finally {
-					c.release();
-				}
-				return Procedure.Success;
-			}, "fireStreamContentHandle"), null, null, handler.Mode);
-		} else {
-			//noinspection ConstantConditions
-			handler.StreamContentHandle.onStreamContent(this, c);
-		}
-	}
-
-	private void fireEndStreamHandle() throws Exception {
-		if (server.zeze != null && handler.Level != TransactionLevel.None) {
-			Task.run(server.zeze.NewProcedure(() -> {
-				handler.EndStreamHandle.onEndStream(this);
-				return Procedure.Success;
-			}, "fireEndStreamHandle"), null, null, handler.Mode);
-		} else
-			handler.EndStreamHandle.onEndStream(this);
-	}
-
-	// 下载请求/上传回复: range: bytes=[from]-[to] 范围是[from,to)
-	// 上传请求/下载回复: content-range: bytes from-to/size 范围是[from,to]
-	// 回复: [from, to, size]
-	// 参考: https://www.jianshu.com/p/acca9656e250
-	private long[] parseRange(AsciiString headerName) {
-		long[] r = new long[]{-1, -1, -1};
-		var range = request.headers().get(headerName);
-		if (range != null) {
-			var p = range.indexOf(',');
-			if (p >= 0)
-				range = range.substring(0, p); // 暂不支持",",只下载第1段
-			var ss = rangePattern.split(range);
-			var sn = ss.length;
-			if (sn > 1) {
-				r[0] = parse(ss[1]);
-				if (sn > 2) {
-					r[1] = parse(ss[2]);
-					if (sn > 3)
-						r[2] = parse(ss[3]);
-				}
+	private void closeInEventLoop() {
+		if (inStreamMode) {
+			inStreamMode = false;
+			try {
+				fireEndStreamHandle();
+			} catch (Exception e) {
+				throw new RuntimeException(e);
 			}
 		}
-		return r;
-	}
-
-	private static long parse(String s) {
-		if (s.isEmpty())
-			return -1;
-		try {
-			return Long.parseLong(s);
-		} catch (Exception ignored) {
-			return -1;
-		}
-	}
-
-	private void fireBeginStream() throws Exception {
-		var r = parseRange(HttpHeaderNames.CONTENT_RANGE);
-		if (server.zeze != null && handler.Level != TransactionLevel.None) {
-			Task.run(server.zeze.NewProcedure(() -> {
-				//noinspection ConstantConditions
-				handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]);
-				return Procedure.Success;
-			}, "fireBeginStream"), null, null, handler.Mode);
-		} else {
-			//noinspection ConstantConditions
-			handler.BeginStreamHandle.onBeginStream(this, r[0], r[1], r[2]);
-		}
-	}
-
-	private boolean locateHandler() {
-		return (handler = server.handlers.get(path())) != null;
-	}
-
-	private void closeInEventLoop() {
-		if (!contents.isEmpty()) {
-			for (var c : contents)
-				c.release();
-			contents.clear();
-		}
-		if (contentFull != null) {
-			contentFull.release();
-			contentFull = null;
+		if (content != Unpooled.EMPTY_BUFFER) {
+			content.release();
+			content = Unpooled.EMPTY_BUFFER;
 		}
 		if (request != null) {
 			ReferenceCountUtil.release(request);
@@ -444,10 +426,8 @@ public class HttpExchange {
 	/////////////////////////////////////////////////////////////////////////////////////////////////
 	// 流接口功能最大化，不做任何校验：状态校验，不正确的流起始Response（headers）等。
 	public ChannelFuture beginStream(HttpResponseStatus status, HttpHeaders headers) {
-		var res = new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, headers);
-		headers.remove(HttpHeaderNames.CONTENT_LENGTH);
-		headers.set(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED);
-		return context.writeAndFlush(res);
+		headers.remove(HttpHeaderNames.CONTENT_LENGTH).set(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED);
+		return context.writeAndFlush(new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, headers));
 	}
 
 	// 发送后data内容在回调前不能修改
