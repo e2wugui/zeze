@@ -9,6 +9,7 @@ import demo.Module1.Key;
 import demo.Module1.Simple;
 import demo.Module1.Value;
 import junit.framework.TestCase;
+import org.junit.Assert;
 
 public class TestByteBuffer extends TestCase {
 	public void testBitConverter() {
@@ -44,6 +45,17 @@ public class TestByteBuffer extends TestCase {
 		assertEquals("0C-61-62-63-E6-B1-89-E5-AD-97-31-32-33", bb.toString());
 		assertEquals(str, bb.ReadString());
 		assertEquals(bb.ReadIndex, bb.WriteIndex);
+
+		str = new String(new char[]{0xd800 + 0x155, 0xdc00 + 0x2aa, 0xd800 + 0x2aa, 0xdc00 + 0x155}); // surrogate chars
+		byte[] b0 = str.getBytes(StandardCharsets.UTF_8);
+		bb.Reset();
+		bb.WriteString(str);
+		assertEquals(4 * 2, b0.length);
+		assertEquals(4 * 2, ByteBuffer.utf8Size(str));
+		assertEquals(4 * 2, bb.Bytes[0]);
+		Assert.assertArrayEquals(b0, bb.ReadBytes());
+		bb.ReadIndex = 0;
+		assertEquals(str, bb.ReadString());
 	}
 
 	public void testBasic() {

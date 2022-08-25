@@ -205,7 +205,7 @@ public class HttpExchange {
 	// 参考: https://www.jianshu.com/p/acca9656e250
 	// 返回: [from, to, size]
 	private long[] parseRange(AsciiString headerName) {
-		long[] r = new long[]{-1, -1, -1};
+		var r = new long[]{-1, -1, -1};
 		var headers = request.headers();
 		var range = headers.get(headerName);
 		if (range != null) {
@@ -352,20 +352,12 @@ public class HttpExchange {
 		return send(status, "text/html; charset=utf-8", html);
 	}
 
+	public ChannelFuture sendJson(HttpResponseStatus status, String json) {
+		return send(status, "application/json; charset=utf-8", json);
+	}
+
 	public ChannelFuture sendXml(HttpResponseStatus status, String xml) {
 		return send(status, "text/xml; charset=utf-8", xml);
-	}
-
-	public ChannelFuture sendGif(HttpResponseStatus status, ByteBuf gif) {
-		return send(status, "image/gif", gif);
-	}
-
-	public ChannelFuture sendJpeg(HttpResponseStatus status, ByteBuf jpeg) {
-		return send(status, "image/jpeg", jpeg);
-	}
-
-	public ChannelFuture sendPng(HttpResponseStatus status, ByteBuf png) {
-		return send(status, "image/png", png);
 	}
 
 	public void sendFile(String filePath) throws Exception {

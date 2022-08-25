@@ -804,7 +804,10 @@ public final class ByteBuffer {
 			int c = str.charAt(i);
 			if (c < 0x80)
 				bn++;
-			else
+			else if ((c & 0xfc00) == 0xd800 && i + 1 < cn && (str.charAt(i + 1) & 0xfc00) == 0xdc00) { // UTF-16 surrogate
+				bn += 4;
+				i++;
+			} else
 				bn += (c < 0x800 ? 2 : 3);
 		}
 		return bn;
@@ -826,16 +829,23 @@ public final class ByteBuffer {
 				buf[wi++] = (byte)str.charAt(i);
 		} else {
 			for (int i = 0; i < cn; i++) {
-				int v = str.charAt(i);
-				if (v < 0x80)
-					buf[wi++] = (byte)v;                  // 0xxx xxxx
-				else if (v < 0x800) {
-					buf[wi++] = (byte)(0xc0 + (v >> 6));  // 110x xxxx  10xx xxxx
-					buf[wi++] = (byte)(0x80 + (v & 0x3f));
+				int c = str.charAt(i);
+				if (c < 0x80)
+					buf[wi++] = (byte)c;                  // 0xxx xxxx
+				else if (c < 0x800) {
+					buf[wi++] = (byte)(0xc0 + (c >> 6));  // 110x xxxx  10xx xxxx
+					buf[wi++] = (byte)(0x80 + (c & 0x3f));
+				} else if ((c & 0xfc00) == 0xd800 && i + 1 < cn && ((bn = str.charAt(i + 1)) & 0xfc00) == 0xdc00) { // UTF-16 surrogate
+					c = ((c & 0x3ff) << 10) + (bn & 0x3ff) + 0x10000;
+					buf[wi++] = (byte)(0xf0 + (c >> 18)); // 1111 0xxx  10xx xxxx  10xx xxxx  10xx xxxx
+					buf[wi++] = (byte)(0x80 + ((c >> 12) & 0x3f));
+					buf[wi++] = (byte)(0x80 + ((c >> 6) & 0x3f));
+					buf[wi++] = (byte)(0x80 + (c & 0x3f));
+					i++;
 				} else {
-					buf[wi++] = (byte)(0xe0 + (v >> 12)); // 1110 xxxx  10xx xxxx  10xx xxxx
-					buf[wi++] = (byte)(0x80 + ((v >> 6) & 0x3f));
-					buf[wi++] = (byte)(0x80 + (v & 0x3f));
+					buf[wi++] = (byte)(0xe0 + (c >> 12)); // 1110 xxxx  10xx xxxx  10xx xxxx
+					buf[wi++] = (byte)(0x80 + ((c >> 6) & 0x3f));
+					buf[wi++] = (byte)(0x80 + (c & 0x3f));
 				}
 			}
 		}

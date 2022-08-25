@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Text;
 using demo;
 using demo.Module1;
@@ -30,6 +31,17 @@ namespace UnitTest.Zeze.Serialize
             Assert.AreEqual("02-01-02", bb.ToString());
             Assert.AreEqual(BitConverter.ToString(v), BitConverter.ToString(bb.ReadBytes()));
             Assert.AreEqual(bb.ReadIndex, bb.WriteIndex);
+ 
+            var str = new string(new[]{(char)(0xd800 + 0x155), (char)(0xdc00 + 0x2aa),
+                (char)(0xd800 + 0x2aa), (char)(0xdc00 + 0x155)}); // surrogate chars
+            var b0 = Encoding.UTF8.GetBytes(str);
+            bb.Reset();
+            bb.WriteString(str);
+            Assert.AreEqual(4 * 2, b0.Length);
+            Assert.AreEqual(4 * 2, bb.Bytes[0]);
+            Assert.IsTrue(b0.SequenceEqual(bb.ReadBytes()));
+            bb.ReadIndex = 0;
+            Assert.AreEqual(str, bb.ReadString());
         }
 
         [TestMethod]
