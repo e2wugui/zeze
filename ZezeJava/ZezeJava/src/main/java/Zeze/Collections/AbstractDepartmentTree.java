@@ -15,6 +15,7 @@ public abstract class AbstractDepartmentTree extends Zeze.IModule {
     public static final int ErrorDepartmentSameParent = 5;
     public static final int ErrorCanNotMoveToChilds = 6;
     public static final int ErrorDepartmentParentNotExist = 7;
+    public static final int ErrorManagePermission = 8;
 
     protected final Zeze.Builtin.Collections.DepartmentTree.tDepartment _tDepartment = new Zeze.Builtin.Collections.DepartmentTree.tDepartment();
     protected final Zeze.Builtin.Collections.DepartmentTree.tDepartmentTree _tDepartmentTree = new Zeze.Builtin.Collections.DepartmentTree.tDepartmentTree();

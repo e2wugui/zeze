@@ -70,6 +70,29 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean, TDepart
 	// 2. 提供必要的辅助函数完成一些操作。
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+	public long checkManagePermission(String account, long departmentId) {
+		if (departmentId == 0) {
+			// root
+			var root = getRoot();
+			if (root.getManagers().containsKey(account) || root.getRoot().equals(account))
+				return 0; // grant
+			return module.ErrorCode(Module.ErrorManagePermission);
+		}
+
+		var department = getDepartmentTreeNode(departmentId);
+		if (department == null)
+			return module.ErrorCode(Module.ErrorDepartmentNotExist);
+
+		if (department.getManagers().isEmpty()) // 当前部门没有管理员，使用父部门的设置(递归)。
+			return checkManagePermission(account, department.getParentDepartment());
+
+		if (department.getManagers().containsKey(account))
+			return 0; // grant
+
+		// 当设置了管理员，不再递归。遵守权限不越级规则。
+		return module.ErrorCode(Module.ErrorManagePermission);
+	}
+
 	public BDepartmentRoot getRoot() {
 		return module._tDepartment.get(name);
 	}

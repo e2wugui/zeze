@@ -46,36 +46,13 @@ public class ModuleFriend extends AbstractModule {
         return Procedure.Success;
     }
 
-    private long checkManagePermission(String account, DepartmentTree<BManager, BMember, BDepartmentMember> group, long departmentId) {
-        if (departmentId == 0) {
-            // root
-            var root = group.getRoot();
-            if (root.getManagers().containsKey(account) || root.getRoot().equals(account))
-                return 0; // grant
-            return ErrorCode(eManagePermission);
-        }
-
-        var department = group.getDepartmentTreeNode(departmentId);
-        if (department == null)
-            return ErrorCode(eDepartmentNotFound);
-
-        if (department.getManagers().isEmpty()) // 当前部门没有管理员，使用父部门的设置(递归)。
-            return checkManagePermission(account, group, department.getParentDepartment());
-
-        if (department.getManagers().containsKey(account))
-            return 0; // grant
-
-        // 当设置了管理员，不再递归。遵守权限不越级规则。
-        return ErrorCode(eManagePermission);
-    }
-
     @Override
     protected long ProcessCreateDepartmentRequest(Zege.Friend.CreateDepartment r) {
         var session = ProviderUserSession.get(r);
         var group = getGroup(r.Argument.getGroup());
 
         // permission
-        r.setResultCode(checkManagePermission(session.getAccount(), group, r.Argument.getParentDepartment()));
+        r.setResultCode(group.checkManagePermission(session.getAccount(), r.Argument.getParentDepartment()));
         if (r.getResultCode() != 0)
             return r.getResultCode();
 
@@ -95,7 +72,7 @@ public class ModuleFriend extends AbstractModule {
         var session = ProviderUserSession.get(r);
         var group = getGroup(r.Argument.getGroup());
         // permission
-        r.setResultCode(checkManagePermission(session.getAccount(), group, r.Argument.getId()));
+        r.setResultCode(group.checkManagePermission(session.getAccount(), r.Argument.getId()));
         if (r.getResultCode() != 0)
             return r.getResultCode();
 
@@ -164,13 +141,12 @@ public class ModuleFriend extends AbstractModule {
         var group = getGroup(r.Argument.getGroup());
 
         // permission 验证被移动部门管理权限
-        r.setResultCode(checkManagePermission(session.getAccount(), group, r.Argument.getId()));
+        r.setResultCode(group.checkManagePermission(session.getAccount(), r.Argument.getId()));
         if (r.getResultCode() != 0)
             return r.getResultCode();
 
         // 验证拥有目标部门管理权限，
-        // 这两个验证谁先谁后都可以。
-        r.setResultCode(checkManagePermission(session.getAccount(), group, r.Argument.getNewParent()));
+        r.setResultCode(group.checkManagePermission(session.getAccount(), r.Argument.getNewParent()));
         if (r.getResultCode() != 0)
             return r.getResultCode();
 
@@ -271,7 +247,7 @@ public class ModuleFriend extends AbstractModule {
         var session = ProviderUserSession.get(r);
         var group = getGroup(r.Argument.getGroup());
 
-        r.setResultCode(checkManagePermission(session.getAccount(), group, r.Argument.getDepartmentId()));
+        r.setResultCode(group.checkManagePermission(session.getAccount(), r.Argument.getDepartmentId()));
         if (r.getResultCode() != 0)
             return r.getResultCode();
 
