@@ -88,6 +88,7 @@ public class ModuleUser extends AbstractModule {
             // 【准备测试数据】
             // 把用户加入默认群，并且把群加入用户好友列表。
             var defaultGroup = "wanmei@group";
+            _tUser.getOrAdd(defaultGroup);
             var group = App.Zege_Friend.getGroup(defaultGroup);
             group.create();
             var member = new BMember();
