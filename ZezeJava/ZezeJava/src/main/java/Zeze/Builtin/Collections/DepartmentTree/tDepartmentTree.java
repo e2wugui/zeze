@@ -28,6 +28,7 @@ public final class tDepartmentTree extends Zeze.Transaction.TableX<Zeze.Builtin.
     public static final int VAR_Childs = 2;
     public static final int VAR_Name = 3;
     public static final int VAR_Managers = 4;
+    public static final int VAR_Data = 5;
 
     @Override
     public Zeze.Builtin.Collections.DepartmentTree.BDepartmentKey DecodeKey(ByteBuffer _os_) {

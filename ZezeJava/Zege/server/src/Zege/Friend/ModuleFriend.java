@@ -13,8 +13,14 @@ public class ModuleFriend extends AbstractModule {
     public void Stop(Zege.App app) throws Throwable {
     }
 
-    public DepartmentTree<BManager, BMember, BDepartmentMember> getGroup(String group) {
-        return App.DepartmentTrees.open(group + "@Zege.DepartmentTree", BManager.class, BMember.class, BDepartmentMember.class);
+    public DepartmentTree<BManager, BMember, BDepartmentMember, BGroupData, BDepartmentData> getGroup(String group) {
+        return App.DepartmentTrees.open(
+                group + "@Zege.DepartmentTree",
+                BManager.class,
+                BMember.class,
+                BDepartmentMember.class,
+                BGroupData.class,
+                BDepartmentData.class);
     }
 
     public LinkedMap<BFriend> getFriends(String owner) {

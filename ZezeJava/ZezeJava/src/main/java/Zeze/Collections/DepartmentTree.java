@@ -7,7 +7,12 @@ import Zeze.Transaction.Bean;
 import Zeze.Transaction.DynamicBean;
 import Zeze.Util.OutLong;
 
-public class DepartmentTree<TManager extends Bean, TMember extends Bean, TDepartmentMember extends Bean> {
+public class DepartmentTree<
+		TManager extends Bean,
+		TMember extends Bean,
+		TDepartmentMember extends Bean,
+		TGroupData extends Bean,
+		TDepartmentData extends Bean> {
 	private static final BeanFactory beanFactory = new BeanFactory();
 
 	public static long GetSpecialTypeIdFromBean(Bean bean) {
@@ -19,7 +24,7 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean, TDepart
 	}
 
 	public static class Module extends AbstractDepartmentTree {
-		private final ConcurrentHashMap<String, DepartmentTree<?, ?, ?>> Trees = new ConcurrentHashMap<>();
+		private final ConcurrentHashMap<String, DepartmentTree<?, ?, ?, ?, ?>> Trees = new ConcurrentHashMap<>();
 		public final Zeze.Application Zeze;
 		public final LinkedMap.Module LinkedMaps;
 
@@ -35,11 +40,31 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean, TDepart
 		}
 
 		@SuppressWarnings("unchecked")
-		public <TManager extends Bean, TMember extends Bean, TDepartmentMember extends Bean>
-			DepartmentTree<TManager, TMember, TDepartmentMember>
-			open(String name, Class<TManager> managerClass, Class<TMember> memberClass, Class<TDepartmentMember> departmentMemberClass) {
-			return (DepartmentTree<TManager, TMember, TDepartmentMember>)Trees.computeIfAbsent(name,
-					k -> new DepartmentTree<>(this, k, managerClass, memberClass, departmentMemberClass));
+		public <TManager extends Bean,
+				TMember extends Bean,
+				TDepartmentMember extends Bean,
+				TGroupData extends Bean,
+				TDepartmentData extends Bean>
+				DepartmentTree<TManager, TMember, TDepartmentMember, TGroupData, TDepartmentData>
+			open(String name,
+				 Class<TManager> managerClass,
+				 Class<TMember> memberClass,
+				 Class<TDepartmentMember> departmentMemberClass,
+				 Class<TGroupData> groupDataClass,
+				 Class<TDepartmentData> departmentDataClass) {
+			return (DepartmentTree<
+					TManager,
+					TMember,
+					TDepartmentMember,
+					TGroupData,
+					TDepartmentData>)
+					Trees.computeIfAbsent(name,
+					k -> new DepartmentTree<>(this, k,
+							managerClass,
+							memberClass,
+							departmentMemberClass,
+							groupDataClass,
+							departmentDataClass));
 		}
 
 	}
@@ -47,14 +72,23 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean, TDepart
 	private final Module module;
 	private final String name;
 	private final MethodHandle managerConstructor;
+	private final MethodHandle groupDataConstructor;
+	private final MethodHandle departmentDataClassConstructor;
 	//private final Class<TManager> managerClass;
 	private final Class<TMember> memberClass;
 	private final Class<TDepartmentMember> departmentMemberClass;
 
-	private DepartmentTree(Module module, String name, Class<TManager> managerClass, Class<TMember> memberClass, Class<TDepartmentMember> departmentMemberClass) {
+	private DepartmentTree(Module module, String name,
+						   Class<TManager> managerClass,
+						   Class<TMember> memberClass,
+						   Class<TDepartmentMember> departmentMemberClass,
+						   Class<TGroupData> groupDataClass,
+						   Class<TDepartmentData> departmentDataClass) {
 		this.module = module;
 		this.name = name;
 		this.managerConstructor = beanFactory.register(managerClass);
+		this.groupDataConstructor = beanFactory.register(groupDataClass);
+		this.departmentDataClassConstructor = beanFactory.register(departmentDataClass);
 		//this.managerClass = managerClass;
 		this.memberClass = memberClass;
 		this.departmentMemberClass = departmentMemberClass;
@@ -67,8 +101,35 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean, TDepart
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Api 设计原则：
 	// 1. 可以直接访问原始Bean，不进行包装。
-	// 2. 提供必要的辅助函数完成一些操作。
+	// 2. 不考虑使用安全性。
+	// 3. 提供必要的辅助函数完成一些操作。
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+	@SuppressWarnings("unchecked")
+	public TManager getManagerData(BDepartmentRoot root, String account) {
+		var dynamicManager = root.getManagers().get(account);
+		if (null == dynamicManager)
+			return null;
+		return (TManager)dynamicManager.getBean();
+	}
+
+	@SuppressWarnings("unchecked")
+	public TManager getManagerData(BDepartmentTreeNode department, String account) {
+		var dynamicManager = department.getManagers().get(account);
+		if (null == dynamicManager)
+			return null;
+		return (TManager)dynamicManager.getBean();
+	}
+
+	@SuppressWarnings("unchecked")
+	public TGroupData getGroupData(BDepartmentRoot root) {
+		return (TGroupData)root.getData().getBean();
+	}
+
+	@SuppressWarnings("unchecked")
+	public TDepartmentData getDepartmentData(BDepartmentTreeNode department) {
+		return (TDepartmentData)department.getData().getBean();
+	}
 
 	// see checkManagePermission
 	public long checkParentManagePermission(String account, long departmentId) {
@@ -89,13 +150,13 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean, TDepart
 
 	// 检查account是否拥有部门的管理权限。
 	// 规则：
-	// 如果部门拥有管理员，仅判断account是否管理员。
-	// 如果部门没有管理员，则递归检查父部门的管理员设置。
-	// 递归直到根为止。
+	// 1. 如果部门拥有管理员，仅判断account是否管理员。
+	// 2. 如果部门没有管理员，则递归检查父部门的管理员设置。
+	// 3. 递归时优先规则1，直到根为止。Root总是拥有权限。
 	// 其他：
 	// 当管理管理员设置时，这个方法允许本级部门管理添加新的管理员和删除管理员。
 	// 对于管理员的修改是否限定只能由上级操作？
-	// 对于这个限定，可以在调用这个checkParentManagePermission
+	// 对于这个限定，可以在调用 checkParentManagePermission
 	public long checkManagePermission(String account, long departmentId) {
 		if (departmentId == 0) {
 			// root
@@ -148,7 +209,9 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean, TDepart
 	}
 
 	public BDepartmentRoot create() {
-		return module._tDepartment.getOrAdd(name);
+		var root = module._tDepartment.getOrAdd(name);
+		root.getData().setBean(BeanFactory.invoke(groupDataConstructor));
+		return root;
 	}
 
 	public long changeRoot(String oldRoot, String newRoot) {
@@ -195,6 +258,7 @@ public class DepartmentTree<TManager extends Bean, TMember extends Bean, TDepart
 				return module.ErrorCode(Module.ErrorDepartmentDuplicate);
 		}
 		var child = new BDepartmentTreeNode();
+		child.getData().setBean(BeanFactory.invoke(departmentDataClassConstructor));
 		child.setName(dName);
 		child.setParentDepartment(departmentParent);
 		module._tDepartmentTree.insert(new BDepartmentKey(name, dId), child);

@@ -28,6 +28,7 @@ public final class tDepartment extends Zeze.Transaction.TableX<String, Zeze.Buil
     public static final int VAR_Managers = 2;
     public static final int VAR_NextDepartmentId = 3;
     public static final int VAR_Childs = 4;
+    public static final int VAR_Data = 5;
 
     @Override
     public String DecodeKey(ByteBuffer _os_) {

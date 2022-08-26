@@ -178,6 +178,10 @@
 					</variable>
 					<variable id="3" name="NextDepartmentId" type="long" /> 部门Id种子
 					<variable id="4" name="Childs" type="map" key="string" value="long" /> name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
+					<variable id="5" name="Data" type="dynamic">
+						<GetSpecialTypeIdFromBean value="Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId"/>
+					</variable>
 				</bean>
 
 				<table name="tDepartment" key="string" value="BDepartmentRoot" /> 群部门树根。普通用户也可以创建部门。暂不开放这个给个人。
@@ -187,6 +191,10 @@
 					<variable id="2" name="Childs" type="map" key="string" value="long" /> name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
 					<variable id="3" name="Name" type="string" />
 					<variable id="4" name="Managers" type="map[string,dynamic]">
+						<GetSpecialTypeIdFromBean value="Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean"/>
+						<CreateBeanFromSpecialTypeId value="Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId"/>
+					</variable>
+					<variable id="5" name="Data" type="dynamic">
 						<GetSpecialTypeIdFromBean value="Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean"/>
 						<CreateBeanFromSpecialTypeId value="Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId"/>
 					</variable>

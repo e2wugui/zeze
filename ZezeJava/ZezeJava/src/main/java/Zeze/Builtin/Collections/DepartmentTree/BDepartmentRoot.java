@@ -20,6 +20,18 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
 
     private long _NextDepartmentId; // 部门Id种子
     private final Zeze.Transaction.Collections.PMap1<String, Long> _Childs; // name 2 id。采用整体保存，因为需要排序和重名判断。需要加数量上限。
+    private final Zeze.Transaction.DynamicBean _Data;
+        public static long GetSpecialTypeIdFromBean_Data(Zeze.Transaction.Bean bean) {
+            var _typeId_ = bean.typeId();
+            if (_typeId_ == Zeze.Transaction.EmptyBean.TYPEID)
+                return Zeze.Transaction.EmptyBean.TYPEID;
+            throw new RuntimeException("Unknown Bean! dynamic@Zeze.Builtin.Collections.DepartmentTree.BDepartmentRoot:Data");
+        }
+
+        public static Zeze.Transaction.Bean CreateBeanFromSpecialTypeId_Data(long typeId) {
+            return null;
+        }
+
 
     public String getRoot() {
         if (!isManaged())
@@ -69,12 +81,17 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
         return _Childs;
     }
 
+    public Zeze.Transaction.DynamicBean getData() {
+        return _Data;
+    }
+
     public BDepartmentRoot() {
         _Root = "";
         _Managers = new Zeze.Transaction.Collections.PMap1<>(String.class, Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId);
         _Managers.VariableId = 2;
         _Childs = new Zeze.Transaction.Collections.PMap1<>(String.class, Long.class);
         _Childs.VariableId = 4;
+        _Data = new Zeze.Transaction.DynamicBean(5, Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId);
     }
 
     public BDepartmentRoot(String _Root_, long _NextDepartmentId_) {
@@ -86,6 +103,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
         _NextDepartmentId = _NextDepartmentId_;
         _Childs = new Zeze.Transaction.Collections.PMap1<>(String.class, Long.class);
         _Childs.VariableId = 4;
+        _Data = new Zeze.Transaction.DynamicBean(5, Zeze.Collections.DepartmentTree::GetSpecialTypeIdFromBean, Zeze.Collections.DepartmentTree::CreateBeanFromSpecialTypeId);
     }
 
     public void Assign(BDepartmentRoot other) {
@@ -97,6 +115,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
         getChilds().clear();
         for (var e : other.getChilds().entrySet())
             getChilds().put(e.getKey(), e.getValue());
+        getData().Assign(other.getData());
     }
 
     public BDepartmentRoot CopyIfManaged() {
@@ -175,7 +194,10 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
             sb.append(Zeze.Util.Str.indent(level)).append(')').append(System.lineSeparator());
         }
         level -= 4;
-        sb.append(Zeze.Util.Str.indent(level)).append(']').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append(']').append(',').append(System.lineSeparator());
+        sb.append(Zeze.Util.Str.indent(level)).append("Data").append('=').append(System.lineSeparator());
+        getData().getBean().BuildString(sb, level + 4);
+        sb.append(System.lineSeparator());
         level -= 4;
         sb.append(Zeze.Util.Str.indent(level)).append('}');
     }
@@ -233,6 +255,13 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
                 }
             }
         }
+        {
+            var _x_ = getData();
+            if (!_x_.isEmpty()) {
+                _i_ = _o_.WriteTag(_i_, 5, ByteBuffer.DYNAMIC);
+                _x_.Encode(_o_);
+            }
+        }
         _o_.WriteByte(0);
     }
 
@@ -277,6 +306,10 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
                 _o_.SkipUnknownField(_t_);
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
+        if (_i_ == 5) {
+            _o_.ReadDynamic(getData(), _t_);
+            _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
+        }
         while (_t_ != 0) {
             _o_.SkipUnknownField(_t_);
             _o_.ReadTagSize(_t_ = _o_.ReadByte());
@@ -287,12 +320,14 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
     protected void InitChildrenRootInfo(Zeze.Transaction.Record.RootInfo root) {
         _Managers.InitRootInfo(root, this);
         _Childs.InitRootInfo(root, this);
+        _Data.InitRootInfo(root, this);
     }
 
     @Override
     protected void ResetChildrenRootInfo() {
         _Managers.ResetRootInfo();
         _Childs.ResetRootInfo();
+        _Data.ResetRootInfo();
     }
 
     @Override
@@ -319,6 +354,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
                 case 2: _Managers.FollowerApply(vlog); break;
                 case 3: _NextDepartmentId = ((Zeze.Transaction.Logs.LogLong)vlog).Value; break;
                 case 4: _Childs.FollowerApply(vlog); break;
+                case 5: _Data.FollowerApply(vlog); break;
             }
         }
     }

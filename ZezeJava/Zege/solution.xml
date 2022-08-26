@@ -104,14 +104,6 @@
 			<variable id="1" name="Nick" type="string"/>
 		</bean>
 
-		<!--
-		<bean name="BFriendNode">
-			<variable id="1" name="PrevNodeId" type="long"/>
-			<variable id="2" name="NextNodeId" type="long"/>
-			<variable id="3" name="Friends"    type="list[BFriend]"/>
-		</bean>
-		-->
-
 		<!-- 协议：读取好友节点 -->
 		<bean name="BAddFriend">
 			<variable id="1" name="Account" type="string"/>
@@ -149,6 +141,12 @@
 
 		<bean name="BDepartmentMember">
 			<variable id="1" name="Nick" type="string"/>
+		</bean>
+
+		<bean name="BGroupData">
+		</bean>
+
+		<bean name="BDepartmentData">
 		</bean>
 
 		<!-- 协议：群及部门管理 -->
@@ -189,19 +187,6 @@
 		</bean>
 		<rpc name="GetGroupRoot" argument="BDepartmentId" result="BGroup" handle="server"/>
 
-		<!--
-		<bean name="BMemberNode">
-			<variable id="1" name="PrevNodeId" type="long"/>
-			<variable id="2" name="NextNodeId" type="long"/>
-			<variable id="3" name="Members"    type="list[BMember]"/>
-		</bean>
-
-		<bean name="BDepartmentMemberNode">
-			<variable id="1" name="PrevNodeId" type="long"/>
-			<variable id="2" name="NextNodeId" type="long"/>
-			<variable id="3" name="DepartmentMembers" type="list[BDepartmentMember]"/>
-		</bean>
-		-->
 		<bean name="BGroupNodeId">
 			<variable id="1" name="Group" type="string"/>
 			<variable id="2" name="NodeId" type="long"/>
