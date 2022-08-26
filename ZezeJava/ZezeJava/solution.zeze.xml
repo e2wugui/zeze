@@ -169,6 +169,7 @@
 				<enum name="ErrorCanNotMoveToChilds" value="6"/>
 				<enum name="ErrorDepartmentParentNotExist" value="7"/>
 				<enum name="ErrorManagePermission" value="8"/>
+				<enum name="ErrorTooManyChildren" value="9"/>
 
 				<bean name="BDepartmentRoot">
 					<variable id="1" name="Root" type="string" /> 群主

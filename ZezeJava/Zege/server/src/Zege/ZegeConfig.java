@@ -6,6 +6,8 @@ public class ZegeConfig implements Zeze.Config.ICustomize {
 	public int AboutHasRead = 3;
 	public int AboutLast = 20;
 	public int MessageLimit = 20;
+	public int GroupChatLimit = 1000;
+	public int DepartmentChildrenLimit = 300;
 
 	@Override
 	public String getName() {
@@ -27,5 +29,13 @@ public class ZegeConfig implements Zeze.Config.ICustomize {
 		attr = self.getAttribute("MessageLimit");
 		if (!attr.isEmpty())
 			MessageLimit = Integer.parseInt(attr);
+
+		attr = self.getAttribute("GroupChatLimit");
+		if (!attr.isEmpty())
+			GroupChatLimit = Integer.parseInt(attr);
+
+		attr = self.getAttribute("DepartmentChildrenLimit");
+		if (!attr.isEmpty())
+			DepartmentChildrenLimit = Integer.parseInt(attr);
 	}
 }

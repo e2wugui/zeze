@@ -30,6 +30,13 @@ public class ModuleMessage extends AbstractModule {
             return ErrorCode(eGroupNotExist);
         if (r.Argument.getDepartmentId() > 0 && null == group.getDepartmentTreeNode(r.Argument.getDepartmentId()))
             return ErrorCode(eDepartmentNotExist);
+        if (0 == r.Argument.getDepartmentId()) {
+            if (group.getGroupMembers().size() > App.ZegeConfig.GroupChatLimit)
+                return ErrorCode(eTooManyMembers);
+        } else {
+            if (group.getDepartmentMembers(r.Argument.getDepartmentId()).size() > App.ZegeConfig.GroupChatLimit)
+                return ErrorCode(eTooManyMembers);
+        }
 
         // 填充服务器保证的参数
         r.Argument.getMessage().setFrom(session.getAccount());
@@ -39,11 +46,10 @@ public class ModuleMessage extends AbstractModule {
         // 保存消息历史。
         var departmentKey = new BDepartmentKey(r.Argument.getGroup(), r.Argument.getDepartmentId());
         var messageRoot = _tDepartementMessage.getOrAdd(departmentKey);
-        r.Argument.getMessage().setMessageId(messageRoot.getNextMessageId());
-        _tDepartementMessages.insert(
-                new BDepartmentMessageKey(departmentKey, messageRoot.getNextMessageId()),
-                r.Argument.getMessage());
-        messageRoot.setNextMessageId(messageRoot.getNextMessageId() + 1);
+        var messageId = messageRoot.getNextMessageId();
+        r.Argument.getMessage().setMessageId(messageId);
+        _tDepartementMessages.insert(new BDepartmentMessageKey(departmentKey, messageId), r.Argument.getMessage());
+        messageRoot.setNextMessageId(messageId + 1);
         // 统计消息总大小。只计算消息实体，否则需要系列化一次，比较麻烦。
         messageRoot.setMessageTotalBytes(messageRoot.getMessageTotalBytes() + r.Argument.getMessage().getSecureMessage().size());
 
@@ -54,20 +60,33 @@ public class ModuleMessage extends AbstractModule {
             // group root
             group.getGroupMembers().walk((key, member) -> {
                 Program.counters.increment("GroupBroadcastMessage:" + r.Argument.getGroup() + "#" + r.Argument.getDepartmentId());
-                App.Provider.Online.sendAccountWhileCommit(key, notify, null);
+                if (!session.getAccount().equals((key)))
+                    App.Provider.Online.sendAccountWhileCommit(key, notify, null);
                 return true;
             });
         } else {
             // department
             group.getDepartmentMembers(r.Argument.getDepartmentId()).walk((key, member) -> {
                 Program.counters.increment("GroupBroadcastMessage:" + r.Argument.getGroup() + "#" + r.Argument.getDepartmentId());
-                App.Provider.Online.sendAccountWhileCommit(key, notify, null);
+                if (!session.getAccount().equals((key)))
+                    App.Provider.Online.sendAccountWhileCommit(key, notify, null);
                 return true;
             });
         }
+        r.Result.setMessageId(messageId);
         session.sendResponseWhileCommit(r);
         Program.counters.increment("GroupMessage:" + r.Argument.getGroup() + "#" + r.Argument.getDepartmentId());
         return Procedure.Success;
+    }
+
+    private long saveMessage(String owner, String friend, BMessage message) {
+        var messageRoot = _tFriendMessage.getOrAdd(new BFriendKey(owner, friend));
+        var messageId = messageRoot.getNextMessageId();
+        _tFriendMessages.insert(new BFriendMessageKey(owner, friend, messageId), message);
+        messageRoot.setNextMessageId(messageId + 1);
+        // 统计消息总大小。只计算消息实体，否则需要系列化一次，比较麻烦。
+        messageRoot.setMessageTotalBytes(messageRoot.getMessageTotalBytes() + message.getSecureMessage().size());
+        return messageId;
     }
 
     @Override
@@ -84,20 +103,17 @@ public class ModuleMessage extends AbstractModule {
         r.Argument.getMessage().setFrom(session.getAccount());
 
         // 保存消息历史。
-        var messageRoot = _tFriendMessage.getOrAdd(new BFriendKey(session.getAccount(), r.Argument.getFriend()));
-        r.Argument.getMessage().setMessageId(messageRoot.getNextMessageId());
-        _tFriendMessages.insert(
-                new BFriendMessageKey(session.getAccount(), r.Argument.getFriend(), messageRoot.getNextMessageId()),
-                r.Argument.getMessage());
-        messageRoot.setNextMessageId(messageRoot.getNextMessageId() + 1);
-        // 统计消息总大小。只计算消息实体，否则需要系列化一次，比较麻烦。
-        messageRoot.setMessageTotalBytes(messageRoot.getMessageTotalBytes() + r.Argument.getMessage().getSecureMessage().size());
+        var self = session.getAccount().equals(r.Argument.getFriend());
+        r.Result.setMessageId(saveMessage(session.getAccount(), r.Argument.getFriend(), r.Argument.getMessage()));
+        if (!self) // 给自己发消息时不能保存两份。
+            r.Argument.getMessage().setMessageId(saveMessage(r.Argument.getFriend(), session.getAccount(), r.Argument.getMessage()));
 
         // 即时通知。todo 手机通知使用手机服务商消息通知服务；电脑版立即发送整个消息。
-        var notify = new NotifyMessage();
-        notify.Argument = r.Argument.getMessage();
-        App.Provider.Online.sendAccountWhileCommit(r.Argument.getFriend(), notify, null);
-
+        if (!self) {
+            var notify = new NotifyMessage();
+            notify.Argument = r.Argument.getMessage();
+            App.Provider.Online.sendAccountWhileCommit(r.Argument.getFriend(), notify, null);
+        }
         session.sendResponseWhileCommit(r);
         Program.counters.increment("FriendMessage");
         return Procedure.Success;

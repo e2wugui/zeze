@@ -223,7 +223,7 @@ public class DepartmentTree<
 	}
 
 	@SuppressWarnings ("unchecked")
-	public TManager getOrAddRootManager() {
+	private TManager getOrAddRootManager() {
 		var dRoot = module._tDepartment.getOrAdd(name);
 		return (TManager)dRoot.getManagers().computeIfAbsent(name, key -> {
 			var value = new DynamicBean(0, DepartmentTree::GetSpecialTypeIdFromBean, DepartmentTree::CreateBeanFromSpecialTypeId);
@@ -245,15 +245,38 @@ public class DepartmentTree<
 		}).getBean();
 	}
 
-	public long createDepartment(long departmentParent, String dName, OutLong outDepartmentId) {
+	@SuppressWarnings ("unchecked")
+	private TManager deleteRootManager(String name) {
+		var dRoot = module._tDepartment.getOrAdd(name);
+		var m = dRoot.getManagers().remove(name);
+		if (null == m)
+			return null;
+		return (TManager)m.getBean();
+	}
+
+	@SuppressWarnings ("unchecked")
+	public TManager deleteManager(long departmentId, String name) {
+		if (departmentId == 0)
+			return deleteRootManager(name);
+
+		var d = getDepartmentTreeNode(departmentId);
+		var m = d.getManagers().remove(name);
+		return (TManager)m.getBean();
+	}
+
+	public long createDepartment(long departmentParent, String dName, int childrenLimit, OutLong outDepartmentId) {
 		var dRoot = module._tDepartment.getOrAdd(name);
 		var dId = dRoot.getNextDepartmentId() + 1;
 
 		if (departmentParent == 0) {
+			if (dRoot.getChilds().size() > childrenLimit)
+				return module.ErrorCode(Module.ErrorTooManyChildren);
 			if (null != dRoot.getChilds().putIfAbsent(dName, dId))
 				return module.ErrorCode(Module.ErrorDepartmentDuplicate);
 		} else {
 			var parent = getDepartmentTreeNode(departmentParent);
+			if (parent.getChilds().size() > childrenLimit)
+				return module.ErrorCode(Module.ErrorTooManyChildren);
 			if (null != parent.getChilds().putIfAbsent(dName, dId))
 				return module.ErrorCode(Module.ErrorDepartmentDuplicate);
 		}

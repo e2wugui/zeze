@@ -64,7 +64,8 @@ public class ModuleFriend extends AbstractModule {
 
         // create
         var out = new OutLong();
-        r.setResultCode(group.createDepartment(r.Argument.getParentDepartment(), r.Argument.getName(), out));
+        r.setResultCode(group.createDepartment(r.Argument.getParentDepartment(), r.Argument.getName(),
+                App.ZegeConfig.DepartmentChildrenLimit, out));
         r.Result.setId(out.Value);
 
         session.sendResponseWhileCommit(r);
@@ -265,6 +266,36 @@ public class ModuleFriend extends AbstractModule {
                 return ErrorCode(eDeparmentMemberNotInGroup);
             group.getDepartmentMembers(r.Argument.getDepartmentId()).getOrAdd(r.Argument.getAccount());
         }
+        session.sendResponseWhileCommit(r);
+        return Procedure.Success;
+    }
+
+    @Override
+    protected long ProcessAddManagerRequest(Zege.Friend.AddManager r) {
+        var session = ProviderUserSession.get(r);
+        var group = getGroup(r.Argument.getGroup());
+
+        // 管理员管理权限检查
+        r.setResultCode(group.checkParentManagePermission(session.getAccount(), r.Argument.getDepartmentId()));
+        if (r.getResultCode() != 0)
+            return r.getResultCode();
+
+        group.getOrAddManager(r.Argument.getDepartmentId(), r.Argument.getAccount()).Assign(r.Argument.getManager());
+        session.sendResponseWhileCommit(r);
+        return Procedure.Success;
+    }
+
+    @Override
+    protected long ProcessDeleteManagerRequest(Zege.Friend.DeleteManager r) {
+        var session = ProviderUserSession.get(r);
+        var group = getGroup(r.Argument.getGroup());
+
+        // 管理员管理权限检查
+        r.setResultCode(group.checkParentManagePermission(session.getAccount(), r.Argument.getDepartmentId()));
+        if (r.getResultCode() != 0)
+            return r.getResultCode();
+
+        group.deleteManager(r.Argument.getDepartmentId(), r.Argument.getAccount());
         session.sendResponseWhileCommit(r);
         return Procedure.Success;
     }

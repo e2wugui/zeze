@@ -246,6 +246,21 @@
 			<variable id="3" name="Account" type="string"/>
 		</bean>
 		<rpc name="AddDepartmentMember" argument="BAddDepartmentMember" handle="server"/>
+
+		<bean name="BAddManager">
+			<variable id="1" name="Group" type="string"/>
+			<variable id="2" name="DepartmentId" type="long"/>
+			<variable id="3" name="Account" type="string"/>
+			<variable id="4" name="Manager" type="BManager"/>
+		</bean>
+		<bean name="BDeleteManager">
+			<variable id="1" name="Group" type="string"/>
+			<variable id="2" name="DepartmentId" type="long"/>
+			<variable id="3" name="Account" type="string"/>
+		</bean>
+		<rpc name="AddManager" argument="BAddManager" handle="server"/>
+		<rpc name="DeleteManager" argument="BDeleteManager" handle="server"/>
+
 	</module>
 
 	<module name="Message" id="3">
@@ -253,7 +268,7 @@
 		<enum name="eGroupNotExist"      value="2"/>
 		<enum name="eDepartmentNotExist" value="3"/>
 		<enum name="eMessageRange"       value="4"/>
-		
+		<enum name="eTooManyMembers"     value="4"/>
 
 		<bean name="BMessageRoot">
 			<variable id="1" name="NextMessageId"  type="long" />
@@ -330,8 +345,12 @@
 			<variable id="2" name="Message" type="BMessage" />
 		</bean>
 
+		<bean name="BSendMessageResult">
+			<variable id="1" name="MessageId" type="long" />
+		</bean>
+
 		<!-- 发送消息。即时消息通知（电脑版？） -->
-		<rpc name="SendMessage" argument="BSendMessage" handle="server"/>
+		<rpc name="SendMessage" argument="BSendMessage" result="BSendMessageResult" handle="server"/>
 
 		<bean name="BSendDepartmentMessage">
 			<variable id="1" name="Group" type="string" />
@@ -339,7 +358,11 @@
 			<variable id="3" name="Message" type="BMessage" />
 		</bean>
 
-		<rpc name="SendDepartmentMessage" argument="BSendDepartmentMessage" handle="server"/>
+		<bean name="BSendDepartmentMessageResult">
+			<variable id="1" name="MessageId" type="long" />
+		</bean>
+
+		<rpc name="SendDepartmentMessage" argument="BSendDepartmentMessage" result="BSendDepartmentMessageResult" handle="server"/>
 
 		<rpc name="NotifyMessage" argument="BMessage" handle="client"/>
 

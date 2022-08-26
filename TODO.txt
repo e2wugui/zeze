@@ -28,6 +28,7 @@ Zege
 	caculateMessageRange: eGetMessageFromAboutRead, eGetMessageFromAboutLast, eGetMessageToAuto, ...
 	Friend 协议参数和数据库结构分开定义。
 	消息加密。
+	管理员管理。
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 1.0.5 Certificate; Netty-Web More; Change Protocol Provider.Send To Rpc And Report Error;

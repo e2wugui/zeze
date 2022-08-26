@@ -14,7 +14,7 @@ public class ModuleMessage extends AbstractModule {
     public void Stop(Zege.App app) throws Throwable {
     }
 
-    public TaskCompletionSource<EmptyBean> send(String target, String message, long departmentId) {
+    public TaskCompletionSource<?> send(String target, String message, long departmentId) {
         if (target.endsWith("@group")) {
             var req = new SendDepartmentMessage();
             req.Argument.setGroup(target);
