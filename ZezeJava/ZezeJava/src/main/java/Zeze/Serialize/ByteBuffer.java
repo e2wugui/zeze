@@ -16,6 +16,8 @@ import Zeze.Util.IntHashMap;
 import Zeze.Util.LongHashMap;
 
 public final class ByteBuffer {
+	public static final boolean IGNORE_INCOMPATIBLE_FIELD = false; // 不忽略兼容字段则会抛异常
+
 	public byte[] Bytes;
 	public int ReadIndex;
 	public int WriteIndex;
@@ -1066,6 +1068,10 @@ public final class ByteBuffer {
 			return ReadFloat() != 0;
 		if (type == DOUBLE)
 			return ReadDouble() != 0;
+		if (IGNORE_INCOMPATIBLE_FIELD) {
+			SkipUnknownField(type);
+			return false;
+		}
 		throw new IllegalStateException("can not ReadBool for type=" + type);
 	}
 
@@ -1077,6 +1083,10 @@ public final class ByteBuffer {
 			return (byte)ReadFloat();
 		if (type == DOUBLE)
 			return (byte)ReadDouble();
+		if (IGNORE_INCOMPATIBLE_FIELD) {
+			SkipUnknownField(type);
+			return 0;
+		}
 		throw new IllegalStateException("can not ReadByte for type=" + type);
 	}
 
@@ -1088,6 +1098,10 @@ public final class ByteBuffer {
 			return (short)ReadFloat();
 		if (type == DOUBLE)
 			return (short)ReadDouble();
+		if (IGNORE_INCOMPATIBLE_FIELD) {
+			SkipUnknownField(type);
+			return 0;
+		}
 		throw new IllegalStateException("can not ReadShort for type=" + type);
 	}
 
@@ -1099,6 +1113,10 @@ public final class ByteBuffer {
 			return (int)ReadFloat();
 		if (type == DOUBLE)
 			return (int)ReadDouble();
+		if (IGNORE_INCOMPATIBLE_FIELD) {
+			SkipUnknownField(type);
+			return 0;
+		}
 		throw new IllegalStateException("can not ReadInt for type=" + type);
 	}
 
@@ -1110,6 +1128,10 @@ public final class ByteBuffer {
 			return (long)ReadFloat();
 		if (type == DOUBLE)
 			return (long)ReadDouble();
+		if (IGNORE_INCOMPATIBLE_FIELD) {
+			SkipUnknownField(type);
+			return 0;
+		}
 		throw new IllegalStateException("can not ReadLong for type=" + type);
 	}
 
@@ -1121,6 +1143,10 @@ public final class ByteBuffer {
 			return (float)ReadDouble();
 		if (type == INTEGER)
 			return ReadLong();
+		if (IGNORE_INCOMPATIBLE_FIELD) {
+			SkipUnknownField(type);
+			return 0;
+		}
 		throw new IllegalStateException("can not ReadFloat for type=" + type);
 	}
 
@@ -1132,6 +1158,10 @@ public final class ByteBuffer {
 			return ReadFloat();
 		if (type == INTEGER)
 			return ReadLong();
+		if (IGNORE_INCOMPATIBLE_FIELD) {
+			SkipUnknownField(type);
+			return 0;
+		}
 		throw new IllegalStateException("can not ReadDouble for type=" + type);
 	}
 
@@ -1139,6 +1169,10 @@ public final class ByteBuffer {
 		type &= TAG_MASK;
 		if (type == BYTES)
 			return ReadBinary();
+		if (IGNORE_INCOMPATIBLE_FIELD) {
+			SkipUnknownField(type);
+			return Binary.Empty;
+		}
 		throw new IllegalStateException("can not ReadBinary for type=" + type);
 	}
 
@@ -1146,6 +1180,10 @@ public final class ByteBuffer {
 		type &= TAG_MASK;
 		if (type == BYTES)
 			return ReadString();
+		if (IGNORE_INCOMPATIBLE_FIELD) {
+			SkipUnknownField(type);
+			return "";
+		}
 		throw new IllegalStateException("can not ReadString for type=" + type);
 	}
 
@@ -1215,6 +1253,10 @@ public final class ByteBuffer {
 			return new Vector2(ReadVector2Int());
 		if (type == VECTOR3INT)
 			return new Vector3(ReadVector3Int());
+		if (IGNORE_INCOMPATIBLE_FIELD) {
+			SkipUnknownField(type);
+			return Vector2.ZERO;
+		}
 		throw new IllegalStateException("can not ReadVector2 for type=" + type);
 	}
 
@@ -1230,6 +1272,10 @@ public final class ByteBuffer {
 			return new Vector3(ReadVector3Int());
 		if (type == VECTOR2INT)
 			return new Vector3(ReadVector2Int());
+		if (IGNORE_INCOMPATIBLE_FIELD) {
+			SkipUnknownField(type);
+			return Vector3.ZERO;
+		}
 		throw new IllegalStateException("can not ReadVector3 for type=" + type);
 	}
 
@@ -1245,6 +1291,10 @@ public final class ByteBuffer {
 			return new Vector4(ReadVector3Int());
 		if (type == VECTOR2INT)
 			return new Vector4(ReadVector2Int());
+		if (IGNORE_INCOMPATIBLE_FIELD) {
+			SkipUnknownField(type);
+			return Vector4.ZERO;
+		}
 		throw new IllegalStateException("can not ReadVector4 for type=" + type);
 	}
 
@@ -1260,6 +1310,10 @@ public final class ByteBuffer {
 			return new Quaternion(ReadVector3Int());
 		if (type == VECTOR2INT)
 			return new Quaternion(ReadVector2Int());
+		if (IGNORE_INCOMPATIBLE_FIELD) {
+			SkipUnknownField(type);
+			return Quaternion.ZERO;
+		}
 		throw new IllegalStateException("can not ReadQuaternion for type=" + type);
 	}
 
@@ -1275,6 +1329,10 @@ public final class ByteBuffer {
 			return new Vector3Int(ReadVector3());
 		if (type == VECTOR4)
 			return new Vector3Int(ReadVector4());
+		if (IGNORE_INCOMPATIBLE_FIELD) {
+			SkipUnknownField(type);
+			return Vector2Int.ZERO;
+		}
 		throw new IllegalStateException("can not ReadVector2Int for type=" + type);
 	}
 
@@ -1290,6 +1348,10 @@ public final class ByteBuffer {
 			return new Vector3Int(ReadVector2());
 		if (type == VECTOR4)
 			return new Vector3Int(ReadVector4());
+		if (IGNORE_INCOMPATIBLE_FIELD) {
+			SkipUnknownField(type);
+			return Vector3Int.ZERO;
+		}
 		throw new IllegalStateException("can not ReadVector3Int for type=" + type);
 	}
 
@@ -1300,7 +1362,9 @@ public final class ByteBuffer {
 		else if (type == DYNAMIC) {
 			ReadLong();
 			bean.Decode(this);
-		} else
+		} else if (IGNORE_INCOMPATIBLE_FIELD)
+			SkipUnknownField(type);
+		else
 			throw new IllegalStateException("can not ReadBean(" + bean.getClass().getName() + ") for type=" + type);
 		return bean;
 	}
@@ -1318,7 +1382,18 @@ public final class ByteBuffer {
 				return dynBean;
 			}
 		}
+		if (IGNORE_INCOMPATIBLE_FIELD) {
+			SkipUnknownField(type);
+			return dynBean;
+		}
 		throw new IllegalStateException("can not ReadDynamic for type=" + type);
+	}
+
+	public void SkipUnknownFieldOrThrow(int type, String curType) {
+		if (IGNORE_INCOMPATIBLE_FIELD)
+			SkipUnknownField(type);
+		else
+			throw new IllegalStateException("can not read " + curType + " for type=" + type);
 	}
 
 	public void SkipUnknownField(int type, int count) {

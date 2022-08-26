@@ -498,7 +498,7 @@ namespace Zeze.Builtin.TestRocks
                         _x_.Add(_o_.ReadInt(_t_));
                 }
                 else
-                    _o_.SkipUnknownField(_t_);
+                    _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             if (_i_ == 8)
@@ -511,7 +511,7 @@ namespace Zeze.Builtin.TestRocks
                         _x_.Add(_o_.ReadBean(new Zeze.Builtin.TestRocks.BeanKey(), _t_));
                 }
                 else
-                    _o_.SkipUnknownField(_t_);
+                    _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             if (_i_ == 9)
@@ -529,7 +529,7 @@ namespace Zeze.Builtin.TestRocks
                     }
                 }
                 else
-                    _o_.SkipUnknownField(_t_);
+                    _o_.SkipUnknownFieldOrThrow(_t_, "Map");
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             if (_i_ == 10)
@@ -547,7 +547,7 @@ namespace Zeze.Builtin.TestRocks
                     }
                 }
                 else
-                    _o_.SkipUnknownField(_t_);
+                    _o_.SkipUnknownFieldOrThrow(_t_, "Map");
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             if (_i_ == 11)

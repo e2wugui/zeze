@@ -304,7 +304,7 @@ namespace Zeze.Builtin.Online
                     }
                 }
                 else
-                    _o_.SkipUnknownField(_t_);
+                    _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
                 _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
             }
             if (_i_ == 3)

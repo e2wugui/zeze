@@ -285,7 +285,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
                     _x_.put(_k_, _v_);
                 }
             } else
-                _o_.SkipUnknownField(_t_);
+                _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {
@@ -303,7 +303,7 @@ public final class BDepartmentRoot extends Zeze.Transaction.Bean {
                     _x_.put(_k_, _v_);
                 }
             } else
-                _o_.SkipUnknownField(_t_);
+                _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 5) {

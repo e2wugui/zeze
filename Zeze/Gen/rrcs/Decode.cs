@@ -208,7 +208,7 @@ namespace Zeze.Gen.rrcs
             sw.WriteLine(prefix + "        _x_.Add(" + DecodeElement(vt, "_t_") + ");");
             sw.WriteLine(prefix + "}");
             sw.WriteLine(prefix + "else");
-            sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownField(_t_);");
+            sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownFieldOrThrow(_t_, \"Collection\");");
         }
 
         public void Visit(TypeList type)
@@ -240,7 +240,7 @@ namespace Zeze.Gen.rrcs
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
             sw.WriteLine(prefix + "else");
-            sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownField(_t_);");
+            sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownFieldOrThrow(_t_, \"Map\");");
         }
 
         public void Visit(Bean type)

@@ -152,7 +152,7 @@ public final class BBind extends Zeze.Transaction.Bean {
                     _x_.put(_k_, _v_);
                 }
             } else
-                _o_.SkipUnknownField(_t_);
+                _o_.SkipUnknownFieldOrThrow(_t_, "Map");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 2) {
@@ -162,7 +162,7 @@ public final class BBind extends Zeze.Transaction.Bean {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
                     _x_.add(_o_.ReadLong(_t_));
             } else
-                _o_.SkipUnknownField(_t_);
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         while (_t_ != 0) {

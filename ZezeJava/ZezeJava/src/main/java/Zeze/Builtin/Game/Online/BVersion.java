@@ -268,7 +268,7 @@ public final class BVersion extends Zeze.Transaction.Bean {
                 for (int _n_ = _o_.ReadTagSize(_t_ = _o_.ReadByte()); _n_ > 0; _n_--)
                     _x_.add(_o_.ReadString(_t_));
             } else
-                _o_.SkipUnknownField(_t_);
+                _o_.SkipUnknownFieldOrThrow(_t_, "Collection");
             _i_ += _o_.ReadTagSize(_t_ = _o_.ReadByte());
         }
         if (_i_ == 3) {

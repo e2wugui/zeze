@@ -275,7 +275,7 @@ namespace Zeze.Gen.cs
                 sw.WriteLine(prefix + "if ((_t_ & ByteBuffer.TAG_MASK) == ByteBuffer.BYTES)");
                 sw.WriteLine(prefix + $"    {varname} = {bufname}.ReadBytes();");
                 sw.WriteLine(prefix + "else");
-                sw.WriteLine(prefix + $"    {bufname}.SkipUnknownField(_t_);");
+                sw.WriteLine(prefix + $"    {bufname}.SkipUnknownFieldOrThrow(_t_, \"byte[]\");");
                 return;
             }
             bool isFixSizeList;
@@ -325,7 +325,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
             sw.WriteLine(prefix + "else");
-            sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownField(_t_);");
+            sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownFieldOrThrow(_t_, \"Collection\");");
         }
 
         public void Visit(TypeList type)
@@ -373,7 +373,7 @@ namespace Zeze.Gen.cs
             sw.WriteLine(prefix + "    }");
             sw.WriteLine(prefix + "}");
             sw.WriteLine(prefix + "else");
-            sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownField(_t_);");
+            sw.WriteLine(prefix + "    " + bufname + ".SkipUnknownFieldOrThrow(_t_, \"Map\");");
         }
 
         public void Visit(Bean type)
@@ -404,7 +404,7 @@ namespace Zeze.Gen.cs
                 sw.WriteLine($"{prefix}    {varname} = {tmpName};");
                 sw.WriteLine($"{prefix}}}");
                 sw.WriteLine($"{prefix}else");
-                sw.WriteLine($"{prefix}    {bufname}.SkipUnknownField(_t_);");
+                sw.WriteLine($"{prefix}    {bufname}.SkipUnknownFieldOrThrow(_t_, \"DynamicBean\");");
             }
             else if (id > 0)
                 sw.WriteLine(prefix + bufname + ".ReadDynamic(" + varname + ", _t_);");

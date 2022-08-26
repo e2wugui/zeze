@@ -1,21 +1,27 @@
-﻿
-#define MACRO_CONF_CS_PREDEFINE
+﻿#define MACRO_CONF_CS_PREDEFINE
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Runtime.CompilerServices;
 using Zeze.Net;
+using Zeze.Transaction;
 
 namespace Zeze.Serialize
 {
+    #pragma warning disable CS0162 // Code is heuristically unreachable
+    [SuppressMessage("ReSharper", "HeuristicUnreachableCode")]
+    [SuppressMessage("ReSharper", "IntVariableOverflowInUncheckedContext")]
     public sealed class ByteBuffer
     {
+        public const bool IGNORE_INCOMPATIBLE_FIELD = false;
+        
         public byte[] Bytes { get; private set; }
         public int ReadIndex { get; set; }
         public int WriteIndex { get; set; }
-        public int Capacity { get { return Bytes.Length; } }
-        public int Size { get { return WriteIndex - ReadIndex; } }
+        public int Capacity => Bytes.Length;
+        public int Size => WriteIndex - ReadIndex;
 
         // decode
         public static ByteBuffer Wrap(ByteBuffer other)
@@ -40,12 +46,7 @@ namespace Zeze.Serialize
         }
 
         // encode
-        public static ByteBuffer Allocate()
-        {
-            return Allocate(16);
-        }
-
-        public static ByteBuffer Allocate(int capacity)
+        public static ByteBuffer Allocate(int capacity = 16)
         {
             return new ByteBuffer(new byte[ToPower2(capacity)]);
         }
@@ -206,7 +207,7 @@ namespace Zeze.Serialize
         void EnsureRead(int size)
         {
             if (ReadIndex + size > WriteIndex)
-                throw new Exception("EnsureRead " + size);
+                throw new Exception("EnsureRead " + ReadIndex + '+' + size + " > " + WriteIndex);
         }
 
         public void WriteBool(bool b)
@@ -217,7 +218,14 @@ namespace Zeze.Serialize
 
         public bool ReadBool()
         {
-            return ReadLong() != 0;
+            EnsureRead(1);
+            int b = Bytes[ReadIndex];
+            if ((b & ~1) == 0) // fast-path
+            {
+                ReadIndex++;
+                return b != 0;
+            }
+            return ReadLong() != 0; // rare-path
         }
 
         public void WriteByte(byte x)
@@ -785,7 +793,7 @@ namespace Zeze.Serialize
             WriteBytes(binary.Bytes, binary.Offset, binary.Count);
         }
 
-        public static bool BinaryNoCopy { get; set; } = false; // 没有线程保护
+        public static bool BinaryNoCopy { get; set; } // 没有线程保护
         // XXX 对于byte[]类型直接使用引用，不拷贝。全局配置，只能用于Linkd这种纯转发的程序，优化。
 
         public Binary ReadBinary()
@@ -894,6 +902,7 @@ namespace Zeze.Serialize
             return hash;
         }
 
+        [SuppressMessage("ReSharper", "NonReadonlyMemberInGetHashCode")]
         public override int GetHashCode()
         {
             return calc_hashnr(Bytes, ReadIndex, Size);
@@ -939,25 +948,23 @@ namespace Zeze.Serialize
             return (id << TAG_SHIFT) + tag;
         }
 
-        public static int GetTag(int tagid)
+        public static int GetTag(int tagId)
         {
-            return tagid & TAG_MASK;
+            return tagId & TAG_MASK;
         }
 
-        public static int GetId(int tagid)
+        public static int GetId(int tagId)
         {
         }
         */
 
         public static void VerifyArrayIndex(byte[] bytes, int offset, int length)
         {
-            if (offset < 0 || offset > bytes.Length)
-                throw new Exception($"{bytes.Length},{offset},{length}");
-            int endindex = offset + length;
-            if (endindex < 0 || endindex > bytes.Length)
-                throw new Exception($"{bytes.Length},{offset},{length}");
-            if (offset > endindex)
-                throw new Exception($"{bytes.Length},{offset},{length}");
+            int bytesLen = bytes.Length;
+            long offsetL = offset & 0xffff_ffffL;
+            long endIndexL = (offset + length) & 0xffff_ffffL;
+            if (endIndexL > bytesLen || offsetL > endIndexL)
+                throw new Exception($"{bytesLen},{offset},{length}");
         }
 
         public void Encode<T>(ICollection<T> c)
@@ -1029,8 +1036,12 @@ namespace Zeze.Serialize
                 return ReadFloat() != 0;
             if (type == DOUBLE)
                 return ReadDouble() != 0;
-            SkipUnknownField(type);
-            return false;
+            if (IGNORE_INCOMPATIBLE_FIELD)
+            {
+                SkipUnknownField(type);
+                return false;
+            }
+            throw new Exception("can not ReadBool for type=" + type);
         }
 
         public byte ReadByte(int type)
@@ -1042,8 +1053,12 @@ namespace Zeze.Serialize
                 return (byte)ReadFloat();
             if (type == DOUBLE)
                 return (byte)ReadDouble();
-            SkipUnknownField(type);
-            return 0;
+            if (IGNORE_INCOMPATIBLE_FIELD)
+            {
+                SkipUnknownField(type);
+                return 0;
+            }
+            throw new Exception("can not ReadByte for type=" + type);
         }
 
         public short ReadShort(int type)
@@ -1055,8 +1070,12 @@ namespace Zeze.Serialize
                 return (short)ReadFloat();
             if (type == DOUBLE)
                 return (short)ReadDouble();
-            SkipUnknownField(type);
-            return 0;
+            if (IGNORE_INCOMPATIBLE_FIELD)
+            {
+                SkipUnknownField(type);
+                return 0;
+            }
+            throw new Exception("can not ReadShort for type=" + type);
         }
 
         public int ReadInt(int type)
@@ -1068,8 +1087,12 @@ namespace Zeze.Serialize
                 return (int)ReadFloat();
             if (type == DOUBLE)
                 return (int)ReadDouble();
-            SkipUnknownField(type);
-            return 0;
+            if (IGNORE_INCOMPATIBLE_FIELD)
+            {
+                SkipUnknownField(type);
+                return 0;
+            }
+            throw new Exception("can not ReadInt for type=" + type);
         }
 
         public long ReadLong(int type)
@@ -1081,8 +1104,12 @@ namespace Zeze.Serialize
                 return (long)ReadFloat();
             if (type == DOUBLE)
                 return (long)ReadDouble();
-            SkipUnknownField(type);
-            return 0;
+            if (IGNORE_INCOMPATIBLE_FIELD)
+            {
+                SkipUnknownField(type);
+                return 0;
+            }
+            throw new Exception("can not ReadLong for type=" + type);
         }
 
         public float ReadFloat(int type)
@@ -1094,8 +1121,12 @@ namespace Zeze.Serialize
                 return (float)ReadDouble();
             if (type == INTEGER)
                 return ReadLong();
-            SkipUnknownField(type);
-            return 0;
+            if (IGNORE_INCOMPATIBLE_FIELD)
+            {
+                SkipUnknownField(type);
+                return 0;
+            }
+            throw new Exception("can not ReadFloat for type=" + type);
         }
 
         public double ReadDouble(int type)
@@ -1107,8 +1138,12 @@ namespace Zeze.Serialize
                 return ReadFloat();
             if (type == INTEGER)
                 return ReadLong();
-            SkipUnknownField(type);
-            return 0;
+            if (IGNORE_INCOMPATIBLE_FIELD)
+            {
+                SkipUnknownField(type);
+                return 0;
+            }
+            throw new Exception("can not ReadDouble for type=" + type);
         }
 
         public Binary ReadBinary(int type)
@@ -1116,8 +1151,12 @@ namespace Zeze.Serialize
             type &= TAG_MASK;
             if (type == BYTES)
                 return ReadBinary();
-            SkipUnknownField(type);
-            return Binary.Empty;
+            if (IGNORE_INCOMPATIBLE_FIELD)
+            {
+                SkipUnknownField(type);
+                return Binary.Empty;
+            }
+            throw new Exception("can not ReadBinary for type=" + type);
         }
 
         public string ReadString(int type)
@@ -1125,8 +1164,12 @@ namespace Zeze.Serialize
             type &= TAG_MASK;
             if (type == BYTES)
                 return ReadString();
-            SkipUnknownField(type);
-            return "";
+            if (IGNORE_INCOMPATIBLE_FIELD)
+            {
+                SkipUnknownField(type);
+                return "";
+            }
+            throw new Exception("can not ReadString for type=" + type);
         }
 
 #if !MACRO_CONF_CS
@@ -1181,8 +1224,12 @@ namespace Zeze.Serialize
                 return ReadVector3();
             if (type == VECTOR4)
                 return ReadVector4();
-            SkipUnknownField(type);
-            return new Vector2();
+            if (IGNORE_INCOMPATIBLE_FIELD)
+            {
+                SkipUnknownField(type);
+                return new Vector2();
+            }
+            throw new Exception("can not ReadVector2 for type=" + type);
         }
 
         public Vector3 ReadVector3(int type)
@@ -1194,8 +1241,12 @@ namespace Zeze.Serialize
                 return ReadVector3();
             if (type == VECTOR4)
                 return ReadVector4();
-            SkipUnknownField(type);
-            return new Vector3();
+            if (IGNORE_INCOMPATIBLE_FIELD)
+            {
+                SkipUnknownField(type);
+                return new Vector3();
+            }
+            throw new Exception("can not ReadVector3 for type=" + type);
         }
 
         public Vector4 ReadVector4(int type)
@@ -1207,8 +1258,12 @@ namespace Zeze.Serialize
                 return new Vector4(ReadVector3());
             if (type == VECTOR4)
                 return ReadVector4();
-            SkipUnknownField(type);
-            return new Vector4();
+            if (IGNORE_INCOMPATIBLE_FIELD)
+            {
+                SkipUnknownField(type);
+                return new Vector4();
+            }
+            throw new Exception("can not ReadVector4 for type=" + type);
         }
 
         public Quaternion ReadQuaternion(int type)
@@ -1220,8 +1275,12 @@ namespace Zeze.Serialize
                 return new Quaternion(ReadVector3());
             if (type == VECTOR4)
                 return new Quaternion(ReadVector4());
-            SkipUnknownField(type);
-            return new Quaternion();
+            if (IGNORE_INCOMPATIBLE_FIELD)
+            {
+                SkipUnknownField(type);
+                return new Quaternion();
+            }
+            throw new Exception("can not ReadQuaternion for type=" + type);
         }
 
         public Vector2Int ReadVector2Int(int type)
@@ -1231,8 +1290,12 @@ namespace Zeze.Serialize
                 return ReadVector2Int();
             if (type == VECTOR3INT)
                 return ReadVector3Int();
-            SkipUnknownField(type);
-            return new Vector2Int();
+            if (IGNORE_INCOMPATIBLE_FIELD)
+            {
+                SkipUnknownField(type);
+                return new Vector2Int();
+            }
+            throw new Exception("can not ReadVector2Int for type=" + type);
         }
 
         public Vector3Int ReadVector3Int(int type)
@@ -1242,8 +1305,12 @@ namespace Zeze.Serialize
                 return new Vector3Int(ReadVector2Int());
             if (type == VECTOR3INT)
                 return ReadVector3Int();
-            SkipUnknownField(type);
-            return new Vector3Int();
+            if (IGNORE_INCOMPATIBLE_FIELD)
+            {
+                SkipUnknownField(type);
+                return new Vector3Int();
+            }
+            throw new Exception("can not ReadVector3Int for type=" + type);
         }
 #endif
         public T ReadBean<T>(T bean, int type) where T : Serializable
@@ -1256,12 +1323,14 @@ namespace Zeze.Serialize
                 ReadLong();
                 bean.Decode(this);
             }
-            else
+            else if (IGNORE_INCOMPATIBLE_FIELD)
                 SkipUnknownField(type);
+            else
+                throw new Exception("can not ReadBean(" + bean.GetType().Name + ") for type=" + type);
             return bean;
         }
 
-        public Zeze.Transaction.DynamicBean ReadDynamic(Zeze.Transaction.DynamicBean dynBean, int type)
+        public DynamicBean ReadDynamic(DynamicBean dynBean, int type)
         {
             type &= TAG_MASK;
             if (type == DYNAMIC)
@@ -1278,8 +1347,22 @@ namespace Zeze.Serialize
                     return dynBean;
                 }
             }
-            SkipUnknownField(type);
-            return dynBean;
+            if (IGNORE_INCOMPATIBLE_FIELD)
+            {
+                SkipUnknownField(type);
+                return dynBean;
+            }
+            throw new Exception("can not ReadDynamic for type=" + type);
+        }
+
+        public void SkipUnknownFieldOrThrow(int type, string curType)
+        {
+            if (IGNORE_INCOMPATIBLE_FIELD)
+            {
+                SkipUnknownField(type);
+                return;
+            }
+            throw new Exception("can not read " + curType + " for type=" + type);
         }
 
         public void SkipUnknownField(int type, int count)
@@ -1313,9 +1396,6 @@ namespace Zeze.Serialize
                     ReadIndex += 4;
                     return;
                 case DOUBLE:
-                    EnsureRead(8);
-                    ReadIndex += 8;
-                    return;
                 case VECTOR2:
                     EnsureRead(8);
                     ReadIndex += 8;
