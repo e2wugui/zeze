@@ -1,9 +1,17 @@
-/.gradle/
-/127.0.0.1_*/
-/build/
+.gradle/
+127.0.0.1_*/
+build/
+classes/
+dbhome/
+Gen/
+lib/
+log/
+target/
+zeze_cache_*/
+
+Redirect_*.java
 
 /log4j2.xml
 /raft.xml
-
-~$*.*
-zeze_cache_*
+/zeze.xml
+/ZezeJavaTest/test.ks
