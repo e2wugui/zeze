@@ -5,6 +5,11 @@
 	<import file="../ZezeJava/solution.zeze.xml"/>
 
 	<module name="User" id="1">
+		<enum name="eAccountHasUsed" value="1" />
+		<enum name="eAccountHasPrepared" value="2" />
+		<enum name="ePrepareExpired" value="3" />
+		<enum name="ePrepareNotOwner" value="4" />
+
 		<bean name="BUser">
 			<!-- 基本信息 -->
 			<variable id="1" name="Account"    type="string" />
@@ -13,8 +18,15 @@
 			<variable id="4" name="NickName"   type="string" /> 不唯一
 
 			<!-- 证书 -->
-			<variable id="20" name="LastCertIndex" type="int" default="-1" /> 给客户端分配Index用，递增。客户端对自己需要保存所有证书和Key。
-			<variable id="21" name="Cert"          type="binary" />
+			<variable id="20" name="LastCertIndex"     type="int" default="-1" /> 给客户端分配Index用，递增。客户端对自己需要保存所有证书和Key。
+			<variable id="21" name="Cert"              type="binary" />
+
+			<enum name="StatePrepare" value="0" />
+			<enum name="StateCreated" value="1" />
+
+			<variable id="22" name="State"             type="int" />
+			<variable id="23" name="PrepareTime"       type="long" />
+			<variable id="24" name="PrepareRandomData" type="binary" />
 
 			<!-- 实名 -->
 			<enum name="RealFlagIdentityCard" value="1" />

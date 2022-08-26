@@ -47,13 +47,21 @@ public class ModuleUser extends AbstractModule {
     protected long ProcessCreateRequest(Zege.User.Create r) throws GeneralSecurityException, IOException {
         var account = r.Argument.getAccount();
         var user = _tUser.getOrAdd(account);
-        // todo verify prepare 状态，防止过期。
+
+        var now = System.currentTimeMillis();
+        if (now - user.getPrepareTime() > 15 * 60 * 1000)
+            return ErrorCode(ePrepareExpired);
+
         user.setCreateTime(System.currentTimeMillis());
         user.setAccount(account);
         var publicKey = Cert.loadPublicKey(r.Argument.getRsaPublicKey().bytesUnsafe());
         var passwd = "123";
-        // todo verify client has private key。
-        //if (Cert.verifySign(publicKey, user.getPrepareRandomData(); r.Argument.getSigned().bytesUnsafe()));
+        if (!Cert.verifySign(publicKey, user.getPrepareRandomData().bytesUnsafe(), r.Argument.getSigned().bytesUnsafe()))
+            return ErrorCode(ePrepareNotOwner);
+
+        user.setState(BUser.StateCreated);
+        user.setPrepareRandomData(Binary.Empty);
+
         var keyStore = App.FakeCa;
         var privateKey = Cert.getPrivateKey(keyStore, passwd, "ZegeFakeCa");
         var cert = Cert.generate(account, publicKey, "ZegeFakeCa", privateKey, 10000);
@@ -117,14 +125,19 @@ public class ModuleUser extends AbstractModule {
     protected long ProcessPrepareRequest(Zege.User.Prepare r) {
         var account = r.Argument.getAccount();
         var user = _tUser.getOrAdd(account);
-        /*
-        user.state 1 pending 2 createok
-        user.timexxx ;
-        //user.sessionid?;
-        */
-        // todo 记住random，用来在create时verify客户端拥有privateKey。
+        if (user.getState() == BUser.StateCreated)
+            return ErrorCode(eAccountHasUsed);
+
+        var now = System.currentTimeMillis();
+        if (now - user.getPrepareTime() < 15 * 60 * 1000)
+            return ErrorCode(eAccountHasPrepared);
+
+        user.setState(BUser.StatePrepare);
+        user.setPrepareTime(now);
         var rands = new byte[64];
         Random.getInstance().nextBytes(rands);
+        user.setPrepareRandomData(new Binary(rands));
+
         r.Result.setRandomData(new Binary(rands));
         r.SendResult();
         return Procedure.Success;
