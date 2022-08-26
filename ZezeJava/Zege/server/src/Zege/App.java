@@ -69,8 +69,12 @@ public class App extends Zeze.AppBase {
         }
     }
 
+    public ZegeConfig ZegeConfig = new ZegeConfig();
+
     public void Start(String conf) throws Throwable {
-        var config = Config.Load(conf);
+        var config = new Config().AddCustomize(ZegeConfig);
+        config.LoadAndParse(conf);
+
         CreateZeze(config);
         CreateService();
 

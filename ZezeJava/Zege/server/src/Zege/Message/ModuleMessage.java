@@ -117,7 +117,7 @@ public class ModuleMessage extends AbstractModule {
         var messageRoot = _tFriendMessage.getOrAdd(new BFriendKey(session.getAccount(), r.Argument.getFriend()));
         var from = new OutLong(r.Argument.getMessageIdFrom());
         var to = new OutLong(r.Argument.getMessageIdTo());
-        if (!caculateMessageRange(from, to, messageRoot))
+        if (!calculateMessageRange(from, to, messageRoot))
             return ErrorCode(eMessageRange);
 
         // 提取消息历史
@@ -133,11 +133,11 @@ public class ModuleMessage extends AbstractModule {
         return Procedure.Success;
     }
 
-    private boolean caculateMessageRange(OutLong from, OutLong to, BMessageRoot messageRoot) {
+    private boolean calculateMessageRange(OutLong from, OutLong to, BMessageRoot messageRoot) {
         if (from.Value == eGetMessageFromAboutRead)
-            from.Value = Math.max(from.Value, messageRoot.getMessageIdHashRead() - 3); // todo config
+            from.Value = Math.max(from.Value, messageRoot.getMessageIdHashRead() - App.ZegeConfig.AboutHasRead);
         else if (from.Value == eGetMessageFromAboutLast)
-            from.Value = Math.max(from.Value, messageRoot.getLastMessageId() - 20); // todo config
+            from.Value = Math.max(from.Value, messageRoot.getLastMessageId() - App.ZegeConfig.AboutLast);
         else
             from.Value = Math.max(from.Value, messageRoot.getFirstMessageId());
 
@@ -145,8 +145,8 @@ public class ModuleMessage extends AbstractModule {
             to.Value = messageRoot.getLastMessageId();
         if (to.Value < from.Value)
             return false;
-        if (to.Value - from.Value > 20) // todo config max count
-            to.Value = from.Value + 20;
+        if (to.Value - from.Value > App.ZegeConfig.MessageLimit)
+            to.Value = from.Value + App.ZegeConfig.MessageLimit;
         return true;
     }
 
@@ -168,7 +168,7 @@ public class ModuleMessage extends AbstractModule {
         var messageRoot = _tDepartementMessage.getOrAdd(departmentKey);
         var from = new OutLong(r.Argument.getMessageIdFrom());
         var to = new OutLong(r.Argument.getMessageIdTo());
-        if (!caculateMessageRange(from, to, messageRoot))
+        if (!calculateMessageRange(from, to, messageRoot))
             return ErrorCode(eMessageRange);
 
         // 提取消息历史
