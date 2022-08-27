@@ -26,6 +26,7 @@ import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.HttpVersion;
 import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.util.AsciiString;
@@ -120,8 +121,18 @@ public class HttpExchange {
 				fireBeginStream();
 				inStreamMode = true;
 			}
-			if (!(msg instanceof HttpContent))
+			if (!(msg instanceof HttpContent)) {
+				if (HttpUtil.is100ContinueExpected(request)) {
+					if (!handler.isStreamMode() && HttpUtil.getContentLength(request, 0) > handler.MaxContentLength) {
+						closeConnectionOnFlush(context.writeAndFlush(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
+								HttpResponseStatus.EXPECTATION_FAILED, Unpooled.EMPTY_BUFFER, false)));
+						return;
+					}
+					context.writeAndFlush(new DefaultFullHttpResponse(HttpVersion.HTTP_1_1,
+							HttpResponseStatus.CONTINUE, Unpooled.EMPTY_BUFFER, false), context.voidPromise());
+				}
 				return;
+			}
 		} else if (!(msg instanceof HttpContent)) {
 			Netty.logger.error("unknown message type = {} from {}",
 					(msg != null ? msg.getClass() : null), context.channel().remoteAddress());
@@ -330,11 +341,10 @@ public class HttpExchange {
 	// send response
 	public ChannelFuture send(HttpResponseStatus status, String contentType, ByteBuf content) {
 		var res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, status, content, false);
-		var len = content.readableBytes();
 		var headers = Netty.setDate(res.headers())
 				.set(HttpHeaderNames.CONNECTION, HttpHeaderValues.KEEP_ALIVE)
-				.set(HttpHeaderNames.CONTENT_LENGTH, len);
-		if (len > 0)
+				.set(HttpHeaderNames.CONTENT_LENGTH, content.readableBytes());
+		if (contentType != null)
 			headers.set(HttpHeaderNames.CONTENT_TYPE, contentType);
 		return context.writeAndFlush(res);
 	}
