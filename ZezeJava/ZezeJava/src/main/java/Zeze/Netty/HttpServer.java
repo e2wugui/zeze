@@ -54,6 +54,7 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	public synchronized void close() {
 		if (scheduler == null)
 			return;
+		Netty.logger.info("close {}", getClass().getName());
 		scheduler.cancel(true);
 		scheduler = null;
 		exchanges.values().forEach(HttpExchange::closeConnectionNow);
@@ -88,13 +89,9 @@ public class HttpServer extends ChannelInitializer<SocketChannel> implements Clo
 	}
 
 	@Override
-	public void channelRead(ChannelHandlerContext ctx, Object msg) {
+	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
 		try {
 			exchanges.computeIfAbsent(ctx, c -> new HttpExchange(this, c)).channelRead(msg);
-		} catch (RuntimeException r) {
-			throw r;
-		} catch (Exception e) {
-			throw new RuntimeException(e);
 		} finally {
 			ReferenceCountUtil.release(msg);
 		}

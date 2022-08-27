@@ -924,7 +924,7 @@ public final class JsonReader {
 						if ((b & 0xfc00) == 0xd800 && buffer[p] == '\\' && buffer[p + 1] == 'u'
 								&& ((len = parseHex4(buffer, p + 2)) & 0xfc00) == 0xdc00) {
 							p += 6;
-							b = ((b & 0x3ff) << 10) + (len & 0x3ff) + 0x10000;
+							b = (b << 10) + len + (0x10000 - (0xd800 << 10) - 0xdc00);
 							t[n++] = (byte)(0xf0 + (b >> 18)); // 1111 0xxx  10xx xxxx  10xx xxxx  10xx xxxx
 							t[n++] = (byte)(0x80 + ((b >> 12) & 0x3f));
 						} else
@@ -937,7 +937,7 @@ public final class JsonReader {
 					} else
 						t[n++] = (byte)b; // 0xxx xxxx
 				} else
-					t[n++] = b >= 0x20 ? ESCAPE[b - 0x20] : (byte)(b & 0xff);
+					t[n++] = b >= 0x20 ? ESCAPE[b - 0x20] : (byte)b;
 			} else
 				t[n++] = (byte)b;
 		}
@@ -961,7 +961,7 @@ public final class JsonReader {
 			if ((b ^ '\\') < 1) // '\\' or multibyte char
 				break; // jump to the slow path below
 		}
-		int len = p - begin, n = len, c, d;
+		int len = p - begin, n = len, c, d, f;
 		for (; (b = buffer[p++]) != e; len++)
 			if (b == '\\' && buffer[p++] == 'u')
 				p += 4;
@@ -983,16 +983,24 @@ public final class JsonReader {
 				} else
 					t[n++] = (char)(b >= 0x20 ? ESCAPE[b - 0x20] : b & 0xff);
 			} else if (b >= 0)
-				t[n++] = (char)b;
+				t[n++] = (char)b; // 0xxx xxxx
 			else if (b >= -0x20) {
-				if ((c = buffer[p]) < -0x40 && (d = buffer[p + 1]) < -0x40) {
-					t[n++] = (char)(((b & 0xf) << 12) + ((c & 0x3f) << 6) + (d & 0x3f));
+				if (b >= -0x10) {
+					if ((c = buffer[p]) < -0x40 && (d = buffer[p + 1]) < -0x40 && (f = buffer[p + 2]) < -0x40) {
+						b = (b << 18) + (c << 12) + (d << 6) + f + ((0x10 << 18) + (0x80 << 12) + (0x80 << 6) + 0x80 - 0x10000);
+						t[n++] = (char)(0xd800 + ((b >> 10) & 0x3ff)); // 1111 0xxx  10xx xxxx  10xx xxxx  10xx xxxx
+						t[n++] = (char)(0xdc00 + (b & 0x3ff));
+						p += 3;
+					} else
+						t[n++] = (char)(b & 0xff); // ignore malformed utf-8
+				} else if ((c = buffer[p]) < -0x40 && (d = buffer[p + 1]) < -0x40) {
+					t[n++] = (char)((b << 12) + (c << 6) + d + ((0x20 << 12) + (0x80 << 6) + 0x80)); // 1110 xxxx  10xx xxxx  10xx xxxx
 					p += 2;
 				} else
 					t[n++] = (char)(b & 0xff); // ignore malformed utf-8
 			} else if ((c = buffer[p]) < -0x40) {
 				p++;
-				t[n++] = (char)(((b & 0x1f) << 6) + (c & 0x3f));
+				t[n++] = (char)((b << 6) + c + ((0x40 << 6) + 0x80)); // 110x xxxx  10xx xxxx
 			} else
 				t[n++] = (char)(b & 0xff); // ignore malformed utf-8
 		}
@@ -1008,7 +1016,7 @@ public final class JsonReader {
 			if ((b ^ '\\') < 1) // '\\' or multibyte char
 				break; // jump to the slow path below
 		}
-		int len = p - begin, n = len, c, d;
+		int len = p - begin, n = len, c, d, e;
 		for (; ((((b = buffer[p++]) & 0xff) - ' ' - 1) ^ (':' - ' ' - 1)) > 0; len++) // (b & 0xff) > ' ' && b != ':'
 			if (b == '\\' && buffer[p++] == 'u')
 				p += 4;
@@ -1030,16 +1038,24 @@ public final class JsonReader {
 				} else
 					t[n++] = (char)(b >= 0x20 ? ESCAPE[b - 0x20] : b);
 			} else if (b < 0x80)
-				t[n++] = (char)b;
+				t[n++] = (char)b; // 0xxx xxxx
 			else if (b > 0xdf) {
-				if ((c = buffer[p]) < -0x40 && (d = buffer[p + 1]) < -0x40) {
-					t[n++] = (char)(((b & 0xf) << 12) + ((c & 0x3f) << 6) + (d & 0x3f));
+				if (b > 0xef) {
+					if ((c = buffer[p]) < -0x40 && (d = buffer[p + 1]) < -0x40 && (e = buffer[p + 2]) < -0x40) {
+						b = (b << 18) + (c << 12) + (d << 6) + e + ((-0xf0 << 18) + (0x80 << 12) + (0x80 << 6) + 0x80 - 0x10000);
+						t[n++] = (char)(0xd800 + ((b >> 10) & 0x3ff)); // 1111 0xxx  10xx xxxx  10xx xxxx  10xx xxxx
+						t[n++] = (char)(0xdc00 + (b & 0x3ff));
+						p += 3;
+					} else
+						t[n++] = (char)(b & 0xff); // ignore malformed utf-8
+				} else if ((c = buffer[p]) < -0x40 && (d = buffer[p + 1]) < -0x40) {
+					t[n++] = (char)((b << 12) + (c << 6) + d + ((-0xe0 << 12) + (0x80 << 6) + 0x80)); // 1110 xxxx  10xx xxxx  10xx xxxx
 					p += 2;
 				} else
 					t[n++] = (char)b; // ignore malformed utf-8
 			} else if ((c = buffer[p]) < -0x40) {
 				p++;
-				t[n++] = (char)(((b & 0x1f) << 6) + (c & 0x3f));
+				t[n++] = (char)((b << 6) + c + ((-0xc0 << 6) + 0x80)); // 110x xxxx  10xx xxxx
 			} else
 				t[n++] = (char)b; // ignore malformed utf-8
 		}

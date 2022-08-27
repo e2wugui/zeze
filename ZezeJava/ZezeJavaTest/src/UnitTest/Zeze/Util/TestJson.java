@@ -73,7 +73,7 @@ public final class TestJson extends TestCase {
 		C c = new C();
 		c.a.a = 1;
 		((B)c.a).b = -1;
-		var json = JsonWriter.local().clear().write(c).toString();
+		var json = JsonWriter.local().clear().setNoQuoteKey(false).write(c).toString();
 		assertEquals("{\"a\":{\"a\":1,\"b\":-1}}", json);
 	}
 
@@ -259,11 +259,29 @@ public final class TestJson extends TestCase {
 		assertEquals(456, ((Simple)e.getValue().getBean()).getInt1());
 	}
 
-	public void testE() {
+	public void testE() throws ReflectiveOperationException {
 		var b = JsonReader.local().buf("'\\u001F\\u03A0\\u9abf\\uD955\\udeaa'").parseByteString();
 		assertNotNull(b);
 		var s = new String(b, StandardCharsets.UTF_8);
 		assertEquals(10, b.length);
+		assertEquals(5, s.length());
+		assertEquals(0x1f, s.charAt(0));
+		assertEquals(0x3a0, s.charAt(1));
+		assertEquals(0x9abf, s.charAt(2));
+		assertEquals(0xd955, s.charAt(3));
+		assertEquals(0xdeaa, s.charAt(4));
+
+		s = JsonReader.local().buf("'\\u001F\\u03A0\\u9abf\\uD955\\udeaa'").parseString();
+		assertNotNull(s);
+		assertEquals(5, s.length());
+		assertEquals(0x1f, s.charAt(0));
+		assertEquals(0x3a0, s.charAt(1));
+		assertEquals(0x9abf, s.charAt(2));
+		assertEquals(0xd955, s.charAt(3));
+		assertEquals(0xdeaa, s.charAt(4));
+
+		s = JsonReader.local().buf("\\u001F\\u03A0\\u9abf\\uD955\\udeaa ").parseStringNoQuot();
+		assertNotNull(s);
 		assertEquals(5, s.length());
 		assertEquals(0x1f, s.charAt(0));
 		assertEquals(0x3a0, s.charAt(1));

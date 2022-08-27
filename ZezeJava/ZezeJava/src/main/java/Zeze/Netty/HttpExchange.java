@@ -418,7 +418,8 @@ public class HttpExchange {
 	/////////////////////////////////////////////////////////////////////////////////////////////////
 	// 流接口功能最大化，不做任何校验：状态校验，不正确的流起始Response（headers）等。
 	public ChannelFuture beginStream(HttpResponseStatus status, HttpHeaders headers) {
-		headers.remove(HttpHeaderNames.CONTENT_LENGTH).set(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED);
+		if (!headers.contains(HttpHeaderNames.CONTENT_LENGTH))
+			headers.set(HttpHeaderNames.TRANSFER_ENCODING, HttpHeaderValues.CHUNKED);
 		return context.writeAndFlush(new DefaultHttpResponse(HttpVersion.HTTP_1_1, status, headers));
 	}
 

@@ -14,7 +14,7 @@ public class HttpHandler {
 	public HttpHandler(int maxContentLength, TransactionLevel level, DispatchMode mode,
 					   HttpEndStreamHandle fullHandle) {
 		if (fullHandle == null)
-			throw new IllegalArgumentException("beginStream is null");
+			throw new IllegalArgumentException("fullHandle is null");
 		MaxContentLength = maxContentLength >= 0 ? maxContentLength : Integer.MAX_VALUE;
 		Level = level != null ? level : TransactionLevel.Serializable;
 		Mode = mode != null ? mode : DispatchMode.Normal;

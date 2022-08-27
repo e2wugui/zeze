@@ -95,7 +95,7 @@ public class Netty implements Closeable {
 				.channel(serverChannelClass)
 				.childHandler(handler)
 				.bind(port);
-		logger.info("start server on port: {}", port);
+		logger.info("startServer {} on port {}", handler.getClass().getName(), port);
 		return future;
 	}
 

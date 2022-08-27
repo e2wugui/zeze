@@ -654,19 +654,20 @@ public final class JsonWriter {
 				if (b >= 0) { // 0xxx xxxx
 					res[p++] = (char)b;
 					i++;
-				} else if (b >= -0x20) { // 1110 xxxx  10xx xxxx  10xx xxxx
+				} else if (b >= -0x20) {
 					if (b >= -0x10) { // 1111 0xxx  10xx xxxx  10xx xxxx  10xx xxxx
-						b = ((b & 7) << 18) + ((buffer[i + 1] & 0x3f) << 12) + ((buffer[i + 2] & 0x3f) << 6) +
-								(buffer[i + 3] & 0x3f) - 0x10000;
+						b = (b << 18) + (buffer[i + 1] << 12) + (buffer[i + 2] << 6) + buffer[i + 3]
+								+ ((0x10 << 18) + (0x80 << 12) + (0x80 << 6) + 0x80 - 0x10000);
 						res[p++] = (char)(0xd800 + ((b >> 10) & 0x3ff));
 						res[p++] = (char)(0xdc00 + (b & 0x3ff));
 						i += 4;
-					} else {
-						res[p++] = (char)(((b & 0xf) << 12) + ((buffer[i + 1] & 0x3f) << 6) + (buffer[i + 2] & 0x3f));
+					} else { // 1110 xxxx  10xx xxxx  10xx xxxx
+						res[p++] = (char)((b << 12) + (buffer[i + 1] << 6) + buffer[i + 2]
+								+ ((0x20 << 12) + (0x80 << 6) + 0x80));
 						i += 3;
 					}
 				} else { // 110x xxxx  10xx xxxx
-					res[p++] = (char)(((b & 0x1f) << 6) + (buffer[i + 1] & 0x3f));
+					res[p++] = (char)((b << 6) + buffer[i + 1] + ((0x40 << 6) + 0x80));
 					i += 2;
 				}
 			}
@@ -1202,7 +1203,7 @@ public final class JsonWriter {
 					buf[pos++] = (byte)(0xc0 + (c >> 6)); // 110x xxxx  10xx xxxx
 				else {
 					if ((c & 0xfc00) == 0xd800 && i + 1 < n && ((d = str.charAt(i + 1)) & 0xfc00) == 0xdc00) { // UTF-16 surrogate
-						c = ((c & 0x3ff) << 10) + (d & 0x3ff) + 0x10000;
+						c = (c << 10) + d + (0x10000 - (0xd800 << 10) - 0xdc00);
 						i++;
 						buf[pos++] = (byte)(0xf0 + (c >> 18)); // 1111 0xxx  10xx xxxx  10xx xxxx  10xx xxxx
 						buf[pos++] = (byte)(0x80 + ((c >> 12) & 0x3f));

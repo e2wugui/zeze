@@ -840,7 +840,7 @@ public final class ByteBuffer {
 					else {
 						if ((c & 0xfc00) == 0xd800 && i + 1 < cn && ((bn = str.charAt(i + 1)) & 0xfc00) == 0xdc00) { // UTF-16 surrogate
 							i++;
-							c = ((c & 0x3ff) << 10) + (bn & 0x3ff) + 0x10000;
+							c = (c << 10) + bn + (0x10000 - (0xd800 << 10) - 0xdc00);
 							buf[wi++] = (byte)(0xf0 + (c >> 18)); // 1111 0xxx  10xx xxxx  10xx xxxx  10xx xxxx
 							buf[wi++] = (byte)(0x80 + ((c >> 12) & 0x3f));
 						} else
