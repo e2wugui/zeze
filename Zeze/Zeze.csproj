@@ -17,19 +17,24 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DefineConstants>$(DefineConstants);TRACE;USE_DATABASE;ENABLE_STATISTICS</DefineConstants>
+    <DefineConstants>$(DefineConstants);TRACE;USE_DATABASE;USE_DIAGNOSTICS;ENABLE_STATISTICS</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DefineConstants>$(DefineConstants);TRACE;USE_DATABASE;ENABLE_STATISTICS</DefineConstants>
+    <DefineConstants>$(DefineConstants);TRACE;USE_DATABASE;USE_DIAGNOSTICS;ENABLE_STATISTICS</DefineConstants>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Dummy\**" />
+    <EmbeddedResource Remove="Dummy\**" />
+    <None Remove="Dummy\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="MySql.Data" Version="8.0.28" />
     <PackageReference Include="Nito.AsyncEx" Version="5.1.2" />
     <PackageReference Include="NLog" Version="4.7.14" />
-    <PackageReference Include="Portable.BouncyCastle" Version="1.9.0" />
-    <PackageReference Include="RocksDB" Version="7.0.2.26646" />
+    <PackageReference Include="RocksDbSharp" Version="6.2.2" />
     <PackageReference Include="Scriban" Version="5.4.1" />
     <PackageReference Include="System.Collections.Immutable" Version="6.0.0" />
     <PackageReference Include="System.Data.SqlClient" Version="4.8.3" />

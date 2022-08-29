@@ -13,6 +13,7 @@ public class TestCert
 {
     public static void Test1()
     {
+        /*
         const string pkcs12File = "test.pkcs12";
         const string passwd = "123";
         const string alias = "test";
@@ -92,5 +93,6 @@ public class TestCert
 
         var publicKeyData = ((RsaKeyParameters)publicKey).Modulus.ToByteArray();
         Console.WriteLine("rsa modulus = [" + publicKeyData.Length + "] " + BitConverter.ToString(publicKeyData));
+        */
     }
 }

@@ -55,7 +55,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\Zeze\Zeze.csproj" />
+	  <ProjectReference Include="..\Zeze\ZezeNoDatabase.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>

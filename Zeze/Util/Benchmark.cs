@@ -1,18 +1,18 @@
 using System;
-using System.Diagnostics;
 using System.Runtime.Versioning;
 
+#if USE_DIAGNOSTICS
 namespace Zeze.Util
 {
     public class Benchmark
     {
         private readonly long startTime;
-        private PerformanceCounter counter;
+        private System.Diagnostics.PerformanceCounter counter;
 
         [SupportedOSPlatform("windows")]
         private void StartPerformanceCounter()
         {
-            counter = new PerformanceCounter(
+            counter = new System.Diagnostics.PerformanceCounter(
                 "Processor",
                 "% Processor Time",
                 "_Total",
@@ -50,3 +50,4 @@ namespace Zeze.Util
         }
     }
 }
+#endif

@@ -18,9 +18,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Nito.AsyncEx" Version="5.1.2" />
     <PackageReference Include="NLog" Version="4.7.4" />
-    <PackageReference Include="RocksDbNative" Version="6.2.2" />
     <PackageReference Include="RocksDbSharp" Version="6.2.2" />
+    <PackageReference Include="Scriban" Version="5.5.0" />
     <PackageReference Include="System.Collections.Immutable" Version="5.0.0" />
   </ItemGroup>
 

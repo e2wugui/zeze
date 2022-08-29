@@ -1,11 +1,9 @@
 using System;
-using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
-using System.Runtime.ConstrainedExecution;
-using System.Security;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+
+/*
 using Org.BouncyCastle.Asn1;
 using Org.BouncyCastle.Asn1.X509;
 using Org.BouncyCastle.Crypto;
@@ -16,7 +14,7 @@ using Org.BouncyCastle.Math;
 using Org.BouncyCastle.Pkcs;
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.X509;
-
+*/
 namespace Zeze.Util;
 
 public static class Cert
@@ -118,6 +116,7 @@ public static class Cert
         return X509Certificate2.CreateFromEncryptedPem(pemCert, pemPrivateKey, passwd);
     }
 
+    /*
     // 从输入流加载KeyStore(PKCS12格式的二进制密钥存储格式,有密码加密,包含私钥和公钥证书)
     public static Pkcs12Store LoadKeyStore(Stream inputStream, string passwd)
     {
@@ -246,6 +245,7 @@ public static class Cert
         rsa.Init(false, privateKey);
         return rsa.ProcessBlock(data, offset, size);
     }
+    */
 
     // 创建安全随机的AES密钥(固定256位)
     public static Aes GenerateAesKey()
@@ -269,9 +269,7 @@ public static class Cert
     // 创建安全随机的IV(固定128位)
     public static byte[] GenerateAesIv()
     {
-        var iv = new byte[16];
-        new SecureRandom().NextBytes(iv);
-        return iv;
+        return RandomNumberGenerator.GetBytes(16);
     }
 
     // 使用AES加密数据(CBC模式需要提供IV,带padding)
