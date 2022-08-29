@@ -36,7 +36,7 @@ conf+cs With Net
 	2. Net目录拷贝出去；在项目中定义宏 USE_CONFCS，这样Net模块就不再依赖事务Bean和存储过程。
 	3. 需要建立一个几乎空的 Zeze.Application，用来传递Config和避免修改Gen.exe。
 	4. 拷贝 Zeze.IModule;Zeze.AppBase;Zeze.Config;Zeze.Util.ResultCode;Zeze.Util.Mission;Zeze.Util.Scheduler。
-	   【这几个文件】应该没有其他依赖了，没有全部确认。
+	   【这几个文件应该没有依赖其他东西，可以直接拷贝，需要确认。】
 
 ------------------------------------------------------------------------------------------------------------------------------
 tag 1.0.5 Certificate; Netty-Web More; Change Protocol Provider.Send To Rpc And Report Error;
